@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright 2008 Nominet UK, 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. 
@@ -19,6 +21,17 @@
 #include <pthread.h>
 #include <wait.h>
 
+#define PTHREAD_THREADS_MAX 2048
+
+static CK_OBJECT_HANDLE key;
+static int Iter = 1000;
+
+typedef struct
+{
+    CK_SESSION_HANDLE ses;
+} T_Arg;
+
+
 /*
  * Check PKCS11 Return Values.
  * An error will cause exit, after de error is printed to stderr.
@@ -34,16 +47,6 @@ check_rv (const char *message, CK_RV rv)
         exit (EXIT_FAILURE);
     }
 }
-
-#define PTHREAD_THREADS_MAX 2048
-
-static CK_OBJECT_HANDLE key;
-static int Iter = 1000;
-
-typedef struct
-{
-    CK_SESSION_HANDLE ses;
-} T_Arg;
 
 /*
  * Signthread is a small loop that signs data "Iter" times.
