@@ -1,6 +1,16 @@
 $Id$
 
 
+This is my collection of scripts for integrating DNS zone file management with
+Subversion and ZKT. A brief introduction to how this is supposed to work can
+be found below and in the file 'dataflow.pdf'.
+
+Enjoy,
+
+	Jakob Schlyter, jakob@kirei.se
+
+
+
 0. All zone files are stored in a subversion repository.
 
 1. a subversion pre-commit hook (called svn-checkzone) checks that
