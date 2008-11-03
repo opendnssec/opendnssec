@@ -32,6 +32,7 @@ use warnings;
 use strict;
 
 use Getopt::Long;
+use Pod::Usage;
 use File::Basename;
 
 my $checkzone = "/usr/sbin/named-checkzone";
@@ -40,19 +41,22 @@ my $tempdir   = "/var/tmp";
 ######################################################################
 
 sub main {
+    my $help = 0;
     my $zone;
     my $serial;
     my $destdir;
 
     GetOptions(
+        'help|?'    => \$help,
         'zone=s'    => \$zone,
         'serial=i'  => \$serial,
         'destdir=s' => \$destdir,
-    ) or usage();
+    ) or pod2usage(2);
+    pod2usage(1) if ($help);
 
     my $input = shift @ARGV;
 
-    usage() unless ($input);
+    pod2usage(1) unless ($input);
 
     my $zonefile = basename($input);
 
@@ -90,10 +94,27 @@ sub main {
     unlink($tempfile);
 }
 
-sub usage {
-    print
-      "usage: dns-installzone [--zone=ZONE] [--serial=NUM] [--destdir=DIR] zonefile\n";
-    exit(-1);
-}
-
 main();
+
+__END__
+
+=head1 NAME
+
+dns-zoneinstall - Subversion post-commit hook for installing DNS zones
+
+=head1 SYNOPSIS
+
+dns-zoneinstall [options] zonefile
+
+Options:
+
+ --help             brief help message
+ --zone=ZONE        set zone name (default is the basename of the zonefile)
+ --serial=NUM       set zone serial (default is current UNIX timestamp)
+ --destdir=DIR      destination directory for zonefiles (default ".")
+
+
+=head1 ABSTRACT
+
+dns-zoneinstall copies a DNS zone file and updates the SOA serial while
+copying.
