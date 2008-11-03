@@ -39,8 +39,10 @@ VIEW=aaonly
 
 PROCESSED=0
 
-# fetch all files from INBOX, moving signed zones to ZKT directory
-# and unsigned zones directly to OUTBOX
+# process files in INBOX
+# - signed zones are moved to its corresponding ZKT directory for
+#   further processing by ZKT
+# - unsigned zones are moved directly to OUTBOX
 #
 process_inbox()
 {
@@ -59,7 +61,7 @@ process_inbox()
 	fi
 }
 
-# prepare signed zones for ZKT
+# prepare signed zones for ZKT processing
 #
 prepare_signed()
 {
@@ -85,7 +87,7 @@ prepare_signed()
 	rm -f $tmp
 }
 
-# install signed zones to OUTBOX
+# copy signed zones from ZKT in OUTBOX
 #
 install_signed()
 {
@@ -105,7 +107,7 @@ install_signed()
 	done
 }
 
-# install unsigned zones to OUTBOX
+# move unsigned zones to OUTBOX
 #
 install_unsigned()
 {
@@ -125,6 +127,7 @@ install_unsigned()
 #
 launch_signer()
 {
+    # if any updated zones where installed, use verbose mode
 	if [ ${PROCESSED} -gt 0 ]; then
 		${ZKT_SIGNER} -v
 	else
