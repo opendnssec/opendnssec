@@ -30,6 +30,7 @@
 ZKT_SIGNER=/usr/local/sbin/dnssec-signer
 ZKT_ZONEDIR=/var/dnssec/zkt
 DNS_INSTALLZONE=/usr/local/sbin/dns-installzone
+RNDC=/usr/sbin/rndc
 
 INBOX=/var/spool/named
 OUTBOX=/var/named/master
@@ -101,7 +102,7 @@ install_signed()
     				install -m 444 $file ${OUTBOX}/${zone}
 
 				echo "Requesting reload of $zone (signed)"
-				rndc reload $zone $CLASS $VIEW >/dev/null
+				$RNDC reload $zone $CLASS $VIEW >/dev/null
 			fi
 		fi
 	done
@@ -119,7 +120,7 @@ install_unsigned()
 		rm -f $file
 
 		echo "Requesting reload of $zone (unsigned)"
-		rndc reload $zone $CLASS $VIEW >/dev/null
+		$RNDC reload $zone $CLASS $VIEW >/dev/null
 	fi
 }
 
