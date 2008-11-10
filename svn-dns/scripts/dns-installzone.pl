@@ -74,8 +74,9 @@ sub main {
         exit(-1);
     }
 
-    open(INPUT,  "< $tempfile");
-    open(OUTPUT, "> $destdir/$zonefile");
+    open(INPUT, "< $tempfile") || die "failed to read $tempfile";
+    open(OUTPUT, "> $destdir/$zonefile")
+      || die "failed to write $destdir/$zonefile";
 
     while (<INPUT>) {
         chomp;
