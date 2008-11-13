@@ -1,13 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <pkcs11_unix.h>
-#include <pkcs11.h>
+#include <string>
+#include <fstream>
 
 #include <botan/botan.h>
 #include <botan/bigint.h>
-#include <botan/numthry.h>
-#include <botan/rng.h>
+#include <botan/randpool.h>
+#include <botan/aes.h>
+#include <botan/hmac.h>
+#include <botan/sha2_32.h>
+#include <botan/rsa.h>
+#include <botan/auto_rng.h>
+#include <botan/pkcs8.h>
+#include <botan/x509_obj.h>
+using namespace Botan;
+
+#include <pkcs11_unix.h>
+#include <pkcs11.h>
 
 #include <softhsminternal.cpp>
 
@@ -325,7 +334,11 @@ CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_U
 }
 
 CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  return softHSM->getAttributeValue(hSession, hObject, pTemplate, ulCount);
 }
 
 CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
@@ -504,8 +517,8 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     return CKR_TEMPLATE_INCONSISTENT;
   }
 
-  unsigned long *modulusBits = NULL_PTR;
-  Botan::BigInt *exponent = NULL_PTR;
+  u32bit *modulusBits = NULL_PTR;
+  BigInt *exponent = NULL_PTR;
 
   for(unsigned int i = 0; i < ulPublicKeyAttributeCount; i++) {
     switch(pPublicKeyTemplate[i].type) {
@@ -513,7 +526,7 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
         if(pPublicKeyTemplate[i].ulValueLen != 4) {
           return CKR_TEMPLATE_INCONSISTENT;
         }
-        modulusBits = (unsigned long *)pPublicKeyTemplate[i].pValue;
+        modulusBits = (Botan::u32bit *)pPublicKeyTemplate[i].pValue;
         break;
       case CKA_PUBLIC_EXPONENT:
         exponent = new Botan::BigInt((Botan::byte*)pPublicKeyTemplate[i].pValue,pPublicKeyTemplate[i].ulValueLen);
@@ -531,57 +544,44 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     exponent = new Botan::BigInt("65537");
   }
 
-  printf("Modulus: %lu\n", *modulusBits);
-  printf("Exponent: %u\n", exponent->to_u32bit());
-
-  CK_KEY_TYPE keyType = CKK_RSA;
-  CK_BBOOL cktrue = CK_TRUE;
-  CK_OBJECT_CLASS objectClass;
-
-  SoftObject *publicKey = new SoftObject();
   SoftObject *privateKey = new SoftObject();
+  SoftObject *publicKey = new SoftObject();
+  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
 
-  objectClass = CKO_PUBLIC_KEY;
-  publicKey->privateKey = false;
-  publicKey->addAttributeFromData(CKA_CLASS, &objectClass, sizeof(objectClass));
-  publicKey->addAttributeFromData(CKA_KEY_TYPE, &keyType, sizeof(keyType));
-  publicKey->addAttributeFromData(CKA_LOCAL, &cktrue, sizeof(cktrue));
+  RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*rng, *modulusBits, exponent->to_u32bit());
 
-  objectClass = CKO_PRIVATE_KEY;
-  privateKey->privateKey = true;
-  privateKey->addAttributeFromData(CKA_CLASS, &objectClass, sizeof(objectClass));
-  privateKey->addAttributeFromData(CKA_KEY_TYPE, &keyType, sizeof(keyType));
-  privateKey->addAttributeFromData(CKA_LOCAL, &cktrue, sizeof(cktrue));
+  privateKey->addKey(rsaKey, true);
+  publicKey->addKey(rsaKey, false);
 
+  int privateRef = softHSM->addObject(privateKey);
+  int publicRef = softHSM->addObject(publicKey);
 
-// CK_SESSION_HANDLE hSession;
-// CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
-// CK_MECHANISM mechanism = {
-//   CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0
-// };
-// CK_ULONG modulusBits = 768;
-// CK_BYTE publicExponent[] = { 3 };
-// CK_BYTE subject[] = {...};
-// CK_BYTE id[] = {123};
-// CK_BBOOL true = CK_TRUE;
-// CK_ATTRIBUTE publicKeyTemplate[] = {
-//   {CKA_ENCRYPT, &true, sizeof(true)},
-//   {CKA_VERIFY, &true, sizeof(true)},
-//   {CKA_WRAP, &true, sizeof(true)},
-//   {CKA_MODULUS_BITS, &modulusBits, sizeof(modulusBits)},
-//   {CKA_PUBLIC_EXPONENT, publicExponent, sizeof
-//   (publicExponent)}
-// };
-// CK_ATTRIBUTE privateKeyTemplate[] = {
-//   {CKA_TOKEN, &true, sizeof(true)},
-//   {CKA_PRIVATE, &true, sizeof(true)},
-//   {CKA_SUBJECT, subject, sizeof(subject)},
-//   {CKA_ID, id, sizeof(id)},
-//   {CKA_SENSITIVE, &true, sizeof(true)},
-//   {CKA_DECRYPT, &true, sizeof(true)},
-//   {CKA_SIGN, &true, sizeof(true)},
-//   {CKA_UNWRAP, &true, sizeof(true)}
-// };
+  if(!publicRef || !privateRef) {
+    return CKR_DEVICE_MEMORY;
+  }
+
+  *phPrivateKey = (CK_OBJECT_HANDLE)privateRef;
+  *phPublicKey = (CK_OBJECT_HANDLE)publicRef;
+
+  /*
+  RSA_PublicKey *rsaKeyPub = dynamic_cast<RSA_PublicKey*>(rsaKey);
+  Private_Key *rsaKey2 = dynamic_cast<Private_Key*>(rsaKey);
+
+  
+  std::ofstream priv("rsapriv.pem");
+  std::ofstream priv2("rsapriv2.pem");
+
+  priv << PKCS8::PEM_encode(*rsaKey, *rng, softHSM->pin);
+  priv2 << PKCS8::PEM_encode(*rsaKey2, *rng, softHSM->pin);
+
+  priv.close();
+  priv2.close();
+
+  Private_Key *testKey2 = PKCS8::load_key("rsapriv.pem", *rng, softHSM->pin);
+  Public_Key *testKey3 = dynamic_cast<Public_Key*>(testKey2);
+
+  printf("Alg_name: %s\n", testKey3->algo_name().c_str());
+  */
 
   return CKR_OK;
 }

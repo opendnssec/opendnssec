@@ -16,12 +16,15 @@ class SoftHSMInternal {
     CK_RV getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo);
     CK_RV login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen);
     CK_RV getSession(CK_SESSION_HANDLE hSession, SoftSession *&session);
+    CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
+    CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
     bool isLoggedIn();
+    int addObject(SoftObject *inObject);
+    char *pin;
   private:
     int openSessions;
     SoftSession *sessions[MAX_SESSION_COUNT];
     SoftObject *objects[MAX_OBJECTS];
-    char *pin;
 };
 
 SoftHSMInternal::SoftHSMInternal() {
@@ -85,7 +88,7 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
 }
 
 CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
-  if(hSession >= MAX_SESSION_COUNT || hSession < 1) {
+  if(hSession > MAX_SESSION_COUNT || hSession < 1) {
     return CKR_SESSION_HANDLE_INVALID;
   }
 
@@ -113,12 +116,11 @@ CK_RV SoftHSMInternal::closeAllSessions() {
 }
 
 CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo) {
-  if(hSession >= MAX_SESSION_COUNT || hSession < 1) {
-    return CKR_SESSION_HANDLE_INVALID;
-  }
+  SoftSession *session;
+  CK_RV result = getSession(hSession, session);
 
-  if(sessions[hSession-1] == NULL_PTR) {
-    return CKR_SESSION_CLOSED;
+  if(result != CKR_OK) {
+    return result;
   }
 
   if(sizeof(*pInfo) != sizeof(CK_SESSION_INFO)) {
@@ -140,25 +142,29 @@ CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INF
 }
 
 CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
-  if(hSession >= MAX_SESSION_COUNT || hSession < 1) {
-    return CKR_SESSION_HANDLE_INVALID;
+  SoftSession *session;
+  CK_RV result = getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
   }
 
-  if(sessions[hSession-1] == NULL_PTR) {
-    return CKR_SESSION_CLOSED;
+  if(ulPinLen < 4 || ulPinLen > 8000) {
+    return CKR_PIN_INCORRECT;
   }
 
-  pin = (char *)malloc(ulPinLen);
+  pin = (char *)malloc(ulPinLen+1);
   if (!pin) {
     return CKR_DEVICE_MEMORY;
   }
+  memset (pin,0,ulPinLen+1);
   memcpy(pin, pPin, ulPinLen);
 
   return CKR_OK;
 }
 
 CK_RV SoftHSMInternal::getSession(CK_SESSION_HANDLE hSession, SoftSession *&session) {
-  if(hSession >= MAX_SESSION_COUNT || hSession < 1) {
+  if(hSession > MAX_SESSION_COUNT || hSession < 1) {
     return CKR_SESSION_HANDLE_INVALID;
   }
 
@@ -171,6 +177,17 @@ CK_RV SoftHSMInternal::getSession(CK_SESSION_HANDLE hSession, SoftSession *&sess
   return CKR_OK;
 }
 
+CK_RV SoftHSMInternal::getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object) {
+  if(hObject > MAX_OBJECTS || hObject < 1 || objects[hObject-1] == NULL_PTR) {
+    return CKR_OBJECT_HANDLE_INVALID;
+  }
+
+  object = objects[hObject-1];
+
+  return CKR_OK;
+}
+
+
 bool SoftHSMInternal::isLoggedIn() {
   if(pin) {
     return true;
@@ -178,3 +195,32 @@ bool SoftHSMInternal::isLoggedIn() {
     return false;
   }
 }
+
+int SoftHSMInternal::addObject(SoftObject *inObject) {
+  for(int i = 0; i < MAX_OBJECTS; i++) {
+    if(objects[i] == NULL_PTR) {
+      objects[i] = inObject;
+      return i+1;
+    }
+  }
+  return 0;
+}
+
+CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  SoftSession *session;
+  CK_RV result = getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  SoftObject *object;
+  result = getObject(hObject, object);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
