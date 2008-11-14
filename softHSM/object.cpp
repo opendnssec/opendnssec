@@ -2,14 +2,12 @@ class SoftObject {
   public:
     SoftObject();
     ~SoftObject();
-    CK_RV addAttributeFromData(CK_ATTRIBUTE_TYPE type, void *data, CK_ULONG size);
     CK_RV addKey(Private_Key *inKey, bool setPrivateKey);
+    CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
     bool isPrivate();
     CK_KEY_TYPE getKeyType();
     Private_Key* getKey();
 
-    CK_ATTRIBUTE_PTR attributes[MAX_ATTRIBUTES];
-    int attributeCount;
     int fileID;
 
   private:
@@ -22,47 +20,14 @@ SoftObject::SoftObject() {
   key = NULL_PTR;
   privateKey = false;
   keyType = CKK_RSA;
-  attributeCount = 0;
   fileID = 0;
-  
-  for(int i = 0; i < MAX_ATTRIBUTES; i++) {
-    attributes[i] = NULL_PTR;
-  }
 }
 
 SoftObject::~SoftObject() {
-  for(int i = 0; i < MAX_ATTRIBUTES; i++) {
-    free(attributes[i]->pValue);
-    free(attributes[i]);
+  if(key != NULL_PTR && privateKey) {
+    delete key;
   }
-  delete key;
   key = NULL_PTR;
-}
-
-CK_RV SoftObject::addAttributeFromData(CK_ATTRIBUTE_TYPE type, void *data, CK_ULONG size) {
-  CK_ATTRIBUTE_PTR attribute = (CK_ATTRIBUTE_PTR) malloc(sizeof(CK_ATTRIBUTE));
-
-  if(!attribute) {
-    return CKR_DEVICE_MEMORY;
-  }
-
-  for(int i = 0; i < MAX_ATTRIBUTES; i++) {
-    if(attributes[i] == NULL_PTR) {
-      attribute->type = type;
-      attribute->pValue = malloc(size);
-      if(!attribute->pValue) {
-        free(attribute);
-        return CKR_DEVICE_MEMORY;
-      }
-      memcpy(attribute->pValue, data, size);
-      attribute->ulValueLen = size;
-      attributes[i] = attribute;
-      return CKR_OK;
-    }
-  }
-
-  free(attribute);
-  return CKR_DEVICE_MEMORY;
 }
 
 CK_RV SoftObject::addKey(Private_Key *inKey, bool setPrivateKey) {
@@ -94,22 +59,137 @@ Private_Key* SoftObject::getKey() {
   return key;
 }
 
+CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
+  CK_RV result = CKR_OK;
+  CK_BBOOL oTrue = CK_TRUE;
+  CK_BBOOL oFalse = CK_FALSE;
 
-/********************************************************************
+  switch(attTemplate->type) {
+    case CKA_CLASS:
+      if(attTemplate->pValue == NULL_PTR) {
+        attTemplate->ulValueLen = sizeof(CK_OBJECT_CLASS);
+      } else if(attTemplate->ulValueLen < sizeof(CK_OBJECT_CLASS)) {
+        result = CKR_BUFFER_TOO_SMALL;
+        attTemplate->ulValueLen = -1;
+      } else {
+        CK_OBJECT_CLASS oClass;
+        if(privateKey) {
+          oClass = CKO_PRIVATE_KEY;
+        } else {
+          oClass = CKO_PUBLIC_KEY;
+        }
+        memcpy(attTemplate->pValue, &oClass, sizeof(oClass));
+      }
+      break;
+    case CKA_KEY_TYPE:
+      if(attTemplate->pValue == NULL_PTR) {
+        attTemplate->ulValueLen = sizeof(keyType);
+      } else if(attTemplate->ulValueLen < sizeof(keyType)) {
+        result = CKR_BUFFER_TOO_SMALL;
+        attTemplate->ulValueLen = -1;
+      } else {
+        memcpy(attTemplate->pValue, &keyType, sizeof(keyType));
+      }
+      break;
+    case CKA_LABEL:
+    case CKA_ID:
+      if(attTemplate->pValue == NULL_PTR) {
+        attTemplate->ulValueLen = 5;
+      } else if(attTemplate->ulValueLen < 5) {
+        result = CKR_BUFFER_TOO_SMALL;
+        attTemplate->ulValueLen = -1;
+      } else {
+        memcpy(attTemplate->pValue, "12345", 5);
+      }
+      break;
+    case CKA_LOCAL:
+    case CKA_PRIVATE:
+    case CKA_TOKEN:
+      if(attTemplate->pValue == NULL_PTR) {
+        attTemplate->ulValueLen = sizeof(oTrue);
+      } else if(attTemplate->ulValueLen < sizeof(oTrue)) {
+        result = CKR_BUFFER_TOO_SMALL;
+        attTemplate->ulValueLen = -1;
+      } else {
+        memcpy(attTemplate->pValue, &oTrue, sizeof(oTrue));
+      }
+      break;
+    case CKA_ENCRYPT:
+    case CKA_VERIFY:
+      if(attTemplate->pValue == NULL_PTR) {
+        attTemplate->ulValueLen = sizeof(CK_BBOOL);
+      } else if(attTemplate->ulValueLen < sizeof(CK_BBOOL)) {
+        result = CKR_BUFFER_TOO_SMALL;
+        attTemplate->ulValueLen = -1;
+      } else {
+        CK_BBOOL oBool;
+        if(privateKey) {
+          oBool = CK_FALSE;
+        } else {
+          oBool = CK_TRUE;
+        }
+        memcpy(attTemplate->pValue, &oBool, sizeof(oBool));
+      }
+      break;
+    case CKA_DECRYPT:
+    case CKA_SIGN:
+      if(attTemplate->pValue == NULL_PTR) {
+        attTemplate->ulValueLen = sizeof(CK_BBOOL);
+      } else if(attTemplate->ulValueLen < sizeof(CK_BBOOL)) {
+        result = CKR_BUFFER_TOO_SMALL;
+        attTemplate->ulValueLen = -1;
+      } else {
+        CK_BBOOL oBool;
+        if(privateKey) {
+          oBool = CK_TRUE;
+        } else {
+          oBool = CK_FALSE;
+        }
+        memcpy(attTemplate->pValue, &oBool, sizeof(oBool));
+      }
+      break;
+    case CKA_WRAP:
+    case CKA_UNWRAP:
+    case CKA_MODIFIABLE:
+      if(attTemplate->pValue == NULL_PTR) {
+        attTemplate->ulValueLen = sizeof(oFalse);
+      } else if(attTemplate->ulValueLen < sizeof(oFalse)) {
+        result = CKR_BUFFER_TOO_SMALL;
+        attTemplate->ulValueLen = -1;
+      } else {
+        memcpy(attTemplate->pValue, &oFalse, sizeof(oFalse));
+      }
+      break;
+    case CKA_MODULUS_BITS:
+      if(keyType == CKK_RSA) {
+        IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);
+        BigInt bigModulus = ifKey->get_n();
+        int bits = bigModulus.bits();
 
-  CK_KEY_TYPE keyType = CKK_RSA;
-  CK_BBOOL cktrue = CK_TRUE;
-  CK_OBJECT_CLASS objectClass;
+        if(attTemplate->pValue == NULL_PTR) {
+          attTemplate->ulValueLen = sizeof(int);
+        } else if(attTemplate->ulValueLen < sizeof(int)) {
+          result = CKR_BUFFER_TOO_SMALL;
+          attTemplate->ulValueLen = -1;
+        } else {
+          memcpy(attTemplate->pValue, &bits, sizeof(int));
+        }
+      } else {
+        result = CKR_ATTRIBUTE_TYPE_INVALID;
+        attTemplate->ulValueLen = -1;
+      }
+      break;
+    default:
+      result = CKR_ATTRIBUTE_TYPE_INVALID;
+      attTemplate->ulValueLen = -1;
+      break;
+  }
 
-  objectClass = CKO_PUBLIC_KEY;
-  publicKey->addAttributeFromData(CKA_CLASS, &objectClass, sizeof(objectClass));
-  publicKey->addAttributeFromData(CKA_KEY_TYPE, &keyType, sizeof(keyType));
-  publicKey->addAttributeFromData(CKA_LOCAL, &cktrue, sizeof(cktrue));
+  return result;
+}
 
-  objectClass = CKO_PRIVATE_KEY;
-  privateKey->addAttributeFromData(CKA_CLASS, &objectClass, sizeof(objectClass));
-  privateKey->addAttributeFromData(CKA_KEY_TYPE, &keyType, sizeof(keyType));
-  privateKey->addAttributeFromData(CKA_LOCAL, &cktrue, sizeof(cktrue));
-
-
-********************************************************************/
+/*
+CKR_ATTRIBUTE_SENSITIVE
+CKR_ATTRIBUTE_TYPE_INVALID
+CKR_BUFFER_TOO_SMALL
+*/

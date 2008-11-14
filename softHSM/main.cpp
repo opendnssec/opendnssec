@@ -118,8 +118,10 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  delete softHSM;
-  softHSM = NULL_PTR;
+  if(softHSM != NULL_PTR) {
+    delete softHSM;
+    softHSM = NULL_PTR;
+  }
 
   return CKR_OK;
 }
@@ -526,7 +528,7 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
         if(pPublicKeyTemplate[i].ulValueLen != 4) {
           return CKR_TEMPLATE_INCONSISTENT;
         }
-        modulusBits = (Botan::u32bit *)pPublicKeyTemplate[i].pValue;
+        modulusBits = (u32bit*)pPublicKeyTemplate[i].pValue;
         break;
       case CKA_PUBLIC_EXPONENT:
         exponent = new Botan::BigInt((Botan::byte*)pPublicKeyTemplate[i].pValue,pPublicKeyTemplate[i].ulValueLen);
@@ -564,10 +566,6 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
   *phPublicKey = (CK_OBJECT_HANDLE)publicRef;
 
   /*
-  RSA_PublicKey *rsaKeyPub = dynamic_cast<RSA_PublicKey*>(rsaKey);
-  Private_Key *rsaKey2 = dynamic_cast<Private_Key*>(rsaKey);
-
-  
   std::ofstream priv("rsapriv.pem");
   std::ofstream priv2("rsapriv2.pem");
 

@@ -43,17 +43,23 @@ SoftHSMInternal::SoftHSMInternal() {
 
 SoftHSMInternal::~SoftHSMInternal() {
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
-    delete sessions[i];
-    sessions[i] = NULL_PTR;
+    if(sessions[i] != NULL_PTR) {
+      delete sessions[i];
+      sessions[i] = NULL_PTR;
+    }
   }
 
   for(int i = 0; i < MAX_OBJECTS; i++) {
-    delete objects[i];
-    objects[i] = NULL_PTR;
+    if(objects[i] != NULL_PTR) {
+      delete objects[i];
+      objects[i] = NULL_PTR;
+    }
   }
 
-  free(pin);
-  pin = NULL_PTR;
+  if(pin != NULL_PTR) {
+    free(pin);
+    pin = NULL_PTR;
+  }
 }
 
 int SoftHSMInternal::getSessionCount() {
@@ -106,8 +112,10 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
 
 CK_RV SoftHSMInternal::closeAllSessions() {
   for (int i = 0; i < MAX_SESSION_COUNT; i++) {
-    delete sessions[i];
-    sessions[i] = NULL_PTR;
+    if(sessions[i] == NULL_PTR) {
+      delete sessions[i];
+      sessions[i] = NULL_PTR;
+    }
   }
 
   openSessions = 0;
@@ -157,7 +165,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   if (!pin) {
     return CKR_DEVICE_MEMORY;
   }
-  memset (pin,0,ulPinLen+1);
+  memset(pin,0,ulPinLen+1);
   memcpy(pin, pPin, ulPinLen);
 
   return CKR_OK;
@@ -221,6 +229,16 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
     return result;
   }
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  result = CKR_OK;
+  CK_RV objectResult = CKR_OK;
+
+  for(unsigned int i = 0; i < ulCount; i++) {
+    objectResult = object->getAttribute(&pTemplate[i]);
+    if(objectResult != CKR_OK) {
+      result = objectResult;
+    }
+  }
+
+  return result;
 }
 
