@@ -1,26 +1,8 @@
-class SoftObject {
-  public:
-    SoftObject();
-    ~SoftObject();
-    CK_RV addKey(Private_Key *inKey, bool setPrivateKey);
-    CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
-    bool isPrivate();
-    CK_KEY_TYPE getKeyType();
-    Private_Key* getKey();
-
-    int fileID;
-
-  private:
-    Private_Key *key;
-    bool privateKey;
-    CK_KEY_TYPE keyType;
-};
-
 SoftObject::SoftObject() {
   key = NULL_PTR;
   privateKey = false;
   keyType = CKK_RSA;
-  fileID = 0;
+  fileName = NULL_PTR;
 }
 
 SoftObject::~SoftObject() {
@@ -28,9 +10,18 @@ SoftObject::~SoftObject() {
     delete key;
   }
   key = NULL_PTR;
+
+  if(fileName != NULL_PTR) {
+    free(fileName);
+    fileName = NULL_PTR;
+  }
 }
 
-CK_RV SoftObject::addKey(Private_Key *inKey, bool setPrivateKey) {
+CK_RV SoftObject::addKey(Private_Key *inKey, bool setPrivateKey, char *pName) {
+  if(pName == NULL_PTR || inKey == NULL_PTR) {
+    return CKR_GENERAL_ERROR;
+  }
+
   const char *algoName = (dynamic_cast<Public_Key*>(inKey))->algo_name().c_str();
 
   if(!strcmp(algoName, "RSA")) {
@@ -43,6 +34,21 @@ CK_RV SoftObject::addKey(Private_Key *inKey, bool setPrivateKey) {
 
   key = inKey;
   privateKey = setPrivateKey;
+  fileName = pName;
+
+  return CKR_OK;
+}
+
+CK_RV SoftObject::saveKey() {
+  if(fileName == NULL_PTR || key == NULL_PTR) {
+    return CKR_GENERAL_ERROR;
+  }
+
+  if(privateKey) {
+    if(!saveKeyFile(fileName, key)) {
+      return CKR_GENERAL_ERROR;
+    }
+  }
 
   return CKR_OK;
 }
@@ -67,10 +73,10 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
   switch(attTemplate->type) {
     case CKA_CLASS:
       if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = sizeof(CK_OBJECT_CLASS);
+        attTemplate->ulValueLen = (CK_LONG)sizeof(CK_OBJECT_CLASS);
       } else if(attTemplate->ulValueLen < sizeof(CK_OBJECT_CLASS)) {
         result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = -1;
+        attTemplate->ulValueLen = (CK_LONG)-1;
       } else {
         CK_OBJECT_CLASS oClass;
         if(privateKey) {
@@ -83,10 +89,10 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
       break;
     case CKA_KEY_TYPE:
       if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = sizeof(keyType);
+        attTemplate->ulValueLen = (CK_LONG)sizeof(keyType);
       } else if(attTemplate->ulValueLen < sizeof(keyType)) {
         result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = -1;
+        attTemplate->ulValueLen = (CK_LONG)-1;
       } else {
         memcpy(attTemplate->pValue, &keyType, sizeof(keyType));
       }
@@ -94,22 +100,22 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
     case CKA_LABEL:
     case CKA_ID:
       if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = 5;
-      } else if(attTemplate->ulValueLen < 5) {
+        attTemplate->ulValueLen = (CK_LONG)strlen(fileName);
+      } else if(attTemplate->ulValueLen < strlen(fileName)) {
         result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = -1;
+        attTemplate->ulValueLen = (CK_LONG)-1;
       } else {
-        memcpy(attTemplate->pValue, "12345", 5);
+        memcpy(attTemplate->pValue, fileName, strlen(fileName));
       }
       break;
     case CKA_LOCAL:
     case CKA_PRIVATE:
     case CKA_TOKEN:
       if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = sizeof(oTrue);
+        attTemplate->ulValueLen = (CK_LONG)sizeof(oTrue);
       } else if(attTemplate->ulValueLen < sizeof(oTrue)) {
         result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = -1;
+        attTemplate->ulValueLen = (CK_LONG)-1;
       } else {
         memcpy(attTemplate->pValue, &oTrue, sizeof(oTrue));
       }
@@ -117,10 +123,10 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
     case CKA_ENCRYPT:
     case CKA_VERIFY:
       if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = sizeof(CK_BBOOL);
+        attTemplate->ulValueLen = (CK_LONG)sizeof(CK_BBOOL);
       } else if(attTemplate->ulValueLen < sizeof(CK_BBOOL)) {
         result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = -1;
+        attTemplate->ulValueLen = (CK_LONG)-1;
       } else {
         CK_BBOOL oBool;
         if(privateKey) {
@@ -134,10 +140,10 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
     case CKA_DECRYPT:
     case CKA_SIGN:
       if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = sizeof(CK_BBOOL);
+        attTemplate->ulValueLen = (CK_LONG)sizeof(CK_BBOOL);
       } else if(attTemplate->ulValueLen < sizeof(CK_BBOOL)) {
         result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = -1;
+        attTemplate->ulValueLen = (CK_LONG)-1;
       } else {
         CK_BBOOL oBool;
         if(privateKey) {
@@ -152,10 +158,10 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
     case CKA_UNWRAP:
     case CKA_MODIFIABLE:
       if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = sizeof(oFalse);
+        attTemplate->ulValueLen = (CK_LONG)sizeof(oFalse);
       } else if(attTemplate->ulValueLen < sizeof(oFalse)) {
         result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = -1;
+        attTemplate->ulValueLen = (CK_LONG)-1;
       } else {
         memcpy(attTemplate->pValue, &oFalse, sizeof(oFalse));
       }
@@ -167,21 +173,21 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
         int bits = bigModulus.bits();
 
         if(attTemplate->pValue == NULL_PTR) {
-          attTemplate->ulValueLen = sizeof(int);
+          attTemplate->ulValueLen = (CK_LONG)sizeof(int);
         } else if(attTemplate->ulValueLen < sizeof(int)) {
           result = CKR_BUFFER_TOO_SMALL;
-          attTemplate->ulValueLen = -1;
+          attTemplate->ulValueLen = (CK_LONG)-1;
         } else {
           memcpy(attTemplate->pValue, &bits, sizeof(int));
         }
       } else {
         result = CKR_ATTRIBUTE_TYPE_INVALID;
-        attTemplate->ulValueLen = -1;
+        attTemplate->ulValueLen = (CK_LONG)-1;
       }
       break;
     default:
       result = CKR_ATTRIBUTE_TYPE_INVALID;
-      attTemplate->ulValueLen = -1;
+      attTemplate->ulValueLen = (CK_LONG)-1;
       break;
   }
 

@@ -1,32 +1,3 @@
-#define MAX_SESSION_COUNT 2048
-#define MAX_OBJECTS 2000
-#define MAX_ATTRIBUTES 20
-
-#include <session.cpp>
-#include <object.cpp>
-
-class SoftHSMInternal {
-  public:
-    SoftHSMInternal();
-    ~SoftHSMInternal();
-    int getSessionCount();
-    CK_RV openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, CK_SESSION_HANDLE_PTR phSession);
-    CK_RV closeSession(CK_SESSION_HANDLE hSession);
-    CK_RV closeAllSessions();
-    CK_RV getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo);
-    CK_RV login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen);
-    CK_RV getSession(CK_SESSION_HANDLE hSession, SoftSession *&session);
-    CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
-    CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
-    bool isLoggedIn();
-    int addObject(SoftObject *inObject);
-    char *pin;
-  private:
-    int openSessions;
-    SoftSession *sessions[MAX_SESSION_COUNT];
-    SoftObject *objects[MAX_OBJECTS];
-};
-
 SoftHSMInternal::SoftHSMInternal() {
   openSessions = 0;
 
@@ -242,3 +213,30 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   return result;
 }
 
+CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  SoftSession *session;
+  CK_RV result = getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(session->findInitialized) {
+    return CKR_OPERATION_ACTIVE;
+  }
+
+  session->findInitialized = true;
+
+  if(session->findAnchor != NULL_PTR) {
+    delete session->findAnchor;
+  }
+
+  session->findAnchor = new SoftFind();
+  session->findCurrent = session->findAnchor;
+
+  for(unsigned int i = 0; i < ulCount; i++) {
+    printf("Type: %i\n", (int)pTemplate[i].type);
+  }
+
+  return CKR_OK;
+}

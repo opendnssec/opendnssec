@@ -3,3 +3,5 @@ It may or may not compile correctly.
 It may or may not work correctly.
 
 Using Botan 1.7.21
+
+SoftHSM is not thread safe.... but will be fixed

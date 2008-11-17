@@ -1,30 +1,13 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <fstream>
-
-#include <botan/botan.h>
-#include <botan/bigint.h>
-#include <botan/randpool.h>
-#include <botan/aes.h>
-#include <botan/hmac.h>
-#include <botan/sha2_32.h>
-#include <botan/rsa.h>
-#include <botan/auto_rng.h>
-#include <botan/pkcs8.h>
-#include <botan/x509_obj.h>
-using namespace Botan;
-
-#include <pkcs11_unix.h>
-#include <pkcs11.h>
-
-#include <softhsminternal.cpp>
-
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 1
+#include <main.h>
 
 Botan::LibraryInitializer init;
 SoftHSMInternal *softHSM = NULL_PTR;
+
+#include <file.cpp>
+#include <SoftHSMInternal.cpp>
+#include <SoftSession.cpp>
+#include <SoftObject.cpp>
+#include <SoftFind.cpp>
 
 CK_FUNCTION_LIST function_list = {
   { 2, 20 },
@@ -348,7 +331,11 @@ CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
 }
 
 CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  return softHSM->findObjectsInit(hSession, pTemplate, ulCount);
 }
 
 CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, CK_ULONG ulMaxObjectCount, CK_ULONG_PTR pulObjectCount) {
@@ -552,8 +539,19 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 
   RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*rng, *modulusBits, exponent->to_u32bit());
 
-  privateKey->addKey(rsaKey, true);
-  publicKey->addKey(rsaKey, false);
+  char *fileName = getNewFileName();
+  char *fileName2 = (char *)malloc(strlen(fileName)+1);
+  strncpy(fileName2, fileName, strlen(fileName));
+
+  result = privateKey->addKey(rsaKey, true, fileName);
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  result = publicKey->addKey(rsaKey, false, fileName2);
+  if(result != CKR_OK) {
+    return result;
+  }
 
   int privateRef = softHSM->addObject(privateKey);
   int publicRef = softHSM->addObject(publicKey);
@@ -562,19 +560,15 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     return CKR_DEVICE_MEMORY;
   }
 
+  result = privateKey->saveKey();
+  if(result != CKR_OK) {
+    return result;
+  }
+
   *phPrivateKey = (CK_OBJECT_HANDLE)privateRef;
   *phPublicKey = (CK_OBJECT_HANDLE)publicRef;
 
   /*
-  std::ofstream priv("rsapriv.pem");
-  std::ofstream priv2("rsapriv2.pem");
-
-  priv << PKCS8::PEM_encode(*rsaKey, *rng, softHSM->pin);
-  priv2 << PKCS8::PEM_encode(*rsaKey2, *rng, softHSM->pin);
-
-  priv.close();
-  priv2.close();
-
   Private_Key *testKey2 = PKCS8::load_key("rsapriv.pem", *rng, softHSM->pin);
   Public_Key *testKey3 = dynamic_cast<Public_Key*>(testKey2);
 
