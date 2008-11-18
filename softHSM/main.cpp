@@ -339,11 +339,59 @@ CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
 }
 
 CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, CK_ULONG ulMaxObjectCount, CK_ULONG_PTR pulObjectCount) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->findInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  unsigned int i = 0;
+
+  while(i < ulMaxObjectCount && session->findCurrent->next != NULL_PTR) {
+    phObject[i] = session->findCurrent->findObject;
+    session->findCurrent = session->findCurrent->next;
+    i++;
+  }
+
+  *pulObjectCount = i;
+
+  return CKR_OK;
 }
 
 CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->findInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(session->findAnchor != NULL_PTR) {
+    delete session->findAnchor;
+    session->findAnchor = NULL_PTR;
+  }
+
+  session->findCurrent = session->findAnchor;
+  session->findInitialized = false;
+
+  return CKR_OK;
 }
 
 CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
@@ -535,20 +583,18 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 
   SoftObject *privateKey = new SoftObject();
   SoftObject *publicKey = new SoftObject();
-  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+  AutoSeeded_RNG *rng = softHSM->rng;
 
   RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*rng, *modulusBits, exponent->to_u32bit());
 
   char *fileName = getNewFileName();
-  char *fileName2 = (char *)malloc(strlen(fileName)+1);
-  strncpy(fileName2, fileName, strlen(fileName));
 
-  result = privateKey->addKey(rsaKey, true, fileName);
+  result = privateKey->addKey(rsaKey, CKO_PRIVATE_KEY, fileName);
   if(result != CKR_OK) {
     return result;
   }
 
-  result = publicKey->addKey(rsaKey, false, fileName2);
+  result = publicKey->addKey(rsaKey, CKO_PUBLIC_KEY, fileName);
   if(result != CKR_OK) {
     return result;
   }
@@ -560,20 +606,13 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     return CKR_DEVICE_MEMORY;
   }
 
-  result = privateKey->saveKey();
+  result = privateKey->saveKey(softHSM);
   if(result != CKR_OK) {
     return result;
   }
 
   *phPrivateKey = (CK_OBJECT_HANDLE)privateRef;
   *phPublicKey = (CK_OBJECT_HANDLE)publicRef;
-
-  /*
-  Private_Key *testKey2 = PKCS8::load_key("rsapriv.pem", *rng, softHSM->pin);
-  Public_Key *testKey3 = dynamic_cast<Public_Key*>(testKey2);
-
-  printf("Alg_name: %s\n", testKey3->algo_name().c_str());
-  */
 
   return CKR_OK;
 }

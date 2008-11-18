@@ -1,5 +1,6 @@
 SoftHSMInternal::SoftHSMInternal() {
   openSessions = 0;
+  openObjects = 0;
 
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     sessions[i] = NULL_PTR;
@@ -10,6 +11,7 @@ SoftHSMInternal::SoftHSMInternal() {
   }
 
   pin = NULL_PTR;
+  rng = new AutoSeeded_RNG();
 }
 
 SoftHSMInternal::~SoftHSMInternal() {
@@ -31,6 +33,14 @@ SoftHSMInternal::~SoftHSMInternal() {
     free(pin);
     pin = NULL_PTR;
   }
+
+  if(rng != NULL_PTR) {
+    delete rng;
+    rng = NULL_PTR;
+  }
+
+  openSessions = 0;
+  openObjects = 0;
 }
 
 int SoftHSMInternal::getSessionCount() {
@@ -136,7 +146,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   if (!pin) {
     return CKR_DEVICE_MEMORY;
   }
-  memset(pin,0,ulPinLen+1);
+  memset(pin, 0, ulPinLen+1);
   memcpy(pin, pPin, ulPinLen);
 
   return CKR_OK;
@@ -166,7 +176,6 @@ CK_RV SoftHSMInternal::getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object) 
   return CKR_OK;
 }
 
-
 bool SoftHSMInternal::isLoggedIn() {
   if(pin) {
     return true;
@@ -175,10 +184,15 @@ bool SoftHSMInternal::isLoggedIn() {
   }
 }
 
+char* SoftHSMInternal::getPIN() {
+  return pin;
+}
+
 int SoftHSMInternal::addObject(SoftObject *inObject) {
   for(int i = 0; i < MAX_OBJECTS; i++) {
     if(objects[i] == NULL_PTR) {
       objects[i] = inObject;
+      openObjects++;
       return i+1;
     }
   }
@@ -225,8 +239,6 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
     return CKR_OPERATION_ACTIVE;
   }
 
-  session->findInitialized = true;
-
   if(session->findAnchor != NULL_PTR) {
     delete session->findAnchor;
   }
@@ -234,9 +246,72 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   session->findAnchor = new SoftFind();
   session->findCurrent = session->findAnchor;
 
-  for(unsigned int i = 0; i < ulCount; i++) {
-    printf("Type: %i\n", (int)pTemplate[i].type);
+  if(ulCount == 0) {
+    openAllFiles(this);
+    int counter = 0;
+
+    for(int i = 0; i < MAX_OBJECTS && counter < openObjects; i++) {
+      if(objects[i] != NULL_PTR) {
+        counter++;
+        session->findAnchor->addFind(i+1);
+      }
+    }
+  } else {
+    char *objectName = NULL_PTR;
+    CK_OBJECT_CLASS objectClass = CKO_PRIVATE_KEY;
+
+    for(unsigned int i = 0; i < ulCount; i++) {
+      switch(pTemplate[i].type) {
+        case CKA_LABEL:
+        case CKA_ID:
+          objectName = (char *)malloc(pTemplate[i].ulValueLen+1);
+          objectName[pTemplate[i].ulValueLen] = '\0';
+          memcpy(objectName, pTemplate[i].pValue, pTemplate[i].ulValueLen);
+          break;
+        case CKA_CLASS:
+          CK_OBJECT_CLASS *oClass = (CK_OBJECT_CLASS *)pTemplate[i].pValue;
+          objectClass = *oClass;
+          break;
+      }
+    }
+
+    CK_OBJECT_HANDLE oHandle = getObjectByNameAndClass(objectName, objectClass);
+    if(oHandle == 0) {
+      if(readKeyFile(this, objectName) == CKR_OK) {
+        oHandle = getObjectByNameAndClass(objectName, objectClass);
+        if(oHandle != 0) {
+          session->findAnchor->addFind(oHandle);
+        }
+      }
+    } else {
+      session->findAnchor->addFind(oHandle);
+    }
+   
+    if(objectName != NULL_PTR) {
+      free(objectName);
+    }
   }
 
+  session->findInitialized = true;
+
   return CKR_OK;
+}
+
+CK_OBJECT_HANDLE SoftHSMInternal::getObjectByNameAndClass(char *labelOrID, CK_OBJECT_CLASS oClass) {
+  if(labelOrID == NULL_PTR) {
+    return 0;
+  }
+
+  int counter = 0;
+
+  for(int i = 0; i < MAX_OBJECTS && counter < openObjects; i++) {
+    if(objects[i] != NULL_PTR) {
+      counter++;
+      if(objects[i]->getObjectClass() == oClass && strcmp(labelOrID, objects[i]->getFileName()) == 0) {
+        return i+1;
+      }
+    }
+  }
+
+  return 0;
 }

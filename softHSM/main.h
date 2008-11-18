@@ -11,6 +11,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <dirent.h>
 
 #include <botan/botan.h>
 #include <botan/bigint.h>
@@ -22,6 +23,7 @@
 #include <botan/auto_rng.h>
 #include <botan/pkcs8.h>
 #include <botan/x509_obj.h>
+#include <botan/exceptn.h>
 using namespace Botan;
 
 #include <pkcs11_unix.h>

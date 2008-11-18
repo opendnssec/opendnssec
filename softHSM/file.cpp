@@ -1,4 +1,4 @@
-char *checkHSMDir() {
+char* checkHSMDir() {
   char *homeDir = getenv("HOME");
   char *directory = (char*)malloc(strlen(homeDir) + 10);
 
@@ -12,7 +12,7 @@ char *checkHSMDir() {
   return directory;
 }
 
-char *getNewFileName() {
+char* getNewFileName() {
   char *fileName = (char *)malloc(19);
 
   struct timeval now;
@@ -25,25 +25,91 @@ char *getNewFileName() {
   return fileName;
 }
 
-char *getFilePath(char *fileName) {
+char* getFilePath(char *fileName) {
   char *directory = checkHSMDir();
   char *filePath = (char *)malloc(strlen(directory) + 24);
 
   snprintf(filePath, strlen(directory) + 24, "%s/%s.pem", directory, fileName);
 
+  free(directory);
   return filePath;
 }
 
-bool saveKeyFile(char *fileName, Private_Key *key) {
+bool saveKeyFile(SoftHSMInternal *pSoftH, char *fileName, Private_Key *key) {
+  if(fileName == NULL_PTR || key == NULL_PTR || pSoftH == NULL_PTR || !pSoftH->isLoggedIn()) {
+    return false;
+  }
+
   std::ofstream priv(getFilePath(fileName));
-  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+  AutoSeeded_RNG *rng = pSoftH->rng;
 
   if(priv.fail()) {
     return false;
   }
 
-  priv << PKCS8::PEM_encode(*key, *rng, softHSM->pin);
+  priv << PKCS8::PEM_encode(*key, *rng, pSoftH->getPIN());
   priv.close();
 
   return true;
+}
+
+void openAllFiles(SoftHSMInternal *pSoftH) {
+  DIR *dir = opendir(checkHSMDir());
+  struct dirent *entry;
+  char *file;
+  CK_OBJECT_HANDLE hObject;
+
+  while ((entry = readdir(dir)) != NULL) {
+    if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+      file = strtok(entry->d_name,".");
+      hObject = pSoftH->getObjectByNameAndClass(file, CKO_PUBLIC_KEY);
+      if(hObject == 0) {
+        readKeyFile(pSoftH, file);
+      }
+    }
+  }
+
+  closedir(dir);
+}
+
+CK_RV readKeyFile(SoftHSMInternal *pSoftH, char* file) {
+  if(!pSoftH->isLoggedIn()) {
+    return CKR_USER_NOT_LOGGED_IN;
+  }
+
+  Private_Key *privkey;
+  AutoSeeded_RNG *rng = pSoftH->rng;
+  CK_RV result;
+
+  try {
+    privkey = PKCS8::load_key(getFilePath(file), *rng, pSoftH->getPIN());
+  }
+  catch(Botan::Decoding_Error e) {
+    return CKR_USER_NOT_LOGGED_IN;
+  }
+  catch(Botan::Exception e) {
+    return CKR_GENERAL_ERROR;
+  }
+
+  SoftObject *privateKey = new SoftObject();
+  SoftObject *publicKey = new SoftObject();
+
+  result = privateKey->addKey(privkey, CKO_PRIVATE_KEY, file);
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  result = publicKey->addKey(privkey, CKO_PUBLIC_KEY, file);
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  int privateRef = pSoftH->addObject(privateKey);
+  int publicRef = pSoftH->addObject(publicKey);
+
+  if(!publicRef || !privateRef) {
+    return CKR_DEVICE_MEMORY;
+  }
+
+  return CKR_OK;
 }
