@@ -1,3 +1,10 @@
+/************************************************************
+*
+* This class defines an object, which contains
+* a crypto key, private or public.
+*
+************************************************************/
+
 SoftObject::SoftObject() {
   key = NULL_PTR;
   objectClass = CKO_PUBLIC_KEY;
@@ -16,6 +23,9 @@ SoftObject::~SoftObject() {
     fileName = NULL_PTR;
   }
 }
+
+// Adds a key to the object.
+// We only support RSA and DSA storage.
 
 CK_RV SoftObject::addKey(Private_Key *inKey, CK_OBJECT_CLASS oClass, char *pName) {
   if(pName == NULL_PTR || inKey == NULL_PTR) {
@@ -43,6 +53,9 @@ CK_RV SoftObject::addKey(Private_Key *inKey, CK_OBJECT_CLASS oClass, char *pName
   return CKR_OK;
 }
 
+// Saves the key to the disk.
+// But only if it is a private key.
+
 CK_RV SoftObject::saveKey(SoftHSMInternal *pSoftH) {
   if(objectClass == CKO_PRIVATE_KEY) {
     if(!saveKeyFile(pSoftH, fileName, key)) {
@@ -68,6 +81,8 @@ Private_Key* SoftObject::getKey() {
 char* SoftObject::getFileName() {
   return fileName;
 }
+
+// Get the attribute value for the object.
 
 CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
   CK_RV result = CKR_OK;
@@ -95,6 +110,8 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
         memcpy(attTemplate->pValue, &keyType, sizeof(keyType));
       }
       break;
+    // The Label and ID is representad by the string fileName.
+    // Which is the date/time when the key was created.
     case CKA_LABEL:
     case CKA_ID:
       if(attTemplate->pValue == NULL_PTR) {
@@ -137,6 +154,7 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
       break;
     case CKA_DECRYPT:
     case CKA_SIGN:
+    case CKA_SENSITIVE:
       if(attTemplate->pValue == NULL_PTR) {
         attTemplate->ulValueLen = (CK_LONG)sizeof(CK_BBOOL);
       } else if(attTemplate->ulValueLen < sizeof(CK_BBOOL)) {
@@ -155,6 +173,9 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
     case CKA_WRAP:
     case CKA_UNWRAP:
     case CKA_MODIFIABLE:
+    case CKA_DERIVE:
+    case CKA_VERIFY_RECOVER:
+    case CKA_SIGN_RECOVER:
       if(attTemplate->pValue == NULL_PTR) {
         attTemplate->ulValueLen = (CK_LONG)sizeof(oFalse);
       } else if(attTemplate->ulValueLen < sizeof(oFalse)) {
@@ -164,6 +185,23 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
         memcpy(attTemplate->pValue, &oFalse, sizeof(oFalse));
       }
       break;
+    case CKA_KEY_GEN_MECHANISM:
+      if(keyType == CKK_RSA) {
+        CK_MECHANISM_TYPE mech = CKM_RSA_PKCS_KEY_PAIR_GEN;
+
+        if(attTemplate->pValue == NULL_PTR) {
+          attTemplate->ulValueLen = (CK_LONG)sizeof(mech);
+        } else if(attTemplate->ulValueLen < sizeof(mech)) {
+          result = CKR_BUFFER_TOO_SMALL;
+          attTemplate->ulValueLen = (CK_LONG)-1;
+        } else {
+          memcpy(attTemplate->pValue, &mech, sizeof(mech));
+        }
+      } else {
+        result = CKR_ATTRIBUTE_TYPE_INVALID;
+        attTemplate->ulValueLen = (CK_LONG)-1;
+      }
+      break;      
     case CKA_MODULUS_BITS:
       if(keyType == CKK_RSA) {
         IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);
@@ -183,25 +221,7 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
         attTemplate->ulValueLen = (CK_LONG)-1;
       }
       break;
-    // Is this the correct thing to give? X509 public key?
-    case CKA_VALUE:
-      if(objectClass == CKO_PRIVATE_KEY) {
-        result = CKR_ATTRIBUTE_SENSITIVE;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        std::string pemEnc = X509::PEM_encode(*key);
-        unsigned int strSize = pemEnc.size();
-        if(attTemplate->pValue == NULL_PTR) {
-          attTemplate->ulValueLen = strSize;
-        } else if(attTemplate->ulValueLen < strSize) {
-          result = CKR_BUFFER_TOO_SMALL;
-          attTemplate->ulValueLen = (CK_LONG)-1;
-        } else {
-          memcpy(attTemplate->pValue, pemEnc.c_str(), strSize);
-        }
-      }
-      break;
-    // Not tested. The values are correct, but perhaps in reverse order?
+    // The values are correct, but perhaps in reverse order?
     case CKA_MODULUS:
       if(keyType == CKK_RSA) {
         IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);
@@ -224,7 +244,7 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
         attTemplate->ulValueLen = (CK_LONG)-1;
       }
       break;
-    // Not tested
+    // The values are correct, but perhaps in reverse order?
     case CKA_PUBLIC_EXPONENT:
       if(keyType == CKK_RSA) {
         IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);

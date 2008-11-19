@@ -1,3 +1,10 @@
+/************************************************************
+*
+* This class handles the search results.
+* It creates a chain of object handles.
+*
+************************************************************/
+
 class SoftFind {
   public:
     SoftFind();

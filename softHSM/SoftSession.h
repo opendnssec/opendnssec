@@ -1,3 +1,10 @@
+/************************************************************
+*
+* This class defines a session
+* It holds the current state of the session
+*
+************************************************************/
+
 class SoftSession {
   public:
     SoftSession();

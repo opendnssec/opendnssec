@@ -1,3 +1,10 @@
+/************************************************************
+*
+* This class defines a session
+* It holds the current state of the session
+*
+************************************************************/
+
 SoftSession::SoftSession() {
   pApplication = NULL_PTR;
   Notify = NULL_PTR;

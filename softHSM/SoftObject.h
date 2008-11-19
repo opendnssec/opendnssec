@@ -1,3 +1,10 @@
+/************************************************************
+*
+* This class defines an object, which contains
+* a crypto key, private or public.
+*
+************************************************************/
+
 class SoftObject {
   public:
     SoftObject();

@@ -5,4 +5,4 @@ It may or may not work correctly.
 Using Botan 1.7.21
 
 SoftHSM is not thread safe.... but will be fixed
-Memory leeks must be fixed
+Check if any memory leeks must be fixed
