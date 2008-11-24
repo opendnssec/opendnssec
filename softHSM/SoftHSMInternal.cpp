@@ -379,3 +379,46 @@ CK_OBJECT_HANDLE SoftHSMInternal::getObjectByNameAndClass(char *labelOrID, CK_OB
 
   return 0;
 }
+
+// Destroys the object.
+//
+// Private key:
+//   Only when the user is correctly logged in.
+//   The associated key file will also be removed.
+//   The corresponding public key can thereby not be recreated at the next start up.
+//
+// Public key:
+//   The key will only be softly removed, since it will be recreated from the
+//   private key file at the next start up.
+
+CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
+  SoftSession *session;
+  CK_RV result = getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  int objectHandle = hObject-1;
+
+  if(hObject > MAX_OBJECTS || hObject < 1 || objects[objectHandle] == NULL_PTR) {
+    return CKR_OBJECT_HANDLE_INVALID;
+  }
+
+  if(objects[objectHandle]->getObjectClass() == CKO_PUBLIC_KEY) {
+    delete objects[objectHandle];
+    objects[objectHandle] = NULL_PTR;
+    openObjects--;
+  } else if(objects[objectHandle]->getObjectClass() == CKO_PRIVATE_KEY) {
+    if(objects[objectHandle]->removeFile(this) != CKR_OK) {
+      return CKR_GENERAL_ERROR;
+    }
+    delete objects[objectHandle];
+    objects[objectHandle] = NULL_PTR;
+    openObjects--;
+  } else {
+    return CKR_GENERAL_ERROR;
+  }
+
+  return CKR_OK;
+}

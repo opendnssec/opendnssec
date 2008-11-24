@@ -19,6 +19,7 @@ class SoftHSMInternal {
       CK_ULONG ulPinLen);
     CK_RV getSession(CK_SESSION_HANDLE hSession, SoftSession *&session);
     CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
+    CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
     CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
       CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
     CK_RV findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 

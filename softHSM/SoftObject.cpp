@@ -66,6 +66,18 @@ CK_RV SoftObject::saveKey(SoftHSMInternal *pSoftH) {
   return CKR_OK;
 }
 
+// Removes the key file from the disk.
+
+CK_RV SoftObject::removeFile(SoftHSMInternal *pSoftH) {
+  if(objectClass == CKO_PRIVATE_KEY) {
+    if(!removeKeyFile(pSoftH, fileName)) {
+      return CKR_GENERAL_ERROR;
+    }
+  }
+
+  return CKR_OK;
+}
+
 CK_OBJECT_CLASS SoftObject::getObjectClass() {
   return objectClass;
 }

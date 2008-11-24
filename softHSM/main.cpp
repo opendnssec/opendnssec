@@ -252,28 +252,58 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
     return CKR_SLOT_ID_INVALID;
   }
 
-  *pulCount = 1;
+  *pulCount = 6;
 
   if(pMechanismList == NULL_PTR) {
     return CKR_OK;
   }
 
   pMechanismList[0] = CKM_RSA_PKCS_KEY_PAIR_GEN;
-//  pMechanismList[1] = CKM_RSA_PKCS;
-//  pMechanismList[2] = CKM_SHA1_RSA_PKCS;
-//  pMechanismList[3] = CKM_SHA256_RSA_PKCS;
-//  pMechanismList[4] = CKM_SHA384_RSA_PKCS;
-//  pMechanismList[5] = CKM_SHA512_RSA_PKCS;
-//  pMechanismList[6] = CKM_SHA_1;
-//  pMechanismList[7] = CKM_SHA256;
-//  pMechanismList[8] = CKM_SHA384;
-//  pMechanismList[9] = CKM_SHA512;
+  pMechanismList[1] = CKM_MD5;
+  pMechanismList[2] = CKM_SHA_1;
+  pMechanismList[3] = CKM_SHA256;
+  pMechanismList[4] = CKM_SHA384;
+  pMechanismList[5] = CKM_SHA512;
+
+//  pMechanismList[] = CKM_RSA_PKCS;
+//  pMechanismList[] = CKM_SHA1_RSA_PKCS;
+//  pMechanismList[] = CKM_SHA256_RSA_PKCS;
+//  pMechanismList[] = CKM_SHA384_RSA_PKCS;
+//  pMechanismList[] = CKM_SHA512_RSA_PKCS;
 
   return CKR_OK;
 }
 
+// Returns information about a mechanism.
+
 CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
-  return CKR_FUNCTION_NOT_SUPPORTED; 
+  if(slotID != 1) {
+    return CKR_SLOT_ID_INVALID;
+  }
+
+  if(pInfo == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  switch(type) {
+    case CKM_RSA_PKCS_KEY_PAIR_GEN:
+      pInfo->ulMinKeySize = 512;
+      pInfo->ulMaxKeySize = 4096;
+      pInfo->flags = CKF_GENERATE_KEY_PAIR;
+      break;
+    case CKM_MD5:
+    case CKM_SHA_1:
+    case CKM_SHA256:
+    case CKM_SHA384:
+    case CKM_SHA512:
+      pInfo->flags = CKF_DIGEST;
+      break;
+    default:
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+
+  return CKR_OK; 
 }
 
 CK_RV C_InitToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel) {
@@ -371,8 +401,23 @@ CK_RV C_CopyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTR
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
+// Destroys the object.
+//
+// Private key:
+//   Only when the user is correctly logged in.
+//   The associated key file will also be removed.
+//   The corresponding public key can thereby not be recreated at the next start up.
+//
+// Public key:
+//   The key will only be softly removed, since it will be recreated from the 
+//   private key file at the next start up.
+
 CK_RV C_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  return softHSM->destroyObject(hSession, hObject);
 }
 
 CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ULONG_PTR pulSize) {
@@ -506,25 +551,176 @@ CK_RV C_DecryptFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pLastPart, CK_ULONG
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
+// Initialize the digest functionality.
+
 CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(session->digestInitialized) {
+    return CKR_OPERATION_ACTIVE;
+  }
+
+  unsigned int mechSize = 0;
+  HashFunction *hashFunc = NULL_PTR;
+
+  switch(pMechanism->mechanism) {
+    case CKM_MD5:
+      mechSize = 16;
+      hashFunc = new MD5;
+      break;
+    case CKM_SHA_1:
+      mechSize = 20;
+      hashFunc = new SHA_160;
+      break;
+    case CKM_SHA256:
+      mechSize = 32;
+      hashFunc = new SHA_256;
+      break;
+    case CKM_SHA384:
+      mechSize = 48;
+      hashFunc = new SHA_384;
+      break;
+    case CKM_SHA512:
+      mechSize = 64;
+      hashFunc = new SHA_512;
+      break;
+    default:
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+
+  session->digestSize = mechSize;
+
+  session->digestPipe = new Pipe(new Hash_Filter(hashFunc));
+
+  if(!session->digestPipe) {
+    return CKR_DEVICE_MEMORY;
+  }
+
+  session->digestPipe->start_msg();
+  session->digestInitialized = true;
+
+  return CKR_OK;
 }
 
-CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pDigest,
-      CK_ULONG_PTR pulDigestLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+// Add data and digest.
+
+CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen,
+      CK_BYTE_PTR pDigest, CK_ULONG_PTR pulDigestLen) {
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->digestInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pDigest == NULL_PTR) {
+    *pulDigestLen = session->digestSize;
+    return CKR_OK;
+  }
+
+  if(*pulDigestLen < session->digestSize) {
+    *pulDigestLen = session->digestSize;
+    return CKR_BUFFER_TOO_SMALL;
+  }
+
+  if(pData == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  session->digestPipe->write(pData, ulDataLen);
+  session->digestPipe->end_msg();
+  session->digestPipe->read(pDigest, session->digestSize);
+
+  session->digestSize = 0;
+  delete session->digestPipe;
+  session->digestPipe = NULL_PTR;
+  session->digestInitialized = false;
+
+  return CKR_OK;
 }
+
+// Adds more data that will be digested
 
 CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->digestInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  session->digestPipe->write(pPart, ulPartLen);
+
+  return CKR_OK;
 }
 
 CK_RV C_DigestKey(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hKey) {
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
+// Digest the data.
+
 CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PTR pulDigestLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->digestInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pDigest == NULL_PTR) {
+    *pulDigestLen = session->digestSize;
+    return CKR_OK;
+  }
+
+  if(*pulDigestLen < session->digestSize) {
+    *pulDigestLen = session->digestSize;
+    return CKR_BUFFER_TOO_SMALL;
+  }
+
+  session->digestPipe->end_msg();
+  session->digestPipe->read(pDigest, session->digestSize);
+
+  session->digestSize = 0;
+  delete session->digestPipe;
+  session->digestPipe = NULL_PTR;
+  session->digestInitialized = false;
+
+  return CKR_OK;
 }
 
 CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
@@ -728,12 +924,51 @@ CK_RV C_DeriveKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OB
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
+// Reseeds the RNG
+
 CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSeedLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(pSeed == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  softHSM->rng->add_entropy(pSeed, ulSeedLen);
+  softHSM->rng->reseed();
+
+  return CKR_OK;
 }
 
+// Returns some random data.
+
 CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_ULONG ulRandomLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(pRandomData == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  softHSM->rng->randomize(pRandomData, ulRandomLen);
+
+  return CKR_OK;
 }
 
 CK_RV C_GetFunctionStatus(CK_SESSION_HANDLE hSession) {

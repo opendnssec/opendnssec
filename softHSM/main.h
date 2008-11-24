@@ -23,10 +23,10 @@
 // Includes for the crypto library
 #include <botan/botan.h>
 #include <botan/bigint.h>
-#include <botan/randpool.h>
-#include <botan/aes.h>
-#include <botan/hmac.h>
+#include <botan/md5.h>
+#include <botan/sha160.h>
 #include <botan/sha2_32.h>
+#include <botan/sha2_64.h>
 #include <botan/rsa.h>
 #include <botan/auto_rng.h>
 #include <botan/pkcs8.h>

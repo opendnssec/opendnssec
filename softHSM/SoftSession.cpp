@@ -9,9 +9,14 @@ SoftSession::SoftSession() {
   pApplication = NULL_PTR;
   Notify = NULL_PTR;
   readOnly = false;
+
   findAnchor = NULL_PTR;
   findCurrent = NULL_PTR;
   findInitialized = false;
+
+  digestPipe = NULL_PTR;
+  digestSize = 0;
+  digestInitialized = false;
 }
 
 SoftSession::~SoftSession() {
@@ -24,6 +29,11 @@ SoftSession::~SoftSession() {
   }
 
   findCurrent = NULL_PTR;
+
+  if(digestPipe != NULL_PTR) {
+    delete digestPipe;
+    digestPipe = NULL_PTR;
+  }
 }
 
 bool SoftSession::isReadOnly() {

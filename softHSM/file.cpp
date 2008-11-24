@@ -79,6 +79,35 @@ bool saveKeyFile(SoftHSMInternal *pSoftH, char *fileName, Private_Key *key) {
   return true;
 }
 
+// Removes the key file, if the user has the correct PIN.
+
+bool removeKeyFile(SoftHSMInternal *pSoftH, char *fileName) {
+  if(pSoftH == NULL_PTR || fileName == NULL_PTR || !pSoftH->isLoggedIn()) {
+    return false;
+  }
+
+  Private_Key *privkey;
+  AutoSeeded_RNG *rng = pSoftH->rng;
+  char *filePath = getFilePath(fileName);
+
+  // Check if the PIN is correct.
+  try {
+    privkey = PKCS8::load_key(filePath, *rng, pSoftH->getPIN());
+  }
+  catch(Botan::Exception e) {
+    free(filePath);
+    return false;
+  }
+
+  if(remove(filePath) != 0) {
+    free(filePath);
+    return false;
+  } else {
+    free(filePath);
+    return true;
+  }
+}
+
 // Read all key pairs from the disk to the internal buffer.
 
 void openAllFiles(SoftHSMInternal *pSoftH) {

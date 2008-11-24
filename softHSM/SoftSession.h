@@ -18,6 +18,10 @@ class SoftSession {
     SoftFind *findCurrent;
     bool findInitialized;
 
+    Pipe *digestPipe;
+    unsigned int digestSize;
+    bool digestInitialized;
+
   private:
     bool readOnly;
 };
