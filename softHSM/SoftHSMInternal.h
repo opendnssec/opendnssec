@@ -24,7 +24,6 @@ class SoftHSMInternal {
       CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
     CK_RV findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
       CK_ULONG ulCount);
-    CK_OBJECT_HANDLE getObjectByNameAndClass(char *labelOrID, CK_OBJECT_CLASS oClass);
     bool isLoggedIn();
     char* getPIN();
     CK_OBJECT_HANDLE addObject(SoftObject *inObject);

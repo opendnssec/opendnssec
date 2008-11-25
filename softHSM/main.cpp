@@ -20,6 +20,7 @@ SoftHSMInternal *softHSM = NULL_PTR;
 #include <SoftSession.cpp>
 #include <SoftObject.cpp>
 #include <SoftFind.cpp>
+#include <SoftAttribute.cpp>
 
 // A list with Cryptoki version number
 // and pointers to the API functions.
@@ -252,20 +253,21 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
     return CKR_SLOT_ID_INVALID;
   }
 
-  *pulCount = 6;
+  *pulCount = 8;
 
   if(pMechanismList == NULL_PTR) {
     return CKR_OK;
   }
 
   pMechanismList[0] = CKM_RSA_PKCS_KEY_PAIR_GEN;
-  pMechanismList[1] = CKM_MD5;
-  pMechanismList[2] = CKM_SHA_1;
-  pMechanismList[3] = CKM_SHA256;
-  pMechanismList[4] = CKM_SHA384;
-  pMechanismList[5] = CKM_SHA512;
+  pMechanismList[1] = CKM_RSA_PKCS;
+  pMechanismList[2] = CKM_MD5;
+  pMechanismList[3] = CKM_RIPEMD160;
+  pMechanismList[4] = CKM_SHA_1;
+  pMechanismList[5] = CKM_SHA256;
+  pMechanismList[6] = CKM_SHA384;
+  pMechanismList[7] = CKM_SHA512;
 
-//  pMechanismList[] = CKM_RSA_PKCS;
 //  pMechanismList[] = CKM_SHA1_RSA_PKCS;
 //  pMechanismList[] = CKM_SHA256_RSA_PKCS;
 //  pMechanismList[] = CKM_SHA384_RSA_PKCS;
@@ -291,7 +293,13 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
       pInfo->ulMaxKeySize = 4096;
       pInfo->flags = CKF_GENERATE_KEY_PAIR;
       break;
+    case CKM_RSA_PKCS:
+      pInfo->ulMinKeySize = 512;
+      pInfo->ulMaxKeySize = 4096;
+      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_ENCRYPT | CKF_DECRYPT;
+      break;
     case CKM_MD5:
+    case CKM_RIPEMD160:
     case CKM_SHA_1:
     case CKM_SHA256:
     case CKM_SHA384:
@@ -440,12 +448,6 @@ CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
 
 // Initialize the search for objects.
 // The template specifies the search pattern.
-// If ulCount == 0, then all objects will be found.
-// A search with attributs will only match objects
-// if it specifies:
-//    CKA_CLASS = (CKO_PRIVATE_KEY or CKO_PUBLIC_KEY)
-// and
-//    CKA_LABEL or CKA_ID
 
 CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   if(softHSM == NULL_PTR) {
@@ -577,6 +579,10 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
       mechSize = 16;
       hashFunc = new MD5;
       break;
+    case CKM_RIPEMD160:
+      mechSize = 20;
+      hashFunc = new RIPEMD_160;
+      break;
     case CKM_SHA_1:
       mechSize = 20;
       hashFunc = new SHA_160;
@@ -598,8 +604,11 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
       break;
   }
 
-  session->digestSize = mechSize;
+  if(hashFunc == NULL_PTR) {
+    return CKR_DEVICE_MEMORY;
+  }
 
+  session->digestSize = mechSize;
   session->digestPipe = new Pipe(new Hash_Filter(hashFunc));
 
   if(!session->digestPipe) {
@@ -645,10 +654,15 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     return CKR_ARGUMENTS_BAD;
   }
 
+  // Digest
   session->digestPipe->write(pData, ulDataLen);
   session->digestPipe->end_msg();
-  session->digestPipe->read(pDigest, session->digestSize);
 
+  // Returns the result
+  session->digestPipe->read(pDigest, session->digestSize);
+  *pulDigestLen = session->digestSize;
+
+  // Finalizing
   session->digestSize = 0;
   delete session->digestPipe;
   session->digestPipe = NULL_PTR;
@@ -675,6 +689,11 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
+  if(pPart == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // Digest
   session->digestPipe->write(pPart, ulPartLen);
 
   return CKR_OK;
@@ -713,8 +732,12 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
   }
 
   session->digestPipe->end_msg();
-  session->digestPipe->read(pDigest, session->digestSize);
 
+  // Returns the result
+  session->digestPipe->read(pDigest, session->digestSize);
+  *pulDigestLen = session->digestSize;
+
+  // Finalizing
   session->digestSize = 0;
   delete session->digestPipe;
   session->digestPipe = NULL_PTR;

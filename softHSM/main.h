@@ -24,6 +24,7 @@
 #include <botan/botan.h>
 #include <botan/bigint.h>
 #include <botan/md5.h>
+#include <botan/rmd160.h>
 #include <botan/sha160.h>
 #include <botan/sha2_32.h>
 #include <botan/sha2_64.h>
@@ -44,10 +45,12 @@ class SoftHSMInternal;
 class SoftSession;
 class SoftObject;
 class SoftFind;
+class SoftAttribute;
 
 // Internal definitions
 #include <SoftHSMInternal.h>
 #include <SoftSession.h>
 #include <SoftObject.h>
 #include <SoftFind.h>
+#include <SoftAttribute.h>
 #include <file.h>

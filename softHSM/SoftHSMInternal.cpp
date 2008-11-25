@@ -173,6 +173,8 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   memset(pin, 0, ulPinLen+1);
   memcpy(pin, pPin, ulPinLen);
 
+  readAllKeyFiles(this);
+
   return CKR_OK;
 }
 
@@ -269,12 +271,6 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
 
 // Initialize the search for objects.
 // The template specifies the search pattern.
-// If ulCount == 0, then all objects will be found.
-// A search with attributs will only match objects
-// if it specifies:
-//    CKA_CLASS = (CKO_PRIVATE_KEY or CKO_PUBLIC_KEY)
-// and
-//    CKA_LABEL or CKA_ID
 
 CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   SoftSession *session;
@@ -296,88 +292,31 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   session->findAnchor = new SoftFind();
   session->findCurrent = session->findAnchor;
 
-  // Find all objects.
-  if(ulCount == 0) {
-    // We only read a key file when the specific key is needed.
-    // But since all objects are requested, we have to load all
-    // the keys into the buffer.
-    openAllFiles(this);
-    int counter = 0;
+  int counter = 0;
 
-    // Add all objects to the search result.
-    for(int i = 0; i < MAX_OBJECTS && counter < openObjects; i++) {
-      if(objects[i] != NULL_PTR) {
-        counter++;
+  // Check with all objects.
+  for(int i = 0; i < MAX_OBJECTS && counter < openObjects; i++) {
+    if(objects[i] != NULL_PTR) {
+      CK_BBOOL findObject = CK_TRUE;
+
+      // See if the object match all attributes.
+      for(unsigned int j = 0; j < ulCount; j++) {
+        if(objects[i]->matchAttribute(&pTemplate[j]) == CK_FALSE) {
+          findObject = CK_FALSE;
+        }
+      }
+
+      if(findObject == CK_TRUE) {
         session->findAnchor->addFind(i+1);
       }
-    }
-  } else {
-    char *objectName = NULL_PTR;
-    CK_OBJECT_CLASS objectClass = CKO_VENDOR_DEFINED;
 
-    // Collect the required attributes.
-    for(unsigned int i = 0; i < ulCount; i++) {
-      switch(pTemplate[i].type) {
-        case CKA_LABEL:
-        case CKA_ID:
-          objectName = (char *)malloc(pTemplate[i].ulValueLen+1);
-          objectName[pTemplate[i].ulValueLen] = '\0';
-          memcpy(objectName, pTemplate[i].pValue, pTemplate[i].ulValueLen);
-          break;
-        case CKA_CLASS:
-          CK_OBJECT_CLASS *oClass = (CK_OBJECT_CLASS *)pTemplate[i].pValue;
-          objectClass = *oClass;
-          break;
-      }
-    }
-
-    if(objectClass != CKO_VENDOR_DEFINED) {
-      // Check if the key is in the buffer
-      CK_OBJECT_HANDLE oHandle = getObjectByNameAndClass(objectName, objectClass);
-      if(oHandle == 0) {
-        // Load the key into the buffer
-        if(readKeyFile(this, objectName) == CKR_OK) {
-          // Second try. Get the object handle.
-          oHandle = getObjectByNameAndClass(objectName, objectClass);
-          if(oHandle != 0) {
-            session->findAnchor->addFind(oHandle);
-          }
-        }
-      } else {
-        session->findAnchor->addFind(oHandle);
-      }
-    }
-   
-    if(objectName != NULL_PTR) {
-      free(objectName);
+      counter++;
     }
   }
 
   session->findInitialized = true;
 
   return CKR_OK;
-}
-
-// Returns the object handle associated with the object class and label/id.
-
-CK_OBJECT_HANDLE SoftHSMInternal::getObjectByNameAndClass(char *labelOrID, CK_OBJECT_CLASS oClass) {
-  if(labelOrID == NULL_PTR) {
-    return 0;
-  }
-
-  int counter = 0;
-
-  // Search the buffer.
-  for(int i = 0; i < MAX_OBJECTS && counter < openObjects; i++) {
-    if(objects[i] != NULL_PTR) {
-      counter++;
-      if(objects[i]->getObjectClass() == oClass && strcmp(labelOrID, objects[i]->getFileName()) == 0) {
-        return i+1;
-      }
-    }
-  }
-
-  return 0;
 }
 
 // Destroys the object.

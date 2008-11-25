@@ -10,11 +10,13 @@ SoftObject::SoftObject() {
   objectClass = CKO_PUBLIC_KEY;
   keyType = CKK_RSA;
   fileName = NULL_PTR;
+  attributes = new SoftAttribute();
 }
 
 SoftObject::~SoftObject() {
   if(key != NULL_PTR && objectClass == CKO_PRIVATE_KEY) {
     delete key;
+    key = NULL_PTR;
   }
   key = NULL_PTR;
 
@@ -22,10 +24,14 @@ SoftObject::~SoftObject() {
     free(fileName);
     fileName = NULL_PTR;
   }
+
+  if(attributes != NULL_PTR) {
+    delete attributes;
+    attributes = NULL_PTR;
+  }
 }
 
 // Adds a key to the object.
-// We only support RSA and DSA storage.
 
 CK_RV SoftObject::addKey(Private_Key *inKey, CK_OBJECT_CLASS oClass, char *pName) {
   if(pName == NULL_PTR || inKey == NULL_PTR) {
@@ -36,8 +42,6 @@ CK_RV SoftObject::addKey(Private_Key *inKey, CK_OBJECT_CLASS oClass, char *pName
 
   if(!strcmp(algoName, "RSA")) {
     keyType = CKK_RSA;
-  } else if(!strcmp(algoName, "DSA")) {
-    keyType = CKK_DSA;
   } else {
     return CKR_GENERAL_ERROR;
   }
@@ -49,6 +53,93 @@ CK_RV SoftObject::addKey(Private_Key *inKey, CK_OBJECT_CLASS oClass, char *pName
   fileName = (char *)malloc(strLength+1);
   memset(fileName,0,strLength+1);
   strncpy(fileName, pName, strLength);
+
+  CK_BBOOL oTrue = CK_TRUE;
+  CK_BBOOL oFalse = CK_FALSE;
+
+  this->addAttributeFromData(CKA_CLASS, &objectClass, sizeof(objectClass));
+  this->addAttributeFromData(CKA_KEY_TYPE, &keyType, sizeof(keyType));
+  this->addAttributeFromData(CKA_LABEL, fileName, strLength);
+  this->addAttributeFromData(CKA_ID, fileName, strLength);
+  this->addAttributeFromData(CKA_LOCAL, &oTrue, sizeof(oTrue));
+  this->addAttributeFromData(CKA_PRIVATE, &oTrue, sizeof(oTrue));
+  this->addAttributeFromData(CKA_TOKEN, &oTrue, sizeof(oTrue));
+  this->addAttributeFromData(CKA_WRAP, &oFalse, sizeof(oFalse));
+  this->addAttributeFromData(CKA_UNWRAP, &oFalse, sizeof(oFalse));
+  this->addAttributeFromData(CKA_MODIFIABLE, &oFalse, sizeof(oFalse));
+  this->addAttributeFromData(CKA_DERIVE, &oFalse, sizeof(oFalse));
+  this->addAttributeFromData(CKA_VERIFY_RECOVER, &oFalse, sizeof(oFalse));
+  this->addAttributeFromData(CKA_SIGN_RECOVER, &oFalse, sizeof(oFalse));
+
+  if(objectClass == CKO_PRIVATE_KEY) {
+    this->addAttributeFromData(CKA_ENCRYPT, &oFalse, sizeof(oFalse));
+    this->addAttributeFromData(CKA_VERIFY, &oFalse, sizeof(oFalse));
+    this->addAttributeFromData(CKA_DECRYPT, &oTrue, sizeof(oTrue));
+    this->addAttributeFromData(CKA_SIGN, &oTrue, sizeof(oTrue));
+    this->addAttributeFromData(CKA_SENSITIVE, &oTrue, sizeof(oTrue));
+  } else {
+    this->addAttributeFromData(CKA_ENCRYPT, &oTrue, sizeof(oTrue));
+    this->addAttributeFromData(CKA_VERIFY, &oTrue, sizeof(oTrue));
+    this->addAttributeFromData(CKA_DECRYPT, &oFalse, sizeof(oFalse));
+    this->addAttributeFromData(CKA_SIGN, &oFalse, sizeof(oFalse));
+    this->addAttributeFromData(CKA_SENSITIVE, &oFalse, sizeof(oFalse));
+  }
+
+  if(keyType == CKK_RSA) {
+    // Key generation mechanism.
+    CK_MECHANISM_TYPE mech = CKM_RSA_PKCS_KEY_PAIR_GEN;
+    this->addAttributeFromData(CKA_KEY_GEN_MECHANISM, &mech, sizeof(mech));
+
+    // The RSA modulus bits
+    IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);
+    BigInt bigModulus = ifKey->get_n();
+    int bits = bigModulus.bits();
+    unsigned int modulusSize = bigModulus.bytes();
+    this->addAttributeFromData(CKA_MODULUS_BITS, &bits, sizeof(bits));
+
+    // The RSA modulus
+    char *modulusBuf = (char *)malloc(modulusSize);
+    for(unsigned int i = 0; i < modulusSize; i++) {
+      modulusBuf[i] = bigModulus.byte_at(i);
+    }
+    this->addAttributeFromData(CKA_MODULUS, modulusBuf, sizeof(modulusSize));
+    free(modulusBuf);
+
+    // The RSA public exponent.
+    BigInt bigExponent = ifKey->get_e();
+    unsigned int exponentSize = bigModulus.bytes();
+    char *exponentBuf = (char *)malloc(exponentSize);
+    for(unsigned int i = 0; i < exponentSize; i++) {
+      exponentBuf[i] = bigExponent.byte_at(i);
+    }
+    this->addAttributeFromData(CKA_PUBLIC_EXPONENT, exponentBuf, sizeof(exponentSize));
+    free(exponentBuf);
+  }
+
+  return CKR_OK;
+}
+
+// Create an attribute with given data and assign to object
+
+CK_RV SoftObject::addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
+  CK_ATTRIBUTE *oAttribute = (CK_ATTRIBUTE *)malloc(sizeof(CK_ATTRIBUTE));
+
+  if(!oAttribute) {
+    return CKR_DEVICE_MEMORY;
+  }
+
+  oAttribute->pValue = malloc(ulValueLen);
+
+  if(!oAttribute->pValue) {
+    free(oAttribute);
+    return CKR_DEVICE_MEMORY;
+  }
+
+  oAttribute->type = type;
+  memcpy(oAttribute->pValue, pValue, ulValueLen);
+  oAttribute->ulValueLen = ulValueLen;
+
+  attributes->addAttribute(oAttribute);
 
   return CKR_OK;
 }
@@ -97,207 +188,26 @@ char* SoftObject::getFileName() {
 // Get the attribute value for the object.
 
 CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
-  CK_RV result = CKR_OK;
-  CK_BBOOL oTrue = CK_TRUE;
-  CK_BBOOL oFalse = CK_FALSE;
+  CK_ATTRIBUTE *localAttribute = attributes->getAttribute(attTemplate->type);
 
-  switch(attTemplate->type) {
-    case CKA_CLASS:
-      if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = (CK_LONG)sizeof(objectClass);
-      } else if(attTemplate->ulValueLen < sizeof(objectClass)) {
-        result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        memcpy(attTemplate->pValue, &objectClass, sizeof(objectClass));
-      }
-      break;
-    case CKA_KEY_TYPE:
-      if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = (CK_LONG)sizeof(keyType);
-      } else if(attTemplate->ulValueLen < sizeof(keyType)) {
-        result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        memcpy(attTemplate->pValue, &keyType, sizeof(keyType));
-      }
-      break;
-    // The Label and ID is representad by the string fileName.
-    // Which is the date/time when the key was created.
-    case CKA_LABEL:
-    case CKA_ID:
-      if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = (CK_LONG)strlen(fileName);
-      } else if(attTemplate->ulValueLen < strlen(fileName)) {
-        result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        memcpy(attTemplate->pValue, fileName, strlen(fileName));
-      }
-      break;
-    case CKA_LOCAL:
-    case CKA_PRIVATE:
-    case CKA_TOKEN:
-      if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = (CK_LONG)sizeof(oTrue);
-      } else if(attTemplate->ulValueLen < sizeof(oTrue)) {
-        result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        memcpy(attTemplate->pValue, &oTrue, sizeof(oTrue));
-      }
-      break;
-    case CKA_ENCRYPT:
-    case CKA_VERIFY:
-      if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = (CK_LONG)sizeof(CK_BBOOL);
-      } else if(attTemplate->ulValueLen < sizeof(CK_BBOOL)) {
-        result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        CK_BBOOL oBool;
-        if(objectClass == CKO_PRIVATE_KEY) {
-          oBool = CK_FALSE;
-        } else {
-          oBool = CK_TRUE;
-        }
-        memcpy(attTemplate->pValue, &oBool, sizeof(oBool));
-      }
-      break;
-    case CKA_DECRYPT:
-    case CKA_SIGN:
-    case CKA_SENSITIVE:
-      if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = (CK_LONG)sizeof(CK_BBOOL);
-      } else if(attTemplate->ulValueLen < sizeof(CK_BBOOL)) {
-        result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        CK_BBOOL oBool;
-        if(objectClass == CKO_PRIVATE_KEY) {
-          oBool = CK_TRUE;
-        } else {
-          oBool = CK_FALSE;
-        }
-        memcpy(attTemplate->pValue, &oBool, sizeof(oBool));
-      }
-      break;
-    case CKA_WRAP:
-    case CKA_UNWRAP:
-    case CKA_MODIFIABLE:
-    case CKA_DERIVE:
-    case CKA_VERIFY_RECOVER:
-    case CKA_SIGN_RECOVER:
-      if(attTemplate->pValue == NULL_PTR) {
-        attTemplate->ulValueLen = (CK_LONG)sizeof(oFalse);
-      } else if(attTemplate->ulValueLen < sizeof(oFalse)) {
-        result = CKR_BUFFER_TOO_SMALL;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        memcpy(attTemplate->pValue, &oFalse, sizeof(oFalse));
-      }
-      break;
-    case CKA_KEY_GEN_MECHANISM:
-      if(keyType == CKK_RSA) {
-        CK_MECHANISM_TYPE mech = CKM_RSA_PKCS_KEY_PAIR_GEN;
-
-        if(attTemplate->pValue == NULL_PTR) {
-          attTemplate->ulValueLen = (CK_LONG)sizeof(mech);
-        } else if(attTemplate->ulValueLen < sizeof(mech)) {
-          result = CKR_BUFFER_TOO_SMALL;
-          attTemplate->ulValueLen = (CK_LONG)-1;
-        } else {
-          memcpy(attTemplate->pValue, &mech, sizeof(mech));
-        }
-      } else {
-        result = CKR_ATTRIBUTE_TYPE_INVALID;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      }
-      break;      
-    case CKA_MODULUS_BITS:
-      if(keyType == CKK_RSA) {
-        IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);
-        BigInt bigModulus = ifKey->get_n();
-        int bits = bigModulus.bits();
-
-        if(attTemplate->pValue == NULL_PTR) {
-          attTemplate->ulValueLen = (CK_LONG)sizeof(int);
-        } else if(attTemplate->ulValueLen < sizeof(int)) {
-          result = CKR_BUFFER_TOO_SMALL;
-          attTemplate->ulValueLen = (CK_LONG)-1;
-        } else {
-          memcpy(attTemplate->pValue, &bits, sizeof(int));
-        }
-      } else {
-        result = CKR_ATTRIBUTE_TYPE_INVALID;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      }
-      break;
-    // The values are correct, but perhaps in reverse order?
-    case CKA_MODULUS:
-      if(keyType == CKK_RSA) {
-        IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);
-        BigInt bigModulus = ifKey->get_n();
-        unsigned int size = bigModulus.bytes();
-
-        if(attTemplate->pValue == NULL_PTR) {
-          attTemplate->ulValueLen = (CK_LONG)size;
-        } else if(attTemplate->ulValueLen < size) {
-          result = CKR_BUFFER_TOO_SMALL;
-          attTemplate->ulValueLen = (CK_LONG)-1;
-        } else {
-          char *buf = (char *)attTemplate->pValue;
-          for(unsigned int i = 0; i < size; i++) {
-            buf[i] = bigModulus.byte_at(i);
-          }
-        }
-      } else {
-        result = CKR_ATTRIBUTE_TYPE_INVALID;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      }
-      break;
-    // The values are correct, but perhaps in reverse order?
-    case CKA_PUBLIC_EXPONENT:
-      if(keyType == CKK_RSA) {
-        IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);
-        BigInt bigModulus = ifKey->get_e();
-        unsigned int size = bigModulus.bytes();
-
-        if(attTemplate->pValue == NULL_PTR) {
-          attTemplate->ulValueLen = (CK_LONG)size;
-        } else if(attTemplate->ulValueLen < size) {
-          result = CKR_BUFFER_TOO_SMALL;
-          attTemplate->ulValueLen = (CK_LONG)-1;
-        } else {
-          char *buf = (char *)attTemplate->pValue;
-          for(unsigned int i = 0; i < size; i++) {
-            buf[i] = bigModulus.byte_at(i);
-          }
-        }
-      } else {
-        result = CKR_ATTRIBUTE_TYPE_INVALID;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      }
-      break;
-    case CKA_PRIVATE_EXPONENT:
-    case CKA_PRIME_1:
-    case CKA_PRIME_2:
-    case CKA_EXPONENT_1:
-    case CKA_EXPONENT_2:
-    case CKA_COEFFICIENT:
-      if(keyType == CKK_RSA && objectClass == CKO_PRIVATE_KEY) {
-        result = CKR_ATTRIBUTE_SENSITIVE;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      } else {
-        result = CKR_ATTRIBUTE_TYPE_INVALID;
-        attTemplate->ulValueLen = (CK_LONG)-1;
-      }
-      break;
-    default:
-      result = CKR_ATTRIBUTE_TYPE_INVALID;
-      attTemplate->ulValueLen = (CK_LONG)-1;
-      break;
+  if(localAttribute == NULL_PTR) {
+    attTemplate->ulValueLen = (CK_LONG)-1;
+    return CKR_ATTRIBUTE_TYPE_INVALID;
   }
 
-  return result;
+  if(attTemplate->pValue == NULL_PTR) {
+    attTemplate->ulValueLen = localAttribute->ulValueLen;
+  } else if(attTemplate->ulValueLen < localAttribute->ulValueLen) {
+    attTemplate->ulValueLen = (CK_LONG)-1;
+    return CKR_BUFFER_TOO_SMALL;
+  } else {
+    memcpy(attTemplate->pValue, localAttribute->pValue, localAttribute->ulValueLen);
+    attTemplate->ulValueLen = localAttribute->ulValueLen;
+  }
+
+  return CKR_OK;
+}
+
+CK_BBOOL SoftObject::matchAttribute(CK_ATTRIBUTE *attTemplate) {
+  return attributes->matchAttribute(attTemplate);
 }

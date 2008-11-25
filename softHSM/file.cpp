@@ -110,24 +110,15 @@ bool removeKeyFile(SoftHSMInternal *pSoftH, char *fileName) {
 
 // Read all key pairs from the disk to the internal buffer.
 
-void openAllFiles(SoftHSMInternal *pSoftH) {
-  if(pSoftH == NULL_PTR) {
-    return;
-  }
-
+void readAllKeyFiles(SoftHSMInternal *pSoftH) {
   DIR *dir = opendir(checkHSMDir());
   struct dirent *entry;
   char *file = NULL_PTR;
-  CK_OBJECT_HANDLE hObject;
 
   while ((entry = readdir(dir)) != NULL) {
     if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
       file = strtok(entry->d_name,".");
-      // Check if the key pair is already in the buffer.
-      hObject = pSoftH->getObjectByNameAndClass(file, CKO_PRIVATE_KEY);
-      if(hObject == 0) {
-        readKeyFile(pSoftH, file);
-      }
+      readKeyFile(pSoftH, file);
     }
   }
 
