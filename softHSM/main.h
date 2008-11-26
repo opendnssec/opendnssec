@@ -33,6 +33,9 @@
 #include <botan/pkcs8.h>
 #include <botan/x509_obj.h>
 #include <botan/exceptn.h>
+#include <botan/emsa3.h>
+#include <botan/emsa_raw.h>
+#include <botan/pubkey.h>
 using namespace Botan;
 
 // Unix specific. Defined by RSA Lab.

@@ -16,6 +16,7 @@ class SoftObject {
     CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
     CK_OBJECT_CLASS getObjectClass();
     CK_KEY_TYPE getKeyType();
+    int getKeySizeBytes();
     Private_Key* getKey();
     char* getFileName();
     CK_BBOOL matchAttribute(CK_ATTRIBUTE *attTemplate);
@@ -26,4 +27,5 @@ class SoftObject {
     Private_Key *key;
     CK_OBJECT_CLASS objectClass;
     CK_KEY_TYPE keyType;
+    int keySizeBytes;
 };

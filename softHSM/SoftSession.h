@@ -22,6 +22,10 @@ class SoftSession {
     unsigned int digestSize;
     bool digestInitialized;
 
+    PK_Signer *pkSigner;
+    unsigned int signSize;
+    bool signInitialized;
+
   private:
     bool readOnly;
 };

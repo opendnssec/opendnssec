@@ -253,7 +253,7 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
     return CKR_SLOT_ID_INVALID;
   }
 
-  *pulCount = 8;
+  *pulCount = 14;
 
   if(pMechanismList == NULL_PTR) {
     return CKR_OK;
@@ -267,11 +267,12 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
   pMechanismList[5] = CKM_SHA256;
   pMechanismList[6] = CKM_SHA384;
   pMechanismList[7] = CKM_SHA512;
-
-//  pMechanismList[] = CKM_SHA1_RSA_PKCS;
-//  pMechanismList[] = CKM_SHA256_RSA_PKCS;
-//  pMechanismList[] = CKM_SHA384_RSA_PKCS;
-//  pMechanismList[] = CKM_SHA512_RSA_PKCS;
+  pMechanismList[8] = CKM_MD5_RSA_PKCS;
+  pMechanismList[9] = CKM_RIPEMD160_RSA_PKCS;
+  pMechanismList[10] = CKM_SHA1_RSA_PKCS;
+  pMechanismList[11] = CKM_SHA256_RSA_PKCS;
+  pMechanismList[12] = CKM_SHA384_RSA_PKCS;
+  pMechanismList[13] = CKM_SHA512_RSA_PKCS;
 
   return CKR_OK;
 }
@@ -291,12 +292,12 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
     case CKM_RSA_PKCS_KEY_PAIR_GEN:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_GENERATE_KEY_PAIR;
+      pInfo->flags = CKF_GENERATE_KEY_PAIR | CKF_HW;
       break;
     case CKM_RSA_PKCS:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_ENCRYPT | CKF_DECRYPT;
+      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_ENCRYPT | CKF_DECRYPT | CKF_HW;
       break;
     case CKM_MD5:
     case CKM_RIPEMD160:
@@ -304,7 +305,17 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
     case CKM_SHA256:
     case CKM_SHA384:
     case CKM_SHA512:
-      pInfo->flags = CKF_DIGEST;
+      pInfo->flags = CKF_DIGEST | CKF_HW;
+      break;
+    case CKM_MD5_RSA_PKCS:
+    case CKM_RIPEMD160_RSA_PKCS:
+    case CKM_SHA1_RSA_PKCS:
+    case CKM_SHA256_RSA_PKCS:
+    case CKM_SHA384_RSA_PKCS:
+    case CKM_SHA512_RSA_PKCS:
+      pInfo->ulMinKeySize = 512;
+      pInfo->ulMaxKeySize = 4096;
+      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW;
       break;
     default:
       return CKR_MECHANISM_INVALID;
@@ -747,20 +758,192 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
 }
 
 CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  SoftObject *object;
+  result = softHSM->getObject(hKey, object);
+
+  if(result != CKR_OK || object->getObjectClass() != CKO_PRIVATE_KEY ||
+     object->getKeyType() != CKK_RSA) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  if(session->signInitialized) {
+    return CKR_OPERATION_ACTIVE;
+  }
+
+  EMSA *hashFunc = NULL_PTR;
+
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS:
+      // Is not correct.
+      // We do not want to use a hash function in this case...
+      hashFunc = new EMSA_Raw();
+      break;
+    case CKM_MD5_RSA_PKCS:
+      hashFunc = new EMSA3(new MD5);
+      break;
+    case CKM_RIPEMD160_RSA_PKCS:
+      hashFunc = new EMSA3(new RIPEMD_160);
+      break;
+    case CKM_SHA1_RSA_PKCS:
+      hashFunc = new EMSA3(new SHA_160);
+      break;
+    case CKM_SHA256_RSA_PKCS:
+      hashFunc = new EMSA3(new SHA_256);
+      break;
+    case CKM_SHA384_RSA_PKCS:
+      hashFunc = new EMSA3(new SHA_384);
+      break;
+    case CKM_SHA512_RSA_PKCS:
+      // Botan can verify itself, but the signature is not
+      // the same as the one from OpenSSL.
+      hashFunc = new EMSA3(new SHA_512);
+      break;
+    default:
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+
+  if(hashFunc == NULL_PTR) {
+    return CKR_DEVICE_MEMORY;
+  }
+
+  PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(object->getKey());
+  session->signSize = object->getKeySizeBytes();
+  session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
+
+  if(!session->pkSigner) {
+      return CKR_DEVICE_MEMORY;
+  }
+
+  session->signInitialized = true;
+
+  return CKR_OK;
 }
 
 CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
       CK_ULONG_PTR pulSignatureLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->signInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pSignature == NULL_PTR) {
+    *pulSignatureLen = session->signSize;
+    return CKR_OK;
+  }
+
+  if(*pulSignatureLen < session->signSize) {
+    *pulSignatureLen = session->signSize;
+    return CKR_BUFFER_TOO_SMALL;
+  }
+
+  if(pData == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // Sign 
+  SecureVector<byte> signResult = session->pkSigner->sign_message(pData, ulDataLen, *softHSM->rng);
+
+  // Returns the result
+  memcpy(pSignature, signResult.begin(), session->signSize);
+  *pulSignatureLen = session->signSize;
+
+  // Finalizing
+  session->signSize = 0;
+  delete session->pkSigner;
+  session->pkSigner = NULL_PTR;
+  session->signInitialized = false;
+
+  return CKR_OK;  
 }
 
 CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->signInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pPart == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // Buffer
+  session->pkSigner->update(pPart, ulPartLen);
+
+  return CKR_OK;
 }
 
 CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_PTR pulSignatureLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->signInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pSignature == NULL_PTR) {
+    *pulSignatureLen = session->signSize;
+    return CKR_OK;
+  }
+
+  if(*pulSignatureLen < session->signSize) {
+    *pulSignatureLen = session->signSize;
+    return CKR_BUFFER_TOO_SMALL;
+  }
+
+  // Sign
+  SecureVector<byte> signResult = session->pkSigner->signature(*softHSM->rng);
+
+  // Returns the result
+  memcpy(pSignature, signResult.begin(), session->signSize);
+  *pulSignatureLen = session->signSize;
+
+  // Finalizing
+  session->signSize = 0;
+  delete session->pkSigner;
+  session->pkSigner = NULL_PTR;
+  session->signInitialized = false;
+
+  return CKR_OK;
 }
 
 CK_RV C_SignRecoverInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {

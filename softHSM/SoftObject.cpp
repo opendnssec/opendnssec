@@ -94,6 +94,7 @@ CK_RV SoftObject::addKey(Private_Key *inKey, CK_OBJECT_CLASS oClass, char *pName
     IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(key);
     BigInt bigModulus = ifKey->get_n();
     int bits = bigModulus.bits();
+    keySizeBytes = (bits + 7) / 8;
     unsigned int modulusSize = bigModulus.bytes();
     this->addAttributeFromData(CKA_MODULUS_BITS, &bits, sizeof(bits));
 
@@ -210,4 +211,8 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
 
 CK_BBOOL SoftObject::matchAttribute(CK_ATTRIBUTE *attTemplate) {
   return attributes->matchAttribute(attTemplate);
+}
+
+int SoftObject::getKeySizeBytes() {
+  return keySizeBytes;
 }
