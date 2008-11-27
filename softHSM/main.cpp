@@ -809,7 +809,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     case CKM_SHA512_RSA_PKCS:
       // Botan can verify itself, but the signature is not
       // the same as the one from OpenSSL.
-      hashFunc = new EMSA3(new SHA_384);
+      hashFunc = new EMSA3(new SHA_512);
       break;
     default:
       return CKR_MECHANISM_INVALID;
