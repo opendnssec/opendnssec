@@ -782,12 +782,14 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   }
 
   EMSA *hashFunc = NULL_PTR;
+  session->signSinglePart = false;
 
   switch(pMechanism->mechanism) {
     case CKM_RSA_PKCS:
       // Is not correct.
       // We do not want to use a hash function in this case...
       hashFunc = new EMSA_Raw();
+      session->signSinglePart = true;
       break;
     case CKM_MD5_RSA_PKCS:
       hashFunc = new EMSA3(new MD5);
@@ -807,7 +809,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     case CKM_SHA512_RSA_PKCS:
       // Botan can verify itself, but the signature is not
       // the same as the one from OpenSSL.
-      hashFunc = new EMSA3(new SHA_512);
+      hashFunc = new EMSA3(new SHA_384);
       break;
     default:
       return CKR_MECHANISM_INVALID;
@@ -894,6 +896,10 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
+  if(session->signSinglePart) {
+    return CKR_FUNCTION_NOT_SUPPORTED;
+  }
+
   if(pPart == NULL_PTR) {
     return CKR_ARGUMENTS_BAD;
   }
@@ -918,6 +924,10 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
 
   if(!session->signInitialized) {
     return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(session->signSinglePart) {
+    return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pSignature == NULL_PTR) {

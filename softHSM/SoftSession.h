@@ -23,6 +23,7 @@ class SoftSession {
     bool digestInitialized;
 
     PK_Signer *pkSigner;
+    bool signSinglePart;
     unsigned int signSize;
     bool signInitialized;
 

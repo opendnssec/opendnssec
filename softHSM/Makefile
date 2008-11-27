@@ -1,5 +1,3 @@
-# $Id$
-
 TARGET=		libsoftHSM.pkcs11.2.20.so
 SOURCE=		main.cpp
 OBJS=		main.o
@@ -9,7 +7,7 @@ CC=		g++
 
 CPPFLAGS=	-I. -I/usr/local/include
 CFLAGS=		-g -fPIC -Wall
-LDFLAGS=	-L/usr/local/lib
+LDFLAGS=	-shared -L/usr/local/lib
 LIBS=		-lbotan
 
 COMPILE=	$(CC) $(CPPFLAGS) $(CFLAGS)

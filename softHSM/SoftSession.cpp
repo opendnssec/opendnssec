@@ -19,6 +19,7 @@ SoftSession::SoftSession() {
   digestInitialized = false;
 
   pkSigner = NULL_PTR;
+  signSinglePart = false;
   signSize = 0;
   signInitialized = false;
 }
