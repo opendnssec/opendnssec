@@ -1,4 +1,4 @@
-/* $Id: SoftAttribute.h 66 2008-11-27 10:14:26Z jakob $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).

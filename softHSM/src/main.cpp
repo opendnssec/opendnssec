@@ -1,4 +1,4 @@
-/* $Id: main.cpp 65 2008-11-27 10:13:37Z jakob $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
