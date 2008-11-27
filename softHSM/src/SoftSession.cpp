@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: SoftSession.cpp 66 2008-11-27 10:14:26Z jakob $ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
@@ -33,28 +33,48 @@
 *
 ************************************************************/
 
-class SoftSession {
-  public:
-    SoftSession();
-    ~SoftSession();
+SoftSession::SoftSession() {
+  pApplication = NULL_PTR;
+  Notify = NULL_PTR;
+  readOnly = false;
 
-    bool isReadOnly();
-    CK_VOID_PTR pApplication;
-    CK_NOTIFY Notify;
+  findAnchor = NULL_PTR;
+  findCurrent = NULL_PTR;
+  findInitialized = false;
 
-    SoftFind *findAnchor;
-    SoftFind *findCurrent;
-    bool findInitialized;
+  digestPipe = NULL_PTR;
+  digestSize = 0;
+  digestInitialized = false;
 
-    Pipe *digestPipe;
-    unsigned int digestSize;
-    bool digestInitialized;
+  pkSigner = NULL_PTR;
+  signSinglePart = false;
+  signSize = 0;
+  signInitialized = false;
+}
 
-    PK_Signer *pkSigner;
-    bool signSinglePart;
-    unsigned int signSize;
-    bool signInitialized;
+SoftSession::~SoftSession() {
+  pApplication = NULL_PTR;
+  Notify = NULL_PTR;
 
-  private:
-    bool readOnly;
-};
+  if(findAnchor != NULL_PTR) {
+    delete findAnchor;
+    findAnchor = NULL_PTR;
+  }
+
+  findCurrent = NULL_PTR;
+
+  if(digestPipe != NULL_PTR) {
+    delete digestPipe;
+    digestPipe = NULL_PTR;
+  }
+
+  if(pkSigner != NULL_PTR) {
+    delete pkSigner;
+    pkSigner = NULL_PTR;
+  }
+
+}
+
+bool SoftSession::isReadOnly() {
+  return readOnly;
+}

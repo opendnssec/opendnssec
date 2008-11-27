@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: SoftSession.h 66 2008-11-27 10:14:26Z jakob $ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
@@ -28,31 +28,38 @@
 
 /************************************************************
 *
-* This class handles the search results.
-* It creates a chain of object handles.
+* This class defines a session
+* It holds the current state of the session
 *
 ************************************************************/
 
-SoftFind::SoftFind() {
-  next = NULL_PTR;
-  findObject = 0;
-}
+#ifndef SOFTHSM_SOFTSESSION_H
+#define SOFTHSM_SOFTSESSION_H 1
 
-SoftFind::~SoftFind() {
-  if(next != NULL_PTR) {
-    delete next;
-    next = NULL_PTR;
-  }
-}
+class SoftSession {
+  public:
+    SoftSession();
+    ~SoftSession();
 
-// Add the object handle if we are the last one in the chain.
-// Or else pass it on the next one.
+    bool isReadOnly();
+    CK_VOID_PTR pApplication;
+    CK_NOTIFY Notify;
 
-void SoftFind::addFind(CK_OBJECT_HANDLE newObject) {
-  if(next == NULL_PTR) {
-    findObject = newObject;
-    next = new SoftFind();
-  } else {
-    next->addFind(newObject);
-  }
-}
+    SoftFind *findAnchor;
+    SoftFind *findCurrent;
+    bool findInitialized;
+
+    Pipe *digestPipe;
+    unsigned int digestSize;
+    bool digestInitialized;
+
+    PK_Signer *pkSigner;
+    bool signSinglePart;
+    unsigned int signSize;
+    bool signInitialized;
+
+  private:
+    bool readOnly;
+};
+
+#endif /* SOFTHSM_SOFTSESSION_H */

@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: SoftObject.h 66 2008-11-27 10:14:26Z jakob $ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
@@ -28,21 +28,37 @@
 
 /************************************************************
 *
-* This class handles an object's attributes.
-* It creates a chain of object attributes.
+* This class defines an object, which contains
+* a crypto key, private or public.
 *
 ************************************************************/
 
-class SoftAttribute {
-  public:
-    SoftAttribute();
-    ~SoftAttribute();
+#ifndef SOFTHSM_SOFTOBJECT_H
+#define SOFTHSM_SOFTOBJECT_H 1
 
-    void addAttribute(CK_ATTRIBUTE *objectAttribute);
-    CK_ATTRIBUTE* getAttribute(CK_ATTRIBUTE_TYPE type);
+class SoftObject {
+  public:
+    SoftObject();
+    ~SoftObject();
+    CK_RV addKey(Private_Key *inKey, CK_OBJECT_CLASS oClass, char *pName);
+    CK_RV saveKey(SoftHSMInternal *pSoftH);
+    CK_RV removeFile(SoftHSMInternal *pSoftH);
+    CK_RV addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
+    CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
+    CK_OBJECT_CLASS getObjectClass();
+    CK_KEY_TYPE getKeyType();
+    int getKeySizeBytes();
+    Private_Key* getKey();
+    char* getFileName();
     CK_BBOOL matchAttribute(CK_ATTRIBUTE *attTemplate);
 
   private:
-    SoftAttribute *next;
-    CK_ATTRIBUTE *objectAttribute;
+    SoftAttribute *attributes;
+    char *fileName;
+    Private_Key *key;
+    CK_OBJECT_CLASS objectClass;
+    CK_KEY_TYPE keyType;
+    int keySizeBytes;
 };
+
+#endif /* SOFTHSM_SOFTOBJECT_H */

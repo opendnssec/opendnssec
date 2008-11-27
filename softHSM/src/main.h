@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: main.h 66 2008-11-27 10:14:26Z jakob $ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
@@ -25,6 +25,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#ifndef SOFTHSM_MAIN_H
+#define SOFTHSM_MAIN_H 1
 
 // Version number for SoftHSM
 #define VERSION_MAJOR 0
@@ -79,9 +82,11 @@ class SoftFind;
 class SoftAttribute;
 
 // Internal definitions
-#include <SoftHSMInternal.h>
-#include <SoftSession.h>
-#include <SoftObject.h>
-#include <SoftFind.h>
-#include <SoftAttribute.h>
-#include <file.h>
+#include "SoftHSMInternal.h"
+#include "SoftSession.h"
+#include "SoftObject.h"
+#include "SoftFind.h"
+#include "SoftAttribute.h"
+#include "file.h"
+
+#endif /* SOFTHSM_MAIN_H */

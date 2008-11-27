@@ -6,3 +6,10 @@ Using Botan 1.7.21
 
 SoftHSM is not thread safe.... but will be fixed
 Check if any memory leeks must be fixed
+
+
+
+./autogen.sh
+./configure
+make
+sudo make install

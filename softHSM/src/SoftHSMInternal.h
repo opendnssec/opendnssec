@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: SoftHSMInternal.h 66 2008-11-27 10:14:26Z jakob $ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
@@ -28,18 +28,45 @@
 
 /************************************************************
 *
-* This class handles the search results.
-* It creates a chain of object handles.
+* This class handles the internal state.
+* Mainly session and object handling.
 *
 ************************************************************/
 
-class SoftFind {
+#ifndef SOFTHSM_SOFTHSMINTERNAL_H
+#define SOFTHSM_SOFTHSMINTERNAL_H 1
+
+class SoftHSMInternal {
   public:
-    SoftFind();
-    ~SoftFind();
+    SoftHSMInternal();
+    ~SoftHSMInternal();
+    int getSessionCount();
+    CK_RV openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, 
+      CK_SESSION_HANDLE_PTR phSession);
+    CK_RV closeSession(CK_SESSION_HANDLE hSession);
+    CK_RV closeAllSessions();
+    CK_RV getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo);
+    CK_RV login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, 
+      CK_ULONG ulPinLen);
+    CK_RV getSession(CK_SESSION_HANDLE hSession, SoftSession *&session);
+    CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
+    CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
+    CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
+      CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
+    CK_RV findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
+      CK_ULONG ulCount);
+    bool isLoggedIn();
+    char* getPIN();
+    CK_OBJECT_HANDLE addObject(SoftObject *inObject);
 
-    void addFind(CK_OBJECT_HANDLE newObject);
+    AutoSeeded_RNG *rng;
 
-    SoftFind *next;
-    CK_OBJECT_HANDLE findObject;
+  private:
+    char *pin;
+    int openSessions;
+    SoftSession *sessions[MAX_SESSION_COUNT];
+    int openObjects;
+    SoftObject *objects[MAX_OBJECTS];
 };
+
+#endif /* SOFTHSM_SOFTHSMINTERNAL_H */

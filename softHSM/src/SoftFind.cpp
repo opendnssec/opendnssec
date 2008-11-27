@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: SoftFind.cpp 66 2008-11-27 10:14:26Z jakob $ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
@@ -28,53 +28,31 @@
 
 /************************************************************
 *
-* This class defines a session
-* It holds the current state of the session
+* This class handles the search results.
+* It creates a chain of object handles.
 *
 ************************************************************/
 
-SoftSession::SoftSession() {
-  pApplication = NULL_PTR;
-  Notify = NULL_PTR;
-  readOnly = false;
-
-  findAnchor = NULL_PTR;
-  findCurrent = NULL_PTR;
-  findInitialized = false;
-
-  digestPipe = NULL_PTR;
-  digestSize = 0;
-  digestInitialized = false;
-
-  pkSigner = NULL_PTR;
-  signSinglePart = false;
-  signSize = 0;
-  signInitialized = false;
+SoftFind::SoftFind() {
+  next = NULL_PTR;
+  findObject = 0;
 }
 
-SoftSession::~SoftSession() {
-  pApplication = NULL_PTR;
-  Notify = NULL_PTR;
-
-  if(findAnchor != NULL_PTR) {
-    delete findAnchor;
-    findAnchor = NULL_PTR;
+SoftFind::~SoftFind() {
+  if(next != NULL_PTR) {
+    delete next;
+    next = NULL_PTR;
   }
-
-  findCurrent = NULL_PTR;
-
-  if(digestPipe != NULL_PTR) {
-    delete digestPipe;
-    digestPipe = NULL_PTR;
-  }
-
-  if(pkSigner != NULL_PTR) {
-    delete pkSigner;
-    pkSigner = NULL_PTR;
-  }
-
 }
 
-bool SoftSession::isReadOnly() {
-  return readOnly;
+// Add the object handle if we are the last one in the chain.
+// Or else pass it on the next one.
+
+void SoftFind::addFind(CK_OBJECT_HANDLE newObject) {
+  if(next == NULL_PTR) {
+    findObject = newObject;
+    next = new SoftFind();
+  } else {
+    next->addFind(newObject);
+  }
 }

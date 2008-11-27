@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: main.cpp 65 2008-11-27 10:13:37Z jakob $ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
@@ -35,7 +35,7 @@
 *
 ************************************************************/
 
-#include <main.h>
+#include "main.h"
 
 // Initialize the Botan library
 Botan::LibraryInitializer init;

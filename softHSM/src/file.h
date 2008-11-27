@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: file.h 66 2008-11-27 10:14:26Z jakob $ */
 
 /*
  * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
@@ -26,6 +26,9 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef SOFTHSM_FILE_H
+#define SOFTHSM_FILE_H 1
+
 char* checkHSMDir();
 char* getNewFileName();
 char* getFilePath(char *fileName);
@@ -33,3 +36,5 @@ bool saveKeyFile(SoftHSMInternal *pSoftH, char *fileName, Private_Key *key);
 bool removeKeyFile(SoftHSMInternal *pSoftH, char *fileName);
 void readAllKeyFiles(SoftHSMInternal *pSoftH);
 CK_RV readKeyFile(SoftHSMInternal *pSoftH, char* file);
+
+#endif /* SOFTHSM_FILE_H */
