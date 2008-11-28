@@ -43,13 +43,6 @@ Botan::LibraryInitializer init;
 // Keeps the internal state
 SoftHSMInternal *softHSM = NULL_PTR;
 
-#include <file.cpp>
-#include <SoftHSMInternal.cpp>
-#include <SoftSession.cpp>
-#include <SoftObject.cpp>
-#include <SoftFind.cpp>
-#include <SoftAttribute.cpp>
-
 // A list with Cryptoki version number
 // and pointers to the API functions.
 CK_FUNCTION_LIST function_list = {

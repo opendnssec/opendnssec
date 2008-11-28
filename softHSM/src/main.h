@@ -70,9 +70,9 @@
 using namespace Botan;
 
 // Unix specific. Defined by RSA Lab.
-#include <pkcs11_unix.h>
+#include "pkcs11_unix.h"
 // PKCS11. Defined by RSA Lab.
-#include <pkcs11.h>
+#include "pkcs11.h"
 
 // Internal classes
 class SoftHSMInternal;

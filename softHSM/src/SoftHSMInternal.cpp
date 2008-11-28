@@ -33,6 +33,8 @@
 *
 ************************************************************/
 
+#include "main.h"
+
 SoftHSMInternal::SoftHSMInternal() {
   openSessions = 0;
   openObjects = 0;

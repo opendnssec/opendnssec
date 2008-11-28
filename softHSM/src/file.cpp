@@ -33,6 +33,8 @@
 *
 ************************************************************/
 
+#include "main.h"
+
 // Returns the directory where the private keys are stored.
 // They are stored in the .softHSM directory in the user's
 // home directory.

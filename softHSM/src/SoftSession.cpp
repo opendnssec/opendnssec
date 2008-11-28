@@ -33,6 +33,8 @@
 *
 ************************************************************/
 
+#include "main.h"
+
 SoftSession::SoftSession() {
   pApplication = NULL_PTR;
   Notify = NULL_PTR;

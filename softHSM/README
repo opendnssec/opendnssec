@@ -10,7 +10,7 @@ SoftHSM is not thread safe.... but will be fixed
 Check if any memory leeks must be fixed
 
 
-
+chmod 744 autogen.sh
 ./autogen.sh
 ./configure
 make

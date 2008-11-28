@@ -1,3 +1,6 @@
+#ifndef SOFTHSM_PKCS11_UNIX_H
+#define SOFTHSM_PKCS11_UNIX_H 1
+
 #define CK_PTR *
 
 #define CK_DEFINE_FUNCTION(returnType, name) \
@@ -16,3 +19,4 @@
 #define NULL_PTR 0
 #endif
 
+#endif /* SOFTHSM_PKCS11_UNIX_H */

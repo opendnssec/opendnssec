@@ -33,6 +33,8 @@
 *
 ************************************************************/
 
+#include "main.h"
+
 SoftAttribute::SoftAttribute() {
   next = NULL_PTR;
   objectAttribute = NULL_PTR;

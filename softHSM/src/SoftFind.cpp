@@ -33,6 +33,8 @@
 *
 ************************************************************/
 
+#include "main.h"
+
 SoftFind::SoftFind() {
   next = NULL_PTR;
   findObject = 0;

@@ -33,6 +33,8 @@
 *
 ************************************************************/
 
+#include "main.h"
+
 SoftObject::SoftObject() {
   key = NULL_PTR;
   objectClass = CKO_PUBLIC_KEY;
