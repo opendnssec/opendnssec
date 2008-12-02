@@ -58,6 +58,11 @@ class SoftSession {
     unsigned int signSize;
     bool signInitialized;
 
+    PK_Verifier *pkVerifier;
+    bool verifySinglePart;
+    unsigned int verifySize;
+    bool verifyInitialized;
+
   private:
     bool readOnly;
 };

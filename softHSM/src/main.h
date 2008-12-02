@@ -67,6 +67,7 @@
 #include <botan/emsa3.h>
 #include <botan/emsa_raw.h>
 #include <botan/pubkey.h>
+#include <botan/der_enc.h>
 using namespace Botan;
 
 // Unix specific. Defined by RSA Lab.

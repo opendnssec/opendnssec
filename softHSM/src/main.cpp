@@ -318,7 +318,7 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
     case CKM_RSA_PKCS:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_ENCRYPT | CKF_DECRYPT | CKF_HW;
+      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW; // CKF_ENCRYPT | CKF_DECRYPT
       break;
     case CKM_MD5:
     case CKM_RIPEMD160:
@@ -606,6 +606,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
   unsigned int mechSize = 0;
   HashFunction *hashFunc = NULL_PTR;
 
+  // Selects the correct hash algorithm.
   switch(pMechanism->mechanism) {
     case CKM_MD5:
       mechSize = 16;
@@ -640,6 +641,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
     return CKR_DEVICE_MEMORY;
   }
 
+  // Creates the digester with given hash algorithm.
   session->digestSize = mechSize;
   session->digestPipe = new Pipe(new Hash_Filter(hashFunc));
 
@@ -778,6 +780,8 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
   return CKR_OK;
 }
 
+// Initialize the signature functionality
+
 CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
@@ -805,6 +809,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   EMSA *hashFunc = NULL_PTR;
   session->signSinglePart = false;
 
+  // Selects the correct padding and hash algorithm.
   switch(pMechanism->mechanism) {
     case CKM_RSA_PKCS:
       hashFunc = new EMSA3_Raw();
@@ -837,6 +842,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_DEVICE_MEMORY;
   }
 
+  // Creates the signer with given key and mechanism.
   PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(object->getKey());
   session->signSize = object->getKeySizeBytes();
   session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
@@ -849,6 +855,8 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
   return CKR_OK;
 }
+
+// Signs the data and return the results
 
 CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
       CK_ULONG_PTR pulSignatureLen) {
@@ -897,6 +905,8 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   return CKR_OK;  
 }
 
+// Buffer the data before final signing
+
 CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
@@ -926,6 +936,8 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
 
   return CKR_OK;
 }
+
+// Signs the collected data and returns the signature.
 
 CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_PTR pulSignatureLen) {
   if(softHSM == NULL_PTR) {
@@ -982,21 +994,206 @@ CK_RV C_SignRecover(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDa
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
+// Initialize the verifing functionality.
+
 CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  SoftObject *object;
+  result = softHSM->getObject(hKey, object);
+
+  if(result != CKR_OK || object->getObjectClass() != CKO_PUBLIC_KEY ||
+     object->getKeyType() != CKK_RSA) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  if(session->verifyInitialized) {
+    return CKR_OPERATION_ACTIVE;
+  }
+
+  EMSA *hashFunc = NULL_PTR;
+  session->verifySinglePart = false;
+
+  // Selects the correct padding and hash algorithm.
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS:
+      hashFunc = new EMSA3_Raw();
+      session->verifySinglePart = true;
+      break;
+    case CKM_MD5_RSA_PKCS:
+      hashFunc = new EMSA3(new MD5);
+      break;
+    case CKM_RIPEMD160_RSA_PKCS:
+      hashFunc = new EMSA3(new RIPEMD_160);
+      break;
+    case CKM_SHA1_RSA_PKCS:
+      hashFunc = new EMSA3(new SHA_160);
+      break;
+    case CKM_SHA256_RSA_PKCS:
+      hashFunc = new EMSA3(new SHA_256);
+      break;
+    case CKM_SHA384_RSA_PKCS:
+      hashFunc = new EMSA3(new SHA_384);
+      break;
+    case CKM_SHA512_RSA_PKCS:
+      hashFunc = new EMSA3(new SHA_512);
+      break;
+    default:
+      return CKR_MECHANISM_INVALID;
+      break;
+  }
+
+  if(hashFunc == NULL_PTR) {
+    return CKR_DEVICE_MEMORY;
+  }
+
+  // Creates the verifier with given key and mechanism
+  PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(object->getKey());
+  session->verifySize = object->getKeySizeBytes();
+  session->pkVerifier = new PK_Verifier_with_MR(*verifyKey, &*hashFunc);
+
+  if(!session->pkVerifier) {
+      return CKR_DEVICE_MEMORY;
+  }
+
+  session->verifyInitialized = true;
+
+  return CKR_OK;
 }
+
+// Verifies if the the signature matches the data
 
 CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
       CK_ULONG ulSignatureLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->verifyInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pData == NULL_PTR || pSignature == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // Add data
+  session->pkVerifier->update(pData, ulDataLen);
+
+  // Check signature length
+  if(session->verifySize != ulSignatureLen) {
+    return CKR_SIGNATURE_LEN_RANGE;
+  }
+
+  // Verify
+  bool verResult = session->pkVerifier->check_signature(pSignature, ulSignatureLen);
+
+  // Finalizing
+  delete session->pkVerifier;
+  session->pkVerifier = NULL_PTR;
+  session->verifyInitialized = false;
+
+  // Returns the result
+  if(verResult) {
+    return CKR_OK;
+  } else {
+    return CKR_SIGNATURE_INVALID;
+  }
 }
+
+// Collects the data before the final signature check.
 
 CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->verifyInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(session->verifySinglePart) {
+    return CKR_FUNCTION_NOT_SUPPORTED;
+  }
+
+  if(pPart == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // Add data
+  session->pkVerifier->update(pPart, ulPartLen);
+
+  return CKR_OK;
 }
 
+// Verifies if the signature matches the collected data.
+
 CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG ulSignatureLen) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  SoftSession *session;
+  CK_RV result = softHSM->getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(!session->verifyInitialized) {
+    return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(session->verifySinglePart) {
+    return CKR_FUNCTION_NOT_SUPPORTED;
+  }
+
+  if(pSignature == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
+  }
+
+  // Check signature length
+  if(session->verifySize != ulSignatureLen) {
+    return CKR_SIGNATURE_LEN_RANGE;
+  }
+
+  // Verify
+  bool verResult = session->pkVerifier->check_signature(pSignature, ulSignatureLen);
+
+  // Finalizing
+  delete session->pkVerifier;
+  session->pkVerifier = NULL_PTR;
+  session->verifyInitialized = false;
+
+  // Returns the result
+  if(verResult) {
+    return CKR_OK;
+  } else {
+    return CKR_SIGNATURE_INVALID;
+  }
 }
 
 CK_RV C_VerifyRecoverInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {

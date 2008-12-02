@@ -145,6 +145,33 @@ CK_RV SoftObject::addKey(Private_Key *inKey, CK_OBJECT_CLASS oClass, char *pName
     }
     this->addAttributeFromData(CKA_PUBLIC_EXPONENT, exponentBuf, sizeof(exponentSize));
     free(exponentBuf);
+
+/*
+    // How should the CKA_VALUE be formated????
+    // 1 and 2 results in the same values.
+    // RAW_BER can be exchange for PEM for PEM encoding.
+    // ans1parse understands the content, but not d2i_PublicKey.
+    // d2i_PublicKey is used in pkcs11-tool
+
+// 1:
+    X509_Encoder *encoder = ifKey->x509_encoder();
+    MemoryVector<byte> der =
+            DER_Encoder()
+              .start_cons(SEQUENCE)
+                .encode(encoder->alg_id())
+                .encode(encoder->key_bits(), BIT_STRING)
+              .end_cons()
+            .get_contents();
+
+// 2:
+    Pipe berPipe;
+    berPipe.start_msg();
+    X509::encode(*dynamic_cast<Public_Key*>(key), berPipe, RAW_BER);
+    berPipe.end_msg();
+    SecureVector<byte> berMsg = berPipe.read_all();
+
+    this->addAttributeFromData(CKA_VALUE, berMsg.begin(), berMsg.size());
+*/
   }
 
   return CKR_OK;

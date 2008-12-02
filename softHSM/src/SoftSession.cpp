@@ -52,6 +52,11 @@ SoftSession::SoftSession() {
   signSinglePart = false;
   signSize = 0;
   signInitialized = false;
+
+  pkVerifier = NULL_PTR;
+  verifySinglePart = false;
+  verifySize = 0;
+  verifyInitialized = false;
 }
 
 SoftSession::~SoftSession() {
@@ -75,6 +80,10 @@ SoftSession::~SoftSession() {
     pkSigner = NULL_PTR;
   }
 
+  if(pkVerifier != NULL_PTR) {
+    delete pkVerifier;
+    pkVerifier = NULL_PTR;
+  }
 }
 
 bool SoftSession::isReadOnly() {
