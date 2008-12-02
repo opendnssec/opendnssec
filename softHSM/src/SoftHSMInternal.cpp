@@ -47,6 +47,7 @@ SoftHSMInternal::SoftHSMInternal() {
     objects[i] = NULL_PTR;
   }
 
+  pthread_mutex_init(&mutex,NULL);
   pin = NULL_PTR;
   rng = new AutoSeeded_RNG();
 }
@@ -205,6 +206,32 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
 
   readAllKeyFiles(this);
 
+  return CKR_OK;
+}
+
+// Logs out the user from the token.
+// Closes all the objects.
+
+CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
+    SoftSession *session;
+  CK_RV result = getSession(hSession, session);
+
+  if(result != CKR_OK) {
+    return result;
+  }
+
+  if(pin != NULL_PTR) {
+    free(pin);
+    pin = NULL_PTR;
+  }
+
+  for(int i = 0; i < MAX_OBJECTS; i++) {
+    if(objects[i] != NULL_PTR) {
+      delete objects[i];
+      objects[i] = NULL_PTR;
+    }
+  }
+ 
   return CKR_OK;
 }
 

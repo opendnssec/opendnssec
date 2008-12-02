@@ -38,7 +38,7 @@
 #include "main.h"
 
 // Initialize the Botan library
-Botan::LibraryInitializer init;
+Botan::LibraryInitializer *botanInit = new LibraryInitializer("thread_safe=true");
 
 // Keeps the internal state
 SoftHSMInternal *softHSM = NULL_PTR;
@@ -428,8 +428,15 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR
   return softHSM->login(hSession, userType, pPin, ulPinLen);
 }
 
+// Logs out the user from the token.
+// Closes all the objects.
+
 CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  return softHSM->logout(hSession);
 }
 
 CK_RV C_CreateObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_OBJECT_HANDLE_PTR phObject) {
@@ -889,8 +896,12 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
     return CKR_ARGUMENTS_BAD;
   }
 
+  SecureVector<byte> signResult;
+
   // Sign 
-  SecureVector<byte> signResult = session->pkSigner->sign_message(pData, ulDataLen, *softHSM->rng);
+  pthread_mutex_lock(&softHSM->mutex);
+  signResult = session->pkSigner->sign_message(pData, ulDataLen, *softHSM->rng);
+  pthread_mutex_unlock(&softHSM->mutex);
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);

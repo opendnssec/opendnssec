@@ -50,6 +50,7 @@
 #include <dirent.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 // Includes for the crypto library
 #include <botan/botan.h>

@@ -48,6 +48,7 @@ class SoftHSMInternal {
     CK_RV getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo);
     CK_RV login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, 
       CK_ULONG ulPinLen);
+    CK_RV logout(CK_SESSION_HANDLE hSession);
     CK_RV getSession(CK_SESSION_HANDLE hSession, SoftSession *&session);
     CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
@@ -60,7 +61,8 @@ class SoftHSMInternal {
     CK_OBJECT_HANDLE addObject(SoftObject *inObject);
 
     AutoSeeded_RNG *rng;
-
+    pthread_mutex_t mutex;
+  
   private:
     char *pin;
     int openSessions;
