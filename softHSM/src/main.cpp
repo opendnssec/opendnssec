@@ -38,10 +38,10 @@
 #include "main.h"
 
 // Initialize the Botan library
-Botan::LibraryInitializer *botanInit = new LibraryInitializer("thread_safe=true");
+static Botan::LibraryInitializer *botanInit = new LibraryInitializer("thread_safe=true");
 
 // Keeps the internal state
-SoftHSMInternal *softHSM = NULL_PTR;
+static SoftHSMInternal *softHSM = NULL_PTR;
 
 // A list with Cryptoki version number
 // and pointers to the API functions.
@@ -119,15 +119,64 @@ CK_FUNCTION_LIST function_list = {
 extern CK_FUNCTION_LIST function_list;
 
 // Initialize the labrary
-// Supply the function with NULL_PTR if no threading
-// Threading not supported yet.
 
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
+  CK_C_INITIALIZE_ARGS_PTR args = (CK_C_INITIALIZE_ARGS_PTR)pInitArgs;
+
   if(softHSM != NULL_PTR) {
     return CKR_CRYPTOKI_ALREADY_INITIALIZED;
   }
 
-  softHSM = new SoftHSMInternal();
+  // Do we have any arguments?
+  if(args != NULL_PTR) {
+    // Reserved for future use. Must be NULL_PTR
+    if(args->pReserved == NULL_PTR) {
+      return CKR_ARGUMENTS_BAD;
+    }
+
+    // Are we not supplied with mutex functions?
+    if(args->CreateMutex == NULL_PTR &&
+       args->DestroyMutex == NULL_PTR &&
+       args->LockMutex == NULL_PTR &&
+       args->UnlockMutex == NULL_PTR) {
+
+      // Can we create our own mutex functions?
+      if(args->flags & CKF_OS_LOCKING_OK) {
+        softHSM = new SoftHSMInternal(true,
+                                      softHSMCreateMutex,
+                                      softHSMDestroyMutex,
+                                      softHSMLockMutex,
+                                      softHSMUnlockMutex);
+      } else {
+        // The external application is not using threading
+        softHSM = new SoftHSMInternal(false);
+      }
+    } else {
+      // We must have all mutex functions
+      if(args->CreateMutex == NULL_PTR ||
+         args->DestroyMutex == NULL_PTR ||
+         args->LockMutex == NULL_PTR ||
+         args->UnlockMutex == NULL_PTR) {
+
+        return CKR_ARGUMENTS_BAD;
+      }
+
+      softHSM = new SoftHSMInternal(true,
+                                    args->CreateMutex,
+                                    args->DestroyMutex,
+                                    args->LockMutex,
+                                    args->UnlockMutex);
+    }
+  } else {
+    // Should be the line below, but hsm-speed uses multithreading
+    // and do not want use to use mutexes
+    // softHSM = new SoftHSMInternal(false);
+    softHSM = new SoftHSMInternal(true,
+                                  softHSMCreateMutex,
+                                  softHSMDestroyMutex,
+                                  softHSMLockMutex,
+                                  softHSMUnlockMutex);
+  }
 
   return CKR_OK;
 }
@@ -899,9 +948,9 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   SecureVector<byte> signResult;
 
   // Sign 
-  pthread_mutex_lock(&softHSM->mutex);
+  softHSM->lockMutex(*softHSM->mutex);
   signResult = session->pkSigner->sign_message(pData, ulDataLen, *softHSM->rng);
-  pthread_mutex_unlock(&softHSM->mutex);
+  softHSM->unlockMutex(*softHSM->mutex);
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);

@@ -2,6 +2,7 @@
 
 lib_LTLIBRARIES = libsoftHSM.pkcs11.2.20.la
 libsoftHSM_pkcs11_2_20_la_SOURCES = 	main.cpp \
+					mutex.cpp \
 					file.cpp \
 					SoftHSMInternal.cpp \
 					SoftSession.cpp \

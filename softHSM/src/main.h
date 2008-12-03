@@ -84,11 +84,12 @@ class SoftFind;
 class SoftAttribute;
 
 // Internal definitions
+#include "mutex.h"
+#include "file.h"
 #include "SoftHSMInternal.h"
 #include "SoftSession.h"
 #include "SoftObject.h"
 #include "SoftFind.h"
 #include "SoftAttribute.h"
-#include "file.h"
 
 #endif /* SOFTHSM_MAIN_H */

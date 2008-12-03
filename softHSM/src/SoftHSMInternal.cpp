@@ -35,7 +35,9 @@
 
 #include "main.h"
 
-SoftHSMInternal::SoftHSMInternal() {
+SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
+  CK_DESTROYMUTEX dMutex, CK_LOCKMUTEX lMutex, CK_UNLOCKMUTEX uMutex) {
+
   openSessions = 0;
   openObjects = 0;
 
@@ -47,9 +49,17 @@ SoftHSMInternal::SoftHSMInternal() {
     objects[i] = NULL_PTR;
   }
 
-  pthread_mutex_init(&mutex,NULL);
   pin = NULL_PTR;
   rng = new AutoSeeded_RNG();
+
+  createMutexFunc = cMutex;
+  destroyMutexFunc = dMutex;
+  lockMutexFunc = lMutex;
+  unlockMutexFunc = uMutex;
+  usesThreading = threading;
+
+  mutex = (CK_VOID_PTR_PTR)malloc(sizeof(CK_VOID_PTR));
+  this->createMutex(mutex);
 }
 
 SoftHSMInternal::~SoftHSMInternal() {
@@ -79,6 +89,11 @@ SoftHSMInternal::~SoftHSMInternal() {
 
   openSessions = 0;
   openObjects = 0;
+
+  if(mutex) {
+    destroyMutex(*mutex);
+    free(mutex);
+  }
 }
 
 int SoftHSMInternal::getSessionCount() {
@@ -417,4 +432,48 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   }
 
   return CKR_OK;
+}
+
+// Wrapper for the mutex function.
+
+CK_RV SoftHSMInternal::createMutex(CK_VOID_PTR_PTR newMutex) {
+  if(!usesThreading) {
+    return CKR_OK;
+  }
+
+  // Calls the real mutex function via its function pointer.
+  return createMutexFunc(newMutex);
+}
+
+// Wrapper for the mutex function.
+
+CK_RV SoftHSMInternal::destroyMutex(CK_VOID_PTR mutex) {
+  if(!usesThreading) {
+    return CKR_OK;
+  }
+
+  // Calls the real mutex function via its function pointer.
+  return destroyMutexFunc(mutex);
+}
+
+// Wrapper for the mutex function.
+
+CK_RV SoftHSMInternal::lockMutex(CK_VOID_PTR mutex) {
+  if(!usesThreading) {
+    return CKR_OK;
+  }
+
+  // Calls the real mutex function via its function pointer.
+  return lockMutexFunc(mutex);
+}
+
+// Wrapper for the mutex function.
+
+CK_RV SoftHSMInternal::unlockMutex(CK_VOID_PTR mutex) {
+  if(!usesThreading) {
+    return CKR_OK;
+  }
+
+  // Calls the real mutex function via its function pointer.
+  return unlockMutexFunc(mutex);
 }
