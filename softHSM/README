@@ -12,6 +12,6 @@ Check if any memory leeks must be fixed
 
 chmod 744 autogen.sh
 ./autogen.sh
-./configure
+./configure (--with-botan=DIR where DIR is the path to the Botan lib if other than default)
 make
 sudo make install
