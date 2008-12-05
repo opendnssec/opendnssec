@@ -118,7 +118,7 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] == NULL_PTR) {
       openSessions++;
-      sessions[i] = new SoftSession();
+      sessions[i] = new SoftSession(flags & CKF_RW_SESSION);
       sessions[i]->pApplication = pApplication;
       sessions[i]->Notify = Notify;
       *phSession = (CK_SESSION_HANDLE)(i+1);

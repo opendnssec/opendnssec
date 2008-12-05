@@ -1307,95 +1307,28 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     return result;
   }
 
-  if(softHSM->isLoggedIn() == false) {
-    return CKR_USER_NOT_LOGGED_IN;
+  if(!session->isReadWrite()) {
+    return CKR_SESSION_READ_ONLY;
   }
 
-  if(pMechanism->mechanism != CKM_RSA_PKCS_KEY_PAIR_GEN) {
-    return CKR_MECHANISM_INVALID;
+  if(softHSM->isLoggedIn() == false) {
+    return CKR_USER_NOT_LOGGED_IN;
   }
 
   if(ulPublicKeyAttributeCount < 1 || ulPrivateKeyAttributeCount < 1) {
     return CKR_TEMPLATE_INCONSISTENT;
   }
 
-  u32bit *modulusBits = NULL_PTR;
-  BigInt *exponent = NULL_PTR;
-
-  // Extract desired key information
-  for(unsigned int i = 0; i < ulPublicKeyAttributeCount; i++) {
-    switch(pPublicKeyTemplate[i].type) {
-      case CKA_MODULUS_BITS:
-        if(pPublicKeyTemplate[i].ulValueLen != 4) {
-          return CKR_TEMPLATE_INCONSISTENT;
-        }
-        modulusBits = (u32bit*)pPublicKeyTemplate[i].pValue;
-        break;
-      case CKA_PUBLIC_EXPONENT:
-        exponent = new Botan::BigInt((Botan::byte*)pPublicKeyTemplate[i].pValue,pPublicKeyTemplate[i].ulValueLen);
-        break;
-      default:
-        break;
-    }
+  switch(pMechanism->mechanism) {
+    case CKM_RSA_PKCS_KEY_PAIR_GEN:
+      return rsaKeyGen(session, pPublicKeyTemplate, ulPublicKeyAttributeCount, pPrivateKeyTemplate,
+             ulPrivateKeyAttributeCount, phPublicKey, phPrivateKey);
+      break;
+    default:
+      break;
   }
 
-  // CKA_MODULUS_BITS must be specified to be able to generate a key pair.
-  if(modulusBits == NULL_PTR) {
-    // Should we do any clean up?
-    return CKR_MECHANISM_INVALID;
-  }
-
-  // Defaults to an exponent with e = 65537
-  if(exponent == NULL_PTR) {
-    exponent = new Botan::BigInt("65537");
-  }
-
-  // Creates new objects
-  SoftObject *privateKey = new SoftObject();
-  SoftObject *publicKey = new SoftObject();
-  // Retrieves the internal RNG.
-  AutoSeeded_RNG *rng = softHSM->rng;
-
-  // Generate the key
-  RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*rng, *modulusBits, exponent->to_u32bit());
-
-  // Get a new Label/ID based on the current date/time down to microseconds.
-  char *fileName = getNewFileName();
-
-  // Add the key to the private object.
-  result = privateKey->addKey(rsaKey, CKO_PRIVATE_KEY, fileName);
-  if(result != CKR_OK) {
-    // Should we do any clean up?
-    return result;
-  }
-
-  // Add the key to the public object.
-  result = publicKey->addKey(rsaKey, CKO_PUBLIC_KEY, fileName);
-  if(result != CKR_OK) {
-    // Should we do any clean up?
-    return result;
-  }
-
-  // Add the objects to the token.
-  int privateRef = softHSM->addObject(privateKey);
-  int publicRef = softHSM->addObject(publicKey);
-
-  if(!publicRef || !privateRef) {
-    // Should we do any clean up?
-    return CKR_DEVICE_MEMORY;
-  }
-
-  // Save the private key on disk.
-  result = privateKey->saveKey(softHSM);
-  if(result != CKR_OK) {
-    return result;
-  }
-
-  // Returns the object handles to the application.
-  *phPrivateKey = (CK_OBJECT_HANDLE)privateRef;
-  *phPublicKey = (CK_OBJECT_HANDLE)publicRef;
-
-  return CKR_OK;
+  return CKR_MECHANISM_INVALID;
 }
 
 CK_RV C_WrapKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hWrappingKey,
@@ -1432,8 +1365,8 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSee
     return CKR_ARGUMENTS_BAD;
   }
 
-  softHSM->rng->add_entropy(pSeed, ulSeedLen);
-  softHSM->rng->reseed();
+  session->rng->add_entropy(pSeed, ulSeedLen);
+  session->rng->reseed();
 
   return CKR_OK;
 }
@@ -1456,7 +1389,7 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_U
     return CKR_ARGUMENTS_BAD;
   }
 
-  softHSM->rng->randomize(pRandomData, ulRandomLen);
+  session->rng->randomize(pRandomData, ulRandomLen);
 
   return CKR_OK;
 }
@@ -1471,4 +1404,52 @@ CK_RV C_CancelFunction(CK_SESSION_HANDLE hSession) {
 
 CK_RV C_WaitForSlotEvent(CK_FLAGS flags, CK_SLOT_ID_PTR pSlot, CK_VOID_PTR pReserved) {
   return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
+      CK_ULONG ulPublicKeyAttributeCount, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, CK_ULONG ulPrivateKeyAttributeCount,
+      CK_OBJECT_HANDLE_PTR phPublicKey, CK_OBJECT_HANDLE_PTR phPrivateKey) {
+
+  u32bit *modulusBits = NULL_PTR;
+  BigInt *exponent = NULL_PTR;
+
+  // Extract desired key information
+  for(unsigned int i = 0; i < ulPublicKeyAttributeCount; i++) {
+    switch(pPublicKeyTemplate[i].type) {
+      case CKA_MODULUS_BITS:
+        if(pPublicKeyTemplate[i].ulValueLen != 4) {
+          return CKR_TEMPLATE_INCONSISTENT;
+        }
+        modulusBits = (u32bit*)pPublicKeyTemplate[i].pValue;
+        break;
+      case CKA_PUBLIC_EXPONENT:
+        exponent = new Botan::BigInt((Botan::byte*)pPublicKeyTemplate[i].pValue,pPublicKeyTemplate[i].ulValueLen);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // CKA_MODULUS_BITS must be specified to be able to generate a key pair.
+  if(modulusBits == NULL_PTR) {
+    return CKR_TEMPLATE_INCOMPLETE;
+  }
+
+  // Defaults to an exponent with e = 65537
+  if(exponent == NULL_PTR) {
+    exponent = new Botan::BigInt("65537");
+  }
+
+  // Generate the key
+  RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*session->rng, *modulusBits, exponent->to_u32bit());
+
+  // Add the key to the database.
+  int pubRef = session->db->addRSAKeyPub(rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount);
+  int privRef = session->db->addRSAKeyPriv(rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount);
+
+  // Returns the object handles to the application.
+  *phPublicKey = (CK_OBJECT_HANDLE)pubRef;
+  *phPrivateKey = (CK_OBJECT_HANDLE)privRef;
+
+  return CKR_OK;
 }

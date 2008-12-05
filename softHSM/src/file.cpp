@@ -55,6 +55,18 @@ char* checkHSMDir() {
   return directory;
 }
 
+// Return the path of the database
+
+char* getDatabasePath() {
+  char *directory = checkHSMDir();
+  char *dbPath = (char *)malloc(strlen(directory) + 17);
+
+  snprintf(dbPath, strlen(directory) + 17, "%s/SoftHSM.sqlite3", directory);
+
+  free(directory);
+  return dbPath;
+}
+
 // Return a new file-name/label/ID
 // It is the current date/time down to microseconds
 // This should be enough collision resistant.

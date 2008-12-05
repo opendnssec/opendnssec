@@ -28,82 +28,24 @@
 
 /************************************************************
 *
-* This class defines a session
-* It holds the current state of the session
+* This class handles the database.
 *
 ************************************************************/
 
-#include "main.h"
+#ifndef SOFTHSM_SOFTDATABASE_H
+#define SOFTHSM_SOFTDATABASE_H 1
 
-SoftSession::SoftSession(int rwSession) {
-  pApplication = NULL_PTR;
-  Notify = NULL_PTR;
+class SoftDatabase {
+  public:
+    SoftDatabase();
+    ~SoftDatabase();
+    int addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
+      CK_ULONG ulPublicKeyAttributeCount);
+    int addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
+      CK_ULONG ulPrivateKeyAttributeCount);
 
-  if(rwSession == CKF_RW_SESSION) {
-    readWrite = true;
-  } else {
-    readWrite = false;
-  }
+  private:
+    sqlite3 *db;
+};
 
-  findAnchor = NULL_PTR;
-  findCurrent = NULL_PTR;
-  findInitialized = false;
-
-  digestPipe = NULL_PTR;
-  digestSize = 0;
-  digestInitialized = false;
-
-  pkSigner = NULL_PTR;
-  signSinglePart = false;
-  signSize = 0;
-  signInitialized = false;
-
-  pkVerifier = NULL_PTR;
-  verifySinglePart = false;
-  verifySize = 0;
-  verifyInitialized = false;
-
-  rng = new AutoSeeded_RNG();
-
-  db = new SoftDatabase();
-}
-
-SoftSession::~SoftSession() {
-  pApplication = NULL_PTR;
-  Notify = NULL_PTR;
-
-  if(findAnchor != NULL_PTR) {
-    delete findAnchor;
-    findAnchor = NULL_PTR;
-  }
-
-  findCurrent = NULL_PTR;
-
-  if(digestPipe != NULL_PTR) {
-    delete digestPipe;
-    digestPipe = NULL_PTR;
-  }
-
-  if(pkSigner != NULL_PTR) {
-    delete pkSigner;
-    pkSigner = NULL_PTR;
-  }
-
-  if(pkVerifier != NULL_PTR) {
-    delete pkVerifier;
-    pkVerifier = NULL_PTR;
-  }
-
-  if(rng != NULL_PTR) {
-    delete rng;
-  }
-
-  if(db != NULL_PTR) {
-    delete db;
-    db = NULL_PTR;
-  }
-}
-
-bool SoftSession::isReadWrite() {
-  return readWrite;
-}
+#endif /* SOFTHSM_SOFTDATABASE_H */

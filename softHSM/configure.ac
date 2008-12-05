@@ -13,6 +13,8 @@ AM_INIT_AUTOMAKE
 
 AC_ARG_WITH(botan, [  --with-botan=DIR        The location of the Botan crypto library (default /usr/local/lib)], [BOTANDIR="$withval"], [BOTANDIR="/usr/local/lib"])
 AC_SUBST(BOTANDIR)
+AC_ARG_WITH(botan, [  --with-sqlite=DIR       The location of the SQLite3 library (default /usr/lib)], [BOTANDIR="$withval"], [SQLITEDIR="/usr/lib"])
+AC_SUBST(SQLITEDIR)
 
 AC_PROG_CXX
 AC_PROG_LIBTOOL

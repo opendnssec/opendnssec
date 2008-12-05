@@ -38,33 +38,41 @@
 
 class SoftSession {
   public:
-    SoftSession();
+    SoftSession(int rwSession);
     ~SoftSession();
 
-    bool isReadOnly();
+    bool isReadWrite();
     CK_VOID_PTR pApplication;
     CK_NOTIFY Notify;
 
+    // Find
     SoftFind *findAnchor;
     SoftFind *findCurrent;
     bool findInitialized;
 
+    // Digest
     Pipe *digestPipe;
     unsigned int digestSize;
     bool digestInitialized;
 
+    // Sign
     PK_Signer *pkSigner;
     bool signSinglePart;
     unsigned int signSize;
     bool signInitialized;
 
+    // Verify
     PK_Verifier *pkVerifier;
     bool verifySinglePart;
     unsigned int verifySize;
     bool verifyInitialized;
 
+    AutoSeeded_RNG *rng;
+
+    SoftDatabase *db;
+
   private:
-    bool readOnly;
+    bool readWrite;
 };
 
 #endif /* SOFTHSM_SOFTSESSION_H */

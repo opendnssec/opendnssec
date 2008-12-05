@@ -30,6 +30,7 @@
 #define SOFTHSM_FILE_H 1
 
 char* checkHSMDir();
+char* getDatabasePath();
 char* getNewFileName();
 char* getFilePath(char *fileName);
 bool saveKeyFile(SoftHSMInternal *pSoftH, char *fileName, Private_Key *key);

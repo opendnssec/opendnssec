@@ -52,6 +52,9 @@
 #include <sys/stat.h>
 #include <pthread.h>
 
+// The SQLite header
+#include <sqlite3.h>
+
 // Includes for the crypto library
 #include <botan/botan.h>
 #include <botan/bigint.h>
@@ -82,6 +85,7 @@ class SoftSession;
 class SoftObject;
 class SoftFind;
 class SoftAttribute;
+class SoftDatabase;
 
 // Internal definitions
 #include "mutex.h"
@@ -91,5 +95,10 @@ class SoftAttribute;
 #include "SoftObject.h"
 #include "SoftFind.h"
 #include "SoftAttribute.h"
+#include "SoftDatabase.h"
+
+CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
+      CK_ULONG ulPublicKeyAttributeCount, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, CK_ULONG ulPrivateKeyAttributeCount,
+      CK_OBJECT_HANDLE_PTR phPublicKey, CK_OBJECT_HANDLE_PTR phPrivateKey);
 
 #endif /* SOFTHSM_MAIN_H */
