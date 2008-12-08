@@ -45,6 +45,9 @@
 #include <string>
 #include <fstream>
 #include <time.h>
+#include <sstream>
+using std::stringstream;
+using std::string;
 
 // C POSIX library header
 #include <dirent.h>

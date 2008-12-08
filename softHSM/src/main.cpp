@@ -839,6 +839,8 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
 // Initialize the signature functionality
 
 CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
+  return CKR_FUNCTION_NOT_SUPPORTED;
+/*
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
@@ -909,13 +911,17 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
   session->signInitialized = true;
 
-  return CKR_OK;
+  return CKR_OK; */
 }
 
 // Signs the data and return the results
 
 CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
       CK_ULONG_PTR pulSignatureLen) {
+
+  return CKR_FUNCTION_NOT_SUPPORTED;
+/*
+
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
@@ -962,12 +968,15 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   session->pkSigner = NULL_PTR;
   session->signInitialized = false;
 
-  return CKR_OK;  
+  return CKR_OK;  */
 }
 
 // Buffer the data before final signing
 
 CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
+
+  return CKR_FUNCTION_NOT_SUPPORTED;
+/*
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
@@ -994,12 +1003,14 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
   // Buffer
   session->pkSigner->update(pPart, ulPartLen);
 
-  return CKR_OK;
+  return CKR_OK;*/
 }
 
 // Signs the collected data and returns the signature.
 
 CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_PTR pulSignatureLen) {
+  return CKR_FUNCTION_NOT_SUPPORTED;
+/*
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
@@ -1042,7 +1053,7 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
   session->pkSigner = NULL_PTR;
   session->signInitialized = false;
 
-  return CKR_OK;
+  return CKR_OK;*/
 }
 
 CK_RV C_SignRecoverInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
@@ -1057,6 +1068,8 @@ CK_RV C_SignRecover(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDa
 // Initialize the verifing functionality.
 
 CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
+  return CKR_FUNCTION_NOT_SUPPORTED;
+/*
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
@@ -1127,13 +1140,15 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
   session->verifyInitialized = true;
 
-  return CKR_OK;
+  return CKR_OK;*/
 }
 
 // Verifies if the the signature matches the data
 
 CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
       CK_ULONG ulSignatureLen) {
+  return CKR_FUNCTION_NOT_SUPPORTED;
+/*
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
@@ -1174,12 +1189,14 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     return CKR_OK;
   } else {
     return CKR_SIGNATURE_INVALID;
-  }
+  }*/
 }
 
 // Collects the data before the final signature check.
 
 CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
+  return CKR_FUNCTION_NOT_SUPPORTED;
+/*
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
@@ -1206,12 +1223,13 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
   // Add data
   session->pkVerifier->update(pPart, ulPartLen);
 
-  return CKR_OK;
+  return CKR_OK;*/
 }
 
 // Verifies if the signature matches the collected data.
 
 CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG ulSignatureLen) {
+/*
   if(softHSM == NULL_PTR) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
@@ -1253,7 +1271,7 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
     return CKR_OK;
   } else {
     return CKR_SIGNATURE_INVALID;
-  }
+  }*/
 }
 
 CK_RV C_VerifyRecoverInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
@@ -1443,9 +1461,16 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   // Generate the key
   RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*session->rng, *modulusBits, exponent->to_u32bit());
 
+  // Default label/ID if nothing is specified by the user.
+  char *labelID = getNewFileName();
+
   // Add the key to the database.
-  int pubRef = session->db->addRSAKeyPub(rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount);
-  int privRef = session->db->addRSAKeyPriv(rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount);
+  int privRef = session->db->addRSAKeyPriv(session, softHSM->getPIN(), rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount, labelID);
+  int pubRef = session->db->addRSAKeyPub(rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
+
+  // Update the internal states.
+  softHSM->updateKeyFromDB(privRef);
+  softHSM->updateKeyFromDB(pubRef);
 
   // Returns the object handles to the application.
   *phPublicKey = (CK_OBJECT_HANDLE)pubRef;

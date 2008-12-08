@@ -60,6 +60,8 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
 
   mutex = (CK_VOID_PTR_PTR)malloc(sizeof(CK_VOID_PTR));
   this->createMutex(mutex);
+
+  db = new SoftDatabase();
 }
 
 SoftHSMInternal::~SoftHSMInternal() {
@@ -93,6 +95,11 @@ SoftHSMInternal::~SoftHSMInternal() {
   if(mutex) {
     destroyMutex(*mutex);
     free(mutex);
+  }
+
+  if(db != NULL_PTR) {
+    delete db;
+    db = NULL_PTR;
   }
 }
 
@@ -219,7 +226,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   memset(pin, 0, ulPinLen+1);
   memcpy(pin, pPin, ulPinLen);
 
-  readAllKeyFiles(this);
+//  readAllKeyFiles(this);
 
   return CKR_OK;
 }
@@ -403,7 +410,7 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
 //   private key file at the next start up.
 
 CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
-  SoftSession *session;
+/*  SoftSession *session;
   CK_RV result = getSession(hSession, session);
 
   if(result != CKR_OK) {
@@ -430,7 +437,7 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   } else {
     return CKR_GENERAL_ERROR;
   }
-
+*/
   return CKR_OK;
 }
 
@@ -476,4 +483,15 @@ CK_RV SoftHSMInternal::unlockMutex(CK_VOID_PTR mutex) {
 
   // Calls the real mutex function via its function pointer.
   return unlockMutexFunc(mutex);
+}
+
+void SoftHSMInternal::updateKeyFromDB(int keyRef) {
+  SoftObject *newObject = NULL_PTR;
+
+  db->populateObj(newObject, keyRef);
+
+  if(newObject != NULL_PTR) {
+    objects[keyRef-1] = newObject;
+    openObjects++;
+  }
 }

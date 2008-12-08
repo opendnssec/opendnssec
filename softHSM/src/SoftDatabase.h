@@ -39,10 +39,13 @@ class SoftDatabase {
   public:
     SoftDatabase();
     ~SoftDatabase();
+
+    void populateObj(SoftObject *&keyObject, int keyRef);
+
     int addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
-      CK_ULONG ulPublicKeyAttributeCount);
-    int addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
-      CK_ULONG ulPrivateKeyAttributeCount);
+      CK_ULONG ulPublicKeyAttributeCount, char *labelID);
+    int addRSAKeyPriv(SoftSession *session, char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
+      CK_ULONG ulPrivateKeyAttributeCount, char *labelID);
 
   private:
     sqlite3 *db;

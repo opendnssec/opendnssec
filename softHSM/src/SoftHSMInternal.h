@@ -60,6 +60,7 @@ class SoftHSMInternal {
     char* getPIN();
 
     // Object handling
+    void updateKeyFromDB(int keyRef);
     CK_OBJECT_HANDLE addObject(SoftObject *inObject);
     CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
@@ -79,6 +80,8 @@ class SoftHSMInternal {
   
   private:
     char *pin;
+
+    SoftDatabase *db;
 
     int openSessions;
     SoftSession *sessions[MAX_SESSION_COUNT];
