@@ -45,6 +45,9 @@ class SoftObject {
     CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
     CK_BBOOL matchAttribute(CK_ATTRIBUTE *attTemplate);
 
+    CK_OBJECT_CLASS objectClass;
+    CK_KEY_TYPE keyType;
+
   private:
     SoftAttribute *attributes;
 };

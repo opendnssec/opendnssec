@@ -89,6 +89,7 @@ class SoftObject;
 class SoftFind;
 class SoftAttribute;
 class SoftDatabase;
+class SoftKeyStore;
 
 // Internal definitions
 #include "mutex.h"
@@ -99,6 +100,7 @@ class SoftDatabase;
 #include "SoftFind.h"
 #include "SoftAttribute.h"
 #include "SoftDatabase.h"
+#include "SoftKeyStore.h"
 
 CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, CK_ULONG ulPrivateKeyAttributeCount,

@@ -36,6 +36,8 @@
 #include "main.h"
 
 SoftObject::SoftObject() {
+  objectClass = CKO_VENDOR_DEFINED;
+  keyType = CKK_VENDOR_DEFINED;
   attributes = new SoftAttribute();
 }
 

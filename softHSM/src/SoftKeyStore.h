@@ -28,31 +28,26 @@
 
 /************************************************************
 *
-* This class handles the database.
+* This class handles the key store for each session
+* It creates a chain of object handles.
 *
 ************************************************************/
 
-#ifndef SOFTHSM_SOFTDATABASE_H
-#define SOFTHSM_SOFTDATABASE_H 1
+#ifndef SOFTHSM_SOFTKEYSTORE_H
+#define SOFTHSM_SOFTKEYSTORE_H 1
 
-class SoftDatabase {
+class SoftKeyStore {
   public:
-    SoftDatabase();
-    ~SoftDatabase();
+    SoftKeyStore();
+    ~SoftKeyStore();
 
-    void populateObj(SoftObject *&keyObject, int keyRef);
+    void addKey(int newIndex, Private_Key *newKey);
+    void removeKey(int removeIndex);
+    Private_Key *getKey(int getIndex);
 
-    int addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
-      CK_ULONG ulPublicKeyAttributeCount, char *labelID);
-    int addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
-      CK_ULONG ulPrivateKeyAttributeCount, char *labelID);
-    void deleteObject(char *pin, int objRef);
-
-  private:
-    void saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
-    void saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber);
-
-    sqlite3 *db;
+    SoftKeyStore *next;
+    int index;
+    Private_Key *botanKey;
 };
 
-#endif /* SOFTHSM_SOFTDATABASE_H */
+#endif /* SOFTHSM_SOFTKEYSTORE_H */

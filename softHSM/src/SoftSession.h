@@ -67,6 +67,9 @@ class SoftSession {
     unsigned int verifySize;
     bool verifyInitialized;
 
+    // Key store
+    SoftKeyStore *keyStore;
+
     AutoSeeded_RNG *rng;
 
     SoftDatabase *db;

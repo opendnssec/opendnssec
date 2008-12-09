@@ -61,7 +61,6 @@ class SoftHSMInternal {
 
     // Object handling
     void updateKeyFromDB(int keyRef);
-    CK_OBJECT_HANDLE addObject(SoftObject *inObject);
     CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
     CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
@@ -75,7 +74,6 @@ class SoftHSMInternal {
     CK_RV lockMutex(CK_VOID_PTR mutex);
     CK_RV unlockMutex(CK_VOID_PTR mutex);
 
-    AutoSeeded_RNG *rng;
     CK_VOID_PTR_PTR mutex;
   
   private:

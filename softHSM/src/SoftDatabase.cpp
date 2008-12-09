@@ -34,59 +34,30 @@
 
 #include "main.h"
 
-char ck_bbool_to_c(CK_VOID_PTR pValue) {
-  if(*(CK_BBOOL*)pValue == 0) {
-    return '0';
-  } else {
-    return '1';
-  }
-}
-
 static char sqlCreateTableObjects[] = 
   "CREATE TABLE Objects ("
   "objectID INTEGER PRIMARY KEY,"
-  "CKA_CLASS INTEGER DEFAULT NULL,"
-  "CKA_TOKEN INTEGER DEFAULT 1,"
-  "CKA_PRIVATE INTEGER DEFAULT 1,"
-  "CKA_MODIFIABLE INTEGER DEFAULT 0,"
-  "CKA_LABEL TEXT DEFAULT NULL,"
-  "CKA_KEY_TYPE INTEGER DEFAULT NULL,"
-  "CKA_ID BLOB DEFAULT NULL,"
-  "CKA_DERIVE INTEGER DEFAULT 1,"
-  "CKA_LOCAL INTEGER DEFAULT 1,"
-  "CKA_KEY_GEN_MECHANISM INTEGER DEFAULT NULL,"
-  "keyID INTEGER DEFAULT NULL);";
+  "pin TEXT DEFAULT NULL);";
 
-static char sqlCreateTablePublicKeys[] =
-  "CREATE TABLE PublicKeys ("
-  "publicKeyID INTEGER PRIMARY KEY,"
-  "CKA_SUBJECT TEXT DEFAULT NULL,"
-  "CKA_ENCRYPT INTEGER DEFAULT 1,"
-  "CKA_VERIFY INTEGER DEFAULT 1,"
-  "CKA_VERIFY_RECOVER INTEGER DEFAULT 1,"
-  "CKA_WRAP INTEGER DEFAULT 1,"
-  "CKA_TRUSTED INTEGER DEFAULT 1,"
-  "X509_public_key TEXT DEFAULT NULL);";
+static char sqlCreateTableAttributes[] =
+  "CREATE TABLE Attributes ("
+  "attributeID INTEGER PRIMARY KEY,"
+  "objectID INTEGER DEFAULT NULL,"
+  "type INTEGER DEFAULT NULL,"
+  "value BLOB DEFAULT NULL,"
+  "length INTEGER DEFAULT 0);";
 
-static char sqlCreateTablePrivateKeys[] =
-  "CREATE TABLE PrivateKeys ("
-  "privateKeyID INTEGER PRIMARY KEY,"
-  "CKA_SUBJECT TEXT DEFAULT NULL,"
-  "CKA_SENSITIVE INTEGER DEFAULT 1,"
-  "CKA_DECRYPT INTEGER DEFAULT 1,"
-  "CKA_SIGN INTEGER DEFAULT 1,"
-  "CKA_SIGN_RECOVER INTEGER DEFAULT 1,"
-  "CKA_UNWRAP INTEGER DEFAULT 1,"
-  "CKA_EXTRACTABLE INTEGER DEFAULT 0,"
-  "CKA_ALWAYS_SENSITIVE INTEGER DEFAULT 1,"
-  "CKA_NEVER_EXTRACTABLE INTEGER DEFAULT 1,"
-  "CKA_WRAP_WITH_TRUSTED INTEGER DEFAULT 0,"
-  "CKA_ALWAYS_AUTHENTICATE INTEGER DEFAULT 0,"
-  "encrypted_PKCS8_private_key TEXT DEFAULT NULL);";
+static char sqlDeleteTrigger[] = 
+  "CREATE TRIGGER deleteTrigger BEFORE DELETE ON Objects "
+  "BEGIN "
+    "DELETE FROM Attributes "
+      "WHERE objectID = OLD.objectID; "
+  "END;";
 
 SoftDatabase::SoftDatabase() {
   char *sqlError;
 
+  // Open the database
   int result = sqlite3_open(getDatabasePath(), &db);
   if(result){
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
@@ -94,6 +65,7 @@ SoftDatabase::SoftDatabase() {
     exit(1);
   }
 
+  // Check that the Objects table exist
   result = sqlite3_exec(db, "SELECT COUNT(objectID) FROM Objects;", NULL, NULL, NULL);
   if(result) {
     result = sqlite3_exec(db, sqlCreateTableObjects, NULL, NULL, &sqlError);
@@ -104,24 +76,16 @@ SoftDatabase::SoftDatabase() {
     }
   }
 
-  result = sqlite3_exec(db, "SELECT COUNT(publicKeyID) FROM PublicKeys;", NULL, NULL, NULL);
+  // Check that the Attributes table exist
+  result = sqlite3_exec(db, "SELECT COUNT(attributeID) FROM Attributes;", NULL, NULL, NULL);
   if(result) {
-    result = sqlite3_exec(db, sqlCreateTablePublicKeys, NULL, NULL, &sqlError);
+    result = sqlite3_exec(db, sqlCreateTableAttributes, NULL, NULL, &sqlError);
     if(result) {
-      fprintf(stderr, "Can't create table PublicKeys: %s\n", sqlError);
+      fprintf(stderr, "Can't create table Attributes: %s\n", sqlError);
       sqlite3_close(db);
       exit(1);
     }
-  }
-
-  result = sqlite3_exec(db, "SELECT COUNT(privateKeyID) FROM PrivateKeys;", NULL, NULL, NULL);
-  if(result) {
-    result = sqlite3_exec(db, sqlCreateTablePrivateKeys, NULL, NULL, &sqlError);
-    if(result) {
-      fprintf(stderr, "Can't create table PrivateKeys: %s\n", sqlError);
-      sqlite3_close(db);
-      exit(1);
-    }
+    sqlite3_exec(db, sqlDeleteTrigger, NULL, NULL, NULL);
   }
 }
 
@@ -129,82 +93,70 @@ SoftDatabase::~SoftDatabase() {
   sqlite3_close(db);
 }
 
-int SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
+// Save the public RSA key in the database.
+
+int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
     CK_ULONG ulPublicKeyAttributeCount, char *labelID) {
 
-  stringstream sqlInsertObj, sqlObjValue, sqlInsertKey, sqlKeyValue;
+  stringstream sqlInsertObj;
 
-  sqlInsertObj << "INSERT INTO Objects (CKA_CLASS, CKA_KEY_TYPE, CKA_KEY_GEN_MECHANISM, CKA_LOCAL";
-  // Values of CKO_PUBLIC_KEY, CKK_RSA, CKM_RSA_PKCS_KEY_PAIR_GEN, and CK_TRUE.
-  sqlObjValue << "(2, 0, 0, 1";
+  sqlInsertObj << "INSERT INTO Objects (pin) VALUES ('" << pin << "');";
+  int result = sqlite3_exec(db, sqlInsertObj.str().c_str(), NULL, NULL, NULL);
 
-  sqlInsertKey << "INSERT INTO PublicKeys (X509_public_key";
-  sqlKeyValue << "('" << X509::PEM_encode(*rsaKey) << "'";
+  if(result) {
+    return 0;
+  }
 
-  int foundID = 0, foundLabel = 0;
-  char *pValue;
+  int objectID = sqlite3_last_insert_rowid(db);
+
+  CK_OBJECT_CLASS oClass = CKO_PUBLIC_KEY;
+  CK_KEY_TYPE keyType = CKK_RSA;
+  CK_MECHANISM_TYPE mechType = CKM_RSA_PKCS_KEY_PAIR_GEN;
+  CK_BBOOL ckTrue = CK_TRUE;
+
+  // General information
+  this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass));
+  this->saveAttribute(objectID, CKA_KEY_TYPE, &keyType, sizeof(keyType));
+  this->saveAttribute(objectID, CKA_KEY_GEN_MECHANISM, &mechType, sizeof(mechType));
+  this->saveAttribute(objectID, CKA_LOCAL, &ckTrue, sizeof(ckTrue));
+
+  // The RSA modulus bits
+  IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
+  BigInt bigModulus = ifKey->get_n();
+  CK_ULONG bits = bigModulus.bits();
+  this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits));
+
+  // The RSA modulus
+  this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigModulus);
+
+  // The RSA public exponent
+  BigInt bigExponent = ifKey->get_e();
+  this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExponent);
+
+  int foundLabel = 0, foundID = 0;
 
   // Extract the attributes
   for(unsigned int i = 0; i < ulPublicKeyAttributeCount; i++) {
     switch(pPublicKeyTemplate[i].type) {
-      case CKA_TOKEN:
-        sqlInsertObj << ", CKA_TOKEN";
-        sqlObjValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
-        break;
-      case CKA_PRIVATE:
-        sqlInsertObj << ", CKA_PRIVATE";
-        sqlObjValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
-        break;
-      case CKA_MODIFIABLE:
-        sqlInsertObj << ", CKA_MODIFIABLE";
-        sqlObjValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
-        break;
       case CKA_LABEL:
         foundLabel = 1;
-        pValue = (char *)malloc(pPublicKeyTemplate[i].ulValueLen + 1);
-        pValue[pPublicKeyTemplate[i].ulValueLen] = '\0';
-        memcpy(pValue, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
-        sqlInsertObj << ", CKA_LABEL";
-        sqlObjValue << ", '" << pValue << "'";
+        this->saveAttribute(objectID, CKA_LABEL, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
         break;
       case CKA_ID:
         foundID = 1;
-        pValue = (char *)malloc(pPublicKeyTemplate[i].ulValueLen + 1);
-        pValue[pPublicKeyTemplate[i].ulValueLen] = '\0';
-        memcpy(pValue, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
-        sqlInsertObj << ", CKA_ID";
-        sqlObjValue << ", '" << pValue << "'";
+        this->saveAttribute(objectID, CKA_ID, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
         break;
       case CKA_DERIVE:
-        sqlInsertObj << ", CKA_DERIVE";
-        sqlObjValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
-        break;
+      case CKA_TOKEN:
+      case CKA_PRIVATE:
+      case CKA_MODIFIABLE:
       case CKA_SUBJECT:
-        pValue = (char *)malloc(pPublicKeyTemplate[i].ulValueLen + 1);
-        pValue[pPublicKeyTemplate[i].ulValueLen] = '\0';
-        memcpy(pValue, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
-        sqlInsertKey << ", CKA_SUBJECT";
-        sqlKeyValue << ", '" << pValue << "'";
-        break;
       case CKA_ENCRYPT:
-        sqlInsertKey << ", CKA_ENCRYPT";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
-        break;
       case CKA_VERIFY:
-        sqlInsertKey << ", CKA_VERIFY";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
-        break;
       case CKA_VERIFY_RECOVER:
-        sqlInsertKey << ", CKA_VERIFY_RECOVER";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
-        break;
       case CKA_WRAP:
-        sqlInsertKey << ", CKA_WRAP";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
-        break;
       case CKA_TRUSTED:
-        sqlInsertKey << ", CKA_TRUSTED";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPublicKeyTemplate[i].pValue);
+        this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
         break;
       default:
         break;
@@ -213,124 +165,93 @@ int SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicK
 
   // Assign a default value if not defined by the user.
   if(foundLabel == 0) {
-    sqlInsertObj << ", CKA_LABEL";
-    sqlObjValue << ", '" << labelID << "'";
+    this->saveAttribute(objectID, CKA_LABEL, labelID, strlen(labelID));
   }
   if(foundID == 0) {
-    sqlInsertObj << ", CKA_ID";
-    sqlObjValue << ", '" << labelID << "'";
+    this->saveAttribute(objectID, CKA_ID, labelID, strlen(labelID));
   }
 
-  // Insert the public key.
-  sqlInsertKey << ") VALUES " << sqlKeyValue.str() << ");";
-  sqlite3_exec(db, sqlInsertKey.str().c_str(), NULL, NULL, NULL);  
-  int keyID = sqlite3_last_insert_rowid(db);
-
-  // Add reference to the public key.
-  sqlInsertObj << ", keyID";
-  sqlObjValue << ", " << keyID;
-  
-  // Add the key object.
-  sqlInsertObj << ") VALUES " << sqlObjValue.str() << ");";
-  sqlite3_exec(db, sqlInsertObj.str().c_str(), NULL, NULL, NULL);  
-  keyID = sqlite3_last_insert_rowid(db);
-
-  return keyID;
+  return objectID;
 }
 
-int SoftDatabase::addRSAKeyPriv(SoftSession *session, char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
+// Save the private RSA key in the database.
+
+int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
     CK_ULONG ulPrivateKeyAttributeCount, char *labelID) {
 
-  stringstream sqlInsertObj, sqlObjValue, sqlInsertKey, sqlKeyValue;
+  stringstream sqlInsertObj;
 
-  sqlInsertObj << "INSERT INTO Objects (CKA_CLASS, CKA_KEY_TYPE, CKA_KEY_GEN_MECHANISM, CKA_LOCAL";
-  // Values of CKO_PRIVATE_KEY, CKK_RSA, CKM_RSA_PKCS_KEY_PAIR_GEN, and CK_TRUE.
-  sqlObjValue << "(3, 0, 0, 1";
+  sqlInsertObj << "INSERT INTO Objects (pin) VALUES ('" << pin << "');";
+  int result = sqlite3_exec(db, sqlInsertObj.str().c_str(), NULL, NULL, NULL);
 
-  sqlInsertKey << "INSERT INTO PrivateKeys (encrypted_PKCS8_private_key";
-  sqlKeyValue << "('" << PKCS8::PEM_encode(*rsaKey, *session->rng, pin) << "'";
+  if(result) {
+    return 0;
+  }
 
-  int foundID = 0, foundLabel = 0;
-  char *pValue;
+  int objectID = sqlite3_last_insert_rowid(db);
+
+  CK_OBJECT_CLASS oClass = CKO_PRIVATE_KEY;
+  CK_KEY_TYPE keyType = CKK_RSA;
+  CK_MECHANISM_TYPE mechType = CKM_RSA_PKCS_KEY_PAIR_GEN;
+  CK_BBOOL ckTrue = CK_TRUE;
+
+  // General information
+  this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass));
+  this->saveAttribute(objectID, CKA_KEY_TYPE, &keyType, sizeof(keyType));
+  this->saveAttribute(objectID, CKA_KEY_GEN_MECHANISM, &mechType, sizeof(mechType));
+  this->saveAttribute(objectID, CKA_LOCAL, &ckTrue, sizeof(ckTrue));
+
+  // The RSA modulus
+  IF_Scheme_PublicKey *ifKeyPub = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
+  BigInt bigNumber = ifKeyPub->get_n();
+  this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigNumber);
+
+  // The RSA public exponent
+  bigNumber = ifKeyPub->get_e();
+  this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigNumber);
+
+  // The RSA private exponent
+  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
+  bigNumber = ifKeyPriv->get_d();
+  this->saveAttributeBigInt(objectID, CKA_PRIVATE_EXPONENT, &bigNumber);
+
+  // The RSA prime p
+  bigNumber = ifKeyPriv->get_p();
+  this->saveAttributeBigInt(objectID, CKA_PRIME_1, &bigNumber);
+
+  // The RSA prime q
+  bigNumber = ifKeyPriv->get_q();
+  this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigNumber);
+
+  int foundLabel = 0, foundID = 0;
 
   // Extract the attributes
   for(unsigned int i = 0; i < ulPrivateKeyAttributeCount; i++) {
     switch(pPrivateKeyTemplate[i].type) {
-      case CKA_TOKEN:
-        sqlInsertObj << ", CKA_TOKEN";
-        sqlObjValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
-        break;
-      case CKA_PRIVATE:
-        sqlInsertObj << ", CKA_PRIVATE";
-        sqlObjValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
-        break;
-      case CKA_MODIFIABLE:
-        sqlInsertObj << ", CKA_MODIFIABLE";
-        sqlObjValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
-        break;
       case CKA_LABEL:
         foundLabel = 1;
-        pValue = (char *)malloc(pPrivateKeyTemplate[i].ulValueLen + 1);
-        pValue[pPrivateKeyTemplate[i].ulValueLen] = '\0';
-        memcpy(pValue, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
-        sqlInsertObj << ", CKA_LABEL";
-        sqlObjValue << ", '" << pValue << "'";
+        this->saveAttribute(objectID, CKA_LABEL, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
         break;
       case CKA_ID:
         foundID = 1;
-        pValue = (char *)malloc(pPrivateKeyTemplate[i].ulValueLen + 1);
-        pValue[pPrivateKeyTemplate[i].ulValueLen] = '\0';
-        memcpy(pValue, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
-        sqlInsertObj << ", CKA_ID";
-        sqlObjValue << ", '" << pValue << "'";
+        this->saveAttribute(objectID, CKA_ID, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
         break;
       case CKA_DERIVE:
-        sqlInsertObj << ", CKA_DERIVE";
-        sqlObjValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
-        break;
+      case CKA_TOKEN:
+      case CKA_PRIVATE:
+      case CKA_MODIFIABLE:
       case CKA_SUBJECT:
-        pValue = (char *)malloc(pPrivateKeyTemplate[i].ulValueLen + 1);
-        pValue[pPrivateKeyTemplate[i].ulValueLen] = '\0';
-        memcpy(pValue, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
-        sqlInsertKey << ", CKA_SUBJECT";
-        sqlKeyValue << ", '" << pValue << "'";
-        break;
       case CKA_SENSITIVE:
-        sqlInsertKey << ", CKA_SENSITIVE, CKA_ALWAYS_SENSITIVE";
-        if(ck_bbool_to_c(pPrivateKeyTemplate[i].pValue) == '0') {
-          sqlKeyValue << ", 0, 0";
-        } else {
-          sqlKeyValue << ", 1, 1";
-        }
-        break;
       case CKA_DECRYPT:
-        sqlInsertKey << ", CKA_DECRYPT";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
-        break;
       case CKA_SIGN:
-        sqlInsertKey << ", CKA_SIGN";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
-        break;
       case CKA_SIGN_RECOVER:
-        sqlInsertKey << ", CKA_SIGN_RECOVER";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
-        break;
       case CKA_UNWRAP:
-        sqlInsertKey << ", CKA_UNWRAP";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
       case CKA_EXTRACTABLE:
-        sqlInsertKey << ", CKA_EXTRACTABLE, CKA_NEVER_EXTRACTABLE";
-        if(ck_bbool_to_c(pPrivateKeyTemplate[i].pValue) == '0') {
-          sqlKeyValue << ", 0, 1";
-        } else {
-          sqlKeyValue << ", 1, 0";
-        }
+      case CKA_ALWAYS_SENSITIVE:
+      case CKA_NEVER_EXTRACTABLE:
       case CKA_WRAP_WITH_TRUSTED:
-        sqlInsertKey << ", CKA_WRAP_WITH_TRUSTED";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
       case CKA_ALWAYS_AUTHENTICATE:
-        sqlInsertKey << ", CKA_ALWAYS_AUTHENTICATE";
-        sqlKeyValue << ", " << ck_bbool_to_c(pPrivateKeyTemplate[i].pValue);
+        this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
         break;
       default:
         break;
@@ -339,34 +260,53 @@ int SoftDatabase::addRSAKeyPriv(SoftSession *session, char *pin, RSA_PrivateKey 
 
   // Assign a default value if not defined by the user.
   if(foundLabel == 0) {
-    sqlInsertObj << ", CKA_LABEL";
-    sqlObjValue << ", '" << labelID << "'";
+    this->saveAttribute(objectID, CKA_LABEL, labelID, strlen(labelID));
   }
   if(foundID == 0) {
-    sqlInsertObj << ", CKA_ID";
-    sqlObjValue << ", '" << labelID << "'";
+    this->saveAttribute(objectID, CKA_ID, labelID, strlen(labelID));
   }
 
-  // Insert the private key.
-  sqlInsertKey << ") VALUES " << sqlKeyValue.str() << ");";
-  sqlite3_exec(db, sqlInsertKey.str().c_str(), NULL, NULL, NULL);
-  int keyID = sqlite3_last_insert_rowid(db);
-
-  // Add reference to the private key.
-  sqlInsertObj << ", keyID";
-  sqlObjValue << ", " << keyID;
-
-  // Add the key object.
-  sqlInsertObj << ") VALUES " << sqlObjValue.str() << ");";
-  sqlite3_exec(db, sqlInsertObj.str().c_str(), NULL, NULL, NULL);
-  keyID = sqlite3_last_insert_rowid(db);
-
-  return keyID;
+  return objectID;
 }
+
+// Save the attribute in the database.
+
+void SoftDatabase::saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
+  string sqlInsert = "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
+
+  sqlite3_stmt* insert_sql;
+  int result = sqlite3_prepare_v2(db, sqlInsert.c_str(), sqlInsert.size(), &insert_sql, NULL);
+
+  if(result) {
+    return;
+  }
+
+  sqlite3_bind_int(insert_sql, 1, objectID);
+  sqlite3_bind_int(insert_sql, 2, type);
+  sqlite3_bind_blob(insert_sql, 3, pValue, ulValueLen, SQLITE_TRANSIENT);
+  sqlite3_bind_int(insert_sql, 4, ulValueLen);
+
+  sqlite3_step(insert_sql);
+  sqlite3_finalize(insert_sql);
+}
+
+// Convert the big integer and save it in the database.
+
+void SoftDatabase::saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber) {
+  unsigned int size = bigNumber->bytes();
+  char *buf = (char *)malloc(size);
+  for(unsigned int i = 0; i < size; i++) {
+    buf[i] = bigNumber->byte_at(i);
+  }
+  this->saveAttribute(objectID, type, buf, size);
+  free(buf);
+}
+
+// Creates an object an populate it with attributes from the database.
 
 void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
   stringstream sqlQuery;
-  sqlQuery << "SELECT * from Objects WHERE objectID = " << keyRef << ";";
+  sqlQuery << "SELECT type,value,length from Attributes WHERE objectID = " << keyRef << ";";
 
   string sqlQueryStr = sqlQuery.str();
   sqlite3_stmt* select_sql;
@@ -376,30 +316,34 @@ void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
     return;
   }
 
-  if(sqlite3_step(select_sql) == SQLITE_ROW) {
-    keyObject = new SoftObject();
+  keyObject = new SoftObject();
 
-    int intValue = sqlite3_column_int(select_sql, 1);
-    keyObject->addAttributeFromData(CKA_CLASS, &intValue, sizeof(intValue));
-    char boolValue = (char)sqlite3_column_int(select_sql, 2);
-    keyObject->addAttributeFromData(CKA_TOKEN, &boolValue, sizeof(boolValue));
-    boolValue = (char)sqlite3_column_int(select_sql, 3);
-    keyObject->addAttributeFromData(CKA_PRIVATE, &boolValue, sizeof(boolValue));
-    boolValue = (char)sqlite3_column_int(select_sql, 4);
-    keyObject->addAttributeFromData(CKA_MODIFIABLE, &boolValue, sizeof(boolValue));
-    char *textValue = (char *)sqlite3_column_text(select_sql, 5);
-    keyObject->addAttributeFromData(CKA_LABEL, textValue, strlen(textValue));
-    intValue = sqlite3_column_int(select_sql, 6);
-    keyObject->addAttributeFromData(CKA_KEY_TYPE, &intValue, sizeof(intValue));
-    textValue = (char *)sqlite3_column_text(select_sql, 7);
-    keyObject->addAttributeFromData(CKA_ID, textValue, strlen(textValue));
-    boolValue = (char)sqlite3_column_int(select_sql, 8);
-    keyObject->addAttributeFromData(CKA_DERIVE, &boolValue, sizeof(boolValue));
-    boolValue = (char)sqlite3_column_int(select_sql, 9);
-    keyObject->addAttributeFromData(CKA_LOCAL, &boolValue, sizeof(boolValue));
-    intValue = sqlite3_column_int(select_sql, 10);
-    keyObject->addAttributeFromData(CKA_KEY_GEN_MECHANISM, &intValue, sizeof(intValue));
+  // Add all attributes
+  while(sqlite3_step(select_sql) == SQLITE_ROW) {
+    CK_ATTRIBUTE_TYPE type = sqlite3_column_int(select_sql, 0);
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_sql, 1);
+    int length = sqlite3_column_int(select_sql, 2);
 
-    // TBC....
+    keyObject->addAttributeFromData(type, pValue, length);
+
+    if(type == CKA_CLASS) {
+      keyObject->objectClass = *(CK_OBJECT_CLASS *)pValue;
+    }
+    if(type == CKA_KEY_TYPE) {
+      keyObject->keyType = *(CK_KEY_TYPE *)pValue;
+    }
   }
+
+  sqlite3_finalize(select_sql);
+}
+
+// Delete an object and its attributes, if the PIN is correct.
+// The trigger in the database removes the attributes.
+
+void SoftDatabase::deleteObject(char *pin, int objRef) {
+  stringstream sqlDeleteObj;
+
+  sqlDeleteObj << "DELETE FROM Objects WHERE pin = '" << pin << "' and objectID = " 
+               << objRef << ";";
+  sqlite3_exec(db, sqlDeleteObj.str().c_str(), NULL, NULL, NULL);
 }

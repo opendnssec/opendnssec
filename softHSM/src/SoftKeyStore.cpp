@@ -28,89 +28,83 @@
 
 /************************************************************
 *
-* This class defines a session
-* It holds the current state of the session
+* This class handles the key store for each session
 *
 ************************************************************/
 
 #include "main.h"
 
-SoftSession::SoftSession(int rwSession) {
-  pApplication = NULL_PTR;
-  Notify = NULL_PTR;
+SoftKeyStore::SoftKeyStore() {
+  next = NULL_PTR;
+  botanKey = NULL_PTR;
+  index = 0;
+}
 
-  if(rwSession == CKF_RW_SESSION) {
-    readWrite = true;
+SoftKeyStore::~SoftKeyStore() {
+  if(next != NULL_PTR) {
+    delete next;
+    next = NULL_PTR;
+  }
+
+  if(botanKey != NULL_PTR) {
+    delete botanKey;
+    botanKey = NULL_PTR;
+  }
+}
+
+// Add the key if we are the last one in the chain.
+// Or else pass it on the next one.
+
+void SoftKeyStore::addKey(int newIndex, Private_Key *newKey) {
+  if(next == NULL_PTR) {
+    next = new SoftKeyStore();
+    botanKey = newKey;
+    index = newIndex;
   } else {
-    readWrite = false;
-  }
-
-  findAnchor = NULL_PTR;
-  findCurrent = NULL_PTR;
-  findInitialized = false;
-
-  digestPipe = NULL_PTR;
-  digestSize = 0;
-  digestInitialized = false;
-
-  pkSigner = NULL_PTR;
-  signSinglePart = false;
-  signSize = 0;
-  signInitialized = false;
-
-  pkVerifier = NULL_PTR;
-  verifySinglePart = false;
-  verifySize = 0;
-  verifyInitialized = false;
-
-  keyStore = new SoftKeyStore();
-
-  rng = new AutoSeeded_RNG();
-
-  db = new SoftDatabase();
-}
-
-SoftSession::~SoftSession() {
-  pApplication = NULL_PTR;
-  Notify = NULL_PTR;
-
-  if(findAnchor != NULL_PTR) {
-    delete findAnchor;
-    findAnchor = NULL_PTR;
-  }
-
-  findCurrent = NULL_PTR;
-
-  if(digestPipe != NULL_PTR) {
-    delete digestPipe;
-    digestPipe = NULL_PTR;
-  }
-
-  if(pkSigner != NULL_PTR) {
-    delete pkSigner;
-    pkSigner = NULL_PTR;
-  }
-
-  if(pkVerifier != NULL_PTR) {
-    delete pkVerifier;
-    pkVerifier = NULL_PTR;
-  }
-
-  if(keyStore != NULL_PTR) {
-    delete keyStore;
-    keyStore = NULL_PTR;
-  }
-
-  if(rng != NULL_PTR) {
-    delete rng;
-  }
-
-  if(db != NULL_PTR) {
-    delete db;
-    db = NULL_PTR;
+    next->addKey(newIndex, newKey);
   }
 }
 
-bool SoftSession::isReadWrite() {
-  return readWrite;
+// Remove the key with a given index
+
+void SoftKeyStore::removeKey(int removeIndex) {
+  if(next != NULL_PTR) {
+    if(removeIndex == index) {
+      // Remove the key
+      if(botanKey != NULL_PTR) {
+        delete botanKey;
+      }
+
+      // Copy the information from the next key
+      index = next->index;
+      botanKey = next->botanKey;
+      SoftKeyStore *tmpPtr = next->next;
+
+      // Delete the next container
+      next->botanKey = NULL_PTR;
+      next->next = NULL_PTR;
+      delete next;
+
+      // Connect with the tail
+      next = tmpPtr;
+    } else {
+      next->removeKey(removeIndex);
+    }
+  } else {
+    return;
+  }
+}
+
+// Find the key with a given index
+
+Private_Key *SoftKeyStore::getKey(int getIndex) {
+  if(next != NULL_PTR) {
+    if(getIndex == index) {
+      return botanKey;
+    } else {
+      return next->getKey(getIndex);
+    }
+  } else {
+    return NULL_PTR;
+  }
 }

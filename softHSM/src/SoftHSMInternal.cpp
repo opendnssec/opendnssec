@@ -50,7 +50,6 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
   }
 
   pin = NULL_PTR;
-  rng = new AutoSeeded_RNG();
 
   createMutexFunc = cMutex;
   destroyMutexFunc = dMutex;
@@ -82,11 +81,6 @@ SoftHSMInternal::~SoftHSMInternal() {
   if(pin != NULL_PTR) {
     free(pin);
     pin = NULL_PTR;
-  }
-
-  if(rng != NULL_PTR) {
-    delete rng;
-    rng = NULL_PTR;
   }
 
   openSessions = 0;
@@ -186,6 +180,8 @@ CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INF
 
   pInfo->slotID = 1;
 
+  // TODO: FIX THE STATE AND RW INFORMATION
+
   if(pin) {
     pInfo->state = CKS_RW_USER_FUNCTIONS;
   } else {
@@ -212,12 +208,16 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     return CKR_PIN_INCORRECT;
   }
 
+  // TODO: How about CKA_ALWAYS_AUTHENTICATE??
+
   if(pin != NULL_PTR) {
     // Should we allow multiple login?
     // Yes, but should we clear the object buffer?
     free(pin);
     pin = NULL_PTR;
   }
+
+  // TODO: HASH THE PIN
 
   pin = (char *)malloc(ulPinLen+1);
   if (!pin) {
@@ -226,7 +226,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   memset(pin, 0, ulPinLen+1);
   memcpy(pin, pPin, ulPinLen);
 
-//  readAllKeyFiles(this);
+  // TODO: READ ALL THE KEY OBJECTS FOR THIS PIN
 
   return CKR_OK;
 }
@@ -253,7 +253,9 @@ CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
       objects[i] = NULL_PTR;
     }
   }
- 
+
+  // TODO: Clear the keys from the sessions. 
+
   return CKR_OK;
 }
 
@@ -297,20 +299,6 @@ bool SoftHSMInternal::isLoggedIn() {
 
 char* SoftHSMInternal::getPIN() {
   return pin;
-}
-
-// Add an object to the token.
-// Returns an object handle.
-
-CK_OBJECT_HANDLE SoftHSMInternal::addObject(SoftObject *inObject) {
-  for(int i = 0; i < MAX_OBJECTS; i++) {
-    if(objects[i] == NULL_PTR) {
-      objects[i] = inObject;
-      openObjects++;
-      return i+1;
-    }
-  }
-  return 0;
 }
 
 // Retrieves the attributes specified by the template.
@@ -399,18 +387,9 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
 }
 
 // Destroys the object.
-//
-// Private key:
-//   Only when the user is correctly logged in.
-//   The associated key file will also be removed.
-//   The corresponding public key can thereby not be recreated at the next start up.
-//
-// Public key:
-//   The key will only be softly removed, since it will be recreated from the
-//   private key file at the next start up.
 
 CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
-/*  SoftSession *session;
+  SoftSession *session;
   CK_RV result = getSession(hSession, session);
 
   if(result != CKR_OK) {
@@ -423,21 +402,14 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
     return CKR_OBJECT_HANDLE_INVALID;
   }
 
-  if(objects[objectHandle]->getObjectClass() == CKO_PUBLIC_KEY) {
-    delete objects[objectHandle];
-    objects[objectHandle] = NULL_PTR;
-    openObjects--;
-  } else if(objects[objectHandle]->getObjectClass() == CKO_PRIVATE_KEY) {
-    if(objects[objectHandle]->removeFile(this) != CKR_OK) {
-      return CKR_GENERAL_ERROR;
-    }
-    delete objects[objectHandle];
-    objects[objectHandle] = NULL_PTR;
-    openObjects--;
-  } else {
-    return CKR_GENERAL_ERROR;
-  }
-*/
+  db->deleteObject(this->getPIN(), hObject);
+
+  delete objects[objectHandle];
+  objects[objectHandle] = NULL_PTR;
+  openObjects--;
+
+  // TODO: REMOVE THE KEY FROM THE SESSIONS!!!!!!
+
   return CKR_OK;
 }
 
@@ -485,13 +457,24 @@ CK_RV SoftHSMInternal::unlockMutex(CK_VOID_PTR mutex) {
   return unlockMutexFunc(mutex);
 }
 
+// Add a new object from the database
+
 void SoftHSMInternal::updateKeyFromDB(int keyRef) {
+  // TODO: WHAT ABOUT OBJECT OVERFLOW????
+
   SoftObject *newObject = NULL_PTR;
 
   db->populateObj(newObject, keyRef);
 
   if(newObject != NULL_PTR) {
+    if(objects[keyRef-1] != NULL_PTR) {
+      delete objects[keyRef-1];
+      openObjects--;
+    }
+
     objects[keyRef-1] = newObject;
     openObjects++;
+
+    // TODO: NOTIFY THE SESSIONS TO CREATE THEIR OWN COPY OF THE KEY
   }
 }

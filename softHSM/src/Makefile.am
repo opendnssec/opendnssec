@@ -9,7 +9,8 @@ libsofthsm_la_SOURCES = 	main.cpp \
 				SoftObject.cpp \
 				SoftFind.cpp \
 				SoftAttribute.cpp \
-				SoftDatabase.cpp
+				SoftDatabase.cpp \
+				SoftKeyStore.cpp
 libsofthsm_la_LDFLAGS = 	-L@BOTANDIR@ -R@BOTANDIR@ -lbotan \
 				-L@SQLITEDIR@ -R@SQLITEDIR@ -lsqlite3 \
 			 	-version-info @VERSION_INFO@
