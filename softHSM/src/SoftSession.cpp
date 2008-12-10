@@ -114,3 +114,17 @@ SoftSession::~SoftSession() {
 bool SoftSession::isReadWrite() {
   return readWrite;
 }
+
+Private_Key* SoftSession::getKey(SoftObject *object, CK_OBJECT_HANDLE hKey) {
+  Private_Key* tmpKey = keyStore->getKey(hKey);
+
+  if(tmpKey == NULL_PTR) {
+    // Clone the key
+    IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(object->key);
+    tmpKey = new RSA_PrivateKey(*rng, ifKeyPriv->get_p(),
+       ifKeyPriv->get_q(), ifKeyPriv->get_e(), ifKeyPriv->get_d(), ifKeyPriv->get_n());
+    keyStore->addKey(hKey, tmpKey);
+  }
+
+  return tmpKey;
+}

@@ -41,6 +41,7 @@ class SoftDatabase {
     ~SoftDatabase();
 
     void populateObj(SoftObject *&keyObject, int keyRef);
+    int* getObjectRefs(char *pin, int &objectCount);
 
     int addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount, char *labelID);

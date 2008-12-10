@@ -60,7 +60,7 @@ class SoftHSMInternal {
     char* getPIN();
 
     // Object handling
-    void updateKeyFromDB(int keyRef);
+    CK_OBJECT_HANDLE getObjectFromDB(int keyRef);
     CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
     CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
@@ -86,6 +86,7 @@ class SoftHSMInternal {
 
     int openObjects;
     SoftObject *objects[MAX_OBJECTS];
+    void getAllObjects();
 
     CK_CREATEMUTEX createMutexFunc;
     CK_DESTROYMUTEX destroyMutexFunc;

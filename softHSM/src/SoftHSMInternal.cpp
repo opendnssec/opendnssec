@@ -208,11 +208,10 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     return CKR_PIN_INCORRECT;
   }
 
-  // TODO: How about CKA_ALWAYS_AUTHENTICATE??
-
   if(pin != NULL_PTR) {
     // Should we allow multiple login?
     // Yes, but should we clear the object buffer?
+    // TODO: How about CKA_ALWAYS_AUTHENTICATE??
     free(pin);
     pin = NULL_PTR;
   }
@@ -226,7 +225,9 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   memset(pin, 0, ulPinLen+1);
   memcpy(pin, pPin, ulPinLen);
 
-  // TODO: READ ALL THE KEY OBJECTS FOR THIS PIN
+  this->getAllObjects();
+
+  // TODO: Add the keys to the sessions. 
 
   return CKR_OK;
 }
@@ -458,23 +459,47 @@ CK_RV SoftHSMInternal::unlockMutex(CK_VOID_PTR mutex) {
 }
 
 // Add a new object from the database
+// Returns an index to the object
 
-void SoftHSMInternal::updateKeyFromDB(int keyRef) {
-  // TODO: WHAT ABOUT OBJECT OVERFLOW????
-
+CK_OBJECT_HANDLE SoftHSMInternal::getObjectFromDB(int keyRef) {
   SoftObject *newObject = NULL_PTR;
 
   db->populateObj(newObject, keyRef);
 
   if(newObject != NULL_PTR) {
-    if(objects[keyRef-1] != NULL_PTR) {
-      delete objects[keyRef-1];
-      openObjects--;
+    int counter = 0;
+
+    // Find a free spot
+    for(; counter < MAX_OBJECTS; counter++) {
+      if(objects[counter] == NULL_PTR) {
+        break;
+      }
     }
 
-    objects[keyRef-1] = newObject;
+    if(counter == MAX_OBJECTS) {
+      delete newObject;
+      return 0;
+    }
+
+    objects[counter] = newObject;
     openObjects++;
 
+    return (counter + 1);
+
     // TODO: NOTIFY THE SESSIONS TO CREATE THEIR OWN COPY OF THE KEY
+  }
+
+  return 0;
+}
+
+// Get all objects associated with the given PIN
+// and store them in the object buffer
+
+void SoftHSMInternal::getAllObjects() {
+  int objectCount = 0;
+  int *objectRefs = db->getObjectRefs(pin, objectCount);
+
+  for(int i = 0; i < objectCount; i++) {
+    this->getObjectFromDB(objectRefs[i]);
   }
 }

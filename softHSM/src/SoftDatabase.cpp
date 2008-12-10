@@ -201,17 +201,20 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
   this->saveAttribute(objectID, CKA_KEY_GEN_MECHANISM, &mechType, sizeof(mechType));
   this->saveAttribute(objectID, CKA_LOCAL, &ckTrue, sizeof(ckTrue));
 
+  // The RSA modulus bits
+  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
+  BigInt bigNumber = ifKeyPriv->get_n();
+  CK_ULONG bits = bigNumber.bits();
+  this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits));
+
   // The RSA modulus
-  IF_Scheme_PublicKey *ifKeyPub = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
-  BigInt bigNumber = ifKeyPub->get_n();
   this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigNumber);
 
   // The RSA public exponent
-  bigNumber = ifKeyPub->get_e();
+  bigNumber = ifKeyPriv->get_e();
   this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigNumber);
 
   // The RSA private exponent
-  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
   bigNumber = ifKeyPriv->get_d();
   this->saveAttributeBigInt(objectID, CKA_PRIVATE_EXPONENT, &bigNumber);
 
@@ -274,7 +277,7 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
 void SoftDatabase::saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
   string sqlInsert = "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
 
-  sqlite3_stmt* insert_sql;
+  sqlite3_stmt *insert_sql;
   int result = sqlite3_prepare_v2(db, sqlInsert.c_str(), sqlInsert.size(), &insert_sql, NULL);
 
   if(result) {
@@ -295,9 +298,9 @@ void SoftDatabase::saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_P
 void SoftDatabase::saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber) {
   unsigned int size = bigNumber->bytes();
   char *buf = (char *)malloc(size);
-  for(unsigned int i = 0; i < size; i++) {
-    buf[i] = bigNumber->byte_at(i);
-  }
+  
+  bigNumber->binary_encode((byte *)buf);
+
   this->saveAttribute(objectID, type, buf, size);
   free(buf);
 }
@@ -309,7 +312,7 @@ void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
   sqlQuery << "SELECT type,value,length from Attributes WHERE objectID = " << keyRef << ";";
 
   string sqlQueryStr = sqlQuery.str();
-  sqlite3_stmt* select_sql;
+  sqlite3_stmt *select_sql;
   int result = sqlite3_prepare(db, sqlQueryStr.c_str(), sqlQueryStr.size(), &select_sql, NULL);
 
   if(result) {
@@ -317,6 +320,13 @@ void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
   }
 
   keyObject = new SoftObject();
+
+  BigInt modulus(0);
+  BigInt pubExp(0);
+  BigInt privExp(0);
+  BigInt prime1(0);
+  BigInt prime2(0);
+  CK_ULONG tmpValue;
 
   // Add all attributes
   while(sqlite3_step(select_sql) == SQLITE_ROW) {
@@ -326,15 +336,54 @@ void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
 
     keyObject->addAttributeFromData(type, pValue, length);
 
-    if(type == CKA_CLASS) {
-      keyObject->objectClass = *(CK_OBJECT_CLASS *)pValue;
-    }
-    if(type == CKA_KEY_TYPE) {
-      keyObject->keyType = *(CK_KEY_TYPE *)pValue;
+    switch(type) {
+      case CKA_CLASS:
+        keyObject->objectClass = *(CK_OBJECT_CLASS *)pValue;
+        break;
+      case CKA_KEY_TYPE:
+        keyObject->keyType = *(CK_KEY_TYPE *)pValue;
+        break;
+      case CKA_MODULUS_BITS:
+        tmpValue = *(CK_ULONG *)pValue;
+        keyObject->keySizeBytes = (tmpValue + 7) / 8;
+        break;
+      case CKA_MODULUS:
+        modulus.binary_decode((byte *)pValue, length);
+        break;
+      case CKA_PUBLIC_EXPONENT:
+        pubExp.binary_decode((byte *)pValue, length);
+        break;
+      case CKA_PRIVATE_EXPONENT:
+        privExp.binary_decode((byte *)pValue, length);
+        break;
+      case CKA_PRIME_1:
+        prime1.binary_decode((byte *)pValue, length);
+        break;
+      case CKA_PRIME_2:
+        prime2.binary_decode((byte *)pValue, length);
+        break;
     }
   }
 
   sqlite3_finalize(select_sql);
+
+  if(keyObject->objectClass == CKO_PUBLIC_KEY && keyObject->keyType == CKK_RSA) {
+    if(modulus.is_zero() || pubExp.is_zero()) {
+      delete keyObject;
+      keyObject = NULL_PTR;
+    }
+    keyObject->key = new RSA_PublicKey(modulus, pubExp);
+  }
+  if(keyObject->objectClass == CKO_PRIVATE_KEY && keyObject->keyType == CKK_RSA) {
+    if(prime1.is_zero() || prime2.is_zero() || pubExp.is_zero() || 
+       privExp.is_zero() || modulus.is_zero()) {
+      delete keyObject;
+      keyObject = NULL_PTR;
+    }
+
+    AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+    keyObject->key = new RSA_PrivateKey(*rng, prime1, prime2, pubExp, privExp, modulus);
+  }
 }
 
 // Delete an object and its attributes, if the PIN is correct.
@@ -345,5 +394,59 @@ void SoftDatabase::deleteObject(char *pin, int objRef) {
 
   sqlDeleteObj << "DELETE FROM Objects WHERE pin = '" << pin << "' and objectID = " 
                << objRef << ";";
-  sqlite3_exec(db, sqlDeleteObj.str().c_str(), NULL, NULL, NULL);
+  sqlite3_exec(db, sqlDeleteObj.str().c_str(),  NULL, NULL, NULL);
+}
+
+// Returns the object IDs for a given PIN
+
+int* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
+  objectCount = 0;
+
+  // Find out how many objects we have.
+  string sqlCount = "SELECT COUNT(objectID) FROM Objects WHERE pin = ?;";
+  sqlite3_stmt *count_sql;
+  int result = sqlite3_prepare_v2(db, sqlCount.c_str(), sqlCount.size(), &count_sql, NULL);
+
+  // Error?
+  if(result != 0) {
+    return NULL_PTR;
+  }
+
+  // Supply the PIN to the query
+  sqlite3_bind_text(count_sql, 1, pin, strlen(pin), SQLITE_TRANSIENT);
+
+  // Get the result from the query
+  if(sqlite3_step(count_sql) != SQLITE_ROW) {
+    return NULL_PTR;
+  }
+
+  // Return the number of objects
+  objectCount = sqlite3_column_int(count_sql, 0);
+  sqlite3_finalize(count_sql);
+
+  // Create the object-reference buffer
+  int *objectRefs = (int *)malloc(objectCount * sizeof(int));
+
+  // Get all the objects
+  string sqlSelect = "SELECT objectID FROM Objects WHERE pin = ? ORDER BY objectID DESC;";
+  sqlite3_stmt *select_sql;
+  result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
+
+  // Error?
+  if(result != 0) {
+    return NULL_PTR;
+  }
+
+  // Supply the PIN to the query
+  sqlite3_bind_text(select_sql, 1, pin, strlen(pin), SQLITE_TRANSIENT);
+
+  // Get the results  
+  int tmpCounter = 0;
+  while(sqlite3_step(select_sql) == SQLITE_ROW && tmpCounter < objectCount) {
+    objectRefs[tmpCounter++] = sqlite3_column_int(select_sql, 0);
+  }
+
+  sqlite3_finalize(select_sql);
+ 
+  return objectRefs;
 }

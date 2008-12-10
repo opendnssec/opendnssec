@@ -38,13 +38,20 @@
 SoftObject::SoftObject() {
   objectClass = CKO_VENDOR_DEFINED;
   keyType = CKK_VENDOR_DEFINED;
+  keySizeBytes = 0;
   attributes = new SoftAttribute();
+  key = NULL_PTR;
 }
 
 SoftObject::~SoftObject() {
   if(attributes != NULL_PTR) {
     delete attributes;
     attributes = NULL_PTR;
+  }
+
+  if(key != NULL_PTR) {
+    delete key;
+    key = NULL_PTR;
   }
 }
 

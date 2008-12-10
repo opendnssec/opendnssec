@@ -47,6 +47,9 @@ class SoftObject {
 
     CK_OBJECT_CLASS objectClass;
     CK_KEY_TYPE keyType;
+    CK_ULONG keySizeBytes;
+
+    Public_Key *key;
 
   private:
     SoftAttribute *attributes;

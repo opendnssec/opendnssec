@@ -889,13 +889,9 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_DEVICE_MEMORY;
   }
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
-
-/*
-
   // Creates the signer with given key and mechanism.
-  PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(object->getKey());
-  session->signSize = object->getKeySizeBytes();
+  PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(session->getKey(object, hKey));
+  session->signSize = object->keySizeBytes;
   session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
 
   if(!session->pkSigner) {
@@ -904,7 +900,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
   session->signInitialized = true;
 
-  return CKR_OK; */
+  return CKR_OK;
 }
 
 // Signs the data and return the results
@@ -944,9 +940,9 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   SecureVector<byte> signResult;
 
   // Sign 
-  softHSM->lockMutex(*softHSM->mutex);
+  //softHSM->lockMutex(*softHSM->mutex);
   signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
-  softHSM->unlockMutex(*softHSM->mutex);
+  //softHSM->unlockMutex(*softHSM->mutex);
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
@@ -1113,12 +1109,9 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     return CKR_DEVICE_MEMORY;
   }
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
-/*
-
   // Creates the verifier with given key and mechanism
-  PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(object->getKey());
-  session->verifySize = object->getKeySizeBytes();
+  PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(object->key);
+  session->verifySize = object->keySizeBytes;
   session->pkVerifier = new PK_Verifier_with_MR(*verifyKey, &*hashFunc);
 
   if(!session->pkVerifier) {
@@ -1127,7 +1120,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
   session->verifyInitialized = true;
 
-  return CKR_OK;*/
+  return CKR_OK;
 }
 
 // Verifies if the the signature matches the data
@@ -1451,8 +1444,8 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   int pubRef = session->db->addRSAKeyPub(softHSM->getPIN(), rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
 
   // Update the internal states.
-  softHSM->updateKeyFromDB(privRef);
-  softHSM->updateKeyFromDB(pubRef);
+  privRef = softHSM->getObjectFromDB(privRef);
+  pubRef = softHSM->getObjectFromDB(pubRef);
 
   // Returns the object handles to the application.
   *phPublicKey = (CK_OBJECT_HANDLE)pubRef;
