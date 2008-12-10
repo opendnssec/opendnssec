@@ -4,7 +4,7 @@ This code is to be considered as work-in-progress.
 It may or may not compile correctly.
 It may or may not work correctly.
 
-Using Botan 1.7.24
+Using Botan 1.8.0
 
 SoftHSM is not thread safe.... but will be fixed
 Check if any memory leeks must be fixed
