@@ -196,7 +196,7 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
     softHSM = NULL_PTR;
   }
 
-  // Should be finalize the Botan library?
+  // Should we finalize the Botan library?
 
   return CKR_OK;
 }
@@ -543,11 +543,10 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, C
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->findInitialized) {
@@ -574,11 +573,10 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->findInitialized) {
@@ -639,11 +637,10 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session != NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(session->digestInitialized) {
@@ -710,11 +707,10 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
@@ -759,11 +755,10 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
@@ -791,11 +786,10 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
@@ -834,19 +828,17 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object;
-  result = softHSM->getObject(hKey, object);
+  SoftObject *object = softHSM->getObject(hKey);
 
-  if(result != CKR_OK || object->objectClass != CKO_PRIVATE_KEY ||
+  if(object == NULL_PTR || object->objectClass != CKO_PRIVATE_KEY ||
      object->keyType != CKK_RSA) {
-    return CKR_ARGUMENTS_BAD;
+    return CKR_KEY_HANDLE_INVALID;
   }
 
   if(session->signInitialized) {
@@ -890,7 +882,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   }
 
   // Creates the signer with given key and mechanism.
-  PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(session->getKey(object, hKey));
+  PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(session->getKey(object));
   session->signSize = object->keySizeBytes;
   session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
 
@@ -912,11 +904,10 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
@@ -940,9 +931,7 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   SecureVector<byte> signResult;
 
   // Sign 
-  //softHSM->lockMutex(*softHSM->mutex);
   signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
-  //softHSM->unlockMutex(*softHSM->mutex);
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
@@ -965,11 +954,10 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
@@ -997,11 +985,10 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
@@ -1054,19 +1041,17 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object;
-  result = softHSM->getObject(hKey, object);
+  SoftObject *object = softHSM->getObject(hKey);
 
-  if(result != CKR_OK || object->objectClass != CKO_PUBLIC_KEY ||
+  if(object == NULL_PTR || object->objectClass != CKO_PUBLIC_KEY ||
      object->keyType != CKK_RSA) {
-    return CKR_ARGUMENTS_BAD;
+    return CKR_KEY_HANDLE_INVALID;
   }
 
   if(session->verifyInitialized) {
@@ -1110,7 +1095,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   }
 
   // Creates the verifier with given key and mechanism
-  PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(object->key);
+  PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(session->getKey(object));
   session->verifySize = object->keySizeBytes;
   session->pkVerifier = new PK_Verifier_with_MR(*verifyKey, &*hashFunc);
 
@@ -1131,11 +1116,10 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
@@ -1177,11 +1161,10 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
@@ -1209,11 +1192,10 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
@@ -1293,11 +1275,10 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->isReadWrite()) {
@@ -1347,11 +1328,10 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSee
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pSeed == NULL_PTR) {
@@ -1371,11 +1351,10 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_U
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  SoftSession *session;
-  CK_RV result = softHSM->getSession(hSession, session);
+  SoftSession *session = softHSM->getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pRandomData == NULL_PTR) {
@@ -1407,7 +1386,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   BigInt *exponent = NULL_PTR;
 
   // Extract desired key information
-  for(unsigned int i = 0; i < ulPublicKeyAttributeCount; i++) {
+  for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
     switch(pPublicKeyTemplate[i].type) {
       case CKA_MODULUS_BITS:
         if(pPublicKeyTemplate[i].ulValueLen != 4) {
@@ -1437,19 +1416,36 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*session->rng, *modulusBits, exponent->to_u32bit());
 
   // Default label/ID if nothing is specified by the user.
-  char *labelID = getNewFileName();
+  char *labelID = getNewLabelAndID();
 
   // Add the key to the database.
   int privRef = session->db->addRSAKeyPriv(softHSM->getPIN(), rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount, labelID);
   int pubRef = session->db->addRSAKeyPub(softHSM->getPIN(), rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
 
   // Update the internal states.
-  privRef = softHSM->getObjectFromDB(privRef);
-  pubRef = softHSM->getObjectFromDB(pubRef);
+  softHSM->getObjectFromDB(privRef);
+  softHSM->getObjectFromDB(pubRef);
 
   // Returns the object handles to the application.
   *phPublicKey = (CK_OBJECT_HANDLE)pubRef;
   *phPrivateKey = (CK_OBJECT_HANDLE)privRef;
 
   return CKR_OK;
+}
+
+// Return a new label/ID
+// It is the current date/time down to microseconds
+// This should be enough collision resistant.
+
+char* getNewLabelAndID() {
+  char *fileName = (char *)malloc(19);
+
+  struct timeval now;
+  gettimeofday(&now, NULL);
+  struct tm *timeinfo = gmtime(&now.tv_sec);
+
+  snprintf(fileName, 19, "%02u%02u%02u%02u%02u%02u%06u", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday,
+           timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, (unsigned int)now.tv_usec);
+
+  return fileName;
 }

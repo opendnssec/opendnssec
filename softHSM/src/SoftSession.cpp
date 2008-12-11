@@ -115,15 +115,35 @@ bool SoftSession::isReadWrite() {
   return readWrite;
 }
 
-Private_Key* SoftSession::getKey(SoftObject *object, CK_OBJECT_HANDLE hKey) {
-  Private_Key* tmpKey = keyStore->getKey(hKey);
+// Get the key from the session key store
+// If it is not chached then create a clone
+// of it and store it in the cache.
 
+Public_Key* SoftSession::getKey(SoftObject *object) {
+  Public_Key* tmpKey = keyStore->getKey(object->index);
+
+  // If the key is not in the session cache
   if(tmpKey == NULL_PTR) {
-    // Clone the key
-    IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(object->key);
-    tmpKey = new RSA_PrivateKey(*rng, ifKeyPriv->get_p(),
-       ifKeyPriv->get_q(), ifKeyPriv->get_e(), ifKeyPriv->get_d(), ifKeyPriv->get_n());
-    keyStore->addKey(hKey, tmpKey);
+    if(object->keyType == CKK_RSA) {
+      // Clone the key
+      if(object->objectClass == CKO_PRIVATE_KEY) {
+        IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(object->key);
+        tmpKey = new RSA_PrivateKey(*rng, ifKeyPriv->get_p(),
+           ifKeyPriv->get_q(), ifKeyPriv->get_e(), ifKeyPriv->get_d(), ifKeyPriv->get_n());
+      } else {
+        IF_Scheme_PublicKey *ifKeyPub = dynamic_cast<IF_Scheme_PublicKey*>(object->key);
+        tmpKey = new RSA_PublicKey(ifKeyPub->get_n(), ifKeyPub->get_e());
+      }
+
+      // Create a new key store object.
+      SoftKeyStore *newKeyLink = new SoftKeyStore();
+      newKeyLink->next = keyStore;
+      newKeyLink->botanKey = tmpKey;
+      newKeyLink->index = object->index;
+
+      // Add it first in the chain.
+      keyStore = newKeyLink;
+    }
   }
 
   return tmpKey;

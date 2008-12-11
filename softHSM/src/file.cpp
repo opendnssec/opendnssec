@@ -35,8 +35,8 @@
 
 #include "main.h"
 
-// Returns the directory where the private keys are stored.
-// They are stored in the .softHSM directory in the user's
+// Returns the directory where the database is stored.
+// It is stored under the .softHSM directory in the user's
 // home directory.
 
 char* checkHSMDir() {
@@ -65,21 +65,4 @@ char* getDatabasePath() {
 
   free(directory);
   return dbPath;
-}
-
-// Return a new file-name/label/ID
-// It is the current date/time down to microseconds
-// This should be enough collision resistant.
-
-char* getNewFileName() {
-  char *fileName = (char *)malloc(19);
-
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  struct tm *timeinfo = gmtime(&now.tv_sec);
-
-  snprintf(fileName, 19, "%02u%02u%02u%02u%02u%02u%06u", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday, 
-           timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, (unsigned int)now.tv_usec);
-
-  return fileName;
 }

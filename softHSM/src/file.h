@@ -31,6 +31,5 @@
 
 char* checkHSMDir();
 char* getDatabasePath();
-char* getNewFileName();
 
 #endif /* SOFTHSM_FILE_H */

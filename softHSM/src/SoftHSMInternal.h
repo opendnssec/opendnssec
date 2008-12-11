@@ -50,7 +50,7 @@ class SoftHSMInternal {
     CK_RV closeSession(CK_SESSION_HANDLE hSession);
     CK_RV closeAllSessions();
     CK_RV getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo);
-    CK_RV getSession(CK_SESSION_HANDLE hSession, SoftSession *&session);
+    SoftSession* getSession(CK_SESSION_HANDLE hSession);
 
     // User handling
     CK_RV login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, 
@@ -60,8 +60,8 @@ class SoftHSMInternal {
     char* getPIN();
 
     // Object handling
-    CK_OBJECT_HANDLE getObjectFromDB(int keyRef);
-    CK_RV getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object);
+    void getObjectFromDB(int keyRef);
+    SoftObject* getObject(CK_OBJECT_HANDLE hObject);
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
     CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
       CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
@@ -74,18 +74,17 @@ class SoftHSMInternal {
     CK_RV lockMutex(CK_VOID_PTR mutex);
     CK_RV unlockMutex(CK_VOID_PTR mutex);
 
-    CK_VOID_PTR_PTR mutex;
-  
   private:
     char *pin;
 
     SoftDatabase *db;
 
+    void clearObjectsAndCaches();
+
     int openSessions;
     SoftSession *sessions[MAX_SESSION_COUNT];
 
-    int openObjects;
-    SoftObject *objects[MAX_OBJECTS];
+    SoftObject *objects;
     void getAllObjects();
 
     CK_CREATEMUTEX createMutexFunc;

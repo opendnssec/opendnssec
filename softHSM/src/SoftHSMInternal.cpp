@@ -39,15 +39,12 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
   CK_DESTROYMUTEX dMutex, CK_LOCKMUTEX lMutex, CK_UNLOCKMUTEX uMutex) {
 
   openSessions = 0;
-  openObjects = 0;
 
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     sessions[i] = NULL_PTR;
   }
 
-  for(int i = 0; i < MAX_OBJECTS; i++) {
-    objects[i] = NULL_PTR;
-  }
+  objects = new SoftObject();
 
   pin = NULL_PTR;
 
@@ -56,9 +53,6 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
   lockMutexFunc = lMutex;
   unlockMutexFunc = uMutex;
   usesThreading = threading;
-
-  mutex = (CK_VOID_PTR_PTR)malloc(sizeof(CK_VOID_PTR));
-  this->createMutex(mutex);
 
   db = new SoftDatabase();
 }
@@ -71,24 +65,16 @@ SoftHSMInternal::~SoftHSMInternal() {
     }
   }
 
-  for(int i = 0; i < MAX_OBJECTS; i++) {
-    if(objects[i] != NULL_PTR) {
-      delete objects[i];
-      objects[i] = NULL_PTR;
-    }
+  openSessions = 0;
+
+  if(objects != NULL_PTR) {
+    delete objects;
+    objects = NULL_PTR;
   }
 
   if(pin != NULL_PTR) {
     free(pin);
     pin = NULL_PTR;
-  }
-
-  openSessions = 0;
-  openObjects = 0;
-
-  if(mutex) {
-    destroyMutex(*mutex);
-    free(mutex);
   }
 
   if(db != NULL_PTR) {
@@ -146,6 +132,9 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
 
   openSessions--;
 
+  // TODO: What if this is the last session?
+  //       Should we change the login state and removes objects?
+
   return CKR_OK;
 }
 
@@ -161,17 +150,19 @@ CK_RV SoftHSMInternal::closeAllSessions() {
 
   openSessions = 0;
 
+  // TODO: We should also remove all objects!
+  //       And change the login state
+
   return CKR_OK;
 }
 
 // Return information about the session.
 
 CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo) {
-  SoftSession *session;
-  CK_RV result = getSession(hSession, session);
+  SoftSession *session = getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pInfo == NULL_PTR) {
@@ -197,37 +188,51 @@ CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INF
 // Logs the user into the token.
 
 CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
-  SoftSession *session;
-  CK_RV result = getSession(hSession, session);
+  SoftSession *session = getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
+  }
+
+  if(pPin == NULL_PTR) {
+    return CKR_ARGUMENTS_BAD;
   }
 
   if(ulPinLen < 4 || ulPinLen > 8000) {
     return CKR_PIN_INCORRECT;
   }
 
+  // Digest the PIN
+  // We do not use any salt
+  Pipe *digestPIN = new Pipe(new Hash_Filter(new SHA_256), new Hex_Encoder);
+  digestPIN->start_msg();
+  digestPIN->write(pPin, ulPinLen);
+  digestPIN->write(pPin, ulPinLen);
+  digestPIN->write(pPin, ulPinLen);
+  digestPIN->end_msg();
+
+  // Get the digested PIN
+  SecureVector<byte> pinVector = digestPIN->read_all();
+  int size = pinVector.size();
+  char *tmpPIN = (char *)malloc(size + 1);
+  tmpPIN[size] = '\0';
+  memcpy(tmpPIN, pinVector.begin(), size);
+  delete digestPIN;
+
+  // Is someone already logged in?
   if(pin != NULL_PTR) {
-    // Should we allow multiple login?
-    // Yes, but should we clear the object buffer?
-    // TODO: How about CKA_ALWAYS_AUTHENTICATE??
-    free(pin);
-    pin = NULL_PTR;
+    // Is it the same password?
+    if(strcmp(tmpPIN, pin) == 0) {
+      return CKR_OK;
+    } else {
+      free(pin);
+      clearObjectsAndCaches();
+    }
   }
 
-  // TODO: HASH THE PIN
+  pin = tmpPIN;
 
-  pin = (char *)malloc(ulPinLen+1);
-  if (!pin) {
-    return CKR_DEVICE_MEMORY;
-  }
-  memset(pin, 0, ulPinLen+1);
-  memcpy(pin, pPin, ulPinLen);
-
-  this->getAllObjects();
-
-  // TODO: Add the keys to the sessions. 
+  getAllObjects();
 
   return CKR_OK;
 }
@@ -236,11 +241,10 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
 // Closes all the objects.
 
 CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
-    SoftSession *session;
-  CK_RV result = getSession(hSession, session);
+  SoftSession *session = getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pin != NULL_PTR) {
@@ -248,44 +252,26 @@ CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
     pin = NULL_PTR;
   }
 
-  for(int i = 0; i < MAX_OBJECTS; i++) {
-    if(objects[i] != NULL_PTR) {
-      delete objects[i];
-      objects[i] = NULL_PTR;
-    }
-  }
-
-  // TODO: Clear the keys from the sessions. 
+  clearObjectsAndCaches();
 
   return CKR_OK;
 }
 
 // Retrieves the session pointer associated with the session handle.
 
-CK_RV SoftHSMInternal::getSession(CK_SESSION_HANDLE hSession, SoftSession *&session) {
+SoftSession* SoftHSMInternal::getSession(CK_SESSION_HANDLE hSession) {
   if(hSession > MAX_SESSION_COUNT || hSession < 1) {
-    return CKR_SESSION_HANDLE_INVALID;
+    return NULL_PTR;
   }
 
-  if(sessions[hSession-1] == NULL_PTR) {
-    return CKR_SESSION_CLOSED;
-  }
-
-  session = sessions[hSession-1];
-
-  return CKR_OK;
+  return sessions[hSession-1];
 }
 
 // Retrieves the object pointer associated with the object handle.
+// Returns NULL_PTR if no matching object is found.
 
-CK_RV SoftHSMInternal::getObject(CK_OBJECT_HANDLE hObject, SoftObject *&object) {
-  if(hObject > MAX_OBJECTS || hObject < 1 || objects[hObject-1] == NULL_PTR) {
-    return CKR_OBJECT_HANDLE_INVALID;
-  }
-
-  object = objects[hObject-1];
-
-  return CKR_OK;
+SoftObject* SoftHSMInternal::getObject(CK_OBJECT_HANDLE hObject) {
+  return objects->getObject(hObject);
 }
 
 // Checks if the user is logged in.
@@ -310,24 +296,22 @@ char* SoftHSMInternal::getPIN() {
 // returned.
 
 CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  SoftSession *session;
-  CK_RV result = getSession(hSession, session);
+  SoftSession *session = getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object;
-  result = getObject(hObject, object);
+  SoftObject *object = objects->getObject(hObject);
 
-  if(result != CKR_OK) {
-    return result;
+  if(object == NULL_PTR) {
+    return CKR_OBJECT_HANDLE_INVALID;
   }
 
-  result = CKR_OK;
+  CK_RV result = CKR_OK;
   CK_RV objectResult = CKR_OK;
 
-  for(unsigned int i = 0; i < ulCount; i++) {
+  for(CK_ULONG i = 0; i < ulCount; i++) {
     objectResult = object->getAttribute(&pTemplate[i]);
     if(objectResult != CKR_OK) {
       result = objectResult;
@@ -341,11 +325,10 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
 // The template specifies the search pattern.
 
 CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  SoftSession *session;
-  CK_RV result = getSession(hSession, session);
+  SoftSession *session = getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(session->findInitialized) {
@@ -360,26 +343,26 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   session->findAnchor = new SoftFind();
   session->findCurrent = session->findAnchor;
 
-  int counter = 0;
+  SoftObject *currentObject = objects;
 
   // Check with all objects.
-  for(int i = 0; i < MAX_OBJECTS && counter < openObjects; i++) {
-    if(objects[i] != NULL_PTR) {
-      CK_BBOOL findObject = CK_TRUE;
+  while(currentObject->nextObject != NULL_PTR) {
+    CK_BBOOL findObject = CK_TRUE;
 
-      // See if the object match all attributes.
-      for(unsigned int j = 0; j < ulCount; j++) {
-        if(objects[i]->matchAttribute(&pTemplate[j]) == CK_FALSE) {
-          findObject = CK_FALSE;
-        }
+    // See if the object match all attributes.
+    for(CK_ULONG j = 0; j < ulCount; j++) {
+      if(currentObject->matchAttribute(&pTemplate[j]) == CK_FALSE) {
+        findObject = CK_FALSE;
       }
-
-      if(findObject == CK_TRUE) {
-        session->findAnchor->addFind(i+1);
-      }
-
-      counter++;
     }
+
+    // Add the handle to the search results if the object matched the attributes.
+    if(findObject == CK_TRUE) {
+      session->findAnchor->addFind(currentObject->index);
+    }
+
+    // Iterate
+    currentObject = currentObject->nextObject;
   }
 
   session->findInitialized = true;
@@ -390,28 +373,24 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
 // Destroys the object.
 
 CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
-  SoftSession *session;
-  CK_RV result = getSession(hSession, session);
+  SoftSession *session = getSession(hSession);
 
-  if(result != CKR_OK) {
-    return result;
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
   }
 
-  int objectHandle = hObject-1;
-
-  if(hObject > MAX_OBJECTS || hObject < 1 || objects[objectHandle] == NULL_PTR) {
-    return CKR_OBJECT_HANDLE_INVALID;
+  // Remove the key from the sessions' key cache
+  for(int i = 0; i < MAX_SESSION_COUNT; i++) {
+    if(sessions[i] != NULL_PTR) {
+      sessions[i]->keyStore->removeKey(hObject);
+    }
   }
 
+  // Delete the object from the database
   db->deleteObject(this->getPIN(), hObject);
 
-  delete objects[objectHandle];
-  objects[objectHandle] = NULL_PTR;
-  openObjects--;
-
-  // TODO: REMOVE THE KEY FROM THE SESSIONS!!!!!!
-
-  return CKR_OK;
+  // Delete the object from the internal state
+  return objects->deleteObj(hObject);
 }
 
 // Wrapper for the mutex function.
@@ -461,35 +440,15 @@ CK_RV SoftHSMInternal::unlockMutex(CK_VOID_PTR mutex) {
 // Add a new object from the database
 // Returns an index to the object
 
-CK_OBJECT_HANDLE SoftHSMInternal::getObjectFromDB(int keyRef) {
+void SoftHSMInternal::getObjectFromDB(int keyRef) {
   SoftObject *newObject = NULL_PTR;
 
   db->populateObj(newObject, keyRef);
 
   if(newObject != NULL_PTR) {
-    int counter = 0;
-
-    // Find a free spot
-    for(; counter < MAX_OBJECTS; counter++) {
-      if(objects[counter] == NULL_PTR) {
-        break;
-      }
-    }
-
-    if(counter == MAX_OBJECTS) {
-      delete newObject;
-      return 0;
-    }
-
-    objects[counter] = newObject;
-    openObjects++;
-
-    return (counter + 1);
-
-    // TODO: NOTIFY THE SESSIONS TO CREATE THEIR OWN COPY OF THE KEY
+    newObject->nextObject = objects;
+    objects = newObject;
   }
-
-  return 0;
 }
 
 // Get all objects associated with the given PIN
@@ -502,4 +461,24 @@ void SoftHSMInternal::getAllObjects() {
   for(int i = 0; i < objectCount; i++) {
     this->getObjectFromDB(objectRefs[i]);
   }
+}
+
+// Clear all the objects and the session caches
+
+void SoftHSMInternal::clearObjectsAndCaches() {
+  // Clear all the objects
+  if(objects != NULL_PTR) {
+    delete objects;
+  }
+  objects = new SoftObject();
+
+  // Clear the key caches
+  for(int i = 0; i < MAX_SESSION_COUNT; i++) {
+    if(sessions[i] != NULL_PTR) {
+      if(sessions[i]->keyStore != NULL_PTR) {
+        delete sessions[i]->keyStore;
+      }
+      sessions[i]->keyStore = new SoftKeyStore();
+    }
+  }  
 }

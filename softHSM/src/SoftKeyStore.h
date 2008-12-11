@@ -28,8 +28,13 @@
 
 /************************************************************
 *
-* This class handles the key store for each session
-* It creates a chain of object handles.
+* This class handles the key cache for each session
+*
+* A new key is added by prepending a new KeyStore object
+* and making it first in the chain.
+*
+* A more recent cached key is more likely to be used,
+* thus is it better to have it first in the chain.
 *
 ************************************************************/
 
@@ -41,13 +46,12 @@ class SoftKeyStore {
     SoftKeyStore();
     ~SoftKeyStore();
 
-    void addKey(int newIndex, Private_Key *newKey);
     void removeKey(int removeIndex);
-    Private_Key *getKey(int getIndex);
+    Public_Key *getKey(int getIndex);
 
     SoftKeyStore *next;
     int index;
-    Private_Key *botanKey;
+    Public_Key *botanKey;
 };
 
 #endif /* SOFTHSM_SOFTKEYSTORE_H */

@@ -28,7 +28,13 @@
 
 /************************************************************
 *
-* This class handles the key store for each session
+* This class handles the key cache for each session
+*
+* A new key is added by prepending a new KeyStore object
+* and making it first in the chain.
+*
+* A more recent cached key is more likely to be used,
+* thus is it better to have it first in the chain.
 *
 ************************************************************/
 
@@ -49,19 +55,6 @@ SoftKeyStore::~SoftKeyStore() {
   if(botanKey != NULL_PTR) {
     delete botanKey;
     botanKey = NULL_PTR;
-  }
-}
-
-// Add the key if we are the last one in the chain.
-// Or else pass it on the next one.
-
-void SoftKeyStore::addKey(int newIndex, Private_Key *newKey) {
-  if(next == NULL_PTR) {
-    next = new SoftKeyStore();
-    botanKey = newKey;
-    index = newIndex;
-  } else {
-    next->addKey(newIndex, newKey);
   }
 }
 
@@ -97,7 +90,7 @@ void SoftKeyStore::removeKey(int removeIndex) {
 
 // Find the key with a given index
 
-Private_Key *SoftKeyStore::getKey(int getIndex) {
+Public_Key *SoftKeyStore::getKey(int getIndex) {
   if(next != NULL_PTR) {
     if(getIndex == index) {
       return botanKey;

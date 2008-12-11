@@ -136,7 +136,7 @@ int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_P
   int foundLabel = 0, foundID = 0;
 
   // Extract the attributes
-  for(unsigned int i = 0; i < ulPublicKeyAttributeCount; i++) {
+  for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
     switch(pPublicKeyTemplate[i].type) {
       case CKA_LABEL:
         foundLabel = 1;
@@ -229,7 +229,7 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
   int foundLabel = 0, foundID = 0;
 
   // Extract the attributes
-  for(unsigned int i = 0; i < ulPrivateKeyAttributeCount; i++) {
+  for(CK_ULONG i = 0; i < ulPrivateKeyAttributeCount; i++) {
     switch(pPrivateKeyTemplate[i].type) {
       case CKA_LABEL:
         foundLabel = 1;
@@ -320,6 +320,8 @@ void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
   }
 
   keyObject = new SoftObject();
+  keyObject->index = keyRef;
+
 
   BigInt modulus(0);
   BigInt pubExp(0);
@@ -428,7 +430,7 @@ int* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
   int *objectRefs = (int *)malloc(objectCount * sizeof(int));
 
   // Get all the objects
-  string sqlSelect = "SELECT objectID FROM Objects WHERE pin = ? ORDER BY objectID DESC;";
+  string sqlSelect = "SELECT objectID FROM Objects WHERE pin = ? ORDER BY objectID ASC;";
   sqlite3_stmt *select_sql;
   result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
 

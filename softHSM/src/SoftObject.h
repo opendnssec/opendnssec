@@ -31,6 +31,10 @@
 * This class defines an object, which contains
 * a crypto key, private or public.
 *
+* It also points to the next object in the chain.
+*
+* A new object is added by prepending it to the chain.
+*
 ************************************************************/
 
 #ifndef SOFTHSM_SOFTOBJECT_H
@@ -45,13 +49,17 @@ class SoftObject {
     CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
     CK_BBOOL matchAttribute(CK_ATTRIBUTE *attTemplate);
 
+    SoftObject* getObject(int searchIndex);
+    CK_RV deleteObj(int searchIndex);
+    SoftObject *nextObject;
+    int index;
+
     CK_OBJECT_CLASS objectClass;
     CK_KEY_TYPE keyType;
     CK_ULONG keySizeBytes;
 
     Public_Key *key;
 
-  private:
     SoftAttribute *attributes;
 };
 

@@ -31,11 +31,18 @@
 * This class defines an object, which contains
 * a crypto key, private or public.
 *
+* It also points to the next object in the chain.
+*
+* A new object is added by prepending it to the chain.
+*
 ************************************************************/
 
 #include "main.h"
 
 SoftObject::SoftObject() {
+  nextObject = NULL_PTR;
+  index = CK_INVALID_HANDLE;
+
   objectClass = CKO_VENDOR_DEFINED;
   keyType = CKK_VENDOR_DEFINED;
   keySizeBytes = 0;
@@ -53,9 +60,70 @@ SoftObject::~SoftObject() {
     delete key;
     key = NULL_PTR;
   }
+
+  if(nextObject != NULL_PTR) {
+    delete nextObject;
+    nextObject = NULL_PTR;
+  }
 }
 
-// Create an attribute with given data and assign to object
+// Return the object with the given index.
+
+SoftObject* SoftObject::getObject(int searchIndex) {
+  if(nextObject == NULL_PTR) {
+    return NULL_PTR;
+  } else {
+    if(searchIndex == index) {
+      return this;
+    } else {
+      return nextObject->getObject(searchIndex);
+    }
+  }
+}
+
+// Delete the content of the object with given index
+// and replace it with the content of the
+// next object. Thus collapsing this link
+// in the chain.
+
+CK_RV SoftObject::deleteObj(int searchIndex) {
+  if(nextObject == NULL_PTR) {
+    return CKR_OBJECT_HANDLE_INVALID;
+  } else {
+    if(searchIndex == index) {
+      if(attributes != NULL_PTR) {
+        delete attributes;
+      }
+
+      if(key != NULL_PTR) {
+        delete key;
+      }
+
+      // Get the content of the next object
+      attributes = nextObject->attributes;
+      key = nextObject->key;
+      objectClass = nextObject->objectClass;
+      keyType = nextObject->keyType;
+      keySizeBytes = nextObject->keySizeBytes;
+      SoftObject *tmpPtr = nextObject->nextObject;
+
+      // Clear and delete the next container
+      nextObject->attributes = NULL_PTR;
+      nextObject->key = NULL_PTR;
+      nextObject->nextObject = NULL_PTR;
+      delete nextObject;
+
+      // Reconnect with the tail.
+      nextObject = tmpPtr;
+
+      return CKR_OK;
+    } else {
+      return nextObject->deleteObj(searchIndex);
+    }
+  }
+}
+
+// Create an attribute with given data and assign to this object
 
 CK_RV SoftObject::addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
   CK_ATTRIBUTE *oAttribute = (CK_ATTRIBUTE *)malloc(sizeof(CK_ATTRIBUTE));
@@ -80,7 +148,7 @@ CK_RV SoftObject::addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValu
   return CKR_OK;
 }
 
-// Get the attribute value for the object.
+// Get the value of an attribute for this object.
 
 CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
   CK_ATTRIBUTE *localAttribute = attributes->getAttribute(attTemplate->type);
@@ -102,6 +170,8 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
 
   return CKR_OK;
 }
+
+// Does this object have a matching attribute?
 
 CK_BBOOL SoftObject::matchAttribute(CK_ATTRIBUTE *attTemplate) {
   return attributes->matchAttribute(attTemplate);
