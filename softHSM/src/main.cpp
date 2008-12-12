@@ -639,7 +639,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
 
   SoftSession *session = softHSM->getSession(hSession);
 
-  if(session != NULL_PTR) {
+  if(session == NULL_PTR) {
     return CKR_SESSION_HANDLE_INVALID;
   }
 
@@ -1265,7 +1265,7 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-// Generates a key par.
+// Generates a key pair.
 // For now, only RSA is supported.
 
 CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
@@ -1377,6 +1377,8 @@ CK_RV C_CancelFunction(CK_SESSION_HANDLE hSession) {
 CK_RV C_WaitForSlotEvent(CK_FLAGS flags, CK_SLOT_ID_PTR pSlot, CK_VOID_PTR pReserved) {
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
+
+// Generates a RSA key pair with given templates.
 
 CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, CK_ULONG ulPrivateKeyAttributeCount,

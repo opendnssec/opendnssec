@@ -46,6 +46,8 @@ SoftObject::SoftObject() {
   objectClass = CKO_VENDOR_DEFINED;
   keyType = CKK_VENDOR_DEFINED;
   keySizeBytes = 0;
+  sensible = CK_TRUE;
+  extractable = CK_FALSE;
   attributes = new SoftAttribute();
   key = NULL_PTR;
 }
@@ -105,6 +107,8 @@ CK_RV SoftObject::deleteObj(int searchIndex) {
       objectClass = nextObject->objectClass;
       keyType = nextObject->keyType;
       keySizeBytes = nextObject->keySizeBytes;
+      sensible = nextObject->sensible;
+      extractable = nextObject->extractable;
       SoftObject *tmpPtr = nextObject->nextObject;
 
       // Clear and delete the next container
@@ -153,16 +157,37 @@ CK_RV SoftObject::addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValu
 CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
   CK_ATTRIBUTE *localAttribute = attributes->getAttribute(attTemplate->type);
 
+  // Can we reveal this attribute?
+  switch(attTemplate->type) {
+    case CKA_PRIVATE_EXPONENT:
+    case CKA_PRIME_1:
+    case CKA_PRIME_2:
+    case CKA_EXPONENT_1:
+    case CKA_EXPONENT_2:
+    case CKA_COEFFICIENT:
+      if(sensible == CK_TRUE || extractable == CK_FALSE) {
+        attTemplate->ulValueLen = (CK_LONG)-1;
+        return CKR_ATTRIBUTE_SENSITIVE;
+      }
+      break;
+    default:
+      break;
+  }
+
+  // Do we have this attribute?
   if(localAttribute == NULL_PTR) {
     attTemplate->ulValueLen = (CK_LONG)-1;
     return CKR_ATTRIBUTE_TYPE_INVALID;
   }
 
+  // Do the user want the size of the attribute value?
   if(attTemplate->pValue == NULL_PTR) {
     attTemplate->ulValueLen = localAttribute->ulValueLen;
+  // Is the given buffer to small?
   } else if(attTemplate->ulValueLen < localAttribute->ulValueLen) {
     attTemplate->ulValueLen = (CK_LONG)-1;
     return CKR_BUFFER_TOO_SMALL;
+  // Return the attribute
   } else {
     memcpy(attTemplate->pValue, localAttribute->pValue, localAttribute->ulValueLen);
     attTemplate->ulValueLen = localAttribute->ulValueLen;

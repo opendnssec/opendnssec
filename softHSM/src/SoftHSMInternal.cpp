@@ -132,8 +132,15 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
 
   openSessions--;
 
-  // TODO: What if this is the last session?
-  //       Should we change the login state and removes objects?
+  // Last session. Clear objects.
+  if(openSessions == 0) {
+    if(pin != NULL_PTR) {
+      delete pin;
+      pin = NULL_PTR;
+    }
+
+    clearObjectsAndCaches();
+  }
 
   return CKR_OK;
 }
@@ -150,8 +157,12 @@ CK_RV SoftHSMInternal::closeAllSessions() {
 
   openSessions = 0;
 
-  // TODO: We should also remove all objects!
-  //       And change the login state
+  if(pin != NULL_PTR) {
+    delete pin;
+    pin = NULL_PTR;
+  }
+
+  clearObjectsAndCaches();
 
   return CKR_OK;
 }
@@ -171,15 +182,24 @@ CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INF
 
   pInfo->slotID = 1;
 
-  // TODO: FIX THE STATE AND RW INFORMATION
-
   if(pin) {
-    pInfo->state = CKS_RW_USER_FUNCTIONS;
+    if(session->isReadWrite()) {
+      pInfo->state = CKS_RW_USER_FUNCTIONS;
+    } else {
+      pInfo->state = CKS_RO_USER_FUNCTIONS;
+    }
   } else {
-    pInfo->state = CKS_RW_PUBLIC_SESSION;
+    if(session->isReadWrite()) {
+      pInfo->state = CKS_RW_PUBLIC_SESSION;
+    } else {
+      pInfo->state = CKS_RO_PUBLIC_SESSION;
+    }
   }
 
-  pInfo->flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
+  pInfo->flags = CKF_SERIAL_SESSION;
+  if(session->isReadWrite()) {
+    pInfo->flags |= CKF_RW_SESSION;
+  }
   pInfo->ulDeviceError = 0;
 
   return CKR_OK;

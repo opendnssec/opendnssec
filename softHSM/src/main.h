@@ -36,9 +36,6 @@
 // Maximum number of concurrent sessions
 #define MAX_SESSION_COUNT 2048
 
-// Maximum number of objects in SoftHSM
-#define MAX_OBJECTS 2000
-
 // Standard includes
 #include <stdio.h>
 #include <stdlib.h>

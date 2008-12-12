@@ -56,6 +56,8 @@ class SoftObject {
 
     CK_OBJECT_CLASS objectClass;
     CK_KEY_TYPE keyType;
+    CK_BBOOL sensible;
+    CK_BBOOL extractable;
     CK_ULONG keySizeBytes;
 
     Public_Key *key;

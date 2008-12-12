@@ -345,6 +345,12 @@ void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
       case CKA_KEY_TYPE:
         keyObject->keyType = *(CK_KEY_TYPE *)pValue;
         break;
+      case CKA_SENSITIVE:
+        keyObject->sensible = *(CK_BBOOL *)pValue;
+        break;
+      case CKA_EXTRACTABLE:
+        keyObject->extractable = *(CK_BBOOL *)pValue;
+        break;
       case CKA_MODULUS_BITS:
         tmpValue = *(CK_ULONG *)pValue;
         keyObject->keySizeBytes = (tmpValue + 7) / 8;
