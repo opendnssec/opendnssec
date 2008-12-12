@@ -37,6 +37,8 @@
 #ifndef SOFTHSM_MUTEX_H
 #define SOFTHSM_MUTEX_H 1
 
+#include "pkcs11_unix.h"
+
 CK_RV softHSMCreateMutex(CK_VOID_PTR_PTR newMutex);
 CK_RV softHSMDestroyMutex(CK_VOID_PTR mutex);
 CK_RV softHSMLockMutex(CK_VOID_PTR mutex);

@@ -40,6 +40,13 @@
 #ifndef SOFTHSM_SOFTOBJECT_H
 #define SOFTHSM_SOFTOBJECT_H 1
 
+#include "pkcs11_unix.h"
+#include "SoftAttribute.h"
+
+// Includes for the crypto library
+#include <botan/pk_keys.h>
+using namespace Botan;
+
 class SoftObject {
   public:
     SoftObject();

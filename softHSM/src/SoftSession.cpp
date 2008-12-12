@@ -33,7 +33,13 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "SoftSession.h"
+
+// Includes for the crypto library
+#include <botan/if_algo.h>
+#include <botan/rsa.h>
+using namespace Botan;
+
 
 SoftSession::SoftSession(int rwSession) {
   pApplication = NULL_PTR;

@@ -33,7 +33,15 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "file.h"
+
+// Standard includes
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+
+// C POSIX library header
+#include <sys/stat.h>
 
 // Returns the directory where the database is stored.
 // It is stored under the .softHSM directory in the user's

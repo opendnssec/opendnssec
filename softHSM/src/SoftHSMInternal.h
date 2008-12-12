@@ -36,6 +36,12 @@
 #ifndef SOFTHSM_SOFTHSMINTERNAL_H
 #define SOFTHSM_SOFTHSMINTERNAL_H 1
 
+#include "pkcs11_unix.h"
+#include "SoftObject.h"
+#include "SoftDatabase.h"
+#include "SoftSession.h"
+#include "config.h"
+
 class SoftHSMInternal {
   public:
     SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex = NULL_PTR, 

@@ -33,7 +33,19 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "SoftHSMInternal.h"
+
+// Standard includes
+#include <stdlib.h>
+#include <stdio.h>
+#include <string>
+
+// Includes for the crypto library
+#include <botan/pipe.h>
+#include <botan/filters.h>
+#include <botan/hex.h>
+#include <botan/sha2_32.h>
+using namespace Botan;
 
 SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
   CK_DESTROYMUTEX dMutex, CK_LOCKMUTEX lMutex, CK_UNLOCKMUTEX uMutex) {

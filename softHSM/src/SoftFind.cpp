@@ -33,7 +33,7 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "SoftFind.h"
 
 SoftFind::SoftFind() {
   next = NULL_PTR;

@@ -19,4 +19,6 @@
 #define NULL_PTR 0
 #endif
 
+#include "pkcs11.h"
+
 #endif /* SOFTHSM_PKCS11_UNIX_H */

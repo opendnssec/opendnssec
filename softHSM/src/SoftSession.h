@@ -36,6 +36,18 @@
 #ifndef SOFTHSM_SOFTSESSION_H
 #define SOFTHSM_SOFTSESSION_H 1
 
+#include "pkcs11_unix.h"
+#include "SoftFind.h"
+#include "SoftDatabase.h"
+#include "SoftKeyStore.h"
+
+// Includes for the crypto library
+#include <botan/pipe.h>
+#include <botan/pubkey.h>
+#include <botan/pk_keys.h>
+#include <botan/auto_rng.h>
+using namespace Botan;
+
 class SoftSession {
   public:
     SoftSession(int rwSession);

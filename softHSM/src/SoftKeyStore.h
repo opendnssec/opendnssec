@@ -41,6 +41,10 @@
 #ifndef SOFTHSM_SOFTKEYSTORE_H
 #define SOFTHSM_SOFTKEYSTORE_H 1
 
+// Includes for the crypto library
+#include <botan/pk_keys.h>
+using namespace Botan;
+
 class SoftKeyStore {
   public:
     SoftKeyStore();

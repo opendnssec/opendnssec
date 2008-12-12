@@ -37,7 +37,7 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "SoftObject.h"
 
 SoftObject::SoftObject() {
   nextObject = NULL_PTR;

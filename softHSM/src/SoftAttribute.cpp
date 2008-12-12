@@ -33,7 +33,11 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "SoftAttribute.h"
+
+// Standard includes
+#include <stdlib.h>
+#include <string>
 
 SoftAttribute::SoftAttribute() {
   next = NULL_PTR;

@@ -38,7 +38,9 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "SoftKeyStore.h"
+
+#include "pkcs11_unix.h"
 
 SoftKeyStore::SoftKeyStore() {
   next = NULL_PTR;

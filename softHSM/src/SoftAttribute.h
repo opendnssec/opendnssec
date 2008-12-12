@@ -36,6 +36,8 @@
 #ifndef SOFTHSM_SOFTATTRIBUTE_H
 #define SOFTHSM_SOFTATTRIBUTE_H 1
 
+#include "pkcs11_unix.h"
+
 class SoftAttribute {
   public:
     SoftAttribute();

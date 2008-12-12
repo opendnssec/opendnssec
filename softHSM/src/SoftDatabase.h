@@ -35,6 +35,18 @@
 #ifndef SOFTHSM_SOFTDATABASE_H
 #define SOFTHSM_SOFTDATABASE_H 1
 
+#include "pkcs11_unix.h"
+#include "SoftObject.h"
+
+// The SQLite header
+#include <sqlite3.h>
+
+// Includes for the crypto library
+#include <botan/bigint.h>
+#include <botan/rsa.h>
+#include <botan/auto_rng.h>
+using namespace Botan;
+
 class SoftDatabase {
   public:
     SoftDatabase();

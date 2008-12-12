@@ -32,7 +32,14 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "SoftDatabase.h"
+#include "file.h"
+
+// Standard includes
+#include <string>
+#include <sstream>
+using std::stringstream;
+using std::string;
 
 static char sqlCreateTableObjects[] = 
   "CREATE TABLE Objects ("

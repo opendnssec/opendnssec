@@ -36,6 +36,31 @@
 ************************************************************/
 
 #include "main.h"
+#include "SoftHSMInternal.h"
+#include "mutex.h"
+
+// Standard includes
+#include <stdio.h>
+#include <stdlib.h>
+
+// C POSIX library header
+#include <sys/time.h>
+
+// Includes for the crypto library
+#include <botan/init.h>
+#include <botan/md5.h>
+#include <botan/rmd160.h>
+#include <botan/sha160.h>
+#include <botan/sha2_32.h>
+#include <botan/sha2_64.h>
+#include <botan/filters.h>
+#include <botan/pipe.h>
+#include <botan/emsa3.h>
+#include <botan/pk_keys.h>
+#include <botan/bigint.h>
+#include <botan/rsa.h>
+using namespace Botan;
+
 
 // Initialize the Botan library
 static Botan::LibraryInitializer *botanInit = new LibraryInitializer("thread_safe=true");

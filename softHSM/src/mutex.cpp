@@ -34,7 +34,13 @@
 *
 ************************************************************/
 
-#include "main.h"
+#include "mutex.h"
+
+// Standard includes
+#include <stdlib.h>
+
+// C POSIX library header
+#include <pthread.h>
 
 // Internal representation of CK_CREATEMUTEX
 
