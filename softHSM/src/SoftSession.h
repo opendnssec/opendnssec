@@ -64,19 +64,19 @@ class SoftSession {
 
     // Digest
     Pipe *digestPipe;
-    unsigned int digestSize;
+    CK_ULONG digestSize;
     bool digestInitialized;
 
     // Sign
     PK_Signer *pkSigner;
     bool signSinglePart;
-    unsigned int signSize;
+    CK_ULONG signSize;
     bool signInitialized;
 
     // Verify
     PK_Verifier *pkVerifier;
     bool verifySinglePart;
-    unsigned int verifySize;
+    CK_ULONG verifySize;
     bool verifyInitialized;
 
     // Key store

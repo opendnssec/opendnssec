@@ -193,14 +193,8 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
                                     args->UnlockMutex);
     }
   } else {
-    // Should be the line below, but hsm-speed uses multithreading
-    // and do not want use to use mutexes
-    // softHSM = new SoftHSMInternal(false);
-    softHSM = new SoftHSMInternal(true,
-                                  softHSMCreateMutex,
-                                  softHSMDestroyMutex,
-                                  softHSMLockMutex,
-                                  softHSMUnlockMutex);
+    // No concurrent access by multiple threads
+    softHSM = new SoftHSMInternal(false);
   }
 
   return CKR_OK;
@@ -578,7 +572,7 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, C
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
-  unsigned int i = 0;
+  CK_ULONG i = 0;
 
   while(i < ulMaxObjectCount && session->findCurrent->next != NULL_PTR) {
     phObject[i] = session->findCurrent->findObject;
@@ -672,7 +666,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
     return CKR_OPERATION_ACTIVE;
   }
 
-  unsigned int mechSize = 0;
+  CK_ULONG mechSize = 0;
   HashFunction *hashFunc = NULL_PTR;
 
   // Selects the correct hash algorithm.
