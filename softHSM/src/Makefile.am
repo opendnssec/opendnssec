@@ -11,7 +11,7 @@ libsofthsm_la_SOURCES = 	main.cpp \
 				SoftAttribute.cpp \
 				SoftDatabase.cpp \
 				SoftKeyStore.cpp
-libsofthsm_la_LDFLAGS = 	-L@BOTANDIR@ -R@BOTANDIR@ -lbotan \
+libsofthsm_la_LDFLAGS =		-L@BOTANDIR@ -R@BOTANDIR@ -lbotan \
 				-L@SQLITEDIR@ -R@SQLITEDIR@ -lsqlite3 \
 			 	-version-info @VERSION_INFO@
 libsofthsm_la_CPPFLAGS = -I. -I/usr/local/include
