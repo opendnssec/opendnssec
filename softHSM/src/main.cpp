@@ -1403,17 +1403,17 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, CK_ULONG ulPrivateKeyAttributeCount,
       CK_OBJECT_HANDLE_PTR phPublicKey, CK_OBJECT_HANDLE_PTR phPrivateKey) {
 
-  u32bit *modulusBits = NULL_PTR;
+  CK_ULONG *modulusBits = NULL_PTR;
   BigInt *exponent = NULL_PTR;
 
   // Extract desired key information
   for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
     switch(pPublicKeyTemplate[i].type) {
       case CKA_MODULUS_BITS:
-        if(pPublicKeyTemplate[i].ulValueLen != 4) {
+        if(pPublicKeyTemplate[i].ulValueLen != sizeof(CK_ULONG)) {
           return CKR_TEMPLATE_INCONSISTENT;
         }
-        modulusBits = (u32bit*)pPublicKeyTemplate[i].pValue;
+        modulusBits = (CK_ULONG*)pPublicKeyTemplate[i].pValue;
         break;
       case CKA_PUBLIC_EXPONENT:
         exponent = new Botan::BigInt((Botan::byte*)pPublicKeyTemplate[i].pValue,pPublicKeyTemplate[i].ulValueLen);
@@ -1434,7 +1434,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   }
 
   // Generate the key
-  RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*session->rng, *modulusBits, exponent->to_u32bit());
+  RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*session->rng, (u32bit)*modulusBits, exponent->to_u32bit());
 
   // Default label/ID if nothing is specified by the user.
   char *labelID = getNewLabelAndID();

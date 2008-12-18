@@ -473,9 +473,7 @@ CK_RV SoftHSMInternal::unlockMutex(CK_VOID_PTR mutex) {
 // Returns an index to the object
 
 void SoftHSMInternal::getObjectFromDB(int keyRef) {
-  SoftObject *newObject = NULL_PTR;
-
-  db->populateObj(newObject, keyRef);
+  SoftObject *newObject = db->populateObj(keyRef);
 
   if(newObject != NULL_PTR) {
     newObject->nextObject = objects;

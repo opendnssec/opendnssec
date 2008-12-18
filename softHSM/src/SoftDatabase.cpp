@@ -35,6 +35,10 @@
 #include "SoftDatabase.h"
 #include "file.h"
 
+// Includes for the crypto library
+#include <botan/auto_rng.h>
+using namespace Botan;
+
 // Standard includes
 #include <string>
 #include <sstream>
@@ -314,7 +318,7 @@ void SoftDatabase::saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, Big
 
 // Creates an object an populate it with attributes from the database.
 
-void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
+SoftObject* SoftDatabase::populateObj(int keyRef) {
   stringstream sqlQuery;
   sqlQuery << "SELECT type,value,length from Attributes WHERE objectID = " << keyRef << ";";
 
@@ -323,18 +327,17 @@ void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
   int result = sqlite3_prepare(db, sqlQueryStr.c_str(), sqlQueryStr.size(), &select_sql, NULL);
 
   if(result) {
-    return;
+    return NULL_PTR;
   }
 
-  keyObject = new SoftObject();
+  SoftObject* keyObject = new SoftObject();
   keyObject->index = keyRef;
 
-
-  BigInt modulus(0);
-  BigInt pubExp(0);
-  BigInt privExp(0);
-  BigInt prime1(0);
-  BigInt prime2(0);
+  BigInt *modulus = NULL_PTR;
+  BigInt *pubExp = NULL_PTR;
+  BigInt *privExp = NULL_PTR;
+  BigInt *prime1 = NULL_PTR;
+  BigInt *prime2 = NULL_PTR;
   CK_ULONG tmpValue;
 
   // Add all attributes
@@ -363,42 +366,50 @@ void SoftDatabase::populateObj(SoftObject *&keyObject, int keyRef) {
         keyObject->keySizeBytes = (tmpValue + 7) / 8;
         break;
       case CKA_MODULUS:
-        modulus.binary_decode((byte *)pValue, length);
+        modulus = new BigInt((byte *)pValue, length);
         break;
       case CKA_PUBLIC_EXPONENT:
-        pubExp.binary_decode((byte *)pValue, length);
+        pubExp = new BigInt((byte *)pValue, length);
         break;
       case CKA_PRIVATE_EXPONENT:
-        privExp.binary_decode((byte *)pValue, length);
+        privExp = new BigInt((byte *)pValue, length);
         break;
       case CKA_PRIME_1:
-        prime1.binary_decode((byte *)pValue, length);
+        prime1 = new BigInt((byte *)pValue, length);
         break;
       case CKA_PRIME_2:
-        prime2.binary_decode((byte *)pValue, length);
+        prime2 = new BigInt((byte *)pValue, length);
         break;
     }
   }
 
   sqlite3_finalize(select_sql);
 
+  // Create a public RSA key
   if(keyObject->objectClass == CKO_PUBLIC_KEY && keyObject->keyType == CKK_RSA) {
-    if(modulus.is_zero() || pubExp.is_zero()) {
+    if(modulus == NULL_PTR || pubExp == NULL_PTR) {
       delete keyObject;
-      keyObject = NULL_PTR;
+      return NULL_PTR;
+    } else {
+      keyObject->key = new RSA_PublicKey(*modulus, *pubExp);
+      return keyObject;
     }
-    keyObject->key = new RSA_PublicKey(modulus, pubExp);
   }
-  if(keyObject->objectClass == CKO_PRIVATE_KEY && keyObject->keyType == CKK_RSA) {
-    if(prime1.is_zero() || prime2.is_zero() || pubExp.is_zero() || 
-       privExp.is_zero() || modulus.is_zero()) {
-      delete keyObject;
-      keyObject = NULL_PTR;
-    }
 
-    AutoSeeded_RNG *rng = new AutoSeeded_RNG();
-    keyObject->key = new RSA_PrivateKey(*rng, prime1, prime2, pubExp, privExp, modulus);
+  // Create a private RSA key
+  if(keyObject->objectClass == CKO_PRIVATE_KEY && keyObject->keyType == CKK_RSA) {
+    if(prime1 == NULL_PTR || prime2 == NULL_PTR || pubExp == NULL_PTR || 
+       privExp == NULL_PTR || modulus == NULL_PTR) {
+      delete keyObject;
+      return NULL_PTR;
+    } else {
+      AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+      keyObject->key = new RSA_PrivateKey(*rng, *prime1, *prime2, *pubExp, *privExp, *modulus);
+      return keyObject;
+    }
   }
+
+  return NULL_PTR;
 }
 
 // Delete an object and its attributes, if the PIN is correct.

@@ -44,7 +44,6 @@
 // Includes for the crypto library
 #include <botan/bigint.h>
 #include <botan/rsa.h>
-#include <botan/auto_rng.h>
 using namespace Botan;
 
 class SoftDatabase {
@@ -52,7 +51,7 @@ class SoftDatabase {
     SoftDatabase();
     ~SoftDatabase();
 
-    void populateObj(SoftObject *&keyObject, int keyRef);
+    SoftObject* populateObj(int keyRef);
     int* getObjectRefs(char *pin, int &objectCount);
 
     int addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
