@@ -214,28 +214,28 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
 
   // The RSA modulus bits
   IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
-  BigInt bigNumber = ifKeyPriv->get_n();
-  CK_ULONG bits = bigNumber.bits();
+  BigInt bigMod = ifKeyPriv->get_n();
+  CK_ULONG bits = bigMod.bits();
   this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits));
 
   // The RSA modulus
-  this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigNumber);
+  this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigMod);
 
   // The RSA public exponent
-  bigNumber = ifKeyPriv->get_e();
-  this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigNumber);
+  BigInt bigExp = ifKeyPriv->get_e();
+  this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExp);
 
   // The RSA private exponent
-  bigNumber = ifKeyPriv->get_d();
-  this->saveAttributeBigInt(objectID, CKA_PRIVATE_EXPONENT, &bigNumber);
+  BigInt bigPrivExp = ifKeyPriv->get_d();
+  this->saveAttributeBigInt(objectID, CKA_PRIVATE_EXPONENT, &bigPrivExp);
 
   // The RSA prime p
-  bigNumber = ifKeyPriv->get_p();
-  this->saveAttributeBigInt(objectID, CKA_PRIME_1, &bigNumber);
+  BigInt bigPrime1 = ifKeyPriv->get_p();
+  this->saveAttributeBigInt(objectID, CKA_PRIME_1, &bigPrime1);
 
   // The RSA prime q
-  bigNumber = ifKeyPriv->get_q();
-  this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigNumber);
+  BigInt bigPrime2 = ifKeyPriv->get_q();
+  this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigPrime2);
 
   int foundLabel = 0, foundID = 0;
 

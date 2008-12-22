@@ -62,9 +62,6 @@
 using namespace Botan;
 
 
-// Initialize the Botan library
-// static Botan::LibraryInitializer *botanInit = new LibraryInitializer("thread_safe=true");
-
 // Keeps the internal state
 static SoftHSMInternal *softHSM = NULL_PTR;
 
@@ -218,7 +215,6 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
     softHSM = NULL_PTR;
   }
 
-  // Should we finalize the Botan library?
   // Deinitialize the Botan crypto lib
   LibraryInitializer::deinitialize();
 
@@ -1421,7 +1417,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
         modulusBits = (CK_ULONG*)pPublicKeyTemplate[i].pValue;
         break;
       case CKA_PUBLIC_EXPONENT:
-        exponent = new Botan::BigInt((Botan::byte*)pPublicKeyTemplate[i].pValue,pPublicKeyTemplate[i].ulValueLen);
+        exponent = new Botan::BigInt((byte*)pPublicKeyTemplate[i].pValue,(u32bit)pPublicKeyTemplate[i].ulValueLen);
         break;
       default:
         break;
