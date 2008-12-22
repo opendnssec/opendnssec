@@ -63,7 +63,7 @@ using namespace Botan;
 
 
 // Initialize the Botan library
-static Botan::LibraryInitializer *botanInit = new LibraryInitializer("thread_safe=true");
+// static Botan::LibraryInitializer *botanInit = new LibraryInitializer("thread_safe=true");
 
 // Keeps the internal state
 static SoftHSMInternal *softHSM = NULL_PTR;
@@ -197,6 +197,9 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
     softHSM = new SoftHSMInternal(false);
   }
 
+  // Init the Botan crypto library
+  LibraryInitializer::initialize("");
+
   return CKR_OK;
 }
 
@@ -216,6 +219,8 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
   }
 
   // Should we finalize the Botan library?
+  // Deinitialize the Botan crypto lib
+  LibraryInitializer::deinitialize();
 
   return CKR_OK;
 }

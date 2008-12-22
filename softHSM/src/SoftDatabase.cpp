@@ -307,8 +307,8 @@ void SoftDatabase::saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_P
 // Convert the big integer and save it in the database.
 
 void SoftDatabase::saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber) {
-  unsigned int size = bigNumber->bytes();
-  char *buf = (char *)malloc(size);
+  CK_ULONG size = bigNumber->bytes();
+  CK_VOID_PTR buf = (CK_VOID_PTR)malloc(size);
   
   bigNumber->binary_encode((byte *)buf);
 
@@ -344,7 +344,7 @@ SoftObject* SoftDatabase::populateObj(int keyRef) {
   while(sqlite3_step(select_sql) == SQLITE_ROW) {
     CK_ATTRIBUTE_TYPE type = sqlite3_column_int(select_sql, 0);
     CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_sql, 1);
-    int length = sqlite3_column_int(select_sql, 2);
+    CK_ULONG length = sqlite3_column_int(select_sql, 2);
 
     keyObject->addAttributeFromData(type, pValue, length);
 
@@ -366,19 +366,19 @@ SoftObject* SoftDatabase::populateObj(int keyRef) {
         keyObject->keySizeBytes = (tmpValue + 7) / 8;
         break;
       case CKA_MODULUS:
-        modulus = new BigInt((byte *)pValue, length);
+        modulus = new BigInt((byte *)pValue, (u32bit)length);
         break;
       case CKA_PUBLIC_EXPONENT:
-        pubExp = new BigInt((byte *)pValue, length);
+        pubExp = new BigInt((byte *)pValue, (u32bit)length);
         break;
       case CKA_PRIVATE_EXPONENT:
-        privExp = new BigInt((byte *)pValue, length);
+        privExp = new BigInt((byte *)pValue, (u32bit)length);
         break;
       case CKA_PRIME_1:
-        prime1 = new BigInt((byte *)pValue, length);
+        prime1 = new BigInt((byte *)pValue, (u32bit)length);
         break;
       case CKA_PRIME_2:
-        prime2 = new BigInt((byte *)pValue, length);
+        prime2 = new BigInt((byte *)pValue, (u32bit)length);
         break;
     }
   }
@@ -404,7 +404,13 @@ SoftObject* SoftDatabase::populateObj(int keyRef) {
       return NULL_PTR;
     } else {
       AutoSeeded_RNG *rng = new AutoSeeded_RNG();
-      keyObject->key = new RSA_PrivateKey(*rng, *prime1, *prime2, *pubExp, *privExp, *modulus);
+      try {
+        keyObject->key = new RSA_PrivateKey(*rng, *prime1, *prime2, *pubExp, *privExp, *modulus);
+      }
+      catch (Botan::Exception& e) {
+        printf("Error: %s\n", e.what());
+      }
+
       return keyObject;
     }
   }

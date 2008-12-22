@@ -39,9 +39,17 @@
 
 #include "pkcs11_unix.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 CK_RV softHSMCreateMutex(CK_VOID_PTR_PTR newMutex);
 CK_RV softHSMDestroyMutex(CK_VOID_PTR mutex);
 CK_RV softHSMLockMutex(CK_VOID_PTR mutex);
 CK_RV softHSMUnlockMutex(CK_VOID_PTR mutex);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SOFTHSM_MUTEX_H */
