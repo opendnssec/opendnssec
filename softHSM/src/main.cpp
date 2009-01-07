@@ -194,8 +194,8 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
     softHSM = new SoftHSMInternal(false);
   }
 
-  // Init the Botan crypto library
-  LibraryInitializer::initialize("");
+  // Init the Botan crypto library 
+  LibraryInitializer::initialize("thread_safe=true");
 
   return CKR_OK;
 }

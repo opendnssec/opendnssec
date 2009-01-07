@@ -135,7 +135,7 @@ Public_Key* SoftSession::getKey(SoftObject *object) {
       if(object->objectClass == CKO_PRIVATE_KEY) {
         IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(object->key);
         tmpKey = new RSA_PrivateKey(*rng, ifKeyPriv->get_p(),
-           ifKeyPriv->get_q(), ifKeyPriv->get_e(), ifKeyPriv->get_d(), ifKeyPriv->get_n());
+          ifKeyPriv->get_q(), ifKeyPriv->get_e(), ifKeyPriv->get_d(), ifKeyPriv->get_n());
       } else {
         IF_Scheme_PublicKey *ifKeyPub = dynamic_cast<IF_Scheme_PublicKey*>(object->key);
         tmpKey = new RSA_PublicKey(ifKeyPub->get_n(), ifKeyPub->get_e());
