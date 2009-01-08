@@ -46,6 +46,8 @@
 #include <botan/rsa.h>
 using namespace Botan;
 
+class SoftObject;
+
 class SoftDatabase {
   public:
     SoftDatabase();
@@ -60,10 +62,10 @@ class SoftDatabase {
       CK_ULONG ulPrivateKeyAttributeCount, char *labelID);
     void deleteObject(char *pin, int objRef);
 
-  private:
     void saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
     void saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber);
 
+  private:
     sqlite3 *db;
 };
 

@@ -284,24 +284,61 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
 }
 
 // Save the attribute in the database.
+// Only update if the attribute exists.
 
 void SoftDatabase::saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
-  string sqlInsert = "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
+  string sqlFind = "SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
 
-  sqlite3_stmt *insert_sql;
-  int result = sqlite3_prepare_v2(db, sqlInsert.c_str(), sqlInsert.size(), &insert_sql, NULL);
+  sqlite3_stmt *find_sql;
+  int result = sqlite3_prepare_v2(db, sqlFind.c_str(), sqlFind.size(), &find_sql, NULL);
 
   if(result) {
     return;
   }
 
-  sqlite3_bind_int(insert_sql, 1, objectID);
-  sqlite3_bind_int(insert_sql, 2, type);
-  sqlite3_bind_blob(insert_sql, 3, pValue, ulValueLen, SQLITE_TRANSIENT);
-  sqlite3_bind_int(insert_sql, 4, ulValueLen);
+  sqlite3_bind_int(find_sql, 1, objectID);
+  sqlite3_bind_int(find_sql, 2, type);
 
-  sqlite3_step(insert_sql);
-  sqlite3_finalize(insert_sql);
+  // The object have this attribute
+  if(sqlite3_step(find_sql) == SQLITE_ROW) {
+    int attributeID = sqlite3_column_int(find_sql, 0);
+
+    string sqlUpdate = "UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
+
+    sqlite3_stmt *update_sql;
+    result = sqlite3_prepare_v2(db, sqlUpdate.c_str(), sqlUpdate.size(), &update_sql, NULL);
+
+    if(result) {
+      return;
+    }
+
+    sqlite3_bind_blob(update_sql, 1, pValue, ulValueLen, SQLITE_TRANSIENT);
+    sqlite3_bind_int(update_sql, 2, ulValueLen);
+    sqlite3_bind_int(update_sql, 3, attributeID);
+
+    sqlite3_step(update_sql);
+    sqlite3_finalize(update_sql);
+  // The object does not have this attribute
+  } else {
+    string sqlInsert = "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
+
+    sqlite3_stmt *insert_sql;
+    result = sqlite3_prepare_v2(db, sqlInsert.c_str(), sqlInsert.size(), &insert_sql, NULL);
+
+    if(result) {
+      return;
+    }
+
+    sqlite3_bind_int(insert_sql, 1, objectID);
+    sqlite3_bind_int(insert_sql, 2, type);
+    sqlite3_bind_blob(insert_sql, 3, pValue, ulValueLen, SQLITE_TRANSIENT);
+    sqlite3_bind_int(insert_sql, 4, ulValueLen);
+
+    sqlite3_step(insert_sql);
+    sqlite3_finalize(insert_sql);
+  }
+
+  sqlite3_finalize(find_sql);
 }
 
 // Convert the big integer and save it in the database.
@@ -360,6 +397,9 @@ SoftObject* SoftDatabase::populateObj(int keyRef) {
         break;
       case CKA_EXTRACTABLE:
         keyObject->extractable = *(CK_BBOOL *)pValue;
+        break;
+      case CKA_MODIFIABLE:
+        keyObject->modifiable = *(CK_BBOOL *)pValue;
         break;
       case CKA_MODULUS_BITS:
         tmpValue = *(CK_ULONG *)pValue;

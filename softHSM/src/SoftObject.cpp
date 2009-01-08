@@ -38,6 +38,7 @@
 ************************************************************/
 
 #include "SoftObject.h"
+#include "SoftDatabase.h"
 
 SoftObject::SoftObject() {
   nextObject = NULL_PTR;
@@ -48,6 +49,7 @@ SoftObject::SoftObject() {
   keySizeBytes = 0;
   sensible = CK_TRUE;
   extractable = CK_FALSE;
+  modifiable = CK_FALSE;
   attributes = new SoftAttribute();
   key = NULL_PTR;
 }
@@ -109,6 +111,7 @@ CK_RV SoftObject::deleteObj(int searchIndex) {
       keySizeBytes = nextObject->keySizeBytes;
       sensible = nextObject->sensible;
       extractable = nextObject->extractable;
+      modifiable = nextObject->modifiable;
       SoftObject *tmpPtr = nextObject->nextObject;
 
       // Clear and delete the next container
@@ -192,6 +195,154 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
     memcpy(attTemplate->pValue, localAttribute->pValue, localAttribute->ulValueLen);
     attTemplate->ulValueLen = localAttribute->ulValueLen;
   }
+
+  return CKR_OK;
+}
+
+// Set the value of an attribute for this object.
+// This function also performes a sanity check of the template
+
+CK_RV SoftObject::setAttribute(CK_ATTRIBUTE *attTemplate, SoftDatabase *db) {
+  // Can we modify the object?
+  if(modifiable == CK_FALSE) {
+    return CKR_ATTRIBUTE_READ_ONLY;
+  }
+
+  // Evaluate the template
+  switch(attTemplate->type) {
+    case CKA_CLASS:
+    case CKA_TOKEN:
+    case CKA_PRIVATE:
+    case CKA_MODIFIABLE:
+    case CKA_KEY_TYPE:
+    case CKA_LOCAL:
+    case CKA_KEY_GEN_MECHANISM:
+      // We can not change this attribute
+      return CKR_ATTRIBUTE_READ_ONLY;
+    case CKA_LABEL:
+    case CKA_ID:
+    case CKA_SUBJECT:
+      // We can change
+      break;
+    case CKA_DERIVE:
+      // We can change, but check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKA_ENCRYPT:
+    case CKA_VERIFY:
+    case CKA_VERIFY_RECOVER:
+    case CKA_WRAP:
+      // We can change this for the public key
+      // but invalid for other object classes
+      if(objectClass != CKO_PUBLIC_KEY) {
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+      }
+      // Check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKA_TRUSTED:
+      // We can not set this for the public key
+      if(objectClass == CKO_PUBLIC_KEY) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other object classes
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_DECRYPT:
+    case CKA_SIGN:
+    case CKA_SIGN_RECOVER:
+    case CKA_UNWRAP:
+      // We can change this for the private key
+      // but invalid for other object classes
+      if(objectClass != CKO_PRIVATE_KEY) {
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+      }
+      // Check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKA_ALWAYS_SENSITIVE:
+    case CKA_NEVER_EXTRACTABLE:
+    case CKA_ALWAYS_AUTHENTICATE:
+    case CKA_WRAP_WITH_TRUSTED:
+      // We can not set this for the private key
+      if(objectClass == CKO_PRIVATE_KEY) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other object classes
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_SENSITIVE:
+      // Attribute cannot be changed once set to CK_TRUE.
+      if(sensible == CK_TRUE) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      // The object has been non-sensitive
+      addAttributeFromData(CKA_ALWAYS_SENSITIVE, &sensible, sizeof(sensible));
+      // Save in database
+      db->saveAttribute(index, CKA_ALWAYS_SENSITIVE, &sensible, sizeof(sensible));
+      // Update internal variable
+      sensible = *(CK_BBOOL*)attTemplate->pValue;
+      break;
+    case CKA_EXTRACTABLE:
+      // Attribute cannot be changed once set to CK_FALSE.
+      if(extractable == CK_FALSE) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      // The object has be extractable
+      addAttributeFromData(CKA_NEVER_EXTRACTABLE, &extractable, sizeof(extractable));
+      // Save in database
+      db->saveAttribute(index, CKA_NEVER_EXTRACTABLE, &extractable, sizeof(extractable));
+      // Update internal variable
+      extractable = *(CK_BBOOL*)attTemplate->pValue;
+      break;
+    case CKA_MODULUS_BITS:
+      // We can not set this for the public rsa key
+      if(objectClass == CKO_PUBLIC_KEY && keyType == CKK_RSA) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other object classes
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_PUBLIC_EXPONENT:
+    case CKA_MODULUS:
+      // We can not set this for the RSA key
+      if(keyType == CKK_RSA) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other objects
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_PRIVATE_EXPONENT:
+    case CKA_PRIME_1:
+    case CKA_PRIME_2:
+    case CKA_EXPONENT_1:
+    case CKA_EXPONENT_2:
+    case CKA_COEFFICIENT:
+      // We can not set this for the private RSA key
+      if(objectClass == CKO_PRIVATE_KEY && keyType == CKK_RSA) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other objects
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    default:
+      // Invalid attribute
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+  }
+
+  // Save/update the object attribute
+  addAttributeFromData(attTemplate->type, attTemplate->pValue, attTemplate->ulValueLen);
+  // Save/update in the database
+  db->saveAttribute(index, attTemplate->type, attTemplate->pValue, attTemplate->ulValueLen);
 
   return CKR_OK;
 }

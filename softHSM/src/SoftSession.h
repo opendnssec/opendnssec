@@ -48,6 +48,10 @@
 #include <botan/auto_rng.h>
 using namespace Botan;
 
+class SoftFind;
+class SoftDatabase;
+class SoftKeyStore;
+
 class SoftSession {
   public:
     SoftSession(int rwSession);

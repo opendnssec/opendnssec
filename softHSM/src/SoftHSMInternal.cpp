@@ -353,6 +353,39 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   return result;
 }
 
+// Set the attributes according to the template.
+
+CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  SoftSession *session = getSession(hSession);
+
+  if(session == NULL_PTR) {
+    return CKR_SESSION_HANDLE_INVALID;
+  }
+
+  SoftObject *object = objects->getObject(hObject);
+
+  if(object == NULL_PTR) {
+    return CKR_OBJECT_HANDLE_INVALID;
+  }
+
+  if(!session->isReadWrite()) {
+    return CKR_SESSION_READ_ONLY;
+  }
+
+  CK_RV result = CKR_OK;
+  CK_RV objectResult = CKR_OK;
+
+  // Loop through all the attributes in the template
+  for(CK_ULONG i = 0; i < ulCount; i++) {
+    objectResult = object->setAttribute(&pTemplate[i], session->db);
+    if(objectResult != CKR_OK) {
+      result = objectResult;
+    }
+  }
+
+  return result;
+}
+
 // Initialize the search for objects.
 // The template specifies the search pattern.
 

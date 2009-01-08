@@ -37,10 +37,16 @@
 #define SOFTHSM_SOFTHSMINTERNAL_H 1
 
 #include "pkcs11_unix.h"
+#include "SoftFind.h"
 #include "SoftObject.h"
 #include "SoftDatabase.h"
 #include "SoftSession.h"
 #include "config.h"
+
+class SoftFind;
+class SoftObject;
+class SoftDatabase;
+class SoftSession;
 
 class SoftHSMInternal {
   public:
@@ -70,6 +76,8 @@ class SoftHSMInternal {
     SoftObject* getObject(CK_OBJECT_HANDLE hObject);
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
     CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
+      CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
+    CK_RV setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
       CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
     CK_RV findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
       CK_ULONG ulCount);

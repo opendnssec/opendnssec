@@ -42,6 +42,11 @@
 
 #include "pkcs11_unix.h"
 #include "SoftAttribute.h"
+#include "SoftObject.h"
+
+class SoftAttribute;
+class SoftDatabase;
+class SoftObject;
 
 // Includes for the crypto library
 #include <botan/pk_keys.h>
@@ -54,6 +59,7 @@ class SoftObject {
 
     CK_RV addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
     CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
+    CK_RV setAttribute(CK_ATTRIBUTE *attTemplate, SoftDatabase *db);
     CK_BBOOL matchAttribute(CK_ATTRIBUTE *attTemplate);
 
     SoftObject* getObject(int searchIndex);
@@ -65,6 +71,7 @@ class SoftObject {
     CK_KEY_TYPE keyType;
     CK_BBOOL sensible;
     CK_BBOOL extractable;
+    CK_BBOOL modifiable;
     CK_ULONG keySizeBytes;
 
     Public_Key *key;

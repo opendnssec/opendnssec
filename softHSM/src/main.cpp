@@ -38,6 +38,7 @@
 #include "main.h"
 #include "SoftHSMInternal.h"
 #include "mutex.h"
+#include "config.h"
 
 // Standard includes
 #include <stdio.h>
@@ -60,7 +61,6 @@
 #include <botan/bigint.h>
 #include <botan/rsa.h>
 using namespace Botan;
-
 
 // Keeps the internal state
 static SoftHSMInternal *softHSM = NULL_PTR;
@@ -542,7 +542,11 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
 }
 
 CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  if(softHSM == NULL_PTR) {
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  return softHSM->setAttributeValue(hSession, hObject, pTemplate, ulCount);
 }
 
 // Initialize the search for objects.

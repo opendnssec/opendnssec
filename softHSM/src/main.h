@@ -30,7 +30,8 @@
 #define SOFTHSM_MAIN_H 1
 
 #include "pkcs11_unix.h"
-#include "SoftSession.h"
+
+class SoftSession;
 
 CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, CK_ULONG ulPrivateKeyAttributeCount,

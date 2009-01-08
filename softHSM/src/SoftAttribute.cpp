@@ -59,13 +59,26 @@ SoftAttribute::~SoftAttribute() {
   }
 }
 
-// Add the attribute if we are the last one in the chain.
-// Or else pass it on the next one.
+// Add or update the attribute.
+// If the attribute does not exist in the object, then add it last in the chain.
 
 void SoftAttribute::addAttribute(CK_ATTRIBUTE *oAttribute) {
+  // Add it, we are the last one in the chain.
   if(next == NULL_PTR) {
     objectAttribute = oAttribute;
     next = new SoftAttribute();
+  // Update if the attribute type matches
+  } else if(objectAttribute != NULL_PTR &&
+          oAttribute != NULL_PTR &&
+          objectAttribute->type == oAttribute->type) {
+    // Free the old attribute
+    if(objectAttribute->pValue != NULL_PTR) {
+      free(objectAttribute->pValue);
+      objectAttribute->pValue = NULL_PTR;
+    }
+    free(objectAttribute);
+    objectAttribute = oAttribute;
+  // If we are not last in the chain, pass it to the next one.
   } else {
     next->addAttribute(oAttribute);
   }
