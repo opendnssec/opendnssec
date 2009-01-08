@@ -64,6 +64,7 @@ class SoftObject {
 
     SoftObject* getObject(int searchIndex);
     CK_RV deleteObj(int searchIndex);
+
     SoftObject *nextObject;
     int index;
 

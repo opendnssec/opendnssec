@@ -106,6 +106,7 @@ CK_RV SoftObject::deleteObj(int searchIndex) {
       // Get the content of the next object
       attributes = nextObject->attributes;
       key = nextObject->key;
+      index = nextObject->index;
       objectClass = nextObject->objectClass;
       keyType = nextObject->keyType;
       keySizeBytes = nextObject->keySizeBytes;
