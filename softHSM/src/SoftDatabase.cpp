@@ -157,17 +157,21 @@ int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_P
         foundID = 1;
         this->saveAttribute(objectID, CKA_ID, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
         break;
+      case CKA_SUBJECT:
+        this->saveAttribute(objectID, CKA_SUBJECT, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
+        break;
       case CKA_DERIVE:
       case CKA_TOKEN:
       case CKA_PRIVATE:
       case CKA_MODIFIABLE:
-      case CKA_SUBJECT:
       case CKA_ENCRYPT:
       case CKA_VERIFY:
       case CKA_VERIFY_RECOVER:
       case CKA_WRAP:
       case CKA_TRUSTED:
-        this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
+        if(pPublicKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
+        }
         break;
       default:
         break;
@@ -238,6 +242,7 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
   this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigPrime2);
 
   int foundLabel = 0, foundID = 0;
+  CK_BBOOL bolVal;
 
   // Extract the attributes
   for(CK_ULONG i = 0; i < ulPrivateKeyAttributeCount; i++) {
@@ -250,22 +255,39 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
         foundID = 1;
         this->saveAttribute(objectID, CKA_ID, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
         break;
+      case CKA_SUBJECT:
+        this->saveAttribute(objectID, CKA_SUBJECT, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+        break;
       case CKA_DERIVE:
       case CKA_TOKEN:
       case CKA_PRIVATE:
       case CKA_MODIFIABLE:
-      case CKA_SUBJECT:
-      case CKA_SENSITIVE:
       case CKA_DECRYPT:
       case CKA_SIGN:
       case CKA_SIGN_RECOVER:
       case CKA_UNWRAP:
-      case CKA_EXTRACTABLE:
-      case CKA_ALWAYS_SENSITIVE:
-      case CKA_NEVER_EXTRACTABLE:
       case CKA_WRAP_WITH_TRUSTED:
       case CKA_ALWAYS_AUTHENTICATE:
-        this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+        }
+        break;
+      case CKA_SENSITIVE:
+        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          this->saveAttribute(objectID, CKA_SENSITIVE, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+          this->saveAttribute(objectID, CKA_ALWAYS_SENSITIVE, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+        }
+        break;
+      case CKA_EXTRACTABLE:
+        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          this->saveAttribute(objectID, CKA_EXTRACTABLE, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+          if(*(CK_BBOOL*)pPrivateKeyTemplate[i].pValue == CK_FALSE) {
+            bolVal = CK_TRUE;
+          } else {
+            bolVal = CK_FALSE;
+          } 
+          this->saveAttribute(objectID, CKA_NEVER_EXTRACTABLE, &bolVal, sizeof(bolVal));
+        }
         break;
       default:
         break;
@@ -444,13 +466,7 @@ SoftObject* SoftDatabase::populateObj(int keyRef) {
       return NULL_PTR;
     } else {
       AutoSeeded_RNG *rng = new AutoSeeded_RNG();
-      try {
-        keyObject->key = new RSA_PrivateKey(*rng, *prime1, *prime2, *pubExp, *privExp, *modulus);
-      }
-      catch (Botan::Exception& e) {
-        printf("Error: %s\n", e.what());
-      }
-
+      keyObject->key = new RSA_PrivateKey(*rng, *prime1, *prime2, *pubExp, *privExp, *modulus);
       return keyObject;
     }
   }
