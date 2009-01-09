@@ -99,8 +99,8 @@ CK_ATTRIBUTE* SoftAttribute::getAttribute(CK_ATTRIBUTE_TYPE type) {
 }
 
 CK_BBOOL SoftAttribute::matchAttribute(CK_ATTRIBUTE *attTemplate) {
-  if(next != NULL_PTR) {
-    if(objectAttribute->type == attTemplate->type &&
+  if(next != NULL_PTR && attTemplate != NULL_PTR) {
+    if(objectAttribute != NULL_PTR && objectAttribute->type == attTemplate->type &&
        objectAttribute->ulValueLen == attTemplate->ulValueLen &&
        memcmp(objectAttribute->pValue, attTemplate->pValue, 
          objectAttribute->ulValueLen) == 0) {

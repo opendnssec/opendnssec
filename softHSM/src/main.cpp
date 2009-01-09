@@ -224,7 +224,7 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
 // Returns general information about SoftHSM.
 
 CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
-  if(sizeof(*pInfo) != sizeof(CK_INFO)) {
+  if(pInfo == NULL_PTR) {
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -387,7 +387,7 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
     case CKM_RSA_PKCS:
       pInfo->ulMinKeySize = 512;
       pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW; // CKF_ENCRYPT | CKF_DECRYPT
+      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW;
       break;
     case CKM_MD5:
     case CKM_RIPEMD160:

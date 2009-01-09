@@ -40,7 +40,6 @@
 #include <botan/rsa.h>
 using namespace Botan;
 
-
 SoftSession::SoftSession(int rwSession) {
   pApplication = NULL_PTR;
   Notify = NULL_PTR;
@@ -126,6 +125,10 @@ bool SoftSession::isReadWrite() {
 // of it and store it in the cache.
 
 Public_Key* SoftSession::getKey(SoftObject *object) {
+  if(object == NULL_PTR) {
+    return NULL_PTR;
+  }
+
   Public_Key* tmpKey = keyStore->getKey(object->index);
 
   // If the key is not in the session cache

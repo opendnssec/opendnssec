@@ -327,7 +327,9 @@ char* SoftHSMInternal::getPIN() {
 // If there is an error, then the most recent one is
 // returned.
 
-CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
+    CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+
   SoftSession *session = getSession(hSession);
 
   if(session == NULL_PTR) {
@@ -520,6 +522,10 @@ void SoftHSMInternal::getObjectFromDB(int keyRef) {
 void SoftHSMInternal::getAllObjects() {
   int objectCount = 0;
   int *objectRefs = db->getObjectRefs(pin, objectCount);
+
+  if(objectRefs == NULL_PTR) {
+    return;
+  }
 
   for(int i = 0; i < objectCount; i++) {
     this->getObjectFromDB(objectRefs[i]);

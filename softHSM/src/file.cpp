@@ -51,6 +51,10 @@ char* checkHSMDir() {
   char *homeDir = getenv("HOME");
   char *directory = (char*)malloc(strlen(homeDir) + 10);
 
+  if(directory == NULL) {
+    return NULL;
+  }
+
   snprintf(directory, strlen(homeDir) + 10, "%s/.softHSM", homeDir);
 
   struct stat st;
@@ -68,6 +72,11 @@ char* checkHSMDir() {
 char* getDatabasePath() {
   char *directory = checkHSMDir();
   char *dbPath = (char *)malloc(strlen(directory) + 17);
+
+  if(dbPath == NULL) {
+    free(directory);
+    return NULL;
+  }
 
   snprintf(dbPath, strlen(directory) + 17, "%s/SoftHSM.sqlite3", directory);
 
