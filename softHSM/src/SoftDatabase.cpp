@@ -40,8 +40,9 @@
 using namespace Botan;
 
 // Standard includes
-#include <string>
+#include <string.h>
 #include <sstream>
+#include <stdlib.h>
 using std::stringstream;
 using std::string;
 

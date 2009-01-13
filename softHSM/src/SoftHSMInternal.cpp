@@ -38,7 +38,7 @@
 // Standard includes
 #include <stdlib.h>
 #include <stdio.h>
-#include <string>
+#include <string.h>
 
 // Includes for the crypto library
 #include <botan/pipe.h>

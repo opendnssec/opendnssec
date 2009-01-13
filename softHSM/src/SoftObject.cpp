@@ -40,6 +40,8 @@
 #include "SoftObject.h"
 #include "SoftDatabase.h"
 
+#include <stdlib.h>
+
 SoftObject::SoftObject() {
   nextObject = NULL_PTR;
   index = CK_INVALID_HANDLE;
