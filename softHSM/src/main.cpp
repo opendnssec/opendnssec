@@ -152,7 +152,7 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   // Do we have any arguments?
   if(args != NULL_PTR) {
     // Reserved for future use. Must be NULL_PTR
-    if(args->pReserved == NULL_PTR) {
+    if(args->pReserved != NULL_PTR) {
       return CKR_ARGUMENTS_BAD;
     }
 
