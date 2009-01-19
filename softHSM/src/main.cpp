@@ -230,13 +230,11 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
 
   pInfo->cryptokiVersion.major = 2;
   pInfo->cryptokiVersion.minor = 20;
-  snprintf((char *)pInfo->manufacturerID, sizeof(pInfo->manufacturerID), 
-    "SoftHSM                         ");
-    // 32 chars
+  memset(pInfo->manufacturerID, ' ', 32);
+  memcpy(pInfo->manufacturerID, "SoftHSM", 7);
   pInfo->flags = 0;
-  snprintf((char *)pInfo->libraryDescription, sizeof(pInfo->libraryDescription), 
-    "Implementation of PKCS11        ");
-    // 32 chars
+  memset(pInfo->libraryDescription, ' ', 32);
+  memcpy(pInfo->libraryDescription, "Implementation of PKCS11", 24);
   pInfo->libraryVersion.major = VERSION_MAJOR;
   pInfo->libraryVersion.minor = VERSION_MINOR;
 
@@ -273,12 +271,11 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
     return CKR_ARGUMENTS_BAD;
   }
 
-  snprintf((char *)pInfo->slotDescription, sizeof(pInfo->slotDescription), 
-     "SoftHSM                                                         ");
-     // 64 chars
-  snprintf((char *)pInfo->manufacturerID, sizeof(pInfo->manufacturerID), 
-    "SoftHSM                         ");
-    // 32 chars
+  memset(pInfo->slotDescription, ' ', 64);
+  memcpy(pInfo->slotDescription, "SoftHSM", 7);
+  memset(pInfo->manufacturerID, ' ', 32);
+  memcpy(pInfo->manufacturerID, "SoftHSM", 7);
+
   pInfo->flags = CKF_TOKEN_PRESENT;
   pInfo->hardwareVersion.major = VERSION_MAJOR;
   pInfo->hardwareVersion.minor = VERSION_MINOR;
@@ -303,18 +300,15 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  snprintf((char *)pInfo->label, sizeof(pInfo->label), 
-    "SoftHSM                         ");
-    // 32 chars
-  snprintf((char *)pInfo->manufacturerID, sizeof(pInfo->manufacturerID), 
-    "SoftHSM                         "); 
-    // 32 chars
-  snprintf((char *)pInfo->model, sizeof(pInfo->model), 
-    "SoftHSM         "); 
-    // 16 chars
-  snprintf((char *)pInfo->serialNumber, sizeof(pInfo->serialNumber), 
-    "1               "); 
-    // 16 chars
+  memset(pInfo->label, ' ', 32);
+  memcpy(pInfo->label, "SoftHSM", 7);
+  memset(pInfo->manufacturerID, ' ', 32);
+  memcpy(pInfo->manufacturerID, "SoftHSM", 7);
+  memset(pInfo->model, ' ', 16);
+  memcpy(pInfo->model, "SoftHSM", 7);
+  memset(pInfo->serialNumber, ' ', 16);
+  memcpy(pInfo->serialNumber, "1", 1);
+
   pInfo->flags = CKF_RNG | CKF_TOKEN_INITIALIZED | CKF_USER_PIN_INITIALIZED | 
                  CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN;
 
@@ -333,12 +327,15 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
   pInfo->firmwareVersion.major = VERSION_MAJOR;
   pInfo->firmwareVersion.minor = VERSION_MINOR;
 
+  char *dateTime = (char*)malloc(17);
   struct timeval now;
   gettimeofday(&now, NULL);
   struct tm *timeinfo = gmtime(&now.tv_sec);
 
-  snprintf((char *)pInfo->utcTime, 16, "20%02u%02u%02u%02u%02u%02u00", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday,
+  snprintf(dateTime, 17, "20%02u%02u%02u%02u%02u%02u00", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday,
            timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+  memcpy(pInfo->utcTime, dateTime, 16);
+  free(dateTime);
 
   return CKR_OK;
 }
@@ -1471,14 +1468,14 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
 // This should be enough collision resistant.
 
 char* getNewLabelAndID() {
-  char *fileName = (char *)malloc(19);
+  char *labelAndID = (char *)malloc(19);
 
   struct timeval now;
   gettimeofday(&now, NULL);
   struct tm *timeinfo = gmtime(&now.tv_sec);
 
-  snprintf(fileName, 19, "%02u%02u%02u%02u%02u%02u%06u", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday,
+  snprintf(labelAndID, 19, "%02u%02u%02u%02u%02u%02u%06u", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday,
            timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, (unsigned int)now.tv_usec);
 
-  return fileName;
+  return labelAndID;
 }
