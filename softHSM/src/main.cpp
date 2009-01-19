@@ -316,7 +316,7 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
     "1               "); 
     // 16 chars
   pInfo->flags = CKF_RNG | CKF_TOKEN_INITIALIZED | CKF_USER_PIN_INITIALIZED | 
-                 CKF_LOGIN_REQUIRED;
+                 CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN;
 
   pInfo->ulMaxSessionCount = MAX_SESSION_COUNT;
   pInfo->ulSessionCount = softHSM->getSessionCount();
@@ -332,6 +332,13 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
   pInfo->hardwareVersion.minor = VERSION_MINOR;
   pInfo->firmwareVersion.major = VERSION_MAJOR;
   pInfo->firmwareVersion.minor = VERSION_MINOR;
+
+  struct timeval now;
+  gettimeofday(&now, NULL);
+  struct tm *timeinfo = gmtime(&now.tv_sec);
+
+  snprintf((char *)pInfo->utcTime, 16, "20%02u%02u%02u%02u%02u%02u00", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday,
+           timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 
   return CKR_OK;
 }

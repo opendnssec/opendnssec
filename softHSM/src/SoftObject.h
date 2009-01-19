@@ -49,7 +49,7 @@ class SoftDatabase;
 class SoftObject;
 
 // Includes for the crypto library
-#include <botan/pk_keys.h>
+#include <botan/bigint.h>
 using namespace Botan;
 
 class SoftObject {
@@ -59,6 +59,7 @@ class SoftObject {
 
     CK_RV addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
     CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
+    BigInt* getBigIntAttribute(CK_ATTRIBUTE_TYPE type);
     CK_RV setAttribute(CK_ATTRIBUTE *attTemplate, SoftDatabase *db);
     CK_BBOOL matchAttribute(CK_ATTRIBUTE *attTemplate);
 
@@ -74,8 +75,6 @@ class SoftObject {
     CK_BBOOL extractable;
     CK_BBOOL modifiable;
     CK_ULONG keySizeBytes;
-
-    Public_Key *key;
 
     SoftAttribute *attributes;
 };

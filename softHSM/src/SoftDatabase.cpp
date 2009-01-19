@@ -35,10 +35,6 @@
 #include "SoftDatabase.h"
 #include "file.h"
 
-// Includes for the crypto library
-#include <botan/auto_rng.h>
-using namespace Botan;
-
 // Standard includes
 #include <string.h>
 #include <sstream>
@@ -384,11 +380,6 @@ SoftObject* SoftDatabase::populateObj(int keyRef) {
   SoftObject* keyObject = new SoftObject();
   keyObject->index = keyRef;
 
-  BigInt *modulus = NULL_PTR;
-  BigInt *pubExp = NULL_PTR;
-  BigInt *privExp = NULL_PTR;
-  BigInt *prime1 = NULL_PTR;
-  BigInt *prime2 = NULL_PTR;
   CK_ULONG tmpValue;
 
   // Add all attributes
@@ -419,51 +410,14 @@ SoftObject* SoftDatabase::populateObj(int keyRef) {
         tmpValue = *(CK_ULONG *)pValue;
         keyObject->keySizeBytes = (tmpValue + 7) / 8;
         break;
-      case CKA_MODULUS:
-        modulus = new BigInt((byte *)pValue, (u32bit)length);
-        break;
-      case CKA_PUBLIC_EXPONENT:
-        pubExp = new BigInt((byte *)pValue, (u32bit)length);
-        break;
-      case CKA_PRIVATE_EXPONENT:
-        privExp = new BigInt((byte *)pValue, (u32bit)length);
-        break;
-      case CKA_PRIME_1:
-        prime1 = new BigInt((byte *)pValue, (u32bit)length);
-        break;
-      case CKA_PRIME_2:
-        prime2 = new BigInt((byte *)pValue, (u32bit)length);
+      default:
         break;
     }
   }
 
   sqlite3_finalize(select_sql);
 
-  // Create a public RSA key
-  if(keyObject->objectClass == CKO_PUBLIC_KEY && keyObject->keyType == CKK_RSA) {
-    if(modulus == NULL_PTR || pubExp == NULL_PTR) {
-      delete keyObject;
-      return NULL_PTR;
-    } else {
-      keyObject->key = new RSA_PublicKey(*modulus, *pubExp);
-      return keyObject;
-    }
-  }
-
-  // Create a private RSA key
-  if(keyObject->objectClass == CKO_PRIVATE_KEY && keyObject->keyType == CKK_RSA) {
-    if(prime1 == NULL_PTR || prime2 == NULL_PTR || pubExp == NULL_PTR || 
-       privExp == NULL_PTR || modulus == NULL_PTR) {
-      delete keyObject;
-      return NULL_PTR;
-    } else {
-      AutoSeeded_RNG *rng = new AutoSeeded_RNG();
-      keyObject->key = new RSA_PrivateKey(*rng, *prime1, *prime2, *pubExp, *privExp, *modulus);
-      return keyObject;
-    }
-  }
-
-  return NULL_PTR;
+  return keyObject;
 }
 
 // Delete an object and its attributes, if the PIN is correct.

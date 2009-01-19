@@ -136,12 +136,26 @@ Public_Key* SoftSession::getKey(SoftObject *object) {
     if(object->keyType == CKK_RSA) {
       // Clone the key
       if(object->objectClass == CKO_PRIVATE_KEY) {
-        IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(object->key);
-        tmpKey = new RSA_PrivateKey(*rng, ifKeyPriv->get_p(),
-          ifKeyPriv->get_q(), ifKeyPriv->get_e(), ifKeyPriv->get_d(), ifKeyPriv->get_n());
+        BigInt *bigN = object->getBigIntAttribute(CKA_MODULUS);
+        BigInt *bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
+        BigInt *bigD = object->getBigIntAttribute(CKA_PRIVATE_EXPONENT);
+        BigInt *bigP = object->getBigIntAttribute(CKA_PRIME_1);
+        BigInt *bigQ = object->getBigIntAttribute(CKA_PRIME_2);
+
+        if(bigN == NULL_PTR || bigE == NULL_PTR || bigD == NULL_PTR || bigP == NULL_PTR || bigQ == NULL_PTR) {
+          return NULL_PTR;
+        }
+
+        tmpKey = new RSA_PrivateKey(*rng, *bigP, *bigQ, *bigE, *bigD, *bigN);
       } else {
-        IF_Scheme_PublicKey *ifKeyPub = dynamic_cast<IF_Scheme_PublicKey*>(object->key);
-        tmpKey = new RSA_PublicKey(ifKeyPub->get_n(), ifKeyPub->get_e());
+        BigInt *bigN = object->getBigIntAttribute(CKA_MODULUS);
+        BigInt *bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
+
+        if(bigN == NULL_PTR || bigE == NULL_PTR) {
+          return NULL_PTR;
+        }
+
+        tmpKey = new RSA_PublicKey(*bigN, *bigE);
       }
 
       // Create a new key store object.

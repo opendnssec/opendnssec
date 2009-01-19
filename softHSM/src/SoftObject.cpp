@@ -53,18 +53,12 @@ SoftObject::SoftObject() {
   extractable = CK_FALSE;
   modifiable = CK_FALSE;
   attributes = new SoftAttribute();
-  key = NULL_PTR;
 }
 
 SoftObject::~SoftObject() {
   if(attributes != NULL_PTR) {
     delete attributes;
     attributes = NULL_PTR;
-  }
-
-  if(key != NULL_PTR) {
-    delete key;
-    key = NULL_PTR;
   }
 
   if(nextObject != NULL_PTR) {
@@ -101,13 +95,8 @@ CK_RV SoftObject::deleteObj(int searchIndex) {
         delete attributes;
       }
 
-      if(key != NULL_PTR) {
-        delete key;
-      }
-
       // Get the content of the next object
       attributes = nextObject->attributes;
-      key = nextObject->key;
       index = nextObject->index;
       objectClass = nextObject->objectClass;
       keyType = nextObject->keyType;
@@ -119,7 +108,6 @@ CK_RV SoftObject::deleteObj(int searchIndex) {
 
       // Clear and delete the next container
       nextObject->attributes = NULL_PTR;
-      nextObject->key = NULL_PTR;
       nextObject->nextObject = NULL_PTR;
       delete nextObject;
 
@@ -200,6 +188,20 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
   }
 
   return CKR_OK;
+}
+
+// Returns a big int of a given attribute.
+// We reveal anything, because this is used to create a key within the SoftHSM.
+
+BigInt* SoftObject::getBigIntAttribute(CK_ATTRIBUTE_TYPE type) {
+  CK_ATTRIBUTE *localAttribute = attributes->getAttribute(type);
+
+  // Do we have this attribute?
+  if(localAttribute == NULL_PTR) {
+    return NULL_PTR;
+  }
+
+  return new BigInt((byte *)localAttribute->pValue, (u32bit)localAttribute->ulValueLen);
 }
 
 // Set the value of an attribute for this object.
