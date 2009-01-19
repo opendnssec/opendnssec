@@ -124,13 +124,21 @@ int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_P
   CK_OBJECT_CLASS oClass = CKO_PUBLIC_KEY;
   CK_KEY_TYPE keyType = CKK_RSA;
   CK_MECHANISM_TYPE mechType = CKM_RSA_PKCS_KEY_PAIR_GEN;
-  CK_BBOOL ckTrue = CK_TRUE;
+  CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
 
   // General information
   this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass));
   this->saveAttribute(objectID, CKA_KEY_TYPE, &keyType, sizeof(keyType));
   this->saveAttribute(objectID, CKA_KEY_GEN_MECHANISM, &mechType, sizeof(mechType));
   this->saveAttribute(objectID, CKA_LOCAL, &ckTrue, sizeof(ckTrue));
+
+  // Default values, may be changed by the template.
+  this->saveAttribute(objectID, CKA_LABEL, labelID, strlen(labelID));
+  this->saveAttribute(objectID, CKA_ID, labelID, strlen(labelID));
+  this->saveAttribute(objectID, CKA_PRIVATE, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_MODIFIABLE, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_TOKEN, &ckFalse, sizeof(ckFalse));
+  this->saveAttribute(objectID, CKA_DERIVE, &ckFalse, sizeof(ckFalse));
 
   // The RSA modulus bits
   IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
@@ -145,22 +153,16 @@ int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_P
   BigInt bigExponent = ifKey->get_e();
   this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExponent);
 
-  int foundLabel = 0, foundID = 0;
-
-  // Extract the attributes
+  // Extract the attributes from the template
   for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
     switch(pPublicKeyTemplate[i].type) {
+      // Byte array
       case CKA_LABEL:
-        foundLabel = 1;
-        this->saveAttribute(objectID, CKA_LABEL, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
-        break;
       case CKA_ID:
-        foundID = 1;
-        this->saveAttribute(objectID, CKA_ID, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
-        break;
       case CKA_SUBJECT:
-        this->saveAttribute(objectID, CKA_SUBJECT, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
+        this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
         break;
+      // Bool
       case CKA_DERIVE:
       case CKA_TOKEN:
       case CKA_PRIVATE:
@@ -177,14 +179,6 @@ int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_P
       default:
         break;
     }
-  }
-
-  // Assign a default value if not defined by the user.
-  if(foundLabel == 0) {
-    this->saveAttribute(objectID, CKA_LABEL, labelID, strlen(labelID));
-  }
-  if(foundID == 0) {
-    this->saveAttribute(objectID, CKA_ID, labelID, strlen(labelID));
   }
 
   return objectID;
@@ -209,13 +203,23 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
   CK_OBJECT_CLASS oClass = CKO_PRIVATE_KEY;
   CK_KEY_TYPE keyType = CKK_RSA;
   CK_MECHANISM_TYPE mechType = CKM_RSA_PKCS_KEY_PAIR_GEN;
-  CK_BBOOL ckTrue = CK_TRUE;
+  CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
 
   // General information
   this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass));
   this->saveAttribute(objectID, CKA_KEY_TYPE, &keyType, sizeof(keyType));
   this->saveAttribute(objectID, CKA_KEY_GEN_MECHANISM, &mechType, sizeof(mechType));
   this->saveAttribute(objectID, CKA_LOCAL, &ckTrue, sizeof(ckTrue));
+
+  // Default values, may be changed by the template.
+  this->saveAttribute(objectID, CKA_LABEL, labelID, strlen(labelID));
+  this->saveAttribute(objectID, CKA_ID, labelID, strlen(labelID));
+  this->saveAttribute(objectID, CKA_PRIVATE, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_MODIFIABLE, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_TOKEN, &ckFalse, sizeof(ckFalse));
+  this->saveAttribute(objectID, CKA_DERIVE, &ckFalse, sizeof(ckFalse));
+  this->saveAttribute(objectID, CKA_WRAP_WITH_TRUSTED, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_ALWAYS_AUTHENTICATE, &ckFalse, sizeof(ckFalse));
 
   // The RSA modulus bits
   IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
@@ -242,23 +246,18 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
   BigInt bigPrime2 = ifKeyPriv->get_q();
   this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigPrime2);
 
-  int foundLabel = 0, foundID = 0;
   CK_BBOOL bolVal;
 
   // Extract the attributes
   for(CK_ULONG i = 0; i < ulPrivateKeyAttributeCount; i++) {
     switch(pPrivateKeyTemplate[i].type) {
+      // Byte array
       case CKA_LABEL:
-        foundLabel = 1;
-        this->saveAttribute(objectID, CKA_LABEL, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
-        break;
       case CKA_ID:
-        foundID = 1;
-        this->saveAttribute(objectID, CKA_ID, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
-        break;
       case CKA_SUBJECT:
-        this->saveAttribute(objectID, CKA_SUBJECT, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+        this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
         break;
+      // Bool
       case CKA_DERIVE:
       case CKA_TOKEN:
       case CKA_PRIVATE:
@@ -293,14 +292,6 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
       default:
         break;
     }
-  }
-
-  // Assign a default value if not defined by the user.
-  if(foundLabel == 0) {
-    this->saveAttribute(objectID, CKA_LABEL, labelID, strlen(labelID));
-  }
-  if(foundID == 0) {
-    this->saveAttribute(objectID, CKA_ID, labelID, strlen(labelID));
   }
 
   return objectID;
