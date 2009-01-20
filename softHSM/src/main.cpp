@@ -489,9 +489,10 @@ CK_RV C_SetOperationState(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pOperationStat
 }
 
 // Logs a user into the token.
-// The login is needed to decrypt the crypto keys when loading
-// them from the disk and to generate crypto keys.
+// The login is needed to be able to load the correct crypto keys from the database.
 // Only one login is needed, since it is a cross-session login.
+// Each PIN creates a unique "user", meaning that all the crypto keys are connected to
+// individual PINs.
 
 CK_RV C_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
   if(softHSM == NULL_PTR) {
@@ -544,6 +545,9 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
 
   return softHSM->getAttributeValue(hSession, hObject, pTemplate, ulCount);
 }
+
+// Add or update attributes of an object. The template is validated in accordance with
+// the PKCS#11 API. Some valid attributes are neglected due to their complexity.
 
 CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
   if(softHSM == NULL_PTR) {
@@ -909,8 +913,14 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_DEVICE_MEMORY;
   }
 
+  // Get the key from the session key store.
+  Public_Key *cryptoKey = session->getKey(object);
+  if(cryptoKey == NULL_PTR) {
+    return CKR_GENERAL_ERROR;
+  }
+
   // Creates the signer with given key and mechanism.
-  PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(session->getKey(object));
+  PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(cryptoKey);
   session->signSize = object->keySizeBytes;
   session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
 
@@ -956,10 +966,8 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
     return CKR_ARGUMENTS_BAD;
   }
 
-  SecureVector<byte> signResult;
-
   // Sign 
-  signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
+  SecureVector<byte> signResult = session->pkSigner->sign_message(pData, ulDataLen, *session->rng);
 
   // Returns the result
   memcpy(pSignature, signResult.begin(), session->signSize);
@@ -1122,8 +1130,14 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     return CKR_DEVICE_MEMORY;
   }
 
+  // Get the key from the session key store.
+  Public_Key *cryptoKey = session->getKey(object);
+  if(cryptoKey == NULL_PTR) {
+    return CKR_GENERAL_ERROR;
+  }
+
   // Creates the verifier with given key and mechanism
-  PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(session->getKey(object));
+  PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(cryptoKey);
   session->verifySize = object->keySizeBytes;
   session->pkVerifier = new PK_Verifier_with_MR(*verifyKey, &*hashFunc);
 
