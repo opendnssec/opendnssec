@@ -40,8 +40,6 @@
 
 #include "SoftKeyStore.h"
 
-#include "pkcs11_unix.h"
-
 SoftKeyStore::SoftKeyStore() {
   next = NULL_PTR;
   botanKey = NULL_PTR;
@@ -62,7 +60,7 @@ SoftKeyStore::~SoftKeyStore() {
 
 // Remove the key with a given index
 
-void SoftKeyStore::removeKey(int removeIndex) {
+void SoftKeyStore::removeKey(CK_OBJECT_HANDLE removeIndex) {
   if(next != NULL_PTR) {
     if(removeIndex == index) {
       // Remove the key
@@ -92,7 +90,7 @@ void SoftKeyStore::removeKey(int removeIndex) {
 
 // Find the key with a given index
 
-Public_Key *SoftKeyStore::getKey(int getIndex) {
+Public_Key *SoftKeyStore::getKey(CK_OBJECT_HANDLE getIndex) {
   if(next != NULL_PTR) {
     if(getIndex == index) {
       return botanKey;

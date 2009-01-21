@@ -69,7 +69,7 @@ SoftObject::~SoftObject() {
 
 // Return the object with the given index.
 
-SoftObject* SoftObject::getObject(int searchIndex) {
+SoftObject* SoftObject::getObject(CK_OBJECT_HANDLE searchIndex) {
   if(nextObject == NULL_PTR) {
     return NULL_PTR;
   } else {
@@ -86,7 +86,7 @@ SoftObject* SoftObject::getObject(int searchIndex) {
 // next object. Thus collapsing this link
 // in the chain.
 
-CK_RV SoftObject::deleteObj(int searchIndex) {
+CK_RV SoftObject::deleteObj(CK_OBJECT_HANDLE searchIndex) {
   if(nextObject == NULL_PTR) {
     return CKR_OBJECT_HANDLE_INVALID;
   } else {

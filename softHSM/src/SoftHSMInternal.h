@@ -72,7 +72,7 @@ class SoftHSMInternal {
     char* getPIN();
 
     // Object handling
-    void getObjectFromDB(int keyRef);
+    void getObjectFromDB(CK_OBJECT_HANDLE keyRef);
     SoftObject* getObject(CK_OBJECT_HANDLE hObject);
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
     CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 

@@ -63,11 +63,11 @@ class SoftObject {
     CK_RV setAttribute(CK_ATTRIBUTE *attTemplate, SoftDatabase *db);
     CK_BBOOL matchAttribute(CK_ATTRIBUTE *attTemplate);
 
-    SoftObject* getObject(int searchIndex);
-    CK_RV deleteObj(int searchIndex);
+    SoftObject* getObject(CK_OBJECT_HANDLE searchIndex);
+    CK_RV deleteObj(CK_OBJECT_HANDLE searchIndex);
 
     SoftObject *nextObject;
-    int index;
+    CK_OBJECT_HANDLE index;
 
     CK_OBJECT_CLASS objectClass;
     CK_KEY_TYPE keyType;

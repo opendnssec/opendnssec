@@ -53,17 +53,17 @@ class SoftDatabase {
     SoftDatabase();
     ~SoftDatabase();
 
-    SoftObject* populateObj(int keyRef);
-    int* getObjectRefs(char *pin, int &objectCount);
+    SoftObject* populateObj(CK_OBJECT_HANDLE keyRef);
+    CK_OBJECT_HANDLE* getObjectRefs(char *pin, int &objectCount);
 
-    int addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
+    CK_OBJECT_HANDLE addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount, char *labelID);
-    int addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
+    CK_OBJECT_HANDLE addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
       CK_ULONG ulPrivateKeyAttributeCount, char *labelID);
-    void deleteObject(char *pin, int objRef);
+    void deleteObject(char *pin, CK_OBJECT_HANDLE objRef);
 
-    void saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
-    void saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber);
+    void saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
+    void saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber);
 
   private:
     sqlite3 *db;

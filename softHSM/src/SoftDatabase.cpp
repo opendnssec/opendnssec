@@ -103,7 +103,7 @@ SoftDatabase::~SoftDatabase() {
 
 // Save the public RSA key in the database.
 
-int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
+CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
     CK_ULONG ulPublicKeyAttributeCount, char *labelID) {
 
   stringstream sqlInsertObj;
@@ -115,7 +115,7 @@ int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_P
     return 0;
   }
 
-  int objectID = sqlite3_last_insert_rowid(db);
+  CK_OBJECT_HANDLE objectID = sqlite3_last_insert_rowid(db);
 
   CK_OBJECT_CLASS oClass = CKO_PUBLIC_KEY;
   CK_KEY_TYPE keyType = CKK_RSA;
@@ -182,7 +182,7 @@ int SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_P
 
 // Save the private RSA key in the database.
 
-int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
+CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
     CK_ULONG ulPrivateKeyAttributeCount, char *labelID) {
 
   stringstream sqlInsertObj;
@@ -194,7 +194,7 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
     return 0;
   }
 
-  int objectID = sqlite3_last_insert_rowid(db);
+  CK_OBJECT_HANDLE objectID = sqlite3_last_insert_rowid(db);
 
   CK_OBJECT_CLASS oClass = CKO_PRIVATE_KEY;
   CK_KEY_TYPE keyType = CKK_RSA;
@@ -296,7 +296,7 @@ int SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_
 // Save the attribute in the database.
 // Only update if the attribute exists.
 
-void SoftDatabase::saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
+void SoftDatabase::saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
   string sqlFind = "SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
 
   sqlite3_stmt *find_sql;
@@ -353,7 +353,7 @@ void SoftDatabase::saveAttribute(int objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_P
 
 // Convert the big integer and save it in the database.
 
-void SoftDatabase::saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber) {
+void SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber) {
   CK_ULONG size = bigNumber->bytes();
   CK_VOID_PTR buf = (CK_VOID_PTR)malloc(size);
   
@@ -365,7 +365,7 @@ void SoftDatabase::saveAttributeBigInt(int objectID, CK_ATTRIBUTE_TYPE type, Big
 
 // Creates an object an populate it with attributes from the database.
 
-SoftObject* SoftDatabase::populateObj(int keyRef) {
+SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
   stringstream sqlQuery;
   sqlQuery << "SELECT type,value,length from Attributes WHERE objectID = " << keyRef << ";";
 
@@ -423,7 +423,7 @@ SoftObject* SoftDatabase::populateObj(int keyRef) {
 // Delete an object and its attributes, if the PIN is correct.
 // The trigger in the database removes the attributes.
 
-void SoftDatabase::deleteObject(char *pin, int objRef) {
+void SoftDatabase::deleteObject(char *pin, CK_OBJECT_HANDLE objRef) {
   stringstream sqlDeleteObj;
 
   sqlDeleteObj << "DELETE FROM Objects WHERE pin = '" << pin << "' and objectID = " 
@@ -433,7 +433,7 @@ void SoftDatabase::deleteObject(char *pin, int objRef) {
 
 // Returns the object IDs for a given PIN
 
-int* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
+CK_OBJECT_HANDLE* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
   objectCount = 0;
 
   // Find out how many objects we have.
@@ -459,7 +459,7 @@ int* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
   sqlite3_finalize(count_sql);
 
   // Create the object-reference buffer
-  int *objectRefs = (int *)malloc(objectCount * sizeof(int));
+  CK_OBJECT_HANDLE *objectRefs = (CK_OBJECT_HANDLE *)malloc(objectCount * sizeof(CK_OBJECT_HANDLE));
 
   // Get all the objects
   string sqlSelect = "SELECT objectID FROM Objects WHERE pin = ? ORDER BY objectID ASC;";

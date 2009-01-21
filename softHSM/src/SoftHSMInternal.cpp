@@ -507,7 +507,7 @@ CK_RV SoftHSMInternal::unlockMutex(CK_VOID_PTR mutex) {
 // Add a new object from the database
 // Returns an index to the object
 
-void SoftHSMInternal::getObjectFromDB(int keyRef) {
+void SoftHSMInternal::getObjectFromDB(CK_OBJECT_HANDLE keyRef) {
   SoftObject *newObject = db->populateObj(keyRef);
 
   if(newObject != NULL_PTR) {
@@ -521,7 +521,7 @@ void SoftHSMInternal::getObjectFromDB(int keyRef) {
 
 void SoftHSMInternal::getAllObjects() {
   int objectCount = 0;
-  int *objectRefs = db->getObjectRefs(pin, objectCount);
+  CK_OBJECT_HANDLE *objectRefs = db->getObjectRefs(pin, objectCount);
 
   if(objectRefs == NULL_PTR) {
     return;

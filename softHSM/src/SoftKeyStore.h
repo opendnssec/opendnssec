@@ -41,6 +41,8 @@
 #ifndef SOFTHSM_SOFTKEYSTORE_H
 #define SOFTHSM_SOFTKEYSTORE_H 1
 
+#include "pkcs11_unix.h"
+
 // Includes for the crypto library
 #include <botan/pk_keys.h>
 using namespace Botan;
@@ -50,11 +52,11 @@ class SoftKeyStore {
     SoftKeyStore();
     ~SoftKeyStore();
 
-    void removeKey(int removeIndex);
-    Public_Key *getKey(int getIndex);
+    void removeKey(CK_OBJECT_HANDLE removeIndex);
+    Public_Key *getKey(CK_OBJECT_HANDLE getIndex);
 
     SoftKeyStore *next;
-    int index;
+    CK_OBJECT_HANDLE index;
     Public_Key *botanKey;
 };
 

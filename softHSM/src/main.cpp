@@ -1463,16 +1463,16 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   char *labelID = getNewLabelAndID();
 
   // Add the key to the database.
-  int privRef = session->db->addRSAKeyPriv(softHSM->getPIN(), rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount, labelID);
-  int pubRef = session->db->addRSAKeyPub(softHSM->getPIN(), rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
+  CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(softHSM->getPIN(), rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount, labelID);
+  CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(softHSM->getPIN(), rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
 
   // Update the internal states.
   softHSM->getObjectFromDB(privRef);
   softHSM->getObjectFromDB(pubRef);
 
   // Returns the object handles to the application.
-  *phPublicKey = (CK_OBJECT_HANDLE)pubRef;
-  *phPrivateKey = (CK_OBJECT_HANDLE)privRef;
+  *phPublicKey = pubRef;
+  *phPrivateKey = privRef;
 
   return CKR_OK;
 }
