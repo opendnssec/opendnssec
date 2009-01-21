@@ -1,1 +1,9 @@
 $Id$
+
+NEWS for SoftHSM -- History of user visible changes
+
+New in 0.1; 2009-01-21 Rickard Bondesson
+
+* Starting point of the NEWS file.
+* Have an interface to the user in accordance with PKCS#11.
+* Will be properly maintained when we start releasing the source code.
