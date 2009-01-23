@@ -1,0 +1,37 @@
+srcdir=@srcdir@
+CC=@CC@
+CFLAGS=@CFLAGS@ -g -O2 -Wall -Werror -I${srcdir}
+LDFLAGS=@LDFLAGS@ @LIBS@
+
+all: sorter stripper nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11
+
+sorter: ${srcdir}/src/sorter.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${srcdir}/src/sorter.c
+
+stripper: ${srcdir}/src/stripper.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o stripper ${srcdir}/src/stripper.c
+
+nseccer: ${srcdir}/src/nseccer.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o nseccer ${srcdir}/src/nseccer.c
+
+nsec3er: ${srcdir}/src/nsec3er.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o nsec3er ${srcdir}/src/nsec3er.c
+
+signer: ${srcdir}/src/signer.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o signer ${srcdir}/src/signer.c
+
+ldns_pkcs11.o: ${srcdir}/src/ldns_pkcs11.h ${srcdir}/src/ldns_pkcs11.c
+	${CC} ${CFLAGS} -c -o ldns_pkcs11.o ${srcdir}/src/ldns_pkcs11.c
+
+signer_pkcs11: ldns_pkcs11.o ${srcdir}/src/signer_pkcs11.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o signer_pkcs11 ldns_pkcs11.o ${srcdir}/src/signer_pkcs11.c
+
+create_dnskey_pkcs11: ldns_pkcs11.o ${srcdir}/src/create_dnskey_pkcs11.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o create_dnskey_pkcs11 ldns_pkcs11.o ${srcdir}/src/create_dnskey_pkcs11.c
+
+clean:
+	rm -rf sorter stripper nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11 *.o
+
+realclean: clean
+	rm -rf Makefile configure config.log config.status autom4te.cache
+

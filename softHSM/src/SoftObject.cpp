@@ -36,6 +36,7 @@
 * A new object is added by prepending it to the chain.
 *
 ************************************************************/
+#include <stdlib.h>
 
 #include "SoftObject.h"
 #include "SoftDatabase.h"

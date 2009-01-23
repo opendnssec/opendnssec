@@ -1,0 +1,113 @@
+This is a collection of tools, that together implement a pipelined
+DNSSEC signer.
+
+It is work in progress.
+
+For some examples of usage, see the testzone/ directory.
+
+There are no man pages (yet?), so the pipeline is described below
+
+BUILD INSTRUCTIONS
+------------------
+
+Building from repository:
+
+autoreconf
+./configure --with-ldns=<ldns dir>
+make
+
+
+USAGE INSTRUCTIONS
+------------------
+
+Currently, the complete signer is implemented as a series of separate
+tools, that each read in a (part of a) zone in BIND-style text format,
+and output that zone with the necessary changes, again in text format.
+
+To simply sign a zone, the following steps are needed:
+
+1 Sorting
+2 Stripping
+3 NSEC Addition
+4 RRSIG Addition
+
+The current chain only works when the input data does not contain RRSIG
+or NSEC(3) records. At the moment, there is no support for key signing
+keys yet.
+
+1 Sorting
+---------
+
+Apart from the sorter, and the extra tools described below, the other
+tools in the pipeline all expect that the data they receive is sorted
+for their needs. In a normal signing operation, this means that the
+zone must be sorted in canonical form, ie. the names must be sorted, 
+and within each name the resource records must be sorted. 
+
+In the case of NSEC3 denial-of-existence, the names must be sorted
+in 'nsec3'-space, and within each name, the resource records must be
+sorted in canonical order.
+
+To achieve this, the tool 'sorter' can be used. Use 'sorter -h' to see
+the specific options.
+
+
+2 Stripping
+-----------
+
+If the zone contains glue resource records, they must be removed prior
+to actual signing, because the RRSET signer later on does not recognize
+glue anymore.
+
+To strip the zone of glue, the tool 'stripper' can be used. There is one
+mandatory argument, which is the zone name (origin), specified with -o.
+
+This tool does not work on partial zones; the NS record set for a 
+delegation is needed to determine glue.
+
+Of course, if the zone data does not contain glue, this step can
+be skipped.
+
+(possible future enhancement: store stripped records in a separate
+file, so they can be added later)
+
+
+3 NSEC Addition
+---------------
+
+To create a fully signed zone, NSEC(3) records must be added.
+
+There are two tools for this; 'nseccer' and 'nsec3er', which add either
+NSEC or NSEC3 records.
+
+These tools do not perform any sorting; so the input must be sorted
+in the correct order beforehand (either 'normal' or 'in nsec3 space').
+
+Use the -h argument for specific options.
+
+
+4 RRSIG Addition
+----------------
+
+And finally, the signature resource records must be added.
+
+When you have the keys on disk, in ldns format (with a .key and
+a .private file), you can use the tool 'signer' for this. This takes, 
+a number of key file base names (ie. without the .key extension) as
+arguments, and signs the resource record sets it reads with those keys.
+
+There is also a tool that uses pkcs11 for signing, called
+'signer_pkcs11'. This time, to specify keys, you must use the format
+<key_id>_<signing algorithm nr>, e.g. 45_5 to sign using a key with the
+id '45' (hex) and algorithm RSA_SHA1.
+
+The PKCS11 module used must be specified with the -m argument.
+
+
+Other tools
+-----------
+
+There is a tool to create a DNSKEY RR from a PKCS11 key id and
+algorithm, called 'create_dnskey_pkcs11'. It takes the same arguments
+as 'signer_pkcs11', but just prints out a DNSKEY RR for each key
+specified.
