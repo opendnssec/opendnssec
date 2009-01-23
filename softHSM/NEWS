@@ -2,6 +2,12 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+New in 0.2; 2009-01-23 Rickard Bondesson
+
+* Two libraries are compiled. One normal (libsofthsm.so) and
+  one for debugging (libsofthsm.d.so). The debug info is saved
+  in the syslog.
+
 New in 0.1; 2009-01-21 Rickard Bondesson
 
 * Starting point of the NEWS file.

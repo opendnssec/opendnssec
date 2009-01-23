@@ -31,7 +31,7 @@
 
 // Version number for SoftHSM
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 1
+#define VERSION_MINOR 2
 
 // Maximum number of concurrent sessions
 #define MAX_SESSION_COUNT 2048
