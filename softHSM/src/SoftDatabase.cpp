@@ -31,7 +31,6 @@
 * This class handles the database.
 *
 ************************************************************/
-#include <stdlib.h>
 #include "SoftDatabase.h"
 #include "file.h"
 
