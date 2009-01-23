@@ -1,6 +1,6 @@
 srcdir=@srcdir@
 CC=@CC@
-CFLAGS=@CFLAGS@ -g -O2 -Wall -Werror -I${srcdir}
+CFLAGS=@CFLAGS@ -Wall -Werror -I${srcdir}
 LDFLAGS=@LDFLAGS@ @LIBS@
 
 all: sorter stripper nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11

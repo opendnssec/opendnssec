@@ -37,7 +37,7 @@ AC_DEFUN([CHECK_COMPILER_FLAG],
 AC_DEFUN([CHECK_COMPILER_FLAG_NEEDED],
 [
 	AC_REQUIRE([AC_PROG_CC])
-	AC_MSG_CHECKING(whether we need -$1 as a flag for $CC)
+	AC_MSG_CHECKING(whether we need $1 as a flag for $CC)
 	cache=`echo $1 | sed 'y% .=/+-%____p_%'`
 	AC_CACHE_VAL(cv_prog_cc_flag_needed_$cache,
 	[
@@ -50,7 +50,7 @@ AC_DEFUN([CHECK_COMPILER_FLAG_NEEDED],
 			if test -z "`$CC $CFLAGS $1 -Werror -Wall -c conftest.c 2>&1`"; then
 				eval "cv_prog_cc_flag_needed_$cache=yes"
 			else
-				echo 'Test with flag fails too!'
+				echo 'Test with flag fails too'
 			fi
 		]
 		fi
@@ -75,17 +75,16 @@ AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
 CHECK_COMPILER_FLAG(std=c99, [C99FLAG="-std=c99"])
 CHECK_COMPILER_FLAG(xc99, [C99FLAG="-xc99"])
 CHECK_COMPILER_FLAG_NEEDED($C99FLAG, [#include <stdbool.h>], [CFLAGS="$CFLAGS $C99FLAG"])
-CHECK_COMPILER_FLAG(D__EXTENSIONS__, [CFLAGS="$CFLAGS -D__EXTENSIONS__"])
 
 CHECK_COMPILER_FLAG_NEEDED(-D__EXTENSIONS__,
 [
 #include "confdefs.h"
 #include <stdlib.h>
 #include <unistd.h>
-#endif
 
 int test() {
 	int a;
+	char **opts = NULL;
 	a = getopt(2, opts, "a");
 	return a;
 }
