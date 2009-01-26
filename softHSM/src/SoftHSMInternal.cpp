@@ -177,7 +177,7 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
   // Last session. Clear objects.
   if(openSessions == 0) {
     if(pin != NULL_PTR) {
-      delete pin;
+      free(pin);
       pin = NULL_PTR;
     }
 
@@ -204,7 +204,7 @@ CK_RV SoftHSMInternal::closeAllSessions() {
   openSessions = 0;
 
   if(pin != NULL_PTR) {
-    delete pin;
+    free(pin);
     pin = NULL_PTR;
   }
 
