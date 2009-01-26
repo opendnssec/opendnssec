@@ -658,6 +658,8 @@ void SoftHSMInternal::getAllObjects() {
   for(int i = 0; i < objectCount; i++) {
     this->getObjectFromDB(objectRefs[i]);
   }
+
+  free(objectRefs);
 }
 
 // Clear all the objects and the session caches

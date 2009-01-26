@@ -65,7 +65,9 @@ SoftDatabase::SoftDatabase() {
   char *sqlError;
 
   // Open the database
-  int result = sqlite3_open(getDatabasePath(), &db);
+  char *dbPath = getDatabasePath();
+  int result = sqlite3_open(dbPath, &db);
+  free(dbPath);
   if(result){
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
     sqlite3_close(db);
