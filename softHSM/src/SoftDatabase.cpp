@@ -136,6 +136,10 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, C
   this->saveAttribute(objectID, CKA_MODIFIABLE, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_TOKEN, &ckFalse, sizeof(ckFalse));
   this->saveAttribute(objectID, CKA_DERIVE, &ckFalse, sizeof(ckFalse));
+  this->saveAttribute(objectID, CKA_ENCRYPT, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_VERIFY, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_VERIFY_RECOVER, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_WRAP, &ckTrue, sizeof(ckTrue));
 
   // The RSA modulus bits
   IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
@@ -217,6 +221,14 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
   this->saveAttribute(objectID, CKA_DERIVE, &ckFalse, sizeof(ckFalse));
   this->saveAttribute(objectID, CKA_WRAP_WITH_TRUSTED, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_ALWAYS_AUTHENTICATE, &ckFalse, sizeof(ckFalse));
+  this->saveAttribute(objectID, CKA_SENSITIVE, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_ALWAYS_SENSITIVE, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_DECRYPT, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_SIGN, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_SIGN_RECOVER, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_UNWRAP, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_EXTRACTABLE, &ckFalse, sizeof(ckFalse));
+  this->saveAttribute(objectID, CKA_NEVER_EXTRACTABLE, &ckTrue, sizeof(ckTrue));
 
   // The RSA modulus bits
   IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
