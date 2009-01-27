@@ -297,6 +297,14 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList) {
     syslog(LOG_DEBUG, "Calling C_GetFunctionList");
   #endif /* SOFTDEBUG */
 
+  if(ppFunctionList == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetFunctionList: Error: ppFunctionList must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
   *ppFunctionList = &function_list;
 
   #ifdef SOFTDEBUG
@@ -315,13 +323,39 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
     syslog(LOG_DEBUG, "Calling C_GetSlotList");
   #endif /* SOFTDEBUG */
 
-  if(pSlotList != NULL_PTR) {
-    pSlotList[0] = 1;
+  if(pulCount == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetSlotList: Error: pulCount must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
   }
+
+  if(pSlotList == NULL_PTR) {
+    *pulCount = 1;
+
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetSlotList: OK, returning list length");
+    #endif /* SOFTDEBUG */
+
+    return CKR_OK;
+  }
+
+  if(*pulCount < 1) {
+    *pulCount = 1;
+
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetSlotList: Error: Buffer to small");
+    #endif /* SOFTDEBUG */
+
+    return CKR_BUFFER_TOO_SMALL;
+  }
+
+  pSlotList[0] = 1;
   *pulCount = 1;
 
   #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_GetSlotList: OK");
+    syslog(LOG_DEBUG, "C_GetSlotList: OK, returning list");
   #endif /* SOFTDEBUG */
 
   return CKR_OK;
@@ -334,20 +368,20 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
     syslog(LOG_DEBUG, "Calling C_GetSlotInfo");
   #endif /* SOFTDEBUG */
 
-  if(slotID != 1) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetSlotInfo: Error: slotID %i does not exist", slotID);
-    #endif /* SOFTDEBUG */
-
-    return CKR_SLOT_ID_INVALID;
-  }
-
   if(pInfo == NULL_PTR) {
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_GetSlotInfo: Error: pInfo must not be a NULL_PTR");
     #endif /* SOFTDEBUG */
 
     return CKR_ARGUMENTS_BAD;
+  }
+
+  if(slotID != 1) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetSlotInfo: Error: slotID %i does not exist", slotID);
+    #endif /* SOFTDEBUG */
+
+    return CKR_SLOT_ID_INVALID;
   }
 
   memset(pInfo->slotDescription, ' ', 64);
@@ -375,12 +409,12 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
     syslog(LOG_DEBUG, "Calling C_GetTokenInfo");
   #endif /* SOFTDEBUG */
 
-  if(slotID != 1) {
+  if(softHSM == NULL_PTR) {
     #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetTokenInfo: Error: slotID %i does not exist", slotID);
+      syslog(LOG_DEBUG, "C_GetTokenInfo: Error: Library is not initialized");
     #endif /* SOFTDEBUG */
 
-    return CKR_SLOT_ID_INVALID;
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
   if(pInfo == NULL_PTR) {
@@ -391,12 +425,12 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
     return CKR_ARGUMENTS_BAD;
   }
 
-  if(softHSM == NULL_PTR) {
+  if(slotID != 1) {
     #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetTokenInfo: Error: Library is not initialized");
+      syslog(LOG_DEBUG, "C_GetTokenInfo: Error: slotID %i does not exist", slotID);
     #endif /* SOFTDEBUG */
 
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
+    return CKR_SLOT_ID_INVALID;
   }
 
   memset(pInfo->label, ' ', 32);
@@ -450,6 +484,14 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
     syslog(LOG_DEBUG, "Calling C_GetMechanismList");
   #endif /* SOFTDEBUG */
 
+  if(pulCount == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetMechanismList: Error: pulCount must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
   if(slotID != 1) {
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_GetMechanismList: Error: slotID %i does not exist", slotID);
@@ -458,15 +500,27 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
     return CKR_SLOT_ID_INVALID;
   }
 
-  *pulCount = 14;
-
   if(pMechanismList == NULL_PTR) {
+    *pulCount = 14;
+
     #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetMechanismList: OK, Returning list length");
+      syslog(LOG_DEBUG, "C_GetMechanismList: OK, returning list length");
     #endif /* SOFTDEBUG */
 
     return CKR_OK;
   }
+
+  if(*pulCount < 14) {
+    *pulCount = 14;
+
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetMechanismList: Error: Buffer to small");
+    #endif /* SOFTDEBUG */
+
+    return CKR_BUFFER_TOO_SMALL;
+  }
+
+  *pulCount = 14;
 
   pMechanismList[0] = CKM_RSA_PKCS_KEY_PAIR_GEN;
   pMechanismList[1] = CKM_RSA_PKCS;
@@ -484,7 +538,7 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
   pMechanismList[13] = CKM_SHA512_RSA_PKCS;
 
   #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_GetMechanismList: OK, Returning list");
+    syslog(LOG_DEBUG, "C_GetMechanismList: OK, returning list");
   #endif /* SOFTDEBUG */
 
   return CKR_OK;
@@ -497,20 +551,20 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
     syslog(LOG_DEBUG, "Calling C_GetMechanismInfo");
   #endif /* SOFTDEBUG */
 
-  if(slotID != 1) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetMechanismInfo: Error: slotID %i does not exist", slotID);
-    #endif /* SOFTDEBUG */
-
-    return CKR_SLOT_ID_INVALID;
-  }
-
   if(pInfo == NULL_PTR) {
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_GetMechanismInfo: Error: pInfo must not be a NULL_PTR");
     #endif /* SOFTDEBUG */
 
     return CKR_ARGUMENTS_BAD;
+  }
+
+  if(slotID != 1) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetMechanismInfo: Error: slotID %i does not exist", slotID);
+    #endif /* SOFTDEBUG */
+
+    return CKR_SLOT_ID_INVALID;
   }
 
   switch(type) {
