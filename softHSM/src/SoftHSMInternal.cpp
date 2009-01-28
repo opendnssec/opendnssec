@@ -153,20 +153,12 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
 // Closes the specific session.
 
 CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
-  if(hSession > MAX_SESSION_COUNT || hSession < 1) {
+  if(hSession > MAX_SESSION_COUNT || hSession < 1 || sessions[hSession-1] == NULL_PTR) {
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_CloseSession: The session does not exist");
     #endif /* SOFTDEBUG */
 
     return CKR_SESSION_HANDLE_INVALID;
-  }
-
-  if(sessions[hSession-1] == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_CloseSession: The session already closed");
-    #endif /* SOFTDEBUG */
-
-    return CKR_SESSION_CLOSED;
   }
 
   delete sessions[hSession-1];
@@ -317,6 +309,8 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   if(pin != NULL_PTR) {
     // Is it the same password?
     if(strcmp(tmpPIN, pin) == 0) {
+      free(tmpPIN);
+
       #ifdef SOFTDEBUG
         syslog(LOG_DEBUG, "C_Login: OK");
       #endif /* SOFTDEBUG */

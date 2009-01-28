@@ -646,20 +646,20 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication,
     syslog(LOG_DEBUG, "Calling C_OpenSession");
   #endif /* SOFTDEBUG */
 
-  if(slotID != 1) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_OpenSession: Error: slotID %i does not exist", slotID);
-    #endif /* SOFTDEBUG */
-
-    return CKR_SLOT_ID_INVALID;
-  }
-
   if(softHSM == NULL_PTR) {
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_OpenSession: Error: Library is not initialized");
     #endif /* SOFTDEBUG */
 
     return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  if(slotID != 1) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_OpenSession: Error: slotID %i does not exist", slotID);
+    #endif /* SOFTDEBUG */
+
+    return CKR_SLOT_ID_INVALID;
   }
 
   return softHSM->openSession(flags, pApplication, Notify, phSession);
@@ -690,20 +690,20 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) {
     syslog(LOG_DEBUG, "Calling C_CloseAllSessions");
   #endif /* SOFTDEBUG */
 
-  if(slotID != 1) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_CloseAllSessions: Error: slotID %i does not exist", slotID);
-    #endif /* SOFTDEBUG */
-
-    return CKR_SLOT_ID_INVALID;
-  }
-
   if(softHSM == NULL_PTR) {
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_CloseAllSessions: Error: Library is not initialized");
     #endif /* SOFTDEBUG */
 
     return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
+  if(slotID != 1) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_CloseAllSessions: Error: slotID %i does not exist", slotID);
+    #endif /* SOFTDEBUG */
+
+    return CKR_SLOT_ID_INVALID;
   }
 
   return softHSM->closeAllSessions();
@@ -2408,6 +2408,8 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   // Add the key to the database.
   CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(softHSM->getPIN(), rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount, labelID);
   CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(softHSM->getPIN(), rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
+  free(labelID);
+  delete rsaKey;
 
   // Update the internal states.
   softHSM->getObjectFromDB(privRef);
