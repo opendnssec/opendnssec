@@ -59,7 +59,7 @@ class SoftObject {
 
     CK_RV addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
     CK_RV getAttribute(CK_ATTRIBUTE *attTemplate);
-    BigInt* getBigIntAttribute(CK_ATTRIBUTE_TYPE type);
+    BigInt getBigIntAttribute(CK_ATTRIBUTE_TYPE type);
     CK_RV setAttribute(CK_ATTRIBUTE *attTemplate, SoftDatabase *db);
     CK_BBOOL matchAttribute(CK_ATTRIBUTE *attTemplate);
 

@@ -193,15 +193,15 @@ CK_RV SoftObject::getAttribute(CK_ATTRIBUTE *attTemplate) {
 // Returns a big int of a given attribute.
 // We reveal anything, because this is used to create a key within the SoftHSM.
 
-BigInt* SoftObject::getBigIntAttribute(CK_ATTRIBUTE_TYPE type) {
+BigInt SoftObject::getBigIntAttribute(CK_ATTRIBUTE_TYPE type) {
   CK_ATTRIBUTE *localAttribute = attributes->getAttribute(type);
 
   // Do we have this attribute?
   if(localAttribute == NULL_PTR) {
-    return NULL_PTR;
+    return BigInt(0);
   }
 
-  return new BigInt((byte *)localAttribute->pValue, (u32bit)localAttribute->ulValueLen);
+  return BigInt((byte *)localAttribute->pValue, (u32bit)localAttribute->ulValueLen);
 }
 
 // Set the value of an attribute for this object.

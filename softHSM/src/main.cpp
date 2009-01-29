@@ -922,6 +922,14 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, C
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
+  if(phObject == NULL_PTR || pulObjectCount == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_FindObjects: Error: The arguments must not be NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
   CK_ULONG i = 0;
 
   while(i < ulMaxObjectCount && session->findCurrent->next != NULL_PTR) {
@@ -1096,6 +1104,14 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
     return CKR_OPERATION_ACTIVE;
   }
 
+  if(pMechanism == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_DigestInit: Error: pMechanism must not be NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
   CK_ULONG mechSize = 0;
   HashFunction *hashFunc = NULL_PTR;
 
@@ -1196,6 +1212,14 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     #endif /* SOFTDEBUG */
 
     return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pulDigestLen == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_Digest: Error: pulDigestLen must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
   }
 
   if(pDigest == NULL_PTR) {
@@ -1340,6 +1364,14 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
+  if(pulDigestLen == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_DigestFinal: Error: pulDigestLen must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
   if(pDigest == NULL_PTR) {
     *pulDigestLen = session->digestSize;
 
@@ -1421,6 +1453,14 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     #endif /* SOFTDEBUG */
 
     return CKR_OPERATION_ACTIVE;
+  }
+
+  if(pMechanism == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_SignInit: Error: pMechanism must not be NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
   }
 
   EMSA *hashFunc = NULL_PTR;
@@ -1531,6 +1571,14 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
     #endif /* SOFTDEBUG */
 
     return CKR_OPERATION_NOT_INITIALIZED;
+  }
+
+  if(pulSignatureLen == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_Sign: Error: pulSignatureLen must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
   }
 
   if(pSignature == NULL_PTR) {
@@ -1681,6 +1729,14 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
+  if(pulSignatureLen == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_SignFinal: Error: pulSignatureLen must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
   if(pSignature == NULL_PTR) {
     *pulSignatureLen = session->signSize;
 
@@ -1778,6 +1834,14 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     #endif /* SOFTDEBUG */
 
     return CKR_OPERATION_ACTIVE;
+  }
+
+  if(pMechanism == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_VerifyInit: Error: pMechanism must not be NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
   }
 
   EMSA *hashFunc = NULL_PTR;
@@ -1903,6 +1967,11 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
 
   // Check signature length
   if(session->verifySize != ulSignatureLen) {
+    // Finalizing
+    delete session->pkVerifier;
+    session->pkVerifier = NULL_PTR;
+    session->verifyInitialized = false;
+
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_Verify: The signatures does not have the same length");
     #endif /* SOFTDEBUG */
@@ -2044,6 +2113,11 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
 
   // Check signature length
   if(session->verifySize != ulSignatureLen) {
+    // Finalizing
+    delete session->pkVerifier;
+    session->pkVerifier = NULL_PTR;
+    session->verifyInitialized = false;
+
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_VerifyFinal: The signatures does not have the same length");
     #endif /* SOFTDEBUG */
@@ -2188,12 +2262,13 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     return CKR_USER_NOT_LOGGED_IN;
   }
 
-  if(ulPublicKeyAttributeCount < 1 || ulPrivateKeyAttributeCount < 1) {
+  if(pMechanism == NULL_PTR || pPublicKeyTemplate == NULL_PTR || pPrivateKeyTemplate == NULL_PTR ||
+     phPublicKey == NULL_PTR || phPrivateKey == NULL_PTR) {
     #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GenerateKeyPair: Error: Must provide some templates");
+      syslog(LOG_DEBUG, "C_GenerateKeyPair: Error: The arguments must not be NULL_PTR");
     #endif /* SOFTDEBUG */
 
-    return CKR_TEMPLATE_INCONSISTENT;
+    return CKR_ARGUMENTS_BAD;
   }
 
   switch(pMechanism->mechanism) {
@@ -2362,22 +2437,26 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_OBJECT_HANDLE_PTR phPublicKey, CK_OBJECT_HANDLE_PTR phPrivateKey) {
 
   CK_ULONG *modulusBits = NULL_PTR;
-  BigInt *exponent = NULL_PTR;
+  // Defaults to an exponent with e = 65537
+  BigInt *exponent = new Botan::BigInt("65537");;
 
   // Extract desired key information
   for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
     switch(pPublicKeyTemplate[i].type) {
       case CKA_MODULUS_BITS:
         if(pPublicKeyTemplate[i].ulValueLen != sizeof(CK_ULONG)) {
+          delete exponent;
+
           #ifdef SOFTDEBUG
             syslog(LOG_DEBUG, "C_GenerateKeyPair: Error: CKA_MODULUS_BITS does not have the size of CK_ULONG");
           #endif /* SOFTDEBUG */
 
-          return CKR_TEMPLATE_INCONSISTENT;
+          return CKR_TEMPLATE_INCOMPLETE;
         }
         modulusBits = (CK_ULONG*)pPublicKeyTemplate[i].pValue;
         break;
       case CKA_PUBLIC_EXPONENT:
+        delete exponent;
         exponent = new Botan::BigInt((byte*)pPublicKeyTemplate[i].pValue,(u32bit)pPublicKeyTemplate[i].ulValueLen);
         break;
       default:
@@ -2387,6 +2466,8 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
 
   // CKA_MODULUS_BITS must be specified to be able to generate a key pair.
   if(modulusBits == NULL_PTR) {
+    delete exponent;
+
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_GenerateKeyPair: Error: Missing CKA_MODULUS_BITS in pPublicKeyTemplate");
     #endif /* SOFTDEBUG */
@@ -2394,22 +2475,41 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
     return CKR_TEMPLATE_INCOMPLETE;
   }
 
-  // Defaults to an exponent with e = 65537
-  if(exponent == NULL_PTR) {
-    exponent = new Botan::BigInt("65537");
-  }
-
   // Generate the key
   RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*session->rng, (u32bit)*modulusBits, exponent->to_u32bit());
+  delete exponent;
 
   // Default label/ID if nothing is specified by the user.
   char *labelID = getNewLabelAndID();
 
-  // Add the key to the database.
+  // Add the private key to the database.
   CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(softHSM->getPIN(), rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount, labelID);
+
+  if(privRef == 0) {
+    free(labelID);
+    delete rsaKey;
+    
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GenerateKeyPair: Error: Could not save private key in DB");
+    #endif /* SOFTDEBUG */
+
+    return CKR_GENERAL_ERROR;
+  }
+
+  // Add the public key to the database.
   CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(softHSM->getPIN(), rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
   free(labelID);
   delete rsaKey;
+
+  if(pubRef == 0) {
+    session->db->deleteObject(softHSM->getPIN(), privRef);
+
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GenerateKeyPair: Error: Could not save public key in DB");
+    #endif /* SOFTDEBUG */
+
+    return CKR_GENERAL_ERROR;
+  }
 
   // Update the internal states.
   softHSM->getObjectFromDB(privRef);

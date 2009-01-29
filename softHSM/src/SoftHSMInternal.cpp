@@ -422,6 +422,14 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
     return CKR_OBJECT_HANDLE_INVALID;
   }
 
+  if(pTemplate == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_GetAttributeValue: Error: pTemplate must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
   CK_RV result = CKR_OK;
   CK_RV objectResult = CKR_OK;
 
@@ -470,6 +478,14 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
     return CKR_SESSION_READ_ONLY;
   }
 
+  if(pTemplate == NULL_PTR) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_SetAttributeValue: Error: pTemplate must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
+  }
+
   CK_RV result = CKR_OK;
   CK_RV objectResult = CKR_OK;
 
@@ -508,6 +524,14 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
     #endif /* SOFTDEBUG */
 
     return CKR_OPERATION_ACTIVE;
+  }
+
+  if(pTemplate == NULL_PTR && ulCount > 0) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_FindObjectsInit: Error: pTemplate must not be a NULL_PTR");
+    #endif /* SOFTDEBUG */
+
+    return CKR_ARGUMENTS_BAD;
   }
 
   if(session->findAnchor != NULL_PTR) {
@@ -560,6 +584,14 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
     #endif /* SOFTDEBUG */
 
     return CKR_SESSION_HANDLE_INVALID;
+  }
+
+  if(session->isReadWrite() == false) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_DestroyObject: Error: The session is read only");
+    #endif /* SOFTDEBUG */
+
+    return CKR_SESSION_READ_ONLY;
   }
 
   // Remove the key from the sessions' key cache

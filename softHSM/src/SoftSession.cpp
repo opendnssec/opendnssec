@@ -136,26 +136,26 @@ Public_Key* SoftSession::getKey(SoftObject *object) {
     if(object->keyType == CKK_RSA) {
       // Clone the key
       if(object->objectClass == CKO_PRIVATE_KEY) {
-        BigInt *bigN = object->getBigIntAttribute(CKA_MODULUS);
-        BigInt *bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
-        BigInt *bigD = object->getBigIntAttribute(CKA_PRIVATE_EXPONENT);
-        BigInt *bigP = object->getBigIntAttribute(CKA_PRIME_1);
-        BigInt *bigQ = object->getBigIntAttribute(CKA_PRIME_2);
+        BigInt bigN = object->getBigIntAttribute(CKA_MODULUS);
+        BigInt bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
+        BigInt bigD = object->getBigIntAttribute(CKA_PRIVATE_EXPONENT);
+        BigInt bigP = object->getBigIntAttribute(CKA_PRIME_1);
+        BigInt bigQ = object->getBigIntAttribute(CKA_PRIME_2);
 
-        if(bigN == NULL_PTR || bigE == NULL_PTR || bigD == NULL_PTR || bigP == NULL_PTR || bigQ == NULL_PTR) {
+        if(bigN.is_zero () || bigE.is_zero() || bigD.is_zero() || bigP.is_zero() || bigQ.is_zero()) {
           return NULL_PTR;
         }
 
-        tmpKey = new RSA_PrivateKey(*rng, *bigP, *bigQ, *bigE, *bigD, *bigN);
+        tmpKey = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
       } else {
-        BigInt *bigN = object->getBigIntAttribute(CKA_MODULUS);
-        BigInt *bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
+        BigInt bigN = object->getBigIntAttribute(CKA_MODULUS);
+        BigInt bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
 
-        if(bigN == NULL_PTR || bigE == NULL_PTR) {
+        if(bigN.is_zero() || bigE.is_zero()) {
           return NULL_PTR;
         }
 
-        tmpKey = new RSA_PublicKey(*bigN, *bigE);
+        tmpKey = new RSA_PublicKey(bigN, bigE);
       }
 
       // Create a new key store object.
