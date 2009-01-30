@@ -379,5 +379,12 @@ main(int argc, char **argv)
 	if (input_file != stdin) {
 		fclose(input_file);
 	}
-	return LDNS_STATUS_OK;
+	if (status == LDNS_STATUS_SYNTAX_EMPTY) {
+		/* last line empty is no problem */
+		status = LDNS_STATUS_OK;
+	}
+	if (status != LDNS_STATUS_OK) {
+		fprintf(stderr, "Signer problem: %s\n", ldns_get_errorstr_by_id(status));
+	}
+	return status;
 }
