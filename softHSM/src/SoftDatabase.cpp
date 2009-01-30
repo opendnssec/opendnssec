@@ -122,6 +122,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, C
   CK_KEY_TYPE keyType = CKK_RSA;
   CK_MECHANISM_TYPE mechType = CKM_RSA_PKCS_KEY_PAIR_GEN;
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
+  CK_DATE emptyDate;
 
   // General information
   this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass));
@@ -140,6 +141,8 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, C
   this->saveAttribute(objectID, CKA_VERIFY, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_VERIFY_RECOVER, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_WRAP, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0);
+  this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0);
 
   // The RSA modulus bits
   IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
@@ -177,6 +180,14 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, C
           this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
         }
         break;
+      // Date
+      case CKA_START_DATE:
+      case CKA_END_DATE:
+        if(pPublicKeyTemplate[i].ulValueLen == sizeof(CK_DATE) ||
+           pPublicKeyTemplate[i].ulValueLen == 0) {
+          this->saveAttribute(objectID, pPublicKeyTemplate[i].type, pPublicKeyTemplate[i].pValue, pPublicKeyTemplate[i].ulValueLen);
+        }
+        break;
       default:
         break;
     }
@@ -205,6 +216,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
   CK_KEY_TYPE keyType = CKK_RSA;
   CK_MECHANISM_TYPE mechType = CKM_RSA_PKCS_KEY_PAIR_GEN;
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
+  CK_DATE emptyDate;
 
   // General information
   this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass));
@@ -229,6 +241,8 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
   this->saveAttribute(objectID, CKA_UNWRAP, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_EXTRACTABLE, &ckFalse, sizeof(ckFalse));
   this->saveAttribute(objectID, CKA_NEVER_EXTRACTABLE, &ckTrue, sizeof(ckTrue));
+  this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0);
+  this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0);
 
   // The RSA modulus bits
   IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
@@ -278,6 +292,14 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
       case CKA_WRAP_WITH_TRUSTED:
       case CKA_ALWAYS_AUTHENTICATE:
         if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+        }
+        break;
+      // Date
+      case CKA_START_DATE:
+      case CKA_END_DATE:
+        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_DATE) ||
+           pPrivateKeyTemplate[i].ulValueLen == 0) {
           this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
         }
         break;

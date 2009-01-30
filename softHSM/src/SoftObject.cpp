@@ -235,6 +235,14 @@ CK_RV SoftObject::setAttribute(CK_ATTRIBUTE *attTemplate, SoftDatabase *db) {
         return CKR_ATTRIBUTE_VALUE_INVALID;
       }
       break;
+    case CKA_START_DATE:
+    case CKA_END_DATE:
+      // We can change, but check size
+      if(attTemplate->ulValueLen == sizeof(CK_DATE) || 
+         attTemplate->ulValueLen == 0) {
+        break;
+      }
+      return CKR_ATTRIBUTE_VALUE_INVALID;
     case CKA_ENCRYPT:
     case CKA_VERIFY:
     case CKA_VERIFY_RECOVER:
