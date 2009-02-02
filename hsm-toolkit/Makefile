@@ -4,9 +4,9 @@ TARGET = hsm-toolkit
 
 CC = gcc
 
-CFLAGS = -m64 -O3 -W -Wall -Werror -g -I/usr/include/security
-LDFLAGS = -L/usr/lib/sparcv9
-LIBS = -lpkcs11
+CFLAGS = -O3 -W -Wall -Werror -g -I/usr/include/security
+LDFLAGS = -L/usr/local/lib/
+LIBS = -lsofthsm
 
 all: $(TARGET)
 
