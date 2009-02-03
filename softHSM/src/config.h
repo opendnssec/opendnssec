@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2008 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2008-2009 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@
 
 // Version number for SoftHSM
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 2
+#define VERSION_MINOR 3
 
 // Maximum number of concurrent sessions
 #define MAX_SESSION_COUNT 2048

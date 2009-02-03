@@ -2,6 +2,12 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+New in 0.3; 2009-02-03 Rickard Bondesson
+
+* A better mutex handling. Each PKCS#11 function call is treated 
+  as atomic functions. The mutex handling is activated when given 
+  correct parameters to the init function. 
+
 New in 0.2; 2009-01-23 Rickard Bondesson
 
 * Two libraries are compiled. One normal (libsofthsm.so) and
