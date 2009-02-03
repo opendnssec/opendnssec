@@ -106,6 +106,11 @@ class SoftHSMInternal {
     CK_LOCKMUTEX lockMutexFunc;
     CK_UNLOCKMUTEX unlockMutexFunc;
     bool usesThreading;
+
+    // Mutex
+    CK_VOID_PTR pMutexUserHandling;
+    CK_VOID_PTR pMutexSessionHandling;
+    CK_VOID_PTR pMutexObjectHandling;
 };
 
 #endif /* SOFTHSM_SOFTHSMINTERNAL_H */
