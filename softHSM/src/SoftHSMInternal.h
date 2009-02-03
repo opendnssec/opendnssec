@@ -83,10 +83,8 @@ class SoftHSMInternal {
       CK_ULONG ulCount);
 
     // Mutex handling
-    CK_RV createMutex(CK_VOID_PTR_PTR newMutex);
-    CK_RV destroyMutex(CK_VOID_PTR mutex);
-    CK_RV lockMutex(CK_VOID_PTR mutex);
-    CK_RV unlockMutex(CK_VOID_PTR mutex);
+    CK_RV lockMutex();
+    CK_RV unlockMutex();
 
   private:
     char *pin;
@@ -107,10 +105,9 @@ class SoftHSMInternal {
     CK_UNLOCKMUTEX unlockMutexFunc;
     bool usesThreading;
 
-    // Mutex
-    CK_VOID_PTR pMutexUserHandling;
-    CK_VOID_PTR pMutexSessionHandling;
-    CK_VOID_PTR pMutexObjectHandling;
+    CK_RV createMutex(CK_VOID_PTR_PTR newMutex);
+    CK_RV destroyMutex(CK_VOID_PTR mutex);
+    CK_VOID_PTR pHSMMutex;
 };
 
 #endif /* SOFTHSM_SOFTHSMINTERNAL_H */

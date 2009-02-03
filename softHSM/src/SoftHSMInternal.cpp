@@ -66,47 +66,37 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
   lockMutexFunc = lMutex;
   unlockMutexFunc = uMutex;
   usesThreading = threading;
+  this->createMutex(&pHSMMutex);
 
   db = new SoftDatabase();
-
-  this->createMutex(&pMutexUserHandling);
-  this->createMutex(&pMutexSessionHandling);
-  this->createMutex(&pMutexObjectHandling);
 }
 
 SoftHSMInternal::~SoftHSMInternal() {
-  this->lockMutex(pMutexSessionHandling);
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       delete sessions[i];
       sessions[i] = NULL_PTR;
     }
   }
-  openSessions = 0;
-  this->unlockMutex(pMutexSessionHandling);
 
-  this->lockMutex(pMutexObjectHandling);
+  openSessions = 0;
+
   if(objects != NULL_PTR) {
     delete objects;
     objects = NULL_PTR;
   }
-  this->unlockMutex(pMutexObjectHandling);
 
-  this->lockMutex(pMutexUserHandling);
   if(pin != NULL_PTR) {
     free(pin);
     pin = NULL_PTR;
   }
-  this->unlockMutex(pMutexUserHandling);
 
   if(db != NULL_PTR) {
     delete db;
     db = NULL_PTR;
   }
 
-  this->destroyMutex(pMutexUserHandling);
-  this->destroyMutex(pMutexSessionHandling);
-  this->destroyMutex(pMutexObjectHandling);
+  this->destroyMutex(pHSMMutex);
 }
 
 int SoftHSMInternal::getSessionCount() {
@@ -116,6 +106,14 @@ int SoftHSMInternal::getSessionCount() {
 // Creates a new session if there is enough space available.
 
 CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, CK_SESSION_HANDLE_PTR phSession) {
+  if(openSessions >= MAX_SESSION_COUNT) {
+    #ifdef SOFTDEBUG
+      syslog(LOG_DEBUG, "C_OpenSession: Error: Can not open more sessions. Have reached the maximum number.");
+    #endif /* SOFTDEBUG */
+
+    return CKR_SESSION_COUNT;
+  }
+
   if((flags & CKF_SERIAL_SESSION) == 0) {
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_OpenSession: Error: Can not open a non serial session");
@@ -132,7 +130,6 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
     return CKR_ARGUMENTS_BAD;
   }
 
-  this->lockMutex(pMutexSessionHandling);
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] == NULL_PTR) {
       openSessions++;
@@ -141,8 +138,6 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
       sessions[i]->Notify = Notify;
       *phSession = (CK_SESSION_HANDLE)(i+1);
 
-      this->unlockMutex(pMutexSessionHandling);
-
       #ifdef SOFTDEBUG
         syslog(LOG_DEBUG, "C_OpenSession: OK");
       #endif /* SOFTDEBUG */
@@ -150,7 +145,6 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
       return CKR_OK;
     }
   }
-  this->unlockMutex(pMutexSessionHandling);
 
   #ifdef SOFTDEBUG
     syslog(LOG_DEBUG, "C_OpenSession: Error: Can not open more sessions. Have reached the maximum number.");
@@ -162,11 +156,7 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
 // Closes the specific session.
 
 CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
-  this->lockMutex(pMutexSessionHandling);
-
   if(hSession > MAX_SESSION_COUNT || hSession < 1 || sessions[hSession-1] == NULL_PTR) {
-    this->unlockMutex(pMutexSessionHandling);
-
     #ifdef SOFTDEBUG
       syslog(LOG_DEBUG, "C_CloseSession: The session does not exist");
     #endif /* SOFTDEBUG */
@@ -176,18 +166,15 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
 
   delete sessions[hSession-1];
   sessions[hSession-1] = NULL_PTR;
-  openSessions--;
 
-  this->unlockMutex(pMutexSessionHandling);
+  openSessions--;
 
   // Last session. Clear objects.
   if(openSessions == 0) {
-    this->lockMutex(pMutexUserHandling);
     if(pin != NULL_PTR) {
       free(pin);
       pin = NULL_PTR;
     }
-    this->unlockMutex(pMutexUserHandling);
 
     clearObjectsAndCaches();
   }
@@ -202,22 +189,19 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
 // Closes all the sessions.
 
 CK_RV SoftHSMInternal::closeAllSessions() {
-  this->lockMutex(pMutexSessionHandling);
   for (int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       delete sessions[i];
       sessions[i] = NULL_PTR;
     }
   }
-  openSessions = 0;
-  this->unlockMutex(pMutexSessionHandling);
 
-  this->lockMutex(pMutexUserHandling);
+  openSessions = 0;
+
   if(pin != NULL_PTR) {
     free(pin);
     pin = NULL_PTR;
   }
-  this->unlockMutex(pMutexUserHandling);
 
   clearObjectsAndCaches();
 
@@ -324,15 +308,11 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   memcpy(tmpPIN, pinVector.begin(), size);
   delete digestPIN;
 
-  this->lockMutex(pMutexUserHandling);
-
   // Is someone already logged in?
   if(pin != NULL_PTR) {
     // Is it the same password?
     if(strcmp(tmpPIN, pin) == 0) {
       free(tmpPIN);
-
-      this->unlockMutex(pMutexUserHandling);
 
       #ifdef SOFTDEBUG
         syslog(LOG_DEBUG, "C_Login: OK");
@@ -341,14 +321,11 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
       return CKR_OK;
     } else {
       free(pin);
+      clearObjectsAndCaches();
     }
   }
 
   pin = tmpPIN;
-
-  this->unlockMutex(pMutexUserHandling);
-
-  clearObjectsAndCaches();
 
   getAllObjects();
 
@@ -373,12 +350,10 @@ CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  this->lockMutex(pMutexUserHandling);
   if(pin != NULL_PTR) {
     free(pin);
     pin = NULL_PTR;
   }
-  this->unlockMutex(pMutexUserHandling);
 
   clearObjectsAndCaches();
 
@@ -403,11 +378,7 @@ SoftSession* SoftHSMInternal::getSession(CK_SESSION_HANDLE hSession) {
 // Returns NULL_PTR if no matching object is found.
 
 SoftObject* SoftHSMInternal::getObject(CK_OBJECT_HANDLE hObject) {
-  this->lockMutex(pMutexObjectHandling);
-  SoftObject *retObject = objects->getObject(hObject);
-  this->unlockMutex(pMutexObjectHandling);
-
-  return retObject;
+  return objects->getObject(hObject);
 }
 
 // Checks if the user is logged in.
@@ -465,14 +436,12 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   CK_RV result = CKR_OK;
   CK_RV objectResult = CKR_OK;
 
-  this->lockMutex(pMutexObjectHandling);
   for(CK_ULONG i = 0; i < ulCount; i++) {
     objectResult = object->getAttribute(&pTemplate[i]);
     if(objectResult != CKR_OK) {
       result = objectResult;
     }
   }
-  this->unlockMutex(pMutexObjectHandling);
 
   #ifdef SOFTDEBUG
     syslog(LOG_DEBUG, "C_GetAttributeValue: Returning CK_RV = %i", result);
@@ -524,14 +493,12 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   CK_RV objectResult = CKR_OK;
 
   // Loop through all the attributes in the template
-  this->lockMutex(pMutexObjectHandling);
   for(CK_ULONG i = 0; i < ulCount; i++) {
     objectResult = object->setAttribute(&pTemplate[i], session->db);
     if(objectResult != CKR_OK) {
       result = objectResult;
     }
   }
-  this->unlockMutex(pMutexObjectHandling);
 
   #ifdef SOFTDEBUG
     syslog(LOG_DEBUG, "C_SetAttributeValue: Returning CK_RV = %i", result);
@@ -578,8 +545,6 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   session->findAnchor = new SoftFind();
   session->findCurrent = session->findAnchor;
 
-  this->lockMutex(pMutexObjectHandling);
-
   SoftObject *currentObject = objects;
 
   // Check with all objects.
@@ -601,8 +566,6 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
     // Iterate
     currentObject = currentObject->nextObject;
   }
-
-  this->unlockMutex(pMutexObjectHandling);
 
   session->findInitialized = true;
 
@@ -635,21 +598,17 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   }
 
   // Remove the key from the sessions' key cache
-  this->lockMutex(pMutexSessionHandling);
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       sessions[i]->keyStore->removeKey(hObject);
     }
   }
-  this->unlockMutex(pMutexSessionHandling);
 
   // Delete the object from the database
   db->deleteObject(this->getPIN(), hObject);
 
   // Delete the object from the internal state
-  this->lockMutex(pMutexObjectHandling);
   CK_RV result = objects->deleteObj(hObject);
-  this->unlockMutex(pMutexObjectHandling);
 
   #ifdef SOFTDEBUG
     syslog(LOG_DEBUG, "C_DestroyObject: Returning CK_RV = %i", result);
@@ -682,24 +641,24 @@ CK_RV SoftHSMInternal::destroyMutex(CK_VOID_PTR mutex) {
 
 // Wrapper for the mutex function.
 
-CK_RV SoftHSMInternal::lockMutex(CK_VOID_PTR mutex) {
+CK_RV SoftHSMInternal::lockMutex() {
   if(!usesThreading) {
     return CKR_OK;
   }
 
   // Calls the real mutex function via its function pointer.
-  return lockMutexFunc(mutex);
+  return lockMutexFunc(pHSMMutex);
 }
 
 // Wrapper for the mutex function.
 
-CK_RV SoftHSMInternal::unlockMutex(CK_VOID_PTR mutex) {
+CK_RV SoftHSMInternal::unlockMutex() {
   if(!usesThreading) {
     return CKR_OK;
   }
 
   // Calls the real mutex function via its function pointer.
-  return unlockMutexFunc(mutex);
+  return unlockMutexFunc(pHSMMutex);
 }
 
 // Add a new object from the database
@@ -709,10 +668,8 @@ void SoftHSMInternal::getObjectFromDB(CK_OBJECT_HANDLE keyRef) {
   SoftObject *newObject = db->populateObj(keyRef);
 
   if(newObject != NULL_PTR) {
-    this->lockMutex(pMutexObjectHandling);
     newObject->nextObject = objects;
     objects = newObject;
-    this->unlockMutex(pMutexObjectHandling);
   }
 }
 
@@ -721,10 +678,7 @@ void SoftHSMInternal::getObjectFromDB(CK_OBJECT_HANDLE keyRef) {
 
 void SoftHSMInternal::getAllObjects() {
   int objectCount = 0;
-
-  this->lockMutex(pMutexUserHandling);
   CK_OBJECT_HANDLE *objectRefs = db->getObjectRefs(pin, objectCount);
-  this->unlockMutex(pMutexUserHandling);
 
   if(objectRefs == NULL_PTR) {
     return;
@@ -741,15 +695,12 @@ void SoftHSMInternal::getAllObjects() {
 
 void SoftHSMInternal::clearObjectsAndCaches() {
   // Clear all the objects
-  this->lockMutex(pMutexObjectHandling);
   if(objects != NULL_PTR) {
     delete objects;
   }
   objects = new SoftObject();
-  this->unlockMutex(pMutexObjectHandling);
 
   // Clear the key caches
-  this->lockMutex(pMutexSessionHandling);
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       if(sessions[i]->keyStore != NULL_PTR) {
@@ -758,5 +709,4 @@ void SoftHSMInternal::clearObjectsAndCaches() {
       sessions[i]->keyStore = new SoftKeyStore();
     }
   }  
-  this->unlockMutex(pMutexSessionHandling);
 }
