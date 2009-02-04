@@ -63,6 +63,7 @@ static char sqlDeleteTrigger[] =
 
 SoftDatabase::SoftDatabase() {
   char *sqlError;
+  db = NULL_PTR;
 
   // Open the database
   char *dbPath = getDatabasePath();
@@ -80,6 +81,7 @@ SoftDatabase::SoftDatabase() {
     result = sqlite3_exec(db, sqlCreateTableObjects, NULL, NULL, &sqlError);
     if(result) {
       fprintf(stderr, "Can't create table Objects: %s\n", sqlError);
+      sqlite3_free(sqlError);
       sqlite3_close(db);
       exit(1);
     }
@@ -91,6 +93,7 @@ SoftDatabase::SoftDatabase() {
     result = sqlite3_exec(db, sqlCreateTableAttributes, NULL, NULL, &sqlError);
     if(result) {
       fprintf(stderr, "Can't create table Attributes: %s\n", sqlError);
+      sqlite3_free(sqlError);
       sqlite3_close(db);
       exit(1);
     }
@@ -338,6 +341,8 @@ void SoftDatabase::saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE ty
   int result = sqlite3_prepare_v2(db, sqlFind.c_str(), sqlFind.size(), &find_sql, NULL);
 
   if(result) {
+    sqlite3_finalize(find_sql);
+
     return;
   }
 
@@ -354,6 +359,9 @@ void SoftDatabase::saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE ty
     result = sqlite3_prepare_v2(db, sqlUpdate.c_str(), sqlUpdate.size(), &update_sql, NULL);
 
     if(result) {
+      sqlite3_finalize(find_sql);
+      sqlite3_finalize(update_sql);
+
       return;
     }
 
@@ -371,6 +379,9 @@ void SoftDatabase::saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE ty
     result = sqlite3_prepare_v2(db, sqlInsert.c_str(), sqlInsert.size(), &insert_sql, NULL);
 
     if(result) {
+      sqlite3_finalize(find_sql);
+      sqlite3_finalize(insert_sql);
+
       return;
     }
 
@@ -409,6 +420,8 @@ SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
   int result = sqlite3_prepare(db, sqlQueryStr.c_str(), sqlQueryStr.size(), &select_sql, NULL);
 
   if(result) {
+    sqlite3_finalize(select_sql);
+
     return NULL_PTR;
   }
 
@@ -478,6 +491,8 @@ CK_OBJECT_HANDLE* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
 
   // Error?
   if(result != 0) {
+    sqlite3_finalize(count_sql);
+
     return NULL_PTR;
   }
 
@@ -486,6 +501,8 @@ CK_OBJECT_HANDLE* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
 
   // Get the result from the query
   if(sqlite3_step(count_sql) != SQLITE_ROW) {
+    sqlite3_finalize(count_sql);
+
     return NULL_PTR;
   }
 
@@ -503,6 +520,9 @@ CK_OBJECT_HANDLE* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
 
   // Error?
   if(result != 0) {
+    free(objectRefs);
+    sqlite3_finalize(select_sql);
+
     return NULL_PTR;
   }
 
