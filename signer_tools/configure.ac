@@ -90,6 +90,19 @@ int test() {
 }
 ], [CFLAGS="-D__EXTENSIONS__ $CFLAGS"])
 
+# if caller uses --with-pkcs11, compile support for it in statically
+# (it will still be loaded dynamically when ldns_pkcs11_load_functions is called
+# with a library name. if that name is NULL, the linked module will be used)
+PKCS11_MODULE=""
+AC_ARG_WITH(pkcs11-module, 
+	AC_HELP_STRING([--with-pkcs11-module=PATH        specify PKCS11 module to build in as default])
+	,
+	[
+		PKCS11_MODULE="$withval"
+		AC_DEFINE([HAVE_PKCS11_MODULE], [], [Define if we have a static default PKCS11 module])
+	]
+)
+AC_SUBST(PKCS11_MODULE)
 
 # check for ldns in --with-ldns
 AC_ARG_WITH(ldns, 

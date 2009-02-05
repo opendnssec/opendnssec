@@ -1,6 +1,13 @@
 #include "pkcs11/pkcs11_linux.h"
 #include "pkcs11/pkcs11t.h"
 
+/* we only need one function definition from pkcs11,
+ * so we don't need to include f, but we need a placeholder
+ * for this one */
+#ifdef HAVE_PKCS11_MODULE
+CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR);
+#endif
+
 struct ldns_pkcs11_ctx_struct {
 	CK_FUNCTION_LIST_PTR function_list;
 	CK_SESSION_HANDLE session;

@@ -245,39 +245,49 @@ ldns_pkcs11_check_rv(CK_RV rv, const char *message)
 }
 
 static CK_RV
-ldns_pkcs11_load_functions(CK_FUNCTION_LIST_PTR_PTR ppP11,
+ldns_pkcs11_load_functions(CK_FUNCTION_LIST_PTR_PTR pkcs11_functions,
                            const char *dl_file)
 {
 	CK_C_GetFunctionList pGetFunctionList = NULL;
 
+	if (dl_file) {
+		/* library provided by application or user */
 #if defined(HAVE_LOADLIBRARY)
-	// Load PKCS #11 library
-	HINSTANCE hDLL = LoadLibrary(_T(dl_file));
+		// Load PKCS #11 library
+		HINSTANCE hDLL = LoadLibrary(_T(dl_file));
 
-	if (hDLL == NULL)
-	{
-		// Failed to load the PKCS #11 library
-		return CKR_FUNCTION_FAILED;
-	}
+		if (hDLL == NULL)
+		{
+			// Failed to load the PKCS #11 library
+			return CKR_FUNCTION_FAILED;
+		}
 
-	// Retrieve the entry point for C_GetFunctionList
-	pGetFunctionList = (CK_C_GetFunctionList)
-		GetProcAddress(hDLL, _T("C_GetFunctionList"));
+		// Retrieve the entry point for C_GetFunctionList
+		pGetFunctionList = (CK_C_GetFunctionList)
+			GetProcAddress(hDLL, _T("C_GetFunctionList"));
 #elif defined(HAVE_DLOPEN)
-	// Load PKCS #11 library
-	void* pDynLib = dlopen(dl_file, RTLD_LAZY);
+		// Load PKCS #11 library
+		void* pDynLib = dlopen(dl_file, RTLD_LAZY);
 
-	if (pDynLib == NULL)
-	{
-		// Failed to load the PKCS #11 library
-		fprintf(stderr, "dlopen() failed: %s\n", dlerror());
-		return CKR_FUNCTION_FAILED;
-	}
+		if (pDynLib == NULL)
+		{
+			// Failed to load the PKCS #11 library
+			fprintf(stderr, "dlopen() failed: %s\n", dlerror());
+			return CKR_FUNCTION_FAILED;
+		}
 
-	// Retrieve the entry point for C_GetFunctionList
-	pGetFunctionList = (CK_C_GetFunctionList)
-		dlsym(pDynLib, "C_GetFunctionList");
+		// Retrieve the entry point for C_GetFunctionList
+		pGetFunctionList = (CK_C_GetFunctionList)
+			dlsym(pDynLib, "C_GetFunctionList");
 #endif
+	} else {
+		/* no library provided, use the statically compiled softHSM */
+#ifdef HAVE_PKCS11_MODULE
+		return C_GetFunctionList(pkcs11_functions);
+#else 
+		fprintf(stderr, "Error, no pkcs11 module given, none compiled in\n");
+#endif
+	}
 
 	if (pGetFunctionList == NULL)
 	{
@@ -286,7 +296,7 @@ ldns_pkcs11_load_functions(CK_FUNCTION_LIST_PTR_PTR ppP11,
 	}
 
 	// Retrieve the function list
-	(pGetFunctionList)(ppP11);
+	(pGetFunctionList)(pkcs11_functions);
 
 	return CKR_OK;
 }
@@ -340,6 +350,7 @@ ldns_pkcs11_login(CK_FUNCTION_LIST_PTR pkcs11_functions,
 		                               pin,
 		                               strlen((char *)pin));
 		ldns_pkcs11_check_rv(rv, "log in");
+		fprintf(stderr, "Logged in\n");
 	} else {
 		fprintf(stderr, "No pin\n");
 		exit(3);

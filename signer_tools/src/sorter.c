@@ -211,6 +211,7 @@ main(int argc, char **argv)
 				printf("Error reading %s: %s\n",
 					  optarg,
 					  strerror(errno));
+				exit(1);
 			}
 			break;
 		case 'h':

@@ -43,8 +43,8 @@ main(int argc, char **argv)
 	ldns_algorithm key_algorithm;
 	
 	/* pkcs11 vars */
-	char *pkcs11_lib_file =
-	   "/usr/local/lib/libsofthsm.so";
+	char *pkcs11_lib_file = NULL;
+	//   "/usr/local/lib/libsofthsm.so";
 	ldns_pkcs11_ctx *pkcs11_ctx;
 	char *pin = NULL;
 	
