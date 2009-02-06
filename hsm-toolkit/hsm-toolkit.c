@@ -141,6 +141,48 @@ error_table error_str[] =
     { CKR_FUNCTION_REJECTED, "CKR_FUNCTION_REJECTED"}
 };
 
+void Add_Attr(CK_ATTRIBUTE_PTR attr, int type, const void *Value, size_t size){
+        attr->type = type;
+        attr->pValue = (size)?malloc(size):NULL_PTR;
+        memcpy(attr->pValue, Value, size);
+        attr->ulValueLen = size;
+}
+
+void Flush_Attrs(CK_ATTRIBUTE_PTR attr, unsigned int n)
+{
+        while (n--) 
+		{
+        	if (attr[n].pValue) free(attr[n].pValue);
+        }
+}
+
+const void* Get_Val(CK_ATTRIBUTE_PTR attr,unsigned int type,unsigned int n)
+{
+	    while (n--)
+	    {
+			if (attr[n].type == type) return attr[n].pValue;
+		}
+		return 0;
+}
+
+unsigned int Get_Val_Len(CK_ATTRIBUTE_PTR attr,unsigned int type,unsigned int n)
+{
+	    while (n--)
+	    {
+			if (attr[n].type == type) return attr[n].ulValueLen;
+		}
+		return 0;
+}
+
+void Init_Attrs(CK_ATTRIBUTE_PTR attr, unsigned int n)
+{
+        while (n--) 
+		{
+        	if ((attr[n].ulValueLen) && (attr[n].pValue == NULL_PTR))
+				{attr[n].pValue = calloc(attr[n].ulValueLen,1);}	
+        }
+}
+
 const char*
 get_rv_str(CK_RV rv)
 {
@@ -173,24 +215,14 @@ check_rv (const char *message,CK_RV rv)
 CK_ULONG
 LabelExists(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
 {
-    // build template
-    CK_ATTRIBUTE search[] =
-    {
-        {
-            CKA_LABEL, label, strlen ((char *) label)
-        }
-    };
     CK_ULONG count = 0;
     CK_OBJECT_HANDLE key;
-
-    CK_RV rv = C_FindObjectsInit (ses, search, 1);
-    check_rv("C_FindObjectsInit", rv );
-
-    rv = C_FindObjects(ses, &key, 1, &count);
-    check_rv("C_FindObjects", rv );
-
-    rv = C_FindObjectsFinal(ses);
-    check_rv("C_FindObjectsFinal", rv );
+	CK_ATTRIBUTE search[1];
+	Add_Attr(search,CKA_LABEL,label,strlen ((char *) label));
+    check_rv("C_FindObjectsInit", C_FindObjectsInit (ses, search, 1));
+	Flush_Attrs(search,1);
+    check_rv("C_FindObjects", C_FindObjects(ses, &key, 1, &count));
+    check_rv("C_FindObjectsFinal", C_FindObjectsFinal(ses));
     return count;
 }
 
@@ -209,98 +241,61 @@ ActionRemoveObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
         exit (1);
     }
 
-    CK_ATTRIBUTE search[] =
-    {
-        {
-            CKA_LABEL, label, strlen ((char *) label)
-        }
-    };
+	CK_ATTRIBUTE search[1];
+	Add_Attr(search,CKA_LABEL,label,strlen ((char *) label));
+
     CK_OBJECT_CLASS class = 0;
-    CK_ATTRIBUTE attributes[] =
-    {
-        {CKA_CLASS, &class, sizeof(class)},
-    };
+	CK_ATTRIBUTE attributes[1];
+	Add_Attr(attributes,CKA_CLASS, &class, sizeof(class));
 
     CK_ULONG count = 0;
     CK_OBJECT_HANDLE object;
 
-    CK_RV rv = C_FindObjectsInit (ses, search, 1);
-    check_rv("C_FindObjectsInit", rv );
-
+    check_rv("C_FindObjectsInit", C_FindObjectsInit (ses, search, 1));
+	Flush_Attrs(search,1);
     while (1)
     {
-        rv = C_FindObjects(ses, &object, 1, &count);
-        check_rv("C_FindObjects", rv);
+        check_rv("C_FindObjects", C_FindObjects(ses, &object, 1, &count));
         if (count == 0) break;
-        rv = C_GetAttributeValue(ses, object, attributes, 1);
-        check_rv("C_GetAttributeValue",rv);
-
-        rv = C_DestroyObject(ses, object);
-        check_rv("C_DestroyObject",rv);
+        check_rv("C_GetAttributeValue",C_GetAttributeValue(ses, object, attributes, 1));
+        check_rv("C_DestroyObject",C_DestroyObject(ses, object));
         printf("Destroyed %s key object, labeled %s\n",(class == CKO_PRIVATE_KEY)?"Private":"Public ",label);
     }
-
-    rv = C_FindObjectsFinal(ses);
-    check_rv("C_FindObjectsFinal", rv );
+	Flush_Attrs(attributes,1);
+    check_rv("C_FindObjectsFinal", C_FindObjectsFinal(ses));
 }
 
 void
 ActionListObjects(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
-{
-    CK_RV rv;
-    if (label != NULL_PTR)
-    {
-        // list one
-        CK_ATTRIBUTE search[] =
-        {
-            {
-                CKA_LABEL, label, strlen ((char *) label)
-            }
-        };
-
-        rv = C_FindObjectsInit (ses, search, 1);
-    }
-    else
-    {
-        // list all
-        rv = C_FindObjectsInit (ses, NULL_PTR, 0);
-    }
-    check_rv("C_FindObjectsInit", rv );
-
+{	
+	unsigned int cnt  = 0;
+	CK_ATTRIBUTE template[32];
+	if (label) Add_Attr(template+cnt++,CKA_LABEL, label, strlen ((char *) label));	
+    check_rv("C_FindObjectsInit", C_FindObjectsInit (ses, template, cnt));
+	Flush_Attrs(template,cnt);
+	
     CK_OBJECT_HANDLE object;
     CK_OBJECT_CLASS class = 0;
     CK_ULONG found = 0;
-    rv = C_FindObjects(ses, &object, 1, &found);
-    check_rv("C_FindObjects", rv);
+    check_rv("C_FindObjects",C_FindObjects(ses, &object, 1, &found));
     while (found)
     {
-        CK_ATTRIBUTE attributes[] =
-        {
-            {CKA_CLASS, &class, sizeof(class)},
-            {CKA_LABEL, NULL_PTR, 0},
-            {CKA_MODULUS, NULL_PTR, 0}
-        };
-        rv = C_GetAttributeValue(ses, object, attributes, 3);
-        check_rv("C_GetAttributeValue",rv);
-        int i=1;
-        for (;i<3;i++)
-        {
-            attributes[i].pValue = calloc(attributes[i].ulValueLen+1,1);
-        }
-        rv = C_GetAttributeValue(ses, object, attributes, 3);
-        check_rv("C_GetAttributeValue",rv);
+		cnt = 0;
+		Add_Attr(template+cnt++,CKA_CLASS,&class,sizeof(class));
+		Add_Attr(template+cnt++,CKA_LABEL,NULL_PTR,0);
+		Add_Attr(template+cnt++,CKA_MODULUS,NULL_PTR,0);
+        check_rv("C_GetAttributeValue",C_GetAttributeValue(ses, object, template, cnt));
+		Init_Attrs(template,cnt);
+        check_rv("C_GetAttributeValue",C_GetAttributeValue(ses, object, template, cnt));
 
         printf("%d-bit %s key object, labeled %s\n",
-            (int) attributes[2].ulValueLen *8,
+            (int) Get_Val_Len(template,CKA_MODULUS,cnt) *8,
             (class == CKO_PRIVATE_KEY)?"Private":"Public ",
-            (char*)attributes[1].pValue);
-        free(attributes[1].pValue);
-        free(attributes[2].pValue);
-        rv = C_FindObjects(ses, &object, 1, &found);
-        check_rv("C_FindObjects", rv);
+            (char*) Get_Val(template,CKA_LABEL,cnt));
+		Flush_Attrs(template,cnt);
+        check_rv("C_FindObjects", C_FindObjects(ses, &object, 1, &found));
     }
-    rv = C_FindObjectsFinal(ses);
-    check_rv("C_FindObjectsFinal", rv );
+    check_rv("C_FindObjectsFinal", C_FindObjectsFinal(ses));
 }
 
 void
@@ -326,11 +321,12 @@ ActionGenerateObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label, CK_ULONG keysize
     CK_MECHANISM mech = { CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0 };
 
     /* A template to generate an RSA public key objects*/
-    CK_BYTE pubex[] = { 1, 0, 1 };
+    CK_BYTE pubex[3] = { 1, 0, 1 };
     CK_KEY_TYPE keyType = CKK_RSA;
-    CK_ATTRIBUTE publickey_template[] =
+    CK_ATTRIBUTE publickey_template[9] =
     {
         {CKA_LABEL, label, strlen ((char *) label)},
+		{CKA_ID,"",0},
         {CKA_KEY_TYPE, &keyType, sizeof(keyType)},
         {CKA_VERIFY, &true, sizeof (true)},
         {CKA_ENCRYPT, &true, sizeof (false)},
@@ -341,9 +337,10 @@ ActionGenerateObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label, CK_ULONG keysize
     };
 
     /* A template to generate an RSA private key objects*/
-    CK_ATTRIBUTE privatekey_template[] =
+    CK_ATTRIBUTE privatekey_template[10] =
     {
         {CKA_LABEL, label, strlen ((char *) label)},
+		{CKA_ID,"",0},
         {CKA_KEY_TYPE, &keyType, sizeof(keyType)},
         {CKA_SIGN, &true, sizeof (true)},
         {CKA_DECRYPT, &true, sizeof (true)},
@@ -354,21 +351,9 @@ ActionGenerateObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label, CK_ULONG keysize
         {CKA_EXTRACTABLE, &true, sizeof (true)}
     };
     CK_OBJECT_HANDLE ignore;
-    CK_RV rv = C_GenerateKeyPair(ses, &mech, publickey_template, 8,
-        privatekey_template, 9, &ignore,&ignore);
-    check_rv("C_GenerateKeyPair", rv);
+    check_rv("C_GenerateKeyPair", C_GenerateKeyPair(ses, &mech, publickey_template, 9,
+        privatekey_template, 10, &ignore,&ignore));
     printf("Created RSA key pair object, labeled %s\n",label);
-}
-
-void
-ActionChangePin(CK_SESSION_HANDLE ses, CK_UTF8CHAR* oldpin)
-{
-    CK_RV rv;
-    CK_UTF8CHAR* newpin;
-    newpin = (CK_UTF8CHAR *) getpass ("Enter New Pin: ");
-    rv = C_SetPIN(ses, oldpin, sizeof(oldpin), newpin,
-        sizeof(newpin));
-    check_rv("C_GenerateKeyPair", rv);
 }
 
 int
@@ -379,20 +364,19 @@ main (int argc, char *argv[])
     CK_SLOT_ID  slot    = 0;                      // default value
     CK_ULONG    keysize = 1024;                   // default value
     CK_SESSION_HANDLE ses;
-    int         Action  = 0;
+    int Action  = 0;
     int opt;
-    while ((opt = getopt (argc, argv, "CGRLb:p:s:h")) != -1)
+    while ((opt = getopt (argc, argv, "GDb:p:s:h")) != -1)
     {
         switch (opt)
         {
             case 'G': Action = 1; break;
-			case 'R': Action = 2; break;
-			case 'C': Action = 3; break;
+			case 'D': Action = 2; break;
             case 'b': keysize = atoi (optarg); break;
             case 'p': pin = (CK_UTF8CHAR*)optarg; break;
             case 's': slot = atoi (optarg); break;
             case 'h': fprintf (stderr,
-	            "usage: hsm-toolkit [-s slot] [-p pin] [-G [-b keysize] label] [-R label]\n");
+	            "usage: hsm-toolkit [-s slot] [-p pin] [-G [-b keysize] label] [-D label]\n");
 	        	exit (2);
 			
         }
@@ -410,7 +394,6 @@ main (int argc, char *argv[])
     {
         case 1: ActionGenerateObject(ses,label,keysize); break;
         case 2: ActionRemoveObject(ses,label); break;
-		case 3: ActionChangePin(ses,pin); break;
         default:
             ActionListObjects(ses,label);
     }
