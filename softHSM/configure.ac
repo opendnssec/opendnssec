@@ -2,7 +2,7 @@ dnl
 dnl $Id$
 dnl 
 
-AC_INIT([libsofthsm.so], [1.0.0])
+AC_INIT([libsofthsm], [1.0.0])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(src/main.cpp)
 
