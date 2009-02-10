@@ -24,7 +24,10 @@ AC_ARG_WITH(botan-lib, [  --with-botan-lib=DIR    The location of the Botan cryp
 AC_ARG_WITH(botan-inc, [  --with-botan-inc=DIR    The location of the Botan crypto library include files (default DIR=/usr/local/include)], [BOTANINCDIR="$withval"], [BOTANINCDIR="/usr/local/include"])
 AC_ARG_WITH(sqlite3-lib, [  --with-sqlite3-lib=DIR  The location of the SQLite3 library (default DIR=/usr/lib)], [SQLITELIBDIR="$withval"], [SQLITELIBDIR="/usr/lib"])
 AC_ARG_WITH(sqlite3-inc, [  --with-sqlite3-inc=DIR  The location of the SQLite3 library include files (default DIR=/usr/include)], [SQLITEINCDIR="$withval"], [SQLITEINCDIR="/usr/include"])
+AC_ARG_WITH(loglevel, [  --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 3=Info 4=Debug (default INT=3)], [SOFTLOGLEVEL="$withval"], [SOFTLOGLEVEL=3])
 AC_ARG_ENABLE(64bit, [  --enable-64bit          Compile a 64-bit version], [ENABLE64BIT="yes"], [ENABLE64BIT="no"])
+
+AC_SUBST(SOFTLOGLEVEL)
 
 if test "$ENABLE64BIT" == "yes"
 then

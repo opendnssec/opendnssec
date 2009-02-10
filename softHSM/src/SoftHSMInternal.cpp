@@ -34,12 +34,12 @@
 ************************************************************/
 
 #include "SoftHSMInternal.h"
+#include "log.h"
 
 // Standard includes
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <syslog.h>
 
 // Includes for the crypto library
 #include <botan/pipe.h>
@@ -107,25 +107,25 @@ int SoftHSMInternal::getSessionCount() {
 
 CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, CK_SESSION_HANDLE_PTR phSession) {
   if(openSessions >= MAX_SESSION_COUNT) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_OpenSession: Error: Can not open more sessions. Have reached the maximum number.");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_OpenSession", "Can not open more sessions. Have reached the maximum number.");
+    #endif
 
     return CKR_SESSION_COUNT;
   }
 
   if((flags & CKF_SERIAL_SESSION) == 0) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_OpenSession: Error: Can not open a non serial session");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_OpenSession", "Can not open a non serial session");
+    #endif
 
     return CKR_SESSION_PARALLEL_NOT_SUPPORTED;
   }
 
   if(!phSession) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_OpenSession: Error: phSession must not be a NULL_PTR");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_OpenSession", "phSession must not be a NULL_PTR");
+    #endif
 
     return CKR_ARGUMENTS_BAD;
   }
@@ -138,17 +138,17 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
       sessions[i]->Notify = Notify;
       *phSession = (CK_SESSION_HANDLE)(i+1);
 
-      #ifdef SOFTDEBUG
-        syslog(LOG_DEBUG, "C_OpenSession: OK");
-      #endif /* SOFTDEBUG */
+      #if SOFTLOGLEVEL >= SOFTDEBUG
+        logDebug("C_OpenSession", "OK");
+      #endif
 
       return CKR_OK;
     }
   }
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_OpenSession: Error: Can not open more sessions. Have reached the maximum number.");
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_OpenSession", "Can not open more sessions. Have reached the maximum number.");
+  #endif
 
   return CKR_SESSION_COUNT;
 }
@@ -157,9 +157,9 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
 
 CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
   if(hSession > MAX_SESSION_COUNT || hSession < 1 || sessions[hSession-1] == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_CloseSession: The session does not exist");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_CloseSession", "The session does not exist");
+    #endif
 
     return CKR_SESSION_HANDLE_INVALID;
   }
@@ -179,9 +179,9 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
     clearObjectsAndCaches();
   }
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_CloseSession: OK");
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_CloseSession", "OK");
+  #endif
 
   return CKR_OK;
 }
@@ -205,9 +205,9 @@ CK_RV SoftHSMInternal::closeAllSessions() {
 
   clearObjectsAndCaches();
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_CloseAllSessions: OK");
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+   logDebug("C_CloseAllSessions", "OK");
+  #endif
 
   return CKR_OK;
 }
@@ -218,17 +218,17 @@ CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INF
   SoftSession *session = getSession(hSession);
 
   if(session == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetSessionInfo: Error: Can not find the session");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetSessionInfo", "Can not find the session");
+    #endif
 
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pInfo == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetSessionInfo: Error: pInfo must not be a NULL_PTR");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetSessionInfo", "pInfo must not be a NULL_PTR");
+    #endif
 
     return CKR_ARGUMENTS_BAD;
   }
@@ -255,9 +255,9 @@ CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INF
   }
   pInfo->ulDeviceError = 0;
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_GetSessionInfo: OK");
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_GetSessionInfo", "OK");
+  #endif
 
   return CKR_OK;
 }
@@ -268,25 +268,25 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   SoftSession *session = getSession(hSession);
 
   if(session == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_Login: Error: Can not find the session");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_Login", "Can not find the session");
+    #endif
 
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pPin == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_Login: Error: pPin must not be a NULL_PTR");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_Login", "pPin must not be a NULL_PTR");
+    #endif
 
     return CKR_ARGUMENTS_BAD;
   }
 
   if(ulPinLen < 4 || ulPinLen > 8000) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_Login: Error: Incorrent PIN length");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_Login", "Incorrent PIN length");
+    #endif
 
     return CKR_PIN_INCORRECT;
   }
@@ -314,9 +314,9 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     if(strcmp(tmpPIN, pin) == 0) {
       free(tmpPIN);
 
-      #ifdef SOFTDEBUG
-        syslog(LOG_DEBUG, "C_Login: OK");
-      #endif /* SOFTDEBUG */
+      #if SOFTLOGLEVEL >= SOFTDEBUG
+        logDebug("C_Login", "OK");
+      #endif
 
       return CKR_OK;
     } else {
@@ -329,9 +329,9 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
 
   getAllObjects();
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_Login: OK");
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_Login", "OK");
+  #endif
 
   return CKR_OK;
 }
@@ -343,9 +343,9 @@ CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
   SoftSession *session = getSession(hSession);
 
   if(session == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_Logout: Error: Can not find the session");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_Logout", "Can not find the session");
+    #endif
 
     return CKR_SESSION_HANDLE_INVALID;
   }
@@ -357,9 +357,9 @@ CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
 
   clearObjectsAndCaches();
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_Logout: OK");
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_Logout", "OK");
+  #endif
 
   return CKR_OK;
 }
@@ -408,9 +408,9 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   SoftSession *session = getSession(hSession);
 
   if(session == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetAttributeValue: Error: Can not find the session");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetAttributeValue", "Can not find the session");
+    #endif
 
     return CKR_SESSION_HANDLE_INVALID;
   }
@@ -418,17 +418,17 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   SoftObject *object = objects->getObject(hObject);
 
   if(object == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetAttributeValue: Error: Can not find the object");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetAttributeValue", "Can not find the object");
+    #endif
 
     return CKR_OBJECT_HANDLE_INVALID;
   }
 
   if(pTemplate == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_GetAttributeValue: Error: pTemplate must not be a NULL_PTR");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetAttributeValue", "pTemplate must not be a NULL_PTR");
+    #endif
 
     return CKR_ARGUMENTS_BAD;
   }
@@ -443,9 +443,9 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
     }
   }
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_GetAttributeValue: Returning CK_RV = %i", result);
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_GetAttributeValue", "Returning");
+  #endif
 
   return result;
 }
@@ -456,9 +456,9 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   SoftSession *session = getSession(hSession);
 
   if(session == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_SetAttributeValue: Error: Can not find the session");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_SetAttributeValue", "Can not find the session");
+    #endif
 
     return CKR_SESSION_HANDLE_INVALID;
   }
@@ -466,25 +466,25 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   SoftObject *object = objects->getObject(hObject);
 
   if(object == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_SetAttributeValue: Error: Can not find the object");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_SetAttributeValue", "Can not find the object");
+    #endif
 
     return CKR_OBJECT_HANDLE_INVALID;
   }
 
   if(!session->isReadWrite()) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_SetAttributeValue: Error: Session is read only");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_SetAttributeValue", "Session is read only");
+    #endif
 
     return CKR_SESSION_READ_ONLY;
   }
 
   if(pTemplate == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_SetAttributeValue: Error: pTemplate must not be a NULL_PTR");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_SetAttributeValue", "pTemplate must not be a NULL_PTR");
+    #endif
 
     return CKR_ARGUMENTS_BAD;
   }
@@ -500,9 +500,9 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
     }
   }
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_SetAttributeValue: Returning CK_RV = %i", result);
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_SetAttributeValue", "Returning");
+  #endif
 
   return result;
 }
@@ -514,25 +514,25 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   SoftSession *session = getSession(hSession);
 
   if(session == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_FindObjectsInit: Error: Can not find the session");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_FindObjectsInit", "Can not find the session");
+    #endif
 
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(session->findInitialized) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_FindObjectsInit: Error: Find is already initialized");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_FindObjectsInit", "Find is already initialized");
+    #endif
 
     return CKR_OPERATION_ACTIVE;
   }
 
   if(pTemplate == NULL_PTR && ulCount > 0) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_FindObjectsInit: Error: pTemplate must not be a NULL_PTR");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_FindObjectsInit", "pTemplate must not be a NULL_PTR");
+    #endif
 
     return CKR_ARGUMENTS_BAD;
   }
@@ -569,9 +569,9 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
 
   session->findInitialized = true;
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_FindObjectsInit: OK");
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_FindObjectsInit", "OK");
+  #endif
 
   return CKR_OK;
 }
@@ -582,17 +582,17 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   SoftSession *session = getSession(hSession);
 
   if(session == NULL_PTR) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_DestroyObject: Error: Can not find the session");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_DestroyObject", "Can not find the session");
+    #endif
 
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(session->isReadWrite() == false) {
-    #ifdef SOFTDEBUG
-      syslog(LOG_DEBUG, "C_DestroyObject: Error: The session is read only");
-    #endif /* SOFTDEBUG */
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_DestroyObject", "The session is read only");
+    #endif
 
     return CKR_SESSION_READ_ONLY;
   }
@@ -610,9 +610,9 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   // Delete the object from the internal state
   CK_RV result = objects->deleteObj(hObject);
 
-  #ifdef SOFTDEBUG
-    syslog(LOG_DEBUG, "C_DestroyObject: Returning CK_RV = %i", result);
-  #endif /* SOFTDEBUG */
+  #if SOFTLOGLEVEL >= SOFTDEBUG
+    logDebug("C_DestroyObject", "Returning");
+  #endif
 
   return result;
 }
