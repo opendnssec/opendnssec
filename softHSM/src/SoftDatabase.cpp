@@ -33,6 +33,7 @@
 ************************************************************/
 #include "SoftDatabase.h"
 #include "file.h"
+#include "log.h"
 
 // Standard includes
 #include <string.h>
@@ -70,8 +71,12 @@ SoftDatabase::SoftDatabase() {
   int result = sqlite3_open(dbPath, &db);
   free(dbPath);
   if(result){
-    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
     sqlite3_close(db);
+
+    #if SOFTLOGLEVEL >= SOFTERROR
+      logError("SoftDatabase", "Could not open the database");
+    #endif
+
     exit(1);
   }
 
@@ -80,9 +85,13 @@ SoftDatabase::SoftDatabase() {
   if(result) {
     result = sqlite3_exec(db, sqlCreateTableObjects, NULL, NULL, &sqlError);
     if(result) {
-      fprintf(stderr, "Can't create table Objects: %s\n", sqlError);
       sqlite3_free(sqlError);
       sqlite3_close(db);
+
+      #if SOFTLOGLEVEL >= SOFTERROR
+        logError("SoftDatabase", "Could not create a table in the database");
+      #endif
+
       exit(1);
     }
   }
@@ -92,9 +101,13 @@ SoftDatabase::SoftDatabase() {
   if(result) {
     result = sqlite3_exec(db, sqlCreateTableAttributes, NULL, NULL, &sqlError);
     if(result) {
-      fprintf(stderr, "Can't create table Attributes: %s\n", sqlError);
       sqlite3_free(sqlError);
       sqlite3_close(db);
+
+      #if SOFTLOGLEVEL >= SOFTERROR
+        logError("SoftDatabase", "Could not create a table in the database");
+      #endif
+
       exit(1);
     }
     sqlite3_exec(db, sqlDeleteTrigger, NULL, NULL, NULL);

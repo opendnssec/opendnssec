@@ -610,6 +610,10 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   // Delete the object from the internal state
   CK_RV result = objects->deleteObj(hObject);
 
+  #if SOFTLOGLEVEL >= SOFTINFO
+    logInfo("C_DestroyObject", "An object is destroyed");
+  #endif
+
   #if SOFTLOGLEVEL >= SOFTDEBUG
     logDebug("C_DestroyObject", "Returning");
   #endif

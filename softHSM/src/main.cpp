@@ -2783,6 +2783,10 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   *phPublicKey = pubRef;
   *phPrivateKey = privRef;
 
+  #if SOFTLOGLEVEL >= SOFTINFO
+    logInfo("C_GenerateKeyPair", "Key pair generated");
+  #endif
+
   #if SOFTLOGLEVEL >= SOFTDEBUG
     logDebug("C_GenerateKeyPair", "OK");
   #endif
