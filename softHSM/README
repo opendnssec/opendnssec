@@ -57,6 +57,8 @@ INSTALLING
     --with-sqlite3-inc=DIR  The location of the SQLite3 library include 
                             files (default DIR=/usr/include)
     --enable-64bit          Compile a 64-bit version
+    --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 
+                            3=Info 4=Debug (default INT=3)
 
   For more options:
 

@@ -2,6 +2,11 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+New in 0.4; 2009-02-10 Rickard Bondesson
+
+* Only one library is compiled (libsofthsm.so). The log level
+  is defined by using the flag --with-loglevel
+
 New in 0.3; 2009-02-03 Rickard Bondesson
 
 * A better mutex handling. Each PKCS#11 function call is treated 
