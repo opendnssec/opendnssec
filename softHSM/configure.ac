@@ -4,7 +4,7 @@ dnl
 
 AC_INIT([libsofthsm], [1.0.0])
 AC_CONFIG_AUX_DIR(config)
-AC_CONFIG_SRCDIR(src/main.cpp)
+AC_CONFIG_SRCDIR(src/Makefile.am)
 
 VERSION_INFO="1:0:0"
 AC_SUBST(VERSION_INFO)
@@ -57,4 +57,4 @@ LIBS="$LIBS -lbotan"
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 
-AC_OUTPUT(Makefile src/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/lib/Makefile src/bin/Makefile)
