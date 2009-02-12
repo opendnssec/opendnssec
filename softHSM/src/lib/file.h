@@ -29,7 +29,8 @@
 #ifndef SOFTHSM_FILE_H
 #define SOFTHSM_FILE_H 1
 
-char* checkHSMDir();
-char* getDatabasePath();
+#include "pkcs11_unix.h"
+
+CK_RV readConfigFile();
 
 #endif /* SOFTHSM_FILE_H */

@@ -6,6 +6,7 @@ libsofthsm_la_SOURCES =		main.cpp \
 				file.cpp \
 				log.cpp \
 				SoftHSMInternal.cpp \
+				SoftSlot.cpp \
 				SoftSession.cpp \
 				SoftObject.cpp \
 				SoftFind.cpp \

@@ -36,10 +36,11 @@
 ************************************************************/
 
 #include "main.h"
-#include "SoftHSMInternal.h"
 #include "mutex.h"
 #include "config.h"
 #include "log.h"
+#include "file.h"
+#include "SoftHSMInternal.h"
 
 // Standard includes
 #include <stdio.h>
@@ -64,7 +65,7 @@
 using namespace Botan;
 
 // Keeps the internal state
-static SoftHSMInternal *softHSM = NULL_PTR;
+SoftHSMInternal *softHSM = NULL_PTR;
 
 // A list with Cryptoki version number
 // and pointers to the API functions.
@@ -209,6 +210,17 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   } else {
     // No concurrent access by multiple threads
     softHSM = new SoftHSMInternal(false);
+  }
+
+  CK_RV rv = readConfigFile();
+  if(rv != CKR_OK) {
+    delete softHSM;
+
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_Initialize", "Error in config file");
+    #endif
+
+    return rv;
   }
 
   // Init the Botan crypto library 

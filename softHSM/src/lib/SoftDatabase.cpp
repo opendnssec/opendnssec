@@ -42,80 +42,44 @@
 using std::stringstream;
 using std::string;
 
-static char sqlCreateTableObjects[] = 
-  "CREATE TABLE Objects ("
-  "objectID INTEGER PRIMARY KEY,"
-  "pin TEXT DEFAULT NULL);";
-
-static char sqlCreateTableAttributes[] =
-  "CREATE TABLE Attributes ("
-  "attributeID INTEGER PRIMARY KEY,"
-  "objectID INTEGER DEFAULT NULL,"
-  "type INTEGER DEFAULT NULL,"
-  "value BLOB DEFAULT NULL,"
-  "length INTEGER DEFAULT 0);";
-
-static char sqlDeleteTrigger[] = 
-  "CREATE TRIGGER deleteTrigger BEFORE DELETE ON Objects "
-  "BEGIN "
-    "DELETE FROM Attributes "
-      "WHERE objectID = OLD.objectID; "
-  "END;";
-
 SoftDatabase::SoftDatabase() {
-  char *sqlError;
   db = NULL_PTR;
+}
 
+SoftDatabase::~SoftDatabase() {
+  sqlite3_close(db);
+}
+
+CK_RV SoftDatabase::init(char *dbPath) {
   // Open the database
-  char *dbPath = getDatabasePath();
   int result = sqlite3_open(dbPath, &db);
-  free(dbPath);
   if(result){
-    sqlite3_close(db);
+    if(db != NULL_PTR) {
+      sqlite3_close(db);
+    }
 
-    #if SOFTLOGLEVEL >= SOFTERROR
-      logError("SoftDatabase", "Could not open the database");
-    #endif
+    return CKR_TOKEN_NOT_PRESENT;
+  }
 
-    exit(1);
+  // Check that the Token table exist
+  result = sqlite3_exec(db, "SELECT COUNT(variableID) FROM Token;", NULL, NULL, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_RECOGNIZED;
   }
 
   // Check that the Objects table exist
   result = sqlite3_exec(db, "SELECT COUNT(objectID) FROM Objects;", NULL, NULL, NULL);
   if(result) {
-    result = sqlite3_exec(db, sqlCreateTableObjects, NULL, NULL, &sqlError);
-    if(result) {
-      sqlite3_free(sqlError);
-      sqlite3_close(db);
-
-      #if SOFTLOGLEVEL >= SOFTERROR
-        logError("SoftDatabase", "Could not create a table in the database");
-      #endif
-
-      exit(1);
-    }
+    return CKR_TOKEN_NOT_RECOGNIZED;
   }
 
   // Check that the Attributes table exist
   result = sqlite3_exec(db, "SELECT COUNT(attributeID) FROM Attributes;", NULL, NULL, NULL);
   if(result) {
-    result = sqlite3_exec(db, sqlCreateTableAttributes, NULL, NULL, &sqlError);
-    if(result) {
-      sqlite3_free(sqlError);
-      sqlite3_close(db);
-
-      #if SOFTLOGLEVEL >= SOFTERROR
-        logError("SoftDatabase", "Could not create a table in the database");
-      #endif
-
-      exit(1);
-    }
-    sqlite3_exec(db, sqlDeleteTrigger, NULL, NULL, NULL);
+    return CKR_TOKEN_NOT_RECOGNIZED;
   }
-}
 
-SoftDatabase::~SoftDatabase() {
-  sqlite3_close(db);
+  return CKR_OK;
 }
 
 // Save the public RSA key in the database.

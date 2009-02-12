@@ -28,56 +28,38 @@
 
 /************************************************************
 *
-* Functions for file handling.
-* Many of the function calls are POSIX specific.
+* This class handles the slots
 *
 ************************************************************/
 
-#include "file.h"
-#include "config.h"
-#include "log.h"
-#include "SoftHSMInternal.h"
+#ifndef SOFTHSM_SOFTSLOT_H
+#define SOFTHSM_SOFTSLOT_H 1
 
-// Standard includes
-#include <stdio.h>
-#include <string.h>
+#include "SoftObject.h"
 
-extern SoftHSMInternal *softHSM;
+#include "pkcs11_unix.h"
 
-// Reads the config file
+class SoftSlot {
+  public:
+    SoftSlot();
+    ~SoftSlot();
 
-CK_RV readConfigFile() {
-  FILE *fp;
+    void addSlot(CK_SLOT_ID newSlotID, char *newDBPath);
+    SoftSlot *getSlot(CK_SLOT_ID getID);
+    SoftSlot *getNextSlot();
+    CK_SLOT_ID getSlotID();
 
-  fp = fopen(SOFT_CONFIG_FILE,"r");
+    char *dbPath;
+    char *userPIN;
 
-  if(fp == NULL) {
-    #if SOFTLOGLEVEL >= SOFTERROR
-      logError("C_Initialize", "Could not open the config file");
-    #endif
+    CK_FLAGS slotFlags;
+    char *tokenLabel;
 
-    return CKR_GENERAL_ERROR;
-  }
+    SoftObject *objects;
 
-  char *dbPath = (char *)malloc(257);
-  CK_SLOT_ID slotID;
-  int length = 0;
+  private:
+    CK_SLOT_ID slotID;
+    SoftSlot *nextSlot;
+};
 
-  while(fscanf(fp, "%i:%256s\n", &slotID, dbPath) == 2) {
-    length = strlen(dbPath);
-    char *addDBPath = (char *)malloc(length+1);
-    addDBPath[length] = '\0';
-    memcpy(addDBPath, dbPath, length);
-
-    softHSM->slots->addSlot(slotID, addDBPath);
-    softHSM->slotCount++;
-  }
-
-  fclose(fp);
-
-  if(softHSM->slotCount <= 0) {
-    return CKR_GENERAL_ERROR;
-  }
-
-  return CKR_OK;
-}
+#endif /* SOFTHSM_SOFTSLOT_H */

@@ -69,6 +69,9 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
   this->createMutex(&pHSMMutex);
 
   db = new SoftDatabase();
+
+  slotCount = 0;
+  slots = new SoftSlot();
 }
 
 SoftHSMInternal::~SoftHSMInternal() {
@@ -94,6 +97,11 @@ SoftHSMInternal::~SoftHSMInternal() {
   if(db != NULL_PTR) {
     delete db;
     db = NULL_PTR;
+  }
+
+  if(slots != NULL_PTR) {
+    delete slots;
+    slots = NULL_PTR;
   }
 
   this->destroyMutex(pHSMMutex);

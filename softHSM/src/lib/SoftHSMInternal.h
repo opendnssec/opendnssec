@@ -41,12 +41,14 @@
 #include "SoftObject.h"
 #include "SoftDatabase.h"
 #include "SoftSession.h"
+#include "SoftSlot.h"
 #include "config.h"
 
 class SoftFind;
 class SoftObject;
 class SoftDatabase;
 class SoftSession;
+class SoftSlot;
 
 class SoftHSMInternal {
   public:
@@ -85,6 +87,10 @@ class SoftHSMInternal {
     // Mutex handling
     CK_RV lockMutex();
     CK_RV unlockMutex();
+
+    // Slots
+    CK_ULONG slotCount;
+    SoftSlot *slots;
 
   private:
     char *pin;

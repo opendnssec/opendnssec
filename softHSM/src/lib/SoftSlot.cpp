@@ -28,56 +28,81 @@
 
 /************************************************************
 *
-* Functions for file handling.
-* Many of the function calls are POSIX specific.
+* This class handles the slots
 *
 ************************************************************/
 
-#include "file.h"
-#include "config.h"
-#include "log.h"
-#include "SoftHSMInternal.h"
+#include "SoftSlot.h"
 
-// Standard includes
-#include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
-extern SoftHSMInternal *softHSM;
+SoftSlot::SoftSlot() {
+  dbPath = NULL_PTR;
+  userPIN = NULL_PTR;
+  slotFlags = CKF_REMOVABLE_DEVICE;
+  tokenLabel = NULL_PTR;
+  slotID = 0;
+  nextSlot = NULL_PTR;
+  objects = new SoftObject();
+}
 
-// Reads the config file
-
-CK_RV readConfigFile() {
-  FILE *fp;
-
-  fp = fopen(SOFT_CONFIG_FILE,"r");
-
-  if(fp == NULL) {
-    #if SOFTLOGLEVEL >= SOFTERROR
-      logError("C_Initialize", "Could not open the config file");
-    #endif
-
-    return CKR_GENERAL_ERROR;
+SoftSlot::~SoftSlot() {
+  if(dbPath != NULL_PTR) {
+    free(dbPath);
+    dbPath = NULL_PTR;
   }
-
-  char *dbPath = (char *)malloc(257);
-  CK_SLOT_ID slotID;
-  int length = 0;
-
-  while(fscanf(fp, "%i:%256s\n", &slotID, dbPath) == 2) {
-    length = strlen(dbPath);
-    char *addDBPath = (char *)malloc(length+1);
-    addDBPath[length] = '\0';
-    memcpy(addDBPath, dbPath, length);
-
-    softHSM->slots->addSlot(slotID, addDBPath);
-    softHSM->slotCount++;
+  if(userPIN != NULL_PTR) {
+    free(userPIN);
+    userPIN = NULL_PTR;
   }
-
-  fclose(fp);
-
-  if(softHSM->slotCount <= 0) {
-    return CKR_GENERAL_ERROR;
+  if(tokenLabel != NULL_PTR) {
+    free(tokenLabel);
+    tokenLabel = NULL_PTR;
   }
+  if(nextSlot != NULL_PTR) {
+    delete nextSlot;
+    nextSlot = NULL_PTR;
+  }
+  if(objects != NULL_PTR) {
+    delete objects;
+    objects = NULL_PTR;
+  }
+}
 
-  return CKR_OK;
+// Add a new slot
+
+void SoftSlot::addSlot(CK_SLOT_ID newSlotID, char *newDBPath) {
+  if(nextSlot == NULL_PTR) {
+    nextSlot = new SoftSlot();
+    slotID = newSlotID;
+    dbPath = newDBPath;
+  } else {
+    nextSlot->addSlot(newSlotID, newDBPath);
+  }
+}
+
+// Find the slot with a given ID
+
+SoftSlot* SoftSlot::getSlot(CK_SLOT_ID getID) {
+  if(nextSlot != NULL_PTR) {
+    if(getID == slotID) {
+      return this;
+    } else {
+      return nextSlot->getSlot(getID);
+    }
+  } else {
+    return NULL_PTR;
+  }
+}
+
+// Return the slot after this one.
+
+SoftSlot* SoftSlot::getNextSlot() {
+  return nextSlot;
+}
+
+// Return the SlotID of the current slot.
+
+CK_SLOT_ID SoftSlot::getSlotID() {
+  return slotID;
 }

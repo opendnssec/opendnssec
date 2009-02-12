@@ -36,4 +36,7 @@
 // Maximum number of concurrent sessions
 #define MAX_SESSION_COUNT 2048
 
+// The location of the init config file
+#define SOFT_CONFIG_FILE "/etc/softhsm.conf"
+
 #endif /* SOFTHSM_CONFIG_H */

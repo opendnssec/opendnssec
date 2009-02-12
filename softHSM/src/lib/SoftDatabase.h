@@ -53,6 +53,8 @@ class SoftDatabase {
     SoftDatabase();
     ~SoftDatabase();
 
+    CK_RV init(char *dbPath);
+
     SoftObject* populateObj(CK_OBJECT_HANDLE keyRef);
     CK_OBJECT_HANDLE* getObjectRefs(char *pin, int &objectCount);
 
