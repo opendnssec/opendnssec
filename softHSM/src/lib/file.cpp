@@ -70,14 +70,9 @@ CK_RV readConfigFile() {
     memcpy(addDBPath, dbPath, length);
 
     softHSM->slots->addSlot(slotID, addDBPath);
-    softHSM->slotCount++;
   }
 
   fclose(fp);
-
-  if(softHSM->slotCount <= 0) {
-    return CKR_GENERAL_ERROR;
-  }
 
   return CKR_OK;
 }

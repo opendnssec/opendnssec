@@ -76,6 +76,8 @@ class SoftObject {
     CK_BBOOL modifiable;
     CK_ULONG keySizeBytes;
 
+    char *encodedKey;
+
     SoftAttribute *attributes;
 };
 

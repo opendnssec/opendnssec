@@ -33,6 +33,7 @@
 ************************************************************/
 
 #include "SoftSlot.h"
+#include "SoftDatabase.h"
 
 #include <stdlib.h>
 
@@ -76,6 +77,7 @@ void SoftSlot::addSlot(CK_SLOT_ID newSlotID, char *newDBPath) {
     nextSlot = new SoftSlot();
     slotID = newSlotID;
     dbPath = newDBPath;
+    readDB();
   } else {
     nextSlot->addSlot(newSlotID, newDBPath);
   }
@@ -105,4 +107,23 @@ SoftSlot* SoftSlot::getNextSlot() {
 
 CK_SLOT_ID SoftSlot::getSlotID() {
   return slotID;
+}
+
+// Reads the content of the database.
+
+void SoftSlot:readDB() {
+  SoftDatabase db = new SoftDatabase();
+  CK_RV rv = db->init(dbPath);
+  if(rv != CKR_OK) {
+    delete db;
+    return;
+  }
+
+  if(objects != NULL_PTR) {
+    delete objects;
+  }
+  objects = db->readAllObjects();
+  delete db;
+
+  slotFlags |= CKF_TOKEN_PRESENT;
 }

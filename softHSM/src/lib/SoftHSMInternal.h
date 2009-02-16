@@ -89,7 +89,6 @@ class SoftHSMInternal {
     CK_RV unlockMutex();
 
     // Slots
-    CK_ULONG slotCount;
     SoftSlot *slots;
 
   private:

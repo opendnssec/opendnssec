@@ -55,8 +55,8 @@ class SoftDatabase {
 
     CK_RV init(char *dbPath);
 
+    SoftObject* readAllObjects();
     SoftObject* populateObj(CK_OBJECT_HANDLE keyRef);
-    CK_OBJECT_HANDLE* getObjectRefs(char *pin, int &objectCount);
 
     CK_OBJECT_HANDLE addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
       CK_ULONG ulPublicKeyAttributeCount, char *labelID);

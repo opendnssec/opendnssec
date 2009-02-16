@@ -335,6 +335,14 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
     logDebug("C_GetSlotList", "Calling");
   #endif
 
+  if(softHSM == NULL_PTR) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetSlotList", "Library is not initialized");
+    #endif
+
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
   if(pulCount == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetSlotList", "pulCount must not be a NULL_PTR");
@@ -343,8 +351,31 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
     return CKR_ARGUMENTS_BAD;
   }
 
+  int nrToken = 0;
+  int nrTokenPresent = 0;
+
+  // Count the number of slots
+  SoftSlot *slotToken = softHSM->slots;
+  while(slotToken->getNextSlot() != NULL_PTR) {
+    if((slotToken->slotFlags & CKF_TOKEN_PRESENT) == CKF_TOKEN_PRESENT) {
+      nrTokenPresent++;
+    }
+    nrToken++;
+
+    slotToken = slotToken->getNextSlot();
+  }
+
+  // What buffer size should we use?
+  int bufSize = 0;
+  if(tokenPresent == CK_TRUE) {
+    bufSize = nrTokenPresent;
+  } else {
+    bufSize = nrToken;
+  }
+
+  // The user wants the buffer size
   if(pSlotList == NULL_PTR) {
-    *pulCount = 1;
+    *pulCount = bufSize;
 
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetSlotList", "OK, returning list length");
@@ -353,8 +384,9 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
     return CKR_OK;
   }
 
-  if(*pulCount < 1) {
-    *pulCount = 1;
+  // Is the given buffer to small?
+  if(*pulCount < bufSize) {
+    *pulCount = bufSize;
 
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetSlotList", "The buffer is too small");
@@ -363,8 +395,17 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
     return CKR_BUFFER_TOO_SMALL;
   }
 
-  pSlotList[0] = 1;
-  *pulCount = 1;
+  slotToken = softHSM->slots;
+  int counter = 0;
+
+  // Get all slotIDs
+  while(slotToken->getNextSlot() != NULL_PTR) {
+    if(tokenPresent == CK_FALSE || (slotToken->slotFlags & CKF_TOKEN_PRESENT) == CKF_TOKEN_PRESENT) {
+      pSlotList[counter++] = slotToken->getSlotID();
+    }
+    slotToken = slotToken->getNextSlot();
+  }
+  *pulCount = bufSize;
 
   #if SOFTLOGLEVEL >= SOFTDEBUG
     logDebug("C_GetSlotList", "OK, returning list");
@@ -380,6 +421,14 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
     logDebug("C_GetSlotInfo", "Calling");
   #endif
 
+  if(softHSM == NULL_PTR) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetSlotInfo", "Library is not initialized");
+    #endif
+
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
   if(pInfo == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetSlotInfo", "pInfo must not be a NULL_PTR");
@@ -388,7 +437,9 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
     return CKR_ARGUMENTS_BAD;
   }
 
-  if(slotID != 1) {
+  SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
+
+  if(currentSlot == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetSlotInfo", "The given slotID does not exist");
     #endif
@@ -401,7 +452,7 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
   memset(pInfo->manufacturerID, ' ', 32);
   memcpy(pInfo->manufacturerID, "SoftHSM", 7);
 
-  pInfo->flags = CKF_TOKEN_PRESENT;
+  pInfo->flags = currentSlot->slotFlags;
   pInfo->hardwareVersion.major = VERSION_MAJOR;
   pInfo->hardwareVersion.minor = VERSION_MINOR;
   pInfo->firmwareVersion.major = VERSION_MAJOR;
@@ -437,13 +488,17 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
     return CKR_ARGUMENTS_BAD;
   }
 
-  if(slotID != 1) {
+  SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
+
+  if(currentSlot == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetTokenInfo", "The given slotID does not exist");
     #endif
 
     return CKR_SLOT_ID_INVALID;
   }
+
+  /* Continue working here. We should get the token label. */
 
   memset(pInfo->label, ' ', 32);
   memcpy(pInfo->label, "SoftHSM", 7);
@@ -496,6 +551,14 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
     logDebug("C_GetMechanismList", "Calling");
   #endif
 
+  if(softHSM == NULL_PTR) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetMechanismList", "Library is not initialized");
+    #endif
+
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
   if(pulCount == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
      logDebug("C_GetMechanismList", "pulCount must not be a NULL_PTR");
@@ -504,7 +567,9 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
     return CKR_ARGUMENTS_BAD;
   }
 
-  if(slotID != 1) {
+  SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
+
+  if(currentSlot == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
      logDebug("C_GetMechanismList", "The given slotID does note exist");
     #endif
@@ -563,6 +628,14 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
     logDebug("C_GetMechanismInfo", "Calling");
   #endif
 
+  if(softHSM == NULL_PTR) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetMechanismInfo", "Library is not initialized");
+    #endif
+
+    return CKR_CRYPTOKI_NOT_INITIALIZED;
+  }
+
   if(pInfo == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetMechanismInfo", "pInfo must not be a NULL_PTR");
@@ -571,7 +644,9 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
     return CKR_ARGUMENTS_BAD;
   }
 
-  if(slotID != 1) {
+  SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
+
+  if(currentSlot == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetMechanismInfo", "The given slotID does not exist");
     #endif

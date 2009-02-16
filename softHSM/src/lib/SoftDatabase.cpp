@@ -64,19 +64,19 @@ CK_RV SoftDatabase::init(char *dbPath) {
   // Check that the Token table exist
   result = sqlite3_exec(db, "SELECT COUNT(variableID) FROM Token;", NULL, NULL, NULL);
   if(result) {
-    return CKR_TOKEN_NOT_RECOGNIZED;
+    return CKR_TOKEN_NOT_PRESENT;
   }
 
   // Check that the Objects table exist
   result = sqlite3_exec(db, "SELECT COUNT(objectID) FROM Objects;", NULL, NULL, NULL);
   if(result) {
-    return CKR_TOKEN_NOT_RECOGNIZED;
+    return CKR_TOKEN_NOT_PRESENT;
   }
 
   // Check that the Attributes table exist
   result = sqlite3_exec(db, "SELECT COUNT(attributeID) FROM Attributes;", NULL, NULL, NULL);
   if(result) {
-    return CKR_TOKEN_NOT_RECOGNIZED;
+    return CKR_TOKEN_NOT_PRESENT;
   }
 
   return CKR_OK;
@@ -386,6 +386,47 @@ void SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_T
   free(buf);
 }
 
+// Read in all the objects from the database
+
+SoftObject* SoftDatabase::readAllObjects() {
+  // Get all the objects
+  string sqlSelect = "SELECT * FROM Objects;";
+  sqlite3_stmt *select_sql;
+  int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
+
+  // Error?
+  if(result != 0) {
+    sqlite3_finalize(select_sql);
+
+    return NULL_PTR;
+  }
+
+  SoftObject *objects = new SoftObject();
+
+  // Get the results
+  while(sqlite3_step(select_sql) == SQLITE_ROW) {
+    SoftObject *newObject = db->populateObj(sqlite3_column_int(select_sql, 0));
+
+    if(newObject != NULL_PTR) {
+      // Add the object to the chain
+      newObject->encodedKey = sqlite3_column_text(select_sql, 1);
+      newObject->nextObject = objects;
+      objects = newObject;
+
+      // Add the encoded key
+      const char *encKey = (const char*)sqlite3_column_text(select_sql, 1);
+      int length = strlen(encKey);
+      objects->encodedKey = (char*)malloc(length + 1);
+      objects->encodedKey[length] = '\0';
+      memcpy(objects->encodedKey, encKey, length);
+    }
+  }
+
+  sqlite3_finalize(select_sql);
+
+  return objects;
+}
+
 // Creates an object an populate it with attributes from the database.
 
 SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
@@ -454,65 +495,4 @@ void SoftDatabase::deleteObject(char *pin, CK_OBJECT_HANDLE objRef) {
   sqlDeleteObj << "DELETE FROM Objects WHERE pin = '" << pin << "' and objectID = " 
                << objRef << ";";
   sqlite3_exec(db, sqlDeleteObj.str().c_str(),  NULL, NULL, NULL);
-}
-
-// Returns the object IDs for a given PIN
-
-CK_OBJECT_HANDLE* SoftDatabase::getObjectRefs(char *pin, int &objectCount) {
-  objectCount = 0;
-
-  // Find out how many objects we have.
-  string sqlCount = "SELECT COUNT(objectID) FROM Objects WHERE pin = ?;";
-  sqlite3_stmt *count_sql;
-  int result = sqlite3_prepare_v2(db, sqlCount.c_str(), sqlCount.size(), &count_sql, NULL);
-
-  // Error?
-  if(result != 0) {
-    sqlite3_finalize(count_sql);
-
-    return NULL_PTR;
-  }
-
-  // Supply the PIN to the query
-  sqlite3_bind_text(count_sql, 1, pin, strlen(pin), SQLITE_TRANSIENT);
-
-  // Get the result from the query
-  if(sqlite3_step(count_sql) != SQLITE_ROW) {
-    sqlite3_finalize(count_sql);
-
-    return NULL_PTR;
-  }
-
-  // Return the number of objects
-  objectCount = sqlite3_column_int(count_sql, 0);
-  sqlite3_finalize(count_sql);
-
-  // Create the object-reference buffer
-  CK_OBJECT_HANDLE *objectRefs = (CK_OBJECT_HANDLE *)malloc(objectCount * sizeof(CK_OBJECT_HANDLE));
-
-  // Get all the objects
-  string sqlSelect = "SELECT objectID FROM Objects WHERE pin = ? ORDER BY objectID ASC;";
-  sqlite3_stmt *select_sql;
-  result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
-
-  // Error?
-  if(result != 0) {
-    free(objectRefs);
-    sqlite3_finalize(select_sql);
-
-    return NULL_PTR;
-  }
-
-  // Supply the PIN to the query
-  sqlite3_bind_text(select_sql, 1, pin, strlen(pin), SQLITE_TRANSIENT);
-
-  // Get the results  
-  int tmpCounter = 0;
-  while(sqlite3_step(select_sql) == SQLITE_ROW && tmpCounter < objectCount) {
-    objectRefs[tmpCounter++] = sqlite3_column_int(select_sql, 0);
-  }
-
-  sqlite3_finalize(select_sql);
- 
-  return objectRefs;
 }

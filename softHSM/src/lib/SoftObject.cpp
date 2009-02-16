@@ -53,6 +53,7 @@ SoftObject::SoftObject() {
   extractable = CK_FALSE;
   modifiable = CK_FALSE;
   attributes = new SoftAttribute();
+  encodedKey = NULL_PTR;
 }
 
 SoftObject::~SoftObject() {
@@ -64,6 +65,11 @@ SoftObject::~SoftObject() {
   if(nextObject != NULL_PTR) {
     delete nextObject;
     nextObject = NULL_PTR;
+  }
+
+  if(encodedKey != NULL_PTR) {
+    free(encodedKey);
+    encodedKey = NULL_PTR;
   }
 }
 

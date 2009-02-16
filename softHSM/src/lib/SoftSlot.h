@@ -49,6 +49,7 @@ class SoftSlot {
     SoftSlot *getNextSlot();
     CK_SLOT_ID getSlotID();
 
+    void readDB();
     char *dbPath;
     char *userPIN;
 
