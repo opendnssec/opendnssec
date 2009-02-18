@@ -1,7 +1,11 @@
+#
+# some generaly utility functions
+#
+
 import subprocess
 import Util
 
-verbosity = 3;
+verbosity = 2;
 
 def debug(level, message):
 	if level <= verbosity:

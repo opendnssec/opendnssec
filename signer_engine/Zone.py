@@ -1,12 +1,14 @@
-import commands
+#
+# This class defines Zones, with all information needed to sign them
+# 
+
 import os
-import thread
-import threading
 import time
 import errno
 
 import Util
 
+# todo: move paths to general engine config
 basedir = "../signer_tools";
 
 class Zone:
@@ -26,6 +28,13 @@ class Zone:
 		self.keys = None
 		self.resign_interval = 0
 	
+	# we define two zone objects the same if the zone names are equal
+	def __eq__(self, other):
+		return self.zone_name == other.zone_name
+	
+	# todo: make this already the xml format that is also used to
+	# read zone information?
+	# (will we have/need more data than that?)
 	def __str__(self):
 		result = ["name: " + self.zone_name]
 		result = result + ["\tinput_file: " + self.input_file]
@@ -38,6 +47,10 @@ class Zone:
 		
 		return "\n".join(result)
 	
+	#
+	# the set_() functions below are temporary to test the engine
+	# before we add the zone-config.xml parser
+	#
 	def set_kasp_data(self, keys, resign_interval):
 		self.keys = keys
 		self.resign_interval = resign_interval
@@ -49,14 +62,16 @@ class Zone:
 		else:
 			self.keys = [key]
 		self.release()
-		self.check_and_schedule()
+		#self.check_and_schedule()
 		
 	def set_interval(self, interval):
 		self.lock("set_interval()")
 		self.resign_interval = interval
 		self.release()
-		self.check_and_schedule()
-		
+	
+	#
+	# TODO: this should probably be moved to the worker class
+	#
 	def sign(self, output_file, keys, pkcs11_module=None, pkcs11_pin=None):
 		self.lock("sign()")
 		Util.debug(1, "Signing zone: " + self.zone_name)
@@ -100,14 +115,6 @@ class Zone:
 		status = p4.wait()
 
 		self.release()
-		# automatically reschedule signing operation
-		if status == 0:
-			if self.resign_interval > 0:
-				self.schedule_resign(self.resign_interval)
-			else:
-				Util.debug(1, "Zone " + self.zone_name + " has no resign interval, stopping resign scheduling")
-		else:
-			Util.debug(0, "Signer problem in zone " + self.zone_name + ", stopping resign scheduling")
 		
 	def lock(self, caller=None):
 		msg = "waiting for lock on zone " + self.zone_name + " to be released";
@@ -125,65 +132,4 @@ class Zone:
 	def release(self):
 		Util.debug(4, "Releasing lock on zone " + self.zone_name)
 		self.locked = False
-		
-	def schedule_resign(self, interval):
-		Util.debug(3, "Scheduling resign of " + self.zone_name + " in " + str(interval) + " seconds")
-		self.lock("schedule_resign()")
-		if self.scheduled:
-			self.scheduled.cancel()
-			self.scheduled = None
-		# check for keys
-		if self.keys:
-			self.scheduled = threading.Timer(interval, self.sign, [self.output_file, self.keys])
-			self.scheduled.start()
-			Util.debug(4, "Signing task for " + self.zone_name + " scheduled")
-			self.release()
-		else:
-			Util.debug(1, "Error: no keys for zone " + self.zone_name + ", signing and resigning canceled")
-			self.scheduled = None
-	
-	# if everything about the zone is known, this function is called
-	# to immediately schedule automatically
-	# does nothing if there is already a scheduled operation, or
-	# if some values are missing
-	# warning: does no locking, do not call from outside
-	def check_and_schedule(self):
-		self.lock("check_and_schedule()")
-
-		if self.resign_interval == 0 or len(self.keys) == 0 or self.scheduled:
-			self.release()
-			return
-		if self.output_file:
-			# i don't think this will work on Windows
-			try:
-				oz_stat = os.stat(self.output_file);
-				if oz_stat:
-					last_modified = oz_stat.st_mtime;
-					time_diff = int(time.time() - last_modified)
-					Util.debug(3, "Zone " + self.zone_name + " last signed " + str(time_diff) + " seconds ago")
-					time_to_sign = self.resign_interval - time_diff
-					if time_to_sign < 0:
-						Util.debug(3, "Interval for " + self.zone_name + " has expired, schedule immediate resign")
-						self.release()
-						self.schedule_resign(0)
-					else:
-						self.release()
-						self.schedule_resign(time_to_sign)
-			except OSError, e:
-				if e.errno == errno.ENOENT:
-					# no output file, sign now
-					Util.debug(3, "No signed zone for " + self.zone_name + ", schedule immediate sign")
-					self.release()
-					self.schedule_resign(0);
-				else:
-					# other error, reraise
-					self.release()
-					raise
-
-	#def set_engine(self, engine):
-	#	self.engine = engine
-	
-	#def stop_all(self):
-	#	if (self.engine):
-	#		self.engine.stop()
 

@@ -1,71 +1,88 @@
 #!/usr/bin/env python
+
+#
+# this is the heart of the signer engine
+# currently, it is implemented with a task queue/worker threads model
+# The basic unit of operation is the Zone class that contains all
+# information needed by the workers to get it signed
+# the engine schedules tasks to sign each zone
+# tasks can be repeatable, which means that if they have run, they
+# are scheduled again
+#
+# The engine opens a command channel to receive notifications
+#
+# TODO's:
+# - xml parsing for zone configuration data
+# - command channel expansion and cleanup
+# - general configuration reading
+# - notification of a server to re-read zones (as a schedulable task?)
+
 import os
 import getopt
 import sys
 import socket
-
-import Zone
+import time
+import traceback
+import threading
 import Util
+import Zone
+from Worker import Worker, TaskQueue, Task
 
 MSGLEN = 1024
 
-class EngineError(Exception):
-	def __init__(self, value):
-		self.value = value
-	def __str__(self):
-		return repr(self.value)
-
 class Engine:
-	#
-	# keeps zones signed
-	# expects a signal if a zone has changed,
-	# or if kasp information has changed.
-	# In those cases, it will instantly issue a resign
-	# operation. Otherwise it will schedule individual resign
-	# operations based on the previous KASP resign interval
-	#
-	# upon startup, read all the zone files. if signed files exist,
-	# base the next scheduled sign on its date (TODO), otherwise,
-	# schedule signing operation immediately
-	#
 	def __init__(self):
+		# todo: read config etc
+		self.task_queue = TaskQueue()
+		self.workers = []
+		self.condition = threading.Condition()
 		self.zones = {}
 		self.locked = False
-	
-	def lock(self, caller=None):
-		while (self.locked):
-			Util.debug(4, caller + "waiting for lock on engine to be released")
-			time.sleep(1)
-		self.locked = True
-	
-	def release(self):
-		Util.debug(4, "Releasing lock on engine")
-		self.locked = False
 
-	def add_zone(self, zone):
-		self.zones[zone.zone_name] = zone
-		Util.debug(2, "Zone " + zone.zone_name + " added")
-		
-	def delete_zone(self, zone_name):
-		try:
-			if self.zones[args[2]].scheduled:
-				self.zones[args[2]].scheduled.cancel()
-			del self.zones[args[2]]
-		except KeyError:
-			raise EngineError("Zone " + zone_name + " not found")
-		
-	def add_key(self, zone_name, key):
-		try:
-			self.zones[zone_name].add_key(key)
-		except KeyError:
-			raise EngineError("Zone " + zone_name + " not found")
-		
-	def set_interval(self, zone_name, interval):
-		try:
-			self.zones[zone_name].set_interval(interval)
-		except KeyError:
-			raise EngineError("Zone " + zone_name + " not found")
+	def add_worker(self, name):
+		worker = Worker(self.condition, self.task_queue)
+		worker.name = name
+		worker.start()
+		self.workers.append(worker)
+
+	# notify a worker that there might be something to do
+	def notify(self):
+		self.condition.acquire()
+		self.condition.notify()
+		self.condition.release()
 	
+	# notify all workers that there might be something to do
+	def notify_all(self):
+		self.condition.acquire()
+		self.condition.notifyAll()
+		self.condition.release()
+
+	def run(self):
+		self.add_worker("1")
+		self.add_worker("2")
+		self.add_worker("3")
+		self.add_worker("4")
+
+		# create socket to listen for commands on
+		# only listen on localhost atm
+
+		self.command_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.command_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.command_socket.bind(("localhost", 47806))
+		self.command_socket.listen(5)
+		while True:
+			(client_socket, address) = self.command_socket.accept()
+			try:
+				while client_socket:
+					command = self.receive_command(client_socket)
+					response = self.handle_command(command)
+					self.send_response(response + "\n\n", client_socket)
+					Util.debug(5, "Done handling command")
+			except socket.error, msg:
+				Util.debug(5, "Connection closed by peer")
+			except RuntimeError, msg:
+				Util.debug(5, "Connection closed by peer")
+
 	def receive_command(self, client_socket):
 		msg = ''
 		chunk = ''
@@ -86,28 +103,11 @@ class Engine:
 				raise RuntimeError, "socket connection broken"
 			totalsent = totalsent + sent
 
-	def get_zones(self):
-		zl = []
-		for zn in self.zones.keys():
-			zl.append(str(self.zones[zn]))
-		return "".join(zl)
-	
-	def cancel_all(self):
-		Util.debug(3, "Canceling all scheduled tasks")
-		for zn in self.zones.keys():
-			if self.zones[zn].scheduled:
-				self.zones[zn].scheduled.cancel()
-
-	def close_command_channel(self):
-		Util.debug(3, "Closing command socket")
-		self.command_socket.shutdown(0)
-		self.command_socket.close()
-		
-	def stop(self):
-		self.cancel_all()
-		self.close_command_channel()
-
-	# this need some cleaning up ;)
+	# todo: clean this up ;)
+	# zone config options will be moved to the signer-config xml part
+	# reader. The rest will need better parsing and error handling, and
+	# perhaps move it to a new option-handling class (or at the very
+	# least other functions)
 	def handle_command(self, command):
 		# prevent different commands from interfering with the
 		# scheduling, so lock the entire engine
@@ -131,41 +131,96 @@ class Engine:
 				self.delete_zone(args[2])
 				response = "Zone removed"
 			if command[:9] == "sign zone":
-				self.zones[args[2]].schedule_resign(0)
+				self.schedule_signing(args[2])
 				response = "Zone scheduled for immediate resign"
 			if command[:9] == "verbosity":
 				Util.verbosity = int(args[1])
 				response = "Verbosity set"
+			if command[:5] == "queue":
+				self.task_queue.lock()
+				response = str(self.task_queue)
+				self.task_queue.release()
+			if command[:5] == "flush":
+				self.task_queue.lock()
+				self.task_queue.schedule_all_now()
+				self.task_queue.release()
+				response = "All tasks scheduled immediately"
+				self.notify_all()
 		except EngineError, e:
 			response = str(e);
 		except Exception, e:
 			response = "Error handling command: " + str(e)
+			response += traceback.format_exc()
 		self.release()
 		return response
 
-	def run(self):
-		# create socket to listen for commands on
-		# only listen on localhost atm
+	def lock(self, caller=None):
+		while (self.locked):
+			Util.debug(4, caller + "waiting for lock on engine to be released")
+			time.sleep(1)
+		self.locked = True
+	
+	def release(self):
+		Util.debug(4, "Releasing lock on engine")
+		self.locked = False
 
-		self.command_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.command_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.command_socket.bind(("localhost", 47806))
-		self.command_socket.listen(5)
-		while True:
-			(client_socket, address) = self.command_socket.accept()
-			try:
-				while client_socket:
-					command = self.receive_command(client_socket)
-					response = self.handle_command(command)
-					self.send_response(response + "\n\n", client_socket)
-					Util.debug(5, "Done handling command")
-			except socket.error, msg:
-				Util.debug(5, "Connection closed by peer")
-			except RuntimeError, msg:
-				Util.debug(5, "Connection closed by peer")
+	def stop_workers(self):
+		for worker in self.workers:
+			Util.debug(3, "stop worker")
+			worker.work = False
+		self.notify_all()
 
-def usage():
-	print("usage:")
+	# global zone management
+	def add_zone(self, zone):
+		self.zones[zone.zone_name] = zone
+		Util.debug(2, "Zone " + zone.zone_name + " added")
+		
+	def delete_zone(self, zone_name):
+		try:
+			if self.zones[args[2]].scheduled:
+				self.zones[args[2]].scheduled.cancel()
+			del self.zones[args[2]]
+		except KeyError:
+			raise EngineError("Zone " + zone_name + " not found")
+		
+	# return big multiline string with all current zone data
+	def get_zones(self):
+		result = []
+		for z in self.zones.values():
+			result.append(str(z))
+		return "".join(result)
+
+	# todo: will be replaced by xml reader
+	def add_key(self, zone_name, key):
+		try:
+			self.zones[zone_name].add_key(key)
+		except KeyError:
+			raise EngineError("Zone " + zone_name + " not found")
+		
+	def set_interval(self, zone_name, interval):
+		try:
+			self.zones[zone_name].set_interval(interval)
+		except KeyError:
+			raise EngineError("Zone " + zone_name + " not found")
+	
+	# 'general' sign zone now function
+	# todo: put only zone names in queue and let worker get the zone?
+	# (probably not; the worker will need the full zone list then)
+	def schedule_signing(self, zone_name):
+		try:
+			zone = self.zones[zone_name]
+			self.task_queue.lock()
+			self.task_queue.add_task(Task(time.time(), Task.SIGN_ZONE, zone, True, zone.resign_interval))
+			self.task_queue.release()
+			self.notify()
+		except KeyError:
+			raise EngineError("Zone " + zone_name + " not found")
+
+class EngineError(Exception):
+	def __init__(self, value):
+		self.value = value
+	def __str__(self):
+		return repr(self.value)
 
 def main():
 	#
@@ -198,12 +253,16 @@ def main():
 	#
 	engine = Engine()
 	try:
+		#now = time.time()
+		#print "add test tasks"
+		#engine.task_queue.add_task(Task(now+1, Task.DUMMY, "asdf.nl", False, 5))
+		#engine.task_queue.add_task(Task(now+8, Task.DUMMY, "test.nl"))
+		#print engine.task_queue
 		engine.run()
+		
 	except KeyboardInterrupt:
-		engine.stop()
-
-# todo: if stuff breaks,, or sigint is given, cancel all scheduled tasks
+		engine.stop_workers()
 
 if __name__ == '__main__':
-	print("Python engine proof of concept, v 0.0001 alpha")
+	Util.debug(1, "Python engine proof of concept, v 0.0002 alpha")
 	main()
