@@ -82,14 +82,105 @@ CK_RV SoftDatabase::init(char *dbPath) {
   return CKR_OK;
 }
 
+// Return the label of the token
+
+char* SoftDatabase::getTokenLabel() {
+  // Get all the objects
+  string sqlSelect = "SELECT value FROM Token where variableID = 0;";
+  sqlite3_stmt *select_sql;
+  int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
+
+  char *retLabel = (char*)malloc(33);
+  memset(retLabel, ' ', 32);
+  retLabel[32] = '\0';
+
+  // Error?
+  if(result != 0) {
+    sqlite3_finalize(select_sql);
+
+    return retLabel;
+  }
+
+  if(sqlite3_step(select_sql) == SQLITE_ROW) {
+    const char *tokenLabel = (const char*)sqlite3_column_text(select_sql, 0);
+    strncpy(retLabel, tokenLabel, 32);
+  }
+
+  sqlite3_finalize(select_sql);
+
+  return retLabel;
+}
+
+// Return the hashed SO PIN
+
+char* SoftDatabase::getSOPIN() {
+  // Get all the objects
+  string sqlSelect = "SELECT value FROM Token where variableID = 1;";
+  sqlite3_stmt *select_sql;
+  int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
+
+  char *soPIN = NULL_PTR;
+
+  // Error?
+  if(result != 0) {
+    sqlite3_finalize(select_sql);
+
+    return soPIN;
+  }
+
+
+  if(sqlite3_step(select_sql) == SQLITE_ROW) {
+    const char *hashedSOPIN = (const char*)sqlite3_column_text(select_sql, 0);
+    int length = strlen(hashedSOPIN);
+    soPIN = (char *)malloc(length + 1);
+    soPIN[length] = '\0';
+    memcpy(soPIN, hashedSOPIN, length);
+  }
+
+  sqlite3_finalize(select_sql);
+
+  return soPIN;
+}
+
+// Return the hashed user PIN
+
+char* SoftDatabase::getUserPIN() {
+  // Get all the objects
+  string sqlSelect = "SELECT value FROM Token where variableID = 2;";
+  sqlite3_stmt *select_sql;
+  int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
+
+  char *userPIN = NULL_PTR;
+
+  // Error?
+  if(result != 0) {
+    sqlite3_finalize(select_sql);
+
+    return userPIN;
+  }
+
+
+  if(sqlite3_step(select_sql) == SQLITE_ROW) {
+    const char *hashedUserPIN = (const char*)sqlite3_column_text(select_sql, 0);
+    int length = strlen(hashedUserPIN);
+    userPIN = (char *)malloc(length + 1);
+    userPIN[length] = '\0';
+    memcpy(userPIN, hashedUserPIN, length);
+  }
+
+  sqlite3_finalize(select_sql);
+
+  return userPIN;
+}
+
 // Save the public RSA key in the database.
 
-CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
+CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
     CK_ULONG ulPublicKeyAttributeCount, char *labelID) {
 
   stringstream sqlInsertObj;
 
-  sqlInsertObj << "INSERT INTO Objects (pin) VALUES ('" << pin << "');";
+  sqlInsertObj << "INSERT INTO Objects (encodedKey) VALUES ('" << X509::PEM_encode(*rsaKey) << "');";
   int result = sqlite3_exec(db, sqlInsertObj.str().c_str(), NULL, NULL, NULL);
 
   if(result) {
@@ -123,19 +214,6 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, C
   this->saveAttribute(objectID, CKA_WRAP, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0);
   this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0);
-
-  // The RSA modulus bits
-  IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
-  BigInt bigModulus = ifKey->get_n();
-  CK_ULONG bits = bigModulus.bits();
-  this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits));
-
-  // The RSA modulus
-  this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigModulus);
-
-  // The RSA public exponent
-  BigInt bigExponent = ifKey->get_e();
-  this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExponent);
 
   // Extract the attributes from the template
   for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
@@ -179,11 +257,11 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(char *pin, RSA_PrivateKey *rsaKey, C
 // Save the private RSA key in the database.
 
 CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
-    CK_ULONG ulPrivateKeyAttributeCount, char *labelID) {
+    CK_ULONG ulPrivateKeyAttributeCount, char *labelID, RandomNumberGenerator *rng) {
 
   stringstream sqlInsertObj;
 
-  sqlInsertObj << "INSERT INTO Objects (pin) VALUES ('" << pin << "');";
+  sqlInsertObj << "INSERT INTO Objects (encodedKey) VALUES ('');";
   int result = sqlite3_exec(db, sqlInsertObj.str().c_str(), NULL, NULL, NULL);
 
   if(result) {
@@ -224,32 +302,8 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
   this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0);
   this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0);
 
-  // The RSA modulus bits
-  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
-  BigInt bigMod = ifKeyPriv->get_n();
-  CK_ULONG bits = bigMod.bits();
-  this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits));
-
-  // The RSA modulus
-  this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigMod);
-
-  // The RSA public exponent
-  BigInt bigExp = ifKeyPriv->get_e();
-  this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExp);
-
-  // The RSA private exponent
-  BigInt bigPrivExp = ifKeyPriv->get_d();
-  this->saveAttributeBigInt(objectID, CKA_PRIVATE_EXPONENT, &bigPrivExp);
-
-  // The RSA prime p
-  BigInt bigPrime1 = ifKeyPriv->get_p();
-  this->saveAttributeBigInt(objectID, CKA_PRIME_1, &bigPrime1);
-
-  // The RSA prime q
-  BigInt bigPrime2 = ifKeyPriv->get_q();
-  this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigPrime2);
-
   CK_BBOOL bolVal;
+  CK_BBOOL isPrivate = CK_TRUE;
 
   // Extract the attributes
   for(CK_ULONG i = 0; i < ulPrivateKeyAttributeCount; i++) {
@@ -263,7 +317,6 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
       // Bool
       case CKA_DERIVE:
       case CKA_TOKEN:
-      case CKA_PRIVATE:
       case CKA_MODIFIABLE:
       case CKA_DECRYPT:
       case CKA_SIGN:
@@ -273,6 +326,12 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
       case CKA_ALWAYS_AUTHENTICATE:
         if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
           this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+        }
+        break;
+      case CKA_PRIVATE:
+        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+          isPrivate = *(CK_BBOOL*)pPrivateKeyTemplate[i].pValue;
         }
         break;
       // Date
@@ -303,6 +362,18 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
       default:
         break;
     }
+  }
+
+  if(isPrivate == CK_TRUE) {
+    stringstream sqlUpdateObj;
+
+    sqlUpdateObj << "UPDATE Objects SET encodedKey = '" << PKCS8::PEM_encode(*rsaKey, *rng, pin) << "' WHERE objectID = " << objectID << ";";
+    sqlite3_exec(db, sqlUpdateObj.str().c_str(), NULL, NULL, NULL);
+  } else {
+    stringstream sqlUpdateObj;
+
+    sqlUpdateObj << "UPDATE Objects SET encodedKey = '" << PKCS8::PEM_encode(*rsaKey)  << "' WHERE objectID = " << objectID << ";";
+    sqlite3_exec(db, sqlUpdateObj.str().c_str(), NULL, NULL, NULL);
   }
 
   return objectID;
@@ -405,11 +476,10 @@ SoftObject* SoftDatabase::readAllObjects() {
 
   // Get the results
   while(sqlite3_step(select_sql) == SQLITE_ROW) {
-    SoftObject *newObject = db->populateObj(sqlite3_column_int(select_sql, 0));
+    SoftObject *newObject = populateObj(sqlite3_column_int(select_sql, 0));
 
     if(newObject != NULL_PTR) {
       // Add the object to the chain
-      newObject->encodedKey = sqlite3_column_text(select_sql, 1);
       newObject->nextObject = objects;
       objects = newObject;
 
@@ -459,6 +529,12 @@ SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
     switch(type) {
       case CKA_CLASS:
         keyObject->objectClass = *(CK_OBJECT_CLASS *)pValue;
+        break;
+      case CKA_PRIVATE:
+        keyObject->isPrivate = *(CK_BBOOL *)pValue;
+        break;
+      case CKA_TOKEN:
+        keyObject->isToken = *(CK_BBOOL *)pValue;
         break;
       case CKA_KEY_TYPE:
         keyObject->keyType = *(CK_KEY_TYPE *)pValue;

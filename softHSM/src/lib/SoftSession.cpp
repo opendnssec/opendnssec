@@ -40,7 +40,7 @@
 #include <botan/rsa.h>
 using namespace Botan;
 
-SoftSession::SoftSession(int rwSession) {
+SoftSession::SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot) {
   pApplication = NULL_PTR;
   Notify = NULL_PTR;
 
@@ -72,7 +72,10 @@ SoftSession::SoftSession(int rwSession) {
 
   rng = new AutoSeeded_RNG();
 
+  currentSlot = givenSlot;
+
   db = new SoftDatabase();
+  db->init(currentSlot->dbPath);
 }
 
 SoftSession::~SoftSession() {
@@ -170,4 +173,24 @@ Public_Key* SoftSession::getKey(SoftObject *object) {
   }
 
   return tmpKey;
+}
+
+// Return the current session state
+
+CK_STATE SoftSession::getSessionState() {
+  if(currentSlot->soPIN != NULL_PTR) {
+    return CKS_RW_SO_FUNCTIONS;
+  } else if(currentSlot->userPIN != NULL_PTR) {
+    if(readWrite) {
+      return CKS_RW_USER_FUNCTIONS;
+    } else {
+      return CKS_RO_USER_FUNCTIONS;
+    }
+  } else {
+    if(readWrite) {
+      return CKS_RW_PUBLIC_SESSION;
+    } else {
+      return CKS_RO_PUBLIC_SESSION;
+    }
+  }
 }

@@ -41,6 +41,7 @@
 #include "log.h"
 #include "file.h"
 #include "SoftHSMInternal.h"
+#include "userhandling.h"
 
 // Standard includes
 #include <stdio.h>
@@ -498,10 +499,19 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
     return CKR_SLOT_ID_INVALID;
   }
 
-  /* Continue working here. We should get the token label. */
+  if((currentSlot->slotFlags & CKF_TOKEN_PRESENT) == 0) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetTokenInfo", "The token is not present");
+    #endif
 
-  memset(pInfo->label, ' ', 32);
-  memcpy(pInfo->label, "SoftHSM", 7);
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  if(currentSlot->tokenLabel == NULL_PTR) {
+    memset(pInfo->label, ' ', 32);
+  } else {
+    memcpy(pInfo->label, currentSlot->tokenLabel, 32);
+  }
   memset(pInfo->manufacturerID, ' ', 32);
   memcpy(pInfo->manufacturerID, "SoftHSM", 7);
   memset(pInfo->model, ' ', 16);
@@ -741,16 +751,8 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication,
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  if(slotID != 1) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_OpenSession", "The given slotID does not exist");
-    #endif
-
-    return CKR_SLOT_ID_INVALID;
-  }
-
   softHSM->lockMutex();
-  CK_RV rv = softHSM->openSession(flags, pApplication, Notify, phSession);
+  CK_RV rv = softHSM->openSession(slotID, flags, pApplication, Notify, phSession);
   softHSM->unlockMutex();
 
   return rv;
@@ -793,16 +795,8 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) {
     return CKR_CRYPTOKI_NOT_INITIALIZED;
   }
 
-  if(slotID != 1) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_CloseAllSessions", "The given slotID does not exist");
-    #endif
-
-    return CKR_SLOT_ID_INVALID;
-  }
-
   softHSM->lockMutex();
-  CK_RV rv = softHSM->closeAllSessions();
+  CK_RV rv = softHSM->closeAllSessions(slotID);
   softHSM->unlockMutex();
 
   return rv;
@@ -1637,7 +1631,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object = softHSM->getObject(hKey);
+  SoftObject *object = session->currentSlot->objects->getObject(hKey);
 
   if(object == NULL_PTR || object->objectClass != CKO_PRIVATE_KEY ||
      object->keyType != CKK_RSA) {
@@ -1645,6 +1639,17 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_SignInit", "This key can not be used");
+    #endif
+
+    return CKR_KEY_HANDLE_INVALID;
+  }
+
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 0);
+  if(userAuth == CK_FALSE) {
+    softHSM->unlockMutex();
+
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_SignInit", "User is not authorized");
     #endif
 
     return CKR_KEY_HANDLE_INVALID;
@@ -2082,7 +2087,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object = softHSM->getObject(hKey);
+  SoftObject *object = session->currentSlot->objects->getObject(hKey);
 
   if(object == NULL_PTR || object->objectClass != CKO_PUBLIC_KEY ||
      object->keyType != CKK_RSA) {
@@ -2090,6 +2095,17 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_VerifyInit", "This key can not be used");
+    #endif
+
+    return CKR_KEY_HANDLE_INVALID;
+  }
+
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 0);
+  if(userAuth == CK_FALSE) {
+    softHSM->unlockMutex();
+
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_VerifyInit", "User is not authorized");
     #endif
 
     return CKR_KEY_HANDLE_INVALID;
@@ -2569,26 +2585,6 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  if(!session->isReadWrite()) {
-    softHSM->unlockMutex();
-
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "The session is read only");
-    #endif
-
-    return CKR_SESSION_READ_ONLY;
-  }
-
-  if(softHSM->isLoggedIn() == false) {
-    softHSM->unlockMutex();
-
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "The user is not logged in");
-    #endif
-
-    return CKR_USER_NOT_LOGGED_IN;
-  }
-
   if(pMechanism == NULL_PTR || pPublicKeyTemplate == NULL_PTR || pPrivateKeyTemplate == NULL_PTR ||
      phPublicKey == NULL_PTR || phPrivateKey == NULL_PTR) {
     softHSM->unlockMutex();
@@ -2598,6 +2594,39 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     #endif
 
     return CKR_ARGUMENTS_BAD;
+  }
+
+  CK_BBOOL isToken = CK_FALSE;
+  CK_BBOOL isPrivate = CK_TRUE;
+
+  // Extract object information
+  for(CK_ULONG i = 0; i < ulPrivateKeyAttributeCount; i++) {
+    switch(pPrivateKeyTemplate[i].type) {
+      case CKA_TOKEN:
+        if(pPrivateKeyTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
+          isToken = *(CK_BBOOL*)pPrivateKeyTemplate[i].pValue;
+        }
+        break;
+      case CKA_PRIVATE:
+        if(pPrivateKeyTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
+          isPrivate = *(CK_BBOOL*)pPrivateKeyTemplate[i].pValue;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  // Check user credentials
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), isToken, isPrivate, 1);
+  if(userAuth == CK_FALSE) {
+    softHSM->unlockMutex();
+
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GenerateKeyPair", "User is not authorized");
+    #endif
+
+    return CKR_USER_NOT_LOGGED_IN;
   }
 
   CK_RV rv;
@@ -2834,7 +2863,8 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   char *labelID = getNewLabelAndID();
 
   // Add the private key to the database.
-  CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(softHSM->getPIN(), rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount, labelID);
+  CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(session->currentSlot->userPIN, rsaKey, pPrivateKeyTemplate, 
+                                                        ulPrivateKeyAttributeCount, labelID, session->rng);
 
   if(privRef == 0) {
     free(labelID);
@@ -2848,12 +2878,12 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   }
 
   // Add the public key to the database.
-  CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(softHSM->getPIN(), rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
+  CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
   free(labelID);
   delete rsaKey;
 
   if(pubRef == 0) {
-    session->db->deleteObject(softHSM->getPIN(), privRef);
+    session->db->deleteObject(session->currentSlot->userPIN, privRef);
 
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GenerateKeyPair", "Could not save public key in DB");
@@ -2862,9 +2892,11 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
     return CKR_GENERAL_ERROR;
   }
 
+  /*
   // Update the internal states.
   softHSM->getObjectFromDB(privRef);
   softHSM->getObjectFromDB(pubRef);
+  */
 
   // Returns the object handles to the application.
   *phPublicKey = pubRef;

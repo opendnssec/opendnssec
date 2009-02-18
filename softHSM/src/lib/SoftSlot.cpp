@@ -37,14 +37,23 @@
 
 #include <stdlib.h>
 
+#include <botan/rsa.h>
+#include <botan/bigint.h>
+#include <botan/pkcs8.h>
+#include <botan/x509_obj.h>
+using namespace Botan;
+
 SoftSlot::SoftSlot() {
   dbPath = NULL_PTR;
   userPIN = NULL_PTR;
+  soPIN = NULL_PTR;
   slotFlags = CKF_REMOVABLE_DEVICE;
   tokenLabel = NULL_PTR;
   slotID = 0;
   nextSlot = NULL_PTR;
   objects = new SoftObject();
+  hashedUserPIN = NULL_PTR;
+  hashedSOPIN = NULL_PTR;
 }
 
 SoftSlot::~SoftSlot() {
@@ -55,6 +64,10 @@ SoftSlot::~SoftSlot() {
   if(userPIN != NULL_PTR) {
     free(userPIN);
     userPIN = NULL_PTR;
+  }
+  if(soPIN != NULL_PTR) {
+    free(soPIN);
+    soPIN = NULL_PTR;
   }
   if(tokenLabel != NULL_PTR) {
     free(tokenLabel);
@@ -67,6 +80,14 @@ SoftSlot::~SoftSlot() {
   if(objects != NULL_PTR) {
     delete objects;
     objects = NULL_PTR;
+  }
+  if(hashedUserPIN != NULL_PTR) {
+    free(hashedUserPIN);
+    hashedUserPIN = NULL_PTR;
+  }
+  if(hashedSOPIN != NULL_PTR) {
+    free(hashedSOPIN);
+    hashedSOPIN = NULL_PTR;
   }
 }
 
@@ -111,13 +132,28 @@ CK_SLOT_ID SoftSlot::getSlotID() {
 
 // Reads the content of the database.
 
-void SoftSlot:readDB() {
-  SoftDatabase db = new SoftDatabase();
+void SoftSlot::readDB() {
+  SoftDatabase *db = new SoftDatabase();
   CK_RV rv = db->init(dbPath);
   if(rv != CKR_OK) {
     delete db;
     return;
   }
+
+  if(tokenLabel != NULL_PTR) {
+    free(tokenLabel);
+  }
+  tokenLabel = db->getTokenLabel();
+
+  if(hashedSOPIN != NULL_PTR) {
+    free(hashedSOPIN);
+  }
+  hashedSOPIN = db->getSOPIN();
+
+  if(hashedUserPIN != NULL_PTR) {
+    free(hashedUserPIN);
+  }
+  hashedUserPIN = db->getUserPIN();
 
   if(objects != NULL_PTR) {
     delete objects;
@@ -126,4 +162,117 @@ void SoftSlot:readDB() {
   delete db;
 
   slotFlags |= CKF_TOKEN_PRESENT;
+
+  loadUnencryptedKeys();
+}
+
+// Decrypt the keys and store the attributes
+
+void SoftSlot::login(RandomNumberGenerator *rng) {
+  SoftObject *currentObject = objects;
+  while(currentObject->nextObject != NULL_PTR) {
+    if(currentObject->objectClass == CKO_PRIVATE_KEY && 
+       currentObject->isPrivate == CK_TRUE) {
+      switch(currentObject->keyType) {
+        case CKK_RSA:
+          loadRSAPrivate(currentObject, userPIN, rng);
+          break;
+      }
+    }
+
+    currentObject = currentObject->nextObject;
+  }
+}
+
+// Load the private RSA key. Decrypt with given PIN.
+// If empty string is given, then no decryption is performed.
+
+void SoftSlot::loadRSAPrivate(SoftObject *currentObject, char *userPIN, RandomNumberGenerator *rng) {
+/*  if(currentObject->encodedKey == NULL_PTR) {
+    return;
+  }
+  DataSource *dsMem = new DataSource_Memory(currentObject->encodedKey, strlen(currentObject->encodedKey));
+  Private_Key *rsaKey = PKCS8::load_key(*dsMem, *rng, *userPIN);
+
+  // The RSA modulus bits
+  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
+  BigInt bigMod = ifKeyPriv->get_n();
+  CK_ULONG bits = bigMod.bits();
+  this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits));
+
+  // The RSA modulus
+  this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigMod);
+
+  // The RSA public exponent
+  BigInt bigExp = ifKeyPriv->get_e();
+  this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExp);
+
+  // The RSA private exponent
+  BigInt bigPrivExp = ifKeyPriv->get_d();
+  this->saveAttributeBigInt(objectID, CKA_PRIVATE_EXPONENT, &bigPrivExp);
+
+  // The RSA prime p
+  BigInt bigPrime1 = ifKeyPriv->get_p();
+  this->saveAttributeBigInt(objectID, CKA_PRIME_1, &bigPrime1);
+
+  // The RSA prime q
+  BigInt bigPrime2 = ifKeyPriv->get_q();
+  this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigPrime2);
+
+  free(currentObject->encodedKey);
+  currentObject->encodedKey = NULL_PTR;*/
+}
+
+void SoftSlot::loadUnencryptedKeys() {
+  SoftObject *currentObject = objects;
+  while(currentObject->nextObject != NULL_PTR) {
+    switch(currentObject->keyType) {
+      case CKK_RSA:
+        if(currentObject->objectClass == CKO_PUBLIC_KEY) {
+          loadRSAPublic(currentObject);
+        } else if(currentObject->objectClass == CKO_PRIVATE_KEY &&
+                  currentObject->isPrivate == CK_FALSE) {
+          //loadRSAPrivate(currentObject, "", rng);
+        }
+        break;
+    }
+
+    currentObject = currentObject->nextObject;
+  }
+}
+
+void SoftSlot::loadRSAPublic(SoftObject *currentObject) {
+  if(currentObject->encodedKey == NULL_PTR) {
+    return;
+  }
+
+  /* TODO: Add some try and catch */
+
+  DataSource *dsMem = new DataSource_Memory((byte*)currentObject->encodedKey, strlen(currentObject->encodedKey));
+  Public_Key *rsaKey = X509::load_key(*dsMem);
+
+  // The RSA modulus bits
+  IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
+  BigInt bigModulus = ifKey->get_n();
+  CK_ULONG bits = bigModulus.bits();
+  currentObject->keySizeBytes = (bits + 7) / 8;
+  currentObject->addAttributeFromData(CKA_MODULUS_BITS, &bits, sizeof(bits));
+
+  // The RSA modulus
+  CK_ULONG size = bigModulus.bytes();
+  CK_VOID_PTR buf = (CK_VOID_PTR)malloc(size);
+  bigModulus.binary_encode((byte *)buf);
+  currentObject->addAttributeFromData(CKA_MODULUS, buf, size);
+  free(buf);
+
+  // The RSA public exponent
+  BigInt bigExponent = ifKey->get_e();
+  size = bigExponent.bytes();
+  buf = (CK_VOID_PTR)malloc(size);
+  bigExponent.binary_encode((byte *)buf);
+  currentObject->addAttributeFromData(CKA_PUBLIC_EXPONENT, buf, size);
+  free(buf);
+
+  free(currentObject->encodedKey);
+  currentObject->encodedKey = NULL_PTR;
 }

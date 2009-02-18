@@ -26,54 +26,11 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/************************************************************
-*
-* This class handles the slots
-*
-************************************************************/
-
-#ifndef SOFTHSM_SOFTSLOT_H
-#define SOFTHSM_SOFTSLOT_H 1
-
-#include "SoftObject.h"
+#ifndef SOFTHSM_USERHANDLING_H
+#define SOFTHSM_USERHANDLING_H 1
 
 #include "pkcs11_unix.h"
 
-// Includes for the crypto library
-#include <botan/rng.h>
-using namespace Botan;
+CK_BBOOL userAuthorization(CK_STATE sessionState, CK_BBOOL isTokenObject, CK_BBOOL isPrivateObject, int userAction);
 
-class SoftSlot {
-  public:
-    SoftSlot();
-    ~SoftSlot();
-
-    void addSlot(CK_SLOT_ID newSlotID, char *newDBPath);
-    SoftSlot *getSlot(CK_SLOT_ID getID);
-    SoftSlot *getNextSlot();
-    CK_SLOT_ID getSlotID();
-
-    void login(RandomNumberGenerator *rng);
-    void loadUnencryptedKeys();
-    void loadRSAPrivate(SoftObject *currentObject, char *userPIN, RandomNumberGenerator *rng);
-    void loadRSAPublic(SoftObject *currentObject);
-
-    void readDB();
-    char *dbPath;
-    char *userPIN;
-    char *soPIN;
-
-    CK_FLAGS slotFlags;
-
-    char *tokenLabel;
-    char *hashedUserPIN;
-    char *hashedSOPIN;
-
-    SoftObject *objects;
-
-  private:
-    CK_SLOT_ID slotID;
-    SoftSlot *nextSlot;
-};
-
-#endif /* SOFTHSM_SOFTSLOT_H */
+#endif /* SOFTHSM_USERHANDLING_H */

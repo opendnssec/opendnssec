@@ -5,6 +5,7 @@ libsofthsm_la_SOURCES =		main.cpp \
 				mutex.cpp \
 				file.cpp \
 				log.cpp \
+				userhandling.cpp \
 				SoftHSMInternal.cpp \
 				SoftSlot.cpp \
 				SoftSession.cpp \

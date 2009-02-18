@@ -35,6 +35,7 @@
 
 #include "SoftHSMInternal.h"
 #include "log.h"
+#include "userhandling.h"
 
 // Standard includes
 #include <stdlib.h>
@@ -57,10 +58,6 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
     sessions[i] = NULL_PTR;
   }
 
-  objects = new SoftObject();
-
-  pin = NULL_PTR;
-
   createMutexFunc = cMutex;
   destroyMutexFunc = dMutex;
   lockMutexFunc = lMutex;
@@ -70,7 +67,6 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
 
   db = new SoftDatabase();
 
-  slotCount = 0;
   slots = new SoftSlot();
 }
 
@@ -83,16 +79,6 @@ SoftHSMInternal::~SoftHSMInternal() {
   }
 
   openSessions = 0;
-
-  if(objects != NULL_PTR) {
-    delete objects;
-    objects = NULL_PTR;
-  }
-
-  if(pin != NULL_PTR) {
-    free(pin);
-    pin = NULL_PTR;
-  }
 
   if(db != NULL_PTR) {
     delete db;
@@ -113,7 +99,25 @@ int SoftHSMInternal::getSessionCount() {
 
 // Creates a new session if there is enough space available.
 
-CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, CK_SESSION_HANDLE_PTR phSession) {
+CK_RV SoftHSMInternal::openSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, CK_SESSION_HANDLE_PTR phSession) {
+  SoftSlot *currentSlot = slots->getSlot(slotID);
+
+  if(currentSlot == NULL_PTR) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_OpenSession", "The given slotID does not exist");
+    #endif
+
+    return CKR_SLOT_ID_INVALID;
+  }
+
+  if((currentSlot->slotFlags & CKF_TOKEN_PRESENT) == 0) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_OpenSession", "The token is not present");
+    #endif
+
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
   if(openSessions >= MAX_SESSION_COUNT) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_OpenSession", "Can not open more sessions. Have reached the maximum number.");
@@ -141,7 +145,7 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] == NULL_PTR) {
       openSessions++;
-      sessions[i] = new SoftSession(flags & CKF_RW_SESSION);
+      sessions[i] = new SoftSession(flags & CKF_RW_SESSION, currentSlot);
       sessions[i]->pApplication = pApplication;
       sessions[i]->Notify = Notify;
       *phSession = (CK_SESSION_HANDLE)(i+1);
@@ -164,7 +168,9 @@ CK_RV SoftHSMInternal::openSession(CK_FLAGS flags, CK_VOID_PTR pApplication, CK_
 // Closes the specific session.
 
 CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
-  if(hSession > MAX_SESSION_COUNT || hSession < 1 || sessions[hSession-1] == NULL_PTR) {
+  int sessID = hSession - 1;
+
+  if(hSession > MAX_SESSION_COUNT || hSession < 1 || sessions[sessID] == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_CloseSession", "The session does not exist");
     #endif
@@ -172,20 +178,37 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  delete sessions[hSession-1];
-  sessions[hSession-1] = NULL_PTR;
+  SoftSession *curSession = sessions[sessID];
 
-  openSessions--;
-
-  // Last session. Clear objects.
-  if(openSessions == 0) {
-    if(pin != NULL_PTR) {
-      free(pin);
-      pin = NULL_PTR;
+  // Check if this is the last session on the token
+  CK_BBOOL lastSessOnT = CK_TRUE;
+  CK_SLOT_ID slotID = curSession->currentSlot->getSlotID();
+  for (int i = 0; i < MAX_SESSION_COUNT; i++) {
+    if(sessions[i] != NULL_PTR && sessID != i) {
+      if(sessions[i]->currentSlot->getSlotID() == slotID) {
+        lastSessOnT = CK_FALSE;
+        break;
+      }
     }
-
-    clearObjectsAndCaches();
   }
+
+  // Last session for this token? Log out.
+  if(lastSessOnT == CK_TRUE) {
+    if(curSession->currentSlot->userPIN != NULL_PTR) {
+      free(curSession->currentSlot->userPIN);
+      curSession->currentSlot->userPIN = NULL_PTR;
+    }
+    if(curSession->currentSlot->soPIN != NULL_PTR) {
+      free(curSession->currentSlot->soPIN);
+      curSession->currentSlot->soPIN = NULL_PTR;
+    }
+    curSession->currentSlot->readDB();
+  }
+
+  // Close the current session;
+  delete sessions[sessID];
+  sessions[sessID] = NULL_PTR;
+  openSessions--;
 
   #if SOFTLOGLEVEL >= SOFTDEBUG
     logDebug("C_CloseSession", "OK");
@@ -196,22 +219,38 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
 
 // Closes all the sessions.
 
-CK_RV SoftHSMInternal::closeAllSessions() {
+CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
+  SoftSlot *currentSlot = slots->getSlot(slotID);
+
+  if(currentSlot == NULL_PTR) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_CloseAllSessions", "The given slotID does not exist");
+    #endif
+
+    return CKR_SLOT_ID_INVALID;
+  }
+
+  // Close all sessions on the slot.
   for (int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
-      delete sessions[i];
-      sessions[i] = NULL_PTR;
+      if(sessions[i]->currentSlot->getSlotID() == slotID) {
+        delete sessions[i];
+        sessions[i] = NULL_PTR;
+        openSessions--;
+      }
     }
   }
 
-  openSessions = 0;
-
-  if(pin != NULL_PTR) {
-    free(pin);
-    pin = NULL_PTR;
+  // Log out from the slot
+  if(currentSlot->userPIN != NULL_PTR) {
+    free(currentSlot->userPIN);
+    currentSlot->userPIN = NULL_PTR;
   }
-
-  clearObjectsAndCaches();
+  if(currentSlot->soPIN != NULL_PTR) {
+    free(currentSlot->soPIN);
+    currentSlot->soPIN = NULL_PTR;
+  }
+  currentSlot->readDB();
 
   #if SOFTLOGLEVEL >= SOFTDEBUG
    logDebug("C_CloseAllSessions", "OK");
@@ -241,22 +280,8 @@ CK_RV SoftHSMInternal::getSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INF
     return CKR_ARGUMENTS_BAD;
   }
 
-  pInfo->slotID = 1;
-
-  if(pin) {
-    if(session->isReadWrite()) {
-      pInfo->state = CKS_RW_USER_FUNCTIONS;
-    } else {
-      pInfo->state = CKS_RO_USER_FUNCTIONS;
-    }
-  } else {
-    if(session->isReadWrite()) {
-      pInfo->state = CKS_RW_PUBLIC_SESSION;
-    } else {
-      pInfo->state = CKS_RO_PUBLIC_SESSION;
-    }
-  }
-
+  pInfo->slotID = session->currentSlot->getSlotID();
+  pInfo->state = session->getSessionState();
   pInfo->flags = CKF_SERIAL_SESSION;
   if(session->isReadWrite()) {
     pInfo->flags |= CKF_RW_SESSION;
@@ -299,6 +324,75 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     return CKR_PIN_INCORRECT;
   }
 
+  int logInType = CKU_USER;
+
+  int slotID = session->currentSlot->getSlotID();
+  switch(userType) {
+    case CKU_SO:
+      // Only one user type can be logged in
+      if(session->currentSlot->userPIN != NULL_PTR) {
+        #if SOFTLOGLEVEL >= SOFTDEBUG
+          logDebug("C_Login", "A normal user is already logged in");
+        #endif
+
+        return CKR_USER_TOO_MANY_TYPES;
+      }
+
+      // Check that we have no R/O session with the slot
+      for (int i = 0; i < MAX_SESSION_COUNT; i++) {
+        if(sessions[i] != NULL_PTR) {
+          if(sessions[i]->currentSlot->getSlotID() == slotID &&
+             sessions[i]->isReadWrite() == CK_FALSE) {
+            #if SOFTLOGLEVEL >= SOFTDEBUG
+              logDebug("C_Login", "No read only session must exist");
+            #endif
+
+            return CKR_SESSION_READ_ONLY_EXISTS;
+          }
+        }
+      }
+      logInType = CKU_SO;
+      break;
+    case CKU_USER:
+      // Only one user type can be logged in
+      if(session->currentSlot->soPIN != NULL_PTR) {
+        #if SOFTLOGLEVEL >= SOFTDEBUG
+          logDebug("C_Login", "A SO is already logged in");
+        #endif
+
+        return CKR_USER_TOO_MANY_TYPES;
+      }
+
+      if(session->currentSlot->hashedUserPIN == NULL_PTR) {
+        #if SOFTLOGLEVEL >= SOFTDEBUG
+          logDebug("C_Login", "The normal user PIN is not initialized");
+        #endif
+
+        return CKR_USER_PIN_NOT_INITIALIZED;
+      }
+      break;
+    case CKU_CONTEXT_SPECIFIC:
+      if(session->currentSlot->userPIN == NULL_PTR && 
+         session->currentSlot->soPIN == NULL_PTR) {
+        #if SOFTLOGLEVEL >= SOFTDEBUG
+          logDebug("C_Login", "A previous login must have been performed");
+        #endif
+
+        return CKR_OPERATION_NOT_INITIALIZED;
+      }
+      if(session->currentSlot->soPIN != NULL_PTR) {
+        logInType = CKU_SO;
+      }
+      break;
+    default:
+      #if SOFTLOGLEVEL >= SOFTDEBUG
+        logDebug("C_Login", "The given user type does not exist");
+      #endif
+
+      return CKR_USER_TYPE_INVALID;
+      break;
+  }
+
   // Digest the PIN
   // We do not use any salt
   Pipe *digestPIN = new Pipe(new Hash_Filter(new SHA_256), new Hex_Encoder);
@@ -316,36 +410,66 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   memcpy(tmpPIN, pinVector.begin(), size);
   delete digestPIN;
 
-  // Is someone already logged in?
-  if(pin != NULL_PTR) {
-    // Is it the same password?
-    if(strcmp(tmpPIN, pin) == 0) {
+  if(logInType == CKU_SO) {
+    // Is the PIN incorrect?
+    if(strcmp(tmpPIN, session->currentSlot->hashedSOPIN) != 0) {
       free(tmpPIN);
 
       #if SOFTLOGLEVEL >= SOFTDEBUG
-        logDebug("C_Login", "OK");
+        logDebug("C_Login", "The SO PIN is incorrect");
       #endif
 
-      return CKR_OK;
-    } else {
-      free(pin);
-      clearObjectsAndCaches();
+      return CKR_PIN_INCORRECT;
     }
+
+    free(tmpPIN);
+
+    // First login?
+    if(session->currentSlot->soPIN == NULL_PTR) {
+      // Store the PIN
+      session->currentSlot->soPIN = (char *)malloc(ulPinLen + 1);
+      session->currentSlot->soPIN[ulPinLen] = '\0';
+      memcpy(session->currentSlot->soPIN, pPin, ulPinLen);
+    }
+
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_Login", "OK");
+    #endif
+
+    return CKR_OK;
+  } else {
+    // Is the PIN incorrect?
+    if(strcmp(tmpPIN, session->currentSlot->hashedUserPIN) != 0) {
+      free(tmpPIN);
+
+      #if SOFTLOGLEVEL >= SOFTDEBUG
+        logDebug("C_Login", "The user PIN is incorrect");
+      #endif
+
+      return CKR_PIN_INCORRECT;
+    }
+
+    free(tmpPIN);
+
+    // First login?
+    if(session->currentSlot->userPIN == NULL_PTR) {
+      // Store the PIN
+      session->currentSlot->userPIN = (char *)malloc(ulPinLen + 1);
+      session->currentSlot->userPIN[ulPinLen] = '\0';
+      memcpy(session->currentSlot->userPIN, pPin, ulPinLen);
+
+      session->currentSlot->login(session->rng);
+    }
+
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_Login", "OK");
+    #endif
+
+    return CKR_OK;
   }
-
-  pin = tmpPIN;
-
-  getAllObjects();
-
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Login", "OK");
-  #endif
-
-  return CKR_OK;
 }
 
 // Logs out the user from the token.
-// Closes all the objects.
 
 CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
   SoftSession *session = getSession(hSession);
@@ -358,12 +482,15 @@ CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  if(pin != NULL_PTR) {
-    free(pin);
-    pin = NULL_PTR;
+  if(session->currentSlot->userPIN != NULL_PTR) {
+    free(session->currentSlot->userPIN);
+    session->currentSlot->userPIN = NULL_PTR;
   }
-
-  clearObjectsAndCaches();
+  if(session->currentSlot->soPIN != NULL_PTR) {
+    free(session->currentSlot->soPIN);
+    session->currentSlot->soPIN = NULL_PTR;
+  }
+  session->currentSlot->readDB();
 
   #if SOFTLOGLEVEL >= SOFTDEBUG
     logDebug("C_Logout", "OK");
@@ -380,27 +507,6 @@ SoftSession* SoftHSMInternal::getSession(CK_SESSION_HANDLE hSession) {
   }
 
   return sessions[hSession-1];
-}
-
-// Retrieves the object pointer associated with the object handle.
-// Returns NULL_PTR if no matching object is found.
-
-SoftObject* SoftHSMInternal::getObject(CK_OBJECT_HANDLE hObject) {
-  return objects->getObject(hObject);
-}
-
-// Checks if the user is logged in.
-
-bool SoftHSMInternal::isLoggedIn() {
-  if(pin == NULL_PTR) {
-    return false;
-  } else {
-    return true;
-  }
-}
-
-char* SoftHSMInternal::getPIN() {
-  return pin;
 }
 
 // Retrieves the attributes specified by the template.
@@ -423,11 +529,20 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object = objects->getObject(hObject);
+  SoftObject *object = session->currentSlot->objects->getObject(hObject);
 
   if(object == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GetAttributeValue", "Can not find the object");
+    #endif
+
+    return CKR_OBJECT_HANDLE_INVALID;
+  }
+
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 0);
+  if(userAuth == CK_FALSE) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_GetAttributeValue", "User is not authorized");
     #endif
 
     return CKR_OBJECT_HANDLE_INVALID;
@@ -471,7 +586,7 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object = objects->getObject(hObject);
+  SoftObject *object = session->currentSlot->objects->getObject(hObject);
 
   if(object == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
@@ -481,12 +596,13 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
     return CKR_OBJECT_HANDLE_INVALID;
   }
 
-  if(!session->isReadWrite()) {
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 1);
+  if(userAuth == CK_FALSE) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SetAttributeValue", "Session is read only");
+      logDebug("C_SetAttributeValue", "User is not authorized");
     #endif
 
-    return CKR_SESSION_READ_ONLY;
+    return CKR_OBJECT_HANDLE_INVALID;
   }
 
   if(pTemplate == NULL_PTR) {
@@ -553,22 +669,26 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   session->findAnchor = new SoftFind();
   session->findCurrent = session->findAnchor;
 
-  SoftObject *currentObject = objects;
+  SoftObject *currentObject = session->currentSlot->objects;
 
   // Check with all objects.
   while(currentObject->nextObject != NULL_PTR) {
-    CK_BBOOL findObject = CK_TRUE;
+    CK_BBOOL userAuth = userAuthorization(session->getSessionState(), currentObject->isToken, currentObject->isPrivate, 0);
 
-    // See if the object match all attributes.
-    for(CK_ULONG j = 0; j < ulCount; j++) {
-      if(currentObject->matchAttribute(&pTemplate[j]) == CK_FALSE) {
-        findObject = CK_FALSE;
+    if(userAuth == CK_TRUE) {
+      CK_BBOOL findObject = CK_TRUE;
+
+      // See if the object match all attributes.
+      for(CK_ULONG j = 0; j < ulCount; j++) {
+        if(currentObject->matchAttribute(&pTemplate[j]) == CK_FALSE) {
+          findObject = CK_FALSE;
+        }
       }
-    }
 
-    // Add the handle to the search results if the object matched the attributes.
-    if(findObject == CK_TRUE) {
-      session->findAnchor->addFind(currentObject->index);
+      // Add the handle to the search results if the object matched the attributes.
+      if(findObject == CK_TRUE) {
+        session->findAnchor->addFind(currentObject->index);
+      }
     }
 
     // Iterate
@@ -597,12 +717,23 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  if(session->isReadWrite() == false) {
+  SoftObject *object = session->currentSlot->objects->getObject(hObject);
+
+  if(object == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DestroyObject", "The session is read only");
+      logDebug("C_DestroyObject", "Can not find the object");
     #endif
 
-    return CKR_SESSION_READ_ONLY;
+    return CKR_OBJECT_HANDLE_INVALID;
+  }
+
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 1);
+  if(userAuth == CK_FALSE) {
+    #if SOFTLOGLEVEL >= SOFTDEBUG
+      logDebug("C_DestroyObject", "User is not authorized");
+    #endif
+
+    return CKR_OBJECT_HANDLE_INVALID;
   }
 
   // Remove the key from the sessions' key cache
@@ -613,10 +744,10 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   }
 
   // Delete the object from the database
-  db->deleteObject(this->getPIN(), hObject);
+  db->deleteObject(session->currentSlot->userPIN, hObject);
 
   // Delete the object from the internal state
-  CK_RV result = objects->deleteObj(hObject);
+  CK_RV result = session->currentSlot->objects->deleteObj(hObject);
 
   #if SOFTLOGLEVEL >= SOFTINFO
     logInfo("C_DestroyObject", "An object is destroyed");
@@ -671,54 +802,4 @@ CK_RV SoftHSMInternal::unlockMutex() {
 
   // Calls the real mutex function via its function pointer.
   return unlockMutexFunc(pHSMMutex);
-}
-
-// Add a new object from the database
-// Returns an index to the object
-
-void SoftHSMInternal::getObjectFromDB(CK_OBJECT_HANDLE keyRef) {
-  SoftObject *newObject = db->populateObj(keyRef);
-
-  if(newObject != NULL_PTR) {
-    newObject->nextObject = objects;
-    objects = newObject;
-  }
-}
-
-// Get all objects associated with the given PIN
-// and store them in the object buffer
-
-void SoftHSMInternal::getAllObjects() {
-  int objectCount = 0;
-  CK_OBJECT_HANDLE *objectRefs = db->getObjectRefs(pin, objectCount);
-
-  if(objectRefs == NULL_PTR) {
-    return;
-  }
-
-  for(int i = 0; i < objectCount; i++) {
-    this->getObjectFromDB(objectRefs[i]);
-  }
-
-  free(objectRefs);
-}
-
-// Clear all the objects and the session caches
-
-void SoftHSMInternal::clearObjectsAndCaches() {
-  // Clear all the objects
-  if(objects != NULL_PTR) {
-    delete objects;
-  }
-  objects = new SoftObject();
-
-  // Clear the key caches
-  for(int i = 0; i < MAX_SESSION_COUNT; i++) {
-    if(sessions[i] != NULL_PTR) {
-      if(sessions[i]->keyStore != NULL_PTR) {
-        delete sessions[i]->keyStore;
-      }
-      sessions[i]->keyStore = new SoftKeyStore();
-    }
-  }  
 }

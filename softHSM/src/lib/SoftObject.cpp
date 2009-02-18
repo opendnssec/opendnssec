@@ -50,6 +50,8 @@ SoftObject::SoftObject() {
   keyType = CKK_VENDOR_DEFINED;
   keySizeBytes = 0;
   sensible = CK_TRUE;
+  isPrivate = CK_TRUE;
+  isToken = CK_TRUE;
   extractable = CK_FALSE;
   modifiable = CK_FALSE;
   attributes = new SoftAttribute();

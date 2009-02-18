@@ -40,6 +40,7 @@
 #include "SoftFind.h"
 #include "SoftDatabase.h"
 #include "SoftKeyStore.h"
+#include "SoftSlot.h"
 
 // Includes for the crypto library
 #include <botan/pipe.h>
@@ -51,15 +52,18 @@ using namespace Botan;
 class SoftFind;
 class SoftDatabase;
 class SoftKeyStore;
+class SoftSlot;
 
 class SoftSession {
   public:
-    SoftSession(int rwSession);
+    SoftSession(CK_FLAGS rwSession, SoftSlot *givenSlot);
     ~SoftSession();
 
+    SoftSlot *currentSlot;
     bool isReadWrite();
     CK_VOID_PTR pApplication;
     CK_NOTIFY Notify;
+    CK_STATE getSessionState();
 
     // Find
     SoftFind *findAnchor;
