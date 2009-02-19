@@ -304,6 +304,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
 
   CK_BBOOL bolVal;
   CK_BBOOL isPrivate = CK_TRUE;
+  CK_BBOOL isToken = CK_FALSE;
 
   // Extract the attributes
   for(CK_ULONG i = 0; i < ulPrivateKeyAttributeCount; i++) {
@@ -316,7 +317,6 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
         break;
       // Bool
       case CKA_DERIVE:
-      case CKA_TOKEN:
       case CKA_MODIFIABLE:
       case CKA_DECRYPT:
       case CKA_SIGN:
@@ -326,6 +326,12 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
       case CKA_ALWAYS_AUTHENTICATE:
         if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
           this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+        }
+        break;
+      case CKA_TOKEN:
+        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, pPrivateKeyTemplate[i].ulValueLen);
+          isToken = *(CK_BBOOL*)pPrivateKeyTemplate[i].pValue;
         }
         break;
       case CKA_PRIVATE:
@@ -364,7 +370,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
     }
   }
 
-  if(isPrivate == CK_TRUE) {
+  if(isPrivate == CK_TRUE && isToken == CK_TRUE) {
     stringstream sqlUpdateObj;
 
     sqlUpdateObj << "UPDATE Objects SET encodedKey = '" << PKCS8::PEM_encode(*rsaKey, *rng, pin) << "' WHERE objectID = " << objectID << ";";
@@ -548,10 +554,6 @@ SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
       case CKA_MODIFIABLE:
         keyObject->modifiable = *(CK_BBOOL *)pValue;
         break;
-      case CKA_MODULUS_BITS:
-        tmpValue = *(CK_ULONG *)pValue;
-        keyObject->keySizeBytes = (tmpValue + 7) / 8;
-        break;
       default:
         break;
     }
@@ -565,10 +567,9 @@ SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
 // Delete an object and its attributes, if the PIN is correct.
 // The trigger in the database removes the attributes.
 
-void SoftDatabase::deleteObject(char *pin, CK_OBJECT_HANDLE objRef) {
+void SoftDatabase::deleteObject(CK_OBJECT_HANDLE objRef) {
   stringstream sqlDeleteObj;
 
-  sqlDeleteObj << "DELETE FROM Objects WHERE pin = '" << pin << "' and objectID = " 
-               << objRef << ";";
+  sqlDeleteObj << "DELETE FROM Objects WHERE objectID = " << objRef << ";";
   sqlite3_exec(db, sqlDeleteObj.str().c_str(),  NULL, NULL, NULL);
 }

@@ -66,7 +66,7 @@ class SoftDatabase {
       CK_ULONG ulPublicKeyAttributeCount, char *labelID);
     CK_OBJECT_HANDLE addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
       CK_ULONG ulPrivateKeyAttributeCount, char *labelID, RandomNumberGenerator *rng);
-    void deleteObject(char *pin, CK_OBJECT_HANDLE objRef);
+    void deleteObject(CK_OBJECT_HANDLE objRef);
 
     void saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
     void saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber);

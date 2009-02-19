@@ -250,6 +250,8 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
     return CKR_ARGUMENTS_BAD;
   }
 
+  /* TODO: Clean out all the session objects */
+
   if(softHSM == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_Finalize", "Library is not initialized");
@@ -2786,19 +2788,19 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_U
 CK_RV C_GetFunctionStatus(CK_SESSION_HANDLE hSession) {
   #if SOFTLOGLEVEL >= SOFTDEBUG
     logDebug("C_GetFunctionStatus", "Calling");
-    logDebug("C_GetFunctionStatus", "The function is not implemented");
+    logDebug("C_GetFunctionStatus", "Just returning. Is a legacy function.");
   #endif
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  return CKR_FUNCTION_NOT_PARALLEL;
 }
 
 CK_RV C_CancelFunction(CK_SESSION_HANDLE hSession) {
   #if SOFTLOGLEVEL >= SOFTDEBUG
     logDebug("C_CancelFunction", "Calling");
-    logDebug("C_CancelFunction", "The function is not implemented");
+    logDebug("C_CancelFunction", "Just returning. Is a legacy function.");
   #endif
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  return CKR_FUNCTION_NOT_PARALLEL;
 }
 
 CK_RV C_WaitForSlotEvent(CK_FLAGS flags, CK_SLOT_ID_PTR pSlot, CK_VOID_PTR pReserved) {
@@ -2883,7 +2885,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   delete rsaKey;
 
   if(pubRef == 0) {
-    session->db->deleteObject(session->currentSlot->userPIN, privRef);
+    session->db->deleteObject(privRef);
 
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_GenerateKeyPair", "Could not save public key in DB");
@@ -2891,6 +2893,8 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
 
     return CKR_GENERAL_ERROR;
   }
+
+  /* TODO: How should we add the key to the in memory token? */
 
   /*
   // Update the internal states.

@@ -55,7 +55,7 @@ class SoftSlot {
 
     void login(RandomNumberGenerator *rng);
     void loadUnencryptedKeys();
-    void loadRSAPrivate(SoftObject *currentObject, char *userPIN, RandomNumberGenerator *rng);
+    void loadRSAPrivate(SoftObject *currentObject, RandomNumberGenerator *rng, char *userPIN = NULL_PTR);
     void loadRSAPublic(SoftObject *currentObject);
 
     void readDB();

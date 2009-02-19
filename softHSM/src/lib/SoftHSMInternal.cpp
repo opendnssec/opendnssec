@@ -202,8 +202,9 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
       free(curSession->currentSlot->soPIN);
       curSession->currentSlot->soPIN = NULL_PTR;
     }
-    curSession->currentSlot->readDB();
   }
+
+  /* TODO: Clean out all the session objects created by this session */
 
   // Close the current session;
   delete sessions[sessID];
@@ -230,6 +231,8 @@ CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
     return CKR_SLOT_ID_INVALID;
   }
 
+  /* TODO: Clean out all the session objects on this slot */
+
   // Close all sessions on the slot.
   for (int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
@@ -250,7 +253,6 @@ CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
     free(currentSlot->soPIN);
     currentSlot->soPIN = NULL_PTR;
   }
-  currentSlot->readDB();
 
   #if SOFTLOGLEVEL >= SOFTDEBUG
    logDebug("C_CloseAllSessions", "OK");
@@ -490,7 +492,6 @@ CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
     free(session->currentSlot->soPIN);
     session->currentSlot->soPIN = NULL_PTR;
   }
-  session->currentSlot->readDB();
 
   #if SOFTLOGLEVEL >= SOFTDEBUG
     logDebug("C_Logout", "OK");
@@ -744,7 +745,7 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   }
 
   // Delete the object from the database
-  db->deleteObject(session->currentSlot->userPIN, hObject);
+  db->deleteObject(hObject);
 
   // Delete the object from the internal state
   CK_RV result = session->currentSlot->objects->deleteObj(hObject);
