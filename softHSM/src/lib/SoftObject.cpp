@@ -56,6 +56,7 @@ SoftObject::SoftObject() {
   modifiable = CK_FALSE;
   attributes = new SoftAttribute();
   encodedKey = NULL_PTR;
+  createdBySession = NULL_PTR;
 }
 
 SoftObject::~SoftObject() {
@@ -73,6 +74,8 @@ SoftObject::~SoftObject() {
     free(encodedKey);
     encodedKey = NULL_PTR;
   }
+
+  createdBySession = NULL_PTR;
 }
 
 // Return the object with the given index.

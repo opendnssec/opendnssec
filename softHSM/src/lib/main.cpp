@@ -250,8 +250,6 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
     return CKR_ARGUMENTS_BAD;
   }
 
-  /* TODO: Clean out all the session objects */
-
   if(softHSM == NULL_PTR) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_Finalize", "Library is not initialized");
@@ -2894,13 +2892,9 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
     return CKR_GENERAL_ERROR;
   }
 
-  /* TODO: How should we add the key to the in memory token? */
-
-  /*
   // Update the internal states.
-  softHSM->getObjectFromDB(privRef);
-  softHSM->getObjectFromDB(pubRef);
-  */
+  session->currentSlot->getObjectFromDB(session, pubRef);
+  session->currentSlot->getObjectFromDB(session, privRef);
 
   // Returns the object handles to the application.
   *phPublicKey = pubRef;

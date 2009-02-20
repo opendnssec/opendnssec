@@ -467,7 +467,7 @@ void SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_T
 
 SoftObject* SoftDatabase::readAllObjects() {
   // Get all the objects
-  string sqlSelect = "SELECT * FROM Objects;";
+  string sqlSelect = "SELECT objectID FROM Objects;";
   sqlite3_stmt *select_sql;
   int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
 
@@ -488,13 +488,6 @@ SoftObject* SoftDatabase::readAllObjects() {
       // Add the object to the chain
       newObject->nextObject = objects;
       objects = newObject;
-
-      // Add the encoded key
-      const char *encKey = (const char*)sqlite3_column_text(select_sql, 1);
-      int length = strlen(encKey);
-      objects->encodedKey = (char*)malloc(length + 1);
-      objects->encodedKey[length] = '\0';
-      memcpy(objects->encodedKey, encKey, length);
     }
   }
 
@@ -506,21 +499,50 @@ SoftObject* SoftDatabase::readAllObjects() {
 // Creates an object an populate it with attributes from the database.
 
 SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
+  stringstream sqlKey;
+  sqlKey << "SELECT encodedKey from Objects WHERE objectID = " << keyRef << ";";
+
+  string sqlKeyStr = sqlKey.str();
+  sqlite3_stmt *key_sql;
+  int result = sqlite3_prepare(db, sqlKeyStr.c_str(), sqlKeyStr.size(), &key_sql, NULL);
+
+  if(result) {
+    sqlite3_finalize(key_sql);
+
+    return NULL_PTR;
+  }
+
+  SoftObject *keyObject = new SoftObject();
+  keyObject->index = keyRef;
+
+  if(sqlite3_step(key_sql) == SQLITE_ROW) {
+    // Add the encoded key
+    const char *encKey = (const char*)sqlite3_column_text(key_sql, 0);
+    int length = strlen(encKey);
+    keyObject->encodedKey = (char*)malloc(length + 1);
+    keyObject->encodedKey[length] = '\0';
+    memcpy(keyObject->encodedKey, encKey, length);
+  } else {
+    delete keyObject;
+    sqlite3_finalize(key_sql);
+
+    return NULL_PTR;
+  }
+
+  sqlite3_finalize(key_sql);
   stringstream sqlQuery;
   sqlQuery << "SELECT type,value,length from Attributes WHERE objectID = " << keyRef << ";";
 
   string sqlQueryStr = sqlQuery.str();
   sqlite3_stmt *select_sql;
-  int result = sqlite3_prepare(db, sqlQueryStr.c_str(), sqlQueryStr.size(), &select_sql, NULL);
+  result = sqlite3_prepare(db, sqlQueryStr.c_str(), sqlQueryStr.size(), &select_sql, NULL);
 
   if(result) {
+    delete keyObject;
     sqlite3_finalize(select_sql);
 
     return NULL_PTR;
   }
-
-  SoftObject* keyObject = new SoftObject();
-  keyObject->index = keyRef;
 
   CK_ULONG tmpValue;
 

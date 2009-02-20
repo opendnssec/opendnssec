@@ -33,8 +33,8 @@
 ************************************************************/
 
 #include "SoftSlot.h"
-#include "SoftDatabase.h"
 #include "log.h"
+#include "SoftDatabase.h"
 
 #include <stdlib.h>
 
@@ -209,12 +209,21 @@ void SoftSlot::loadRSAPrivate(SoftObject *currentObject, RandomNumberGenerator *
     }
   }
   catch(...) {
+    if(dsMem != NULL_PTR) {
+      delete dsMem;
+    }
+    if(rsaKey != NULL_PTR) {
+      delete rsaKey;
+    }
+
     #if SOFTLOGLEVEL >= SOFTERROR
       logError("loadRSAPrivate", "Could not load the encoded key");
     #endif
 
     return;
   }
+
+  delete dsMem;
 
   // The RSA modulus bits
   IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
@@ -262,6 +271,7 @@ void SoftSlot::loadRSAPrivate(SoftObject *currentObject, RandomNumberGenerator *
   currentObject->addAttributeFromData(CKA_PRIME_2, buf, size);
   free(buf);
 
+  delete rsaKey;
   free(currentObject->encodedKey);
   currentObject->encodedKey = NULL_PTR;
 }
@@ -290,6 +300,8 @@ void SoftSlot::loadUnencryptedKeys() {
 
     currentObject = currentObject->nextObject;
   }
+
+  delete rng;
 }
 
 void SoftSlot::loadRSAPublic(SoftObject *currentObject) {
@@ -304,12 +316,21 @@ void SoftSlot::loadRSAPublic(SoftObject *currentObject) {
     rsaKey = X509::load_key(*dsMem);
   }
   catch(...) {
+    if(dsMem != NULL_PTR) {
+      delete dsMem;
+    }
+    if(rsaKey != NULL_PTR) {
+      delete rsaKey;
+    }
+
     #if SOFTLOGLEVEL >= SOFTERROR
       logError("loadRSAPublic", "Could not load the encoded key");
     #endif
 
     return;
   }
+
+  delete dsMem;
 
   // The RSA modulus bits
   IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
@@ -333,6 +354,30 @@ void SoftSlot::loadRSAPublic(SoftObject *currentObject) {
   currentObject->addAttributeFromData(CKA_PUBLIC_EXPONENT, buf, size);
   free(buf);
 
+  delete rsaKey;
   free(currentObject->encodedKey);
   currentObject->encodedKey = NULL_PTR;
+}
+
+void SoftSlot::getObjectFromDB(SoftSession *session, CK_OBJECT_HANDLE objRef) {
+  SoftObject *newObject = session->db->populateObj(objRef);
+
+  if(newObject == NULL_PTR) {
+    return;
+  }
+
+  newObject->nextObject = objects;
+  objects = newObject;
+
+  newObject->createdBySession = session;
+
+  if(newObject->objectClass == CKO_PUBLIC_KEY && newObject->keyType == CKK_RSA) {
+    loadRSAPublic(newObject);
+  } else if(newObject->objectClass == CKO_PRIVATE_KEY && newObject->keyType == CKK_RSA) {
+    if(newObject->isToken == CK_TRUE && newObject->isPrivate == CK_TRUE) {
+      loadRSAPrivate(newObject, session->rng, userPIN);
+    } else {
+      loadRSAPrivate(newObject, session->rng);
+    }
+  }
 }

@@ -65,25 +65,20 @@ SoftHSMInternal::SoftHSMInternal(bool threading, CK_CREATEMUTEX cMutex,
   usesThreading = threading;
   this->createMutex(&pHSMMutex);
 
-  db = new SoftDatabase();
-
   slots = new SoftSlot();
 }
 
 SoftHSMInternal::~SoftHSMInternal() {
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
+      // Remove the session objects created by this session
+      destroySessObj(sessions[i]);
       delete sessions[i];
       sessions[i] = NULL_PTR;
     }
   }
 
   openSessions = 0;
-
-  if(db != NULL_PTR) {
-    delete db;
-    db = NULL_PTR;
-  }
 
   if(slots != NULL_PTR) {
     delete slots;
@@ -204,7 +199,8 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
     }
   }
 
-  /* TODO: Clean out all the session objects created by this session */
+  // Remove the session objects created by this session
+  destroySessObj(sessions[sessID]);
 
   // Close the current session;
   delete sessions[sessID];
@@ -231,12 +227,14 @@ CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
     return CKR_SLOT_ID_INVALID;
   }
 
-  /* TODO: Clean out all the session objects on this slot */
-
   // Close all sessions on the slot.
   for (int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       if(sessions[i]->currentSlot->getSlotID() == slotID) {
+        // Remove session objects
+        destroySessObj(sessions[i]);
+
+        // Close session
         delete sessions[i];
         sessions[i] = NULL_PTR;
         openSessions--;
@@ -259,6 +257,29 @@ CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
   #endif
 
   return CKR_OK;
+}
+
+// Destroy all the session objects created by this session
+
+void SoftHSMInternal::destroySessObj(SoftSession *session) {
+  SoftObject *currentObject = session->currentSlot->objects;
+
+  // Loop all objects
+  while(currentObject->nextObject != NULL_PTR) {
+    if(currentObject->isToken == CK_FALSE &&
+       currentObject->createdBySession == session) {
+
+      session->db->deleteObject(currentObject->index);
+      currentObject->deleteObj(currentObject->index);
+
+      // Need to do a re-check because we moved the object chain
+      // since the while statement
+      if(currentObject->nextObject == NULL_PTR) {
+        break;
+      }
+    }
+    currentObject = currentObject->nextObject;
+  }
 }
 
 // Return information about the session.
@@ -745,7 +766,7 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   }
 
   // Delete the object from the database
-  db->deleteObject(hObject);
+  session->db->deleteObject(hObject);
 
   // Delete the object from the internal state
   CK_RV result = session->currentSlot->objects->deleteObj(hObject);

@@ -72,6 +72,7 @@ class SoftHSMInternal {
     CK_RV logout(CK_SESSION_HANDLE hSession);
 
     // Object handling
+    void destroySessObj(SoftSession *session);
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
     CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
       CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
@@ -88,8 +89,6 @@ class SoftHSMInternal {
     SoftSlot *slots;
 
   private:
-    SoftDatabase *db;
-
     int openSessions;
     SoftSession *sessions[MAX_SESSION_COUNT];
 

@@ -72,6 +72,7 @@ CK_RV readConfigFile() {
     softHSM->slots->addSlot(slotID, addDBPath);
   }
 
+  free(dbPath);
   fclose(fp);
 
   return CKR_OK;

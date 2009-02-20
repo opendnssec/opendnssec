@@ -47,6 +47,7 @@
 class SoftAttribute;
 class SoftDatabase;
 class SoftObject;
+class SoftSession;
 
 // Includes for the crypto library
 #include <botan/bigint.h>
@@ -68,6 +69,7 @@ class SoftObject {
 
     SoftObject *nextObject;
     CK_OBJECT_HANDLE index;
+    SoftSession *createdBySession;
 
     CK_OBJECT_CLASS objectClass;
     CK_KEY_TYPE keyType;
