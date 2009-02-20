@@ -59,6 +59,8 @@ INSTALLING
     --enable-64bit          Compile a 64-bit version
     --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 
                             3=Info 4=Debug (default INT=3)
+    --prefix=DIR            The installation directory
+                            (default DIR=/usr/local)
 
   For more options:
 
@@ -71,3 +73,23 @@ INSTALLING
 4. Install the library
 
   sudo make install
+
+5. Create your tokens
+
+  softhsm --init-token /home/user/my.db --label "My token 1"
+
+   Type in SO and user PIN.
+
+  softhsm --init-token /home/user/token.database --label "A token"
+ 
+   Type in SO and user PIN.
+
+6. Add the tokens to the slots by creating/editing:
+
+  sudo pico /etc/softhsm.conf
+
+    0:/home/user/my.db
+    1:/etc/softhsm/non.existing.token
+    4:/home/user/token.database
+
+  (Slot 1 will be empty since that database does not exist)

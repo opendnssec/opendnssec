@@ -2,6 +2,14 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+New in 0.5; 2009-02-20 Rickard Bondesson
+
+* Admin tool for creating tokens.
+* Config file in /etc/softhsm.conf
+* All session objects are removed when the session creating
+  them are closed.
+* User credentials as specified in PKCS#11
+
 New in 0.4; 2009-02-10 Rickard Bondesson
 
 * Only one library is compiled (libsofthsm.so). The log level
