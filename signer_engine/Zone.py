@@ -5,6 +5,7 @@
 import os
 import time
 import errno
+from Ft.Xml.XPath import Evaluate
 from xml.dom import minidom
 
 import Util
@@ -15,64 +16,12 @@ import sys
 # todo: move paths to general engine config
 basedir = "../signer_tools";
 
-
-# quick 'n dirty xml parsing against a moving target
-def getChildByTagName(element, tag):
-	for e in element.childNodes:
-		if e.nodeName == tag:
-			return e
-	# raise exception instead of return none?
-	return None
-
-def getChildrenByTagName(element, tag):
-	res = []
-	for e in element.childNodes:
-		if e.tagName == tag:
-			res.append(e)
-	return res
-
-def getText(element):
-	res = []
-	for c in element.childNodes:
-		if c.nodeType == c.TEXT_NODE:
-			res.append(c.data)
-	return "".join(res)
-
-# returns time in seconds of 
-# an <el unit="weeks">213</el> type tag
-def getTimeVal(element):
-	val = int(getText(element))
-	# default to seconds?
-	modifier = 1;
-	if element.hasAttribute("unit"):
-		unit = element.getAttribute("unit")
-		if unit == "minutes":
-			modifier = 60
-		elif unit == "hours":
-			modifier = 3600
-		elif unit == "days":
-			modifier = 86400
-		elif unit == "weeks":
-			modifier = 604800
-		else:
-			# TODO: raise exception etc
-			print "Error, unknown unit " + resign_unit
-	return val * modifier
-
-
-
 class Zone:
 	def __init__(self, _zone_name, _input_file, _output_file):
 		self.zone_name = _zone_name
 		self.input_file = _input_file
 		self.output_file = _output_file
 		self.locked = False
-		self.scheduled = None
-		
-		# we need to be able to tell the parent engine to stop
-		# if a fatal error or keyboard interrupt reaches one of
-		# the signer threads
-		#self.engine = None
 		
 		# information received from KASP through the xml file
 		# old
@@ -213,7 +162,9 @@ class Zone:
 		f = open(file, "r")
 		s = f.read()
 		f.close()
-		self.from_xml(s)
+		x = minidom.parseString(s)
+		self.from_xml(x)
+		x.unlink()
 
 	def getText(self,nodelist):
 		rc = ""
@@ -228,32 +179,30 @@ class Zone:
 				print "name!"
 		
 
-	# quick 'n dirty xml parsing against a moving target
-	# this should probably only be on the <zone/> element, not on all
-	def from_xml(self, string):
-		print "read"
-		dom = minidom.parseString(string)
-		#dom.writexml(sys.stdout)
-		sc_node = getChildByTagName(dom, "signer-config")
-		z_node = getChildByTagName(sc_node, "zone")
-		z_name = getChildByTagName(z_node, "name")
-		if self.zone_name != getText(z_name):
-			print "Error: zone configuration for different zone (" + self.zone_name + " != " + getText(z_name) + ")"
-			# todo: raise some cool exception thing
-		sigs_node = getChildByTagName(z_node, "signatures")
-		self.signatures_resign_time = getTimeVal(getChildByTagName(sigs_node, "resign"))
-		self.signatures_refresh_time = getTimeVal(getChildByTagName(sigs_node, "refresh"))
-		validity_node = getChildByTagName(sigs_node, "validity")
-		self.signatures_validity_default = getTimeVal(getChildByTagName(validity_node, "default"))
-		self.signatures_validity_nsec = getTimeVal(getChildByTagName(validity_node, "nsec"))
-		self.signatures_jitter = getTimeVal(getChildByTagName(sigs_node, "jitter"))
-		
+	# signer_config is the xml blob described in
+	# http://www.opendnssec.se/browser/docs/signconf.xml
+	def from_xml(self, signer_config):
+		# todo: check the zone name just to be sure?
+		# and some general error checking might be nice
 
-		#self.signatures_resign_time = 0
-		#self.signatures_refresh_time = 0
-		#self.signatures_validity_default = 0
-		#self.signatures_validity_nsec = 0
-		#self.signatures_jitter = 0
+		xmlb = Evaluate("signconf/signatures/resign", signer_config)[0].firstChild
+		self.signatures_resign_time = Util.parse_duration(xmlb.data)
+
+		xmlb = Evaluate("signconf/signatures/refresh", signer_config)[0].firstChild
+		self.signatures_refresh_time = Util.parse_duration(xmlb.data)
+		
+		xmlb = Evaluate("signconf/signatures/validity/default", signer_config)[0].firstChild
+		self.signatures_validity_default = Util.parse_duration(xmlb.data)
+		
+		xmlb = Evaluate("signconf/signatures/validity/nsec", signer_config)[0].firstChild
+		self.signatures_validity_nsec = Util.parse_duration(xmlb.data)
+		
+		xmlb = Evaluate("signconf/signatures/jitter", signer_config)[0].firstChild
+		self.signatures_jitter = Util.parse_duration(xmlb.data)
+
+		xmlb = Evaluate("signconf/signatures/clockskew", signer_config)[0].firstChild
+		self.signatures_clockskew = Util.parse_duration(xmlb.data)
+
 		#self.signatures_zsk_refs = []
 		#self.signatures_ksk_refs = []
 		#self.publish_keys = []
@@ -265,12 +214,18 @@ class Zone:
 		## i still think nsec TTL should not be configurable
 		#self.denial_nsec3_ttl = 0
 
-		print "resign interval: " + str(self.resign_interval) + " seconds"
+		print "resign interval: " + str(self.signatures_resign_time) + " seconds"
 		#print dom.toxml()
-		dom.unlink()
 
 if __name__=="__main__":
 	print "yoyo"
 	z = Zone("zone1.example", "/tmp/zone1.example", "/tmp/zone1.example.signed")
 	z.from_xml_file("/tmp/zone1.example-config.xml");
 	
+
+
+
+
+
+
+
