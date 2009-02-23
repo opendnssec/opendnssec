@@ -230,7 +230,6 @@ void SoftSlot::loadRSAPrivate(SoftObject *currentObject, RandomNumberGenerator *
   BigInt bigMod = ifKeyPriv->get_n();
   CK_ULONG bits = bigMod.bits();
   currentObject->keySizeBytes = (bits + 7) / 8;
-  currentObject->addAttributeFromData(CKA_MODULUS_BITS, &bits, sizeof(bits));
 
   // The RSA modulus
   CK_ULONG size = bigMod.bytes();
