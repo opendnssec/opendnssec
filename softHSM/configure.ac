@@ -54,6 +54,8 @@ AC_CHECK_HEADER(sqlite3.h, AC_CHECK_LIB(sqlite3, sqlite3_open, [], [AC_MSG_ERROR
 dnl How should you check if a C++ library exists and is functioning?
 LIBS="$LIBS -lbotan"
 
+AC_CHECK_FUNCS(getpassphrase)
+
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 

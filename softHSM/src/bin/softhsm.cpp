@@ -149,28 +149,6 @@ void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
     exit(1);
   }
 
-  if(soPIN == NULL) {
-    printf("Error: A SO PIN for the token must be supplied.\n");
-    exit(1);
-  }
-
-  int soLength = strlen(soPIN);
-  if(soLength < 4 || soLength > 255) {
-    printf("Error: The SO PIN must have a length between 4 and 255 bytes.\n");
-    exit(1);
-  }
-
-  if(userPIN == NULL) {
-    printf("Error: A user PIN for the token must be supplied.\n");
-    exit(1);
-  }
-
-  int userLength = strlen(userPIN);
-  if(userLength < 4 || userLength > 255) {
-    printf("Error: The user PIN must have a length between 4 and 255 bytes.\n");
-    exit(1);
-  }
-
   sqlite3 *db = NULL;
 
   createDatabase(dbPath, &db);
@@ -179,7 +157,44 @@ void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
   // Init the Botan crypto library
   LibraryInitializer::initialize();
 
+  if(soPIN == NULL) {
+    #ifdef HAVE_GETPASSPHRASE
+      soPIN = getpassphrase("Enter SO PIN (4-255 chars): ");
+    #else
+      soPIN = getpass("Enter SO PIN (4-255 chars): ");
+    #endif
+  }
+
+  int soLength = strlen(soPIN);
+  while(soLength < 4 || soLength > 255) {
+    #ifdef HAVE_GETPASSPHRASE
+      soPIN = getpassphrase("Wrong size! Enter SO PIN (4-255 chars): ");
+    #else
+      soPIN = getpass("Wrong size! Enter SO PIN (4-255 chars): ");
+    #endif
+    soLength = strlen(soPIN);
+  }
+
   char *digestedSOPIN = digestPIN(soPIN);
+
+  if(userPIN == NULL) {
+    #ifdef HAVE_GETPASSPHRASE
+      userPIN = getpassphrase("Enter user PIN (4-255 chars): ");
+    #else
+      userPIN = getpass("Enter user PIN (4-255 chars): ");
+    #endif
+  }
+
+  int userLength = strlen(userPIN);
+  while(userLength < 4 || userLength > 255) {
+    #ifdef HAVE_GETPASSPHRASE
+      userPIN = getpassphrase("Wrong size! Enter user PIN (4-255 chars): ");
+    #else
+      userPIN = getpass("Wrong size! Enter user PIN (4-255 chars): ");
+    #endif
+    userLength = strlen(userPIN);
+  }
+
   char *digestedUserPIN = digestPIN(userPIN);
   char *paddedLabel = padLabel(label);
 
