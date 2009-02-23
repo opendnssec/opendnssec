@@ -40,6 +40,7 @@
 
 // Standard includes
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 extern SoftHSMInternal *softHSM;
@@ -49,7 +50,13 @@ extern SoftHSMInternal *softHSM;
 CK_RV readConfigFile() {
   FILE *fp;
 
-  fp = fopen(SOFT_CONFIG_FILE,"r");
+  char *confPath = getenv("SOFTHSM_CONF");
+
+  if(confPath == NULL) {
+    fp = fopen(SOFT_CONFIG_FILE,"r");
+  } else {
+    fp = fopen(confPath,"r");
+  }
 
   if(fp == NULL) {
     #if SOFTLOGLEVEL >= SOFTERROR

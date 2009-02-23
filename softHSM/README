@@ -84,12 +84,19 @@ INSTALLING
  
    Type in SO and user PIN.
 
-6. Add the tokens to the slots by creating/editing:
+6. Add the tokens to the slots:
 
-  sudo pico /etc/softhsm.conf
+  The default location of the config file is /etc/softhsm.conf
+  This location can be change by setting the environment variable.
 
-    0:/home/user/my.db
-    1:/etc/softhsm/non.existing.token
-    4:/home/user/token.database
+    export SOFTHSM_CONF=/home/user/config.file
+
+  Open the config file and add the slots
+
+    sudo pico /etc/softhsm.conf
+
+      0:/home/user/my.db
+      1:/etc/softhsm/non.existing.token
+      4:/home/user/token.database
 
   (Slot 1 will be empty since that database does not exist)
