@@ -339,7 +339,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     return CKR_ARGUMENTS_BAD;
   }
 
-  if(ulPinLen < 4 || ulPinLen > 8000) {
+  if(ulPinLen < 4 || ulPinLen > 255) {
     #if SOFTLOGLEVEL >= SOFTDEBUG
       logDebug("C_Login", "Incorrent PIN length");
     #endif

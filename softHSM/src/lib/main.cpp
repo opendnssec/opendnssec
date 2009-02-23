@@ -526,7 +526,7 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
   pInfo->ulSessionCount = softHSM->getSessionCount();
   pInfo->ulMaxRwSessionCount = MAX_SESSION_COUNT;
   pInfo->ulRwSessionCount = softHSM->getSessionCount();
-  pInfo->ulMaxPinLen = 8000;
+  pInfo->ulMaxPinLen = 255;
   pInfo->ulMinPinLen = 4;
   pInfo->ulTotalPublicMemory = CK_UNAVAILABLE_INFORMATION;
   pInfo->ulFreePublicMemory = CK_UNAVAILABLE_INFORMATION;

@@ -65,8 +65,8 @@ void usage() {
   printf("--init-token <file>\tCreate a database at the given location. If the database exist, \n");
   printf("\t\t\tit will be erased. Use with --label, --so-pin, and --pin.\n");
   printf("--label <text>\t\tDefines the label of the token. Max 32 chars.\n");
-  printf("--so-pin <PIN>\t\tThe PIN for the Security Officer (SO). 4-8000 chars.\n");
-  printf("--pin <PIN>\t\tThe PIN for the normal user. 4-8000 chars.\n");
+  printf("--so-pin <PIN>\t\tThe PIN for the Security Officer (SO). 4-255 chars.\n");
+  printf("--pin <PIN>\t\tThe PIN for the normal user. 4-255 chars.\n");
   printf("-h\t\t\tShows this help.\n");
 }
 
@@ -146,7 +146,29 @@ void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
 
   if(strlen(label) > 32) {
     printf("Error: The label must not have a length greater than 32 chars.\n");
-    exit(1);;
+    exit(1);
+  }
+
+  if(soPIN == NULL) {
+    printf("Error: A SO PIN for the token must be supplied.\n");
+    exit(1);
+  }
+
+  int soLength = strlen(soPIN);
+  if(soLength < 4 || soLength > 255) {
+    printf("Error: The SO PIN must have a length between 4 and 255 bytes.\n");
+    exit(1);
+  }
+
+  if(userPIN == NULL) {
+    printf("Error: A user PIN for the token must be supplied.\n");
+    exit(1);
+  }
+
+  int userLength = strlen(userPIN);
+  if(userLength < 4 || userLength > 255) {
+    printf("Error: The user PIN must have a length between 4 and 255 bytes.\n");
+    exit(1);
   }
 
   sqlite3 *db = NULL;
@@ -157,28 +179,7 @@ void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
   // Init the Botan crypto library
   LibraryInitializer::initialize();
 
-  if(soPIN == NULL) {
-    soPIN = getpass("Enter SO PIN (4-8000 chars): ");
-  }
-
-  int soLength = strlen(soPIN);
-  while(soLength < 4 || soLength > 8000) {
-    soPIN = getpass("Wrong size! Enter SO PIN (4-8000 chars): ");
-    soLength = strlen(soPIN);
-  }
-
   char *digestedSOPIN = digestPIN(soPIN);
-
-  if(userPIN == NULL) {
-    userPIN = getpass("Enter user PIN (4-8000 chars): ");
-  }
-
-  int userLength = strlen(userPIN);
-  while(userLength < 4 || userLength > 8000) {
-    userPIN = getpass("Wrong size! Enter user PIN (4-8000 chars): ");
-    userLength = strlen(userPIN);
-  }
-
   char *digestedUserPIN = digestPIN(userPIN);
   char *paddedLabel = padLabel(label);
 
