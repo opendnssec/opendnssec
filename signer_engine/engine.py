@@ -33,6 +33,11 @@ MSGLEN = 1024
 class Engine:
 	def __init__(self):
 		# todo: read config etc
+		self.pkcs11_modules = []
+		pkcs11_module = {}
+		pkcs11_module["path"] = "/home/jelte/opt/softhsm/lib/libsofthsm.so"
+		pkcs11_module["pin"] = "1234"
+		self.pkcs11_modules.append(pkcs11_module)
 		self.task_queue = TaskQueue()
 		self.workers = []
 		self.condition = threading.Condition()

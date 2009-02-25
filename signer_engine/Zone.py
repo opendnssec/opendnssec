@@ -7,6 +7,8 @@ import time
 import errno
 from Ft.Xml.XPath import Evaluate
 from xml.dom import minidom
+import commands
+import subprocess
 
 import Util
 
@@ -14,18 +16,24 @@ import Util
 import sys
 
 # todo: move paths to general engine config
-basedir = "../signer_tools";
+# as well as pkcs11 module stuff (not the key specific hints
+# but the general list of locations to look for keys
+# pass it as a self.config value? with just a named hash?
+tools_dir = "../signer_tools";
+zone_configs_dir = "/home/jelte/tmp/engine_configs";
+zone_sorted_dir = "/home/jelte/tmp/engine_sorted_zones";
+zone_file_in_dir = "/home/jelte/tmp/engine_in";
+zone_file_out_dir = "/home/jelte/tmp/engine_out";
 
 class Zone:
-	def __init__(self, _zone_name, _input_file, _output_file):
+	def __init__(self, _zone_name, pkcs11_modules):
 		self.zone_name = _zone_name
-		self.input_file = _input_file
-		self.output_file = _output_file
+		self.pkcs11_modules = pkcs11_modules
 		self.locked = False
 		
 		# information received from KASP through the xml file
 		# old
-		self.keys = None
+		self.keys = {}
 		self.resign_interval = 0
 		
 		# new
@@ -43,6 +51,7 @@ class Zone:
 		self.signatures_zsk_refs = []
 		self.signatures_ksk_refs = []
 		self.publish_keys = []
+		self.denial_nsec = False
 		self.denial_nsec3 = False
 		self.denial_nsec3_opt_out = False
 		self.denial_nsec3_hash_algorithm = None
@@ -69,74 +78,125 @@ class Zone:
 			result = result + ["\tkeys: no keys"]
 		
 		return "\n".join(result)
-	
-	#
-	# the set_() functions below are temporary to test the engine
-	# before we add the zone-config.xml parser
-	#
-	def set_kasp_data(self, keys, resign_interval):
-		self.keys = keys
-		self.resign_interval = resign_interval
-		
-	def add_key(self, key):
-		self.lock("add_key()")
-		if self.keys:
-			self.keys.append(key)
-		else:
-			self.keys = [key]
-		self.release()
-		#self.check_and_schedule()
-		
-	def set_interval(self, interval):
-		self.lock("set_interval()")
-		self.resign_interval = interval
-		self.release()
-	
+
+	# this uses the locator value to find the right pkcs11 module
+	# creates a DNSKEY string to add to the unsigned zone,
+	# and calculates the correct tool_key_id
+	def find_key_details(self, key):
+		Util.debug(1, "Generating DNSKEY rr for " + str(key["id"]))
+		# just try all modules to generate the dnskey? first one is good?
+		found = False
+		for module in self.pkcs11_modules:
+			mpath = module["path"]
+			mpin = module["pin"]
+			cmd = [ tools_dir + os.sep + "create_dnskey_pkcs11",
+			        "-m", mpath,
+			        "-p", mpin,
+			        "-o", self.zone_name,
+			        "-a", str(key["algorithm"]),
+			        "-f", str(key["flags"]),
+			        "-t", str(key["ttl"]),
+			        key["locator"]
+			      ]
+			print " ".join(cmd)
+			(status, output) = commands.getstatusoutput(" ".join(cmd))
+			if status == 0:
+				key["pkcs11_module"] = mpath
+				key["pkcs11_pin"] = mpin
+				key["tool_key_id"] = key["locator"] + "_" + str(key["algorithm"])
+				key["dnskey"] = str(output)
+				print key["dnskey"]
+				found = True
+		# TODO: locator->id?
+		if not found:
+			raise Exception("Unable to find key " + key["locator"])
 	#
 	# TODO: this should probably be moved to the worker class
 	#
-	def sign(self, output_file, keys, pkcs11_module=None, pkcs11_pin=None):
+	def sort(self):
+		Util.debug(1, "Sorting zone: " + self.zone_name)
+		unsorted_zone_file = open(zone_file_in_dir + os.sep + self.zone_name, "r")
+		cmd = [tools_dir + os.sep + "sorter" ]
+		if self.denial_nsec3:
+			cmd.extend(["-n",
+			            "-s", self.denial_nsec3_salt,
+			            "-t", str(self.denial_nsec3_iterations),
+			            "-a", str(self.denial_nsec3_algorithm)])
+		sort_process = Util.run_tool(cmd, subprocess.PIPE)
+		
+		# sort published keys and zone data
+		for k in self.keys.values():
+			if not k["dnskey"]:
+				find_key_details(k)
+			sort_process.stdin.write(k["dnskey"]+ "\n") 
+		
+		for line in unsorted_zone_file:
+			print line,
+			sort_process.stdin.write(line)
+		sort_process.stdin.close()
+		
+		unsorted_zone_file.close()
+		sorted_zone_file = open(zone_sorted_dir + os.sep + self.zone_name, "w")
+		
+		for line in sort_process.stderr:
+			print "stderr: " + line,
+		
+		for line in sort_process.stdout:
+			print line,
+			sorted_zone_file.write(line)
+		sorted_zone_file.close()
+		
+		Util.debug(1, "Done sorting")
+		
+	def sign(self):
 		self.lock("sign()")
-		Util.debug(1, "Signing zone: " + self.zone_name)
-		cmd = ["cat" , self.input_file]
-		for k in self.keys:
-			cmd.append(k + ".key")
-		p0 = Util.run_tool(cmd)
-		p1 = Util.run_tool([basedir + os.sep + "sorter"], p0.stdout)
-		p2 = Util.run_tool([basedir + os.sep + "stripper", "-o", self.zone_name], p1.stdout)
-		p3 = Util.run_tool([basedir + os.sep + "nseccer"], p2.stdout)
 
-		if pkcs11_module:
-			cmd = [basedir + os.sep + "signer_pkcs11",
-			       "-o", self.zone_name,
-			       "-m", pkcs11_module]
-			if pkcs11_pin:
-				cmd = cmd + ["-p", pkcs11_pin]
-			cmd = cmd + keys
-		else:
-			cmd = [basedir + os.sep + "signer",
-			       "-o", self.zone_name]
-			cmd = cmd + keys
+		# todo: only sort if necessary (depends on what has changed in
+		#       the policy)
+		self.sort()
+		Util.debug(1, "Signing zone: " + self.zone_name)
+		# hmz, todo: stripped records need to be re-added
+		# and another todo: move strip and nsec to stored file too?
+		# (so only signing needs to be redone at re-sign time)
+		p2 = Util.run_tool([tools_dir + os.sep + "stripper",
+		                    "-o", self.zone_name,
+		                    "-f", zone_sorted_dir + os.sep + self.zone_name]
+		                   )
+		
+		if self.denial_nsec:
+			p3 = Util.run_tool([tools_dir + os.sep + "nseccer"], p2.stdout)
+		elif self.denial_nsec3:
+			p3 = Util.run_tool([tools_dir + os.sep + "nsec3er",
+			                    "-o", self.zone_name,
+			                    "-s", self.denial_nsec3_salt,
+			                    "-t", str(self.denial_nsec3_iterations),
+			                    "-a", str(self.denial_nsec3_algorithm)],
+			                    p2.stdout)
+		# arg; TODO: pcks11 module per key for signer...
+		cmd = [tools_dir + os.sep + "signer_pkcs11",
+			   "-o", self.zone_name,
+			   "-v", "5",
+			   "-m", self.keys.values()[0]["pkcs11_module"]]
+		cmd = cmd + ["-p", self.keys.values()[0]["pkcs11_pin"]]
+		for k in self.keys.values():
+			# TODO err, this should be ksks and zsks
+			cmd.append(k["tool_key_id"])
+
 		p4 = Util.run_tool(cmd, p3.stdout)
 		
 		# this directly write the output to the final name, which
 		# will mangle the signed zone file if anything goes wrong
 		# TODO: write to tmp file, and move on success
-		if output_file and output_file != "-":
-			output = open(output_file, "w")
-			output.write("; Zone signed at " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
-			for l in p4.stdout:
-				output.write(l)
-			output.close()
-		else:
-			for l in p4.stdout:
-				print l,
-
+		output_file = zone_file_out_dir + os.sep + self.zone_name + ".signed"
+		output = open(output_file, "w")
+		output.write("; Zone signed at " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+		for l in p4.stdout:
+			output.write(l)
 		for l in p4.stderr:
 			print l
-		
+		output.close()
 		status = p4.wait()
-
+		Util.debug(3, "signer result: " + str(status));
 		self.release()
 		
 	def lock(self, caller=None):
@@ -166,24 +226,34 @@ class Zone:
 		self.from_xml(x)
 		x.unlink()
 
-	def getText(self,nodelist):
-		rc = ""
-		for node in nodelist:
-			if node.nodeType == node.TEXT_NODE:
-				rc = rc + node.data
-		return rc
-
-	def from_xml_zone_nodes(self, nodes):
-		for node in nodes:
-			if node.nodeName == "name":
-				print "name!"
-		
-
 	# signer_config is the xml blob described in
 	# http://www.opendnssec.se/browser/docs/signconf.xml
 	def from_xml(self, signer_config):
 		# todo: check the zone name just to be sure?
 		# and some general error checking might be nice
+
+		xmlbs = Evaluate("signconf/keystore/key", signer_config)
+		for xmlb in xmlbs:
+			key = {}
+			id = int(xmlb.attributes["id"].value)
+			key["id"] = id
+			key["name"] = Evaluate("name", xmlb)[0].firstChild.data
+			key["ttl"] = Util.parse_duration(Evaluate("ttl", xmlb)[0].firstChild.data)
+			key["flags"] = int(Evaluate("flags", xmlb)[0].firstChild.data)
+			key["protocol"] = int(Evaluate("protocol", xmlb)[0].firstChild.data)
+			key["algorithm"] = int(Evaluate("algorithm", xmlb)[0].firstChild.data)
+			key["locator"] = Evaluate("locator", xmlb)[0].firstChild.data
+			# calculate and cache this one later
+			key["dnskey"] = None
+			# pkcs11_module and tool_key_id are filled in as they are needed
+			# tool_key_id is the id of the key as it is needed by the signing
+			# tools; (ie. <id>_<algo>)
+			key["pkcs11_module"] = None
+			key["pkcs11_pin"] = None
+			key["tool_key_id"] = None
+			# todo: remove here, do on demand?
+			self.find_key_details(key)
+			self.keys[id] = key
 
 		xmlb = Evaluate("signconf/signatures/resign", signer_config)[0].firstChild
 		self.signatures_resign_time = Util.parse_duration(xmlb.data)
@@ -203,29 +273,34 @@ class Zone:
 		xmlb = Evaluate("signconf/signatures/clockskew", signer_config)[0].firstChild
 		self.signatures_clockskew = Util.parse_duration(xmlb.data)
 
-		#self.signatures_zsk_refs = []
-		#self.signatures_ksk_refs = []
-		#self.publish_keys = []
-		#self.denial_nsec3 = False
-		#self.denial_nsec3_opt_out = False
-		#self.denial_nsec3_hash_algorithm = None
-		#self.denial_nsec3_iterations = 0
-		#self.denial_nsec3_salt = None
-		## i still think nsec TTL should not be configurable
-		#self.denial_nsec3_ttl = 0
+		xmlb = Evaluate("signconf/denial/ttl", signer_config)[0].firstChild
+		self.denial_ttl = Util.parse_duration(xmlb.data)
 
-		print "resign interval: " + str(self.signatures_resign_time) + " seconds"
-		#print dom.toxml()
+		xmlb = Evaluate("signconf/denial/nsec", signer_config)[0].firstChild
+		if xmlb:
+			self.denial_nsec = True
 
+		xmlb = Evaluate("signconf/denial/nsec3", signer_config)[0].firstChild
+		if xmlb:
+			self.denial_nsec3 = True
+			xmlb = Evaluate("signconf/denial/nsec3/out-out", signer_config)[0].firstChild
+			if xmlb:
+				self.denial_nsec3_optout = True
+			xmlb = Evaluate("signconf/denial/nsec3/hash/algorithm", signer_config)[0].firstChild
+			self.denial_nsec3_algorithm = int(xmlb.data)
+			xmlb = Evaluate("signconf/denial/nsec3/hash/iterations", signer_config)[0].firstChild
+			self.denial_nsec3_iterations = int(xmlb.data)
+			xmlb = Evaluate("signconf/denial/nsec3/hash/salt", signer_config)[0].firstChild
+			self.denial_nsec3_salt = xmlb.data
+			# calc and cache this later?
+			self.nsec3_param_rr = None
+
+# quick test-as-we-go function
 if __name__=="__main__":
-	print "yoyo"
-	z = Zone("zone1.example", "/tmp/zone1.example", "/tmp/zone1.example.signed")
-	z.from_xml_file("/tmp/zone1.example-config.xml");
-	
-
-
-
-
-
-
-
+	pkcs_module = {}
+	pkcs_module["path"] = "/home/jelte/opt/softhsm/lib/libsofthsm.so"
+	pkcs_module["pin"] = "1234"
+	# this will of course be retrieved from the general zone config dir
+	z = Zone("zone1.example", [pkcs_module])
+	z.from_xml_file(zone_configs_dir + os.sep + "zone1.example.xml")
+	z.sign()
