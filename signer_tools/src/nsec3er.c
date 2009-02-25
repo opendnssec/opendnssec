@@ -33,15 +33,18 @@ usage(FILE *out)
 {
 	fprintf(out, "Usage: nseccer [options]\n");
 	fprintf(out, "Options:\n");
+	fprintf(out, "-a <id>\tSpecifies the NSEC3 hashing algorithm to be used\n");
 	fprintf(out, "-e\t\tDon't echo input\n");
 	fprintf(out, "-f <file>\tRead RR's from file instead of stdin\n");
 	fprintf(out, "-h\t\tShow this text\n");
 	fprintf(out, "-n\t\tDon't echo the input records\n");
 	//fprintf(out, "-o\t(mandatory) dname of the zone\n");
+	fprintf(out, "-s <hex>\tUse this salt when creating hashes\n");
+	fprintf(out, "-t <nr>\tUse <nr> iterations for the hash\n");
 	fprintf(out, "-v <level>\tVerbosity level\n");
 	fprintf(out, "\n");
 	fprintf(out, "When a new owner name is read (or input stops),\n");
-	fprintf(out, "an NSEC record is created from the previous to\n");
+	fprintf(out, "an NSEC3 record is created from the previous to\n");
 	fprintf(out, "the new owner name. All rr types seen with the\n");
 	fprintf(out, "previous owner name are added to this new NSEC\n");
 	fprintf(out, "Resource Record\n");
@@ -72,13 +75,23 @@ main(int argc, char **argv)
 	
 	uint8_t algorithm = 1;
 	uint8_t flags = 0;
+	size_t iterations_cmd;
 	uint16_t iterations = 1;
 	uint8_t salt_length = 0;
 	uint8_t *salt = NULL;
 	ldns_rdf *next_hash;
+	char *next_hash_str;
+	ldns_rdf *next_hash_rdf;
 
-	while ((c = getopt(argc, argv, "ef:o:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:ef:o:s:t:v:")) != -1) {
 		switch(c) {
+			case 'a':
+				algorithm = (uint8_t) atoi(optarg);
+				if (algorithm != 1) {
+					fprintf(stderr, "Error, only SHA1 is supported for NSEC3 hashing\n");
+					exit(EXIT_FAILURE);
+				}
+				break;
 			case 'e':
 				echo_input = false;
 				break;
@@ -105,6 +118,34 @@ main(int argc, char **argv)
 					exit(1);
 				}
 				break;
+			case 's':
+				if (strlen(optarg) % 2 != 0) {
+					fprintf(stderr, "Salt value is not valid hex data, ");
+					fprintf(stderr, "not a multiple of 2 characters\n");
+					exit(EXIT_FAILURE);
+				}
+				salt_length = (uint8_t) strlen(optarg) / 2;
+				salt = LDNS_XMALLOC(uint8_t, salt_length);
+				for (c = 0; c < (int) strlen(optarg); c += 2) {
+					if (isxdigit(optarg[c]) && isxdigit(optarg[c+1])) {
+						salt[c/2] = 
+							(uint8_t) ldns_hexdigit_to_int(optarg[c]) * 16 +
+							ldns_hexdigit_to_int(optarg[c+1]);
+					} else {
+						fprintf(stderr,
+							   "Salt value is not valid hex data.\n");
+						exit(EXIT_FAILURE);
+					}
+				}
+
+				break;
+			case 't':
+				iterations_cmd = (size_t) atol(optarg);
+				if (iterations_cmd > LDNS_NSEC3_MAX_ITERATIONS) {
+					fprintf(stderr, "Iterations count can not exceed %u, quitting\n", LDNS_NSEC3_MAX_ITERATIONS);
+					exit(EXIT_FAILURE);
+				}
+				iterations = (uint16_t) iterations_cmd;
 			case 'v':
 				verbosity = atoi(optarg);
 				break;
@@ -173,11 +214,20 @@ main(int argc, char **argv)
 			                                 salt_length,
 			                                 salt);
 
-			ldns_rr_set_rdf(nsec_rr, 
-			                ldns_dname_label(next_hash, 0),
-			                4);
+			next_hash_str = ldns_rdf2str(ldns_dname_label(next_hash, 0));
+			if (next_hash_str[strlen(next_hash_str) - 1]
+			    == '.') {
+				next_hash_str[strlen(next_hash_str) - 1]
+					= '\0';
+			}
+			status = ldns_str2rdf_b32_ext(&next_hash_rdf,
+									next_hash_str);
+			if (!ldns_rr_set_rdf(nsec_rr, next_hash_rdf, 4)) {
+				/* todo: error */
+			}
 
 			ldns_rdf_deep_free(next_hash);
+			LDNS_FREE(next_hash_str);
 			ldns_rr_print(stdout, nsec_rr);
 
 			ldns_rr_free(nsec_rr);
@@ -224,13 +274,23 @@ main(int argc, char **argv)
 								false);
 	ldns_rr_set_ttl(nsec_rr, nsec_ttl);
 	/* todo; we are hashing names twice at the moment */
-	ldns_rr_set_rdf(nsec_rr, 
-					ldns_nsec3_hash_name(origin,
-										 algorithm,
-										 iterations,
-										 salt_length,
-										 salt),
-					4);
+	next_hash = ldns_nsec3_hash_name(origin,
+									 algorithm,
+									 iterations,
+									 salt_length,
+									 salt);
+
+	next_hash_str = ldns_rdf2str(ldns_dname_label(next_hash, 0));
+	if (next_hash_str[strlen(next_hash_str) - 1]
+		== '.') {
+		next_hash_str[strlen(next_hash_str) - 1]
+			= '\0';
+	}
+	status = ldns_str2rdf_b32_ext(&next_hash_rdf,
+							next_hash_str);
+	if (!ldns_rr_set_rdf(nsec_rr, next_hash_rdf, 4)) {
+		/* todo: error */
+	}
 	ldns_rr_print(stdout, nsec_rr);
 	ldns_rr_free(nsec_rr);
 	ldns_rr_free(first_rr);

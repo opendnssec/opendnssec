@@ -164,6 +164,7 @@ usage(FILE *out)
 	fprintf(out, "The NSEC3 RRs are *not* added\n");
 	fprintf(out, "Options:\n");
 	fprintf(out, "-f <file>\tRead zone from <file> instead of stdin\n");
+	fprintf(out, "-o <file>\tWrite sorted zone to <file> instead of stdout\n");
 	fprintf(out, "-h\t\tShow this help\n");
 	fprintf(out, "-n\t\tUse NSEC3 hashing as a sort base\n");
 	fprintf(out, "-s <salt>\tUse this salt for NSEC3 hashed name calculation\n");
@@ -186,6 +187,7 @@ main(int argc, char **argv)
 	/* options */
 	int c;
 	FILE *rr_file;
+	FILE *out_file;
 	bool nsec3 = false;
 	uint8_t nsec3_algorithm = 1;
 	uint16_t nsec3_iterations = 1;
@@ -200,9 +202,17 @@ main(int argc, char **argv)
 	int line_nr = 0;
 	
 	rr_file = stdin;
+	out_file = stdout;
 
-	while ((c = getopt(argc, argv, "f:hns:t:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:hns:t:")) != -1) {
 		switch (c) {
+		case 'a':
+			nsec3_algorithm = (uint8_t) atoi(optarg);
+			if (nsec3_algorithm != 1) {
+				fprintf(stderr, "Error, only SHA1 is supported for NSEC3 hashing\n");
+				exit(EXIT_FAILURE);
+			}
+			break;
 		case 'f':
 			if (strncmp(optarg, "-", 2) != 0) {
 				rr_file = fopen(optarg, "r");
@@ -230,6 +240,17 @@ main(int argc, char **argv)
 			break;
 		case 'n':
 			nsec3 = true;
+			break;
+		case 'o':
+			if (strncmp(optarg, "-", 2) != 0) {
+				out_file = fopen(optarg, "w");
+			}
+			if (!out_file) {
+				printf("Error opening %s for writing: %s\n",
+					  optarg,
+					  strerror(errno));
+				exit(1);
+			}
 			break;
 		case 's':
 			if (strlen(optarg) % 2 != 0) {
@@ -270,6 +291,7 @@ main(int argc, char **argv)
 							&origin,
 							&prev_name,
 							&line_nr);
+	ldns_rr_print(stderr, cur_rr);
 
 	while (status == LDNS_STATUS_OK ||
 		  status == LDNS_STATUS_SYNTAX_ORIGIN ||
@@ -318,7 +340,7 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/*printf("Final status: %s\n", ldns_get_errorstr_by_id(status));*/
+	fprintf(stderr, "Final status: %s\n", ldns_get_errorstr_by_id(status));
 
 	if (origin) {
 		ldns_rdf_deep_free(origin);
@@ -330,7 +352,7 @@ main(int argc, char **argv)
 		LDNS_FREE(nsec3_salt);
 	}
 
-	print_rrs(stdout, rr_tree);
+	print_rrs(out_file, rr_tree);
 
 	/* free all tree entries */
 	ldns_traverse_postorder(rr_tree,
@@ -341,6 +363,9 @@ main(int argc, char **argv)
 	
 	if (rr_file != stdin) {
 		fclose(rr_file);
+	}
+	if (out_file != stdout) {
+		fclose(out_file);
 	}
 
 	return 0;

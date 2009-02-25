@@ -350,7 +350,7 @@ ldns_pkcs11_login(CK_FUNCTION_LIST_PTR pkcs11_functions,
 		                               pin,
 		                               strlen((char *)pin));
 		ldns_pkcs11_check_rv(rv, "log in");
-		fprintf(stderr, "Logged in\n");
+		/*fprintf(stderr, "Logged in\n");*/
 	} else {
 		fprintf(stderr, "No pin\n");
 		exit(3);
@@ -413,7 +413,6 @@ ldns_pkcs11_get_key(CK_FUNCTION_LIST_PTR pkcs11_functions,
         CK_BYTE *id,
         size_t id_len)
 {
-	char *str;
 	CK_RV rv;
 	CK_ATTRIBUTE template[] = {
 		{ CKA_CLASS, &key_class, sizeof(key_class) },
@@ -431,17 +430,12 @@ ldns_pkcs11_get_key(CK_FUNCTION_LIST_PTR pkcs11_functions,
 	                                     &objectCount);
 	ldns_pkcs11_check_rv(rv, "Find first object");
 
+	rv = pkcs11_functions->C_FindObjectsFinal(session);
 	if (objectCount > 0) {
-		rv = pkcs11_functions->C_FindObjectsFinal(session);
 		ldns_pkcs11_check_rv(rv, "Find objects final");
 		return object;
 	} else {
-		fprintf(stderr, "Private key not found\n");
-		str = malloc(id_len + 1);
-		snprintf(str, id_len + 1, "%s", id);
-		str[id_len] = '\0';
-		free(str);
-		exit(2);
+		return 0;
 	}
 }
 
@@ -584,12 +578,22 @@ ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
 	                               CKO_PRIVATE_KEY,
 	                               (CK_BYTE_PTR) key_id,
 	                               key_id_len);
+	if (!key_object->private_key) {
+		fprintf(stderr, "Private key not found\n");
+		ldns_key_free(k);
+		return LDNS_STATUS_ERR;
+	}
 	key_object->public_key = ldns_pkcs11_get_key(
 	                              pkcs11_ctx->function_list,
 	                              pkcs11_ctx->session,
 	                              CKO_PUBLIC_KEY,
 	                              (CK_BYTE_PTR) key_id,
 	                              key_id_len);
+	if (!key_object->public_key) {
+		fprintf(stderr, "Public key not found\n");
+		ldns_key_free(k);
+		return LDNS_STATUS_ERR;
+	}
 	ldns_key_set_external_key(k, key_object);
 
 	key_rr = ldns_key2rr_pkcs(pkcs11_ctx,

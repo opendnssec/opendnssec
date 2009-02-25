@@ -14,14 +14,26 @@
 
 #include "ldns_pkcs11.h"
 
+#define DEFAULT_TTL 3600
+#define DEFAULT_FLAGS 256
+/*#define DEFAULT_PROTOCOL 3*/
+/* TODO: try to derive default from key? */
+#define DEFAULT_ALGORITHM 5
+
+/* TODO: we can actually check whether the algorithm matches here if
+ * we want*/
 void
 usage(FILE *out)
 {
 	fprintf(out, "Usage: create_dnskey_pkcs11 [options]\n");
 	fprintf(out, "Options:\n");
+	fprintf(out, "-a <algorithm>\tSet DNSKEY algorithm (default %u\n", DEFAULT_ALGORITHM);
+	fprintf(out, "-f <flags>\tflags for the DNSKEY RR (defult %u)\n", DEFAULT_FLAGS);
 	fprintf(out, "-h\t\tShow this help screen\n");
+	fprintf(out, "-t <ttl>\tTTL for the DNSKEY RR (default %u)\n", DEFAULT_TTL);
 	fprintf(out, "-m <module>\tUse <module> as PKCS11 module\n");
 	fprintf(out, "-o <origin>\tUse origina as zone name (mandatory\n");
+/*	fprintf(out, "-r <protocol>\tSet protocol for DNSKEY RR (default %u)\n", DEFAULT_PROTOCOL);*/
 	fprintf(out, "-p <PIN>\tUse PIN for PKCS11 token\n");
 	fprintf(out, "-v <level>\tSets verbosity level\n");
 }
@@ -40,7 +52,10 @@ main(int argc, char **argv)
 	int key_id_len;
 	ldns_key *key;
 	ldns_rr *key_rr;
-	ldns_algorithm key_algorithm;
+/*	uint8_t protocol = DEFAULT_PROTOCOL;*/
+	ldns_algorithm key_algorithm = DEFAULT_ALGORITHM;
+	uint32_t ttl = DEFAULT_TTL;
+	uint16_t flags = DEFAULT_FLAGS;
 	
 	/* pkcs11 vars */
 	char *pkcs11_lib_file = NULL;
@@ -51,8 +66,15 @@ main(int argc, char **argv)
 	/* internal variables */
 	ldns_status status;
 
-	while ((c = getopt(argc, argv, "hm:o:p:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:hm:o:p:r:t:v:")) != -1) {
 		switch(c) {
+			case 'a':
+				key_algorithm = atoi(optarg);
+				break;
+			case 'f':
+				// todo: check bounds
+				flags = (uint16_t) atoi(optarg);
+				break;
 			case 'h':
 				usage(stdout);
 				exit(0);
@@ -65,6 +87,14 @@ main(int argc, char **argv)
 				break;
 			case 'p':
 				pin = optarg;
+				break;
+			/*case 'r':
+				// todo: check bounds
+				protocol = (uint8_t) atoi(optarg);
+				break;*/
+			case 't':
+				/* todo: check bounds */
+				ttl = (uint32_t) atoi(optarg);
 				break;
 			case 'v':
 				verbosity = atoi(optarg);
@@ -93,24 +123,25 @@ main(int argc, char **argv)
 	while (argi < argc) {
 		/* of the form <key_id>_<algorithm number> */
 		key_id = ldns_keystr2id(argv[argi], &key_id_len);
-		key_algorithm = ldns_keystr2algorithm(argv[argi]);
-		if (key_algorithm == 0) {
-			fprintf(stderr, "Bad algorithm in %s\n", argv[argi]);
-			exit(1);
-		}
 
+		/* todo: protocol? is it ever different than 3? */
 		status = ldns_key_new_frm_pkcs11(pkcs11_ctx,
 		                                 &key,
 		                                 key_algorithm,
 		                                 key_id,
 		                                 key_id_len);
 		if (status == LDNS_STATUS_OK) {
+			ldns_key_set_flags(key, flags);
 			ldns_key_set_pubkey_owner(key, ldns_rdf_clone(origin));
+		} else {
+			argi++;
+			continue;
 		}
 		
 		key_rr = ldns_key2rr_pkcs(pkcs11_ctx,
 		                          key);
-
+		ldns_rr_set_ttl(key_rr, ttl);
+		
 		ldns_rr_print(stdout, key_rr);
 
 		free(key_id);
