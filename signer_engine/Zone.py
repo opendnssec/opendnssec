@@ -10,33 +10,23 @@ from xml.dom import minidom
 import commands
 import subprocess
 
+from EngineConfig import EngineConfiguration
+
 import Util
 
 # tmp for initial tests
 import sys
 
-# todo: move paths to general engine config
-# as well as pkcs11 module stuff (not the key specific hints
-# but the general list of locations to look for keys
-# pass it as a self.config value? with just a named hash?
+# todo: move this path to general engine config too?
 tools_dir = "../signer_tools";
-zone_configs_dir = "/home/jelte/tmp/engine_configs";
-zone_sorted_dir = "/home/jelte/tmp/engine_sorted_zones";
-zone_file_in_dir = "/home/jelte/tmp/engine_in";
-zone_file_out_dir = "/home/jelte/tmp/engine_out";
 
 class Zone:
-	def __init__(self, _zone_name, pkcs11_modules):
+	def __init__(self, _zone_name, engine_config):
 		self.zone_name = _zone_name
-		self.pkcs11_modules = pkcs11_modules
+		self.engine_config = engine_config
 		self.locked = False
 		
 		# information received from KASP through the xml file
-		# old
-		self.keys = {}
-		self.resign_interval = 0
-		
-		# new
 		# the values assigned later are in seconds
 		# the xml parsing code must translate the actual value set
 		# with the unit set (what is the default unit? or is unit mandatory?)
@@ -59,6 +49,7 @@ class Zone:
 		self.denial_nsec3_salt = None
 		# i still think nsec TTL should not be configurable
 		self.denial_nsec3_ttl = 0
+		self.keys = {}
 	
 	# we define two zone objects the same if the zone names are equal
 	def __eq__(self, other):
@@ -69,16 +60,13 @@ class Zone:
 	# (will we have/need more data than that?)
 	def __str__(self):
 		result = ["name: " + self.zone_name]
-		result = result + ["\tinput_file: " + self.input_file]
-		result = result + ["\toutput_file: " + self.output_file]
-		result = result + ["\tresign_interval: " + str(self.resign_interval)]
-		if self.keys:
-			result = result + ["\tkeys: " + str(self.keys) + "\n"]
-		else:
-			result = result + ["\tkeys: no keys"]
+		result = result + ["\tresign_interval: " + str(self.signatures_resign_time)]
 		
 		return "\n".join(result)
 
+	def read_config(self):
+		self.from_xml_file(self.engine_config.zone_config_dir + os.sep + self.zone_name + ".xml")
+	
 	# this uses the locator value to find the right pkcs11 module
 	# creates a DNSKEY string to add to the unsigned zone,
 	# and calculates the correct tool_key_id
@@ -86,9 +74,9 @@ class Zone:
 		Util.debug(1, "Generating DNSKEY rr for " + str(key["id"]))
 		# just try all modules to generate the dnskey? first one is good?
 		found = False
-		for module in self.pkcs11_modules:
-			mpath = module["path"]
-			mpin = module["pin"]
+		for token in self.engine_config.tokens:
+			mpath = token["module_path"]
+			mpin = token["pin"]
 			cmd = [ tools_dir + os.sep + "create_dnskey_pkcs11",
 			        "-m", mpath,
 			        "-p", mpin,
@@ -115,7 +103,7 @@ class Zone:
 	#
 	def sort(self):
 		Util.debug(1, "Sorting zone: " + self.zone_name)
-		unsorted_zone_file = open(zone_file_in_dir + os.sep + self.zone_name, "r")
+		unsorted_zone_file = open(self.engine_config.zone_input_dir + os.sep + self.zone_name, "r")
 		cmd = [tools_dir + os.sep + "sorter" ]
 		if self.denial_nsec3:
 			cmd.extend(["-n",
@@ -136,7 +124,7 @@ class Zone:
 		sort_process.stdin.close()
 		
 		unsorted_zone_file.close()
-		sorted_zone_file = open(zone_sorted_dir + os.sep + self.zone_name, "w")
+		sorted_zone_file = open(self.engine_config.zone_tmp_dir + os.sep + self.zone_name, "w")
 		
 		for line in sort_process.stderr:
 			print "stderr: " + line,
@@ -160,7 +148,7 @@ class Zone:
 		# (so only signing needs to be redone at re-sign time)
 		p2 = Util.run_tool([tools_dir + os.sep + "stripper",
 		                    "-o", self.zone_name,
-		                    "-f", zone_sorted_dir + os.sep + self.zone_name]
+		                    "-f", self.engine_config.zone_tmp_dir + os.sep + self.zone_name]
 		                   )
 		
 		if self.denial_nsec:
@@ -187,7 +175,7 @@ class Zone:
 		# this directly write the output to the final name, which
 		# will mangle the signed zone file if anything goes wrong
 		# TODO: write to tmp file, and move on success
-		output_file = zone_file_out_dir + os.sep + self.zone_name + ".signed"
+		output_file = self.engine_config.zone_output_dir + os.sep + self.zone_name + ".signed"
 		output = open(output_file, "w")
 		output.write("; Zone signed at " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
 		for l in p4.stdout:
@@ -297,10 +285,7 @@ class Zone:
 
 # quick test-as-we-go function
 if __name__=="__main__":
-	pkcs_module = {}
-	pkcs_module["path"] = "/home/jelte/opt/softhsm/lib/libsofthsm.so"
-	pkcs_module["pin"] = "1234"
 	# this will of course be retrieved from the general zone config dir
-	z = Zone("zone1.example", [pkcs_module])
-	z.from_xml_file(zone_configs_dir + os.sep + "zone1.example.xml")
+	z = Zone("zone1.example", EngineConfiguration("/home/jelte/repos/opendnssec/signer_engine/engine.conf"))
+	z.from_xml_file(z.engine_config.zone_config_dir + os.sep + "zone1.example.xml")
 	z.sign()

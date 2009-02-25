@@ -26,18 +26,16 @@ import traceback
 import threading
 import Util
 import Zone
+from EngineConfig import EngineConfiguration
 from Worker import Worker, TaskQueue, Task
+
 
 MSGLEN = 1024
 
 class Engine:
-	def __init__(self):
+	def __init__(self, config_file_name):
 		# todo: read config etc
-		self.pkcs11_modules = []
-		pkcs11_module = {}
-		pkcs11_module["path"] = "/home/jelte/opt/softhsm/lib/libsofthsm.so"
-		pkcs11_module["pin"] = "1234"
-		self.pkcs11_modules.append(pkcs11_module)
+		self.config = EngineConfiguration(config_file_name)
 		self.task_queue = TaskQueue()
 		self.workers = []
 		self.condition = threading.Condition()
@@ -124,7 +122,9 @@ class Engine:
 			if command[:5] == "zones":
 				response = self.get_zones()
 			if command[:8] == "add zone":
-				self.add_zone(Zone.Zone(args[2], args[3], args[4]))
+				z = Zone.Zone(args[2], self.config)
+				z.read_config()
+				self.add_zone(z)
 				response = "Zone added"
 			if command[:7] == "add key":
 				self.add_key(args[2], args[3])
@@ -232,12 +232,13 @@ def main():
 	# option handling
 	#
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "output="])
+		opts, args = getopt.getopt(sys.argv[1:], "c:hv", ["--config=", "help", "output="])
 	except getopt.GetoptError, err:
 		# print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
 		usage()
 		sys.exit(2)
+	config_file = "/etc/engine.conf"
 	output = None
 	verbose = False
 	output_file = None
@@ -245,18 +246,20 @@ def main():
 	pkcs11_pin = None
 	keys = []
 	for o, a in opts:
-		if o == "-v":
+		if o == "-c":
+			config_file = a
+		elif o == "-v":
 			verbose = True
 		elif o in ("-h", "--help"):
 			usage()
 			sys.exit()
 		else:
-			assert False, "unhandled option"
+			assert False, "unhandled option: " + o
 
 	#
 	# main loop
 	#
-	engine = Engine()
+	engine = Engine(config_file)
 	try:
 		#now = time.time()
 		#print "add test tasks"
