@@ -2603,12 +2603,12 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
   for(CK_ULONG i = 0; i < ulPrivateKeyAttributeCount; i++) {
     switch(pPrivateKeyTemplate[i].type) {
       case CKA_TOKEN:
-        if(pPrivateKeyTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
+        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
           isToken = *(CK_BBOOL*)pPrivateKeyTemplate[i].pValue;
         }
         break;
       case CKA_PRIVATE:
-        if(pPrivateKeyTemplate[i].ulValueLen != sizeof(CK_BBOOL)) {
+        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
           isPrivate = *(CK_BBOOL*)pPrivateKeyTemplate[i].pValue;
         }
         break;
