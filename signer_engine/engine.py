@@ -14,7 +14,6 @@
 # TODO's:
 # - xml parsing for zone configuration data
 # - command channel expansion and cleanup
-# - general configuration reading
 # - notification of a server to re-read zones (as a schedulable task?)
 
 import os
@@ -28,7 +27,7 @@ import Util
 import Zone
 from EngineConfig import EngineConfiguration
 from Worker import Worker, TaskQueue, Task
-
+from Zonelist import Zonelist
 
 MSGLEN = 1024
 
@@ -40,6 +39,7 @@ class Engine:
 		self.workers = []
 		self.condition = threading.Condition()
 		self.zones = {}
+		self.zonelist = None
 		self.locked = False
 
 	def add_worker(self, name):
@@ -151,6 +151,9 @@ class Engine:
 				self.task_queue.release()
 				response = "All tasks scheduled immediately"
 				self.notify_all()
+			if command[:6] == "update":
+				self.read_zonelist()
+				response = "zone list updated"
 		except EngineError, e:
 			response = str(e);
 		except Exception, e:
@@ -175,18 +178,46 @@ class Engine:
 			worker.work = False
 		self.notify_all()
 
+	def read_zonelist(self):
+		new_zonelist = Zonelist()
+		new_zonelist.read_zonelist_file(self.config.zone_input_dir + os.sep + "zonelist.xml")
+		# move this to caller?
+		if not self.zonelist:
+			removed_zones = []
+			updated_zones = []
+			added_zones = new_zonelist.get_all_zone_names()
+			self.zonelist = new_zonelist
+		else:
+			(removed_zones, added_zones, updated_zones) = self.zonelist.merge(new_zonelist)
+		for zone in removed_zones:
+			self.remove_zone(zone)
+		for zone in added_zones:
+			self.add_zone(zone)
+		for zone in updated_zones:
+			self.update_zone(zone)
+
 	# global zone management
-	def add_zone(self, zone):
-		self.zones[zone.zone_name] = zone
-		Util.debug(2, "Zone " + zone.zone_name + " added")
+	def add_zone(self, zone_name):
+		self.zones[zone_name] = Zone.Zone(zone_name, self.config)
+		self.update_zone(zone_name)
+		self.schedule_signing(zone_name)
+		Util.debug(2, "Zone " + zone_name + " added")
 		
-	def delete_zone(self, zone_name):
+	def remove_zone(self, zone_name):
 		try:
 			if self.zones[args[2]].scheduled:
 				self.zones[args[2]].scheduled.cancel()
 			del self.zones[args[2]]
 		except KeyError:
 			raise EngineError("Zone " + zone_name + " not found")
+	
+	def update_zone(self, zone_name):
+		zone = self.zones[zone_name]
+		zone.lock()
+		zone.read_config()
+		# todo: reschedule? need 'config diff'
+		self.schedule_signing(zone_name)
+		zone.release()
 		
 	# return big multiline string with all current zone data
 	def get_zones(self):
@@ -194,19 +225,6 @@ class Engine:
 		for z in self.zones.values():
 			result.append(str(z))
 		return "".join(result)
-
-	# todo: will be replaced by xml reader
-	def add_key(self, zone_name, key):
-		try:
-			self.zones[zone_name].add_key(key)
-		except KeyError:
-			raise EngineError("Zone " + zone_name + " not found")
-		
-	def set_interval(self, zone_name, interval):
-		try:
-			self.zones[zone_name].set_interval(interval)
-		except KeyError:
-			raise EngineError("Zone " + zone_name + " not found")
 	
 	# 'general' sign zone now function
 	# todo: put only zone names in queue and let worker get the zone?
@@ -215,7 +233,7 @@ class Engine:
 		try:
 			zone = self.zones[zone_name]
 			self.task_queue.lock()
-			self.task_queue.add_task(Task(time.time(), Task.SIGN_ZONE, zone, True, zone.resign_interval))
+			self.task_queue.add_task(Task(time.time(), Task.SIGN_ZONE, zone, True, zone.signatures_resign_time))
 			self.task_queue.release()
 			self.notify()
 		except KeyError:
@@ -266,6 +284,7 @@ def main():
 		#engine.task_queue.add_task(Task(now+1, Task.DUMMY, "asdf.nl", False, 5))
 		#engine.task_queue.add_task(Task(now+8, Task.DUMMY, "test.nl"))
 		#print engine.task_queue
+		engine.read_zonelist()
 		engine.run()
 		
 	except KeyboardInterrupt:

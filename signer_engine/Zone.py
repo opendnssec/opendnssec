@@ -9,6 +9,7 @@ from Ft.Xml.XPath import Evaluate
 from xml.dom import minidom
 import commands
 import subprocess
+from datetime import datetime
 
 from EngineConfig import EngineConfiguration
 
@@ -50,6 +51,12 @@ class Zone:
 		# i still think nsec TTL should not be configurable
 		self.denial_nsec3_ttl = 0
 		self.keys = {}
+		
+		# last_update as specified in zonelist.xml, to see when
+		# the config for this zone needs to be reread
+		self.last_update = None
+		# this isn't used atm
+		self.last_read = None
 	
 	# we define two zone objects the same if the zone names are equal
 	def __eq__(self, other):
@@ -60,12 +67,13 @@ class Zone:
 	# (will we have/need more data than that?)
 	def __str__(self):
 		result = ["name: " + self.zone_name]
-		result = result + ["\tresign_interval: " + str(self.signatures_resign_time)]
+		result.append("last config file read: " + str(self.last_read))
 		
 		return "\n".join(result)
 
 	def read_config(self):
 		self.from_xml_file(self.engine_config.zone_config_dir + os.sep + self.zone_name + ".xml")
+		self.last_read = datetime.now()
 	
 	# this uses the locator value to find the right pkcs11 module
 	# creates a DNSKEY string to add to the unsigned zone,
@@ -287,5 +295,5 @@ class Zone:
 if __name__=="__main__":
 	# this will of course be retrieved from the general zone config dir
 	z = Zone("zone1.example", EngineConfiguration("/home/jelte/repos/opendnssec/signer_engine/engine.conf"))
-	z.from_xml_file(z.engine_config.zone_config_dir + os.sep + "zone1.example.xml")
+	z.read_config()
 	z.sign()

@@ -33,7 +33,7 @@ class Task:
 	def run(self):
 		if self.what == Task.SIGN_ZONE:
 			Util.debug(2, "Run task sign zone: " + str(self.how.zone_name))
-			self.how.sign(self.how.output_file, self.how.keys)
+			self.how.sign()
 		elif self.what == Task.NOTIFY_SERVER:
 			Util.debug(2, "Run task: notify server")
 		elif self.what == Task.DUMMY:
