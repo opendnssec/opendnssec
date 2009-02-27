@@ -1,0 +1,13 @@
+$Id$
+
+This program will check all the PKCS#11 functions implemented by SoftHSM.
+It test many combinations of input data and checks that the correct
+responses are returned.
+
+The test program assumes that:
+
+  slot 0 has no token
+  slot 1 has a token with the PINs:
+    user PIN = 123456
+    SO PIN = 12345678
+  slot 9999 does not exist
