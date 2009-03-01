@@ -82,8 +82,6 @@ class Zone:
 	def find_key_details(self, key):
 		Util.debug(1, "Generating DNSKEY rr for " + str(key["id"]))
 		# just try all modules to generate the dnskey? first one is good?
-		print "aaaaaaaaaaaaaaaaaaaaaaa"
-		print "tokens: " + str(self.engine_config.tokens)
 		for token in self.engine_config.tokens:
 			mpath = token["module_path"]
 			mpin = token["pin"]
@@ -258,6 +256,18 @@ class Zone:
 		self.from_xml(x)
 		x.unlink()
 
+	# check the output file, and calculate the number of seconds
+	# until it should be signed again
+	# (this can be negative!)
+	# if the file is not found, 0 is returned (sign immediately)
+	def calc_resign_from_output_file(self):
+		output_file = self.engine_config.zone_output_dir + os.sep + self.zone_name + ".signed"
+		try:
+			statinfo = os.stat(output_file)
+			return int(statinfo.st_mtime + self.signatures_resign_time - time.time())
+		except OSError, e:
+			return 0
+	
 	# signer_config is the xml blob described in
 	# http://www.opendnssec.se/browser/docs/signconf.xml
 	def from_xml(self, signer_config):
@@ -331,4 +341,5 @@ if __name__=="__main__":
 	# this will of course be retrieved from the general zone config dir
 	z = Zone("zone1.example", EngineConfiguration("/home/jelte/repos/opendnssec/signer_engine/engine.conf"))
 	z.read_config()
-	z.sign()
+	s = z.calc_resign_from_output_file()
+	#z.sign()

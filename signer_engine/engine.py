@@ -200,7 +200,12 @@ class Engine:
 	def add_zone(self, zone_name):
 		self.zones[zone_name] = Zone.Zone(zone_name, self.config)
 		self.update_zone(zone_name)
-		self.schedule_signing(zone_name)
+		secs_left = self.zones[zone_name].calc_resign_from_output_file()
+		if (secs_left < 1):
+			self.schedule_signing(zone_name)
+		else:
+			print "scheduling resign of zone in " + str(secs_left) + " seconds"
+			self.schedule_signing(zone_name, time.time() + secs_left)
 		Util.debug(2, "Zone " + zone_name + " added")
 		
 	def remove_zone(self, zone_name):
@@ -229,11 +234,12 @@ class Engine:
 	# 'general' sign zone now function
 	# todo: put only zone names in queue and let worker get the zone?
 	# (probably not; the worker will need the full zone list then)
-	def schedule_signing(self, zone_name):
+	# when is the timestamp when to run (defaults to 'now')
+	def schedule_signing(self, zone_name, when=time.time()):
 		try:
 			zone = self.zones[zone_name]
 			self.task_queue.lock()
-			self.task_queue.add_task(Task(time.time(), Task.SIGN_ZONE, zone, True, zone.signatures_resign_time))
+			self.task_queue.add_task(Task(when, Task.SIGN_ZONE, zone, True, zone.signatures_resign_time))
 			self.task_queue.release()
 			self.notify()
 		except KeyError:
