@@ -382,6 +382,7 @@ main (int argc, char *argv[])
     CK_UTF8CHAR *pin    = NULL_PTR;               // NO DEFAULT VALUE
     CK_UTF8CHAR *label  = NULL_PTR;               // NO DEFAULT VALUE
     CK_SLOT_ID  slot    = 0;                      // default value
+	CK_BBOOL	slot_specified = false;
     CK_ULONG    keysize = 1024;                   // default value
     CK_SESSION_HANDLE ses;
     int Action  = 0;
@@ -394,7 +395,7 @@ main (int argc, char *argv[])
             case 'D': Action = 2; break;
             case 'b': keysize = atoi (optarg); break;
             case 'p': pin = (CK_UTF8CHAR*)optarg; break;
-            case 's': slot = atoi (optarg); break;
+			case 's': slot = atoi (optarg); slot_specified=true;break;
             case 'h': fprintf (stderr,
                 "usage: hsm-toolkit [-s slot] [-p pin] [-G [-b keysize] label] [-D label]\n");
             exit (2);
@@ -404,7 +405,7 @@ main (int argc, char *argv[])
 
     label = (CK_UTF8CHAR *) argv[optind];
     check_rv("C_Initialize",C_Initialize (NULL_PTR));
-	if (!slot) slot = GetSlot();
+	if (!slot_specified) slot = GetSlot();
     check_rv("C_OpenSession",C_OpenSession (slot, CKF_RW_SESSION + CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &ses));
 
     if (!pin) pin = (CK_UTF8CHAR *) getpass ("Enter Pin: ");
