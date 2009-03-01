@@ -44,6 +44,7 @@
 #include <errno.h>
 
 #include <ldns/ldns.h>
+#include "util.h"
 
 /*
  * change this to 1 to shave about 10% off memory usage,
@@ -105,6 +106,7 @@ void
 print_rr_data(FILE *out, rr_data *rrd)
 {
 	ldns_rr *rr = NULL;
+	ldns_rdf *dname;
 	ldns_status status;
 	size_t pos = 0;
 	
@@ -116,6 +118,20 @@ print_rr_data(FILE *out, rr_data *rrd)
 	if (rr) {
 		ldns_rr_print(out, rr);
 		ldns_rr_free(rr);
+	} else {
+		/* it might be just a name (in case of empty nonterminals) */
+		pos = 0;
+		status = ldns_wire2dname(&dname, rrd->rr_buf->_data, rrd->rr_buf->_capacity, &pos);
+		if (status == LDNS_STATUS_OK) {
+			printf("; Empty nonterminal: ");
+			ldns_rdf_print(stdout, dname);
+			printf("\n");
+			ldns_rdf_deep_free(dname);
+		} else {
+			printf("; error parsing rr or dname:\n");
+			printf("; buf data %p buf cap %u buf pos %u\n", rrd->rr_buf->_data, rrd->rr_buf->_capacity, pos);
+		}
+		//ldns_rdf_free(dname);
 	}
 }
 
@@ -171,6 +187,61 @@ usage(FILE *out)
 	fprintf(out, "-t <count>\tUse <count> iterations for NSEC3 hashed name calculation\n");
 }
 
+/* hmm, this might be a good contender for inclusion in ldns */
+/* nonterms will be malloced, and must be freed */
+/* freeing of the dname rdfs in it is also for the caller */
+int
+find_empty_nonterminals(ldns_rdf *zone_name,
+                        ldns_rdf *cur_name,
+                        ldns_rdf *next_name,
+                        ldns_rdf **nonterminals)
+{
+	uint16_t i, cur_label_count, next_label_count;
+	uint16_t zone_label_count;
+	ldns_rdf *l1, *l2;
+	int lpos;
+	ldns_rdf *new_name;
+	int count = 0;
+	
+	/* Since the names are in canonical order, we can
+	 * recognize empty non-terminals by their labels;
+	 * every label after the first one on the next owner
+	 * name is a non-terminal if it either does not exist
+	 * in the current name or is different from the same
+	 * label in the current name (counting from the end)
+	 */
+	zone_label_count = ldns_dname_label_count(zone_name);
+	cur_label_count = ldns_dname_label_count(cur_name);
+	next_label_count = ldns_dname_label_count(next_name);
+
+	//*nonterminals = malloc(sizeof(ldns_rdf *) * next_label_count);
+	for (i = 1; i < next_label_count - zone_label_count; i++) {
+		lpos = cur_label_count - next_label_count + i;
+		if (lpos >= 0) {
+			l1 = ldns_dname_label(cur_name, lpos);
+		} else {
+			l1 = NULL;
+		}
+		l2 = ldns_dname_label(next_name, i);
+
+		if (!l1 || ldns_dname_compare(l1, l2) != 0) {
+			/* We have an empty nonterminal, add it to the
+			 * list
+			 */
+			new_name = ldns_dname_clone_from(next_name, i);
+			if (!new_name) {
+				return -1;
+			}
+			
+			nonterminals[count] = new_name;
+			count++;
+		}
+		ldns_rdf_deep_free(l1);
+		ldns_rdf_deep_free(l2);
+	}
+	return count;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -181,8 +252,12 @@ main(int argc, char **argv)
 	 * in an rbtree
 	 */
 	ldns_rbtree_t *rr_tree;
-	ldns_rr *cur_rr;
+	ldns_rr *cur_rr, *prev_rr;
 	rr_data *cur_rr_data;
+	
+	/* empty nonterminal detection */
+	ldns_rdf *empty_nonterminals[100];
+	int empty_nonterminal_count, eni;
 
 	/* options */
 	int c;
@@ -195,16 +270,19 @@ main(int argc, char **argv)
 	uint8_t *nsec3_salt = NULL;
 
 	/* for readig RRs */
-	ldns_status status;
+	ldns_status status = LDNS_STATUS_OK;
 	uint32_t default_ttl = 3600;
 	ldns_rdf *origin = NULL;
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
 	
+	int line_len;
+	char line[MAX_LINE_LEN];
+	
 	rr_file = stdin;
 	out_file = stdout;
 
-	while ((c = getopt(argc, argv, "a:f:hns:t:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:hno:s:t:")) != -1) {
 		switch (c) {
 		case 'a':
 			nsec3_algorithm = (uint8_t) atoi(optarg);
@@ -242,15 +320,7 @@ main(int argc, char **argv)
 			nsec3 = true;
 			break;
 		case 'o':
-			if (strncmp(optarg, "-", 2) != 0) {
-				out_file = fopen(optarg, "w");
-			}
-			if (!out_file) {
-				printf("Error opening %s for writing: %s\n",
-					  optarg,
-					  strerror(errno));
-				exit(1);
-			}
+			origin = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, optarg);
 			break;
 		case 's':
 			if (strlen(optarg) % 2 != 0) {
@@ -281,66 +351,104 @@ main(int argc, char **argv)
 		usage(stderr);
 		exit(EXIT_FAILURE);
 	}
-
-
-	rr_tree = ldns_rbtree_create(&compare_rr_data);
-
-	status = ldns_rr_new_frm_fp_l(&cur_rr,
-							rr_file,
-							&default_ttl, 
-							&origin,
-							&prev_name,
-							&line_nr);
-	ldns_rr_print(stderr, cur_rr);
-
-	while (status == LDNS_STATUS_OK ||
-		  status == LDNS_STATUS_SYNTAX_ORIGIN ||
-		  status == LDNS_STATUS_SYNTAX_TTL) {
-		if (status == LDNS_STATUS_OK) {
-			cur_rr_data = rr_data_new();
-			if (!nsec3) {
-				cur_rr_data->name = ldns_rdf_clone(ldns_rr_owner(cur_rr));
-			} else {
-				cur_rr_data->name = ldns_nsec3_hash_name(
-								    ldns_rr_owner(cur_rr),
-								    nsec3_algorithm,
-								    nsec3_iterations,
-								    nsec3_salt_length,
-								    nsec3_salt);
-			}
-			cur_rr_data->type = ldns_rr_get_type(cur_rr);
-			
-			status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
-								    cur_rr,
-								    LDNS_SECTION_ANY_NOQUESTION);
-			
-			
-			ldns_rbtree_insert(rr_tree,
-						    rr_data2node(cur_rr_data));
-			
-			ldns_rr_free(cur_rr);
-			cur_rr = NULL;
-		}
-
-		status = ldns_rr_new_frm_fp_l(&cur_rr,
-								rr_file,
-								&default_ttl, 
-								&origin,
-								&prev_name,
-								&line_nr);
-	}
-	if (status == LDNS_STATUS_OK && cur_rr) {
-		ldns_rr_free(cur_rr);
-	} else if (status != LDNS_STATUS_SYNTAX_EMPTY && 
-			 status != LDNS_STATUS_SYNTAX_TTL &&
-			 status != LDNS_STATUS_SYNTAX_ORIGIN) {
-		fprintf(stderr, "Parse error in input line %d: %s\n",
-			   line_nr,
-			   ldns_get_errorstr_by_id(status));
+	
+	if (nsec3 && !origin) {
+		fprintf(stderr, "Error, no origin specified (-o), mandatory when sorting in NSEC3 space\n");
 		exit(EXIT_FAILURE);
 	}
 
-	fprintf(stderr, "Final status: %s\n", ldns_get_errorstr_by_id(status));
+	rr_tree = ldns_rbtree_create(&compare_rr_data);
+
+	prev_rr = NULL;
+
+	line_len = 0;
+	while (line_len >= 0) {
+		line_len = read_line(rr_file, line);
+		if (line_len > 0) {
+			if (line[0] == '$') {
+				/* ignore directives for now */
+				continue;
+			} else if (line[0] == ';') {
+				/* pass through comments */
+				fprintf(stdout, "%s\n", line);
+			} else {
+				status = ldns_rr_new_frm_str(&cur_rr,
+				                             line,
+				                             default_ttl,
+				                             origin,
+				                             &prev_name);
+				if (status == LDNS_STATUS_OK) {
+					cur_rr_data = rr_data_new();
+
+					if (prev_rr && nsec3) {
+					empty_nonterminal_count = find_empty_nonterminals(origin,
+												   ldns_rr_owner(prev_rr),
+												   ldns_rr_owner(cur_rr),
+												   empty_nonterminals);
+						for (eni = 0; eni < empty_nonterminal_count; eni++) {
+							cur_rr_data->name = ldns_nsec3_hash_name(
+												empty_nonterminals[eni],
+												nsec3_algorithm,
+												nsec3_iterations,
+												nsec3_salt_length,
+												nsec3_salt);
+							ldns_dname_cat(cur_rr_data->name, origin);
+							cur_rr_data->type = LDNS_RR_TYPE_NSEC3;
+							/* pass the original name or the hash? */
+							/* hash */
+							/*
+							status = ldns_rdf2buffer_wire(cur_rr_data->rr_buf,
+													cur_rr_data->name);
+							*/
+							/* original name */
+							status = ldns_rdf2buffer_wire(cur_rr_data->rr_buf,
+														  empty_nonterminals[eni]);
+							ldns_rbtree_insert(rr_tree, rr_data2node(cur_rr_data));
+							cur_rr_data = rr_data_new();
+							ldns_rdf_deep_free(empty_nonterminals[eni]);
+						}
+					}
+
+					if (!nsec3) {
+						cur_rr_data->name = ldns_rdf_clone(ldns_rr_owner(cur_rr));
+					} else {
+						cur_rr_data->name = ldns_nsec3_hash_name(
+											ldns_rr_owner(cur_rr),
+											nsec3_algorithm,
+											nsec3_iterations,
+											nsec3_salt_length,
+											nsec3_salt);
+						ldns_dname_cat(cur_rr_data->name, origin);
+					}
+					cur_rr_data->type = ldns_rr_get_type(cur_rr);
+					
+					status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
+											cur_rr,
+											LDNS_SECTION_ANY_NOQUESTION);
+					
+					ldns_rbtree_insert(rr_tree,
+									rr_data2node(cur_rr_data));
+					
+					ldns_rr_free(prev_rr);
+					prev_rr = cur_rr;
+					cur_rr = NULL;
+				}
+			}
+		line_nr++;
+		}
+	}
+	if (status == LDNS_STATUS_OK) {
+		if (cur_rr) {
+			ldns_rr_free(cur_rr);
+		}
+	} else if (status != LDNS_STATUS_SYNTAX_EMPTY && 
+	           status != LDNS_STATUS_SYNTAX_TTL &&
+	           status != LDNS_STATUS_SYNTAX_ORIGIN) {
+		fprintf(stderr, "Parse error in input line %d: %s\n",
+			    line_nr,
+			    ldns_get_errorstr_by_id(status));
+		exit(EXIT_FAILURE);
+	}
 
 	if (origin) {
 		ldns_rdf_deep_free(origin);
@@ -350,6 +458,9 @@ main(int argc, char **argv)
 	}
 	if (nsec3_salt) {
 		LDNS_FREE(nsec3_salt);
+	}
+	if (prev_rr) {
+		ldns_rr_free(prev_rr);
 	}
 
 	print_rrs(out_file, rr_tree);
