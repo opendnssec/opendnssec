@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+#include "util.h"
 #include <ldns/ldns.h>
 
 bool
@@ -50,9 +51,12 @@ main(int argc, char **argv)
 	
 	ldns_rr *cur_rr;
 	ldns_rdf *prev_name = NULL;
-	ldns_status status;
+	ldns_status status = LDNS_STATUS_OK;
 	
 	ldns_rr *last_delegation_ns = NULL;
+	
+	int line_len;
+	char line[MAX_LINE_LEN];
 
 	while ((c = getopt(argc, argv, "f:hno:v:")) != -1) {
 		switch(c) {
@@ -95,11 +99,6 @@ main(int argc, char **argv)
 
 	/* Parse mode: read rrs from input */
 	/* Directives like $ORIGIN and $TTL are not allowed */
-	status = ldns_rr_new_frm_fp(&cur_rr,
-	                            input_file,
-	                            &ttl,
-	                            &origin,
-	                            &prev_name);
 	
 	if (status != LDNS_STATUS_OK) {
 		fprintf(stderr,
@@ -108,37 +107,49 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	
-	while (status == LDNS_STATUS_OK) {
-		if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NS) {
-			ldns_rr_print(stdout, cur_rr);
-			if (ldns_dname_compare(ldns_rr_owner(cur_rr),
-			                       origin) != 0){
-				if (last_delegation_ns) {
-					ldns_rr_free(last_delegation_ns);
-				}
-				last_delegation_ns = cur_rr;
-			} else {
-				ldns_rr_free(cur_rr);
+	line_len = 0;
+	while (line_len >= 0) {
+		line_len = read_line(input_file, line);
+		if (line_len > 0) {
+			if (line[0] == ';') {
+				// comment, simply pass through
+				fprintf(stdout, "%s\n", line);
+				continue;
 			}
-		} else {
-			if (last_delegation_ns) {
-				if (ldns_dname_is_subdomain(ldns_rr_owner(cur_rr),
-				                  ldns_rr_owner(last_delegation_ns))) {
-					/* glue! don't print */
+			status = ldns_rr_new_frm_str(&cur_rr,
+			                            line,
+			                            ttl,
+			                            origin,
+			                            &prev_name);
+			if (status != LDNS_STATUS_OK) {
+				printf("; Parse error: %s\n", ldns_get_errorstr_by_id(status));
+				continue;
+			}
+			if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NS) {
+				ldns_rr_print(stdout, cur_rr);
+				if (ldns_dname_compare(ldns_rr_owner(cur_rr),
+									   origin) != 0){
+					if (last_delegation_ns) {
+						ldns_rr_free(last_delegation_ns);
+					}
+					last_delegation_ns = cur_rr;
+				} else {
+					ldns_rr_free(cur_rr);
+				}
+			} else {
+				if (last_delegation_ns) {
+					if (ldns_dname_is_subdomain(ldns_rr_owner(cur_rr),
+									  ldns_rr_owner(last_delegation_ns))) {
+						/* glue! make comment out of it*/
+						fprintf(stdout, "; Glue record: ");
+					}
+					ldns_rr_print(stdout, cur_rr);
 				} else {
 					ldns_rr_print(stdout, cur_rr);
 				}
-			} else {
-				ldns_rr_print(stdout, cur_rr);
+				ldns_rr_free(cur_rr);
 			}
-			ldns_rr_free(cur_rr);
 		}
-
-		status = ldns_rr_new_frm_fp(&cur_rr,
-		                            input_file,
-		                            &ttl,
-		                            &origin,
-		                            &prev_name);
 	}
 
 	if (status != LDNS_STATUS_OK &&

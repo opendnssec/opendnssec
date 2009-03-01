@@ -3,6 +3,8 @@
  *
  * This code is provided AS-IS, you know the drill, use at own risk
  * 
+ * Input must be sorted
+ * 
  * Written by Jelte Jansen
  * 
  * Copyright 2008 NLnet Labs
