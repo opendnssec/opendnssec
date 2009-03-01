@@ -11,6 +11,7 @@ import commands
 import subprocess
 from datetime import datetime
 import traceback
+import syslog
 
 from EngineConfig import EngineConfiguration
 
@@ -80,13 +81,13 @@ class Zone:
 	# creates a DNSKEY string to add to the unsigned zone,
 	# and calculates the correct tool_key_id
 	def find_key_details(self, key):
-		Util.debug(1, "Generating DNSKEY rr for " + str(key["id"]))
+		syslog.syslog(syslog.LOG_DEBUG, "Generating DNSKEY rr for " + str(key["id"]))
 		# just try all modules to generate the dnskey? first one is good?
 		for token in self.engine_config.tokens:
 			mpath = token["module_path"]
 			mpin = token["pin"]
 			tname = token["name"]
-			print "Try token " + tname
+			syslog.syslog(syslog.LOG_DEBUG, "Try token " + tname)
 			cmd = [ tools_dir + os.sep + "create_dnskey_pkcs11",
 			        "-n", tname,
 			        "-m", mpath,
@@ -97,10 +98,9 @@ class Zone:
 			        "-t", str(key["ttl"]),
 			        key["locator"]
 			      ]
-			print " ".join(cmd)
+			syslog.syslog(syslog.LOG_DEBUG, " ".join(cmd))
 			(status, output) = commands.getstatusoutput(" ".join(cmd))
-			print "create_dnskey status: " + str(status)
-			print "output: " + output
+			syslog.syslog(syslog.LOG_DEBUG, "create_dnskey status: " + str(status))
 			if status == 0:
 				key["token_name"] = tname
 				key["pkcs11_module"] = mpath
@@ -108,7 +108,7 @@ class Zone:
 				key["tool_key_id"] = key["locator"] + "_" + str(key["algorithm"])
 				key["dnskey"] = str(output)
 				found = True
-				Util.debug(2, "Found key in token " + tname)
+				syslog.syslog(syslog.LOG_INFO, "Found key in token " + tname)
 				return
 		# TODO: locator->id?
 		raise Exception("Unable to find key " + key["locator"])
@@ -117,7 +117,7 @@ class Zone:
 	# TODO: this should probably be moved to the worker class
 	#
 	def sort(self):
-		Util.debug(1, "Sorting zone: " + self.zone_name)
+		syslog.syslog(syslog.LOG_INFO, "Sorting zone: " + self.zone_name)
 		unsorted_zone_file = open(self.engine_config.zone_input_dir + os.sep + self.zone_name, "r")
 		cmd = [tools_dir + os.sep + "sorter" ]
 		if self.denial_nsec3:
@@ -136,12 +136,9 @@ class Zone:
 						self.find_key_details(k)
 					except Exception, e:
 						k["dnskey"] = "; Unable to find key " + k["locator"]
-				else:
-					print k["dnskey"]
 				sort_process.stdin.write(k["dnskey"]+ "\n") 
 			
 			for line in unsorted_zone_file:
-				print line,
 				sort_process.stdin.write(line)
 			sort_process.stdin.close()
 			
@@ -149,20 +146,19 @@ class Zone:
 			sorted_zone_file = open(self.engine_config.zone_tmp_dir + os.sep + self.zone_name, "w")
 			
 			for line in sort_process.stderr:
-				print "stderr: " + line,
+				syslog.syslog(syslog.LOG_WARNING, "stderr from sorter: " + line)
 			
 			for line in sort_process.stdout:
-				print line,
 				sorted_zone_file.write(line)
 			sorted_zone_file.close()
 		except Exception, e:
-			Util.debug(1, "Error sorting zone\n");
-			print e
-			Util.debug(1, "Command was: " + " ".join(cmd))
+			syslog.syslog(syslog.LOG_WARNING, "Error sorting zone\n");
+			syslog.syslog(syslog.LOG_WARNING, str(e));
+			syslog.syslog(syslog.LOG_WARNING, "Command was: " + " ".join(cmd))
 			for line in sort_process.stderr:
-				print "stderr: " + line,
+				syslog.syslog(syslog.LOG_WARNING, "sorter stderr: " + line)
 			raise e
-		Util.debug(1, "Done sorting")
+		syslog.syslog(syslog.LOG_INFO, "Done sorting")
 		
 	def sign(self):
 		self.lock("sign()")
@@ -170,7 +166,7 @@ class Zone:
 			# todo: only sort if necessary (depends on what has changed in
 			#       the policy)
 			self.sort()
-			Util.debug(1, "Signing zone: " + self.zone_name)
+			syslog.syslog(syslog.LOG_INFO, "Signing zone: " + self.zone_name)
 			# hmz, todo: stripped records need to be re-added
 			# and another todo: move strip and nsec to stored file too?
 			# (so only signing needs to be redone at re-sign time)
@@ -200,7 +196,7 @@ class Zone:
 							k["pkcs11_module"],
 							k["pkcs11_pin"]
 						   ]
-					print "> " + " ".join(scmd)
+					syslog.syslog(syslog.LOG_DEBUG, "send to signer " + " ".join(scmd))
 					p4.stdin.write("\n")
 					p4.stdin.write(" ".join(scmd) + "\n")
 					scmd = [":add_key",
@@ -209,23 +205,23 @@ class Zone:
 							str(k["algorithm"]),
 							str(k["flags"])
 						   ]
-					print "> " + " ".join(scmd)
+					syslog.syslog(syslog.LOG_DEBUG, "send to signer " + " ".join(scmd))
 					p4.stdin.write(" ".join(scmd) + "\n")
 			for l in p3.stdout:
-				print "> " + l,
+				syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)
 				p4.stdin.write(l)
 			p4.stdin.close()
 			p4.wait()
 			output = open(self.engine_config.zone_output_dir + os.sep + self.zone_name + ".signed", "w")
 			for line in p4.stdout:
-				print "< " + line,
+				syslog.syslog(syslog.LOG_DEBUG, "read from signer " + line)
 				output.write(line)
 			for line in p4.stderr:
-				print "err: " + line,
+				syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
 			output.close()
 		except Exception:
 			traceback.print_exc()
-		print "done"
+		syslog.syslog(syslog.LOG_INFO, "Done signing " + self.zone_name)
 		#Util.debug(1, "signer result: " + str(status));
 		self.release()
 		
@@ -234,16 +230,16 @@ class Zone:
 		if caller:
 			msg = str(caller) + ": " + msg
 		while (self.locked):
-			Util.debug(4, msg)
+			syslog.syslog(syslog.LOG_DEBUG, msg)
 			time.sleep(1)
 		self.locked = True
 		msg = "Zone " + self.zone_name + " locked";
 		if caller:
 			msg = msg + " by " + str(caller)
-		Util.debug(4, msg)
+		syslog.syslog(syslog.LOG_DEBUG, msg)
 	
 	def release(self):
-		Util.debug(4, "Releasing lock on zone " + self.zone_name)
+		syslog.syslog(syslog.LOG_DEBUG, "Releasing lock on zone " + self.zone_name)
 		self.locked = False
 
 	# not sure whether we will get the data from a file or not, so just wrap

@@ -24,6 +24,8 @@ import time
 import traceback
 import threading
 import Util
+import syslog
+
 import Zone
 from EngineConfig import EngineConfiguration
 from Worker import Worker, TaskQueue, Task
@@ -80,11 +82,11 @@ class Engine:
 					command = self.receive_command(client_socket)
 					response = self.handle_command(command)
 					self.send_response(response + "\n\n", client_socket)
-					Util.debug(5, "Done handling command")
+					syslog.syslog(syslog.LOG_DEBUG, "Done handling command")
 			except socket.error, msg:
-				Util.debug(5, "Connection closed by peer")
+				syslog.syslog(syslog.LOG_DEBUG, "Connection closed by peer")
 			except RuntimeError, msg:
-				Util.debug(5, "Connection closed by peer")
+				syslog.syslog(syslog.LOG_DEBUG, "Connection closed by peer")
 
 	def receive_command(self, client_socket):
 		msg = ''
@@ -99,7 +101,7 @@ class Engine:
 
 	def send_response(self, msg, client_socket):
 		totalsent = 0
-		Util.debug(5, "Sending response: " + msg)
+		syslog.syslog(syslog.LOG_DEBUG, "Sending response: " + msg)
 		while totalsent < MSGLEN and totalsent < len(msg):
 			sent = client_socket.send(msg[totalsent:])
 			if sent == 0:
@@ -116,7 +118,7 @@ class Engine:
 		# scheduling, so lock the entire engine
 		self.lock()
 		args = command.split(" ")
-		Util.debug(3, "got command: '" + command + "'")
+		syslog.syslog(syslog.LOG_INFO, "Received command: '" + command + "'")
 		response = "unknown command"
 		try:
 			if command[:5] == "zones":
@@ -164,17 +166,17 @@ class Engine:
 
 	def lock(self, caller=None):
 		while (self.locked):
-			Util.debug(4, caller + "waiting for lock on engine to be released")
+			syslog.syslog(syslog.LOG_DEBUG, caller + "waiting for lock on engine to be released")
 			time.sleep(1)
 		self.locked = True
 	
 	def release(self):
-		Util.debug(4, "Releasing lock on engine")
+		syslog.syslog(syslog.LOG_DEBUG, "Releasing lock on engine")
 		self.locked = False
 
 	def stop_workers(self):
 		for worker in self.workers:
-			Util.debug(3, "stop worker")
+			syslog.syslog(syslog.LOG_INFO, "stopping worker")
 			worker.work = False
 		self.notify_all()
 
@@ -204,9 +206,9 @@ class Engine:
 		if (secs_left < 1):
 			self.schedule_signing(zone_name)
 		else:
-			print "scheduling resign of zone in " + str(secs_left) + " seconds"
+			syslog.syslog(syslog.LOG_INFO, "scheduling resign of zone in " + str(secs_left) + " seconds")
 			self.schedule_signing(zone_name, time.time() + secs_left)
-		Util.debug(2, "Zone " + zone_name + " added")
+		syslog.syslog(syslog.LOG_INFO, "Zone " + zone_name + " added")
 		
 	def remove_zone(self, zone_name):
 		try:
@@ -283,6 +285,7 @@ def main():
 	#
 	# main loop
 	#
+	syslog.openlog("OpenDNSSEC signer engine")
 	engine = Engine(config_file)
 	try:
 		#now = time.time()
@@ -297,5 +300,6 @@ def main():
 		engine.stop_workers()
 
 if __name__ == '__main__':
-	Util.debug(1, "Python engine proof of concept, v 0.0002 alpha")
+	print "Python engine proof of concept, v 0.0002 alpha"
+	print "output redirected to syslog"
 	main()

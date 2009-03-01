@@ -5,6 +5,7 @@
 import subprocess
 import Util
 import re
+import syslog
 from datetime import timedelta
 
 verbosity = 2;
@@ -14,7 +15,7 @@ def debug(level, message):
 		print(message)
 
 def run_tool(command, input=None):
-	Util.debug(5, "Command: '"+" ".join(command)+"'")
+	syslog.syslog(syslog.LOG_DEBUG, "Run command: '"+" ".join(command)+"'")
 	if (input):
 		p = subprocess.Popen(command, stdin=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	else:
