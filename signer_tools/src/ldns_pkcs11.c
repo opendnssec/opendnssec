@@ -19,6 +19,7 @@ ldns_keystr2algorithm(const char *key_id_str)
 {
 	char *sep;
 	
+	/* _ can be removed, it should not be necessary anymore */
 	sep = index(key_id_str, '_');
 	if (!sep) {
 		return 5;
@@ -82,6 +83,7 @@ pkcs_keypair_handle_new()
 	pkh = malloc(sizeof(struct pkcs_keypair_handle));
 	pkh->private_key = 0;
 	pkh->public_key = 0;
+	pkh->pkcs11_ctx = NULL;
 	return pkh;
 }
 
@@ -301,24 +303,62 @@ ldns_pkcs11_load_functions(CK_FUNCTION_LIST_PTR_PTR pkcs11_functions,
 	return CKR_OK;
 }
 
+static int
+ldns_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
+                             CK_SLOT_ID slotId,
+                             const char *token_name)
+{
+	/* token label is always 32 bytes */
+	char *token_name_bytes = malloc(32);
+	int result = 0;
+	CK_RV rv;
+	CK_TOKEN_INFO token_info;
+	
+	rv = pkcs11_functions->C_GetTokenInfo(slotId, &token_info);
+	ldns_pkcs11_check_rv(rv, "C_GetTokenInfo");
+	
+	memset(token_name_bytes, ' ', 32);
+	memcpy(token_name_bytes, token_name, strlen(token_name));
+	
+	result = memcmp(token_info.label, token_name_bytes, 32) == 0;
+	
+	free(token_name_bytes);
+	return result;
+}
+
 static CK_SLOT_ID
-ldns_pkcs11_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions)
+ldns_pkcs11_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
+                        const char *token_name)
 {
 	CK_RV rv;
 	CK_SLOT_ID slotId;
 	CK_ULONG slotCount = 10;
+	CK_SLOT_ID cur_slot;
 	CK_SLOT_ID *slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
-
+	int found = 0;
+	
 	rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
 	ldns_pkcs11_check_rv(rv, "get slot list");
 
 	if (slotCount < 1) {
-		fprintf(stderr, "Error; could not find any slots\n");
+		fprintf(stderr, "Error; could not find token with the name %s\n", token_name);
 		exit(1);
 	}
 
-	slotId = slotIds[0];
+	for (cur_slot = 0; cur_slot < slotCount; cur_slot++) {
+		if (ldns_pkcs11_check_token_name(pkcs11_functions,
+		                                 slotIds[cur_slot],
+		                                 token_name)) {
+			slotId = slotIds[cur_slot];
+			found = 1;
+			break;
+		}
+	}
 	free(slotIds);
+	if (!found) {
+		fprintf(stderr, "Error; could not find token with the name %s\n", token_name);
+		exit(1);
+	}
 
 	return slotId;
 }
@@ -359,7 +399,8 @@ ldns_pkcs11_login(CK_FUNCTION_LIST_PTR pkcs11_functions,
 
 ldns_pkcs11_ctx *
 ldns_initialize_pkcs11(const char *dl_file,
-                      const char *pin)
+                       const char *token_name,
+                       const char *pin)
 {
 	CK_FUNCTION_LIST_PTR function_list;
 	CK_SLOT_ID slot_id;
@@ -378,7 +419,7 @@ ldns_initialize_pkcs11(const char *dl_file,
 		
 		pkcs11_ctx->function_list = function_list;
 		
-		slot_id = ldns_pkcs11_get_slot_id(function_list);
+		slot_id = ldns_pkcs11_get_slot_id(function_list, token_name);
 		
 		session = ldns_pkcs11_start_session(function_list, slot_id);
 		
@@ -388,6 +429,7 @@ ldns_initialize_pkcs11(const char *dl_file,
 		return pkcs11_ctx;
 	} else {
 		fprintf(stderr, "Unable to load function_list\n");
+		ldns_pkcs11_ctx_free(pkcs11_ctx);
 		return NULL;
 	}
 }
@@ -557,6 +599,7 @@ ldns_status
 ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
                         ldns_key **key,
                         ldns_algorithm algorithm,
+                        uint16_t flags,
                         const char *key_id,
                         size_t key_id_len)
 {
@@ -572,6 +615,7 @@ ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
 	ldns_key_set_algorithm(k, algorithm);
 	
 	key_object = pkcs_keypair_handle_new();
+	key_object->pkcs11_ctx = pkcs11_ctx;
 	key_object->private_key = ldns_pkcs11_get_key(
 	                               pkcs11_ctx->function_list,
 	                               pkcs11_ctx->session,
@@ -579,7 +623,7 @@ ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
 	                               (CK_BYTE_PTR) key_id,
 	                               key_id_len);
 	if (!key_object->private_key) {
-		fprintf(stderr, "Private key not found\n");
+		//fprintf(stderr, "; Private key not found\n");
 		ldns_key_free(k);
 		return LDNS_STATUS_ERR;
 	}
@@ -590,15 +634,17 @@ ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
 	                              (CK_BYTE_PTR) key_id,
 	                              key_id_len);
 	if (!key_object->public_key) {
-		fprintf(stderr, "Public key not found\n");
+		//fprintf(stderr, "Public key not found\n");
 		ldns_key_free(k);
 		return LDNS_STATUS_ERR;
 	}
 	ldns_key_set_external_key(k, key_object);
+	ldns_key_set_flags(k, flags);
 
 	key_rr = ldns_key2rr_pkcs(pkcs11_ctx,
 	                          k);
 	ldns_key_set_keytag(k, ldns_calc_keytag(key_rr));
+
 	ldns_rr_free(key_rr);
 
 	if (key) {
@@ -653,8 +699,7 @@ ldns_sign_pkcs11_buffer(ldns_pkcs11_ctx *pkcs11_ctx,
 
 /* taken from sign_public */
 ldns_rr_list *
-ldns_pkcs11_sign_rrset(ldns_pkcs11_ctx *pkcs11_ctx,
-                       ldns_rr_list *rrset,
+ldns_pkcs11_sign_rrset(ldns_rr_list *rrset,
                        ldns_key_list *keys)
 {
 	ldns_rr_list *signatures;
@@ -667,9 +712,8 @@ ldns_pkcs11_sign_rrset(ldns_pkcs11_ctx *pkcs11_ctx,
 	ldns_buffer *sign_buf;
 	uint8_t label_count;
 	ldns_rdf *new_owner;
+	struct pkcs_keypair_handle *keypair_handle;
 	
-	CK_OBJECT_HANDLE_PTR current_key_object;
-
 	if (!rrset || ldns_rr_list_rr_count(rrset) < 1 || !keys) {
 		return NULL;
 	}
@@ -744,10 +788,10 @@ ldns_pkcs11_sign_rrset(ldns_pkcs11_ctx *pkcs11_ctx,
 				return NULL;
 			}
 
-			current_key_object = ldns_key_external_key(current_key);
-			b64rdf = ldns_sign_pkcs11_buffer(pkcs11_ctx,
+			keypair_handle = (struct pkcs_keypair_handle *)ldns_key_external_key(current_key);
+			b64rdf = ldns_sign_pkcs11_buffer(keypair_handle->pkcs11_ctx,
 			                                 sign_buf,
-			                                 *current_key_object);
+			                                 keypair_handle->private_key);
 
 			if (!b64rdf) {
 				/* signing went wrong */

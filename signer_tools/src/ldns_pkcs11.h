@@ -15,6 +15,7 @@ struct ldns_pkcs11_ctx_struct {
 typedef struct ldns_pkcs11_ctx_struct ldns_pkcs11_ctx;
 
 struct pkcs_keypair_handle {
+	ldns_pkcs11_ctx *pkcs11_ctx;
 	CK_OBJECT_HANDLE private_key;
 	CK_OBJECT_HANDLE public_key;
 };
@@ -30,6 +31,7 @@ struct pkcs_keypair_handle *pkcs_keypair_handle_new();
 void pkcs_keypair_handle_free(struct pkcs_keypair_handle *pkh);
 
 ldns_pkcs11_ctx *ldns_initialize_pkcs11(const char *dl_file,
+                                        const char *token_name,
                                         const char *pin);
 void ldns_finalize_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx);
 
@@ -39,9 +41,9 @@ ldns_rr *ldns_key2rr_pkcs(ldns_pkcs11_ctx *pkcs11_ctx,
 ldns_status ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
                                     ldns_key **key,
                                     ldns_algorithm algorithm,
+                                    uint16_t flags,
                                     const char *key_id,
                                     size_t key_id_len);
 
-ldns_rr_list *ldns_pkcs11_sign_rrset(ldns_pkcs11_ctx *pkcs11_ctx,
-                         ldns_rr_list *rrset,
-                         ldns_key_list *keys);
+ldns_rr_list *ldns_pkcs11_sign_rrset(ldns_rr_list *rrset,
+                                     ldns_key_list *keys);
