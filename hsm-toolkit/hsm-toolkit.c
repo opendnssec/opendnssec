@@ -157,13 +157,22 @@ void Flush_Attrs(CK_ATTRIBUTE_PTR attr, unsigned int n)
     }
 }
 
-const void* Get_Val(CK_ATTRIBUTE_PTR attr,unsigned int type,unsigned int n)
-{
+const void* Get_Val_string(CK_ATTRIBUTE_PTR attr,unsigned type,unsigned int n)
+{   
     while (n--)
     {
         if (attr[n].type == type) return attr[n].pValue;
     }
-    return 0;
+	return NULL_PTR;
+}
+
+CK_ULONG Get_Val_ul(CK_ATTRIBUTE_PTR attr,unsigned type,unsigned int n)
+{   CK_ULONG Value = 0;
+    while (n--)
+    {
+        if ((attr+n)->type == type) memcpy(&Value, (attr+n)->pValue,sizeof(CK_ULONG));
+    }
+	return Value;
 }
 
 unsigned int Get_Val_Len(CK_ATTRIBUTE_PTR attr,unsigned int type,unsigned int n)
@@ -177,10 +186,10 @@ unsigned int Get_Val_Len(CK_ATTRIBUTE_PTR attr,unsigned int type,unsigned int n)
 
 void Init_Attrs(CK_ATTRIBUTE_PTR attr, unsigned int n)
 {
-    while (n--)
+    while (n--)	
     {
         if ((attr[n].ulValueLen) && (attr[n].pValue == NULL_PTR))
-            {attr[n].pValue = calloc(attr[n].ulValueLen,1);}
+			attr[n].pValue = calloc(attr[n].ulValueLen,1);
     }
 }
 
@@ -274,25 +283,23 @@ ActionListObjects(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
     if (label) Add_Attr(template+cnt++,CKA_LABEL, label, strlen ((char *) label));
     check_rv("C_FindObjectsInit", C_FindObjectsInit (ses, template, cnt));
     Flush_Attrs(template,cnt);
-
     CK_OBJECT_HANDLE object;
-    CK_OBJECT_CLASS class = 0;
     CK_ULONG found = 0;
     check_rv("C_FindObjects",C_FindObjects(ses, &object, 1, &found));
     while (found)
     {
         cnt = 0;
-        Add_Attr(template+cnt++,CKA_CLASS,&class,sizeof(class));
+        Add_Attr(template+cnt++,CKA_CLASS,NULL_PTR,0);
         Add_Attr(template+cnt++,CKA_LABEL,NULL_PTR,0);
         Add_Attr(template+cnt++,CKA_MODULUS,NULL_PTR,0);
         check_rv("C_GetAttributeValue",C_GetAttributeValue(ses, object, template, cnt));
         Init_Attrs(template,cnt);
         check_rv("C_GetAttributeValue",C_GetAttributeValue(ses, object, template, cnt));
-
-        printf("%d-bit %s key object, labeled %s\n",
+		
+		printf("%d-bit %s key object, labeled %s\n",
             (int) Get_Val_Len(template,CKA_MODULUS,cnt) *8,
-            (class == CKO_PRIVATE_KEY)?"Private":"Public ",
-            (char*) Get_Val(template,CKA_LABEL,cnt));
+            (Get_Val_ul(template,CKA_CLASS,cnt)== CKO_PRIVATE_KEY)?"Private":"Public ",
+            (char*) Get_Val_string(template,CKA_LABEL,cnt));
         Flush_Attrs(template,cnt);
         check_rv("C_FindObjects", C_FindObjects(ses, &object, 1, &found));
     }
@@ -324,37 +331,49 @@ ActionGenerateObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label, CK_ULONG keysize
     /* A template to generate an RSA public key objects*/
     CK_BYTE pubex[3] = { 1, 0, 1 };
     CK_KEY_TYPE keyType = CKK_RSA;
-    CK_ATTRIBUTE publickey_template[9] =
-    {
-        {CKA_LABEL, label, strlen ((char *) label)},
-        {CKA_ID,"",0},
-        {CKA_KEY_TYPE, &keyType, sizeof(keyType)},
-        {CKA_VERIFY, &true, sizeof (true)},
-        {CKA_ENCRYPT, &true, sizeof (false)},
-        {CKA_WRAP, &true, sizeof (false)},
-        {CKA_TOKEN, &true, sizeof (true)},
-        {CKA_MODULUS_BITS, &keysize, sizeof (keysize)},
-        {CKA_PUBLIC_EXPONENT, &pubex, sizeof (pubex)}
-    };
-
+    unsigned int cnt1  = 0;
+	CK_ATTRIBUTE pub_temp[32];
+    Add_Attr(pub_temp+cnt1++,CKA_LABEL, label, strlen ((char *) label));
+    Add_Attr(pub_temp+cnt1++,CKA_ID,"",0);
+    Add_Attr(pub_temp+cnt1++,CKA_KEY_TYPE, &keyType, sizeof(keyType));
+	Add_Attr(pub_temp+cnt1++,CKA_VERIFY, &true, sizeof (true));
+	Add_Attr(pub_temp+cnt1++,CKA_ENCRYPT, &false, sizeof (false));
+	Add_Attr(pub_temp+cnt1++,CKA_WRAP, &false, sizeof (false));
+	Add_Attr(pub_temp+cnt1++,CKA_TOKEN, &true, sizeof (true));
+	Add_Attr(pub_temp+cnt1++,CKA_MODULUS_BITS, &keysize, sizeof (keysize));
+	Add_Attr(pub_temp+cnt1++,CKA_PUBLIC_EXPONENT, &pubex, sizeof (pubex));
     /* A template to generate an RSA private key objects*/
-    CK_ATTRIBUTE privatekey_template[10] =
-    {
-        {CKA_LABEL, label, strlen ((char *) label)},
-        {CKA_ID,"",0},
-        {CKA_KEY_TYPE, &keyType, sizeof(keyType)},
-        {CKA_SIGN, &true, sizeof (true)},
-        {CKA_DECRYPT, &true, sizeof (true)},
-        {CKA_TOKEN, &true, sizeof (true)},
-        {CKA_PRIVATE, &true, sizeof (true)},
-        {CKA_SENSITIVE, &false, sizeof (false)},
-        {CKA_UNWRAP, &true, sizeof (true)},
-        {CKA_EXTRACTABLE, &true, sizeof (true)}
-    };
+    unsigned int cnt2  = 0;
+	CK_ATTRIBUTE pri_temp[32];
+    Add_Attr(pri_temp+cnt2++,CKA_LABEL, label, strlen ((char *) label));
+    Add_Attr(pri_temp+cnt2++,CKA_ID,"",0);
+    Add_Attr(pri_temp+cnt2++,CKA_KEY_TYPE, &keyType, sizeof(keyType));
+	Add_Attr(pri_temp+cnt2++,CKA_SIGN, &true, sizeof (true));
+	Add_Attr(pri_temp+cnt2++,CKA_DECRYPT, &false, sizeof (false));
+	Add_Attr(pri_temp+cnt2++,CKA_UNWRAP, &false, sizeof (false));
+	Add_Attr(pri_temp+cnt2++,CKA_SENSITIVE, &false, sizeof (false));
+	Add_Attr(pri_temp+cnt2++,CKA_TOKEN, &true, sizeof (true));
+	Add_Attr(pri_temp+cnt2++,CKA_PRIVATE, &true, sizeof (true));
+	Add_Attr(pri_temp+cnt2++,CKA_EXTRACTABLE, &true, sizeof (true));
     CK_OBJECT_HANDLE ignore;
-    check_rv("C_GenerateKeyPair", C_GenerateKeyPair(ses, &mech, publickey_template, 9,
-        privatekey_template, 10, &ignore,&ignore));
+    check_rv("C_GenerateKeyPair", C_GenerateKeyPair(ses, &mech, pub_temp, cnt1,
+        pri_temp, 10, &ignore,&ignore));
     printf("Created RSA key pair object, labeled %s\n",label);
+}
+
+CK_SLOT_ID GetSlot() {
+	/* Get list of all slots with a token present */ 
+	CK_SLOT_ID_PTR slotList = (CK_SLOT_ID_PTR) malloc(0); 
+	CK_ULONG slotcnt = 0; 
+	CK_RV rv = 0;
+	CK_SLOT_ID id = 0;
+	while (1) {
+    	rv =C_GetSlotList(CK_TRUE, slotList, &slotcnt); 
+  		if (rv != CKR_BUFFER_TOO_SMALL) break; 
+		slotList = realloc(slotList,slotcnt * sizeof(CK_SLOT_ID)); 
+	}
+	id = slotList[0];
+	return id;
 }
 
 int
@@ -385,12 +404,12 @@ main (int argc, char *argv[])
 
     label = (CK_UTF8CHAR *) argv[optind];
     check_rv("C_Initialize",C_Initialize (NULL_PTR));
+	if (!slot) slot = GetSlot();
     check_rv("C_OpenSession",C_OpenSession (slot, CKF_RW_SESSION + CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &ses));
 
     if (!pin) pin = (CK_UTF8CHAR *) getpass ("Enter Pin: ");
-
     check_rv("C_Login", C_Login(ses, CKU_USER, pin, strlen ((char*)pin)));
-    memset(pin, 0, strlen((char *)pin));
+	memset(pin, 0, strlen((char *)pin));
     switch (Action)
     {
         case 1: ActionGenerateObject(ses,label,keysize); break;
