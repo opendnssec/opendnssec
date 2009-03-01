@@ -1,7 +1,39 @@
-/**
- * This tool can be used to create DNSKEY records from pkcs11 keys
- * TODO: add options for KSK and other flags
+/*
+ * create_dnskey_pkcs11.c
  *
+ * Generates a DNSKEY resource record from the data in an HSM token
+ *
+ * Copyright (c) 2009 NLnet Labs
+ * Written by Jelte Jansen
+ *
+ * This software is open source.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * 
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * Neither the name of the NLNET LABS nor the names of its contributors may
+ * be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
@@ -56,6 +88,7 @@ main(int argc, char **argv)
 	ldns_algorithm key_algorithm = DEFAULT_ALGORITHM;
 	uint32_t ttl = DEFAULT_TTL;
 	uint16_t flags = DEFAULT_FLAGS;
+	const char *token_name = NULL;
 	
 	/* pkcs11 vars */
 	char *pkcs11_lib_file = NULL;
@@ -65,8 +98,9 @@ main(int argc, char **argv)
 	
 	/* internal variables */
 	ldns_status status;
+	int found = 0;
 
-	while ((c = getopt(argc, argv, "a:f:hm:o:p:r:t:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:hm:n:o:p:r:t:v:")) != -1) {
 		switch(c) {
 			case 'a':
 				key_algorithm = atoi(optarg);
@@ -81,6 +115,9 @@ main(int argc, char **argv)
 				break;
 			case 'm':
 				pkcs11_lib_file = optarg;
+				break;
+			case 'n':
+				token_name = optarg;
 				break;
 			case 'o':
 				origin = ldns_dname_new_frm_str(optarg);
@@ -109,9 +146,13 @@ main(int argc, char **argv)
 		fprintf(stderr, "Error: bad or no origin specified\n");
 		exit(1);
 	}
-
+	if (!token_name) {
+		fprintf(stderr, "Error: no token name provided\n");
+		exit(2);
+	}
 	/* init the pkcs environment */
 	pkcs11_ctx = ldns_initialize_pkcs11(pkcs11_lib_file,
+	                                    token_name,
 	                                    pin);
 	if (!pkcs11_ctx) {
 		fprintf(stderr, "Failed to initialize PKCS11 context\n");
@@ -128,6 +169,7 @@ main(int argc, char **argv)
 		status = ldns_key_new_frm_pkcs11(pkcs11_ctx,
 		                                 &key,
 		                                 key_algorithm,
+		                                 flags,
 		                                 key_id,
 		                                 key_id_len);
 		if (status == LDNS_STATUS_OK) {
@@ -143,6 +185,7 @@ main(int argc, char **argv)
 		ldns_rr_set_ttl(key_rr, ttl);
 		
 		ldns_rr_print(stdout, key_rr);
+		found = 1;
 
 		free(key_id);
 		ldns_rr_free(key_rr);
@@ -156,6 +199,10 @@ main(int argc, char **argv)
 	if (origin) {
 		ldns_rdf_deep_free(origin);
 	}
-	return LDNS_STATUS_OK;
+	if (found) {
+		return LDNS_STATUS_OK;
+	} else {
+		return LDNS_STATUS_ERR;
+	}
 }
 
