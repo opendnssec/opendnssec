@@ -3,20 +3,21 @@ CC=@CC@
 CFLAGS=@CFLAGS@ -Wall -Werror -I${srcdir}
 LDFLAGS=@LDFLAGS@ @LIBS@
 PKCS11_MODULE=@PKCS11_MODULE@
+OBJECTS=ldns_pkcs11.o util.o
 
 all: sorter stripper nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11
 
-sorter: ${srcdir}/src/sorter.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${srcdir}/src/sorter.c
+sorter: ${OBJECTS} ${srcdir}/src/sorter.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${OBJECTS} ${srcdir}/src/sorter.c
 
-stripper: ${srcdir}/src/stripper.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o stripper ${srcdir}/src/stripper.c
+stripper: ${OBJECTS} ${srcdir}/src/stripper.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o stripper ${OBJECTS} ${srcdir}/src/stripper.c
 
 nseccer: ${srcdir}/src/nseccer.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o nseccer ${srcdir}/src/nseccer.c
 
-nsec3er: ${srcdir}/src/nsec3er.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o nsec3er ${srcdir}/src/nsec3er.c
+nsec3er: ${OBJECTS} ${srcdir}/src/nsec3er.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o nsec3er ${OBJECTS} ${srcdir}/src/nsec3er.c
 
 signer: ${srcdir}/src/signer.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o signer ${srcdir}/src/signer.c
@@ -24,8 +25,11 @@ signer: ${srcdir}/src/signer.c
 ldns_pkcs11.o: ${srcdir}/src/ldns_pkcs11.h ${srcdir}/src/ldns_pkcs11.c
 	${CC} ${CFLAGS} -c -o ldns_pkcs11.o ${srcdir}/src/ldns_pkcs11.c
 
-signer_pkcs11: ldns_pkcs11.o ${srcdir}/src/signer_pkcs11.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o signer_pkcs11 ldns_pkcs11.o ${PKCS11_MODULE} ${srcdir}/src/signer_pkcs11.c
+util.o: ${srcdir}/src/util.h ${srcdir}/src/util.c
+	${CC} ${CFLAGS} -c -o util.o ${srcdir}/src/util.c
+
+signer_pkcs11: ${OBJECTS} ${srcdir}/src/signer_pkcs11.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o signer_pkcs11 ${OBJECTS} ${PKCS11_MODULE} ${srcdir}/src/signer_pkcs11.c
 
 create_dnskey_pkcs11: ldns_pkcs11.o ${srcdir}/src/create_dnskey_pkcs11.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o create_dnskey_pkcs11 ldns_pkcs11.o ${PKCS11_MODULE} ${srcdir}/src/create_dnskey_pkcs11.c
