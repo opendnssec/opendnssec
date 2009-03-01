@@ -10,6 +10,7 @@ from xml.dom import minidom
 import commands
 import subprocess
 from datetime import datetime
+import traceback
 
 from EngineConfig import EngineConfiguration
 
@@ -81,11 +82,15 @@ class Zone:
 	def find_key_details(self, key):
 		Util.debug(1, "Generating DNSKEY rr for " + str(key["id"]))
 		# just try all modules to generate the dnskey? first one is good?
-		found = False
+		print "aaaaaaaaaaaaaaaaaaaaaaa"
+		print "tokens: " + str(self.engine_config.tokens)
 		for token in self.engine_config.tokens:
 			mpath = token["module_path"]
 			mpin = token["pin"]
+			tname = token["name"]
+			print "Try token " + tname
 			cmd = [ tools_dir + os.sep + "create_dnskey_pkcs11",
+			        "-n", tname,
 			        "-m", mpath,
 			        "-p", mpin,
 			        "-o", self.zone_name,
@@ -96,16 +101,20 @@ class Zone:
 			      ]
 			print " ".join(cmd)
 			(status, output) = commands.getstatusoutput(" ".join(cmd))
+			print "create_dnskey status: " + str(status)
+			print "output: " + output
 			if status == 0:
+				key["token_name"] = tname
 				key["pkcs11_module"] = mpath
 				key["pkcs11_pin"] = mpin
 				key["tool_key_id"] = key["locator"] + "_" + str(key["algorithm"])
 				key["dnskey"] = str(output)
-				print key["dnskey"]
 				found = True
+				Util.debug(2, "Found key in token " + tname)
+				return
 		# TODO: locator->id?
-		if not found:
-			raise Exception("Unable to find key " + key["locator"])
+		raise Exception("Unable to find key " + key["locator"])
+
 	#
 	# TODO: this should probably be moved to the worker class
 	#
@@ -114,85 +123,112 @@ class Zone:
 		unsorted_zone_file = open(self.engine_config.zone_input_dir + os.sep + self.zone_name, "r")
 		cmd = [tools_dir + os.sep + "sorter" ]
 		if self.denial_nsec3:
-			cmd.extend(["-n",
+			cmd.extend(["-o", self.zone_name,
+			            "-n",
 			            "-s", self.denial_nsec3_salt,
 			            "-t", str(self.denial_nsec3_iterations),
 			            "-a", str(self.denial_nsec3_algorithm)])
 		sort_process = Util.run_tool(cmd, subprocess.PIPE)
 		
 		# sort published keys and zone data
-		for k in self.keys.values():
-			if not k["dnskey"]:
-				find_key_details(k)
-			sort_process.stdin.write(k["dnskey"]+ "\n") 
-		
-		for line in unsorted_zone_file:
-			print line,
-			sort_process.stdin.write(line)
-		sort_process.stdin.close()
-		
-		unsorted_zone_file.close()
-		sorted_zone_file = open(self.engine_config.zone_tmp_dir + os.sep + self.zone_name, "w")
-		
-		for line in sort_process.stderr:
-			print "stderr: " + line,
-		
-		for line in sort_process.stdout:
-			print line,
-			sorted_zone_file.write(line)
-		sorted_zone_file.close()
-		
+		try:
+			for k in self.keys.values():
+				if not k["dnskey"]:
+					try:
+						self.find_key_details(k)
+					except Exception, e:
+						k["dnskey"] = "; Unable to find key " + k["locator"]
+				else:
+					print k["dnskey"]
+				sort_process.stdin.write(k["dnskey"]+ "\n") 
+			
+			for line in unsorted_zone_file:
+				print line,
+				sort_process.stdin.write(line)
+			sort_process.stdin.close()
+			
+			unsorted_zone_file.close()
+			sorted_zone_file = open(self.engine_config.zone_tmp_dir + os.sep + self.zone_name, "w")
+			
+			for line in sort_process.stderr:
+				print "stderr: " + line,
+			
+			for line in sort_process.stdout:
+				print line,
+				sorted_zone_file.write(line)
+			sorted_zone_file.close()
+		except Exception, e:
+			Util.debug(1, "Error sorting zone\n");
+			print e
+			Util.debug(1, "Command was: " + " ".join(cmd))
+			for line in sort_process.stderr:
+				print "stderr: " + line,
+			raise e
 		Util.debug(1, "Done sorting")
 		
 	def sign(self):
 		self.lock("sign()")
+		try:
+			# todo: only sort if necessary (depends on what has changed in
+			#       the policy)
+			self.sort()
+			Util.debug(1, "Signing zone: " + self.zone_name)
+			# hmz, todo: stripped records need to be re-added
+			# and another todo: move strip and nsec to stored file too?
+			# (so only signing needs to be redone at re-sign time)
+			p2 = Util.run_tool([tools_dir + os.sep + "stripper",
+								"-o", self.zone_name,
+								"-f", self.engine_config.zone_tmp_dir + os.sep + self.zone_name]
+							   )
+			
+			if self.denial_nsec:
+				p3 = Util.run_tool([tools_dir + os.sep + "nseccer"], p2.stdout)
+			elif self.denial_nsec3:
+				p3 = Util.run_tool([tools_dir + os.sep + "nsec3er",
+									"-o", self.zone_name,
+									"-s", self.denial_nsec3_salt,
+									"-t", str(self.denial_nsec3_iterations),
+									"-a", str(self.denial_nsec3_algorithm)],
+									p2.stdout)
+			# arg; TODO: pcks11 module per key for signer...
+			cmd = [tools_dir + os.sep + "signer_pkcs11" ]
 
-		# todo: only sort if necessary (depends on what has changed in
-		#       the policy)
-		self.sort()
-		Util.debug(1, "Signing zone: " + self.zone_name)
-		# hmz, todo: stripped records need to be re-added
-		# and another todo: move strip and nsec to stored file too?
-		# (so only signing needs to be redone at re-sign time)
-		p2 = Util.run_tool([tools_dir + os.sep + "stripper",
-		                    "-o", self.zone_name,
-		                    "-f", self.engine_config.zone_tmp_dir + os.sep + self.zone_name]
-		                   )
-		
-		if self.denial_nsec:
-			p3 = Util.run_tool([tools_dir + os.sep + "nseccer"], p2.stdout)
-		elif self.denial_nsec3:
-			p3 = Util.run_tool([tools_dir + os.sep + "nsec3er",
-			                    "-o", self.zone_name,
-			                    "-s", self.denial_nsec3_salt,
-			                    "-t", str(self.denial_nsec3_iterations),
-			                    "-a", str(self.denial_nsec3_algorithm)],
-			                    p2.stdout)
-		# arg; TODO: pcks11 module per key for signer...
-		cmd = [tools_dir + os.sep + "signer_pkcs11",
-			   "-o", self.zone_name,
-			   "-v", "5",
-			   "-m", self.keys.values()[0]["pkcs11_module"]]
-		cmd = cmd + ["-p", self.keys.values()[0]["pkcs11_pin"]]
-		for k in self.keys.values():
-			# TODO err, this should be ksks and zsks
-			cmd.append(k["tool_key_id"])
-
-		p4 = Util.run_tool(cmd, p3.stdout)
-		
-		# this directly write the output to the final name, which
-		# will mangle the signed zone file if anything goes wrong
-		# TODO: write to tmp file, and move on success
-		output_file = self.engine_config.zone_output_dir + os.sep + self.zone_name + ".signed"
-		output = open(output_file, "w")
-		output.write("; Zone signed at " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
-		for l in p4.stdout:
-			output.write(l)
-		for l in p4.stderr:
-			print l
-		output.close()
-		status = p4.wait()
-		Util.debug(3, "signer result: " + str(status));
+			p4 = Util.run_tool(cmd)
+			p4.stdin.write(":origin " + self.zone_name)
+			for k in self.keys.values():
+				if k["token_name"]:
+					scmd = [":add_module",
+							k["token_name"],
+							k["pkcs11_module"],
+							k["pkcs11_pin"]
+						   ]
+					print "> " + " ".join(scmd)
+					p4.stdin.write("\n")
+					p4.stdin.write(" ".join(scmd) + "\n")
+					scmd = [":add_key",
+							k["token_name"],
+							k["tool_key_id"],
+							str(k["algorithm"]),
+							str(k["flags"])
+						   ]
+					print "> " + " ".join(scmd)
+					p4.stdin.write(" ".join(scmd) + "\n")
+			for l in p3.stdout:
+				print "> " + l,
+				p4.stdin.write(l)
+			p4.stdin.close()
+			p4.wait()
+			output = open(self.engine_config.zone_output_dir + os.sep + self.zone_name + ".signed", "w")
+			for line in p4.stdout:
+				print "< " + line,
+				output.write(line)
+			for line in p4.stderr:
+				print "err: " + line,
+			output.close()
+		except Exception:
+			traceback.print_exc()
+		print "done"
+		#Util.debug(1, "signer result: " + str(status));
 		self.release()
 		
 	def lock(self, caller=None):
@@ -244,11 +280,10 @@ class Zone:
 			# pkcs11_module and tool_key_id are filled in as they are needed
 			# tool_key_id is the id of the key as it is needed by the signing
 			# tools; (ie. <id>_<algo>)
+			key["token_name"] = None
 			key["pkcs11_module"] = None
 			key["pkcs11_pin"] = None
 			key["tool_key_id"] = None
-			# todo: remove here, do on demand?
-			self.find_key_details(key)
 			self.keys[id] = key
 
 		xmlb = Evaluate("signconf/signatures/resign", signer_config)[0].firstChild

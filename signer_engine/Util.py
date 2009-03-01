@@ -18,7 +18,7 @@ def run_tool(command, input=None):
 	if (input):
 		p = subprocess.Popen(command, stdin=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	else:
-		p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	return p
 
 # months default to 31 days
