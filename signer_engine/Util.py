@@ -58,6 +58,8 @@ DURATION_REGEX_ALT2 = re.compile("^P"
                                )
 
 def parse_duration(duration_string):
+	if not duration_string:
+		return None
 	match = DURATION_REGEX.match(duration_string)
 	result = 0
 	if not match:

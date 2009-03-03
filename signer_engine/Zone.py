@@ -23,6 +23,24 @@ import sys
 # todo: move this path to general engine config too?
 tools_dir = "../signer_tools";
 
+# for a single xml durection object, with only 1 path
+# for more elaborate paths, diy
+def get_xml_data(xpath, xml, optional=False):
+	try:
+		xmlb = Evaluate(xpath, xml)
+		if xmlb and len(xmlb) > 0 and xmlb[0].firstChild:
+			return xmlb[0].firstChild.data
+		elif optional:
+			return None
+		else:
+			raise Exception("Mandatory XML element not found: " + xpath)
+	except IndexError, e:
+		if optional:
+			return None
+		else:
+			raise Exception("Mandatory XML element not found: " + xpath)
+
+
 class Zone:
 	def __init__(self, _zone_name, engine_config):
 		self.zone_name = _zone_name
@@ -53,6 +71,12 @@ class Zone:
 		# i still think nsec TTL should not be configurable
 		self.denial_nsec3_ttl = 0
 		self.keys = {}
+		self.signature_keys = []
+		self.publish_keys = []
+
+		self.soa_ttl = None
+		self.soa_min = None
+		self.soa_serial = None
 		
 		# last_update as specified in zonelist.xml, to see when
 		# the config for this zone needs to be reread
@@ -130,7 +154,7 @@ class Zone:
 		
 		# sort published keys and zone data
 		try:
-			for k in self.keys.values():
+			for k in self.publish_keys:
 				if not k["dnskey"]:
 					try:
 						self.find_key_details(k)
@@ -189,7 +213,7 @@ class Zone:
 
 			p4 = Util.run_tool(cmd)
 			p4.stdin.write(":origin " + self.zone_name)
-			for k in self.keys.values():
+			for k in self.signature_keys:
 				if k["token_name"]:
 					scmd = [":add_module",
 							k["token_name"],
@@ -270,67 +294,64 @@ class Zone:
 		# todo: check the zone name just to be sure?
 		# and some general error checking might be nice
 
-		xmlbs = Evaluate("signconf/keystore/key", signer_config)
-		for xmlb in xmlbs:
+		keystore_keys = Evaluate("signconf/keystore/key", signer_config)
+		for key_xml in keystore_keys:
+			id = int(key_xml.attributes["id"].value)
 			key = {}
-			id = int(xmlb.attributes["id"].value)
 			key["id"] = id
-			key["name"] = Evaluate("name", xmlb)[0].firstChild.data
-			key["ttl"] = Util.parse_duration(Evaluate("ttl", xmlb)[0].firstChild.data)
-			key["flags"] = int(Evaluate("flags", xmlb)[0].firstChild.data)
-			key["protocol"] = int(Evaluate("protocol", xmlb)[0].firstChild.data)
-			key["algorithm"] = int(Evaluate("algorithm", xmlb)[0].firstChild.data)
-			key["locator"] = Evaluate("locator", xmlb)[0].firstChild.data
+			key["name"] = get_xml_data("name", key_xml)
+			key["ttl"] = Util.parse_duration(get_xml_data("ttl", key_xml))
+			key["flags"] = int(get_xml_data("flags", key_xml))
+			key["protocol"] = int(get_xml_data("protocol", key_xml))
+			key["algorithm"] = int(get_xml_data("algorithm", key_xml))
+			key["locator"] = get_xml_data("locator", key_xml)
 			# calculate and cache this one later
 			key["dnskey"] = None
-			# pkcs11_module and tool_key_id are filled in as they are needed
-			# tool_key_id is the id of the key as it is needed by the signing
-			# tools; (ie. <id>_<algo>)
 			key["token_name"] = None
 			key["pkcs11_module"] = None
 			key["pkcs11_pin"] = None
 			key["tool_key_id"] = None
 			self.keys[id] = key
 
-		xmlb = Evaluate("signconf/signatures/resign", signer_config)[0].firstChild
-		self.signatures_resign_time = Util.parse_duration(xmlb.data)
+		self.signatures_resign_time = Util.parse_duration(get_xml_data("signconf/signatures/resign", signer_config))
+		self.signatures_refresh_time = Util.parse_duration(get_xml_data("signconf/signatures/refresh", signer_config))
+		self.signatures_validity_default = Util.parse_duration(get_xml_data("signconf/signatures/validity/default", signer_config))
+		self.signatures_validity_nsec = Util.parse_duration(get_xml_data("signconf/signatures/validity/nsec", signer_config))
+		self.signatures_jitter = Util.parse_duration(get_xml_data("signconf/signatures/jitter", signer_config))
+		self.signatures_clockskew = Util.parse_duration(get_xml_data("signconf/signatures/clockskew", signer_config))
+		self.denial_ttl = Util.parse_duration(get_xml_data("signconf/denial/ttl", signer_config))
+		xmlbs = Evaluate("signconf/signatures/ksk", signer_config)
+		for xmlb in xmlbs:
+			# todo catch keyerror
+			# todo2: error if sep flag was not set?
+			self.signature_keys.append(self.keys[int(xmlb.attributes["keyid"].value)])
 
-		xmlb = Evaluate("signconf/signatures/refresh", signer_config)[0].firstChild
-		self.signatures_refresh_time = Util.parse_duration(xmlb.data)
-		
-		xmlb = Evaluate("signconf/signatures/validity/default", signer_config)[0].firstChild
-		self.signatures_validity_default = Util.parse_duration(xmlb.data)
-		
-		xmlb = Evaluate("signconf/signatures/validity/nsec", signer_config)[0].firstChild
-		self.signatures_validity_nsec = Util.parse_duration(xmlb.data)
-		
-		xmlb = Evaluate("signconf/signatures/jitter", signer_config)[0].firstChild
-		self.signatures_jitter = Util.parse_duration(xmlb.data)
+		xmlbs = Evaluate("signconf/publish", signer_config);
+		for xmlb in xmlbs:
+			# todo catch keyerror
+			# todo2: error if sep flag was set?
+			self.publish_keys.append(self.keys[int(xmlb.attributes["keyid"].value)])
 
-		xmlb = Evaluate("signconf/signatures/clockskew", signer_config)[0].firstChild
-		self.signatures_clockskew = Util.parse_duration(xmlb.data)
-
-		xmlb = Evaluate("signconf/denial/ttl", signer_config)[0].firstChild
-		self.denial_ttl = Util.parse_duration(xmlb.data)
-
-		xmlb = Evaluate("signconf/denial/nsec", signer_config)[0].firstChild
-		if xmlb:
+		if Evaluate("signconf/denial/nsec", signer_config):
 			self.denial_nsec = True
 
-		xmlb = Evaluate("signconf/denial/nsec3", signer_config)[0].firstChild
-		if xmlb:
+		nsec3_xmls = Evaluate("signconf/denial/nsec3", signer_config)
+		for nsec3_xml in nsec3_xmls:
 			self.denial_nsec3 = True
-			xmlb = Evaluate("signconf/denial/nsec3/out-out", signer_config)[0].firstChild
-			if xmlb:
+			if Evaluate("opt-out", nsec3_xml):
 				self.denial_nsec3_optout = True
-			xmlb = Evaluate("signconf/denial/nsec3/hash/algorithm", signer_config)[0].firstChild
-			self.denial_nsec3_algorithm = int(xmlb.data)
-			xmlb = Evaluate("signconf/denial/nsec3/hash/iterations", signer_config)[0].firstChild
-			self.denial_nsec3_iterations = int(xmlb.data)
-			xmlb = Evaluate("signconf/denial/nsec3/hash/salt", signer_config)[0].firstChild
-			self.denial_nsec3_salt = xmlb.data
+			self.denial_nsec3_algorithm = int(get_xml_data("hash/algorithm", nsec3_xml))
+			self.denial_nsec3_iterations = int(get_xml_data("hash/iterations", nsec3_xml))
+			self.denial_nsec3_salt = get_xml_data("hash/salt", nsec3_xml)
 			# calc and cache this later?
 			self.nsec3_param_rr = None
+
+		self.soa_ttl = Util.parse_duration(get_xml_data("signconf/soa/ttl", signer_config, True))
+		self.soa_min = Util.parse_duration(get_xml_data("signconf/soa/min", signer_config, True))
+		# todo: check for known values
+		self.soa_serial = get_xml_data("signconf/soa/serial", signer_config, True)
+		
+
 
 # quick test-as-we-go function
 if __name__=="__main__":
