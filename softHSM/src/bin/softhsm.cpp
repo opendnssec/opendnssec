@@ -67,6 +67,7 @@ void usage() {
   printf("--label <text>\t\tDefines the label of the token. Max 32 chars.\n");
   printf("--so-pin <PIN>\t\tThe PIN for the Security Officer (SO). 4-255 chars.\n");
   printf("--pin <PIN>\t\tThe PIN for the normal user. 4-255 chars.\n");
+  printf("--help\t\t\tShows this help.\n");
   printf("-h\t\t\tShows this help.\n");
 }
 
@@ -74,14 +75,17 @@ enum {
   OPT_INIT_TOKEN = 0x100,
   OPT_LABEL,
   OPT_SO_PIN,
-  OPT_PIN
+  OPT_PIN,
+  OPT_HELP
 };
 
 static const struct option long_options[] = {
   { "init-token", 1, NULL, OPT_INIT_TOKEN },
   { "label",      1, NULL, OPT_LABEL },
   { "so-pin",     1, NULL, OPT_SO_PIN },
-  { "pin",        1, NULL, OPT_PIN }
+  { "pin",        1, NULL, OPT_PIN },
+  { "help",       0, NULL, OPT_HELP },
+  { NULL,         0, NULL, 0 }
 };
 
 int main(int argc, char *argv[]) {
@@ -109,6 +113,7 @@ int main(int argc, char *argv[]) {
       case OPT_PIN:
         userPIN = optarg;
         break;
+      case OPT_HELP:
       case 'h':
       defualt:
         usage();
