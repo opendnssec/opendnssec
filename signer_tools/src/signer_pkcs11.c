@@ -503,7 +503,7 @@ int main(int argc, char **argv)
 	cfg = current_config_new();
 	input = stdin;
 
-	while ((c = getopt(argc, argv, "e:i:f:hm:no:p:v:")) != -1) {
+	while ((c = getopt(argc, argv, "f:h")) != -1) {
 		switch(c) {
 		case 'f':
 			input = fopen(optarg, "r");

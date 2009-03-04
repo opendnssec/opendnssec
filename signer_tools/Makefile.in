@@ -5,13 +5,16 @@ LDFLAGS=@LDFLAGS@ @LIBS@
 PKCS11_MODULE=@PKCS11_MODULE@
 OBJECTS=ldns_pkcs11.o util.o
 
-all: sorter stripper nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11
+all: sorter stripper get_serial nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11
 
 sorter: ${OBJECTS} ${srcdir}/src/sorter.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${OBJECTS} ${srcdir}/src/sorter.c
 
 stripper: ${OBJECTS} ${srcdir}/src/stripper.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o stripper ${OBJECTS} ${srcdir}/src/stripper.c
+
+get_serial: ${OBJECTS} ${srcdir}/src/get_serial.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o get_serial ${OBJECTS} ${srcdir}/src/get_serial.c
 
 nseccer: ${srcdir}/src/nseccer.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o nseccer ${srcdir}/src/nseccer.c
