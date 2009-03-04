@@ -5,6 +5,7 @@
 import time
 import thread
 import threading
+import syslog
 
 import Util
 
@@ -32,14 +33,14 @@ class Task:
 	
 	def run(self):
 		if self.what == Task.SIGN_ZONE:
-			Util.debug(2, "Run task sign zone: " + str(self.how.zone_name))
+			syslog.syslog(syslog.LOG_INFO, "Run task: sign zone: " + str(self.how.zone_name))
 			self.how.sign()
 		elif self.what == Task.NOTIFY_SERVER:
-			Util.debug(2, "Run task: notify server")
+			syslog.syslog(syslog.LOG_INFO, "Run task: notify server")
 		elif self.what == Task.DUMMY:
-			Util.debug("Run task: dummy: " + self.how)
+			syslog.syslog(syslog.LOG_INFO, "Run task: dummy task ")
 		else:
-			Util.debug(1, "Error: Unknown task...")
+			syslog.syslog(syslog.LOG_ERROR, "Error: unknown task: " + str(self.what))
 			
 	def __cmp__(self, other):
 		return self.when - other.when
@@ -94,7 +95,6 @@ class TaskQueue:
 		self.tasks = task_list
 	
 	def has_task(self, time):
-		Util.debug(3, "nr of tasks: " + str(len(self.tasks)))
 		if len(self.tasks) > 0:
 			return self.tasks[0].when < time
 		else:
@@ -133,13 +133,11 @@ class Worker(threading.Thread):
 	
 	def run(self):
 		while self.work:
-			self.debug(3, "run")
 			self.condition.acquire()
 			self.queue.lock()
 			now = time.time()
 			if self.queue.has_task(now):
 				task = self.queue.get_task()
-				self.debug(3, "run task")
 				self.queue.release()
 				task.run()
 				if task.repeat_interval > 0:
@@ -149,7 +147,7 @@ class Worker(threading.Thread):
 					self.queue.release()
 			else:
 				self.queue.release()
-				self.debug(3, "no task yet, sleep for " + str(self.queue.time_till_next(now)))
+				syslog.syslog(syslog.LOG_INFO, "no task for worker, sleep for " + str(self.queue.time_till_next(now)))
 				next = self.queue.time_till_next(now)
 				if next == 0:
 					self.condition.wait()
@@ -158,7 +156,5 @@ class Worker(threading.Thread):
 				
 			self.condition.release()
 
-	def debug(self, level, message):
-		Util.debug(level, "[" + self.name + "] " + message)
 
 

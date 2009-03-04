@@ -1,0 +1,2 @@
+export SOFTHSM_CONF=./softhsm.conf
+../engine.py -c test_engine.conf

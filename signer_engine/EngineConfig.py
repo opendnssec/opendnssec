@@ -35,6 +35,9 @@ class EngineConfiguration:
 					self.zone_config_dir = line[16:].strip()
 				elif line[:13] == "zone_tmp_dir:":
 					self.zone_tmp_dir = line[13:].strip()
+				elif line[:10] == "tools_dir:":
+					# this one should not be necessary later
+					self.tools_dir = line[10:].strip()
 				else:
 					raise Exception("Error parsing configuration line: " + line)
 

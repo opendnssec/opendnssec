@@ -21,25 +21,7 @@ import Util
 import sys
 
 # todo: move this path to general engine config too?
-tools_dir = "../signer_tools";
-
-# for a single xml durection object, with only 1 path
-# for more elaborate paths, diy
-def get_xml_data(xpath, xml, optional=False):
-	try:
-		xmlb = Evaluate(xpath, xml)
-		if xmlb and len(xmlb) > 0 and xmlb[0].firstChild:
-			return xmlb[0].firstChild.data
-		elif optional:
-			return None
-		else:
-			raise Exception("Mandatory XML element not found: " + xpath)
-	except IndexError, e:
-		if optional:
-			return None
-		else:
-			raise Exception("Mandatory XML element not found: " + xpath)
-
+#tools_dir = "../signer_tools";
 
 class Zone:
 	def __init__(self, _zone_name, engine_config):
@@ -104,6 +86,7 @@ class Zone:
 	# this uses the locator value to find the right pkcs11 module
 	# creates a DNSKEY string to add to the unsigned zone,
 	# and calculates the correct tool_key_id
+	# returns True if the key is found
 	def find_key_details(self, key):
 		syslog.syslog(syslog.LOG_DEBUG, "Generating DNSKEY rr for " + str(key["id"]))
 		# just try all modules to generate the dnskey? first one is good?
@@ -112,30 +95,34 @@ class Zone:
 			mpin = token["pin"]
 			tname = token["name"]
 			syslog.syslog(syslog.LOG_DEBUG, "Try token " + tname)
-			cmd = [ tools_dir + os.sep + "create_dnskey_pkcs11",
-			        "-n", tname,
-			        "-m", mpath,
-			        "-p", mpin,
-			        "-o", self.zone_name,
-			        "-a", str(key["algorithm"]),
-			        "-f", str(key["flags"]),
-			        "-t", str(key["ttl"]),
-			        key["locator"]
-			      ]
-			syslog.syslog(syslog.LOG_DEBUG, " ".join(cmd))
-			(status, output) = commands.getstatusoutput(" ".join(cmd))
+			cmd = [ self.engine_config.tools_dir + os.sep + "create_dnskey_pkcs11",
+					"-n", tname,
+					"-m", mpath,
+					"-p", mpin,
+					"-o", self.zone_name,
+					"-a", str(key["algorithm"]),
+					"-f", str(key["flags"]),
+					"-t", str(key["ttl"]),
+					key["locator"]
+				  ]
+			create_p = Util.run_tool(cmd)
+			for l in create_p.stdout:
+				output = l
+			status = create_p.wait()
+			for l in create_p.stderr:
+				syslog.syslog(syslog.LOG_ERR, "create_dnskey stderr: " + l)
 			syslog.syslog(syslog.LOG_DEBUG, "create_dnskey status: " + str(status))
+			syslog.syslog(syslog.LOG_DEBUG, "equality: " + str(status == 0))
 			if status == 0:
 				key["token_name"] = tname
 				key["pkcs11_module"] = mpath
 				key["pkcs11_pin"] = mpin
 				key["tool_key_id"] = key["locator"] + "_" + str(key["algorithm"])
 				key["dnskey"] = str(output)
-				found = True
-				syslog.syslog(syslog.LOG_INFO, "Found key in token " + tname)
-				return
+				syslog.syslog(syslog.LOG_INFO, "Found key " + key["locator"] + " in token " + tname)
+				return True
 		# TODO: locator->id?
-		raise Exception("Unable to find key " + key["locator"])
+		return False
 
 	#
 	# TODO: this should probably be moved to the worker class
@@ -143,7 +130,7 @@ class Zone:
 	def sort(self):
 		syslog.syslog(syslog.LOG_INFO, "Sorting zone: " + self.zone_name)
 		unsorted_zone_file = open(self.engine_config.zone_input_dir + os.sep + self.zone_name, "r")
-		cmd = [tools_dir + os.sep + "sorter" ]
+		cmd = [self.engine_config.tools_dir + os.sep + "sorter" ]
 		if self.denial_nsec3:
 			cmd.extend(["-o", self.zone_name,
 			            "-n",
@@ -157,10 +144,17 @@ class Zone:
 			for k in self.publish_keys:
 				if not k["dnskey"]:
 					try:
-						self.find_key_details(k)
+						syslog.syslog(syslog.LOG_DEBUG, "No information yet for key " + k["locator"])
+						if (self.find_key_details(k)):
+							sort_process.stdin.write(k["dnskey"]+ "\n")
+						else:
+							syslog.syslog(syslog.LOG_ERR, "Error: could not find key " + k["locator"])
 					except Exception, e:
-						k["dnskey"] = "; Unable to find key " + k["locator"]
-				sort_process.stdin.write(k["dnskey"]+ "\n") 
+						syslog.syslog(syslog.LOG_ERR, "Error: Unable to find key " + k["locator"])
+						syslog.syslog(syslog.LOG_ERR, str(e))
+						sort_process.stdin.write("; Unable to find key " + k["locator"])
+				else:
+					sort_process.stdin.write(k["dnskey"]+ "\n") 
 			
 			for line in unsorted_zone_file:
 				sort_process.stdin.write(line)
@@ -170,13 +164,13 @@ class Zone:
 			sorted_zone_file = open(self.engine_config.zone_tmp_dir + os.sep + self.zone_name, "w")
 			
 			for line in sort_process.stderr:
-				syslog.syslog(syslog.LOG_WARNING, "stderr from sorter: " + line)
+				syslog.syslog(syslog.LOG_ERR, "stderr from sorter: " + line)
 			
 			for line in sort_process.stdout:
 				sorted_zone_file.write(line)
 			sorted_zone_file.close()
 		except Exception, e:
-			syslog.syslog(syslog.LOG_WARNING, "Error sorting zone\n");
+			syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n");
 			syslog.syslog(syslog.LOG_WARNING, str(e));
 			syslog.syslog(syslog.LOG_WARNING, "Command was: " + " ".join(cmd))
 			for line in sort_process.stderr:
@@ -194,26 +188,33 @@ class Zone:
 			# hmz, todo: stripped records need to be re-added
 			# and another todo: move strip and nsec to stored file too?
 			# (so only signing needs to be redone at re-sign time)
-			p2 = Util.run_tool([tools_dir + os.sep + "stripper",
+			p2 = Util.run_tool([self.engine_config.tools_dir + os.sep + "stripper",
 								"-o", self.zone_name,
 								"-f", self.engine_config.zone_tmp_dir + os.sep + self.zone_name]
 							   )
 			
 			if self.denial_nsec:
-				p3 = Util.run_tool([tools_dir + os.sep + "nseccer"], p2.stdout)
+				p3 = Util.run_tool([self.engine_config.tools_dir + os.sep + "nseccer"], p2.stdout)
 			elif self.denial_nsec3:
-				p3 = Util.run_tool([tools_dir + os.sep + "nsec3er",
+				p3 = Util.run_tool([self.engine_config.tools_dir + os.sep + "nsec3er",
 									"-o", self.zone_name,
 									"-s", self.denial_nsec3_salt,
 									"-t", str(self.denial_nsec3_iterations),
 									"-a", str(self.denial_nsec3_algorithm)],
 									p2.stdout)
 			# arg; TODO: pcks11 module per key for signer...
-			cmd = [tools_dir + os.sep + "signer_pkcs11" ]
+			cmd = [self.engine_config.tools_dir + os.sep + "signer_pkcs11" ]
 
 			p4 = Util.run_tool(cmd)
 			p4.stdin.write(":origin " + self.zone_name)
 			for k in self.signature_keys:
+				syslog.syslog(syslog.LOG_DEBUG, "use signature key: " + k["locator"])
+				if not k["dnskey"]:
+					try:
+						syslog.syslog(syslog.LOG_DEBUG, "No information yet for key " + k["locator"])
+						self.find_key_details(k)
+					except Exception, e:
+						syslog.syslog(syslog.LOG_ERR, "Error: Unable to find key " + k["locator"])
 				if k["token_name"]:
 					scmd = [":add_module",
 							k["token_name"],
@@ -231,14 +232,16 @@ class Zone:
 						   ]
 					syslog.syslog(syslog.LOG_DEBUG, "send to signer " + " ".join(scmd))
 					p4.stdin.write(" ".join(scmd) + "\n")
+				else:
+					syslog.syslog(syslog.LOG_WARNING, "warning: no token for key " + k["locator"])
 			for l in p3.stdout:
-				syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)
+				#syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)
 				p4.stdin.write(l)
 			p4.stdin.close()
 			p4.wait()
 			output = open(self.engine_config.zone_output_dir + os.sep + self.zone_name + ".signed", "w")
 			for line in p4.stdout:
-				syslog.syslog(syslog.LOG_DEBUG, "read from signer " + line)
+				#syslog.syslog(syslog.LOG_DEBUG, "read from signer " + line)
 				output.write(line)
 			for line in p4.stderr:
 				syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
@@ -299,12 +302,12 @@ class Zone:
 			id = int(key_xml.attributes["id"].value)
 			key = {}
 			key["id"] = id
-			key["name"] = get_xml_data("name", key_xml)
-			key["ttl"] = Util.parse_duration(get_xml_data("ttl", key_xml))
-			key["flags"] = int(get_xml_data("flags", key_xml))
-			key["protocol"] = int(get_xml_data("protocol", key_xml))
-			key["algorithm"] = int(get_xml_data("algorithm", key_xml))
-			key["locator"] = get_xml_data("locator", key_xml)
+			key["name"] = Util.get_xml_data("name", key_xml)
+			key["ttl"] = Util.parse_duration(Util.get_xml_data("ttl", key_xml))
+			key["flags"] = int(Util.get_xml_data("flags", key_xml))
+			key["protocol"] = int(Util.get_xml_data("protocol", key_xml))
+			key["algorithm"] = int(Util.get_xml_data("algorithm", key_xml))
+			key["locator"] = Util.get_xml_data("locator", key_xml)
 			# calculate and cache this one later
 			key["dnskey"] = None
 			key["token_name"] = None
@@ -313,13 +316,18 @@ class Zone:
 			key["tool_key_id"] = None
 			self.keys[id] = key
 
-		self.signatures_resign_time = Util.parse_duration(get_xml_data("signconf/signatures/resign", signer_config))
-		self.signatures_refresh_time = Util.parse_duration(get_xml_data("signconf/signatures/refresh", signer_config))
-		self.signatures_validity_default = Util.parse_duration(get_xml_data("signconf/signatures/validity/default", signer_config))
-		self.signatures_validity_nsec = Util.parse_duration(get_xml_data("signconf/signatures/validity/nsec", signer_config))
-		self.signatures_jitter = Util.parse_duration(get_xml_data("signconf/signatures/jitter", signer_config))
-		self.signatures_clockskew = Util.parse_duration(get_xml_data("signconf/signatures/clockskew", signer_config))
-		self.denial_ttl = Util.parse_duration(get_xml_data("signconf/denial/ttl", signer_config))
+		self.signatures_resign_time = Util.parse_duration(Util.get_xml_data("signconf/signatures/resign", signer_config))
+		self.signatures_refresh_time = Util.parse_duration(Util.get_xml_data("signconf/signatures/refresh", signer_config))
+		self.signatures_validity_default = Util.parse_duration(Util.get_xml_data("signconf/signatures/validity/default", signer_config))
+		self.signatures_validity_nsec = Util.parse_duration(Util.get_xml_data("signconf/signatures/validity/nsec", signer_config))
+		self.signatures_jitter = Util.parse_duration(Util.get_xml_data("signconf/signatures/jitter", signer_config))
+		self.signatures_clockskew = Util.parse_duration(Util.get_xml_data("signconf/signatures/clockskew", signer_config))
+		self.denial_ttl = Util.parse_duration(Util.get_xml_data("signconf/denial/ttl", signer_config))
+		xmlbs = Evaluate("signconf/signatures/zsk", signer_config)
+		for xmlb in xmlbs:
+			# todo catch keyerror
+			# todo2: error if sep flag was not set?
+			self.signature_keys.append(self.keys[int(xmlb.attributes["keyid"].value)])
 		xmlbs = Evaluate("signconf/signatures/ksk", signer_config)
 		for xmlb in xmlbs:
 			# todo catch keyerror
@@ -340,16 +348,16 @@ class Zone:
 			self.denial_nsec3 = True
 			if Evaluate("opt-out", nsec3_xml):
 				self.denial_nsec3_optout = True
-			self.denial_nsec3_algorithm = int(get_xml_data("hash/algorithm", nsec3_xml))
-			self.denial_nsec3_iterations = int(get_xml_data("hash/iterations", nsec3_xml))
-			self.denial_nsec3_salt = get_xml_data("hash/salt", nsec3_xml)
+			self.denial_nsec3_algorithm = int(Util.get_xml_data("hash/algorithm", nsec3_xml))
+			self.denial_nsec3_iterations = int(Util.get_xml_data("hash/iterations", nsec3_xml))
+			self.denial_nsec3_salt = Util.get_xml_data("hash/salt", nsec3_xml)
 			# calc and cache this later?
 			self.nsec3_param_rr = None
 
-		self.soa_ttl = Util.parse_duration(get_xml_data("signconf/soa/ttl", signer_config, True))
-		self.soa_min = Util.parse_duration(get_xml_data("signconf/soa/min", signer_config, True))
+		self.soa_ttl = Util.parse_duration(Util.get_xml_data("signconf/soa/ttl", signer_config, True))
+		self.soa_min = Util.parse_duration(Util.get_xml_data("signconf/soa/min", signer_config, True))
 		# todo: check for known values
-		self.soa_serial = get_xml_data("signconf/soa/serial", signer_config, True)
+		self.soa_serial = Util.get_xml_data("signconf/soa/serial", signer_config, True)
 		
 
 

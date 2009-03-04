@@ -7,6 +7,7 @@ import Util
 import re
 import syslog
 from datetime import timedelta
+from Ft.Xml.XPath import Evaluate
 
 verbosity = 2;
 
@@ -21,6 +22,23 @@ def run_tool(command, input=None):
 	else:
 		p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	return p
+
+# for a single xml durection object, with only 1 path
+# for more elaborate paths, diy
+def get_xml_data(xpath, xml, optional=False):
+	try:
+		xmlb = Evaluate(xpath, xml)
+		if xmlb and len(xmlb) > 0 and xmlb[0].firstChild:
+			return xmlb[0].firstChild.data
+		elif optional:
+			return None
+		else:
+			raise Exception("Mandatory XML element not found: " + xpath)
+	except IndexError, e:
+		if optional:
+			return None
+		else:
+			raise Exception("Mandatory XML element not found: " + xpath)
 
 # months default to 31 days
 # does not account for leap-seconds etc

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id$ -->
+
+<signconf zone="tjeb.nl">
+
+	<adapters>
+		<input type="file"/>
+		<output type="file"/>
+	</adapters>
+
+	<signatures>
+		<resign>PT10S</resign> 
+		<refresh>P3D</refresh>
+		<validity>
+				<default>P7D</default>
+				<nsec>P14D</nsec>
+		</validity>
+		<jitter>PT12H</jitter>
+		<clockskew>PT300S</clockskew>
+
+		<zsk keyid="1234"/>
+		<ksk keyid="1235"/>
+	</signatures>
+	
+	<publish keyid="1234"/>
+	<publish keyid="1235"/>
+	
+	<keystore>
+   		<key id="1234">
+   			<name>tjeb.nl</name>
+   			<ttl>PT3600S</ttl>
+   			<flags>256</flags>
+   			<protocol>3</protocol>
+   			<algorithm>5</algorithm>
+		
+			<!-- key locator is usually matched against PKCS#11 CKA_ID -->
+			<locator>41</locator>
+		</key>	
+			
+   		<key id="1235">
+   			<name>tjeb.nl</name>
+   			<ttl>PT3600S</ttl>
+   			<flags>257</flags>
+   			<protocol>3</protocol>
+   			<algorithm>5</algorithm>
+		
+			<!-- key locator is usually matched against PKCS#11 CKA_ID -->
+			<locator>42</locator>
+		</key>	
+	</keystore>
+	
+	<denial>
+		<ttl>PT3600S</ttl>		
+
+		<nsec/>
+		
+		<!-- ... or ... -->
+
+		<nsec3>
+			<opt-out/>		
+			<hash>
+				<algorithm>1</algorithm>
+				<iterations>2</iterations>
+				<salt>beef</salt>
+			</hash>
+		</nsec3>
+	</denial>
+	
+</signconf>

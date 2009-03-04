@@ -206,7 +206,7 @@ class Engine:
 		if (secs_left < 1):
 			self.schedule_signing(zone_name)
 		else:
-			syslog.syslog(syslog.LOG_INFO, "scheduling resign of zone in " + str(secs_left) + " seconds")
+			syslog.syslog(syslog.LOG_INFO, "scheduling resign of zone '" + zone_name + "' in " + str(secs_left) + " seconds")
 			self.schedule_signing(zone_name, time.time() + secs_left)
 		syslog.syslog(syslog.LOG_INFO, "Zone " + zone_name + " added")
 		
