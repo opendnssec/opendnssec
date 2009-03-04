@@ -57,7 +57,7 @@ class Zone:
 		self.publish_keys = []
 
 		self.soa_ttl = None
-		self.soa_min = None
+		self.soa_minimum = None
 		self.soa_serial = None
 		
 		# last_update as specified in zonelist.xml, to see when
@@ -83,6 +83,37 @@ class Zone:
 		self.from_xml_file(self.engine_config.zone_config_dir + os.sep + self.zone_name + ".xml")
 		self.last_read = datetime.now()
 	
+	def get_input_serial(self):
+		file = self.engine_config.zone_input_dir + os.sep + self.zone_name;
+		cmd = [ self.engine_config.tools_dir + os.sep + "get_serial",
+		        "-f", file ]
+		get_serial_c = Util.run_tool(cmd);
+		result = 0
+		for l in get_serial_c.stdout:
+			result = int(l)
+		status = get_serial_c.wait();
+		if (status == 0):
+			return result
+		else:
+			syslog.syslog(syslog.LOG_WARN, "Warning: get_serial returned " + str(status))
+			return 0
+	
+	
+	def get_output_serial(self):
+		file = self.engine_config.zone_output_dir + os.sep + self.zone_name + ".signed";
+		cmd = [ self.engine_config.tools_dir + os.sep + "get_serial",
+		        "-f", file ]
+		get_serial_c = Util.run_tool(cmd);
+		result = 0
+		for l in get_serial_c.stdout:
+			result = int(l)
+		status = get_serial_c.wait();
+		if (status == 0):
+			return result
+		else:
+			syslog.syslog(syslog.LOG_WARN, "Warning: get_serial returned " + str(status))
+			return 0
+
 	# this uses the locator value to find the right pkcs11 module
 	# creates a DNSKEY string to add to the unsigned zone,
 	# and calculates the correct tool_key_id
@@ -206,7 +237,45 @@ class Zone:
 			cmd = [self.engine_config.tools_dir + os.sep + "signer_pkcs11" ]
 
 			p4 = Util.run_tool(cmd)
-			p4.stdin.write(":origin " + self.zone_name)
+			p4.stdin.write("\n")
+			p4.stdin.write(":origin " + self.zone_name + "\n")
+			syslog.syslog(syslog.LOG_DEBUG, "send to signer: " + ":origin " + self.zone_name)
+			
+			# optional SOA modification values
+			if self.soa_ttl:
+				p4.stdin.write(":soa_ttl " + str(self.soa_ttl) + "\n")
+			if self.soa_minimum:
+				p4.stdin.write(":soa_minimum " + str(self.soa_ttl) + "\n")
+			if self.soa_serial:
+				# there are a few options;
+				# by default, plain copy the original soa serial
+				# (which must have been read...)
+				# for now, only support 'unixtime'
+				soa_serial = "123"
+				if self.soa_serial == "unixtime":
+					soa_serial = int(time.time());
+					syslog.syslog(syslog.LOG_DEBUG, "set serial to " + str(soa_serial));
+					p4.stdin.write(":soa_serial " + str(soa_serial) + "\n")
+				elif self.soa_serial == "counter":
+					# try output serial first, if not found, use input
+					prev_serial = self.get_output_serial()
+					if not prev_serial:
+						prev_serial = self.get_input_serial()
+					if not prev_serial:
+						prev_serial = 0
+					soa_serial = prev_serial + 1
+					syslog.syslog(syslog.LOG_DEBUG, "set serial to " + str(soa_serial));
+					p4.stdin.write(":soa_serial " + str(soa_serial) + "\n")
+				elif self.soa_serial == "datecounter":
+					# if current output serial >= <date>00, just increment by one
+					soa_serial = int(time.strftime("%Y%m%d")) * 100
+					output_serial = self.get_output_serial()
+					if output_serial >= soa_serial:
+						soa_serial = output_serial + 1
+					syslog.syslog(syslog.LOG_DEBUG, "set serial to " + str(soa_serial));
+					p4.stdin.write(":soa_serial " + str(soa_serial) + "\n")
+				else:
+					syslog.syslog(syslog.LOG_WARNING, "warning: unknown serial type " + self.soa_serial);
 			for k in self.signature_keys:
 				syslog.syslog(syslog.LOG_DEBUG, "use signature key: " + k["locator"])
 				if not k["dnskey"]:
@@ -222,7 +291,6 @@ class Zone:
 							k["pkcs11_pin"]
 						   ]
 					syslog.syslog(syslog.LOG_DEBUG, "send to signer " + " ".join(scmd))
-					p4.stdin.write("\n")
 					p4.stdin.write(" ".join(scmd) + "\n")
 					scmd = [":add_key",
 							k["token_name"],
@@ -355,7 +423,7 @@ class Zone:
 			self.nsec3_param_rr = None
 
 		self.soa_ttl = Util.parse_duration(Util.get_xml_data("signconf/soa/ttl", signer_config, True))
-		self.soa_min = Util.parse_duration(Util.get_xml_data("signconf/soa/min", signer_config, True))
+		self.soa_minimum = Util.parse_duration(Util.get_xml_data("signconf/soa/min", signer_config, True))
 		# todo: check for known values
 		self.soa_serial = Util.get_xml_data("signconf/soa/serial", signer_config, True)
 		

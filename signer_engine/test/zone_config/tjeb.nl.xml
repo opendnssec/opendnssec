@@ -67,4 +67,10 @@
 		</nsec3>
 	</denial>
 	
+	<soa>
+		<ttl>PT3601S</ttl>
+		<min>PT3602S</min>
+		<serial>datecounter</serial>
+	</soa>
+	
 </signconf>
