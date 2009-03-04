@@ -485,7 +485,6 @@ handle_command(current_config *cfg, const char *line, int line_len)
 			fprintf(stdout, "; Error: missing argument in soa_serial command\n");
 		} else {
 			cfg->soa_serial = atol(arg1);
-			printf("; soa serial set to %u\n", cfg->soa_serial);
 		}
 	} else if (strcmp(cmd, "soa_minimum") == 0) {
 		arg1 = read_arg(next, &next);
@@ -630,7 +629,6 @@ int main(int argc, char **argv)
 		}
 	}
 	done:
-	printf("; end of input\n");
 	if (cur_rrset && ldns_rr_list_rr_count(cur_rrset) > 0) {
 		if (echo_input) {
 			ldns_rr_list_print(stdout, cur_rrset);
