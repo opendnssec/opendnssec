@@ -181,8 +181,9 @@ my $zones = $kasp->findnodes('zone');
 foreach my $zone ( $zones->get_nodelist() ) {
 	my $zname   = $zone->find("\@name")->string_value();
 	my $zpolicy = $zone->find("\@policy")->string_value();
-	my $zin     = $zone->find("\@in_adapter")->string_value();
-	my $zout    = $zone->find("\@out_adapter")->string_value();
+	my $adapters = $zone->find('adapters')->get_node(1);
+	my $zin     = $adapters->find("input/\@type")->string_value();
+	my $zout    = $adapters->find("output/\@type")->string_value();
 	insertz( $zname, $zpolicy, $zin, $zout );
 }
 
