@@ -241,7 +241,7 @@ class Engine:
 		try:
 			zone = self.zones[zone_name]
 			self.task_queue.lock()
-			self.task_queue.add_task(Task(when, Task.SIGN_ZONE, zone, True, zone.signatures_resign_time))
+			self.task_queue.add_task(Task(when, Task.SIGN_ZONE, zone, True, zone.zone_config.signatures_resign_time))
 			self.task_queue.release()
 			self.notify()
 		except KeyError:
