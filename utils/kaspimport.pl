@@ -113,12 +113,9 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	  duration2sec( $keys->find('retireSafety')->string_value() );
 	my $publishsafety =
 	  duration2sec( $keys->find('publishSafety')->string_value() );
-	insertpp( "ttl",           $ttl,           "ksk", $pname );
-	insertpp( "retiresafety",  $retiresafety,  "ksk", $pname );
-	insertpp( "publishsafety", $publishsafety, "ksk", $pname );
-	insertpp( "ttl",           $ttl,           "zsk", $pname );
-	insertpp( "retiresafety",  $retiresafety,  "zsk", $pname );
-	insertpp( "publishsafety", $publishsafety, "zsk", $pname );
+	insertpp( "ttl",           $ttl,           "keys", $pname );
+	insertpp( "retiresafety",  $retiresafety,  "keys", $pname );
+	insertpp( "publishsafety", $publishsafety, "keys", $pname );
 
 	my $ksk            = $keys->find('ksk')->get_node(1);
 	my $algorithm      = $ksk->find('algorithm')->string_value();
@@ -329,7 +326,7 @@ create database test;
 use test;
 drop table if exists parameters_policies;
 drop table if exists policies;
-drop table if exists privatekeys;
+drop table if exists keypairs;
 drop table if exists dnsseckeys;
 drop table if exists zones;
 drop table if exists adapters;
@@ -414,7 +411,7 @@ create table zones(
 )ENGINE=InnoDB;
 
 # stores the private key info
-create table privatekeys(
+create table keypairs(
   id     smallint not null auto_increment,
   HSMkey_id  varchar(255) not null,
   algorithm     tinyint not null,             # algorithm code
@@ -423,6 +420,7 @@ create table privatekeys(
   generate      timestamp null default null,  # time key inserted into database
   policy_id        mediumint,
   compromisedflag tinyint,
+  publickey     varchar(1024),                # public key data
   
   constraint primary key (id),
   constraint foreign key (securitymodule_id) references securitymodules (id),
@@ -445,11 +443,11 @@ create table dnsseckeys (
   revokedkeytag smallint not null,            # revoked key tag
   digest1       varchar(20),                  # sha1 digest
   digest256     varchar(32),                  # sha256 digest
-  publickey     varchar(1024),                # public key data
+
 
   constraint primary key (id),
   constraint foreign key (zone_id) references zones (id),
-  constraint foreign key (privatekey_id) references privatekeys (id)
+  constraint foreign key (privatekey_id) references keypairs (id)
 )ENGINE=InnoDB;
 
 # parameters_policies - join table to hold the values of parameters
@@ -474,6 +472,7 @@ insert into categories (name) values ("signature");
 insert into categories (name) values ("denial");
 insert into categories (name) values ("ksk");
 insert into categories (name) values ("zsk");
+insert into categories (name) values ("keys");
 insert into categories (name) values ("enforcer");
 insert into categories (name) values ("zone");
 insert into categories (name) values ("parent");
@@ -500,13 +499,9 @@ insert into parameters (name, description, category_id) select "algorithm", "nse
 insert into parameters (name, description, category_id) select "iterations", "nsec3 iterations", id from categories where name="denial";
 insert into parameters (name, description, category_id) select "saltlength", "nsec3 salt length", id from categories where name="denial";
 
-insert into parameters (name, description, category_id) select "ttl", "ttl for ksk rrs", id from categories where name="ksk";
-insert into parameters (name, description, category_id) select "retiresafety", "ksk retirement safety factor", id from categories where name="ksk";
-insert into parameters (name, description, category_id) select "publishsafety", "ksk publish safety factor", id from categories where name="ksk";
-
-insert into parameters (name, description, category_id) select "ttl", "ttl for zsk rrs", id from categories where name="zsk";
-insert into parameters (name, description, category_id) select "retiresafety", "zsk retirement safety factor", id from categories where name="zsk";
-insert into parameters (name, description, category_id) select "publishsafety", "zsk publish safety factor", id from categories where name="zsk";
+insert into parameters (name, description, category_id) select "ttl", "ttl for ksk rrs", id from categories where name="keys";
+insert into parameters (name, description, category_id) select "retiresafety", "ksk retirement safety factor", id from categories where name="keys";
+insert into parameters (name, description, category_id) select "publishsafety", "ksk publish safety factor", id from categories where name="keys";
 
 insert into parameters (name, description, category_id) select "algorithm", "ksk algorithm", id from categories where name="ksk";
 insert into parameters (name, description, category_id) select "bits", "ksk key size", id from categories where name="ksk";
