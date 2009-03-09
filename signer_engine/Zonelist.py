@@ -18,7 +18,7 @@ class Zonelist:
     
     def get_last_update(self, zone_name):
         try:
-            return self.zones[zone_name]
+            return self.zone_updates[zone_name]
         except KeyError:
             # raise? or just return None?
             return None

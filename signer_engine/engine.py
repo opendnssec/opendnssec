@@ -123,20 +123,6 @@ class Engine:
         try:
             if command[:5] == "zones":
                 response = self.get_zones()
-            if command[:8] == "add zone":
-                z = Zone.Zone(args[2], self.config)
-                z.read_config()
-                self.add_zone(z)
-                response = "Zone added"
-            if command[:7] == "add key":
-                self.add_key(args[2], args[3])
-                response = "Key added"
-            if command[:12] == "set interval":
-                self.set_interval(args[2], int(args[3]))
-                response = "Interval set"
-            if command[:8] == "del zone":
-                self.delete_zone(args[2])
-                response = "Zone removed"
             if command[:9] == "sign zone":
                 self.schedule_signing(args[2])
                 response = "Zone scheduled for immediate resign"
@@ -212,9 +198,9 @@ class Engine:
         
     def remove_zone(self, zone_name):
         try:
-            if self.zones[args[2]].scheduled:
-                self.zones[args[2]].scheduled.cancel()
-            del self.zones[args[2]]
+            if self.zones[zone_name].scheduled:
+                self.zones[zone_name].scheduled.cancel()
+            del self.zones[zone_name]
         except KeyError:
             raise EngineError("Zone " + zone_name + " not found")
     
@@ -252,6 +238,13 @@ class EngineError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
+def usage():
+    print "Usage: engine.py [OPTIONS]"
+    print "Options:"
+    print "-c <file>\tRead configuration from file"
+    print "-h\t\tShow this help and exit"
+    print "-v\t\tBe verbose"
 
 def main():
     #

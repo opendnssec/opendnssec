@@ -40,7 +40,7 @@ class Task:
         elif self.what == Task.DUMMY:
             syslog.syslog(syslog.LOG_INFO, "Run task: dummy task ")
         else:
-            syslog.syslog(syslog.LOG_ERROR, "Error: unknown task: " + str(self.what))
+            syslog.syslog(syslog.LOG_ERR, "Error: unknown task: " + str(self.what))
             
     def __cmp__(self, other):
         return self.when - other.when
