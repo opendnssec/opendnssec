@@ -8,13 +8,19 @@
 import re
 
 COMMENT_LINE = re.compile("\s*([#;].*)?$")
-PKCS_LINE = re.compile("pkcs11_token: (?P<name>\w+)\s+(?P<module_path>.+)\s+(?P<pin>\d+)\s*$")
+PKCS_LINE = re.compile(\
+ "pkcs11_token: (?P<name>\w+)\s+(?P<module_path>.+)\s+(?P<pin>\d+)\s*$")
 
 class EngineConfiguration:
-    def __init__(self, config_file_name):
+    def __init__(self, config_file_name=None):
         self.tokens = []
-        
-        self.read_config_file(config_file_name)
+        self.zone_input_dir = None
+        self.zone_tmp_dir = None
+        self.zone_output_dir = None
+        self.zone_config_dir = None
+        self.tools_dir = None
+        if config_file_name:
+            self.read_config_file(config_file_name)
         
     def read_config_file(self, config_file_name):
         config_file = open(config_file_name, "r")
@@ -40,7 +46,4 @@ class EngineConfiguration:
                     self.tools_dir = line[10:].strip()
                 else:
                     raise Exception("Error parsing configuration line: " + line)
-
-if __name__=="__main__":
-    ec = EngineConfiguration("/home/jelte/repos/opendnssec/signer_engine/engine.conf")
 
