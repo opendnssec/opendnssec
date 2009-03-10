@@ -29,10 +29,6 @@
 #ifndef SOFTHSM_CONFIG_H
 #define SOFTHSM_CONFIG_H 1
 
-// Version number for SoftHSM
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 5
-
 // Maximum number of concurrent sessions
 #define MAX_SESSION_COUNT 2048
 

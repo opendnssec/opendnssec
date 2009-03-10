@@ -11,3 +11,5 @@ The test program assumes that:
     user PIN = 123456
     SO PIN = 12345678
   slot 9999 does not exist
+
+This program is only available in the repository and not in the distribution.

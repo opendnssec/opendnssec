@@ -2,11 +2,16 @@ dnl
 dnl $Id$
 dnl 
 
-AC_INIT([libsofthsm], [1.0.0])
+define([SOFTHSM_VERSION_MAJOR], [1])
+define([SOFTHSM_VERSION_MINOR], [0])
+define([SOFTHSM_VERSION_FIX], [0])
+define([PACKAGE_SUFFIX], [-RC1])
+
+AC_INIT([libsofthsm], [SOFTHSM_VERSION_MAJOR.SOFTHSM_VERSION_MINOR.SOFTHSM_VERSION_FIX[]PACKAGE_SUFFIX])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(src/Makefile.am)
 
-VERSION_INFO="1:0:0"
+VERSION_INFO="SOFTHSM_VERSION_MAJOR:SOFTHSM_VERSION_MINOR:SOFTHSM_VERSION_FIX"
 AC_SUBST(VERSION_INFO)
 
 AM_INIT_AUTOMAKE
@@ -27,7 +32,7 @@ AC_ARG_WITH(sqlite3-inc, [  --with-sqlite3-inc=DIR  The location of the SQLite3 
 AC_ARG_WITH(loglevel, [  --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 3=Info 4=Debug (default INT=3)], [SOFTLOGLEVEL="$withval"], [SOFTLOGLEVEL=3])
 AC_ARG_ENABLE(64bit, [  --enable-64bit          Compile a 64-bit version], [ENABLE64BIT="yes"], [ENABLE64BIT="no"])
 
-AC_SUBST(SOFTLOGLEVEL)
+AC_DEFINE_UNQUOTED(SOFTLOGLEVEL, $SOFTLOGLEVEL)
 
 if test "$ENABLE64BIT" == "yes"
 then
@@ -55,6 +60,9 @@ dnl How should you check if a C++ library exists and is functioning?
 LIBS="$LIBS -lbotan"
 
 AC_CHECK_FUNCS(getpassphrase)
+
+AC_DEFINE_UNQUOTED(VERSION_MAJOR, SOFTHSM_VERSION_MAJOR)
+AC_DEFINE_UNQUOTED(VERSION_MINOR, SOFTHSM_VERSION_MINOR)
 
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL

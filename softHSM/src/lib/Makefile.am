@@ -15,6 +15,6 @@ libsofthsm_la_SOURCES =		main.cpp \
 				SoftDatabase.cpp \
 				SoftKeyStore.cpp
 libsofthsm_la_LDFLAGS =		-version-info @VERSION_INFO@
-libsofthsm_la_CPPFLAGS =	-I. -DSOFTLOGLEVEL=@SOFTLOGLEVEL@
+libsofthsm_la_CPPFLAGS =	-I.
 
 EXTRA_DIST =			*.h

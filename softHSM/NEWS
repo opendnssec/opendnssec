@@ -2,6 +2,11 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+New in 1.0-RC1; 2009-03-10 Rickard Bondesson
+
+* Versioning moved to the configure script
+* This is release candidate 1
+
 New in 0.5; 2009-02-20 Rickard Bondesson
 
 * Admin tool for creating tokens.

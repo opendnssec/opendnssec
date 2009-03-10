@@ -3,10 +3,6 @@ $Id$
 SoftHSM is part of the OpenDNSSEC project.
 Read more at www.opendnssec.org
 
-This code is to be considered as work-in-progress.
-It may or may not compile correctly.
-It may or may not work correctly.
-
 INTRODUCTION
 
 The DNSSEC Signer, part of the OpenDNSSEC project, handles and stores its 
@@ -37,12 +33,7 @@ and
 
 INSTALLING
 
-1. Create the installation/compilation scripts.
-
-  chmod 744 autogen.sh
-  ./autogen.sh
-
-2. Configure the installation/compilation scripts.
+1. Configure the installation/compilation scripts.
 
   ./configure
 
@@ -66,15 +57,15 @@ INSTALLING
 
   ./configure --help
 
-3. Compile the source code.
+2. Compile the source code.
 
   make
 
-4. Install the library
+3. Install the library
 
   sudo make install
 
-5. Create your tokens
+4. Create your tokens
 
   softhsm --init-token /home/user/my.db --label "My token 1"
 
@@ -84,7 +75,7 @@ INSTALLING
  
    Type in SO and user PIN.
 
-6. Add the tokens to the slots:
+5. Add the tokens to the slots:
 
   The default location of the config file is /etc/softhsm.conf
   This location can be change by setting the environment variable.
@@ -100,3 +91,5 @@ INSTALLING
       4:/home/user/token.database
 
   (Slot 1 will be empty since that database does not exist)
+
+6. Link to this library and use the PKCS#11 interface
