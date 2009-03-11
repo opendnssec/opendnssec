@@ -30,11 +30,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dlfcn.h>
 #include "cryptoki.h"
 
-// typedef unsigned char BOOL;
-static CK_BBOOL    true    = CK_TRUE;
-static CK_BBOOL    false   = CK_FALSE;
+const CK_BBOOL    ctrue    = CK_TRUE;
+const CK_BBOOL    cfalse   = CK_FALSE;
+
+CK_FUNCTION_LIST_PTR sym = NULL;
+
 
 /*
 
@@ -47,8 +50,7 @@ static CK_BBOOL    false   = CK_FALSE;
  o
 */
 
-typedef struct {CK_RV rv;const char *rv_str;}
-error_table;
+typedef struct {CK_RV rv;const char *rv_str;} error_table;
 
 error_table error_str[] =
 {
@@ -229,10 +231,10 @@ LabelExists(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
     CK_OBJECT_HANDLE key;
     CK_ATTRIBUTE search[1];
     Add_Attr(search,CKA_LABEL,label,strlen ((char *) label));
-    check_rv("C_FindObjectsInit", C_FindObjectsInit (ses, search, 1));
+    check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (ses, search, 1));
     Flush_Attrs(search,1);
-    check_rv("C_FindObjects", C_FindObjects(ses, &key, 1, &count));
-    check_rv("C_FindObjectsFinal", C_FindObjectsFinal(ses));
+    check_rv("C_FindObjects", sym->C_FindObjects(ses, &key, 1, &count));
+    check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(ses));
     return count;
 }
 
@@ -261,18 +263,18 @@ ActionRemoveObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
     CK_ULONG count = 0;
     CK_OBJECT_HANDLE object;
 
-    check_rv("C_FindObjectsInit", C_FindObjectsInit (ses, search, 1));
+    check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (ses, search, 1));
     Flush_Attrs(search,1);
     while (1)
     {
-        check_rv("C_FindObjects", C_FindObjects(ses, &object, 1, &count));
+        check_rv("C_FindObjects", sym->C_FindObjects(ses, &object, 1, &count));
         if (count == 0) break;
-        check_rv("C_GetAttributeValue",C_GetAttributeValue(ses, object, attributes, 1));
-        check_rv("C_DestroyObject",C_DestroyObject(ses, object));
+        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(ses, object, attributes, 1));
+        check_rv("C_DestroyObject",sym->C_DestroyObject(ses, object));
         printf("Destroyed %s key object, labeled %s\n",(class == CKO_PRIVATE_KEY)?"Private":"Public ",label);
     }
     Flush_Attrs(attributes,1);
-    check_rv("C_FindObjectsFinal", C_FindObjectsFinal(ses));
+    check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(ses));
 }
 
 void
@@ -281,29 +283,29 @@ ActionListObjects(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
     unsigned int cnt  = 0;
     CK_ATTRIBUTE template[32];
     if (label) Add_Attr(template+cnt++,CKA_LABEL, label, strlen ((char *) label));
-    check_rv("C_FindObjectsInit", C_FindObjectsInit (ses, template, cnt));
+    check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (ses, template, cnt));
     Flush_Attrs(template,cnt);
     CK_OBJECT_HANDLE object;
     CK_ULONG found = 0;
-    check_rv("C_FindObjects",C_FindObjects(ses, &object, 1, &found));
+    check_rv("C_FindObjects",sym->C_FindObjects(ses, &object, 1, &found));
     while (found)
     {
         cnt = 0;
         Add_Attr(template+cnt++,CKA_CLASS,NULL_PTR,0);
         Add_Attr(template+cnt++,CKA_LABEL,NULL_PTR,0);
         Add_Attr(template+cnt++,CKA_MODULUS,NULL_PTR,0);
-        check_rv("C_GetAttributeValue",C_GetAttributeValue(ses, object, template, cnt));
+        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(ses, object, template, cnt));
         Init_Attrs(template,cnt);
-        check_rv("C_GetAttributeValue",C_GetAttributeValue(ses, object, template, cnt));
+        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(ses, object, template, cnt));
 		
 		printf("%d-bit %s key object, labeled %s\n",
             (int) Get_Val_Len(template,CKA_MODULUS,cnt) *8,
             (Get_Val_ul(template,CKA_CLASS,cnt)== CKO_PRIVATE_KEY)?"Private":"Public ",
             (char*) Get_Val_string(template,CKA_LABEL,cnt));
         Flush_Attrs(template,cnt);
-        check_rv("C_FindObjects", C_FindObjects(ses, &object, 1, &found));
+        check_rv("C_FindObjects", sym->C_FindObjects(ses, &object, 1, &found));
     }
-    check_rv("C_FindObjectsFinal", C_FindObjectsFinal(ses));
+    check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(ses));
 }
 
 void
@@ -336,10 +338,10 @@ ActionGenerateObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label, CK_ULONG keysize
     Add_Attr(pub_temp+cnt1++,CKA_LABEL, label, strlen ((char *) label));
     Add_Attr(pub_temp+cnt1++,CKA_ID,"",0);
     Add_Attr(pub_temp+cnt1++,CKA_KEY_TYPE, &keyType, sizeof(keyType));
-	Add_Attr(pub_temp+cnt1++,CKA_VERIFY, &true, sizeof (true));
-	Add_Attr(pub_temp+cnt1++,CKA_ENCRYPT, &false, sizeof (false));
-	Add_Attr(pub_temp+cnt1++,CKA_WRAP, &false, sizeof (false));
-	Add_Attr(pub_temp+cnt1++,CKA_TOKEN, &true, sizeof (true));
+	Add_Attr(pub_temp+cnt1++,CKA_VERIFY, &ctrue, sizeof (ctrue));
+	Add_Attr(pub_temp+cnt1++,CKA_ENCRYPT, &cfalse, sizeof (cfalse));
+	Add_Attr(pub_temp+cnt1++,CKA_WRAP, &cfalse, sizeof (cfalse));
+	Add_Attr(pub_temp+cnt1++,CKA_TOKEN, &ctrue, sizeof (ctrue));
 	Add_Attr(pub_temp+cnt1++,CKA_MODULUS_BITS, &keysize, sizeof (keysize));
 	Add_Attr(pub_temp+cnt1++,CKA_PUBLIC_EXPONENT, &pubex, sizeof (pubex));
     /* A template to generate an RSA private key objects*/
@@ -348,16 +350,16 @@ ActionGenerateObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label, CK_ULONG keysize
     Add_Attr(pri_temp+cnt2++,CKA_LABEL, label, strlen ((char *) label));
     Add_Attr(pri_temp+cnt2++,CKA_ID,"",0);
     Add_Attr(pri_temp+cnt2++,CKA_KEY_TYPE, &keyType, sizeof(keyType));
-	Add_Attr(pri_temp+cnt2++,CKA_SIGN, &true, sizeof (true));
-	Add_Attr(pri_temp+cnt2++,CKA_DECRYPT, &false, sizeof (false));
-	Add_Attr(pri_temp+cnt2++,CKA_UNWRAP, &false, sizeof (false));
-	Add_Attr(pri_temp+cnt2++,CKA_SENSITIVE, &false, sizeof (false));
-	Add_Attr(pri_temp+cnt2++,CKA_TOKEN, &true, sizeof (true));
-	Add_Attr(pri_temp+cnt2++,CKA_PRIVATE, &true, sizeof (true));
-	Add_Attr(pri_temp+cnt2++,CKA_EXTRACTABLE, &true, sizeof (true));
+	Add_Attr(pri_temp+cnt2++,CKA_SIGN, &ctrue, sizeof (ctrue));
+	Add_Attr(pri_temp+cnt2++,CKA_DECRYPT, &cfalse, sizeof (cfalse));
+	Add_Attr(pri_temp+cnt2++,CKA_UNWRAP, &cfalse, sizeof (cfalse));
+	Add_Attr(pri_temp+cnt2++,CKA_SENSITIVE, &cfalse, sizeof (cfalse));
+	Add_Attr(pri_temp+cnt2++,CKA_TOKEN, &ctrue, sizeof (ctrue));
+	Add_Attr(pri_temp+cnt2++,CKA_PRIVATE, &ctrue, sizeof (ctrue));
+	Add_Attr(pri_temp+cnt2++,CKA_EXTRACTABLE, &ctrue, sizeof (ctrue));
     CK_OBJECT_HANDLE ignore;
-    check_rv("C_GenerateKeyPair", C_GenerateKeyPair(ses, &mech, pub_temp, cnt1,
-        pri_temp, 10, &ignore,&ignore));
+    check_rv("C_GenerateKeyPair", sym->C_GenerateKeyPair(ses, &mech, pub_temp, cnt1,
+        pri_temp, cnt2, &ignore,&ignore));
     printf("Created RSA key pair object, labeled %s\n",label);
 }
 
@@ -368,7 +370,7 @@ CK_SLOT_ID GetSlot() {
 	CK_RV rv = 0;
 	CK_SLOT_ID id = 0;
 	while (1) {
-    	rv =C_GetSlotList(CK_TRUE, slotList, &slotcnt); 
+    	rv =sym->C_GetSlotList(CK_TRUE, slotList, &slotcnt); 
   		if (rv != CKR_BUFFER_TOO_SMALL) break; 
 		slotList = realloc(slotList,slotcnt * sizeof(CK_SLOT_ID)); 
 	}
@@ -387,13 +389,15 @@ main (int argc, char *argv[])
     CK_SESSION_HANDLE ses;
     int Action  = 0;
     int opt;
-    while ((opt = getopt (argc, argv, "GDb:p:s:h")) != -1)
+	char *pklib = NULL_PTR;
+    while ((opt = getopt (argc, argv, "GDb:l:p:s:h")) != -1)
     {
         switch (opt)
         {
             case 'G': Action = 1; break;
             case 'D': Action = 2; break;
             case 'b': keysize = atoi (optarg); break;
+			case 'l': pklib = optarg; break;
             case 'p': pin = (CK_UTF8CHAR*)optarg; break;
 			case 's': slot = atoi (optarg); slot_specified=true;break;
             case 'h': fprintf (stderr,
@@ -402,14 +406,26 @@ main (int argc, char *argv[])
 
         }
     }
+	void *handle = dlopen(pklib, RTLD_NOW);
+    if (handle==NULL) {
+   	   fprintf (stderr, "%s: dlopen: `%s'\n", pklib, dlerror ());
+       exit (1);
+    }
+    void (*gGetFunctionList)() = dlsym(handle, "C_GetFunctionList");
+    if (gGetFunctionList==NULL) {
+	   fprintf (stderr, "%s: dlsym: `C_GetFunctionList'\n", dlerror ());
+	   exit (1);
+    }
+
+    gGetFunctionList(&sym);
 
     label = (CK_UTF8CHAR *) argv[optind];
-    check_rv("C_Initialize",C_Initialize (NULL_PTR));
+    check_rv("C_Initialize",sym->C_Initialize (NULL_PTR));
 	if (!slot_specified) slot = GetSlot();
-    check_rv("C_OpenSession",C_OpenSession (slot, CKF_RW_SESSION + CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &ses));
+    check_rv("C_OpenSession",sym->C_OpenSession (slot, CKF_RW_SESSION + CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &ses));
 
     if (!pin) pin = (CK_UTF8CHAR *) getpass ("Enter Pin: ");
-    check_rv("C_Login", C_Login(ses, CKU_USER, pin, strlen ((char*)pin)));
+    check_rv("C_Login", sym->C_Login(ses, CKU_USER, pin, strlen ((char*)pin)));
 	memset(pin, 0, strlen((char *)pin));
     switch (Action)
     {
@@ -418,8 +434,9 @@ main (int argc, char *argv[])
         default:
             ActionListObjects(ses,label);
     }
-    check_rv("C_Logout", C_Logout(ses));
-    check_rv("C_CloseSession", C_CloseSession(ses));
-    check_rv("C_Finalize", C_Finalize (NULL_PTR));
+    check_rv("C_Logout", sym->C_Logout(ses));
+    check_rv("C_CloseSession", sym->C_CloseSession(ses));
+    check_rv("C_Finalize", sym->C_Finalize (NULL_PTR));
+	dlclose(handle);
     exit (0);
 }
