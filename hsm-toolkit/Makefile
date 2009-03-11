@@ -5,12 +5,12 @@ TARGET = hsm-toolkit
 CC = gcc
 
 CFLAGS = -O3 -W -Wall -Werror -g -I.
-LDFLAGS = -L/usr/local/lib/
+LIBS = -ldl
 
 all: $(TARGET)
 
 hsm-toolkit: hsm-toolkit.c
-	$(CC) -o $@ $(CFLAGS) $(LDFLAGS) $@.c
+	$(CC) -o $@ $(CFLAGS) $(LIBS) $@.c
 
 clean:
 	rm -f $(TARGET)
