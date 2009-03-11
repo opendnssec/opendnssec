@@ -6,12 +6,11 @@ CC = gcc
 
 CFLAGS = -O3 -W -Wall -Werror -g -I.
 LDFLAGS = -L/usr/local/lib/
-LIBS = -lsofthsm
 
 all: $(TARGET)
 
 hsm-toolkit: hsm-toolkit.c
-	$(CC) -o $@ $(CFLAGS) $(LDFLAGS) $(LIBS) $@.c
+	$(CC) -o $@ $(CFLAGS) $(LDFLAGS) $@.c
 
 clean:
 	rm -f $(TARGET)
