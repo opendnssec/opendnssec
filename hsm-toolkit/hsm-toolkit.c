@@ -401,10 +401,14 @@ main (int argc, char *argv[])
             case 'p': pin = (CK_UTF8CHAR*)optarg; break;
 			case 's': slot = atoi (optarg); slot_specified=true;break;
             case 'h': fprintf (stderr,
-                "usage: hsm-toolkit [-s slot] [-p pin] [-G [-b keysize] label] [-D label]\n");
+                "usage: hsm-toolkit -l pkcs11-library [-s slot] [-p pin] [-G [-b keysize] label] [-D label]\n");
             exit (2);
 
         }
+    }
+    if (pklib == NULL) {
+		fprintf (stderr, "Please specify a pkcs11 library\n");
+		exit (1);
     }
 	void *handle = dlopen(pklib, RTLD_NOW);
     if (handle==NULL) {
