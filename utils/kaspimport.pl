@@ -187,7 +187,11 @@ foreach my $zone ( $zones->get_nodelist() ) {
 # Now import rollover element
 my $roll     = $kasp->find('rollover')->get_node(1);
 my $interval = duration2sec( $roll->find('interval')->string_value() );
+my $keygeninterval = duration2sec( $roll->find('keygeninterval')->string_value() );
+my $backupdelay = duration2sec( $roll->find('backupdelay')->string_value() );
 insertpp( "interval", $interval, "enforcer", "opendnssec" );
+insertpp( "keygeninterval", $keygeninterval, "enforcer", "opendnssec" );
+insertpp( "backupdelay", $backupdelay, "enforcer", "opendnssec" );
 
 # If we get here then the policies and zones imported OK
 $dbh->commit;
@@ -527,6 +531,8 @@ insert into parameters (name, description, category_id) select "ttlds", "ttl of 
 
 #insert into parameters (name, description, category_id) select "keycreate", "policy for key creation 0=fill the hsm, 1=only generate minimum needed", id from categories where name="enforcer";
 insert into parameters (name, description, category_id) select "interval", "run interval", id from categories where name="enforcer";
+insert into parameters (name, description, category_id) select "keygeninterval", "interval between key generation runs", id from categories where name="enforcer";
+insert into parameters (name, description, category_id) select "backupdelay", "how old must a new key be before it can be assumed to have been backed up", id from categories where name="enforcer";
 
 # default adapters
 insert into adapters (name, description) values ("file", "all signers should be able to read files.");
