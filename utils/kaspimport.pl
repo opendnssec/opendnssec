@@ -417,7 +417,13 @@ create table keypairs(
   algorithm     tinyint not null,             # algorithm code
   size          smallint,
   securitymodule_id          tinyint,                      # where the key is stored
+  state         tinyint,                      # state of the key (defines valid fields)
   generate      timestamp null default null,  # time key inserted into database
+  publish       timestamp null default null,  # time when key published into the zone
+  ready         timestamp null default null,  # time when the key is ready for use
+  active        timestamp null default null,  # time when the key was made active
+  retire        timestamp null default null,  # time when the key retires
+  dead          timestamp null default null,  # time when key is slated for removal
   policy_id        mediumint,
   compromisedflag tinyint,
   publickey     varchar(1024),                # public key data
@@ -430,14 +436,8 @@ create table keypairs(
 # stores meta data about keys (actual keys are in a (soft)hsm)
 create table dnsseckeys (
   id            int  not null auto_increment,  # unique id of the key
-  privatekey_id    smallint,
+  keypair_id    smallint,
   zone_id        mediumint,
-  state         tinyint,                      # state of the key (defines valid fields)
-  publish       timestamp null default null,  # time when key published into the zone
-  ready         timestamp null default null,  # time when the key is ready for use
-  active        timestamp null default null,  # time when the key was made active
-  retire        timestamp null default null,  # time when the key retires
-  dead          timestamp null default null,  # time when key is slated for removal
   keytype       smallint not null,             # zsk or ksk (use code in dnskey record)
   origkeytag    smallint not null,            # original key tag
   revokedkeytag smallint not null,            # revoked key tag
@@ -447,7 +447,7 @@ create table dnsseckeys (
 
   constraint primary key (id),
   constraint foreign key (zone_id) references zones (id),
-  constraint foreign key (privatekey_id) references keypairs (id)
+  constraint foreign key (keypair_id) references keypairs (id)
 )ENGINE=InnoDB;
 
 # parameters_policies - join table to hold the values of parameters
@@ -467,7 +467,6 @@ insert into securitymodules (name, description, location, capacity, pin) values 
 insert into securitymodules (name, description, location, capacity, pin) values ("softHSM-01", "the best soft hsm in the world", "pkcs11.so", 1000, "1234");
 
 # default categories
-insert into categories (name) values ("signer");
 insert into categories (name) values ("signature");
 insert into categories (name) values ("denial");
 insert into categories (name) values ("ksk");
