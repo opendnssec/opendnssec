@@ -77,6 +77,7 @@ ldns_pkcs11_module_add(ldns_pkcs11_module_list *list,
                        const char *pin)
 {
 	ldns_pkcs11_module_list *mle, *new_mle;
+	int a;
 
 	if (!name || !module_path || !pin) {
 		return LDNS_STATUS_ERR;

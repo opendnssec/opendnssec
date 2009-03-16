@@ -71,8 +71,10 @@ class Engine:
         # create socket to listen for commands on
         # only listen on localhost atm
 
-        self.command_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.command_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.command_socket = socket.socket(socket.AF_INET,
+                                            socket.SOCK_STREAM)
+        self.command_socket.setsockopt(socket.SOL_SOCKET,
+                                       socket.SO_REUSEADDR, 1)
         self.command_socket.bind(("localhost", 47806))
         self.command_socket.listen(5)
         while True:
@@ -83,12 +85,13 @@ class Engine:
                     response = self.handle_command(command)
                     self.send_response(response + "\n\n", client_socket)
                     syslog.syslog(syslog.LOG_DEBUG, "Done handling command")
-            except socket.error, msg:
+            except socket.error:
                 syslog.syslog(syslog.LOG_DEBUG, "Connection closed by peer")
-            except RuntimeError, msg:
+            except RuntimeError:
                 syslog.syslog(syslog.LOG_DEBUG, "Connection closed by peer")
 
-    def receive_command(self, client_socket):
+    @staticmethod
+    def receive_command(client_socket):
         msg = ''
         chunk = ''
         while len(msg) < MSGLEN and chunk != '\n' and chunk != '\0':
@@ -99,7 +102,8 @@ class Engine:
                 msg = msg + chunk
         return msg
 
-    def send_response(self, msg, client_socket):
+    @staticmethod
+    def send_response(msg, client_socket):
         totalsent = 0
         syslog.syslog(syslog.LOG_DEBUG, "Sending response: " + msg)
         while totalsent < MSGLEN and totalsent < len(msg):
@@ -152,7 +156,8 @@ class Engine:
 
     def lock(self, caller=None):
         while (self.locked):
-            syslog.syslog(syslog.LOG_DEBUG, caller + "waiting for lock on engine to be released")
+            syslog.syslog(syslog.LOG_DEBUG,
+                caller + "waiting for lock on engine to be released")
             time.sleep(1)
         self.locked = True
     
@@ -168,7 +173,8 @@ class Engine:
 
     def read_zonelist(self):
         new_zonelist = Zonelist()
-        new_zonelist.read_zonelist_file(self.config.zone_input_dir + os.sep + "zonelist.xml")
+        new_zonelist.read_zonelist_file(
+            self.config.zone_input_dir + os.sep + "zonelist.xml")
         # move this to caller?
         if not self.zonelist:
             removed_zones = []
@@ -176,7 +182,8 @@ class Engine:
             added_zones = new_zonelist.get_all_zone_names()
             self.zonelist = new_zonelist
         else:
-            (removed_zones, added_zones, updated_zones) = self.zonelist.merge(new_zonelist)
+            (removed_zones, added_zones, updated_zones) = \
+                self.zonelist.merge(new_zonelist)
         for zone in removed_zones:
             self.remove_zone(zone)
         for zone in added_zones:
@@ -192,7 +199,9 @@ class Engine:
         if (secs_left < 1):
             self.schedule_signing(zone_name)
         else:
-            syslog.syslog(syslog.LOG_INFO, "scheduling resign of zone '" + zone_name + "' in " + str(secs_left) + " seconds")
+            syslog.syslog(syslog.LOG_INFO,
+                "scheduling resign of zone '" + zone_name +
+                "' in " + str(secs_left) + " seconds")
             self.schedule_signing(zone_name, time.time() + secs_left)
         syslog.syslog(syslog.LOG_INFO, "Zone " + zone_name + " added")
         
@@ -227,7 +236,8 @@ class Engine:
         try:
             zone = self.zones[zone_name]
             self.task_queue.lock()
-            self.task_queue.add_task(Task(when, Task.SIGN_ZONE, zone, True, zone.zone_config.signatures_resign_time))
+            self.task_queue.add_task(Task(when, Task.SIGN_ZONE,
+                zone, True, zone.zone_config.signatures_resign_time))
             self.task_queue.release()
             self.notify()
         except KeyError:
@@ -251,10 +261,12 @@ def main():
     # option handling
     #
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "c:hv", ["--config=", "help", "output="])
+        opts, args = getopt.getopt(sys.argv[1:],
+                                   "c:hv",
+                                   ["--config=", "help", "output="])
     except getopt.GetoptError, err:
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print str(err)
         usage()
         sys.exit(2)
     config_file = "/etc/engine.conf"
@@ -281,11 +293,6 @@ def main():
     syslog.openlog("OpenDNSSEC signer engine")
     engine = Engine(config_file)
     try:
-        #now = time.time()
-        #print "add test tasks"
-        #engine.task_queue.add_task(Task(now+1, Task.DUMMY, "asdf.nl", False, 5))
-        #engine.task_queue.add_task(Task(now+8, Task.DUMMY, "test.nl"))
-        #print engine.task_queue
         engine.read_zonelist()
         engine.run()
         
