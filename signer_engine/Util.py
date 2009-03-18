@@ -1,31 +1,31 @@
-#
-# some generaly utility functions
-#
+"""Some general utility functions"""
 
 import subprocess
-import Util
 import re
 import syslog
-from datetime import timedelta
 from Ft.Xml.XPath import Evaluate
 
-verbosity = 2;
-
-def debug(level, message):
-    if level <= verbosity:
-        print(message)
-
-def run_tool(command, input=None):
+def run_tool(command, input_fd=None):
+    """Run a system command with Popen(), if input_fd is not given,
+       it will be set to PIPE. The subprocess is returned."""
     syslog.syslog(syslog.LOG_DEBUG, "Run command: '"+" ".join(command)+"'")
-    if (input):
-        p = subprocess.Popen(command, stdin=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if (input_fd):
+        subp = subprocess.Popen(command, stdin=input_fd,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
     else:
-        p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return p
+        subp = subprocess.Popen(command, stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+    return subp
 
 # for a single xml durection object, with only 1 path
 # for more elaborate paths, diy
 def get_xml_data(xpath, xml, optional=False):
+    """Get the element data of the first element specified by the xpath
+       that is found in the xml blob. If optional is true, None is
+       returned if it cannot be found. Otherwise an exception will be
+       raised."""
     try:
         xmlb = Evaluate(xpath, xml)
         if xmlb and len(xmlb) > 0 and xmlb[0].firstChild:
@@ -34,7 +34,7 @@ def get_xml_data(xpath, xml, optional=False):
             return None
         else:
             raise Exception("Mandatory XML element not found: " + xpath)
-    except IndexError, e:
+    except IndexError:
         if optional:
             return None
         else:
@@ -76,6 +76,8 @@ DURATION_REGEX_ALT2 = re.compile("^P"
                                )
 
 def parse_duration(duration_string):
+    """Parse an XML duration string. The number of seconds represented
+       by the string is returned"""
     if not duration_string:
         return None
     match = DURATION_REGEX.match(duration_string)
@@ -88,26 +90,26 @@ def parse_duration(duration_string):
             if not match:
                 raise Exception("Bad duration format: " +duration_string)
 
-    g = match.group("years")
-    if g:
-        result += 31556926 * int(g)
-    g = match.group("months")
-    if g:
-        result += 2678400 * int(g)
-    g = match.group("weeks")
-    if g:
-        result += 604800 * int(g)
-    g = match.group("days")
-    if g:
-        result += 86400 * int(g)
-    g = match.group("hours")
-    if g:
-        result += 3600 * int(g)
-    g = match.group("minutes")
-    if g:
-        result += 60 * int(g)
-    g = match.group("seconds")
-    if g:
-        result += int(g)
+    grp = match.group("years")
+    if grp:
+        result += 31556926 * int(grp)
+    grp = match.group("months")
+    if grp:
+        result += 2678400 * int(grp)
+    grp = match.group("weeks")
+    if grp:
+        result += 604800 * int(grp)
+    grp = match.group("days")
+    if grp:
+        result += 86400 * int(grp)
+    grp = match.group("hours")
+    if grp:
+        result += 3600 * int(grp)
+    grp = match.group("minutes")
+    if grp:
+        result += 60 * int(grp)
+    grp = match.group("seconds")
+    if grp:
+        result += int(grp)
     return result
 

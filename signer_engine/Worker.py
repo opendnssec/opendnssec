@@ -1,30 +1,28 @@
-#
-# Worker/task/taskqueue model
-#
+"""Worker/task/taskqueue model"""
 
 import time
-import thread
 import threading
 import syslog
 
-import Util
-
 class Task:
-    # Each task in the queue contains:
-    # - 'when' to run (timestamp, or 0 for 'asap')
-    # - 'what' task (constant)
-    # - 'how'; optional arguments (e.g. what zone to sign)
+    """Each task in the queue contains:
+    'when' to run (timestamp, or 0 for 'asap')
+    'what' task (constant)
+    'how'; optional arguments (e.g. what zone to sign)
+    """
 
     # Task identifiers
     SIGN_ZONE = 1
     NOTIFY_SERVER = 2
     DUMMY = 3
     
-    # if replace is true, the queue manager will remove
-    # any task with the same what and how when adding this one
-    # if repeat is > 0 the worker will immediately
-    # schedule this task again after running
     def __init__(self, when, what, how, replace=False, repeat_interval=0):
+        """if replace is true, the queue manager will remove
+        any task with the same what and how when adding this one
+        if repeat is > 0 the worker will immediately
+        schedule this task again after running, with a delay of
+        repeat_interval seconds"""
+        
         self.when = when
         self.what = what
         self.how = how
@@ -32,15 +30,19 @@ class Task:
         self.repeat_interval = repeat_interval
     
     def run(self):
+        """Run this task"""
         if self.what == Task.SIGN_ZONE:
-            syslog.syslog(syslog.LOG_INFO, "Run task: sign zone: " + str(self.how.zone_name))
+            syslog.syslog(syslog.LOG_INFO,
+                          "Run task: sign zone: " +\
+                          str(self.how.zone_name))
             self.how.sign()
         elif self.what == Task.NOTIFY_SERVER:
             syslog.syslog(syslog.LOG_INFO, "Run task: notify server")
         elif self.what == Task.DUMMY:
             syslog.syslog(syslog.LOG_INFO, "Run task: dummy task ")
         else:
-            syslog.syslog(syslog.LOG_ERR, "Error: unknown task: " + str(self.what))
+            syslog.syslog(syslog.LOG_ERR,
+                          "Error: unknown task: " + str(self.what))
             
     def __cmp__(self, other):
         return self.when - other.when
@@ -48,7 +50,8 @@ class Task:
     def __str__(self):
         res = []
         res.append("At")
-        res.append(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.when)))
+        res.append(time.strftime("%Y-%m-%d %H:%M:%S",
+                                 time.localtime(self.when)))
         if self.what == Task.SIGN_ZONE:
             res.append("I will sign zone ")
             res.append(self.how.zone_name)
@@ -64,55 +67,67 @@ class Task:
 
         
 class TaskQueue:
+    """Lockable queue of tasks"""
     def __init__(self):
         self.tasks = []
         self.locked = False
     
-    # simple spinlock
     def lock(self):
+        """Simple spinlock"""
         while self.locked:
             time.sleep(1)
         self.locked = True
     
     def release(self):
+        """Releases the lock"""
         self.locked = False
     
     def add_task(self, task):
+        """Add a task to the queue. If the task hase replace set to
+        True, and another task in the queue with the same what and
+        how is already present, that one is removed."""
         # todo: optimize, move tasks comparision to task class?
         task_list = []
         added = False
-        for ct in self.tasks:
+        for curt in self.tasks:
             # append new task before the first one scheduled later
-            if not added and task.when < ct.when:
+            if not added and task.when < curt.when:
                 task_list.append(task)
                 added = True
             # do not add tasks to new task list that are equal to the new task
-            if not task.replace or not (task.what == ct.what and task.how == ct.how):
-                task_list.append(ct)
+            if not task.replace or not (task.what == curt.what and
+                                        task.how == curt.how):
+                task_list.append(curt)
         
         if not added:
             task_list.append(task)
         self.tasks = task_list
     
-    def has_task(self, time):
+    def has_task(self, ctime):
+        """Returns True if there is a task in the queue that is
+        scheduled to be run at ctime or before that"""
         if len(self.tasks) > 0:
-            return self.tasks[0].when < time
+            return self.tasks[0].when < ctime
         else:
             return False
     
-    def time_till_next(self, time):
+    def time_till_next(self, ctime):
+        """Returns the time difference between ctime and the first
+        task in the queue"""
         if len(self.tasks) > 0:
-            return self.tasks[0].when - time
+            return self.tasks[0].when - ctime
         else:
             # default?
             return 0
 
     def get_task(self):
+        """Returns the first task in the queue"""
         task = self.tasks[0]
         del(self.tasks[0])
         return task
     
     def schedule_all_now(self):
+        """Set all tasks to be run immediately"""
         for task in self.tasks:
             task.when = 0
         
@@ -125,13 +140,19 @@ class TaskQueue:
         return "\n".join(res)
 
 class Worker(threading.Thread):
+    """This class handles tasks in the taskqueue. When running, it will
+    take the first task that is scheduled to be run. If there are no
+    tasks to be run at the moment, it will wait() until the first task
+    is scheduled to be run."""
     def __init__(self, condition, task_queue):
         threading.Thread.__init__(self)
+        self.name = "<nameless worker>"
         self.queue = task_queue
         self.condition = condition
         self.work = True
     
     def run(self):
+        """Run the worker; check for a task in the queue and do it"""
         while self.work:
             self.condition.acquire()
             self.queue.lock()
@@ -147,7 +168,9 @@ class Worker(threading.Thread):
                     self.queue.release()
             else:
                 self.queue.release()
-                syslog.syslog(syslog.LOG_INFO, "no task for worker, sleep for " + str(self.queue.time_till_next(now)))
+                syslog.syslog(syslog.LOG_INFO,
+                              "no task for worker, sleep for " +\
+                              str(self.queue.time_till_next(now)))
                 next = self.queue.time_till_next(now)
                 if next == 0:
                     self.condition.wait()

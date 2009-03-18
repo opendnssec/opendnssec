@@ -1,8 +1,7 @@
-# engine configuration
-# really really simple atm
-#
-# example config file in <repos>/signer_engine/engine.conf
-#
+"""
+This class keeps track of engine configuration options
+There is an example config file in <repos>/signer_engine/engine.conf
+"""
 # todo: allow for spaces in dir?
 
 import re
@@ -12,6 +11,7 @@ PKCS_LINE = re.compile(\
  "pkcs11_token: (?P<name>\w+)\s+(?P<module_path>.+)\s+(?P<pin>\d+)\s*$")
 
 class EngineConfiguration:
+    """Engine Configuration options"""
     def __init__(self, config_file_name=None):
         self.tokens = []
         self.zone_input_dir = None
@@ -23,6 +23,7 @@ class EngineConfiguration:
             self.read_config_file(config_file_name)
         
     def read_config_file(self, config_file_name):
+        """Read a configuration file"""
         config_file = open(config_file_name, "r")
         for line in config_file:
             if not COMMENT_LINE.match(line):
@@ -30,7 +31,8 @@ class EngineConfiguration:
                 if pkcs_line:
                     token = {}
                     token["name"] = pkcs_line.group("name")
-                    token["module_path"] = pkcs_line.group("module_path")
+                    token["module_path"] = \
+                        pkcs_line.group("module_path")
                     token["pin"] = pkcs_line.group("pin")
                     self.tokens.append(token)
                 elif line[:15] == "zone_input_dir:":
@@ -45,5 +47,5 @@ class EngineConfiguration:
                     # this one should not be necessary later
                     self.tools_dir = line[10:].strip()
                 else:
-                    raise Exception("Error parsing configuration line: " + line)
-
+                    raise Exception(
+                            "Error parsing configuration line: " + line)

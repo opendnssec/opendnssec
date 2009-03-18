@@ -1,6 +1,4 @@
-#
-# Configuratin of a Zone, as specified in the xml file
-#
+"""Configuration of a Zone, as specified in the xml file"""
 
 from xml.dom import minidom
 from Ft.Xml.XPath import Evaluate
@@ -8,6 +6,13 @@ from Ft.Xml.XPath import Evaluate
 import Util
 
 class ZoneConfig:
+    """Configuration of a Zone, as specified in the xml file"""
+    NO_CHANGE = 0
+    NO_ACTION = 1
+    RESIGN = 2
+    RENSEC = 3
+    RESORT = 4
+    
     def __init__(self, xml_file=None):
         self.signatures_resign_time = 0
         self.signatures_refresh_time = 0
@@ -15,8 +20,8 @@ class ZoneConfig:
         self.signatures_validity_nsec = 0
         self.signatures_jitter = 0
         self.signatures_clockskew = 0
-        self.signatures_zsk_refs = []
-        self.signatures_ksk_refs = []
+        #self.signatures_zsk_refs = []
+        #self.signatures_ksk_refs = []
         self.publish_keys = []
         self.denial_nsec = False
         self.denial_nsec3 = False
@@ -32,7 +37,6 @@ class ZoneConfig:
         self.publish_keys = []
 
         self.denial_ttl = None
-        self.nsec3_param_rr = None
 
         self.soa_ttl = None
         self.soa_minimum = None
@@ -41,9 +45,80 @@ class ZoneConfig:
         if file:
             self.from_xml_file(xml_file)
 
-    # not sure whether we will get the data from a file or not, so just wrap
-    # around the general string case instead of using 'minidom.parse()'
+    # we don't override __cmp__ because we use self-defined results
+    # from low to high: every results implies the above ones
+    # (is that a correct assumption?)
+    # NO_CHANGE   0
+    # NO_SCHEDULE 1
+    # RESIGN      4
+    # RENSEC      3
+    # RESORT      2
+    # 
+    def compare_config(self, ocfg):
+        """Compares this configuration to another one. The result value
+        will specify what to do with the zone according to the changes
+        in the configuration."""
+        # seperate if's will probably be usefule for debugging this
+        result = self.NO_CHANGE
+        if self.signatures_resign_time != ocfg.signatures_resign_time:
+            result = self.RESORT
+        elif self.signatures_refresh_time != ocfg.signatures_refresh_time:
+            result = self.RESORT
+        elif self.signatures_validity_default != \
+           ocfg.signatures_validity_default:
+            result = self.RESORT
+        elif self.signatures_validity_nsec != \
+           ocfg.signatures_validity_nsec:
+            result = self.RESORT
+        elif self.signatures_jitter != ocfg.signatures_jitter:
+            result = self.RESORT
+        elif self.signatures_clockskew != ocfg.signatures_clockskew:
+            result = self.RESORT
+        #if self.signatures_zsk_refs = []
+        #self.signatures_ksk_refs = []
+        
+        # todo: lists cannot be ==/!='d can they? loop?
+        elif self.publish_keys != ocfg.publish_keys:
+            result = self.RESORT
+        elif self.denial_nsec != ocfg.denial_nsec:
+            result = self.RESORT
+        elif self.denial_nsec3 != ocfg.denial_nsec3:
+            result = self.RESORT
+        elif self.denial_nsec3_optout != ocfg.denial_nsec3_optout:
+            result = self.RESORT
+        elif self.denial_nsec3_algorithm != ocfg.denial_nsec3_algorithm:
+            result = self.RESORT
+        elif self.denial_nsec3_iterations != ocfg.denial_nsec3_iterations:
+            result = self.RESORT
+        elif self.denial_nsec3_salt != ocfg.denial_nsec3_salt:
+            result = self.RESORT
+        
+        elif self.nsec3_param_rr != ocfg.nsec3_param_rr:
+            result = self.RESORT
+        # i still think nsec TTL should not be configurable
+        elif self.denial_nsec3_ttl != ocfg.denial_nsec3_ttl:
+            result = self.RESORT
+        elif self.keys != ocfg.keys:
+            result = self.RESORT
+        elif self.signature_keys != ocfg.signature_keys:
+            result = self.RESORT
+        elif self.publish_keys != ocfg.publish_keys:
+            result = self.RESORT
+
+        elif self.denial_ttl != ocfg.denial_ttl:
+            result = self.RESORT
+
+        elif self.soa_ttl != ocfg.soa_ttl:
+            result = self.RESORT
+        elif self.soa_minimum != ocfg.soa_minimum:
+            result = self.RESORT
+        elif self.soa_serial != ocfg.soa_serial:
+            result = self.RESORT
+        return result
+
     def from_xml_file(self, xml_file_name):
+        """Read xml from from xml_file_name to a string,
+        and parse the xml"""
         xml_file = open(xml_file_name, "r")
         xml_string = xml_file.read()
         xml_file.close()
@@ -54,8 +129,9 @@ class ZoneConfig:
     # signer_config is the xml blob described in
     # http://www.opendnssec.se/browser/docs/signconf.xml
     def from_xml(self, signer_config):
+        """Read the configuration from the xml blob in signer_config.
+        signer_config should be created by minidom.parseString"""
         # todo: check the zone name just to be sure?
-        # and some general error checking might be nice
 
         keystore_keys = Evaluate("signconf/keystore/key", signer_config)
         for key_xml in keystore_keys:
