@@ -85,23 +85,51 @@ in the correct order beforehand (either 'normal' or 'in nsec3 space').
 
 Use the -h argument for specific options.
 
+If a line starts with ';', it is copied to the output and ignored.
+Except when it specifies '; empty non-terminal: <name>', in which case
+the nsec3er tool will create an NSEC3 for the empty nonterminal.
 
 4 RRSIG Addition
 ----------------
 
 And finally, the signature resource records must be added.
 
-When you have the keys on disk, in ldns format (with a .key and
-a .private file), you can use the tool 'signer' for this. This takes, 
-a number of key file base names (ie. without the .key extension) as
-arguments, and signs the resource record sets it reads with those keys.
+The tool 'signer' is deprecated; if one wants to use software signing,
+use signer_pkcs11 together with OpenDNSSEC's SoftHSM.
 
-There is also a tool that uses pkcs11 for signing, called
-'signer_pkcs11'. This time, to specify keys, you must use the format
-<key_id>_<signing algorithm nr>, e.g. 45_5 to sign using a key with the
-id '45' (hex) and algorithm RSA_SHA1.
+Options for the signer are passed in-line; with the following commands:
+:add_module <name> <so path> <PIN>
+    adds a PKCS#11 token to the list.
+:del_module <name>
+    removes the token from the list of tokens.
+:add_key <token name> <key id> <key algorithm nr> <key flags>
+    adds a key to be used to generate signatures
+:flush_keys
+    removes all currently configured keys
+:inception <YYYYMMDD[HHmmss]>
+    sets the inception date for signatures
+:expiration <YYYYMMDD[HHmmss]>
+    sets the expiration date for signatures
+:origin <dname>
+    sets the zone name for the current zone
+:soa_ttl <int>
+    sets the TTL for the SOA record, this will override the TTL of the
+    SOA in the input file
+:soa_serial <int>
+    sets the serial value for the SOA record, this will override the
+    serial value of the SOA in the input file
+:soa_minimum <int>
+    sets the minimum value for the SOA record, this will override the
+    minimum value of the SOA in the input file
+:stop
+    stop the signer (it will also stop if EOL is read)
 
-The PKCS11 module used must be specified with the -m argument.
+If an input line starts with ';', it is read as a comment, and will
+simply be copied to the output.
+
+Otherwise, the input lines are parsed as Resource Records. As soon as
+a resource record is read that is from a different RRset than the
+previous one, the RRset that was read is printed together with an RRSIG.
 
 
 Other tools
