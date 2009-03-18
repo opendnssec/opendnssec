@@ -1,29 +1,23 @@
-is a very crude proof-of-concept of the proof-of-concept i had in mind; a python-based 'engine' that keeps track of signing intervals and resigns the zones.
+This is a proof-of-concept of the signer engine for OpenDNSSEC;
+a python-based 'engine' that keeps track of signing intervals and
+resigns the zones.
 
-it does not do kasp interaction, nor pkcs11 things, or even configuration loading at the moment, every setting must be set trough the command channel (either 'telnet localhost 47806' or engine_cli.py)
-
-there is not much in the form of error checking, the thread locking needs work, and if something goes wrong, it will mangle the signed zone files. It will also fail horribly when too many zones are configured, because it will run out of file descriptors when it does its process pipe magic.
+there is not much in the form of error checking yet, and if something
+goes wrong, it will mangle the signed zone files. 
 
 It might very well not work at all ;)
 
-to run it you must have a compiled version of ldns trunk in your LD_LIBRARY_PATH (DY_LD_LIBRARY_PATH on OSX), and (re)compiled the trunk version of the signer tools. Paths it uses are relative, so the engine will only work if it is run from its own directory.
+to run it you must have a compiled version of ldns trunk in your
+LD_LIBRARY_PATH (DY_LD_LIBRARY_PATH on OSX), and (re)compiled
+the trunk version of the signer tools, as well as the softHSM library.
 
-to create the test zones you'll also need the ldns tools in your PATH
+Paths it uses are relative, so the test_engine script will only work if
+it is run from its own directory (<repos>/signer_engine/test).
 
-To create a test setup:
+To run the test engine:
+cd <repos>/signer_engine/test
+./test_engine
 
-cd <opendnssec repos>/signer_engine/test
-./create.pl
-
-This creates an some test zones and an init script that can be run through the cli to set up those zones with a resign interval of 60 seconds.
-
-To run the engine:
-cd <opendnssec repos>/signer_engine
-./engine.py
-
-To add the test zones you just created:
-cd <opendnssec repos>/signer_engine
-cat test/init_script | ./engine_cli.py
-
-
-If you stop it, restart it, and run the init_script through the cli again, it should recognize which zones need resigning based upon their modified time.
+If you stop it, and restart it again, it should recognize whether the
+test zone needs resigning based upon the last-modified time of the
+output file.
