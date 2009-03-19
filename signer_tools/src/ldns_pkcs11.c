@@ -331,7 +331,7 @@ ldns_pkcs11_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
                         const char *token_name)
 {
 	CK_RV rv;
-	CK_SLOT_ID slotId;
+	CK_SLOT_ID slotId = 0;
 	CK_ULONG slotCount = 10;
 	CK_SLOT_ID cur_slot;
 	CK_SLOT_ID *slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
