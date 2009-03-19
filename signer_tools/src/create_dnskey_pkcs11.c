@@ -57,14 +57,19 @@
 void
 usage(FILE *out)
 {
-	fprintf(out, "Usage: create_dnskey_pkcs11 [options]\n");
+	fprintf(out, "Usage: create_dnskey_pkcs11 [options] <CKA_ID(s)>\n\n");
+	fprintf(out, "CKA_ID is the hexadecimal representation of the CKA_ID field of the\n");
+	fprintf(out, "intended key. Multiple values can be given.\n");
+	fprintf(out, "If the token is found, but none of the keys are present on the token,\n");
+	fprintf(out, "nothing is printed and an error value is returned\n\n");
 	fprintf(out, "Options:\n");
 	fprintf(out, "-a <algorithm>\tSet DNSKEY algorithm (default %u\n", DEFAULT_ALGORITHM);
 	fprintf(out, "-f <flags>\tflags for the DNSKEY RR (defult %u)\n", DEFAULT_FLAGS);
 	fprintf(out, "-h\t\tShow this help screen\n");
 	fprintf(out, "-t <ttl>\tTTL for the DNSKEY RR (default %u)\n", DEFAULT_TTL);
 	fprintf(out, "-m <module>\tUse <module> as PKCS11 module\n");
-	fprintf(out, "-o <origin>\tUse origina as zone name (mandatory\n");
+	fprintf(out, "-n <token name>\tUse the token <token name> from the pkcs #11 module (mandatory)\n");
+	fprintf(out, "-o <origin>\tUse origina as zone name (mandatory)\n");
 /*	fprintf(out, "-r <protocol>\tSet protocol for DNSKEY RR (default %u)\n", DEFAULT_PROTOCOL);*/
 	fprintf(out, "-p <PIN>\tUse PIN for PKCS11 token\n");
 	fprintf(out, "-v <level>\tSets verbosity level\n");
