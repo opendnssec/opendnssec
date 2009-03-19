@@ -129,7 +129,10 @@ print_rr_data(FILE *out, rr_data *rrd)
 			ldns_rdf_deep_free(dname);
 		} else {
 			printf("; error parsing rr or dname:\n");
-			printf("; buf data %p buf cap %u buf pos %u\n", rrd->rr_buf->_data, rrd->rr_buf->_capacity, pos);
+			printf("; buf data %p buf cap %u buf pos %u\n",
+			       rrd->rr_buf->_data,
+			       (unsigned int) rrd->rr_buf->_capacity,
+			       (unsigned int) pos);
 		}
 		//ldns_rdf_free(dname);
 	}

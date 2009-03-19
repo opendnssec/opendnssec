@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <dlfcn.h>
+#include <strings.h>
 
 #include <ldns/ldns.h>
 
