@@ -27,11 +27,20 @@ ldns_keystr2algorithm(const char *key_id_str)
 	return atoi(sep + 1);
 }
 
-char *
+void xprintf_hex(FILE *out, const unsigned char *data, size_t len)
+{
+	size_t i;
+	for (i = 0; i < len; i++) {
+		fprintf(out, "%02x", data[i]);
+	}
+	fprintf(out, "\n");
+}
+
+unsigned char *
 ldns_keystr2id(const char *key_id_str, int *key_id_len)
 {
 	char *sep;
-	char *key_id;
+	unsigned char *key_id;
 	/* length of the hex input */
 	size_t hex_len;
 	int i;
@@ -52,8 +61,8 @@ ldns_keystr2id(const char *key_id_str, int *key_id_len)
 	*key_id_len = hex_len / 2;
 	key_id = malloc(*key_id_len);
 	for (i = 0; i < *key_id_len; i++) {
-		key_id[i] = ldns_hexdigit_to_int(key_id_str[i]) * 16 +
-		            ldns_hexdigit_to_int(key_id_str[i+1]);
+		key_id[i] = ldns_hexdigit_to_int(key_id_str[2*i]) * 16 +
+		            ldns_hexdigit_to_int(key_id_str[2*i+1]);
 	}
 	return key_id;
 }
@@ -600,7 +609,7 @@ ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
                         ldns_key **key,
                         ldns_algorithm algorithm,
                         uint16_t flags,
-                        const char *key_id,
+                        const unsigned char *key_id,
                         size_t key_id_len)
 {
 	ldns_key *k;
@@ -623,7 +632,8 @@ ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
 	                               (CK_BYTE_PTR) key_id,
 	                               key_id_len);
 	if (!key_object->private_key) {
-		//fprintf(stderr, "; Private key not found\n");
+		fprintf(stderr, "; Private key not found for ");
+		xprintf_hex(stderr, key_id, key_id_len);
 		ldns_key_free(k);
 		return LDNS_STATUS_ERR;
 	}
@@ -634,7 +644,8 @@ ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
 	                              (CK_BYTE_PTR) key_id,
 	                              key_id_len);
 	if (!key_object->public_key) {
-		//fprintf(stderr, "Public key not found\n");
+		fprintf(stderr, "; Public key not found for ");
+		xprintf_hex(stderr, key_id, key_id_len);
 		ldns_key_free(k);
 		return LDNS_STATUS_ERR;
 	}

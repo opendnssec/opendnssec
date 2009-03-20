@@ -342,7 +342,7 @@ add_key(current_config *cfg,
 {
 	ldns_pkcs11_ctx *pkcs11_ctx;
 	ldns_algorithm key_algorithm;
-	char *key_id;
+	unsigned char *key_id;
 	int key_id_len;
 	ldns_status status;
 	ldns_key *key;

@@ -75,6 +75,7 @@ usage(FILE *out)
 	fprintf(out, "-v <level>\tSets verbosity level\n");
 }
 
+
 int
 main(int argc, char **argv)
 {
@@ -85,7 +86,7 @@ main(int argc, char **argv)
 	
 	/* key data */
 	int argi;
-	char *key_id;
+	unsigned char *key_id;
 	int key_id_len;
 	ldns_key *key;
 	ldns_rr *key_rr;

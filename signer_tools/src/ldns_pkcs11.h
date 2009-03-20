@@ -21,7 +21,7 @@ struct pkcs_keypair_handle {
 };
 
 int ldns_keystr2algorithm(const char *key_id_str);
-char *ldns_keystr2id(const char *key_id_str, int *key_id_len);
+unsigned char *ldns_keystr2id(const char *key_id_str, int *key_id_len);
 
 
 ldns_pkcs11_ctx *ldns_pkcs11_ctx_new();
@@ -42,7 +42,7 @@ ldns_status ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
                                     ldns_key **key,
                                     ldns_algorithm algorithm,
                                     uint16_t flags,
-                                    const char *key_id,
+                                    const unsigned char *key_id,
                                     size_t key_id_len);
 
 ldns_rr_list *ldns_pkcs11_sign_rrset(ldns_rr_list *rrset,
