@@ -608,7 +608,7 @@ int main(int argc, char **argv)
 						if (verbosity >= 5) {
 							fprintf(stderr,
 									"INFO: signing %u records\n",
-									ldns_rr_list_rr_count(cur_rrset)
+									(unsigned int) ldns_rr_list_rr_count(cur_rrset)
 								   );
 						}
 						if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
@@ -639,7 +639,7 @@ int main(int argc, char **argv)
 		if (verbosity >= 5) {
 			fprintf(stderr,
 					"INFO: signing %u records\n",
-					ldns_rr_list_rr_count(cur_rrset)
+					(unsigned int) ldns_rr_list_rr_count(cur_rrset)
 				   );
 		}
 		if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
