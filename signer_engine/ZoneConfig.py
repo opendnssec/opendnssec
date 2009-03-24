@@ -7,11 +7,12 @@ import Util
 
 class ZoneConfig:
     """Configuration of a Zone, as specified in the xml file"""
-    NO_CHANGE = 0
-    NO_ACTION = 1
-    RESIGN = 2
-    RENSEC = 3
-    RESORT = 4
+    NO_CHANGE   = 0
+    NO_SCHEDULE = 1
+    RESCHEDULE  = 2
+    RESORT      = 3
+    RENSEC      = 4
+    RESIGN      = 5
     
     def __init__(self, xml_file=None):
         self.signatures_resign_time = 0
@@ -50,70 +51,72 @@ class ZoneConfig:
     # (is that a correct assumption?)
     # NO_CHANGE   0
     # NO_SCHEDULE 1
-    # RESIGN      4
-    # RENSEC      3
-    # RESORT      2
+    # RESCHEDULE  2
+    # RESORT      3
+    # RENSEC      4
+    # RESIGN      5
     # 
     def compare_config(self, ocfg):
         """Compares this configuration to another one. The result value
         will specify what to do with the zone according to the changes
         in the configuration."""
         # seperate if's will probably be usefule for debugging this
+        # The if statements are ordered by result
         result = self.NO_CHANGE
-        if self.signatures_resign_time != ocfg.signatures_resign_time:
-            result = self.RESORT
-        elif self.signatures_refresh_time != ocfg.signatures_refresh_time:
-            result = self.RESORT
-        elif self.signatures_validity_default != \
-           ocfg.signatures_validity_default:
-            result = self.RESORT
-        elif self.signatures_validity_nsec != \
-           ocfg.signatures_validity_nsec:
-            result = self.RESORT
-        elif self.signatures_jitter != ocfg.signatures_jitter:
-            result = self.RESORT
-        elif self.signatures_clockskew != ocfg.signatures_clockskew:
-            result = self.RESORT
-        #if self.signatures_zsk_refs = []
-        #self.signatures_ksk_refs = []
-        
-        # todo: lists cannot be ==/!='d can they? loop?
-        elif self.publish_keys != ocfg.publish_keys:
+
+        if self.publish_keys != ocfg.publish_keys:
             result = self.RESORT
         elif self.denial_nsec != ocfg.denial_nsec:
             result = self.RESORT
         elif self.denial_nsec3 != ocfg.denial_nsec3:
             result = self.RESORT
-        elif self.denial_nsec3_optout != ocfg.denial_nsec3_optout:
-            result = self.RESORT
-        elif self.denial_nsec3_algorithm != ocfg.denial_nsec3_algorithm:
-            result = self.RESORT
-        elif self.denial_nsec3_iterations != ocfg.denial_nsec3_iterations:
-            result = self.RESORT
-        elif self.denial_nsec3_salt != ocfg.denial_nsec3_salt:
-            result = self.RESORT
-        
-        elif self.nsec3_param_rr != ocfg.nsec3_param_rr:
-            result = self.RESORT
-        # i still think nsec TTL should not be configurable
-        elif self.denial_nsec3_ttl != ocfg.denial_nsec3_ttl:
-            result = self.RESORT
-        elif self.keys != ocfg.keys:
-            result = self.RESORT
-        elif self.signature_keys != ocfg.signature_keys:
-            result = self.RESORT
         elif self.publish_keys != ocfg.publish_keys:
             result = self.RESORT
+        elif self.nsec3_param_rr != ocfg.nsec3_param_rr:
+            result = self.RESORT
 
+        elif self.denial_nsec3_optout != ocfg.denial_nsec3_optout:
+            result = self.RENSEC
+        elif self.denial_nsec3_algorithm != ocfg.denial_nsec3_algorithm:
+            result = self.RENSEC
+        elif self.denial_nsec3_iterations != ocfg.denial_nsec3_iterations:
+            result = self.RENSEC
+        elif self.denial_nsec3_salt != ocfg.denial_nsec3_salt:
+            result = self.RENSEC
+        # i still think nsec TTL should not be configurable
+        elif self.denial_nsec3_ttl != ocfg.denial_nsec3_ttl:
+            result = self.RENSEC
         elif self.denial_ttl != ocfg.denial_ttl:
-            result = self.RESORT
+            result = self.RENSEC
 
+        elif self.signature_keys != ocfg.signature_keys:
+            result = self.RESIGN
         elif self.soa_ttl != ocfg.soa_ttl:
-            result = self.RESORT
+            result = self.RESIGN
         elif self.soa_minimum != ocfg.soa_minimum:
-            result = self.RESORT
+            result = self.RESIGN
         elif self.soa_serial != ocfg.soa_serial:
-            result = self.RESORT
+            result = self.RESIGN
+
+        elif self.signatures_resign_time != ocfg.signatures_resign_time:
+            result = self.RESCHEDULE
+        elif self.signatures_refresh_time != ocfg.signatures_refresh_time:
+            result = self.RESCHEDULE
+
+        elif self.signatures_validity_default != \
+           ocfg.signatures_validity_default:
+            result = self.NO_SCHEDULE
+        elif self.signatures_validity_nsec != \
+           ocfg.signatures_validity_nsec:
+            result = self.NO_SCHEDULE
+        elif self.signatures_jitter != ocfg.signatures_jitter:
+            result = self.NO_SCHEDULE
+        elif self.signatures_clockskew != ocfg.signatures_clockskew:
+            result = self.NO_SCHEDULE
+        
+        # todo: lists cannot be ==/!='d can they? loop?
+        elif self.keys != ocfg.keys:
+            result = self.NO_SCHEDULE
         return result
 
     def from_xml_file(self, xml_file_name):

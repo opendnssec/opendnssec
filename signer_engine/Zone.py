@@ -4,7 +4,7 @@ import os
 import time
 import subprocess
 from datetime import datetime
-import traceback
+#import traceback
 import syslog
 
 from ZoneConfig import ZoneConfig
@@ -29,6 +29,9 @@ class Zone:
         self.last_update = None
         # this isn't used atm
         self.last_read = None
+
+        # this should be set with the result from ZoneConfig.compare()
+        self.action = ZoneConfig.NO_CHANGE
     
     # we define two zone objects the same if the zone names are equal
     def __eq__(self, other):
@@ -206,7 +209,7 @@ class Zone:
             sort_process.stdin.close()
             
             unsorted_zone_file.close()
-            sorted_zone_file = open(self.get_zone_tmp_filename(), "w")
+            sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
             
             for line in sort_process.stderr:
                 syslog.syslog(syslog.LOG_ERR,
@@ -225,148 +228,171 @@ class Zone:
                               "sorter stderr: " + line)
             raise exc
         syslog.syslog(syslog.LOG_INFO, "Done sorting")
-        
-    def sign(self):
-        """Sign the zone. The input is read from the temporary zone file
-        produced with sort(). It is stripped, nsec(3)ed, and finally
-        signed. The result is written to the default output file."""
-        self.lock("sign()")
-        try:
-            # todo: only sort if necessary (depends on 
-            #       what has changed in the policy)
-            self.sort()
-            syslog.syslog(syslog.LOG_INFO, "Signing zone: " + self.zone_name)
-            # hmz, todo: stripped records need to be re-added
-            # and another todo: move strip and nsec to stored file too?
-            # (so only signing needs to be redone at re-sign time)
-            strip_p = Util.run_tool([self.get_tool_filename("stripper"),
-                                "-o", self.zone_name,
-                                "-f", self.get_zone_tmp_filename()]
-                               )
-            
-            if self.zone_config.denial_nsec:
-                nsec_p = Util.run_tool(
-                                  [self.get_tool_filename("nseccer")],
-                                  strip_p.stdout)
-            elif self.zone_config.denial_nsec3:
-                nsec_p = Util.run_tool(
-                    [
-                        self.get_tool_filename("nsec3er"),
-                        "-o", self.zone_name,
-                        "-s",
-                        self.zone_config.denial_nsec3_salt,
-                        "-t",
-                        str(self.zone_config.denial_nsec3_iterations),
-                        "-a",
-                        str(self.zone_config.denial_nsec3_algorithm)
-                    ],
-                    strip_p.stdout)
-            cmd = [self.get_tool_filename("signer_pkcs11") ]
 
-            sign_p = Util.run_tool(cmd)
-            sign_p.stdin.write("\n")
-            sign_p.stdin.write(":origin " + self.zone_name + "\n")
-            syslog.syslog(syslog.LOG_DEBUG,
-                          "send to signer: " +\
-                          ":origin " + self.zone_name)
-            
-            # optional SOA modification values
-            if self.zone_config.soa_ttl:
-                sign_p.stdin.write(":soa_ttl " +\
-                               str(self.zone_config.soa_ttl) + "\n")
-            if self.zone_config.soa_minimum:
-                sign_p.stdin.write(":soa_minimum " +\
-                               str(self.zone_config.soa_ttl) + "\n")
-            if self.zone_config.soa_serial:
-                # there are a few options;
-                # by default, plain copy the original soa serial
-                # (which must have been read...)
-                # for now, only support 'unixtime'
-                soa_serial = "123"
-                if self.zone_config.soa_serial == "unixtime":
-                    soa_serial = int(time.time())
-                    syslog.syslog(syslog.LOG_DEBUG,
-                                  "set serial to " + str(soa_serial))
-                    sign_p.stdin.write(":soa_serial " +\
-                                   str(soa_serial) + "\n")
-                elif self.zone_config.soa_serial == "counter":
-                    # try output serial first, if not found, use input
-                    prev_serial = self.get_output_serial()
-                    if not prev_serial:
-                        prev_serial = self.get_input_serial()
-                    if not prev_serial:
-                        prev_serial = 0
-                    soa_serial = prev_serial + 1
-                    syslog.syslog(syslog.LOG_DEBUG,
-                                  "set serial to " + str(soa_serial))
-                    sign_p.stdin.write(":soa_serial " +\
-                                   str(soa_serial) + "\n")
-                elif self.zone_config.soa_serial == "datecounter":
-                    # if current output serial >= <date>00,
-                    # just increment by one
-                    soa_serial = int(time.strftime("%Y%m%d")) * 100
-                    output_serial = self.get_output_serial()
-                    if output_serial >= soa_serial:
-                        soa_serial = output_serial + 1
-                    syslog.syslog(syslog.LOG_DEBUG,
-                                  "set serial to " + str(soa_serial))
-                    sign_p.stdin.write(":soa_serial " +\
-                                   str(soa_serial) + "\n")
-                else:
-                    syslog.syslog(syslog.LOG_WARNING,
-                                  "warning: unknown serial type " +\
-                                  self.zone_config.soa_serial)
-            for k in self.zone_config.signature_keys:
+    def nsecify(self):
+        """Takes the sorted zone file created with sort(), strips
+           the glue from it, and adds nsec(3) records. The output
+           is written to a new file (.nsecced), ready to
+           be signed."""
+        syslog.syslog(syslog.LOG_INFO,
+                      "Stripping and NSEC(3)ing zone: " + self.zone_name)
+        # hmz, todo: stripped records need to be re-added
+        # and another todo: move strip to right after sorter?
+        strip_p = Util.run_tool([self.get_tool_filename("stripper"),
+                            "-o", self.zone_name,
+                            "-f", self.get_zone_tmp_filename(".sorted")]
+                           )
+        
+        if self.zone_config.denial_nsec:
+            nsec_p = Util.run_tool(
+                              [self.get_tool_filename("nseccer")],
+                              strip_p.stdout)
+        elif self.zone_config.denial_nsec3:
+            nsec_p = Util.run_tool(
+                [
+                    self.get_tool_filename("nsec3er"),
+                    "-o", self.zone_name,
+                    "-s",
+                    self.zone_config.denial_nsec3_salt,
+                    "-t",
+                    str(self.zone_config.denial_nsec3_iterations),
+                    "-a",
+                    str(self.zone_config.denial_nsec3_algorithm)
+                ],
+                strip_p.stdout)
+        nsecced_zone_file = open(self.get_zone_tmp_filename(".nsecced"), "w")
+        
+        for line in nsec_p.stderr:
+            syslog.syslog(syslog.LOG_ERR,
+                          "stderr from nseccer: " + line)
+        
+        for line in nsec_p.stdout:
+            nsecced_zone_file.write(line)
+        nsecced_zone_file.close()
+        
+
+    def perform_action(self):
+        """Depending on the value set to zone.action, this method
+           will sort, nsecify and/or sign the zone"""
+        if self.action == ZoneConfig.RESORT:
+            self.sort()
+            self.nsecify()
+            self.sign()
+        if self.action == ZoneConfig.RENSEC:
+            self.nsecify()
+            self.sign()
+        if self.action == ZoneConfig.RESIGN:
+            self.sign()
+        # if nothing in the config changes, the next action will always
+        # be to just resign
+        self.action = ZoneConfig.RESIGN
+
+    def sign(self):
+        """Takes the file created by nsecify(), and signs the zone"""
+        cmd = [self.get_tool_filename("signer_pkcs11"),
+              ]
+
+        sign_p = Util.run_tool(cmd)
+        sign_p.stdin.write("\n")
+        sign_p.stdin.write(":origin " + self.zone_name + "\n")
+        syslog.syslog(syslog.LOG_DEBUG,
+                      "send to signer: " +\
+                      ":origin " + self.zone_name)
+        
+        # optional SOA modification values
+        if self.zone_config.soa_ttl:
+            sign_p.stdin.write(":soa_ttl " +\
+                           str(self.zone_config.soa_ttl) + "\n")
+        if self.zone_config.soa_minimum:
+            sign_p.stdin.write(":soa_minimum " +\
+                           str(self.zone_config.soa_ttl) + "\n")
+        if self.zone_config.soa_serial:
+            # there are a few options;
+            # by default, plain copy the original soa serial
+            # (which must have been read...)
+            # for now, only support 'unixtime'
+            soa_serial = "123"
+            if self.zone_config.soa_serial == "unixtime":
+                soa_serial = int(time.time())
                 syslog.syslog(syslog.LOG_DEBUG,
-                              "use signature key: " + k["locator"])
-                if not k["dnskey"]:
-                    try:
-                        syslog.syslog(syslog.LOG_DEBUG,
-                                      "No information yet for key " +\
-                                      k["locator"])
-                        self.find_key_details(k)
-                    except Exception:
-                        syslog.syslog(syslog.LOG_ERR,
-                                      "Error: Unable to find key " +\
-                                      k["locator"])
-                if k["token_name"]:
-                    scmd = [":add_module",
-                            k["token_name"],
-                            k["pkcs11_module"],
-                            k["pkcs11_pin"]
-                           ]
+                              "set serial to " + str(soa_serial))
+                sign_p.stdin.write(":soa_serial " +\
+                               str(soa_serial) + "\n")
+            elif self.zone_config.soa_serial == "counter":
+                # try output serial first, if not found, use input
+                prev_serial = self.get_output_serial()
+                if not prev_serial:
+                    prev_serial = self.get_input_serial()
+                if not prev_serial:
+                    prev_serial = 0
+                soa_serial = prev_serial + 1
+                syslog.syslog(syslog.LOG_DEBUG,
+                              "set serial to " + str(soa_serial))
+                sign_p.stdin.write(":soa_serial " +\
+                               str(soa_serial) + "\n")
+            elif self.zone_config.soa_serial == "datecounter":
+                # if current output serial >= <date>00,
+                # just increment by one
+                soa_serial = int(time.strftime("%Y%m%d")) * 100
+                output_serial = self.get_output_serial()
+                if output_serial >= soa_serial:
+                    soa_serial = output_serial + 1
+                syslog.syslog(syslog.LOG_DEBUG,
+                              "set serial to " + str(soa_serial))
+                sign_p.stdin.write(":soa_serial " +\
+                               str(soa_serial) + "\n")
+            else:
+                syslog.syslog(syslog.LOG_WARNING,
+                              "warning: unknown serial type " +\
+                              self.zone_config.soa_serial)
+        for k in self.zone_config.signature_keys:
+            syslog.syslog(syslog.LOG_DEBUG,
+                          "use signature key: " + k["locator"])
+            if not k["dnskey"]:
+                try:
                     syslog.syslog(syslog.LOG_DEBUG,
-                                  "send to signer " + " ".join(scmd))
-                    sign_p.stdin.write(" ".join(scmd) + "\n")
-                    scmd = [":add_key",
-                            k["token_name"],
-                            k["tool_key_id"],
-                            str(k["algorithm"]),
-                            str(k["flags"])
-                           ]
-                    syslog.syslog(syslog.LOG_DEBUG,
-                                  "send to signer " + " ".join(scmd))
-                    sign_p.stdin.write(" ".join(scmd) + "\n")
-                else:
-                    syslog.syslog(syslog.LOG_WARNING,
-                                  "warning: no token for key " +\
+                                  "No information yet for key " +\
                                   k["locator"])
-            for line in nsec_p.stdout:
-                #syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)
-                sign_p.stdin.write(line)
-            sign_p.stdin.close()
-            sign_p.wait()
-            output = open(self.get_zone_output_filename(), "w")
-            for line in sign_p.stdout:
-                output.write(line)
-            for line in sign_p.stderr:
-                syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
-            output.close()
-        except Exception:
-            traceback.print_exc()
-        syslog.syslog(syslog.LOG_INFO, "Done signing " + self.zone_name)
-        #Util.debug(1, "signer result: " + str(status));
-        self.release()
+                    self.find_key_details(k)
+                except Exception:
+                    syslog.syslog(syslog.LOG_ERR,
+                                  "Error: Unable to find key " +\
+                                  k["locator"])
+            if k["token_name"]:
+                scmd = [":add_module",
+                        k["token_name"],
+                        k["pkcs11_module"],
+                        k["pkcs11_pin"]
+                       ]
+                syslog.syslog(syslog.LOG_DEBUG,
+                              "send to signer " + " ".join(scmd))
+                sign_p.stdin.write(" ".join(scmd) + "\n")
+                scmd = [":add_key",
+                        k["token_name"],
+                        k["tool_key_id"],
+                        str(k["algorithm"]),
+                        str(k["flags"])
+                       ]
+                syslog.syslog(syslog.LOG_DEBUG,
+                              "send to signer " + " ".join(scmd))
+                sign_p.stdin.write(" ".join(scmd) + "\n")
+            else:
+                syslog.syslog(syslog.LOG_WARNING,
+                              "warning: no token for key " +\
+                              k["locator"])
+        nsecced_f = open(self.get_zone_tmp_filename(".nsecced"))
+        for line in nsecced_f:
+            #syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)
+            sign_p.stdin.write(line)
+        nsecced_f.close()
+        sign_p.stdin.close()
+        sign_p.wait()
+        output = open(self.get_zone_output_filename(), "w")
+        for line in sign_p.stdout:
+            output.write(line)
+        for line in sign_p.stderr:
+            syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
+        output.close()
         
     def lock(self, caller=None):
         """Lock the zone with a simple spinlock"""

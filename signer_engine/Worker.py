@@ -35,7 +35,7 @@ class Task:
             syslog.syslog(syslog.LOG_INFO,
                           "Run task: sign zone: " +\
                           str(self.how.zone_name))
-            self.how.sign()
+            self.how.perform_action()
         elif self.what == Task.NOTIFY_SERVER:
             syslog.syslog(syslog.LOG_INFO, "Run task: notify server")
         elif self.what == Task.DUMMY:

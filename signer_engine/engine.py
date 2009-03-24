@@ -25,6 +25,7 @@ import Util
 import syslog
 
 import Zone
+from ZoneConfig import ZoneConfig
 from EngineConfig import EngineConfiguration
 from Worker import Worker, TaskQueue, Task
 from Zonelist import Zonelist
@@ -221,8 +222,10 @@ class Engine:
         self.update_zone(zone_name)
         secs_left = self.zones[zone_name].calc_resign_from_output_file()
         if (secs_left < 1):
+            self.zones[zone_name].action = ZoneConfig.RESORT
             self.schedule_signing(zone_name)
         else:
+            self.zones[zone_name].action = ZoneConfig.RESIGN
             syslog.syslog(syslog.LOG_INFO,
                           "scheduling resign of zone '" + zone_name +\
                           "' in " + str(secs_left) + " seconds")
@@ -242,9 +245,22 @@ class Engine:
         """Update the configuration for an existing Zone"""
         zone = self.zones[zone_name]
         zone.lock()
+        old_config = zone.zone_config
         zone.read_config()
-        # todo: reschedule? need 'config diff'
-        self.schedule_signing(zone_name)
+        if old_config:
+            config_action = old_config.compare_config(zone.zone_config)
+        else:
+            # there was no config loaded previously, do everything
+            # to be sure
+            config_action = ZoneConfig.RESORT
+        zone.action = config_action
+        if config_action == ZoneConfig.RESCHEDULE:
+            # update the scheduled time to now + refresh_time - last_time
+            # TODO
+            self.schedule_signing(zone_name)
+        elif config_action >= ZoneConfig.RESORT:
+            # perform immediately
+            self.schedule_signing(zone_name)
         zone.release()
         
     # return big multiline string with all current zone data
