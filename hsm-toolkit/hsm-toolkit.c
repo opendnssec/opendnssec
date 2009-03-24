@@ -25,19 +25,18 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 #include <dlfcn.h>
+#include <err.h>
+#include "pktools.h"
 #include "cryptoki.h"
 
 const CK_BBOOL    ctrue    = CK_TRUE;
 const CK_BBOOL    cfalse   = CK_FALSE;
-
-CK_FUNCTION_LIST_PTR sym = NULL;
-
 
 /*
 
@@ -50,397 +49,167 @@ CK_FUNCTION_LIST_PTR sym = NULL;
  o
 */
 
-typedef struct {CK_RV rv;const char *rv_str;} error_table;
-
-error_table error_str[] =
-{
-    { CKR_OK, "CKR_OK"},
-    { CKR_CANCEL, "CKR_CANCEL"},
-    { CKR_HOST_MEMORY, "CKR_HOST_MEMORY"},
-    { CKR_SLOT_ID_INVALID, "CKR_SLOT_ID_INVALID"},
-    { CKR_GENERAL_ERROR, "CKR_GENERAL_ERROR"},
-    { CKR_FUNCTION_FAILED, "CKR_FUNCTION_FAILED"},
-    { CKR_ARGUMENTS_BAD, "CKR_ARGUMENTS_BAD"},
-    { CKR_NO_EVENT, "CKR_NO_EVENT"},
-    { CKR_NEED_TO_CREATE_THREADS, "CKR_NEED_TO_CREATE_THREADS"},
-    { CKR_CANT_LOCK, "CKR_CANT_LOCK"},
-    { CKR_ATTRIBUTE_READ_ONLY, "CKR_ATTRIBUTE_READ_ONLY"},
-    { CKR_ATTRIBUTE_SENSITIVE, "CKR_ATTRIBUTE_SENSITIVE"},
-    { CKR_ATTRIBUTE_TYPE_INVALID, "CKR_ATTRIBUTE_TYPE_INVALID"},
-    { CKR_ATTRIBUTE_VALUE_INVALID, "CKR_ATTRIBUTE_VALUE_INVALID"},
-    { CKR_DATA_INVALID, "CKR_DATA_INVALID"},
-    { CKR_DATA_LEN_RANGE, "CKR_DATA_LEN_RANGE"},
-    { CKR_DEVICE_ERROR, "CKR_DEVICE_ERROR"},
-    { CKR_DEVICE_MEMORY, "CKR_DEVICE_MEMORY"},
-    { CKR_DEVICE_REMOVED, "CKR_DEVICE_REMOVED"},
-    { CKR_ENCRYPTED_DATA_INVALID, "CKR_ENCRYPTED_DATA_INVALID"},
-    { CKR_ENCRYPTED_DATA_LEN_RANGE, "CKR_ENCRYPTED_DATA_LEN_RANGE"},
-    { CKR_FUNCTION_CANCELED, "CKR_FUNCTION_CANCELED"},
-    { CKR_FUNCTION_NOT_PARALLEL, "CKR_FUNCTION_NOT_PARALLEL"},
-    { CKR_FUNCTION_NOT_SUPPORTED, "CKR_FUNCTION_NOT_SUPPORTED"},
-    { CKR_KEY_HANDLE_INVALID, "CKR_KEY_HANDLE_INVALID"},
-    { CKR_KEY_SIZE_RANGE, "CKR_KEY_SIZE_RANGE"},
-    { CKR_KEY_TYPE_INCONSISTENT, "CKR_KEY_TYPE_INCONSISTENT"},
-    { CKR_KEY_NOT_NEEDED, "CKR_KEY_NOT_NEEDED"},
-    { CKR_KEY_CHANGED, "CKR_KEY_CHANGED"},
-    { CKR_KEY_NEEDED, "CKR_KEY_NEEDED"},
-    { CKR_KEY_INDIGESTIBLE, "CKR_KEY_INDIGESTIBLE"},
-    { CKR_KEY_FUNCTION_NOT_PERMITTED, "CKR_KEY_FUNCTION_NOT_PERMITTED"},
-    { CKR_KEY_NOT_WRAPPABLE, "CKR_KEY_NOT_WRAPPABLE"},
-    { CKR_KEY_UNEXTRACTABLE, "CKR_KEY_UNEXTRACTABLE"},
-    { CKR_MECHANISM_INVALID, "CKR_MECHANISM_INVALID"},
-    { CKR_MECHANISM_PARAM_INVALID, "CKR_MECHANISM_PARAM_INVALID"},
-    { CKR_OBJECT_HANDLE_INVALID, "CKR_OBJECT_HANDLE_INVALID"},
-    { CKR_OPERATION_ACTIVE, "CKR_OPERATION_ACTIVE"},
-    { CKR_OPERATION_NOT_INITIALIZED, "CKR_OPERATION_NOT_INITIALIZED"},
-    { CKR_PIN_INCORRECT, "CKR_PIN_INCORRECT"},
-    { CKR_PIN_INVALID, "CKR_PIN_INVALID"},
-    { CKR_PIN_LEN_RANGE, "CKR_PIN_LEN_RANGE"},
-    { CKR_PIN_EXPIRED, "CKR_PIN_EXPIRED"},
-    { CKR_PIN_LOCKED, "CKR_PIN_LOCKED"},
-    { CKR_SESSION_CLOSED, "CKR_SESSION_CLOSED"},
-    { CKR_SESSION_COUNT, "CKR_SESSION_COUNT"},
-    { CKR_SESSION_HANDLE_INVALID, "CKR_SESSION_HANDLE_INVALID"},
-    { CKR_SESSION_PARALLEL_NOT_SUPPORTED, "CKR_SESSION_PARALLEL_NOT_SUPPORTED"},
-    { CKR_SESSION_READ_ONLY, "CKR_SESSION_READ_ONLY"},
-    { CKR_SESSION_EXISTS, "CKR_SESSION_EXISTS"},
-    { CKR_SESSION_READ_ONLY_EXISTS, "CKR_SESSION_READ_ONLY_EXISTS"},
-    { CKR_SESSION_READ_WRITE_SO_EXISTS, "CKR_SESSION_READ_WRITE_SO_EXISTS"},
-    { CKR_SIGNATURE_INVALID, "CKR_SIGNATURE_INVALID"},
-    { CKR_SIGNATURE_LEN_RANGE, "CKR_SIGNATURE_LEN_RANGE"},
-    { CKR_TEMPLATE_INCOMPLETE, "CKR_TEMPLATE_INCOMPLETE"},
-    { CKR_TEMPLATE_INCONSISTENT, "CKR_TEMPLATE_INCONSISTENT"},
-    { CKR_TOKEN_NOT_PRESENT, "CKR_TOKEN_NOT_PRESENT"},
-    { CKR_TOKEN_NOT_RECOGNIZED, "CKR_TOKEN_NOT_RECOGNIZED"},
-    { CKR_TOKEN_WRITE_PROTECTED, "CKR_TOKEN_WRITE_PROTECTED"},
-    { CKR_UNWRAPPING_KEY_HANDLE_INVALID, "CKR_UNWRAPPING_KEY_HANDLE_INVALID"},
-    { CKR_UNWRAPPING_KEY_SIZE_RANGE, "CKR_UNWRAPPING_KEY_SIZE_RANGE"},
-    { CKR_UNWRAPPING_KEY_TYPE_INCONSISTENT, "CKR_UNWRAPPING_KEY_TYPE_INCONSISTENT"},
-    { CKR_USER_ALREADY_LOGGED_IN, "CKR_USER_ALREADY_LOGGED_IN"},
-    { CKR_USER_NOT_LOGGED_IN, "CKR_USER_NOT_LOGGED_IN"},
-    { CKR_USER_PIN_NOT_INITIALIZED, "CKR_USER_PIN_NOT_INITIALIZED"},
-    { CKR_USER_TYPE_INVALID, "CKR_USER_TYPE_INVALID"},
-    { CKR_USER_ANOTHER_ALREADY_LOGGED_IN, "CKR_USER_ANOTHER_ALREADY_LOGGED_IN"},
-    { CKR_USER_TOO_MANY_TYPES, "CKR_USER_TOO_MANY_TYPES"},
-    { CKR_WRAPPED_KEY_INVALID, "CKR_WRAPPED_KEY_INVALID"},
-    { CKR_WRAPPED_KEY_LEN_RANGE, "CKR_WRAPPED_KEY_LEN_RANGE"},
-    { CKR_WRAPPING_KEY_HANDLE_INVALID, "CKR_WRAPPING_KEY_HANDLE_INVALID"},
-    { CKR_WRAPPING_KEY_SIZE_RANGE, "CKR_WRAPPING_KEY_SIZE_RANGE"},
-    { CKR_WRAPPING_KEY_TYPE_INCONSISTENT, "CKR_WRAPPING_KEY_TYPE_INCONSISTENT"},
-    { CKR_RANDOM_SEED_NOT_SUPPORTED, "CKR_RANDOM_SEED_NOT_SUPPORTED"},
-    { CKR_RANDOM_NO_RNG, "CKR_RANDOM_NO_RNG"},
-    { CKR_DOMAIN_PARAMS_INVALID, "CKR_DOMAIN_PARAMS_INVALID"},
-    { CKR_BUFFER_TOO_SMALL, "CKR_BUFFER_TOO_SMALL"},
-    { CKR_SAVED_STATE_INVALID, "CKR_SAVED_STATE_INVALID"},
-    { CKR_INFORMATION_SENSITIVE, "CKR_INFORMATION_SENSITIVE"},
-    { CKR_STATE_UNSAVEABLE, "CKR_STATE_UNSAVEABLE"},
-    { CKR_CRYPTOKI_NOT_INITIALIZED, "CKR_CRYPTOKI_NOT_INITIALIZED"},
-    { CKR_CRYPTOKI_ALREADY_INITIALIZED, "CKR_CRYPTOKI_ALREADY_INITIALIZED"},
-    { CKR_MUTEX_BAD, "CKR_MUTEX_BAD"},
-    { CKR_MUTEX_NOT_LOCKED, "CKR_MUTEX_NOT_LOCKED"},
-    { CKR_NEW_PIN_MODE, "CKR_NEW_PIN_MODE"},
-    { CKR_NEXT_OTP, "CKR_NEXT_OTP"},
-    { CKR_FUNCTION_REJECTED, "CKR_FUNCTION_REJECTED"}
-};
-
-void Add_Attr(CK_ATTRIBUTE_PTR attr, int type, const void *Value, size_t size)
-{
-    attr->type = type;
-    attr->pValue = (size)?malloc(size):NULL_PTR;
-    memcpy(attr->pValue, Value, size);
-    attr->ulValueLen = size;
-}
-
-void Flush_Attrs(CK_ATTRIBUTE_PTR attr, unsigned int n)
-{
-    while (n--)
-    {
-        if (attr[n].pValue) free(attr[n].pValue);
-    }
-}
-
-const void* Get_Val_string(CK_ATTRIBUTE_PTR attr,unsigned type,unsigned int n)
-{   
-    while (n--)
-    {
-        if (attr[n].type == type) return attr[n].pValue;
-    }
-	return NULL_PTR;
-}
-
-CK_ULONG Get_Val_ul(CK_ATTRIBUTE_PTR attr,unsigned type,unsigned int n)
-{   CK_ULONG Value = 0;
-    while (n--)
-    {
-        if ((attr+n)->type == type) memcpy(&Value, (attr+n)->pValue,sizeof(CK_ULONG));
-    }
-	return Value;
-}
-
-unsigned int Get_Val_Len(CK_ATTRIBUTE_PTR attr,unsigned int type,unsigned int n)
-{
-    while (n--)
-    {
-        if (attr[n].type == type) return attr[n].ulValueLen;
-    }
-    return 0;
-}
-
-void Init_Attrs(CK_ATTRIBUTE_PTR attr, unsigned int n)
-{
-    while (n--)	
-    {
-        if ((attr[n].ulValueLen) && (attr[n].pValue == NULL_PTR))
-			attr[n].pValue = calloc(attr[n].ulValueLen,1);
-    }
-}
-
-const char*
-get_rv_str(CK_RV rv)
-{
-    int i=0;
-    while(error_str[i].rv_str != NULL_PTR)
-    {
-        if (error_str[i].rv == rv) return error_str[i].rv_str;
-        i++;
-    }
-    return NULL;
-}
+extern CK_FUNCTION_LIST_PTR sym;
 
 /*
- * Handles return values from PKCS11 functions
- *
- * if return value is not CKR_OK (0x00000000), the function will exit.
- * for convenience, a message can be displayed alongside the error message.
- */
+   RemoveObject removes an object from a token by its CKA_ID
+*/
 
 void
-check_rv (const char *message,CK_RV rv)
+RemoveObject(CK_SESSION_HANDLE session, uuid_t uuid)
 {
-    if (rv != CKR_OK)
-    {
-        fprintf (stderr, "Error %s in %s\n", get_rv_str(rv), message);
-        exit (1);
-    }
-}
-
-CK_ULONG
-LabelExists(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
-{
-    CK_ULONG count = 0;
-    CK_OBJECT_HANDLE key;
-    CK_ATTRIBUTE search[1];
-    Add_Attr(search,CKA_LABEL,label,strlen ((char *) label));
-    check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (ses, search, 1));
-    Flush_Attrs(search,1);
-    check_rv("C_FindObjects", sym->C_FindObjects(ses, &key, 1, &count));
-    check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(ses));
-    return count;
-}
-
-void
-ActionRemoveObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
-{
-    if (label==NULL_PTR)
-    {
-        fprintf (stderr, "No label specified.\n");
-        exit (1);
-    }
-
-    if (!LabelExists(ses,label))
-    {
-        fprintf (stderr, "Object with label '%s' does not exist.\n",(char*)label);
-        exit (1);
-    }
-
-    CK_ATTRIBUTE search[1];
-    Add_Attr(search,CKA_LABEL,label,strlen ((char *) label));
-
-    CK_OBJECT_CLASS class = 0;
-    CK_ATTRIBUTE attributes[1];
-    Add_Attr(attributes,CKA_CLASS, &class, sizeof(class));
-
-    CK_ULONG count = 0;
-    CK_OBJECT_HANDLE object;
-
-    check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (ses, search, 1));
-    Flush_Attrs(search,1);
-    while (1)
-    {
-        check_rv("C_FindObjects", sym->C_FindObjects(ses, &object, 1, &count));
-        if (count == 0) break;
-        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(ses, object, attributes, 1));
-        check_rv("C_DestroyObject",sym->C_DestroyObject(ses, object));
-        printf("Destroyed %s key object, labeled %s\n",(class == CKO_PRIVATE_KEY)?"Private":"Public ",label);
-    }
-    Flush_Attrs(attributes,1);
-    check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(ses));
-}
-
-void
-ActionListObjects(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label)
-{
-    unsigned int cnt  = 0;
-    CK_ATTRIBUTE template[32];
-    if (label) Add_Attr(template+cnt++,CKA_LABEL, label, strlen ((char *) label));
-    check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (ses, template, cnt));
-    Flush_Attrs(template,cnt);
-    CK_OBJECT_HANDLE object;
     CK_ULONG found = 0;
-    check_rv("C_FindObjects",sym->C_FindObjects(ses, &object, 1, &found));
-    while (found)
-    {
-        cnt = 0;
-        Add_Attr(template+cnt++,CKA_CLASS,NULL_PTR,0);
-        Add_Attr(template+cnt++,CKA_LABEL,NULL_PTR,0);
-        Add_Attr(template+cnt++,CKA_MODULUS,NULL_PTR,0);
-        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(ses, object, template, cnt));
-        Init_Attrs(template,cnt);
-        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(ses, object, template, cnt));
-		
-		printf("%d-bit %s key object, labeled %s\n",
-            (int) Get_Val_Len(template,CKA_MODULUS,cnt) *8,
-            (Get_Val_ul(template,CKA_CLASS,cnt)== CKO_PRIVATE_KEY)?"Private":"Public ",
-            (char*) Get_Val_string(template,CKA_LABEL,cnt));
-        Flush_Attrs(template,cnt);
-        check_rv("C_FindObjects", sym->C_FindObjects(ses, &object, 1, &found));
+    CK_ATTRIBUTE template[2];
+    CK_OBJECT_HANDLE object;
+
+    char uuid_str[37];
+    uuid_unparse_lower(uuid,uuid_str);
+
+    if (!IDExists(session,uuid)) errx (1, "Object with id:%s does not exist.", uuid_str);
+
+    AddAttribute(template,CKA_ID,uuid,sizeof(uuid_t));
+    AddAttribute(template+1,CKA_CLASS, 0, 0);
+    check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (session, template, 1));
+    check_rv("C_FindObjects", sym->C_FindObjects(session, &object, 1, &found));
+    while (found) {
+        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(session, object, template, 2));
+        InitAttributes(template,2);
+        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(session, object, template, 2));
+        check_rv("C_DestroyObject",sym->C_DestroyObject(session, object));
+        warnx("Destroyed %s key object: %s",(Get_Val_ul(template,CKA_CLASS,2) == CKO_PRIVATE_KEY)?"Private":"Public ",uuid_str);
+        check_rv("C_FindObjects", sym->C_FindObjects(session, &object, 1, &found));
     }
-    check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(ses));
+    FlushAttributes(template,2);
+    check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(session));
 }
 
 void
-ActionGenerateObject(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label, CK_ULONG keysize)
+ListObjects(CK_SESSION_HANDLE session)
 {
-    if (keysize <512)
-    {
-        fprintf (stderr, "Keysize (%u) too small.\n",(int)keysize);
-        exit (1);
-    }
-    if (label==NULL_PTR)
-    {
-        fprintf (stderr, "No label specified.\n");
-        exit (1);
-    }
+    CK_ULONG found = 0;
+    CK_ATTRIBUTE template[4];
+    CK_OBJECT_HANDLE object;
+    unsigned char *id;
+    char id_str[128];
+    check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (session, 0, 0));
+    check_rv("C_FindObjects",sym->C_FindObjects(session, &object, 1, &found));
+    while (found) {
+        AddAttribute(template,CKA_CLASS,0,0);
+        AddAttribute(template+1,CKA_LABEL,0,0);
+        AddAttribute(template+2,CKA_MODULUS,0,0);
+        AddAttribute(template+3,CKA_ID,0,0);
+        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(session, object, template, 4));
+        InitAttributes(template,4);
+        check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(session, object, template, 4));
+        id = (unsigned char*) Get_Val(template, CKA_ID,4);
+        bin2hex(Get_Val_Len(template,CKA_ID,4), id, id_str);
+        warnx("%d-bit %s key object, label:%s, id:%s",
+            (int) Get_Val_Len(template,CKA_MODULUS,4) *8,
+            (Get_Val_ul(template,CKA_CLASS,4)== CKO_PRIVATE_KEY)?"Private":"Public ",
+            (char*) Get_Val(template,CKA_LABEL,4),
+            id_str);
+        FlushAttributes(template,4);
 
-    if (LabelExists(ses,label))
-    {
-        fprintf (stderr, "Key with label '%s' already exists.\n",(char*)label);
-        exit (1);
+        check_rv("C_FindObjects", sym->C_FindObjects(session, &object, 1, &found));
     }
+    check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(session));
+}
 
-    CK_MECHANISM mech = { CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0 };
+void GenerateObject(CK_SESSION_HANDLE session, CK_ULONG keysize)
+{
+    uuid_t uuid;
+    char uuid_str[37];
 
-    /* A template to generate an RSA public key objects*/
+    CK_ATTRIBUTE pub_temp[9];
+    CK_ATTRIBUTE pri_temp[10];
+
+    CK_MECHANISM mech = { CKM_RSA_PKCS_KEY_PAIR_GEN, 0, 0 };
     CK_BYTE pubex[3] = { 1, 0, 1 };
     CK_KEY_TYPE keyType = CKK_RSA;
-    unsigned int cnt1  = 0;
-	CK_ATTRIBUTE pub_temp[32];
-    Add_Attr(pub_temp+cnt1++,CKA_LABEL, label, strlen ((char *) label));
-    Add_Attr(pub_temp+cnt1++,CKA_ID,"",0);
-    Add_Attr(pub_temp+cnt1++,CKA_KEY_TYPE, &keyType, sizeof(keyType));
-	Add_Attr(pub_temp+cnt1++,CKA_VERIFY, &ctrue, sizeof (ctrue));
-	Add_Attr(pub_temp+cnt1++,CKA_ENCRYPT, &cfalse, sizeof (cfalse));
-	Add_Attr(pub_temp+cnt1++,CKA_WRAP, &cfalse, sizeof (cfalse));
-	Add_Attr(pub_temp+cnt1++,CKA_TOKEN, &ctrue, sizeof (ctrue));
-	Add_Attr(pub_temp+cnt1++,CKA_MODULUS_BITS, &keysize, sizeof (keysize));
-	Add_Attr(pub_temp+cnt1++,CKA_PUBLIC_EXPONENT, &pubex, sizeof (pubex));
-    /* A template to generate an RSA private key objects*/
-    unsigned int cnt2  = 0;
-	CK_ATTRIBUTE pri_temp[32];
-    Add_Attr(pri_temp+cnt2++,CKA_LABEL, label, strlen ((char *) label));
-    Add_Attr(pri_temp+cnt2++,CKA_ID,"",0);
-    Add_Attr(pri_temp+cnt2++,CKA_KEY_TYPE, &keyType, sizeof(keyType));
-	Add_Attr(pri_temp+cnt2++,CKA_SIGN, &ctrue, sizeof (ctrue));
-	Add_Attr(pri_temp+cnt2++,CKA_DECRYPT, &cfalse, sizeof (cfalse));
-	Add_Attr(pri_temp+cnt2++,CKA_UNWRAP, &cfalse, sizeof (cfalse));
-	Add_Attr(pri_temp+cnt2++,CKA_SENSITIVE, &cfalse, sizeof (cfalse));
-	Add_Attr(pri_temp+cnt2++,CKA_TOKEN, &ctrue, sizeof (ctrue));
-	Add_Attr(pri_temp+cnt2++,CKA_PRIVATE, &ctrue, sizeof (ctrue));
-	Add_Attr(pri_temp+cnt2++,CKA_EXTRACTABLE, &ctrue, sizeof (ctrue));
     CK_OBJECT_HANDLE ignore;
-    check_rv("C_GenerateKeyPair", sym->C_GenerateKeyPair(ses, &mech, pub_temp, cnt1,
-        pri_temp, cnt2, &ignore,&ignore));
-    printf("Created RSA key pair object, labeled %s\n",label);
-}
 
-CK_SLOT_ID GetSlot() {
-	/* Get list of all slots with a token present */ 
-	CK_SLOT_ID_PTR slotList = (CK_SLOT_ID_PTR) malloc(0); 
-	CK_ULONG slotcnt = 0; 
-	CK_RV rv = 0;
-	CK_SLOT_ID id = 0;
-	while (1) {
-    	rv =sym->C_GetSlotList(CK_TRUE, slotList, &slotcnt); 
-  		if (rv != CKR_BUFFER_TOO_SMALL) break; 
-		slotList = realloc(slotList,slotcnt * sizeof(CK_SLOT_ID)); 
-	}
-	id = slotList[0];
-	return id;
+    if (keysize <512) errx(1, "Keysize (%u) too small.",(int)keysize);
+    do uuid_generate(uuid); while (IDExists(session,uuid));
+
+    uuid_unparse_lower(uuid, uuid_str);
+
+    /* A template to generate an RSA public key objects*/
+    AddAttribute(pub_temp,CKA_LABEL, (CK_UTF8CHAR *) uuid_str, strlen (uuid_str));
+    AddAttribute(pub_temp+1,CKA_ID,uuid, sizeof(uuid));
+    AddAttribute(pub_temp+2,CKA_KEY_TYPE, &keyType, sizeof(keyType));
+    AddAttribute(pub_temp+3,CKA_VERIFY, &ctrue, sizeof (ctrue));
+    AddAttribute(pub_temp+4,CKA_ENCRYPT, &cfalse, sizeof (cfalse));
+    AddAttribute(pub_temp+5,CKA_WRAP, &cfalse, sizeof (cfalse));
+    AddAttribute(pub_temp+6,CKA_TOKEN, &ctrue, sizeof (ctrue));
+    AddAttribute(pub_temp+7,CKA_MODULUS_BITS, &keysize, sizeof (keysize));
+    AddAttribute(pub_temp+8,CKA_PUBLIC_EXPONENT, &pubex, sizeof (pubex));
+
+    /* A template to generate an RSA private key objects*/
+    AddAttribute(pri_temp,CKA_LABEL, (CK_UTF8CHAR *) uuid_str, strlen (uuid_str));
+    AddAttribute(pri_temp+1,CKA_ID,uuid, sizeof(uuid));
+    AddAttribute(pri_temp+2,CKA_KEY_TYPE, &keyType, sizeof(keyType));
+    AddAttribute(pri_temp+3,CKA_SIGN, &ctrue, sizeof (ctrue));
+    AddAttribute(pri_temp+4,CKA_DECRYPT, &cfalse, sizeof (cfalse));
+    AddAttribute(pri_temp+5,CKA_UNWRAP, &cfalse, sizeof (cfalse));
+    AddAttribute(pri_temp+6,CKA_SENSITIVE, &cfalse, sizeof (cfalse));
+    AddAttribute(pri_temp+7,CKA_TOKEN, &ctrue, sizeof (ctrue));
+    AddAttribute(pri_temp+8,CKA_PRIVATE, &ctrue, sizeof (ctrue));
+    AddAttribute(pri_temp+9,CKA_EXTRACTABLE, &ctrue, sizeof (ctrue));
+    check_rv("C_GenerateKeyPair", sym->C_GenerateKeyPair(session, &mech, pub_temp, 9, pri_temp, 10, &ignore,&ignore));
+    warnx("Created RSA key pair object, labeled %s\n",uuid_str);
 }
 
 int
 main (int argc, char *argv[])
 {
-    CK_UTF8CHAR *pin    = NULL_PTR;               // NO DEFAULT VALUE
-    CK_UTF8CHAR *label  = NULL_PTR;               // NO DEFAULT VALUE
-    CK_SLOT_ID  slot    = 0;                      // default value
-	CK_BBOOL	slot_specified = false;
-    CK_ULONG    keysize = 1024;                   // default value
+    CK_UTF8CHAR *pin = 0;                         // NO DEFAULT VALUE
+    CK_SLOT_ID slot = 0;                          // default value
+    CK_BBOOL slot_specified = false;
+    CK_ULONG keysize = 1024;                      // default value
     CK_SESSION_HANDLE ses;
+    uuid_t uuid;
     int Action  = 0;
     int opt;
-	char *pklib = NULL_PTR;
-    while ((opt = getopt (argc, argv, "GDb:l:p:s:h")) != -1)
-    {
-        switch (opt)
-        {
+    char *pklib = 0;
+    while ((opt = getopt (argc, argv, "GDb:l:p:s:h")) != -1) {
+        switch (opt) {
             case 'G': Action = 1; break;
             case 'D': Action = 2; break;
             case 'b': keysize = atoi (optarg); break;
-			case 'l': pklib = optarg; break;
+            case 'l': pklib = optarg; break;
             case 'p': pin = (CK_UTF8CHAR*)optarg; break;
-			case 's': slot = atoi (optarg); slot_specified=true;break;
-            case 'h': fprintf (stderr,
-                "usage: hsm-toolkit -l pkcs11-library [-s slot] [-p pin] [-G [-b keysize] label] [-D label]\n");
-            exit (2);
+            case 's': slot = atoi (optarg); slot_specified=true;break;
+            case 'h': errx (2, "usage: hsm-toolkit -l pkcs11-library [-s slot] [-p pin] [-G [-b keysize]] [-D UUID-string]");
 
         }
     }
-    if (pklib == NULL) {
-		fprintf (stderr, "Please specify a pkcs11 library\n");
-		exit (1);
-    }
-	void *handle = dlopen(pklib, RTLD_NOW);
-    if (handle==NULL) {
-   	   fprintf (stderr, "%s: dlopen: `%s'\n", pklib, dlerror ());
-       exit (1);
-    }
+    if (!pklib) errx (1, "Please specify a pkcs11 library.");
+
+    void *handle = dlopen(pklib, RTLD_NOW);
+    if (!handle) errx (1, "%s: dlopen: `%s'\n", pklib, dlerror ());
+
     void (*gGetFunctionList)() = dlsym(handle, "C_GetFunctionList");
-    if (gGetFunctionList==NULL) {
-	   fprintf (stderr, "%s: dlsym: `C_GetFunctionList'\n", dlerror ());
-	   exit (1);
-    }
+    if (!gGetFunctionList) errx (1, "%s: dlsym: `C_GetFunctionList'\n", dlerror ());
 
     gGetFunctionList(&sym);
 
-    label = (CK_UTF8CHAR *) argv[optind];
-    check_rv("C_Initialize",sym->C_Initialize (NULL_PTR));
-	if (!slot_specified) slot = GetSlot();
-    check_rv("C_OpenSession",sym->C_OpenSession (slot, CKF_RW_SESSION + CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &ses));
+    check_rv("C_Initialize",sym->C_Initialize(0));
+    if (!slot_specified) slot = GetSlot();
+    check_rv("C_OpenSession",sym->C_OpenSession (slot, CKF_RW_SESSION + CKF_SERIAL_SESSION, 0, 0, &ses));
 
     if (!pin) pin = (CK_UTF8CHAR *) getpass ("Enter Pin: ");
     check_rv("C_Login", sym->C_Login(ses, CKU_USER, pin, strlen ((char*)pin)));
-	memset(pin, 0, strlen((char *)pin));
-    switch (Action)
-    {
-        case 1: ActionGenerateObject(ses,label,keysize); break;
-        case 2: ActionRemoveObject(ses,label); break;
+    memset(pin, 0, strlen((char *)pin));
+    switch (Action) {
+        case 1: GenerateObject(ses,keysize); break;
+        case 2: if (uuid_parse(argv[optind],uuid)) errx (1, "argument %s is not a valid UUID string", argv[optind]);
+        RemoveObject(ses,uuid); break;
         default:
-            ActionListObjects(ses,label);
+            ListObjects(ses);
     }
     check_rv("C_Logout", sym->C_Logout(ses));
     check_rv("C_CloseSession", sym->C_CloseSession(ses));
-    check_rv("C_Finalize", sym->C_Finalize (NULL_PTR));
-	dlclose(handle);
+    check_rv("C_Finalize", sym->C_Finalize (0));
+    dlclose(handle);
     exit (0);
 }

@@ -6,11 +6,12 @@ CC = gcc
 
 CFLAGS = -O3 -W -Wall -Werror -g -I.
 LIBS = -ldl
+OBJS = pktools.o
 
-all: $(TARGET)
+default: $(TARGET)
 
-hsm-toolkit: hsm-toolkit.c
-	$(CC) -o $@ $(CFLAGS) $(LIBS) $@.c
+$(TARGET): ${OBJS} hsm-toolkit.c
+	$(CC) -o $@ $(CFLAGS) ${OBJS} $(LIBS) $@.c
 
 clean:
-	rm -f $(TARGET)
+	rm -f ${OBJS} $(TARGET)
