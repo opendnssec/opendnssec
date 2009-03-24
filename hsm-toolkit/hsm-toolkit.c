@@ -156,7 +156,7 @@ void GenerateObject(CK_SESSION_HANDLE session, CK_ULONG keysize)
     AddAttribute(pri_temp+8,CKA_PRIVATE, &ctrue, sizeof (ctrue));
     AddAttribute(pri_temp+9,CKA_EXTRACTABLE, &ctrue, sizeof (ctrue));
     check_rv("C_GenerateKeyPair", sym->C_GenerateKeyPair(session, &mech, pub_temp, 9, pri_temp, 10, &ignore,&ignore));
-    warnx("Created RSA key pair object, labeled %s\n",uuid_str);
+    warnx("Created RSA key pair object, labeled %s",uuid_str);
 }
 
 int
