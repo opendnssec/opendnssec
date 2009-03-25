@@ -56,6 +56,7 @@ struct rr_data_struct {
 	ldns_rdf *name;
 	ldns_rr_type type;
 	ldns_buffer *rr_buf;
+	ldns_rr *ent_for;
 };
 typedef struct rr_data_struct rr_data;
 
@@ -65,6 +66,7 @@ rr_data_new()
 	rr_data *rd = LDNS_MALLOC(rr_data);
 	rd->name = NULL;
 	rd->rr_buf = ldns_buffer_new(DEFAULT_RR_MALLOC);
+	rd->ent_for = NULL;
 	return rd;
 }
 
@@ -78,6 +80,9 @@ rr_data_free(rr_data *rd)
 			ldns_rdf_deep_free(rd->name);
 		}
 		ldns_buffer_free(rd->rr_buf);
+	}
+	if (rd->ent_for) {
+		ldns_rr_free(rd->ent_for);
 	}
 	LDNS_FREE(rd);
 }
@@ -101,40 +106,98 @@ rr_data_node_free(ldns_rbnode_t *n, void *arg)
 		LDNS_FREE(n);
 	}
 }
+
+int
+node_for_rr_name(ldns_rr *rr, ldns_rbnode_t *node)
+{
+	rr_data *cur_data;
+	ldns_rr *cur_rr;
+	size_t pos = 0;
+	ldns_status status;
+	
+	cur_data = (rr_data *) node->data;
+	if (!cur_data->ent_for) {
+		status = ldns_wire2rr(&cur_rr,
+								cur_data->rr_buf->_data,
+								cur_data->rr_buf->_capacity,
+								&pos,
+								LDNS_SECTION_ANY_NOQUESTION);
+		if (status == LDNS_STATUS_OK &&
+			ldns_dname_compare(ldns_rr_owner(rr),
+							   ldns_rr_owner(cur_rr)) == 0) {
+				ldns_rr_free(cur_rr);
+				return 1;
+		}
+		ldns_rr_free(cur_rr);
+	}
+	return 0;
+}
+
+int
+ent_for_ns_only(ldns_rr *rr, ldns_rbtree_t *tree)
+{
+	ldns_rbnode_t *cur_node;
+	rr_data *cur_data;
+
+	/* find the rr in the tree, and check all rrs with the same (hashed)
+	 * name to have the ns type
+	 */
+	cur_node = ldns_rbtree_first(tree);
+	while (cur_node != LDNS_RBTREE_NULL) {
+		if (node_for_rr_name(rr, cur_node)) {
+			while (cur_node != LDNS_RBTREE_NULL) {
+				cur_data = (rr_data *) cur_node->data;
+				if (cur_data->type != LDNS_RR_TYPE_NS) {
+					return 0;
+				}
+				if (!node_for_rr_name(rr, cur_node)) {
+					return 1;
+				}
+				cur_node = ldns_rbtree_next(cur_node);
+			}
+			return 1;
+		}
+		cur_node = ldns_rbtree_next(cur_node);
+	}
+	return 0;
+}
     
 void
-print_rr_data(FILE *out, rr_data *rrd)
+print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 {
 	ldns_rr *rr = NULL;
 	ldns_rdf *dname;
 	ldns_status status;
 	size_t pos = 0;
-	
-	status = ldns_wire2rr(&rr,
-					  rrd->rr_buf->_data,
-					  rrd->rr_buf->_capacity,
-					  &pos,
-					  LDNS_SECTION_ANY_NOQUESTION);
-	if (rr) {
-		ldns_rr_print(out, rr);
-		ldns_rr_free(rr);
-	} else {
-		/* it might be just a name (in case of empty nonterminals) */
+
+	if (rrd->ent_for) {
 		pos = 0;
 		status = ldns_wire2dname(&dname, rrd->rr_buf->_data, rrd->rr_buf->_capacity, &pos);
-		if (status == LDNS_STATUS_OK) {
-			printf("; Empty nonterminal: ");
-			ldns_rdf_print(stdout, dname);
-			printf("\n");
-			ldns_rdf_deep_free(dname);
-		} else {
-			printf("; error parsing rr or dname:\n");
-			printf("; buf data %p buf cap %u buf pos %u\n",
-			       rrd->rr_buf->_data,
-			       (unsigned int) rrd->rr_buf->_capacity,
-			       (unsigned int) pos);
+		if (status != LDNS_STATUS_OK) {
+			return;
 		}
-		//ldns_rdf_free(dname);
+		if (ldns_rr_get_type(rrd->ent_for) == LDNS_RR_TYPE_NS &&
+			ent_for_ns_only(rrd->ent_for, tree)
+		) {
+			printf("; Empty non-terminal to NS: ");
+		} else {
+			printf("; Empty non-terminal: ");
+		}
+		ldns_rdf_print(stdout, dname);
+		printf("\n");
+		ldns_rdf_deep_free(dname);
+	} else {
+		status = ldns_wire2rr(&rr,
+						  rrd->rr_buf->_data,
+						  rrd->rr_buf->_capacity,
+						  &pos,
+						  LDNS_SECTION_ANY_NOQUESTION);
+		if (rr) {
+			ldns_rr_print(out, rr);
+			ldns_rr_free(rr);
+		} else {
+			fprintf(stderr, "error parsing rr\n");
+		}
 	}
 }
 
@@ -142,11 +205,13 @@ void
 print_rrs(FILE *out, ldns_rbtree_t *rr_tree)
 {
 	ldns_rbnode_t *cur_node;
+	rr_data *cur_data;
 
 	cur_node = ldns_rbtree_first(rr_tree);
 
 	while (cur_node && cur_node != LDNS_RBTREE_NULL) {
-		print_rr_data(out, (rr_data *) cur_node->data);
+		cur_data = (rr_data *) cur_node->data;
+		print_rr_data(out, (rr_data *) cur_node->data, rr_tree);
 		cur_node = ldns_rbtree_next(cur_node);
 	}
 }
@@ -397,12 +462,7 @@ main(int argc, char **argv)
 												nsec3_salt);
 							ldns_dname_cat(cur_rr_data->name, origin);
 							cur_rr_data->type = LDNS_RR_TYPE_NSEC3;
-							/* pass the original name or the hash? */
-							/* hash */
-							/*
-							status = ldns_rdf2buffer_wire(cur_rr_data->rr_buf,
-													cur_rr_data->name);
-							*/
+							cur_rr_data->ent_for = ldns_rr_clone(cur_rr);
 							/* original name */
 							status = ldns_rdf2buffer_wire(cur_rr_data->rr_buf,
 														  empty_nonterminals[eni]);
