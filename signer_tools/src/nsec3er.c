@@ -20,16 +20,35 @@
 #include <ldns/ldns.h>
 #include "util.h"
 
-bool
-is_same_name(ldns_rr *a, ldns_rr *b)
+struct nsec3_params_struct {
+	uint8_t algorithm;
+	uint8_t flags;
+	uint16_t iterations;
+	uint8_t salt_length;
+	uint8_t *salt;
+};
+typedef struct nsec3_params_struct nsec3_params;
+
+nsec3_params *
+nsec3_params_new()
 {
-	if (!a || !b) {
-		return false;
-	} else if (ldns_dname_compare(ldns_rr_owner(a),
-	                              ldns_rr_owner(b)) != 0) {
-		return false;
-	} else {
-		return true;
+	nsec3_params *n3p = malloc(sizeof(nsec3_params));
+	n3p->algorithm = 1;
+	n3p->flags = 0;
+	n3p->iterations = 0;
+	n3p->salt_length = 0;
+	n3p->salt = NULL;
+	return n3p;
+}
+
+void
+nsec3_params_free(nsec3_params *n3p)
+{
+	if (n3p) {
+		if (n3p->salt) {
+			LDNS_FREE(n3p->salt);
+		}
+		LDNS_FREE(n3p);
 	}
 }
 
@@ -43,7 +62,8 @@ usage(FILE *out)
 	fprintf(out, "-f <file>\tRead RR's from file instead of stdin\n");
 	fprintf(out, "-h\t\tShow this text\n");
 	fprintf(out, "-n\t\tDon't echo the input records\n");
-	fprintf(out, "-o\tname of the zone (mandatory)\n");
+	fprintf(out, "-o\t\tname of the zone (mandatory)\n");
+	fprintf(out, "-p\t\tOpt-out (NS-only sets will not get an NSEC3\n");
 	fprintf(out, "-s <hex>\tUse this salt when creating hashes\n");
 	fprintf(out, "-t <nr>\tUse <nr> iterations for the hash\n");
 	fprintf(out, "-v <level>\tVerbosity level\n");
@@ -56,26 +76,55 @@ usage(FILE *out)
 	fprintf(out, "These records are then printed to stdout\n");
 }
 
-ldns_status
-nsec_rr_set_next_hash(ldns_rr *nsec_rr,
-                      ldns_rdf *next_name,
-                      uint8_t algorithm,
-                      uint16_t iterations,
-                      uint8_t salt_length,
-                      uint8_t *salt)
+/* returns 1 if there are only ns rrs in the
+ * list, 0 otherwise */
+int
+only_ns_in_list(const ldns_rr_list *rr_list) {
+	size_t i;
+	if (ldns_rr_list_rr_count(rr_list) == 0) {
+		return 0;
+	}
+	for (i=0; i<ldns_rr_list_rr_count(rr_list); i++) {
+		if (ldns_rr_get_type(ldns_rr_list_rr(rr_list, i)) !=
+								LDNS_RR_TYPE_NS) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+ldns_rr *
+create_nsec3(ldns_rdf *name,
+             ldns_rdf *origin,
+             ldns_rr_list *rr_list,
+             nsec3_params *n3p,
+             int empty_nonterminal)
 {
-	ldns_rdf *next_hash, *next_hash_rdf, *next_hash_label;
+	ldns_rr *new_nsec3;
+	new_nsec3 = ldns_create_nsec3(name,
+		                          origin,
+		                          rr_list,
+		                          n3p->algorithm,
+		                          n3p->flags,
+		                          n3p->iterations,
+		                          n3p->salt_length,
+		                          n3p->salt,
+		                          empty_nonterminal);
+	return new_nsec3;
+}
+
+/* set the next hashed name of nsec3_a to the hash part of the
+ * owner name of nsec3_b. If the rdata had been set already, it
+ * is deep_free()'d
+ */
+ldns_status
+link_nsec3_rrs(ldns_rr *nsec3_a, ldns_rr *nsec3_b)
+{
+	ldns_rdf *next_hash_rdf, *next_hash_label;
 	char *next_hash_str;
 	ldns_status status;
-	
-	/* todo; we are hashing names twice at the moment */
-	next_hash = ldns_nsec3_hash_name(next_name,
-	                                 algorithm,
-	                                 iterations,
-	                                 salt_length,
-	                                 salt);
 
-	next_hash_label = ldns_dname_label(next_hash, 0);
+	next_hash_label = ldns_dname_label(ldns_rr_owner(nsec3_b), 0);
 	next_hash_str = ldns_rdf2str(next_hash_label);
 	if (next_hash_str[strlen(next_hash_str) - 1]
 		== '.') {
@@ -83,15 +132,202 @@ nsec_rr_set_next_hash(ldns_rr *nsec_rr,
 			= '\0';
 	}
 	status = ldns_str2rdf_b32_ext(&next_hash_rdf, next_hash_str);
-	if (ldns_rr_rdf(nsec_rr, 4)) {
-		ldns_rdf_deep_free(ldns_rr_rdf(nsec_rr, 4));
+	if (ldns_rr_rdf(nsec3_a, 4)) {
+		ldns_rdf_deep_free(ldns_rr_rdf(nsec3_a, 4));
 	}
-	if (!ldns_rr_set_rdf(nsec_rr, next_hash_rdf, 4)) {
+	if (!ldns_rr_set_rdf(nsec3_a, next_hash_rdf, 4)) {
 		/* todo: error */
 	}
 	ldns_rdf_deep_free(next_hash_label);
-	ldns_rdf_deep_free(next_hash);
 	LDNS_FREE(next_hash_str);
+	return status;
+}
+
+/* frees all ldns_rr records in the list, and sets the count to 0 */
+void
+rr_list_clear(ldns_rr_list *rr_list) {
+	size_t i;
+	for (i = 0; i < ldns_rr_list_rr_count(rr_list); i++) {
+		ldns_rr_free(ldns_rr_list_rr(rr_list, i));
+	}
+	ldns_rr_list_set_rr_count(rr_list, 0);
+}
+
+/* if the line starts with "prefix", parse whatever comes next
+ * as a domain name, and return the ldns_rdf that produces */
+ldns_rdf *
+get_name_from_line(const char *line, const char *prefix)
+{
+	ldns_rdf *name = NULL;
+	size_t len, plen;
+	len = strlen(line);
+	plen = strlen(prefix);
+	
+	if (len > plen) {
+		if (strncmp(line, prefix, plen) == 0) {
+			name = ldns_dname_new_frm_str(line + plen);
+		}
+	}
+	return name;
+}
+
+/* check the name, match it to the list. if the list is empty, or the
+ * names are the same, add rr to the list (if exists)
+ * if rr is NULL, the name is ENT or ENTNS (see ent_ns arg)
+ * in which case, depending on whether opt-out is set, we should either
+ * skip it or create a nonterminal
+ * if names differ, create nonterminal, empty list
+ * if prev_nsec is set, link nsec to new, make new the prev
+ * 
+ */
+ldns_status
+handle_name(ldns_rr *rr,
+            ldns_rdf *origin,
+            ldns_rr *prev_rr,
+            ldns_rr_list *rr_list,
+            ldns_rr **prev_nsec,
+            ldns_rr **first_nsec,
+            nsec3_params *n3p,
+            ldns_rdf *ent_name,
+            int ent_ns)
+{
+	ldns_rr *new_nsec;
+	
+	if (rr) {
+		if (ldns_rr_list_rr_count(rr_list) == 0 ||
+		    ldns_dname_compare(ldns_rr_owner(rr),
+		                       ldns_rr_list_owner(rr_list)) == 0
+		   ) {
+			/* same name, or no names yet; simply add to the 'current'
+			 * list and move on */
+			ldns_rr_list_push_rr(rr_list, rr);
+		} else {
+			/* new name! do we have optout and only ns records? if
+			 * not, create an nsec3. */
+			ldns_rr_list_print(stdout, rr_list);
+			
+			if (n3p->flags & LDNS_NSEC3_VARS_OPTOUT_MASK &&
+			    only_ns_in_list(rr_list)) {
+				/* delegation. optout. skip. */
+			} else {
+				new_nsec = create_nsec3(ldns_rr_list_owner(rr_list), origin, rr_list, n3p, 0);
+				if (*prev_nsec) {
+					link_nsec3_rrs(*prev_nsec, new_nsec);
+					ldns_rr_print(stdout, *prev_nsec);
+					ldns_rr_free(*prev_nsec);
+				} else {
+					*first_nsec = ldns_rr_clone(new_nsec);
+				}
+				*prev_nsec = new_nsec;
+			}
+			rr_list_clear(rr_list);
+			ldns_rr_list_push_rr(rr_list, rr);
+		}
+	} else if (ent_name) {
+		if (n3p->flags & LDNS_NSEC3_VARS_OPTOUT_MASK &&
+		    ent_ns) {
+			/* Empty non-terminal to an unsigned delegation. skip. */
+			printf(";SKIP ENT NS\n");
+		} else {
+			new_nsec = create_nsec3(ent_name, origin, rr_list, n3p, 1);
+			if (*prev_nsec) {
+				link_nsec3_rrs(*prev_nsec, new_nsec);
+				ldns_rr_print(stdout, *prev_nsec);
+				ldns_rr_free(*prev_nsec);
+			} else {
+				*first_nsec = ldns_rr_clone(new_nsec);
+			}
+			*prev_nsec = new_nsec;
+			rr_list_clear(rr_list);
+		}
+	} else {
+		/* apparently we have reached the end of the input, link last
+		 * to first */
+		if (ldns_rr_list_rr_count(rr_list) > 0 &&
+		    !(n3p->flags & LDNS_NSEC3_VARS_OPTOUT_MASK &&
+		      only_ns_in_list(rr_list))
+		   ) {
+			new_nsec = create_nsec3(ldns_rr_list_owner(rr_list),
+			                        origin, rr_list, n3p, 0);
+			if (*prev_nsec) {
+				link_nsec3_rrs(*prev_nsec, new_nsec);
+				ldns_rr_print(stdout, *prev_nsec);
+				ldns_rr_free(*prev_nsec);
+			} else {
+				*first_nsec = ldns_rr_clone(new_nsec);
+			}
+			*prev_nsec = new_nsec;
+			ldns_rr_list_print(stdout, rr_list);
+			rr_list_clear(rr_list);
+		}
+		link_nsec3_rrs(*prev_nsec, *first_nsec);
+		ldns_rr_print(stdout, *prev_nsec);
+	}
+	return LDNS_STATUS_OK;
+}
+
+ldns_status
+create_nsec3_records(FILE *input_file,
+                     ldns_rdf *origin,
+                     nsec3_params *n3p)
+{
+	ldns_status status;
+
+	/* for file reading */
+	int line_len;
+	char line[MAX_LINE_LEN];
+
+	/* for tracking data on what to create */
+	ldns_rr_list *rr_list;
+	ldns_rr *rr;
+	ldns_rr *prev_nsec = NULL;
+	ldns_rr *first_nsec = NULL;
+	ldns_rdf *ent_name;
+
+	status = LDNS_STATUS_OK;
+	rr_list = ldns_rr_list_new();
+
+	line_len = 0;
+	while (line_len >= 0) {
+		line_len = read_line(input_file, line);
+		if (line_len > 0) {
+			if (line[0] != ';') {
+				status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
+				if (status == LDNS_STATUS_OK) {
+					handle_name(rr, origin, NULL, rr_list,
+					            &prev_nsec, &first_nsec, n3p, NULL, 0);
+				} else {
+					fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
+					        ldns_get_errorstr_by_id(status), line);
+					break;
+				}
+			} else {
+				/* This is a comment line. There are two special comment
+				 * lines that may invoke action from the nseccer:
+				 * ; Empty nonterminal: <name>
+				 * and
+				 * ; Empty nonterminal to NS: <name>
+				 */
+				printf("%s\n", line);
+				if ((ent_name = get_name_from_line(line,
+				                          "; Empty non-terminal: "))) {
+					handle_name(NULL, origin, NULL, rr_list,
+					            &prev_nsec, &first_nsec, n3p,
+					            ent_name, 0);
+					ldns_rdf_deep_free(ent_name);
+				} else if ((ent_name = get_name_from_line(line,
+				                     "; Empty non-terminal to NS: "))) {
+					handle_name(NULL, origin, NULL, rr_list,
+					            &prev_nsec, &first_nsec, n3p,
+					            ent_name, 1);
+					ldns_rdf_deep_free(ent_name);
+				}
+			}
+		}
+	}
+	handle_name(NULL, origin, NULL, rr_list,
+	            &prev_nsec, &first_nsec, n3p, NULL, 0);
+	ldns_rr_list_deep_free(rr_list);
 	return status;
 }
 
@@ -103,36 +339,20 @@ main(int argc, char **argv)
 	bool echo_input = true;
 	FILE *input_file = stdin;
 
-	ldns_rdf *origin = NULL;
-	uint32_t ttl = LDNS_DEFAULT_TTL;
-	
-	ldns_rr *first_rr = NULL;
-	ldns_rr *cur_rr;
-	ldns_rr *prev_rr = NULL;
-	ldns_rdf *prev_name = NULL;
-	ldns_rr_list *cur_rrset;
 	ldns_status status = LDNS_STATUS_OK;
-	
-	/* creation values */
-	ldns_rr *nsec_rr;
-	uint32_t nsec_ttl = LDNS_DEFAULT_TTL;
-	
-	uint8_t algorithm = 1;
-	uint8_t flags = 0;
+	ldns_rdf *origin = NULL;
+
 	size_t iterations_cmd;
-	uint16_t iterations = 1;
-	uint8_t salt_length = 0;
-	uint8_t *salt = NULL;
-	
-	int line_len;
-	char line[MAX_LINE_LEN];
-	
-	while ((c = getopt(argc, argv, "a:ef:o:s:t:v:")) != -1) {
+	nsec3_params *n3p;
+
+	n3p = nsec3_params_new();
+	while ((c = getopt(argc, argv, "a:ef:o:ps:t:v:")) != -1) {
 		switch(c) {
 			case 'a':
-				algorithm = (uint8_t) atoi(optarg);
-				if (algorithm != 1) {
-					fprintf(stderr, "Error, only SHA1 is supported for NSEC3 hashing\n");
+				n3p->algorithm = (uint8_t) atoi(optarg);
+				if (n3p->algorithm != 1) {
+					fprintf(stderr, "Error, only SHA1 is supported");
+					fprintf(stderr, " for NSEC3 hashing\n");
 					exit(EXIT_FAILURE);
 				}
 				break;
@@ -162,19 +382,25 @@ main(int argc, char **argv)
 					exit(1);
 				}
 				break;
+			case 'p':
+				/* TODO: this is superfluous (use flags directly) */
+				n3p->flags = n3p->flags | LDNS_NSEC3_VARS_OPTOUT_MASK;
+				break;
 			case 's':
 				if (strlen(optarg) % 2 != 0) {
-					fprintf(stderr, "Salt value is not valid hex data, ");
-					fprintf(stderr, "not a multiple of 2 characters\n");
+					fprintf(stderr,
+					        "Salt value is not valid hex data, ");
+					fprintf(stderr,
+					        "not a multiple of 2 characters\n");
 					exit(EXIT_FAILURE);
 				}
-				salt_length = (uint8_t) strlen(optarg) / 2;
-				salt = LDNS_XMALLOC(uint8_t, salt_length);
+				n3p->salt_length = (uint8_t) strlen(optarg) / 2;
+				n3p->salt = LDNS_XMALLOC(uint8_t, n3p->salt_length);
 				for (c = 0; c < (int) strlen(optarg); c += 2) {
 					if (isxdigit(optarg[c]) && isxdigit(optarg[c+1])) {
-						salt[c/2] = 
-							(uint8_t) ldns_hexdigit_to_int(optarg[c]) * 16 +
-							ldns_hexdigit_to_int(optarg[c+1]);
+						n3p->salt[c/2] = 
+							(uint8_t) ldns_hexdigit_to_int(optarg[c]) *
+							16 + ldns_hexdigit_to_int(optarg[c+1]);
 					} else {
 						fprintf(stderr,
 							   "Salt value is not valid hex data.\n");
@@ -186,10 +412,12 @@ main(int argc, char **argv)
 			case 't':
 				iterations_cmd = (size_t) atol(optarg);
 				if (iterations_cmd > LDNS_NSEC3_MAX_ITERATIONS) {
-					fprintf(stderr, "Iterations count can not exceed %u, quitting\n", LDNS_NSEC3_MAX_ITERATIONS);
+					fprintf(stderr, "Iterations count can not ");
+					fprintf(stderr, "exceed %u, quitting\n",
+					        LDNS_NSEC3_MAX_ITERATIONS);
 					exit(EXIT_FAILURE);
 				}
-				iterations = (uint16_t) iterations_cmd;
+				n3p->iterations = (uint16_t) iterations_cmd;
 			case 'v':
 				verbosity = atoi(optarg);
 				break;
@@ -214,176 +442,44 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	
-	cur_rrset = ldns_rr_list_new();
+	/*
+	 * So here's what we are going to do;
+	 * Since the input data is already ordered in 'nsec3-space', we
+	 * should need only to read each RR, and if they have the same owner
+	 * name, add them to the 'current' list.
+	 * If not, we create an NSEC3, but do not set the 'next-name' hash
+	 * yet. We remember that NSEC3 and continue reading the new rrs.
+	 * When we next see a new name, we create a new NSEC3 record, and
+	 * set the next-name of the previously created NSEC3 record to the
+	 * name of the current one.
+	 *
+	 * There are two special cases:
+	 * When opt-out is specified, we do not create a new NSEC3 if the
+	 * following conditions are true:
+	 * - the current list only contains NS resource records
+	 * - the current name is an empty non-terminal, AND the next name
+	 *   only contains NS resource records
+	 *
+	 * Optional TODO:
+	 * To make the output a bit more readable, if we encounter names
+	 * that do not get an NSEC3, we do not print those until we finish
+	 * the previous NSEC3, so we need to keep track of those too.
+	 *
+	 * TODO:
+	 * Since NSEC3 records get the TTL from the minimum TTL value in the
+	 * SOA record, and since the SOA record might not be the first RR
+	 * we see, we may need to keep track of 'partial' NSEC3 rrs before
+	 * we can print them.
+	 */
+	status = create_nsec3_records(input_file,
+	                              origin,
+	                              n3p);
 
-	line_len = 0;
-	while (line_len >= 0) {
-		line_len = read_line(input_file, line);
-		if (line_len > 0) {
-			if (line[0] == ';') {
-				/* comment, pass through */
-				fprintf(stdout, "%s\n", line);
-				/* with one exception; empty nonterminals are passed
-				 * as comments (because we cannot calculate their
-				 * position ourselves since we do not have a complete
-				 * view of the zone */
-				if (strncmp(line, "; Empty nonterminal: ", 21) == 0 &&
-				    line_len > 20) {
-					cur_rr = ldns_rr_new();
-					ldns_rr_set_owner(cur_rr, ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, line+21));
-					if (!ldns_rr_owner(cur_rr)) {
-						fprintf(stdout, "; Error parsing nonterminal name '%s'\n", line+21);
-					}
-					if (prev_rr) {
-						nsec_rr = ldns_create_nsec3(ldns_rr_owner(prev_rr),
-													origin,
-													cur_rrset,
-													algorithm,
-													flags,
-													iterations,
-													salt_length,
-													salt,
-													false);
-						/* remove the default RRSIG bitmap from empty nonterminal nsec3s */
-						if (ldns_rr_list_rr_count(cur_rrset) == 0) {
-							ldns_rdf_deep_free(ldns_rr_pop_rdf(nsec_rr));
-						}
-						ldns_rr_set_ttl(nsec_rr, nsec_ttl);
-						/* todo; we are hashing names twice at the moment */
-						nsec_rr_set_next_hash(nsec_rr,
-											  ldns_rr_owner(cur_rr),
-											  algorithm,
-											  iterations,
-											  salt_length,
-											  salt);
 
-						ldns_rr_print(stdout, nsec_rr);
-
-						ldns_rr_free(nsec_rr);
-						
-						/* clean for next set */
-						ldns_rr_list_deep_free(cur_rrset);
-						cur_rrset = ldns_rr_list_new();
-					} else {
-						first_rr = ldns_rr_clone(cur_rr);
-					}
-					prev_rr = cur_rr;
-				}
-				continue;
-			}
-			status = ldns_rr_new_frm_str(&cur_rr,
-										line,
-										ttl,
-										origin,
-										&prev_name);
-			if (status != LDNS_STATUS_OK) {
-				fprintf(stdout, "; parse error\n");
-				continue;
-			}
-			if (!prev_rr) {
-				prev_rr = cur_rr;
-				first_rr = ldns_rr_clone(cur_rr);
-			} else {
-				if (is_same_name(prev_rr, cur_rr)) {
-					if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_SOA) {
-						nsec_ttl = ldns_rdf2native_int32(ldns_rr_rdf(cur_rr,
-																	 6));
-					}
-					ldns_rr_list_push_rr(cur_rrset, cur_rr);
-				} else {
-					/* handle rrset */
-					if (echo_input) {
-						ldns_rr_list_print(stdout, cur_rrset);
-					}
-					
-					/* create nsec3 and print it */
-					nsec_rr = ldns_create_nsec3(ldns_rr_owner(prev_rr),
-												origin,
-												cur_rrset,
-												algorithm,
-												flags,
-												iterations,
-												salt_length,
-												salt,
-												false);
-					/* remove the default RRSIG bitmap from empty nonterminal nsec3s */
-					if (ldns_rr_list_rr_count(cur_rrset) == 0) {
-						ldns_rdf_deep_free(ldns_rr_pop_rdf(nsec_rr));
-					}
-					ldns_rr_set_ttl(nsec_rr, nsec_ttl);
-					/* todo; we are hashing names twice at the moment */
-					nsec_rr_set_next_hash(nsec_rr,
-										  ldns_rr_owner(cur_rr),
-										  algorithm,
-										  iterations,
-										  salt_length,
-										  salt);
-
-					ldns_rr_print(stdout, nsec_rr);
-
-					ldns_rr_free(nsec_rr);
-					
-					/* clean for next set */
-					ldns_rr_list_deep_free(cur_rrset);
-					cur_rrset = ldns_rr_list_new();
-					ldns_rr_list_push_rr(cur_rrset, cur_rr);
-				}
-			}
-
-			prev_rr = cur_rr;
-		}
-	}
-
-	if (status != LDNS_STATUS_OK &&
-	    status != LDNS_STATUS_SYNTAX_EMPTY) {
-		if (verbosity >= 1) {
-			fprintf(stderr,
-			        "Error parsing RR: %s, aborting\n",
-			        ldns_get_errorstr_by_id(status));
-			fprintf(stderr,
-			        "Last RR sucessfully read: ");
-			ldns_rr_print(stderr, prev_rr);
-			exit(2);
-		}
-	}
-	/* create final nsec and print it */
-	if (echo_input) {
-		ldns_rr_list_print(stdout, cur_rrset);
-	}
-	nsec_rr = ldns_create_nsec3(ldns_rr_owner(prev_rr),
-								origin,
-								cur_rrset,
-								algorithm,
-								flags,
-								iterations,
-								salt_length,
-								salt,
-								false);
-	ldns_rr_set_ttl(nsec_rr, nsec_ttl);
-
-	nsec_rr_set_next_hash(nsec_rr,
-	                      ldns_rr_owner(first_rr),
-	                      algorithm,
-	                      iterations,
-	                      salt_length,
-	                      salt);
-
-	ldns_rr_print(stdout, nsec_rr);
-	ldns_rr_free(nsec_rr);
-	ldns_rr_free(first_rr);
-	ldns_rr_list_deep_free(cur_rrset);
-	if (prev_name) {
-		ldns_rdf_deep_free(prev_name);
-	}
-	if (salt) {
-		LDNS_FREE(salt);
-	}
 	if (origin) {
 		ldns_rdf_deep_free(origin);
 	}
-	if (input_file != stdin) {
-		fclose(input_file);
-	}
-	
+	nsec3_params_free(n3p);
+	fclose(input_file);
 	return 0;
 }
