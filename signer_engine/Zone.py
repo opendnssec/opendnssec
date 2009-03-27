@@ -235,20 +235,16 @@ class Zone:
            is written to a new file (.nsecced), ready to
            be signed."""
         syslog.syslog(syslog.LOG_INFO,
-                      "Stripping and NSEC(3)ing zone: " + self.zone_name)
+                      "NSEC(3)ing zone: " + self.zone_name)
         # hmz, todo: stripped records need to be re-added
         # and another todo: move strip to right after sorter?
-        strip_p = Util.run_tool([self.get_tool_filename("stripper"),
-                            "-o", self.zone_name,
-                            "-f", self.get_zone_tmp_filename(".sorted")]
-                           )
-        
         if self.zone_config.denial_nsec:
             # TODO remove print
             print "zone is nsec signed!"
             nsec_p = Util.run_tool(
-                              [self.get_tool_filename("nseccer")],
-                              strip_p.stdout)
+                              [self.get_tool_filename("nseccer"),
+                               "-i",
+                               self.get_zone_tmp_filename(".sorted")])
         elif self.zone_config.denial_nsec3:
             print "zone is nsec3 signed"
             cmd = [
@@ -260,10 +256,12 @@ class Zone:
                 str(self.zone_config.denial_nsec3_iterations),
                 "-a",
                 str(self.zone_config.denial_nsec3_algorithm),
+                "-i",
+                self.get_zone_tmp_filename(".sorted")
             ]
             if self.zone_config.denial_nsec3_optout:
                 cmd.append("-p")
-            nsec_p = Util.run_tool(cmd, strip_p.stdout)
+            nsec_p = Util.run_tool(cmd)
         nsecced_zone_file = open(self.get_zone_tmp_filename(".nsecced"), "w")
         
         for line in nsec_p.stderr:

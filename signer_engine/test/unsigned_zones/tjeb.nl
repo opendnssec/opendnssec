@@ -19,4 +19,9 @@ otherdel.tjeb.nl. 123	IN	NS	a.asdf.nl.
 otherdel.tjeb.nl. 123	IN	NS	b.asdf.nl.
 ent.to.tjeb.nl. 111	IN	NS	a.aaaa.nl.
 ent.to.tjeb.nl. 111	IN	NS	b.aaaa.nl.
+ff.wat.out.of.zones. 143 IN	A 	123.123.123.123
+bla.tjeb.nl. 1111	IN	NS	glue.bla.tjeb.nl.
+glue.bla.tjeb.nl. 1234	IN	A	222.222.222.222
+
+
 
