@@ -325,12 +325,13 @@ handle_line(const char *line,
 ldns_status
 create_nsec3_records(FILE *input_file,
                      ldns_rdf *origin,
-                     nsec3_params *n3p)
+                     nsec3_params *n3p,
+					 uint32_t soa_min_ttl)
 {
 	ldns_status status;
 
 	/* for file reading */
-	int line_len;
+	int line_len = 0;
 	char line[MAX_LINE_LEN];
 
 	/* for tracking data on what to create */
@@ -347,22 +348,23 @@ create_nsec3_records(FILE *input_file,
 	 * might become quite much)
 	 * TODO2: or should we let the engine determine this value?
 	 */
-	uint32_t soa_min_ttl = 0;
 	char *pre_soa_lines[MAX_LINE_LEN];
 	size_t pre_count = 0, i;
-	
-	line_len = 0;
-	while (line_len >= 0 && soa_min_ttl == 0) {
-		line_len = read_line(input_file, line);
-		pre_soa_lines[pre_count] = strdup(line);
-		pre_count++;
-		if (line_len > 0 && line[0] != ';') {
-			status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
-			if (status == LDNS_STATUS_OK &&
-			    ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
-				soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
-				if (ldns_rr_ttl(rr) < soa_min_ttl) {
-					soa_min_ttl = ldns_rr_ttl(rr);
+	if (soa_min_ttl == 0) {
+		
+		line_len = 0;
+		while (line_len >= 0 && soa_min_ttl == 0) {
+			line_len = read_line(input_file, line);
+			pre_soa_lines[pre_count] = strdup(line);
+			pre_count++;
+			if (line_len > 0 && line[0] != ';') {
+				status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
+				if (status == LDNS_STATUS_OK &&
+					ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+					soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
+					if (ldns_rr_ttl(rr) < soa_min_ttl) {
+						soa_min_ttl = ldns_rr_ttl(rr);
+					}
 				}
 			}
 		}
@@ -397,6 +399,7 @@ main(int argc, char **argv)
 {
 	int verbosity = 5;
 	int c;
+	uint32_t soa_min_ttl = 0;
 	bool echo_input = true;
 	FILE *input_file = stdin;
 
@@ -407,7 +410,7 @@ main(int argc, char **argv)
 	nsec3_params *n3p;
 
 	n3p = nsec3_params_new();
-	while ((c = getopt(argc, argv, "a:ef:hi:o:ps:t:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:ef:hi:m:o:ps:t:v:")) != -1) {
 		switch(c) {
 			case 'a':
 				n3p->algorithm = (uint8_t) atoi(optarg);
@@ -435,6 +438,13 @@ main(int argc, char **argv)
 					        optarg,
 					        strerror(errno));
 					exit(1);
+				}
+				break;
+			case 'm':
+				soa_min_ttl = (uint32_t) atol(optarg);
+				if (soa_min_ttl == 0) {
+					fprintf(stderr, "Warning: Minimum SOA ttl out of bounds\n");
+					soa_min_ttl = 0;
 				}
 				break;
 			case 'o':
@@ -532,7 +542,8 @@ main(int argc, char **argv)
 	 */
 	status = create_nsec3_records(input_file,
 	                              origin,
-	                              n3p);
+	                              n3p,
+	                              soa_min_ttl);
 
 
 	if (origin) {

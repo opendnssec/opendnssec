@@ -203,6 +203,8 @@ class ZoneConfig:
         for nsec3_xml in nsec3_xmls:
             self.denial_nsec3 = True
             self.denial_nsec = False
+            self.denial_nsec3_ttl = Util.parse_duration(
+                Util.get_xml_data("parameters/ttl", nsec3_xml, True))
             if Evaluate("opt-out", nsec3_xml):
                 self.denial_nsec3_optout = True
             self.denial_nsec3_algorithm = \

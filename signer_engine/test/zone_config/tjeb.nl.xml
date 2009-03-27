@@ -51,13 +51,16 @@
 	</keystore>
 	
 	<denial>
-		<ttl>PT3600S</ttl>		
+		<ttl>PT600S</ttl>		
 
 		<!-- <nsec/>-->
 		
 		<!-- ... or ... -->
 
 		<nsec3>
+			<parameters>
+				<ttl>PT600S</ttl>
+			</parameters>
 			<opt-out/>
 			<hash>
 				<algorithm>1</algorithm>

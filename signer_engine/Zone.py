@@ -239,8 +239,6 @@ class Zone:
         # hmz, todo: stripped records need to be re-added
         # and another todo: move strip to right after sorter?
         if self.zone_config.denial_nsec:
-            # TODO remove print
-            print "zone is nsec signed!"
             nsec_p = Util.run_tool(
                               [self.get_tool_filename("nseccer"),
                                "-i",
@@ -257,8 +255,11 @@ class Zone:
                 "-a",
                 str(self.zone_config.denial_nsec3_algorithm),
                 "-i",
-                self.get_zone_tmp_filename(".sorted")
+                self.get_zone_tmp_filename(".sorted"),
             ]
+            if self.zone_config.denial_nsec3_ttl:
+                cmd.append("-m")
+                cmd.append(str(self.zone_config.denial_nsec3_ttl))
             if self.zone_config.denial_nsec3_optout:
                 cmd.append("-p")
             nsec_p = Util.run_tool(cmd)
@@ -289,6 +290,35 @@ class Zone:
         # be to just resign
         self.action = ZoneConfig.RESIGN
 
+    def find_serial(self):
+        """Finds the serial number as specified in the xml file.
+           By default, the serial from the input file will simply be
+           copied. Options are 'unixtime', 'counter', and 'datecounter'
+        """
+        soa_serial = None
+        if self.zone_config.soa_serial == "unixtime":
+            soa_serial = int(time.time())
+        elif self.zone_config.soa_serial == "counter":
+            # try output serial first, if not found, use input
+            prev_serial = self.get_output_serial()
+            if not prev_serial:
+                prev_serial = self.get_input_serial()
+            if not prev_serial:
+                prev_serial = 0
+            soa_serial = prev_serial + 1
+        elif self.zone_config.soa_serial == "datecounter":
+            # if current output serial >= <date>00,
+            # just increment by one
+            soa_serial = int(time.strftime("%Y%m%d")) * 100
+            output_serial = self.get_output_serial()
+            if output_serial >= soa_serial:
+                soa_serial = output_serial + 1
+        else:
+            syslog.syslog(syslog.LOG_WARNING,
+                          "warning: unknown serial type " +\
+                          self.zone_config.soa_serial)
+        return soa_serial
+        
     def sign(self):
         """Takes the file created by nsecify(), and signs the zone"""
         cmd = [self.get_tool_filename("signer_pkcs11"),
@@ -309,44 +339,12 @@ class Zone:
             sign_p.stdin.write(":soa_minimum " +\
                            str(self.zone_config.soa_ttl) + "\n")
         if self.zone_config.soa_serial:
-            # there are a few options;
-            # by default, plain copy the original soa serial
-            # (which must have been read...)
-            # for now, only support 'unixtime'
-            soa_serial = "123"
-            if self.zone_config.soa_serial == "unixtime":
-                soa_serial = int(time.time())
+            soa_serial = self.find_serial()
+            if soa_serial:
                 syslog.syslog(syslog.LOG_DEBUG,
                               "set serial to " + str(soa_serial))
                 sign_p.stdin.write(":soa_serial " +\
-                               str(soa_serial) + "\n")
-            elif self.zone_config.soa_serial == "counter":
-                # try output serial first, if not found, use input
-                prev_serial = self.get_output_serial()
-                if not prev_serial:
-                    prev_serial = self.get_input_serial()
-                if not prev_serial:
-                    prev_serial = 0
-                soa_serial = prev_serial + 1
-                syslog.syslog(syslog.LOG_DEBUG,
-                              "set serial to " + str(soa_serial))
-                sign_p.stdin.write(":soa_serial " +\
-                               str(soa_serial) + "\n")
-            elif self.zone_config.soa_serial == "datecounter":
-                # if current output serial >= <date>00,
-                # just increment by one
-                soa_serial = int(time.strftime("%Y%m%d")) * 100
-                output_serial = self.get_output_serial()
-                if output_serial >= soa_serial:
-                    soa_serial = output_serial + 1
-                syslog.syslog(syslog.LOG_DEBUG,
-                              "set serial to " + str(soa_serial))
-                sign_p.stdin.write(":soa_serial " +\
-                               str(soa_serial) + "\n")
-            else:
-                syslog.syslog(syslog.LOG_WARNING,
-                              "warning: unknown serial type " +\
-                              self.zone_config.soa_serial)
+                                   str(soa_serial) + "\n")
         for k in self.zone_config.signature_keys:
             syslog.syslog(syslog.LOG_DEBUG,
                           "use signature key: " + k["locator"])
