@@ -2,6 +2,8 @@
  * sorter.c
  *
  * An ldns-based zone sorter
+ * It also marks empty non-terminals, glue and out-of-zone data, and
+ * converts those to comments.
  *
  * Copyright (c) 2008 NLnet Labs
  * Written by Jelte Jansen
@@ -57,6 +59,8 @@ struct rr_data_struct {
 	ldns_rr_type type;
 	ldns_buffer *rr_buf;
 	ldns_rr *ent_for;
+	int glue;
+	int ooz;
 };
 typedef struct rr_data_struct rr_data;
 
@@ -67,6 +71,8 @@ rr_data_new()
 	rd->name = NULL;
 	rd->rr_buf = ldns_buffer_new(DEFAULT_RR_MALLOC);
 	rd->ent_for = NULL;
+	rd->glue = 0;
+	rd->ooz = 0;
 	return rd;
 }
 
@@ -169,7 +175,12 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 	ldns_rdf *dname;
 	ldns_status status;
 	size_t pos = 0;
-
+	
+	if (rrd->ooz) {
+		printf("; Out-of-zone data: ");
+	} else if (rrd->glue) {
+		printf("; Glue: ");
+	}
 	if (rrd->ent_for) {
 		pos = 0;
 		status = ldns_wire2dname(&dname, rrd->rr_buf->_data, rrd->rr_buf->_capacity, &pos);
@@ -177,7 +188,7 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 			return;
 		}
 		if (ldns_rr_get_type(rrd->ent_for) == LDNS_RR_TYPE_NS &&
-			ent_for_ns_only(rrd->ent_for, tree)
+		    ent_for_ns_only(rrd->ent_for, tree)
 		) {
 			printf("; Empty non-terminal to NS: ");
 		} else {
@@ -201,8 +212,49 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 	}
 }
 
+/* hmz, can we do this more efficiently? since we may be sorting
+ * in nsec3 space, we cannot simply go to the previous node in the
+ * tree... */
+/* rr_data should be of type A or AAAA, and ent_for must have been
+ * checked for not NULL */
 void
-print_rrs(FILE *out, ldns_rbtree_t *rr_tree)
+mark_possible_glue(rr_data *rrd, ldns_rbtree_t *rr_tree, ldns_rdf *origin)
+{
+	ldns_rbnode_t *cur_node;
+	rr_data *cur_data;
+	ldns_rr *rr, *cur_rr;
+	size_t pos = 0;
+	(void) ldns_wire2rr(&rr,
+					  rrd->rr_buf->_data,
+					  rrd->rr_buf->_capacity,
+					  &pos,
+					  LDNS_SECTION_ANY_NOQUESTION);
+	if (!rr || !ldns_dname_is_subdomain(ldns_rr_owner(rr), origin)) {
+		return;
+	}
+	cur_node = ldns_rbtree_first(rr_tree);
+	while (cur_node != LDNS_RBTREE_NULL) {
+		cur_data = (rr_data *) cur_node->data;
+		if (cur_data->type == LDNS_RR_TYPE_NS) {
+			pos = 0;
+			(void) ldns_wire2rr(&cur_rr,
+							  cur_data->rr_buf->_data,
+							  cur_data->rr_buf->_capacity,
+							  &pos,
+							  LDNS_SECTION_ANY_NOQUESTION);
+			if (cur_rr && !ldns_dname_compare(ldns_rr_owner(cur_rr), origin) == 0) {
+				if (ldns_dname_is_subdomain(ldns_rr_owner(rr),
+				                            ldns_rr_owner(cur_rr))) {
+					rrd->glue = 1;
+				}
+			}
+		}
+		cur_node = ldns_rbtree_next(cur_node);
+	}
+}
+
+void
+print_rrs(FILE *out, ldns_rbtree_t *rr_tree, ldns_rdf *origin)
 {
 	ldns_rbnode_t *cur_node;
 	rr_data *cur_data;
@@ -211,6 +263,12 @@ print_rrs(FILE *out, ldns_rbtree_t *rr_tree)
 
 	while (cur_node && cur_node != LDNS_RBTREE_NULL) {
 		cur_data = (rr_data *) cur_node->data;
+		/* mark glue */
+		if (!cur_data->ent_for &&
+		     (cur_data->type == LDNS_RR_TYPE_A ||
+		      cur_data->type == LDNS_RR_TYPE_AAAA)) {
+			mark_possible_glue(cur_data, rr_tree, origin);
+		}
 		print_rr_data(out, (rr_data *) cur_node->data, rr_tree);
 		cur_node = ldns_rbtree_next(cur_node);
 	}
@@ -420,8 +478,8 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	if (nsec3 && !origin) {
-		fprintf(stderr, "Error, no origin specified (-o), mandatory when sorting in NSEC3 space\n");
+	if (!origin) {
+		fprintf(stderr, "Error, no origin specified (-o)\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -448,8 +506,11 @@ main(int argc, char **argv)
 				if (status == LDNS_STATUS_OK) {
 					cur_rr_data = rr_data_new();
 
-					if (prev_rr && nsec3) {
-					empty_nonterminal_count = find_empty_nonterminals(origin,
+					if (!(ldns_dname_compare(ldns_rr_owner(cur_rr), origin) == 0 ||
+					      ldns_dname_is_subdomain(ldns_rr_owner(cur_rr), origin))) {
+						cur_rr_data->ooz = 1;
+					} else if (prev_rr && nsec3) {
+						empty_nonterminal_count = find_empty_nonterminals(origin,
 												   ldns_rr_owner(prev_rr),
 												   ldns_rr_owner(cur_rr),
 												   empty_nonterminals);
@@ -513,9 +574,6 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	if (origin) {
-		ldns_rdf_deep_free(origin);
-	}
 	if (prev_name) {
 		ldns_rdf_deep_free(prev_name);
 	}
@@ -526,8 +584,11 @@ main(int argc, char **argv)
 		ldns_rr_free(prev_rr);
 	}
 
-	print_rrs(out_file, rr_tree);
+	print_rrs(out_file, rr_tree, origin);
 
+	if (origin) {
+		ldns_rdf_deep_free(origin);
+	}
 	/* free all tree entries */
 	ldns_traverse_postorder(rr_tree,
 					    rr_data_node_free,
