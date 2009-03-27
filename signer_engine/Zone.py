@@ -244,22 +244,26 @@ class Zone:
                            )
         
         if self.zone_config.denial_nsec:
+            # TODO remove print
+            print "zone is nsec signed!"
             nsec_p = Util.run_tool(
                               [self.get_tool_filename("nseccer")],
                               strip_p.stdout)
         elif self.zone_config.denial_nsec3:
-            nsec_p = Util.run_tool(
-                [
-                    self.get_tool_filename("nsec3er"),
-                    "-o", self.zone_name,
-                    "-s",
-                    self.zone_config.denial_nsec3_salt,
-                    "-t",
-                    str(self.zone_config.denial_nsec3_iterations),
-                    "-a",
-                    str(self.zone_config.denial_nsec3_algorithm)
-                ],
-                strip_p.stdout)
+            print "zone is nsec3 signed"
+            cmd = [
+                self.get_tool_filename("nsec3er"),
+                "-o", self.zone_name,
+                "-s",
+                self.zone_config.denial_nsec3_salt,
+                "-t",
+                str(self.zone_config.denial_nsec3_iterations),
+                "-a",
+                str(self.zone_config.denial_nsec3_algorithm),
+            ]
+            if self.zone_config.denial_nsec3_optout:
+                cmd.append("-p")
+            nsec_p = Util.run_tool(cmd, strip_p.stdout)
         nsecced_zone_file = open(self.get_zone_tmp_filename(".nsecced"), "w")
         
         for line in nsec_p.stderr:

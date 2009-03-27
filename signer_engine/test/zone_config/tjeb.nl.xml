@@ -58,7 +58,7 @@
 		<!-- ... or ... -->
 
 		<nsec3>
-			<opt-out/>		
+			<opt-out/>
 			<hash>
 				<algorithm>1</algorithm>
 				<iterations>2</iterations>

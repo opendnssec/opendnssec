@@ -13,4 +13,10 @@ nsec3.tjeb.nl.	1234	IN	NS	ns.nsec3.tjeb.nl.
 test.test.tjeb.nl.	1234	IN	A	195.169.221.157
 www.tjeb.nl.	3600	IN	AAAA	2002:c3a9:dd9d:1::1
 www.tjeb.nl.	3600	IN	A	195.169.221.157
+unsigned.tjeb.nl. 3600	IN	NS	ns1.asdf.nl.
+unsigned.tjeb.nl. 3600	IN	NS	ns2.asdf.nl.
+otherdel.tjeb.nl. 123	IN	NS	a.asdf.nl.
+otherdel.tjeb.nl. 123	IN	NS	b.asdf.nl.
+ent.to.tjeb.nl. 111	IN	NS	a.aaaa.nl.
+ent.to.tjeb.nl. 111	IN	NS	b.aaaa.nl.
 
