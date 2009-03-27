@@ -5,7 +5,7 @@ LDFLAGS=@LDFLAGS@ @LIBS@
 PKCS11_MODULE=@PKCS11_MODULE@
 OBJECTS=ldns_pkcs11.o util.o
 
-all: sorter get_serial nseccer nsec3er signer_pkcs11 create_dnskey_pkcs11
+all: sorter get_serial nseccer nsec3er signer_pkcs11 create_dnskey_pkcs11 finalizer
 
 sorter: ${OBJECTS} ${srcdir}/src/sorter.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${OBJECTS} ${srcdir}/src/sorter.c
@@ -30,6 +30,9 @@ signer_pkcs11: ${OBJECTS} ${srcdir}/src/signer_pkcs11.c
 
 create_dnskey_pkcs11: ldns_pkcs11.o ${srcdir}/src/create_dnskey_pkcs11.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o create_dnskey_pkcs11 ldns_pkcs11.o ${PKCS11_MODULE} ${srcdir}/src/create_dnskey_pkcs11.c
+
+finalizer: ${OBJECTS} ${srcdir}/src/finalizer.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o finalizer ${OBJECTS} ${PKCS11_MODULE} ${srcdir}/src/finalizer.c
 
 clean:
 	rm -rf sorter stripper nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11 get_serial *.o
