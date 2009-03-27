@@ -59,8 +59,9 @@ usage(FILE *out)
 	fprintf(out, "Options:\n");
 	fprintf(out, "-a <id>\tSpecifies the NSEC3 hashing algorithm to be used\n");
 	fprintf(out, "-e\t\tDon't echo input\n");
-	fprintf(out, "-f <file>\tRead RR's from file instead of stdin\n");
+	fprintf(out, "-f <int>\tSet NSEC3 flags\n");
 	fprintf(out, "-h\t\tShow this text\n");
+	fprintf(out, "-i <file>\tRead RR's from file instead of stdin\n");
 	fprintf(out, "-n\t\tDon't echo the input records\n");
 	fprintf(out, "-o\t\tname of the zone (mandatory)\n");
 	fprintf(out, "-p\t\tOpt-out (NS-only sets will not get an NSEC3\n");
@@ -96,6 +97,7 @@ only_ns_in_list(const ldns_rr_list *rr_list) {
 ldns_rr *
 create_nsec3(ldns_rdf *name,
              ldns_rdf *origin,
+             uint32_t ttl,
              ldns_rr_list *rr_list,
              nsec3_params *n3p,
              int empty_nonterminal)
@@ -110,6 +112,7 @@ create_nsec3(ldns_rdf *name,
 		                          n3p->salt_length,
 		                          n3p->salt,
 		                          empty_nonterminal);
+	ldns_rr_set_ttl(new_nsec3, ttl);
 	return new_nsec3;
 }
 
@@ -183,6 +186,7 @@ get_name_from_line(const char *line, const char *prefix)
 ldns_status
 handle_name(ldns_rr *rr,
             ldns_rdf *origin,
+            uint32_t ttl,
             ldns_rr *prev_rr,
             ldns_rr_list *rr_list,
             ldns_rr **prev_nsec,
@@ -210,7 +214,8 @@ handle_name(ldns_rr *rr,
 			    only_ns_in_list(rr_list)) {
 				/* delegation. optout. skip. */
 			} else {
-				new_nsec = create_nsec3(ldns_rr_list_owner(rr_list), origin, rr_list, n3p, 0);
+				new_nsec = create_nsec3(ldns_rr_list_owner(rr_list),
+				                        origin, ttl, rr_list, n3p, 0);
 				if (*prev_nsec) {
 					link_nsec3_rrs(*prev_nsec, new_nsec);
 					ldns_rr_print(stdout, *prev_nsec);
@@ -229,7 +234,8 @@ handle_name(ldns_rr *rr,
 			/* Empty non-terminal to an unsigned delegation. skip. */
 			printf(";SKIP ENT NS\n");
 		} else {
-			new_nsec = create_nsec3(ent_name, origin, rr_list, n3p, 1);
+			new_nsec = create_nsec3(ent_name, origin, ttl,
+			                        rr_list, n3p, 1);
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
 				ldns_rr_print(stdout, *prev_nsec);
@@ -248,7 +254,7 @@ handle_name(ldns_rr *rr,
 		      only_ns_in_list(rr_list))
 		   ) {
 			new_nsec = create_nsec3(ldns_rr_list_owner(rr_list),
-			                        origin, rr_list, n3p, 0);
+			                        origin, ttl, rr_list, n3p, 0);
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
 				ldns_rr_print(stdout, *prev_nsec);
@@ -262,6 +268,56 @@ handle_name(ldns_rr *rr,
 		}
 		link_nsec3_rrs(*prev_nsec, *first_nsec);
 		ldns_rr_print(stdout, *prev_nsec);
+	}
+	return LDNS_STATUS_OK;
+}
+
+ldns_status
+handle_line(const char *line,
+            int line_len,
+            ldns_rdf *origin,
+            uint32_t soa_min_ttl,
+            nsec3_params *n3p,
+            ldns_rr_list *rr_list,
+            ldns_rr **prev_nsec,
+            ldns_rr **first_nsec)
+{
+	ldns_rr *rr;
+	ldns_rdf *ent_name;
+	ldns_status status;
+	if (line_len > 0) {
+		if (line[0] != ';') {
+			status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
+			if (status == LDNS_STATUS_OK) {
+				handle_name(rr, origin, soa_min_ttl, NULL, rr_list,
+							prev_nsec, first_nsec, n3p, NULL, 0);
+			} else {
+				fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
+						ldns_get_errorstr_by_id(status), line);
+				return status;
+			}
+		} else {
+			/* This is a comment line. There are two special comment
+			 * lines that may invoke action from the nseccer:
+			 * ; Empty nonterminal: <name>
+			 * and
+			 * ; Empty nonterminal to NS: <name>
+			 */
+			printf("%s\n", line);
+			if ((ent_name = get_name_from_line(line,
+									  "; Empty non-terminal: "))) {
+				handle_name(NULL, origin, soa_min_ttl, NULL, rr_list,
+							prev_nsec, first_nsec, n3p,
+							ent_name, 0);
+				ldns_rdf_deep_free(ent_name);
+			} else if ((ent_name = get_name_from_line(line,
+								 "; Empty non-terminal to NS: "))) {
+				handle_name(NULL, origin, soa_min_ttl, NULL, rr_list,
+							prev_nsec, first_nsec, n3p,
+							ent_name, 1);
+				ldns_rdf_deep_free(ent_name);
+			}
+		}
 	}
 	return LDNS_STATUS_OK;
 }
@@ -282,50 +338,55 @@ create_nsec3_records(FILE *input_file,
 	ldns_rr *rr;
 	ldns_rr *prev_nsec = NULL;
 	ldns_rr *first_nsec = NULL;
-	ldns_rdf *ent_name;
 
-	status = LDNS_STATUS_OK;
-	rr_list = ldns_rr_list_new();
-
+	/* we need to get the soa minimum value before we can do anything
+	 * at all. So we need to find the SOA record and remember the lines
+	 * before it.
+	 * TODO: would it be more efficient to simply open the file twice
+	 * instead of copying the first lines (in a big big nsec3 zone this
+	 * might become quite much)
+	 * TODO2: or should we let the engine determine this value?
+	 */
+	uint32_t soa_min_ttl = 0;
+	char *pre_soa_lines[MAX_LINE_LEN];
+	size_t pre_count = 0, i;
+	
 	line_len = 0;
-	while (line_len >= 0) {
+	while (line_len >= 0 && soa_min_ttl == 0) {
 		line_len = read_line(input_file, line);
-		if (line_len > 0) {
-			if (line[0] != ';') {
-				status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
-				if (status == LDNS_STATUS_OK) {
-					handle_name(rr, origin, NULL, rr_list,
-					            &prev_nsec, &first_nsec, n3p, NULL, 0);
-				} else {
-					fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
-					        ldns_get_errorstr_by_id(status), line);
-					break;
-				}
-			} else {
-				/* This is a comment line. There are two special comment
-				 * lines that may invoke action from the nseccer:
-				 * ; Empty nonterminal: <name>
-				 * and
-				 * ; Empty nonterminal to NS: <name>
-				 */
-				printf("%s\n", line);
-				if ((ent_name = get_name_from_line(line,
-				                          "; Empty non-terminal: "))) {
-					handle_name(NULL, origin, NULL, rr_list,
-					            &prev_nsec, &first_nsec, n3p,
-					            ent_name, 0);
-					ldns_rdf_deep_free(ent_name);
-				} else if ((ent_name = get_name_from_line(line,
-				                     "; Empty non-terminal to NS: "))) {
-					handle_name(NULL, origin, NULL, rr_list,
-					            &prev_nsec, &first_nsec, n3p,
-					            ent_name, 1);
-					ldns_rdf_deep_free(ent_name);
+		pre_soa_lines[pre_count] = strdup(line);
+		pre_count++;
+		if (line_len > 0 && line[0] != ';') {
+			status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
+			if (status == LDNS_STATUS_OK &&
+			    ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+				soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
+				if (ldns_rr_ttl(rr) < soa_min_ttl) {
+					soa_min_ttl = ldns_rr_ttl(rr);
 				}
 			}
 		}
 	}
-	handle_name(NULL, origin, NULL, rr_list,
+
+	status = LDNS_STATUS_OK;
+	rr_list = ldns_rr_list_new();
+
+	/* ok, now handle the lines we skipped over */
+	for (i = 0; i < pre_count; i++) {
+		handle_line(pre_soa_lines[i], strlen(pre_soa_lines[i]), origin,
+		            soa_min_ttl, n3p, rr_list, &prev_nsec, &first_nsec);
+		free(pre_soa_lines[i]);
+	}
+
+	/* and do the rest of the file */
+	while (line_len >= 0) {
+		line_len = read_line(input_file, line);
+		if (line_len > 0) {
+			handle_line(line, line_len, origin, soa_min_ttl, n3p,
+			            rr_list, &prev_nsec, &first_nsec);
+		}
+	}
+	handle_name(NULL, origin, soa_min_ttl, NULL, rr_list,
 	            &prev_nsec, &first_nsec, n3p, NULL, 0);
 	ldns_rr_list_deep_free(rr_list);
 	return status;
@@ -346,7 +407,7 @@ main(int argc, char **argv)
 	nsec3_params *n3p;
 
 	n3p = nsec3_params_new();
-	while ((c = getopt(argc, argv, "a:ef:o:ps:t:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:ef:hi:o:ps:t:v:")) != -1) {
 		switch(c) {
 			case 'a':
 				n3p->algorithm = (uint8_t) atoi(optarg);
@@ -360,17 +421,21 @@ main(int argc, char **argv)
 				echo_input = false;
 				break;
 			case 'f':
+				n3p->flags = atoi(optarg);
+				break;
+			case 'h':
+				usage(stderr);
+				exit(0);
+				break;
+			case 'i':
 				input_file = fopen(optarg, "r");
 				if (!input_file) {
 					fprintf(stderr,
 					        "Error opening %s: %s\n",
 					        optarg,
 					        strerror(errno));
+					exit(1);
 				}
-				break;
-			case 'h':
-				usage(stderr);
-				exit(0);
 				break;
 			case 'o':
 				status = ldns_str2rdf_dname(&origin, optarg);
@@ -383,7 +448,6 @@ main(int argc, char **argv)
 				}
 				break;
 			case 'p':
-				/* TODO: this is superfluous (use flags directly) */
 				n3p->flags = n3p->flags | LDNS_NSEC3_VARS_OPTOUT_MASK;
 				break;
 			case 's':
@@ -465,11 +529,6 @@ main(int argc, char **argv)
 	 * that do not get an NSEC3, we do not print those until we finish
 	 * the previous NSEC3, so we need to keep track of those too.
 	 *
-	 * TODO:
-	 * Since NSEC3 records get the TTL from the minimum TTL value in the
-	 * SOA record, and since the SOA record might not be the first RR
-	 * we see, we may need to keep track of 'partial' NSEC3 rrs before
-	 * we can print them.
 	 */
 	status = create_nsec3_records(input_file,
 	                              origin,
