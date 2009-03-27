@@ -5,13 +5,10 @@ LDFLAGS=@LDFLAGS@ @LIBS@
 PKCS11_MODULE=@PKCS11_MODULE@
 OBJECTS=ldns_pkcs11.o util.o
 
-all: sorter stripper get_serial nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11
+all: sorter get_serial nseccer nsec3er signer_pkcs11 create_dnskey_pkcs11
 
 sorter: ${OBJECTS} ${srcdir}/src/sorter.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${OBJECTS} ${srcdir}/src/sorter.c
-
-stripper: ${OBJECTS} ${srcdir}/src/stripper.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o stripper ${OBJECTS} ${srcdir}/src/stripper.c
 
 get_serial: ${OBJECTS} ${srcdir}/src/get_serial.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o get_serial ${OBJECTS} ${srcdir}/src/get_serial.c
@@ -21,9 +18,6 @@ nseccer: ${srcdir}/src/nseccer.c
 
 nsec3er: ${OBJECTS} ${srcdir}/src/nsec3er.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o nsec3er ${OBJECTS} ${srcdir}/src/nsec3er.c
-
-signer: ${srcdir}/src/signer.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o signer ${srcdir}/src/signer.c
 
 ldns_pkcs11.o: ${srcdir}/src/ldns_pkcs11.h ${srcdir}/src/ldns_pkcs11.c
 	${CC} ${CFLAGS} -c -o ldns_pkcs11.o ${srcdir}/src/ldns_pkcs11.c
@@ -38,8 +32,8 @@ create_dnskey_pkcs11: ldns_pkcs11.o ${srcdir}/src/create_dnskey_pkcs11.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o create_dnskey_pkcs11 ldns_pkcs11.o ${PKCS11_MODULE} ${srcdir}/src/create_dnskey_pkcs11.c
 
 clean:
-	rm -rf sorter stripper nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11 *.o
+	rm -rf sorter stripper nseccer nsec3er signer signer_pkcs11 create_dnskey_pkcs11 get_serial *.o
 
 realclean: clean
-	rm -rf Makefile configure config.log config.status autom4te.cache
+	rm -rf Makefile configure config.h config.log config.status autom4te.cache
 
