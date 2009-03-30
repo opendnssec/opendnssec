@@ -4,7 +4,7 @@ TARGET = hsm-toolkit
 
 CC = gcc
 
-CFLAGS = -O3 -W -Wall -Werror -g -I.
+CFLAGS = -O3 -W -Wall -Werror -g -I. -Icryptoki
 LIBS = -ldl
 OBJS = pktools.o
 
