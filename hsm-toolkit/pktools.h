@@ -26,7 +26,10 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "cryptoki.h"
+#ifndef PKTOOLS_H
+#define PKTOOLS_H 1
+
+#include <pkcs11.h>
 
 void InitAttributes(CK_ATTRIBUTE_PTR attr, unsigned int n);
 void AddAttribute(CK_ATTRIBUTE_PTR attr, int type, const void *Value, size_t size);
@@ -41,3 +44,5 @@ CK_ULONG LabelExists(CK_SESSION_HANDLE ses, CK_UTF8CHAR* label);
 CK_ULONG IDExists(CK_SESSION_HANDLE ses, uuid_t uu);
 CK_SLOT_ID GetSlot();
 void bin2hex (int len, unsigned char *binnum, char *hexnum);
+
+#endif /* PKTOOLS_H */

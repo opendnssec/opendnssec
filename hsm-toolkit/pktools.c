@@ -30,7 +30,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <uuid/uuid.h>
-#include "cryptoki.h"
+
+#include <cryptoki.h>
+#include <pktools.h>
+
 
 CK_FUNCTION_LIST_PTR sym = 0;
 
