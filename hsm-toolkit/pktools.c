@@ -125,8 +125,12 @@ error_table error_str[] =
     { CKR_CRYPTOKI_ALREADY_INITIALIZED, "CKR_CRYPTOKI_ALREADY_INITIALIZED"},
     { CKR_MUTEX_BAD, "CKR_MUTEX_BAD"},
     { CKR_MUTEX_NOT_LOCKED, "CKR_MUTEX_NOT_LOCKED"},
+#ifdef CKR_NEW_PIN_MODE
     { CKR_NEW_PIN_MODE, "CKR_NEW_PIN_MODE"},
+#endif
+#ifdef CKR_NEXT_OTP
     { CKR_NEXT_OTP, "CKR_NEXT_OTP"},
+#endif
     { CKR_FUNCTION_REJECTED, "CKR_FUNCTION_REJECTED"}
 };
 
@@ -258,3 +262,4 @@ void bin2hex (int len, unsigned char *binnum, char *hexnum)
     }
     hexnum[len * 2] = 0;
 }
+
