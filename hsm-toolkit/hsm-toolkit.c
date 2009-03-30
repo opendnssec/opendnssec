@@ -152,7 +152,7 @@ main (int argc, char *argv[])
 {
     CK_UTF8CHAR *pin = 0;                         // NO DEFAULT VALUE
     CK_SLOT_ID slot = 0;                          // default value
-    CK_BBOOL slot_specified = false;
+    CK_BBOOL slot_specified = cfalse;
     CK_ULONG keysize = 1024;                      // default value
     CK_SESSION_HANDLE ses;
     uuid_t uuid;
@@ -166,7 +166,7 @@ main (int argc, char *argv[])
             case 'b': keysize = atoi (optarg); break;
             case 'l': pklib = optarg; break;
             case 'p': pin = (CK_UTF8CHAR*)optarg; break;
-            case 's': slot = atoi (optarg); slot_specified=true;break;
+            case 's': slot = atoi (optarg); slot_specified=ctrue;break;
             case 'h': fprintf(stderr, "usage: hsm-toolkit -l pkcs11-library [-s slot] [-p pin] [-G [-b keysize]] [-D UUID-string]\n");
 					  exit(2);		
 		}
