@@ -244,7 +244,6 @@ class Zone:
                                "-i",
                                self.get_zone_tmp_filename(".sorted")])
         elif self.zone_config.denial_nsec3:
-            print "zone is nsec3 signed"
             cmd = [
                 self.get_tool_filename("nsec3er"),
                 "-o", self.zone_name,
@@ -332,12 +331,9 @@ class Zone:
                       ":origin " + self.zone_name)
         
         # optional SOA modification values
-        if self.zone_config.soa_ttl:
-            sign_p.stdin.write(":soa_ttl " +\
-                           str(self.zone_config.soa_ttl) + "\n")
-        if self.zone_config.soa_minimum:
-            sign_p.stdin.write(":soa_minimum " +\
-                           str(self.zone_config.soa_ttl) + "\n")
+        Util.write_p(sign_p, self.zone_config.soa_ttl, ":soa_ttl ")
+        Util.write_p(sign_p, self.zone_config.soa_minimum,
+                     ":soa_minimum ")
         if self.zone_config.soa_serial:
             soa_serial = self.find_serial()
             if soa_serial:
@@ -345,6 +341,19 @@ class Zone:
                               "set serial to " + str(soa_serial))
                 sign_p.stdin.write(":soa_serial " +\
                                    str(soa_serial) + "\n")
+        # TODO move time to engine?
+        sign_time = int(time.time())
+        Util.write_p(sign_p,
+                     Util.datestamp(self.get_expiration_timestamp(sign_time)),
+                     ":expiration ")
+        Util.write_p(sign_p,
+                     Util.datestamp(self.get_inception_timestamp(sign_time)),
+                     ":inception ")
+        Util.write_p(sign_p,
+                     Util.datestamp(self.get_refresh_timestamp(sign_time)),
+                     ":refresh ")
+                     
+
         for k in self.zone_config.signature_keys:
             syslog.syslog(syslog.LOG_DEBUG,
                           "use signature key: " + k["locator"])
@@ -428,7 +437,27 @@ class Zone:
                        time.time())
         except OSError:
             return 0
-    
+
+    def get_expiration_timestamp(self, time_offset):
+        """Returns the absolute expiration date compared to the
+           time_offset given."""
+        return time_offset +\
+               self.zone_config.signatures_validity_default
+
+    def get_inception_timestamp(self, time_offset):
+        """Returns the absolute inception date compared to the
+           time_offset given."""
+        return time_offset - self.zone_config.signatures_clockskew
+
+    def get_refresh_timestamp(self, time_offset):
+        """Returns the absolute time at which signatures should be
+        replaced, compared to the time_offset given. The return
+        value of this function is used by the signer tool to
+        determine 'old' signatures. If the inception date of the
+        signature is before this time, the signature will be
+        replaced."""
+        return self.get_inception_timestamp(time_offset) +\
+               self.zone_config.signatures_refresh_time
 
 # quick test-as-we-go function
 # use this for unit testing?

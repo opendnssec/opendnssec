@@ -2,6 +2,7 @@
 
 import subprocess
 import re
+from datetime import datetime
 import syslog
 from Ft.Xml.XPath import Evaluate
 
@@ -74,6 +75,22 @@ DURATION_REGEX_ALT2 = re.compile("^P"
                                 ":(?P<minutes>[0-9]{2})"
                                 ":(?P<seconds>[0-9]{2})"
                                )
+
+def write_p(subp, val, prefix):
+    """If val is not None, write prefix + str(val) + "\n" to the stdin
+    of subp"""
+    if subp.stdin and val:
+        syslog.syslog(syslog.LOG_DEBUG,
+                      "write to subp: " +\
+                      prefix + str(val))
+        subp.stdin.write(prefix)
+        subp.stdin.write(str(val))
+        subp.stdin.write("\n")
+
+def datestamp(timestamp):
+    """Returns the date (YYYYMMddhhmmss) representation of the given
+    timestamp (seconds since epoch)"""
+    return datetime.fromtimestamp(timestamp).strftime("%Y%m%d%H%M%S")
 
 def parse_duration(duration_string):
     """Parse an XML duration string. The number of seconds represented
