@@ -138,7 +138,7 @@ void InitAttributes(CK_ATTRIBUTE_PTR attr, unsigned int n)
     }
 }
 
-void AddAttribute(CK_ATTRIBUTE_PTR attr, int type, void *Value, size_t size)
+void AddAttribute(CK_ATTRIBUTE_PTR attr, int type, const void *Value, size_t size)
 {
     attr->type = type;
     attr->pValue = (size)?malloc(size):0;
