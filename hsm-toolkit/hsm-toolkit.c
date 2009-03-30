@@ -35,37 +35,24 @@
 #include "pktools.h"
 #include "cryptoki.h"
 
-const CK_BBOOL    ctrue    = CK_TRUE;
-const CK_BBOOL    cfalse   = CK_FALSE;
-
-/*
-
- The working of hsm-toolkit is straightforward.
- o  If no arguments are given, the toolkit uses the following defaults:
- o  It prompts for the PIN, reads slot:0 for keys.
- o
- o  When generating keys, it will first search the slot to see if the label
- o  already exists.
- o
-*/
-
+const  CK_BBOOL             ctrue  = CK_TRUE;
+const  CK_BBOOL             cfalse = CK_FALSE;
 extern CK_FUNCTION_LIST_PTR sym;
 
-/*
-   RemoveObject removes an object from a token by its CKA_ID
-*/
 
-void
-RemoveObject(CK_SESSION_HANDLE session, uuid_t uuid)
+void RemoveObject(CK_SESSION_HANDLE session, uuid_t uuid)
 {
-    CK_ULONG found = 0;
-    CK_ATTRIBUTE template[2];
+    CK_ULONG         found = 0;
+    CK_ATTRIBUTE     template[2];
     CK_OBJECT_HANDLE object;
+    char             uuid_str[37];
 
-    char uuid_str[37];
     uuid_unparse_lower(uuid,uuid_str);
 
-    if (!IDExists(session,uuid)) errx (1, "Object with id:%s does not exist.", uuid_str);
+    if (!IDExists(session,uuid)) {
+		fprintf (stderr,"Object with id:%s does not exist.\n", uuid_str);
+		exit(1);
+	}
 
     AddAttribute(template,CKA_ID,uuid,sizeof(uuid_t));
     AddAttribute(template+1,CKA_CLASS, 0, 0);
@@ -76,21 +63,20 @@ RemoveObject(CK_SESSION_HANDLE session, uuid_t uuid)
         InitAttributes(template,2);
         check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(session, object, template, 2));
         check_rv("C_DestroyObject",sym->C_DestroyObject(session, object));
-        warnx("Destroyed %s key object: %s",(Get_Val_ul(template,CKA_CLASS,2) == CKO_PRIVATE_KEY)?"Private":"Public ",uuid_str);
+        fprintf(stdout, "Destroyed %s key object: %s\n",(Get_Val_ul(template,CKA_CLASS,2) == CKO_PRIVATE_KEY)?"Private":"Public ",uuid_str);
         check_rv("C_FindObjects", sym->C_FindObjects(session, &object, 1, &found));
     }
     FlushAttributes(template,2);
     check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(session));
 }
 
-void
-ListObjects(CK_SESSION_HANDLE session)
+void ListObjects(CK_SESSION_HANDLE session)
 {
-    CK_ULONG found = 0;
-    CK_ATTRIBUTE template[4];
+    CK_ULONG         found = 0;
+    CK_ATTRIBUTE     template[4];
     CK_OBJECT_HANDLE object;
-    unsigned char *id;
-    char id_str[128];
+    unsigned char*   id;
+    char             id_str[128];
     check_rv("C_FindObjectsInit", sym->C_FindObjectsInit (session, 0, 0));
     check_rv("C_FindObjects",sym->C_FindObjects(session, &object, 1, &found));
     while (found) {
@@ -103,13 +89,12 @@ ListObjects(CK_SESSION_HANDLE session)
         check_rv("C_GetAttributeValue",sym->C_GetAttributeValue(session, object, template, 4));
         id = (unsigned char*) Get_Val(template, CKA_ID,4);
         bin2hex(Get_Val_Len(template,CKA_ID,4), id, id_str);
-        warnx("%d-bit %s key object, label:%s, id:%s",
+        fprintf(stdout,"%d-bit %s key object, label:%s, id:%s\n",
             (int) Get_Val_Len(template,CKA_MODULUS,4) *8,
             (Get_Val_ul(template,CKA_CLASS,4)== CKO_PRIVATE_KEY)?"Private":"Public ",
             (char*) Get_Val(template,CKA_LABEL,4),
             id_str);
         FlushAttributes(template,4);
-
         check_rv("C_FindObjects", sym->C_FindObjects(session, &object, 1, &found));
     }
     check_rv("C_FindObjectsFinal", sym->C_FindObjectsFinal(session));
@@ -117,46 +102,50 @@ ListObjects(CK_SESSION_HANDLE session)
 
 void GenerateObject(CK_SESSION_HANDLE session, CK_ULONG keysize)
 {
-    uuid_t uuid;
-    char uuid_str[37];
 
-    CK_ATTRIBUTE pub_temp[9];
-    CK_ATTRIBUTE pri_temp[10];
-
-    CK_MECHANISM mech = { CKM_RSA_PKCS_KEY_PAIR_GEN, 0, 0 };
-    CK_BYTE pubex[3] = { 1, 0, 1 };
-    CK_KEY_TYPE keyType = CKK_RSA;
+    CK_ATTRIBUTE     pub_temp[ 9];
+    CK_ATTRIBUTE     pri_temp[10];
+    CK_MECHANISM     mech = { CKM_RSA_PKCS_KEY_PAIR_GEN, 0, 0 };
+    CK_BYTE          pubex[3] = { 1, 0, 1 };
+    CK_KEY_TYPE      keyType = CKK_RSA;
     CK_OBJECT_HANDLE ignore;
 
-    if (keysize <512) errx(1, "Keysize (%u) too small.",(int)keysize);
+    uuid_t           uuid;
+    char             uuid_str[37];
+
+
+    if (keysize <512) {
+		fprintf(stderr, "Keysize (%u) too small.\n",(int)keysize);
+		exit(1);
+	}
     do uuid_generate(uuid); while (IDExists(session,uuid));
 
     uuid_unparse_lower(uuid, uuid_str);
 
     /* A template to generate an RSA public key objects*/
-    AddAttribute(pub_temp,CKA_LABEL, (CK_UTF8CHAR *) uuid_str, strlen (uuid_str));
-    AddAttribute(pub_temp+1,CKA_ID,uuid, sizeof(uuid));
-    AddAttribute(pub_temp+2,CKA_KEY_TYPE, &keyType, sizeof(keyType));
-    AddAttribute(pub_temp+3,CKA_VERIFY, &ctrue, sizeof (ctrue));
-    AddAttribute(pub_temp+4,CKA_ENCRYPT, &cfalse, sizeof (cfalse));
-    AddAttribute(pub_temp+5,CKA_WRAP, &cfalse, sizeof (cfalse));
-    AddAttribute(pub_temp+6,CKA_TOKEN, &ctrue, sizeof (ctrue));
-    AddAttribute(pub_temp+7,CKA_MODULUS_BITS, &keysize, sizeof (keysize));
-    AddAttribute(pub_temp+8,CKA_PUBLIC_EXPONENT, &pubex, sizeof (pubex));
+    AddAttribute(pub_temp  ,CKA_LABEL,(CK_UTF8CHAR*) uuid_str, strlen (uuid_str));
+    AddAttribute(pub_temp+1,CKA_ID,              uuid,     sizeof(uuid_t));
+    AddAttribute(pub_temp+2,CKA_KEY_TYPE,        &keyType, sizeof(keyType));
+    AddAttribute(pub_temp+3,CKA_VERIFY,          &ctrue,   sizeof (ctrue));
+    AddAttribute(pub_temp+4,CKA_ENCRYPT,         &cfalse,  sizeof (cfalse));
+    AddAttribute(pub_temp+5,CKA_WRAP,            &cfalse,  sizeof (cfalse));
+    AddAttribute(pub_temp+6,CKA_TOKEN,           &ctrue,   sizeof (ctrue));
+    AddAttribute(pub_temp+7,CKA_MODULUS_BITS,    &keysize, sizeof (keysize));
+    AddAttribute(pub_temp+8,CKA_PUBLIC_EXPONENT, &pubex,   sizeof (pubex));
 
     /* A template to generate an RSA private key objects*/
-    AddAttribute(pri_temp,CKA_LABEL, (CK_UTF8CHAR *) uuid_str, strlen (uuid_str));
-    AddAttribute(pri_temp+1,CKA_ID,uuid, sizeof(uuid));
-    AddAttribute(pri_temp+2,CKA_KEY_TYPE, &keyType, sizeof(keyType));
-    AddAttribute(pri_temp+3,CKA_SIGN, &ctrue, sizeof (ctrue));
-    AddAttribute(pri_temp+4,CKA_DECRYPT, &cfalse, sizeof (cfalse));
-    AddAttribute(pri_temp+5,CKA_UNWRAP, &cfalse, sizeof (cfalse));
-    AddAttribute(pri_temp+6,CKA_SENSITIVE, &cfalse, sizeof (cfalse));
-    AddAttribute(pri_temp+7,CKA_TOKEN, &ctrue, sizeof (ctrue));
-    AddAttribute(pri_temp+8,CKA_PRIVATE, &ctrue, sizeof (ctrue));
-    AddAttribute(pri_temp+9,CKA_EXTRACTABLE, &ctrue, sizeof (ctrue));
+    AddAttribute(pri_temp,  CKA_LABEL,(CK_UTF8CHAR *) uuid_str, strlen (uuid_str));
+    AddAttribute(pri_temp+1,CKA_ID,          uuid,     sizeof(uuid_t));
+    AddAttribute(pri_temp+2,CKA_KEY_TYPE,    &keyType, sizeof(keyType));
+    AddAttribute(pri_temp+3,CKA_SIGN,        &ctrue,   sizeof (ctrue));
+    AddAttribute(pri_temp+4,CKA_DECRYPT,     &cfalse,  sizeof (cfalse));
+    AddAttribute(pri_temp+5,CKA_UNWRAP,      &cfalse,  sizeof (cfalse));
+    AddAttribute(pri_temp+6,CKA_SENSITIVE,   &cfalse,  sizeof (cfalse));
+    AddAttribute(pri_temp+7,CKA_TOKEN,       &ctrue,   sizeof (ctrue));
+    AddAttribute(pri_temp+8,CKA_PRIVATE,     &ctrue,   sizeof (ctrue));
+    AddAttribute(pri_temp+9,CKA_EXTRACTABLE, &ctrue,   sizeof (ctrue));
     check_rv("C_GenerateKeyPair", sym->C_GenerateKeyPair(session, &mech, pub_temp, 9, pri_temp, 10, &ignore,&ignore));
-    warnx("Created RSA key pair object, labeled %s",uuid_str);
+    fprintf(stdout,"Created RSA key pair object, labeled %s\n",uuid_str);
 }
 
 int
@@ -179,18 +168,26 @@ main (int argc, char *argv[])
             case 'l': pklib = optarg; break;
             case 'p': pin = (CK_UTF8CHAR*)optarg; break;
             case 's': slot = atoi (optarg); slot_specified=true;break;
-            case 'h': errx (2, "usage: hsm-toolkit -l pkcs11-library [-s slot] [-p pin] [-G [-b keysize]] [-D UUID-string]");
-
-        }
-    }
-    if (!pklib) errx (1, "Please specify a pkcs11 library.");
+            case 'h': fprintf(stderr, "usage: hsm-toolkit -l pkcs11-library [-s slot] [-p pin] [-G [-b keysize]] [-D UUID-string]\n");
+					  exit(2);		
+		}
+   	}
+    if (!pklib) {
+		fprintf (stderr, "Please specify a pkcs11 library.\n");
+		exit(1);
+	}
 
     void *handle = dlopen(pklib, RTLD_NOW);
-    if (!handle) errx (1, "%s: dlopen: `%s'\n", pklib, dlerror ());
+    if (!handle) {
+ 		fprintf (stderr, "%s: dlopen: `%s'\n", pklib, dlerror ());
+		exit(1);
+	}
 
     void (*gGetFunctionList)() = dlsym(handle, "C_GetFunctionList");
-    if (!gGetFunctionList) errx (1, "%s: dlsym: `C_GetFunctionList'\n", dlerror ());
-
+    if (!gGetFunctionList) {
+ 		fprintf (stderr, "%s: dlsym: `C_GetFunctionList'\n", dlerror ());
+		exit(1);
+	}
     gGetFunctionList(&sym);
 
     check_rv("C_Initialize",sym->C_Initialize(0));
@@ -202,8 +199,11 @@ main (int argc, char *argv[])
     memset(pin, 0, strlen((char *)pin));
     switch (Action) {
         case 1: GenerateObject(ses,keysize); break;
-        case 2: if (uuid_parse(argv[optind],uuid)) errx (1, "argument %s is not a valid UUID string", argv[optind]);
-        RemoveObject(ses,uuid); break;
+        case 2: if (uuid_parse(argv[optind],uuid)) {
+					fprintf (stderr, "argument %s is not a valid UUID string\n", argv[optind]);
+					exit(1);
+				}
+				RemoveObject(ses,uuid); break;
         default:
             ListObjects(ses);
     }

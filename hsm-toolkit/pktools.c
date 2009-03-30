@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
 #include <uuid/uuid.h>
 #include "cryptoki.h"
 
@@ -167,7 +166,10 @@ const char* get_rv_str(CK_RV rv)
 
 void check_rv (const char *message,CK_RV rv)
 {
-    if (rv != CKR_OK) errx(1, "Error %s in %s\n", get_rv_str(rv), message);
+    if (rv != CKR_OK) {
+		fprintf(stderr, "Error %s in %s\n", get_rv_str(rv), message); 
+		exit(1); 
+	}
 
 }
 
