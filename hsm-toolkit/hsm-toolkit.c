@@ -25,14 +25,16 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
 #include <dlfcn.h>
-#include "pktools.h"
-#include "cryptoki.h"
+
+#include <cryptoki.h>
+#include <pktools.h>
 
 const  CK_BBOOL             ctrue  = CK_TRUE;
 const  CK_BBOOL             cfalse = CK_FALSE;
