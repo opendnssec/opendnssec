@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <uuid/uuid.h>
 #include <dlfcn.h>
-#include <err.h>
 #include "pktools.h"
 #include "cryptoki.h"
 
