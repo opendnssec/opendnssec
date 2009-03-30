@@ -35,6 +35,7 @@ struct current_config_struct {
 	/* settings for signatures that are generated */
 	uint32_t inception;
 	uint32_t expiration;
+	uint32_t refresh;
 	int echo_input;
 	ldns_pkcs11_module_list *pkcs11_module_list;
 	ldns_key_list *keys;
@@ -164,6 +165,7 @@ current_config_new()
 	current_config *cfg = malloc(sizeof(current_config));
 	cfg->inception = 0;
 	cfg->expiration = 0;
+	cfg->refresh = 0;
 	cfg->echo_input = 0;
 	cfg->origin = NULL;
 	cfg->pkcs11_module_list = ldns_pkcs11_module_list_entry_new();
@@ -463,6 +465,13 @@ handle_command(current_config *cfg, const char *line, int line_len)
 		} else {
 			cfg->expiration = parse_time(arg1);
 		}
+	} else if (strcmp(cmd, "refresh") == 0) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(stdout, "; Error: missing argument in refresh command\n");
+		} else {
+			cfg->refresh = parse_time(arg1);
+		}
 	} else if (strcmp(cmd, "origin") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
@@ -506,6 +515,31 @@ handle_command(current_config *cfg, const char *line, int line_len)
 	return result;
 }
 
+void
+enable_keys(current_config *cfg)
+{
+	size_t i;
+	for (i = 0; i < ldns_key_list_key_count(cfg->keys); i++) {
+		ldns_key_set_use(ldns_key_list_key(cfg->keys, i), 1);
+	}
+}
+
+void
+disable_key_for(current_config *cfg, ldns_rr *rrsig)
+{
+	size_t i;
+	ldns_key *key;
+	/* let's assume for now that name etc are right, and only check
+	 * keytag */
+	for (i = 0; i < ldns_key_list_key_count(cfg->keys); i++) {
+		key = ldns_key_list_key(cfg->keys, i);
+		if (ldns_key_keytag(key) == ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
+			ldns_key_set_use(key, 1);
+			return;
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 	current_config *cfg;
@@ -520,6 +554,7 @@ int main(int argc, char **argv)
 	ldns_rr *prev_rr = NULL;
 	ldns_rdf *prev_name = NULL;
 	ldns_rr_list *cur_rrset;
+	ldns_rr_list *old_sigs;
 	ldns_status status;
 	ldns_rr_list *sigs;
 	ldns_status cmd_res;
@@ -530,7 +565,7 @@ int main(int argc, char **argv)
 	cfg = current_config_new();
 	input = stdin;
 
-	while ((c = getopt(argc, argv, "f:h")) != -1) {
+	while ((c = getopt(argc, argv, "f:hn")) != -1) {
 		switch(c) {
 		case 'f':
 			input = fopen(optarg, "r");
@@ -546,12 +581,17 @@ int main(int argc, char **argv)
 			usage(stdout);
 			exit(0);
 			break;
+		case 'n':
+			echo_input = false;
+			break;
 		}
 	}
 
 	cur_rrset = ldns_rr_list_new();
+	old_sigs = ldns_rr_list_new();
 	prev_rr = cur_rr;
 
+	enable_keys(cfg);
 	line_len = 0;
 	while (line_len >= 0) {
 		line_len = read_line(input, line);
@@ -599,11 +639,6 @@ int main(int argc, char **argv)
 					if (is_same_rrset(prev_rr, cur_rr)) {
 						ldns_rr_list_push_rr(cur_rrset, cur_rr);
 					} else {
-						/* handle rrset */
-						if (echo_input) {
-							ldns_rr_list_print(stdout, cur_rrset);
-						}
-						
 						/* sign and print sigs */
 						if (verbosity >= 5) {
 							fprintf(stderr,
@@ -611,21 +646,50 @@ int main(int argc, char **argv)
 									(unsigned int) ldns_rr_list_rr_count(cur_rrset)
 								   );
 						}
-						if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
-							ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
-							sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
-							ldns_rr_list_print(stdout, sigs);
-							ldns_rr_list_deep_free(sigs);
-							(void)sigs;
+						if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_RRSIG) {
+							/* if refresh is zero, we just drop existing
+							 * signatures. Otherwise, we'll have to check
+							 * them and mark which keys should still be used
+							 * to create new ones */
+							if (cfg->refresh != 0) {
+								if (ldns_rdf2native_int32(ldns_rr_rrsig_inception(cur_rr)) < cfg->refresh) {
+									/* ok, drop sig, resign */
+									/*fprintf(stderr, "Refresh the signature: ");
+									ldns_rr_print(stderr, cur_rr);*/
+								} else {
+									/* leave sig, disable key */
+									ldns_rr_list_push_rr(old_sigs, cur_rr);
+									disable_key_for(cfg, cur_rr);
+								}
+							}
+						} else {
+							/* handle rrset */
+							if (echo_input) {
+								ldns_rr_list_print(stdout, cur_rrset);
+								ldns_rr_list_print(stdout, old_sigs);
+							}
+							
+							if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
+								ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
+								sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
+								ldns_rr_list_print(stdout, sigs);
+								ldns_rr_list_deep_free(sigs);
+								(void)sigs;
+								enable_keys(cfg);
+							}
+							/* clean for next set */
+							ldns_rr_list_deep_free(cur_rrset);
+							cur_rrset = ldns_rr_list_new();
+							ldns_rr_list_push_rr(cur_rrset, cur_rr);
+							ldns_rr_list_deep_free(old_sigs);
+							old_sigs = ldns_rr_list_new();
+							prev_rr = cur_rr;
 						}
-						
-						/* clean for next set */
-						ldns_rr_list_deep_free(cur_rrset);
-						cur_rrset = ldns_rr_list_new();
-						ldns_rr_list_push_rr(cur_rrset, cur_rr);
 					}
+				} else {
+					prev_rr = cur_rr;
+					ldns_rr_list_push_rr(cur_rrset, cur_rr);
 				}
-				prev_rr = cur_rr;
 			}
 		}
 	}
