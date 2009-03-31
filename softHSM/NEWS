@@ -2,6 +2,10 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
+New in 1.0-RC2; 2009-0X-XX Rickard Bondesson
+
+* Added a check for the Botan library in config script
+
 New in 1.0-RC1; 2009-03-10 Rickard Bondesson
 
 * Versioning moved to the configure script

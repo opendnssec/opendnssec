@@ -2,19 +2,24 @@ dnl
 dnl $Id$
 dnl 
 
+
 define([SOFTHSM_VERSION_MAJOR], [1])
 define([SOFTHSM_VERSION_MINOR], [0])
 define([SOFTHSM_VERSION_FIX], [0])
-define([PACKAGE_SUFFIX], [-RC1])
+define([PACKAGE_SUFFIX], [-RC2])
+
 
 AC_INIT([libsofthsm], [SOFTHSM_VERSION_MAJOR.SOFTHSM_VERSION_MINOR.SOFTHSM_VERSION_FIX[]PACKAGE_SUFFIX])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(src/Makefile.am)
 
+
 VERSION_INFO="SOFTHSM_VERSION_MAJOR:SOFTHSM_VERSION_MINOR:SOFTHSM_VERSION_FIX"
 AC_SUBST(VERSION_INFO)
 
+
 AM_INIT_AUTOMAKE
+
 
 AC_PROG_CC
 AC_PROG_CXX
@@ -23,7 +28,6 @@ if test "x$cxx_present" != "xyes"; then
     AC_MSG_ERROR([No C++ compiler found.])
 fi
 
-AC_CHECK_HEADERS([sys/time.h sys/stat.h])
 
 AC_ARG_WITH(botan-lib, [  --with-botan-lib=DIR    The location of the Botan crypto library (default DIR=/usr/local/lib)], [BOTANLIBDIR="$withval"], [BOTANLIBDIR="/usr/local/lib"])
 AC_ARG_WITH(botan-inc, [  --with-botan-inc=DIR    The location of the Botan crypto library include files (default DIR=/usr/local/include)], [BOTANINCDIR="$withval"], [BOTANINCDIR="/usr/local/include"])
@@ -32,7 +36,9 @@ AC_ARG_WITH(sqlite3-inc, [  --with-sqlite3-inc=DIR  The location of the SQLite3 
 AC_ARG_WITH(loglevel, [  --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 3=Info 4=Debug (default INT=3)], [SOFTLOGLEVEL="$withval"], [SOFTLOGLEVEL=3])
 AC_ARG_ENABLE(64bit, [  --enable-64bit          Compile a 64-bit version], [ENABLE64BIT="yes"], [ENABLE64BIT="no"])
 
+
 AC_DEFINE_UNQUOTED(SOFTLOGLEVEL, $SOFTLOGLEVEL)
+
 
 if test "$ENABLE64BIT" == "yes"
 then
@@ -51,20 +57,41 @@ return sizeof(void*) == 8 ? 0 : 1;
     ])
 fi
 
+
 LDFLAGS="$LDFLAGS -L$BOTANLIBDIR -R$BOTANLIBDIR -L$SQLITELIBDIR -R$SQLITELIBDIR"
 CXXFLAGS="$CXXFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
 CFLAGS="$CFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
 
-AC_CHECK_HEADER(sqlite3.h, AC_CHECK_LIB(sqlite3, sqlite3_open, [], [AC_MSG_ERROR([Missing SQLite3 library])]), [AC_MSG_ERROR([Missing SQLite3 header])])
-dnl How should you check if a C++ library exists and is functioning?
-LIBS="$LIBS -lbotan"
 
 AC_CHECK_FUNCS(getpassphrase)
+AC_CHECK_HEADERS([sys/time.h sys/stat.h])
+AC_CHECK_HEADER(sqlite3.h, AC_CHECK_LIB(sqlite3, sqlite3_open, [], [AC_MSG_ERROR([Missing SQLite3 library])]), [AC_MSG_ERROR([Missing SQLite3 header])])
+
+
+LIBS="$LIBS -lbotan"
+AC_LANG(C++)
+AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM([#include <botan/init.h>
+			  #include <botan/pipe.h>
+			  #include <botan/filters.h>
+			  #include <botan/hex.h>
+			  #include <botan/sha2_32.h>
+			  #include <botan/emsa3.h>],
+			 [using namespace Botan;
+                          LibraryInitializer::initialize();
+			  new EMSA3_Raw();])],
+	[AC_MSG_RESULT([checking for Botan 1.8.0 library... yes])],
+	[AC_MSG_RESULT([checking for Botan 1.8.0 library... no])
+         AC_MSG_FAILURE([Missing Botan 1.8.0 library])]
+)
+
 
 AC_DEFINE_UNQUOTED(VERSION_MAJOR, SOFTHSM_VERSION_MAJOR)
 AC_DEFINE_UNQUOTED(VERSION_MINOR, SOFTHSM_VERSION_MINOR)
 
+
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
+
 
 AC_OUTPUT(Makefile src/Makefile src/lib/Makefile src/bin/Makefile)
