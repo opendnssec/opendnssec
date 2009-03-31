@@ -169,9 +169,11 @@ class Zone:
         syslog.syslog(syslog.LOG_INFO,
                       "Sorting zone: " + self.zone_name)
         unsorted_zone_file = open(self.get_zone_input_filename(), "r")
-        cmd = [ self.get_tool_filename("sorter") ]
+        cmd = [ self.get_tool_filename("sorter"),
+                "-o", self.zone_name
+              ]
         if self.zone_config.denial_nsec3:
-            cmd.extend(["-o", self.zone_name,
+            cmd.extend([
                         "-n",
                         "-s", self.zone_config.denial_nsec3_salt,
                         "-t",
@@ -241,7 +243,7 @@ class Zone:
         if self.zone_config.denial_nsec:
             nsec_p = Util.run_tool(
                               [self.get_tool_filename("nseccer"),
-                               "-i",
+                               "-f",
                                self.get_zone_tmp_filename(".sorted")])
         elif self.zone_config.denial_nsec3:
             cmd = [

@@ -146,16 +146,6 @@ link_nsec3_rrs(ldns_rr *nsec3_a, ldns_rr *nsec3_b)
 	return status;
 }
 
-/* frees all ldns_rr records in the list, and sets the count to 0 */
-void
-rr_list_clear(ldns_rr_list *rr_list) {
-	size_t i;
-	for (i = 0; i < ldns_rr_list_rr_count(rr_list); i++) {
-		ldns_rr_free(ldns_rr_list_rr(rr_list, i));
-	}
-	ldns_rr_list_set_rr_count(rr_list, 0);
-}
-
 /* if the line starts with "prefix", parse whatever comes next
  * as a domain name, and return the ldns_rdf that produces */
 ldns_rdf *
@@ -346,7 +336,6 @@ create_nsec3_records(FILE *input_file,
 	 * TODO: would it be more efficient to simply open the file twice
 	 * instead of copying the first lines (in a big big nsec3 zone this
 	 * might become quite much)
-	 * TODO2: or should we let the engine determine this value?
 	 */
 	char *pre_soa_lines[MAX_LINE_LEN];
 	size_t pre_count = 0, i;
@@ -366,6 +355,7 @@ create_nsec3_records(FILE *input_file,
 						soa_min_ttl = ldns_rr_ttl(rr);
 					}
 				}
+				ldns_rr_free(rr);
 			}
 		}
 	}

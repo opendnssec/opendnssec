@@ -13,8 +13,8 @@ sorter: ${OBJECTS} ${srcdir}/src/sorter.c
 get_serial: ${OBJECTS} ${srcdir}/src/get_serial.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o get_serial ${OBJECTS} ${srcdir}/src/get_serial.c
 
-nseccer: ${srcdir}/src/nseccer.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o nseccer ${srcdir}/src/nseccer.c
+nseccer: ${OBJECTS} ${srcdir}/src/nseccer.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o nseccer ${OBJECTS} ${srcdir}/src/nseccer.c
 
 nsec3er: ${OBJECTS} ${srcdir}/src/nsec3er.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o nsec3er ${OBJECTS} ${srcdir}/src/nsec3er.c

@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include <ldns/ldns.h>
+#include "util.h"
 
 bool
 is_same_name(ldns_rr *a, ldns_rr *b)
@@ -48,6 +49,136 @@ usage(FILE *out)
 	fprintf(out, "These records are then printed to stdout\n");
 }
 
+void
+make_nsec(ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec)
+{
+	ldns_rr *nsec_rr;
+	
+	/* handle rrset */
+	if (1) {
+		ldns_rr_list_print(stdout, rr_list);
+	}
+	
+	/* create nsec and print it */
+	nsec_rr = ldns_create_nsec(ldns_rr_list_owner(rr_list),
+							   ldns_rr_owner(to),
+							   rr_list);
+	ldns_rr_set_ttl(nsec_rr, ttl);
+	ldns_rr_print(stdout, nsec_rr);
+
+	if (first_nsec && !(*first_nsec)) {
+		*first_nsec = ldns_rr_clone(nsec_rr);
+	}
+
+	/* clean for next set */
+	rr_list_clear(rr_list);
+	ldns_rr_free(nsec_rr);
+	ldns_rr_list_push_rr(rr_list, to);
+}
+
+void
+handle_name(ldns_rr *rr, uint32_t soa_min_ttl, ldns_rr_list *rr_list, ldns_rr **prev_nsec, ldns_rr **first_nsec)
+{
+	if (rr && ldns_rr_list_rr_count(rr_list) > 0) {
+		if (ldns_dname_compare(ldns_rr_owner(rr), ldns_rr_list_owner(rr_list)) == 0) {
+			ldns_rr_list_push_rr(rr_list, rr);
+		} else {
+			make_nsec(rr, soa_min_ttl, rr_list, first_nsec);
+		}
+	} else if (rr) {
+		ldns_rr_list_push_rr(rr_list, rr);
+	}
+}
+
+ldns_status
+handle_line(const char *line,
+            int line_len,
+            uint32_t soa_min_ttl,
+            ldns_rr_list *rr_list,
+            ldns_rr **prev_nsec,
+            ldns_rr **first_nsec)
+{
+	ldns_rr *rr;
+	ldns_status status;
+
+	if (line_len > 0) {
+		if (line[0] != ';') {
+			status = ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
+			if (status == LDNS_STATUS_OK) {
+				handle_name(rr, soa_min_ttl, rr_list, prev_nsec, first_nsec);
+			} else {
+				fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
+						ldns_get_errorstr_by_id(status), line);
+				return status;
+			}
+		} else {
+			/* comment line. pass */
+			printf("%s\n", line);
+		}
+	}
+	return LDNS_STATUS_OK;
+}
+
+
+
+ldns_status
+create_nsec_records(FILE *input_file, uint32_t soa_min_ttl)
+{
+	char line[MAX_LINE_LEN];
+	int line_len = 0;
+	ldns_status result = LDNS_STATUS_OK;
+	ldns_rr *rr;
+	ldns_rr_list *rr_list;
+	ldns_rr *prev_nsec;
+	ldns_rr *first_nsec = NULL;
+	
+	char *pre_soa_lines[MAX_LINE_LEN];
+	size_t pre_count = 0, i;
+	if (soa_min_ttl == 0) {
+		line_len = 0;
+		while (line_len >= 0 && soa_min_ttl == 0) {
+			line_len = read_line(input_file, line);
+			pre_soa_lines[pre_count] = strdup(line);
+			pre_count++;
+			if (line_len > 0 && line[0] != ';') {
+				result = ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
+				if (result == LDNS_STATUS_OK &&
+					ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+					soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
+					if (ldns_rr_ttl(rr) < soa_min_ttl) {
+						soa_min_ttl = ldns_rr_ttl(rr);
+					}
+				}
+				ldns_rr_free(rr);
+			}
+		}
+	}
+
+	rr_list = ldns_rr_list_new();
+	/* ok, now handle the lines we skipped over */
+	for (i = 0; i < pre_count; i++) {
+		handle_line(pre_soa_lines[i], strlen(pre_soa_lines[i]),
+		            soa_min_ttl, rr_list, &prev_nsec, &first_nsec);
+		free(pre_soa_lines[i]);
+	}
+
+	/* and do the rest of the file */
+	while (line_len >= 0) {
+		line_len = read_line(input_file, line);
+		if (line_len > 0) {
+			handle_line(line, line_len, soa_min_ttl, rr_list, &prev_nsec, &first_nsec);
+		}
+	}
+
+	/* and loop to start */
+	if (ldns_rr_list_rr_count(rr_list) > 0 && first_nsec) {
+		make_nsec(first_nsec, soa_min_ttl, rr_list, &first_nsec);
+	}
+	ldns_rr_list_deep_free(rr_list);
+
+	return result;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -56,19 +187,8 @@ main(int argc, char **argv)
 	bool echo_input = true;
 	FILE *input_file = stdin;
 
-	ldns_rdf *origin = NULL;
-	uint32_t ttl = LDNS_DEFAULT_TTL;
-	
-	ldns_rr *first_rr;
-	ldns_rr *cur_rr;
-	ldns_rr *prev_rr = NULL;
-	ldns_rdf *prev_name = NULL;
-	ldns_rr_list *cur_rrset;
 	ldns_status status;
-	
-	/* creation values */
-	ldns_rr *nsec_rr;
-	uint32_t nsec_ttl = LDNS_DEFAULT_TTL;
+	uint32_t soa_min_ttl = 0;
 
 	while ((c = getopt(argc, argv, "f:nv:")) != -1) {
 		switch(c) {
@@ -99,86 +219,9 @@ main(int argc, char **argv)
 	}
 	
 
-	/* Parse mode: read rrs from input */
-	/* Directives like $ORIGIN and $TTL are not allowed */
-	status = ldns_rr_new_frm_fp(&cur_rr,
-	                            input_file,
-	                            &ttl,
-	                            &origin,
-	                            &prev_name);
-	
-	if (status != LDNS_STATUS_OK) {
-		fprintf(stderr,
-		        "Error in first RR: %s, aborting\n",
-		        ldns_get_errorstr_by_id(status));
-		exit(1);
-	}
-	
-	cur_rrset = ldns_rr_list_new();
-	prev_rr = cur_rr;
-	first_rr = ldns_rr_clone(cur_rr);
+	status = create_nsec_records(input_file,
+	                             soa_min_ttl);
 
-	while (status == LDNS_STATUS_OK) {
-		if (is_same_name(prev_rr, cur_rr)) {
-			if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_SOA) {
-				nsec_ttl = ldns_rdf2native_int32(ldns_rr_rdf(cur_rr,
-				                                             6));
-			}
-			ldns_rr_list_push_rr(cur_rrset, cur_rr);
-		} else {
-			/* handle rrset */
-			if (echo_input) {
-				ldns_rr_list_print(stdout, cur_rrset);
-			}
-			
-			/* create nsec and print it */
-			nsec_rr = ldns_create_nsec(ldns_rr_owner(prev_rr),
-			                           ldns_rr_owner(cur_rr),
-			                           cur_rrset);
-			ldns_rr_set_ttl(nsec_rr, nsec_ttl);
-			ldns_rr_print(stdout, nsec_rr);
-			ldns_rr_free(nsec_rr);
-			
-			/* clean for next set */
-			ldns_rr_list_deep_free(cur_rrset);
-			cur_rrset = ldns_rr_list_new();
-			ldns_rr_list_push_rr(cur_rrset, cur_rr);
-		}
-
-		prev_rr = cur_rr;
-		cur_rr = NULL;
-		status = ldns_rr_new_frm_fp(&cur_rr,
-		                            input_file,
-		                            &ttl,
-		                            &origin,
-		                            &prev_name);
-	}
-
-	if (status != LDNS_STATUS_OK &&
-	    status != LDNS_STATUS_SYNTAX_EMPTY) {
-		if (verbosity >= 1) {
-			fprintf(stderr,
-			        "Error parsing RR: %s, aborting\n",
-			        ldns_get_errorstr_by_id(status));
-		}
-	}
-
-	/* create final nsec and print it */
-	if (echo_input) {
-		ldns_rr_list_print(stdout, cur_rrset);
-	}
-	nsec_rr = ldns_create_nsec(ldns_rr_owner(prev_rr),
-	                           ldns_rr_owner(first_rr),
-	                           cur_rrset);
-	ldns_rr_set_ttl(nsec_rr, nsec_ttl);
-	ldns_rr_print(stdout, nsec_rr);
-	ldns_rr_free(nsec_rr);
-	ldns_rr_free(first_rr);
-	ldns_rr_list_deep_free(cur_rrset);
-	if (prev_name) {
-		ldns_rdf_deep_free(prev_name);
-	}
-	
 	if (input_file != stdin) {
 		fclose(input_file);
 	}

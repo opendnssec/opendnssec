@@ -59,4 +59,13 @@ read_line(FILE *input, char *line)
 	return i;
 }
 
+/* frees all ldns_rr records in the list, and sets the count to 0 */
+void
+rr_list_clear(ldns_rr_list *rr_list) {
+	size_t i;
+	for (i = 0; i < ldns_rr_list_rr_count(rr_list); i++) {
+		ldns_rr_free(ldns_rr_list_rr(rr_list, i));
+	}
+	ldns_rr_list_set_rr_count(rr_list, 0);
+}
 
