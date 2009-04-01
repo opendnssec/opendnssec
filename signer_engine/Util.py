@@ -90,7 +90,7 @@ def write_p(subp, val, prefix):
 def datestamp(timestamp):
     """Returns the date (YYYYMMddhhmmss) representation of the given
     timestamp (seconds since epoch)"""
-    return datetime.fromtimestamp(timestamp).strftime("%Y%m%d%H%M%S")
+    return datetime.utcfromtimestamp(timestamp).strftime("%Y%m%d%H%M%S")
 
 def parse_duration(duration_string):
     """Parse an XML duration string. The number of seconds represented
