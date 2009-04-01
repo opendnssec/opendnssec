@@ -53,7 +53,7 @@ class Zone:
     def get_zone_output_filename(self):
         """Returns the file name of the final signed output file"""
         return self.engine_config.zone_output_dir + os.sep \
-            + self.zone_name + ".signed"
+            + self.zone_name
         
     def get_zone_config_filename(self):
         """Returns the file name of the zone configuration xml file"""
@@ -282,11 +282,14 @@ class Zone:
             self.sort()
             self.nsecify()
             self.sign()
+            self.finalize()
         if self.action == ZoneConfig.RENSEC:
             self.nsecify()
             self.sign()
+            self.finalize()
         if self.action == ZoneConfig.RESIGN:
             self.sign()
+            self.finalize()
         # if nothing in the config changes, the next action will always
         # be to just resign
         self.action = ZoneConfig.RESIGN
@@ -398,13 +401,25 @@ class Zone:
         nsecced_f.close()
         sign_p.stdin.close()
         sign_p.wait()
-        output = open(self.get_zone_output_filename(), "w")
+        output = open(self.get_zone_tmp_filename(".signed"), "w")
         for line in sign_p.stdout:
             output.write(line)
         for line in sign_p.stderr:
             syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
         output.close()
-        
+
+    def finalize(self):
+        cmd = [self.get_tool_filename("finalizer"),
+               "-f", self.get_zone_tmp_filename(".signed")
+              ]
+        finalize_p = Util.run_tool(cmd)
+        output = open(self.get_zone_output_filename(), "w")
+        for line in finalize_p.stdout:
+            output.write(line)
+        for line in finalize_p.stderr:
+            output.write(line)
+        output.close()
+    
     def lock(self, caller=None):
         """Lock the zone with a simple spinlock"""
         msg = "waiting for lock on zone " +\

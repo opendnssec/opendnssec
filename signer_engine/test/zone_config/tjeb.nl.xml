@@ -17,7 +17,7 @@
 				<nsec>P14D</nsec>
 		</validity>
 		<jitter>PT12H</jitter>
-		<clockskew>PT300S</clockskew>
+		<clockskew>PT600S</clockskew>
 
 		<zsk keyid="1234"/>
 		<ksk keyid="1235"/>
