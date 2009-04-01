@@ -6,10 +6,11 @@ There is an example config file in <repos>/signer_engine/engine.conf
 
 import re
 import getpass
+import sys
 
 COMMENT_LINE = re.compile("\s*([#;].*)?$")
 PKCS_LINE = re.compile(\
- "pkcs11_token: (?P<name>\w+)\s+(?P<module_path>.+)\s+(?P<pin>\d+)?\s*$")
+ "pkcs11_token: (?P<name>\w+)\s+(?P<module_path>\S+)\s*(?P<pin>\d+)?\s*$")
 
 class EngineConfiguration:
     """Engine Configuration options"""
