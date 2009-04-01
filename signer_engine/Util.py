@@ -5,6 +5,12 @@ import re
 from datetime import datetime
 import syslog
 from Ft.Xml.XPath import Evaluate
+import getpass
+
+class ToolException(Exception):
+    """General exception class for exceptions when running external
+    programs, like the signer tools"""
+    pass
 
 def run_tool(command, input_fd=None):
     """Run a system command with Popen(), if input_fd is not given,
@@ -130,3 +136,10 @@ def parse_duration(duration_string):
         result += int(grp)
     return result
 
+def query_pin(token):
+    """Queries for the PIN, which isn't checked further (erroneous
+    PIN will simply result in errors later. Token is the associative
+    array as created in EngineConfiguration.read_config_file()"""
+    pin = getpass.getpass("Please enter the PIN for token " +\
+                          token["name"] + ": ")
+    return pin

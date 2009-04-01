@@ -5,12 +5,20 @@ There is an example config file in <repos>/signer_engine/engine.conf
 # todo: allow for spaces in dir?
 
 import re
-import getpass
-import sys
+import Util
 
 COMMENT_LINE = re.compile("\s*([#;].*)?$")
 PKCS_LINE = re.compile(\
  "pkcs11_token: (?P<name>\w+)\s+(?P<module_path>\S+)\s*(?P<pin>\d+)?\s*$")
+
+class EngineConfigurationException(Exception):
+    """This exception is thrown when the engine configuration file
+    cannot be parsed, or contains another error."""
+    pass
+#    def __init__(self, value):
+#        self.parameter = value
+#    def __str__(self):
+#        return repr(self.parameter)
 
 class EngineConfiguration:
     """Engine Configuration options"""
@@ -38,7 +46,7 @@ class EngineConfiguration:
                     if pkcs_line.group("pin"):
                         token["pin"] = pkcs_line.group("pin")
                     else:
-                        token["pin"] = self.query_pin(token)
+                        token["pin"] = Util.query_pin(token)
                     self.tokens.append(token)
                 elif line[:15] == "zone_input_dir:":
                     self.zone_input_dir = line[15:].strip()
@@ -52,13 +60,5 @@ class EngineConfiguration:
                     # this one should not be necessary later
                     self.tools_dir = line[10:].strip()
                 else:
-                    raise Exception(
+                    raise EngineConfigurationException(
                             "Error parsing configuration line: " + line)
-
-    def query_pin(self, token):
-        """Queries for the PIN, which isn't checked further (erroneous
-        PIN will simply result in errors later. Token is the associative
-        array as created in EngineConfiguration.read_config_file()"""
-        pin = getpass.getpass("Please enter the PIN for token " + token["name"] + ": ")
-        return pin
-    

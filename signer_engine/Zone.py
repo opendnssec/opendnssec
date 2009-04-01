@@ -8,7 +8,7 @@ from datetime import datetime
 import syslog
 
 from ZoneConfig import ZoneConfig
-
+from Util import ToolException
 import Util
 
 # todo: move this path to general engine config too?
@@ -29,6 +29,8 @@ class Zone:
         self.last_update = None
         # this isn't used atm
         self.last_read = None
+        # keep track of when we last performed sign()
+        self.last_signed = None
 
         # this should be set with the result from ZoneConfig.compare()
         self.action = ZoneConfig.NO_CHANGE
@@ -196,7 +198,7 @@ class Zone:
                             syslog.syslog(syslog.LOG_ERR,
                                           "Error: could not find key "+\
                                           k["locator"])
-                    except Exception, exc:
+                    except ToolException, exc:
                         syslog.syslog(syslog.LOG_ERR,
                                       "Error: Unable to find key " +\
                                       k["locator"])
@@ -234,8 +236,8 @@ class Zone:
     def nsecify(self):
         """Takes the sorted zone file created with sort(), strips
            the glue from it, and adds nsec(3) records. The output
-           is written to a new file (.nsecced), ready to
-           be signed."""
+           is written to a new file (.signed), ready to
+           actually be signed."""
         syslog.syslog(syslog.LOG_INFO,
                       "NSEC(3)ing zone: " + self.zone_name)
         # hmz, todo: stripped records need to be re-added
@@ -264,7 +266,7 @@ class Zone:
             if self.zone_config.denial_nsec3_optout:
                 cmd.append("-p")
             nsec_p = Util.run_tool(cmd)
-        nsecced_zone_file = open(self.get_zone_tmp_filename(".nsecced"), "w")
+        nsecced_zone_file = open(self.get_zone_tmp_filename(".signed"), "w")
         
         for line in nsec_p.stderr:
             syslog.syslog(syslog.LOG_ERR,
@@ -324,7 +326,8 @@ class Zone:
         return soa_serial
         
     def sign(self):
-        """Takes the file created by nsecify(), and signs the zone"""
+        """Takes the file created by nsecify() or by the previous call
+           to sign(), and (re)signs the zone"""
         cmd = [self.get_tool_filename("signer_pkcs11"),
               ]
 
@@ -346,7 +349,7 @@ class Zone:
                               "set serial to " + str(soa_serial))
                 sign_p.stdin.write(":soa_serial " +\
                                    str(soa_serial) + "\n")
-        # TODO move time to engine?
+        #move time to engine?
         sign_time = int(time.time())
         Util.write_p(sign_p,
                      Util.datestamp(self.get_expiration_timestamp(sign_time)),
@@ -368,7 +371,7 @@ class Zone:
                                   "No information yet for key " +\
                                   k["locator"])
                     self.find_key_details(k)
-                except Exception:
+                except ToolException:
                     syslog.syslog(syslog.LOG_ERR,
                                   "Error: Unable to find key " +\
                                   k["locator"])
@@ -394,7 +397,7 @@ class Zone:
                 syslog.syslog(syslog.LOG_WARNING,
                               "warning: no token for key " +\
                               k["locator"])
-        nsecced_f = open(self.get_zone_tmp_filename(".nsecced"))
+        nsecced_f = open(self.get_zone_tmp_filename(".signed"))
         for line in nsecced_f:
             #syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)
             sign_p.stdin.write(line)
@@ -408,12 +411,19 @@ class Zone:
             syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
         output.close()
 
+        self.last_signed = sign_time
+
     def finalize(self):
+        """Runs the finalizer tool on the signed zone file, and produces
+        the final output zone, for use with the master nameserver"""
         cmd = [self.get_tool_filename("finalizer"),
                "-f", self.get_zone_tmp_filename(".signed")
               ]
         finalize_p = Util.run_tool(cmd)
         output = open(self.get_zone_output_filename(), "w")
+        output.write("; Signed on " +\
+                     datetime.fromtimestamp(self.last_signed)\
+                     .strftime("%Y-%m-%d %H:%M:%S") + "\n")
         for line in finalize_p.stdout:
             output.write(line)
         for line in finalize_p.stderr:
@@ -440,6 +450,18 @@ class Zone:
         syslog.syslog(syslog.LOG_DEBUG,
                       "Releasing lock on zone " + self.zone_name)
         self.locked = False
+
+    def calc_resign(self):
+        """Checks the last_signed value, and calculates the number of
+        seconds left until it should be resigned, based on the resign
+        value. If last_signed is not set, 0 is returned (and signing
+        should be sheduled immediately)"""
+        if self.last_signed:
+            return int(self.last_signed +\
+                       self.zone_config.signatures_resign_time -\
+                       time.time())
+        else:
+            return 0
 
     def calc_resign_from_output_file(self):
         """Checks the output file, and calculates the number of seconds

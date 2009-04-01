@@ -256,8 +256,8 @@ class Engine:
         zone.action = config_action
         if config_action == ZoneConfig.RESCHEDULE:
             # update the scheduled time to now + refresh_time - last_time
-            # TODO
-            self.schedule_signing(zone_name)
+            secs_left = self.zones[zone_name].calc_resign()
+            self.schedule_signing(zone_name, secs_left)
         elif config_action >= ZoneConfig.RESORT:
             # perform immediately
             self.schedule_signing(zone_name)

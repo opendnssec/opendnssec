@@ -64,54 +64,41 @@ class ZoneConfig:
         # The if statements are ordered by result
         result = self.NO_CHANGE
 
-        if self.publish_keys != ocfg.publish_keys:
-            result = self.RESORT
-        elif self.denial_nsec != ocfg.denial_nsec:
-            result = self.RESORT
-        elif self.denial_nsec3 != ocfg.denial_nsec3:
-            result = self.RESORT
-        elif self.publish_keys != ocfg.publish_keys:
-            result = self.RESORT
-        elif self.nsec3_param_rr != ocfg.nsec3_param_rr:
+        if self.publish_keys != ocfg.publish_keys or \
+           self.denial_nsec != ocfg.denial_nsec or \
+           self.denial_nsec3 != ocfg.denial_nsec3 or \
+           self.publish_keys != ocfg.publish_keys or \
+           self.nsec3_param_rr != ocfg.nsec3_param_rr:
             result = self.RESORT
 
-        elif self.denial_nsec3_optout != ocfg.denial_nsec3_optout:
-            result = self.RENSEC
-        elif self.denial_nsec3_algorithm != ocfg.denial_nsec3_algorithm:
-            result = self.RENSEC
-        elif self.denial_nsec3_iterations != ocfg.denial_nsec3_iterations:
-            result = self.RENSEC
-        elif self.denial_nsec3_salt != ocfg.denial_nsec3_salt:
-            result = self.RENSEC
-        # i still think nsec TTL should not be configurable
-        elif self.denial_nsec3_ttl != ocfg.denial_nsec3_ttl:
-            result = self.RENSEC
-        elif self.denial_ttl != ocfg.denial_ttl:
+        elif self.denial_nsec3_optout != ocfg.denial_nsec3_optout or \
+             self.denial_nsec3_algorithm != \
+                 ocfg.denial_nsec3_algorithm  or \
+             self.denial_nsec3_iterations != \
+                 ocfg.denial_nsec3_iterations or \
+             self.denial_nsec3_salt != ocfg.denial_nsec3_salt or \
+             self.denial_nsec3_ttl != ocfg.denial_nsec3_ttl or \
+             self.denial_ttl != ocfg.denial_ttl:
             result = self.RENSEC
 
-        elif self.signature_keys != ocfg.signature_keys:
-            result = self.RESIGN
-        elif self.soa_ttl != ocfg.soa_ttl:
-            result = self.RESIGN
-        elif self.soa_minimum != ocfg.soa_minimum:
-            result = self.RESIGN
-        elif self.soa_serial != ocfg.soa_serial:
+        elif self.signature_keys != ocfg.signature_keys or \
+             self.soa_ttl != ocfg.soa_ttl or \
+             self.soa_minimum != ocfg.soa_minimum or \
+             self.soa_serial != ocfg.soa_serial:
             result = self.RESIGN
 
-        elif self.signatures_resign_time != ocfg.signatures_resign_time:
-            result = self.RESCHEDULE
-        elif self.signatures_refresh_time != ocfg.signatures_refresh_time:
+        elif self.signatures_resign_time != \
+                 ocfg.signatures_resign_time or \
+             self.signatures_refresh_time != \
+                 ocfg.signatures_refresh_time:
             result = self.RESCHEDULE
 
         elif self.signatures_validity_default != \
-           ocfg.signatures_validity_default:
-            result = self.NO_SCHEDULE
-        elif self.signatures_validity_nsec != \
-           ocfg.signatures_validity_nsec:
-            result = self.NO_SCHEDULE
-        elif self.signatures_jitter != ocfg.signatures_jitter:
-            result = self.NO_SCHEDULE
-        elif self.signatures_clockskew != ocfg.signatures_clockskew:
+                 ocfg.signatures_validity_default or \
+             self.signatures_validity_nsec != \
+                 ocfg.signatures_validity_nsec or \
+             self.signatures_jitter != ocfg.signatures_jitter or \
+             self.signatures_clockskew != ocfg.signatures_clockskew:
             result = self.NO_SCHEDULE
         
         # todo: lists cannot be ==/!='d can they? loop?
