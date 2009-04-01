@@ -146,30 +146,17 @@ extern CK_FUNCTION_LIST function_list;
 // Initialize the labrary
 
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Initialize", "Calling");
-  #endif
+  DEBUG_MSG("C_Initialize", "Calling");
+  CHECK_DEBUG_RETURN(softHSM != NULL_PTR, "C_Initialize", "Already initialized",
+                     CKR_CRYPTOKI_ALREADY_INITIALIZED);
 
   CK_C_INITIALIZE_ARGS_PTR args = (CK_C_INITIALIZE_ARGS_PTR)pInitArgs;
-
-  if(softHSM != NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Initialize", "Already initialized");
-    #endif
-
-    return CKR_CRYPTOKI_ALREADY_INITIALIZED;
-  }
 
   // Do we have any arguments?
   if(args != NULL_PTR) {
     // Reserved for future use. Must be NULL_PTR
-    if(args->pReserved != NULL_PTR) {
-      #if SOFTLOGLEVEL >= SOFTDEBUG
-        logDebug("C_Initialize", "pReserved must be NULL_PTR");
-      #endif
-
-      return CKR_ARGUMENTS_BAD;
-    }
+    CHECK_DEBUG_RETURN(args->pReserved != NULL_PTR, "C_Initialize",
+                       "pReserved must be NULL_PTR", CKR_ARGUMENTS_BAD);
 
     // Are we not supplied with mutex functions?
     if(args->CreateMutex == NULL_PTR &&
@@ -190,17 +177,9 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
       }
     } else {
       // We must have all mutex functions
-      if(args->CreateMutex == NULL_PTR ||
-         args->DestroyMutex == NULL_PTR ||
-         args->LockMutex == NULL_PTR ||
-         args->UnlockMutex == NULL_PTR) {
-
-        #if SOFTLOGLEVEL >= SOFTDEBUG
-          logDebug("C_Initialize", "Not all mutex functions are supplied");
-        #endif
-
-        return CKR_ARGUMENTS_BAD;
-      }
+      CHECK_DEBUG_RETURN(args->CreateMutex == NULL_PTR || args->DestroyMutex == NULL_PTR ||
+                         args->LockMutex == NULL_PTR || args->UnlockMutex == NULL_PTR,
+                         "C_Initialize", "Not all mutex functions are supplied", CKR_ARGUMENTS_BAD);
 
       softHSM = new SoftHSMInternal(true,
                                     args->CreateMutex,
@@ -216,75 +195,46 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   CK_RV rv = readConfigFile();
   if(rv != CKR_OK) {
     delete softHSM;
-
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Initialize", "Error in config file");
-    #endif
-
+    DEBUG_MSG("C_Initialize", "Error in config file");
     return rv;
   }
 
   // Init the Botan crypto library 
   LibraryInitializer::initialize("thread_safe=true");
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Initialize", "OK");
-  #endif
-
+  DEBUG_MSG("C_Initialize", "OK");
   return CKR_OK;
 }
 
 // Finalizes the library. Clears out any memory allocations.
 
 CK_RV C_Finalize(CK_VOID_PTR pReserved) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Finalize", "Calling");
-  #endif
+  DEBUG_MSG("C_Finalize", "Calling");
 
   // Reserved for future use.
-  if(pReserved != NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Finalize", "pReserved must be NULL_PTR");
-    #endif
+  CHECK_DEBUG_RETURN(pReserved != NULL_PTR, "C_Finalize", "pReserved must be NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
 
-    return CKR_ARGUMENTS_BAD;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Finalize", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Finalize", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  } else {
-    delete softHSM;
-    softHSM = NULL_PTR;
-  }
+  delete softHSM;
+  softHSM = NULL_PTR;
 
   // Deinitialize the Botan crypto lib
   LibraryInitializer::deinitialize();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Finalize", "OK");
-  #endif
-
+  DEBUG_MSG("C_Finalize", "OK");
   return CKR_OK;
 }
 
 // Returns general information about SoftHSM.
 
 CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetInfo", "Calling");
-  #endif
+  DEBUG_MSG("C_GetInfo", "Calling");
 
-  if(pInfo == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetInfo", "pInfo must not be a NULL_PTR");
-    #endif
-
-    return CKR_ARGUMENTS_BAD;
-  }
+  CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetInfo", "pInfo must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
 
   pInfo->cryptokiVersion.major = 2;
   pInfo->cryptokiVersion.minor = 20;
@@ -296,34 +246,21 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
   pInfo->libraryVersion.major = VERSION_MAJOR;
   pInfo->libraryVersion.minor = VERSION_MINOR;
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetInfo", "OK");
-  #endif
-
+  DEBUG_MSG("C_GetInfo", "OK");
   return CKR_OK;
 }
 
 // Returns the function list.
 
 CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetFunctionList", "Calling");
-  #endif
+  DEBUG_MSG("C_GetFunctionList", "Calling");
 
-  if(ppFunctionList == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetFunctionList", "ppFunctionList must not be a NULL_PTR");
-    #endif
-
-    return CKR_ARGUMENTS_BAD;
-  }
+  CHECK_DEBUG_RETURN(ppFunctionList == NULL_PTR, "C_GetFunctionList", 
+                     "ppFunctionList must not be a NULL_PTR", CKR_ARGUMENTS_BAD);
 
   *ppFunctionList = &function_list;
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetFunctionList", "OK");
-  #endif
-
+  DEBUG_MSG("C_GetFunctionList", "OK");
   return CKR_OK;
 }
 
@@ -332,25 +269,12 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList) {
 // And the token is present.
 
 CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PTR pulCount) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetSlotList", "Calling");
-  #endif
+  DEBUG_MSG("C_GetSlotList", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetSlotList", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
-
-  if(pulCount == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetSlotList", "pulCount must not be a NULL_PTR");
-    #endif
-
-    return CKR_ARGUMENTS_BAD;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetSlotList", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+  CHECK_DEBUG_RETURN(pulCount == NULL_PTR, "C_GetSlotList", "pulCount must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
 
   int nrToken = 0;
   int nrTokenPresent = 0;
@@ -378,10 +302,7 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
   if(pSlotList == NULL_PTR) {
     *pulCount = bufSize;
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetSlotList", "OK, returning list length");
-    #endif
-
+    DEBUG_MSG("C_GetSlotList", "OK, returning list length");
     return CKR_OK;
   }
 
@@ -389,10 +310,7 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
   if(*pulCount < bufSize) {
     *pulCount = bufSize;
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetSlotList", "The buffer is too small");
-    #endif
-
+    DEBUG_MSG("C_GetSlotList", "The buffer is too small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
@@ -408,45 +326,24 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
   }
   *pulCount = bufSize;
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetSlotList", "OK, returning list");
-  #endif
-
+  DEBUG_MSG("C_GetSlotList", "OK, returning list");
   return CKR_OK;
 }
 
 // Returns information about the slot.
 
 CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetSlotInfo", "Calling");
-  #endif
+  DEBUG_MSG("C_GetSlotInfo", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetSlotInfo", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
-
-  if(pInfo == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetSlotInfo", "pInfo must not be a NULL_PTR");
-    #endif
-
-    return CKR_ARGUMENTS_BAD;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetSlotInfo", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+  CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetSlotInfo", "pInfo must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
 
   SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
 
-  if(currentSlot == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetSlotInfo", "The given slotID does not exist");
-    #endif
-
-    return CKR_SLOT_ID_INVALID;
-  }
+  CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_GetSlotInfo", "The given slotID does not exist",
+                     CKR_SLOT_ID_INVALID);
 
   memset(pInfo->slotDescription, ' ', 64);
   memcpy(pInfo->slotDescription, "SoftHSM", 7);
@@ -459,53 +356,26 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
   pInfo->firmwareVersion.major = VERSION_MAJOR;
   pInfo->firmwareVersion.minor = VERSION_MINOR;
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetSlotInfo", "OK");
-  #endif
-
+  DEBUG_MSG("C_GetSlotInfo", "OK");
   return CKR_OK;
 }
 
 // Returns information about the token.
 
 CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetTokenInfo", "Calling");
-  #endif
+  DEBUG_MSG("C_GetTokenInfo", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetTokenInfo", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
-
-  if(pInfo == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetTokenInfo", "pInfo must not be a NULL_PTR");
-    #endif
-
-    return CKR_ARGUMENTS_BAD;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetTokenInfo", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+  CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetTokenInfo", "pInfo must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
 
   SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
 
-  if(currentSlot == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetTokenInfo", "The given slotID does not exist");
-    #endif
-
-    return CKR_SLOT_ID_INVALID;
-  }
-
-  if((currentSlot->slotFlags & CKF_TOKEN_PRESENT) == 0) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetTokenInfo", "The token is not present");
-    #endif
-
-    return CKR_TOKEN_NOT_PRESENT;
-  }
+  CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_GetTokenInfo", "The given slotID does not exist",
+                     CKR_SLOT_ID_INVALID);
+  CHECK_DEBUG_RETURN((currentSlot->slotFlags & CKF_TOKEN_PRESENT) == 0, "C_GetTokenInfo",
+                     "The token is not present", CKR_TOKEN_NOT_PRESENT);
 
   if(currentSlot->tokenLabel == NULL_PTR) {
     memset(pInfo->label, ' ', 32);
@@ -547,63 +417,36 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
   memcpy(pInfo->utcTime, dateTime, 16);
   free(dateTime);
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetTokenInfo", "OK");
-  #endif
-
+  DEBUG_MSG("C_GetTokenInfo", "OK");
   return CKR_OK;
 }
 
 // Returns the supported mechanisms.
 
 CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList, CK_ULONG_PTR pulCount) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetMechanismList", "Calling");
-  #endif
+  DEBUG_MSG("C_GetMechanismList", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetMechanismList", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
-
-  if(pulCount == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-     logDebug("C_GetMechanismList", "pulCount must not be a NULL_PTR");
-    #endif
-
-    return CKR_ARGUMENTS_BAD;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetMechanismList", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+  CHECK_DEBUG_RETURN(pulCount == NULL_PTR, "C_GetMechanismList", "pulCount must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
 
   SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
 
-  if(currentSlot == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-     logDebug("C_GetMechanismList", "The given slotID does note exist");
-    #endif
-
-    return CKR_SLOT_ID_INVALID;
-  }
+  CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_GetMechanismList", "The given slotID does note exist",
+                     CKR_SLOT_ID_INVALID);
 
   if(pMechanismList == NULL_PTR) {
     *pulCount = 14;
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetMechanismList", "OK, returning list length");
-    #endif
-
+    DEBUG_MSG("C_GetMechanismList", "OK, returning list length");
     return CKR_OK;
   }
 
   if(*pulCount < 14) {
     *pulCount = 14;
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetMechanismList", "Buffer to small");
-    #endif
-
+    DEBUG_MSG("C_GetMechanismList", "Buffer to small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
@@ -624,45 +467,24 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
   pMechanismList[12] = CKM_SHA384_RSA_PKCS;
   pMechanismList[13] = CKM_SHA512_RSA_PKCS;
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetMechanismList", "OK, returning list");
-  #endif
-
+  DEBUG_MSG("C_GetMechanismList", "OK, returning list");
   return CKR_OK;
 }
 
 // Returns information about a mechanism.
 
 CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetMechanismInfo", "Calling");
-  #endif
+  DEBUG_MSG("C_GetMechanismInfo", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetMechanismInfo", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
-
-  if(pInfo == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetMechanismInfo", "pInfo must not be a NULL_PTR");
-    #endif
-
-    return CKR_ARGUMENTS_BAD;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetMechanismInfo", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+  CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetMechanismInfo", "pInfo must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
 
   SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
 
-  if(currentSlot == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetMechanismInfo", "The given slotID does not exist");
-    #endif
-
-    return CKR_SLOT_ID_INVALID;
-  }
+  CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_GetMechanismInfo", "The given slotID does not exist",
+                     CKR_SLOT_ID_INVALID);
 
   switch(type) {
     case CKM_RSA_PKCS_KEY_PAIR_GEN:
@@ -694,44 +516,32 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
       pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW;
       break;
     default:
-      #if SOFTLOGLEVEL >= SOFTDEBUG
-        logDebug("C_GetMechanismInfo", "The selected mechanism is not supported");
-      #endif
-
+      DEBUG_MSG("C_GetMechanismInfo", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
   }
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetMechanismInfo", "OK");
-  #endif
-
+  DEBUG_MSG("C_GetMechanismInfo", "OK");
   return CKR_OK; 
 }
 
 CK_RV C_InitToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_InitToken", "Calling");
-    logDebug("C_InitToken", "The function is not implemented. Token is always initialized.");
-  #endif
+  DEBUG_MSG("C_InitToken", "Calling");
+  DEBUG_MSG("C_InitToken", "The function is not implemented. Token is always initialized.");
 
   return CKR_FUNCTION_NOT_SUPPORTED; 
 }
 
 CK_RV C_InitPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_InitPIN", "Calling");
-    logDebug("C_InitPIN", "The function is not implemented. The PIN is always initialized.");
-  #endif
+  DEBUG_MSG("C_InitPIN", "Calling");
+  DEBUG_MSG("C_InitPIN", "The function is not implemented. The PIN is always initialized.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_SetPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulOldLen, CK_UTF8CHAR_PTR pNewPin, CK_ULONG ulNewLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SetPIN", "Calling");
-    logDebug("C_SetPIN", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_SetPIN", "Calling");
+  DEBUG_MSG("C_SetPIN", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -739,17 +549,10 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulO
 // Opens a new session.
 
 CK_RV C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication, CK_NOTIFY Notify, CK_SESSION_HANDLE_PTR phSession) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_OpenSession", "Calling");
-  #endif
+  DEBUG_MSG("C_OpenSession", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_OpenSession", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_OpenSession", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->openSession(slotID, flags, pApplication, Notify, phSession);
@@ -761,17 +564,10 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication,
 // Closes the session with a given handle.
 
 CK_RV C_CloseSession(CK_SESSION_HANDLE hSession) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_CloseSession", "Calling");
-  #endif
+  DEBUG_MSG("C_CloseSession", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_CloseSession", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_CloseSession", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->closeSession(hSession);
@@ -783,17 +579,10 @@ CK_RV C_CloseSession(CK_SESSION_HANDLE hSession) {
 // Closes all sessions.
 
 CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_CloseAllSessions", "Calling");
-  #endif
+  DEBUG_MSG("C_CloseAllSessions", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_CloseAllSessions", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_CloseAllSessions", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->closeAllSessions(slotID);
@@ -805,17 +594,10 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) {
 // Returns information about the session.
 
 CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetSessionInfo", "Calling");
-  #endif
+  DEBUG_MSG("C_GetSessionInfo", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetSessionInfo", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetSessionInfo", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->getSessionInfo(hSession, pInfo);
@@ -825,42 +607,29 @@ CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo) {
 }
 
 CK_RV C_GetOperationState(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pOperationState, CK_ULONG_PTR pulOperationStateLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetOperationState", "Calling");
-    logDebug("C_GetOperationState", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_GetOperationState", "Calling");
+  DEBUG_MSG("C_GetOperationState", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_SetOperationState(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pOperationState, CK_ULONG ulOperationStateLen,
       CK_OBJECT_HANDLE hEncryptionKey, CK_OBJECT_HANDLE hAuthenticationKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SetOperationState", "Calling");
-    logDebug("C_SetOperationState", "The function is not implemented");
-  #endif
+
+  DEBUG_MSG("C_SetOperationState", "Calling");
+  DEBUG_MSG("C_SetOperationState", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 // Logs a user into the token.
-// The login is needed to be able to load the correct crypto keys from the database.
 // Only one login is needed, since it is a cross-session login.
-// Each PIN creates a unique "user", meaning that all the crypto keys are connected to
-// individual PINs.
 
 CK_RV C_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Login", "Calling");
-  #endif
+  DEBUG_MSG("C_Login", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Login", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Login", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->login(hSession, userType, pPin, ulPinLen);
@@ -873,17 +642,10 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, CK_UTF8CHAR_PTR
 // Closes all the objects.
 
 CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Logout", "Calling");
-  #endif
+  DEBUG_MSG("C_Logout", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Logout", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Logout", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->logout(hSession);
@@ -893,20 +655,17 @@ CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
 }
 
 CK_RV C_CreateObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_OBJECT_HANDLE_PTR phObject) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_CreateObject", "Calling");
-    logDebug("C_CreateObject", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_CreateObject", "Calling");
+  DEBUG_MSG("C_CreateObject", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_CopyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount,
       CK_OBJECT_HANDLE_PTR phNewObject) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_CopyObject", "Calling");
-    logDebug("C_CopyObject", "The function is not implemented");
-  #endif
+
+  DEBUG_MSG("C_CopyObject", "Calling");
+  DEBUG_MSG("C_CopyObject", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -914,17 +673,10 @@ CK_RV C_CopyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTR
 // Destroys the object.
 
 CK_RV C_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DestroyObject", "Calling");
-  #endif
+  DEBUG_MSG("C_DestroyObject", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DestroyObject", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_DestroyObject", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->destroyObject(hSession, hObject);
@@ -934,10 +686,8 @@ CK_RV C_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
 }
 
 CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ULONG_PTR pulSize) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetObjectSize", "Calling");
-    logDebug("C_GetObjectSize", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_GetObjectSize", "Calling");
+  DEBUG_MSG("C_GetObjectSize", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -945,17 +695,10 @@ CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_U
 // Returns the attributes associated with an object.
 
 CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetAttributeValue", "Calling");
-  #endif
+  DEBUG_MSG("C_GetAttributeValue", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GetAttributeValue", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetAttributeValue", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->getAttributeValue(hSession, hObject, pTemplate, ulCount);
@@ -968,17 +711,10 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
 // the PKCS#11 API. Some valid attributes are neglected due to their complexity.
 
 CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SetAttributeValue", "Calling");
-  #endif
+  DEBUG_MSG("C_SetAttributeValue", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SetAttributeValue", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SetAttributeValue", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->setAttributeValue(hSession, hObject, pTemplate, ulCount);
@@ -991,17 +727,10 @@ CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 
 // The template specifies the search pattern.
 
 CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_FindObjectsInit", "Calling");
-  #endif
+  DEBUG_MSG("C_FindObjectsInit", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_FindObjectsInit", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_FindObjectsInit", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
   CK_RV rv = softHSM->findObjectsInit(hSession, pTemplate, ulCount);
@@ -1013,17 +742,10 @@ CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
 // Returns the result of the search.
 
 CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, CK_ULONG ulMaxObjectCount, CK_ULONG_PTR pulObjectCount) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_FindObjects", "Calling");
-  #endif
+  DEBUG_MSG("C_FindObjects", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_FindObjects", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_FindObjects", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1032,30 +754,21 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, C
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_FindObjects", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_FindObjects", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->findInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_FindObjects", "Find is not initialized");
-    #endif
-
+    DEBUG_MSG("C_FindObjects", "Find is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(phObject == NULL_PTR || pulObjectCount == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_FindObjects", "The arguments must not be NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_FindObjects", "The arguments must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1071,27 +784,17 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE_PTR phObject, C
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_FindObjects", "OK");
-  #endif
-
+  DEBUG_MSG("C_FindObjects", "OK");
   return CKR_OK;
 }
 
 // Finalizes the search.
 
 CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_FindObjectsFinal", "Calling");
-  #endif
+  DEBUG_MSG("C_FindObjectsFinal", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_FindObjectsFinal", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_FindObjectsFinal", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1100,20 +803,14 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_FindObjectsFinal", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_FindObjectsFinal", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->findInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_FindObjectsFinal", "Find is not initialized");
-    #endif
-
+    DEBUG_MSG("C_FindObjectsFinal", "Find is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
@@ -1127,10 +824,7 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_FindObjectsFinal", "OK");
-  #endif
-
+  DEBUG_MSG("C_FindObjectsFinal", "OK");
   return CKR_OK;
 }
 
