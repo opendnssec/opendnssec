@@ -1,0 +1,273 @@
+-- database_create - Create Database
+--
+-- Description:
+--		This script creates the tables required for the KASP database.
+--      Matches kaspimport.pl at 12/03/2009
+
+-- Get rid of tables in reverse order
+
+drop table if exists parameters_policies;
+drop table if exists serialmodes;
+drop table if exists parameters;
+drop table if exists categories;
+drop table if exists dnsseckeys;
+drop table if exists zones;
+drop table if exists adapters;
+drop table if exists keypairs;
+drop table if exists securitymodules;
+drop table if exists policies;
+
+-- Now for the tables that actually hold real data.
+
+-- security modules - store information about all the sms used
+create table securitymodules (
+  id            integer primary key autoincrement,    -- id for sm
+  name          varchar(30) not null,  -- name of the sm
+  description   varchar(255),
+  location      varchar(280) not null,
+  capacity      mediumint not null,
+  pin           varchar(255) null default null
+);
+
+-- categories - stores the possible categories (or uses) of parameters
+create table categories (
+  id            integer primary key autoincrement,    -- id for category_id
+  name          varchar(30) not null  -- name of the category_id
+);
+
+-- parameters - stores the types of parameters available
+create table parameters (
+  id            integer primary key autoincrement,    -- id for parameters
+  name          varchar(30) not null,  -- name of the parameter
+  description   varchar(255), -- description of the paramter
+  category_id         tinyint not null,      -- category_id of the parameter
+
+  unique(name, category_id),
+  foreign key (category_id) references categories (id)
+);
+
+-- adapters - stores the types of signer adapters available
+create table adapters (
+  id            integer primary key autoincrement,    -- id for adapter
+  name          varchar(30) not null,  -- name of the adapter
+  description   varchar(255) -- description of the adapter
+);
+
+create table serialmodes (
+  id            integer primary key autoincrement,    -- id for serial mode
+  name          varchar(30),  -- name of the serial mode
+  description   varchar(255) -- description of the serial mode
+);
+
+-- policies - 
+create table policies (
+  id            integer primary key autoincrement,    -- id
+  name          varchar(30) not null,  -- name of the policy
+  description   varchar(255), -- description of the
+
+  unique(name)
+);
+
+-- zones - stores the zones
+create table zones(
+  id            integer primary key autoincrement,    -- id
+  name          varchar(30) not null ,  -- name of the parameter
+  in_adapter_id      tinyint not null,      -- type of inbound adaptor for this zone
+  out_adapter_id     tinyint not null,      -- type of outbound adapter for this zone
+  policy_id     mediumint not null,
+
+  foreign key (in_adapter_id) references adapters (id),
+  foreign key (out_adapter_id) references adapters (id),
+  foreign key (policy_id) references policies (id)
+);
+
+-- stores the private key info
+create table keypairs(
+  id     integer primary key autoincrement,
+  HSMkey_id  varchar(255) not null,
+  algorithm     tinyint not null,             -- algorithm code
+  size          smallint,
+  securitymodule_id          tinyint,                      -- where the key is stored
+  state         tinyint,                      -- state of the key (defines valid fields)
+  generate      varchar(64) null default null,  -- time key inserted into database
+  publish       varchar(64) null default null,  -- time when key published into the zone
+  ready         varchar(64) null default null,  -- time when the key is ready for use
+  active        varchar(64) null default null,  -- time when the key was made active
+  retire        varchar(64) null default null,  -- time when the key retires
+  dead          varchar(64) null default null,  -- time when key is slated for removal
+  policy_id        mediumint,
+  compromisedflag tinyint,
+  publickey     varchar(1024),                -- public key data
+  
+  foreign key (securitymodule_id) references securitymodules (id),
+  foreign key (policy_id) references policies (id)
+);
+
+-- stores meta data about keys (actual keys are in a (soft)hsm)
+create table dnsseckeys (
+  id            integer primary key autoincrement,  -- unique id of the key
+  keypair_id    smallint,
+  zone_id        mediumint,
+  keytype       smallint not null,             -- zsk or ksk (use code in dnskey record)
+  origkeytag    smallint not null,            -- original key tag
+  revokedkeytag smallint not null,            -- revoked key tag
+  digest1       varchar(20),                  -- sha1 digest
+  digest256     varchar(32),                  -- sha256 digest
+
+
+  foreign key (zone_id) references zones (id),
+  foreign key (keypair_id) references keypairs (id)
+);
+
+-- parameters_policies - join table to hold the values of parameters
+create table parameters_policies (
+  id            integer primary key autoincrement,    -- id
+        parameter_id mediumint not null,
+        policy_id mediumint not null,
+        value int,                                -- integer value of this key
+        foreign key (parameter_id) references parameters (id),
+        foreign key (policy_id) references policies (id)
+);
+
+-- The VIEWS
+drop view if exists PARAMETER_VIEW;
+
+create view PARAMETER_VIEW as
+select p.name as name, c.name as category, pp.parameter_id as parameter_id, 
+    pp.value as value, pp.policy_id as policy_id 
+from parameters_policies pp, parameters p, categories c
+where pp.parameter_id = p.id
+and p.category_id = c.id;
+
+drop view if exists PARAMETER_LIST;
+create view PARAMETER_LIST as
+select p.name as name, c.name as category, p.id as parameter_id
+from parameters p, categories c
+where p.category_id = c.id;
+
+drop view if exists KEYDATA_VIEW;
+create view KEYDATA_VIEW as
+select k.id as id, k.state as state, k.generate as generate, k.publish as publish,
+    k.ready as ready, k.active as active, k.retire as retire, k.dead as dead, 
+    d.keytype as keytype, k.algorithm as algorithm, k.HSMkey_id as location,
+    d.zone_id as zone_id
+from  keypairs k left outer join dnsseckeys d
+on k.id = d.keypair_id;
+
+-- insert default data
+-- default security modules
+insert into securitymodules (name, description, location, capacity, pin) values ("sca6000-1", "sca6000", "pkcs11.so", 1000, "1234");
+insert into securitymodules (name, description, location, capacity, pin) values ("softHSM-01", "the best soft hsm in the world", "pkcs11.so", 1000, "1234");
+
+-- default categories
+insert into categories (name) values ("signature");
+insert into categories (name) values ("denial");
+insert into categories (name) values ("ksk");
+insert into categories (name) values ("zsk");
+insert into categories (name) values ("keys");
+insert into categories (name) values ("enforcer");
+insert into categories (name) values ("zone");
+insert into categories (name) values ("parent");
+
+-- default serial number modes
+insert into serialmodes (name, description) values ("unixtime", "seconds since 1 Jan 1970");
+insert into serialmodes (name, description) values ("counter", "add one everytime updated");
+insert into serialmodes (name, description) values ("datecounter", "YYYYMMDDXX");
+
+-- default parameters
+insert into parameters (name, description, category_id) select "resign", "re-signing interval", id from categories where name="signature";
+insert into parameters (name, description, category_id) select "refresh", "how old a signature may become before it needs to be re-signed",id from categories where name="signature";
+insert into parameters (name, description, category_id) select "jitter", "jitter to use in signature inception and expiration times", id from categories where name="signature";
+insert into parameters (name, description, category_id) select "clockskew", "estimated max clockskew expected in clients", id from categories where name="signature";
+insert into parameters (name, description, category_id) select "ttl", "ttl for RRSIGS", id from categories where name="signature";
+insert into parameters (name, description, category_id) select "valdefault", "signature validity period", id from categories where name="signature";
+insert into parameters (name, description, category_id) select "valdenial", "nsec(3) validity period", id from categories where name="signature";
+
+insert into parameters (name, description, category_id) select "ttl", "ttl for nsec(3) rrs", id from categories where name="denial";
+insert into parameters (name, description, category_id) select "version", "nsec version (0 or 3)", id from categories where name="denial";
+insert into parameters (name, description, category_id) select "optout", "opt out flag for nsec3", id from categories where name="denial";
+insert into parameters (name, description, category_id) select "resalt", "re-salting interval", id from categories where name="denial";
+insert into parameters (name, description, category_id) select "algorithm", "nsec3 algorithm", id from categories where name="denial";
+insert into parameters (name, description, category_id) select "iterations", "nsec3 iterations", id from categories where name="denial";
+insert into parameters (name, description, category_id) select "saltlength", "nsec3 salt length", id from categories where name="denial";
+
+insert into parameters (name, description, category_id) select "ttl", "ttl for ksk rrs", id from categories where name="keys";
+insert into parameters (name, description, category_id) select "retiresafety", "ksk retirement safety factor", id from categories where name="keys";
+insert into parameters (name, description, category_id) select "publishsafety", "ksk publish safety factor", id from categories where name="keys";
+
+insert into parameters (name, description, category_id) select "algorithm", "ksk algorithm", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "bits", "ksk key size", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "lifetime", "ksk lifetime", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "emergency", "number of ksks is use at any one time", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "repository", "default ksk sm (for newly generated keys)", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "rfc5011", "are we doing rfc5011?", id from categories where name="ksk";
+
+insert into parameters (name, description, category_id) select "algorithm", "zsk algorithm", id from categories where name="zsk";
+insert into parameters (name, description, category_id) select "bits", "zsk key size", id from categories where name="zsk";
+insert into parameters (name, description, category_id) select "lifetime", "zsk lifetime", id from categories where name="zsk";
+insert into parameters (name, description, category_id) select "emergency", "number of zsks is use at any one time", id from categories where name="zsk";
+insert into parameters (name, description, category_id) select "repository", "default zsk sm (for newly generated keys)", id from categories where name="zsk";
+
+insert into parameters (name, description, category_id) select "propagationdelay", "Dp", id from categories where name="zone";
+insert into parameters (name, description, category_id) select "ttl", "ttl of the soa", id from categories where name="zone";
+insert into parameters (name, description, category_id) select "min", "min of the soa", id from categories where name="zone";
+insert into parameters (name, description, category_id) select "serial", "how serial no are changed", id from categories where name="zone";
+
+insert into parameters (name, description, category_id) select "propagationdelay", "Dp", id from categories where name="parent";
+insert into parameters (name, description, category_id) select "ttl", "ttl of the soa", id from categories where name="parent";
+insert into parameters (name, description, category_id) select "min", "min of the soa", id from categories where name="parent";
+insert into parameters (name, description, category_id) select "ttlds", "ttl of the ds", id from categories where name="parent";
+
+--insert into parameters (name, description, category_id) select "keycreate", "policy for key creation 0=fill the hsm, 1=only generate minimum needed", id from categories where name="enforcer";
+insert into parameters (name, description, category_id) select "interval", "run interval", id from categories where name="enforcer";
+insert into parameters (name, description, category_id) select "keygeninterval", "interval between key generation runs", id from categories where name="enforcer";
+insert into parameters (name, description, category_id) select "backupdelay", "how old must a new key be before it can be assumed to have been backed up", id from categories where name="enforcer";
+
+-- default adapters
+insert into adapters (name, description) values ("file", "all signers should be able to read files.");
+insert into adapters (name, description) values ("axfr", "axfr adapter to the signer.");
+
+-- Create 2 policies:
+INSERT INTO policies VALUES (NULL,'opendnssec','special policy for enforcer config');
+INSERT INTO policies VALUES (NULL,'default','A default policy that will amaze you and your friends');
+
+-- Parameter_policies
+INSERT INTO parameters_policies VALUES (1,1,2,7200);
+INSERT INTO parameters_policies VALUES (2,2,2,259200);
+INSERT INTO parameters_policies VALUES (3,3,2,43200);
+INSERT INTO parameters_policies VALUES (4,4,2,300);
+INSERT INTO parameters_policies VALUES (5,5,2,3600);
+INSERT INTO parameters_policies VALUES (6,6,2,604800);
+INSERT INTO parameters_policies VALUES (7,7,2,1209600);
+INSERT INTO parameters_policies VALUES (8,8,2,3600);
+INSERT INTO parameters_policies VALUES (9,9,2,3);
+INSERT INTO parameters_policies VALUES (10,10,2,1);
+INSERT INTO parameters_policies VALUES (11,11,2,8640000);
+INSERT INTO parameters_policies VALUES (12,12,2,1);
+INSERT INTO parameters_policies VALUES (13,13,2,10);
+INSERT INTO parameters_policies VALUES (14,14,2,160);
+INSERT INTO parameters_policies VALUES (15,15,2,3600);
+INSERT INTO parameters_policies VALUES (16,16,2,3600);
+INSERT INTO parameters_policies VALUES (17,17,2,3600);
+INSERT INTO parameters_policies VALUES (18,18,2,5);
+INSERT INTO parameters_policies VALUES (19,19,2,2048);
+INSERT INTO parameters_policies VALUES (20,20,2,31536000);
+INSERT INTO parameters_policies VALUES (21,21,2,2);
+INSERT INTO parameters_policies VALUES (22,22,2,0);
+INSERT INTO parameters_policies VALUES (23,23,2,1);
+INSERT INTO parameters_policies VALUES (24,24,2,5);
+INSERT INTO parameters_policies VALUES (25,25,2,1024);
+INSERT INTO parameters_policies VALUES (26,26,2,31536000);
+INSERT INTO parameters_policies VALUES (27,27,2,2);
+INSERT INTO parameters_policies VALUES (28,28,2,0);
+INSERT INTO parameters_policies VALUES (29,29,2,9999);
+INSERT INTO parameters_policies VALUES (30,30,2,3600);
+INSERT INTO parameters_policies VALUES (31,31,2,3600);
+INSERT INTO parameters_policies VALUES (32,32,2,1);
+INSERT INTO parameters_policies VALUES (33,33,2,9999);
+INSERT INTO parameters_policies VALUES (34,34,2,3600);
+INSERT INTO parameters_policies VALUES (35,36,2,3600);
+INSERT INTO parameters_policies VALUES (36,35,2,3600);
+INSERT INTO parameters_policies VALUES (37,37,1,3600);
+INSERT INTO parameters_policies VALUES (38,38,1,7257600);
+INSERT INTO parameters_policies VALUES (39,39,1,259200);

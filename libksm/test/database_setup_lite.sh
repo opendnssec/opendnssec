@@ -27,7 +27,7 @@ fi
 
 case $1 in
 	setup)
-		sqlite3 $NAME < '../../database/database_create.sqlite3';
+		sqlite3 $NAME < '../database/database_create.sqlite3';
 		sqlite3 $NAME << EOF
 DROP TABLE IF EXISTS TEST_BASIC;
 CREATE TABLE TEST_BASIC (

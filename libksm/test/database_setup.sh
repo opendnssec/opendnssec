@@ -45,7 +45,7 @@ fi
 
 case $1 in
 	setup)
-		mysql $USERNAME $PASSWORD $HOST $NAME < '../../database/database_create.mysql';
+		mysql $USERNAME $PASSWORD $HOST $NAME < '../database/database_create.mysql';
 		mysql $USERNAME $PASSWORD $HOST $NAME << EOF
 DROP TABLE IF EXISTS TEST_BASIC;
 CREATE TABLE TEST_BASIC (
