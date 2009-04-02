@@ -4,5 +4,5 @@ aclocal
 autoheader
 automake --add-missing
 autoconf
-CFLAGS="-g" ./configure  --with-libksm-include=/Users/jad/Desktop/OpenDNSSEC/dnssec/trunk/ksm-enforcer/ksmlib/include --with-libksm-lib=/Users/jad/Desktop/OpenDNSSEC/dnssec/trunk/ksm-enforcer/bin
+CFLAGS="-g" ./configure --prefix=/opt/key-gen --with-libksm-include=/Users/jad/Desktop/OpenDNSSEC/dnssec/trunk/libksm/include --with-libksm-lib=/opt/libksm/lib
 make clean && make 
