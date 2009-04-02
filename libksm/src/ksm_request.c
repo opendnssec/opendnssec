@@ -1,0 +1,1280 @@
+/*+
+ * ksm_request.c - Handle Request Keys Processing
+ *
+ * Description:
+ *      The REQUEST command asks KSM to list the keys to be included in the
+ *      zone when it is next signed.  It can optionally force a rollover by
+ *      marking the active key as retired.
+ *
+ * Copyright:
+ *      Copyright 2008 Nominet
+ *      
+ * Licence:
+ *      Licensed under the Apache Licence, Version 2.0 (the "Licence");
+ *      you may not use this file except in compliance with the Licence.
+ *      You may obtain a copy of the Licence at
+ *      
+ *          http://www.apache.org/licenses/LICENSE-2.0
+ *      
+ *      Unless required by applicable law or agreed to in writing, software
+ *      distributed under the Licence is distributed on an "AS IS" BASIS,
+ *      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *      See the Licence for the specific language governing permissions and
+ *      limitations under the Licence.
+-*/
+
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "database.h"
+#include "database_statement.h"
+#include "db_fields.h"
+#include "debug.h"
+#include "ksm.h"
+#include "kmedef.h"
+#include "message.h"
+#include "memory.h"
+#include "string_util.h"
+#include "string_util2.h"
+
+
+
+/*+
+ * KsmRequestKeys - Request Keys for Output
+ *
+ * Description:
+ *      Updates the key times and then calls KsmRequestKeysByType to process
+ *      keys of the type chosen by the keytype argument.
+ *
+ * Arguments:
+ *      int keytype
+ *          Key type for which the request should happen.
+ *
+ *              KSM_TYPE_KSK    KSKs
+ *              KSM_TYPE_ZSK    ZSKs
+ *              Other           Both KSK and ZSK
+ *
+ *      int rollover
+ *          1 to force a rollover, 0 to ignore
+ *
+ *      const char* datetime
+ *          Time at which the request is issued.  Comparisons for key
+ *          expirations etc. will be against this time.
+ *
+ *      KSM_REQUEST_CALLBACK callback
+ *          Callback function called for every key that will be issued.
+ *
+ *      void* context
+ *      	Context argument passed uninterpreted to the callback function.
+ *
+ *      int policy_id
+ *          ID of policy that we are looking at
+ *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
+-*/
+
+void KsmRequestKeys(int keytype, int rollover, const char* datetime,
+	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id)
+{
+    int         status;     /* Status return */
+
+    /* Start the transaction */
+    status = DbBeginTransaction();
+    if (status != 0) {
+        /* Something went wrong */
+
+        MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        return;
+    }
+
+    /* Update the estimated times of state change */
+    status = KsmUpdate(policy_id, zone_id);
+    if (status == 0) {
+
+        /* Process all key types */
+        /* TODO 
+         * start a transaction
+         * get return from these calls
+         * commit or rollback depending on what comes back
+         */
+
+        if ((keytype == KSM_TYPE_KSK) || (keytype == KSM_TYPE_ZSK)) {
+            status = KsmRequestKeysByType(keytype, rollover, datetime,
+				callback, context, policy_id, zone_id);
+            
+            if (status != 0) {
+                DbRollback();
+                return;
+            }
+        }
+        else {
+            status = KsmRequestKeysByType(KSM_TYPE_KSK, rollover, datetime,
+				callback, context, policy_id, zone_id);
+            if (status != 0) {
+                DbRollback();
+                return;
+            }
+
+            status = KsmRequestKeysByType(KSM_TYPE_ZSK, rollover, datetime,
+				callback, context, policy_id, zone_id);
+            if (status != 0) {
+                DbRollback();
+                return;
+            }
+        }
+
+        /*
+         * Finally, update the key times again, in case any keys were
+         * moved between states.
+         */
+
+            status = KsmUpdate(policy_id, zone_id);
+            if (status != 0) {
+                DbRollback();
+                return;
+            }
+            else
+            {
+                /* Everything worked by the looks of it */
+                DbCommit();
+            }
+    }
+    else
+    {
+        /* Whatever happened, it was not good */
+        DbRollback();
+    }
+
+    return;
+}
+
+
+/*+
+ * KsmRequestKeysByType - Request Keys for Output
+ *
+ * Description:
+ *      Does REQUEST KEYS processing for keys of a given type.
+ *
+ * Arguments:
+ *      int keytype
+ *          Key type for which the request should happen.
+ *
+ *              KSM_TYPE_KSK    KSKs
+ *              KSM_TYPE_ZSK    ZSKs
+ *
+ *      int rollover
+ *          1 to force a rollover, 0 to ignore
+ *
+ *      const char* datetime
+ *          Time to insert into database.
+ *
+ *      KSM_REQUEST_CALLBACK callback
+ *          Callback function called for every key that will be issued.
+ *
+ *      void* context
+ *      	Context argument passed uninterpreted to the callback function.
+ *
+ *      int policy_id
+ *          ID of policy that we are looking at
+ *
+ *      int zone_id
+ *          ID of zone that we are looking at
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 = Success, other = error (in which case a message
+ *          will have been output).
+-*/
+
+int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
+	KSM_REQUEST_CALLBACK callback,  void* context, int policy_id, int zone_id)
+{
+    int     active;         /* Number of active keys to be retired */
+    KSM_PARCOLL collection; /* Parameters collection */
+    int     ready;          /* Number of keys in the "ready" state */
+    int     status;         /* Status return */
+
+	/* Check that we have a valid key type */
+
+    if ((keytype != KSM_TYPE_KSK) && (keytype != KSM_TYPE_ZSK)) {
+		status = MsgLog(KME_UNKEYTYPE, keytype);
+		return status;
+	}
+
+	DbgLog(DBG_M_REQUEST, KME_REQKEYTYPE,
+		(keytype == KSM_TYPE_KSK) ? "key" : "zone");
+
+    /* Get list of parameters */
+
+    status = KsmParameterCollection(&collection, policy_id);
+    if (status != 0) {
+        return status;
+    }
+
+    /*
+     * Step 0: If rolling over the key, set the expected retirement date of
+     * active keys to the given date/time.
+     */
+
+    if (rollover) {
+        status = KsmRequestSetActiveExpectedRetire(keytype, datetime);
+        if (status != 0) {
+            return status;
+        }
+    }
+
+    /*
+     * Step 1.  For each retired key, mark it as dead if it past the given
+     * time.
+     */
+
+    status = KsmRequestChangeStateRetireDead(keytype, datetime);
+    if (status != 0) {
+        return status;
+    }
+
+    /*
+     * Step 2.  For each key in the published state, set it ready if it has
+     * been in the zone long enough.
+     */
+
+    status = KsmRequestChangeStatePublishReady(keytype, datetime);
+    if (status != 0) {
+        return status;
+    }
+
+    /*
+     * Step 3.  We are within the appropriate interval of the retirement
+     * of the active key, move keys from the generate state into the
+     * publish state.
+     */
+
+    status = KsmRequestChangeStateGeneratePublishConditional(keytype, datetime, &collection);
+    if (status != 0) {
+        return status;
+    }
+
+    /*
+     * Step 4. If there is an active key and the date on which this procedure
+     * is run is earlier than the retire time of that key, exit the procedure.
+     */
+
+    status = KsmRequestCheckActiveKey(keytype, datetime, &active);
+    if (status != 0) {
+        return status;
+    }
+
+    /*
+     * Step 5: Unless we are forcing a rollover, if there are some keys that
+     * will be active after the cut-off, end the modification of key states and
+     * times now.  Otherwise continue.
+     *
+     * Note that we don't return if keys are active - we still need to issue
+     * the keys.
+     */
+
+    if ((active <= 0) || (rollover)) {
+
+        /*
+         * Step 6. If there are keys to be made active, count the number of keys
+         * in the "READY" state.
+         */
+
+        status = KsmRequestCountReadyKey(keytype, datetime, &ready);
+        if (status != 0) {
+            return status;
+        }
+
+        /*
+         * Step 7. We can only promote a key if there is at least one key in the
+         * READY state.  Otherwise, just issue what we have.
+         */
+
+        if (ready <= 0) {
+            (void) MsgLog(KME_NOREADYKEY);
+        }
+        else {
+
+            /* Step 8. Make a key active. */
+
+            status = KsmRequestChangeStateReadyActive(keytype, datetime, 1);
+            if (status != 0) {
+                return status;
+            }
+
+            /* Step 9. ... and retire old active keys */
+
+            status = KsmRequestChangeStateActiveRetire(keytype, datetime);
+            if (status != 0) {
+                return status;
+            }
+        }
+    }
+
+    /* Step 10. Issue the keys */
+
+    status = KsmRequestIssueKeys(keytype, callback, context);
+
+    return status;
+}
+
+
+
+/*+
+ * KsmRequestSetActiveExpectedRetire - Set Expected Retire Date
+ *
+ * Description:
+ *      Sets the expected retire date for active keys to the date specified.
+ *      Note that this does change not the state from active - it only changes
+ *      the expected retire date.
+ *
+ * Arguments:
+ *      int keytype
+ *          Type of keys being changed.
+ *
+ *      const char* datetime
+ *          Date/time for which the calculation is being done.  This can be
+ *          the string "NOW()".
+ *
+ *  Returns:
+ *      int
+ *          Status return. 0 => success, Other => failure, in which case an
+ *          error message will have been output.
+-*/
+
+int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime)
+{
+    int     count;          /* Count of keys whose date will be set */
+    int     set = 0;        /* For the update "set" clause */
+    char*   sql = NULL;     /* For creating the SQL command */
+    int     status = 0;     /* Status return */
+    int     where = 0;      /* For the SQL selection */
+
+    if (DbgIsSet(DBG_M_REQUEST)) {
+
+        /* Count how many keys will have the retire date set */
+
+        sql = DqsCountInit("KEYDATA_VIEW");
+        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
+        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
+        DqsEnd(&sql);
+
+        status = DbIntQuery(DbHandle(), &count, sql);
+        DqsFree(sql);
+
+        if (status == 0) {
+            MsgLog(KME_ACTKEYRET, count);
+        }
+        else {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        }
+    }
+
+    if (status == 0) {
+
+		/*
+		 * Update the keys.  This is done after a status check, as the debug
+		 * code may have hit a database error, in which case we won't query the
+		 * database again. ("status" is initialized to success in case the debug
+		 * code is not executed.)
+		 */
+
+        where = set = 0;
+        sql = DusInit("KEYDATA_VIEW");
+        DusSetString(&sql, "RETIRE", datetime, set++);
+        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
+        DusConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
+        DusEnd(&sql);
+
+        status = DbExecuteSqlNoResult(DbHandle(), sql);
+        DusFree(sql);
+    }
+
+    return status;
+}
+
+
+
+/*+
+ * KsmRequestChangeStatePublishReady - Change State from PUBLISH to READY
+ * KsmRequestChangeStateActiveRetire - Change State from ACTIVE to RETIRE
+ * KsmRequestChangeStateRetireDead - Change State from RETIRE to DEAD
+ *
+ * Description:
+ *      Changes the state of keys of a particular type in the given zone
+ *      between two states.
+ *
+ * Arguments:
+ *      int keytype
+ *          Type of keys being changed.
+ *
+ *      const char* datetime
+ *          Date/time for which the calculation is being done.  This ancan be
+ *          the string "NOW()".
+ *
+ *  Returns:
+ *      int
+ *          Status return. 0 => success, Other => failure, in which case an
+ *          error message will have been output.
+-*/
+
+int KsmRequestChangeStatePublishReady(int keytype, const char* datetime)
+{
+    return KsmRequestChangeState(keytype, datetime,
+        KSM_STATE_PUBLISH, KSM_STATE_READY);
+}
+
+int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime)
+{
+    return KsmRequestChangeState(keytype, datetime,
+        KSM_STATE_ACTIVE, KSM_STATE_RETIRE);
+}
+
+int KsmRequestChangeStateRetireDead(int keytype, const char* datetime)
+{
+    return KsmRequestChangeState(keytype, datetime,
+        KSM_STATE_RETIRE, KSM_STATE_DEAD);
+}
+
+
+
+/*+
+ * KsmRequestChangeState - Change State of a Key
+ *
+ * Description:
+ *      Changes the state of a key between two states if the estimated time of
+ *      entering the target state is equal to or earlier than the given time.
+ *      The time of entering the state is updated to the given time as well.
+ *
+ * Arguments:
+ *      int keytype
+ *          Type of keys being changed.
+ *
+ *      const char* datetime
+ *          Date/time for which the calculation is being done.  This can be
+ *          the string "NOW()".
+ *
+ *      int src_state
+ *          ID of the state that the key is moving from.
+ *
+ *      int dst_state
+ *          ID of the state that the key is moving to.
+ *
+ *  Returns:
+ *      int
+ *          Status return. 0 => success, Other => failure, in which case an
+ *          error message will have been output.
+-*/
+
+int KsmRequestChangeState(int keytype, const char* datetime,
+    int src_state, int dst_state)
+{
+    int     where = 0;		/* for the SELECT statement */
+    int     count;          /* Number of keys being moved */
+    char*   dst_col = NULL; /* Destination column */
+    int     set = 0;    	/* For UPDATE */
+    char*   sql = NULL;     /* SQL statement (when verifying) */
+    int     status = 0;     /* Status return */
+    char    buf[256];       /* For constructing date part of the command */
+    char    col[256];       /* For constructing column part of the command */
+
+    /* Create the destination column name */
+
+    dst_col = StrStrdup(KsmKeywordStateValueToName(dst_state));
+    (void) StrToUpper(dst_col);
+
+#ifdef USE_MYSQL
+#else
+	snprintf(buf, sizeof(buf), "DATETIME('%s')", datetime);
+    snprintf(col, sizeof(col), "DATETIME(%s)", dst_col);
+#endif
+
+    if (DbgIsSet(DBG_M_REQUEST)) {
+
+        /* Count how many keys will be transitioned between states */
+
+        sql = DqsCountInit("KEYDATA_VIEW");
+/*        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++); */
+        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
+
+#ifdef USE_MYSQL
+        DqsConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
+#else
+        DqsConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
+#endif
+
+        DqsEnd(&sql);
+
+        status = DbIntQuery(DbHandle(), &count, sql);
+        DqsFree(sql);
+
+        if (status == 0) {
+            MsgLog(KME_KEYCHSTATE, count,
+                KsmKeywordStateValueToName(src_state),
+                KsmKeywordStateValueToName(dst_state));
+        }
+        else {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        }
+    }
+
+    if (status == 0) {
+
+		/*
+		 * Update the keys.  This is done after a status check, as the debug
+		 * code may have hit a database error, in which case we won't query the
+		 * database again. ("status" is initialized to success in case the debug
+		 * code is not executed.)
+		 */
+
+        where = set = 0;
+        sql = DusInit("keypairs");
+        DusSetInt(&sql, "STATE", dst_state, set++);
+        DusSetString(&sql, dst_col, datetime, set++);
+
+/*        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++); */
+        DusConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
+#ifdef USE_MYSQL
+        DusConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
+#else
+        DusConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
+#endif
+        DusEnd(&sql);
+
+        status = DbExecuteSqlNoResult(DbHandle(), sql);
+        DusFree(sql);
+    }
+
+    StrFree(dst_col);
+
+    return status;
+}
+
+
+
+/*+
+ * KsmRequestChangeStateGeneratePublish - Change State from GENERATE to PUBLISH
+ * KsmRequestChangeStateReadyActive - Change State from READY to ACTIVE
+ *
+ * Description:
+ *      Changes the state of a number of keys from one state to another.
+ *
+ * Arguments:
+ *      int keytype
+ *          Type of keys being changed.
+ *
+ *      const char* datetime
+ *          Date/time for which this request is being made.
+ *
+ *      int count
+ *          Number of keys to be promoted to the publish state.  There is no
+ *          check as to whether that number of keys are available in the
+ *          GENERATE state - it is assumed that that check has already been
+ *          carried out.
+ *
+ *  Returns:
+ *      int
+ *          Status return. 0 => success, Other => failure, in which case an
+ *          error message will have been output.
+-*/
+
+int KsmRequestChangeStateGeneratePublish(int keytype, const char* datetime,
+	int count)
+{
+    return KsmRequestChangeStateN(keytype, datetime, count,
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH);
+}
+
+int KsmRequestChangeStateReadyActive(int keytype, const char* datetime,
+	int count)
+{
+    return KsmRequestChangeStateN(keytype, datetime, count,
+        KSM_STATE_READY, KSM_STATE_ACTIVE);
+}
+
+
+/*+
+ * KsmRequestChangeStateN - Change State of N Keys
+ *
+ * Description:
+ *      Changes the state of a given number of keys from one state to another.
+ *
+ * Arguments:
+ *      int keytype
+ *          Type of keys being changed.
+ *
+ *      const char* datetime
+ *          Date/time for which this request is being made.
+ *
+ *      int count
+ *          Number of keys to be promoted to the destination state.  There is no
+ *          check as to whether that number of keys are available in the
+ *          state - it is assumed that that check has already been carried out.
+ *
+ *      int src_state
+ *          State from which keys are being prompted.
+ *
+ *      int dst_state
+ *          State to which keys are being promoted.
+ *
+ *  Returns:
+ *      int
+ *          Status return. 0 => success, Other => failure, in which case an
+ *          error message will have been output.
+-*/
+
+int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
+	int src_state, int dst_state)
+{
+    char                buffer[32];         /* For integer conversion */
+    DQS_QUERY_CONDITION condition[3];       /* Condition codes */
+    KSM_KEYDATA         data;               /* Data for this key */
+    char*               dst_name = NULL;    /* Dest state name uppercase */
+    DB_RESULT           result;             /* List result set */
+    int                 i;                  /* Loop counter */
+    char*               insql = NULL;       /* SQL "IN" clause */
+    int*                keyids;             /* List of IDs of keys to promote */
+    int                 setclause = 0;      /* For the "SET" clauses */
+    char*               sql = NULL;         /* SQL statement */
+    int                 status;             /* Status return */
+    int                 whereclause = 0;    /* For the "WHERE" clauses */
+
+	/* Notify progress if debugging */
+
+	DbgLog(DBG_M_REQUEST, KME_KEYCHSTATE, count,
+		KsmKeywordStateValueToName(src_state),
+		KsmKeywordStateValueToName(dst_state));
+
+    /* Allocate space for the list of key IDs */
+
+    keyids = MemMalloc(count * sizeof(int));
+
+    /* Get the list of IDs */
+
+    condition[0].code = DB_KEYDATA_KEYTYPE;
+    condition[0].data.number = keytype;
+    condition[0].compare = DQS_COMPARE_EQ;
+
+    condition[1].code = DB_KEYDATA_STATE;
+    condition[1].data.number = src_state;
+    condition[1].compare = DQS_COMPARE_EQ;
+
+    condition[2].compare = DQS_END_OF_LIST;
+
+    status = KsmKeyInit(&result, condition);
+    for (i = 0; ((i < count) && (status == 0)); ++i) {
+        status = KsmKey(result, &data);
+        if (status == 0) {
+            keyids[i] = data.keypair_id;
+        }
+    }
+    KsmKeyEnd(result);
+
+    /* Did we get everything? */
+
+    if (status == 0) {
+
+        /*
+         * Yes: construct the "IN" statement listing the IDs of the keys we
+         * are planning to change the state of.
+         */
+
+        StrAppend(&insql, "(");
+        for (i = 0; i < count; ++i) {
+            if (i != 0) {
+                StrAppend(&insql, ",");
+            }
+            snprintf(buffer, sizeof(buffer), "%d", keyids[i]);
+            StrAppend(&insql, buffer);
+        }
+        StrAppend(&insql, ")");
+
+        /* Get upper case names of the states (= names of date columns) */
+
+        dst_name = StrStrdup(KsmKeywordStateValueToName(dst_state));
+        (void) StrToUpper(dst_name);
+
+        /*
+         * Now construct the "UPDATE" statement and execute it.  This relies on
+         * the fact that the name of the state is the same as the name of
+         * the column in KEYDATA holding the date at which the key moved to
+         * that state.
+         */
+
+        sql = DusInit("keypairs");
+        DusSetInt(&sql, "STATE", dst_state, setclause++);
+        DusSetString(&sql, dst_name, datetime, setclause++);
+        StrFree(dst_name);
+
+        DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, whereclause++);
+        StrFree(insql);
+        DusEnd(&sql);
+
+        status = DbExecuteSqlNoResult(DbHandle(), sql);
+        DusFree(sql);
+
+        /* Report any errors */
+
+        if (status != 0) {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        }
+    }
+    
+    /* Free up resources */
+
+    MemFree(keyids);
+
+    return status;
+}
+
+
+
+/*+
+ * KsmRequestChangeStateGeneratePublishConditional -
+ *          Change State from Generate to Pubish
+ *
+ * Description:
+ *      Unlike the other "Change State" functions, this is conditional.  It
+ *      promotes keys in the "Generate" state to the "Publish" state to maintain
+ *      the required number of keys active/emergency keys when the active keys
+ *      are retired.
+ *
+ *      a) For the given time, work out how many "active" keys have a retire
+ *         date within this time + "publication interval".  Call this number
+ *         Npr (Number pending retirement).
+ *
+ *         This should be 1 or 0, as there is an assumption that there is only
+ *         ever one active key.
+ *
+ *      b) Work out how many keys are in the active, publish and ready states.
+ *         Call this Nt (Number total).
+ *
+ *      c) Now look at the difference (Nt - Npr).  This is the number of keys
+ *         that will be (potentially) usable after the active key retires.
+ *         If this number is less than (1 + Ne) (where Ne is the number of
+ *         emergency keys), move the difference from the generated state into
+ *         the published state.
+ *
+ * Arguments:
+ *      int keytype
+ *          Key type for which the request should happen.
+ *
+ *              KSM_TYPE_KSK    KSKs
+ *              KSM_TYPE_ZSK    ZSKs
+ *
+ *      const char* datetime
+ *          Date/time for which this request is taking place.
+ *
+ *      KSM_PARCOLL* collection
+ *          Pointer to parameter collection for this zone.
+ *
+ * Returns:
+ *      int
+ *          Status return. 0 => success, Other => failure, in which case an
+ *          error message will have been output.
+-*/
+
+int KsmRequestChangeStateGeneratePublishConditional(int keytype,
+	const char* datetime, KSM_PARCOLL* collection)
+{
+    int     availkeys;      /* Number of availkeys keys */
+    int     gencnt;         /* Number of keys in generate state */
+    int     newkeys;        /* New keys required */
+    int     pendret;        /* Number of keys that will be retired */
+    int     reqkeys;        /* Number of keys required */
+    int     status;         /* Status return */
+
+    /* How many active keys will be retired in the immediate future */
+
+    status = KsmRequestPendingRetireCount(keytype, datetime, collection,
+        &pendret);
+    if (status != 0) {
+        return status;
+    }
+	DbgLog(DBG_M_REQUEST, KME_RETIRECNT, pendret);
+
+    /* How many available keys are there */
+
+    status = KsmRequestAvailableCount(keytype, datetime, collection,
+        &availkeys);
+    if (status != 0) {
+        return status;
+    }
+	DbgLog(DBG_M_REQUEST, KME_AVAILCNT, availkeys);
+
+    /*
+     * We need at least one active key and "number of emergency keys" ready
+     * keys at any one time.
+     */
+
+    reqkeys = 1 + KsmParameterEmergencyKeys(collection);
+
+    /*
+     * So, if we remove "pendret" keys from the number of "available"
+     * keys, how many are we short of the required number?  This is how many
+     * we need to promote from "generate" to "publish"
+     */
+
+    newkeys = reqkeys - (availkeys - pendret);
+	DbgLog(DBG_M_REQUEST, KME_KEYCNTSUMM, reqkeys, newkeys);
+
+    if (newkeys > 0) {
+
+        /* Are there enough generated keys available */
+
+        status = KsmRequestGenerateCount(keytype, &gencnt);
+        if (status == 0) {
+            if (gencnt < newkeys) {
+                status = MsgLog(KME_INSFGENKEY, gencnt,
+                    KsmKeywordTypeValueToName(keytype));
+            }
+			DbgLog(DBG_M_REQUEST, KME_GENERATECNT, gencnt,
+				KsmKeywordTypeValueToName(keytype));
+
+            if (status == 0) {
+
+                /* There are enough keys, so move them to "publish" state */
+
+                status = KsmRequestChangeStateGeneratePublish(keytype,
+                    datetime, newkeys);
+            }
+            /* TODO what if there are not? */
+        }
+    }
+
+    return 0;
+}
+
+
+
+/*+
+ * KsmRequestPendingRetireCount - Get Count of Keys Pending Retirement
+ *
+ * Description:
+ *      For the given time, works out how many "active" keys have a retire
+ *      date within this time + "publication interval".
+ *
+ *      This should be 1 or 0, as there is an assumption that there is only
+ *      ever one active key.
+ *
+ * Arguments:
+ *      int keytype
+ *          Key type for which the request should happen.
+ *
+ *              KSM_TYPE_KSK    KSKs
+ *              KSM_TYPE_ZSK    ZSKs
+ *
+ *      const char* datetime
+ *          Date/time for which this request is taking place.
+ *
+ *      KSM_PARCOLL* parameters
+ *          Parameters associated with this zone.
+ *
+ *      int* count (returned)
+ *          Number of active keys that will retire within that period.
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 => success, <>0 => error, in which case a message
+ *          will have been output.
+-*/
+
+int KsmRequestPendingRetireCount(int keytype, const char* datetime,
+    KSM_PARCOLL* parameters, int* count)
+{
+    char    buffer[256];    /* For constructing part of the command */
+    int     clause = 0;     /* Used in constructing SQL statement */
+    size_t  nchar;          /* Number of characters written */
+    char*   sql;            /* SQL command to be isssued */
+    int     status;         /* Status return */
+
+    /* Create the SQL command to interrogate the database */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, clause++);
+
+    /* Calculate the initial publication interval & add to query */
+
+    /* 
+     * TODO is there an alternative to DATE_ADD which is more generic? 
+     */
+#ifdef USE_MYSQL
+    nchar = snprintf(buffer, sizeof(buffer),
+        "DATE_ADD(\"%s\", INTERVAL %d SECOND)",
+        datetime, KsmParameterInitialPublicationInterval(parameters));
+#else
+    nchar = snprintf(buffer, sizeof(buffer),
+        "DATETIME('%s', '+%d SECONDS')",
+        datetime, KsmParameterInitialPublicationInterval(parameters));
+#endif
+    if (nchar >= sizeof(buffer)) {
+        status = MsgLog(KME_BUFFEROVF, "KsmRequestKeys");
+        return status;
+    }
+
+#ifdef USE_MYSQL
+    DqsConditionKeyword(&sql, "RETIRE", DQS_COMPARE_LE, buffer, clause++);
+#else
+    DqsConditionKeyword(&sql, "DATETIME(RETIRE)", DQS_COMPARE_LE, buffer, clause++);
+#endif
+
+    DqsEnd(&sql);
+
+    /* Execute the query and free resources */
+
+    status = DbIntQuery(DbHandle(), count, sql);
+    DqsFree(sql);
+
+    /* Report any errors */
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+    return status;
+}
+
+
+
+/*+
+ * KsmRequestAvailableCount - Get Count of Available Keys
+ *
+ * Description:
+ *      By "available", is the number of keys in the "published", "ready"
+ *      and "active" state.
+ *
+ * Arguments:
+ *      int keytype
+ *          Key type for which the request should happen.
+ *
+ *              KSM_TYPE_KSK    KSKs
+ *              KSM_TYPE_ZSK    ZSKs
+ *
+ *      const char* datetime
+ *          Date/time for which this request is taking place.
+ *
+ *      KSM_PARCOLL* parameters
+ *          Parameters associated with this zone.
+ *
+ *      int* count (returned)
+ *          Number of available keys.
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 => success, <>0 => error, in which case a message
+ *          will have been output.
+-*/
+
+int KsmRequestAvailableCount(int keytype, const char* datetime,
+    KSM_PARCOLL* parameters, int* count)
+{
+    char    buffer[256];    /* For constructing part of the command */
+    int     clause = 0;     /* Used in constructing SQL statement */
+    size_t  nchar;          /* Number of characters written */
+    char*   sql;            /* SQL command to be isssued */
+    int     status;         /* Status return */
+
+    /* Create the SQL command to interrogate the database */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+
+    /* Calculate the initial publication interval & add to query */
+
+    nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d)",
+        KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE);
+    if (nchar >= sizeof(buffer)) {
+        status = MsgLog(KME_BUFFEROVF, "KsmRequestKeys");
+        return status;
+    }
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, clause++);
+    DqsEnd(&sql);
+
+    /* Execute the query and free resources */
+
+    status = DbIntQuery(DbHandle(), count, sql);
+    DqsFree(sql);
+
+    /* Report any errors */
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+    return status;
+}
+
+
+/*+
+ * KsmRequestGenerateCount - Return Number of Keys in Generate State
+ *
+ * Description:
+ *      Returns the retire time of the currently active key.  If there are
+ *      multiple active keys, returns the earliest time.
+ *
+ * Arguments:
+ *      int keytype
+ *          Time of key to search for.
+ *
+ *      int* count (returned)
+ *          Number of available keys.
+ *
+ * Returns:
+ *      int
+ *          Status return. 0 => success, Other implies error, in which case a
+ *          message will have been output.
+-*/
+
+int KsmRequestGenerateCount(int keytype, int* count)
+{
+    int     clause = 0;     /* Clause count */
+    char*   sql = NULL;     /* SQL to interrogate database */
+    int     status = 0;     /* Status return */
+
+    /* Create the SQL */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_GENERATE, clause++);
+    DqsEnd(&sql);
+
+    /* Execute the query and free resources */
+
+    status = DbIntQuery(DbHandle(), count, sql);
+    DqsFree(sql);
+
+    /* Report any errors */
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+    return status;
+}
+
+
+
+/*
+ * KsmRequestCheckActiveKey - Check Active Key
+ *
+ * Description:
+ *      Checks:
+ *
+ *      a) If there is an active key.
+ *      b) If a key is present, what the retire time of it is.  This is compared
+ *         against the specified date/time.
+ *
+ *      A flag is returned indicating whether the key (if active) should be
+ *      replaced.
+ *
+ * Arguments:
+ *      int keytype
+ *          Either KSK or ZSK, depending on the key type
+ *
+ *      const char* datetime
+ *          Date/time at which the check is being carried out.
+ *
+ *      int* count
+ *          Number of active keys of the appropriate type and in the zone
+ *          that will be active AFTER the given date and time.
+ *
+ *          This negative form (i.e. keys not meeting the specified condition)
+ *          is used to ensure that if there are no active keys, this fact is
+ *          reported.
+ *
+ * Returns:
+ *      int
+ *          Status return. 0 => success, Other => error, in which case a message
+ *          will have been output.
+-*/
+
+int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count)
+{
+    int     clause = 0;     /* Clause counter */
+    char*   sql = NULL;     /* SQL command */
+    int     status;         /* Status return */
+    char    buf[256];       /* For constructing part of the command */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, clause++);
+
+#ifdef USE_MYSQL
+    DqsConditionString(&sql, "RETIRE", DQS_COMPARE_GT, datetime, clause++);
+#else
+    snprintf(buf, sizeof(buf), "DATETIME('%s')", datetime);
+    DqsConditionKeyword(&sql, "DATETIME(RETIRE)", DQS_COMPARE_GT, buf, clause++);
+#endif
+
+    DqsEnd(&sql);
+
+    status = DbIntQuery(DbHandle(), count, sql);
+    DqsFree(sql);
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+	DbgLog(DBG_M_REQUEST, KME_REMAINACT, *count,
+		KsmKeywordTypeValueToName(keytype));
+
+    return status;
+}
+
+
+
+/*
+ * KsmRequestCountReadyKey - Count Keys in READY state
+ *
+ * Description:
+ *      Counts the number of keys in the "READY" state.
+ *
+ * Arguments:
+ *      int keytype
+ *          Either KSK or ZSK, depending on the key type
+ *
+ *      const char* datetime
+ *          Date/time at which the check is being carried out.
+ *
+ *      int* count
+ *          Number of keys meeting the condition.
+ *
+ * Returns:
+ *      int
+ *          Status return. 0 => success, Other => error, in which case a message
+ *          will have been output.
+-*/
+
+int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count)
+{
+    int     clause = 0;     /* Clause counter */
+    char*   sql = NULL;     /* SQL command */
+    int     status;         /* Status return */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_READY, clause++);
+    DqsEnd(&sql);
+
+    status = DbIntQuery(DbHandle(), count, sql);
+    DqsFree(sql);
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+	DbgLog(DBG_M_REQUEST, KME_READYCNT, *count,
+		KsmKeywordTypeValueToName(keytype));
+
+    return status;
+}
+
+
+/*+
+ * KsmRequestIssueKeys - Issue Keys
+ *
+ * Description:
+ *      Done as the last step in the "REQUEST KEYS" operation, this actually
+ *      issues the keys that should be in the current zone file.  All keys in
+ *      the "publish", "ready", "active" and "retire" states are included.
+ *
+ * Arguments:
+ *      int keytype
+ *          Type of keys required.
+ *
+ *      KSM_REQUEST_CALLBACK callback
+ *          Callback function called for every key that will be issued.
+ *
+ *      void* context
+ *      	Context argument passed uninterpreted to the callback function.
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 => success, <>0 => error (in which case a message
+ *          will have been output).
+-*/
+
+int KsmRequestIssueKeys(int keytype, KSM_REQUEST_CALLBACK callback,
+	void* context)
+{
+    int     clause = 0;     /* For the WHERE clause */
+    KSM_KEYDATA data;       /* Data for this key */
+    DB_RESULT	result;     /* Result set from query */
+    char    in[128];        /* Easily large enought for four keys */
+    size_t  nchar;          /* Number of output characters */
+    char*   sql = NULL;     /* SQL statement to get listing */
+    int     status;         /* Status return */
+
+    /*
+     * Construct the "IN" statement listing the states of the keys that
+     * are included in the output.
+     */
+
+    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d)",
+        KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_RETIRE);
+    if (nchar >= sizeof(in)) {
+        status = MsgLog(KME_BUFFEROVF, "KsmRequestIssueKeys");
+        return status;
+    }
+
+    /* Create the SQL command to interrogate the database */
+
+    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, clause++);
+    DqsEnd(&sql);
+
+    /* Now iterate round the keys meeting the condition and print them */
+
+    status = KsmKeyInitSql(&result, sql);
+    if (status == 0) {
+        status = KsmKey(result, &data);
+        while (status == 0) {
+			status = (*callback)(context, &data);
+			if (status == 0) {
+				status = KsmKey(result, &data);
+			}
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+
+        KsmKeyEnd(result);
+    }
+
+    return status;
+}
+
+
+
+/*+
+ * KsmRequestPrintKey - Print Key Data
+ *
+ * Description:
+ *		Suitable callback function for KsmRequest, this prints a summary of the
+ *		key information to stdout.
+ *
+ * Arguments:
+ * 		void* context
+ * 			Context passed to KsmUpdate.  This is unused.
+ *
+ * 		KSM_KEYDATA* data
+ * 			Data about the key to be isssued.
+ *
+ * Returns:
+ * 		int
+ * 			Always 0.
+-*/
+
+int KsmRequestPrintKey(void* context, KSM_KEYDATA* data)
+{
+	printf("%s %lu %d %d %s\n", KsmKeywordStateValueToName(data->state),
+		data->keypair_id, data->keytype, data->algorithm, data->location);
+
+	return 0;
+}
