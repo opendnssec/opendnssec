@@ -67,10 +67,37 @@ AM_CONDITIONAL([MYSQL], [test x$MYSQL_PATH != "x"])
 AC_SUBST(DB_INCLUDES)
 AC_SUBST(DB_LIBS)
 
+# Check for cunit
+AC_ARG_WITH(cunit,
+[  --with-cunit=DIR     Look for cunit in this dir ],
+   CUNIT_PATH="$withval"
+)
+if test "x$CUNIT_PATH" != "x"
+then
+   AC_MSG_CHECKING(what are the cunit includes)
+   CUNIT_INCLUDES="-I$CUNIT_PATH/include"
+   AC_MSG_RESULT($CUNIT_INCLUDES)
+   AC_MSG_CHECKING(what are the cunit libs)
+   CUNIT_LIBS="-L$CUNIT_PATH/lib -lcunit"
+   AC_MSG_RESULT($CUNIT_LIBS)
+fi
+
+AC_SUBST(CUNIT_INCLUDES)
+AC_SUBST(CUNIT_LIBS)
+
+
+
+
+
+
+
+
+
 AC_CONFIG_FILES([
 Makefile
 include/Makefile
 src/Makefile
+test/Makefile
 ])
 
 AC_OUTPUT
