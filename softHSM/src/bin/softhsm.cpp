@@ -62,13 +62,14 @@ void usage() {
   printf("Usage: softhsm [OPTIONS]\n");
   printf("Creates and initialize the tokens for libsofthsm\n");
   printf("Options:\n");
-  printf("--init-token <file>\tCreate a database at the given location. If the database exist, \n");
-  printf("\t\t\tit will be erased. Use with --label, --so-pin, and --pin.\n");
-  printf("--label <text>\t\tDefines the label of the token. Max 32 chars.\n");
-  printf("--so-pin <PIN>\t\tThe PIN for the Security Officer (SO). 4-255 chars.\n");
-  printf("--pin <PIN>\t\tThe PIN for the normal user. 4-255 chars.\n");
-  printf("--help\t\t\tShows this help.\n");
-  printf("-h\t\t\tShows this help.\n");
+  printf("--init-token <file>  Create a database at the given location.\n");
+  printf("                     Use with --label, --so-pin, and --pin.\n");
+  printf("                     WARNING: If the database exist, it will be erased.\n");
+  printf("--label <text>       Defines the label of the token. Max 32 chars.\n");
+  printf("--so-pin <PIN>       The PIN for the Security Officer (SO). 4-255 chars.\n");
+  printf("--pin <PIN>          The PIN for the normal user. 4-255 chars.\n");
+  printf("--help               Shows this help.\n");
+  printf("-h                   Shows this help.\n");
 }
 
 enum {
