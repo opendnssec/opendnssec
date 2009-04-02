@@ -176,7 +176,7 @@ int KsmPolicy(DB_RESULT result, KSM_POLICY* data)
     if (status == 0) {
 
         status = DbInt(row, DB_POLICY_ID, &(data->id));
-        DbStringBuffer(row, DB_POLICY_NAME, data->name, sizeof(data->name));
+        DbStringBuffer(row, DB_POLICY_NAME, data->name, KSM_NAME_LENGTH*sizeof(char));
     }
     else if (status == -1) {}
         /* No rows to return (but no error) */
