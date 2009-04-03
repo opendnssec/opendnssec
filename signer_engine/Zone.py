@@ -170,9 +170,27 @@ class Zone:
         find_key_details, this is done now."""
         syslog.syslog(syslog.LOG_INFO,
                       "Sorting zone: " + self.zone_name)
+
+        for k in self.zone_config.publish_keys:
+            if not k["dnskey"]:
+                try:
+                    syslog.syslog(syslog.LOG_DEBUG,
+                                  "No information yet for key " +\
+                                  k["locator"])
+                    if not self.find_key_details(k):
+                        syslog.syslog(syslog.LOG_ERR,
+                                      "Error: could not find key "+\
+                                      k["locator"])
+                except ToolException, exc:
+                    syslog.syslog(syslog.LOG_ERR,
+                                  "Error: Unable to find key " +\
+                                  k["locator"])
+                    syslog.syslog(syslog.LOG_ERR, str(exc))
+
         unsorted_zone_file = open(self.get_zone_input_filename(), "r")
         cmd = [ self.get_tool_filename("sorter"),
-                "-o", self.zone_name
+                "-o", self.zone_name,
+                "-w", self.get_zone_tmp_filename(".sorted")
               ]
         if self.zone_config.denial_nsec3:
             cmd.extend([
@@ -187,41 +205,23 @@ class Zone:
         # sort published keys and zone data
         try:
             for k in self.zone_config.publish_keys:
-                if not k["dnskey"]:
-                    try:
-                        syslog.syslog(syslog.LOG_DEBUG,
-                                      "No information yet for key " +\
-                                      k["locator"])
-                        if (self.find_key_details(k)):
-                            sort_process.stdin.write(k["dnskey"]+ "\n")
-                        else:
-                            syslog.syslog(syslog.LOG_ERR,
-                                          "Error: could not find key "+\
-                                          k["locator"])
-                    except ToolException, exc:
-                        syslog.syslog(syslog.LOG_ERR,
-                                      "Error: Unable to find key " +\
-                                      k["locator"])
-                        syslog.syslog(syslog.LOG_ERR, str(exc))
-                        sort_process.stdin.write(
-                            "; Unable to find key " + k["locator"])
-                else:
-                    sort_process.stdin.write(k["dnskey"]+ "\n") 
-            
+                sort_process.stdin.write(k["dnskey"])
+
             for line in unsorted_zone_file:
                 sort_process.stdin.write(line)
+
             sort_process.stdin.close()
             
             unsorted_zone_file.close()
-            sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
-            
+            #sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
+
             for line in sort_process.stderr:
                 syslog.syslog(syslog.LOG_ERR,
                               "stderr from sorter: " + line)
             
-            for line in sort_process.stdout:
-                sorted_zone_file.write(line)
-            sorted_zone_file.close()
+            #for line in sort_process.stdout:
+            #    sorted_zone_file.write(line)
+            #sorted_zone_file.close()
         except Exception, exc:
             syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
             syslog.syslog(syslog.LOG_WARNING, str(exc))
@@ -246,7 +246,10 @@ class Zone:
             nsec_p = Util.run_tool(
                               [self.get_tool_filename("nseccer"),
                                "-f",
-                               self.get_zone_tmp_filename(".sorted")])
+                               self.get_zone_tmp_filename(".sorted"),
+                               "-w",
+                               self.get_zone_tmp_filename(".signed")
+                               ])
         elif self.zone_config.denial_nsec3:
             cmd = [
                 self.get_tool_filename("nsec3er"),
@@ -259,6 +262,8 @@ class Zone:
                 str(self.zone_config.denial_nsec3_algorithm),
                 "-i",
                 self.get_zone_tmp_filename(".sorted"),
+                "-w",
+                self.get_zone_tmp_filename(".signed")
             ]
             if self.zone_config.denial_nsec3_ttl:
                 cmd.append("-m")
@@ -266,15 +271,14 @@ class Zone:
             if self.zone_config.denial_nsec3_optout:
                 cmd.append("-p")
             nsec_p = Util.run_tool(cmd)
-        nsecced_zone_file = open(self.get_zone_tmp_filename(".signed"), "w")
-        
+        #nsecced_zone_file = open(self.get_zone_tmp_filename(".signed"), "w")
+
         for line in nsec_p.stderr:
             syslog.syslog(syslog.LOG_ERR,
                           "stderr from nseccer: " + line)
-        
-        for line in nsec_p.stdout:
-            nsecced_zone_file.write(line)
-        nsecced_zone_file.close()
+        #for line in nsec_p.stdout:
+        #    nsecced_zone_file.write(line)
+        #nsecced_zone_file.close()
         
 
     def perform_action(self):
@@ -329,6 +333,7 @@ class Zone:
         """Takes the file created by nsecify() or by the previous call
            to sign(), and (re)signs the zone"""
         cmd = [self.get_tool_filename("signer_pkcs11"),
+               "-w", self.get_zone_tmp_filename(".signed2")
               ]
 
         sign_p = Util.run_tool(cmd)
@@ -404,13 +409,14 @@ class Zone:
         nsecced_f.close()
         sign_p.stdin.close()
         sign_p.wait()
-        output = open(self.get_zone_tmp_filename(".signed"), "w")
-        for line in sign_p.stdout:
-            output.write(line)
-        for line in sign_p.stderr:
-            syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
-        output.close()
-
+        #output = open(self.get_zone_tmp_filename(".signed"), "w")
+        #for line in sign_p.stdout:
+        #    output.write(line)
+        #for line in sign_p.stderr:
+        #    syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
+        #output.close()
+        Util.move_file(self.get_zone_tmp_filename(".signed2"),
+                       self.get_zone_tmp_filename(".signed"))
         self.last_signed = sign_time
 
     def finalize(self):

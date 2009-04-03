@@ -6,6 +6,7 @@ from datetime import datetime
 import syslog
 from Ft.Xml.XPath import Evaluate
 import getpass
+import shutil
 
 class ToolException(Exception):
     """General exception class for exceptions when running external
@@ -143,3 +144,7 @@ def query_pin(token):
     pin = getpass.getpass("Please enter the PIN for token " +\
                           token["name"] + ": ")
     return pin
+
+def move_file(source, target):
+    """Moves a file; if the target file exists it is deleted"""
+    shutil.move(source, target)
