@@ -336,7 +336,8 @@ debug_print_modules(FILE *out, const char *prefix, ldns_pkcs11_module_list *list
 }
 
 ldns_status
-add_key(current_config *cfg,
+add_key(FILE *output,
+        current_config *cfg,
         const char *token_name,
         const char *key_id_str,
         const char *key_algorithm_str,
@@ -351,28 +352,28 @@ add_key(current_config *cfg,
 	int key_flags;
 	
 	if (!cfg || !cfg->origin) {
-		printf("; Error: no signer context, or origin not set\n");
+		fprintf(output, "; Error: no signer context, or origin not set\n");
 		return LDNS_STATUS_ERR;
 	}
 	
 	key_algorithm = atoi(key_algorithm_str);
 	if (key_algorithm == 0) {
 		/* TODO: check for unknown algo's too? */
-		fprintf(stdout, "; Error: Bad algorithm: %s\n", key_algorithm_str);
+		fprintf(output, "; Error: Bad algorithm: %s\n", key_algorithm_str);
 		return LDNS_STATUS_ERR;
 	}
 	
 	key_flags = atoi(key_flags_str);
 	if (key_flags <= 0 || key_flags > 65535) {
-		fprintf(stdout, "; Error: bad key flags: %s, defaulting to 256\n", key_flags_str);
+		fprintf(output, "; Error: bad key flags: %s, defaulting to 256\n", key_flags_str);
 		return LDNS_STATUS_ERR;
 	}
 	
 	pkcs11_ctx = ldns_find_pkcs11_ctx(token_name, cfg->pkcs11_module_list);
 	if (!pkcs11_ctx) {
-		printf("; Error: could not find PKCS11 token '%s' for key '%s'\n", token_name, key_id_str);
-		printf("; Has it been added to the rrset signer with :add_module?\n");
-		debug_print_modules(stdout, "; module", cfg->pkcs11_module_list);
+		fprintf(output, "; Error: could not find PKCS11 token '%s' for key '%s'\n", token_name, key_id_str);
+		fprintf(output, "; Has it been added to the rrset signer with :add_module?\n");
+		debug_print_modules(output, "; module", cfg->pkcs11_module_list);
 		return LDNS_STATUS_ERR;
 	}
 	
@@ -398,7 +399,7 @@ add_key(current_config *cfg,
 
 		ldns_key_list_push_key(cfg->keys, key);
 	} else {
-		printf("; Error reading key %s in token %s\n", key_id_str, token_name);
+		fprintf(output, "; Error reading key %s in token %s\n", key_id_str, token_name);
 		status = LDNS_STATUS_ERR;
 	}
 	
@@ -408,7 +409,8 @@ add_key(current_config *cfg,
 }
 
 ldns_status
-handle_command(current_config *cfg, const char *line, int line_len)
+handle_command(FILE *output, current_config *cfg,
+               const char *line, int line_len)
 {
 	char *cmd;
 	char *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
@@ -421,18 +423,18 @@ handle_command(current_config *cfg, const char *line, int line_len)
 		arg2 = read_arg(next, &next);
 		arg3 = read_arg(next, &next);
 		if (!arg1 || !arg2 || !arg3) {
-			fprintf(stdout, "; Error: missing argument in add_module command\n");
+			fprintf(output, "; Error: missing argument in add_module command\n");
 		} else {
 			result = ldns_pkcs11_module_add(cfg->pkcs11_module_list,
 			                                arg1, arg2, arg3);
 			if (result != LDNS_STATUS_OK) {
-				fprintf(stdout, "; Error adding token '%s'\n", arg1);
+				fprintf(output, "; Error adding token '%s'\n", arg1);
 			}
 		}
 	} else if (strcmp(cmd, "del_module") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(stdout, "; Error: missing argument in add_module command\n");
+			fprintf(output, "; Error: missing argument in add_module command\n");
 		} else {
 			cfg->pkcs11_module_list = ldns_pkcs11_module_remove(
 			                               cfg->pkcs11_module_list,
@@ -444,9 +446,9 @@ handle_command(current_config *cfg, const char *line, int line_len)
 		arg3 = read_arg(next, &next);
 		arg4 = read_arg(next, &next);
 		if (!arg1 || !arg2 || !arg3 || !arg4) {
-			fprintf(stdout, "; Error: missing argument in add_key command\n");
+			fprintf(output, "; Error: missing argument in add_key command\n");
 		} else {
-			result = add_key(cfg, arg1, arg2, arg3, arg4);
+			result = add_key(output, cfg, arg1, arg2, arg3, arg4);
 		}
 	} else if (strcmp(cmd, "flush_keys") == 0) {
 		ldns_key_list_free(cfg->keys);
@@ -454,28 +456,28 @@ handle_command(current_config *cfg, const char *line, int line_len)
 	} else if (strcmp(cmd, "inception") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(stdout, "; Error: missing argument in inception command\n");
+			fprintf(output, "; Error: missing argument in inception command\n");
 		} else {
 			cfg->inception = parse_time(arg1);
 		}
 	} else if (strcmp(cmd, "expiration") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(stdout, "; Error: missing argument in expiration command\n");
+			fprintf(output, "; Error: missing argument in expiration command\n");
 		} else {
 			cfg->expiration = parse_time(arg1);
 		}
 	} else if (strcmp(cmd, "refresh") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(stdout, "; Error: missing argument in refresh command\n");
+			fprintf(output, "; Error: missing argument in refresh command\n");
 		} else {
 			cfg->refresh = parse_time(arg1);
 		}
 	} else if (strcmp(cmd, "origin") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(stdout, "; Error: missing argument in inception command\n");
+			fprintf(output, "; Error: missing argument in inception command\n");
 		} else {
 			if (cfg->origin) {
 				ldns_rdf_deep_free(cfg->origin);
@@ -485,28 +487,28 @@ handle_command(current_config *cfg, const char *line, int line_len)
 	} else if (strcmp(cmd, "soa_ttl") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(stdout, "; Error: missing argument in soa_ttl command\n");
+			fprintf(output, "; Error: missing argument in soa_ttl command\n");
 		} else {
 			cfg->soa_ttl = atol(arg1);
 		}
 	} else if (strcmp(cmd, "soa_serial") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(stdout, "; Error: missing argument in soa_serial command\n");
+			fprintf(output, "; Error: missing argument in soa_serial command\n");
 		} else {
 			cfg->soa_serial = atol(arg1);
 		}
 	} else if (strcmp(cmd, "soa_minimum") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(stdout, "; Error: missing argument in soa_minimum command\n");
+			fprintf(output, "; Error: missing argument in soa_minimum command\n");
 		} else {
 			cfg->soa_minimum = atol(arg1);
 		}
 	} else if (strcmp(cmd, "stop") == 0) {
 		result = LDNS_STATUS_NULL;
 	} else {
-		printf("; Error: unknown command: %s\n", cmd);
+		fprintf(output, "; Error: unknown command: %s\n", cmd);
 	}
 	if (arg1) free(arg1);
 	if (arg2) free(arg2);
@@ -547,6 +549,7 @@ int main(int argc, char **argv)
 	int line_len;
 	int c;
 	FILE *input;
+	FILE *output;
 	bool echo_input = true;
 	uint32_t ttl = LDNS_DEFAULT_TTL;
 	
@@ -564,8 +567,9 @@ int main(int argc, char **argv)
 	memset(line, 0, MAX_LINE_LEN);
 	cfg = current_config_new();
 	input = stdin;
+	output = stdout;
 
-	while ((c = getopt(argc, argv, "f:hn")) != -1) {
+	while ((c = getopt(argc, argv, "f:hnw:")) != -1) {
 		switch(c) {
 		case 'f':
 			input = fopen(optarg, "r");
@@ -583,6 +587,16 @@ int main(int argc, char **argv)
 			break;
 		case 'n':
 			echo_input = false;
+			break;
+		case 'w':
+			output = fopen(optarg, "w");
+			if (!output) {
+				fprintf(stderr,
+						"Error: unable to open %s for writing: %s\n",
+						optarg,
+						strerror(errno));
+				exit(1);
+			}
 			break;
 		}
 	}
@@ -603,9 +617,10 @@ int main(int argc, char **argv)
 		if (line_len > 0) {
 			if (line[0] == ';') {
 				/* pass comments */
-				fprintf(stdout, "%s\n", line);
+				fprintf(output, "%s\n", line);
 			} else if (line[0] == ':') {
-				cmd_res = handle_command(cfg, line + 1, line_len - 1);
+				cmd_res = handle_command(output, cfg, line + 1,
+				                         line_len - 1);
 				if (cmd_res == LDNS_STATUS_NULL) {
 					goto done;
 				}
@@ -665,14 +680,14 @@ int main(int argc, char **argv)
 						} else {
 							/* handle rrset */
 							if (echo_input) {
-								ldns_rr_list_print(stdout, cur_rrset);
-								ldns_rr_list_print(stdout, old_sigs);
+								ldns_rr_list_print(output, cur_rrset);
+								ldns_rr_list_print(output, old_sigs);
 							}
 							
 							if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
 								ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
 								sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
-								ldns_rr_list_print(stdout, sigs);
+								ldns_rr_list_print(output, sigs);
 								ldns_rr_list_deep_free(sigs);
 								(void)sigs;
 								enable_keys(cfg);
@@ -696,7 +711,7 @@ int main(int argc, char **argv)
 	done:
 	if (cur_rrset && ldns_rr_list_rr_count(cur_rrset) > 0) {
 		if (echo_input) {
-			ldns_rr_list_print(stdout, cur_rrset);
+			ldns_rr_list_print(output, cur_rrset);
 		}
 		
 		/* sign and print sigs */
@@ -709,7 +724,7 @@ int main(int argc, char **argv)
 		if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
 			ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
 			sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
-			ldns_rr_list_print(stdout, sigs);
+			ldns_rr_list_print(output, sigs);
 			ldns_rr_list_deep_free(sigs);
 		}
 	}
@@ -717,6 +732,9 @@ int main(int argc, char **argv)
 	current_config_free(cfg);
 	if (input != stdin) {
 		fclose(input);
+	}
+	if (output != stdout) {
+		fclose(output);
 	}
 	return 0;
 }

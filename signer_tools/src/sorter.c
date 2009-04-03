@@ -177,10 +177,11 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 	size_t pos = 0;
 	
 	if (rrd->ooz) {
-		printf("; Out-of-zone data: ");
+		fprintf(out, "; Out-of-zone data: ");
 	} else if (rrd->glue) {
-		printf("; Glue: ");
+		fprintf(out, "; Glue: ");
 	}
+
 	if (rrd->ent_for) {
 		pos = 0;
 		status = ldns_wire2dname(&dname, rrd->rr_buf->_data, rrd->rr_buf->_capacity, &pos);
@@ -190,12 +191,12 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 		if (ldns_rr_get_type(rrd->ent_for) == LDNS_RR_TYPE_NS &&
 		    ent_for_ns_only(rrd->ent_for, tree)
 		) {
-			printf("; Empty non-terminal to NS: ");
+			fprintf(out, "; Empty non-terminal to NS: ");
 		} else {
-			printf("; Empty non-terminal: ");
+			fprintf(out, "; Empty non-terminal: ");
 		}
-		ldns_rdf_print(stdout, dname);
-		printf("\n");
+		ldns_rdf_print(out, dname);
+		fprintf(out, "\n");
 		ldns_rdf_deep_free(dname);
 	} else {
 		status = ldns_wire2rr(&rr,
@@ -203,11 +204,13 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 						  rrd->rr_buf->_capacity,
 						  &pos,
 						  LDNS_SECTION_ANY_NOQUESTION);
-		if (rr) {
+		if (status == LDNS_STATUS_OK) {
 			ldns_rr_print(out, rr);
+			fflush(out);
 			ldns_rr_free(rr);
 		} else {
 			fprintf(stderr, "error parsing rr\n");
+			exit(1);
 		}
 	}
 }
@@ -404,11 +407,11 @@ main(int argc, char **argv)
 	
 	int line_len;
 	char line[MAX_LINE_LEN];
-	
+
 	rr_file = stdin;
 	out_file = stdout;
 
-	while ((c = getopt(argc, argv, "a:f:hno:s:t:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:hno:s:t:w:")) != -1) {
 		switch (c) {
 		case 'a':
 			nsec3_algorithm = (uint8_t) atoi(optarg);
@@ -467,7 +470,15 @@ main(int argc, char **argv)
 					exit(EXIT_FAILURE);
 				}
 			}
-
+			break;
+		case 'w':
+			out_file = fopen(optarg, "w");
+			if (!out_file) {
+				printf("Error opening %s for writing: %s\n",
+					  optarg,
+					  strerror(errno));
+				exit(2);
+			}
 			break;
 		}
 	}
@@ -496,7 +507,9 @@ main(int argc, char **argv)
 				continue;
 			} else if (line[0] == ';') {
 				/* pass through comments */
-				fprintf(stdout, "%s\n", line);
+				fprintf(out_file, "%s\n", line);
+			} else if (line[0] == '\n') {
+				/* skip empty lines */
 			} else {
 				status = ldns_rr_new_frm_str(&cur_rr,
 				                             line,
@@ -558,9 +571,10 @@ main(int argc, char **argv)
 					cur_rr = NULL;
 				}
 			}
-		line_nr++;
+			line_nr++;
 		}
 	}
+
 	if (status == LDNS_STATUS_OK) {
 		if (cur_rr) {
 			ldns_rr_free(cur_rr);
@@ -595,7 +609,7 @@ main(int argc, char **argv)
 					    NULL);
 
 	ldns_rbtree_free(rr_tree);
-	
+
 	if (rr_file != stdin) {
 		fclose(rr_file);
 	}

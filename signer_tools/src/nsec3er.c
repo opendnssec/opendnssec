@@ -174,7 +174,8 @@ get_name_from_line(const char *line, const char *prefix)
  * 
  */
 ldns_status
-handle_name(ldns_rr *rr,
+handle_name(FILE *out_file,
+            ldns_rr *rr,
             ldns_rdf *origin,
             uint32_t ttl,
             ldns_rr *prev_rr,
@@ -198,7 +199,7 @@ handle_name(ldns_rr *rr,
 		} else {
 			/* new name! do we have optout and only ns records? if
 			 * not, create an nsec3. */
-			ldns_rr_list_print(stdout, rr_list);
+			ldns_rr_list_print(out_file, rr_list);
 			
 			if (n3p->flags & LDNS_NSEC3_VARS_OPTOUT_MASK &&
 			    only_ns_in_list(rr_list)) {
@@ -208,7 +209,7 @@ handle_name(ldns_rr *rr,
 				                        origin, ttl, rr_list, n3p, 0);
 				if (*prev_nsec) {
 					link_nsec3_rrs(*prev_nsec, new_nsec);
-					ldns_rr_print(stdout, *prev_nsec);
+					ldns_rr_print(out_file, *prev_nsec);
 					ldns_rr_free(*prev_nsec);
 				} else {
 					*first_nsec = ldns_rr_clone(new_nsec);
@@ -222,13 +223,13 @@ handle_name(ldns_rr *rr,
 		if (n3p->flags & LDNS_NSEC3_VARS_OPTOUT_MASK &&
 		    ent_ns) {
 			/* Empty non-terminal to an unsigned delegation. skip. */
-			printf(";SKIP ENT NS\n");
+			fprintf(out_file, ";SKIP ENT NS\n");
 		} else {
 			new_nsec = create_nsec3(ent_name, origin, ttl,
 			                        rr_list, n3p, 1);
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
-				ldns_rr_print(stdout, *prev_nsec);
+				ldns_rr_print(out_file, *prev_nsec);
 				ldns_rr_free(*prev_nsec);
 			} else {
 				*first_nsec = ldns_rr_clone(new_nsec);
@@ -247,23 +248,24 @@ handle_name(ldns_rr *rr,
 			                        origin, ttl, rr_list, n3p, 0);
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
-				ldns_rr_print(stdout, *prev_nsec);
+				ldns_rr_print(out_file, *prev_nsec);
 				ldns_rr_free(*prev_nsec);
 			} else {
 				*first_nsec = ldns_rr_clone(new_nsec);
 			}
 			*prev_nsec = new_nsec;
-			ldns_rr_list_print(stdout, rr_list);
+			ldns_rr_list_print(out_file, rr_list);
 			rr_list_clear(rr_list);
 		}
 		link_nsec3_rrs(*prev_nsec, *first_nsec);
-		ldns_rr_print(stdout, *prev_nsec);
+		ldns_rr_print(out_file, *prev_nsec);
 	}
 	return LDNS_STATUS_OK;
 }
 
 ldns_status
-handle_line(const char *line,
+handle_line(FILE *out_file,
+            const char *line,
             int line_len,
             ldns_rdf *origin,
             uint32_t soa_min_ttl,
@@ -279,8 +281,9 @@ handle_line(const char *line,
 		if (line[0] != ';') {
 			status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
 			if (status == LDNS_STATUS_OK) {
-				handle_name(rr, origin, soa_min_ttl, NULL, rr_list,
-							prev_nsec, first_nsec, n3p, NULL, 0);
+				handle_name(out_file, rr, origin, soa_min_ttl, NULL,
+				            rr_list, prev_nsec, first_nsec, n3p, NULL,
+				            0);
 			} else {
 				fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
 						ldns_get_errorstr_by_id(status), line);
@@ -293,18 +296,18 @@ handle_line(const char *line,
 			 * and
 			 * ; Empty nonterminal to NS: <name>
 			 */
-			printf("%s\n", line);
+			fprintf(out_file, "%s\n", line);
 			if ((ent_name = get_name_from_line(line,
 									  "; Empty non-terminal: "))) {
-				handle_name(NULL, origin, soa_min_ttl, NULL, rr_list,
-							prev_nsec, first_nsec, n3p,
-							ent_name, 0);
+				handle_name(out_file, NULL, origin, soa_min_ttl, NULL,
+				            rr_list, prev_nsec, first_nsec, n3p,
+				            ent_name, 0);
 				ldns_rdf_deep_free(ent_name);
 			} else if ((ent_name = get_name_from_line(line,
 								 "; Empty non-terminal to NS: "))) {
-				handle_name(NULL, origin, soa_min_ttl, NULL, rr_list,
-							prev_nsec, first_nsec, n3p,
-							ent_name, 1);
+				handle_name(out_file, NULL, origin, soa_min_ttl, NULL,
+				            rr_list, prev_nsec, first_nsec, n3p,
+				            ent_name, 1);
 				ldns_rdf_deep_free(ent_name);
 			}
 		}
@@ -314,6 +317,7 @@ handle_line(const char *line,
 
 ldns_status
 create_nsec3_records(FILE *input_file,
+                     FILE *out_file,
                      ldns_rdf *origin,
                      nsec3_params *n3p,
 					 uint32_t soa_min_ttl)
@@ -365,7 +369,8 @@ create_nsec3_records(FILE *input_file,
 
 	/* ok, now handle the lines we skipped over */
 	for (i = 0; i < pre_count; i++) {
-		handle_line(pre_soa_lines[i], strlen(pre_soa_lines[i]), origin,
+		handle_line(out_file, pre_soa_lines[i],
+		            strlen(pre_soa_lines[i]), origin,
 		            soa_min_ttl, n3p, rr_list, &prev_nsec, &first_nsec);
 		free(pre_soa_lines[i]);
 	}
@@ -374,11 +379,11 @@ create_nsec3_records(FILE *input_file,
 	while (line_len >= 0) {
 		line_len = read_line(input_file, line);
 		if (line_len > 0) {
-			handle_line(line, line_len, origin, soa_min_ttl, n3p,
-			            rr_list, &prev_nsec, &first_nsec);
+			handle_line(out_file, line, line_len, origin, soa_min_ttl,
+			             n3p, rr_list, &prev_nsec, &first_nsec);
 		}
 	}
-	handle_name(NULL, origin, soa_min_ttl, NULL, rr_list,
+	handle_name(out_file, NULL, origin, soa_min_ttl, NULL, rr_list,
 	            &prev_nsec, &first_nsec, n3p, NULL, 0);
 	ldns_rr_list_deep_free(rr_list);
 	return status;
@@ -392,6 +397,7 @@ main(int argc, char **argv)
 	uint32_t soa_min_ttl = 0;
 	bool echo_input = true;
 	FILE *input_file = stdin;
+	FILE *out_file = stdout;
 
 	ldns_status status = LDNS_STATUS_OK;
 	ldns_rdf *origin = NULL;
@@ -400,7 +406,7 @@ main(int argc, char **argv)
 	nsec3_params *n3p;
 
 	n3p = nsec3_params_new();
-	while ((c = getopt(argc, argv, "a:ef:hi:m:o:ps:t:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:ef:hi:m:o:ps:t:v:w:")) != -1) {
 		switch(c) {
 			case 'a':
 				n3p->algorithm = (uint8_t) atoi(optarg);
@@ -485,6 +491,16 @@ main(int argc, char **argv)
 			case 'v':
 				verbosity = atoi(optarg);
 				break;
+			case 'w':
+				out_file = fopen(optarg, "w");
+				if (!out_file) {
+					fprintf(stderr,
+					        "Error opening %s for writing: %s\n",
+					        optarg,
+					        strerror(errno));
+					exit(2);
+				}
+				break;
 			default:
 				usage(stderr);
 				exit(1);
@@ -531,6 +547,7 @@ main(int argc, char **argv)
 	 *
 	 */
 	status = create_nsec3_records(input_file,
+	                              out_file,
 	                              origin,
 	                              n3p,
 	                              soa_min_ttl);
@@ -540,6 +557,11 @@ main(int argc, char **argv)
 		ldns_rdf_deep_free(origin);
 	}
 	nsec3_params_free(n3p);
-	fclose(input_file);
+	if (input_file != stdin) {
+		fclose(input_file);
+	}
+	if (out_file != stdout) {
+		fclose(out_file);
+	}
 	return 0;
 }

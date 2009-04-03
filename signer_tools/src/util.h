@@ -1,4 +1,4 @@
-#define MAX_LINE_LEN 4096
+#define MAX_LINE_LEN 65535
 
 #include <ldns/ldns.h>
 

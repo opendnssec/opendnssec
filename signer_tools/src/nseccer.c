@@ -50,13 +50,13 @@ usage(FILE *out)
 }
 
 void
-make_nsec(ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec)
+make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec)
 {
 	ldns_rr *nsec_rr;
 	
 	/* handle rrset */
 	if (1) {
-		ldns_rr_list_print(stdout, rr_list);
+		ldns_rr_list_print(out_file, rr_list);
 	}
 	
 	/* create nsec and print it */
@@ -64,7 +64,7 @@ make_nsec(ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec
 							   ldns_rr_owner(to),
 							   rr_list);
 	ldns_rr_set_ttl(nsec_rr, ttl);
-	ldns_rr_print(stdout, nsec_rr);
+	ldns_rr_print(out_file, nsec_rr);
 
 	if (first_nsec && !(*first_nsec)) {
 		*first_nsec = ldns_rr_clone(nsec_rr);
@@ -77,13 +77,13 @@ make_nsec(ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec
 }
 
 void
-handle_name(ldns_rr *rr, uint32_t soa_min_ttl, ldns_rr_list *rr_list, ldns_rr **prev_nsec, ldns_rr **first_nsec)
+handle_name(FILE *out_file, ldns_rr *rr, uint32_t soa_min_ttl, ldns_rr_list *rr_list, ldns_rr **prev_nsec, ldns_rr **first_nsec)
 {
 	if (rr && ldns_rr_list_rr_count(rr_list) > 0) {
 		if (ldns_dname_compare(ldns_rr_owner(rr), ldns_rr_list_owner(rr_list)) == 0) {
 			ldns_rr_list_push_rr(rr_list, rr);
 		} else {
-			make_nsec(rr, soa_min_ttl, rr_list, first_nsec);
+			make_nsec(out_file, rr, soa_min_ttl, rr_list, first_nsec);
 		}
 	} else if (rr) {
 		ldns_rr_list_push_rr(rr_list, rr);
@@ -91,7 +91,8 @@ handle_name(ldns_rr *rr, uint32_t soa_min_ttl, ldns_rr_list *rr_list, ldns_rr **
 }
 
 ldns_status
-handle_line(const char *line,
+handle_line(FILE *out_file,
+            const char *line,
             int line_len,
             uint32_t soa_min_ttl,
             ldns_rr_list *rr_list,
@@ -105,7 +106,7 @@ handle_line(const char *line,
 		if (line[0] != ';') {
 			status = ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
 			if (status == LDNS_STATUS_OK) {
-				handle_name(rr, soa_min_ttl, rr_list, prev_nsec, first_nsec);
+				handle_name(out_file, rr, soa_min_ttl, rr_list, prev_nsec, first_nsec);
 			} else {
 				fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
 						ldns_get_errorstr_by_id(status), line);
@@ -122,7 +123,9 @@ handle_line(const char *line,
 
 
 ldns_status
-create_nsec_records(FILE *input_file, uint32_t soa_min_ttl)
+create_nsec_records(FILE *input_file,
+                    FILE *out_file,
+                    uint32_t soa_min_ttl)
 {
 	char line[MAX_LINE_LEN];
 	int line_len = 0;
@@ -157,7 +160,7 @@ create_nsec_records(FILE *input_file, uint32_t soa_min_ttl)
 	rr_list = ldns_rr_list_new();
 	/* ok, now handle the lines we skipped over */
 	for (i = 0; i < pre_count; i++) {
-		handle_line(pre_soa_lines[i], strlen(pre_soa_lines[i]),
+		handle_line(out_file, pre_soa_lines[i], strlen(pre_soa_lines[i]),
 		            soa_min_ttl, rr_list, &prev_nsec, &first_nsec);
 		free(pre_soa_lines[i]);
 	}
@@ -166,13 +169,13 @@ create_nsec_records(FILE *input_file, uint32_t soa_min_ttl)
 	while (line_len >= 0) {
 		line_len = read_line(input_file, line);
 		if (line_len > 0) {
-			handle_line(line, line_len, soa_min_ttl, rr_list, &prev_nsec, &first_nsec);
+			handle_line(out_file, line, line_len, soa_min_ttl, rr_list, &prev_nsec, &first_nsec);
 		}
 	}
 
 	/* and loop to start */
 	if (ldns_rr_list_rr_count(rr_list) > 0 && first_nsec) {
-		make_nsec(first_nsec, soa_min_ttl, rr_list, &first_nsec);
+		make_nsec(out_file, first_nsec, soa_min_ttl, rr_list, &first_nsec);
 	}
 	ldns_rr_list_deep_free(rr_list);
 
@@ -186,11 +189,12 @@ main(int argc, char **argv)
 	int c;
 	bool echo_input = true;
 	FILE *input_file = stdin;
+	FILE *out_file = stdout;
 
 	ldns_status status;
 	uint32_t soa_min_ttl = 0;
 
-	while ((c = getopt(argc, argv, "f:nv:")) != -1) {
+	while ((c = getopt(argc, argv, "f:nv:w:")) != -1) {
 		switch(c) {
 			case 'f':
 				input_file = fopen(optarg, "r");
@@ -211,6 +215,16 @@ main(int argc, char **argv)
 			case 'v':
 				verbosity = atoi(optarg);
 				break;
+			case 'w':
+				out_file = fopen(optarg, "w");
+				if (!out_file) {
+					fprintf(stderr,
+					        "Error opening %s for writing: %s\n",
+					        optarg,
+					        strerror(errno));
+					exit(2);
+				}
+				break;
 			default:
 				usage(stderr);
 				exit(1);
@@ -220,10 +234,14 @@ main(int argc, char **argv)
 	
 
 	status = create_nsec_records(input_file,
+	                             out_file,
 	                             soa_min_ttl);
 
 	if (input_file != stdin) {
 		fclose(input_file);
+	}
+	if (out_file != stdout) {
+		fclose(out_file);
 	}
 	
 	return 0;
