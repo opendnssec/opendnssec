@@ -51,7 +51,7 @@ def get_xml_data(xpath, xml, optional=False):
 # months default to 31 days
 # does not account for leap-seconds etc
 # 3 ways to specify duration
-DURATION_REGEX = re.compile("^P"
+DURATION_REGEX = re.compile("^(?P<negative>-)?P"
                             "(?:(?P<years>[0-9]+)Y)?"
                             "(?:(?P<months>[0-9]+)M)?"
                             "(?:(?P<weeks>[0-9]+)W)?"
@@ -62,7 +62,7 @@ DURATION_REGEX = re.compile("^P"
                             "(?:(?P<seconds>[0-9]+)S)?"
                             ")?$"
                            )
-DURATION_REGEX_ALT = re.compile("^P"
+DURATION_REGEX_ALT = re.compile("^(?P<negative>-)?P"
                                 "(?P<years>[0-9]{4})"
                                 "(?P<months>[0-9]{2})"
                                 "(?P<weeks>)"
@@ -72,7 +72,7 @@ DURATION_REGEX_ALT = re.compile("^P"
                                 "(?P<minutes>[0-9]{2})"
                                 "(?P<seconds>[0-9]{2})"
                                )
-DURATION_REGEX_ALT2 = re.compile("^P"
+DURATION_REGEX_ALT2 = re.compile("^(?P<negative>-)?P"
                                 "(?P<years>[0-9]{4})"
                                 "-(?P<months>[0-9]{2})"
                                 "(?P<weeks>)"
@@ -135,7 +135,11 @@ def parse_duration(duration_string):
     grp = match.group("seconds")
     if grp:
         result += int(grp)
-    return result
+
+    if match.group("negative"):
+        return -result
+    else:
+        return result
 
 def query_pin(token):
     """Queries for the PIN, which isn't checked further (erroneous

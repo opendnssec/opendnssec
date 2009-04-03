@@ -20,7 +20,7 @@ class ZoneConfig:
         self.signatures_validity_default = 0
         self.signatures_validity_nsec = 0
         self.signatures_jitter = 0
-        self.signatures_clockskew = 0
+        self.signatures_inception_offset = 0
         #self.signatures_zsk_refs = []
         #self.signatures_ksk_refs = []
         self.publish_keys = []
@@ -98,7 +98,7 @@ class ZoneConfig:
              self.signatures_validity_nsec != \
                  ocfg.signatures_validity_nsec or \
              self.signatures_jitter != ocfg.signatures_jitter or \
-             self.signatures_clockskew != ocfg.signatures_clockskew:
+             self.signatures_inception_offset != ocfg.signatures_inception_offset:
             result = self.NO_SCHEDULE
         
         # todo: lists cannot be ==/!='d can they? loop?
@@ -123,90 +123,96 @@ class ZoneConfig:
         signer_config should be created by minidom.parseString"""
         # todo: check the zone name just to be sure?
 
-        keystore_keys = Evaluate("signconf/keystore/key", signer_config)
+        keystore_keys = Evaluate("SignerConfiguration/Zone/Keys/Key", signer_config)
         for key_xml in keystore_keys:
-            key_id = int(key_xml.attributes["id"].value)
+            #key_id = int(key_xml.attributes["id"].value)
             key = {}
-            key["id"] = key_id
-            key["name"] = Util.get_xml_data("name", key_xml)
-            key["ttl"] = Util.parse_duration(Util.get_xml_data("ttl", key_xml))
-            key["flags"] = int(Util.get_xml_data("flags", key_xml))
-            key["protocol"] = int(Util.get_xml_data("protocol", key_xml))
-            key["algorithm"] = int(Util.get_xml_data("algorithm", key_xml))
-            key["locator"] = Util.get_xml_data("locator", key_xml)
-            # calculate and cache this one later
+            key["locator"] = Util.get_xml_data("Locator", key_xml)
+            key["name"] = "TODO: am i used?"
+            key["ttl"] = Util.parse_duration(Util.get_xml_data("SignerConfiguration/Zone/Keys/TTL", signer_config))
+            key["flags"] = int(Util.get_xml_data("Flags", key_xml))
+            #key["protocol"] = int(Util.get_xml_data("Protocol", key_xml))
+            key["protocol"] = 3
+            key["algorithm"] = int(Util.get_xml_data("Algorithm", key_xml))
+            if Evaluate("ZSK", key_xml):
+                key["zsk"] = True
+            else:
+                key["zsk"] = False
+            if Evaluate("KSK", key_xml):
+                key["ksk"] = True
+            else:
+                key["ksk"] = False
+            if key["ksk"] or key["zsk"]:
+                self.signature_keys.append(key)
+
+            # calculate and cache these values later
             key["dnskey"] = None
             key["token_name"] = None
             key["pkcs11_module"] = None
             key["pkcs11_pin"] = None
             key["tool_key_id"] = None
-            self.keys[key_id] = key
+            self.keys[key["locator"]] = key
+            if Evaluate("Publish", key_xml):
+                self.publish_keys.append(key)
 
         self.signatures_resign_time = Util.parse_duration(
-            Util.get_xml_data("signconf/signatures/resign",
+            Util.get_xml_data("SignerConfiguration/Zone/Signatures/Resign",
                               signer_config))
         self.signatures_refresh_time = Util.parse_duration(
-            Util.get_xml_data("signconf/signatures/refresh",
+            Util.get_xml_data("SignerConfiguration/Zone/Signatures/Refresh",
                               signer_config))
         self.signatures_validity_default = Util.parse_duration(
-            Util.get_xml_data("signconf/signatures/validity/default",
+            Util.get_xml_data("SignerConfiguration/Zone/Signatures/Validity/Default",
                               signer_config))
         self.signatures_validity_nsec = Util.parse_duration(
-            Util.get_xml_data("signconf/signatures/validity/nsec",
+            Util.get_xml_data("SignerConfiguration/Zone/Signatures/Validity/Denial",
                               signer_config))
         self.signatures_jitter = Util.parse_duration(
-            Util.get_xml_data("signconf/signatures/jitter",
+            Util.get_xml_data("SignerConfiguration/Zone/Signatures/Jitter",
                               signer_config))
-        self.signatures_clockskew = Util.parse_duration(
-            Util.get_xml_data("signconf/signatures/clockskew",
+        self.signatures_inception_offset = Util.parse_duration(
+            Util.get_xml_data("SignerConfiguration/Zone/Signatures/InceptionOffset",
                               signer_config))
-        self.denial_ttl = Util.parse_duration(
-            Util.get_xml_data("signconf/denial/ttl",
-                              signer_config))
-        xmlbs = Evaluate("signconf/signatures/zsk", signer_config)
+        #self.denial_ttl = Util.parse_duration(
+        #    Util.get_xml_data("SignerConfiguration/Denial/",
+        #                      signer_config))
+        xmlbs = Evaluate("SignerConfiguration/Zone/Signatures/zsk", signer_config)
         for xmlb in xmlbs:
             # todo catch keyerror
             # todo2: error if sep flag was not set?
             self.signature_keys.append(
                 self.keys[int(xmlb.attributes["keyid"].value)])
-        xmlbs = Evaluate("signconf/signatures/ksk", signer_config)
+        xmlbs = Evaluate("SignerConfiguration/Zone/Signatures/ksk", signer_config)
         for xmlb in xmlbs:
             # todo catch keyerror
             # todo2: error if sep flag was not set?
             self.signature_keys.append(
                 self.keys[int(xmlb.attributes["keyid"].value)])
 
-        xmlbs = Evaluate("signconf/publish", signer_config)
-        for xmlb in xmlbs:
-            # todo catch keyerror
-            # todo2: error if sep flag was set?
-            self.publish_keys.append(
-                self.keys[int(xmlb.attributes["keyid"].value)])
-
-        if Evaluate("signconf/denial/nsec", signer_config):
+        if Evaluate("SignerConfiguration/Zone/Denial/NSEC", signer_config):
             self.denial_nsec = True
 
-        nsec3_xmls = Evaluate("signconf/denial/nsec3", signer_config)
+        nsec3_xmls = Evaluate("SignerConfiguration/Zone/Denial/NSEC3", signer_config)
         for nsec3_xml in nsec3_xmls:
             self.denial_nsec3 = True
             self.denial_nsec = False
             self.denial_nsec3_ttl = Util.parse_duration(
-                Util.get_xml_data("parameters/ttl", nsec3_xml, True))
+                Util.get_xml_data("parameters/TTL", nsec3_xml, True))
             if Evaluate("opt-out", nsec3_xml):
                 self.denial_nsec3_optout = True
             self.denial_nsec3_algorithm = \
-                int(Util.get_xml_data("hash/algorithm", nsec3_xml))
+                int(Util.get_xml_data("Hash/Algorithm", nsec3_xml))
             self.denial_nsec3_iterations = \
-                int(Util.get_xml_data("hash/iterations", nsec3_xml))
+                int(Util.get_xml_data("Hash/Iterations", nsec3_xml))
             self.denial_nsec3_salt = \
-                Util.get_xml_data("hash/salt", nsec3_xml)
+                Util.get_xml_data("Hash/Salt", nsec3_xml)
 
         self.soa_ttl = Util.parse_duration(
-            Util.get_xml_data("signconf/soa/ttl", signer_config, True))
+            Util.get_xml_data("SignerConfiguration/Zone/SOA/TTL", signer_config, True))
         self.soa_minimum = Util.parse_duration(
-            Util.get_xml_data("signconf/soa/min", signer_config, True))
+            Util.get_xml_data("SignerConfiguration/Zone/SOA/Minimum", signer_config, True))
         # todo: check for known values
-        self.soa_serial = Util.get_xml_data("signconf/soa/serial",
+        self.soa_serial = Util.get_xml_data("SignerConfiguration/Zone/SOA/Serial",
                                             signer_config, True)
         
 

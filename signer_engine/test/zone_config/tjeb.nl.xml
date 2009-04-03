@@ -2,78 +2,74 @@
 
 <!-- $Id$ -->
 
-<signconf zone="tjeb.nl">
+<SignerConfiguration>
+	<Zone name="tjeb.nl">
 
-	<adapters>
-		<input type="file"/>
-		<output type="file"/>
-	</adapters>
+		<Signatures>
+			<Resign>PT10S</Resign>
+			<Refresh>P3D</Refresh>
+			<Validity>
+					<Default>P7D</Default>
+					<Denial>P14D</Denial>
+			</Validity>
+			<Jitter>PT12H</Jitter>
+			<InceptionOffset>-PT300S</InceptionOffset>
+		</Signatures>
 
-	<signatures>
-		<resign>PT10S</resign> 
-		<refresh>P3D</refresh>
-		<validity>
-				<default>P7D</default>
-				<nsec>P14D</nsec>
-		</validity>
-		<jitter>PT12H</jitter>
-		<clockskew>PT600S</clockskew>
+		<Keys>
+			<TTL>PT3600S</TTL>
 
-		<zsk keyid="1234"/>
-		<ksk keyid="1235"/>
-	</signatures>
-	
-	<publish keyid="1234"/>
-	<publish keyid="1235"/>
-	
-	<keystore>
-   		<key id="1234">
-   			<name>tjeb.nl</name>
-   			<ttl>PT3600S</ttl>
-   			<flags>256</flags>
-   			<protocol>3</protocol>
-   			<algorithm>5</algorithm>
-		
-			<!-- key locator is usually matched against PKCS#11 CKA_ID -->
-			<locator>41</locator>
-		</key>	
-			
-   		<key id="1235">
-   			<name>tjeb.nl</name>
-   			<ttl>PT3600S</ttl>
-   			<flags>257</flags>
-   			<protocol>3</protocol>
-   			<algorithm>5</algorithm>
-		
-			<!-- key locator is usually matched against PKCS#11 CKA_ID -->
-			<locator>42</locator>
-		</key>	
-	</keystore>
-	
-	<denial>
-		<ttl>PT600S</ttl>		
+			<Key>
+				<Flags>257</Flags>
+				<Algorithm>5</Algorithm>
 
-		<!-- <nsec/>-->
-		
-		<!-- ... or ... -->
+				<!-- key locator is matched against PKCS#11 CKA_ID in hex -->
+				<!-- e.g. DFE7265B-783F-4186-8538-0AA784C2F31D -->
+				<!-- is written as -->
+				<!-- DFE7265B783F418685380AA784C2F31D -->
+				<Locator>41</Locator>
 
-		<nsec3>
-			<parameters>
-				<ttl>PT600S</ttl>
-			</parameters>
-			<opt-out/>
-			<hash>
-				<algorithm>1</algorithm>
-				<iterations>2</iterations>
-				<salt>beef</salt>
-			</hash>
-		</nsec3>
-	</denial>
-	
-	<soa>
-		<ttl>PT3601S</ttl>
-		<min>PT3602S</min>
-		<serial>datecounter</serial>
-	</soa>
-	
-</signconf>
+				<!-- this key should sign the DNSKEY RRset only -->
+				<KSK/>
+
+				<!-- this key should be published in the zonefile -->
+				<Publish/>
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>5</Algorithm>
+
+				<!-- key locator is matched against PKCS#11 CKA_ID in hex -->
+				<Locator>42</Locator>
+
+				<!-- this key should sign all non-DNSKEY RRsets -->
+				<ZSK/>
+
+				<!-- this key should be published in the zonefile -->
+				<Publish/>
+			</Key>
+		</Keys>
+
+		<Denial>
+			<NSEC3>
+				<OptOut/>
+				<Parameters>
+					<TTL>PT3600S</TTL>
+				</Parameters>
+				<Hash>
+					<Algorithm>1</Algorithm>
+					<Iterations>10</Iterations>
+					<Salt>656d6d6b7469736169646f677461</Salt>
+				</Hash>
+			</NSEC3>
+		</Denial>
+
+		<SOA>
+			<TTL>PT3600S</TTL>
+			<Minimum>PT3600S</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+
+	</Zone>
+</SignerConfiguration>

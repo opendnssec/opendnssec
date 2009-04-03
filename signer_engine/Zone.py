@@ -120,7 +120,7 @@ class Zone:
         """Fills in the details about the key by querying all configured
         HSM tokens for the key (by its locator value)."""
         syslog.syslog(syslog.LOG_DEBUG,
-                      "Generating DNSKEY rr for " + str(key["id"]))
+                      "Generating DNSKEY rr for " + str(key["locator"]))
         # just try all modules to generate the dnskey?
         # first one to return anything is good?
         for token in self.engine_config.tokens:
@@ -492,7 +492,7 @@ class Zone:
     def get_inception_timestamp(self, time_offset):
         """Returns the absolute inception date compared to the
            time_offset given."""
-        return time_offset - self.zone_config.signatures_clockskew
+        return time_offset + self.zone_config.signatures_inception_offset
 
     def get_refresh_timestamp(self, time_offset):
         """Returns the absolute time at which signatures should be
