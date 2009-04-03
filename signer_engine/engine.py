@@ -26,7 +26,7 @@ import syslog
 
 import Zone
 from ZoneConfig import ZoneConfig
-from EngineConfig import EngineConfiguration
+from EngineConfig import EngineConfiguration, EngineConfigurationException
 from Worker import Worker, TaskQueue, Task
 from Zonelist import Zonelist
 
@@ -338,11 +338,12 @@ def main():
     # main loop
     #
     syslog.openlog("OpenDNSSEC signer engine")
-    engine = Engine(config_file)
     try:
+        engine = Engine(config_file)
         engine.read_zonelist()
         engine.run()
-        
+    except EngineConfigurationException, ece:
+        print ece
     except KeyboardInterrupt:
         engine.stop_workers()
 
