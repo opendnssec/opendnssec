@@ -1,6 +1,6 @@
 #!/bin/sh
-glibtoolize
 aclocal
+glibtoolize
 autoheader
 automake --add-missing
 autoconf
