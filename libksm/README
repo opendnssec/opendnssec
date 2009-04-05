@@ -4,3 +4,12 @@ You can build it with ./auto-build.sh
 Remembber to edit auto-build.sh to have your paths to mysql and cunit.
 
 sqlite3 should work as well be hasn't been tested.
+
+
+Unit tests can be run using make check. The following options can be passed to configure to point the tests at a database to use and to enable cunit.
+
+--with-cunit=/usr/local
+--with-dbname=test
+--with-dbhost=test1
+--with-dbpass=""
+--with-dbuser=root
