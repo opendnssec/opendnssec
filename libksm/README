@@ -1,1 +1,6 @@
 This code should work but is not fully tested
+
+You can build it with ./auto-build.sh
+Remembber to edit auto-build.sh to have your paths to mysql and cunit.
+
+sqlite3 should work as well be hasn't been tested.
