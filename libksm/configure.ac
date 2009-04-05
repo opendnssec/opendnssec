@@ -85,8 +85,29 @@ fi
 AC_SUBST(CUNIT_INCLUDES)
 AC_SUBST(CUNIT_LIBS)
 
+AC_ARG_WITH(dbname,
+[  --with-dbname=DB_NAME     Database name/schema for unit tests  ],
+   DB_NAME="$withval"
+)
+AC_SUBST(DB_NAME)
 
+AC_ARG_WITH(dbhost,
+[  --with-dbhost=DB_HOST     Database host for unit tests  ],
+   DB_HOST="$withval"
+)
+AC_SUBST(DB_HOST)
 
+AC_ARG_WITH(dbpass,
+[  --with-dbpass=DB_PASS     Database host for unit tests  ],
+   DB_PASS="$withval"
+)
+AC_SUBST(DB_PASS)
+
+AC_ARG_WITH(dbuser,
+[  --with-dbuser=DB_USER     Database host for unit tests  ],
+   DB_USER="$withval"
+)
+AC_SUBST(DB_USER)
 
 
 
