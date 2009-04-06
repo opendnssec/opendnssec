@@ -45,8 +45,8 @@ fi
 
 case $1 in
 	setup)
-		/usr/local/mysql/bin/mysql $USERNAME $PASSWORD $HOST $NAME < '../database/database_create.mysql';
-		/usr/local/mysql/bin/mysql $USERNAME $PASSWORD $HOST $NAME << EOF
+		mysql $USERNAME $PASSWORD $HOST $NAME < '../database/database_create.mysql';
+		mysql $USERNAME $PASSWORD $HOST $NAME << EOF
 DROP TABLE IF EXISTS TEST_BASIC;
 CREATE TABLE TEST_BASIC (
    ID           INT NOT NULL AUTO_INCREMENT,
