@@ -25,7 +25,7 @@ import Util
 import syslog
 
 import Zone
-from ZoneConfig import ZoneConfig
+from ZoneConfig import ZoneConfig, ZoneConfigError
 from EngineConfig import EngineConfiguration, EngineConfigurationException
 from Worker import Worker, TaskQueue, Task
 from Zonelist import Zonelist, ZonelistError
@@ -229,17 +229,22 @@ class Engine:
         """Add a new zone to the engine, and schedule it for signing"""
         self.zones[zone_name] = Zone.Zone(zone_name, self.config)
         self.update_zone(zone_name)
-        secs_left = self.zones[zone_name].calc_resign_from_output_file()
-        if (secs_left < 1):
-            self.zones[zone_name].action = ZoneConfig.RESORT
-            self.schedule_signing(zone_name)
+        if self.zones[zone_name].zone_config:
+            secs_left = self.zones[zone_name].calc_resign_from_output_file()
+            if (secs_left < 1):
+                self.zones[zone_name].action = ZoneConfig.RESORT
+                self.schedule_signing(zone_name)
+            else:
+                self.zones[zone_name].action = ZoneConfig.RESIGN
+                syslog.syslog(syslog.LOG_INFO,
+                              "scheduling resign of zone '" + zone_name +\
+                              "' in " + str(secs_left) + " seconds")
+                self.schedule_signing(zone_name, time.time() + secs_left)
+            syslog.syslog(syslog.LOG_INFO, "Zone " + zone_name + " added")
         else:
-            self.zones[zone_name].action = ZoneConfig.RESIGN
-            syslog.syslog(syslog.LOG_INFO,
-                          "scheduling resign of zone '" + zone_name +\
-                          "' in " + str(secs_left) + " seconds")
-            self.schedule_signing(zone_name, time.time() + secs_left)
-        syslog.syslog(syslog.LOG_INFO, "Zone " + zone_name + " added")
+            # reading of config has failed. remove the zone again
+            syslog.syslog(syslog.LOG_ERR, "Zone " + zone_name + " not added")
+            self.remove_zone(zone_name)
         
     def remove_zone(self, zone_name):
         """Removes a zone from the engine"""
@@ -255,21 +260,28 @@ class Engine:
         zone = self.zones[zone_name]
         zone.lock()
         old_config = zone.zone_config
-        zone.read_config()
-        if old_config:
-            config_action = old_config.compare_config(zone.zone_config)
-        else:
-            # there was no config loaded previously, do everything
-            # to be sure
-            config_action = ZoneConfig.RESORT
-        zone.action = config_action
-        if config_action == ZoneConfig.RESCHEDULE:
-            # update the scheduled time to now + refresh_time - last_time
-            secs_left = self.zones[zone_name].calc_resign()
-            self.schedule_signing(zone_name, secs_left)
-        elif config_action >= ZoneConfig.RESORT:
-            # perform immediately
-            self.schedule_signing(zone_name)
+        try:
+            zone.read_config()
+            if old_config:
+                config_action = old_config.compare_config(zone.zone_config)
+            else:
+                # there was no config loaded previously, do everything
+                # to be sure
+                config_action = ZoneConfig.RESORT
+            zone.action = config_action
+            if config_action == ZoneConfig.RESCHEDULE:
+                # update the scheduled time to now + refresh_time - last_time
+                secs_left = self.zones[zone_name].calc_resign()
+                self.schedule_signing(zone_name, secs_left)
+            elif config_action >= ZoneConfig.RESORT:
+                # perform immediately
+                self.schedule_signing(zone_name)
+        except ZoneConfigError, zce:
+            syslog.syslog(syslog.LOG_ERR,
+                "Error updating zone configuration for: " +\
+                zone.zone_name)
+            syslog.syslog(syslog.LOG_ERR, str(zce))
+            zone.zone_config = old_config
         zone.release()
         
     # return big multiline string with all current zone data

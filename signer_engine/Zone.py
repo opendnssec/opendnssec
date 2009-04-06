@@ -20,6 +20,7 @@ class Zone:
         self.zone_name = _zone_name
         self.engine_config = engine_config
         self.locked = False
+        self.scheduled = None
         
         # information received from KASP through the xml file
         self.zone_config = None

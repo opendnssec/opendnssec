@@ -2,8 +2,13 @@
 
 from xml.dom import minidom
 from Ft.Xml.XPath import Evaluate
+from xml.parsers.expat import ExpatError
 
 import Util
+
+class ZoneConfigError(Exception):
+    """Raised if the zone config xml file cannot be parsed"""
+    pass
 
 class ZoneConfig:
     """Configuration of a Zone, as specified in the xml file"""
@@ -110,12 +115,17 @@ class ZoneConfig:
     def from_xml_file(self, xml_file_name):
         """Read xml from from xml_file_name to a string,
         and parse the xml"""
-        xml_file = open(xml_file_name, "r")
-        xml_string = xml_file.read()
-        xml_file.close()
-        xml_blob = minidom.parseString(xml_string)
-        self.from_xml(xml_blob)
-        xml_blob.unlink()
+        try:
+            xml_file = open(xml_file_name, "r")
+            xml_string = xml_file.read()
+            xml_file.close()
+            xml_blob = minidom.parseString(xml_string)
+            self.from_xml(xml_blob)
+            xml_blob.unlink()
+        except ExpatError, exe:
+            raise ZoneConfigError(str(exe))
+        except IOError, ioe:
+            raise ZoneConfigError(str(ioe))
 
     # signer_config is the xml blob described in
     # http://www.opendnssec.se/browser/docs/signconf.xml
