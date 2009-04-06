@@ -194,7 +194,6 @@ class Zone:
                                   k["locator"])
                     syslog.syslog(syslog.LOG_ERR, str(exc))
 
-        unsorted_zone_file = open(self.get_zone_input_filename(), "r")
         cmd = [ self.get_tool_filename("sorter"),
                 "-o", self.zone_name,
                 "-w", self.get_zone_tmp_filename(".sorted")
@@ -216,21 +215,21 @@ class Zone:
             for k in self.zone_config.publish_keys:
                 sort_process.stdin.write(k["dnskey"])
 
+            unsorted_zone_file = open(self.get_zone_input_filename(), "r")
             for line in unsorted_zone_file:
                 sort_process.stdin.write(line)
-
             sort_process.stdin.close()
-            
             unsorted_zone_file.close()
             #sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
 
             for line in sort_process.stderr:
                 syslog.syslog(syslog.LOG_ERR,
                               "stderr from sorter: " + line)
-            
-            #for line in sort_process.stdout:
-            #    sorted_zone_file.write(line)
-            #sorted_zone_file.close()
+
+        except IOError, ioe:
+            syslog.syslog(syslog.LOG_ERR, "Error reading input zone\n")
+            syslog.syslog(syslog.LOG_ERR,
+                          self.get_zone_input_filename() + " not found")
         except OSError, exc:
             syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
             syslog.syslog(syslog.LOG_WARNING, str(exc))
@@ -290,18 +289,21 @@ class Zone:
     def perform_action(self):
         """Depending on the value set to zone.action, this method
            will sort, nsecify and/or sign the zone"""
-        if self.action == ZoneConfig.RESORT:
+        if self.action >= ZoneConfig.RESIGN and os.path.exists(self.get_zone_tmp_filename(".signed")):
+            self.sign()
+            self.finalize()
+        elif self.action >= ZoneConfig.RENSEC and os.path.exists(self.get_zone_tmp_filename(".sorted")):
+            self.nsecify()
+            self.sign()
+            self.finalize()
+        elif self.action >= ZoneConfig.RESORT and os.path.isfile(self.get_zone_input_filename()):
             self.sort()
             self.nsecify()
             self.sign()
             self.finalize()
-        if self.action == ZoneConfig.RENSEC:
-            self.nsecify()
-            self.sign()
-            self.finalize()
-        if self.action == ZoneConfig.RESIGN:
-            self.sign()
-            self.finalize()
+        else:
+            syslog.syslog(syslog.LOG_ERR, "Input file missing: " +\
+                          self.get_zone_input_filename())
         # if nothing in the config changes, the next action will always
         # be to just resign
         self.action = ZoneConfig.RESIGN
