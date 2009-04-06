@@ -130,7 +130,6 @@ class ZoneConfig:
             #key_id = int(key_xml.attributes["id"].value)
             key = {}
             key["locator"] = Util.get_xml_data("Locator", key_xml)
-            #key["name"] = "TODO: am i used?"
             key["ttl"] = Util.parse_duration(
                 Util.get_xml_data("SignerConfiguration/Zone/Keys/TTL",
                                   signer_config))

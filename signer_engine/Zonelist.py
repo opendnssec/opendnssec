@@ -9,7 +9,12 @@ config xml file
 
 from Ft.Xml.XPath import Evaluate
 from xml.dom import minidom
+from xml.parsers.expat import ExpatError
 from datetime import datetime
+
+class ZonelistError(Exception):
+    """General error when parsing the zonelist.xml file"""
+    pass
 
 class Zonelist:
     """List of current Zones"""
@@ -31,12 +36,17 @@ class Zonelist:
     
     def read_zonelist_file(self, input_file):
         """Read the list of zones from input_file"""
-        zonef = open(input_file, "r")
-        xstr = zonef.read()
-        zonef.close()
-        xmlb = minidom.parseString(xstr)
-        self.from_xml(xmlb)
-        xmlb.unlink()
+        try:
+            zonef = open(input_file, "r")
+            xstr = zonef.read()
+            zonef.close()
+            xmlb = minidom.parseString(xstr)
+            self.from_xml(xmlb)
+            xmlb.unlink()
+        except ExpatError, exe:
+            raise ZonelistError(str(exe))
+        except IOError, ioe:
+            raise ZonelistError(str(ioe))
     
     def from_xml(self, xml_blob):
         """Reads the list of zones from xml_blob"""

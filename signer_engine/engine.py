@@ -28,7 +28,7 @@ import Zone
 from ZoneConfig import ZoneConfig
 from EngineConfig import EngineConfiguration, EngineConfigurationException
 from Worker import Worker, TaskQueue, Task
-from Zonelist import Zonelist
+from Zonelist import Zonelist, ZonelistError
 
 MSGLEN = 1024
 
@@ -163,8 +163,7 @@ class Engine:
                 response = "All tasks scheduled immediately"
                 self.notify_all()
             if command[:6] == "update":
-                self.read_zonelist()
-                response = "zone list updated"
+                response = self.read_zonelist()
         except EngineError, exc:
             response = str(exc)
         except Exception, exc:
@@ -196,24 +195,34 @@ class Engine:
     def read_zonelist(self):
         """Reads the list of zones from the zone list xml file. Added
         zones are automatically scheduled for signing at the appropriate
-        time"""
+        time. A status string is returned for feedback to the caller"""
         new_zonelist = Zonelist()
-        new_zonelist.read_zonelist_file(self.get_zonelist_filename())
-        # move this to caller?
-        if not self.zonelist:
-            removed_zones = []
-            updated_zones = []
-            added_zones = new_zonelist.get_all_zone_names()
-            self.zonelist = new_zonelist
-        else:
-            (removed_zones, added_zones, updated_zones) =\
-                self.zonelist.merge(new_zonelist)
-        for zone in removed_zones:
-            self.remove_zone(zone)
-        for zone in added_zones:
-            self.add_zone(zone)
-        for zone in updated_zones:
-            self.update_zone(zone)
+        try:
+            new_zonelist.read_zonelist_file(self.get_zonelist_filename())
+            # move this to caller?
+            if not self.zonelist:
+                removed_zones = []
+                updated_zones = []
+                added_zones = new_zonelist.get_all_zone_names()
+                self.zonelist = new_zonelist
+            else:
+                (removed_zones, added_zones, updated_zones) =\
+                    self.zonelist.merge(new_zonelist)
+            for zone in removed_zones:
+                self.remove_zone(zone)
+            for zone in added_zones:
+                self.add_zone(zone)
+            for zone in updated_zones:
+                self.update_zone(zone)
+            return "Zone list updated: " +\
+                   str(len(removed_zones)) + " removed, " + \
+                   str(len(added_zones)) + " added, " + \
+                   str(len(updated_zones)) + " updated"
+        except ZonelistError, zle:
+            syslog.syslog(syslog.LOG_ERR,
+                "error parsing zonelist xml file: " + str(zle))
+            syslog.syslog(syslog.LOG_ERR, "not updating zones")
+            return "zonelist error: " + str(zle) + ". Zones not updated"
 
     # global zone management
     def add_zone(self, zone_name):
@@ -340,7 +349,8 @@ def main():
     syslog.openlog("OpenDNSSEC signer engine")
     try:
         engine = Engine(config_file)
-        engine.read_zonelist()
+        print engine.read_zonelist()
+        print "output redirected to syslog"
         engine.run()
     except EngineConfigurationException, ece:
         print ece
@@ -349,5 +359,4 @@ def main():
 
 if __name__ == '__main__':
     print "Python engine proof of concept, v 0.0002 alpha"
-    print "output redirected to syslog"
     main()
