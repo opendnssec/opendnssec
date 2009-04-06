@@ -570,7 +570,10 @@ main(int argc, char **argv)
 					prev_rr = cur_rr;
 					cur_rr = NULL;
 				} else {
-					fprintf(stderr, "Warning: parse error: ", ldns_get_errorstr_by_id);
+					if (status != LDNS_STATUS_SYNTAX_EMPTY) {
+						fprintf(stderr, "Warning: %s:\n", ldns_get_errorstr_by_id(status));
+						fprintf(stderr, "%s\n", line);
+					}
 				}
 			}
 			line_nr++;
