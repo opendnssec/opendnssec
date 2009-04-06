@@ -31,39 +31,51 @@ AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul])
 # Check for mysql
 AC_ARG_WITH(mysql,
 [  --with-mysql=DIR     Look for mysql in this dir ],
-   MYSQL_PATH="$withval"
+  [ MYSQL_PATH="$withval"],
+ [ with_mysql=no ]
 )
-if test "x$MYSQL_PATH" = "x"; then
-   AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH)
-else
-   AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $MYSQL_PATH/bin)
-fi
-if test -x "$MYSQL_CONFIG"
-then
-   AC_MSG_CHECKING(what are the mysql includes)
-   # MySQL v4 uses --include while v3 uses --cflags
-   DB_INCLUDES="`$MYSQL_CONFIG --include` -DBIG_JOINS=1 -DUSE_MYSQL" || \
-       DB_INCLUDES="`$MYSQL_CONFIG --cflags`"
-   AC_MSG_RESULT($DB_INCLUDES)
-   AC_MSG_CHECKING(what are the mysql libs)
-   DB_LIBS="`$MYSQL_CONFIG --libs_r`"
-   AC_MSG_RESULT($DB_LIBS)
-fi
 # Check for sqlite3
 AC_ARG_WITH(sqlite3,
 [  --with-sqlite3=DIR     Look for sqlite3 in this dir ],
    SQLITE_PATH="$withval"
 )
-if test "x$SQLITE_PATH" != "x"
-then
-   AC_MSG_CHECKING(what are the sqlite3 includes)
-   DB_INCLUDES="-I$SQLITE_PATH/include -DUSE_SQLITE"
-   AC_MSG_RESULT($DB_INCLUDES)
-   AC_MSG_CHECKING(what are the sqlite3 libs)
-   DB_LIBS="-L$SQLITE_PATH/lib -lsqlite3"
-   AC_MSG_RESULT($DB_LIBS)
+if test "x$with_mysql" = "xno"; then
+  if test "x$SQLITE_PATH" != "x"
+  then
+     AC_MSG_CHECKING(what are the sqlite3 includes)
+     DB_INCLUDES="-I$SQLITE_PATH/include -DUSE_SQLITE"
+     AC_MSG_RESULT($DB_INCLUDES)
+     AC_MSG_CHECKING(what are the sqlite3 libs)
+     DB_LIBS="-L$SQLITE_PATH/lib -lsqlite3"
+     AC_MSG_RESULT($DB_LIBS)
+  else
+      AC_MSG_CHECKING(what are the sqlite3 includes)
+      DB_INCLUDES="-I/usr/local/include -DUSE_SQLITE"
+      AC_MSG_RESULT($DB_INCLUDES)
+      AC_MSG_CHECKING(what are the sqlite3 libs)
+      DB_LIBS="-L/usr/local/lib -lsqlite3"
+      AC_MSG_RESULT($DB_LIBS)
+  fi
+else
+  if test "x$MYSQL_PATH" = "x"; then
+     AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH)
+  else
+     AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $MYSQL_PATH/bin)
+  fi
+  if test -x "$MYSQL_CONFIG"
+  then
+     AC_MSG_CHECKING(what are the mysql includes)
+     # MySQL v4 uses --include while v3 uses --cflags
+     DB_INCLUDES="`$MYSQL_CONFIG --include` -DBIG_JOINS=1 -DUSE_MYSQL" || \
+         DB_INCLUDES="`$MYSQL_CONFIG --cflags`"
+     AC_MSG_RESULT($DB_INCLUDES)
+     AC_MSG_CHECKING(what are the mysql libs)
+     DB_LIBS="`$MYSQL_CONFIG --libs_r`"
+     AC_MSG_RESULT($DB_LIBS)
+  fi
 fi
-AM_CONDITIONAL([MYSQL], [test x$MYSQL_PATH != "x"]) 
+
+AM_CONDITIONAL([MYSQL], [test "x$with_mysql" != "xno"]) 
 AC_SUBST(DB_INCLUDES)
 AC_SUBST(DB_LIBS)
 
