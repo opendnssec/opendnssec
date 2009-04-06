@@ -1,6 +1,11 @@
 #!/bin/sh
 aclocal
-glibtoolize
+OS=`uname -s`
+if test $OS = "Darwin"; then
+  glibtoolize
+else
+  libtoolize
+fi
 autoheader
 automake --add-missing
 autoconf
