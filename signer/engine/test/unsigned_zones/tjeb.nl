@@ -1,6 +1,7 @@
-tjeb.nl.	3600	IN	SOA	ns.tjeb.nl. jelte.tjeb.nl. 278 28800 7200 604800 3600
+tjeb.nl.	3600	IN	SOAA	ns.tjeb.nl. jelte.tjeb.nl. 278 28800 7200 604800 3600
 tjeb.nl.	3600	IN	AAAA	2002:c3a9:dd9d:1::1
 tjeb.nl.	3600	IN	MX	10 sol.nlnetlabs.nl.
+asdf. IN AAFEW .1234v9 ,m23.m, n23
 tjeb.nl.	3600	IN	NS	ns.tjeb.nl.
 tjeb.nl.	3600	IN	NS	ns-ext.nlnetlabs.nl.
 tjeb.nl.	3600	IN	A	195.169.221.157

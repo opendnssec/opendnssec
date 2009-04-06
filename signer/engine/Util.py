@@ -17,15 +17,19 @@ def run_tool(command, input_fd=None):
     """Run a system command with Popen(), if input_fd is not given,
        it will be set to PIPE. The subprocess is returned."""
     syslog.syslog(syslog.LOG_DEBUG, "Run command: '"+" ".join(command)+"'")
-    if (input_fd):
-        subp = subprocess.Popen(command, stdin=input_fd,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-    else:
-        subp = subprocess.Popen(command, stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-    return subp
+    try:
+        if (input_fd):
+            subp = subprocess.Popen(command, stdin=input_fd,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+        else:
+            subp = subprocess.Popen(command, stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+        return subp
+    except OSError:
+        syslog.syslog(syslog.LOG_ERR, "command not found: " + command[0])
+        return None
 
 # for a single xml durection object, with only 1 path
 # for more elaborate paths, diy

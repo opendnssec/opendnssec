@@ -80,11 +80,13 @@ class Zone:
     def get_input_serial(self):
         """Returns the serial number from the SOA record in the input
         zone file"""
+        result = 0
         zone_file = self.get_zone_input_filename()
         cmd = [ self.get_tool_filename("get_serial"),
                 "-f", zone_file ]
         get_serial_c = Util.run_tool(cmd)
-        result = 0
+        if not get_serial_c:
+            return result
         for line in get_serial_c.stdout:
             result = int(line)
         status = get_serial_c.wait()
@@ -98,11 +100,13 @@ class Zone:
     def get_output_serial(self):
         """Returns the serial number from the SOA record in the signed
         output file"""
+        result = 0
         zone_file = self.get_zone_output_filename()
         cmd = [ self.get_tool_filename("get_serial"),
                 "-f", zone_file ]
         get_serial_c = Util.run_tool(cmd)
-        result = 0
+        if not get_serial_c:
+            return result
         for line in get_serial_c.stdout:
             result = int(line)
         status = get_serial_c.wait()
@@ -140,6 +144,8 @@ class Zone:
                     key["locator"]
                   ]
             create_p = Util.run_tool(cmd)
+            if not create_p:
+                return
             for line in create_p.stdout:
                 output = line
             status = create_p.wait()
@@ -205,6 +211,8 @@ class Zone:
         
         # sort published keys and zone data
         try:
+            if not sort_process:
+                raise OSError("Sorter not found")
             for k in self.zone_config.publish_keys:
                 sort_process.stdin.write(k["dnskey"])
 
@@ -223,15 +231,16 @@ class Zone:
             #for line in sort_process.stdout:
             #    sorted_zone_file.write(line)
             #sorted_zone_file.close()
-        except Exception, exc:
+        except OSError, exc:
             syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
             syslog.syslog(syslog.LOG_WARNING, str(exc))
             syslog.syslog(syslog.LOG_WARNING,
                           "Command was: " + " ".join(cmd))
-            for line in sort_process.stderr:
-                syslog.syslog(syslog.LOG_WARNING,
-                              "sorter stderr: " + line)
-            raise exc
+            if sort_process:
+                for line in sort_process.stderr:
+                    syslog.syslog(syslog.LOG_WARNING,
+                                  "sorter stderr: " + line)
+            #raise exc
         syslog.syslog(syslog.LOG_INFO, "Done sorting")
 
     def nsecify(self):
@@ -273,14 +282,10 @@ class Zone:
                 cmd.append("-p")
             nsec_p = Util.run_tool(cmd)
         #nsecced_zone_file = open(self.get_zone_tmp_filename(".signed"), "w")
-
-        for line in nsec_p.stderr:
-            syslog.syslog(syslog.LOG_ERR,
-                          "stderr from nseccer: " + line)
-        #for line in nsec_p.stdout:
-        #    nsecced_zone_file.write(line)
-        #nsecced_zone_file.close()
-        
+        if nsec_p:
+            for line in nsec_p.stderr:
+                syslog.syslog(syslog.LOG_ERR,
+                            "stderr from nseccer: " + line)
 
     def perform_action(self):
         """Depending on the value set to zone.action, this method
@@ -338,6 +343,10 @@ class Zone:
               ]
 
         sign_p = Util.run_tool(cmd)
+        if not sign_p:
+            if not self.last_signed:
+                self.last_signed = int(time.time())
+            return
         sign_p.stdin.write("\n")
         sign_p.stdin.write(":origin " + self.zone_name + "\n")
         syslog.syslog(syslog.LOG_DEBUG,
@@ -427,6 +436,8 @@ class Zone:
                "-f", self.get_zone_tmp_filename(".signed")
               ]
         finalize_p = Util.run_tool(cmd)
+        if not finalize_p:
+            return
         output = open(self.get_zone_output_filename(), "w")
         output.write("; Signed on " +\
                      datetime.fromtimestamp(self.last_signed)\

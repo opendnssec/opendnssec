@@ -569,6 +569,8 @@ main(int argc, char **argv)
 					ldns_rr_free(prev_rr);
 					prev_rr = cur_rr;
 					cur_rr = NULL;
+				} else {
+					fprintf(stderr, "Warning: parse error: ", ldns_get_errorstr_by_id);
 				}
 			}
 			line_nr++;
