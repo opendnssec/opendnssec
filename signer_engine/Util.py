@@ -99,6 +99,16 @@ def datestamp(timestamp):
     timestamp (seconds since epoch)"""
     return datetime.utcfromtimestamp(timestamp).strftime("%Y%m%d%H%M%S")
 
+def parse_duration_part(match, name, multiplier):
+    """If the Match object has a group 'name', its value is interpreted
+    as an integer, and multiplied with the multiplier. The result is
+    returned. If the group does not exist, 0 is returned"""
+    grp = match.group(name)
+    if grp:
+        return multiplier * int(grp)
+    else:
+        return 0
+
 def parse_duration(duration_string):
     """Parse an XML duration string. The number of seconds represented
        by the string is returned"""
@@ -114,27 +124,13 @@ def parse_duration(duration_string):
             if not match:
                 raise Exception("Bad duration format: " +duration_string)
 
-    grp = match.group("years")
-    if grp:
-        result += 31556926 * int(grp)
-    grp = match.group("months")
-    if grp:
-        result += 2678400 * int(grp)
-    grp = match.group("weeks")
-    if grp:
-        result += 604800 * int(grp)
-    grp = match.group("days")
-    if grp:
-        result += 86400 * int(grp)
-    grp = match.group("hours")
-    if grp:
-        result += 3600 * int(grp)
-    grp = match.group("minutes")
-    if grp:
-        result += 60 * int(grp)
-    grp = match.group("seconds")
-    if grp:
-        result += int(grp)
+    result += parse_duration_part(match, "years", 31556926)
+    result += parse_duration_part(match, "months", 2678400)
+    result += parse_duration_part(match, "weeks", 604800)
+    result += parse_duration_part(match, "days", 86400)
+    result += parse_duration_part(match, "hours", 3600)
+    result += parse_duration_part(match, "minutes", 60)
+    result += parse_duration_part(match, "seconds", 1)
 
     if match.group("negative"):
         return -result
