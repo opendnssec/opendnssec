@@ -59,10 +59,7 @@ CK_RV readConfigFile() {
   }
 
   if(fp == NULL) {
-    #if SOFTLOGLEVEL >= SOFTERROR
-      logError("C_Initialize", "Could not open the config file");
-    #endif
-
+    ERROR_MSG("C_Initialize", "Could not open the config file");
     return CKR_GENERAL_ERROR;
   }
 

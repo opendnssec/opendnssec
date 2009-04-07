@@ -216,10 +216,7 @@ void SoftSlot::loadRSAPrivate(SoftObject *currentObject, RandomNumberGenerator *
       delete rsaKey;
     }
 
-    #if SOFTLOGLEVEL >= SOFTERROR
-      logError("loadRSAPrivate", "Could not load the encoded key");
-    #endif
-
+    ERROR_MSG("loadRSAPrivate", "Could not load the encoded key");
     return;
   }
 
@@ -322,10 +319,7 @@ void SoftSlot::loadRSAPublic(SoftObject *currentObject) {
       delete rsaKey;
     }
 
-    #if SOFTLOGLEVEL >= SOFTERROR
-      logError("loadRSAPublic", "Could not load the encoded key");
-    #endif
-
+    ERROR_MSG("loadRSAPublic", "Could not load the encoded key");
     return;
   }
 

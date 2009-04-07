@@ -35,6 +35,24 @@
 #define SOFTINFO 3
 #define SOFTDEBUG 4
 
+#if SOFTLOGLEVEL >= SOFTERROR
+#define ERROR_MSG(func, text) logError(func, text);
+#else
+#define ERROR_MSG(func, text)
+#endif
+
+#if SOFTLOGLEVEL >= SOFTWARNING
+#define WARNING_MSG(func, text) logWarning(func, text);
+#else
+#define WARNING_MSG(func, text)
+#endif
+
+#if SOFTLOGLEVEL >= SOFTINFO
+#define INFO_MSG(func, text) logInfo(func, text);
+#else
+#define INFO_MSG(func, text)
+#endif
+
 #if SOFTLOGLEVEL >= SOFTDEBUG
 #define DEBUG_MSG(func, text) logDebug(func, text);
 #else

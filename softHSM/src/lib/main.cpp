@@ -147,6 +147,7 @@ extern CK_FUNCTION_LIST function_list;
 
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   DEBUG_MSG("C_Initialize", "Calling");
+
   CHECK_DEBUG_RETURN(softHSM != NULL_PTR, "C_Initialize", "Already initialized",
                      CKR_CRYPTOKI_ALREADY_INITIALIZED);
 
@@ -829,77 +830,61 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
 }
 
 CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_EncryptInit", "Calling");
-    logDebug("C_EncryptInit", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_EncryptInit", "Calling");
+  DEBUG_MSG("C_EncryptInit", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_Encrypt(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pEncryptedData,
       CK_ULONG_PTR pulEncryptedDataLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Encrypt", "Calling");
-    logDebug("C_Encrypt", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_Encrypt", "Calling");
+  DEBUG_MSG("C_Encrypt", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_EncryptUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen, CK_BYTE_PTR pEncryptedPart,
       CK_ULONG_PTR pulEncryptedPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_EncryptUpdate", "Calling");
-    logDebug("C_EncryptUpdate", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_EncryptUpdate", "Calling");
+  DEBUG_MSG("C_EncryptUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_EncryptFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pLastEncryptedPart, CK_ULONG_PTR pulLastEncryptedPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_EncryptFinal", "Calling");
-    logDebug("C_EncryptFinal", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_EncryptFinal", "Calling");
+  DEBUG_MSG("C_EncryptFinal", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DecryptInit", "Calling");
-    logDebug("C_DecryptInit", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_DecryptInit", "Calling");
+  DEBUG_MSG("C_DecryptInit", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_Decrypt(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedData, CK_ULONG ulEncryptedDataLen,
       CK_BYTE_PTR pData, CK_ULONG_PTR pulDataLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Decrypt", "Calling");
-    logDebug("C_Decrypt", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_Decrypt", "Calling");
+  DEBUG_MSG("C_Decrypt", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_DecryptUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedPart, CK_ULONG ulEncryptedPartLen,
       CK_BYTE_PTR pPart, CK_ULONG_PTR pulPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DecryptUpdate", "Calling");
-    logDebug("C_DecryptUpdate", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_DecryptUpdate", "Calling");
+  DEBUG_MSG("C_DecryptUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_DecryptFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pLastPart, CK_ULONG_PTR pulLastPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DecryptFinal", "Calling");
-    logDebug("C_DecryptFinal", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_DecryptFinal", "Calling");
+  DEBUG_MSG("C_DecryptFinal", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -907,17 +892,10 @@ CK_RV C_DecryptFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pLastPart, CK_ULONG
 // Initialize the digest functionality.
 
 CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DigestInit", "Calling");
-  #endif
+  DEBUG_MSG("C_DigestInit", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestInit", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_DigestInit", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -926,30 +904,21 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestInit", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_DigestInit", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(session->digestInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestInit", "Digest is already initialized");
-    #endif
-
+    DEBUG_MSG("C_DigestInit", "Digest is already initialized");
     return CKR_OPERATION_ACTIVE;
   }
 
   if(pMechanism == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestInit", "pMechanism must not be NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_DigestInit", "pMechanism must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -985,10 +954,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
     default:
       softHSM->unlockMutex();
 
-      #if SOFTLOGLEVEL >= SOFTDEBUG
-        logDebug("C_DigestInit", "The selected mechanism is not supported");
-      #endif
-
+      DEBUG_MSG("C_DigestInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
   }
@@ -996,10 +962,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
   if(hashFunc == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestInit", "Could not create the hash function");
-    #endif
-
+    DEBUG_MSG("C_DigestInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1010,10 +973,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
   if(!session->digestPipe) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestInit", "Could not create the digesting function");
-    #endif
-
+    DEBUG_MSG("C_DigestInit", "Could not create the digesting function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1022,10 +982,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DigestInit", "OK");
-  #endif
-
+  DEBUG_MSG("C_DigestInit", "OK");
   return CKR_OK;
 }
 
@@ -1033,17 +990,10 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism) {
 
 CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen,
       CK_BYTE_PTR pDigest, CK_ULONG_PTR pulDigestLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Digest", "Calling");
-  #endif
+  DEBUG_MSG("C_Digest", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Digest", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Digest", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1052,30 +1002,21 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Digest", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_Digest", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Digest", "Digest is not initialized");
-    #endif
-
+    DEBUG_MSG("C_Digest", "Digest is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pulDigestLen == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Digest", "pulDigestLen must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_Digest", "pulDigestLen must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1083,10 +1024,7 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     *pulDigestLen = session->digestSize;
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Digest", "OK, returning the size of the digest");
-    #endif
-
+    DEBUG_MSG("C_Digest", "OK, returning the size of the digest");
     return CKR_OK;
   }
 
@@ -1094,20 +1032,14 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
     *pulDigestLen = session->digestSize;
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Digest", "The given buffer is too small");
-    #endif
-
+    DEBUG_MSG("C_Digest", "The given buffer is too small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
   if(pData == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Digest", "pData must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_Digest", "pData must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1127,27 +1059,17 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Digest", "OK");
-  #endif
-
+  DEBUG_MSG("C_Digest", "OK");
   return CKR_OK;
 }
 
 // Adds more data that will be digested
 
 CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DigestUpdate", "Calling");
-  #endif
+  DEBUG_MSG("C_DigestUpdate", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestUpdate", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_DigestUpdate", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1156,30 +1078,21 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestUpdate", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_DigestUpdate", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestUpdate", "Digest is not initialized");
-    #endif
-
+    DEBUG_MSG("C_DigestUpdate", "Digest is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pPart == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestUpdate", "pPart must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_DigestUpdate", "pPart must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1188,18 +1101,13 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DigestUpdate", "OK");
-  #endif
-
+  DEBUG_MSG("C_DigestUpdate", "OK");
   return CKR_OK;
 }
 
 CK_RV C_DigestKey(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DigestKey", "Calling");
-    logDebug("C_DigestKey", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_DigestKey", "Calling");
+  DEBUG_MSG("C_DigestKey", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1207,17 +1115,10 @@ CK_RV C_DigestKey(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hKey) {
 // Digest the data.
 
 CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PTR pulDigestLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DigestFinal", "Calling");
-  #endif
+  DEBUG_MSG("C_DigestFinal", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestFinal", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_DigestFinal", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1226,30 +1127,21 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestFinal", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_DigestFinal", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->digestInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestFinal", "Digest is not initialized");
-    #endif
-
+    DEBUG_MSG("C_DigestFinal", "Digest is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pulDigestLen == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestFinal", "pulDigestLen must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_DigestFinal", "pulDigestLen must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1257,10 +1149,7 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
     *pulDigestLen = session->digestSize;
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-     logDebug("C_DigestFinal", "OK, returning the size of the digest");
-    #endif
-
+    DEBUG_MSG("C_DigestFinal", "OK, returning the size of the digest");
     return CKR_OK;
   }
 
@@ -1268,10 +1157,7 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
     *pulDigestLen = session->digestSize;
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_DigestFinal", "The given buffer is too small");
-    #endif
-
+    DEBUG_MSG("C_DigestFinal", "The given buffer is too small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
@@ -1289,27 +1175,17 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pDigest, CK_ULONG_PT
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DigestFinal", "OK");
-  #endif
-
+  DEBUG_MSG("C_DigestFinal", "OK");
   return CKR_OK;
 }
 
 // Initialize the signature functionality
 
 CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignInit", "Calling");
-  #endif
+  DEBUG_MSG("C_SignInit", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SignInit", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1318,10 +1194,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_SignInit", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
@@ -1331,10 +1204,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
      object->keyType != CKK_RSA) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "This key can not be used");
-    #endif
-
+    DEBUG_MSG("C_SignInit", "This key can not be used");
     return CKR_KEY_HANDLE_INVALID;
   }
 
@@ -1342,30 +1212,21 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   if(userAuth == CK_FALSE) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "User is not authorized");
-    #endif
-
+    DEBUG_MSG("C_SignInit", "User is not authorized");
     return CKR_KEY_HANDLE_INVALID;
   }
 
   if(session->signInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "Sign is already initialized");
-    #endif
-
+    DEBUG_MSG("C_SignInit", "Sign is already initialized");
     return CKR_OPERATION_ACTIVE;
   }
 
   if(pMechanism == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "pMechanism must not be NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_SignInit", "pMechanism must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1399,10 +1260,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     default:
       softHSM->unlockMutex();
 
-      #if SOFTLOGLEVEL >= SOFTDEBUG
-        logDebug("C_SignInit", "The selected mechanism is not supported");
-      #endif
-
+      DEBUG_MSG("C_SignInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
   }
@@ -1410,10 +1268,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   if(hashFunc == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "Could not create the hash function");
-    #endif
-
+    DEBUG_MSG("C_SignInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1422,10 +1277,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   if(cryptoKey == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "Could not load the crypto key");
-    #endif
-
+    DEBUG_MSG("C_SignInit", "Could not load the crypto key");
     return CKR_GENERAL_ERROR;
   }
 
@@ -1437,10 +1289,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   if(!session->pkSigner) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignInit", "Could not create the signing function");
-    #endif
-
+    DEBUG_MSG("C_SignInit", "Could not create the signing function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1448,10 +1297,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignInit", "OK");
-  #endif
-
+  DEBUG_MSG("C_SignInit", "OK");
   return CKR_OK;
 }
 
@@ -1459,17 +1305,10 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
 CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
       CK_ULONG_PTR pulSignatureLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Sign", "Calling");
-  #endif
+  DEBUG_MSG("C_Sign", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Sign", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Sign", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1478,30 +1317,21 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Sign", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_Sign", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Sign", "Sign is not initialized");
-    #endif
-
+    DEBUG_MSG("C_Sign", "Sign is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pulSignatureLen == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Sign", "pulSignatureLen must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_Sign", "pulSignatureLen must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1509,10 +1339,7 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
     *pulSignatureLen = session->signSize;
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Sign", "OK, returning the size of the signature");
-    #endif
-
+    DEBUG_MSG("C_Sign", "OK, returning the size of the signature");
     return CKR_OK;
   }
 
@@ -1520,20 +1347,14 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
     *pulSignatureLen = session->signSize;
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Sign", "The given buffer is too small");
-    #endif
-
+    DEBUG_MSG("C_Sign", "The given buffer is too small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
   if(pData == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Sign", "pData must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_Sign", "pData must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1552,27 +1373,17 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, 
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Sign", "OK");
-  #endif
-
+  DEBUG_MSG("C_Sign", "OK");
   return CKR_OK;
 }
 
 // Buffer the data before final signing
 
 CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignUpdate", "Calling");
-  #endif
+  DEBUG_MSG("C_SignUpdate", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignUpdate", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SignUpdate", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1581,40 +1392,28 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignUpdate", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_SignUpdate", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignUpdate", "Sign is not initialized");
-    #endif
-
+    DEBUG_MSG("C_SignUpdate", "Sign is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(session->signSinglePart) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignUpdate", "The mechanism can only sign single part of data");
-    #endif
-
+    DEBUG_MSG("C_SignUpdate", "The mechanism can only sign single part of data");
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pPart == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignUpdate", "pPart must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_SignUpdate", "pPart must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1623,27 +1422,17 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignUpdate", "OK");
-  #endif
-
+  DEBUG_MSG("C_SignUpdate", "OK");
   return CKR_OK;
 }
 
 // Signs the collected data and returns the signature.
 
 CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_PTR pulSignatureLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignFinal", "Calling");
-  #endif
+  DEBUG_MSG("C_SignFinal", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignFinal", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SignFinal", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1652,40 +1441,28 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignFinal", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_SignFinal", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->signInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignFinal", "Sign is not initialized");
-    #endif
-
+    DEBUG_MSG("C_SignFinal", "Sign is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(session->signSinglePart) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignFinal", "The mechanism can only sign single part of data");
-    #endif
-
+    DEBUG_MSG("C_SignFinal", "The mechanism can only sign single part of data");
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pulSignatureLen == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignFinal", "pulSignatureLen must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_SignFinal", "pulSignatureLen must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1693,10 +1470,7 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
     *pulSignatureLen = session->signSize;
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignFinal", "OK, returning the size of the signature");
-    #endif
-
+    DEBUG_MSG("C_SignFinal", "OK, returning the size of the signature");
     return CKR_OK;
   }
 
@@ -1704,10 +1478,7 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
     *pulSignatureLen = session->signSize;
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SignFinal", "The given buffer is to small");
-    #endif
-
+    DEBUG_MSG("C_SignFinal", "The given buffer is to small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
@@ -1726,28 +1497,21 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignFinal", "OK");
-  #endif
-
+  DEBUG_MSG("C_SignFinal", "OK");
   return CKR_OK;
 }
 
 CK_RV C_SignRecoverInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignRecoverInit", "Calling");
-    logDebug("C_SignRecoverInit", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_SignRecoverInit", "Calling");
+  DEBUG_MSG("C_SignRecoverInit", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_SignRecover(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
       CK_ULONG_PTR pulSignatureLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignRecover", "Calling");
-    logDebug("C_SignRecover", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_SignRecover", "Calling");
+  DEBUG_MSG("C_SignRecover", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1755,17 +1519,10 @@ CK_RV C_SignRecover(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDa
 // Initialize the verifing functionality.
 
 CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_VerifyInit", "Calling");
-  #endif
+  DEBUG_MSG("C_VerifyInit", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_VerifyInit", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1774,10 +1531,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_VerifyInit", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
@@ -1787,10 +1541,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
      object->keyType != CKK_RSA) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "This key can not be used");
-    #endif
-
+    DEBUG_MSG("C_VerifyInit", "This key can not be used");
     return CKR_KEY_HANDLE_INVALID;
   }
 
@@ -1798,30 +1549,21 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   if(userAuth == CK_FALSE) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "User is not authorized");
-    #endif
-
+    DEBUG_MSG("C_VerifyInit", "User is not authorized");
     return CKR_KEY_HANDLE_INVALID;
   }
 
   if(session->verifyInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "Verify is already initialized");
-    #endif
-
+    DEBUG_MSG("C_VerifyInit", "Verify is already initialized");
     return CKR_OPERATION_ACTIVE;
   }
 
   if(pMechanism == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "pMechanism must not be NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_VerifyInit", "pMechanism must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1855,10 +1597,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     default:
       softHSM->unlockMutex();
 
-      #if SOFTLOGLEVEL >= SOFTDEBUG
-        logDebug("C_VerifyInit", "The selected mechanism is not supported");
-      #endif
-
+      DEBUG_MSG("C_VerifyInit", "The selected mechanism is not supported");
       return CKR_MECHANISM_INVALID;
       break;
   }
@@ -1866,10 +1605,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   if(hashFunc == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "Could not create the hash function");
-    #endif
-
+    DEBUG_MSG("C_VerifyInit", "Could not create the hash function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1878,10 +1614,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   if(cryptoKey == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "Could not load the crypto key");
-    #endif
-
+    DEBUG_MSG("C_VerifyInit", "Could not load the crypto key");
     return CKR_GENERAL_ERROR;
   }
 
@@ -1893,10 +1626,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   if(!session->pkVerifier) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyInit", "Could not create the verifying function");
-    #endif
-
+    DEBUG_MSG("C_VerifyInit", "Could not create the verifying function");
     return CKR_DEVICE_MEMORY;
   }
 
@@ -1904,10 +1634,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_VerifyInit", "OK");
-  #endif
-
+  DEBUG_MSG("C_VerifyInit", "OK");
   return CKR_OK;
 }
 
@@ -1915,17 +1642,10 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
 CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
       CK_ULONG ulSignatureLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_Verify", "Calling");
-  #endif
+  DEBUG_MSG("C_Verify", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Verify", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Verify", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -1934,30 +1654,21 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Verify", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_Verify", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Verify", "Verify is not initialized");
-    #endif
-
+    DEBUG_MSG("C_Verify", "Verify is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(pData == NULL_PTR || pSignature == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Verify", "pData and pSignature must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_Verify", "pData and pSignature must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -1973,10 +1684,7 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
 
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Verify", "The signatures does not have the same length");
-    #endif
-
+    DEBUG_MSG("C_Verify", "The signatures does not have the same length");
     return CKR_SIGNATURE_LEN_RANGE;
   }
 
@@ -1992,16 +1700,10 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
 
   // Returns the result
   if(verResult) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Verify", "OK");
-    #endif
-
+    DEBUG_MSG("C_Verify", "OK");
     return CKR_OK;
   } else {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_Verify", "The signature is invalid");
-    #endif
-
+    DEBUG_MSG("C_Verify", "The signature is invalid");
     return CKR_SIGNATURE_INVALID;
   }
 }
@@ -2009,17 +1711,10 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen
 // Collects the data before the final signature check.
 
 CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_VerifyUpdate", "Calling");
-  #endif
+  DEBUG_MSG("C_VerifyUpdate", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyUpdate", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_VerifyUpdate", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -2028,40 +1723,28 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyUpdate", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_VerifyUpdate", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyUpdate", "Verify is not initialized");
-    #endif
-
+    DEBUG_MSG("C_VerifyUpdate", "Verify is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(session->verifySinglePart) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyUpdate", "The mechanism can only verify single part of data");
-    #endif
-
+    DEBUG_MSG("C_VerifyUpdate", "The mechanism can only verify single part of data");
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pPart == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyUpdate", "pPart must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_VerifyUpdate", "pPart must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -2070,27 +1753,17 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_VerifyUpdate", "OK");
-  #endif
-
+  DEBUG_MSG("C_VerifyUpdate", "OK");
   return CKR_OK;
 }
 
 // Verifies if the signature matches the collected data.
 
 CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG ulSignatureLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_VerifyFinal", "Calling");
-  #endif
+  DEBUG_MSG("C_VerifyFinal", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyFinal", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_VerifyFinal", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -2099,40 +1772,28 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyFinal", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_VerifyFinal", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(!session->verifyInitialized) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyFinal", "Verify is not initialized");
-    #endif
-
+    DEBUG_MSG("C_VerifyFinal", "Verify is not initialized");
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
   if(session->verifySinglePart) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyFinal", "The mechanism can only verify single part of data");
-    #endif
-
+    DEBUG_MSG("C_VerifyFinal", "The mechanism can only verify single part of data");
     return CKR_FUNCTION_NOT_SUPPORTED;
   }
 
   if(pSignature == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyFinal", "pSignature must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_VerifyFinal", "pSignature must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -2145,10 +1806,7 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
 
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyFinal", "The signatures does not have the same length");
-    #endif
-
+    DEBUG_MSG("C_VerifyFinal", "The signatures does not have the same length");
     return CKR_SIGNATURE_LEN_RANGE;
   }
 
@@ -2164,85 +1822,65 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
 
   // Returns the result
   if(verResult) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyFinal", "OK");
-    #endif
-
+    DEBUG_MSG("C_VerifyFinal", "OK");
     return CKR_OK;
   } else {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_VerifyFinal", "The signature is invalid");
-    #endif
-
+    DEBUG_MSG("C_VerifyFinal", "The signature is invalid");
     return CKR_SIGNATURE_INVALID;
   }
 }
 
 CK_RV C_VerifyRecoverInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_VerifyRecoverInit", "Calling");
-    logDebug("C_VerifyRecoverInit", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_VerifyRecoverInit", "Calling");
+  DEBUG_MSG("C_VerifyRecoverInit", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_VerifyRecover(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG ulSignatureLen,
       CK_BYTE_PTR pData, CK_ULONG_PTR pulDataLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_VerifyRecover", "Calling");
-    logDebug("C_VerifyRecover", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_VerifyRecover", "Calling");
+  DEBUG_MSG("C_VerifyRecover", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_DigestEncryptUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen,
       CK_BYTE_PTR pEncryptedPart, CK_ULONG_PTR pulEncryptedPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DigestEncryptUpdate", "Calling");
-    logDebug("C_DigestEncryptUpdate", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_DigestEncryptUpdate", "Calling");
+  DEBUG_MSG("C_DigestEncryptUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_DecryptDigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedPart, CK_ULONG ulEncryptedPartLen,
       CK_BYTE_PTR pPart, CK_ULONG_PTR pulPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DecryptDigestUpdate", "Calling");
-    logDebug("C_DecryptDigestUpdate", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_DecryptDigestUpdate", "Calling");
+  DEBUG_MSG("C_DecryptDigestUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_SignEncryptUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen,
       CK_BYTE_PTR pEncryptedPart, CK_ULONG_PTR pulEncryptedPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SignEncryptUpdate", "Calling");
-    logDebug("C_SignEncryptUpdate", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_SignEncryptUpdate", "Calling");
+  DEBUG_MSG("C_SignEncryptUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_DecryptVerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedPart, CK_ULONG ulEncryptedPartLen,
       CK_BYTE_PTR pPart, CK_ULONG_PTR pulPartLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DecryptVerifyUpdate", "Calling");
-    logDebug("C_DecryptVerifyUpdate", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_DecryptVerifyUpdate", "Calling");
+  DEBUG_MSG("C_DecryptVerifyUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_ATTRIBUTE_PTR pTemplate,
       CK_ULONG ulCount, CK_OBJECT_HANDLE_PTR phKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GenerateKey", "Calling");
-    logDebug("C_GenerateKey", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_GenerateKey", "Calling");
+  DEBUG_MSG("C_GenerateKey", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -2253,17 +1891,10 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_
 CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
       CK_ULONG ulPublicKeyAttributeCount, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, CK_ULONG ulPrivateKeyAttributeCount,
       CK_OBJECT_HANDLE_PTR phPublicKey, CK_OBJECT_HANDLE_PTR phPrivateKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GenerateKeyPair", "Calling");
-  #endif
+  DEBUG_MSG("C_GenerateKeyPair", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GenerateKeyPair", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -2272,10 +1903,7 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_GenerateKeyPair", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
@@ -2283,10 +1911,7 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
      phPublicKey == NULL_PTR || phPrivateKey == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "The arguments must not be NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_GenerateKeyPair", "The arguments must not be NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -2316,10 +1941,7 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
   if(userAuth == CK_FALSE) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "User is not authorized");
-    #endif
-
+    DEBUG_MSG("C_GenerateKeyPair", "User is not authorized");
     return CKR_USER_NOT_LOGGED_IN;
   }
 
@@ -2338,19 +1960,14 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GenerateKeyPair", "The selected mechanism is not supported");
-  #endif
-
+  DEBUG_MSG("C_GenerateKeyPair", "The selected mechanism is not supported");
   return CKR_MECHANISM_INVALID;
 }
 
 CK_RV C_WrapKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hWrappingKey,
       CK_OBJECT_HANDLE hKey, CK_BYTE_PTR pWrappedKey, CK_ULONG_PTR pulWrappedKeyLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_WrapKey", "Calling");
-    logDebug("C_WrapKey", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_WrapKey", "Calling");
+  DEBUG_MSG("C_WrapKey", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -2358,20 +1975,16 @@ CK_RV C_WrapKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJE
 CK_RV C_UnwrapKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hUnwrappingKey,
       CK_BYTE_PTR pWrappedKey, CK_ULONG ulWrappedKeyLen, CK_ATTRIBUTE_PTR pTemplate,
       CK_ULONG ulAttributeCount, CK_OBJECT_HANDLE_PTR phKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_UnwrapKey", "Calling");
-    logDebug("C_UnwrapKey", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_UnwrapKey", "Calling");
+  DEBUG_MSG("C_UnwrapKey", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_DeriveKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hBaseKey,
       CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulAttributeCount, CK_OBJECT_HANDLE_PTR phKey) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_DeriveKey", "Calling");
-    logDebug("C_DeriveKey", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_DeriveKey", "Calling");
+  DEBUG_MSG("C_DeriveKey", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -2379,17 +1992,10 @@ CK_RV C_DeriveKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OB
 // Reseeds the RNG
 
 CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSeedLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SeedRandom", "Calling");
-  #endif
+  DEBUG_MSG("C_SeedRandom", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SeedRandom", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SeedRandom", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -2398,20 +2004,14 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSee
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SeedRandom", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_SeedRandom", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pSeed == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_SeedRandom", "pSeed must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_SeedRandom", "pSeed must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -2420,27 +2020,17 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSee
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_SeedRandom", "OK");
-  #endif
-
+  DEBUG_MSG("C_SeedRandom", "OK");
   return CKR_OK;
 }
 
 // Returns some random data.
 
 CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_ULONG ulRandomLen) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GenerateRandom", "Calling");
-  #endif
+  DEBUG_MSG("C_GenerateRandom", "Calling");
 
-  if(softHSM == NULL_PTR) {
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateRandom", "Library is not initialized");
-    #endif
-
-    return CKR_CRYPTOKI_NOT_INITIALIZED;
-  }
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GenerateRandom", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
 
   softHSM->lockMutex();
 
@@ -2449,20 +2039,14 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_U
   if(session == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateRandom", "Can not find the session");
-    #endif
-
+    DEBUG_MSG("C_GenerateRandom", "Can not find the session");
     return CKR_SESSION_HANDLE_INVALID;
   }
 
   if(pRandomData == NULL_PTR) {
     softHSM->unlockMutex();
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateRandom", "pRandomData must not be a NULL_PTR");
-    #endif
-
+    DEBUG_MSG("C_GenerateRandom", "pRandomData must not be a NULL_PTR");
     return CKR_ARGUMENTS_BAD;
   }
 
@@ -2470,36 +2054,27 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_U
 
   softHSM->unlockMutex();
 
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GenerateRandom", "OK");
-  #endif
-
+  DEBUG_MSG("C_GenerateRandom", "OK");
   return CKR_OK;
 }
 
 CK_RV C_GetFunctionStatus(CK_SESSION_HANDLE hSession) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GetFunctionStatus", "Calling");
-    logDebug("C_GetFunctionStatus", "Just returning. Is a legacy function.");
-  #endif
+  DEBUG_MSG("C_GetFunctionStatus", "Calling");
+  DEBUG_MSG("C_GetFunctionStatus", "Just returning. Is a legacy function.");
 
   return CKR_FUNCTION_NOT_PARALLEL;
 }
 
 CK_RV C_CancelFunction(CK_SESSION_HANDLE hSession) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_CancelFunction", "Calling");
-    logDebug("C_CancelFunction", "Just returning. Is a legacy function.");
-  #endif
+  DEBUG_MSG("C_CancelFunction", "Calling");
+  DEBUG_MSG("C_CancelFunction", "Just returning. Is a legacy function.");
 
   return CKR_FUNCTION_NOT_PARALLEL;
 }
 
 CK_RV C_WaitForSlotEvent(CK_FLAGS flags, CK_SLOT_ID_PTR pSlot, CK_VOID_PTR pReserved) {
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_WaitForSlotEvent", "Calling");
-    logDebug("C_WaitForSlotEvent", "The function is not implemented");
-  #endif
+  DEBUG_MSG("C_WaitForSlotEvent", "Calling");
+  DEBUG_MSG("C_WaitForSlotEvent", "The function is not implemented");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -2521,10 +2096,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
         if(pPublicKeyTemplate[i].ulValueLen != sizeof(CK_ULONG)) {
           delete exponent;
 
-          #if SOFTLOGLEVEL >= SOFTDEBUG
-            logDebug("C_GenerateKeyPair", "CKA_MODULUS_BITS does not have the size of CK_ULONG");
-          #endif
-
+          DEBUG_MSG("C_GenerateKeyPair", "CKA_MODULUS_BITS does not have the size of CK_ULONG");
           return CKR_TEMPLATE_INCOMPLETE;
         }
         modulusBits = (CK_ULONG*)pPublicKeyTemplate[i].pValue;
@@ -2542,10 +2114,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   if(modulusBits == NULL_PTR) {
     delete exponent;
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "Missing CKA_MODULUS_BITS in pPublicKeyTemplate");
-    #endif
-
+    DEBUG_MSG("C_GenerateKeyPair", "Missing CKA_MODULUS_BITS in pPublicKeyTemplate");
     return CKR_TEMPLATE_INCOMPLETE;
   }
 
@@ -2564,10 +2133,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
     free(labelID);
     delete rsaKey;
     
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "Could not save private key in DB");
-    #endif
-
+    DEBUG_MSG("C_GenerateKeyPair", "Could not save private key in DB");
     return CKR_GENERAL_ERROR;
   }
 
@@ -2579,10 +2145,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   if(pubRef == 0) {
     session->db->deleteObject(privRef);
 
-    #if SOFTLOGLEVEL >= SOFTDEBUG
-      logDebug("C_GenerateKeyPair", "Could not save public key in DB");
-    #endif
-
+    DEBUG_MSG("C_GenerateKeyPair", "Could not save public key in DB");
     return CKR_GENERAL_ERROR;
   }
 
@@ -2594,14 +2157,8 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   *phPublicKey = pubRef;
   *phPrivateKey = privRef;
 
-  #if SOFTLOGLEVEL >= SOFTINFO
-    logInfo("C_GenerateKeyPair", "Key pair generated");
-  #endif
-
-  #if SOFTLOGLEVEL >= SOFTDEBUG
-    logDebug("C_GenerateKeyPair", "OK");
-  #endif
-
+  INFO_MSG("C_GenerateKeyPair", "Key pair generated");
+  DEBUG_MSG("C_GenerateKeyPair", "OK");
   return CKR_OK;
 }
 
