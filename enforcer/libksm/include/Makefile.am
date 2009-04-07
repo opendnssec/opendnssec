@@ -7,4 +7,6 @@ dbsdef.inc: dbsdef.h
 kmedef.inc: kmedef.h
 	perl status_messages.pl KME kmedef.h kmedef.inc
 
+nobase_include_HEADERS = *.h *.inc
+
 EXTRA_DIST = *.h
