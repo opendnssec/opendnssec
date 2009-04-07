@@ -181,7 +181,7 @@ char* SoftDatabase::getUserPIN() {
 // Save the public RSA key in the database.
 
 CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
-    CK_ULONG ulPublicKeyAttributeCount, char *labelID) {
+    CK_ULONG ulPublicKeyAttributeCount) {
 
   stringstream sqlInsertObj;
 
@@ -207,8 +207,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   this->saveAttribute(objectID, CKA_LOCAL, &ckTrue, sizeof(ckTrue));
 
   // Default values, may be changed by the template.
-  this->saveAttribute(objectID, CKA_LABEL, labelID, strlen(labelID));
-  this->saveAttribute(objectID, CKA_ID, labelID, strlen(labelID));
+  this->saveAttribute(objectID, CKA_LABEL, NULL_PTR, 0);
+  this->saveAttribute(objectID, CKA_ID, NULL_PTR, 0);
+  this->saveAttribute(objectID, CKA_SUBJECT, NULL_PTR, 0);
   this->saveAttribute(objectID, CKA_PRIVATE, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_MODIFIABLE, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_TOKEN, &ckFalse, sizeof(ckFalse));
@@ -262,7 +263,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
 // Save the private RSA key in the database.
 
 CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
-    CK_ULONG ulPrivateKeyAttributeCount, char *labelID, RandomNumberGenerator *rng) {
+    CK_ULONG ulPrivateKeyAttributeCount, RandomNumberGenerator *rng) {
 
   stringstream sqlInsertObj;
 
@@ -288,8 +289,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
   this->saveAttribute(objectID, CKA_LOCAL, &ckTrue, sizeof(ckTrue));
 
   // Default values, may be changed by the template.
-  this->saveAttribute(objectID, CKA_LABEL, labelID, strlen(labelID));
-  this->saveAttribute(objectID, CKA_ID, labelID, strlen(labelID));
+  this->saveAttribute(objectID, CKA_LABEL, NULL_PTR, 0);
+  this->saveAttribute(objectID, CKA_ID, NULL_PTR, 0);
+  this->saveAttribute(objectID, CKA_SUBJECT, NULL_PTR, 0);
   this->saveAttribute(objectID, CKA_PRIVATE, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_MODIFIABLE, &ckTrue, sizeof(ckTrue));
   this->saveAttribute(objectID, CKA_TOKEN, &ckFalse, sizeof(ckFalse));

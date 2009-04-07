@@ -2119,15 +2119,11 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*session->rng, (u32bit)*modulusBits, exponent->to_u32bit());
   delete exponent;
 
-  // Default label/ID if nothing is specified by the user.
-  char *labelID = getNewLabelAndID();
-
   // Add the private key to the database.
   CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(session->currentSlot->userPIN, rsaKey, pPrivateKeyTemplate, 
-                                                        ulPrivateKeyAttributeCount, labelID, session->rng);
+                                                        ulPrivateKeyAttributeCount, session->rng);
 
   if(privRef == 0) {
-    free(labelID);
     delete rsaKey;
     
     DEBUG_MSG("C_GenerateKeyPair", "Could not save private key in DB");
@@ -2135,8 +2131,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   }
 
   // Add the public key to the database.
-  CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount, labelID);
-  free(labelID);
+  CK_OBJECT_HANDLE pubRef = session->db->addRSAKeyPub(rsaKey, pPublicKeyTemplate, ulPublicKeyAttributeCount);
   delete rsaKey;
 
   if(pubRef == 0) {
@@ -2157,21 +2152,4 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   INFO_MSG("C_GenerateKeyPair", "Key pair generated");
   DEBUG_MSG("C_GenerateKeyPair", "OK");
   return CKR_OK;
-}
-
-// Return a new label/ID
-// It is the current date/time down to microseconds
-// This should be enough collision resistant.
-
-char* getNewLabelAndID() {
-  char *labelAndID = (char *)malloc(19);
-
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  struct tm *timeinfo = gmtime(&now.tv_sec);
-
-  snprintf(labelAndID, 19, "%02u%02u%02u%02u%02u%02u%06u", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday,
-           timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, (unsigned int)now.tv_usec);
-
-  return labelAndID;
 }
