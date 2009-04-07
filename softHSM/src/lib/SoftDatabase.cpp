@@ -103,7 +103,12 @@ char* SoftDatabase::getTokenLabel() {
 
   if(sqlite3_step(select_sql) == SQLITE_ROW) {
     const char *tokenLabel = (const char*)sqlite3_column_text(select_sql, 0);
-    strncpy(retLabel, tokenLabel, 32);
+
+    int counter = 0;
+    while(tokenLabel[counter] != '\0' && counter < 32) {
+      retLabel[counter] = tokenLabel[counter];
+      counter++;
+    }
   }
 
   sqlite3_finalize(select_sql);
