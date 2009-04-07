@@ -246,7 +246,9 @@ mark_possible_glue(rr_data *rrd, ldns_rbtree_t *rr_tree, ldns_rdf *origin)
 							  &pos,
 							  LDNS_SECTION_ANY_NOQUESTION);
 			if (cur_rr && !ldns_dname_compare(ldns_rr_owner(cur_rr), origin) == 0) {
-				if (ldns_dname_is_subdomain(ldns_rr_owner(rr),
+				if (ldns_dname_compare(ldns_rr_owner(rr),
+				                       ldns_rr_owner(cur_rr)) == 0 ||
+				    ldns_dname_is_subdomain(ldns_rr_owner(rr),
 				                            ldns_rr_owner(cur_rr))) {
 					rrd->glue = 1;
 				}
