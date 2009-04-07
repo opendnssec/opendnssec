@@ -207,6 +207,7 @@ static void TestKsmKeyModify(void)
 	/* Assume that a key has been added (tested above) */
 
     /* Change the algorithm and save to database */
+    TestKeyClear(&data);
     data.algorithm = KSM_ALGORITHM_RSAMD5;
     data.flags |= KEYDATA_M_ALGORITHM;
 
