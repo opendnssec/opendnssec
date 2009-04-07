@@ -408,15 +408,12 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
   pInfo->firmwareVersion.major = VERSION_MAJOR;
   pInfo->firmwareVersion.minor = VERSION_MINOR;
 
-  char *dateTime = (char*)malloc(17);
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  struct tm *timeinfo = gmtime(&now.tv_sec);
-
-  snprintf(dateTime, 17, "20%02u%02u%02u%02u%02u%02u00", timeinfo->tm_year - 100, timeinfo->tm_mon + 1, timeinfo->tm_mday,
-           timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+  time_t rawtime;
+  tm *ptm;
+  time(&rawtime);
+  char dateTime[17];
+  strftime(dateTime, 17, "%Y%m%d%H%M%S00", gmtime(&rawtime));
   memcpy(pInfo->utcTime, dateTime, 16);
-  free(dateTime);
 
   DEBUG_MSG("C_GetTokenInfo", "OK");
   return CKR_OK;
