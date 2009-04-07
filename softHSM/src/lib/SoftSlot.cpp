@@ -93,7 +93,7 @@ SoftSlot::~SoftSlot() {
   }
 }
 
-// Add a new slot
+// Add a new slot last in the chain
 
 void SoftSlot::addSlot(CK_SLOT_ID newSlotID, char *newDBPath) {
   if(nextSlot == NULL_PTR) {
@@ -102,6 +102,11 @@ void SoftSlot::addSlot(CK_SLOT_ID newSlotID, char *newDBPath) {
     dbPath = newDBPath;
     readDB();
   } else {
+    // Slots may not share the same ID
+    if(newSlotID == slotID) {
+      return;
+    }
+
     nextSlot->addSlot(newSlotID, newDBPath);
   }
 }

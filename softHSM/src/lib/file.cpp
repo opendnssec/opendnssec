@@ -73,12 +73,8 @@ CK_RV readConfigFile() {
   CK_SLOT_ID slotID;
   int length = 0;
 
-  while(fscanf(fp, "%i:%256s\n", &slotID, dbPath) == 2) {
-    length = strlen(dbPath);
-    char *addDBPath = (char *)malloc(length+1);
-    addDBPath[length] = '\0';
-    memcpy(addDBPath, dbPath, length);
-
+  while(fscanf(fp, "%lu:%256s\n", &slotID, dbPath) == 2) {
+    char *addDBPath = strdup(dbPath);
     softHSM->slots->addSlot(slotID, addDBPath);
   }
 
