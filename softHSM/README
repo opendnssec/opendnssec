@@ -25,7 +25,7 @@ interface.
 
 DEPENDENCIES
 
-SoftHSM depends on the Botan 1.8.1 or greater (a cryptographic library) 
+SoftHSM depends on the Botan 1.7.24 or greater (a cryptographic library) 
 and SQLite 3.4.2 or greater (a database library). They can be found at:
   http://botan.randombit.net
 and

@@ -80,9 +80,9 @@ AC_LINK_IFELSE(
 			 [using namespace Botan;
                           LibraryInitializer::initialize();
 			  new EMSA3_Raw();])],
-	[AC_MSG_RESULT([checking for Botan library v1.8.0 or greater... yes])],
-	[AC_MSG_RESULT([checking for Botan library v1.8.0 or greater... no])
-         AC_MSG_FAILURE([Missing Botan library v1.8.0 or greater])]
+	[AC_MSG_RESULT([checking for Botan library v1.7.24 or greater... yes])],
+	[AC_MSG_RESULT([checking for Botan library v1.7.24 or greater... no])
+         AC_MSG_FAILURE([Missing Botan library v1.7.24 or greater])]
 )
 
 

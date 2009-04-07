@@ -59,7 +59,13 @@ CK_RV readConfigFile() {
   }
 
   if(fp == NULL) {
-    ERROR_MSG("C_Initialize", "Could not open the config file");
+    char *errorMsg = (char *)malloc(33 + strlen(confPath));
+    strcpy(errorMsg, "Could not open the config file: ");
+    strcat(errorMsg, confPath);
+
+    ERROR_MSG("C_Initialize", errorMsg);
+    free(errorMsg);
+
     return CKR_GENERAL_ERROR;
   }
 
