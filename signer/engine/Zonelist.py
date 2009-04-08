@@ -10,29 +10,59 @@ config xml file
 from Ft.Xml.XPath import Evaluate
 from xml.dom import minidom
 from xml.parsers.expat import ExpatError
-from datetime import datetime
+import Util
 
 class ZonelistError(Exception):
     """General error when parsing the zonelist.xml file"""
     pass
 
+class ZonelistEntry:
+    """An entry in a zone list, contains:
+    - Zone configuration file name
+    - input adapter type (currently only file)
+    - input adapter data (depends on type)
+    - output adapter type (currently only file)
+    - output adapter data (depends on type)
+    """
+
+    def __init__(self, zone_name, configuration_file, input_adapter,
+                 input_adapter_data, output_adapter,
+                 output_adapter_data):
+        self.zone_name = zone_name
+        self.configuration_file = configuration_file
+        self.input_adapter = input_adapter
+        self.input_adapter_data = input_adapter_data
+        self.output_adapter = output_adapter
+        self.output_adapter_data = output_adapter_data
+
+    def is_same(self, other):
+        """Returns True if there is no difference between this
+           entry and 'other'"""
+        return self.zone_name == other.zone_name and \
+               self.configuration_file == other.configuration_file and \
+               self.input_adapter == other.input_adapter and \
+               self.input_adapter_data == other.input_adapter_data and \
+               self.output_adapter == other.output_adapter and \
+               self.output_adapter_data == other.output_adapter_data
+
 class Zonelist:
     """List of current Zones"""
+    ADAPTER_FILE = 1
     
     def __init__(self):
-        self.zone_updates = {}
+        self.entries = {}
     
-    def get_last_update(self, zone_name):
+    def get_zonelist_entry(self, zone_name):
         """Return the time of the last update of the zone zone_name"""
         try:
-            return self.zone_updates[zone_name]
+            return self.entries[zone_name]
         except KeyError:
             # raise? or just return None?
             return None
     
     def get_all_zone_names(self):
         """Returns a List of all current zone names"""
-        return self.zone_updates.keys()
+        return self.entries.keys()
     
     def read_zonelist_file(self, input_file):
         """Read the list of zones from input_file"""
@@ -50,34 +80,51 @@ class Zonelist:
     
     def from_xml(self, xml_blob):
         """Reads the list of zones from xml_blob"""
-        xmlbs = Evaluate("zonelist/zone", xml_blob)
+        xmlbs = Evaluate("Zonelist/Zone", xml_blob)
+        if not xmlbs:
+            raise ZonelistError("No Zonelist/Zone entries "+
+                                "in zone list file")
         for xmlb in xmlbs:
             zone_name = xmlb.attributes["name"].value
-            xmlb = Evaluate("lastUpdate", xmlb)[0].firstChild
-            if xmlb:
-                last_update_str = xmlb.data
-                last_update = datetime.strptime(last_update_str,
-                                                "%Y-%m-%dT%H:%M:%SZ")
-                self.zone_updates[zone_name] = last_update
+            configuration_file = Util.get_xml_data(
+                                      "SignerConfiguration", xmlb)
+            input_adapter_data = Util.get_xml_data(
+                                      "Adapters/Input/File", xmlb, True)
+            if input_adapter_data:
+                input_adapter = self.ADAPTER_FILE
             else:
-                raise Exception("no last update element in zone")
+                raise ZonelistError("Unknown input adapter")
+            output_adapter_data = Util.get_xml_data(
+                                     "Adapters/Output/File", xmlb, True)
+            if output_adapter_data:
+                output_adapter = self.ADAPTER_FILE
+            else:
+                raise ZonelistError("Unknown output adapter")
+            self.entries[zone_name] = ZonelistEntry(zone_name,
+                                                    configuration_file,
+                                                    input_adapter,
+                                                    input_adapter_data,
+                                                    output_adapter,
+                                                    output_adapter_data)
 
     def merge(self, new_zonelist):
         """'Merges' two zone lists.
         returns a tuple: (removed, added, updated)
-        which are lists of zone names
-        new_zonelist will be mangled after this
-        (it will only contain actual new zone names)
+        which are lists of ZonelistEntry objects
         """
         removed = []
         added = []
         updated = []
         for key in self.get_all_zone_names():
-            if key in new_zonelist.zone_updates:
-                if self.zone_updates[key] < new_zonelist.zone_updates[key]:
-                    updated.append(key)
-                del new_zonelist.zone_updates[key]
-            else:
+            if not key in new_zonelist.entries.keys():
                 removed.append(key)
-        added = new_zonelist.get_all_zone_names()
+                del self.entries[key]
+            else:
+                if not self.entries[key].\
+                    is_same(new_zonelist.entries[key]):
+                    updated.append(key)
+                del new_zonelist.entries[key]
+        for key in new_zonelist.entries.keys():
+            added.append(key)
+            self.zonelist.entries[key] = new_zonelist.entries[key]
         return (removed, added, updated)

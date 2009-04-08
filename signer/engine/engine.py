@@ -227,7 +227,10 @@ class Engine:
     # global zone management
     def add_zone(self, zone_name):
         """Add a new zone to the engine, and schedule it for signing"""
-        self.zones[zone_name] = Zone.Zone(zone_name, self.config)
+        self.zones[zone_name] = Zone.Zone(zone_name,
+                    self.zonelist.entries[zone_name].configuration_file,
+                    self.config)
+        
         self.update_zone(zone_name)
         if self.zones[zone_name].zone_config:
             secs_left = self.zones[zone_name].calc_resign_from_output_file()
@@ -244,7 +247,7 @@ class Engine:
         else:
             # reading of config has failed. remove the zone again
             syslog.syslog(syslog.LOG_ERR, "Zone " + zone_name + " not added")
-            self.remove_zone(zone_name)
+            #self.remove_zone(zone_name)
         
     def remove_zone(self, zone_name):
         """Removes a zone from the engine"""

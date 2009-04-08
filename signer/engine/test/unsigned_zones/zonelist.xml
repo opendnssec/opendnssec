@@ -1,10 +1,14 @@
-<zonelist>
-	<zone name="tjeb.nl">
-		<lastUpdate>2013-05-30T09:30:10Z</lastUpdate>
-	</zone>
-<!--
-	<zone name="jelte.nlnetlabs.nl">
-		<lastUpdate>2013-05-30T09:30:10Z</lastUpdate>
-	</zone>
--->
-</zonelist>
+<Zonelist>
+	<Zone name="tjeb.nl">
+		<Policy>default</Policy>
+		<SignerConfiguration>zone_config/tjeb.nl.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<File>unsigned_zones/tjeb.nl</File>
+			</Input>
+			<Output>
+				<File>signed_zones/tjeb.nl</File>
+			</Output>
+		</Adapters>
+	</Zone>
+</Zonelist>

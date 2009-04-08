@@ -16,7 +16,7 @@ import Util
 
 class Zone:
     """Zone representation, with all information needed to sign them"""
-    def __init__(self, _zone_name, engine_config):
+    def __init__(self, _zone_name, config_file, engine_config):
         self.zone_name = _zone_name
         self.engine_config = engine_config
         self.locked = False
@@ -32,6 +32,8 @@ class Zone:
         self.last_read = None
         # keep track of when we last performed sign()
         self.last_signed = None
+
+        self.config_file = config_file
 
         # this should be set with the result from ZoneConfig.compare()
         self.action = ZoneConfig.NO_CHANGE
@@ -60,8 +62,7 @@ class Zone:
         
     def get_zone_config_filename(self):
         """Returns the file name of the zone configuration xml file"""
-        return self.engine_config.zone_config_dir \
-            + os.sep + self.zone_name + ".xml"
+        return self.config_file
 
     def get_zone_tmp_filename(self, ext=""):
         """Returns the file name of the temporary zone file"""
@@ -213,7 +214,8 @@ class Zone:
             if not sort_process:
                 raise OSError("Sorter not found")
             for k in self.zone_config.publish_keys:
-                sort_process.stdin.write(k["dnskey"])
+                if k["dnskey"]:
+                    sort_process.stdin.write(k["dnskey"])
 
             unsorted_zone_file = open(self.get_zone_input_filename(), "r")
             for line in unsorted_zone_file:
@@ -228,8 +230,7 @@ class Zone:
 
         except IOError, ioe:
             syslog.syslog(syslog.LOG_ERR, "Error reading input zone\n")
-            syslog.syslog(syslog.LOG_ERR,
-                          self.get_zone_input_filename() + " not found")
+            syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
             syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
             syslog.syslog(syslog.LOG_WARNING, str(exc))
@@ -289,14 +290,17 @@ class Zone:
     def perform_action(self):
         """Depending on the value set to zone.action, this method
            will sort, nsecify and/or sign the zone"""
-        if self.action >= ZoneConfig.RESIGN and os.path.exists(self.get_zone_tmp_filename(".signed")):
+        if self.action >= ZoneConfig.RESIGN and os.path.exists(
+                                 self.get_zone_tmp_filename(".signed")):
             self.sign()
             self.finalize()
-        elif self.action >= ZoneConfig.RENSEC and os.path.exists(self.get_zone_tmp_filename(".sorted")):
+        elif self.action >= ZoneConfig.RENSEC and os.path.exists(
+                                 self.get_zone_tmp_filename(".sorted")):
             self.nsecify()
             self.sign()
             self.finalize()
-        elif self.action >= ZoneConfig.RESORT and os.path.isfile(self.get_zone_input_filename()):
+        elif self.action >= ZoneConfig.RESORT and os.path.isfile(
+                                        self.get_zone_input_filename()):
             self.sort()
             self.nsecify()
             self.sign()
