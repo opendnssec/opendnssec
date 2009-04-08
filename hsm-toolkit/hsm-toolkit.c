@@ -32,9 +32,9 @@
 #include <unistd.h>
 #include <uuid/uuid.h>
 #include <dlfcn.h>
-
 #include <cryptoki.h>
 #include <pktools.h>
+#include "config.h"
 
 const  CK_BBOOL             ctrue  = CK_TRUE;
 const  CK_BBOOL             cfalse = CK_FALSE;
@@ -48,7 +48,7 @@ void RemoveObject(CK_SESSION_HANDLE session, uuid_t uuid)
     CK_OBJECT_HANDLE object;
     char             uuid_str[37];
 
-    uuid_unparse_lower(uuid,uuid_str);
+    uuid_unparse(uuid,uuid_str);
 
     if (!IDExists(session,uuid)) {
 		fprintf (stderr,"Object with id:%s does not exist.\n", uuid_str);
@@ -121,7 +121,7 @@ void GenerateObject(CK_SESSION_HANDLE session, CK_ULONG keysize)
 	}
     do uuid_generate(uuid); while (IDExists(session,uuid));
 
-    uuid_unparse_lower(uuid, uuid_str);
+    uuid_unparse(uuid, uuid_str);
 
     /* A template to generate an RSA public key objects*/
     AddAttribute(pub_temp  ,CKA_LABEL,(CK_UTF8CHAR*) uuid_str, strlen (uuid_str));
@@ -195,7 +195,12 @@ main (int argc, char *argv[])
     if (!slot_specified) slot = GetSlot();
     check_rv("C_OpenSession",sym->C_OpenSession (slot, CKF_RW_SESSION + CKF_SERIAL_SESSION, 0, 0, &ses));
 
-    if (!pin) pin = (CK_UTF8CHAR *) getpass ("Enter Pin: ");
+    if (!pin) pin = (CK_UTF8CHAR *) 
+#ifdef HAVE_GETPASSPHRASE 
+		getpassphrase("Enter Pin:"); 
+#else 
+	getpass("Enter Pin:");
+#endif
     check_rv("C_Login", sym->C_Login(ses, CKU_USER, pin, strlen ((char*)pin)));
     memset(pin, 0, strlen((char *)pin));
     switch (Action) {
