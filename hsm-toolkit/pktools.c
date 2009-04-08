@@ -1,5 +1,5 @@
 /*
- * $Id: hsm-toolkit.c 318 2009-03-30 13:00:01Z roy $
+ * $Id$
  *
  * Copyright (c) 2009 Nominet UK.
  * All rights reserved.
