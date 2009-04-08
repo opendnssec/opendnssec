@@ -322,3 +322,67 @@ int KsmPolicyParameter(DB_RESULT result, KSM_POLICY_PARAMETER* data)
 
     return status;
 }
+
+/*+
+ * KsmPolicyReadFromId - Read Policy given just the id
+ *
+ * Description:
+ *      Read policy from database in to a struct.
+ *
+ * Arguments:
+ *      struct policy_t policy
+ *      	struct to hold policy information should have id populated
+-*/
+
+int KsmPolicyReadFromId(KSM_POLICY* policy)
+{
+    int status = KsmPolicyNameFromId(policy);
+
+    if (status != 0)
+    {
+        return status;
+    }
+
+    return KsmPolicyRead(policy);
+
+}
+
+int KsmPolicyNameFromId(KSM_POLICY* policy)
+{
+    int     where = 0;          /* WHERE clause value */
+    char*   sql = NULL;         /* SQL query */
+    DB_RESULT       result;     /* Handle converted to a result object */
+    DB_ROW      row;            /* Row data */
+    int     status = 0;         /* Status return */
+
+    /* Construct the query */
+
+    sql = DqsSpecifyInit("policies","id, name");
+    DqsConditionInt(&sql, "ID", DQS_COMPARE_EQ, policy->id, where++);
+    DqsOrderBy(&sql, "id");
+
+    /* Execute query and free up the query string */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    /* Get the next row from the data */
+    status = DbFetchRow(result, &row);
+    if (status == 0) {
+        DbStringBuffer(row, DB_POLICY_NAME, policy->name, KSM_NAME_LENGTH*sizeof(char));
+    }
+    else if (status == -1) {}
+        /* No rows to return (but no error) */
+	else {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+	}
+
+    DbFreeRow(row);
+    DbFreeResult(result);
+    return status;
+}

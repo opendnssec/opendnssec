@@ -56,9 +56,14 @@ int KsmParameterKskLifetime(KSM_PARCOLL* collection)
     return collection->ksklife;
 }
 
-int KsmParameterEmergencyKeys(KSM_PARCOLL* collection)
+int KsmParameterEmergencyKSKeys(KSM_PARCOLL* collection)
 {
-    return collection->nemkeys;
+    return collection->nemkskeys;
+}
+
+int KsmParameterEmergencyZSKeys(KSM_PARCOLL* collection)
+{
+    return collection->nemzskeys;
 }
 
 int KsmParameterPropagationDelay(KSM_PARCOLL* collection)

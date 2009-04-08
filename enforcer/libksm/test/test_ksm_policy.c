@@ -79,6 +79,44 @@ static void TestKsmPolicyRead(void)
 	free(policy);
 }
 
+static void TestKsmPolicyReadId(void)
+{
+	int			status;		/* Status return */
+	KSM_POLICY*     	policy;
+	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+	policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+	policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+
+
+	policy->id = 2;
+
+	/* Call KsmPolicyReadFromId */
+
+	status = KsmPolicyReadFromId(policy);
+
+	CU_ASSERT_EQUAL(status, 0);
+
+	/* Call KsmPolicyRead again */
+
+	status = KsmPolicyReadFromId(policy);
+
+	CU_ASSERT_EQUAL(status, 0);
+
+	free(policy->name);
+	free(policy->enforcer);
+	free(policy->denial);
+	free(policy->zsk);
+	free(policy->ksk);
+	free(policy->signature);
+	free(policy->signer);
+	free(policy);
+}
+
 static void TestKsmPolicy2(void)
 {
 	DB_RESULT result;
@@ -144,6 +182,7 @@ int TestKsmPolicy(void)
 {
     struct test_testdef tests[] = {
         {"KsmPolicy", TestKsmPolicyRead},
+        {"KsmPolicyFromId", TestKsmPolicyReadId},
         {"KsmPolicy2", TestKsmPolicy2},
         {NULL,                      NULL}
     };

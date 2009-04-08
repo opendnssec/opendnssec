@@ -323,7 +323,10 @@ int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
     status = KsmParameterValue(KSM_PAR_KSKLIFE_STRING, KSM_PAR_KSKLIFE_CAT, &(data->ksklife), policy_id, &param_id);
     if (status > 0) return status;
 
-    status = KsmParameterValue(KSM_PAR_NEMKEYS_STRING, KSM_PAR_NEMKEYS_CAT, &(data->nemkeys), policy_id, &param_id);
+    status = KsmParameterValue(KSM_PAR_NEMKSKEYS_STRING, KSM_PAR_NEMKSKEYS_CAT, &(data->nemkskeys), policy_id, &param_id);
+    if (status > 0) return status;
+
+    status = KsmParameterValue(KSM_PAR_NEMZSKEYS_STRING, KSM_PAR_NEMZSKEYS_CAT, &(data->nemzskeys), policy_id, &param_id);
     if (status > 0) return status;
 
     status = KsmParameterValue(KSM_PAR_PROPDELAY_STRING, KSM_PAR_PROPDELAY_CAT, &(data->propdelay), policy_id, &param_id);

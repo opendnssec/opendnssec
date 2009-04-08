@@ -810,7 +810,10 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
      * keys at any one time.
      */
 
-    reqkeys = 1 + KsmParameterEmergencyKeys(collection);
+    if (keytype == KSM_TYPE_KSK)
+        reqkeys = 1 + KsmParameterEmergencyKSKeys(collection);
+    else if (keytype == KSM_TYPE_ZSK)
+        reqkeys = 1 + KsmParameterEmergencyZSKeys(collection);
 
     /*
      * So, if we remove "pendret" keys from the number of "available"

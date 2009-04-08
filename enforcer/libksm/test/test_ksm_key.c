@@ -234,6 +234,35 @@ static void TestKsmKeyModify(void)
 
 }
 
+/*+
+ * TestKsmKeyPredict - Test Key Predict code
+ *
+ * Description:
+ *      Tests that key numbers can be predicted
+-*/
+
+static void TestKsmKeyPredict(void)
+{
+    int policy_id = 2;
+    int keytype = KSM_TYPE_KSK;
+    int interval = 86400*4; /* 4 days; lifetime == 1day */
+    int count;
+    int status;
+
+    status =  ksmKeyPredict(policy_id, keytype, interval, &count);
+
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(count, 7); /* 4 rollovers, 2 emergency plus one already in use */
+    printf("key1: %d\n", count);
+
+    keytype = KSM_TYPE_ZSK;
+    status =  ksmKeyPredict(policy_id, keytype, interval, &count);
+
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(count, 7);
+    printf("key2: %d\n", count);
+}
+
 /*
  * TestKsmKey - Create Test Suite
  *
@@ -256,6 +285,7 @@ int TestKsmKey(void)
         {"KsmKeyPairCreate", TestKsmKeyPairCreate},
         {"KsmDnssecKeyCreate", TestKsmDnssecKeyCreate},
         {"KsmKeyModify", TestKsmKeyModify},
+        {"KsmKeyPredict", TestKsmKeyPredict},
         {NULL,                      NULL}
     };
 

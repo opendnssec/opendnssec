@@ -204,6 +204,8 @@ int KsmPolicyParametersInit(DB_RESULT* handle, const char* name);
 int KsmPolicyRead(KSM_POLICY* policy);
 int KsmPolicy(DB_RESULT handle, KSM_POLICY* data);
 int KsmPolicyParameter(DB_RESULT handle, KSM_POLICY_PARAMETER* data);
+int KsmPolicyReadFromId(KSM_POLICY* policy);
+int KsmPolicyNameFromId(KSM_POLICY* policy);
 
 /* ksmZone */
 typedef struct {
@@ -294,9 +296,12 @@ void KsmPurge(void);
 #define KSM_PAR_PROPDELAY               3600        /* 1 hour */
 #define KSM_PAR_PROPDELAY_STRING        "propagationdelay"
 #define KSM_PAR_PROPDELAY_CAT           "parent"
-#define KSM_PAR_NEMKEYS                 1
-#define KSM_PAR_NEMKEYS_STRING          "emergency"
-#define KSM_PAR_NEMKEYS_CAT             "ksk"
+#define KSM_PAR_NEMKSKEYS               1
+#define KSM_PAR_NEMKSKEYS_STRING        "emergency"
+#define KSM_PAR_NEMKSKEYS_CAT           "ksk"
+#define KSM_PAR_NEMZSKEYS               1
+#define KSM_PAR_NEMZSKEYS_STRING        "emergency"
+#define KSM_PAR_NEMZSKEYS_CAT           "ksk"
 #define KSM_PAR_SIGNINT                 7200        /* 2 hours */
 #define KSM_PAR_SIGNINT_STRING          "resign"
 #define KSM_PAR_SIGNINT_CAT             "signature"
@@ -325,7 +330,8 @@ void KsmPurge(void);
 typedef struct {            /* Holds collection of parameters */
     int     clockskew;      /* Clock skew */
     int     ksklife;        /* Lifetime of a KSK */
-    int     nemkeys;        /* Number of emergency keys */
+    int     nemkskeys;      /* Number of emergency Key Signing keys */
+    int     nemzskeys;      /* Number of emergency Zone signing keys */
     int     propdelay;      /* Propagation delay */
     int     signint;        /* Signing interval - how long signing the zone takes */
     int     soamin;         /* "Minimum" value from SOA record */
@@ -339,7 +345,8 @@ typedef struct {            /* Holds collection of parameters */
 
 int KsmParameterClockskew(KSM_PARCOLL* collection);
 int KsmParameterKskLifetime(KSM_PARCOLL* collection);
-int KsmParameterEmergencyKeys(KSM_PARCOLL* collection);
+int KsmParameterEmergencyKSKeys(KSM_PARCOLL* collection);
+int KsmParameterEmergencyZSKeys(KSM_PARCOLL* collection);
 int KsmParameterPropagationDelay(KSM_PARCOLL* collection);
 int KsmParameterSigningInterval(KSM_PARCOLL* collection);
 int KsmParameterSoaMin(KSM_PARCOLL* collection);

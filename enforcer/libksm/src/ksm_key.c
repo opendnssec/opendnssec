@@ -597,3 +597,72 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
 
     return status;
 }
+
+/*+
+ * KsmKeyPredict - predict how many keys are needed
+ *
+ * Description:
+ *      Given a policy and a keytype work out how many keys will be required
+ *      during the timeinterval specified (in seconds).
+ *
+ *      We assume no emergency rollover and that a key has just been published
+ *
+ *      Dt	= interval
+ *      Sp	= safety margin
+ *      Lk	= lifetime of the key (either KSK or ZSK)
+ *      Ek  = no of emergency keys
+ *
+ *      no of keys = ( (Dt + Sp)/Lk ) + Ek
+ *      
+ *      (rounded up)
+ *
+ * Arguments:
+ *      int policy_id
+ *          The policy in question
+ *      KSM_TYPE key_type
+ *          KSK or ZSK
+ *      int interval
+ *          timespan (in seconds)
+ *      int *count
+ *          (OUT) the number of keys (-1 on error)
+ *
+ * Returns:
+ *      int
+ *          Status return.  One of:
+ *
+ *              0       Success
+ *              Other   Error
+-*/
+
+int ksmKeyPredict(int policy_id, int keytype, int interval, int *count)
+{
+    int			    status = 0;		/* Status return */
+	KSM_PARCOLL     coll; /* Parameters collection */
+
+    /* Check that we have a valid key type */
+
+    if ((keytype != KSM_TYPE_KSK) && (keytype != KSM_TYPE_ZSK)) {
+		status = MsgLog(KME_UNKEYTYPE, keytype);
+		return status;
+	}
+
+    /* Get list of parameters */
+
+    status = KsmParameterCollection(&coll, policy_id);
+    if (status != 0) {
+        *count = -1;
+        return status;
+    }
+
+    /* We should have the policy now */
+    if (keytype == KSM_TYPE_KSK)
+    {
+        *count = ((interval + coll.pub_safety)/coll.ksklife) + coll.nemkskeys + 1;
+    }
+    else if (keytype == KSM_TYPE_ZSK)
+    {
+        *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.nemzskeys + 1;
+    }
+
+    return status;
+}
