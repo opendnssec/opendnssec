@@ -14,6 +14,8 @@ AC_PROG_CC
 # FIXME: Replace `main' with a function in `-ldl':
 AC_CHECK_LIB([dl], [main])
 
+AC_CHECK_LIB([uuid], [uuid_generate])
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
