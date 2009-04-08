@@ -366,6 +366,9 @@ def main():
         engine.run()
     except EngineConfigurationException, ece:
         print ece
+    except IOError, ioe:
+        print "Error, engine configuration could not be read;"
+        print str(ioe)
     except KeyboardInterrupt:
         engine.stop_workers()
 
