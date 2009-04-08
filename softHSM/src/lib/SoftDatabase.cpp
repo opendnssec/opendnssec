@@ -85,14 +85,11 @@ CK_RV SoftDatabase::init(char *dbPath) {
 // Return the label of the token
 
 char* SoftDatabase::getTokenLabel() {
-  // Get all the objects
   string sqlSelect = "SELECT value FROM Token where variableID = 0;";
   sqlite3_stmt *select_sql;
   int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
 
-  char *retLabel = (char*)malloc(33);
-  memset(retLabel, ' ', 32);
-  retLabel[32] = '\0';
+  char *retLabel = NULL_PTR;
 
   // Error?
   if(result != 0) {
@@ -103,12 +100,10 @@ char* SoftDatabase::getTokenLabel() {
 
   if(sqlite3_step(select_sql) == SQLITE_ROW) {
     const char *tokenLabel = (const char*)sqlite3_column_text(select_sql, 0);
+    int labelSize = sizeof(CK_TOKEN_INFO().label);
 
-    int counter = 0;
-    while(tokenLabel[counter] != '\0' && counter < 32) {
-      retLabel[counter] = tokenLabel[counter];
-      counter++;
-    }
+    retLabel = (char*)malloc(labelSize + 1);
+    sprintf(retLabel, "%-*.*s", labelSize, labelSize, tokenLabel);
   }
 
   sqlite3_finalize(select_sql);
@@ -119,7 +114,6 @@ char* SoftDatabase::getTokenLabel() {
 // Return the hashed SO PIN
 
 char* SoftDatabase::getSOPIN() {
-  // Get all the objects
   string sqlSelect = "SELECT value FROM Token where variableID = 1;";
   sqlite3_stmt *select_sql;
   int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
@@ -135,11 +129,7 @@ char* SoftDatabase::getSOPIN() {
 
 
   if(sqlite3_step(select_sql) == SQLITE_ROW) {
-    const char *hashedSOPIN = (const char*)sqlite3_column_text(select_sql, 0);
-    int length = strlen(hashedSOPIN);
-    soPIN = (char *)malloc(length + 1);
-    soPIN[length] = '\0';
-    memcpy(soPIN, hashedSOPIN, length);
+    soPIN = strdup((const char*)sqlite3_column_text(select_sql, 0));
   }
 
   sqlite3_finalize(select_sql);
@@ -150,7 +140,6 @@ char* SoftDatabase::getSOPIN() {
 // Return the hashed user PIN
 
 char* SoftDatabase::getUserPIN() {
-  // Get all the objects
   string sqlSelect = "SELECT value FROM Token where variableID = 2;";
   sqlite3_stmt *select_sql;
   int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
@@ -166,11 +155,7 @@ char* SoftDatabase::getUserPIN() {
 
 
   if(sqlite3_step(select_sql) == SQLITE_ROW) {
-    const char *hashedUserPIN = (const char*)sqlite3_column_text(select_sql, 0);
-    int length = strlen(hashedUserPIN);
-    userPIN = (char *)malloc(length + 1);
-    userPIN[length] = '\0';
-    memcpy(userPIN, hashedUserPIN, length);
+    userPIN = strdup((const char*)sqlite3_column_text(select_sql, 0));
   }
 
   sqlite3_finalize(select_sql);
