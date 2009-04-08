@@ -160,16 +160,18 @@ main (int argc, char *argv[])
     uuid_t uuid;
     int Action  = 0;
     int opt;
+    unsigned int nkeys = 1;
     char *pklib = 0;
-    while ((opt = getopt (argc, argv, "GDb:l:p:s:h")) != -1) {
+    while ((opt = getopt (argc, argv, "GDb:l:n:p:s:h")) != -1) {
         switch (opt) {
             case 'G': Action = 1; break;
             case 'D': Action = 2; break;
             case 'b': keysize = atoi (optarg); break;
             case 'l': pklib = optarg; break;
+            case 'n': nkeys = atoi (optarg); break;
             case 'p': pin = (CK_UTF8CHAR*)optarg; break;
             case 's': slot = atoi (optarg); slot_specified=ctrue;break;
-            case 'h': fprintf(stderr, "usage: hsm-toolkit -l pkcs11-library [-s slot] [-p pin] [-G [-b keysize]] [-D UUID-string]\n");
+            case 'h': fprintf(stderr, "usage: hsm-toolkit -l pkcs11-library [-s slot] [-p pin] [-n number-of-keys] [-G [-b keysize]] [-D UUID-string]\n");
 					  exit(2);		
 		}
    	}
@@ -204,7 +206,7 @@ main (int argc, char *argv[])
     check_rv("C_Login", sym->C_Login(ses, CKU_USER, pin, strlen ((char*)pin)));
     memset(pin, 0, strlen((char *)pin));
     switch (Action) {
-        case 1: GenerateObject(ses,keysize); break;
+	case 1: while(nkeys>0 && nkeys--) GenerateObject(ses,keysize); break;
         case 2: if (uuid_parse(argv[optind],uuid)) {
 					fprintf (stderr, "argument %s is not a valid UUID string\n", argv[optind]);
 					exit(1);
