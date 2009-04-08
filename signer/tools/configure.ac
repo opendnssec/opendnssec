@@ -145,5 +145,8 @@ AC_CHECK_FUNC(dlopen,
 	])
 ])
 
+AM_INIT_AUTOMAKE
+
 AC_CONFIG_HEADERS([config.h])
+AC_PROG_INSTALL
 AC_OUTPUT(Makefile)

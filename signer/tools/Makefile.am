@@ -1,11 +1,17 @@
 srcdir=@srcdir@
+bindir = @bindir@
+
 CC=@CC@
 CFLAGS=@CFLAGS@ -Wall -Werror -I${srcdir}
 LDFLAGS=@LDFLAGS@ @LIBS@
 PKCS11_MODULE=@PKCS11_MODULE@
 OBJECTS=ldns_pkcs11.o util.o
+prefix=@prefix@
+INSTALL = $(srcdir)/install-sh 
 
-all: sorter get_serial nseccer nsec3er signer_pkcs11 create_dnskey_pkcs11 finalizer
+TOOLS=sorter get_serial nseccer nsec3er signer_pkcs11 create_dnskey_pkcs11 finalizer
+
+all: ${TOOLS}
 
 sorter: ${OBJECTS} ${srcdir}/src/sorter.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${OBJECTS} ${srcdir}/src/sorter.c
@@ -40,3 +46,8 @@ clean:
 realclean: clean
 	rm -rf Makefile configure config.h config.log config.status autom4te.cache
 
+install: all
+	$(INSTALL) -d -m 755 $(DESTDIR)$(bindir)
+	for i in $(TOOLS); do \
+		$(INSTALL) -c -m 755 $(srcdir)/$$i $(DESTDIR)$(bindir)/$$i ; \
+	done
