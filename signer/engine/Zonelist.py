@@ -122,9 +122,10 @@ class Zonelist:
             else:
                 if not self.entries[key].\
                     is_same(new_zonelist.entries[key]):
+                    self.entries[key] = new_zonelist.entries[key]
                     updated.append(key)
                 del new_zonelist.entries[key]
         for key in new_zonelist.entries.keys():
             added.append(key)
-            self.zonelist.entries[key] = new_zonelist.entries[key]
+            self.entries[key] = new_zonelist.entries[key]
         return (removed, added, updated)

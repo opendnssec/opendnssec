@@ -262,6 +262,8 @@ class Engine:
         """Update the configuration for an existing Zone"""
         zone = self.zones[zone_name]
         zone.lock()
+        zone.config_file = self.zonelist.entries[zone_name].\
+                                configuration_file
         old_config = zone.zone_config
         try:
             zone.read_config()
