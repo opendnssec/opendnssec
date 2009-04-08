@@ -11,9 +11,7 @@ AC_CONFIG_HEADER([config.h])
 AC_PROG_CC
 
 # Checks for libraries.
-# FIXME: Replace `main' with a function in `-ldl':
-AC_CHECK_LIB([dl], [main])
-
+AC_CHECK_LIB([dl], [dlopen])
 AC_CHECK_LIB([uuid], [uuid_generate])
 
 # Checks for header files.
