@@ -6,12 +6,15 @@ There is an example config file in <repos>/signer_engine/engine.conf
 
 import re
 import Util
+from xml.dom import minidom
+from xml.parsers.expat import ExpatError
+from Ft.Xml.XPath import Evaluate
 
 COMMENT_LINE = re.compile("\s*([#;].*)?$")
 PKCS_LINE = re.compile(\
  "pkcs11_token: (?P<name>\w+)\s+(?P<module_path>\S+)\s*(?P<pin>\d+)?\s*$")
 
-class EngineConfigurationException(Exception):
+class EngineConfigurationError(Exception):
     """This exception is thrown when the engine configuration file
     cannot be parsed, or contains another error."""
     pass
@@ -24,41 +27,45 @@ class EngineConfiguration:
     """Engine Configuration options"""
     def __init__(self, config_file_name=None):
         self.tokens = []
-        self.zone_input_dir = None
+        self.zonelist_file = None
         self.zone_tmp_dir = None
-        self.zone_output_dir = None
-        self.zone_config_dir = None
         self.tools_dir = None
         if config_file_name:
             self.read_config_file(config_file_name)
         
-    def read_config_file(self, config_file_name):
+    def read_config_file(self, input_file):
         """Read a configuration file"""
-        config_file = open(config_file_name, "r")
-        for line in config_file:
-            if not COMMENT_LINE.match(line):
-                pkcs_line = PKCS_LINE.match(line)
-                if pkcs_line:
-                    token = {}
-                    token["name"] = pkcs_line.group("name")
-                    token["module_path"] = \
-                        pkcs_line.group("module_path")
-                    if pkcs_line.group("pin"):
-                        token["pin"] = pkcs_line.group("pin")
-                    else:
-                        token["pin"] = Util.query_pin(token)
-                    self.tokens.append(token)
-                elif line[:15] == "zone_input_dir:":
-                    self.zone_input_dir = line[15:].strip()
-                elif line[:16] == "zone_output_dir:":
-                    self.zone_output_dir = line[16:].strip()
-                elif line[:16] == "zone_config_dir:":
-                    self.zone_config_dir = line[16:].strip()
-                elif line[:13] == "zone_tmp_dir:":
-                    self.zone_tmp_dir = line[13:].strip()
-                elif line[:10] == "tools_dir:":
-                    # this one should not be necessary later
-                    self.tools_dir = line[10:].strip()
-                else:
-                    raise EngineConfigurationException(
-                            "Error parsing configuration line: " + line)
+        try:
+            conff = open(input_file, "r")
+            xstr = conff.read()
+            conff.close()
+            xmlb = minidom.parseString(xstr)
+            self.from_xml(xmlb)
+            xmlb.unlink()
+        except ExpatError, exe:
+            raise EngineConfigurationError(str(exe))
+        except IOError, ioe:
+            raise EngineConfigurationError(str(ioe))
+
+    def from_xml(self, xml_blob):
+        """Searches the xml blob for the configuration values"""
+        xmlbs = Evaluate("OpenDNSSEC/HSM/Repository", xml_blob)
+        for xmlb in xmlbs:
+            token = {}
+            token["name"] = Util.get_xml_data("Name", xmlb)
+            token["module_path"] = Util.get_xml_data("Module", xmlb)
+            token["pin"] = Util.get_xml_data("PIN", xmlb, True)
+            if not token["pin"]:
+                token["pin"] = Util.query_pin(token)
+            self.tokens.append(token)
+
+        self.zonelist_file = \
+             Util.get_xml_data("OpenDNSSEC/Signer/ZoneListFile",
+                               xml_blob, True)
+        self.zone_tmp_dir = \
+             Util.get_xml_data("OpenDNSSEC/Signer/WorkingDirectory",
+                               xml_blob, True)
+        self.tools_dir = \
+             Util.get_xml_data("OpenDNSSEC/Signer/ToolsDirectory",
+                               xml_blob, True)
+        # TODO: defaults! (for which we need some ./configure etc)

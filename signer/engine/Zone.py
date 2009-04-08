@@ -16,7 +16,7 @@ import Util
 
 class Zone:
     """Zone representation, with all information needed to sign them"""
-    def __init__(self, _zone_name, config_file, engine_config):
+    def __init__(self, _zone_name, zonelist_entry, engine_config):
         self.zone_name = _zone_name
         self.engine_config = engine_config
         self.locked = False
@@ -33,7 +33,7 @@ class Zone:
         # keep track of when we last performed sign()
         self.last_signed = None
 
-        self.config_file = config_file
+        self.zonelist_entry = zonelist_entry
 
         # this should be set with the result from ZoneConfig.compare()
         self.action = ZoneConfig.NO_CHANGE
@@ -52,17 +52,15 @@ class Zone:
 
     def get_zone_input_filename(self):
         """Returns the file name of the source zone file"""
-        return self.engine_config.zone_input_dir + os.sep \
-            + self.zone_name
+        return self.zonelist_entry.input_adapter_data
         
     def get_zone_output_filename(self):
         """Returns the file name of the final signed output file"""
-        return self.engine_config.zone_output_dir + os.sep \
-            + self.zone_name
+        return self.zonelist_entry.output_adapter_data
         
     def get_zone_config_filename(self):
         """Returns the file name of the zone configuration xml file"""
-        return self.config_file
+        return self.zonelist_entry.configuration_file
 
     def get_zone_tmp_filename(self, ext=""):
         """Returns the file name of the temporary zone file"""

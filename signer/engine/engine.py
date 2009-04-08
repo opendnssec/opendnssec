@@ -14,7 +14,6 @@ The engine opens a command channel to receive notifications
 # - command channel expansion and cleanup
 # - notification of a server to re-read zones (as a schedulable task?)
 
-import os
 import getopt
 import sys
 import socket
@@ -26,7 +25,7 @@ import syslog
 
 import Zone
 from ZoneConfig import ZoneConfig, ZoneConfigError
-from EngineConfig import EngineConfiguration, EngineConfigurationException
+from EngineConfig import EngineConfiguration, EngineConfigurationError
 from Worker import Worker, TaskQueue, Task
 from Zonelist import Zonelist, ZonelistError
 
@@ -48,7 +47,7 @@ class Engine:
     def get_zonelist_filename(self):
         """Returns the absolute pathname to the file containing the
         zone list xml data"""
-        return self.config.zone_input_dir + os.sep + "zonelist.xml"
+        return self.config.zonelist_file
         
     def add_worker(self, name):
         """Add a worker to the engine"""
@@ -228,7 +227,7 @@ class Engine:
     def add_zone(self, zone_name):
         """Add a new zone to the engine, and schedule it for signing"""
         self.zones[zone_name] = Zone.Zone(zone_name,
-                    self.zonelist.entries[zone_name].configuration_file,
+                    self.zonelist.entries[zone_name],
                     self.config)
         
         self.update_zone(zone_name)
@@ -262,8 +261,7 @@ class Engine:
         """Update the configuration for an existing Zone"""
         zone = self.zones[zone_name]
         zone.lock()
-        zone.config_file = self.zonelist.entries[zone_name].\
-                                configuration_file
+        zone.zonelist_entry = self.zonelist.entries[zone_name]
         old_config = zone.zone_config
         try:
             zone.read_config()
@@ -369,7 +367,7 @@ def main():
         print engine.read_zonelist()
         print "output redirected to syslog"
         engine.run()
-    except EngineConfigurationException, ece:
+    except EngineConfigurationError, ece:
         print ece
     except IOError, ioe:
         print "Error, engine configuration could not be read;"
