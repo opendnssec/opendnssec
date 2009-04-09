@@ -73,6 +73,13 @@ class SoftDatabase {
 
   private:
     sqlite3 *db;
+
+    // Prepared statements
+    sqlite3_stmt *token_info_sql;
+    sqlite3_stmt *select_attri_id_sql;
+    sqlite3_stmt *update_attribute_sql;
+    sqlite3_stmt *insert_attribute_sql;
+    sqlite3_stmt *update_object_key_sql;
 };
 
 #endif /* SOFTHSM_SOFTDATABASE_H */

@@ -44,9 +44,34 @@ using std::string;
 
 SoftDatabase::SoftDatabase() {
   db = NULL_PTR;
+  token_info_sql = NULL;
+  select_attri_id_sql = NULL;
+  update_attribute_sql = NULL;
+  insert_attribute_sql = NULL;
+  update_object_key_sql = NULL;
 }
 
 SoftDatabase::~SoftDatabase() {
+  if(token_info_sql != NULL) {
+    sqlite3_finalize(token_info_sql);
+  }
+
+  if(select_attri_id_sql != NULL) {
+    sqlite3_finalize(select_attri_id_sql);
+  }
+
+  if(update_attribute_sql != NULL) {
+    sqlite3_finalize(update_attribute_sql);
+  }
+
+  if(insert_attribute_sql != NULL) {
+    sqlite3_finalize(insert_attribute_sql);
+  }
+
+  if(update_object_key_sql != NULL) {
+    sqlite3_finalize(update_object_key_sql);
+  }
+
   sqlite3_close(db);
 }
 
@@ -79,34 +104,60 @@ CK_RV SoftDatabase::init(char *dbPath) {
     return CKR_TOKEN_NOT_PRESENT;
   }
 
+  // Create prepared statements
+
+  const char token_info_str[] = "SELECT value FROM Token where variableID = ?;";
+  result = sqlite3_prepare_v2(db, token_info_str, -1, &token_info_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  const char select_attri_id_str[] = "SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
+  result = sqlite3_prepare_v2(db, select_attri_id_str, -1, &select_attri_id_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  const char update_attribute_str[] = "UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
+  result = sqlite3_prepare_v2(db, update_attribute_str, -1, &update_attribute_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  const char insert_attribute_str[] = "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
+  result = sqlite3_prepare_v2(db, insert_attribute_str, -1, &insert_attribute_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  const char update_object_key_str[] = "UPDATE Objects SET encodedKey = ? WHERE objectID = ?;";
+  result = sqlite3_prepare_v2(db, update_object_key_str, -1, &update_object_key_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
   return CKR_OK;
 }
 
 // Return the label of the token
 
 char* SoftDatabase::getTokenLabel() {
-  string sqlSelect = "SELECT value FROM Token where variableID = 0;";
-  sqlite3_stmt *select_sql;
-  int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
-
   char *retLabel = NULL_PTR;
 
-  // Error?
-  if(result != 0) {
-    sqlite3_finalize(select_sql);
+  sqlite3_reset(token_info_sql);
+  sqlite3_bind_int(token_info_sql, 1, 0);
 
-    return retLabel;
-  }
-
-  if(sqlite3_step(select_sql) == SQLITE_ROW) {
-    const char *tokenLabel = (const char*)sqlite3_column_text(select_sql, 0);
+  if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
+    const char *tokenLabel = (const char*)sqlite3_column_text(token_info_sql, 0);
     int labelSize = sizeof(CK_TOKEN_INFO().label);
 
     retLabel = (char*)malloc(labelSize + 1);
+    if(retLabel == NULL_PTR) {
+      return NULL_PTR;
+    }
+
     sprintf(retLabel, "%-*.*s", labelSize, labelSize, tokenLabel);
   }
-
-  sqlite3_finalize(select_sql);
 
   return retLabel;
 }
@@ -114,25 +165,14 @@ char* SoftDatabase::getTokenLabel() {
 // Return the hashed SO PIN
 
 char* SoftDatabase::getSOPIN() {
-  string sqlSelect = "SELECT value FROM Token where variableID = 1;";
-  sqlite3_stmt *select_sql;
-  int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
-
   char *soPIN = NULL_PTR;
 
-  // Error?
-  if(result != 0) {
-    sqlite3_finalize(select_sql);
+  sqlite3_reset(token_info_sql);
+  sqlite3_bind_int(token_info_sql, 1, 1);
 
-    return soPIN;
+  if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
+    soPIN = strdup((const char*)sqlite3_column_text(token_info_sql, 0));
   }
-
-
-  if(sqlite3_step(select_sql) == SQLITE_ROW) {
-    soPIN = strdup((const char*)sqlite3_column_text(select_sql, 0));
-  }
-
-  sqlite3_finalize(select_sql);
 
   return soPIN;
 }
@@ -140,25 +180,14 @@ char* SoftDatabase::getSOPIN() {
 // Return the hashed user PIN
 
 char* SoftDatabase::getUserPIN() {
-  string sqlSelect = "SELECT value FROM Token where variableID = 2;";
-  sqlite3_stmt *select_sql;
-  int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
-
   char *userPIN = NULL_PTR;
 
-  // Error?
-  if(result != 0) {
-    sqlite3_finalize(select_sql);
+  sqlite3_reset(token_info_sql);
+  sqlite3_bind_int(token_info_sql, 1, 2);
 
-    return userPIN;
+  if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
+    userPIN = strdup((const char*)sqlite3_column_text(token_info_sql, 0));
   }
-
-
-  if(sqlite3_step(select_sql) == SQLITE_ROW) {
-    userPIN = strdup((const char*)sqlite3_column_text(select_sql, 0));
-  }
-
-  sqlite3_finalize(select_sql);
 
   return userPIN;
 }
@@ -362,17 +391,16 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
     }
   }
 
+  sqlite3_reset(update_object_key_sql);
   if(isPrivate == CK_TRUE && isToken == CK_TRUE) {
-    stringstream sqlUpdateObj;
-
-    sqlUpdateObj << "UPDATE Objects SET encodedKey = '" << PKCS8::PEM_encode(*rsaKey, *rng, pin) << "' WHERE objectID = " << objectID << ";";
-    sqlite3_exec(db, sqlUpdateObj.str().c_str(), NULL, NULL, NULL);
+    string pemKey = PKCS8::PEM_encode(*rsaKey, *rng, pin);
+    sqlite3_bind_text(update_object_key_sql, 1, pemKey.c_str(), -1, SQLITE_TRANSIENT);
   } else {
-    stringstream sqlUpdateObj;
-
-    sqlUpdateObj << "UPDATE Objects SET encodedKey = '" << PKCS8::PEM_encode(*rsaKey)  << "' WHERE objectID = " << objectID << ";";
-    sqlite3_exec(db, sqlUpdateObj.str().c_str(), NULL, NULL, NULL);
+    string pemKey = PKCS8::PEM_encode(*rsaKey);
+    sqlite3_bind_text(update_object_key_sql, 1, pemKey.c_str(), -1, SQLITE_TRANSIENT);
   }
+  sqlite3_bind_int(update_object_key_sql, 2, objectID);
+  sqlite3_step(update_object_key_sql);
 
   return objectID;
 }
@@ -381,66 +409,30 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
 // Only update if the attribute exists.
 
 void SoftDatabase::saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
-  string sqlFind = "SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
-
-  sqlite3_stmt *find_sql;
-  int result = sqlite3_prepare_v2(db, sqlFind.c_str(), sqlFind.size(), &find_sql, NULL);
-
-  if(result) {
-    sqlite3_finalize(find_sql);
-
-    return;
-  }
-
-  sqlite3_bind_int(find_sql, 1, objectID);
-  sqlite3_bind_int(find_sql, 2, type);
+  sqlite3_reset(token_info_sql);
+  sqlite3_bind_int(token_info_sql, 1, objectID);
+  sqlite3_bind_int(token_info_sql, 2, type);
 
   // The object have this attribute
-  if(sqlite3_step(find_sql) == SQLITE_ROW) {
-    int attributeID = sqlite3_column_int(find_sql, 0);
+  if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
+    int attributeID = sqlite3_column_int(token_info_sql, 0);
 
-    string sqlUpdate = "UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
+    sqlite3_reset(update_attribute_sql);
+    sqlite3_bind_blob(update_attribute_sql, 1, pValue, ulValueLen, SQLITE_TRANSIENT);
+    sqlite3_bind_int(update_attribute_sql, 2, ulValueLen);
+    sqlite3_bind_int(update_attribute_sql, 3, attributeID);
 
-    sqlite3_stmt *update_sql;
-    result = sqlite3_prepare_v2(db, sqlUpdate.c_str(), sqlUpdate.size(), &update_sql, NULL);
-
-    if(result) {
-      sqlite3_finalize(find_sql);
-      sqlite3_finalize(update_sql);
-
-      return;
-    }
-
-    sqlite3_bind_blob(update_sql, 1, pValue, ulValueLen, SQLITE_TRANSIENT);
-    sqlite3_bind_int(update_sql, 2, ulValueLen);
-    sqlite3_bind_int(update_sql, 3, attributeID);
-
-    sqlite3_step(update_sql);
-    sqlite3_finalize(update_sql);
+    sqlite3_step(update_attribute_sql);
   // The object does not have this attribute
   } else {
-    string sqlInsert = "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
+    sqlite3_reset(insert_attribute_sql);
+    sqlite3_bind_int(insert_attribute_sql, 1, objectID);
+    sqlite3_bind_int(insert_attribute_sql, 2, type);
+    sqlite3_bind_blob(insert_attribute_sql, 3, pValue, ulValueLen, SQLITE_TRANSIENT);
+    sqlite3_bind_int(insert_attribute_sql, 4, ulValueLen);
 
-    sqlite3_stmt *insert_sql;
-    result = sqlite3_prepare_v2(db, sqlInsert.c_str(), sqlInsert.size(), &insert_sql, NULL);
-
-    if(result) {
-      sqlite3_finalize(find_sql);
-      sqlite3_finalize(insert_sql);
-
-      return;
-    }
-
-    sqlite3_bind_int(insert_sql, 1, objectID);
-    sqlite3_bind_int(insert_sql, 2, type);
-    sqlite3_bind_blob(insert_sql, 3, pValue, ulValueLen, SQLITE_TRANSIENT);
-    sqlite3_bind_int(insert_sql, 4, ulValueLen);
-
-    sqlite3_step(insert_sql);
-    sqlite3_finalize(insert_sql);
+    sqlite3_step(insert_attribute_sql);
   }
-
-  sqlite3_finalize(find_sql);
 }
 
 // Convert the big integer and save it in the database.
