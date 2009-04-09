@@ -118,7 +118,9 @@ main(int argc, char **argv)
 	/* and finish off the rest */
 	while (line_len >= 0) {
 		line_len = read_line(input_file, line);
-		handle_line(line);
+		if (line_len > 0) {
+			handle_line(line);
+		}
 	}
 
 	if (input_file != stdin) {

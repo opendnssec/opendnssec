@@ -45,6 +45,11 @@ struct current_config_struct {
 	uint32_t soa_ttl;
 	uint32_t soa_serial;
 	uint32_t soa_minimum;
+	
+	/* and let's keep some statistics */
+	unsigned long existing_sigs;
+	unsigned long removed_sigs;
+	unsigned long created_sigs;
 };
 typedef struct current_config_struct current_config;
 
@@ -175,6 +180,9 @@ current_config_new()
 	cfg->soa_ttl = 0;
 	cfg->soa_serial = 0;
 	cfg->soa_minimum = 0;
+	cfg->existing_sigs = 0;
+	cfg->removed_sigs = 0;
+	cfg->created_sigs = 0;
 	return cfg;
 }
 
@@ -536,7 +544,7 @@ enable_keys(current_config *cfg)
 }
 
 void
-disable_key_for(current_config *cfg, ldns_rr *rrsig)
+set_use_key_for(current_config *cfg, ldns_rr *rrsig, int use)
 {
 	size_t i;
 	ldns_key *key;
@@ -545,10 +553,22 @@ disable_key_for(current_config *cfg, ldns_rr *rrsig)
 	for (i = 0; i < ldns_key_list_key_count(cfg->keys); i++) {
 		key = ldns_key_list_key(cfg->keys, i);
 		if (ldns_key_keytag(key) == ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
-			ldns_key_set_use(key, 1);
+			ldns_key_set_use(key, use);
 			return;
 		}
 	}
+}
+
+void
+disable_key_for(current_config *cfg, ldns_rr *rrsig)
+{
+		set_use_key_for(cfg, rrsig, 0);
+}
+
+void
+enable_key_for(current_config *cfg, ldns_rr *rrsig)
+{
+		set_use_key_for(cfg, rrsig, 1);
 }
 
 void
@@ -635,7 +655,10 @@ int main(int argc, char **argv)
 		if (line_len > 0) {
 			if (line[0] == ';') {
 				/* pass comments */
-				fprintf(output, "%s\n", line);
+				/* except stats */
+				if (line_len < 15 || strncmp(line, "; Last refresh stats: ", 15) != 0) {
+					fprintf(output, "%s\n", line);
+				}
 			} else if (line[0] == ':') {
 				cmd_res = handle_command(output, cfg, line + 1,
 				                         line_len - 1);
@@ -683,12 +706,17 @@ int main(int argc, char **argv)
 							/* if refresh is zero, we just drop existing
 							 * signatures. Otherwise, we'll have to check
 							 * them and mark which keys should still be used
-							 * to create new ones */
-							if (cfg->refresh != 0) {
-								if (ldns_rdf2native_int32(ldns_rr_rrsig_inception(cur_rr)) < cfg->refresh) {
+							 * to create new ones
+							 * 
+							 * *always* update SOA RRSIG
+							 */
+							cfg->existing_sigs++;
+							if (cfg->refresh != 0 || ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(cur_rr)) == LDNS_RR_TYPE_SOA) {
+								if (ldns_rdf2native_int32(ldns_rr_rrsig_expiration(cur_rr)) < cfg->refresh ||
+								    ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(cur_rr)) == LDNS_RR_TYPE_SOA) {
 									/* ok, drop sig, resign */
-									/*fprintf(stderr, "Refresh the signature: ");
-									ldns_rr_print(stderr, cur_rr);*/
+									enable_key_for(cfg, cur_rr);
+									cfg->removed_sigs++;
 								} else {
 									/* leave sig, disable key */
 									ldns_rr_list_push_rr(old_sigs, cur_rr);
@@ -704,8 +732,11 @@ int main(int argc, char **argv)
 							
 							if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
 								ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
-								update_jitter(cfg);
+								if (cfg->jitter) {
+									update_jitter(cfg);
+								}
 								sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
+								cfg->created_sigs += ldns_rr_list_rr_count(sigs);
 								ldns_rr_list_print(output, sigs);
 								ldns_rr_list_deep_free(sigs);
 								(void)sigs;
@@ -731,6 +762,7 @@ int main(int argc, char **argv)
 	if (cur_rrset && ldns_rr_list_rr_count(cur_rrset) > 0) {
 		if (echo_input) {
 			ldns_rr_list_print(output, cur_rrset);
+			ldns_rr_list_print(output, old_sigs);
 		}
 		
 		/* sign and print sigs */
@@ -743,10 +775,16 @@ int main(int argc, char **argv)
 		if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
 			ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
 			sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
+			cfg->created_sigs += ldns_rr_list_rr_count(sigs);
 			ldns_rr_list_print(output, sigs);
 			ldns_rr_list_deep_free(sigs);
 		}
 	}
+	
+	fprintf(output, "; Last refresh stats: existing: %lu, removed %lu, created %lu\n",
+	        cfg->existing_sigs,
+	        cfg->removed_sigs,
+	        cfg->created_sigs);
 
 	current_config_free(cfg);
 	if (input != stdin) {
