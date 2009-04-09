@@ -36,6 +36,7 @@ struct current_config_struct {
 	uint32_t inception;
 	uint32_t expiration;
 	uint32_t refresh;
+	uint32_t jitter;
 	int echo_input;
 	ldns_pkcs11_module_list *pkcs11_module_list;
 	ldns_key_list *keys;
@@ -166,6 +167,7 @@ current_config_new()
 	cfg->inception = 0;
 	cfg->expiration = 0;
 	cfg->refresh = 0;
+	cfg->jitter = 0;
 	cfg->echo_input = 0;
 	cfg->origin = NULL;
 	cfg->pkcs11_module_list = ldns_pkcs11_module_list_entry_new();
@@ -467,6 +469,13 @@ handle_command(FILE *output, current_config *cfg,
 		} else {
 			cfg->expiration = parse_time(arg1);
 		}
+	} else if (strcmp(cmd, "jitter") == 0) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in jitter command\n");
+		} else {
+			cfg->jitter = atol(arg1);
+		}
 	} else if (strcmp(cmd, "refresh") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
@@ -539,6 +548,15 @@ disable_key_for(current_config *cfg, ldns_rr *rrsig)
 			ldns_key_set_use(key, 1);
 			return;
 		}
+	}
+}
+
+void
+update_jitter(current_config *cfg) {
+	size_t i;
+	for (i = 0; i < ldns_key_list_key_count(cfg->keys); i++) {
+		ldns_key_set_expiration(ldns_key_list_key(cfg->keys, i),
+		                        cfg->expiration + rand() % cfg->jitter);
 	}
 }
 
@@ -686,6 +704,7 @@ int main(int argc, char **argv)
 							
 							if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
 								ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
+								update_jitter(cfg);
 								sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
 								ldns_rr_list_print(output, sigs);
 								ldns_rr_list_deep_free(sigs);

@@ -373,12 +373,17 @@ class Zone:
         Util.write_p(sign_p,
                      Util.datestamp(self.get_expiration_timestamp(sign_time)),
                      ":expiration ")
-        Util.write_p(sign_p,
-                     Util.datestamp(self.get_inception_timestamp(sign_time)),
-                     ":inception ")
-        Util.write_p(sign_p,
-                     Util.datestamp(self.get_refresh_timestamp(sign_time)),
-                     ":refresh ")
+        if self.zone_config.signatures_jitter and \
+           self.zone_config.signatures_jitter != 0:
+            Util.write_p(sign_p,
+                         str(self.zone_config.signatures_jitter),
+                         ":jitter ")
+            Util.write_p(sign_p,
+                         Util.datestamp(self.get_inception_timestamp(sign_time)),
+                         ":inception ")
+            Util.write_p(sign_p,
+                         Util.datestamp(self.get_refresh_timestamp(sign_time)),
+                         ":refresh ")
                      
 
         for k in self.zone_config.signature_keys:
