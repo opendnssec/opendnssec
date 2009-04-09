@@ -1,5 +1,6 @@
 """Configuration of a Zone, as specified in the xml file"""
 
+import os
 from xml.dom import minidom
 from Ft.Xml.XPath import Evaluate
 from xml.parsers.expat import ExpatError
@@ -48,6 +49,8 @@ class ZoneConfig:
         self.soa_minimum = None
         self.soa_serial = None
 
+        self.last_modified = None
+        self.xml_file = xml_file
         if file:
             self.from_xml_file(xml_file)
 
@@ -112,6 +115,11 @@ class ZoneConfig:
             result = self.NO_SCHEDULE
         return result
 
+    def check_config_file_update(self):
+        return not self.last_modified or \
+               os.stat(self.xml_file).st_mtime\
+               > self.last_modified        
+
     def from_xml_file(self, xml_file_name):
         """Read xml from from xml_file_name to a string,
         and parse the xml"""
@@ -122,6 +130,7 @@ class ZoneConfig:
             xml_blob = minidom.parseString(xml_string)
             self.from_xml(xml_blob)
             xml_blob.unlink()
+            self.last_modified = os.stat(xml_file_name).st_mtime
         except ExpatError, exe:
             raise ZoneConfigError(str(exe))
         except IOError, ioe:

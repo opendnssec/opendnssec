@@ -164,6 +164,7 @@ class Engine:
                 self.notify_all()
             if command[:6] == "update":
                 response = self.read_zonelist()
+                self.check_zone_conf_updates()
         except EngineError, exc:
             response = str(exc)
         except Exception, exc:
@@ -223,6 +224,11 @@ class Engine:
                 "error parsing zonelist xml file: " + str(zle))
             syslog.syslog(syslog.LOG_ERR, "not updating zones")
             return "zonelist error: " + str(zle) + ". Zones not updated"
+
+    def check_zone_conf_updates(self):
+        for zone in self.zones.values():
+            if zone.zone_config.check_config_file_update():
+                self.update_zone(zone.zone_name)
 
     # global zone management
     def add_zone(self, zone_name):
