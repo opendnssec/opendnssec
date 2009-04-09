@@ -36,6 +36,7 @@ class Engine:
     def __init__(self, config_file_name):
         # todo: read config etc
         self.config = EngineConfiguration(config_file_name)
+        self.config.check_config()
         self.task_queue = TaskQueue()
         self.workers = []
         self.condition = threading.Condition()
