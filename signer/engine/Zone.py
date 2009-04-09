@@ -351,11 +351,8 @@ class Zone:
             if not self.last_signed:
                 self.last_signed = int(time.time())
             return
-        sign_p.stdin.write("\n")
-        sign_p.stdin.write(":origin " + self.zone_name + "\n")
-        syslog.syslog(syslog.LOG_DEBUG,
-                      "send to signer: " +\
-                      ":origin " + self.zone_name)
+        Util.write_p(sign_p, "\n", "")
+        Util.write_p(sign_p, self.zone_name, ":origin ")
         
         # optional SOA modification values
         Util.write_p(sign_p, self.zone_config.soa_ttl, ":soa_ttl ")
@@ -378,12 +375,12 @@ class Zone:
             Util.write_p(sign_p,
                          str(self.zone_config.signatures_jitter),
                          ":jitter ")
-            Util.write_p(sign_p,
-                         Util.datestamp(self.get_inception_timestamp(sign_time)),
-                         ":inception ")
-            Util.write_p(sign_p,
-                         Util.datestamp(self.get_refresh_timestamp(sign_time)),
-                         ":refresh ")
+        Util.write_p(sign_p,
+                     Util.datestamp(self.get_inception_timestamp(sign_time)),
+                     ":inception ")
+        Util.write_p(sign_p,
+                     Util.datestamp(self.get_refresh_timestamp(sign_time)),
+                     ":refresh ")
                      
 
         for k in self.zone_config.signature_keys:
@@ -400,23 +397,17 @@ class Zone:
                                   "Error: Unable to find key " +\
                                   k["locator"])
             if k["token_name"]:
-                scmd = [":add_module",
-                        k["token_name"],
+                scmd = [k["token_name"],
                         k["pkcs11_module"],
                         k["pkcs11_pin"]
                        ]
-                syslog.syslog(syslog.LOG_DEBUG,
-                              "send to signer " + " ".join(scmd))
-                sign_p.stdin.write(" ".join(scmd) + "\n")
-                scmd = [":add_key",
-                        k["token_name"],
+                Util.write_p(sign_p, " ".join(scmd), ":add_module ")
+                scmd = [k["token_name"],
                         k["tool_key_id"],
                         str(k["algorithm"]),
                         str(k["flags"])
                        ]
-                syslog.syslog(syslog.LOG_DEBUG,
-                              "send to signer " + " ".join(scmd))
-                sign_p.stdin.write(" ".join(scmd) + "\n")
+                Util.write_p(sign_p, " ".join(scmd), ":add_key ")
             else:
                 syslog.syslog(syslog.LOG_WARNING,
                               "warning: no token for key " +\
@@ -428,12 +419,8 @@ class Zone:
         nsecced_f.close()
         sign_p.stdin.close()
         sign_p.wait()
-        #output = open(self.get_zone_tmp_filename(".signed"), "w")
-        #for line in sign_p.stdout:
-        #    output.write(line)
-        #for line in sign_p.stderr:
-        #    syslog.syslog(syslog.LOG_WARNING, "signer stderr: line")
-        #output.close()
+        for line in sign_p.stderr:
+            syslog.syslog(syslog.LOG_WARNING, "signer stderr: " + line)
         Util.move_file(self.get_zone_tmp_filename(".signed2"),
                        self.get_zone_tmp_filename(".signed"))
         self.last_signed = sign_time
@@ -522,7 +509,7 @@ class Zone:
         determine 'old' signatures. If the inception date of the
         signature is before this time, the signature will be
         replaced."""
-        return self.get_inception_timestamp(time_offset) +\
+        return self.get_expiration_timestamp(time_offset) -\
                self.zone_config.signatures_refresh_time
 
 # quick test-as-we-go function

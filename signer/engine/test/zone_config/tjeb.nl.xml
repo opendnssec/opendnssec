@@ -7,12 +7,12 @@
 
 		<Signatures>
 			<Resign>PT10S</Resign>
-			<Refresh>P3D</Refresh>
+			<Refresh>PT5S</Refresh>
 			<Validity>
-					<Default>P7D</Default>
+					<Default>PT24H</Default>
 					<Denial>P14D</Denial>
 			</Validity>
-			<Jitter>PT12H</Jitter>
+			<Jitter>PT50S</Jitter>
 			<InceptionOffset>-PT300S</InceptionOffset>
 		</Signatures>
 
