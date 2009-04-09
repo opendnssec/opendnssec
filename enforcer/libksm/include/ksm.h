@@ -152,7 +152,8 @@ typedef struct {
 typedef struct {
 	int clockskew;
 	int resign;
-	int validity;
+	int valdefault;
+	int valdenial;
 } KSM_SIGNATURE_POLICY;
 
 typedef struct {
@@ -282,6 +283,13 @@ void KsmPurge(void);
 #define KSM_STATE_DEAD              6
 #define KSM_STATE_DEAD_STRING       "dead"
 
+#define KSM_SERIAL_UNIX_STRING      "unixtime"
+#define KSM_SERIAL_UNIX             1
+#define KSM_SERIAL_COUNTER_STRING   "counter"
+#define KSM_SERIAL_COUNTER          2
+#define KSM_SERIAL_DATE_STRING      "datecounter"
+#define KSM_SERIAL_DATE             3
+
 /* Reserved parameters and default values (in seconds) */
 /* TODO redefine this properly:
  *      have _CAT defines separate 
@@ -369,6 +377,7 @@ const char* KsmKeywordAlgorithmValueToName(int value);
 const char* KsmKeywordFormatValueToName(int value);
 const char* KsmKeywordStateValueToName(int value);
 const char* KsmKeywordTypeValueToName(int value);
+const char* KsmKeywordSerialValueToName(int value);
 int KsmKeywordParameterExists(const char* name);
 
 /* ksm_update */

@@ -91,6 +91,13 @@ static STR_KEYWORD_ELEMENT m_parameter_keywords[] = {
     {NULL,                      -1}
 };
 
+static STR_KEYWORD_ELEMENT m_serial_keywords[] = {
+    {KSM_SERIAL_UNIX_STRING,        KSM_SERIAL_UNIX},
+    {KSM_SERIAL_COUNTER_STRING,     KSM_SERIAL_COUNTER},
+    {KSM_SERIAL_DATE_STRING,        KSM_SERIAL_DATE},
+    {NULL,                          -1}
+};
+
 /*+
  * KsmKeywordNameToValue - Convert Name to Value
  * KsmKeywordValueToName - Convert Value to Name
@@ -213,6 +220,10 @@ const char* KsmKeywordTypeValueToName(int value)
     return KsmKeywordValueToName(m_type_keywords, value);
 }
 
+const char* KsmKeywordSerialValueToName(int value)
+{
+    return KsmKeywordValueToName(m_serial_keywords, value);
+}
 
 
 /*+
