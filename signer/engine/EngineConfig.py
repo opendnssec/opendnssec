@@ -31,6 +31,7 @@ class EngineConfiguration:
         self.zonelist_file = None
         self.zone_tmp_dir = None
         self.tools_dir = None
+        self.notify_script = None
         if config_file_name:
             self.read_config_file(config_file_name)
         
@@ -68,6 +69,9 @@ class EngineConfiguration:
                                xml_blob, True)
         self.tools_dir = \
              Util.get_xml_data("OpenDNSSEC/Signer/ToolsDirectory",
+                               xml_blob, True)
+        self.notify_command = \
+             Util.get_xml_data("OpenDNSSEC/Signer/NotifyCommand",
                                xml_blob, True)
         # TODO: defaults! (for which we need some ./configure etc)
 

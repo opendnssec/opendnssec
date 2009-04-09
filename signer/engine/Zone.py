@@ -3,6 +3,7 @@
 import os
 import time
 import subprocess
+import commands
 from datetime import datetime
 #import traceback
 import syslog
@@ -427,7 +428,9 @@ class Zone:
 
     def finalize(self):
         """Runs the finalizer tool on the signed zone file, and produces
-        the final output zone, for use with the master nameserver"""
+        the final output zone, for use with the master nameserver.
+        Will also run the notifier script from the engine configuration,
+        if set. (<UpdateNotifier>)"""
         cmd = [self.get_tool_filename("finalizer"),
                "-f", self.get_zone_tmp_filename(".signed")
               ]
@@ -443,6 +446,17 @@ class Zone:
         for line in finalize_p.stderr:
             output.write(line)
         output.close()
+        if self.engine_config.notify_command:
+            (status, output) = commands.getstatusoutput(
+                self.engine_config.notify_command)
+            if status != 0:
+                syslog.syslog(syslog.LOG_ERR,
+                              "Error running notification script")
+                syslog.syslog(syslog.LOG_ERR,
+                              output)
+            else:
+                syslog.syslog(syslog.LOG_INFO,
+                              "Update notify script has run")
     
     def lock(self, caller=None):
         """Lock the zone with a simple spinlock"""
