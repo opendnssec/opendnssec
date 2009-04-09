@@ -116,6 +116,10 @@ class ZoneConfig:
         return result
 
     def check_config_file_update(self):
+        """Returns true if the configured config file has a
+        last-modified time that is more recent than the one found when
+        we read the configuration for this zone. Returns true if the
+        configuration file hasn't been read at all."""
         return not self.last_modified or \
                os.stat(self.xml_file).st_mtime\
                > self.last_modified        

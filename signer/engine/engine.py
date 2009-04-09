@@ -226,6 +226,8 @@ class Engine:
             return "zonelist error: " + str(zle) + ". Zones not updated"
 
     def check_zone_conf_updates(self):
+        """For all running zones, check the last modified time of the
+        configuration file"""
         for zone in self.zones.values():
             if zone.zone_config.check_config_file_update():
                 self.update_zone(zone.zone_name)
