@@ -147,6 +147,7 @@ typedef struct {
 	int propdelay;
 	int soamin;
 	int soattl;
+    int serial;
 } KSM_SIGNER_POLICY;
 
 typedef struct {
@@ -210,6 +211,7 @@ int KsmPolicyNameFromId(KSM_POLICY* policy);
 
 /* ksmZone */
 typedef struct {
+    int id;
 	char* name;
 	char* in_adapter;
 	char* out_adapter;

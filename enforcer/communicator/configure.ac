@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(keygend, 0.0.1, jad@jadickinson.co.uk)
+AC_INIT(communicator, 0.0.1, jad@jadickinson.co.uk)
 AM_INIT_AUTOMAKE
 AC_PROG_MAKE_SET
 AC_CONFIG_SRCDIR([src/daemon.h])
@@ -15,7 +15,7 @@ AC_PROG_CC
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([fcntl.h inttypes.h stdlib.h string.h syslog.h unistd.h])
+AC_CHECK_HEADERS([fcntl.h inttypes.h stdlib.h string.h syslog.h unistd.h stdio.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

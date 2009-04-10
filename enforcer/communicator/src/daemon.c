@@ -27,7 +27,8 @@
 #include "daemon.h"
 #include "daemon_util.h"
 
-#include "keygend.h"
+#include "ksm.h"
+#include "communicator.h"
 
 int
 main(int argc, char *argv[]){

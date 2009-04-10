@@ -225,6 +225,10 @@ int KsmPolicyRead(KSM_POLICY* policy)
             	if (strncmp(data.category, "signer", 6) == 0) {
             		if (strncmp(data.name, "refresh", 7) == 0) policy->signer->refresh=data.value;
             		if (strncmp(data.name, "jitter", 6) == 0) policy->signer->jitter=data.value;
+            		if (strncmp(data.name, "propdelay", 9) == 0) policy->signer->propdelay=data.value;
+            		if (strncmp(data.name, "soamin", 6) == 0) policy->signer->soamin=data.value;
+            		if (strncmp(data.name, "soattl", 6) == 0) policy->signer->soattl=data.value;
+            		if (strncmp(data.name, "serial", 6) == 0) policy->signer->serial=data.value;
             	}
             	if (strncmp(data.category, "signature", 9) == 0) {
             		if (strncmp(data.name, "clockskew", 9) == 0) policy->signature->clockskew=data.value;

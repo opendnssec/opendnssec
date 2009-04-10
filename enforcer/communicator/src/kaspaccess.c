@@ -76,7 +76,8 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 
 	policy->signature->clockskew = 0;
 	policy->signature->resign = 0;
-	policy->signature->validity = 0;
+	policy->signature->valdefault = 0;
+	policy->signature->valdenial = 0;
 
 	policy->denial->version = 0;
 	policy->denial->resalt = 0;

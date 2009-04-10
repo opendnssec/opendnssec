@@ -141,6 +141,7 @@ int KsmZone(DB_RESULT result, KSM_ZONE *data)
     if (status == 0) {
 
         /* Now copy the results into the output data */
+        DbInt(row, DB_ZONE_ID, data->id);
         DbStringBuffer(row, DB_ZONE_NAME, data->name,
             KSM_NAME_LENGTH*sizeof(char));
         DbStringBuffer(row, DB_ZONE_IADAPTER, data->in_adapter,
