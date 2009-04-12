@@ -47,6 +47,8 @@ int KsmRundown(void);
 #define KSM_NAME_LENGTH     256         /* Includes trailing NULL */
 #define KSM_TIME_LENGTH     32          /* Includes trailing NULL */
 
+#define KSM_ZONE_NAME_LENGTH     256    /* Includes trailing NULL */
+#define KSM_ADAPTER_NAME_LENGTH  256    /* Includes trailing NULL */
 /* ksm_key */
 
 /* Key time flag states */

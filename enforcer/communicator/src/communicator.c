@@ -55,6 +55,9 @@ server_main(DAEMONCONFIG *config)
     kaspSetPolicyDefaults(policy, NULL);
 
     zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
+    zone->name = (char *)calloc(KSM_ZONE_NAME_LENGTH, sizeof(char));
+    zone->in_adapter = (char *)calloc(KSM_ADAPTER_NAME_LENGTH, sizeof(char));
+    zone->out_adapter = (char *)calloc(KSM_ADAPTER_NAME_LENGTH, sizeof(char));
 
     kaspConnect(config, &dbhandle);
 
@@ -66,6 +69,7 @@ server_main(DAEMONCONFIG *config)
             /* get the first policy */
             status = KsmPolicy(handle, policy);
             while (status == 0) {
+                KsmPolicyRead(policy);
                 log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
 
                 /* Got one; loop round zones on this policy */
@@ -78,7 +82,7 @@ server_main(DAEMONCONFIG *config)
 
                         /* turn this zone and policy into a file */
                         status2 = commGenSignConf(zone, policy);
-                        if (status2 == 0) {
+                        if (status2 != 0) {
                             log_msg(config, LOG_ERR, "Error writing signconf");
                             exit(1);
                         }
@@ -125,6 +129,7 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     char *filename;
     char*   datetime = DtParseDateTimeString("now");
 
+    filename = NULL;
     StrAppend(&filename, OUR_PATH);
     StrAppend(&filename, zone->name);
     StrAppend(&filename, ".xml");

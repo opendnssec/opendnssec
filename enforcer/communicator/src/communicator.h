@@ -9,7 +9,7 @@
 * See LICENSE for the license.
 */
 
-#define OUR_PATH "/home/sion/temp"
+#define OUR_PATH "/home/sion/temp/"
 
 int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);
