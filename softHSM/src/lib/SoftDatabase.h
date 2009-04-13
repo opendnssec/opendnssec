@@ -79,7 +79,12 @@ class SoftDatabase {
     sqlite3_stmt *select_attri_id_sql;
     sqlite3_stmt *update_attribute_sql;
     sqlite3_stmt *insert_attribute_sql;
+    sqlite3_stmt *insert_object_key_sql;
     sqlite3_stmt *update_object_key_sql;
+    sqlite3_stmt *select_object_id_sql;
+    sqlite3_stmt *select_object_key_sql;
+    sqlite3_stmt *select_attribute_sql;
+    sqlite3_stmt *delete_object_sql;
 };
 
 #endif /* SOFTHSM_SOFTDATABASE_H */

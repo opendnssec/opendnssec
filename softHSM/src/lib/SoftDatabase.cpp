@@ -48,7 +48,12 @@ SoftDatabase::SoftDatabase() {
   select_attri_id_sql = NULL;
   update_attribute_sql = NULL;
   insert_attribute_sql = NULL;
+  insert_object_key_sql = NULL;
   update_object_key_sql = NULL;
+  select_object_id_sql = NULL;
+  select_object_key_sql = NULL;
+  select_attribute_sql = NULL;
+  delete_object_sql = NULL;
 }
 
 SoftDatabase::~SoftDatabase() {
@@ -68,8 +73,28 @@ SoftDatabase::~SoftDatabase() {
     sqlite3_finalize(insert_attribute_sql);
   }
 
+  if(insert_object_key_sql != NULL) {
+    sqlite3_finalize(insert_object_key_sql);
+  }
+
   if(update_object_key_sql != NULL) {
     sqlite3_finalize(update_object_key_sql);
+  }
+
+  if(select_object_id_sql != NULL) {
+    sqlite3_finalize(select_object_id_sql);
+  }
+
+  if(select_object_key_sql != NULL) {
+    sqlite3_finalize(select_object_key_sql);
+  }
+
+  if(select_attribute_sql != NULL) {
+    sqlite3_finalize(select_attribute_sql);
+  }
+
+  if(delete_object_sql != NULL) {
+    sqlite3_finalize(delete_object_sql);
   }
 
   sqlite3_close(db);
@@ -130,8 +155,38 @@ CK_RV SoftDatabase::init(char *dbPath) {
     return CKR_TOKEN_NOT_PRESENT;
   }
 
+  const char insert_object_key_str[] = "INSERT INTO Objects (encodedKey) VALUES (?);";
+  result = sqlite3_prepare_v2(db, insert_object_key_str, -1, &insert_object_key_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
   const char update_object_key_str[] = "UPDATE Objects SET encodedKey = ? WHERE objectID = ?;";
   result = sqlite3_prepare_v2(db, update_object_key_str, -1, &update_object_key_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  const char select_object_id_str[] = "SELECT objectID FROM Objects;";
+  result = sqlite3_prepare_v2(db, select_object_id_str, -1, &select_object_id_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  const char select_object_key_str[] = "SELECT encodedKey from Objects WHERE objectID = ?;";
+  result = sqlite3_prepare_v2(db, select_object_key_str, -1, &select_object_key_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  const char select_attribute_str[] = "SELECT type,value,length from Attributes WHERE objectID = ?;";
+  result = sqlite3_prepare_v2(db, select_attribute_str, -1, &select_attribute_sql, NULL);
+  if(result) {
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
+  const char delete_object_str[] = "DELETE FROM Objects WHERE objectID = ?;";
+  result = sqlite3_prepare_v2(db, delete_object_str, -1, &delete_object_sql, NULL);
   if(result) {
     return CKR_TOKEN_NOT_PRESENT;
   }
@@ -197,12 +252,10 @@ char* SoftDatabase::getUserPIN() {
 CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPublicKeyTemplate, 
     CK_ULONG ulPublicKeyAttributeCount) {
 
-  stringstream sqlInsertObj;
-
-  sqlInsertObj << "INSERT INTO Objects (encodedKey) VALUES ('" << X509::PEM_encode(*rsaKey) << "');";
-  int result = sqlite3_exec(db, sqlInsertObj.str().c_str(), NULL, NULL, NULL);
-
-  if(result) {
+  sqlite3_reset(insert_object_key_sql);
+  string pemKey = X509::PEM_encode(*rsaKey);
+  sqlite3_bind_text(insert_object_key_sql, 1, pemKey.c_str(), -1, SQLITE_TRANSIENT);
+  if(sqlite3_step(insert_object_key_sql) != SQLITE_DONE) {
     return 0;
   }
 
@@ -279,12 +332,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
 CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
     CK_ULONG ulPrivateKeyAttributeCount, RandomNumberGenerator *rng) {
 
-  stringstream sqlInsertObj;
-
-  sqlInsertObj << "INSERT INTO Objects (encodedKey) VALUES ('');";
-  int result = sqlite3_exec(db, sqlInsertObj.str().c_str(), NULL, NULL, NULL);
-
-  if(result) {
+  sqlite3_reset(insert_object_key_sql);
+  sqlite3_bind_text(insert_object_key_sql, 1, "", -1, SQLITE_TRANSIENT);
+  if(sqlite3_step(insert_object_key_sql) != SQLITE_DONE) {
     return 0;
   }
 
@@ -409,13 +459,13 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
 // Only update if the attribute exists.
 
 void SoftDatabase::saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen) {
-  sqlite3_reset(token_info_sql);
-  sqlite3_bind_int(token_info_sql, 1, objectID);
-  sqlite3_bind_int(token_info_sql, 2, type);
+  sqlite3_reset(select_attri_id_sql);
+  sqlite3_bind_int(select_attri_id_sql, 1, objectID);
+  sqlite3_bind_int(select_attri_id_sql, 2, type);
 
   // The object have this attribute
-  if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
-    int attributeID = sqlite3_column_int(token_info_sql, 0);
+  if(sqlite3_step(select_attri_id_sql) == SQLITE_ROW) {
+    int attributeID = sqlite3_column_int(select_attri_id_sql, 0);
 
     sqlite3_reset(update_attribute_sql);
     sqlite3_bind_blob(update_attribute_sql, 1, pValue, ulValueLen, SQLITE_TRANSIENT);
@@ -451,22 +501,13 @@ void SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_T
 
 SoftObject* SoftDatabase::readAllObjects() {
   // Get all the objects
-  string sqlSelect = "SELECT objectID FROM Objects;";
-  sqlite3_stmt *select_sql;
-  int result = sqlite3_prepare_v2(db, sqlSelect.c_str(), sqlSelect.size(), &select_sql, NULL);
-
-  // Error?
-  if(result != 0) {
-    sqlite3_finalize(select_sql);
-
-    return NULL_PTR;
-  }
+  sqlite3_reset(select_object_id_sql);
 
   SoftObject *objects = new SoftObject();
 
   // Get the results
-  while(sqlite3_step(select_sql) == SQLITE_ROW) {
-    SoftObject *newObject = populateObj(sqlite3_column_int(select_sql, 0));
+  while(sqlite3_step(select_object_id_sql) == SQLITE_ROW) {
+    SoftObject *newObject = populateObj(sqlite3_column_int(select_object_id_sql, 0));
 
     if(newObject != NULL_PTR) {
       // Add the object to the chain
@@ -475,66 +516,38 @@ SoftObject* SoftDatabase::readAllObjects() {
     }
   }
 
-  sqlite3_finalize(select_sql);
-
   return objects;
 }
 
 // Creates an object an populate it with attributes from the database.
 
 SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
-  stringstream sqlKey;
-  sqlKey << "SELECT encodedKey from Objects WHERE objectID = " << keyRef << ";";
+  sqlite3_reset(select_object_key_sql);
+  sqlite3_bind_int(select_object_key_sql, 1, keyRef);
 
-  string sqlKeyStr = sqlKey.str();
-  sqlite3_stmt *key_sql;
-  int result = sqlite3_prepare(db, sqlKeyStr.c_str(), sqlKeyStr.size(), &key_sql, NULL);
+  SoftObject *keyObject = NULL_PTR;
 
-  if(result) {
-    sqlite3_finalize(key_sql);
+  if(sqlite3_step(select_object_key_sql) == SQLITE_ROW) {
+    keyObject = new SoftObject();
+    keyObject->index = keyRef;
 
-    return NULL_PTR;
-  }
-
-  SoftObject *keyObject = new SoftObject();
-  keyObject->index = keyRef;
-
-  if(sqlite3_step(key_sql) == SQLITE_ROW) {
     // Add the encoded key
-    const char *encKey = (const char*)sqlite3_column_text(key_sql, 0);
-    int length = strlen(encKey);
-    keyObject->encodedKey = (char*)malloc(length + 1);
-    keyObject->encodedKey[length] = '\0';
-    memcpy(keyObject->encodedKey, encKey, length);
+    const char *encKey = (const char*)sqlite3_column_text(select_object_key_sql, 0);
+    keyObject->encodedKey = strdup(encKey);
   } else {
-    delete keyObject;
-    sqlite3_finalize(key_sql);
-
     return NULL_PTR;
   }
 
-  sqlite3_finalize(key_sql);
-  stringstream sqlQuery;
-  sqlQuery << "SELECT type,value,length from Attributes WHERE objectID = " << keyRef << ";";
-
-  string sqlQueryStr = sqlQuery.str();
-  sqlite3_stmt *select_sql;
-  result = sqlite3_prepare(db, sqlQueryStr.c_str(), sqlQueryStr.size(), &select_sql, NULL);
-
-  if(result) {
-    delete keyObject;
-    sqlite3_finalize(select_sql);
-
-    return NULL_PTR;
-  }
+  sqlite3_reset(select_attribute_sql);
+  sqlite3_bind_int(select_attribute_sql, 1, keyRef);
 
   CK_ULONG tmpValue;
 
   // Add all attributes
-  while(sqlite3_step(select_sql) == SQLITE_ROW) {
-    CK_ATTRIBUTE_TYPE type = sqlite3_column_int(select_sql, 0);
-    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_sql, 1);
-    CK_ULONG length = sqlite3_column_int(select_sql, 2);
+  while(sqlite3_step(select_attribute_sql) == SQLITE_ROW) {
+    CK_ATTRIBUTE_TYPE type = sqlite3_column_int(select_attribute_sql, 0);
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_attribute_sql, 1);
+    CK_ULONG length = sqlite3_column_int(select_attribute_sql, 2);
 
     keyObject->addAttributeFromData(type, pValue, length);
 
@@ -565,8 +578,6 @@ SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
     }
   }
 
-  sqlite3_finalize(select_sql);
-
   return keyObject;
 }
 
@@ -574,8 +585,7 @@ SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
 // The trigger in the database removes the attributes.
 
 void SoftDatabase::deleteObject(CK_OBJECT_HANDLE objRef) {
-  stringstream sqlDeleteObj;
-
-  sqlDeleteObj << "DELETE FROM Objects WHERE objectID = " << objRef << ";";
-  sqlite3_exec(db, sqlDeleteObj.str().c_str(),  NULL, NULL, NULL);
+  sqlite3_reset(delete_object_sql);
+  sqlite3_bind_int(delete_object_sql, 1, objRef);
+  sqlite3_step(delete_object_sql);
 }
