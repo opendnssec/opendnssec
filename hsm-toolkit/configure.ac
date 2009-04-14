@@ -12,7 +12,7 @@ AC_PROG_CC
 
 # Checks for libraries.
 AC_CHECK_LIB([dl], [dlopen])
-AC_CHECK_LIB([uuid], [uuid_generate])
+AC_CHECK_LIB([uuid], [uuid_generate],, AC_MSG_ERROR([UUID library not found]))
 
 # Checks for header files.
 AC_HEADER_STDC
