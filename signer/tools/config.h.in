@@ -1,4 +1,4 @@
-/* config.h.in.  Generated from configure.ac by autoheader.  */
+/* tools/config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Whether dlopen is available */
 #undef HAVE_DLOPEN
