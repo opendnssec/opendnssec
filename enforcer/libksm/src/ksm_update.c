@@ -343,7 +343,7 @@ void KsmUpdateDeadKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
     const char* destination, int interval)
 {
-    char            buffer[512];    /* Long enough for any statement */
+    char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
     unsigned int    nchar;          /* Number of characters converted */
     int             status;         /* Status return */
 

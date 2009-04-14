@@ -47,6 +47,8 @@ int KsmRundown(void);
 #define KSM_NAME_LENGTH     256         /* Includes trailing NULL */
 #define KSM_TIME_LENGTH     32          /* Includes trailing NULL */
 
+#define KSM_SQL_SIZE        512         /* Max size of SQL statement */
+#define KSM_SALT_LENGTH     256         /* Includes trailing NULL */
 #define KSM_ZONE_NAME_LENGTH     256    /* Includes trailing NULL */
 #define KSM_ADAPTER_NAME_LENGTH  256    /* Includes trailing NULL */
 /* ksm_key */
@@ -166,6 +168,7 @@ typedef struct {
 	int iteration;
 	int optout;
 	int ttl;
+	int saltlength;
 } KSM_DENIAL_POLICY;
 
 typedef struct {
@@ -194,6 +197,8 @@ typedef struct {
 	KSM_KEY_POLICY* ksk;
 	KSM_KEY_POLICY* zsk;
 	KSM_ENFORCER_POLICY* enforcer;
+    char    salt[KSM_SALT_LENGTH];
+    char    salt_stamp[KSM_TIME_LENGTH];
 } KSM_POLICY;
 
 typedef struct {
@@ -210,6 +215,7 @@ int KsmPolicy(DB_RESULT handle, KSM_POLICY* data);
 int KsmPolicyParameter(DB_RESULT handle, KSM_POLICY_PARAMETER* data);
 int KsmPolicyReadFromId(KSM_POLICY* policy);
 int KsmPolicyNameFromId(KSM_POLICY* policy);
+int KsmPolicyUpdateSalt(KSM_POLICY* policy);
 
 /* ksmZone */
 typedef struct {

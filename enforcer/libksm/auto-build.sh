@@ -17,7 +17,7 @@ echo "Building for $OS"
 fi
 if [ $OS = "Linux" ]; then
 echo "Building for $OS"
-./configure --prefix=/opt/libksm --with-mysql=/usr --with-cunit=/usr --with-dbname=ksm --with-dbhost=localhost --with-dbpass=ksm --with-dbuser=ksm
+./configure --prefix=/opt/libksm --with-mysql=/usr --with-cunit=/usr --with-dbname=ksm --with-dbhost=localhost --with-dbpass=ksm_test --with-dbuser=ksm_test
 fi
 if test $OS = "FreeBSD"; then
 echo "Building for $OS"

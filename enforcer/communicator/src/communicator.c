@@ -72,6 +72,9 @@ server_main(DAEMONCONFIG *config)
                 KsmPolicyRead(policy);
                 log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
 
+				/* Update the salt is up to date */
+				KsmPolicyUpdateSalt(policy);
+
                 /* Got one; loop round zones on this policy */
                 status2 = KsmZoneInit(&handle2, policy->id);
                 if (status2 == 0) {
@@ -130,7 +133,7 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     char*   datetime = DtParseDateTimeString("now");
 
     filename = NULL;
-    StrAppend(&filename, OUR_PATH);
+    StrAppend(&filename, OUR_PATH); /* TODO this should come from the config */
     StrAppend(&filename, zone->name);
     StrAppend(&filename, ".xml");
 
@@ -237,7 +240,13 @@ void commsleep(DAEMONCONFIG* config)
 {
     struct timeval tv;
 
-    tv.tv_sec = config->keygeninterval;
+/* TODO this shoudl come from the config file */
+#ifdef OUR_INTERVAL
+	tv.tv_sec = OUR_INTERVAL;
+#else
+    tv.tv_sec = config->interval;
+#endif
+
     tv.tv_usec = 0;
     log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->keygeninterval);
     select(0, NULL, NULL, NULL, &tv);

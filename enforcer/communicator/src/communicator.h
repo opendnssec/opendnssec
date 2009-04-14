@@ -10,6 +10,7 @@
 */
 
 #define OUR_PATH "/home/sion/temp/"
+#define OUR_INTERVAL 60
 
 int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);

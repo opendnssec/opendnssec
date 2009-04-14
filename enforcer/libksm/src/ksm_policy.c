@@ -21,6 +21,7 @@
 #include "db_fields.h"
 #include "debug.h"
 #include "ksmdef.h"
+#include "kmedef.h"
 #include "ksm.h"
 #include "ksm_internal.h"
 #include "message.h"
@@ -243,6 +244,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "iteration", 9) == 0) policy->denial->iteration=data.value;
             		if (strncmp(data.name, "optout", 6) == 0) policy->denial->optout=data.value;
             		if (strncmp(data.name, "ttl",3) == 0) policy->denial->ttl=data.value;
+            		if (strncmp(data.name, "saltlength",10) == 0) policy->denial->saltlength=data.value;
             	}
             	if (strncmp(data.category, "zsk", 3) == 0) {
             		if (strncmp(data.name, "alg",3) == 0) policy->zsk->algorithm=data.value;
@@ -389,5 +391,126 @@ int KsmPolicyNameFromId(KSM_POLICY* policy)
 
     DbFreeRow(row);
     DbFreeResult(result);
+    return status;
+}
+
+/*+
+ * KsmPolicyUpdateSalt
+ *
+ * Description:
+ *      Given a policy see if the salt needs updating (based on denial->resalt).
+ *      If it is out of date then generate a new salt and write it to the struct.
+ *      Also update the database with the new value and timestamp.
+ *
+ * Arguments:
+ *      struct policy_t policy
+ *      	struct which holds the current policy information should have been populated
+ *
+ * Returns:
+ *      int
+ *          Status return:
+ *              0           success
+ *              non-zero    some error occurred and a message has been output.
+ *              -1          no policy found
+ *              -2          an error working out time difference between stamp and now
+ *
+-*/
+
+int KsmPolicyUpdateSalt(KSM_POLICY* policy)
+{
+    /* First work out what the current salt is and when it was created */
+    int     where = 0;          /* WHERE clause value */
+    char*   sql = NULL;         /* SQL query */
+    DB_RESULT       result;     /* Handle converted to a result object */
+    DB_ROW      row;            /* Row data */
+    int     status = 0;         /* Status return */
+    char*   datetime_now = DtParseDateTimeString("now");    /* where are we in time */
+    int     time_diff;          /* how many second have elapsed */
+    int     newsaltint;         /* new salt as integer */
+    char    buffer[KSM_SQL_SIZE];   /* update statement for salt_stamp */
+    unsigned int    nchar;          /* Number of characters converted */
+
+    /* Construct the query */
+
+    sql = DqsSpecifyInit("policies","id, salt, salt_stamp");
+    DqsConditionInt(&sql, "ID", DQS_COMPARE_EQ, policy->id, where++);
+    DqsOrderBy(&sql, "id");
+
+    /* Execute query and free up the query string */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    /* Get the next row from the data */
+    status = DbFetchRow(result, &row);
+    if (status == 0) {
+        DbStringBuffer(row, DB_POLICY_SALT, policy->salt, KSM_SALT_LENGTH*sizeof(char));
+        DbStringBuffer(row, DB_POLICY_SALT_STAMP, policy->salt_stamp, KSM_TIME_LENGTH*sizeof(char));
+    }
+    else if (status == -1) {
+        /* No rows to return (but no error), policy_id doesn't exist? */
+        DbFreeResult(result);
+        DbFreeRow(row);
+        return -1;
+    }
+	else {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+
+        DbFreeResult(result);
+        DbFreeRow(row);
+        return status;
+	}
+
+    DbFreeResult(result);
+    DbFreeRow(row);
+
+    /* Now see if this needs to be updated */
+    status = DtDateDiff(datetime_now, policy->salt_stamp, &time_diff);
+
+    if (status == 0) {
+        if (policy->denial->resalt > time_diff) {
+            /* current salt is fine */
+            return status;
+        } else {
+            /* salt needs updating */
+            /* TODO get this call into libhsmtools */
+            /* newsaltint = hsm_getrand(policy->denial->saltlength); */
+            newsaltint = 123456789;
+            sprintf(policy->salt, "%8X", newsaltint);
+            StrStrncpy(policy->salt_stamp, datetime_now, KSM_TIME_LENGTH);
+
+            /* write these back to the database */
+#ifdef USE_MYSQL
+            nchar = snprintf(buffer, sizeof(buffer),
+                    "UPDATE policies SET salt = '%s' and salt_stamp = %s WHERE ID = %lu",
+                    policy->salt, policy->salt_stamp, (unsigned long) policy->id);
+#else
+            nchar = snprintf(buffer, sizeof(buffer),
+                    "UPDATE policies SET salt = '%s' and salt_stamp = DATETIME(%s) WHERE ID = %lu",
+                    policy->salt, policy->salt_stamp, (unsigned long) policy->id);
+#endif
+            if (nchar < sizeof(buffer)) {
+                /* All OK, execute the statement */
+
+                status = DbExecuteSqlNoResult(DbHandle(), buffer);
+            }
+            else {
+                /* Unable to create update statement */
+
+                status = MsgLog(KME_BUFFEROVF, "KsmPolicy");
+            }
+
+            return status;
+        }
+    } else {
+        /* TODO what happens here ? */
+        return -2;
+    }
+
     return status;
 }

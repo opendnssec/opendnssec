@@ -93,8 +93,11 @@ extern "C" {
 #define DB_ZONE_IADAPTER		2
 #define DB_ZONE_OADAPTER		3
 
+/* policy select variables, including salt */
 #define DB_POLICY_ID	0
 #define DB_POLICY_NAME	1
+#define DB_POLICY_SALT	1
+#define DB_POLICY_SALT_STAMP	2
 
 
 /* when selecting count(*) from ... */

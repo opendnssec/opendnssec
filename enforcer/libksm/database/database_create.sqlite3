@@ -64,6 +64,8 @@ create table policies (
   id            integer primary key autoincrement,    -- id
   name          varchar(30) not null,  -- name of the policy
   description   varchar(255), -- description of the
+  salt          varchar(255), -- value of the salt
+  salt_stamp    varchar(64),  -- when the salt was generated
 
   unique(name)
 );
@@ -228,8 +230,8 @@ insert into adapters (name, description) values ("file", "all signers should be 
 insert into adapters (name, description) values ("axfr", "axfr adapter to the signer.");
 
 -- Create 2 policies:
-INSERT INTO policies VALUES (NULL,'opendnssec','special policy for enforcer config');
-INSERT INTO policies VALUES (NULL,'default','A default policy that will amaze you and your friends');
+INSERT INTO policies VALUES (NULL,'opendnssec','special policy for enforcer config', NULL, NULL);
+INSERT INTO policies VALUES (NULL,'default','A default policy that will amaze you and your friends', NULL, "2002-01-01 01:00:00");
 
 -- Parameter_policies
 INSERT INTO parameters_policies VALUES (1,1,2,7200);
