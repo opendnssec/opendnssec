@@ -160,8 +160,7 @@ class Zone:
                 key["token_name"] = tname
                 key["pkcs11_module"] = mpath
                 key["pkcs11_pin"] = mpin
-                key["tool_key_id"] = key["locator"] + \
-                                     "_" + str(key["algorithm"])
+                key["tool_key_id"] = key["locator"]
                 key["dnskey"] = str(output)
                 syslog.syslog(syslog.LOG_INFO,
                               "Found key " + key["locator"] +\
