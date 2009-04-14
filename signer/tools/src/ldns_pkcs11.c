@@ -10,24 +10,8 @@
 #include "config.h"
 #include "ldns_pkcs11.h"
 
-/*
- * Functions to translate the argument string to key parameters
- * <id in hex>_<signing algorithm>
- */
-int
-ldns_keystr2algorithm(const char *key_id_str)
-{
-	char *sep;
-	
-	/* _ can be removed, it should not be necessary anymore */
-	sep = index(key_id_str, '_');
-	if (!sep) {
-		return 5;
-	}
-	return atoi(sep + 1);
-}
-
-void xprintf_hex(FILE *out, const unsigned char *data, size_t len)
+static void
+xprintf_hex(FILE *out, const unsigned char *data, size_t len)
 {
 	size_t i;
 	for (i = 0; i < len; i++) {
@@ -36,21 +20,20 @@ void xprintf_hex(FILE *out, const unsigned char *data, size_t len)
 	fprintf(out, "\n");
 }
 
+/*
+ * Parses the null-terminated string key_id_str as hex values,
+ * and returns an allocated array of the binary data the string
+ * represents. *key_id_len will contain the size of that array
+ */
 unsigned char *
 ldns_keystr2id(const char *key_id_str, int *key_id_len)
 {
-	char *sep;
 	unsigned char *key_id;
 	/* length of the hex input */
 	size_t hex_len;
 	int i;
 	
-	sep = index(key_id_str, '_');
-	if (!sep) {
-		sep = (char *)key_id_str + strlen(key_id_str);
-	}
-	
-	hex_len = sep - key_id_str;
+	hex_len = strlen(key_id_str);
 	/* todo: make general hex2 function? */
 	if (hex_len % 2 != 0) {
 		fprintf(stderr,
