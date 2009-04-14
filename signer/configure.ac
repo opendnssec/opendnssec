@@ -1,5 +1,5 @@
 
-AC_INIT(pipeline_signer, 0.1, jelte@NLnetLabs.nl)
+AC_INIT(signer_engine, 0.1, jelte@NLnetLabs.nl)
 
 #
 # some helper functions (taken from ldns)
