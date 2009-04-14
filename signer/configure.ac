@@ -149,4 +149,4 @@ AM_INIT_AUTOMAKE
 
 AC_CONFIG_HEADERS([tools/config.h])
 AC_PROG_INSTALL
-AC_OUTPUT(tools/Makefile)
+AC_OUTPUT(Makefile tools/Makefile engine/signer_engine)

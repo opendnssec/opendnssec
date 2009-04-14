@@ -1,0 +1,26 @@
+#!/bin/sh
+
+USAGE="signer_engine [OPTIONS]"
+
+VERSION="0.1"
+CONFIG_FILE=@prefix@/etc/opendnssec.conf
+ENGINE_LOC=@prefix@/lib/python/signer_engine
+# parse command line arguments
+while getopts cvo: OPT; do
+	case "$OPT" in
+	c)	CONFIG_FILE=${OPTARG}
+		;;
+	v)	echo "`basename $0` version 0.1"
+		exit 0
+		;;
+	\?)	# getopts issues an error message
+		echo $USAGE >&2
+		exit 1
+		;;
+	esac
+done
+
+# set python path?
+
+PYTHONPATH=${ENGINE_LOC}:$PYTHONPATH
+python ${ENGINE_LOC}/Engine.py -c ${CONFIG_FILE}
