@@ -655,8 +655,11 @@ int main(int argc, char **argv)
 		if (line_len > 0) {
 			if (line[0] == ';') {
 				/* pass comments */
-				/* except stats */
-				if (line_len < 15 || strncmp(line, "; Last refresh stats: ", 15) != 0) {
+				if (line_len > 15 && strncmp(line, "; Last refresh stats: ", 15) == 0) {
+					/* except stats */
+				} else if (line_len > 8 && strncmp(line, "; Error ", 8) == 0) {
+					/* and previous errors */
+				} else {
 					fprintf(output, "%s\n", line);
 				}
 			} else if (line[0] == ':') {
