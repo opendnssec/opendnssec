@@ -51,7 +51,7 @@ class EngineConfiguration:
 
     def from_xml(self, xml_blob):
         """Searches the xml blob for the configuration values"""
-        xmlbs = Evaluate("OpenDNSSEC/HSM/Repository", xml_blob)
+        xmlbs = Evaluate("Configuration/HSM/Repository", xml_blob)
         for xmlb in xmlbs:
             token = {}
             token["name"] = Util.get_xml_data("Name", xmlb)
@@ -62,16 +62,16 @@ class EngineConfiguration:
             self.tokens.append(token)
 
         self.zonelist_file = \
-             Util.get_xml_data("OpenDNSSEC/Signer/ZoneListFile",
+             Util.get_xml_data("Configuration/Signer/ZoneListFile",
                                xml_blob, True)
         self.zone_tmp_dir = \
-             Util.get_xml_data("OpenDNSSEC/Signer/WorkingDirectory",
+             Util.get_xml_data("Configuration/Signer/WorkingDirectory",
                                xml_blob, True)
         self.tools_dir = \
-             Util.get_xml_data("OpenDNSSEC/Signer/ToolsDirectory",
+             Util.get_xml_data("Configuration/Signer/ToolsDirectory",
                                xml_blob, True)
         self.notify_command = \
-             Util.get_xml_data("OpenDNSSEC/Signer/NotifyCommand",
+             Util.get_xml_data("Configuration/Signer/NotifyCommand",
                                xml_blob, True)
         # TODO: defaults! (for which we need some ./configure etc)
 

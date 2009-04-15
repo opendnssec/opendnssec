@@ -2,7 +2,7 @@
 
 <!-- $Id$ -->
 
-<OpenDNSSEC>
+<Configuration>
 	<HSM>
 		<Repository>
 			<Name>test_token</Name>
@@ -28,4 +28,4 @@
 		     to buffer these in the script -->
 		<NotifyCommand>echo "ping"</NotifyCommand>
 	</Signer>
-</OpenDNSSEC>
+</Configuration>
