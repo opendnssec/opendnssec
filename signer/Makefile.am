@@ -11,7 +11,7 @@ install:
 	(cd tools; make install)
 # install the engine
 	$(INSTALL) -d $(DESTDIR)$(libdir)python/signer_engine/
-	$(INSTALL) -c -m 664 engine/*.py $(DESTDIR)$(libdir)python/signer_engine/
+	$(INSTALL) -c -m 664 engine/*.py $(DESTDIR)$(libdir)/python/signer_engine/
 # and the start script
 	$(INSTALL) -c -m 755 engine/signer_engine $(DESTDIR)$(bindir)
 # and the configuration (TODO: move this to general opendnssec install!)
