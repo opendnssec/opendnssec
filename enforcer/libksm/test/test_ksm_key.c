@@ -245,17 +245,18 @@ static void TestKsmKeyPredict(void)
 {
     int policy_id = 2;
     int keytype = KSM_TYPE_KSK;
+    int keys_shared = KSM_KEYS_SHARED;
     int interval = 86400*4; /* 4 days; lifetime == 1day */
     int count;
     int status;
 
-    status =  ksmKeyPredict(policy_id, keytype, interval, &count);
+    status =  ksmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7); /* 4 rollovers, 2 emergency plus one to get ready */
 
     keytype = KSM_TYPE_ZSK;
-    status =  ksmKeyPredict(policy_id, keytype, interval, &count);
+    status =  ksmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7);

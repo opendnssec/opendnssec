@@ -641,15 +641,15 @@ int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
     int			    status = 0;		/* Status return */
 	KSM_PARCOLL     coll; /* Parameters collection */
 
-    KSM_HANDLE handle;
+    DB_RESULT result;
 	int zone_count = 0;
 
     /* how many zones on this policy */
-    status = KsmZoneCountInit(&handle, policy_id);
+    status = KsmZoneCountInit(&result, policy_id);
     if (status == 0) {
-        status = KsmZoneCount(handle, &zone_count);
+        status = KsmZoneCount(result, &zone_count);
     }
-    KsmQueryFree(handle);
+    DbFreeResult(result);
 
     if (status == 0) {
         /* make sure that we have at least one zone */
