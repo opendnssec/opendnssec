@@ -249,7 +249,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             	if (strncmp(data.category, "zsk", 3) == 0) {
             		if (strncmp(data.name, "alg",3) == 0) policy->zsk->algorithm=data.value;
             		if (strncmp(data.name, "lifetime",8) == 0) policy->zsk->lifetime=data.value;
-            		if (strncmp(data.name, "sm",2) == 0) policy->zsk->sm=data.value;
+            		if (strncmp(data.name, "repository",10) == 0) policy->zsk->sm=data.value;
             		if (strncmp(data.name, "overlap",7) == 0) policy->zsk->overlap=data.value;
             		if (strncmp(data.name, "ttl",3) == 0) policy->zsk->ttl=data.value;
             		if (strncmp(data.name, "bits",4) == 0) policy->zsk->bits=data.value;
@@ -257,7 +257,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             	if (strncmp(data.category, "ksk", 3) == 0) {
             		if (strncmp(data.name, "alg",3) == 0) policy->ksk->algorithm=data.value;
             		if (strncmp(data.name, "lifetime",8) == 0) policy->ksk->lifetime=data.value;
-            		if (strncmp(data.name, "sm",2) == 0) policy->ksk->sm=data.value;
+            		if (strncmp(data.name, "repository",10) == 0) policy->ksk->sm=data.value;
             		if (strncmp(data.name, "overlap",7) == 0) policy->ksk->overlap=data.value;
             		if (strncmp(data.name, "ttl",3) == 0) policy->ksk->ttl=data.value;
             		if (strncmp(data.name, "rfc5011",7) == 0) policy->ksk->rfc5011=data.value;
