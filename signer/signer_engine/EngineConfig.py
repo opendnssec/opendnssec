@@ -51,7 +51,7 @@ class EngineConfiguration:
 
     def from_xml(self, xml_blob):
         """Searches the xml blob for the configuration values"""
-        xmlbs = Evaluate("Configuration/HSM/Repository", xml_blob)
+        xmlbs = Evaluate("Configuration/RepositoryList/Repository", xml_blob)
         for xmlb in xmlbs:
             token = {}
             token["name"] = Util.get_xml_data("Name", xmlb)

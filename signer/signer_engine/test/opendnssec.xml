@@ -3,13 +3,13 @@
 <!-- $Id$ -->
 
 <Configuration>
-	<HSM>
+	<RepositoryList>
 		<Repository>
 			<Name>test_token</Name>
 			<Module>../../../softHSM/src/lib/.libs/libsofthsm.so</Module>
 			<PIN>1111</PIN>
 		</Repository>
-	</HSM>
+	</RepositoryList>
 
 	<Enforcer>
 		<Interval>PT3600S</Interval>
