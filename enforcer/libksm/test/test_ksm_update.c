@@ -34,6 +34,7 @@
 #include "CUnit/Basic.h"
 
 #include "ksm.h"
+#include "datetime.h"
 #include "test_routines.h"
 
 

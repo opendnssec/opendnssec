@@ -35,6 +35,8 @@
 
 #include "ksm.h"
 #include "db_fields.h"
+#include "datetime.h"
+#include "string_util.h"
 #include "test_routines.h"
 
 /*+
@@ -103,7 +105,7 @@ static void TestKsmKeyPairCreate(void)
     int     smID = 1;
     int     size = 1024;
     int     alg = KSM_ALGORITHM_DSASHA1;
-    char*   generate = "2009-01-01";
+    char*   generate = DtParseDateTimeString("now");
 
     status = KsmKeyPairCreate(policy_id, HSMKeyID, smID, size, alg, generate, &key_id);
 
@@ -120,6 +122,8 @@ static void TestKsmKeyPairCreate(void)
 	CU_ASSERT_EQUAL(status, 0);
 
 	CU_ASSERT_EQUAL(rowcount, 1);
+
+	StrFree(generate);
 
 }
 

@@ -263,6 +263,9 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "rfc5011",7) == 0) policy->ksk->rfc5011=data.value;
             		if (strncmp(data.name, "bits",4) == 0) policy->ksk->bits=data.value;
             	}
+            	if (strncmp(data.category, "keys", 4) == 0) {
+            		if (strncmp(data.name, "zones_share_keys",4) == 0) policy->shared_keys=data.value;
+            	}
            		/* Ignore any unknown parameters */
 
                 status = KsmPolicyParameter(result, &data);
@@ -449,8 +452,8 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     /* Get the next row from the data */
     status = DbFetchRow(result, &row);
     if (status == 0) {
-        DbStringBuffer(row, DB_POLICY_SALT, policy->salt, KSM_SALT_LENGTH*sizeof(char));
-        DbStringBuffer(row, DB_POLICY_SALT_STAMP, policy->salt_stamp, KSM_TIME_LENGTH*sizeof(char));
+        DbStringBuffer(row, DB_POLICY_SALT, policy->denial->salt, KSM_SALT_LENGTH*sizeof(char));
+        DbStringBuffer(row, DB_POLICY_SALT_STAMP, policy->denial->salt_stamp, KSM_TIME_LENGTH*sizeof(char));
     }
     else if (status == -1) {
         /* No rows to return (but no error), policy_id doesn't exist? */
@@ -470,7 +473,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     DbFreeRow(row);
 
     /* Now see if this needs to be updated */
-    status = DtDateDiff(datetime_now, policy->salt_stamp, &time_diff);
+    status = DtDateDiff(datetime_now, policy->denial->salt_stamp, &time_diff);
 
     if (status == 0) {
         if (policy->denial->resalt > time_diff) {
@@ -481,18 +484,18 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
             /* TODO get this call into libhsmtools */
             /* newsaltint = hsm_getrand(policy->denial->saltlength); */
             newsaltint = 123456789;
-            sprintf(policy->salt, "%8X", newsaltint);
-            StrStrncpy(policy->salt_stamp, datetime_now, KSM_TIME_LENGTH);
+            sprintf(policy->denial->salt, "%8X", newsaltint);
+            StrStrncpy(policy->denial->salt_stamp, datetime_now, KSM_TIME_LENGTH);
 
             /* write these back to the database */
 #ifdef USE_MYSQL
             nchar = snprintf(buffer, sizeof(buffer),
                     "UPDATE policies SET salt = '%s' and salt_stamp = %s WHERE ID = %lu",
-                    policy->salt, policy->salt_stamp, (unsigned long) policy->id);
+                    policy->denial->salt, policy->denial->salt_stamp, (unsigned long) policy->id);
 #else
             nchar = snprintf(buffer, sizeof(buffer),
                     "UPDATE policies SET salt = '%s' and salt_stamp = DATETIME(%s) WHERE ID = %lu",
-                    policy->salt, policy->salt_stamp, (unsigned long) policy->id);
+                    policy->denial->salt, policy->denial->salt_stamp, (unsigned long) policy->id);
 #endif
             if (nchar < sizeof(buffer)) {
                 /* All OK, execute the statement */

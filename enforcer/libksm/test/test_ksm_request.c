@@ -45,8 +45,25 @@ int no_keys = 0;
  */
 static int TestCallbackFn(void* context, KSM_KEYDATA* data)
 {
-	printf("%s %lu %d %d %s\n", KsmKeywordStateValueToName(data->state),
-		data->keypair_id, data->keytype, data->algorithm, data->location);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\t\t\t<Key>\n");
+    fprintf(stderr, "\t\t\t\t<Flags>%d</Flags>\n", data->keytype);
+    fprintf(stderr, "\t\t\t\t<Algorithm>%d</Algorithm>\n", data->algorithm);
+    fprintf(stderr, "\t\t\t\t<Locator>%s</Locator>\n", data->location);
+    if (data->keytype == KSM_TYPE_KSK)
+    {
+        fprintf(stderr, "\t\t\t\t<KSK />\n");
+    }
+    else
+    {
+        fprintf(stderr, "\t\t\t\t<ZSK />\n");
+    }
+    fprintf(stderr, "\t\t\t\t<%s />\n", KsmKeywordStateValueToName(data->state));
+    fprintf(stderr, "\t\t\t</Key>\n");
+    fprintf(stderr, "\n");
+
+	/*printf("%s %lu %d %d %s\n", KsmKeywordStateValueToName(data->state),
+		data->keypair_id, data->keytype, data->algorithm, data->location); */
 
     no_keys++;
 

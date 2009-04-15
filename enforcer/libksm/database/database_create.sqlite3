@@ -225,6 +225,8 @@ insert into parameters (name, description, category_id) select "interval", "run 
 insert into parameters (name, description, category_id) select "keygeninterval", "interval between key generation runs", id from categories where name="enforcer";
 insert into parameters (name, description, category_id) select "backupdelay", "how old must a new key be before it can be assumed to have been backed up", id from categories where name="enforcer";
 
+insert into parameters (name, description, category_id) select "zones_share_keys", "do all zones on this policy share the same keys", id from categories where name="keys";
+
 -- default adapters
 insert into adapters (name, description) values ("file", "all signers should be able to read files.");
 insert into adapters (name, description) values ("axfr", "axfr adapter to the signer.");
@@ -273,3 +275,4 @@ INSERT INTO parameters_policies VALUES (36,35,2,3600);
 INSERT INTO parameters_policies VALUES (37,37,1,3600);
 INSERT INTO parameters_policies VALUES (38,38,1,7257600);
 INSERT INTO parameters_policies VALUES (39,39,1,259200);
+INSERT INTO parameters_policies VALUES (40,40,2,0);

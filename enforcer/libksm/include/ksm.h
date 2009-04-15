@@ -170,6 +170,8 @@ typedef struct {
 	int optout;
 	int ttl;
 	int saltlength;
+    char    salt[KSM_SALT_LENGTH];
+    char    salt_stamp[KSM_TIME_LENGTH];
 } KSM_DENIAL_POLICY;
 
 typedef struct {
@@ -198,8 +200,7 @@ typedef struct {
 	KSM_KEY_POLICY* ksk;
 	KSM_KEY_POLICY* zsk;
 	KSM_ENFORCER_POLICY* enforcer;
-    char    salt[KSM_SALT_LENGTH];
-    char    salt_stamp[KSM_TIME_LENGTH];
+    int     shared_keys;
 } KSM_POLICY;
 
 typedef struct {
