@@ -865,6 +865,14 @@ int DtDateDiff(const char* date1, const char* date2, int* result)
  *          2       Error - unable to translate string.
  *          3       Error - string too long to be a number.
  *          4       Error - invalid pointers or text string NULL.
+ *
+ * Known issues:
+ * 
+ *      1. Years and months are only approximate as it has no concept of "now"
+ *         We use 30 days = 1 month and 365 days = 1 year.
+ *      2. Can not parse mixed format, e.g. P1Y5M
+ *      3. The "T" only effects the value of "M" (P1S should be illegal as correctly
+ *         it would be PT1S)
 -*/
 
 int DtXMLIntervalSeconds(const char* text, int* interval)

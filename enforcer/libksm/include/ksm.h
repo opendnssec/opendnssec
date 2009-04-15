@@ -117,6 +117,7 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data);
 void KsmKeyEnd(DB_RESULT result);
 int KsmKeyQuery(const char* sql, DB_RESULT* result);
 int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
+int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count);
     
 /* delete */
 
@@ -299,6 +300,9 @@ void KsmPurge(void);
 #define KSM_SERIAL_COUNTER          2
 #define KSM_SERIAL_DATE_STRING      "datecounter"
 #define KSM_SERIAL_DATE             3
+
+#define KSM_KEYS_NOT_SHARED         0
+#define KSM_KEYS_SHARED             1
 
 /* Reserved parameters and default values (in seconds) */
 /* TODO redefine this properly:

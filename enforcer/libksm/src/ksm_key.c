@@ -621,6 +621,8 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *          The policy in question
  *      KSM_TYPE key_type
  *          KSK or ZSK
+ *      int shared_keys
+ *          0 if keys not shared between zones
  *      int interval
  *          timespan (in seconds)
  *      int *count
@@ -634,20 +636,39 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *              Other   Error
 -*/
 
-int ksmKeyPredict(int policy_id, int keytype, int interval, int *count)
+int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count)
 {
     int			    status = 0;		/* Status return */
 	KSM_PARCOLL     coll; /* Parameters collection */
 
-    /* Check that we have a valid key type */
+    KSM_HANDLE handle;
+	int zone_count = 0;
 
+    /* how many zones on this policy */
+    status = KsmZoneCountInit(&handle, policy_id);
+    if (status == 0) {
+        status = KsmZoneCount(handle, &zone_count);
+    }
+    KsmQueryFree(handle);
+
+    if (status == 0) {
+        /* make sure that we have at least one zone */
+        if (zone_count == 0) {
+            *count = 0;
+            return status;
+        }
+    } else {
+        *count = -1;
+        return status;
+    }
+
+    /* Check that we have a valid key type */
     if ((keytype != KSM_TYPE_KSK) && (keytype != KSM_TYPE_ZSK)) {
 		status = MsgLog(KME_UNKEYTYPE, keytype);
 		return status;
 	}
 
     /* Get list of parameters */
-
     status = KsmParameterCollection(&coll, policy_id);
     if (status != 0) {
         *count = -1;
@@ -662,6 +683,10 @@ int ksmKeyPredict(int policy_id, int keytype, int interval, int *count)
     else if (keytype == KSM_TYPE_ZSK)
     {
         *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.nemzskeys + 1;
+    }
+
+    if (shared_keys == KSM_KEYS_NOT_SHARED) {
+        *count *= zone_count;
     }
 
     return status;
