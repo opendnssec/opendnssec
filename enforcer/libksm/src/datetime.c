@@ -823,3 +823,168 @@ int DtDateDiff(const char* date1, const char* date2, int* result)
 
     return status;
 }
+
+/*+
+ * DtXMLIntervalSeconds - Parse xsd:durations Interval String
+ *
+ * Description:
+ *      Parses an interval string which is of the form:
+ *
+ *          P<number>
+ *      or  P<number><interval-type>
+ *      or  PT<number><interval-type> (if the interval-type is H, M or S)
+ *
+ *      Without an interval type, the interval is assumed to be in seconds.
+ *      Otherwise, the following interval types recognised are:
+ *
+ *          S       Seconds
+ *          M       Minutes - multiply number by 60 (no. seconds in a minute)
+ *          H       Hours - multiply number by 3600 (no. seconds in an hour)
+ *          D       Day - multiply number by 86400 (no. seconds in a day)
+ *          W       Week - multiply number by 604,800 (no. seconds in a week)
+ *          M       Month - multiply number by 2,592,000 (no. seconds in 30 days)
+ *          Y       Year - multiply number by 31,536,000 (no. seconds in 365 days)
+ *
+ *      Lower-case characters are not recognised.
+ *
+ *      Example: The string P2D would translate to 172,800
+ *
+ * Arguments:
+ *      const char* text
+ *          Interval as a string.
+ *
+ *      long* interval
+ *          Returned interval.
+ *
+ * Returns:
+ *      int
+ *         -1       Success, string translated OK _BUT_ may not be what was expected
+ *                          (Year or Month used which gives approximate answer).
+ *          0       Success, string translated OK
+ *          1       Error - invalid interval-type
+ *          2       Error - unable to translate string.
+ *          3       Error - string too long to be a number.
+ *          4       Error - invalid pointers or text string NULL.
+-*/
+
+int DtXMLIntervalSeconds(const char* text, int* interval)
+{
+    char    number[32];     /* Long enough for any number */
+    int     status = 0;     /* Status return */
+    int     length;         /* Length of the string */
+    int     length_mod = 0; /* How many characters have we chopped off the start? */
+    long    multiplier;     /* Multiplication factor */
+    short   is_time = 0;    /* Do we have a Time section or not */
+    short   warning = 0;    /* Do we need to a warning code for duration approximation? */
+    short   negative = 0;   /* Is the value negative ? */     
+    char    *ptr = text;    /* allow us to skip leading characters */
+
+    if (text && interval && *text) {
+
+        length = strlen(text);
+        /* do we have a negative number? */
+        if (*ptr == '-') {
+            negative = 1;
+            ptr++;
+            length_mod++;
+        }
+
+        /* Can I have a 'P' please Bob? */
+        if (*ptr == 'P') {
+            ptr++;
+            length_mod++;
+        }
+
+        /* if the next char is a T then we have a time, this changes the meaning of 'M' */
+        if (*ptr == 'T') {
+            is_time = 1;
+            ptr++;
+            length_mod++;
+        }
+
+        /* Is there a multiplier? If so, interpret it. */
+
+        if (isdigit(text[length - 1])) {
+            multiplier = 1;     /* No, set the factor to 1 */
+        }
+        else {
+            switch (text[length - 1]) {
+            case 'S':
+                multiplier = 1;
+                break;
+
+            case 'M':
+                if (is_time) {
+                    multiplier = 60;
+                } else {
+                    multiplier = 30 * 24 * 60 * 60;
+                    warning = 1;
+                }
+                break;
+
+            case 'H':
+                multiplier = 60 * 60;
+                break;
+
+            case 'D':
+                multiplier = 24 * 60 * 60;
+                break;
+
+            case 'W':
+                multiplier = 7 * 24 * 60 * 60;
+                break;
+
+            case 'Y':
+                multiplier = 365 * 24 * 60 * 60;
+                warning = 1;
+                break;
+
+            default:
+                status = 1;
+            }
+            --length;           /* Reduce bytes we are going to copy */
+        }
+
+        if (status == 0) {
+
+            /* Copy all but the multiplier to the buffer for interpretation */
+
+            if (length <= (long) (sizeof(number) - 1)) {
+                (void) memcpy(number, ptr, length - length_mod);
+                number[length - length_mod] = '\0';
+                status = StrStrtoi(number, interval);
+                if (status == 0) {
+
+                    /* Successful, conversion, factor in the multiplier */
+
+                    *interval *= multiplier;
+
+                    if (negative == 1) {
+                        *interval = 0 - *interval;
+                    }
+
+                    if (warning == 1) {
+                        status = -1;
+                    }
+                }
+                else {
+                    status = 2;     /* Can't translate string/overflow */
+                }
+            }
+            else {
+
+                /* String is too long to be a valid number */
+
+                status = 3;
+            }
+        }
+    }
+    else {
+
+        /* Input pointers NULL or empty string */
+
+        status = 4;
+    }
+
+    return status;
+}

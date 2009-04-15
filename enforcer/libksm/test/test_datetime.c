@@ -566,8 +566,6 @@ static void CheckValidIntervalSeconds(const char* string, int einterval)
     return;
 }
 
-
-
 /*+
  * TestDtIntervalSeconds - Test DtIntervalSeconds
 -*/
@@ -731,7 +729,93 @@ static void TestDtDateDiff(void)
     CheckDtDateDiff("fred", "2001-01-01 23:12:22", 1, 0);
 }
 
+/*+
+ * CheckValidXMLIntervalSeconds - Perform Test on Valid String
+ *
+ * Description:
+ *      Performs the tests on DtXMLIntervalSecond son the strings that are supposed
+ *      to be valid.
+ *
+ * Arguments:
+ *      const char* string
+ *          String to test.
+ *
+ *      long einterval
+ *          Expected interval.
+-*/
 
+static void CheckValidXMLIntervalSeconds(const char* string, int einterval, int estatus)
+{
+    int interval;
+    int status;
+
+    status = DtXMLIntervalSeconds(string, &interval);
+    CU_ASSERT_EQUAL(status, estatus);
+    CU_ASSERT_EQUAL(interval, einterval);
+
+    return;
+}
+
+/*+
+ * TestDtXMLIntervalSeconds - Test DtXMLIntervalSeconds
+-*/
+
+static void TestDtXMLIntervalSeconds(void)
+{
+    int     interval;
+    int     status;
+
+    /* Valid values, return status = 0 */
+
+    CheckValidXMLIntervalSeconds("P1", 1L, 0);
+    CheckValidXMLIntervalSeconds("P234", 234L, 0);
+    CheckValidXMLIntervalSeconds("P1223S", 1223L, 0);
+    CheckValidXMLIntervalSeconds("PT1M", 60L, 0);
+    CheckValidXMLIntervalSeconds("PT15M", 900L, 0);
+    CheckValidXMLIntervalSeconds("P2H", 7200L, 0);
+    CheckValidXMLIntervalSeconds("PT2H", 7200L, 0);
+    CheckValidXMLIntervalSeconds("P24H", 86400L, 0);
+    CheckValidXMLIntervalSeconds("PT24H", 86400L, 0);
+    CheckValidXMLIntervalSeconds("P1D", 86400L, 0);
+    CheckValidXMLIntervalSeconds("P7D", 604800L, 0);
+    CheckValidXMLIntervalSeconds("P1W", 604800L, 0);
+    CheckValidXMLIntervalSeconds("P52W", 31449600L, 0);
+    CheckValidXMLIntervalSeconds("-PT1M", -60L, 0);
+
+    /* Valid but return -1 */
+    CheckValidXMLIntervalSeconds("P1M", 2592000L, -1);
+    CheckValidXMLIntervalSeconds("P15M", 38880000L, -1);
+    CheckValidXMLIntervalSeconds("P1Y", 31536000L, -1);
+
+
+    /* Invalid ones */
+
+    status = DtXMLIntervalSeconds(NULL, NULL);
+    CU_ASSERT_EQUAL(status, 4);
+    status = DtXMLIntervalSeconds("1d", NULL);
+    CU_ASSERT_EQUAL(status, 4);
+    status = DtXMLIntervalSeconds(NULL, &interval);
+    CU_ASSERT_EQUAL(status, 4);
+    status = DtXMLIntervalSeconds("", &interval);
+    CU_ASSERT_EQUAL(status, 4);
+
+    status = DtXMLIntervalSeconds("1234567890123456789012345678901234567890",
+        &interval);
+    CU_ASSERT_EQUAL(status, 3);
+    status = DtXMLIntervalSeconds("1234567890123456789012345678901",
+        &interval);
+    CU_ASSERT_EQUAL(status, 2);     /* Overflow */
+
+    status = DtXMLIntervalSeconds("1WW", &interval);
+    CU_ASSERT_EQUAL(status, 2);
+    status = DtXMLIntervalSeconds("2 2W", &interval);
+    CU_ASSERT_EQUAL(status, 2);
+
+    status = DtXMLIntervalSeconds("2a", &interval);
+    CU_ASSERT_EQUAL(status, 1);
+
+    return;
+}
 
 /*
  * TestDt - Create Test Suite
@@ -761,6 +845,7 @@ int TestDt(void)
         {"DtIntervalSeconds",   TestDtIntervalSeconds},
         {"DtSecondsInterval",   TestDtSecondsInterval},
         {"DtDateDiff",          TestDtDateDiff},
+        {"DtXMLIntervalSeconds",TestDtXMLIntervalSeconds},
         {NULL,                  NULL}
     };
 

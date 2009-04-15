@@ -42,6 +42,7 @@ char* DtParseDateTimeString(const char* string);
 int DtIntervalSeconds(const char* number, int* interval);
 void DtSecondsInterval(int interval, char* text, size_t textlen);
 int DtDateDiff(const char* date1, const char* date2, int* diff);
+int DtXMLIntervalSeconds(const char* number, int* interval);
 
 #ifdef __cplusplus
 };
