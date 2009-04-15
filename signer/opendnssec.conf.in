@@ -3,7 +3,7 @@
 	<RepositoryList>
 		<Repository>
 			<Name>softHSM</Name>
-			<Module>@libdir@/libsofthsm.so</Module>
+			<Module>@prefix@/lib/libsofthsm.so</Module>
 			<PIN>test:5678</PIN>
 		</Repository>
 	</RepositoryList>
@@ -15,10 +15,10 @@
 	</Enforcer>
 
 	<Signer>
-		<WorkingDirectory>@localstatedir@dnssec/tmp</WorkingDirectory>
-		<ZoneListFile>@localstatedir@dnssec/zonelist.xml</ZoneListFile>
+		<WorkingDirectory>@prefix@/var/dnssec/tmp</WorkingDirectory>
+		<ZoneListFile>@prefix@/var/dnssec/zonelist.xml</ZoneListFile>
 		<!-- toolsdir will be removed, but is used for testing atm -->
-		<ToolsDirectory>@bindir@</ToolsDirectory>
+		<ToolsDirectory>@prefix@/bin</ToolsDirectory>
 	</Signer>
 
 </Configuration>
