@@ -59,7 +59,7 @@ AC_ARG_WITH(libxml2,
   if test "x$XML_PATH" = "x"; then
      AC_PATH_PROGS(XML_CONFIG, xml2-config, xml2-config, $PATH)
   else
-     AC_PATH_PROGS(XML_CONFIG, xml2-config, xml2-config, $MYSQL_PATH/bin)
+     AC_PATH_PROGS(XML_CONFIG, xml2-config, xml2-config, $XML_PATH/bin)
   fi
   if test -x "$XML_CONFIG"
   then
