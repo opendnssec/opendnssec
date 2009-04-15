@@ -560,7 +560,7 @@ SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
   return keyObject;
 }
 
-// Delete an object and its attributes, if the PIN is correct.
+// Delete an object and its attributes.
 // The trigger in the database removes the attributes.
 
 void SoftDatabase::deleteObject(CK_OBJECT_HANDLE objRef) {
