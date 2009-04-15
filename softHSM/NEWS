@@ -8,6 +8,7 @@ New in 1.0-RC2; 2009-0X-XX Rickard Bondesson
 * SoftHSM will not add a default label/ID to a key pair when the
   key pair is generated, as were the case in the previous
   versions.
+* Improved database handling
 
 New in 1.0-RC1; 2009-03-10 Rickard Bondesson
 

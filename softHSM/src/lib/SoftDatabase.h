@@ -68,8 +68,7 @@ class SoftDatabase {
       CK_ULONG ulPrivateKeyAttributeCount, RandomNumberGenerator *rng);
     void deleteObject(CK_OBJECT_HANDLE objRef);
 
-    void saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
-    void saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber);
+    CK_RV saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValue, CK_ULONG ulValueLen);
 
   private:
     sqlite3 *db;
