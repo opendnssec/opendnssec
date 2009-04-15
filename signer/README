@@ -30,7 +30,8 @@ http://www.NLnetLabs.nl/projects/ldns
 and can only be used in conjuction with a PKCS#11 library (a software
 version of which, softHSM, is supplied with the OpenDNSSEC).
 
-The python part of the engine depends on python-xml.
+The python part of the engine depends on the 4suite implementation of
+xml (the package name for Ubuntu is python-4suite-xml).
 
 
 INSTALLATION
