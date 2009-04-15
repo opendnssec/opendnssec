@@ -1,0 +1,60 @@
+$Id$
+
+The signer engine and its tools are part of the OpenDNSSEC project.
+For more information, visit http://www.opendnssec.org
+
+INTRODUCTION
+
+As part of the OpenDNSSEC project, the task of the signer engine is to
+schedule signing operation on DNS zones. Taking input from the KASP, it
+will automatically sign zones and keep their signatures up-to-date.
+
+In this version, it can only do file-to-file signing, and not use AXFR
+or IXFR. When a zone has changed, the engine can run a specified
+command, for instance to signal an actual DNS server that it should
+reload its zones.
+
+The current signer engine consists of two parts; The actual scheduler
+and a set of tools to do zone manipulation.
+
+The scheduler is written in Python and is run as a daemon. When a zone
+needs to be sorted or (re)signed, it will call the necessary tools,
+which are written in C, to do the actual work. It uses a
+worker/task-queue design, where the worker threads will suspend
+until there is something to do. 
+
+DEPENDENCIES
+
+The C-based tools depend on the ldns library
+http://www.NLnetLabs.nl/projects/ldns
+and can only be used in conjuction with a PKCS#11 library (a software
+version of which, softHSM, is supplied with the OpenDNSSEC).
+
+The python part of the engine depends on python-xml.
+
+
+INSTALLATION
+
+To build and install the signer engine, the following steps are needed:
+
+From the base directory <opendnssec>/signer
+
+autoreconf --install
+./configure
+make
+make install
+
+This will build the C-based tools, and set up the tools and engine to
+use the options provided with configure:
+
+--with-ldns=<dir> The base directory (prefix) of your ldns installation,
+                  if it isn't in your standard path.
+--prefix=<dir>    Installation directory. All files will be installed
+                  relative to this path, and default search paths will
+                  be relative to the prefix. Defaults to /usr/local
+
+
+The tools, and the main engine invocation script, will be installed in
+<prefix>/bin
+The python libraries will be installed in
+<prefix>/lib/python/signer_engine/
