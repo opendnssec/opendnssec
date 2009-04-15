@@ -1,0 +1,24 @@
+<Configuration>
+
+	<RepositoryList>
+		<Repository>
+			<Name>softHSM</Name>
+			<Module>@libdir@/libsofthsm.so</Module>
+			<PIN>test:5678</PIN>
+		</Repository>
+	</RepositoryList>
+
+	<Enforcer>
+		<Interval>PT3600S</Interval>
+		<KeygenInterval>P3M</KeygenInterval>
+		<BackupDelay>P3D</BackupDelay>
+	</Enforcer>
+
+	<Signer>
+		<WorkingDirectory>@localstatedir@dnssec/tmp</WorkingDirectory>
+		<ZoneListFile>@localstatedir@dnssec/zonelist.xml</ZoneListFile>
+		<!-- toolsdir will be removed, but is used for testing atm -->
+		<ToolsDirectory>@bindir@</ToolsDirectory>
+	</Signer>
+
+</Configuration>

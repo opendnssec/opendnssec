@@ -1,6 +1,6 @@
 srcdir=@srcdir@
 bindir=@bindir@
-libdir=@libdir!
+libdir=@libdir@
 
 CC=@CC@
 CFLAGS=@CFLAGS@ -Wall -Werror -I. -I${srcdir}
