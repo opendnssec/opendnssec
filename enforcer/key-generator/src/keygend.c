@@ -19,12 +19,28 @@
 #include "ksm.h"
 #include "kaspaccess.h"
 
+#include <uuid/uuid.h>
+#include "datetime.h"
+#include "string_util.h"
+
 int
 server_init(DAEMONCONFIG *config)
 {
   /* May remove this function if I decide we don't need it */
   return 0;
 }
+
+char*
+dummy_hsm_keygen(){
+  uuid_t uuid;
+  char* retval = NULL;
+  char uuid_text[37];
+  uuid_generate(uuid);
+  uuid_unparse(uuid, uuid_text);
+  retval = StrStrdup(uuid_text);
+  return retval;
+}
+
 
 /*
 * Main loop of keygend server
@@ -35,7 +51,11 @@ server_main(DAEMONCONFIG *config)
   DB_RESULT handle;
   DB_HANDLE	dbhandle;
 	int status = 0;
-
+  int count = 0;
+  int i = 0;
+  char *uuid;
+  char *rightnow;
+  DB_ID* ignore;
 	KSM_POLICY *policy;
 	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
 	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
@@ -52,9 +72,9 @@ server_main(DAEMONCONFIG *config)
 	while (1) {
 		
 		/* Read the special policy update the config struct and get the latest keygeninterval etc*/
-    status = kaspReadConfig(config);
+    status = ReadConfig(config);
     if (status != 0) {
-      log_msg(config, LOG_ERR, "Error querying KASP DB for the special policy");
+      log_msg(config, LOG_ERR, "Error reading config");
       exit(1);
     }
     
@@ -65,19 +85,31 @@ server_main(DAEMONCONFIG *config)
 			status = KsmPolicy(handle, policy);
 			while (status == 0) {
 			  log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
-//				/* For all but the special policy */
-//			if (strncmp(policy->name, "opendnssec", 10) != 0) {
-//				
-//
-//				/* Clear the policy struct */
-//				kaspSetPolicyDefaults(policy, policy->name);
-//
-//					/* Read the parameters for that policy */
-//					status = kaspReadPolicy(policy);
-//
-//					/* Create keys for policy */
-//					/* status = Createkeys(config, policy); */
-//				}
+				/* Clear the policy struct */
+				kaspSetPolicyDefaults(policy, policy->name);
+
+			/* Read the parameters for that policy */
+			status = kaspReadPolicy(policy);
+			
+			rightnow = DtParseDateTimeString("now");
+			/* Find out how many ksk keys are needed */
+      status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, 0, config->keygeninterval, &count);
+      for (i=count ; i > 0 ; i--){
+        uuid = dummy_hsm_keygen();
+        status = KsmKeyPairCreate(policy->id, uuid, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, ignore);
+        log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM ID:  %i .", policy->ksk->bits, policy->ksk->algorithm, uuid, policy->ksk->sm);
+        StrFree(uuid);
+      }
+      /* Find out how many zsk keys are needed */
+      status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, 0, config->keygeninterval, &count);
+      for (i = count ; i > 0 ; i--){
+        uuid = dummy_hsm_keygen();
+        status = KsmKeyPairCreate(policy->id, uuid, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, ignore);
+        log_msg(config, LOG_INFO, "Created ZSK with size: %i, alg: %i with uuid: %s in HSM ID:  %i .", policy->zsk->bits, policy->zsk->algorithm, uuid, policy->zsk->sm);
+        StrFree(uuid);
+      }
+      StrFree(rightnow);
+      
 				/* get next policy */
 				status = KsmPolicy(handle, policy);
 			}

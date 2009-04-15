@@ -7,3 +7,4 @@
 */
 
 void keygensleep(DAEMONCONFIG* config);
+int ReadConfig(DAEMONCONFIG *config);

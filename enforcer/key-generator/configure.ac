@@ -52,6 +52,28 @@ AC_MSG_RESULT($KSM_LIBS)
 AC_SUBST(KSM_INCLUDES)
 AC_SUBST(KSM_LIBS)
 
+AC_ARG_WITH(libxml2,
+[  --with-libxml2=DIR     Look for libxml2 in this dir ],
+  [ XML_PATH="$withval"]
+)
+  if test "x$XML_PATH" = "x"; then
+     AC_PATH_PROGS(XML_CONFIG, xml2-config, xml2-config, $PATH)
+  else
+     AC_PATH_PROGS(XML_CONFIG, xml2-config, xml2-config, $MYSQL_PATH/bin)
+  fi
+  if test -x "$XML_CONFIG"
+  then
+     AC_MSG_CHECKING(what are the libxml2 includes)
+     XML_INCLUDES="`$XML_CONFIG --cflags`"
+     AC_MSG_RESULT($XML_INCLUDES)
+     AC_MSG_CHECKING(what are the libxml2 libs)
+     XML_LIBS="`$XML_CONFIG --libs`"
+     AC_MSG_RESULT($XML_LIBS)
+  fi
+
+AC_SUBST(XML_INCLUDES)
+AC_SUBST(XML_LIBS)
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
