@@ -49,6 +49,19 @@ using std::string;
     return 0; \
   }
 
+// Prepare the SQL statement
+#define PREP_STMT(str, sql) \
+  if(sqlite3_prepare_v2(db, str, -1, sql, NULL)) { \
+    return CKR_TOKEN_NOT_PRESENT; \
+  }
+
+// Finalize the prepared statement
+#define FINALIZE_STMT(prep) \
+  if(prep != NULL) { \
+    sqlite3_finalize(prep); \
+  }
+
+
 SoftDatabase::SoftDatabase() {
   db = NULL_PTR;
   token_info_sql = NULL;
@@ -73,45 +86,16 @@ SoftDatabase::~SoftDatabase() {
   //
   // But requires SQLite3 >= 3.6.0 beta
 
-  if(token_info_sql != NULL) {
-    sqlite3_finalize(token_info_sql);
-  }
-
-  if(select_attri_id_sql != NULL) {
-    sqlite3_finalize(select_attri_id_sql);
-  }
-
-  if(update_attribute_sql != NULL) {
-    sqlite3_finalize(update_attribute_sql);
-  }
-
-  if(insert_attribute_sql != NULL) {
-    sqlite3_finalize(insert_attribute_sql);
-  }
-
-  if(insert_object_key_sql != NULL) {
-    sqlite3_finalize(insert_object_key_sql);
-  }
-
-  if(update_object_key_sql != NULL) {
-    sqlite3_finalize(update_object_key_sql);
-  }
-
-  if(select_object_id_sql != NULL) {
-    sqlite3_finalize(select_object_id_sql);
-  }
-
-  if(select_object_key_sql != NULL) {
-    sqlite3_finalize(select_object_key_sql);
-  }
-
-  if(select_attribute_sql != NULL) {
-    sqlite3_finalize(select_attribute_sql);
-  }
-
-  if(delete_object_sql != NULL) {
-    sqlite3_finalize(delete_object_sql);
-  }
+  FINALIZE_STMT(token_info_sql);
+  FINALIZE_STMT(select_attri_id_sql);
+  FINALIZE_STMT(update_attribute_sql);
+  FINALIZE_STMT(insert_attribute_sql);
+  FINALIZE_STMT(insert_object_key_sql);
+  FINALIZE_STMT(update_object_key_sql);
+  FINALIZE_STMT(select_object_id_sql);
+  FINALIZE_STMT(select_object_key_sql);
+  FINALIZE_STMT(select_attribute_sql);
+  FINALIZE_STMT(delete_object_sql);
 
   sqlite3_close(db);
 }
@@ -146,66 +130,26 @@ CK_RV SoftDatabase::init(char *dbPath) {
   }
 
   // Create prepared statements
-
-  const char token_info_str[] = "SELECT value FROM Token where variableID = ?;";
-  result = sqlite3_prepare_v2(db, token_info_str, -1, &token_info_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
-  const char select_attri_id_str[] = "SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
-  result = sqlite3_prepare_v2(db, select_attri_id_str, -1, &select_attri_id_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
-  const char update_attribute_str[] = "UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
-  result = sqlite3_prepare_v2(db, update_attribute_str, -1, &update_attribute_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
-  const char insert_attribute_str[] = "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
-  result = sqlite3_prepare_v2(db, insert_attribute_str, -1, &insert_attribute_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
+  const char token_info_str[] =        "SELECT value FROM Token where variableID = ?;";
+  const char select_attri_id_str[] =   "SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
+  const char update_attribute_str[] =  "UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
+  const char insert_attribute_str[] =  "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
   const char insert_object_key_str[] = "INSERT INTO Objects (encodedKey) VALUES (?);";
-  result = sqlite3_prepare_v2(db, insert_object_key_str, -1, &insert_object_key_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
   const char update_object_key_str[] = "UPDATE Objects SET encodedKey = ? WHERE objectID = ?;";
-  result = sqlite3_prepare_v2(db, update_object_key_str, -1, &update_object_key_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
-  const char select_object_id_str[] = "SELECT objectID FROM Objects;";
-  result = sqlite3_prepare_v2(db, select_object_id_str, -1, &select_object_id_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
+  const char select_object_id_str[] =  "SELECT objectID FROM Objects;";
   const char select_object_key_str[] = "SELECT encodedKey from Objects WHERE objectID = ?;";
-  result = sqlite3_prepare_v2(db, select_object_key_str, -1, &select_object_key_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
-  const char select_attribute_str[] = "SELECT type,value,length from Attributes WHERE objectID = ?;";
-  result = sqlite3_prepare_v2(db, select_attribute_str, -1, &select_attribute_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
-
-  const char delete_object_str[] = "DELETE FROM Objects WHERE objectID = ?;";
-  result = sqlite3_prepare_v2(db, delete_object_str, -1, &delete_object_sql, NULL);
-  if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
-  }
+  const char select_attribute_str[] =  "SELECT type,value,length from Attributes WHERE objectID = ?;";
+  const char delete_object_str[] =     "DELETE FROM Objects WHERE objectID = ?;";
+  PREP_STMT(token_info_str, &token_info_sql);
+  PREP_STMT(select_attri_id_str, &select_attri_id_sql);
+  PREP_STMT(update_attribute_str, &update_attribute_sql);
+  PREP_STMT(insert_attribute_str, &insert_attribute_sql);
+  PREP_STMT(insert_object_key_str, &insert_object_key_sql);
+  PREP_STMT(update_object_key_str, &update_object_key_sql);
+  PREP_STMT(select_object_id_str, &select_object_id_sql);
+  PREP_STMT(select_object_key_str, &select_object_key_sql);
+  PREP_STMT(select_attribute_str, &select_attribute_sql);
+  PREP_STMT(delete_object_str, &delete_object_sql);
 
   return CKR_OK;
 }
