@@ -149,4 +149,4 @@ AM_INIT_AUTOMAKE
 
 AC_CONFIG_HEADERS([tools/config.h])
 AC_PROG_INSTALL
-AC_OUTPUT(Makefile opendnssec.conf tools/Makefile engine/signer_engine)
+AC_OUTPUT(Makefile opendnssec.conf tools/Makefile signer_engine/signer_engine)
