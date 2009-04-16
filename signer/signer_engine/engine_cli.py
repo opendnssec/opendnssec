@@ -2,6 +2,8 @@
 """Simple command line interface to the command channel of the signer
 engine"""
 
+import optparse
+
 #
 # simple python command line interface to the signer engine
 #
@@ -44,14 +46,27 @@ def engine_cli(args, host="localhost", port=47806):
     """Command interface to engine, args is a List of strings, if not
     None or empty, the list will be concatenated and sent to the engine
     at host:port"""
-    cl_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    cl_sock.connect((host, port))
-    if args and len(args) > 1:
-        send_msg(" ".join(args[1:]) + "\n", cl_sock)
-    else:
-        run()
-    cl_sock.shutdown(0)
+    try:
+        cl_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        cl_sock.connect((host, port))
+        if args and len(args) > 0:
+            send_msg(" ".join(args) + "\n", cl_sock)
+        else:
+            run(cl_sock)
+        cl_sock.shutdown(0)
+    except socket.error, serr:
+        print "Error connecting to " + host + ":" + str(port) + ": " + str(serr)
+def parse_args():
+    """Parse port and host options"""
+    try:
+        parser = optparse.OptionParser()
+        parser.add_option("-n", "--host", dest="host", default="localhost")
+        parser.add_option("-p", "--port", dest="port", default=47806)
+        (options, arguments) = parser.parse_args()
+        engine_cli(arguments, options.host, int(options.port))
+    except ValueError, vae:
+        print str(vae)
 
 if __name__ == "__main__":
     # if we have no arguments, go to interactive mode
-    engine_cli(sys.argv)
+    parse_args()
