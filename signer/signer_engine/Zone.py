@@ -168,6 +168,24 @@ class Zone:
                 return True
         return False
 
+    def check_key_values(self, k):
+        """Checks whether some derivable key attributes have been
+        stored yet (i.e. the DNSKEY string)"""
+        if not k["dnskey"]:
+            try:
+                syslog.syslog(syslog.LOG_DEBUG,
+                              "No information yet for key " +\
+                              k["locator"])
+                if not self.find_key_details(k):
+                    syslog.syslog(syslog.LOG_ERR,
+                                  "Error: could not find key "+\
+                                  k["locator"])
+            except ToolException, exc:
+                syslog.syslog(syslog.LOG_ERR,
+                              "Error: Unable to find key " +\
+                              k["locator"])
+                syslog.syslog(syslog.LOG_ERR, str(exc))
+
     def sort(self):
         """Sort the zone according to the relevant signing details
         (either in 'normal' or 'NSEC3' space). The zone is read from
@@ -178,20 +196,7 @@ class Zone:
                       "Sorting zone: " + self.zone_name)
 
         for k in self.zone_config.publish_keys:
-            if not k["dnskey"]:
-                try:
-                    syslog.syslog(syslog.LOG_DEBUG,
-                                  "No information yet for key " +\
-                                  k["locator"])
-                    if not self.find_key_details(k):
-                        syslog.syslog(syslog.LOG_ERR,
-                                      "Error: could not find key "+\
-                                      k["locator"])
-                except ToolException, exc:
-                    syslog.syslog(syslog.LOG_ERR,
-                                  "Error: Unable to find key " +\
-                                  k["locator"])
-                    syslog.syslog(syslog.LOG_ERR, str(exc))
+            self.check_key_values(k)
 
         cmd = [ self.get_tool_filename("sorter"),
                 "-o", self.zone_name,

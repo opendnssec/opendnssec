@@ -144,9 +144,20 @@ class Engine:
                       "Received command: '" + command + "'")
         response = "unknown command"
         try:
+            if command[:4] == "help":
+                lst = [
+                 "Commands:",
+                 "zones           show the currently known zones",
+                 "sign <zone>     schedule zone for immediate signing",
+                 "queue           show the current task queue",
+                 "flush           execute all scheduled tasks immediately",
+                 "update          re-read the zonelist xml file",
+                 "                and check for changed zoneconf.xml files",
+                 "verbosity <nr>  set verbosity (notimpl)"]
+                response = "\n".join(lst)
             if command[:5] == "zones":
                 response = self.get_zones()
-            if command[:9] == "sign zone":
+            if command[:4] == "sign":
                 self.schedule_signing(args[2])
                 response = "Zone scheduled for immediate resign"
             if command[:9] == "verbosity":

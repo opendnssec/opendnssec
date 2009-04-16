@@ -31,7 +31,7 @@ class EngineConfiguration:
         self.zonelist_file = None
         self.zone_tmp_dir = None
         self.tools_dir = None
-        self.notify_script = None
+        self.notify_command = None
         if config_file_name:
             self.read_config_file(config_file_name)
         
@@ -73,7 +73,6 @@ class EngineConfiguration:
         self.notify_command = \
              Util.get_xml_data("Configuration/Signer/NotifyCommand",
                                xml_blob, True)
-        # TODO: defaults! (for which we need some ./configure etc)
 
     def check_config(self):
         """Verifies whether the configuration is correct for the

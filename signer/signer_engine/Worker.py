@@ -171,11 +171,11 @@ class Worker(threading.Thread):
                 syslog.syslog(syslog.LOG_INFO,
                               "no task for worker, sleep for " +\
                               str(self.queue.time_till_next(now)))
-                next = self.queue.time_till_next(now)
-                if next == 0:
+                interval = self.queue.time_till_next(now)
+                if interval == 0:
                     self.condition.wait()
                 else:
-                    self.condition.wait(next)
+                    self.condition.wait(interval)
                 
             self.condition.release()
 
