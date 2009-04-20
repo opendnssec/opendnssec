@@ -350,6 +350,15 @@ int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
     status = KsmParameterValue(KSM_PAR_ZSKTTL_STRING, KSM_PAR_ZSKTTL_CAT, &(data->zskttl), policy_id, &param_id);
     if (status > 0) return status;
 
+    status = KsmParameterValue(KSM_PAR_KSKTTL_STRING, KSM_PAR_KSKTTL_CAT, &(data->kskttl), policy_id, &param_id);
+    if (status > 0) return status;
+
+    status = KsmParameterValue(KSM_PAR_KSKPROPDELAY_STRING, KSM_PAR_KSKPROPDELAY_CAT, &(data->kskpropdelay), policy_id, &param_id);
+    if (status > 0) return status;
+
+    status = KsmParameterValue(KSM_PAR_REGDELAY_STRING, KSM_PAR_REGDELAY_CAT, &(data->regdelay), policy_id, &param_id);
+    if (status > 0) return status;
+
     status = KsmParameterValue(KSM_PAR_PUBSAFETY_STRING, KSM_PAR_PUBSAFETY_CAT, &(data->pub_safety), policy_id, &param_id);
     if (status > 0) return status;
 

@@ -198,23 +198,28 @@ void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 
 void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 {
-    int deltat;     /* Time interval */
+    int deltat;  /* Time interval */
+    int Ipc;     /* Child zone publication interval */
+    int Ipp;     /* Parent zone publication interval */
 
     DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'publish' - updating\n",
         (int) data->keypair_id);
 
+    Ipc = MAX(collection->zskttl, MIN(collection->soattl, collection->soamin)) +
+            collection->propdelay + collection->pub_safety;
+    if (data->keytype == KSM_TYPE_ZSK) {
     /*
      * A key in the "publish" state moves into the "ready" state when it has
      * been published for at least:
      *
-     *      max(TTLkey, C) + Dp +Sp
+     *      Ipc = max(TTLkeyc, Cc) + Dpc +Sp
      *
      * ... where:
      *
-     *      TTLkey  = TTL of the ZSK DNSKEY record
-     *      C       = SOA negative cache time, 
-     *      Dp      = Propagation delay
-     *      Sp      = Publish Safety Margin
+     *      TTLkeyc  = TTL of the ZSK DNSKEY record
+     *      Cc       = SOA negative cache time, 
+     *      Dpc      = Propagation delay
+     *      Sp       = Publish Safety Margin
      *
      * The negative cache time is given as:
      *
@@ -224,8 +229,40 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      * the "Minimum" field of the SOA record.
      */
 
-    deltat = MAX(collection->zskttl, MIN(collection->soattl, collection->soamin)) +
-        collection->propdelay + collection->pub_safety;
+        deltat = Ipc;
+    }
+    else if (data->keytype == KSM_TYPE_KSK) {
+    /*
+     * A key in the "publish" state moves into the "ready" state when it has
+     * been published for at least:
+     *
+     *      max(Ipc, Ipp)
+     *  where
+     *      Ipp = max(TTLdsp, Cp) + Dpp + Dr +Sp
+     *
+     * ... where:
+     *
+     *      TTLdsp  = TTL of the DS record in the parent
+     *      Cp      = SOA negative cache time (of parent), 
+     *      Dpp     = Propagation delay
+     *      Dr      = Registration delay
+     *      Sp      = Publish Safety Margin
+     *
+     * The negative cache time is given as:
+     *
+     *      MIN(TTLsoa, SOAmin)
+     *
+     * ... where TTLsoa is the TTL of the SOA record and SOAmin is the value of
+     * the "Minimum" field of the SOA record.
+     */
+    Ipp = MAX(collection->kskttl, MIN(collection->soattl, collection->soamin)) +
+            collection->kskpropdelay + collection->regdelay + collection->pub_safety;
+
+        deltat = MAX(Ipc, Ipp);
+
+    }
+    /* TODO cope with keytype not matching either? */
+
 
     (void) KsmUpdateKeyTime(data, "PUBLISH", "READY", deltat);
 
@@ -263,7 +300,12 @@ void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      *      Lz = Life time of a ZSK (i.e. how long it is used for)
      */
 
-    deltat = collection->zsklife;
+    if (data->keytype == KSM_TYPE_ZSK) {
+        deltat = collection->zsklife;
+    }
+    else if (data->keytype == KSM_TYPE_KSK) {
+        deltat = collection->ksklife;
+    }
 
     (void) KsmUpdateKeyTime(data, "ACTIVE", "RETIRE", deltat);
 
@@ -290,7 +332,13 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      *      St      = Retire safety margin
      */
 
-    deltat = data->siglifetime + collection->propdelay + collection->ret_safety;
+    if (data->keytype == KSM_TYPE_ZSK) {
+        deltat = data->siglifetime + collection->propdelay + collection->ret_safety;
+    }
+    else if (data->keytype == KSM_TYPE_KSK) {
+        /* for a KSK this can be 0; are we happy with that? Might revisit this in the future */
+        deltat = 0;
+    }
 
     (void) KsmUpdateKeyTime(data, "RETIRE", "DEAD", deltat);
 

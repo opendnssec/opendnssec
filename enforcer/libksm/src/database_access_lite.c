@@ -279,8 +279,8 @@ void DbFreeResult(DB_RESULT result)
  *
  * Returns:
  * 		int
- * 			SQLITE_ROW	Success, row information returned
- * 			SQLITE_DONE Success, no more rows for this result
+ * 			0	Success, row information returned
+ * 			-1  Success, no more rows for this result
  * 			Other	    Error code or error number from DbErrno().
 -*/
 

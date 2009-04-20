@@ -96,6 +96,20 @@ int KsmParameterZskTtl(KSM_PARCOLL* collection)
     return collection->zskttl;
 }
 
+int KsmParameterKskTtl(KSM_PARCOLL* collection)
+{
+    return collection->kskttl;
+}
+
+int KsmParameterKskPropagationDelay(KSM_PARCOLL* collection)
+{
+    return collection->kskpropdelay;
+}
+int KsmParameterRegistrationDelay(KSM_PARCOLL* collection)
+{
+    return collection->regdelay;
+}
+
 int KsmParameterPubSafety(KSM_PARCOLL* collection)
 {
     return collection->pub_safety;

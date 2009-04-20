@@ -844,7 +844,7 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
                 status = KsmRequestChangeStateGeneratePublish(keytype,
                     datetime, newkeys);
             }
-            /* TODO what if there are not? */
+            /* TODO what if there are not? Log something at an agreed level? */
         }
     }
 

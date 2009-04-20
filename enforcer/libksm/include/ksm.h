@@ -318,7 +318,7 @@ void KsmPurge(void);
 #define KSM_PAR_KSKLIFE_CAT             "ksk"
 #define KSM_PAR_PROPDELAY               3600        /* 1 hour */
 #define KSM_PAR_PROPDELAY_STRING        "propagationdelay"
-#define KSM_PAR_PROPDELAY_CAT           "parent"
+#define KSM_PAR_PROPDELAY_CAT           "zone"
 #define KSM_PAR_NEMKSKEYS               1
 #define KSM_PAR_NEMKSKEYS_STRING        "emergency"
 #define KSM_PAR_NEMKSKEYS_CAT           "ksk"
@@ -343,6 +343,15 @@ void KsmPurge(void);
 #define KSM_PAR_ZSKTTL                  172800      /* 2 days */
 #define KSM_PAR_ZSKTTL_STRING           "ttl"
 #define KSM_PAR_ZSKTTL_CAT              "keys"
+#define KSM_PAR_KSKTTL                  172800      /* 2 days */
+#define KSM_PAR_KSKTTL_STRING           "ttl"
+#define KSM_PAR_KSKTTL_CAT              "keys"
+#define KSM_PAR_KSKPROPDELAY            3600        /* 1 hour */
+#define KSM_PAR_KSKPROPDELAY_STRING     "propagationdelay"
+#define KSM_PAR_KSKPROPDELAY_CAT        "parent"
+#define KSM_PAR_REGDELAY                0   /* TODO sort this out */
+#define KSM_PAR_REGDELAY_STRING         "registrationdelay"  /* TODO sort this out */
+#define KSM_PAR_REGDELAY_CAT            "parent"  /* TODO sort this out */
 #define KSM_PAR_PUBSAFETY               172800      /* 2 days */
 #define KSM_PAR_PUBSAFETY_STRING        "publishsafety"
 #define KSM_PAR_PUBSAFETY_CAT           "keys"
@@ -361,7 +370,10 @@ typedef struct {            /* Holds collection of parameters */
     int     soattl;         /* TTL of the SOA record */
     int     zsksiglife;     /* Length of signatures signed by this ZSK */
     int     zsklife;        /* How long key is used for */
-    int     zskttl;         /* TTL of KSK DNSKEY record */
+    int     zskttl;         /* TTL of ZSK DNSKEY record */
+    int     kskttl;         /* TTL of KSK DNSKEY record */
+    int     kskpropdelay;   /* KSK Propagation delay */
+    int     regdelay;       /* KSK Registration delay */
     int     pub_safety;     /* Publish safety margin */
     int     ret_safety;     /* Retire safety margin */
 } KSM_PARCOLL;
@@ -376,6 +388,9 @@ int KsmParameterSoaMin(KSM_PARCOLL* collection);
 int KsmParameterSoaTtl(KSM_PARCOLL* collection);
 int KsmParameterZskLifetime(KSM_PARCOLL* collection);
 int KsmParameterZskTtl(KSM_PARCOLL* collection);
+int KsmParameterKskTtl(KSM_PARCOLL* collection);
+int KsmParameterKskPropagationDelay(KSM_PARCOLL* collection);
+int KsmParameterRegistrationDelay(KSM_PARCOLL* collection);
 int KsmParameterPubSafety(KSM_PARCOLL* collection);
 int KsmParameterRetSafety(KSM_PARCOLL* collection);
 int KsmParameterInitialPublicationInterval(KSM_PARCOLL* collection);
