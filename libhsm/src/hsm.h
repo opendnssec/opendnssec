@@ -35,15 +35,9 @@
  */
 
 
-/* Initialize HSM library. This is done once per application. Maybe. */
-int hsm_init(void);
-
-/* Attached a named HSM using a module (i.e. PKCS#11 shared library) and
-   optional credentials (may be NULL, but then undefined) */
-int hsm_attach(const char *name, const char *module, const char *pin);
-
-/* Detach a named HSM */
-int hsm_detach(const char *name);
+/* Initialize HSM library using XML configuration file. Attached all
+   configured HSMs, querying for PINs if not known. */
+int hsm_autoconf(const char *config);
 
 /* List all known keys in all attached HSMs */
 hsm_key_t **hsm_list_keys(void);
@@ -62,7 +56,7 @@ const hsm_key_t *hsm_generate_rsa_key(unsigned int keysize);
 int hsm_remove_key(const hsm_key_t *key);
 
 /* Get UUID using key identifier */
-const uuid_t *hsm_get_uuid(const hsm_key_t key);
+const uuid_t *hsm_get_uuid(const hsm_key_t *key);
 
 /* Sign RRset */
 LDNS_RRSIG hsm_sign_rrset(const LDNS_RRSET* rrset, const hsm_key_t *key);
@@ -78,6 +72,22 @@ u_int32_t hsm_random32(void);
 
 /* Return unsigned 64-bit random number from any attached HSM */
 u_int64_t hsm_random64(void);
+
+
+
+/*
+ * Additional internal functions
+ */
+
+/* Initialize HSM library. This is done once per application. */
+int hsm_init(void);
+
+/* Attached a named HSM using a module (i.e. PKCS#11 shared library) and
+   optional credentials (may be NULL, but then undefined) */
+int hsm_attach(const char *name, const char *module, const char *pin);
+
+/* Detach a named HSM */
+int hsm_detach(const char *name);
 
 
 #endif /* HSM_H */
