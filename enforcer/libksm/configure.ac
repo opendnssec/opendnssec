@@ -27,6 +27,8 @@ AC_FUNC_MKTIME
 AC_FUNC_REALLOC
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul])
+AC_REPLACE_FUNCS(strlcat)
+AC_REPLACE_FUNCS(strlcpy)
 
 # Check for mysql
 AC_ARG_WITH(mysql,
@@ -121,9 +123,14 @@ AC_ARG_WITH(dbuser,
 )
 AC_SUBST(DB_USER)
 
-
-
-
+AH_BOTTOM([
+#ifndef HAVE_STRLCPY
+size_t strlcpy(char *dst, const char *src, size_t siz);
+#endif           
+#ifndef HAVE_STRLCAT
+size_t strlcat(char *dst, const char *src, size_t siz);
+#endif
+])
 
 
 AC_CONFIG_FILES([

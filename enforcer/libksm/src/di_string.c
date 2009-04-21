@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 
+#include "ksm.h"
 #include "database_statement.h"
 #include "string_util.h"
 #include "string_util2.h"
@@ -120,10 +121,10 @@ char* DisSpecifyInit(const char* table, const char* cols)
 
 void DisAppendInt(char** sql, int what)
 {
-    char    buffer[32];     /* Enough to hold any integer */
+    char    buffer[KSM_INT_STR_SIZE];     /* Enough to hold any integer */
 
     StrAppend(sql, ", ");
-    sprintf(buffer, "%d", what);
+    snprintf(buffer, KSM_INT_STR_SIZE, "%d", what);
     StrAppend(sql, buffer);
 
     return;

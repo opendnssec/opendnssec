@@ -28,6 +28,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "ksm.h"
 #include "datetime.h"
 #include "string_util.h"
 #include "string_util2.h"
@@ -127,7 +128,7 @@ int DtNumeric(const char* string, struct tm* datetime)
 
         /* Valid string length, pad out to 14 characters with zeroes */
 
-        strcpy(buffer, string);
+        strlcpy(buffer, string, 15);
         for (i = length; i < (int) (sizeof(buffer) - 1); ++i) {
             buffer[i] = '0';
         }
@@ -332,27 +333,27 @@ int DtGeneral(const char* string, struct tm* datetime)
 
             if ((copy[1] == '-')  && (copy[5] == '-')) {    /* D-MMM-YYYY */
                 strcpy(fulldt, "0");                
-                strncat(fulldt + 1, copy, 10);
-                *(fulldt + 11) = '\0';  
+                strlcat(fulldt + 1, copy, 11);
+                /* *(fulldt + 11) = '\0';  */
                 timeoff = 10;
                 alphadate = 1;
             }
             else if ((copy[1] == '-')  && (copy[4] == '-')) {   /* D-MM-YYYY */
                 strcpy(fulldt, "0");                
-                strncat(fulldt + 1, copy, 9);
-                *(fulldt + 10) = '\0';  
+                strlcat(fulldt + 1, copy, 10);
+                /* *(fulldt + 10) = '\0';  */
                 timeoff = 9;
                 alphadate = 0;
             }
             else if ((copy[2] == '-') && (copy[6] == '-')) {/* DD-MMM-YYYY */
-                strncpy(fulldt, copy, 11);
-                *(fulldt + 11) = '\0';
+                strlcpy(fulldt, copy, 12);
+                /* *(fulldt + 11) = '\0'; */
                 timeoff = 11;
                 alphadate = 1;
             }
             else if ((copy[2] == '-')  && (copy[5] == '-')) {   /* DD-MM-YYYY */
-                strncpy(fulldt, copy, 10);
-                *(fulldt + 10) = '\0';  
+                strlcpy(fulldt, copy, 11);
+                /* *(fulldt + 10) = '\0';  */
                 timeoff = 10;
                 alphadate = 0;
             }
@@ -437,13 +438,13 @@ int DtGeneral(const char* string, struct tm* datetime)
 char* DtGeneralString(const char* string)
 {
     struct tm   datetime;       /* Used for getting the date/time */
-    char        buffer[20];     /* Length of YYYY-MM-DD HH:MM:SS + NULL */
+    char        buffer[KSM_TIME_LENGTH]; /* YYYY-MM-DD HH:MM:SS + NULL */
     char*       retval = NULL;  /* Returned string */
     int         status;         /* Status return */
 
     status = DtGeneral(string, &datetime);
     if (status == 0) {
-        sprintf(buffer, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
+        snprintf(buffer, KSM_TIME_LENGTH, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
             datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday,
             datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
         retval = StrStrdup(buffer);
@@ -569,17 +570,19 @@ int DtParseDateTime(const char* string, struct tm* datetime)
 
 char* DtParseDateTimeString(const char* string)
 {
-    char        buffer[20];     /* Length of YYYY-MM-DD HH:MM:SS + NULL */
-    struct tm datetime;         /* Local date and time */
+    char    buffer[KSM_TIME_LENGTH]; /* Length of YYYY-MM-DD HH:MM:SS + NULL */
+    struct  tm datetime;         /* Local date and time */
     char*   retval = NULL;      /* Result string */
     int     status;             /* Status return from called function */
 
     if (string && *string) {
         status = DtParseDateTime(string, &datetime);
         if (status == 0) {
-            sprintf(buffer, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
-                datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday,
-                datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
+            snprintf(buffer, KSM_TIME_LENGTH, 
+                    "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
+                    datetime.tm_year + 1900, datetime.tm_mon + 1, 
+                    datetime.tm_mday, datetime.tm_hour, datetime.tm_min, 
+                    datetime.tm_sec);
             retval = StrStrdup(buffer);
         }
     }
@@ -732,19 +735,19 @@ void DtSecondsInterval(int interval, char* text, size_t textlen)
     if (text && (textlen > 0)) {
         if (interval != 0) {
             if (interval % (60 * 60 * 24 * 7) == 0) {
-                sprintf(buffer, "%dw", interval / (60 * 60 * 24 * 7));
+                snprintf(buffer, 64, "%dw", interval / (60 * 60 * 24 * 7));
             }
             else if (interval % (60 * 60 * 24) == 0) {
-                sprintf(buffer, "%dd", interval / (60 * 60 * 24));
+                snprintf(buffer, 64,"%dd", interval / (60 * 60 * 24));
             }
             else if (interval % (60 * 60) == 0) {
-                sprintf(buffer, "%dh", interval / (60 * 60));
+                snprintf(buffer, 64, "%dh", interval / (60 * 60));
             }
             else if (interval % 60 == 0) {
-                sprintf(buffer, "%dm", interval / 60);
+                snprintf(buffer, 64, "%dm", interval / 60);
             }
             else {
-                sprintf(buffer, "%ds", interval);
+                snprintf(buffer, 64, "%ds", interval);
             }
         }
         else {

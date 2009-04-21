@@ -163,8 +163,8 @@ void StrStrncpy(char* dst, const char* src, size_t dstlen)
 {
     if (dst && (dstlen > 0)) {
         if (src) {
-            (void) strncpy(dst, src, dstlen);
-            dst[dstlen - 1] = '\0';
+            (void) strlcpy(dst, src, dstlen);
+            /* dst[dstlen - 1] = '\0'; */
         }
         else {
             dst[0] = '\0';

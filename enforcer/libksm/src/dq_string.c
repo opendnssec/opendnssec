@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 
+#include "ksm.h"
 #include "database_statement.h"
 #include "string_util.h"
 #include "string_util2.h"
@@ -206,12 +207,12 @@ static void DqsAppendComparison(char** query, DQS_COMPARISON compare)
 void DqsConditionInt(char** query, const char* field, DQS_COMPARISON compare,
     int value, int index)
 {
-    char    stringval[16];      /* For Integer to String conversion */
+    char    stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
 
     StrAppend(query, (index == 0) ? " WHERE " : " AND ");
     StrAppend(query, field);
     DqsAppendComparison(query, compare);
-    sprintf(stringval, "%d", value);
+    snprintf(stringval, KSM_INT_STR_SIZE, "%d", value);
     StrAppend(query, stringval);
 
     return;

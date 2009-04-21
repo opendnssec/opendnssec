@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 
+#include "ksm.h"
 #include "database_statement.h"
 #include "string_util.h"
 #include "string_util2.h"
@@ -85,7 +86,7 @@ char* DusInit(const char* table)
 
 void DusSetInt(char** sql, const char* field, int data, int clause)
 {
-    char    buffer[128];        /* Enough to hold any integer */
+    char    buffer[KSM_INT_STR_SIZE];        /* Enough to hold any integer */
 
     if (clause) {
         StrAppend(sql, ", ");
@@ -93,7 +94,7 @@ void DusSetInt(char** sql, const char* field, int data, int clause)
     StrAppend(sql, field);
     StrAppend(sql, " = ");
 
-    sprintf(buffer, "%d", data);
+    snprintf(buffer, KSM_INT_STR_SIZE, "%d", data);
     StrAppend(sql, buffer);
 
     return;

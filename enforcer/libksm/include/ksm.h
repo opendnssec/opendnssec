@@ -48,6 +48,7 @@ int KsmRundown(void);
 #define KSM_TIME_LENGTH     32          /* Includes trailing NULL */
 
 #define KSM_SQL_SIZE        512         /* Max size of SQL statement */
+#define KSM_INT_STR_SIZE    32          /* Max size of int as string */
 #define KSM_SALT_LENGTH     256         /* Includes trailing NULL */
 #define KSM_ZONE_NAME_LENGTH     256    /* Includes trailing NULL */
 #define KSM_ADAPTER_NAME_LENGTH  256    /* Includes trailing NULL */

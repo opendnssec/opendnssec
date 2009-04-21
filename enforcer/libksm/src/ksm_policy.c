@@ -446,19 +446,31 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     if (status != 0)
     {
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        StrFree(datetime_now);
         return status;
 	}
 
     /* Get the next row from the data */
     status = DbFetchRow(result, &row);
     if (status == 0) {
-        DbStringBuffer(row, DB_POLICY_SALT, policy->denial->salt, KSM_SALT_LENGTH*sizeof(char));
-        DbStringBuffer(row, DB_POLICY_SALT_STAMP, policy->denial->salt_stamp, KSM_TIME_LENGTH*sizeof(char));
+        status = DbStringBuffer(row, DB_POLICY_SALT, policy->denial->salt, KSM_SALT_LENGTH*sizeof(char));
+        if (status == 0) {
+            status = DbStringBuffer(row, DB_POLICY_SALT_STAMP, policy->denial->salt_stamp, KSM_TIME_LENGTH*sizeof(char));
+        }
+
+        if (status != 0) {
+            status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+            DbFreeResult(result);
+            DbFreeRow(row);
+            StrFree(datetime_now);
+            return status;
+        }
     }
     else if (status == -1) {
         /* No rows to return (but no error), policy_id doesn't exist? */
         DbFreeResult(result);
         DbFreeRow(row);
+        StrFree(datetime_now);
         return -1;
     }
 	else {
@@ -466,6 +478,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
 
         DbFreeResult(result);
         DbFreeRow(row);
+        StrFree(datetime_now);
         return status;
 	}
 
@@ -478,13 +491,14 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     if (status == 0) {
         if (policy->denial->resalt > time_diff) {
             /* current salt is fine */
+            StrFree(datetime_now);
             return status;
         } else {
             /* salt needs updating */
             /* TODO get this call into libhsmtools */
             /* newsaltint = hsm_getrand(policy->denial->saltlength); */
             newsaltint = 123456789;
-            sprintf(policy->denial->salt, "%8X", newsaltint);
+            snprintf(policy->denial->salt, KSM_SALT_LENGTH, "%8X", newsaltint);
             StrStrncpy(policy->denial->salt_stamp, datetime_now, KSM_TIME_LENGTH);
 
             /* write these back to the database */
@@ -508,12 +522,15 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
                 status = MsgLog(KME_BUFFEROVF, "KsmPolicy");
             }
 
+            StrFree(datetime_now);
             return status;
         }
     } else {
         /* TODO what happens here ? */
+        StrFree(datetime_now);
         return -2;
     }
 
+    StrFree(datetime_now);
     return status;
 }

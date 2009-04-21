@@ -261,8 +261,9 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         deltat = MAX(Ipc, Ipp);
 
     }
-    /* TODO cope with keytype not matching either? */
-
+    else {
+        return;
+    }
 
     (void) KsmUpdateKeyTime(data, "PUBLISH", "READY", deltat);
 
@@ -306,6 +307,9 @@ void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     else if (data->keytype == KSM_TYPE_KSK) {
         deltat = collection->ksklife;
     }
+    else {
+        return;
+    }
 
     (void) KsmUpdateKeyTime(data, "ACTIVE", "RETIRE", deltat);
 
@@ -338,6 +342,9 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     else if (data->keytype == KSM_TYPE_KSK) {
         /* for a KSK this can be 0; are we happy with that? Might revisit this in the future */
         deltat = 0;
+    }
+    else {
+        return;
     }
 
     (void) KsmUpdateKeyTime(data, "RETIRE", "DEAD", deltat);
