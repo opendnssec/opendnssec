@@ -36,6 +36,7 @@
 #include "SoftHSMInternal.h"
 #include "log.h"
 #include "userhandling.h"
+#include "util.h"
 
 // Standard includes
 #include <stdlib.h>
@@ -80,10 +81,7 @@ SoftHSMInternal::~SoftHSMInternal() {
 
   openSessions = 0;
 
-  if(slots != NULL_PTR) {
-    delete slots;
-    slots = NULL_PTR;
-  }
+  DELETE_PTR(slots);
 
   this->destroyMutex(pHSMMutex);
 }
@@ -149,14 +147,8 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
 
   // Last session for this token? Log out.
   if(lastSessOnT == CK_TRUE) {
-    if(curSession->currentSlot->userPIN != NULL_PTR) {
-      free(curSession->currentSlot->userPIN);
-      curSession->currentSlot->userPIN = NULL_PTR;
-    }
-    if(curSession->currentSlot->soPIN != NULL_PTR) {
-      free(curSession->currentSlot->soPIN);
-      curSession->currentSlot->soPIN = NULL_PTR;
-    }
+    FREE_PTR(curSession->currentSlot->userPIN);
+    FREE_PTR(curSession->currentSlot->soPIN);
   }
 
   // Remove the session objects created by this session
@@ -195,14 +187,8 @@ CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
   }
 
   // Log out from the slot
-  if(currentSlot->userPIN != NULL_PTR) {
-    free(currentSlot->userPIN);
-    currentSlot->userPIN = NULL_PTR;
-  }
-  if(currentSlot->soPIN != NULL_PTR) {
-    free(currentSlot->soPIN);
-    currentSlot->soPIN = NULL_PTR;
-  }
+  FREE_PTR(currentSlot->userPIN);
+  FREE_PTR(currentSlot->soPIN);
 
   DEBUG_MSG("C_CloseAllSessions", "OK");
   return CKR_OK;
@@ -385,14 +371,8 @@ CK_RV SoftHSMInternal::logout(CK_SESSION_HANDLE hSession) {
   CHECK_DEBUG_RETURN(session == NULL_PTR, "C_Logout", "Can not find the session",
                      CKR_SESSION_HANDLE_INVALID);
 
-  if(session->currentSlot->userPIN != NULL_PTR) {
-    free(session->currentSlot->userPIN);
-    session->currentSlot->userPIN = NULL_PTR;
-  }
-  if(session->currentSlot->soPIN != NULL_PTR) {
-    free(session->currentSlot->soPIN);
-    session->currentSlot->soPIN = NULL_PTR;
-  }
+  FREE_PTR(session->currentSlot->userPIN);
+  FREE_PTR(session->currentSlot->soPIN);
 
   DEBUG_MSG("C_Logout", "OK");
   return CKR_OK;
@@ -493,9 +473,7 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   CHECK_DEBUG_RETURN(pTemplate == NULL_PTR && ulCount > 0, "C_FindObjectsInit", "pTemplate must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
 
-  if(session->findAnchor != NULL_PTR) {
-    delete session->findAnchor;
-  }
+  DELETE_PTR(session->findAnchor);
 
   // Creates the search result chain.
   session->findAnchor = new SoftFind();

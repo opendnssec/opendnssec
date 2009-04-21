@@ -35,6 +35,7 @@
 #include "SoftSlot.h"
 #include "log.h"
 #include "SoftDatabase.h"
+#include "util.h"
 
 #include <stdlib.h>
 
@@ -59,38 +60,14 @@ SoftSlot::SoftSlot() {
 }
 
 SoftSlot::~SoftSlot() {
-  if(dbPath != NULL_PTR) {
-    free(dbPath);
-    dbPath = NULL_PTR;
-  }
-  if(userPIN != NULL_PTR) {
-    free(userPIN);
-    userPIN = NULL_PTR;
-  }
-  if(soPIN != NULL_PTR) {
-    free(soPIN);
-    soPIN = NULL_PTR;
-  }
-  if(tokenLabel != NULL_PTR) {
-    free(tokenLabel);
-    tokenLabel = NULL_PTR;
-  }
-  if(nextSlot != NULL_PTR) {
-    delete nextSlot;
-    nextSlot = NULL_PTR;
-  }
-  if(objects != NULL_PTR) {
-    delete objects;
-    objects = NULL_PTR;
-  }
-  if(hashedUserPIN != NULL_PTR) {
-    free(hashedUserPIN);
-    hashedUserPIN = NULL_PTR;
-  }
-  if(hashedSOPIN != NULL_PTR) {
-    free(hashedSOPIN);
-    hashedSOPIN = NULL_PTR;
-  }
+  FREE_PTR(dbPath);
+  FREE_PTR(userPIN);
+  FREE_PTR(soPIN);
+  FREE_PTR(tokenLabel);
+  DELETE_PTR(nextSlot);
+  DELETE_PTR(objects);
+  FREE_PTR(hashedUserPIN);
+  FREE_PTR(hashedSOPIN);
 }
 
 // Add a new slot last in the chain
@@ -147,24 +124,16 @@ void SoftSlot::readDB() {
     return;
   }
 
-  if(tokenLabel != NULL_PTR) {
-    free(tokenLabel);
-  }
+  FREE_PTR(tokenLabel);
   tokenLabel = db->getTokenLabel();
 
-  if(hashedSOPIN != NULL_PTR) {
-    free(hashedSOPIN);
-  }
+  FREE_PTR(hashedSOPIN);
   hashedSOPIN = db->getSOPIN();
 
-  if(hashedUserPIN != NULL_PTR) {
-    free(hashedUserPIN);
-  }
+  FREE_PTR(hashedUserPIN);
   hashedUserPIN = db->getUserPIN();
 
-  if(objects != NULL_PTR) {
-    delete objects;
-  }
+  DELETE_PTR(objects);
   objects = db->readAllObjects();
   delete db;
 
@@ -214,12 +183,8 @@ void SoftSlot::loadRSAPrivate(SoftObject *currentObject, RandomNumberGenerator *
     }
   }
   catch(...) {
-    if(dsMem != NULL_PTR) {
-      delete dsMem;
-    }
-    if(rsaKey != NULL_PTR) {
-      delete rsaKey;
-    }
+    DELETE_PTR(dsMem);
+    DELETE_PTR(rsaKey);
 
     ERROR_MSG("loadRSAPrivate", "Could not load the encoded key");
     return;
@@ -317,12 +282,8 @@ void SoftSlot::loadRSAPublic(SoftObject *currentObject) {
     rsaKey = X509::load_key(*dsMem);
   }
   catch(...) {
-    if(dsMem != NULL_PTR) {
-      delete dsMem;
-    }
-    if(rsaKey != NULL_PTR) {
-      delete rsaKey;
-    }
+    DELETE_PTR(dsMem);
+    DELETE_PTR(rsaKey);
 
     ERROR_MSG("loadRSAPublic", "Could not load the encoded key");
     return;

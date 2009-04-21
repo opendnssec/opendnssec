@@ -34,6 +34,7 @@
 ************************************************************/
 
 #include "SoftSession.h"
+#include "util.h"
 
 // Includes for the crypto library
 #include <botan/if_algo.h>
@@ -82,41 +83,14 @@ SoftSession::~SoftSession() {
   pApplication = NULL_PTR;
   Notify = NULL_PTR;
 
-  if(findAnchor != NULL_PTR) {
-    delete findAnchor;
-    findAnchor = NULL_PTR;
-  }
-
+  DELETE_PTR(findAnchor);
   findCurrent = NULL_PTR;
-
-  if(digestPipe != NULL_PTR) {
-    delete digestPipe;
-    digestPipe = NULL_PTR;
-  }
-
-  if(pkSigner != NULL_PTR) {
-    delete pkSigner;
-    pkSigner = NULL_PTR;
-  }
-
-  if(pkVerifier != NULL_PTR) {
-    delete pkVerifier;
-    pkVerifier = NULL_PTR;
-  }
-
-  if(keyStore != NULL_PTR) {
-    delete keyStore;
-    keyStore = NULL_PTR;
-  }
-
-  if(rng != NULL_PTR) {
-    delete rng;
-  }
-
-  if(db != NULL_PTR) {
-    delete db;
-    db = NULL_PTR;
-  }
+  DELETE_PTR(digestPipe);
+  DELETE_PTR(pkSigner);
+  DELETE_PTR(pkVerifier);
+  DELETE_PTR(keyStore);
+  DELETE_PTR(rng);
+  DELETE_PTR(db);
 }
 
 bool SoftSession::isReadWrite() {

@@ -34,6 +34,7 @@
 ************************************************************/
 
 #include "SoftAttribute.h"
+#include "util.h"
 
 // Standard includes
 #include <stdlib.h>
@@ -45,15 +46,10 @@ SoftAttribute::SoftAttribute() {
 }
 
 SoftAttribute::~SoftAttribute() {
-  if(next != NULL_PTR) {
-    delete next;
-    next = NULL_PTR;
-  }
+  DELETE_PTR(next);
+
   if(objectAttribute != NULL_PTR) {
-    if(objectAttribute->pValue != NULL_PTR) {
-      free(objectAttribute->pValue);
-      objectAttribute->pValue = NULL_PTR;
-    }
+    FREE_PTR(objectAttribute->pValue);
     free(objectAttribute);
     objectAttribute = NULL_PTR;
   }
@@ -72,10 +68,7 @@ void SoftAttribute::addAttribute(CK_ATTRIBUTE *oAttribute) {
           oAttribute != NULL_PTR &&
           objectAttribute->type == oAttribute->type) {
     // Free the old attribute
-    if(objectAttribute->pValue != NULL_PTR) {
-      free(objectAttribute->pValue);
-      objectAttribute->pValue = NULL_PTR;
-    }
+    FREE_PTR(objectAttribute->pValue);
     free(objectAttribute);
     objectAttribute = oAttribute;
   // If we are not last in the chain, pass it to the next one.

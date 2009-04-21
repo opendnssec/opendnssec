@@ -39,6 +39,7 @@
 
 #include "SoftObject.h"
 #include "SoftDatabase.h"
+#include "util.h"
 
 #include <stdlib.h>
 
@@ -60,21 +61,9 @@ SoftObject::SoftObject() {
 }
 
 SoftObject::~SoftObject() {
-  if(attributes != NULL_PTR) {
-    delete attributes;
-    attributes = NULL_PTR;
-  }
-
-  if(nextObject != NULL_PTR) {
-    delete nextObject;
-    nextObject = NULL_PTR;
-  }
-
-  if(encodedKey != NULL_PTR) {
-    free(encodedKey);
-    encodedKey = NULL_PTR;
-  }
-
+  DELETE_PTR(attributes);
+  DELETE_PTR(nextObject);
+  FREE_PTR(encodedKey);
   createdBySession = NULL_PTR;
 }
 
@@ -102,9 +91,7 @@ CK_RV SoftObject::deleteObj(CK_OBJECT_HANDLE searchIndex) {
     return CKR_OBJECT_HANDLE_INVALID;
   } else {
     if(searchIndex == index) {
-      if(attributes != NULL_PTR) {
-        delete attributes;
-      }
+      DELETE_PTR(attributes);
 
       // Get the content of the next object
       attributes = nextObject->attributes;

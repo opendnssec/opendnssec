@@ -26,33 +26,20 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/************************************************************
-*
-* This class handles the search results.
-* It creates a chain of object handles.
-*
-************************************************************/
+#ifndef SOFTHSM_UTIL_H
+#define SOFTHSM_UTIL_H 1
 
-#include "SoftFind.h"
-#include "util.h"
-
-SoftFind::SoftFind() {
-  next = NULL_PTR;
-  findObject = 0;
-}
-
-SoftFind::~SoftFind() {
-  DELETE_PTR(next);
-}
-
-// Add the object handle if we are the last one in the chain.
-// Or else pass it on the next one.
-
-void SoftFind::addFind(CK_OBJECT_HANDLE newObject) {
-  if(next == NULL_PTR) {
-    findObject = newObject;
-    next = new SoftFind();
-  } else {
-    next->addFind(newObject);
+#define DELETE_PTR(varPtr) \
+  if(varPtr != NULL_PTR) { \
+    delete varPtr; \
+    varPtr = NULL_PTR; \
   }
-}
+
+#define FREE_PTR(varPtr) \
+  if(varPtr != NULL_PTR) { \
+    free(varPtr); \
+    varPtr = NULL_PTR; \
+  }
+
+
+#endif /* SOFTHSM_UTIL_H */

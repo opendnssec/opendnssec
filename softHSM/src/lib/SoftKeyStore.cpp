@@ -39,6 +39,7 @@
 ************************************************************/
 
 #include "SoftKeyStore.h"
+#include "util.h"
 
 SoftKeyStore::SoftKeyStore() {
   next = NULL_PTR;
@@ -47,15 +48,8 @@ SoftKeyStore::SoftKeyStore() {
 }
 
 SoftKeyStore::~SoftKeyStore() {
-  if(next != NULL_PTR) {
-    delete next;
-    next = NULL_PTR;
-  }
-
-  if(botanKey != NULL_PTR) {
-    delete botanKey;
-    botanKey = NULL_PTR;
-  }
+  DELETE_PTR(next);
+  DELETE_PTR(botanKey);
 }
 
 // Remove the key with a given index
@@ -64,9 +58,7 @@ void SoftKeyStore::removeKey(CK_OBJECT_HANDLE removeIndex) {
   if(next != NULL_PTR) {
     if(removeIndex == index) {
       // Remove the key
-      if(botanKey != NULL_PTR) {
-        delete botanKey;
-      }
+      DELETE_PTR(botanKey);
 
       // Copy the information from the next key
       index = next->index;

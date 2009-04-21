@@ -42,6 +42,7 @@
 #include "file.h"
 #include "SoftHSMInternal.h"
 #include "userhandling.h"
+#include "util.h"
 
 // Standard includes
 #include <stdio.h>
@@ -814,12 +815,8 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
     return CKR_OPERATION_NOT_INITIALIZED;
   }
 
-  if(session->findAnchor != NULL_PTR) {
-    delete session->findAnchor;
-    session->findAnchor = NULL_PTR;
-  }
-
-  session->findCurrent = session->findAnchor;
+  DELETE_PTR(session->findAnchor);
+  session->findCurrent = NULL_PTR;
   session->findInitialized = false;
 
   softHSM->unlockMutex();
