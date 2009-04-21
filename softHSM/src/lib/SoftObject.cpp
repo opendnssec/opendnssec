@@ -146,9 +146,9 @@ CK_RV SoftObject::addAttributeFromData(CK_ATTRIBUTE_TYPE type, CK_VOID_PTR pValu
   } else {
     oAttribute->pValue = malloc(ulValueLen);
 
-    if(!oAttribute->pValue) {
+    if(oAttribute->pValue == NULL_PTR) {
       free(oAttribute);
-      return CKR_DEVICE_MEMORY;
+      return CKR_HOST_MEMORY;
     }
 
     memcpy(oAttribute->pValue, pValue, ulValueLen);

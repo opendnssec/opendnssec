@@ -149,7 +149,12 @@ Public_Key* SoftSession::getKey(SoftObject *object) {
           return NULL_PTR;
         }
 
-        tmpKey = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
+        try {
+          tmpKey = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
+        }
+        catch(...) {
+          return NULL_PTR;
+        }
       } else {
         BigInt bigN = object->getBigIntAttribute(CKA_MODULUS);
         BigInt bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
@@ -158,11 +163,19 @@ Public_Key* SoftSession::getKey(SoftObject *object) {
           return NULL_PTR;
         }
 
-        tmpKey = new RSA_PublicKey(bigN, bigE);
+        try {
+          tmpKey = new RSA_PublicKey(bigN, bigE);
+        }
+        catch(...) {
+          return NULL_PTR;
+        }
       }
 
       // Create a new key store object.
       SoftKeyStore *newKeyLink = new SoftKeyStore();
+      if(newKeyLink == NULL_PTR) {
+        return NULL_PTR;
+      }
       newKeyLink->next = keyStore;
       newKeyLink->botanKey = tmpKey;
       newKeyLink->index = object->index;

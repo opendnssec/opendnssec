@@ -60,19 +60,34 @@ CK_RV readConfigFile() {
 
   if(fp == NULL) {
     char *errorMsg = (char *)malloc(33 + strlen(confPath));
-    strcpy(errorMsg, "Could not open the config file: ");
-    strcat(errorMsg, confPath);
 
-    ERROR_MSG("C_Initialize", errorMsg);
-    free(errorMsg);
+    if(errorMsg != NULL) {
+      strcpy(errorMsg, "Could not open the config file: ");
+      strcat(errorMsg, confPath);
+
+      ERROR_MSG("C_Initialize", errorMsg);
+      free(errorMsg);
+    } else {
+      ERROR_MSG("C_Initialize", "Could not open the config file");
+    }
 
     return CKR_GENERAL_ERROR;
   }
 
   char *dbPath = (char *)malloc(257);
+
+  if(dbPath == NULL) {
+    fclose(fp);
+    ERROR_MSG("C_Initialize", "Could not allocate memory");
+    return CKR_GENERAL_ERROR;
+  }
+
   CK_SLOT_ID slotID;
   int length = 0;
 
+  // Format in config file
+  // slotID:dbPath
+  
   while(fscanf(fp, "%lu:%256s\n", &slotID, dbPath) == 2) {
     char *addDBPath = strdup(dbPath);
     softHSM->slots->addSlot(slotID, addDBPath);

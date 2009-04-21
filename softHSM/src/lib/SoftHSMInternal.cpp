@@ -308,6 +308,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   // Digest the PIN
   // We do not use any salt
   Pipe *digestPIN = new Pipe(new Hash_Filter(new SHA_256), new Hex_Encoder);
+  CHECK_DEBUG_RETURN(digestPIN == NULL_PTR, "C_Login", "Could not allocate memory", CKR_HOST_MEMORY);
   digestPIN->start_msg();
   digestPIN->write(pPin, ulPinLen);
   digestPIN->write(pPin, ulPinLen);
@@ -318,6 +319,11 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   SecureVector<byte> pinVector = digestPIN->read_all();
   int size = pinVector.size();
   char *tmpPIN = (char *)malloc(size + 1);
+  if(tmpPIN == NULL_PTR) {
+    delete digestPIN;
+    DEBUG_MSG("C_Login", "Could not allocate memory");
+    return CKR_HOST_MEMORY;
+  }
   tmpPIN[size] = '\0';
   memcpy(tmpPIN, pinVector.begin(), size);
   delete digestPIN;
@@ -337,6 +343,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     if(session->currentSlot->soPIN == NULL_PTR) {
       // Store the PIN
       session->currentSlot->soPIN = (char *)malloc(ulPinLen + 1);
+      CHECK_DEBUG_RETURN(session->currentSlot->soPIN == NULL_PTR, "C_Login", "Could not allocate memory", CKR_HOST_MEMORY);
       session->currentSlot->soPIN[ulPinLen] = '\0';
       memcpy(session->currentSlot->soPIN, pPin, ulPinLen);
     }
@@ -358,6 +365,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
     if(session->currentSlot->userPIN == NULL_PTR) {
       // Store the PIN
       session->currentSlot->userPIN = (char *)malloc(ulPinLen + 1);
+      CHECK_DEBUG_RETURN(session->currentSlot->userPIN == NULL_PTR, "C_Login", "Could not allocate memory", CKR_HOST_MEMORY);
       session->currentSlot->userPIN[ulPinLen] = '\0';
       memcpy(session->currentSlot->userPIN, pPin, ulPinLen);
 
@@ -491,6 +499,7 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
 
   // Creates the search result chain.
   session->findAnchor = new SoftFind();
+  CHECK_DEBUG_RETURN(session->findAnchor == NULL_PTR, "C_FindObjectsInit", "Could not allocate memory", CKR_HOST_MEMORY);
   session->findCurrent = session->findAnchor;
 
   SoftObject *currentObject = session->currentSlot->objects;

@@ -193,6 +193,8 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
     softHSM = new SoftHSMInternal(false);
   }
 
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_Initialize", "Coult not allocate memory", CKR_HOST_MEMORY);
+
   CK_RV rv = readConfigFile();
   if(rv != CKR_OK) {
     delete softHSM;
@@ -2085,6 +2087,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   CK_ULONG *modulusBits = NULL_PTR;
   // Defaults to an exponent with e = 65537
   BigInt *exponent = new Botan::BigInt("65537");;
+  CHECK_DEBUG_RETURN(exponent == NULL_PTR, "C_GenerateKeyPair", "Could not allocate memory", CKR_HOST_MEMORY);
 
   // Extract desired key information
   for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
@@ -2116,8 +2119,17 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   }
 
   // Generate the key
-  RSA_PrivateKey *rsaKey = new RSA_PrivateKey(*session->rng, (u32bit)*modulusBits, exponent->to_u32bit());
-  delete exponent;
+  RSA_PrivateKey *rsaKey = NULL_PTR;
+  try {
+    rsaKey = new RSA_PrivateKey(*session->rng, (u32bit)*modulusBits, exponent->to_u32bit());
+    delete exponent;
+  }
+  catch(...) {
+    delete exponent;
+    ERROR_MSG("C_GenerateKeyPair", "Could not generate key pair");
+    return CKR_GENERAL_ERROR;
+  }
+  CHECK_DEBUG_RETURN(rsaKey == NULL_PTR, "C_GenerateKeyPair", "Could not allocate memory", CKR_HOST_MEMORY);
 
   // Add the private key to the database.
   CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(session->currentSlot->userPIN, rsaKey, pPrivateKeyTemplate, 
