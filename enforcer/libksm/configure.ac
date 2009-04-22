@@ -137,6 +137,8 @@ AC_CONFIG_FILES([
 Makefile
 include/Makefile
 src/Makefile
+utils/Makefile
+examples/Makefile
 test/Makefile
 ])
 

@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- $Id: kasp.rnc 414 2009-04-08 17:43:41Z jakob $ -->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <element name="KASP">
+      <oneOrMore>
+        <element name="Policy">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <element name="Description">
+            <data type="string"/>
+          </element>
+          <!--
+            signatures: hold parameters related to signatures
+            These will go in the signature category in the DB
+            Most of these will be passed to the signer without
+            processing
+          -->
+          <element name="Signatures">
+            <!-- how often should the zone be (re)signed? -->
+            <element name="Resign">
+              <data type="duration"/>
+            </element>
+            <!-- how often should existing signatures be refreshed? -->
+            <element name="Refresh">
+              <data type="duration"/>
+            </element>
+            <!-- for how long should we sign? -->
+            <element name="Validity">
+              <element name="Default">
+                <data type="duration"/>
+              </element>
+              <element name="Denial">
+                <data type="duration"/>
+              </element>
+            </element>
+            <!--
+              how much should we jitter the signature expiration time?
+              (e.g. decrease the expiration time by X)
+            -->
+            <element name="Jitter">
+              <data type="duration"/>
+            </element>
+            <!-- how much should we predate the signature inception time? -->
+            <element name="InceptionOffset">
+              <data type="duration"/>
+            </element>
+          </element>
+          <!-- use NSEC or NSEC3? -->
+          <element name="Denial">
+            <choice>
+              <ref name="nsec"/>
+              <ref name="nsec3"/>
+            </choice>
+          </element>
+          <element name="Keys">
+            <!-- TTL for DNSKEYs -->
+            <ref name="ttl"/>
+            <!-- key retirement safety factor -->
+            <element name="RetireSafety">
+              <data type="duration"/>
+            </element>
+            <!-- key publication safety factor -->
+            <element name="PublishSafety">
+              <data type="duration"/>
+            </element>
+            <zeroOrMore>
+              <!-- Key Signing Keys -->
+              <element name="KSK">
+                <!-- generic key definition, see below -->
+                <ref name="anykey"/>
+                <optional>
+                  <!-- use RFC 5011 for key rollover? -->
+                  <element name="RFC5011">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </zeroOrMore>
+            <zeroOrMore>
+              <!-- Zone Signing Keys -->
+              <element name="ZSK">
+                <!-- generic key definition, see below -->
+                <ref name="anykey"/>
+              </element>
+            </zeroOrMore>
+          </element>
+          <element name="Zone">
+            <!-- Expected propagation delay in child publication -->
+            <ref name="propagationdelay"/>
+            <!-- Expected zone SOA parameters -->
+            <element name="SOA">
+              <ref name="anysoa"/>
+              <optional>
+                <element name="Serial">
+                  <choice>
+                    <value>counter</value>
+                    <value>unixtime</value>
+                    <value>datecounter</value>
+                  </choice>
+                </element>
+              </optional>
+            </element>
+          </element>
+          <!--
+            Excepted paren parameters for key rollover usage.
+            These might be guess or obtained by querying the parent zone
+            NOTE: This assumes that all zones with the same policy have
+            the same parent or at least parents with the same parameters!
+          -->
+          <element name="Parent">
+            <!-- Expected propagation delay in parent publication -->
+            <ref name="propagationdelay"/>
+            <!-- Expected TTL of DS in parent -->
+            <element name="DS">
+              <ref name="ttl"/>
+            </element>
+            <!-- Expected parent SOA parameters -->
+            <element name="SOA">
+              <ref name="anysoa"/>
+            </element>
+          </element>
+        </element>
+      </oneOrMore>
+    </element>
+  </start>
+  <define name="nsec">
+    <element name="NSEC">
+      <empty/>
+    </element>
+  </define>
+  <define name="nsec3">
+    <element name="NSEC3">
+      <optional>
+        <!-- use global NSEC3 opt-out? -->
+        <element name="OptOut">
+          <empty/>
+        </element>
+      </optional>
+      <!-- how often should we resalt? (e.g. create new NSEC3 chains) -->
+      <element name="Resalt">
+        <data type="duration"/>
+      </element>
+      <!-- NSEC3 hash parameters -->
+      <element name="Hash">
+        <element name="Algorithm">
+          <data type="positiveInteger"/>
+        </element>
+        <element name="Iterations">
+          <data type="positiveInteger"/>
+        </element>
+        <element name="Salt">
+          <attribute name="length">
+            <data type="positiveInteger"/>
+          </attribute>
+          <optional>
+            <!--
+              The actual salt is generated by the Enforcer
+              Note: the enforcer may decide to store the
+              current salt in the DB and so it could be exported
+              here.
+            -->
+            <data type="string"/>
+          </optional>
+        </element>
+      </element>
+    </element>
+  </define>
+  <!-- Generic SOA definition -->
+  <define name="anysoa">
+    <ref name="ttl"/>
+    <element name="Minimum">
+      <data type="duration"/>
+    </element>
+  </define>
+  <!-- Generic key definition -->
+  <define name="anykey">
+    <element name="Algorithm">
+      <optional>
+        <attribute name="length">
+          <data type="positiveInteger"/>
+        </attribute>
+      </optional>
+      <data type="positiveInteger"/>
+    </element>
+    <element name="Lifetime">
+      <data type="duration"/>
+    </element>
+    <element name="Repository">
+      <data type="string"/>
+    </element>
+    <!--
+      Number of emergency keys
+      For KSKs you can use 1 to indicate that you are
+      doing double signatures
+    -->
+    <element name="Emergency">
+      <data type="positiveInteger"/>
+    </element>
+  </define>
+  <define name="ttl">
+    <element name="TTL">
+      <data type="duration"/>
+    </element>
+  </define>
+  <define name="propagationdelay">
+    <element name="PropagationDelay">
+      <data type="duration"/>
+    </element>
+  </define>
+</grammar>

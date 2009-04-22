@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- $Id: signconf.rnc 327 2009-03-30 14:44:40Z jakob $ -->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <element name="Configuration">
+      <!-- List of all known Key Repositories (aka HSM:s) -->
+      <element name="RepositoryList">
+        <zeroOrMore>
+          <element name="Repository">
+            <!-- Symbolic name of Repository -->
+            <element name="Name">
+              <data type="string"/>
+            </element>
+            <!-- PKCS#11 Module (aka shared library) -->
+            <element name="Module">
+              <data type="string"/>
+            </element>
+            <optional>
+              <!-- PKCS#11 Login Credentials (asked for if not specified) -->
+              <element name="PIN">
+                <data type="string"/>
+              </element>
+            </optional>
+          </element>
+        </zeroOrMore>
+      </element>
+      <!-- Configuration parameters for the KASP Enforcer -->
+      <element name="Enforcer">
+        <!-- Interval between runs of the key rollover procedure -->
+        <element name="Interval">
+          <data type="duration"/>
+        </element>
+        <!-- Interval between runs of the key pre-generation procedure -->
+        <element name="KeygenInterval">
+          <data type="duration"/>
+        </element>
+        <!-- Interval between runs of the key backup procedure -->
+        <element name="BackupDelay">
+          <data type="duration"/>
+        </element>
+      </element>
+      <optional>
+        <!-- Configuration parameters for the Signer -->
+        <element name="Signer">
+          <optional>
+            <!-- Location to store intermediate zone information -->
+            <element name="WorkingDirectory">
+              <data type="string"/>
+            </element>
+          </optional>
+          <optional>
+            <!-- Location to store the zonelist XML file -->
+            <element name="ZoneListFile">
+              <data type="string"/>
+            </element>
+          </optional>
+          <optional>
+            <!--
+              This can probably be removed later; location of the
+              signer tools (used for intermediate testing)
+            -->
+            <element name="ToolsDirectory">
+              <data type="string"/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </start>
+</grammar>

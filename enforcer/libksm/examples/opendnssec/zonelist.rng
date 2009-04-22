@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- $Id: zonelist.rnc 366 2009-04-03 15:06:14Z jakob $ -->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <element name="ZoneList">
+      <zeroOrMore>
+        <element name="Zone">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <!-- What policy applies to this zone? -->
+          <element name="Policy">
+            <data type="string"/>
+          </element>
+          <!-- What file containts the signer configuration for this zone?	 -->
+          <element name="SignerConfiguration">
+            <data type="string"/>
+          </element>
+          <element name="Adapters">
+            <!-- Where do the signer fetch the unsigned zone? -->
+            <element name="Input">
+              <ref name="adapter"/>
+            </element>
+            <!-- Where do the signer deliver the signed zone? -->
+            <element name="Output">
+              <ref name="adapter"/>
+            </element>
+          </element>
+        </element>
+      </zeroOrMore>
+    </element>
+  </start>
+  <!-- for now, only the file adapter is defined -->
+  <define name="adapter">
+    <element name="File">
+      <data type="string"/>
+    </element>
+  </define>
+</grammar>

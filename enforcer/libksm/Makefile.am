@@ -1,2 +1,2 @@
 AM_CFLAGS = -pedantic -Wall -I../include
-SUBDIRS = include src test
+SUBDIRS = include src utils examples test
