@@ -14,8 +14,9 @@ install:
 	for i in signer_engine/*.py; do \
 		$(INSTALL) -c -m 664 $$i $(DESTDIR)$(libdir)/python/$$i ; \
 	done
-# and the start script
+# start script and command line interface
 	$(INSTALL) -c -m 755 signer_engine/signer_engine $(DESTDIR)$(bindir)
+	$(INSTALL) -c -m 755 signer_engine/signer_engine_cli $(DESTDIR)$(bindir)
 # and the configuration (TODO: move this to general opendnssec install!)
 	$(INSTALL) -d $(DESTDIR)$(sysconfdir)
 	$(INSTALL) -c -m 664 opendnssec.conf.sample $(DESTDIR)$(sysconfdir)
