@@ -191,9 +191,11 @@ class Zone:
         (either in 'normal' or 'NSEC3' space). The zone is read from
         the input file, and the result is stored in the temp dir,
         without an extension. If key data is not filled in with
-        find_key_details, this is done now."""
+        find_key_details, this is done now. Returns True if the
+        operation succeeded, False if it failed."""
         syslog.syslog(syslog.LOG_INFO,
                       "Sorting zone: " + self.zone_name)
+        succeeded = False
 
         for k in self.zone_config.publish_keys:
             self.check_key_values(k)
@@ -231,6 +233,8 @@ class Zone:
                 syslog.syslog(syslog.LOG_ERR,
                               "stderr from sorter: " + line)
 
+            if sort_process.wait() == 0:
+                succeeded = True
         except IOError, ioe:
             syslog.syslog(syslog.LOG_ERR, "Error reading input zone\n")
             syslog.syslog(syslog.LOG_ERR, str(ioe))
@@ -244,7 +248,11 @@ class Zone:
                     syslog.syslog(syslog.LOG_WARNING,
                                   "sorter stderr: " + line)
             #raise exc
-        syslog.syslog(syslog.LOG_INFO, "Done sorting")
+        if succeeded:
+            syslog.syslog(syslog.LOG_INFO, "Done sorting")
+        else:
+            syslog.syslog(syslog.LOG_ERR, "Sorting failed")
+        return succeeded
 
     def nsecify(self):
         """Takes the sorted zone file created with sort(), strips
@@ -304,10 +312,10 @@ class Zone:
             self.finalize()
         elif self.action >= ZoneConfig.RESORT and os.path.isfile(
                                         self.get_zone_input_filename()):
-            self.sort()
-            self.nsecify()
-            self.sign()
-            self.finalize()
+            if self.sort():
+                self.nsecify()
+                self.sign()
+                self.finalize()
         else:
             syslog.syslog(syslog.LOG_ERR, "Input file missing: " +\
                           self.get_zone_input_filename())

@@ -399,6 +399,7 @@ main(int argc, char **argv)
 	uint16_t nsec3_iterations = 1;
 	uint8_t nsec3_salt_length = 0;
 	uint8_t *nsec3_salt = NULL;
+	char *out_file_name = NULL;
 
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
@@ -474,13 +475,7 @@ main(int argc, char **argv)
 			}
 			break;
 		case 'w':
-			out_file = fopen(optarg, "w");
-			if (!out_file) {
-				printf("Error opening %s for writing: %s\n",
-					  optarg,
-					  strerror(errno));
-				exit(2);
-			}
+			out_file_name = optarg;
 			break;
 		}
 	}
@@ -494,6 +489,16 @@ main(int argc, char **argv)
 	if (!origin) {
 		fprintf(stderr, "Error, no origin specified (-o)\n");
 		exit(EXIT_FAILURE);
+	}
+
+	if (out_file_name) {
+		out_file = fopen(out_file_name, "w");
+		if (!out_file) {
+			printf("Error opening %s for writing: %s\n",
+				  optarg,
+				  strerror(errno));
+			exit(2);
+		}
 	}
 
 	rr_tree = ldns_rbtree_create(&compare_rr_data);
@@ -575,6 +580,19 @@ main(int argc, char **argv)
 					if (status != LDNS_STATUS_SYNTAX_EMPTY) {
 						fprintf(stderr, "Warning: %s:\n", ldns_get_errorstr_by_id(status));
 						fprintf(stderr, "%s\n", line);
+						/* we are going to quit. read and drop rest of
+						 * input if it is stdin, so the calling process does
+						 * not write to a nonexisting pipe */
+						while (line_len >= 0) {
+							line_len = read_line(rr_file, line);
+						}
+						/* unlink the output file if it is not stdout, we do not
+						 * want partial output going to the next tool */
+						if (out_file != stdout) {
+							fclose(out_file);
+							unlink(out_file_name);
+						}
+						exit(EXIT_FAILURE);
 					}
 				}
 			}
@@ -592,6 +610,12 @@ main(int argc, char **argv)
 		fprintf(stderr, "Parse error in input line %d: %s\n",
 			    line_nr,
 			    ldns_get_errorstr_by_id(status));
+		/* unlink the output file if it is not stdout, we do not
+		 * want partial output going to the next tool */
+		if (out_file != stdout) {
+			fclose(out_file);
+			unlink(out_file_name);
+		}
 		exit(EXIT_FAILURE);
 	}
 
