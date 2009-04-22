@@ -3,7 +3,7 @@
 USAGE="signer_engine [OPTIONS]"
 
 VERSION="0.1"
-CONFIG_FILE=@prefix@/etc/opendnssec.conf
+CONFIG_FILE=@prefix@/etc/opendnssec/conf.xml
 ENGINE_LOC=@prefix@/lib/python/signer_engine
 # parse command line arguments
 while getopts cvo: OPT; do

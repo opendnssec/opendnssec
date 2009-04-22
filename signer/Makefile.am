@@ -19,9 +19,15 @@ install:
 	$(INSTALL) -c -m 755 signer_engine/signer_engine_cli $(DESTDIR)$(bindir)
 # and the configuration (TODO: move this to general opendnssec install!)
 	$(INSTALL) -d $(DESTDIR)$(sysconfdir)
-	$(INSTALL) -c -m 664 opendnssec.conf.sample $(DESTDIR)$(sysconfdir)
-# and create a var/dnssec dir (where zonelist.xml will go)
+	$(INSTALL) -d $(DESTDIR)$(sysconfdir)/opendnssec
+	$(INSTALL) -c -m 664 conf.xml.sample $(DESTDIR)$(sysconfdir)/opendnssec
+# and create a var/opendnssec dir (where zonelist.xml will go)
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/tmp
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signconf
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/unsigned
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signed
 
 
 clean:
