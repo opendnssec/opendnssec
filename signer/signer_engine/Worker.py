@@ -160,22 +160,24 @@ class Worker(threading.Thread):
             if self.queue.has_task(now):
                 task = self.queue.get_task()
                 self.queue.release()
-                task.run()
-                if task.repeat_interval > 0:
-                    task.when = now + task.repeat_interval
-                    self.queue.lock()
-                    self.queue.add_task(task)
-                    self.queue.release()
+                if self.work:
+                    task.run()
+                    if task.repeat_interval > 0:
+                        task.when = now + task.repeat_interval
+                        self.queue.lock()
+                        self.queue.add_task(task)
+                        self.queue.release()
             else:
                 self.queue.release()
                 syslog.syslog(syslog.LOG_INFO,
                               "no task for worker, sleep for " +\
                               str(self.queue.time_till_next(now)))
                 interval = self.queue.time_till_next(now)
-                if interval == 0:
-                    self.condition.wait()
-                else:
-                    self.condition.wait(interval)
+                if self.work:
+                    if interval == 0:
+                        self.condition.wait()
+                    else:
+                        self.condition.wait(interval)
                 
             self.condition.release()
 

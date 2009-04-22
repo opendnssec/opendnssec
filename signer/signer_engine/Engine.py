@@ -179,7 +179,7 @@ class Engine:
                 self.notify_all()
             if command[:6] == "update":
                 response = self.read_zonelist()
-                self.check_zone_conf_updates()
+                response += "\n" + self.check_zone_conf_updates()
             if command[:4] == "stop":
                 self.stop_engine()
                 response = "Engine stopped"
@@ -251,9 +251,16 @@ class Engine:
     def check_zone_conf_updates(self):
         """For all running zones, check the last modified time of the
         configuration file"""
+        count = 0
+        count_err = 0
         for zone in self.zones.values():
             if zone.zone_config.check_config_file_update():
-                self.update_zone(zone.zone_name)
+                if self.update_zone(zone.zone_name):
+                    count += 1
+                else:
+                    count_err += 1
+        return "Configurations updated: " + str(count) +\
+               " config errors: " + str(count_err)
 
     # global zone management
     def add_zone(self, zone_name):
@@ -290,11 +297,14 @@ class Engine:
             raise EngineError("Zone " + zone_name + " not found")
     
     def update_zone(self, zone_name):
-        """Update the configuration for an existing Zone"""
+        """Update the configuration for an existing Zone, returns True
+        on success. On failure, the old config is kept, and False is
+        returned"""
         zone = self.zones[zone_name]
         zone.lock()
         zone.zonelist_entry = self.zonelist.entries[zone_name]
         old_config = zone.zone_config
+        succeeded = False
         try:
             zone.read_config()
             if old_config:
@@ -311,6 +321,7 @@ class Engine:
             elif config_action >= ZoneConfig.RESORT:
                 # perform immediately
                 self.schedule_signing(zone_name)
+            succeeded = True
         except ZoneConfigError, zce:
             syslog.syslog(syslog.LOG_ERR,
                 "Error updating zone configuration for: " +\
@@ -318,6 +329,7 @@ class Engine:
             syslog.syslog(syslog.LOG_ERR, str(zce))
             zone.zone_config = old_config
         zone.release()
+        return succeeded
         
     # return big multiline string with all current zone data
     def get_zones(self):
