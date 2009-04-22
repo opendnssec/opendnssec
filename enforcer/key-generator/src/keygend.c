@@ -133,17 +133,3 @@ server_main(DAEMONCONFIG *config)
 	free(policy->signer);
 	free(policy);
 }
-
-//				/* For all but the special policy */
-//			if (strncmp(policy->name, "opendnssec", 10) != 0) {
-//				
-//
-//				/* Clear the policy struct */
-//				kaspSetPolicyDefaults(policy, policy->name);
-//
-//					/* Read the parameters for that policy */
-//					status = kaspReadPolicy(policy);
-//
-//					/* Create keys for policy */
-//					/* status = Createkeys(config, policy); */
-//				}
