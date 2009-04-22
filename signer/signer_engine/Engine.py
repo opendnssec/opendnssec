@@ -161,9 +161,12 @@ class Engine:
                 response = self.get_zones()
             if command[:4] == "sign":
                 # do full resort/rensec/sign
-                self.zones[args[1]].action = ZoneConfig.RESORT
-                self.schedule_signing(args[1])
-                response = "Zone scheduled for immediate resign"
+                try:
+                    self.zones[args[1]].action = ZoneConfig.RESORT
+                    self.schedule_signing(args[1])
+                    response = "Zone scheduled for immediate resign"
+                except KeyError:
+                    response = "Zone " + args[1] + " not found"
             if command[:9] == "verbosity":
                 Util.verbosity = int(args[1])
                 response = "Verbosity set"
