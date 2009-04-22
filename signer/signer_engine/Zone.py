@@ -451,6 +451,8 @@ class Zone:
             output.write(line)
         output.close()
         if self.engine_config.notify_command:
+            syslog.syslog(syslog.LOG_INFO,
+                          "Running update notify script")
             (status, output) = commands.getstatusoutput(
                 self.engine_config.notify_command)
             if status != 0:

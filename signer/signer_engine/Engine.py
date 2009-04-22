@@ -158,7 +158,9 @@ class Engine:
             if command[:5] == "zones":
                 response = self.get_zones()
             if command[:4] == "sign":
-                self.schedule_signing(args[2])
+                # do full resort/rensec/sign
+                self.zones[args[1]].action = ZoneConfig.RESORT
+                self.schedule_signing(args[1])
                 response = "Zone scheduled for immediate resign"
             if command[:9] == "verbosity":
                 Util.verbosity = int(args[1])
