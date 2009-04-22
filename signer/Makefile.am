@@ -18,7 +18,7 @@ install:
 	$(INSTALL) -c -m 755 signer_engine/signer_engine $(DESTDIR)$(bindir)
 # and the configuration (TODO: move this to general opendnssec install!)
 	$(INSTALL) -d $(DESTDIR)$(sysconfdir)
-	$(INSTALL) -c -m 664 opendnssec.conf $(DESTDIR)$(sysconfdir)
+	$(INSTALL) -c -m 664 opendnssec.conf.sample $(DESTDIR)$(sysconfdir)
 # and create a var/dnssec dir (where zonelist.xml will go)
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)
 
