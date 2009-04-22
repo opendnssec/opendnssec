@@ -1,6 +1,8 @@
 """Some general utility functions"""
 
 import subprocess
+import os
+import sys
 import re
 from datetime import datetime
 import syslog
@@ -152,3 +154,4 @@ def query_pin(token):
 def move_file(source, target):
     """Moves a file; if the target file exists it is deleted"""
     shutil.move(source, target)
+

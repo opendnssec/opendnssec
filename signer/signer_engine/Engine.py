@@ -15,6 +15,7 @@ The engine opens a command channel to receive notifications
 # - notification of a server to re-read zones (as a schedulable task?)
 
 import getopt
+import os
 import sys
 import socket
 import time
@@ -153,6 +154,7 @@ class Engine:
                  "flush           execute all scheduled tasks immediately",
                  "update          re-read the zonelist xml file",
                  "                and check for changed zoneconf.xml files",
+                 "stop            stop the engine",
                  "verbosity <nr>  set verbosity (notimpl)"]
                 response = "\n".join(lst)
             if command[:5] == "zones":
@@ -178,6 +180,9 @@ class Engine:
             if command[:6] == "update":
                 response = self.read_zonelist()
                 self.check_zone_conf_updates()
+            if command[:4] == "stop":
+                self.stop_engine()
+                response = "Engine stopped"
         except EngineError, exc:
             response = str(exc)
         except Exception, exc:
@@ -205,6 +210,11 @@ class Engine:
             syslog.syslog(syslog.LOG_INFO, "stopping worker")
             worker.work = False
         self.notify_all()
+
+    def stop_engine(self):
+        """Stop the workers and quit the engine"""
+        self.stop_workers()
+        sys.exit(0)
 
     def read_zonelist(self):
         """Reads the list of zones from the zone list xml file. Added
@@ -388,6 +398,7 @@ def main():
         engine = Engine(config_file)
         print engine.read_zonelist()
         print "output redirected to syslog"
+        daemonize_engine()
         engine.run()
     except EngineConfigurationError, ece:
         print ece
@@ -396,6 +407,34 @@ def main():
         print str(ioe)
     except KeyboardInterrupt:
         engine.stop_workers()
+
+class EngineNullDevice:
+    """Null device class, used for daemonizing"""
+    def write(self, str):
+        pass
+
+def daemonize_engine():
+    """Daemonize the engine"""
+    if (not os.fork()):
+        # get our own session and fixup std[in,out,err]
+        os.setsid()
+        sys.stdin.close()
+        sys.stdout = EngineNullDevice()
+        sys.stderr = EngineNullDevice()
+        if (not os.fork()):
+            # hang around till adopted by init
+            ppid = os.getppid()
+            while (ppid != 1):
+                time.sleep(0.5)
+                ppid = os.getppid()
+        else:
+            # time for child to die
+            os._exit(0)
+    else:
+        # wait for child to die and then bail
+        os.wait()
+        sys.exit()
+
 
 if __name__ == '__main__':
     print "Python engine proof of concept, v 0.0002 alpha"
