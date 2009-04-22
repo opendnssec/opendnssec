@@ -59,10 +59,10 @@ int hsm_remove_key(const hsm_key_t *key);
 const uuid_t *hsm_get_uuid(const hsm_key_t *key);
 
 /* Sign RRset */
-LDNS_RRSIG hsm_sign_rrset(const LDNS_RRSET* rrset, const hsm_key_t *key);
+ldns_rr* hsm_sign_rrset(const ldns_rr_list* rrset, const hsm_key_t *key);
 
 /* Get DNSKEY RR */
-LDNS_RR hsm_get_dnskey(const hsm_key_t *key);
+ldns_rr* hsm_get_dnskey(const hsm_key_t *key);
 
 /* Fill a buffer with random data from any attached HSM */
 int hsm_random_buffer(unsigned long length, unsigned char *buffer);
