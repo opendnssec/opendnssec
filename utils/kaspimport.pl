@@ -7,8 +7,20 @@ use DateTime::Duration;
 
 my $debug = 0;
 
+my $dbhost = "test1";
+my $dbname = "test";
+my $dbuser = "root";
+my $dbpass = "";
+
+my $configxml = "conf.xml";
+my $configrng = "conf.rng";
+my $kaspxml = "kasp.xml";
+my $kasprng = "kasp.rng";
+my $zonelistxml = "zonelist.xml";
+my $zonelistrng = "zonelist.rng";
+
 my $dbh =
-  DBI->connect( "DBI:mysql:test:test1", "root", "",
+  DBI->connect( "DBI:mysql:$dbname:$dbhost", $dbuser, $dbpass,
 	{ RaiseError => 1, PrintError => 0, PrintWarn => 1, AutoCommit => 0 } );
 
 print "Using version " . XML::LibXML::LIBXML_DOTTED_VERSION . " of libxml.\n"
@@ -19,10 +31,10 @@ initDB();
 
 # Read doc
 my $parser = XML::LibXML->new();
-my $doc    = $parser->parse_file("kasp.xml");
+my $doc    = $parser->parse_file($kaspxml);
 
 # Validate
-my $rngschema = XML::LibXML::RelaxNG->new( location => "kasp.rng" );
+my $rngschema = XML::LibXML::RelaxNG->new( location => $kasprng );
 
 # This will exit if validation fails and print errors
 eval { $rngschema->validate($doc); };
@@ -65,38 +77,36 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	$xpc->setContextNode($policy);
 
 	# Read signature section
-	my $sig       = $xpc->find('signatures')->get_node(1);
-	my $resign    = duration2sec( $sig->find('reSign')->string_value() );
-	my $refresh   = duration2sec( $sig->find('refresh')->string_value() );
-	my $jitter    = duration2sec( $sig->find('jitter')->string_value() );
-	my $clockskew = duration2sec( $sig->find('clockskew')->string_value() );
-	my $ttl       = duration2sec( $sig->find('ttl')->string_value() );
+	my $sig       = $xpc->find('=Signatures')->get_node(1);
+	my $resign    = duration2sec( $sig->find('Resign')->string_value() );
+	my $refresh   = duration2sec( $sig->find('Refresh')->string_value() );
+	my $jitter    = duration2sec( $sig->find('Jitter')->string_value() );
+	my $clockskew = duration2sec( $sig->find('InceptionOffset')->string_value() );
 	my $valdefault =
-	  duration2sec( $sig->find('validity/default')->string_value() );
+	  duration2sec( $sig->find('Validity/Default')->string_value() );
 	my $valdenial =
-	  duration2sec( $sig->find('validity/denial')->string_value() );
+	  duration2sec( $sig->find('Validity/Denial')->string_value() );
 	insertpp( "resign",     $resign,     "signature", $pname );
 	insertpp( "refresh",    $refresh,    "signature", $pname );
 	insertpp( "jitter",     $jitter,     "signature", $pname );
 	insertpp( "clockskew",  $clockskew,  "signature", $pname );
-	insertpp( "ttl",        $ttl,        "signature", $pname );
 	insertpp( "valdefault", $valdefault, "signature", $pname );
 	insertpp( "valdenial",  $valdenial,  "signature", $pname );
 
 	# Read denial section
-	my $denial = $xpc->find('denial')->get_node(1);
-	$ttl = duration2sec( $denial->find('ttl')->string_value() );
-	insertpp( "ttl", $ttl, "denial", $pname );
+	my $denial = $xpc->find('Denial')->get_node(1);
+#	$ttl = duration2sec( $denial->find('ttl')->string_value() );
+#	insertpp( "ttl", $ttl, "denial", $pname );
 
-	my $nsec3 = $denial->find('nsec3')->get_node(1);
+	my $nsec3 = $denial->find('NSEC3')->get_node(1);
 	if ($nsec3) {
 		insertpp( "version", 3, "denial", $pname );
 		my $optout = 0;
-		$optout = 1 if ( $nsec3->find('optOut')->get_node(1) );
-		my $resalt     = duration2sec( $nsec3->find('reSalt')->string_value() );
-		my $hash       = $nsec3->find('hash')->get_node(1);
-		my $algorithm  = $hash->find('algorithm')->string_value();
-		my $iterations = $hash->find('iterations')->string_value();
+		$optout = 1 if ( $nsec3->find('OptOut')->get_node(1) );
+		my $resalt     = duration2sec( $nsec3->find('Resalt')->string_value() );
+		my $hash       = $nsec3->find('Hash')->get_node(1);
+		my $algorithm  = $hash->find('Algorithm')->string_value();
+		my $iterations = $hash->find('Iterations')->string_value();
 		my $salt       = $hash->find('salt')->get_node(1);
 		my $saltlen    = $salt->find("\@length")->string_value();
 		insertpp( "optout",     $optout,     "denial", $pname );
@@ -107,25 +117,25 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	}
 
 	# Read keys section
-	my $keys = $xpc->find('keys')->get_node(1);
-	$ttl = duration2sec( $keys->find('ttl')->string_value() );
+	my $keys = $xpc->find('Keys')->get_node(1);
+	$ttl = duration2sec( $keys->find('TTL')->string_value() );
 	my $retiresafety =
-	  duration2sec( $keys->find('retireSafety')->string_value() );
+	  duration2sec( $keys->find('RetireSafety')->string_value() );
 	my $publishsafety =
-	  duration2sec( $keys->find('publishSafety')->string_value() );
+	  duration2sec( $keys->find('PublishSafety')->string_value() );
 	insertpp( "ttl",           $ttl,           "keys", $pname );
 	insertpp( "retiresafety",  $retiresafety,  "keys", $pname );
 	insertpp( "publishsafety", $publishsafety, "keys", $pname );
 
-	my $ksk            = $keys->find('ksk')->get_node(1);
-	my $algorithm      = $ksk->find('algorithm')->string_value();
-	my $algorithm_len  = $ksk->find("algorithm/\@length")->string_value();
-	my $lifetime       = duration2sec( $ksk->find('lifetime')->string_value() );
-	my $emergency      = $ksk->find('emergency')->string_value();
-	my $repository     = $ksk->find('repository')->string_value();
+	my $ksk            = $keys->find('KSK')->get_node(1);
+	my $algorithm      = $ksk->find('Algorithm')->string_value();
+	my $algorithm_len  = $ksk->find("Algorithm/\@length")->string_value();
+	my $lifetime       = duration2sec( $ksk->find('Lifetime')->string_value() );
+	my $emergency      = $ksk->find('Emergency')->string_value();
+	my $repository     = $ksk->find('Repository')->string_value();
 	my $respository_id = getresid($repository);
 	my $rfc5011        = 0;
-	$rfc5011 = 1 if ( $ksk->find('rfc5011')->get_node(1) );
+	$rfc5011 = 1 if ( $ksk->find('RFC5011')->get_node(1) );
 	insertpp( "algorithm",  $algorithm,     "ksk", $pname );
 	insertpp( "bits",       $algorithm_len, "ksk", $pname );
 	insertpp( "lifetime",   $lifetime,      "ksk", $pname );
@@ -133,12 +143,12 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	insertpp( "repository", $repository,    "ksk", $pname );
 	insertpp( "rfc5011",    $rfc5011,       "ksk", $pname );
 
-	my $zsk = $keys->find('zsk')->get_node(1);
-	$algorithm      = $zsk->find('algorithm')->string_value();
-	$algorithm_len  = $zsk->find("algorithm/\@length")->string_value();
-	$lifetime       = duration2sec( $ksk->find('lifetime')->string_value() );
-	$emergency      = $zsk->find('emergency')->string_value();
-	$repository     = $zsk->find('repository')->string_value();
+	my $zsk = $keys->find('ZSK')->get_node(1);
+	$algorithm      = $zsk->find('Algorithm')->string_value();
+	$algorithm_len  = $zsk->find("Algorithm/\@length")->string_value();
+	$lifetime       = duration2sec( $ksk->find('Lifetime')->string_value() );
+	$emergency      = $zsk->find('Emergency')->string_value();
+	$repository     = $zsk->find('Repository')->string_value();
 	$respository_id = getresid($repository);
 	insertpp( "algorithm",  $algorithm,     "zsk", $pname );
 	insertpp( "bits",       $algorithm_len, "zsk", $pname );
@@ -147,25 +157,25 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	insertpp( "repository", $repository,    "zsk", $pname );
 
 	# Read zone section
-	my $zone = $xpc->find('zone')->get_node(1);
-	my $pd   = duration2sec( $zone->find('propagationDelay')->string_value() );
-	my $soa  = $zone->find('soa')->get_node(1);
-	$ttl = duration2sec( $soa->find('ttl')->string_value() );
-	my $min = duration2sec( $soa->find('min')->string_value() );
+	my $zone = $xpc->find('Zone')->get_node(1);
+	my $pd   = duration2sec( $zone->find('PropagationDelay')->string_value() );
+	my $soa  = $zone->find('SOA')->get_node(1);
+	$ttl = duration2sec( $soa->find('TTL')->string_value() );
+	my $min = duration2sec( $soa->find('Minimum')->string_value() );
 	insertpp( "propagationdelay", $pd,  "zone", $pname );
 	insertpp( "ttl",              $ttl, "zone", $pname );
 	insertpp( "min",              $min, "zone", $pname );
-	my $serial    = $soa->find('serial')->string_value();
+	my $serial    = $soa->find('Serial')->string_value();
 	my $serial_id = getserialid($serial);
 	insertpp( "serial", $serial_id, "zone", $pname );
 
 	# Read parent section
-	my $parent = $xpc->find('parent')->get_node(1);
-	my $ttlDS  = duration2sec( $parent->find('ttlDS')->string_value() );
-	$pd  = duration2sec( $parent->find('propagationDelay')->string_value() );
-	$soa = $parent->find('soa')->get_node(1);
-	$ttl = duration2sec( $soa->find('ttl')->string_value() );
-	$min = duration2sec( $soa->find('min')->string_value() );
+	my $parent = $xpc->find('Parent')->get_node(1);
+	my $ttlDS  = duration2sec( $parent->find('DS/TTL')->string_value() );
+	$pd  = duration2sec( $parent->find('PropagationDelay')->string_value() );
+	$soa = $parent->find('SOA')->get_node(1);
+	$ttl = duration2sec( $soa->find('TTL')->string_value() );
+	$min = duration2sec( $soa->find('Minimum')->string_value() );
 	insertpp( "propagationdelay", $pd,    "parent", $pname );
 	insertpp( "ttl",              $ttl,   "parent", $pname );
 	insertpp( "ttlds",            $ttlDS, "parent", $pname );
@@ -173,25 +183,59 @@ foreach my $policy ( $policies->get_nodelist() ) {
 
 }
 
+#Now read from zone list
+# Read doc
+my $parser1 = XML::LibXML->new();
+my $doc1    = $parser1->parse_file($zonelistxml);
+
+# Validate
+my $rngschema1 = XML::LibXML::RelaxNG->new( location => $zonelistrng );
+
+# This will exit if validation fails and print errors
+eval { $rngschema1->validate($doc1); };
+
+# Read the XML using XPATH
+my $xpc1 = XML::LibXML::XPathContext->new($doc1);
+
+my $zonelist = $xpc1->find('ZoneList')->get_node(1);
+
 #Now import zone data
-my $zones = $kasp->findnodes('zone');
+my $zones = $zonelist->findnodes('Zone');
 foreach my $zone ( $zones->get_nodelist() ) {
 	my $zname   = $zone->find("\@name")->string_value();
-	my $zpolicy = $zone->find("\@policy")->string_value();
-	my $adapters = $zone->find('adapters')->get_node(1);
-	my $zin     = $adapters->find("input/\@type")->string_value();
-	my $zout    = $adapters->find("output/\@type")->string_value();
-	insertz( $zname, $zpolicy, $zin, $zout );
+	my $zpolicy = $zone->find("Policy")->string_value();
+	insertz( $zname, $zpolicy);
 }
 
-# Now import rollover element
-my $roll     = $kasp->find('rollover')->get_node(1);
-my $interval = duration2sec( $roll->find('interval')->string_value() );
-my $keygeninterval = duration2sec( $roll->find('keygeninterval')->string_value() );
-my $backupdelay = duration2sec( $roll->find('backupdelay')->string_value() );
-insertpp( "interval", $interval, "enforcer", "opendnssec" );
-insertpp( "keygeninterval", $keygeninterval, "enforcer", "opendnssec" );
-insertpp( "backupdelay", $backupdelay, "enforcer", "opendnssec" );
+#Stuff in config.xml now read directly by applications
+#but we need the names of the security modules in the DB
+
+# Read doc
+my $parser2 = XML::LibXML->new();
+my $doc2    = $parser2->parse_file($confxml);
+
+# Validate
+my $rngschema2 = XML::LibXML::RelaxNG->new( location => $confrng );
+
+# This will exit if validation fails and print errors
+eval { $rngschema2->validate($doc2); };
+
+# Read the XML using XPATH
+my $xpc2 = XML::LibXML::XPathContext->new($doc2);
+
+my $configuration = $xpc2->find('Configuration')->get_node(1);
+
+#Now import HSM data
+
+
+<RepositoryList>
+	<Repository>
+		<Name>sca6000</Name>
+		<Module>/usr/lib/libpkcs11.so</Module>
+		<PIN>test:1234</PIN>
+		<Capacity>1000</Capacity>
+	</Repository>
+
 
 # If we get here then the policies and zones imported OK
 $dbh->commit;
@@ -203,13 +247,11 @@ exit 0;
 sub insertz {
 	my $zname   = $_[0];
 	my $zpolicy = $_[1];
-	my $zin     = $_[2];
-	my $zout    = $_[3];
 	my $rows    = $dbh->do(
-		"insert into zones (name, policy_id, in_adapter_id, out_adapter_id)
-	             select ?, p.id, a.id, b.id from policies p, adapters a, adapters b
-	             where p.name=? and a.name=? and b.name=?",
-		undef, $zname, $zpolicy, $zin, $zout
+		"insert into zones (name, policy_id)
+	             select ?, p.id from policies p
+	             where p.name=?",
+		undef, $zname, $zpolicy
 	) or die $dbh->errstr;
 	if ( $rows == 1 ) {
 
