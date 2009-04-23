@@ -46,7 +46,7 @@
 			<ZSK>
 				<Algorithm length="1024">5</Algorithm>
 				<Lifetime>P14D</Lifetime>
-				<Repository>SoftHSM</Repository>
+				<Repository>softHSM</Repository>
 				<Emergency>2</Emergency>
 			</ZSK>
 		</Keys>

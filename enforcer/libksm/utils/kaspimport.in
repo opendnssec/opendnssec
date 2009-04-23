@@ -17,17 +17,22 @@ use vars (
     q!$opt_i!, # install DB flag
 );
 
-getopts('h:u:s:p:di') or die "bad usage";
+getopts('h:u:s:p:df:i') or die "bad usage";
 
 my $debug = $opt_d;
 my $dbh;
  my $dbtype = "@DB_TYPE@";
  if ($dbtype eq "SQLITE3") {
    my $sqlitefile = $opt_f;
-   
+   if ($opt_i) {
+     print "Clearing out the Database.\n";
+     my $sql_cmd;
+     $sql_cmd = "sqlite3 $sqlitefile";
+     `$sql_cmd < @bindir@/database_create.sqlite3`;
+     
     $dbh =
-       DBI->connect( "DBI:SQLite:dbname=sqlitefile","","");
- 
+       DBI->connect( "DBI:SQLite:dbname=$sqlitefile","","");
+ }
  } else {
     my $dbhost = $opt_h;
     my $dbname = $opt_s;
@@ -41,7 +46,7 @@ my $dbh;
       $mysql_cmd = "@mysql_path@ -u $dbuser -h $dbhost -p $dbpass $dbname" if ($dbpass);
       $mysql_cmd = "@mysql_path@ -u $dbuser -h $dbhost $dbname" if (! $dbpass);
       
-      `$mysql_cmd < @bindir@/database_create.mysql`
+      `$mysql_cmd < @bindir@/database_create.mysql`;
     }
     $dbh =
       DBI->connect( "DBI:mysql:$dbname:$dbhost", $dbuser, $dbpass,

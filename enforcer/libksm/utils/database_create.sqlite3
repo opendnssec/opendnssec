@@ -22,10 +22,7 @@ drop table if exists policies;
 create table securitymodules (
   id            integer primary key autoincrement,    -- id for sm
   name          varchar(30) not null,  -- name of the sm
-  description   varchar(255),
-  location      varchar(280) not null,
-  capacity      mediumint not null,
-  pin           varchar(255) null default null
+  capacity      mediumint not null
 );
 
 -- categories - stores the possible categories (or uses) of parameters
