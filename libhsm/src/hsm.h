@@ -41,6 +41,8 @@ typedef struct {
 	const char *name;    /* name from hsm_attach */
 	const char *path;    /* path from hsm_attach */
 	const void *handle;  /* handle from dlopen */
+	CK_FUNCTION_LIST_PTR sym; /* Function list from dlsym */
+	CK_SESSION_HANDLE ses;  /* session to that hsm */
 } hsm_module_t;
 
 /* Data type to describe a key pair at any HSM */
