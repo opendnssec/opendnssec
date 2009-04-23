@@ -1,3 +1,4 @@
+#!@PERL@ -w
 use strict;
 use DBI;
 use XML::LibXML;
@@ -12,12 +13,13 @@ my $dbname = "test";
 my $dbuser = "root";
 my $dbpass = "";
 
-my $configxml = "conf.xml";
-my $configrng = "conf.rng";
-my $kaspxml = "kasp.xml";
-my $kasprng = "kasp.rng";
-my $zonelistxml = "zonelist.xml";
-my $zonelistrng = "zonelist.rng";
+
+my $configxml = "@sysconfdir@/opendnssec/conf.xml";
+my $configrng = "@sysconfdir@/opendnssec/conf.rng";
+my $kaspxml = "@sysconfdir@/opendnssec/kasp.xml";
+my $kasprng = "@sysconfdir@/opendnssec/kasp.rng";
+my $zonelistxml = "@sysconfdir@/opendnssec/zonelist.xml";
+my $zonelistrng = "@sysconfdir@/opendnssec/zonelist.rng";
 
 my $dbh =
   DBI->connect( "DBI:mysql:$dbname:$dbhost", $dbuser, $dbpass,
