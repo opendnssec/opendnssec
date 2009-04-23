@@ -29,10 +29,27 @@
 #ifndef HSM_H
 #define HSM_H 1
 
+#include <pkcs11.h>
 
 /*
  * N.B: DRAFT PROPOSAL ONLY
  */
+
+
+/* Data type to describe an HSM */
+typedef struct {
+	const char *name;    /* name from hsm_attach */
+	const char *path;    /* path from hsm_attach */
+	const void *handle;  /* handle from dlopen */
+} hsm_module_t;
+
+/* Data type to describe a key pair at any HSM */
+typedef struct {
+	const hsm_module_t *module;     /* pointer to module */
+	CK_SESSION_HANDLE_PTR session;  /* session within module */
+	CK_OBJECT_HANDLE_PTR key;       /* key within session */
+} hsm_key_t;
+
 
 
 /* Initialize HSM library using XML configuration file. Attached all
@@ -82,9 +99,9 @@ u_int64_t hsm_random64(void);
 /* Initialize HSM library. This is done once per application. */
 int hsm_init(void);
 
-/* Attached a named HSM using a module (i.e. PKCS#11 shared library) and
+/* Attached a named HSM using a PKCS#11 shared library and
    optional credentials (may be NULL, but then undefined) */
-int hsm_attach(const char *name, const char *module, const char *pin);
+int hsm_attach(const char *name, const char *path, const char *pin);
 
 /* Detach a named HSM */
 int hsm_detach(const char *name);
