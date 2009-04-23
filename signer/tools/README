@@ -1,20 +1,23 @@
+
 This is a collection of tools, that together implement a pipelined
-DNSSEC signer.
+DNSSEC signer. These tools are used by the OpenDNSSEC signer engine to
+create signed DNSSEC zones from unsigned zone data.
 
 It is work in progress.
-
-For some examples of usage, see the testzone/ directory.
 
 There are no man pages (yet?), so the pipeline is described below
 
 BUILD INSTRUCTIONS
 ------------------
 
-Building from repository:
+The signer make will also build these tools.
 
+However, if you wish to compile them on your own, you can use:
 autoreconf
 ./configure --with-ldns=<ldns dir>
 make
+(make install)
+
 
 
 USAGE INSTRUCTIONS
@@ -26,14 +29,14 @@ and output that zone with the necessary changes, again in text format.
 
 To simply sign a zone, the following steps are needed:
 
-1 Sorting
-2 Stripping
-3 NSEC Addition
-4 RRSIG Addition
+1 Sorting (and stripping)
+2 NSEC Addition
+3 RRSIG Addition
+4 Finalization
 
-The current chain only works when the input data does not contain RRSIG
-or NSEC(3) records. At the moment, there is no support for key signing
-keys yet.
+The current chain from step 1 to 4 only works when the input data for
+step 1 does not contain RRSIG or NSEC(3) records. Step 3 can be called
+again on its own output, so that zones can be re-signed.
 
 1 Sorting
 ---------
@@ -51,25 +54,26 @@ sorted in canonical order.
 To achieve this, the tool 'sorter' can be used. Use 'sorter -h' to see
 the specific options.
 
+The sorter tool will also filter out glue records, and flag empty
+non-terminals.
 
-2 Stripping
------------
+Glue records will be given to the output in the form
+; glue: <Resource Record>
+So that later steps will ignore these records (; means comments in
+default zone format). The finalizer at step 4 will remove the comment
+part so that the final output zone will have the glue data again.
 
-If the zone contains glue resource records, they must be removed prior
-to actual signing, because the RRSET signer later on does not recognize
-glue anymore.
-
-To strip the zone of glue, the tool 'stripper' can be used. There is one
-mandatory argument, which is the zone name (origin), specified with -o.
-
-This tool does not work on partial zones; the NS record set for a 
-delegation is needed to determine glue.
-
-Of course, if the zone data does not contain glue, this step can
-be skipped.
-
-(possible future enhancement: store stripped records in a separate
-file, so they can be added later)
+There are two types of empty non-terminals (ENTs), 'normal' ENTs, and
+'NS' ENTs. NS ENTs are empty non-terminals that lead to a name where
+only NS Resource records exist (while normal ENTs lead to ojne where
+other data is present). Normally, the sorter will ignore empty
+non-terminals. However, if the zone is sorted in NSEC3 space, empty
+non-terminals will be marked and passed on, so the nsecifier can create
+NSEC3 records for them. They will be of the form:
+; Empty non-terminal: <name>
+If NSEC3 opt-out is also used, NS ENTs are also marked;
+; Empty non-terminal to NS: <name>
+(These ENTs should *not* get an NSEC3 record).
 
 
 3 NSEC Addition
@@ -93,9 +97,6 @@ the nsec3er tool will create an NSEC3 for the empty nonterminal.
 ----------------
 
 And finally, the signature resource records must be added.
-
-The tool 'signer' is deprecated; if one wants to use software signing,
-use signer_pkcs11 together with OpenDNSSEC's SoftHSM.
 
 Options for the signer are passed in-line; with the following commands:
 :add_module <name> <so path> <PIN>
@@ -130,6 +131,22 @@ simply be copied to the output.
 Otherwise, the input lines are parsed as Resource Records. As soon as
 a resource record is read that is from a different RRset than the
 previous one, the RRset that was read is printed together with an RRSIG.
+
+This tool will also add some statistics to the file (sign time and 
+signature counts).
+
+
+Finalizer
+---------
+
+Due to the sorting at the beginning of step 1, the SOA resource record
+will not be the first in the zone file anymore. Some DNS servers cannot
+cope with that, so one of the tasks of the finalizer is to place the
+SOA record as the very first one in its output.
+
+It will also re-add the glue records that are passed to it in the form
+; Glue: <Resource Record>
+The string "; Glue: " will be removed, readding it to zone.
 
 
 Other tools
