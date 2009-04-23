@@ -61,7 +61,7 @@ hsm_key_t **hsm_list_keys(void);
 
 /* Find a key pair by UUID, return key identifier or NULL if not found.
    Other find_key_by_xxx functions may be added later if needed. */
-const hsm_key_t *hsm_find_key_by_uuid(uuid_t *uuid);
+const hsm_key_t *hsm_find_key_by_uuid(const uuid_t *uuid);
 
 /* Generate new key pair, return key identifier or NULL if
    key generation failed.
