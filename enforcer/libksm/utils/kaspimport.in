@@ -395,7 +395,7 @@ sub initDB {
 	# Init DB
 	print "Clearing out the Database.\n" if $debug;
 	my $mysql_cmd =
-	  "/usr/local/mysql-5.0.67-osx10.5-x86_64/bin/mysql -u root -h test1";
+	  "@mysql_path@ -u root -h test1";
 	open( MYSQL, "|$mysql_cmd" );
 	print MYSQL <<EOF;
 drop database if exists test;
