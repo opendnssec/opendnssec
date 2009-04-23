@@ -5,31 +5,51 @@ use XML::LibXML;
 use XML::LibXML::XPathContext;
 use DateTime::Format::Duration::XSD;
 use DateTime::Duration;
+use Getopt::Std     qw(getopts);
 
-my $debug = 1;
+use vars (
+    q!$opt_h!, # db host
+    q!$opt_u!, # db user
+    q!$opt_s!, # db schema
+    q!$opt_p!, # db password
+    q!$opt_d!, # debug mode
+    q!$opt_f!, # sqlite3 filename
+);
 
-my $dbhost = "test1";
-my $dbname = "test";
-my $dbuser = "root";
-my $dbpass = "";
+getopts('h:u:s:p:d') or die "bad usage";
 
+my $debug = $opt_d;
+my $dbh;
+ my $dbtype = "@DB_TYPE@";
+ if ($dbtype eq "SQLITE3") {
+   my $sqlitefile = $opt_f;
+   
+    $dbh =
+       DBI->connect( "DBI:SQLite:dbname=sqlitefile","","");
+ 
+ } else {
+    my $dbhost = $opt_h;
+    my $dbname = $opt_s;
+    my $dbuser = $opt_u;
+    my $dbpass = $opt_p;
 
-my $confxml = "@sysconfdir@/opendnssec/conf.xml";
-my $confrng = "@sysconfdir@/opendnssec/conf.rng";
-my $kaspxml = "@sysconfdir@/opendnssec/kasp.xml";
-my $kasprng = "@sysconfdir@/opendnssec/kasp.rng";
-my $zonelistxml = "@sysconfdir@/opendnssec/zonelist.xml";
-my $zonelistrng = "@sysconfdir@/opendnssec/zonelist.rng";
+    #Clear out the Database. Drop all tables and re-create. FOR TESTING!
+    initDB();
 
-#Clear out the Database. Drop all tables and re-create. FOR TESTING!
-initDB();
+    $dbh =
+      DBI->connect( "DBI:mysql:$dbname:$dbhost", $dbuser, $dbpass,
+    	{ RaiseError => 1, PrintError => 0, PrintWarn => 1, AutoCommit => 0 } );
+ }
 
-my $dbh =
-  DBI->connect( "DBI:mysql:$dbname:$dbhost", $dbuser, $dbpass,
-	{ RaiseError => 1, PrintError => 0, PrintWarn => 1, AutoCommit => 0 } );
-
-print "Using version " . XML::LibXML::LIBXML_DOTTED_VERSION . " of libxml.\n"
+  print "Using version " . XML::LibXML::LIBXML_DOTTED_VERSION . " of libxml.\n"
   if ($debug);
+
+  my $confxml = "@sysconfdir@/opendnssec/conf.xml";
+  my $confrng = "@sysconfdir@/opendnssec/conf.rng";
+  my $kaspxml = "@sysconfdir@/opendnssec/kasp.xml";
+  my $kasprng = "@sysconfdir@/opendnssec/kasp.rng";
+  my $zonelistxml = "@sysconfdir@/opendnssec/zonelist.xml";
+  my $zonelistrng = "@sysconfdir@/opendnssec/zonelist.rng";
 
   #Stuff in config.xml now read directly by applications
   #but we need the names of the security modules in the DB

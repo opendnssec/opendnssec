@@ -1,6 +1,6 @@
 dist_bin_SCRIPTS = kaspimport.pl
 
-do_subst = sed -e "s,[@]PERL[@],$(PERL),g" -e "s,[@]sysconfdir[@],$(sysconfdir),g" -e"s,[@]mysql_path[@],$(MYSQL),g"
+do_subst = sed -e "s,[@]PERL[@],$(PERL),g" -e "s,[@]sysconfdir[@],$(sysconfdir),g" -e"s,[@]mysql_path[@],$(MYSQL),g" -e"s,[@]DB_TYPE[@],$(DB_TYPE),g"
               
 kaspimport.pl: kaspimport.in Makefile
 	$(do_subst) $(srcdir)/kaspimport.in > kaspimport.pl
