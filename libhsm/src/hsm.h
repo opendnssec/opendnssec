@@ -38,17 +38,16 @@
 
 /* Data type to describe an HSM */
 typedef struct {
-	const char *name;    /* name from hsm_attach */
-	const char *path;    /* path from hsm_attach */
-	const void *handle;  /* handle from dlopen */
-	CK_FUNCTION_LIST_PTR sym; /* Function list from dlsym */
-	CK_SESSION_HANDLE ses;  /* session to that hsm */
+	const char *name;    /* name from hsm_attach() */
+	const char *path;    /* path from hsm_attach() */
+	const void *handle;  /* handle from dlopen()*/
+	CK_FUNCTION_LIST_PTR sym;   /* Function list from dlsym */
+	CK_SESSION_HANDLE session;  /* session to that hsm */
 } hsm_module_t;
 
 /* Data type to describe a key pair at any HSM */
 typedef struct {
 	const hsm_module_t *module;       /* pointer to module */
-	const CK_SESSION_HANDLE session;  /* session within module */
 	const CK_OBJECT_HANDLE key;       /* key within session */
 	const uuid_t *uuid;               /* UUID of key (if available) */
 } hsm_key_t;
