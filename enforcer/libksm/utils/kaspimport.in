@@ -6,7 +6,7 @@ use XML::LibXML::XPathContext;
 use DateTime::Format::Duration::XSD;
 use DateTime::Duration;
 
-my $debug = 0;
+my $debug = 1;
 
 my $dbhost = "test1";
 my $dbname = "test";
@@ -14,12 +14,15 @@ my $dbuser = "root";
 my $dbpass = "";
 
 
-my $configxml = "@sysconfdir@/opendnssec/conf.xml";
-my $configrng = "@sysconfdir@/opendnssec/conf.rng";
+my $confxml = "@sysconfdir@/opendnssec/conf.xml";
+my $confrng = "@sysconfdir@/opendnssec/conf.rng";
 my $kaspxml = "@sysconfdir@/opendnssec/kasp.xml";
 my $kasprng = "@sysconfdir@/opendnssec/kasp.rng";
 my $zonelistxml = "@sysconfdir@/opendnssec/zonelist.xml";
 my $zonelistrng = "@sysconfdir@/opendnssec/zonelist.rng";
+
+#Clear out the Database. Drop all tables and re-create. FOR TESTING!
+initDB();
 
 my $dbh =
   DBI->connect( "DBI:mysql:$dbname:$dbhost", $dbuser, $dbpass,
@@ -28,8 +31,37 @@ my $dbh =
 print "Using version " . XML::LibXML::LIBXML_DOTTED_VERSION . " of libxml.\n"
   if ($debug);
 
-#Clear out the Database. Drop all tables and re-create. FOR TESTING!
-initDB();
+  #Stuff in config.xml now read directly by applications
+  #but we need the names of the security modules in the DB
+
+  # Read doc
+  my $parser2 = XML::LibXML->new();
+  my $doc2    = $parser2->parse_file($confxml);
+
+  # Validate
+  my $rngschema2 = XML::LibXML::RelaxNG->new( location => $confrng );
+
+  # This will exit if validation fails and print errors
+  eval { $rngschema2->validate($doc2); };
+
+  # Read the XML using XPATH
+  my $xpc2 = XML::LibXML::XPathContext->new($doc2);
+
+  my $configuration = $xpc2->find('Configuration')->get_node(1);
+
+  #Now import HSM data
+  my $repolist = $configuration->find('RepositoryList')->get_node(1);
+
+  #Now import zone data
+  my $repos = $repolist->findnodes('Repository');
+  foreach my $repo ( $repos->get_nodelist() ) {
+    # We only need the name and capacity. The rest is handled by libhsm
+  	my $rname   = $repo->find("Name")->string_value();
+  	my $rcapacity = $repo->find("Capacity")->string_value();
+  	insertrepo( $rname, $rcapacity);
+  }
+
+
 
 # Read doc
 my $parser = XML::LibXML->new();
@@ -44,9 +76,9 @@ eval { $rngschema->validate($doc); };
 # Read the XML using XPATH
 my $xpc = XML::LibXML::XPathContext->new($doc);
 
-my $kasp = $xpc->find('kasp')->get_node(1);
+my $kasp = $xpc->find('KASP')->get_node(1);
 
-my $policies = $kasp->findnodes('policy');
+my $policies = $kasp->findnodes('Policy');
 
 foreach my $policy ( $policies->get_nodelist() ) {
 
@@ -79,7 +111,7 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	$xpc->setContextNode($policy);
 
 	# Read signature section
-	my $sig       = $xpc->find('=Signatures')->get_node(1);
+	my $sig       = $xpc->find('Signatures')->get_node(1);
 	my $resign    = duration2sec( $sig->find('Resign')->string_value() );
 	my $refresh   = duration2sec( $sig->find('Refresh')->string_value() );
 	my $jitter    = duration2sec( $sig->find('Jitter')->string_value() );
@@ -109,7 +141,7 @@ foreach my $policy ( $policies->get_nodelist() ) {
 		my $hash       = $nsec3->find('Hash')->get_node(1);
 		my $algorithm  = $hash->find('Algorithm')->string_value();
 		my $iterations = $hash->find('Iterations')->string_value();
-		my $salt       = $hash->find('salt')->get_node(1);
+		my $salt       = $hash->find('Salt')->get_node(1);
 		my $saltlen    = $salt->find("\@length")->string_value();
 		insertpp( "optout",     $optout,     "denial", $pname );
 		insertpp( "resalt",     $resalt,     "denial", $pname );
@@ -120,7 +152,7 @@ foreach my $policy ( $policies->get_nodelist() ) {
 
 	# Read keys section
 	my $keys = $xpc->find('Keys')->get_node(1);
-	$ttl = duration2sec( $keys->find('TTL')->string_value() );
+	my $ttl = duration2sec( $keys->find('TTL')->string_value() );
 	my $retiresafety =
 	  duration2sec( $keys->find('RetireSafety')->string_value() );
 	my $publishsafety =
@@ -209,36 +241,6 @@ foreach my $zone ( $zones->get_nodelist() ) {
 	insertz( $zname, $zpolicy);
 }
 
-#Stuff in config.xml now read directly by applications
-#but we need the names of the security modules in the DB
-
-# Read doc
-my $parser2 = XML::LibXML->new();
-my $doc2    = $parser2->parse_file($confxml);
-
-# Validate
-my $rngschema2 = XML::LibXML::RelaxNG->new( location => $confrng );
-
-# This will exit if validation fails and print errors
-eval { $rngschema2->validate($doc2); };
-
-# Read the XML using XPATH
-my $xpc2 = XML::LibXML::XPathContext->new($doc2);
-
-my $configuration = $xpc2->find('Configuration')->get_node(1);
-
-#Now import HSM data
-
-
-<RepositoryList>
-	<Repository>
-		<Name>sca6000</Name>
-		<Module>/usr/lib/libpkcs11.so</Module>
-		<PIN>test:1234</PIN>
-		<Capacity>1000</Capacity>
-	</Repository>
-
-
 # If we get here then the policies and zones imported OK
 $dbh->commit;
 
@@ -246,6 +248,33 @@ $dbh->disconnect;
 exit 0;
 
 # SUBS
+sub insertrepo {
+  my $rname = $_[0];
+	my $rcapacity = $_[1];
+	my $rows    = $dbh->do(
+		"insert into securitymodules (name, capacity) VALUES (?,?)", undef, $rname, $rcapacity) or die $dbh->errstr;
+  	if ( $rows == 1 ) {
+
+  		# Commit will occur at end if no errors.
+  		print
+  "Inserted 1 row in to zones (repository name  = $rname, capacity = $rcapacity).\n"
+  		  if ($debug);
+  	}
+  	elsif ( $rows == 0 ) {
+  		$dbh->rollback;
+  		$dbh->disconnect;
+  		die
+  "Error: Failed to insert rows in to zones (repository name  = $rname, capacity = $rcapacity).\n"
+  	}
+  	else {
+  		$dbh->rollback;
+  		$dbh->disconnect;
+  		die
+  "Error: Attempted to insert $rows rows in to zones (repository name  = $rname, capacity = $rcapacity).\n"
+  	}
+}
+
+
 sub insertz {
 	my $zname   = $_[0];
 	my $zpolicy = $_[1];
@@ -259,20 +288,20 @@ sub insertz {
 
 		# Commit will occur at end if no errors.
 		print
-"Inserted 1 row in to zones (zone = $zname, policy = $zpolicy, in = $zin, out = $zout).\n"
+"Inserted 1 row in to zones (zone = $zname, policy = $zpolicy).\n"
 		  if ($debug);
 	}
 	elsif ( $rows == 0 ) {
 		$dbh->rollback;
 		$dbh->disconnect;
 		die
-"Error: Failed to insert rows in to zones (zone = $zname, policy = $zpolicy, in = $zin, out = $zout).\n";
+"Error: Failed to insert rows in to zones (zone = $zname, policy = $zpolicy).\n";
 	}
 	else {
 		$dbh->rollback;
 		$dbh->disconnect;
 		die
-"Error: Attempted to insert $rows rows in to zones (zone = $zname, policy = $zpolicy, in = $zin, out = $zout).\n";
+"Error: Attempted to insert $rows rows in to zones (zone = $zname, policy = $zpolicy).\n";
 	}
 
 }
@@ -377,7 +406,6 @@ drop table if exists policies;
 drop table if exists keypairs;
 drop table if exists dnsseckeys;
 drop table if exists zones;
-drop table if exists adapters;
 drop table if exists parameters;
 drop table if exists categories;
 drop table if exists securitymodules;
@@ -389,11 +417,8 @@ drop table if exists serialmodes;
 create table securitymodules (
   id            tinyint not null auto_increment,    # id for sm
   name          varchar(30) not null,  # name of the sm
-  description   varchar(255),
-  location      varchar(280) not null,
   capacity      mediumint not null,
-  pin           varchar(255) null default null,
-
+  
   constraint primary key (id)
 )ENGINE=InnoDB;
 
@@ -415,15 +440,6 @@ create table parameters (
   constraint primary key (id),
   constraint unique (name, category_id),
   constraint foreign key (category_id) references categories (id)
-)ENGINE=InnoDB;
-
-# adapters - stores the types of signer adapters available
-create table adapters (
-  id            tinyint not null auto_increment,    # id for adapter
-  name          varchar(30) not null,  # name of the adapter
-  description   varchar(255), # description of the adapter
-
-  constraint primary key (id)
 )ENGINE=InnoDB;
 
 create table serialmodes (
@@ -448,13 +464,9 @@ create table policies (
 create table zones(
   id            mediumint not null auto_increment,    # id
   name          varchar(30) not null ,  # name of the parameter
-  in_adapter_id      tinyint not null,      # type of inbound adaptor for this zone
-  out_adapter_id     tinyint not null,      # type of outbound adapter for this zone
   policy_id     mediumint not null,
 
   constraint primary key (id),
-  constraint foreign key (in_adapter_id) references adapters (id),
-  constraint foreign key (out_adapter_id) references adapters (id),
   constraint foreign key (policy_id) references policies (id)
 )ENGINE=InnoDB;
 
@@ -510,9 +522,6 @@ create table parameters_policies (
 )ENGINE=InnoDB;
 
 # insert default data
-# default security modules
-insert into securitymodules (name, description, location, capacity, pin) values ("sca6000-1", "sca6000", "pkcs11.so", 1000, "1234");
-insert into securitymodules (name, description, location, capacity, pin) values ("softHSM-01", "the best soft hsm in the world", "pkcs11.so", 1000, "1234");
 
 # default categories
 insert into categories (name) values ("signature");
@@ -578,11 +587,6 @@ insert into parameters (name, description, category_id) select "interval", "run 
 insert into parameters (name, description, category_id) select "keygeninterval", "interval between key generation runs", id from categories where name="enforcer";
 insert into parameters (name, description, category_id) select "backupdelay", "how old must a new key be before it can be assumed to have been backed up", id from categories where name="enforcer";
 
-# default adapters
-insert into adapters (name, description) values ("file", "all signers should be able to read files.");
-insert into adapters (name, description) values ("axfr", "axfr adapter to the signer.");
-
-insert into policies (name, description) values ("opendnssec", "special policy for enforcer config");
 commit;
 EOF
 	close MYSQL;
