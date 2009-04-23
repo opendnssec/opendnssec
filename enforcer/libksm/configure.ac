@@ -46,6 +46,7 @@ AC_ARG_WITH(sqlite3,
    SQLITE_PATH="$withval"
 )
 if test "x$with_mysql" = "xno"; then
+  DB_TYPE="SQLITE3"
   if test "x$SQLITE_PATH" != "x"
   then
      AC_MSG_CHECKING(what are the sqlite3 includes)
@@ -63,6 +64,7 @@ if test "x$with_mysql" = "xno"; then
       AC_MSG_RESULT($DB_LIBS)
   fi
 else
+  DB_TYPE="MYSQL"
   if test "x$MYSQL_PATH" = "x"; then
      AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH)
      AC_PATH_PROG(MYSQL, mysql)
@@ -89,6 +91,7 @@ fi
 AM_CONDITIONAL([MYSQL], [test "x$with_mysql" != "xno"]) 
 AC_SUBST(DB_INCLUDES)
 AC_SUBST(DB_LIBS)
+AC_SUBST(DB_TYPE)
 
 # Check for cunit
 AC_ARG_WITH(cunit,
