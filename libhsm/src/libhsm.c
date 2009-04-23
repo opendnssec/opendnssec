@@ -141,6 +141,8 @@ PK_GenerateObject(long keysize)
     CK_KEY_TYPE      keyType = CKK_RSA;
     CK_OBJECT_HANDLE ignore;
 
+    CK_ULONG         ck_keysize = (CK_ULONG)keysize;
+
     uuid_t           uuid;
     char             uuid_str[37];
 
@@ -161,7 +163,7 @@ PK_GenerateObject(long keysize)
     AddAttribute(pub_temp+4,CKA_ENCRYPT,         &cfalse,  sizeof (cfalse));
     AddAttribute(pub_temp+5,CKA_WRAP,            &cfalse,  sizeof (cfalse));
     AddAttribute(pub_temp+6,CKA_TOKEN,           &ctrue,   sizeof (ctrue));
-    AddAttribute(pub_temp+7,CKA_MODULUS_BITS,    &(CK_ULONG)keysize, sizeof (keysize));
+    AddAttribute(pub_temp+7,CKA_MODULUS_BITS,    &ck_keysize, sizeof (ck_keysize));
     AddAttribute(pub_temp+8,CKA_PUBLIC_EXPONENT, &pubex,   sizeof (pubex));
 
     /* A template to generate an RSA private key objects*/
