@@ -45,9 +45,10 @@ typedef struct {
 
 /* Data type to describe a key pair at any HSM */
 typedef struct {
-	const hsm_module_t *module;     /* pointer to module */
-	CK_SESSION_HANDLE_PTR session;  /* session within module */
-	CK_OBJECT_HANDLE_PTR key;       /* key within session */
+	const hsm_module_t *module;       /* pointer to module */
+	const CK_SESSION_HANDLE session;  /* session within module */
+	const CK_OBJECT_HANDLE key;       /* key within session */
+	const uuid_t *uuid;               /* UUID of key (if available) */
 } hsm_key_t;
 
 
