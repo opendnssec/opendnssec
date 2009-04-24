@@ -3,7 +3,17 @@ $Id$
 The signer engine and its tools are part of the OpenDNSSEC project.
 For more information, visit http://www.opendnssec.org
 
+CONTENTS:
+    INTRODUCTION
+    DEPENDENCIES
+    INSTALLATION
+    INTERACTION FROM THE COMMAND LINE
+    RUNNING WITHOUT THE KASP
+
+
+-------------------------------------------------------------------
 INTRODUCTION
+-------------------------------------------------------------------
 
 As part of the OpenDNSSEC project, the task of the signer engine is to
 schedule signing operation on DNS zones. Taking input from the KASP, it
@@ -23,7 +33,10 @@ which are written in C, to do the actual work. It uses a
 worker/task-queue design, where the worker threads will suspend
 until there is something to do. 
 
+
+-------------------------------------------------------------------
 DEPENDENCIES
+-------------------------------------------------------------------
 
 The C-based tools depend on the ldns library
 http://www.NLnetLabs.nl/projects/ldns
@@ -34,7 +47,9 @@ The python part of the engine depends on the 4suite implementation of
 xml (the package name for Ubuntu is python-4suite-xml).
 
 
+-------------------------------------------------------------------
 INSTALLATION
+-------------------------------------------------------------------
 
 To build and install the signer engine, the following steps are needed:
 
@@ -59,3 +74,128 @@ The tools, and the main engine invocation script, will be installed in
 <prefix>/bin
 The python libraries will be installed in
 <prefix>/lib/python/signer_engine/
+
+
+-------------------------------------------------------------------
+INTERACTION FROM THE COMMAND LINE
+-------------------------------------------------------------------
+
+If the engine is running (see the next section on how to run
+one manually), you can interact with it using the tool
+signer_engine_cli.
+
+If you give no arguments, it will connect to the engine and go to
+interactive mode. The command 'help' shows a list of possible
+commands:
+$ signer_engine_cli
+cmd> help
+ Commands:
+zones           show the currently known zones
+sign <zone>     schedule zone for immediate signing
+queue           show the current task queue
+flush           execute all scheduled tasks immediately
+update          re-read the zonelist xml file
+                and check for changed zoneconf.xml files
+stop            stop the engine
+verbosity <nr>  set verbosity (notimpl)
+
+cmd> quit
+
+You can also use these commands directly from your shell, by giving
+them as arguments to signer_engine_cli. If you do this, the cli will
+execute the command and quit.
+
+-------------------------------------------------------------------
+RUNNING WITHOUT THE KASP
+-------------------------------------------------------------------
+
+If you want to test the engine on its own, or run it without using
+the KASP module, you will need to perform the following steps.
+
+Of course it has to be installed using the steps from section
+INSTALLATION.
+
+HSM
+---
+You will need to set up an HSM module. If you use SoftHSM, you will
+need to make sure that a token is initialized, and that the correct
+softhsm.conf file is set in the environment variable $SOFTHSM_CONF.
+
+Some keys should be present in the token. If not, you can generate
+them with the hsm-toolkit from OpenDNSSEC.
+
+
+conf.xml
+--------
+
+You will need to either create or update the
+<prefix>/etc/opendnssec/conf.xml file to your
+settings; the <Repository> element should contain the name of the
+token you have initialized in your HSM, the complete path of the
+module library (e.g. <prefix>/lib/libsofthsm.so). Optionally you
+can use a PIN value here too. If you do not specify it, the engine
+will prompt for it.
+
+If you run a nameserver, you will need to create a little script
+that tells that server to reload its zones, and point to that
+script with the element <NotifyCommand> below <Signer>.
+
+The rest of the values can be left to their defaults.
+
+The elements and their exact meanings are described here:
+http://www.opendnssec.se/browser/trunk/xml/conf.rnc
+
+zonelist.xml
+------------
+
+You can tell the engine what zones to sign with
+<prefix>/etc/zonelist.xml
+An example zone list file can be found at
+http://www.opendnssec.se/browser/trunk/xml/zonelist.xml
+
+The elements and their exact meanings are described here:
+http://www.opendnssec.se/browser/trunk/xml/zonelist.rnc
+
+This file will specify the specific zone configuration, and its
+in- and output-files.
+
+
+zone configuration
+------------------
+
+At the location pointed to in your zonelist.xml, you should create
+a signer configuration xml file. An example can be found at:
+http://www.opendnssec.se/browser/docs/xml/signconf.xml
+
+The elements and their exact meanings are described here:
+http://www.opendnssec.se/browser/trunk/xml/signconf.rnc
+
+
+zone file
+---------
+
+Finally, you will need to give the engine an actual zone file to
+work on. You will have already specified the location of this file
+in the zonelist.xml file above.
+
+At the moment, the engine does not understand all directives that
+are standard in bind zone files (like $TTL and $ORIGIN), so you
+might need to run your unsigned zone through ldns-read-zone, and
+place the output of that in the directory you specified.
+
+
+running the engine
+------------------
+
+You can run the engine bij calling <prefix>/bin/signer_engine
+
+If everything is ok, you should see the following output:
+$ ./signer_engine
+Python engine proof of concept, v 0.0002 alpha
+Zone list updated: 0 removed, 1 added, 0 updated
+output redirected to syslog
+$
+
+The engine has daemonized itself and should be running. You can
+check that it does by using signer_engine_cli as specified in the
+section INTERACTION FROM THE COMMAND LINE.
