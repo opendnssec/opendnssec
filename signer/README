@@ -165,7 +165,7 @@ zone configuration
 
 At the location pointed to in your zonelist.xml, you should create
 a signer configuration xml file. An example can be found at:
-http://www.opendnssec.se/browser/docs/xml/signconf.xml
+http://www.opendnssec.se/browser/trunk/xml/signconf.xml
 
 The elements and their exact meanings are described here:
 http://www.opendnssec.se/browser/trunk/xml/signconf.rnc
