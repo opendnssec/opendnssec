@@ -27,19 +27,19 @@ my $dbh;
    if ($opt_i) {
      print "Clearing out the Database.\n";
      my $sql_cmd;
-     $sql_cmd = "sqlite3 $sqlitefile";
+     $sql_cmd = "@sqlite3_path@ $sqlitefile";
      `$sql_cmd < @bindir@/database_create.sqlite3`;
-     
+  }   
     $dbh =
        DBI->connect( "DBI:SQLite:dbname=$sqlitefile","","");
- }
+ 
  } else {
     my $dbhost = $opt_h;
     my $dbname = $opt_s;
     my $dbuser = $opt_u;
     my $dbpass = $opt_p;
     
-    #Clear out the Database. Drop all tables and re-create. FOR TESTING!
+    #Clear out the Database.
     if ($opt_i) {
       print "Clearing out the Database.\n";
       my $mysql_cmd;
@@ -289,20 +289,20 @@ sub insertrepo {
 
   		# Commit will occur at end if no errors.
   		print
-  "Inserted 1 row in to zones (repository name  = $rname, capacity = $rcapacity).\n"
+  "Inserted 1 row in to securitymodules (repository name = $rname, capacity = $rcapacity).\n"
   		  if ($debug);
   	}
   	elsif ( $rows == 0 ) {
   		$dbh->rollback;
   		$dbh->disconnect;
   		die
-  "Error: Failed to insert rows in to zones (repository name  = $rname, capacity = $rcapacity).\n"
+  "Error: Failed to insert rows in to securitymodules (repository name = $rname, capacity = $rcapacity).\n"
   	}
   	else {
   		$dbh->rollback;
   		$dbh->disconnect;
   		die
-  "Error: Attempted to insert $rows rows in to zones (repository name  = $rname, capacity = $rcapacity).\n"
+  "Error: Attempted to insert $rows rows in to securitymodules (repository name = $rname, capacity = $rcapacity).\n"
   	}
 }
 
