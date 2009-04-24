@@ -21,6 +21,12 @@
                 <data type="string"/>
               </element>
             </optional>
+            <optional>
+              <!-- Maxmimum number of key pairs in the Repository (if limited) -->
+              <element name="Capacity">
+                <data type="positiveInteger"/>
+              </element>
+            </optional>
           </element>
         </zeroOrMore>
       </element>

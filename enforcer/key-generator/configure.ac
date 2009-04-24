@@ -76,6 +76,8 @@ AC_SUBST(XML_LIBS)
 
 keygend_conf_file=$sysconfdir/opendnssec/conf.xml
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file`"], [Path to the OpenDNSSEC configuration file])
+keygend_conf_schema=$sysconfdir/opendnssec/conf.rng
+AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema`"], [Path to the OpenDNSSEC configuration file])
 
 AC_CONFIG_FILES([
 Makefile

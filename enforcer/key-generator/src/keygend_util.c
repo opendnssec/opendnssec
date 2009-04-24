@@ -50,8 +50,8 @@ ReadConfig(DAEMONCONFIG *config)
   int mysec = 0;
   int status;
   char* filename = CONFIGFILE;
-  char* rngfilename = CONFIGFILE;
-  log_msg(config, LOG_INFO, "Reading config.\n");
+  char* rngfilename = CONFIGRNG;
+  log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
   /* Load XML document */
   doc = xmlParseFile(filename);
   if (doc == NULL) {
@@ -60,6 +60,7 @@ ReadConfig(DAEMONCONFIG *config)
   }
 
   /* Load rng document */
+  log_msg(config, LOG_INFO, "Reading config schema \"%s\"\n", rngfilename);
   rngdoc = xmlParseFile(rngfilename);
   if (rngdoc == NULL) {
 	  log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", rngfilename);
@@ -79,6 +80,7 @@ ReadConfig(DAEMONCONFIG *config)
   status = xmlRelaxNGValidateDoc(rngctx,doc);
   if (status != 0) {
     log_msg(config, LOG_ERR, "Error validating file \"%s\"\n", filename);
+    return(-1);
   }
 
   /* Now parse a value out of the conf */
