@@ -206,7 +206,7 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	insertpp( "bits",       $algorithm_len, "ksk", $pname );
 	insertpp( "lifetime",   $lifetime,      "ksk", $pname );
 	insertpp( "emergency",  $emergency,     "ksk", $pname );
-	insertpp( "repository", $repository_id  "ksk", $pname );
+	insertpp( "repository", $repository_id,  "ksk", $pname );
 	insertpp( "rfc5011",    $rfc5011,       "ksk", $pname );
 
 	my $zsk = $keys->find('ZSK')->get_node(1);
