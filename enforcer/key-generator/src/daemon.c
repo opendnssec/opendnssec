@@ -13,6 +13,7 @@
 *
 * See LICENSE for the license.
 */
+#include <config.h>
 
 #include <sys/types.h>
 #include <syslog.h>

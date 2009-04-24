@@ -41,7 +41,6 @@ typedef struct
 	
 } DAEMONCONFIG;
 
-#define PACKAGE_NAME "OpenDNSSEC Key Generation"
-#define PACKAGE_VERSION "0.0.1"
+
 #define AUTHOR_NAME "John Dickinson"
 #define COPYRIGHT_STR "Copyright (C) 2008 2009 John Dickinson"
