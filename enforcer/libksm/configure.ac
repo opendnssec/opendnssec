@@ -55,6 +55,7 @@ if test "x$with_mysql" = "xno"; then
      AC_MSG_CHECKING(what are the sqlite3 libs)
      DB_LIBS="-L$SQLITE_PATH/lib -lsqlite3"
      AC_MSG_RESULT($DB_LIBS)
+     AC_PATH_PROG(SQLITE3, sqlite3, $SQLITE_PATH/bin)
   else
       AC_MSG_CHECKING(what are the sqlite3 includes)
       DB_INCLUDES="-I/usr/local/include -DUSE_SQLITE"
@@ -62,6 +63,7 @@ if test "x$with_mysql" = "xno"; then
       AC_MSG_CHECKING(what are the sqlite3 libs)
       DB_LIBS="-L/usr/local/lib -lsqlite3"
       AC_MSG_RESULT($DB_LIBS)
+      AC_PATH_PROG(SQLITE3, sqlite3, /usr/local/bin)
   fi
 else
   DB_TYPE="MYSQL"
@@ -92,6 +94,7 @@ AM_CONDITIONAL([MYSQL], [test "x$with_mysql" != "xno"])
 AC_SUBST(DB_INCLUDES)
 AC_SUBST(DB_LIBS)
 AC_SUBST(DB_TYPE)
+
 
 # Check for cunit
 AC_ARG_WITH(cunit,
