@@ -1,0 +1,48 @@
+# $Id: signconf.rnc 327 2009-03-30 14:44:40Z jakob $
+
+datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
+
+start = element Configuration {
+	
+	# List of all known Key Repositories (aka HSM:s)
+	element RepositoryList {
+		element Repository {
+			# Symbolic name of Repository
+			element Name { xsd:string },
+
+			# PKCS#11 Module (aka shared library)
+			element Module { xsd:string },
+
+			# PKCS#11 Login Credentials (asked for if not specified)
+			element PIN { xsd:string }?,
+
+			# Maxmimum number of key pairs in the Repository (if limited)
+			element Capacity { xsd:positiveInteger }?
+		}*
+	},
+
+	# Configuration parameters for the KASP Enforcer
+	element Enforcer {
+		# Interval between runs of the key rollover procedure
+		element Interval { xsd:duration },
+
+		# Interval between runs of the key pre-generation procedure
+		element KeygenInterval { xsd:duration },
+
+		# Interval between runs of the key backup procedure
+		element BackupDelay { xsd:duration }
+	},
+
+	# Configuration parameters for the Signer 
+	element Signer {
+		# Location to store intermediate zone information
+		element WorkingDirectory { xsd:string }?,
+
+		# Location to store the zonelist XML file
+		element ZoneListFile { xsd:string }?,
+
+		# This can probably be removed later; location of the
+		# signer tools (used for intermediate testing)
+		element ToolsDirectory { xsd:string }?
+	}?
+}

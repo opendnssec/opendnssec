@@ -1,0 +1,26 @@
+# $Id$
+
+datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
+
+start = element ZoneList {
+	element Zone {
+		attribute name { xsd:string },
+
+		# What policy applies to this zone?
+		element Policy { xsd:string },
+
+		# What file containts the signer configuration for this zone?	
+		element SignerConfiguration { xsd:string },
+
+		element Adapters {
+			# Where do the signer fetch the unsigned zone?
+			element Input { adapter },
+			
+			# Where do the signer deliver the signed zone?
+			element Output { adapter }
+		}
+	}*
+}
+
+# for now, only the file adapter is defined
+adapter = element File { xsd:string }
