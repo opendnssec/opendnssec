@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include <config.h>
+
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -47,20 +49,20 @@ ReadConfig(DAEMONCONFIG *config)
   xexpr = "//Configuration/Enforcer/KeygenInterval";
   int mysec = 0;
   int status;
-  char* filename = "/tmp/conf.xml";
-  char* rngfilename = "/tmp/conf.rng";
+  char* filename = CONFIGFILE;
+  char* rngfilename = CONFIGFILE;
   log_msg(config, LOG_INFO, "Reading config.\n");
   /* Load XML document */
   doc = xmlParseFile(filename);
   if (doc == NULL) {
-	  fprintf(stderr, "Error: unable to parse file \"%s\"\n", filename);
+	  log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", filename);
 	    return(-1);
   }
 
   /* Load rng document */
   rngdoc = xmlParseFile(rngfilename);
   if (rngdoc == NULL) {
-	  fprintf(stderr, "Error: unable to parse file \"%s\"\n", rngfilename);
+	  log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", rngfilename);
 	    return(-1);
   }
 
@@ -76,7 +78,7 @@ ReadConfig(DAEMONCONFIG *config)
   /* Validate a document tree in memory. */
   status = xmlRelaxNGValidateDoc(rngctx,doc);
   if (status != 0) {
-    fprintf(stderr, "Error validating file \"%s\"\n", filename);
+    log_msg(config, LOG_ERR, "Error validating file \"%s\"\n", filename);
   }
 
   /* Now parse a value out of the conf */
@@ -85,7 +87,7 @@ ReadConfig(DAEMONCONFIG *config)
   /* Create xpath evaluation context */
   xpathCtx = xmlXPathNewContext(doc);
   if(xpathCtx == NULL) {
-      fprintf(stderr,"Error: unable to create new XPath context\n");
+      log_msg(config, LOG_ERR,"Error: unable to create new XPath context\n");
       xmlFreeDoc(doc);
       return(-1);
   }

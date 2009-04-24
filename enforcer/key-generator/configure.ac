@@ -74,6 +74,9 @@ AC_ARG_WITH(libxml2,
 AC_SUBST(XML_INCLUDES)
 AC_SUBST(XML_LIBS)
 
+keygend_conf_file=$sysconfdir/opendnssec/conf.xml
+AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file`"], [Path to the OpenDNSSEC configuration file])
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
