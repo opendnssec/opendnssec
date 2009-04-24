@@ -14,7 +14,9 @@ import socket
 def send_msg(msg, c_sock):
     """Send a message to the engine"""
     c_sock.send(msg)
-    #print "sent cmd: " + msg,
+    if msg[:4] == "stop":
+        print "Sent stop command to engine"
+        sys.exit(0)
     msg = ''
     chunk = ''
     prevchunk = ''
