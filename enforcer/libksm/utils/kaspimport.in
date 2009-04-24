@@ -199,14 +199,14 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	my $lifetime       = duration2sec( $ksk->find('Lifetime')->string_value() );
 	my $emergency      = $ksk->find('Emergency')->string_value();
 	my $repository     = $ksk->find('Repository')->string_value();
-	my $respository_id = getresid($repository);
+	my $repository_id = getresid($repository);
 	my $rfc5011        = 0;
 	$rfc5011 = 1 if ( $ksk->find('RFC5011')->get_node(1) );
 	insertpp( "algorithm",  $algorithm,     "ksk", $pname );
 	insertpp( "bits",       $algorithm_len, "ksk", $pname );
 	insertpp( "lifetime",   $lifetime,      "ksk", $pname );
 	insertpp( "emergency",  $emergency,     "ksk", $pname );
-	insertpp( "repository", $repository,    "ksk", $pname );
+	insertpp( "repository", $repository_id  "ksk", $pname );
 	insertpp( "rfc5011",    $rfc5011,       "ksk", $pname );
 
 	my $zsk = $keys->find('ZSK')->get_node(1);
@@ -215,12 +215,12 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	$lifetime       = duration2sec( $ksk->find('Lifetime')->string_value() );
 	$emergency      = $zsk->find('Emergency')->string_value();
 	$repository     = $zsk->find('Repository')->string_value();
-	$respository_id = getresid($repository);
+	$repository_id = getresid($repository);
 	insertpp( "algorithm",  $algorithm,     "zsk", $pname );
 	insertpp( "bits",       $algorithm_len, "zsk", $pname );
 	insertpp( "lifetime",   $lifetime,      "zsk", $pname );
 	insertpp( "emergency",  $emergency,     "zsk", $pname );
-	insertpp( "repository", $repository,    "zsk", $pname );
+	insertpp( "repository", $repository_id,    "zsk", $pname );
 
 	# Read zone section
 	my $zone = $xpc->find('Zone')->get_node(1);
