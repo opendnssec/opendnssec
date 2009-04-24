@@ -30,15 +30,11 @@ server_init(DAEMONCONFIG *config)
   return 0;
 }
 
-char*
-dummy_hsm_keygen(){
-  uuid_t uuid;
-  char* retval = NULL;
-  char uuid_text[37];
-  uuid_generate(uuid);
-  uuid_unparse(uuid, uuid_text);
-  retval = StrStrdup(uuid_text);
-  return retval;
+uuid_t *dummy_hsm_keygen(){
+  uuid_t *uuid;
+  uuid  = malloc(sizeof(uuid_t));
+  uuid_generate(*uuid);
+  return uuid;
 }
 
 
@@ -53,7 +49,8 @@ server_main(DAEMONCONFIG *config)
 	int status = 0;
   int count = 0;
   int i = 0;
-  char *uuid;
+  uuid_t *uuid;
+  char uuid_text[37];
   char *rightnow;
   DB_ID* ignore;
 	KSM_POLICY *policy;
@@ -65,6 +62,7 @@ server_main(DAEMONCONFIG *config)
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
 	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
 	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+
 	kaspSetPolicyDefaults(policy, NULL);
 	
   kaspConnect(config, &dbhandle);
@@ -96,17 +94,19 @@ server_main(DAEMONCONFIG *config)
       status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, 0, config->keygeninterval, &count);
       for (i=count ; i > 0 ; i--){
         uuid = dummy_hsm_keygen();
-        status = KsmKeyPairCreate(policy->id, uuid, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, ignore);
-        log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM ID:  %i .", policy->ksk->bits, policy->ksk->algorithm, uuid, policy->ksk->sm);
-        StrFree(uuid);
+        uuid_unparse(*uuid, uuid_text);
+        status = KsmKeyPairCreate(policy->id, uuid_text, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, ignore);
+        log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM ID: %i.", policy->ksk->bits, policy->ksk->algorithm, uuid_text, policy->ksk->sm);
+        free(uuid);
       }
       /* Find out how many zsk keys are needed */
       status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, 0, config->keygeninterval, &count);
       for (i = count ; i > 0 ; i--){
         uuid = dummy_hsm_keygen();
-        status = KsmKeyPairCreate(policy->id, uuid, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, ignore);
-        log_msg(config, LOG_INFO, "Created ZSK with size: %i, alg: %i with uuid: %s in HSM ID:  %i .", policy->zsk->bits, policy->zsk->algorithm, uuid, policy->zsk->sm);
-        StrFree(uuid);
+        uuid_unparse(*uuid, uuid_text);
+        status = KsmKeyPairCreate(policy->id, uuid_text, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, ignore);
+        log_msg(config, LOG_INFO, "Created ZSK with size: %i, alg: %i with uuid: %s in HSM ID: %i.", policy->zsk->bits, policy->zsk->algorithm, uuid_text, policy->zsk->sm);
+        free(uuid);
       }
       StrFree(rightnow);
       
@@ -114,7 +114,7 @@ server_main(DAEMONCONFIG *config)
 				status = KsmPolicy(handle, policy);
 			}
 		} else {
-		  log_msg(config, LOG_ERR, "Error querying KASP DB for policies");
+		  log_msg(config, LOG_ERR, "Error querying KASP DB for policies.");
       exit(1);
 		}
 		DbFreeResult(handle);
