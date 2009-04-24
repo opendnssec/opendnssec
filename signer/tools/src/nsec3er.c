@@ -488,6 +488,7 @@ main(int argc, char **argv)
 					exit(EXIT_FAILURE);
 				}
 				n3p->iterations = (uint16_t) iterations_cmd;
+				break;
 			case 'v':
 				verbosity = atoi(optarg);
 				break;
