@@ -153,7 +153,6 @@ Makefile
 include/Makefile
 src/Makefile
 utils/Makefile
-examples/Makefile
 test/Makefile
 ])
 
