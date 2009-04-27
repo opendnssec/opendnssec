@@ -1,3 +1,5 @@
+# $Id$
+#
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
@@ -5,6 +7,7 @@ AC_PREREQ(2.61)
 AC_INIT(OpenDNSSEC Example, 0.0.1, jad@jadickinson.co.uk)
 AM_INIT_AUTOMAKE
 # Checks for programs.
+AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(TRANG, trang)
 AC_MSG_NOTICE(No trang bin installed in path so will attempt to use java to run the trang.jar.)
 if test "x$TRANG" = "x"
