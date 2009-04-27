@@ -74,8 +74,7 @@ const hsm_ctx_t *hsm_create_context(void);
 void hsm_destroy_context(const hsm_ctx_t *context);
 
 
-/* List all known keys in all attached HS
-Ms */
+/* List all known keys in all attached HSMs */
 hsm_key_t **hsm_list_keys(const hsm_ctx_t *context);
 
 /* Find a key pair by UUID, return key identifier or NULL if not found.
