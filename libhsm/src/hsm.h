@@ -52,22 +52,29 @@ typedef struct {
 	const uuid_t *uuid;          /* UUID of key (if available) */
 } hsm_key_t;
 
-/* HSM context to keep track of sessions */
 typedef struct {
-	CK_SESSION_HANDLE session[];  /* HSM sessions */
+	const hsm_module_t *module;
+	const CK_SESSION_HANDLE session;
+} hsm_session_t;
+
+/* HSM context to keep track of sessions */
+/* ne session per HSM module */
+typedef struct {
+	hsm_session_t session[];  /* HSM sessions */
+	size_t session_count;
 } hsm_ctx_t;
 
 
 /* Open HSM library using XML configuration file. Attached all
    configured HSMs, querying for PINs if not known. Also create initial
-   session (not part of any context) and login in to each HSM. */
+   sessions (not part of any context) and login in to each HSM. */
 int hsm_open(const char *config);
 
 /* Close HSM library and log out from all configured HSMs */
 int hsm_close();
 
 
-/* Create new HSM context (including PKCS#11 session) */
+/* Create new HSM context (including PKCS#11 sessions) */
 const hsm_ctx_t *hsm_create_context(void);
 
 /* Destroy HSM context (including PKCS#11 session) */
