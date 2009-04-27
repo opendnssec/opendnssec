@@ -38,6 +38,7 @@
 
 /* (internal) Data type to describe an HSM */
 typedef struct {
+	unsigned int id;     /* HSM identifier */
 	const char *name;    /* name from hsm_attach() */
 	const char *path;    /* path from hsm_attach() */
 	const void *handle;  /* handle from dlopen()*/
@@ -53,7 +54,7 @@ typedef struct {
 
 /* HSM context to keep track of sessions */
 typedef struct {
-	CK_SESSION_HANDLE session;  /* HSM session */
+	CK_SESSION_HANDLE session[];  /* HSM sessions */
 } hsm_ctx_t;
 
 
