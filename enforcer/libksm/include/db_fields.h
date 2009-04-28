@@ -85,13 +85,10 @@ extern "C" {
 #define DB_SECURITY_MODULE_CAPACITY 3
 #define DB_SECURITY_MODULE_PIN		4
 
-#define DB_ZONE_TABLE_RAW       "zones z"
-#define DB_ZONE_TABLE			"zones z, adapters i, adapters o"
-#define DB_ZONE_FIELDS 			"z.id, z.name, i.name, o.name"
+#define DB_ZONE_TABLE			"zones"
+#define DB_ZONE_FIELDS 			"id, name"
 #define DB_ZONE_ID				0
 #define DB_ZONE_NAME			1
-#define DB_ZONE_IADAPTER		2
-#define DB_ZONE_OADAPTER		3
 
 /* policy select variables, including salt */
 #define DB_POLICY_ID	0

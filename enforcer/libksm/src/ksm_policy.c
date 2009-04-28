@@ -429,7 +429,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     int     status = 0;         /* Status return */
     char*   datetime_now = DtParseDateTimeString("now");    /* where are we in time */
     int     time_diff;          /* how many second have elapsed */
-    int     newsaltint;         /* new salt as integer */
+    unsigned int     newsaltint;         /* new salt as integer */
     char    buffer[KSM_SQL_SIZE];   /* update statement for salt_stamp */
     unsigned int    nchar;          /* Number of characters converted */
 
@@ -498,17 +498,17 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
             /* TODO get this call into libhsmtools */
             /* newsaltint = hsm_getrand(policy->denial->saltlength); */
             newsaltint = 123456789;
-            snprintf(policy->denial->salt, KSM_SALT_LENGTH, "%8X", newsaltint);
+            snprintf(policy->denial->salt, KSM_SALT_LENGTH, "%X", newsaltint);
             StrStrncpy(policy->denial->salt_stamp, datetime_now, KSM_TIME_LENGTH);
 
             /* write these back to the database */
 #ifdef USE_MYSQL
             nchar = snprintf(buffer, sizeof(buffer),
-                    "UPDATE policies SET salt = '%s' and salt_stamp = %s WHERE ID = %lu",
+                    "UPDATE policies SET salt = '%s', salt_stamp = \"%s\" WHERE ID = %lu",
                     policy->denial->salt, policy->denial->salt_stamp, (unsigned long) policy->id);
 #else
             nchar = snprintf(buffer, sizeof(buffer),
-                    "UPDATE policies SET salt = '%s' and salt_stamp = DATETIME(%s) WHERE ID = %lu",
+                    "UPDATE policies SET salt = '%s', salt_stamp = DATETIME(%s) WHERE ID = %lu",
                     policy->denial->salt, policy->denial->salt_stamp, (unsigned long) policy->id);
 #endif
             if (nchar < sizeof(buffer)) {

@@ -53,8 +53,6 @@ static void TestKsmZoneRead(void)
 
 	zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
     zone->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-	zone->in_adapter = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-	zone->out_adapter = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
 
 	/* Call KsmZoneInit */
     status = KsmZoneInit(&result, policy_id);
@@ -64,18 +62,12 @@ static void TestKsmZoneRead(void)
     status = KsmZone(result, zone);
 	CU_ASSERT_EQUAL(status, 0);
 	CU_ASSERT_STRING_EQUAL(zone->name, "opendnssec.org");
-	CU_ASSERT_STRING_EQUAL(zone->in_adapter, "file");
-	CU_ASSERT_STRING_EQUAL(zone->out_adapter, "file");
 
     /* get the second zone */
     status = KsmZone(result, zone);
 	CU_ASSERT_EQUAL(status, 0);
 	CU_ASSERT_STRING_EQUAL(zone->name, "opendnssec.se");
-	CU_ASSERT_STRING_EQUAL(zone->in_adapter, "file");
-	CU_ASSERT_STRING_EQUAL(zone->out_adapter, "file");
 
-    free(zone->in_adapter);
-	free(zone->out_adapter);
 	free(zone->name);
 	free(zone);
 }

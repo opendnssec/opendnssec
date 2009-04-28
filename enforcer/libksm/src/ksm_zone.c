@@ -53,13 +53,11 @@ int KsmZoneInit(DB_RESULT* result, int policy_id)
     /* Construct the query */
 
     sql = DqsSpecifyInit(DB_ZONE_TABLE, DB_ZONE_FIELDS);
-    DqsConditionKeyword(&sql, "z.in_adapter_id", DQS_COMPARE_EQ,"i.id", where++);
-    DqsConditionKeyword (&sql, "z.out_adapter_id", DQS_COMPARE_EQ,"o.id", where++);
     if (policy_id) {
-        DqsConditionInt(&sql, "z.policy_id", DQS_COMPARE_EQ, policy_id, where++);
+        DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
 
     }
-    DqsOrderBy(&sql, "z.NAME");
+    DqsOrderBy(&sql, "NAME");
 
     /* Execute query and free up the query string */
 
@@ -95,7 +93,7 @@ int KsmZoneCountInit(DB_RESULT* result, int id)
 
 	/* Construct the query */
 
-	sql = DqsCountInit(DB_ZONE_TABLE_RAW);
+	sql = DqsCountInit(DB_ZONE_TABLE);
 	if (id >= 0) {
 		DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, id, where++);
 	}
@@ -144,10 +142,6 @@ int KsmZone(DB_RESULT result, KSM_ZONE *data)
         DbInt(row, DB_ZONE_ID, &(data->id));
         DbStringBuffer(row, DB_ZONE_NAME, data->name,
             KSM_NAME_LENGTH*sizeof(char));
-        DbStringBuffer(row, DB_ZONE_IADAPTER, data->in_adapter,
-             KSM_NAME_LENGTH*sizeof(char));
-        DbStringBuffer(row, DB_ZONE_OADAPTER, data->out_adapter,
-                     KSM_NAME_LENGTH*sizeof(char));
     }
     else if (status == -1) {}
         /* No rows to return (but no error) */

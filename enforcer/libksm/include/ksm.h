@@ -224,8 +224,6 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy);
 typedef struct {
     int id;
 	char* name;
-	char* in_adapter;
-	char* out_adapter;
 } KSM_ZONE;
 
 int KsmZoneInit(DB_RESULT* handle, int policy_id);
