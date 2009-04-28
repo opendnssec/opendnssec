@@ -96,8 +96,8 @@ create table dnsseckeys (
   keypair_id    smallint,
   zone_id        mediumint,
   keytype       smallint not null,             -- zsk or ksk (use code in dnskey record)
-  origkeytag    smallint not null,            -- original key tag
-  revokedkeytag smallint not null,            -- revoked key tag
+  origkeytag    smallint,            -- original key tag
+  revokedkeytag smallint,            -- revoked key tag
   digest1       varchar(20),                  -- sha1 digest
   digest256     varchar(32),                  -- sha256 digest
 

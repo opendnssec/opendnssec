@@ -72,8 +72,12 @@ server_main(DAEMONCONFIG *config)
                 KsmPolicyRead(policy);
                 log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
 
-				/* Update the salt is up to date */
-				KsmPolicyUpdateSalt(policy);
+				/* Update the salt if it is not up to date */
+				status2 = KsmPolicyUpdateSalt(policy);
+                if (status2 != 0) {
+                    log_msg(config, LOG_ERR, "Error updating salt");
+                    exit(1);
+                }
 
                 /* Got one; loop round zones on this policy */
                 status2 = KsmZoneInit(&handle2, policy->id);
@@ -129,7 +133,12 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
 {
     int status = 0;
     FILE *file;
-    char *filename;
+    char *filename;         /* This is the final filename */
+    char *temp_filename;    /* In case this fails we write to a temp file and only overwrite
+                               the current file when we are finished */
+    char *old_filename;     /* Keep a copy of the previous version, just in case! (Also gets
+                               round potentially different behaviour of rename over existing
+                               file.) */
     char*   datetime = DtParseDateTimeString("now");
 
     filename = NULL;
@@ -137,7 +146,15 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     StrAppend(&filename, zone->name);
     StrAppend(&filename, ".xml");
 
-    file = fopen(filename, "w");
+    old_filename = NULL;
+    StrAppend(&old_filename, filename);
+    StrAppend(&old_filename, ".OLD");
+
+    temp_filename = NULL;
+    StrAppend(&temp_filename, filename);
+    StrAppend(&temp_filename, ".tmp");
+
+    file = fopen(temp_filename, "w");
 
     if (file == NULL)
     {
@@ -201,6 +218,20 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     {
         return -1;
     }
+
+    /* we now have a complete xml file. First move the old one out of the way */
+    if (rename(filename, old_filename) != 0)
+    {
+        return -1;
+    }
+
+    /* Then copy our temp into place */
+    if (rename(temp_filename, filename) != 0)
+    {
+        return -1;
+    }
+
+
 
     return status;
 }

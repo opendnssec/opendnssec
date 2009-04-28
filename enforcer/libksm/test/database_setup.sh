@@ -63,7 +63,7 @@ INSERT INTO TEST_BASIC VALUES(0, 300, 'DEF', '20080103');
 INSERT INTO policies VALUES (NULL,'opendnssec','special policy for enforcer config', NULL, "2002-01-01 01:00:00");
 INSERT INTO policies VALUES (NULL,'default','A default policy that will amaze you and your friends', NULL, "2002-01-01 01:00:00");
 
--- Parameter_policies
+-- Parameter_policies for default
 INSERT INTO parameters_policies VALUES (1,1,2,7200);
 INSERT INTO parameters_policies VALUES (2,2,2,259200);
 INSERT INTO parameters_policies VALUES (3,3,2,43200);

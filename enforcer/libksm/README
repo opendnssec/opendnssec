@@ -1,15 +1,52 @@
 This code should work but is not fully tested
 
+Introduction
+------------
+libksm (Key and Signature Manager) is an interface for programs that need access to the KASP database. It contains the logic for creating keys, allocating keys, calculating key rollover times etc.
+
+Pre-requisites
+--------------
+1) Install MySQL or sqlite3 (MySql has been tested more, but both should work)
+    If you are using MySQL then an empty schema needs to be created, plus a 
+    user with full access to that schema (assuming that you don't want to use 
+    the root account).
+
+2) Install libxml2
+(http://xmlsoft.org/)
+
+3) If you wish to run the unit tests, install "CUnit"
+(http://cunit.sourceforge.net).
+
+Building the Software
+---------------------
 You can build it with ./auto-build.sh
-Remembber to edit auto-build.sh to have your paths to mysql and cunit.
+Remember to edit auto-build.sh to have your paths to mysql/sqlite and cunit.
 
-sqlite3 should work as well be hasn't been tested.
+The following options can be passed to configure; auto-build.sh has some set, with an attempt to guess defaults based on the OS
+
+--prefix=<dir>      Installation directory. All files will be installed
+                    relative to this path.
+--with-cunit=<dir>  Path to your CUNIT installation
+--with-mysql=<dir>  Path to your MySQL instalation; this also selects MySQL 
+                    as your database
+--with-dbname=      Name of DB schema
+--with-dbhost=      Machine where DB is hosted
+--with-dbpass=      Password for DB access
+--with-dbuser=      Username for DB access
+
+Unit tests
+----------
+Unit tests can be run using make check. 
+
+At present one assert fails (as a reminder that we need more tests in that section).
 
 
-Unit tests can be run using make check. The following options can be passed to configure to point the tests at a database to use and to enable cunit.
+Database Schemas
+----------------
+The unit tests will setup the database according to the options given to configure. To manually setup the schema then run one of:
 
---with-cunit=/usr/local
---with-dbname=test
---with-dbhost=test1
---with-dbpass=""
---with-dbuser=root
+utils/database_create.mysql
+or
+utils/database_create.sqlite3
+
+
