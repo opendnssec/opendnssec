@@ -89,7 +89,7 @@ int hsm_open(const char *config,
 \param data This value is unused
 \return The string the user enters
 */
-char *hsm_prompt_pin(const char *token_name, void *data);
+const char *hsm_prompt_pin(const char *token_name, void *data);
 
 /*! Close HSM library
 
