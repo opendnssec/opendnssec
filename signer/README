@@ -143,7 +143,7 @@ script with the element <NotifyCommand> below <Signer>.
 The rest of the values can be left to their defaults.
 
 The elements and their exact meanings are described here:
-http://www.opendnssec.se/browser/trunk/xml/conf.rnc
+http://www.opendnssec.se/browser/trunk/xml/opendnssec/conf.rnc
 
 zonelist.xml
 ------------
@@ -151,10 +151,10 @@ zonelist.xml
 You can tell the engine what zones to sign with
 <prefix>/etc/zonelist.xml
 An example zone list file can be found at
-http://www.opendnssec.se/browser/trunk/xml/zonelist.xml
+http://www.opendnssec.se/browser/trunk/xml/opendnssec/zonelist.xml
 
 The elements and their exact meanings are described here:
-http://www.opendnssec.se/browser/trunk/xml/zonelist.rnc
+http://www.opendnssec.se/browser/trunk/xml/opendnssec/zonelist.rnc
 
 This file will specify the specific zone configuration, and its
 in- and output-files.
@@ -165,10 +165,10 @@ zone configuration
 
 At the location pointed to in your zonelist.xml, you should create
 a signer configuration xml file. An example can be found at:
-http://www.opendnssec.se/browser/trunk/xml/signconf.xml
+http://www.opendnssec.se/browser/trunk/xml/opendnssec/signconf.xml
 
 The elements and their exact meanings are described here:
-http://www.opendnssec.se/browser/trunk/xml/signconf.rnc
+http://www.opendnssec.se/browser/trunk/xml/opendnssec/signconf.rnc
 
 
 zone file
