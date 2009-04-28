@@ -44,7 +44,8 @@ typedef struct {
 /*! HSM Key Pair */
 typedef struct {
 	const hsm_module_t *module;  /*!< pointer to module */
-	const CK_OBJECT_HANDLE key;  /*!< key within module */
+	const CK_OBJECT_HANDLE private_key;  /*!< private key within module */
+	const CK_OBJECT_HANDLE public_key;  /*!< public key within module */
 	const uuid_t *uuid;          /*!< UUID of key (if available) */
 } hsm_key_t;
 
