@@ -65,14 +65,31 @@ typedef struct {
 /*! Open HSM library
 
 \param config path to OpenDNSSEC XML configuration file
+\param pin_callback This function will be called for tokens that have
+                    no PIN configured. The default hsm_prompt_pin() can
+                    be used. If this value is NULL, these tokens will
+                    be skipped
+\param data optional data that will be directly passed to the callback
+            function
 \return 0 if successful, !0 if failed
 
 Attaches all configured HSMs, querying for PINs (using callback
-functio) if not known.
+function) if not known.
 Also creates initial sessions (not part of any context) and login in to
 each HSM.
 */
-int hsm_open(const char *config);
+int hsm_open(const char *config,
+             char *(pin_callback)(char *token_name, void *), void *data);
+
+
+/*! Function that queries for a PIN, can be used as callback
+    for hsm_open()
+
+\param token_name The name will be included in the prompt
+\param data This value is unused
+\return The string the user enters
+*/
+char *hsm_prompt_pin(const char *token_name, void *data);
 
 /*! Close HSM library
 
