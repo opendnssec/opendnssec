@@ -70,7 +70,8 @@ ldns_pkcs11_module_list_free(ldns_pkcs11_module_list *mle)
 		if (mle->name) {
 			free(mle->name);
 		}
-		/* ctx is freed by finalize() */
+		/* ctx is freed by ldns_finalize_pkcs11() (which is
+		 * automatically called by current_config_free() */
 	}
 	free(mle);
 }
@@ -277,12 +278,12 @@ read_arg(const char *str, char **next)
 		*next = NULL;
 		return result;
 	}
-	end = index(str, ' ');
+	end = strchr(str, ' ');
 	if (!end) {
-		end = index(str, '\t');
+		end = strchr(str, '\t');
 	}
 	if (!end) {
-		end = index(str, '\n');
+		end = strchr(str, '\n');
 	}
 	if (end) {
 		result = malloc(end - str + 1);
@@ -375,7 +376,7 @@ add_key(FILE *output,
 	
 	key_flags = atoi(key_flags_str);
 	if (key_flags <= 0 || key_flags > 65535) {
-		fprintf(output, "; Error: bad key flags: %s, defaulting to 256\n", key_flags_str);
+		fprintf(output, "; Error: bad key flags: %s\n", key_flags_str);
 		return LDNS_STATUS_ERR;
 	}
 	
@@ -428,6 +429,9 @@ handle_command(FILE *output, current_config *cfg,
 	ldns_status result = LDNS_STATUS_OK;
 	
 	cmd = read_arg(line, &next);
+	if (!cmd) {
+		return LDNS_STATUS_ERR;
+	}
 	if (strcmp(cmd, "add_module") == 0) {
 		arg1 = read_arg(next, &next);
 		arg2 = read_arg(next, &next);
@@ -530,6 +534,7 @@ handle_command(FILE *output, current_config *cfg,
 	if (arg1) free(arg1);
 	if (arg2) free(arg2);
 	if (arg3) free(arg3);
+	if (arg4) free(arg4);
 	free(cmd);
 	return result;
 }
@@ -549,7 +554,7 @@ set_use_key_for(current_config *cfg, ldns_rr *rrsig, int use)
 	size_t i;
 	ldns_key *key;
 	/* let's assume for now that name etc are right, and only check
-	 * keytag */
+	 * keytag (TODO)*/
 	for (i = 0; i < ldns_key_list_key_count(cfg->keys); i++) {
 		key = ldns_key_list_key(cfg->keys, i);
 		if (ldns_key_keytag(key) == ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
@@ -591,7 +596,7 @@ int main(int argc, char **argv)
 	bool echo_input = true;
 	uint32_t ttl = LDNS_DEFAULT_TTL;
 	
-	ldns_rr *cur_rr;
+	ldns_rr *cur_rr = NULL;
 	ldns_rr *prev_rr = NULL;
 	ldns_rdf *prev_name = NULL;
 	ldns_rr_list *cur_rrset;
@@ -675,7 +680,8 @@ int main(int argc, char **argv)
 											ttl,
 											cfg->origin,
 											&prev_name);
-				if (cur_rr && ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_SOA) {
+				if (status == LDNS_STATUS_OK && cur_rr &&
+				    ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_SOA) {
 					if (cfg->soa_ttl != 0) {
 						ldns_rr_set_ttl(cur_rr, cfg->soa_ttl);
 					}
