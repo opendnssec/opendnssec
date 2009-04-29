@@ -9,9 +9,9 @@ AM_INIT_AUTOMAKE
 # Checks for programs.
 AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(TRANG, trang)
-AC_MSG_NOTICE(No trang bin installed in path so will attempt to use java to run the trang.jar.)
 if test "x$TRANG" = "x"
 then
+	AC_MSG_NOTICE(No trang bin installed in path so will attempt to use java to run the trang.jar.)
   AC_PATH_PROG(JAVA, java)
   AC_ARG_WITH(trang,
   [  --with-trang=PATH     Path to trang.jar ],
