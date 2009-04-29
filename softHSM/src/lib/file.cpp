@@ -53,10 +53,10 @@ CK_RV readConfigFile() {
   char *confPath = getenv("SOFTHSM_CONF");
 
   if(confPath == NULL) {
-    fp = fopen(SOFT_CONFIG_FILE,"r");
-  } else {
-    fp = fopen(confPath,"r");
+    confPath = SOFT_CONFIG_FILE;
   }
+
+  fp = fopen(confPath,"r");
 
   if(fp == NULL) {
     char *errorMsg = (char *)malloc(33 + strlen(confPath));
