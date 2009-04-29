@@ -1,1 +1,44 @@
-The is only some template code and doesn't work yet
+This code should work but is not fully tested
+
+Introduction
+------------
+The communicator is the program which takes the policy and key information from the KASP database and turns it into an xml file that the signer can use.
+
+Pre-requisites
+--------------
+1) libksm needs to have been at least built, if not installed.
+    (Note that whether we will use MySQL or sqlite is decided at the time that
+     libksm is built.)
+
+2) at some point it will rely on libhsm too.
+
+Building the Software
+---------------------
+You can build it with ./auto-build.sh
+Remember to edit auto-build.sh to have your paths to libksm stuff. If you have installed libksm then these will be relative to the prefix used, otherwise the "default" settings should work.
+Note that setting CFLAGS to "-g" before the configure stage ensures taht the final binary is built with debug turned on (at least on linux).
+
+The following options can be passed to configure; auto-build.sh has some set.
+
+--prefix=<dir>                  Installation directory. All files will be 
+                                installed relative to this path.
+--with-libksm-include=<dir>     Either where you installed to or:
+                                ../../libksm/include 
+--with-libksm-lib=<dir>         Either where you installed to or:
+                                ../../libksm/src/.libs
+
+Running the Communicator
+------------------------
+
+Once built the communicated binary takes the following options:
+-n <NAME>       name of KASP DB user
+-s <SCHEMA>     schema to use in the KASP DB (or DB file if using sqlite)
+-p <PASS>       password for DB schema user 
+-h <HOST>       host machine of DB 
+-u <USER>       local user to suid as 
+-P <FILE>       pid file to use
+-d              debug mode (do not daemonise)
+
+Your LD_LIBRARY_PATH environment variable will need to include the libksm libs.
+
+Note that currently the output is hardcoded to go to the current working directory; this will be fixed when it reads the config file properly

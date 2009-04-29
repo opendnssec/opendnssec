@@ -9,7 +9,7 @@
 * See LICENSE for the license.
 */
 
-#define OUR_PATH "/home/sion/temp/"
+#define OUR_PATH "./"
 #define OUR_INTERVAL 60
 
 int server_init(DAEMONCONFIG *config);

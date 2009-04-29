@@ -508,7 +508,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
                     policy->denial->salt, policy->denial->salt_stamp, (unsigned long) policy->id);
 #else
             nchar = snprintf(buffer, sizeof(buffer),
-                    "UPDATE policies SET salt = '%s', salt_stamp = DATETIME(%s) WHERE ID = %lu",
+                    "UPDATE policies SET salt = '%s', salt_stamp = DATETIME(\"%s\") WHERE ID = %lu",
                     policy->denial->salt, policy->denial->salt_stamp, (unsigned long) policy->id);
 #endif
             if (nchar < sizeof(buffer)) {

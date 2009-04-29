@@ -56,8 +56,6 @@ server_main(DAEMONCONFIG *config)
 
     zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
     zone->name = (char *)calloc(KSM_ZONE_NAME_LENGTH, sizeof(char));
-    zone->in_adapter = (char *)calloc(KSM_ADAPTER_NAME_LENGTH, sizeof(char));
-    zone->out_adapter = (char *)calloc(KSM_ADAPTER_NAME_LENGTH, sizeof(char));
 
     kaspConnect(config, &dbhandle);
 
@@ -220,8 +218,10 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     }
 
     /* we now have a complete xml file. First move the old one out of the way */
-    if (rename(filename, old_filename) != 0)
+	status = rename(filename, old_filename);
+    if (status != 0 && status != -1)
     {
+		/* cope with initial conditioin of files not existing */
         return -1;
     }
 
@@ -231,9 +231,7 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
         return -1;
     }
 
-
-
-    return status;
+    return 0;
 }
 
 /*
