@@ -60,6 +60,8 @@ void usage() {
 int main(int argc, char **argv) {
   int c;
 
+  setenv("SOFTHSM_CONF", "./softhsm.conf", 1);
+
   while ((c = getopt(argc, argv, "abcdefghijk")) != -1) {
     switch(c) {
       case 'a':
