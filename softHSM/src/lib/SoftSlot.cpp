@@ -39,13 +39,6 @@
 
 #include <stdlib.h>
 
-#include <botan/rsa.h>
-#include <botan/bigint.h>
-#include <botan/pkcs8.h>
-#include <botan/x509_obj.h>
-#include <botan/auto_rng.h>
-using namespace Botan;
-
 SoftSlot::SoftSlot() {
   dbPath = NULL_PTR;
   userPIN = NULL_PTR;
@@ -54,7 +47,6 @@ SoftSlot::SoftSlot() {
   tokenLabel = NULL_PTR;
   slotID = 0;
   nextSlot = NULL_PTR;
-  objects = new SoftObject();
   hashedUserPIN = NULL_PTR;
   hashedSOPIN = NULL_PTR;
 }
@@ -65,7 +57,6 @@ SoftSlot::~SoftSlot() {
   FREE_PTR(soPIN);
   FREE_PTR(tokenLabel);
   DELETE_PTR(nextSlot);
-  DELETE_PTR(objects);
   FREE_PTR(hashedUserPIN);
   FREE_PTR(hashedSOPIN);
 }
@@ -133,210 +124,7 @@ void SoftSlot::readDB() {
   FREE_PTR(hashedUserPIN);
   hashedUserPIN = db->getUserPIN();
 
-  DELETE_PTR(objects);
-  objects = db->readAllObjects();
   delete db;
 
   slotFlags |= CKF_TOKEN_PRESENT;
-
-  loadUnencryptedKeys();
-}
-
-// Decrypt the keys and store the attributes
-
-void SoftSlot::login(RandomNumberGenerator *rng) {
-  SoftObject *currentObject = objects;
-  while(currentObject->nextObject != NULL_PTR) {
-    if(currentObject->isPrivate == CK_TRUE &&
-       currentObject->isToken == CK_TRUE) {
-      switch(currentObject->objectClass) {
-        case CKO_PRIVATE_KEY:
-          if(currentObject->keyType == CKK_RSA) {
-            loadRSAPrivate(currentObject, rng, userPIN);
-          }
-          break;
-        default:
-          break;
-      }
-    }
-
-    currentObject = currentObject->nextObject;
-  }
-}
-
-// Load the private RSA key. Decrypt with given PIN.
-// If no PIN is given, then no decryption is performed.
-
-void SoftSlot::loadRSAPrivate(SoftObject *currentObject, RandomNumberGenerator *rng, char *userPIN) {
-  if(currentObject->encodedKey == NULL_PTR) {
-    return;
-  }
-
-  DataSource *dsMem = new DataSource_Memory((byte *)currentObject->encodedKey, strlen(currentObject->encodedKey));
-  Private_Key *rsaKey = NULL_PTR;
-
-  try {
-    if(userPIN == NULL_PTR) {
-      rsaKey = PKCS8::load_key(*dsMem, *rng);
-    } else {
-      rsaKey = PKCS8::load_key(*dsMem, *rng, userPIN);
-    }
-  }
-  catch(...) {
-    DELETE_PTR(dsMem);
-    DELETE_PTR(rsaKey);
-
-    ERROR_MSG("loadRSAPrivate", "Could not load the encoded key");
-    return;
-  }
-
-  delete dsMem;
-
-  // The RSA modulus bits
-  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
-  BigInt bigMod = ifKeyPriv->get_n();
-  CK_ULONG bits = bigMod.bits();
-  currentObject->keySizeBytes = (bits + 7) / 8;
-
-  // The RSA modulus
-  CK_ULONG size = bigMod.bytes();
-  CK_VOID_PTR buf = (CK_VOID_PTR)malloc(size);
-  bigMod.binary_encode((byte *)buf);
-  currentObject->addAttributeFromData(CKA_MODULUS, buf, size);
-  free(buf);
-
-  // The RSA public exponent
-  BigInt bigExp = ifKeyPriv->get_e();
-  size = bigExp.bytes();
-  buf = (CK_VOID_PTR)malloc(size);
-  bigExp.binary_encode((byte *)buf);
-  currentObject->addAttributeFromData(CKA_PUBLIC_EXPONENT, buf, size);
-  free(buf);
-
-  // The RSA private exponent
-  BigInt bigPrivExp = ifKeyPriv->get_d();
-  size = bigPrivExp.bytes();
-  buf = (CK_VOID_PTR)malloc(size);
-  bigPrivExp.binary_encode((byte *)buf);
-  currentObject->addAttributeFromData(CKA_PRIVATE_EXPONENT, buf, size);
-  free(buf);
-
-  // The RSA prime p
-  BigInt bigPrime1 = ifKeyPriv->get_p();
-  size = bigPrime1.bytes();
-  buf = (CK_VOID_PTR)malloc(size);
-  bigPrime1.binary_encode((byte *)buf);
-  currentObject->addAttributeFromData(CKA_PRIME_1, buf, size);
-  free(buf);
-
-  // The RSA prime q
-  BigInt bigPrime2 = ifKeyPriv->get_q();
-  size = bigPrime2.bytes();
-  buf = (CK_VOID_PTR)malloc(size);
-  bigPrime2.binary_encode((byte *)buf);
-  currentObject->addAttributeFromData(CKA_PRIME_2, buf, size);
-  free(buf);
-
-  delete rsaKey;
-  free(currentObject->encodedKey);
-  currentObject->encodedKey = NULL_PTR;
-}
-
-void SoftSlot::loadUnencryptedKeys() {
-  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
-
-  SoftObject *currentObject = objects;
-  while(currentObject->nextObject != NULL_PTR) {
-    switch(currentObject->objectClass) {
-      case CKO_PUBLIC_KEY:
-        if(currentObject->keyType == CKK_RSA) {
-          loadRSAPublic(currentObject);
-        }
-        break;
-      case CKO_PRIVATE_KEY:
-        if(currentObject->isPrivate != CK_TRUE || 
-           currentObject->isToken != CK_TRUE) {
-          if(currentObject->keyType == CKK_RSA) {
-            loadRSAPrivate(currentObject, rng);
-          }
-        }
-      default:
-        break;
-    }
-
-    currentObject = currentObject->nextObject;
-  }
-
-  delete rng;
-}
-
-void SoftSlot::loadRSAPublic(SoftObject *currentObject) {
-  if(currentObject->encodedKey == NULL_PTR) {
-    return;
-  }
-
-  DataSource *dsMem = new DataSource_Memory((byte*)currentObject->encodedKey, strlen(currentObject->encodedKey));
-  Public_Key *rsaKey = NULL_PTR;
-
-  try {
-    rsaKey = X509::load_key(*dsMem);
-  }
-  catch(...) {
-    DELETE_PTR(dsMem);
-    DELETE_PTR(rsaKey);
-
-    ERROR_MSG("loadRSAPublic", "Could not load the encoded key");
-    return;
-  }
-
-  delete dsMem;
-
-  // The RSA modulus bits
-  IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
-  BigInt bigModulus = ifKey->get_n();
-  CK_ULONG bits = bigModulus.bits();
-  currentObject->keySizeBytes = (bits + 7) / 8;
-  currentObject->addAttributeFromData(CKA_MODULUS_BITS, &bits, sizeof(bits));
-
-  // The RSA modulus
-  CK_ULONG size = bigModulus.bytes();
-  CK_VOID_PTR buf = (CK_VOID_PTR)malloc(size);
-  bigModulus.binary_encode((byte *)buf);
-  currentObject->addAttributeFromData(CKA_MODULUS, buf, size);
-  free(buf);
-
-  // The RSA public exponent
-  BigInt bigExponent = ifKey->get_e();
-  size = bigExponent.bytes();
-  buf = (CK_VOID_PTR)malloc(size);
-  bigExponent.binary_encode((byte *)buf);
-  currentObject->addAttributeFromData(CKA_PUBLIC_EXPONENT, buf, size);
-  free(buf);
-
-  delete rsaKey;
-  free(currentObject->encodedKey);
-  currentObject->encodedKey = NULL_PTR;
-}
-
-void SoftSlot::getObjectFromDB(SoftSession *session, CK_OBJECT_HANDLE objRef) {
-  SoftObject *newObject = session->db->populateObj(objRef);
-
-  if(newObject == NULL_PTR) {
-    return;
-  }
-
-  newObject->nextObject = objects;
-  objects = newObject;
-
-  newObject->createdBySession = session;
-
-  if(newObject->objectClass == CKO_PUBLIC_KEY && newObject->keyType == CKK_RSA) {
-    loadRSAPublic(newObject);
-  } else if(newObject->objectClass == CKO_PRIVATE_KEY && newObject->keyType == CKK_RSA) {
-    if(newObject->isToken == CK_TRUE && newObject->isPrivate == CK_TRUE) {
-      loadRSAPrivate(newObject, session->rng, userPIN);
-    } else {
-      loadRSAPrivate(newObject, session->rng);
-    }
-  }
 }

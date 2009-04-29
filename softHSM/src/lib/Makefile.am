@@ -9,7 +9,6 @@ libsofthsm_la_SOURCES =		main.cpp \
 				SoftHSMInternal.cpp \
 				SoftSlot.cpp \
 				SoftSession.cpp \
-				SoftObject.cpp \
 				SoftFind.cpp \
 				SoftAttribute.cpp \
 				SoftDatabase.cpp \

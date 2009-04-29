@@ -73,7 +73,7 @@ SoftHSMInternal::~SoftHSMInternal() {
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] != NULL_PTR) {
       // Remove the session objects created by this session
-      destroySessObj(sessions[i]);
+      sessions[i]->db->destroySessObj();
       delete sessions[i];
       sessions[i] = NULL_PTR;
     }
@@ -152,7 +152,7 @@ CK_RV SoftHSMInternal::closeSession(CK_SESSION_HANDLE hSession) {
   }
 
   // Remove the session objects created by this session
-  destroySessObj(sessions[sessID]);
+  sessions[sessID]->db->destroySessObj();
 
   // Close the current session;
   delete sessions[sessID];
@@ -176,7 +176,7 @@ CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
     if(sessions[i] != NULL_PTR) {
       if(sessions[i]->currentSlot->getSlotID() == slotID) {
         // Remove session objects
-        destroySessObj(sessions[i]);
+        sessions[i]->db->destroySessObj();
 
         // Close session
         delete sessions[i];
@@ -192,29 +192,6 @@ CK_RV SoftHSMInternal::closeAllSessions(CK_SLOT_ID slotID) {
 
   DEBUG_MSG("C_CloseAllSessions", "OK");
   return CKR_OK;
-}
-
-// Destroy all the session objects created by this session
-
-void SoftHSMInternal::destroySessObj(SoftSession *session) {
-  SoftObject *currentObject = session->currentSlot->objects;
-
-  // Loop all objects
-  while(currentObject->nextObject != NULL_PTR) {
-    if(currentObject->isToken == CK_FALSE &&
-       currentObject->createdBySession == session) {
-
-      session->db->deleteObject(currentObject->index);
-      currentObject->deleteObj(currentObject->index);
-
-      // Need to do a re-check because we moved the object chain
-      // since the while statement
-      if(currentObject->nextObject == NULL_PTR) {
-        break;
-      }
-    }
-    currentObject = currentObject->nextObject;
-  }
 }
 
 // Return information about the session.
@@ -354,8 +331,6 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
       CHECK_DEBUG_RETURN(session->currentSlot->userPIN == NULL_PTR, "C_Login", "Could not allocate memory", CKR_HOST_MEMORY);
       session->currentSlot->userPIN[ulPinLen] = '\0';
       memcpy(session->currentSlot->userPIN, pPin, ulPinLen);
-
-      session->currentSlot->login(session->rng);
     }
 
     DEBUG_MSG("C_Login", "OK");
@@ -402,12 +377,13 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   CHECK_DEBUG_RETURN(session == NULL_PTR, "C_GetAttributeValue", "Can not find the session",
                      CKR_SESSION_HANDLE_INVALID);
 
-  SoftObject *object = session->currentSlot->objects->getObject(hObject);
-  CHECK_DEBUG_RETURN(object == NULL_PTR, "C_GetAttributeValue", "Can not find the object",
+  CK_BBOOL hasObject = session->db->hasObject(hObject);
+  CHECK_DEBUG_RETURN(hasObject == CK_FALSE, "C_GetAttributeValue", "Can not find the object",
                      CKR_OBJECT_HANDLE_INVALID);
 
-  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 0);
-  CHECK_DEBUG_RETURN(userAuth == NULL_PTR, "C_GetAttributeValue", "User is not authorized",
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hObject, CKA_TOKEN, CK_TRUE),
+                                        session->db->getBooleanAttribute(hObject, CKA_PRIVATE, CK_TRUE), 0);
+  CHECK_DEBUG_RETURN(userAuth == CK_FALSE, "C_GetAttributeValue", "User is not authorized",
                      CKR_OBJECT_HANDLE_INVALID);
 
   CHECK_DEBUG_RETURN(pTemplate == NULL_PTR, "C_GetAttributeValue", "pTemplate must not be a NULL_PTR",
@@ -417,7 +393,7 @@ CK_RV SoftHSMInternal::getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   CK_RV objectResult = CKR_OK;
 
   for(CK_ULONG i = 0; i < ulCount; i++) {
-    objectResult = object->getAttribute(&pTemplate[i]);
+    objectResult = session->db->getAttribute(hObject, &pTemplate[i]);
     if(objectResult != CKR_OK) {
       result = objectResult;
     }
@@ -434,12 +410,13 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
   CHECK_DEBUG_RETURN(session == NULL_PTR, "C_SetAttributeValue", "Can not find the session",
                      CKR_SESSION_HANDLE_INVALID);
 
-  SoftObject *object = session->currentSlot->objects->getObject(hObject);
-  CHECK_DEBUG_RETURN(object == NULL_PTR, "C_SetAttributeValue", "Can not find the object",
+  CK_BBOOL hasObject = session->db->hasObject(hObject);
+  CHECK_DEBUG_RETURN(hasObject == CK_FALSE, "C_SetAttributeValue", "Can not find the object",
                      CKR_OBJECT_HANDLE_INVALID);
 
-  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 1);
-  CHECK_DEBUG_RETURN(userAuth == NULL_PTR, "C_SetAttributeValue", "User is not authorized",
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hObject, CKA_TOKEN, CK_TRUE),
+                                        session->db->getBooleanAttribute(hObject, CKA_PRIVATE, CK_TRUE), 1);
+  CHECK_DEBUG_RETURN(userAuth == CK_FALSE, "C_SetAttributeValue", "User is not authorized",
                      CKR_OBJECT_HANDLE_INVALID);
 
   CHECK_DEBUG_RETURN(pTemplate == NULL_PTR, "C_SetAttributeValue", "pTemplate must not be a NULL_PTR",
@@ -450,7 +427,7 @@ CK_RV SoftHSMInternal::setAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_H
 
   // Loop through all the attributes in the template
   for(CK_ULONG i = 0; i < ulCount; i++) {
-    objectResult = object->setAttribute(&pTemplate[i], session->db);
+    objectResult = session->db->setAttribute(hObject, &pTemplate[i]);
     if(objectResult != CKR_OK) {
       result = objectResult;
     }
@@ -477,33 +454,35 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
 
   // Creates the search result chain.
   session->findAnchor = new SoftFind();
-  CHECK_DEBUG_RETURN(session->findAnchor == NULL_PTR, "C_FindObjectsInit", "Could not allocate memory", CKR_HOST_MEMORY);
   session->findCurrent = session->findAnchor;
 
-  SoftObject *currentObject = session->currentSlot->objects;
+  // Get the object ids
+  CK_ULONG objectCount = 0;
+  CK_OBJECT_HANDLE *objectRefs = session->db->getObjectRefs(&objectCount);
 
   // Check with all objects.
-  while(currentObject->nextObject != NULL_PTR) {
-    CK_BBOOL userAuth = userAuthorization(session->getSessionState(), currentObject->isToken, currentObject->isPrivate, 0);
+  for(CK_ULONG counter = 0; counter < objectCount; counter++) {
+    CK_OBJECT_HANDLE currentObject = objectRefs[counter];
+
+    // Check user auth for object access
+    CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(currentObject, CKA_TOKEN, CK_TRUE), 
+                                          session->db->getBooleanAttribute(currentObject, CKA_PRIVATE, CK_TRUE), 0);
 
     if(userAuth == CK_TRUE) {
       CK_BBOOL findObject = CK_TRUE;
 
       // See if the object match all attributes.
       for(CK_ULONG j = 0; j < ulCount; j++) {
-        if(currentObject->matchAttribute(&pTemplate[j]) == CK_FALSE) {
+        if(session->db->matchAttribute(currentObject, &pTemplate[j]) == CK_FALSE) {
           findObject = CK_FALSE;
         }
       }
 
       // Add the handle to the search results if the object matched the attributes.
       if(findObject == CK_TRUE) {
-        session->findAnchor->addFind(currentObject->index);
+        session->findAnchor->addFind(currentObject);
       }
     }
-
-    // Iterate
-    currentObject = currentObject->nextObject;
   }
 
   session->findInitialized = true;
@@ -519,12 +498,13 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   CHECK_DEBUG_RETURN(session == NULL_PTR, "C_DestroyObject", "Can not find the session",
                      CKR_SESSION_HANDLE_INVALID);
 
-  SoftObject *object = session->currentSlot->objects->getObject(hObject);
-  CHECK_DEBUG_RETURN(object == NULL_PTR, "C_DestroyObject", "Can not find the object",
+  CK_BBOOL hasObject = session->db->hasObject(hObject);
+  CHECK_DEBUG_RETURN(hasObject == CK_FALSE, "C_DestroyObject", "Can not find the object",
                      CKR_OBJECT_HANDLE_INVALID);
 
-  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 1);
-  CHECK_DEBUG_RETURN(userAuth == NULL_PTR, "C_DestroyObject", "User is not authorized",
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hObject, CKA_TOKEN, CK_TRUE),
+                                        session->db->getBooleanAttribute(hObject, CKA_PRIVATE, CK_TRUE), 1);
+  CHECK_DEBUG_RETURN(userAuth == CK_FALSE, "C_DestroyObject", "User is not authorized",
                      CKR_OBJECT_HANDLE_INVALID);
 
   // Remove the key from the sessions' key cache
@@ -537,12 +517,9 @@ CK_RV SoftHSMInternal::destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDL
   // Delete the object from the database
   session->db->deleteObject(hObject);
 
-  // Delete the object from the internal state
-  CK_RV result = session->currentSlot->objects->deleteObj(hObject);
-
   INFO_MSG("C_DestroyObject", "An object has been destroyed");
   DEBUG_MSG("C_DestroyObject", "Returning");
-  return result;
+  return CKR_OK;
 }
 
 // Wrapper for the mutex function.

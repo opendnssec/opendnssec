@@ -88,7 +88,7 @@ class SoftSession {
     bool verifyInitialized;
 
     // Key store
-    Public_Key* getKey(SoftObject *object);
+    Public_Key* getKey(CK_OBJECT_HANDLE hKey);
     SoftKeyStore *keyStore;
 
     AutoSeeded_RNG *rng;

@@ -101,23 +101,19 @@ bool SoftSession::isReadWrite() {
 // If it is not chached then create a clone
 // of it and store it in the cache.
 
-Public_Key* SoftSession::getKey(SoftObject *object) {
-  if(object == NULL_PTR) {
-    return NULL_PTR;
-  }
-
-  Public_Key* tmpKey = keyStore->getKey(object->index);
+Public_Key* SoftSession::getKey(CK_OBJECT_HANDLE hKey) {
+  Public_Key* tmpKey = keyStore->getKey(hKey);
 
   // If the key is not in the session cache
   if(tmpKey == NULL_PTR) {
-    if(object->keyType == CKK_RSA) {
+    if(this->db->getKeyType(hKey) == CKK_RSA) {
       // Clone the key
-      if(object->objectClass == CKO_PRIVATE_KEY) {
-        BigInt bigN = object->getBigIntAttribute(CKA_MODULUS);
-        BigInt bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
-        BigInt bigD = object->getBigIntAttribute(CKA_PRIVATE_EXPONENT);
-        BigInt bigP = object->getBigIntAttribute(CKA_PRIME_1);
-        BigInt bigQ = object->getBigIntAttribute(CKA_PRIME_2);
+      if(this->db->getObjectClass(hKey) == CKO_PRIVATE_KEY) {
+        BigInt bigN = this->db->getBigIntAttribute(hKey, CKA_MODULUS);
+        BigInt bigE = this->db->getBigIntAttribute(hKey, CKA_PUBLIC_EXPONENT);
+        BigInt bigD = this->db->getBigIntAttribute(hKey, CKA_PRIVATE_EXPONENT);
+        BigInt bigP = this->db->getBigIntAttribute(hKey, CKA_PRIME_1);
+        BigInt bigQ = this->db->getBigIntAttribute(hKey, CKA_PRIME_2);
 
         if(bigN.is_zero () || bigE.is_zero() || bigD.is_zero() || bigP.is_zero() || bigQ.is_zero()) {
           return NULL_PTR;
@@ -130,8 +126,8 @@ Public_Key* SoftSession::getKey(SoftObject *object) {
           return NULL_PTR;
         }
       } else {
-        BigInt bigN = object->getBigIntAttribute(CKA_MODULUS);
-        BigInt bigE = object->getBigIntAttribute(CKA_PUBLIC_EXPONENT);
+        BigInt bigN = this->db->getBigIntAttribute(hKey, CKA_MODULUS);
+        BigInt bigE = this->db->getBigIntAttribute(hKey, CKA_PUBLIC_EXPONENT);
 
         if(bigN.is_zero() || bigE.is_zero()) {
           return NULL_PTR;
@@ -152,7 +148,7 @@ Public_Key* SoftSession::getKey(SoftObject *object) {
       }
       newKeyLink->next = keyStore;
       newKeyLink->botanKey = tmpKey;
-      newKeyLink->index = object->index;
+      newKeyLink->index = hKey;
 
       // Add it first in the chain.
       keyStore = newKeyLink;

@@ -720,7 +720,7 @@ void runObjectCheck(unsigned int counter) {
     assert(rv == CKR_ARGUMENTS_BAD);
     rv = C_GetAttributeValue(hSession[0], hPrivateKey, &getAttr, 1);
     assert(rv == CKR_ATTRIBUTE_SENSITIVE);
-    getAttr.type = CKA_VENDOR_DEFINED;
+    getAttr.type = 45678; // Not valid attribute?
     rv = C_GetAttributeValue(hSession[0], hPrivateKey, &getAttr, 1);
     assert(rv == CKR_ATTRIBUTE_TYPE_INVALID);
     getAttr.type = CKA_ID;

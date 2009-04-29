@@ -35,7 +35,6 @@
 #ifndef SOFTHSM_SOFTSLOT_H
 #define SOFTHSM_SOFTSLOT_H 1
 
-#include "SoftObject.h"
 #include "SoftSession.h"
 
 #include "pkcs11_unix.h"
@@ -54,12 +53,6 @@ class SoftSlot {
     SoftSlot *getNextSlot();
     CK_SLOT_ID getSlotID();
 
-    void login(RandomNumberGenerator *rng);
-    void loadUnencryptedKeys();
-    void loadRSAPrivate(SoftObject *currentObject, RandomNumberGenerator *rng, char *userPIN = NULL_PTR);
-    void loadRSAPublic(SoftObject *currentObject);
-    void getObjectFromDB(SoftSession *session, CK_OBJECT_HANDLE objRef);
-
     void readDB();
     char *dbPath;
     char *userPIN;
@@ -70,8 +63,6 @@ class SoftSlot {
     char *tokenLabel;
     char *hashedUserPIN;
     char *hashedSOPIN;
-
-    SoftObject *objects;
 
   private:
     CK_SLOT_ID slotID;

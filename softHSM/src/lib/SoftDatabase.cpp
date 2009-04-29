@@ -68,12 +68,14 @@ SoftDatabase::SoftDatabase() {
   select_attri_id_sql = NULL;
   update_attribute_sql = NULL;
   insert_attribute_sql = NULL;
-  insert_object_key_sql = NULL;
-  update_object_key_sql = NULL;
+  insert_object_sql = NULL;
+  select_object_ids_sql = NULL;
   select_object_id_sql = NULL;
-  select_object_key_sql = NULL;
   select_attribute_sql = NULL;
+  select_session_obj_sql = NULL;
   delete_object_sql = NULL;
+  count_object_id_sql = NULL;
+  select_an_attribute_sql = NULL;
 }
 
 SoftDatabase::~SoftDatabase() {
@@ -90,12 +92,14 @@ SoftDatabase::~SoftDatabase() {
   FINALIZE_STMT(select_attri_id_sql);
   FINALIZE_STMT(update_attribute_sql);
   FINALIZE_STMT(insert_attribute_sql);
-  FINALIZE_STMT(insert_object_key_sql);
-  FINALIZE_STMT(update_object_key_sql);
+  FINALIZE_STMT(insert_object_sql);
+  FINALIZE_STMT(select_object_ids_sql);
   FINALIZE_STMT(select_object_id_sql);
-  FINALIZE_STMT(select_object_key_sql);
   FINALIZE_STMT(select_attribute_sql);
+  FINALIZE_STMT(select_session_obj_sql);
   FINALIZE_STMT(delete_object_sql);
+  FINALIZE_STMT(count_object_id_sql);
+  FINALIZE_STMT(select_an_attribute_sql);
 
   sqlite3_close(db);
 }
@@ -130,26 +134,31 @@ CK_RV SoftDatabase::init(char *dbPath) {
   }
 
   // Create prepared statements
-  const char token_info_str[] =        "SELECT value FROM Token where variableID = ?;";
-  const char select_attri_id_str[] =   "SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
-  const char update_attribute_str[] =  "UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
-  const char insert_attribute_str[] =  "INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
-  const char insert_object_key_str[] = "INSERT INTO Objects (encodedKey) VALUES (?);";
-  const char update_object_key_str[] = "UPDATE Objects SET encodedKey = ? WHERE objectID = ?;";
-  const char select_object_id_str[] =  "SELECT objectID FROM Objects;";
-  const char select_object_key_str[] = "SELECT encodedKey from Objects WHERE objectID = ?;";
-  const char select_attribute_str[] =  "SELECT type,value,length from Attributes WHERE objectID = ?;";
-  const char delete_object_str[] =     "DELETE FROM Objects WHERE objectID = ?;";
+  const char token_info_str[] =			"SELECT value FROM Token where variableID = ?;";
+  const char select_attri_id_str[] =		"SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
+  const char update_attribute_str[] =		"UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
+  const char insert_attribute_str[] =		"INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
+  const char insert_object_str[] =		"INSERT INTO Objects DEFAULT VALUES;";
+  const char select_object_ids_str[] =		"SELECT objectID FROM Objects;";
+  const char select_object_id_str[] =		"SELECT objectID FROM Objects WHERE objectID = ?;";
+  const char select_attribute_str[] =		"SELECT type,value,length from Attributes WHERE objectID = ?;";
+  const char select_session_obj_str[] =		"SELECT objectID FROM Attributes WHERE type = ? AND value = ? AND objectID IN (SELECT objectID FROM Attributes WHERE type = ? AND value = ?);";
+  const char delete_object_str[] =		"DELETE FROM Objects WHERE objectID = ?;";
+  const char count_object_id_str[] =		"SELECT COUNT(objectID) FROM Objects;";
+  const char select_an_attribute_str[] =	"SELECT value,length FROM Attributes WHERE objectID = ? AND type = ?;";
+
   PREP_STMT(token_info_str, &token_info_sql);
   PREP_STMT(select_attri_id_str, &select_attri_id_sql);
   PREP_STMT(update_attribute_str, &update_attribute_sql);
   PREP_STMT(insert_attribute_str, &insert_attribute_sql);
-  PREP_STMT(insert_object_key_str, &insert_object_key_sql);
-  PREP_STMT(update_object_key_str, &update_object_key_sql);
+  PREP_STMT(insert_object_str, &insert_object_sql);
+  PREP_STMT(select_object_ids_str, &select_object_ids_sql);
   PREP_STMT(select_object_id_str, &select_object_id_sql);
-  PREP_STMT(select_object_key_str, &select_object_key_sql);
   PREP_STMT(select_attribute_str, &select_attribute_sql);
+  PREP_STMT(select_session_obj_str, &select_session_obj_sql);
   PREP_STMT(delete_object_str, &delete_object_sql);
+  PREP_STMT(count_object_id_str, &count_object_id_sql);
+  PREP_STMT(select_an_attribute_str, &select_an_attribute_sql);
 
   return CKR_OK;
 }
@@ -216,10 +225,8 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
 
   sqlite3_exec(db, "SAVEPOINT rsaPubKey;", NULL, NULL, NULL);
 
-  sqlite3_reset(insert_object_key_sql);
-  string pemKey = X509::PEM_encode(*rsaKey);
-  sqlite3_bind_text(insert_object_key_sql, 1, pemKey.c_str(), -1, SQLITE_TRANSIENT);
-  CHECK_DB_RESPONSE(sqlite3_step(insert_object_key_sql) != SQLITE_DONE);
+  sqlite3_reset(insert_object_sql);
+  CHECK_DB_RESPONSE(sqlite3_step(insert_object_sql) != SQLITE_DONE);
 
   CK_OBJECT_HANDLE objectID = sqlite3_last_insert_rowid(db);
 
@@ -228,6 +235,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   CK_MECHANISM_TYPE mechType = CKM_RSA_PKCS_KEY_PAIR_GEN;
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
   CK_DATE emptyDate;
+
+  // Created by db handle. So we can remove the correct session objects in the future.
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
 
   // General information
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass)) != CKR_OK);
@@ -249,6 +259,19 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_WRAP, &ckTrue, sizeof(ckTrue)) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
+
+  // The RSA modulus bits
+  IF_Scheme_PublicKey *ifKey = dynamic_cast<IF_Scheme_PublicKey*>(rsaKey);
+  BigInt bigModulus = ifKey->get_n();
+  CK_ULONG bits = bigModulus.bits();
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits)) != CKR_OK);
+
+  // The RSA modulus
+  CHECK_DB_RESPONSE(this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigModulus) != CKR_OK);
+
+  // The RSA public exponent
+  BigInt bigExponent = ifKey->get_e();
+  CHECK_DB_RESPONSE(this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExponent) != CKR_OK);
 
   // Extract the attributes from the template
   for(CK_ULONG i = 0; i < ulPublicKeyAttributeCount; i++) {
@@ -298,14 +321,13 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
 // Makes sure that object is saved with all its attributes.
 // If some error occur when saving the data, nothing is saved.
 
-CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
-    CK_ULONG ulPrivateKeyAttributeCount, RandomNumberGenerator *rng) {
+CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate, 
+    CK_ULONG ulPrivateKeyAttributeCount) {
 
   sqlite3_exec(db, "SAVEPOINT rsaPrivKey;", NULL, NULL, NULL);
 
-  sqlite3_reset(insert_object_key_sql);
-  sqlite3_bind_text(insert_object_key_sql, 1, "", -1, SQLITE_TRANSIENT);
-  CHECK_DB_RESPONSE(sqlite3_step(insert_object_key_sql) != SQLITE_DONE);
+  sqlite3_reset(insert_object_sql);
+  CHECK_DB_RESPONSE(sqlite3_step(insert_object_sql) != SQLITE_DONE);
 
   CK_OBJECT_HANDLE objectID = sqlite3_last_insert_rowid(db);
 
@@ -314,6 +336,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
   CK_MECHANISM_TYPE mechType = CKM_RSA_PKCS_KEY_PAIR_GEN;
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
   CK_DATE emptyDate;
+
+  // Created by db handle. So we can remove the correct session objects in the future.
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
 
   // General information
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_CLASS, &oClass, sizeof(oClass)) != CKR_OK);
@@ -341,6 +366,27 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_NEVER_EXTRACTABLE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0) != CKR_OK);
   CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
+
+  // The RSA modulus
+  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
+  BigInt bigMod = ifKeyPriv->get_n();
+  this->saveAttributeBigInt(objectID, CKA_MODULUS, &bigMod);
+
+  // The RSA public exponent
+  BigInt bigExp = ifKeyPriv->get_e();
+  this->saveAttributeBigInt(objectID, CKA_PUBLIC_EXPONENT, &bigExp);
+
+  // The RSA private exponent
+  BigInt bigPrivExp = ifKeyPriv->get_d();
+  this->saveAttributeBigInt(objectID, CKA_PRIVATE_EXPONENT, &bigPrivExp);
+
+  // The RSA prime p
+  BigInt bigPrime1 = ifKeyPriv->get_p();
+  this->saveAttributeBigInt(objectID, CKA_PRIME_1, &bigPrime1);
+
+  // The RSA prime q
+  BigInt bigPrime2 = ifKeyPriv->get_q();
+  this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigPrime2);
 
   CK_BBOOL bolVal;
   CK_BBOOL isPrivate = CK_TRUE;
@@ -418,17 +464,6 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(char *pin, RSA_PrivateKey *rsaKey, 
     }
   }
 
-  sqlite3_reset(update_object_key_sql);
-  if(isPrivate == CK_TRUE && isToken == CK_TRUE) {
-    string pemKey = PKCS8::PEM_encode(*rsaKey, *rng, pin);
-    sqlite3_bind_text(update_object_key_sql, 1, pemKey.c_str(), -1, SQLITE_TRANSIENT);
-  } else {
-    string pemKey = PKCS8::PEM_encode(*rsaKey);
-    sqlite3_bind_text(update_object_key_sql, 1, pemKey.c_str(), -1, SQLITE_TRANSIENT);
-  }
-  sqlite3_bind_int(update_object_key_sql, 2, objectID);
-  CHECK_DB_RESPONSE(sqlite3_step(update_object_key_sql) != SQLITE_DONE);
-
   sqlite3_exec(db, "RELEASE SAVEPOINT rsaPrivKey;", NULL, NULL, NULL);
 
   return objectID;
@@ -476,88 +511,38 @@ CK_RV SoftDatabase::saveAttribute(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE t
   }
 }
 
-// Read in all the objects from the database
+// Convert the big integer and save it in the database.
 
-SoftObject* SoftDatabase::readAllObjects() {
-  // Get all the objects
-  sqlite3_reset(select_object_id_sql);
+CK_RV SoftDatabase::saveAttributeBigInt(CK_OBJECT_HANDLE objectID, CK_ATTRIBUTE_TYPE type, BigInt *bigNumber) {
+  CK_ULONG size = bigNumber->bytes();
+  CK_VOID_PTR buf = (CK_VOID_PTR)malloc(size);
 
-  SoftObject *objects = new SoftObject();
-
-  // Get the results
-  while(sqlite3_step(select_object_id_sql) == SQLITE_ROW) {
-    SoftObject *newObject = populateObj(sqlite3_column_int(select_object_id_sql, 0));
-
-    if(newObject != NULL_PTR) {
-      // Add the object to the chain
-      newObject->nextObject = objects;
-      objects = newObject;
-    }
+  if(buf == NULL_PTR)  {
+    return CKR_GENERAL_ERROR;
   }
 
-  return objects;
+  bigNumber->binary_encode((byte *)buf);
+
+  CK_RV rv = this->saveAttribute(objectID, type, buf, size);
+  free(buf);
+
+  return rv;
 }
 
-// Creates an object an populate it with attributes from the database.
+// Destroy all the session objects created by this database handle
 
-SoftObject* SoftDatabase::populateObj(CK_OBJECT_HANDLE keyRef) {
-  sqlite3_reset(select_object_key_sql);
-  sqlite3_bind_int(select_object_key_sql, 1, keyRef);
+void SoftDatabase::destroySessObj() {
+  CK_BBOOL ckFalse = CK_FALSE;
 
-  SoftObject *keyObject = NULL_PTR;
+  sqlite3_reset(select_session_obj_sql);
+  sqlite3_bind_int(select_session_obj_sql, 1, CKA_TOKEN);
+  sqlite3_bind_blob(select_session_obj_sql, 2, &ckFalse, sizeof(ckFalse), SQLITE_TRANSIENT);
+  sqlite3_bind_int(select_session_obj_sql, 3, CKA_VENDOR_DEFINED);
+  sqlite3_bind_blob(select_session_obj_sql, 4, &db, sizeof(db), SQLITE_TRANSIENT);
 
-  if(sqlite3_step(select_object_key_sql) == SQLITE_ROW) {
-    keyObject = new SoftObject();
-    keyObject->index = keyRef;
-
-    // Add the encoded key
-    const char *encKey = (const char*)sqlite3_column_text(select_object_key_sql, 0);
-    keyObject->encodedKey = strdup(encKey);
-  } else {
-    return NULL_PTR;
+  while(sqlite3_step(select_session_obj_sql) == SQLITE_ROW) {
+    this->deleteObject(sqlite3_column_int(select_session_obj_sql, 0));
   }
-
-  sqlite3_reset(select_attribute_sql);
-  sqlite3_bind_int(select_attribute_sql, 1, keyRef);
-
-  CK_ULONG tmpValue;
-
-  // Add all attributes
-  while(sqlite3_step(select_attribute_sql) == SQLITE_ROW) {
-    CK_ATTRIBUTE_TYPE type = sqlite3_column_int(select_attribute_sql, 0);
-    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_attribute_sql, 1);
-    CK_ULONG length = sqlite3_column_int(select_attribute_sql, 2);
-
-    keyObject->addAttributeFromData(type, pValue, length);
-
-    switch(type) {
-      case CKA_CLASS:
-        keyObject->objectClass = *(CK_OBJECT_CLASS *)pValue;
-        break;
-      case CKA_PRIVATE:
-        keyObject->isPrivate = *(CK_BBOOL *)pValue;
-        break;
-      case CKA_TOKEN:
-        keyObject->isToken = *(CK_BBOOL *)pValue;
-        break;
-      case CKA_KEY_TYPE:
-        keyObject->keyType = *(CK_KEY_TYPE *)pValue;
-        break;
-      case CKA_SENSITIVE:
-        keyObject->sensible = *(CK_BBOOL *)pValue;
-        break;
-      case CKA_EXTRACTABLE:
-        keyObject->extractable = *(CK_BBOOL *)pValue;
-        break;
-      case CKA_MODIFIABLE:
-        keyObject->modifiable = *(CK_BBOOL *)pValue;
-        break;
-      default:
-        break;
-    }
-  }
-
-  return keyObject;
 }
 
 // Delete an object and its attributes.
@@ -567,4 +552,364 @@ void SoftDatabase::deleteObject(CK_OBJECT_HANDLE objRef) {
   sqlite3_reset(delete_object_sql);
   sqlite3_bind_int(delete_object_sql, 1, objRef);
   sqlite3_step(delete_object_sql);
+}
+
+// Return the all the object IDs
+
+CK_OBJECT_HANDLE* SoftDatabase::getObjectRefs(CK_ULONG *objectCount) {
+  *objectCount = 0;
+
+  // Find out how many objects we have.
+  sqlite3_reset(count_object_id_sql);
+  if(sqlite3_step(count_object_id_sql) != SQLITE_ROW) {
+    return NULL_PTR;
+  }
+
+  // Get the number of objects
+  CK_ULONG objectsInDB = sqlite3_column_int(count_object_id_sql, 0);
+	
+  // Create the object-reference buffer
+  CK_OBJECT_HANDLE *objectRefs = (CK_OBJECT_HANDLE *)malloc(objectsInDB * sizeof(CK_OBJECT_HANDLE));
+  if(objectRefs == NULL_PTR) {
+    return NULL_PTR;
+  }
+
+  // Get all the object ids
+  sqlite3_reset(select_object_ids_sql);
+  CK_ULONG tmpCounter = 0;
+  while(sqlite3_step(select_object_ids_sql) == SQLITE_ROW && tmpCounter < objectsInDB) {
+    objectRefs[tmpCounter++] = sqlite3_column_int(select_object_ids_sql, 0);
+  }
+
+  *objectCount = tmpCounter;
+	 
+  return objectRefs;
+}
+
+// Return a boolean attribute of the object
+
+CK_BBOOL SoftDatabase::getBooleanAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type, CK_BBOOL defaultValue) {
+  sqlite3_reset(select_an_attribute_sql);
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, type);
+
+  // Get attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    if(pValue != NULL_PTR && length == sizeof(CK_BBOOL)) {
+      return *(CK_BBOOL *)pValue;
+    } else {
+      return defaultValue;
+    }
+  } else {
+    return defaultValue;
+  }
+}
+
+// Return the class of the object
+
+CK_OBJECT_CLASS SoftDatabase::getObjectClass(CK_OBJECT_HANDLE objectRef) {
+  sqlite3_reset(select_an_attribute_sql);
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, CKA_CLASS);
+
+  // Get attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    if(pValue != NULL_PTR && length == sizeof(CK_OBJECT_CLASS)) {
+      return *(CK_OBJECT_CLASS *)pValue;
+    } else {
+      return CKO_VENDOR_DEFINED;
+    }
+  } else {
+    return CKO_VENDOR_DEFINED;
+  }
+}
+
+// Return the key type of the object
+
+CK_OBJECT_CLASS SoftDatabase::getKeyType(CK_OBJECT_HANDLE objectRef) {
+  sqlite3_reset(select_an_attribute_sql);
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, CKA_KEY_TYPE);
+
+  // Get attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    if(pValue != NULL_PTR && length == sizeof(CK_KEY_TYPE)) {
+      return *(CK_KEY_TYPE *)pValue;
+    } else {
+      return CKK_VENDOR_DEFINED;
+    }
+  } else {
+    return CKK_VENDOR_DEFINED;
+  }
+}
+
+// Returns a big int of a given attribute.
+// We reveal anything, because this is used to create a key within the SoftHSM.
+
+BigInt SoftDatabase::getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type) {
+  sqlite3_reset(select_an_attribute_sql);
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, type);
+
+  // Get attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    if(pValue != NULL_PTR) {
+      return BigInt((byte *)pValue, (u32bit)length);
+    }
+  }
+
+  return BigInt(0);
+}
+
+
+// Check if the object has an matching attribute
+
+CK_BBOOL SoftDatabase::matchAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  sqlite3_reset(select_an_attribute_sql);
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, attTemplate->type);
+
+  // Get attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    // Match attribute
+    if(length == attTemplate->ulValueLen && pValue != NULL_PTR && attTemplate->pValue != NULL_PTR &&
+       memcmp(pValue, attTemplate->pValue, length) == 0) {
+
+      return CK_TRUE;
+    }
+  }
+
+  return CK_FALSE;
+}
+
+// Check if the object handle exist in the database
+
+CK_BBOOL SoftDatabase::hasObject(CK_OBJECT_HANDLE objectRef) {
+  sqlite3_reset(select_object_id_sql);
+  sqlite3_bind_int(select_object_id_sql, 1, objectRef);
+
+  // Check object id
+  if(sqlite3_step(select_object_id_sql) == SQLITE_ROW) {
+    return CK_TRUE;
+  } else {
+    return CK_FALSE;
+  }
+}
+
+// Get the value of an attribute for this object.
+
+CK_RV SoftDatabase::getAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  // Can we reveal this attribute?
+  switch(attTemplate->type) {
+    case CKA_PRIVATE_EXPONENT:
+    case CKA_PRIME_1:
+    case CKA_PRIME_2:
+    case CKA_EXPONENT_1:
+    case CKA_EXPONENT_2:
+    case CKA_COEFFICIENT:
+      if(this->getBooleanAttribute(objectRef, CKA_SENSITIVE, CK_TRUE) == CK_TRUE || 
+         this->getBooleanAttribute(objectRef, CKA_EXTRACTABLE, CK_FALSE) == CK_FALSE) {
+        attTemplate->ulValueLen = (CK_LONG)-1;
+        return CKR_ATTRIBUTE_SENSITIVE;
+      }
+      break;
+    default:
+      break;
+  }
+
+  sqlite3_reset(select_an_attribute_sql);
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, attTemplate->type);
+
+  // Get the attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    // Do the user want the size of the attribute value?
+    if(attTemplate->pValue == NULL_PTR) {
+      attTemplate->ulValueLen = length;
+    // Is the given buffer to small?
+    } else if(attTemplate->ulValueLen < length) {
+      attTemplate->ulValueLen = (CK_LONG)-1;
+      return CKR_BUFFER_TOO_SMALL;
+    // Return the attribute
+    } else {
+      memcpy(attTemplate->pValue, pValue, length);
+      attTemplate->ulValueLen = length;
+    }
+  } else {
+    // We do not have this attribute
+    attTemplate->ulValueLen = (CK_LONG)-1;
+    return CKR_ATTRIBUTE_TYPE_INVALID;
+  }
+
+  return CKR_OK;
+}
+
+// Set the value of an attribute for this object.
+// This function also performes a sanity check of the template
+
+CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate) {
+  // Can we modify the object?
+  if(this->getBooleanAttribute(objectRef, CKA_MODIFIABLE, CK_FALSE) == CK_FALSE) {
+    return CKR_ATTRIBUTE_READ_ONLY;
+  }
+
+  // Evaluate the template
+  switch(attTemplate->type) {
+    case CKA_CLASS:
+    case CKA_TOKEN:
+    case CKA_PRIVATE:
+    case CKA_MODIFIABLE:
+    case CKA_KEY_TYPE:
+    case CKA_LOCAL:
+    case CKA_KEY_GEN_MECHANISM:
+      // We can not change this attribute
+      return CKR_ATTRIBUTE_READ_ONLY;
+    case CKA_LABEL:
+    case CKA_ID:
+    case CKA_SUBJECT:
+      // We can change
+      break;
+    case CKA_DERIVE:
+      // We can change, but check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKA_START_DATE:
+    case CKA_END_DATE:
+      // We can change, but check size
+      if(attTemplate->ulValueLen == sizeof(CK_DATE) ||
+         attTemplate->ulValueLen == 0) {
+        break;
+      }
+      return CKR_ATTRIBUTE_VALUE_INVALID;
+    case CKA_ENCRYPT:
+    case CKA_VERIFY:
+    case CKA_VERIFY_RECOVER:
+    case CKA_WRAP:
+      // We can change this for the public key
+      // but invalid for other object classes
+      if(this->getObjectClass(objectRef) != CKO_PUBLIC_KEY) {
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+      }
+      // Check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKA_TRUSTED:
+      // We can not set this for the public key
+      if(this->getObjectClass(objectRef) == CKO_PUBLIC_KEY) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other object classes
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_DECRYPT:
+    case CKA_SIGN:
+    case CKA_SIGN_RECOVER:
+    case CKA_UNWRAP:
+      // We can change this for the private key
+      // but invalid for other object classes
+      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+      }
+      // Check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKA_ALWAYS_SENSITIVE:
+    case CKA_NEVER_EXTRACTABLE:
+    case CKA_ALWAYS_AUTHENTICATE:
+    case CKA_WRAP_WITH_TRUSTED:
+      // We can not set this for the private key
+      if(this->getObjectClass(objectRef) == CKO_PRIVATE_KEY) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other object classes
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_SENSITIVE:
+      // We can change this for the private key
+      // but invalid for other object classes
+      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+      }
+      // Attribute cannot be changed once set to CK_TRUE.
+      if(this->getBooleanAttribute(objectRef, CKA_SENSITIVE, CK_TRUE) == CK_TRUE) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKA_EXTRACTABLE:
+      // We can change this for the private key
+      // but invalid for other object classes
+      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+      }
+      // Attribute cannot be changed once set to CK_FALSE.
+      if(this->getBooleanAttribute(objectRef, CKA_EXTRACTABLE, CK_FALSE) == CK_FALSE) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Check size
+      if(attTemplate->ulValueLen != sizeof(CK_BBOOL)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKA_MODULUS_BITS:
+      // We can not set this for the public rsa key
+      if(this->getObjectClass(objectRef) == CKO_PUBLIC_KEY && this->getKeyType(objectRef) == CKK_RSA) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other object classes
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_PUBLIC_EXPONENT:
+    case CKA_MODULUS:
+      // We can not set this for the RSA key
+      if(this->getKeyType(objectRef) == CKK_RSA) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other objects
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_PRIVATE_EXPONENT:
+    case CKA_PRIME_1:
+    case CKA_PRIME_2:
+    case CKA_EXPONENT_1:
+    case CKA_EXPONENT_2:
+    case CKA_COEFFICIENT:
+      // We can not set this for the private RSA key
+      if(this->getObjectClass(objectRef) == CKO_PRIVATE_KEY && this->getKeyType(objectRef) == CKK_RSA) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      // Invalid for other objects
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+    default:
+      // Invalid attribute
+      return CKR_ATTRIBUTE_TYPE_INVALID;
+  }
+
+  // Save/update in the database
+  this->saveAttribute(objectRef, attTemplate->type, attTemplate->pValue, attTemplate->ulValueLen);
+
+  return CKR_OK;
 }

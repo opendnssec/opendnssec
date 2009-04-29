@@ -1194,17 +1194,23 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object = session->currentSlot->objects->getObject(hKey);
+  CK_BBOOL hasObject = session->db->hasObject(hKey);
 
-  if(object == NULL_PTR || object->objectClass != CKO_PRIVATE_KEY ||
-     object->keyType != CKK_RSA) {
+  // TODO:
+  //   Should also add: session->db->getBooleanAttribute(hKey, CKA_SIGN, CK_TRUE) == CK_FALSE
+  //   in the if-statement below. "If this key is allowed to sign data"
+  //   Not doing this for now, because you get higher performance.
+
+  if(hasObject == CK_FALSE || session->db->getObjectClass(hKey) != CKO_PRIVATE_KEY ||
+     session->db->getKeyType(hKey) != CKK_RSA) {
     softHSM->unlockMutex();
 
     DEBUG_MSG("C_SignInit", "This key can not be used");
     return CKR_KEY_HANDLE_INVALID;
   }
 
-  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 0);
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hKey, CKA_TOKEN, CK_TRUE),
+                                        session->db->getBooleanAttribute(hKey, CKA_PRIVATE, CK_TRUE), 0);
   if(userAuth == CK_FALSE) {
     softHSM->unlockMutex();
 
@@ -1269,7 +1275,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
   }
 
   // Get the key from the session key store.
-  Public_Key *cryptoKey = session->getKey(object);
+  Public_Key *cryptoKey = session->getKey(hKey);
   if(cryptoKey == NULL_PTR) {
     softHSM->unlockMutex();
 
@@ -1279,7 +1285,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
 
   // Creates the signer with given key and mechanism.
   PK_Signing_Key *signKey = dynamic_cast<PK_Signing_Key*>(cryptoKey);
-  session->signSize = object->keySizeBytes;
+  session->signSize = (cryptoKey->max_input_bits() + 7) / 8;
   session->pkSigner = new PK_Signer(*signKey, &*hashFunc);
 
   if(!session->pkSigner) {
@@ -1531,17 +1537,23 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
     return CKR_SESSION_HANDLE_INVALID;
   }
 
-  SoftObject *object = session->currentSlot->objects->getObject(hKey);
+  CK_BBOOL hasObject = session->db->hasObject(hKey);
 
-  if(object == NULL_PTR || object->objectClass != CKO_PUBLIC_KEY ||
-     object->keyType != CKK_RSA) {
+  // TODO:
+  //   Should also add: session->db->getBooleanAttribute(hKey, CKA_VERIFY, CK_TRUE) == CK_FALSE
+  //   in the if-statement below. "If this key is allowed to verify signatures"
+  //   Not doing this for now, because you get higher performance.
+
+  if(hasObject == CK_FALSE || session->db->getObjectClass(hKey) != CKO_PUBLIC_KEY ||
+     session->db->getKeyType(hKey) != CKK_RSA) {
     softHSM->unlockMutex();
 
     DEBUG_MSG("C_VerifyInit", "This key can not be used");
     return CKR_KEY_HANDLE_INVALID;
   }
 
-  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), object->isToken, object->isPrivate, 0);
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), session->db->getBooleanAttribute(hKey, CKA_TOKEN, CK_TRUE),
+                                        session->db->getBooleanAttribute(hKey, CKA_PRIVATE, CK_TRUE), 0);
   if(userAuth == CK_FALSE) {
     softHSM->unlockMutex();
 
@@ -1606,7 +1618,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
   }
 
   // Get the key from the session key store.
-  Public_Key *cryptoKey = session->getKey(object);
+  Public_Key *cryptoKey = session->getKey(hKey);
   if(cryptoKey == NULL_PTR) {
     softHSM->unlockMutex();
 
@@ -1616,7 +1628,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_O
 
   // Creates the verifier with given key and mechanism
   PK_Verifying_with_MR_Key *verifyKey = dynamic_cast<PK_Verifying_with_MR_Key*>(cryptoKey);
-  session->verifySize = object->keySizeBytes;
+  session->verifySize = (cryptoKey->max_input_bits() + 7) / 8;
   session->pkVerifier = new PK_Verifier_with_MR(*verifyKey, &*hashFunc);
 
   if(!session->pkVerifier) {
@@ -2129,8 +2141,7 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
   CHECK_DEBUG_RETURN(rsaKey == NULL_PTR, "C_GenerateKeyPair", "Could not allocate memory", CKR_HOST_MEMORY);
 
   // Add the private key to the database.
-  CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(session->currentSlot->userPIN, rsaKey, pPrivateKeyTemplate, 
-                                                        ulPrivateKeyAttributeCount, session->rng);
+  CK_OBJECT_HANDLE privRef = session->db->addRSAKeyPriv(rsaKey, pPrivateKeyTemplate, ulPrivateKeyAttributeCount);
 
   if(privRef == 0) {
     delete rsaKey;
@@ -2149,10 +2160,6 @@ CK_RV rsaKeyGen(SoftSession *session, CK_ATTRIBUTE_PTR pPublicKeyTemplate,
     DEBUG_MSG("C_GenerateKeyPair", "Could not save public key in DB");
     return CKR_GENERAL_ERROR;
   }
-
-  // Update the internal states.
-  session->currentSlot->getObjectFromDB(session, pubRef);
-  session->currentSlot->getObjectFromDB(session, privRef);
 
   // Returns the object handles to the application.
   *phPublicKey = pubRef;

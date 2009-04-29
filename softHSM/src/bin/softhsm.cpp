@@ -245,8 +245,7 @@ void createTables(sqlite3 *db) {
 
   static char sqlCreateTableObjects[] = 
     "CREATE TABLE Objects ("
-    "objectID INTEGER PRIMARY KEY,"
-    "encodedKey TEXT DEFAULT NULL);";
+    "objectID INTEGER PRIMARY KEY);";
 
   static char sqlCreateTableAttributes[] =
     "CREATE TABLE Attributes ("
