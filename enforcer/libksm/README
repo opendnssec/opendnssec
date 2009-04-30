@@ -50,3 +50,22 @@ or
 utils/database_create.sqlite3
 
 
+Kaspimport
+----------
+The perl script utils/kaspimport.pl is created with settings determined by your flags to configure. It has the job of reading the xml configuration files from:
+
+${prefix}/etc
+
+and using them to build the database specified at configure time. It takes the following flags:
+
+ -h <HOST>      db host
+ -u <USER>      db user
+ -s <SCHEMA>    db schema
+ -p <PASSWORD>  db password
+ -d             debug mode
+ -f <FILE>      sqlite3 filename
+ -i             install DB flag
+
+The 1st 4 refer to a MySQL database.
+
+If the -i flag is provided then the existing schema will be torn down and a new one put in its place. Without it then the script will assume that the schema exists.
