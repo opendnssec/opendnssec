@@ -21,18 +21,24 @@ Building the Software
 ---------------------
 You can build it with ./auto-build.sh
 Remember to edit auto-build.sh to have your paths to mysql/sqlite and cunit.
+Note: auto-build will not form part of a release.
 
 The following options can be passed to configure; auto-build.sh has some set, with an attempt to guess defaults based on the OS
 
 --prefix=<dir>      Installation directory. All files will be installed
                     relative to this path.
---with-cunit=<dir>  Path to your CUNIT installation
---with-mysql=<dir>  Path to your MySQL instalation; this also selects MySQL 
+
+Sqlite3 is the default DB if neither or both are specified.
+--with-mysql=<dir>  Path to your MySQL instalation; this also selects MySQL
                     as your database
---with-dbname=      Name of DB schema
---with-dbhost=      Machine where DB is hosted
---with-dbpass=      Password for DB access
---with-dbuser=      Username for DB access
+--with-sqlite3=<dir>  Look for sqlite3 in this dir (/usr/local/ is assumed if no <dir> is specified)
+
+The following must be specified for make check to run the unit tests
+--with-cunit=<dir>  Path to your CUNIT installation
+--with-dbname=      Name of test DB schema
+--with-dbhost=      Machine where test DB is hosted
+--with-dbpass=      Password for test DB access
+--with-dbuser=      Username for test DB access
 
 Unit tests
 ----------
