@@ -2,3 +2,6 @@ nobase_dist_sysconf_DATA = opendnssec/*.xml opendnssec/conf.rng opendnssec/kasp.
 
 opendnssec/%.rng : opendnssec/%.rnc
 	@TRANG@ $< $@
+	
+opendnssec/%.xml : opendnssec/%.rng
+	${XMLLINT} --noout --relaxng $< $@
