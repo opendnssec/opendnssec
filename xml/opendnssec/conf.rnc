@@ -13,6 +13,9 @@ start = element Configuration {
 			# PKCS#11 Module (aka shared library)
 			element Module { xsd:string },
 
+			# PKCS#11 Token Label,
+			element TokenLabel { xsd:string },
+
 			# PKCS#11 Login Credentials (asked for if not specified)
 			element PIN { xsd:string }?,
 
