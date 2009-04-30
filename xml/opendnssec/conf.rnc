@@ -8,13 +8,13 @@ start = element Configuration {
 	element RepositoryList {
 		element Repository {
 			# Symbolic name of Repository
-			element Name { xsd:string },
+			attribute name { xsd:string },
 
 			# PKCS#11 Module (aka shared library)
 			element Module { xsd:string },
 
 			# PKCS#11 Token Label,
-			element TokenLabel { xsd:string },
+			element Label { xsd:string },
 
 			# PKCS#11 Login Credentials (asked for if not specified)
 			element PIN { xsd:string }?,

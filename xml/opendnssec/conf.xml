@@ -5,16 +5,14 @@
 <Configuration>
 
 	<RepositoryList>
-		<Repository>
-			<Name>sca6000</Name>
+		<Repository name="sca6000">
 			<Module>/usr/lib/libpkcs11.so</Module>
-			<TokenLabel>Sun Metaslot</TokenLabel>
+			<Label>Sun Metaslot</Label>
 			<PIN>test:1234</PIN>
 			<Capacity>1000</Capacity>
 		</Repository>
 
-		<Repository>
-			<Name>softHSM</Name>
+		<Repository name="softHSM">
 			<Module>/usr/local/lib/libsofthsm.so</Module>
 			<TokenLabel>alice</TokenLabel>
 			<PIN>test:5678</PIN>
