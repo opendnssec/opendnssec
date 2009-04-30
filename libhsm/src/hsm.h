@@ -30,7 +30,8 @@
 #define HSM_H 1
 
 #include <pkcs11.h>
-
+#include <uuid/uuid.h>
+#include <ldns/ldns.h>
 
 /*! Data type to describe an HSM */
 typedef struct {
@@ -43,10 +44,10 @@ typedef struct {
 
 /*! HSM Key Pair */
 typedef struct {
-	const hsm_module_t *module;  /*!< pointer to module */
+	const hsm_module_t *module;          /*!< pointer to module */
 	const CK_OBJECT_HANDLE private_key;  /*!< private key within module */
-	const CK_OBJECT_HANDLE public_key;  /*!< public key within module */
-	const uuid_t *uuid;          /*!< UUID of key (if available) */
+	const CK_OBJECT_HANDLE public_key;   /*!< public key within module */
+	const uuid_t *uuid;                  /*!< UUID of key (if available) */
 } hsm_key_t;
 
 /*! HSM Session */
@@ -57,8 +58,8 @@ typedef struct {
 
 /*! HSM context to keep track of sessions */
 typedef struct {
-	hsm_session_t session[];  /*!< HSM sessions */
 	size_t session_count;     /*!< number of configured HSMs */
+	hsm_session_t session[];  /*!< HSM sessions */
 } hsm_ctx_t;
 
 
