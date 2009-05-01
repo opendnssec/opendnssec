@@ -36,10 +36,11 @@
 /*! Data type to describe an HSM */
 typedef struct {
 	unsigned int id;           /*!< HSM numerical identifier */
-	const char *name;          /*!< name of module */
+	const char *name;          /*!< symbolic name of module (repository) */
 	const char *path;          /*!< path to PKCS#11 library */
 	const void *handle;        /*!< handle from dlopen()*/
 	CK_FUNCTION_LIST_PTR sym;  /*!< Function list from dlsym */
+	/* token label probably needed here? */
 } hsm_module_t;
 
 /*! HSM Key Pair */
@@ -92,6 +93,7 @@ int hsm_open(const char *config,
 */
 const char *hsm_prompt_pin(const char *token_name, void *data);
 
+
 /*! Close HSM library
 
     Log out and detach from all configured HSMs
@@ -104,6 +106,7 @@ int hsm_close();
 Also destroys any associated session.
 */
 const hsm_ctx_t *hsm_create_context(void);
+
 
 /*! Destroy HSM context
 
@@ -120,6 +123,7 @@ void hsm_destroy_context(const hsm_ctx_t *context);
 */
 hsm_key_t **hsm_list_keys(const hsm_ctx_t *context);
 
+
 /*! Find a key pair by UUID
 
 \param context HSM context
@@ -127,6 +131,7 @@ hsm_key_t **hsm_list_keys(const hsm_ctx_t *context);
 \return key identifier or NULL if not found
 */
 const hsm_key_t *hsm_find_key_by_uuid(const hsm_ctx_t *context, const uuid_t *uuid);
+
 
 /*! Generate new key pair in HSM
 
@@ -140,6 +145,7 @@ Other stuff, like exponent, may be needed here as well.
 */
 const hsm_key_t *hsm_generate_rsa_key(const hsm_ctx_t *context, const char *repository, unsigned long keysize);
 
+
 /*! Remove key pair from HSM
 
 \param context HSM context
@@ -148,6 +154,7 @@ const hsm_key_t *hsm_generate_rsa_key(const hsm_ctx_t *context, const char *repo
 */
 int hsm_remove_key(const hsm_ctx_t *context, const hsm_key_t *key);
 
+
 /*! Get UUID using key identifier
 
 \param context HSM context
@@ -155,6 +162,7 @@ int hsm_remove_key(const hsm_ctx_t *context, const hsm_key_t *key);
 \return UUID of key pair
 */
 const uuid_t *hsm_get_uuid(const hsm_ctx_t *context, const hsm_key_t *key);
+
 
 /*! Sign RRset using key
 
@@ -165,6 +173,7 @@ const uuid_t *hsm_get_uuid(const hsm_ctx_t *context, const hsm_key_t *key);
 */
 ldns_rr* hsm_sign_rrset(const hsm_ctx_t *context, const ldns_rr_list* rrset, const hsm_key_t *key);
 
+
 /*! Get DNSKEY RR
 
 \param context HSM context
@@ -173,21 +182,24 @@ ldns_rr* hsm_sign_rrset(const hsm_ctx_t *context, const ldns_rr_list* rrset, con
 */
 ldns_rr* hsm_get_dnskey(const hsm_ctx_t *context, const hsm_key_t *key);
 
+
 /*! Fill a buffer with random data from any attached HSM
 
 \param context HSM context
-\param length Size of random buffer
-\param buffer Buffer to fill with random data
+\param[in] length Size of random buffer
+\param[out] buffer Buffer to fill with random data
 \return 0 if successful, !0 if failed
 
 */
 int hsm_random_buffer(const hsm_ctx_t *context, unsigned long length, unsigned char *buffer);
+
 
 /*! Return unsigned 32-bit random number from any attached HSM
 \param context HSM context
 \return 32-bit ranom number
 */
 u_int32_t hsm_random32(const hsm_ctx_t *context);
+
 
 /*! Return unsigned 64-bit random number from any attached HSM
 \param context HSM context
@@ -204,10 +216,10 @@ u_int64_t hsm_random64(const hsm_ctx_t *context);
 /*! Attached a named HSM using a PKCS#11 shared library and
    optional credentials (may be NULL, but then undefined)
 */
-int hsm_attach(const char *repository, const char *path, const char *pin);
+static int hsm_attach(const char *repository, const char *path, const char *pin);
 
 /*! Detach a named HSM */
-int hsm_detach(const char *name);
+static int hsm_detach(const char *repository);
 
 
 #endif /* HSM_H */
