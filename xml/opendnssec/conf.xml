@@ -14,7 +14,7 @@
 
 		<Repository name="softHSM">
 			<Module>/usr/local/lib/libsofthsm.so</Module>
-			<TokenLabel>alice</TokenLabel>
+			<Label>alice</Label>
 			<PIN>test:5678</PIN>
 		</Repository>
 	</RepositoryList>
