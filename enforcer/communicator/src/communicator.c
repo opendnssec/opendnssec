@@ -110,7 +110,11 @@ server_main(DAEMONCONFIG *config)
         }
         DbFreeResult(handle);
 
-        /* sleep for the key gen interval */
+        /* sleep for the key gen interval unless we are in debug mode */
+		if (config->debug)
+		{
+			break;
+		}
         commsleep(config);
 
     }
@@ -269,7 +273,7 @@ void commsleep(DAEMONCONFIG* config)
 {
     struct timeval tv;
 
-/* TODO this shoudl come from the config file */
+/* TODO this should come from the config file */
 #ifdef OUR_INTERVAL
 	tv.tv_sec = OUR_INTERVAL;
 #else
@@ -277,6 +281,6 @@ void commsleep(DAEMONCONFIG* config)
 #endif
 
     tv.tv_usec = 0;
-    log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->keygeninterval);
+    log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->interval);
     select(0, NULL, NULL, NULL, &tv);
 }
