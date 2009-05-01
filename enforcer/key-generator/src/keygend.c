@@ -68,8 +68,7 @@ server_main(DAEMONCONFIG *config)
   kaspConnect(config, &dbhandle);
 	
 	while (1) {
-		
-		/* Read the special policy update the config struct and get the latest keygeninterval etc*/
+
     status = ReadConfig(config);
     if (status != 0) {
       log_msg(config, LOG_ERR, "Error reading config");

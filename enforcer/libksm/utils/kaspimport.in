@@ -88,7 +88,7 @@ my $dbh;
   my $repos = $repolist->findnodes('Repository');
   foreach my $repo ( $repos->get_nodelist() ) {
     # We only need the name and capacity. The rest is handled by libhsm
-  	my $rname   = $repo->find("Name")->string_value();
+  	my $rname   = $repo->find("\@name")->string_value();
   	my $rcapacity = $repo->find("Capacity")->string_value();
   	insertrepo( $rname, $rcapacity);
   }
