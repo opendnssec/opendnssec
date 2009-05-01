@@ -7,14 +7,14 @@
 	<RepositoryList>
 		<Repository name="sca6000">
 			<Module>/usr/lib/libpkcs11.so</Module>
-			<Label>Sun Metaslot</Label>
+			<TokenLabel>Sun Metaslot</TokenLabel>
 			<PIN>test:1234</PIN>
 			<Capacity>1000</Capacity>
 		</Repository>
 
 		<Repository name="softHSM">
 			<Module>/usr/local/lib/libsofthsm.so</Module>
-			<Label>alice</Label>
+			<TokenLabel>alice</TokenLabel>
 			<PIN>test:5678</PIN>
 		</Repository>
 	</RepositoryList>

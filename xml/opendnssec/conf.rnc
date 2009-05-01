@@ -14,7 +14,7 @@ start = element Configuration {
 			element Module { xsd:string },
 
 			# PKCS#11 Token Label,
-			element Label { xsd:string },
+			element TokenLabel { xsd:string },
 
 			# PKCS#11 Login Credentials (asked for if not specified)
 			element PIN { xsd:string }?,
