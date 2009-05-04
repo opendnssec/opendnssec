@@ -1,4 +1,4 @@
-/* $Id: hsm.c 554 2009-04-29 18:09:23Z jakob $ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
