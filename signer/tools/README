@@ -101,11 +101,11 @@ the nsec3er tool will create an NSEC3 for the empty nonterminal.
 And finally, the signature resource records must be added.
 
 Options for the signer are passed in-line; with the following commands:
-:add_module <name> <so path> <PIN>
+:add_module <TokenLabel> <so path> <PIN>
     adds a PKCS#11 token to the list.
-:del_module <name>
+:del_module <TokenLabel>
     removes the token from the list of tokens.
-:add_key <token name> <key id> <key algorithm nr> <key flags>
+:add_key <TokenLabel> <key id> <key algorithm nr> <key flags>
     adds a key to be used to generate signatures
 :flush_keys
     removes all currently configured keys
