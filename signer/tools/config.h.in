@@ -1,3 +1,5 @@
+/* $Id$ */
+
 /* tools/config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Whether dlopen is available */
