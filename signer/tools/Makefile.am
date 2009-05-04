@@ -17,7 +17,7 @@ TOOLS=sorter get_serial nseccer nsec3er signer_pkcs11 create_dnskey_pkcs11 final
 all: ${TOOLS}
 
 sorter: ${OBJECTS} ${srcdir}/src/sorter.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${OBJECTS} ${srcdir}/src/sorter.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o sorter ${srcdir}/util.o ${srcdir}/src/sorter.c
 
 get_serial: ${OBJECTS} ${srcdir}/src/get_serial.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o get_serial ${OBJECTS} ${srcdir}/src/get_serial.c
