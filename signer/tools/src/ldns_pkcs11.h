@@ -1,5 +1,5 @@
 /*
- * $Id: license.txt 570 2009-05-04 08:52:38Z jakob $
+ * $Id$
  *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
