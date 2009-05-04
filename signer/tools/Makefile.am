@@ -1,8 +1,7 @@
 # $Id$
 
 srcdir=@srcdir@
-bindir=@bindir@
-libdir=@libdir@
+libexecdir=@libexecdir@/opendnssec
 
 CC=@CC@
 CFLAGS=@CFLAGS@ -Wall -Werror -I. -I${srcdir}
@@ -53,7 +52,7 @@ realclean: clean
 	rm -rf Makefile configure config.h config.log config.status autom4te.cache
 
 install: all
-	$(INSTALL) -d -m 755 $(DESTDIR)$(bindir)
+	$(INSTALL) -d -m 755 $(DESTDIR)$(libexecdir)
 	for i in $(TOOLS); do \
-		$(INSTALL) -c -m 755 $$i $(DESTDIR)$(bindir)/$$i ; \
+		$(INSTALL) -c -m 755 $$i $(DESTDIR)$(libexecdir)/$$i ; \
 	done

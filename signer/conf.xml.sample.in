@@ -22,7 +22,7 @@
 		<WorkingDirectory>@localstatedir@/opendnssec/tmp</WorkingDirectory>
 		<ZoneListFile>@sysconfdir@/opendnssec/zonelist.xml</ZoneListFile>
 		<!-- toolsdir will be removed, but is used for testing atm -->
-		<ToolsDirectory>@prefix@/bin</ToolsDirectory>
+		<ToolsDirectory>@prefix@/libexec/opendnssec</ToolsDirectory>
 	</Signer>
 
 </Configuration>
