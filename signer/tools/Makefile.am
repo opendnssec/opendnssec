@@ -1,6 +1,6 @@
 # $Id$
 
-libexecdir= ${exec_prefix}/libexec/opendnssec
+libexecdir= @libexecdir@/opendnssec
 
 libexec_PROGRAMS= \
 	sorter get_serial \
