@@ -9,7 +9,7 @@ CFLAGS=@CFLAGS@ -Wall -Werror -I. -I${srcdir}
 LDFLAGS=@LDFLAGS@ @LIBS@
 PKCS11_MODULE=@PKCS11_MODULE@
 OBJECTS=${srcdir}/util.o
-PKCS11_OBJECT=${srcdir}/ldns_pkcs11.o
+PKCS11_OBJECTS=${srcdir}/ldns_pkcs11.o
 prefix=@prefix@
 INSTALL = $(srcdir)/../install-sh 
 
