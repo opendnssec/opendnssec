@@ -65,7 +65,7 @@ ldns_keystr2id(const char *key_id_str, int *key_id_len)
 	/* todo: make general hex2 function? */
 	if (hex_len % 2 != 0) {
 		fprintf(stderr,
-		        "Error: bad hex data for key id: %s",
+		        "Error: bad hex data for key id: %s\n",
 		        key_id_str);
 		return NULL;
 	}
