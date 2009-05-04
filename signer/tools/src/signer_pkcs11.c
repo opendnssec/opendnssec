@@ -298,16 +298,24 @@ is_same_rrset(ldns_rr *a, ldns_rr *b)
 }
 
 char *
-read_arg(const char *str, char **next)
+read_arg(const char *istr, char **next)
 {
 	char *result = NULL;
 	char *end;
+	char *str = (char *)istr;
 
 	if (!str) {
 		*next = NULL;
 		return result;
 	}
-	end = strchr(str, ' ');
+	if (*str == '"') {
+		if (strlen(str) > 0) {
+			str++;
+		}
+		end = strchr(str, '"');
+	} else {
+		end = strchr(str, ' ');
+	}
 	if (!end) {
 		end = strchr(str, '\t');
 	}
@@ -318,7 +326,13 @@ read_arg(const char *str, char **next)
 		result = malloc(end - str + 1);
 		memcpy(result, str, end - str);
 		result[end - str] = '\0';
-		*next = end + 1;
+		*next = end;
+		if (**next == '"') {
+			*next = *next + 1;
+		}
+		while (**next == ' ' || **next == '\t') {
+			*next = *next + 1;
+		}
 	} else {
 		if (strlen > 0) {
 			result = strdup(str);

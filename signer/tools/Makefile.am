@@ -35,7 +35,7 @@ signer_pkcs11: ${OBJECTS} ${PKCS11_OBJECTS} ${srcdir}/src/signer_pkcs11.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o signer_pkcs11 ${OBJECTS} ${PKCS11_OBJECTS} ${PKCS11_MODULE} ${srcdir}/src/signer_pkcs11.c
 
 create_dnskey_pkcs11: ${PKCS11_OBJECTS} ${srcdir}/src/create_dnskey_pkcs11.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o create_dnskey_pkcs11 ldns_pkcs11.o ${PKCS11_OBJECTS} ${PKCS11_MODULE} ${srcdir}/src/create_dnskey_pkcs11.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o create_dnskey_pkcs11 ${PKCS11_OBJECTS} ${PKCS11_MODULE} ${srcdir}/src/create_dnskey_pkcs11.c
 
 finalizer: ${OBJECTS} ${srcdir}/src/finalizer.c
 	${CC} ${CFLAGS} ${LDFLAGS} -o finalizer ${OBJECTS} ${srcdir}/src/finalizer.c
