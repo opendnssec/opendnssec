@@ -1,9 +1,15 @@
 # $Id$
 
-install:
-	$(INSTALL) -d $(DESTDIR)$(libdir)/opendnssec/signer/
-	for i in *.py; do \
-		$(INSTALL) -c -m 664 $$i $(DESTDIR)$(libdir)/opendnssec/signer/$$i ; \
-	done
-	$(INSTALL) -c -m 755 signer_engine $(DESTDIR)$(bindir)
-	$(INSTALL) -c -m 755 signer_engine_cli $(DESTDIR)$(bindir)
+signerdir=	@libdir@/opendnssec/signer
+
+bin_SCRIPTS= \
+	signer_engine signer_engine_cli
+
+nobase_dist_signer_DATA= \
+	Engine.py \
+	EngineConfig.py \
+	Util.py \
+	Worker.py \
+	Zone.py \
+	ZoneConfig.py \
+	Zonelist.py
