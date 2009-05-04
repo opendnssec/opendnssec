@@ -30,7 +30,7 @@ USAGE="signer_engine [OPTIONS]"
 
 VERSION="0.1"
 CONFIG_FILE=@sysconfdir@/opendnssec/conf.xml
-ENGINE_LOC=@prefix@/lib/python/signer_engine
+ENGINE_LOC=@prefix@/lib/opendnssec/signer
 # parse command line arguments
 while getopts cvo: OPT; do
 	case "$OPT" in

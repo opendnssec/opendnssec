@@ -1,18 +1,15 @@
 # $Id$
 
-srcdir=@srcdir@
-libexecdir=@libexecdir@/opendnssec
-
 CC=@CC@
 CFLAGS=@CFLAGS@ -Wall -Werror -I. -I${srcdir}
 LDFLAGS=@LDFLAGS@ @LIBS@
+
 PKCS11_MODULE=@PKCS11_MODULE@
 OBJECTS=${srcdir}/util.o
 PKCS11_OBJECTS=${srcdir}/ldns_pkcs11.o
-prefix=@prefix@
-INSTALL = $(srcdir)/../install-sh 
 
-TOOLS=sorter get_serial nseccer nsec3er signer_pkcs11 create_dnskey_pkcs11 finalizer
+TOOLS=	sorter get_serial nseccer nsec3er \
+	signer_pkcs11 create_dnskey_pkcs11 finalizer
 
 all: ${TOOLS}
 
@@ -52,7 +49,7 @@ realclean: clean
 	rm -rf Makefile configure config.h config.log config.status autom4te.cache
 
 install: all
-	$(INSTALL) -d -m 755 $(DESTDIR)$(libexecdir)
+	$(INSTALL) -d -m 755 $(DESTDIR)$(libexecdir)/opendnssec
 	for i in $(TOOLS); do \
-		$(INSTALL) -c -m 755 $$i $(DESTDIR)$(libexecdir)/$$i ; \
+		$(INSTALL) -c -m 755 $$i $(DESTDIR)$(libexecdir)/opendnssec/$$i ; \
 	done
