@@ -59,7 +59,7 @@ usage(FILE *out)
 	fprintf(out, "If the token is found, but none of the keys are present on the token,\n");
 	fprintf(out, "nothing is printed and an error value is returned\n\n");
 	fprintf(out, "Options:\n");
-	fprintf(out, "-a <algorithm>\tSet DNSKEY algorithm (default %u\n", DEFAULT_ALGORITHM);
+	fprintf(out, "-a <algorithm>\tSet DNSKEY algorithm (default %u)\n", DEFAULT_ALGORITHM);
 	fprintf(out, "-f <flags>\tflags for the DNSKEY RR (defult %u)\n", DEFAULT_FLAGS);
 	fprintf(out, "-h\t\tShow this help screen\n");
 	fprintf(out, "-t <ttl>\tTTL for the DNSKEY RR (default %u)\n", DEFAULT_TTL);
