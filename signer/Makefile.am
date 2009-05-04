@@ -1,3 +1,5 @@
+# $Id$
+
 srcdir=@srcdir@
 libdir=@libdir@
 sysconfdir=@sysconfdir@
