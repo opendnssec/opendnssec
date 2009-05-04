@@ -304,8 +304,9 @@ usage(FILE *out)
 	fprintf(out, "to their NSEC3-hashed name.\n");
 	fprintf(out, "The NSEC3 RRs are *not* added\n");
 	fprintf(out, "Options:\n");
+	fprintf(out, "-o <origin>\tZone origin\n");
 	fprintf(out, "-f <file>\tRead zone from <file> instead of stdin\n");
-	fprintf(out, "-o <file>\tWrite sorted zone to <file> instead of stdout\n");
+	fprintf(out, "-w <file>\tWrite sorted zone to <file> instead of stdout\n");
 	fprintf(out, "-h\t\tShow this help\n");
 	fprintf(out, "-n\t\tUse NSEC3 hashing as a sort base\n");
 	fprintf(out, "-s <salt>\tUse this salt for NSEC3 hashed name calculation\n");
