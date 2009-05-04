@@ -19,8 +19,8 @@
 	</Enforcer>
 
 	<Signer>
-		<WorkingDirectory>@prefix@/var/opendnssec/tmp</WorkingDirectory>
-		<ZoneListFile>@prefix@/etc/opendnssec/zonelist.xml</ZoneListFile>
+		<WorkingDirectory>@localstatedir@/opendnssec/tmp</WorkingDirectory>
+		<ZoneListFile>@sysconfdir@/opendnssec/zonelist.xml</ZoneListFile>
 		<!-- toolsdir will be removed, but is used for testing atm -->
 		<ToolsDirectory>@prefix@/bin</ToolsDirectory>
 	</Signer>
