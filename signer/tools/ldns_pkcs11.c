@@ -676,36 +676,125 @@ ldns_key_new_frm_pkcs11(ldns_pkcs11_ctx *pkcs11_ctx,
 	return LDNS_STATUS_ERR;
 }
 
+/* this function allocates memory for the mechanism ID and enough room
+ * to leave the upcoming digest data. It fills in the mechanism id
+ * use with care. The returned data must be free'd by the caller */
+static CK_BYTE *
+ldns_pkcs11_create_prefix(CK_ULONG digest_len,
+                          ldns_algorithm algorithm,
+                          CK_ULONG *data_size)
+{
+	CK_BYTE *data;
+	const CK_BYTE RSA_MD5_ID[] = { 0x30, 0x20, 0x30, 0x0C, 0x06, 0x08, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
+	const CK_BYTE RSA_SHA1_ID[] = { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2B, 0x0E, 0x03, 0x02, 0x1A, 0x05, 0x00, 0x04, 0x14 };
+
+	switch(algorithm) {
+		case LDNS_SIGN_RSAMD5:
+			*data_size = sizeof(RSA_MD5_ID) + digest_len;
+			data = malloc(*data_size);
+			memcpy(data, RSA_MD5_ID, sizeof(RSA_MD5_ID));
+			break;
+		case LDNS_SIGN_RSASHA1:
+		case LDNS_SIGN_RSASHA1_NSEC3:
+			*data_size = sizeof(RSA_SHA1_ID) + digest_len;
+			data = malloc(*data_size);
+			memcpy(data, RSA_SHA1_ID, sizeof(RSA_SHA1_ID));
+			break;
+		default:
+			return NULL;
+	}
+	return data;
+}
+
 static ldns_rdf *
 ldns_sign_pkcs11_buffer(ldns_pkcs11_ctx *pkcs11_ctx,
                         ldns_buffer *sign_buf,
-                        CK_OBJECT_HANDLE key_object)
+                        CK_OBJECT_HANDLE key_object,
+                        CK_OBJECT_HANDLE pubkey_object,
+                        ldns_algorithm algorithm)
 {
 	CK_RV rv;
-	CK_ULONG signatureLen = 512;
+	/* TODO: depends on type and key, or just leave it at current
+	 * maximum? */
+	CK_ULONG signatureLen = 128;
 	CK_BYTE *signature = malloc(signatureLen);
+	CK_MECHANISM digest_mechanism;
 	CK_MECHANISM sign_mechanism;
 
 	ldns_rdf *sig_rdf;
+	CK_BYTE *digest = NULL;
+	CK_ULONG digest_len;
 
-	sign_mechanism.mechanism = CKM_SHA1_RSA_PKCS;
-	sign_mechanism.pParameter = NULL;
-	sign_mechanism.ulParameterLen = 0;
+	CK_BYTE *data = NULL;
+	CK_ULONG data_len;
+
+	int i;
 
 	if (!pkcs11_ctx || !pkcs11_ctx->function_list) {
 		return NULL;
+	}
+
+	/* some HSMs don't really handle CKM_SHA1_RSA_PKCS well, so
+	 * we'll do the hashing manually */
+	/* When adding algorithms, remember there is another switch below */
+	digest_mechanism.pParameter = NULL;
+	digest_mechanism.ulParameterLen = 0;
+	switch (algorithm) {
+		case LDNS_SIGN_RSAMD5:
+			digest_len = 16;
+			digest_mechanism.mechanism = CKM_MD5;
+			break;
+		case LDNS_SIGN_RSASHA1:
+		case LDNS_SIGN_RSASHA1_NSEC3:
+			digest_len = 20;
+			digest_mechanism.mechanism = CKM_SHA_1;
+			break;
+		default:
+			/* log error? or should we not even get here for
+			 * unsupported algorithms? */
+			return NULL;
+	}
+
+	digest = malloc(digest_len);
+
+	rv = pkcs11_ctx->function_list->C_DigestInit(pkcs11_ctx->session,
+	                                             &digest_mechanism);
+	ldns_pkcs11_check_rv(rv, "digest init");
+
+	rv = pkcs11_ctx->function_list->C_Digest(pkcs11_ctx->session,
+	                                         ldns_buffer_begin(sign_buf),
+	                                         ldns_buffer_position(sign_buf),
+	                                         digest,
+	                                         &digest_len);
+	ldns_pkcs11_check_rv(rv, "digest");
+
+	/* CKM_RSA_PKCS does the padding, but cannot know the identifier
+	 * prefix, so we need to add that ourselves */
+	data = ldns_pkcs11_create_prefix(digest_len, algorithm, &data_len);
+	memcpy(data + data_len - digest_len, digest, digest_len);
+
+	sign_mechanism.pParameter = NULL;
+	sign_mechanism.ulParameterLen = 0;
+	switch(algorithm) {
+		case LDNS_SIGN_RSAMD5:
+		case LDNS_SIGN_RSASHA1:
+		case LDNS_SIGN_RSASHA1_NSEC3:
+			sign_mechanism.mechanism = CKM_RSA_PKCS;
+			break;
+		default:
+			/* log error? or should we not even get here for
+			 * unsupported algorithms? */
+			return NULL;
 	}
 
 	rv = pkcs11_ctx->function_list->C_SignInit(
 	                                  pkcs11_ctx->session,
 	                                  &sign_mechanism,
 	                                  key_object);
-	ldns_pkcs11_check_rv(rv, "sign init new");
+	ldns_pkcs11_check_rv(rv, "sign init");
 	
 	rv = pkcs11_ctx->function_list->C_Sign(
-	                                  pkcs11_ctx->session,
-	                                  ldns_buffer_begin(sign_buf),
-	                                  ldns_buffer_position(sign_buf),
+	                                  pkcs11_ctx->session, data, data_len,
 	                                  signature,
 	                                  &signatureLen);
 	ldns_pkcs11_check_rv(rv, "sign final");
@@ -714,6 +803,8 @@ ldns_sign_pkcs11_buffer(ldns_pkcs11_ctx *pkcs11_ctx,
 	                                signatureLen,
 	                                signature);
 
+	free(data);
+	free(digest);
 	free(signature);
 	return sig_rdf;
 }
@@ -813,7 +904,9 @@ ldns_pkcs11_sign_rrset(ldns_rr_list *rrset,
 			keypair_handle = (struct pkcs_keypair_handle *)ldns_key_external_key(current_key);
 			b64rdf = ldns_sign_pkcs11_buffer(keypair_handle->pkcs11_ctx,
 			                                 sign_buf,
-			                                 keypair_handle->private_key);
+			                                 keypair_handle->private_key,
+			                                 keypair_handle->public_key,
+			                                 ldns_key_algorithm(current_key));
 
 			if (!b64rdf) {
 				/* signing went wrong */
