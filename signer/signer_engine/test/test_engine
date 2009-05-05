@@ -1,2 +1,2 @@
 export SOFTHSM_CONF=./softhsm.conf
-../Engine.py -c ./opendnssec.xml
+python ../Engine.py -c ./opendnssec.xml

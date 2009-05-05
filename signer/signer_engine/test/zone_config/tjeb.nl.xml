@@ -27,7 +27,7 @@
 				<!-- e.g. DFE7265B-783F-4186-8538-0AA784C2F31D -->
 				<!-- is written as -->
 				<!-- DFE7265B783F418685380AA784C2F31D -->
-				<Locator>41</Locator>
+				<Locator>fc9ead5ec20345ca87e61836ff327ce1</Locator>
 
 				<!-- this key should sign the DNSKEY RRset only -->
 				<KSK/>
@@ -41,7 +41,7 @@
 				<Algorithm>5</Algorithm>
 
 				<!-- key locator is matched against PKCS#11 CKA_ID in hex -->
-				<Locator>42</Locator>
+				<Locator>e715319b2fe146bfb4fa8e9b2c780d21</Locator>
 
 				<!-- this key should sign all non-DNSKEY RRsets -->
 				<ZSK/>
