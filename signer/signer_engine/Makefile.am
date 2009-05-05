@@ -5,7 +5,7 @@ signerdir=	@libdir@/opendnssec/signer
 bin_SCRIPTS= \
 	signer_engine signer_engine_cli
 
-nobase_dist_signer_DATA= \
+signer_PYTHON= \
 	Engine.py \
 	EngineConfig.py \
 	Util.py \
