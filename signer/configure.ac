@@ -146,7 +146,7 @@ AC_CHECK_FUNC(dlopen,
 ])
 
 AM_INIT_AUTOMAKE
-
+AM_PATH_PYTHON
 AC_CONFIG_HEADERS([tools/config.h])
 AC_PROG_INSTALL
 AC_OUTPUT(Makefile conf.xml.sample tools/Makefile signer_engine/Makefile signer_engine/signer_engine)
