@@ -115,6 +115,21 @@ CK_RV SoftDatabase::init(char *dbPath) {
     return CKR_TOKEN_NOT_PRESENT;
   }
 
+  // Check the schema version
+  sqlite3_stmt *pragStatem = NULL;
+  PREP_STMT("PRAGMA user_version;", &pragStatem);
+  if(sqlite3_step(pragStatem) == SQLITE_ROW) {
+    int dbVersion = sqlite3_column_int(pragStatem, 0);
+    FINALIZE_STMT(pragStatem);
+
+    if(dbVersion != 100) {
+      return CKR_TOKEN_NOT_PRESENT;
+    }
+  } else {
+    FINALIZE_STMT(pragStatem);
+    return CKR_TOKEN_NOT_PRESENT;
+  }
+
   // Check that the Token table exist
   result = sqlite3_exec(db, "SELECT COUNT(variableID) FROM Token;", NULL, NULL, NULL);
   if(result) {

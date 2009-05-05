@@ -238,6 +238,9 @@ void createDatabase(char *dbPath, sqlite3 **db) {
 // Clears the database and adds new tables.
 
 void createTables(sqlite3 *db) {
+  static char sqlDBSchemaVersion[] =
+    "PRAGMA user_version = 100";
+
   static char sqlCreateTableToken[] = 
     "CREATE TABLE Token ("
     "variableID INTEGER PRIMARY KEY,"
@@ -270,8 +273,18 @@ void createTables(sqlite3 *db) {
   sqlite3_exec(db, "DROP TABLE IF EXISTS Attributes", NULL, NULL, NULL);
   sqlite3_exec(db, "DROP TRIGGER IF EXISTS deleteTrigger", NULL, NULL, NULL);
 
+  // Add the schema version
+  int result = sqlite3_exec(db, sqlDBSchemaVersion, NULL, NULL, &sqlError);
+  if(result) {
+    sqlite3_free(sqlError);
+    sqlite3_close(db);
+
+    printf("Could not add the schema version");
+    exit(1);
+  }
+
   // Create the Token table
-  int result = sqlite3_exec(db, sqlCreateTableToken, NULL, NULL, &sqlError);
+  result = sqlite3_exec(db, sqlCreateTableToken, NULL, NULL, &sqlError);
   if(result) {
     sqlite3_free(sqlError);
     sqlite3_close(db);
