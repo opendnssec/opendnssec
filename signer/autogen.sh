@@ -2,8 +2,8 @@
 #
 # $Id$
 
-for file in AUTHORS COPYING INSTALL NEWS README; do
+for file in AUTHORS COPYING INSTALL NEWS README ChangeLog; do
 	test -f $file || touch $file
 done
 
-autoreconf --verbose --install --force
+autoreconf --install --force
