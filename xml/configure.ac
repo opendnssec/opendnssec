@@ -26,7 +26,7 @@ then
 else
   AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
 fi
-
+AC_SUBST(TRANG)
 
 # Checks for libraries.
 
