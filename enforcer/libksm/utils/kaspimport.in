@@ -219,7 +219,7 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	my $keysharet = $keys->find('KeyShare')->string_value();
 	my $keyshare = 0;
 	$keyshare = 1 if ($keysharet eq "true");
-	$keyshare = 1 if ($keysharet eq "1")
+	$keyshare = 1 if ($keysharet eq "1");
 	insertpp( "ttl",           $ttl,           "keys", $pname );
 	insertpp( "retiresafety",  $retiresafety,  "keys", $pname );
 	insertpp( "publishsafety", $publishsafety, "keys", $pname );
