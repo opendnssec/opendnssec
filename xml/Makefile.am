@@ -13,9 +13,9 @@ CLEANFILES=     *.rng
 SUFFIXES= .rng .rnc .xml
 
 .rnc.rng:
-       @TRANG@ $< $@
+	@TRANG@ $< $@
 
 regress:
-       for i in ${XML}; do \
-               ${XMLLINT} --noout --relaxng `basename $$i .xml`.rng $$i; \
-       done
+	for i in ${XML}; do \
+		${XMLLINT} --noout --relaxng `basename $$i .xml`.rng $$i; \
+	done
