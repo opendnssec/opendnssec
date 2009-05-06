@@ -6,4 +6,4 @@ for file in AUTHORS COPYING INSTALL NEWS README; do
 	test -f $file || touch $file
 done
 
-autoreconf --install --force
+autoreconf --verbose --install --force
