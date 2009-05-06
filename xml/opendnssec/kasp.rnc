@@ -46,6 +46,9 @@ start = element KASP {
 			# key publication safety factor
 			element PublishSafety { xsd:duration },
 
+			# do the zones share the same keys?
+			element ShareKeys { xsd:boolean },
+			
 			# Key Signing Keys
 			element KSK {
 				# generic key definition, see below

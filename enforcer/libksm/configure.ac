@@ -74,7 +74,7 @@ else
      AC_PATH_PROG(MYSQL, mysql)
   else
      AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $MYSQL_PATH/bin)
-     AC_PATH_PROG(MYSQL, mysql, $MYSQL_PATH/bin)
+     AC_PATH_PROG(MYSQL, mysql, ,$MYSQL_PATH/bin)
   fi
   if test -z "$MYSQL"; then
      AC_MSG_ERROR([mysql not found])

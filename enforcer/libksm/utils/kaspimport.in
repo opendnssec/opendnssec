@@ -216,10 +216,15 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	  duration2sec( $keys->find('RetireSafety')->string_value() );
 	my $publishsafety =
 	  duration2sec( $keys->find('PublishSafety')->string_value() );
+	my $keysharet = $keys->find('KeyShare')->string_value();
+	my $keyshare = 0;
+	$keyshare = 1 if ($keysharet eq "true");
+	$keyshare = 1 if ($keysharet eq "1")
 	insertpp( "ttl",           $ttl,           "keys", $pname );
 	insertpp( "retiresafety",  $retiresafety,  "keys", $pname );
 	insertpp( "publishsafety", $publishsafety, "keys", $pname );
-
+	insertpp( "zones_share_keys", $keyshare, "keys", $pname );
+	
 	my $ksk            = $keys->find('KSK')->get_node(1);
 	my $algorithm      = $ksk->find('Algorithm')->string_value();
 	my $algorithm_len  = $ksk->find("Algorithm/\@length")->string_value();
