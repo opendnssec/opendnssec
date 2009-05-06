@@ -7,7 +7,8 @@ AC_PREREQ(2.61)
 AC_INIT(enforcer, 0.0.1, jad@jadickinson.co.uk)
 AM_INIT_AUTOMAKE
 AC_PROG_MAKE_SET
-AC_CONFIG_SRCDIR([src/daemon.h])
+AC_CONFIG_SRCDIR([communicated/daemon.h])
+AC_CONFIG_SRCDIR([keygend/daemon.h])
 AC_CONFIG_HEADER([config.h])
 
 # Checks for programs.
@@ -83,6 +84,7 @@ AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema`"], [Path to the
 
 AC_CONFIG_FILES([
 Makefile
-src/Makefile
+communicated/Makefile
+keygend/Makefile
 ])
 AC_OUTPUT
