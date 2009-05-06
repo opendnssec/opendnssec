@@ -62,7 +62,7 @@ typedef struct
   uint16_t interval;
 	int keycreate;
 	int backup_interval;
-  int keygeninterval;
+  long int keygeninterval;
 	
 } DAEMONCONFIG;
 

@@ -70,13 +70,14 @@ ReadConfig(DAEMONCONFIG *config)
   xmlRelaxNGParserCtxtPtr rngpctx;
   xmlRelaxNGValidCtxtPtr rngctx;
   xmlRelaxNGPtr schema;
-  xmlChar *xexpr;
-  xexpr = "//Configuration/Enforcer/KeygenInterval";
+  xmlChar *xexpr = "//Configuration/Enforcer/KeygenInterval";
   int mysec = 0;
   int status;
   char* filename = CONFIGFILE;
   char* rngfilename = CONFIGRNG;
+ 
   log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
+  
   /* Load XML document */
   doc = xmlParseFile(filename);
   if (doc == NULL) {
@@ -94,13 +95,25 @@ ReadConfig(DAEMONCONFIG *config)
 
   /* Create an XML RelaxNGs parser context for the relax-ng document. */
   rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
-
+  if (rngpctx == NULL) {
+	  log_msg(config, LOG_ERR, "Error: unable to create XML RelaxNGs parser context\n");
+	    return(-1);
+  }
+  
   /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
   schema = xmlRelaxNGParse(rngpctx);
-
+  if (schema == NULL) {
+	  log_msg(config, LOG_ERR, "Error: unable to parse a schema definition resource\n");
+	    return(-1);
+  }
+  
   /* Create an XML RelaxNGs validation context based on the given schema */
   rngctx = xmlRelaxNGNewValidCtxt(schema);
-
+  if (rngctx == NULL) {
+	  log_msg(config, LOG_ERR, "Error: unable to create RelaxNGs validation context based on the schema\n");
+	    return(-1);
+  }
+  
   /* Validate a document tree in memory. */
   status = xmlRelaxNGValidateDoc(rngctx,doc);
   if (status != 0) {
@@ -109,8 +122,6 @@ ReadConfig(DAEMONCONFIG *config)
   }
 
   /* Now parse a value out of the conf */
-  /* lets try and get the keygeninterval */
-
   /* Create xpath evaluation context */
   xpathCtx = xmlXPathNewContext(doc);
   if(xpathCtx == NULL) {
@@ -122,7 +133,7 @@ ReadConfig(DAEMONCONFIG *config)
   /* Evaluate xpath expression */
   xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
   if(xpathObj == NULL) {
-      fprintf(stderr,"Error: unable to evaluate xpath expression\n");
+      log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", xexpr);
       xmlXPathFreeContext(xpathCtx);
       xmlFreeDoc(doc);
       return(-1);
@@ -137,6 +148,10 @@ ReadConfig(DAEMONCONFIG *config)
   xmlXPathFreeObject(xpathObj);
   xmlXPathFreeContext(xpathCtx);
   xmlFreeDoc(doc);
+  xmlRelaxNGFree(schema);
+  xmlRelaxNGFreeValidCtxt(rngctx);
+  xmlRelaxNGFreeParserCtxt(rngpctx);
+  xmlFreeDoc(rngdoc);
 
   return(0);
   

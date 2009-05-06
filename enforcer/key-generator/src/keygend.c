@@ -106,6 +106,11 @@ server_main(DAEMONCONFIG *config)
 			status = KsmPolicy(handle, policy);
 			while (status == 0) {
 			  log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
+        if  (policy->shared_keys == 1 ) {
+          log_msg(config, LOG_INFO, "Key sharing is On");
+        } else {
+          log_msg(config, LOG_INFO, "Key sharing is Off.");
+        }
 				/* Clear the policy struct */
 				kaspSetPolicyDefaults(policy, policy->name);
 
