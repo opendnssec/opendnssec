@@ -114,7 +114,7 @@ server_main(DAEMONCONFIG *config)
 			
 			rightnow = DtParseDateTimeString("now");
 			/* Find out how many ksk keys are needed */
-      status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, 0, config->keygeninterval, &count);
+      status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &count);
       for (i=count ; i > 0 ; i--){
         uuid = dummy_hsm_keygen();
         uuid_unparse(*uuid, uuid_text);
@@ -123,7 +123,7 @@ server_main(DAEMONCONFIG *config)
         free(uuid);
       }
       /* Find out how many zsk keys are needed */
-      status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, 0, config->keygeninterval, &count);
+      status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &count);
       for (i = count ; i > 0 ; i--){
         uuid = dummy_hsm_keygen();
         uuid_unparse(*uuid, uuid_text);
