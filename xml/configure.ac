@@ -8,27 +8,23 @@ AC_INIT(OpenDNSSEC Example, 0.0.1, jad@jadickinson.co.uk)
 AM_INIT_AUTOMAKE
 # Checks for programs.
 AC_PATH_PROG(XMLLINT, xmllint)
-AC_PATH_PROG(TRANG, trang)
-if test "x$TRANG" = "x"
+
+AC_PATH_PROG(JAVA, java)
+AC_ARG_WITH(trang,
+[  --with-trang=PATH     Path to trang.jar ],
+   TRANGJAR="$withval"
+)
+if test "x$TRANGJAR" != "x"
 then
-	AC_MSG_NOTICE(No trang bin installed in path so will attempt to use java to run the trang.jar.)
-  AC_PATH_PROG(JAVA, java)
-  AC_ARG_WITH(trang,
-  [  --with-trang=PATH     Path to trang.jar ],
-     TRANGJAR="$withval"
-  )
-  if test "x$TRANGJAR" != "x"
+  if test -e $TRANGJAR
   then
-    if test -e $TRANGJAR
-    then
-      TRANG="$JAVA -jar $TRANGJAR"
-      AC_MSG_NOTICE(trang will run like this $TRANG)
-    else
-      AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
-    fi
+    TRANG="$JAVA -jar $TRANGJAR"
+    AC_MSG_NOTICE(trang will run like this $TRANG)
   else
     AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
   fi
+else
+  AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
 fi
 
 
