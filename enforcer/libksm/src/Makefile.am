@@ -1,3 +1,5 @@
+# $Id$
+
 AM_CFLAGS = -pedantic -Wall -I../include @DB_INCLUDES@
 lib_LTLIBRARIES = libksm.la
 if MYSQL

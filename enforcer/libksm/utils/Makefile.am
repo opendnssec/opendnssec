@@ -1,3 +1,5 @@
+# $Id$
+
 if MYSQL
 dist_bin_SCRIPTS = kaspimport.pl database_create.mysql 
 else
