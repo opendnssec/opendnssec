@@ -43,8 +43,8 @@
 #include "kaspaccess.h"
 
 #include <uuid/uuid.h>
-#include "datetime.h"
-#include "string_util.h"
+#include "ksm/datetime.h"
+#include "ksm/string_util.h"
 
 int
 server_init(DAEMONCONFIG *config)

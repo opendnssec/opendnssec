@@ -35,6 +35,7 @@
 
 #define OUR_PATH "./"
 #define OUR_INTERVAL 60
+#include "ksm/ksm.h"
 
 int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);

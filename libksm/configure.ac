@@ -10,6 +10,7 @@ AC_CONFIG_SRCDIR([src/ksm_key.c])
 AC_CONFIG_HEADER([config.h])
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PATH_PROG(PERL, perl)
 if test -z "$PERL"; then

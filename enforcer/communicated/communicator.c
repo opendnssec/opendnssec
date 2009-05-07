@@ -37,13 +37,12 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
-
 #include "daemon.h"
 #include "daemon_util.h"
 #include "communicator.h"
 #include "kaspaccess.h"
-#include "string_util2.h"
-#include "datetime.h"
+#include "ksm/string_util2.h"
+#include "ksm/datetime.h"
 
     int
 server_init(DAEMONCONFIG *config)

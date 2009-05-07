@@ -13,12 +13,15 @@ AC_CONFIG_HEADER([config.h])
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_INSTALL
 
 # Checks for libraries.
+AC_SEARCH_LIBS(uuid_generate, uuid)
 
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdlib.h string.h syslog.h unistd.h stdio.h])
+AC_HEADER_TIME
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -32,6 +35,8 @@ AC_TYPE_UINT16_T
 AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_CHECK_FUNCS([dup2 endpwent select strerror strtol])
+AC_FUNC_MALLOC
+AC_FUNC_SELECT_ARGTYPES
 
 # Check for libksm
 AC_ARG_WITH(libksm-include,
