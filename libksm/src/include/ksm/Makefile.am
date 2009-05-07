@@ -10,3 +10,5 @@ kmemsg.h: kmedef.h
 	@PERL@ $(srcdir)/status_messages.pl KME kmedef.h $@
 
 ksminclude_HEADERS = *.h $(srcdir)/*.h
+
+extra_DIST = *.h
