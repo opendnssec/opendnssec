@@ -3,7 +3,12 @@
 SUBDIRS = include
 
 AM_CFLAGS = -pedantic -Wall
-AM_CPPFLAGS = -I$(srcdir)/include/ksm -Iinclude/ksm @DB_INCLUDES@
+AM_CPPFLAGS = \
+	-I$(srcdir)/include \
+	-I$(srcdir)/include/ksm \
+	-Iinclude \
+	-Iinclude/ksm \
+	 @DB_INCLUDES@
 
 libksm_la_LDFLAGS = @DB_LIBS@
 
