@@ -55,7 +55,7 @@ my $dbh;
      print "Clearing out the Database.\n";
      my $sql_cmd;
      $sql_cmd = "@sqlite3_path@ $sqlitefile";
-     `$sql_cmd < @datadir@/database_create.sqlite3`;
+     `$sql_cmd < @ksmdatadir@/database_create.sqlite3`;
   }   
     $dbh =
        DBI->connect( "DBI:SQLite:dbname=$sqlitefile","","");
@@ -73,7 +73,7 @@ my $dbh;
       $mysql_cmd = "@mysql_path@ -u $dbuser -h $dbhost -p $dbpass $dbname" if ($dbpass);
       $mysql_cmd = "@mysql_path@ -u $dbuser -h $dbhost $dbname" if (! $dbpass);
       
-      `$mysql_cmd < @datadir@/database_create.mysql`;
+      `$mysql_cmd < @ksmdatadir@/database_create.mysql`;
     }
     $dbh =
       DBI->connect( "DBI:mysql:$dbname:$dbhost", $dbuser, $dbpass,
@@ -83,12 +83,12 @@ my $dbh;
   print "Using version " . XML::LibXML::LIBXML_DOTTED_VERSION . " of libxml.\n"
   if ($debug);
 
-  my $confxml = "@sysconfdir@/opendnssec/conf.xml";
-  my $confrng = "@sysconfdir@/opendnssec/conf.rng";
-  my $kaspxml = "@sysconfdir@/opendnssec/kasp.xml";
-  my $kasprng = "@sysconfdir@/opendnssec/kasp.rng";
-  my $zonelistxml = "@sysconfdir@/opendnssec/zonelist.xml";
-  my $zonelistrng = "@sysconfdir@/opendnssec/zonelist.rng";
+  my $confxml = "@opendnssecsysconf@/conf.xml";
+  my $confrng = "@opendnssecsysconf@/conf.rng";
+  my $kaspxml = "@opendnssecsysconf@/kasp.xml";
+  my $kasprng = "@opendnssecsysconf@/kasp.rng";
+  my $zonelistxml = "@opendnssecsysconf@/zonelist.xml";
+  my $zonelistrng = "@opendnssecsysconf@/zonelist.rng";
 
   #Stuff in config.xml now read directly by applications
   #but we need the names of the security modules in the DB

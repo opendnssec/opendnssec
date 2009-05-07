@@ -149,7 +149,12 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
 
+opendnssecsysconf="\$(sysconfdir)/opendnssec"
+ksmdatadir="\$(datadir)/ksm"
 ksmincludedir="\$(includedir)/ksm"
+
+AC_SUBST([opendnssecsysconf])
+AC_SUBST([ksmdatadir])
 AC_SUBST([ksmincludedir])
 
 AC_CONFIG_FILES([
