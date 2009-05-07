@@ -101,7 +101,7 @@ AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file`"], [Path to the 
 keygend_conf_schema=$sysconfdir/opendnssec/conf.rng
 AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema`"], [Path to the OpenDNSSEC configuration file])
 
-CPPFLAGS="${CPPFLAGS} -I${XML_INCLUDES} -I${KSM_INCLUDES}"
+CPPFLAGS="${CPPFLAGS} ${XML_INCLUDES} -I${KSM_INCLUDES}"
 
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes";

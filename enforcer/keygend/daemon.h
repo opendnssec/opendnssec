@@ -38,8 +38,25 @@
  * Most of this is based on stuff I have seen in NSD
  */
 
+#include "config.h"
 #include <inttypes.h>
-#include <stdbool.h>
+
+#ifdef HAVE_STDBOOL_H 
+# include <stdbool.h> 
+#else 
+# ifndef HAVE__BOOL 
+# ifdef __cplusplus 
+typedef bool _Bool; 
+# else 
+# define _Bool signed char 
+# endif 
+# endif 
+# define bool _Bool 
+# define false 0 
+# define true 1 
+# define __bool_true_false_are_defined 1 
+#endif
+
 #include <unistd.h>
 #include <syslog.h>
 
