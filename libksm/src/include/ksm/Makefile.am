@@ -9,6 +9,6 @@ dbsmsg.h: dbsdef.h
 kmemsg.h: kmedef.h
 	@PERL@ $(srcdir)/status_messages.pl KME kmedef.h $@
 
-nobase_include_HEADERS = *.h
+ksminclude_HEADERS = *.h
 
-EXTRA_DIST = *.h
+#EXTRA_DIST = *.h

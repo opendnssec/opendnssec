@@ -149,11 +149,14 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
 
+ksmincludedir="\$(includedir)/ksm"
+AC_SUBST([ksmincludedir])
 
 AC_CONFIG_FILES([
 Makefile
-include/Makefile
 src/Makefile
+src/include/Makefile
+src/include/ksm/Makefile
 utils/Makefile
 test/Makefile
 ])
