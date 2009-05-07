@@ -1,5 +1,7 @@
 # $Id$
 
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+
 dist_bin_SCRIPTS = kaspimport
 dist_data_DATA =
 

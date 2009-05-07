@@ -1,5 +1,7 @@
 # $Id$
 
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+
 SUBDIRS = include
 
 AM_CFLAGS = -pedantic -Wall
