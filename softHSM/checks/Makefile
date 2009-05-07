@@ -4,7 +4,7 @@ TARGET = checks
 
 CC = gcc
 
-CFLAGS = -O3 -W -Wall -Werror -g -I. -I../src/lib/
+CFLAGS = -O3 -W -Wall -Werror -g -I. -I../src/lib/ -I../src/lib/cryptoki/
 LDFLAGS = -L/usr/local/lib/
 LIBS = -lsofthsm
 	
