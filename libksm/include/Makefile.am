@@ -1,3 +1,5 @@
+# $Id$
+
 BUILT_SOURCES = dbsdef.inc kmedef.inc
 CLEANFILES = dbsdef.inc kmedef.inc
 
