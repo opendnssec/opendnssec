@@ -23,15 +23,15 @@ libksm_la_SOURCES = \
 	 memory.c message.c string_util.c string_util2.c strlcpy.c strlcat.c
 
 if MYSQL
-	libksm_la_SOURCES += \
-		database_access.c \
-		database_connection.c \
-		database_support.c 
+libksm_la_SOURCES += \
+	database_access.c \
+	database_connection.c \
+	database_support.c 
 else
-	libksm_la_SOURCES += \
-		database_access_lite.c \
-		database_connection_lite.c \
-		database_support_lite.c
+libksm_la_SOURCES += \
+	database_access_lite.c \
+	database_connection_lite.c \
+	database_support_lite.c
 endif
 
 lib_LTLIBRARIES = libksm.la
