@@ -16,9 +16,7 @@ Pre-requisites
 
 Building the Software
 ---------------------
-You can build it with ./auto-build.sh
-Remember to edit auto-build.sh to have your paths to libksm stuff. If you have installed libksm then these will be relative to the prefix used, otherwise the "default" settings should work.
-Note that setting CFLAGS to "-g" before the configure stage ensures taht the final binary is built with debug turned on (at least on linux).
+Note that setting CFLAGS to "-g" before the configure stage ensures that the final binary is built with the optimizer turned off. (overrides the default -g -O2)
 
 The following options can be passed to configure; auto-build.sh has some set.
 
