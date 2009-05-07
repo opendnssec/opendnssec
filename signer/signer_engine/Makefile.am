@@ -1,5 +1,7 @@
 # $Id$
 
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+
 signerdir=	@libdir@/opendnssec/signer
 
 bin_SCRIPTS= \

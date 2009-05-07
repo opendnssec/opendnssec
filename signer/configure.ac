@@ -145,6 +145,10 @@ AC_CHECK_FUNC(dlopen,
 	])
 ])
 
+opendnsseclibexecdir="\$(libexecdir)/opendnssec"
+
+AC_SUBST([opendnsseclibexecdir])
+
 AM_INIT_AUTOMAKE
 AM_PATH_PYTHON
 AC_CONFIG_HEADERS([tools/config.h])

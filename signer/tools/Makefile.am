@@ -1,8 +1,10 @@
 # $Id$
 
-libexecdir= @libexecdir@/opendnssec
+MAINTAINERCLEANFILES = \
+	$(srcdir)/Makefile.in \
+	$(srcdir)/config.h.in
 
-libexec_PROGRAMS= \
+opendnsseclibexec_PROGRAMS= \
 	sorter get_serial \
 	nseccer nsec3er \
 	signer_pkcs11 create_dnskey_pkcs11 \
