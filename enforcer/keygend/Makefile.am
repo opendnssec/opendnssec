@@ -1,5 +1,7 @@
 # $Id$
 
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+
 AM_CFLAGS = -pedantic -Wall -I@KSM_INCLUDES@ @XML_INCLUDES@
 
 bin_PROGRAMS = keygend
