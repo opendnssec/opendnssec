@@ -34,7 +34,8 @@
 -*/
 
 #include "ksm.h"
-#include "kmedef.inc"
+#include "kmedef.h"
+#include "kmemsg.h"
 #include "message.h"
 
 

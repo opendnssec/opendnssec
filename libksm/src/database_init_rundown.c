@@ -35,7 +35,8 @@
 -*/
 
 #include "database.h"
-#include "dbsdef.inc"
+#include "dbsdef.h"
+#include "dbsmsg.h"
 #include "message.h"
 
 /* Flag as to whether the database modules have been initialized */

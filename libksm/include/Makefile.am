@@ -1,14 +1,14 @@
 # $Id$
 
-BUILT_SOURCES = dbsdef.inc kmedef.inc
-CLEANFILES = dbsdef.inc kmedef.inc
+BUILT_SOURCES = dbsmsg.h kmemsg.h
+CLEANFILES = dbsmsg.h kmemsg.h
 
-dbsdef.inc: dbsdef.h
-	@PERL@ $(srcdir)/status_messages.pl DBS dbsdef.h dbsdef.inc
+dbsmsg.h: dbsdef.h
+	@PERL@ $(srcdir)/status_messages.pl DBS dbsdef.h $@
 
-kmedef.inc: kmedef.h
-	@PERL@ $(srcdir)/status_messages.pl KME kmedef.h kmedef.inc
+kmemsg.h: kmedef.h
+	@PERL@ $(srcdir)/status_messages.pl KME kmedef.h $@
 
-nobase_include_HEADERS = *.h *.inc
+nobase_include_HEADERS = *.h
 
 EXTRA_DIST = *.h
