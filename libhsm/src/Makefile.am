@@ -1,5 +1,7 @@
 # $Id$
 
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+
 AM_CFLAGS = -pedantic -Icryptoki
 lib_LTLIBRARIES = libhsm.la
 libhsm_la_SOURCES = libhsm.c pktools.c
