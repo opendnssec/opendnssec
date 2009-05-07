@@ -82,6 +82,13 @@ else
   fi
   if test -x "$MYSQL_CONFIG"
   then
+  AC_MSG_CHECKING(mysql version)
+  MYSQL_VERSION="`$MYSQL_CONFIG --version`"
+  AC_MSG_RESULT($MYSQL_VERSION)
+  if test ${MYSQL_VERSION//.*/} -le 4 ; then
+       AC_MSG_ERROR([mysql must be newer than 5.0.0])
+  fi
+
      AC_MSG_CHECKING(what are the mysql includes)
      # MySQL v4 uses --include while v3 uses --cflags
      DB_INCLUDES="`$MYSQL_CONFIG --include` -DBIG_JOINS=1 -DUSE_MYSQL" || \
