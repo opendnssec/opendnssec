@@ -1,7 +1,8 @@
 # $Id$
 
-SUBDIRS = tools signer_engine
+AUTOMAKE_OPTIONS = foreign
 
+SUBDIRS = tools signer_engine
 
 # TODO: move this to general opendnssec install
 install-data-hook:

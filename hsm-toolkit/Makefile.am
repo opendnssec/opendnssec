@@ -1,5 +1,7 @@
 # $Id$
 
+AUTOMAKE_OPTIONS= foreign
+
 AM_CPPFLAGS=	-Icryptoki
 
 bin_PROGRAMS=	hsm-toolkit
