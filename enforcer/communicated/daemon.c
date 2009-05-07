@@ -51,7 +51,7 @@
 #include "daemon.h"
 #include "daemon_util.h"
 
-#include "ksm.h"
+#include <ksm/ksm.h>
 #include "communicator.h"
 
 int

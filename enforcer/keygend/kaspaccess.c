@@ -42,7 +42,6 @@
 #include "daemon.h"
 #include "daemon_util.h"
 #include "kaspaccess.h"
-#include "ksm.h"
 
 int
 kaspReadConfig(DAEMONCONFIG* config)

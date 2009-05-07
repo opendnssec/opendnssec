@@ -40,7 +40,6 @@
 
 #include "daemon.h"
 #include "daemon_util.h"
-#include "ksm.h"
 #include "communicator.h"
 #include "kaspaccess.h"
 #include "string_util2.h"

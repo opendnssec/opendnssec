@@ -40,7 +40,6 @@
 #include "daemon.h"
 #include "daemon_util.h"
 #include "keygend_util.h"
-#include "ksm.h"
 #include "kaspaccess.h"
 
 #include <uuid/uuid.h>

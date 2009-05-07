@@ -30,7 +30,7 @@
  * kaspaccess.h kasp acccess functions needed by keygend
  */
 
-#include "ksm.h"
+#include <ksm/ksm.h>
 
 int kaspReadConfig(DAEMONCONFIG* config);
 void kaspSetPolicyDefaults(KSM_POLICY *policy, char *name);
