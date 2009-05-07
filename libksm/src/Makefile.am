@@ -24,9 +24,9 @@ libksm_la_SOURCES = \
 
 if MYSQL
 libksm_la_SOURCES += \
-	database_access.c \
-	database_connection.c \
-	database_support.c 
+	database_access_mysql.c \
+	database_connection_mysql.c \
+	database_support_mysql.c 
 else
 libksm_la_SOURCES += \
 	database_access_lite.c \
