@@ -104,4 +104,4 @@ AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 
 
-AC_OUTPUT(Makefile src/Makefile src/lib/Makefile src/bin/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/lib/Makefile src/bin/Makefile checks/Makefile)
