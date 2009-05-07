@@ -38,13 +38,13 @@ AC_REPLACE_FUNCS(strlcpy)
 
 # Check for mysql
 AC_ARG_WITH(mysql,
-[  --with-mysql=DIR     Look for mysql in this dir ],
+[  --with-mysql=DIR        Look for mysql in this dir ],
   [ MYSQL_PATH="$withval"],
  [ with_mysql=no ]
 )
 # Check for sqlite3
 AC_ARG_WITH(sqlite3,
-[  --with-sqlite3=DIR     Look for sqlite3 in this dir ],
+[  --with-sqlite3=DIR      Look for sqlite3 in this dir ],
    SQLITE_PATH="$withval"
 )
 if test "x$with_mysql" = "xno"; then
@@ -100,7 +100,7 @@ AC_SUBST(DB_TYPE)
 
 # Check for cunit
 AC_ARG_WITH(cunit,
-[  --with-cunit=DIR     Look for cunit in this dir ],
+[  --with-cunit=DIR        Look for cunit in this dir ],
    CUNIT_PATH="$withval"
 )
 if test "x$CUNIT_PATH" != "x"
@@ -117,25 +117,25 @@ AC_SUBST(CUNIT_INCLUDES)
 AC_SUBST(CUNIT_LIBS)
 
 AC_ARG_WITH(dbname,
-[  --with-dbname=DB_NAME     Database name/schema for unit tests  ],
+[  --with-dbname=DB_NAME   Database name/schema for unit tests  ],
    DB_NAME="$withval"
 )
 AC_SUBST(DB_NAME)
 
 AC_ARG_WITH(dbhost,
-[  --with-dbhost=DB_HOST     Database host for unit tests  ],
+[  --with-dbhost=DB_HOST   Database host for unit tests  ],
    DB_HOST="$withval"
 )
 AC_SUBST(DB_HOST)
 
 AC_ARG_WITH(dbpass,
-[  --with-dbpass=DB_PASS     Database host for unit tests  ],
+[  --with-dbpass=DB_PASS   Database host for unit tests  ],
    DB_PASS="$withval"
 )
 AC_SUBST(DB_PASS)
 
 AC_ARG_WITH(dbuser,
-[  --with-dbuser=DB_USER     Database host for unit tests  ],
+[  --with-dbuser=DB_USER   Database host for unit tests  ],
    DB_USER="$withval"
 )
 AC_SUBST(DB_USER)
