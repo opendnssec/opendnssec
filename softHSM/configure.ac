@@ -74,8 +74,8 @@ CFLAGS="$CFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
 
 
 AC_CHECK_FUNCS(getpassphrase)
-AC_CHECK_HEADERS([sys/time.h sys/stat.h])
-AC_CHECK_HEADER(sqlite3.h, AC_CHECK_LIB(sqlite3, sqlite3_open, [], [AC_MSG_ERROR([Missing SQLite3 library])]), [AC_MSG_ERROR([Missing SQLite3 header])])
+AC_CHECK_HEADERS([sys/time.h sys/stat.h sqlite3.h])
+AC_CHECK_LIB(sqlite3, sqlite3_prepare_v2, [], [AC_MSG_ERROR([Missing SQLite3 library v3.4.2 or greater])])
 
 
 LIBS="$LIBS -lbotan"
@@ -92,7 +92,7 @@ AC_LINK_IFELSE(
 			  new EMSA3_Raw();])],
 	[AC_MSG_RESULT([checking for Botan library v1.7.24 or greater... yes])],
 	[AC_MSG_RESULT([checking for Botan library v1.7.24 or greater... no])
-         AC_MSG_FAILURE([Missing Botan library v1.7.24 or greater])]
+         AC_MSG_ERROR([Missing Botan library v1.7.24 or greater])]
 )
 
 
