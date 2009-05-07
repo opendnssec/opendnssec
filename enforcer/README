@@ -18,7 +18,7 @@ Building the Software
 ---------------------
 Note that setting CFLAGS to "-g" before the configure stage ensures that the final binary is built with the optimizer turned off. (overrides the default -g -O2)
 
-The following options can be passed to configure; auto-build.sh has some set.
+The following options can be passed to configure;
 
 --prefix=<dir>                  Installation directory. All files will be 
                                 installed relative to this path.

@@ -21,11 +21,8 @@ Pre-requisites
 
 Building the Software
 ---------------------
-You can build it with ./auto-build.sh
-Remember to edit auto-build.sh to have your paths to mysql/sqlite and cunit.
-Note: auto-build will not form part of a release.
 
-The following options can be passed to configure; auto-build.sh has some set, with an attempt to guess defaults based on the OS
+The following options can be passed to configure;
 
 --prefix=<dir>      Installation directory. All files will be installed
                     relative to this path.
