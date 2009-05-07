@@ -15,6 +15,20 @@ AC_CONFIG_HEADER([config.h])
 AC_PROG_CC
 AC_PROG_INSTALL
 
+AC_ARG_ENABLE(
+	[strict],
+	[AS_HELP_STRING([--enable-strict],[enable strict compile mode @<:@enabled@:>@])],
+	,
+	[enable_strict="yes"]
+)
+
+AC_ARG_ENABLE(
+	[pedantic],
+	[AS_HELP_STRING([--enable-pedantic],[enable pedantic compile mode @<:@enabled@:>@])],
+	,
+	[enable_pedantic="yes"]
+)
+
 # Checks for libraries.
 AC_SEARCH_LIBS(uuid_generate, uuid)
 
@@ -86,6 +100,16 @@ keygend_conf_file=$sysconfdir/opendnssec/conf.xml
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file`"], [Path to the OpenDNSSEC configuration file])
 keygend_conf_schema=$sysconfdir/opendnssec/conf.rng
 AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema`"], [Path to the OpenDNSSEC configuration file])
+
+CPPFLAGS="${CPPFLAGS} -I${XML_INCLUDES} -I${KSM_INCLUDES}"
+
+if test "${enable_pedantic}" = "yes"; then
+	enable_strict="yes";
+	CFLAGS="${CFLAGS} -pedantic"
+fi
+if test "${enable_strict}" = "yes"; then
+	CFLAGS="${CFLAGS} -Wall -Wextra"
+fi
 
 AC_CONFIG_FILES([
 Makefile
