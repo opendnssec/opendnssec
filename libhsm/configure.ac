@@ -29,7 +29,7 @@ AC_CHECK_FUNCS([getpass getpassphrase memset])
 
 # check for libxml
 AC_ARG_WITH(libxml2,
-[  --with-libxml2=DIR     Look for libxml2 in this dir ],
+[  --with-libxml2=DIR      look for libxml2 in this dir ],
   [ XML_PATH="$withval"]
 )
   if test "x$XML_PATH" = "x"; then
