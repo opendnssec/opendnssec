@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
         break;
       case OPT_HELP:
       case 'h':
-      defualt:
+      default:
         usage();
         exit(0);
         break;
