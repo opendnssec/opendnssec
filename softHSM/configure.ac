@@ -38,6 +38,22 @@ if test "x$cxx_present" != "xyes"; then
     AC_MSG_ERROR([No C++ compiler found.])
 fi
 
+# Strict
+AC_ARG_ENABLE(
+	[strict],
+	[AS_HELP_STRING([--enable-strict],[enable strict compile mode @<:@enabled@:>@])],
+	,
+	[enable_strict="yes"]
+)
+
+# Pedantic
+AC_ARG_ENABLE(
+	[pedantic],
+	[AS_HELP_STRING([--enable-pedantic],[enable pedantic compile mode @<:@enabled@:>@])],
+	,
+	[enable_pedantic="yes"]
+)
+
 
 AC_ARG_WITH(botan-lib, [  --with-botan-lib=DIR    The location of the Botan crypto library (default DIR=/usr/local/lib)], [BOTANLIBDIR="$withval"], [BOTANLIBDIR="/usr/local/lib"])
 AC_ARG_WITH(botan-inc, [  --with-botan-inc=DIR    The location of the Botan crypto library include files (default DIR=/usr/local/include)], [BOTANINCDIR="$withval"], [BOTANINCDIR="/usr/local/include"])
@@ -65,6 +81,17 @@ return sizeof(void*) == 8 ? 0 : 1;
     ],[
     AC_MSG_ERROR([Don't know how to build a 64-bit object.])
     ])
+fi
+
+if test "${enable_pedantic}" = "yes"; then
+	enable_strict="yes";
+	CFLAGS="${CFLAGS} -pedantic"
+	CXXFLAGS="${CXXFLAGS} -pedantic"
+fi
+
+if test "${enable_strict}" = "yes"; then
+	CFLAGS="${CFLAGS} -Wall -Wextra"
+	CXXFLAGS="${CXXFLAGS} -Wall -Wextra"
 fi
 
 
