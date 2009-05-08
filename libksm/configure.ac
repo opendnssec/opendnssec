@@ -27,6 +27,22 @@ AC_C_CONST
 AC_TYPE_SIZE_T
 AC_STRUCT_TM
 
+# Strict
+AC_ARG_ENABLE(
+	[strict],
+	[AS_HELP_STRING([--enable-strict],[enable strict compile mode @<:@enabled@:>@])],
+	,
+	[enable_strict="yes"]
+)
+
+# Pendantic
+AC_ARG_ENABLE(
+	[pedantic],
+	[AS_HELP_STRING([--enable-pedantic],[enable pedantic compile mode @<:@enabled@:>@])],
+	,
+	[enable_pedantic="yes"]
+)
+
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
@@ -156,6 +172,17 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
+
+if test "${enable_pedantic}" = "yes"; then
+	enable_strict="yes";
+	CFLAGS="${CFLAGS} -pedantic"
+	CXXFLAGS="${CXXFLAGS} -pedantic"
+fi
+
+if test "${enable_strict}" = "yes"; then
+	CFLAGS="${CFLAGS} -Wall -Wextra"
+	CXXFLAGS="${CXXFLAGS} -Wall -Wextra"
+fi
 
 opendnssecsysconf="\$(sysconfdir)/opendnssec"
 ksmdatadir="\$(datadir)/ksm"

@@ -4,7 +4,6 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 SUBDIRS = include
 
-AM_CFLAGS = -pedantic -Wall
 AM_CPPFLAGS = \
 	-I$(srcdir)/include \
 	-I$(srcdir)/include/ksm \
