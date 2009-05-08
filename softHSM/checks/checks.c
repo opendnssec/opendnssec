@@ -55,6 +55,7 @@ void usage() {
   printf("-i\t\tTest digest functions\n");
   printf("-j\t\tTest sign functions\n");
   printf("-k\t\tTest verify functions\n");
+  printf("\n-z\t\tRun all tests\n");
 }
 
 int main(int argc, char **argv) {
@@ -62,7 +63,11 @@ int main(int argc, char **argv) {
 
   setenv("SOFTHSM_CONF", "./softhsm.conf", 1);
 
-  while ((c = getopt(argc, argv, "abcdefghijk")) != -1) {
+  if(argc == 1) {
+    usage();
+  }
+
+  while ((c = getopt(argc, argv, "abcdefghijkz")) != -1) {
     switch(c) {
       case 'a':
         runInitCheck(30);
@@ -95,6 +100,18 @@ int main(int argc, char **argv) {
         runSignCheck(5);
         break;
       case 'k':
+        runVerifyCheck(5);
+        break;
+      case 'z':
+        runInitCheck(30);
+        runInfoCheck(10);
+        runSessionCheck(10);
+        runUserCheck(10);
+        runRandomCheck(10);
+        runGenerateCheck(5);
+        runObjectCheck(5);
+        runDigestCheck(10);
+        runSignCheck(5);
         runVerifyCheck(5);
         break;
       default:
