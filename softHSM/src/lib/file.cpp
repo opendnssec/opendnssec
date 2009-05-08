@@ -60,7 +60,7 @@ CK_RV readConfigFile() {
 
   if(fp == NULL) {
     char errorMsg[1024];
-    snprintf(errorMsg, 1024, "Could not open the config file: %s", confPath);
+    snprintf(errorMsg, sizeof(errorMsg), "Could not open the config file: %s", confPath);
 
     ERROR_MSG("C_Initialize", errorMsg);
     return CKR_GENERAL_ERROR;
