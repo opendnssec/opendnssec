@@ -10,6 +10,22 @@ AC_CONFIG_HEADER([config.h])
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
+
+AC_ARG_ENABLE(
+	[strict],
+	[AS_HELP_STRING([--enable-strict],[enable strict compile mode @<:@enabled@:>@])],
+	,
+	[enable_strict="yes"]
+)
+
+AC_ARG_ENABLE(
+	[pedantic],
+	[AS_HELP_STRING([--enable-pedantic],[enable pedantic compile mode @<:@enabled@:>@])],
+	,
+	[enable_pedantic="yes"]
+)
+
+ 
 # Checks for libraries.
 AC_CHECK_LIB([dl], [dlopen])
 AC_CHECK_LIB([uuid], [uuid_generate])
@@ -91,6 +107,13 @@ AC_CHECK_FUNC(dlopen,
 	])
 ])
 
+if test "${enable_pedantic}" = "yes"; then
+	enable_strict="yes";
+	CFLAGS="${CFLAGS} -pedantic"
+fi
+if test "${enable_strict}" = "yes"; then
+	CFLAGS="${CFLAGS} -Wall -Wextra"
+fi
 
 AC_CONFIG_HEADERS([src/config.h])
 
