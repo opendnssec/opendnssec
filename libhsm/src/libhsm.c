@@ -63,12 +63,16 @@ hsm_ctx_new()
 static hsm_module_t *
 hsm_module_new(const char *name, const char *path)
 {
+    size_t strl;
     hsm_module_t *module;
     module = malloc(sizeof(hsm_module_t));
     module->id = 0; /*TODO what should this value be?*/
-    module->name = malloc(strlen(name) + 1);
-    strcpy(module->name, name);
-    module->path = malloc(strlen(path) + 1);
+    strl = strlen(name) + 1;
+    module->name = malloc(strl);
+    strlcpy(module->name, name, strl);
+    strl = strlen(path) + 1;
+    module->path = malloc(strl);
+    strlcpy(module->path, path, strl);
     strcpy(module->path, path);
     module->handle = NULL;
     module->sym = NULL;
