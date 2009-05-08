@@ -87,6 +87,7 @@ INSTALLING
     sudo pico /etc/softhsm.conf
 
       0:/home/user/my.db
+      # Comments can be added
       1:/etc/softhsm/non.existing.token
       4:/home/user/token.database
 

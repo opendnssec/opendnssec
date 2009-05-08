@@ -72,6 +72,7 @@ void SoftSlot::addSlot(CK_SLOT_ID newSlotID, char *newDBPath) {
   } else {
     // Slots may not share the same ID
     if(newSlotID == slotID) {
+      FREE_PTR(newDBPath);
       return;
     }
 

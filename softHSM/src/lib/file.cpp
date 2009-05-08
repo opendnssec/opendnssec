@@ -66,25 +66,29 @@ CK_RV readConfigFile() {
     return CKR_GENERAL_ERROR;
   }
 
-  char *dbPath = (char *)malloc(257);
-
-  if(dbPath == NULL) {
-    fclose(fp);
-    ERROR_MSG("C_Initialize", "Could not allocate memory");
-    return CKR_GENERAL_ERROR;
-  }
-
-  CK_SLOT_ID slotID;
+  char fileBuf[1024];
+  char *slotidstr;
+  char *dbPath;
 
   // Format in config file
+  //
   // slotID:dbPath
+  // # Line is ignored
   
-  while(fscanf(fp, "%lu:%256s\n", &slotID, dbPath) == 2) {
-    char *addDBPath = strdup(dbPath);
-    softHSM->slots->addSlot(slotID, addDBPath);
+  while(fgets(fileBuf, sizeof(fileBuf), fp) != NULL) {
+    // End the string at the first comment or newline
+    fileBuf[strcspn(fileBuf, "#\n\r")] = '\0';
+    slotidstr = strtok(fileBuf, ":");
+
+    if(slotidstr != NULL) {
+      dbPath = strtok(NULL, ":");
+
+      if(dbPath != NULL) {
+        softHSM->slots->addSlot(atoi(slotidstr), strdup(dbPath));
+      }
+    }
   }
 
-  free(dbPath);
   fclose(fp);
 
   return CKR_OK;
