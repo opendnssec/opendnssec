@@ -31,6 +31,8 @@ and SQLite 3.4.2 or greater (a database library). They can be found at:
 and
   http://www.sqlite.org
 
+Note that Botan 1.8.2 can not be used because it has a broken API.
+
 INSTALLING
 
 1. Configure the installation/compilation scripts.
