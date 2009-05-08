@@ -50,7 +50,7 @@ extern SoftHSMInternal *softHSM;
 CK_RV readConfigFile() {
   FILE *fp;
 
-  char *confPath = getenv("SOFTHSM_CONF");
+  const char *confPath = getenv("SOFTHSM_CONF");
 
   if(confPath == NULL) {
     confPath = SOFT_CONFIG_FILE;
@@ -83,7 +83,6 @@ CK_RV readConfigFile() {
   }
 
   CK_SLOT_ID slotID;
-  int length = 0;
 
   // Format in config file
   // slotID:dbPath

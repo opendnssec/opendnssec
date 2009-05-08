@@ -107,11 +107,13 @@ int main(int argc, char **argv) {
 }
 
 void runInitCheck(unsigned int counter) {
+  unsigned int i;
+
   printf("Checking C_Initialize and C_Finalize: ");
 
-  unsigned int i;
   for(i = 0; i < counter; i++) {
     CK_C_INITIALIZE_ARGS InitArgs;
+    CK_RV rv;
 
     InitArgs.CreateMutex = NULL_PTR;
     InitArgs.DestroyMutex = NULL_PTR;
@@ -120,7 +122,7 @@ void runInitCheck(unsigned int counter) {
     InitArgs.flags = CKF_OS_LOCKING_OK;
     InitArgs.pReserved = (CK_VOID_PTR)1;
 
-    CK_RV rv = C_Finalize((CK_VOID_PTR)1);
+    rv = C_Finalize((CK_VOID_PTR)1);
     assert(rv == CKR_ARGUMENTS_BAD);
 
     rv = C_Finalize(NULL_PTR);
@@ -154,14 +156,25 @@ void runInitCheck(unsigned int counter) {
 }
 
 void runInfoCheck(unsigned int counter) {
+  unsigned int i;
+
   printf("Checking C_GetInfo, C_GetFunctionList, C_GetSlotList, C_GetSlotInfo, C_GetTokenInfo, C_GetMechanismList, C_GetMechanismInfo: ");
 
-  unsigned int i;
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_INFO ckInfo;
+    CK_FUNCTION_LIST_PTR ckFuncList;
+    CK_ULONG ulSlotCount = 0;
+    CK_SLOT_ID_PTR pSlotList;
+    CK_SLOT_INFO slotInfo;
+    CK_TOKEN_INFO tokenInfo;
+    CK_ULONG ulCount;
+    CK_MECHANISM_TYPE_PTR pMechanismList;
+    CK_MECHANISM_INFO info;
 
-    // No init
+    /* No init */
 
-    CK_RV rv = C_GetSlotList(CK_FALSE, NULL_PTR, NULL_PTR);
+    rv = C_GetSlotList(CK_FALSE, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_GetSlotInfo(slotInvalid, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -172,31 +185,27 @@ void runInfoCheck(unsigned int counter) {
     rv = C_GetMechanismInfo(slotInvalid, CKM_VENDOR_DEFINED, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
 
-    // C_GetInfo
+    /* C_GetInfo */
 
-    CK_INFO ckInfo;
     rv = C_GetInfo(NULL_PTR);
     assert(rv == CKR_ARGUMENTS_BAD);
 
     rv = C_GetInfo(&ckInfo);
     assert(rv == CKR_OK);
 
-    // C_GetFunctionList
+    /* C_GetFunctionList */
     
-    CK_FUNCTION_LIST_PTR ckFuncList;
     rv = C_GetFunctionList(NULL_PTR);
     assert(rv == CKR_ARGUMENTS_BAD);
 
     rv = C_GetFunctionList(&ckFuncList);
     assert(rv == CKR_OK);
 
-    // C_GetSlotList
+    /* C_GetSlotList */
 
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
 
-    CK_ULONG ulSlotCount = 0;
-    CK_SLOT_ID_PTR pSlotList;
     rv = C_GetSlotList(CK_FALSE, NULL_PTR, NULL_PTR);
     assert(rv == CKR_ARGUMENTS_BAD);
     rv = C_GetSlotList(CK_FALSE, NULL_PTR, &ulSlotCount);
@@ -220,9 +229,8 @@ void runInfoCheck(unsigned int counter) {
     assert(rv == CKR_OK);
     free(pSlotList);
 
-    // C_GetSlotInfo
+    /* C_GetSlotInfo */
 
-    CK_SLOT_INFO slotInfo;
     rv = C_GetSlotInfo(slotInvalid, NULL_PTR);
     assert(rv == CKR_ARGUMENTS_BAD);
     rv = C_GetSlotInfo(slotInvalid, &slotInfo);
@@ -230,9 +238,8 @@ void runInfoCheck(unsigned int counter) {
     rv = C_GetSlotInfo(slotWithToken, &slotInfo);
     assert(rv == CKR_OK);
 
-    // C_GetTokenInfo
+    /* C_GetTokenInfo */
 
-    CK_TOKEN_INFO tokenInfo;
     rv = C_GetTokenInfo(slotInvalid, NULL_PTR);
     assert(rv == CKR_ARGUMENTS_BAD);
     rv = C_GetTokenInfo(slotInvalid, &tokenInfo);
@@ -242,10 +249,8 @@ void runInfoCheck(unsigned int counter) {
     rv = C_GetTokenInfo(slotWithToken, &tokenInfo);
     assert(rv == CKR_OK);
 
-    // C_GetMechanismList
+    /* C_GetMechanismList */
 
-    CK_ULONG ulCount;
-    CK_MECHANISM_TYPE_PTR pMechanismList;
     rv = C_GetMechanismList(slotInvalid, NULL_PTR, NULL_PTR);
     assert(rv == CKR_ARGUMENTS_BAD);
     rv = C_GetMechanismList(slotInvalid, NULL_PTR, &ulCount);
@@ -260,9 +265,8 @@ void runInfoCheck(unsigned int counter) {
     assert(rv == CKR_OK);
     free(pMechanismList);
 
-    // C_GetMechanismInfo
+    /* C_GetMechanismInfo */
     
-    CK_MECHANISM_INFO info;
     rv = C_GetMechanismInfo(slotInvalid, CKM_VENDOR_DEFINED, NULL_PTR);
     assert(rv == CKR_ARGUMENTS_BAD);
     rv = C_GetMechanismInfo(slotInvalid, CKM_VENDOR_DEFINED, &info);
@@ -306,14 +310,18 @@ void runInfoCheck(unsigned int counter) {
 }
 
 void runSessionCheck(unsigned int counter) {
+  unsigned int i;
+
   printf("Checking C_OpenSession, C_CloseSession, C_CloseAllSessions, and C_GetSessionInfo: ");
 
-  unsigned int i;
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    CK_SESSION_INFO info;
 
-    // No init
+    /* No init */
 
-    CK_RV rv = C_OpenSession(slotInvalid, 0, NULL_PTR, NULL_PTR, NULL_PTR);
+    rv = C_OpenSession(slotInvalid, 0, NULL_PTR, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_CloseSession(CK_INVALID_HANDLE);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -325,9 +333,8 @@ void runSessionCheck(unsigned int counter) {
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
 
-    // C_OpenSession
+    /* C_OpenSession */
 
-    CK_SESSION_HANDLE hSession[10];
     rv = C_OpenSession(slotInvalid, 0, NULL_PTR, NULL_PTR, NULL_PTR);
     assert(rv == CKR_SLOT_ID_INVALID);
     rv = C_OpenSession(slotWithNoToken, 0, NULL_PTR, NULL_PTR, NULL_PTR);
@@ -339,14 +346,14 @@ void runSessionCheck(unsigned int counter) {
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
     assert(rv == CKR_OK);
 
-    // C_CloseSession
+    /* C_CloseSession */
 
     rv = C_CloseSession(CK_INVALID_HANDLE);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
     rv = C_CloseSession(hSession[0]);
     assert(rv == CKR_OK);
 
-    // C_CloseAllSessions
+    /* C_CloseAllSessions */
 
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
     assert(rv == CKR_OK);
@@ -367,9 +374,8 @@ void runSessionCheck(unsigned int counter) {
     rv = C_CloseAllSessions(slotWithToken);
     assert(rv == CKR_OK);
     
-    // C_GetSessionInfo
+    /* C_GetSessionInfo */
 
-    CK_SESSION_INFO info;
     rv = C_GetSessionInfo(CK_INVALID_HANDLE, NULL_PTR);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
@@ -392,13 +398,17 @@ void runSessionCheck(unsigned int counter) {
 }
 
 void runUserCheck(unsigned int counter) {
+  unsigned int i;
+
   printf("Checking C_Login and C_Logout: ");
 
-  unsigned int i;
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
 
-    // No init
-    CK_RV rv = C_Login(CK_INVALID_HANDLE, 9999, NULL_PTR, 0);
+    /* No init */
+
+    rv = C_Login(CK_INVALID_HANDLE, 9999, NULL_PTR, 0);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_Logout(CK_INVALID_HANDLE);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -406,13 +416,12 @@ void runUserCheck(unsigned int counter) {
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
 
-    CK_SESSION_HANDLE hSession[10];
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
     assert(rv == CKR_OK);
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
     assert(rv == CKR_OK);
 
-    // C_Login
+    /* C_Login */
 
     rv = C_Login(CK_INVALID_HANDLE, 9999, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -449,7 +458,7 @@ void runUserCheck(unsigned int counter) {
     rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 2);
     assert(rv == CKR_USER_TOO_MANY_TYPES);
 
-    // C_Logout
+    /* C_Logout */
 
     rv = C_Logout(CK_INVALID_HANDLE);    
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -465,14 +474,19 @@ void runUserCheck(unsigned int counter) {
 }
 
 void runRandomCheck(unsigned int counter) {
+  unsigned int i;
+
   printf("Checking C_SeedRandom and C_GenerateRandom: ");
 
-  unsigned int i;
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    CK_BYTE seed[] = {"Some random data"};
+    CK_BYTE randomData[40];
 
-    // No init
+    /* No init */
 
-    CK_RV rv = C_SeedRandom(CK_INVALID_HANDLE, NULL_PTR, 0);
+    rv = C_SeedRandom(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_GenerateRandom(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -480,13 +494,11 @@ void runRandomCheck(unsigned int counter) {
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
 
-    CK_SESSION_HANDLE hSession[10];
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
     assert(rv == CKR_OK);
 
-    // C_SeedRandom
+    /* C_SeedRandom */
 
-    CK_BYTE seed[] = {"Some random data"};
     rv = C_SeedRandom(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
     rv = C_SeedRandom(hSession[0], NULL_PTR, 0);
@@ -494,9 +506,8 @@ void runRandomCheck(unsigned int counter) {
     rv = C_SeedRandom(hSession[0], seed, sizeof(seed));
     assert(rv == CKR_OK);
 
-    // C_GenerateRandom
+    /* C_GenerateRandom */
 
-    CK_BYTE randomData[40];
     rv = C_GenerateRandom(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
     rv = C_GenerateRandom(hSession[0], NULL_PTR, 0);
@@ -513,13 +524,40 @@ void runRandomCheck(unsigned int counter) {
 }
 
 void runGenerateCheck(unsigned int counter) {
+  unsigned int i;
+  static CK_ULONG modulusBits = 768;
+  static CK_BYTE publicExponent[] = { 3 };
+  static CK_BYTE id[] = { 123 };
+  static CK_BBOOL true = CK_TRUE;
+  CK_ATTRIBUTE publicKeyTemplate[] = {
+    {CKA_ENCRYPT, &true, sizeof(true)},
+    {CKA_VERIFY, &true, sizeof(true)},
+    {CKA_WRAP, &true, sizeof(true)},
+    {CKA_PUBLIC_EXPONENT, publicExponent, sizeof(publicExponent)},
+    {CKA_TOKEN, &true, sizeof(true)},
+    {CKA_MODULUS_BITS, &modulusBits, sizeof(modulusBits)}
+  };
+  CK_ATTRIBUTE privateKeyTemplate[] = {
+    {CKA_PRIVATE, &true, sizeof(true)},
+    {CKA_ID, id, sizeof(id)},
+    {CKA_SENSITIVE, &true, sizeof(true)},
+    {CKA_DECRYPT, &true, sizeof(true)},
+    {CKA_SIGN, &true, sizeof(true)},
+    {CKA_UNWRAP, &true, sizeof(true)},
+    {CKA_TOKEN, &true, sizeof(true)}
+  };
+
   printf("Checking C_GenerateKeyPair and C_DestroyObject: ");
 
-  unsigned int i;
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
+    CK_MECHANISM mechanism = {CKM_VENDOR_DEFINED, NULL_PTR, 0};
 
-    // No init
-    CK_RV rv = C_GenerateKeyPair(CK_INVALID_HANDLE, NULL_PTR, NULL_PTR, 0, NULL_PTR, 0, NULL_PTR, NULL_PTR);
+    /* No init */
+
+    rv = C_GenerateKeyPair(CK_INVALID_HANDLE, NULL_PTR, NULL_PTR, 0, NULL_PTR, 0, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_DestroyObject(CK_INVALID_HANDLE, CK_INVALID_HANDLE);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -527,37 +565,12 @@ void runGenerateCheck(unsigned int counter) {
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
 
-    CK_SESSION_HANDLE hSession[10];
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
     assert(rv == CKR_OK);
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
     assert(rv == CKR_OK);
 
-    // C_GenerateKeyPair
-
-    CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
-    CK_MECHANISM mechanism = {CKM_VENDOR_DEFINED, NULL_PTR, 0};
-    CK_ULONG modulusBits = 768;
-    CK_BYTE publicExponent[] = { 3 };
-    CK_BYTE id[] = {123};
-    CK_BBOOL true = CK_TRUE;
-    CK_ATTRIBUTE publicKeyTemplate[] = {
-      {CKA_ENCRYPT, &true, sizeof(true)},
-      {CKA_VERIFY, &true, sizeof(true)},
-      {CKA_WRAP, &true, sizeof(true)},
-      {CKA_PUBLIC_EXPONENT, publicExponent, sizeof(publicExponent)},
-      {CKA_TOKEN, &true, sizeof(true)},
-      {CKA_MODULUS_BITS, &modulusBits, sizeof(modulusBits)}
-    };
-    CK_ATTRIBUTE privateKeyTemplate[] = {
-      {CKA_PRIVATE, &true, sizeof(true)},
-      {CKA_ID, id, sizeof(id)},
-      {CKA_SENSITIVE, &true, sizeof(true)},
-      {CKA_DECRYPT, &true, sizeof(true)},
-      {CKA_SIGN, &true, sizeof(true)},
-      {CKA_UNWRAP, &true, sizeof(true)},
-      {CKA_TOKEN, &true, sizeof(true)}
-    };
+    /* C_GenerateKeyPair */
 
     rv = C_GenerateKeyPair(CK_INVALID_HANDLE, NULL_PTR, NULL_PTR, 0, NULL_PTR, 0, NULL_PTR, NULL_PTR);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -585,7 +598,7 @@ void runGenerateCheck(unsigned int counter) {
     rv = C_GenerateKeyPair(hSession[1], &mechanism, publicKeyTemplate, 6, privateKeyTemplate, 7, &hPublicKey, &hPrivateKey);
     assert(rv == CKR_OK);
 
-    // C_DestroyObject
+    /* C_DestroyObject */
 
     rv = C_DestroyObject(CK_INVALID_HANDLE, CK_INVALID_HANDLE);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -607,14 +620,12 @@ void runGenerateCheck(unsigned int counter) {
 }
 
 void runObjectCheck(unsigned int counter) {
-  printf("Checking C_GetAttributeValue, C_SetAttributeValue, C_FindObjectsInit, C_FindObjects, and C_FindObjectsFinal: ");
-
   CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
   CK_MECHANISM mechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
-  CK_ULONG modulusBits = 768;
-  CK_BYTE publicExponent[] = { 3 };
-  CK_BYTE id[] = {123};
-  CK_BBOOL true = CK_TRUE;
+  static CK_ULONG modulusBits = 768;
+  static CK_BYTE publicExponent[] = { 3 };
+  static CK_BYTE id[] = {123};
+  static CK_BBOOL true = CK_TRUE;
   CK_ATTRIBUTE publicKeyTemplate[] = {
     {CKA_ENCRYPT, &true, sizeof(true)},
     {CKA_VERIFY, &true, sizeof(true)},
@@ -634,11 +645,32 @@ void runObjectCheck(unsigned int counter) {
   };
 
   unsigned int i;
+
+  printf("Checking C_GetAttributeValue, C_SetAttributeValue, C_FindObjectsInit, C_FindObjects, and C_FindObjectsFinal: ");
+
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    static CK_OBJECT_CLASS oClass = CKO_PUBLIC_KEY;
+    CK_ATTRIBUTE searchTemplate[] = {
+      {CKA_CLASS, &oClass, sizeof(oClass)}
+    };
+    CK_OBJECT_HANDLE hObject;
+    CK_ULONG ulObjectCount;
+    CK_ATTRIBUTE getAttr = {CKA_PRIME_1, NULL_PTR, 0};
+    CK_ULONG attValueLen;
+    static CK_UTF8CHAR label[] = {"New label"};
+    CK_ATTRIBUTE template1[] = {
+      {CKA_LABEL, label, sizeof(label)-1}
+    };
+    CK_ATTRIBUTE template2[] = {
+      {CKA_CLASS, NULL_PTR, 0}
+    };
 
-    // No init
 
-    CK_RV rv = C_FindObjectsInit(CK_INVALID_HANDLE, NULL_PTR, 0);
+    /* No init */
+
+    rv = C_FindObjectsInit(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_FindObjects(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -649,11 +681,10 @@ void runObjectCheck(unsigned int counter) {
     rv = C_SetAttributeValue(CK_INVALID_HANDLE, CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
 
-    // Initializing
+    /* Initializing */
 
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
-    CK_SESSION_HANDLE hSession[10];
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
     assert(rv == CKR_OK);
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
@@ -665,12 +696,7 @@ void runObjectCheck(unsigned int counter) {
     rv = C_Logout(hSession[1]);
     assert(rv == CKR_OK);
 
-    // C_FindObjectsInit
-
-    CK_OBJECT_CLASS oClass = CKO_PUBLIC_KEY;
-    CK_ATTRIBUTE searchTemplate[] = {
-      {CKA_CLASS, &oClass, sizeof(oClass)}
-    };
+    /* C_FindObjectsInit */
 
     rv = C_FindObjectsInit(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -681,10 +707,7 @@ void runObjectCheck(unsigned int counter) {
     rv = C_FindObjectsInit(hSession[0], searchTemplate, 1);
     assert(rv == CKR_OPERATION_ACTIVE);
 
-    // C_FindObjects
-
-    CK_OBJECT_HANDLE hObject;
-    CK_ULONG ulObjectCount;
+    /* C_FindObjects */
 
     rv = C_FindObjects(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -697,7 +720,7 @@ void runObjectCheck(unsigned int counter) {
     rv = C_FindObjects(hSession[0], &hObject, 1, &ulObjectCount);
     assert(rv == CKR_OK);
 
-    // C_FindObjectsFinal
+    /* C_FindObjectsFinal */
 
     rv = C_FindObjectsFinal(CK_INVALID_HANDLE);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -706,9 +729,7 @@ void runObjectCheck(unsigned int counter) {
     rv = C_FindObjectsFinal(hSession[0]);
     assert(rv == CKR_OK);
 
-    // C_GetAttributeValue
-
-    CK_ATTRIBUTE getAttr = {CKA_PRIME_1, NULL_PTR, 0};
+    /* C_GetAttributeValue */
 
     rv = C_GetAttributeValue(CK_INVALID_HANDLE, CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -722,14 +743,14 @@ void runObjectCheck(unsigned int counter) {
     assert(rv == CKR_ARGUMENTS_BAD);
     rv = C_GetAttributeValue(hSession[0], hPrivateKey, &getAttr, 1);
     assert(rv == CKR_ATTRIBUTE_SENSITIVE);
-    getAttr.type = 45678; // Not valid attribute?
+    getAttr.type = 45678; /* Not valid attribute? */
     rv = C_GetAttributeValue(hSession[0], hPrivateKey, &getAttr, 1);
     assert(rv == CKR_ATTRIBUTE_TYPE_INVALID);
     getAttr.type = CKA_ID;
     rv = C_GetAttributeValue(hSession[0], hPrivateKey, &getAttr, 1);
     assert(rv == CKR_OK);
-    CK_ULONG attValueLen = getAttr.ulValueLen;
     getAttr.pValue = (CK_BYTE_PTR)malloc(getAttr.ulValueLen);
+    attValueLen = getAttr.ulValueLen;
     getAttr.ulValueLen = 0;
     rv = C_GetAttributeValue(hSession[0], hPrivateKey, &getAttr, 1);
     assert(rv == CKR_BUFFER_TOO_SMALL);
@@ -740,15 +761,7 @@ void runObjectCheck(unsigned int counter) {
     rv = C_Logout(hSession[1]);
     assert(rv == CKR_OK);
 
-    // C_SetAttributeValue
-
-    CK_UTF8CHAR label[] = {"New label"};
-    CK_ATTRIBUTE template1[] = {
-      {CKA_LABEL, label, sizeof(label)-1}
-    };
-    CK_ATTRIBUTE template2[] = {
-      {CKA_CLASS, NULL_PTR, 0}
-    };
+    /* C_SetAttributeValue */
 
     rv = C_SetAttributeValue(CK_INVALID_HANDLE, CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -767,7 +780,7 @@ void runObjectCheck(unsigned int counter) {
     rv = C_SetAttributeValue(hSession[1], hPrivateKey, template1, 1);
     assert(rv == CKR_OK);
 
-    // Finalizing    
+    /* Finalizing */
 
     rv = C_DestroyObject(hSession[1], hPrivateKey);
     assert(rv == CKR_OK);
@@ -781,14 +794,23 @@ void runObjectCheck(unsigned int counter) {
 }
 
 void runDigestCheck(unsigned int counter) {
+  unsigned int i;
+
   printf("Checking C_DigestInit, C_Digest, C_DigestUpdate, and C_DigestFinal: ");
 
-  unsigned int i;
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    CK_MECHANISM mechanism = {
+      CKM_VENDOR_DEFINED, NULL_PTR, 0
+    };
+    CK_ULONG digestLen;
+    CK_BYTE_PTR digest;
+    CK_BYTE data[] = {"Text to digest"};
 
-    // No init
+    /* No init */
 
-    CK_RV rv = C_DigestInit(CK_INVALID_HANDLE, NULL_PTR);
+    rv = C_DigestInit(CK_INVALID_HANDLE, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_Digest(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -797,21 +819,16 @@ void runDigestCheck(unsigned int counter) {
     rv = C_DigestFinal(CK_INVALID_HANDLE, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
 
-    // Initializing
+    /* Initializing */
 
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
-    CK_SESSION_HANDLE hSession[10];
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
     assert(rv == CKR_OK);
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
     assert(rv == CKR_OK);
 
-    // C_DigestInit
-
-    CK_MECHANISM mechanism = {
-      CKM_VENDOR_DEFINED, NULL_PTR, 0
-    };
+    /* C_DigestInit */
 
     rv = C_DigestInit(CK_INVALID_HANDLE, NULL_PTR);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -825,11 +842,7 @@ void runDigestCheck(unsigned int counter) {
     rv = C_DigestInit(hSession[0], &mechanism);
     assert(rv == CKR_OPERATION_ACTIVE);
 
-    // C_Digest
-
-    CK_ULONG digestLen;
-    CK_BYTE_PTR digest;
-    CK_BYTE data[] = {"Text to digest"};
+    /* C_Digest */
 
     rv = C_Digest(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, NULL_PTR);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -851,7 +864,7 @@ void runDigestCheck(unsigned int counter) {
     assert(rv == CKR_OPERATION_NOT_INITIALIZED);
     free(digest);
 
-    // C_DigestUpdate
+    /* C_DigestUpdate */
 
     rv = C_DigestUpdate(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -864,7 +877,7 @@ void runDigestCheck(unsigned int counter) {
     rv = C_DigestUpdate(hSession[0], data, sizeof(data)-1);
     assert(rv == CKR_OK);
 
-    // C_DigestFinal
+    /* C_DigestFinal */
 
     rv = C_DigestFinal(CK_INVALID_HANDLE, NULL_PTR, NULL_PTR);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -882,7 +895,7 @@ void runDigestCheck(unsigned int counter) {
     assert(rv == CKR_OK);
     free(digest);
 
-    // Finalizing    
+    /* Finalizing */
 
     rv = C_Finalize(NULL_PTR);
     assert(rv == CKR_OK);
@@ -892,14 +905,12 @@ void runDigestCheck(unsigned int counter) {
 }
 
 void runSignCheck(unsigned int counter) {
-  printf("Checking C_SignInit, C_Sign, C_SignUpdate, and C_SignFinal: ");
-
   CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
-  CK_MECHANISM mechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
-  CK_ULONG modulusBits = 768;
-  CK_BYTE publicExponent[] = { 3 };
-  CK_BYTE id[] = {123};
-  CK_BBOOL true = CK_TRUE;
+  CK_MECHANISM keyGenMechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
+  static CK_ULONG modulusBits = 768;
+  static CK_BYTE publicExponent[] = { 3 };
+  static CK_BYTE id[] = {123};
+  static CK_BBOOL true = CK_TRUE;
   CK_ATTRIBUTE publicKeyTemplate[] = {
     {CKA_ENCRYPT, &true, sizeof(true)},
     {CKA_VERIFY, &true, sizeof(true)},
@@ -919,11 +930,22 @@ void runSignCheck(unsigned int counter) {
   };
 
   unsigned int i;
+
+  printf("Checking C_SignInit, C_Sign, C_SignUpdate, and C_SignFinal: ");
+
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    CK_MECHANISM mechanism = {
+      CKM_VENDOR_DEFINED, NULL_PTR, 0
+    };
+    CK_ULONG length;
+    CK_BYTE_PTR pSignature;
+    CK_BYTE data[] = {"Text"};
 
-    // No init
+    /* No init */
 
-    CK_RV rv = C_SignInit(CK_INVALID_HANDLE, NULL_PTR, CK_INVALID_HANDLE);
+    rv = C_SignInit(CK_INVALID_HANDLE, NULL_PTR, CK_INVALID_HANDLE);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_Sign(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -932,27 +954,22 @@ void runSignCheck(unsigned int counter) {
     rv = C_SignFinal(CK_INVALID_HANDLE, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
 
-    // Initializing
+    /* Initializing */
 
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
-    CK_SESSION_HANDLE hSession[10];
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
     assert(rv == CKR_OK);
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
     assert(rv == CKR_OK);
     rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 1);
     assert(rv == CKR_OK);
-    rv = C_GenerateKeyPair(hSession[1], &mechanism, publicKeyTemplate, 6, privateKeyTemplate, 7, &hPublicKey, &hPrivateKey);
+    rv = C_GenerateKeyPair(hSession[1], &keyGenMechanism, publicKeyTemplate, 6, privateKeyTemplate, 7, &hPublicKey, &hPrivateKey);
     assert(rv == CKR_OK);
     rv = C_Logout(hSession[1]);
     assert(rv == CKR_OK);
 
-    // C_SignInit
-
-    CK_MECHANISM mechanism = {
-      CKM_VENDOR_DEFINED, NULL_PTR, 0
-    };
+    /* C_SignInit */
 
     rv = C_SignInit(CK_INVALID_HANDLE, NULL_PTR, CK_INVALID_HANDLE);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -972,11 +989,7 @@ void runSignCheck(unsigned int counter) {
     rv = C_SignInit(hSession[0], &mechanism, hPrivateKey);
     assert(rv == CKR_OPERATION_ACTIVE);
 
-    // C_Sign
-
-    CK_ULONG length;
-    CK_BYTE_PTR pSignature;
-    CK_BYTE data[] = {"Text"};
+    /* C_Sign */
 
     rv = C_Sign(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, NULL_PTR);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -998,7 +1011,7 @@ void runSignCheck(unsigned int counter) {
     assert(rv == CKR_OPERATION_NOT_INITIALIZED);
     free(pSignature);
 
-    // C_SignUpdate
+    /* C_SignUpdate */
 
     rv = C_SignUpdate(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -1011,7 +1024,7 @@ void runSignCheck(unsigned int counter) {
     rv = C_SignUpdate(hSession[0], data, sizeof(data)-1);
     assert(rv == CKR_OK);
 
-    // C_SignFinal
+    /* C_SignFinal */
 
     rv = C_SignFinal(CK_INVALID_HANDLE, NULL_PTR, NULL_PTR);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -1029,7 +1042,7 @@ void runSignCheck(unsigned int counter) {
     assert(rv == CKR_OK);
     free(pSignature);
 
-    // Finalizing    
+    /* Finalizing */
 
     rv = C_DestroyObject(hSession[1], hPrivateKey);
     assert(rv == CKR_OK);
@@ -1043,14 +1056,12 @@ void runSignCheck(unsigned int counter) {
 }
 
 void runVerifyCheck(unsigned int counter) {
-  printf("Checking C_VerifyInit, C_Verify, C_VerifyUpdate, and C_VerifyFinal: ");
-
   CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
-  CK_MECHANISM mechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
-  CK_ULONG modulusBits = 768;
-  CK_BYTE publicExponent[] = { 3 };
-  CK_BYTE id[] = {123};
-  CK_BBOOL true = CK_TRUE;
+  CK_MECHANISM keyGenMechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
+  static CK_ULONG modulusBits = 768;
+  static CK_BYTE publicExponent[] = { 3 };
+  static CK_BYTE id[] = {123};
+  static CK_BBOOL true = CK_TRUE;
   CK_ATTRIBUTE publicKeyTemplate[] = {
     {CKA_ENCRYPT, &true, sizeof(true)},
     {CKA_VERIFY, &true, sizeof(true)},
@@ -1070,11 +1081,21 @@ void runVerifyCheck(unsigned int counter) {
   };
 
   unsigned int i;
+
+  printf("Checking C_VerifyInit, C_Verify, C_VerifyUpdate, and C_VerifyFinal: ");
+
   for(i = 0; i < counter; i++) {
+    CK_RV rv;
+    CK_SESSION_HANDLE hSession[10];
+    CK_MECHANISM mechanism = {
+      CKM_VENDOR_DEFINED, NULL_PTR, 0
+    };
+    CK_BYTE signature[] = {"Not a good signature"};
+    CK_BYTE data[] = {"Text"};
 
-    // No init
+    /* No init */
 
-    CK_RV rv = C_VerifyInit(CK_INVALID_HANDLE, NULL_PTR, CK_INVALID_HANDLE);
+    rv = C_VerifyInit(CK_INVALID_HANDLE, NULL_PTR, CK_INVALID_HANDLE);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_Verify(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, 0);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
@@ -1083,27 +1104,22 @@ void runVerifyCheck(unsigned int counter) {
     rv = C_VerifyFinal(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
 
-    // Initializing
+    /* Initializing */
 
     rv = C_Initialize(NULL_PTR);
     assert(rv == CKR_OK);
-    CK_SESSION_HANDLE hSession[10];
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, &hSession[0]);
     assert(rv == CKR_OK);
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession[1]);
     assert(rv == CKR_OK);
     rv = C_Login(hSession[1], CKU_USER, userPIN, sizeof(userPIN) - 1);
     assert(rv == CKR_OK);
-    rv = C_GenerateKeyPair(hSession[1], &mechanism, publicKeyTemplate, 6, privateKeyTemplate, 7, &hPublicKey, &hPrivateKey);
+    rv = C_GenerateKeyPair(hSession[1], &keyGenMechanism, publicKeyTemplate, 6, privateKeyTemplate, 7, &hPublicKey, &hPrivateKey);
     assert(rv == CKR_OK);
     rv = C_Logout(hSession[1]);
     assert(rv == CKR_OK);
 
-    // C_VerifyInit
-
-    CK_MECHANISM mechanism = {
-      CKM_VENDOR_DEFINED, NULL_PTR, 0
-    };
+    /* C_VerifyInit */
 
     rv = C_VerifyInit(CK_INVALID_HANDLE, NULL_PTR, CK_INVALID_HANDLE);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -1123,10 +1139,7 @@ void runVerifyCheck(unsigned int counter) {
     rv = C_VerifyInit(hSession[0], &mechanism, hPublicKey);
     assert(rv == CKR_OPERATION_ACTIVE);
 
-    // C_Verify
-
-    CK_BYTE signature[] = {"Not a good signature"};
-    CK_BYTE data[] = {"Text"};
+    /* C_Verify */
 
     rv = C_Verify(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -1141,7 +1154,7 @@ void runVerifyCheck(unsigned int counter) {
     rv = C_Verify(hSession[0], data, sizeof(data)-1, signature, sizeof(signature)-1);
     assert(rv == CKR_OPERATION_NOT_INITIALIZED);
 
-    // C_VerifyUpdate
+    /* C_VerifyUpdate */
 
     rv = C_VerifyUpdate(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -1154,7 +1167,7 @@ void runVerifyCheck(unsigned int counter) {
     rv = C_VerifyUpdate(hSession[0], data, sizeof(data)-1);
     assert(rv == CKR_OK);
 
-    // C_VerifyFinal
+    /* C_VerifyFinal */
 
     rv = C_VerifyFinal(CK_INVALID_HANDLE, NULL_PTR, 0);
     assert(rv == CKR_SESSION_HANDLE_INVALID);
@@ -1167,7 +1180,7 @@ void runVerifyCheck(unsigned int counter) {
     rv = C_VerifyFinal(hSession[0], signature, sizeof(signature)-1);
     assert(rv == CKR_OPERATION_NOT_INITIALIZED);
 
-    // Finalizing    
+    /* Finalizing */
 
     rv = C_DestroyObject(hSession[1], hPrivateKey);
     assert(rv == CKR_OK);

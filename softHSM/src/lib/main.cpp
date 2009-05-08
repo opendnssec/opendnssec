@@ -295,7 +295,7 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
   }
 
   // What buffer size should we use?
-  int bufSize = 0;
+  unsigned int bufSize = 0;
   if(tokenPresent == CK_TRUE) {
     bufSize = nrTokenPresent;
   } else {
@@ -412,7 +412,6 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
   pInfo->firmwareVersion.minor = VERSION_MINOR;
 
   time_t rawtime;
-  tm *ptm;
   time(&rawtime);
   char dateTime[17];
   strftime(dateTime, 17, "%Y%m%d%H%M%S00", gmtime(&rawtime));
@@ -526,21 +525,21 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
   return CKR_OK; 
 }
 
-CK_RV C_InitToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel) {
+CK_RV C_InitToken(CK_SLOT_ID, CK_UTF8CHAR_PTR, CK_ULONG, CK_UTF8CHAR_PTR) {
   DEBUG_MSG("C_InitToken", "Calling");
   DEBUG_MSG("C_InitToken", "The function is not implemented. Token is always initialized.");
 
   return CKR_FUNCTION_NOT_SUPPORTED; 
 }
 
-CK_RV C_InitPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
+CK_RV C_InitPIN(CK_SESSION_HANDLE, CK_UTF8CHAR_PTR, CK_ULONG) {
   DEBUG_MSG("C_InitPIN", "Calling");
   DEBUG_MSG("C_InitPIN", "The function is not implemented. The PIN is always initialized.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_SetPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulOldLen, CK_UTF8CHAR_PTR pNewPin, CK_ULONG ulNewLen) {
+CK_RV C_SetPIN(CK_SESSION_HANDLE, CK_UTF8CHAR_PTR, CK_ULONG, CK_UTF8CHAR_PTR, CK_ULONG) {
   DEBUG_MSG("C_SetPIN", "Calling");
   DEBUG_MSG("C_SetPIN", "The function is not implemented.");
 
@@ -607,16 +606,14 @@ CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo) {
   return rv;
 }
 
-CK_RV C_GetOperationState(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pOperationState, CK_ULONG_PTR pulOperationStateLen) {
+CK_RV C_GetOperationState(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_GetOperationState", "Calling");
   DEBUG_MSG("C_GetOperationState", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_SetOperationState(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pOperationState, CK_ULONG ulOperationStateLen,
-      CK_OBJECT_HANDLE hEncryptionKey, CK_OBJECT_HANDLE hAuthenticationKey) {
-
+CK_RV C_SetOperationState(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_OBJECT_HANDLE, CK_OBJECT_HANDLE) {
   DEBUG_MSG("C_SetOperationState", "Calling");
   DEBUG_MSG("C_SetOperationState", "The function is not implemented.");
 
@@ -655,16 +652,14 @@ CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
   return rv;
 }
 
-CK_RV C_CreateObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_OBJECT_HANDLE_PTR phObject) {
+CK_RV C_CreateObject(CK_SESSION_HANDLE, CK_ATTRIBUTE_PTR, CK_ULONG, CK_OBJECT_HANDLE_PTR) {
   DEBUG_MSG("C_CreateObject", "Calling");
   DEBUG_MSG("C_CreateObject", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_CopyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount,
-      CK_OBJECT_HANDLE_PTR phNewObject) {
-
+CK_RV C_CopyObject(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ATTRIBUTE_PTR, CK_ULONG, CK_OBJECT_HANDLE_PTR) {
   DEBUG_MSG("C_CopyObject", "Calling");
   DEBUG_MSG("C_CopyObject", "The function is not implemented.");
 
@@ -686,7 +681,7 @@ CK_RV C_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject) {
   return rv;
 }
 
-CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, CK_ULONG_PTR pulSize) {
+CK_RV C_GetObjectSize(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ULONG_PTR) {
   DEBUG_MSG("C_GetObjectSize", "Calling");
   DEBUG_MSG("C_GetObjectSize", "The function is not implemented.");
 
@@ -825,60 +820,56 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
   return CKR_OK;
 }
 
-CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
+CK_RV C_EncryptInit(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE) {
   DEBUG_MSG("C_EncryptInit", "Calling");
   DEBUG_MSG("C_EncryptInit", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_Encrypt(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pEncryptedData,
-      CK_ULONG_PTR pulEncryptedDataLen) {
+CK_RV C_Encrypt(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_Encrypt", "Calling");
   DEBUG_MSG("C_Encrypt", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_EncryptUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen, CK_BYTE_PTR pEncryptedPart,
-      CK_ULONG_PTR pulEncryptedPartLen) {
+CK_RV C_EncryptUpdate(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_EncryptUpdate", "Calling");
   DEBUG_MSG("C_EncryptUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_EncryptFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pLastEncryptedPart, CK_ULONG_PTR pulLastEncryptedPartLen) {
+CK_RV C_EncryptFinal(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_EncryptFinal", "Calling");
   DEBUG_MSG("C_EncryptFinal", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
+CK_RV C_DecryptInit(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE) {
   DEBUG_MSG("C_DecryptInit", "Calling");
   DEBUG_MSG("C_DecryptInit", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_Decrypt(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedData, CK_ULONG ulEncryptedDataLen,
-      CK_BYTE_PTR pData, CK_ULONG_PTR pulDataLen) {
+CK_RV C_Decrypt(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_Decrypt", "Calling");
   DEBUG_MSG("C_Decrypt", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_DecryptUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedPart, CK_ULONG ulEncryptedPartLen,
-      CK_BYTE_PTR pPart, CK_ULONG_PTR pulPartLen) {
+CK_RV C_DecryptUpdate(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_DecryptUpdate", "Calling");
   DEBUG_MSG("C_DecryptUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_DecryptFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pLastPart, CK_ULONG_PTR pulLastPartLen) {
+CK_RV C_DecryptFinal(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_DecryptFinal", "Calling");
   DEBUG_MSG("C_DecryptFinal", "The function is not implemented.");
 
@@ -1101,7 +1092,7 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulP
   return CKR_OK;
 }
 
-CK_RV C_DigestKey(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hKey) {
+CK_RV C_DigestKey(CK_SESSION_HANDLE, CK_OBJECT_HANDLE) {
   DEBUG_MSG("C_DigestKey", "Calling");
   DEBUG_MSG("C_DigestKey", "The function is not implemented.");
 
@@ -1503,15 +1494,14 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
   return CKR_OK;
 }
 
-CK_RV C_SignRecoverInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
+CK_RV C_SignRecoverInit(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE) {
   DEBUG_MSG("C_SignRecoverInit", "Calling");
   DEBUG_MSG("C_SignRecoverInit", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_SignRecover(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature,
-      CK_ULONG_PTR pulSignatureLen) {
+CK_RV C_SignRecover(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_SignRecover", "Calling");
   DEBUG_MSG("C_SignRecover", "The function is not implemented.");
 
@@ -1838,55 +1828,49 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG
   }
 }
 
-CK_RV C_VerifyRecoverInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey) {
+CK_RV C_VerifyRecoverInit(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE) {
   DEBUG_MSG("C_VerifyRecoverInit", "Calling");
   DEBUG_MSG("C_VerifyRecoverInit", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_VerifyRecover(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG ulSignatureLen,
-      CK_BYTE_PTR pData, CK_ULONG_PTR pulDataLen) {
+CK_RV C_VerifyRecover(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_VerifyRecover", "Calling");
   DEBUG_MSG("C_VerifyRecover", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_DigestEncryptUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen,
-      CK_BYTE_PTR pEncryptedPart, CK_ULONG_PTR pulEncryptedPartLen) {
+CK_RV C_DigestEncryptUpdate(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_DigestEncryptUpdate", "Calling");
   DEBUG_MSG("C_DigestEncryptUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_DecryptDigestUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedPart, CK_ULONG ulEncryptedPartLen,
-      CK_BYTE_PTR pPart, CK_ULONG_PTR pulPartLen) {
+CK_RV C_DecryptDigestUpdate(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_DecryptDigestUpdate", "Calling");
   DEBUG_MSG("C_DecryptDigestUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_SignEncryptUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen,
-      CK_BYTE_PTR pEncryptedPart, CK_ULONG_PTR pulEncryptedPartLen) {
+CK_RV C_SignEncryptUpdate(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_SignEncryptUpdate", "Calling");
   DEBUG_MSG("C_SignEncryptUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_DecryptVerifyUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEncryptedPart, CK_ULONG ulEncryptedPartLen,
-      CK_BYTE_PTR pPart, CK_ULONG_PTR pulPartLen) {
+CK_RV C_DecryptVerifyUpdate(CK_SESSION_HANDLE, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_DecryptVerifyUpdate", "Calling");
   DEBUG_MSG("C_DecryptVerifyUpdate", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_ATTRIBUTE_PTR pTemplate,
-      CK_ULONG ulCount, CK_OBJECT_HANDLE_PTR phKey) {
+CK_RV C_GenerateKey(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_ATTRIBUTE_PTR, CK_ULONG, CK_OBJECT_HANDLE_PTR) {
   DEBUG_MSG("C_GenerateKey", "Calling");
   DEBUG_MSG("C_GenerateKey", "The function is not implemented.");
 
@@ -1972,25 +1956,24 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
   return CKR_MECHANISM_INVALID;
 }
 
-CK_RV C_WrapKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hWrappingKey,
-      CK_OBJECT_HANDLE hKey, CK_BYTE_PTR pWrappedKey, CK_ULONG_PTR pulWrappedKeyLen) {
+CK_RV C_WrapKey(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE, CK_OBJECT_HANDLE, 
+      CK_BYTE_PTR, CK_ULONG_PTR) {
   DEBUG_MSG("C_WrapKey", "Calling");
   DEBUG_MSG("C_WrapKey", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_UnwrapKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hUnwrappingKey,
-      CK_BYTE_PTR pWrappedKey, CK_ULONG ulWrappedKeyLen, CK_ATTRIBUTE_PTR pTemplate,
-      CK_ULONG ulAttributeCount, CK_OBJECT_HANDLE_PTR phKey) {
+CK_RV C_UnwrapKey(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE, CK_BYTE_PTR, CK_ULONG,
+      CK_ATTRIBUTE_PTR, CK_ULONG, CK_OBJECT_HANDLE_PTR) {
   DEBUG_MSG("C_UnwrapKey", "Calling");
   DEBUG_MSG("C_UnwrapKey", "The function is not implemented.");
 
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV C_DeriveKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hBaseKey,
-      CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulAttributeCount, CK_OBJECT_HANDLE_PTR phKey) {
+CK_RV C_DeriveKey(CK_SESSION_HANDLE, CK_MECHANISM_PTR, CK_OBJECT_HANDLE, CK_ATTRIBUTE_PTR, 
+      CK_ULONG, CK_OBJECT_HANDLE_PTR) {
   DEBUG_MSG("C_DeriveKey", "Calling");
   DEBUG_MSG("C_DeriveKey", "The function is not implemented.");
 
@@ -2066,21 +2049,21 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_U
   return CKR_OK;
 }
 
-CK_RV C_GetFunctionStatus(CK_SESSION_HANDLE hSession) {
+CK_RV C_GetFunctionStatus(CK_SESSION_HANDLE) {
   DEBUG_MSG("C_GetFunctionStatus", "Calling");
   DEBUG_MSG("C_GetFunctionStatus", "Just returning. Is a legacy function.");
 
   return CKR_FUNCTION_NOT_PARALLEL;
 }
 
-CK_RV C_CancelFunction(CK_SESSION_HANDLE hSession) {
+CK_RV C_CancelFunction(CK_SESSION_HANDLE) {
   DEBUG_MSG("C_CancelFunction", "Calling");
   DEBUG_MSG("C_CancelFunction", "Just returning. Is a legacy function.");
 
   return CKR_FUNCTION_NOT_PARALLEL;
 }
 
-CK_RV C_WaitForSlotEvent(CK_FLAGS flags, CK_SLOT_ID_PTR pSlot, CK_VOID_PTR pReserved) {
+CK_RV C_WaitForSlotEvent(CK_FLAGS, CK_SLOT_ID_PTR, CK_VOID_PTR) {
   DEBUG_MSG("C_WaitForSlotEvent", "Calling");
   DEBUG_MSG("C_WaitForSlotEvent", "The function is not implemented");
 

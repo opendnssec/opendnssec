@@ -230,7 +230,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
 
   int logInType = CKU_USER;
 
-  int slotID = session->currentSlot->getSlotID();
+  CK_SLOT_ID slotID = session->currentSlot->getSlotID();
   switch(userType) {
     case CKU_SO:
       // Only one user type can be logged in
