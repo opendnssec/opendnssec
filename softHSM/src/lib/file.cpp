@@ -59,11 +59,14 @@ CK_RV readConfigFile() {
   fp = fopen(confPath,"r");
 
   if(fp == NULL) {
-    char *errorMsg = (char *)malloc(33 + strlen(confPath));
+    const char errorText[] = "Could not open the config file: ";
+    int textLen = strlen(errorText);
+    int pathLen = strlen(confPath);
+    char *errorMsg = (char *)malloc(textLen + pathLen + 1);
 
     if(errorMsg != NULL) {
-      strcpy(errorMsg, "Could not open the config file: ");
-      strcat(errorMsg, confPath);
+      strncpy(errorMsg, errorText, textLen);
+      strncat(errorMsg, confPath, pathLen);
 
       ERROR_MSG("C_Initialize", errorMsg);
       free(errorMsg);
