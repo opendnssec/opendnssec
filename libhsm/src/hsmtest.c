@@ -37,6 +37,9 @@ main (int argc, char *argv[])
 {
 	int result;
 	
+	(void) argc;
+	(void) argv;
+	
 	fprintf(stdout, "Starting HSM lib test\n");
 	result = hsm_open("/home/jelte/opt/opendnssec/etc/opendnssec/conf.xml", NULL, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);

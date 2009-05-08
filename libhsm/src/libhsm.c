@@ -66,8 +66,10 @@ hsm_module_new(const char *name, const char *path)
     hsm_module_t *module;
     module = malloc(sizeof(hsm_module_t));
     module->id = 0; /*TODO what should this value be?*/
-    module->name = strdup(name);
-    module->path = strdup(path);
+    module->name = malloc(strlen(name) + 1);
+    strcpy(module->name, name);
+    module->path = malloc(strlen(path) + 1);
+    strcpy(module->path, path);
     module->handle = NULL;
     module->sym = NULL;
     return module;
@@ -100,7 +102,7 @@ hsm_session_free(hsm_session_t *session) {
 static void
 hsm_ctx_free(hsm_ctx_t *ctx)
 {
-    int i;
+    unsigned int i;
     if (ctx) {
         if (ctx->session) {
             for (i = 0; i < ctx->session_count; i++) {

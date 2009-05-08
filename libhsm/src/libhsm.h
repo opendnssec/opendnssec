@@ -40,8 +40,8 @@
 /*! Data type to describe an HSM */
 typedef struct {
 	unsigned int id;           /*!< HSM numerical identifier */
-	const char *name;          /*!< name of module */
-	const char *path;          /*!< path to PKCS#11 library */
+	char *name;          /*!< name of module */
+	char *path;          /*!< path to PKCS#11 library */
 	const void *handle;        /*!< handle from dlopen()*/
 	CK_FUNCTION_LIST_PTR sym;  /*!< Function list from dlsym */
 } hsm_module_t;
@@ -191,13 +191,13 @@ int hsm_random_buffer(const hsm_ctx_t *context, unsigned long length, unsigned c
 \param context HSM context
 \return 32-bit ranom number
 */
-u_int32_t hsm_random32(const hsm_ctx_t *context);
+uint32_t hsm_random32(const hsm_ctx_t *context);
 
 /*! Return unsigned 64-bit random number from any attached HSM
 \param context HSM context
 \return 64-bit ranom number
 */
-u_int64_t hsm_random64(const hsm_ctx_t *context);
+uint64_t hsm_random64(const hsm_ctx_t *context);
 
 
 
