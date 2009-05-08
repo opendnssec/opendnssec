@@ -97,12 +97,31 @@ rr_data2node(rr_data *d)
 	return new_node;
 }
 
+ldns_rbnode_t *
+dname2node(ldns_rdf *d)
+{
+	ldns_rbnode_t *new_node;
+	new_node = LDNS_MALLOC(ldns_rbnode_t);
+	new_node->key = d;
+	new_node->data = d;
+	return new_node;
+}
+
 void
 rr_data_node_free(ldns_rbnode_t *n, void *arg)
 {
 	(void) arg;
 	if (n && n->data) {
 		rr_data_free((rr_data *)n->data);
+		LDNS_FREE(n);
+	}
+}
+
+void
+rr_dname_node_free(ldns_rbnode_t *n, void *arg)
+{
+	(void) arg;
+	if (n) {
 		LDNS_FREE(n);
 	}
 }
@@ -203,7 +222,7 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 			fflush(out);
 			ldns_rr_free(rr);
 		} else {
-			fprintf(stderr, "error parsing rr\n");
+			fprintf(stderr, "error parsing rr: %s\n", ldns_get_errorstr_by_id(status));
 			exit(1);
 		}
 	}
@@ -215,45 +234,46 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 /* rr_data should be of type A or AAAA, and ent_for must have been
  * checked for not NULL */
 void
-mark_possible_glue(rr_data *rrd, ldns_rbtree_t *rr_tree, ldns_rdf *origin)
+mark_possible_glue(rr_data *rrd, ldns_rbtree_t *ns_tree, ldns_rdf *origin)
 {
 	ldns_rbnode_t *cur_node;
 	rr_data *cur_data;
 	ldns_rr *rr, *cur_rr;
+
+	ldns_rdf *cur_dname, *prev_dname = NULL;
+	size_t c_lcount, o_lcount;
+
 	size_t pos = 0;
+
 	(void) ldns_wire2rr(&rr,
 					  rrd->rr_buf->_data,
 					  rrd->rr_buf->_capacity,
 					  &pos,
 					  LDNS_SECTION_ANY_NOQUESTION);
 	if (!rr || !ldns_dname_is_subdomain(ldns_rr_owner(rr), origin)) {
+		if (rr) ldns_rr_free(rr);
 		return;
 	}
-	cur_node = ldns_rbtree_first(rr_tree);
-	while (cur_node != LDNS_RBTREE_NULL) {
-		cur_data = (rr_data *) cur_node->data;
-		if (cur_data->type == LDNS_RR_TYPE_NS) {
-			pos = 0;
-			(void) ldns_wire2rr(&cur_rr,
-							  cur_data->rr_buf->_data,
-							  cur_data->rr_buf->_capacity,
-							  &pos,
-							  LDNS_SECTION_ANY_NOQUESTION);
-			if (cur_rr && !ldns_dname_compare(ldns_rr_owner(cur_rr), origin) == 0) {
-				if (ldns_dname_compare(ldns_rr_owner(rr),
-				                       ldns_rr_owner(cur_rr)) == 0 ||
-				    ldns_dname_is_subdomain(ldns_rr_owner(rr),
-				                            ldns_rr_owner(cur_rr))) {
-					rrd->glue = 1;
-				}
-			}
+
+	o_lcount = ldns_dname_label_count(origin);
+	cur_dname = ldns_rdf_clone(ldns_rr_owner(rr));
+	c_lcount = ldns_dname_label_count(cur_dname);
+	
+	while (c_lcount > 0 && c_lcount > o_lcount) {
+		if (ldns_rbtree_search(ns_tree, cur_dname)) {
+			rrd->glue = 1;
 		}
-		cur_node = ldns_rbtree_next(cur_node);
+		prev_dname = cur_dname;
+		cur_dname = ldns_dname_left_chop(prev_dname);
+		ldns_rdf_deep_free(prev_dname);
+		c_lcount = ldns_dname_label_count(cur_dname);
 	}
+	ldns_rdf_deep_free(cur_dname);
+	ldns_rr_free(rr);
 }
 
 void
-print_rrs(FILE *out, ldns_rbtree_t *rr_tree, ldns_rdf *origin)
+print_rrs(FILE *out, ldns_rbtree_t *rr_tree, ldns_rbtree_t *ns_tree, ldns_rdf *origin)
 {
 	ldns_rbnode_t *cur_node;
 	rr_data *cur_data;
@@ -266,7 +286,7 @@ print_rrs(FILE *out, ldns_rbtree_t *rr_tree, ldns_rdf *origin)
 		if (!cur_data->ent_for &&
 		     (cur_data->type == LDNS_RR_TYPE_A ||
 		      cur_data->type == LDNS_RR_TYPE_AAAA)) {
-			mark_possible_glue(cur_data, rr_tree, origin);
+			mark_possible_glue(cur_data, ns_tree, origin);
 		}
 		print_rr_data(out, (rr_data *) cur_node->data, rr_tree);
 		cur_node = ldns_rbtree_next(cur_node);
@@ -293,6 +313,18 @@ compare_rr_data(const void *a, const void *b)
 		}
 	}
 	return result;
+}
+
+int
+compare_dname(const void *a, const void *b)
+{
+	int result;
+	ldns_rdf *ra, *rb;
+
+	ra = (ldns_rdf *) a;
+	rb = (ldns_rdf *) b;
+
+	return ldns_dname_compare(ra, rb);
 }
 
 void
@@ -378,6 +410,9 @@ main(int argc, char **argv)
 	 * in an rbtree
 	 */
 	ldns_rbtree_t *rr_tree;
+	/* we put ns records in a separate tree, to make glue recognition
+	 * a lot simpler */
+	ldns_rbtree_t *ns_tree;
 	ldns_rr *cur_rr, *prev_rr;
 	rr_data *cur_rr_data;
 	
@@ -497,6 +532,7 @@ main(int argc, char **argv)
 	}
 
 	rr_tree = ldns_rbtree_create(&compare_rr_data);
+	ns_tree = ldns_rbtree_create(&compare_dname);
 
 	prev_rr = NULL;
 
@@ -567,6 +603,11 @@ main(int argc, char **argv)
 					
 					ldns_rbtree_insert(rr_tree,
 									rr_data2node(cur_rr_data));
+					if (cur_rr_data->type == LDNS_RR_TYPE_NS) {
+						if (!ldns_rbtree_search(ns_tree, cur_rr_data->name)) {
+							ldns_rbtree_insert(ns_tree, dname2node(cur_rr_data->name));
+						}
+					}
 					
 					ldns_rr_free(prev_rr);
 					prev_rr = cur_rr;
@@ -624,12 +665,16 @@ main(int argc, char **argv)
 		ldns_rr_free(prev_rr);
 	}
 
-	print_rrs(out_file, rr_tree, origin);
+	print_rrs(out_file, rr_tree, ns_tree, origin);
 
 	if (origin) {
 		ldns_rdf_deep_free(origin);
 	}
 	/* free all tree entries */
+	ldns_traverse_postorder(ns_tree,
+					    rr_dname_node_free,
+					    NULL);
+	ldns_rbtree_free(ns_tree);
 	ldns_traverse_postorder(rr_tree,
 					    rr_data_node_free,
 					    NULL);
