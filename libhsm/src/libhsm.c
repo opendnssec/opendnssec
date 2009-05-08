@@ -34,6 +34,7 @@
 #include <dlfcn.h>
 #include <cryptoki.h>
 #include <pkcs11.h>
+#include <string.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -48,71 +49,6 @@
  * context
  */
 static hsm_ctx_t *_hsm_ctx;
-
-/* internal functions */
-static hsm_ctx_t *
-hsm_ctx_new()
-{
-    hsm_ctx_t *ctx;
-    ctx = malloc(sizeof(hsm_ctx_t));
-    memset(ctx->session, 0, HSM_MAX_SESSIONS);
-    ctx->session_count = 0;
-    return ctx;
-}
-
-static hsm_module_t *
-hsm_module_new(const char *name, const char *path)
-{
-    size_t strl;
-    hsm_module_t *module;
-    module = malloc(sizeof(hsm_module_t));
-    module->id = 0; /*TODO what should this value be?*/
-    strl = strlen(name) + 1;
-    module->name = strdup(name);
-    module->path = strdup(path);
-    module->handle = NULL;
-    module->sym = NULL;
-    return module;
-}
-
-static void
-hsm_module_free(hsm_module_t *module)
-{
-    if (module) free(module);
-}
-
-static hsm_session_t *
-hsm_session_new(hsm_module_t *module, CK_SESSION_HANDLE session_handle)
-{
-    hsm_session_t *session;
-    session = malloc(sizeof(hsm_session_t));
-    session->module = module;
-    session->session = session_handle;
-    return session;
-}
-
-static void
-hsm_session_free(hsm_session_t *session) {
-    if (session) {
-        if (session->module) hsm_module_free(session->module);
-        free(session);
-    }
-}
-
-static void
-hsm_ctx_free(hsm_ctx_t *ctx)
-{
-    unsigned int i;
-    if (ctx) {
-        if (ctx->session) {
-            for (i = 0; i < ctx->session_count; i++) {
-                hsm_session_free(ctx->session[i]);
-            }
-            free(ctx->session);
-        }
-        free(ctx);
-    }
-}
 
 /* PKCS#11 specific functions */
 /*
@@ -271,8 +207,24 @@ hsm_pkcs11_check_rv(CK_RV rv, const char *message)
     }
 }
 
+static void
+hsm_pkcs11_unload_functions(void *dynlib_handle)
+{
+    int result;
+    if (dynlib_handle) {
+#if defined(HAVE_LOADLIBRARY)
+        // no idea
+#elif defined(HAVE_DLOPEN)
+        fprintf(stderr, "unload dlopened lib\n");
+        result = dlclose(dynlib_handle);
+        fprintf(stderr, "unload result: %d\n", result);
+#endif
+    }
+}
+
 static CK_RV
-hsm_pkcs11_load_functions(CK_FUNCTION_LIST_PTR_PTR pkcs11_functions,
+hsm_pkcs11_load_functions(void **dynlib_handle,
+                          CK_FUNCTION_LIST_PTR_PTR pkcs11_functions,
                           const char *dl_file)
 {
     CK_C_GetFunctionList pGetFunctionList = NULL;
@@ -306,6 +258,10 @@ fprintf(stderr, "have loadlibrary\n");
 
         /* Retrieve the entry point for C_GetFunctionList */
         pGetFunctionList = (CK_C_GetFunctionList) dlsym(pDynLib, "C_GetFunctionList");
+        /* Store the handle so we can dlclose it later */
+        if (dynlib_handle) {
+            *dynlib_handle = pDynLib;
+        }
 #else
         fprintf(stderr, "dl given, no dynamic library support compiled in\n");
 #endif
@@ -393,9 +349,126 @@ ldns_hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
     return slotId;
 }
 
+/* internal functions */
+static hsm_module_t *
+hsm_module_new(const char *name, const char *path)
+{
+    size_t strl;
+    hsm_module_t *module;
+    module = malloc(sizeof(hsm_module_t));
+    module->id = 0; /*TODO what should this value be?*/
+    strl = strlen(name) + 1;
+    module->name = strdup(name);
+    module->path = strdup(path);
+    module->handle = NULL;
+    module->sym = NULL;
+    return module;
+}
+
+static void
+hsm_module_free(hsm_module_t *module)
+{
+    if (module) {
+        if (module->name) free(module->name);
+        if (module->path) free(module->path);
+        
+        free(module);
+    }
+}
+
+static hsm_session_t *
+hsm_session_new(hsm_module_t *module, CK_SESSION_HANDLE session_handle)
+{
+    hsm_session_t *session;
+    session = malloc(sizeof(hsm_session_t));
+    session->module = module;
+    session->session = session_handle;
+    fprintf(stderr, "alloced session at %p, size %u\n", (void *) session, sizeof(hsm_session_t));
+    return session;
+}
+
+static void
+hsm_session_free(hsm_session_t *session) {
+    if (session) {
+        if (session->module) {
+            fprintf(stderr, "free module at %p\n", (void *)session->module);
+            hsm_module_free(session->module);
+        }
+        fprintf(stderr, "free session at %p\n", (void *)session);
+        free(session);
+    }
+}
+
+static hsm_ctx_t *
+hsm_ctx_new()
+{
+    hsm_ctx_t *ctx;
+    ctx = malloc(sizeof(hsm_ctx_t));
+    memset(ctx->session, 0, HSM_MAX_SESSIONS);
+    ctx->session_count = 0;
+    return ctx;
+}
+
+/* ctx_free frees the structure */
+static void
+hsm_ctx_free(hsm_ctx_t *ctx)
+{
+    unsigned int i;
+    if (ctx) {
+        if (ctx->session) {
+            for (i = 0; i < ctx->session_count; i++) {
+                hsm_session_free(ctx->session[i]);
+            }
+        }
+        free(ctx);
+    }
+}
+
+/* ctx_close closes all session, unloads all modules, and free
+ * the structures. This one should only be used on the global context,
+ * NOT on user-created contexts */
+static void
+hsm_ctx_close(hsm_ctx_t *ctx)
+{
+    CK_RV rv;
+    hsm_session_t *session;
+    unsigned int i;
+
+    if (ctx) {
+        if (ctx->session) {
+            for (i = 0; i < ctx->session_count; i++) {
+                printf("close session %u\n", i);
+                session = _hsm_ctx->session[i];
+                rv = session->module->sym->C_CloseSession(session->session);
+                hsm_pkcs11_check_rv(rv, "Close session");
+                rv = session->module->sym->C_Finalize(NULL);
+                hsm_pkcs11_check_rv(rv, "Finalize");
+                hsm_session_free(ctx->session[i]);
+                hsm_pkcs11_unload_functions(session->module->dynlib_handle);
+            }
+        }
+        free(ctx);
+    }
+}
+
+/* adds a session to the context.
+ * returns  0 on succes
+ *          1 if one of the arguments is NULL
+ *         -1 if the maximum number of sessions (HSM_MAX_SESSIONS) was
+ *            reached
+ */
+static int
+hsm_ctx_add_session(hsm_ctx_t *ctx, hsm_session_t *session) {
+    if (!ctx || !session) return -1;
+    if (ctx->session_count >= HSM_MAX_SESSIONS) return 1;
+    ctx->session[ctx->session_count] = session;
+    fprintf(stderr, "added session %u\n", ctx->session_count);
+    ctx->session_count++;
+    return 0;
+}
+
 
 /* external functions */
-
 
 int
 hsm_open(const char *config,
@@ -420,6 +493,7 @@ hsm_open(const char *config,
     
     /* create an internal context with an attached session for each
      * configured HSM. */
+    fprintf(stderr,"creating global ctx\n");
     _hsm_ctx = hsm_ctx_new();
     
     /* Load XML document */
@@ -476,28 +550,39 @@ hsm_open(const char *config,
                     }
                     /* TODO: move to hsm_pkcs11_module_init? */
                     module = hsm_module_new(module_name, module_path);
-                    rv = hsm_pkcs11_load_functions(&(module->sym), module_path);
+                    rv = hsm_pkcs11_load_functions(&(module->dynlib_handle), &(module->sym), module_path);
                     hsm_pkcs11_check_rv(rv, "Load functions");
+                    module->sym->C_Initialize(NULL);
+                    hsm_pkcs11_check_rv(rv, "Initialization");
                     slot_id = ldns_hsm_get_slot_id(module->sym, module_name);
-                    module->sym->C_OpenSession(slot_id,
+                    rv = module->sym->C_OpenSession(slot_id,
                                                CKF_SERIAL_SESSION,
                                                NULL,
                                                NULL,
                                                &session_handle);
+                    hsm_pkcs11_check_rv(rv, "Open session");
                     session = hsm_session_new(module, session_handle);
+                    hsm_ctx_add_session(_hsm_ctx, session);
                     fprintf(stdout, "module added\n");
                     /* ok we have a module, start a session */
                 }
+                free(module_name);
+                free(module_path);
+                free(module_pin);
             }
         }
     }
 
+    xmlXPathFreeObject(xpath_obj);
+    xmlXPathFreeContext(xpath_ctx);
+    xmlFreeDoc(doc);
+    xmlCleanupParser();
     return 0;
 }
 
 int
 hsm_close()
 {
-    hsm_ctx_free(_hsm_ctx);
+    hsm_ctx_close(_hsm_ctx);
     return 0;
 }
