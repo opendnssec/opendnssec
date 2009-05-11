@@ -1,84 +1,70 @@
 #!/bin/sh
 
-cd /
-rm -rf /tmp/jad
-cd /tmp
-mkdir jad
-cd jad
-mkdir opendnssec
-cd opendnssec
-mkdir build
-cd build
-svn co svn+ssh://keihatsu.kirei.se/svn/dnssec/trunk
-#tar -xzf /tmp/enforcer.tgz
-cd trunk/enforcer
+MYDIR=/tmp/jad/opendnssec
+mkdir -p $MYDIR
+cd $MYDIR
 
+echo "installing in $MYDIR/install"
+
+# clean out old builds
+rm -rf bin build	etc	include	install	lib	share
+mkdir build
+
+# co/up src
+if test -d /tmp/jad/opendnssec/trunk; then
+  cd trunk
+  svn up
+else
+  svn co svn+ssh://keihatsu.kirei.se/svn/dnssec/trunk
+  cd trunk
+fi
+
+
+
+#Build automagic stuuff
 cd libksm
-aclocal
+sh autogen.sh
+cd ../enforcer
+sh autogen.sh
+cd ../xml
+sh autogen.sh
+
+# build
+cd $MYDIR/build
 OS=`uname -s`
 if test $OS = "Darwin"; then
-  glibtoolize
-else
-  libtoolize
-fi
-autoheader
-automake --add-missing
-autoconf
-rm -rf /opt/libksm
 echo "Building for $OS"
-if test $OS = "Darwin"; then
-echo "Building for $OS"
-./configure --prefix=/tmp/jad/opendnssec --with-mysql=/usr/local/mysql --with-cunit=/usr/local --with-dbname=test --with-dbhost=test1 --with-dbpass="" --with-dbuser=root
+../trunk/libksm/configure --prefix=$MYDIR/install --with-mysql=/usr/local/mysql --with-cunit=/usr/local --with-dbname=test --with-dbhost=test1 --with-dbpass="" --with-dbuser=root
 fi
 if [ $OS = "Linux" ]; then
 echo "Building for $OS"
-./configure --prefix=/tmp/jad/opendnssec --with-mysql=/usr --with-cunit=/usr --with-dbname=ksm --with-dbhost=localhost --with-dbpass=ksm_test --with-dbuser=ksm_test
+../trunk/libksm/configure --prefix=$MYDIR/install --with-mysql=/usr --with-cunit=/usr --with-dbname=ksm --with-dbhost=localhost --with-dbpass=ksm_test --with-dbuser=ksm_test
 fi
 if test $OS = "FreeBSD"; then
 echo "Building for $OS"
-./configure --prefix=/tmp/jad/opendnssec --with-mysql=/usr/local --with-cunit=/usr/local --with-dbname=test --with-dbhost=test1 --with-dbpass="" --with-dbuser=root
+../trunk/libksm/configure --prefix=$MYDIR/install --with-mysql=/usr/local --with-cunit=/usr/local --with-dbname=test --with-dbhost=test1 --with-dbpass="" --with-dbuser=root
 fi
 if test $OS = "SunOS"; then
 echo "Building for $OS"
-./configure --prefix=/tmp/jad/opendnssec --with-mysql=/usr/sfw
+../trunk/libksm/configure --prefix=$MYDIR/install --with-mysql=/usr/sfw
 fi
 if test $OS = "SunOS"; then
   gmake clean && gmake & gmake install
 else
-  make clean && make && make install
+  make clean && make -j8 && make install
 fi
 
-cd ../key-generator
-aclocal
-autoheader
-automake --add-missing
-autoconf
-./configure --prefix=/tmp/jad/opendnssec --with-libksm-include=/tmp/jad/opendnssec/include --with-libksm-lib=/tmp/jad/opendnssec/lib
+../trunk/enforcer/configure --prefix=$MYDIR/install --with-libksm-include=$MYDIR/install/include --with-libksm-lib=$MYDIR/install/lib
 if test $OS = "SunOS"; then
   gmake clean && gmake & gmake install
 else
-  make clean && make && make install
+  make clean && make -j8 && make install
 fi
 
-cd ../communicator
-aclocal
-autoheader
-automake --add-missing
-autoconf
-./configure --prefix=/tmp/jad/opendnssec --with-libksm-include=/tmp/jad/opendnssec/include --with-libksm-lib=/tmp/jad/opendnssec/lib
+../trunk/xml/configure --prefix=$MYDIR/install -with-trang=/opt/trang.jar
 if test $OS = "SunOS"; then
   gmake clean && gmake & gmake install
 else
-  make clean && make && make install
+  make clean && make -j8 && make install
 fi
 
-cd ../../xml
-aclocal
-automake --add-missing
-autoconf
-./configure --prefix=/tmp/jad/opendnssec -with-trang=/opt/trang.jar
-if test $OS = "SunOS"; then
-  gmake clean && gmake & gmake install
-else
-  make clean && make && make install
-fi
