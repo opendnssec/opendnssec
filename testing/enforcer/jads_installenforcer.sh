@@ -19,8 +19,6 @@ else
   cd trunk
 fi
 
-
-
 #Build automagic stuuff
 cd libksm
 sh autogen.sh

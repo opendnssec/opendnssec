@@ -1,12 +1,14 @@
 #!/bin/sh
 
-cd /tmp/jad/opendnssec
+MYDIR=/tmp/jad/opendnssec
+
+cd $MYDIR
 
 #Import the example xml from /tmp/jad/opendnssec/etc/opendnssec/ in to the DB
-/tmp/jad/opendnssec/bin/kaspimport.pl -h test1 -u root -s test -i -d
+$MYDIR/install/bin/kaspimport -h test1 -u root -s test -i -d
 
 #Start the key generator
-/tmp/jad/opendnssec/bin/keygend -u jad -n root -p "" -s test -h test1 -P /tmp/jad/opendnssec/keygend.pid
+$MYDIR/install/bin/keygend -u jad -n root -p "" -s test -h test1 -P $MYDIR/install/etc/opendnssec/keygend.pid
 
 
 sleep 10
