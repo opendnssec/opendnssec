@@ -61,7 +61,7 @@ void usage() {
 int main(int argc, char **argv) {
   int c;
 
-  setenv("SOFTHSM_CONF", "./softhsm.conf", 1);
+  setenv("SOFTHSM_CONF", CHECKS_SOFTHSM_CONF, 1);
 
   if(argc == 1) {
     usage();
