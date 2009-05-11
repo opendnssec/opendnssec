@@ -79,14 +79,15 @@ INSTALLING
 
 5. Add the tokens to the slots:
 
-  The default location of the config file is /etc/softhsm.conf
+  The default location of the config file is $sysconfdir/softhsm.conf
+  On some systems this location is equal to /usr/local/etc/softhsm.conf
   This location can be change by setting the environment variable.
 
     export SOFTHSM_CONF=/home/user/config.file
 
   Open the config file and add the slots
 
-    sudo pico /etc/softhsm.conf
+    sudo pico /home/user/config.file
 
       0:/home/user/my.db
       # Comments can be added

@@ -37,7 +37,6 @@
 
 #include "main.h"
 #include "mutex.h"
-#include "config.h"
 #include "log.h"
 #include "file.h"
 #include "SoftHSMInternal.h"

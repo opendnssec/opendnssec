@@ -34,7 +34,6 @@
 ************************************************************/
 
 #include "file.h"
-#include "config.h"
 #include "log.h"
 #include "SoftHSMInternal.h"
 

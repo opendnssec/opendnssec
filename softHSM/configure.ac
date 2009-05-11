@@ -18,25 +18,16 @@ define([SOFTHSM_VERSION_AGE], [0])
 
 
 
-
+# Init 
 AC_INIT([libsofthsm], [SOFTHSM_VERSION_MAJOR.SOFTHSM_VERSION_MINOR.SOFTHSM_VERSION_FIX[]PACKAGE_SUFFIX])
-#AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(src/Makefile.am)
 
-
+# Version info for the library
 VERSION_INFO="SOFTHSM_VERSION_CURRENT:SOFTHSM_VERSION_REVISION:SOFTHSM_VERSION_AGE"
 AC_SUBST(VERSION_INFO)
 
-
+# Init the automake
 AM_INIT_AUTOMAKE
-
-
-AC_PROG_CC
-AC_PROG_CXX
-AC_CHECK_PROG(cxx_present, $CXX, "yes", "no")
-if test "x$cxx_present" != "xyes"; then
-    AC_MSG_ERROR([No C++ compiler found.])
-fi
 
 # Strict
 AC_ARG_ENABLE(
@@ -54,7 +45,6 @@ AC_ARG_ENABLE(
 	[enable_pedantic="yes"]
 )
 
-
 AC_ARG_WITH(botan-lib, [  --with-botan-lib=DIR    The location of the Botan crypto library (default DIR=/usr/local/lib)], [BOTANLIBDIR="$withval"], [BOTANLIBDIR="/usr/local/lib"])
 AC_ARG_WITH(botan-inc, [  --with-botan-inc=DIR    The location of the Botan crypto library include files (default DIR=/usr/local/include)], [BOTANINCDIR="$withval"], [BOTANINCDIR="/usr/local/include"])
 AC_ARG_WITH(sqlite3-lib, [  --with-sqlite3-lib=DIR  The location of the SQLite3 library (default DIR=/usr/lib)], [SQLITELIBDIR="$withval"], [SQLITELIBDIR="/usr/lib"])
@@ -62,10 +52,15 @@ AC_ARG_WITH(sqlite3-inc, [  --with-sqlite3-inc=DIR  The location of the SQLite3 
 AC_ARG_WITH(loglevel, [  --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 3=Info 4=Debug (default INT=3)], [SOFTLOGLEVEL="$withval"], [SOFTLOGLEVEL=3])
 AC_ARG_ENABLE(64bit, [  --enable-64bit          Compile a 64-bit version], [ENABLE64BIT="yes"], [ENABLE64BIT="no"])
 
+# Check for compilers
+AC_PROG_CC
+AC_PROG_CXX
+AC_CHECK_PROG(cxx_present, $CXX, "yes", "no")
+if test "x$cxx_present" != "xyes"; then
+    AC_MSG_ERROR([No C++ compiler found.])
+fi
 
-AC_DEFINE_UNQUOTED(SOFTLOGLEVEL, $SOFTLOGLEVEL)
-
-
+# Check that we can compile 64-bit before compiling
 if test "$ENABLE64BIT" == "yes"
 then
     org_cflags=$CFLAGS
@@ -94,17 +89,17 @@ if test "${enable_strict}" = "yes"; then
 	CXXFLAGS="${CXXFLAGS} -Wall -Wextra"
 fi
 
-
+# Configure the path to Botan and SQLite3
 LDFLAGS="$LDFLAGS -L$BOTANLIBDIR -R$BOTANLIBDIR -L$SQLITELIBDIR -R$SQLITELIBDIR"
 CXXFLAGS="$CXXFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
 CFLAGS="$CFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
 
-
+# Check that we have headers and SQLite library
 AC_CHECK_FUNCS(getpassphrase)
-AC_CHECK_HEADERS([sys/time.h sys/stat.h sqlite3.h])
+AC_CHECK_HEADERS([sys/time.h sqlite3.h])
 AC_CHECK_LIB(sqlite3, sqlite3_prepare_v2, [], [AC_MSG_ERROR([Missing SQLite3 library v3.4.2 or greater])])
 
-
+# Check that we have Botan
 LIBS="$LIBS -lbotan"
 AC_LANG(C++)
 AC_LINK_IFELSE(
@@ -122,13 +117,15 @@ AC_LINK_IFELSE(
          AC_MSG_ERROR([Missing Botan library v1.7.24 or greater])]
 )
 
-
+# Define some variables for the code
 AC_DEFINE_UNQUOTED(VERSION_MAJOR, SOFTHSM_VERSION_MAJOR)
 AC_DEFINE_UNQUOTED(VERSION_MINOR, SOFTHSM_VERSION_MINOR)
+AC_DEFINE_UNQUOTED(SOFTLOGLEVEL, $SOFTLOGLEVEL)
+AC_DEFINE_UNQUOTED(MAX_SESSION_COUNT, 2048)
 
-
+# Generate the libtool script and install script
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 
-
+# Generate the make files
 AC_OUTPUT(Makefile src/Makefile src/lib/Makefile src/bin/Makefile checks/Makefile)

@@ -2,7 +2,8 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS =			-I$(srcdir) -I$(srcdir)/cryptoki
+AM_CPPFLAGS =			-I$(srcdir) -I$(srcdir)/cryptoki \
+				-DSOFT_CONFIG_FILE='"$(sysconfdir)/softhsm.conf"'
 
 lib_LTLIBRARIES =		libsofthsm.la
 libsofthsm_la_SOURCES =		main.cpp \
@@ -19,4 +20,5 @@ libsofthsm_la_SOURCES =		main.cpp \
 				SoftKeyStore.cpp
 libsofthsm_la_LDFLAGS =		-version-info @VERSION_INFO@
 
-EXTRA_DIST =			*.h
+EXTRA_DIST =			*.h \
+				./cryptoki/*.h

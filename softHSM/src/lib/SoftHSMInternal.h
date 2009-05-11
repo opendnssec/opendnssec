@@ -41,7 +41,6 @@
 #include "SoftDatabase.h"
 #include "SoftSession.h"
 #include "SoftSlot.h"
-#include "config.h"
 
 class SoftFind;
 class SoftDatabase;
