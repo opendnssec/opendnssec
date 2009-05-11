@@ -1,4 +1,4 @@
-# $Id: signconf.rnc 327 2009-03-30 14:44:40Z jakob $
+# $Id$
 
 datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 
