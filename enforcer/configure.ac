@@ -7,8 +7,8 @@ AC_PREREQ(2.61)
 AC_INIT(enforcer, 0.0.1, jad@jadickinson.co.uk)
 AM_INIT_AUTOMAKE
 AC_PROG_MAKE_SET
-AC_CONFIG_SRCDIR([communicated/daemon.h])
-AC_CONFIG_SRCDIR([keygend/daemon.h])
+AC_PROG_RANLIB
+AC_CONFIG_SRCDIR([common/daemon.h])
 AC_CONFIG_HEADER([config.h])
 
 # Checks for programs.
@@ -113,6 +113,7 @@ fi
 
 AC_CONFIG_FILES([
 Makefile
+common/Makefile
 communicated/Makefile
 keygend/Makefile
 ])

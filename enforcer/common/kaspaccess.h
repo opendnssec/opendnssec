@@ -27,63 +27,14 @@
  */
 
 /* 
- * daemon.h code needed to get a daemon up and running
- *
- * edit the DAEMONCONFIG and cmlParse function
- * in daemon_util.[c|h] to add options specific
- * to your app
- *
- * gcc -o daemon daemon_util.c daemon.c
- *
- * Most of this is based on stuff I have seen in NSD
+ * kaspaccess.h kasp acccess functions needed by keygend
  */
 
-#include "config.h"
-#include <inttypes.h>
+#include <ksm/ksm.h>
 
-#ifdef HAVE_STDBOOL_H 
-# include <stdbool.h> 
-#else 
-# ifndef HAVE__BOOL 
-# ifdef __cplusplus 
-typedef bool _Bool; 
-# else 
-# define _Bool signed char 
-# endif 
-# endif 
-# define bool _Bool 
-# define false 0 
-# define true 1 
-# define __bool_true_false_are_defined 1 
-#endif
-
-#include <unistd.h>
-#include <syslog.h>
-
-/* struct to hold configuration */
-typedef struct
-{
-  /* stuff that daemons always have */
-	bool debug;
-  pid_t pid;
-  const char *pidfile;
-  uid_t uid;
-  gid_t gid;
-  const char *username;
-  
-  /* Add app specific stuff here */
-  char* user;
-	char* host;
-	char* password;
-	char* schema;
-  uint16_t interval;
-	int keycreate;
-	int backup_interval;
-  long int keygeninterval;
-	
-} DAEMONCONFIG;
-
-
-#define AUTHOR_NAME "John Dickinson"
-#define COPYRIGHT_STR "Copyright (C) 2008 2009 John Dickinson"
+int kaspReadConfig(DAEMONCONFIG* config);
+void kaspSetPolicyDefaults(KSM_POLICY *policy, char *name);
+void kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle);
+void kaspDisconnect(DAEMONCONFIG* config, DB_HANDLE	*handle);
+int kaspReadPolicy(KSM_POLICY* policy);
 

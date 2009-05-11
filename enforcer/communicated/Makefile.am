@@ -2,9 +2,12 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-bin_PROGRAMS = communicated
-communicated_SOURCES = daemon.c daemon_util.c kaspaccess.c communicator.c
+AM_CPPFLAGS = -I$(srcdir)/../common
 
+bin_PROGRAMS = communicated
+
+communicated_SOURCES = communicator.c
+communicated_LDADD = ../common/libenforcer.a
 communicated_LDFLAGS = -L@KSM_LIBS@ -lksm
 
 EXTRA_DIST = *.h
