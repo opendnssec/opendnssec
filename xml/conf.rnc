@@ -26,6 +26,9 @@ start = element Configuration {
 
 	# Configuration parameters for the KASP Enforcer
 	element Enforcer {
+		# Where to store internal Enforcer state
+		element Datastore { (mysql | sqlite) },
+		
 		# Interval between runs of the key rollover procedure
 		element Interval { xsd:duration },
 
@@ -49,3 +52,16 @@ start = element Configuration {
 		element ToolsDirectory { xsd:string }?
 	}?
 }
+
+mysql = element MySQL {
+	element Host {
+			# default port is 3306
+			attribute port { xsd:positiveInteger },
+			# default hostname is 127.0.0.1
+			xsd:string }?,
+	element Database { xsd:string },
+	element Username { xsd:string },
+	element Password { xsd:string }	
+}
+
+sqlite = element SQlite { xsd:string }

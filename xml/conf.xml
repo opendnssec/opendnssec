@@ -20,6 +20,7 @@
 	</RepositoryList>
 
 	<Enforcer>
+		<Datastore><SQlite>/var/opendnssec/kasp.db</SQlite>></Datastore>
 		<Interval>PT3600S</Interval>
 		<KeygenInterval>P3M</KeygenInterval>
 		<BackupDelay>P3D</BackupDelay>
