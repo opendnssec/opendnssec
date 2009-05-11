@@ -3,5 +3,3 @@ $Id$
 This program will check all the PKCS#11 functions implemented by SoftHSM.
 It test many combinations of input data and checks that the correct
 responses are returned.
-
-This program is only available in the repository and not in the distribution.

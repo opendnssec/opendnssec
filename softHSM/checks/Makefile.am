@@ -10,6 +10,8 @@ noinst_DATA = token.db
 AM_CFLAGS = -O3 -W -Wall -Werror -g
 AM_CPPFLAGS = -I. -I$(srcdir)/../src/lib -I$(srcdir)/../src/lib/cryptoki
 
+EXTRA_DIST =                    *.h
+
 checks_LDADD = ../src/lib/libsofthsm.la
 
 
