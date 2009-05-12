@@ -100,7 +100,14 @@ CFLAGS="$CFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
 
 # Check that we have headers and SQLite library
 AC_CHECK_FUNCS(getpassphrase)
-AC_CHECK_HEADERS([sys/time.h sqlite3.h])
+AC_CHECK_HEADERS([sys/time.h sqlite3.h dlfcn.h], [], [],
+  [[#ifdef HAVE_DLFCN_H
+  #include <dlfcn.h>
+  #endif
+  #ifdef HAVE_SQLITE3_H
+  #include <sqlite3.h>
+  #endif
+  ]])
 AC_CHECK_LIB(sqlite3, sqlite3_prepare_v2, [], [AC_MSG_ERROR([Missing SQLite3 library v3.4.2 or greater])])
 
 # Check that we have Botan
