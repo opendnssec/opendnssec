@@ -36,21 +36,31 @@ int
 main (int argc, char *argv[])
 {
 	int result;
+	hsm_ctx_t *ctx;
+	hsm_key_t **keys;
+	size_t key_count = 0;
+	size_t i;
 	
 	(void) argc;
 	(void) argv;
-	hsm_ctx_t *ctx;
-	
 	fprintf(stdout, "Starting HSM lib test\n");
 	result = hsm_open("/home/jelte/opt/opendnssec/etc/opendnssec/conf.xml", NULL, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);
 	ctx = hsm_create_context();
-	printf("global: ");
+	/*printf("global: ");
 	hsm_print_ctx(NULL);
 	printf("my: ");
 	hsm_print_ctx(ctx);
+	*/
+	keys = hsm_list_keys(ctx, &key_count);
+	printf("I have found %u keys\n", (unsigned int) key_count);
+	for (i = 0; i < key_count; i++) {
+		hsm_print_key(keys[i]);
+		hsm_key_free(keys[i]);
+	}
+	free(keys);
+	fprintf(stdout, "hsm_close result: %d\n", result);
 	hsm_destroy_context(ctx);
 	result = hsm_close();
-	fprintf(stdout, "hsm_close result: %d\n", result);
 	return 0;
 }

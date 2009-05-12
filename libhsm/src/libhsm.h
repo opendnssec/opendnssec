@@ -50,10 +50,10 @@ typedef struct {
 
 /*! HSM Key Pair */
 typedef struct {
-	const hsm_module_t *module;  /*!< pointer to module */
-	const CK_OBJECT_HANDLE private_key;  /*!< private key within module */
-	const CK_OBJECT_HANDLE public_key;  /*!< public key within module */
-	const uuid_t *uuid;          /*!< UUID of key (if available) */
+	hsm_module_t *module;  /*!< pointer to module */
+	CK_OBJECT_HANDLE private_key;  /*!< private key within module */
+	CK_OBJECT_HANDLE public_key;  /*!< public key within module */
+	uuid_t *uuid;          /*!< UUID of key (if available) */
 } hsm_key_t;
 
 /*! HSM Session */
@@ -121,10 +121,13 @@ void hsm_destroy_context(hsm_ctx_t *context);
 
 
 /*! List all known keys in all attached HSMs
-
-\param context HSM context
+ * after the function has run, the value at count contains the number
+ * of keys found
+ *
+ * \param context HSM context
+ * \param count location to store the number of keys found
 */
-hsm_key_t **hsm_list_keys(const hsm_ctx_t *context);
+hsm_key_t **hsm_list_keys(const hsm_ctx_t *context, size_t *count);
 
 /*! Find a key pair by UUID
 
@@ -215,7 +218,11 @@ int hsm_attach(const char *repository, const char *path, const char *pin);
 /*! Detach a named HSM */
 int hsm_detach(const char *name);
 
+/* Free the memory for key. */
+void hsm_key_free(hsm_key_t *key);
+
 void hsm_print_session(hsm_session_t *session);
 void hsm_print_ctx(hsm_ctx_t *gctx);
+void hsm_print_key(hsm_key_t *key);
 
 #endif /* HSM_H */

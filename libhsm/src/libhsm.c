@@ -390,7 +390,7 @@ hsm_session_free(hsm_session_t *session) {
  * a module_t struct for it
  */
 hsm_session_t *
-hsm_session_init(char *module_name, char *module_path)
+hsm_session_init(char *module_name, char *module_path, char *pin)
 {
     CK_RV rv;
     hsm_module_t *module;
@@ -410,6 +410,11 @@ hsm_session_init(char *module_name, char *module_path)
                                NULL,
                                &session_handle);
     hsm_pkcs11_check_rv(rv, "Open first session");
+    rv = module->sym->C_Login(session_handle,
+                                   CKU_USER,
+                                   (unsigned char *) pin,
+                                   strlen((char *)pin));
+    hsm_pkcs11_check_rv(rv, "log in");
     session = hsm_session_new(module, session_handle);
 
     return session;
@@ -551,6 +556,28 @@ hsm_ctx_clone(hsm_ctx_t *ctx)
     return new_ctx;
 }
 
+hsm_key_t *
+hsm_key_new()
+{
+    hsm_key_t *key;
+    key = malloc(sizeof(hsm_key_t));
+    key->module = NULL;
+    key->private_key = 0;
+    key->public_key = 0;
+    key->uuid = NULL;
+    return key;
+}
+
+/* frees the data for the key structure. If uuid is not NULL
+ * the data at the uuid pointer is freed as well */
+void
+hsm_key_free(hsm_key_t *key)
+{
+    if (key) {
+        if (key->uuid) free(key->uuid);
+        free(key);
+    }
+}
 
 /* external functions */
 int
@@ -626,7 +653,7 @@ hsm_open(const char *config,
                     if (!module_pin) {
                         module_pin = pin_callback(module_name, data);
                     }
-                    session = hsm_session_init(module_name, module_path);
+                    session = hsm_session_init(module_name, module_path, "1111");
                     hsm_ctx_add_session(_hsm_ctx, session);
                     fprintf(stdout, "module added\n");
                     /* ok we have a module, start a session */
@@ -684,5 +711,149 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
     for (i = 0; i < ctx->session_count; i++) {
         printf("\tSession at %p\n", (void *) ctx->session[i]);
         hsm_print_session(ctx->session[i]);
+    }
+}
+
+CK_OBJECT_HANDLE
+hsm_find_object_handle_for_uuid(const hsm_session_t *session, CK_OBJECT_CLASS key_class, uuid_t *uuid)
+{
+    CK_ULONG objectCount;
+    CK_OBJECT_HANDLE object;
+    CK_RV rv;
+    
+    CK_ATTRIBUTE template[] = {
+        { CKA_CLASS, &key_class, sizeof(key_class) },
+        { CKA_ID, uuid, sizeof(uuid_t) },
+    };
+    
+    rv = session->module->sym->C_FindObjectsInit(session->session, template, 1);
+    hsm_pkcs11_check_rv(rv, "Find objects init");
+    
+    rv = session->module->sym->C_FindObjects(session->session,
+                                         &object,
+                                         1,
+                                         &objectCount);
+    hsm_pkcs11_check_rv(rv, "Find object");
+
+	rv = session->module->sym->C_FindObjectsFinal(session->session);
+    hsm_pkcs11_check_rv(rv, "Find object final");
+	if (objectCount > 0) {
+		hsm_pkcs11_check_rv(rv, "Find objects final");
+		return object;
+	} else {
+		return 0;
+	}
+}
+
+hsm_key_t *
+hsm_key_new_privkey_object_handle(const hsm_session_t *session, CK_OBJECT_HANDLE object)
+{
+    hsm_key_t *key;
+    CK_RV rv;
+    uuid_t *uuid = NULL;
+    
+	CK_ATTRIBUTE template[] = {
+		{CKA_ID, uuid, sizeof(uuid_t)}
+    };
+
+    template[0].pValue = malloc(sizeof(uuid_t));
+	rv = session->module->sym->C_GetAttributeValue(
+	                                  session->session,
+	                                  object,
+	                                  template,
+	                                  1);
+	hsm_pkcs11_check_rv(rv, "Get attr value\n");
+    key = hsm_key_new();
+    key->uuid = template[0].pValue;
+    key->module = session->module;
+    key->private_key = object;
+    key->public_key = hsm_find_object_handle_for_uuid(session, CKO_PUBLIC_KEY, key->uuid);
+    
+    return key;
+}
+
+hsm_key_t **
+hsm_list_keys_session(const hsm_session_t *session, size_t *count)
+{
+    hsm_key_t **keys;
+    hsm_key_t *key;
+    CK_RV rv;
+    CK_OBJECT_CLASS key_class = CKO_PRIVATE_KEY;
+    CK_ATTRIBUTE template[] = {
+        { CKA_CLASS, &key_class, sizeof(key_class) },
+    };
+    CK_ULONG total_count = 0;
+    CK_ULONG objectCount;
+    CK_ULONG max_object_count = 100;
+    CK_ULONG i;
+    CK_OBJECT_HANDLE object[max_object_count];
+
+    rv = session->module->sym->C_FindObjectsInit(session->session, template, 1);
+    hsm_pkcs11_check_rv(rv, "Find objects init");
+    
+    rv = session->module->sym->C_FindObjects(session->session,
+                                         object,
+                                         max_object_count,
+                                         &objectCount);
+    hsm_pkcs11_check_rv(rv, "Find first object");
+    rv = session->module->sym->C_FindObjectsFinal(session->session);
+
+    printf("objectCount: %u\n", (unsigned int) objectCount);
+    keys = malloc(objectCount * sizeof(hsm_key_t *));
+    for (i = 0; i < objectCount; i++) {
+        key = hsm_key_new_privkey_object_handle(session, object[i]);
+        keys[i] = key;
+    }
+    total_count += objectCount;
+
+    hsm_pkcs11_check_rv(rv, "Find objects final");
+
+    *count = total_count;
+    return keys;
+}
+
+hsm_key_t **
+hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
+{
+    hsm_key_t **keys = NULL;
+    size_t key_count = 0;
+    size_t cur_key_count;
+    hsm_key_t **session_keys;
+    unsigned int i, j;
+    
+    if (!ctx) {
+        ctx = _hsm_ctx;
+    }
+    
+    printf("Finding keys in %u sessions\n", ctx->session_count);
+    for (i = 0; i < ctx->session_count; i++) {
+        printf("Finding keys for session %u\n", i);
+        session_keys = hsm_list_keys_session(ctx->session[i], &cur_key_count);
+        fprintf(stderr, "Adding %u keys from session number %u\n", (unsigned int) cur_key_count, i);
+        keys = realloc(keys, key_count + cur_key_count * sizeof(hsm_key_t *));
+        for (j = 0; j < cur_key_count; j++) {
+            keys[key_count + j] = session_keys[j];
+        }
+        key_count += cur_key_count;
+        free(session_keys);
+    }
+    if (count) {
+        *count = key_count;
+    }
+    return keys;
+}
+
+void
+hsm_print_key(hsm_key_t *key) {
+    char uuid_str[37];
+    if (key) {
+        uuid_unparse(*key->uuid, uuid_str);
+        printf("key:\n");
+        printf("\tmodule %p\n", (void *) key->module);
+        printf("\tprivkey handle %u\n", (unsigned int) key->private_key);
+        printf("\tpubkey handle  %u\n", (unsigned int) key->public_key);
+        printf("\tid %s\n", uuid_str);
+    } else {
+        printf("key: <void>\n");
     }
 }
