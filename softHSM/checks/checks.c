@@ -60,12 +60,23 @@ void usage() {
 
 int main(int argc, char **argv) {
   int c;
+  CK_RV rv;
 
   setenv("SOFTHSM_CONF", CHECKS_SOFTHSM_CONF, 1);
 
   if(argc == 1) {
     usage();
   }
+
+  /* Check that there is no problem with the token config file */
+  /* But there might be an other problem... */
+  rv = C_Initialize(NULL_PTR);
+  if(rv != CKR_OK) {
+    printf("\nCan not initialize SoftHSM.\n");
+    printf("There are probably some problem with the token config file located at: %s\n", CHECKS_SOFTHSM_CONF);
+    return -1;
+  }
+  C_Finalize(NULL_PTR);
 
   while ((c = getopt(argc, argv, "abcdefghijkz")) != -1) {
     switch(c) {
