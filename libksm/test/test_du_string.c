@@ -44,7 +44,7 @@
 
 #include "CUnit/Basic.h"
 
-#include "database_statement.h"
+#include "ksm/database_statement.h"
 #include "test_routines.h"
 
 

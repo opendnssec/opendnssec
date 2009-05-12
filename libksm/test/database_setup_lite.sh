@@ -98,8 +98,8 @@ insert into securitymodules (id, name, capacity) values (NULL, "softHSM-01-1", 1
 -- Create a dead key which we can purge out of the database
 INSERT INTO keypairs VALUES(NULL, "0x1", 5, 1024, 1, 6, "2001-01-01 01:00:00", NULL, NULL, NULL, NULL, "2002-01-01 01:00:00", 2, NULL, "");
 -- With 2 zones using it:
-INSERT INTO dnsseckeys VALUES (NULL, 1, 1, 257, 1, 1, NULL, NULL);
-INSERT INTO dnsseckeys VALUES (NULL, 1, 2, 257, 1, 1, NULL, NULL);
+INSERT INTO dnsseckeys VALUES (NULL, 1, 1, 257);
+INSERT INTO dnsseckeys VALUES (NULL, 1, 2, 257);
 
 -- parameters for KsmParameter tests
 INSERT INTO categories VALUES (NULL,		"Test");
@@ -110,7 +110,7 @@ INSERT INTO parameters_policies VALUES (NULL, (select id from parameters where n
 
 -- Create a key which we can request from the database
 INSERT INTO keypairs VALUES(NULL, "0x1", 5, 1024, 1, 1, "2001-01-01 01:00:00", NULL, NULL, NULL, NULL, "2002-01-01 01:00:00", 2, NULL, "");
-INSERT INTO dnsseckeys VALUES (NULL, 2, 1, 257, 1, 1, NULL, NULL);
+INSERT INTO dnsseckeys VALUES (NULL, 2, 1, 257);
 
 -- Create a set of keys which we can delete from the database
 INSERT INTO keypairs VALUES(NULL, "0x1", 5, 1024, 1, 1, "2001-01-01 01:00:00", NULL, NULL, NULL, NULL, "2002-01-01 01:00:00", 2, NULL, "");

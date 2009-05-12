@@ -44,8 +44,8 @@
 
 #include "CUnit/Basic.h"
 
-#include "ksm.h"
-#include "db_fields.h"
+#include "ksm/ksm.h"
+#include "ksm/db_fields.h"
 #include "test_routines.h"
 
 

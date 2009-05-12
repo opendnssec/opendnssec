@@ -43,9 +43,9 @@
 
 #include "CUnit/Basic.h"
 
-#include "memory.h"
-#include "string_util.h"
-#include "string_util2.h"
+#include "ksm/memory.h"
+#include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 #include "test_routines.h"
 
 

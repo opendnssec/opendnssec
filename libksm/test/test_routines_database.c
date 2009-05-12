@@ -35,7 +35,7 @@
 
 #include <stdlib.h>
 
-#include "database.h"
+#include "ksm/database.h"
 #include "test_routines.h"
 
 

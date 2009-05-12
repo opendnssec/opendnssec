@@ -2,7 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS = -I../include @CUNIT_INCLUDES@ @DB_INCLUDES@
+AM_CPPFLAGS = -I../src/include @CUNIT_INCLUDES@ @DB_INCLUDES@
 
 check_PROGRAMS = test
 

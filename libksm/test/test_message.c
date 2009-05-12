@@ -44,7 +44,7 @@
 
 #include "CUnit/Basic.h"
 
-#include "message.h"
+#include "ksm/message.h"
 #include "test_routines.h"
 
 

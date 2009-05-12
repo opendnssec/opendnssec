@@ -40,7 +40,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include "system_includes.h"
+#include "ksm/system_includes.h"
 
 #ifdef __cplusplus
 extern "C" {

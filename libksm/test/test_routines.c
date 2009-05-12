@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "memory.h"
+#include "ksm/memory.h"
 #include "test_routines.h"
 
 static int m_automatic = 0;     /* Set 1 for automatic mode */

@@ -44,10 +44,10 @@
 
 #include "CUnit/Basic.h"
 
-#include "ksm.h"
-#include "db_fields.h"
-#include "datetime.h"
-#include "string_util.h"
+#include "ksm/ksm.h"
+#include "ksm/db_fields.h"
+#include "ksm/datetime.h"
+#include "ksm/string_util.h"
 #include "test_routines.h"
 
 /*+
