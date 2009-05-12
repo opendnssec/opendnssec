@@ -208,33 +208,31 @@ hsm_pkcs11_check_rv(CK_RV rv, const char *message)
 }
 
 static void
-hsm_pkcs11_unload_functions(void *dynlib_handle)
+hsm_pkcs11_unload_functions(void *handle)
 {
     int result;
-    if (dynlib_handle) {
+    if (handle) {
 #if defined(HAVE_LOADLIBRARY)
         // no idea
 #elif defined(HAVE_DLOPEN)
-        fprintf(stderr, "unload dlopened lib\n");
-        result = dlclose(dynlib_handle);
+        fprintf(stderr, "unload dlopened lib at %p\n", handle);
+        result = dlclose(handle);
         fprintf(stderr, "unload result: %d\n", result);
 #endif
     }
 }
 
 static CK_RV
-hsm_pkcs11_load_functions(void **dynlib_handle,
-                          CK_FUNCTION_LIST_PTR_PTR pkcs11_functions,
-                          const char *dl_file)
+hsm_pkcs11_load_functions(hsm_module_t *module)
 {
     CK_C_GetFunctionList pGetFunctionList = NULL;
-
-    if (dl_file) {
+                          
+    if (module && module->path) {
         /* library provided by application or user */
 #if defined(HAVE_LOADLIBRARY)
 fprintf(stderr, "have loadlibrary\n");
         /* Load PKCS #11 library */
-        HINSTANCE hDLL = LoadLibrary(_T(dl_file));
+        HINSTANCE hDLL = LoadLibrary(_T(module->path));
 
         if (hDLL == NULL)
         {
@@ -247,7 +245,7 @@ fprintf(stderr, "have loadlibrary\n");
             GetProcAddress(hDLL, _T("C_GetFunctionList"));
 #elif defined(HAVE_DLOPEN)
         /* Load PKCS #11 library */
-        void* pDynLib = dlopen(dl_file, RTLD_LAZY);
+        void* pDynLib = dlopen(module->path, RTLD_LAZY);
 
         if (pDynLib == NULL)
         {
@@ -259,9 +257,7 @@ fprintf(stderr, "have loadlibrary\n");
         /* Retrieve the entry point for C_GetFunctionList */
         pGetFunctionList = (CK_C_GetFunctionList) dlsym(pDynLib, "C_GetFunctionList");
         /* Store the handle so we can dlclose it later */
-        if (dynlib_handle) {
-            *dynlib_handle = pDynLib;
-        }
+        module->handle = pDynLib;
 #else
         fprintf(stderr, "dl given, no dynamic library support compiled in\n");
 #endif
@@ -283,7 +279,7 @@ fprintf(stderr, "have pkcs11_module\n");
     }
 
     /* Retrieve the function list */
-    (pGetFunctionList)(pkcs11_functions);
+    (pGetFunctionList)(&module->sym);
 
     return CKR_OK;
 }
@@ -381,7 +377,9 @@ hsm_session_new(hsm_module_t *module, CK_SESSION_HANDLE session_handle)
 {
     hsm_session_t *session;
     session = malloc(sizeof(hsm_session_t));
+    fprintf(stderr, "alloced session at %p, size %u\n", (void *) session, sizeof(hsm_session_t));
     session->module = module;
+    fprintf(stderr, "alloced session at %p, size %u\n", (void *) session, sizeof(hsm_session_t));
     session->session = session_handle;
     fprintf(stderr, "alloced session at %p, size %u\n", (void *) session, sizeof(hsm_session_t));
     return session;
@@ -399,6 +397,34 @@ hsm_session_free(hsm_session_t *session) {
     }
 }
 
+/* creates a session_t srtucture, and automatically adds and initializes
+ * a module_t struct for it
+ */
+hsm_session_t *
+hsm_session_init(char *module_name, char *module_path)
+{
+    CK_RV rv;
+    hsm_module_t *module;
+    CK_SLOT_ID slot_id;
+    CK_SESSION_HANDLE session_handle;
+    hsm_session_t *session;
+
+    module = hsm_module_new(module_name, module_path);
+    rv = hsm_pkcs11_load_functions(module);
+    hsm_pkcs11_check_rv(rv, "Load functions");
+    rv = module->sym->C_Initialize(NULL);
+    hsm_pkcs11_check_rv(rv, "Initialization");
+    slot_id = ldns_hsm_get_slot_id(module->sym, module_name);
+    rv = module->sym->C_OpenSession(slot_id,
+                               CKF_SERIAL_SESSION,
+                               NULL,
+                               NULL,
+                               &session_handle);
+    hsm_pkcs11_check_rv(rv, "Open session");
+    session = hsm_session_new(module, session_handle);
+    return session;
+}
+
 static hsm_ctx_t *
 hsm_ctx_new()
 {
@@ -408,6 +434,8 @@ hsm_ctx_new()
     ctx->session_count = 0;
     return ctx;
 }
+
+
 
 /* ctx_free frees the structure */
 static void
@@ -424,27 +452,40 @@ hsm_ctx_free(hsm_ctx_t *ctx)
     }
 }
 
+/* close the session, unload the module, and free the allocated data
+ * only call this on your last session (i.e. the global ctx sessions)
+ */
+void
+hsm_session_close(hsm_session_t *session)
+{
+    CK_RV rv;
+    rv = session->module->sym->C_CloseSession(session->session);
+    hsm_pkcs11_check_rv(rv, "Close session");
+    rv = session->module->sym->C_Finalize(NULL);
+    hsm_pkcs11_check_rv(rv, "Finalize");
+    hsm_pkcs11_unload_functions(session->module->handle);
+    hsm_session_free(session);
+}
+
 /* ctx_close closes all session, unloads all modules, and free
  * the structures. This one should only be used on the global context,
  * NOT on user-created contexts */
 static void
 hsm_ctx_close(hsm_ctx_t *ctx)
 {
-    CK_RV rv;
-    hsm_session_t *session;
     unsigned int i;
 
     if (ctx) {
         if (ctx->session) {
             for (i = 0; i < ctx->session_count; i++) {
                 printf("close session %u\n", i);
-                session = _hsm_ctx->session[i];
-                rv = session->module->sym->C_CloseSession(session->session);
-                hsm_pkcs11_check_rv(rv, "Close session");
-                rv = session->module->sym->C_Finalize(NULL);
-                hsm_pkcs11_check_rv(rv, "Finalize");
-                hsm_session_free(ctx->session[i]);
-                hsm_pkcs11_unload_functions(session->module->dynlib_handle);
+                hsm_session_close(_hsm_ctx->session[i]);
+                _hsm_ctx->session[i] = NULL;
+                if (i == _hsm_ctx->session_count) {
+                    while(i > 0 && !_hsm_ctx->session[i]) {
+                        i--;
+                    }
+                }
             }
         }
         free(ctx);
@@ -458,7 +499,8 @@ hsm_ctx_close(hsm_ctx_t *ctx)
  *            reached
  */
 static int
-hsm_ctx_add_session(hsm_ctx_t *ctx, hsm_session_t *session) {
+hsm_ctx_add_session(hsm_ctx_t *ctx, hsm_session_t *session)
+{
     if (!ctx || !session) return -1;
     if (ctx->session_count >= HSM_MAX_SESSIONS) return 1;
     ctx->session[ctx->session_count] = session;
@@ -484,13 +526,8 @@ hsm_open(const char *config,
     char *module_name;
     char *module_path;
     char *module_pin;
-    hsm_module_t *module;
     hsm_session_t *session;
-    
-    CK_SESSION_HANDLE session_handle;
-    CK_SLOT_ID slot_id;
-    CK_RV rv;
-    
+
     /* create an internal context with an attached session for each
      * configured HSM. */
     fprintf(stderr,"creating global ctx\n");
@@ -548,20 +585,7 @@ hsm_open(const char *config,
                     if (!module_pin) {
                         module_pin = pin_callback(module_name, data);
                     }
-                    /* TODO: move to hsm_pkcs11_module_init? */
-                    module = hsm_module_new(module_name, module_path);
-                    rv = hsm_pkcs11_load_functions(&(module->dynlib_handle), &(module->sym), module_path);
-                    hsm_pkcs11_check_rv(rv, "Load functions");
-                    module->sym->C_Initialize(NULL);
-                    hsm_pkcs11_check_rv(rv, "Initialization");
-                    slot_id = ldns_hsm_get_slot_id(module->sym, module_name);
-                    rv = module->sym->C_OpenSession(slot_id,
-                                               CKF_SERIAL_SESSION,
-                                               NULL,
-                                               NULL,
-                                               &session_handle);
-                    hsm_pkcs11_check_rv(rv, "Open session");
-                    session = hsm_session_new(module, session_handle);
+                    session = hsm_session_init(module_name, module_path);
                     hsm_ctx_add_session(_hsm_ctx, session);
                     fprintf(stdout, "module added\n");
                     /* ok we have a module, start a session */

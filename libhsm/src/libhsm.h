@@ -42,10 +42,9 @@
 /*! Data type to describe an HSM */
 typedef struct {
 	unsigned int id;           /*!< HSM numerical identifier */
-	void *dynlib_handle;       /*!< pointer to a dynamically loaded lib*/
 	char *name;          /*!< name of module */
 	char *path;          /*!< path to PKCS#11 library */
-	const void *handle;        /*!< handle from dlopen()*/
+	void *handle;        /*!< handle from dlopen()*/
 	CK_FUNCTION_LIST_PTR sym;  /*!< Function list from dlsym */
 } hsm_module_t;
 
