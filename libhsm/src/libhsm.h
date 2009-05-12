@@ -109,7 +109,7 @@ int hsm_close();
 
 Also destroys any associated session.
 */
-const hsm_ctx_t *hsm_create_context(void);
+hsm_ctx_t *hsm_create_context(void);
 
 /*! Destroy HSM context
 
@@ -117,7 +117,7 @@ const hsm_ctx_t *hsm_create_context(void);
 
 Also destroys any associated sessions.
 */
-void hsm_destroy_context(const hsm_ctx_t *context);
+void hsm_destroy_context(hsm_ctx_t *context);
 
 
 /*! List all known keys in all attached HSMs
@@ -215,5 +215,7 @@ int hsm_attach(const char *repository, const char *path, const char *pin);
 /*! Detach a named HSM */
 int hsm_detach(const char *name);
 
+void hsm_print_session(hsm_session_t *session);
+void hsm_print_ctx(hsm_ctx_t *gctx);
 
 #endif /* HSM_H */

@@ -215,9 +215,7 @@ hsm_pkcs11_unload_functions(void *handle)
 #if defined(HAVE_LOADLIBRARY)
         // no idea
 #elif defined(HAVE_DLOPEN)
-        fprintf(stderr, "unload dlopened lib at %p\n", handle);
         result = dlclose(handle);
-        fprintf(stderr, "unload result: %d\n", result);
 #endif
     }
 }
@@ -280,7 +278,6 @@ fprintf(stderr, "have pkcs11_module\n");
 
     /* Retrieve the function list */
     (pGetFunctionList)(&module->sym);
-
     return CKR_OK;
 }
 
@@ -377,22 +374,14 @@ hsm_session_new(hsm_module_t *module, CK_SESSION_HANDLE session_handle)
 {
     hsm_session_t *session;
     session = malloc(sizeof(hsm_session_t));
-    fprintf(stderr, "alloced session at %p, size %u\n", (void *) session, sizeof(hsm_session_t));
     session->module = module;
-    fprintf(stderr, "alloced session at %p, size %u\n", (void *) session, sizeof(hsm_session_t));
     session->session = session_handle;
-    fprintf(stderr, "alloced session at %p, size %u\n", (void *) session, sizeof(hsm_session_t));
     return session;
 }
 
 static void
 hsm_session_free(hsm_session_t *session) {
     if (session) {
-        if (session->module) {
-            fprintf(stderr, "free module at %p\n", (void *)session->module);
-            hsm_module_free(session->module);
-        }
-        fprintf(stderr, "free session at %p\n", (void *)session);
         free(session);
     }
 }
@@ -420,9 +409,34 @@ hsm_session_init(char *module_name, char *module_path)
                                NULL,
                                NULL,
                                &session_handle);
-    hsm_pkcs11_check_rv(rv, "Open session");
+    hsm_pkcs11_check_rv(rv, "Open first session");
     session = hsm_session_new(module, session_handle);
+
     return session;
+}
+
+/* open a second session from the given one */
+hsm_session_t *
+hsm_session_clone(hsm_session_t *session)
+{
+    CK_RV rv;
+    CK_SLOT_ID slot_id;
+    CK_SESSION_HANDLE session_handle;
+    hsm_session_t *new_session;
+    
+    slot_id = ldns_hsm_get_slot_id(session->module->sym,
+                                   session->module->name);
+    rv = session->module->sym->C_OpenSession(slot_id,
+                                    CKF_SERIAL_SESSION,
+                                    NULL,
+                                    NULL,
+                                    &session_handle);
+    
+    hsm_pkcs11_check_rv(rv, "Open first session");
+    new_session = hsm_session_new(session->module, session_handle);
+
+    return new_session;
+    
 }
 
 static hsm_ctx_t *
@@ -452,45 +466,55 @@ hsm_ctx_free(hsm_ctx_t *ctx)
     }
 }
 
-/* close the session, unload the module, and free the allocated data
- * only call this on your last session (i.e. the global ctx sessions)
+/* close the session, and free the allocated data
+ * 
+ * if unload is non-zero, the dlopen()d module is closed and unloaded
+ * (only call this on the last session for each module, ie. the one
+ * in the global ctx)
  */
 void
-hsm_session_close(hsm_session_t *session)
+hsm_session_close(hsm_session_t *session, int unload)
 {
     CK_RV rv;
     rv = session->module->sym->C_CloseSession(session->session);
     hsm_pkcs11_check_rv(rv, "Close session");
-    rv = session->module->sym->C_Finalize(NULL);
-    hsm_pkcs11_check_rv(rv, "Finalize");
-    hsm_pkcs11_unload_functions(session->module->handle);
+    if (unload) {
+        rv = session->module->sym->C_Finalize(NULL);
+        hsm_pkcs11_check_rv(rv, "Finalize");
+        hsm_pkcs11_unload_functions(session->module->handle);
+        hsm_module_free(session->module);
+        session->module = NULL;
+    }
     hsm_session_free(session);
 }
 
-/* ctx_close closes all session, unloads all modules, and free
- * the structures. This one should only be used on the global context,
- * NOT on user-created contexts */
+/* ctx_close closes all session, and free
+ * the structures. 
+ * 
+ * if unload is non-zero, the associated dynamic libraries are unloaded
+ * (hence only use that on the last, global, ctx)
+ */
 static void
-hsm_ctx_close(hsm_ctx_t *ctx)
+hsm_ctx_close(hsm_ctx_t *ctx, int unload)
 {
     unsigned int i;
 
     if (ctx) {
-        if (ctx->session) {
-            for (i = 0; i < ctx->session_count; i++) {
-                printf("close session %u\n", i);
-                hsm_session_close(_hsm_ctx->session[i]);
-                _hsm_ctx->session[i] = NULL;
-                if (i == _hsm_ctx->session_count) {
-                    while(i > 0 && !_hsm_ctx->session[i]) {
-                        i--;
-                    }
+        for (i = 0; i < ctx->session_count; i++) {
+            printf("close session %u (unload: %d)\n", i, unload);
+            hsm_print_ctx(ctx);
+            hsm_session_close(ctx->session[i], unload);
+            ctx->session[i] = NULL;
+            if (i == _hsm_ctx->session_count) {
+                while(i > 0 && !ctx->session[i]) {
+                    i--;
                 }
             }
         }
         free(ctx);
     }
 }
+
 
 /* adds a session to the context.
  * returns  0 on succes
@@ -509,9 +533,26 @@ hsm_ctx_add_session(hsm_ctx_t *ctx, hsm_session_t *session)
     return 0;
 }
 
+hsm_ctx_t *
+hsm_ctx_clone(hsm_ctx_t *ctx)
+{
+    unsigned int i;
+    hsm_ctx_t *new_ctx;
+    hsm_session_t *new_session;
+
+    new_ctx = NULL;
+    if (ctx) {
+        new_ctx = hsm_ctx_new();
+        for (i = 0; i < ctx->session_count; i++) {
+            new_session = hsm_session_clone(ctx->session[i]);
+            hsm_ctx_add_session(new_ctx, new_session);
+        }
+    }
+    return new_ctx;
+}
+
 
 /* external functions */
-
 int
 hsm_open(const char *config,
          char *(pin_callback)(char *token_name, void *), void *data)
@@ -607,6 +648,41 @@ hsm_open(const char *config,
 int
 hsm_close()
 {
-    hsm_ctx_close(_hsm_ctx);
+    hsm_ctx_close(_hsm_ctx, 1);
     return 0;
+}
+
+hsm_ctx_t *
+hsm_create_context()
+{
+    return hsm_ctx_clone(_hsm_ctx);
+}
+
+void
+hsm_destroy_context(hsm_ctx_t *ctx)
+{
+    hsm_ctx_close(ctx, 0);
+}
+
+void
+hsm_print_session(hsm_session_t *session)
+{
+    printf("\t\tmodule at %p (sym %p)\n", (void *) session->module, (void *) session->module->sym);
+    printf("\t\tsess handle: %u\n", (unsigned int) session->session);
+}
+
+void
+hsm_print_ctx(hsm_ctx_t *gctx) {
+    hsm_ctx_t *ctx;
+    unsigned int i;
+    if (!gctx) {
+        ctx = _hsm_ctx;
+    } else {
+        ctx = gctx;
+    }
+    printf("CTX Sessions: %u\n", ctx->session_count);
+    for (i = 0; i < ctx->session_count; i++) {
+        printf("\tSession at %p\n", (void *) ctx->session[i]);
+        hsm_print_session(ctx->session[i]);
+    }
 }

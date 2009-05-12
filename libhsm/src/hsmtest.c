@@ -39,10 +39,17 @@ main (int argc, char *argv[])
 	
 	(void) argc;
 	(void) argv;
+	hsm_ctx_t *ctx;
 	
 	fprintf(stdout, "Starting HSM lib test\n");
 	result = hsm_open("/home/jelte/opt/opendnssec/etc/opendnssec/conf.xml", NULL, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);
+	ctx = hsm_create_context();
+	printf("global: ");
+	hsm_print_ctx(NULL);
+	printf("my: ");
+	hsm_print_ctx(ctx);
+	hsm_destroy_context(ctx);
 	result = hsm_close();
 	fprintf(stdout, "hsm_close result: %d\n", result);
 	return 0;
