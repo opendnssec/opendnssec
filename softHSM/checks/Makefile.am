@@ -11,10 +11,10 @@ AM_CFLAGS = -O3 -W -Wall -Werror -g
 AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/../src/lib -I$(srcdir)/../src/lib/cryptoki \
 	-DCHECKS_SOFTHSM_CONF='"$(srcdir)/softhsm.conf"'
 
-EXTRA_DIST = *.h
+EXTRA_DIST =	$(srcdir)/*.h \
+		$(srcdir)/softhsm.conf
 
 checks_LDADD = ../src/lib/libsofthsm.la
-
 
 token.db:
 	../src/bin/softhsm --init-token $@ --label "A token" --so-pin 12345678 --pin 123456

@@ -4,6 +4,6 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 bin_PROGRAMS =		softhsm
 softhsm_SOURCES =	softhsm.cpp softhsm.h
-softhsm_CPPFLAGS =	-I.
+softhsm_CPPFLAGS =	-I$(srcdir)
 
-EXTRA_DIST =		*.h
+EXTRA_DIST =		$(srcdir)/*.h

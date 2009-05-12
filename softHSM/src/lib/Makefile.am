@@ -20,5 +20,5 @@ libsofthsm_la_SOURCES =		main.cpp \
 				SoftKeyStore.cpp
 libsofthsm_la_LDFLAGS =		-version-info @VERSION_INFO@
 
-EXTRA_DIST =			*.h \
-				./cryptoki/*.h
+EXTRA_DIST =			$(srcdir)/*.h \
+				$(srcdir)/cryptoki/*.h
