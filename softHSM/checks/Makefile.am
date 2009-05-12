@@ -8,7 +8,7 @@ noinst_PROGRAMS = checks
 noinst_DATA = token.db
 
 AM_CFLAGS = -O3 -W -Wall -Werror -g
-AM_CPPFLAGS = -I$. -I$(srcdir)/../src/lib -I$(srcdir)/../src/lib/cryptoki \
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/../src/lib -I$(srcdir)/../src/lib/cryptoki \
 	-DCHECKS_SOFTHSM_CONF='"$(srcdir)/softhsm.conf"'
 
 EXTRA_DIST = *.h
