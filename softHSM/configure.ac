@@ -89,6 +89,10 @@ if test "${enable_strict}" = "yes"; then
 	CXXFLAGS="${CXXFLAGS} -Wall -Wextra"
 fi
 
+# Do not give warnings for long-long. So that we can build with newer SQLite3 
+CXXFLAGS="${CXXFLAGS} -Wno-long-long"
+CFLAGS="${CFLAGS} -Wno-long-long"
+
 # Configure the path to Botan and SQLite3
 LDFLAGS="$LDFLAGS -L$BOTANLIBDIR -R$BOTANLIBDIR -L$SQLITELIBDIR -R$SQLITELIBDIR"
 CXXFLAGS="$CXXFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
