@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 extern SoftHSMInternal *softHSM;
 
@@ -66,8 +67,6 @@ CK_RV readConfigFile() {
   }
 
   char fileBuf[1024];
-  char *slotidstr;
-  char *dbPath;
 
   // Format in config file
   //
@@ -77,15 +76,49 @@ CK_RV readConfigFile() {
   while(fgets(fileBuf, sizeof(fileBuf), fp) != NULL) {
     // End the string at the first comment or newline
     fileBuf[strcspn(fileBuf, "#\n\r")] = '\0';
-    slotidstr = strtok(fileBuf, ":");
 
-    if(slotidstr != NULL) {
-      dbPath = strtok(NULL, ":");
+    // Get the first part of the line
+    char *slotidstr = strtok(fileBuf, ":");
 
-      if(dbPath != NULL) {
-        softHSM->slots->addSlot(atoi(slotidstr), strdup(dbPath));
-      }
+    // Check that we have a digit in the first position, so it can be parsed.
+    if(slotidstr == NULL || !isdigit((int)*slotidstr)) {
+      continue;
     }
+
+    // Get the second part of the line
+    char *dbPath = strtok(NULL, ":");
+    if(dbPath == NULL) {
+      continue;
+    }
+
+    int startPos = 0;
+    int endPos = strlen(dbPath);
+
+    // Find the first position without a space
+    while(isspace((int)*(dbPath + startPos)) && startPos < endPos) {
+      startPos++;
+    }
+    // Find the last position without a space
+    while(isspace((int)*(dbPath + endPos)) && startPos < endPos) {
+      endPos--;
+    }
+
+    // We must have a valid string
+    int length = endPos - startPos;
+    if(length <= 0) {
+      continue;
+    }
+
+    // Create the real DB path
+    char *realPath = (char *)malloc(length + 1);
+    if(realPath == NULL_PTR) {
+      continue;
+    }
+    realPath[length] = '\0';
+    memcpy(realPath, dbPath + startPos, length);
+
+    // Add the slot
+    softHSM->slots->addSlot(atoi(slotidstr), realPath);
   }
 
   fclose(fp);

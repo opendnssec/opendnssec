@@ -485,6 +485,8 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
     }
   }
 
+  FREE_PTR(objectRefs);
+
   session->findInitialized = true;
 
   DEBUG_MSG("C_FindObjectsInit", "OK");
