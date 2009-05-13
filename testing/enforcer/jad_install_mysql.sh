@@ -7,7 +7,7 @@ cd $MYDIR
 echo "installing in $MYDIR/install"
 
 # clean out old builds
-rm -rf bin build	etc	include	install	lib	share
+rm -rf build install
 mkdir build
 
 # co/up src
