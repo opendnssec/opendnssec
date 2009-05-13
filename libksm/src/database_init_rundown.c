@@ -81,3 +81,12 @@ void DbRundown(void)
 {
 	return;
 }
+
+int DbFlavour(void)
+{
+#ifdef USE_MYSQL
+    return MYSQL_DB;
+#else
+    return SQLITE_DB;
+#endif
+}

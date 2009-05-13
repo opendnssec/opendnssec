@@ -42,6 +42,9 @@ extern "C" {
 
 #include <stdlib.h>
 
+#define MYSQL_DB 1
+#define SQLITE_DB 2
+
 #ifdef USE_MYSQL
 
 #include "mysql.h"
@@ -140,6 +143,11 @@ int DbLastRowId(DB_HANDLE handle, DB_ID* id);
 int DbBeginTransaction(void);
 int DbCommit(void);
 int DbRollback(void);
+
+/* What sort of DB are we running */
+
+int DbFlavour(void);
+
 
 #ifdef __cplusplus
 };

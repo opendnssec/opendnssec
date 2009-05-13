@@ -112,9 +112,9 @@ int TdbSetup(void)
 	int			status;		/* Status return from connection */
 
 #ifdef USE_MYSQL
-	(void) system("./database_setup.sh setup");
+	(void) system("sh ./database_setup.sh setup");
 #else
-	(void) system("./database_setup_lite.sh setup");
+	(void) system("sh ./database_setup_lite.sh setup");
 #endif
 
 	DbInit();
@@ -134,9 +134,9 @@ int TdbTeardown(void)
 	DbRundown();
 
 #ifdef USE_MYSQL
-	(void) system("./database_setup.sh teardown");
+	(void) system("sh ./database_setup.sh teardown");
 #else
-	(void) system("./database_setup_lite.sh teardown");
+	(void) system("sh ./database_setup_lite.sh teardown");
 #endif
 
 	return 0;
