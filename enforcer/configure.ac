@@ -99,7 +99,11 @@ AC_SUBST(XML_LIBS)
 keygend_conf_file=$sysconfdir/opendnssec/conf.xml
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file`"], [Path to the OpenDNSSEC configuration file])
 keygend_conf_schema=$sysconfdir/opendnssec/conf.rng
-AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema`"], [Path to the OpenDNSSEC configuration file])
+AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema`"], [Path to the OpenDNSSEC configuration schema file])
+com_pid_file=$localstatedir/run/opendnssec/communicated.pid
+AC_DEFINE_UNQUOTED(COM_PID, ["`eval echo $com_pid_file`"], [Path to the OpenDNSSEC communicated pid file])
+keygen_pid_file=$localstatedir/run/opendnssec/keygend.pid
+AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file`"], [Path to the OpenDNSSEC keygend pid file])
 
 CPPFLAGS="${CPPFLAGS} ${XML_INCLUDES} -I${KSM_INCLUDES}"
 

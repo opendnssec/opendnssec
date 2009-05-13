@@ -41,4 +41,3 @@ int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);
 int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy);
 int commKeyConfig(void* context, KSM_KEYDATA* key_data);
-void commsleep(DAEMONCONFIG* config);

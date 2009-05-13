@@ -49,8 +49,16 @@
 #include <ctype.h>
 #include <signal.h>
 
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+#include <libxml/relaxng.h>
+
 #include "daemon.h"
 #include "daemon_util.h"
+
+#include "ksm/database.h"
 
 int
 permsDrop(DAEMONCONFIG* config)
@@ -84,11 +92,6 @@ usage(void)
 	fprintf(stderr, "  -d          Debug.\n");
   fprintf(stderr, "  -u          Change effective uid to the specified user.\n");
   fprintf(stderr, "  -P pidfile  Specify the PID file to write.\n");
-  
-	fprintf(stderr, "  -h          Host.\n");
-	fprintf(stderr, "  -n          User.\n");
-	fprintf(stderr, "  -p          Password.\n");
-	fprintf(stderr, "  -s          Database/Schema.\n");
 
 	fprintf(stderr, "  -v          Print version.\n");
 	fprintf(stderr, "  -?          This help.\n");
@@ -160,43 +163,14 @@ void
 cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
 {
 	int c;
-	/*
-	 * Set some defaults for missing
-	 * command line options
-	 */
-	config->debug = false;
-	config->user = "kasp";
-	config->password = "kasp";
-	config->host = "localhost";
-	config->schema = "kasp";
-	config->keycreate = 1;
-
-	/*
-	 * Not really a command line option
-	 * but set an interval for now
-	 */
-	config->interval = 300;
-	config->backup_interval = 10;
 
 	/*
 	 * Read the command line
 	 */
-	while ((c = getopt(*argc, argv, "dv?h:u:s:p:P:n:")) != -1) {
+	while ((c = getopt(*argc, argv, "dv?u:P:")) != -1) {
 		switch (c) {
 			case 'd':
 				config->debug = true;
-				break;
-			case 'n':
-				config->user = optarg;
-				break;
-			case 's':
-				config->schema = optarg;
-				break;
-			case 'p':
-				config->password = optarg;
-				break;
-			case 'h':
-				config->host = optarg;
 				break;
 			case 'P':
         config->pidfile = optarg;
@@ -273,4 +247,222 @@ sig_handler (int sig)
     default:      
           break;
   }
+}
+
+int
+ReadConfig(DAEMONCONFIG *config)
+{
+  xmlDocPtr doc;
+  xmlDocPtr rngdoc;
+  xmlXPathContextPtr xpathCtx;
+  xmlXPathObjectPtr xpathObj;
+  xmlRelaxNGParserCtxtPtr rngpctx;
+  xmlRelaxNGValidCtxtPtr rngctx;
+  xmlRelaxNGPtr schema;
+  xmlChar *ki_expr = (unsigned char*) "//Configuration/Enforcer/KeygenInterval";
+  xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
+  xmlChar *bi_expr = (unsigned char*) "//Configuration/Enforcer/BackupDelay";
+  xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQlite";
+	xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
+	xmlChar *mysql_port = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host/@port";
+	xmlChar *mysql_db = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Database";
+	xmlChar *mysql_user = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Username";
+	xmlChar *mysql_pass = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Password";
+
+  int mysec = 0;
+  int status;
+	int db_found = 0;
+  char* filename = CONFIGFILE;
+  char* rngfilename = CONFIGRNG;
+ 
+  log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
+  
+  /* Load XML document */
+  doc = xmlParseFile(filename);
+  if (doc == NULL) {
+	  log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", filename);
+	    return(-1);
+  }
+
+  /* Load rng document */
+  log_msg(config, LOG_INFO, "Reading config schema \"%s\"\n", rngfilename);
+  rngdoc = xmlParseFile(rngfilename);
+  if (rngdoc == NULL) {
+	  log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", rngfilename);
+	    return(-1);
+  }
+
+  /* Create an XML RelaxNGs parser context for the relax-ng document. */
+  rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+  if (rngpctx == NULL) {
+	  log_msg(config, LOG_ERR, "Error: unable to create XML RelaxNGs parser context\n");
+	    return(-1);
+  }
+  
+  /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
+  schema = xmlRelaxNGParse(rngpctx);
+  if (schema == NULL) {
+	  log_msg(config, LOG_ERR, "Error: unable to parse a schema definition resource\n");
+	    return(-1);
+  }
+  
+  /* Create an XML RelaxNGs validation context based on the given schema */
+  rngctx = xmlRelaxNGNewValidCtxt(schema);
+  if (rngctx == NULL) {
+	  log_msg(config, LOG_ERR, "Error: unable to create RelaxNGs validation context based on the schema\n");
+	    return(-1);
+  }
+  
+  /* Validate a document tree in memory. */
+  status = xmlRelaxNGValidateDoc(rngctx,doc);
+  if (status != 0) {
+    log_msg(config, LOG_ERR, "Error validating file \"%s\"\n", filename);
+    return(-1);
+  }
+
+  /* Now parse a value out of the conf */
+  /* Create xpath evaluation context */
+  xpathCtx = xmlXPathNewContext(doc);
+  if(xpathCtx == NULL) {
+      log_msg(config, LOG_ERR,"Error: unable to create new XPath context\n");
+      xmlFreeDoc(doc);
+      return(-1);
+  }
+
+  /* Evaluate xpath expression for keygen interval */
+  xpathObj = xmlXPathEvalExpression(ki_expr, xpathCtx);
+  if(xpathObj == NULL) {
+      log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", ki_expr);
+      xmlXPathFreeContext(xpathCtx);
+      xmlFreeDoc(doc);
+      return(-1);
+  }
+  
+  status = DtXMLIntervalSeconds(xmlXPathCastToString(xpathObj), &mysec);
+  if (status > 0) {
+    	log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", xmlXPathCastToString(xpathObj), status);
+    	return status;
+  }
+	else if (status == -1) {
+		log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", xmlXPathCastToString(xpathObj));
+	}
+  config->keygeninterval = mysec;
+  log_msg(config, LOG_INFO, "Key Generation Interval: %i\n", config->keygeninterval);
+  
+  /* Evaluate xpath expression for interval */
+  /* TODO check that we can reuse xpathObj even if something has not worked */
+  xpathObj = xmlXPathEvalExpression(iv_expr, xpathCtx);
+  if(xpathObj == NULL) {
+      log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", iv_expr);
+      xmlXPathFreeContext(xpathCtx);
+      xmlFreeDoc(doc);
+      return(-1);
+  }
+  
+  DtXMLIntervalSeconds(xmlXPathCastToString(xpathObj), &mysec);
+  if (status > 0) {
+     	log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", xmlXPathCastToString(xpathObj), status);
+     	return status;
+  }
+	else if (status == -1) {
+		log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", xmlXPathCastToString(xpathObj));
+	}
+  config->interval = mysec;
+  log_msg(config, LOG_INFO, "Communication Interval: %i\n", config->interval);
+  
+  /* Evaluate xpath expression for backup interval */
+  xpathObj = xmlXPathEvalExpression(bi_expr, xpathCtx);
+  if(xpathObj == NULL) {
+      log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", bi_expr);
+      xmlXPathFreeContext(xpathCtx);
+      xmlFreeDoc(doc);
+      return(-1);
+  }
+  
+  status = DtXMLIntervalSeconds(xmlXPathCastToString(xpathObj), &mysec);
+  if (status > 0) {
+    	log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", xmlXPathCastToString(xpathObj), status);
+    	return status;
+  }
+	else if (status == -1) {
+		log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", xmlXPathCastToString(xpathObj));
+	}
+  config->backupinterval = mysec;
+  log_msg(config, LOG_INFO, "HSM Backup Interval: %i\n", config->backupinterval);
+
+  /* Evaluate xpath expression for SQlite file location */
+  xpathObj = xmlXPathEvalExpression(litexpr, xpathCtx);
+  if(xpathObj != NULL) {
+		db_found = SQLITE_DB;
+  }
+  config->schema = xmlXPathCastToString(xpathObj);
+  log_msg(config, LOG_INFO, "SQlite database set to: %s\n", config->schema);
+
+	if (db_found == 0) {
+  /* Get all of the MySQL stuff read in too */
+		xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
+	  if(xpathObj != NULL) {
+			db_found = MYSQL_DB;
+	  }
+	  config->host = xmlXPathCastToString(xpathObj);
+	  log_msg(config, LOG_INFO, "MySQL database host set to: %s\n", config->host);
+	
+		xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
+	  if(xpathObj == NULL) {
+			db_found = 0;
+		}
+	  config->port = xmlXPathCastToString(xpathObj);
+	  log_msg(config, LOG_INFO, "MySQL database port set to: %s\n", config->port);
+	
+		xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
+	  if(xpathObj == NULL) {
+			db_found = 0;
+		}
+	  config->schema = xmlXPathCastToString(xpathObj);
+	  log_msg(config, LOG_INFO, "MySQL database schema set to: %s\n", config->schema);
+	
+		xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
+	  if(xpathObj == NULL) {
+			db_found = 0;
+		}
+	  config->user = xmlXPathCastToString(xpathObj);
+	  log_msg(config, LOG_INFO, "MySQL database user set to: %s\n", config->user);
+	
+		xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);
+	  if(xpathObj == NULL) {
+			db_found = 0;
+		}
+	  config->password = xmlXPathCastToString(xpathObj);
+	  log_msg(config, LOG_INFO, "MySQL database password set\n");
+
+	}
+	
+	/* Check that we found one or the other database */
+	if(db_found == 0) {
+      log_msg(config, LOG_ERR, "Error: unable to find complete database connection expression\n");
+      xmlXPathFreeContext(xpathCtx);
+      xmlFreeDoc(doc);
+      return(-1);
+  }
+
+	/* Check that we found the right database type */
+	if (db_found != DbFlavour()) {
+		log_msg(config, LOG_ERR, "Error: database in config file does not match libksm\n");
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
+    return(-1);
+	}
+
+  /* Cleanup */
+  /* TODO: some other frees are needed */
+  xmlXPathFreeObject(xpathObj);
+  xmlXPathFreeContext(xpathCtx);
+  xmlFreeDoc(doc);
+  xmlRelaxNGFree(schema);
+  xmlRelaxNGFreeValidCtxt(rngctx);
+  xmlRelaxNGFreeParserCtxt(rngpctx);
+  xmlFreeDoc(rngdoc);
+
+  return(0);
+  
 }

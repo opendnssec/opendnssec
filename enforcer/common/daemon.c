@@ -57,6 +57,14 @@ main(int argc, char *argv[]){
   int fd;
   struct sigaction action;
 	DAEMONCONFIG config;
+	/* TODO remove magic numbers */
+	config.pidfile = (unsigned char *)calloc(255, sizeof(char));	
+	config.user = (unsigned char *)calloc(255, sizeof(char));
+	config.host = (unsigned char *)calloc(255, sizeof(char));
+	config.password = (unsigned char *)calloc(255, sizeof(char));
+	config.schema = (unsigned char *)calloc(255, sizeof(char));
+	config.port = (unsigned char *)calloc(255, sizeof(char));
+	
 	
   /* useful message */
 	log_msg(&config, LOG_INFO, "%s starting...", PACKAGE_NAME);
@@ -117,22 +125,21 @@ main(int argc, char *argv[]){
   * if you need to do other stuff such as bind to low ports first
   */
   if (permsDrop(&config) != 0) {
-    unlink(config.pidfile);
     exit(1);
   }
     
-  config.pid = getpid();
+  /* Run the server specific code. You need to provide this function somewhere */
+  if (server_init(&config) != 0) {
+    exit(1);
+  }
+  
+	/* write the pidfile */
+	config.pid = getpid();
   if (writepid(&config) == -1) {
     log_msg(&config, LOG_ERR, "cannot write the pidfile %s: %s",
       config.pidfile, strerror(errno));
   }
-  
-  /* Run the server. You need to provide this function somewhere */
-  if (server_init(&config) != 0) {
-    unlink(config.pidfile);
-    exit(1);
-  }
-  
+
   log_msg(&config, LOG_NOTICE, "%s started (version %s), pid %d", PACKAGE_NAME, PACKAGE_VERSION, 
     (int) config.pid);
   
@@ -140,6 +147,14 @@ main(int argc, char *argv[]){
   server_main(&config);
   
   /* NOTREACH */
+
+	free(config.pidfile);	
+	free(config.user);
+	free(config.host);
+	free(config.password);
+	free(config.schema);
+	free(config.port);
+	
   exit(0);
   
 }

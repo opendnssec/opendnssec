@@ -43,11 +43,16 @@
 #include "kaspaccess.h"
 #include "ksm/string_util2.h"
 #include "ksm/datetime.h"
+#include "config.h"
 
     int
 server_init(DAEMONCONFIG *config)
 {
-    /* May remove this function if I decide we don't need it */
+	/* set the default pidfile if nothing was provided on the command line*/
+	if (config->pidfile == NULL) {
+		config->pidfile = COM_PID;
+	}
+	
     return 0;
 }
 
@@ -62,6 +67,8 @@ server_main(DAEMONCONFIG *config)
     DB_HANDLE	dbhandle;
     int status = 0;
     int status2 = 0;
+
+		struct timeval tv;
 
     KSM_ZONE *zone;
     KSM_POLICY *policy;
@@ -79,6 +86,13 @@ server_main(DAEMONCONFIG *config)
     zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
     zone->name = (char *)calloc(KSM_ZONE_NAME_LENGTH, sizeof(char));
 
+		/* Read the config file */
+		status = ReadConfig(config);
+		if (status != 0) {
+		  log_msg(config, LOG_ERR, "Error reading config");
+		  exit(1);
+		}
+		
     kaspConnect(config, &dbhandle);
 
     while (1) {
@@ -137,7 +151,18 @@ server_main(DAEMONCONFIG *config)
 		{
 			break;
 		}
-        commsleep(config);
+		/* sleep for a bit */
+		tv.tv_sec = config->interval;
+    tv.tv_usec = 0;
+    log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->interval);
+    select(0, NULL, NULL, NULL, &tv);
+
+		/* re-read the config file in case it has changed */
+	status = ReadConfig(config);
+	if (status != 0) {
+    log_msg(config, LOG_ERR, "Error reading config");
+    exit(1);
+  }
 
     }
     kaspDisconnect(config, &dbhandle);
@@ -287,22 +312,3 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     return 0;
 }
 
-/*
- * Go to sleep
- */
-
-void commsleep(DAEMONCONFIG* config)
-{
-    struct timeval tv;
-
-/* TODO this should come from the config file */
-#ifdef OUR_INTERVAL
-	tv.tv_sec = OUR_INTERVAL;
-#else
-    tv.tv_sec = config->interval;
-#endif
-
-    tv.tv_usec = 0;
-    log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->interval);
-    select(0, NULL, NULL, NULL, &tv);
-}

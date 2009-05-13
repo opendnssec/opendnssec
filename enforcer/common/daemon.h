@@ -71,13 +71,14 @@ typedef struct
   const char *username;
   
   /* Add app specific stuff here */
-  char* user;
-	char* host;
-	char* password;
-	char* schema;
+  unsigned char* user;
+	unsigned char* host;
+	unsigned char* password;
+	unsigned char* schema;
+	unsigned char* port;
   uint16_t interval;
 	int keycreate;
-	int backup_interval;
+	int backupinterval;
   int keygeninterval;
 	
 } DAEMONCONFIG;

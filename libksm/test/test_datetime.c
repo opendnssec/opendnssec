@@ -792,6 +792,8 @@ static void TestDtXMLIntervalSeconds(void)
     CheckValidXMLIntervalSeconds("P1W", 604800L, 0);
     CheckValidXMLIntervalSeconds("P52W", 31449600L, 0);
     CheckValidXMLIntervalSeconds("-PT1M", -60L, 0);
+		CheckValidXMLIntervalSeconds("PT1223S", 1223L, 0);
+		
 
     /* Valid but return -1 */
     CheckValidXMLIntervalSeconds("P1M", 2592000L, -1);

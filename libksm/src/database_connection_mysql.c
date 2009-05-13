@@ -92,6 +92,7 @@ static MYSQL* m_dbhandle = NULL;  /* Non-NULL if connected */
  *                  the MsgLog() function.
 -*/
 
+/* TODO add mysql port to this */
 int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
 {
 	MYSQL*		connection = NULL;	/* Local database handle */

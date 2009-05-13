@@ -39,7 +39,6 @@
 
 #include "daemon.h"
 #include "daemon_util.h"
-#include "keygend_util.h"
 #include "kaspaccess.h"
 
 #include <uuid/uuid.h>
@@ -49,7 +48,11 @@
 int
 server_init(DAEMONCONFIG *config)
 {
-  /* May remove this function if I decide we don't need it */
+	/* set the default pidfile if nothing was provided on the command line*/
+	if (config->pidfile == NULL) {
+		config->pidfile = KEYGEN_PID;
+	}
+	
   return 0;
 }
 
@@ -75,7 +78,8 @@ server_main(DAEMONCONFIG *config)
   uuid_t *uuid;
   char uuid_text[37];
   char *rightnow;
-  DB_ID* ignore;
+  DB_ID* ignore = 0;
+	struct timeval tv;
 	KSM_POLICY *policy;
 	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
 	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
@@ -88,15 +92,17 @@ server_main(DAEMONCONFIG *config)
 
 	kaspSetPolicyDefaults(policy, NULL);
 	
+	/* Read the config file */
+	status = ReadConfig(config);
+  if (status != 0) {
+    log_msg(config, LOG_ERR, "Error reading config");
+    exit(1);
+  }
+
   kaspConnect(config, &dbhandle);
 	
 	while (1) {
 
-    status = ReadConfig(config);
-    if (status != 0) {
-      log_msg(config, LOG_ERR, "Error reading config");
-      exit(1);
-    }
     
 		/* Read all policies */
 		status = KsmPolicyInit(&handle, NULL);
@@ -147,7 +153,18 @@ server_main(DAEMONCONFIG *config)
 		DbFreeResult(handle);
 		
 		/* sleep for the key gen interval */
-    keygensleep(config);
+	  tv.tv_sec = config->keygeninterval;
+	  tv.tv_usec = 0;
+	  log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->keygeninterval);
+	  select(0, NULL, NULL, NULL, &tv);
+	
+		/* re-read the config in case it has changed */
+	
+    status = ReadConfig(config);
+    if (status != 0) {
+      log_msg(config, LOG_ERR, "Error reading config");
+      exit(1);
+    }
 		
 	}
 	kaspDisconnect(config, &dbhandle);
