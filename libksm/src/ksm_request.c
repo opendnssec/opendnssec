@@ -39,16 +39,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "database.h"
-#include "database_statement.h"
-#include "db_fields.h"
-#include "debug.h"
-#include "ksm.h"
-#include "kmedef.h"
-#include "message.h"
-#include "memory.h"
-#include "string_util.h"
-#include "string_util2.h"
+#include "ksm/database.h"
+#include "ksm/database_statement.h"
+#include "ksm/db_fields.h"
+#include "ksm/debug.h"
+#include "ksm/ksm.h"
+#include "ksm/kmedef.h"
+#include "ksm/message.h"
+#include "ksm/memory.h"
+#include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 
 
@@ -490,8 +490,11 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     int     set = 0;    	/* For UPDATE */
     char*   sql = NULL;     /* SQL statement (when verifying) */
     int     status = 0;     /* Status return */
+#ifdef USE_MYSQL
+#else    
     char    buf[256];       /* For constructing date part of the command */
     char    col[256];       /* For constructing column part of the command */
+#endif /* USE_MYSQL */
 
     /* Create the destination column name */
 
@@ -502,21 +505,21 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 #else
 	snprintf(buf, sizeof(buf), "DATETIME('%s')", datetime);
     snprintf(col, sizeof(col), "DATETIME(%s)", dst_col);
-#endif
+#endif /* USE_MYSQL */
 
     if (DbgIsSet(DBG_M_REQUEST)) {
 
         /* Count how many keys will be transitioned between states */
 
         sql = DqsCountInit("KEYDATA_VIEW");
-/*        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++); */
+        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
         DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
 
 #ifdef USE_MYSQL
         DqsConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
 #else
         DqsConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
-#endif
+#endif /* USE_MYSQL */
 
         DqsEnd(&sql);
 
@@ -547,7 +550,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
         DusSetInt(&sql, "STATE", dst_state, set++);
         DusSetString(&sql, dst_col, datetime, set++);
 
-/*        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++); */
+        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
         DusConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
 #ifdef USE_MYSQL
         DusConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
@@ -990,8 +993,7 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
  *          will have been output.
 -*/
 
-int KsmRequestAvailableCount(int keytype, const char* datetime,
-    KSM_PARCOLL* parameters, int* count)
+int KsmRequestAvailableCount(int keytype, const char* datetime, KSM_PARCOLL* parameters, int* count)
 {
     char    buffer[256];    /* For constructing part of the command */
     int     clause = 0;     /* Used in constructing SQL statement */
@@ -1118,8 +1120,10 @@ int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count)
     int     clause = 0;     /* Clause counter */
     char*   sql = NULL;     /* SQL command */
     int     status;         /* Status return */
+#ifdef USE_MYSQL
+#else
     char    buf[256];       /* For constructing part of the command */
-
+#endif /* USE_MYSQL */
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
     DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, clause++);

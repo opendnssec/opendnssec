@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef DATABASE_STATEMENT_H
-#define DATABASE_STATEMENT_H
+#ifndef KSM_DATABASE_STATEMENT_H
+#define KSM_DATABASE_STATEMENT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -121,4 +121,4 @@ void DdsFree(char* query);
 };
 #endif
 
-#endif
+#endif /* KSM_DATABASE_STATEMENT_H */

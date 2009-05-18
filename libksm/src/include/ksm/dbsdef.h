@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef DBEDEF_H
-#define DBEDEF_H
+#ifndef KSM_DBEDEF_H
+#define KSM_DBEDEF_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,4 +64,4 @@ extern "C" {
 };
 #endif
 
-#endif
+#endif /* KSM_DBEDEF_H */

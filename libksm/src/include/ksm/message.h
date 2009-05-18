@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef MESSAGE_H
-#define MESSAGE_H
+#ifndef KSM_MESSAGE_H
+#define KSM_MESSAGE_H
 
 /*+
  * Filename: message.h
@@ -73,4 +73,4 @@ void MsgRundown(void);
 }
 #endif
 
-#endif
+#endif /* KSM_MESSAGE_H */

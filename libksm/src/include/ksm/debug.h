@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef DEBUG_H
-#define DEBUG_H
+#ifndef KSM_DEBUG_H
+#define KSM_DEBUG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,5 +61,5 @@ void DbgPrint(const char* format, ...);
 };
 #endif
 
-#endif
+#endif /* KSM_DEBUG_H */
 

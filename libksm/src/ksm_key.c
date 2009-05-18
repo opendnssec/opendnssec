@@ -42,15 +42,16 @@
 #include <string.h>
 #include <time.h>
 
-#include "database.h"
-#include "database_statement.h"
-#include "db_fields.h"
-#include "debug.h"
-#include "kmedef.h"
-#include "ksm.h"
-#include "ksm_internal.h"
-#include "message.h"
-#include "string_util.h"
+#include "ksm/database.h"
+#include "ksm/database_statement.h"
+#include "ksm/db_fields.h"
+#include "ksm/debug.h"
+#include "ksm/kmedef.h"
+#include "ksm/ksm.h"
+#include "ksm/ksmdef.h"
+#include "ksm/ksm_internal.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
 
 /*+
  * KsmKeyPairCreate - Create Entry in the KeyPairs table 
@@ -85,6 +86,11 @@ int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, in
     unsigned long rowid;			/* ID of last inserted row */
     int         status = 0;         /* Status return */
     char*       sql = NULL;         /* SQL Statement */
+
+    /* Check arguments */
+    if (id == NULL) {
+        return MsgLog(KSM_INVARG, "NULL id");
+    }
 
     sql = DisSpecifyInit("keypairs", "policy_id, HSMkey_id, securitymodule_id, size, algorithm, generate");
     DisAppendInt(&sql, policy_id);
@@ -137,6 +143,11 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id)
 	unsigned long rowid;			/* ID of last inserted row */
     int         status = 0;         /* Status return */
     char*       sql = NULL;         /* SQL Statement */
+
+    /* Check arguments */
+    if (id == NULL) {
+        return MsgLog(KSM_INVARG, "NULL id");
+    }
 
     sql = DisSpecifyInit("dnsseckeys", "zone_id, keypair_id, keytype");
     DisAppendInt(&sql, zone_id);
@@ -193,6 +204,11 @@ int KsmKeyModify(KSM_KEYDATA* data, int low, int high)
     char*       sql = NULL;         /* SQL Statement */
     int         temp;               /* For ensuring low < high */
     int         where = 0;          /* for the WHERE clause */
+
+    /* Check arguments */
+    if (data == NULL) {
+        return MsgLog(KSM_INVARG, "NULL data");
+    }
 
     /* Ensure range ordering is correct */
 
@@ -473,6 +489,11 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data)
     DB_ROW      row;            /* Row data */
     int         status = 0;     /* Return status */
 
+    /* Check arguments */
+    if (data == NULL) {
+        return MsgLog(KSM_INVARG, "NULL data");
+    }
+
 	/* Initialize */
 
 	memset(data, 0, sizeof(KSM_KEYDATA));
@@ -654,6 +675,11 @@ int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
 
     DB_RESULT result;
 	int zone_count = 0;
+
+    /* Check arguments */
+    if (count == NULL) {
+        return MsgLog(KSM_INVARG, "NULL count");
+    }
 
     /* how many zones on this policy */
     status = KsmZoneCountInit(&result, policy_id);

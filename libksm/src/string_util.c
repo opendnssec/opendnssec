@@ -39,8 +39,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "string_util.h"
-
+#include "ksm/string_util.h"
+#include "ksm/config.h"
 
 
 /*+
@@ -119,6 +119,7 @@ void StrWhitespace(char* line)
  *          string should be freed with StrFree() - a macro wrapper for "free".
 -*/
 
+/* TODO should this function exit? Should it log more if it does? */
 char* StrStrdup(const char* string)
 {
     char* duplicate = NULL; /* Pointer to the duplicated string */

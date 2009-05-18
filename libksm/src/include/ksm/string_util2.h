@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef STRING_UTIL2_H
-#define STRING_UTIL2_H
+#ifndef KSM_STRING_UTIL2_H
+#define KSM_STRING_UTIL2_H
 
 /*+
  * Filename: string_util2.h
@@ -66,4 +66,4 @@ int StrIsDigits(const char* string);
 }
 #endif
 
-#endif
+#endif /* KSM_STRING_UTIL2_H */

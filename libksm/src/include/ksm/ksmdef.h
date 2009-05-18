@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef STATUS_H
-#define STATUS_H
+#ifndef KSM_KSMDEF_H
+#define KSM_KSMDEF_H
 
 /*+
  * status.h - Define Status Codes
@@ -100,4 +100,4 @@
 #define KSM_ACTKEYRET   (KSM_BASE + 52)     /* INFO: %d keys in 'active' state will have their expected retire date modified */
 #define KSM_NOSUCHPAR   (KSM_BASE + 53)     /* ERROR: no such parameter with name %s */
 
-#endif
+#endif /* KSM_KSMDEF_H */

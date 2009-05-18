@@ -43,16 +43,17 @@
 #include <string.h>
 #include <time.h>
 
-#include "database.h"
-#include "database_statement.h"
-#include "datetime.h"
-#include "db_fields.h"
-#include "debug.h"
-#include "kmedef.h"
-#include "ksm.h"
-#include "ksm_internal.h"
-#include "message.h"
-#include "string_util.h"
+#include "ksm/database.h"
+#include "ksm/database_statement.h"
+#include "ksm/datetime.h"
+#include "ksm/db_fields.h"
+#include "ksm/debug.h"
+#include "ksm/kmedef.h"
+#include "ksm/ksmdef.h"
+#include "ksm/ksm.h"
+#include "ksm/ksm_internal.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
 
 
 
@@ -191,6 +192,10 @@ int KsmParameter(DB_RESULT result, KSM_PARAMETER* data)
     int         status = 0;     /* Return status */
     DB_ROW		row;            /* Row data */
 
+    if (data == NULL) {
+        return MsgLog(KSM_INVARG, "NULL data");
+    }
+
 	/* Initialize */
 
 	memset(data, 0, sizeof(KSM_PARAMETER));
@@ -274,6 +279,10 @@ int KsmParameterValue(const char* name, const char* category, int* value, int po
     KSM_PARAMETER   data;       /* Parameter data */
     int             status;     /* Status return */
 
+    /* check the arguments */
+    if (value == NULL || parameter_id == NULL) {
+        return MsgLog(KSM_INVARG, "NULL arg");
+    }
     status = KsmParameterInit(&handle, name, category, policy_id);
     if (status == 0) {
 
@@ -328,6 +337,11 @@ int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
 {
     int status = 0;
     int param_id;
+
+    /* check the arguments */
+    if (data == NULL) {
+        return MsgLog(KSM_INVARG, "NULL data");
+    }
 
     status = KsmParameterValue(KSM_PAR_CLOCKSKEW_STRING, KSM_PAR_CLOCKSKEW_CAT, &(data->clockskew), policy_id, &param_id);
     if (status > 0) return status;

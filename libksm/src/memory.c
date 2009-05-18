@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "memory.h"
+#include "ksm/memory.h"
 
 
 /*+
@@ -55,6 +55,8 @@
  *      to be zeroed.  The definition can be found in the header file.
 -*/
 
+/* TODO should these exit the program or not? 
+        If so, id this logging enough? */
 void* MemMalloc(size_t size)
 {
     void *ptr = malloc(size);

@@ -13,4 +13,4 @@ kmemsg.h: kmedef.h
 
 ksminclude_HEADERS = *.h $(srcdir)/*.h
 
-extra_DIST = *.h
+extra_DIST = $(srcdir)/*.h

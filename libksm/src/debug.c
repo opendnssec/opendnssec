@@ -40,8 +40,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "debug.h"
-#include "message.h"
+#include "ksm/debug.h"
+#include "ksm/message.h"
 
 /* Bitmask of debug flags */
 

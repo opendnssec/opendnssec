@@ -44,12 +44,12 @@
 
 #include <sqlite3.h>
 
-#include "dbsdef.h"
-#include "database.h"
-#include "debug.h"
-#include "memory.h"
-#include "message.h"
-#include "string_util.h"
+#include "ksm/dbsdef.h"
+#include "ksm/database.h"
+#include "ksm/debug.h"
+#include "ksm/memory.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
@@ -418,6 +418,7 @@ int DbString(DB_ROW row, int field_index, char** result)
 			/* Get string into null-terminated form */
 
 			if (sqlite3_column_text(row->result->data, field_index) != NULL) {
+                /* TODO replece the below with strdup or StrStrdup ? */
 				*result = MemMalloc(width + 1);
 				memcpy(*result, sqlite3_column_text(row->result->data, field_index), width);
 				(*result)[width] = 0;

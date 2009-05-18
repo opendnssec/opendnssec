@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef KSM_H
-#define KSM_H
+#ifndef KSM_KSM_H
+#define KSM_KSM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -424,12 +424,12 @@ int KsmKeywordParameterExists(const char* name);
 
 int KsmUpdate(int policy_id, int zone_id);
 void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection);
-void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data);
 void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
-void KsmUpdateReadyKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateReadyKeyTime(KSM_KEYDATA* data);
 void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
 void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
-void KsmUpdateDeadKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateDeadKeyTime(KSM_KEYDATA* data);
 int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
     const char* destination, int interval);
 
@@ -490,4 +490,4 @@ int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy);
 };
 #endif
 
-#endif
+#endif /* KSM_KSM_H */

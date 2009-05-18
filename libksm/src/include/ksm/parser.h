@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef KSM_PARSER_H
+#define KSM_PARSER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,4 +70,4 @@ int ParCommand(int argc, char** argv, CMD_DESCRIPTOR* cmdlist);
 };
 #endif
 
-#endif
+#endif /* KSM_PARSER_H */

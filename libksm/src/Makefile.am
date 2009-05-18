@@ -6,9 +6,7 @@ SUBDIRS = include
 
 AM_CPPFLAGS = \
 	-I$(srcdir)/include \
-	-I$(srcdir)/include/ksm \
 	-Iinclude \
-	-Iinclude/ksm \
 	 @DB_INCLUDES@
 
 libksm_la_LDFLAGS = @DB_LIBS@

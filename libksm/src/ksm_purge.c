@@ -33,11 +33,11 @@
  *      Holds all the functions needed to implement the "purge" command.
 -*/
 
-#include "database.h"
-#include "database_statement.h"
-#include "db_fields.h"
-#include "kmedef.h"
-#include "ksm.h"
+#include "ksm/database.h"
+#include "ksm/database_statement.h"
+#include "ksm/db_fields.h"
+#include "ksm/kmedef.h"
+#include "ksm/ksm.h"
 
 
 /*+

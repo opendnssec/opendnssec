@@ -36,17 +36,17 @@
 #include <string.h>
 #include <time.h>
 
-#include "database.h"
-#include "database_statement.h"
-#include "datetime.h"
-#include "db_fields.h"
-#include "debug.h"
-#include "ksmdef.h"
-#include "kmedef.h"
-#include "ksm.h"
-#include "ksm_internal.h"
-#include "message.h"
-#include "string_util.h"
+#include "ksm/database.h"
+#include "ksm/database_statement.h"
+#include "ksm/datetime.h"
+#include "ksm/db_fields.h"
+#include "ksm/debug.h"
+#include "ksm/ksmdef.h"
+#include "ksm/kmedef.h"
+#include "ksm/ksm.h"
+#include "ksm/ksm_internal.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
 
 /*+
  * KsmPolicyInit - Query for Policy Information
@@ -193,6 +193,11 @@ int KsmPolicy(DB_RESULT result, KSM_POLICY* data)
     int         status = 0;     /* Return status */
     DB_ROW      row;            /* Row data */
 
+    /* check the argument */
+    if (data == NULL) {
+        return MsgLog(KSM_INVARG, "NULL data");
+    }
+
     /* Get the next row from the data */
     status = DbFetchRow(result, &row);
     if (status == 0) {
@@ -230,6 +235,10 @@ int KsmPolicyRead(KSM_POLICY* policy)
     DB_RESULT            result;         /* Handle to parameter */
     int                  status = 0;     /* Status return */
 
+    /* check the argument */
+    if (policy == NULL) {
+        return MsgLog(KSM_INVARG, "NULL policy");
+    }
 
     status = KsmPolicyExists(policy->name);
 
@@ -329,6 +338,11 @@ int KsmPolicyParameter(DB_RESULT result, KSM_POLICY_PARAMETER* data)
     int         status = 0;     /* Return status */
     DB_ROW     row;            /* Row data */
 
+    /* check the argument */
+    if (data == NULL) {
+        return MsgLog(KSM_INVARG, "NULL data");
+    }
+
     /* Get the next row from the data */
     status = DbFetchRow(result, &row);
 
@@ -385,6 +399,11 @@ int KsmPolicyNameFromId(KSM_POLICY* policy)
     DB_RESULT       result;     /* Handle converted to a result object */
     DB_ROW      row;            /* Row data */
     int     status = 0;         /* Status return */
+
+    /* check the argument */
+    if (policy == NULL) {
+        return MsgLog(KSM_INVARG, "NULL policy");
+    }
 
     /* Construct the query */
 
@@ -453,6 +472,12 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     unsigned int     newsaltint;         /* new salt as integer */
     char    buffer[KSM_SQL_SIZE];   /* update statement for salt_stamp */
     unsigned int    nchar;          /* Number of characters converted */
+
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
 
     /* Construct the query */
 

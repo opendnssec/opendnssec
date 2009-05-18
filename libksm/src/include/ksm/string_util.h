@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef STRING_UTIL_H
-#define STRING_UTIL_H
+#ifndef KSM_STRING_UTIL_H
+#define KSM_STRING_UTIL_H
 
 /*+
  * Filename: string_util.h
@@ -88,4 +88,4 @@ size_t StrTrimmedLength(const char* string);
 }
 #endif
 
-#endif
+#endif /* KSM_STRING_UTIL_H */

@@ -36,16 +36,16 @@
 #include <string.h>
 #include <time.h>
 
-#include "database.h"
-#include "database_statement.h"
-#include "datetime.h"
-#include "db_fields.h"
-#include "debug.h"
-#include "ksmdef.h"
-#include "ksm.h"
-#include "ksm_internal.h"
-#include "message.h"
-#include "string_util.h"
+#include "ksm/database.h"
+#include "ksm/database_statement.h"
+#include "ksm/datetime.h"
+#include "ksm/db_fields.h"
+#include "ksm/debug.h"
+#include "ksm/ksmdef.h"
+#include "ksm/ksm.h"
+#include "ksm/ksm_internal.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
 
 /*+
  * KsmZoneInit - Query for Zone Information

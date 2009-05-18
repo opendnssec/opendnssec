@@ -44,12 +44,12 @@
 
 #include "mysql.h"
 
-#include "dbsdef.h"
-#include "database.h"
-#include "debug.h"
-#include "memory.h"
-#include "message.h"
-#include "string_util.h"
+#include "ksm/dbsdef.h"
+#include "ksm/database.h"
+#include "ksm/debug.h"
+#include "ksm/memory.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
@@ -391,6 +391,7 @@ int DbString(DB_ROW row, int field_index, char** result)
 			/* Get string into null-terminated form */
 
 			if (row->data[field_index] != NULL) {
+                /* TODO replece the below with strdup or StrStrdup ? */
 				*result = MemMalloc(lengths[field_index] + 1);
 				memcpy(*result, row->data[field_index], lengths[field_index]);
 				(*result)[lengths[field_index]] = 0;

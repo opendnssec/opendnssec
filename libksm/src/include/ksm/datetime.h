@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef DATETIME_H
-#define DATETIME_H
+#ifndef KSM_DATETIME_H
+#define KSM_DATETIME_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,5 +59,5 @@ int DtXMLIntervalSeconds(const char* number, int* interval);
 };
 #endif
 
-#endif
+#endif /* KSM_DATETIME_H */
 

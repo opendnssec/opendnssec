@@ -42,12 +42,13 @@
 
 #include <stdio.h>
 
-#include "database.h"
-#include "db_fields.h"
-#include "debug.h"
-#include "ksm.h"
-#include "kmedef.h"
-#include "message.h"
+#include "ksm/database.h"
+#include "ksm/db_fields.h"
+#include "ksm/debug.h"
+#include "ksm/ksm.h"
+#include "ksm/kmedef.h"
+#include "ksm/ksmdef.h"
+#include "ksm/message.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -144,9 +145,15 @@ int KsmUpdate(int policy_id, int zone_id)
 
 void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (data == NULL) {
+        MsgLog(KSM_INVARG, "NULL data");
+        return;
+    }
+
     switch (data->state) {
     case KSM_STATE_GENERATE:
-        KsmUpdateGenerateKeyTime(data, collection);
+        KsmUpdateGenerateKeyTime(data);
         break;
 
     case KSM_STATE_PUBLISH:
@@ -154,7 +161,7 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         break;
 
     case KSM_STATE_READY:
-        KsmUpdateReadyKeyTime(data, collection);
+        KsmUpdateReadyKeyTime(data);
         break;
 
     case KSM_STATE_ACTIVE:
@@ -166,7 +173,7 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         break;
 
     case KSM_STATE_DEAD:
-        KsmUpdateDeadKeyTime(data, collection);
+        KsmUpdateDeadKeyTime(data);
         break;
 
     default:
@@ -190,17 +197,20 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
  *      KSM_KEYDATA* data
  *          Key to update.
  *
- *      KSM_PARCOLL* collection
- *          Parameter collection.
 -*/
 
-void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data)
 {
     /*
      * Keys in the generated state don't automatically change their state -
      * they wait until a request is made to publish them.
      */
 
+    /* check the argument */
+    if (data == NULL) {
+        MsgLog(KSM_INVARG, "NULL data");
+        return;
+    }
     DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'generate' - not updated\n",
         (int) data->keypair_id);
 
@@ -213,6 +223,11 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     int Ipc;     /* Child zone publication interval */
     int Ipp;     /* Parent zone publication interval */
 
+    /* check the argument */
+    if (data == NULL || collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL argument");
+        return;
+    }
     DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'publish' - updating\n",
         (int) data->keypair_id);
 
@@ -281,13 +296,18 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     return;
 }
 
-void KsmUpdateReadyKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdateReadyKeyTime(KSM_KEYDATA* data)
 {
     /*
      * Keys in the ready state don't automatically move into the active state.
      * They need to be explicitly activated.
      */
 
+    /* check the argument */
+    if (data == NULL) {
+        MsgLog(KSM_INVARG, "NULL data");
+        return;
+    }
     DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'ready' - not updated\n",
         (int) data->keypair_id);
 
@@ -298,6 +318,11 @@ void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 {
     int deltat;     /* Time interval */
 
+    /* check the argument */
+    if (data == NULL || collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL argument");
+        return;
+    }
     DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'active' - updating\n",
         (int) data->keypair_id);
 
@@ -331,6 +356,11 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 {
     int deltat;     /* Time interval */
 
+    /* check the argument */
+    if (data == NULL || collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL argument");
+        return;
+    }
     DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'retire' - updating\n",
         (int) data->keypair_id);
 
@@ -363,7 +393,7 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     return;
 }
 
-void KsmUpdateDeadKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdateDeadKeyTime(KSM_KEYDATA* data)
 {
     /*
      * Keys in the dead state don't automatically change their state - they
@@ -371,6 +401,11 @@ void KsmUpdateDeadKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      * explicitly deleted.
      */
 
+    /* check the argument */
+    if (data == NULL) {
+        MsgLog(KSM_INVARG, "NULL data");
+        return;
+    }
     DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'dead' - not updated\n",
         (int) data->keypair_id);
 
@@ -413,6 +448,10 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
     unsigned int    nchar;          /* Number of characters converted */
     int             status;         /* Status return */
 
+    /* check the argument */
+    if (data == NULL || source == NULL || destination == NULL) {
+        return MsgLog(KSM_INVARG, "NULL argument");
+    }
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
         "UPDATE keypairs SET %s = %s + INTERVAL %d SECOND WHERE ID = %lu",

@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef MEMORY_H
-#define MEMORY_H
+#ifndef KSM_MEMORY_H
+#define KSM_MEMORY_H
 
 /*+
  * Filename: memory.h
@@ -53,5 +53,5 @@ void* MemRealloc(void* ptr, size_t size);
 }
 #endif
 
-#endif
+#endif /* KSM_MEMORY_H */
 

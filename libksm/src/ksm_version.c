@@ -50,7 +50,7 @@
  *			Version of the build.
 -*/
 
-#include "ksm_version.h"
+#include "ksm/ksm_version.h"
 
 static const char* LIBRARY_VERSION = "0.7"
 #ifndef NDEBUG

@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef KSM_INTERNAL_H
-#define KSM_INTERNAL_H
+#ifndef KSM_KSM_INTERNAL_H
+#define KSM_KSM_INTERNAL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,4 +59,4 @@ sqlite3* KsmHandle(void);
 };
 #endif
 
-#endif
+#endif /* KSM_KSM_INTERNAL_H */

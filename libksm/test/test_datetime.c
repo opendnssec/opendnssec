@@ -141,17 +141,17 @@ static void TestDtAppendTime(void)
     strcpy(fulldt, "A");
     status = DtAppendTime(fulldt, NULL);
     CU_ASSERT_EQUAL(status, 0);
-    CU_ASSERT_STRING_EQUAL(fulldt, "A:00:00:00");
+    CU_ASSERT_STRING_EQUAL(fulldt, "A 00:00:00");
 
     strcpy(fulldt, "A");
     status = DtAppendTime(fulldt, "");
     CU_ASSERT_EQUAL(status, 0);
-    CU_ASSERT_STRING_EQUAL(fulldt, "A:00:00:00");
+    CU_ASSERT_STRING_EQUAL(fulldt, "A 00:00:00");
 
     strcpy(fulldt, "A");
     status = DtAppendTime(fulldt, " 12");
     CU_ASSERT_EQUAL(status, 0);
-    CU_ASSERT_STRING_EQUAL(fulldt, "A:12:00:00");
+    CU_ASSERT_STRING_EQUAL(fulldt, "A 12:00:00");
 
     strcpy(fulldt, "A");
     status = DtAppendTime(fulldt, ":12");
@@ -792,7 +792,7 @@ static void TestDtXMLIntervalSeconds(void)
     CheckValidXMLIntervalSeconds("P1W", 604800L, 0);
     CheckValidXMLIntervalSeconds("P52W", 31449600L, 0);
     CheckValidXMLIntervalSeconds("-PT1M", -60L, 0);
-		CheckValidXMLIntervalSeconds("PT1223S", 1223L, 0);
+    CheckValidXMLIntervalSeconds("PT1223S", 1223L, 0);
 		
 
     /* Valid but return -1 */

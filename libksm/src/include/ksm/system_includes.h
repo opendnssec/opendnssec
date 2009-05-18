@@ -26,17 +26,16 @@
  *
  */
 
-#ifndef SYSTEM_INCLUDES_H
-#define SYSTEM_INCLUDES_H
+#ifndef KSM_SYSTEM_INCLUDES_H
+#define KSM_SYSTEM_INCLUDES_H
 
 /*+
  * Filename: system_includes.h
  *
  * Description:
  *      Between the Sun and Linux boxes, some definitions are in different
- *      files.  This includes file includes the set of system includes files
- *      used by the DAC/Whois programs that differ between the Sun and Linux
- *      systems.
+ *      files.  This include file includes the set of system include files
+ *      used by the programs that differ between the Sun and Linux systems.
 -*/
 
 #include <sys/socket.h>
@@ -70,4 +69,4 @@
 
 #endif  /* __sun */
 
-#endif  /* SYSTEM_INCLUDES_H */
+#endif  /* KSM_SYSTEM_INCLUDES_H */

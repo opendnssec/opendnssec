@@ -36,16 +36,16 @@
 #include <string.h>
 #include <time.h>
 
-#include "database.h"
-#include "database_statement.h"
-#include "datetime.h"
-#include "db_fields.h"
-#include "debug.h"
-#include "ksmdef.h"
-#include "ksm.h"
-#include "ksm_internal.h"
-#include "message.h"
-#include "string_util.h"
+#include "ksm/database.h"
+#include "ksm/database_statement.h"
+#include "ksm/datetime.h"
+#include "ksm/db_fields.h"
+#include "ksm/debug.h"
+#include "ksm/ksmdef.h"
+#include "ksm/ksm.h"
+#include "ksm/ksm_internal.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
 
 /*+
  * KsmDNSSECKeysInSMCountInit - Query for Key Information
@@ -117,6 +117,11 @@ int KsmDNSSECKeysStateCountInit(DB_RESULT* result, int policy_id, KSM_KEY_POLICY
 	int     where = 0;          /* WHERE clause value */
 	char*   sql = NULL;         /* SQL query */
 	int     status = 0;         /* Status return */
+
+    /* Check arguments */
+    if (key_policy == NULL) {
+        return MsgLog(KSM_INVARG, "NULL key_policy");
+    }
 
 	/* Construct the query */
 

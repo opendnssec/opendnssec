@@ -33,10 +33,10 @@
  *      Holds the miscellaneous administration functions.
 -*/
 
-#include "ksm.h"
-#include "kmedef.h"
-#include "kmemsg.h"
-#include "message.h"
+#include "ksm/ksm.h"
+#include "ksm/kmedef.h"
+#include "ksm/kmemsg.h"
+#include "ksm/message.h"
 
 
 /*+

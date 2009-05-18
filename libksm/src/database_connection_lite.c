@@ -39,9 +39,9 @@
 
 #include <sqlite3.h>
 
-#include "database.h"
-#include "dbsdef.h"
-#include "message.h"
+#include "ksm/database.h"
+#include "ksm/dbsdef.h"
+#include "ksm/message.h"
 
 static sqlite3* m_dbhandle = NULL;  /* Non-NULL if connected */
 

@@ -42,9 +42,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "ksm.h"
-#include "string_util.h"
-#include "string_util2.h"
+#include "ksm/ksm.h"
+#include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 /* Mapping of keywords to values */
 
@@ -157,6 +157,10 @@ static const char* KsmKeywordValueToName(STR_KEYWORD_ELEMENT* elements, int valu
 {
     int     i;                  /* Loop counter */
     const char* string = NULL;  /* Return value */
+
+    if (elements == NULL) {
+        return NULL;
+    }
 
     for (i = 0; elements[i].string; ++i) {
         if (value == elements[i].value) {

@@ -40,10 +40,10 @@
 #include <string.h>
 #include <time.h>
 
-#include "database.h"
-#include "database_statement.h"
-#include "kmedef.h"
-#include "ksm.h"
+#include "ksm/database.h"
+#include "ksm/database_statement.h"
+#include "ksm/kmedef.h"
+#include "ksm/ksm.h"
 
 
 /*+

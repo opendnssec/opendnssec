@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef DB_FIELDS_H
-#define DB_FIELDS_H
+#ifndef KSM_DB_FIELDS_H
+#define KSM_DB_FIELDS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -115,4 +115,4 @@ extern "C" {
 };
 #endif
 
-#endif
+#endif /* KSM_DB_FIELDS_H */

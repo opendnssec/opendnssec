@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef KMEDEF_H
-#define KMEDEF_H
+#ifndef KSM_KMEDEF_H
+#define KSM_KMEDEF_H
 
 /*+
  * kmedef.h - Define KSM Error Codes
@@ -72,4 +72,4 @@
 #define KME_UNRKEYSTA   (KME_BASE + 24)     /* WARNING: key ID %d is in unrecognised state %d */
 
 
-#endif
+#endif /* KSM_KMEDEF_H */

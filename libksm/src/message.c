@@ -42,8 +42,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "message.h"
-#include "string_util.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
 
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
 #define MIN(X, Y) ((X) < (Y) ? (X) : (Y))

@@ -34,10 +34,10 @@
  *      database access module.
 -*/
 
-#include "database.h"
-#include "dbsdef.h"
-#include "dbsmsg.h"
-#include "message.h"
+#include "ksm/database.h"
+#include "ksm/dbsdef.h"
+#include "ksm/dbsmsg.h"
+#include "ksm/message.h"
 
 /* Flag as to whether the database modules have been initialized */
 

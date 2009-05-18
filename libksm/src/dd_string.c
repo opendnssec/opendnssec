@@ -36,9 +36,9 @@
 
 #include <stdio.h>
 
-#include "database_statement.h"
-#include "string_util.h"
-#include "string_util2.h"
+#include "ksm/database_statement.h"
+#include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 
 

@@ -35,7 +35,8 @@
  *      parameters - from that object.
 -*/
 
-#include "ksm.h"
+#include "ksm/ksm.h"
+#include "ksm/ksmdef.h"
 
 #define max(x,y) ((x) > (y) ? (x) : (y))
 #define min(x,y) ((x) < (y) ? (x) : (y))
@@ -59,75 +60,151 @@
 
 int KsmParameterClockskew(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->clockskew;
 }
 
 int KsmParameterKskLifetime(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->ksklife;
 }
 
 int KsmParameterEmergencyKSKeys(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->nemkskeys;
 }
 
 int KsmParameterEmergencyZSKeys(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->nemzskeys;
 }
 
 int KsmParameterPropagationDelay(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->propdelay;
 }
 
 int KsmParameterSigningInterval(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->signint;
 }
 
 int KsmParameterSoaMin(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->soamin;
 }
 
 int KsmParameterSoaTtl(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->soattl;
 }
 
 int KsmParameterZskLifetime(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->zsklife;
 }
 
 int KsmParameterZskTtl(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->zskttl;
 }
 
 int KsmParameterKskTtl(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->kskttl;
 }
 
 int KsmParameterKskPropagationDelay(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->kskpropdelay;
 }
+
 int KsmParameterRegistrationDelay(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->regdelay;
 }
 
 int KsmParameterPubSafety(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->pub_safety;
 }
 
 int KsmParameterRetSafety(KSM_PARCOLL* collection)
 {
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
     return collection->ret_safety;
 }
 
@@ -138,6 +215,11 @@ int KsmParameterInitialPublicationInterval(KSM_PARCOLL* collection)
 {
     int     ncache;         /* Negative cache time */
     int     pubint;         /* Publication interval */
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
 
     ncache = min(KsmParameterSoaTtl(collection),
         KsmParameterSoaMin(collection));

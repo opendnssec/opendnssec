@@ -41,12 +41,12 @@
 
 #include <sqlite3.h>
 
-#include "dbsdef.h"
-#include "database.h"
-#include "debug.h"
-#include "message.h"
-#include "string_util.h"
-#include "string_util2.h"
+#include "ksm/dbsdef.h"
+#include "ksm/database.h"
+#include "ksm/debug.h"
+#include "ksm/message.h"
+#include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
@@ -122,6 +122,11 @@ int DbRowId(DB_ROW row, DB_ID* id)
 	unsigned long	rowid;		/* ID of the row as a known type */
 	int				status;		/* Status return */
 
+    if (id == NULL) {
+        status = MsgLog(DBS_INVARG, "NULL id");
+        return -1;
+    }
+
 	status = DbUnsignedLong(row, 0, &rowid);
 	*id = (DB_ID) rowid;		/* Do the conversion between types here */
 
@@ -156,8 +161,8 @@ int DbRowId(DB_ROW row, DB_ID* id)
 
 int DbInt(DB_ROW row, int field_index, int *value)
 {
-    char*   buffer;		/* Text buffer for returned string */
-	int		status;		/* Status return */
+    char*   buffer = NULL;		/* Text buffer for returned string */
+	int		status;		        /* Status return */
 
 	/* Access the text in the field */
 
@@ -166,7 +171,7 @@ int DbInt(DB_ROW row, int field_index, int *value)
 
 		/* Got the string, can we convert it? */
 
-		if (buffer) {
+		if (buffer != NULL) {
 
 			/* Not best-efforts - ignore trailing non-numeric values */
 
@@ -219,7 +224,7 @@ int DbInt(DB_ROW row, int field_index, int *value)
 
 int DbUnsignedLong(DB_ROW row, int field_index, unsigned long *value)
 {
-    char*   buffer;		/* Text buffer for returned string */
+    char*   buffer = NULL;		/* Text buffer for returned string */
 	int		status;		/* Status return */
 
 	/* Access the text in the field */
@@ -229,14 +234,14 @@ int DbUnsignedLong(DB_ROW row, int field_index, unsigned long *value)
 
 		/* Got the string, can we convert it? */
 
-		if (buffer) {
+		if (buffer != NULL) {
 
 			/* Not best-efforts - ignore trailing non-numeric values */
 
 			status = StrStrtoul(buffer, value);
 			if (status == -1) {
 
-				/* Could not translate the string to an integer */
+				/* Could not translate the string to an unsigned long */
 
 				status = MsgLog(DBS_NOTINT, buffer);
 				*value = 0;
@@ -352,8 +357,8 @@ int DbIntQuery(DB_HANDLE handle, int* value, const char* query)
 
 int DbStringBuffer(DB_ROW row, int field_index, char* buffer, size_t buflen)
 {
-	char*	data;		/* Data returned from DbString */
-	int		status;		/* Status return */
+	char*	data = NULL;	/* Data returned from DbString */
+	int		status;		    /* Status return */
 
 	if (row && (row->magic == DB_ROW_MAGIC) && buffer && (buflen != 0)) {
 
@@ -362,10 +367,11 @@ int DbStringBuffer(DB_ROW row, int field_index, char* buffer, size_t buflen)
 		status = DbString(row, field_index, &data);
 		if (status == 0) {
 
-			/* Success, copy the data into destination & free buffer */
+            /* Success, copy the data into destination & free buffer 
+               Note the StrStrncpy copes with data == NULL */
 
-			StrStrncpy(buffer, data, buflen);
-			DbStringFree(data);
+            StrStrncpy(buffer, data, buflen);
+            DbStringFree(data);
 		}
 	}
 	else {
@@ -452,6 +458,11 @@ const char* DbErrmsg(DB_HANDLE handle)
 
 int DbLastRowId(DB_HANDLE handle, DB_ID* id)
 {
+
+    if (id == NULL) {
+        return MsgLog(DBS_INVARG, "NULL id");
+    }
+
     /* TODO returns a sqlite_int64; can this be cast into an unsigned long?
      * do we need to check this for each platform? */
 	*id = (DB_ID) sqlite3_last_insert_rowid((sqlite3*) handle);

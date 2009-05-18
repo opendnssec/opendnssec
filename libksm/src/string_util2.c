@@ -44,9 +44,10 @@
 #include <stdio.h>
 #include <limits.h>
 
-#include "memory.h"
-#include "string_util.h"
-#include "string_util2.h"
+#include "ksm/ksmdef.h"
+#include "ksm/memory.h"
+#include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 
 /*+
@@ -321,6 +322,11 @@ int StrKeywordSearch(const char* search, STR_KEYWORD_ELEMENT* keywords, int* val
     int i;              /* Index into keyword search */
     int status = -1;    /* Returned status, initialized to nothing found */
 
+    if (value == NULL) {
+        MsgLog(KSM_INVARG, "NULL value");
+        return -1;
+    }
+
     if (keywords && search) {
         for (i = 0; keywords[i].string; ++i) {
             if (strstr(keywords[i].string, search) == keywords[i].string) {
@@ -381,6 +387,10 @@ int StrStrtol(const char* string, long* value)
     char*   copy;           /* Copy of the string */
     char*   start;          /* Start of the trimmed string */
 
+    if (value == NULL) {
+        MsgLog(KSM_INVARG, "NULL value");
+        return 1;
+    }
     if (string) {
         copy = StrStrdup(string);
         StrTrimR(copy);             /* Remove trailing spaces */
@@ -437,6 +447,10 @@ int StrStrtoul(const char* string, unsigned long* value)
     char*   copy;           /* Copy of the string */
     char*   start;          /* Start of the trimmed string */
 
+    if (value == NULL) {
+        MsgLog(KSM_INVARG, "NULL value");
+        return 1;
+    }
     if (string) {
         copy = StrStrdup(string);
         StrTrimR(copy);             /* Remove trailing spaces */
@@ -490,6 +504,10 @@ int StrStrtoi(const char* string, int* value)
     long    longval;    /* "long" to be passed to StrStrtol */
     int     status;     /* Status return */
 
+    if (value == NULL) {
+        MsgLog(KSM_INVARG, "NULL value");
+        return 1;
+    }
     status = StrStrtol(string, &longval);
     if (status == 0) {
         if ((longval >= INT_MIN) && (longval <= INT_MAX)) {

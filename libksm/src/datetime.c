@@ -33,16 +33,18 @@
  *      Miscellaneous date/time utility functions used by the commands.
 -*/
 
+#define _GNU_SOURCE /* glibc2 needs this */
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
-#include "ksm.h"
-#include "datetime.h"
-#include "string_util.h"
-#include "string_util2.h"
+#include "ksm/ksm.h"
+#include "ksm/config.h"
+#include "ksm/datetime.h"
+#include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 /* Macros to copy characters from one array to another */
 
@@ -188,7 +190,7 @@ int DtNumeric(const char* string, struct tm* datetime)
  *
  *          Note: The buffer holding the full date and time is assumed to be
  *          big enough to allow the string in it to be extended by nine
- *          characters (i.e. :00:00:00).
+ *          characters (i.e. _00:00:00).
  *
  *      const char* timepart
  *          Time part to append.  This must be one of the following allowed time
@@ -214,11 +216,15 @@ int DtAppendTime(char* fulldt, const char* timepart)
     int     length;         /* Length of the time part */
     int     status = 0;     /* Return status, assumed success */
 
+    if (fulldt == NULL) {
+        return 1;
+    }
+
     if ((timepart == NULL) || (*timepart == '\0')) {
 
         /* No time part, set default */
 
-        strcat(fulldt, ":00:00:00");
+        strcat(fulldt, " 00:00:00");
     }
     else {
         if ((*timepart == ' ') || (*timepart == ':')) {
@@ -234,18 +240,15 @@ int DtAppendTime(char* fulldt, const char* timepart)
              */
 
             if (length == 3) {
-                strcat(fulldt, ":");
-                strcat(fulldt, timepart + 1);
+                strcat(fulldt, timepart);
                 strcat(fulldt, ":00:00");
             }
             else if (length == 6) {
-                strcat(fulldt, ":");
-                strcat(fulldt, timepart + 1);
+                strcat(fulldt, timepart);
                 strcat(fulldt, ":00");
             }
             else if (length == 9) {
-                strcat(fulldt, ":");
-                strcat(fulldt, timepart + 1);
+                strcat(fulldt, timepart);
             }
             else {
                 status = 1;
@@ -394,15 +397,18 @@ int DtGeneral(const char* string, struct tm* datetime)
 
             if (status == 0) {
 
-                /* Date OK, so process time part (if any) */
+                /* Date OK, so process time part (if any). First set delimiter to space if it is ':' */
+				if (copy[timeoff] == ':') {
+					copy[timeoff] = ' ';
+				}
 
                 status = DtAppendTime(fulldt, &copy[timeoff]);
                 if (status == 0) {
                     if (alphadate) {
-                        ptr = strptime(fulldt, "%d-%b-%Y:%H:%M:%S", datetime);
+                        ptr = strptime(fulldt, "%d-%b-%Y %H:%M:%S", datetime);
                     }
                     else {
-                        ptr = strptime(fulldt, "%d-%m-%Y:%H:%M:%S", datetime);
+                        ptr = strptime(fulldt, "%d-%m-%Y %H:%M:%S", datetime);
                     }
                     status = ptr ? 0 : 2;
                 }
@@ -452,6 +458,10 @@ char* DtGeneralString(const char* string)
     char        buffer[KSM_TIME_LENGTH]; /* YYYY-MM-DD HH:MM:SS + NULL */
     char*       retval = NULL;  /* Returned string */
     int         status;         /* Status return */
+
+    if (string == NULL) {
+        return NULL;
+    }
 
     status = DtGeneral(string, &datetime);
     if (status == 0) {
@@ -801,6 +811,9 @@ int DtDateDiff(const char* date1, const char* date2, int* result)
     time_t    t2;           /* Second time as seconds */
 
     /* Do sanity check on the argument */
+    if (result == NULL) {
+        return 4;
+    }
 
     if (date1 && *date1 && date2 && *date2) {
 
@@ -899,7 +912,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
     short   is_time = 0;    /* Do we have a Time section or not */
     short   warning = 0;    /* Do we need to a warning code for duration approximation? */
     short   negative = 0;   /* Is the value negative ? */     
-    char    *ptr = text;    /* allow us to skip leading characters */
+    const char  *ptr = text;    /* allow us to skip leading characters */
 
     if (text && interval && *text) {
 

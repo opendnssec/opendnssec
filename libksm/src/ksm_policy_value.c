@@ -35,7 +35,8 @@
  *      parameters - from that object.
 -*/
 
-#include "ksm.h"
+#include "ksm/ksm.h"
+#include "ksm/ksmdef.h"
 
 #define max(x,y) ((x) > (y) ? (x) : (y))
 #define min(x,y) ((x) < (y) ? (x) : (y))
@@ -59,21 +60,41 @@
 
 int KsmPolicyClockskew(KSM_SIGNATURE_POLICY *policy)
 {
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
     return policy->clockskew;
 }
 
 int KsmPolicyKeyLifetime(KSM_KEY_POLICY *policy)
 {
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
     return policy->lifetime;
 }
 
 int KsmPolicyEmergencyKeys(KSM_KEY_POLICY *policy)
 {
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
     return policy->overlap;
 }
 
 int KsmPolicyPropagationDelay(KSM_SIGNER_POLICY *policy)
 {
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
     return policy->propdelay;
 }
 
@@ -84,16 +105,31 @@ int KsmPolicyPropagationDelay(KSM_SIGNER_POLICY *policy)
 
 int KsmPolicySoaMin(KSM_SIGNER_POLICY *policy)
 {
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
     return policy->soamin;
 }
 
 int KsmPolicySoaTtl(KSM_SIGNER_POLICY *policy)
 {
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
     return policy->soattl;
 }
 
 int KsmPolicyKeyTtl(KSM_KEY_POLICY *policy)
 {
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
     return policy->ttl;
 }
 
@@ -105,10 +141,13 @@ int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy)
     int     ncache;         /* Negative cache time */
     int     pubint;         /* Publication interval */
 
-    ncache = min(KsmParameterSoaTtl(policy->signer),
-        KsmParameterSoaMin(policy->signer));
-    pubint = max(KsmParameterZskTtl(policy->zsk), ncache) +
-        KsmParameterPropagationDelay(policy->signer);
+    /* check the argument */
+    if (policy == NULL) {
+        MsgLog(KSM_INVARG, "NULL policy");
+        return -1;
+    }
+    ncache = min(policy->signer->soattl, policy->signer->soamin);
+    pubint = max(policy->zsk->ttl, ncache) + policy->signer->propdelay;
 
     return pubint;
 }

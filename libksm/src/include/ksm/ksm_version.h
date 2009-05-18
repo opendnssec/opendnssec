@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef KSM_VERSION_H
-#define KSM_VERSION_H
+#ifndef KSM_KSM_VERSION_H
+#define KSM_KSM_VERSION_H
 
 /*+
  * Filename: ksm_version.h
@@ -46,4 +46,4 @@ const char* KsmVersion(void);
 }
 #endif
 
-#endif
+#endif /* KSM_KSM_VERSION_H */
