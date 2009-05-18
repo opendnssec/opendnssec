@@ -386,10 +386,10 @@ hsm_session_free(hsm_session_t *session) {
     }
 }
 
-/* creates a session_t srtucture, and automatically adds and initializes
+/* creates a session_t structure, and automatically adds and initializes
  * a module_t struct for it
  */
-hsm_session_t *
+static hsm_session_t *
 hsm_session_init(char *module_name, char *module_path, char *pin)
 {
     CK_RV rv;
@@ -421,7 +421,7 @@ hsm_session_init(char *module_name, char *module_path, char *pin)
 }
 
 /* open a second session from the given one */
-hsm_session_t *
+static hsm_session_t *
 hsm_session_clone(hsm_session_t *session)
 {
     CK_RV rv;
@@ -477,7 +477,7 @@ hsm_ctx_free(hsm_ctx_t *ctx)
  * (only call this on the last session for each module, ie. the one
  * in the global ctx)
  */
-void
+static void
 hsm_session_close(hsm_session_t *session, int unload)
 {
     CK_RV rv;
@@ -538,7 +538,7 @@ hsm_ctx_add_session(hsm_ctx_t *ctx, hsm_session_t *session)
     return 0;
 }
 
-hsm_ctx_t *
+static hsm_ctx_t *
 hsm_ctx_clone(hsm_ctx_t *ctx)
 {
     unsigned int i;
@@ -556,7 +556,7 @@ hsm_ctx_clone(hsm_ctx_t *ctx)
     return new_ctx;
 }
 
-hsm_key_t *
+static hsm_key_t *
 hsm_key_new()
 {
     hsm_key_t *key;
@@ -714,8 +714,10 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
     }
 }
 
-CK_OBJECT_HANDLE
-hsm_find_object_handle_for_uuid(const hsm_session_t *session, CK_OBJECT_CLASS key_class, uuid_t *uuid)
+static CK_OBJECT_HANDLE
+hsm_find_object_handle_for_uuid(const hsm_session_t *session,
+                                CK_OBJECT_CLASS key_class,
+                                const uuid_t *uuid)
 {
     CK_ULONG objectCount;
     CK_OBJECT_HANDLE object;
@@ -745,7 +747,11 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session, CK_OBJECT_CLASS ke
 	}
 }
 
-hsm_key_t *
+/* returns an hsm_key_t object for the given *private key* object handle
+ * the uuid and session, and public key handle are set
+ * The session needs to be free to perform a search for the public key
+ */
+static hsm_key_t *
 hsm_key_new_privkey_object_handle(const hsm_session_t *session, CK_OBJECT_HANDLE object)
 {
     hsm_key_t *key;
@@ -767,11 +773,21 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session, CK_OBJECT_HANDLE
     key->uuid = template[0].pValue;
     key->module = session->module;
     key->private_key = object;
-    key->public_key = hsm_find_object_handle_for_uuid(session, CKO_PUBLIC_KEY, key->uuid);
+    key->public_key = hsm_find_object_handle_for_uuid(
+                          session,
+                          CKO_PUBLIC_KEY,
+                          (const uuid_t*)key->uuid);
     
     return key;
 }
 
+/* returns an array of all keys available to the given session
+ *
+ * \param session the session to find the keys in
+ * \param count this value will contain the number of keys found
+ *
+ * \return the list of keys
+ */
 hsm_key_t **
 hsm_list_keys_session(const hsm_session_t *session, size_t *count)
 {
@@ -843,6 +859,39 @@ hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
     return keys;
 }
 
+hsm_key_t *
+hsm_find_key_by_uuid_session(const hsm_session_t *session,
+                             const uuid_t *uuid)
+{
+    hsm_key_t *key;
+    CK_OBJECT_HANDLE private_key_handle;
+
+    private_key_handle = hsm_find_object_handle_for_uuid(
+                             session,
+                             CKO_PRIVATE_KEY,
+                             uuid);
+    if (private_key_handle != 0) {
+        key = hsm_key_new_privkey_object_handle(session,
+                                                private_key_handle);
+        return key;
+    } else {
+        return NULL;
+    }
+}
+
+hsm_key_t *
+hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
+{
+    hsm_key_t *key;
+    unsigned int i;
+    if (!ctx || !uuid) return NULL;
+    for (i = 0; i < ctx->session_count; i++) {
+        key = hsm_find_key_by_uuid_session(ctx->session[i], uuid);
+        if (key) return key;
+    }
+    return NULL;
+}
+
 void
 hsm_print_key(hsm_key_t *key) {
     char uuid_str[37];
@@ -856,4 +905,299 @@ hsm_print_key(hsm_key_t *key) {
     } else {
         printf("key: <void>\n");
     }
+}
+
+/* this function allocates memory for the mechanism ID and enough room
+ * to leave the upcoming digest data. It fills in the mechanism id
+ * use with care. The returned data must be free'd by the caller */
+static CK_BYTE *
+hsm_create_prefix(CK_ULONG digest_len,
+                  ldns_algorithm algorithm,
+                  CK_ULONG *data_size)
+{
+	CK_BYTE *data;
+	const CK_BYTE RSA_MD5_ID[] = { 0x30, 0x20, 0x30, 0x0C, 0x06, 0x08, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
+	const CK_BYTE RSA_SHA1_ID[] = { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2B, 0x0E, 0x03, 0x02, 0x1A, 0x05, 0x00, 0x04, 0x14 };
+
+	switch(algorithm) {
+		case LDNS_SIGN_RSAMD5:
+			*data_size = sizeof(RSA_MD5_ID) + digest_len;
+			data = malloc(*data_size);
+			memcpy(data, RSA_MD5_ID, sizeof(RSA_MD5_ID));
+			break;
+		case LDNS_SIGN_RSASHA1:
+		case LDNS_SIGN_RSASHA1_NSEC3:
+			*data_size = sizeof(RSA_SHA1_ID) + digest_len;
+			data = malloc(*data_size);
+			memcpy(data, RSA_SHA1_ID, sizeof(RSA_SHA1_ID));
+			break;
+		default:
+			return NULL;
+	}
+	return data;
+}
+
+/**
+ * Returns an allocated hsm_sign_params_t with some defaults
+ */
+hsm_sign_params_t *
+hsm_sign_params_new()
+{
+    hsm_sign_params_t *params;
+    params = malloc(sizeof(hsm_sign_params_t));
+    params->algorithm = LDNS_SIGN_RSASHA1;
+    params->inception = 0;
+    params->expiration = 0;
+    params->keytag = 0;
+    params->owner = NULL;
+    return params;
+}
+
+void
+hsm_sign_params_free(hsm_sign_params_t *params)
+{
+    if (params) free(params);
+}
+
+static hsm_session_t *
+hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
+{
+    unsigned int i;
+    if (!key || !key->module) return NULL;
+    if (!ctx) ctx = _hsm_ctx;
+    for (i = 0; i < ctx->session_count; i++) {
+        if (ctx->session[i] && ctx->session[i]->module == key->module) {
+            return ctx->session[i];
+        }
+    }
+    return NULL;
+}
+static ldns_rdf *
+hsm_sign_buffer(const hsm_ctx_t *ctx, ldns_buffer *sign_buf, const hsm_key_t *key, ldns_algorithm algorithm)
+{
+    CK_RV rv;
+    /* TODO: depends on type and key, or just leave it at current
+     * maximum? */
+    CK_ULONG signatureLen = 512;
+    CK_BYTE *signature = malloc(signatureLen);
+    CK_MECHANISM digest_mechanism;
+    CK_MECHANISM sign_mechanism;
+
+    ldns_rdf *sig_rdf;
+    CK_BYTE *digest = NULL;
+    CK_ULONG digest_len;
+
+    CK_BYTE *data = NULL;
+    CK_ULONG data_len = 0;
+    
+    hsm_session_t *session;
+
+    session = hsm_find_key_session(ctx, key);
+    if (!session) return NULL;
+    
+    /* some HSMs don't really handle CKM_SHA1_RSA_PKCS well, so
+     * we'll do the hashing manually */
+    /* When adding algorithms, remember there is another switch below */
+    digest_mechanism.pParameter = NULL;
+    digest_mechanism.ulParameterLen = 0;
+    switch (algorithm) {
+        case LDNS_SIGN_RSAMD5:
+            digest_len = 16;
+            digest_mechanism.mechanism = CKM_MD5;
+            break;
+        case LDNS_SIGN_RSASHA1:
+        case LDNS_SIGN_RSASHA1_NSEC3:
+            digest_len = 20;
+            digest_mechanism.mechanism = CKM_SHA_1;
+            break;
+        default:
+            /* log error? or should we not even get here for
+             * unsupported algorithms? */
+            return NULL;
+    }
+
+    digest = malloc(digest_len);
+
+    rv = session->module->sym->C_DigestInit(session->session,
+                                                 &digest_mechanism);
+    hsm_pkcs11_check_rv(rv, "digest init");
+
+    rv = session->module->sym->C_Digest(session->session,
+                                             ldns_buffer_begin(sign_buf),
+                                             ldns_buffer_position(sign_buf),
+                                             digest,
+                                             &digest_len);
+    hsm_pkcs11_check_rv(rv, "digest");
+
+    /* CKM_RSA_PKCS does the padding, but cannot know the identifier
+     * prefix, so we need to add that ourselves */
+    data = hsm_create_prefix(digest_len, algorithm, &data_len);
+    memcpy(data + data_len - digest_len, digest, digest_len);
+
+    sign_mechanism.pParameter = NULL;
+    sign_mechanism.ulParameterLen = 0;
+    switch(algorithm) {
+        case LDNS_SIGN_RSAMD5:
+        case LDNS_SIGN_RSASHA1:
+        case LDNS_SIGN_RSASHA1_NSEC3:
+            sign_mechanism.mechanism = CKM_RSA_PKCS;
+            break;
+        default:
+            /* log error? or should we not even get here for
+             * unsupported algorithms? */
+            return NULL;
+    }
+
+    rv = session->module->sym->C_SignInit(
+                                      session->session,
+                                      &sign_mechanism,
+                                      key->private_key);
+    hsm_pkcs11_check_rv(rv, "sign init");
+
+    rv = session->module->sym->C_Sign(session->session, data, data_len,
+                                      signature,
+                                      &signatureLen);
+    hsm_pkcs11_check_rv(rv, "sign final");
+
+    sig_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64,
+                                    signatureLen,
+                                    signature);
+
+    free(data);
+    free(digest);
+    free(signature);
+    return sig_rdf;
+
+}
+
+static ldns_rr *
+hsm_create_empty_rrsig(const ldns_rr_list *rrset,
+                       const hsm_sign_params_t *sign_params)
+{
+    ldns_rr *rrsig;
+    uint32_t orig_ttl;
+    time_t now;
+    uint8_t label_count;
+
+    label_count = ldns_dname_label_count(ldns_rr_owner(ldns_rr_list_rr(rrset,
+                                                       0)));
+
+    rrsig = ldns_rr_new_frm_type(LDNS_RR_TYPE_RRSIG);
+
+    /* set the type on the new signature */
+    orig_ttl = ldns_rr_ttl(ldns_rr_list_rr(rrset, 0));
+
+    ldns_rr_set_ttl(rrsig, orig_ttl);
+    ldns_rr_set_owner(rrsig, 
+              ldns_rdf_clone(
+                   ldns_rr_owner(
+                    ldns_rr_list_rr(rrset,
+                            0))));
+
+    /* fill in what we know of the signature */
+
+    /* set the orig_ttl */
+    (void)ldns_rr_rrsig_set_origttl(
+           rrsig, 
+           ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
+                     orig_ttl));
+    /* the signers name */
+    (void)ldns_rr_rrsig_set_signame(
+               rrsig, 
+               ldns_rdf_clone(sign_params->owner));
+    /* label count - get it from the first rr in the rr_list */
+    (void)ldns_rr_rrsig_set_labels(
+            rrsig, 
+            ldns_native2rdf_int8(LDNS_RDF_TYPE_INT8,
+                                 label_count));
+    /* inception, expiration */
+    now = time(NULL);
+    if (sign_params->inception != 0) {
+        (void)ldns_rr_rrsig_set_inception(
+                rrsig,
+                ldns_native2rdf_int32(
+                    LDNS_RDF_TYPE_TIME, 
+                    sign_params->inception));
+    } else {
+        (void)ldns_rr_rrsig_set_inception(
+                rrsig,
+                ldns_native2rdf_int32(LDNS_RDF_TYPE_TIME, now));
+    }
+    if (sign_params->expiration != 0) {
+        (void)ldns_rr_rrsig_set_expiration(
+                rrsig,
+                ldns_native2rdf_int32(
+                    LDNS_RDF_TYPE_TIME, 
+                    sign_params->expiration));
+    } else {
+        (void)ldns_rr_rrsig_set_expiration(
+                 rrsig,
+                ldns_native2rdf_int32(
+                    LDNS_RDF_TYPE_TIME, 
+                    now + LDNS_DEFAULT_EXP_TIME));
+    }
+
+    (void)ldns_rr_rrsig_set_keytag(
+           rrsig,
+           ldns_native2rdf_int16(LDNS_RDF_TYPE_INT16, 
+                                 sign_params->keytag));
+
+    (void)ldns_rr_rrsig_set_algorithm(
+            rrsig,
+            ldns_native2rdf_int8(
+                LDNS_RDF_TYPE_ALG, 
+                sign_params->algorithm));
+
+    (void)ldns_rr_rrsig_set_typecovered(
+            rrsig,
+            ldns_native2rdf_int16(
+                LDNS_RDF_TYPE_TYPE,
+                ldns_rr_get_type(ldns_rr_list_rr(rrset,
+                                                 0))));
+    
+    return rrsig;
+}
+
+ldns_rr* hsm_sign_rrset(const hsm_ctx_t *ctx, const ldns_rr_list* rrset, const hsm_key_t *key, const hsm_sign_params_t *sign_params)
+{
+    ldns_rr *signature;
+    ldns_buffer *sign_buf;
+    ldns_rdf *b64_rdf;
+    (void) ctx;
+
+    if (!key) return NULL;
+    if (!sign_params) return NULL;
+    
+    signature = hsm_create_empty_rrsig((ldns_rr_list *)rrset, sign_params);
+
+    /* right now, we have: a key, a semi-sig and an rrset. For
+     * which we can create the sig and base64 encode that and
+     * add that to the signature */
+    sign_buf = ldns_buffer_new(LDNS_MAX_PACKETLEN);
+    
+    if (ldns_rrsig2buffer_wire(sign_buf, signature)
+        != LDNS_STATUS_OK) {
+        ldns_buffer_free(sign_buf);
+        /* ERROR */
+        return NULL;
+    }
+
+    /* add the rrset in sign_buf */
+    if (ldns_rr_list2buffer_wire(sign_buf, rrset)
+        != LDNS_STATUS_OK) {
+        ldns_buffer_free(sign_buf);
+        return NULL;
+    }
+
+    b64_rdf = hsm_sign_buffer(ctx, sign_buf, key, sign_params->algorithm);
+
+    ldns_buffer_free(sign_buf);
+    if (!b64_rdf) {
+        /* signing went wrong */
+        return NULL;
+    }
+
+    ldns_rr_rrsig_set_sig(signature, b64_rdf);
+
+    return signature;
 }

@@ -48,19 +48,19 @@ typedef struct {
 	CK_FUNCTION_LIST_PTR sym;  /*!< Function list from dlsym */
 } hsm_module_t;
 
-/*! HSM Key Pair */
-typedef struct {
-	hsm_module_t *module;  /*!< pointer to module */
-	CK_OBJECT_HANDLE private_key;  /*!< private key within module */
-	CK_OBJECT_HANDLE public_key;  /*!< public key within module */
-	uuid_t *uuid;          /*!< UUID of key (if available) */
-} hsm_key_t;
-
 /*! HSM Session */
 typedef struct {
 	hsm_module_t *module;
 	CK_SESSION_HANDLE session;
 } hsm_session_t;
+
+/*! HSM Key Pair */
+typedef struct {
+	const hsm_module_t *module;  /*!< pointer to module */
+	CK_OBJECT_HANDLE private_key;  /*!< private key within module */
+	CK_OBJECT_HANDLE public_key;  /*!< public key within module */
+	uuid_t *uuid;          /*!< UUID of key (if available) */
+} hsm_key_t;
 
 /*! HSM context to keep track of sessions */
 typedef struct {
@@ -68,6 +68,19 @@ typedef struct {
 	size_t session_count;     /*!< number of configured HSMs */
 } hsm_ctx_t;
 
+/*! Extra information for signing rrsets (algorithm, expiration, etc) */
+typedef struct {
+	/** The DNS signing algorithm identifier */
+	ldns_algorithm algorithm;
+	/** The inception date of signatures made with this key. */
+	uint32_t inception;
+	/** The expiration date of signatures made with this key. */
+	uint32_t expiration;
+	/** The keytag of the key (is this necessary?) */
+	uint16_t keytag;
+	/** The owner name of the key */
+	ldns_rdf *owner;
+} hsm_sign_params_t;
 
 /*! Open HSM library
 
@@ -135,7 +148,7 @@ hsm_key_t **hsm_list_keys(const hsm_ctx_t *context, size_t *count);
 \param uuid UUID of key to find
 \return key identifier or NULL if not found
 */
-const hsm_key_t *hsm_find_key_by_uuid(const hsm_ctx_t *context, const uuid_t *uuid);
+hsm_key_t *hsm_find_key_by_uuid(const hsm_ctx_t *context, const uuid_t *uuid);
 
 /*! Generate new key pair in HSM
 
@@ -172,7 +185,7 @@ const uuid_t *hsm_get_uuid(const hsm_ctx_t *context, const hsm_key_t *key);
 \param key Key pair used to sign
 \return ldns_rr* Signed RRset
 */
-ldns_rr* hsm_sign_rrset(const hsm_ctx_t *context, const ldns_rr_list* rrset, const hsm_key_t *key);
+ldns_rr* hsm_sign_rrset(const hsm_ctx_t *ctx, const ldns_rr_list* rrset, const hsm_key_t *key, const hsm_sign_params_t *sign_params);
 
 /*! Get DNSKEY RR
 
@@ -217,6 +230,13 @@ int hsm_attach(const char *repository, const char *path, const char *pin);
 
 /*! Detach a named HSM */
 int hsm_detach(const char *name);
+
+/**
+ * Returns an allocated hsm_sign_params_t with some defaults
+ */
+hsm_sign_params_t *hsm_sign_params_new();
+void hsm_sign_params_free(hsm_sign_params_t *params);
+
 
 /* Free the memory for key. */
 void hsm_key_free(hsm_key_t *key);

@@ -38,8 +38,13 @@ main (int argc, char *argv[])
 	int result;
 	hsm_ctx_t *ctx;
 	hsm_key_t **keys;
+	hsm_key_t *key = NULL;
 	size_t key_count = 0;
 	size_t i;
+	ldns_rr_list *rrset;
+	ldns_rr *rr, *sig;
+	ldns_status status;
+	hsm_sign_params_t *sign_params;
 	
 	(void) argc;
 	(void) argv;
@@ -52,15 +57,40 @@ main (int argc, char *argv[])
 	printf("my: ");
 	hsm_print_ctx(ctx);
 	*/
-	keys = hsm_list_keys(ctx, &key_count);
+	keys = hsm_list_keys(NULL, &key_count);
 	printf("I have found %u keys\n", (unsigned int) key_count);
+	/* let's just use the very first key we find, and throw away
+	 * the rest */
 	for (i = 0; i < key_count; i++) {
 		hsm_print_key(keys[i]);
+		if (!key) { key = hsm_find_key_by_uuid(ctx, (const uuid_t *) keys[i]->uuid); }
 		hsm_key_free(keys[i]);
 	}
 	free(keys);
-	fprintf(stdout, "hsm_close result: %d\n", result);
+
+	/* do some signing with it */
+	rrset = ldns_rr_list_new();
+	status = ldns_rr_new_frm_str(&rr, "tjeb.nl.	IN	A	123.123.123.123", 0, NULL, NULL);
+	if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
+	status = ldns_rr_new_frm_str(&rr, "tjeb.nl.	IN	A	124.124.124.124", 0, NULL, NULL);
+	if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
+
+	sign_params = hsm_sign_params_new();
+	sign_params->algorithm = LDNS_RSASHA1;
+	sign_params->owner = ldns_rdf_clone(ldns_rr_owner(rr));
+	ldns_rr_list_print(stdout, rrset);
+	sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
+	ldns_rr_print(stdout, sig);
+	/* cleanup */
+	ldns_rr_list_deep_free(rrset);
+	ldns_rr_free(sig);
+	hsm_sign_params_free(sign_params);
+	if (key) {
+		hsm_print_key(key);
+		hsm_key_free(key);
+	}
 	hsm_destroy_context(ctx);
 	result = hsm_close();
+	fprintf(stdout, "all done! hsm_close result: %d\n", result);
 	return 0;
 }
