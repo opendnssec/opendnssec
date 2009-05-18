@@ -107,7 +107,7 @@ int hsm_close();
 
 /*! Create new HSM context
 
-Also destroys any associated session.
+Create new session for each attached HSM.
 */
 hsm_ctx_t *hsm_create_context(void);
 
