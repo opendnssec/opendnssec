@@ -45,10 +45,8 @@ AC_ARG_ENABLE(
 	[enable_pedantic="yes"]
 )
 
-AC_ARG_WITH(botan-lib, [  --with-botan-lib=DIR    The location of the Botan crypto library (default DIR=/usr/local/lib)], [BOTANLIBDIR="$withval"], [BOTANLIBDIR="/usr/local/lib"])
-AC_ARG_WITH(botan-inc, [  --with-botan-inc=DIR    The location of the Botan crypto library include files (default DIR=/usr/local/include)], [BOTANINCDIR="$withval"], [BOTANINCDIR="/usr/local/include"])
-AC_ARG_WITH(sqlite3-lib, [  --with-sqlite3-lib=DIR  The location of the SQLite3 library (default DIR=/usr/lib)], [SQLITELIBDIR="$withval"], [SQLITELIBDIR="/usr/lib"])
-AC_ARG_WITH(sqlite3-inc, [  --with-sqlite3-inc=DIR  The location of the SQLite3 library include files (default DIR=/usr/include)], [SQLITEINCDIR="$withval"], [SQLITEINCDIR="/usr/include"])
+AC_ARG_WITH(botan, [  --with-botan=DIR        The location of the Botan crypto library and include files (default DIR=/usr/local)], [BOTANDIR="$withval"], [BOTANDIR="/usr/local"])
+AC_ARG_WITH(sqlite3, [  --with-sqlite3=DIR      The location of SQLite3 library and include files (default DIR=/usr/local)], [SQLITEDIR="$withval"], [SQLITEDIR="/usr/local"])
 AC_ARG_WITH(loglevel, [  --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 3=Info 4=Debug (default INT=3)], [SOFTLOGLEVEL="$withval"], [SOFTLOGLEVEL=3])
 AC_ARG_ENABLE(64bit, [  --enable-64bit          Compile a 64-bit version], [ENABLE64BIT="yes"], [ENABLE64BIT="no"])
 
@@ -94,9 +92,9 @@ CXXFLAGS="${CXXFLAGS} -Wno-long-long"
 CFLAGS="${CFLAGS} -Wno-long-long"
 
 # Configure the path to Botan and SQLite3
-LDFLAGS="$LDFLAGS -L$BOTANLIBDIR -R$BOTANLIBDIR -L$SQLITELIBDIR -R$SQLITELIBDIR"
-CXXFLAGS="$CXXFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
-CFLAGS="$CFLAGS -I$BOTANINCDIR -I$SQLITEINCDIR"
+LDFLAGS="$LDFLAGS -L$BOTANDIR/lib -R$BOTANDIR/lib -L$SQLITEDIR/lib -R$SQLITEDIR/lib"
+CXXFLAGS="$CXXFLAGS -I$BOTANDIR/include -I$SQLITEDIR/include"
+CFLAGS="$CFLAGS -I$BOTANDIR/include -I$SQLITEDIR/include"
 
 # Check that we have headers and SQLite library
 AC_CHECK_FUNCS(getpassphrase)

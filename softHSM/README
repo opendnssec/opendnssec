@@ -41,14 +41,10 @@ INSTALLING
 
   Options:
 
-    --with-botan-lib=DIR    The location of the Botan crypto library 
-                            (default DIR=/usr/local/lib)
-    --with-botan-inc=DIR    The location of the Botan crypto library 
-                            include files (default DIR=/usr/local/include)
-    --with-sqlite3-lib=DIR  The location of the SQLite3 library 
-                            (default DIR=/usr/lib)
-    --with-sqlite3-inc=DIR  The location of the SQLite3 library include 
-                            files (default DIR=/usr/include)
+    --with-botan=DIR        The location of the Botan crypto library and 
+                            include files (default DIR=/usr/local)
+    --with-sqlite3=DIR      The location of SQLite3 library and include 
+                            files (default DIR=/usr/local)
     --enable-64bit          Compile a 64-bit version
     --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 
                             3=Info 4=Debug (default INT=3)
