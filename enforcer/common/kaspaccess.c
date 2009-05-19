@@ -38,6 +38,7 @@
  *
  */
 #include <syslog.h>
+#include <stdlib.h>
 
 #include "daemon.h"
 #include "daemon_util.h"
@@ -47,7 +48,13 @@ int
 kaspReadConfig(DAEMONCONFIG* config)
 {
 	int status = 0;
-	KSM_POLICY *policy;
+    KSM_POLICY *policy;
+
+    if (config == NULL) {
+        log_msg(NULL, LOG_ERR, "Error, no config provided");
+        return -1;
+    }
+	
 	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
 	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
 	policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
@@ -55,6 +62,15 @@ kaspReadConfig(DAEMONCONFIG* config)
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
 	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    /* Let's check all of those mallocs, or should we use MemMalloc ? */
+    if (policy->signer == NULL || policy->signature == NULL ||
+            policy->ksk == NULL || policy->zsk == NULL || 
+            policy->denial == NULL || policy->enforcer == NULL) {
+        log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
+        exit(1);
+    }
+
+
 	policy->name = "opendnssec";
   kaspSetPolicyDefaults(policy,NULL);
 	/* Check we are connected */
@@ -89,6 +105,10 @@ kaspReadConfig(DAEMONCONFIG* config)
 void
 kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 {
+    if (policy == NULL) {
+        log_msg(NULL, LOG_ERR, "Error, no policy provided");
+        return;
+    }
 
 	if(name) policy->name = name;
 	policy->signer->refresh = 0;
@@ -150,7 +170,8 @@ kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle)
 	 * ==7572==    by 0x80492D3: main (ods_enf.c:29)
 	 *
 	 */
-	(void) DbConnect(handle, config->schema, config->host, config->password, config->user);
+    /* Note that all these XML derived strings are unsigned chars */
+	(void) DbConnect(handle, (char *)config->schema, (char *)config->host, (char *)config->password, (char *)config->user);
 
 }
 
@@ -175,17 +196,6 @@ kaspDisconnect(DAEMONCONFIG* config, DB_HANDLE*handle)
 int
 kaspReadPolicy(KSM_POLICY* policy)
 {
-	int     status = 0;         /* Status return */
-
-	/*
-	 * Does the policy exist?
-	 
-	if (policy->name) {
-		status = KsmPolicyExists(policy->name);
-	} */
-	if (status == 0 ) {
-		/* OK read the policy */
-		KsmPolicyRead(policy);
-	}
-	return (status);
+    /* This fn checks that the policy exists for us */
+    return KsmPolicyRead(policy);
 }

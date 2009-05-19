@@ -26,6 +26,8 @@
  *
  */
 
+#ifndef ENFORCER_DAEMON_H
+#define ENFORCER_DAEMON_H
 /* 
  * daemon.h code needed to get a daemon up and running
  *
@@ -48,41 +50,52 @@
 typedef bool _Bool; 
 # else 
 # define _Bool signed char 
-# endif 
-# endif 
+# endif /* __cplusplus */
+# endif /* HAVE__BOOL */
 # define bool _Bool 
 # define false 0 
 # define true 1 
 # define __bool_true_false_are_defined 1 
-#endif
+#endif /* HAVE_STDBOOL_H */
 
-#include <unistd.h>
-#include <syslog.h>
+#include <stdint.h>
+
+/* Define some lengths of the char*s in the struct
+   MySQL allows e.g. 81 characters for the username, 
+   set these stupidly high though */
+#define MAX_USER_LENGTH 255
+#define MAX_HOST_LENGTH 255
+#define MAX_PASSWORD_LENGTH 255
+#define MAX_SCHEMA_LENGTH 255
+#define MAX_PORT_LENGTH 16
+#define MAX_PID_LENGTH 255
 
 /* struct to hold configuration */
 typedef struct
 {
-  /* stuff that daemons always have */
-	bool debug;
-  pid_t pid;
-  const char *pidfile;
-  uid_t uid;
-  gid_t gid;
-  const char *username;
-  
-  /* Add app specific stuff here */
-  unsigned char* user;
-	unsigned char* host;
-	unsigned char* password;
-	unsigned char* schema;
-	unsigned char* port;
-  uint16_t interval;
-	int keycreate;
-	int backupinterval;
-  int keygeninterval;
-	
+    /* stuff that daemons always have */
+    bool debug;
+    pid_t pid;
+    const char *pidfile;
+    uid_t uid;
+    gid_t gid;
+    const char *username;
+
+    /* Add app specific stuff here */
+    unsigned char* user;
+    unsigned char* host;
+    unsigned char* password;
+    unsigned char* schema;
+    unsigned char* port;
+    uint16_t interval;
+    int keycreate;
+    int backupinterval;
+    int keygeninterval;
+
 } DAEMONCONFIG;
 
 
 #define AUTHOR_NAME "John Dickinson"
-#define COPYRIGHT_STR "Copyright (C) 2008 2009 John Dickinson"
+#define COPYRIGHT_STR "Copyright (C) 2008 2009 Nominet UK"
+
+#endif /* ENFORCER_DAEMON_H */

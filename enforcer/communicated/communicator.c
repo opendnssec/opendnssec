@@ -37,10 +37,12 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <syslog.h>
 #include "daemon.h"
 #include "daemon_util.h"
 #include "communicator.h"
 #include "kaspaccess.h"
+#include "ksm/memory.h"
 #include "ksm/string_util2.h"
 #include "ksm/datetime.h"
 #include "config.h"
@@ -48,11 +50,16 @@
     int
 server_init(DAEMONCONFIG *config)
 {
-	/* set the default pidfile if nothing was provided on the command line*/
-	if (config->pidfile == NULL) {
-		config->pidfile = COM_PID;
-	}
-	
+    if (config == NULL) {
+        log_msg(NULL, LOG_ERR, "Error, no config provided");
+        exit(1);
+    }
+
+    /* set the default pidfile if nothing was provided on the command line*/
+    if (config->pidfile == NULL) {
+        config->pidfile = COM_PID;
+    }
+
     return 0;
 }
 
@@ -68,10 +75,15 @@ server_main(DAEMONCONFIG *config)
     int status = 0;
     int status2 = 0;
 
-		struct timeval tv;
+    struct timeval tv;
 
     KSM_ZONE *zone;
     KSM_POLICY *policy;
+
+    if (config == NULL) {
+        log_msg(NULL, LOG_ERR, "Error, no config provided");
+        exit(1);
+    }
 
     policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
     policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
@@ -81,18 +93,30 @@ server_main(DAEMONCONFIG *config)
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
     policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    /* Let's check all of those mallocs, or should we use MemMalloc ? */
+    if (policy->signer == NULL || policy->signature == NULL ||
+            policy->ksk == NULL || policy->zsk == NULL || 
+            policy->denial == NULL || policy->enforcer == NULL) {
+        log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
+        exit(1);
+    }
     kaspSetPolicyDefaults(policy, NULL);
 
     zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
     zone->name = (char *)calloc(KSM_ZONE_NAME_LENGTH, sizeof(char));
+    /* Let's check those mallocs, or should we use MemMalloc ? */
+    if (zone->name == NULL) {
+        log_msg(config, LOG_ERR, "Malloc for zone struct failed\n");
+        exit(1);
+    }
 
-		/* Read the config file */
-		status = ReadConfig(config);
-		if (status != 0) {
-		  log_msg(config, LOG_ERR, "Error reading config");
-		  exit(1);
-		}
-		
+    /* Read the config file */
+    status = ReadConfig(config);
+    if (status != 0) {
+        log_msg(config, LOG_ERR, "Error reading config");
+        exit(1);
+    }
+
     kaspConnect(config, &dbhandle);
 
     while (1) {
@@ -106,8 +130,8 @@ server_main(DAEMONCONFIG *config)
                 KsmPolicyRead(policy);
                 log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
 
-				/* Update the salt if it is not up to date */
-				status2 = KsmPolicyUpdateSalt(policy);
+                /* Update the salt if it is not up to date */
+                status2 = KsmPolicyUpdateSalt(policy);
                 if (status2 != 0) {
                     log_msg(config, LOG_ERR, "Error updating salt");
                     exit(1);
@@ -134,11 +158,11 @@ server_main(DAEMONCONFIG *config)
                     /* get next policy */
                     status = KsmPolicy(handle, policy);
                 }
-		else
-		{
-            		log_msg(config, LOG_ERR, "Error querying KASP DB for zones");
-            		exit(1);
-		}
+                else
+                {
+                    log_msg(config, LOG_ERR, "Error querying KASP DB for zones");
+                    exit(1);
+                }
             }
         } else {
             log_msg(config, LOG_ERR, "Error querying KASP DB for policies");
@@ -147,22 +171,22 @@ server_main(DAEMONCONFIG *config)
         DbFreeResult(handle);
 
         /* sleep for the key gen interval unless we are in debug mode */
-		if (config->debug)
-		{
-			break;
-		}
-		/* sleep for a bit */
-		tv.tv_sec = config->interval;
-    tv.tv_usec = 0;
-    log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->interval);
-    select(0, NULL, NULL, NULL, &tv);
+        if (config->debug)
+        {
+            break;
+        }
+        /* sleep for a bit */
+        tv.tv_sec = config->interval;
+        tv.tv_usec = 0;
+        log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->interval);
+        select(0, NULL, NULL, NULL, &tv);
 
-		/* re-read the config file in case it has changed */
-	status = ReadConfig(config);
-	if (status != 0) {
-    log_msg(config, LOG_ERR, "Error reading config");
-    exit(1);
-  }
+        /* re-read the config file in case it has changed */
+        status = ReadConfig(config);
+        if (status != 0) {
+            log_msg(config, LOG_ERR, "Error reading config");
+            exit(1);
+        }
 
     }
     kaspDisconnect(config, &dbhandle);
@@ -175,6 +199,7 @@ server_main(DAEMONCONFIG *config)
     free(policy->signer);
     free(policy);
 
+    free(zone->name);
     free(zone);
 }
 
@@ -190,8 +215,16 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
                                file.) */
     char*   datetime = DtParseDateTimeString("now");
 
+    if (zone == NULL || policy == NULL)
+    {
+        /* error */
+        log_msg(NULL, LOG_ERR, "NULL policy or zone provided\n");
+        MemFree(datetime);
+        return -1;
+    }
+
     filename = NULL;
-    StrAppend(&filename, OUR_PATH); /* TODO this should come from the config */
+    StrAppend(&filename, SIGNER_CONF_DIR); /* set at config time */
     StrAppend(&filename, zone->name);
     StrAppend(&filename, ".xml");
 
@@ -208,6 +241,8 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     if (file == NULL)
     {
         /* error */
+        log_msg(NULL, LOG_ERR, "Could not open: %s\n", temp_filename);
+        MemFree(datetime);
         return -1;
     }
 
@@ -241,7 +276,7 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     fprintf(file, "\t\t</Denial>\n");
 
     fprintf(file, "\n");
-   
+
     /* start of keys section */ 
     fprintf(file, "\t\t<Keys>\n");
     fprintf(file, "\t\t\t<TTL>PT%dS</TTL>\n", policy->ksk->ttl);
@@ -265,23 +300,27 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
 
     if (status == EOF) /* close failed... do something? */
     {
+        MemFree(datetime);
         return -1;
     }
 
     /* we now have a complete xml file. First move the old one out of the way */
-	status = rename(filename, old_filename);
+    status = rename(filename, old_filename);
     if (status != 0 && status != -1)
     {
-		/* cope with initial conditioin of files not existing */
+        /* cope with initial conditioin of files not existing */
+        MemFree(datetime);
         return -1;
     }
 
     /* Then copy our temp into place */
     if (rename(temp_filename, filename) != 0)
     {
+        MemFree(datetime);
         return -1;
     }
 
+    MemFree(datetime);
     return 0;
 }
 

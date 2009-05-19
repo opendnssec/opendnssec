@@ -26,6 +26,8 @@
  *
  */
 
+#ifndef ENFORCER_KASPACCESS_H
+#define ENFORCER_KASPACCESS_H
 /* 
  * kaspaccess.h kasp acccess functions needed by keygend
  */
@@ -38,3 +40,4 @@ void kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle);
 void kaspDisconnect(DAEMONCONFIG* config, DB_HANDLE	*handle);
 int kaspReadPolicy(KSM_POLICY* policy);
 
+#endif /* ENFORCER_KASPACCESS_H */

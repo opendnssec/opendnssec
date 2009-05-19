@@ -26,6 +26,8 @@
  *
  */
 
+#ifndef ENFORCER_COMMUNICATOR_H
+#define ENFORCER_COMMUNICATOR_H
 /* 
  * communicator.h code implements the server_main
  * function needed by daemon.c
@@ -33,11 +35,11 @@
  * The bit that makes the daemon do something useful
  */
 
-#define OUR_PATH "./"
-#define OUR_INTERVAL 60
 #include "ksm/ksm.h"
 
 int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);
 int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy);
 int commKeyConfig(void* context, KSM_KEYDATA* key_data);
+
+#endif /* ENFORCER_COMMUNICATOR_H */

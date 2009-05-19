@@ -10,4 +10,4 @@ communicated_SOURCES = communicator.c
 communicated_LDADD = ../common/libenforcer.a
 communicated_LDFLAGS = -L@KSM_LIBS@ -lksm @XML_LIBS@
 
-EXTRA_DIST = *.h
+EXTRA_DIST = $(srcdir)/*.h

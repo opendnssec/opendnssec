@@ -54,107 +54,113 @@
 
 int
 main(int argc, char *argv[]){
-  int fd;
-  struct sigaction action;
-	DAEMONCONFIG config;
-	/* TODO remove magic numbers */
-	config.pidfile = (unsigned char *)calloc(255, sizeof(char));	
-	config.user = (unsigned char *)calloc(255, sizeof(char));
-	config.host = (unsigned char *)calloc(255, sizeof(char));
-	config.password = (unsigned char *)calloc(255, sizeof(char));
-	config.schema = (unsigned char *)calloc(255, sizeof(char));
-	config.port = (unsigned char *)calloc(255, sizeof(char));
-	
-	
-  /* useful message */
-	log_msg(&config, LOG_INFO, "%s starting...", PACKAGE_NAME);
-	
-	/* Process command line */
-	cmdlParse(&config, &argc, argv);
-	if(config.debug) log_msg(&config, LOG_INFO, "%s DEBUG ON.", PACKAGE_NAME);
-	
-	/* If we dont debug then fork */
-	if(!config.debug){
-  	/* Fork */
-    switch ((config.pid = fork())) {
-    case 0:
-      break;
-    case -1:
-      log_msg(&config, LOG_ERR, "fork failed: %s", strerror(errno));
-      unlink(config.pidfile);
-      exit(1);
-    default:
-      log_msg(&config, LOG_INFO, "%s Parent exiting...", PACKAGE_NAME);
-      exit(0);
-    }
-  
-    /* Detach ourselves... */
-    if (setsid() == -1) {
-      log_msg(&config, LOG_ERR, "setsid() failed: %s", strerror(errno));
-      exit(1);
+    int fd;
+    struct sigaction action;
+    DAEMONCONFIG config;
+    config.pidfile = (char *)calloc(MAX_PID_LENGTH, sizeof(char));	
+    config.user = (unsigned char *)calloc(MAX_USER_LENGTH, sizeof(char));
+    config.host = (unsigned char *)calloc(MAX_HOST_LENGTH, sizeof(char));
+    config.password = (unsigned char *)calloc(MAX_PASSWORD_LENGTH, sizeof(char));
+    config.schema = (unsigned char *)calloc(MAX_SCHEMA_LENGTH, sizeof(char));
+    config.port = (unsigned char *)calloc(MAX_PORT_LENGTH, sizeof(char));
+
+    if (config.pidfile == NULL || config.user == NULL ||
+            config.host == NULL || config.password == NULL ||
+            config.schema == NULL || config.port == NULL) {
+        log_msg(&config, LOG_ERR, "Malloc for config struct failed\n");
+        exit(1);
     }
 
-    if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
-      (void)dup2(fd, STDIN_FILENO);
-      (void)dup2(fd, STDOUT_FILENO);
-      (void)dup2(fd, STDERR_FILENO);
-      if (fd > 2)
-        (void)close(fd);
+    /* useful message */
+    log_msg(&config, LOG_INFO, "%s starting...", PACKAGE_NAME);
+
+    /* Process command line */
+    cmdlParse(&config, &argc, argv);
+    if(config.debug) log_msg(&config, LOG_INFO, "%s DEBUG ON.", PACKAGE_NAME);
+
+    /* If we dont debug then fork */
+    if(!config.debug){
+        /* Fork */
+        switch ((config.pid = fork())) {
+            case 0:
+                break;
+            case -1:
+                log_msg(&config, LOG_ERR, "fork failed: %s", strerror(errno));
+                unlink(config.pidfile);
+                exit(1);
+            default:
+                log_msg(&config, LOG_INFO, "%s Parent exiting...", PACKAGE_NAME);
+                exit(0);
+        }
+
+        /* Detach ourselves... */
+        if (setsid() == -1) {
+            log_msg(&config, LOG_ERR, "setsid() failed: %s", strerror(errno));
+            exit(1);
+        }
+
+        if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+            (void)dup2(fd, STDIN_FILENO);
+            (void)dup2(fd, STDOUT_FILENO);
+            (void)dup2(fd, STDERR_FILENO);
+            if (fd > 2)
+                (void)close(fd);
+        }
+        log_msg(&config, LOG_INFO, "%s forked OK...", PACKAGE_NAME);
+    } else {
+        log_msg(&config, LOG_INFO, "%s in debug mode - not forking...", PACKAGE_NAME);
     }
-    log_msg(&config, LOG_INFO, "%s forked OK...", PACKAGE_NAME);
-  } else {
-    log_msg(&config, LOG_INFO, "%s in debug mode - not forking...", PACKAGE_NAME);
-  }
-  
-  action.sa_handler = sig_handler;
-  sigfillset(&action.sa_mask);
-  action.sa_flags = 0;
-  sigaction(SIGTERM, &action, NULL);
-  sigaction(SIGHUP, &action, NULL);
-  sigaction(SIGINT, &action, NULL);
-  sigaction(SIGILL, &action, NULL);
-  sigaction(SIGUSR1, &action, NULL);
-  sigaction(SIGALRM, &action, NULL);
-  sigaction(SIGCHLD, &action, NULL);
-  action.sa_handler = SIG_IGN;
-  sigaction(SIGPIPE, &action, NULL);
-  
-  /* 
-  * Drop permissions.
-  * You may want to move this in to the server init code
-  * if you need to do other stuff such as bind to low ports first
-  */
-  if (permsDrop(&config) != 0) {
-    exit(1);
-  }
-    
-  /* Run the server specific code. You need to provide this function somewhere */
-  if (server_init(&config) != 0) {
-    exit(1);
-  }
-  
-	/* write the pidfile */
-	config.pid = getpid();
-  if (writepid(&config) == -1) {
-    log_msg(&config, LOG_ERR, "cannot write the pidfile %s: %s",
-      config.pidfile, strerror(errno));
-  }
 
-  log_msg(&config, LOG_NOTICE, "%s started (version %s), pid %d", PACKAGE_NAME, PACKAGE_VERSION, 
-    (int) config.pid);
-  
-  /* Do something. You need to provide this function somewhere */
-  server_main(&config);
-  
-  /* NOTREACH */
+    action.sa_handler = sig_handler;
+    sigfillset(&action.sa_mask);
+    action.sa_flags = 0;
+    sigaction(SIGTERM, &action, NULL);
+    sigaction(SIGHUP, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGILL, &action, NULL);
+    sigaction(SIGUSR1, &action, NULL);
+    sigaction(SIGALRM, &action, NULL);
+    sigaction(SIGCHLD, &action, NULL);
+    action.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &action, NULL);
 
-	free(config.pidfile);	
-	free(config.user);
-	free(config.host);
-	free(config.password);
-	free(config.schema);
-	free(config.port);
-	
-  exit(0);
-  
+    /* 
+     * Drop permissions.
+     * You may want to move this in to the server init code
+     * if you need to do other stuff such as bind to low ports first
+     */
+    if (permsDrop(&config) != 0) {
+        exit(1);
+    }
+
+    /* Run the server specific code. You need to provide this function somewhere */
+    if (server_init(&config) != 0) {
+        exit(1);
+    }
+
+    /* write the pidfile */
+    config.pid = getpid();
+    if (writepid(&config) == -1) {
+        log_msg(&config, LOG_ERR, "cannot write the pidfile %s: %s",
+                config.pidfile, strerror(errno));
+    }
+
+    log_msg(&config, LOG_NOTICE, "%s started (version %s), pid %d", PACKAGE_NAME, PACKAGE_VERSION, 
+            (int) config.pid);
+
+    /* Do something. You need to provide this function somewhere */
+    server_main(&config);
+
+    /* NOTREACH */
+
+    /* To satisfy code checkers let's free stuff here */
+    free(config.pidfile);	
+    free(config.user);
+    free(config.host);
+    free(config.password);
+    free(config.schema);
+    free(config.port);
+
+    exit(0);
+
 }

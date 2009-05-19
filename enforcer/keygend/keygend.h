@@ -26,6 +26,8 @@
  *
  */
 
+#ifndef ENFORCER_KEYGEND_H
+#define ENFORCER_KEYGEND_H
 /* 
  * keygend.h code implements the server_main
  * function needed by daemon.c
@@ -36,3 +38,4 @@
 int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);
 
+#endif /* ENFORCER_KEYGEND_H */

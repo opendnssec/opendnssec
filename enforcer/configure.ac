@@ -105,6 +105,9 @@ AC_DEFINE_UNQUOTED(COM_PID, ["`eval echo $com_pid_file`"], [Path to the OpenDNSS
 keygen_pid_file=$localstatedir/run/opendnssec/keygend.pid
 AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file`"], [Path to the OpenDNSSEC keygend pid file])
 
+signer_conf_dir=$localstatedir/opendnssec/config
+AC_DEFINE_UNQUOTED(SIGNER_CONF_DIR, ["`eval echo $signer_conf_dir`"], [Path to the OpenDNSSEC signer configuration directory])
+
 CPPFLAGS="${CPPFLAGS} ${XML_INCLUDES} -I${KSM_INCLUDES}"
 
 if test "${enable_pedantic}" = "yes"; then

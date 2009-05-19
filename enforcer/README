@@ -14,6 +14,8 @@ Pre-requisites
 
 2) at some point it will rely on libhsm too.
 
+3) uuid-dev is required (or its equivalent)
+
 Building the Software
 ---------------------
 Note that setting CFLAGS to "-g" before the configure stage ensures that the final binary is built with the optimizer turned off. (overrides the default -g -O2)
@@ -23,7 +25,7 @@ The following options can be passed to configure;
 --prefix=<dir>                  Installation directory. All files will be 
                                 installed relative to this path.
 --with-libksm-include=<dir>     Either where you installed to or:
-                                ../../libksm/include 
+                                ../../libksm/src/include 
 --with-libksm-lib=<dir>         Either where you installed to or:
                                 ../../libksm/src/.libs
 

@@ -26,6 +26,8 @@
  *
  */
 
+#ifndef ENFORCER_DAEMON_UTIL_H
+#define ENFORCER_DAEMON_UTIL_H
 /* 
  * daemon_util.h code needed to get a daemon up and running
  *
@@ -38,7 +40,7 @@
  * Most of this is based on stuff I have seen in NSD
  */
 
-#include <stdlib.h>
+#include "daemon.h"
 
 void cmdlParse(DAEMONCONFIG*, int*, char**);
 void log_msg(DAEMONCONFIG* config, int priority, const char *format, ...);
@@ -47,3 +49,4 @@ int writepid (DAEMONCONFIG *config);
 void sig_handler (int sig);
 int ReadConfig(DAEMONCONFIG *config);
 
+#endif /* ENFORCER_DAEMON_UTIL_H */
