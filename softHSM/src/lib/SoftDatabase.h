@@ -59,7 +59,7 @@ class SoftDatabase {
     CK_OBJECT_HANDLE* getObjectRefs(CK_ULONG *objectCount);
     CK_BBOOL getBooleanAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type, CK_BBOOL defaultValue);
     CK_OBJECT_CLASS getObjectClass(CK_OBJECT_HANDLE objectRef);
-    CK_OBJECT_CLASS getKeyType(CK_OBJECT_HANDLE objectRef);
+    CK_KEY_TYPE getKeyType(CK_OBJECT_HANDLE objectRef);
     BigInt getBigIntAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type);
     CK_RV getAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
     CK_RV setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTemplate);
