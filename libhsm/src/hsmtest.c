@@ -45,9 +45,20 @@ main (int argc, char *argv[])
 	ldns_rr *rr, *sig;
 	ldns_status status;
 	hsm_sign_params_t *sign_params;
+	int generate = 0;
+	int sign = 0;
+	int show = 1;
 	
 	(void) argc;
 	(void) argv;
+	if (argc > 1 && strcmp(argv[1], "-g") == 0) {
+		generate = 1;
+		show = 0;
+	}
+	if (argc > 1 && strcmp(argv[1], "-s") == 0) {
+		sign = 1;
+		show = 0;
+	}
 	fprintf(stdout, "Starting HSM lib test\n");
 	result = hsm_open("/home/jelte/opt/opendnssec/etc/opendnssec/conf.xml", NULL, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);
@@ -62,29 +73,38 @@ main (int argc, char *argv[])
 	/* let's just use the very first key we find, and throw away
 	 * the rest */
 	for (i = 0; i < key_count; i++) {
-		hsm_print_key(keys[i]);
-		if (!key) { key = hsm_find_key_by_uuid(ctx, (const uuid_t *) keys[i]->uuid); }
+		if (show) {
+			hsm_print_key(keys[i]);
+		}
+		if (sign && !key) { key = hsm_find_key_by_uuid(ctx, (const uuid_t *) keys[i]->uuid); }
 		hsm_key_free(keys[i]);
 	}
 	free(keys);
 
 	/* do some signing with it */
-	rrset = ldns_rr_list_new();
-	status = ldns_rr_new_frm_str(&rr, "tjeb.nl.	IN	A	123.123.123.123", 0, NULL, NULL);
-	if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
-	status = ldns_rr_new_frm_str(&rr, "tjeb.nl.	IN	A	124.124.124.124", 0, NULL, NULL);
-	if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
+	if (sign) {
+		rrset = ldns_rr_list_new();
+		status = ldns_rr_new_frm_str(&rr, "tjeb.nl.	IN	A	123.123.123.123", 0, NULL, NULL);
+		if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
+		status = ldns_rr_new_frm_str(&rr, "tjeb.nl.	IN	A	124.124.124.124", 0, NULL, NULL);
+		if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
 
-	sign_params = hsm_sign_params_new();
-	sign_params->algorithm = LDNS_RSASHA1;
-	sign_params->owner = ldns_rdf_clone(ldns_rr_owner(rr));
-	ldns_rr_list_print(stdout, rrset);
-	sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
-	ldns_rr_print(stdout, sig);
-	/* cleanup */
-	ldns_rr_list_deep_free(rrset);
-	ldns_rr_free(sig);
-	hsm_sign_params_free(sign_params);
+		sign_params = hsm_sign_params_new();
+		sign_params->algorithm = LDNS_RSASHA1;
+		sign_params->owner = ldns_rdf_clone(ldns_rr_owner(rr));
+		ldns_rr_list_print(stdout, rrset);
+		sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
+		ldns_rr_print(stdout, sig);
+		/* cleanup */
+		ldns_rr_list_deep_free(rrset);
+		ldns_rr_free(sig);
+		hsm_sign_params_free(sign_params);
+	}
+	if (generate) {
+		key = hsm_generate_rsa_key(NULL, "softHSM", 1024);
+		printf("Created key:\n");
+		hsm_print_key(key);
+	}
 	if (key) {
 		hsm_print_key(key);
 		hsm_key_free(key);

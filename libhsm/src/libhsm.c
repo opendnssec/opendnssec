@@ -405,7 +405,7 @@ hsm_session_init(char *module_name, char *module_path, char *pin)
     hsm_pkcs11_check_rv(rv, "Initialization");
     slot_id = ldns_hsm_get_slot_id(module->sym, module_name);
     rv = module->sym->C_OpenSession(slot_id,
-                               CKF_SERIAL_SESSION,
+                               CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                NULL,
                                NULL,
                                &session_handle);
@@ -432,7 +432,7 @@ hsm_session_clone(hsm_session_t *session)
     slot_id = ldns_hsm_get_slot_id(session->module->sym,
                                    session->module->name);
     rv = session->module->sym->C_OpenSession(slot_id,
-                                    CKF_SERIAL_SESSION,
+                                    CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                     NULL,
                                     NULL,
                                     &session_handle);
@@ -441,7 +441,6 @@ hsm_session_clone(hsm_session_t *session)
     new_session = hsm_session_new(session->module, session_handle);
 
     return new_session;
-    
 }
 
 static hsm_ctx_t *
@@ -728,7 +727,7 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session,
         { CKA_ID, uuid, sizeof(uuid_t) },
     };
     
-    rv = session->module->sym->C_FindObjectsInit(session->session, template, 1);
+    rv = session->module->sym->C_FindObjectsInit(session->session, template, 2);
     hsm_pkcs11_check_rv(rv, "Find objects init");
     
     rv = session->module->sym->C_FindObjects(session->session,
@@ -887,10 +886,112 @@ hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
     if (!ctx || !uuid) return NULL;
     for (i = 0; i < ctx->session_count; i++) {
         key = hsm_find_key_by_uuid_session(ctx->session[i], uuid);
-        if (key) return key;
+        if (key) { printf("found\n"); return key; 
+        }
     }
     return NULL;
 }
+
+/**
+ * returns the first session found if token_name is null, otherwise
+ * finds the session belonging to the first token with the given name
+ * returns NULL if not found
+ */
+static hsm_session_t *
+hsm_find_token_session(const hsm_ctx_t *ctx, const char *token_name)
+{
+    unsigned int i;
+    if (!token_name) {
+        for (i = 0; i < ctx->session_count; i++) {
+            if (ctx->session[i]) {
+                return ctx->session[i];
+            }
+        }
+    } else {
+        for (i = 0; i < ctx->session_count; i++) {
+            printf("looking for %s in token %u of %u named %s\n", token_name, i, ctx->session_count, ctx->session[i]->module->name);
+            if (ctx->session[i] &&
+                strcmp(token_name, ctx->session[i]->module->name) == 0) {
+                return ctx->session[i];
+            }
+        }
+    }
+    return NULL;
+}
+
+hsm_key_t *
+hsm_generate_rsa_key(const hsm_ctx_t *ctx,
+                     const char *repository,
+                     unsigned long keysize)
+{
+    hsm_key_t *new_key;
+    hsm_session_t *session;
+    /*unsigned int i;*/
+    uuid_t *uuid;
+    char uuid_str[37];
+    CK_RV rv;
+    CK_OBJECT_HANDLE publicKey, privateKey;
+    CK_KEY_TYPE keyType = CKK_RSA;
+    CK_MECHANISM mechanism = {
+        CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0
+    };
+    CK_BYTE publicExponent[] = { 1, 0, 1 };
+    CK_BBOOL ctrue = CK_TRUE;
+    CK_BBOOL cfalse = CK_FALSE;
+   
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_token_session(ctx, repository);
+    if (!session) return NULL;
+    
+    uuid = malloc(sizeof(uuid_t));
+    uuid_generate(*uuid);
+    /* check whether this key doesn't happen to exist already */
+    while (hsm_find_key_by_uuid(ctx, (const uuid_t *)uuid)) {
+        uuid_generate(*uuid);
+    }
+    uuid_unparse(*uuid, uuid_str);
+
+    CK_ATTRIBUTE publicKeyTemplate[] = {
+        { CKA_LABEL,(CK_UTF8CHAR*) uuid_str, strlen(uuid_str) },
+        { CKA_ID,                  uuid,     sizeof(uuid_t)   },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType)  },
+        { CKA_VERIFY,              &ctrue,   sizeof(ctrue)    },
+        { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)   },
+        { CKA_WRAP,                &cfalse,  sizeof(cfalse)   },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)    },
+        { CKA_MODULUS_BITS,        &keysize, sizeof(keysize)  },
+        { CKA_PUBLIC_EXPONENT,     &publicExponent,   sizeof(publicExponent)}
+    };
+
+    CK_ATTRIBUTE privateKeyTemplate[] = {
+        { CKA_LABEL,(CK_UTF8CHAR *) uuid_str, strlen (uuid_str) },
+        { CKA_ID,          uuid,     sizeof(uuid_t) },
+        { CKA_KEY_TYPE,    &keyType, sizeof(keyType) },
+        { CKA_SIGN,        &ctrue,   sizeof (ctrue) },
+        { CKA_DECRYPT,     &cfalse,  sizeof (cfalse) },
+        { CKA_UNWRAP,      &cfalse,  sizeof (cfalse) },
+        { CKA_SENSITIVE,   &cfalse,  sizeof (cfalse) },
+        { CKA_TOKEN,       &ctrue,   sizeof (ctrue)  },
+        { CKA_PRIVATE,     &ctrue,   sizeof (ctrue)  },
+        { CKA_EXTRACTABLE, &ctrue,   sizeof (ctrue) }
+    };
+
+    rv = session->module->sym->C_GenerateKeyPair(session->session,
+                                                 &mechanism,
+                                                 publicKeyTemplate, 9,
+                                                 privateKeyTemplate, 10,
+                                                 &publicKey,
+                                                 &privateKey);
+    hsm_pkcs11_check_rv(rv, "generate key pair");
+
+    new_key = hsm_key_new();
+    new_key->uuid = uuid;
+    new_key->module = session->module;
+    new_key->public_key = publicKey;
+    new_key->private_key = privateKey;
+    return new_key;
+}
+
 
 void
 hsm_print_key(hsm_key_t *key) {
