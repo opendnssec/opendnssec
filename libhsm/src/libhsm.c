@@ -472,14 +472,19 @@ hsm_ctx_free(hsm_ctx_t *ctx)
 
 /* close the session, and free the allocated data
  * 
- * if unload is non-zero, the dlopen()d module is closed and unloaded
- * (only call this on the last session for each module, ie. the one
- * in the global ctx)
+ * if unload is non-zero, C_Logout() is called,
+ * the dlopen()d module is closed and unloaded
+ * (only call this on the last session for each
+ * module, ie. the one in the global ctx)
  */
 static void
 hsm_session_close(hsm_session_t *session, int unload)
 {
     CK_RV rv;
+    if (unload) {
+        rv = session->module->sym->C_Logout(session->session);
+        hsm_pkcs11_check_rv(rv, "Logout");
+    }
     rv = session->module->sym->C_CloseSession(session->session);
     hsm_pkcs11_check_rv(rv, "Close session");
     if (unload) {
@@ -697,6 +702,20 @@ hsm_print_session(hsm_session_t *session)
     printf("\t\tsess handle: %u\n", (unsigned int) session->session);
 }
 
+static hsm_session_t *
+hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
+{
+    unsigned int i;
+    if (!key || !key->module) return NULL;
+    if (!ctx) ctx = _hsm_ctx;
+    for (i = 0; i < ctx->session_count; i++) {
+        if (ctx->session[i] && ctx->session[i]->module == key->module) {
+            return ctx->session[i];
+        }
+    }
+    return NULL;
+}
+
 void
 hsm_print_ctx(hsm_ctx_t *gctx) {
     hsm_ctx_t *ctx;
@@ -883,11 +902,11 @@ hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
 {
     hsm_key_t *key;
     unsigned int i;
-    if (!ctx || !uuid) return NULL;
+    if (!ctx) ctx = _hsm_ctx;
+    if (!uuid) return NULL;
     for (i = 0; i < ctx->session_count; i++) {
         key = hsm_find_key_by_uuid_session(ctx->session[i], uuid);
-        if (key) { printf("found\n"); return key; 
-        }
+        if (key) return key; 
     }
     return NULL;
 }
@@ -992,12 +1011,41 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     return new_key;
 }
 
+int
+hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
+{
+    CK_RV rv;
+    hsm_session_t *session;
+    if (!ctx) ctx = _hsm_ctx;
+    if (!key) return -1;
+    
+    session = hsm_find_key_session(ctx, key);
+    if (!session) return -2;
+    
+    rv = session->module->sym->C_DestroyObject(session->session,
+                                               key->private_key);
+    hsm_pkcs11_check_rv(rv, "Destroy private key");
+    key->private_key = 0;
+    rv = session->module->sym->C_DestroyObject(session->session,
+                                               key->public_key);
+    hsm_pkcs11_check_rv(rv, "Destroy public key");
+    key->public_key = 0;
+    
+    free(key->uuid);
+    key->uuid = NULL;
+    
+    return 0;
+}
 
 void
 hsm_print_key(hsm_key_t *key) {
     char uuid_str[37];
     if (key) {
-        uuid_unparse(*key->uuid, uuid_str);
+        if (key->uuid) {
+            uuid_unparse(*key->uuid, uuid_str);
+        } else {
+            uuid_str[0] = '\0';
+        }
         printf("key:\n");
         printf("\tmodule %p\n", (void *) key->module);
         printf("\tprivkey handle %u\n", (unsigned int) key->private_key);
@@ -1060,19 +1108,6 @@ hsm_sign_params_free(hsm_sign_params_t *params)
     if (params) free(params);
 }
 
-static hsm_session_t *
-hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
-{
-    unsigned int i;
-    if (!key || !key->module) return NULL;
-    if (!ctx) ctx = _hsm_ctx;
-    for (i = 0; i < ctx->session_count; i++) {
-        if (ctx->session[i] && ctx->session[i]->module == key->module) {
-            return ctx->session[i];
-        }
-    }
-    return NULL;
-}
 static ldns_rdf *
 hsm_sign_buffer(const hsm_ctx_t *ctx, ldns_buffer *sign_buf, const hsm_key_t *key, ldns_algorithm algorithm)
 {

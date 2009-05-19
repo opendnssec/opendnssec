@@ -168,7 +168,7 @@ hsm_key_t *hsm_generate_rsa_key(const hsm_ctx_t *context, const char *repository
 \param key Key pair to be removed
 \return 0 if successful, !0 if failed
 */
-int hsm_remove_key(const hsm_ctx_t *context, const hsm_key_t *key);
+int hsm_remove_key(const hsm_ctx_t *context, hsm_key_t *key);
 
 /*! Get UUID using key identifier
 

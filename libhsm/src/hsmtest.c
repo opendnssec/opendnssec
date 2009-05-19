@@ -36,7 +36,7 @@ int
 main (int argc, char *argv[])
 {
 	int result;
-	hsm_ctx_t *ctx;
+	//hsm_ctx_t *ctx;
 	hsm_key_t **keys;
 	hsm_key_t *key = NULL;
 	size_t key_count = 0;
@@ -48,6 +48,8 @@ main (int argc, char *argv[])
 	int generate = 0;
 	int sign = 0;
 	int show = 1;
+	int delete = 0;
+	int res;
 	
 	(void) argc;
 	(void) argv;
@@ -59,10 +61,14 @@ main (int argc, char *argv[])
 		sign = 1;
 		show = 0;
 	}
+	if (argc > 1 && strcmp(argv[1], "-d") == 0) {
+		delete = 1;
+		show = 0;
+	}
 	fprintf(stdout, "Starting HSM lib test\n");
 	result = hsm_open("/home/jelte/opt/opendnssec/etc/opendnssec/conf.xml", NULL, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);
-	ctx = hsm_create_context();
+	//ctx = hsm_create_context();
 	/*printf("global: ");
 	hsm_print_ctx(NULL);
 	printf("my: ");
@@ -76,7 +82,9 @@ main (int argc, char *argv[])
 		if (show) {
 			hsm_print_key(keys[i]);
 		}
-		if (sign && !key) { key = hsm_find_key_by_uuid(ctx, (const uuid_t *) keys[i]->uuid); }
+		if ((sign || delete) && !key) {
+			key = hsm_find_key_by_uuid(NULL, (const uuid_t *) keys[i]->uuid);
+		}
 		hsm_key_free(keys[i]);
 	}
 	free(keys);
@@ -93,7 +101,7 @@ main (int argc, char *argv[])
 		sign_params->algorithm = LDNS_RSASHA1;
 		sign_params->owner = ldns_rdf_clone(ldns_rr_owner(rr));
 		ldns_rr_list_print(stdout, rrset);
-		sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
+		sig = hsm_sign_rrset(NULL, rrset, key, sign_params);
 		ldns_rr_print(stdout, sig);
 		/* cleanup */
 		ldns_rr_list_deep_free(rrset);
@@ -105,11 +113,18 @@ main (int argc, char *argv[])
 		printf("Created key:\n");
 		hsm_print_key(key);
 	}
+	if (delete) {
+		printf("Delete key:\n");
+		hsm_print_key(key);
+		//res = hsm_remove_key(ctx, key);
+		res = hsm_remove_key(NULL, key);
+		printf("Deleted key. Result: %d\n", res);
+	}
 	if (key) {
 		hsm_print_key(key);
 		hsm_key_free(key);
 	}
-	hsm_destroy_context(ctx);
+	//hsm_destroy_context(ctx);
 	result = hsm_close();
 	fprintf(stdout, "all done! hsm_close result: %d\n", result);
 	return 0;
