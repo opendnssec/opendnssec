@@ -556,7 +556,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
             nchar = snprintf(buffer, sizeof(buffer),
                     "UPDATE policies SET salt = '%s', salt_stamp = DATETIME(\"%s\") WHERE ID = %lu",
                     policy->denial->salt, policy->denial->salt_stamp, (unsigned long) policy->id);
-#endif
+#endif /* USE_MYSQL */
             if (nchar < sizeof(buffer)) {
                 /* All OK, execute the statement */
 

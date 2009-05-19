@@ -55,7 +55,7 @@
 static const char* LIBRARY_VERSION = "0.7"
 #ifndef NDEBUG
 	"-DEBUG"
-#endif
+#endif /* NDEBUG */
 " (built on Wed Apr  1 16:25:02 BST 2009)";
 
 const char* KsmVersion(void)

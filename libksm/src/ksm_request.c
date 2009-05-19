@@ -556,7 +556,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
         DusConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
 #else
         DusConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
-#endif
+#endif /* USE_MYSQL */
         DusEnd(&sql);
 
         status = DbExecuteSqlNoResult(DbHandle(), sql);
@@ -934,7 +934,7 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
     nchar = snprintf(buffer, sizeof(buffer),
         "DATETIME('%s', '+%d SECONDS')",
         datetime, KsmParameterInitialPublicationInterval(parameters));
-#endif
+#endif /* USE_MYSQL */
     if (nchar >= sizeof(buffer)) {
         status = MsgLog(KME_BUFFEROVF, "KsmRequestKeys");
         return status;
@@ -944,7 +944,7 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
     DqsConditionKeyword(&sql, "RETIRE", DQS_COMPARE_LE, buffer, clause++);
 #else
     DqsConditionKeyword(&sql, "DATETIME(RETIRE)", DQS_COMPARE_LE, buffer, clause++);
-#endif
+#endif /* USE_MYSQL */
 
     DqsEnd(&sql);
 
@@ -1133,7 +1133,7 @@ int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count)
 #else
     snprintf(buf, sizeof(buf), "DATETIME('%s')", datetime);
     DqsConditionKeyword(&sql, "DATETIME(RETIRE)", DQS_COMPARE_GT, buf, clause++);
-#endif
+#endif /* USE_MYSQL */
 
     DqsEnd(&sql);
 

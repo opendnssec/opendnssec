@@ -314,8 +314,9 @@ int DtGeneral(const char* string, struct tm* datetime)
 
     /* Assert what we know about the input */
 
-    assert(string != NULL);
-    assert(*string != '\0');
+    if (string == NULL || *string == '\0') {
+        return 1;
+    }
 
     /* Check the string */
 

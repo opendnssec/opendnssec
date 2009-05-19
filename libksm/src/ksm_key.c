@@ -712,6 +712,13 @@ int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
         return status;
     }
 
+    /* Avoid div by 0 (just in case) */
+    if (coll.ksklife == 0 || coll.zsklife == 0) {
+        *count = -1;
+        status = MsgLog(KSM_INVARG, "lifetime of key is 0");
+        return status;
+    }
+
     /* We should have the policy now */
     if (keytype == KSM_TYPE_KSK)
     {

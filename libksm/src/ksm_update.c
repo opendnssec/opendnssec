@@ -460,7 +460,7 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
     nchar = snprintf(buffer, sizeof(buffer),
         "UPDATE keypairs SET %s = DATETIME(%s, '+%d SECONDS') WHERE ID = %lu",
         destination, source, interval, (unsigned long) data->keypair_id);
-#endif
+#endif /* USE_MYSQL */
     if (nchar < sizeof(buffer)) {
 
         /* All OK, execute the statement */
