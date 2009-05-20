@@ -13,8 +13,8 @@ AM_CPPFLAGS = 	-I$(srcdir) -I$(srcdir)/../src/lib -I$(srcdir)/../src/lib/cryptok
 EXTRA_DIST =	$(srcdir)/*.h \
 		$(srcdir)/softhsm.conf
 
-checks_LDADD=	../src/lib/libsofthsm.la -lstdc++
-checks_LDFLAGS=	-static
+checks_LDADD = ../src/lib/libsofthsm.la -lstdc++
+checks_LDFLAGS = -no-install
 
 token.db:
 	../src/bin/softhsm --init-token $@ --label "A token" --so-pin 12345678 --pin 123456
