@@ -94,15 +94,16 @@ static void TestKsmRequestKeys(void)
     int     keytype = 0; /*KSM_TYPE_ZSK;*/       /* Type of key */
     int     rollover = 0;       /* Set 1 to roll over the current key */
 	int		status = 0;
+    int     zone_id = 1; /* opendnssec.org */
 
     char*   datetime = DtParseDateTimeString("now");
 
     /* push a key into some state that update can operate on */
     status = KsmRequestChangeStateN( KSM_TYPE_ZSK, datetime, 1,
-        KSM_STATE_GENERATE, KSM_STATE_PUBLISH);
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, zone_id);
 
 	/* Check that keys of a particular type can be requested */
-    KsmRequestKeys(keytype, rollover, datetime, TestCallbackFn, NULL, 2, 1);
+    KsmRequestKeys(keytype, rollover, datetime, TestCallbackFn, NULL, 2, zone_id);
 
 	CU_ASSERT_EQUAL(status, 1); /* just make sure that something flags this as needing more work */
 	CU_ASSERT_EQUAL(no_keys, 1);

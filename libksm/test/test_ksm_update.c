@@ -72,7 +72,7 @@ static void TestKsmUpdateInternal(void)
 
 	/* push a key into some state that update can operate on */
     status = KsmRequestChangeStateN( KSM_TYPE_ZSK, datetime, 1,
-        KSM_STATE_GENERATE, KSM_STATE_PUBLISH);
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, zone_id);
 
     CU_ASSERT_EQUAL(status, 0);
 

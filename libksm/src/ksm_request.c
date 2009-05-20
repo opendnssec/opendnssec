@@ -232,7 +232,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      */
 
     if (rollover) {
-        status = KsmRequestSetActiveExpectedRetire(keytype, datetime);
+        status = KsmRequestSetActiveExpectedRetire(keytype, datetime, zone_id);
         if (status != 0) {
             return status;
         }
@@ -243,7 +243,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * time.
      */
 
-    status = KsmRequestChangeStateRetireDead(keytype, datetime);
+    status = KsmRequestChangeStateRetireDead(keytype, datetime, zone_id);
     if (status != 0) {
         return status;
     }
@@ -253,7 +253,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * been in the zone long enough.
      */
 
-    status = KsmRequestChangeStatePublishReady(keytype, datetime);
+    status = KsmRequestChangeStatePublishReady(keytype, datetime, zone_id);
     if (status != 0) {
         return status;
     }
@@ -264,7 +264,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * publish state.
      */
 
-    status = KsmRequestChangeStateGeneratePublishConditional(keytype, datetime, &collection);
+    status = KsmRequestChangeStateGeneratePublishConditional(keytype, datetime, &collection, zone_id);
     if (status != 0) {
         return status;
     }
@@ -274,7 +274,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * is run is earlier than the retire time of that key, exit the procedure.
      */
 
-    status = KsmRequestCheckActiveKey(keytype, datetime, &active);
+    status = KsmRequestCheckActiveKey(keytype, datetime, &active, zone_id);
     if (status != 0) {
         return status;
     }
@@ -295,7 +295,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
          * in the "READY" state.
          */
 
-        status = KsmRequestCountReadyKey(keytype, datetime, &ready);
+        status = KsmRequestCountReadyKey(keytype, datetime, &ready, zone_id);
         if (status != 0) {
             return status;
         }
@@ -312,14 +312,14 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
             /* Step 8. Make a key active. */
 
-            status = KsmRequestChangeStateReadyActive(keytype, datetime, 1);
+            status = KsmRequestChangeStateReadyActive(keytype, datetime, 1, zone_id);
             if (status != 0) {
                 return status;
             }
 
             /* Step 9. ... and retire old active keys */
 
-            status = KsmRequestChangeStateActiveRetire(keytype, datetime);
+            status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id);
             if (status != 0) {
                 return status;
             }
@@ -328,7 +328,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
     /* Step 10. Issue the keys */
 
-    status = KsmRequestIssueKeys(keytype, callback, context);
+    status = KsmRequestIssueKeys(keytype, callback, context, zone_id);
 
     return status;
 }
@@ -351,13 +351,16 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
  *          Date/time for which the calculation is being done.  This can be
  *          the string "NOW()".
  *
+ *      int zone_id
+ *          Zone we are looking at (-1 == all zones)
+ *
  *  Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
  *          error message will have been output.
 -*/
 
-int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime)
+int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zone_id)
 {
     int     count;          /* Count of keys whose date will be set */
     int     set = 0;        /* For the update "set" clause */
@@ -372,6 +375,9 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime)
         sql = DqsCountInit("KEYDATA_VIEW");
         DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
         DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
+        if (zone_id != -1) {
+            DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+        }
         DqsEnd(&sql);
 
         status = DbIntQuery(DbHandle(), &count, sql);
@@ -399,6 +405,9 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime)
         DusSetString(&sql, "RETIRE", datetime, set++);
         DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
         DusConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
+        if (zone_id != -1) {
+            DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+        }
         DusEnd(&sql);
 
         status = DbExecuteSqlNoResult(DbHandle(), sql);
@@ -427,28 +436,31 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime)
  *          Date/time for which the calculation is being done.  This ancan be
  *          the string "NOW()".
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  *  Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
  *          error message will have been output.
 -*/
 
-int KsmRequestChangeStatePublishReady(int keytype, const char* datetime)
+int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_PUBLISH, KSM_STATE_READY);
+        KSM_STATE_PUBLISH, KSM_STATE_READY, zone_id);
 }
 
-int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime)
+int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_ACTIVE, KSM_STATE_RETIRE);
+        KSM_STATE_ACTIVE, KSM_STATE_RETIRE, zone_id);
 }
 
-int KsmRequestChangeStateRetireDead(int keytype, const char* datetime)
+int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_RETIRE, KSM_STATE_DEAD);
+        KSM_STATE_RETIRE, KSM_STATE_DEAD, zone_id);
 }
 
 
@@ -475,6 +487,9 @@ int KsmRequestChangeStateRetireDead(int keytype, const char* datetime)
  *      int dst_state
  *          ID of the state that the key is moving to.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  *  Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
@@ -482,7 +497,7 @@ int KsmRequestChangeStateRetireDead(int keytype, const char* datetime)
 -*/
 
 int KsmRequestChangeState(int keytype, const char* datetime,
-    int src_state, int dst_state)
+    int src_state, int dst_state, int zone_id)
 {
     int     where = 0;		/* for the SELECT statement */
     int     count;          /* Number of keys being moved */
@@ -490,6 +505,13 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     int     set = 0;    	/* For UPDATE */
     char*   sql = NULL;     /* SQL statement (when verifying) */
     int     status = 0;     /* Status return */
+    int     i = 0;          /* A counter */
+    int     j = 0;          /* Another counter */
+    char*   insql = NULL;   /* SQL "IN" clause */
+    int*    keyids;         /* List of IDs of keys to promote */
+    DB_RESULT    result;    /* List result set */
+    KSM_KEYDATA  data;      /* Data for this key */
+    char    buffer[32];         /* For integer conversion */
 #ifdef USE_MYSQL
 #else    
     char    buf[256];       /* For constructing date part of the command */
@@ -502,41 +524,83 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     (void) StrToUpper(dst_col);
 
 #ifdef USE_MYSQL
-#else
+#else    
 	snprintf(buf, sizeof(buf), "DATETIME('%s')", datetime);
     snprintf(col, sizeof(col), "DATETIME(%s)", dst_col);
 #endif /* USE_MYSQL */
 
-    if (DbgIsSet(DBG_M_REQUEST)) {
+	/* Allocate space for the list of key IDs */
 
-        /* Count how many keys will be transitioned between states */
+    keyids = MemMalloc(count * sizeof(int));
 
-        sql = DqsCountInit("KEYDATA_VIEW");
-        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
-        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
+    /* Get the list of IDs */
 
-#ifdef USE_MYSQL
-        DqsConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
-#else
-        DqsConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
-#endif /* USE_MYSQL */
-
-        DqsEnd(&sql);
-
-        status = DbIntQuery(DbHandle(), &count, sql);
-        DqsFree(sql);
-
-        if (status == 0) {
-            MsgLog(KME_KEYCHSTATE, count,
-                KsmKeywordStateValueToName(src_state),
-                KsmKeywordStateValueToName(dst_state));
-        }
-        else {
-            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-        }
+    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
     }
 
-    if (status == 0) {
+#ifdef USE_MYSQL
+    DqsConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
+#else
+    DqsConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
+#endif /* USE_MYSQL */
+    
+    DqsEnd(&sql);
+
+    status = KsmKeyInitSql(&result, sql);
+    DqsFree(sql);
+
+	if (status == 0) {
+	    while (status == 0) {
+        	status = KsmKey(result, &data);
+        	if (status == 0) {
+            	keyids[i] = data.keypair_id;
+                i++;
+        	}
+		}
+
+		/* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        } else {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            return status;
+        }
+
+        KsmKeyEnd(result);
+
+    } else {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+		return status;
+	}
+    
+	/* Notify progress if debugging */
+
+	DbgLog(DBG_M_REQUEST, KME_KEYCHSTATE, i,
+		KsmKeywordStateValueToName(src_state),
+		KsmKeywordStateValueToName(dst_state));
+
+	/* Is there anything to do ? */
+    if (i > 0) {
+
+        /*
+         * Yes: construct the "IN" statement listing the IDs of the keys we
+         * are planning to change the state of.
+         */
+
+        StrAppend(&insql, "(");
+        for (j = 0; j < i; ++j) {
+            if (j != 0) {
+                StrAppend(&insql, ",");
+            }
+            snprintf(buffer, sizeof(buffer), "%d", keyids[j]);
+            StrAppend(&insql, buffer);
+        }
+        StrAppend(&insql, ")");
 
 		/*
 		 * Update the keys.  This is done after a status check, as the debug
@@ -545,25 +609,26 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 		 * code is not executed.)
 		 */
 
-        where = set = 0;
         sql = DusInit("keypairs");
         DusSetInt(&sql, "STATE", dst_state, set++);
         DusSetString(&sql, dst_col, datetime, set++);
 
-        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
-        DusConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
-#ifdef USE_MYSQL
-        DusConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
-#else
-        DusConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
-#endif /* USE_MYSQL */
+        DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 1);
+		StrFree(insql);
         DusEnd(&sql);
 
         status = DbExecuteSqlNoResult(DbHandle(), sql);
         DusFree(sql);
+
+         /* Report any errors */
+
+        if (status != 0) {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        }
     }
 
     StrFree(dst_col);
+    StrFree(keyids);
 
     return status;
 }
@@ -590,6 +655,9 @@ int KsmRequestChangeState(int keytype, const char* datetime,
  *          GENERATE state - it is assumed that that check has already been
  *          carried out.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  *  Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
@@ -597,17 +665,17 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 -*/
 
 int KsmRequestChangeStateGeneratePublish(int keytype, const char* datetime,
-	int count)
+	int count, int zone_id)
 {
     return KsmRequestChangeStateN(keytype, datetime, count,
-        KSM_STATE_GENERATE, KSM_STATE_PUBLISH);
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, zone_id);
 }
 
 int KsmRequestChangeStateReadyActive(int keytype, const char* datetime,
-	int count)
+	int count, int zone_id)
 {
     return KsmRequestChangeStateN(keytype, datetime, count,
-        KSM_STATE_READY, KSM_STATE_ACTIVE);
+        KSM_STATE_READY, KSM_STATE_ACTIVE, zone_id);
 }
 
 
@@ -635,6 +703,9 @@ int KsmRequestChangeStateReadyActive(int keytype, const char* datetime,
  *      int dst_state
  *          State to which keys are being promoted.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  *  Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
@@ -642,7 +713,7 @@ int KsmRequestChangeStateReadyActive(int keytype, const char* datetime,
 -*/
 
 int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
-	int src_state, int dst_state)
+	int src_state, int dst_state, int zone_id)
 {
     char                buffer[32];         /* For integer conversion */
     DQS_QUERY_CONDITION condition[3];       /* Condition codes */
@@ -678,6 +749,15 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
     condition[1].compare = DQS_COMPARE_EQ;
 
     condition[2].compare = DQS_END_OF_LIST;
+
+    if (zone_id != -1) {
+        condition[2].code = DB_KEYDATA_ZONE_ID;
+        condition[2].data.number = zone_id;
+        condition[2].compare = DQS_COMPARE_EQ;
+
+        condition[3].compare = DQS_END_OF_LIST;
+    }
+
 
     status = KsmKeyInit(&result, condition);
     for (i = 0; ((i < count) && (status == 0)); ++i) {
@@ -786,6 +866,9 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
  *      KSM_PARCOLL* collection
  *          Pointer to parameter collection for this zone.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  * Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
@@ -793,7 +876,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
 -*/
 
 int KsmRequestChangeStateGeneratePublishConditional(int keytype,
-	const char* datetime, KSM_PARCOLL* collection)
+	const char* datetime, KSM_PARCOLL* collection, int zone_id)
 {
     int     availkeys;      /* Number of availkeys keys */
     int     gencnt;         /* Number of keys in generate state */
@@ -805,7 +888,7 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
     /* How many active keys will be retired in the immediate future */
 
     status = KsmRequestPendingRetireCount(keytype, datetime, collection,
-        &pendret);
+        &pendret, zone_id);
     if (status != 0) {
         return status;
     }
@@ -814,7 +897,7 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
     /* How many available keys are there */
 
     status = KsmRequestAvailableCount(keytype, datetime, collection,
-        &availkeys);
+        &availkeys, zone_id);
     if (status != 0) {
         return status;
     }
@@ -849,7 +932,7 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
 
         /* Are there enough generated keys available */
 
-        status = KsmRequestGenerateCount(keytype, &gencnt);
+        status = KsmRequestGenerateCount(keytype, &gencnt, zone_id);
         if (status == 0) {
             if (gencnt < newkeys) {
                 status = MsgLog(KME_INSFGENKEY, gencnt,
@@ -863,7 +946,7 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
                 /* There are enough keys, so move them to "publish" state */
 
                 status = KsmRequestChangeStateGeneratePublish(keytype,
-                    datetime, newkeys);
+                    datetime, newkeys, zone_id);
             }
             /* TODO what if there are not? Log something at an agreed level? */
         }
@@ -900,6 +983,9 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
  *      int* count (returned)
  *          Number of active keys that will retire within that period.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  * Returns:
  *      int
  *          Status return.  0 => success, <>0 => error, in which case a message
@@ -907,7 +993,7 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
 -*/
 
 int KsmRequestPendingRetireCount(int keytype, const char* datetime,
-    KSM_PARCOLL* parameters, int* count)
+    KSM_PARCOLL* parameters, int* count, int zone_id)
 {
     char    buffer[256];    /* For constructing part of the command */
     int     clause = 0;     /* Used in constructing SQL statement */
@@ -920,6 +1006,9 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
     DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
 
     /* Calculate the initial publication interval & add to query */
 
@@ -987,13 +1076,16 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
  *      int* count (returned)
  *          Number of available keys.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  * Returns:
  *      int
  *          Status return.  0 => success, <>0 => error, in which case a message
  *          will have been output.
 -*/
 
-int KsmRequestAvailableCount(int keytype, const char* datetime, KSM_PARCOLL* parameters, int* count)
+int KsmRequestAvailableCount(int keytype, const char* datetime, KSM_PARCOLL* parameters, int* count, int zone_id)
 {
     char    buffer[256];    /* For constructing part of the command */
     int     clause = 0;     /* Used in constructing SQL statement */
@@ -1015,6 +1107,9 @@ int KsmRequestAvailableCount(int keytype, const char* datetime, KSM_PARCOLL* par
         return status;
     }
     DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
     DqsEnd(&sql);
 
     /* Execute the query and free resources */
@@ -1046,13 +1141,16 @@ int KsmRequestAvailableCount(int keytype, const char* datetime, KSM_PARCOLL* par
  *      int* count (returned)
  *          Number of available keys.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  * Returns:
  *      int
  *          Status return. 0 => success, Other implies error, in which case a
  *          message will have been output.
 -*/
 
-int KsmRequestGenerateCount(int keytype, int* count)
+int KsmRequestGenerateCount(int keytype, int* count, int zone_id)
 {
     int     clause = 0;     /* Clause count */
     char*   sql = NULL;     /* SQL to interrogate database */
@@ -1063,6 +1161,9 @@ int KsmRequestGenerateCount(int keytype, int* count)
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
     DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_GENERATE, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
     DqsEnd(&sql);
 
     /* Execute the query and free resources */
@@ -1105,6 +1206,9 @@ int KsmRequestGenerateCount(int keytype, int* count)
  *          Number of active keys of the appropriate type and in the zone
  *          that will be active AFTER the given date and time.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  *          This negative form (i.e. keys not meeting the specified condition)
  *          is used to ensure that if there are no active keys, this fact is
  *          reported.
@@ -1115,7 +1219,7 @@ int KsmRequestGenerateCount(int keytype, int* count)
  *          will have been output.
 -*/
 
-int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count)
+int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count, int zone_id)
 {
     int     clause = 0;     /* Clause counter */
     char*   sql = NULL;     /* SQL command */
@@ -1127,6 +1231,9 @@ int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count)
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
     DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
 
 #ifdef USE_MYSQL
     DqsConditionString(&sql, "RETIRE", DQS_COMPARE_GT, datetime, clause++);
@@ -1167,13 +1274,16 @@ int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count)
  *      int* count
  *          Number of keys meeting the condition.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  * Returns:
  *      int
  *          Status return. 0 => success, Other => error, in which case a message
  *          will have been output.
 -*/
 
-int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count)
+int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count, int zone_id)
 {
     int     clause = 0;     /* Clause counter */
     char*   sql = NULL;     /* SQL command */
@@ -1182,6 +1292,9 @@ int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count)
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
     DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_READY, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
     DqsEnd(&sql);
 
     status = DbIntQuery(DbHandle(), count, sql);
@@ -1215,6 +1328,9 @@ int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count)
  *      void* context
  *      	Context argument passed uninterpreted to the callback function.
  *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
  * Returns:
  *      int
  *          Status return.  0 => success, <>0 => error (in which case a message
@@ -1222,7 +1338,7 @@ int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count)
 -*/
 
 int KsmRequestIssueKeys(int keytype, KSM_REQUEST_CALLBACK callback,
-	void* context)
+	void* context, int zone_id)
 {
     int     clause = 0;     /* For the WHERE clause */
     KSM_KEYDATA data;       /* Data for this key */
@@ -1249,6 +1365,9 @@ int KsmRequestIssueKeys(int keytype, KSM_REQUEST_CALLBACK callback,
     sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
     DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
     DqsEnd(&sql);
 
     /* Now iterate round the keys meeting the condition and print them */
