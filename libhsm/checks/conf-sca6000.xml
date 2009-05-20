@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id$ -->
+
+<Configuration>
+	<RepositoryList>
+		<Repository name="sca6000">
+			<Module>/usr/lib/libpkcs11.so</Module>
+			<TokenLabel>Sun Metaslot</TokenLabel>
+			<PIN>test:1234</PIN>
+			<Capacity>1000</Capacity>
+		</Repository>
+	</RepositoryList>
+</Configuration>
