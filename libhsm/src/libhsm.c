@@ -572,136 +572,8 @@ hsm_key_new()
     return key;
 }
 
-/* frees the data for the key structure. If uuid is not NULL
- * the data at the uuid pointer is freed as well */
-void
-hsm_key_free(hsm_key_t *key)
-{
-    if (key) {
-        if (key->uuid) free(key->uuid);
-        free(key);
-    }
-}
-
-/* external functions */
-int
-hsm_open(const char *config,
-         char *(pin_callback)(char *token_name, void *), void *data)
-{
-    xmlDocPtr doc;
-    xmlXPathContextPtr xpath_ctx;
-    xmlXPathObjectPtr xpath_obj;
-    xmlNode *curNode;
-    xmlChar *xexpr;
-
-    int i;
-    char *module_name;
-    char *module_path;
-    char *module_pin;
-    hsm_session_t *session;
-
-    /* create an internal context with an attached session for each
-     * configured HSM. */
-    fprintf(stderr,"creating global ctx\n");
-    _hsm_ctx = hsm_ctx_new();
-    
-    /* Load XML document */
-    fprintf(stdout, "Opening %s\n", config);
-    doc = xmlParseFile(config);
-    if (doc == NULL) {
-        fprintf(stderr, "Error: unable to parse file \"%s\"\n", config);
-        return -1;
-    }
-
-    /* Create xpath evaluation context */
-    xpath_ctx = xmlXPathNewContext(doc);
-    if(xpath_ctx == NULL) {
-        fprintf(stderr,"Error: unable to create new XPath context\n");
-        xmlFreeDoc(doc);
-        hsm_ctx_free(_hsm_ctx);
-        _hsm_ctx = NULL;
-        return -1;
-    }
-
-    /* Evaluate xpath expression */
-    xexpr = (xmlChar *)"//Configuration/RepositoryList/Repository";
-    xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if(xpath_obj == NULL) {
-        fprintf(stderr,"Error: unable to evaluate xpath expression\n");
-        xmlXPathFreeContext(xpath_ctx);
-        xmlFreeDoc(doc);
-        hsm_ctx_free(_hsm_ctx);
-        _hsm_ctx = NULL;
-        return -1;
-    }
-    
-    if (xpath_obj->nodesetval) {
-        fprintf(stderr, "%u nodes\n", xpath_obj->nodesetval->nodeNr);
-        for (i = 0; i < xpath_obj->nodesetval->nodeNr; i++) {
-            /*module = hsm_module_new();*/
-            module_name = NULL;
-            module_path = NULL;
-            module_pin = NULL;
-            curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
-            while (curNode) {
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"Name"))
-                    module_name = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
-                    module_path = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
-                    module_pin = (char *) xmlNodeGetContent(curNode);
-                curNode = curNode->next;
-            }
-            if (module_name && module_path) {
-                if (module_pin || pin_callback) {
-                    if (!module_pin) {
-                        module_pin = pin_callback(module_name, data);
-                    }
-                    session = hsm_session_init(module_name, module_path, "1111");
-                    hsm_ctx_add_session(_hsm_ctx, session);
-                    fprintf(stdout, "module added\n");
-                    /* ok we have a module, start a session */
-                }
-                free(module_name);
-                free(module_path);
-                free(module_pin);
-            }
-        }
-    }
-
-    xmlXPathFreeObject(xpath_obj);
-    xmlXPathFreeContext(xpath_ctx);
-    xmlFreeDoc(doc);
-    xmlCleanupParser();
-    return 0;
-}
-
-int
-hsm_close()
-{
-    hsm_ctx_close(_hsm_ctx, 1);
-    return 0;
-}
-
-hsm_ctx_t *
-hsm_create_context()
-{
-    return hsm_ctx_clone(_hsm_ctx);
-}
-
-void
-hsm_destroy_context(hsm_ctx_t *ctx)
-{
-    hsm_ctx_close(ctx, 0);
-}
-
-void
-hsm_print_session(hsm_session_t *session)
-{
-    printf("\t\tmodule at %p (sym %p)\n", (void *) session->module, (void *) session->module->sym);
-    printf("\t\tsess handle: %u\n", (unsigned int) session->session);
-}
-
+/* find the session belonging to a key, by iterating over the modules
+ * in the context */
 static hsm_session_t *
 hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
 {
@@ -714,22 +586,6 @@ hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
         }
     }
     return NULL;
-}
-
-void
-hsm_print_ctx(hsm_ctx_t *gctx) {
-    hsm_ctx_t *ctx;
-    unsigned int i;
-    if (!gctx) {
-        ctx = _hsm_ctx;
-    } else {
-        ctx = gctx;
-    }
-    printf("CTX Sessions: %u\n", ctx->session_count);
-    for (i = 0; i < ctx->session_count; i++) {
-        printf("\tSession at %p\n", (void *) ctx->session[i]);
-        hsm_print_session(ctx->session[i]);
-    }
 }
 
 static CK_OBJECT_HANDLE
@@ -849,37 +705,11 @@ hsm_list_keys_session(const hsm_session_t *session, size_t *count)
     return keys;
 }
 
-hsm_key_t **
-hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
-{
-    hsm_key_t **keys = NULL;
-    size_t key_count = 0;
-    size_t cur_key_count;
-    hsm_key_t **session_keys;
-    unsigned int i, j;
-    
-    if (!ctx) {
-        ctx = _hsm_ctx;
-    }
-    
-    for (i = 0; i < ctx->session_count; i++) {
-        session_keys = hsm_list_keys_session(ctx->session[i],
-                                             &cur_key_count);
-        keys = realloc(keys,
-                       key_count + cur_key_count * sizeof(hsm_key_t *));
-        for (j = 0; j < cur_key_count; j++) {
-            keys[key_count + j] = session_keys[j];
-        }
-        key_count += cur_key_count;
-        free(session_keys);
-    }
-    if (count) {
-        *count = key_count;
-    }
-    return keys;
-}
-
-hsm_key_t *
+/* returns a newly allocated key structure containing the key data
+ * for the given uuid available in the session. Returns NULL if not
+ * found
+ */
+static hsm_key_t *
 hsm_find_key_by_uuid_session(const hsm_session_t *session,
                              const uuid_t *uuid)
 {
@@ -897,20 +727,6 @@ hsm_find_key_by_uuid_session(const hsm_session_t *session,
     } else {
         return NULL;
     }
-}
-
-hsm_key_t *
-hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
-{
-    hsm_key_t *key;
-    unsigned int i;
-    if (!ctx) ctx = _hsm_ctx;
-    if (!uuid) return NULL;
-    for (i = 0; i < ctx->session_count; i++) {
-        key = hsm_find_key_by_uuid_session(ctx->session[i], uuid);
-        if (key) return key; 
-    }
-    return NULL;
 }
 
 /**
@@ -938,116 +754,6 @@ hsm_find_token_session(const hsm_ctx_t *ctx, const char *token_name)
         }
     }
     return NULL;
-}
-
-hsm_key_t *
-hsm_generate_rsa_key(const hsm_ctx_t *ctx,
-                     const char *repository,
-                     unsigned long keysize)
-{
-    hsm_key_t *new_key;
-    hsm_session_t *session;
-    /*unsigned int i;*/
-    uuid_t *uuid;
-    char uuid_str[37];
-    CK_RV rv;
-    CK_OBJECT_HANDLE publicKey, privateKey;
-    CK_KEY_TYPE keyType = CKK_RSA;
-    CK_MECHANISM mechanism = {
-        CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0
-    };
-    CK_BYTE publicExponent[] = { 1, 0, 1 };
-    CK_BBOOL ctrue = CK_TRUE;
-    CK_BBOOL cfalse = CK_FALSE;
-   
-    if (!ctx) ctx = _hsm_ctx;
-    session = hsm_find_token_session(ctx, repository);
-    if (!session) return NULL;
-    
-    uuid = malloc(sizeof(uuid_t));
-    uuid_generate(*uuid);
-    /* check whether this key doesn't happen to exist already */
-    while (hsm_find_key_by_uuid(ctx, (const uuid_t *)uuid)) {
-        uuid_generate(*uuid);
-    }
-    uuid_unparse(*uuid, uuid_str);
-
-    CK_ATTRIBUTE publicKeyTemplate[] = {
-        { CKA_LABEL,(CK_UTF8CHAR*) uuid_str, strlen(uuid_str) },
-        { CKA_ID,                  uuid,     sizeof(uuid_t)   },
-        { CKA_KEY_TYPE,            &keyType, sizeof(keyType)  },
-        { CKA_VERIFY,              &ctrue,   sizeof(ctrue)    },
-        { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)   },
-        { CKA_WRAP,                &cfalse,  sizeof(cfalse)   },
-        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)    },
-        { CKA_MODULUS_BITS,        &keysize, sizeof(keysize)  },
-        { CKA_PUBLIC_EXPONENT, &publicExponent, sizeof(publicExponent)}
-    };
-
-    CK_ATTRIBUTE privateKeyTemplate[] = {
-        { CKA_LABEL,(CK_UTF8CHAR *) uuid_str, strlen (uuid_str) },
-        { CKA_ID,          uuid,     sizeof(uuid_t) },
-        { CKA_KEY_TYPE,    &keyType, sizeof(keyType) },
-        { CKA_SIGN,        &ctrue,   sizeof (ctrue) },
-        { CKA_DECRYPT,     &cfalse,  sizeof (cfalse) },
-        { CKA_UNWRAP,      &cfalse,  sizeof (cfalse) },
-        { CKA_SENSITIVE,   &cfalse,  sizeof (cfalse) },
-        { CKA_TOKEN,       &ctrue,   sizeof (ctrue)  },
-        { CKA_PRIVATE,     &ctrue,   sizeof (ctrue)  },
-        { CKA_EXTRACTABLE, &ctrue,   sizeof (ctrue) }
-    };
-
-    rv = session->module->sym->C_GenerateKeyPair(session->session,
-                                                 &mechanism,
-                                                 publicKeyTemplate, 9,
-                                                 privateKeyTemplate, 10,
-                                                 &publicKey,
-                                                 &privateKey);
-    hsm_pkcs11_check_rv(rv, "generate key pair");
-
-    new_key = hsm_key_new();
-    new_key->uuid = uuid;
-    new_key->module = session->module;
-    new_key->public_key = publicKey;
-    new_key->private_key = privateKey;
-    return new_key;
-}
-
-int
-hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
-{
-    CK_RV rv;
-    hsm_session_t *session;
-    if (!ctx) ctx = _hsm_ctx;
-    if (!key) return -1;
-    
-    session = hsm_find_key_session(ctx, key);
-    if (!session) return -2;
-    
-    rv = session->module->sym->C_DestroyObject(session->session,
-                                               key->private_key);
-    hsm_pkcs11_check_rv(rv, "Destroy private key");
-    key->private_key = 0;
-    rv = session->module->sym->C_DestroyObject(session->session,
-                                               key->public_key);
-    hsm_pkcs11_check_rv(rv, "Destroy public key");
-    key->public_key = 0;
-    
-    free(key->uuid);
-    key->uuid = NULL;
-    
-    return 0;
-}
-
-uuid_t *
-hsm_get_uuid(const hsm_ctx_t *ctx, const hsm_key_t *key)
-{
-    (void) ctx;
-    if (key) {
-        return key->uuid;
-    } else {
-        return NULL;
-    }
 }
 
 static ldns_rdf *
@@ -1141,117 +847,6 @@ hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
     return rdf;
 }
 
-ldns_rr *
-hsm_get_dnskey(const hsm_ctx_t *ctx,
-               const hsm_key_t *key,
-               const hsm_sign_params_t *sign_params)
-{
-    //CK_RV rv;
-    ldns_rr *dnskey;
-    hsm_session_t *session;
-    
-    if (!sign_params) return NULL;
-    if (!ctx) ctx = _hsm_ctx;
-    session = hsm_find_key_session(ctx, key);
-    if (!session) return NULL;
-
-    dnskey = ldns_rr_new();
-    ldns_rr_set_type(dnskey, LDNS_RR_TYPE_DNSKEY);
-
-    ldns_rr_set_owner(dnskey, ldns_rdf_clone(sign_params->owner));
-
-    ldns_rr_push_rdf(dnskey,
-            ldns_native2rdf_int16(LDNS_RDF_TYPE_INT16,
-                sign_params->flags));
-    ldns_rr_push_rdf(dnskey,
-                     ldns_native2rdf_int8(LDNS_RDF_TYPE_INT8,
-                                          LDNS_DNSSEC_KEYPROTO));
-    ldns_rr_push_rdf(dnskey,
-                     ldns_native2rdf_int8(LDNS_RDF_TYPE_ALG,
-                                          sign_params->algorithm));
-
-    ldns_rr_push_rdf(dnskey, hsm_get_key_rdata(session, key));
-
-    return dnskey;
-}
-
-int
-hsm_random_buffer(const hsm_ctx_t *ctx,
-                  unsigned char *buffer,
-                  unsigned long length)
-{
-    CK_RV rv;
-    unsigned int i;
-    hsm_session_t *session;
-    if (!buffer) return -1;
-    if (!ctx) ctx = _hsm_ctx;
-
-    /* just try every attached token. If one errors (be it NO_RNG, or
-     * any other error, simply try the next */
-    for (i = 0; i < ctx->session_count; i++) {
-        session = ctx->session[i];
-        if (session) {
-            rv = session->module->sym->C_GenerateRandom(
-                                         session->session,
-                                         buffer,
-                                         length);
-            if (rv == CKR_OK) {
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-
-uint32_t
-hsm_random32(const hsm_ctx_t *ctx)
-{
-    uint32_t rnd;
-    int result;
-    unsigned char rnd_buf[4];
-    result = hsm_random_buffer(ctx, rnd_buf, 4);
-    if (result == 0) {
-        memcpy(&rnd, rnd_buf, 4);
-        return rnd;
-    } else {
-        return 0;
-    }
-}
-
-uint64_t
-hsm_random64(const hsm_ctx_t *ctx)
-{
-    uint64_t rnd;
-    int result;
-    unsigned char rnd_buf[8];
-    result = hsm_random_buffer(ctx, rnd_buf, 8);
-    if (result == 0) {
-        memcpy(&rnd, rnd_buf, 8);
-        return rnd;
-    } else {
-        return 0;
-    }
-}
-
-void
-hsm_print_key(hsm_key_t *key) {
-    char uuid_str[37];
-    if (key) {
-        if (key->uuid) {
-            uuid_unparse(*key->uuid, uuid_str);
-        } else {
-            uuid_str[0] = '\0';
-        }
-        printf("key:\n");
-        printf("\tmodule %p\n", (void *) key->module);
-        printf("\tprivkey handle %u\n", (unsigned int) key->private_key);
-        printf("\tpubkey handle  %u\n", (unsigned int) key->public_key);
-        printf("\tid %s\n", uuid_str);
-    } else {
-        printf("key: <void>\n");
-    }
-}
-
 /* this function allocates memory for the mechanism ID and enough room
  * to leave the upcoming digest data. It fills in the mechanism id
  * use with care. The returned data must be free'd by the caller */
@@ -1280,32 +875,6 @@ hsm_create_prefix(CK_ULONG digest_len,
             return NULL;
     }
     return data;
-}
-
-/**
- * Returns an allocated hsm_sign_params_t with some defaults
- */
-hsm_sign_params_t *
-hsm_sign_params_new()
-{
-    hsm_sign_params_t *params;
-    params = malloc(sizeof(hsm_sign_params_t));
-    params->algorithm = LDNS_SIGN_RSASHA1;
-    params->flags = LDNS_KEY_ZONE_KEY;
-    params->inception = 0;
-    params->expiration = 0;
-    params->keytag = 0;
-    params->owner = NULL;
-    return params;
-}
-
-void
-hsm_sign_params_free(hsm_sign_params_t *params)
-{
-    if (params) {
-        if (params->owner) ldns_rdf_deep_free(params->owner);
-        free(params);
-    }
 }
 
 static ldns_rdf *
@@ -1498,6 +1067,337 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
     return rrsig;
 }
 
+
+/*
+ *  API functions
+ */
+
+int
+hsm_open(const char *config,
+         char *(pin_callback)(char *token_name, void *), void *data)
+{
+    xmlDocPtr doc;
+    xmlXPathContextPtr xpath_ctx;
+    xmlXPathObjectPtr xpath_obj;
+    xmlNode *curNode;
+    xmlChar *xexpr;
+
+    int i;
+    char *module_name;
+    char *module_path;
+    char *module_pin;
+    hsm_session_t *session;
+
+    /* create an internal context with an attached session for each
+     * configured HSM. */
+    fprintf(stderr,"creating global ctx\n");
+    _hsm_ctx = hsm_ctx_new();
+    
+    /* Load XML document */
+    fprintf(stdout, "Opening %s\n", config);
+    doc = xmlParseFile(config);
+    if (doc == NULL) {
+        fprintf(stderr, "Error: unable to parse file \"%s\"\n", config);
+        return -1;
+    }
+
+    /* Create xpath evaluation context */
+    xpath_ctx = xmlXPathNewContext(doc);
+    if(xpath_ctx == NULL) {
+        fprintf(stderr,"Error: unable to create new XPath context\n");
+        xmlFreeDoc(doc);
+        hsm_ctx_free(_hsm_ctx);
+        _hsm_ctx = NULL;
+        return -1;
+    }
+
+    /* Evaluate xpath expression */
+    xexpr = (xmlChar *)"//Configuration/RepositoryList/Repository";
+    xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
+    if(xpath_obj == NULL) {
+        fprintf(stderr,"Error: unable to evaluate xpath expression\n");
+        xmlXPathFreeContext(xpath_ctx);
+        xmlFreeDoc(doc);
+        hsm_ctx_free(_hsm_ctx);
+        _hsm_ctx = NULL;
+        return -1;
+    }
+    
+    if (xpath_obj->nodesetval) {
+        fprintf(stderr, "%u nodes\n", xpath_obj->nodesetval->nodeNr);
+        for (i = 0; i < xpath_obj->nodesetval->nodeNr; i++) {
+            /*module = hsm_module_new();*/
+            module_name = NULL;
+            module_path = NULL;
+            module_pin = NULL;
+            curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            while (curNode) {
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"Name"))
+                    module_name = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
+                    module_path = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
+                    module_pin = (char *) xmlNodeGetContent(curNode);
+                curNode = curNode->next;
+            }
+            if (module_name && module_path) {
+                if (module_pin || pin_callback) {
+                    if (!module_pin) {
+                        module_pin = pin_callback(module_name, data);
+                    }
+                    session = hsm_session_init(module_name, module_path, "1111");
+                    hsm_ctx_add_session(_hsm_ctx, session);
+                    fprintf(stdout, "module added\n");
+                    /* ok we have a module, start a session */
+                }
+                free(module_name);
+                free(module_path);
+                free(module_pin);
+            }
+        }
+    }
+
+    xmlXPathFreeObject(xpath_obj);
+    xmlXPathFreeContext(xpath_ctx);
+    xmlFreeDoc(doc);
+    xmlCleanupParser();
+    return 0;
+}
+
+char *
+hsm_prompt_pin(const char *token_name, void *data)
+{
+    char *prompt;
+    char *r;
+    (void) data;
+    prompt = malloc(64);
+    snprintf(prompt, 64, "Enter PIN for token %s:", token_name);
+#ifdef HAVE_GETPASSPHRASE 
+    r = getpassphrase("Enter Pin:"); 
+#else 
+    r = getpass("Enter Pin:");
+#endif
+    free(prompt);
+    return r;
+}
+
+int
+hsm_close()
+{
+    hsm_ctx_close(_hsm_ctx, 1);
+    return 0;
+}
+
+hsm_ctx_t *
+hsm_create_context()
+{
+    return hsm_ctx_clone(_hsm_ctx);
+}
+
+void
+hsm_destroy_context(hsm_ctx_t *ctx)
+{
+    hsm_ctx_close(ctx, 0);
+}
+
+/**
+ * Returns an allocated hsm_sign_params_t with some defaults
+ */
+hsm_sign_params_t *
+hsm_sign_params_new()
+{
+    hsm_sign_params_t *params;
+    params = malloc(sizeof(hsm_sign_params_t));
+    params->algorithm = LDNS_SIGN_RSASHA1;
+    params->flags = LDNS_KEY_ZONE_KEY;
+    params->inception = 0;
+    params->expiration = 0;
+    params->keytag = 0;
+    params->owner = NULL;
+    return params;
+}
+
+void
+hsm_sign_params_free(hsm_sign_params_t *params)
+{
+    if (params) {
+        if (params->owner) ldns_rdf_deep_free(params->owner);
+        free(params);
+    }
+}
+
+hsm_key_t **
+hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
+{
+    hsm_key_t **keys = NULL;
+    size_t key_count = 0;
+    size_t cur_key_count;
+    hsm_key_t **session_keys;
+    unsigned int i, j;
+    
+    if (!ctx) {
+        ctx = _hsm_ctx;
+    }
+    
+    for (i = 0; i < ctx->session_count; i++) {
+        session_keys = hsm_list_keys_session(ctx->session[i],
+                                             &cur_key_count);
+        keys = realloc(keys,
+                       key_count + cur_key_count * sizeof(hsm_key_t *));
+        for (j = 0; j < cur_key_count; j++) {
+            keys[key_count + j] = session_keys[j];
+        }
+        key_count += cur_key_count;
+        free(session_keys);
+    }
+    if (count) {
+        *count = key_count;
+    }
+    return keys;
+}
+
+hsm_key_t *
+hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
+{
+    hsm_key_t *key;
+    unsigned int i;
+    if (!ctx) ctx = _hsm_ctx;
+    if (!uuid) return NULL;
+    for (i = 0; i < ctx->session_count; i++) {
+        key = hsm_find_key_by_uuid_session(ctx->session[i], uuid);
+        if (key) return key; 
+    }
+    return NULL;
+}
+
+hsm_key_t *
+hsm_generate_rsa_key(const hsm_ctx_t *ctx,
+                     const char *repository,
+                     unsigned long keysize)
+{
+    hsm_key_t *new_key;
+    hsm_session_t *session;
+    /*unsigned int i;*/
+    uuid_t *uuid;
+    char uuid_str[37];
+    CK_RV rv;
+    CK_OBJECT_HANDLE publicKey, privateKey;
+    CK_KEY_TYPE keyType = CKK_RSA;
+    CK_MECHANISM mechanism = {
+        CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0
+    };
+    CK_BYTE publicExponent[] = { 1, 0, 1 };
+    CK_BBOOL ctrue = CK_TRUE;
+    CK_BBOOL cfalse = CK_FALSE;
+   
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_token_session(ctx, repository);
+    if (!session) return NULL;
+    
+    uuid = malloc(sizeof(uuid_t));
+    uuid_generate(*uuid);
+    /* check whether this key doesn't happen to exist already */
+    while (hsm_find_key_by_uuid(ctx, (const uuid_t *)uuid)) {
+        uuid_generate(*uuid);
+    }
+    uuid_unparse(*uuid, uuid_str);
+
+    CK_ATTRIBUTE publicKeyTemplate[] = {
+        { CKA_LABEL,(CK_UTF8CHAR*) uuid_str, strlen(uuid_str) },
+        { CKA_ID,                  uuid,     sizeof(uuid_t)   },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType)  },
+        { CKA_VERIFY,              &ctrue,   sizeof(ctrue)    },
+        { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)   },
+        { CKA_WRAP,                &cfalse,  sizeof(cfalse)   },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)    },
+        { CKA_MODULUS_BITS,        &keysize, sizeof(keysize)  },
+        { CKA_PUBLIC_EXPONENT, &publicExponent, sizeof(publicExponent)}
+    };
+
+    CK_ATTRIBUTE privateKeyTemplate[] = {
+        { CKA_LABEL,(CK_UTF8CHAR *) uuid_str, strlen (uuid_str) },
+        { CKA_ID,          uuid,     sizeof(uuid_t) },
+        { CKA_KEY_TYPE,    &keyType, sizeof(keyType) },
+        { CKA_SIGN,        &ctrue,   sizeof (ctrue) },
+        { CKA_DECRYPT,     &cfalse,  sizeof (cfalse) },
+        { CKA_UNWRAP,      &cfalse,  sizeof (cfalse) },
+        { CKA_SENSITIVE,   &cfalse,  sizeof (cfalse) },
+        { CKA_TOKEN,       &ctrue,   sizeof (ctrue)  },
+        { CKA_PRIVATE,     &ctrue,   sizeof (ctrue)  },
+        { CKA_EXTRACTABLE, &ctrue,   sizeof (ctrue) }
+    };
+
+    rv = session->module->sym->C_GenerateKeyPair(session->session,
+                                                 &mechanism,
+                                                 publicKeyTemplate, 9,
+                                                 privateKeyTemplate, 10,
+                                                 &publicKey,
+                                                 &privateKey);
+    hsm_pkcs11_check_rv(rv, "generate key pair");
+
+    new_key = hsm_key_new();
+    new_key->uuid = uuid;
+    new_key->module = session->module;
+    new_key->public_key = publicKey;
+    new_key->private_key = privateKey;
+    return new_key;
+}
+
+int
+hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
+{
+    CK_RV rv;
+    hsm_session_t *session;
+    if (!ctx) ctx = _hsm_ctx;
+    if (!key) return -1;
+    
+    session = hsm_find_key_session(ctx, key);
+    if (!session) return -2;
+    
+    rv = session->module->sym->C_DestroyObject(session->session,
+                                               key->private_key);
+    hsm_pkcs11_check_rv(rv, "Destroy private key");
+    key->private_key = 0;
+    rv = session->module->sym->C_DestroyObject(session->session,
+                                               key->public_key);
+    hsm_pkcs11_check_rv(rv, "Destroy public key");
+    key->public_key = 0;
+    
+    free(key->uuid);
+    key->uuid = NULL;
+    
+    return 0;
+}
+
+void
+hsm_key_free(hsm_key_t *key)
+{
+    if (key) {
+        if (key->uuid) free(key->uuid);
+        free(key);
+    }
+}
+
+void
+hsm_key_list_free(hsm_key_t **key_list, size_t count)
+{
+    size_t i;
+    for (i = 0; i < count; i++) {
+        hsm_key_free(key_list[i]);
+    }
+}
+
+uuid_t *
+hsm_get_uuid(const hsm_ctx_t *ctx, const hsm_key_t *key)
+{
+    (void) ctx;
+    if (key) {
+        return key->uuid;
+    } else {
+        return NULL;
+    }
+}
+
 ldns_rr*
 hsm_sign_rrset(const hsm_ctx_t *ctx,
                const ldns_rr_list* rrset,
@@ -1546,3 +1446,143 @@ hsm_sign_rrset(const hsm_ctx_t *ctx,
 
     return signature;
 }
+
+ldns_rr *
+hsm_get_dnskey(const hsm_ctx_t *ctx,
+               const hsm_key_t *key,
+               const hsm_sign_params_t *sign_params)
+{
+    //CK_RV rv;
+    ldns_rr *dnskey;
+    hsm_session_t *session;
+    
+    if (!sign_params) return NULL;
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_key_session(ctx, key);
+    if (!session) return NULL;
+
+    dnskey = ldns_rr_new();
+    ldns_rr_set_type(dnskey, LDNS_RR_TYPE_DNSKEY);
+
+    ldns_rr_set_owner(dnskey, ldns_rdf_clone(sign_params->owner));
+
+    ldns_rr_push_rdf(dnskey,
+            ldns_native2rdf_int16(LDNS_RDF_TYPE_INT16,
+                sign_params->flags));
+    ldns_rr_push_rdf(dnskey,
+                     ldns_native2rdf_int8(LDNS_RDF_TYPE_INT8,
+                                          LDNS_DNSSEC_KEYPROTO));
+    ldns_rr_push_rdf(dnskey,
+                     ldns_native2rdf_int8(LDNS_RDF_TYPE_ALG,
+                                          sign_params->algorithm));
+
+    ldns_rr_push_rdf(dnskey, hsm_get_key_rdata(session, key));
+
+    return dnskey;
+}
+
+int
+hsm_random_buffer(const hsm_ctx_t *ctx,
+                  unsigned char *buffer,
+                  unsigned long length)
+{
+    CK_RV rv;
+    unsigned int i;
+    hsm_session_t *session;
+    if (!buffer) return -1;
+    if (!ctx) ctx = _hsm_ctx;
+
+    /* just try every attached token. If one errors (be it NO_RNG, or
+     * any other error, simply try the next */
+    for (i = 0; i < ctx->session_count; i++) {
+        session = ctx->session[i];
+        if (session) {
+            rv = session->module->sym->C_GenerateRandom(
+                                         session->session,
+                                         buffer,
+                                         length);
+            if (rv == CKR_OK) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+uint32_t
+hsm_random32(const hsm_ctx_t *ctx)
+{
+    uint32_t rnd;
+    int result;
+    unsigned char rnd_buf[4];
+    result = hsm_random_buffer(ctx, rnd_buf, 4);
+    if (result == 0) {
+        memcpy(&rnd, rnd_buf, 4);
+        return rnd;
+    } else {
+        return 0;
+    }
+}
+
+uint64_t
+hsm_random64(const hsm_ctx_t *ctx)
+{
+    uint64_t rnd;
+    int result;
+    unsigned char rnd_buf[8];
+    result = hsm_random_buffer(ctx, rnd_buf, 8);
+    if (result == 0) {
+        memcpy(&rnd, rnd_buf, 8);
+        return rnd;
+    } else {
+        return 0;
+    }
+}
+
+
+/*
+ * Additional functions
+ */
+
+void
+hsm_print_session(hsm_session_t *session)
+{
+    printf("\t\tmodule at %p (sym %p)\n", (void *) session->module, (void *) session->module->sym);
+    printf("\t\tsess handle: %u\n", (unsigned int) session->session);
+}
+
+void
+hsm_print_ctx(hsm_ctx_t *gctx) {
+    hsm_ctx_t *ctx;
+    unsigned int i;
+    if (!gctx) {
+        ctx = _hsm_ctx;
+    } else {
+        ctx = gctx;
+    }
+    printf("CTX Sessions: %u\n", ctx->session_count);
+    for (i = 0; i < ctx->session_count; i++) {
+        printf("\tSession at %p\n", (void *) ctx->session[i]);
+        hsm_print_session(ctx->session[i]);
+    }
+}
+
+void
+hsm_print_key(hsm_key_t *key) {
+    char uuid_str[37];
+    if (key) {
+        if (key->uuid) {
+            uuid_unparse(*key->uuid, uuid_str);
+        } else {
+            uuid_str[0] = '\0';
+        }
+        printf("key:\n");
+        printf("\tmodule %p\n", (void *) key->module);
+        printf("\tprivkey handle %u\n", (unsigned int) key->private_key);
+        printf("\tpubkey handle  %u\n", (unsigned int) key->public_key);
+        printf("\tid %s\n", uuid_str);
+    } else {
+        printf("key: <void>\n");
+    }
+}
+
