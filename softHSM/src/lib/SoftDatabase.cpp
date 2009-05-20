@@ -52,7 +52,7 @@ using std::string;
 // Prepare the SQL statement
 #define PREP_STMT(str, sql) \
   if(sqlite3_prepare_v2(db, str, -1, sql, NULL)) { \
-    return CKR_TOKEN_NOT_RECOGNIZED; \
+    return CKR_TOKEN_NOT_PRESENT; \
   }
 
 // Finalize the prepared statement
@@ -127,7 +127,7 @@ CK_RV SoftDatabase::init(char *dbPath) {
     }
   } else {
     FINALIZE_STMT(pragStatem);
-    return CKR_TOKEN_NOT_RECOGNIZED;
+    return CKR_TOKEN_NOT_PRESENT;
   }
 
   // Check that the Token table exist
