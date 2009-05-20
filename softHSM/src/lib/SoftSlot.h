@@ -59,6 +59,7 @@ class SoftSlot {
     char *soPIN;
 
     CK_FLAGS slotFlags;
+    CK_FLAGS tokenFlags;
 
     char *tokenLabel;
     char *hashedUserPIN;

@@ -99,6 +99,8 @@ CK_RV SoftHSMInternal::openSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PT
                      CKR_SLOT_ID_INVALID);
   CHECK_DEBUG_RETURN((currentSlot->slotFlags & CKF_TOKEN_PRESENT) == 0, "C_OpenSession", "The token is not present",
                      CKR_TOKEN_NOT_PRESENT);
+  CHECK_DEBUG_RETURN((currentSlot->tokenFlags & CKF_TOKEN_INITIALIZED) == 0, "C_OpenSession", "The token is not initialized",
+                     CKR_TOKEN_NOT_RECOGNIZED);
   CHECK_DEBUG_RETURN(openSessions >= MAX_SESSION_COUNT, "C_OpenSession", "Can not open more sessions. Have reached the maximum number.",
                      CKR_SESSION_COUNT);
   CHECK_DEBUG_RETURN((flags & CKF_SERIAL_SESSION) == 0, "C_OpenSession", "Can not open a non parallel session",

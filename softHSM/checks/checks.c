@@ -39,6 +39,7 @@ CK_UTF8CHAR soPIN[] = {"12345678"};
 
 CK_ULONG slotWithToken = 1;
 CK_ULONG slotWithNoToken = 0;
+CK_ULONG slotWithNotInitToken = 2;
 CK_ULONG slotInvalid = 9999;
 
 void usage() {
@@ -367,6 +368,8 @@ void runSessionCheck(unsigned int counter) {
     assert(rv == CKR_SLOT_ID_INVALID);
     rv = C_OpenSession(slotWithNoToken, 0, NULL_PTR, NULL_PTR, NULL_PTR);
     assert(rv == CKR_TOKEN_NOT_PRESENT);
+    rv = C_OpenSession(slotWithNotInitToken, 0, NULL_PTR, NULL_PTR, NULL_PTR);
+    assert(rv == CKR_TOKEN_NOT_RECOGNIZED);
     rv = C_OpenSession(slotWithToken, 0, NULL_PTR, NULL_PTR, NULL_PTR);
     assert(rv == CKR_SESSION_PARALLEL_NOT_SUPPORTED);
     rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION, NULL_PTR, NULL_PTR, NULL_PTR);

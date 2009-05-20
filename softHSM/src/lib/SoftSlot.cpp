@@ -44,6 +44,7 @@ SoftSlot::SoftSlot() {
   userPIN = NULL_PTR;
   soPIN = NULL_PTR;
   slotFlags = CKF_REMOVABLE_DEVICE;
+  tokenFlags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN;
   tokenLabel = NULL_PTR;
   slotID = 0;
   nextSlot = NULL_PTR;
@@ -111,21 +112,29 @@ CK_SLOT_ID SoftSlot::getSlotID() {
 void SoftSlot::readDB() {
   SoftDatabase *db = new SoftDatabase();
   CK_RV rv = db->init(dbPath);
-  if(rv != CKR_OK) {
+
+  if(rv == CKR_TOKEN_NOT_PRESENT) {
     delete db;
     return;
   }
 
-  FREE_PTR(tokenLabel);
-  tokenLabel = db->getTokenLabel();
+  slotFlags |= CKF_TOKEN_PRESENT;
 
-  FREE_PTR(hashedSOPIN);
-  hashedSOPIN = db->getSOPIN();
+  if(rv == CKR_OK) {
+    FREE_PTR(tokenLabel);
+    tokenLabel = db->getTokenLabel();
+    FREE_PTR(hashedSOPIN);
+    hashedSOPIN = db->getSOPIN();
+    if(tokenLabel != NULL_PTR && hashedSOPIN != NULL_PTR) {
+      tokenFlags |= CKF_TOKEN_INITIALIZED;
+    }
 
-  FREE_PTR(hashedUserPIN);
-  hashedUserPIN = db->getUserPIN();
+    FREE_PTR(hashedUserPIN);
+    hashedUserPIN = db->getUserPIN();
+    if(hashedUserPIN != NULL_PTR) {
+      tokenFlags |= CKF_USER_PIN_INITIALIZED;
+    }
+  }
 
   delete db;
-
-  slotFlags |= CKF_TOKEN_PRESENT;
 }

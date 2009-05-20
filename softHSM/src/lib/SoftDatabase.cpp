@@ -52,7 +52,7 @@ using std::string;
 // Prepare the SQL statement
 #define PREP_STMT(str, sql) \
   if(sqlite3_prepare_v2(db, str, -1, sql, NULL)) { \
-    return CKR_TOKEN_NOT_PRESENT; \
+    return CKR_TOKEN_NOT_RECOGNIZED; \
   }
 
 // Finalize the prepared statement
@@ -123,29 +123,29 @@ CK_RV SoftDatabase::init(char *dbPath) {
     FINALIZE_STMT(pragStatem);
 
     if(dbVersion != 100) {
-      return CKR_TOKEN_NOT_PRESENT;
+      return CKR_TOKEN_NOT_RECOGNIZED;
     }
   } else {
     FINALIZE_STMT(pragStatem);
-    return CKR_TOKEN_NOT_PRESENT;
+    return CKR_TOKEN_NOT_RECOGNIZED;
   }
 
   // Check that the Token table exist
   result = sqlite3_exec(db, "SELECT COUNT(variableID) FROM Token;", NULL, NULL, NULL);
   if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
+    return CKR_TOKEN_NOT_RECOGNIZED;
   }
 
   // Check that the Objects table exist
   result = sqlite3_exec(db, "SELECT COUNT(objectID) FROM Objects;", NULL, NULL, NULL);
   if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
+    return CKR_TOKEN_NOT_RECOGNIZED;
   }
 
   // Check that the Attributes table exist
   result = sqlite3_exec(db, "SELECT COUNT(attributeID) FROM Attributes;", NULL, NULL, NULL);
   if(result) {
-    return CKR_TOKEN_NOT_PRESENT;
+    return CKR_TOKEN_NOT_RECOGNIZED;
   }
 
   // Create prepared statements

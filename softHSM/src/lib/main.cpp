@@ -392,9 +392,7 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
   memset(pInfo->serialNumber, ' ', 16);
   memcpy(pInfo->serialNumber, "1", 1);
 
-  pInfo->flags = CKF_RNG | CKF_TOKEN_INITIALIZED | CKF_USER_PIN_INITIALIZED | 
-                 CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN;
-
+  pInfo->flags = currentSlot->tokenFlags;
   pInfo->ulMaxSessionCount = MAX_SESSION_COUNT;
   pInfo->ulSessionCount = softHSM->getSessionCount();
   pInfo->ulMaxRwSessionCount = MAX_SESSION_COUNT;
