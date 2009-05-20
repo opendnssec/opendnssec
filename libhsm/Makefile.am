@@ -12,4 +12,4 @@ MAINTAINERCLEANFILES = \
 
 AUTOMAKE_OPTIONS = foreign
 
-SUBDIRS = src
+SUBDIRS = src checks
