@@ -510,13 +510,16 @@ hsm_ctx_close(hsm_ctx_t *ctx, int unload)
 
     if (ctx) {
         for (i = 0; i < ctx->session_count; i++) {
-            printf("close session %u (unload: %d)\n", i, unload);
-            hsm_print_ctx(ctx);
+            /* todo syslog? */
+            /*printf("close session %u (unload: %d)\n", i, unload);*/
+            /*hsm_print_ctx(ctx);*/
             hsm_session_close(ctx->session[i], unload);
             ctx->session[i] = NULL;
+            /* if this was the last session in the array, decrease
+             * the session counter of the context */
             if (i == _hsm_ctx->session_count) {
-                while(i > 0 && !ctx->session[i]) {
-                    i--;
+                while(ctx->session_count > 0 && !ctx->session[i]) {
+                    ctx->session_count--;
                 }
             }
         }
@@ -1086,7 +1089,7 @@ hsm_open(const char *config,
     char *module_name;
     char *module_path;
     char *module_pin;
-    hsm_session_t *session;
+    int result;
 
     /* create an internal context with an attached session for each
      * configured HSM. */
@@ -1145,9 +1148,17 @@ hsm_open(const char *config,
                     if (!module_pin) {
                         module_pin = pin_callback(module_name, data);
                     }
-                    session = hsm_session_init(module_name, module_path, "1111");
-                    hsm_ctx_add_session(_hsm_ctx, session);
-                    fprintf(stdout, "module added\n");
+                    result = hsm_attach(module_name,
+                                        module_path,
+                                        module_pin);
+                    /* TODO: syslog error/succes? */
+                    if (result == 0) {
+                        fprintf(stdout,
+                                "module '%s' added\n",
+                                module_name);
+                    } else {
+                        fprintf(stderr, "error adding module\n");
+                    }
                     /* ok we have a module, start a session */
                 }
                 free(module_name);
@@ -1289,7 +1300,7 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     CK_BYTE publicExponent[] = { 1, 0, 1 };
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
-   
+
     if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_token_session(ctx, repository);
     if (!session) return NULL;
@@ -1543,6 +1554,46 @@ hsm_random64(const hsm_ctx_t *ctx)
 /*
  * Additional functions
  */
+
+int hsm_attach(char *token_name,
+               char *path,
+               char *pin)
+{
+    hsm_session_t *session;
+    
+    session = hsm_session_init(token_name,
+                               path,
+                               pin);
+    if (session) {
+        return hsm_ctx_add_session(_hsm_ctx, session);
+    } else {
+        return -1;
+    }
+}
+
+/*! Detach a named HSM */
+int hsm_detach(const char *token_name)
+{
+    unsigned int i;
+    for (i = 0; i < _hsm_ctx->session_count; i++) {
+        if (_hsm_ctx->session[i] &&
+            strcmp(_hsm_ctx->session[i]->module->name,
+                   token_name) == 0) {
+            hsm_session_close(_hsm_ctx->session[i], 1);
+            _hsm_ctx->session[i] = NULL;
+            /* if this was the last session in the list, decrease the
+             * session count */
+            if (i == _hsm_ctx->session_count) {
+                while(_hsm_ctx->session_count > 0 &&
+                      !_hsm_ctx->session[i]) {
+                    _hsm_ctx->session_count--;
+                }
+            }
+            return 0;
+        }
+    }
+    return -1;
+}
 
 void
 hsm_print_session(hsm_session_t *session)

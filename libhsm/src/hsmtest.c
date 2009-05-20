@@ -68,7 +68,7 @@ main (int argc, char *argv[])
 		show = 0;
 	}
 	fprintf(stdout, "Starting HSM lib test\n");
-	result = hsm_open("/home/jelte/opt/opendnssec/etc/opendnssec/conf.xml", NULL, NULL);
+	result = hsm_open("/home/jelte/opt/opendnssec/etc/opendnssec/conf.xml", hsm_prompt_pin, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);
 	//ctx = hsm_create_context();
 	/*printf("global: ");
@@ -112,8 +112,12 @@ main (int argc, char *argv[])
 	}
 	if (generate) {
 		key = hsm_generate_rsa_key(NULL, "softHSM", 1024);
-		printf("Created key:\n");
-		hsm_print_key(key);
+		if (key) {
+			printf("Created key:\n");
+			hsm_print_key(key);
+		} else {
+			printf("Error creating key bad token name?\n");
+		}
 	}
 	if (delete) {
 		printf("Delete key:\n");

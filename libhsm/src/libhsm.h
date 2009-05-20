@@ -307,13 +307,23 @@ uint64_t hsm_random64(const hsm_ctx_t *ctx);
 
 /*! Attached a named HSM using a PKCS#11 shared library and
    optional credentials (may be NULL, but then undefined)
-*/
-int hsm_attach(const char *repository,
-               const char *path,
-               const char *pin);
+   This function changes the global state, and is not threadsafe
 
-/*! Detach a named HSM */
-int hsm_detach(const char *repository);
+\param token_name the name of the token to attach
+\param path the path of the shared PKCS#11 library
+\param pin the PIN to log into the token
+\return 0 on success, -1 on error
+*/
+int hsm_attach(char *token_name,
+               char *path,
+               char *pin);
+
+/*! Detach a named HSM
+   This function changes the global state, and is not threadsafe
+\param token_name the token to detach
+\return 0 on success, -1 on error
+*/
+int hsm_detach(const char *token_name);
 
 
 /* a few debug functions for applications */
