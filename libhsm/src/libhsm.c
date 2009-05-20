@@ -746,7 +746,8 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session,
         { CKA_ID, uuid, sizeof(uuid_t) },
     };
     
-    rv = session->module->sym->C_FindObjectsInit(session->session, template, 2);
+    rv = session->module->sym->C_FindObjectsInit(session->session,
+                                                 template, 2);
     hsm_pkcs11_check_rv(rv, "Find objects init");
     
     rv = session->module->sym->C_FindObjects(session->session,
@@ -755,14 +756,14 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session,
                                          &objectCount);
     hsm_pkcs11_check_rv(rv, "Find object");
 
-	rv = session->module->sym->C_FindObjectsFinal(session->session);
+    rv = session->module->sym->C_FindObjectsFinal(session->session);
     hsm_pkcs11_check_rv(rv, "Find object final");
-	if (objectCount > 0) {
-		hsm_pkcs11_check_rv(rv, "Find objects final");
-		return object;
-	} else {
-		return 0;
-	}
+    if (objectCount > 0) {
+        hsm_pkcs11_check_rv(rv, "Find objects final");
+        return object;
+    } else {
+        return 0;
+    }
 }
 
 /* returns an hsm_key_t object for the given *private key* object handle
@@ -770,23 +771,24 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session,
  * The session needs to be free to perform a search for the public key
  */
 static hsm_key_t *
-hsm_key_new_privkey_object_handle(const hsm_session_t *session, CK_OBJECT_HANDLE object)
+hsm_key_new_privkey_object_handle(const hsm_session_t *session,
+                                  CK_OBJECT_HANDLE object)
 {
     hsm_key_t *key;
     CK_RV rv;
     uuid_t *uuid = NULL;
     
-	CK_ATTRIBUTE template[] = {
-		{CKA_ID, uuid, sizeof(uuid_t)}
+    CK_ATTRIBUTE template[] = {
+        {CKA_ID, uuid, sizeof(uuid_t)}
     };
 
     template[0].pValue = malloc(sizeof(uuid_t));
-	rv = session->module->sym->C_GetAttributeValue(
-	                                  session->session,
-	                                  object,
-	                                  template,
-	                                  1);
-	hsm_pkcs11_check_rv(rv, "Get attr value\n");
+    rv = session->module->sym->C_GetAttributeValue(
+                                      session->session,
+                                      object,
+                                      template,
+                                      1);
+    hsm_pkcs11_check_rv(rv, "Get attr value\n");
     key = hsm_key_new();
     key->uuid = template[0].pValue;
     key->module = session->module;
@@ -822,13 +824,14 @@ hsm_list_keys_session(const hsm_session_t *session, size_t *count)
     CK_ULONG i;
     CK_OBJECT_HANDLE object[max_object_count];
 
-    rv = session->module->sym->C_FindObjectsInit(session->session, template, 1);
+    rv = session->module->sym->C_FindObjectsInit(session->session,
+                                                 template, 1);
     hsm_pkcs11_check_rv(rv, "Find objects init");
     
     rv = session->module->sym->C_FindObjects(session->session,
-                                         object,
-                                         max_object_count,
-                                         &objectCount);
+                                             object,
+                                             max_object_count,
+                                             &objectCount);
     hsm_pkcs11_check_rv(rv, "Find first object");
     rv = session->module->sym->C_FindObjectsFinal(session->session);
 
@@ -859,12 +862,11 @@ hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
         ctx = _hsm_ctx;
     }
     
-    printf("Finding keys in %u sessions\n", ctx->session_count);
     for (i = 0; i < ctx->session_count; i++) {
-        printf("Finding keys for session %u\n", i);
-        session_keys = hsm_list_keys_session(ctx->session[i], &cur_key_count);
-        fprintf(stderr, "Adding %u keys from session number %u\n", (unsigned int) cur_key_count, i);
-        keys = realloc(keys, key_count + cur_key_count * sizeof(hsm_key_t *));
+        session_keys = hsm_list_keys_session(ctx->session[i],
+                                             &cur_key_count);
+        keys = realloc(keys,
+                       key_count + cur_key_count * sizeof(hsm_key_t *));
         for (j = 0; j < cur_key_count; j++) {
             keys[key_count + j] = session_keys[j];
         }
@@ -928,9 +930,9 @@ hsm_find_token_session(const hsm_ctx_t *ctx, const char *token_name)
         }
     } else {
         for (i = 0; i < ctx->session_count; i++) {
-            printf("looking for %s in token %u of %u named %s\n", token_name, i, ctx->session_count, ctx->session[i]->module->name);
             if (ctx->session[i] &&
-                strcmp(token_name, ctx->session[i]->module->name) == 0) {
+                strcmp(token_name, ctx->session[i]->module->name) == 0)
+            {
                 return ctx->session[i];
             }
         }
@@ -979,7 +981,7 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
         { CKA_WRAP,                &cfalse,  sizeof(cfalse)   },
         { CKA_TOKEN,               &ctrue,   sizeof(ctrue)    },
         { CKA_MODULUS_BITS,        &keysize, sizeof(keysize)  },
-        { CKA_PUBLIC_EXPONENT,     &publicExponent,   sizeof(publicExponent)}
+        { CKA_PUBLIC_EXPONENT, &publicExponent, sizeof(publicExponent)}
     };
 
     CK_ATTRIBUTE privateKeyTemplate[] = {
@@ -1140,7 +1142,9 @@ hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
 }
 
 ldns_rr *
-hsm_get_dnskey(const hsm_ctx_t *ctx, const hsm_key_t *key, const hsm_sign_params_t *sign_params)
+hsm_get_dnskey(const hsm_ctx_t *ctx,
+               const hsm_key_t *key,
+               const hsm_sign_params_t *sign_params)
 {
     //CK_RV rv;
     ldns_rr *dnskey;
@@ -1160,9 +1164,11 @@ hsm_get_dnskey(const hsm_ctx_t *ctx, const hsm_key_t *key, const hsm_sign_params
             ldns_native2rdf_int16(LDNS_RDF_TYPE_INT16,
                 sign_params->flags));
     ldns_rr_push_rdf(dnskey,
-            ldns_native2rdf_int8(LDNS_RDF_TYPE_INT8, LDNS_DNSSEC_KEYPROTO));
+                     ldns_native2rdf_int8(LDNS_RDF_TYPE_INT8,
+                                          LDNS_DNSSEC_KEYPROTO));
     ldns_rr_push_rdf(dnskey,
-            ldns_native2rdf_int8(LDNS_RDF_TYPE_ALG, sign_params->algorithm));
+                     ldns_native2rdf_int8(LDNS_RDF_TYPE_ALG,
+                                          sign_params->algorithm));
 
     ldns_rr_push_rdf(dnskey, hsm_get_key_rdata(session, key));
 
@@ -1254,26 +1260,26 @@ hsm_create_prefix(CK_ULONG digest_len,
                   ldns_algorithm algorithm,
                   CK_ULONG *data_size)
 {
-	CK_BYTE *data;
-	const CK_BYTE RSA_MD5_ID[] = { 0x30, 0x20, 0x30, 0x0C, 0x06, 0x08, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
-	const CK_BYTE RSA_SHA1_ID[] = { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2B, 0x0E, 0x03, 0x02, 0x1A, 0x05, 0x00, 0x04, 0x14 };
+    CK_BYTE *data;
+    const CK_BYTE RSA_MD5_ID[] = { 0x30, 0x20, 0x30, 0x0C, 0x06, 0x08, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
+    const CK_BYTE RSA_SHA1_ID[] = { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2B, 0x0E, 0x03, 0x02, 0x1A, 0x05, 0x00, 0x04, 0x14 };
 
-	switch(algorithm) {
-		case LDNS_SIGN_RSAMD5:
-			*data_size = sizeof(RSA_MD5_ID) + digest_len;
-			data = malloc(*data_size);
-			memcpy(data, RSA_MD5_ID, sizeof(RSA_MD5_ID));
-			break;
-		case LDNS_SIGN_RSASHA1:
-		case LDNS_SIGN_RSASHA1_NSEC3:
-			*data_size = sizeof(RSA_SHA1_ID) + digest_len;
-			data = malloc(*data_size);
-			memcpy(data, RSA_SHA1_ID, sizeof(RSA_SHA1_ID));
-			break;
-		default:
-			return NULL;
-	}
-	return data;
+    switch(algorithm) {
+        case LDNS_SIGN_RSAMD5:
+            *data_size = sizeof(RSA_MD5_ID) + digest_len;
+            data = malloc(*data_size);
+            memcpy(data, RSA_MD5_ID, sizeof(RSA_MD5_ID));
+            break;
+        case LDNS_SIGN_RSASHA1:
+        case LDNS_SIGN_RSASHA1_NSEC3:
+            *data_size = sizeof(RSA_SHA1_ID) + digest_len;
+            data = malloc(*data_size);
+            memcpy(data, RSA_SHA1_ID, sizeof(RSA_SHA1_ID));
+            break;
+        default:
+            return NULL;
+    }
+    return data;
 }
 
 /**
@@ -1302,16 +1308,11 @@ hsm_sign_params_free(hsm_sign_params_t *params)
     }
 }
 
-void do_print_pos(ldns_rdf *rdf, size_t pos) {
-    uint8_t *d;
-    d = rdf->_data;
-    printf("%u: %02x\n", pos, d[pos]);
-    fflush(stdout);
-    fflush(stderr);
-}
-
-ldns_rdf *
-hsm_sign_buffer(const hsm_ctx_t *ctx, ldns_buffer *sign_buf, const hsm_key_t *key, ldns_algorithm algorithm)
+static ldns_rdf *
+hsm_sign_buffer(const hsm_ctx_t *ctx,
+                ldns_buffer *sign_buf,
+                const hsm_key_t *key,
+                ldns_algorithm algorithm)
 {
     CK_RV rv;
     /* TODO: depends on type and key, or just leave it at current
@@ -1361,10 +1362,10 @@ hsm_sign_buffer(const hsm_ctx_t *ctx, ldns_buffer *sign_buf, const hsm_key_t *ke
     hsm_pkcs11_check_rv(rv, "digest init");
 
     rv = session->module->sym->C_Digest(session->session,
-                                             ldns_buffer_begin(sign_buf),
-                                             ldns_buffer_position(sign_buf),
-                                             digest,
-                                             &digest_len);
+                                        ldns_buffer_begin(sign_buf),
+                                        ldns_buffer_position(sign_buf),
+                                        digest,
+                                        &digest_len);
     hsm_pkcs11_check_rv(rv, "digest");
 
     /* CKM_RSA_PKCS does the padding, but cannot know the identifier
@@ -1418,8 +1419,8 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
     time_t now;
     uint8_t label_count;
 
-    label_count = ldns_dname_label_count(ldns_rr_owner(ldns_rr_list_rr(rrset,
-                                                       0)));
+    label_count = ldns_dname_label_count(
+                       ldns_rr_owner(ldns_rr_list_rr(rrset, 0)));
 
     rrsig = ldns_rr_new_frm_type(LDNS_RR_TYPE_RRSIG);
 
@@ -1497,7 +1498,11 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
     return rrsig;
 }
 
-ldns_rr* hsm_sign_rrset(const hsm_ctx_t *ctx, const ldns_rr_list* rrset, const hsm_key_t *key, const hsm_sign_params_t *sign_params)
+ldns_rr*
+hsm_sign_rrset(const hsm_ctx_t *ctx,
+               const ldns_rr_list* rrset,
+               const hsm_key_t *key,
+               const hsm_sign_params_t *sign_params)
 {
     ldns_rr *signature;
     ldns_buffer *sign_buf;
@@ -1507,7 +1512,8 @@ ldns_rr* hsm_sign_rrset(const hsm_ctx_t *ctx, const ldns_rr_list* rrset, const h
     if (!key) return NULL;
     if (!sign_params) return NULL;
     
-    signature = hsm_create_empty_rrsig((ldns_rr_list *)rrset, sign_params);
+    signature = hsm_create_empty_rrsig((ldns_rr_list *)rrset,
+                                       sign_params);
 
     /* right now, we have: a key, a semi-sig and an rrset. For
      * which we can create the sig and base64 encode that and
