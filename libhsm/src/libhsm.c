@@ -1037,6 +1037,138 @@ hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
     return 0;
 }
 
+uuid_t *
+hsm_get_uuid(const hsm_ctx_t *ctx, const hsm_key_t *key)
+{
+    (void) ctx;
+    if (key) {
+        return key->uuid;
+    } else {
+        return NULL;
+    }
+}
+
+static ldns_rdf *
+hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
+{
+    CK_RV rv;
+    CK_BYTE_PTR public_exponent = NULL;
+    CK_ULONG public_exponent_len = 0;
+    CK_BYTE_PTR modulus = NULL;
+    CK_ULONG modulus_len = 0;
+    unsigned char *data = NULL;
+    size_t data_size = 0;
+
+    CK_ATTRIBUTE template[] = {
+        {CKA_PUBLIC_EXPONENT, NULL, 0},
+        {CKA_MODULUS, NULL, 0},
+    };
+    ldns_rdf *rdf;
+
+    if (!session || !session->module) {
+        return NULL;
+    }
+
+    rv = session->module->sym->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      2);
+
+    public_exponent_len = template[0].ulValueLen;
+    modulus_len = template[1].ulValueLen;
+
+    public_exponent = template[0].pValue = malloc(public_exponent_len);
+    if (!public_exponent) {
+        fprintf(stderr,
+                "Error allocating memory for public exponent\n");
+        return NULL;
+    }
+
+    modulus = template[1].pValue = malloc(modulus_len);
+    if (!modulus) {
+        fprintf(stderr, "Error allocating memory for modulus\n");
+        free(public_exponent);
+        return NULL;
+    }
+
+    rv = session->module->sym->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      2);
+    hsm_pkcs11_check_rv(rv, "get attribute value");
+
+    data_size = public_exponent_len + modulus_len + 1;
+    if (public_exponent_len <= 256) {
+        data = malloc(data_size);
+        if (!data) {
+            fprintf(stderr,
+                    "Error allocating memory for pub key rr data\n");
+            free(public_exponent);
+            free(modulus);
+            return NULL;
+        }
+        data[0] = public_exponent_len;
+        memcpy(&data[1], public_exponent, public_exponent_len);
+        memcpy(&data[1 + public_exponent_len], modulus, modulus_len);
+    } else if (public_exponent_len <= 65535) {
+        data_size += 2;
+        data = malloc(data_size);
+        if (!data) {
+            fprintf(stderr,
+                    "Error allocating memory for pub key rr data\n");
+            free(public_exponent);
+            free(modulus);
+            return NULL;
+        }
+        data[0] = 0;
+        ldns_write_uint16(&data[1], (uint16_t) public_exponent_len); 
+        memcpy(&data[3], public_exponent, public_exponent_len);
+        memcpy(&data[3 + public_exponent_len], modulus, modulus_len);
+    } else {
+        fprintf(stderr, "error: public exponent too big\n");
+        free(public_exponent);
+        free(modulus);
+        return NULL;
+    }
+    rdf = ldns_rdf_new(LDNS_RDF_TYPE_B64, data_size, data);
+    free(public_exponent);
+    free(modulus);
+
+    return rdf;
+}
+
+ldns_rr *
+hsm_get_dnskey(const hsm_ctx_t *ctx, const hsm_key_t *key, const hsm_sign_params_t *sign_params)
+{
+    //CK_RV rv;
+    ldns_rr *dnskey;
+    hsm_session_t *session;
+    
+    if (!sign_params) return NULL;
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_key_session(ctx, key);
+    if (!session) return NULL;
+
+    dnskey = ldns_rr_new();
+    ldns_rr_set_type(dnskey, LDNS_RR_TYPE_DNSKEY);
+
+    ldns_rr_set_owner(dnskey, ldns_rdf_clone(sign_params->owner));
+
+    ldns_rr_push_rdf(dnskey,
+            ldns_native2rdf_int16(LDNS_RDF_TYPE_INT16,
+                sign_params->flags));
+    ldns_rr_push_rdf(dnskey,
+            ldns_native2rdf_int8(LDNS_RDF_TYPE_INT8, LDNS_DNSSEC_KEYPROTO));
+    ldns_rr_push_rdf(dnskey,
+            ldns_native2rdf_int8(LDNS_RDF_TYPE_ALG, sign_params->algorithm));
+
+    ldns_rr_push_rdf(dnskey, hsm_get_key_rdata(session, key));
+
+    return dnskey;
+}
+
 void
 hsm_print_key(hsm_key_t *key) {
     char uuid_str[37];
@@ -1095,6 +1227,7 @@ hsm_sign_params_new()
     hsm_sign_params_t *params;
     params = malloc(sizeof(hsm_sign_params_t));
     params->algorithm = LDNS_SIGN_RSASHA1;
+    params->flags = LDNS_KEY_ZONE_KEY;
     params->inception = 0;
     params->expiration = 0;
     params->keytag = 0;
@@ -1105,10 +1238,21 @@ hsm_sign_params_new()
 void
 hsm_sign_params_free(hsm_sign_params_t *params)
 {
-    if (params) free(params);
+    if (params) {
+        if (params->owner) ldns_rdf_deep_free(params->owner);
+        free(params);
+    }
 }
 
-static ldns_rdf *
+void do_print_pos(ldns_rdf *rdf, size_t pos) {
+    uint8_t *d;
+    d = rdf->_data;
+    printf("%u: %02x\n", pos, d[pos]);
+    fflush(stdout);
+    fflush(stderr);
+}
+
+ldns_rdf *
 hsm_sign_buffer(const hsm_ctx_t *ctx, ldns_buffer *sign_buf, const hsm_key_t *key, ldns_algorithm algorithm)
 {
     CK_RV rv;
@@ -1202,6 +1346,7 @@ hsm_sign_buffer(const hsm_ctx_t *ctx, ldns_buffer *sign_buf, const hsm_key_t *ke
     free(data);
     free(digest);
     free(signature);
+
     return sig_rdf;
 
 }

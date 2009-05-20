@@ -72,6 +72,8 @@ typedef struct {
 typedef struct {
 	/** The DNS signing algorithm identifier */
 	ldns_algorithm algorithm;
+	/** Key flags */
+	uint16_t flags;
 	/** The inception date of signatures made with this key. */
 	uint32_t inception;
 	/** The expiration date of signatures made with this key. */
@@ -176,7 +178,7 @@ int hsm_remove_key(const hsm_ctx_t *context, hsm_key_t *key);
 \param key Key pair to get UUID from
 \return UUID of key pair
 */
-const uuid_t *hsm_get_uuid(const hsm_ctx_t *context, const hsm_key_t *key);
+uuid_t *hsm_get_uuid(const hsm_ctx_t *context, const hsm_key_t *key);
 
 /*! Sign RRset using key
 
@@ -191,9 +193,11 @@ ldns_rr* hsm_sign_rrset(const hsm_ctx_t *ctx, const ldns_rr_list* rrset, const h
 
 \param context HSM context
 \param key Key to get DNSKEY RR from
+\param sign_params the signing parameters (flags, algorithm, etc)
 \return ldns_rr*
 */
-ldns_rr* hsm_get_dnskey(const hsm_ctx_t *context, const hsm_key_t *key);
+ldns_rr* hsm_get_dnskey(const hsm_ctx_t *ctx, const hsm_key_t *key, const hsm_sign_params_t *sign_params);
+
 
 /*! Fill a buffer with random data from any attached HSM
 
