@@ -127,7 +127,7 @@ CK_RV SoftDatabase::init(char *dbPath) {
     }
   } else {
     FINALIZE_STMT(pragStatem);
-    return CKR_TOKEN_NOT_PRESENT;
+    return CKR_TOKEN_NOT_RECOGNIZED;
   }
 
   // Check that the Token table exist
