@@ -202,24 +202,26 @@ ldns_rr* hsm_get_dnskey(const hsm_ctx_t *ctx, const hsm_key_t *key, const hsm_si
 /*! Fill a buffer with random data from any attached HSM
 
 \param context HSM context
-\param length Size of random buffer
 \param buffer Buffer to fill with random data
+\param length Size of random buffer
 \return 0 if successful, !0 if failed
 
 */
-int hsm_random_buffer(const hsm_ctx_t *context, unsigned long length, unsigned char *buffer);
+int hsm_random_buffer(const hsm_ctx_t *ctx, unsigned char *buffer, unsigned long length);
 
 /*! Return unsigned 32-bit random number from any attached HSM
 \param context HSM context
-\return 32-bit ranom number
+\return 32-bit random number, or 0 if no HSM with a random generator is
+               attached 
 */
-uint32_t hsm_random32(const hsm_ctx_t *context);
+uint32_t hsm_random32(const hsm_ctx_t *ctx);
 
 /*! Return unsigned 64-bit random number from any attached HSM
 \param context HSM context
-\return 64-bit ranom number
+\return 64-bit random number, or 0 if no HSM with a random generator is
+               attached 
 */
-uint64_t hsm_random64(const hsm_ctx_t *context);
+uint64_t hsm_random64(const hsm_ctx_t *ctx);
 
 
 

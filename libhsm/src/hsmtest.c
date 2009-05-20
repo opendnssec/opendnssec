@@ -50,6 +50,8 @@ main (int argc, char *argv[])
 	int show = 1;
 	int delete = 0;
 	int res;
+	uint32_t r32;
+	uint64_t r64;
 	
 	(void) argc;
 	(void) argv;
@@ -124,6 +126,11 @@ main (int argc, char *argv[])
 		hsm_print_key(key);
 		hsm_key_free(key);
 	}
+
+	r32 = hsm_random32(NULL);
+	printf("random 32: %u\n", r32);
+	r64 = hsm_random64(NULL);
+	printf("random 64: %llu\n", r64);
 	//hsm_destroy_context(ctx);
 	result = hsm_close();
 	fprintf(stdout, "all done! hsm_close result: %d\n", result);

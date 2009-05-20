@@ -1169,6 +1169,64 @@ hsm_get_dnskey(const hsm_ctx_t *ctx, const hsm_key_t *key, const hsm_sign_params
     return dnskey;
 }
 
+int
+hsm_random_buffer(const hsm_ctx_t *ctx,
+                  unsigned char *buffer,
+                  unsigned long length)
+{
+    CK_RV rv;
+    unsigned int i;
+    hsm_session_t *session;
+    if (!buffer) return -1;
+    if (!ctx) ctx = _hsm_ctx;
+
+    /* just try every attached token. If one errors (be it NO_RNG, or
+     * any other error, simply try the next */
+    for (i = 0; i < ctx->session_count; i++) {
+        session = ctx->session[i];
+        if (session) {
+            rv = session->module->sym->C_GenerateRandom(
+                                         session->session,
+                                         buffer,
+                                         length);
+            if (rv == CKR_OK) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+uint32_t
+hsm_random32(const hsm_ctx_t *ctx)
+{
+    uint32_t rnd;
+    int result;
+    unsigned char rnd_buf[4];
+    result = hsm_random_buffer(ctx, rnd_buf, 4);
+    if (result == 0) {
+        memcpy(&rnd, rnd_buf, 4);
+        return rnd;
+    } else {
+        return 0;
+    }
+}
+
+uint64_t
+hsm_random64(const hsm_ctx_t *ctx)
+{
+    uint64_t rnd;
+    int result;
+    unsigned char rnd_buf[8];
+    result = hsm_random_buffer(ctx, rnd_buf, 8);
+    if (result == 0) {
+        memcpy(&rnd, rnd_buf, 8);
+        return rnd;
+    } else {
+        return 0;
+    }
+}
+
 void
 hsm_print_key(hsm_key_t *key) {
     char uuid_str[37];
