@@ -476,6 +476,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     /* check the argument */
     if (policy == NULL) {
         MsgLog(KSM_INVARG, "NULL policy");
+        StrFree(datetime_now);
         return -1;
     }
 

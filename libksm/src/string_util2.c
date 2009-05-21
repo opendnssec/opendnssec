@@ -46,6 +46,7 @@
 
 #include "ksm/ksmdef.h"
 #include "ksm/memory.h"
+#include "ksm/message.h"
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 

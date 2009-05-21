@@ -45,6 +45,7 @@
 #include "ksm/debug.h"
 #include "ksm/ksm.h"
 #include "ksm/kmedef.h"
+#include "ksm/ksmdef.h"
 #include "ksm/message.h"
 #include "ksm/memory.h"
 #include "ksm/string_util.h"
@@ -500,11 +501,11 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     int src_state, int dst_state, int zone_id)
 {
     int     where = 0;		/* for the SELECT statement */
-    int     count;          /* Number of keys being moved */
     char*   dst_col = NULL; /* Destination column */
     int     set = 0;    	/* For UPDATE */
     char*   sql = NULL;     /* SQL statement (when verifying) */
     int     status = 0;     /* Status return */
+    int     count = 0;      /* How many keys fit our select? */
     int     i = 0;          /* A counter */
     int     j = 0;          /* Another counter */
     char*   insql = NULL;   /* SQL "IN" clause */
@@ -529,8 +530,32 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     snprintf(col, sizeof(col), "DATETIME(%s)", dst_col);
 #endif /* USE_MYSQL */
 
-	/* Allocate space for the list of key IDs */
+    /* First up we need to count how many keys will move */
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
 
+#ifdef USE_MYSQL
+    DqsConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
+#else
+    DqsConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
+#endif /* USE_MYSQL */
+    
+    DqsEnd(&sql);
+
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        StrFree(dst_col);
+		return status;
+	}
+
+    /* Allocate space for the list of key IDs */
     keyids = MemMalloc(count * sizeof(int));
 
     /* Get the list of IDs */
@@ -568,6 +593,8 @@ int KsmRequestChangeState(int keytype, const char* datetime,
             status = 0;
         } else {
             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            StrFree(dst_col);
+            StrFree(keyids);
             return status;
         }
 
@@ -575,17 +602,19 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 
     } else {
         status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        StrFree(dst_col);
+        StrFree(keyids);
 		return status;
 	}
     
 	/* Notify progress if debugging */
 
-	DbgLog(DBG_M_REQUEST, KME_KEYCHSTATE, i,
+	DbgLog(DBG_M_REQUEST, KME_KEYCHSTATE, count,
 		KsmKeywordStateValueToName(src_state),
 		KsmKeywordStateValueToName(dst_state));
 
 	/* Is there anything to do ? */
-    if (i > 0) {
+    if (count > 0) {
 
         /*
          * Yes: construct the "IN" statement listing the IDs of the keys we
@@ -716,7 +745,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
 	int src_state, int dst_state, int zone_id)
 {
     char                buffer[32];         /* For integer conversion */
-    DQS_QUERY_CONDITION condition[3];       /* Condition codes */
+    DQS_QUERY_CONDITION condition[4];       /* Condition codes */
     KSM_KEYDATA         data;               /* Data for this key */
     char*               dst_name = NULL;    /* Dest state name uppercase */
     DB_RESULT           result;             /* List result set */
@@ -728,6 +757,12 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
     int                 status;             /* Status return */
     int                 whereclause = 0;    /* For the "WHERE" clauses */
 
+    /* Just checking */
+    if (count <= 0) {
+        status = MsgLog(KSM_INVARG, "Asked to move 0 keys");
+        return status;
+    }
+
 	/* Notify progress if debugging */
 
 	DbgLog(DBG_M_REQUEST, KME_KEYCHSTATE, count,
@@ -735,7 +770,6 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
 		KsmKeywordStateValueToName(dst_state));
 
     /* Allocate space for the list of key IDs */
-
     keyids = MemMalloc(count * sizeof(int));
 
     /* Get the list of IDs */

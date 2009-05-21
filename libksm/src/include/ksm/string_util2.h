@@ -36,8 +36,8 @@
  *      Additional string function definitions.
 -*/
 
-#include "system_includes.h"
-#include "memory.h"
+#include "ksm/system_includes.h"
+#include "ksm/memory.h"
 
 #ifdef __cplusplus
 extern "C" {

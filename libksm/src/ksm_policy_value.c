@@ -37,6 +37,7 @@
 
 #include "ksm/ksm.h"
 #include "ksm/ksmdef.h"
+#include "ksm/message.h"
 
 #define max(x,y) ((x) > (y) ? (x) : (y))
 #define min(x,y) ((x) < (y) ? (x) : (y))
