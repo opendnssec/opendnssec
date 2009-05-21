@@ -77,10 +77,10 @@ typedef struct
     /* stuff that daemons always have */
     bool debug;
     pid_t pid;
-    const char *pidfile;
+    char *pidfile;
     uid_t uid;
     gid_t gid;
-    const char *username;
+    char *username;
 
     /* Add app specific stuff here */
     unsigned char* user;

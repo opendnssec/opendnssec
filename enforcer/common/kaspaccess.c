@@ -179,7 +179,7 @@ kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle)
 * Disconnect from the DB
 */
 void
-kaspDisconnect(DAEMONCONFIG* config, DB_HANDLE*handle)
+kaspDisconnect(DB_HANDLE*handle)
 {
 	/*
 	 * Connect to the database

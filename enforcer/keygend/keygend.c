@@ -191,7 +191,7 @@ server_main(DAEMONCONFIG *config)
         }
 
     }
-    kaspDisconnect(config, &dbhandle);
+    kaspDisconnect(&dbhandle);
     free(policy->name);
     free(policy->enforcer);
     free(policy->denial);

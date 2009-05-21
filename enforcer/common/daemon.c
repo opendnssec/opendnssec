@@ -51,6 +51,8 @@
 #include "daemon.h"
 #include "daemon_util.h"
 
+extern int server_init(DAEMONCONFIG *config);
+extern void server_main(DAEMONCONFIG *config);
 
 int
 main(int argc, char *argv[]){
