@@ -59,6 +59,7 @@ typedef bool _Bool;
 #endif /* HAVE_STDBOOL_H */
 
 #include <stdint.h>
+#include <unistd.h>
 
 /* Define some lengths of the char*s in the struct
    MySQL allows e.g. 81 characters for the username, 
