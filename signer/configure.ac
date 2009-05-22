@@ -128,22 +128,35 @@ AC_CHECK_FUNC(ldns_key_external_key, [], [
 	]
 )
 
-# check for dynamic loading library
-AC_CHECK_FUNC(dlopen, 
-[
-	if test $ac_cv_func_dlopen = yes; then
-	  AC_DEFINE(HAVE_DLOPEN, 1, [Whether dlopen is available])
-	fi
-], [
-	AC_CHECK_FUNC(LoadLibrary, 
+# check for hsm
+AC_ARG_WITH(hsm, 
+	AC_HELP_STRING([--with-hsm=PATH        specify prefix of path of hsm library to use])
+	,
 	[
-		if test $ac_cv_func_LoadLibrary = yes; then
-		  AC_DEFINE(HAVE_LOADLIBRARY, 1, [Whether LoadLibrary is available])
-		fi
-	], [
-		AC_MSG_ERROR(No dynamic library loading support)
-	])
-])
+		specialhsmdir="$withval"
+		CFLAGS="$CFLAGS -I$withval/include"
+		LDFLAGS="-L$withval -L$withval/lib $LDFLAGS"
+		hsmDIR="$withval"
+	]
+)
+
+# check for hsm development source tree
+AC_MSG_CHECKING([for hsm devel source])
+hsm_dev_dir=../libhsm/src
+if test -f $hsm_dev_dir/libhsm.h ; then
+	AC_MSG_RESULT([using $hsm_dev_dir])
+	CFLAGS="$CFLAGS -I../$hsm_dev_dir"
+	LDFLAGS="-L../$hsm_dev_dir/.libs $LDFLAGS"
+	LIBS="$LIBS -lhsm"
+	AC_DEFINE(HAVE_LIBhsm, 1, [If the hsm library is available.])
+	hsmDIR="$hsm_dev_dir"
+else
+	AC_MSG_RESULT([no])
+	AC_CHECK_LIB(hsm, hsm_open,, [
+			AC_MSG_ERROR([Can't find hsm library])
+		]
+	)
+fi
 
 opendnsseclibexecdir="\$(libexecdir)/opendnssec"
 
