@@ -42,6 +42,8 @@
 #include <ldns/ldns.h>
 #include "util.h"
 
+#include <libhsm.h>
+
 /*
  * change this to 1 to shave about 10% off memory usage,
  * at the cost of extra realloc() calls
@@ -531,6 +533,11 @@ main(int argc, char **argv)
 		}
 	}
 
+	/* we need an hsm for nsec3 hashing at the moment */
+	if (nsec3) {
+		hsm_open("/home/jelte/opt/opendnssec/etc/opendnssec/conf.xml", hsm_prompt_pin, NULL);
+	}
+
 	rr_tree = ldns_rbtree_create(&compare_rr_data);
 	ns_tree = ldns_rbtree_create(&compare_dname);
 
@@ -566,12 +573,16 @@ main(int argc, char **argv)
 												   ldns_rr_owner(cur_rr),
 												   empty_nonterminals);
 						for (eni = 0; eni < empty_nonterminal_count; eni++) {
-							cur_rr_data->name = ldns_nsec3_hash_name(
+							cur_rr_data->name = hsm_nsec3_hash_name(NULL,
 												empty_nonterminals[eni],
 												nsec3_algorithm,
 												nsec3_iterations,
 												nsec3_salt_length,
 												nsec3_salt);
+							if (!cur_rr_data->name) {
+								fprintf(stderr, "Error creating NSEC3 name\n");
+								exit(1);
+							}
 							ldns_dname_cat(cur_rr_data->name, origin);
 							cur_rr_data->type = LDNS_RR_TYPE_NSEC3;
 							cur_rr_data->ent_for = ldns_rr_clone(cur_rr);
@@ -587,12 +598,16 @@ main(int argc, char **argv)
 					if (!nsec3) {
 						cur_rr_data->name = ldns_rdf_clone(ldns_rr_owner(cur_rr));
 					} else {
-						cur_rr_data->name = ldns_nsec3_hash_name(
+						cur_rr_data->name = hsm_nsec3_hash_name(NULL,
 											ldns_rr_owner(cur_rr),
 											nsec3_algorithm,
 											nsec3_iterations,
 											nsec3_salt_length,
 											nsec3_salt);
+						if (!cur_rr_data->name) {
+							fprintf(stderr, "Error creating NSEC3 name\n");
+							exit(1);
+						}
 						ldns_dname_cat(cur_rr_data->name, origin);
 					}
 					cur_rr_data->type = ldns_rr_get_type(cur_rr);
@@ -686,6 +701,10 @@ main(int argc, char **argv)
 	}
 	if (out_file != stdout) {
 		fclose(out_file);
+	}
+
+	if (nsec3) {
+		hsm_close();
 	}
 
 	return 0;
