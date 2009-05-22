@@ -102,7 +102,7 @@ int KsmUpdate(int policy_id, int zone_id)
         }
 
         if (status == 0) {
-            /* TODO put transaction handling round this block? */
+            /* Transaction handling is one level up (in KsmRequestKeys) */
             status = KsmKey(result, &data);
             while (status == 0) {
                 (void) KsmUpdateKey(&data, &collection);

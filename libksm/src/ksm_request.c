@@ -108,11 +108,6 @@ void KsmRequestKeys(int keytype, int rollover, const char* datetime,
     if (status == 0) {
 
         /* Process all key types */
-        /* TODO 
-         * start a transaction
-         * get return from these calls
-         * commit or rollback depending on what comes back
-         */
 
         if ((keytype == KSM_TYPE_KSK) || (keytype == KSM_TYPE_ZSK)) {
             status = KsmRequestKeysByType(keytype, rollover, datetime,
@@ -982,7 +977,6 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
                 status = KsmRequestChangeStateGeneratePublish(keytype,
                     datetime, newkeys, zone_id);
             }
-            /* TODO what if there are not? Log something at an agreed level? */
         }
     }
 

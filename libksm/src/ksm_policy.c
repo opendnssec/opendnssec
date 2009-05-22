@@ -573,7 +573,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
             return status;
         }
     } else {
-        /* TODO what happens here ? */
+		MsgLog(KSM_INVARG, "Could not calculate DateDiff");
         StrFree(datetime_now);
         return -2;
     }

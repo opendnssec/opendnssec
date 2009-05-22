@@ -39,7 +39,8 @@
 #include <stdlib.h>
 
 #include "ksm/memory.h"
-
+#include "ksm/ksmdef.h"
+#include "ksm/message.h"
 
 /*+
  * MemMalloc - Allocate Memory
@@ -55,12 +56,11 @@
  *      to be zeroed.  The definition can be found in the header file.
 -*/
 
-/* TODO should these exit the program or not? 
-        If so, id this logging enough? */
 void* MemMalloc(size_t size)
 {
     void *ptr = malloc(size);
     if (ptr == NULL) {
+		MsgLog(KSM_STMTALLOC, "malloc: Out of swap space");
         fprintf(stderr, "malloc: Out of swap space");
 		exit(1);
     }
@@ -71,6 +71,7 @@ void* MemCalloc(size_t nmemb, size_t size)
 {
     void *ptr = calloc(nmemb, size);
     if (ptr == NULL) {
+		MsgLog(KSM_STMTALLOC, "calloc: Out of swap space");
         fprintf(stderr, "calloc: Out of swap space");
 		exit(1);
     }
@@ -81,6 +82,7 @@ void* MemRealloc(void *ptr, size_t size)
 {
     void *ptr1 = realloc(ptr, size);
     if (ptr1 == NULL) {
+		MsgLog(KSM_STMTALLOC, "realloc: Out of swap space");
         fprintf(stderr, "realloc: Out of swap space");
         exit(1);
     }

@@ -41,7 +41,8 @@
 
 #include "ksm/string_util.h"
 #include "ksm/config.h"
-
+#include "ksm/message.h"
+#include "ksm/ksmdef.h"
 
 /*+
  * StrUncomment - Uncomment Line
@@ -119,7 +120,6 @@ void StrWhitespace(char* line)
  *          string should be freed with StrFree() - a macro wrapper for "free".
 -*/
 
-/* TODO should this function exit? Should it log more if it does? */
 char* StrStrdup(const char* string)
 {
     char* duplicate = NULL; /* Pointer to the duplicated string */
@@ -127,6 +127,7 @@ char* StrStrdup(const char* string)
     if (string) {
         duplicate = strdup(string);
         if (duplicate == NULL) {
+			MsgLog(KSM_STMTALLOC, "StrStrdup: Call to malloc() returned null - out of swap space?");
             fprintf(stderr, "StrStrdup: Call to malloc() returned null - out of swap space?");
             exit(1);
         }
