@@ -39,8 +39,9 @@
 #include <dlfcn.h>
 
 #include <ldns/ldns.h>
+#include <uuid/uuid.h>
 
-#include "ldns_pkcs11.h"
+#include <libhsm.h>
 
 #define DEFAULT_TTL 3600
 #define DEFAULT_FLAGS 256
@@ -48,9 +49,43 @@
 /* TODO: try to derive default from key? */
 #define DEFAULT_ALGORITHM 5
 
+/*
+ * Parses the null-terminated string key_id_str as hex values,
+ * and sets the given uuid to that value
+ */
+static int
+keystr2uuid(uuid_t *uuid, const char *key_id_str)
+{
+	unsigned char *key_id;
+	int key_id_len;
+	/* length of the hex input */
+	size_t hex_len;
+	int i;
+	
+	hex_len = strlen(key_id_str);
+	if (hex_len % 2 != 0) {
+		fprintf(stderr,
+		        "Error: bad hex data for key id: %s\n",
+		        key_id_str);
+		return -1;
+	}
+	key_id_len = hex_len / 2;
+	if (key_id_len != 16) {
+		return -2;
+	}
+	key_id = malloc(16);
+	for (i = 0; i < key_id_len; i++) {
+		key_id[i] = ldns_hexdigit_to_int(key_id_str[2*i]) * 16 +
+		            ldns_hexdigit_to_int(key_id_str[2*i+1]);
+	}
+	memcpy(uuid, key_id, 16);
+	free(key_id);
+	return 0;
+}
+
 /* TODO: we can actually check whether the algorithm matches here if
  * we want*/
-void
+static void
 usage(FILE *out)
 {
 	fprintf(out, "Usage: create_dnskey_pkcs11 [options] <CKA_ID(s)>\n\n");
@@ -71,45 +106,50 @@ usage(FILE *out)
 	fprintf(out, "-v <level>\tSets verbosity level\n");
 }
 
-
 int
 main(int argc, char **argv)
 {
 	/* general options */
 	int verbosity = 1;
 	int c;
-	ldns_rdf *origin = NULL;
 	
 	/* key data */
-	int argi;
-	unsigned char *key_id;
-	int key_id_len;
-	ldns_key *key;
+	int flags_i;
 	ldns_rr *key_rr;
-/*	uint8_t protocol = DEFAULT_PROTOCOL;*/
-	ldns_algorithm key_algorithm = DEFAULT_ALGORITHM;
 	uint32_t ttl = DEFAULT_TTL;
-	uint16_t flags = DEFAULT_FLAGS;
-	const char *token_name = NULL;
+	char *token_name = NULL;
+
+	uuid_t key_uuid;
+	hsm_sign_params_t *params;
+	hsm_key_t *key;
 	
-	/* pkcs11 vars */
+	int result;
 	char *pkcs11_lib_file = NULL;
-	//   "/usr/local/lib/libsofthsm.so";
-	ldns_pkcs11_ctx *pkcs11_ctx;
 	char *pin = NULL;
 	
 	/* internal variables */
-	ldns_status status;
 	int found = 0;
+	int argi;
 
+	params = hsm_sign_params_new();
+	params->algorithm = DEFAULT_ALGORITHM;
+	params->flags = DEFAULT_FLAGS;
+	
+	hsm_open(NULL, NULL, NULL);
 	while ((c = getopt(argc, argv, "a:f:hm:n:o:p:r:t:v:")) != -1) {
 		switch(c) {
 			case 'a':
-				key_algorithm = atoi(optarg);
+				params->algorithm = atoi(optarg);
 				break;
 			case 'f':
-				// todo: check bounds
-				flags = (uint16_t) atoi(optarg);
+				flags_i = atoi(optarg);
+				if (flags_i >= 0 && flags_i < 65536) {
+					params->flags = (uint16_t) flags_i;
+				} else {
+					fprintf(stderr,
+					        "Error: bad flags value: %s\n", optarg);
+					exit(1);
+				}
 				break;
 			case 'h':
 				usage(stdout);
@@ -122,7 +162,7 @@ main(int argc, char **argv)
 				token_name = optarg;
 				break;
 			case 'o':
-				origin = ldns_dname_new_frm_str(optarg);
+				params->owner = ldns_dname_new_frm_str(optarg);
 				break;
 			case 'p':
 				pin = optarg;
@@ -144,7 +184,7 @@ main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (!origin) {
+	if (!params->owner) {
 		fprintf(stderr, "Error: bad or no origin specified\n");
 		exit(1);
 	}
@@ -153,54 +193,42 @@ main(int argc, char **argv)
 		exit(2);
 	}
 	/* init the pkcs environment */
-	pkcs11_ctx = ldns_initialize_pkcs11(pkcs11_lib_file,
-	                                    token_name,
-	                                    pin);
-	if (!pkcs11_ctx) {
-		fprintf(stderr, "Failed to initialize PKCS11 context\n");
+	if (!pin) {
+		pin = hsm_prompt_pin(token_name, NULL);
+	}
+	result = hsm_attach(token_name,
+	                    pkcs11_lib_file,
+	                    pin);
+	if (result != 0) {
+		fprintf(stderr, "Failed to initialize token %s\n", token_name);
 		exit(1);
 	}
 
 	/* read the keys */
 	argi = 0;
 	while (argi < argc) {
-		/* of the form <key_id>_<algorithm number> */
-		key_id = ldns_keystr2id(argv[argi], &key_id_len);
-
-		/* todo: protocol? is it ever different than 3? */
-		status = ldns_key_new_frm_pkcs11(pkcs11_ctx,
-		                                 &key,
-		                                 key_algorithm,
-		                                 flags,
-		                                 key_id,
-		                                 key_id_len);
-		if (status == LDNS_STATUS_OK) {
-			ldns_key_set_flags(key, flags);
-			ldns_key_set_pubkey_owner(key, ldns_rdf_clone(origin));
-		} else {
-			argi++;
-			continue;
-		}
+		/* hex representation of the uuid */
+		result = keystr2uuid(&key_uuid, argv[argi]);
 		
-		key_rr = ldns_key2rr_pkcs(pkcs11_ctx,
-		                          key);
+		key = hsm_find_key_by_uuid(NULL, (const uuid_t *)&key_uuid);
+		
+		/* todo: key_rr */
+		key_rr = hsm_get_dnskey(NULL, key, params);
 		ldns_rr_set_ttl(key_rr, ttl);
 		
 		ldns_rr_print(stdout, key_rr);
 		found = 1;
 
-		free(key_id);
 		ldns_rr_free(key_rr);
-		pkcs_keypair_handle_free(ldns_key_external_key(key));
-		ldns_key_deep_free(key);
+		hsm_key_free(key);
 
 		argi++;
 	}
 	
-	ldns_finalize_pkcs11(pkcs11_ctx);
-	if (origin) {
-		ldns_rdf_deep_free(origin);
-	}
+	hsm_sign_params_free(params);
+
+	hsm_close();
+	
 	if (found) {
 		return LDNS_STATUS_OK;
 	} else {
