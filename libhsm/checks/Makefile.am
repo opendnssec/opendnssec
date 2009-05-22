@@ -7,7 +7,7 @@ AM_CPPFLAGS = 	-I$(srcdir) \
 		-I$(srcdir)/../src
 AM_CFLAGS =	-std=c99
 
-EXTRA_DIST =	$(srcdir)/*.xml
+EXTRA_DIST =	$(srcdir)/*.xml $(srcdir)/softhsm.conf
 
 noinst_PROGRAMS = hsmtest
 noinst_DATA = token.db
