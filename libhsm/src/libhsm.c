@@ -543,7 +543,6 @@ hsm_ctx_add_session(hsm_ctx_t *ctx, hsm_session_t *session)
     if (!ctx || !session) return -1;
     if (ctx->session_count >= HSM_MAX_SESSIONS) return 1;
     ctx->session[ctx->session_count] = session;
-    fprintf(stderr, "added session %u\n", ctx->session_count);
     ctx->session_count++;
     return 0;
 }
@@ -1096,11 +1095,11 @@ hsm_open(const char *config,
 
     /* create an internal context with an attached session for each
      * configured HSM. */
-    fprintf(stderr,"creating global ctx\n");
     _hsm_ctx = hsm_ctx_new();
-    
+
+    if (!config) return 0;
+
     /* Load XML document */
-    fprintf(stdout, "Opening %s\n", config);
     doc = xmlParseFile(config);
     if (doc == NULL) {
         fprintf(stderr, "Error: unable to parse file \"%s\"\n", config);
