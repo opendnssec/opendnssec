@@ -101,17 +101,15 @@ SoftDatabase::~SoftDatabase() {
   FINALIZE_STMT(count_object_id_sql);
   FINALIZE_STMT(select_an_attribute_sql);
 
-  sqlite3_close(db);
+  if(db != NULL_PTR) {
+    sqlite3_close(db);
+  }
 }
 
 CK_RV SoftDatabase::init(char *dbPath) {
   // Open the database
   int result = sqlite3_open(dbPath, &db);
   if(result){
-    if(db != NULL_PTR) {
-      sqlite3_close(db);
-    }
-
     return CKR_TOKEN_NOT_PRESENT;
   }
 
