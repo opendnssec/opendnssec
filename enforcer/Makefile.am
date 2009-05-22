@@ -12,3 +12,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
 SUBDIRS = common communicated keygend
+
+install-data-hook:
+	mkdir -p $(localstatedir)/run
+	
