@@ -12,8 +12,7 @@ EXTRA_DIST =	$(srcdir)/*.xml
 noinst_PROGRAMS = hsmtest
 noinst_DATA = token.db
  
-#hsmtest_LDADD = ../src/libhsm.la
-hsmtest_LDADD = ../src/.libs/libhsm.a
+hsmtest_LDADD = ../src/libhsm.la
 hsmtest_LDFLAGS = -no-install
 
 
