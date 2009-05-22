@@ -15,4 +15,5 @@ SUBDIRS = common communicated keygend
 
 install-data-hook:
 	mkdir -p $(localstatedir)/run/opendnssec
+	mkdir -p $(localstatedir)/opendnssec
 	
