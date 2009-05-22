@@ -1461,6 +1461,149 @@ hsm_sign_rrset(const hsm_ctx_t *ctx,
     return signature;
 }
 
+/* returns a newly allocated (not null-terminated!) string containing
+ * the message digest of the given source string
+ * digest length contains the length of the result
+ * caller must free returned data with free()
+ */
+static CK_BYTE *
+hsm_digest(hsm_session_t *session,
+           CK_MECHANISM digest_mechanism,
+           char *source,
+           size_t length,
+           size_t *digest_length)
+{
+    CK_RV rv;
+    CK_BYTE *digest;
+    CK_ULONG d = 0;
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DigestInit(session->session,
+                                                 &digest_mechanism);
+    hsm_pkcs11_check_rv(rv, "digest init");
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
+                                        (CK_BYTE *)source,
+                                        length,
+                                        NULL,
+                                        &d);
+
+    digest = malloc(d);
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
+                                        (CK_BYTE *)source,
+                                        length,
+                                        digest,
+                                        &d);
+    hsm_pkcs11_check_rv(rv, "digest");
+    *digest_length = d;
+    return digest;
+}
+
+ldns_rdf *
+hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
+                    ldns_rdf *name,
+                    uint8_t algorithm,
+                    uint16_t iterations,
+                    uint8_t salt_length,
+                    uint8_t *salt)
+{
+    char *orig_owner_str;
+    size_t hashed_owner_str_len;
+    ldns_rdf *hashed_owner;
+    char *hashed_owner_str;
+    char *hashed_owner_b32;
+    int hashed_owner_b32_len;
+    uint32_t cur_it;
+    char *hash = NULL;
+    size_t hash_length;
+    ldns_status status;
+    CK_MECHANISM mechanism;
+    unsigned int i;
+    hsm_session_t *session = NULL;
+    
+    switch(algorithm) {
+    case 1:
+        mechanism.mechanism = CKM_SHA_1;
+        mechanism.pParameter = NULL;
+        mechanism.ulParameterLen = 0;
+        break;
+    default:
+        printf("unknown algo: %u\n", (unsigned int)algorithm);
+        return NULL;
+        break;
+    }
+
+    /* just use the first available session */
+    if (!ctx) ctx = _hsm_ctx;
+    for (i = 0; i < ctx->session_count; i++) {
+        if (ctx->session[i]) session = ctx->session[i];
+    }
+    if (!session) {
+        return NULL;
+    }
+
+    /* prepare the owner name according to the draft section bla */
+    orig_owner_str = ldns_rdf2str(name);
+    
+    hashed_owner_str_len = salt_length + ldns_rdf_size(name);
+    hashed_owner_str = LDNS_XMALLOC(char, hashed_owner_str_len);
+    memcpy(hashed_owner_str, ldns_rdf_data(name), ldns_rdf_size(name));
+    memcpy(hashed_owner_str + ldns_rdf_size(name), salt, salt_length);
+
+    for (cur_it = iterations + 1; cur_it > 0; cur_it--) {
+        free(hash);
+        hash = (char *) hsm_digest(session,
+                                   mechanism,
+                                   hashed_owner_str,
+                                   hashed_owner_str_len,
+                                   &hash_length);
+
+        LDNS_FREE(hashed_owner_str);
+        hashed_owner_str_len = salt_length + hash_length;
+        hashed_owner_str = LDNS_XMALLOC(char, hashed_owner_str_len);
+        if (!hashed_owner_str) {
+            fprintf(stderr, "Memory error\n");
+            abort();
+        }
+        memcpy(hashed_owner_str, hash, hash_length);
+        memcpy(hashed_owner_str + hash_length, salt, salt_length);
+    }
+
+    LDNS_FREE(hashed_owner_str);
+    hashed_owner_str = hash;
+    hashed_owner_str_len = hash_length;
+    hashed_owner_b32 = LDNS_XMALLOC(char,
+                              ldns_b32_ntop_calculate_size(
+                                   hashed_owner_str_len) + 1);
+    LDNS_FREE(orig_owner_str);
+    hashed_owner_b32_len =
+        (size_t) ldns_b32_ntop_extended_hex((uint8_t *) hashed_owner_str,
+                                     hashed_owner_str_len,
+                                     hashed_owner_b32,
+                                     ldns_b32_ntop_calculate_size(
+                                         hashed_owner_str_len));
+    if (hashed_owner_b32_len < 1) {
+        fprintf(stderr, "Error in base32 extended hex encoding ");
+        fprintf(stderr, "of hashed owner name (name: ");
+        ldns_rdf_print(stderr, name);
+        fprintf(stderr, ", return code: %d)\n", hashed_owner_b32_len);
+        LDNS_FREE(hashed_owner_b32);
+        return NULL;
+    }
+    hashed_owner_str_len = hashed_owner_b32_len;
+    hashed_owner_b32[hashed_owner_b32_len] = '\0';
+
+    status = ldns_str2rdf_dname(&hashed_owner, hashed_owner_b32);
+    if (status != LDNS_STATUS_OK) {
+        fprintf(stderr, "Error creating rdf from %s\n", hashed_owner_b32);
+        LDNS_FREE(hashed_owner_b32);
+        return NULL;
+    }
+
+    free(hash);
+    LDNS_FREE(hashed_owner_b32);
+    return hashed_owner;
+}
+
 ldns_rr *
 hsm_get_dnskey(const hsm_ctx_t *ctx,
                const hsm_key_t *key,
