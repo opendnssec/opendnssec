@@ -391,24 +391,43 @@ ReadConfig(DAEMONCONFIG *config)
     log_msg(config, LOG_INFO, "HSM Backup Interval: %i\n", config->backupinterval);
 
     /* Evaluate xpath expression for SQlite file location */
+		
     xpathObj = xmlXPathEvalExpression(litexpr, xpathCtx);
-    if(xpathObj != NULL) {
-        db_found = SQLITE_DB;
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", litexpr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
     }
-    config->schema = xmlXPathCastToString(xpathObj);
-    log_msg(config, LOG_INFO, "SQlite database set to: %s\n", config->schema);
+    if(*xmlXPathCastToString(xpathObj) != '\0') {
+        db_found = SQLITE_DB;
+		    config->schema = xmlXPathCastToString(xpathObj);
+		    log_msg(config, LOG_INFO, "SQlite database set to: %s\n", config->schema);
+    }
 
     if (db_found == 0) {
         /* Get all of the MySQL stuff read in too */
         xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
-        if(xpathObj != NULL) {
-            db_found = MYSQL_DB;
+		    if(xpathObj == NULL) {
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_host);
+		        xmlXPathFreeContext(xpathCtx);
+		        xmlFreeDoc(doc);
+		        return(-1);
+		    }
+		    if( *xmlXPathCastToString(xpathObj) != '\0') {
+           db_found = MYSQL_DB;
         }
         config->host = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database host set to: %s\n", config->host);
 
         xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
         if(xpathObj == NULL) {
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_port);
+		        xmlXPathFreeContext(xpathCtx);
+		        xmlFreeDoc(doc);
+		        return(-1);
+		    }
+		    if( *xmlXPathCastToString(xpathObj) == '\0') {
             db_found = 0;
         }
         config->port = xmlXPathCastToString(xpathObj);
@@ -416,6 +435,12 @@ ReadConfig(DAEMONCONFIG *config)
 
         xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
         if(xpathObj == NULL) {
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_db);
+		        xmlXPathFreeContext(xpathCtx);
+		        xmlFreeDoc(doc);
+		        return(-1);
+		    }
+		    if( *xmlXPathCastToString(xpathObj) == '\0') {
             db_found = 0;
         }
         config->schema = xmlXPathCastToString(xpathObj);
@@ -423,6 +448,12 @@ ReadConfig(DAEMONCONFIG *config)
 
         xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
         if(xpathObj == NULL) {
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_user);
+		        xmlXPathFreeContext(xpathCtx);
+		        xmlFreeDoc(doc);
+		        return(-1);
+		    }
+		    if( *xmlXPathCastToString(xpathObj) == '\0') {
             db_found = 0;
         }
         config->user = xmlXPathCastToString(xpathObj);
@@ -430,8 +461,13 @@ ReadConfig(DAEMONCONFIG *config)
 
         xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);
         if(xpathObj == NULL) {
-            db_found = 0;
-        }
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_pass);
+		        xmlXPathFreeContext(xpathCtx);
+		        xmlFreeDoc(doc);
+		        return(-1);
+		    }
+		    /* password may be blank */
+        
         config->password = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database password set\n");
 

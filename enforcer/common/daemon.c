@@ -145,6 +145,7 @@ main(int argc, char *argv[]){
     if (writepid(&config) == -1) {
         log_msg(&config, LOG_ERR, "cannot write the pidfile %s: %s",
                 config.pidfile, strerror(errno));
+							exit(1);
     }
 
     log_msg(&config, LOG_NOTICE, "%s started (version %s), pid %d", PACKAGE_NAME, PACKAGE_VERSION, 

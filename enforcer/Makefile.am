@@ -14,5 +14,5 @@ MAINTAINERCLEANFILES = \
 SUBDIRS = common communicated keygend
 
 install-data-hook:
-	mkdir -p $(localstatedir)/run
+	mkdir -p $(localstatedir)/run/opendnssec
 	

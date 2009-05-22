@@ -52,7 +52,7 @@ else
   make clean && make -j8 && make install
 fi
 
-../trunk/enforcer/configure --prefix=$MYDIR/install --with-libksm-include=$MYDIR/install/include --with-libksm-lib=$MYDIR/install/lib
+../trunk/enforcer/configure --prefix=$MYDIR/install --with-libksm=$MYDIR/install
 if test $OS = "SunOS"; then
   gmake clean && gmake & gmake install
 else
