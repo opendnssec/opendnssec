@@ -53,26 +53,22 @@ AC_FUNC_MALLOC
 AC_FUNC_SELECT_ARGTYPES
 
 # Check for libksm
-AC_ARG_WITH(libksm-include,
-[  --with-libksm-include=DIR     Look for libksm headers in this dir ],
-   KSM_INCLUDES="$withval"
+AC_ARG_WITH(libksm,
+[  --with-libksm=DIR     Look for libksm in this dir ],
+   [LIBKSM="$withval"
+    CFLAGS="$CFLAGS -I$withval/include"
+    CPPFLAGS="$CPPFLAGS -I$withval/include"
+		LDFLAGS="-L$withval/lib $LDFLAGS"]
 )
-AC_ARG_WITH(libksm-lib,
-[  --with-libksm-lib=DIR     Look for libksm libs in this dir ],
-   KSM_LIBS="$withval"
+
+AC_CHECK_HEADERS(ksm/ksm.h,, [
+		AC_MSG_ERROR([Can't find libksm headers])
+	]
 )
-AC_MSG_CHECKING(what is the libksm include path)
-if test "x$KSM_INCLUDES" = "x"; then
-  KSM_INCLUDES="/usr/local/include"
-fi
-AC_MSG_RESULT($KSM_INCLUDES)
-AC_MSG_CHECKING(what is the libksm libs path)
-if test "x$KSM_LIBS" = "x"; then
-  KSM_LIBS="/usr/local/lib"
-fi
-AC_MSG_RESULT($KSM_LIBS)
-AC_SUBST(KSM_INCLUDES)
-AC_SUBST(KSM_LIBS)
+AC_CHECK_LIB(ksm,KsmInit,, [
+		AC_MSG_ERROR([Can't find libksm library])
+	]
+)
 
 AC_ARG_WITH(libxml2,
 [  --with-libxml2=DIR     Look for libxml2 in this dir ],
@@ -108,7 +104,7 @@ AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file`"], [Path to the Op
 signer_conf_dir=$localstatedir/opendnssec/config
 AC_DEFINE_UNQUOTED(SIGNER_CONF_DIR, ["`eval echo $signer_conf_dir`"], [Path to the OpenDNSSEC signer configuration directory])
 
-CPPFLAGS="${CPPFLAGS} ${XML_INCLUDES} -I${KSM_INCLUDES}"
+CPPFLAGS="${CPPFLAGS} ${XML_INCLUDES}"
 
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes";

@@ -18,16 +18,19 @@ Pre-requisites
 
 Building the Software
 ---------------------
+
+If from svn then you need to run ./autogen.sh
+
+To build just run ./configure; make; make install
+
 Note that setting CFLAGS to "-g" before the configure stage ensures that the final binary is built with the optimizer turned off. (overrides the default -g -O2)
 
 The following options can be passed to configure;
 
 --prefix=<dir>                  Installation directory. All files will be 
                                 installed relative to this path.
---with-libksm-include=<dir>     Either where you installed to or:
-                                ../../libksm/src/include 
---with-libksm-lib=<dir>         Either where you installed to or:
-                                ../../libksm/src/.libs
+--with-libksm=<dir>             Where you installed libksm
+
 
 Running the Communicator
 ------------------------
