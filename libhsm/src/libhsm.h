@@ -49,14 +49,14 @@ typedef struct {
 /*! HSM Session */
 typedef struct {
 	hsm_module_t *module;
-	int session;
+	unsigned long session;
 } hsm_session_t;
 
 /*! HSM Key Pair */
 typedef struct {
 	const hsm_module_t *module;  /*!< pointer to module */
-	int private_key;  /*!< private key within module */
-	int public_key;  /*!< public key within module */
+	unsigned long private_key;  /*!< private key within module */
+	unsigned long public_key;  /*!< public key within module */
 	uuid_t *uuid;          /*!< UUID of key (if available) */
 } hsm_key_t;
 
