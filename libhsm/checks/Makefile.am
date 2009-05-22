@@ -4,8 +4,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = token.db
 
 AM_CPPFLAGS = 	-I$(srcdir) \
-		-I$(srcdir)/../src \
-		-I$(srcdir)/../src/cryptoki
+		-I$(srcdir)/../src
 AM_CFLAGS =	-std=c99
 
 EXTRA_DIST =	$(srcdir)/*.xml
