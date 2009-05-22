@@ -52,21 +52,26 @@ main (int argc, char *argv[])
 	int res;
 	uint32_t r32;
 	uint64_t r64;
-	
-	(void) argc;
-	(void) argv;
-	if (argc > 1 && strcmp(argv[1], "-g") == 0) {
-		generate = 1;
-		show = 0;
+
+	int ch;
+
+	while ((ch = getopt(argc, argv, "gsd")) != -1) {
+		switch (ch) {
+		case 'g':
+			generate = 1;
+			show = 0;
+			break;
+		case 's':
+			sign = 1;
+			show = 0;
+			break;
+		case 'd':
+			delete = 1;
+			show = 0;
+			break;
+		}
 	}
-	if (argc > 1 && strcmp(argv[1], "-s") == 0) {
-		sign = 1;
-		show = 0;
-	}
-	if (argc > 1 && strcmp(argv[1], "-d") == 0) {
-		delete = 1;
-		show = 0;
-	}
+
 	fprintf(stdout, "Starting HSM lib test\n");
 	result = hsm_open(getenv("HSMTEST_CONF"), hsm_prompt_pin, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);
