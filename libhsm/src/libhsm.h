@@ -32,8 +32,6 @@
 
 #include "config.h"
 
-#include <cryptoki.h>
-#include <pkcs11.h>
 #include <ldns/ldns.h>
 #include <uuid/uuid.h>
 
@@ -45,20 +43,20 @@ typedef struct {
 	char *name;          /*!< name of module */
 	char *path;          /*!< path to PKCS#11 library */
 	void *handle;        /*!< handle from dlopen()*/
-	CK_FUNCTION_LIST_PTR sym;  /*!< Function list from dlsym */
+	void *sym;  /*!< Function list from dlsym */
 } hsm_module_t;
 
 /*! HSM Session */
 typedef struct {
 	hsm_module_t *module;
-	CK_SESSION_HANDLE session;
+	int session;
 } hsm_session_t;
 
 /*! HSM Key Pair */
 typedef struct {
 	const hsm_module_t *module;  /*!< pointer to module */
-	CK_OBJECT_HANDLE private_key;  /*!< private key within module */
-	CK_OBJECT_HANDLE public_key;  /*!< public key within module */
+	int private_key;  /*!< private key within module */
+	int public_key;  /*!< public key within module */
 	uuid_t *uuid;          /*!< UUID of key (if available) */
 } hsm_key_t;
 
@@ -102,7 +100,7 @@ function that takes a context can be passed NULL, in which case the
 global context will be used) and log into each HSM.
 */
 int hsm_open(const char *config,
-             char *(pin_callback)(char *token_name, void *),
+             char *(pin_callback)(const char *token_name, void *),
              void *data);
 
 
@@ -255,7 +253,6 @@ ldns_rr* hsm_sign_rrset(const hsm_ctx_t *ctx,
                         const ldns_rr_list* rrset,
                         const hsm_key_t *key,
                         const hsm_sign_params_t *sign_params);
-
 
 /*! Get DNSKEY RR
 

@@ -45,6 +45,9 @@
 #include "libhsm.h"
 #include <config.h>
 
+#include <cryptoki.h>
+#include <pkcs11.h>
+
 /* we need some globals, for session management, and for the initial
  * context
  */
@@ -277,7 +280,7 @@ fprintf(stderr, "have pkcs11_module\n");
     }
 
     /* Retrieve the function list */
-    (pGetFunctionList)(&module->sym);
+    (pGetFunctionList)((CK_FUNCTION_LIST_PTR)(&module->sym));
     return CKR_OK;
 }
 
@@ -401,16 +404,16 @@ hsm_session_init(char *module_name, char *module_path, char *pin)
     module = hsm_module_new(module_name, module_path);
     rv = hsm_pkcs11_load_functions(module);
     hsm_pkcs11_check_rv(rv, "Load functions");
-    rv = module->sym->C_Initialize(NULL);
+    rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize(NULL);
     hsm_pkcs11_check_rv(rv, "Initialization");
     slot_id = ldns_hsm_get_slot_id(module->sym, module_name);
-    rv = module->sym->C_OpenSession(slot_id,
+    rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_OpenSession(slot_id,
                                CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                NULL,
                                NULL,
                                &session_handle);
     hsm_pkcs11_check_rv(rv, "Open first session");
-    rv = module->sym->C_Login(session_handle,
+    rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Login(session_handle,
                                    CKU_USER,
                                    (unsigned char *) pin,
                                    strlen((char *)pin));
@@ -431,7 +434,7 @@ hsm_session_clone(hsm_session_t *session)
     
     slot_id = ldns_hsm_get_slot_id(session->module->sym,
                                    session->module->name);
-    rv = session->module->sym->C_OpenSession(slot_id,
+    rv = ((CK_FUNCTION_LIST_PTR) session->module->sym)->C_OpenSession(slot_id,
                                     CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                     NULL,
                                     NULL,
@@ -482,13 +485,13 @@ hsm_session_close(hsm_session_t *session, int unload)
 {
     CK_RV rv;
     if (unload) {
-        rv = session->module->sym->C_Logout(session->session);
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Logout(session->session);
         hsm_pkcs11_check_rv(rv, "Logout");
     }
-    rv = session->module->sym->C_CloseSession(session->session);
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_CloseSession(session->session);
     hsm_pkcs11_check_rv(rv, "Close session");
     if (unload) {
-        rv = session->module->sym->C_Finalize(NULL);
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Finalize(NULL);
         hsm_pkcs11_check_rv(rv, "Finalize");
         hsm_pkcs11_unload_functions(session->module->handle);
         hsm_module_free(session->module);
@@ -605,17 +608,17 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session,
         { CKA_ID, uuid, sizeof(uuid_t) },
     };
     
-    rv = session->module->sym->C_FindObjectsInit(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 2);
     hsm_pkcs11_check_rv(rv, "Find objects init");
     
-    rv = session->module->sym->C_FindObjects(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
                                          &object,
                                          1,
                                          &objectCount);
     hsm_pkcs11_check_rv(rv, "Find object");
 
-    rv = session->module->sym->C_FindObjectsFinal(session->session);
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
     hsm_pkcs11_check_rv(rv, "Find object final");
     if (objectCount > 0) {
         hsm_pkcs11_check_rv(rv, "Find objects final");
@@ -642,7 +645,7 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session,
     };
 
     template[0].pValue = malloc(sizeof(uuid_t));
-    rv = session->module->sym->C_GetAttributeValue(
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
                                       object,
                                       template,
@@ -683,16 +686,16 @@ hsm_list_keys_session(const hsm_session_t *session, size_t *count)
     CK_ULONG i;
     CK_OBJECT_HANDLE object[max_object_count];
 
-    rv = session->module->sym->C_FindObjectsInit(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 1);
     hsm_pkcs11_check_rv(rv, "Find objects init");
     
-    rv = session->module->sym->C_FindObjects(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
                                              object,
                                              max_object_count,
                                              &objectCount);
     hsm_pkcs11_check_rv(rv, "Find first object");
-    rv = session->module->sym->C_FindObjectsFinal(session->session);
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
 
     printf("objectCount: %u\n", (unsigned int) objectCount);
     keys = malloc(objectCount * sizeof(hsm_key_t *));
@@ -780,7 +783,7 @@ hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
         return NULL;
     }
 
-    rv = session->module->sym->C_GetAttributeValue(
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
                                       key->public_key,
                                       template,
@@ -803,7 +806,7 @@ hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
         return NULL;
     }
 
-    rv = session->module->sym->C_GetAttributeValue(
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
                                       key->public_key,
                                       template,
@@ -929,11 +932,11 @@ hsm_sign_buffer(const hsm_ctx_t *ctx,
 
     digest = malloc(digest_len);
 
-    rv = session->module->sym->C_DigestInit(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DigestInit(session->session,
                                                  &digest_mechanism);
     hsm_pkcs11_check_rv(rv, "digest init");
 
-    rv = session->module->sym->C_Digest(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
                                         ldns_buffer_begin(sign_buf),
                                         ldns_buffer_position(sign_buf),
                                         digest,
@@ -959,13 +962,13 @@ hsm_sign_buffer(const hsm_ctx_t *ctx,
             return NULL;
     }
 
-    rv = session->module->sym->C_SignInit(
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_SignInit(
                                       session->session,
                                       &sign_mechanism,
                                       key->private_key);
     hsm_pkcs11_check_rv(rv, "sign init");
 
-    rv = session->module->sym->C_Sign(session->session, data, data_len,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Sign(session->session, data, data_len,
                                       signature,
                                       &signatureLen);
     hsm_pkcs11_check_rv(rv, "sign final");
@@ -1077,7 +1080,7 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 
 int
 hsm_open(const char *config,
-         char *(pin_callback)(char *token_name, void *), void *data)
+         char *(pin_callback)(const char *token_name, void *), void *data)
 {
     xmlDocPtr doc;
     xmlXPathContextPtr xpath_ctx;
@@ -1338,7 +1341,7 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
         { CKA_EXTRACTABLE, &ctrue,   sizeof (ctrue) }
     };
 
-    rv = session->module->sym->C_GenerateKeyPair(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
                                                  &mechanism,
                                                  publicKeyTemplate, 9,
                                                  privateKeyTemplate, 10,
@@ -1365,11 +1368,11 @@ hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
     session = hsm_find_key_session(ctx, key);
     if (!session) return -2;
     
-    rv = session->module->sym->C_DestroyObject(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
                                                key->private_key);
     hsm_pkcs11_check_rv(rv, "Destroy private key");
     key->private_key = 0;
-    rv = session->module->sym->C_DestroyObject(session->session,
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
                                                key->public_key);
     hsm_pkcs11_check_rv(rv, "Destroy public key");
     key->public_key = 0;
@@ -1508,7 +1511,7 @@ hsm_random_buffer(const hsm_ctx_t *ctx,
     for (i = 0; i < ctx->session_count; i++) {
         session = ctx->session[i];
         if (session) {
-            rv = session->module->sym->C_GenerateRandom(
+            rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateRandom(
                                          session->session,
                                          buffer,
                                          length);
