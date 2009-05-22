@@ -1740,6 +1740,20 @@ int hsm_detach(const char *token_name)
     return -1;
 }
 
+int
+hsm_token_attached(const hsm_ctx_t *ctx, const char *token_name)
+{
+    unsigned int i;
+    if (!ctx) ctx = _hsm_ctx;
+    for (i = 0; i < ctx->session_count; i++) {
+        if (ctx->session[i] &&
+            strcmp(ctx->session[i]->module->name, token_name) == 0) {
+                return 1;
+        }
+    }
+    return 0;
+}
+
 void
 hsm_print_session(hsm_session_t *session)
 {

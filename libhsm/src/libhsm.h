@@ -341,6 +341,12 @@ int hsm_attach(char *token_name,
 */
 int hsm_detach(const char *token_name);
 
+/*! Check whether a named token has been initialized in this context
+\param ctx HSM context
+\param token_name The name of the token
+\return 1 if the token is attached, 0 if not found
+*/
+int hsm_token_attached(const hsm_ctx_t *ctx, const char *token_name);
 
 /* a few debug functions for applications */
 void hsm_print_session(hsm_session_t *session);
