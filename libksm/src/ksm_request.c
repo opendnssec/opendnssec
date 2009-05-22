@@ -550,6 +550,12 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 		return status;
 	}
 
+	if (count == 0) {
+		/* Nothing to do */
+		StrFree(dst_col);
+		return status;
+	}
+
     /* Allocate space for the list of key IDs */
     keyids = MemMalloc(count * sizeof(int));
 
@@ -608,48 +614,44 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 		KsmKeywordStateValueToName(src_state),
 		KsmKeywordStateValueToName(dst_state));
 
-	/* Is there anything to do ? */
-    if (count > 0) {
+    /*
+     * Now construct the "IN" statement listing the IDs of the keys we
+     * are planning to change the state of.
+     */
 
-        /*
-         * Yes: construct the "IN" statement listing the IDs of the keys we
-         * are planning to change the state of.
-         */
-
-        StrAppend(&insql, "(");
-        for (j = 0; j < i; ++j) {
-            if (j != 0) {
-                StrAppend(&insql, ",");
-            }
-            snprintf(buffer, sizeof(buffer), "%d", keyids[j]);
-            StrAppend(&insql, buffer);
+    StrAppend(&insql, "(");
+    for (j = 0; j < i; ++j) {
+        if (j != 0) {
+            StrAppend(&insql, ",");
         }
-        StrAppend(&insql, ")");
-
-		/*
-		 * Update the keys.  This is done after a status check, as the debug
-		 * code may have hit a database error, in which case we won't query the
-		 * database again. ("status" is initialized to success in case the debug
-		 * code is not executed.)
-		 */
-
-        sql = DusInit("keypairs");
-        DusSetInt(&sql, "STATE", dst_state, set++);
-        DusSetString(&sql, dst_col, datetime, set++);
-
-        DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 1);
-		StrFree(insql);
-        DusEnd(&sql);
-
-        status = DbExecuteSqlNoResult(DbHandle(), sql);
-        DusFree(sql);
-
-         /* Report any errors */
-
-        if (status != 0) {
-            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-        }
+        snprintf(buffer, sizeof(buffer), "%d", keyids[j]);
+        StrAppend(&insql, buffer);
     }
+    StrAppend(&insql, ")");
+
+	/*
+	 * Update the keys.  This is done after a status check, as the debug
+	 * code may have hit a database error, in which case we won't query the
+	 * database again. ("status" is initialized to success in case the debug
+	 * code is not executed.)
+	 */
+
+    sql = DusInit("keypairs");
+    DusSetInt(&sql, "STATE", dst_state, set++);
+    DusSetString(&sql, dst_col, datetime, set++);
+
+    DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 1);
+	StrFree(insql);
+    DusEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DusFree(sql);
+
+    /* Report any errors */
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
 
     StrFree(dst_col);
     StrFree(keyids);
