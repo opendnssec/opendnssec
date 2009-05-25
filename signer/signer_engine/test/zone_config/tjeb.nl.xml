@@ -6,13 +6,13 @@
 	<Zone name="tjeb.nl">
 
 		<Signatures>
-			<Resign>PT10S</Resign>
-			<Refresh>PT5S</Refresh>
+			<Resign>PT60S</Resign>
+			<Refresh>PT120S</Refresh>
 			<Validity>
 					<Default>PT24H</Default>
 					<Denial>P14D</Denial>
 			</Validity>
-			<Jitter>PT50S</Jitter>
+			<Jitter>PT60S</Jitter>
 			<InceptionOffset>-PT300S</InceptionOffset>
 		</Signatures>
 

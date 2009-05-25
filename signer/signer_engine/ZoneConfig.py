@@ -238,7 +238,6 @@ class ZoneConfig:
                          signer_config)
         for xmlb in xmlbs:
             # todo catch keyerror
-            # todo2: error if sep flag was not set?
             self.signature_keys.append(
                 self.keys[int(xmlb.attributes["keyid"].value)])
         xmlbs = Evaluate("SignerConfiguration/Zone/Signatures/ksk",

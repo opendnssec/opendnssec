@@ -295,7 +295,7 @@ class Zone:
                                "-f",
                                self.get_zone_tmp_filename(".sorted"),
                                "-w",
-                               self.get_zone_tmp_filename(".signed")
+                               self.get_zone_tmp_filename(".nsecced")
                                ])
         elif self.zone_config.denial_nsec3:
             cmd = [
@@ -310,7 +310,7 @@ class Zone:
                 "-i",
                 self.get_zone_tmp_filename(".sorted"),
                 "-w",
-                self.get_zone_tmp_filename(".signed")
+                self.get_zone_tmp_filename(".nsecced")
             ]
             if self.zone_config.denial_nsec3_ttl:
                 cmd.append("-m")
@@ -382,6 +382,7 @@ class Zone:
         """Takes the file created by nsecify() or by the previous call
            to sign(), and (re)signs the zone"""
         cmd = [self.get_tool_filename("signer_pkcs11"),
+               "-p", self.get_zone_tmp_filename(".signed"),
                "-w", self.get_zone_tmp_filename(".signed2")
               ]
 
@@ -441,17 +442,19 @@ class Zone:
                         k["pkcs11_pin"]
                        ]
                 Util.write_p(sign_p, " ".join(scmd), ":add_module ")
-                scmd = [k["token_name"],
-                        k["tool_key_id"],
+                scmd = [k["tool_key_id"],
                         str(k["algorithm"]),
                         str(k["flags"])
                        ]
-                Util.write_p(sign_p, " ".join(scmd), ":add_key ")
+                if (k["zsk"]):
+                    Util.write_p(sign_p, " ".join(scmd), ":add_zsk ")
+                if (k["ksk"]):
+                    Util.write_p(sign_p, " ".join(scmd), ":add_ksk ")
             else:
                 syslog.syslog(syslog.LOG_WARNING,
                               "warning: no token for key " +\
                               k["locator"])
-        nsecced_f = open(self.get_zone_tmp_filename(".signed"))
+        nsecced_f = open(self.get_zone_tmp_filename(".nsecced"))
         for line in nsecced_f:
             #syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)
             sign_p.stdin.write(line)
