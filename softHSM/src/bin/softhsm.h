@@ -29,16 +29,8 @@
 #ifndef SOFTHSM_SOFTHSM_H
 #define SOFTHSM_SOFTHSM_H 1
 
-#include <sqlite3.h>
-
 void usage();
-void createToken(char *dbPath, char *label, char *soPIN, char *userPIN);
-void createDatabase(char *dbPath, sqlite3 **db);
-void createTables(sqlite3 *db);
-void saveTokenInfo(sqlite3 *db, int valueID, char *value);
-
-char* padLabel(char *label);
-char* digestPIN(char *oldPIN);
-
+void initToken(char *slot, char *label, char *soPIN, char *userPIN);
+void showSlots();
 
 #endif /* SOFTHSM_SOFTHSM_H */

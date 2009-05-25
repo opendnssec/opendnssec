@@ -68,6 +68,11 @@ class SoftHSMInternal {
       CK_ULONG ulPinLen);
     CK_RV logout(CK_SESSION_HANDLE hSession);
 
+    // Token handling
+    CK_RV initToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel);
+    CK_RV initPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen);
+    CK_RV setPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulOldLen, CK_UTF8CHAR_PTR pNewPin, CK_ULONG ulNewLen);
+
     // Object handling
     CK_RV destroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject);
     CK_RV getAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject, 

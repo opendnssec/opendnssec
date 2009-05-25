@@ -17,4 +17,5 @@ checks_LDADD = ../src/lib/libsofthsm.la -lstdc++
 checks_LDFLAGS = -no-install
 
 token.db:
-	../src/bin/softhsm --init-token $@ --label "A token" --so-pin 12345678 --pin 123456
+	export SOFTHSM_CONF=$(srcdir)/softhsm.conf; \
+	../src/bin/softhsm --init-token --slot 1 --label "A token" --so-pin 12345678 --pin 123456

@@ -65,6 +65,7 @@ using std::string;
 SoftDatabase::SoftDatabase() {
   db = NULL_PTR;
   token_info_sql = NULL;
+  insert_token_info_sql = NULL;
   select_attri_id_sql = NULL;
   update_attribute_sql = NULL;
   insert_attribute_sql = NULL;
@@ -89,6 +90,7 @@ SoftDatabase::~SoftDatabase() {
   // But requires SQLite3 >= 3.6.0 beta
 
   FINALIZE_STMT(token_info_sql);
+  FINALIZE_STMT(insert_token_info_sql);
   FINALIZE_STMT(select_attri_id_sql);
   FINALIZE_STMT(update_attribute_sql);
   FINALIZE_STMT(insert_attribute_sql);
@@ -148,6 +150,7 @@ CK_RV SoftDatabase::init(char *dbPath) {
 
   // Create prepared statements
   const char token_info_str[] =			"SELECT value FROM Token where variableID = ?;";
+  const char insert_token_info_str[] =		"INSERT OR REPLACE INTO Token (variableID, value) VALUES (?, ?);";
   const char select_attri_id_str[] =		"SELECT attributeID FROM Attributes WHERE objectID = ? AND type = ?;";
   const char update_attribute_str[] =		"UPDATE Attributes SET value = ?, length = ? WHERE attributeID = ?;";
   const char insert_attribute_str[] =		"INSERT INTO Attributes (objectID, type, value, length) VALUES (?, ?, ?, ?);";
@@ -161,6 +164,7 @@ CK_RV SoftDatabase::init(char *dbPath) {
   const char select_an_attribute_str[] =	"SELECT value,length FROM Attributes WHERE objectID = ? AND type = ?;";
 
   PREP_STMT(token_info_str, &token_info_sql);
+  PREP_STMT(insert_token_info_str, &insert_token_info_sql);
   PREP_STMT(select_attri_id_str, &select_attri_id_sql);
   PREP_STMT(update_attribute_str, &update_attribute_sql);
   PREP_STMT(insert_attribute_str, &insert_attribute_sql);
@@ -181,7 +185,7 @@ CK_RV SoftDatabase::init(char *dbPath) {
 char* SoftDatabase::getTokenLabel() {
   char *retLabel = NULL_PTR;
 
-  sqlite3_bind_int(token_info_sql, 1, 0);
+  sqlite3_bind_int(token_info_sql, 1, DB_TOKEN_LABEL);
 
   if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
     const char *tokenLabel = (const char*)sqlite3_column_text(token_info_sql, 0);
@@ -203,7 +207,7 @@ char* SoftDatabase::getTokenLabel() {
 char* SoftDatabase::getSOPIN() {
   char *soPIN = NULL_PTR;
 
-  sqlite3_bind_int(token_info_sql, 1, 1);
+  sqlite3_bind_int(token_info_sql, 1, DB_TOKEN_SOPIN);
 
   if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
     soPIN = strdup((const char*)sqlite3_column_text(token_info_sql, 0));
@@ -219,7 +223,7 @@ char* SoftDatabase::getSOPIN() {
 char* SoftDatabase::getUserPIN() {
   char *userPIN = NULL_PTR;
 
-  sqlite3_bind_int(token_info_sql, 1, 2);
+  sqlite3_bind_int(token_info_sql, 1, DB_TOKEN_USERPIN);
 
   if(sqlite3_step(token_info_sql) == SQLITE_ROW) {
     userPIN = strdup((const char*)sqlite3_column_text(token_info_sql, 0));
@@ -228,6 +232,22 @@ char* SoftDatabase::getUserPIN() {
   sqlite3_reset(token_info_sql);
 
   return userPIN;
+}
+
+// Save/update the token info
+
+CK_RV SoftDatabase::saveTokenInfo(int valueID, char *value, int length) {
+  sqlite3_bind_int(insert_token_info_sql, 1, valueID);
+  sqlite3_bind_text(insert_token_info_sql, 2, value, length, SQLITE_TRANSIENT);
+
+  int result = sqlite3_step(insert_token_info_sql);
+  sqlite3_reset(insert_token_info_sql);
+
+  if(result != SQLITE_DONE) {
+    return CKR_DEVICE_ERROR;
+  }
+
+  return CKR_OK;
 }
 
 // Save the public RSA key in the database.

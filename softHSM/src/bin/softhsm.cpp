@@ -42,29 +42,23 @@
 #define DB_TOKEN_USERPIN 2
 
 #include "softhsm.h"
-
-// Includes for the crypto library
-#include <botan/init.h>
-#include <botan/pipe.h>
-#include <botan/filters.h>
-#include <botan/hex.h>
-#include <botan/sha2_32.h>
-using namespace Botan;
+#include "pkcs11_unix.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
 #include <unistd.h>
-using std::string;
 
 void usage() {
   printf("Usage: softhsm [OPTIONS]\n");
-  printf("Creates and initialize the tokens for libsofthsm\n");
+  printf("Support tool for libsofthsm\n");
   printf("Options:\n");
-  printf("--init-token <file>  Create a database at the given location.\n");
-  printf("                     Use with --label, --so-pin, and --pin.\n");
-  printf("                     WARNING: If the database exist, it will be erased.\n");
+  printf("--show-slots         Display all the available slots.\n");
+  printf("--init-token         Initialize the token at a given slot.\n");
+  printf("                     Use with --slot, --label, --so-pin, and --pin.\n");
+  printf("                     WARNING: Any content in token token will be erased.\n");
+  printf("--slot <number>      The slot where the token is located.\n");
   printf("--label <text>       Defines the label of the token. Max 32 chars.\n");
   printf("--so-pin <PIN>       The PIN for the Security Officer (SO). 4-255 chars.\n");
   printf("--pin <PIN>          The PIN for the normal user. 4-255 chars.\n");
@@ -73,7 +67,9 @@ void usage() {
 }
 
 enum {
-  OPT_INIT_TOKEN = 0x100,
+  OPT_SHOW_SLOTS = 0x100,
+  OPT_INIT_TOKEN,
+  OPT_SLOT,
   OPT_LABEL,
   OPT_SO_PIN,
   OPT_PIN,
@@ -81,7 +77,9 @@ enum {
 };
 
 static const struct option long_options[] = {
-  { "init-token", 1, NULL, OPT_INIT_TOKEN },
+  { "show-slots", 0, NULL, OPT_SHOW_SLOTS },
+  { "init-token", 0, NULL, OPT_INIT_TOKEN },
+  { "slot",       1, NULL, OPT_SLOT },
   { "label",      1, NULL, OPT_LABEL },
   { "so-pin",     1, NULL, OPT_SO_PIN },
   { "pin",        1, NULL, OPT_PIN },
@@ -91,19 +89,26 @@ static const struct option long_options[] = {
 
 int main(int argc, char *argv[]) {
   int option_index = 0;
-  int action  = 0;
   int opt;
 
-  char *dbPath = NULL;
   char *soPIN = NULL;
   char *userPIN = NULL;
   char *label = NULL;
+  char *slot = NULL;
+
+  int doInitToken = 0;
+  int doShowSlots = 0;
 
   while ((opt = getopt_long(argc, argv, "h", long_options, &option_index)) != -1) {
     switch (opt) {
+      case OPT_SHOW_SLOTS:
+        doShowSlots = 1;
+        break;
       case OPT_INIT_TOKEN:
-        action = OPT_INIT_TOKEN;
-        dbPath = optarg;
+        doInitToken = 1;
+        break;
+      case OPT_SLOT:
+        slot = optarg;
         break;
       case OPT_LABEL:
         label = optarg;
@@ -124,14 +129,17 @@ int main(int argc, char *argv[]) {
   }
 
   // No action given, display the usage.
-  if(action == 0) {
+  if(doInitToken == 0 && doShowSlots == 0) {
     usage();
-    exit(0);
   }
 
   // We should create the token.
-  if(action == OPT_INIT_TOKEN) {
-    createToken(dbPath, label, soPIN, userPIN);
+  if(doInitToken) {
+    initToken(slot, label, soPIN, userPIN);
+  }
+
+  if(doShowSlots) {
+    showSlots();
   }
 
   return 0;
@@ -139,9 +147,9 @@ int main(int argc, char *argv[]) {
 
 // Creates a SoftHSM token at the given location.
 
-void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
-  if(dbPath == NULL) {
-    printf("Error: A path to the database must be supplied.\n");
+void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
+  if(slot == NULL) {
+    printf("Error: A slot number must be supplied.\n");
     exit(1);
   }
 
@@ -154,14 +162,6 @@ void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
     printf("Error: The label must not have a length greater than 32 chars.\n");
     exit(1);
   }
-
-  sqlite3 *db = NULL;
-
-  createDatabase(dbPath, &db);
-  createTables(db);
-
-  // Init the Botan crypto library
-  LibraryInitializer::initialize();
 
   if(soPIN == NULL) {
     #ifdef HAVE_GETPASSPHRASE
@@ -181,8 +181,6 @@ void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
     soLength = strlen(soPIN);
   }
 
-  char *digestedSOPIN = digestPIN(soPIN);
-
   if(userPIN == NULL) {
     #ifdef HAVE_GETPASSPHRASE
       userPIN = getpassphrase("Enter user PIN (4-255 chars): ");
@@ -190,7 +188,7 @@ void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
       userPIN = getpass("Enter user PIN (4-255 chars): ");
     #endif
   }
-
+	
   int userLength = strlen(userPIN);
   while(userLength < 4 || userLength > 255) {
     #ifdef HAVE_GETPASSPHRASE
@@ -201,180 +199,124 @@ void createToken(char *dbPath, char *label, char *soPIN, char *userPIN) {
     userLength = strlen(userPIN);
   }
 
-  char *digestedUserPIN = digestPIN(userPIN);
-  char *paddedLabel = padLabel(label);
+  // Load the variables
+  CK_SLOT_ID slotID = atoi(slot);
+  CK_UTF8CHAR paddedLabel[32];
+  memset(paddedLabel, ' ', sizeof(label));
+  memcpy(paddedLabel, label, strlen(label));
 
-  saveTokenInfo(db, DB_TOKEN_LABEL, paddedLabel);
-  saveTokenInfo(db, DB_TOKEN_SOPIN, digestedSOPIN);
-  saveTokenInfo(db, DB_TOKEN_USERPIN, digestedUserPIN);
+  CK_RV rv = C_Initialize(NULL_PTR);
+  if(rv != CKR_OK) {
+    printf("Could not initialize libsofthsm. Probably missing the configuration file.\n");
+    exit(1);
+  }
 
-  free(paddedLabel);
-  free(digestedSOPIN);
-  free(digestedUserPIN);
+  rv = C_InitToken(slotID, (CK_UTF8CHAR_PTR)soPIN, soLength, paddedLabel);
 
-  sqlite3_close(db);
+  switch(rv) {
+    case CKR_OK:
+      break;
+    case CKR_SLOT_ID_INVALID:
+      printf("Error: The given slot does not exist.\n");
+      exit(1);
+      break;
+    case CKR_PIN_INCORRECT:
+      printf("Error: The given SO PIN does not match the one in the token.\n");
+      exit(1);
+      break;
+    default:
+      printf("Error: The library could not initialize the token.\n");
+      exit(1);
+      break;
+  }
 
-  // Deinitialize the Botan crypto lib
-  LibraryInitializer::deinitialize();
+  CK_SESSION_HANDLE hSession;
+  rv = C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  if(rv != CKR_OK) {
+    printf("Error: Could not open a session with the library.\n");
+    exit(1);
+  }
 
-  printf("New SoftHSM token created at: %s\n", dbPath);
+  rv = C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)soPIN, soLength);
+  if(rv != CKR_OK) {
+    printf("Error: Could not log in on the token.\n");
+    exit(1);
+  }
+
+  rv = C_InitPIN(hSession, (CK_UTF8CHAR_PTR)userPIN, userLength);
+  if(rv != CKR_OK) {
+    printf("Error: Could not initialize the user PIN.\n");
+    exit(1);
+  }
+
+  C_Finalize(NULL_PTR);
+
+  printf("The token has been initialized.\n");
 }
 
-// Create/open the database at the given location.
+void showSlots() {
+  CK_RV rv = C_Initialize(NULL_PTR);
+  if(rv != CKR_OK) {
+    printf("Could not initialize libsofthsm. Probably missing the configuration file.\n");
+    exit(1);
+  }
 
-void createDatabase(char *dbPath, sqlite3 **db) {
-  // Create the database file.
-  int result = sqlite3_open(dbPath, db);
-  if(result){
-    if(db != NULL) {
-      sqlite3_close(*db);
+  CK_ULONG ulSlotCount;
+  rv = C_GetSlotList(CK_FALSE, NULL_PTR, &ulSlotCount);
+  if(rv != CKR_OK) {
+    printf("Could not get the number of slots.\n");
+    exit(1);
+  }
+
+  CK_SLOT_ID_PTR pSlotList = (CK_SLOT_ID_PTR)malloc(ulSlotCount*sizeof(CK_SLOT_ID));
+  rv = C_GetSlotList(CK_FALSE, pSlotList, &ulSlotCount);
+  if (rv != CKR_OK) {
+    printf("Could not get the slot list.\n");
+    exit(1);
+  }
+
+  printf("Available slots:\n");
+
+  for(unsigned int i = 0; i < ulSlotCount; i++) {
+    CK_SLOT_INFO slotInfo;
+    CK_TOKEN_INFO tokenInfo;
+
+    rv = C_GetSlotInfo(pSlotList[i], &slotInfo);
+    if(rv != CKR_OK) {  
+      printf("Could not get the slot info.\n");
+      exit(1);
     }
 
-    printf("Could not create the database!\n");
-    exit(1);
-  }
-}
+    printf("Slot %-2lu\n", pSlotList[i]);
+    printf("           Token present: ");
+    if((slotInfo.flags & CKF_TOKEN_PRESENT) == 0) {
+      printf("no\n");
+    } else {
+      printf("yes\n");
 
-// Clears the database and adds new tables.
+      rv = C_GetTokenInfo(pSlotList[i], &tokenInfo);
+      if(rv != CKR_OK) {
+        printf("Could not get the token info.\n");
+        exit(1);
+      }
 
-void createTables(sqlite3 *db) {
-  static char sqlDBSchemaVersion[] =
-    "PRAGMA user_version = 100";
+      printf("           Token initialized: ");
+      if((tokenInfo.flags & CKF_TOKEN_INITIALIZED) == 0) {
+        printf("no\n");
+      } else {
+        printf("yes\n");
+      }
 
-  static char sqlCreateTableToken[] = 
-    "CREATE TABLE Token ("
-    "variableID INTEGER PRIMARY KEY,"
-    "value TEXT DEFAULT NULL);";
-
-  static char sqlCreateTableObjects[] = 
-    "CREATE TABLE Objects ("
-    "objectID INTEGER PRIMARY KEY);";
-
-  static char sqlCreateTableAttributes[] =
-    "CREATE TABLE Attributes ("
-    "attributeID INTEGER PRIMARY KEY,"
-    "objectID INTEGER DEFAULT NULL,"
-    "type INTEGER DEFAULT NULL,"
-    "value BLOB DEFAULT NULL,"
-    "length INTEGER DEFAULT 0);";
-
-  static char sqlDeleteTrigger[] = 
-    "CREATE TRIGGER deleteTrigger BEFORE DELETE ON Objects "
-    "BEGIN "
-      "DELETE FROM Attributes "
-        "WHERE objectID = OLD.objectID; "
-    "END;";
-
-  char *sqlError;
-
-  // Clear the database.
-  sqlite3_exec(db, "DROP TABLE IF EXISTS Token", NULL, NULL, NULL);
-  sqlite3_exec(db, "DROP TABLE IF EXISTS Objects", NULL, NULL, NULL);
-  sqlite3_exec(db, "DROP TABLE IF EXISTS Attributes", NULL, NULL, NULL);
-  sqlite3_exec(db, "DROP TRIGGER IF EXISTS deleteTrigger", NULL, NULL, NULL);
-
-  // Add the schema version
-  int result = sqlite3_exec(db, sqlDBSchemaVersion, NULL, NULL, &sqlError);
-  if(result) {
-    sqlite3_free(sqlError);
-    sqlite3_close(db);
-
-    printf("Could not add the schema version");
-    exit(1);
+      printf("           User PIN initialized: ");
+      if((tokenInfo.flags & CKF_USER_PIN_INITIALIZED) == 0) {
+        printf("no\n");
+      } else {
+        printf("yes\n");
+      }
+    }
   }
 
-  // Create the Token table
-  result = sqlite3_exec(db, sqlCreateTableToken, NULL, NULL, &sqlError);
-  if(result) {
-    sqlite3_free(sqlError);
-    sqlite3_close(db);
+  free(pSlotList);
+  C_Finalize(NULL_PTR);
 
-    printf("Could not create a table in the database");
-    exit(1);
-  }
-
-  // Create the Objects table
-  result = sqlite3_exec(db, sqlCreateTableObjects, NULL, NULL, &sqlError);
-  if(result) {
-    sqlite3_free(sqlError);
-    sqlite3_close(db);
-
-    printf("Could not create a table in the database");
-    exit(1);
-  }
-
-  // Create the Attributes table
-  result = sqlite3_exec(db, sqlCreateTableAttributes, NULL, NULL, &sqlError);
-  if(result) {
-    sqlite3_free(sqlError);
-    sqlite3_close(db);
-
-    printf("Could not create a table in the database");
-    exit(1);
-  }
-
-  // Create the delete trigger.
-  sqlite3_exec(db, sqlDeleteTrigger, NULL, NULL, NULL);
-}
-
-// Save information about the token.
-
-void saveTokenInfo(sqlite3 *db, int valueID, char *value) {
-  string sqlInsert = "INSERT INTO Token (variableID, value) VALUES (?, ?);";
-
-  sqlite3_stmt *insert_sql;
-  int result = sqlite3_prepare_v2(db, sqlInsert.c_str(), sqlInsert.size(), &insert_sql, NULL);
-
-  if(result) {
-    sqlite3_finalize(insert_sql);
-
-    return;
-  }
-
-  sqlite3_bind_int(insert_sql, 1, valueID);
-  sqlite3_bind_text(insert_sql, 2, value, strlen(value), SQLITE_TRANSIENT);
-
-  sqlite3_step(insert_sql);
-  sqlite3_finalize(insert_sql);
-}
-
-// Pads the label to 32 chars
-
-char* padLabel(char *label) {
-  char *newLabel = (char *)malloc(33);
-  int size = strlen(label);
-
-  if(size > 32) {
-    size = 32;
-  }
-
-  memset(newLabel, ' ', 32);
-  newLabel[32] = '\0';
-  memcpy(newLabel, label, size);
-
-  return newLabel;
-}
-
-// Digest the given PIN
-
-char* digestPIN(char *oldPIN) {
-  int length = strlen(oldPIN);
-
-  // We do not use any salt
-  Pipe *digestPIN = new Pipe(new Hash_Filter(new SHA_256), new Hex_Encoder);
-  digestPIN->start_msg();
-  digestPIN->write((byte*)oldPIN, (u32bit)length);
-  digestPIN->write((byte*)oldPIN, (u32bit)length);
-  digestPIN->write((byte*)oldPIN, (u32bit)length);
-  digestPIN->end_msg();
-
-  // Get the digested PIN
-  SecureVector<byte> pinVector = digestPIN->read_all();
-  int size = pinVector.size();
-  char *tmpPIN = (char *)malloc(size + 1);
-  tmpPIN[size] = '\0';
-  memcpy(tmpPIN, pinVector.begin(), size);
-  delete digestPIN;
-
-  return tmpPIN;
 }

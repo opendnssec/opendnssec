@@ -26,12 +26,12 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SOFTHSM_USERHANDLING_H
-#define SOFTHSM_USERHANDLING_H 1
+#ifndef SOFTHSM_TOKENHANDLING_H
+#define SOFTHSM_TOKENHANDLING_H 1
 
 #include "pkcs11_unix.h"
+#include "SoftSlot.h"
 
-CK_BBOOL userAuthorization(CK_STATE sessionState, CK_BBOOL isTokenObject, CK_BBOOL isPrivateObject, int userAction);
-char* digestPIN(CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen);
+CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel);
 
-#endif /* SOFTHSM_USERHANDLING_H */
+#endif /* SOFTHSM_TOKENHANDLING_H */

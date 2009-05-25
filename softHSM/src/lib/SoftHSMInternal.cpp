@@ -36,6 +36,7 @@
 #include "SoftHSMInternal.h"
 #include "log.h"
 #include "userhandling.h"
+#include "tokenhandling.h"
 #include "util.h"
 
 // Standard includes
@@ -271,27 +272,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
   }
 
   // Digest the PIN
-  // We do not use any salt
-  Pipe *digestPIN = new Pipe(new Hash_Filter(new SHA_256), new Hex_Encoder);
-  CHECK_DEBUG_RETURN(digestPIN == NULL_PTR, "C_Login", "Could not allocate memory", CKR_HOST_MEMORY);
-  digestPIN->start_msg();
-  digestPIN->write(pPin, ulPinLen);
-  digestPIN->write(pPin, ulPinLen);
-  digestPIN->write(pPin, ulPinLen);
-  digestPIN->end_msg();
-
-  // Get the digested PIN
-  SecureVector<byte> pinVector = digestPIN->read_all();
-  int size = pinVector.size();
-  char *tmpPIN = (char *)malloc(size + 1);
-  if(tmpPIN == NULL_PTR) {
-    delete digestPIN;
-    DEBUG_MSG("C_Login", "Could not allocate memory");
-    return CKR_HOST_MEMORY;
-  }
-  tmpPIN[size] = '\0';
-  memcpy(tmpPIN, pinVector.begin(), size);
-  delete digestPIN;
+  char *tmpPIN = digestPIN(pPin, ulPinLen);
 
   if(logInType == CKU_SO) {
     // Is the PIN incorrect?
@@ -363,6 +344,165 @@ SoftSession* SoftHSMInternal::getSession(CK_SESSION_HANDLE hSession) {
   }
 
   return sessions[hSession-1];
+}
+
+// Init the token
+
+CK_RV SoftHSMInternal::initToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, 
+      CK_UTF8CHAR_PTR pLabel) {
+
+  CHECK_DEBUG_RETURN(pPin == NULL_PTR, "C_InitToken", "pPin must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+  CHECK_DEBUG_RETURN(pLabel == NULL_PTR, "C_InitToken", "pLabel must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+
+  SoftSlot *currentSlot = slots->getSlot(slotID);
+
+  CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_InitToken", "The given slotID does not exist",
+                     CKR_SLOT_ID_INVALID);
+  CHECK_DEBUG_RETURN((currentSlot->slotFlags & CKF_TOKEN_PRESENT) == 0, "C_InitToken",
+                     "The token is not present", CKR_TOKEN_NOT_PRESENT);
+
+  // Check that we have no session with the slot.
+  for (int i = 0; i < MAX_SESSION_COUNT; i++) {
+    if(sessions[i] != NULL_PTR) {
+      CHECK_DEBUG_RETURN(sessions[i]->currentSlot->getSlotID() == slotID, "C_InitToken",
+                         "A session is open with the slot", CKR_SESSION_EXISTS);
+    }
+  }
+
+  CHECK_DEBUG_RETURN(ulPinLen < 4 || ulPinLen > 255, "C_InitToken", "Incorrent PIN length",
+                     CKR_PIN_INCORRECT);
+
+  return softInitToken(currentSlot, pPin, ulPinLen, pLabel);
+}
+
+// Init the user PIN
+
+CK_RV SoftHSMInternal::initPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
+  SoftSession *session = getSession(hSession);
+  CHECK_DEBUG_RETURN(session == NULL_PTR, "C_InitPIN", "Can not find the session",
+                     CKR_SESSION_HANDLE_INVALID);
+
+  CHECK_DEBUG_RETURN(pPin == NULL_PTR, "C_InitPIN", "pTemplate must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+  CHECK_DEBUG_RETURN(session->getSessionState() != CKS_RW_SO_FUNCTIONS, "C_InitPIN", "Must be in R/W SO Functions state",
+                     CKR_USER_NOT_LOGGED_IN);
+  CHECK_DEBUG_RETURN(ulPinLen < 4 || ulPinLen > 255, "C_InitPIN", "Incorrent PIN length",
+                     CKR_PIN_LEN_RANGE);
+
+  // Save the User PIN in db
+  char *hashedPIN = digestPIN(pPin, ulPinLen);
+  CHECK_DEBUG_RETURN(hashedPIN == NULL_PTR, "C_InitPIN", "Could not allocate memory",
+                     CKR_HOST_MEMORY);
+  session->db->saveTokenInfo(DB_TOKEN_USERPIN, hashedPIN, strlen(hashedPIN));
+  session->currentSlot->readDB();
+  free(hashedPIN);
+
+  DEBUG_MSG("C_InitPIN", "OK");
+  return CKR_OK;
+}
+
+// Change the pin of current user
+
+CK_RV SoftHSMInternal::setPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulOldLen, 
+      CK_UTF8CHAR_PTR pNewPin, CK_ULONG ulNewLen) {
+
+  SoftSession *session = getSession(hSession);
+  CHECK_DEBUG_RETURN(session == NULL_PTR, "C_SetPIN", "Can not find the session",
+                     CKR_SESSION_HANDLE_INVALID);
+
+  CHECK_DEBUG_RETURN(pOldPin == NULL_PTR, "C_SetPIN", "pOldPin must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+  CHECK_DEBUG_RETURN(pNewPin == NULL_PTR, "C_SetPIN", "pNewPin must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+  CHECK_DEBUG_RETURN(ulOldLen < 4 || ulOldLen > 255, "C_SetPIN", "Incorrent PIN length",
+                     CKR_PIN_LEN_RANGE);
+  CHECK_DEBUG_RETURN(ulNewLen < 4 || ulNewLen > 255, "C_SetPIN", "Incorrent PIN length",
+                     CKR_PIN_LEN_RANGE);
+
+  // Digest the given old PIN
+  char *hashedOldPIN = digestPIN(pOldPin, ulOldLen);
+  CHECK_DEBUG_RETURN(hashedOldPIN == NULL_PTR, "C_SetPIN", "Could not allocate memory",
+                     CKR_HOST_MEMORY);
+
+  // Create a copy of the new PIN
+  char *newPIN = (char *)malloc(ulNewLen + 1);
+  if(newPIN == NULL_PTR) {
+    free(hashedOldPIN);
+    DEBUG_MSG("C_SetPIN", "Could not allocate memory");
+    return CKR_HOST_MEMORY;
+  } 
+  newPIN[ulNewLen] = '\0';
+  memcpy(newPIN, pNewPin, ulNewLen);
+
+  int pinType = DB_TOKEN_USERPIN;
+
+  switch(session->getSessionState()) {
+    case CKS_RW_SO_FUNCTIONS:
+      pinType = DB_TOKEN_SOPIN;
+
+      // Check that the PIN matches
+      if(strcmp(hashedOldPIN, session->currentSlot->hashedSOPIN) != 0) {
+        free(hashedOldPIN);
+        free(newPIN);
+
+        DEBUG_MSG("C_SetPIN", "The given SO PIN is incorrect");
+        return CKR_PIN_INCORRECT;
+      }
+
+      // Switch to the new PIN for this user
+      FREE_PTR(session->currentSlot->soPIN);
+      session->currentSlot->soPIN = newPIN;
+      break;
+    case CKS_RW_USER_FUNCTIONS:
+      // Check that the PIN matches
+      if(strcmp(hashedOldPIN, session->currentSlot->hashedUserPIN) != 0) {
+        free(hashedOldPIN);
+        free(newPIN);
+
+        DEBUG_MSG("C_SetPIN", "The given User PIN is incorrect");
+        return CKR_PIN_INCORRECT;
+      }
+
+      // Switch to the new PIN for this user
+      FREE_PTR(session->currentSlot->userPIN);
+      session->currentSlot->userPIN = newPIN;
+      break;
+    case CKS_RW_PUBLIC_SESSION:
+      free(newPIN);
+
+      // We are not logged in, so we have to check if the PIN is initialized
+      if(session->currentSlot->hashedUserPIN == NULL_PTR) {
+        free(hashedOldPIN);
+
+        DEBUG_MSG("C_SetPIN", "The User PIN is not initialized");
+        return CKR_PIN_INCORRECT;
+      }
+      // Check that the PIN matches
+      if(strcmp(hashedOldPIN, session->currentSlot->hashedUserPIN) != 0) {
+        free(hashedOldPIN);
+
+        DEBUG_MSG("C_SetPIN", "The given User PIN is incorrect");
+        return CKR_PIN_INCORRECT;
+      }
+      break;
+    default:
+      free(hashedOldPIN);
+      free(newPIN);
+      DEBUG_MSG("C_SetPIN", "Must be in a RW session");
+      return CKR_SESSION_READ_ONLY;
+  }
+
+  free(hashedOldPIN);
+
+  // Save new PIN in db
+  char *hashedNewPIN = digestPIN(pNewPin, ulNewLen);
+  session->db->saveTokenInfo(pinType, hashedNewPIN, strlen(hashedNewPIN));
+  session->currentSlot->readDB();
+
+  DEBUG_MSG("C_SetPIN", "OK");
+  return CKR_OK;
 }
 
 // Retrieves the attributes specified by the template.

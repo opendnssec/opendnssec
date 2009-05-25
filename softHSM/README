@@ -63,17 +63,7 @@ INSTALLING
 
   sudo make install
 
-4. Create your tokens
-
-  softhsm --init-token /home/user/my.db --label "My token 1"
-
-   Type in SO and user PIN.
-
-  softhsm --init-token /home/user/token.database --label "A token"
- 
-   Type in SO and user PIN.
-
-5. Add the tokens to the slots:
+4. Add the tokens to the slots:
 
   The default location of the config file is $sysconfdir/softhsm.conf
   On some systems this location is equal to /usr/local/etc/softhsm.conf
@@ -87,9 +77,16 @@ INSTALLING
 
       0:/home/user/my.db
       # Comments can be added
-      1:/etc/softhsm/non.existing.token
       4:/home/user/token.database
 
-  (Slot 1 will be empty since that database does not exist)
+5. Initialize your tokens
+
+  softhsm --init-token --slot 0 --label "My token 1"
+
+   Type in SO and user PIN.
+
+  softhsm --init-token --slot 4 --label "A token"
+
+   Type in SO and user PIN.
 
 6. Link to this library and use the PKCS#11 interface

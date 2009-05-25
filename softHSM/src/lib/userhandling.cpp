@@ -34,6 +34,13 @@
 
 #include "userhandling.h"
 
+// Includes for the crypto library
+#include <botan/pipe.h>
+#include <botan/filters.h>
+#include <botan/hex.h>
+#include <botan/sha2_32.h>
+using namespace Botan;
+
 // Checks if an action is allowed on a given object type.
 //
 //                                       Type of session
@@ -94,4 +101,28 @@ CK_BBOOL userAuthorization(CK_STATE sessionState, CK_BBOOL isTokenObject, CK_BBO
   }
 
   return CK_FALSE;
+}
+
+// Creates a digest of PIN
+
+char* digestPIN(CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
+  // We do not use any salt
+  Pipe *digestPIN = new Pipe(new Hash_Filter(new SHA_256), new Hex_Encoder);
+  digestPIN->start_msg();
+  digestPIN->write((byte*)pPin, (u32bit)ulPinLen);
+  digestPIN->write((byte*)pPin, (u32bit)ulPinLen);
+  digestPIN->write((byte*)pPin, (u32bit)ulPinLen);
+  digestPIN->end_msg();
+
+  // Get the digested PIN
+  SecureVector<byte> pinVector = digestPIN->read_all();
+  int size = pinVector.size();
+  char *tmpPIN = (char *)malloc(size + 1);
+  if(tmpPIN != NULL_PTR) {
+    tmpPIN[size] = '\0';
+    memcpy(tmpPIN, pinVector.begin(), size);
+  }
+  delete digestPIN;
+
+  return tmpPIN;
 }

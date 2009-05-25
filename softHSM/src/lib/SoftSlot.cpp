@@ -110,6 +110,8 @@ CK_SLOT_ID SoftSlot::getSlotID() {
 // Reads the content of the database.
 
 void SoftSlot::readDB() {
+  tokenFlags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_CLOCK_ON_TOKEN;
+
   SoftDatabase *db = new SoftDatabase();
   CK_RV rv = db->init(dbPath);
 

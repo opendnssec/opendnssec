@@ -13,6 +13,7 @@ New in 1.0-RC2; 2009-0X-XX Rickard Bondesson
 * Comments can be added to the config file by using #
 * The default location of the config file is $sysconfdir/softhsm.conf
 * Simplified the configure options
+* The softhsm tool initialize the tokens by using the library.
 
 New in 1.0-RC1; 2009-03-10 Rickard Bondesson
 

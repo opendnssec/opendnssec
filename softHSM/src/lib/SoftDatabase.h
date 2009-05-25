@@ -45,6 +45,10 @@
 #include <botan/rsa.h>
 using namespace Botan;
 
+#define DB_TOKEN_LABEL 0
+#define DB_TOKEN_SOPIN 1
+#define DB_TOKEN_USERPIN 2
+
 class SoftDatabase {
   public:
     SoftDatabase();
@@ -55,6 +59,7 @@ class SoftDatabase {
     char* getTokenLabel();
     char* getSOPIN();
     char* getUserPIN();
+    CK_RV saveTokenInfo(int valueID, char *value, int length);
 
     CK_OBJECT_HANDLE* getObjectRefs(CK_ULONG *objectCount);
     CK_BBOOL getBooleanAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type, CK_BBOOL defaultValue);
@@ -81,6 +86,7 @@ class SoftDatabase {
 
     // Prepared statements
     sqlite3_stmt *token_info_sql;
+    sqlite3_stmt *insert_token_info_sql;
     sqlite3_stmt *select_attri_id_sql;
     sqlite3_stmt *update_attribute_sql;
     sqlite3_stmt *insert_attribute_sql;

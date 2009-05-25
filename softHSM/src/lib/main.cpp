@@ -522,25 +522,43 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
   return CKR_OK; 
 }
 
-CK_RV C_InitToken(CK_SLOT_ID, CK_UTF8CHAR_PTR, CK_ULONG, CK_UTF8CHAR_PTR) {
+CK_RV C_InitToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel) {
   DEBUG_MSG("C_InitToken", "Calling");
-  DEBUG_MSG("C_InitToken", "The function is not implemented. Token is always initialized.");
 
-  return CKR_FUNCTION_NOT_SUPPORTED; 
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_InitToken", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+
+  softHSM->lockMutex();
+  CK_RV rv = softHSM->initToken(slotID, pPin, ulPinLen, pLabel);
+  softHSM->unlockMutex();
+
+  return rv;
 }
 
-CK_RV C_InitPIN(CK_SESSION_HANDLE, CK_UTF8CHAR_PTR, CK_ULONG) {
+CK_RV C_InitPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen) {
   DEBUG_MSG("C_InitPIN", "Calling");
-  DEBUG_MSG("C_InitPIN", "The function is not implemented. The PIN is always initialized.");
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_InitPIN", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+
+  softHSM->lockMutex();
+  CK_RV rv = softHSM->initPIN(hSession, pPin, ulPinLen);
+  softHSM->unlockMutex();
+
+  return rv;
 }
 
-CK_RV C_SetPIN(CK_SESSION_HANDLE, CK_UTF8CHAR_PTR, CK_ULONG, CK_UTF8CHAR_PTR, CK_ULONG) {
+CK_RV C_SetPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPin, CK_ULONG ulOldLen, CK_UTF8CHAR_PTR pNewPin, CK_ULONG ulNewLen) {
   DEBUG_MSG("C_SetPIN", "Calling");
-  DEBUG_MSG("C_SetPIN", "The function is not implemented.");
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_SetPIN", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+
+  softHSM->lockMutex();
+  CK_RV rv = softHSM->setPIN(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
+  softHSM->unlockMutex();
+
+  return rv;
 }
 
 // Opens a new session.
