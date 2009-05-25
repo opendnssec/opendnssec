@@ -46,18 +46,25 @@
 #include <strings.h>
 
 #include <ldns/ldns.h>
+#include <uuid/uuid.h>
 
-#include "ldns_pkcs11.h"
 #include "util.h"
+#include <libhsm.h>
 
-typedef struct ldns_pkcs11_module_list_struct ldns_pkcs11_module_list;
-struct ldns_pkcs11_module_list_struct {
-	char *name;
-	ldns_pkcs11_ctx *ctx;
-	ldns_pkcs11_module_list *next;
-};
+typedef struct {
+	ldns_rr *skipped_rr;
+	FILE *file;
+} rrset_reader_t;
 
-struct current_config_struct {
+typedef struct {
+	hsm_key_t **keys;
+	uint16_t *keytags;
+	int *use_key;
+	size_t key_count;
+	size_t capacity;
+} key_list;
+
+typedef struct {
 	/* general current settings */
 	ldns_rdf *origin;
 
@@ -67,8 +74,9 @@ struct current_config_struct {
 	uint32_t refresh;
 	uint32_t jitter;
 	int echo_input;
-	ldns_pkcs11_module_list *pkcs11_module_list;
-	ldns_key_list *keys;
+	/*ldns_pkcs11_module_list *pkcs11_module_list;*/
+	key_list *zsks;
+	key_list *ksks;
 	
 	/* settings for SOA values that are changed */
 	uint32_t soa_ttl;
@@ -79,120 +87,148 @@ struct current_config_struct {
 	unsigned long existing_sigs;
 	unsigned long removed_sigs;
 	unsigned long created_sigs;
-};
-typedef struct current_config_struct current_config;
+} current_config;
 
-ldns_pkcs11_module_list *
-ldns_pkcs11_module_list_entry_new()
+static int
+keystr2uuid(uuid_t *uuid, const char *key_id_str)
 {
-	ldns_pkcs11_module_list *mle = malloc(sizeof(ldns_pkcs11_module_list));
-	mle->name = NULL;
-	mle->ctx = NULL;
-	mle->next = NULL;
-	return mle;
+	unsigned char *key_id;
+	int key_id_len;
+	/* length of the hex input */
+	size_t hex_len;
+	int i;
+	
+	hex_len = strlen(key_id_str);
+	if (hex_len % 2 != 0) {
+		fprintf(stderr,
+		        "Error: bad hex data for key id: %s\n",
+		        key_id_str);
+		return -1;
+	}
+	key_id_len = hex_len / 2;
+	if (key_id_len != 16) {
+		return -2;
+	}
+	key_id = malloc(16);
+	for (i = 0; i < key_id_len; i++) {
+		key_id[i] = ldns_hexdigit_to_int(key_id_str[2*i]) * 16 +
+		            ldns_hexdigit_to_int(key_id_str[2*i+1]);
+	}
+	memcpy(uuid, key_id, 16);
+	free(key_id);
+	return 0;
+}
+
+key_list *
+key_list_new()
+{
+	key_list *list;
+	list = malloc(sizeof(key_list));
+	if (!list) {
+		fprintf(stderr,
+		        "Out of memory while creating key list, aborting\n");
+		exit(1);
+	}
+	list->capacity = 10;
+	list->key_count = 0;
+	list->keys = malloc(sizeof(hsm_key_t *) * list->capacity);
+	if (!list->keys) {
+		fprintf(stderr,
+		        "Out of memory while creating key list, aborting\n");
+		exit(1);
+	}
+	list->keytags = malloc(sizeof(uint16_t) * list->capacity);
+	if (!list->keytags) {
+		fprintf(stderr,
+		        "Out of memory while creating key list, aborting\n");
+		exit(1);
+	}
+	list->use_key = malloc(sizeof(int) * list->capacity);
+	if (!list->use_key) {
+		fprintf(stderr,
+		        "Out of memory while creating key list, aborting\n");
+		exit(1);
+	}
+	return list;
 }
 
 void
-ldns_pkcs11_module_list_free(ldns_pkcs11_module_list *mle)
+key_list_free(key_list *list)
 {
-	if (mle) {
-		if (mle->name) {
-			free(mle->name);
-		}
-		/* ctx is freed by ldns_finalize_pkcs11() (which is
-		 * automatically called by current_config_free() */
-	}
-	free(mle);
+	if (list->keys) free(list->keys);
+	if (list->keytags) free(list->keytags);
+	if (list->use_key) free(list->use_key);
+	free(list);
 }
 
-/* if no module with the given name is present in the current list,
- * create a new one, and initialize it
- */
-ldns_status
-ldns_pkcs11_module_add(ldns_pkcs11_module_list *list,
-                       const char *name,
-                       const char *module_path,
-                       const char *pin)
+void
+key_list_add_key(key_list *list,
+                 const char *key_id,
+                 const char *key_algorithm_str,
+                 const char *key_flags_str,
+                 const current_config *cfg)
 {
-	ldns_pkcs11_module_list *mle, *new_mle;
+	hsm_sign_params_t *params;
+	uuid_t key_uuid;
+	hsm_key_t *key;
+	ldns_rr *dnskey;
 
-	if (!name || !module_path || !pin) {
-		return LDNS_STATUS_ERR;
+	(void) keystr2uuid(&key_uuid, key_id);
+	key = hsm_find_key_by_uuid(NULL, (const uuid_t *)&key_uuid);
+	if (!key) {
+		fprintf(stderr, "; Could not find key %s\n", key_id);
+		return;
 	}
-	mle = list;
-	while (mle->name) {
-		if (strcmp(name, mle->name) == 0) {
-			/* same name, just return ok (if you want to change the
-			 * settings for a module, remove and readd it */
-			return LDNS_STATUS_OK;
+	/* check whether we have room left for this new key */
+	if (list->key_count >= list->capacity) {
+		list->capacity = list->capacity * 2;
+		list->keys = realloc(list->keys,
+		                     sizeof(hsm_key_t *) * list->capacity);
+		if (!list->keys) {
+			fprintf(stderr,
+			        "Out of memory while adding key, aborting\n");
 		}
-		/* different name, try next */
-		if (mle->next) {
-			mle = mle->next;
-		} else {
-			/* we are at end, create new module list entry */
-			new_mle = ldns_pkcs11_module_list_entry_new();
-			mle->next = new_mle;
-			mle = new_mle;
+		list->keytags = realloc(list->keytags,
+		                        sizeof(uint16_t) * list->capacity);
+		if (!list->keytags) {
+			fprintf(stderr,
+			        "Out of memory while adding key, aborting\n");
+		}
+		list->use_key = realloc(list->use_key,
+		                        sizeof(int) * list->capacity);
+		if (!list->use_key) {
+			fprintf(stderr,
+			        "Out of memory while adding key, aborting\n");
 		}
 	}
-	/* ok we are at end and haven't found the module yet */
-	mle->name = strdup(name);
-	mle->ctx = ldns_initialize_pkcs11(module_path, name, pin);
-	if (mle->ctx) {
-		return LDNS_STATUS_OK;
-	} else {
-		return LDNS_STATUS_ERR;
+
+	params = hsm_sign_params_new();
+	params->algorithm = atoi(key_algorithm_str);
+	if (params->algorithm == 0) {
+		/* TODO: check for unknown algo's too? */
+		fprintf(stderr, "; Error: Bad algorithm: %s, skipping key\n",
+		        key_algorithm_str);
+		hsm_sign_params_free(params);
+		return;
 	}
-}
-
-
-
-/* returns the first entry of the modified list 
- * (in case the entry to remove it the first one)
- */
-ldns_pkcs11_module_list *
-ldns_pkcs11_module_remove(ldns_pkcs11_module_list *list,
-                          const char *name)
-{
-	ldns_pkcs11_module_list *mle, *mle_prev, *first;
 	
-	if (!name) {
-		return list;
+	params->flags = atoi(key_flags_str);
+	if (params->flags <= 0 || params->flags > 65535) {
+		fprintf(stderr, "; Error: bad key flags: %s, skipping key\n",
+		        key_flags_str);
+		hsm_sign_params_free(params);
+		return;
 	}
-
-	mle_prev = NULL;
-	first = list;
-	mle = list;
-	while (mle) {
-		if (strcmp(name, mle->name) == 0) {
-			if (mle_prev) {
-				mle_prev->next = mle->next;
-			} else {
-				first = mle->next;
-			}
-			/* finalize ctx and remove */
-			ldns_finalize_pkcs11(mle->ctx);
-			ldns_pkcs11_module_list_free(mle);
-		} else {
-			mle_prev = mle;
-			mle = mle->next;
-		}
-	}
-	return first;
-}
-
-ldns_pkcs11_ctx *
-ldns_find_pkcs11_ctx(const char *name, ldns_pkcs11_module_list *mle)
-{
-	while (mle) {
-		if (name && mle->name && strcmp(name, mle->name) == 0) {
-			return mle->ctx;
-		} else {
-			mle = mle->next;
-		}
-	}
-	return NULL;
+	params->owner = ldns_rdf_clone(cfg->origin);
+	dnskey = hsm_get_dnskey(NULL, key, params);
+	
+	list->keys[list->key_count] = key;
+	list->keytags[list->key_count] = ldns_calc_keytag(dnskey);
+	list->use_key[list->key_count] = 1;
+	list->key_count++;
+	
+	ldns_rr_free(dnskey);
+	hsm_sign_params_free(params);
 }
 
 current_config *
@@ -205,8 +241,8 @@ current_config_new()
 	cfg->jitter = 0;
 	cfg->echo_input = 0;
 	cfg->origin = NULL;
-	cfg->pkcs11_module_list = ldns_pkcs11_module_list_entry_new();
-	cfg->keys = ldns_key_list_new();
+	cfg->zsks = key_list_new();
+	cfg->ksks = key_list_new();
 	cfg->soa_ttl = 0;
 	cfg->soa_serial = 0;
 	cfg->soa_minimum = 0;
@@ -219,21 +255,12 @@ current_config_new()
 void
 current_config_free(current_config *cfg)
 {
-	ldns_pkcs11_module_list *mle, *next;
 	if (cfg) {
 		if (cfg->origin) {
 			ldns_rdf_deep_free(cfg->origin);
 		}
-		if (cfg->pkcs11_module_list) {
-			mle = cfg->pkcs11_module_list;
-			while (mle) {
-				ldns_finalize_pkcs11(mle->ctx);
-				next = mle->next;
-				ldns_pkcs11_module_list_free(mle);
-				mle = next;
-			}
-		}
-		ldns_key_list_free(cfg->keys);
+		if (cfg->zsks) free(cfg->zsks);
+		if (cfg->ksks) free(cfg->ksks);
 		free(cfg);
 	}
 }
@@ -334,7 +361,7 @@ read_arg(const char *istr, char **next)
 			*next = *next + 1;
 		}
 	} else {
-		if (strlen > 0) {
+		if (strlen(str) > 0) {
 			result = strdup(str);
 			*next = NULL;
 		}
@@ -379,89 +406,6 @@ parse_time (const char *time_str)
 	return result;
 }
 
-void
-debug_print_modules(FILE *out, const char *prefix, ldns_pkcs11_module_list *list)
-{
-	ldns_pkcs11_module_list *elm = list;
-	while (elm) {
-		fprintf(out, "%s %s\n", prefix, list->name);
-		elm = elm->next;
-	}
-}
-
-ldns_status
-add_key(FILE *output,
-        current_config *cfg,
-        const char *token_name,
-        const char *key_id_str,
-        const char *key_algorithm_str,
-        const char *key_flags_str)
-{
-	ldns_pkcs11_ctx *pkcs11_ctx;
-	ldns_algorithm key_algorithm;
-	unsigned char *key_id;
-	int key_id_len;
-	ldns_status status;
-	ldns_key *key;
-	int key_flags;
-	
-	if (!cfg || !cfg->origin) {
-		fprintf(output, "; Error: no signer context, or origin not set\n");
-		return LDNS_STATUS_ERR;
-	}
-	
-	key_algorithm = atoi(key_algorithm_str);
-	if (key_algorithm == 0) {
-		/* TODO: check for unknown algo's too? */
-		fprintf(output, "; Error: Bad algorithm: %s\n", key_algorithm_str);
-		return LDNS_STATUS_ERR;
-	}
-	
-	key_flags = atoi(key_flags_str);
-	if (key_flags <= 0 || key_flags > 65535) {
-		fprintf(output, "; Error: bad key flags: %s\n", key_flags_str);
-		return LDNS_STATUS_ERR;
-	}
-	
-	pkcs11_ctx = ldns_find_pkcs11_ctx(token_name, cfg->pkcs11_module_list);
-	if (!pkcs11_ctx) {
-		fprintf(output, "; Error: could not find PKCS11 token '%s' for key '%s'\n", token_name, key_id_str);
-		fprintf(output, "; Has it been added to the rrset signer with :add_module?\n");
-		debug_print_modules(output, "; module", cfg->pkcs11_module_list);
-		return LDNS_STATUS_ERR;
-	}
-	
-	key_id = ldns_keystr2id(key_id_str, &key_id_len);
-
-	status = ldns_key_new_frm_pkcs11(pkcs11_ctx,
-									 &key,
-									 key_algorithm,
-									 (uint16_t) key_flags,
-									 key_id,
-									 key_id_len);
-	if (status == LDNS_STATUS_OK) {
-		/* set times in key? they will end up
-		   in the rrsigs
-		*/
-		if (cfg->expiration != 0) {
-			ldns_key_set_expiration(key, cfg->expiration);
-		}
-		if (cfg->inception != 0) {
-			ldns_key_set_inception(key, cfg->inception);
-		}
-		ldns_key_set_pubkey_owner(key, ldns_rdf_clone(cfg->origin));
-
-		ldns_key_list_push_key(cfg->keys, key);
-	} else {
-		fprintf(output, "; Error reading key %s in token %s\n", key_id_str, token_name);
-		status = LDNS_STATUS_ERR;
-	}
-	
-	free(key_id);
-	
-	return status;
-}
-
 ldns_status
 handle_command(FILE *output, current_config *cfg,
                const char *line, int line_len)
@@ -470,6 +414,7 @@ handle_command(FILE *output, current_config *cfg,
 	char *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
 	char *next;
 	ldns_status result = LDNS_STATUS_OK;
+	int iresult;
 	
 	cmd = read_arg(line, &next);
 	if (!cmd) {
@@ -482,10 +427,11 @@ handle_command(FILE *output, current_config *cfg,
 		if (!arg1 || !arg2 || !arg3) {
 			fprintf(output, "; Error: missing argument in add_module command\n");
 		} else {
-			result = ldns_pkcs11_module_add(cfg->pkcs11_module_list,
-			                                arg1, arg2, arg3);
-			if (result != LDNS_STATUS_OK) {
-				fprintf(output, "; Error adding token '%s'\n", arg1);
+			if (!hsm_token_attached(NULL, arg1)) {
+				iresult = hsm_attach(arg1, arg2, arg3);
+				if (iresult != 0) {
+					fprintf(output, "; Error adding token '%s'\n", arg1);
+				}
 			}
 		}
 	} else if (strcmp(cmd, "del_module") == 0) {
@@ -493,23 +439,32 @@ handle_command(FILE *output, current_config *cfg,
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in add_module command\n");
 		} else {
-			cfg->pkcs11_module_list = ldns_pkcs11_module_remove(
-			                               cfg->pkcs11_module_list,
-			                               arg1);
+			iresult = hsm_detach(arg1);
 		}
-	} else if (strcmp(cmd, "add_key") == 0) {
+	} else if (strcmp(cmd, "add_zsk") == 0) {
 		arg1 = read_arg(next, &next);
 		arg2 = read_arg(next, &next);
 		arg3 = read_arg(next, &next);
-		arg4 = read_arg(next, &next);
-		if (!arg1 || !arg2 || !arg3 || !arg4) {
+		if (!arg1 || !arg2 || !arg3) {
 			fprintf(output, "; Error: missing argument in add_key command\n");
 		} else {
-			result = add_key(output, cfg, arg1, arg2, arg3, arg4);
+			/*result = add_key(output, cfg, arg1, arg2, arg3, arg4);*/
+			/* todo find hsm_key */
+			key_list_add_key(cfg->zsks, arg1, arg2, arg3, cfg);
+		}
+	} else if (strcmp(cmd, "add_ksk") == 0) {
+		arg1 = read_arg(next, &next);
+		arg2 = read_arg(next, &next);
+		arg3 = read_arg(next, &next);
+		if (!arg1 || !arg2 || !arg3) {
+			fprintf(output, "; Error: missing argument in add_key command\n");
+		} else {
+			/*result = add_key(output, cfg, arg1, arg2, arg3, arg4);*/
+			/* todo find hsm_key */
+			key_list_add_key(cfg->ksks, arg1, arg2, arg3, cfg);
 		}
 	} else if (strcmp(cmd, "flush_keys") == 0) {
-		ldns_key_list_free(cfg->keys);
-		cfg->keys = ldns_key_list_new();
+		/* TODO */
 	} else if (strcmp(cmd, "inception") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
@@ -586,76 +541,424 @@ void
 enable_keys(current_config *cfg)
 {
 	size_t i;
-	for (i = 0; i < ldns_key_list_key_count(cfg->keys); i++) {
-		ldns_key_set_use(ldns_key_list_key(cfg->keys, i), 1);
+	for (i = 0; i < cfg->zsks->key_count; i++) {
+		cfg->zsks->use_key[i] = 1;
+	}
+	for (i = 0; i < cfg->ksks->key_count; i++) {
+		cfg->ksks->use_key[i] = 1;
 	}
 }
 
 void
-set_use_key_for(current_config *cfg, ldns_rr *rrsig, int use)
+set_use_key_for(key_list *list, ldns_rr *rrsig, int use)
 {
 	size_t i;
-	ldns_key *key;
-	/* let's assume for now that name etc are right, and only check
-	 * keytag (TODO)*/
-	for (i = 0; i < ldns_key_list_key_count(cfg->keys); i++) {
-		key = ldns_key_list_key(cfg->keys, i);
-		if (ldns_key_keytag(key) == ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
-			ldns_key_set_use(key, use);
+	
+	for (i = 0; i < list->key_count; i++) {
+		if (list->keytags[i] ==
+		    ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
+			list->use_key[i] = use;
 			return;
 		}
 	}
 }
 
-void
-disable_key_for(current_config *cfg, ldns_rr *rrsig)
+int
+key_enabled_for(key_list *list, ldns_rr *rrsig)
 {
-		set_use_key_for(cfg, rrsig, 0);
-}
-
-void
-enable_key_for(current_config *cfg, ldns_rr *rrsig)
-{
-		set_use_key_for(cfg, rrsig, 1);
-}
-
-void
-update_jitter(current_config *cfg) {
 	size_t i;
-	for (i = 0; i < ldns_key_list_key_count(cfg->keys); i++) {
-		ldns_key_set_expiration(ldns_key_list_key(cfg->keys, i),
-		                        cfg->expiration + rand() % cfg->jitter);
+	
+	for (i = 0; i < list->key_count; i++) {
+		if (list->keytags[i] ==
+		    ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
+			return list->use_key[i];
+		}
 	}
+	return 0;
+}
+
+void
+disable_key_for(key_list *list, ldns_rr *rrsig)
+{
+		set_use_key_for(list, rrsig, 0);
+}
+
+void
+enable_key_for(key_list *list, ldns_rr *rrsig)
+{
+		set_use_key_for(list, rrsig, 1);
+}
+
+void
+handle_comment(char *line, int line_len, FILE *output)
+{
+	/* pass comments */
+	if (line_len > 15 && strncmp(line, "; Last refresh stats: ", 15) == 0) {
+		/* except stats */
+	} else if (line_len > 8 && strncmp(line, "; Error ", 8) == 0) {
+		/* and previous errors */
+	} else {
+		fprintf(output, "%s\n", line);
+	}
+}
+
+void
+update_soa_record(ldns_rr *soa, current_config *cfg)
+{
+	if (cfg->soa_ttl != 0) {
+		ldns_rr_set_ttl(soa, cfg->soa_ttl);
+	}
+	if (cfg->soa_serial != 0) {
+		ldns_rdf_deep_free(ldns_rr_rdf(soa, 2));
+		ldns_rr_set_rdf(soa,
+						ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
+											  cfg->soa_serial),
+						2);
+	}
+	if (cfg->soa_minimum != 0) {
+		ldns_rdf_deep_free(ldns_rr_rdf(soa, 6));
+		ldns_rr_set_rdf(soa,
+						ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
+											  cfg->soa_minimum),
+						6);
+	}
+}
+
+rrset_reader_t *
+rrset_reader_new(FILE *file)
+{
+	rrset_reader_t *reader;
+
+	reader = malloc(sizeof(rrset_reader_t));
+	reader->skipped_rr = NULL;
+	reader->file = file;
+
+	return reader;
+}
+
+/* comments and commands are handled by their functions,
+ * the first rr read is returned
+ * garbage is skipped
+ */
+ldns_rr *
+read_rr_from_file(FILE *file, FILE *out, current_config *cfg)
+{
+	char line[MAX_LINE_LEN];
+	int line_len;
+	ldns_rr *rr = NULL;
+	ldns_status status, cmd_res;
+	
+	while (!rr) {
+		line_len = read_line(file, line);
+		if (line_len < 0) {
+			return NULL;
+		}
+		if (line_len == 0 || line[0] == '\n') {
+			continue;
+		}
+		if (line[0] == ';') {
+			handle_comment(line, line_len, out);
+		} else if (line[0] == ':') {
+			cmd_res = handle_command(out, cfg, line + 1,
+									 line_len - 1);
+			if (cmd_res == LDNS_STATUS_NULL) {
+				return NULL;
+			}
+		} else {
+			status = ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
+			if (status == LDNS_STATUS_OK) {
+				if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+					update_soa_record(rr, cfg);
+				}
+				return rr;
+			} else {
+				fprintf(stderr,
+				        ";Warning: skipping garbage: %s\n",
+				        line);
+			}
+		}
+	}
+	return NULL;
+}
+
+/* read an rrset from the file in the reader.
+ * if an rr is found that does not belong to the set, it
+ * is added to skipped_rrs
+ * next time, skipped_rrs is read before the file
+ * comments and commends are handled by their respective functions
+ * return an rr_list with one or more rrs, or NULL (never an empty one)
+ */
+ldns_rr_list *
+read_rrset(rrset_reader_t *reader, FILE *out, current_config *cfg)
+{
+	ldns_rr *rr;
+	ldns_rr_list *rrset;
+
+	if (!reader) return NULL;
+	rrset = ldns_rr_list_new();
+	if (reader->skipped_rr) {
+		ldns_rr_list_push_rr(rrset, reader->skipped_rr);
+		reader->skipped_rr = NULL;
+	}
+	while(1) {
+		rr = read_rr_from_file(reader->file, out, cfg);
+		if (!rr) {
+			if (ldns_rr_list_rr_count(rrset) == 0) {
+				ldns_rr_list_free(rrset);
+				return NULL;
+			} else {
+				return rrset;
+			}
+		}
+		if (ldns_rr_list_rr_count(rrset) > 0 &&
+			is_same_rrset(ldns_rr_list_rr(rrset, 0), rr)) {
+			ldns_rr_list_push_rr(rrset, rr);
+		} else {
+			reader->skipped_rr = rr;
+			return rrset;
+		}
+	}
+	return NULL;
+}
+
+/* same as read_rrset, but only return RRSIGS. NULL if next rr is not
+ * a signature */
+ldns_rr_list *
+read_signatures(rrset_reader_t *reader, FILE *out, current_config *cfg)
+{
+	ldns_rr *rr;
+	ldns_rr_list *rrset;
+
+	if (!reader) return NULL;
+	rrset = ldns_rr_list_new();
+	if (reader->skipped_rr) {
+		if (ldns_rr_get_type(reader->skipped_rr) !=
+		    LDNS_RR_TYPE_RRSIG) {
+			return NULL;
+		}
+		ldns_rr_list_push_rr(rrset, reader->skipped_rr);
+		reader->skipped_rr = NULL;
+	}
+	while(1) {
+		rr = read_rr_from_file(reader->file, out, cfg);
+		if (!rr) {
+			if (ldns_rr_list_rr_count(rrset) == 0) {
+				ldns_rr_list_free(rrset);
+				return NULL;
+			} else {
+				return rrset;
+			}
+		}
+		if (ldns_rr_list_rr_count(rrset) > 0 &&
+			is_same_rrset(ldns_rr_list_rr(rrset, 0), rr) &&
+			ldns_rr_get_type(rr) == LDNS_RR_TYPE_RRSIG) {
+			ldns_rr_list_push_rr(rrset, rr);
+		} else {
+			reader->skipped_rr = rr;
+			return rrset;
+		}
+	}
+	return NULL;
+}
+
+/* check for existing sigs that do not have to be renewed yet
+ * print those, and mark the corresponding keys so they aren't
+ * used by sign_rrset */
+void
+check_existing_sigs(ldns_rr_list *sigs,
+                    FILE *output,
+                    current_config *cfg)
+{
+	size_t i;
+	ldns_rr *cur_sig;
+	for (i = 0; i < ldns_rr_list_rr_count(sigs); i++) {
+		/* if refresh is zero, we just drop existing
+		 * signatures. Otherwise, we'll have to check
+		 * them and mark which keys should still be used
+		 * to create new ones
+		 * 
+		 * *always* update SOA RRSIG
+		 */
+		cur_sig = ldns_rr_list_rr(sigs, i);
+		cfg->existing_sigs++;
+		if (cfg->refresh != 0 || ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(cur_sig)) == LDNS_RR_TYPE_SOA) {
+			if (ldns_rdf2native_int32(ldns_rr_rrsig_expiration(cur_sig)) < cfg->refresh ||
+				ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(cur_sig)) == LDNS_RR_TYPE_SOA) {
+				/* ok, drop sig, resign */
+				cfg->removed_sigs++;
+			} else {
+				/* leave sig, disable key */
+				/* but only if it wasn't disabled yet */
+				if (key_enabled_for(cfg->zsks, cur_sig)) {
+					ldns_rr_print(output, cur_sig);
+					disable_key_for(cfg->zsks, cur_sig);
+				}
+				if (key_enabled_for(cfg->ksks, cur_sig)) {
+					ldns_rr_print(output, cur_sig);
+					disable_key_for(cfg->ksks, cur_sig);
+				}
+			}
+		}
+	}
+}
+
+void
+sign_rrset(ldns_rr_list *rrset,
+           FILE *output,
+           current_config *cfg)
+{
+	size_t i;
+	ldns_rr *sig;
+	key_list *keys;
+	hsm_sign_params_t *params;
+	params = hsm_sign_params_new();
+	params->owner = ldns_rdf_clone(cfg->origin);
+	params->inception = cfg->inception;
+	if (ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)) ==
+	                           LDNS_RR_TYPE_DNSKEY) {
+		keys = cfg->ksks;
+	} else {
+		keys = cfg->zsks;
+	}
+	for (i = 0; i < keys->key_count; i++) {
+		if (keys->use_key[i]) {
+			/* TODO: update params more? algorithm? */
+			params->keytag = keys->keytags[i];
+			params->expiration = cfg->expiration + rand() % cfg->jitter;
+			sig = hsm_sign_rrset(NULL, rrset,
+								 keys->keys[i], params);
+			cfg->created_sigs++;
+			ldns_rr_print(output, sig);
+			ldns_rr_free(sig);
+		}
+	}
+	hsm_sign_params_free(params);
+}
+
+int
+compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
+{
+	if (ldns_rr_list_rr_count(a) == 0) {
+		if (ldns_rr_list_rr_count(b) == 0) {
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+	if (ldns_rr_list_rr_count(b) == 0) {
+		if (ldns_rr_list_rr_count(a) == 0) {
+			return 0;
+		} else {
+			return 1;
+		}
+	}
+	return ldns_rr_compare_no_rdata(ldns_rr_list_rr(a, 0),
+	                                ldns_rr_list_rr(b, 0));
+}
+
+/* returns 0 when an rrset has successfully been read and handled
+ * returns 1 when EOF is read and the last rrset has successfully been
+ * handled
+ * returns -1 on error
+ */
+int
+read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
+{
+	rrset_reader_t *new_zone_reader, *signed_zone_reader;
+	ldns_rr_list *new_zone_rrset;
+	ldns_rr_list *new_zone_signatures;
+	ldns_rr_list *signed_zone_rrset;
+	ldns_rr_list *signed_zone_signatures;
+	int cmp;
+	
+	new_zone_reader = rrset_reader_new(input);
+	if (signed_zone) {
+		signed_zone_reader = rrset_reader_new(signed_zone);
+	} else {
+		signed_zone_reader = NULL;
+	}
+
+	while((new_zone_rrset = read_rrset(new_zone_reader, output, cfg))) {
+		if (ldns_rr_list_rr_count(new_zone_rrset) == 0) {
+			continue;
+		}
+		ldns_rr_list_print(output, new_zone_rrset);
+		new_zone_signatures = read_signatures(new_zone_reader,
+		                                      output, cfg);
+		enable_keys(cfg);
+		/* if we have no previously signed zone, check for sigs
+		 * in input, and sign the rest */
+		if (!signed_zone_reader) {
+			check_existing_sigs(new_zone_signatures, output, cfg);
+			sign_rrset(new_zone_rrset, output, cfg);
+		} else {
+			/* now we have a few scenarios, either this rrset is new
+			 * or not. If not, it has either changed or not. If not,
+			 * there may be signatures in the old zone file as well
+			 */
+			signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg);
+			signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg);
+			cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
+			/* if the cur rrset name > signed rrset name then data has
+			 * been removed, reread signed rrset */
+			while (cmp > 0 && signed_zone_rrset) {
+				ldns_rr_list_deep_free(signed_zone_rrset);
+				if (signed_zone_signatures) ldns_rr_list_deep_free(signed_zone_signatures);
+				signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg);
+				signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg);
+				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
+			}
+			/* if the cur rrset name < signer rrset name then data is new
+			 */
+			while (cmp < 0 && new_zone_rrset) {
+				check_existing_sigs(new_zone_signatures, output, cfg);
+				sign_rrset(new_zone_rrset, output, cfg);
+				new_zone_rrset = read_rrset(new_zone_reader, output, cfg);
+				new_zone_signatures = read_signatures(new_zone_reader, output, cfg);
+				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
+			}
+			/* if same, and rrset not same, treat as new */
+			/* if same, and rrset same, check old sigs as well */
+			/* sigs with same keytag in input get priority */
+			if (cmp == 0) {
+				if (ldns_rr_list_compare(new_zone_rrset, signed_zone_rrset) != 0) {
+					check_existing_sigs(new_zone_signatures, output, cfg);
+					sign_rrset(new_zone_rrset, output, cfg);
+				} else {
+					check_existing_sigs(new_zone_signatures, output, cfg);
+					check_existing_sigs(signed_zone_signatures, output, cfg);
+					sign_rrset(new_zone_rrset, output, cfg);
+				}
+			}
+			/* in our search for the next signed rrset, we may have
+			 * reached the end, in which case we have new rrsets at
+			 * the input */
+			if (cmp > 0 && !signed_zone_rrset) {
+				check_existing_sigs(new_zone_signatures, output, cfg);
+				sign_rrset(new_zone_rrset, output, cfg);
+			}
+		}
+	}
+	return 0;
 }
 
 int main(int argc, char **argv)
 {
 	current_config *cfg;
-	char line[MAX_LINE_LEN];
-	int line_len;
 	int c;
 	FILE *input;
 	FILE *output;
+	FILE *prev_zone = NULL;
 	bool echo_input = true;
-	uint32_t ttl = LDNS_DEFAULT_TTL;
-	
-	ldns_rr *cur_rr = NULL;
-	ldns_rr *prev_rr = NULL;
-	ldns_rdf *prev_name = NULL;
-	ldns_rr_list *cur_rrset;
-	ldns_rr_list *old_sigs;
-	ldns_status status;
-	ldns_rr_list *sigs;
-	ldns_status cmd_res;
-	
-	int verbosity = 1;
+	int result;
 
-	memset(line, 0, MAX_LINE_LEN);
 	cfg = current_config_new();
 	input = stdin;
 	output = stdout;
 
-	while ((c = getopt(argc, argv, "f:hnw:")) != -1) {
+	hsm_open(NULL, NULL, NULL);
+
+	while ((c = getopt(argc, argv, "f:hnp:w:")) != -1) {
 		switch(c) {
 		case 'f':
 			input = fopen(optarg, "r");
@@ -674,6 +977,15 @@ int main(int argc, char **argv)
 		case 'n':
 			echo_input = false;
 			break;
+		case 'p':
+			prev_zone = fopen(optarg, "r");
+			if (!prev_zone) {
+				fprintf(stderr,
+						"Error: unable to open %s: %s\n",
+						optarg,
+						strerror(errno));
+			}
+			break;
 		case 'w':
 			output = fopen(optarg, "w");
 			if (!output) {
@@ -687,163 +999,18 @@ int main(int argc, char **argv)
 		}
 	}
 
-	cur_rrset = ldns_rr_list_new();
-	old_sigs = ldns_rr_list_new();
-	prev_rr = cur_rr;
-
-	enable_keys(cfg);
-	line_len = 0;
-	while (line_len >= 0) {
-		line_len = read_line(input, line);
-		/* four cases:
-		 * - line is a comment (starts with ;)
-		 * - line is a command (starts with :)
-		 * - line is an RR or empty (otherwise)
-		 */
-		if (line_len > 0) {
-			if (line[0] == ';') {
-				/* pass comments */
-				if (line_len > 15 && strncmp(line, "; Last refresh stats: ", 15) == 0) {
-					/* except stats */
-				} else if (line_len > 8 && strncmp(line, "; Error ", 8) == 0) {
-					/* and previous errors */
-				} else {
-					fprintf(output, "%s\n", line);
-				}
-			} else if (line[0] == ':') {
-				cmd_res = handle_command(output, cfg, line + 1,
-				                         line_len - 1);
-				if (cmd_res == LDNS_STATUS_NULL) {
-					goto done;
-				}
-			} else {
-				/* read RR, gather rrset, etc, see old main */
-				status = ldns_rr_new_frm_str(&cur_rr,
-											line,
-											ttl,
-											cfg->origin,
-											&prev_name);
-				if (status == LDNS_STATUS_OK && cur_rr &&
-				    ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_SOA) {
-					if (cfg->soa_ttl != 0) {
-						ldns_rr_set_ttl(cur_rr, cfg->soa_ttl);
-					}
-					if (cfg->soa_serial != 0) {
-						ldns_rdf_deep_free(ldns_rr_rdf(cur_rr, 2));
-						ldns_rr_set_rdf(cur_rr,
-										ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
-															  cfg->soa_serial),
-										2);
-					}
-					if (cfg->soa_minimum != 0) {
-						ldns_rdf_deep_free(ldns_rr_rdf(cur_rr, 6));
-						ldns_rr_set_rdf(cur_rr,
-										ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
-															  cfg->soa_minimum),
-										6);
-					}
-				}
-				if (prev_rr) {
-					if (is_same_rrset(prev_rr, cur_rr)) {
-						ldns_rr_list_push_rr(cur_rrset, cur_rr);
-					} else {
-						/* sign and print sigs */
-						if (verbosity >= 5) {
-							fprintf(stderr,
-									"INFO: signing %u records\n",
-									(unsigned int) ldns_rr_list_rr_count(cur_rrset)
-								   );
-						}
-						if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_RRSIG) {
-							/* if refresh is zero, we just drop existing
-							 * signatures. Otherwise, we'll have to check
-							 * them and mark which keys should still be used
-							 * to create new ones
-							 * 
-							 * *always* update SOA RRSIG
-							 */
-							cfg->existing_sigs++;
-							if (cfg->refresh != 0 || ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(cur_rr)) == LDNS_RR_TYPE_SOA) {
-								if (ldns_rdf2native_int32(ldns_rr_rrsig_expiration(cur_rr)) < cfg->refresh ||
-								    ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(cur_rr)) == LDNS_RR_TYPE_SOA) {
-									/* ok, drop sig, resign */
-									enable_key_for(cfg, cur_rr);
-									cfg->removed_sigs++;
-								} else {
-									/* leave sig, disable key */
-									ldns_rr_list_push_rr(old_sigs, cur_rr);
-									disable_key_for(cfg, cur_rr);
-								}
-							}
-						} else {
-							/* handle rrset */
-							if (echo_input) {
-								ldns_rr_list_print(output, cur_rrset);
-								ldns_rr_list_print(output, old_sigs);
-							}
-							
-							if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
-								ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
-								if (cfg->jitter) {
-									update_jitter(cfg);
-								}
-								sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
-								cfg->created_sigs += ldns_rr_list_rr_count(sigs);
-								ldns_rr_list_print(output, sigs);
-								ldns_rr_list_deep_free(sigs);
-								(void)sigs;
-								enable_keys(cfg);
-							}
-							/* clean for next set */
-							ldns_rr_list_deep_free(cur_rrset);
-							cur_rrset = ldns_rr_list_new();
-							ldns_rr_list_push_rr(cur_rrset, cur_rr);
-							ldns_rr_list_deep_free(old_sigs);
-							old_sigs = ldns_rr_list_new();
-							prev_rr = cur_rr;
-						}
-					}
-				} else {
-					prev_rr = cur_rr;
-					ldns_rr_list_push_rr(cur_rrset, cur_rr);
-				}
-			}
-		}
-	}
-	done:
-	if (cur_rrset && ldns_rr_list_rr_count(cur_rrset) > 0) {
-		if (echo_input) {
-			ldns_rr_list_print(output, cur_rrset);
-			ldns_rr_list_print(output, old_sigs);
-		}
-		
-		/* sign and print sigs */
-		if (verbosity >= 5) {
-			fprintf(stderr,
-					"INFO: signing %u records\n",
-					(unsigned int) ldns_rr_list_rr_count(cur_rrset)
-				   );
-		}
-		if (ldns_rr_get_type(prev_rr) != LDNS_RR_TYPE_NS ||
-			ldns_dname_compare(ldns_rr_owner(prev_rr), cfg->origin) == 0) {
-			sigs = ldns_pkcs11_sign_rrset(cur_rrset, cfg->keys);
-			cfg->created_sigs += ldns_rr_list_rr_count(sigs);
-			ldns_rr_list_print(output, sigs);
-			ldns_rr_list_deep_free(sigs);
-		}
-	}
+	result = 0;
+	result = read_input(input, prev_zone, output, cfg);
 	
+	hsm_close();
 	fprintf(output, "; Last refresh stats: existing: %lu, removed %lu, created %lu\n",
 	        cfg->existing_sigs,
 	        cfg->removed_sigs,
 	        cfg->created_sigs);
 
-	current_config_free(cfg);
-	if (input != stdin) {
-		fclose(input);
+	if (result == 1) {
+		return 0;
+	} else {
+		return 1;
 	}
-	if (output != stdout) {
-		fclose(output);
-	}
-	return 0;
 }
