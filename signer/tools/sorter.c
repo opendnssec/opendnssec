@@ -30,6 +30,8 @@
  * An ldns-based zone sorter
  * It also marks empty non-terminals, glue and out-of-zone data, and
  * converts those to comments.
+ * RRSIG records will be sorted right after the RRset they cover
+ * (todo)
  */
 
 #include <stdio.h>
@@ -52,6 +54,7 @@ struct rr_data_struct {
 	ldns_rdf *name;
 	ldns_rdf *orig_name; /* set in case of NSEC3 where name is hashed */
 	ldns_rr_type type;
+	ldns_rr_type type_covered; /* set in case of RRSIG */
 	ldns_buffer *rr_buf;
 	ldns_rr *ent_for;
 	int glue;
@@ -306,6 +309,30 @@ compare_rr_data(const void *a, const void *b)
 
 	result = ldns_dname_compare(ra->name, rb->name);
 	if (result == 0) {
+		if (ra->type == LDNS_RR_TYPE_RRSIG &&
+			rb->type != LDNS_RR_TYPE_RRSIG) {
+			if (ra->type_covered > rb->type) {
+				result = 1;
+			} else if (ra->type_covered < rb->type) {
+				result = -1;
+			} else {
+				/* we want the sig behind the set, so return
+				 * 1 instead of 0 here */
+				result = 1;
+			}
+		} else 
+		if (rb->type == LDNS_RR_TYPE_RRSIG &&
+			ra->type != LDNS_RR_TYPE_RRSIG) {
+			if (ra->type > rb->type_covered) {
+				result = 1;
+			} else if (ra->type < rb->type_covered) {
+				result = -1;
+			} else {
+				/* we want the sig behind the set, so return
+				 * -1 instead of 0 here */
+				result = -1;
+			}
+		} else
 		if (ra->type > rb->type) {
 			result = 1;
 		} else if (ra->type < rb->type) {
@@ -606,7 +633,11 @@ main(int argc, char **argv)
 						ldns_dname_cat(cur_rr_data->name, origin);
 					}
 					cur_rr_data->type = ldns_rr_get_type(cur_rr);
-					
+					if (cur_rr_data->type == LDNS_RR_TYPE_RRSIG) {
+						cur_rr_data->type_covered = 
+						    ldns_rdf2rr_type(
+							     ldns_rr_rrsig_typecovered(cur_rr));
+					}
 					status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
 											cur_rr,
 											LDNS_SECTION_ANY_NOQUESTION);
