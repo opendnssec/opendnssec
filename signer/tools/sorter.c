@@ -50,6 +50,7 @@
 
 struct rr_data_struct {
 	ldns_rdf *name;
+	ldns_rdf *orig_name; /* set in case of NSEC3 where name is hashed */
 	ldns_rr_type type;
 	ldns_buffer *rr_buf;
 	ldns_rr *ent_for;
@@ -63,6 +64,7 @@ rr_data_new()
 {
 	rr_data *rd = LDNS_MALLOC(rr_data);
 	rd->name = NULL;
+	rd->orig_name = NULL;
 	rd->rr_buf = ldns_buffer_new(DEFAULT_RR_MALLOC);
 	rd->ent_for = NULL;
 	rd->glue = 0;
@@ -75,12 +77,14 @@ rr_data_free(rr_data *rd)
 {
 	if (!rd) {
 		return;
-	} else {
-		if (rd->name) {
-			ldns_rdf_deep_free(rd->name);
-		}
-		ldns_buffer_free(rd->rr_buf);
 	}
+	if (rd->name) {
+		ldns_rdf_deep_free(rd->name);
+	}
+	if (rd->orig_name) {
+		ldns_rdf_deep_free(rd->orig_name);
+	}
+	ldns_buffer_free(rd->rr_buf);
 	if (rd->ent_for) {
 		ldns_rr_free(rd->ent_for);
 	}
@@ -219,6 +223,7 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 						  LDNS_SECTION_ANY_NOQUESTION);
 		if (status == LDNS_STATUS_OK) {
 			ldns_rr_print(out, rr);
+
 			fflush(out);
 			ldns_rr_free(rr);
 		} else {
@@ -236,9 +241,7 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 void
 mark_possible_glue(rr_data *rrd, ldns_rbtree_t *ns_tree, ldns_rdf *origin)
 {
-	ldns_rbnode_t *cur_node;
-	rr_data *cur_data;
-	ldns_rr *rr, *cur_rr;
+	ldns_rr *rr;
 
 	ldns_rdf *cur_dname, *prev_dname = NULL;
 	size_t c_lcount, o_lcount;
@@ -258,7 +261,6 @@ mark_possible_glue(rr_data *rrd, ldns_rbtree_t *ns_tree, ldns_rdf *origin)
 	o_lcount = ldns_dname_label_count(origin);
 	cur_dname = ldns_rdf_clone(ldns_rr_owner(rr));
 	c_lcount = ldns_dname_label_count(cur_dname);
-	
 	while (c_lcount > 0 && c_lcount > o_lcount) {
 		if (ldns_rbtree_search(ns_tree, cur_dname)) {
 			rrd->glue = 1;
@@ -318,7 +320,6 @@ compare_rr_data(const void *a, const void *b)
 int
 compare_dname(const void *a, const void *b)
 {
-	int result;
 	ldns_rdf *ra, *rb;
 
 	ra = (ldns_rdf *) a;
@@ -591,6 +592,7 @@ main(int argc, char **argv)
 					if (!nsec3) {
 						cur_rr_data->name = ldns_rdf_clone(ldns_rr_owner(cur_rr));
 					} else {
+						cur_rr_data->orig_name = ldns_rdf_clone(ldns_rr_owner(cur_rr));
 						cur_rr_data->name = ldns_nsec3_hash_name(
 											ldns_rr_owner(cur_rr),
 											nsec3_algorithm,
@@ -612,8 +614,14 @@ main(int argc, char **argv)
 					ldns_rbtree_insert(rr_tree,
 									rr_data2node(cur_rr_data));
 					if (cur_rr_data->type == LDNS_RR_TYPE_NS) {
-						if (!ldns_rbtree_search(ns_tree, cur_rr_data->name)) {
-							ldns_rbtree_insert(ns_tree, dname2node(cur_rr_data->name));
+						if (nsec3) {
+							if (!ldns_rbtree_search(ns_tree, cur_rr_data->orig_name)) {
+								ldns_rbtree_insert(ns_tree, dname2node(cur_rr_data->orig_name));
+							}
+						} else {
+							if (!ldns_rbtree_search(ns_tree, cur_rr_data->name)) {
+								ldns_rbtree_insert(ns_tree, dname2node(cur_rr_data->name));
+							}
 						}
 					}
 					
@@ -694,10 +702,6 @@ main(int argc, char **argv)
 	}
 	if (out_file != stdout) {
 		fclose(out_file);
-	}
-
-	if (nsec3) {
-		hsm_close();
 	}
 
 	return 0;
