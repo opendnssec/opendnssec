@@ -140,7 +140,7 @@ handle_line(FILE *out_file,
 			}
 		} else {
 			/* comment line. pass */
-			printf("%s\n", line);
+			fprintf(out_file, "%s\n", line);
 		}
 	}
 	return LDNS_STATUS_OK;
