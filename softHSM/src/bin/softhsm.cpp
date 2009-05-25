@@ -63,7 +63,14 @@ void usage() {
   printf("--so-pin <PIN>       The PIN for the Security Officer (SO). 4-255 chars.\n");
   printf("--pin <PIN>          The PIN for the normal user. 4-255 chars.\n");
   printf("--help               Shows this help.\n");
-  printf("-h                   Shows this help.\n");
+  printf("-h                   Shows this help.\n\n\n");
+  printf("You also need to have a config file, which specifies the paths to the tokens.\n");
+  printf("Example:\n");
+  printf("  0:/home/user/my.db\n");
+  printf("  # Comments can be added\n");
+  printf("  4:/home/user/token.database\n\n");
+  printf("The path to the config file should also be configured by:\n");
+  printf("  export SOFTHSM_CONF=/home/user/config.file\n");
 }
 
 enum {
