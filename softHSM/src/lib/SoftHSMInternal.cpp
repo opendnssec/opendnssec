@@ -106,8 +106,11 @@ CK_RV SoftHSMInternal::openSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PT
                      CKR_SESSION_COUNT);
   CHECK_DEBUG_RETURN((flags & CKF_SERIAL_SESSION) == 0, "C_OpenSession", "Can not open a non parallel session",
                      CKR_SESSION_PARALLEL_NOT_SUPPORTED);
+  CHECK_DEBUG_RETURN((flags & CKF_RW_SESSION) == 0 && currentSlot->soPIN != NULL_PTR, "C_OpenSession", 
+                     "Can not open a Read-Only session when in SO mode", CKR_SESSION_READ_WRITE_SO_EXISTS);
   CHECK_DEBUG_RETURN(!phSession, "C_OpenSession", "phSession must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
+
 
   for(int i = 0; i < MAX_SESSION_COUNT; i++) {
     if(sessions[i] == NULL_PTR) {
