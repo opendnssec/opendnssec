@@ -156,12 +156,12 @@ int main(int argc, char *argv[]) {
 
 void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   if(slot == NULL) {
-    printf("Error: A slot number must be supplied.\n");
+    printf("Error: A slot number must be supplied. Use --slot <number>\n");
     exit(1);
   }
 
   if(label == NULL) {
-    printf("Error: A label for the token must be supplied.\n");
+    printf("Error: A label for the token must be supplied. Use --label <text>\n");
     exit(1);
   }
 
@@ -209,7 +209,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   // Load the variables
   CK_SLOT_ID slotID = atoi(slot);
   CK_UTF8CHAR paddedLabel[32];
-  memset(paddedLabel, ' ', sizeof(label));
+  memset(paddedLabel, ' ', sizeof(paddedLabel));
   memcpy(paddedLabel, label, strlen(label));
 
   CK_RV rv = C_Initialize(NULL_PTR);
