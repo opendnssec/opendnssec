@@ -1161,7 +1161,7 @@ hsm_open(const char *config,
             module_pin = NULL;
             curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"Name"))
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
                     module_name = (char *) xmlNodeGetContent(curNode);
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
                     module_path = (char *) xmlNodeGetContent(curNode);
