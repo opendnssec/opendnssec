@@ -4,9 +4,9 @@
 
 <Configuration>
 	<RepositoryList>
-		<Repository name="softHSM">
+		<Repository name="regress">
 			<Module>/usr/local/lib/libsofthsm.so</Module>
-			<TokenLabel>theToken</TokenLabel>
+			<TokenLabel>softHSM</TokenLabel>
 			<PIN>123456</PIN>
 		</Repository>
 	</RepositoryList>

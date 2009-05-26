@@ -4,7 +4,7 @@
 
 <Configuration>
 	<RepositoryList>
-		<Repository name="sca6000">
+		<Repository name="regress">
 			<Module>/usr/lib/libpkcs11.so</Module>
 			<TokenLabel>Sun Metaslot</TokenLabel>
 			<PIN>test:1234</PIN>
