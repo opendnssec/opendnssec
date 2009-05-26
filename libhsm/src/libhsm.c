@@ -355,6 +355,7 @@ static hsm_module_t *
 hsm_module_new(const char *name, const char *path)
 {
     size_t strl;
+    if (!name || !path) return NULL;
     hsm_module_t *module;
     module = malloc(sizeof(hsm_module_t));
     module->id = 0; /*TODO what should this value be?*/
@@ -407,6 +408,7 @@ hsm_session_init(hsm_session_t **session, char *module_name,
     CK_SESSION_HANDLE session_handle;
 
     module = hsm_module_new(module_name, module_path);
+    if (!module) return HSM_ERROR;
     rv = hsm_pkcs11_load_functions(module);
     hsm_pkcs11_check_rv(rv, "Load functions");
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize(NULL);
@@ -422,11 +424,19 @@ hsm_session_init(hsm_session_t **session, char *module_name,
                                    CKU_USER,
                                    (unsigned char *) pin,
                                    strlen((char *)pin));
-    hsm_pkcs11_check_rv(rv, "log in");
     if (rv == CKR_OK) {
         *session = hsm_session_new(module, session_handle);
         return HSM_OK;
     } else {
+        /* uninitialize the session again */
+        if (session_handle) {
+            rv = ((CK_FUNCTION_LIST_PTR) module->sym)->
+                   C_CloseSession(session_handle);
+            hsm_pkcs11_check_rv(rv, "finalize after failed login");
+        }
+        rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Finalize(NULL);
+        hsm_pkcs11_check_rv(rv, "finalize after failed login");
+        hsm_module_free(module);
         *session = NULL;
         switch(rv) {
         case CKR_PIN_INCORRECT:
@@ -470,8 +480,6 @@ hsm_ctx_new()
     ctx->session_count = 0;
     return ctx;
 }
-
-
 
 /* ctx_free frees the structure */
 static void
@@ -1107,6 +1115,7 @@ hsm_open(const char *config,
     char *module_path;
     char *module_pin;
     int result;
+    int tries;
 
     /* create an internal context with an attached session for each
      * configured HSM. */
@@ -1161,26 +1170,41 @@ hsm_open(const char *config,
                 curNode = curNode->next;
             }
             if (module_name && module_path) {
-                if (module_pin || pin_callback) {
-                    if (!module_pin) {
-                        module_pin = pin_callback(module_name, data);
-                    }
+                if (module_pin) {
                     result = hsm_attach(module_name,
                                         module_path,
                                         module_pin);
-                    /* TODO: syslog error/succes? */
-                    if (result == 0) {
-                        fprintf(stdout,
-                                "module '%s' added\n",
-                                module_name);
+                    free(module_pin);
+                } else {
+                    if (pin_callback) {
+                        result = HSM_PIN_INCORRECT;
+                        tries = 0;
+                        while (result == HSM_PIN_INCORRECT &&
+                               tries < 3) {
+                            module_pin = pin_callback(module_name,
+                                                      data);
+                            result = hsm_attach(module_name,
+                                                module_path,
+                                                module_pin);
+                            memset(module_pin, 0, strlen(module_pin));
+                            tries++;
+                        }
                     } else {
-                        fprintf(stderr, "error adding module\n");
+                        /* no pin, no callback, ignore 
+                         * module and token */
+                        result = HSM_OK;
                     }
-                    /* ok we have a module, start a session */
+                }
+                if (result == HSM_OK) {
+                    /* TODO: syslog error/succes? */
+                    fprintf(stdout,
+                            "module '%s' added\n",
+                            module_name);
+                } else {
+                    fprintf(stderr, "error adding module\n");
                 }
                 free(module_name);
                 free(module_path);
-                free(module_pin);
             }
         }
     }
