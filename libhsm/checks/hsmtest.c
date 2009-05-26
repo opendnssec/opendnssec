@@ -69,6 +69,9 @@ main (int argc, char *argv[])
 			delete = 1;
 			show = 0;
 			break;
+		default:
+			fprintf(stderr, "usage: %s [-gsd]\n", argv[0]);
+			exit(1);
 		}
 	}
 
