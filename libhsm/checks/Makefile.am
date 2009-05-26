@@ -17,7 +17,8 @@ hsmtest_LDFLAGS = -no-install
 
 
 token.db:
-	softhsm --init-token $@ --label "theToken" --so-pin 12345678 --pin 123456
+	env SOFTHSM_CONF=$(srcdir)/softhsm.conf \
+	softhsm --slot 0 --init-token --label "theToken" --so-pin 12345678 --pin 123456
 
 regress:
 	@echo use target 'regress-sca6000' or 'regress-softhsm'
