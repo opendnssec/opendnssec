@@ -85,7 +85,7 @@ AC_CHECK_LIB(ldns, ldns_rr_new,, [
 )
 
 # check whether our linked ldns is actually recent enough
-AC_CHECK_FUNC(ldns_key_external_key, [], [
+AC_CHECK_FUNC(ldns_b32_ntop, [], [
 		AC_MSG_ERROR([ldns library too old, please update it])
 	]
 )

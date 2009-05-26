@@ -290,7 +290,7 @@ hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
                              const char *token_name)
 {
     /* token label is always 32 bytes */
-    char *token_name_bytes = malloc(32);
+    char token_name_bytes[32];
     int result = 0;
     CK_RV rv;
     CK_TOKEN_INFO token_info;
@@ -303,7 +303,6 @@ hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
     
     result = memcmp(token_info.label, token_name_bytes, 32) == 0;
     
-    free(token_name_bytes);
     return result;
 }
 
@@ -440,7 +439,7 @@ hsm_session_clone(hsm_session_t *session)
                                     NULL,
                                     &session_handle);
     
-    hsm_pkcs11_check_rv(rv, "Open first session");
+    hsm_pkcs11_check_rv(rv, "Clone session");
     new_session = hsm_session_new(session->module, session_handle);
 
     return new_session;
