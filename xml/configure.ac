@@ -24,6 +24,7 @@ then
     AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
   fi
 else
+  AC_MSG_NOTICE([trang.jar can be downloaded from http://code.google.com/p/jing-trang/])
   AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
 fi
 AC_SUBST(TRANG)
