@@ -37,6 +37,8 @@
 #include "log.h"
 #include "SoftDatabase.h"
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <sqlite3.h>
 
 #define EXEC_DB(db, sql) \
