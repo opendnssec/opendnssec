@@ -34,6 +34,10 @@
 
 #include "userhandling.h"
 
+// Standard includes
+#include <stdlib.h>
+#include <stdio.h>
+
 // Includes for the crypto library
 #include <botan/pipe.h>
 #include <botan/filters.h>
