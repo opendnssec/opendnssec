@@ -126,6 +126,7 @@ main(int argc, char **argv)
 	int result;
 	char *pkcs11_lib_file = NULL;
 	char *pin = NULL;
+	int tries;
 	
 	/* internal variables */
 	int found = 0;
@@ -192,15 +193,32 @@ main(int argc, char **argv)
 		fprintf(stderr, "Error: no token name provided\n");
 		exit(2);
 	}
+	if (!pkcs11_lib_file) {
+		fprintf(stderr, "Error: no PKCS#11 library provided\n");
+		exit(3);
+	}
 	/* init the pkcs environment */
 	if (!pin) {
-		pin = hsm_prompt_pin(token_name, NULL);
+		result = HSM_PIN_INCORRECT;
+		tries = 0;
+		while (result == HSM_PIN_INCORRECT && tries < 3) {
+			pin = hsm_prompt_pin(token_name, NULL);
+			result = hsm_attach(token_name,
+								pkcs11_lib_file,
+								pin);
+			memset(pin, 0, strlen(pin));
+			tries++;
+		}
+	} else {
+			result = hsm_attach(token_name,
+								pkcs11_lib_file,
+								pin);
 	}
-	result = hsm_attach(token_name,
-	                    pkcs11_lib_file,
-	                    pin);
 	if (result != 0) {
 		fprintf(stderr, "Failed to initialize token %s\n", token_name);
+		if (result == HSM_PIN_INCORRECT) {
+			fprintf(stderr, "Incorrect PIN\n");
+		}
 		exit(1);
 	}
 
