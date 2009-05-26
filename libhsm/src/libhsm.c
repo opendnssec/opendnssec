@@ -290,7 +290,7 @@ hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
                              const char *token_name)
 {
     /* token label is always 32 bytes */
-    char token_name_bytes[32];
+    char token_name_bytes[HSM_TOKEN_LABEL_LENGTH];
     int result = 0;
     CK_RV rv;
     CK_TOKEN_INFO token_info;
@@ -298,10 +298,16 @@ hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
     rv = pkcs11_functions->C_GetTokenInfo(slotId, &token_info);
     hsm_pkcs11_check_rv(rv, "C_GetTokenInfo");
     
-    memset(token_name_bytes, ' ', 32);
-    memcpy(token_name_bytes, token_name, strlen(token_name));
+    memset(token_name_bytes, ' ', HSM_TOKEN_LABEL_LENGTH);
+    if (strlen(token_name) < HSM_TOKEN_LABEL_LENGTH) {
+        memcpy(token_name_bytes, token_name, strlen(token_name));
+    } else {
+        memcpy(token_name_bytes, token_name, HSM_TOKEN_LABEL_LENGTH);
+    }
     
-    result = memcmp(token_info.label, token_name_bytes, 32) == 0;
+    result = memcmp(token_info.label,
+                    token_name_bytes,
+                    HSM_TOKEN_LABEL_LENGTH) == 0;
     
     return result;
 }
@@ -391,14 +397,14 @@ hsm_session_free(hsm_session_t *session) {
 /* creates a session_t structure, and automatically adds and initializes
  * a module_t struct for it
  */
-static hsm_session_t *
-hsm_session_init(char *module_name, char *module_path, char *pin)
+static int
+hsm_session_init(hsm_session_t **session, char *module_name,
+                 char *module_path, char *pin)
 {
     CK_RV rv;
     hsm_module_t *module;
     CK_SLOT_ID slot_id;
     CK_SESSION_HANDLE session_handle;
-    hsm_session_t *session;
 
     module = hsm_module_new(module_name, module_path);
     rv = hsm_pkcs11_load_functions(module);
@@ -417,9 +423,19 @@ hsm_session_init(char *module_name, char *module_path, char *pin)
                                    (unsigned char *) pin,
                                    strlen((char *)pin));
     hsm_pkcs11_check_rv(rv, "log in");
-    session = hsm_session_new(module, session_handle);
-
-    return session;
+    if (rv == CKR_OK) {
+        *session = hsm_session_new(module, session_handle);
+        return HSM_OK;
+    } else {
+        *session = NULL;
+        switch(rv) {
+        case CKR_PIN_INCORRECT:
+            return HSM_PIN_INCORRECT;
+            break;
+        default:
+            return HSM_ERROR;
+        }
+    }
 }
 
 /* open a second session from the given one */
@@ -1704,14 +1720,16 @@ int hsm_attach(char *token_name,
                char *pin)
 {
     hsm_session_t *session;
+    int result;
     
-    session = hsm_session_init(token_name,
+    result = hsm_session_init(&session,
+                               token_name,
                                path,
                                pin);
-    if (session) {
+    if (result == HSM_OK) {
         return hsm_ctx_add_session(_hsm_ctx, session);
     } else {
-        return -1;
+        return result;
     }
 }
 

@@ -37,6 +37,13 @@
 
 #define HSM_MAX_SESSIONS 10
 
+#define HSM_TOKEN_LABEL_LENGTH 32
+
+/*! Return codes for some of the functions, mapped to int */
+#define HSM_OK              0
+#define	HSM_ERROR           1
+#define	HSM_PIN_INCORRECT   2
+
 /*! Data type to describe an HSM */
 typedef struct {
 	unsigned int id;           /*!< HSM numerical identifier */
