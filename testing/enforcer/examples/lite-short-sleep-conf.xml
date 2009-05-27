@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: conf.xml 714 2009-05-11 15:51:16Z jakob $ -->
+
+<Configuration>
+
+	<RepositoryList>
+		<Repository name="sca6000">
+			<Module>/usr/lib/libpkcs11.so</Module>
+			<TokenLabel>Sun Metaslot</TokenLabel>
+			<PIN>test:1234</PIN>
+			<Capacity>1000</Capacity>
+		</Repository>
+
+		<Repository name="softHSM">
+			<Module>/usr/local/lib/libsofthsm.so</Module>
+			<TokenLabel>alice</TokenLabel>
+			<PIN>test:5678</PIN>
+		</Repository>
+	</RepositoryList>
+
+	<Enforcer>
+		<Datastore>
+		  <SQlite>/tmp/jad/opendnssec/install/var/opendnssec/enforcer.db</SQlite>
+		</Datastore>
+		<Interval>PT3600S</Interval>
+		<KeygenInterval>PT3S</KeygenInterval>
+		<BackupDelay>P3D</BackupDelay>
+	</Enforcer>
+
+	<Signer>
+		<WorkingDirectory>/var/dnssec/tmp</WorkingDirectory>
+		<ZoneListFile>/var/dnssec/zonelist.xml</ZoneListFile>
+		<!-- toolsdir will be removed, but is used for testing atm -->
+		<ToolsDirectory>/usr/local/bin</ToolsDirectory>
+	</Signer>
+
+</Configuration>

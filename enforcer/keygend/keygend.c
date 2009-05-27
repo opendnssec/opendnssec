@@ -123,6 +123,7 @@ server_main(DAEMONCONFIG *config)
         exit(1);
     }
 
+    log_msg(config, LOG_INFO, "Connecting to Database...");
     kaspConnect(config, &dbhandle);
 
     while (1) {
@@ -176,6 +177,10 @@ server_main(DAEMONCONFIG *config)
         }
         DbFreeResult(handle);
 
+        /* Disconnect from DB in case we are asleep for a long time */
+        log_msg(config, LOG_INFO, "Disconnecting from Database...");
+        kaspDisconnect(&dbhandle);
+
         /* sleep for the key gen interval */
         tv.tv_sec = config->keygeninterval;
         tv.tv_usec = 0;
@@ -183,14 +188,16 @@ server_main(DAEMONCONFIG *config)
         select(0, NULL, NULL, NULL, &tv);
 
         /* re-read the config in case it has changed */
-
         status = ReadConfig(config);
         if (status != 0) {
             log_msg(config, LOG_ERR, "Error reading config");
             exit(1);
         }
+        log_msg(config, LOG_INFO, "Connecting to Database...");
+        kaspConnect(config, &dbhandle);
 
     }
+    log_msg(config, LOG_INFO, "Disconnecting from Database...");
     kaspDisconnect(&dbhandle);
     free(policy->name);
     free(policy->enforcer);
