@@ -107,7 +107,7 @@ AC_CHECK_FUNC(dlopen,
 ])
 
 AC_ARG_WITH(softhsm, 
-	AC_HELP_STRING([--with-softhsm=PATH],[specify path of SoftHSM library to use for regression testing]),
+	AC_HELP_STRING([--with-softhsm=PATH],[specify path of SoftHSM library to use for regression testing (default PREFIX/lib/libsofthsm.so)]),
 	[
 		softhsm_module="$withval"
 	],
@@ -117,7 +117,7 @@ AC_ARG_WITH(softhsm,
 )
 
 AC_ARG_WITH(sca6000, 
-	AC_HELP_STRING([--with-sca6000=PATH],[specify path of SCA6000 library to use for regression testing]),
+	AC_HELP_STRING([--with-sca6000=PATH],[specify path of SCA6000 library to use for regression testing (default /usr/lib/libpkcs11.so)]),
 	[
 		sca6000_module="$withval"
 	],
