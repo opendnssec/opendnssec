@@ -4,7 +4,7 @@
  * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2009 NLNet Labs.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -13,7 +13,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -227,7 +227,7 @@ static CK_RV
 hsm_pkcs11_load_functions(hsm_module_t *module)
 {
     CK_C_GetFunctionList pGetFunctionList = NULL;
-                          
+
     if (module && module->path) {
         /* library provided by application or user */
 #if defined(HAVE_LOADLIBRARY)
@@ -267,7 +267,7 @@ fprintf(stderr, "have loadlibrary\n");
 #ifdef HAVE_PKCS11_MODULE
 fprintf(stderr, "have pkcs11_module\n");
         return C_GetFunctionList(pkcs11_functions);
-#else 
+#else
         fprintf(stderr, "Error, no pkcs11 module given, none compiled in\n");
 #endif
     }
@@ -294,21 +294,21 @@ hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
     int result = 0;
     CK_RV rv;
     CK_TOKEN_INFO token_info;
-    
+
     rv = pkcs11_functions->C_GetTokenInfo(slotId, &token_info);
     hsm_pkcs11_check_rv(rv, "C_GetTokenInfo");
-    
+
     memset(token_name_bytes, ' ', HSM_TOKEN_LABEL_LENGTH);
     if (strlen(token_name) < HSM_TOKEN_LABEL_LENGTH) {
         memcpy(token_name_bytes, token_name, strlen(token_name));
     } else {
         memcpy(token_name_bytes, token_name, HSM_TOKEN_LABEL_LENGTH);
     }
-    
+
     result = memcmp(token_info.label,
                     token_name_bytes,
                     HSM_TOKEN_LABEL_LENGTH) == 0;
-    
+
     return result;
 }
 
@@ -323,7 +323,7 @@ ldns_hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
     CK_SLOT_ID cur_slot;
     CK_SLOT_ID *slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
     int found = 0;
-    
+
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
     hsm_pkcs11_check_rv(rv, "get slot list");
 
@@ -375,7 +375,7 @@ hsm_module_free(hsm_module_t *module)
         if (module->name) free(module->name);
         if (module->token_label) free(module->token_label);
         if (module->path) free(module->path);
-        
+
         free(module);
     }
 }
@@ -458,7 +458,7 @@ hsm_session_clone(hsm_session_t *session)
     CK_SLOT_ID slot_id;
     CK_SESSION_HANDLE session_handle;
     hsm_session_t *new_session;
-    
+
     slot_id = ldns_hsm_get_slot_id(session->module->sym,
                                    session->module->token_label);
     rv = ((CK_FUNCTION_LIST_PTR) session->module->sym)->C_OpenSession(slot_id,
@@ -466,7 +466,7 @@ hsm_session_clone(hsm_session_t *session)
                                     NULL,
                                     NULL,
                                     &session_handle);
-    
+
     hsm_pkcs11_check_rv(rv, "Clone session");
     new_session = hsm_session_new(session->module, session_handle);
 
@@ -499,7 +499,7 @@ hsm_ctx_free(hsm_ctx_t *ctx)
 }
 
 /* close the session, and free the allocated data
- * 
+ *
  * if unload is non-zero, C_Logout() is called,
  * the dlopen()d module is closed and unloaded
  * (only call this on the last session for each
@@ -526,8 +526,8 @@ hsm_session_close(hsm_session_t *session, int unload)
 }
 
 /* ctx_close closes all session, and free
- * the structures. 
- * 
+ * the structures.
+ *
  * if unload is non-zero, the associated dynamic libraries are unloaded
  * (hence only use that on the last, global, ctx)
  */
@@ -626,16 +626,16 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session,
     CK_ULONG objectCount;
     CK_OBJECT_HANDLE object;
     CK_RV rv;
-    
+
     CK_ATTRIBUTE template[] = {
         { CKA_CLASS, &key_class, sizeof(key_class) },
         { CKA_ID, uuid, sizeof(uuid_t) },
     };
-    
+
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 2);
     hsm_pkcs11_check_rv(rv, "Find objects init");
-    
+
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
                                          &object,
                                          1,
@@ -663,7 +663,7 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session,
     hsm_key_t *key;
     CK_RV rv;
     uuid_t *uuid = NULL;
-    
+
     CK_ATTRIBUTE template[] = {
         {CKA_ID, uuid, sizeof(uuid_t)}
     };
@@ -683,7 +683,7 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session,
                           session,
                           CKO_PUBLIC_KEY,
                           (const uuid_t*)key->uuid);
-    
+
     return key;
 }
 
@@ -713,7 +713,7 @@ hsm_list_keys_session(const hsm_session_t *session, size_t *count)
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 1);
     hsm_pkcs11_check_rv(rv, "Find objects init");
-    
+
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
                                              object,
                                              max_object_count,
@@ -861,7 +861,7 @@ hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
             return NULL;
         }
         data[0] = 0;
-        ldns_write_uint16(&data[1], (uint16_t) public_exponent_len); 
+        ldns_write_uint16(&data[1], (uint16_t) public_exponent_len);
         memcpy(&data[3], public_exponent, public_exponent_len);
         memcpy(&data[3 + public_exponent_len], modulus, modulus_len);
     } else {
@@ -927,12 +927,12 @@ hsm_sign_buffer(const hsm_ctx_t *ctx,
 
     CK_BYTE *data = NULL;
     CK_ULONG data_len = 0;
-    
+
     hsm_session_t *session;
 
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
-    
+
     /* some HSMs don't really handle CKM_SHA1_RSA_PKCS well, so
      * we'll do the hashing manually */
     /* When adding algorithms, remember there is another switch below */
@@ -1027,7 +1027,7 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
     orig_ttl = ldns_rr_ttl(ldns_rr_list_rr(rrset, 0));
 
     ldns_rr_set_ttl(rrsig, orig_ttl);
-    ldns_rr_set_owner(rrsig, 
+    ldns_rr_set_owner(rrsig,
               ldns_rdf_clone(
                    ldns_rr_owner(
                     ldns_rr_list_rr(rrset,
@@ -1037,16 +1037,16 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 
     /* set the orig_ttl */
     (void)ldns_rr_rrsig_set_origttl(
-           rrsig, 
+           rrsig,
            ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
                      orig_ttl));
     /* the signers name */
     (void)ldns_rr_rrsig_set_signame(
-               rrsig, 
+               rrsig,
                ldns_rdf_clone(sign_params->owner));
     /* label count - get it from the first rr in the rr_list */
     (void)ldns_rr_rrsig_set_labels(
-            rrsig, 
+            rrsig,
             ldns_native2rdf_int8(LDNS_RDF_TYPE_INT8,
                                  label_count));
     /* inception, expiration */
@@ -1055,7 +1055,7 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
         (void)ldns_rr_rrsig_set_inception(
                 rrsig,
                 ldns_native2rdf_int32(
-                    LDNS_RDF_TYPE_TIME, 
+                    LDNS_RDF_TYPE_TIME,
                     sign_params->inception));
     } else {
         (void)ldns_rr_rrsig_set_inception(
@@ -1066,25 +1066,25 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
         (void)ldns_rr_rrsig_set_expiration(
                 rrsig,
                 ldns_native2rdf_int32(
-                    LDNS_RDF_TYPE_TIME, 
+                    LDNS_RDF_TYPE_TIME,
                     sign_params->expiration));
     } else {
         (void)ldns_rr_rrsig_set_expiration(
                  rrsig,
                 ldns_native2rdf_int32(
-                    LDNS_RDF_TYPE_TIME, 
+                    LDNS_RDF_TYPE_TIME,
                     now + LDNS_DEFAULT_EXP_TIME));
     }
 
     (void)ldns_rr_rrsig_set_keytag(
            rrsig,
-           ldns_native2rdf_int16(LDNS_RDF_TYPE_INT16, 
+           ldns_native2rdf_int16(LDNS_RDF_TYPE_INT16,
                                  sign_params->keytag));
 
     (void)ldns_rr_rrsig_set_algorithm(
             rrsig,
             ldns_native2rdf_int8(
-                LDNS_RDF_TYPE_ALG, 
+                LDNS_RDF_TYPE_ALG,
                 sign_params->algorithm));
 
     (void)ldns_rr_rrsig_set_typecovered(
@@ -1093,7 +1093,7 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
                 LDNS_RDF_TYPE_TYPE,
                 ldns_rr_get_type(ldns_rr_list_rr(rrset,
                                                  0))));
-    
+
     return rrsig;
 }
 
@@ -1155,7 +1155,7 @@ hsm_open(const char *config,
         _hsm_ctx = NULL;
         return -1;
     }
-    
+
     if (xpath_obj->nodesetval) {
         fprintf(stderr, "%u nodes\n", xpath_obj->nodesetval->nodeNr);
         for (i = 0; i < xpath_obj->nodesetval->nodeNr; i++) {
@@ -1198,7 +1198,7 @@ hsm_open(const char *config,
                             tries++;
                         }
                     } else {
-                        /* no pin, no callback, ignore 
+                        /* no pin, no callback, ignore
                          * module and token */
                         result = HSM_OK;
                     }
@@ -1234,9 +1234,9 @@ hsm_prompt_pin(const char *repository, void *data)
     (void) data;
     prompt = malloc(64);
     snprintf(prompt, 64, "Enter PIN for token %s:", repository);
-#ifdef HAVE_GETPASSPHRASE 
-    r = getpassphrase("Enter Pin:"); 
-#else 
+#ifdef HAVE_GETPASSPHRASE
+    r = getpassphrase("Enter Pin:");
+#else
     r = getpass("Enter Pin:");
 #endif
     free(prompt);
@@ -1296,11 +1296,11 @@ hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
     size_t cur_key_count;
     hsm_key_t **session_keys;
     unsigned int i, j;
-    
+
     if (!ctx) {
         ctx = _hsm_ctx;
     }
-    
+
     for (i = 0; i < ctx->session_count; i++) {
         session_keys = hsm_list_keys_session(ctx->session[i],
                                              &cur_key_count);
@@ -1327,7 +1327,7 @@ hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
     if (!uuid) return NULL;
     for (i = 0; i < ctx->session_count; i++) {
         key = hsm_find_key_by_uuid_session(ctx->session[i], uuid);
-        if (key) return key; 
+        if (key) return key;
     }
     return NULL;
 }
@@ -1355,7 +1355,7 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
-    
+
     uuid = malloc(sizeof(uuid_t));
     uuid_generate(*uuid);
     /* check whether this key doesn't happen to exist already */
@@ -1412,10 +1412,10 @@ hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
     hsm_session_t *session;
     if (!ctx) ctx = _hsm_ctx;
     if (!key) return -1;
-    
+
     session = hsm_find_key_session(ctx, key);
     if (!session) return -2;
-    
+
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
                                                key->private_key);
     hsm_pkcs11_check_rv(rv, "Destroy private key");
@@ -1424,10 +1424,10 @@ hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
                                                key->public_key);
     hsm_pkcs11_check_rv(rv, "Destroy public key");
     key->public_key = 0;
-    
+
     free(key->uuid);
     key->uuid = NULL;
-    
+
     return 0;
 }
 
@@ -1473,7 +1473,7 @@ hsm_sign_rrset(const hsm_ctx_t *ctx,
 
     if (!key) return NULL;
     if (!sign_params) return NULL;
-    
+
     signature = hsm_create_empty_rrsig((ldns_rr_list *)rrset,
                                        sign_params);
 
@@ -1481,7 +1481,7 @@ hsm_sign_rrset(const hsm_ctx_t *ctx,
      * which we can create the sig and base64 encode that and
      * add that to the signature */
     sign_buf = ldns_buffer_new(LDNS_MAX_PACKETLEN);
-    
+
     if (ldns_rrsig2buffer_wire(sign_buf, signature)
         != LDNS_STATUS_OK) {
         ldns_buffer_free(sign_buf);
@@ -1567,7 +1567,7 @@ hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
     CK_MECHANISM mechanism;
     unsigned int i;
     hsm_session_t *session = NULL;
-    
+
     switch(algorithm) {
     case 1:
         mechanism.mechanism = CKM_SHA_1;
@@ -1591,7 +1591,7 @@ hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
 
     /* prepare the owner name according to the draft section bla */
     orig_owner_str = ldns_rdf2str(name);
-    
+
     hashed_owner_str_len = salt_length + ldns_rdf_size(name);
     hashed_owner_str = LDNS_XMALLOC(char, hashed_owner_str_len);
     memcpy(hashed_owner_str, ldns_rdf_data(name), ldns_rdf_size(name));
@@ -1660,7 +1660,7 @@ hsm_get_dnskey(const hsm_ctx_t *ctx,
     //CK_RV rv;
     ldns_rr *dnskey;
     hsm_session_t *session;
-    
+
     if (!sign_params) return NULL;
     if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_key_session(ctx, key);
@@ -1756,7 +1756,7 @@ int hsm_attach(char *repository,
 {
     hsm_session_t *session;
     int result;
-    
+
     result = hsm_session_init(&session,
                               repository,
                               token_label,

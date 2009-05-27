@@ -4,7 +4,7 @@
  * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2009 NLNet Labs.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -13,7 +13,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -166,7 +166,7 @@ void hsm_sign_params_free(hsm_sign_params_t *params);
 /*! List all known keys in all attached HSMs
 
 After the function has run, the value at count contains the number
-of keys found. 
+of keys found.
 
 The resulting key list can be freed with hsm_key_list_free()
 Alternatively, each individual key structure in the list could be
@@ -311,7 +311,7 @@ int hsm_random_buffer(const hsm_ctx_t *ctx,
 /*! Return unsigned 32-bit random number from any attached HSM
 \param context HSM context
 \return 32-bit random number, or 0 if no HSM with a random generator is
-               attached 
+               attached
 */
 uint32_t hsm_random32(const hsm_ctx_t *ctx);
 
@@ -319,7 +319,7 @@ uint32_t hsm_random32(const hsm_ctx_t *ctx);
 /*! Return unsigned 64-bit random number from any attached HSM
 \param context HSM context
 \return 64-bit random number, or 0 if no HSM with a random generator is
-               attached 
+               attached
 */
 uint64_t hsm_random64(const hsm_ctx_t *ctx);
 
