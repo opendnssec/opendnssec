@@ -14,16 +14,20 @@ noinst_PROGRAMS = hsmtest
 hsmtest_LDADD = ../src/libhsm.la
 hsmtest_LDFLAGS = -no-install
 
+SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
+
 
 token.db:
-	env SOFTHSM_CONF=$(srcdir)/softhsm.conf \
-	softhsm --slot 0 --init-token --label softHSM --so-pin 12345678 --pin 123456
+	env $(SOFTHSM_ENV) \
+	softhsm --slot 0 --init-token --label softHSM \
+		--so-pin 12345678 --pin 123456
 
 regress:
 	@echo use target 'regress-sca6000' or 'regress-softhsm'
 
 regress-sca6000:
-	env HSMTEST_CONF=conf-sca6000.xml ./hsmtest -gsdr
+	./hsmtest -f conf-sca6000.xml -gsdr
 
 regress-softhsm: token.db
-	env HSMTEST_CONF=conf-softhsm.xml SOFTHSM_CONF=$(srcdir)/softhsm.conf ./hsmtest -gsdr
+	env $(SOFTHSM_ENV) \
+	./hsmtest -f conf-softhsm.xml -gsdr

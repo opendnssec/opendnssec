@@ -32,6 +32,15 @@
 #include <unistd.h>
 #include <libhsm.h>
 
+extern char *optarg;
+char *progname = NULL;
+
+void
+usage ()
+{
+	fprintf(stderr, "usage: %s [-f config] [-gsd]\n", progname);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -56,14 +65,24 @@ main (int argc, char *argv[])
 	uint32_t r32;
 	uint64_t r64;
 
+	char *config = NULL;
 	const char *repository = "regress";
+
+	progname = argv[0];
 
 	int ch;
 
-	while ((ch = getopt(argc, argv, "gsdr")) != -1) {
+	while ((ch = getopt(argc, argv, "hgsdrf:")) != -1) {
 		switch (ch) {
+		case 'f':
+			config = strdup(optarg);
+			break;
 		case 'g':
 			do_generate = 1;
+			break;
+		case 'h':
+			usage();
+			exit(0);
 			break;
 		case 's':
 			do_sign = 1;
@@ -75,16 +94,21 @@ main (int argc, char *argv[])
 			do_random = 1;
 			break;
 		default:
-			fprintf(stderr, "usage: %s [-gsd]\n", argv[0]);
+			usage();
 			exit(1);
 		}
+	}
+
+	if (!config) {
+		usage();
+		exit(1);
 	}
 
 	/*
 	 * Open HSM library
 	 */
 	fprintf(stdout, "Starting HSM lib test\n");
-	result = hsm_open(getenv("HSMTEST_CONF"), hsm_prompt_pin, NULL);
+	result = hsm_open(config, hsm_prompt_pin, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);
 
 	/*
