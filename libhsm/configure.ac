@@ -68,8 +68,7 @@ AC_ARG_WITH(libxml2,
 
 # check for ldns in --with-ldns
 AC_ARG_WITH(ldns, 
-	AC_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])
-	,
+	AC_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use]),
 	[
 		specialldnsdir="$withval"
 		CFLAGS="$CFLAGS -I$withval/include"
@@ -108,8 +107,7 @@ AC_CHECK_FUNC(dlopen,
 ])
 
 AC_ARG_WITH(softhsm, 
-	AC_HELP_STRING([--with-softhsm=PATH],[specify path of SoftHSM library to use])
-	,
+	AC_HELP_STRING([--with-softhsm=PATH],[specify path of SoftHSM library to use for regression testing]),
 	[
 		softhsm_module="$withval"
 	],
@@ -119,8 +117,7 @@ AC_ARG_WITH(softhsm,
 )
 
 AC_ARG_WITH(sca6000, 
-	AC_HELP_STRING([--with-sca6000=PATH],[specify path of SCA6000 library to use])
-	,
+	AC_HELP_STRING([--with-sca6000=PATH],[specify path of SCA6000 library to use for regression testing]),
 	[
 		sca6000_module="$withval"
 	],
