@@ -27,6 +27,8 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -43,7 +45,6 @@
 #include <libxml/relaxng.h>
 
 #include "libhsm.h"
-#include <config.h>
 
 #include <cryptoki.h>
 #include <pkcs11.h>

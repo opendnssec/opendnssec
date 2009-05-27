@@ -30,8 +30,6 @@
 #ifndef HSM_H
 #define HSM_H 1
 
-#include "config.h"
-
 #include <ldns/ldns.h>
 #include <uuid/uuid.h>
 

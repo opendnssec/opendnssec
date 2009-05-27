@@ -4,6 +4,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = token.db
 
 AM_CPPFLAGS = 	-I$(srcdir) \
+		-I$(srcdir)/.. \
 		-I$(srcdir)/../src
 AM_CFLAGS =	-std=c99
 
