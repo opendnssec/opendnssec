@@ -5,7 +5,7 @@
 <Configuration>
 	<RepositoryList>
 		<Repository name="regress">
-			<Module>/usr/local/lib/libsofthsm.so</Module>
+			<Module>/home/jelte/repos/opendnssec/softHSM/src/lib/.libs/libsofthsm.so</Module>
 			<TokenLabel>softHSM</TokenLabel>
 			<PIN>123456</PIN>
 		</Repository>

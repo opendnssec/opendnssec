@@ -47,7 +47,8 @@
 /*! Data type to describe an HSM */
 typedef struct {
 	unsigned int id;           /*!< HSM numerical identifier */
-	char *name;          /*!< name of module */
+	char *name;          /*!< name of repository */
+	char *token_label;   /*!< label of the token */
 	char *path;          /*!< path to PKCS#11 library */
 	void *handle;        /*!< handle from dlopen()*/
 	void *sym;  /*!< Function list from dlsym */
@@ -107,18 +108,18 @@ function that takes a context can be passed NULL, in which case the
 global context will be used) and log into each HSM.
 */
 int hsm_open(const char *config,
-             char *(pin_callback)(const char *token_name, void *),
+             char *(pin_callback)(const char *repository, void *),
              void *data);
 
 
 /*! Function that queries for a PIN, can be used as callback
     for hsm_open()
 
-\param token_name The name will be included in the prompt
+\param repository The repository name will be included in the prompt
 \param data This value is unused
 \return The string the user enters
 */
-char *hsm_prompt_pin(const char *token_name, void *data);
+char *hsm_prompt_pin(const char *repository, void *data);
 
 
 /*! Close HSM library
@@ -332,12 +333,14 @@ uint64_t hsm_random64(const hsm_ctx_t *ctx);
    optional credentials (may be NULL, but then undefined)
    This function changes the global state, and is not threadsafe
 
-\param token_name the name of the token to attach
+\param reposiroty the name of the repository
+\param token_label the name of the token to attach
 \param path the path of the shared PKCS#11 library
 \param pin the PIN to log into the token
 \return 0 on success, -1 on error
 */
-int hsm_attach(char *token_name,
+int hsm_attach(char *repository,
+               char *token_name,
                char *path,
                char *pin);
 
@@ -346,14 +349,14 @@ int hsm_attach(char *token_name,
 \param token_name the token to detach
 \return 0 on success, -1 on error
 */
-int hsm_detach(const char *token_name);
+int hsm_detach(const char *repository);
 
 /*! Check whether a named token has been initialized in this context
 \param ctx HSM context
 \param token_name The name of the token
 \return 1 if the token is attached, 0 if not found
 */
-int hsm_token_attached(const hsm_ctx_t *ctx, const char *token_name);
+int hsm_token_attached(const hsm_ctx_t *ctx, const char *repository);
 
 /* a few debug functions for applications */
 void hsm_print_session(hsm_session_t *session);

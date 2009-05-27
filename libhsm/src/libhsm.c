@@ -352,15 +352,16 @@ ldns_hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
 
 /* internal functions */
 static hsm_module_t *
-hsm_module_new(const char *name, const char *path)
+hsm_module_new(const char *repository,
+               const char *token_label,
+               const char *path)
 {
-    size_t strl;
-    if (!name || !path) return NULL;
+    if (!repository || !path) return NULL;
     hsm_module_t *module;
     module = malloc(sizeof(hsm_module_t));
-    module->id = 0; /*TODO what should this value be?*/
-    strl = strlen(name) + 1;
-    module->name = strdup(name);
+    module->id = 0; /*TODO i think we can remove this*/
+    module->name = strdup(repository);
+    module->token_label = strdup(token_label);
     module->path = strdup(path);
     module->handle = NULL;
     module->sym = NULL;
@@ -372,6 +373,7 @@ hsm_module_free(hsm_module_t *module)
 {
     if (module) {
         if (module->name) free(module->name);
+        if (module->token_label) free(module->token_label);
         if (module->path) free(module->path);
         
         free(module);
@@ -399,21 +401,21 @@ hsm_session_free(hsm_session_t *session) {
  * a module_t struct for it
  */
 static int
-hsm_session_init(hsm_session_t **session, char *module_name,
-                 char *module_path, char *pin)
+hsm_session_init(hsm_session_t **session, char *repository,
+                 char *token_label, char *module_path, char *pin)
 {
     CK_RV rv;
     hsm_module_t *module;
     CK_SLOT_ID slot_id;
     CK_SESSION_HANDLE session_handle;
 
-    module = hsm_module_new(module_name, module_path);
+    module = hsm_module_new(repository, token_label, module_path);
     if (!module) return HSM_ERROR;
     rv = hsm_pkcs11_load_functions(module);
     hsm_pkcs11_check_rv(rv, "Load functions");
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize(NULL);
     hsm_pkcs11_check_rv(rv, "Initialization");
-    slot_id = ldns_hsm_get_slot_id(module->sym, module_name);
+    slot_id = ldns_hsm_get_slot_id(module->sym, token_label);
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_OpenSession(slot_id,
                                CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                NULL,
@@ -458,7 +460,7 @@ hsm_session_clone(hsm_session_t *session)
     hsm_session_t *new_session;
     
     slot_id = ldns_hsm_get_slot_id(session->module->sym,
-                                   session->module->name);
+                                   session->module->token_label);
     rv = ((CK_FUNCTION_LIST_PTR) session->module->sym)->C_OpenSession(slot_id,
                                     CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                     NULL,
@@ -758,15 +760,15 @@ hsm_find_key_by_uuid_session(const hsm_session_t *session,
 }
 
 /**
- * returns the first session found if token_name is null, otherwise
- * finds the session belonging to the first token with the given name
+ * returns the first session found if repository is null, otherwise
+ * finds the session belonging to the repository with the given name
  * returns NULL if not found
  */
 static hsm_session_t *
-hsm_find_token_session(const hsm_ctx_t *ctx, const char *token_name)
+hsm_find_repository_session(const hsm_ctx_t *ctx, const char *repository)
 {
     unsigned int i;
-    if (!token_name) {
+    if (!repository) {
         for (i = 0; i < ctx->session_count; i++) {
             if (ctx->session[i]) {
                 return ctx->session[i];
@@ -775,7 +777,7 @@ hsm_find_token_session(const hsm_ctx_t *ctx, const char *token_name)
     } else {
         for (i = 0; i < ctx->session_count; i++) {
             if (ctx->session[i] &&
-                strcmp(token_name, ctx->session[i]->module->name) == 0)
+                strcmp(repository, ctx->session[i]->module->name) == 0)
             {
                 return ctx->session[i];
             }
@@ -1102,7 +1104,8 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 
 int
 hsm_open(const char *config,
-         char *(pin_callback)(const char *token_name, void *), void *data)
+         char *(pin_callback)(const char *repository, void *),
+         void *data)
 {
     xmlDocPtr doc;
     xmlXPathContextPtr xpath_ctx;
@@ -1111,7 +1114,8 @@ hsm_open(const char *config,
     xmlChar *xexpr;
 
     int i;
-    char *module_name;
+    char *repository;
+    char *token_label;
     char *module_path;
     char *module_pin;
     int result;
@@ -1156,22 +1160,25 @@ hsm_open(const char *config,
         fprintf(stderr, "%u nodes\n", xpath_obj->nodesetval->nodeNr);
         for (i = 0; i < xpath_obj->nodesetval->nodeNr; i++) {
             /*module = hsm_module_new();*/
-            module_name = NULL;
+            token_label = NULL;
             module_path = NULL;
             module_pin = NULL;
             curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            repository = (char *) xmlGetProp(xpath_obj->nodesetval->nodeTab[i],
+                                             (const xmlChar *)"name");
             while (curNode) {
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
-                    module_name = (char *) xmlNodeGetContent(curNode);
+                    token_label = (char *) xmlNodeGetContent(curNode);
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
                     module_path = (char *) xmlNodeGetContent(curNode);
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
                     module_pin = (char *) xmlNodeGetContent(curNode);
                 curNode = curNode->next;
             }
-            if (module_name && module_path) {
+            if (repository && token_label && module_path) {
                 if (module_pin) {
-                    result = hsm_attach(module_name,
+                    result = hsm_attach(repository,
+                                        token_label,
                                         module_path,
                                         module_pin);
                     free(module_pin);
@@ -1181,9 +1188,10 @@ hsm_open(const char *config,
                         tries = 0;
                         while (result == HSM_PIN_INCORRECT &&
                                tries < 3) {
-                            module_pin = pin_callback(module_name,
+                            module_pin = pin_callback(repository,
                                                       data);
-                            result = hsm_attach(module_name,
+                            result = hsm_attach(repository,
+                                                token_label,
                                                 module_path,
                                                 module_pin);
                             memset(module_pin, 0, strlen(module_pin));
@@ -1198,14 +1206,16 @@ hsm_open(const char *config,
                 if (result == HSM_OK) {
                     /* TODO: syslog error/succes? */
                     fprintf(stdout,
-                            "module '%s' added\n",
-                            module_name);
+                            "repository '%s' added\n",
+                            repository);
                 } else {
                     fprintf(stderr, "error adding module\n");
                 }
-                free(module_name);
+                free(repository);
+                free(token_label);
                 free(module_path);
             }
+else { printf("missing data?\n"); exit(0); }
         }
     }
 
@@ -1217,13 +1227,13 @@ hsm_open(const char *config,
 }
 
 char *
-hsm_prompt_pin(const char *token_name, void *data)
+hsm_prompt_pin(const char *repository, void *data)
 {
     char *prompt;
     char *r;
     (void) data;
     prompt = malloc(64);
-    snprintf(prompt, 64, "Enter PIN for token %s:", token_name);
+    snprintf(prompt, 64, "Enter PIN for token %s:", repository);
 #ifdef HAVE_GETPASSPHRASE 
     r = getpassphrase("Enter Pin:"); 
 #else 
@@ -1343,7 +1353,7 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     CK_BBOOL cfalse = CK_FALSE;
 
     if (!ctx) ctx = _hsm_ctx;
-    session = hsm_find_token_session(ctx, repository);
+    session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
     
     uuid = malloc(sizeof(uuid_t));
@@ -1739,7 +1749,8 @@ hsm_random64(const hsm_ctx_t *ctx)
  * Additional functions
  */
 
-int hsm_attach(char *token_name,
+int hsm_attach(char *repository,
+               char *token_label,
                char *path,
                char *pin)
 {
@@ -1747,9 +1758,10 @@ int hsm_attach(char *token_name,
     int result;
     
     result = hsm_session_init(&session,
-                               token_name,
-                               path,
-                               pin);
+                              repository,
+                              token_label,
+                              path,
+                              pin);
     if (result == HSM_OK) {
         return hsm_ctx_add_session(_hsm_ctx, session);
     } else {
@@ -1758,13 +1770,13 @@ int hsm_attach(char *token_name,
 }
 
 /*! Detach a named HSM */
-int hsm_detach(const char *token_name)
+int hsm_detach(const char *repository)
 {
     unsigned int i;
     for (i = 0; i < _hsm_ctx->session_count; i++) {
         if (_hsm_ctx->session[i] &&
             strcmp(_hsm_ctx->session[i]->module->name,
-                   token_name) == 0) {
+                   repository) == 0) {
             hsm_session_close(_hsm_ctx->session[i], 1);
             _hsm_ctx->session[i] = NULL;
             /* if this was the last session in the list, decrease the
@@ -1782,13 +1794,13 @@ int hsm_detach(const char *token_name)
 }
 
 int
-hsm_token_attached(const hsm_ctx_t *ctx, const char *token_name)
+hsm_token_attached(const hsm_ctx_t *ctx, const char *repository)
 {
     unsigned int i;
     if (!ctx) ctx = _hsm_ctx;
     for (i = 0; i < ctx->session_count; i++) {
         if (ctx->session[i] &&
-            strcmp(ctx->session[i]->module->name, token_name) == 0) {
+            strcmp(ctx->session[i]->module->name, repository) == 0) {
                 return 1;
         }
     }
@@ -1799,6 +1811,8 @@ void
 hsm_print_session(hsm_session_t *session)
 {
     printf("\t\tmodule at %p (sym %p)\n", (void *) session->module, (void *) session->module->sym);
+    printf("\t\trepository name: %s\n", session->module->name);
+    printf("\t\ttoken label: %s\n", session->module->token_label);
     printf("\t\tsess handle: %u\n", (unsigned int) session->session);
 }
 
