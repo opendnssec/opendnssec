@@ -259,7 +259,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
 
   // Begin the transaction
   int retVal = 0;
-  while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY);
+  while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {}
   if(retVal != SQLITE_OK) {
     return 0;
   }
@@ -350,7 +350,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
     }
   }
 
-  while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY);
+  while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {}
 
   return objectID;
 }
@@ -364,7 +364,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
 
   // Begin the transaction
   int retVal = 0;
-  while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY);
+  while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {}
   if(retVal != SQLITE_OK) {
     return 0;
   }
@@ -506,7 +506,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
     }
   }
 
-  while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY);
+  while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {}
 
   return objectID;
 }
@@ -596,7 +596,7 @@ void SoftDatabase::destroySessObj() {
 
 void SoftDatabase::deleteObject(CK_OBJECT_HANDLE objRef) {
   sqlite3_bind_int(delete_object_sql, 1, objRef);
-  while(sqlite3_step(delete_object_sql) == SQLITE_BUSY);
+  while(sqlite3_step(delete_object_sql) == SQLITE_BUSY) {}
   sqlite3_reset(delete_object_sql);
 }
 

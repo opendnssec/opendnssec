@@ -88,7 +88,7 @@ CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinL
                      CKR_HOST_MEMORY);
 
   // Check if the token is already initialized and if the SO PIN matches
-  if((currentSlot->tokenFlags & CKF_TOKEN_INITIALIZED) == 1) {
+  if((currentSlot->tokenFlags & CKF_TOKEN_INITIALIZED) != 0) {
     if(strcmp(soPIN, currentSlot->hashedSOPIN) != 0) {
       free(soPIN);
       DEBUG_MSG("C_InitToken", "The new SO PIN does not match the existing one");
