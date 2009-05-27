@@ -157,10 +157,12 @@ class Zone:
         for token in self.engine_config.tokens:
             mpath = token["module_path"]
             mpin = token["pin"]
-            tname = token["name"]
-            syslog.syslog(syslog.LOG_DEBUG, "Try token " + tname)
+            tlabel = token["token_label"]
+            repository = token["repository"]
+            syslog.syslog(syslog.LOG_DEBUG, "Try repository " + repository)
             cmd = [ self.get_tool_filename("create_dnskey_pkcs11"),
-                    "-n", tname,
+                    "-r", repository,
+                    "-n", tlabel,
                     "-m", mpath,
                     "-p", mpin,
                     "-o", self.zone_name,
@@ -183,14 +185,15 @@ class Zone:
             syslog.syslog(syslog.LOG_DEBUG,
                           "equality: " + str(status == 0))
             if status == 0:
-                key["token_name"] = tname
+                key["repository"] = repository
+                key["token_label"] = tlabel
                 key["pkcs11_module"] = mpath
                 key["pkcs11_pin"] = mpin
                 key["tool_key_id"] = key["locator"]
                 key["dnskey"] = str(output)
                 syslog.syslog(syslog.LOG_INFO,
                               "Found key " + key["locator"] +\
-                              " in token " + tname)
+                              " in repository " + repository)
                 return True
         return False
 
@@ -427,6 +430,8 @@ class Zone:
             syslog.syslog(syslog.LOG_DEBUG,
                           "use signature key: " + k["locator"])
             if not k["dnskey"]:
+                syslog.syslog(syslog.LOG_DEBUG,
+                          "no dnskey yet")
                 try:
                     syslog.syslog(syslog.LOG_DEBUG,
                                   "No information yet for key " +\
@@ -436,11 +441,13 @@ class Zone:
                     syslog.syslog(syslog.LOG_ERR,
                                   "Error: Unable to find key " +\
                                   k["locator"])
-            if k["token_name"]:
-                scmd = [k["token_name"],
+            if k["repository"]:
+                scmd = [k["repository"],
+                        k["token_label"],
                         k["pkcs11_module"],
                         k["pkcs11_pin"]
                        ]
+                syslog.syslog(syslog.LOG_DEBUG, "adding module");
                 Util.write_p(sign_p, " ".join(scmd), ":add_module ")
                 scmd = [k["tool_key_id"],
                         str(k["algorithm"]),

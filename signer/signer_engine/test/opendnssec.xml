@@ -4,8 +4,8 @@
 
 <Configuration>
 	<RepositoryList>
-		<Repository>
-			<Name>test_token</Name>
+		<Repository name="test">
+			<TokenLabel>test_token</TokenLabel>
 			<Module>../../../softHSM/src/lib/.libs/libsofthsm.so</Module>
 			<PIN>1111</PIN>
 		</Repository>

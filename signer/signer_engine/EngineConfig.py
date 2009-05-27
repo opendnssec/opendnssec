@@ -80,7 +80,8 @@ class EngineConfiguration:
         xmlbs = Evaluate("Configuration/RepositoryList/Repository", xml_blob)
         for xmlb in xmlbs:
             token = {}
-            token["name"] = Util.get_xml_data("Name", xmlb)
+            token["repository"] = xmlb.attributes["name"].value
+            token["token_label"] = Util.get_xml_data("TokenLabel", xmlb)
             token["module_path"] = Util.get_xml_data("Module", xmlb)
             token["pin"] = Util.get_xml_data("PIN", xmlb, True)
             if not token["pin"]:

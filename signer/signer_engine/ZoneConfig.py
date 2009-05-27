@@ -199,7 +199,8 @@ class ZoneConfig:
 
             # calculate and cache these values later
             key["dnskey"] = None
-            key["token_name"] = None
+            key["repository"] = None
+            key["token_label"] = None
             key["pkcs11_module"] = None
             key["pkcs11_pin"] = None
             key["tool_key_id"] = None
