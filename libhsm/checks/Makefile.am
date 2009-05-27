@@ -24,7 +24,7 @@ regress:
 	@echo use target 'regress-sca6000' or 'regress-softhsm'
 
 regress-sca6000:
-	env HSMTEST_CONF=conf-sca6000.xml ./hsmtest
+	env HSMTEST_CONF=conf-sca6000.xml ./hsmtest -gsdr
 
 regress-softhsm:
-	env HSMTEST_CONF=conf-softhsm.xml SOFTHSM_CONF=$(srcdir)/softhsm.conf ./hsmtest
+	env HSMTEST_CONF=conf-softhsm.xml SOFTHSM_CONF=$(srcdir)/softhsm.conf ./hsmtest -gsdr
