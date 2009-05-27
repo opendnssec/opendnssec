@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id$ -->
+<!-- $Id: conf-softhsm.xml 806 2009-05-27 10:05:41Z jelte $ -->
 
 <Configuration>
 	<RepositoryList>
 		<Repository name="regress">
-			<Module>/usr/local/lib/libsofthsm.so</Module>
+			<Module>@softhsm_module@</Module>
 			<TokenLabel>softHSM</TokenLabel>
 			<PIN>123456</PIN>
 		</Repository>

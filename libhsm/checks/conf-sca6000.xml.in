@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id$ -->
+<!-- $Id: conf-sca6000.xml 803 2009-05-26 14:57:54Z jakob $ -->
 
 <Configuration>
 	<RepositoryList>
 		<Repository name="regress">
-			<Module>/usr/lib/libpkcs11.so</Module>
+			<Module>@sca6000_module@</Module>
 			<TokenLabel>Sun Metaslot</TokenLabel>
 			<PIN>test:1234</PIN>
 			<Capacity>1000</Capacity>

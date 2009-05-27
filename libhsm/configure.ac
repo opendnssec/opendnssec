@@ -68,7 +68,7 @@ AC_ARG_WITH(libxml2,
 
 # check for ldns in --with-ldns
 AC_ARG_WITH(ldns, 
-	AC_HELP_STRING([--with-ldns=PATH        specify prefix of path of ldns library to use])
+	AC_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])
 	,
 	[
 		specialldnsdir="$withval"
@@ -107,6 +107,28 @@ AC_CHECK_FUNC(dlopen,
 	])
 ])
 
+AC_ARG_WITH(softhsm, 
+	AC_HELP_STRING([--with-softhsm=PATH],[specify path of SoftHSM library to use])
+	,
+	[
+		softhsm_module="$withval"
+	],
+	[
+		softhsm_module=$prefix/lib/libsofthsm.so
+	]
+)
+
+AC_ARG_WITH(sca6000, 
+	AC_HELP_STRING([--with-sca6000=PATH],[specify path of SCA6000 library to use])
+	,
+	[
+		sca6000_module="$withval"
+	],
+	[
+		sca6000_module=/usr/lib/libpkcs11.so
+	]
+)
+
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes";
 	CFLAGS="${CFLAGS} -pedantic"
@@ -114,6 +136,9 @@ fi
 if test "${enable_strict}" = "yes"; then
 	CFLAGS="${CFLAGS} -Wall -Wextra"
 fi
+
+AC_SUBST(softhsm_module)
+AC_SUBST(sca6000_module)
 
 AC_CONFIG_HEADERS([src/config.h])
 
@@ -123,4 +148,7 @@ src/Makefile
 checks/Makefile
 ])
 
-AC_OUTPUT
+AC_OUTPUT([
+checks/conf-softhsm.xml
+checks/conf-sca6000.xml
+])
