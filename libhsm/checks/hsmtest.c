@@ -90,15 +90,11 @@ main (int argc, char *argv[])
 	/*
 	 * Create HSM context
 	 */
-#if 0
 	ctx = hsm_create_context();
 	printf("global: ");
 	hsm_print_ctx(NULL);
 	printf("my: ");
 	hsm_print_ctx(ctx);
-#else
-	ctx = NULL;
-#endif
 
 	/*
 	 * Generate a new key OR find any key with an UUID
