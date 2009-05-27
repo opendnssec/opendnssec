@@ -43,7 +43,7 @@ main (int argc, char *argv[])
 	size_t key_count = 0;
 	size_t i;
 	ldns_rr_list *rrset;
-	ldns_rr *rr, *sig;
+	ldns_rr *rr, *sig, *dnskey_rr;
 	ldns_status status;
 	hsm_sign_params_t *sign_params;
 
@@ -155,7 +155,10 @@ main (int argc, char *argv[])
 
 		sign_params = hsm_sign_params_new();
 		sign_params->algorithm = LDNS_RSASHA1;
-		sign_params->owner = ldns_rdf_clone(ldns_rr_owner(rr));
+		sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "opendnssec.se.");
+		dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
+		sign_params->keytag = ldns_calc_keytag(dnskey_rr);
+		ldns_rr_free(dnskey_rr);
 		ldns_rr_list_print(stdout, rrset);
 		sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
 		ldns_rr_print(stdout, sig);
