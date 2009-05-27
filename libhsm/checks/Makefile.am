@@ -10,7 +10,6 @@ AM_CFLAGS =	-std=c99
 EXTRA_DIST =	$(srcdir)/*.xml $(srcdir)/softhsm.conf
 
 noinst_PROGRAMS = hsmtest
-noinst_DATA = token.db
  
 hsmtest_LDADD = ../src/libhsm.la
 hsmtest_LDFLAGS = -no-install
@@ -26,5 +25,5 @@ regress:
 regress-sca6000:
 	env HSMTEST_CONF=conf-sca6000.xml ./hsmtest -gsdr
 
-regress-softhsm:
+regress-softhsm: token.db
 	env HSMTEST_CONF=conf-softhsm.xml SOFTHSM_CONF=$(srcdir)/softhsm.conf ./hsmtest -gsdr
