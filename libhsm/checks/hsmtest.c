@@ -168,6 +168,7 @@ main (int argc, char *argv[])
 	 */
 	if (do_sign) {
 		rrset = ldns_rr_list_new();
+
 		status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se. IN A 123.123.123.123", 0, NULL, NULL);
 		if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
 		status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se. IN A 124.124.124.124", 0, NULL, NULL);
@@ -178,14 +179,18 @@ main (int argc, char *argv[])
 		sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "opendnssec.se.");
 		dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
 		sign_params->keytag = ldns_calc_keytag(dnskey_rr);
-		ldns_rr_free(dnskey_rr);
-		ldns_rr_list_print(stdout, rrset);
+
 		sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
+
+		ldns_rr_list_print(stdout, rrset);
 		ldns_rr_print(stdout, sig);
+		ldns_rr_print(stdout, dnskey_rr);
+
 		/* cleanup */
 		ldns_rr_list_deep_free(rrset);
 		ldns_rr_free(sig);
 		hsm_sign_params_free(sign_params);
+		ldns_rr_free(dnskey_rr);
 	}
 
 	/*
