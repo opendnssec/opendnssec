@@ -79,7 +79,7 @@ INSTALLING
       # Comments can be added
       4:/home/user/token.database
 
-5. Initialize your tokens
+5. Initialize your tokens. Use either the softhsm tool or the PKCS#11 interface.
 
   softhsm --init-token --slot 0 --label "My token 1"
 
