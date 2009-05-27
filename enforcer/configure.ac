@@ -93,16 +93,16 @@ AC_SUBST(XML_INCLUDES)
 AC_SUBST(XML_LIBS)
 
 keygend_conf_file=$sysconfdir/opendnssec/conf.xml
-AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file`"], [Path to the OpenDNSSEC configuration file])
+AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
 keygend_conf_schema=$sysconfdir/opendnssec/conf.rng
-AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema`"], [Path to the OpenDNSSEC configuration schema file])
+AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema  | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration schema file])
 com_pid_file=$localstatedir/run/opendnssec/communicated.pid
-AC_DEFINE_UNQUOTED(COM_PID, ["`eval echo $com_pid_file`"], [Path to the OpenDNSSEC communicated pid file])
+AC_DEFINE_UNQUOTED(COM_PID, ["`eval echo $com_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC communicated pid file])
 keygen_pid_file=$localstatedir/run/opendnssec/keygend.pid
-AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file`"], [Path to the OpenDNSSEC keygend pid file])
+AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC keygend pid file])
 
 signer_conf_dir=$localstatedir/opendnssec/config
-AC_DEFINE_UNQUOTED(SIGNER_CONF_DIR, ["`eval echo $signer_conf_dir`"], [Path to the OpenDNSSEC signer configuration directory])
+AC_DEFINE_UNQUOTED(SIGNER_CONF_DIR, ["`eval echo $signer_conf_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer configuration directory])
 
 CPPFLAGS="${CPPFLAGS} ${XML_INCLUDES}"
 
