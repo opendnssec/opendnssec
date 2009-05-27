@@ -36,7 +36,7 @@ int
 main (int argc, char *argv[])
 {
 	int result;
-	//hsm_ctx_t *ctx;
+	hsm_ctx_t *ctx;
 	hsm_key_t **keys;
 	hsm_key_t *key = NULL;
 	uuid_t *uuid;
@@ -85,67 +85,86 @@ main (int argc, char *argv[])
 		}
 	}
 
+	/*
+	 * Open HSM library
+	 */
 	fprintf(stdout, "Starting HSM lib test\n");
 	result = hsm_open(getenv("HSMTEST_CONF"), hsm_prompt_pin, NULL);
 	fprintf(stdout, "hsm_open result: %d\n", result);
 
-	//ctx = hsm_create_context();
-	/*printf("global: ");
+	/*
+	 * Create HSM context
+	 */
+#if 0
+	ctx = hsm_create_context();
+	printf("global: ");
 	hsm_print_ctx(NULL);
 	printf("my: ");
 	hsm_print_ctx(ctx);
-	*/
+#else
+	ctx = NULL;
+#endif
 
+	/*
+	 * Generate a new key OR find any key with an UUID
+	 */
 	if (do_generate) {
-		/* generate new key */
-		key = hsm_generate_rsa_key(NULL, repository, 1024);
+		key = hsm_generate_rsa_key(ctx, repository, 1024);
+
 		if (key) {
 			printf("Created key:\n");
 			hsm_print_key(key);
 		} else {
 			printf("Error creating key, bad token name?\n");
+			exit(1);
 		}
 	} else {
-		/* use any key found */
-		keys = hsm_list_keys(NULL, &key_count);
+		keys = hsm_list_keys(ctx, &key_count);
 		printf("I have found %u keys\n", (unsigned int) key_count);
 
 		/* let's just use the very first key we find and throw away the rest */
 		for (i = 0; i < key_count; i++) {
 			if (do_show) {
+				printf("Found key:\n");
 				hsm_print_key(keys[i]);
 			}
 			if ((do_sign || do_delete) && !key) {
-				/* only use keys with uuid */
-				uuid = hsm_get_uuid(NULL, keys[i]);
-				if (uuid) {
-					key = hsm_find_key_by_uuid(NULL, uuid);
+				uuid = hsm_get_uuid(ctx, keys[i]);
+				if (uuid) {  /* only use keys with uuid */
+					printf("Key with UUID found!\n");
+					key = hsm_find_key_by_uuid(ctx, uuid);
+				} else {
+					printf("Key without UUID skipped...\n");
 				}
 			}
 			hsm_key_free(keys[i]);
 		}
 		free(keys);
+
+		if (key) {
+			printf("Using key:\n");
+			hsm_print_key(key);
+		} else {
+			printf("Failed to find useful key\n");
+			exit(1);
+		}
 	}
 
-	/* print "active" key */
-	if (key) {
-		hsm_print_key(key);
-		hsm_key_free(key);
-	}
-
-	/* do some signing with it */
+	/*
+	 * Do some signing
+	 */
 	if (do_sign) {
 		rrset = ldns_rr_list_new();
-		status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se.	IN	A	123.123.123.123", 0, NULL, NULL);
+		status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se. IN A 123.123.123.123", 0, NULL, NULL);
 		if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
-		status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se.	IN	A	124.124.124.124", 0, NULL, NULL);
+		status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se. IN A 124.124.124.124", 0, NULL, NULL);
 		if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
 
 		sign_params = hsm_sign_params_new();
 		sign_params->algorithm = LDNS_RSASHA1;
 		sign_params->owner = ldns_rdf_clone(ldns_rr_owner(rr));
 		ldns_rr_list_print(stdout, rrset);
-		sig = hsm_sign_rrset(NULL, rrset, key, sign_params);
+		sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
 		ldns_rr_print(stdout, sig);
 		/* cleanup */
 		ldns_rr_list_deep_free(rrset);
@@ -153,24 +172,37 @@ main (int argc, char *argv[])
 		hsm_sign_params_free(sign_params);
 	}
 
+	/*
+	 * Delete key
+	 */
 	if (do_delete) {
 		printf("Delete key:\n");
 		hsm_print_key(key);
 		//res = hsm_remove_key(ctx, key);
-		res = hsm_remove_key(NULL, key);
+		res = hsm_remove_key(ctx, key);
 		printf("Deleted key. Result: %d\n", res);
 	}
 
-	/* test random{32,64} functions */
+	/*
+	 * Test random{32,64} functions
+	 */
 	if (do_random) {
-		r32 = hsm_random32(NULL);
+		r32 = hsm_random32(ctx);
 		printf("random 32: %u\n", r32);
-		r64 = hsm_random64(NULL);
+		r64 = hsm_random64(ctx);
 		printf("random 64: %llu\n", r64);
 	}
 
-	//hsm_destroy_context(ctx);
+	/*
+	 * Destroy HSM context
+	 */
+	if (ctx) {
+		hsm_destroy_context(ctx);
+	}
 
+	/*
+	 * Close HSM library
+	 */
 	result = hsm_close();
 	fprintf(stdout, "all done! hsm_close result: %d\n", result);
 	return 0;
