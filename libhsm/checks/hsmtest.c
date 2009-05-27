@@ -49,7 +49,6 @@ main (int argc, char *argv[])
 
 	int do_generate = 0;
 	int do_sign = 0;
-	int do_show = 1;
 	int do_delete = 0;
 	int do_random = 0;
 
@@ -65,18 +64,14 @@ main (int argc, char *argv[])
 		switch (ch) {
 		case 'g':
 			do_generate = 1;
-			do_show = 0;
 			break;
 		case 's':
 			do_sign = 1;
-			do_show = 0;
 			break;
 		case 'd':
 			do_delete = 1;
-			do_show = 0;
 			break;
 		case 'r':
-			do_show = 0;
 			do_random = 1;
 			break;
 		default:
@@ -124,10 +119,8 @@ main (int argc, char *argv[])
 
 		/* let's just use the very first key we find and throw away the rest */
 		for (i = 0; i < key_count; i++) {
-			if (do_show) {
-				printf("Found key:\n");
-				hsm_print_key(keys[i]);
-			}
+			printf("Found key:\n");
+			hsm_print_key(keys[i]);
 			if ((do_sign || do_delete) && !key) {
 				uuid = hsm_get_uuid(ctx, keys[i]);
 				if (uuid) {  /* only use keys with uuid */
