@@ -1235,9 +1235,9 @@ hsm_prompt_pin(const char *repository, void *data)
     prompt = malloc(64);
     snprintf(prompt, 64, "Enter PIN for token %s:", repository);
 #ifdef HAVE_GETPASSPHRASE
-    r = getpassphrase("Enter Pin:");
+    r = getpassphrase("Enter PIN:");
 #else
-    r = getpass("Enter Pin:");
+    r = getpass("Enter PIN:");
 #endif
     free(prompt);
     return r;
