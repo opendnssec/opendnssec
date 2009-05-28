@@ -90,6 +90,9 @@ int test() {
 }
 ], [CFLAGS="-D__EXTENSIONS__ $CFLAGS"])
 
+AC_CHECK_LIB(socket, socket)
+AC_CHECK_LIB(nsl, inet_pton)
+
 # if caller uses --with-pkcs11, compile support for it in statically
 # (it will still be loaded dynamically when ldns_pkcs11_load_functions is called
 # with a library name. if that name is NULL, the linked module will be used)
