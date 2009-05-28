@@ -31,6 +31,7 @@
 #define HSM_H 1
 
 #include <uuid/uuid.h>
+#include <stdint.h>
 
 #define HSM_MAX_SESSIONS 10
 
