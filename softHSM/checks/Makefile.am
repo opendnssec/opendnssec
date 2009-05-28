@@ -5,6 +5,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = no.token token.db
 
 noinst_PROGRAMS = checks
+noinst_DATA = token.db
 
 AM_CPPFLAGS = 	-I$(srcdir) -I$(srcdir)/../src/lib -I$(srcdir)/../src/lib/cryptoki \
 		-DCHECKS_SOFTHSM_CONF='"$(srcdir)/softhsm.conf"'
@@ -20,5 +21,5 @@ token.db:
 	env SOFTHSM_CONF=$(srcdir)/softhsm.conf \
 	../src/bin/softhsm --init-token --slot 1 --label "A token" --so-pin 12345678 --pin 123456
 
-regress: token.db
+check-local:
 	./checks -z
