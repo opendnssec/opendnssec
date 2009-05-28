@@ -203,16 +203,21 @@ main(int argc, char **argv)
 		tries = 0;
 		while (result == HSM_PIN_INCORRECT && tries < 3) {
 			pin = hsm_prompt_pin(token_name, NULL);
+			/* we'll use the token name as the repository name here
+			 * (no need to specify a second name for this one-off use)
+			 */
 			result = hsm_attach(token_name,
-								pkcs11_lib_file,
-								pin);
+			                    token_name,
+			                    pkcs11_lib_file,
+			                    pin);
 			memset(pin, 0, strlen(pin));
 			tries++;
 		}
 	} else {
 			result = hsm_attach(token_name,
-								pkcs11_lib_file,
-								pin);
+			                    token_name,
+			                    pkcs11_lib_file,
+			                    pin);
 	}
 	if (result != 0) {
 		fprintf(stderr, "Failed to initialize token %s\n", token_name);

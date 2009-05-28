@@ -424,11 +424,12 @@ handle_command(FILE *output, current_config *cfg,
 		arg1 = read_arg(next, &next);
 		arg2 = read_arg(next, &next);
 		arg3 = read_arg(next, &next);
+		arg4 = read_arg(next, &next);
 		if (!arg1 || !arg2 || !arg3) {
 			fprintf(output, "; Error: missing argument in add_module command\n");
 		} else {
 			if (!hsm_token_attached(NULL, arg1)) {
-				iresult = hsm_attach(arg1, arg2, arg3);
+				iresult = hsm_attach(arg1, arg2, arg3, arg4);
 				if (iresult != 0) {
 					fprintf(output, "; Error adding token '%s'\n", arg1);
 				}
