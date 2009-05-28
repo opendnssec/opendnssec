@@ -79,6 +79,9 @@ int main(int argc, char **argv) {
   }
   C_Finalize(NULL_PTR);
 
+  /* Init token */
+  system("../src/bin/softhsm --init-token --slot 1 --label 'A token' --so-pin 12345678 --pin 123456");
+
   while ((c = getopt(argc, argv, "abcdefghijkz")) != -1) {
     switch(c) {
       case 'a':
