@@ -46,6 +46,8 @@
 #include "ksm/datetime.h"
 #include "ksm/string_util.h"
 
+#include "libhsm.h"
+
     int
 server_init(DAEMONCONFIG *config)
 {
@@ -93,7 +95,10 @@ server_main(DAEMONCONFIG *config)
     DB_ID* ignore = 0;
     struct timeval tv;
     KSM_POLICY *policy;
-
+		int result;
+		hsm_ctx_t *ctx;
+		hsm_key_t *key = NULL;
+		
     if (config == NULL) {
         log_msg(NULL, LOG_ERR, "Error, no config provided");
         exit(1);
@@ -115,19 +120,23 @@ server_main(DAEMONCONFIG *config)
         exit(1);
     }
     kaspSetPolicyDefaults(policy, NULL);
-
-    /* Read the config file */
-    status = ReadConfig(config);
-    if (status != 0) {
-        log_msg(config, LOG_ERR, "Error reading config");
-        exit(1);
-    }
-
-    log_msg(config, LOG_INFO, "Connecting to Database...");
-    kaspConnect(config, &dbhandle);
-
+		
     while (1) {
 
+		    /* Read the config file */
+		    status = ReadConfig(config);
+		    if (status != 0) {
+		        log_msg(config, LOG_ERR, "Error reading config");
+		        exit(1);
+		    }
+
+		    log_msg(config, LOG_INFO, "Connecting to Database...");
+		    kaspConnect(config, &dbhandle);
+
+				result = hsm_open(CONFIGFILE, hsm_prompt_pin, NULL);
+				log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
+
+        ctx = NULL;
 
         /* Read all policies */
         status = KsmPolicyInit(&handle, NULL);
@@ -148,14 +157,30 @@ server_main(DAEMONCONFIG *config)
                 status = kaspReadPolicy(policy);
 
                 rightnow = DtParseDateTimeString("now");
+
                 /* Find out how many ksk keys are needed */
                 status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &count);
                 for (i=count ; i > 0 ; i--){
-                    uuid = dummy_hsm_keygen();
+                if (policy->ksk->algorithm == 5 ) {
+                  	/* TODO Need a function to convert security module ID to name 
+                     * for now just assume softHSM */
+                    key = hsm_generate_rsa_key(ctx, "softHSM", policy->ksk->bits);
+										if (key) {
+											log_msg(config, LOG_INFO,"Created key in HSM\n");
+										} else {
+											log_msg(config, LOG_ERR,"Error creating key in HSM, bad token name?\n");
+											exit(1);
+										}
+                    uuid = hsm_get_uuid(ctx, key);
                     uuid_unparse(*uuid, uuid_text);
                     status = KsmKeyPairCreate(policy->id, uuid_text, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, ignore);
                     log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM ID: %i.", policy->ksk->bits, policy->ksk->algorithm, uuid_text, policy->ksk->sm);
                     free(uuid);
+								} else {
+									log_msg(config, LOG_ERR, "unsupported key algorithm.");
+									exit(1);
+								}
+
                 }
                 /* Find out how many zsk keys are needed */
                 status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &count);
@@ -177,24 +202,27 @@ server_main(DAEMONCONFIG *config)
         }
         DbFreeResult(handle);
 
-        /* Disconnect from DB in case we are asleep for a long time */
+        /* Disconnect from DB and HSMs in case we are asleep for a long time */
         log_msg(config, LOG_INFO, "Disconnecting from Database...");
         kaspDisconnect(&dbhandle);
+        
+				/*
+				 * Destroy HSM context
+				 */
+				if (ctx) {
+					hsm_destroy_context(ctx);
+				}
+	
+				result = hsm_close();
+				log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
+				
+        /* TODO: handle signals */
 
         /* sleep for the key gen interval */
         tv.tv_sec = config->keygeninterval;
         tv.tv_usec = 0;
         log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->keygeninterval);
         select(0, NULL, NULL, NULL, &tv);
-
-        /* re-read the config in case it has changed */
-        status = ReadConfig(config);
-        if (status != 0) {
-            log_msg(config, LOG_ERR, "Error reading config");
-            exit(1);
-        }
-        log_msg(config, LOG_INFO, "Connecting to Database...");
-        kaspConnect(config, &dbhandle);
 
     }
     log_msg(config, LOG_INFO, "Disconnecting from Database...");

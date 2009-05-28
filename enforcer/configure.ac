@@ -70,6 +70,25 @@ AC_CHECK_LIB(ksm,KsmInit,, [
 	]
 )
 
+
+# Check for libhsm
+AC_ARG_WITH(libhsm,
+[  --with-libhsm=DIR     Look for libhsm in this dir ],
+   [LIBHSM="$withval"
+    CFLAGS="$CFLAGS -I$withval/include"
+    CPPFLAGS="$CPPFLAGS -I$withval/include"
+		LDFLAGS="-L$withval/lib $LDFLAGS"]
+)
+
+AC_CHECK_HEADERS(libhsm.h,, [
+		AC_MSG_ERROR([Can't find libhsm headers])
+	]
+)
+AC_CHECK_LIB(hsm, hsm_create_context,, [
+		AC_MSG_ERROR([Can't find libhsm library])
+	]
+)
+
 AC_ARG_WITH(libxml2,
 [  --with-libxml2=DIR     Look for libxml2 in this dir ],
   [ XML_PATH="$withval"]
