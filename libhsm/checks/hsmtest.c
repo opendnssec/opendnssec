@@ -34,6 +34,7 @@
 #include <unistd.h>
 
 #include <libhsm.h>
+#include <libhsmdns.h>
 
 extern char *optarg;
 char *progname = NULL;

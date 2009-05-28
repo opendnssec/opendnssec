@@ -30,7 +30,6 @@
 #ifndef HSM_H
 #define HSM_H 1
 
-#include <ldns/ldns.h>
 #include <uuid/uuid.h>
 
 #define HSM_MAX_SESSIONS 10
@@ -72,21 +71,6 @@ typedef struct {
 	size_t session_count;     /*!< number of configured HSMs */
 } hsm_ctx_t;
 
-/*! Extra information for signing rrsets (algorithm, expiration, etc) */
-typedef struct {
-	/** The DNS signing algorithm identifier */
-	ldns_algorithm algorithm;
-	/** Key flags */
-	uint16_t flags;
-	/** The inception date of signatures made with this key. */
-	uint32_t inception;
-	/** The expiration date of signatures made with this key. */
-	uint32_t expiration;
-	/** The keytag of the key (is this necessary?) */
-	uint16_t keytag;
-	/** The owner name of the key */
-	ldns_rdf *owner;
-} hsm_sign_params_t;
 
 /*! Open HSM library
 
@@ -136,6 +120,7 @@ can be freed with hsm_destroy_context()
 */
 hsm_ctx_t *hsm_create_context(void);
 
+
 /*! Destroy HSM context
 
 \param context HSM context
@@ -143,22 +128,6 @@ hsm_ctx_t *hsm_create_context(void);
 Also destroys any associated sessions.
 */
 void hsm_destroy_context(hsm_ctx_t *context);
-
-
-/**
- * Returns an allocated hsm_sign_params_t with some defaults
- */
-hsm_sign_params_t *hsm_sign_params_new();
-
-/*!
-Free the signer parameters structure
-
-If params->owner has been set, ldns_rdf_deep_free() will be called
-on it.
-
-\param params The signer parameters to free
-*/
-void hsm_sign_params_free(hsm_sign_params_t *params);
 
 
 /*! List all known keys in all attached HSMs
@@ -217,6 +186,7 @@ needs to be freed.
 */
 int hsm_remove_key(const hsm_ctx_t *context, hsm_key_t *key);
 
+
 /*! Free the memory for a key structure.
 
 If the uuid* value in the key is not NULL, it is freed as well
@@ -244,53 +214,6 @@ does not need to be freed separately
 \return UUID of key pair
 */
 uuid_t *hsm_get_uuid(const hsm_ctx_t *context, const hsm_key_t *key);
-
-
-/*! Sign RRset using key
-
-The returned ldns_rr structure can be freed with ldns_rr_free()
-
-\param context HSM context
-\param rrset RRset to sign
-\param key Key pair used to sign
-\return ldns_rr* Signed RRset
-*/
-ldns_rr* hsm_sign_rrset(const hsm_ctx_t *ctx,
-                        const ldns_rr_list* rrset,
-                        const hsm_key_t *key,
-                        const hsm_sign_params_t *sign_params);
-
-
-/*! Generate a base32 encoded hashed NSEC3 name
-
-\param ctx HSM context
-\param name Domain name to hash
-\param algorithm NSEC3 algorithm (must be 1 atm)
-\param iteration number of hash iterations
-\param salt_length the length of the salt
-\param salt the salt
-*/
-ldns_rdf *
-hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
-                    ldns_rdf *name,
-                    uint8_t algorithm,
-                    uint16_t iterations,
-                    uint8_t salt_length,
-                    uint8_t *salt);
-
-
-/*! Get DNSKEY RR
-
-The returned ldns_rr structure can be freed with ldns_rr_free()
-
-\param context HSM context
-\param key Key to get DNSKEY RR from
-\param sign_params the signing parameters (flags, algorithm, etc)
-\return ldns_rr*
-*/
-ldns_rr* hsm_get_dnskey(const hsm_ctx_t *ctx,
-                        const hsm_key_t *key,
-                        const hsm_sign_params_t *sign_params);
 
 
 /*! Fill a buffer with random data from any attached HSM

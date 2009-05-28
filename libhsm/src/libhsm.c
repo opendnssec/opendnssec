@@ -45,6 +45,7 @@
 #include <libxml/relaxng.h>
 
 #include "libhsm.h"
+#include "libhsmdns.h"
 
 #include <cryptoki.h>
 #include <pkcs11.h>
