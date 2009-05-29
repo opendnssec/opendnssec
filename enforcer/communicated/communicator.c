@@ -225,6 +225,7 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
 
     filename = NULL;
     StrAppend(&filename, SIGNER_CONF_DIR); /* set at config time */
+    StrAppend(&filename, "/");
     StrAppend(&filename, zone->name);
     StrAppend(&filename, ".xml");
 
