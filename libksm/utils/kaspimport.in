@@ -207,6 +207,8 @@ foreach my $policy ( $policies->get_nodelist() ) {
 		insertpp( "algorithm",  $algorithm,  "denial", $pname );
 		insertpp( "iterations", $iterations, "denial", $pname );
 		insertpp( "saltlength", $saltlen,    "denial", $pname );
+	} else {
+		insertpp( "version", 1, "denial", $pname );
 	}
 
 	# Read keys section
