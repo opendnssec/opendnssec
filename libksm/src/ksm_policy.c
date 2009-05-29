@@ -305,9 +305,14 @@ int KsmPolicyRead(KSM_POLICY* policy)
 
             KsmParameterEnd(result);
         }
+    } else {
+        return status;
     }
 
-    return 0;
+    /* convert security module ids into names */
+    status = KsmPolicyPopulateSMFromIds(policy);
+
+    return status;
 }
 
 /*+
@@ -579,5 +584,81 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     }
 
     StrFree(datetime_now);
+    return status;
+}
+
+/* Populate security module information for a structure that has the sm_id fields filled in */
+
+int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
+{
+    int     where = 0;          /* WHERE clause value */
+    char*   sql = NULL;         /* SQL query */
+    DB_RESULT       result;     /* Handle converted to a result object */
+    DB_ROW      row;            /* Row data */
+    int     status = 0;         /* Status return */
+
+    /* check the argument */
+    if (policy == NULL) {
+        return MsgLog(KSM_INVARG, "NULL policy");
+    }
+
+    /* Construct the query for ksk */
+
+    sql = DqsSpecifyInit(DB_SECURITY_MODULE_TABLE, DB_SECURITY_MODULE_FIELDS);
+    DqsConditionInt(&sql, "id", DQS_COMPARE_EQ, policy->ksk->sm, where++);
+
+    /* Execute query and free up the query string */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    /* Get the next row from the data */
+    status = DbFetchRow(result, &row);
+    if (status == 0) {
+        DbStringBuffer(row, DB_SECURITY_MODULE_NAME, policy->ksk->sm_name, KSM_NAME_LENGTH*sizeof(char));
+        DbUnsignedLong(row, DB_SECURITY_MODULE_CAPACITY, &(policy->ksk->sm_capacity));
+    }
+    else if (status == -1) {}
+        /* No rows to return (but no error) */
+	else {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    /* Construct the query for zsk */
+    where = 0;
+
+    sql = DqsSpecifyInit(DB_SECURITY_MODULE_TABLE, DB_SECURITY_MODULE_FIELDS);
+    DqsConditionInt(&sql, "id", DQS_COMPARE_EQ, policy->zsk->sm, where++);
+
+    /* Execute query and free up the query string */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    /* Get the next row from the data */
+    status = DbFetchRow(result, &row);
+    if (status == 0) {
+        DbStringBuffer(row, DB_SECURITY_MODULE_NAME, policy->zsk->sm_name, KSM_NAME_LENGTH*sizeof(char));
+        DbUnsignedLong(row, DB_SECURITY_MODULE_CAPACITY, &(policy->zsk->sm_capacity));
+    }
+    else if (status == -1) {}
+        /* No rows to return (but no error) */
+	else {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+	}
+
+    DbFreeRow(row);
+    DbFreeResult(result);
     return status;
 }

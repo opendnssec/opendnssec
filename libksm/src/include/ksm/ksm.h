@@ -191,6 +191,8 @@ typedef struct {
 	int bits;
 	int lifetime;
 	int sm;
+	char sm_name[KSM_NAME_LENGTH];
+	unsigned long sm_capacity;
 	int overlap;
 	int ttl;
 	int rfc5011;
@@ -230,6 +232,7 @@ int KsmPolicyParameter(DB_RESULT handle, KSM_POLICY_PARAMETER* data);
 int KsmPolicyReadFromId(KSM_POLICY* policy);
 int KsmPolicyNameFromId(KSM_POLICY* policy);
 int KsmPolicyUpdateSalt(KSM_POLICY* policy);
+int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy);
 
 /* ksmZone */
 typedef struct {
