@@ -42,6 +42,7 @@
 #include <uuid/uuid.h>
 
 #include <libhsm.h>
+#include <libhsmdns.h>
 
 #define DEFAULT_TTL 3600
 #define DEFAULT_FLAGS 256

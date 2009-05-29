@@ -50,6 +50,7 @@
 
 #include "util.h"
 #include <libhsm.h>
+#include <libhsmdns.h>
 
 typedef struct {
 	ldns_rr *skipped_rr;
