@@ -83,10 +83,10 @@ INSTALLING
 
   softhsm --init-token --slot 0 --label "My token 1"
 
-   Type in SO and user PIN.
+   Type in SO PIN and user PIN.
 
   softhsm --init-token --slot 4 --label "A token"
 
-   Type in SO and user PIN.
+   Type in SO PIN and user PIN.
 
 6. Link to this library and use the PKCS#11 interface
