@@ -226,30 +226,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
     }
 }
 
-    void 
-sig_handler (int sig)
-{
-    switch (sig) {
-        case SIGCHLD:
-            return;
-        case SIGHUP:
-            return;
-        case SIGALRM:
-            break;
-        case SIGILL:
-            break;
-        case SIGUSR1:
-            break;
-        case SIGINT:
-            break;
-        case SIGTERM:
-            break;
-        default:      
-            break;
-    }
-}
-
-    int
+int
 ReadConfig(DAEMONCONFIG *config)
 {
     xmlDocPtr doc;

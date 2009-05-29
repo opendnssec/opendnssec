@@ -65,7 +65,7 @@ AC_CHECK_HEADERS(ksm/ksm.h,, [
 		AC_MSG_ERROR([Can't find libksm headers])
 	]
 )
-AC_CHECK_LIB(ksm,KsmInit,, [
+AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,, [
 		AC_MSG_ERROR([Can't find libksm library])
 	]
 )

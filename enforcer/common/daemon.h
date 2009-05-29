@@ -81,6 +81,8 @@ typedef struct
     uid_t uid;
     gid_t gid;
     char *username;
+		/* flag to indicate that SIGTERM was recieved */
+		int term;
 
     /* Add app specific stuff here */
     unsigned char* user;

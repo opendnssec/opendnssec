@@ -139,18 +139,16 @@ server_main(DAEMONCONFIG *config)
 
                 /* Read the parameters for that policy */
                 status = kaspReadPolicy(policy);
-
+								
                 rightnow = DtParseDateTimeString("now");
 
                 /* Find out how many ksk keys are needed */
                 status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &count);
-
+								/* TODO: check capacity of HSM will not be exceeded */
                 /* Create the keys */
                 for (i=count ; i > 0 ; i--){
                 	if (policy->ksk->algorithm == 5 ) {
-	                    /* TODO need policy->ksk->hsm-name. Arriving soon
-	                     * for now just assume softHSM */
-	                    key = hsm_generate_rsa_key(ctx, "softHSM", policy->ksk->bits);
+	                    key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
 	                    if (key) {
 	                      log_msg(config, LOG_INFO,"Created key in HSM\n");
 	                    } else {
@@ -160,7 +158,7 @@ server_main(DAEMONCONFIG *config)
 	                    uuid = hsm_get_uuid(ctx, key);
 	                    uuid_unparse(*uuid, uuid_text);
 	                    status = KsmKeyPairCreate(policy->id, uuid_text, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, ignore);
-	                    log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM ID: %i.", policy->ksk->bits, policy->ksk->algorithm, uuid_text, policy->ksk->sm);
+	                    log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM: %s.", policy->ksk->bits, policy->ksk->algorithm, uuid_text, policy->ksk->sm_name);
 	                } else {
 	                  log_msg(config, LOG_ERR, "Key algorithm unsupported by libhsm.");
 	                  exit(1);
@@ -169,11 +167,10 @@ server_main(DAEMONCONFIG *config)
                 }
                 /* Find out how many zsk keys are needed */
                 status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &count);
+                /* TODO: check capacity of HSM will not be exceeded */
                 for (i = count ; i > 0 ; i--){
-                   if (policy->zsk->algorithm == 5 ) {
-	                     /* TODO need policy->zsk->hsm-name. Arriving soon
-	                      * for now just assume softHSM */
-	                     key = hsm_generate_rsa_key(ctx, "softHSM", policy->zsk->bits);
+                   if (policy->zsk->algorithm == 5 ) {	                   
+	                     key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->zsk->bits);
 	                     if (key) {
 	                       log_msg(config, LOG_INFO,"Created key in HSM\n");
 	                     } else {
@@ -183,7 +180,7 @@ server_main(DAEMONCONFIG *config)
 	                     uuid = hsm_get_uuid(ctx, key);
                        uuid_unparse(*uuid, uuid_text);
                        status = KsmKeyPairCreate(policy->id, uuid_text, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, ignore);
-                       log_msg(config, LOG_INFO, "Created ZSK with size: %i, alg: %i with uuid: %s in HSM ID: %i.", policy->zsk->bits, policy->zsk->algorithm, uuid_text, policy->zsk->sm);
+                       log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with uuid: %s in HSM: %s.", policy->zsk->bits, policy->zsk->algorithm, uuid_text, policy->zsk->sm_name);
                     } else {
 		                  log_msg(config, LOG_ERR, "unsupported key algorithm.");
 		                  exit(1);
@@ -214,14 +211,21 @@ server_main(DAEMONCONFIG *config)
         result = hsm_close();
         log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
         
-        /* TODO: handle signals */
-
+				if (config->term == 1 ){
+					log_msg(config, LOG_INFO, "Exiting...");
+					exit(0);
+				}
         /* sleep for the key gen interval */
         tv.tv_sec = config->keygeninterval;
         tv.tv_usec = 0;
         log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->keygeninterval);
         select(0, NULL, NULL, NULL, &tv);
 
+				if (config->term == 1 ){
+					log_msg(config, LOG_INFO, "Exiting...");
+					exit(0);
+				}
+				
     }
     log_msg(config, LOG_INFO, "Disconnecting from Database...");
     kaspDisconnect(&dbhandle);

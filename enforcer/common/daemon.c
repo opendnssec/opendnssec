@@ -54,11 +54,37 @@
 extern int server_init(DAEMONCONFIG *config);
 extern void server_main(DAEMONCONFIG *config);
 
+DAEMONCONFIG config;
+
+void 
+sig_handler (int sig)
+{
+    switch (sig) {
+        case SIGCHLD:
+            return;
+        case SIGHUP:
+            return;
+        case SIGALRM:
+            break;
+        case SIGILL:
+            break;
+        case SIGUSR1:
+            break;
+        case SIGINT:
+            break;
+        case SIGTERM:
+						config.term = 1;
+            break;
+        default:      
+            break;
+    }
+}
+
 int
 main(int argc, char *argv[]){
     int fd;
     struct sigaction action;
-    DAEMONCONFIG config;
+    
     config.pidfile = (char *)calloc(MAX_PID_LENGTH, sizeof(char));	
     config.user = (unsigned char *)calloc(MAX_USER_LENGTH, sizeof(char));
     config.host = (unsigned char *)calloc(MAX_HOST_LENGTH, sizeof(char));
@@ -72,7 +98,8 @@ main(int argc, char *argv[]){
         log_msg(&config, LOG_ERR, "Malloc for config struct failed\n");
         exit(1);
     }
-
+		config.term = 0;
+		
     /* useful message */
     log_msg(&config, LOG_INFO, "%s starting...", PACKAGE_NAME);
 
@@ -167,3 +194,4 @@ main(int argc, char *argv[]){
     exit(0);
 
 }
+
