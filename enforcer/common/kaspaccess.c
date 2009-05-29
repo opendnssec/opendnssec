@@ -30,72 +30,13 @@
  * kaspaccess.c kasp acccess functions needed by keygend
  */
 
-/*
- * Get config from the KASP DB
- * Read the policy called opendnssec
- * This is a special policy that has no
- * zones associated with it.
- *
- */
+
 #include <syslog.h>
 #include <stdlib.h>
 
 #include "daemon.h"
 #include "daemon_util.h"
 #include "kaspaccess.h"
-
-int
-kaspReadConfig(DAEMONCONFIG* config)
-{
-	int status = 0;
-    KSM_POLICY *policy;
-
-    if (config == NULL) {
-        log_msg(NULL, LOG_ERR, "Error, no config provided");
-        return -1;
-    }
-	
-	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
-	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
-	policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
-	policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
-	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-    /* Let's check all of those mallocs, or should we use MemMalloc ? */
-    if (policy->signer == NULL || policy->signature == NULL ||
-            policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL) {
-        log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
-        exit(1);
-    }
-
-
-	policy->name = "opendnssec";
-  kaspSetPolicyDefaults(policy,NULL);
-	/* Check we are connected */
-	/*if (! DbCheckConnected()) {
-		return 0;
-	}*/
-
-	log_msg(config, LOG_INFO, "Reading config.\n");
-	status = KsmPolicyRead(policy);
-	if (status == 0) {
-		log_msg(config, LOG_INFO, "Start global policy:\n");
-		config->keygeninterval = policy->enforcer->keygeninterval;
-		log_msg(config, LOG_INFO, "Key Generation Interval: %i\n", config->keygeninterval);
-		log_msg(config, LOG_INFO, "End global policy.\n");
-	}
-	free(policy->enforcer);
-	free(policy->denial);
-	free(policy->zsk);
-	free(policy->ksk);
-	free(policy->signature);
-	free(policy->signer);
-	free(policy);
-	return (status);
-
-}
 
 /*
 * Set defaults for policies
