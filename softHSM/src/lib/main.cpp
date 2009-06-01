@@ -42,6 +42,7 @@
 #include "SoftHSMInternal.h"
 #include "userhandling.h"
 #include "util.h"
+#include "mechanisms.h"
 
 // Standard includes
 #include <stdio.h>
@@ -434,35 +435,24 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
                      CKR_SLOT_ID_INVALID);
 
   if(pMechanismList == NULL_PTR) {
-    *pulCount = 14;
+    *pulCount = NR_SUPPORTED_MECHANISMS;
 
     DEBUG_MSG("C_GetMechanismList", "OK, returning list length");
     return CKR_OK;
   }
 
-  if(*pulCount < 14) {
-    *pulCount = 14;
+  if(*pulCount < NR_SUPPORTED_MECHANISMS) {
+    *pulCount = NR_SUPPORTED_MECHANISMS;
 
     DEBUG_MSG("C_GetMechanismList", "Buffer to small");
     return CKR_BUFFER_TOO_SMALL;
   }
 
-  *pulCount = 14;
+  *pulCount = NR_SUPPORTED_MECHANISMS;
 
-  pMechanismList[0] = CKM_RSA_PKCS_KEY_PAIR_GEN;
-  pMechanismList[1] = CKM_RSA_PKCS;
-  pMechanismList[2] = CKM_MD5;
-  pMechanismList[3] = CKM_RIPEMD160;
-  pMechanismList[4] = CKM_SHA_1;
-  pMechanismList[5] = CKM_SHA256;
-  pMechanismList[6] = CKM_SHA384;
-  pMechanismList[7] = CKM_SHA512;
-  pMechanismList[8] = CKM_MD5_RSA_PKCS;
-  pMechanismList[9] = CKM_RIPEMD160_RSA_PKCS;
-  pMechanismList[10] = CKM_SHA1_RSA_PKCS;
-  pMechanismList[11] = CKM_SHA256_RSA_PKCS;
-  pMechanismList[12] = CKM_SHA384_RSA_PKCS;
-  pMechanismList[13] = CKM_SHA512_RSA_PKCS;
+  for(int i = 0; i < NR_SUPPORTED_MECHANISMS; i ++) {
+    pMechanismList[i] = supportedMechanisms[i];
+  }
 
   DEBUG_MSG("C_GetMechanismList", "OK, returning list");
   return CKR_OK;
@@ -475,51 +465,13 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
 
   CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_GetMechanismInfo", "Library is not initialized",
                      CKR_CRYPTOKI_NOT_INITIALIZED);
-  CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetMechanismInfo", "pInfo must not be a NULL_PTR",
-                     CKR_ARGUMENTS_BAD);
 
   SoftSlot *currentSlot = softHSM->slots->getSlot(slotID);
 
   CHECK_DEBUG_RETURN(currentSlot == NULL_PTR, "C_GetMechanismInfo", "The given slotID does not exist",
                      CKR_SLOT_ID_INVALID);
 
-  switch(type) {
-    case CKM_RSA_PKCS_KEY_PAIR_GEN:
-      pInfo->ulMinKeySize = 512;
-      pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_GENERATE_KEY_PAIR | CKF_HW;
-      break;
-    case CKM_RSA_PKCS:
-      pInfo->ulMinKeySize = 512;
-      pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW;
-      break;
-    case CKM_MD5:
-    case CKM_RIPEMD160:
-    case CKM_SHA_1:
-    case CKM_SHA256:
-    case CKM_SHA384:
-    case CKM_SHA512:
-      pInfo->flags = CKF_DIGEST | CKF_HW;
-      break;
-    case CKM_MD5_RSA_PKCS:
-    case CKM_RIPEMD160_RSA_PKCS:
-    case CKM_SHA1_RSA_PKCS:
-    case CKM_SHA256_RSA_PKCS:
-    case CKM_SHA384_RSA_PKCS:
-    case CKM_SHA512_RSA_PKCS:
-      pInfo->ulMinKeySize = 512;
-      pInfo->ulMaxKeySize = 4096;
-      pInfo->flags = CKF_SIGN | CKF_VERIFY | CKF_HW;
-      break;
-    default:
-      DEBUG_MSG("C_GetMechanismInfo", "The selected mechanism is not supported");
-      return CKR_MECHANISM_INVALID;
-      break;
-  }
-
-  DEBUG_MSG("C_GetMechanismInfo", "OK");
-  return CKR_OK; 
+  return getMechanismInfo(type, pInfo);
 }
 
 CK_RV C_InitToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pLabel) {

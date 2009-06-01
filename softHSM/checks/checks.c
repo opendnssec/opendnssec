@@ -350,9 +350,9 @@ void runInfoCheck(unsigned int counter) {
     /* C_GetMechanismInfo */
     
     rv = C_GetMechanismInfo(slotInvalid, CKM_VENDOR_DEFINED, NULL_PTR);
-    assert(rv == CKR_ARGUMENTS_BAD);
-    rv = C_GetMechanismInfo(slotInvalid, CKM_VENDOR_DEFINED, &info);
     assert(rv == CKR_SLOT_ID_INVALID);
+    rv = C_GetMechanismInfo(slotWithToken, CKM_VENDOR_DEFINED, NULL_PTR);
+    assert(rv == CKR_ARGUMENTS_BAD);
     rv = C_GetMechanismInfo(slotWithToken, CKM_VENDOR_DEFINED, &info);
     assert(rv == CKR_MECHANISM_INVALID);
     rv = C_GetMechanismInfo(slotWithToken, CKM_RSA_PKCS_KEY_PAIR_GEN, &info);

@@ -12,6 +12,7 @@ libsofthsm_la_SOURCES =		main.cpp \
 				log.cpp \
 				userhandling.cpp \
 				tokenhandling.cpp \
+				mechanisms.cpp \
 				SoftHSMInternal.cpp \
 				SoftSlot.cpp \
 				SoftSession.cpp \
