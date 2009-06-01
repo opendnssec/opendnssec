@@ -1385,10 +1385,10 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
         { CKA_SIGN,        &ctrue,   sizeof (ctrue) },
         { CKA_DECRYPT,     &cfalse,  sizeof (cfalse) },
         { CKA_UNWRAP,      &cfalse,  sizeof (cfalse) },
-        { CKA_SENSITIVE,   &cfalse,  sizeof (cfalse) },
+        { CKA_SENSITIVE,   &ctrue,   sizeof (ctrue) },
         { CKA_TOKEN,       &ctrue,   sizeof (ctrue)  },
         { CKA_PRIVATE,     &ctrue,   sizeof (ctrue)  },
-        { CKA_EXTRACTABLE, &ctrue,   sizeof (ctrue) }
+        { CKA_EXTRACTABLE, &cfalse,  sizeof (cfalse) }
     };
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
