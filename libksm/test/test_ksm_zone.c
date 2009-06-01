@@ -79,6 +79,8 @@ static void TestKsmZoneRead(void)
 	CU_ASSERT_EQUAL(status, 0);
 	CU_ASSERT_STRING_EQUAL(zone->name, "opendnssec.se");
 
+    DbFreeResult(result);
+
 	free(zone->name);
 	free(zone);
 }

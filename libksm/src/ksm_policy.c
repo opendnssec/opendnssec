@@ -253,15 +253,15 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "backup_interval", 15) == 0) policy->enforcer->backup_interval=data.value;
 			if (strncmp(data.name, "keygeninterval", 14) == 0) policy->enforcer->keygeninterval=data.value;
             	}
-            	if (strncmp(data.category, "signer", 6) == 0) {
-            		if (strncmp(data.name, "refresh", 7) == 0) policy->signer->refresh=data.value;
-            		if (strncmp(data.name, "jitter", 6) == 0) policy->signer->jitter=data.value;
-            		if (strncmp(data.name, "propdelay", 9) == 0) policy->signer->propdelay=data.value;
-            		if (strncmp(data.name, "soamin", 6) == 0) policy->signer->soamin=data.value;
-            		if (strncmp(data.name, "soattl", 6) == 0) policy->signer->soattl=data.value;
+            	if (strncmp(data.category, "zone", 4) == 0) {
+            		if (strncmp(data.name, "propagationdelay", 16) == 0) policy->signer->propdelay=data.value;
+            		if (strncmp(data.name, "min", 6) == 0) policy->signer->soamin=data.value;
+            		if (strncmp(data.name, "ttl", 6) == 0) policy->signer->soattl=data.value;
             		if (strncmp(data.name, "serial", 6) == 0) policy->signer->serial=data.value;
             	}
             	if (strncmp(data.category, "signature", 9) == 0) {
+            		if (strncmp(data.name, "jitter", 6) == 0) policy->signer->jitter=data.value;
+            		if (strncmp(data.name, "refresh", 7) == 0) policy->signer->refresh=data.value;
             		if (strncmp(data.name, "clockskew", 9) == 0) policy->signature->clockskew=data.value;
             		if (strncmp(data.name, "resign", 6) == 0) policy->signature->resign=data.value;
             		if (strncmp(data.name, "valdefault", 10) == 0) policy->signature->valdefault=data.value;
@@ -281,7 +281,6 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "lifetime",8) == 0) policy->zsk->lifetime=data.value;
             		if (strncmp(data.name, "repository",10) == 0) policy->zsk->sm=data.value;
             		if (strncmp(data.name, "overlap",7) == 0) policy->zsk->overlap=data.value;
-            		if (strncmp(data.name, "ttl",3) == 0) policy->zsk->ttl=data.value;
             		if (strncmp(data.name, "bits",4) == 0) policy->zsk->bits=data.value;
             	}
             	if (strncmp(data.category, "ksk", 3) == 0) {
@@ -289,11 +288,12 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "lifetime",8) == 0) policy->ksk->lifetime=data.value;
             		if (strncmp(data.name, "repository",10) == 0) policy->ksk->sm=data.value;
             		if (strncmp(data.name, "overlap",7) == 0) policy->ksk->overlap=data.value;
-            		if (strncmp(data.name, "ttl",3) == 0) policy->ksk->ttl=data.value;
             		if (strncmp(data.name, "rfc5011",7) == 0) policy->ksk->rfc5011=data.value;
             		if (strncmp(data.name, "bits",4) == 0) policy->ksk->bits=data.value;
             	}
             	if (strncmp(data.category, "keys", 4) == 0) {
+            		if (strncmp(data.name, "ttl",3) == 0) policy->ksk->ttl=data.value;
+            		if (strncmp(data.name, "ttl",3) == 0) policy->zsk->ttl=data.value;
             		if (strncmp(data.name, "zones_share_keys",4) == 0) policy->shared_keys=data.value;
             	}
            		/* Ignore any unknown parameters */
@@ -423,6 +423,7 @@ int KsmPolicyNameFromId(KSM_POLICY* policy)
     if (status != 0)
     {
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        DbFreeResult(result);
         return status;
 	}
 
@@ -537,11 +538,15 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     DbFreeResult(result);
     DbFreeRow(row);
 
-    /* Now see if this needs to be updated */
-    status = DtDateDiff(datetime_now, policy->denial->salt_stamp, &time_diff);
+    /* Now see if this needs to be updated; if the stamp is null then assume it does */
+    if (policy->denial->salt_stamp[0] == '\0') {
+        time_diff = -1;
+    } else {
+        status = DtDateDiff(datetime_now, policy->denial->salt_stamp, &time_diff);
+    }
 
     if (status == 0) {
-        if (policy->denial->resalt > time_diff) {
+        if (policy->denial->resalt > time_diff && time_diff != -1) {
             /* current salt is fine */
             StrFree(datetime_now);
             return status;
@@ -595,6 +600,8 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
     char*   sql = NULL;         /* SQL query */
     DB_RESULT       result;     /* Handle converted to a result object */
     DB_ROW      row;            /* Row data */
+    DB_RESULT       result2;     /* Handle converted to a result object */
+    DB_ROW      row2;            /* Row data */
     int     status = 0;         /* Status return */
 
     /* check the argument */
@@ -614,6 +621,7 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
     if (status != 0)
     {
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        DbFreeResult(result);
         return status;
 	}
 
@@ -627,8 +635,14 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
         /* No rows to return (but no error) */
 	else {
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        DbFreeResult(result);
+        DbFreeRow(row);
         return status;
 	}
+
+    DbFreeResult(result);
+    DbFreeRow(row);
+
 
     /* Construct the query for zsk */
     where = 0;
@@ -637,20 +651,21 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
     DqsConditionInt(&sql, "id", DQS_COMPARE_EQ, policy->zsk->sm, where++);
 
     /* Execute query and free up the query string */
-    status = DbExecuteSql(DbHandle(), sql, &result);
+    status = DbExecuteSql(DbHandle(), sql, &result2);
     DqsFree(sql);
     
     if (status != 0)
     {
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        DbFreeResult(result2);
         return status;
 	}
 
     /* Get the next row from the data */
-    status = DbFetchRow(result, &row);
+    status = DbFetchRow(result2, &row2);
     if (status == 0) {
-        DbStringBuffer(row, DB_SECURITY_MODULE_NAME, policy->zsk->sm_name, KSM_NAME_LENGTH*sizeof(char));
-        DbUnsignedLong(row, DB_SECURITY_MODULE_CAPACITY, &(policy->zsk->sm_capacity));
+        DbStringBuffer(row2, DB_SECURITY_MODULE_NAME, policy->zsk->sm_name, KSM_NAME_LENGTH*sizeof(char));
+        DbUnsignedLong(row2, DB_SECURITY_MODULE_CAPACITY, &(policy->zsk->sm_capacity));
     }
     else if (status == -1) {}
         /* No rows to return (but no error) */
@@ -658,7 +673,7 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
 	}
 
-    DbFreeRow(row);
-    DbFreeResult(result);
+    DbFreeRow(row2);
+    DbFreeResult(result2);
     return status;
 }

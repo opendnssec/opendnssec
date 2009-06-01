@@ -170,12 +170,7 @@ server_main(DAEMONCONFIG *config)
         }
         DbFreeResult(handle);
 
-        /* sleep for the key gen interval unless we are in debug mode */
-        if (config->debug)
-        {
-            break;
-        }
-        /* sleep for a bit */
+        /* sleep for the configured interval */
         tv.tv_sec = config->interval;
         tv.tv_usec = 0;
         log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->interval);
@@ -264,16 +259,23 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     fprintf(file, "\n");
 
     fprintf(file, "\t\t<Denial>\n");
-    fprintf(file, "\t\t\t<NSEC%d>\n", policy->denial->version);
     if (policy->denial->version == 3)
     {
-        fprintf(file, "\t\t\t\t<OptOut />\n");
+        fprintf(file, "\t\t\t<NSEC3>\n");
+        if (policy->denial->optout == 1)
+        {
+            fprintf(file, "\t\t\t\t<OptOut />\n");
+        }
         fprintf(file, "\t\t\t\t<Hash>\n");
         fprintf(file, "\t\t\t\t\t<Algorithm>%d</Algorithm>\n", policy->denial->algorithm);
         fprintf(file, "\t\t\t\t\t<Iterations>%d</Iterations>\n", policy->denial->iteration);
+        fprintf(file, "\t\t\t\t\t<Salt>%s</Salt>\n", policy->denial->salt);
         fprintf(file, "\t\t\t\t</Hash>\n");
+        fprintf(file, "\t\t\t</NSEC3>\n");
+    } else {
+        fprintf(file, "\t\t\t<NSEC />\n");
     }
-    fprintf(file, "\t\t\t</NSEC%d>\n", policy->denial->version);
+
     fprintf(file, "\t\t</Denial>\n");
 
     fprintf(file, "\n");

@@ -131,7 +131,6 @@ static void TestKsmPolicyReadId(void)
 static void TestKsmPolicy2(void)
 {
 	DB_RESULT result;
-	DB_HANDLE		 dbhandle;
 	int status = 0;
 	int i;
 	KSM_POLICY *policy;
@@ -173,6 +172,51 @@ static void TestKsmPolicy2(void)
 	free(policy);
 }
 
+/*+
+ * TestKsmPolicySalt - Test
+ *
+ * Description:
+ *      Tests that salt can be updated and returned
+-*/
+
+static void TestKsmPolicySalt(void)
+{
+	int			status;		/* Status return */
+	KSM_POLICY*     	policy;
+	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+	policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+	policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+
+	policy->name = "default";
+	policy->id = 2;
+
+	/* Call KsmPolicyRead */
+
+/*	status = KsmPolicyRead(policy); */
+
+	CU_ASSERT_EQUAL(status, 0);
+	
+	/* Do the salt/resalt */
+
+	status = KsmPolicyUpdateSalt(policy);
+
+	CU_ASSERT_EQUAL(status, 0);
+
+	free(policy->enforcer);
+	free(policy->denial);
+	free(policy->zsk);
+	free(policy->ksk);
+	free(policy->signature);
+	free(policy->signer);
+	free(policy);
+
+    DbCommit();
+}
+
 /*
  * TestKsmPolicy - Create Test Suite
  *
@@ -193,8 +237,9 @@ int TestKsmPolicy(void)
 {
     struct test_testdef tests[] = {
         {"KsmPolicy", TestKsmPolicyRead},
-        {"KsmPolicyFromId", TestKsmPolicyReadId},
+        {"KsmPolicyFromId", TestKsmPolicyReadId}, 
         {"KsmPolicy2", TestKsmPolicy2},
+        {"KsmPolicySalt", TestKsmPolicySalt},
         {NULL,                      NULL}
     };
 
