@@ -85,15 +85,14 @@ main(int argc, char *argv[]){
     int fd;
     struct sigaction action;
     
-    config.pidfile = (char *)calloc(MAX_PID_LENGTH, sizeof(char));	
+    config.pidfile = NULL;
     config.user = (unsigned char *)calloc(MAX_USER_LENGTH, sizeof(char));
     config.host = (unsigned char *)calloc(MAX_HOST_LENGTH, sizeof(char));
     config.password = (unsigned char *)calloc(MAX_PASSWORD_LENGTH, sizeof(char));
     config.schema = (unsigned char *)calloc(MAX_SCHEMA_LENGTH, sizeof(char));
     config.port = (unsigned char *)calloc(MAX_PORT_LENGTH, sizeof(char));
 
-    if (config.pidfile == NULL || config.user == NULL ||
-            config.host == NULL || config.password == NULL ||
+    if (config.user == NULL || config.host == NULL || config.password == NULL ||
             config.schema == NULL || config.port == NULL) {
         log_msg(&config, LOG_ERR, "Malloc for config struct failed\n");
         exit(1);
@@ -184,7 +183,6 @@ main(int argc, char *argv[]){
     /* NOTREACH */
 
     /* To satisfy code checkers let's free stuff here */
-    free(config.pidfile);	
     free(config.user);
     free(config.host);
     free(config.password);
