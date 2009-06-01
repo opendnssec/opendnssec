@@ -76,7 +76,7 @@ log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
 {
     /* TODO: if the variable arg list is bad then random errors can occur */ 
     va_list args;
-    if (config->debug) priority = LOG_ERR;
+    if (config && config->debug) priority = LOG_ERR;
     va_start(args, format);
     vsyslog(priority, format, args);
     va_end(args);
