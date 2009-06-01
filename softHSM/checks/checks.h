@@ -27,6 +27,7 @@
  */
 
 void usage();
+void inittoken();
 void runInitCheck(unsigned int counter);
 void runInfoCheck(unsigned int counter);
 void runSessionCheck(unsigned int counter);

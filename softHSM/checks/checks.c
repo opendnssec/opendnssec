@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
+#include <string.h>
 
 CK_UTF8CHAR userPIN[] = {"123456"};
 CK_UTF8CHAR soPIN[] = {"12345678"};
@@ -61,7 +62,6 @@ void usage() {
 
 int main(int argc, char **argv) {
   int c;
-  CK_RV rv;
 
   setenv("SOFTHSM_CONF", CHECKS_SOFTHSM_CONF, 1);
 
@@ -69,18 +69,8 @@ int main(int argc, char **argv) {
     usage();
   }
 
-  /* Check that there is no problem with the token config file */
-  /* But there might be an other problem... */
-  rv = C_Initialize(NULL_PTR);
-  if(rv != CKR_OK) {
-    printf("\nCan not initialize SoftHSM.\n");
-    printf("There are probably some problem with the token config file located at: %s\n", CHECKS_SOFTHSM_CONF);
-    return -1;
-  }
-  C_Finalize(NULL_PTR);
-
   /* Init token */
-  system("../src/bin/softhsm --init-token --slot 1 --label 'A token' --so-pin 12345678 --pin 123456");
+  inittoken();
 
   while ((c = getopt(argc, argv, "abcdefghijkz")) != -1) {
     switch(c) {
@@ -136,6 +126,66 @@ int main(int argc, char **argv) {
   }
 
   return 0;
+}
+
+void inittoken() {
+  CK_RV rv;
+  CK_SESSION_HANDLE hSession;
+  CK_UTF8CHAR paddedLabel[32];
+  char *textLabel;
+
+  rv = C_Initialize(NULL_PTR);
+  if(rv != CKR_OK) {
+    printf("\nCan not initialize SoftHSM.\n");
+    printf("There are probably some problem with the token config file located at: %s\n", CHECKS_SOFTHSM_CONF);
+    exit(1);
+  }
+
+  textLabel = "A token";
+  memset(paddedLabel, ' ', sizeof(paddedLabel));
+  memcpy(paddedLabel, textLabel, strlen(textLabel));
+  rv = C_InitToken(slotWithToken, soPIN, sizeof(soPIN) - 1, paddedLabel);
+
+  switch(rv) {
+    case CKR_OK:
+      break;
+    case CKR_SLOT_ID_INVALID:
+      printf("Error: The given slot does not exist. Make sure that slot nr %lu is in the softhsm.conf\n", slotWithToken);
+      exit(1);
+      break;
+    case CKR_PIN_INCORRECT:
+      printf("Error: The given SO PIN does not match the one in the token.\n");
+      exit(1);
+      break;
+    default:
+      printf("Error: The library could not initialize the token.\n");
+      exit(1);
+      break;
+  }
+
+  rv = C_OpenSession(slotWithToken, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  if(rv != CKR_OK) {
+    printf("Error: Could not open a session with the library.\n");
+    exit(1);
+  }
+
+  rv = C_Login(hSession, CKU_SO, soPIN, sizeof(soPIN) - 1);
+  if(rv != CKR_OK) {
+    printf("Error: Could not log in on the token.\n");
+    exit(1);
+  }
+
+  rv = C_InitPIN(hSession, userPIN, sizeof(userPIN) - 1);
+  if(rv != CKR_OK) {
+    printf("Error: Could not initialize the user PIN.\n");
+    exit(1);
+  }
+
+  rv = C_Finalize(NULL_PTR);
+  if(rv != CKR_OK) {
+    printf("Error: Could not finalize SoftHSM.\n");
+    exit(1);
+  }
 }
 
 void runInitCheck(unsigned int counter) {
