@@ -39,6 +39,8 @@ CK_RV getMechanismInfo(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO_PTR pInfo) {
   CHECK_DEBUG_RETURN(pInfo == NULL_PTR, "C_GetMechanismInfo", "pInfo must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
 
+  // Using fixed values because Botan got no interface to retrieve them.
+
   switch(type) {
     case CKM_RSA_PKCS_KEY_PAIR_GEN:
       pInfo->ulMinKeySize = 512;
