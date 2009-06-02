@@ -13,3 +13,9 @@ MAINTAINERCLEANFILES = \
 AUTOMAKE_OPTIONS = foreign
 
 SUBDIRS = src checks
+
+doxygen:
+	INPUT=$(srcdir)/src \
+	PROJECT=$(PACKAGE_NAME) \
+	VERSION=$(VERSION) \
+	doxygen $(srcdir)/libhsm.doxygen
