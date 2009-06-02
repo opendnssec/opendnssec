@@ -1,4 +1,4 @@
-# $Id: acinclude.m4 882 2009-06-02 18:24:34Z jakob $
+# $Id: acinclude.m4 887 2009-06-02 19:41:55Z jakob $
 
 AC_DEFUN([ACX_PEDANTIC],[
 	AC_ARG_ENABLE(
@@ -37,12 +37,8 @@ AC_DEFUN([ACX_LIBXML2],[
 	fi
 	if test -x "$XML_CONFIG"
 	then
-		AC_MSG_CHECKING(where are the libxml2 includes)
 		XML_INCLUDES="`$XML_CONFIG --cflags`"
-		AC_MSG_RESULT($XML_INCLUDES)
-		AC_MSG_CHECKING(where are the libxml2 libs)
 		XML_LIBS="`$XML_CONFIG --libs`"
-		AC_MSG_RESULT($XML_LIBS)
 	fi
 	AC_SUBST(XML_INCLUDES)
 	AC_SUBST(XML_LIBS)
@@ -99,6 +95,22 @@ AC_DEFUN([ACX_LIBKSM],[
 		])
 	AC_CHECK_HEADERS(ksm/ksm.h,,[AC_MSG_ERROR([Can't find libksm headers])])
 	AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,[AC_MSG_ERROR([Can't find libksm library])])
+])
+
+AC_DEFUN([ACX_DLOPEN],[
+	AC_CHECK_FUNC(dlopen, [
+			if test $ac_cv_func_dlopen = yes; then
+			AC_DEFINE(HAVE_DLOPEN, 1, [Whether dlopen is available])
+			fi
+		], [
+			AC_CHECK_FUNC(LoadLibrary, [
+				if test $ac_cv_func_LoadLibrary = yes; then
+					AC_DEFINE(HAVE_LOADLIBRARY, 1, [Whether LoadLibrary is available])
+				fi
+			], [
+				AC_MSG_ERROR(No dynamic library loading support)
+			])
+		])
 ])
 
 dnl TODO
