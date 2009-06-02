@@ -15,19 +15,8 @@ AC_CONFIG_HEADER([config.h])
 AC_PROG_CC
 AC_PROG_INSTALL
 
-AC_ARG_ENABLE(
-	[strict],
-	[AS_HELP_STRING([--enable-strict],[enable strict compile mode @<:@enabled@:>@])],
-	,
-	[enable_strict="yes"]
-)
-
-AC_ARG_ENABLE(
-	[pedantic],
-	[AS_HELP_STRING([--enable-pedantic],[enable pedantic compile mode @<:@enabled@:>@])],
-	,
-	[enable_pedantic="yes"]
-)
+ACX_PEDANTIC
+ACX_STRICT
 
 # Checks for libraries.
 AC_SEARCH_LIBS(uuid_generate, uuid)
@@ -52,68 +41,9 @@ AC_CHECK_FUNCS([dup2 endpwent select strerror strtol])
 AC_FUNC_MALLOC
 AC_FUNC_SELECT_ARGTYPES
 
-# Check for libksm
-AC_ARG_WITH(libksm,
-[  --with-libksm=DIR     Look for libksm in this dir ],
-   [LIBKSM="$withval"
-    CFLAGS="$CFLAGS -I$withval/include"
-    CPPFLAGS="$CPPFLAGS -I$withval/include"
-    LDFLAGS="-L$withval/lib $LDFLAGS"
-    RUNTIME_PATH="$RUNTIME_PATH -R$withval/lib"
-   ]
-)
-
-AC_CHECK_HEADERS(ksm/ksm.h,, [
-		AC_MSG_ERROR([Can't find libksm headers])
-	]
-)
-AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,, [
-		AC_MSG_ERROR([Can't find libksm library])
-	]
-)
-
-
-# Check for libhsm
-AC_ARG_WITH(libhsm,
-[  --with-libhsm=DIR     Look for libhsm in this dir ],
-   [LIBHSM="$withval"
-    CFLAGS="$CFLAGS -I$withval/include"
-    CPPFLAGS="$CPPFLAGS -I$withval/include"
-    LDFLAGS="-L$withval/lib $LDFLAGS"
-    RUNTIME_PATH="$RUNTIME_PATH -R$withval/lib"
-   ]
-)
-
-AC_CHECK_HEADERS(libhsm.h,, [
-		AC_MSG_ERROR([Can't find libhsm headers])
-	]
-)
-AC_CHECK_LIB(hsm, hsm_create_context,, [
-		AC_MSG_ERROR([Can't find libhsm library])
-	]
-)
-
-AC_ARG_WITH(libxml2,
-[  --with-libxml2=DIR     Look for libxml2 in this dir ],
-  [ XML_PATH="$withval"]
-)
-  if test "x$XML_PATH" = "x"; then
-     AC_PATH_PROGS(XML_CONFIG, xml2-config, xml2-config, $PATH)
-  else
-     AC_PATH_PROGS(XML_CONFIG, xml2-config, xml2-config, $XML_PATH/bin)
-  fi
-  if test -x "$XML_CONFIG"
-  then
-     AC_MSG_CHECKING(what are the libxml2 includes)
-     XML_INCLUDES="`$XML_CONFIG --cflags`"
-     AC_MSG_RESULT($XML_INCLUDES)
-     AC_MSG_CHECKING(what are the libxml2 libs)
-     XML_LIBS="`$XML_CONFIG --libs`"
-     AC_MSG_RESULT($XML_LIBS)
-  fi
-
-AC_SUBST(XML_INCLUDES)
-AC_SUBST(XML_LIBS)
+ACX_LIBHSM
+ACX_LIBKSM
+ACX_LIBXML2
 
 AC_SUBST(RUNTIME_PATH)
 
@@ -130,14 +60,6 @@ signer_conf_dir=$localstatedir/opendnssec/config
 AC_DEFINE_UNQUOTED(SIGNER_CONF_DIR, ["`eval echo $signer_conf_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer configuration directory])
 
 CPPFLAGS="${CPPFLAGS} ${XML_INCLUDES}"
-
-if test "${enable_pedantic}" = "yes"; then
-	enable_strict="yes";
-	CFLAGS="${CFLAGS} -pedantic"
-fi
-if test "${enable_strict}" = "yes"; then
-	CFLAGS="${CFLAGS} -Wall -Wextra"
-fi
 
 AC_CONFIG_FILES([
 Makefile
