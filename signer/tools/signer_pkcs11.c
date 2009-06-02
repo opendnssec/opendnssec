@@ -823,6 +823,7 @@ sign_rrset(ldns_rr_list *rrset,
 	} else {
 		keys = cfg->zsks;
 	}
+	ldns_rr_list_print(output, rrset);
 	for (i = 0; i < keys->key_count; i++) {
 		if (keys->use_key[i]) {
 			/* TODO: update params more? algorithm? */
@@ -886,7 +887,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			ldns_rr_list_free(new_zone_rrset);
 			continue;
 		}
-		ldns_rr_list_print(output, new_zone_rrset);
+		//ldns_rr_list_print(output, new_zone_rrset);
 		new_zone_signatures = read_signatures(new_zone_reader,
 		                                      output, cfg);
 		enable_keys(cfg);
@@ -916,7 +917,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 */
 			while (cmp < 0 && new_zone_rrset) {
 				check_existing_sigs(new_zone_signatures, output, cfg);
-				ldns_rr_list_print(output, new_zone_rrset);
+				//ldns_rr_list_print(output, new_zone_rrset);
 				sign_rrset(new_zone_rrset, output, cfg);
 				ldns_rr_list_deep_free(new_zone_rrset);
 				ldns_rr_list_deep_free(new_zone_signatures);
