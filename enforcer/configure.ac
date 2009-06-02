@@ -58,7 +58,9 @@ AC_ARG_WITH(libksm,
    [LIBKSM="$withval"
     CFLAGS="$CFLAGS -I$withval/include"
     CPPFLAGS="$CPPFLAGS -I$withval/include"
-		LDFLAGS="-L$withval/lib $LDFLAGS"]
+    LDFLAGS="-L$withval/lib $LDFLAGS"
+    RUNTIME_PATH="$RUNTIME_PATH -R$withval/lib"
+   ]
 )
 
 AC_CHECK_HEADERS(ksm/ksm.h,, [
@@ -77,7 +79,9 @@ AC_ARG_WITH(libhsm,
    [LIBHSM="$withval"
     CFLAGS="$CFLAGS -I$withval/include"
     CPPFLAGS="$CPPFLAGS -I$withval/include"
-		LDFLAGS="-L$withval/lib $LDFLAGS"]
+    LDFLAGS="-L$withval/lib $LDFLAGS"
+    RUNTIME_PATH="$RUNTIME_PATH -R$withval/lib"
+   ]
 )
 
 AC_CHECK_HEADERS(libhsm.h,, [
@@ -110,6 +114,8 @@ AC_ARG_WITH(libxml2,
 
 AC_SUBST(XML_INCLUDES)
 AC_SUBST(XML_LIBS)
+
+AC_SUBST(RUNTIME_PATH)
 
 keygend_conf_file=$sysconfdir/opendnssec/conf.xml
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])

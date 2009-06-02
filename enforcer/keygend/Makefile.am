@@ -8,6 +8,6 @@ sbin_PROGRAMS = keygend
 
 keygend_SOURCES = keygend.c
 keygend_LDADD = ../common/libenforcer.a
-keygend_LDFLAGS =  @XML_LIBS@
+keygend_LDFLAGS = @RUNTIME_PATH@ @XML_LIBS@
 
 EXTRA_DIST = $(srcdir)/*.h
