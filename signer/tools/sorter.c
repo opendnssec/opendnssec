@@ -458,6 +458,7 @@ main(int argc, char **argv)
 	uint8_t nsec3_salt_length = 0;
 	uint8_t *nsec3_salt = NULL;
 	char *out_file_name = NULL;
+	ldns_rr *nsec3params = NULL, *my_nsec3params;
 
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
@@ -559,6 +560,18 @@ main(int argc, char **argv)
 		}
 	}
 
+	my_nsec3params = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
+	ldns_rr_set_owner(my_nsec3params, ldns_rdf_clone(origin));
+	ldns_nsec3_add_param_rdfs(my_nsec3params,
+	                          nsec3_algorithm,
+	                          0,
+	                          nsec3_iterations,
+	                          nsec3_salt_length,
+	                          nsec3_salt);
+	/* always set bit 7 of the flags to zero, according to
+	 * rfc5155 section 11 */
+	ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(my_nsec3params, 1)), 7, 0);
+
 	rr_tree = ldns_rbtree_create(&compare_rr_data);
 	ns_tree = ldns_rbtree_create(&compare_dname);
 
@@ -583,6 +596,24 @@ main(int argc, char **argv)
 				                             origin,
 				                             &prev_name);
 				if (status == LDNS_STATUS_OK) {
+					/* iff nsec3 and this rr is an nsec3params record with
+					 * *other* params than here; remove it.
+					 * We will add a new one at the end.
+					 * it with the right one. (if there was no nsec3params
+					 * rr in the source zone it will be added then as well
+					 */
+					if (nsec3 && ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NSEC3PARAMS) {
+						if (ldns_rr_compare(cur_rr, my_nsec3params) == 0) {
+							/* same one, unremember our own */
+							ldns_rr_free(my_nsec3params);
+							my_nsec3params = NULL;
+						} else {
+							/* ok it is different, skip it */
+							ldns_rr_free(cur_rr);
+							continue;
+						} 
+					}
+					
 					cur_rr_data = rr_data_new();
 
 					if (!(ldns_dname_compare(ldns_rr_owner(cur_rr), origin) == 0 ||
@@ -710,6 +741,19 @@ main(int argc, char **argv)
 	}
 	if (prev_rr) {
 		ldns_rr_free(prev_rr);
+	}
+	
+	/* if we haven't found the right NSEC3PARAM RR in the zone,
+	 * add it here */
+	if (my_nsec3params) {
+		cur_rr_data = rr_data_new();
+		cur_rr_data->name = ldns_rdf_clone(ldns_rr_owner(my_nsec3params));
+		cur_rr_data->type = LDNS_RR_TYPE_NSEC3PARAMS;
+		status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
+		                             my_nsec3params,
+		                             LDNS_SECTION_ANY_NOQUESTION);
+		
+		ldns_rbtree_insert(rr_tree, rr_data2node(cur_rr_data));
 	}
 
 	print_rrs(out_file, rr_tree, ns_tree, origin);
