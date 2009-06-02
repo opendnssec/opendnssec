@@ -27,10 +27,10 @@
 	</Enforcer>
 
 	<Signer>
-		<WorkingDirectory>/var/dnssec/tmp</WorkingDirectory>
-		<ZoneListFile>/var/dnssec/zonelist.xml</ZoneListFile>
+		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>
+		<ZoneListFile>/var/opendnssec/zonelist.xml</ZoneListFile>
 		<!-- toolsdir will be removed, but is used for testing atm -->
-		<ToolsDirectory>/usr/local/bin</ToolsDirectory>
+		<ToolsDirectory>/sr/local/libexec/opendnssec</ToolsDirectory>
 	</Signer>
 
 </Configuration>
