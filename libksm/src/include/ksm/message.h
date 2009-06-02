@@ -38,8 +38,8 @@
 
 #include <stdarg.h>
 
-#include "system_includes.h"
-#include "memory.h"
+#include <ksm/system_includes.h>
+#include <ksm/memory.h>
 
 #ifdef __cplusplus
 extern "C" {

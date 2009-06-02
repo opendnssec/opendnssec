@@ -36,8 +36,8 @@
  *      Definitions of the string utilities used by all the whois programs.
 -*/
 
-#include "system_includes.h"
-#include "memory.h"
+#include <ksm/system_includes.h>
+#include <ksm/memory.h>
 
 #ifdef __cplusplus
 extern "C" {

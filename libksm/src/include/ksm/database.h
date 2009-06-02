@@ -47,7 +47,7 @@ extern "C" {
 
 #ifdef USE_MYSQL
 
-#include "mysql.h"
+#include <mysql.h>
 
 typedef MYSQL*	DB_HANDLE;				/* Connection handle */
 typedef unsigned long DB_ID;			/* Database row identification */
