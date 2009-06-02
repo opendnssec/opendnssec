@@ -2,7 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS = -I../src/include @CUNIT_INCLUDES@ @DB_INCLUDES@
+AM_CPPFLAGS = -I$(srcdir)/src/include @CUNIT_INCLUDES@ @DB_INCLUDES@
 
 check_PROGRAMS = test
 
@@ -23,4 +23,5 @@ TESTS_ENVIRONMENT = \
 
 TESTS = test
 
-test_LDFLAGS = @CUNIT_LIBS@ -L../src/.libs -lksm -lncurses
+test_LDADD = ../src/libksm.la -lncurses @CUNIT_LIBS@
+test_LDFLAGS = -no-install
