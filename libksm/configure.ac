@@ -184,7 +184,7 @@ if test "${enable_strict}" = "yes"; then
 fi
 
 opendnssecsysconf="\$(sysconfdir)/opendnssec"
-ksmdatadir="\$(datadir)/ksm"
+ksmdatadir="\$(datadir)/opendnssec"
 ksmincludedir="\$(includedir)/ksm"
 
 AC_SUBST([opendnssecsysconf])
