@@ -187,7 +187,7 @@ The returned key structure can be freed with hsm_key_free()
 \param uuid UUID of key to find
 \return key identifier or NULL if not found
 */
-hsm_key_t *hsm_key_tkey_by_uuid(const hsm_ctx_t *context,
+hsm_key_t *hsm_find_key_by_uuid(const hsm_ctx_t *context,
                                 const uuid_t *uuid);
 
 
