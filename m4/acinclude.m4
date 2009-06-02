@@ -37,10 +37,10 @@ AC_DEFUN([ACX_LIBXML2],[
 	fi
 	if test -x "$XML_CONFIG"
 	then
-		XML_CFLAGS="`$XML_CONFIG --cflags`"
+		XML_INCLUDES="`$XML_CONFIG --cflags`"
 		XML_LIBS="`$XML_CONFIG --libs`"
 	fi
-	AC_SUBST(XML_CFLAGS)
+	AC_SUBST(XML_INCLUDES)
 	AC_SUBST(XML_LIBS)
 ])
 
