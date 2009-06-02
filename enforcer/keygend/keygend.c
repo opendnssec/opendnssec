@@ -57,7 +57,7 @@ server_init(DAEMONCONFIG *config)
     }
 
     /* set the default pidfile if nothing was provided on the command line*/
-    if (*config->pidfile == '\0') {
+    if (config->pidfile == NULL) {
         config->pidfile = KEYGEN_PID;
     }
 
