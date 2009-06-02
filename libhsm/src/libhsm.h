@@ -146,6 +146,39 @@ freed with hsm_key_free()
 hsm_key_t **hsm_list_keys(const hsm_ctx_t *context, size_t *count);
 
 
+/*! List all known keys in a HSM
+
+After the function has run, the value at count contains the number
+of keys found.
+
+The resulting key list can be freed with hsm_key_list_free()
+Alternatively, each individual key structure in the list could be
+freed with hsm_key_free()
+
+\param context HSM context
+\param count location to store the number of keys found
+\param repository repository to list the keys in
+*/
+hsm_key_t **hsm_list_keys_repository(const hsm_ctx_t *context, size_t *count,
+                                     const char *repository);
+
+
+/*! Count all known keys in all attached HSMs
+
+\param context HSM context
+*/
+size_t hsm_count_keys(const hsm_ctx_t *context);
+
+
+/*! Count all known keys in a HSM
+
+\param context HSM context
+\param repository repository in where to count the keys
+*/
+size_t hsm_count_keys_repository(const hsm_ctx_t *context,
+                                 const char *repository);
+
+
 /*! Find a key pair by UUID
 
 The returned key structure can be freed with hsm_key_free()
@@ -154,7 +187,7 @@ The returned key structure can be freed with hsm_key_free()
 \param uuid UUID of key to find
 \return key identifier or NULL if not found
 */
-hsm_key_t *hsm_find_key_by_uuid(const hsm_ctx_t *context,
+hsm_key_t *hsm_key_tkey_by_uuid(const hsm_ctx_t *context,
                                 const uuid_t *uuid);
 
 
