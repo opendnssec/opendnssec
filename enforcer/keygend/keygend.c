@@ -107,6 +107,9 @@ server_main(DAEMONCONFIG *config)
     }
     kaspSetPolicyDefaults(policy, NULL);
     
+    result = hsm_open(CONFIGFILE, hsm_prompt_pin, NULL);
+    log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
+
     while (1) {
 
         /* Read the config file */
@@ -118,9 +121,6 @@ server_main(DAEMONCONFIG *config)
 
         log_msg(config, LOG_INFO, "Connecting to Database...");
         kaspConnect(config, &dbhandle);
-
-        result = hsm_open(CONFIGFILE, hsm_prompt_pin, NULL);
-        log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
 
         /* Read all policies */
         status = KsmPolicyInit(&handle, NULL);
@@ -197,19 +197,9 @@ server_main(DAEMONCONFIG *config)
         }
         DbFreeResult(handle);
 
-        /* Disconnect from DB and HSMs in case we are asleep for a long time */
+        /* Disconnect from DB in case we are asleep for a long time */
         log_msg(config, LOG_INFO, "Disconnecting from Database...");
         kaspDisconnect(&dbhandle);
-        
-        /*
-         * Destroy HSM context
-         */
-        if (ctx) {
-          hsm_destroy_context(ctx);
-        }
-  
-        result = hsm_close();
-        log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
         
 				if (config->term == 1 ){
 					log_msg(config, LOG_INFO, "Exiting...");
@@ -229,6 +219,17 @@ server_main(DAEMONCONFIG *config)
     }
     log_msg(config, LOG_INFO, "Disconnecting from Database...");
     kaspDisconnect(&dbhandle);
+
+    /*
+     * Destroy HSM context
+     */
+    if (ctx) {
+      hsm_destroy_context(ctx);
+    }
+
+    result = hsm_close();
+    log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
+
     free(policy->name);
     free(policy->enforcer);
     free(policy->denial);
