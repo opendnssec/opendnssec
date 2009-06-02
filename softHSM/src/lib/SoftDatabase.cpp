@@ -899,7 +899,6 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
       break;
     case CKA_ALWAYS_SENSITIVE:
     case CKA_NEVER_EXTRACTABLE:
-    case CKA_ALWAYS_AUTHENTICATE:
     case CKA_WRAP_WITH_TRUSTED:
       // We can not set this for the private key
       if(this->getObjectClass(objectRef) == CKO_PRIVATE_KEY) {
@@ -907,6 +906,17 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
       }
       // Invalid for other object classes
       return CKR_ATTRIBUTE_TYPE_INVALID;
+    case CKA_ALWAYS_AUTHENTICATE:
+      // We can change this for the private key
+      // but invalid for other object classes
+      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+      }
+      // This attribute can only be changed when the CKA_PRIVATE is set to true.
+      if(this->getBooleanAttribute(objectRef, CKA_PRIVATE, CK_TRUE) != CK_FALSE) {
+        return CKR_ATTRIBUTE_READ_ONLY;
+      }
+      break;
     case CKA_SENSITIVE:
       // We can change this for the private key
       // but invalid for other object classes
