@@ -43,7 +43,7 @@ extern "C" {
 
 #ifdef USE_MYSQL
 
-#include "mysql.h"
+#include <mysql.h>
 
 MYSQL* KsmHandle(void);
 
