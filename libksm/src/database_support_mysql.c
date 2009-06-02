@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "mysql.h"
+#include <mysql.h>
 
 #include "ksm/dbsdef.h"
 #include "ksm/database.h"

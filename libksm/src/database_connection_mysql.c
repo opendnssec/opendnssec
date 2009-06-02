@@ -37,7 +37,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-#include "mysql.h"
+#include <mysql.h>
 
 #include "ksm/database.h"
 #include "ksm/dbsdef.h"
