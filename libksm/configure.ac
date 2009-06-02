@@ -15,6 +15,10 @@ AC_PATH_PROG(PERL, perl)
 if test -z "$PERL"; then
    AC_MSG_ERROR([perl not found])
 fi
+
+ACX_PEDANTIC
+ACX_STRICT
+
 # Checks for libraries.
 
 # Checks for header files.
@@ -25,22 +29,6 @@ AC_CHECK_HEADERS([limits.h stdint.h stdlib.h string.h strings.h sys/socket.h uni
 AC_C_CONST
 AC_TYPE_SIZE_T
 AC_STRUCT_TM
-
-# Strict
-AC_ARG_ENABLE(
-	[strict],
-	[AS_HELP_STRING([--enable-strict],[enable strict compile mode @<:@enabled@:>@])],
-	,
-	[enable_strict="yes"]
-)
-
-# Pendantic
-AC_ARG_ENABLE(
-	[pedantic],
-	[AS_HELP_STRING([--enable-pedantic],[enable pedantic compile mode @<:@enabled@:>@])],
-	,
-	[enable_pedantic="yes"]
-)
 
 # Checks for library functions.
 AC_FUNC_MALLOC
@@ -120,24 +108,7 @@ AC_SUBST(DB_INCLUDES)
 AC_SUBST(DB_LIBS)
 AC_SUBST(DB_TYPE)
 
-
-# Check for cunit
-AC_ARG_WITH(cunit,
-[  --with-cunit=DIR        Look for cunit in this dir ],
-   CUNIT_PATH="$withval"
-)
-if test "x$CUNIT_PATH" != "x"
-then
-   AC_MSG_CHECKING(what are the cunit includes)
-   CUNIT_INCLUDES="-I$CUNIT_PATH/include"
-   AC_MSG_RESULT($CUNIT_INCLUDES)
-   AC_MSG_CHECKING(what are the cunit libs)
-   CUNIT_LIBS="-L$CUNIT_PATH/lib -lcunit"
-   AC_MSG_RESULT($CUNIT_LIBS)
-fi
-
-AC_SUBST(CUNIT_INCLUDES)
-AC_SUBST(CUNIT_LIBS)
+ACX_CUNIT
 
 AC_ARG_WITH(dbname,
 [  --with-dbname=DB_NAME   Database name/schema for unit tests  ],
@@ -171,17 +142,6 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
-
-if test "${enable_pedantic}" = "yes"; then
-	enable_strict="yes";
-	CFLAGS="${CFLAGS} -pedantic"
-	CXXFLAGS="${CXXFLAGS} -pedantic"
-fi
-
-if test "${enable_strict}" = "yes"; then
-	CFLAGS="${CFLAGS} -Wall -Wextra"
-	CXXFLAGS="${CXXFLAGS} -Wall -Wextra"
-fi
 
 opendnssecsysconf="\$(sysconfdir)/opendnssec"
 ksmdatadir="\$(datadir)/opendnssec"
