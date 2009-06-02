@@ -28,9 +28,9 @@
 
 	<Signer>
 		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>
-		<ZoneListFile>/var/opendnssec/zonelist.xml</ZoneListFile>
+		<ZoneListFile>/etc/opendnssec/zonelist.xml</ZoneListFile>
 		<!-- toolsdir will be removed, but is used for testing atm -->
-		<ToolsDirectory>/sr/local/libexec/opendnssec</ToolsDirectory>
+		<ToolsDirectory>/usr/local/libexec/opendnssec</ToolsDirectory>
 	</Signer>
 
 </Configuration>
