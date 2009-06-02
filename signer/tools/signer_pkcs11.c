@@ -736,6 +736,7 @@ read_signatures(rrset_reader_t *reader, FILE *out, current_config *cfg)
 	if (reader->skipped_rr) {
 		if (ldns_rr_get_type(reader->skipped_rr) !=
 		    LDNS_RR_TYPE_RRSIG) {
+			ldns_rr_list_free(rrset);
 			return NULL;
 		}
 		ldns_rr_list_push_rr(rrset, reader->skipped_rr);
@@ -882,6 +883,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 
 	while((new_zone_rrset = read_rrset(new_zone_reader, output, cfg))) {
 		if (ldns_rr_list_rr_count(new_zone_rrset) == 0) {
+			ldns_rr_list_free(new_zone_rrset);
 			continue;
 		}
 		ldns_rr_list_print(output, new_zone_rrset);
@@ -914,7 +916,10 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 */
 			while (cmp < 0 && new_zone_rrset) {
 				check_existing_sigs(new_zone_signatures, output, cfg);
+				ldns_rr_list_print(output, new_zone_rrset);
 				sign_rrset(new_zone_rrset, output, cfg);
+				ldns_rr_list_deep_free(new_zone_rrset);
+				ldns_rr_list_deep_free(new_zone_signatures);
 				new_zone_rrset = read_rrset(new_zone_reader, output, cfg);
 				new_zone_signatures = read_signatures(new_zone_reader, output, cfg);
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
@@ -940,6 +945,14 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				sign_rrset(new_zone_rrset, output, cfg);
 			}
 		}
+		ldns_rr_list_deep_free(new_zone_rrset);
+		ldns_rr_list_deep_free(new_zone_signatures);
+		ldns_rr_list_deep_free(signed_zone_rrset);
+		ldns_rr_list_deep_free(signed_zone_signatures);
+		new_zone_rrset = NULL;
+		new_zone_signatures = NULL;
+		signed_zone_rrset = NULL;
+		signed_zone_signatures = NULL;
 	}
 	return 0;
 }
