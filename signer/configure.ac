@@ -107,41 +107,11 @@ AC_ARG_WITH(pkcs11-module,
 )
 AC_SUBST(PKCS11_MODULE)
 
-# check for ldns in --with-ldns
-AC_ARG_WITH(ldns, 
-	AC_HELP_STRING([--with-ldns=PATH        specify prefix of path of ldns library to use])
-	,
-	[
-		specialldnsdir="$withval"
-		CFLAGS="$CFLAGS -I$withval/include"
-		LDFLAGS="-L$withval/lib $LDFLAGS"
-		LDNSDIR="$withval"
-	]
-)
+ACX_PEDANTIC
+ACX_STRICT
 
-# check for ldns on system
-AC_CHECK_LIB(ldns, ldns_rr_new,, [
-		AC_MSG_ERROR([Can't find ldns library])
-	]
-)
-
-# check whether our linked ldns is actually recent enough
-AC_CHECK_FUNC(ldns_sha1, [], [
-		AC_MSG_ERROR([ldns library too old, please update it])
-	]
-)
-
-# check for hsm
-AC_ARG_WITH(hsm, 
-	AC_HELP_STRING([--with-hsm=PATH        specify prefix of path of hsm library to use])
-	,
-	[
-		specialhsmdir="$withval"
-		CFLAGS="$CFLAGS -I$withval/include"
-		LDFLAGS="-L$withval -L$withval/lib $LDFLAGS"
-		hsmDIR="$withval"
-	]
-)
+ACX_LDNS
+ACX_LIBHSM
 
 # check for hsm development source tree
 AC_MSG_CHECKING([for hsm devel source])
