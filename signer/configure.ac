@@ -97,6 +97,7 @@ ACX_PEDANTIC
 ACX_STRICT
 
 ACX_LDNS
+ACX_LIBXML2
 ACX_LIBHSM
 
 # check for hsm development source tree

@@ -79,8 +79,8 @@ AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
         	AC_HELP_STRING([--with-libhsm=PATH],[Specify prefix of path of libhsm]),
         	[
-			CFLAGS="$CFLAGS -I$withval/include"
-			LDFLAGS="-L$withval/lib $LDFLAGS"
+			CFLAGS="$CFLAGS -I$withval/include $XML_INCLUDES"
+			LDFLAGS="-L$withval/lib $LDFLAGS $XML_LIBS"
 		])
 	AC_CHECK_HEADERS(libhsm.h,,[AC_MSG_ERROR([Can't find libhsm headers])])
 	AC_CHECK_LIB(hsm,hsm_create_context,,[AC_MSG_ERROR([Can't find libhsm library])])
