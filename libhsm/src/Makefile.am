@@ -3,7 +3,8 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS =	-I$(srcdir)/.. \
-		-I$(srcdir)/cryptoki
+		-I$(srcdir)/cryptoki \
+		@XML_INCLUDES@
 AM_CFLAGS =	-std=c99
 
 lib_LTLIBRARIES = libhsm.la

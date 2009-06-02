@@ -1,4 +1,4 @@
-# $Id$
+# $Id: acinclude.m4 882 2009-06-02 18:24:34Z jakob $
 
 AC_DEFUN([ACX_PEDANTIC],[
 	AC_ARG_ENABLE(
@@ -37,23 +37,28 @@ AC_DEFUN([ACX_LIBXML2],[
 	fi
 	if test -x "$XML_CONFIG"
 	then
-		CFLAGS="$CFLAGS `$XML_CONFIG --cflags`"
-		LDFLAGS="`$XML_CONFIG --libs` $LDFLAGS"
-		XMLDIR="$withval"
+		AC_MSG_CHECKING(where are the libxml2 includes)
+		XML_INCLUDES="`$XML_CONFIG --cflags`"
+		AC_MSG_RESULT($XML_INCLUDES)
+		AC_MSG_CHECKING(where are the libxml2 libs)
+		XML_LIBS="`$XML_CONFIG --libs`"
+		AC_MSG_RESULT($XML_LIBS)
 	fi
+	AC_SUBST(XML_INCLUDES)
+	AC_SUBST(XML_LIBS)
 ])
 
 AC_DEFUN([ACX_LDNS],[
 	AC_ARG_WITH(ldns, 
 		[AC_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])],
 		[
-			specialldnsdir="$withval"
 			CFLAGS="$CFLAGS -I$withval/include"
 			LDFLAGS="-L$withval/lib $LDFLAGS"
-			LDNSDIR="$withval"
 		])
 	AC_CHECK_LIB(ldns, ldns_rr_new,,[AC_MSG_ERROR([Can't find ldns library])])
-	AC_CHECK_FUNC(ldns_b32_ntop,[],[AC_MSG_ERROR([ldns library too old, please update it])])
+	AC_CHECK_FUNC(ldns_sha1,[],[AC_MSG_ERROR([ldns library too old, please update it])])
+	AC_SUBST(LDNS_INCLUDES)
+	AC_SUBST(LDNS_LIBS)
 ])
 
 AC_DEFUN([ACX_CUNIT],[
@@ -73,3 +78,31 @@ AC_DEFUN([ACX_CUNIT],[
 	AC_SUBST(CUNIT_INCLUDES)
 	AC_SUBST(CUNIT_LIBS)
 ])
+
+AC_DEFUN([ACX_LIBHSM],[
+	AC_ARG_WITH(libhsm, 
+        	AC_HELP_STRING([--with-libhsm=PATH],[Specify prefix of path of libhsm]),
+        	[
+			CFLAGS="$CFLAGS -I$withval/include"
+			LDFLAGS="-L$withval/lib $LDFLAGS"
+		])
+	AC_CHECK_HEADERS(libhsm.h,,[AC_MSG_ERROR([Can't find libhsm headers])])
+	AC_CHECK_LIB(hsm,hsm_create_context,,[AC_MSG_ERROR([Can't find libhsm library])])
+])
+
+AC_DEFUN([ACX_LIBKSM],[
+	AC_ARG_WITH(libksm, 
+        	AC_HELP_STRING([--with-libksm=PATH],[Specify prefix of path of libksm]),
+        	[
+			CFLAGS="$CFLAGS -I$withval/include"
+			LDFLAGS="-L$withval/lib $LDFLAGS"
+		])
+	AC_CHECK_HEADERS(ksm/ksm.h,,[AC_MSG_ERROR([Can't find libksm headers])])
+	AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,[AC_MSG_ERROR([Can't find libksm library])])
+])
+
+dnl TODO
+dnl
+dnl ACX_MYSQL
+dnl ACX_SQLITE3
+dnl ACX_BOTAN
