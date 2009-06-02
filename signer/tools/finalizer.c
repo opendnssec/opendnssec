@@ -44,7 +44,6 @@
 #include <ldns/ldns.h>
 #include <getopt.h>
 
-#include "ldns_pkcs11.h"
 #include "util.h"
 
 void
