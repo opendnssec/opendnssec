@@ -1,4 +1,4 @@
-# $Id: acinclude.m4 887 2009-06-02 19:41:55Z jakob $
+# $Id$
 
 AC_DEFUN([ACX_PEDANTIC],[
 	AC_ARG_ENABLE(
