@@ -90,7 +90,7 @@ usage(void)
     fprintf(stderr, "OpenDNSSEC Enforcer Daemon.\n\n");
     fprintf(stderr, "Supported options:\n");
     fprintf(stderr, "  -d          Debug.\n");
-    fprintf(stderr, "  -u          Change effective uid to the specified user.\n");
+    fprintf(stderr, "  -u user     Change effective uid to the specified user.\n");
     fprintf(stderr, "  -P pidfile  Specify the PID file to write.\n");
 
     fprintf(stderr, "  -v          Print version.\n");
