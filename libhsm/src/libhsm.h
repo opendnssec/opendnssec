@@ -60,10 +60,10 @@ typedef struct {
 
 /*! HSM Key Pair */
 typedef struct {
-	const hsm_module_t *module;  /*!< pointer to module */
+	const hsm_module_t *module; /*!< pointer to module */
 	unsigned long private_key;  /*!< private key within module */
-	unsigned long public_key;  /*!< public key within module */
-	uuid_t *uuid;          /*!< UUID of key (if available) */
+	unsigned long public_key;   /*!< public key within module */
+	uuid_t *uuid;               /*!< UUID of key (if known) */
 } hsm_key_t;
 
 /*! HSM context to keep track of sessions */
