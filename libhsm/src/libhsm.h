@@ -157,7 +157,8 @@ freed with hsm_key_free()
 \param count location to store the number of keys found
 \param repository repository to list the keys in
 */
-hsm_key_t **hsm_list_keys_repository(const hsm_ctx_t *context, size_t *count,
+hsm_key_t **hsm_list_keys_repository(const hsm_ctx_t *context,
+                                     size_t *count,
                                      const char *repository);
 
 

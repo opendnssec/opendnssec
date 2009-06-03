@@ -764,6 +764,60 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session,
     return key;
 }
 
+/* helper function to find both key counts or the keys themselves
+ * if the argument store is 0, results are not returned; the
+ * function will only set the count and return NULL
+ * Otherwise, a newly allocated key array will be returned
+ */
+static hsm_key_t **
+hsm_list_keys_session_internal(const hsm_session_t *session,
+                               size_t *count,
+                               int store)
+{
+    hsm_key_t **keys = NULL;
+    hsm_key_t *key;
+    CK_RV rv;
+    CK_OBJECT_CLASS key_class = CKO_PRIVATE_KEY;
+    CK_ATTRIBUTE template[] = {
+        { CKA_CLASS, &key_class, sizeof(key_class) },
+    };
+    CK_ULONG total_count = 0;
+    CK_ULONG objectCount = 1;
+    /* find 100 keys at a time (and loop until there are none left) */
+    CK_ULONG max_object_count = 100;
+    CK_ULONG i, j;
+    CK_OBJECT_HANDLE object[max_object_count];
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
+                                                 template, 1);
+    hsm_pkcs11_check_rv(rv, "Find objects init");
+    j = 0;
+    while (objectCount > 0) {
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
+                                                 object,
+                                                 max_object_count,
+                                                 &objectCount);
+        hsm_pkcs11_check_rv(rv, "Find first object");
+
+        if (objectCount > 0 && store) {
+            keys = realloc(keys, objectCount * sizeof(hsm_key_t *));
+            for (i = 0; i < objectCount; i++) {
+                key = hsm_key_new_privkey_object_handle(session, object[i]);
+                keys[j] = key;
+                j++;
+            }
+        }
+        total_count += objectCount;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+    hsm_pkcs11_check_rv(rv, "Find objects final");
+
+    *count = total_count;
+    return keys;
+}
+
+
 /* returns an array of all keys available to the given session
  *
  * \param session the session to find the keys in
@@ -774,42 +828,21 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session,
 hsm_key_t **
 hsm_list_keys_session(const hsm_session_t *session, size_t *count)
 {
-    hsm_key_t **keys;
-    hsm_key_t *key;
-    CK_RV rv;
-    CK_OBJECT_CLASS key_class = CKO_PRIVATE_KEY;
-    CK_ATTRIBUTE template[] = {
-        { CKA_CLASS, &key_class, sizeof(key_class) },
-    };
-    CK_ULONG total_count = 0;
-    CK_ULONG objectCount;
-    CK_ULONG max_object_count = 100;
-    CK_ULONG i;
-    CK_OBJECT_HANDLE object[max_object_count];
+    return hsm_list_keys_session_internal(session, count, 1);
+}
 
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
-                                                 template, 1);
-    hsm_pkcs11_check_rv(rv, "Find objects init");
-
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
-                                             object,
-                                             max_object_count,
-                                             &objectCount);
-    hsm_pkcs11_check_rv(rv, "Find first object");
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
-
-    printf("objectCount: %u\n", (unsigned int) objectCount);
-    keys = malloc(objectCount * sizeof(hsm_key_t *));
-    for (i = 0; i < objectCount; i++) {
-        key = hsm_key_new_privkey_object_handle(session, object[i]);
-        keys[i] = key;
-    }
-    total_count += objectCount;
-
-    hsm_pkcs11_check_rv(rv, "Find objects final");
-
-    *count = total_count;
-    return keys;
+/* returns a count all keys available to the given session
+ *
+ * \param session the session to find the keys in
+ *
+ * \return the number of keys
+ */
+size_t
+hsm_count_keys_session(const hsm_session_t *session)
+{
+    size_t count = 0;
+    (void) hsm_list_keys_session_internal(session, &count, 0);
+    return count;
 }
 
 /* returns a newly allocated key structure containing the key data
@@ -1395,6 +1428,53 @@ hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
         *count = key_count;
     }
     return keys;
+}
+
+hsm_key_t **
+hsm_list_keys_repository(const hsm_ctx_t *ctx,
+                         size_t *count,
+                         const char *repository)
+{
+    hsm_session_t *session;
+    
+    if (!repository) return NULL;
+    if (!ctx) ctx = _hsm_ctx;
+    
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) {
+        *count = 0;
+        return NULL;
+    }
+    return hsm_list_keys_session(session, count);
+}
+
+size_t
+hsm_count_keys(const hsm_ctx_t *ctx)
+{
+    size_t count = 0;
+    unsigned int i;
+    
+    if (!ctx) ctx = _hsm_ctx;
+    for (i = 0; i < ctx->session_count; i++) {
+        count += hsm_count_keys_session(ctx->session[i]);
+    }
+    return count;
+}
+
+size_t
+hsm_count_keys_repository(const hsm_ctx_t *ctx,
+                          const char *repository)
+{
+    hsm_session_t *session;
+    
+    if (!repository) return 0;
+    if (!ctx) ctx = _hsm_ctx;
+    
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) {
+        return 0;
+    }
+    return hsm_count_keys_session(session);
 }
 
 hsm_key_t *
