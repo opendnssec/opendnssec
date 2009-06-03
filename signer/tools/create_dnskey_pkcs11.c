@@ -235,17 +235,26 @@ main(int argc, char **argv)
 		result = keystr2uuid(&key_uuid, argv[argi]);
 		
 		key = hsm_find_key_by_uuid(NULL, (const uuid_t *)&key_uuid);
-		
-		/* todo: key_rr */
-		key_rr = hsm_get_dnskey(NULL, key, params);
-		ldns_rr_set_ttl(key_rr, ttl);
-		
-		ldns_rr_print(stdout, key_rr);
-		found = 1;
 
-		ldns_rr_free(key_rr);
-		hsm_key_free(key);
+		if (key) {
+			/* todo: key_rr */
+			key_rr = hsm_get_dnskey(NULL, key, params);
+			if (key_rr) {
+				ldns_rr_set_ttl(key_rr, ttl);
+				
+				ldns_rr_print(stdout, key_rr);
+				found = 1;
 
+				ldns_rr_free(key_rr);
+			} else {
+				fprintf(stderr, "Error creating DNSKEY RR for %s\n",
+				        argv[argi]);
+			}
+			hsm_key_free(key);
+		} else {
+			fprintf(stderr, "Unable to find key with id %s\n",
+			        argv[argi]);
+		}
 		argi++;
 	}
 	
