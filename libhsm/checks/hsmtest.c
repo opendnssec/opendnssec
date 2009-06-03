@@ -149,7 +149,9 @@ main (int argc, char *argv[])
 				uuid = hsm_get_uuid(ctx, keys[i]);
 				if (uuid) {  /* only use keys with uuid */
 					printf("Key with UUID found!\n");
-					key = hsm_find_key_by_uuid(ctx, uuid);
+					if (key) hsm_key_free(key);
+					key = hsm_find_key_by_uuid(ctx, (const uuid_t *)uuid);
+					printf("key: %p\n", key);
 				} else {
 					printf("Key without UUID skipped...\n");
 				}
@@ -208,6 +210,8 @@ main (int argc, char *argv[])
 		printf("Deleted key. Result: %d\n", res);
 	}
 
+	if (key) hsm_key_free(key);
+
 	/*
 	 * Test random{32,64} functions
 	 */
@@ -230,5 +234,8 @@ main (int argc, char *argv[])
 	 */
 	result = hsm_close();
 	fprintf(stdout, "all done! hsm_close result: %d\n", result);
+
+	if (config) free(config);
+	
 	return 0;
 }

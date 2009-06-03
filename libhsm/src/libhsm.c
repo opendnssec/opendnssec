@@ -731,7 +731,7 @@ hsm_get_id_for_object(const hsm_session_t *session,
     hsm_pkcs11_check_rv(rv, "Get attr value 2\n");
 
     *len = template[0].ulValueLen;
-    return id;
+    return template[0].pValue;
 }
 
 
@@ -787,6 +787,7 @@ hsm_list_keys_session_internal(const hsm_session_t *session,
     CK_ULONG max_object_count = 100;
     CK_ULONG i, j;
     CK_OBJECT_HANDLE object[max_object_count];
+    CK_OBJECT_HANDLE *key_handles = NULL;
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 1);
@@ -800,10 +801,10 @@ hsm_list_keys_session_internal(const hsm_session_t *session,
         hsm_pkcs11_check_rv(rv, "Find first object");
 
         if (objectCount > 0 && store) {
-            keys = realloc(keys, objectCount * sizeof(hsm_key_t *));
+            key_handles = realloc(key_handles, total_count * sizeof(CK_OBJECT_HANDLE));
+            
             for (i = 0; i < objectCount; i++) {
-                key = hsm_key_new_privkey_object_handle(session, object[i]);
-                keys[j] = key;
+                key_handles[j] = object[i];
                 j++;
             }
         }
@@ -813,6 +814,15 @@ hsm_list_keys_session_internal(const hsm_session_t *session,
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
     hsm_pkcs11_check_rv(rv, "Find objects final");
 
+    if (store) {
+        keys = realloc(keys, total_count * sizeof(hsm_key_t *));
+        for (i = 0; i < total_count; i++) {
+            key = hsm_key_new_privkey_object_handle(session, key_handles[i]);
+            keys[i] = key;
+        }
+    }
+    free(key_handles);
+    
     *count = total_count;
     return keys;
 }
@@ -1484,8 +1494,10 @@ hsm_find_key_by_id(const hsm_ctx_t *ctx,
 {
     hsm_key_t *key;
     unsigned int i;
+
     if (!ctx) ctx = _hsm_ctx;
     if (!id) return NULL;
+
     for (i = 0; i < ctx->session_count; i++) {
         key = hsm_find_key_by_id_session(ctx->session[i], id, len);
         if (key) return key;
@@ -1512,7 +1524,7 @@ hsm_find_key_by_id_string(const hsm_ctx_t *ctx, const char *id)
 hsm_key_t *
 hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
 {
-    return hsm_find_key_by_id(ctx, (unsigned char *)uuid, sizeof(uuid));
+    return hsm_find_key_by_id(ctx, (unsigned char *)uuid, sizeof(uuid_t));
 }
 
 hsm_key_t *
@@ -1637,12 +1649,28 @@ hsm_key_list_free(hsm_key_t **key_list, size_t count)
 uuid_t *
 hsm_get_uuid(const hsm_ctx_t *ctx, const hsm_key_t *key)
 {
-    (void) ctx;
-    if (key) {
-        return key->uuid;
-    } else {
-        return NULL;
+    uuid_t *uuid = NULL;
+    unsigned char *id;
+    size_t len;
+    hsm_session_t *session;
+    
+    if (!ctx) ctx = _hsm_ctx;
+    if (!key) return NULL;
+
+    session = hsm_find_key_session(ctx, key);
+    if (!session) return NULL;
+    
+    id = hsm_get_id_for_object(session, key->public_key, &len);
+    if (!id) return NULL;
+    
+    /* only return uuid if the id is actually a uuid */
+    if (len == sizeof(uuid_t)) {
+        uuid = malloc(sizeof(uuid_t));
+        memcpy(uuid, id, sizeof(uuid_t));
     }
+    free(id);
+
+    return uuid;
 }
 
 ldns_rr*
@@ -2020,9 +2048,12 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
 void
 hsm_print_key(hsm_key_t *key) {
     char uuid_str[37];
+    uuid_t *uuid;
     if (key) {
-        if (key->uuid) {
-            uuid_unparse(*key->uuid, uuid_str);
+        uuid = hsm_get_uuid(NULL, key);
+        if (uuid) {
+            uuid_unparse(*uuid, uuid_str);
+            free(uuid);
         } else {
             uuid_str[0] = '\0';
         }
