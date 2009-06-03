@@ -14,8 +14,8 @@
 
 		<Repository name="softHSM">
 			<Module>/usr/local/lib/libsofthsm.so</Module>
-			<TokenLabel>alice</TokenLabel>
-			<PIN>test:5678</PIN>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
 		</Repository>
 	</RepositoryList>
 
