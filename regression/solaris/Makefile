@@ -10,6 +10,7 @@ CONF_ARG = \
 	--localstatedir=/var \
 	--with-libksm=/usr/local \
 	--with-libhsm=/usr/local \
+	--with-sqlite3=/usr/local \
 	--with-ldns=/opt/ldns/nossl \
 	--with-trang=$(HOME)/bin/trang.jar
 
@@ -23,4 +24,4 @@ clean:
 $(TARGETS)::
 	test -d $@ || mkdir $@
 	(cd $@; $(TOP)/$@/configure $(CONF_ARG))
-	(cd $@; make)
+	(cd $@; make -j 4)
