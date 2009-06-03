@@ -50,6 +50,9 @@
 #include <cryptoki.h>
 #include <pkcs11.h>
 
+/* fixed length from PKCS #11 specification */
+#define HSM_TOKEN_LABEL_LENGTH 32
+
 /* we need some globals, for session management, and for the initial
  * context
  */

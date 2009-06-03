@@ -35,8 +35,6 @@
 
 #define HSM_MAX_SESSIONS 10
 
-#define HSM_TOKEN_LABEL_LENGTH 32
-
 /*! Return codes for some of the functions, mapped to int */
 #define HSM_OK              0
 #define	HSM_ERROR           1
