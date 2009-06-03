@@ -6,6 +6,7 @@
 AC_PREREQ(2.61)
 AC_INIT(libksm, 0.0.1, jad@jadickinson.co.uk)
 AM_INIT_AUTOMAKE
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/ksm_key.c])
 # Checks for programs.
 AC_PROG_CC

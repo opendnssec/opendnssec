@@ -3,7 +3,8 @@
 
 AC_PREREQ(2.61)
 AC_INIT([hsm-toolkit],[0.9],[roy@dnss.ec])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([hsm-toolkit.c])
 AC_CONFIG_HEADER([config.h])
 

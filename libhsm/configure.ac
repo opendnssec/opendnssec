@@ -4,6 +4,7 @@
 AC_PREREQ(2.61)
 AC_INIT([libhsm],[0.0.1],[jelte@nlnetlabs.nl])
 AM_INIT_AUTOMAKE
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/libhsm.c])
 AC_CONFIG_HEADER([config.h])
 

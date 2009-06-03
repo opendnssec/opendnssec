@@ -6,6 +6,7 @@
 AC_PREREQ(2.61)
 AC_INIT(enforcer, 0.0.1, jad@jadickinson.co.uk)
 AM_INIT_AUTOMAKE
+AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_CONFIG_SRCDIR([common/daemon.h])
