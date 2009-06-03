@@ -14,6 +14,7 @@ AC_CONFIG_HEADER([config.h])
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
+AC_PROG_LIBTOOL
 
 ACX_PEDANTIC
 ACX_STRICT
@@ -41,9 +42,9 @@ AC_CHECK_FUNCS([dup2 endpwent select strerror strtol])
 AC_FUNC_MALLOC
 AC_FUNC_SELECT_ARGTYPES
 
+ACX_LIBXML2
 ACX_LIBHSM
 ACX_LIBKSM
-ACX_LIBXML2
 
 AC_SUBST(RUNTIME_PATH)
 
@@ -58,8 +59,6 @@ AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file | sed s,NONE,$ac_de
 
 signer_conf_dir=$localstatedir/opendnssec/config
 AC_DEFINE_UNQUOTED(SIGNER_CONF_DIR, ["`eval echo $signer_conf_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer configuration directory])
-
-CPPFLAGS="${CPPFLAGS} ${XML_INCLUDES}"
 
 AC_CONFIG_FILES([
 Makefile

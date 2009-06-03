@@ -41,22 +41,14 @@ ACX_DLOPEN
 
 AC_ARG_WITH(softhsm, 
 	AC_HELP_STRING([--with-softhsm=PATH],[specify path of SoftHSM library to use for regression testing (default PREFIX/lib/libsofthsm.so)]),
-	[
-		softhsm_module="$withval"
-	],
-	[
-		softhsm_module=$prefix/lib/libsofthsm.so
-	]
+	[ softhsm_module="$withval" ],
+	[ softhsm_module="$prefix/lib/libsofthsm.so" ]
 )
 
 AC_ARG_WITH(sca6000, 
 	AC_HELP_STRING([--with-sca6000=PATH],[specify path of SCA6000 library to use for regression testing (default /usr/lib/libpkcs11.so)]),
-	[
-		sca6000_module="$withval"
-	],
-	[
-		sca6000_module=/usr/lib/libpkcs11.so
-	]
+	[ sca6000_module="$withval" ],
+	[ sca6000_module="/usr/lib/libpkcs11.so" ]
 )
 
 AC_SUBST(softhsm_module)

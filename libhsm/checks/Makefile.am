@@ -12,7 +12,7 @@ EXTRA_DIST =	$(srcdir)/*.xml $(srcdir)/softhsm.conf
 
 noinst_PROGRAMS = hsmtest
  
-hsmtest_LDADD = ../src/libhsm.la @XML_LIBS@
+hsmtest_LDADD = ../src/libhsm.la
 hsmtest_LDFLAGS = -no-install
 
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf

@@ -29,24 +29,12 @@ AC_SUBST(VERSION_INFO)
 # Init the automake
 AM_INIT_AUTOMAKE
 
-# Strict
-AC_ARG_ENABLE(
-	[strict],
-	[AS_HELP_STRING([--enable-strict],[enable strict compile mode @<:@enabled@:>@])],
-	,
-	[enable_strict="yes"]
-)
+ACX_PEDANTIC
+ACX_STRICT
 
-# Pedantic
-AC_ARG_ENABLE(
-	[pedantic],
-	[AS_HELP_STRING([--enable-pedantic],[enable pedantic compile mode @<:@enabled@:>@])],
-	,
-	[enable_pedantic="yes"]
-)
+ACX_BOTAN
+ACX_SQLITE3
 
-AC_ARG_WITH(botan, [  --with-botan=DIR        The location of the Botan crypto library and include files (default DIR=/usr/local)], [BOTANDIR="$withval"], [BOTANDIR="/usr/local"])
-AC_ARG_WITH(sqlite3, [  --with-sqlite3=DIR      The location of SQLite3 library and include files (default DIR=/usr/local)], [SQLITEDIR="$withval"], [SQLITEDIR="/usr/local"])
 AC_ARG_WITH(loglevel, [  --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 3=Info 4=Debug (default INT=3)], [SOFTLOGLEVEL="$withval"], [SOFTLOGLEVEL=3])
 AC_ARG_ENABLE(64bit, [  --enable-64bit          Compile a 64-bit version], [ENABLE64BIT="yes"], [ENABLE64BIT="no"])
 
@@ -76,55 +64,16 @@ return sizeof(void*) == 8 ? 0 : 1;
     ])
 fi
 
-if test "${enable_pedantic}" = "yes"; then
-	enable_strict="yes";
-	CFLAGS="${CFLAGS} -pedantic"
-	CXXFLAGS="${CXXFLAGS} -pedantic"
-fi
-
-if test "${enable_strict}" = "yes"; then
-	CFLAGS="${CFLAGS} -Wall -Wextra"
-	CXXFLAGS="${CXXFLAGS} -Wall -Wextra"
-fi
-
 # Do not give warnings for long-long. So that we can build with newer SQLite3 
 CXXFLAGS="${CXXFLAGS} -Wno-long-long"
 CFLAGS="${CFLAGS} -Wno-long-long"
 
-# Configure the path to Botan and SQLite3
-LDFLAGS="$LDFLAGS -L$BOTANDIR/lib -R$BOTANDIR/lib -L$SQLITEDIR/lib -R$SQLITEDIR/lib"
-CXXFLAGS="$CXXFLAGS -I$BOTANDIR/include -I$SQLITEDIR/include"
-CFLAGS="$CFLAGS -I$BOTANDIR/include -I$SQLITEDIR/include"
-
-# Check that we have headers and SQLite library
 AC_CHECK_FUNCS(getpassphrase)
-AC_CHECK_HEADERS([sys/time.h sqlite3.h dlfcn.h], [], [],
+AC_CHECK_HEADERS([sys/time.h dlfcn.h], [], [],
   [[#ifdef HAVE_DLFCN_H
   #include <dlfcn.h>
   #endif
-  #ifdef HAVE_SQLITE3_H
-  #include <sqlite3.h>
-  #endif
   ]])
-AC_CHECK_LIB(sqlite3, sqlite3_prepare_v2, [], [AC_MSG_ERROR([Missing SQLite3 library v3.4.2 or greater])])
-
-# Check that we have Botan
-LIBS="$LIBS -lbotan"
-AC_LANG(C++)
-AC_LINK_IFELSE(
-	[AC_LANG_PROGRAM([#include <botan/init.h>
-			  #include <botan/pipe.h>
-			  #include <botan/filters.h>
-			  #include <botan/hex.h>
-			  #include <botan/sha2_32.h>
-			  #include <botan/emsa3.h>],
-			 [using namespace Botan;
-                          LibraryInitializer::initialize();
-			  new EMSA3_Raw();])],
-	[AC_MSG_RESULT([checking for Botan library v1.7.24 or greater... yes])],
-	[AC_MSG_RESULT([checking for Botan library v1.7.24 or greater... no])
-         AC_MSG_ERROR([Missing Botan library v1.7.24 or greater])]
-)
 
 # Define some variables for the code
 AC_DEFINE_UNQUOTED(VERSION_MAJOR, SOFTHSM_VERSION_MAJOR)

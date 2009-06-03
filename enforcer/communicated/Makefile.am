@@ -8,6 +8,5 @@ sbin_PROGRAMS = communicated
 
 communicated_SOURCES = communicator.c
 communicated_LDADD = ../common/libenforcer.a
-communicated_LDFLAGS = @RUNTIME_PATH@ @XML_LIBS@
 
 EXTRA_DIST = $(srcdir)/*.h
