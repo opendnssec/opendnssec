@@ -116,6 +116,6 @@ class EngineConfiguration:
         if not os.path.exists(self.tools_dir):
             raise EngineConfigurationError(\
                 "tools does not exist")
-        if not os.path.exists(self.tools_dir + os.sep + "signer_pkcs11"):
+        if not os.path.exists(self.tools_dir + os.sep + "signer"):
             raise EngineConfigurationError(\
                 "signer tools appear missing")

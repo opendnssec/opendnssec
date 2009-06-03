@@ -27,11 +27,13 @@
  */
 
 /*
- * An ldns-based zone sorter
+ * This tool reads input zone files.
+ * It sorts the zone according in the needed order (either canonical
+ * or in NSEC3 order)
  * It also marks empty non-terminals, glue and out-of-zone data, and
- * converts those to comments.
+ * converts those to comments. For NSEC3, it adds an NSEC3PARAM RR if
+ * not present. NSEC3PARAMS with other parameters are removed.
  * RRSIG records will be sorted right after the RRset they cover
- * (todo)
  */
 
 #include <stdio.h>

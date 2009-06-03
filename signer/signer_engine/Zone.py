@@ -160,7 +160,7 @@ class Zone:
             tlabel = token["token_label"]
             repository = token["repository"]
             syslog.syslog(syslog.LOG_DEBUG, "Try repository " + repository)
-            cmd = [ self.get_tool_filename("create_dnskey_pkcs11"),
+            cmd = [ self.get_tool_filename("create_dnskey"),
                     "-r", repository,
                     "-n", tlabel,
                     "-m", mpath,
@@ -229,7 +229,7 @@ class Zone:
         for k in self.zone_config.publish_keys:
             self.check_key_values(k)
 
-        cmd = [ self.get_tool_filename("sorter"),
+        cmd = [ self.get_tool_filename("zone_reader"),
                 "-o", self.zone_name,
                 "-w", self.get_zone_tmp_filename(".sorted")
               ]
@@ -384,7 +384,7 @@ class Zone:
     def sign(self):
         """Takes the file created by nsecify() or by the previous call
            to sign(), and (re)signs the zone"""
-        cmd = [self.get_tool_filename("signer_pkcs11"),
+        cmd = [self.get_tool_filename("signer"),
                "-p", self.get_zone_tmp_filename(".signed"),
                "-w", self.get_zone_tmp_filename(".signed2")
               ]
