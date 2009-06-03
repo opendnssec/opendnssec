@@ -1427,8 +1427,10 @@ hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
     hsm_pkcs11_check_rv(rv, "Destroy public key");
     key->public_key = 0;
 
-    free(key->uuid);
-    key->uuid = NULL;
+	if (key->uuid) {
+        free(key->uuid);
+        key->uuid = NULL;
+	}
 
     return 0;
 }
