@@ -621,9 +621,10 @@ hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
 }
 
 static CK_OBJECT_HANDLE
-hsm_find_object_handle_for_uuid(const hsm_session_t *session,
-                                CK_OBJECT_CLASS key_class,
-                                const uuid_t *uuid)
+hsm_find_object_handle_for_id(const hsm_session_t *session,
+                              CK_OBJECT_CLASS key_class,
+                              CK_BYTE *id,
+                              CK_ULONG id_len)
 {
     CK_ULONG objectCount;
     CK_OBJECT_HANDLE object;
@@ -631,7 +632,7 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session,
 
     CK_ATTRIBUTE template[] = {
         { CKA_CLASS, &key_class, sizeof(key_class) },
-        { CKA_ID, uuid, sizeof(uuid_t) },
+        { CKA_ID, id, id_len },
     };
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
@@ -654,6 +655,83 @@ hsm_find_object_handle_for_uuid(const hsm_session_t *session,
     }
 }
 
+/*
+ * Parses the null-terminated string hex as hex values,
+ * Returns allocated data that needs to be freed (or NULL on error)
+ * len will contain the number of bytes allocated, or 0 on error
+ */
+static unsigned char *
+hsm_hex_str2bytes(const char *hex, size_t *len)
+{
+    unsigned char *bytes;
+    /* length of the hex input */
+    size_t hex_len;
+    size_t i;
+
+    if (!len) return NULL;
+    *len = 0;
+
+    if (!hex) return NULL;
+    hex_len = strlen(hex);
+    if (hex_len % 2 != 0) {
+        fprintf(stderr,
+                "Error: bad hex data for key id: %s\n",
+                hex);
+        return NULL;
+    }
+
+    *len = hex_len / 2;
+    bytes = malloc(*len);
+    for (i = 0; i < *len; i++) {
+        bytes[i] = ldns_hexdigit_to_int(hex[2*i]) * 16 +
+                   ldns_hexdigit_to_int(hex[2*i+1]);
+    }
+    return bytes;
+}
+
+
+/* returns an allocated byte array with the CKA_ID for the given object
+ * len will contain the result size
+ * returns NULL and size zero if not found in this session
+ */
+static CK_BYTE *
+hsm_get_id_for_object(const hsm_session_t *session,
+                      CK_OBJECT_HANDLE object,
+                      size_t *len)
+{
+    CK_RV rv;
+    CK_BYTE *id = NULL;
+
+    CK_ATTRIBUTE template[] = {
+        {CKA_ID, id, 0}
+    };
+
+    /* find out the size of the id first */
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      object,
+                                      template,
+                                      1);
+    hsm_pkcs11_check_rv(rv, "Get attr value\n");
+
+    if ((CK_LONG)template[0].ulValueLen < 1) {
+        *len = 0;
+        return id;
+    }
+    
+    template[0].pValue = malloc(template[0].ulValueLen);
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      object,
+                                      template,
+                                      1);
+    hsm_pkcs11_check_rv(rv, "Get attr value 2\n");
+
+    *len = template[0].ulValueLen;
+    return id;
+}
+
+
 /* returns an hsm_key_t object for the given *private key* object handle
  * the uuid and session, and public key handle are set
  * The session needs to be free to perform a search for the public key
@@ -663,29 +741,23 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session,
                                   CK_OBJECT_HANDLE object)
 {
     hsm_key_t *key;
-    CK_RV rv;
-    uuid_t *uuid = NULL;
+    CK_BYTE *id;
+    size_t len;
 
-    CK_ATTRIBUTE template[] = {
-        {CKA_ID, uuid, sizeof(uuid_t)}
-    };
+    id = hsm_get_id_for_object(session, object, &len);
 
-    template[0].pValue = malloc(sizeof(uuid_t));
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
-                                      session->session,
-                                      object,
-                                      template,
-                                      1);
-    hsm_pkcs11_check_rv(rv, "Get attr value\n");
+    if (!id) return NULL;
+
     key = hsm_key_new();
-    key->uuid = template[0].pValue;
     key->module = session->module;
     key->private_key = object;
-    key->public_key = hsm_find_object_handle_for_uuid(
+    key->public_key = hsm_find_object_handle_for_id(
                           session,
                           CKO_PUBLIC_KEY,
-                          (const uuid_t*)key->uuid);
+                          id,
+                          len);
 
+    free(id);
     return key;
 }
 
@@ -742,16 +814,18 @@ hsm_list_keys_session(const hsm_session_t *session, size_t *count)
  * found
  */
 static hsm_key_t *
-hsm_find_key_by_uuid_session(const hsm_session_t *session,
-                             const uuid_t *uuid)
+hsm_find_key_by_id_session(const hsm_session_t *session,
+                           const unsigned char *id,
+                           size_t len)
 {
     hsm_key_t *key;
     CK_OBJECT_HANDLE private_key_handle;
 
-    private_key_handle = hsm_find_object_handle_for_uuid(
+    private_key_handle = hsm_find_object_handle_for_id(
                              session,
                              CKO_PRIVATE_KEY,
-                             uuid);
+                             (CK_BYTE *) id,
+                             (CK_ULONG) len);
     if (private_key_handle != 0) {
         key = hsm_key_new_privkey_object_handle(session,
                                                 private_key_handle);
@@ -1321,17 +1395,41 @@ hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
 }
 
 hsm_key_t *
-hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
+hsm_find_key_by_id(const hsm_ctx_t *ctx,
+                   const unsigned char *id,
+                   size_t len)
 {
     hsm_key_t *key;
     unsigned int i;
     if (!ctx) ctx = _hsm_ctx;
-    if (!uuid) return NULL;
+    if (!id) return NULL;
     for (i = 0; i < ctx->session_count; i++) {
-        key = hsm_find_key_by_uuid_session(ctx->session[i], uuid);
+        key = hsm_find_key_by_id_session(ctx->session[i], id, len);
         if (key) return key;
     }
     return NULL;
+}
+
+hsm_key_t *
+hsm_find_key_by_id_string(const hsm_ctx_t *ctx, const char *id)
+{
+    unsigned char *id_bytes;
+    size_t len;
+    hsm_key_t *key;
+    
+    id_bytes = hsm_hex_str2bytes(id, &len);
+
+    if (!id_bytes) return NULL;
+    
+    key = hsm_find_key_by_id(ctx, id_bytes, len);
+    free(id_bytes);
+    return key;
+}
+
+hsm_key_t *
+hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
+{
+    return hsm_find_key_by_id(ctx, (unsigned char *)uuid, sizeof(uuid));
 }
 
 hsm_key_t *
