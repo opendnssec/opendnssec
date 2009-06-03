@@ -344,7 +344,7 @@ AC_DEFUN([CHECK_COMPILER_FLAG_NEEDED],[
 	fi
 ])
 
-AC_DEFUN([CX_64BIT],[
+AC_DEFUN([ACX_64BIT],[
 	AC_ARG_ENABLE(
 	        [64bit],
         	[AS_HELP_STRING([--enable-64bit],[enable 64-bit compiling])],
