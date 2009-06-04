@@ -233,6 +233,7 @@ int KsmPolicyReadFromId(KSM_POLICY* policy);
 int KsmPolicyNameFromId(KSM_POLICY* policy);
 int KsmPolicyUpdateSalt(KSM_POLICY* policy);
 int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy);
+int KsmPolicySetIdFromName(KSM_POLICY *policy);
 
 /* ksmZone */
 typedef struct {

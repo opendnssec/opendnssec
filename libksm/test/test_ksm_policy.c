@@ -74,6 +74,7 @@ static void TestKsmPolicyRead(void)
 	status = KsmPolicyRead(policy);
 
 	CU_ASSERT_EQUAL(status, 0);
+	CU_ASSERT_EQUAL(policy->id, 2);
 
 	/* Call KsmPolicyRead again */
 

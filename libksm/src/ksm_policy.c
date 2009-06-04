@@ -240,7 +240,8 @@ int KsmPolicyRead(KSM_POLICY* policy)
         return MsgLog(KSM_INVARG, "NULL policy");
     }
 
-    status = KsmPolicyExists(policy->name);
+    /* status = KsmPolicyExists(policy->name); */
+    status = KsmPolicySetIdFromName(policy);
 
     if (status == 0) {
 
@@ -675,5 +676,51 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
 
     DbFreeRow(row2);
     DbFreeResult(result2);
+    return status;
+}
+
+/*+
+ * KsmPolicySetIdFromName - Given a policy with the name set, fill in the ID
+ *
+ *
+ * Arguments:
+ *      
+ *          Name of the parameter.
+ *
+ *
+ * Returns:
+ *      int
+ *          0       Success, value found
+ *          Other   Error
+-*/
+
+int KsmPolicySetIdFromName(KSM_POLICY *policy)
+{
+    int             status;     /* Status return */
+    DB_RESULT       result;     /* Handle converted to a result object */
+    DB_ROW          row;        /* Row data */
+
+    if (policy == NULL || policy->name == NULL) {
+        return MsgLog(KSM_INVARG, "NULL policy or name");
+    }
+
+    status = KsmPolicyInit(&result, policy->name);
+    if (status == 0) {
+        /* Get the next row from the data */
+        status = DbFetchRow(result, &row);
+        if (status == 0) {
+            DbInt(row, DB_POLICY_ID, &policy->id);
+        }
+        else if (status == -1) {
+        /* No rows to return (but no error) */
+        }
+        else {
+            /* Error */
+            status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        }
+
+    }
+    DbFreeRow(row);
+    DbFreeResult(result);
     return status;
 }
