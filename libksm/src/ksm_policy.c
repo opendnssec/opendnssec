@@ -546,12 +546,12 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     }
 
     if (status == 0) {
-        if (policy->denial->resalt > time_diff && time_diff != -1) {
+        if (policy->denial->resalt > time_diff && time_diff != -1 && policy->denial->salt[0] != '\0') {
             /* current salt is fine */
             StrFree(datetime_now);
             return status;
         } else {
-            /* salt needs updating */
+            /* salt needs updating, or is null */
             /* TODO get this call into libhsmtools */
             /* newsaltint = hsm_getrand(policy->denial->saltlength); */
             newsaltint = 123456789;

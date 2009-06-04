@@ -85,6 +85,33 @@ static void TestKsmZoneRead(void)
 	free(zone);
 }
 
+/*+
+ * TestKsmZoneIdFromName - Test
+ *
+ * Description:
+ *      Tests that a zone can be returned
+-*/
+
+static void TestKsmZoneIdFromName(void)
+{
+	int		status;		/* Status return */
+    int     zone_id;    /* returned id */
+
+    char*   zone1 = "opendnssec.org";
+    char*   zone2 = "opendnssec.se";
+
+    /* get the first zone */
+    status = KsmZoneIdFromName(zone1, &zone_id);
+	CU_ASSERT_EQUAL(status, 0);
+	CU_ASSERT_EQUAL(zone_id, 1);
+
+    /* get the first zone */
+    status = KsmZoneIdFromName(zone2, &zone_id);
+	CU_ASSERT_EQUAL(status, 0);
+	CU_ASSERT_EQUAL(zone_id, 2);
+
+}
+
 /*
  * TestKsmZone - Create Test Suite
  *
@@ -105,6 +132,7 @@ int TestKsmZone(void)
 {
     struct test_testdef tests[] = {
         {"KsmZone", TestKsmZoneRead},
+        {"KsmZoneIdFromName", TestKsmZoneIdFromName},
         {NULL,                      NULL}
     };
 

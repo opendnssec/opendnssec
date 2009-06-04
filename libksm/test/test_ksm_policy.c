@@ -194,12 +194,6 @@ static void TestKsmPolicySalt(void)
 	policy->name = "default";
 	policy->id = 2;
 
-	/* Call KsmPolicyRead */
-
-/*	status = KsmPolicyRead(policy); */
-
-	CU_ASSERT_EQUAL(status, 0);
-	
 	/* Do the salt/resalt */
 
 	status = KsmPolicyUpdateSalt(policy);
