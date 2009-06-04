@@ -266,7 +266,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "clockskew", 9) == 0) policy->signature->clockskew=data.value;
             		if (strncmp(data.name, "resign", 6) == 0) policy->signature->resign=data.value;
             		if (strncmp(data.name, "valdefault", 10) == 0) policy->signature->valdefault=data.value;
-            		if (strncmp(data.name, "valdenial", 10) == 0) policy->signature->valdefault=data.value;
+            		if (strncmp(data.name, "valdenial", 9) == 0) policy->signature->valdenial=data.value;
             	}
             	if (strncmp(data.category, "denial", 6) == 0) {
             		if (strncmp(data.name, "version", 7) == 0) policy->denial->version=data.value;
