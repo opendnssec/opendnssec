@@ -214,12 +214,6 @@ key_list_add_key(key_list *list,
 	}
 	
 	params->flags = atoi(key_flags_str);
-	if (params->flags <= 0 || params->flags > 65535) {
-		fprintf(stderr, "; Error: bad key flags: %s, skipping key\n",
-		        key_flags_str);
-		hsm_sign_params_free(params);
-		return;
-	}
 	params->owner = ldns_rdf_clone(cfg->origin);
 	dnskey = hsm_get_dnskey(NULL, key, params);
 	
@@ -416,6 +410,7 @@ handle_command(FILE *output, current_config *cfg,
 	char *next;
 	ldns_status result = LDNS_STATUS_OK;
 	int iresult;
+	(void)line_len;
 	
 	cmd = read_arg(line, &next);
 	if (!cmd) {
@@ -887,7 +882,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			ldns_rr_list_free(new_zone_rrset);
 			continue;
 		}
-		//ldns_rr_list_print(output, new_zone_rrset);
+		/* ldns_rr_list_print(output, new_zone_rrset); */
 		new_zone_signatures = read_signatures(new_zone_reader,
 		                                      output, cfg);
 		enable_keys(cfg);
@@ -917,7 +912,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 */
 			while (cmp < 0 && new_zone_rrset) {
 				check_existing_sigs(new_zone_signatures, output, cfg);
-				//ldns_rr_list_print(output, new_zone_rrset);
+				/* ldns_rr_list_print(output, new_zone_rrset); */
 				sign_rrset(new_zone_rrset, output, cfg);
 				ldns_rr_list_deep_free(new_zone_rrset);
 				ldns_rr_list_deep_free(new_zone_signatures);

@@ -402,7 +402,7 @@ find_empty_nonterminals(ldns_rdf *zone_name,
 	cur_label_count = ldns_dname_label_count(cur_name);
 	next_label_count = ldns_dname_label_count(next_name);
 
-	//*nonterminals = malloc(sizeof(ldns_rdf *) * next_label_count);
+	/* *nonterminals = malloc(sizeof(ldns_rdf *) * next_label_count); */
 	for (i = 1; i < next_label_count - zone_label_count; i++) {
 		lpos = cur_label_count - next_label_count + i;
 		if (lpos >= 0) {
@@ -460,7 +460,7 @@ main(int argc, char **argv)
 	uint8_t nsec3_salt_length = 0;
 	uint8_t *nsec3_salt = NULL;
 	char *out_file_name = NULL;
-	ldns_rr *nsec3params = NULL, *my_nsec3params;
+	ldns_rr *my_nsec3params;
 
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
