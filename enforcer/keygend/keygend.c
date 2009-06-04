@@ -106,7 +106,8 @@ server_main(DAEMONCONFIG *config)
         exit(1);
     }
     kaspSetPolicyDefaults(policy, NULL);
-    
+   
+    /* We keep the HSM connection open for the lifetime of the daemon */ 
     result = hsm_open(CONFIGFILE, hsm_prompt_pin, NULL);
     log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
 
@@ -144,8 +145,9 @@ server_main(DAEMONCONFIG *config)
 
                 /* Find out how many ksk keys are needed */
                 status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &count);
-								/* TODO: check capacity of HSM will not be exceeded */
-                /* Create the keys */
+                /* TODO: check capacity of HSM will not be exceeded */
+                /* TODO: check how many unused keys there are (accounting for shared_keys) */
+                /* Create the keys TODO: skip if enough unused keys exist */
                 for (i=count ; i > 0 ; i--){
                 	if (policy->ksk->algorithm == 5 ) {
 	                    key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
@@ -200,21 +202,24 @@ server_main(DAEMONCONFIG *config)
         /* Disconnect from DB in case we are asleep for a long time */
         log_msg(config, LOG_INFO, "Disconnecting from Database...");
         kaspDisconnect(&dbhandle);
-        
-				if (config->term == 1 ){
-					log_msg(config, LOG_INFO, "Exiting...");
-					exit(0);
-				}
+       
+        /* If we have been sent a SIGTERM then it is time to exit */ 
+        if (config->term == 1 ){
+            log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            exit(0);
+        }
+
         /* sleep for the key gen interval */
         tv.tv_sec = config->keygeninterval;
         tv.tv_usec = 0;
         log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->keygeninterval);
         select(0, NULL, NULL, NULL, &tv);
 
-				if (config->term == 1 ){
-					log_msg(config, LOG_INFO, "Exiting...");
-					exit(0);
-				}
+       /* If we have been sent a SIGTERM then it is time to exit */ 
+        if (config->term == 1 ){
+            log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            exit(0);
+        }
 				
     }
     log_msg(config, LOG_INFO, "Disconnecting from Database...");

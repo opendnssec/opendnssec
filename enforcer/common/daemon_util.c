@@ -384,6 +384,7 @@ ReadConfig(DAEMONCONFIG *config)
 
     if (db_found == 0) {
         /* Get all of the MySQL stuff read in too */
+        /* HOST */
         xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
 		    if(xpathObj == NULL) {
 		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_host);
@@ -397,6 +398,7 @@ ReadConfig(DAEMONCONFIG *config)
         config->host = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database host set to: %s\n", config->host);
 
+        /* PORT */
         xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
         if(xpathObj == NULL) {
 		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_port);
@@ -410,6 +412,7 @@ ReadConfig(DAEMONCONFIG *config)
         config->port = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database port set to: %s\n", config->port);
 
+        /* SCHEMA */
         xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
         if(xpathObj == NULL) {
 		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_db);
@@ -423,6 +426,7 @@ ReadConfig(DAEMONCONFIG *config)
         config->schema = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database schema set to: %s\n", config->schema);
 
+        /* DB USER */
         xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
         if(xpathObj == NULL) {
 		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_user);
@@ -436,6 +440,7 @@ ReadConfig(DAEMONCONFIG *config)
         config->user = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database user set to: %s\n", config->user);
 
+        /* DB PASSWORD */
         xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);
         if(xpathObj == NULL) {
 		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_pass);

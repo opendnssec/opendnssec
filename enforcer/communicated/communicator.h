@@ -39,7 +39,7 @@
 
 int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);
-int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy);
+int commGenSignConf(char* zone_name, char* current_filename, KSM_POLICY *policy);
 int commKeyConfig(void* context, KSM_KEYDATA* key_data);
 
 #endif /* ENFORCER_COMMUNICATOR_H */

@@ -58,8 +58,8 @@ AC_DEFINE_UNQUOTED(COM_PID, ["`eval echo $com_pid_file | sed s,NONE,$ac_default_
 keygen_pid_file=$localstatedir/run/opendnssec/keygend.pid
 AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC keygend pid file])
 
-signer_conf_dir=$localstatedir/opendnssec/config
-AC_DEFINE_UNQUOTED(SIGNER_CONF_DIR, ["`eval echo $signer_conf_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer configuration directory])
+zonelist_file=$sysconfdir/opendnssec/zonelist.xml
+AC_DEFINE_UNQUOTED(ZONELISTFILE, ["`eval echo $zonelist_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC zonelist file])
 
 AC_CONFIG_FILES([
 Makefile

@@ -42,10 +42,14 @@
 #include "daemon_util.h"
 #include "communicator.h"
 #include "kaspaccess.h"
+#include "ksm/ksm.h"
 #include "ksm/memory.h"
 #include "ksm/string_util2.h"
 #include "ksm/datetime.h"
 #include "config.h"
+
+#include <libxml/xmlreader.h>
+#include <libxml/xpath.h>
 
     int
 server_init(DAEMONCONFIG *config)
@@ -69,15 +73,27 @@ server_init(DAEMONCONFIG *config)
     void
 server_main(DAEMONCONFIG *config)
 {
-    DB_RESULT handle;
-    DB_RESULT handle2;
     DB_HANDLE	dbhandle;
     int status = 0;
     int status2 = 0;
 
+    xmlTextReaderPtr reader;
+    xmlDocPtr doc;
+    xmlXPathContextPtr xpathCtx;
+    xmlXPathObjectPtr xpathObj;
+
+    int ret = 0; /* status of the XML parsing */
+    char* zonelist_filename = ZONELISTFILE;
+    char* zone_name;
+    char* current_policy;
+    char* current_filename;
+    
+    xmlChar *name_expr = (unsigned char*) "name";
+    xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
+    xmlChar *filename_expr = (unsigned char*) "//Zone/SignerConfiguration";
+
     struct timeval tv;
 
-    KSM_ZONE *zone;
     KSM_POLICY *policy;
 
     if (config == NULL) {
@@ -102,73 +118,136 @@ server_main(DAEMONCONFIG *config)
     }
     kaspSetPolicyDefaults(policy, NULL);
 
-    zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
-    zone->name = (char *)calloc(KSM_ZONE_NAME_LENGTH, sizeof(char));
-    /* Let's check those mallocs, or should we use MemMalloc ? */
-    if (zone->name == NULL) {
-        log_msg(config, LOG_ERR, "Malloc for zone struct failed\n");
-        exit(1);
-    }
-
-    /* Read the config file */
-    status = ReadConfig(config);
-    if (status != 0) {
-        log_msg(config, LOG_ERR, "Error reading config");
-        exit(1);
-    }
-
-    kaspConnect(config, &dbhandle);
-
     while (1) {
 
-        /* Read all policies */
-        status = KsmPolicyInit(&handle, NULL);
-        if (status == 0) {
-            /* get the first policy */
-            status = KsmPolicy(handle, policy);
-            while (status == 0) {
-                KsmPolicyRead(policy);
-                log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
-
-                /* Update the salt if it is not up to date */
-                status2 = KsmPolicyUpdateSalt(policy);
-                if (status2 != 0) {
-                    log_msg(config, LOG_ERR, "Error updating salt");
-                    exit(1);
-                }
-
-                /* Got one; loop round zones on this policy */
-                status2 = KsmZoneInit(&handle2, policy->id);
-                if (status2 == 0) {
-                    /* get the first zone */
-                    status2 = KsmZone(handle2, zone);
-                    while (status2 == 0) {
-                        log_msg(config, LOG_INFO, "zone %s found.", zone->name);
-
-                        /* turn this zone and policy into a file */
-                        status2 = commGenSignConf(zone, policy);
-                        if (status2 != 0) {
-                            log_msg(config, LOG_ERR, "Error writing signconf");
-                            exit(1);
-                        }
-
-                        /* get next zone */
-                        status2 = KsmZone(handle2, zone);
-                    }
-                    /* get next policy */
-                    status = KsmPolicy(handle, policy);
-                }
-                else
-                {
-                    log_msg(config, LOG_ERR, "Error querying KASP DB for zones");
-                    exit(1);
-                }
-            }
-        } else {
-            log_msg(config, LOG_ERR, "Error querying KASP DB for policies");
+        /* Read the config file */
+        status = ReadConfig(config);
+        if (status != 0) {
+            log_msg(config, LOG_ERR, "Error reading config");
             exit(1);
         }
-        DbFreeResult(handle);
+
+        log_msg(config, LOG_INFO, "Connecting to Database...");
+        kaspConnect(config, &dbhandle);
+
+        /* In case zonelist is huge use the XmlTextReader API so that we don't hold the whole file in memory */
+        reader = xmlNewTextReaderFilename(zonelist_filename);
+        if (reader != NULL) {
+            ret = xmlTextReaderRead(reader);
+            while (ret == 1) {
+                /* Found <Zone> */
+                if (strncmp((char*) xmlTextReaderLocalName(reader), "Zone", 4) == 0 
+                        && strncmp((char*) xmlTextReaderLocalName(reader), "Zonelist", 8) != 0
+                        && xmlTextReaderNodeType(reader) == 1) {
+                    /* Get the zone name (TODO what if this is null?) */
+                    zone_name = NULL;
+                    StrAppend(&zone_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
+
+                    log_msg(config, LOG_INFO, "Zone %s found.", zone_name);
+
+                    /* Expand this node and get the rest of the info with XPath */
+                    xmlTextReaderExpand(reader);
+                    doc = xmlTextReaderCurrentDoc(reader);
+                    if (doc == NULL) {
+                        log_msg(config, LOG_ERR, "Error: can not read zone \"%s\"; skipping\n", zone_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+
+                    /* TODO should we validate here? Or should we validate the whole document? */
+
+                    xpathCtx = xmlXPathNewContext(doc);
+                    if(xpathCtx == NULL) {
+                        log_msg(config, LOG_ERR,"Error: can not create XPath context for \"%s\"; skipping zone\n", zone_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+
+                    /* Extract the Policy name and signer configuration filename for this zone */
+                    /* Evaluate xpath expression for policy */
+                    xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
+                    if(xpathObj == NULL) {
+                        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    current_policy = NULL;
+                    StrAppend(&current_policy, (char*) xmlXPathCastToString(xpathObj));
+                    log_msg(config, LOG_INFO, "Policy set to %s.", current_policy);
+                    if (current_policy != policy->name) {
+                        /* Read new Policy */ 
+                        kaspSetPolicyDefaults(policy, current_policy);
+
+                        status2 = KsmPolicyRead(policy);
+                        if (status2 != 0) {
+                            /* Don't return? try to parse the rest of the zones? */
+                            log_msg(config, LOG_ERR, "Error reading policy");
+                            ret = xmlTextReaderRead(reader);
+                            continue;
+                        }
+                        log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
+
+                        /* Update the salt if it is not up to date */
+                        status2 = KsmPolicyUpdateSalt(policy);
+                        if (status2 != 0) {
+                            /* Don't return? try to parse the rest of the zones? */
+                            log_msg(config, LOG_ERR, "Error updating salt");
+                            ret = xmlTextReaderRead(reader);
+                            continue;
+                        }
+                    } else {
+                        /* Policy is same as previous zone, do not re-read */
+                    }
+
+                    /* Evaluate xpath expression for signer configuration filename */
+                    xpathObj = xmlXPathEvalExpression(filename_expr, xpathCtx);
+                    if(xpathObj == NULL) {
+                        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    current_filename = NULL;
+                    StrAppend(&current_filename, (char*) xmlXPathCastToString(xpathObj));
+                    log_msg(config, LOG_INFO, "Config will be output to %s.", current_filename);
+                    /* TODO should we check that we have not written to this file in this run?*/
+
+                    /* turn this zone and policy into a file */
+                    status2 = commGenSignConf(zone_name, current_filename, policy);
+                    if (status2 != 0) {
+                        log_msg(config, LOG_ERR, "Error writing signconf");
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                }
+                /* Read the next line */
+                ret = xmlTextReaderRead(reader);
+            }
+            xmlFreeTextReader(reader);
+            if (ret != 0) {
+                log_msg(config, LOG_ERR, "%s : failed to parse\n", zonelist_filename);
+            }
+        } else {
+            log_msg(config, LOG_ERR, "Unable to open %s\n", zonelist_filename);
+        }
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+
+        /* StrFree(zone_name); ??*/
+
+        /* Release our hold on the database */
+        log_msg(config, LOG_INFO, "Disconnecting from Database...");
+        kaspDisconnect(&dbhandle);
+
+        /* If we have been sent a SIGTERM then it is time to exit */ 
+        if (config->term == 1 ){
+            log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            exit(0);
+        }
 
         /* sleep for the configured interval */
         tv.tv_sec = config->interval;
@@ -176,15 +255,13 @@ server_main(DAEMONCONFIG *config)
         log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->interval);
         select(0, NULL, NULL, NULL, &tv);
 
-        /* re-read the config file in case it has changed */
-        status = ReadConfig(config);
-        if (status != 0) {
-            log_msg(config, LOG_ERR, "Error reading config");
-            exit(1);
+        /* If we have been sent a SIGTERM then it is time to exit */ 
+        if (config->term == 1 ){
+            log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            exit(0);
         }
-
     }
-    kaspDisconnect(&dbhandle);
+
     free(policy->name);
     free(policy->enforcer);
     free(policy->denial);
@@ -194,23 +271,26 @@ server_main(DAEMONCONFIG *config)
     free(policy->signer);
     free(policy);
 
-    free(zone->name);
-    free(zone);
 }
 
-int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
+/*
+ *  generate the configuration file for the signer
+
+ *  returns 0 on success and -1 if something went wrong
+ */
+int commGenSignConf(char* zone_name, char* current_filename, KSM_POLICY *policy)
 {
     int status = 0;
     FILE *file;
-    char *filename;         /* This is the final filename */
     char *temp_filename;    /* In case this fails we write to a temp file and only overwrite
                                the current file when we are finished */
     char *old_filename;     /* Keep a copy of the previous version, just in case! (Also gets
                                round potentially different behaviour of rename over existing
                                file.) */
     char*   datetime = DtParseDateTimeString("now");
+    int zone_id = -1;
 
-    if (zone == NULL || policy == NULL)
+    if (zone_name == NULL || current_filename == NULL || policy == NULL)
     {
         /* error */
         log_msg(NULL, LOG_ERR, "NULL policy or zone provided\n");
@@ -218,18 +298,22 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
         return -1;
     }
 
-    filename = NULL;
-    StrAppend(&filename, SIGNER_CONF_DIR); /* set at config time */
-    StrAppend(&filename, "/");
-    StrAppend(&filename, zone->name);
-    StrAppend(&filename, ".xml");
+    /* Get zone ID from name (or return if it doesn't exist) */
+    status = KsmZoneIdFromName(zone_name, &zone_id);
+    if (status != 0 || zone_id == -1)
+    {
+        /* error */
+        log_msg(NULL, LOG_ERR, "Error looking up zone \"%s\" in database (maybe it doesn't exist?)\n", zone_name);
+        MemFree(datetime);
+        return -1;
+    }
 
     old_filename = NULL;
-    StrAppend(&old_filename, filename);
+    StrAppend(&old_filename, current_filename);
     StrAppend(&old_filename, ".OLD");
 
     temp_filename = NULL;
-    StrAppend(&temp_filename, filename);
+    StrAppend(&temp_filename, current_filename);
     StrAppend(&temp_filename, ".tmp");
 
     file = fopen(temp_filename, "w");
@@ -243,7 +327,7 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     }
 
     fprintf(file, "<SignerConfiguration>\n");
-    fprintf(file, "\t<Zone name=\"%s\">\n", zone->name);
+    fprintf(file, "\t<Zone name=\"%s\">\n", zone_name);
 
     fprintf(file, "\t\t<Signatures>\n");
     fprintf(file, "\t\t\t<Resign>PT%dS</Resign>\n", policy->signature->resign);
@@ -284,7 +368,7 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     fprintf(file, "\t\t<Keys>\n");
     fprintf(file, "\t\t\t<TTL>PT%dS</TTL>\n", policy->ksk->ttl);
 
-    KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone->id);
+    KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id);
 
     fprintf(file, "\t\t</Keys>\n");
 
@@ -308,16 +392,16 @@ int commGenSignConf(KSM_ZONE *zone, KSM_POLICY *policy)
     }
 
     /* we now have a complete xml file. First move the old one out of the way */
-    status = rename(filename, old_filename);
+    status = rename(current_filename, old_filename);
     if (status != 0 && status != -1)
     {
-        /* cope with initial conditioin of files not existing */
+        /* cope with initial condition of files not existing */
         MemFree(datetime);
         return -1;
     }
 
     /* Then copy our temp into place */
-    if (rename(temp_filename, filename) != 0)
+    if (rename(temp_filename, current_filename) != 0)
     {
         MemFree(datetime);
         return -1;
