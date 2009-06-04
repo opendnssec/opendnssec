@@ -13,6 +13,7 @@ CONF_ARG = \
 	--with-libhsm=/usr/local \
 	--with-sqlite3=/usr/local \
 	--with-ldns=/opt/ldns/nossl \
+	--with-libxml2=/usr \
 	--with-botan=/usr/local \
 	--with-trang=$(HOME)/bin/trang.jar
 
