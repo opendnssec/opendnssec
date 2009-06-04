@@ -53,7 +53,7 @@ CK_RV readConfigFile() {
   const char *confPath = getenv("SOFTHSM_CONF");
 
   if(confPath == NULL) {
-    confPath = SOFT_CONFIG_FILE;
+    confPath = DEFAULT_SOFTHSM_CONF;
   }
 
   fp = fopen(confPath,"r");

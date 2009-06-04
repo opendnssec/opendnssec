@@ -11,6 +11,4 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-AUTOMAKE_OPTIONS = foreign
-
 SUBDIRS = src checks

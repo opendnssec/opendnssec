@@ -33,16 +33,17 @@ define([SOFTHSM_VERSION_AGE], [0])
 ##################
 
 # Init 
+AC_PREREQ(2.61)
 AC_INIT([libsofthsm], [SOFTHSM_VERSION_MAJOR.SOFTHSM_VERSION_MINOR.SOFTHSM_VERSION_FIX[]PACKAGE_SUFFIX])
-AM_INIT_AUTOMAKE
-AC_CONFIG_SRCDIR(src/Makefile.am)
+AC_CONFIG_SRCDIR([src/Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
+AM_INIT_AUTOMAKE(foreign)
 
 # Version info for the library
 VERSION_INFO="SOFTHSM_VERSION_CURRENT:SOFTHSM_VERSION_REVISION:SOFTHSM_VERSION_AGE"
 AC_SUBST(VERSION_INFO)
 
-# Checks for programs.
+# Checks for compilers
 AC_PROG_CC
 AC_PROG_CXX
 
@@ -74,10 +75,31 @@ AC_CHECK_HEADERS([sys/time.h dlfcn.h], [], [],
   ]])
 
 # Define some variables for the code
-AC_DEFINE_UNQUOTED(VERSION_MAJOR, SOFTHSM_VERSION_MAJOR)
-AC_DEFINE_UNQUOTED(VERSION_MINOR, SOFTHSM_VERSION_MINOR)
-AC_DEFINE_UNQUOTED(SOFTLOGLEVEL, $SOFTLOGLEVEL)
-AC_DEFINE_UNQUOTED(MAX_SESSION_COUNT, 2048)
+AC_DEFINE_UNQUOTED(
+  [VERSION_MAJOR],
+  [SOFTHSM_VERSION_MAJOR],
+  [SoftHSM version number via PKCS#11]
+)
+AC_DEFINE_UNQUOTED(
+  [VERSION_MINOR],
+  [SOFTHSM_VERSION_MINOR],
+  [SoftHSM version number via PKCS#11]
+)
+AC_DEFINE_UNQUOTED(
+  [SOFTLOGLEVEL],
+  [$SOFTLOGLEVEL],
+  [The log level set by the user]
+)
+AC_DEFINE_UNQUOTED(
+  [MAX_SESSION_COUNT],
+  [2048],
+  [Maximum number of concurrent sessions]
+)
+AC_DEFINE_UNQUOTED(
+  [DEFAULT_SOFTHSM_CONF],
+  ["`eval echo ${sysconfdir} | sed s,NONE,$ac_default_prefix,g`/softhsm.conf"],
+  [The default location of softhsm.conf]
+)
 
 # Generate the libtool script and install script 
 AC_PROG_LIBTOOL 
