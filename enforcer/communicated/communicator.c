@@ -137,7 +137,7 @@ server_main(DAEMONCONFIG *config)
             while (ret == 1) {
                 /* Found <Zone> */
                 if (strncmp((char*) xmlTextReaderLocalName(reader), "Zone", 4) == 0 
-                        && strncmp((char*) xmlTextReaderLocalName(reader), "Zonelist", 8) != 0
+                        && strncmp((char*) xmlTextReaderLocalName(reader), "ZoneList", 8) != 0
                         && xmlTextReaderNodeType(reader) == 1) {
                     /* Get the zone name (TODO what if this is null?) */
                     zone_name = NULL;
