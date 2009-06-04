@@ -239,7 +239,7 @@ ReadConfig(DAEMONCONFIG *config)
     xmlChar *ki_expr = (unsigned char*) "//Configuration/Enforcer/KeygenInterval";
     xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
     xmlChar *bi_expr = (unsigned char*) "//Configuration/Enforcer/BackupDelay";
-    xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQlite";
+    xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQLite";
     xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
     xmlChar *mysql_port = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host/@port";
     xmlChar *mysql_db = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Database";
@@ -367,7 +367,7 @@ ReadConfig(DAEMONCONFIG *config)
     config->backupinterval = mysec;
     log_msg(config, LOG_INFO, "HSM Backup Interval: %i\n", config->backupinterval);
 
-    /* Evaluate xpath expression for SQlite file location */
+    /* Evaluate xpath expression for SQLite file location */
 		
     xpathObj = xmlXPathEvalExpression(litexpr, xpathCtx);
     if(xpathObj == NULL) {
@@ -379,7 +379,7 @@ ReadConfig(DAEMONCONFIG *config)
     if(*xmlXPathCastToString(xpathObj) != '\0') {
         db_found = SQLITE_DB;
 		    config->schema = xmlXPathCastToString(xpathObj);
-		    log_msg(config, LOG_INFO, "SQlite database set to: %s\n", config->schema);
+		    log_msg(config, LOG_INFO, "SQLite database set to: %s\n", config->schema);
     }
 
     if (db_found == 0) {

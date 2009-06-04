@@ -16,7 +16,7 @@
 
 	<Enforcer>
 		<Datastore>
-		  <SQlite></SQlite>
+		  <SQLite></SQLite>
 		</Datastore>
 		<Interval>PT3600S</Interval>
 		<KeygenInterval>P3M</KeygenInterval>

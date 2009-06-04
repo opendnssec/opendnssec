@@ -14,7 +14,7 @@
 
 	<Enforcer>
 		<Datastore>
-		  <SQlite>/tmp/jad/opendnssec/install/var/opendnssec/enforcer.db</SQlite>
+		  <SQLite>/tmp/jad/opendnssec/install/var/opendnssec/enforcer.db</SQLite>
 		</Datastore>
 		<Interval>PT3600S</Interval>
 		<KeygenInterval>PT3S</KeygenInterval>

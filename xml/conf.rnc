@@ -64,4 +64,4 @@ mysql = element MySQL {
 	element Password { xsd:string }	
 }
 
-sqlite = element SQlite { xsd:string }
+sqlite = element SQLite { xsd:string }
