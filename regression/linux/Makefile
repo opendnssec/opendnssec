@@ -2,6 +2,7 @@
 
 TARGETS = softHSM libhsm libksm enforcer signer xml
 
+MAKE_FLAGS =
 TOP = ../../..
 
 CONF_ARG = \
@@ -19,8 +20,8 @@ all: build
 build: $(TARGETS)
 
 install:
-	@for TARGET in $(TARGETS); do \
-		(cd $$TARGET; make install) \
+	@for t in $(TARGETS); do \
+		(cd $$t; make install) \
 	done
 
 clean:
@@ -29,4 +30,4 @@ clean:
 $(TARGETS)::
 	test -d $@ || mkdir $@
 	(cd $@; $(TOP)/$@/configure $(CONF_ARG))
-	(cd $@; make)
+	(cd $@; make $(MAKE_FLAGS))
