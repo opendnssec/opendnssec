@@ -1253,7 +1253,7 @@ hsm_open(const char *config,
     doc = xmlParseFile(config);
     if (doc == NULL) {
         fprintf(stderr, "Error: unable to parse file \"%s\"\n", config);
-        return -1;
+        return HSM_CONFIG_FILE_ERROR;
     }
 
     /* Create xpath evaluation context */
@@ -1279,7 +1279,6 @@ hsm_open(const char *config,
     }
 
     if (xpath_obj->nodesetval) {
-        fprintf(stderr, "%u nodes\n", xpath_obj->nodesetval->nodeNr);
         for (i = 0; i < xpath_obj->nodesetval->nodeNr; i++) {
             /*module = hsm_module_new();*/
             token_label = NULL;
@@ -1327,9 +1326,9 @@ hsm_open(const char *config,
                 }
                 if (result == HSM_OK) {
                     /* TODO: syslog error/succes? */
-                    fprintf(stdout,
+                    /*fprintf(stdout,
                             "repository '%s' added\n",
-                            repository);
+                            repository);*/
                 } else {
                     fprintf(stderr, "error adding module\n");
                 }

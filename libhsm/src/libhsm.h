@@ -36,9 +36,10 @@
 #define HSM_MAX_SESSIONS 10
 
 /*! Return codes for some of the functions, mapped to int */
-#define HSM_OK              0
-#define	HSM_ERROR           1
-#define	HSM_PIN_INCORRECT   2
+#define HSM_OK                    0
+#define	HSM_ERROR                 1
+#define	HSM_PIN_INCORRECT         2
+#define	HSM_CONFIG_FILE_ERROR     3
 
 /*! Data type to describe an HSM */
 typedef struct {
