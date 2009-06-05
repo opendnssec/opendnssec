@@ -735,21 +735,16 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	if (prev_name) {
-		ldns_rdf_deep_free(prev_name);
-	}
-	if (nsec3_salt) {
-		LDNS_FREE(nsec3_salt);
-	}
-	if (prev_rr) {
-		ldns_rr_free(prev_rr);
-	}
-	
 	/* if we haven't found the right NSEC3PARAM RR in the zone,
 	 * add it here */
 	if (my_nsec3params) {
 		cur_rr_data = rr_data_new();
-		cur_rr_data->name = ldns_rdf_clone(ldns_rr_owner(my_nsec3params));
+		cur_rr_data->name = ldns_nsec3_hash_name(ldns_rr_owner(my_nsec3params),
+		                                         nsec3_algorithm,
+		                                         nsec3_iterations,
+		                                         nsec3_salt_length,
+		                                         nsec3_salt);
+		cur_rr_data->orig_name = ldns_rdf_clone(ldns_rr_owner(my_nsec3params));
 		cur_rr_data->type = LDNS_RR_TYPE_NSEC3PARAMS;
 		status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
 		                             my_nsec3params,
@@ -760,6 +755,16 @@ main(int argc, char **argv)
 
 	print_rrs(out_file, rr_tree, ns_tree, origin);
 
+	if (prev_name) {
+		ldns_rdf_deep_free(prev_name);
+	}
+	if (nsec3_salt) {
+		LDNS_FREE(nsec3_salt);
+	}
+	if (prev_rr) {
+		ldns_rr_free(prev_rr);
+	}
+	
 	if (origin) {
 		ldns_rdf_deep_free(origin);
 	}

@@ -60,6 +60,7 @@ typedef struct {
 typedef struct {
 	hsm_key_t **keys;
 	uint16_t *keytags;
+	uint8_t *algorithms;
 	int *use_key;
 	size_t key_count;
 	size_t capacity;
@@ -144,6 +145,12 @@ key_list_new()
 		        "Out of memory while creating key list, aborting\n");
 		exit(1);
 	}
+	list->algorithms = malloc(sizeof(uint8_t) * list->capacity);
+	if (!list->algorithms) {
+		fprintf(stderr,
+		        "Out of memory while creating key list, aborting\n");
+		exit(1);
+	}
 	list->use_key = malloc(sizeof(int) * list->capacity);
 	if (!list->use_key) {
 		fprintf(stderr,
@@ -158,6 +165,7 @@ key_list_free(key_list *list)
 {
 	if (list->keys) free(list->keys);
 	if (list->keytags) free(list->keytags);
+	if (list->algorithms) free(list->algorithms);
 	if (list->use_key) free(list->use_key);
 	free(list);
 }
@@ -195,6 +203,12 @@ key_list_add_key(key_list *list,
 			fprintf(stderr,
 			        "Out of memory while adding key, aborting\n");
 		}
+		list->algorithms = realloc(list->algorithms,
+		                        sizeof(uint8_t) * list->capacity);
+		if (!list->algorithms) {
+			fprintf(stderr,
+			        "Out of memory while adding key, aborting\n");
+		}
 		list->use_key = realloc(list->use_key,
 		                        sizeof(int) * list->capacity);
 		if (!list->use_key) {
@@ -219,6 +233,7 @@ key_list_add_key(key_list *list,
 	
 	list->keys[list->key_count] = key;
 	list->keytags[list->key_count] = ldns_calc_keytag(dnskey);
+	list->algorithms[list->key_count] = params->algorithm;
 	list->use_key[list->key_count] = 1;
 	list->key_count++;
 	
@@ -493,7 +508,7 @@ handle_command(FILE *output, current_config *cfg,
 	} else if (strcmp(cmd, "origin") == 0) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
-			fprintf(output, "; Error: missing argument in inception command\n");
+			fprintf(output, "; Error: missing argument in origin command\n");
 		} else {
 			if (cfg->origin) {
 				ldns_rdf_deep_free(cfg->origin);
@@ -810,6 +825,10 @@ sign_rrset(ldns_rr_list *rrset,
 	key_list *keys;
 	hsm_sign_params_t *params;
 	params = hsm_sign_params_new();
+	if (!cfg->origin) {
+		fprintf(stderr, "Origin not set! Unable to continue.\n");
+		exit(1);
+	}
 	params->owner = ldns_rdf_clone(cfg->origin);
 	params->inception = cfg->inception;
 	if (ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)) ==
@@ -821,8 +840,8 @@ sign_rrset(ldns_rr_list *rrset,
 	ldns_rr_list_print(output, rrset);
 	for (i = 0; i < keys->key_count; i++) {
 		if (keys->use_key[i]) {
-			/* TODO: update params more? algorithm? */
 			params->keytag = keys->keytags[i];
+			params->algorithm = keys->algorithms[i];
 			params->expiration = cfg->expiration + rand() % cfg->jitter;
 			sig = hsm_sign_rrset(NULL, rrset,
 								 keys->keys[i], params);
