@@ -7,8 +7,8 @@ TOP = ../../..
 
 CONF_ARG = \
 	--prefix=/usr/local \
-	--sysconfdir=/usr/local/etc \
-	--localstatedir=/usr/local/var \
+	--sysconfdir=/etc \
+	--localstatedir=/var \
 	--with-libksm=/usr/local \
 	--with-libhsm=/usr/local \
 	--with-sqlite3=/usr \
