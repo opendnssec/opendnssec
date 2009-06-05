@@ -84,7 +84,7 @@ AC_DEFUN([ACX_LDNS],[
 
 AC_DEFUN([ACX_CUNIT],[
 	AC_ARG_WITH(cunit,
-		[AC_HELP_STRING([--cunit=DIR],[Look for cunit in this dir])],
+		[AC_HELP_STRING([--with-cunit=DIR],[Look for cunit in this dir])],
         	[
 			CUNIT_PATH="$withval"
 		],[
