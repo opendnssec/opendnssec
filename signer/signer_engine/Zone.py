@@ -154,43 +154,33 @@ class Zone:
                       "Generating DNSKEY rr for " + str(key["locator"]))
         # just try all modules to generate the dnskey?
         # first one to return anything is good?
-        for token in self.engine_config.tokens:
-            mpath = token["module_path"]
-            mpin = token["pin"]
-            tlabel = token["token_label"]
-            repository = token["repository"]
-            cmd = [ self.get_tool_filename("create_dnskey"),
-                    "-c", self.engine_config.config_file_name,
-                    "-o", self.zone_name,
-                    "-a", str(key["algorithm"]),
-                    "-f", str(key["flags"]),
-                    "-t", str(key["ttl"]),
-                    key["locator"]
-                  ]
-            create_p = Util.run_tool(cmd)
-            if not create_p:
-                return
-            for line in create_p.stdout:
-                output = line
-            status = create_p.wait()
-            for line in create_p.stderr:
-                syslog.syslog(syslog.LOG_ERR,
-                            "create_dnskey stderr: " + line)
-            syslog.syslog(syslog.LOG_DEBUG,
-                          "create_dnskey status: " + str(status))
-            syslog.syslog(syslog.LOG_DEBUG,
-                          "equality: " + str(status == 0))
-            if status == 0:
-                key["repository"] = repository
-                key["token_label"] = tlabel
-                key["pkcs11_module"] = mpath
-                key["pkcs11_pin"] = mpin
-                key["tool_key_id"] = key["locator"]
-                key["dnskey"] = str(output)
-                syslog.syslog(syslog.LOG_INFO,
-                              "Found key " + key["locator"] +\
-                              " in repository " + repository)
-                return True
+        cmd = [ self.get_tool_filename("create_dnskey"),
+                "-c", self.engine_config.config_file_name,
+                "-o", self.zone_name,
+                "-a", str(key["algorithm"]),
+                "-f", str(key["flags"]),
+                "-t", str(key["ttl"]),
+                key["locator"]
+              ]
+        create_p = Util.run_tool(cmd)
+        if not create_p:
+            return
+        for line in create_p.stdout:
+            output = line
+        status = create_p.wait()
+        for line in create_p.stderr:
+            syslog.syslog(syslog.LOG_ERR,
+                        "create_dnskey stderr: " + line)
+        syslog.syslog(syslog.LOG_DEBUG,
+                      "create_dnskey status: " + str(status))
+        syslog.syslog(syslog.LOG_DEBUG,
+                      "equality: " + str(status == 0))
+        if status == 0:
+            key["tool_key_id"] = key["locator"]
+            key["dnskey"] = str(output)
+            syslog.syslog(syslog.LOG_INFO,
+                          "Found key " + key["locator"])
+            return True
         return False
 
     def check_key_values(self, k):
@@ -438,19 +428,14 @@ class Zone:
                     syslog.syslog(syslog.LOG_ERR,
                                   "Error: Unable to find key " +\
                                   k["locator"])
-            if k["repository"]:
-                scmd = [k["tool_key_id"],
-                        str(k["algorithm"]),
-                        str(k["flags"])
-                       ]
-                if (k["zsk"]):
-                    Util.write_p(sign_p, " ".join(scmd), ":add_zsk ")
-                if (k["ksk"]):
-                    Util.write_p(sign_p, " ".join(scmd), ":add_ksk ")
-            else:
-                syslog.syslog(syslog.LOG_WARNING,
-                              "warning: no token for key " +\
-                              k["locator"])
+            scmd = [k["tool_key_id"],
+                    str(k["algorithm"]),
+                    str(k["flags"])
+                   ]
+            if (k["zsk"]):
+                Util.write_p(sign_p, " ".join(scmd), ":add_zsk ")
+            if (k["ksk"]):
+                Util.write_p(sign_p, " ".join(scmd), ":add_ksk ")
         nsecced_f = open(self.get_zone_tmp_filename(".nsecced"))
         for line in nsecced_f:
             #syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)

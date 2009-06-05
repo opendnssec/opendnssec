@@ -35,7 +35,6 @@ import re
 import Util
 from xml.dom import minidom
 from xml.parsers.expat import ExpatError
-from Ft.Xml.XPath import Evaluate
 
 COMMENT_LINE = re.compile("\s*([#;].*)?$")
 PKCS_LINE = re.compile(\
@@ -53,7 +52,6 @@ class EngineConfigurationError(Exception):
 class EngineConfiguration:
     """Engine Configuration options"""
     def __init__(self, config_file_name=None):
-        self.tokens = []
         self.zonelist_file = None
         self.zone_tmp_dir = None
         self.tools_dir = None
@@ -78,16 +76,6 @@ class EngineConfiguration:
 
     def from_xml(self, xml_blob):
         """Searches the xml blob for the configuration values"""
-        xmlbs = Evaluate("Configuration/RepositoryList/Repository", xml_blob)
-        for xmlb in xmlbs:
-            token = {}
-            token["repository"] = xmlb.attributes["name"].value
-            token["token_label"] = Util.get_xml_data("TokenLabel", xmlb)
-            token["module_path"] = Util.get_xml_data("Module", xmlb)
-            token["pin"] = Util.get_xml_data("PIN", xmlb, True)
-            if not token["pin"]:
-                token["pin"] = Util.query_pin(token)
-            self.tokens.append(token)
 
         self.zonelist_file = \
              Util.get_xml_data("Configuration/Signer/ZoneListFile",
@@ -106,8 +94,6 @@ class EngineConfiguration:
         """Verifies whether the configuration is correct for the
         signer. Raises an EngineConfigurationError when there
         seems to be a problem"""
-        if len(self.tokens) < 1:
-            raise EngineConfigurationError("No tokens configured")
         # do we need to check the zonelist file too?
         # there is the possibility that the kasp hasn't created it
         # yet

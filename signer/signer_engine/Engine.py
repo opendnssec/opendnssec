@@ -458,7 +458,10 @@ def main():
 
 class EngineNullDevice:
     """Null device class, used for daemonizing"""
-    def write(self, str):
+    def __init__(self):
+        pass
+    def write(self, stri):
+        """pass"""
         pass
 
 def daemonize_engine():
