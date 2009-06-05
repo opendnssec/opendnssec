@@ -11,7 +11,6 @@ echo ":expiration 20090701000000" >> $TMP_COMMANDS
 echo ":inception 20090605072316" >> $TMP_COMMANDS
 echo ":jitter 60" >> $TMP_COMMANDS
 echo ":refresh 20090606072616" >> $TMP_COMMANDS
-echo ":add_module test test_token ../../../softHSM/src/lib/.libs/libsofthsm.so 1111" >> $TMP_COMMANDS
 echo ":add_ksk fc9ead5ec20345ca87e61836ff327ce1 7 257" >> $TMP_COMMANDS
 echo ":add_zsk e715319b2fe146bfb4fa8e9b2c780d21 7 256" >> $TMP_COMMANDS
 # prepare the zone
@@ -29,7 +28,7 @@ cp $TMP_ZONE /tmp/unsorted
 ../../tools/nsec3er -t 5 -s beef -o tjeb.nl >> $TMP_COMMANDS
 
 #../../tools/signer -f $TMP_COMMANDS | ../../tools/finalizer > signed_zones/tjeb.nl
-../../tools/signer -f $TMP_COMMANDS > signed_zones/tjeb.nl
+../../tools/signer -c opendnssec.xml -f $TMP_COMMANDS > signed_zones/tjeb.nl
 
 echo "Cleaning up"
 rm $TMP_COMMANDS

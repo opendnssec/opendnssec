@@ -381,6 +381,7 @@ class Zone:
         """Takes the file created by nsecify() or by the previous call
            to sign(), and (re)signs the zone"""
         cmd = [self.get_tool_filename("signer"),
+               "-c", self.engine_config.config_file_name,
                "-p", self.get_zone_tmp_filename(".signed"),
                "-w", self.get_zone_tmp_filename(".signed2")
               ]
@@ -438,13 +439,6 @@ class Zone:
                                   "Error: Unable to find key " +\
                                   k["locator"])
             if k["repository"]:
-                scmd = [k["repository"],
-                        k["token_label"],
-                        k["pkcs11_module"],
-                        k["pkcs11_pin"]
-                       ]
-                syslog.syslog(syslog.LOG_DEBUG, "adding module");
-                Util.write_p(sign_p, " ".join(scmd), ":add_module ")
                 scmd = [k["tool_key_id"],
                         str(k["algorithm"]),
                         str(k["flags"])

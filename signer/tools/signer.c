@@ -421,39 +421,16 @@ handle_command(FILE *output, current_config *cfg,
                const char *line, int line_len)
 {
 	char *cmd;
-	char *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
+	char *arg1 = NULL, *arg2 = NULL, *arg3 = NULL;
 	char *next;
 	ldns_status result = LDNS_STATUS_OK;
-	int iresult;
 	(void)line_len;
 	
 	cmd = read_arg(line, &next);
 	if (!cmd) {
 		return LDNS_STATUS_ERR;
 	}
-	if (strcmp(cmd, "add_module") == 0) {
-		arg1 = read_arg(next, &next);
-		arg2 = read_arg(next, &next);
-		arg3 = read_arg(next, &next);
-		arg4 = read_arg(next, &next);
-		if (!arg1 || !arg2 || !arg3) {
-			fprintf(output, "; Error: missing argument in add_module command\n");
-		} else {
-			if (!hsm_token_attached(NULL, arg1)) {
-				iresult = hsm_attach(arg1, arg2, arg3, arg4);
-				if (iresult != 0) {
-					fprintf(output, "; Error adding token '%s'\n", arg1);
-				}
-			}
-		}
-	} else if (strcmp(cmd, "del_module") == 0) {
-		arg1 = read_arg(next, &next);
-		if (!arg1) {
-			fprintf(output, "; Error: missing argument in add_module command\n");
-		} else {
-			iresult = hsm_detach(arg1);
-		}
-	} else if (strcmp(cmd, "add_zsk") == 0) {
+	if (strcmp(cmd, "add_zsk") == 0) {
 		arg1 = read_arg(next, &next);
 		arg2 = read_arg(next, &next);
 		arg3 = read_arg(next, &next);
@@ -539,12 +516,12 @@ handle_command(FILE *output, current_config *cfg,
 	} else if (strcmp(cmd, "stop") == 0) {
 		result = LDNS_STATUS_NULL;
 	} else {
+		fprintf(stderr, "; Error: unknown command: %s\n", cmd);
 		fprintf(output, "; Error: unknown command: %s\n", cmd);
 	}
 	if (arg1) free(arg1);
 	if (arg2) free(arg2);
 	if (arg3) free(arg3);
-	if (arg4) free(arg4);
 	free(cmd);
 	return result;
 }
@@ -979,6 +956,7 @@ int main(int argc, char **argv)
 	FILE *input;
 	FILE *output;
 	FILE *prev_zone = NULL;
+	char *config_file = NULL;
 	bool echo_input = true;
 	int result;
 
@@ -988,8 +966,11 @@ int main(int argc, char **argv)
 
 	hsm_open(NULL, NULL, NULL);
 
-	while ((c = getopt(argc, argv, "f:hnp:w:")) != -1) {
+	while ((c = getopt(argc, argv, "c:f:hnp:w:")) != -1) {
 		switch(c) {
+		case 'c':
+			config_file = optarg;
+			break;
 		case 'f':
 			input = fopen(optarg, "r");
 			if (!input) {
@@ -1029,7 +1010,15 @@ int main(int argc, char **argv)
 		}
 	}
 
-	result = 0;
+	if (!config_file) {
+		fprintf(stderr, "Error: no configuration file given\n");
+		exit(1);
+	}
+	result = hsm_open(config_file, hsm_prompt_pin, NULL);
+	if (result != HSM_OK) {
+		fprintf(stderr, "Error initializing libhsm\n");
+		exit(2);
+	}
 	result = read_input(input, prev_zone, output, cfg);
 	
 	hsm_close();
