@@ -295,7 +295,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             	if (strncmp(data.category, "keys", 4) == 0) {
             		if (strncmp(data.name, "ttl",3) == 0) policy->ksk->ttl=data.value;
             		if (strncmp(data.name, "ttl",3) == 0) policy->zsk->ttl=data.value;
-            		if (strncmp(data.name, "zones_share_keys",4) == 0) policy->shared_keys=data.value;
+            		if (strncmp(data.name, "zones_share_keys",16) == 0) policy->shared_keys=data.value;
             	}
            		/* Ignore any unknown parameters */
 
