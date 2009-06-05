@@ -159,12 +159,8 @@ class Zone:
             mpin = token["pin"]
             tlabel = token["token_label"]
             repository = token["repository"]
-            syslog.syslog(syslog.LOG_DEBUG, "Try repository " + repository)
             cmd = [ self.get_tool_filename("create_dnskey"),
-                    "-r", repository,
-                    "-n", tlabel,
-                    "-m", mpath,
-                    "-p", mpin,
+                    "-c", self.engine_config.config_file_name,
                     "-o", self.zone_name,
                     "-a", str(key["algorithm"]),
                     "-f", str(key["flags"]),

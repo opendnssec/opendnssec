@@ -18,8 +18,8 @@ echo ":add_zsk e715319b2fe146bfb4fa8e9b2c780d21 7 256" >> $TMP_COMMANDS
 echo "Preparing zone"
 cat unsigned_zones/tjeb.nl > $TMP_ZONE
 echo "Adding keys"
-../../tools/create_dnskey -r test -n test_token -m ../../../softHSM/src/lib/.libs/libsofthsm.so -p 1111 -o tjeb.nl -a 7 -f 257 -t 3600 fc9ead5ec20345ca87e61836ff327ce1 >> $TMP_ZONE
-../../tools/create_dnskey -r test -n test_token -m ../../../softHSM/src/lib/.libs/libsofthsm.so -p 1111 -o tjeb.nl -a 7 -f 256 -t 3600 e715319b2fe146bfb4fa8e9b2c780d21 >> $TMP_ZONE
+../../tools/create_dnskey -r test -c opendnssec.xml -o tjeb.nl -a 7 -f 257 -t 3600 fc9ead5ec20345ca87e61836ff327ce1 >> $TMP_ZONE
+../../tools/create_dnskey -r test -c opendnssec.xml -o tjeb.nl -a 7 -f 256 -t 3600 e715319b2fe146bfb4fa8e9b2c780d21 >> $TMP_ZONE
 # sort, nsec, and sign it
 echo "Signing zone"
 cp $TMP_ZONE /tmp/unsorted

@@ -58,6 +58,7 @@ class EngineConfiguration:
         self.zone_tmp_dir = None
         self.tools_dir = None
         self.notify_command = None
+        self.config_file_name = config_file_name
         if config_file_name:
             self.read_config_file(config_file_name)
         

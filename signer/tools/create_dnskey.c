@@ -96,14 +96,17 @@ usage(FILE *out)
 	fprintf(out, "nothing is printed and an error value is returned\n\n");
 	fprintf(out, "Options:\n");
 	fprintf(out, "-a <algorithm>\tSet DNSKEY algorithm (default %u)\n", DEFAULT_ALGORITHM);
-	fprintf(out, "-f <flags>\tflags for the DNSKEY RR (defult %u)\n", DEFAULT_FLAGS);
+	fprintf(out, "-c <file>\tSpecifies the OpenDNSSEC config file\n");
+	fprintf(out, "-f <flags>\tFlags for the DNSKEY RRs (default %u)\n", DEFAULT_FLAGS);
 	fprintf(out, "-h\t\tShow this help screen\n");
 	fprintf(out, "-t <ttl>\tTTL for the DNSKEY RR (default %u)\n", DEFAULT_TTL);
+/*
 	fprintf(out, "-m <module>\tUse <module> as PKCS11 module\n");
 	fprintf(out, "-n <token name>\tUse the token <token name> from the pkcs #11 module (mandatory)\n");
-	fprintf(out, "-o <origin>\tUse origina as zone name (mandatory)\n");
-/*	fprintf(out, "-r <protocol>\tSet protocol for DNSKEY RR (default %u)\n", DEFAULT_PROTOCOL);*/
 	fprintf(out, "-p <PIN>\tUse PIN for PKCS11 token\n");
+*/
+	fprintf(out, "-o <origin>\tUse origin as zone name (mandatory)\n");
+/*	fprintf(out, "-r <protocol>\tSet protocol for DNSKEY RR (default %u)\n", DEFAULT_PROTOCOL);*/
 	fprintf(out, "-v <level>\tSets verbosity level\n");
 }
 
@@ -118,16 +121,13 @@ main(int argc, char **argv)
 	int flags_i;
 	ldns_rr *key_rr;
 	uint32_t ttl = DEFAULT_TTL;
-	char *token_name = NULL;
 
 	uuid_t key_uuid;
 	hsm_sign_params_t *params;
 	hsm_key_t *key;
-	
+
+	char *config_file = NULL;
 	int result;
-	char *pkcs11_lib_file = NULL;
-	char *pin = NULL;
-	int tries;
 	
 	/* internal variables */
 	int found = 0;
@@ -137,11 +137,13 @@ main(int argc, char **argv)
 	params->algorithm = DEFAULT_ALGORITHM;
 	params->flags = DEFAULT_FLAGS;
 	
-	hsm_open(NULL, NULL, NULL);
-	while ((c = getopt(argc, argv, "a:f:hm:n:o:p:r:t:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:c:f:ho:r:t:v:")) != -1) {
 		switch(c) {
 			case 'a':
 				params->algorithm = atoi(optarg);
+				break;
+			case 'c':
+				config_file = optarg;
 				break;
 			case 'f':
 				flags_i = atoi(optarg);
@@ -157,17 +159,8 @@ main(int argc, char **argv)
 				usage(stdout);
 				exit(0);
 				break;
-			case 'm':
-				pkcs11_lib_file = optarg;
-				break;
-			case 'n':
-				token_name = optarg;
-				break;
 			case 'o':
 				params->owner = ldns_dname_new_frm_str(optarg);
-				break;
-			case 'p':
-				pin = optarg;
 				break;
 			/*case 'r':
 				// todo: check bounds
@@ -186,55 +179,25 @@ main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
+	if (!config_file) {
+		fprintf(stderr, "Error: no configuration file specified\n");
+		exit(1);
+	}
 	if (!params->owner) {
 		fprintf(stderr, "Error: bad or no origin specified\n");
-		exit(1);
-	}
-	if (!token_name) {
-		fprintf(stderr, "Error: no token name provided\n");
 		exit(2);
 	}
-	if (!pkcs11_lib_file) {
-		fprintf(stderr, "Error: no PKCS#11 library provided\n");
+
+	result = hsm_open(config_file, hsm_prompt_pin, NULL);
+	if (result != HSM_OK) {
+		fprintf(stderr, "Error initializing libhsm\n");
 		exit(3);
 	}
-	/* init the pkcs environment */
-	if (!pin) {
-		result = HSM_PIN_INCORRECT;
-		tries = 0;
-		while (result == HSM_PIN_INCORRECT && tries < 3) {
-			pin = hsm_prompt_pin(token_name, NULL);
-			/* we'll use the token name as the repository name here
-			 * (no need to specify a second name for this one-off use)
-			 */
-			result = hsm_attach(token_name,
-			                    token_name,
-			                    pkcs11_lib_file,
-			                    pin);
-			memset(pin, 0, strlen(pin));
-			tries++;
-		}
-	} else {
-			result = hsm_attach(token_name,
-			                    token_name,
-			                    pkcs11_lib_file,
-			                    pin);
-	}
-	if (result != 0) {
-		fprintf(stderr, "Failed to initialize token %s\n", token_name);
-		if (result == HSM_PIN_INCORRECT) {
-			fprintf(stderr, "Incorrect PIN\n");
-		}
-		exit(1);
-	}
-
+	
 	/* read the keys */
 	argi = 0;
 	while (argi < argc) {
-		/* hex representation of the uuid */
-		result = keystr2uuid(&key_uuid, argv[argi]);
-		
-		key = hsm_find_key_by_uuid(NULL, (const uuid_t *)&key_uuid);
+		key = hsm_find_key_by_id_string(NULL, argv[argi]);
 
 		if (key) {
 			/* todo: key_rr */

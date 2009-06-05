@@ -744,6 +744,7 @@ main(int argc, char **argv)
 		                                         nsec3_iterations,
 		                                         nsec3_salt_length,
 		                                         nsec3_salt);
+		ldns_dname_cat(cur_rr_data->name, origin);
 		cur_rr_data->orig_name = ldns_rdf_clone(ldns_rr_owner(my_nsec3params));
 		cur_rr_data->type = LDNS_RR_TYPE_NSEC3PARAMS;
 		status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
