@@ -9,26 +9,30 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-AUTOMAKE_OPTIONS = foreign
+RNC =	conf.rnc kasp.rnc zonelist.rnc signconf.rnc
+RNG =	conf.rng kasp.rng zonelist.rng signconf.rng
+XML =	conf.xml kasp.xml zonelist.xml signconf.xml
 
-RNC=    conf.rnc kasp.rnc zonelist.rnc signconf.rnc
-RNG=    conf.rng kasp.rng zonelist.rng signconf.rng
-XML=    conf.xml kasp.xml zonelist.xml signconf.xml
+sysconfdir = @sysconfdir@/opendnssec
 
-sysconfdir= @sysconfdir@/opendnssec
+dist_sysconf_DATA = ${RNG} ${RNC}
 
-dist_sysconf_DATA = ${RNG}
+CLEANFILES =	*.rng
 
-CLEANFILES=     *.rng
-
-SUFFIXES= .rng .rnc .xml
+SUFFIXES = .rng .rnc .xml
 
 .rnc.rng:
+	@test "x@TRANG@" != "x" || \
+		(echo "trang is required to (re)build XML schemas"; false)
 	@TRANG@ $< $@
 
-regress:
-	for i in ${XML}; do \
-		${XMLLINT} --noout --relaxng `basename $$i .xml`.rng $$i; \
+regress: $(RNG)
+	@test -x ${XMLLINT} || \
+		(echo "xmllint is required for regression tests"; false)
+	@for i in ${XML}; do \
+		${XMLLINT} --noout --relaxng \
+		 	`basename $$i .xml`.rng \
+			$(srcdir)/$$i; \
 	done
 
 install-data-hook:

@@ -7,40 +7,32 @@ AC_PREREQ(2.61)
 AC_INIT(OpenDNSSEC Example, 0.0.1, jad@jadickinson.co.uk)
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
+AM_INIT_AUTOMAKE(foreign)
 
 # Checks for programs.
 AC_PATH_PROG(XMLLINT, xmllint)
 
 AC_PATH_PROG(JAVA, java)
+
 AC_ARG_WITH(trang,
-[  --with-trang=PATH     Path to trang.jar ],
-   TRANGJAR="$withval"
-)
+	[AS_HELP_STRING([--with-trang],[Path to trang.jar (optional)])],
+   	TRANGJAR="$withval"
+	)
 if test "x$TRANGJAR" != "x"
 then
-  if test -e $TRANGJAR
-  then
-    TRANG="$JAVA -jar $TRANGJAR"
-    AC_MSG_NOTICE(trang will run like this $TRANG)
-  else
-    AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
-  fi
+	if test -e $TRANGJAR
+	then
+		TRANG="$JAVA -jar $TRANGJAR"
+		AC_MSG_NOTICE(trang will run like this $TRANG)
+  	else
+    		AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
+	fi
 else
-  AC_MSG_NOTICE([trang.jar can be downloaded from http://code.google.com/p/jing-trang/])
-  AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
+	AC_MSG_NOTICE([trang.jar can be downloaded from http://code.google.com/p/jing-trang/])
+	TRANG=
 fi
 AC_SUBST(TRANG)
 
-# Checks for libraries.
-
-# Checks for header files.
-
-# Checks for typedefs, structures, and compiler characteristics.
-
-# Checks for library functions.
-
-AC_CONFIG_FILES([
-Makefile
-])
+AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
