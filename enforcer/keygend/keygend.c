@@ -78,7 +78,7 @@ server_main(DAEMONCONFIG *config)
     uuid_t *uuid;
     char uuid_text[37];
     char *rightnow;
-    DB_ID* ignore = 0;
+    DB_ID ignore = 0;
     struct timeval tv;
     KSM_POLICY *policy;
     int result;
@@ -159,7 +159,7 @@ server_main(DAEMONCONFIG *config)
 	                    }
 	                    uuid = hsm_get_uuid(ctx, key);
 	                    uuid_unparse(*uuid, uuid_text);
-	                    status = KsmKeyPairCreate(policy->id, uuid_text, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, ignore);
+	                    status = KsmKeyPairCreate(policy->id, uuid_text, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
 	                    log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM: %s.", policy->ksk->bits, policy->ksk->algorithm, uuid_text, policy->ksk->sm_name);
 	                } else {
 	                  log_msg(config, LOG_ERR, "Key algorithm unsupported by libhsm.");
@@ -181,7 +181,7 @@ server_main(DAEMONCONFIG *config)
 	                     }
 	                     uuid = hsm_get_uuid(ctx, key);
                        uuid_unparse(*uuid, uuid_text);
-                       status = KsmKeyPairCreate(policy->id, uuid_text, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, ignore);
+                       status = KsmKeyPairCreate(policy->id, uuid_text, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
                        log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with uuid: %s in HSM: %s.", policy->zsk->bits, policy->zsk->algorithm, uuid_text, policy->zsk->sm_name);
                     } else {
 		                  log_msg(config, LOG_ERR, "unsupported key algorithm.");
