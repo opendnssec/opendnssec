@@ -37,5 +37,8 @@
 
 int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);
+void generateKeysForPolicy(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx);
+void generateKSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *rightnow, DB_ID *key_pair_id);
+void generateZSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *rightnow, DB_ID *key_pair_id);
 
 #endif /* ENFORCER_KEYGEND_H */

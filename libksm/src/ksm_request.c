@@ -1210,7 +1210,72 @@ int KsmRequestGenerateCount(int keytype, int* count, int zone_id)
     return status;
 }
 
+/*+
+ * KsmRequestKeyQueCount - Return Number of Keys in the que before active state
+ *
+ * Description:
+ *      Returns the number of keys in the KSM_STATE_GENERATE, KSM_STATE_PUBLISH, 
+ *      and KSM_STATE_READY state.
+ *
+ * Arguments:
+ *      int keytype
+ *          Key type, KSK or ZSK
+ *
+ *      int* count (returned)
+ *          Number of keys in the que.
+ *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
+ * Returns:
+ *      int
+ *          Status return. 0 => success, Other implies error, in which case a
+ *          message will have been output.
+-*/
 
+int KsmRequestKeyQueCount(int keytype, int* count, int zone_id)
+{
+    int     clause = 0;     /* Clause count */
+    char*   sql = NULL;     /* SQL to interrogate database */
+    int     status = 0;     /* Status return */
+    char    in[128];        /* Easily large enought for three keys */
+    size_t  nchar;          /* Number of output characters */
+
+    /*
+     * Construct the "IN" statement listing the states of the keys that
+     * are included in the output.
+     */
+
+    nchar = snprintf(in, sizeof(in), "(%d, %d, %d)",
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY);
+    if (nchar >= sizeof(in)) {
+        status = MsgLog(KME_BUFFEROVF, "KsmRequestKeyQueCount");
+        return status;
+    }
+
+    /* Create the SQL command to interrogate the database */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
+    DqsEnd(&sql);
+
+    /* Execute the query and free resources */
+
+    status = DbIntQuery(DbHandle(), count, sql);
+    DqsFree(sql);
+
+    /* Report any errors */
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+    return status;
+}
 
 /*
  * KsmRequestCheckActiveKey - Check Active Key

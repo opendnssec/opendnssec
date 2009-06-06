@@ -129,7 +129,7 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data);
 void KsmKeyEnd(DB_RESULT result);
 int KsmKeyQuery(const char* sql, DB_RESULT* result);
 int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
-int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count);
+int ksmKeyPredict(int policy_id, int keytype, int interval, int *count);
     
 /* delete */
 
@@ -197,6 +197,7 @@ typedef struct {
 	int ttl;
 	int rfc5011;
 	int type;
+	int emergency_keys;
 } KSM_KEY_POLICY;
 
 typedef struct {
@@ -238,7 +239,7 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy);
 /* ksmZone */
 typedef struct {
     int id;
-	char* name;
+    char* name;
 } KSM_ZONE;
 
 int KsmZoneInit(DB_RESULT* handle, int policy_id);
@@ -292,9 +293,9 @@ void KsmPurge(void);
 #define KSM_FORMAT_URI              3
 #define KSM_FORMAT_URI_STRING       "uri"
 
-#define KSM_TYPE_KSK                256
+#define KSM_TYPE_KSK                257
 #define KSM_TYPE_KSK_STRING         "ksk"
-#define KSM_TYPE_ZSK                257
+#define KSM_TYPE_ZSK                256
 #define KSM_TYPE_ZSK_STRING         "zsk"
 
 #define KSM_STATE_GENERATE          1
@@ -465,6 +466,7 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
 int KsmRequestAvailableCount(int keytype, const char* datetime,
 	KSM_PARCOLL* parameters, int* count, int zone_id);
 int KsmRequestGenerateCount(int keytype, int* count, int zone_id);
+int KsmRequestKeyQueCount(int keytype, int* count, int zone_id);
 int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count, int zone_id);
 int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count, int zone_id);
 
