@@ -508,22 +508,11 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     DB_RESULT    result;    /* List result set */
     KSM_KEYDATA  data;      /* Data for this key */
     char    buffer[32];         /* For integer conversion */
-#ifdef USE_MYSQL
-#else    
-    char    buf[256];       /* For constructing date part of the command */
-    char    col[256];       /* For constructing column part of the command */
-#endif /* USE_MYSQL */
 
     /* Create the destination column name */
 
     dst_col = StrStrdup(KsmKeywordStateValueToName(dst_state));
     (void) StrToUpper(dst_col);
-
-#ifdef USE_MYSQL
-#else    
-	snprintf(buf, sizeof(buf), "DATETIME('%s')", datetime);
-    snprintf(col, sizeof(col), "DATETIME(%s)", dst_col);
-#endif /* USE_MYSQL */
 
     /* First up we need to count how many keys will move */
     sql = DqsCountInit("KEYDATA_VIEW");
@@ -532,13 +521,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     if (zone_id != -1) {
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
     }
-
-#ifdef USE_MYSQL
     DqsConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
-#else
-    DqsConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
-#endif /* USE_MYSQL */
-    
     DqsEnd(&sql);
 
     status = DbIntQuery(DbHandle(), &count, sql);
@@ -547,48 +530,43 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     if (status != 0) {
         status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
         StrFree(dst_col);
-		return status;
-	}
+        return status;
+    }
 
-	if (count == 0) {
-		/* Nothing to do */
-		StrFree(dst_col);
-		return status;
-	}
+    if (count == 0) {
+        /* Nothing to do */
+        StrFree(dst_col);
+        return status;
+    }
 
     /* Allocate space for the list of key IDs */
     keyids = MemMalloc(count * sizeof(int));
 
     /* Get the list of IDs */
 
+    where = 0;
     sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
     DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, src_state, where++);
     if (zone_id != -1) {
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
     }
-
-#ifdef USE_MYSQL
     DqsConditionString(&sql, dst_col, DQS_COMPARE_LE, datetime, where++);
-#else
-    DqsConditionKeyword(&sql, col, DQS_COMPARE_LE, buf, where++);
-#endif /* USE_MYSQL */
-    
     DqsEnd(&sql);
 
     status = KsmKeyInitSql(&result, sql);
     DqsFree(sql);
 
-	if (status == 0) {
-	    while (status == 0) {
-        	status = KsmKey(result, &data);
-        	if (status == 0) {
-            	keyids[i] = data.keypair_id;
+    if (status == 0) {
+        while (status == 0) {
+            status = KsmKey(result, &data);
+            if (status == 0) {
+                keyids[i] = data.keypair_id;
                 i++;
-        	}
-		}
+            }
+        }
 
-		/* Convert EOF status to success */
+        /* Convert EOF status to success */
 
         if (status == -1) {
             status = 0;
@@ -629,19 +607,19 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     }
     StrAppend(&insql, ")");
 
-	/*
-	 * Update the keys.  This is done after a status check, as the debug
-	 * code may have hit a database error, in which case we won't query the
-	 * database again. ("status" is initialized to success in case the debug
-	 * code is not executed.)
-	 */
+    /*
+     * Update the keys.  This is done after a status check, as the debug
+     * code may have hit a database error, in which case we won't query the
+     * database again. ("status" is initialized to success in case the debug
+     * code is not executed.)
+     */
 
     sql = DusInit("keypairs");
     DusSetInt(&sql, "STATE", dst_state, set++);
     DusSetString(&sql, dst_col, datetime, set++);
 
     DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 1);
-	StrFree(insql);
+    StrFree(insql);
     DusEnd(&sql);
 
     status = DbExecuteSqlNoResult(DbHandle(), sql);
