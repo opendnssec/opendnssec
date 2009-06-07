@@ -423,15 +423,18 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     fprintf(file, "\t\t\t\t<Flags>%d</Flags>\n", key_data->keytype);
     fprintf(file, "\t\t\t\t<Algorithm>%d</Algorithm>\n", key_data->algorithm);
     fprintf(file, "\t\t\t\t<Locator>%s</Locator>\n", key_data->location);
-    if (key_data->keytype == KSM_TYPE_KSK)
+    if (key_data->keytype == KSM_TYPE_KSK && key_data->state == KSM_STATE_ACTIVE)
     {
         fprintf(file, "\t\t\t\t<KSK />\n");
     }
-    else
+    if (key_data->keytype == KSM_TYPE_ZSK && key_data->state == KSM_STATE_ACTIVE)
     {
         fprintf(file, "\t\t\t\t<ZSK />\n");
     }
-    fprintf(file, "\t\t\t\t<%s />\n", KsmKeywordStateValueToName(key_data->state));
+    if (key_data->state > KSM_STATE_GENERATE && key_data->state < KSM_STATE_DEAD)
+    {
+        fprintf(file, "\t\t\t\t<Publish />\n");
+    }
     fprintf(file, "\t\t\t</Key>\n");
     fprintf(file, "\n");
 
