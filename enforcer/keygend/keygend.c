@@ -43,7 +43,6 @@
 #include "daemon_util.h"
 #include "kaspaccess.h"
 
-#include <uuid/uuid.h>
 #include "ksm/datetime.h"
 #include "ksm/string_util.h"
 

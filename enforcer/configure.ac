@@ -20,9 +20,6 @@ AC_PROG_LIBTOOL
 ACX_PEDANTIC
 ACX_STRICT
 
-# Checks for libraries.
-AC_SEARCH_LIBS(uuid_generate, uuid)
-
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdlib.h string.h syslog.h unistd.h stdio.h])
