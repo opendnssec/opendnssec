@@ -30,13 +30,12 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <strings.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
-#include <cryptoki.h>
-#include <pkcs11.h>
-#include <string.h>
+#include <uuid/uuid.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
