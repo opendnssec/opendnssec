@@ -91,36 +91,6 @@ typedef struct {
 	unsigned long created_sigs;
 } current_config;
 
-static int
-keystr2uuid(uuid_t *uuid, const char *key_id_str)
-{
-	unsigned char *key_id;
-	int key_id_len;
-	/* length of the hex input */
-	size_t hex_len;
-	int i;
-	
-	hex_len = strlen(key_id_str);
-	if (hex_len % 2 != 0) {
-		fprintf(stderr,
-		        "Error: bad hex data for key id: %s\n",
-		        key_id_str);
-		return -1;
-	}
-	key_id_len = hex_len / 2;
-	if (key_id_len != 16) {
-		return -2;
-	}
-	key_id = malloc(16);
-	for (i = 0; i < key_id_len; i++) {
-		key_id[i] = ldns_hexdigit_to_int(key_id_str[2*i]) * 16 +
-		            ldns_hexdigit_to_int(key_id_str[2*i+1]);
-	}
-	memcpy(uuid, key_id, 16);
-	free(key_id);
-	return 0;
-}
-
 key_list *
 key_list_new()
 {
@@ -178,12 +148,10 @@ key_list_add_key(key_list *list,
                  const current_config *cfg)
 {
 	hsm_sign_params_t *params;
-	uuid_t key_uuid;
 	hsm_key_t *key;
 	ldns_rr *dnskey;
 
-	(void) keystr2uuid(&key_uuid, key_id);
-	key = hsm_find_key_by_uuid(NULL, (const uuid_t *)&key_uuid);
+	key = hsm_find_key_by_id(NULL, key_id);
 	if (!key) {
 		fprintf(stderr, "; Could not find key %s\n", key_id);
 		return;
