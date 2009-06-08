@@ -603,7 +603,6 @@ hsm_key_new()
     key->module = NULL;
     key->private_key = 0;
     key->public_key = 0;
-    key->uuid = NULL;
     return key;
 }
 
@@ -736,7 +735,7 @@ hsm_get_id_for_object(const hsm_session_t *session,
 
 
 /* returns an hsm_key_t object for the given *private key* object handle
- * the uuid and session, and public key handle are set
+ * the module, private key, and public key handle are set
  * The session needs to be free to perform a search for the public key
  */
 static hsm_key_t *
@@ -856,7 +855,7 @@ hsm_count_keys_session(const hsm_session_t *session)
 }
 
 /* returns a newly allocated key structure containing the key data
- * for the given uuid available in the session. Returns NULL if not
+ * for the given CKA_ID available in the session. Returns NULL if not
  * found
  */
 static hsm_key_t *
@@ -1597,7 +1596,6 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     hsm_pkcs11_check_rv(rv, "generate key pair");
 
     new_key = hsm_key_new();
-    new_key->uuid = uuid;
     new_key->module = session->module;
     new_key->public_key = publicKey;
     new_key->private_key = privateKey;
@@ -1624,11 +1622,6 @@ hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
     hsm_pkcs11_check_rv(rv, "Destroy public key");
     key->public_key = 0;
 
-    if (key->uuid) {
-        free(key->uuid);
-        key->uuid = NULL;
-    }
-
     return 0;
 }
 
@@ -1636,7 +1629,6 @@ void
 hsm_key_free(hsm_key_t *key)
 {
     if (key) {
-        if (key->uuid) free(key->uuid);
         free(key);
     }
 }
