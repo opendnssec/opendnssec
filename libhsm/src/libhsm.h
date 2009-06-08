@@ -179,42 +179,18 @@ size_t hsm_count_keys_repository(const hsm_ctx_t *context,
                                  const char *repository);
 
 
-/*! Find a key pair by CKA_ID (as byte array)
-
-The returned key structure can be freed with hsm_key_free()
-
-\param context HSM context
-\param id CKA_ID of key to find (array of bytes)
-\param len number of bytes in the id
-\return key identifier or NULL if not found
-*/
-hsm_key_t *hsm_find_key_by_id(const hsm_ctx_t *context,
-                              const unsigned char *id,
-                              size_t len);
-
 
 /*! Find a key pair by CKA_ID (as hex string)
 
 The returned key structure can be freed with hsm_key_free()
 
 \param context HSM context
-\param id CKA_ID of key to find (string of hex characters)
+\param id CKA_ID of key to find (null-terminated 
+          string of hex characters)
 \return key identifier or NULL if not found (or invalid input)
 */
-hsm_key_t *hsm_find_key_by_id_string(const hsm_ctx_t *context,
-                                     const char *id);
-
-/*! Find a key pair by UUID
-
-The returned key structure can be freed with hsm_key_free()
-
-\param context HSM context
-\param uuid UUID of key to find
-\return key identifier or NULL if not found
-*/
-hsm_key_t *hsm_find_key_by_uuid(const hsm_ctx_t *context,
-                                const uuid_t *uuid);
-
+hsm_key_t *hsm_find_key_by_id(const hsm_ctx_t *context,
+                              const char *id);
 
 /*! Generate new key pair in HSM
 
@@ -248,8 +224,6 @@ int hsm_remove_key(const hsm_ctx_t *context, hsm_key_t *key);
 
 /*! Free the memory for a key structure.
 
-If the uuid* value in the key is not NULL, it is freed as well
-
 \param key The key structure to free
 */
 void hsm_key_free(hsm_key_t *key);
@@ -264,16 +238,16 @@ hsm_list_keys()
 void hsm_key_list_free(hsm_key_t **key_list, size_t count);
 
 
-/*! Get UUID using key identifier
+/*! Get id as null-terminated hex string using key identifier
 
-The returned uuid is only a pointer to within the key structure, and
-does not need to be freed separately
+The returned id is allocated data, and must be free()d by the caller
+
 \param context HSM context
-\param key Key pair to get UUID from
-\return UUID of key pair
+\param key Key pair to get the ID from
+\return id of key pair
 */
-uuid_t *hsm_get_uuid(const hsm_ctx_t *context, const hsm_key_t *key);
-
+char *hsm_get_key_id(const hsm_ctx_t *context,
+                     const hsm_key_t *key);
 
 /*! Fill a buffer with random data from any attached HSM
 

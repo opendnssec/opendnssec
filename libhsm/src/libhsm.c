@@ -30,7 +30,7 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
@@ -881,6 +881,34 @@ hsm_find_key_by_id_session(const hsm_session_t *session,
     }
 }
 
+/* Find a key pair by CKA_ID (as byte array)
+
+The returned key structure can be freed with hsm_key_free()
+
+\param context HSM context
+\param id CKA_ID of key to find (array of bytes)
+\param len number of bytes in the id
+\return key identifier or NULL if not found
+*/
+static hsm_key_t *
+hsm_find_key_by_id_bin(const hsm_ctx_t *ctx,
+                       const unsigned char *id,
+                       size_t len)
+{
+    hsm_key_t *key;
+    unsigned int i;
+
+    if (!ctx) ctx = _hsm_ctx;
+    if (!id) return NULL;
+
+    for (i = 0; i < ctx->session_count; i++) {
+        key = hsm_find_key_by_id_session(ctx->session[i], id, len);
+        if (key) return key;
+    }
+    return NULL;
+}
+
+
 /**
  * returns the first session found if repository is null, otherwise
  * finds the session belonging to the repository with the given name
@@ -1487,25 +1515,7 @@ hsm_count_keys_repository(const hsm_ctx_t *ctx,
 }
 
 hsm_key_t *
-hsm_find_key_by_id(const hsm_ctx_t *ctx,
-                   const unsigned char *id,
-                   size_t len)
-{
-    hsm_key_t *key;
-    unsigned int i;
-
-    if (!ctx) ctx = _hsm_ctx;
-    if (!id) return NULL;
-
-    for (i = 0; i < ctx->session_count; i++) {
-        key = hsm_find_key_by_id_session(ctx->session[i], id, len);
-        if (key) return key;
-    }
-    return NULL;
-}
-
-hsm_key_t *
-hsm_find_key_by_id_string(const hsm_ctx_t *ctx, const char *id)
+hsm_find_key_by_id(const hsm_ctx_t *ctx, const char *id)
 {
     unsigned char *id_bytes;
     size_t len;
@@ -1515,15 +1525,9 @@ hsm_find_key_by_id_string(const hsm_ctx_t *ctx, const char *id)
 
     if (!id_bytes) return NULL;
     
-    key = hsm_find_key_by_id(ctx, id_bytes, len);
+    key = hsm_find_key_by_id_bin(ctx, id_bytes, len);
     free(id_bytes);
     return key;
-}
-
-hsm_key_t *
-hsm_find_key_by_uuid(const hsm_ctx_t *ctx, const uuid_t *uuid)
-{
-    return hsm_find_key_by_id(ctx, (unsigned char *)uuid, sizeof(uuid_t));
 }
 
 hsm_key_t *
@@ -1553,7 +1557,8 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     uuid = malloc(sizeof(uuid_t));
     uuid_generate(*uuid);
     /* check whether this key doesn't happen to exist already */
-    while (hsm_find_key_by_uuid(ctx, (const uuid_t *)uuid)) {
+    while (hsm_find_key_by_id_bin(ctx, (const unsigned char *)uuid,
+                                  sizeof(uuid_t))) {
         uuid_generate(*uuid);
     }
     uuid_unparse(*uuid, uuid_str);
@@ -1645,12 +1650,12 @@ hsm_key_list_free(hsm_key_t **key_list, size_t count)
     }
 }
 
-uuid_t *
-hsm_get_uuid(const hsm_ctx_t *ctx, const hsm_key_t *key)
+char *
+hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
 {
-    uuid_t *uuid = NULL;
     unsigned char *id;
-    size_t len;
+    char *id_str;
+    size_t len, i;
     hsm_session_t *session;
     
     if (!ctx) ctx = _hsm_ctx;
@@ -1662,14 +1667,15 @@ hsm_get_uuid(const hsm_ctx_t *ctx, const hsm_key_t *key)
     id = hsm_get_id_for_object(session, key->public_key, &len);
     if (!id) return NULL;
     
-    /* only return uuid if the id is actually a uuid */
-    if (len == sizeof(uuid_t)) {
-        uuid = malloc(sizeof(uuid_t));
-        memcpy(uuid, id, sizeof(uuid_t));
+    /* this is plain binary data, we need to convert it to hex */
+    id_str = malloc(len * 2 + 1);
+    for (i = 0; i < len; i++) {
+        sprintf(id_str, "%02x", id[i]);
     }
+
     free(id);
 
-    return uuid;
+    return id_str;
 }
 
 ldns_rr*
@@ -2046,21 +2052,14 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
 
 void
 hsm_print_key(hsm_key_t *key) {
-    char uuid_str[37];
-    uuid_t *uuid;
+    unsigned char *id;
     if (key) {
-        uuid = hsm_get_uuid(NULL, key);
-        if (uuid) {
-            uuid_unparse(*uuid, uuid_str);
-            free(uuid);
-        } else {
-            uuid_str[0] = '\0';
-        }
+        id = hsm_get_key_id(NULL, key);
         printf("key:\n");
         printf("\tmodule %p\n", (void *) key->module);
         printf("\tprivkey handle %u\n", (unsigned int) key->private_key);
         printf("\tpubkey handle  %u\n", (unsigned int) key->public_key);
-        printf("\tid %s\n", uuid_str);
+        printf("\tid %s\n", id);
     } else {
         printf("key: <void>\n");
     }

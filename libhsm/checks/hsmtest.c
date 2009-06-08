@@ -52,7 +52,7 @@ main (int argc, char *argv[])
 	hsm_ctx_t *ctx;
 	hsm_key_t **keys;
 	hsm_key_t *key = NULL;
-	uuid_t *uuid;
+	char *id;
 	size_t key_count = 0;
 	size_t i;
 	ldns_rr_list *rrset;
@@ -125,7 +125,7 @@ main (int argc, char *argv[])
 	hsm_print_ctx(ctx);
 
 	/*
-	 * Generate a new key OR find any key with an UUID
+	 * Generate a new key OR find any key with an ID
 	 */
 	if (do_generate) {
 		key = hsm_generate_rsa_key(ctx, repository, 1024);
@@ -146,14 +146,14 @@ main (int argc, char *argv[])
 			printf("Found key:\n");
 			hsm_print_key(keys[i]);
 			if ((do_sign || do_delete) && !key) {
-				uuid = hsm_get_uuid(ctx, keys[i]);
-				if (uuid) {  /* only use keys with uuid */
-					printf("Key with UUID found!\n");
+				id = hsm_get_key_id(ctx, keys[i]);
+				if (id) {  /* only use keys with uuid */
+					printf("Key with ID found!\n");
 					if (key) hsm_key_free(key);
-					key = hsm_find_key_by_uuid(ctx, (const uuid_t *)uuid);
-					printf("key: %p\n", key);
+					key = hsm_find_key_by_id(ctx, id);
+					printf("key: %p\n", (void *) key);
 				} else {
-					printf("Key without UUID skipped...\n");
+					printf("Key without ID skipped...\n");
 				}
 			}
 			hsm_key_free(keys[i]);
