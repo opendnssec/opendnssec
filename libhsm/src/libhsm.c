@@ -2052,7 +2052,7 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
 
 void
 hsm_print_key(hsm_key_t *key) {
-    unsigned char *id;
+    char *id;
     if (key) {
         id = hsm_get_key_id(NULL, key);
         printf("key:\n");
