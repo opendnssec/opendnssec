@@ -1660,8 +1660,10 @@ hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
     
     /* this is plain binary data, we need to convert it to hex */
     id_str = malloc(len * 2 + 1);
+    if (!id_str) return NULL;
+
     for (i = 0; i < len; i++) {
-        sprintf(id_str, "%02x", id[i]);
+        sprintf(id_str + i*2, "%02x", id[i]);
     }
 
     free(id);
