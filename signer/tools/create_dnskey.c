@@ -39,7 +39,6 @@
 #include <dlfcn.h>
 
 #include <ldns/ldns.h>
-#include <uuid/uuid.h>
 
 #include <libhsm.h>
 #include <libhsmdns.h>

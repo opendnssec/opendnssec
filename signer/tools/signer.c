@@ -46,7 +46,6 @@
 #include <strings.h>
 
 #include <ldns/ldns.h>
-#include <uuid/uuid.h>
 
 #include "util.h"
 #include <libhsm.h>
