@@ -2047,10 +2047,11 @@ hsm_print_key(hsm_key_t *key) {
     if (key) {
         id = hsm_get_key_id(NULL, key);
         printf("key:\n");
-        printf("\tmodule %p\n", (void *) key->module);
-        printf("\tprivkey handle %u\n", (unsigned int) key->private_key);
-        printf("\tpubkey handle  %u\n", (unsigned int) key->public_key);
-        printf("\tid %s\n", id);
+        printf("\tmodule: %p\n", (void *) key->module);
+        printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
+        printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
+        printf("\tid: %s\n", id);
+	if (id) free(id);
     } else {
         printf("key: <void>\n");
     }
