@@ -92,9 +92,7 @@ main (int argc, char *argv[])
 		exit(1);
 	}
 
-	/*
-	 * Open HSM library
-	 */
+	/* Open HSM library */
 	fprintf(stderr, "Opening HSM Library...\n");
 	result = hsm_open(config, hsm_prompt_pin, NULL);	
 	if (result) {
@@ -102,18 +100,14 @@ main (int argc, char *argv[])
 		exit(-1);
 	}
 
-	/*
-	 * Create HSM context
-	 */
+	/* Create HSM context */
 	ctx = hsm_create_context();
 	if (! ctx) {
 		fprintf(stderr, "hsm_create_context() returned error\n");
 		exit(-1);
 	}
 
-	/*
-	 * Generate a temporary key
-	 */
+	/* Generate a temporary key */
 	fprintf(stderr, "Generating temporary key...\n");
 	key = hsm_generate_rsa_key(ctx, repository, keysize);
 	if (key) {
@@ -125,9 +119,7 @@ main (int argc, char *argv[])
 		exit(-1);
 	}
 	
-	/*
-	 * Prepare dummy RRset for signing
-	 */
+	/* Prepare dummy RRset for signing */
 	rrset = ldns_rr_list_new();
 	status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se. IN A 123.123.123.123", 0, NULL, NULL);
 	if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
@@ -139,9 +131,7 @@ main (int argc, char *argv[])
 	dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
 	sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
-	/*
-	 * Do some signing
-	 */
+	/* Do some signing */
 	fprintf(stderr, "Signing %d RRsets...\n", iterations);
 	gettimeofday(&start, NULL);
 	for (i=0; i<iterations; i++) {
@@ -155,25 +145,14 @@ main (int argc, char *argv[])
 	gettimeofday(&end, NULL);
 	fprintf(stderr, "Signing done.\n");
 
-	/*
-	 * Clean up
-	 */
-	ldns_rr_list_deep_free(rrset);
-	hsm_sign_params_free(sign_params);
-	ldns_rr_free(dnskey_rr);
-
-	/*
-	 * Report results
-	 */
+	/* Report results */
 	end.tv_sec -= start.tv_sec;
 	end.tv_usec-= start.tv_usec;
 	double elapsed =(double)(end.tv_sec)+(double)(end.tv_usec)*.000001;
 	double speed = iterations / elapsed;
 	printf("%d signatures, %.2f sig/s\n", iterations, speed);
 	
-	/*
-	 * Delete temporary key
-	 */
+	/* Delete temporary key*/
 	fprintf(stderr, "Deleting temporary key...\n");
 	result = hsm_remove_key(ctx, key);
 	if (result) {
@@ -181,18 +160,12 @@ main (int argc, char *argv[])
 		exit(-1);
 	}
 
-	/*
-	 * Destroy HSM context
-	 */
-	if (ctx) {
-		hsm_destroy_context(ctx);
-	}
-
-	/*
-	 * Close HSM library
-	 */
+	/* Clean up */
+	ldns_rr_list_deep_free(rrset);
+	hsm_sign_params_free(sign_params);
+	ldns_rr_free(dnskey_rr);	
+	if (ctx) hsm_destroy_context(ctx);
 	(void) hsm_close();
-
 	if (config) free(config);
 	
 	return 0;
