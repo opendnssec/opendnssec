@@ -14,8 +14,8 @@
 
 		<Repository name="softHSM">
             <Module>/home/sion/temp/opendnssec/install/lib/libsofthsm.so</Module>
-			<TokenLabel>Token1</TokenLabel>
-			<PIN>1234:1234</PIN>
+			<TokenLabel>alice</TokenLabel>
+			<PIN>5678</PIN>
 		</Repository>
 	</RepositoryList>
 

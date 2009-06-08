@@ -70,7 +70,7 @@ my $dbh;
     if ($opt_i) {
       print "Clearing out the Database.\n";
       my $mysql_cmd;
-      $mysql_cmd = "@mysql_path@ -u $dbuser -h $dbhost -p $dbpass $dbname" if ($dbpass);
+      $mysql_cmd = "@mysql_path@ -u $dbuser -h $dbhost -p$dbpass $dbname" if ($dbpass);
       $mysql_cmd = "@mysql_path@ -u $dbuser -h $dbhost $dbname" if (! $dbpass);
       
       `$mysql_cmd < @ksmdatadir@/database_create.mysql`;

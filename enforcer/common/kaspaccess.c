@@ -42,6 +42,7 @@
 * Set defaults for policies
 * TODO: need to think if we actually want to do this
 * and if it is the appropriate place
+* ALSO if we are doing set then make sure that we set everything 
 */
 void
 kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)

@@ -4,6 +4,8 @@ MYDIR=/home/sion/temp/opendnssec
 mkdir -p $MYDIR
 cd $MYDIR
 
+export LD_RUN_PATH=$MYDIR/install/lib:/home/sion/work/subversion/ldns/lib
+
 echo "installing in $MYDIR/install"
 
 # clean out old builds

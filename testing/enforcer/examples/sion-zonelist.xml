@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: zonelist.xml 626 2009-05-06 16:15:35Z jad $ -->
+
+<ZoneList>
+	<Zone name="opendnssec.se">
+		<Policy>default</Policy>
+		<SignerConfiguration>/home/sion/temp/opendnssec/install/var/opendnssec/config/opendnssec.se.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<File>/var/dnssec/unsigned/opendnssec.se</File>
+			</Input>
+			<Output>
+				<File>/var/dnssec/signed/opendnssec.se</File>
+			</Output>
+		</Adapters>
+	</Zone>
+</ZoneList>
