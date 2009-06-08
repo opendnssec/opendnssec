@@ -10,10 +10,13 @@ AM_CFLAGS =	-std=c99
 
 EXTRA_DIST =	$(srcdir)/*.xml $(srcdir)/softhsm.conf
 
-noinst_PROGRAMS = hsmtest
+noinst_PROGRAMS = hsmtest hsmspeed
  
 hsmtest_LDADD = ../src/libhsm.la
 hsmtest_LDFLAGS = -no-install
+
+hsmspeed_LDADD = ../src/libhsm.la
+hsmspeed_LDFLAGS = -no-install
 
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
 
