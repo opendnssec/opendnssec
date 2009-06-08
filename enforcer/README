@@ -12,9 +12,8 @@ Pre-requisites
     (Note that whether we will use MySQL or sqlite is decided at the time that
      libksm is built.)
 
-2) at some point it will rely on libhsm too.
+2) libhsm
 
-3) uuid-dev is required (or its equivalent)
 
 Building the Software
 ---------------------
@@ -30,6 +29,7 @@ The following options can be passed to configure;
 --prefix=<dir>                  Installation directory. All files will be 
                                 installed relative to this path.
 --with-libksm=<dir>             Where you installed libksm
+--with-libhsm=<dir>             Where you installed libhsm
 
 
 Running the Communicator
