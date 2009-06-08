@@ -2,10 +2,11 @@
 
 TARGETS = softHSM libhsm libksm enforcer signer xml
 
-MAKE_FLAGS = -j 4
-TOP = ../../..
-
 SUDO = sudo
+MAKE = make
+MAKE_FLAGS = -j 4
+
+TOP = ../../..
 
 CONF_ARG = \
 	--prefix=/usr/local \
@@ -25,7 +26,8 @@ build: $(TARGETS)
 
 install:
 	@for t in $(TARGETS); do \
-		(cd $$t; $(SUDO) make install) \
+		$(MAKE) $$t ;\
+		(cd $$t; $(SUDO) $(MAKE) install) \
 	done
 
 clean:
@@ -34,4 +36,4 @@ clean:
 $(TARGETS)::
 	test -d $@ || mkdir $@
 	(cd $@; $(TOP)/$@/configure $(CONF_ARG))
-	(cd $@; make $(MAKE_FLAGS))
+	(cd $@; $(MAKE) $(MAKE_FLAGS))
