@@ -55,7 +55,7 @@ import Zone
 from ZoneConfig import ZoneConfig, ZoneConfigError
 from EngineConfig import EngineConfiguration, EngineConfigurationError
 from Worker import Worker, TaskQueue, Task
-from Zonelist import Zonelist, ZonelistError
+from ZoneList import ZoneList, ZoneListError
 
 MSGLEN = 1024
 
@@ -256,7 +256,7 @@ class Engine:
         """Reads the list of zones from the zone list xml file. Added
         zones are automatically scheduled for signing at the appropriate
         time. A status string is returned for feedback to the caller"""
-        new_zonelist = Zonelist()
+        new_zonelist = ZoneList()
         try:
             new_zonelist.read_zonelist_file(self.get_zonelist_filename())
             # move this to caller?
@@ -278,7 +278,7 @@ class Engine:
                    str(len(removed_zones)) + " removed, " + \
                    str(len(added_zones)) + " added, " + \
                    str(len(updated_zones)) + " updated"
-        except ZonelistError, zle:
+        except ZoneListError, zle:
             syslog.syslog(syslog.LOG_ERR,
                 "error parsing zonelist xml file: " + str(zle))
             syslog.syslog(syslog.LOG_ERR, "not updating zones")

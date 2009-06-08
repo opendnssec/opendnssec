@@ -38,11 +38,11 @@ from xml.dom import minidom
 from xml.parsers.expat import ExpatError
 import Util
 
-class ZonelistError(Exception):
+class ZoneListError(Exception):
     """General error when parsing the zonelist.xml file"""
     pass
 
-class ZonelistEntry:
+class ZoneListEntry:
     """An entry in a zone list, contains:
     - Zone configuration file name
     - input adapter type (currently only file)
@@ -71,7 +71,7 @@ class ZonelistEntry:
                self.output_adapter == other.output_adapter and \
                self.output_adapter_data == other.output_adapter_data
 
-class Zonelist:
+class ZoneList:
     """List of current Zones"""
     ADAPTER_FILE = 1
     
@@ -100,15 +100,15 @@ class Zonelist:
             self.from_xml(xmlb)
             xmlb.unlink()
         except ExpatError, exe:
-            raise ZonelistError(str(exe))
+            raise ZoneListError(str(exe))
         except IOError, ioe:
-            raise ZonelistError(str(ioe))
+            raise ZoneListError(str(ioe))
     
     def from_xml(self, xml_blob):
         """Reads the list of zones from xml_blob"""
-        xmlbs = Evaluate("Zonelist/Zone", xml_blob)
+        xmlbs = Evaluate("ZoneList/Zone", xml_blob)
         if not xmlbs:
-            raise ZonelistError("No Zonelist/Zone entries "+
+            raise ZoneListError("No ZoneList/Zone entries "+
                                 "in zone list file")
         for xmlb in xmlbs:
             zone_name = xmlb.attributes["name"].value
@@ -119,14 +119,14 @@ class Zonelist:
             if input_adapter_data:
                 input_adapter = self.ADAPTER_FILE
             else:
-                raise ZonelistError("Unknown input adapter")
+                raise ZoneListError("Unknown input adapter")
             output_adapter_data = Util.get_xml_data(
                                      "Adapters/Output/File", xmlb, True)
             if output_adapter_data:
                 output_adapter = self.ADAPTER_FILE
             else:
-                raise ZonelistError("Unknown output adapter")
-            self.entries[zone_name] = ZonelistEntry(zone_name,
+                raise ZoneListError("Unknown output adapter")
+            self.entries[zone_name] = ZoneListEntry(zone_name,
                                                     configuration_file,
                                                     input_adapter,
                                                     input_adapter_data,
@@ -136,7 +136,7 @@ class Zonelist:
     def merge(self, new_zonelist):
         """'Merges' two zone lists.
         returns a tuple: (removed, added, updated)
-        which are lists of ZonelistEntry objects
+        which are lists of ZoneListEntry objects
         """
         removed = []
         added = []

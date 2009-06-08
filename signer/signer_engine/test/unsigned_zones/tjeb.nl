@@ -22,6 +22,4 @@ ent.to.tjeb.nl. 111	IN	NS	b.aaaa.nl.
 ff.wat.out.of.zones. 143 IN	A 	123.123.123.123
 bla.tjeb.nl. 1111	IN	NS	glue.bla.tjeb.nl.
 glue.bla.tjeb.nl. 1234	IN	A	222.222.222.222
-
-
-
+tjeb.nl.	3600	IN	NSEC3PARAM	1 0 10 656d6d6b7469736169646f677461

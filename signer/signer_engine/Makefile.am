@@ -14,4 +14,4 @@ signer_PYTHON= \
 	Worker.py \
 	Zone.py \
 	ZoneConfig.py \
-	Zonelist.py
+	ZoneList.py
