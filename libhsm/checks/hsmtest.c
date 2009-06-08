@@ -131,39 +131,39 @@ main (int argc, char *argv[])
 		key = hsm_generate_rsa_key(ctx, repository, 1024);
 
 		if (key) {
-			printf("Created key:\n");
+			printf("\nCreated key!\n");
 			hsm_print_key(key);
+			printf("\n");
 		} else {
 			printf("Error creating key, bad token name?\n");
 			exit(1);
 		}
-	} else {
+	} else if (do_sign || do_delete) {
 		keys = hsm_list_keys(ctx, &key_count);
 		printf("I have found %u keys\n", (unsigned int) key_count);
 
 		/* let's just use the very first key we find and throw away the rest */
-		for (i = 0; i < key_count; i++) {
-			printf("Found key:\n");
+		for (i = 0; i < key_count && !key; i++) {
+			printf("\nFound key!\n");
 			hsm_print_key(keys[i]);
-			if ((do_sign || do_delete) && !key) {
-				id = hsm_get_key_id(ctx, keys[i]);
-				if (id) {  /* only use keys with uuid */
-					printf("Key with ID found!\n");
-					if (key) hsm_key_free(key);
-					key = hsm_find_key_by_id(ctx, id);
-					printf("key: %p\n", (void *) key);
-				} else {
-					printf("Key without ID skipped...\n");
-				}
+
+			id = hsm_get_key_id(ctx, keys[i]);
+
+			if (id) {
+				printf("Using key ID: %s\n", id);
+				if (key) hsm_key_free(key);
+				key = hsm_find_key_by_id(ctx, id);
+				printf("ptr: 0x%p\n", (void *) key);
+				free(id);
+			} else {
+				printf("Got no key ID (broken key?), skipped...\n");
 			}
+
 			hsm_key_free(keys[i]);
 		}
 		free(keys);
 
-		if (key) {
-			printf("Using key:\n");
-			hsm_print_key(key);
-		} else {
+		if (!key) {
 			printf("Failed to find useful key\n");
 			exit(1);
 		}
@@ -173,6 +173,10 @@ main (int argc, char *argv[])
 	 * Do some signing
 	 */
 	if (do_sign) {
+		printf("\nSigning with:\n");
+		hsm_print_key(key);
+		printf("\n");
+
 		rrset = ldns_rr_list_new();
 
 		status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se. IN A 123.123.123.123", 0, NULL, NULL);
@@ -203,11 +207,12 @@ main (int argc, char *argv[])
 	 * Delete key
 	 */
 	if (do_delete) {
-		printf("Delete key:\n");
+		printf("\nDelete key:\n");
 		hsm_print_key(key);
 		//res = hsm_remove_key(ctx, key);
 		res = hsm_remove_key(ctx, key);
 		printf("Deleted key. Result: %d\n", res);
+		printf("\n");
 	}
 
 	if (key) hsm_key_free(key);
