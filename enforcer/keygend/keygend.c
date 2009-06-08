@@ -335,8 +335,7 @@ generateKSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *righ
 {
     int status = 0;
     hsm_key_t *key = NULL;
-    uuid_t *uuid;
-    char uuid_text[37];
+    char *id;
 
     if (policy->ksk->algorithm == 5 ) {
         /* TODO: check capacity of HSM will not be exceeded */
@@ -347,11 +346,11 @@ generateKSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *righ
             log_msg(config, LOG_ERR,"Error creating key in HSM\n");
             return;
         }
-        uuid = hsm_get_uuid(ctx, key);
-        uuid_unparse(*uuid, uuid_text);
-        status = KsmKeyPairCreate(policy->id, uuid_text, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, key_pair_id);
+        id = hsm_get_key_id(ctx, key);
+        status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, key_pair_id);
         log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM: %s.", policy->ksk->bits,
-                policy->ksk->algorithm, uuid_text, policy->ksk->sm_name);
+                policy->ksk->algorithm, id, policy->ksk->sm_name);
+        free(id);
     } else {
         log_msg(config, LOG_ERR, "Key algorithm unsupported by libhsm.");
         return;
@@ -366,8 +365,7 @@ generateZSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *righ
 {
     int status = 0;
     hsm_key_t *key = NULL;
-    uuid_t *uuid;
-    char uuid_text[37];
+    char *id;
 
     if (policy->zsk->algorithm == 5 ) {
         /* TODO: check capacity of HSM will not be exceeded */
@@ -378,11 +376,11 @@ generateZSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *righ
             log_msg(config, LOG_ERR,"Error creating key in HSM\n");
             return;
         }
-        uuid = hsm_get_uuid(ctx, key);
-        uuid_unparse(*uuid, uuid_text);
-        status = KsmKeyPairCreate(policy->id, uuid_text, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, key_pair_id);
+        id = hsm_get_key_id(ctx, key);
+        status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, key_pair_id);
         log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with uuid: %s in HSM: %s.", policy->zsk->bits,
-                policy->zsk->algorithm, uuid_text, policy->zsk->sm_name);
+                policy->zsk->algorithm, id, policy->zsk->sm_name);
+        free(id);
     } else {
         log_msg(config, LOG_ERR, "Key algorithm unsupported by libhsm.");
         return;
