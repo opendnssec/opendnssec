@@ -347,7 +347,7 @@ generateKSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *righ
         }
         id = hsm_get_key_id(ctx, key);
         status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, key_pair_id);
-        log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with uuid: %s in HSM: %s.", policy->ksk->bits,
+        log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with ID: %s in HSM: %s.", policy->ksk->bits,
                 policy->ksk->algorithm, id, policy->ksk->sm_name);
         free(id);
     } else {
@@ -377,7 +377,7 @@ generateZSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *righ
         }
         id = hsm_get_key_id(ctx, key);
         status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, key_pair_id);
-        log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with uuid: %s in HSM: %s.", policy->zsk->bits,
+        log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with ID: %s in HSM: %s.", policy->zsk->bits,
                 policy->zsk->algorithm, id, policy->zsk->sm_name);
         free(id);
     } else {
