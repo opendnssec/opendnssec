@@ -42,7 +42,7 @@ char *progname = NULL;
 void
 usage ()
 {
-	fprintf(stderr, "usage: %s [-f config]\n", progname);
+	fprintf(stderr, "usage: %s [-f config] [-i iterations] [-s keysize]\n", progname);
 }
 
 int
