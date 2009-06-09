@@ -27,7 +27,7 @@
  */
 
 /*
- * create_dnskey_pkcs11.c
+ * create_dnskey.c
  *
  * Generates a DNSKEY resource record from the data in an HSM token
  */
@@ -54,7 +54,7 @@
 static void
 usage(FILE *out)
 {
-	fprintf(out, "Usage: create_dnskey_pkcs11 [options] <CKA_ID(s)>\n\n");
+	fprintf(out, "Usage: create_dnskey [options] <CKA_ID(s)>\n\n");
 	fprintf(out, "CKA_ID is the hexadecimal representation of the CKA_ID field of the\n");
 	fprintf(out, "intended key. Multiple values can be given.\n");
 	fprintf(out, "If the token is found, but none of the keys are present on the token,\n");

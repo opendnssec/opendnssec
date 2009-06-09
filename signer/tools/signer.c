@@ -245,7 +245,7 @@ current_config_free(current_config *cfg)
 void
 usage(FILE *out)
 {
-	fprintf(out, "Usage: signer_pkcs11 [OPTIONS]\n");
+	fprintf(out, "Usage: signer [OPTIONS]\n");
 	fprintf(out, "Adds RRSIG records to the read resource records sets with PKCS11\n");
 	fprintf(out, "Options:\n");
 	fprintf(out, "-c <file>\t\tUse the specified OpenDNSSEC configuration file\n");
