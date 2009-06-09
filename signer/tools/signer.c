@@ -546,19 +546,6 @@ enable_key_for(key_list *list, ldns_rr *rrsig)
 }
 
 void
-handle_comment(char *line, int line_len, FILE *output)
-{
-	/* pass comments */
-	if (line_len > 15 && strncmp(line, "; Last refresh stats: ", 15) == 0) {
-		/* except stats */
-	} else if (line_len > 8 && strncmp(line, "; Error ", 8) == 0) {
-		/* and previous errors */
-	} else {
-		fprintf(output, "%s\n", line);
-	}
-}
-
-void
 update_soa_record(ldns_rr *soa, current_config *cfg)
 {
 	if (cfg->soa_ttl != 0) {
@@ -595,9 +582,15 @@ rrset_reader_new(FILE *file)
 /* comments and commands are handled by their functions,
  * the first rr read is returned
  * garbage is skipped
+ *
+ * if pass_comments is not true, comments are dropped
+ * (this is needed to avoid replication of comments in generated output
+ * ie. set it to true on your 'new' zone, and to false one your
+ * 'previously signed' zone)
  */
 ldns_rr *
-read_rr_from_file(FILE *file, FILE *out, current_config *cfg)
+read_rr_from_file(FILE *file, FILE *out,
+                  current_config *cfg, int pass_comments)
 {
 	char line[MAX_LINE_LEN];
 	int line_len;
@@ -613,7 +606,9 @@ read_rr_from_file(FILE *file, FILE *out, current_config *cfg)
 			continue;
 		}
 		if (line[0] == ';') {
-			handle_comment(line, line_len, out);
+			if (pass_comments) {
+				fprintf(out, "%s\n", line);
+			}
 		} else if (line[0] == ':') {
 			cmd_res = handle_command(out, cfg, line + 1,
 									 line_len - 1);
@@ -645,7 +640,8 @@ read_rr_from_file(FILE *file, FILE *out, current_config *cfg)
  * return an rr_list with one or more rrs, or NULL (never an empty one)
  */
 ldns_rr_list *
-read_rrset(rrset_reader_t *reader, FILE *out, current_config *cfg)
+read_rrset(rrset_reader_t *reader, FILE *out,
+           current_config *cfg, int pass_comments)
 {
 	ldns_rr *rr;
 	ldns_rr_list *rrset;
@@ -657,7 +653,7 @@ read_rrset(rrset_reader_t *reader, FILE *out, current_config *cfg)
 		reader->skipped_rr = NULL;
 	}
 	while(1) {
-		rr = read_rr_from_file(reader->file, out, cfg);
+		rr = read_rr_from_file(reader->file, out, cfg, pass_comments);
 		if (!rr) {
 			if (ldns_rr_list_rr_count(rrset) == 0) {
 				ldns_rr_list_free(rrset);
@@ -680,7 +676,8 @@ read_rrset(rrset_reader_t *reader, FILE *out, current_config *cfg)
 /* same as read_rrset, but only return RRSIGS. NULL if next rr is not
  * a signature */
 ldns_rr_list *
-read_signatures(rrset_reader_t *reader, FILE *out, current_config *cfg)
+read_signatures(rrset_reader_t *reader, FILE *out,
+                current_config *cfg, int pass_comments)
 {
 	ldns_rr *rr;
 	ldns_rr_list *rrset;
@@ -697,7 +694,7 @@ read_signatures(rrset_reader_t *reader, FILE *out, current_config *cfg)
 		reader->skipped_rr = NULL;
 	}
 	while(1) {
-		rr = read_rr_from_file(reader->file, out, cfg);
+		rr = read_rr_from_file(reader->file, out, cfg, pass_comments);
 		if (!rr) {
 			if (ldns_rr_list_rr_count(rrset) == 0) {
 				ldns_rr_list_free(rrset);
@@ -840,14 +837,14 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 		signed_zone_reader = NULL;
 	}
 
-	while((new_zone_rrset = read_rrset(new_zone_reader, output, cfg))) {
+	while((new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1))) {
 		if (ldns_rr_list_rr_count(new_zone_rrset) == 0) {
 			ldns_rr_list_free(new_zone_rrset);
 			continue;
 		}
 		/* ldns_rr_list_print(output, new_zone_rrset); */
 		new_zone_signatures = read_signatures(new_zone_reader,
-		                                      output, cfg);
+		                                      output, cfg, 1);
 		enable_keys(cfg);
 		/* if we have no previously signed zone, check for sigs
 		 * in input, and sign the rest */
@@ -859,16 +856,16 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 * or not. If not, it has either changed or not. If not,
 			 * there may be signatures in the old zone file as well
 			 */
-			signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg);
-			signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg);
+			signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg, 0);
+			signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg, 0);
 			cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 			/* if the cur rrset name > signed rrset name then data has
 			 * been removed, reread signed rrset */
 			while (cmp > 0 && signed_zone_rrset) {
 				ldns_rr_list_deep_free(signed_zone_rrset);
 				if (signed_zone_signatures) ldns_rr_list_deep_free(signed_zone_signatures);
-				signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg);
-				signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg);
+				signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg, 0);
+				signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg, 0);
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 			}
 			/* if the cur rrset name < signer rrset name then data is new
@@ -879,8 +876,8 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				sign_rrset(new_zone_rrset, output, cfg);
 				ldns_rr_list_deep_free(new_zone_rrset);
 				ldns_rr_list_deep_free(new_zone_signatures);
-				new_zone_rrset = read_rrset(new_zone_reader, output, cfg);
-				new_zone_signatures = read_signatures(new_zone_reader, output, cfg);
+				new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1);
+				new_zone_signatures = read_signatures(new_zone_reader, output, cfg, 1);
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 			}
 			/* if same, and rrset not same, treat as new */
@@ -913,6 +910,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 		signed_zone_rrset = NULL;
 		signed_zone_signatures = NULL;
 	}
+	fprintf(stderr, "Input read\n");
 	return 0;
 }
 
@@ -959,7 +957,8 @@ int main(int argc, char **argv)
 			prev_zone = fopen(optarg, "r");
 			if (!prev_zone) {
 				fprintf(stderr,
-						"Error: unable to open %s: %s\n",
+						"Warning: unable to open %s: %s, performing "
+						"full zone sign\n",
 						optarg,
 						strerror(errno));
 			}
@@ -987,7 +986,7 @@ int main(int argc, char **argv)
 		exit(2);
 	}
 	result = read_input(input, prev_zone, output, cfg);
-	
+
 	hsm_close();
 	fprintf(output, "; Last refresh stats: existing: %lu, removed %lu, created %lu\n",
 	        cfg->existing_sigs,
