@@ -74,7 +74,6 @@ server_main(DAEMONCONFIG *config)
     DB_RESULT handle;
     DB_HANDLE dbhandle;
     int status = 0;
-    int count = 0;
     int i = 0; 
     char *id;
     char *rightnow; 
@@ -83,7 +82,11 @@ server_main(DAEMONCONFIG *config)
     KSM_POLICY *policy;
     int result;
     hsm_ctx_t *ctx = NULL;
-    hsm_key_t *key = NULL; 
+    hsm_key_t *key = NULL;
+
+    int keys_needed = 0;    /* Total No of keys needed before next generation run */
+    int keys_in_queue = 0;  /* number of unused keys */
+    int new_keys = 0;       /* number of keys required */
    
     if (config == NULL) {
         log_msg(NULL, LOG_ERR, "Error, no config provided");
@@ -146,11 +149,23 @@ server_main(DAEMONCONFIG *config)
                 rightnow = DtParseDateTimeString("now");
 
                 /* Find out how many ksk keys are needed */
-                status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &count);
+                status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &keys_needed);
+                if (status != 0) {
+                    log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
+                    /* TODO exit? continue with next policy? */
+                }
+                /* Find out how many suitable keys we have */
+                status = KsmKeyCountUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &keys_in_queue);
+                if (status != 0) {
+                    log_msg(NULL, LOG_ERR, "Could not count current key numbers for policy\n");
+                    /* TODO exit? continue with next policy? */
+                }
+
+                new_keys = keys_needed - keys_in_queue;
+
                 /* TODO: check capacity of HSM will not be exceeded */
-                /* TODO: check how many unused keys there are (accounting for shared_keys) */
-                /* Create the keys TODO: skip if enough unused keys exist */
-                for (i=count ; i > 0 ; i--){
+                /* Create the required keys */
+                for (i=new_keys ; i > 0 ; i--){
                         if (policy->ksk->algorithm == 5 ) {
                             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
                             if (key) {
@@ -171,9 +186,26 @@ server_main(DAEMONCONFIG *config)
                  }
 
                 /* Find out how many zsk keys are needed */
-                status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &count);
+                keys_needed = 0;
+                keys_in_queue = 0;
+                new_keys = 0;
+
+                status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &keys_needed);
+                if (status != 0) {
+                    log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
+                    /* TODO exit? continue with next policy? */
+                }
+                /* Find out how many suitable keys we have */
+                status = KsmKeyCountUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &keys_in_queue);
+                if (status != 0) {
+                    log_msg(NULL, LOG_ERR, "Could not count current key numbers for policy\n");
+                    /* TODO exit? continue with next policy? */
+                }
+
+                new_keys = keys_needed - keys_in_queue;
+                
                 /* TODO: check capacity of HSM will not be exceeded */
-                for (i = count ; i > 0 ; i--){
+                for (i = new_keys ; i > 0 ; i--) {
                    if (policy->zsk->algorithm == 5 ) {
                        key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->zsk->bits);
                        if (key) {

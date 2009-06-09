@@ -227,8 +227,20 @@ server_main(DAEMONCONFIG *config)
                     log_msg(config, LOG_INFO, "Config will be output to %s.", current_filename);
                     /* TODO should we check that we have not written to this file in this run?*/
                     /* Make sure that enough keys are allocated to this zone */
-                    status = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval);
-                    status = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval);
+                    status2 = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval, zone_name);
+                    if (status2 != 0) {
+                        log_msg(config, LOG_ERR, "Error allocating keys to zone");
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    status2 = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval, zone_name);
+                    if (status2 != 0) {
+                        log_msg(config, LOG_ERR, "Error allocating keys to zone");
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
 
                     /* turn this zone and policy into a file */
                     status2 = commGenSignConf(zone_name, zone_id, current_filename, policy);
@@ -459,16 +471,19 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
  *          ID of zone in question
  *      interval
  *          time before next run
+ *      zone_name
+ *          just in case we need to log something
  *
  * Returns:
  *      int
  *          Status return.  0=> Success, non-zero => error.
  *          1 == error with input
  *          2 == not enough keys to satisfy policy
+ *          3 == database error
 -*/
 
    
-int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval)
+int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name)
 {
     int status = 0;
     int keys_needed = 0;
@@ -489,22 +504,55 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     }
 
     /* Make sure that enough keys are allocated to this zone */
+    /* How many do we need ? */
     status = ksmKeyPredict(policy->id, key_type, policy->shared_keys, interval, &keys_needed);
+    if (status != 0) {
+        log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
+        return 3;
+    }
+
+    /* How many do we have ? */
     status = KsmKeyCountQueue(key_type, &keys_in_queue, zone_id);
+    if (status != 0) {
+        log_msg(NULL, LOG_ERR, "Could not count current key numbers for zone\n");
+        return 3;
+    }
+
     new_keys = keys_needed - keys_in_queue;
 
     /* Allocate keys */
     for (i=0 ; i < new_keys ; i++){
         key_pair_id = 0;
         if (key_type == KSM_TYPE_KSK) {
-            ksmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
+            status = ksmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
+            if (status == -1) {
+                log_msg(NULL, LOG_ERR, "Not enough keys to satisfy ksk policy for zone: %s\n", zone_name);
+                return 2;
+            }
+            else if (status != 0) {
+                log_msg(NULL, LOG_ERR, "Could not get an unallocated ksk for zone: %s\n", zone_name);
+                return 3;
+            }
         } else {
             ksmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
+            if (status == -1) {
+                log_msg(NULL, LOG_ERR, "Not enough keys to satisfy zsk policy for zone: %s\n", zone_name);
+                return 2;
+            }
+            else if (status != 0) {
+                log_msg(NULL, LOG_ERR, "Could not get an unallocated zsk for zone: %s\n", zone_name);
+                return 3;
+            }
         }
         if(key_pair_id > 0) {
             /* TODO should this do all zones if keys are shared? 
                 (yes, faster; no, will ignore zones not in zonelist) */
             KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, &ignore);
+        } else {
+            /* TODO what would this mean? */
         }
+
     }
+
+    return status;
 }
