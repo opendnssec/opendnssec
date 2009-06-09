@@ -92,13 +92,12 @@ int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, in
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    sql = DisSpecifyInit("keypairs", "policy_id, HSMkey_id, securitymodule_id, size, algorithm, state, generate");
+    sql = DisSpecifyInit("keypairs", "policy_id, HSMkey_id, securitymodule_id, size, algorithm, generate");
     DisAppendInt(&sql, policy_id);
     DisAppendString(&sql, HSMKeyID);
     DisAppendInt(&sql, smID);
     DisAppendInt(&sql, size);
     DisAppendInt(&sql, alg);
-    DisAppendInt(&sql, KSM_STATE_GENERATE);
     DisAppendString(&sql, generate);
     DisEnd(&sql);
 
@@ -636,15 +635,16 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *
  * Description:
  *      Given a policy and a keytype work out how many keys will be required
- *      during the timeinterval specified (in seconds) for one zone.
+ *      during the timeinterval specified (in seconds).
  *
  *      We assume no emergency rollover and that a key has just been published
  *
  *      Dt	= interval
  *      Sp	= safety margin
  *      Lk	= lifetime of the key (either KSK or ZSK)
- *
- *      no of keys = Dt + Sp / Lk
+ *      Ek  = no of emergency keys 
+ * 
+ *      no of keys = ( (Dt + Sp)/Lk ) + Ek
  *      
  *      (rounded up)
  *
@@ -653,9 +653,12 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *          The policy in question
  *      KSM_TYPE key_type
  *          KSK or ZSK
+ *      int shared_keys 
+ *          0 if keys not shared between zones
  *      int interval
  *          timespan (in seconds)
  *      int *count
+ *          (OUT) the number of keys (-1 on error)
  *
  * Returns:
  *      int
@@ -665,14 +668,35 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *              Other   Error
 -*/
 
-int ksmKeyPredict(int policy_id, int keytype, int interval, int *count)
-{
-    int status = 0;    /* Status return */
-    KSM_PARCOLL coll;  /* Parameters collection */
+int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count) 
+{ 
+    int status = 0;   /* Status return */ 
+    KSM_PARCOLL coll; /* Parameters collection */ 
+
+    DB_RESULT result; 
+    int zone_count = 0;
 
     /* Check arguments */
     if (count == NULL) {
         return MsgLog(KSM_INVARG, "NULL count");
+    }
+
+    /* how many zones on this policy */ 
+    status = KsmZoneCountInit(&result, policy_id); 
+    if (status == 0) { 
+        status = KsmZoneCount(result, &zone_count); 
+    } 
+    DbFreeResult(result); 
+
+    if (status == 0) { 
+        /* make sure that we have at least one zone */ 
+        if (zone_count == 0) { 
+            *count = 0; 
+            return status; 
+        } 
+    } else { 
+        *count = -1; 
+        return status; 
     }
 
     /* Check that we have a valid key type */
@@ -684,11 +708,13 @@ int ksmKeyPredict(int policy_id, int keytype, int interval, int *count)
     /* Get list of parameters */
     status = KsmParameterCollection(&coll, policy_id);
     if (status != 0) {
+        *count = -1;
         return status;
     }
 
     /* Avoid div by 0 (just in case) */
     if (coll.ksklife == 0 || coll.zsklife == 0) {
+        *count = -1;
         status = MsgLog(KSM_INVARG, "lifetime of key is 0");
         return status;
     }
@@ -696,11 +722,15 @@ int ksmKeyPredict(int policy_id, int keytype, int interval, int *count)
     /* We should have the policy now */
     if (keytype == KSM_TYPE_KSK)
     {
-        *count = ((interval + coll.pub_safety)/coll.ksklife) + 1;
+        *count = ((interval + coll.pub_safety)/coll.ksklife) + coll.nemkskeys + 1;
     }
     else if (keytype == KSM_TYPE_ZSK)
     {
-        *count = ((interval + coll.pub_safety)/coll.zsklife) + 1;
+        *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.nemzskeys + 1; 
+    } 
+
+    if (shared_keys == KSM_KEYS_NOT_SHARED) { 
+        *count *= zone_count;
     }
 
     return status;

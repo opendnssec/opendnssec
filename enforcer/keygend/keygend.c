@@ -74,11 +74,17 @@ server_main(DAEMONCONFIG *config)
     DB_RESULT handle;
     DB_HANDLE dbhandle;
     int status = 0;
+    int count = 0;
+    int i = 0; 
+    char *id;
+    char *rightnow; 
+    DB_ID ignore = 0;
     struct timeval tv;
     KSM_POLICY *policy;
     int result;
     hsm_ctx_t *ctx = NULL;
-    
+    hsm_key_t *key = NULL; 
+   
     if (config == NULL) {
         log_msg(NULL, LOG_ERR, "Error, no config provided");
         exit(1);
@@ -131,8 +137,62 @@ server_main(DAEMONCONFIG *config)
                 /* Read the parameters for that policy */
                 status = kaspReadPolicy(policy);
 
-                /* Generate keys according to the policy */
-                generateKeysForPolicy(config, policy, ctx);
+                if  (policy->shared_keys == 1 ) {
+                    log_msg(config, LOG_INFO, "Key sharing is On");
+                } else {
+                    log_msg(config, LOG_INFO, "Key sharing is Off.");
+                }
+
+                rightnow = DtParseDateTimeString("now");
+
+                /* Find out how many ksk keys are needed */
+                status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &count);
+                /* TODO: check capacity of HSM will not be exceeded */
+                /* TODO: check how many unused keys there are (accounting for shared_keys) */
+                /* Create the keys TODO: skip if enough unused keys exist */
+                for (i=count ; i > 0 ; i--){
+                        if (policy->ksk->algorithm == 5 ) {
+                            key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
+                            if (key) {
+                                log_msg(config, LOG_INFO,"Created key in HSM\n");
+                            } else {
+                                log_msg(config, LOG_ERR,"Error creating key in HSM\n");
+                                exit(1);
+                            }
+                            id = hsm_get_key_id(ctx, key);
+                            status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
+                            log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with id: %s in HSM: %s.", policy->ksk->bits,
+                                    policy->ksk->algorithm, id, policy->ksk->sm_name);
+                            free(id);
+                        } else {
+                            log_msg(config, LOG_ERR, "Key algorithm unsupported by libhsm.");
+                            exit(1);
+                        }
+                 }
+
+                /* Find out how many zsk keys are needed */
+                status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &count);
+                /* TODO: check capacity of HSM will not be exceeded */
+                for (i = count ; i > 0 ; i--){
+                   if (policy->zsk->algorithm == 5 ) {
+                       key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->zsk->bits);
+                       if (key) {
+                           log_msg(config, LOG_INFO,"Created key in HSM\n");
+                       } else {
+                           log_msg(config, LOG_ERR,"Error creating key in HSM\n");
+                           exit(1);
+                       }
+                       id = hsm_get_key_id(ctx, key);
+                       status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
+                       log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with id: %s in HSM: %s.", policy->zsk->bits,
+                               policy->zsk->algorithm, id, policy->zsk->sm_name);
+                       free(id);
+                    } else {
+                       log_msg(config, LOG_ERR, "unsupported key algorithm.");
+                       exit(1);
+                    }
+                }
+                StrFree(rightnow);
 
                 /* get next policy */
                 status = KsmPolicy(handle, policy);
@@ -146,8 +206,8 @@ server_main(DAEMONCONFIG *config)
         /* Disconnect from DB in case we are asleep for a long time */
         log_msg(config, LOG_INFO, "Disconnecting from Database...");
         kaspDisconnect(&dbhandle);
-       
-        /* If we have been sent a SIGTERM then it is time to exit */ 
+
+        /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
             exit(0);
@@ -159,12 +219,11 @@ server_main(DAEMONCONFIG *config)
         log_msg(config, LOG_INFO, "Sleeping for %i seconds.",config->keygeninterval);
         select(0, NULL, NULL, NULL, &tv);
 
-       /* If we have been sent a SIGTERM then it is time to exit */ 
+        /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
             exit(0);
         }
-				
     }
     log_msg(config, LOG_INFO, "Disconnecting from Database...");
     kaspDisconnect(&dbhandle);
@@ -188,6 +247,8 @@ server_main(DAEMONCONFIG *config)
     free(policy->signer);
     free(policy);
 }
+<<<<<<< .mine
+=======
 
 /*
  * Generate keys according to policy 
@@ -385,3 +446,4 @@ generateZSK(DAEMONCONFIG *config, KSM_POLICY *policy, hsm_ctx_t *ctx, char *righ
         return;
     }
 }
+>>>>>>> .r976

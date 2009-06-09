@@ -129,7 +129,7 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data);
 void KsmKeyEnd(DB_RESULT result);
 int KsmKeyQuery(const char* sql, DB_RESULT* result);
 int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
-int ksmKeyPredict(int policy_id, int keytype, int interval, int *count);
+int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count);
     
 /* delete */
 
@@ -466,7 +466,6 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
 int KsmRequestAvailableCount(int keytype, const char* datetime,
 	KSM_PARCOLL* parameters, int* count, int zone_id);
 int KsmRequestGenerateCount(int keytype, int* count, int zone_id);
-int KsmRequestKeyQueCount(int keytype, int* count, int zone_id);
 int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count, int zone_id);
 int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count, int zone_id);
 
