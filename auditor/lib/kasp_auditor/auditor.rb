@@ -164,9 +164,9 @@ module KASPAuditor
             # Skip the verify test
           else
             begin
-              print "About to verify #{rrset.name} #{rrset.type}, #{rrset.rrs.length} RRs, #{rrset.sigs.length} RRSIGs, #{key_rrset.rrs.length} keys\n"
+#              print "About to verify #{rrset.name} #{rrset.type}, #{rrset.rrs.length} RRs, #{rrset.sigs.length} RRSIGs, #{key_rrset.rrs.length} keys\n"
               Dnssec.verify_rrset(rrset, key_rrset)
-              print "Verified OK!!/n"
+#              print "Verified OK!!/n"
             rescue VerifyError => e
               log(LOG_ERR, "RRSet (#{rrset.name}, #{rrset.type}) failed verification : #{e}, tag = #{rrset.sigs()[0] ? rrset.sigs()[0].key_tag : 'none'}")
             end
@@ -411,7 +411,7 @@ module KASPAuditor
           rr = nil
           begin
             rr = RR.create(line)
-            print "#{rr}\n"
+#            print "#{rr}\n"
             add_to_rrs(rrs, rr)
             add_to_rrset(rrsets, rr)
             add_to_domains(domains, signed_domains, rr)
