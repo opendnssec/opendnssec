@@ -40,19 +40,19 @@ cd $MYDIR/build-ksm
 OS=`uname -s`
 if test $OS = "Darwin"; then
 echo "Building for $OS"
-../trunk/libksm/configure --prefix=$MYDIR/install --with-mysql=/usr/local/mysql --with-cunit=/usr/local --with-dbname=test --with-dbhost=test1 --with-dbpass="" --with-dbuser=root
+../trunk/libksm/configure --prefix=$MYDIR/install --with-dbname=test
 fi
 if [ $OS = "Linux" ]; then
 echo "Building for $OS"
-../trunk/libksm/configure --prefix=$MYDIR/install --with-mysql=/usr --with-cunit=/usr --with-dbname=ksm --with-dbhost=localhost --with-dbpass=ksm_test --with-dbuser=ksm_test
+../trunk/libksm/configure --prefix=$MYDIR/install --with-cunit=/usr --with-dbname=ksm
 fi
 if test $OS = "FreeBSD"; then
 echo "Building for $OS"
-../trunk/libksm/configure --prefix=$MYDIR/install --with-mysql=/usr/local --with-cunit=/usr/local --with-dbname=test --with-dbhost=test1 --with-dbpass="" --with-dbuser=root
+../trunk/libksm/configure --prefix=$MYDIR/install --with-cunit=/usr/local --with-dbname=test
 fi
 if test $OS = "SunOS"; then
 echo "Building for $OS"
-../trunk/libksm/configure --prefix=$MYDIR/install --with-mysql=/usr/sfw
+../trunk/libksm/configure --prefix=$MYDIR/install --with-dbname=test
 fi
 if test $OS = "SunOS"; then
   gmake clean && gmake & gmake install

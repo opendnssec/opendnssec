@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: conf.xml 714 2009-05-11 15:51:16Z jakob $ -->
+
+<Configuration>
+
+	<RepositoryList>
+		<Repository name="softHSM">
+            <Module>/home/sion/temp/opendnssec/install/lib/libsofthsm.so</Module>
+			<TokenLabel>alice</TokenLabel>
+			<PIN>5678</PIN>
+		</Repository>
+	</RepositoryList>
+
+	<Enforcer>
+		<Datastore>
+		  <SQLite>/home/sion/temp/opendnssec/install/var/opendnssec/enforcer.db</SQLite>
+		</Datastore>
+		<Interval>PT3600S</Interval>
+		<KeygenInterval>P3M</KeygenInterval>
+		<BackupDelay>P3D</BackupDelay>
+	</Enforcer>
+
+	<Signer>
+		<WorkingDirectory>/var/dnssec/tmp</WorkingDirectory>
+		<ZoneListFile>/var/dnssec/zonelist.xml</ZoneListFile>
+		<!-- toolsdir will be removed, but is used for testing atm -->
+		<ToolsDirectory>/usr/local/bin</ToolsDirectory>
+	</Signer>
+
+</Configuration>

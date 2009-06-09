@@ -92,12 +92,13 @@ int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, in
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    sql = DisSpecifyInit("keypairs", "policy_id, HSMkey_id, securitymodule_id, size, algorithm, generate");
+    sql = DisSpecifyInit("keypairs", "policy_id, HSMkey_id, securitymodule_id, size, algorithm, state, generate");
     DisAppendInt(&sql, policy_id);
     DisAppendString(&sql, HSMKeyID);
     DisAppendInt(&sql, smID);
     DisAppendInt(&sql, size);
     DisAppendInt(&sql, alg);
+    DisAppendInt(&sql, KSM_STATE_GENERATE);
     DisAppendString(&sql, generate);
     DisEnd(&sql);
 
@@ -733,5 +734,153 @@ int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
         *count *= zone_count;
     }
 
+    return status;
+}
+
+/*+ 
+ * KsmKeyCountQueue - Return Number of Keys in the queue before active state 
+ * 
+ * Description: 
+ *      Returns the number of keys in the KSM_STATE_GENERATE, KSM_STATE_PUBLISH,  
+ *      and KSM_STATE_READY state. 
+ * 
+ * Arguments: 
+ *      int keytype 
+ *          Key type, KSK or ZSK 
+ * 
+ *      int* count (returned) 
+ *          Number of keys in the que. 
+ * 
+ *      int zone_id 
+ *          ID of zone that we are looking at (-1 == all zones) 
+ * 
+ * Returns: 
+ *      int 
+ *          Status return. 0 => success, Other implies error, in which case a 
+ *          message will have been output. 
+-*/ 
+ 
+int KsmKeyCountQueue(int keytype, int* count, int zone_id) 
+{ 
+    int     clause = 0;     /* Clause count */ 
+    char*   sql = NULL;     /* SQL to interrogate database */ 
+    int     status = 0;     /* Status return */ 
+    char    in[128];        /* Easily large enought for three keys */ 
+    size_t  nchar;          /* Number of output characters */ 
+ 
+    /* 
+     * Construct the "IN" statement listing the states of the keys that 
+     * are included in the output. 
+     */ 
+ 
+    nchar = snprintf(in, sizeof(in), "(%d, %d, %d)", 
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY); 
+    if (nchar >= sizeof(in)) { 
+        status = MsgLog(KME_BUFFEROVF, "KsmRequestKeyQueCount"); 
+        return status; 
+    } 
+ 
+    /* Create the SQL command to interrogate the database */ 
+ 
+    sql = DqsCountInit("KEYDATA_VIEW"); 
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++); 
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, clause++); 
+    if (zone_id != -1) { 
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++); 
+    } 
+    DqsEnd(&sql); 
+ 
+    /* Execute the query and free resources */ 
+ 
+    status = DbIntQuery(DbHandle(), count, sql); 
+    DqsFree(sql); 
+ 
+    /* Report any errors */ 
+ 
+    if (status != 0) { 
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle())); 
+    } 
+ 
+    return status; 
+}
+
+/*+
+ * ksmKeyGetUnallocated
+ *
+ * Description:
+ *      Given a set of policy values get the next unallocated keypair
+ *      Executes:
+ *          select min(id) from keydata 
+ *              where policy_id = policy_id 
+ *                and securitymodule_id = sm 
+ *                and size = bits 
+ *                and algorithm = algorithm 
+ *                and state is KSM_STATE_GENERATE
+ *
+ * Arguments:
+ *      int policy_id
+ *          id of the policy for which they key must have been created
+ *      int sm
+ *          id of security module
+ *      int bits
+ *          size of key desired
+ *      int algorithm
+ *          algorithm of key desired
+ *      int *keypair_id (out)
+ *          id of next keypair
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+ *          -1 == no free keys on that policy
+ */
+
+int ksmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id) 
+{
+
+    int     where = 0;          /* WHERE clause value */
+    char*   sql = NULL;         /* SQL query */
+    DB_RESULT       result;     /* Handle converted to a result object */
+    DB_ROW      row;            /* Row data */
+    int     status = 0;         /* Status return */
+
+    /* check the arguments? */
+    /*if (zone_name == NULL) {
+        return MsgLog(KSM_INVARG, "NULL zone name");
+    }*/
+
+    /* Construct the query */
+    sql = DqsSpecifyInit("KEYDATA_VIEW","min(id)");
+    DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
+    DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, sm, where++);
+    DqsConditionInt(&sql, "size", DQS_COMPARE_EQ, bits, where++);
+    DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
+    DqsConditionInt(&sql, "state", DQS_COMPARE_EQ, KSM_STATE_GENERATE, where++);
+    DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
+
+    /* Execute query and free up the query string */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        DbFreeResult(result);
+        return status;
+	}
+
+    /* Get the next row from the data */
+    status = DbFetchRow(result, &row);
+    if (status == 0) {
+        DbInt(row, DB_KEYDATA_ID, keypair_id);
+    }
+    else if (status == -1) {}
+        /* No rows to return (but no DB error) */
+	else {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+	}
+
+    DbFreeRow(row);
+    DbFreeResult(result);
     return status;
 }

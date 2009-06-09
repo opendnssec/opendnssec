@@ -177,6 +177,10 @@ static void DqsAppendComparison(char** query, DQS_COMPARISON compare)
         StrAppend(query, " IN ");
         break;
 
+    case DQS_COMPARE_IS:
+        StrAppend(query, " IS ");
+        break;
+
     default:
         StrAppend(query, " ?? ");
     }

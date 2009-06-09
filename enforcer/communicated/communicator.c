@@ -87,6 +87,7 @@ server_main(DAEMONCONFIG *config)
     char* zone_name;
     char* current_policy;
     char* current_filename;
+    int zone_id = -1;
     
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
@@ -144,6 +145,17 @@ server_main(DAEMONCONFIG *config)
                     StrAppend(&zone_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
 
                     log_msg(config, LOG_INFO, "Zone %s found.", zone_name);
+
+                    /* Get zone ID from name (or skip if it doesn't exist) */
+                    status = KsmZoneIdFromName(zone_name, &zone_id);
+                    if (status != 0 || zone_id == -1)
+                    {
+                        /* error */
+                        log_msg(NULL, LOG_ERR, "Error looking up zone \"%s\" in database (maybe it doesn't exist?)\n", zone_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
 
                     /* Expand this node and get the rest of the info with XPath */
                     xmlTextReaderExpand(reader);
@@ -214,9 +226,12 @@ server_main(DAEMONCONFIG *config)
                     StrAppend(&current_filename, (char*) xmlXPathCastToString(xpathObj));
                     log_msg(config, LOG_INFO, "Config will be output to %s.", current_filename);
                     /* TODO should we check that we have not written to this file in this run?*/
+                    /* Make sure that enough keys are allocated to this zone */
+                    status = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval);
+                    status = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval);
 
                     /* turn this zone and policy into a file */
-                    status2 = commGenSignConf(zone_name, current_filename, policy);
+                    status2 = commGenSignConf(zone_name, zone_id, current_filename, policy);
                     if (status2 != 0) {
                         log_msg(config, LOG_ERR, "Error writing signconf");
                         /* Don't return? try to parse the rest of the zones? */
@@ -278,7 +293,7 @@ server_main(DAEMONCONFIG *config)
 
  *  returns 0 on success and -1 if something went wrong
  */
-int commGenSignConf(char* zone_name, char* current_filename, KSM_POLICY *policy)
+int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy)
 {
     int status = 0;
     FILE *file;
@@ -288,22 +303,11 @@ int commGenSignConf(char* zone_name, char* current_filename, KSM_POLICY *policy)
                                round potentially different behaviour of rename over existing
                                file.) */
     char*   datetime = DtParseDateTimeString("now");
-    int zone_id = -1;
 
     if (zone_name == NULL || current_filename == NULL || policy == NULL)
     {
         /* error */
         log_msg(NULL, LOG_ERR, "NULL policy or zone provided\n");
-        MemFree(datetime);
-        return -1;
-    }
-
-    /* Get zone ID from name (or return if it doesn't exist) */
-    status = KsmZoneIdFromName(zone_name, &zone_id);
-    if (status != 0 || zone_id == -1)
-    {
-        /* error */
-        log_msg(NULL, LOG_ERR, "Error looking up zone \"%s\" in database (maybe it doesn't exist?)\n", zone_name);
         MemFree(datetime);
         return -1;
     }
@@ -441,3 +445,66 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     return 0;
 }
 
+/* allocateKeysToZone
+ *
+ * Description:
+ *      Allocates existing keys to zones
+ *
+ * Arguments:
+ *      policy
+ *          policy that the keys were created for
+ *      key_type
+ *          KSK or ZSK
+ *      zone_id
+ *          ID of zone in question
+ *      interval
+ *          time before next run
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+ *          1 == error with input
+ *          2 == not enough keys to satisfy policy
+-*/
+
+   
+int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval)
+{
+    int status = 0;
+    int keys_needed = 0;
+    int keys_in_queue = 0;
+    int new_keys = 0;
+    int key_pair_id = 0;
+    int i = 0;
+    DB_ID ignore = 0;
+
+    if (policy == NULL) {
+        log_msg(NULL, LOG_ERR, "NULL policy sent to allocateKeysToZone\n");
+        return 1;
+    }
+
+    if (key_type != KSM_TYPE_KSK && key_type != KSM_TYPE_ZSK) {
+        log_msg(NULL, LOG_ERR, "Unknown keytype: %i in allocateKeysToZone\n", key_type);
+        return 1;
+    }
+
+    /* Make sure that enough keys are allocated to this zone */
+    status = ksmKeyPredict(policy->id, key_type, policy->shared_keys, interval, &keys_needed);
+    status = KsmKeyCountQueue(key_type, &keys_in_queue, zone_id);
+    new_keys = keys_needed - keys_in_queue;
+
+    /* Allocate keys */
+    for (i=0 ; i < new_keys ; i++){
+        key_pair_id = 0;
+        if (key_type == KSM_TYPE_KSK) {
+            ksmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
+        } else {
+            ksmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
+        }
+        if(key_pair_id > 0) {
+            /* TODO should this do all zones if keys are shared? 
+                (yes, faster; no, will ignore zones not in zonelist) */
+            KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, &ignore);
+        }
+    }
+}
