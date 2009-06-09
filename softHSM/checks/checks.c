@@ -511,9 +511,9 @@ void runUserCheck(unsigned int counter) {
     assert(rv == CKR_SESSION_HANDLE_INVALID);
     rv = C_Login(hSession[0], 9999, NULL_PTR, 0);
     assert(rv == CKR_ARGUMENTS_BAD);
-    rv = C_Login(hSession[0], 9999, userPIN, 0);
+    rv = C_Login(hSession[0], 9999, userPIN, MIN_PIN_LEN - 1);
     assert(rv == CKR_PIN_INCORRECT);
-    rv = C_Login(hSession[0], 9999, userPIN, 256);
+    rv = C_Login(hSession[0], 9999, userPIN, MAX_PIN_LEN + 1);
     assert(rv == CKR_PIN_INCORRECT);
     rv = C_Login(hSession[0], 9999, userPIN, sizeof(userPIN) - 2);
     assert(rv == CKR_USER_TYPE_INVALID);

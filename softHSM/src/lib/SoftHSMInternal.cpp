@@ -231,7 +231,7 @@ CK_RV SoftHSMInternal::login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType, 
                      CKR_SESSION_HANDLE_INVALID);
   CHECK_DEBUG_RETURN(pPin == NULL_PTR, "C_Login", "pPin must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
-  CHECK_DEBUG_RETURN(ulPinLen < 4 || ulPinLen > 255, "C_Login", "Incorrent PIN length",
+  CHECK_DEBUG_RETURN(ulPinLen < MIN_PIN_LEN || ulPinLen > MAX_PIN_LEN, "C_Login", "Incorrent PIN length",
                      CKR_PIN_INCORRECT);
 
   int logInType = CKU_USER;
@@ -374,7 +374,7 @@ CK_RV SoftHSMInternal::initToken(CK_SLOT_ID slotID, CK_UTF8CHAR_PTR pPin, CK_ULO
     }
   }
 
-  CHECK_DEBUG_RETURN(ulPinLen < 4 || ulPinLen > 255, "C_InitToken", "Incorrent PIN length",
+  CHECK_DEBUG_RETURN(ulPinLen < MIN_PIN_LEN || ulPinLen > MAX_PIN_LEN, "C_InitToken", "Incorrent PIN length",
                      CKR_PIN_INCORRECT);
 
   return softInitToken(currentSlot, pPin, ulPinLen, pLabel);
@@ -391,7 +391,7 @@ CK_RV SoftHSMInternal::initPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pPin,
                      CKR_ARGUMENTS_BAD);
   CHECK_DEBUG_RETURN(session->getSessionState() != CKS_RW_SO_FUNCTIONS, "C_InitPIN", "Must be in R/W SO Functions state",
                      CKR_USER_NOT_LOGGED_IN);
-  CHECK_DEBUG_RETURN(ulPinLen < 4 || ulPinLen > 255, "C_InitPIN", "Incorrent PIN length",
+  CHECK_DEBUG_RETURN(ulPinLen < MIN_PIN_LEN || ulPinLen > MAX_PIN_LEN, "C_InitPIN", "Incorrent PIN length",
                      CKR_PIN_LEN_RANGE);
 
   // Save the User PIN in db
@@ -419,9 +419,9 @@ CK_RV SoftHSMInternal::setPIN(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pOldPi
                      CKR_ARGUMENTS_BAD);
   CHECK_DEBUG_RETURN(pNewPin == NULL_PTR, "C_SetPIN", "pNewPin must not be a NULL_PTR",
                      CKR_ARGUMENTS_BAD);
-  CHECK_DEBUG_RETURN(ulOldLen < 4 || ulOldLen > 255, "C_SetPIN", "Incorrent PIN length",
+  CHECK_DEBUG_RETURN(ulOldLen < MIN_PIN_LEN || ulOldLen > MAX_PIN_LEN, "C_SetPIN", "Incorrent PIN length",
                      CKR_PIN_LEN_RANGE);
-  CHECK_DEBUG_RETURN(ulNewLen < 4 || ulNewLen > 255, "C_SetPIN", "Incorrent PIN length",
+  CHECK_DEBUG_RETURN(ulNewLen < MIN_PIN_LEN || ulNewLen > MAX_PIN_LEN, "C_SetPIN", "Incorrent PIN length",
                      CKR_PIN_LEN_RANGE);
 
   // Digest the given old PIN

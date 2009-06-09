@@ -37,10 +37,6 @@
 *
 ************************************************************/
 
-#define DB_TOKEN_LABEL 0
-#define DB_TOKEN_SOPIN 1
-#define DB_TOKEN_USERPIN 2
-
 #include "softhsm.h"
 #include "pkcs11_unix.h"
 
@@ -60,8 +56,8 @@ void usage() {
   printf("                     WARNING: Any content in token token will be erased.\n");
   printf("--slot <number>      The slot where the token is located.\n");
   printf("--label <text>       Defines the label of the token. Max 32 chars.\n");
-  printf("--so-pin <PIN>       The PIN for the Security Officer (SO). 4-255 chars.\n");
-  printf("--pin <PIN>          The PIN for the normal user. 4-255 chars.\n");
+  printf("--so-pin <PIN>       The PIN for the Security Officer (SO).\n");
+  printf("--pin <PIN>          The PIN for the normal user.\n");
   printf("--help               Shows this help.\n");
   printf("-h                   Shows this help.\n\n\n");
   printf("You also need to have a config file, which specifies the paths to the tokens.\n");
@@ -155,6 +151,10 @@ int main(int argc, char *argv[]) {
 // Creates a SoftHSM token at the given location.
 
 void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
+  // Keep a copy of the PINs because getpass/getpassphrase will overwrite the previous PIN.
+  char so_pin_copy[MAX_PIN_LEN+1];
+  char user_pin_copy[MAX_PIN_LEN+1];
+
   if(slot == NULL) {
     printf("Error: A slot number must be supplied. Use --slot <number>\n");
     exit(1);
@@ -171,40 +171,46 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   }
 
   if(soPIN == NULL) {
+    printf("Choose a SO PIN between %i and %i in length.\n", MIN_PIN_LEN, MAX_PIN_LEN);
     #ifdef HAVE_GETPASSPHRASE
-      soPIN = getpassphrase("Enter SO PIN (4-255 chars): ");
+      soPIN = getpassphrase("Enter SO PIN: ");
     #else
-      soPIN = getpass("Enter SO PIN (4-255 chars): ");
+      soPIN = getpass("Enter SO PIN: ");
     #endif
   }
 
   int soLength = strlen(soPIN);
-  while(soLength < 4 || soLength > 255) {
+  while(soLength < MIN_PIN_LEN || soLength > MAX_PIN_LEN) {
+    printf("Wrong size! Choose a SO PIN between %i and %i in length.\n", MIN_PIN_LEN, MAX_PIN_LEN);
     #ifdef HAVE_GETPASSPHRASE
-      soPIN = getpassphrase("Wrong size! Enter SO PIN (4-255 chars): ");
+      soPIN = getpassphrase("Enter SO PIN: ");
     #else
-      soPIN = getpass("Wrong size! Enter SO PIN (4-255 chars): ");
+      soPIN = getpass("Enter SO PIN: ");
     #endif
     soLength = strlen(soPIN);
   }
+  strcpy(so_pin_copy, soPIN);
 
   if(userPIN == NULL) {
+    printf("Choose a user PIN between %i and %i in length.\n", MIN_PIN_LEN, MAX_PIN_LEN);
     #ifdef HAVE_GETPASSPHRASE
-      userPIN = getpassphrase("Enter user PIN (4-255 chars): ");
+      userPIN = getpassphrase("Enter user PIN: ");
     #else
-      userPIN = getpass("Enter user PIN (4-255 chars): ");
+      userPIN = getpass("Enter user PIN: ");
     #endif
   }
 	
   int userLength = strlen(userPIN);
-  while(userLength < 4 || userLength > 255) {
+  while(userLength < MIN_PIN_LEN || userLength > MAX_PIN_LEN) {
+    printf("Wrong size! Choose a user PIN between %i and %i in length.\n", MIN_PIN_LEN, MAX_PIN_LEN);
     #ifdef HAVE_GETPASSPHRASE
-      userPIN = getpassphrase("Wrong size! Enter user PIN (4-255 chars): ");
+      userPIN = getpassphrase("Enter user PIN: ");
     #else
-      userPIN = getpass("Wrong size! Enter user PIN (4-255 chars): ");
+      userPIN = getpass("Enter user PIN: ");
     #endif
     userLength = strlen(userPIN);
   }
+  strcpy(user_pin_copy, userPIN);
 
   // Load the variables
   CK_SLOT_ID slotID = atoi(slot);
@@ -218,7 +224,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
     exit(1);
   }
 
-  rv = C_InitToken(slotID, (CK_UTF8CHAR_PTR)soPIN, soLength, paddedLabel);
+  rv = C_InitToken(slotID, (CK_UTF8CHAR_PTR)so_pin_copy, soLength, paddedLabel);
 
   switch(rv) {
     case CKR_OK:
@@ -244,13 +250,13 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
     exit(1);
   }
 
-  rv = C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)soPIN, soLength);
+  rv = C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)so_pin_copy, soLength);
   if(rv != CKR_OK) {
     printf("Error: Could not log in on the token.\n");
     exit(1);
   }
 
-  rv = C_InitPIN(hSession, (CK_UTF8CHAR_PTR)userPIN, userLength);
+  rv = C_InitPIN(hSession, (CK_UTF8CHAR_PTR)user_pin_copy, userLength);
   if(rv != CKR_OK) {
     printf("Error: Could not initialize the user PIN.\n");
     exit(1);

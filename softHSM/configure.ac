@@ -96,6 +96,16 @@ AC_DEFINE_UNQUOTED(
   [Maximum number of concurrent sessions]
 )
 AC_DEFINE_UNQUOTED(
+  [MAX_PIN_LEN],
+  [255],
+  [Maximum PIN length]
+)
+AC_DEFINE_UNQUOTED(
+  [MIN_PIN_LEN],
+  [4],
+  [Minimum PIN length]
+)
+AC_DEFINE_UNQUOTED(
   [DEFAULT_SOFTHSM_CONF],
   ["`eval echo ${sysconfdir} | sed s,NONE,$ac_default_prefix,g`/softhsm.conf"],
   [The default location of softhsm.conf]

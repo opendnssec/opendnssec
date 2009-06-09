@@ -103,6 +103,7 @@ CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinL
     if(db != NULL) {
       sqlite3_close(db);
     }
+    free(soPIN);
     DEBUG_MSG("C_InitToken", "Could not open the token database file");
     return CKR_DEVICE_ERROR;
   }
@@ -123,9 +124,12 @@ CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinL
 
   // Open a connection to the new db
   SoftDatabase *softDB = new SoftDatabase();
-  softDB->init(currentSlot->dbPath);
-  CHECK_DEBUG_RETURN(softDB->init(currentSlot->dbPath) != CKR_OK, "C_InitToken", "Could not create a connection to the database",
-                     CKR_DEVICE_ERROR);
+  if(softDB->init(currentSlot->dbPath) != CKR_OK) {
+    free(soPIN);
+    delete softDB;
+    DEBUG_MSG("C_InitToken", "Could not create a connection to the database");
+    return CKR_DEVICE_ERROR;
+  }
 
   // Add token info
   softDB->saveTokenInfo(DB_TOKEN_LABEL, (char*)pLabel, 32);
