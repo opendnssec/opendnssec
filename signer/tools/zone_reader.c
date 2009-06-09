@@ -460,7 +460,7 @@ main(int argc, char **argv)
 	uint8_t nsec3_salt_length = 0;
 	uint8_t *nsec3_salt = NULL;
 	char *out_file_name = NULL;
-	ldns_rr *my_nsec3params;
+	ldns_rr *my_nsec3params = NULL;
 
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
@@ -562,17 +562,19 @@ main(int argc, char **argv)
 		}
 	}
 
-	my_nsec3params = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
-	ldns_rr_set_owner(my_nsec3params, ldns_rdf_clone(origin));
-	ldns_nsec3_add_param_rdfs(my_nsec3params,
-	                          nsec3_algorithm,
-	                          0,
-	                          nsec3_iterations,
-	                          nsec3_salt_length,
-	                          nsec3_salt);
-	/* always set bit 7 of the flags to zero, according to
-	 * rfc5155 section 11 */
-	ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(my_nsec3params, 1)), 7, 0);
+	if (nsec3) {
+		my_nsec3params = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
+		ldns_rr_set_owner(my_nsec3params, ldns_rdf_clone(origin));
+		ldns_nsec3_add_param_rdfs(my_nsec3params,
+		                          nsec3_algorithm,
+		                          0,
+		                          nsec3_iterations,
+		                          nsec3_salt_length,
+		                          nsec3_salt);
+		/* always set bit 7 of the flags to zero, according to
+		 * rfc5155 section 11 */
+		ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(my_nsec3params, 1)), 7, 0);
+	}
 
 	rr_tree = ldns_rbtree_create(&compare_rr_data);
 	ns_tree = ldns_rbtree_create(&compare_dname);
@@ -737,7 +739,7 @@ main(int argc, char **argv)
 
 	/* if we haven't found the right NSEC3PARAM RR in the zone,
 	 * add it here */
-	if (my_nsec3params) {
+	if (nsec3 && my_nsec3params) {
 		cur_rr_data = rr_data_new();
 		cur_rr_data->name = ldns_nsec3_hash_name(ldns_rr_owner(my_nsec3params),
 		                                         nsec3_algorithm,
