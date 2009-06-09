@@ -171,7 +171,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   }
 
   if(soPIN == NULL) {
-    printf("Choose a SO PIN between %i and %i in length.\n", MIN_PIN_LEN, MAX_PIN_LEN);
+    printf("The SO PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
     #ifdef HAVE_GETPASSPHRASE
       soPIN = getpassphrase("Enter SO PIN: ");
     #else
@@ -181,7 +181,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
 
   int soLength = strlen(soPIN);
   while(soLength < MIN_PIN_LEN || soLength > MAX_PIN_LEN) {
-    printf("Wrong size! Choose a SO PIN between %i and %i in length.\n", MIN_PIN_LEN, MAX_PIN_LEN);
+    printf("Wrong size! The SO PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
     #ifdef HAVE_GETPASSPHRASE
       soPIN = getpassphrase("Enter SO PIN: ");
     #else
@@ -192,7 +192,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   strcpy(so_pin_copy, soPIN);
 
   if(userPIN == NULL) {
-    printf("Choose a user PIN between %i and %i in length.\n", MIN_PIN_LEN, MAX_PIN_LEN);
+    printf("The user PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
     #ifdef HAVE_GETPASSPHRASE
       userPIN = getpassphrase("Enter user PIN: ");
     #else
@@ -202,7 +202,7 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
 	
   int userLength = strlen(userPIN);
   while(userLength < MIN_PIN_LEN || userLength > MAX_PIN_LEN) {
-    printf("Wrong size! Choose a user PIN between %i and %i in length.\n", MIN_PIN_LEN, MAX_PIN_LEN);
+    printf("Wrong size! The user PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
     #ifdef HAVE_GETPASSPHRASE
       userPIN = getpassphrase("Enter user PIN: ");
     #else
