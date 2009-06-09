@@ -248,8 +248,11 @@ usage(FILE *out)
 	fprintf(out, "Usage: signer_pkcs11 [OPTIONS]\n");
 	fprintf(out, "Adds RRSIG records to the read resource records sets with PKCS11\n");
 	fprintf(out, "Options:\n");
+	fprintf(out, "-c <file>\t\tUse the specified OpenDNSSEC configuration file\n");
 	fprintf(out, "-f <file>\t\tRead from file instead of stdin\n");
 	fprintf(out, "-h\t\t\tShow this help\n");
+	fprintf(out, "-p <file>\t\tRead a previous output of this tool for existing signatures\n");
+	fprintf(out, "-w <file>\t\tWrite the output to this file (default stdout)\n");
 }
 
 void check_tm(struct tm tm)
@@ -949,9 +952,6 @@ int main(int argc, char **argv)
 		case 'h':
 			usage(stdout);
 			exit(0);
-			break;
-		case 'n':
-			echo_input = false;
 			break;
 		case 'p':
 			prev_zone = fopen(optarg, "r");

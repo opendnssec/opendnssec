@@ -31,14 +31,16 @@ and output that zone with the necessary changes, again in text format.
 
 To simply sign a zone, the following steps are needed:
 
-1 Sorting (and stripping)
+1 Zone Reading (sorting, stripping, and optional NSEC3PARAM addition)
 2 NSEC Addition
 3 RRSIG Addition
 4 Finalization
 
-The current chain from step 1 to 4 only works when the input data for
-step 1 does not contain RRSIG or NSEC(3) records. Step 3 can be called
-again on its own output, so that zones can be re-signed.
+If DNSKEY records need to be added, this can be done with
+create_dnskey, see Other tools below.
+
+Step 3 can be called again on its own output, so that zones can be
+re-signed.
 
 1 Sorting
 ---------
@@ -98,23 +100,44 @@ the nsec3er tool will create an NSEC3 for the empty nonterminal.
 4 RRSIG Addition
 ----------------
 
-And finally, the signature resource records must be added.
+And finally, the signature resource records must be added this is done
+with the tool 'signer'. It has the following command-line arguments:
+-c <config file>:  The OpenDNSSEC configuration file that contains
+                   the HSM modules etc.
+-f <input file>:   From this file, commands and input RRsets are read.
+                   If this argument is not given, stdin is used
+-h:                Show a usage screen
+-p: <signed file>: If this file is given and exists it should point to
+                   a previous output file of the signer tool.
+                   Previously generated RRSIGs that do not need to be
+                   regenerated (yet) are read from this file, to speed
+                   up re-signing operations.
+                   This MUST be the DIRECT output of the signer, NOT
+                   the output from the finalizer.
+-w: <output file>: The signed zone file will be written to this file.
+                   This MUST NOT be the same file as either the file for
+                   the -f or the -p flag, since the signer will write
+                   output before reading in all input.
 
-Options for the signer are passed in-line; with the following commands:
-:add_module <TokenLabel> <so path> <PIN>
-    adds a PKCS#11 token to the list.
-:del_module <TokenLabel>
-    removes the token from the list of tokens.
-:add_key <TokenLabel> <key id> <key algorithm nr> <key flags>
-    adds a key to be used to generate signatures
+Specific signing commands are passed in-line; with the following commands:
+:add_ksk <key id> <key algorithm nr> <key flags>
+    adds a KSK to be used to generate signatures for the DNSKEY RRset
+:add_zsk <key id> <key algorithm nr> <key flags>
+    adds a KSK to be used to generate signatures for all non-DNSKEY
+    RRsets
 :flush_keys
     removes all currently configured keys
 :inception <YYYYMMDD[HHmmss]>
     sets the inception date for signatures
 :expiration <YYYYMMDD[HHmmss]>
     sets the expiration date for signatures
+:jitter <int value>
+    sets the jitter value for expiration dates
+:refresh <YYYYMMDD[HHmmss]>
+    sets the refresh date; signatures with an expiration date before
+    this value are dropped and regenerated
 :origin <dname>
-    sets the zone name for the current zone
+    sets the zone name for the current zone (mandatory)
 :soa_ttl <int>
     sets the TTL for the SOA record, this will override the TTL of the
     SOA in the input file
@@ -125,14 +148,19 @@ Options for the signer are passed in-line; with the following commands:
     sets the minimum value for the SOA record, this will override the
     minimum value of the SOA in the input file
 :stop
-    stop the signer (it will also stop if EOL is read)
+    stop the signer (it will also stop if EOL is read in the input file)
 
 If an input line starts with ';', it is read as a comment, and will
-simply be copied to the output.
+simply be copied to the output. Lines starting with ';' in a previously
+signed zone are dropped.
 
-Otherwise, the input lines are parsed as Resource Records. As soon as
-a resource record is read that is from a different RRset than the
-previous one, the RRset that was read is printed together with an RRSIG.
+Otherwise, the input lines are parsed as Resource Records. The signer
+will read an RRset from the input file, and check whether the input file
+has signatures for the keys that are specified. If a previously signed
+zone file is given, it will simultaneously be parsed for existing RRSIG
+records. If there are no RRSIG records for a specific key, or if the
+expiration date of said signatures falls before the 'refresh' value,
+new signatures are generated.
 
 This tool will also add some statistics to the file (sign time and 
 signature counts).
@@ -155,6 +183,6 @@ Other tools
 -----------
 
 There is a tool to create a DNSKEY RR from a PKCS11 key id and
-algorithm, called 'create_dnskey_pkcs11'. It takes the same arguments
-as 'signer_pkcs11', but just prints out a DNSKEY RR for each key
+algorithm, called 'create_dnskey'. It takes the same arguments
+as 'signer', but just prints out a DNSKEY RR for each key
 specified.
