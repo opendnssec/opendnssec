@@ -618,7 +618,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     DusSetInt(&sql, "STATE", dst_state, set++);
     DusSetString(&sql, dst_col, datetime, set++);
 
-    DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 1);
+    DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 0);
     StrFree(insql);
     DusEnd(&sql);
 
