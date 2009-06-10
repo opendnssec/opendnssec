@@ -246,7 +246,7 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	my $zsk = $keys->find('ZSK')->get_node(1);
 	$algorithm      = $zsk->find('Algorithm')->string_value();
 	$algorithm_len  = $zsk->find("Algorithm/\@length")->string_value();
-	$lifetime       = duration2sec( $ksk->find('Lifetime')->string_value() );
+	$lifetime       = duration2sec( $zsk->find('Lifetime')->string_value() );
 	$emergency      = $zsk->find('Emergency')->string_value();
 	$repository     = $zsk->find('Repository')->string_value();
 	$repository_id = getresid($repository);
