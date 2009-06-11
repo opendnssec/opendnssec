@@ -265,16 +265,102 @@ static void TestKsmKeyPredict(void)
     int count;
     int status;
 
-    status =  ksmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
+    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7); /* 4 rollovers, 2 emergency plus one to get ready */
 
     keytype = KSM_TYPE_ZSK;
-    status =  ksmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
+    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7);
+}
+
+/*+
+ * TestKsmKeyCountQueue - Test Key Queue counting code
+ *
+ * Description:
+ *      Tests that key numbers can be counted
+-*/
+
+static void TestKsmKeyCountQueue(void)
+{
+    int zone_id = 1;
+    int keytype = KSM_TYPE_KSK;
+    int count;
+    int status;
+
+    status = KsmKeyCountQueue(keytype, &count, zone_id);
+
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(count, 1); 
+
+    keytype = KSM_TYPE_ZSK;
+    status = KsmKeyCountQueue(keytype, &count, zone_id);
+
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(count, 1);
+}
+
+/*+
+ * TestKsmKeyCountUnallocated - Test Key Unallocated counting code
+ *
+ * Description:
+ *      Tests that Unallocated key numbers can be counted
+-*/
+
+static void TestKsmKeyCountUnallocated(void)
+{
+    int policy_id = 2;
+    int sm = -1;        /* count over all security modules */
+    int bits = -1;      /* count over all sizes */
+    int algorithm = -1; /* count over all algorithms */
+    int count;
+    int status;
+
+    status = KsmKeyCountUnallocated(policy_id, sm, bits, algorithm, &count);
+
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(count, 15); 
+
+    algorithm = KSM_ALGORITHM_RSASHA1;
+    status = KsmKeyCountUnallocated(policy_id, sm, bits, algorithm, &count);
+
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(count, 13);
+}
+
+/*+
+ * TestKsmKeyGetUnallocated - Test Key Unallocated getting code
+ *
+ * Description:
+ *      Tests that Unallocated keys can be found
+-*/
+
+static void TestKsmKeyGetUnallocated(void)
+{
+    int policy_id = 2;
+    int sm = 1;        /* count over all security modules */
+    int bits = 1024;      /* count over all sizes */
+    int algorithm = KSM_ALGORITHM_RSASHA1; /* count over all algorithms */
+    int keypair_id;
+    int dnsseckey_id;
+    int zone_id = 1;
+    int status;
+
+    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, &keypair_id);
+
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(keypair_id, 3); 
+
+    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, &dnsseckey_id);
+    CU_ASSERT_EQUAL(status, 0);
+
+    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, &keypair_id);
+
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(keypair_id, 4);
 }
 
 /*
@@ -300,6 +386,9 @@ int TestKsmKey(void)
         {"KsmDnssecKeyCreate", TestKsmDnssecKeyCreate},
         {"KsmKeyModify", TestKsmKeyModify},
         {"KsmKeyPredict", TestKsmKeyPredict},
+        {"KsmKeyCountQueue", TestKsmKeyCountQueue},
+        {"KsmKeyCountUnallocated", TestKsmKeyCountUnallocated},
+        {"KsmKeyGetUnallocated", TestKsmKeyGetUnallocated},
         {NULL,                      NULL}
     };
 

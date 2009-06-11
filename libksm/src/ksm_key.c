@@ -669,7 +669,7 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *              Other   Error
 -*/
 
-int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count) 
+int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count) 
 { 
     int status = 0;   /* Status return */ 
     KSM_PARCOLL coll; /* Parameters collection */ 
@@ -871,6 +871,7 @@ int KsmKeyCountUnallocated(int policy_id, int sm, int bits, int algorithm, int *
     }
 
     DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, where++); 
+    DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
     DqsEnd(&sql); 
  
     /* Execute the query and free resources */ 
@@ -888,7 +889,7 @@ int KsmKeyCountUnallocated(int policy_id, int sm, int bits, int algorithm, int *
 }
 
 /*+
- * ksmKeyGetUnallocated
+ * KsmKeyGetUnallocated
  *
  * Description:
  *      Given a set of policy values get the next unallocated keypair
@@ -918,7 +919,7 @@ int KsmKeyCountUnallocated(int policy_id, int sm, int bits, int algorithm, int *
  *          -1 == no free keys on that policy
  */
 
-int ksmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id) 
+int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id) 
 {
 
     int     where = 0;          /* WHERE clause value */

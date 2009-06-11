@@ -149,7 +149,7 @@ server_main(DAEMONCONFIG *config)
                 rightnow = DtParseDateTimeString("now");
 
                 /* Find out how many ksk keys are needed */
-                status = ksmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &keys_needed);
+                status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &keys_needed);
                 if (status != 0) {
                     log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
                     /* TODO exit? continue with next policy? */
@@ -190,7 +190,7 @@ server_main(DAEMONCONFIG *config)
                 keys_in_queue = 0;
                 new_keys = 0;
 
-                status = ksmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &keys_needed);
+                status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &keys_needed);
                 if (status != 0) {
                     log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
                     /* TODO exit? continue with next policy? */

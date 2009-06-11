@@ -129,10 +129,10 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data);
 void KsmKeyEnd(DB_RESULT result);
 int KsmKeyQuery(const char* sql, DB_RESULT* result);
 int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
-int ksmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count);
+int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count);
 int KsmKeyCountQueue(int keytype, int* count, int zone_id);
 int KsmKeyCountUnallocated(int policy_id, int sm, int bits, int algorithm, int *count);
-int ksmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id);    
+int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id);    
 /* delete */
 
 int KsmDeleteKeyRange(int minid, int maxid);

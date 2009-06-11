@@ -505,7 +505,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 
     /* Make sure that enough keys are allocated to this zone */
     /* How many do we need ? */
-    status = ksmKeyPredict(policy->id, key_type, policy->shared_keys, interval, &keys_needed);
+    status = KsmKeyPredict(policy->id, key_type, policy->shared_keys, interval, &keys_needed);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
         return 3;
@@ -524,7 +524,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     for (i=0 ; i < new_keys ; i++){
         key_pair_id = 0;
         if (key_type == KSM_TYPE_KSK) {
-            status = ksmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
+            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
             if (status == -1) {
                 log_msg(NULL, LOG_ERR, "Not enough keys to satisfy ksk policy for zone: %s\n", zone_name);
                 return 2;
@@ -534,7 +534,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
                 return 3;
             }
         } else {
-            ksmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
+            KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
             if (status == -1) {
                 log_msg(NULL, LOG_ERR, "Not enough keys to satisfy zsk policy for zone: %s\n", zone_name);
                 return 2;
