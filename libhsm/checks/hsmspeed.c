@@ -186,7 +186,7 @@ main (int argc, char *argv[])
 	key = hsm_generate_rsa_key(ctx, repository, keysize);
 	if (key) {
 		char *id = hsm_get_key_id(ctx, key);
-		printf("Temporary key created: %s\n", id);
+		fprintf(stderr, "Temporary key created: %s\n", id);
 		free(id);			
 	} else {
 		fprintf(stderr, "hsm_generate_rsa_key() returned %d\n", result);
