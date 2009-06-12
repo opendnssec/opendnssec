@@ -786,7 +786,9 @@ sign_rrset(ldns_rr_list *rrset,
 	}
 	for (i = 0; i < keys->key_count; i++) {
 		if (keys->use_key[i]) {
-fprintf(stderr, "new signature\n");
+			if (cfg->verbosity >= 4) {
+				fprintf(stderr, "new signature\n");
+			}
 			params->keytag = keys->keytags[i];
 			params->algorithm = keys->algorithms[i];
 			params->expiration = cfg->expiration + rand() % cfg->jitter;
