@@ -337,7 +337,9 @@ server_main(DAEMONCONFIG *config)
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy)
 {
     int status = 0;
-    FILE *file;
+    FILE *file, *file2;
+    char char1, char2;      /* for the comparison between 2 files */
+    int same = 0;
     char *temp_filename;    /* In case this fails we write to a temp file and only overwrite
                                the current file when we are finished */
     char *old_filename;     /* Keep a copy of the previous version, just in case! (Also gets
@@ -446,30 +448,89 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     */
 
     status = fclose(file);
+    MemFree(datetime);
 
     if (status == EOF) /* close failed... do something? */
     {
-        MemFree(datetime);
+        log_msg(NULL, LOG_ERR, "Could not close: %s\n", temp_filename);
         return -1;
     }
 
-    /* we now have a complete xml file. First move the old one out of the way */
-    status = rename(current_filename, old_filename);
-    if (status != 0 && status != -1)
+    /* compare our temp file with the current one (if it exists) */
+    file = fopen(temp_filename, "rb");
+    if (file == NULL)
     {
-        /* cope with initial condition of files not existing */
-        MemFree(datetime);
+        /* error */
+        log_msg(NULL, LOG_ERR, "Could not reopen: %s\n", temp_filename);
         return -1;
     }
+    
+    file2 = fopen(current_filename, "rb"); /* Might not exist */
 
-    /* Then copy our temp into place */
-    if (rename(temp_filename, current_filename) != 0)
+    /* If current_filename exists then compare its contents to temp_filename */
+    if (file2 != NULL) {
+        same = 1;
+        while(!feof(file)) {
+            char1 = fgetc(file);
+            if(ferror(file)) {
+                log_msg(NULL, LOG_ERR, "Could not read: %s\n", temp_filename);
+                return -1;
+            }
+            char2 = fgetc(file2);
+            if(ferror(file2)) {
+                log_msg(NULL, LOG_ERR, "Could not read: %s\n", current_filename);
+                return -1;
+            }
+            if(char1 != char2) {
+                same = 0;
+                break;
+            }
+        }
+
+        status = fclose(file2);
+        if (status == EOF) /* close failed... do something? */
+        {
+            log_msg(NULL, LOG_ERR, "Could not read: %s\n", current_filename);
+            return -1;
+        }
+    }
+
+    status = fclose(file);
+    if (status == EOF) /* close failed... do something? */
     {
-        MemFree(datetime);
+        log_msg(NULL, LOG_ERR, "Could not close: %s\n", temp_filename);
         return -1;
     }
 
-    MemFree(datetime);
+    /* If either current_filename does not exist, or if it is different to temp then same will == 0 */
+
+    if (same == 0) {
+
+        /* we now have a complete xml file. First move the old one out of the way */
+        status = rename(current_filename, old_filename);
+        if (status != 0 && status != -1)
+        {
+            /* cope with initial condition of files not existing */
+            log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s\n", current_filename, old_filename);
+            return -1;
+        }
+
+        /* Then copy our temp into place */
+        if (rename(temp_filename, current_filename) != 0)
+        {
+            log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s\n", temp_filename, current_filename);
+            return -1;
+        }
+    }
+    else {
+        log_msg(NULL, LOG_INFO, "No change to: %s\n", current_filename);
+        if (remove(temp_filename) != 0)
+        {
+            log_msg(NULL, LOG_ERR, "Could not remove: %s\n", temp_filename);
+            return -1;
+        }
+    }
+
     return 0;
 }
 
