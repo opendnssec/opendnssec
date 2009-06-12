@@ -16,7 +16,7 @@ hsmtest_LDADD = ../src/libhsm.la
 hsmtest_LDFLAGS = -no-install
 
 hsmspeed_LDADD = ../src/libhsm.la
-hsmspeed_LDFLAGS = -no-install
+hsmspeed_LDFLAGS = -no-install -lpthread
 
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
 
