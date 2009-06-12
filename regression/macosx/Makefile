@@ -18,7 +18,8 @@ CONF_ARG = \
 	--with-ldns=/opt/local \
 	--with-libxml2=/usr \
 	--with-botan=/opt/local \
-	--with-trang=$(HOME)/bin/trang.jar
+	--with-trang=$(HOME)/bin/trang.jar \
+	--with-softhsm=/usr/local/lib/libsofthsm.dylib
 
 all: build
 
