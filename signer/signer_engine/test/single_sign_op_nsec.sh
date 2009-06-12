@@ -24,7 +24,9 @@ echo "Signing zone"
 ../../tools/zone_reader -f $TMP_ZONE -o tjeb.nl |\
 ../../tools/nseccer >> $TMP_COMMANDS
 
-../../tools/signer -c opendnssec.xml -f $TMP_COMMANDS -w signed_zones/tjeb.nl
+../../tools/signer -c opendnssec.xml -p signed_zones/tjeb.nl.signed -f $TMP_COMMANDS -w signed_zones/tjeb.nl.tmp
+mv signed_zones/tjeb.nl.tmp signed_zones/tjeb.nl.signed
+../../tools/finalizer -f signed_zones/tjeb.nl.signed > signed_zones/tjeb.nl
 
 echo "Cleaning up"
 rm $TMP_COMMANDS

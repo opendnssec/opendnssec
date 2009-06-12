@@ -21,14 +21,12 @@ echo "Adding keys"
 ../../tools/create_dnskey -r test -c opendnssec.xml -o tjeb.nl -a 7 -f 256 -t 3600 e715319b2fe146bfb4fa8e9b2c780d21 >> $TMP_ZONE
 # sort, nsec, and sign it
 echo "Signing zone"
-cp $TMP_ZONE /tmp/unsorted
-../../tools/zone_reader -f $TMP_ZONE -o tjeb.nl -n -t 5 -s beef > /tmp/sorted
-
 ../../tools/zone_reader -f $TMP_ZONE -o tjeb.nl -n -t 5 -s beef |\
 ../../tools/nsec3er -t 5 -s beef -o tjeb.nl >> $TMP_COMMANDS
 
-#../../tools/signer -f $TMP_COMMANDS | ../../tools/finalizer > signed_zones/tjeb.nl
-../../tools/signer -c opendnssec.xml -f $TMP_COMMANDS > signed_zones/tjeb.nl
+../../tools/signer -c opendnssec.xml -p signed_zones/tjeb.nl.signed -f $TMP_COMMANDS -w signed_zones/tjeb.nl.tmp
+mv signed_zones/tjeb.nl.tmp signed_zones/tjeb.nl.signed
+../../tools/finalizer -f signed_zones/tjeb.nl.signed > signed_zones/tjeb.nl
 
 echo "Cleaning up"
 rm $TMP_COMMANDS
