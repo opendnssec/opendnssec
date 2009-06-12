@@ -239,7 +239,8 @@ main (int argc, char *argv[])
 	end.tv_usec-= start.tv_usec;
 	double elapsed =(double)(end.tv_sec)+(double)(end.tv_usec)*.000001;
 	double speed = iterations / elapsed * threads;
-	printf("%d signatures, %.2f sig/s\n", iterations, speed);
+	printf("%d signatures using %d threads, %.2f sig/s (RSA %d bits)\n",
+		iterations, threads, speed, keysize);
 	
 	/* Delete temporary key */
 	fprintf(stderr, "Deleting temporary key...\n");
