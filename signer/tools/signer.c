@@ -88,6 +88,8 @@ typedef struct {
 	unsigned long existing_sigs;
 	unsigned long removed_sigs;
 	unsigned long created_sigs;
+
+	int verbosity;
 } current_config;
 
 key_list *
@@ -226,6 +228,7 @@ current_config_new()
 	cfg->existing_sigs = 0;
 	cfg->removed_sigs = 0;
 	cfg->created_sigs = 0;
+	cfg->verbosity = 1;
 	return cfg;
 }
 
@@ -781,9 +784,9 @@ sign_rrset(ldns_rr_list *rrset,
 	} else {
 		keys = cfg->zsks;
 	}
-	ldns_rr_list_print(output, rrset);
 	for (i = 0; i < keys->key_count; i++) {
 		if (keys->use_key[i]) {
+fprintf(stderr, "new signature\n");
 			params->keytag = keys->keytags[i];
 			params->algorithm = keys->algorithms[i];
 			params->expiration = cfg->expiration + rand() % cfg->jitter;
@@ -845,13 +848,22 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			ldns_rr_list_free(new_zone_rrset);
 			continue;
 		}
+		if (cfg->verbosity >= 4) {
+			fprintf(stderr, "Read rrset from input:\n");
+			ldns_rr_list_print(stderr, new_zone_rrset);
+		}
 		/* ldns_rr_list_print(output, new_zone_rrset); */
 		new_zone_signatures = read_signatures(new_zone_reader,
 		                                      output, cfg, 1);
+		if (cfg->verbosity >= 4) {
+			fprintf(stderr, "Read signatures from input:\n");
+			ldns_rr_list_print(stderr, new_zone_signatures);
+		}
 		enable_keys(cfg);
 		/* if we have no previously signed zone, check for sigs
 		 * in input, and sign the rest */
 		if (!signed_zone_reader) {
+			ldns_rr_list_print(output, new_zone_rrset);
 			check_existing_sigs(new_zone_signatures, output, cfg);
 			sign_rrset(new_zone_rrset, output, cfg);
 		} else {
@@ -860,7 +872,15 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 * there may be signatures in the old zone file as well
 			 */
 			signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg, 0);
+			if (cfg->verbosity >= 4) {
+				fprintf(stderr, "Read rrset from signed zone:\n");
+				ldns_rr_list_print(stderr, signed_zone_rrset);
+			}
 			signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg, 0);
+			if (cfg->verbosity >= 4) {
+				fprintf(stderr, "Read signatures from signed zone:\n");
+				ldns_rr_list_print(stderr, signed_zone_signatures);
+			}
 			cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 			/* if the cur rrset name > signed rrset name then data has
 			 * been removed, reread signed rrset */
@@ -868,19 +888,39 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				ldns_rr_list_deep_free(signed_zone_rrset);
 				if (signed_zone_signatures) ldns_rr_list_deep_free(signed_zone_signatures);
 				signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg, 0);
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "Read rrset from signed zone:\n");
+					ldns_rr_list_print(stderr, signed_zone_rrset);
+				}
 				signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg, 0);
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "Read signatures from signed zone:\n");
+					ldns_rr_list_print(stderr, signed_zone_signatures);
+				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 			}
 			/* if the cur rrset name < signer rrset name then data is new
 			 */
 			while (cmp < 0 && new_zone_rrset) {
+				ldns_rr_list_print(output, new_zone_rrset);
 				check_existing_sigs(new_zone_signatures, output, cfg);
 				/* ldns_rr_list_print(output, new_zone_rrset); */
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "new data, signing\n");
+				}
 				sign_rrset(new_zone_rrset, output, cfg);
 				ldns_rr_list_deep_free(new_zone_rrset);
 				ldns_rr_list_deep_free(new_zone_signatures);
 				new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1);
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "Read rrset from input:\n");
+					ldns_rr_list_print(stderr, new_zone_rrset);
+				}
 				new_zone_signatures = read_signatures(new_zone_reader, output, cfg, 1);
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "Read signatures from input:\n");
+					ldns_rr_list_print(stderr, new_zone_signatures);
+				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 			}
 			/* if same, and rrset not same, treat as new */
@@ -888,11 +928,19 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			/* sigs with same keytag in input get priority */
 			if (cmp == 0) {
 				if (ldns_rr_list_compare(new_zone_rrset, signed_zone_rrset) != 0) {
+					ldns_rr_list_print(output, new_zone_rrset);
 					check_existing_sigs(new_zone_signatures, output, cfg);
+					if (cfg->verbosity >= 4) {
+						fprintf(stderr, "rrset changed\n");
+					}
 					sign_rrset(new_zone_rrset, output, cfg);
 				} else {
+					ldns_rr_list_print(output, new_zone_rrset);
 					check_existing_sigs(new_zone_signatures, output, cfg);
 					check_existing_sigs(signed_zone_signatures, output, cfg);
+					if (cfg->verbosity >= 4) {
+						fprintf(stderr, "rrset still the same\n");
+					}
 					sign_rrset(new_zone_rrset, output, cfg);
 				}
 			}
@@ -900,7 +948,11 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 * reached the end, in which case we have new rrsets at
 			 * the input */
 			if (cmp > 0 && !signed_zone_rrset) {
+				ldns_rr_list_print(output, new_zone_rrset);
 				check_existing_sigs(new_zone_signatures, output, cfg);
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "new data at end, signing\n");
+				}
 				sign_rrset(new_zone_rrset, output, cfg);
 			}
 		}
@@ -913,7 +965,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 		signed_zone_rrset = NULL;
 		signed_zone_signatures = NULL;
 	}
-	fprintf(stderr, "Input read\n");
+
 	return 0;
 }
 
@@ -925,7 +977,6 @@ int main(int argc, char **argv)
 	FILE *output;
 	FILE *prev_zone = NULL;
 	char *config_file = NULL;
-	bool echo_input = true;
 	int result;
 
 	cfg = current_config_new();
