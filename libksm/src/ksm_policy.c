@@ -48,6 +48,8 @@
 #include "ksm/message.h"
 #include "ksm/string_util.h"
 
+#include "libhsm.h"
+
 /*+
  * KsmPolicyInit - Query for Policy Information
  *
@@ -468,7 +470,7 @@ int KsmPolicyNameFromId(KSM_POLICY* policy)
  *
 -*/
 
-int KsmPolicyUpdateSalt(KSM_POLICY* policy)
+int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
 {
     /* First work out what the current salt is and when it was created */
     int     where = 0;          /* WHERE clause value */
@@ -478,9 +480,13 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     int     status = 0;         /* Status return */
     char*   datetime_now = DtParseDateTimeString("now");    /* where are we in time */
     int     time_diff;          /* how many second have elapsed */
-    unsigned int     newsaltint;         /* new salt as integer */
+    char*   salt;               /* This will be the salt that we create */
+    char    newsalt[KSM_SALT_LENGTH];         /* buffer for random data */
+    char    newsalt_temp[3];        /* temp new salt buffer */
+    unsigned long temp_ul;          /* this will hold the random number */
     char    buffer[KSM_SQL_SIZE];   /* update statement for salt_stamp */
     unsigned int    nchar;          /* Number of characters converted */
+    int     i = 0;              /* a counter */
 
     /* check the argument */
     if (policy == NULL) {
@@ -555,11 +561,39 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
             return status;
         } else {
             /* salt needs updating, or is null */
-            /* TODO get this call into libhsmtools */
-            /* newsaltint = hsm_getrand(policy->denial->saltlength); */
-            newsaltint = 123456789;
-            snprintf(policy->denial->salt, KSM_SALT_LENGTH, "%X", newsaltint);
+            /* call into libhsm */
+            status = hsm_random_buffer(ctx, newsalt, policy->denial->saltlength);
+            if (status != 0) {
+                StrFree(datetime_now);
+                return status;
+            }
+
+            salt = (char *)calloc(KSM_SALT_LENGTH, sizeof(char));
+            if (salt == NULL) {
+                MsgLog(KSM_INVARG, "Could not allocate memory for salt");
+                StrFree(datetime_now);
+                exit(1);
+            }
+
+            /* build up our salt as hex (is this method better than using printf?) */
+            for (i = 0; i < policy->denial->saltlength; i++) {
+                temp_ul = (newsalt[i] & 0xf) + '0';
+                if (temp_ul > '9') {
+                    temp_ul = temp_ul - '0' + ('A' - 10);
+                }
+                salt[2 * i] = temp_ul;
+
+                temp_ul = ((newsalt[i] >> 4) & 0xf) + '0';
+                if (temp_ul > '9') {
+                    temp_ul = temp_ul - '0' + ('A' - 10);
+                }
+                salt[2 * i + 1] = temp_ul;
+
+            }
+            StrStrncpy(policy->denial->salt, salt, KSM_SALT_LENGTH);
             StrStrncpy(policy->denial->salt_stamp, datetime_now, KSM_TIME_LENGTH);
+            
+            StrFree(salt);
 
             /* write these back to the database */
 #ifdef USE_MYSQL

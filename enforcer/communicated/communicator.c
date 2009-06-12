@@ -48,6 +48,8 @@
 #include "ksm/datetime.h"
 #include "config.h"
 
+#include "libhsm.h"
+
 #include <libxml/xmlreader.h>
 #include <libxml/xpath.h>
 
@@ -76,6 +78,9 @@ server_main(DAEMONCONFIG *config)
     DB_HANDLE	dbhandle;
     int status = 0;
     int status2 = 0;
+
+    int result;
+    hsm_ctx_t *ctx = NULL;
 
     xmlTextReaderPtr reader;
     xmlDocPtr doc;
@@ -119,6 +124,11 @@ server_main(DAEMONCONFIG *config)
     }
     kaspSetPolicyDefaults(policy, NULL);
 
+    /* We keep the HSM connection open for the lifetime of the daemon */ 
+    result = hsm_open(CONFIGFILE, hsm_prompt_pin, NULL);
+    log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
+    ctx = hsm_create_context();
+
     while (1) {
 
         /* Read the config file */
@@ -143,6 +153,15 @@ server_main(DAEMONCONFIG *config)
                     /* Get the zone name (TODO what if this is null?) */
                     zone_name = NULL;
                     StrAppend(&zone_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
+                    /* Make sure that we got something */
+                    if (zone_name == NULL) {
+                        /* error */
+                        log_msg(NULL, LOG_ERR, "Error extracting zone name from %s\n", zonelist_filename);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+
 
                     log_msg(config, LOG_INFO, "Zone %s found.", zone_name);
 
@@ -203,7 +222,7 @@ server_main(DAEMONCONFIG *config)
                         log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
 
                         /* Update the salt if it is not up to date */
-                        status2 = KsmPolicyUpdateSalt(policy);
+                        status2 = KsmPolicyUpdateSalt(policy, ctx);
                         if (status2 != 0) {
                             /* Don't return? try to parse the rest of the zones? */
                             log_msg(config, LOG_ERR, "Error updating salt");
@@ -288,6 +307,16 @@ server_main(DAEMONCONFIG *config)
             exit(0);
         }
     }
+
+    /*
+     * Destroy HSM context
+     */
+    if (ctx) {
+      hsm_destroy_context(ctx);
+    }
+
+    result = hsm_close();
+    log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
 
     free(policy->name);
     free(policy->enforcer);
@@ -398,6 +427,23 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 
     fprintf(file, "\t</Zone>\n");
     fprintf(file, "</SignerConfiguration>\n");
+
+    /* Force flush of stream to disc cache and then onto disc proper
+     * Do we need to do this? It might be significant on ext4
+     * NOTE though that there may be a significant overhead associated with it
+     * ALSO, if we do lose power maybe we should disregard any files when we come
+     *       back as we won't know if they are now too old? */
+    /* 
+    if (fflush(file) != 0) {
+        MemFree(datetime);
+        return -1;
+    }
+    
+    if (fsync(fileno(file)) != 0) {
+        MemFree(datetime);
+        return -1;
+    }
+    */
 
     status = fclose(file);
 

@@ -53,7 +53,7 @@ create table policies (
   id            integer primary key autoincrement,    -- id
   name          varchar(30) not null,  -- name of the policy
   description   varchar(255), -- description of the
-  salt          varchar(255), -- value of the salt
+  salt          varchar(512), -- value of the salt
   salt_stamp    varchar(64),  -- when the salt was generated
 
   unique(name)

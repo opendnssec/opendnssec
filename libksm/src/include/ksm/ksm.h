@@ -44,6 +44,8 @@ extern "C" {
 #include <ksm/database.h>
 #include <ksm/database_statement.h>
 
+#include "libhsm.h"
+
 /* General */
 
 typedef int     KSM_ID;         /* Identifies a KSM entity */
@@ -60,7 +62,7 @@ int KsmRundown(void);
 
 #define KSM_SQL_SIZE        512         /* Max size of SQL statement */
 #define KSM_INT_STR_SIZE    32          /* Max size of int as string */
-#define KSM_SALT_LENGTH     256         /* Includes trailing NULL */
+#define KSM_SALT_LENGTH     512         /* Includes trailing NULL */
 #define KSM_ZONE_NAME_LENGTH     256    /* Includes trailing NULL */
 #define KSM_ADAPTER_NAME_LENGTH  256    /* Includes trailing NULL */
 /* ksm_key */
@@ -234,7 +236,7 @@ int KsmPolicy(DB_RESULT handle, KSM_POLICY* data);
 int KsmPolicyParameter(DB_RESULT handle, KSM_POLICY_PARAMETER* data);
 int KsmPolicyReadFromId(KSM_POLICY* policy);
 int KsmPolicyNameFromId(KSM_POLICY* policy);
-int KsmPolicyUpdateSalt(KSM_POLICY* policy);
+int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx);
 int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy);
 int KsmPolicySetIdFromName(KSM_POLICY *policy);
 
