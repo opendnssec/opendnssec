@@ -276,12 +276,6 @@ module KASPAuditor
           types.push(Types.RRSIG)
         end
       }
-      #        s = ""
-      #        types.each {|t| s = s + " #{t} "}
-      #            print "Have #{s} types for #{nsec.name}\n"
-      #        s = ""
-      #        nsec.types.each {|t| s = s + " #{t} "}
-      #            print "NSEC has #{s} types for #{nsec.name}\n"
       nsec.types.each {|type|
         if !(types.include?type)
           log(LOG_ERR, "#{nsec.type} includes #{type} which is not in rrsets for #{nsec.name}")
@@ -289,6 +283,15 @@ module KASPAuditor
         types.delete(type)
       }
       if (types.length > 0)
+        # If using NSEC3, then check for empty nonterminals in the input zone
+        if (nsec.type == Types.NSEC3)
+          # If the input zone does not contain the pre-hashed nsec3 name, then ignore it
+          if (!hash_to_domain_map[nsec.name.canonical])
+            # Ignore
+            return
+          end
+        end
+        # Otherwise, log the missing types
         s = ""
         types.each {|t| s = s + " #{t} "}
         log(LOG_ERR, "#{s} types not in #{nsec.type} for #{nsec.name}")
