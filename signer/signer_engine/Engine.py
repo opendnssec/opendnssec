@@ -195,9 +195,19 @@ class Engine:
                     response = "All zones scheduled for immediate resign"
                 else:
                     try:
-                        self.zones[args[1]].action = ZoneConfig.RESORT
-                        self.schedule_signing(args[1])
-                        response = "Zone scheduled for immediate resign"
+                        # also check whether the config has changed
+                        # if so, it will be resigned by update_zone()
+                        # otherwise, simply schedule it for immediate
+                        # resigning
+                        response = ""
+                        zone = self.zones[args[1]]
+                        if zone.zone_config.check_config_file_update():
+                            response += "Zone config has also changed\n"
+                            self.update_zone(zone.zone_name)
+                        else:
+                            zone.action = ZoneConfig.RESORT
+                            self.schedule_signing(args[1])
+                        response += "Zone scheduled for immediate resign"
                     except KeyError:
                         response = "Zone " + args[1] + " not found"
             if command[:9] == "verbosity":
