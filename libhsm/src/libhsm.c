@@ -1285,6 +1285,7 @@ hsm_open(const char *config,
     xmlChar *xexpr;
 
     int i;
+    char *config_file;
     char *repository;
     char *token_label;
     char *module_path;
@@ -1296,12 +1297,17 @@ hsm_open(const char *config,
      * configured HSM. */
     _hsm_ctx = hsm_ctx_new();
 
-    if (!config) return 0;
+    if (config) {
+        config_file = strdup(config);
+    } else{
+        config_file = strdup(HSM_DEFAULT_CONFIG);
+    }
 
     /* Load XML document */
-    doc = xmlParseFile(config);
+    doc = xmlParseFile(config_file);
+    free(config_file); 
     if (doc == NULL) {
-        fprintf(stderr, "Error: unable to parse file \"%s\"\n", config);
+        fprintf(stderr, "Error: unable to parse file \"%s\"\n", config_file);
         return HSM_CONFIG_FILE_ERROR;
     }
 

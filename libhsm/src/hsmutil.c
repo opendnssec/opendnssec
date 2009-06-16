@@ -247,7 +247,7 @@ main (int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (!config || !argc) {
+	if (!argc) {
 		usage();
 		exit(1);
 	}
