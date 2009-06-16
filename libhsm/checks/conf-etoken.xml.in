@@ -5,10 +5,10 @@
 <Configuration>
 	<RepositoryList>
 		<Repository name="regress">
-			<Module>@pkcs11_sca6000_module@</Module>
-			<TokenLabel>Sun Metaslot</TokenLabel>
-			<PIN>test:1234</PIN>
-			<Capacity>1000</Capacity>
+			<Module>@pkcs11_etoken_module@</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>test.1234</PIN>
+			<Capacity>10</Capacity>
 		</Repository>
 	</RepositoryList>
 </Configuration>

@@ -5,7 +5,7 @@
 <Configuration>
 	<RepositoryList>
 		<Repository name="regress">
-			<Module>@softhsm_module@</Module>
+			<Module>@pkcs11_softhsm_module@</Module>
 			<TokenLabel>softHSM</TokenLabel>
 			<PIN>123456</PIN>
 		</Repository>

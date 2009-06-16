@@ -36,3 +36,7 @@ regress-sca6000:
 regress-softhsm: token.db
 	env $(SOFTHSM_ENV) \
 	./hsmtest -f conf-softhsm.xml -gsdr
+
+regress-etoken:
+	./hsmtest -f conf-etoken.xml -gsdr
+
