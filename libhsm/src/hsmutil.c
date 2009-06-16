@@ -59,6 +59,14 @@ usage_generate ()
 }
 
 void
+usage_remove ()
+{
+	fprintf(stderr,
+		"usage: %s [-f config] [command] remove [id]\n",
+		progname);
+}
+
+void
 usage_dnskey ()
 {
 	fprintf(stderr,
@@ -129,6 +137,7 @@ cmd_generate (int argc, char *argv[])
 			hsm_key_free(key);
 		} else {
 			printf("Key generation failed.\n");
+			return -1;
 		}
 		
 	} else {
@@ -140,9 +149,38 @@ cmd_generate (int argc, char *argv[])
 }
 
 int
-cmd_delete (int argc, char *argv[])
+cmd_remove (int argc, char *argv[])
 {
-	printf("delete...\n");
+	char *id;
+	int result;
+
+	hsm_key_t *key = NULL;
+
+	if (argc != 1) {
+		usage_remove();
+		return -1;
+	}
+
+	id = strdup(argv[0]);
+
+	key = hsm_find_key_by_id(NULL, id);
+	
+	if (!key) {
+		printf("Key not found: %s\n", id);
+		return -1;
+	}
+
+	result = hsm_remove_key(NULL, key);
+	
+	if (result) {
+		printf("Key remove successful.\n");
+	} else {
+		printf("Key remove failed.\n");
+		return -1;
+	}
+	
+	hsm_key_free(key);
+
 	return 0;
 }
 
@@ -228,10 +266,10 @@ main (int argc, char *argv[])
 		argc --;
 		argv ++;
 		result = cmd_generate(argc, argv);
-	} else if (!strcasecmp(argv[0], "delete")) {
+	} else if (!strcasecmp(argv[0], "remove")) {
 		argc --;
 		argv ++;
-		result = cmd_delete(argc, argv);
+		result = cmd_remove(argc, argv);
 	} else if (!strcasecmp(argv[0], "dnskey")) {
 		argc --;
 		argv ++;
