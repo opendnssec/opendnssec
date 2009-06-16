@@ -412,13 +412,20 @@ hsm_session_init(hsm_session_t **session, char *repository,
     hsm_module_t *module;
     CK_SLOT_ID slot_id;
     CK_SESSION_HANDLE session_handle;
+    int first = 1;
 
     module = hsm_module_new(repository, token_label, module_path);
     if (!module) return HSM_ERROR;
     rv = hsm_pkcs11_load_functions(module);
     hsm_pkcs11_check_rv(rv, "Load functions");
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize(NULL);
-    hsm_pkcs11_check_rv(rv, "Initialization");
+    /* ALREADY_INITIALIZED is ok, apparently we are using a second
+     * device with the same library */
+    if (rv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
+        hsm_pkcs11_check_rv(rv, "Initialization");
+    } else {
+        first = 0;
+    }
     slot_id = ldns_hsm_get_slot_id(module->sym, token_label);
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_OpenSession(slot_id,
                                CKF_SERIAL_SESSION | CKF_RW_SESSION,
@@ -440,8 +447,12 @@ hsm_session_init(hsm_session_t **session, char *repository,
                    C_CloseSession(session_handle);
             hsm_pkcs11_check_rv(rv, "finalize after failed login");
         }
-        rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Finalize(NULL);
-        hsm_pkcs11_check_rv(rv, "finalize after failed login");
+        /* if this was not the first, don't close the library for
+         * the rest of us */
+        if (first) {
+            rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Finalize(NULL);
+            hsm_pkcs11_check_rv(rv, "finalize after failed login");
+        }
         hsm_module_free(module);
         *session = NULL;
         switch(rv) {
@@ -521,8 +532,13 @@ hsm_session_close(hsm_session_t *session, int unload)
     hsm_pkcs11_check_rv(rv, "Close session");
     if (unload) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Finalize(NULL);
-        hsm_pkcs11_check_rv(rv, "Finalize");
-        hsm_pkcs11_unload_functions(session->module->handle);
+        /* If we loaded this library more than once, we may have
+         * already finalized it before, so we can safely ignore
+         * NOT_INITIALIZED */
+        if (rv != CKR_CRYPTOKI_NOT_INITIALIZED) {
+            hsm_pkcs11_check_rv(rv, "Finalize");
+            hsm_pkcs11_unload_functions(session->module->handle);
+        }
         hsm_module_free(session->module);
         session->module = NULL;
     }
