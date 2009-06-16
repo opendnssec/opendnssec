@@ -133,8 +133,8 @@ main (int argc, char *argv[])
 	sign_arg_t sign_arg_array[PTHREAD_THREADS_MAX];
 	
 	pthread_t      thread_array[PTHREAD_THREADS_MAX];
-    pthread_attr_t thread_attr;
-    void          *thread_status;
+	pthread_attr_t thread_attr;
+	void          *thread_status;
 
 	int ch;
 	unsigned int n;
