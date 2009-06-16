@@ -9,7 +9,7 @@ AM_CPPFLAGS = \
 	-Iinclude \
 	 @DB_INCLUDES@
 
-libksm_la_LDFLAGS = @DB_LIBS@
+libksm_la_LIBADD = @DB_LIBS@ @LIBHSM_LIBS@
 
 libksm_la_SOURCES = \
 	database_init_rundown.c datetime.c dd_string.c debug.c di_string.c \

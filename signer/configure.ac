@@ -33,24 +33,6 @@ ACX_LDNS
 ACX_LIBXML2
 ACX_LIBHSM
 
-# check for hsm development source tree
-AC_MSG_CHECKING([for hsm devel source])
-hsm_dev_dir=../libhsm/src
-if test -f $hsm_dev_dir/libhsm.h ; then
-	AC_MSG_RESULT([using $hsm_dev_dir])
-	CFLAGS="$CFLAGS -I../$hsm_dev_dir"
-	LDFLAGS="-L../$hsm_dev_dir/.libs $LDFLAGS"
-	LIBS="$LIBS -lhsm"
-	AC_DEFINE(HAVE_LIBhsm, 1, [If the hsm library is available.])
-	hsmDIR="$hsm_dev_dir"
-else
-	AC_MSG_RESULT([no])
-	AC_CHECK_LIB(hsm, hsm_open,, [
-			AC_MSG_ERROR([Can't find hsm library])
-		]
-	)
-fi
-
 opendnsseclibexecdir="\$(libexecdir)/opendnssec"
 
 AC_SUBST([opendnsseclibexecdir])

@@ -1,5 +1,7 @@
 # $Id$
 
+AM_CPPFLAGS = @XML2_INCLUDES@ @LIBKSM_INCLUDES@
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 noinst_LIBRARIES = libenforcer.a

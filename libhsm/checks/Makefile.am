@@ -5,18 +5,19 @@ CLEANFILES = token.db
 
 AM_CPPFLAGS = 	-I$(srcdir) \
 		-I$(srcdir)/.. \
-		-I$(srcdir)/../src
+		-I$(srcdir)/../src \
+		@LDNS_INCLUDES@
 AM_CFLAGS =	-std=c99
 
 EXTRA_DIST =	$(srcdir)/*.xml $(srcdir)/softhsm.conf
 
 noinst_PROGRAMS = hsmtest hsmspeed
  
-hsmtest_LDADD = ../src/libhsm.la
+hsmtest_LDADD = ../src/libhsm.la @LDNS_LIBS@ @XML2_LIBS@
 hsmtest_LDFLAGS = -no-install
 
-hsmspeed_LDADD = ../src/libhsm.la
-hsmspeed_LDFLAGS = -no-install -lpthread
+hsmspeed_LDADD = ../src/libhsm.la -lpthread @LDNS_LIBS@ @XML2_LIBS@
+hsmspeed_LDFLAGS = -no-install
 
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
 

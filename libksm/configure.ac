@@ -110,6 +110,7 @@ AC_SUBST(DB_LIBS)
 AC_SUBST(DB_TYPE)
 
 ACX_CUNIT
+ACX_LIBHSM
 
 AC_ARG_WITH(dbname,
 [  --with-dbname=DB_NAME   Database name/schema for unit tests  ],
