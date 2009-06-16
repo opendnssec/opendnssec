@@ -19,7 +19,8 @@ CONF_ARG = \
 	--with-libxml2=/usr \
 	--with-botan=/opt/local \
 	--with-trang=$(HOME)/bin/trang.jar \
-	--with-softhsm=/usr/local/lib/libsofthsm.dylib
+	--with-pkcs11-softhsm=/usr/local/lib/libsofthsm.dylib \
+	--with-pkcs11-etoken=usr/local/lib/libeTPkcs11.dylib
 
 all: build
 
