@@ -19,7 +19,7 @@ CONF_ARG = \
 	--with-libxml2=/usr/local \
 	--with-botan=/usr/local/botan \
 	--without-trang \
-	--with-softhsm=/usr/local/lib/libsofthsm.dylib
+	--with-softhsm=/usr/local/lib/libsofthsm.so
 
 all: build
 
