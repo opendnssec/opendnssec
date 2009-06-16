@@ -527,18 +527,22 @@ hsm_ctx_free(hsm_ctx_t *ctx)
 static void
 hsm_session_close(hsm_session_t *session, int unload)
 {
+    /* If we loaded this library more than once, we may have
+     * already finalized it before, so we can safely ignore
+     * NOT_INITIALIZED */
     CK_RV rv;
     if (unload) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Logout(session->session);
-        hsm_pkcs11_check_rv(rv, "Logout");
+        if (rv != CKR_CRYPTOKI_NOT_INITIALIZED) {
+            hsm_pkcs11_check_rv(rv, "Logout");
+        }
     }
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_CloseSession(session->session);
-    hsm_pkcs11_check_rv(rv, "Close session");
+    if (rv != CKR_CRYPTOKI_NOT_INITIALIZED) {
+        hsm_pkcs11_check_rv(rv, "Close session");
+    }
     if (unload) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Finalize(NULL);
-        /* If we loaded this library more than once, we may have
-         * already finalized it before, so we can safely ignore
-         * NOT_INITIALIZED */
         if (rv != CKR_CRYPTOKI_NOT_INITIALIZED) {
             hsm_pkcs11_check_rv(rv, "Finalize");
             hsm_pkcs11_unload_functions(session->module->handle);
