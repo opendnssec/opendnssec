@@ -822,15 +822,14 @@ hsm_list_keys_session_internal(const hsm_session_t *session,
                                                  &objectCount);
         hsm_pkcs11_check_rv(rv, "Find first object");
 
+        total_count += objectCount;
         if (objectCount > 0 && store) {
             key_handles = realloc(key_handles, total_count * sizeof(CK_OBJECT_HANDLE));
-            
             for (i = 0; i < objectCount; i++) {
                 key_handles[j] = object[i];
                 j++;
             }
         }
-        total_count += objectCount;
     }
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
