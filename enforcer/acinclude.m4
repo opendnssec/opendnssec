@@ -45,11 +45,17 @@ AC_DEFUN([ACX_LIBXML2],[
 		XML2_LIBS="`$XML2_CONFIG --libs`"
 		AC_MSG_RESULT($XML2_LIBS)
 
-		CPPFLAGS="$CPPFLAGS $XML2_INCLUDES"
-		LDFLAGS="$LDFLAGS $XML2_LIBS"
-	fi
+		tmp_CPPFLAGS=$CPPFLAGS
+		tmp_LIBS=$LIBS
 
-	AC_CHECK_LIB(xml2, xmlDocGetRootElement,,[AC_MSG_ERROR([Can't find libxml2 library])])
+		CPPFLAGS="$CPPFLAGS $XML2_INCLUDES"
+		LIBS="$LIBS $XML2_LIBS"
+
+		AC_CHECK_LIB(xml2, xmlDocGetRootElement,,[AC_MSG_ERROR([Can't find libxml2 library])])
+		
+		CPPFLAGS=$tmp_CPPFLAGS
+		LIBS=$tmp_LIBS
+	fi
 
 	AC_SUBST(XML2_INCLUDES)
 	AC_SUBST(XML2_LIBS)
@@ -72,11 +78,17 @@ AC_DEFUN([ACX_LDNS],[
 	LDNS_LIBS="-L$LDNS_PATH/lib -lldns"
 	AC_MSG_RESULT($LDNS_LIBS)
 
-	CPPFLAGS="$CPPFLAGS -I$LDNS_PATH/include"
-	LDFLAGS="$LDFLAGS -L$LDNS_PATH/lib -lldns"
+	tmp_CPPFLAGS=$INCLUDES
+	tmp_LIBS=$LIBS
+
+	CPPFLAGS="$CPPFLAGS $LDNS_INCLUDES"
+	LIBS="$LIBS $LDNS_LIBS"
 
 	AC_CHECK_LIB(ldns, ldns_rr_new,,[AC_MSG_ERROR([Can't find ldns library])])
 	AC_CHECK_FUNC(ldns_sha1,[],[AC_MSG_ERROR([ldns library too old, please update it])])
+	
+	CPPFLAGS=$tmp_INCLUDES
+	LIBS=$tmp_LIBS
 
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
@@ -120,14 +132,20 @@ AC_DEFUN([ACX_LIBHSM],[
 	LIBHSM_LIBS="-L$LIBHSM_PATH/lib -lhsm"
 	AC_MSG_RESULT($LIBHSM_INCLUDES)
 
+	tmp_CPPFLAGS=$CPPFLAGS
+	tmp_LIBS=$LIBS
+
 	CPPFLAGS="$CPPFLAGS $XML2_INCLUDES $LIBHSM_INCLUDES"
-	LDFLAGS="$LDFLAGS $XML2_LIBS -L$LIBHSM_PATH/lib"
+	LIBS="$LIBS -L$LIBHSM_PATH/lib"
 
 	AC_CHECK_HEADERS(libhsm.h,,[AC_MSG_ERROR([Can't find libhsm headers])])
 	AC_CHECK_LIB(hsm,hsm_create_context,,[AC_MSG_ERROR([Can't find libhsm library])])
 
-	dnl AC_SUBST(LIBHSM_INCLUDES)
-	dnl AC_SUBST(LIBHSM_LIBS)
+	CPPFLAGS=$tmp_CPPFLAGS
+	LIBS=$tmp_LIBS
+
+	AC_SUBST(LIBHSM_INCLUDES)
+	AC_SUBST(LIBHSM_LIBS)
 ])
 
 AC_DEFUN([ACX_LIBKSM],[
@@ -147,14 +165,20 @@ AC_DEFUN([ACX_LIBKSM],[
 	LIBKSM_LIBS="-L$LIBKSM_PATH/lib -lksm"
 	AC_MSG_RESULT($LIBKSM_INCLUDES)
 
+	tmp_CPPFLAGS=$CPPFLAGS
+	tmp_LIBS=$LIBS
+
 	CPPFLAGS="$CPPFLAGS $LIBKSM_INCLUDES"
-	LDFLAGS="$LDFLAGS $LIBKSM_LIBS"
+	LIBS="$LIBS $LIBKSM_LIBS"
 
 	AC_CHECK_HEADERS(ksm/ksm.h,,[AC_MSG_ERROR([Can't find libksm headers])])
 	AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,[AC_MSG_ERROR([Can't find libksm library])])
 
-	dnl AC_SUBST(LIBKSM_INCLUDES)
-	dnl AC_SUBST(LIBKSM_LIBS)
+	CPPFLAGS=$tmp_CPPFLAGS
+	LIBS=$tmp_LIBS
+
+	AC_SUBST(LIBKSM_INCLUDES)
+	AC_SUBST(LIBKSM_LIBS)
 ])
 
 AC_DEFUN([ACX_SQLITE3],[
@@ -177,13 +201,16 @@ AC_DEFUN([ACX_SQLITE3],[
 	AC_MSG_RESULT($SQLITE3_LIBS)
 
 	tmp_CPPFLAGS=$CPPFLAGS
-	tmp_LDFLAGS=$LDFLAGS
+	tmp_LIBS=$LIBS
+
 	CPPFLAGS="$CPPFLAGS $SQLITE3_INCLUDES"
-	LDFLAGS="$LDFLAGS $SQLITE3_LIBS"
+	LIBS="$LIBS $SQLITE3_LIBS"
+
 	AC_CHECK_HEADERS(sqlite3.h,,[AC_MSG_ERROR([Can't find SQLite3 headers])])
 	AC_CHECK_LIB(sqlite3, sqlite3_prepare_v2, [], [AC_MSG_ERROR([Missing SQLite3 library v3.4.2 or greater])])
+
 	CPPFLAGS=$tmp_CPPFLAGS
-	LDFLAGS=$tmp_LDFLAGS
+	LIBS=$tmp_LIBS
 
 	AC_SUBST(SQLITE3_INCLUDES)
 	AC_SUBST(SQLITE3_LIBS)
@@ -230,41 +257,25 @@ AC_DEFUN([ACX_BOTAN],[
 	AC_ARG_WITH(botan,
         	AC_HELP_STRING([--with-botan=DIR],[Location of the Botan crypto library]),
 		[
-			BOTAN_INCLUDES="-I$withval/include"
-			BOTAN_LIBS="-L$withval/lib -lbotan"
+			BOTAN_PATH="$withval"
 		],
 		[
-			BOTAN_INCLUDES="-I/usr/local/include"
-			BOTAN_LIBS="-L/usr/local/lib -lbotan"
+			BOTAN_PATH="/usr/local"
 		])
 
-	CPPFLAGS="$CPPFLAGS $BOTAN_INCLUDES"
-	LDFLAGS="$LDFLAGS $BOTAN_LIBS"
+	AC_MSG_CHECKING(what are the Botan includes)
+	BOTAN_INCLUDES="-I$BOTAN_PATH/include"
+	AC_MSG_RESULT($BOTAN_INCLUDES)
 
-	AC_MSG_CHECKING(checking for Botan library v1.7.24 or greater)
-	AC_LANG(C++)
-	AC_LINK_IFELSE(
-	        [AC_LANG_PROGRAM([
-			#include <botan/init.h>
-			#include <botan/pipe.h>
-			#include <botan/filters.h>
-			#include <botan/hex.h>
-			#include <botan/sha2_32.h>
-			#include <botan/emsa3.h>],
-			[using namespace Botan;
-			LibraryInitializer::initialize();
-			new EMSA3_Raw();
-		])],[
-			AC_MSG_RESULT(yes)
-		],
-	        [
-			AC_MSG_RESULT(no)
-	         	AC_MSG_ERROR([Missing Botan library v1.7.24 or greater])
-		]
-	)
+	AC_MSG_CHECKING(what are the Botan libs)
+	BOTAN_LIBS="-L$BOTAN_PATH/lib -lbotan"
+	AC_MSG_RESULT($BOTAN_LIBS)
 
-	dnl AC_SUBST(BOTAN_INCLUDES)
-	dnl AC_SUBST(BOTAN_LIBS)
+	tmp_CPPFLAGS=$CPPFLAGS
+	LIBS=$tmp_LIBS
+
+	AC_SUBST(BOTAN_INCLUDES)
+	AC_SUBST(BOTAN_LIBS)
 ])
 
 AC_DEFUN([ACX_DLOPEN],[
