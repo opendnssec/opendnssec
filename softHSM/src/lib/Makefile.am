@@ -2,7 +2,9 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS =			-I$(srcdir) -I$(srcdir)/cryptoki
+AM_CPPFLAGS =			-I$(srcdir) \
+				 -I$(srcdir)/cryptoki \
+				$(SQLITE3_INCLUDES)
 
 lib_LTLIBRARIES =		libsofthsm.la
 libsofthsm_la_SOURCES =		main.cpp \
