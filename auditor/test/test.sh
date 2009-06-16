@@ -2,4 +2,4 @@
 #
 # $Id$
 
-ruby lib/kasp_auditor/parse.rb ../signer/signer_engine/test
+ruby test/run.rb ../signer/signer_engine/test 

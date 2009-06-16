@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: tjeb.nl.xml 785 2009-05-25 12:58:36Z jelte $ -->
+
+<SignerConfiguration>
+	<Zone name="tjeb.nl">
+
+		<Signatures>
+			<Resign>PT60S</Resign>
+			<Refresh>PT120S</Refresh>
+			<Validity>
+					<Default>PT24H</Default>
+					<Denial>P14D</Denial>
+			</Validity>
+			<Jitter>PT60S</Jitter>
+			<InceptionOffset>-PT300S</InceptionOffset>
+		</Signatures>
+
+		<Keys>
+			<TTL>PT3600S</TTL>
+
+			<Key>
+				<Flags>257</Flags>
+				<Algorithm>5</Algorithm>
+
+				<!-- key locator is matched against PKCS#11 CKA_ID in hex -->
+				<!-- e.g. DFE7265B-783F-4186-8538-0AA784C2F31D -->
+				<!-- is written as -->
+				<!-- DFE7265B783F418685380AA784C2F31D -->
+				<Locator>fc9ead5ec20345ca87e61836ff327ce1</Locator>
+
+				<!-- this key should sign the DNSKEY RRset only -->
+				<KSK/>
+
+				<!-- this key should be published in the zonefile -->
+				<Publish/>
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>5</Algorithm>
+
+				<!-- key locator is matched against PKCS#11 CKA_ID in hex -->
+				<Locator>e715319b2fe146bfb4fa8e9b2c780d21</Locator>
+
+				<!-- this key should sign all non-DNSKEY RRsets -->
+				<ZSK/>
+
+				<!-- this key should be published in the zonefile -->
+				<Publish/>
+			</Key>
+		</Keys>
+
+		<Denial>
+<!-- 			<NSEC3>
+				<OptOut/>
+				<Parameters>
+					<TTL>PT3600S</TTL>
+				</Parameters>
+				<Hash>
+					<Algorithm>1</Algorithm>
+					<Iterations>10</Iterations>
+					<Salt>656d6d6b7469736169646f677461</Salt>
+				</Hash>
+			</NSEC3>
+-->
+<NSEC/>
+		</Denial>
+
+		<SOA>
+			<TTL>PT3600S</TTL>
+			<Minimum>PT3600S</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+
+	</Zone>
+</SignerConfiguration>

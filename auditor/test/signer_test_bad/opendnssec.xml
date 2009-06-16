@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: opendnssec.xml 820 2009-05-27 14:30:46Z jelte $ -->
+
+<Configuration>
+	<RepositoryList>
+		<Repository name="test">
+			<TokenLabel>test_token</TokenLabel>
+			<Module>../../../softHSM/src/lib/.libs/libsofthsm.so</Module>
+			<PIN>1111</PIN>
+		</Repository>
+	</RepositoryList>
+
+	<Enforcer>
+		<Interval>PT3600S</Interval>
+		<KeygenInterval>P3M</KeygenInterval>
+		<BackupDelay>P3D</BackupDelay>
+	</Enforcer>
+
+	<Signer>
+		<WorkingDirectory>tmp</WorkingDirectory>
+		<ZoneListFile>zonelist.xml</ZoneListFile>
+		<!-- toolsdir will be removed, but
+		is used for testing atm -->
+		<ToolsDirectory>../../tools</ToolsDirectory>
+		<!-- script to run when zones have changed -->
+		<!-- if you have a lot of zones, you might want
+		     to buffer these in the script -->
+		<NotifyCommand>echo "ping"</NotifyCommand>
+	</Signer>
+</Configuration>
