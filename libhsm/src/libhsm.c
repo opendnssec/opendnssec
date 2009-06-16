@@ -323,18 +323,22 @@ ldns_hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
 {
     CK_RV rv;
     CK_SLOT_ID slotId = 0;
-    CK_ULONG slotCount = 10;
+    CK_ULONG slotCount;
     CK_SLOT_ID cur_slot;
-    CK_SLOT_ID *slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
+    CK_SLOT_ID *slotIds;
     int found = 0;
 
-    rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
+    rv = pkcs11_functions->C_GetSlotList(CK_TRUE, NULL_PTR, &slotCount);
     hsm_pkcs11_check_rv(rv, "get slot list");
 
     if (slotCount < 1) {
         fprintf(stderr, "Error; could not find token with the name %s\n", token_name);
         exit(1);
     }
+
+    slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
+    rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
+    hsm_pkcs11_check_rv(rv, "get slot list");
 
     for (cur_slot = 0; cur_slot < slotCount; cur_slot++) {
         if (hsm_pkcs11_check_token_name(pkcs11_functions,
