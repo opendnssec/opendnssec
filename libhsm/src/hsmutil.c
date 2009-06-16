@@ -120,7 +120,8 @@ cmd_generate (int argc, char *argv[])
 	keysize = atoi(argv[2]);
 	
 	if (!strcasecmp(algorithm, "rsa")) {
-		printf("Generating key in repository. %s\n", repository);
+		printf("Generating %d bit RSA key in repository: %s\n",
+			keysize, repository);
 		key = hsm_generate_rsa_key(NULL, repository, keysize);
 		if (key) {
 			printf("Key generation successful.\n");
