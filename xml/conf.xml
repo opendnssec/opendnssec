@@ -19,6 +19,10 @@
 		</Repository>
 	</RepositoryList>
 
+	<Logging>
+		<Syslog><Facility>local0</Facility></Syslog>
+	</Logging>
+
 	<Enforcer>
 		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>

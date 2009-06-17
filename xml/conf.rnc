@@ -24,6 +24,13 @@ start = element Configuration {
 		}*
 	},
 
+	# Configuration parameters for logging
+	element Logging {
+		element Syslog {
+			element Facility { xsd:string }
+		}
+	}?,
+
 	# Configuration parameters for the KASP Enforcer
 	element Enforcer {
 		# Where to store internal Enforcer state
