@@ -985,8 +985,6 @@ int main(int argc, char **argv)
 	input = stdin;
 	output = stdout;
 
-	hsm_open(NULL, NULL, NULL);
-
 	while ((c = getopt(argc, argv, "c:f:hnp:w:")) != -1) {
 		switch(c) {
 		case 'c':
@@ -1033,6 +1031,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Error: no configuration file given\n");
 		exit(1);
 	}
+
 	result = hsm_open(config_file, hsm_prompt_pin, NULL);
 	if (result != HSM_OK) {
 		fprintf(stderr, "Error initializing libhsm\n");
