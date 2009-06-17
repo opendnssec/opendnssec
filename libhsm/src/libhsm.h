@@ -36,31 +36,31 @@
 
 /*! Return codes for some of the functions, mapped to int */
 #define HSM_OK                    0
-#define	HSM_ERROR                 1
-#define	HSM_PIN_INCORRECT         2
-#define	HSM_CONFIG_FILE_ERROR     3
+#define HSM_ERROR                 1
+#define HSM_PIN_INCORRECT         2
+#define HSM_CONFIG_FILE_ERROR     3
 
 /*! Data type to describe an HSM */
 typedef struct {
-	unsigned int id;             /*!< HSM numerical identifier */
-	char         *name;          /*!< name of repository */
-	char         *token_label;   /*!< label of the token */
-	char         *path;          /*!< path to PKCS#11 library */
-	void         *handle;        /*!< handle from dlopen()*/
-	void         *sym;           /*!< Function list from dlsym */
+    unsigned int id;             /*!< HSM numerical identifier */
+    char         *name;          /*!< name of repository */
+    char         *token_label;   /*!< label of the token */
+    char         *path;          /*!< path to PKCS#11 library */
+    void         *handle;        /*!< handle from dlopen()*/
+    void         *sym;           /*!< Function list from dlsym */
 } hsm_module_t;
 
 /*! HSM Session */
 typedef struct {
-	hsm_module_t  *module;
-	unsigned long session;
+    hsm_module_t  *module;
+    unsigned long session;
 } hsm_session_t;
 
 /*! HSM Key Pair */
 typedef struct {
-	const hsm_module_t *module;      /*!< pointer to module */
-	unsigned long      private_key;  /*!< private key within module */
-	unsigned long      public_key;   /*!< public key within module */
+    const hsm_module_t *module;      /*!< pointer to module */
+    unsigned long      private_key;  /*!< private key within module */
+    unsigned long      public_key;   /*!< public key within module */
 } hsm_key_t;
 
 /*! HSM Key Pair Information */
@@ -72,8 +72,8 @@ typedef struct {
 
 /*! HSM context to keep track of sessions */
 typedef struct {
-	hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
-	size_t        session_count;               /*!< number of configured HSMs */
+    hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
+    size_t        session_count;               /*!< number of configured HSMs */
 } hsm_ctx_t;
 
 

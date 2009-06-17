@@ -35,25 +35,26 @@
 
 /*! Extra information for signing rrsets (algorithm, expiration, etc) */
 typedef struct {
-	/** The DNS signing algorithm identifier */
-	ldns_algorithm algorithm;
-	/** Key flags */
-	uint16_t flags;
-	/** The inception date of signatures made with this key. */
-	uint32_t inception;
-	/** The expiration date of signatures made with this key. */
-	uint32_t expiration;
-	/** The keytag of the key (is this necessary?) */
-	uint16_t keytag;
-	/** The owner name of the key */
-	ldns_rdf *owner;
+    /** The DNS signing algorithm identifier */
+    ldns_algorithm algorithm;
+    /** Key flags */
+    uint16_t flags;
+    /** The inception date of signatures made with this key. */
+    uint32_t inception;
+    /** The expiration date of signatures made with this key. */
+    uint32_t expiration;
+    /** The keytag of the key (is this necessary?) */
+    uint16_t keytag;
+    /** The owner name of the key */
+    ldns_rdf *owner;
 } hsm_sign_params_t;
 
 
 /*!
  * Returns an allocated hsm_sign_params_t with some defaults
  */
-hsm_sign_params_t *hsm_sign_params_new();
+hsm_sign_params_t *
+hsm_sign_params_new();
 
 
 /*!
@@ -64,7 +65,8 @@ on it.
 
 \param params The signer parameters to free
 */
-void hsm_sign_params_free(hsm_sign_params_t *params);
+void
+hsm_sign_params_free(hsm_sign_params_t *params);
 
 
 /*! Sign RRset using key
@@ -76,10 +78,11 @@ The returned ldns_rr structure can be freed with ldns_rr_free()
 \param key Key pair used to sign
 \return ldns_rr* Signed RRset
 */
-ldns_rr* hsm_sign_rrset(const hsm_ctx_t *ctx,
-                        const ldns_rr_list* rrset,
-                        const hsm_key_t *key,
-                        const hsm_sign_params_t *sign_params);
+ldns_rr*
+hsm_sign_rrset(const hsm_ctx_t *ctx,
+               const ldns_rr_list* rrset,
+               const hsm_key_t *key,
+               const hsm_sign_params_t *sign_params);
 
 
 /*! Generate a base32 encoded hashed NSEC3 name
@@ -109,9 +112,10 @@ The returned ldns_rr structure can be freed with ldns_rr_free()
 \param sign_params the signing parameters (flags, algorithm, etc)
 \return ldns_rr*
 */
-ldns_rr* hsm_get_dnskey(const hsm_ctx_t *ctx,
-                        const hsm_key_t *key,
-                        const hsm_sign_params_t *sign_params);
+ldns_rr*
+hsm_get_dnskey(const hsm_ctx_t *ctx,
+               const hsm_key_t *key,
+               const hsm_sign_params_t *sign_params);
 
 
 #endif /* HSMDNS_H */
