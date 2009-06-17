@@ -61,9 +61,16 @@ AC_ARG_WITH(pkcs11-etoken,
 	[ pkcs11_etoken_module="/usr/local/lib/libeTPkcs11.so" ]
 )
 
+AC_ARG_WITH(pkcs11-opensc, 
+	AC_HELP_STRING([--with-pkcs11-opensc=PATH],[specify path of Aladdin eToken library to use for regression testing (default /usr/lib/pkcs11/opensc-pkcs11.so)]),
+	[ pkcs11_opensc_module="$withval" ],
+	[ pkcs11_opensc_module="/usr/lib/pkcs11/opensc-pkcs11.so" ]
+)
+
 AC_SUBST(pkcs11_softhsm_module)
 AC_SUBST(pkcs11_sca6000_module)
 AC_SUBST(pkcs11_etoken_module)
+AC_SUBST(pkcs11_opensc_module)
 
 AC_CONFIG_FILES([
 Makefile
@@ -76,4 +83,5 @@ checks/conf-softhsm.xml
 checks/conf-sca6000.xml
 checks/conf-etoken.xml
 checks/conf-multi.xml
+checks/conf-opensc.xml
 ])

@@ -33,7 +33,7 @@ othertoken.db:
 		--so-pin 12345678 --pin 123456
 
 regress:
-	@echo use target 'regress-{sca6000,softhsm,etoken,multi}'
+	@echo use target 'regress-{sca6000,softhsm,etoken,opensc,multi}'
 
 regress-sca6000: hsmtest
 	./hsmtest -f conf-sca6000.xml -gsdr
@@ -44,6 +44,9 @@ regress-softhsm: hsmtest token.db
 
 regress-etoken: hsmtest
 	./hsmtest -f conf-etoken.xml -gsdr
+
+regress-opensc: hsmtest
+	./hsmtest -f conf-opensc.xml -gsdr
 
 regress-multi: hsmtest token.db othertoken.db
 	env $(SOFTHSM_ENV) \
