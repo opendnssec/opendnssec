@@ -20,7 +20,8 @@ CONF_ARG = \
 	--with-botan=/opt/local \
 	--with-trang=$(HOME)/bin/trang.jar \
 	--with-pkcs11-softhsm=/usr/local/lib/libsofthsm.dylib \
-	--with-pkcs11-etoken=/usr/local/lib/libeTPkcs11.dylib
+	--with-pkcs11-etoken=/usr/local/lib/libeTPkcs11.dylib \
+	--with-pkcs11-opensc=/Library/OpenSC/lib/pkcs11/opensc-pkcs11.so
 
 all: build
 
