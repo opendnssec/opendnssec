@@ -71,13 +71,15 @@ INSTALLING
 
     export SOFTHSM_CONF=/home/user/config.file
 
-  Open the config file and add the slots
+  Open the config file and add the slots and tokens.
 
     sudo pico /home/user/config.file
 
       0:/home/user/my.db
       # Comments can be added
       4:/home/user/token.database
+
+  Uninitialized tokens will be created at the given paths.
 
 5. Initialize your tokens. Use either the softhsm tool or the PKCS#11 interface.
 
