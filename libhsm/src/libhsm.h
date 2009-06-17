@@ -42,38 +42,38 @@
 
 /*! Data type to describe an HSM */
 typedef struct {
-	unsigned int id;     /*!< HSM numerical identifier */
-	char *name;          /*!< name of repository */
-	char *token_label;   /*!< label of the token */
-	char *path;          /*!< path to PKCS#11 library */
-	void *handle;        /*!< handle from dlopen()*/
-	void *sym;           /*!< Function list from dlsym */
+	unsigned int id;             /*!< HSM numerical identifier */
+	char         *name;          /*!< name of repository */
+	char         *token_label;   /*!< label of the token */
+	char         *path;          /*!< path to PKCS#11 library */
+	void         *handle;        /*!< handle from dlopen()*/
+	void         *sym;           /*!< Function list from dlsym */
 } hsm_module_t;
 
 /*! HSM Session */
 typedef struct {
-	hsm_module_t *module;
+	hsm_module_t  *module;
 	unsigned long session;
 } hsm_session_t;
 
 /*! HSM Key Pair */
 typedef struct {
-	const hsm_module_t *module; /*!< pointer to module */
-	unsigned long private_key;  /*!< private key within module */
-	unsigned long public_key;   /*!< public key within module */
+	const hsm_module_t *module;      /*!< pointer to module */
+	unsigned long      private_key;  /*!< private key within module */
+	unsigned long      public_key;   /*!< public key within module */
 } hsm_key_t;
 
 /*! HSM Key Pair Information */
 typedef struct {
-  char *id;                   /*!< key id */
-  unsigned long algorithm;    /*!< key algorithm */
-  unsigned long keysize;      /*!< key size */
+  char          *id;        /*!< key id */
+  unsigned long algorithm;  /*!< key algorithm */
+  unsigned long keysize;    /*!< key size */
 } hsm_key_info_t;
 
 /*! HSM context to keep track of sessions */
 typedef struct {
 	hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
-	size_t session_count;     /*!< number of configured HSMs */
+	size_t        session_count;               /*!< number of configured HSMs */
 } hsm_ctx_t;
 
 
@@ -94,9 +94,10 @@ Also creates initial sessions (not part of any context; every API
 function that takes a context can be passed NULL, in which case the
 global context will be used) and log into each HSM.
 */
-int hsm_open(const char *config,
-             char *(pin_callback)(const char *repository, void *),
-             void *data);
+int
+hsm_open(const char *config,
+         char *(pin_callback)(const char *repository, void *),
+         void *data);
 
 
 /*! Function that queries for a PIN, can be used as callback
@@ -106,7 +107,8 @@ int hsm_open(const char *config,
 \param data This value is unused
 \return The string the user enters
 */
-char *hsm_prompt_pin(const char *repository, void *data);
+char *
+hsm_prompt_pin(const char *repository, void *data);
 
 
 /*! Close HSM library
@@ -115,7 +117,8 @@ char *hsm_prompt_pin(const char *repository, void *data);
     This cleans up all data for libhsm, and should be the last function
     called.
 */
-int hsm_close();
+int
+hsm_close();
 
 
 /*! Create new HSM context
@@ -123,7 +126,8 @@ int hsm_close();
 Creates a new session for each attached HSM. The returned hsm_ctx_t *
 can be freed with hsm_destroy_context()
 */
-hsm_ctx_t *hsm_create_context(void);
+hsm_ctx_t *
+hsm_create_context(void);
 
 
 /*! Destroy HSM context
@@ -132,7 +136,8 @@ hsm_ctx_t *hsm_create_context(void);
 
 Also destroys any associated sessions.
 */
-void hsm_destroy_context(hsm_ctx_t *context);
+void
+hsm_destroy_context(hsm_ctx_t *context);
 
 
 /*! List all known keys in all attached HSMs
@@ -147,7 +152,8 @@ freed with hsm_key_free()
 \param context HSM context
 \param count location to store the number of keys found
 */
-hsm_key_t **hsm_list_keys(const hsm_ctx_t *context, size_t *count);
+hsm_key_t **
+hsm_list_keys(const hsm_ctx_t *context, size_t *count);
 
 
 /*! List all known keys in a HSM
@@ -163,16 +169,18 @@ freed with hsm_key_free()
 \param count location to store the number of keys found
 \param repository repository to list the keys in
 */
-hsm_key_t **hsm_list_keys_repository(const hsm_ctx_t *context,
-                                     size_t *count,
-                                     const char *repository);
+hsm_key_t **
+hsm_list_keys_repository(const hsm_ctx_t *context,
+                         size_t *count,
+                         const char *repository);
 
 
 /*! Count all known keys in all attached HSMs
 
 \param context HSM context
 */
-size_t hsm_count_keys(const hsm_ctx_t *context);
+size_t
+hsm_count_keys(const hsm_ctx_t *context);
 
 
 /*! Count all known keys in a HSM
@@ -180,8 +188,9 @@ size_t hsm_count_keys(const hsm_ctx_t *context);
 \param context HSM context
 \param repository repository in where to count the keys
 */
-size_t hsm_count_keys_repository(const hsm_ctx_t *context,
-                                 const char *repository);
+size_t
+hsm_count_keys_repository(const hsm_ctx_t *context,
+                          const char *repository);
 
 
 
@@ -194,8 +203,9 @@ The returned key structure can be freed with hsm_key_free()
           string of hex characters)
 \return key identifier or NULL if not found (or invalid input)
 */
-hsm_key_t *hsm_find_key_by_id(const hsm_ctx_t *context,
-                              const char *id);
+hsm_key_t *
+hsm_find_key_by_id(const hsm_ctx_t *context,
+                   const char *id);
 
 /*! Generate new key pair in HSM
 
@@ -209,9 +219,10 @@ The returned key structure can be freed with hsm_key_free()
 \param keysize Size of RSA key
 \return return key identifier or NULL if key generation failed
 */
-hsm_key_t *hsm_generate_rsa_key(const hsm_ctx_t *context,
-                                const char *repository,
-                                unsigned long keysize);
+hsm_key_t *
+hsm_generate_rsa_key(const hsm_ctx_t *context,
+                     const char *repository,
+                     unsigned long keysize);
 
 
 /*! Remove a key pair from HSM
@@ -224,14 +235,16 @@ needs to be freed.
 \param key Key pair to be removed
 \return 0 if successful, !0 if failed
 */
-int hsm_remove_key(const hsm_ctx_t *context, hsm_key_t *key);
+int
+hsm_remove_key(const hsm_ctx_t *context, hsm_key_t *key);
 
 
 /*! Free the memory for a key structure.
 
 \param key The key structure to free
 */
-void hsm_key_free(hsm_key_t *key);
+void
+hsm_key_free(hsm_key_t *key);
 
 
 /*! Free the memory of an array of key structures, as returned by
@@ -240,7 +253,8 @@ hsm_list_keys()
 \param key_list The array of keys to free
 \param count The number of keys in the array
 */
-void hsm_key_list_free(hsm_key_t **key_list, size_t count);
+void
+hsm_key_list_free(hsm_key_t **key_list, size_t count);
 
 
 /*! Get id as null-terminated hex string using key identifier
@@ -251,8 +265,9 @@ The returned id is allocated data, and must be free()d by the caller
 \param key Key pair to get the ID from
 \return id of key pair
 */
-char *hsm_get_key_id(const hsm_ctx_t *context,
-                     const hsm_key_t *key);
+char *
+hsm_get_key_id(const hsm_ctx_t *context,
+               const hsm_key_t *key);
 
 
 /*! Get extended key information
@@ -263,8 +278,9 @@ The returned id is allocated data, and must be free()d by the caller
 \param key Key pair to get information about
 \return key information
 */
-hsm_key_info_t *hsm_get_key_info(const hsm_ctx_t *context,
-                                 const hsm_key_t *key);
+hsm_key_info_t *
+hsm_get_key_info(const hsm_ctx_t *context,
+                 const hsm_key_t *key);
 
 
 /*! Fill a buffer with random data from any attached HSM
@@ -275,9 +291,10 @@ hsm_key_info_t *hsm_get_key_info(const hsm_ctx_t *context,
 \return 0 if successful, !0 if failed
 
 */
-int hsm_random_buffer(const hsm_ctx_t *ctx,
-                      unsigned char *buffer,
-                      unsigned long length);
+int
+hsm_random_buffer(const hsm_ctx_t *ctx,
+                  unsigned char *buffer,
+                  unsigned long length);
 
 
 /*! Return unsigned 32-bit random number from any attached HSM
@@ -285,7 +302,8 @@ int hsm_random_buffer(const hsm_ctx_t *ctx,
 \return 32-bit random number, or 0 if no HSM with a random generator is
                attached
 */
-uint32_t hsm_random32(const hsm_ctx_t *ctx);
+uint32_t
+hsm_random32(const hsm_ctx_t *ctx);
 
 
 /*! Return unsigned 64-bit random number from any attached HSM
@@ -293,7 +311,8 @@ uint32_t hsm_random32(const hsm_ctx_t *ctx);
 \return 64-bit random number, or 0 if no HSM with a random generator is
                attached
 */
-uint64_t hsm_random64(const hsm_ctx_t *ctx);
+uint64_t
+hsm_random64(const hsm_ctx_t *ctx);
 
 
 
@@ -311,24 +330,28 @@ uint64_t hsm_random64(const hsm_ctx_t *ctx);
 \param pin the PIN to log into the token
 \return 0 on success, -1 on error
 */
-int hsm_attach(char *repository,
-               char *token_name,
-               char *path,
-               char *pin);
+int
+hsm_attach(char *repository,
+           char *token_name,
+           char *path,
+           char *pin);
 
 /*! Detach a named HSM
    This function changes the global state, and is not threadsafe
 \param token_name the token to detach
 \return 0 on success, -1 on error
 */
-int hsm_detach(const char *repository);
+int
+hsm_detach(const char *repository);
 
 /*! Check whether a named token has been initialized in this context
 \param ctx HSM context
 \param token_name The name of the token
 \return 1 if the token is attached, 0 if not found
 */
-int hsm_token_attached(const hsm_ctx_t *ctx, const char *repository);
+int
+hsm_token_attached(const hsm_ctx_t *ctx,
+                   const char *repository);
 
 /* a few debug functions for applications */
 void hsm_print_session(hsm_session_t *session);
