@@ -40,8 +40,8 @@ ACX_LIBXML2
 ACX_LDNS
 ACX_DLOPEN
 
-opendnssecsysconfdir="$sysconfdir/opendnssec"
-AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$opendnssecsysconfdir/conf.xml"],[Default configuration file.])
+full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["${full_sysconfdir}/opendnssec/conf.xml"],[Default configuration file.])
 
 AC_ARG_WITH(pkcs11-softhsm, 
 	AC_HELP_STRING([--with-pkcs11-softhsm=PATH],[specify path of SoftHSM library to use for regression testing (default PREFIX/lib/libsofthsm.so)]),
