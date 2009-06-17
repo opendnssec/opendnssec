@@ -606,16 +606,20 @@ main(int argc, char **argv)
 					 * it with the right one. (if there was no nsec3params
 					 * rr in the source zone it will be added then as well
 					 */
-					if (nsec3 && ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NSEC3PARAMS) {
-						if (ldns_rr_compare(cur_rr, my_nsec3params) == 0) {
+					if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NSEC3PARAMS) {
+						if (nsec3 &&
+						    ldns_rr_compare(cur_rr,
+						                    my_nsec3params) == 0) {
 							/* same one, unremember our own */
 							ldns_rr_free(my_nsec3params);
 							my_nsec3params = NULL;
 						} else {
-							/* ok it is different, skip it */
+							/* ok it is different or we don't do nsec3.
+							 * skip it */
 							ldns_rr_free(cur_rr);
+							cur_rr = NULL;
 							continue;
-						} 
+						}
 					}
 					
 					cur_rr_data = rr_data_new();
@@ -721,6 +725,7 @@ main(int argc, char **argv)
 	if (status == LDNS_STATUS_OK) {
 		if (cur_rr) {
 			ldns_rr_free(cur_rr);
+			cur_rr = NULL;
 		}
 	} else if (status != LDNS_STATUS_SYNTAX_EMPTY && 
 	           status != LDNS_STATUS_SYNTAX_TTL &&
