@@ -1668,6 +1668,7 @@ hsm_key_list_free(hsm_key_t **key_list, size_t count)
     for (i = 0; i < count; i++) {
         hsm_key_free(key_list[i]);
     }
+    free(key_list);
 }
 
 char *
