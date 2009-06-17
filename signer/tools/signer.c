@@ -813,9 +813,8 @@ sign_rrset(ldns_rr_list *rrset,
 			}
 			params->keytag = keys->keytags[i];
 			params->algorithm = keys->algorithms[i];
-			params->expiration = cfg->expiration + rand() % cfg->jitter;
-			sig = hsm_sign_rrset(NULL, rrset,
-								 keys->keys[i], params);
+			params->expiration = cfg->expiration + (cfg->jitter ? rand() % cfg->jitter : 0);
+			sig = hsm_sign_rrset(NULL, rrset,  keys->keys[i], params);
 			cfg->created_sigs++;
 			ldns_rr_print(output, sig);
 			ldns_rr_free(sig);
