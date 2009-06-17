@@ -1481,7 +1481,7 @@ hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
         session_keys = hsm_list_keys_session(ctx->session[i],
                                              &cur_key_count);
         keys = realloc(keys,
-                       key_count + cur_key_count * sizeof(hsm_key_t *));
+                       (key_count + cur_key_count) * sizeof(hsm_key_t *));
         for (j = 0; j < cur_key_count; j++) {
             keys[key_count + j] = session_keys[j];
         }
