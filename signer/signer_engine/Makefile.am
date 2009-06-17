@@ -2,12 +2,12 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-signerdir=	@libdir@/opendnssec/signer
+signerdir =	@libdir@/opendnssec/signer
 
-bin_SCRIPTS= \
-	signer_engine signer_engine_cli
+bin_SCRIPTS =	signer_engine_cli
+sbin_SCRIPTS =	signer_engine
 
-signer_PYTHON= \
+signer_PYTHON = \
 	Engine.py \
 	EngineConfig.py \
 	Util.py \
