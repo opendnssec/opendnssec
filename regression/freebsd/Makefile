@@ -15,7 +15,7 @@ CONF_ARG = \
 	--with-libksm=/usr/local \
 	--with-libhsm=/usr/local \
 	--with-sqlite3=/usr/local \
-	--with-ldns=/opt/local \
+	--with-ldns=/usr/local \
 	--with-libxml2=/usr/local \
 	--with-botan=/usr/local/botan \
 	--without-trang \
