@@ -762,6 +762,24 @@ check_existing_sigs(ldns_rr_list *sigs,
 	}
 }
 
+static int
+rr_list_delegation_only(ldns_rdf *origin, ldns_rr_list *rr_list)
+{
+	size_t i;
+	ldns_rr *cur_rr;
+	if (!origin || !rr_list) return 0;
+	for (i = 0; i < ldns_rr_list_rr_count(rr_list); i++) {
+		cur_rr = ldns_rr_list_rr(rr_list, i);
+		if (ldns_dname_compare(ldns_rr_owner(cur_rr), origin) == 0) {
+			return 0;
+		}
+		if (ldns_rr_get_type(cur_rr) != LDNS_RR_TYPE_NS) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
 void
 sign_rrset(ldns_rr_list *rrset,
            FILE *output,
@@ -776,6 +794,10 @@ sign_rrset(ldns_rr_list *rrset,
 		fprintf(stderr, "Origin not set! Unable to continue.\n");
 		exit(1);
 	}
+
+	/* skip delegation rrsets */
+	if (rr_list_delegation_only(cfg->origin, rrset)) return;
+	
 	params->owner = ldns_rdf_clone(cfg->origin);
 	params->inception = cfg->inception;
 	if (ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)) ==

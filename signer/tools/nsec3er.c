@@ -129,6 +129,11 @@ create_nsec3(ldns_rdf *name,
              int empty_nonterminal)
 {
 	ldns_rr *new_nsec3;
+	fprintf(stderr, "[XX] create nsec3 for following set:\n");
+	fprintf(stderr, "[XX] owner: ");
+	ldns_rdf_print(stderr, name);
+	fprintf(stderr, "\n");
+	ldns_rr_list_print(stderr, rr_list);
 	new_nsec3 = ldns_create_nsec3(name,
 		                          origin,
 		                          rr_list,
@@ -139,6 +144,8 @@ create_nsec3(ldns_rdf *name,
 		                          n3p->salt,
 		                          empty_nonterminal);
 	ldns_rr_set_ttl(new_nsec3, ttl);
+	ldns_rr_print(stderr, new_nsec3);
+	fprintf(stderr, "[XX] end of set\n");
 	return new_nsec3;
 }
 
@@ -251,8 +258,11 @@ handle_name(FILE *out_file,
 			/* Empty non-terminal to an unsigned delegation. skip. */
 			fprintf(out_file, ";SKIP ENT NS\n");
 		} else {
-			new_nsec = create_nsec3(ent_name, origin, ttl,
-			                        rr_list, n3p, 1);
+			/* first, create the NSEC3 from the list we just read to
+			 * the ENT */
+			ldns_rr_list_print(out_file, rr_list);
+			new_nsec = create_nsec3(ldns_rr_list_owner(rr_list), origin, ttl,
+			                        rr_list, n3p, 0);
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
 				ldns_rr_print(out_file, *prev_nsec);
@@ -262,6 +272,14 @@ handle_name(FILE *out_file,
 			}
 			*prev_nsec = new_nsec;
 			rr_list_clear(rr_list);
+
+			/* then create the ENT */
+			new_nsec = create_nsec3(ent_name, origin, ttl,
+			                        rr_list, n3p, 1);
+			link_nsec3_rrs(*prev_nsec, new_nsec);
+			ldns_rr_print(out_file, *prev_nsec);
+			ldns_rr_free(*prev_nsec);
+			*prev_nsec = new_nsec;
 		}
 	} else {
 		/* apparently we have reached the end of the input, link last
@@ -322,7 +340,6 @@ handle_line(FILE *out_file,
 			 * and
 			 * ; Empty nonterminal to NS: <name>
 			 */
-			fprintf(out_file, "%s\n", line);
 			if ((ent_name = get_name_from_line(line,
 									  "; Empty non-terminal: "))) {
 				handle_name(out_file, NULL, origin, soa_min_ttl, NULL,
@@ -336,6 +353,7 @@ handle_line(FILE *out_file,
 				            ent_name, 1);
 				ldns_rdf_deep_free(ent_name);
 			}
+			fprintf(out_file, "%s\n", line);
 		}
 	}
 	return LDNS_STATUS_OK;
