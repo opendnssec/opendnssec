@@ -63,6 +63,13 @@ typedef struct {
 	unsigned long public_key;   /*!< public key within module */
 } hsm_key_t;
 
+/*! HSM Key Pair Information */
+typedef struct {
+  char *id;                   /*!< key id */
+  unsigned long algorithm;    /*!< key algorithm */
+  unsigned long keysize;      /*!< key size */
+} hsm_key_info_t;
+
 /*! HSM context to keep track of sessions */
 typedef struct {
 	hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
@@ -246,6 +253,19 @@ The returned id is allocated data, and must be free()d by the caller
 */
 char *hsm_get_key_id(const hsm_ctx_t *context,
                      const hsm_key_t *key);
+
+
+/*! Get extended key information
+
+The returned id is allocated data, and must be free()d by the caller
+
+\param context HSM context
+\param key Key pair to get information about
+\return key information
+*/
+hsm_key_info_t *hsm_get_key_info(const hsm_ctx_t *context,
+                                 const hsm_key_t *key);
+
 
 /*! Fill a buffer with random data from any attached HSM
 

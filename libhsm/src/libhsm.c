@@ -1701,6 +1701,21 @@ hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
     return id_str;
 }
 
+hsm_key_info_t *
+hsm_get_key_info(const hsm_ctx_t *context,
+                 const hsm_key_t *key)
+{
+	hsm_key_info_t *key_info;
+	
+	key_info = malloc(sizeof(hsm_key_info_t));
+
+	key_info->id = hsm_get_key_id(context, key);
+	key_info->algorithm = 0; /* XXX */
+	key_info->keysize   = 0; /* XXX */
+	
+	return key_info;
+}
+
 ldns_rr*
 hsm_sign_rrset(const hsm_ctx_t *ctx,
                const ldns_rr_list* rrset,
