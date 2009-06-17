@@ -70,7 +70,7 @@ main (int argc, char *argv[])
 	uint64_t r64;
 
 	char *config = NULL;
-	const char *repository = "regress";
+	const char *repository = "default";
 
 	progname = argv[0];
 

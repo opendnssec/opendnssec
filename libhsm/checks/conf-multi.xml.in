@@ -4,12 +4,12 @@
 
 <Configuration>
 	<RepositoryList>
-		<Repository name="regress-one">
+		<Repository name="default">
 			<Module>@pkcs11_softhsm_module@</Module>
 			<TokenLabel>softHSM</TokenLabel>
 			<PIN>123456</PIN>
 		</Repository>
-		<Repository name="regress-two">
+		<Repository name="another">
 			<Module>@pkcs11_softhsm_module@</Module>
 			<TokenLabel>xyzzy</TokenLabel>
 			<PIN>123456</PIN>

@@ -4,7 +4,7 @@
 
 <Configuration>
 	<RepositoryList>
-		<Repository name="regress">
+		<Repository name="default">
 			<Module>@pkcs11_etoken_module@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>test.1234</PIN>

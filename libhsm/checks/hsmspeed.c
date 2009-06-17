@@ -128,7 +128,7 @@ main (int argc, char *argv[])
 	static struct timeval start,end;
 
 	char *config = NULL;
-	const char *repository = "regress";
+	const char *repository = "default";
 	
 	sign_arg_t sign_arg_array[PTHREAD_THREADS_MAX];
 	
