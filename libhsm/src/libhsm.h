@@ -42,12 +42,12 @@
 
 /*! Data type to describe an HSM */
 typedef struct {
-	unsigned int id;           /*!< HSM numerical identifier */
+	unsigned int id;     /*!< HSM numerical identifier */
 	char *name;          /*!< name of repository */
 	char *token_label;   /*!< label of the token */
 	char *path;          /*!< path to PKCS#11 library */
 	void *handle;        /*!< handle from dlopen()*/
-	void *sym;  /*!< Function list from dlsym */
+	void *sym;           /*!< Function list from dlsym */
 } hsm_module_t;
 
 /*! HSM Session */
