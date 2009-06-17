@@ -1,0 +1,6 @@
+hsmbully doc readme
+===================
+
+The .rst file in this directory can either be read in the plain, or mapped
+to various other formats using rst2xxx tools from pydocutils.
+

@@ -1,0 +1,5 @@
+- Only the used CKM_xxx are employed in this test.
+- There is no testing of C_SignUpdate or C_VerifyUpdate
++ We de not test concurrent PKCS #11 access because we cannot exhaust that
+- Currently one error when used with SoftHSM
+- Incorporate commandline-processing from cunit-stephen
