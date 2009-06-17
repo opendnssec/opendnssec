@@ -2081,6 +2081,7 @@ hsm_print_key(hsm_key_t *key) {
         printf("\tmodule: %p\n", (void *) key->module);
         printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
         printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
+        printf("\trepository: %s\n", key->module->name);
         printf("\tid: %s\n", id);
 	if (id) free(id);
     } else {
