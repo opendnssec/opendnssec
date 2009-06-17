@@ -61,6 +61,12 @@ using std::string;
     sqlite3_finalize(prep); \
   }
 
+// Clean up any empty db file
+#define CLEAN_UP_EMPTY_DB() \
+  if(!isFilePresent) { \
+    remove(dbPath); \
+  }
+
 
 SoftDatabase::SoftDatabase() {
   db = NULL_PTR;
@@ -109,6 +115,15 @@ SoftDatabase::~SoftDatabase() {
 }
 
 CK_RV SoftDatabase::init(char *dbPath) {
+  FILE* fp;
+  int isFilePresent = 0;
+
+  // Check if the file is present
+  if((fp = fopen(dbPath, "r")) != NULL) {
+    isFilePresent = 1;
+    fclose(fp);
+  }
+
   // Open the database
   int result = sqlite3_open(dbPath, &db);
   if(result){
@@ -123,10 +138,12 @@ CK_RV SoftDatabase::init(char *dbPath) {
     FINALIZE_STMT(pragStatem);
 
     if(dbVersion != 100) {
+      CLEAN_UP_EMPTY_DB();
       return CKR_TOKEN_NOT_RECOGNIZED;
     }
   } else {
     FINALIZE_STMT(pragStatem);
+    CLEAN_UP_EMPTY_DB();
     return CKR_TOKEN_NOT_RECOGNIZED;
   }
 
