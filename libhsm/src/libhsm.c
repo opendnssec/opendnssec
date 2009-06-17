@@ -2081,7 +2081,7 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
     } else {
         ctx = gctx;
     }
-    printf("CTX Sessions: %u\n", ctx->session_count);
+    printf("CTX Sessions: %lu\n", ctx->session_count);
     for (i = 0; i < ctx->session_count; i++) {
         printf("\tSession at %p\n", (void *) ctx->session[i]);
         hsm_print_session(ctx->session[i]);
