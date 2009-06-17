@@ -854,10 +854,10 @@ int
 read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 {
 	rrset_reader_t *new_zone_reader, *signed_zone_reader;
-	ldns_rr_list *new_zone_rrset;
-	ldns_rr_list *new_zone_signatures;
-	ldns_rr_list *signed_zone_rrset;
-	ldns_rr_list *signed_zone_signatures;
+	ldns_rr_list *new_zone_rrset = NULL;
+	ldns_rr_list *new_zone_signatures= NULL;
+	ldns_rr_list *signed_zone_rrset = NULL;
+	ldns_rr_list *signed_zone_signatures = NULL;
 	int cmp;
 	
 	new_zone_reader = rrset_reader_new(input);
