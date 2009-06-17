@@ -22,12 +22,10 @@ hsmspeed_LDFLAGS = -no-install
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
 
 
-token.db:
+token.db othertoken.db:
 	env $(SOFTHSM_ENV) \
 	softhsm --slot 0 --init-token --label softHSM \
 		--so-pin 12345678 --pin 123456
-
-othertoken.db:
 	env $(SOFTHSM_ENV) \
 	softhsm --slot 1 --init-token --label xyzzy \
 		--so-pin 12345678 --pin 123456
