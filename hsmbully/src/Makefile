@@ -26,3 +26,6 @@ quickndirty-hsmbully: hsmbully.c
 hsmbully.c: Makefile
 	touch hsmbully.c
 
+clean:
+	rm -f *.o thorough-hsmbully quickndirty-hsmbully
+
