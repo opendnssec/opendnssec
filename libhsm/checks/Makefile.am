@@ -1,7 +1,7 @@
 # $Id$
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-CLEANFILES = token.db
+CLEANFILES = token.db othertoken.db
 
 AM_CPPFLAGS = 	-I$(srcdir) \
 		-I$(srcdir)/.. \
@@ -22,13 +22,16 @@ hsmspeed_LDFLAGS = -no-install
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
 
 
-token.db:
+token.db othertoken.db:
 	env $(SOFTHSM_ENV) \
 	softhsm --slot 0 --init-token --label softHSM \
 		--so-pin 12345678 --pin 123456
+	env $(SOFTHSM_ENV) \
+	softhsm --slot 1 --init-token --label xyzzy \
+		--so-pin 12345678 --pin 123456
 
 regress:
-	@echo use target 'regress-sca6000' or 'regress-softhsm'
+	@echo use target 'regress-{sca6000,softhsm,etoken,multi}'
 
 regress-sca6000:
 	./hsmtest -f conf-sca6000.xml -gsdr
@@ -39,4 +42,8 @@ regress-softhsm: token.db
 
 regress-etoken:
 	./hsmtest -f conf-etoken.xml -gsdr
+
+regress-multi: token.db othertoken.db
+	env $(SOFTHSM_ENV) \
+	./hsmtest -f conf-multi.xml -gsdr
 
