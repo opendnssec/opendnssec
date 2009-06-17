@@ -129,11 +129,6 @@ create_nsec3(ldns_rdf *name,
              int empty_nonterminal)
 {
 	ldns_rr *new_nsec3;
-	fprintf(stderr, "[XX] create nsec3 for following set:\n");
-	fprintf(stderr, "[XX] owner: ");
-	ldns_rdf_print(stderr, name);
-	fprintf(stderr, "\n");
-	ldns_rr_list_print(stderr, rr_list);
 	new_nsec3 = ldns_create_nsec3(name,
 		                          origin,
 		                          rr_list,
@@ -144,8 +139,6 @@ create_nsec3(ldns_rdf *name,
 		                          n3p->salt,
 		                          empty_nonterminal);
 	ldns_rr_set_ttl(new_nsec3, ttl);
-	ldns_rr_print(stderr, new_nsec3);
-	fprintf(stderr, "[XX] end of set\n");
 	return new_nsec3;
 }
 
@@ -220,6 +213,7 @@ handle_name(FILE *out_file,
             int ent_ns)
 {
 	ldns_rr *new_nsec;
+	(void) prev_rr;
 	
 	if (rr) {
 		if (ldns_rr_list_rr_count(rr_list) == 0 ||
@@ -232,8 +226,6 @@ handle_name(FILE *out_file,
 		} else {
 			/* new name! do we have optout and only ns records? if
 			 * not, create an nsec3. */
-			ldns_rr_list_print(out_file, rr_list);
-			
 			if (n3p->flags & LDNS_NSEC3_VARS_OPTOUT_MASK &&
 			    only_ns_in_list(rr_list)) {
 				/* delegation. optout. skip. */
@@ -249,6 +241,8 @@ handle_name(FILE *out_file,
 				}
 				*prev_nsec = new_nsec;
 			}
+			ldns_rr_list_print(out_file, rr_list);
+			
 			rr_list_clear(rr_list);
 			ldns_rr_list_push_rr(rr_list, rr);
 		}
@@ -260,7 +254,6 @@ handle_name(FILE *out_file,
 		} else {
 			/* first, create the NSEC3 from the list we just read to
 			 * the ENT */
-			ldns_rr_list_print(out_file, rr_list);
 			new_nsec = create_nsec3(ldns_rr_list_owner(rr_list), origin, ttl,
 			                        rr_list, n3p, 0);
 			if (*prev_nsec) {
@@ -271,6 +264,8 @@ handle_name(FILE *out_file,
 				*first_nsec = ldns_rr_clone(new_nsec);
 			}
 			*prev_nsec = new_nsec;
+			ldns_rr_list_print(out_file, rr_list);
+			
 			rr_list_clear(rr_list);
 
 			/* then create the ENT */
