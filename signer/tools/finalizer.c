@@ -87,7 +87,7 @@ main(int argc, char **argv)
 				break;
 			case 'h':
 				usage(stdout);
-				break;
+				exit(0);
 		}
 	}
 
