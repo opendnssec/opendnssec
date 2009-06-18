@@ -9,27 +9,39 @@ class AuditorTest < Test::Unit::TestCase
 
     stderr = IO::pipe
     path = "test/signer_test_good/"
-      filename = "zonelist_nsec.xml"
+    filename = "zonelist_nsec.xml"
     run_auditor_with_syslog(path, filename, stderr, 0)
 
 
     # Check syslog to ensure no messages left while this test ran
-    syslog_string = stderr[0].gets
-    # Make sure there are no "auditor_test" strings there
-    assert_equal(false, syslog_string=~/auditor_test/)
+    # Ignore warning messages about out of zone data for wat.out.of.zones
+    while (line = stderr[0].gets)
+#      print "LINE : #{line}\n"
+      # @TODO@ How do we check the error level here?
+      assert(line=~/wat.out.of.zone/)
+    end
+    #    syslog_string = stderr[0].gets
+    #    # Make sure there are no "auditor_test" strings there
+    #    assert_equal(false, syslog_string=~/auditor_test/)
   end
 
   def test_good_file_nsec3
     stderr = IO::pipe
     path = "test/signer_test_good/"
-      filename = "zonelist_nsec3.xml"
+    filename = "zonelist_nsec3.xml"
     run_auditor_with_syslog(path, filename, stderr, 0)
 
 
     # Check syslog to ensure no messages left while this test ran
-    syslog_string = stderr[0].gets
-    # Make sure there are no "auditor_test" strings there
-    assert_equal(false, syslog_string=~/auditor_test/)
+    # Ignore warning messages about out of zone data for wat.out.of.zones
+    while (line = stderr[0].gets)
+      # @TODO@ How do we check the error level here?
+#      print "Line : #{line}, line[0] = #{line[0]}\n"
+      assert(line=~/wat.out.of.zone/)
+    end
+    #    syslog_string = stderr[0].gets
+    #    # Make sure there are no "auditor_test" strings there
+    #    assert_equal(false, syslog_string=~/auditor_test/)
   end
 
   def test_bad_file_nsec
@@ -37,14 +49,23 @@ class AuditorTest < Test::Unit::TestCase
     # Make sure that all known errors are caught
     stderr = IO::pipe
     path = "test/signer_test_bad/"
-      filename = "zonelist_nsec.xml"
+    filename = "zonelist_nsec.xml"
     run_auditor_with_syslog(path, filename, stderr) # @TODO@ Expected return value?
 
 
     # Check syslog to ensure no messages left while this test ran
     syslog_string = stderr[0].gets
     # Make sure all the "auditor_test" strings are there
-       assert(syslog_string=~/auditor_test/, "Should have written errors to syslog for bad NSEC")
+    assert(syslog_string=~/auditor_test/, "Should have written errors to syslog for bad NSEC")
+    check_common_bad_data(stderr)
+    # @TODO@ Now check the NSEC specific stuff
+    # - NSEC3 and NSEC3PARAMs in zone
+    # - missing NSEC RR for one domain
+    # - wrong ttl for one NSEC
+    # - missing and extra RR types for one NSEC
+    # - extra NSEC for closed loop of each next domain
+    # - missing NSEC for closed loop of each next domain
+    #
   end
 
   def test_bad_file_nsec3
@@ -52,14 +73,44 @@ class AuditorTest < Test::Unit::TestCase
     # Make sure that all known errors are caught
     stderr = IO::pipe
     path = "test/signer_test_bad/"
-      filename = "zonelist_nsec3.xml"
+    filename = "zonelist_nsec3.xml"
     run_auditor_with_syslog(path, filename, stderr) # @TODO@ Expected return value?
 
 
     # Check syslog to ensure no messages left while this test ran
     syslog_string = stderr[0].gets
     # Make sure all the "auditor_test" strings are there
-       assert(syslog_string=~/auditor_test/, "Should have written errors to syslog for bad NSEC3")
+    assert(syslog_string=~/auditor_test/, "Should have written errors to syslog for bad NSEC3")
+    check_common_bad_data(stderr)
+    # @TODO@ Now check the NSEC3 specific stuff
+    # - extra NSEC record in zone
+    # - two NSEC3PARAMs (one with bad flags and bad hash and salt)
+    # - bad NSEC - wrong RR types (missing and extra)
+    # - extra next_hashed on one NSEC3
+    # - one next_hashed NSEC3 missing
+    # - opt-out : insert extra NSEC3 for fictional record between NSEC3 and next_hashed
+    #
+  end
+
+  def check_common_bad_data(stderr)
+    # @TODO@ Check the errors in the zone which are common to both NSEC and NSEC3
+    #  - non dnssec data : missing data and extra data
+    #  - bad SEP : no SEP flag set, and invalid key. Also bad protocol  and algorithm
+    #  -  RRSIG : missing RRSIG for key alg, bad sig, bad inception and bad expiration
+    #
+    #
+
+    stderr[0].lineno = 0 # Reset the log reader to the start so that the NSEC(3) stuff can be checked
+  end
+
+  def test_partial_scan_good
+    fail "Implement good partial scanning test!"
+    # @TODO@ Is there any need for NSEC(3) versions of these partial test methods?
+    # Not really - just go with the first type of NSEC(3) seen, and run RR type checks
+  end
+
+  def test_partial_scan_bad
+    fail "Implement bad partial scanning test!"
   end
 
   def run_auditor_with_syslog(path, filename, stderr, expected_ret = nil)

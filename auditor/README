@@ -1,0 +1,26 @@
+KASP Auditor README
+-------------------
+
+The KASP Auditor is written to check the output of the signer.
+
+To run the auditor, it is necessary to install dnsruby. It is presumed that Ruby is already installed on the target system, and that the system is online. To install dnsruby, run the following command : 
+
+    gem install dnsruby
+
+Ruby gems will download the dnsruby gem from rubyforge.org and install it to the target system. Depending on how Ruby is installed on the target system, it may be necessary to run the above command as root.
+
+The auditor is configured to work on the test files in the signer, located in :
+
+ /path/to/opendnssec/signer/signer_engine/test
+
+To run the auditor successfully, these files should be populated (presumably by the signer test code).
+
+To run the auditior, run the following command from the opendnssec/auditor folder :
+
+  test/test.sh
+
+To run the auditor test files (which do currently run successfully), run the command :
+
+  ruby test/auditor_test.rb
+
+Any problems, please contact alex@nominet.org.uk

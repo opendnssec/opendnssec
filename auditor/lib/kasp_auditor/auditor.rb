@@ -34,21 +34,22 @@ module KASPAuditor
       @syslog = syslog
     end
     def check_zone(config, input_file, output_file)
-      input = load_zone(input_file)
+      input, soa = load_zone(input_file)
       rrs, keys, sigs, nsecs, nsecnames, nsec3s, nsec3params, nsec3names,
-        domains, signed_domains, domain_rrsets = load_zone(output_file, true)
+        domains, signed_domains, domain_rrsets, nss = load_zone(output_file, true)
 
       # Check the zone!
-      soa = check_non_dnssec_data(input, rrs)
+      check_non_dnssec_data(input, rrs, soa)
       check_dnskeys(config, keys)
-      check_signatures(config, sigs, signed_domains, domain_rrsets, soa)
+      check_signatures(config, sigs, signed_domains, domain_rrsets, soa, nss)
       if (config.zone.denial.nsec)
-        check_nsec(nsecs, nsecnames, nsec3s, nsec3params, domains, soa, domain_rrsets)
+        check_nsec(nsecs, nsecnames, nsec3s, nsec3params, domains, soa, domain_rrsets, nss)
       else
-        check_nsec3(config, nsecs, nsec3s, nsec3params, nsec3names, domains, soa, domain_rrsets)
+        check_nsec3(config, nsecs, nsec3s, nsec3params, nsec3names, domains, soa, domain_rrsets, nss)
       end
 
       # @TODO@ Implement checking of only part of the zone
+      # How does that work? Load only part of the zone file? Which bit?
     end
 
     def log(pri, msg)
@@ -56,30 +57,32 @@ module KASPAuditor
       @syslog.log(pri, msg)
     end
 
-    def check_non_dnssec_data(inp, outp)
+    def check_non_dnssec_data(inp, outp, soa)
       # All non-DNSSEC data in input zone must be identical to output zone
       # So, go through input zone, removing each
       # RR from both input and output. Then, check through output zone, and
       # ensure that only DNSSEC records remain.
       # This method destroys the input arrays
       # and returns the soa for the zone
-      old_soa = nil
       inp.each {|rr|
         if (["NSEC", "NSEC3", "RRSIG", "DNSKEY", "NSEC3PARAM"].include?rr.type.string)
-          log(LOG_WARN, "DNSSEC RRSet present in input zone (#{rr.name}, #{rr.type}")
+          log(LOG_WARNING, "DNSSEC RRSet present in input zone (#{rr.name}, #{rr.type}")
         end
         if (rr.type == Types.SOA)
           #          print "SOA : ignoring"
-          old_soa = rr
         elsif (!outp.include?rr)
-          log(LOG_ERR, "Output zone does not contain non-DNSSEC RRSet : #{rr.type}, #{rr}")
+          if !out_of_zone(rr.name, soa.name)
+            log(LOG_ERR, "Output zone does not contain non-DNSSEC RRSet : #{rr.type}, #{rr}")
+          else
+            log(LOG_WARNING, "Output zone does not contain out of zone non-DNSSEC RRSet : #{rr.type}, #{rr}")
+          end
         end
         outp.delete(rr)
       }
       outp.each {|rr|
         if (rr.type == Types.SOA)
-          if (rr.name.canonical == old_soa.name.canonical)
-            log(LOG_INFO, "SOA differs : from #{old_soa.serial} to #{rr.serial}")
+          if (rr.name == soa.name)
+            log(LOG_INFO, "SOA differs : from #{soa.serial} to #{rr.serial}")
           else
             log(LOG_ERROR,"Different SOA name in output zone!")
           end
@@ -88,11 +91,14 @@ module KASPAuditor
         end
       }
       print "\nFINISHED CHECKING non_DNSSEC DATA\n\n"
-      return old_soa
+    end
+
+    def out_of_zone(name, soa_name)
+      return !(name.subdomain_of?soa_name || name == soa_name)
     end
 
     def check_dnskeys(config, keys)
-      # check each DNSKEy record in the zone
+      # check each DNSKEY record in the zone
 
       seen_key_with_sep_set = false
       seen_key_with_sep_clear = false
@@ -124,22 +130,30 @@ module KASPAuditor
       print "\nFINISHED CHECKING DNSKEYs\n\n"
     end
 
-    def check_signatures(config, sigs, signed_domains, domain_rrsets, soa)
+    def check_signatures(config, sigs, signed_domains, domain_rrsets, soa, nss)
       # Need to get DNSKEY RRSet for zone.
       # Then, check each signed domain against it
       # Want to check each signed domain :
       algs = []
-      #    key_rrset = domain_rrsets[soa.name.canonical].select{|rrset| rrset.type == Types.DNSKEY} [0]
       key_rrset = domain_rrsets[soa.name].select{|rrset| rrset.type == Types.DNSKEY} [0]
       if (!key_rrset || key_rrset.rrs.length == 0)
         log(LOG_ERR, "No DNSKEYs found in zone!")
         return
       end
       key_rrset.rrs.each {|key|
-                      print "Using key #{key.key_tag}\n"
+        print "Using key #{key.key_tag}\n"
         algs.push(key.algorithm) if !algs.include?key.algorithm
       }
       domain_rrsets.each {|domain, rrsets|
+        # Skip if this is glue
+        next if (is_glue(domain, soa, nss))
+        # Also skip the verify test if this is an unsigned delegation
+        # (NS records but no DS records)
+        ns_rrsets = rrsets.select{|rrset| rrset.type == Types.NS}
+        ds_rrsets = rrsets.select{|rrset| rrset.type == Types.DS}
+        next if (ns_rrsets.length > 0 && ds_rrsets.length == 0)
+
+        next if out_of_zone(domain, soa.name)
         rrsets.each {|rrset|
           #        print "Checking sigs for #{domain}, #{rrset.type}\n"
           #  a) RRSIG for each algorith  for which there is a DNSKEY
@@ -147,7 +161,7 @@ module KASPAuditor
           rrset.sigs.each {|sig| rrset_sig_types.push(sig.algorithm)}
           algs.each {|alg|
             if !(rrset_sig_types.include?alg)
-              if ((rrset.type == Types.NS) && (rrset.name.canonical != soa.name.canonical)) # NS RRSet NOT at zone apex is OK
+              if ((rrset.type == Types.NS) && (rrset.name != soa.name)) # NS RRSet NOT at zone apex is OK
               else
                 s = ""
                 rrset_sig_types.each {|t| s = s + " #{t} "}
@@ -155,18 +169,17 @@ module KASPAuditor
               end
             end
           }
-          # @TODO@ - this currently fails
           #  b) RRSIGs validate for at least one key in DNSKEY RRSet  (Note: except for the zone apex, there should be no RRSIG for NS RRsets.)
           #          print "Verifying RRSIG for #{rrset}\n"
-          # @TODO@ Create an RRSET with *only* the RRSIG we are interested in - check that they all verify ok
+          # @TODO@ Create an RRSET with *only* the RRSIG we are interested in - check that they all verify ok?
           # Check if this is an NS RRSet other than the zone apex - if so, then skip the verify test
-          if ((rrset.type == Types.NS) && (rrset.name != soa.name))
+          if ((rrset.type == Types.NS) && ((rrset.name != soa.name)))
             # Skip the verify test
           else
             begin
-#              print "About to verify #{rrset.name} #{rrset.type}, #{rrset.rrs.length} RRs, #{rrset.sigs.length} RRSIGs, #{key_rrset.rrs.length} keys\n"
+              #              print "About to verify #{rrset.name} #{rrset.type}, #{rrset.rrs.length} RRs, #{rrset.sigs.length} RRSIGs, #{key_rrset.rrs.length} keys\n"
               Dnssec.verify_rrset(rrset, key_rrset)
-#              print "Verified OK!!/n"
+              #              print "Verified OK!!/n"
             rescue VerifyError => e
               log(LOG_ERR, "RRSet (#{rrset.name}, #{rrset.type}) failed verification : #{e}, tag = #{rrset.sigs()[0] ? rrset.sigs()[0].key_tag : 'none'}")
             end
@@ -197,7 +210,37 @@ module KASPAuditor
       print "\nFINISHED CHECKING RRSIG\n\n"
     end
 
-    def check_nsec(nsecs, nsecnames, nsec3s, nsec3params, domains, soa, domain_rrsets)
+    def is_glue(domain, soa, nss)
+      # Work out if this is a glue record
+      # Glue records :
+      # 3) in-bailiwick: NSDNAME is a subdomain of APEX, and, NSDNAME is equal to or a subdomain of NSOWNER.
+      # 4) sibling: NSDNAME is a subdomain of APEX, and, NSDNAME is equal to or a subdomain of some other NSOWNER.
+      #
+      #      rrset_array = domain_rrsets[domain]
+      ns_array = nss.select{|ns| ns.nsdname == domain}
+      return false if (!ns_array || ns_array.length == 0)
+      is_glue = false
+      ns_array.each {|ns_rr|
+        if (ns_rr.nsdname.subdomain_of?soa.name)
+          if (ns_rr.nsdname.subdomain_of?ns_rr.name || ns_rr.nsdname == ns_rr.name)
+            is_glue = true
+            break
+          else
+            # Check all other NSOWNER names...
+            nss.each {|other_ns|
+              if (ns_rr.nsdname.subdomain_of?other_ns.name || ns_rr.nsdname == other_ns.name)
+                is_glue = true
+                break
+              end
+            }
+          end
+        end
+        break if is_glue
+      }
+      return is_glue
+    end
+
+    def check_nsec(nsecs, nsecnames, nsec3s, nsec3params, domains, soa, domain_rrsets, nss)
       if (nsec3s.length > 0)
         log(LOG_ERR, "NSEC3 RRs included in NSEC-signed zone")
       end
@@ -205,9 +248,12 @@ module KASPAuditor
         log(LOG_ERR, "NSEC3PARAM RRs included in NSEC-signed zone")
       end
       # Check each domain has a corresponding NSEC record
+      # Watch out for glue!
       domains.each {|domain|
         if !(nsecnames.include?domain)
-          log(LOG_ERR, "No NSEC record for #{domain}")
+          if (!is_glue(domain, soa, nss))
+            log(LOG_ERR, "No NSEC record for #{domain}")
+          end
         else
           #        print "Found NSEC for #{domain}\n"
         end
@@ -216,11 +262,11 @@ module KASPAuditor
       # Follow NSEC loop, checking each TTL, and following Next Domain field.
       nsec = nsecs.delete_at(0)
       check_nsec_ttl_and_types(nsec, soa, domain_rrsets)
-      start_name = nsec.name.canonical
+      start_name = nsec.name
       while ((nsec.next_domain != start_name) && (nsecs.length > 0))
         # Find the nsec whose name is next_domain
         #      print "Following NSEC loop from #{nsec.name} to #{nsec.next_domain}\n"
-        candidates = nsecs.select{|n| n.name.canonical == nsec.next_domain.canonical}
+        candidates = nsecs.select{|n| n.name == nsec.next_domain}
         if (candidates.length == 0)
           log(LOG_ERR, "Can't follow NSEC loop from #{nsec.name} to #{nsec.next_domain} - starting new loop at next NSEC record")
           nsec = nsecs.delete_at(0)
@@ -298,7 +344,7 @@ module KASPAuditor
       end
     end
 
-    def check_nsec3(config, nsecs, nsec3s, nsec3params, nsec3names, domains, soa, domain_rrsets)
+    def check_nsec3(config, nsecs, nsec3s, nsec3params, nsec3names, domains, soa, domain_rrsets, nss)
       if (nsecs.length > 0)
         log(LOG_ERR, "NSEC RRs included in NSEC3-signed zone")
       end
@@ -364,10 +410,15 @@ module KASPAuditor
           found_domains.each {|domain|
             # Check that domain is :
             # a) Not a glue record, and
-            # b) Not an unsigned delegation (NS but no DS)
-            # @TODO@ So, we need access to the RRSets which are associated with the domain - domain_rrsets
-            rrset_array = domain_rrsets(domain)
-            print "Found #{rrset_array.length} rrsets for #{domain}\n"
+            # b) @TODO@ Not an unsigned delegation (NS but no DS), and
+            # c) Not out of zone
+            # Need to find unhashed domain...
+            unhashed_domain = hash_to_domain_map[Name.create(domain.to_s + "." + soa.name.to_s).canonical]
+
+            if ((is_glue(unhashed_domain, soa, nss) ||
+                (out_of_zone(unhashed_domain, soa.name))))
+              found_domains.delete(domain)
+            end
           }
           if (found_domains.length > 0)
             log(LOG_ERR, "#{found_domains.length} domains between #{nsec3.name} and #{RR::NSEC3.encode_next_hashed(nsec3.next_hashed)}, with opt out not set")
@@ -377,7 +428,7 @@ module KASPAuditor
       }
       # NSEC3 next_hashed should form closed loop of all NSEC3s (but not all domains)
       # We have already removed all the next_hashed names from the list of nsec3names - so there should
-      # be no nse3names left in the list
+      # be no nsec3names left in the list
       if (nsec3names.length > 0)
         log(LOG_ERR, "#{nsec3names.length} NSEC3 names outside of closed loop of hashed owner names")
       end
@@ -405,6 +456,8 @@ module KASPAuditor
       domains = []
       signed_domains = []
       rrsets = []
+      nss = []
+      soa = nil
       File.open(file, 'r') {|f|
         while (line = f.gets)
           line.chomp!
@@ -414,7 +467,7 @@ module KASPAuditor
           rr = nil
           begin
             rr = RR.create(line)
-#            print "#{rr}\n"
+            #            print "#{rr}\n"
             add_to_rrs(rrs, rr)
             add_to_rrset(rrsets, rr)
             add_to_domains(domains, signed_domains, rr)
@@ -431,7 +484,11 @@ module KASPAuditor
                 add_to_rrs(nsec3params, rr)
               elsif (rr.type == Types.RRSIG)
                 add_to_rrs(sigs, rr)
+              elsif (rr.type == Types.NS)
+                add_to_rrs(nss, rr)
               end
+            elsif (rr.type == Types.SOA)
+              soa = rr
             end
           rescue DecodeError => e
             log(LOG_ERR, "#{file} contains invalid RR : #{line}")
@@ -442,22 +499,21 @@ module KASPAuditor
       if (do_dnssec)
         domain_rrsets = load_domain_rrsets(rrsets)
         #      return rrsets.sort!, keys.sort!, sigs.sort!, nsecs.sort!, nsec3s.sort!, nsec3params.sort!
-        return rrs, keys, sigs, nsecs, nsecnames.sort!, nsec3s, nsec3params, nsec3names.sort!, domains.sort!, signed_domains.sort!, domain_rrsets
+        return rrs, keys, sigs, nsecs, nsecnames.sort, nsec3s, nsec3params, nsec3names.sort, domains.sort, signed_domains.sort, domain_rrsets, nss
       else
         #      rrsets.sort!.each {|x| print x.name.to_s + "\n"}
         #      return rrsets.sort!
-        return rrs
+        return rrs, soa
       end
     end
     def load_domain_rrsets(rrsets)
       domain_rrsets = Hash.new
       rrsets.each {|rrset|
-        if (arr = domain_rrsets[rrset.name]) # .canonical])
+        if (arr = domain_rrsets[rrset.name])
           # Add to the existing array
           arr.push(rrset)
         else
           # Create a new array of RRSets to add to domain_rrsets
-          #        domain_rrsets[rrset.name.canonical] = [rrset]
           domain_rrsets[rrset.name] = [rrset]
         end
       }

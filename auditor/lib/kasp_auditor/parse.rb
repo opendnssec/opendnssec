@@ -28,7 +28,6 @@
 
 require 'rexml/document'
 include REXML
-include Syslog::Constants
 
 module KASPAuditor
   class Parse
@@ -55,14 +54,8 @@ module KASPAuditor
           print "Output file location : #{output_file_loc}\n"
           zones.push([config, input_file_loc, output_file_loc])
         }
-        # Now check the input and output zones using the config
-        auditor = Auditor.new(syslog)
-        zones.each {|config, input_file, output_file|
-          auditor.check_zone(config, input_file, output_file)
-        }
       }
-      ret = 0 # @TODO@ Return value to controlling process!
-      return ret
+      return zones
     end
   end
 end

@@ -1,68 +1,97 @@
-;; Zone: tjeb.nl.
-;
-tjeb.nl.		 3600		 IN		 SOA		 ns.tjeb.nl. jelte.tjeb.nl. 481 28800 7200 604800 3600
-tjeb.nl.		 3600		 IN		 RRSIG		 SOA 7 2 3600 20100101000000 20090611135226 13838 tjeb.nl. Rcpe5q75r29bQyPY1ku08ldGhjGspcySnBbszGL8nOakJNeHB0YItHfrKS14Qv0BbjpmfT1mu2arwrZmKavrWRG373R6I3/GStaH0KdQRh3MG4K6RnZfx8wSwomBT4a1uhRRe7aMlmBxsWUuxf5aS7Q6snwAoaJl/THjiNk1o+w= ;{id = 13838}
-;
-tjeb.nl.		 3600		 IN		 A		 195.169.221.157
-tjeb.nl.		 3600		 IN		 RRSIG		 A 7 2 3600 20100101000000 20090611135226 13838 tjeb.nl. SYQKBwlpFEb/akoYzSJc0YtyD+/05ECsSi2ZLS0/Rl+LBj2n2H6MPBi49YfEFab5mv8FLhjrpv/UgaWWfJeBQBp5dXBKh5lQJ4pp1QzcsvNMtwngb5f5fzyBQK0P1e+UN1pJP+L/xYOCKYlxky4BZ4vXxGcW78h2CqdUxiYktSg= ;{id = 13838}
+tjeb.nl.		 3600		 IN		 SOA		 ns.tjeb.nl. jelte.tjeb.nl. 278 28800 7200 604800 3600
+tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
+tjeb.nl.		 3600		 IN		 MX		 10 sol.nlnetlabs.nl.
 tjeb.nl.		 3600		 IN		 NS		 ns.tjeb.nl.
 tjeb.nl.		 3600		 IN		 NS		 ns-ext.nlnetlabs.nl.
-tjeb.nl.		 3600		 IN		 RRSIG		 NS 7 2 3600 20100101000000 20090611135226 13838 tjeb.nl. dPKtSoQ82rYNW4x+PKHehOQH0/dPLYgr/zspNu3FFppqV0W0U1zE8GMolapTcWu9yKFCMSfylSRaonQx/wlp8/5/uO5j8qsgzaESln9DZGnR3oQ4lW7gT3sIj7/sxmgpfKUIxxvru9Nx4g9qvgF4NlrDIsRxfrwYwVKUOnSaKVI= ;{id = 13838}
-tjeb.nl.		 3600		 IN		 MX		 10 sol.nlnetlabs.nl.
-tjeb.nl.		 3600		 IN		 MX		 50 xs4all.dacht.net.
-tjeb.nl.		 3600		 IN		 RRSIG		 MX 7 2 3600 20100101000000 20090611135226 13838 tjeb.nl. bSQVjBfn0y/EeVS557O85dcmf27p3ehdzkPW/+vZcOqjjfv1wqAAWzfpWmb/TOzEVqIaIVdIGHQ2FgwOFRZeunibwtI1RkETLGUF2QbUp4gb2SeVPw8rXPZBHyOdUXgnPjHEBDUf8MK4XyrQ3IL3FkAM8diwsO8zAC+YjjyQG48= ;{id = 13838}
-tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
-tjeb.nl.		 3600		 IN		 RRSIG		 AAAA 7 2 3600 20100101000000 20090611135226 13838 tjeb.nl. FoqNxjGbZSKiFWFRh1s8FT8I/xWJr0XHVCabTPMq31AbmimflRI8eIhjwk+LfOm0Z/Fw0jIvmIVI2SsPw3G1eN5sCsS40QjbrMnS3IhguJsJnizzK2rT29jqkMtvBwuzJOjxaudupxvLGTCnM5rcCpiqfx1A0HxtBWIb+TkSex0= ;{id = 13838}
-tjeb.nl.		 3600		 IN		 DNSKEY		 256 3 7 AwEAAbY68q17Z5OZ7mq/N/rZb8rvxuJ6S3Hxx1E4wzSWLicujmOdeFjfHC0yw8qLGXaOqkcjKjp5IC+xGdzp0viJsEvbAGmanE0GTPLqQR8zOmR0sw8ukpTWQg1wkOory0Y2SMYh8CRZvsuQ9JA35ebEyipsWbJ0PP5FoeiybAlyBYeZ ;{id = 13838 (zsk), size = 1024b}
-tjeb.nl.		 3600		 IN		 DNSKEY		 257 3 7 AwEAAccPRt0JxVVS+UqitpVnU/9jBbq7cmzPD2l56XKA5WQnrcKF45VaiJso+lwyOfV2eh72RsQ5OHVMAR1/1mMv2wgYCTearDKxOP270Y/XMtogS8WPTqSXTUfBpv1m5aHocUbSFNTywei0IAaAMGceQ+U958oNdMaPgP9ZZ29td0Umpqz8vLY7M5clZBPEPegi3Y2ptFVMjCd/4J0L7FNfLl9XIBuhyUAGqqCyAJ6de7656I5pChpMAZp7foYCH4ItEK8Sj5Pnywz3/rYlkrqsOd7IbufJpFRzF55wmZVlSgU7DwxCy9XP5Uqdtq2lxH7nPR8SUnaE8ps9TpR7oWPVePk= ;{id = 21894 (ksk), size = 2048b}
-tjeb.nl.		 3600		 IN		 RRSIG		 DNSKEY 7 2 3600 20100101000000 20090611135226 13838 tjeb.nl. QLyaksti9/TBR4M8PNWebhF4pGA9EO88l9ZvPJGJV2AvRQaKno5mtP0luDISmu+P4qica10oJO7NhPgCw8j+PlEZJyvgfe/CW7O0KbzHEk/JfM6nAN63qbvFVSK9kKKqPejDdVQ9X4CdMtp0wYbA08F0bWfa8hZKIiz+Tac3q/A= ;{id = 13838}
-tjeb.nl.		 3600		 IN		 RRSIG		 DNSKEY 7 2 3600 20100101000000 20090611135226 21894 tjeb.nl. MsFVjqTNFbgDXzXUlrlh2l2mPkRH2OK9w9rIXv0BUpVjYFtBWQ+jQa8IQN618632PkpWo0iPoagpsew+csvoUpfjk8kzRI+20k7LCDKl/i5lSjIAifZ0s28DU9wAZJD6MPQkmTlCoyrLdECbYkm29UybqXfZ1cVMvyd2mp2nJGGjrZNJ8CDUMfmpMRbeL/W0XFpZc3GZ6B4X6VXPD1aWjmBMYCLMPx0+ZAnHV8cv2PjHmswWSY6+5/+jyNCr7ZfNFQ3WcPz4Wuvpzr4mP7auilErOKoENk4vwBHAJbV+mo0d/IyAah9FnqWRF31DB/K7Jek29ZhtXwZ3/+QoCFavlg== ;{id = 21894}
-tjeb.nl.		 3600		 IN		 NSEC3PARAM		 1 0 5 beef 
-tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3PARAM 7 2 3600 20100101000000 20090611135226 13838 tjeb.nl. V10f8Mlp43XzHnY9SwSQSCGLr/S6SiNkRdPu6F+gQWzGSY84YYZB0aJL9B4WGzTBjkOkaO9BuCTfedOnH2e2FJEdZhPXTDeS47uLFAT01uBLwfKP1dx2Vzy3IyXoZWR6jpUxw38bsmibK/bAvxYvVTsC/oa5sht6Fqvr+qCuXSs= ;{id = 13838}
-t4nmo6nosf2bkeqn2gvo6rhhs67i7k4v.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  5s0hq9tnqb8msggposjrbsevkrksjua1 A NS SOA MX AAAA RRSIG DNSKEY NSEC3PARAM 
-t4nmo6nosf2bkeqn2gvo6rhhs67i7k4v.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. XoA3lElS+P7CWzxevjm1vfkyxqnKJbWWntkEVcfX97YjaW3wsgGiNnmq6A5DalYcdzRDT9mqQtWY/qaeYoV0Arq0CDuD0qfch2g3xrVg/B4FajzNf9xGVIPOReWnvF3FAvut6wJ9MrM0pvCLlSbS1pLluzpvDaBXpSUeuynHJ84= ;{id = 13838}
-;
+tjeb.nl.		 3600		 IN		 A		 195.169.221.157
 dragon.tjeb.nl.		 1234		 IN		 AAAA		 2002:c3a9:dd9d:8:219:d1ff:fe81:5c10
-dragon.tjeb.nl.		 1234		 IN		 RRSIG		 AAAA 7 3 1234 20100101000000 20090611135226 13838 tjeb.nl. ko2A6YRLCO9xwP0cAxNngMuRBaIl6DwLmzclEwoQnVeBsgJLLVo7gnpVn87zO+Sn/H+UZucp/hy18VDEBPl6S1xddNkWJDWzdjOBHgcwJ2L60VOVKaKjtoK7P2iQJ22KE6/Og7vbGkQ/9clisxSBP1wF6gL+U/MU+miOzJ2LnXA= ;{id = 13838}
-ov1mj15hon4seji9lapc2rhv2nti1rvn.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  t4nmo6nosf2bkeqn2gvo6rhhs67i7k4v AAAA RRSIG 
-ov1mj15hon4seji9lapc2rhv2nti1rvn.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. Scjj/QDgU7OmHdPaulzxqHALbpzoLX51sfKtTyTs/9ANGoy8qjpH3aXqVy5uh7IZPsDjmsLZc6SIEW9/dEBiTP91jfFjo1kapE6VFOTCVo0XuaZfF+bSdw/Qqzdcs3KAVcp9HBJVo4SNntegzmetIjRBKPQwt0d8z0yf2+mLKME= ;{id = 13838}
-;
 nepmail.tjeb.nl.		 3600		 IN		 MX		 10 mirre.nlnetlabs.nl.
-nepmail.tjeb.nl.		 3600		 IN		 RRSIG		 MX 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. WNhLEAIx1FmVxx8BOGlWQy1SZyAdIjlTCFU3ukzgMHgW6CHCSqZeS9TYnIzMG5pswcH6kS2qnwJRPbWOxHqsDRVY8pkVX84q35esHcWMxFaWqYQ7cbUICKz4oBFpOJcSwwHUsWuryP23hfOHnxNFGZnEsLAFHv7SvhBP1wtHBh4= ;{id = 13838}
-9rs4nbe7128ap5i6v196ge2iag5b7rcq.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  cq435smap43lf2dlg1oe4prs4rrlkhj7 MX RRSIG 
-9rs4nbe7128ap5i6v196ge2iag5b7rcq.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. XIwSKVZheUJdWRiFtWvA5vRWgR5uvMcUyohjoGQE0GfHJwVgoofsTyI9BFfRsQLp+q1h2QCZra9+K+YU3jIVAvduEc/5hzu70gCVH788LcWMbL3D9yDom7lP/7bPg0eGHWThFfPaSwQjtLChhaO3cEvkF6dN+/SUmwxTLdyPJDk= ;{id = 13838}
-;
 ns.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
-ns.tjeb.nl.		 3600		 IN		 RRSIG		 A 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. jjeJ9+OcXQMPGIhoQAQA9elFjTbu8LNG11zmBm+BDzI30h1MxUzCYZd2agb/bPmpFc+SSZWwxHPCtIQnJYKZkMFvbQO9cjs879OyWrLhBYX38Ch1vzCCnDvCQxu+u6zhn+sZok/ftL7xdGqhx4x6JHseIRmnLXSU5A33mOAKpdk= ;{id = 13838}
-ns.tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
-ns.tjeb.nl.		 3600		 IN		 RRSIG		 AAAA 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. HF7uoZZjrlIzpl9V2hodUzrdSNsWv01q40bSfqs/XqfQC+dHU380inqRG/DJdBEmiND8d29cLkOJ34aB9FSpvDXM3deRG0HJYWxSRQ4IXK/rQC+mFm0+ugFpfEntEyxz0tfj7vrfV/LIEgx1L75uS8BY5S0OstE40nfRohYml9M= ;{id = 13838}
-ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  lcdb57j17a8hllsrgtcm607ph24s2oar A AAAA RRSIG 
-ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. bIeuOnxbRmeCbo8Ca9yYaL9gKWE7wV5xuFxXrLRwYaAaeGEIfwrrp79Touj4BVmu5sKm7Msm/IQqe8lOwElAgEYcKJ1VCU3Znlm5okG7/JEhcr0CCoY+6DXl2pBncLX2AwBqZVvfAlDwbe7v1l4/MeJuGiCkNuK0rnSb5I3NZAE= ;{id = 13838}
-;
 ns-ext.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
-ns-ext.tjeb.nl.		 3600		 IN		 RRSIG		 A 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. RKV7X2J661yn3ETK9SCI0428HFJXJO1jhofVlitWLMaPGYTcgRnYFdS+Xbzwlh7Zp95kyB9zaF9wsIbUXfmnKZzt1rx1kBO87NiV7vVwEAtkbsPmOcqIM66rHpoK4VtkglSA8gve5o7bYbbncwpf38Eow/iGpWLqNa7s6X9hFT0= ;{id = 13838}
-lcdb57j17a8hllsrgtcm607ph24s2oar.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  ov1mj15hon4seji9lapc2rhv2nti1rvn A RRSIG 
-lcdb57j17a8hllsrgtcm607ph24s2oar.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. DTGkeJIaGpLir1XYlEasWUkDFDH2wuhxXm83QeBryZUaKmtK9r0zJnjxFu7DdTd49TIYUczCfuDH4hrA1Fd+euSXR6rovOTf7zecQtBAzilEosC8fDbWDaHLO/5fSLPua/lpm+1Ty62yeOtnADPdtB92pO9fvCZMe6Ydo0TSZHw= ;{id = 13838}
-;
+nsec3.tjeb.nl.		 3600		 IN		 DS		 22922 7 1 f62411de95a5b7bcabe976c0e65034a35a9fa937 ; xutid-gygat-vihop-hutur-sypiv-natos-binah-bytyp-fekyn-zypof-lyxix
 nsec3.tjeb.nl.		 1234		 IN		 NS		 ns.nsec3.tjeb.nl.
-nsec3.tjeb.nl.		 3600		 IN		 DS		 56939 5 1 ba4097f223b31fe55ddfc6628e5e6a00d4e54ace ; xovig-byhoz-damar-fuluv-hylyt-zocok-dufih-vepyb-behav-hadis-vyxux
-nsec3.tjeb.nl.		 3600		 IN		 RRSIG		 DS 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. gQX2+Jdh8O2uh2ncsfZRFzHnIJRusgy1ho17H1okBHpB47Ro8fbyqpS5v1AbzNlxWlQD4jwYxEhW+6PjVwbeVWaS43fCt71aQO0uTxF1g4k5X5G74xnP0fUWsGcb5OwUxbw6z3jwen9sTBVB7xSFxZ1hZ+e/NiA7KOjTYrQaNpw= ;{id = 13838}
-5s0hq9tnqb8msggposjrbsevkrksjua1.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  80n8ioi90t6r9r13qpfcpsourito57v2 NS DS RRSIG 
-5s0hq9tnqb8msggposjrbsevkrksjua1.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. DayEkFMi57gOxfPVD2j6ZRUAzCGmsUVldffI0l3fFPXylTADdjOuIC7lFzle2txColWQs7geu9GjR/LXEX6UfgA5AOg4zcO6B74Q8/3teIO7UtqzeL82xefY9IohyDZOUhQcLLc9SiH0oEah9KAd1cCyq5C/FOBuPrZM32z1VQA= ;{id = 13838}
-;
-;; Empty nonterminal: test.tjeb.nl.
-80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  929p027vb26s89h6fv5j7hmsis4tcr1p
-80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. MBjrbXLb2ftFzhWUBiFsP1gkzr18iYbDSqAlLDjNJhrfhGZjjAS4TGvisBGusc6/Ylu50kCwUp3FZNJyNHa9qcJ/uaUwAErVKD2yKkss+/IpzJZLj0wVvhJHZxSjoQZgPuSMTRMHwSsEEMiY/MrVjZFu6tR0qeWc7IpbaxeCYrk= ;{id = 13838}
-;
 test.test.tjeb.nl.		 1234		 IN		 A		 195.169.221.157
-test.test.tjeb.nl.		 1234		 IN		 RRSIG		 A 7 4 1234 20100101000000 20090611135226 13838 tjeb.nl. tavNav/gNkbiEzBYyO+pz/UpN0qxCCB4pJDNRhON+v1WhBMyeS+OF45ICysOK4PzZyDW4zUdK75jOh3ySaRz1AQFvEZdT1ynfZvoISvIflimKgFIN39iz3DCFZ7LslhxPDqjpe7jS3Qpv+1vj5YOxJtoYknIfWAplI8AG/wcXEw= ;{id = 13838}
-cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  ht35pgoisfecot5i7fratgsu2m4k23lu A RRSIG 
-cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. Y82yvhdQRn4qxdTGzTNrmWxBHL0Z81kRxf5V9tCE+gSwwUi6Ieyo0xQ5trSlZVGGKYzE9Nxpan4Nfar6QB0l3Lr6bFKPklqQM0XQQqDodpbX/wPFkrPNZQSqAyFeyzNYZ8I2s70nh49T0OLjgg8q64gkOi6v/D0Zu07ioaA7u2k= ;{id = 13838}
-;
-www.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
-www.tjeb.nl.		 3600		 IN		 RRSIG		 A 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. ZxFGpsekFT7ii6PGVyqZaLQJE0ODfREAUqxWeYvRQlVQh7Nhvwk5WqC4pQdX2wLGIldPdfJOukNCsfAMPm5k2z6x0+SLdYdIsIMpYvhmqVVKtSB31naI4oNLATJOEGdOV5rPYTsMg68fopJArV4egMpDZaCBQH0gZa1ZSKVV3HE= ;{id = 13838}
 www.tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
-www.tjeb.nl.		 3600		 IN		 RRSIG		 AAAA 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. igbC7rPH+t2ANPMsiyBG22e6owaNazVLgyYN4kdDmB9Yw37aa3HTqOOwi5ssAqwsn9uG8N7Mx9K8blQfIYiJi0eRZ8cNhqggWHjP5tP7hX5psFRxGl1Kno/Xuke8eEkgCSJU8+/mJPViGB9XvD2lQJf3Ufbe4F+53eLF8Eav+GM= ;{id = 13838}
+www.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
+unsigned.tjeb.nl. 3600		 IN		 NS		 ns1.asdf.nl.
+unsigned.tjeb.nl. 3600		 IN		 NS		 ns2.asdf.nl.
+otherdel.tjeb.nl. 123		 IN		 NS		 a.asdf.nl.
+otherdel.tjeb.nl. 123		 IN		 NS		 b.asdf.nl.
+ent.to.tjeb.nl. 111		 IN		 NS		 a.aaaa.nl.
+ent.to.tjeb.nl. 111		 IN		 NS		 b.aaaa.nl.
+ff.wat.out.of.zones. 143 IN		 A 		 123.123.123.123
+bla.tjeb.nl. 1111		 IN		 NS		 glue.bla.tjeb.nl.
+glue.bla.tjeb.nl. 1234		 IN		 A		 222.222.222.222
+tjeb.nl.		 3600		 IN		 SOA		 ns.tjeb.nl. jelte.tjeb.nl. 278 28800 7200 604800 3600
+otherdel.tjeb.nl.		 123		 IN		 NS		 a.asdf.nl.
+otherdel.tjeb.nl.		 123		 IN		 NS		 b.asdf.nl.
+; Empty non-terminal to NS: to.tjeb.nl.
+085sgetnf8lnatvato930v5m435hc4ic.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  4n2unju5u61nrr1mj8rmhhlh1jgm3u10 NS 
+085sgetnf8lnatvato930v5m435hc4ic.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000043 20090605072316 1392 tjeb.nl. ZYZtm3V6m5Uw9rcQQFi7mR7fHt8G3YUW7LOBInkIp3S6jZKYtLnxoDbolDD/njqGZ3Gq4L/1YZB4ReRysX8IjR27omfmZG79cXAQmlhe+Wkm+L1fi26fL5jpOY97yhDMGQYw9uH3OSsbrMK31+pr5WiNbkeSvYXvlp8O+mlQ+gA= ;{id = 1392}
+4n2unju5u61nrr1mj8rmhhlh1jgm3u10.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  553cood32grhrlgs3dcej6ro3q8jo68n
+4n2unju5u61nrr1mj8rmhhlh1jgm3u10.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000043 20090605072316 1392 tjeb.nl. ce9JSskQJF60w81ossMZpbg1A0rBo+X1S2iQOgALxCm/HvLnCMNkBWmP28cxRM724saiQcRReKOBxlNLUNgV2QQGVnfvi8aFpplxVDZdOi41k2snpo6Jvri2DaDijYdd78wjY4NahjbTaSyTqgErLCI7gN8wvKYydPcsdr25pMU= ;{id = 1392}
+ent.to.tjeb.nl.		 111		 IN		 NS		 a.aaaa.nl.
+ent.to.tjeb.nl.		 111		 IN		 NS		 b.aaaa.nl.
+553cood32grhrlgs3dcej6ro3q8jo68n.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  5s0hq9tnqb8msggposjrbsevkrksjua1 NS 
+553cood32grhrlgs3dcej6ro3q8jo68n.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000046 20090605072316 1392 tjeb.nl. i8+slGlQ2OPhTEMv8R+VGCycF2bGhbDLy5rWJUBIWIEmtn+EBz9QRCVHbky468aF5c5ZuboWGwZ4PgQdm/r27hLTYaPhlSOCDag/JjTgLv2DN5mCvOv0afY5xW8Bg6GIeJaA8t17GGwLWrd6odPCrBGvSJ75naFrF0/tpJM6UP4= ;{id = 1392}
+nsec3.tjeb.nl.		 1234		 IN		 NS		 ns.nsec3.tjeb.nl.
+nsec3.tjeb.nl.		 3600		 IN		 DS		 22922 7 1 f62411de95a5b7bcabe976c0e65034a35a9fa937 ; xutid-gygat-vihop-hutur-sypiv-natos-binah-bytyp-fekyn-zypof-lyxix
+nsec3.tjeb.nl.		 3600		 IN		 RRSIG		 DS 7 3 3600 20090701000057 20090605072316 1392 tjeb.nl. lbuBY5Lg5Ghzvdy14EiwOPeB6uWQnoUJfxWPAlntZxkhZf54OnfmA9ghH2lvwWWnqVjGnyNORTura8i4yrVim3QHFegcHBizojSzV832j0ySqK5KZJRSKyXxf8jm9mAX7+Yj25/uuwlJba5iJRIOz4+abbFiXFoZBLcOv71p1b4= ;{id = 1392}
+; Empty non-terminal: test.tjeb.nl.
+5s0hq9tnqb8msggposjrbsevkrksjua1.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  80n8ioi90t6r9r13qpfcpsourito57v2 NS DS RRSIG 
+5s0hq9tnqb8msggposjrbsevkrksjua1.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000053 20090605072316 1392 tjeb.nl. iAtKY1wcXWyK0FYw7tF7bPlPTG+oupEJx2ymVR1I1Jtq3lZjUOX4I7kS/hG0UxdjKwH+hQmZ4yQcYR+o/jOKunfZepY88OsPkTTt6EA4pdxeEhLQsxdghVPrD0RLeieTp/QvvFllSaK/yurnDd+qrHEJ7kHEQAvUCG7AowJVtuc= ;{id = 1392}
+80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  929p027vb26s89h6fv5j7hmsis4tcr1p
+80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000057 20090605072316 1392 tjeb.nl. XJhJpX7s8EYRHgXe2RM96vGO/avyyvgHuPeAL4w8cn3mQD9OaQGAVJ5FUfphUBYZxN+P00WwLhp6TjcvY2AZvr+YbGU1wv5kUGhmWYIX8OThas1O73lzLqcTrayi8ns5t5KTvvmhckrEhVj4yOlWWSHd1KCzalomDe06fP0Jwmc= ;{id = 1392}
+www.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
+www.tjeb.nl.		 3600		 IN		 RRSIG		 A 7 3 3600 20090701000055 20090605072316 1392 tjeb.nl. eRD848NVrkbaDZZ9mteaNUy3kMjNCy9MOjyAh7oeEwHKFqBlNpg8ym9Vh3CyFXuMLzU2ubSu220jEkxV98GSQ/4do7Xdq8GSqhDvcr57qbq17uJdc9Wzyafq4yrQ23neDNs1tazHqjTHwbHuuaLI40D0BQgweBijNLyClncBsIA= ;{id = 1392}
+www.tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
+www.tjeb.nl.		 3600		 IN		 RRSIG		 AAAA 7 3 3600 20090701000046 20090605072316 1392 tjeb.nl. i30GCs9VOCh73XCTV06pKcNZhgU+1cird+BPahsCU08EVvemEzmEt3Hpfj+abTUC23XztEcz8Q0X7ZUF5LKHIwQhyp5BFTzEovyNfIoGE9HNXKsONCye6jB7jabm4EGpnZF4PHQvPD0XpOnoUH3vdMa8hEJ79R/+yI7CD6NEG5I= ;{id = 1392}
 929p027vb26s89h6fv5j7hmsis4tcr1p.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  9rs4nbe7128ap5i6v196ge2iag5b7rcq A AAAA RRSIG 
-929p027vb26s89h6fv5j7hmsis4tcr1p.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. q4ECLySO5bVzwg6krsdWAYAe7kKvfTSUCOwokf6tr69j7KddRweIT/0MQ+J80Dda96rYsCIP9uox03+h1fllpEhryXq9QvYA7XlIAXx6PNOcJOpNVJ1daCYXE0DkH2yJyykJ+eEsmF0hnXZ/teS8t0XQAwZOyI/1k5NwYqX2MmY= ;{id = 13838}
-;
+929p027vb26s89h6fv5j7hmsis4tcr1p.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000055 20090605072316 1392 tjeb.nl. bIsNW+znR4LLt4LC60JhHTA7EXsUFvD2BXBjZqlXbK7wJQPAVZyPSDeiDEhKZ3jhIGkUJqLtWhUzPULAGPadsJmv1SnULOe4Pj3EbW9QoJszty+RQak5fnk9TYtpqfmbPyz1VBJOATQd14jRtoOfJ3pxZgGOsqf8613Kca5Mgyk= ;{id = 1392}
+nepmail.tjeb.nl.		 3600		 IN		 MX		 10 mirre.nlnetlabs.nl.
+nepmail.tjeb.nl.		 3600		 IN		 RRSIG		 MX 7 3 3600 20090701000009 20090605072316 1392 tjeb.nl. C3JopFDGBshtp8dODjYaaThNK4+/IAxWYf+Yjakn5YPYXsg+oZ7rjyxkNVhzUSoVl9v4fvA5X9iXyucfFKcg2gqIXWYHaTKfYdm3YUcKse1usP4ejjOH6u+1fldU4u3MobrHX07b/H1HwwmxR8tqxdm9pdQzcx63oPH78MYlO5c= ;{id = 1392}
+9rs4nbe7128ap5i6v196ge2iag5b7rcq.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  bja6cv1p6i1umo93jdjcq8j46j18oeqi MX RRSIG 
+9rs4nbe7128ap5i6v196ge2iag5b7rcq.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000053 20090605072316 1392 tjeb.nl. CtHjbtDWjDddZMxSZozwh+/NzGa8f1TXolWiMnNff0LANveV+vZmpi/h195KmYib1pswEhFKYejwOMu/qtNdWXqG1J3NIPM/X4TghVHj7yUyide+qjNQvglRj0HwyCxv5ImCgNhM9t/ELc8zFyrm9TuKv45A8+b2o/OyHC5B8kE= ;{id = 1392}
+unsigned.tjeb.nl.		 3600		 IN		 NS		 ns1.asdf.nl.
+unsigned.tjeb.nl.		 3600		 IN		 NS		 ns2.asdf.nl.
+bja6cv1p6i1umo93jdjcq8j46j18oeqi.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  cq435smap43lf2dlg1oe4prs4rrlkhj7 NS 
+bja6cv1p6i1umo93jdjcq8j46j18oeqi.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000055 20090605072316 1392 tjeb.nl. lt9B38dHHDPHsU+9k0HiVLEeJyWWkhyb1JIKTjzVc0ux5DaMNenIztjf/5tQuBQD4ktk4A1IuCWv+GVDmR9ZnlJaTGAvEY7GMP6dV+qEypGfyGa/uYUb1VoWDssE17IBDtmLQTRiDNuFA9Fnz8EgxdjR+qbOUJWwqnpwpRzYTWU= ;{id = 1392}
+; Out-of-zone data: ff.wat.out.of.zones.		 143		 IN		 A		 123.123.123.123
+test.test.tjeb.nl.		 1234		 IN		 A		 195.169.221.157
+test.test.tjeb.nl.		 1234		 IN		 RRSIG		 A 7 4 1234 20090701000007 20090605072316 1392 tjeb.nl. YkZ5Ws0Rn4c00xyNOQpJzs6JhFbIFyv+T80zdpSzWcOrf07MqbNeZkYNNglOiOaM7gXTNGr2Q1KFNIN/wuD+C7BUIZzpT2h3mDyuetUgPoEKmvrgaX4TDv3PF3ko776Ddinq4Tx993M5bZFEJHiiFtFFkOQpcvSIu1k8jnS4vmc= ;{id = 1392}
+cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  dsr9s1udf6urti95hvhv1b04tooihn7a A RRSIG 
+cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000019 20090605072316 1392 tjeb.nl. ZNAXecCKAFjAGCVHQUZN1/FRbu7e4LyfIUKHc/RqyXZ9TWukPFkmqKQm93kKDlLnve0TcHjm4u+RY2ikTGnZjQtKEsMjlOVw8pTHewyQ74dVKEk+CpM2YdYYbD8oY1cFkPClLdHJ6CBq3zmfkkKJCSWhOrwsjUYO7LyJKE71P20= ;{id = 1392}
+glue.bla.tjeb.nl.		 1234		 IN		 A		 222.222.222.222
+bla.tjeb.nl.		 1111		 IN		 NS		 glue.bla.tjeb.nl.
+dsr9s1udf6urti95hvhv1b04tooihn7a.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  ht35pgoisfecot5i7fratgsu2m4k23lu NS 
+dsr9s1udf6urti95hvhv1b04tooihn7a.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000046 20090605072316 1392 tjeb.nl. QAZ4RaoH8YHKwk2xwGjpvDuFat3yzGEeHEE/SLO6BdP9TVxWBJgU/EPZGgvVMGYoeX/lBXAOJki0xVQqg3kerawhQS2c0Fy53RHuCJn3c3sysOPfvOVVRTzax3Iuw1JWNAtwsIAP81SyzVa8bHkZmfcDp+nUDmHa/3U59rg3xjQ= ;{id = 1392}
+ns.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
+ns.tjeb.nl.		 3600		 IN		 RRSIG		 A 7 3 3600 20090701000023 20090605072316 1392 tjeb.nl. tzg/V+AwqGnYX/Xb9bgYmv5BmSDs52e7Ghk37XjKoqiiUoylBwAx0+zbFZUAMYLPIQfiwB/93Akodmqw6kpUBLGfFdOzmhPUGV37dMsT2jiHrK39CbeoNkEbA2Z5Rxxf2PFXgFHipcerIgOaEs5C3rLS7SwRGUwhcET+LLuu7Ag= ;{id = 1392}
+ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  lcdb57j17a8hllsrgtcm607ph24s2oar A RRSIG 
+ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000012 20090605072316 1392 tjeb.nl. UcUkg7vE40OkXIkXkSLkFoO/z2FDYbQhkkePUWP5sUgwOPTixMQe09P/4jBbopMAI61L3jfMtnhN9G1Pydk9I9rOcdtuZfEHrUIJfq4QTWOBoYbY0sz4pCbkQD9osawAzzI1rJtlQQKryW0JHnQaKeZR3ZseOfqvext3M7GEgls= ;{id = 1392}
+ns-ext.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
+ns-ext.tjeb.nl.		 3600		 IN		 RRSIG		 A 7 3 3600 20090701000000 20090605072316 1392 tjeb.nl. Rk5MJbWd0tuqrjSmmU8o2eKVzTIP7qkns4S4NrDXz2roZUlXBpxUQhErdlGfWI3PyypGatiLS7+p8tYAlvMBivIJyMw2SbCdt1M/veCiZsrITZWCZ+udWAD4HdLe70jLo3y0+UWa8E91ACLw+94k+a0IUAohntrmkA6Jo6o+Yf8= ;{id = 1392}
+lcdb57j17a8hllsrgtcm607ph24s2oar.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  ov1mj15hon4seji9lapc2rhv2nti1rvn A RRSIG 
+lcdb57j17a8hllsrgtcm607ph24s2oar.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000016 20090605072316 1392 tjeb.nl. kg2s03/2zUYiwlAWv0pNUvVUldgY5hAWoRNOqazQz2giYWs/vJYlkwcK5DC5z6q2HibSt+03FHLqD5t5Jh54U7ay5DVNq0+Dxm1qJbSMxbxgf0mrdxJWyDdObMjvRg21OqbCigxB2mOL/FvsczChzBgjaxcBXx+hD1kYZL1TmdA= ;{id = 1392}
+dragon.tjeb.nl.		 1234		 IN		 AAAA		 2002:c3a9:dd9d:8:219:d1ff:fe81:5c10
+dragon.tjeb.nl.		 1234		 IN		 RRSIG		 AAAA 7 3 1234 20090701000009 20090605072316 1392 tjeb.nl. UjnPysFnjs8UlL0dLwYIOJuM7GTTFgANumtGVVXSZLb91FHVEx/W6DUq/ZXf4OQ/pes8G3EcVLqpzDFe2twaSOFgzDq3q9AJlPkJNS7l4tAm5gwTcbaKr3iPVYhHq8oKlTq3EmrI7YYWT3ts/4gAG+Kqq94MfvGw6Zk+1bS9/f0= ;{id = 1392}
+ov1mj15hon4seji9lapc2rhv2nti1rvn.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  t4nmo6nosf2bkeqn2gvo6rhhs67i7k4v AAAA RRSIG 
+ov1mj15hon4seji9lapc2rhv2nti1rvn.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000011 20090605072316 1392 tjeb.nl. eCFsIkAH4YqRb1fW8tu2iz75zwaaM/zq18a8ndCk0+nGklmsxfp8jX+myCX8MI2xAHf+hCeSdbNSBz1ycWbSlAA06QapH798hhvLFuC/QlRey9gM/F9edk1+Kx6ka47K4BJRgYKPfYiJdxtLa9XkkQMQGLnT3P4asxPB8f9PDcQ= ;{id = 1392}
+tjeb.nl.		 3600		 IN		 A		 195.169.221.157
+tjeb.nl.		 3600		 IN		 RRSIG		 A 7 2 3600 20090701000008 20090605072316 1392 tjeb.nl. 2vxhRr7WkAHKBc4uqwCoRQKHmKXsgQkH5vn2fXm2ad/8nBfy70TvyvfYNuBDcDIU4VcbcdmrIBFTLswZP4kZmSpF6DF5heE2eFNqRymmC8KJ/JExfAsuvFKPr+8xybxX1LEMxZTCyCDuyYi4cDbtuCVDojlbkvNRb7Qu37KHeUo= ;{id = 1392}
+tjeb.nl.		 3600		 IN		 NS		 ns.tjeb.nl.
+tjeb.nl.		 3600		 IN		 NS		 ns-ext.nlnetlabs.nl.
+tjeb.nl.		 3600		 IN		 RRSIG		 NS 7 2 3600 20090701000027 20090605072316 1392 tjeb.nl. zcN4rTqYizRsw08BBGCCu5uPeLrbJlHJAXs+POI0pi9JbOD/uVcTdkQ+XN1rUL8HPDqMHJ9MUdO+UnpnwCXGh7+IEusnTX5I4Mu0C+7gbNjBiGyD1/v5u5aHRnkWAAMt2FyJBb5gvEJnNhULvoWLQFpKqGIgyJQMgb9/9e/QtxI= ;{id = 1392}
+tjeb.nl.		 3600		 IN		 RRSIG		 SOA 7 2 3600 20090701000001 20090605072316 1392 tjeb.nl. pvmdrgckZDzjBkEUTYmFYwwVYCY6YHCvx1V0CXs1/cy+GevXFRoTKTlLGsrnwFHbZe7JZ7zIB88s6RZBGhCtfSAQkQ9xrAlET/9vns6UkMOhcuiAsDQY0WzhYDXJ5/QBjwaa3AYJcHUgr8CVIgJdbOQNnbJtRQl5ZIRz6VR8d2A= ;{id = 1392}
+tjeb.nl.		 3600		 IN		 MX		 10 sol.nlnetlabs.nl.
+tjeb.nl.		 3600		 IN		 RRSIG		 MX 7 2 3600 20090701000002 20090605072316 1392 tjeb.nl. f3itbkVfVwh9WTJ5oZTX0RFC9x/WbAzpalxe6yer49qj1tJAP8Xoa/3Ne/C4sX9S/QbJ5CET/pVlcd+f0mILwtP1z6XwH22LOUTogLWDCKrcKEuhYd9ZIehqX7sHfSJIs9U2w2+bJMlxCgYXKIGU2D3qrpmj+2RrEteEJgKqP1Q= ;{id = 1392}
+tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
+tjeb.nl.		 3600		 IN		 RRSIG		 AAAA 7 2 3600 20090701000050 20090605072316 1392 tjeb.nl. VIRhIlzAVOH6hYSVpMm+PJHCH2yzNWi+rXnz4K7rSWsk8hAZKIwi7aHLlev9neVNP/XK40D8TaWMO4oRYpBhKZ5Hm44OgzUYDPFBsqSlOwLM7phSs3Es5CrQwJDKNz/gxjoTPjq+ggFgXoFZogiv+uTpE27FAu5ZfzJBu5WM+Hw= ;{id = 1392}
+tjeb.nl.		 3600		 IN		 DNSKEY		 256 3 7 AwEAAds/kbDS9DzOPjG9JMvFs+ehWNuJCK9GtT9/ZdgohLepOi4AIVlpIlESsxQYlRO0IS4BoCd1xmj99E3e6pamQmQXfMlnrNGZE8uRyemn5VsF90Jjb7xfam7apvA3zM1Ii6KaxC+eiVisFZ2WjGBcB3Yi/nVQnMLvuVEmtqpZoxyF ;{id = 1392 (zsk), size = 1024b}
+tjeb.nl.		 3600		 IN		 DNSKEY		 257 3 7 AwEAAbVa7BXp2WZlhc99se5Sg46L+VIKXl31dSxxAXv227XBnUA7E1ROuGtSpf8cQJdY9tQdkrgBG8Yi6M+nxa2V58XIXxeDxWxNiKh3U4fCblIEvyrcNqwoqcox1v0dFVS58YELXB7Ypvcbuy7DErTZBJa5tibXHeARas8WLUqhmg8J ;{id = 13108 (ksk), size = 1024b}
+tjeb.nl.		 3600		 IN		 RRSIG		 DNSKEY 7 2 3600 20090701000002 20090605072316 13108 tjeb.nl. QpbDg0tboud+rbvCc0YR6DB1ToMibF1r81Iee0Oj+qifdLsoNcW/ZC1H59q35/ZhgzrH+/wOfHvYp0k4PN06/iFH1DcASxcKDC6jmBcqv+KdhcV5/mHtWryFzHwPEUtc36dPxegnKa0L3rfArYDrl+YEiGiQ/8Hhk6kkNXi8VII= ;{id = 13108}
+tjeb.nl.		 3600		 IN		 NSEC3PARAM		 1 0 5 beef 
+tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3PARAM 7 2 3600 20090701000043 20090605072316 1392 tjeb.nl. IyBUNZSXqUy2M2ZskgfGfUgtbxN6hb9jCrvbXuKsdqWsssu/D/puqnKl49/CatuFTEug3my8OAvzI9AnCG0tte+y0I6UkBGs4VJpAnFtpG8zXqmbsezmF7GhWf/Tf69Cxmx+6PzWyhHA8nfZSr9VyRdUZSLDzwz3e5M2mbMk800= ;{id = 1392}
+t4nmo6nosf2bkeqn2gvo6rhhs67i7k4v.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  085sgetnf8lnatvato930v5m435hc4ic A NS SOA MX AAAA RRSIG DNSKEY NSEC3PARAM 
+t4nmo6nosf2bkeqn2gvo6rhhs67i7k4v.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20090701000007 20090605072316 1392 tjeb.nl. Yf/wwxKPu4OF97w7k1IpYcK6DmwPSYWjpLwYbNfdwT/5AIKm6LIohjxhVtplXGzdn2VoK/XW7DrTBsalVfWNVp5z9V1Ze3y8WCHrnDyfcH9kpm73X/aJ17MTZpcHVEvT7lghSI87J3IxiwLlsyKUHckhuW21HjfTrGgFuQD7sGE= ;{id = 1392}
+; Last refresh stats: existing: 20, removed 1, created 10

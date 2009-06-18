@@ -26,6 +26,7 @@
 #
 
 require 'syslog'
+include Syslog::Constants
 require 'lib/kasp_auditor/config.rb'
 require 'lib/kasp_auditor/auditor.rb'
 require 'lib/kasp_auditor/parse.rb'
@@ -38,7 +39,13 @@ module KASPAuditor
       }
     end
     def run_with_syslog(path, filename, syslog)
-      ret = Parse.parse(path, filename, syslog)
+      zones = Parse.parse(path, filename, syslog)
+      # Now check the input and output zones using the config
+      auditor = Auditor.new(syslog)
+      zones.each {|config, input_file, output_file|
+        auditor.check_zone(config, input_file, output_file)
+      }
+      ret = 0 # @TODO@ Return value to controlling process
       exit(ret)
     end
   end
