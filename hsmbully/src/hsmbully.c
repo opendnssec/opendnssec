@@ -208,6 +208,15 @@ void testslot_initiation (void) {
 	CK_BYTE noappinfo;
 	int initestctr;
 
+	/* Complain if user PIN and SO PIN are the same -- this will bring
+	 * out more subtlety in the tests to follow.
+	 */
+	if (strlen (ASCII_PIN_USER) == strlen (ASCII_PIN_SO)) {
+		if (!memcmp (ASCII_PIN_USER, ASCII_PIN_SO, strlen (ASCII_PIN_USER))) {
+			CU_FAIL ("SO PIN and USER PIN should differ to get the best results from the initiation test");
+		}
+	}
+
 	/*
 	 *  Open RW session with slot
 	 */
@@ -325,9 +334,11 @@ void testslot_initiation (void) {
 		 * This is only possible during an RW session.
 		 * Login need not have succeeded for this to work.
 		 */
-fprintf (stderr, "C_SetPIN: ");
-		GETRV (C_SetPIN (seshdl, ASCII_PIN_USER, strlen (ASCII_PIN_USER), ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
-fprintf (stderr, "choice_session=%d, choice_login=%d, choice_rw=%d, ck_rv=0x%08lX\n", choice_session, choice_login, choice_rw, ck_rv);
+		GETRV (C_SetPIN (seshdl,
+			(choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
+			(choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER),
+			(choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
+			(choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER)));
 		if (choice_session && choice_login && choice_rw) {
 			if (LASTRVOK ()) {
 				CU_PASS ("Properly accepted operation #2 during initiation test");
