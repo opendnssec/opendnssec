@@ -199,7 +199,7 @@ module KASPAuditor
             #  c) inception date in past by at least interval specified by config
             time_now = KASPTime.get_current_time
             if (sig.inception >= (time_now + config.zone.signatures.inception_offset))
-              log(LOG_ERR, "Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}")
+              log(LOG_ERR, "Inception error for #{sig.name}, #{sig.type_covered} : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}")
             else
               #            print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"
             end
@@ -212,7 +212,7 @@ module KASPAuditor
             #  We want to check that at least the validity period remains before the signatures expire
             # @TODO@ Probably want to have a validity WARN level and an ERROR level for validity
             if ((sig.expiration -  time_now).abs <=  validity)
-              log(LOG_ERR, "Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}")
+              log(LOG_ERR, "Validity error for #{sig.name}, #{sig.type_covered} : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}")
             else
               #            print "OK : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}\n"
             end
@@ -272,7 +272,13 @@ module KASPAuditor
       }
 
       # Follow NSEC loop, checking each TTL, and following Next Domain field.
-      nsec = nsecs.delete_at(0)
+      nsec = nil
+      nsecs.each {|n| nsec = n if n.name == soa.name}
+      if (!nsec)
+        nsec = nsecs.delete_at(0)
+      else
+        nsecs.delete(nsec)
+      end
       check_nsec_ttl_and_types(nsec, soa, domain_rrsets)
       start_name = nsec.name
       while ((nsec.next_domain != start_name) && (nsecs.length > 0))
@@ -280,9 +286,8 @@ module KASPAuditor
         #      print "Following NSEC loop from #{nsec.name} to #{nsec.next_domain}\n"
         candidates = nsecs.select{|n| n.name == nsec.next_domain}
         if (candidates.length == 0)
-          log(LOG_ERR, "Can't follow NSEC loop from #{nsec.name} to #{nsec.next_domain} - starting new loop at next NSEC record")
-          nsec = nsecs.delete_at(0)
-          break if !nsec
+          log(LOG_ERR, "Can't follow NSEC loop from #{nsec.name} to #{nsec.next_domain}")
+          break
         else
           nsec = candidates[0]
           # Remove that from the list
