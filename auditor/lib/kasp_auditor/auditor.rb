@@ -186,10 +186,11 @@ module KASPAuditor
           end
           rrset.sigs.each {|sig|
             #  c) inception date in past by at least interval specified by config
-            if (sig.inception >= (Time.now.to_i + config.zone.signatures.inception_offset))
-              log(LOG_ERR, "Signature inception is #{sig.inception}, time now is #{Time.now.to_i}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{Time.now.to_i - sig.inception}")
+            time_now = KASPTime.get_current_time
+            if (sig.inception >= (time_now + config.zone.signatures.inception_offset))
+              log(LOG_ERR, "Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}")
             else
-              #            print "OK : Signature inception is #{sig.inception}, time now is #{Time.now.to_i}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{Time.now.to_i - sig.inception}\n"
+              #            print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"
             end
 
             #  d) expiration date in future by at least interval specified by config
@@ -199,10 +200,10 @@ module KASPAuditor
             end
             #  We want to check that at least the validity period remains before the signatures expire
             # @TODO@ Probably want to have a validity WARN level and an ERROR level for validity
-            if ((sig.expiration -  Time.now.to_i).abs <=  validity)
-              log(LOG_ERR, "Signature expiration is #{sig.expiration}, time now is #{Time.now.to_i}, signature validity is #{validity}, difference = #{sig.expiration - Time.now.to_i}")
+            if ((sig.expiration -  time_now).abs <=  validity)
+              log(LOG_ERR, "Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}")
             else
-              #            print "OK : Signature expiration is #{sig.expiration}, time now is #{Time.now.to_i}, signature validity is #{validity}, difference = #{sig.expiration - Time.now.to_i}\n"
+              #            print "OK : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}\n"
             end
           }
         }
