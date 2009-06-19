@@ -42,10 +42,14 @@ module KASPAuditor
       zones = Parse.parse(path, filename, syslog)
       # Now check the input and output zones using the config
       auditor = Auditor.new(syslog)
+      ret = -999 # Return value to controlling process
       zones.each {|config, input_file, output_file|
-        auditor.check_zone(config, input_file, output_file)
+        ret_val = auditor.check_zone(config, input_file, output_file)
+        if ((ret_val < 0) && (ret_val > ret))
+          ret = ret_val
+        end
       }
-      ret = 0 # @TODO@ Return value to controlling process
+      ret = 0 if (ret == -999)
       exit(ret)
     end
   end

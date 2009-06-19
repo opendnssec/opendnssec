@@ -32,8 +32,10 @@ module KASPAuditor
   class Auditor
     def initialize(syslog)
       @syslog = syslog
+      @ret_val = 999
     end
     def check_zone(config, input_file, output_file)
+      @ret_val = 999
       input, soa = load_zone(input_file)
       rrs, keys, sigs, nsecs, nsecnames, nsec3s, nsec3params, nsec3names,
         domains, signed_domains, domain_rrsets, nss = load_zone(output_file, true)
@@ -50,10 +52,19 @@ module KASPAuditor
 
       # @TODO@ Implement checking of only part of the zone
       # How does that work? Load only part of the zone file? Which bit?
+
+      if (@ret_val == 999)
+        return 0
+      else
+        return -@ret_val
+      end
     end
 
     def log(pri, msg)
       print "#{pri}: #{msg}\n"
+      if (pri.to_i < @ret_val)
+        @ret_val = pri.to_i
+      end
       @syslog.log(pri, msg)
     end
 
@@ -90,7 +101,7 @@ module KASPAuditor
           log(LOG_ERR, "non-DNSSEC RRSet #{rr.type} included in Output that was not present in Input : #{rr}")
         end
       }
-#      print "\nFINISHED CHECKING non_DNSSEC DATA\n\n"
+      #      print "\nFINISHED CHECKING non_DNSSEC DATA\n\n"
     end
 
     def out_of_zone(name, soa_name)
@@ -127,7 +138,7 @@ module KASPAuditor
       if (!seen_key_with_sep_clear)
         log(LOG_ERR, "No DNSKEY RR with SEP bit clear in output zone")
       end
-#      print "\nFINISHED CHECKING DNSKEYs\n\n"
+      #      print "\nFINISHED CHECKING DNSKEYs\n\n"
     end
 
     def check_signatures(config, sigs, signed_domains, domain_rrsets, soa, nss)
@@ -141,7 +152,7 @@ module KASPAuditor
         return
       end
       key_rrset.rrs.each {|key|
-#        print "Using key #{key.key_tag}\n"
+        #        print "Using key #{key.key_tag}\n"
         algs.push(key.algorithm) if !algs.include?key.algorithm
       }
       domain_rrsets.each {|domain, rrsets|
@@ -208,7 +219,7 @@ module KASPAuditor
           }
         }
       }
-#      print "\nFINISHED CHECKING RRSIG\n\n"
+      #      print "\nFINISHED CHECKING RRSIG\n\n"
     end
 
     def is_glue(domain, soa, nss)
@@ -290,7 +301,7 @@ module KASPAuditor
         msg = msg + "End of extra NSEC list"
         log(LOG_ERR, msg)
       end
-#      print "\nFINISHED CHECKING NSEC\n\n"
+      #      print "\nFINISHED CHECKING NSEC\n\n"
 
     end
 
@@ -417,7 +428,7 @@ module KASPAuditor
             unhashed_domain = hash_to_domain_map[Name.create(domain.to_s + "." + soa.name.to_s).canonical]
 
             if ((is_glue(unhashed_domain, soa, nss) ||
-                (out_of_zone(unhashed_domain, soa.name))))
+                    (out_of_zone(unhashed_domain, soa.name))))
               found_domains.delete(domain)
             end
           }
@@ -433,7 +444,7 @@ module KASPAuditor
       if (nsec3names.length > 0)
         log(LOG_ERR, "#{nsec3names.length} NSEC3 names outside of closed loop of hashed owner names")
       end
-#      print "\nFINISHED CHECKING NSEC3\n\n"
+      #      print "\nFINISHED CHECKING NSEC3\n\n"
     end
 
     def load_zone(file, do_dnssec = false)
