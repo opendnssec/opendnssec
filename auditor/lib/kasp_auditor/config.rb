@@ -32,12 +32,12 @@ module KASPAuditor
     attr_accessor :zone
     def initialize(config_file_loc)
       #      @zones = []
-      print "Opening config file : #{config_file_loc}\n"
+#      print "Opening config file : #{config_file_loc}\n"
       File.open(config_file_loc, 'r') {|file|
         doc = REXML::Document.new(file)
         #        doc.elements.each("SignerConfiguration/Zone") {|z|
         z = doc.elements['SignerConfiguration/Zone']
-        print "Name : #{z.attributes['name']}"
+#        print "Name : #{z.attributes['name']}"
         new_zone = Zone.new(z.attributes['name'])
         # Fill out new zone
         new_zone.signatures = Zone::Signatures.new(z.elements['Signatures'])

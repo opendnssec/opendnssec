@@ -2,8 +2,8 @@ require 'test/unit'
 require 'lib/kasp_auditor.rb'
 include KASPAuditor
 
-  # Giving up on getting long-expiry test data.
-  # Instead, just use the good test data we have, and frig the system time.
+# Giving up on getting long-expiry test data.
+# Instead, just use the good test data we have, and frig the system time.
 module KASPAuditor
   class KASPTime
     def KASPTime.get_current_time
@@ -24,7 +24,7 @@ class AuditorTest < Test::Unit::TestCase
     run_auditor_with_syslog(path, filename, stderr, 0)
 
     # Check syslog to ensure no messages left while this test ran
-    assert_equal(nil, stderr[0].gets)
+    assert_equal(nil, err = stderr[0].gets, "Didn't expect any messages in syslog from good auditor run, but got : #{err}\n")
   end
 
   def test_good_file_nsec3
@@ -34,7 +34,7 @@ class AuditorTest < Test::Unit::TestCase
     run_auditor_with_syslog(path, filename, stderr, 0)
 
     # Check syslog to ensure no messages left while this test ran
-    assert_equal(nil, stderr[0].gets)
+    assert_equal(nil, err = stderr[0].gets, "Didn't expect any messages in syslog from good auditor run, but got : #{err}\n")
   end
 
   def test_bad_file_nsec
@@ -96,15 +96,15 @@ class AuditorTest < Test::Unit::TestCase
     stderr[0].lineno = 0 # Reset the log reader to the start so that the NSEC(3) stuff can be checked
   end
 
-#  def test_partial_scan_good
-#    fail "Implement good partial scanning test!"
-#    # @TODO@ Is there any need for NSEC(3) versions of these partial test methods?
-#    # Not really - just go with the first type of NSEC(3) seen, and run RR type checks
-#  end
-#
-#  def test_partial_scan_bad
-#    fail "Implement bad partial scanning test!"
-#  end
+  #  def test_partial_scan_good
+  #    fail "Implement good partial scanning test!"
+  #    # @TODO@ Is there any need for NSEC(3) versions of these partial test methods?
+  #    # Not really - just go with the first type of NSEC(3) seen, and run RR type checks
+  #  end
+  #
+  #  def test_partial_scan_bad
+  #    fail "Implement bad partial scanning test!"
+  #  end
 
   def run_auditor_with_syslog(path, filename, stderr, expected_ret = nil)
     runner = Runner.new
@@ -118,13 +118,16 @@ class AuditorTest < Test::Unit::TestCase
 
       Syslog.open("auditor_test", options) {|syslog|
         ret = runner.run_with_syslog(path, filename, syslog)
-        if (expected_ret)
-          assert_equal(expected_ret, ret)
-        end
       }
-      exit!
+      exit!(ret)
     }
     stderr[1].close
     Process.waitpid(pid)
+    ret_val = $?.exitstatus
+    if (expected_ret)
+      assert_equal(expected_ret, ret_val, "Expected return of 0 from successful auditor run")
+    else
+      assert(ret_val != 0, "Expected error return from auditor")
+    end
   end
 end
