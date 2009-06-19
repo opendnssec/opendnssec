@@ -45,6 +45,7 @@
 
 #include "ksm/datetime.h"
 #include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 #include "libhsm.h"
 #include "keygend.h" 
@@ -83,6 +84,9 @@ server_main(DAEMONCONFIG *config)
     int result;
     hsm_ctx_t *ctx = NULL;
     hsm_key_t *key = NULL;
+    
+    FILE *lock_fd;  /* for sqlite file locking */
+    char *lock_filename = NULL;
 
     int keys_needed = 0;    /* Total No of keys needed before next generation run */
     int keys_in_queue = 0;  /* number of unused keys */
@@ -122,6 +126,24 @@ server_main(DAEMONCONFIG *config)
         if (status != 0) {
             log_msg(config, LOG_ERR, "Error reading config");
             exit(1);
+        }
+
+        /* If we are in sqlite mode then take a lock out on a file to
+           prevent multiple access (not sure that we can be sure that sqlite is
+           safe for multiple processes to access). */
+        if (DbFlavour() == SQLITE_DB) {
+
+            /* set up lock filename (it may have changed?) */
+            lock_filename = NULL;
+            StrAppend(&lock_filename, (char *)config->schema);
+            StrAppend(&lock_filename, ".our_lock");
+
+            lock_fd = fopen(lock_filename, "w");
+            status = get_lite_lock(lock_filename, lock_fd);
+            if (status != 0) {
+                log_msg(config, LOG_ERR, "Error getting db lock");
+                exit(1);
+            }
         }
 
         log_msg(config, LOG_INFO, "Connecting to Database...");
@@ -238,6 +260,16 @@ server_main(DAEMONCONFIG *config)
         /* Disconnect from DB in case we are asleep for a long time */
         log_msg(config, LOG_INFO, "Disconnecting from Database...");
         kaspDisconnect(&dbhandle);
+
+         /* Release sqlite lock file (if we have it) */
+        if (DbFlavour() == SQLITE_DB) {
+            status = release_lite_lock(lock_fd);
+            if (status != 0) {
+                log_msg(config, LOG_ERR, "Error releasing db lock");
+                exit(1);
+            }
+            fclose(lock_fd);
+        }
 
         /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){

@@ -54,6 +54,25 @@
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
+/* possible wrapper for sqlite3_step which will wait for a block to go */
+int sqlite3_my_step(sqlite3_stmt *pStmt)
+{
+	int rc;
+    struct timeval tv;
+
+    rc = sqlite3_step(pStmt);
+    
+    while (rc == SQLITE_LOCKED || rc == SQLITE_BUSY) {
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+        select(0, NULL, NULL, NULL, &tv);
+
+        rc = sqlite3_step(pStmt);
+    }
+
+    return rc;
+
+}
 
 /*+
  * DbExecuteSqlStatement - Execute SQL Statement
@@ -86,7 +105,7 @@ static int DbExecuteSqlStatement(DB_HANDLE handle, const char* stmt_str, DB_RESU
 		return rc;
 	}
 
-	return sqlite3_step((*result)->data);
+    return sqlite3_step((*result)->data);
 }
 
 

@@ -48,6 +48,7 @@
 #include <pwd.h>
 #include <ctype.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -60,6 +61,7 @@
 
 #include "ksm/database.h"
 #include "ksm/datetime.h"
+#include "ksm/string_util2.h"
 
     int
 permsDrop(DAEMONCONFIG* config)
@@ -485,3 +487,46 @@ ReadConfig(DAEMONCONFIG *config)
 
 }
 
+/* To overcome the potential differences in sqlite compile flags assume that it is not
+   happy with multiple connections.
+
+   The following 2 functions take out a lock and release it
+*/
+
+int get_lite_lock(char *lock_filename, FILE* lock_fd)
+{
+    struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
+    struct timeval tv;
+  
+    fl.l_pid = getpid();
+    
+    while (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
+        if (errno == EACCES || errno == EAGAIN) {
+            log_msg(NULL, LOG_INFO, "%s already locked, sleep\n", lock_filename);
+
+            /* sleep for 10 seconds TODO make this configurable? */
+            tv.tv_sec = 10;
+            tv.tv_usec = 0;
+            select(0, NULL, NULL, NULL, &tv);
+
+        } else {
+            log_msg(NULL, LOG_INFO, "couldn't get lock on %s, error\n", lock_filename);
+            return 1;
+        }
+    }
+
+    return 0;
+
+}
+
+int release_lite_lock(FILE* lock_fd)
+{
+
+    struct flock fl = { F_UNLCK, SEEK_SET, 0,       0,     0 };
+    
+    if (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
+        return 1;
+    }
+
+    return 0;
+}

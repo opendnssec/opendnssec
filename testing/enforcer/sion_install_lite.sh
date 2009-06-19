@@ -34,6 +34,17 @@ cd ../xml
 sh autogen.sh
 
 # build
+echo "***************** LIBHSM"
+cd ..
+mkdir $MYDIR/build-hsm
+cd $MYDIR/build-hsm
+../trunk/libhsm/configure --prefix=$MYDIR/install --with-ldns=/home/sion/work/subversion/ldns
+if test $OS = "SunOS"; then
+  gmake clean && gmake & gmake install
+else
+  make clean && make  && make install
+fi
+
 echo "***************** LIBKSM"
 mkdir $MYDIR/build-ksm
 cd $MYDIR/build-ksm
@@ -69,17 +80,6 @@ if test $OS = "SunOS"; then
   gmake clean && gmake & gmake install
 else
   make clean && make -j8 && make install
-fi
-
-echo "***************** LIBHSM"
-cd ..
-mkdir $MYDIR/build-hsm
-cd $MYDIR/build-hsm
-../trunk/libhsm/configure --prefix=$MYDIR/install --with-ldns=/home/sion/work/subversion/ldns
-if test $OS = "SunOS"; then
-  gmake clean && gmake & gmake install
-else
-  make clean && make  && make install
 fi
 
 echo "***************** Enforcer"

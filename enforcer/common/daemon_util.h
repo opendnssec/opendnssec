@@ -41,11 +41,14 @@
  */
 
 #include "daemon.h"
+#include <stdio.h>
 
 void cmdlParse(DAEMONCONFIG*, int*, char**);
 void log_msg(DAEMONCONFIG* config, int priority, const char *format, ...);
 int permsDrop(DAEMONCONFIG* config);
 int writepid (DAEMONCONFIG *config);
 int ReadConfig(DAEMONCONFIG *config);
+int get_lite_lock(char *lock_filename, FILE* lock_fd);
+int release_lite_lock(FILE* lock_fd);
 
 #endif /* ENFORCER_DAEMON_UTIL_H */

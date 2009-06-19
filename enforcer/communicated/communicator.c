@@ -79,6 +79,9 @@ server_main(DAEMONCONFIG *config)
     int status = 0;
     int status2 = 0;
 
+    FILE *lock_fd;  /* for sqlite file locking */
+    char *lock_filename = NULL;
+
     int result;
     hsm_ctx_t *ctx = NULL;
 
@@ -136,6 +139,24 @@ server_main(DAEMONCONFIG *config)
         if (status != 0) {
             log_msg(config, LOG_ERR, "Error reading config");
             exit(1);
+        }
+
+        /* If we are in sqlite mode then take a lock out on a file to
+           prevent multiple access (not sure that we can be sure that sqlite is
+           safe for multiple processes to access). */
+        if (DbFlavour() == SQLITE_DB) {
+            
+            /* set up lock filename (it may have changed?) */
+            lock_filename = NULL;
+            StrAppend(&lock_filename, (char *)config->schema);
+            StrAppend(&lock_filename, ".our_lock");
+
+            lock_fd = fopen(lock_filename, "w");
+            status = get_lite_lock(lock_filename, lock_fd);
+            if (status != 0) {
+                log_msg(config, LOG_ERR, "Error getting db lock");
+                exit(1);
+            }
         }
 
         log_msg(config, LOG_INFO, "Connecting to Database...");
@@ -280,14 +301,28 @@ server_main(DAEMONCONFIG *config)
         } else {
             log_msg(config, LOG_ERR, "Unable to open %s\n", zonelist_filename);
         }
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
+        if (xpathCtx) {
+            xmlXPathFreeContext(xpathCtx);
+        }
+        if (doc) {
+            xmlFreeDoc(doc);
+        }
 
         /* StrFree(zone_name); ??*/
 
         /* Release our hold on the database */
         log_msg(config, LOG_INFO, "Disconnecting from Database...");
         kaspDisconnect(&dbhandle);
+
+        /* Release sqlite lock file (if we have it) */
+        if (DbFlavour() == SQLITE_DB) {
+            status = release_lite_lock(lock_fd);
+            if (status != 0) {
+                log_msg(config, LOG_ERR, "Error releasing db lock");
+                exit(1);
+            }
+            fclose(lock_fd);
+        }
 
         /* If we have been sent a SIGTERM then it is time to exit */ 
         if (config->term == 1 ){
@@ -520,6 +555,14 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         {
             log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s\n", temp_filename, current_filename);
             return -1;
+        }
+
+        /* call the signer engine to tell it that something changed */
+        /* TODO should we make a blocking call on this?
+                should we call it here or after we have written all of the files? */
+        if (system(SIGNER_CLI) != 0)
+        {
+            log_msg(NULL, LOG_ERR, "Could not call signer_engine\n");
         }
     }
     else {

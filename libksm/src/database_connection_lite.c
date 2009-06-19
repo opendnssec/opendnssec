@@ -100,6 +100,7 @@ int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
     /* ... and connect */
 
     status = sqlite3_open(database, &connection);
+    /* status = sqlite3_open_v2(database, &connection, SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, NULL); */
 
     if (status) {
         /* Unable to connect */

@@ -53,11 +53,13 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
     }
 
 	if(name) policy->name = name;
+
 	policy->signer->refresh = 0;
 	policy->signer->jitter = 0;
 	policy->signer->propdelay = 0;
 	policy->signer->soamin = 0;
 	policy->signer->soattl = 0;
+	policy->signer->serial = 0;
 
 	policy->signature->clockskew = 0;
 	policy->signature->resign = 0;
@@ -70,23 +72,31 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 	policy->denial->iteration = 0;
 	policy->denial->optout = 0;
 	policy->denial->ttl = 0;
+	policy->denial->saltlength = 0;
 
 	policy->ksk->algorithm = 0;
+	policy->ksk->bits = 0;
 	policy->ksk->lifetime = 0;
 	policy->ksk->sm = 0;
 	policy->ksk->overlap = 0;
 	policy->ksk->ttl = 0;
 	policy->ksk->rfc5011 = 0;
 	policy->ksk->type = KSM_TYPE_KSK;
+	policy->ksk->emergency_keys = 0;
 
 	policy->zsk->algorithm = 0;
+	policy->zsk->bits = 0;
 	policy->zsk->lifetime = 0;
 	policy->zsk->sm = 0;
 	policy->zsk->overlap = 0;
 	policy->zsk->ttl = 0;
+	policy->zsk->rfc5011 = 0;
 	policy->zsk->type = KSM_TYPE_ZSK;
+	policy->zsk->emergency_keys = 0;
 
 	policy->enforcer->keycreate = 0;
+	policy->enforcer->backup_interval = 0;
+	policy->enforcer->keygeninterval = 0;
 }
 
 /*

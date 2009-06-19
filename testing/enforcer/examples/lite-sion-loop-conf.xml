@@ -16,8 +16,8 @@
 		<Datastore>
 		  <SQLite>/home/sion/temp/opendnssec/install/var/opendnssec/enforcer.db</SQLite>
 		</Datastore>
-		<Interval>PT3600S</Interval>
-		<KeygenInterval>P3M</KeygenInterval>
+		<Interval>PT5S</Interval>
+		<KeygenInterval>PT5S</KeygenInterval>
 		<BackupDelay>PT0S</BackupDelay>
 	</Enforcer>
 
