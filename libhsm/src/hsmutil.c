@@ -39,14 +39,14 @@
 
 
 extern char *optarg;
-char *progname = NULL;
+char *progname = "hsmutil";
 
 
 void
-usage ()
+usage_list ()
 {
     fprintf(stderr,
-        "usage: %s [-f config] [ list | generate | remove | dnskey ] [arg]\n",
+        "usage: %s [-f config] list [repository]\n",
         progname);
 }
 
@@ -74,6 +74,15 @@ usage_dnskey ()
         progname);
 }
 
+void
+usage ()
+{
+    usage_list();
+    usage_generate();
+    usage_remove();
+    usage_dnskey();
+}
+
 int
 cmd_list (int argc, char *argv[])
 {
@@ -95,7 +104,8 @@ cmd_list (int argc, char *argv[])
         keys = hsm_list_keys(NULL, &key_count);
     }
 
-    printf("%u keys found.\n", (unsigned int) key_count);
+    printf("%u %s found.\n", (unsigned int) key_count,
+        (key_count > 1 ? "keys" : "key"));
 
     if (!keys) {
         return -1;
@@ -130,7 +140,9 @@ cmd_generate (int argc, char *argv[])
     if (!strcasecmp(algorithm, "rsa")) {
         printf("Generating %d bit RSA key in repository: %s\n",
             keysize, repository);
+
         key = hsm_generate_rsa_key(NULL, repository, keysize);
+
         if (key) {
             printf("Key generation successful.\n");
             hsm_print_key(key);
@@ -232,12 +244,16 @@ main (int argc, char *argv[])
     char *config = NULL;
 
     int ch;
-    progname = argv[0];
+    /* progname = argv[0]; */
 
-    while ((ch = getopt(argc, argv, "f:r:")) != -1) {
+    while ((ch = getopt(argc, argv, "f:h")) != -1) {
         switch (ch) {
         case 'f':
             config = strdup(optarg);
+            break;
+        case 'h':
+            usage();
+            exit(0);
             break;
         default:
             usage();
