@@ -46,6 +46,9 @@
 #include <ldns/ldns.h>
 #include "util.h"
 
+/* maximum depth of $INCLUDE directives */
+#define MAX_FILES 10
+
 /*
  * change this to 1 to shave about 10% off memory usage,
  * at the cost of extra realloc() calls
@@ -498,6 +501,44 @@ directive_ttl(const char *line) {
 	return 0;
 }
 
+/* automatically handles include, and returns 1 if this is a correct
+ * $INCLUDE directive. Returns 0 otherwise */
+static int
+directive_include(const char *line, FILE *rr_files[], int *file_count)
+{
+	size_t len, pos;
+	if (!line || !file_count) return 0;
+	len = strlen(line);
+	if (len > 9 && strncmp(line, "$INCLUDE ", 9) == 0) {
+		pos = 9;
+		/* skip whitespace */
+		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
+		       line[pos] == '\n')) {
+			pos++;
+		}
+		if (pos < len) {
+			if (*file_count >= MAX_FILES) {
+				fprintf(stderr, "Error: maximum depth of $INCLUDE"
+				                "reached. Stopping at %s\n", line);
+				return 0;
+			}
+			(*file_count)++;
+			rr_files[*file_count] = fopen(&line[pos], "r");
+			if (!rr_files[*file_count]) {
+				fprintf(stderr, "Error opening %s for reading: %s\n",
+				        &line[pos], strerror(errno));
+				(*file_count)--;
+				return 0;
+			} else {
+				return 1;
+			}
+		} else {
+			return 0;
+		}
+	}
+	return 0;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -520,7 +561,10 @@ main(int argc, char **argv)
 
 	/* options */
 	int c;
-	FILE *rr_file;
+	FILE *rr_files[MAX_FILES];
+	/* actually, the *real* count would be file_count +1, but
+	 * then we would have to use -1 everywhere in the code */
+	int file_count = 0;
 	FILE *out_file;
 	bool nsec3 = false;
 	uint8_t nsec3_algorithm = 1;
@@ -540,7 +584,7 @@ main(int argc, char **argv)
 	int line_len;
 	char line[MAX_LINE_LEN];
 
-	rr_file = stdin;
+	rr_files[0] = stdin;
 	out_file = stdout;
 
 	while ((c = getopt(argc, argv, "a:f:hno:s:t:w:")) != -1) {
@@ -553,13 +597,16 @@ main(int argc, char **argv)
 			}
 			break;
 		case 'f':
-			if (strncmp(optarg, "-", 2) != 0) {
-				rr_file = fopen(optarg, "r");
+			if (rr_files[0] != stdin) {
+				fprintf(stderr, "Error: only one -f file can be given");
+				exit(1);
 			}
-			if (!rr_file) {
-				printf("Error reading %s: %s\n",
-					  optarg,
-					  strerror(errno));
+			if (strncmp(optarg, "-", 2) != 0) {
+				rr_files[file_count] = fopen(optarg, "r");
+			}
+			if (!rr_files[file_count]) {
+				fprintf(stderr, "Error reading %s: %s\n",
+				        optarg, strerror(errno));
 				exit(1);
 			}
 			break;
@@ -652,7 +699,7 @@ main(int argc, char **argv)
 	origin = ldns_rdf_clone(zone_name);
 	line_len = 0;
 	while (line_len >= 0) {
-		line_len = read_line(rr_file, line);
+		line_len = read_line(rr_files[file_count], line);
 		if (line_len > 0) {
 			if (line[0] == '$') {
 				/* ignore directives for now */
@@ -662,9 +709,11 @@ main(int argc, char **argv)
 					origin = tmp;
 				} else if (is_directive_ttl(line)) {
 					default_ttl = directive_ttl(line);
+				} else if (directive_include(line, rr_files,
+				                             &file_count)) {
+					/* Handled automatically */
 				} else {
-					fprintf(stderr, "; Warning: ignoring unknown"
-					                " directive %s\n", line);
+					fprintf(stderr, "Error in directive %s\n", line);
 				}
 				continue;
 			} else if (line[0] == ';') {
@@ -785,7 +834,7 @@ main(int argc, char **argv)
 						 * input if it is stdin, so the calling process does
 						 * not write to a nonexisting pipe */
 						while (line_len >= 0) {
-							line_len = read_line(rr_file, line);
+							line_len = read_line(rr_files[file_count], line);
 						}
 						/* unlink the output file if it is not stdout, we do not
 						 * want partial output going to the next tool */
@@ -798,6 +847,17 @@ main(int argc, char **argv)
 				}
 			}
 			line_nr++;
+		} else if (line_len < 0) {
+			/* end of current file */
+			if (file_count > 0) {
+				fclose(rr_files[file_count]);
+				file_count --;
+				line_len = 0;
+			} else {
+				if (rr_files[0] != stdin) {
+					fclose(rr_files[0]);
+				}
+			}
 		}
 	}
 
@@ -872,9 +932,6 @@ main(int argc, char **argv)
 
 	ldns_rbtree_free(rr_tree);
 
-	if (rr_file != stdin) {
-		fclose(rr_file);
-	}
 	if (out_file != stdout) {
 		fclose(out_file);
 	}
