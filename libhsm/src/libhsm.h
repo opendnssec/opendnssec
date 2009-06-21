@@ -66,7 +66,7 @@ typedef struct {
 /*! HSM Key Pair Information */
 typedef struct {
   char          *id;        /*!< key id */
-  unsigned long algorithm;  /*!< key algorithm */
+  unsigned long algorithm;  /*!< key algorithm (cast from CKK_*)*/
   unsigned long keysize;    /*!< key size */
 } hsm_key_info_t;
 

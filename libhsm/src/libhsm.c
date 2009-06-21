@@ -645,6 +645,76 @@ hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
     return NULL;
 }
 
+/* Returns the key type (algorithm) of the given key */
+static CK_KEY_TYPE
+hsm_get_key_algorithm(const hsm_session_t *session,
+                      const hsm_key_t *key)
+{
+    CK_RV rv;
+    CK_KEY_TYPE key_type;
+
+    CK_ATTRIBUTE template[] = {
+        {CKA_KEY_TYPE, &key_type, sizeof(CK_KEY_TYPE)}
+    };
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      1);
+    hsm_pkcs11_check_rv(rv, "Get attr value algorithm type\n");
+
+    if ((CK_LONG)template[0].ulValueLen < 1) {
+        return 0;
+    }
+
+    return key_type;
+}
+
+/* returns a CK_ULONG with the key size of the given RSA key. The
+ * key is not checked for type. For RSA, the number of bits in the
+ * modulus is the key size (CKA_MODULUS_BITS)
+ */
+static CK_ULONG
+hsm_get_key_size_rsa(const hsm_session_t *session, const hsm_key_t *key)
+{
+    CK_RV rv;
+    CK_ULONG modulus_bits;
+
+    CK_ATTRIBUTE template[] = {
+        {CKA_MODULUS_BITS, &modulus_bits, sizeof(CK_KEY_TYPE)}
+    };
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      1);
+    hsm_pkcs11_check_rv(rv, "Get attr value algorithm type\n");
+
+    if ((CK_LONG)template[0].ulValueLen < 1) {
+        return 0;
+    }
+    
+    return modulus_bits;
+}
+
+/* Wrapper for specific key size functions, currently only supports
+ * CKK_RSA (the value 0) as algorithm identifier */
+static CK_ULONG
+hsm_get_key_size(const hsm_session_t *session,
+                 const hsm_key_t *key,
+                 const unsigned long algorithm)
+{
+    switch (algorithm) {
+        case CKK_RSA:
+            return hsm_get_key_size_rsa(session, key);
+            break;
+        default:
+            return 0;
+    }
+}
+
 static CK_OBJECT_HANDLE
 hsm_find_object_handle_for_id(const hsm_session_t *session,
                               CK_OBJECT_CLASS key_class,
@@ -755,7 +825,6 @@ hsm_get_id_for_object(const hsm_session_t *session,
     *len = template[0].ulValueLen;
     return template[0].pValue;
 }
-
 
 /* returns an hsm_key_t object for the given *private key* object handle
  * the module, private key, and public key handle are set
@@ -1702,18 +1771,25 @@ hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
 }
 
 hsm_key_info_t *
-hsm_get_key_info(const hsm_ctx_t *context,
+hsm_get_key_info(const hsm_ctx_t *ctx,
                  const hsm_key_t *key)
 {
-	hsm_key_info_t *key_info;
-	
-	key_info = malloc(sizeof(hsm_key_info_t));
+    hsm_key_info_t *key_info;
+    hsm_session_t *session;
 
-	key_info->id = hsm_get_key_id(context, key);
-	key_info->algorithm = 0; /* XXX */
-	key_info->keysize   = 0; /* XXX */
-	
-	return key_info;
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_key_session(ctx, key);
+    if (!session) return NULL;
+    
+    key_info = malloc(sizeof(hsm_key_info_t));
+
+    key_info->id = hsm_get_key_id(ctx, key);
+
+    key_info->algorithm = (unsigned long) hsm_get_key_algorithm(session, key);
+    key_info->keysize = (unsigned long) hsm_get_key_size(session,
+                                                         key,
+                                                         key_info->algorithm);
+    return key_info;
 }
 
 ldns_rr*
@@ -2081,7 +2157,8 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
     } else {
         ctx = gctx;
     }
-    printf("CTX Sessions: %lu\n", ctx->session_count);
+    printf("CTX Sessions: %lu\n",
+           (long unsigned int) ctx->session_count);
     for (i = 0; i < ctx->session_count; i++) {
         printf("\tSession at %p\n", (void *) ctx->session[i]);
         hsm_print_session(ctx->session[i]);
@@ -2090,16 +2167,28 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
 
 void
 hsm_print_key(hsm_key_t *key) {
-    char *id;
+    hsm_key_info_t *key_info;
     if (key) {
-        id = hsm_get_key_id(NULL, key);
+        key_info = hsm_get_key_info(NULL, key);
         printf("key:\n");
         printf("\tmodule: %p\n", (void *) key->module);
         printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
         printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
         printf("\trepository: %s\n", key->module->name);
-        printf("\tid: %s\n", id);
-	if (id) free(id);
+        printf("\talgorithm: ");
+        switch(key_info->algorithm) {
+            case CKK_RSA:
+                printf("RSA");
+                break;
+            default:
+                printf("unknown by libhsm (value %lu)",
+                       key_info->algorithm);
+                break;
+        }
+        printf("\n");
+        printf("\tsize: %lu\n", key_info->keysize);
+        printf("\tid: %s\n", key_info->id);
+        free(key_info);
     } else {
         printf("key: <void>\n");
     }
