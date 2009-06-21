@@ -517,8 +517,8 @@ directive_include(const char *line, FILE *rr_files[], int *file_count)
 			pos++;
 		}
 		if (pos < len) {
-			if (*file_count >= MAX_FILES) {
-				fprintf(stderr, "Error: maximum depth of $INCLUDE"
+			if (*file_count >= MAX_FILES - 1) {
+				fprintf(stderr, "Error: maximum depth of $INCLUDE "
 				                "reached. Stopping at %s\n", line);
 				return 0;
 			}
@@ -702,7 +702,6 @@ main(int argc, char **argv)
 		line_len = read_line(rr_files[file_count], line);
 		if (line_len > 0) {
 			if (line[0] == '$') {
-				/* ignore directives for now */
 				tmp = directive_origin(line);
 				if (tmp) {
 					ldns_rdf_deep_free(origin);
@@ -711,7 +710,7 @@ main(int argc, char **argv)
 					default_ttl = directive_ttl(line);
 				} else if (directive_include(line, rr_files,
 				                             &file_count)) {
-					/* Handled automatically */
+					/* Handled automatically by directive_include() */
 				} else {
 					fprintf(stderr, "Error in directive %s\n", line);
 				}
@@ -851,7 +850,7 @@ main(int argc, char **argv)
 			/* end of current file */
 			if (file_count > 0) {
 				fclose(rr_files[file_count]);
-				file_count --;
+				file_count--;
 				line_len = 0;
 			} else {
 				if (rr_files[0] != stdin) {
