@@ -430,6 +430,74 @@ find_empty_nonterminals(ldns_rdf *zone_name,
 	return count;
 }
 
+/* if the line is '$ORIGIN <name>', the name is returned
+ * in a newly allocated ldns_rdf. If the line contains anything
+ * else, NULL is returned. The returned rdf must be freed with
+ * ldns_rdf_deep_free() */
+static ldns_rdf *
+directive_origin(const char *line)
+{
+	size_t len, pos;
+	ldns_rdf *new_origin;
+	if (!line) return NULL;
+	len = strlen(line);
+	if (len > 8 && strncmp(line, "$ORIGIN ", 8) == 0) {
+		pos = 8;
+		/* skip whitespace */
+		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
+		       line[pos] == '\n')) {
+			pos++;
+		}
+		if (pos >= len) {
+			/* bad directive, no name given */
+			return NULL;
+		} else {
+			new_origin = ldns_dname_new_frm_str(&line[pos]);
+			return new_origin;
+		}
+	}
+	return NULL;
+}
+
+/* returns 1 if the line is '$TTL <int>', 0 otherwise */
+/* We cannot directly return atol(int), because then we wouldn't
+ * be able to use the directive $TTL 0 */
+static int
+is_directive_ttl(const char *line) {
+	size_t len, pos;
+	if (!line) return 0;
+	len = strlen(line);
+	if (len > 5 && strncmp(line, "$TTL ", 5) == 0) {
+		pos = 5;
+		/* skip whitespace */
+		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
+		       line[pos] == '\n')) {
+			pos++;
+		}
+		if (pos < len && isdigit(line[pos])) return 1;
+	}
+	return 0;
+}
+
+/* returns the ttl from $TTL */
+static uint32_t
+directive_ttl(const char *line) {
+	size_t len, pos;
+	if (!line) return 0;
+	len = strlen(line);
+	pos = 5;
+	if (len > 5 && strncmp(line, "$TTL ", 5) == 0) {
+		pos = 5;
+		/* skip whitespace */
+		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
+		       line[pos] == '\n')) {
+			pos++;
+		}
+		if (pos < len && isdigit(line[pos])) return atol(&line[pos]);
+	}
+	return 0;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -465,7 +533,7 @@ main(int argc, char **argv)
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
 	uint32_t default_ttl = 3600;
-	ldns_rdf *origin = NULL;
+	ldns_rdf *zone_name = NULL, *origin = NULL, *tmp;
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
 	
@@ -513,7 +581,7 @@ main(int argc, char **argv)
 			nsec3 = true;
 			break;
 		case 'o':
-			origin = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, optarg);
+			zone_name = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, optarg);
 			break;
 		case 's':
 			if (strlen(optarg) % 2 != 0) {
@@ -547,8 +615,8 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	if (!origin) {
-		fprintf(stderr, "Error, no origin specified (-o)\n");
+	if (!zone_name) {
+		fprintf(stderr, "Error, no zone name specified (-o)\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -564,7 +632,7 @@ main(int argc, char **argv)
 
 	if (nsec3) {
 		my_nsec3params = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
-		ldns_rr_set_owner(my_nsec3params, ldns_rdf_clone(origin));
+		ldns_rr_set_owner(my_nsec3params, ldns_rdf_clone(zone_name));
 		ldns_nsec3_add_param_rdfs(my_nsec3params,
 		                          nsec3_algorithm,
 		                          0,
@@ -581,12 +649,23 @@ main(int argc, char **argv)
 
 	prev_rr = NULL;
 
+	origin = ldns_rdf_clone(zone_name);
 	line_len = 0;
 	while (line_len >= 0) {
 		line_len = read_line(rr_file, line);
 		if (line_len > 0) {
 			if (line[0] == '$') {
 				/* ignore directives for now */
+				tmp = directive_origin(line);
+				if (tmp) {
+					ldns_rdf_deep_free(origin);
+					origin = tmp;
+				} else if (is_directive_ttl(line)) {
+					default_ttl = directive_ttl(line);
+				} else {
+					fprintf(stderr, "; Warning: ignoring unknown"
+					                " directive %s\n", line);
+				}
 				continue;
 			} else if (line[0] == ';') {
 				/* pass through comments */
@@ -763,8 +842,14 @@ main(int argc, char **argv)
 
 	print_rrs(out_file, rr_tree, ns_tree, origin);
 
+	if (zone_name) {
+		ldns_rdf_deep_free(zone_name);
+	}
 	if (prev_name) {
 		ldns_rdf_deep_free(prev_name);
+	}
+	if (my_nsec3params) {
+		ldns_rr_free(my_nsec3params);
 	}
 	if (nsec3_salt) {
 		LDNS_FREE(nsec3_salt);
