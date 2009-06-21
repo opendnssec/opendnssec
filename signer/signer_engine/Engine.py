@@ -224,8 +224,20 @@ class Engine:
                 response = "All tasks scheduled immediately"
                 self.notify_all()
             if command[:6] == "update":
-                response = self.read_zonelist()
-                response += "\n" + self.check_zone_conf_updates()
+                if len(args) == 1 or args[1] == "all":
+                    response = self.read_zonelist()
+                    response += "\n" + self.check_zone_conf_updates()
+                else:
+                    try:
+                        response = ""
+                        zone = self.zones[args[1]]
+                        if zone.zone_config.check_config_file_update():
+                            response += "Zone config updated"
+                            self.update_zone(zone.zone_name)
+                        else:
+                            response += "Zone config has not changed"
+                    except KeyError:
+                        response += "Zone " + args[1] + " not found"
             if command[:4] == "stop":
                 self.stop_engine()
                 response = "Engine stopped"
