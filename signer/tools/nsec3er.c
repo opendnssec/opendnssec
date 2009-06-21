@@ -181,13 +181,25 @@ get_name_from_line(const char *line, const char *prefix)
 	size_t len, plen;
 	len = strlen(line);
 	plen = strlen(prefix);
-	
 	if (len > plen) {
 		if (strncmp(line, prefix, plen) == 0) {
 			name = ldns_dname_new_frm_str(line + plen);
 		}
 	}
 	return name;
+}
+
+/* returns the owner name of the first element in the list.
+ * if the list is empty, default_name is returned
+ */
+static ldns_rdf *
+find_from_name(ldns_rr_list *rr_list, ldns_rdf *default_name)
+{
+	if (rr_list && ldns_rr_list_rr_count(rr_list) > 0) {
+		return ldns_rr_list_owner(rr_list);
+	} else {
+		return default_name;
+	}
 }
 
 /* check the name, match it to the list. if the list is empty, or the
@@ -204,7 +216,7 @@ handle_name(FILE *out_file,
             ldns_rr *rr,
             ldns_rdf *origin,
             uint32_t ttl,
-            ldns_rr *prev_rr,
+            ldns_rdf *prev_name,
             ldns_rr_list *rr_list,
             ldns_rr **prev_nsec,
             ldns_rr **first_nsec,
@@ -213,8 +225,9 @@ handle_name(FILE *out_file,
             int ent_ns)
 {
 	ldns_rr *new_nsec;
-	(void) prev_rr;
-	
+	ldns_rdf *from_name = NULL;
+
+	from_name = find_from_name(rr_list, prev_name);
 	if (rr) {
 		if (ldns_rr_list_rr_count(rr_list) == 0 ||
 		    ldns_dname_compare(ldns_rr_owner(rr),
@@ -230,7 +243,7 @@ handle_name(FILE *out_file,
 			    only_ns_in_list(rr_list)) {
 				/* delegation. optout. skip. */
 			} else {
-				new_nsec = create_nsec3(ldns_rr_list_owner(rr_list),
+				new_nsec = create_nsec3(from_name,
 				                        origin, ttl, rr_list, n3p, 0);
 				if (*prev_nsec) {
 					link_nsec3_rrs(*prev_nsec, new_nsec);
@@ -254,7 +267,7 @@ handle_name(FILE *out_file,
 		} else {
 			/* first, create the NSEC3 from the list we just read to
 			 * the ENT */
-			new_nsec = create_nsec3(ldns_rr_list_owner(rr_list), origin, ttl,
+			new_nsec = create_nsec3(from_name, origin, ttl,
 			                        rr_list, n3p, 0);
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
@@ -283,7 +296,7 @@ handle_name(FILE *out_file,
 		    !(n3p->flags & LDNS_NSEC3_VARS_OPTOUT_MASK &&
 		      only_ns_in_list(rr_list))
 		   ) {
-			new_nsec = create_nsec3(ldns_rr_list_owner(rr_list),
+			new_nsec = create_nsec3(from_name,
 			                        origin, ttl, rr_list, n3p, 0);
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
@@ -308,6 +321,7 @@ handle_line(FILE *out_file,
             int line_len,
             ldns_rdf *origin,
             uint32_t soa_min_ttl,
+            ldns_rdf **prev_name,
             nsec3_params *n3p,
             ldns_rr_list *rr_list,
             ldns_rr **prev_nsec,
@@ -320,9 +334,11 @@ handle_line(FILE *out_file,
 		if (line[0] != ';') {
 			status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
 			if (status == LDNS_STATUS_OK) {
-				handle_name(out_file, rr, origin, soa_min_ttl, NULL,
+				handle_name(out_file, rr, origin, soa_min_ttl, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p, NULL,
 				            0);
+				ldns_rdf_deep_free(*prev_name);
+				*prev_name = ldns_rdf_clone(ldns_rr_owner(rr));
 			} else {
 				fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
 						ldns_get_errorstr_by_id(status), line);
@@ -337,16 +353,18 @@ handle_line(FILE *out_file,
 			 */
 			if ((ent_name = get_name_from_line(line,
 									  "; Empty non-terminal: "))) {
-				handle_name(out_file, NULL, origin, soa_min_ttl, NULL,
+				handle_name(out_file, NULL, origin, soa_min_ttl, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p,
 				            ent_name, 0);
-				ldns_rdf_deep_free(ent_name);
+				ldns_rdf_deep_free(*prev_name);
+				*prev_name = ent_name;
 			} else if ((ent_name = get_name_from_line(line,
 								 "; Empty non-terminal to NS: "))) {
-				handle_name(out_file, NULL, origin, soa_min_ttl, NULL,
+				handle_name(out_file, NULL, origin, soa_min_ttl, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p,
 				            ent_name, 1);
-				ldns_rdf_deep_free(ent_name);
+				ldns_rdf_deep_free(*prev_name);
+				*prev_name = ent_name;
 			}
 			fprintf(out_file, "%s\n", line);
 		}
@@ -372,6 +390,7 @@ create_nsec3_records(FILE *input_file,
 	ldns_rr *rr;
 	ldns_rr *prev_nsec = NULL;
 	ldns_rr *first_nsec = NULL;
+	ldns_rdf *prev_name = NULL;
 
 	/* we need to get the soa minimum value before we can do anything
 	 * at all. So we need to find the SOA record and remember the lines
@@ -410,7 +429,7 @@ create_nsec3_records(FILE *input_file,
 	for (i = 0; i < pre_count; i++) {
 		handle_line(out_file, pre_soa_lines[i],
 		            strlen(pre_soa_lines[i]), origin,
-		            soa_min_ttl, n3p, rr_list, &prev_nsec, &first_nsec);
+		            soa_min_ttl, &prev_name, n3p, rr_list, &prev_nsec, &first_nsec);
 		free(pre_soa_lines[i]);
 	}
 
@@ -419,12 +438,13 @@ create_nsec3_records(FILE *input_file,
 		line_len = read_line(input_file, line);
 		if (line_len > 0) {
 			handle_line(out_file, line, line_len, origin, soa_min_ttl,
-			             n3p, rr_list, &prev_nsec, &first_nsec);
+			             &prev_name, n3p, rr_list, &prev_nsec, &first_nsec);
 		}
 	}
-	handle_name(out_file, NULL, origin, soa_min_ttl, NULL, rr_list,
+	handle_name(out_file, NULL, origin, soa_min_ttl, prev_name, rr_list,
 	            &prev_nsec, &first_nsec, n3p, NULL, 0);
 	ldns_rr_list_deep_free(rr_list);
+	ldns_rdf_deep_free(prev_name);
 	return status;
 }
 
