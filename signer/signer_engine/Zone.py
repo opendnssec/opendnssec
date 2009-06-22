@@ -539,7 +539,7 @@ class Zone:
     def get_inception_timestamp(self, time_offset):
         """Returns the absolute inception date compared to the
            time_offset given."""
-        return time_offset + self.zone_config.signatures_inception_offset
+        return time_offset - self.zone_config.signatures_inception_offset
 
     def get_refresh_timestamp(self, time_offset):
         """Returns the absolute time at which signatures should be
