@@ -85,7 +85,7 @@ server_main(DAEMONCONFIG *config)
     hsm_ctx_t *ctx = NULL;
     hsm_key_t *key = NULL;
     
-    FILE *lock_fd;  /* for sqlite file locking */
+    FILE *lock_fd = NULL;  /* for sqlite file locking */
     char *lock_filename = NULL;
 
     int keys_needed = 0;    /* Total No of keys needed before next generation run */

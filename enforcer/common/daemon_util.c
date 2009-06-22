@@ -521,6 +521,9 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
 
 int release_lite_lock(FILE* lock_fd)
 {
+    if (lock_fd == NULL) {
+        return 1;
+    }
 
     struct flock fl = { F_UNLCK, SEEK_SET, 0,       0,     0 };
     

@@ -79,16 +79,16 @@ server_main(DAEMONCONFIG *config)
     int status = 0;
     int status2 = 0;
 
-    FILE *lock_fd;  /* for sqlite file locking */
+    FILE *lock_fd = NULL;  /* for sqlite file locking */
     char *lock_filename = NULL;
 
     int result;
     hsm_ctx_t *ctx = NULL;
 
-    xmlTextReaderPtr reader;
-    xmlDocPtr doc;
-    xmlXPathContextPtr xpathCtx;
-    xmlXPathObjectPtr xpathObj;
+    xmlTextReaderPtr reader = NULL;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
 
     int ret = 0; /* status of the XML parsing */
     char* zonelist_filename = ZONELISTFILE;
@@ -373,7 +373,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 {
     int status = 0;
     FILE *file, *file2;
-    char char1, char2;      /* for the comparison between 2 files */
+    int char1, char2;      /* for the comparison between 2 files */
     int same = 0;
     char *temp_filename;    /* In case this fails we write to a temp file and only overwrite
                                the current file when we are finished */
@@ -509,11 +509,15 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
             char1 = fgetc(file);
             if(ferror(file)) {
                 log_msg(NULL, LOG_ERR, "Could not read: %s\n", temp_filename);
+                fclose(file);
+                fclose(file2);
                 return -1;
             }
             char2 = fgetc(file2);
             if(ferror(file2)) {
                 log_msg(NULL, LOG_ERR, "Could not read: %s\n", current_filename);
+                fclose(file);
+                fclose(file2);
                 return -1;
             }
             if(char1 != char2) {
@@ -525,7 +529,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         status = fclose(file2);
         if (status == EOF) /* close failed... do something? */
         {
-            log_msg(NULL, LOG_ERR, "Could not read: %s\n", current_filename);
+            log_msg(NULL, LOG_ERR, "Could not close: %s\n", current_filename);
+            fclose(file);
             return -1;
         }
     }
@@ -684,7 +689,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
                 return 3;
             }
         } else {
-            KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
+            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
             if (status == -1) {
                 log_msg(NULL, LOG_ERR, "Not enough keys to satisfy zsk policy for zone: %s\n", zone_name);
                 return 2;
