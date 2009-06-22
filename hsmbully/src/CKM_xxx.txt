@@ -7,13 +7,12 @@ For generating the key:
   CKM_RSA_PKCS_KEY_PAIR_GEN
 
 For signatures:
-  CKM_SHA1_RSA_PKCS
-  CKM_SHA256_RSA_PKCS (for future use, draft-ietf-dnsext-dnssec-rsasha256-12)
-  CKM_SHA512_RSA_PKCS (for future use, draft-ietf-dnsext-dnssec-rsasha256-12)
+  CKM_RSA_PKCS
 
 For digesting:
+  CKM_MD5
   CKM_SHA_1
-  CKM_SHA256
-  CKM_SHA512 (for future use???)
+  CKM_SHA256 (for future use)
+  CKM_SHA512 (for future use)
 
 // Rickard
