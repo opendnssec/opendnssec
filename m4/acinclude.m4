@@ -55,6 +55,8 @@ AC_DEFUN([ACX_LIBXML2],[
 		
 		CPPFLAGS=$tmp_CPPFLAGS
 		LIBS=$tmp_LIBS
+	else
+		AC_MSG_ERROR([libxml2 required, but not found.])
 	fi
 
 	AC_SUBST(XML2_INCLUDES)
