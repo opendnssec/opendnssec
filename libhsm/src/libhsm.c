@@ -1651,12 +1651,10 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     if (!session) return NULL;
 
     uuid = malloc(sizeof(uuid_t));
-    uuid_generate(*uuid);
     /* check whether this key doesn't happen to exist already */
-    while (hsm_find_key_by_id_bin(ctx, (const unsigned char *)uuid,
-                                  sizeof(uuid_t))) {
+    do {
         uuid_generate(*uuid);
-    }
+    } while (hsm_find_key_by_id_bin(ctx, (const unsigned char *)uuid, sizeof(uuid_t)));
     uuid_unparse(*uuid, uuid_str);
 
     CK_ATTRIBUTE publicKeyTemplate[] = {
@@ -1696,6 +1694,7 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     new_key->module = session->module;
     new_key->public_key = publicKey;
     new_key->private_key = privateKey;
+    free(uuid);
     return new_key;
 }
 
