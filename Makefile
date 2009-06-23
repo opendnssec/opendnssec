@@ -16,6 +16,11 @@ CONF_ARG = \
 	--with-libksm=$(PREFIX) \
 	--with-libhsm=$(PREFIX)
 
+#	--with-sqlite3=/usr
+#	--with-ldns=/usr
+#	--with-libxml2=/usr
+#	--with-botan=/usr
+
 
 all:
 	@echo "use 'make configure build' to build AND install OpenDNSSEC"
