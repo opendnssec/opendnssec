@@ -318,8 +318,8 @@ hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
 
 
 static CK_SLOT_ID
-ldns_hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
-                     const char *token_name)
+hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
+                const char *token_name)
 {
     CK_RV rv;
     CK_SLOT_ID slotId = 0;
@@ -430,7 +430,7 @@ hsm_session_init(hsm_session_t **session, char *repository,
     } else {
         first = 0;
     }
-    slot_id = ldns_hsm_get_slot_id(module->sym, token_label);
+    slot_id = hsm_get_slot_id(module->sym, token_label);
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_OpenSession(slot_id,
                                CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                NULL,
@@ -478,8 +478,8 @@ hsm_session_clone(hsm_session_t *session)
     CK_SESSION_HANDLE session_handle;
     hsm_session_t *new_session;
 
-    slot_id = ldns_hsm_get_slot_id(session->module->sym,
-                                   session->module->token_label);
+    slot_id = hsm_get_slot_id(session->module->sym,
+                              session->module->token_label);
     rv = ((CK_FUNCTION_LIST_PTR) session->module->sym)->C_OpenSession(slot_id,
                                     CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                     NULL,
