@@ -238,6 +238,14 @@ class Zone:
                     sort_process.stdin.write(k["dnskey"])
 
             unsorted_zone_file = open(self.get_zone_input_filename(), "r")
+            if not unsorted_zone_file:
+                syslog.syslog(syslog.LOG_ERROR,
+                              "Error opening zone input file: " +
+                              self.get_zone_input_filename());
+            else:
+                syslog.syslog(syslog.LOG_INFO,
+                              "Writing file to zone_reader: " +
+                              self.get_zone_input_filename());
             for line in unsorted_zone_file:
                 sort_process.stdin.write(line)
             sort_process.stdin.close()
