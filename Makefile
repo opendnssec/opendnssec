@@ -34,14 +34,10 @@ autogen::
 		echo "" ;\
 	done
 
-build::
-	@for dir in $(SUBDIRS); do \
-		source=`pwd`/$$dir; \
-		target=$(BUILDDIR)/$$dir ;\
-		echo "building in $$target" ;\
-		test -d $$target || mkdir -p $$target ;\
-		(cd $$target; $$source/configure $(CONF_ARG)) ;\
-		(cd $$target; $(MAKE) $(MAKE_FLAGS)) ;\
-		(cd $$target; $(SUDO) $(MAKE) install) ;\
-		echo "" ;\
-	done
+build:: $(SUBDIRS)
+
+$(SUBDIRS)::
+	test -d $(BUILDDIR)/$@ || mkdir -p $(BUILDDIR)/$@
+	(cd $(BUILDDIR)/$@; ../../$@/configure $(CONF_ARG))
+	$(MAKE) -C $(BUILDDIR)/$@ $(MAKE_FLAGS)
+	$(SUDO) $(MAKE) -C $(BUILDDIR)/$@ install
