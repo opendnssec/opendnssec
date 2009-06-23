@@ -20,6 +20,7 @@ CONF_ARG = \
 #	--with-ldns=/usr
 #	--with-libxml2=/usr
 #	--with-botan=/usr
+#	--with-trang=/usr/local/lib/trang.jar
 
 
 all:
