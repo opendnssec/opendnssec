@@ -19,6 +19,7 @@ CONF_ARG = \
 	--with-libxml2=/usr \
 	--with-botan=/usr \
 	--with-trang=$(HOME)/bin/trang.jar
+	--with-pkcs11-softhsm=/usr/local/lib/libsofthsm.so
 
 all: build
 
