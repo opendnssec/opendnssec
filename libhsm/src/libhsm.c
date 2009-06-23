@@ -1894,7 +1894,7 @@ hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
     int hashed_owner_b32_len;
     uint32_t cur_it;
     char *hash = NULL;
-    size_t hash_length;
+    size_t hash_length = 0;
     ldns_status status;
     CK_MECHANISM mechanism;
     unsigned int i;
