@@ -332,7 +332,7 @@ ldns_hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
     hsm_pkcs11_check_rv(rv, "get slot list");
 
     if (slotCount < 1) {
-        fprintf(stderr, "Error; could not find token with the name %s\n", token_name);
+        fprintf(stderr, "Error; no slots found while looking for token %s\n", token_name);
         exit(1);
     }
 
