@@ -1,4 +1,7 @@
 # $Id$
+#
+# Top-level makefile for OpenDNSSEC
+#
 
 SUBDIRS = softHSM libhsm libksm enforcer signer xml
 
@@ -16,6 +19,8 @@ CONF_ARG = \
 	--with-libksm=$(PREFIX) \
 	--with-libhsm=$(PREFIX)
 
+## you may have to add the one or more of the following to CONF_ARG
+#
 #	--with-sqlite3=/usr
 #	--with-ldns=/usr
 #	--with-libxml2=/usr
