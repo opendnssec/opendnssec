@@ -290,8 +290,8 @@ fprintf(stderr, "have pkcs11_module\n");
 
 static int
 hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
-                             CK_SLOT_ID slotId,
-                             const char *token_name)
+                            CK_SLOT_ID slotId,
+                            const char *token_name)
 {
     /* token label is always 32 bytes */
     char token_name_bytes[HSM_TOKEN_LABEL_LENGTH];
