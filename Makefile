@@ -23,9 +23,7 @@ CONF_ARG = \
 
 
 all:
-	@echo "use 'make configure build' to build AND install OpenDNSSEC"
-
-configure: autogen
+	@echo "use 'make autogen build' to build AND install OpenDNSSEC"
 
 autogen:
 	@for dir in $(SUBDIRS); do \
