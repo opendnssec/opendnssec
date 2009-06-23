@@ -250,7 +250,7 @@ fprintf(stderr, "have loadlibrary\n");
             GetProcAddress(hDLL, _T("C_GetFunctionList"));
 #elif defined(HAVE_DLOPEN)
         /* Load PKCS #11 library */
-        void* pDynLib = dlopen(module->path, RTLD_LAZY);
+        void* pDynLib = dlopen(module->path, RTLD_NOW | RTLD_LOCAL);
 
         if (pDynLib == NULL)
         {
