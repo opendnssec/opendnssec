@@ -293,8 +293,8 @@ AC_DEFUN([ACX_BOTAN],[
 			new EMSA3_Raw();
 			AutoSeeded_RNG *rng = new AutoSeeded_RNG();
 			rng->reseed();])],
-		[AC_MSG_RESULT([checking for Botan > v1.7.24 and != v1.8.2 ... yes])],
-		[AC_MSG_RESULT([checking for Botan > v1.7.24 and != v1.8.2 ... no])
+		[AC_MSG_RESULT([checking for Botan >= v1.7.24 and != v1.8.2 ... yes])],
+		[AC_MSG_RESULT([checking for Botan >= v1.7.24 and != v1.8.2 ... no])
 		 AC_MSG_ERROR([Missing the correct version of the Botan library])]
 	)
 	AC_LANG_POP([C++])
