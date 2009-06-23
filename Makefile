@@ -5,7 +5,7 @@ SUBDIRS = softHSM libhsm libksm enforcer signer xml
 PREFIX = /usr/local
 BUILDDIR = build
 
-SUDO =
+SUDO = sudo
 MAKE = make
 MAKE_FLAGS =
 
@@ -23,10 +23,10 @@ CONF_ARG = \
 #	--with-trang=/usr/local/lib/trang.jar
 
 
-all:
+all::
 	@echo "use 'make autogen build' to build AND install OpenDNSSEC"
 
-autogen:
+autogen::
 	@for dir in $(SUBDIRS); do \
 		target=`pwd`/$$dir; \
 		echo "running autogen.sh in $$target" ;\
@@ -34,7 +34,7 @@ autogen:
 		echo "" ;\
 	done
 
-build:
+build::
 	@for dir in $(SUBDIRS); do \
 		source=`pwd`/$$dir; \
 		target=$(BUILDDIR)/$$dir ;\
