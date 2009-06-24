@@ -36,21 +36,32 @@ module KASPAuditor
       zones = []
       #    File.open(path+"zonelist.xml", 'r') {|file|
       File.open(path + filename, 'r') {|file|
+        print "Opened file #{path+filename}\n"
         doc = REXML::Document.new(file)
-        doc.elements.each("Zonelist/Zone") {|z|
+        doc.elements.each("ZoneList/Zone") {|z|
           # First load the config files
           zone_name = z.attributes['name']
           print "Processing zone name #{zone_name}\n"
           policy = z.elements['Policy'].text
-#          print "Policy #{policy}\n"
-          config_file_loc = path + z.elements["SignerConfiguration"].text
+          #          print "Policy #{policy}\n"
+
+          config_file_loc = z.elements["SignerConfiguration"].text
+          if (config_file_loc.index("/") != 0)
+            config_file_loc = path + config_file_loc
+          end
           print "Config file location : #{config_file_loc}\n"
           # Now parse the config file
           config = Config.new(config_file_loc)
 
-          input_file_loc = path + z.elements["Adapters"].elements['Input'].elements["File"].text
+          input_file_loc = z.elements["Adapters"].elements['Input'].elements["File"].text
+          if (input_file_loc.index("/") != 0)
+            input_file_loc = path + input_file_loc
+          end
           print "Input file location : #{input_file_loc}\n"
-          output_file_loc = path + z.elements["Adapters"].elements['Output'].elements["File"].text
+          output_file_loc = z.elements["Adapters"].elements['Output'].elements["File"].text
+          if (output_file_loc.index("/") != 0)
+            output_file_loc = path + output_file_loc
+          end
           print "Output file location : #{output_file_loc}\n"
           zones.push([config, input_file_loc, output_file_loc])
         }

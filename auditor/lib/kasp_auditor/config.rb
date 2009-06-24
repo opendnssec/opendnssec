@@ -115,21 +115,13 @@ module KASPAuditor
         class Nsec
         end
         class Nsec3 # @TODO@ Actually create a Dnsruby::Resource::RR::NSEC3 here?
-          attr_accessor :optout, :hash, :parameters
+          attr_accessor :optout, :hash 
           def initialize(e)
             @optout = false
             if (e.elements['OptOut'])
               @optout = true
             end
             @hash = Hash.new(e.elements['Hash'])
-            @parameters = Parameters.new(e.elements['Parameters'])
-          end
-          class Parameters
-            attr_accessor :ttl
-            def initialize(e)
-              ttl_text = e.elements['TTL'].text
-              @ttl = Config.xsd_duration_to_seconds(ttl_text)
-            end
           end
           class Hash
             attr_accessor :algorithm, :iterations, :salt

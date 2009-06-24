@@ -477,9 +477,11 @@ module KASPAuditor
       rrsets = []
       nss = []
       soa = nil
+      seen_file = false
 #      File.open(file, 'r') {|f|
 #        while (line = f.gets)
 IO.foreach(file) { |line|
+      seen_file = true
           line.chomp!
           line.strip!
           next if (line.index(';') == 0)
@@ -515,6 +517,10 @@ IO.foreach(file) { |line|
           end
 #        end
       }
+      if (!seen_file)
+        print "Coudln't find input file : #{file}\n"
+        log(LOG_ERR, "Couldn't open input file #{file}")
+      end
       #          print "\nDone file\n\n"
       if (do_dnssec)
         domain_rrsets = load_domain_rrsets(rrsets)
