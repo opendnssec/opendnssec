@@ -30,24 +30,27 @@
 		</Denial>
 
 		<Keys>
+			<!-- Parameters for both KSK and ZSK -->
 			<TTL>PT3600S</TTL>
 			<RetireSafety>PT3600S</RetireSafety>
 			<PublishSafety>PT3600S</PublishSafety>
 			<ShareKeys>true</ShareKeys>
-			<!-- Parameters that are different for zsks and ksks -->
+
+			<!-- Parameters for KSK only -->
 			<KSK>
-				<Algorithm length="2048">5</Algorithm>
+				<Algorithm length="2048">7</Algorithm>
 				<Lifetime>P1Y</Lifetime>
-				<Repository>sca6000</Repository>
-				<Emergency>2</Emergency>
+				<Repository>softHSM</Repository>
+				<Emergency>1</Emergency>
 				<RFC5011/>
 			</KSK>
 
+			<!-- Parameters for ZSK only -->
 			<ZSK>
-				<Algorithm length="1024">5</Algorithm>
+				<Algorithm length="1024">7</Algorithm>
 				<Lifetime>P14D</Lifetime>
 				<Repository>softHSM</Repository>
-				<Emergency>2</Emergency>
+				<Emergency>1</Emergency>
 			</ZSK>
 		</Keys>
 
