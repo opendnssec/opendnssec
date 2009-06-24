@@ -2,8 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS = 		-I$(srcdir) \
-			-I$(srcdir)/../lib \
+AM_CPPFLAGS = 		-I$(srcdir)/../lib \
 			-I$(srcdir)/../lib/cryptoki
 
 bin_PROGRAMS =		softhsm
