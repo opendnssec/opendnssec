@@ -1,0 +1,3 @@
+# softHSM configuration file
+#
+0:@softhsmdbdir@/slot0.db

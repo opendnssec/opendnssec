@@ -115,5 +115,15 @@ AC_DEFINE_UNQUOTED(
 AC_PROG_LIBTOOL 
 AC_PROG_INSTALL
 
+softhsmdbdir=${localstatedir}/softhsm
+AC_SUBST([softhsmdbdir])
+
 # Generate the make files
-AC_OUTPUT(Makefile src/Makefile src/lib/Makefile src/bin/Makefile checks/Makefile)
+AC_OUTPUT(
+	Makefile
+	src/Makefile
+	src/lib/Makefile
+	src/bin/Makefile
+	checks/Makefile
+	softhsm.conf
+)
