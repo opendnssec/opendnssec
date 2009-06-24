@@ -5,13 +5,13 @@
 <ZoneList>
 	<Zone name="opendnssec.se">
 		<Policy>default</Policy>
-		<SignerConfiguration>@opendnsseclocalstatedir@/signconf/opendnssec.se.xml</SignerConfiguration>
+		<SignerConfiguration>@opendnsseclocalstatedir@/signconf/example.com.xml</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<File>@opendnsseclocalstatedir@/unsigned/opendnssec.se</File>
+				<File>@opendnsseclocalstatedir@/unsigned/example.com</File>
 			</Input>
 			<Output>
-				<File>@opendnsseclocalstatedir@/signed/opendnssec.se</File>
+				<File>@opendnsseclocalstatedir@/signed/example.com</File>
 			</Output>
 		</Adapters>
 	</Zone>
