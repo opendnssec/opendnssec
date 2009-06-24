@@ -37,8 +37,10 @@ module KASPAuditor
     def check_zone(config, input_file, output_file)
       @ret_val = 999
       input, soa = load_zone(input_file)
+      print "Loaded unsigned file\n"
       rrs, keys, sigs, nsecs, nsecnames, nsec3s, nsec3params, nsec3names,
         domains, signed_domains, domain_rrsets, nss = load_zone(output_file, true)
+      print "Loaded signed file\n"
 
       # Check the zone!
       check_non_dnssec_data(input, rrs, soa)
@@ -101,7 +103,7 @@ module KASPAuditor
           log(LOG_ERR, "non-DNSSEC RRSet #{rr.type} included in Output that was not present in Input : #{rr}")
         end
       }
-      #      print "\nFINISHED CHECKING non_DNSSEC DATA\n\n"
+            print "\nFINISHED CHECKING non_DNSSEC DATA\n\n"
     end
 
     def out_of_zone(name, soa_name)
@@ -138,7 +140,7 @@ module KASPAuditor
       if (!seen_key_with_sep_clear)
         log(LOG_ERR, "No DNSKEY RR with SEP bit clear in output zone")
       end
-      #      print "\nFINISHED CHECKING DNSKEYs\n\n"
+            print "\nFINISHED CHECKING DNSKEYs\n\n"
     end
 
     def check_signatures(config, sigs, signed_domains, domain_rrsets, soa, nss)
@@ -219,7 +221,7 @@ module KASPAuditor
           }
         }
       }
-      #      print "\nFINISHED CHECKING RRSIG\n\n"
+            print "\nFINISHE D CHECKING RRSIG\n\n"
     end
 
     def is_glue(domain, soa, nss)
@@ -475,8 +477,9 @@ module KASPAuditor
       rrsets = []
       nss = []
       soa = nil
-      File.open(file, 'r') {|f|
-        while (line = f.gets)
+#      File.open(file, 'r') {|f|
+#        while (line = f.gets)
+IO.foreach(file) { |line|
           line.chomp!
           line.strip!
           next if (line.index(';') == 0)
@@ -510,7 +513,7 @@ module KASPAuditor
           rescue DecodeError => e
             log(LOG_ERR, "#{file} contains invalid RR : #{line}")
           end
-        end
+#        end
       }
       #          print "\nDone file\n\n"
       if (do_dnssec)
