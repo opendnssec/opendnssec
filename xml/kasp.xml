@@ -23,8 +23,8 @@
 				<Resalt>P100D</Resalt>
 				<Hash>
 					<Algorithm>1</Algorithm>
-					<Iterations>10</Iterations>
-					<Salt length="160"/>
+					<Iterations>5</Iterations>
+					<Salt length="8"/>
 				</Hash>
 			</NSEC3>
 		</Denial>
