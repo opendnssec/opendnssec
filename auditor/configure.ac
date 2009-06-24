@@ -9,9 +9,11 @@ AM_INIT_AUTOMAKE(foreign)
 
 AM_PATH_RUBY(,with_ruby=yes, with_ruby=no)
 
-opendnsseclibdir="\$(libdir)/opendnssec"
+full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+
+opendnsseclibdir=$full_libdir/opendnssec
 AC_SUBST([opendnsseclibdir])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile kasp_auditor])
 
 AC_OUTPUT
