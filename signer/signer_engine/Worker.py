@@ -63,8 +63,8 @@ class Task:
                               "Run task: sign zone: " +\
                               str(self.how.zone_name))
                 self.how.perform_action()
-            except Error, e:
-                syslog.syslog(syslog.LOG_ERROR,
+            except Exception, e:
+                syslog.syslog(syslog.LOG_ERR,
                               "Error while signing: " + str(e));
         elif self.what == Task.NOTIFY_SERVER:
             syslog.syslog(syslog.LOG_INFO, "Run task: notify server")

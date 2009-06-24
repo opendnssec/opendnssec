@@ -201,7 +201,11 @@ class Engine:
                         # resigning
                         response = ""
                         zone = self.zones[args[1]]
-                        if zone.zone_config.check_config_file_update():
+                        if not zone.zone_config:
+                            zone.read_config()
+                            response += "Zone now has config"
+                            self.update_zone(zone.zone_name)
+                        elif zone.zone_config.check_config_file_update():
                             response += "Zone config has also changed\n"
                             self.update_zone(zone.zone_name)
                         else:
@@ -231,7 +235,11 @@ class Engine:
                     try:
                         response = ""
                         zone = self.zones[args[1]]
-                        if zone.zone_config.check_config_file_update():
+                        if not zone.zone_config:
+                            zone.read_config()
+                            response += "Zone now has config"
+                            self.update_zone(zone.zone_name)
+                        elif zone.zone_config.check_config_file_update():
                             response += "Zone config updated"
                             self.update_zone(zone.zone_name)
                         else:
@@ -312,7 +320,14 @@ class Engine:
         count = 0
         count_err = 0
         for zone in self.zones.values():
-            if zone.zone_config.check_config_file_update():
+            if not zone.zone_config:
+                zone.read_config()
+                self.update_zone(zone.zone_name)
+                if self.update_zone(zone.zone_name):
+                    count += 1
+                else:
+                    count_err += 1
+            elif zone.zone_config.check_config_file_update():
                 if self.update_zone(zone.zone_name):
                     count += 1
                 else:

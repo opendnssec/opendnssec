@@ -240,7 +240,7 @@ class Zone:
 
             unsorted_zone_file = open(self.get_zone_input_filename(), "r")
             if not unsorted_zone_file:
-                syslog.syslog(syslog.LOG_ERROR,
+                syslog.syslog(syslog.LOG_ERR,
                               "Error opening zone input file: " +
                               self.get_zone_input_filename());
             else:
@@ -327,7 +327,7 @@ class Zone:
             try:
                 shutil.copy(self.get_zone_tmp_filename(".sorted"),
                             self.get_zone_tmp_filename(".nsecced"))
-            except Error, e:
+            except Exception, e:
                 syslog.syslog(syslog.LOG_INFO, "Error in copy: " + str(e))
 
             syslog.syslog(syslog.LOG_INFO, "done\n")
