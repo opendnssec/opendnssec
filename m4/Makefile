@@ -4,9 +4,13 @@ DESTDIRS = enforcer libhsm libksm signer softHSM
 
 all:
 
+acinclude.m4::
+	rm -f $@
+	cat *_*.m4 | grep -v ^# >> $@
+
 install: copy autogen
 
-copy:
+copy: acinclude.m4
 	@for dir in $(DESTDIRS); do \
 		target=../$$dir ;\
 		echo "copying acinclude.m4 to $$target" ;\
