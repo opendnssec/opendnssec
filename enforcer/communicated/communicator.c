@@ -243,7 +243,9 @@ server_main(DAEMONCONFIG *config)
                         log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
 
                         /* Update the salt if it is not up to date */
+                        DbBeginTransaction();
                         status2 = KsmPolicyUpdateSalt(policy, ctx);
+                        DbCommit();
                         if (status2 != 0) {
                             /* Don't return? try to parse the rest of the zones? */
                             log_msg(config, LOG_ERR, "Error updating salt");
@@ -380,6 +382,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     char *old_filename;     /* Keep a copy of the previous version, just in case! (Also gets
                                round potentially different behaviour of rename over existing
                                file.) */
+    char *signer_command;   /* how we will call the signer */
     char*   datetime = DtParseDateTimeString("now");
 
     if (zone_name == NULL || current_filename == NULL || policy == NULL)
@@ -563,9 +566,15 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         }
 
         /* call the signer engine to tell it that something changed */
-        /* TODO should we make a blocking call on this?
-                should we call it here or after we have written all of the files? */
-        if (system(SIGNER_CLI) != 0)
+        /* TODO for beta version connect straight to the socket
+                should we make a blocking call on this?
+                should we call it here or after we have written all of the files?
+                have timeout if call is blocking */
+        signer_command = NULL;
+        StrAppend(&signer_command, SIGNER_CLI);
+        StrAppend(&signer_command, zone_name);
+
+        if (system(signer_command) != 0)
         {
             log_msg(NULL, LOG_ERR, "Could not call signer_engine\n");
         }

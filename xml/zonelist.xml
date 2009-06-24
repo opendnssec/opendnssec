@@ -5,13 +5,13 @@
 <ZoneList>
 	<Zone name="opendnssec.se">
 		<Policy>default</Policy>
-		<SignerConfiguration>/var/opendnssec/config/opendnssec.se.xml</SignerConfiguration>
+		<SignerConfiguration>/var/opendnssec/signconf/opendnssec.se.xml</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<File>/var/dnssec/unsigned/opendnssec.se</File>
+				<File>/var/opendnssec/unsigned/opendnssec.se</File>
 			</Input>
 			<Output>
-				<File>/var/dnssec/signed/opendnssec.se</File>
+				<File>/var/opendnssec/signed/opendnssec.se</File>
 			</Output>
 		</Adapters>
 	</Zone>

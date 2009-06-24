@@ -302,7 +302,22 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
          */
 
         if (ready <= 0) {
-            (void) MsgLog(KME_NOREADYKEY);
+            /*
+             * If active <= 0 then we can promote a published key as this is the 
+             * first pass for this zone
+             */
+            if (active <= 0) {
+                /* TODO log what we are doing? */
+                status = KsmRequestChangeStateN(keytype, datetime, 1,
+                                    KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
+                if (status != 0) {
+                    return status;
+                }
+            }
+            else {
+                (void) MsgLog(KME_NOREADYKEY);
+                /* TODO return here? */
+            }
         }
         else {
 
