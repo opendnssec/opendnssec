@@ -286,6 +286,20 @@ AC_DEFUN([ACX_BOTAN],[
 			#include <botan/filters.h>
 			#include <botan/hex.h>
 			#include <botan/sha2_32.h>
+			#include <botan/emsa3.h>],
+			[using namespace Botan;
+			LibraryInitializer::initialize();
+			new EMSA3_Raw();])],
+		[AC_MSG_RESULT([checking for Botan >= v1.7.24 ... yes])],
+		[AC_MSG_RESULT([checking for Botan >= v1.7.24 ... no])
+		 AC_MSG_ERROR([Missing the correct version of the Botan library])]
+	)
+	AC_LINK_IFELSE(
+		[AC_LANG_PROGRAM([#include <botan/init.h>
+			#include <botan/pipe.h>
+			#include <botan/filters.h>
+			#include <botan/hex.h>
+			#include <botan/sha2_32.h>
 			#include <botan/auto_rng.h>
 			#include <botan/emsa3.h>],
 			[using namespace Botan;
@@ -293,9 +307,13 @@ AC_DEFUN([ACX_BOTAN],[
 			new EMSA3_Raw();
 			AutoSeeded_RNG *rng = new AutoSeeded_RNG();
 			rng->reseed();])],
-		[AC_MSG_RESULT([checking for Botan >= v1.7.24 and != v1.8.2 ... yes])],
-		[AC_MSG_RESULT([checking for Botan >= v1.7.24 and != v1.8.2 ... no])
-		 AC_MSG_ERROR([Missing the correct version of the Botan library])]
+		[AC_MSG_RESULT([checking for Botan reseed API fix ... no])],
+		[AC_MSG_RESULT([checking for Botan reseed API fix ... yes])
+		AC_DEFINE_UNQUOTED(
+			[BOTAN_RESEED_FIX],
+			[1],
+			[Fixes an API problem within Botan]
+		)]
 	)
 	AC_LANG_POP([C++])
 

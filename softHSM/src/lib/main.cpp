@@ -1974,7 +1974,11 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSeed, CK_ULONG ulSee
   }
 
   session->rng->add_entropy(pSeed, ulSeedLen);
+#ifdef BOTAN_RESEED_FIX
+  session->rng->reseed(256);
+#else
   session->rng->reseed();
+#endif
 
   softHSM->unlockMutex();
 
