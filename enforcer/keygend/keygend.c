@@ -188,7 +188,7 @@ server_main(DAEMONCONFIG *config)
                 /* TODO: check capacity of HSM will not be exceeded */
                 /* Create the required keys */
                 for (i=new_keys ; i > 0 ; i--){
-                        if (policy->ksk->algorithm == 5 ) {
+                        if (policy->ksk->algorithm == 5 || policy->ksk->algorithm == 7 ) {
                             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
                             if (key) {
                                 log_msg(config, LOG_INFO,"Created key in HSM\n");
@@ -230,7 +230,7 @@ server_main(DAEMONCONFIG *config)
                 
                 /* TODO: check capacity of HSM will not be exceeded */
                 for (i = new_keys ; i > 0 ; i--) {
-                   if (policy->zsk->algorithm == 5 ) {
+                   if (policy->zsk->algorithm == 5 || policy->zsk->algorithm == 7) {
                        key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->zsk->bits);
                        if (key) {
                            log_msg(config, LOG_INFO,"Created key in HSM\n");
