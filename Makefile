@@ -3,7 +3,7 @@
 # Top-level makefile for OpenDNSSEC
 #
 
-SUBDIRS = softHSM libhsm libksm enforcer signer xml
+SUBDIRS = softHSM libhsm libksm enforcer signer auditor xml
 
 PREFIX = /usr/local
 BUILDDIR = build

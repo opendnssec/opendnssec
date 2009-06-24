@@ -1,6 +1,6 @@
 # $Id$
 
-TARGETS = softHSM libhsm libksm enforcer signer xml
+TARGETS = softHSM libhsm libksm enforcer signer auditor xml
 
 SUDO = sudo
 MAKE = make
