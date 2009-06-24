@@ -523,7 +523,11 @@ main(int argc, char **argv)
 					        "not a multiple of 2 characters\n");
 					exit(EXIT_FAILURE);
 				}
-				n3p->salt_length = (uint8_t) strlen(optarg) / 2;
+				if (strlen(optarg) >= 512) {
+					fprintf(stderr, "Error: salt too long (max 256 bytes)\n");
+					exit(EXIT_FAILURE);
+				}
+				n3p->salt_length = (uint8_t) (strlen(optarg) / 2);
 				n3p->salt = LDNS_XMALLOC(uint8_t, n3p->salt_length);
 				for (c = 0; c < (int) strlen(optarg); c += 2) {
 					if (isxdigit(optarg[c]) && isxdigit(optarg[c+1])) {
