@@ -636,8 +636,18 @@ main(int argc, char **argv)
 				fprintf(stderr, "not a multiple of 2 characters\n");
 				exit(EXIT_FAILURE);
 			}
-			nsec3_salt_length = (uint8_t) strlen(optarg) / 2;
+			if (strlen(optarg) >= 512) {
+				fprintf(stderr, "Error: salt too long (max 256 bytes)\n");
+				exit(EXIT_FAILURE);
+			}
+			nsec3_salt_length = (uint8_t) (strlen(optarg) / 2);
 			nsec3_salt = LDNS_XMALLOC(uint8_t, nsec3_salt_length);
+			if (!nsec3_salt) {
+				fprintf(stderr,
+				        "Error allocating %u bytes of memory for salt",
+				        nsec3_salt_length);
+				exit(1);
+			}
 			for (c = 0; c < (int) strlen(optarg); c += 2) {
 				if (isxdigit(optarg[c]) && isxdigit(optarg[c+1])) {
 					nsec3_salt[c/2] = 
@@ -671,7 +681,7 @@ main(int argc, char **argv)
 		out_file = fopen(out_file_name, "w");
 		if (!out_file) {
 			printf("Error opening %s for writing: %s\n",
-				  optarg,
+				  out_file_name,
 				  strerror(errno));
 			exit(2);
 		}
