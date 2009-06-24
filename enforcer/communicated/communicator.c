@@ -245,9 +245,9 @@ server_main(DAEMONCONFIG *config)
                         /* Update the salt if it is not up to date */
                         if (policy->denial->version == 3)
                         {
-                            DbBeginTransaction();
+                            /*DbBeginTransaction();*/
                             status2 = KsmPolicyUpdateSalt(policy, ctx);
-                            DbCommit();
+                            /*DbCommit();*/
                             if (status2 != 0) {
                                 /* Don't return? try to parse the rest of the zones? */
                                 log_msg(config, LOG_ERR, "Error updating salt: %d", status2);

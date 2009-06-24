@@ -197,9 +197,9 @@ server_main(DAEMONCONFIG *config)
                                 exit(1);
                             }
                             id = hsm_get_key_id(ctx, key);
-                        DbBeginTransaction();
+                        /*DbBeginTransaction();*/
                             status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
-                        DbCommit();
+                        /*DbCommit();*/
                             log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with id: %s in HSM: %s.", policy->ksk->bits,
                                     policy->ksk->algorithm, id, policy->ksk->sm_name);
                             free(id);
