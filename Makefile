@@ -21,10 +21,10 @@ CONF_ARG = \
 
 ## you may have to add the one or more of the following to CONF_ARG
 #
-#	--with-sqlite3=/usr
-#	--with-ldns=/usr
-#	--with-libxml2=/usr
-#	--with-botan=/usr
+#	--with-sqlite3=/usr/local
+#	--with-ldns=/usr/local
+#	--with-libxml2=/usr/local
+#	--with-botan=/usr/local
 #	--with-trang=/usr/local/lib/trang.jar
 
 
