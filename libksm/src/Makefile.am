@@ -7,6 +7,7 @@ SUBDIRS = include
 AM_CPPFLAGS = \
 	-I$(srcdir)/include \
 	-Iinclude \
+	 @LIBHSM_INCLUDES@ \
 	 @DB_INCLUDES@
 
 libksm_la_LIBADD = @DB_LIBS@ @LIBHSM_LIBS@
