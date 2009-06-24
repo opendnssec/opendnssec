@@ -1,17 +1,14 @@
 # $Id$
-#
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(opendnssec-xml, 0.0.1, jad@jadickinson.co.uk)
+AC_INIT([opendnssec-xml], [0.0.1], [jad@jadickinson.co.uk])
+
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 
 # Checks for programs.
 AC_PATH_PROG(XMLLINT, xmllint)
-
 AC_PATH_PROG(JAVA, java)
 
 ACX_TRANG

@@ -12,8 +12,6 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
 
-AUTOMAKE_OPTIONS = foreign
-
 SUBDIRS = src checks
 
 doxygen:

@@ -1,12 +1,12 @@
-# $Id: configure.ac 615 2009-05-06 08:52:03Z jakob $
-
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
+# $Id$
 
 AC_PREREQ(2.61)
-AC_INIT(enforcer, 0.0.1, jad@jadickinson.co.uk)
+AC_INIT([enforcer], [0.0.1], [jad@jadickinson.co.uk])
+
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
+AM_INIT_AUTOMAKE(foreign)
+
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_CONFIG_SRCDIR([common/daemon.h])

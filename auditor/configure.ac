@@ -1,10 +1,8 @@
-# $Id: configure.ac 939 2009-06-05 09:39:03Z jakob $
-#
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
+# $Id$
 
 AC_PREREQ(2.61)
-AC_INIT(auditor, 0.0.1, alex.dalitz@nominet.org.uk)
+AC_INIT([auditor], [0.0.1], [alex.dalitz@nominet.org.uk])
+
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)

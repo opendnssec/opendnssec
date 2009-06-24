@@ -12,8 +12,6 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.guess $(srcdir)/config.sub \
 	$(srcdir)/py-compile
 
-AUTOMAKE_OPTIONS = foreign
-
 SUBDIRS = tools signer_engine
 
 # TODO: move this to general opendnssec install

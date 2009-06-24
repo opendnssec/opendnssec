@@ -1,10 +1,12 @@
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
+# $Id$
 
 AC_PREREQ(2.61)
-AC_INIT([hsmbully],[0.0.1],[rick@openfortress.nl])
+AC_INIT([hsmbully], [0.0.1], [rick@openfortress.nl])
+
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
+AM_INIT_AUTOMAKE(foreign)
+
 AC_CONFIG_SRCDIR([src/hsmbully.c])
 AC_CONFIG_HEADER([config.h])
 
