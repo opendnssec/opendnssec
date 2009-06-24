@@ -2,7 +2,11 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS = -I$(srcdir)/../common @XML2_INCLUDES@ @LIBKSM_INCLUDES@
+AM_CPPFLAGS = \
+	-I$(srcdir)/../common \
+	@XML2_INCLUDES@ \
+	@LIBHSM_INCLUDES@
+	@LIBKSM_INCLUDES@
 
 sbin_PROGRAMS = keygend
 
