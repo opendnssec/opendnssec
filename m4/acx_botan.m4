@@ -35,8 +35,8 @@ AC_DEFUN([ACX_BOTAN],[
 			[using namespace Botan;
 			LibraryInitializer::initialize();
 			new EMSA3_Raw();])],
-		[AC_MSG_RESULT([checking for Botan >= v1.7.24 ... yes])],
-		[AC_MSG_RESULT([checking for Botan >= v1.7.24 ... no])
+		[AC_MSG_RESULT([checking for Botan >= v1.8.0 ... yes])],
+		[AC_MSG_RESULT([checking for Botan >= v1.8.0 ... no])
 		 AC_MSG_ERROR([Missing the correct version of the Botan library])]
 	)
 	AC_LINK_IFELSE(
