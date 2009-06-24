@@ -1,4 +1,4 @@
-<Zonelist>
+<ZoneList>
 	<Zone name="tjeb.nl">
 		<Policy>default</Policy>
 		<SignerConfiguration>zone_config/tjeb.nl.xml.nsec3</SignerConfiguration>
@@ -11,4 +11,4 @@
 			</Output>
 		</Adapters>
 	</Zone>
-</Zonelist>
+</ZoneList>
