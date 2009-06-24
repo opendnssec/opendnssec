@@ -33,6 +33,7 @@ import commands
 from datetime import datetime
 #import traceback
 import syslog
+import shutil
 
 from ZoneConfig import ZoneConfig
 from Util import ToolException
@@ -281,45 +282,55 @@ class Zone:
         """Takes the sorted zone file created with sort(), strips
            the glue from it, and adds nsec(3) records. The output
            is written to a new file (.signed), ready to
-           actually be signed."""
+           actually be signed. If the zone configuration has no
+           signature_keys set, no nsec3 records will be added,
+           but the file is just passed along the line."""
         syslog.syslog(syslog.LOG_INFO,
                       "NSEC(3)ing zone: " + self.zone_name)
-        # hmz, todo: stripped records need to be re-added
-        # and another todo: move strip to right after sorter?
-        if self.zone_config.denial_nsec:
-            nsec_p = Util.run_tool(
-                              [self.get_tool_filename("nseccer"),
-                               "-f",
-                               self.get_zone_tmp_filename(".sorted"),
-                               "-w",
-                               self.get_zone_tmp_filename(".nsecced")
-                               ])
-        elif self.zone_config.denial_nsec3:
-            cmd = [
-                self.get_tool_filename("nsec3er"),
-                "-o", self.zone_name,
-                "-s",
-                self.zone_config.denial_nsec3_salt,
-                "-t",
-                str(self.zone_config.denial_nsec3_iterations),
-                "-a",
-                str(self.zone_config.denial_nsec3_algorithm),
-                "-i",
-                self.get_zone_tmp_filename(".sorted"),
-                "-w",
-                self.get_zone_tmp_filename(".nsecced")
-            ]
-            if self.zone_config.denial_nsec3_ttl:
-                cmd.append("-m")
-                cmd.append(str(self.zone_config.denial_nsec3_ttl))
-            if self.zone_config.denial_nsec3_optout:
-                cmd.append("-p")
-            nsec_p = Util.run_tool(cmd)
-        #nsecced_zone_file = open(self.get_zone_tmp_filename(".signed"), "w")
-        if nsec_p:
-            for line in nsec_p.stderr:
-                syslog.syslog(syslog.LOG_ERR,
-                            "stderr from nseccer: " + line)
+        if len(self.zone_config.signature_keys) > 0:
+            if self.zone_config.denial_nsec:
+                nsec_p = Util.run_tool(
+                                  [self.get_tool_filename("nseccer"),
+                                   "-f",
+                                   self.get_zone_tmp_filename(".sorted"),
+                                   "-w",
+                                   self.get_zone_tmp_filename(".nsecced")
+                                   ])
+            elif self.zone_config.denial_nsec3:
+                cmd = [
+                    self.get_tool_filename("nsec3er"),
+                    "-o", self.zone_name,
+                    "-s",
+                    self.zone_config.denial_nsec3_salt,
+                    "-t",
+                    str(self.zone_config.denial_nsec3_iterations),
+                    "-a",
+                    str(self.zone_config.denial_nsec3_algorithm),
+                    "-i",
+                    self.get_zone_tmp_filename(".sorted"),
+                    "-w",
+                    self.get_zone_tmp_filename(".nsecced")
+                ]
+                if self.zone_config.denial_nsec3_ttl:
+                    cmd.append("-m")
+                    cmd.append(str(self.zone_config.denial_nsec3_ttl))
+                if self.zone_config.denial_nsec3_optout:
+                    cmd.append("-p")
+                nsec_p = Util.run_tool(cmd)
+            #nsecced_zone_file = open(self.get_zone_tmp_filename(".signed"), "w")
+            if nsec_p:
+                for line in nsec_p.stderr:
+                    syslog.syslog(syslog.LOG_ERR,
+                                "stderr from nseccer: " + line)
+        else: # no signatures
+            syslog.syslog(syslog.LOG_INFO, "No signatures set, not adding NSEC(3) records\n")
+            try:
+                shutil.copy(self.get_zone_tmp_filename(".sorted"),
+                            self.get_zone_tmp_filename(".nsecced"))
+            except Error, e:
+                syslog.syslog(syslog.LOG_INFO, "Error in copy: " + str(e))
+
+            syslog.syslog(syslog.LOG_INFO, "done\n")
 
     def perform_action(self):
         """Depending on the value set to zone.action, this method

@@ -58,10 +58,14 @@ class Task:
     def run(self):
         """Run this task"""
         if self.what == Task.SIGN_ZONE:
-            syslog.syslog(syslog.LOG_INFO,
-                          "Run task: sign zone: " +\
-                          str(self.how.zone_name))
-            self.how.perform_action()
+            try:
+                syslog.syslog(syslog.LOG_INFO,
+                              "Run task: sign zone: " +\
+                              str(self.how.zone_name))
+                self.how.perform_action()
+            except Error, e:
+                syslog.syslog(syslog.LOG_ERROR,
+                              "Error while signing: " + str(e));
         elif self.what == Task.NOTIFY_SERVER:
             syslog.syslog(syslog.LOG_INFO, "Run task: notify server")
         elif self.what == Task.DUMMY:
