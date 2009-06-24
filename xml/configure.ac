@@ -28,6 +28,8 @@ AC_SUBST([opendnssecsysconfdir])
 AC_CONFIG_FILES([
 	Makefile
 	conf.xml
+	kasp.xml
+	signconf.xml
 	zonelist.xml
 ])
 

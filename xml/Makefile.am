@@ -32,15 +32,15 @@ regress: $(RNG)
 	@for i in ${XML}; do \
 		${XMLLINT} --noout --relaxng \
 		 	`basename $$i .xml`.rng \
-			$(srcdir)/$$i; \
+			$(builddir)/$$i; \
 	done
 
 install-data-hook:
 	test -f ${sysconfdir}/conf.xml || \
-		${INSTALL_DATA} ${srcdir}/conf.xml ${sysconfdir}
-	${INSTALL_DATA} ${srcdir}/conf.xml ${sysconfdir}/conf.xml.sample
+		${INSTALL_DATA} ${builddir}/conf.xml ${sysconfdir}
+	${INSTALL_DATA} ${builddir}/conf.xml ${sysconfdir}/conf.xml.sample
 	test -f ${sysconfdir}/zonelist.xml || \
-		${INSTALL_DATA} ${srcdir}/zonelist.xml ${sysconfdir}
-	${INSTALL_DATA} ${srcdir}/zonelist.xml ${sysconfdir}/zonelist.xml.sample
+		${INSTALL_DATA} ${builddir}/zonelist.xml ${sysconfdir}
+	${INSTALL_DATA} ${builddir}/zonelist.xml ${sysconfdir}/zonelist.xml.sample
 	test -f ${sysconfdir}/kasp.xml || \
-		${INSTALL_DATA} ${srcdir}/kasp.xml ${sysconfdir}
+		${INSTALL_DATA} ${builddir}/kasp.xml ${sysconfdir}
