@@ -106,6 +106,8 @@ nsec3 = element NSEC3 {
 	element Hash {
 		element Algorithm { xsd:positiveInteger },
 		element Iterations { xsd:positiveInteger },
+		
+		# Salt length in bytes
 		element Salt {
 			attribute length { xsd:positiveInteger },
 
