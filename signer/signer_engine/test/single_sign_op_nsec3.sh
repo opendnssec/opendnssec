@@ -22,7 +22,7 @@ echo "Adding keys"
 # sort, nsec, and sign it
 echo "Signing zone"
 ../../tools/zone_reader -f $TMP_ZONE -o tjeb.nl -n -t 5 -s beef |\
-../../tools/nsec3er -t 5 -s beef -o tjeb.nl >> $TMP_COMMANDS
+../../tools/nsec3er -t 5 -s 998E54C0A50BBD71AF22B70CE0B51C733F3288ABF0586A81FA63BEEC779320C98AE23CE336434D01F0629CC20A478DAFEE5DAA0C883DA29679D22FE8D7047FD3A1E0D5192745C8EE21069A302600CE342B1102508DBB6A97F0736BF06268ED03DAF30B562270D81D6321C956A29B79E8071853D18B2EFCD3FC74D7718610FD641941351218DF4BCC55056BB48D8D7CE4FABF56A7BD473961CB9AAC9A0F21EF77 -o tjeb.nl >> $TMP_COMMANDS
 
 ../../tools/signer -c opendnssec.xml -p signed_zones/tjeb.nl.signed -f $TMP_COMMANDS -w signed_zones/tjeb.nl.tmp
 mv signed_zones/tjeb.nl.tmp signed_zones/tjeb.nl.signed

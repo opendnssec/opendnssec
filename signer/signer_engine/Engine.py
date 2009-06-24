@@ -202,9 +202,9 @@ class Engine:
                         response = ""
                         zone = self.zones[args[1]]
                         if not zone.zone_config:
-                            zone.read_config()
                             response += "Zone now has config"
                             self.update_zone(zone.zone_name)
+                            self.schedule_signing(args[1])
                         elif zone.zone_config.check_config_file_update():
                             response += "Zone config has also changed\n"
                             self.update_zone(zone.zone_name)
@@ -236,9 +236,9 @@ class Engine:
                         response = ""
                         zone = self.zones[args[1]]
                         if not zone.zone_config:
-                            zone.read_config()
                             response += "Zone now has config"
                             self.update_zone(zone.zone_name)
+                            self.schedule_signing(args[1])
                         elif zone.zone_config.check_config_file_update():
                             response += "Zone config updated"
                             self.update_zone(zone.zone_name)
@@ -321,7 +321,6 @@ class Engine:
         count_err = 0
         for zone in self.zones.values():
             if not zone.zone_config:
-                zone.read_config()
                 self.update_zone(zone.zone_name)
                 if self.update_zone(zone.zone_name):
                     count += 1
@@ -355,10 +354,9 @@ class Engine:
                               "' in " + str(secs_left) + " seconds")
                 self.schedule_signing(zone_name, time.time() + secs_left)
             syslog.syslog(syslog.LOG_INFO, "Zone " + zone_name + " added")
-        else:
-            # reading of config has failed. remove the zone again
-            syslog.syslog(syslog.LOG_ERR, "Zone " + zone_name + " not added")
-            #self.remove_zone(zone_name)
+        # else:
+        # reading of config has failed. it apparently doesn't exist
+        # yet (the communicator is yet to be started)
         
     def remove_zone(self, zone_name):
         """Removes a zone from the engine"""
