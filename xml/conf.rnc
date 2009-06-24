@@ -54,9 +54,14 @@ start = element Configuration {
 		# Location to store the zonelist XML file
 		element ZoneListFile { xsd:string }?,
 
-		# This can probably be removed later; location of the
-		# signer tools (used for intermediate testing)
-		element ToolsDirectory { xsd:string }?
+		# Location of the signer tools
+		element ToolsDirectory { xsd:string }?,
+		
+		# Number of Worker Threads
+		element WorkerThreads { xsd:positiveInteger }?,
+
+		# Number of Signer Threads
+		element SignerThreads { xsd:positiveInteger }?
 	}?
 }
 

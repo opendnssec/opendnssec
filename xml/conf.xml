@@ -34,6 +34,8 @@
 		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>
 		<ZoneListFile>/etc/opendnssec/zonelist.xml</ZoneListFile>
 		<ToolsDirectory>/usr/local/libexec/opendnssec</ToolsDirectory>
+		<WorkerThreads>8</WorkerThreads>
+		<SignerThreads>1</SignerThreads>
 	</Signer>
 
 </Configuration>
