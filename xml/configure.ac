@@ -14,25 +14,24 @@ AC_PATH_PROG(XMLLINT, xmllint)
 
 AC_PATH_PROG(JAVA, java)
 
-AC_ARG_WITH(trang,
-	[AS_HELP_STRING([--with-trang],[Path to trang.jar (optional)])],
-   	TRANGJAR="$withval"
-	)
-if test "x$TRANGJAR" != "x"
-then
-	if test -e $TRANGJAR
-	then
-		TRANG="$JAVA -jar $TRANGJAR"
-		AC_MSG_NOTICE(trang will run like this $TRANG)
-  	else
-    		AC_MSG_ERROR(trang.jar is needed to continue. Say where it is with --with-trang=PATH)
-	fi
-else
-	AC_MSG_NOTICE([trang.jar can be downloaded from http://code.google.com/p/jing-trang/])
-	TRANG=
-fi
-AC_SUBST(TRANG)
+ACX_TRANG
+ACX_PKCS11_MODULES
 
-AC_CONFIG_FILES([Makefile])
+full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+
+opendnsseclibexecdir=$libexecdir/opendnssec
+opendnsseclocalstatedir=$localstatedir/opendnssec
+opendnssecsysconfdir=$full_sysconfdir/opendnssec
+
+AC_SUBST([opendnsseclibexecdir])
+AC_SUBST([opendnsseclocalstatedir])
+AC_SUBST([opendnssecsysconfdir])
+
+
+AC_CONFIG_FILES([
+	Makefile
+	conf.xml
+	zonelist.xml
+])
 
 AC_OUTPUT

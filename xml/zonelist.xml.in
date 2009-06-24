@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id$ -->
+
+<ZoneList>
+	<Zone name="opendnssec.se">
+		<Policy>default</Policy>
+		<SignerConfiguration>@opendnsseclocalstatedir@/signconf/opendnssec.se.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<File>@opendnsseclocalstatedir@/unsigned/opendnssec.se</File>
+			</Input>
+			<Output>
+				<File>@opendnsseclocalstatedir@/signed/opendnssec.se</File>
+			</Output>
+		</Adapters>
+	</Zone>
+</ZoneList>
