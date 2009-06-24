@@ -25,6 +25,7 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+require 'rubygems'
 require 'syslog'
 include Syslog::Constants
 require 'lib/kasp_auditor/config.rb'
