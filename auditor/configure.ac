@@ -4,11 +4,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(OpenDNSSEC KASP Auditor, 0.0.1, alex.dalitz@nominet.org.uk)
+AC_INIT(kasp_auditor, 0.0.1, alex.dalitz@nominet.org.uk)
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
-#AC_INCLUDE(am_path_ruby.m4)
 
 AM_PATH_RUBY(,with_ruby=yes, with_ruby=no)
 
