@@ -2,9 +2,7 @@
 #
 # $Id$
 
-if [ -d m4 ]; then
-	ACLOCAL="aclocal -Im4"
-	export ACLOCAL
-fi
+ACLOCAL="aclocal -I../m4"
+export ACLOCAL
 
 autoreconf --install --force
