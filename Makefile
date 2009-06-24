@@ -41,8 +41,16 @@ autogen::
 
 build:: $(SUBDIRS)
 
+clean::
+	@for dir in $(SUBDIRS); do \
+		target=$(BUILDDIR)/$$dir; \
+		echo "cleaning $$target" ;\
+		rm -fr $$target ;\
+	done
+
 $(SUBDIRS)::
 	test -d $(BUILDDIR)/$@ || mkdir -p $(BUILDDIR)/$@
 	(cd $(BUILDDIR)/$@; ../../$@/configure $(CONF_ARG))
 	$(MAKE) -C $(BUILDDIR)/$@ $(MAKE_FLAGS)
 	$(SUDO) $(MAKE) -C $(BUILDDIR)/$@ install
+
