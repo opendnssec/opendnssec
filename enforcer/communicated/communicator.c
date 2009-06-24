@@ -243,14 +243,17 @@ server_main(DAEMONCONFIG *config)
                         log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
 
                         /* Update the salt if it is not up to date */
-                        DbBeginTransaction();
-                        status2 = KsmPolicyUpdateSalt(policy, ctx);
-                        DbCommit();
-                        if (status2 != 0) {
-                            /* Don't return? try to parse the rest of the zones? */
-                            log_msg(config, LOG_ERR, "Error updating salt");
-                            ret = xmlTextReaderRead(reader);
-                            continue;
+                        if (policy->denial->version == 3)
+                        {
+                            DbBeginTransaction();
+                            status2 = KsmPolicyUpdateSalt(policy, ctx);
+                            DbCommit();
+                            if (status2 != 0) {
+                                /* Don't return? try to parse the rest of the zones? */
+                                log_msg(config, LOG_ERR, "Error updating salt: %d", status2);
+                                ret = xmlTextReaderRead(reader);
+                                continue;
+                            }
                         }
                     } else {
                         /* Policy is same as previous zone, do not re-read */
