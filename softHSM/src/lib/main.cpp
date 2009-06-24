@@ -35,6 +35,7 @@
 *
 ************************************************************/
 
+#include <config.h>
 #include "main.h"
 #include "mutex.h"
 #include "log.h"

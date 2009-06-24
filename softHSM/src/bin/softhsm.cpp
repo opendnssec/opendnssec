@@ -37,6 +37,7 @@
 *
 ************************************************************/
 
+#include <config.h>
 #include "softhsm.h"
 #include "pkcs11_unix.h"
 

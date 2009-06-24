@@ -33,6 +33,7 @@
 *
 ************************************************************/
 
+#include <config.h>
 #include "SoftHSMInternal.h"
 #include "log.h"
 #include "userhandling.h"
