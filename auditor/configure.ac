@@ -11,6 +11,8 @@ AM_INIT_AUTOMAKE(foreign)
 
 AM_PATH_RUBY(,with_ruby=yes, with_ruby=no)
 
+opendnsseclibdir="\$(libdir)/opendnssec"
+
 AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT

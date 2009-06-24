@@ -1,5 +1,5 @@
 require 'test/unit'
-require 'lib/kasp_auditor.rb'
+require 'kasp_auditor.rb'
 include KASPAuditor
 
 # Giving up on getting long-expiry test data.

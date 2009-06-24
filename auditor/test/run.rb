@@ -1,4 +1,4 @@
-require 'lib/kasp_auditor.rb'
+require 'kasp_auditor.rb'
 include KASPAuditor
 
 path = ARGV[0] + "/"

@@ -28,9 +28,9 @@
 require 'rubygems'
 require 'syslog'
 include Syslog::Constants
-require 'lib/kasp_auditor/config.rb'
-require 'lib/kasp_auditor/auditor.rb'
-require 'lib/kasp_auditor/parse.rb'
+require 'kasp_auditor/config.rb'
+require 'kasp_auditor/auditor.rb'
+require 'kasp_auditor/parse.rb'
 
 module KASPAuditor
   class Runner

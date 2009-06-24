@@ -2,4 +2,4 @@
 #
 # $Id$
 
-ruby test/run.rb ../signer/signer_engine/test 
+ruby -Ilib test/run.rb ../signer/signer_engine/test 
