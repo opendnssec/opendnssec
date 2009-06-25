@@ -79,7 +79,7 @@ The returned ldns_rr structure can be freed with ldns_rr_free()
 \return ldns_rr* Signed RRset
 */
 ldns_rr*
-hsm_sign_rrset(const hsm_ctx_t *ctx,
+hsm_sign_rrset(hsm_ctx_t *ctx,
                const ldns_rr_list* rrset,
                const hsm_key_t *key,
                const hsm_sign_params_t *sign_params);
@@ -95,7 +95,7 @@ hsm_sign_rrset(const hsm_ctx_t *ctx,
 \param salt the salt
 */
 ldns_rdf *
-hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
+hsm_nsec3_hash_name(hsm_ctx_t *ctx,
                     ldns_rdf *name,
                     uint8_t algorithm,
                     uint16_t iterations,
@@ -113,7 +113,7 @@ The returned ldns_rr structure can be freed with ldns_rr_free()
 \return ldns_rr*
 */
 ldns_rr*
-hsm_get_dnskey(const hsm_ctx_t *ctx,
+hsm_get_dnskey(hsm_ctx_t *ctx,
                const hsm_key_t *key,
                const hsm_sign_params_t *sign_params);
 

@@ -35,11 +35,14 @@
 #define HSM_MAX_SESSIONS 10
 #define HSM_MAX_ALGONAME 16
 
-/*! Return codes for some of the functions, mapped to int */
+/*! Return codes for some of the functions */
+/*! These should be different than the list of CKR_ values defined
+ * by pkcs11 (for easier debugging purposes of calling applications)
+ */
 #define HSM_OK                    0
-#define HSM_ERROR                 1
-#define HSM_PIN_INCORRECT         2
-#define HSM_CONFIG_FILE_ERROR     3
+#define HSM_ERROR                 0x10000001
+#define HSM_PIN_INCORRECT         0x10000002
+#define HSM_CONFIG_FILE_ERROR     0x10000003
 
 /*! Data type to describe an HSM */
 typedef struct {
@@ -76,6 +79,11 @@ typedef struct {
 typedef struct {
     hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
     size_t        session_count;               /*!< number of configured HSMs */
+    int           error;                       /*!< non-zero if the last operation failed
+                                                    (only the first error will be set) */
+    const char    *error_action;               /*!< static string describing the action we
+                                               were trying to do when the first error happened */
+    const char    *error_message;              /*!< static string describing the first error */
 } hsm_ctx_t;
 
 
@@ -155,7 +163,7 @@ freed with hsm_key_free()
 \param count location to store the number of keys found
 */
 hsm_key_t **
-hsm_list_keys(const hsm_ctx_t *context, size_t *count);
+hsm_list_keys(hsm_ctx_t *context, size_t *count);
 
 
 /*! List all known keys in a HSM
@@ -172,7 +180,7 @@ freed with hsm_key_free()
 \param repository repository to list the keys in
 */
 hsm_key_t **
-hsm_list_keys_repository(const hsm_ctx_t *context,
+hsm_list_keys_repository(hsm_ctx_t *context,
                          size_t *count,
                          const char *repository);
 
@@ -182,7 +190,7 @@ hsm_list_keys_repository(const hsm_ctx_t *context,
 \param context HSM context
 */
 size_t
-hsm_count_keys(const hsm_ctx_t *context);
+hsm_count_keys(hsm_ctx_t *context);
 
 
 /*! Count all known keys in a HSM
@@ -191,7 +199,7 @@ hsm_count_keys(const hsm_ctx_t *context);
 \param repository repository in where to count the keys
 */
 size_t
-hsm_count_keys_repository(const hsm_ctx_t *context,
+hsm_count_keys_repository(hsm_ctx_t *context,
                           const char *repository);
 
 
@@ -206,7 +214,7 @@ The returned key structure can be freed with hsm_key_free()
 \return key identifier or NULL if not found (or invalid input)
 */
 hsm_key_t *
-hsm_find_key_by_id(const hsm_ctx_t *context,
+hsm_find_key_by_id(hsm_ctx_t *context,
                    const char *id);
 
 /*! Generate new key pair in HSM
@@ -223,7 +231,7 @@ The returned key structure can be freed with hsm_key_free()
 \return return key identifier or NULL if key generation failed
 */
 hsm_key_t *
-hsm_generate_rsa_key(const hsm_ctx_t *context,
+hsm_generate_rsa_key(hsm_ctx_t *context,
                      const char *repository,
                      unsigned long keysize);
 
@@ -239,7 +247,7 @@ needs to be freed.
 \return 0 if successful, !0 if failed
 */
 int
-hsm_remove_key(const hsm_ctx_t *context, hsm_key_t *key);
+hsm_remove_key(hsm_ctx_t *context, hsm_key_t *key);
 
 
 /*! Free the memory for a key structure.
@@ -269,7 +277,7 @@ The returned id is allocated data, and must be free()d by the caller
 \return id of key pair
 */
 char *
-hsm_get_key_id(const hsm_ctx_t *context,
+hsm_get_key_id(hsm_ctx_t *context,
                const hsm_key_t *key);
 
 
@@ -283,7 +291,7 @@ With hsm_key_info_free()
 \return key information
 */
 hsm_key_info_t *
-hsm_get_key_info(const hsm_ctx_t *context,
+hsm_get_key_info(hsm_ctx_t *context,
                  const hsm_key_t *key);
 
 
@@ -303,7 +311,7 @@ hsm_key_info_free(hsm_key_info_t *key_info);
 
 */
 int
-hsm_random_buffer(const hsm_ctx_t *ctx,
+hsm_random_buffer(hsm_ctx_t *ctx,
                   unsigned char *buffer,
                   unsigned long length);
 
@@ -314,7 +322,7 @@ hsm_random_buffer(const hsm_ctx_t *ctx,
                attached
 */
 uint32_t
-hsm_random32(const hsm_ctx_t *ctx);
+hsm_random32(hsm_ctx_t *ctx);
 
 
 /*! Return unsigned 64-bit random number from any attached HSM
@@ -323,7 +331,7 @@ hsm_random32(const hsm_ctx_t *ctx);
                attached
 */
 uint64_t
-hsm_random64(const hsm_ctx_t *ctx);
+hsm_random64(hsm_ctx_t *ctx);
 
 
 
@@ -361,7 +369,7 @@ hsm_detach(const char *repository);
 \return 1 if the token is attached, 0 if not found
 */
 int
-hsm_token_attached(const hsm_ctx_t *ctx,
+hsm_token_attached(hsm_ctx_t *ctx,
                    const char *repository);
 
 /* a few debug functions for applications */

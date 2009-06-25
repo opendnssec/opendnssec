@@ -200,17 +200,37 @@ ldns_pkcs11_rv_str(CK_RV rv)
         }
 }
 
+/*
+ * If the ctx is given, and it's error value is still 0, the
+ * value will be set to 'error', and the error_message and error_action
+ * will be set to the given (static!) strings
+ */
 static void
-hsm_pkcs11_check_rv(CK_RV rv, const char *message)
+hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
+                 const char *message)
+{
+    if (ctx && ctx->error == 0) {
+        ctx->error = error;
+        ctx->error_action = action;
+        ctx->error_message = message;
+    }
+}
+
+/* returns 1 if rv == CKR_OK. If it is not, and if there is no error
+ * value set yet, the rv value will be set
+ * to the given context (as an integer), and 0 will be returned */
+static int
+hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *message)
 {
     if (rv != CKR_OK) {
-        fprintf(stderr,
-                "Error in %s: %s (%d)\n",
-                message,
-                ldns_pkcs11_rv_str(rv),
-                (int) rv);
-        exit(EXIT_FAILURE);
+        if (ctx && ctx->error == 0) {
+            ctx->error = (int) rv;
+            ctx->error_action = message;
+            ctx->error_message = ldns_pkcs11_rv_str(rv);
+        }
+        return 1;
     }
+    return 0;
 }
 
 static void
@@ -288,7 +308,8 @@ fprintf(stderr, "have pkcs11_module\n");
 }
 
 static int
-hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
+hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
+                            CK_FUNCTION_LIST_PTR pkcs11_functions,
                             CK_SLOT_ID slotId,
                             const char *token_name)
 {
@@ -299,7 +320,9 @@ hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
     CK_TOKEN_INFO token_info;
 
     rv = pkcs11_functions->C_GetTokenInfo(slotId, &token_info);
-    hsm_pkcs11_check_rv(rv, "C_GetTokenInfo");
+    if (hsm_pkcs11_check_error(ctx, rv, "C_GetTokenInfo")) {
+        return 0;
+    }
 
     memset(token_name_bytes, ' ', HSM_TOKEN_LABEL_LENGTH);
     if (strlen(token_name) < HSM_TOKEN_LABEL_LENGTH) {
@@ -317,7 +340,8 @@ hsm_pkcs11_check_token_name(CK_FUNCTION_LIST_PTR pkcs11_functions,
 
 
 static CK_SLOT_ID
-hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
+hsm_get_slot_id(hsm_ctx_t *ctx,
+                CK_FUNCTION_LIST_PTR pkcs11_functions,
                 const char *token_name)
 {
     CK_RV rv;
@@ -328,21 +352,27 @@ hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
     int found = 0;
 
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, NULL_PTR, &slotCount);
-    hsm_pkcs11_check_rv(rv, "get slot list");
+    if (hsm_pkcs11_check_error(ctx, rv, "get slot list")) {
+        return 0;
+    }
 
     if (slotCount < 1) {
-        fprintf(stderr, "Error; no slots found while looking for token %s\n", token_name);
-        exit(1);
+        hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
+                          "No slots found in HSM");
+        return 0;
     }
 
     slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
-    hsm_pkcs11_check_rv(rv, "get slot list");
+    if (hsm_pkcs11_check_error(ctx, rv, "get slot list")) {
+        return 0;
+    }
 
     for (cur_slot = 0; cur_slot < slotCount; cur_slot++) {
-        if (hsm_pkcs11_check_token_name(pkcs11_functions,
-                                         slotIds[cur_slot],
-                                         token_name)) {
+        if (hsm_pkcs11_check_token_name(ctx,
+                                        pkcs11_functions,
+                                        slotIds[cur_slot],
+                                        token_name)) {
             slotId = slotIds[cur_slot];
             found = 1;
             break;
@@ -351,7 +381,7 @@ hsm_get_slot_id(CK_FUNCTION_LIST_PTR pkcs11_functions,
     free(slotIds);
     if (!found) {
         fprintf(stderr, "Error; could not find token with the name %s\n", token_name);
-        exit(1);
+        return 0;
     }
 
     return slotId;
@@ -408,8 +438,9 @@ hsm_session_free(hsm_session_t *session) {
  * a module_t struct for it
  */
 static int
-hsm_session_init(hsm_session_t **session, char *repository,
-                 char *token_label, char *module_path, char *pin)
+hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
+                 char *repository, char *token_label,
+                 char *module_path, char *pin)
 {
     CK_RV rv;
     hsm_module_t *module;
@@ -420,22 +451,30 @@ hsm_session_init(hsm_session_t **session, char *repository,
     module = hsm_module_new(repository, token_label, module_path);
     if (!module) return HSM_ERROR;
     rv = hsm_pkcs11_load_functions(module);
-    hsm_pkcs11_check_rv(rv, "Load functions");
+    if (hsm_pkcs11_check_error(ctx, rv, "Load functions")) {
+        return HSM_ERROR;
+    }
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize(NULL);
     /* ALREADY_INITIALIZED is ok, apparently we are using a second
      * device with the same library */
     if (rv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
-        hsm_pkcs11_check_rv(rv, "Initialization");
+        if (hsm_pkcs11_check_error(ctx, rv, "Initialization")) {
+            hsm_module_free(module);
+            return HSM_ERROR;
+        }
     } else {
         first = 0;
     }
-    slot_id = hsm_get_slot_id(module->sym, token_label);
+    slot_id = hsm_get_slot_id(ctx, module->sym, token_label);
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_OpenSession(slot_id,
                                CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                NULL,
                                NULL,
                                &session_handle);
-    hsm_pkcs11_check_rv(rv, "Open first session");
+    if (hsm_pkcs11_check_error(ctx, rv, "Open first session")) {
+        hsm_module_free(module);
+        return HSM_ERROR;
+    }
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Login(session_handle,
                                    CKU_USER,
                                    (unsigned char *) pin,
@@ -448,13 +487,19 @@ hsm_session_init(hsm_session_t **session, char *repository,
         if (session_handle) {
             rv = ((CK_FUNCTION_LIST_PTR) module->sym)->
                    C_CloseSession(session_handle);
-            hsm_pkcs11_check_rv(rv, "finalize after failed login");
+            if (hsm_pkcs11_check_error(ctx, rv,
+                "finalize after failed login")) {
+                return HSM_ERROR;
+            }
         }
         /* if this was not the first, don't close the library for
          * the rest of us */
         if (first) {
             rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Finalize(NULL);
-            hsm_pkcs11_check_rv(rv, "finalize after failed login");
+            if (hsm_pkcs11_check_error(ctx, rv, "finalize after failed login")) {
+                hsm_module_free(module);
+                return HSM_ERROR;
+            }
         }
         hsm_module_free(module);
         *session = NULL;
@@ -470,14 +515,15 @@ hsm_session_init(hsm_session_t **session, char *repository,
 
 /* open a second session from the given one */
 static hsm_session_t *
-hsm_session_clone(hsm_session_t *session)
+hsm_session_clone(hsm_ctx_t *ctx, hsm_session_t *session)
 {
     CK_RV rv;
     CK_SLOT_ID slot_id;
     CK_SESSION_HANDLE session_handle;
     hsm_session_t *new_session;
 
-    slot_id = hsm_get_slot_id(session->module->sym,
+    slot_id = hsm_get_slot_id(ctx,
+                              session->module->sym,
                               session->module->token_label);
     rv = ((CK_FUNCTION_LIST_PTR) session->module->sym)->C_OpenSession(slot_id,
                                     CKF_SERIAL_SESSION | CKF_RW_SESSION,
@@ -485,7 +531,9 @@ hsm_session_clone(hsm_session_t *session)
                                     NULL,
                                     &session_handle);
 
-    hsm_pkcs11_check_rv(rv, "Clone session");
+    if (hsm_pkcs11_check_error(ctx, rv, "Clone session")) {
+        return NULL;
+    }
     new_session = hsm_session_new(session->module, session_handle);
 
     return new_session;
@@ -498,6 +546,7 @@ hsm_ctx_new()
     ctx = malloc(sizeof(hsm_ctx_t));
     memset(ctx->session, 0, HSM_MAX_SESSIONS);
     ctx->session_count = 0;
+    ctx->error = 0;
     return ctx;
 }
 
@@ -524,7 +573,7 @@ hsm_ctx_free(hsm_ctx_t *ctx)
  * module, ie. the one in the global ctx)
  */
 static void
-hsm_session_close(hsm_session_t *session, int unload)
+hsm_session_close(hsm_ctx_t *ctx, hsm_session_t *session, int unload)
 {
     /* If we loaded this library more than once, we may have
      * already finalized it before, so we can safely ignore
@@ -533,17 +582,17 @@ hsm_session_close(hsm_session_t *session, int unload)
     if (unload) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Logout(session->session);
         if (rv != CKR_CRYPTOKI_NOT_INITIALIZED) {
-            hsm_pkcs11_check_rv(rv, "Logout");
+            (void) hsm_pkcs11_check_error(ctx, rv, "Logout");
         }
     }
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_CloseSession(session->session);
     if (rv != CKR_CRYPTOKI_NOT_INITIALIZED) {
-        hsm_pkcs11_check_rv(rv, "Close session");
+        (void) hsm_pkcs11_check_error(ctx, rv, "Close session");
     }
     if (unload) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Finalize(NULL);
         if (rv != CKR_CRYPTOKI_NOT_INITIALIZED) {
-            hsm_pkcs11_check_rv(rv, "Finalize");
+            (void) hsm_pkcs11_check_error(ctx, rv, "Finalize");
             hsm_pkcs11_unload_functions(session->module->handle);
         }
         hsm_module_free(session->module);
@@ -568,7 +617,7 @@ hsm_ctx_close(hsm_ctx_t *ctx, int unload)
             /* todo syslog? */
             /*printf("close session %u (unload: %d)\n", i, unload);*/
             /*hsm_print_ctx(ctx);*/
-            hsm_session_close(ctx->session[i], unload);
+            hsm_session_close(ctx, ctx->session[i], unload);
             ctx->session[i] = NULL;
             /* if this was the last session in the array, decrease
              * the session counter of the context */
@@ -610,7 +659,13 @@ hsm_ctx_clone(hsm_ctx_t *ctx)
     if (ctx) {
         new_ctx = hsm_ctx_new();
         for (i = 0; i < ctx->session_count; i++) {
-            new_session = hsm_session_clone(ctx->session[i]);
+            new_session = hsm_session_clone(ctx, ctx->session[i]);
+            if (!new_session) {
+                /* one of the sessions failed to clone. Clear the
+                 * new ctx and return NULL */
+                hsm_ctx_close(ctx, 0);
+                return NULL;
+            }
             hsm_ctx_add_session(new_ctx, new_session);
         }
     }
@@ -631,7 +686,7 @@ hsm_key_new()
 /* find the session belonging to a key, by iterating over the modules
  * in the context */
 static hsm_session_t *
-hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
+hsm_find_key_session(hsm_ctx_t *ctx, const hsm_key_t *key)
 {
     unsigned int i;
     if (!key || !key->module) return NULL;
@@ -646,7 +701,7 @@ hsm_find_key_session(const hsm_ctx_t *ctx, const hsm_key_t *key)
 
 /* Returns the key type (algorithm) of the given key */
 static CK_KEY_TYPE
-hsm_get_key_algorithm(const hsm_session_t *session,
+hsm_get_key_algorithm(hsm_ctx_t *ctx, const hsm_session_t *session,
                       const hsm_key_t *key)
 {
     CK_RV rv;
@@ -661,9 +716,20 @@ hsm_get_key_algorithm(const hsm_session_t *session,
                                       key->public_key,
                                       template,
                                       1);
-    hsm_pkcs11_check_rv(rv, "Get attr value algorithm type\n");
+    if (hsm_pkcs11_check_error(ctx, rv,
+                               "Get attr value algorithm type\n")) {
+        /* this is actually not a good return value;
+         * CKK_RSA is also 0. But we can't return a negative
+         * value. Should we #define a specific 'key type' that
+         * indicates an error? (TODO) */
+        return 0;
+    }
 
     if ((CK_LONG)template[0].ulValueLen < 1) {
+        /* this is actually not a good return value;
+         * CKK_RSA is also 0. But we can't return a negative
+         * value. Should we #define a specific 'key type' that
+         * indicates an error? (TODO) */
         return 0;
     }
 
@@ -675,7 +741,8 @@ hsm_get_key_algorithm(const hsm_session_t *session,
  * modulus is the key size (CKA_MODULUS_BITS)
  */
 static CK_ULONG
-hsm_get_key_size_rsa(const hsm_session_t *session, const hsm_key_t *key)
+hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
+                     const hsm_key_t *key)
 {
     CK_RV rv;
     CK_ULONG modulus_bits;
@@ -689,7 +756,10 @@ hsm_get_key_size_rsa(const hsm_session_t *session, const hsm_key_t *key)
                                       key->public_key,
                                       template,
                                       1);
-    hsm_pkcs11_check_rv(rv, "Get attr value algorithm type\n");
+    if (hsm_pkcs11_check_error(ctx, rv,
+                               "Get attr value algorithm type\n")) {
+        return 0;
+    }
 
     if ((CK_LONG)template[0].ulValueLen < 1) {
         return 0;
@@ -701,13 +771,12 @@ hsm_get_key_size_rsa(const hsm_session_t *session, const hsm_key_t *key)
 /* Wrapper for specific key size functions, currently only supports
  * CKK_RSA (the value 0) as algorithm identifier */
 static CK_ULONG
-hsm_get_key_size(const hsm_session_t *session,
-                 const hsm_key_t *key,
-                 const unsigned long algorithm)
+hsm_get_key_size(hsm_ctx_t *ctx, const hsm_session_t *session,
+                 const hsm_key_t *key, const unsigned long algorithm)
 {
     switch (algorithm) {
         case CKK_RSA:
-            return hsm_get_key_size_rsa(session, key);
+            return hsm_get_key_size_rsa(ctx, session, key);
             break;
         default:
             return 0;
@@ -715,7 +784,8 @@ hsm_get_key_size(const hsm_session_t *session,
 }
 
 static CK_OBJECT_HANDLE
-hsm_find_object_handle_for_id(const hsm_session_t *session,
+hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
+                              const hsm_session_t *session,
                               CK_OBJECT_CLASS key_class,
                               CK_BYTE *id,
                               CK_ULONG id_len)
@@ -731,18 +801,24 @@ hsm_find_object_handle_for_id(const hsm_session_t *session,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 2);
-    hsm_pkcs11_check_rv(rv, "Find objects init");
+    if (hsm_pkcs11_check_error(ctx, rv, "Find objects init")) {
+        return 0;
+    }
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
                                          &object,
                                          1,
                                          &objectCount);
-    hsm_pkcs11_check_rv(rv, "Find object");
+    if (hsm_pkcs11_check_error(ctx, rv, "Find object")) {
+        return 0;
+    }
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
-    hsm_pkcs11_check_rv(rv, "Find object final");
+    if (hsm_pkcs11_check_error(ctx, rv, "Find object final")) {
+        return 0;
+    }
+
     if (objectCount > 0) {
-        hsm_pkcs11_check_rv(rv, "Find objects final");
         return object;
     } else {
         return 0;
@@ -802,7 +878,8 @@ hsm_hex_unparse(char *dst, unsigned char *src, size_t len)
  * returns NULL and size zero if not found in this session
  */
 static CK_BYTE *
-hsm_get_id_for_object(const hsm_session_t *session,
+hsm_get_id_for_object(hsm_ctx_t *ctx,
+                      const hsm_session_t *session,
                       CK_OBJECT_HANDLE object,
                       size_t *len)
 {
@@ -819,11 +896,14 @@ hsm_get_id_for_object(const hsm_session_t *session,
                                       object,
                                       template,
                                       1);
-    hsm_pkcs11_check_rv(rv, "Get attr value\n");
+    if (hsm_pkcs11_check_error(ctx, rv, "Get attr value\n")) {
+        *len = 0;
+        return NULL;
+    }
 
     if ((CK_LONG)template[0].ulValueLen < 1) {
         *len = 0;
-        return id;
+        return NULL;
     }
     
     template[0].pValue = malloc(template[0].ulValueLen);
@@ -832,7 +912,11 @@ hsm_get_id_for_object(const hsm_session_t *session,
                                       object,
                                       template,
                                       1);
-    hsm_pkcs11_check_rv(rv, "Get attr value 2\n");
+    if (hsm_pkcs11_check_error(ctx, rv, "Get attr value 2\n")) {
+        *len = 0;
+        free(template[0].pValue);
+        return NULL;
+    }
 
     *len = template[0].ulValueLen;
     return template[0].pValue;
@@ -843,14 +927,15 @@ hsm_get_id_for_object(const hsm_session_t *session,
  * The session needs to be free to perform a search for the public key
  */
 static hsm_key_t *
-hsm_key_new_privkey_object_handle(const hsm_session_t *session,
+hsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
+                                  const hsm_session_t *session,
                                   CK_OBJECT_HANDLE object)
 {
     hsm_key_t *key;
     CK_BYTE *id;
     size_t len;
 
-    id = hsm_get_id_for_object(session, object, &len);
+    id = hsm_get_id_for_object(ctx, session, object, &len);
 
     if (!id) return NULL;
 
@@ -858,6 +943,7 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session,
     key->module = session->module;
     key->private_key = object;
     key->public_key = hsm_find_object_handle_for_id(
+                          ctx,
                           session,
                           CKO_PUBLIC_KEY,
                           id,
@@ -871,9 +957,11 @@ hsm_key_new_privkey_object_handle(const hsm_session_t *session,
  * if the argument store is 0, results are not returned; the
  * function will only set the count and return NULL
  * Otherwise, a newly allocated key array will be returned
+ * (on error, the count will also be zero and NULL returned)
  */
 static hsm_key_t **
-hsm_list_keys_session_internal(const hsm_session_t *session,
+hsm_list_keys_session_internal(hsm_ctx_t *ctx,
+                               const hsm_session_t *session,
                                size_t *count,
                                int store)
 {
@@ -894,14 +982,20 @@ hsm_list_keys_session_internal(const hsm_session_t *session,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 1);
-    hsm_pkcs11_check_rv(rv, "Find objects init");
+    if (hsm_pkcs11_check_error(ctx, rv, "Find objects init")) {
+        *count = 0;
+        return NULL;
+    }
     j = 0;
     while (objectCount > 0) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
                                                  object,
                                                  max_object_count,
                                                  &objectCount);
-        hsm_pkcs11_check_rv(rv, "Find first object");
+        if (hsm_pkcs11_check_error(ctx, rv, "Find first object")) {
+            *count = 0;
+            return NULL;
+        }
 
         total_count += objectCount;
         if (objectCount > 0 && store) {
@@ -914,12 +1008,18 @@ hsm_list_keys_session_internal(const hsm_session_t *session,
     }
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
-    hsm_pkcs11_check_rv(rv, "Find objects final");
+    if (hsm_pkcs11_check_error(ctx, rv, "Find objects final")) {
+        free(key_handles);
+        *count = 0;
+        return NULL;
+    }
 
     if (store) {
         keys = realloc(keys, total_count * sizeof(hsm_key_t *));
         for (i = 0; i < total_count; i++) {
-            key = hsm_key_new_privkey_object_handle(session, key_handles[i]);
+            key = hsm_key_new_privkey_object_handle(ctx, session,
+                                                    key_handles[i]);
+            /* todo, if we get NULL, free all and return error? */
             keys[i] = key;
         }
     }
@@ -938,9 +1038,10 @@ hsm_list_keys_session_internal(const hsm_session_t *session,
  * \return the list of keys
  */
 hsm_key_t **
-hsm_list_keys_session(const hsm_session_t *session, size_t *count)
+hsm_list_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session,
+                      size_t *count)
 {
-    return hsm_list_keys_session_internal(session, count, 1);
+    return hsm_list_keys_session_internal(ctx, session, count, 1);
 }
 
 /* returns a count all keys available to the given session
@@ -950,10 +1051,10 @@ hsm_list_keys_session(const hsm_session_t *session, size_t *count)
  * \return the number of keys
  */
 size_t
-hsm_count_keys_session(const hsm_session_t *session)
+hsm_count_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session)
 {
     size_t count = 0;
-    (void) hsm_list_keys_session_internal(session, &count, 0);
+    (void) hsm_list_keys_session_internal(ctx, session, &count, 0);
     return count;
 }
 
@@ -962,20 +1063,20 @@ hsm_count_keys_session(const hsm_session_t *session)
  * found
  */
 static hsm_key_t *
-hsm_find_key_by_id_session(const hsm_session_t *session,
-                           const unsigned char *id,
-                           size_t len)
+hsm_find_key_by_id_session(hsm_ctx_t *ctx, const hsm_session_t *session,
+                           const unsigned char *id, size_t len)
 {
     hsm_key_t *key;
     CK_OBJECT_HANDLE private_key_handle;
 
     private_key_handle = hsm_find_object_handle_for_id(
+                             ctx,
                              session,
                              CKO_PRIVATE_KEY,
                              (CK_BYTE *) id,
                              (CK_ULONG) len);
     if (private_key_handle != 0) {
-        key = hsm_key_new_privkey_object_handle(session,
+        key = hsm_key_new_privkey_object_handle(ctx, session,
                                                 private_key_handle);
         return key;
     } else {
@@ -993,7 +1094,7 @@ The returned key structure can be freed with hsm_key_free()
 \return key identifier or NULL if not found
 */
 static hsm_key_t *
-hsm_find_key_by_id_bin(const hsm_ctx_t *ctx,
+hsm_find_key_by_id_bin(hsm_ctx_t *ctx,
                        const unsigned char *id,
                        size_t len)
 {
@@ -1004,7 +1105,7 @@ hsm_find_key_by_id_bin(const hsm_ctx_t *ctx,
     if (!id) return NULL;
 
     for (i = 0; i < ctx->session_count; i++) {
-        key = hsm_find_key_by_id_session(ctx->session[i], id, len);
+        key = hsm_find_key_by_id_session(ctx, ctx->session[i], id, len);
         if (key) return key;
     }
     return NULL;
@@ -1017,7 +1118,7 @@ hsm_find_key_by_id_bin(const hsm_ctx_t *ctx,
  * returns NULL if not found
  */
 static hsm_session_t *
-hsm_find_repository_session(const hsm_ctx_t *ctx, const char *repository)
+hsm_find_repository_session(hsm_ctx_t *ctx, const char *repository)
 {
     unsigned int i;
     if (!repository) {
@@ -1039,7 +1140,8 @@ hsm_find_repository_session(const hsm_ctx_t *ctx, const char *repository)
 }
 
 static ldns_rdf *
-hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
+hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
+                  const hsm_key_t *key)
 {
     CK_RV rv;
     CK_BYTE_PTR public_exponent = NULL;
@@ -1064,7 +1166,9 @@ hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
                                       key->public_key,
                                       template,
                                       2);
-
+    if (hsm_pkcs11_check_error(ctx, rv, "C_GetAttributeValue")) {
+        return NULL;
+    }
     public_exponent_len = template[0].ulValueLen;
     modulus_len = template[1].ulValueLen;
 
@@ -1087,7 +1191,11 @@ hsm_get_key_rdata(hsm_session_t *session, const hsm_key_t *key)
                                       key->public_key,
                                       template,
                                       2);
-    hsm_pkcs11_check_rv(rv, "get attribute value");
+    if (hsm_pkcs11_check_error(ctx, rv, "get attribute value")) {
+        free(template[0].pValue);
+        free(template[1].pValue);
+        return NULL;
+    }
 
     data_size = public_exponent_len + modulus_len + 1;
     if (public_exponent_len <= 256) {
@@ -1160,7 +1268,7 @@ hsm_create_prefix(CK_ULONG digest_len,
 }
 
 static ldns_rdf *
-hsm_sign_buffer(const hsm_ctx_t *ctx,
+hsm_sign_buffer(hsm_ctx_t *ctx,
                 ldns_buffer *sign_buf,
                 const hsm_key_t *key,
                 ldns_algorithm algorithm)
@@ -1210,14 +1318,22 @@ hsm_sign_buffer(const hsm_ctx_t *ctx,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DigestInit(session->session,
                                                  &digest_mechanism);
-    hsm_pkcs11_check_rv(rv, "digest init");
+    if (hsm_pkcs11_check_error(ctx, rv, "digest init")) {
+        free(digest);
+        free(signature);
+        return NULL;
+    }
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
                                         ldns_buffer_begin(sign_buf),
                                         ldns_buffer_position(sign_buf),
                                         digest,
                                         &digest_len);
-    hsm_pkcs11_check_rv(rv, "digest");
+    if (hsm_pkcs11_check_error(ctx, rv, "digest")) {
+        free(digest);
+        free(signature);
+        return NULL;
+    }
 
     /* CKM_RSA_PKCS does the padding, but cannot know the identifier
      * prefix, so we need to add that ourselves */
@@ -1242,12 +1358,22 @@ hsm_sign_buffer(const hsm_ctx_t *ctx,
                                       session->session,
                                       &sign_mechanism,
                                       key->private_key);
-    hsm_pkcs11_check_rv(rv, "sign init");
+    if (hsm_pkcs11_check_error(ctx, rv, "sign init")) {
+        free(data);
+        free(digest);
+        free(signature);
+        return NULL;
+    }
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Sign(session->session, data, data_len,
                                       signature,
                                       &signatureLen);
-    hsm_pkcs11_check_rv(rv, "sign final");
+    if (hsm_pkcs11_check_error(ctx, rv, "sign final")) {
+        free(data);
+        free(digest);
+        free(signature);
+        return NULL;
+    }
 
     sig_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64,
                                     signatureLen,
@@ -1472,7 +1598,6 @@ hsm_open(const char *config,
                 free(token_label);
                 free(module_path);
             }
-else { printf("missing data?\n"); exit(0); }
         }
     }
 
@@ -1546,7 +1671,7 @@ hsm_sign_params_free(hsm_sign_params_t *params)
 }
 
 hsm_key_t **
-hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
+hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
 {
     hsm_key_t **keys = NULL;
     size_t key_count = 0;
@@ -1559,7 +1684,7 @@ hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
     }
 
     for (i = 0; i < ctx->session_count; i++) {
-        session_keys = hsm_list_keys_session(ctx->session[i],
+        session_keys = hsm_list_keys_session(ctx, ctx->session[i],
                                              &cur_key_count);
         keys = realloc(keys,
                        (key_count + cur_key_count) * sizeof(hsm_key_t *));
@@ -1576,7 +1701,7 @@ hsm_list_keys(const hsm_ctx_t *ctx, size_t *count)
 }
 
 hsm_key_t **
-hsm_list_keys_repository(const hsm_ctx_t *ctx,
+hsm_list_keys_repository(hsm_ctx_t *ctx,
                          size_t *count,
                          const char *repository)
 {
@@ -1590,24 +1715,24 @@ hsm_list_keys_repository(const hsm_ctx_t *ctx,
         *count = 0;
         return NULL;
     }
-    return hsm_list_keys_session(session, count);
+    return hsm_list_keys_session(ctx, session, count);
 }
 
 size_t
-hsm_count_keys(const hsm_ctx_t *ctx)
+hsm_count_keys(hsm_ctx_t *ctx)
 {
     size_t count = 0;
     unsigned int i;
     
     if (!ctx) ctx = _hsm_ctx;
     for (i = 0; i < ctx->session_count; i++) {
-        count += hsm_count_keys_session(ctx->session[i]);
+        count += hsm_count_keys_session(ctx, ctx->session[i]);
     }
     return count;
 }
 
 size_t
-hsm_count_keys_repository(const hsm_ctx_t *ctx,
+hsm_count_keys_repository(hsm_ctx_t *ctx,
                           const char *repository)
 {
     hsm_session_t *session;
@@ -1619,11 +1744,11 @@ hsm_count_keys_repository(const hsm_ctx_t *ctx,
     if (!session) {
         return 0;
     }
-    return hsm_count_keys_session(session);
+    return hsm_count_keys_session(ctx, session);
 }
 
 hsm_key_t *
-hsm_find_key_by_id(const hsm_ctx_t *ctx, const char *id)
+hsm_find_key_by_id(hsm_ctx_t *ctx, const char *id)
 {
     unsigned char *id_bytes;
     size_t len;
@@ -1639,7 +1764,7 @@ hsm_find_key_by_id(const hsm_ctx_t *ctx, const char *id)
 }
 
 hsm_key_t *
-hsm_generate_rsa_key(const hsm_ctx_t *ctx,
+hsm_generate_rsa_key(hsm_ctx_t *ctx,
                      const char *repository,
                      unsigned long keysize)
 {
@@ -1702,7 +1827,9 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
                                                  privateKeyTemplate, 10,
                                                  &publicKey,
                                                  &privateKey);
-    hsm_pkcs11_check_rv(rv, "generate key pair");
+    if (hsm_pkcs11_check_error(ctx, rv, "generate key pair")) {
+        return NULL;
+    }
 
     new_key = hsm_key_new();
     new_key->module = session->module;
@@ -1712,7 +1839,7 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
 }
 
 int
-hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
+hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
 {
     CK_RV rv;
     hsm_session_t *session;
@@ -1724,11 +1851,16 @@ hsm_remove_key(const hsm_ctx_t *ctx, hsm_key_t *key)
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
                                                key->private_key);
-    hsm_pkcs11_check_rv(rv, "Destroy private key");
+    if (hsm_pkcs11_check_error(ctx, rv, "Destroy private key")) {
+        return -3;
+    }
+    
     key->private_key = 0;
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
                                                key->public_key);
-    hsm_pkcs11_check_rv(rv, "Destroy public key");
+    if (hsm_pkcs11_check_error(ctx, rv, "Destroy public key")) {
+        return -4;
+    }
     key->public_key = 0;
 
     return 0;
@@ -1753,7 +1885,7 @@ hsm_key_list_free(hsm_key_t **key_list, size_t count)
 }
 
 char *
-hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
+hsm_get_key_id(hsm_ctx_t *ctx, const hsm_key_t *key)
 {
     unsigned char *id;
     char *id_str;
@@ -1766,7 +1898,7 @@ hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
     
-    id = hsm_get_id_for_object(session, key->public_key, &len);
+    id = hsm_get_id_for_object(ctx, session, key->public_key, &len);
     if (!id) return NULL;
     
     /* this is plain binary data, we need to convert it to hex */
@@ -1781,7 +1913,7 @@ hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
 }
 
 hsm_key_info_t *
-hsm_get_key_info(const hsm_ctx_t *ctx,
+hsm_get_key_info(hsm_ctx_t *ctx,
                  const hsm_key_t *key)
 {
     hsm_key_info_t *key_info;
@@ -1795,8 +1927,11 @@ hsm_get_key_info(const hsm_ctx_t *ctx,
 
     key_info->id = hsm_get_key_id(ctx, key);
 
-    key_info->algorithm = (unsigned long) hsm_get_key_algorithm(session, key);
-    key_info->keysize = (unsigned long) hsm_get_key_size(session,
+    key_info->algorithm = (unsigned long) hsm_get_key_algorithm(ctx,
+                                                                session,
+                                                                key);
+    key_info->keysize = (unsigned long) hsm_get_key_size(ctx,
+                                                         session,
                                                          key,
                                                          key_info->algorithm);
 
@@ -1829,7 +1964,7 @@ hsm_key_info_free(hsm_key_info_t *key_info)
 }
 
 ldns_rr*
-hsm_sign_rrset(const hsm_ctx_t *ctx,
+hsm_sign_rrset(hsm_ctx_t *ctx,
                const ldns_rr_list* rrset,
                const hsm_key_t *key,
                const hsm_sign_params_t *sign_params)
@@ -1881,9 +2016,11 @@ hsm_sign_rrset(const hsm_ctx_t *ctx,
  * the message digest of the given source string
  * digest length contains the length of the result
  * caller must free returned data with free()
+ * returns NULL (and zero digest length) on error
  */
 static CK_BYTE *
-hsm_digest(hsm_session_t *session,
+hsm_digest(hsm_ctx_t *ctx,
+           hsm_session_t *session,
            CK_MECHANISM digest_mechanism,
            char *source,
            size_t length,
@@ -1895,7 +2032,10 @@ hsm_digest(hsm_session_t *session,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DigestInit(session->session,
                                                  &digest_mechanism);
-    hsm_pkcs11_check_rv(rv, "digest init");
+    if (hsm_pkcs11_check_error(ctx, rv, "digest init")) {
+        *digest_length = 0;
+        return NULL;
+    }
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
                                         (CK_BYTE *)source,
@@ -1903,19 +2043,28 @@ hsm_digest(hsm_session_t *session,
                                         NULL,
                                         &d);
 
+    if (hsm_pkcs11_check_error(ctx, rv, "digest to determine result size")) {
+        *digest_length = 0;
+        return NULL;
+    }
     digest = malloc(d);
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
                                         (CK_BYTE *)source,
                                         length,
                                         digest,
                                         &d);
-    hsm_pkcs11_check_rv(rv, "digest");
+    if (hsm_pkcs11_check_error(ctx, rv, "digest")) {
+        *digest_length = 0;
+        free(digest);
+        return NULL;
+    }
+
     *digest_length = d;
     return digest;
 }
 
 ldns_rdf *
-hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
+hsm_nsec3_hash_name(hsm_ctx_t *ctx,
                     ldns_rdf *name,
                     uint8_t algorithm,
                     uint16_t iterations,
@@ -1967,7 +2116,8 @@ hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
 
     for (cur_it = iterations + 1; cur_it > 0; cur_it--) {
         free(hash);
-        hash = (char *) hsm_digest(session,
+        hash = (char *) hsm_digest(ctx,
+                                   session,
                                    mechanism,
                                    hashed_owner_str,
                                    hashed_owner_str_len,
@@ -2021,7 +2171,7 @@ hsm_nsec3_hash_name(const hsm_ctx_t *ctx,
 }
 
 ldns_rr *
-hsm_get_dnskey(const hsm_ctx_t *ctx,
+hsm_get_dnskey(hsm_ctx_t *ctx,
                const hsm_key_t *key,
                const hsm_sign_params_t *sign_params)
 {
@@ -2049,13 +2199,13 @@ hsm_get_dnskey(const hsm_ctx_t *ctx,
                      ldns_native2rdf_int8(LDNS_RDF_TYPE_ALG,
                                           sign_params->algorithm));
 
-    ldns_rr_push_rdf(dnskey, hsm_get_key_rdata(session, key));
+    ldns_rr_push_rdf(dnskey, hsm_get_key_rdata(ctx, session, key));
 
     return dnskey;
 }
 
 int
-hsm_random_buffer(const hsm_ctx_t *ctx,
+hsm_random_buffer(hsm_ctx_t *ctx,
                   unsigned char *buffer,
                   unsigned long length)
 {
@@ -2083,7 +2233,7 @@ hsm_random_buffer(const hsm_ctx_t *ctx,
 }
 
 uint32_t
-hsm_random32(const hsm_ctx_t *ctx)
+hsm_random32(hsm_ctx_t *ctx)
 {
     uint32_t rnd;
     int result;
@@ -2098,7 +2248,7 @@ hsm_random32(const hsm_ctx_t *ctx)
 }
 
 uint64_t
-hsm_random64(const hsm_ctx_t *ctx)
+hsm_random64(hsm_ctx_t *ctx)
 {
     uint64_t rnd;
     int result;
@@ -2125,7 +2275,8 @@ int hsm_attach(char *repository,
     hsm_session_t *session;
     int result;
 
-    result = hsm_session_init(&session,
+    result = hsm_session_init(_hsm_ctx,
+                              &session,
                               repository,
                               token_label,
                               path,
@@ -2145,7 +2296,7 @@ int hsm_detach(const char *repository)
         if (_hsm_ctx->session[i] &&
             strcmp(_hsm_ctx->session[i]->module->name,
                    repository) == 0) {
-            hsm_session_close(_hsm_ctx->session[i], 1);
+            hsm_session_close(_hsm_ctx, _hsm_ctx->session[i], 1);
             _hsm_ctx->session[i] = NULL;
             /* if this was the last session in the list, decrease the
              * session count */
@@ -2162,7 +2313,7 @@ int hsm_detach(const char *repository)
 }
 
 int
-hsm_token_attached(const hsm_ctx_t *ctx, const char *repository)
+hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
 {
     unsigned int i;
     if (!ctx) ctx = _hsm_ctx;
