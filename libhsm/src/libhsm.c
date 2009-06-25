@@ -1799,6 +1799,18 @@ hsm_get_key_info(const hsm_ctx_t *ctx,
     key_info->keysize = (unsigned long) hsm_get_key_size(session,
                                                          key,
                                                          key_info->algorithm);
+
+     switch(key_info->algorithm) {
+         case CKK_RSA:
+            key_info->algorithm_name = strdup("RSA");
+            break;
+         default:
+            key_info->algorithm_name = malloc(HSM_MAX_ALGONAME);
+            snprintf(key_info->algorithm_name, HSM_MAX_ALGONAME,
+                "%lu", key_info->algorithm);
+            break;
+    }
+
     return key_info;
 }
 
@@ -1808,6 +1820,9 @@ hsm_key_info_free(hsm_key_info_t *key_info)
     if (key_info) {
         if (key_info->id) {
             free(key_info->id);
+        }
+        if (key_info->algorithm_name) {
+            free(key_info->algorithm_name);
         }
         free(key_info);
     }
@@ -2196,17 +2211,7 @@ hsm_print_key(hsm_key_t *key) {
         printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
         printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
         printf("\trepository: %s\n", key->module->name);
-        printf("\talgorithm: ");
-        switch(key_info->algorithm) {
-            case CKK_RSA:
-                printf("RSA");
-                break;
-            default:
-                printf("unknown by libhsm (value %lu)",
-                       key_info->algorithm);
-                break;
-        }
-        printf("\n");
+        printf("\talgorithm: %s\n", key_info->algorithm_name);
         printf("\tsize: %lu\n", key_info->keysize);
         printf("\tid: %s\n", key_info->id);
         hsm_key_info_free(key_info);

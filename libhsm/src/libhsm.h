@@ -33,6 +33,7 @@
 #include <stdint.h>
 
 #define HSM_MAX_SESSIONS 10
+#define HSM_MAX_ALGONAME 16
 
 /*! Return codes for some of the functions, mapped to int */
 #define HSM_OK                    0
@@ -65,9 +66,10 @@ typedef struct {
 
 /*! HSM Key Pair Information */
 typedef struct {
-  char          *id;        /*!< key id */
-  unsigned long algorithm;  /*!< key algorithm (cast from CKK_*)*/
-  unsigned long keysize;    /*!< key size */
+  char          *id;             /*!< key id */
+  unsigned long algorithm;       /*!< key algorithm (cast from CKK_*)*/
+  char          *algorithm_name; /*!< key algorithm name */
+  unsigned long keysize;         /*!< key size */
 } hsm_key_info_t;
 
 /*! HSM context to keep track of sessions */
