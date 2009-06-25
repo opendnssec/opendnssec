@@ -50,7 +50,7 @@ class ZoneConfig:
         self.signatures_resign_time = 0
         self.signatures_refresh_time = 0
         self.signatures_validity_default = 0
-        self.signatures_validity_nsec = 0
+        self.signatures_validity_denial = 0
         self.signatures_jitter = 0
         self.signatures_inception_offset = 0
         #self.signatures_zsk_refs = []
@@ -129,8 +129,8 @@ class ZoneConfig:
 
         elif self.signatures_validity_default != \
                  ocfg.signatures_validity_default or \
-             self.signatures_validity_nsec != \
-                 ocfg.signatures_validity_nsec or \
+             self.signatures_validity_denial != \
+                 ocfg.signatures_validity_denial or \
              self.signatures_jitter != ocfg.signatures_jitter or \
              self.signatures_inception_offset != \
                 ocfg.signatures_inception_offset:
@@ -219,7 +219,7 @@ class ZoneConfig:
             Util.get_xml_data(
                 "SignerConfiguration/Zone/Signatures/Validity/Default",
                 signer_config))
-        self.signatures_validity_nsec = Util.parse_duration(
+        self.signatures_validity_denial = Util.parse_duration(
             Util.get_xml_data(
                 "SignerConfiguration/Zone/Signatures/Validity/Denial",
                 signer_config))

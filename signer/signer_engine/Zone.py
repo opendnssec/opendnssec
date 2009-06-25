@@ -419,6 +419,10 @@ class Zone:
         Util.write_p(sign_p,
                      Util.datestamp(self.get_expiration_timestamp(sign_time)),
                      ":expiration ")
+        if self.zone_config.signatures_validity_denial:
+            Util.write_p(sign_p,
+                         Util.datestamp(self.get_expiration_timestamp_denial(sign_time)),
+                         ":expiration_denial ")
         if self.zone_config.signatures_jitter and \
            self.zone_config.signatures_jitter != 0:
             Util.write_p(sign_p,
@@ -430,7 +434,10 @@ class Zone:
         Util.write_p(sign_p,
                      Util.datestamp(self.get_refresh_timestamp(sign_time)),
                      ":refresh ")
-                     
+        if self.zone_config.signatures_validity_denial:
+            Util.write_p(sign_p,
+                         Util.datestamp(self.get_refresh_timestamp_denial(sign_time)),
+                         ":refresh_denial ")
 
         for k in self.zone_config.signature_keys:
             syslog.syslog(syslog.LOG_DEBUG,
@@ -551,9 +558,15 @@ class Zone:
 
     def get_expiration_timestamp(self, time_offset):
         """Returns the absolute expiration date compared to the
-           time_offset given."""
+           time_offset given (for all non-denial rrsets)."""
         return time_offset +\
                self.zone_config.signatures_validity_default
+
+    def get_expiration_timestamp_denial(self, time_offset):
+        """Returns the absolute expiration date compared to the
+           time_offset given (for denial rrsets)."""
+        return time_offset +\
+               self.zone_config.signatures_validity_denial
 
     def get_inception_timestamp(self, time_offset):
         """Returns the absolute inception date compared to the
@@ -561,13 +574,23 @@ class Zone:
         return time_offset - self.zone_config.signatures_inception_offset
 
     def get_refresh_timestamp(self, time_offset):
-        """Returns the absolute time at which signatures should be
-        replaced, compared to the time_offset given. The return
-        value of this function is used by the signer tool to
-        determine 'old' signatures. If the inception date of the
-        signature is before this time, the signature will be
-        replaced."""
+        """Returns the absolute time at which signatures for normal
+           RRSets should be replaced, compared to the time_offset
+           given. The return value of this function is used by the
+           signer tool to determine 'old' signatures. If the
+           inception date of the signature is before this time,
+           the signature will be replaced."""
         return self.get_expiration_timestamp(time_offset) -\
+               self.zone_config.signatures_refresh_time
+
+    def get_refresh_timestamp_denial(self, time_offset):
+        """Returns the absolute time at which signatures for denial
+           RRSets should be replaced, compared to the time_offset
+           given. The return value of this function is used by the
+           signer tool to determine 'old' signatures. If the
+           inception date of the signature is before this time,
+           the signature will be replaced."""
+        return self.get_expiration_timestamp_denial(time_offset) -\
                self.zone_config.signatures_refresh_time
 
 # quick test-as-we-go function

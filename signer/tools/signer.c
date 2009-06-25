@@ -72,6 +72,7 @@ typedef struct {
 	/* settings for signatures that are generated */
 	uint32_t inception;
 	uint32_t expiration;
+	uint32_t expiration_denial;
 	uint32_t refresh;
 	uint32_t jitter;
 	int echo_input;
@@ -216,6 +217,7 @@ current_config_new()
 	current_config *cfg = malloc(sizeof(current_config));
 	cfg->inception = 0;
 	cfg->expiration = 0;
+	cfg->expiration_denial = 0;
 	cfg->refresh = 0;
 	cfg->jitter = 0;
 	cfg->echo_input = 0;
@@ -440,6 +442,13 @@ handle_command(FILE *output, current_config *cfg,
 			fprintf(output, "; Error: missing argument in expiration command\n");
 		} else {
 			cfg->expiration = parse_time(arg1);
+		}
+	} else if (strcmp(cmd, "expiration_denial") == 0) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in expiration_denial command\n");
+		} else {
+			cfg->expiration_denial = parse_time(arg1);
 		}
 	} else if (strcmp(cmd, "jitter") == 0) {
 		arg1 = read_arg(next, &next);
@@ -731,7 +740,28 @@ check_existing_sigs(ldns_rr_list *sigs,
 {
 	size_t i;
 	ldns_rr *cur_sig;
+	uint32_t expiration;
+	uint32_t refresh;
+	ldns_rr_type type_covered;
+	
 	for (i = 0; i < ldns_rr_list_rr_count(sigs); i++) {
+		/* check the refresh date for this signature. If the signature
+		 * covers a denial RRset (NSEC or NSEC3), and :expiration_denial
+		 * was set to anything other than 0, we need to use
+		 * expiration_denial instead of :expiration */
+		cur_sig = ldns_rr_list_rr(sigs, i);
+		cfg->existing_sigs++;
+		type_covered = ldns_rdf2native_int16(
+		                  ldns_rr_rrsig_typecovered(cur_sig));
+		expiration = ldns_rdf2native_int32(
+		                  ldns_rr_rrsig_expiration(cur_sig));
+		if (cfg->expiration_denial &&
+		    (type_covered == LDNS_RR_TYPE_NSEC ||
+			 type_covered == LDNS_RR_TYPE_NSEC3)) {
+			refresh = cfg->expiration_denial;
+		} else {
+			refresh = cfg->expiration;
+		}
 		/* if refresh is zero, we just drop existing
 		 * signatures. Otherwise, we'll have to check
 		 * them and mark which keys should still be used
@@ -739,11 +769,9 @@ check_existing_sigs(ldns_rr_list *sigs,
 		 * 
 		 * *always* update SOA RRSIG
 		 */
-		cur_sig = ldns_rr_list_rr(sigs, i);
-		cfg->existing_sigs++;
-		if (cfg->refresh != 0 || ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(cur_sig)) == LDNS_RR_TYPE_SOA) {
-			if (ldns_rdf2native_int32(ldns_rr_rrsig_expiration(cur_sig)) < cfg->refresh ||
-				ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(cur_sig)) == LDNS_RR_TYPE_SOA) {
+		if (refresh || type_covered == LDNS_RR_TYPE_SOA) {
+			if ( expiration < refresh ||
+				type_covered == LDNS_RR_TYPE_SOA) {
 				/* ok, drop sig, resign */
 				cfg->removed_sigs++;
 			} else {
@@ -813,7 +841,15 @@ sign_rrset(ldns_rr_list *rrset,
 			}
 			params->keytag = keys->keytags[i];
 			params->algorithm = keys->algorithms[i];
-			params->expiration = cfg->expiration + (cfg->jitter ? rand() % cfg->jitter : 0);
+			if (cfg->expiration_denial &&
+			    (ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC ||
+			     ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC3)) {
+				params->expiration = cfg->expiration_denial +
+			                   (cfg->jitter ? rand() % cfg->jitter : 0);
+			} else {
+				params->expiration = cfg->expiration +
+			                   (cfg->jitter ? rand() % cfg->jitter : 0);
+			}
 			sig = hsm_sign_rrset(NULL, rrset,  keys->keys[i], params);
 			cfg->created_sigs++;
 			ldns_rr_print(output, sig);

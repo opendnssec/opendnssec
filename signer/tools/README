@@ -131,6 +131,9 @@ Specific signing commands are passed in-line; with the following commands:
     sets the inception date for signatures
 :expiration <YYYYMMDD[HHmmss]>
     sets the expiration date for signatures
+:expiration_denial <YYYYMMDD[HHmmss]>
+    sets the expiration date for signatures for NSEC and NSEC3 records
+    if not set, the value from :expiration will be used for denial sigs
 :jitter <int value>
     sets the jitter value for expiration dates
 :refresh <YYYYMMDD[HHmmss]>

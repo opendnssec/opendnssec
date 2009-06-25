@@ -8,6 +8,7 @@ echo ":origin tjeb.nl" >> $TMP_COMMANDS
 echo ":soa_ttl 3600" >> $TMP_COMMANDS
 echo ":soa_minimum 3600" >> $TMP_COMMANDS
 echo ":expiration 20090701000000" >> $TMP_COMMANDS
+echo ":expiration_denial 20090801000000" >> $TMP_COMMANDS
 echo ":inception 20090605072316" >> $TMP_COMMANDS
 echo ":jitter 60" >> $TMP_COMMANDS
 echo ":refresh 20090606072616" >> $TMP_COMMANDS
