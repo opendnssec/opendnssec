@@ -95,7 +95,7 @@ class EngineConfiguration:
         if worker_thread_config:
             try:
                 self.worker_threads = int(worker_thread_config)
-                if self.worker_threads == 0:
+                if self.worker_threads <= 0:
                     raise EngineConfigurationError("Configuration Error: WorkerThreads must be 1 or higher")
             except ValueError:
                 raise EngineConfigurationError("Configuration Error: WorkerThreads must be an integer")
