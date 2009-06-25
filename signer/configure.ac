@@ -45,4 +45,4 @@ AM_PATH_PYTHON
 AC_CONFIG_HEADERS([tools/config.h])
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
-AC_OUTPUT(Makefile conf.xml.sample tools/Makefile signer_engine/Makefile signer_engine/signer_engine)
+AC_OUTPUT(Makefile tools/Makefile signer_engine/Makefile signer_engine/signer_engine)
