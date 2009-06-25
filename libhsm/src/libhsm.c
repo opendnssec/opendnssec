@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
-#include <uuid/uuid.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -756,7 +755,7 @@ hsm_find_object_handle_for_id(const hsm_session_t *session,
  * len will contain the number of bytes allocated, or 0 on error
  */
 static unsigned char *
-hsm_hex_str2bytes(const char *hex, size_t *len)
+hsm_hex_parse(const char *hex, size_t *len)
 {
     unsigned char *bytes;
     /* length of the hex input */
@@ -784,6 +783,19 @@ hsm_hex_str2bytes(const char *hex, size_t *len)
     return bytes;
 }
 
+/* put a hexadecimal representation of the data from src into dst
+ * len is the number of bytes to read from src
+ * dst must have allocated enough space (len*2 + 1)
+ */
+static void
+hsm_hex_unparse(char *dst, unsigned char *src, size_t len)
+{
+    size_t i;
+    for (i = 0; i < len; i++) {
+        sprintf(dst + (2*i), "%02x", src[i]);
+    }
+    dst[len*2] = '\0';
+}
 
 /* returns an allocated byte array with the CKA_ID for the given object
  * len will contain the result size
@@ -1617,7 +1629,7 @@ hsm_find_key_by_id(const hsm_ctx_t *ctx, const char *id)
     size_t len;
     hsm_key_t *key;
     
-    id_bytes = hsm_hex_str2bytes(id, &len);
+    id_bytes = hsm_hex_parse(id, &len);
 
     if (!id_bytes) return NULL;
     
@@ -1633,9 +1645,10 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
 {
     hsm_key_t *new_key;
     hsm_session_t *session;
-    /*unsigned int i;*/
-    uuid_t *uuid;
-    char uuid_str[37];
+    /* ids we create are 16 bytes of data */
+    unsigned char id[16];
+    /* that's 33 bytes in string (16*2 + 1 for \0) */
+    char id_str[33];
     CK_RV rv;
     CK_OBJECT_HANDLE publicKey, privateKey;
     CK_KEY_TYPE keyType = CKK_RSA;
@@ -1650,16 +1663,17 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    uuid = malloc(sizeof(uuid_t));
     /* check whether this key doesn't happen to exist already */
     do {
-        uuid_generate(*uuid);
-    } while (hsm_find_key_by_id_bin(ctx, (const unsigned char *)uuid, sizeof(uuid_t)));
-    uuid_unparse(*uuid, uuid_str);
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
 
     CK_ATTRIBUTE publicKeyTemplate[] = {
-        { CKA_LABEL,(CK_UTF8CHAR*) uuid_str, strlen(uuid_str) },
-        { CKA_ID,                  uuid,     sizeof(uuid_t)   },
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)   },
+        { CKA_ID,                  id,       16               },
         { CKA_KEY_TYPE,            &keyType, sizeof(keyType)  },
         { CKA_VERIFY,              &ctrue,   sizeof(ctrue)    },
         { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)   },
@@ -1670,8 +1684,8 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     };
 
     CK_ATTRIBUTE privateKeyTemplate[] = {
-        { CKA_LABEL,(CK_UTF8CHAR *) uuid_str, strlen (uuid_str) },
-        { CKA_ID,          uuid,     sizeof(uuid_t) },
+        { CKA_LABEL,(CK_UTF8CHAR *) id_str, strlen (id_str) },
+        { CKA_ID,          id,       16                     },
         { CKA_KEY_TYPE,    &keyType, sizeof(keyType) },
         { CKA_SIGN,        &ctrue,   sizeof (ctrue) },
         { CKA_DECRYPT,     &cfalse,  sizeof (cfalse) },
@@ -1694,7 +1708,6 @@ hsm_generate_rsa_key(const hsm_ctx_t *ctx,
     new_key->module = session->module;
     new_key->public_key = publicKey;
     new_key->private_key = privateKey;
-    free(uuid);
     return new_key;
 }
 
@@ -1744,7 +1757,7 @@ hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
 {
     unsigned char *id;
     char *id_str;
-    size_t len, i;
+    size_t len;
     hsm_session_t *session;
     
     if (!ctx) ctx = _hsm_ctx;
@@ -1760,10 +1773,8 @@ hsm_get_key_id(const hsm_ctx_t *ctx, const hsm_key_t *key)
     id_str = malloc(len * 2 + 1);
     if (!id_str) return NULL;
 
-    for (i = 0; i < len; i++) {
-        sprintf(id_str + i*2, "%02x", id[i]);
-    }
-
+    hsm_hex_unparse(id_str, id, len);
+    
     free(id);
 
     return id_str;
@@ -1789,6 +1800,17 @@ hsm_get_key_info(const hsm_ctx_t *ctx,
                                                          key,
                                                          key_info->algorithm);
     return key_info;
+}
+
+void
+hsm_key_info_free(hsm_key_info_t *key_info)
+{
+    if (key_info) {
+        if (key_info->id) {
+            free(key_info->id);
+        }
+        free(key_info);
+    }
 }
 
 ldns_rr*
@@ -2187,7 +2209,7 @@ hsm_print_key(hsm_key_t *key) {
         printf("\n");
         printf("\tsize: %lu\n", key_info->keysize);
         printf("\tid: %s\n", key_info->id);
-        free(key_info);
+        hsm_key_info_free(key_info);
     } else {
         printf("key: <void>\n");
     }
