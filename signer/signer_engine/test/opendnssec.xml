@@ -27,5 +27,6 @@
 		<!-- if you have a lot of zones, you might want
 		     to buffer these in the script -->
 		<NotifyCommand>echo "ping"</NotifyCommand>
+		<WorkerThreads>1</WorkerThreads>
 	</Signer>
 </Configuration>

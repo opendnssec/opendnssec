@@ -89,6 +89,17 @@ class EngineConfiguration:
         self.notify_command = \
              Util.get_xml_data("Configuration/Signer/NotifyCommand",
                                xml_blob, True)
+        worker_thread_config = Util.get_xml_data(
+                                   "Configuration/Signer/WorkerThreads",
+                                   xml_blob, True)
+        if worker_thread_config:
+            try:
+                self.worker_threads = int(worker_thread_config)
+            except ValueError:
+                raise EngineConfigurationError("Configuration Error: WorkerThreads must be an integer")
+        else:
+            # default to 4
+            self.worker_threads = 4
 
     def check_config(self):
         """Verifies whether the configuration is correct for the

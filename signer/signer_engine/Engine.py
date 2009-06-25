@@ -102,10 +102,10 @@ class Engine:
     def run(self):
         """Start the engine, add some workers, and create the command
         channel to listen on."""
-        self.add_worker("1")
-        self.add_worker("2")
-        self.add_worker("3")
-        self.add_worker("4")
+        i = 1;
+        while i <= self.config.worker_threads:
+            self.add_worker(str(i))
+            i += 1
 
         # create socket to listen for commands on
         # only listen on localhost atm
