@@ -141,25 +141,33 @@ my $policies = $kasp->findnodes('Policy');
 
 foreach my $policy ( $policies->get_nodelist() ) {
 
+    my $exists = 0;
+
 	# Create policy
 	my $pname = $policy->find("\@name")->string_value();
 	my $pdis  = $policy->find("description")->string_value();
 	print "Importing policy $pname.\n" if ($debug);
 	my $rows =
 	  $dbh->do( "INSERT INTO policies (name, description) VALUES (?,?)",
-		undef, $pname, $pdis )
-	  or die $dbh->errstr;
-	if ( $rows == 1 ) {
+		undef, $pname, $pdis );
+
+	if ( $rows && $rows == 1 ) {
 
 		# Commit will occur at end if no errors.
 		print "Inserted 1 row in to policies (policy = $pname).\n" if ($debug);
 	}
-	elsif ( $rows == 0 ) {
-		$dbh->rollback;
-		$dbh->disconnect;
-		die
-"Error: Attempted to insert 0 rows in to policies (policy = $pname).\n";
-	}
+	elsif ( !$rows || $rows == 0 ) {
+        # Check for policy already existing (19 for sqlite)
+        if ($DBI::err == 19) {
+            print "policy $pname already exists, updating...\n";
+            $exists = 1;
+        } else {
+            $dbh->rollback;
+            $dbh->disconnect;
+            die
+                "Error: Attempted to insert 0 rows in to policies (policy = $pname).\n";
+        }
+    }
 	else {
 		$dbh->rollback;
 		$dbh->disconnect;
@@ -179,12 +187,12 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	  duration2sec( $sig->find('Validity/Default')->string_value() );
 	my $valdenial =
 	  duration2sec( $sig->find('Validity/Denial')->string_value() );
-	insertpp( "resign",     $resign,     "signature", $pname );
-	insertpp( "refresh",    $refresh,    "signature", $pname );
-	insertpp( "jitter",     $jitter,     "signature", $pname );
-	insertpp( "clockskew",  $clockskew,  "signature", $pname );
-	insertpp( "valdefault", $valdefault, "signature", $pname );
-	insertpp( "valdenial",  $valdenial,  "signature", $pname );
+	insertpp( "resign",     $resign,     "signature", $pname, $exists );
+	insertpp( "refresh",    $refresh,    "signature", $pname, $exists );
+	insertpp( "jitter",     $jitter,     "signature", $pname, $exists );
+	insertpp( "clockskew",  $clockskew,  "signature", $pname, $exists );
+	insertpp( "valdefault", $valdefault, "signature", $pname, $exists );
+	insertpp( "valdenial",  $valdenial,  "signature", $pname, $exists );
 
 	# Read denial section
 	my $denial = $xpc->find('Denial')->get_node(1);
@@ -193,7 +201,7 @@ foreach my $policy ( $policies->get_nodelist() ) {
 
 	my $nsec3 = $denial->find('NSEC3')->get_node(1);
 	if ($nsec3) {
-		insertpp( "version", 3, "denial", $pname );
+		insertpp( "version", 3, "denial", $pname, $exists );
 		my $optout = 0;
 		$optout = 1 if ( $nsec3->find('OptOut')->get_node(1) );
 		my $resalt     = duration2sec( $nsec3->find('Resalt')->string_value() );
@@ -202,13 +210,13 @@ foreach my $policy ( $policies->get_nodelist() ) {
 		my $iterations = $hash->find('Iterations')->string_value();
 		my $salt       = $hash->find('Salt')->get_node(1);
 		my $saltlen    = $salt->find("\@length")->string_value();
-		insertpp( "optout",     $optout,     "denial", $pname );
-		insertpp( "resalt",     $resalt,     "denial", $pname );
-		insertpp( "algorithm",  $algorithm,  "denial", $pname );
-		insertpp( "iterations", $iterations, "denial", $pname );
-		insertpp( "saltlength", $saltlen,    "denial", $pname );
+		insertpp( "optout",     $optout,     "denial", $pname, $exists );
+		insertpp( "resalt",     $resalt,     "denial", $pname, $exists );
+		insertpp( "algorithm",  $algorithm,  "denial", $pname, $exists );
+		insertpp( "iterations", $iterations, "denial", $pname, $exists );
+		insertpp( "saltlength", $saltlen,    "denial", $pname, $exists );
 	} else {
-		insertpp( "version", 1, "denial", $pname );
+		insertpp( "version", 1, "denial", $pname, $exists );
 	}
 
 	# Read keys section
@@ -222,10 +230,10 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	my $keyshare = 0;
 	$keyshare = 1 if ($keysharet eq "true");
 	$keyshare = 1 if ($keysharet eq "1");
-	insertpp( "ttl",           $ttl,           "keys", $pname );
-	insertpp( "retiresafety",  $retiresafety,  "keys", $pname );
-	insertpp( "publishsafety", $publishsafety, "keys", $pname );
-	insertpp( "zones_share_keys", $keyshare, "keys", $pname );
+	insertpp( "ttl",           $ttl,           "keys", $pname, $exists );
+	insertpp( "retiresafety",  $retiresafety,  "keys", $pname, $exists );
+	insertpp( "publishsafety", $publishsafety, "keys", $pname, $exists );
+	insertpp( "zones_share_keys", $keyshare, "keys", $pname, $exists );
 	
 	my $ksk            = $keys->find('KSK')->get_node(1);
 	my $algorithm      = $ksk->find('Algorithm')->string_value();
@@ -236,12 +244,12 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	my $repository_id = getresid($repository);
 	my $rfc5011        = 0;
 	$rfc5011 = 1 if ( $ksk->find('RFC5011')->get_node(1) );
-	insertpp( "algorithm",  $algorithm,     "ksk", $pname );
-	insertpp( "bits",       $algorithm_len, "ksk", $pname );
-	insertpp( "lifetime",   $lifetime,      "ksk", $pname );
-	insertpp( "emergency",  $emergency,     "ksk", $pname );
-	insertpp( "repository", $repository_id,  "ksk", $pname );
-	insertpp( "rfc5011",    $rfc5011,       "ksk", $pname );
+	insertpp( "algorithm",  $algorithm,     "ksk", $pname, $exists );
+	insertpp( "bits",       $algorithm_len, "ksk", $pname, $exists );
+	insertpp( "lifetime",   $lifetime,      "ksk", $pname, $exists );
+	insertpp( "emergency",  $emergency,     "ksk", $pname, $exists );
+	insertpp( "repository", $repository_id,  "ksk", $pname, $exists );
+	insertpp( "rfc5011",    $rfc5011,       "ksk", $pname, $exists );
 
 	my $zsk = $keys->find('ZSK')->get_node(1);
 	$algorithm      = $zsk->find('Algorithm')->string_value();
@@ -250,11 +258,11 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	$emergency      = $zsk->find('Emergency')->string_value();
 	$repository     = $zsk->find('Repository')->string_value();
 	$repository_id = getresid($repository);
-	insertpp( "algorithm",  $algorithm,     "zsk", $pname );
-	insertpp( "bits",       $algorithm_len, "zsk", $pname );
-	insertpp( "lifetime",   $lifetime,      "zsk", $pname );
-	insertpp( "emergency",  $emergency,     "zsk", $pname );
-	insertpp( "repository", $repository_id,    "zsk", $pname );
+	insertpp( "algorithm",  $algorithm,     "zsk", $pname, $exists );
+	insertpp( "bits",       $algorithm_len, "zsk", $pname, $exists );
+	insertpp( "lifetime",   $lifetime,      "zsk", $pname, $exists );
+	insertpp( "emergency",  $emergency,     "zsk", $pname, $exists );
+	insertpp( "repository", $repository_id,    "zsk", $pname, $exists );
 
 	# Read zone section
 	my $zone = $xpc->find('Zone')->get_node(1);
@@ -262,12 +270,12 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	my $soa  = $zone->find('SOA')->get_node(1);
 	$ttl = duration2sec( $soa->find('TTL')->string_value() );
 	my $min = duration2sec( $soa->find('Minimum')->string_value() );
-	insertpp( "propagationdelay", $pd,  "zone", $pname );
-	insertpp( "ttl",              $ttl, "zone", $pname );
-	insertpp( "min",              $min, "zone", $pname );
+	insertpp( "propagationdelay", $pd,  "zone", $pname, $exists );
+	insertpp( "ttl",              $ttl, "zone", $pname, $exists );
+	insertpp( "min",              $min, "zone", $pname, $exists );
 	my $serial    = $soa->find('Serial')->string_value();
 	my $serial_id = getserialid($serial);
-	insertpp( "serial", $serial_id, "zone", $pname );
+	insertpp( "serial", $serial_id, "zone", $pname, $exists );
 
 	# Read parent section
 	my $parent = $xpc->find('Parent')->get_node(1);
@@ -276,10 +284,10 @@ foreach my $policy ( $policies->get_nodelist() ) {
 	$soa = $parent->find('SOA')->get_node(1);
 	$ttl = duration2sec( $soa->find('TTL')->string_value() );
 	$min = duration2sec( $soa->find('Minimum')->string_value() );
-	insertpp( "propagationdelay", $pd,    "parent", $pname );
-	insertpp( "ttl",              $ttl,   "parent", $pname );
-	insertpp( "ttlds",            $ttlDS, "parent", $pname );
-	insertpp( "min",              $min,   "parent", $pname );
+	insertpp( "propagationdelay", $pd,    "parent", $pname, $exists );
+	insertpp( "ttl",              $ttl,   "parent", $pname, $exists );
+	insertpp( "ttlds",            $ttlDS, "parent", $pname, $exists );
+	insertpp( "min",              $min,   "parent", $pname, $exists );
 
 }
 
@@ -315,18 +323,41 @@ exit 0;
 
 # SUBS
 sub insertrepo {
-  my $rname = $_[0];
-	my $rcapacity = $_[1];
-	my $rows    = $dbh->do(
-		"insert into securitymodules (name, capacity) VALUES (?,?)", undef, $rname, $rcapacity) or die $dbh->errstr;
-  	if ( $rows == 1 ) {
+    my $rname = $_[0];
+    my $rcapacity = $_[1];
+	my $rows;
+    my $count = 0;
+	my $sth = $dbh->prepare( "select count(*) from securitymodules where name = ?" );
+    $sth->execute($rname);
+    while (my @count = $sth->fetchrow_array) {
+        $count = $count[0];
+    }
+
+    if ($count && $count == 0) {
+        $rows = $dbh->do(
+		"insert into securitymodules (name, capacity) VALUES (?,?)", undef, $rname, $rcapacity);
+    }
+    elsif ($count && $count == 1) {
+        print "module $rname already exists, updating...\n";
+        $rows = $dbh->do(
+            "update securitymodules set capacity = ? where name = ?", 
+            undef, $rcapacity, $rname);
+    }
+    else {
+        $dbh->rollback;
+        $dbh->disconnect;
+        die
+        "Error: Failed to count security modules (repository name = $rname, capacity = $rcapacity) count = $count.\n";
+    }
+
+  	if ( $rows && $rows == 1 ) {
 
   		# Commit will occur at end if no errors.
   		print
   "Inserted 1 row in to securitymodules (repository name = $rname, capacity = $rcapacity).\n"
   		  if ($debug);
   	}
-  	elsif ( $rows == 0 ) {
+  	elsif ( !$rows || $rows == 0 ) {
   		$dbh->rollback;
   		$dbh->disconnect;
   		die
@@ -344,20 +375,44 @@ sub insertrepo {
 sub insertz {
 	my $zname   = $_[0];
 	my $zpolicy = $_[1];
-	my $rows    = $dbh->do(
-		"insert into zones (name, policy_id)
-	             select ?, p.id from policies p
-	             where p.name=?",
-		undef, $zname, $zpolicy
-	) or die $dbh->errstr;
-	if ( $rows == 1 ) {
+    my $rows;
+    my $count = 0;
+	my $sth = $dbh->prepare( "select count(*) from zones where name = ?" );
+    $sth->execute($zname);
+    while (my @count = $sth->fetchrow_array) {
+        $count = $count[0];
+    }
+    
+    if ($count && $count == 0) {
+        $rows = $dbh->do(
+            "insert into zones (name, policy_id)
+            select ?, p.id from policies p
+            where p.name=?",
+            undef, $zname, $zpolicy
+        );
+    } 
+    elsif ($count && $count == 1) {
+        print "zone $zname already exists, updating...\n";
+        $rows = $dbh->do(
+            "update zones set policy_id = (select id from policies where name = ?) where name = ?", 
+            undef, $zpolicy, $zname);
+    }
+    else {
+        $dbh->rollback;
+        $dbh->disconnect;
+        die
+        "Error: Failed to count zones (zone = $zname, policy = $zpolicy) count = $count.\n";
+    }
+
+
+	if ( $rows && $rows == 1 ) {
 
 		# Commit will occur at end if no errors.
 		print
-"Inserted 1 row in to zones (zone = $zname, policy = $zpolicy).\n"
+"Inserted/updated 1 row in zones (zone = $zname, policy = $zpolicy).\n"
 		  if ($debug);
 	}
-	elsif ( $rows == 0 ) {
+	elsif ( !$rows || $rows == 0 ) {
 		$dbh->rollback;
 		$dbh->disconnect;
 		die
@@ -398,14 +453,23 @@ sub insertpp {
 	my $value     = $_[1];
 	my $category  = $_[2];
 	my $policy    = $_[3];
-	my $rows      = $dbh->do(
-		"insert into parameters_policies (parameter_id, policy_id, value)
-             select p.id, x.id, ? from parameters p, policies x, categories c
-             where p.name=? and c.name=? and c.id=p.category_id and x.name=?",
-		undef, $value, $parameter, $category, $policy
-	) or die $dbh->errstr;
-	if ( $rows == 1 ) {
+	my $exists    = $_[4];
+	my $rows      = 0;
 
+    if ($exists == 0) { # Call insert
+        $rows = $dbh->do(
+            "insert into parameters_policies (parameter_id, policy_id, value)
+            select p.id, x.id, ? from parameters p, policies x, categories c
+            where p.name=? and c.name=? and c.id=p.category_id and x.name=?",
+            undef, $value, $parameter, $category, $policy
+        ) or die $dbh->errstr;
+    } elsif ($exists == 1) { # Call update
+        $rows = $dbh->do(
+            "update parameters_policies set value = ? where policy_id = (select id from policies where name = ?) and parameter_id = (select id from parameters where name = ? and category_id = (select id from categories where name = ?))",
+            undef, $value, $policy, $parameter, $category
+        ) or die $dbh->errstr;
+    }
+    if ( $rows == 1 ) {
 		# Commit will occur at end if no errors.
 		print
 "Inserted 1 row in to paramters_policies ($parameter = $value, category = $category, policy = $policy).\n"
