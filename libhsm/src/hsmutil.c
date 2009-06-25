@@ -202,7 +202,7 @@ cmd_remove (int argc, char *argv[])
 
     result = hsm_remove_key(NULL, key);
 
-    if (result) {
+    if (!result) {
         printf("Key remove successful.\n");
     } else {
         printf("Key remove failed.\n");
