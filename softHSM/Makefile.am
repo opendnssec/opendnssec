@@ -15,6 +15,7 @@ SUBDIRS = src checks
 
 
 install-data-hook:
+	${INSTALL} -d ${sysconfdir}
 	test -f ${sysconfdir}/softhsm.conf || \
 		${INSTALL_DATA} ${builddir}/softhsm.conf ${sysconfdir}
 	test -d ${softhsmdbdir} || \
