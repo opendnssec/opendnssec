@@ -91,6 +91,9 @@ cmd_list (int argc, char *argv[])
 
     size_t key_count = 0;
     hsm_key_t **keys;
+    
+    const char *key_info_format = "%-20s  %-32s  %-10s\n";
+    
 
     if (argc) {
         repository = strdup(argv[0]);
@@ -104,15 +107,30 @@ cmd_list (int argc, char *argv[])
         keys = hsm_list_keys(NULL, &key_count);
     }
 
-    printf("%u %s found.\n", (unsigned int) key_count,
+    printf("%u %s found.\n\n", (unsigned int) key_count,
         (key_count > 1 ? "keys" : "key"));
 
     if (!keys) {
         return -1;
     }
 
+    /* print fancy header */
+    printf(key_info_format, "Repository", "ID", "Type");
+    printf(key_info_format, "----------", "--", "----");
+
     for (i = 0; i < key_count; i++) {
-        hsm_print_key(keys[i]);
+        hsm_key_info_t *key_info;
+        hsm_key_t *key = keys[i];
+        char key_type[HSM_MAX_ALGONAME + 8];
+
+        key_info = hsm_get_key_info(NULL, key);
+        snprintf(key_type, sizeof(key_type),
+            "%s/%lu",
+            key_info->algorithm_name, key_info->keysize);
+
+        printf(key_info_format, key->module->name, key_info->id, key_type);
+
+        hsm_key_info_free(key_info);
     }
     hsm_key_list_free(keys, key_count);
 
