@@ -258,6 +258,8 @@ usage(FILE *out)
 	fprintf(out, "-h\t\t\tShow this help\n");
 	fprintf(out, "-p <file>\t\tRead a previous output of this tool for existing signatures\n");
 	fprintf(out, "-w <file>\t\tWrite the output to this file (default stdout)\n");
+	fprintf(out, "-r\t\t\tPrints the number of signatures generated to stderr. On success, this will\n");
+	fprintf(out, "\t\t\talways be 1 or more.\n");
 }
 
 void check_tm(struct tm tm)
@@ -1037,12 +1039,13 @@ int main(int argc, char **argv)
 	FILE *prev_zone = NULL;
 	char *config_file = NULL;
 	int result;
+	int print_creation_count = 0;
 
 	cfg = current_config_new();
 	input = stdin;
 	output = stdout;
 
-	while ((c = getopt(argc, argv, "c:f:hnp:w:")) != -1) {
+	while ((c = getopt(argc, argv, "c:f:hnp:w:r")) != -1) {
 		switch(c) {
 		case 'c':
 			config_file = optarg;
@@ -1081,6 +1084,9 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			break;
+		case 'r':
+			print_creation_count = 1;
+			break;
 		}
 	}
 
@@ -1102,6 +1108,9 @@ int main(int argc, char **argv)
 	        cfg->removed_sigs,
 	        cfg->created_sigs);
 
+	if (print_creation_count) {
+		fprintf(stderr, "Number of signatures created: %lu\n", cfg->created_sigs);
+	}
 	if (result == 1) {
 		return 0;
 	} else {

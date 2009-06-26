@@ -118,6 +118,9 @@ with the tool 'signer'. It has the following command-line arguments:
                    This MUST NOT be the same file as either the file for
                    the -f or the -p flag, since the signer will write
                    output before reading in all input.
+-r:                Makes the signer print the number of signatures it
+                   created to stderr. On success, this should always
+                   be 1 or more, since the SOA record is always re-signed.
 
 Specific signing commands are passed in-line; with the following commands:
 :add_ksk <key id> <key algorithm nr> <key flags>
