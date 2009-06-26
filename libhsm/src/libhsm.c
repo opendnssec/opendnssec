@@ -258,8 +258,7 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
         /* Load PKCS #11 library */
         HINSTANCE hDLL = LoadLibrary(_T(module->path));
 
-        if (hDLL == NULL)
-        {
+        if (hDLL == NULL) {
             /* Failed to load the PKCS #11 library */
             fprintf(stderr, "LoadLibrary(%s) failed: %s\n", module->path);
             return CKR_FUNCTION_FAILED;
@@ -273,8 +272,7 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
         /* Load PKCS #11 library */
         void* pDynLib = dlopen(module->path, RTLD_NOW | RTLD_LOCAL);
 
-        if (pDynLib == NULL)
-        {
+        if (pDynLib == NULL) {
             /* Failed to load the PKCS #11 library */
             fprintf(stderr, "dlopen(%s) failed: %s\n",
                 module->path, dlerror());
@@ -300,10 +298,9 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
 #endif
     }
 
-    if (pGetFunctionList == NULL)
-    {
-        fprintf(stderr, "no function list\n");
+    if (pGetFunctionList == NULL) {
         /* Failed to load the PKCS #11 library */
+        fprintf(stderr, "Error: no function list\n");
         return CKR_FUNCTION_FAILED;
     }
 
