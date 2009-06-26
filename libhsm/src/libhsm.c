@@ -2162,8 +2162,7 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
     if (hashed_owner_b32_len < 1) {
         hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
              "Error in base32 extended hex encoding "
-             "of hashed owner name (name: %s, ",
-             "return code: %d)",
+             "of hashed owner name (name: %s, return code: %d)",
              NULL, hashed_owner_b32_len);
         /* FIXME: use hsm_ctx_set_error() */
         /* ldns_rdf_print(stderr, name); */
