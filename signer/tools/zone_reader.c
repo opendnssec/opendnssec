@@ -374,6 +374,7 @@ usage(FILE *out)
 	fprintf(out, "-w <file>\tWrite sorted zone to <file> instead of stdout\n");
 	fprintf(out, "-h\t\tShow this help\n");
 	fprintf(out, "-n\t\tUse NSEC3 hashing as a sort base\n");
+	fprintf(out, "-p\t\tDon't add NSEC3PARAM record when using NSEC3\n");
 	fprintf(out, "-s <salt>\tUse this salt for NSEC3 hashed name calculation\n");
 	fprintf(out, "-t <count>\tUse <count> iterations for NSEC3 hashed name calculation\n");
 }
@@ -567,6 +568,7 @@ main(int argc, char **argv)
 	int file_count = 0;
 	FILE *out_file;
 	bool nsec3 = false;
+	bool no_nsec3_param = false;
 	uint8_t nsec3_algorithm = 1;
 	uint16_t nsec3_iterations = 1;
 	uint8_t nsec3_salt_length = 0;
@@ -587,7 +589,7 @@ main(int argc, char **argv)
 	rr_files[0] = stdin;
 	out_file = stdout;
 
-	while ((c = getopt(argc, argv, "a:f:hno:s:t:w:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:hno:ps:t:w:")) != -1) {
 		switch (c) {
 		case 'a':
 			nsec3_algorithm = (uint8_t) atoi(optarg);
@@ -629,6 +631,9 @@ main(int argc, char **argv)
 			break;
 		case 'o':
 			zone_name = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, optarg);
+			break;
+		case 'p':
+			no_nsec3_param = true;
 			break;
 		case 's':
 			if (strlen(optarg) % 2 != 0) {
@@ -892,7 +897,7 @@ main(int argc, char **argv)
 
 	/* if we haven't found the right NSEC3PARAM RR in the zone,
 	 * add it here */
-	if (nsec3 && my_nsec3params) {
+	if (nsec3 && my_nsec3params && !no_nsec3_param) {
 		cur_rr_data = rr_data_new();
 		cur_rr_data->name = ldns_nsec3_hash_name(ldns_rr_owner(my_nsec3params),
 		                                         nsec3_algorithm,
