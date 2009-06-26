@@ -74,6 +74,7 @@ typedef struct {
 	uint32_t expiration;
 	uint32_t expiration_denial;
 	uint32_t refresh;
+	uint32_t refresh_denial;
 	uint32_t jitter;
 	int echo_input;
 	/*ldns_pkcs11_module_list *pkcs11_module_list;*/
@@ -219,6 +220,7 @@ current_config_new()
 	cfg->expiration = 0;
 	cfg->expiration_denial = 0;
 	cfg->refresh = 0;
+	cfg->refresh_denial = 0;
 	cfg->jitter = 0;
 	cfg->echo_input = 0;
 	cfg->origin = NULL;
@@ -465,6 +467,13 @@ handle_command(FILE *output, current_config *cfg,
 			fprintf(output, "; Error: missing argument in refresh command\n");
 		} else {
 			cfg->refresh = parse_time(arg1);
+		}
+	} else if (strcmp(cmd, "refresh_denial") == 0) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in refresh_denial command\n");
+		} else {
+			cfg->refresh_denial = parse_time(arg1);
 		}
 	} else if (strcmp(cmd, "origin") == 0) {
 		arg1 = read_arg(next, &next);
@@ -760,9 +769,9 @@ check_existing_sigs(ldns_rr_list *sigs,
 		if (cfg->expiration_denial &&
 		    (type_covered == LDNS_RR_TYPE_NSEC ||
 			 type_covered == LDNS_RR_TYPE_NSEC3)) {
-			refresh = cfg->expiration_denial;
+			refresh = cfg->refresh_denial;
 		} else {
-			refresh = cfg->expiration;
+			refresh = cfg->refresh;
 		}
 		/* if refresh is zero, we just drop existing
 		 * signatures. Otherwise, we'll have to check
