@@ -33,6 +33,7 @@
 #include <stdint.h>
 
 #define HSM_MAX_SESSIONS 10
+#define HSM_MAX_ALGONAME 16
 
 /*! Return codes for some of the functions */
 /*! These should be different than the list of CKR_ values defined
