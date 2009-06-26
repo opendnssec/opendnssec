@@ -38,6 +38,7 @@ AC_TYPE_SIZE_T
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
+AC_FUNC_VSNPRINTF
 AC_CHECK_FUNCS([getpass getpassphrase memset])
 AC_REPLACE_FUNCS(strlcpy)
 AC_REPLACE_FUNCS(strlcat)
