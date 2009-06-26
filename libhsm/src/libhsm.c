@@ -203,16 +203,22 @@ ldns_pkcs11_rv_str(CK_RV rv)
 /*
  * If the ctx is given, and it's error value is still 0, the
  * value will be set to 'error', and the error_message and error_action
- * will be set to the given (static!) strings
+ * will be set to the given strings
  */
 static void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
-                 const char *message)
+                 const char *message, ...)
 {
+    va_list args;
+    
     if (ctx && ctx->error == 0) {
         ctx->error = error;
         ctx->error_action = action;
-        ctx->error_message = message;
+        
+        va_start(args, message);
+        vsnprintf(ctx->error_message, sizeof(ctx->error_message),
+            message, args);
+        va_end(args);
     }
 }
 
@@ -220,13 +226,13 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
  * value set yet, the rv value will be set
  * to the given context (as an integer), and 0 will be returned */
 static int
-hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *message)
+hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *action)
 {
     if (rv != CKR_OK) {
         if (ctx && ctx->error == 0) {
             ctx->error = (int) rv;
-            ctx->error_action = message;
-            ctx->error_message = ldns_pkcs11_rv_str(rv);
+            ctx->error_action = action;
+            strlcpy(ctx->error_message, ldns_pkcs11_rv_str(rv), sizeof(ctx->error_message));
         }
         return 1;
     }

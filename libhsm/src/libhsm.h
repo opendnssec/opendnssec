@@ -35,6 +35,8 @@
 #define HSM_MAX_SESSIONS 10
 #define HSM_MAX_ALGONAME 16
 
+#define HSM_ERROR_MSGSIZE 512
+
 /*! Return codes for some of the functions */
 /*! These should be different than the list of CKR_ values defined
  * by pkcs11 (for easier debugging purposes of calling applications)
@@ -43,6 +45,7 @@
 #define HSM_ERROR                 0x10000001
 #define HSM_PIN_INCORRECT         0x10000002
 #define HSM_CONFIG_FILE_ERROR     0x10000003
+
 
 /*! Data type to describe an HSM */
 typedef struct {
@@ -79,11 +82,16 @@ typedef struct {
 typedef struct {
     hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
     size_t        session_count;               /*!< number of configured HSMs */
-    int           error;                       /*!< non-zero if the last operation failed
-                                                    (only the first error will be set) */
-    const char    *error_action;               /*!< static string describing the action we
-                                               were trying to do when the first error happened */
-    const char    *error_message;              /*!< static string describing the first error */
+
+    /*!< non-zero if the last operation failed (only the first error will be set) */
+    int error;
+
+   /*!< static string describing the action we were trying to do
+        when the first error happened */
+    const char *error_action;
+
+    /*!< static string describing the first error */
+    char error_message[HSM_ERROR_MSGSIZE];
 } hsm_ctx_t;
 
 
