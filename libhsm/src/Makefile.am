@@ -8,7 +8,7 @@ AM_CPPFLAGS =	-I$(srcdir)/.. \
 AM_CFLAGS =	-std=c99
 
 lib_LTLIBRARIES = libhsm.la
-libhsm_la_SOURCES = libhsm.c
+libhsm_la_SOURCES = libhsm.c compat/strlcpy.c compat/strlcat.c
 libhsm_la_LDFLAGS = -dl
 libhsm_la_LIBADD = @LDNS_LIBS@ @XML2_LIBS@
 nobase_include_HEADERS = $(srcdir)/*.h
