@@ -35,7 +35,7 @@ from datetime import datetime
 import syslog
 import shutil
 
-from ZoneConfig import ZoneConfig
+from ZoneConfig import ZoneConfig, ZoneConfigError
 from Util import ToolException
 import Util
 
@@ -101,9 +101,12 @@ class Zone:
         
     def read_config(self):
         """Read the zone xml configuration from the standard location"""
-        self.zone_config = ZoneConfig(self.get_zone_config_filename())
-        self.last_read = datetime.now()
-    
+        try:
+            self.zone_config = ZoneConfig(self.get_zone_config_filename())
+            self.last_read = datetime.now()
+        except Exception, e:
+            # treat every exception as a configuration error
+            raise ZoneConfigError(str(e))
     def get_input_serial(self):
         """Returns the serial number from the SOA record in the input
         zone file"""
@@ -331,24 +334,22 @@ class Zone:
                 syslog.syslog(syslog.LOG_INFO, "Error in copy: " + str(e))
 
             syslog.syslog(syslog.LOG_INFO, "done\n")
+        return True
 
     def perform_action(self):
         """Depending on the value set to zone.action, this method
            will sort, nsecify and/or sign the zone"""
         if self.action >= ZoneConfig.RESIGN and os.path.exists(
-                                 self.get_zone_tmp_filename(".signed")):
-            self.sign()
-            self.finalize()
+                          self.get_zone_tmp_filename(".signed")) and \
+                          self.sign():
+               self.finalize()
         elif self.action >= ZoneConfig.RENSEC and os.path.exists(
-                                 self.get_zone_tmp_filename(".sorted")):
-            self.nsecify()
-            self.sign()
-            self.finalize()
+                            self.get_zone_tmp_filename(".sorted")) and\
+            self.nsecify() and self.sign():
+                self.finalize()
         elif self.action >= ZoneConfig.RESORT and os.path.isfile(
                                         self.get_zone_input_filename()):
-            if self.sort():
-                self.nsecify()
-                self.sign()
+            if self.sort() and self.nsecify() and self.sign():
                 self.finalize()
         else:
             syslog.syslog(syslog.LOG_ERR, "Input file missing: " +\
@@ -388,18 +389,21 @@ class Zone:
         
     def sign(self):
         """Takes the file created by nsecify() or by the previous call
-           to sign(), and (re)signs the zone"""
+           to sign(), and (re)signs the zone. Returns True if signatures
+           have been added or remade. On error, or if nothing has
+           changed, False is returned."""
         cmd = [self.get_tool_filename("signer"),
                "-c", self.engine_config.config_file_name,
                "-p", self.get_zone_tmp_filename(".signed"),
-               "-w", self.get_zone_tmp_filename(".signed2")
+               "-w", self.get_zone_tmp_filename(".signed2"),
+               "-r"
               ]
 
         sign_p = Util.run_tool(cmd)
         if not sign_p:
             if not self.last_signed:
                 self.last_signed = int(time.time())
-            return
+            return False
         Util.write_p(sign_p, "\n", "")
         Util.write_p(sign_p, self.zone_name, ":origin ")
         
@@ -469,11 +473,33 @@ class Zone:
         nsecced_f.close()
         sign_p.stdin.close()
         sign_p.wait()
+        sig_count = 0;
         for line in sign_p.stderr:
-            syslog.syslog(syslog.LOG_WARNING, "signer stderr: " + line)
-        Util.move_file(self.get_zone_tmp_filename(".signed2"),
-                       self.get_zone_tmp_filename(".signed"))
+            if line[:30] == "Number of signatures created: ":
+                try:
+                    sig_count = int(line[30:])
+                except ValueError:
+                    syslog.syslog(syslog.LOG_ERROR,
+                                  "signer returned bad value for " +
+                                  "signature count: " + line[30:])
+            else:
+                syslog.syslog(syslog.LOG_WARNING,
+                              "signer stderr: " + line)
         self.last_signed = sign_time
+        # a value of 1 means only the SOA has changed, i.e. no 'new'
+        # signatures, since soa is always changed. If so, drop the
+        # result and return False
+        if sig_count > 1:
+            syslog.syslog(syslog.LOG_INFO, "Created " +
+                          str(sig_count) + " new signatures")
+            Util.move_file(self.get_zone_tmp_filename(".signed2"),
+                           self.get_zone_tmp_filename(".signed"))
+        else:
+            syslog.syslog(syslog.LOG_INFO,
+                          "No new signatures, keeping zone")
+            os.remove(self.get_zone_tmp_filename(".signed2"))
+            return False
+        return True
 
     def finalize(self):
         """Runs the finalizer tool on the signed zone file, and produces

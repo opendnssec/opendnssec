@@ -178,4 +178,3 @@ def query_pin(token):
 def move_file(source, target):
     """Moves a file; if the target file exists it is deleted"""
     shutil.move(source, target)
-
