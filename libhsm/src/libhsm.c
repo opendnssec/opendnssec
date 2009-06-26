@@ -284,15 +284,16 @@ fprintf(stderr, "have loadlibrary\n");
         /* Store the handle so we can dlclose it later */
         module->handle = pDynLib;
 #else
-        fprintf(stderr, "dl given, no dynamic library support compiled in\n");
+        fprintf(stderr, "Error: dl given, no dynamic library support compiled in\n");
+        return CKR_FUNCTION_FAILED;
 #endif
     } else {
-        /* no library provided, use the statically compiled softHSM */
+        /* No library provided, use the statically compiled softHSM */
 #ifdef HAVE_PKCS11_MODULE
-fprintf(stderr, "have pkcs11_module\n");
         return C_GetFunctionList(pkcs11_functions);
 #else
-        fprintf(stderr, "Error, no pkcs11 module given, none compiled in\n");
+        fprintf(stderr, "Error: no pkcs11 module given, none compiled in\n");
+        return CKR_FUNCTION_FAILED;
 #endif
     }
 
