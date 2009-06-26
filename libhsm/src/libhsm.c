@@ -253,20 +253,22 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
 
     if (module && module->path) {
         /* library provided by application or user */
+
 #if defined(HAVE_LOADLIBRARY)
-fprintf(stderr, "have loadlibrary\n");
         /* Load PKCS #11 library */
         HINSTANCE hDLL = LoadLibrary(_T(module->path));
 
         if (hDLL == NULL)
         {
             /* Failed to load the PKCS #11 library */
+            fprintf(stderr, "LoadLibrary(%s) failed: %s\n", module->path);
             return CKR_FUNCTION_FAILED;
         }
 
         /* Retrieve the entry point for C_GetFunctionList */
         pGetFunctionList = (CK_C_GetFunctionList)
             GetProcAddress(hDLL, _T("C_GetFunctionList"));
+
 #elif defined(HAVE_DLOPEN)
         /* Load PKCS #11 library */
         void* pDynLib = dlopen(module->path, RTLD_NOW | RTLD_LOCAL);
@@ -283,6 +285,7 @@ fprintf(stderr, "have loadlibrary\n");
         pGetFunctionList = (CK_C_GetFunctionList) dlsym(pDynLib, "C_GetFunctionList");
         /* Store the handle so we can dlclose it later */
         module->handle = pDynLib;
+
 #else
         fprintf(stderr, "Error: dl given, no dynamic library support compiled in\n");
         return CKR_FUNCTION_FAILED;
