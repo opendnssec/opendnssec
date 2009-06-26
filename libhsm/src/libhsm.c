@@ -2095,6 +2095,7 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
     CK_MECHANISM mechanism;
     unsigned int i;
     hsm_session_t *session = NULL;
+    char *error_name;
 
     switch(algorithm) {
     case 1:
@@ -2160,12 +2161,12 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
                                      ldns_b32_ntop_calculate_size(
                                          hashed_owner_str_len));
     if (hashed_owner_b32_len < 1) {
+        error_name = ldns_rdf2str(name);
         hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
              "Error in base32 extended hex encoding "
              "of hashed owner name (name: %s, return code: %d)",
-             NULL, hashed_owner_b32_len);
-        /* FIXME: use hsm_ctx_set_error() */
-        /* ldns_rdf_print(stderr, name); */
+             error_name, hashed_owner_b32_len);
+        LDNS_FREE(error_name);
         LDNS_FREE(hashed_owner_b32);
         return NULL;
     }
