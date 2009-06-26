@@ -51,6 +51,9 @@
 /* fixed length from PKCS #11 specification */
 #define HSM_TOKEN_LABEL_LENGTH 32
 
+/* max algorithm name length */
+#define HSM_MAX_ALGONAME 16
+
 /* we need some globals, for session management, and for the initial
  * context
  */
