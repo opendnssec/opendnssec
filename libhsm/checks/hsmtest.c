@@ -192,14 +192,18 @@ main (int argc, char *argv[])
 		sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
 		sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
-
-		ldns_rr_list_print(stdout, rrset);
-		ldns_rr_print(stdout, sig);
-		ldns_rr_print(stdout, dnskey_rr);
+        if (sig) {
+		    ldns_rr_list_print(stdout, rrset);
+    		ldns_rr_print(stdout, sig);
+    		ldns_rr_print(stdout, dnskey_rr);
+    		ldns_rr_free(sig);
+        } else {
+            hsm_print_error(ctx);
+            exit(-1);
+        }
 
 		/* cleanup */
 		ldns_rr_list_deep_free(rrset);
-		ldns_rr_free(sig);
 		hsm_sign_params_free(sign_params);
 		ldns_rr_free(dnskey_rr);
 	}
