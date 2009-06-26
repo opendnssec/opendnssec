@@ -231,6 +231,10 @@ class Zone:
                         str(self.zone_config.denial_nsec3_iterations),
                         "-a",
                         str(self.zone_config.denial_nsec3_algorithm)])
+            # tell the reader not to append the NSEC3PARAM record
+            # if we are not going to add signatures
+            if len(self.zone_config.signature_keys) <= 0:
+                cmd.append("-p")
         sort_process = Util.run_tool(cmd, subprocess.PIPE)
         
         # sort published keys and zone data
@@ -489,7 +493,9 @@ class Zone:
         # a value of 1 means only the SOA has changed, i.e. no 'new'
         # signatures, since soa is always changed. If so, drop the
         # result and return False
-        if sig_count > 1:
+        # Addition: unless we didn't set any keys (in which case we
+        # *should* write the output file)
+        if sig_count > 1 or len(self.zone_config.signature_keys) <= 0:
             syslog.syslog(syslog.LOG_INFO, "Created " +
                           str(sig_count) + " new signatures")
             Util.move_file(self.get_zone_tmp_filename(".signed2"),
