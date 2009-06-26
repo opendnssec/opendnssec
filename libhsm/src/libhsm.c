@@ -2160,11 +2160,13 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
                                      ldns_b32_ntop_calculate_size(
                                          hashed_owner_str_len));
     if (hashed_owner_b32_len < 1) {
+        hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
+             "Error in base32 extended hex encoding "
+             "of hashed owner name (name: %s, ",
+             "return code: %d)",
+             NULL, hashed_owner_b32_len);
         /* FIXME: use hsm_ctx_set_error() */
-        fprintf(stderr, "Error in base32 extended hex encoding ");
-        fprintf(stderr, "of hashed owner name (name: ");
-        ldns_rdf_print(stderr, name);
-        fprintf(stderr, ", return code: %d)\n", hashed_owner_b32_len);
+        /* ldns_rdf_print(stderr, name); */
         LDNS_FREE(hashed_owner_b32);
         return NULL;
     }
