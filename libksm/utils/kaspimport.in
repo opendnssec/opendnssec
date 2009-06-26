@@ -329,15 +329,13 @@ sub insertrepo {
     my $count = 0;
 	my $sth = $dbh->prepare( "select count(*) from securitymodules where name = ?" );
     $sth->execute($rname);
-    while (my @count = $sth->fetchrow_array) {
-        $count = $count[0];
-    }
+    $count = $sth->fetchrow_array();
 
-    if ($count && $count == 0) {
+    if ($count == 0) {
         $rows = $dbh->do(
 		"insert into securitymodules (name, capacity) VALUES (?,?)", undef, $rname, $rcapacity);
     }
-    elsif ($count && $count == 1) {
+    elsif ($count == 1) {
         print "module $rname already exists, updating...\n";
         $rows = $dbh->do(
             "update securitymodules set capacity = ? where name = ?", 
@@ -379,11 +377,9 @@ sub insertz {
     my $count = 0;
 	my $sth = $dbh->prepare( "select count(*) from zones where name = ?" );
     $sth->execute($zname);
-    while (my @count = $sth->fetchrow_array) {
-        $count = $count[0];
-    }
+    $count = $sth->fetchrow_array();
     
-    if ($count && $count == 0) {
+    if ($count == 0) {
         $rows = $dbh->do(
             "insert into zones (name, policy_id)
             select ?, p.id from policies p
@@ -391,7 +387,7 @@ sub insertz {
             undef, $zname, $zpolicy
         );
     } 
-    elsif ($count && $count == 1) {
+    elsif ($count == 1) {
         print "zone $zname already exists, updating...\n";
         $rows = $dbh->do(
             "update zones set policy_id = (select id from policies where name = ?) where name = ?", 
