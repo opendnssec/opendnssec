@@ -388,7 +388,8 @@ hsm_get_slot_id(hsm_ctx_t *ctx,
     }
     free(slotIds);
     if (!found) {
-        fprintf(stderr, "Error; could not find token with the name %s\n", token_name);
+        hsm_ctx_set_error(ctx, -1, "hsm_get_slot_id()",
+            "could not find token with the name %s", token_name);
         return 0;
     }
 
@@ -1182,14 +1183,15 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
 
     public_exponent = template[0].pValue = malloc(public_exponent_len);
     if (!public_exponent) {
-        fprintf(stderr,
-                "Error allocating memory for public exponent\n");
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+            "Error allocating memory for public exponent");
         return NULL;
     }
 
     modulus = template[1].pValue = malloc(modulus_len);
     if (!modulus) {
-        fprintf(stderr, "Error allocating memory for modulus\n");
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+            "Error allocating memory for modulus");
         free(public_exponent);
         return NULL;
     }
@@ -1209,8 +1211,8 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
     if (public_exponent_len <= 256) {
         data = malloc(data_size);
         if (!data) {
-            fprintf(stderr,
-                    "Error allocating memory for pub key rr data\n");
+            hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+                "Error allocating memory for pub key rr data");
             free(public_exponent);
             free(modulus);
             return NULL;
@@ -1222,8 +1224,8 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
         data_size += 2;
         data = malloc(data_size);
         if (!data) {
-            fprintf(stderr,
-                    "Error allocating memory for pub key rr data\n");
+            hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+                "Error allocating memory for pub key rr data");
             free(public_exponent);
             free(modulus);
             return NULL;
@@ -1233,7 +1235,8 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
         memcpy(&data[3], public_exponent, public_exponent_len);
         memcpy(&data[3 + public_exponent_len], modulus, modulus_len);
     } else {
-        fprintf(stderr, "error: public exponent too big\n");
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+            "Public exponent too big");
         free(public_exponent);
         free(modulus);
         return NULL;
@@ -2135,7 +2138,8 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
         hashed_owner_str_len = salt_length + hash_length;
         hashed_owner_str = LDNS_XMALLOC(char, hashed_owner_str_len);
         if (!hashed_owner_str) {
-            fprintf(stderr, "Memory error\n");
+            hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
+                "Memory error");
             abort();
         }
         memcpy(hashed_owner_str, hash, hash_length);
@@ -2156,6 +2160,7 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
                                      ldns_b32_ntop_calculate_size(
                                          hashed_owner_str_len));
     if (hashed_owner_b32_len < 1) {
+        /* FIXME: use hsm_ctx_set_error() */
         fprintf(stderr, "Error in base32 extended hex encoding ");
         fprintf(stderr, "of hashed owner name (name: ");
         ldns_rdf_print(stderr, name);
@@ -2168,7 +2173,8 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
 
     status = ldns_str2rdf_dname(&hashed_owner, hashed_owner_b32);
     if (status != LDNS_STATUS_OK) {
-        fprintf(stderr, "Error creating rdf from %s\n", hashed_owner_b32);
+        hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
+            "Error creating rdf from %s\n", hashed_owner_b32);
         LDNS_FREE(hashed_owner_b32);
         return NULL;
     }
