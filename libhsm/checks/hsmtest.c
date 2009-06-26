@@ -136,7 +136,7 @@ main (int argc, char *argv[])
 			printf("\n");
 		} else {
 			printf("Error creating key, bad token name?\n");
-			printf("Error: %s (%s)\n", ctx->error_action, ctx->error_message);
+            hsm_print_error(ctx);
 			exit(1);
 		}
 	} else if (do_sign || do_delete) {

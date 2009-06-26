@@ -2371,3 +2371,21 @@ hsm_print_key(hsm_key_t *key) {
     }
 }
 
+void
+hsm_print_error(hsm_ctx_t *gctx)
+{
+    hsm_ctx_t *ctx;
+
+    if (!gctx) {
+        ctx = _hsm_ctx;
+    } else {
+        ctx = gctx;
+    }
+    
+    if (ctx->error) {
+        fprintf(stderr, "Error: %s (%s)\n",
+            ctx->error_action, ctx->error_message);
+    } else {
+        fprintf(stderr, "Unknown error\n");
+    }
+}
