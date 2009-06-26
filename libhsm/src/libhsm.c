@@ -274,7 +274,8 @@ fprintf(stderr, "have loadlibrary\n");
         if (pDynLib == NULL)
         {
             /* Failed to load the PKCS #11 library */
-            fprintf(stderr, "dlopen() failed: %s\n", dlerror());
+            fprintf(stderr, "dlopen(%s) failed: %s\n",
+                module->path, dlerror());
             return CKR_FUNCTION_FAILED;
         }
 
