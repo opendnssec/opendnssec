@@ -33,4 +33,6 @@ libksm_la_SOURCES += \
 	database_support_lite.c
 endif
 
+bin_PROGRAMS = ksmutil
+
 lib_LTLIBRARIES = libksm.la
