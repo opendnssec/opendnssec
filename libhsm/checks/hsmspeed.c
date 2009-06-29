@@ -96,7 +96,11 @@ sign (void *arg)
     for (i=0; i<iterations; i++) {
         sig = hsm_sign_rrset(ctx, rrset, key, sign_params); 
         if (! sig) {
-            fprintf(stderr, "hsm_sign_rrset() returned error\n");
+            fprintf(stderr,
+                    "hsm_sign_rrset() returned error: %s in %s\n",
+                    ctx->error_message,
+                    ctx->error_action
+            );
             break;
         }               
         ldns_rr_free(sig);
