@@ -41,6 +41,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <sqlite3.h>
 
