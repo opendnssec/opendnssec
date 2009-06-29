@@ -61,6 +61,7 @@
 
 #include "ksm/database.h"
 #include "ksm/datetime.h"
+#include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 
     int
@@ -265,17 +266,12 @@ ReadConfig(DAEMONCONFIG *config)
     xmlChar *log_user_expr = (unsigned char*) "//Configuration/Logging/Syslog/Facility";
 
     int mysec = 0;
-    char *logFacilityName = (char *)calloc(MAX_LOG_USER_LENGTH, sizeof(char));
+    char *logFacilityName;
     int my_log_user = DEFAULT_LOG_FACILITY;
     int status;
     int db_found = 0;
     char* filename = CONFIGFILE;
     char* rngfilename = CONFIGRNG;
-
-    if (logFacilityName == NULL) {
-        log_msg(config, LOG_ERR, "Malloc for log facility name failed\n");
-        exit(1);
-    }
 
     log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
 
@@ -505,17 +501,18 @@ ReadConfig(DAEMONCONFIG *config)
         return(-1);
     }
 
-    logFacilityName = (char *)xmlXPathCastToString(xpathObj);
+    logFacilityName =  StrStrdup( (char *)xmlXPathCastToString(xpathObj) );
 
     /* If nothing was found use the defaults, else set what we got */
     if (strlen(logFacilityName) == 0) {
-        logFacilityName = DEFAULT_LOG_FACILITY_STRING;
+        logFacilityName = StrStrdup( (char *)DEFAULT_LOG_FACILITY_STRING );
         config->log_user = DEFAULT_LOG_FACILITY;
         log_msg(config, LOG_INFO, "Using default log user: %s\n", logFacilityName);
     } else {
         status = get_log_user(logFacilityName, &my_log_user);
         if (status > 0) {
             log_msg(config, LOG_ERR, "Error: unable to set log user: %s, error: %i\n", logFacilityName, status);
+            StrFree(logFacilityName);
             return status;
         }
         config->log_user = my_log_user;
@@ -533,6 +530,7 @@ ReadConfig(DAEMONCONFIG *config)
     xmlRelaxNGFreeValidCtxt(rngctx);
     xmlRelaxNGFreeParserCtxt(rngpctx);
     xmlFreeDoc(rngdoc);
+    StrFree(logFacilityName);
 
     return(0);
 
