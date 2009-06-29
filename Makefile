@@ -44,7 +44,7 @@ build:: $(SUBDIRS)
 
 clean::
 	@for dir in $(SUBDIRS); do \
-		(cd $$dir; $(MAKE) clean );\
+		(cd $(BUILDDIR)/$$dir; $(MAKE) clean );\
 	done
 
 $(SUBDIRS)::
