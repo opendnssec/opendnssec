@@ -5,24 +5,20 @@
 
 SUBDIRS = softHSM libhsm libksm enforcer signer auditor xml
 
-PREFIX = /home/jelte/opt/opendnssec
+PREFIX = /usr/local
 SRCDIR = $(shell pwd)
-BUILDDIR = .
+BUILDDIR = build
 
-SUDO = 
+SUDO = sudo
 MAKE = make
 MAKE_FLAGS =
 
 CONF_ARG = \
-	--disable-rpath \
 	--prefix=$(PREFIX) \
-	--sysconfdir=/home/jelte/opt/opendnssec/etc \
-	--localstatedir=/home/jelte/opt/opendnssec/var \
+	--sysconfdir=/etc \
+	--localstatedir=/var \
 	--with-libksm=$(PREFIX) \
-	--with-libhsm=$(PREFIX) \
-	--with-ldns=/home/jelte/repos/ldns-trunk/b \
-	--with-botan=/home/jelte/opt/botan \
-	--with-trang=/usr/local/lib/trang.jar
+	--with-libhsm=$(PREFIX)
 
 ## you may have to add the one or more of the following to CONF_ARG
 #
