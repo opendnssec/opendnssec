@@ -23,7 +23,7 @@ AC_DEFUN([ACX_LIBKSM],[
 	CPPFLAGS="$CPPFLAGS $LIBKSM_INCLUDES"
 	LIBS="$LIBS $LIBKSM_LIBS"
 
-	AC_CHECK_HEADERS(ksm/ksm.h,,[AC_MSG_ERROR([Can't find libksm headers])])
+	#AC_CHECK_HEADER(ksm/ksm.h,,[AC_MSG_ERROR([Can't find libksm headers:(])])
 	AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,[AC_MSG_ERROR([Can't find libksm library])])
 
 	CPPFLAGS=$tmp_CPPFLAGS
