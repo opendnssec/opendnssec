@@ -481,8 +481,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
     char*   datetime_now = DtParseDateTimeString("now");    /* where are we in time */
     int     time_diff;          /* how many second have elapsed */
     char*   salt;               /* This will be the salt that we create */
-    char    newsalt[KSM_SALT_LENGTH];         /* buffer for random data */
-    char    newsalt_temp[3];        /* temp new salt buffer */
+    unsigned char newsalt[KSM_SALT_LENGTH];         /* buffer for random data */
     unsigned long temp_ul;          /* this will hold the random number */
     char    buffer[KSM_SQL_SIZE];   /* update statement for salt_stamp */
     unsigned int    nchar;          /* Number of characters converted */

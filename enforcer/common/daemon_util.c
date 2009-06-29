@@ -73,6 +73,21 @@ permsDrop(DAEMONCONFIG* config)
     return 0;
 }
 
+/* Set up logging as per default (facility may be switched based on config file) */
+void log_init(int facility, const char *program_name)
+{
+	openlog(program_name, 0, facility);
+}
+
+/* Switch log to new facility */
+void log_switch(int facility, const char *facility_name, const char *program_name)
+{
+    closelog();
+	openlog(program_name, 0, facility);
+    log_msg(NULL, LOG_INFO, "Switched log facility to: %s", facility_name);
+}
+
+
     void
 log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
 {
@@ -247,12 +262,20 @@ ReadConfig(DAEMONCONFIG *config)
     xmlChar *mysql_db = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Database";
     xmlChar *mysql_user = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Username";
     xmlChar *mysql_pass = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Password";
+    xmlChar *log_user_expr = (unsigned char*) "//Configuration/Logging/Syslog/Facility";
 
     int mysec = 0;
+    char *logFacilityName = (char *)calloc(MAX_LOG_USER_LENGTH, sizeof(char));
+    int my_log_user = DEFAULT_LOG_FACILITY;
     int status;
     int db_found = 0;
     char* filename = CONFIGFILE;
     char* rngfilename = CONFIGRNG;
+
+    if (logFacilityName == NULL) {
+        log_msg(config, LOG_ERR, "Malloc for log facility name failed\n");
+        exit(1);
+    }
 
     log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
 
@@ -473,6 +496,34 @@ ReadConfig(DAEMONCONFIG *config)
         return(-1);
     }
 
+    /* Evaluate xpath expression for log facility (user) */
+    xpathObj = xmlXPathEvalExpression(log_user_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", log_user_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    logFacilityName = (char *)xmlXPathCastToString(xpathObj);
+
+    /* If nothing was found use the defaults, else set what we got */
+    if (strlen(logFacilityName) == 0) {
+        logFacilityName = DEFAULT_LOG_FACILITY_STRING;
+        config->log_user = DEFAULT_LOG_FACILITY;
+        log_msg(config, LOG_INFO, "Using default log user: %s\n", logFacilityName);
+    } else {
+        status = get_log_user(logFacilityName, &my_log_user);
+        if (status > 0) {
+            log_msg(config, LOG_ERR, "Error: unable to set log user: %s, error: %i\n", logFacilityName, status);
+            return status;
+        }
+        config->log_user = my_log_user;
+        log_msg(config, LOG_INFO, "Log User set to: %s\n", logFacilityName);
+    }
+
+    log_switch(my_log_user, logFacilityName, config->program);
+
     /* Cleanup */
     /* TODO: some other frees are needed */
     xmlXPathFreeObject(xpathObj);
@@ -521,11 +572,11 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
 
 int release_lite_lock(FILE* lock_fd)
 {
+    struct flock fl = { F_UNLCK, SEEK_SET, 0,       0,     0 };
+
     if (lock_fd == NULL) {
         return 1;
     }
-
-    struct flock fl = { F_UNLCK, SEEK_SET, 0,       0,     0 };
     
     if (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
         return 1;
@@ -533,3 +584,95 @@ int release_lite_lock(FILE* lock_fd)
 
     return 0;
 }
+
+/* convert the name of a log facility (user) into a number */
+int get_log_user(const char* username, int* usernumber)
+{
+    if (username == NULL) {
+        return 1;
+    }
+    /* Start with our default */
+    *usernumber = DEFAULT_LOG_FACILITY;
+
+    /* POSIX only specifies LOG_USER and LOG_LOCAL[0 .. 7] */
+    if (strncasecmp(username, "user", 4)) {
+        *usernumber = LOG_USER;
+    }
+#ifdef LOG_KERN
+    else if (strncasecmp(username, "kern", 4)) {
+        *usernumber = LOG_KERN;
+    }
+#endif  /* LOG_KERN */
+#ifdef LOG_MAIL
+    else if (strncasecmp(username, "mail", 4)) {
+        *usernumber = LOG_MAIL;
+    }
+#endif  /* LOG_MAIL */
+#ifdef LOG_DAEMON
+    else if (strncasecmp(username, "daemon", 6)) {
+        *usernumber = LOG_DAEMON;
+    }
+#endif  /* LOG_DAEMON */
+#ifdef LOG_AUTH
+    else if (strncasecmp(username, "auth", 4)) {
+        *usernumber = LOG_AUTH;
+    }
+#endif  /* LOG_AUTH */
+#ifdef LOG_SYSLOG
+    else if (strncasecmp(username, "syslog", 6)) {
+        *usernumber = LOG_SYSLOG;
+    }
+#endif  /* LOG_SYSLOG */
+#ifdef LOG_LPR
+    else if (strncasecmp(username, "lpr", 3)) {
+        *usernumber = LOG_LPR;
+    }
+#endif  /* LOG_LPR */
+#ifdef LOG_NEWS
+    else if (strncasecmp(username, "news", 4)) {
+        *usernumber = LOG_NEWS;
+    }
+#endif  /* LOG_NEWS */
+#ifdef LOG_UUCP
+    else if (strncasecmp(username, "uucp", 4)) {
+        *usernumber = LOG_UUCP;
+    }
+#endif  /* LOG_UUCP */
+#ifdef LOG_AUDIT    /* Ubuntu at least doesn't want us to use LOG_AUDIT */
+    else if (strncasecmp(username, "audit", 5)) {
+        *usernumber = LOG_AUDIT;
+    }
+#endif  /* LOG_AUDIT */
+#ifdef LOG_CRON
+    else if (strncasecmp(username, "cron", 4)) {
+        *usernumber = LOG_CRON;
+    }
+#endif  /* LOG_CRON */
+    else if (strncasecmp(username, "local0", 6)) {
+        *usernumber = LOG_LOCAL0;
+    }
+    else if (strncasecmp(username, "local1", 6)) {
+        *usernumber = LOG_LOCAL1;
+    }
+    else if (strncasecmp(username, "local2", 6)) {
+        *usernumber = LOG_LOCAL2;
+    }
+    else if (strncasecmp(username, "local3", 6)) {
+        *usernumber = LOG_LOCAL3;
+    }
+    else if (strncasecmp(username, "local4", 6)) {
+        *usernumber = LOG_LOCAL4;
+    }
+    else if (strncasecmp(username, "local5", 6)) {
+        *usernumber = LOG_LOCAL5;
+    }
+    else if (strncasecmp(username, "local6", 6)) {
+        *usernumber = LOG_LOCAL6;
+    }
+    else if (strncasecmp(username, "local7", 6)) {
+        *usernumber = LOG_LOCAL7;
+    }
+    return 0;
+
+}
+

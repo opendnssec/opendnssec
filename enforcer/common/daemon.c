@@ -84,20 +84,35 @@ int
 main(int argc, char *argv[]){
     int fd;
     struct sigaction action;
+    const char* program;		/* Temporary for program name */
     
     config.pidfile = NULL;
+    config.program = (char *)calloc(MAX_PROG_NAME_LENGTH, sizeof(char));
     config.user = (unsigned char *)calloc(MAX_USER_LENGTH, sizeof(char));
     config.host = (unsigned char *)calloc(MAX_HOST_LENGTH, sizeof(char));
     config.password = (unsigned char *)calloc(MAX_PASSWORD_LENGTH, sizeof(char));
     config.schema = (unsigned char *)calloc(MAX_SCHEMA_LENGTH, sizeof(char));
     config.port = (unsigned char *)calloc(MAX_PORT_LENGTH, sizeof(char));
 
-    if (config.user == NULL || config.host == NULL || config.password == NULL ||
-            config.schema == NULL || config.port == NULL) {
+    if (config.user == NULL || config.program == NULL || config.host == NULL || 
+            config.password == NULL || config.schema == NULL || config.port == NULL ) {
         log_msg(&config, LOG_ERR, "Malloc for config struct failed\n");
         exit(1);
     }
-		config.term = 0;
+    config.term = 0;
+
+    /* Lets set up the logging first */
+    /* The program name is the last component of the program file name */
+    if ((program = strrchr(argv[0], '/'))) {	/* EQUALS */
+        ++program;			/* Point to character after last "/" */
+	}
+	else {
+		program = argv[0];	/* No slash, so use string given */
+	}
+    config.program = program;
+    config.log_user = DEFAULT_LOG_FACILITY;
+
+    log_init(config.log_user, config.program);
 		
     /* useful message */
     log_msg(&config, LOG_INFO, "%s starting...", PACKAGE_NAME);
@@ -184,6 +199,7 @@ main(int argc, char *argv[]){
 
     /* To satisfy code checkers let's free stuff here */
     free(config.user);
+    free(config.program);
     free(config.host);
     free(config.password);
     free(config.schema);

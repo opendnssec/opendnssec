@@ -58,7 +58,7 @@ AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file | sed s,NONE,$ac_de
 zonelist_file=$sysconfdir/opendnssec/zonelist.xml
 AC_DEFINE_UNQUOTED(ZONELISTFILE, ["`eval echo $zonelist_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC zonelist file])
 
-signer_cli="$prefix/bin/signer_engine_cli update "
+signer_cli="$prefix/bin/signer_engine_cli update"
 AC_DEFINE_UNQUOTED(SIGNER_CLI, ["`eval echo $signer_cli | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine cli])
 
 AC_CONFIG_FILES([

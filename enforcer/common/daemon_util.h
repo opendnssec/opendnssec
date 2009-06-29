@@ -44,11 +44,14 @@
 #include <stdio.h>
 
 void cmdlParse(DAEMONCONFIG*, int*, char**);
+void log_init(int facility, const char *program_name);
+void log_switch(int facility, const char *facility_name, const char *program_name);
 void log_msg(DAEMONCONFIG* config, int priority, const char *format, ...);
 int permsDrop(DAEMONCONFIG* config);
 int writepid (DAEMONCONFIG *config);
 int ReadConfig(DAEMONCONFIG *config);
 int get_lite_lock(char *lock_filename, FILE* lock_fd);
 int release_lite_lock(FILE* lock_fd);
+int get_log_user(const char* username, int* usernumber);
 
 #endif /* ENFORCER_DAEMON_UTIL_H */

@@ -60,21 +60,33 @@ typedef bool _Bool;
 
 #include <stdint.h>
 #include <unistd.h>
+#include <syslog.h>
 
 /* Define some lengths of the char*s in the struct
    MySQL allows e.g. 81 characters for the username, 
    set these stupidly high though */
+#define MAX_PROG_NAME_LENGTH 255
 #define MAX_USER_LENGTH 255
 #define MAX_HOST_LENGTH 255
 #define MAX_PASSWORD_LENGTH 255
 #define MAX_SCHEMA_LENGTH 255
 #define MAX_PORT_LENGTH 16
 #define MAX_PID_LENGTH 255
+#define MAX_LOG_USER_LENGTH 32
+
+#ifdef LOG_DAEMON
+#define DEFAULT_LOG_FACILITY LOG_DAEMON
+#define DEFAULT_LOG_FACILITY_STRING "LOG_DAEMON"
+#else
+#define DEFAULT_LOG_FACILITY LOG_USER
+#define DEFAULT_LOG_FACILITY_STRING "LOG_USER"
+#endif /* LOG_DAEMON */
 
 /* struct to hold configuration */
 typedef struct
 {
     /* stuff that daemons always have */
+    char *program;
     bool debug;
     pid_t pid;
     char *pidfile;
@@ -94,6 +106,8 @@ typedef struct
     int keycreate;
     int backupinterval;
     int keygeninterval;
+
+    int log_user; /* log facility (or default of LOG_DAEMON) */
 
 } DAEMONCONFIG;
 

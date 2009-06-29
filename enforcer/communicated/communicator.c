@@ -575,6 +575,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                 have timeout if call is blocking */
         signer_command = NULL;
         StrAppend(&signer_command, SIGNER_CLI);
+        StrAppend(&signer_command, " ");
         StrAppend(&signer_command, zone_name);
 
         if (system(signer_command) != 0)
