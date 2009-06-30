@@ -6,7 +6,8 @@
 SUBDIRS = softHSM libhsm libksm enforcer signer auditor xml
 
 PREFIX = /usr/local
-SRCDIR = $(shell pwd)
+SRCDIR != pwd
+SRCDIR ?= $(shell pwd)
 BUILDDIR = build
 
 SUDO = sudo
