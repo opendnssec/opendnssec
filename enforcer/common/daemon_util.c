@@ -593,81 +593,81 @@ int get_log_user(const char* username, int* usernumber)
     *usernumber = DEFAULT_LOG_FACILITY;
 
     /* POSIX only specifies LOG_USER and LOG_LOCAL[0 .. 7] */
-    if (strncasecmp(username, "user", 4)) {
+    if (strncasecmp(username, "user", 4) == 0) {
         *usernumber = LOG_USER;
     }
 #ifdef LOG_KERN
-    else if (strncasecmp(username, "kern", 4)) {
+    else if (strncasecmp(username, "kern", 4) == 0) {
         *usernumber = LOG_KERN;
     }
 #endif  /* LOG_KERN */
 #ifdef LOG_MAIL
-    else if (strncasecmp(username, "mail", 4)) {
+    else if (strncasecmp(username, "mail", 4) == 0) {
         *usernumber = LOG_MAIL;
     }
 #endif  /* LOG_MAIL */
 #ifdef LOG_DAEMON
-    else if (strncasecmp(username, "daemon", 6)) {
+    else if (strncasecmp(username, "daemon", 6) == 0) {
         *usernumber = LOG_DAEMON;
     }
 #endif  /* LOG_DAEMON */
 #ifdef LOG_AUTH
-    else if (strncasecmp(username, "auth", 4)) {
+    else if (strncasecmp(username, "auth", 4) == 0) {
         *usernumber = LOG_AUTH;
     }
 #endif  /* LOG_AUTH */
 #ifdef LOG_SYSLOG
-    else if (strncasecmp(username, "syslog", 6)) {
+    else if (strncasecmp(username, "syslog", 6) == 0) {
         *usernumber = LOG_SYSLOG;
     }
 #endif  /* LOG_SYSLOG */
 #ifdef LOG_LPR
-    else if (strncasecmp(username, "lpr", 3)) {
+    else if (strncasecmp(username, "lpr", 3) == 0) {
         *usernumber = LOG_LPR;
     }
 #endif  /* LOG_LPR */
 #ifdef LOG_NEWS
-    else if (strncasecmp(username, "news", 4)) {
+    else if (strncasecmp(username, "news", 4) == 0) {
         *usernumber = LOG_NEWS;
     }
 #endif  /* LOG_NEWS */
 #ifdef LOG_UUCP
-    else if (strncasecmp(username, "uucp", 4)) {
+    else if (strncasecmp(username, "uucp", 4) == 0) {
         *usernumber = LOG_UUCP;
     }
 #endif  /* LOG_UUCP */
 #ifdef LOG_AUDIT    /* Ubuntu at least doesn't want us to use LOG_AUDIT */
-    else if (strncasecmp(username, "audit", 5)) {
+    else if (strncasecmp(username, "audit", 5) == 0) {
         *usernumber = LOG_AUDIT;
     }
 #endif  /* LOG_AUDIT */
 #ifdef LOG_CRON
-    else if (strncasecmp(username, "cron", 4)) {
+    else if (strncasecmp(username, "cron", 4) == 0) {
         *usernumber = LOG_CRON;
     }
 #endif  /* LOG_CRON */
-    else if (strncasecmp(username, "local0", 6)) {
+    else if (strncasecmp(username, "local0", 6) == 0) {
         *usernumber = LOG_LOCAL0;
     }
-    else if (strncasecmp(username, "local1", 6)) {
+    else if (strncasecmp(username, "local1", 6) == 0) {
         *usernumber = LOG_LOCAL1;
     }
-    else if (strncasecmp(username, "local2", 6)) {
+    else if (strncasecmp(username, "local2", 6) == 0) {
         *usernumber = LOG_LOCAL2;
     }
-    else if (strncasecmp(username, "local3", 6)) {
+    else if (strncasecmp(username, "local3", 6) == 0) {
         *usernumber = LOG_LOCAL3;
     }
-    else if (strncasecmp(username, "local4", 6)) {
+    else if (strncasecmp(username, "local4", 6) == 0) {
         *usernumber = LOG_LOCAL4;
     }
-    else if (strncasecmp(username, "local5", 6)) {
+    else if (strncasecmp(username, "local5", 6) == 0) {
         *usernumber = LOG_LOCAL5;
     }
-    else if (strncasecmp(username, "local6", 6)) {
+    else if (strncasecmp(username, "local6", 6) == 0) {
         *usernumber = LOG_LOCAL6;
     }
-    else if (strncasecmp(username, "local7", 6)) {
+    else if (strncasecmp(username, "local7", 6) == 0) {
         *usernumber = LOG_LOCAL7;
     }
     return 0;
