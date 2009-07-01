@@ -205,7 +205,7 @@ class Zone:
                               k["locator"])
                 syslog.syslog(syslog.LOG_ERR, str(exc))
 
-    def sort(self):
+    def sort_input(self):
         """Sort the zone according to the relevant signing details
         (either in 'normal' or 'NSEC3' space). The zone is read from
         the input file, and the result is stored in the temp dir,
@@ -285,6 +285,85 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, "Sorting failed")
         return succeeded
 
+    def sort_signed(self):
+        """Sorts the output we created earlier according to the new
+           nsec(3) configuration"""
+        syslog.syslog(syslog.LOG_INFO,
+                      "Resorting signed zone: " + self.zone_name)
+        succeeded = False
+
+        # if we have no signed zone yet, simply return ok
+        if not os.path.exists(self.get_zone_tmp_filename(".signed")):
+            syslog.syslog(syslog.LOG_INFO, "No signed zone yet")
+            return True
+        
+        cmd = [ self.get_tool_filename("zone_reader"),
+                "-o", self.zone_name,
+                "-w", self.get_zone_tmp_filename(".signed.sorted")
+              ]
+        if self.zone_config.denial_nsec3:
+            cmd.extend([
+                        "-n",
+                        "-s", self.zone_config.denial_nsec3_salt,
+                        "-t",
+                        str(self.zone_config.denial_nsec3_iterations),
+                        "-a",
+                        str(self.zone_config.denial_nsec3_algorithm)])
+            # tell the reader not to append the NSEC3PARAM record
+            # if we are not going to add signatures
+            if len(self.zone_config.signature_keys) <= 0:
+                cmd.append("-p")
+        sort_process = Util.run_tool(cmd, subprocess.PIPE)
+        
+        # sort published keys and zone data
+        try:
+            if not sort_process:
+                raise OSError("Sorter not found")
+
+            unsorted_zone_file = open(self.get_zone_tmp_filename(".signed"), "r")
+            if not unsorted_zone_file:
+                syslog.syslog(syslog.LOG_ERR,
+                              "Error opening zone input file: " +
+                              self.get_zone_tmp_filename(".signed"));
+            else:
+                syslog.syslog(syslog.LOG_INFO,
+                              "Writing file to zone_reader: " +
+                              self.get_zone_tmp_filename(".signed"));
+            for line in unsorted_zone_file:
+                sort_process.stdin.write(line)
+            sort_process.stdin.close()
+            unsorted_zone_file.close()
+            #sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
+
+            for line in sort_process.stderr:
+                syslog.syslog(syslog.LOG_ERR,
+                              "stderr from sorter: " + line)
+
+            if sort_process.wait() == 0:
+                succeeded = True
+        except IOError, ioe:
+            syslog.syslog(syslog.LOG_ERR, "Error reading input zone\n")
+            syslog.syslog(syslog.LOG_ERR, str(ioe))
+        except OSError, exc:
+            syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
+            syslog.syslog(syslog.LOG_WARNING, str(exc))
+            syslog.syslog(syslog.LOG_WARNING,
+                          "Command was: " + " ".join(cmd))
+            if sort_process:
+                for line in sort_process.stderr:
+                    syslog.syslog(syslog.LOG_WARNING,
+                                  "sorter stderr: " + line)
+            #raise exc
+        if succeeded:
+            shutil.copy(self.get_zone_tmp_filename(".signed.sorted"),
+                        "/tmp/myzone")
+            Util.move_file(self.get_zone_tmp_filename(".signed.sorted"),
+                           self.get_zone_tmp_filename(".signed"))
+            syslog.syslog(syslog.LOG_INFO, "Done sorting")
+        else:
+            syslog.syslog(syslog.LOG_ERR, "Sorting failed")
+        return succeeded
+
     def nsecify(self):
         """Takes the sorted zone file created with sort(), strips
            the glue from it, and adds nsec(3) records. The output
@@ -343,18 +422,31 @@ class Zone:
     def perform_action(self):
         """Depending on the value set to zone.action, this method
            will sort, nsecify and/or sign the zone"""
+        syslog.syslog(syslog.LOG_INFO, "ZONE CONFIG OPTION: " + str(self.action))
+
         if self.action >= ZoneConfig.RESIGN and os.path.exists(
-                          self.get_zone_tmp_filename(".signed")) and \
-                          self.sign():
+                          self.get_zone_tmp_filename(".signed")):
+            if self.sign():
                self.finalize()
         elif self.action >= ZoneConfig.RENSEC and os.path.exists(
                             self.get_zone_tmp_filename(".sorted")) and\
-            self.nsecify() and self.sign():
+                            self.nsecify():
+            if self.sign():
                 self.finalize()
+        elif self.action >= ZoneConfig.REREAD and os.path.isfile(
+                                        self.get_zone_input_filename()):
+            if self.sort_input() and self.nsecify():
+                if self.sign():
+                    self.finalize()
         elif self.action >= ZoneConfig.RESORT and os.path.isfile(
                                         self.get_zone_input_filename()):
-            if self.sort() and self.nsecify() and self.sign():
-                self.finalize()
+            ## the sorting config has changed. We must also re-sort the
+            ## internal zone storage containing our previous signatures,
+            ## if any.
+            if self.sort_signed() and self.sort_input() and \
+               self.nsecify():
+                if self.sign():
+                    self.finalize()
         else:
             syslog.syslog(syslog.LOG_ERR, "Input file missing: " +\
                           self.get_zone_input_filename())

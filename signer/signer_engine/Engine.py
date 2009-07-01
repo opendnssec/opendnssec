@@ -193,7 +193,7 @@ class Engine:
                 # do full resort/rensec/sign
                 if args[1] == "all":
                     for zone in self.zones.keys():
-                        self.zones[zone].action = ZoneConfig.RESORT
+                        self.zones[zone].action = ZoneConfig.REREAD
                         self.schedule_signing(zone)
                     response = "All zones scheduled for immediate resign"
                 else:
@@ -212,7 +212,7 @@ class Engine:
                             response += "Zone config has also changed\n"
                             self.update_zone(zone.zone_name)
                         else:
-                            zone.action = ZoneConfig.RESORT
+                            zone.action = ZoneConfig.REREAD
                             self.schedule_signing(args[1])
                         response += "Zone scheduled for immediate resign"
                     except KeyError:

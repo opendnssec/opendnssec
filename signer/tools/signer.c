@@ -688,12 +688,15 @@ read_rrset(rrset_reader_t *reader, FILE *out,
 				return rrset;
 			}
 		}
-		if (ldns_rr_list_rr_count(rrset) > 0 &&
-			is_same_rrset(ldns_rr_list_rr(rrset, 0), rr)) {
-			ldns_rr_list_push_rr(rrset, rr);
+		if (ldns_rr_list_rr_count(rrset) > 0) {
+			if (is_same_rrset(ldns_rr_list_rr(rrset, 0), rr)) {
+				ldns_rr_list_push_rr(rrset, rr);
+			} else {
+				reader->skipped_rr = rr;
+				return rrset;
+			}
 		} else {
-			reader->skipped_rr = rr;
-			return rrset;
+			ldns_rr_list_push_rr(rrset, rr);
 		}
 	}
 	return NULL;
@@ -754,7 +757,7 @@ check_existing_sigs(ldns_rr_list *sigs,
 	uint32_t expiration;
 	uint32_t refresh;
 	ldns_rr_type type_covered;
-	
+
 	for (i = 0; i < ldns_rr_list_rr_count(sigs); i++) {
 		/* check the refresh date for this signature. If the signature
 		 * covers a denial RRset (NSEC or NSEC3), and :expiration_denial
@@ -862,6 +865,7 @@ sign_rrset(ldns_rr_list *rrset,
 			                   (cfg->jitter ? rand() % cfg->jitter : 0);
 			}
 			sig = hsm_sign_rrset(NULL, rrset,  keys->keys[i], params);
+
 			cfg->created_sigs++;
 			ldns_rr_print(output, sig);
 			ldns_rr_free(sig);
@@ -952,6 +956,41 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				ldns_rr_list_print(stderr, signed_zone_signatures);
 			}
 			cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
+
+			/* if cmp != 0 and the type of the input RRSET is NSEC3,
+			 * we cannot compare the name to the name of the signed
+			 * rrset. Since the zone reader removes NSEC3 records
+			 * anyway, we can assume that the signed data has been
+			 * resorted, and that there are no nsec3 records anymore
+			 * In that case, we treat the data as new */
+			while (cmp != 0 && 
+			       ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_NSEC3 &&
+				   ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3
+			     ) {
+				ldns_rr_list_print(output, new_zone_rrset);
+				if (new_zone_signatures) {
+					check_existing_sigs(new_zone_signatures, output, cfg);
+					ldns_rr_list_deep_free(new_zone_signatures);
+				}
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "NSEC3, signing\n");
+					ldns_rr_list_print(stderr, signed_zone_rrset);
+				}
+				sign_rrset(new_zone_rrset, output, cfg);
+				ldns_rr_list_deep_free(new_zone_rrset);
+				new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1);
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "Read rrset from input:\n");
+					ldns_rr_list_print(stderr, new_zone_rrset);
+				}
+				new_zone_signatures = read_signatures(new_zone_reader, output, cfg, 1);
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "Read signatures from input:\n");
+					ldns_rr_list_print(stderr, new_zone_signatures);
+				}
+				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
+			}
+			
 			/* if the cur rrset name > signed rrset name then data has
 			 * been removed, reread signed rrset */
 			while (cmp > 0 && signed_zone_rrset) {
@@ -959,12 +998,12 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				if (signed_zone_signatures) ldns_rr_list_deep_free(signed_zone_signatures);
 				signed_zone_rrset = read_rrset(signed_zone_reader, output, cfg, 0);
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "Read rrset from signed zone:\n");
+					fprintf(stderr, "Data was removed, read next rrset from signed zone:\n");
 					ldns_rr_list_print(stderr, signed_zone_rrset);
 				}
 				signed_zone_signatures = read_signatures(signed_zone_reader, output, cfg, 0);
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "Read signatures from signed zone:\n");
+					fprintf(stderr, "Data was removed, read next signatures from signed zone:\n");
 					ldns_rr_list_print(stderr, signed_zone_signatures);
 				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
@@ -974,7 +1013,6 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			while (cmp < 0 && new_zone_rrset) {
 				ldns_rr_list_print(output, new_zone_rrset);
 				check_existing_sigs(new_zone_signatures, output, cfg);
-				/* ldns_rr_list_print(output, new_zone_rrset); */
 				if (cfg->verbosity >= 4) {
 					fprintf(stderr, "new data, signing\n");
 				}
@@ -996,7 +1034,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			/* if same, and rrset not same, treat as new */
 			/* if same, and rrset same, check old sigs as well */
 			/* sigs with same keytag in input get priority */
-			if (cmp == 0) {
+			if (cmp == 0 && new_zone_rrset && signed_zone_rrset) {
 				if (ldns_rr_list_compare(new_zone_rrset, signed_zone_rrset) != 0) {
 					ldns_rr_list_print(output, new_zone_rrset);
 					check_existing_sigs(new_zone_signatures, output, cfg);

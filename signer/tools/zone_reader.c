@@ -731,8 +731,11 @@ main(int argc, char **argv)
 				}
 				continue;
 			} else if (line[0] == ';') {
-				/* pass through comments */
-				fprintf(out_file, "%s\n", line);
+				/* pass through comments, except comments made by me,
+				 * i.e. "Empty non-terminal" */
+				if (strncmp(line, "; Empty non-terminal", 20) != 0) {
+					fprintf(out_file, "%s\n", line);
+				}
 			} else if (line[0] == '\n') {
 				/* skip empty lines */
 			} else {
@@ -762,6 +765,15 @@ main(int argc, char **argv)
 							cur_rr = NULL;
 							continue;
 						}
+					}
+
+					if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NSEC ||
+					    ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NSEC3) {
+						/* remove all nsec and nsec3 records. These
+						 * will be re-added by nsec(3)er.*/
+						ldns_rr_free(cur_rr);
+						cur_rr = NULL;
+						continue;
 					}
 					
 					cur_rr_data = rr_data_new();
@@ -818,7 +830,17 @@ main(int argc, char **argv)
 						cur_rr_data->type_covered = 
 						    ldns_rdf2rr_type(
 							     ldns_rr_rrsig_typecovered(cur_rr));
+						/* since we removed NSEC and NSEC3, also remove
+						 * their RRSIGS */
+						if (cur_rr_data->type_covered == LDNS_RR_TYPE_NSEC ||
+						    cur_rr_data->type_covered == LDNS_RR_TYPE_NSEC3) {
+							ldns_rr_free(cur_rr);
+							cur_rr = NULL;
+							rr_data_free(cur_rr_data);
+							continue;
+						}
 					}
+					
 					status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
 											cur_rr,
 											LDNS_SECTION_ANY_NOQUESTION);
