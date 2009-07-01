@@ -266,21 +266,23 @@ handle_name(FILE *out_file,
 			fprintf(out_file, ";SKIP ENT NS\n");
 		} else {
 			/* first, create the NSEC3 from the list we just read to
-			 * the ENT */
-			new_nsec = create_nsec3(from_name, origin, ttl,
-			                        rr_list, n3p, 0);
-			if (*prev_nsec) {
-				link_nsec3_rrs(*prev_nsec, new_nsec);
-				ldns_rr_print(out_file, *prev_nsec);
-				ldns_rr_free(*prev_nsec);
-			} else {
-				*first_nsec = ldns_rr_clone(new_nsec);
+			 * the ENT, but only if the previous wasn't an ent as well
+			 */
+			if (ldns_rr_list_rr_count(rr_list) > 0) {
+				new_nsec = create_nsec3(from_name, origin, ttl,
+										rr_list, n3p, 0);
+				if (*prev_nsec) {
+					link_nsec3_rrs(*prev_nsec, new_nsec);
+					ldns_rr_print(out_file, *prev_nsec);
+					ldns_rr_free(*prev_nsec);
+				} else {
+					*first_nsec = ldns_rr_clone(new_nsec);
+				}
+				*prev_nsec = new_nsec;
+				ldns_rr_list_print(out_file, rr_list);
+				
+				rr_list_clear(rr_list);
 			}
-			*prev_nsec = new_nsec;
-			ldns_rr_list_print(out_file, rr_list);
-			
-			rr_list_clear(rr_list);
-
 			/* then create the ENT */
 			new_nsec = create_nsec3(ent_name, origin, ttl,
 			                        rr_list, n3p, 1);
