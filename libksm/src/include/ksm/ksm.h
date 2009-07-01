@@ -496,6 +496,9 @@ int KsmPolicySoaTtl(KSM_SIGNER_POLICY *policy);
 int KsmPolicyZskTtl(KSM_PARCOLL* collection);
 int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy);
 
+/* KsmImport */
+int KsmImportRepository(const char* repo_name, const char* repo_capacity);
+
 #ifdef __cplusplus
 };
 #endif

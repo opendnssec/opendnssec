@@ -20,6 +20,7 @@ fi
 
 ACX_PEDANTIC
 ACX_STRICT
+ACX_LIBXML2
 
 # Checks for libraries.
 
@@ -153,6 +154,10 @@ ksmincludedir="\$(includedir)/ksm"
 AC_SUBST([opendnssecsysconf])
 AC_SUBST([ksmdatadir])
 AC_SUBST([ksmincludedir])
+
+# Set up the default configuration file location
+conf_file_dir=$sysconfdir/opendnssec
+AC_DEFINE_UNQUOTED(CONFIGDIR, ["`eval echo $conf_file_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
 
 AC_CONFIG_FILES([
 Makefile

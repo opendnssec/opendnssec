@@ -8,13 +8,14 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/include \
 	-Iinclude \
 	 @LIBHSM_INCLUDES@ \
-	 @DB_INCLUDES@
+	 @DB_INCLUDES@ \
+     @XML2_INCLUDES@
 
 libksm_la_LIBADD = @DB_LIBS@ @LIBHSM_LIBS@
 
 libksm_la_SOURCES = \
 	database_init_rundown.c datetime.c dd_string.c debug.c di_string.c \
-	dq_string.c du_string.c ksm_dnsseckeys.c ksm_init_rundown.c \
+	dq_string.c du_string.c ksm_dnsseckeys.c ksm_import.c ksm_init_rundown.c \
 	ksm_key.c ksm_key_delete.c ksm_keyword.c ksm_parameter.c \
 	ksm_parameter_value.c ksm_policy.c ksm_policy_value.c ksm_purge.c \
 	ksm_request.c ksm_time.c ksm_update.c ksm_version.c ksm_zone.c \
@@ -34,5 +35,7 @@ libksm_la_SOURCES += \
 endif
 
 bin_PROGRAMS = ksmutil
+
+ksmutil_LDADD = @XML2_LIBS@  libksm.la
 
 lib_LTLIBRARIES = libksm.la
