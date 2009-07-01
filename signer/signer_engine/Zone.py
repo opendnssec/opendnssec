@@ -540,7 +540,16 @@ class Zone:
             else:
                 syslog.syslog(syslog.LOG_INFO,
                               "Update notify script has run")
-    
+
+    def clear_database(self):
+        """Remove the internal files, containing the sorted, nsecced,
+        and signed zone. The final output is not deleted. On next run
+        of perform_action, all actions will be performed, and the
+        zone will be completely signed again."""
+        os.remove(self.get_zone_tmp_filename(".sorted"))
+        os.remove(self.get_zone_tmp_filename(".nsecced"))
+        os.remove(self.get_zone_tmp_filename(".signed"))
+        
     def lock(self, caller=None):
         """Lock the zone with a simple spinlock"""
         msg = "waiting for lock on zone " +\

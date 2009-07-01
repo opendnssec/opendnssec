@@ -176,11 +176,14 @@ class Engine:
                 lst = [
                  "Commands:",
                  "zones           show the currently known zones",
-                 "sign <zone>     schedule zone for immediate signing",
+                 "sign <zone>     schedule zone for immediate (re-)signing",
+                 "clear <zone>    delete the internal storage of the given",
+                 "                zone name. All signatures will be regenerated",
+                 "                on the next re-sign.",
                  "queue           show the current task queue",
                  "flush           execute all scheduled tasks immediately",
-                 "update          re-read the zonelist xml file",
-                 "                and check for changed zoneconf.xml files",
+                 "update <zone>   check for changed zone conf xml file, if",
+                 "                <zone> is not given all zones are checked",
                  "stop            stop the engine",
                  "verbosity <nr>  set verbosity (notimpl)"]
                 response = "\n".join(lst)
@@ -214,6 +217,20 @@ class Engine:
                         response += "Zone scheduled for immediate resign"
                     except KeyError:
                         response = "Zone " + args[1] + " not found"
+            if command[:6] == "clear ":
+                try:
+                    response = ""
+                    zone = self.zones[args[1]]
+                    if not zone.zone_config:
+                        response += "No configuration for this zone yet"
+                    else:
+                        zone.lock()
+                        zone.clear_database()
+                        zone.release()
+                        response = "Internal information about " +\
+                                   args[1] + " cleared"
+                except KeyError:
+                    response = "Zone " + args[1] + " not found"
             if command[:9] == "verbosity":
                 Util.verbosity = int(args[1])
                 response = "Verbosity set"
