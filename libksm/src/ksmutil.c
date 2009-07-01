@@ -54,7 +54,7 @@ void
 usage_setup ()
 {
     fprintf(stderr,
-        "To import config_dir into a database (deletes current contents)\n\tusage: %s [-f config] setup [path_to_kasp.xml]\n",
+        "usage: %s [-f config_dir] setup [path_to_kasp.xml]\n\tImport config_dir into a database (deletes current contents)\n",
         progname);
 }
 
@@ -62,7 +62,7 @@ void
 usage_update ()
 {
     fprintf(stderr,
-        "To update database from config_dir\n\tusage: %s [-f config] update [path_to_kasp.xml]\n",
+        "usage: %s [-f config_dir] update [path_to_kasp.xml]\n\tUpdate database from config_dir\n",
         progname);
 }
 
@@ -70,7 +70,7 @@ void
 usage_addzone ()
 {
     fprintf(stderr,
-        "To add a zone to the config_dir and database\n\tusage: %s [-f config] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n",
+        "usage: %s [-f config_dir] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n\tAdd a zone to the config_dir and database\n",
         progname);
 }
 
@@ -78,7 +78,7 @@ void
 usage_delzone ()
 {
     fprintf(stderr,
-        "To delete a zone from the config_dir and database\n\tusage: %s [-f config] delzone zone\n",
+        "usage: %s [-f config_dir] delzone zone\n\tDelete a zone from the config_dir and database\n",
         progname);
 }
 
@@ -86,7 +86,7 @@ void
 usage_rollzone ()
 {
     fprintf(stderr,
-        "To rollover a zone (may roll all zones on that policy)\n\tusage: %s [-f config_dir] rollzone zone [KSK|ZSK]\n",
+        "usage: %s [-f config_dir] rollzone zone [KSK|ZSK]\n\tRollover a zone (may roll all zones on that policy)\n",
         progname);
 }
 
@@ -94,7 +94,7 @@ void
 usage_rollpolicy ()
 {
     fprintf(stderr,
-        "To rollover all zones on a policy\n\tusage: %s [-f config_dir] rollpolicy policy [KSK|ZSK]\n",
+        "usage: %s [-f config_dir] rollpolicy policy [KSK|ZSK]\n\tRollover all zones on a policy\n",
         progname);
 }
 
@@ -618,7 +618,7 @@ int update_repositories(char** zone_list_filename)
             if (strncmp((char*) xmlTextReaderLocalName(reader), "Repository", 10) == 0 
                     && strncmp((char*) xmlTextReaderLocalName(reader), "RepositoryList", 14) != 0
                     && xmlTextReaderNodeType(reader) == 1) {
-                /* Get the repository name (TODO what if this is null?) */
+                /* Get the repository name */
                 repo_name = NULL;
                 StrAppend(&repo_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
                 /* Make sure that we got something */
@@ -728,9 +728,170 @@ int update_repositories(char** zone_list_filename)
     return 0;
 }
 
+/* Read kasp.xml, validate it and grab each policy in it as we go. */
 int update_policies()
 {
-    return 0;
+    int status;
+
+    /* what we will read from the file */
+    char *policy_name;
+    int policy_id;
+    char *param_name;
+    char *param_value;
+
+    /* All of the XML stuff */
+    int ret = 0; /* status of the XML parsing */
+    xmlDocPtr doc;
+    xmlDocPtr rngdoc;
+    xmlXPathContextPtr xpathCtx;
+    xmlXPathObjectPtr xpathObj;
+    xmlRelaxNGParserCtxtPtr rngpctx;
+    xmlRelaxNGValidCtxtPtr rngctx;
+    xmlRelaxNGPtr schema;
+    xmlTextReaderPtr reader = NULL;
+
+    xmlChar *name_expr = (unsigned char*) "name";
+    xmlChar *desc_expr = (unsigned char*) "//Policy/Description";
+    xmlChar *sig_res_expr = (unsigned char*) "//Policy/Signatures/Resign";
+    xmlChar *sig_ref_expr = (unsigned char*) "//Policy/Signatures/Refresh";
+    xmlChar *val_def_expr = (unsigned char*) "//Policy/Signatures/Validity/Default";
+    xmlChar *val_den_expr = (unsigned char*) "//Policy/Signatures/Validity/Denial";
+    xmlChar *sig_jit_expr = (unsigned char*) "//Policy/Signatures/Jitter";
+    xmlChar *sig_off_expr = (unsigned char*) "//Policy/Signatures/InceptionOffset";
+
+    /* Some files, the xml and rng */
+    char* filename = NULL;
+    char* rngfilename = NULL;
+
+    StrAppend(&filename, config);
+    StrAppend(&filename, "/kasp.xml");
+
+    StrAppend(&rngfilename, config);
+    StrAppend(&rngfilename, "/kasp.rng");
+
+    /* Load XML document */
+    doc = xmlParseFile(filename);
+    if (doc == NULL) {
+        printf("Error: unable to parse file \"%s\"\n", filename);
+        return(-1);
+    }
+
+    /* Load rng document: TODO make the rng stuff optional? */
+    rngdoc = xmlParseFile(rngfilename);
+    if (rngdoc == NULL) {
+        printf("Error: unable to parse file \"%s\"\n", rngfilename);
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs parser context for the relax-ng document. */
+    rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+    if (rngpctx == NULL) {
+        printf("Error: unable to create XML RelaxNGs parser context\n");
+        return(-1);
+    }
+
+    /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
+    schema = xmlRelaxNGParse(rngpctx);
+    if (schema == NULL) {
+        printf("Error: unable to parse a schema definition resource\n");
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs validation context based on the given schema */
+    rngctx = xmlRelaxNGNewValidCtxt(schema);
+    if (rngctx == NULL) {
+        printf("Error: unable to create RelaxNGs validation context based on the schema\n");
+        return(-1);
+    }
+
+    /* Validate a document tree in memory. */
+    status = xmlRelaxNGValidateDoc(rngctx,doc);
+    if (status != 0) {
+        printf("Error validating file \"%s\"\n", filename);
+        return(-1);
+    }
+
+    /* Switch to the XmlTextReader API so that we can consider each policy separately */
+    reader = xmlNewTextReaderFilename(filename);
+    if (reader != NULL) {
+        ret = xmlTextReaderRead(reader);
+        while (ret == 1) {
+            /* Found <Policy> */
+            if (strncmp((char*) xmlTextReaderLocalName(reader), "Policy", 6) == 0 
+                    && xmlTextReaderNodeType(reader) == 1) {
+                /* Get the policy name */
+                policy_name = NULL;
+                StrAppend(&policy_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
+                /* Make sure that we got something */
+                if (policy_name == NULL) {
+                    /* error */
+                    printf("Error extracting policy name from %s\n", filename);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                printf("Policy %s found\n", policy_name);
+
+                /* Expand this node and get the rest of the info with XPath */
+                xmlTextReaderExpand(reader);
+                doc = xmlTextReaderCurrentDoc(reader);
+                if (doc == NULL) {
+                    printf("Error: can not read policy \"%s\"; skipping\n", policy_name);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                xpathCtx = xmlXPathNewContext(doc);
+                if(xpathCtx == NULL) {
+                    printf("Error: can not create XPath context for \"%s\"; skipping policy\n", policy_name);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                /* Evaluate xpath expression for Description */
+                xpathObj = xmlXPathEvalExpression(desc_expr, xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s; skipping repository\n", desc_expr);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                /* TODO Insert or update this policy with the description found,
+                   we will need the policy_id too */
+
+
+                /* Once we have all the info then the call to make is
+                status = KsmParameterSet(const char* name, const char* category, int value, int policy_id) */
+
+
+
+
+
+                } /* End of <Policy> */
+            /* Read the next line */
+            ret = xmlTextReaderRead(reader);
+        }
+        xmlFreeTextReader(reader);
+        if (ret != 0) {
+            printf("%s : failed to parse\n", filename);
+        }
+    }
+
+    /* Cleanup */
+    /* TODO: some other frees are needed */
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
+    xmlRelaxNGFree(schema);
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(rngdoc);
+
+    return(status);
 }
 
 int update_zones(char* zone_list_filename)

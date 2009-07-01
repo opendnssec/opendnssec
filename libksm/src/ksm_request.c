@@ -304,7 +304,9 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
         if (ready <= 0) {
             /*
              * If active <= 0 then we can promote a published key as this is the 
-             * first pass for this zone
+             * first pass for this zone.
+             * NB: A consequence of this is that these keys will have no "ready"
+             *     time as they are never in the "ready" state.
              */
             if (active <= 0) {
                 /* TODO log what we are doing? */
