@@ -13,7 +13,7 @@
 					<Denial>P14D</Denial>
 			</Validity>
 			<Jitter>PT60S</Jitter>
-			<InceptionOffset>-PT300S</InceptionOffset>
+			<InceptionOffset>PT300S</InceptionOffset>
 		</Signatures>
 
 		<Keys>
