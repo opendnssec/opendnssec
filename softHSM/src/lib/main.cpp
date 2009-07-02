@@ -620,11 +620,17 @@ CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
   return rv;
 }
 
-CK_RV C_CreateObject(CK_SESSION_HANDLE, CK_ATTRIBUTE_PTR, CK_ULONG, CK_OBJECT_HANDLE_PTR) {
+CK_RV C_CreateObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_OBJECT_HANDLE_PTR phObject) {
   DEBUG_MSG("C_CreateObject", "Calling");
-  DEBUG_MSG("C_CreateObject", "The function is not implemented.");
 
-  return CKR_FUNCTION_NOT_SUPPORTED;
+  CHECK_DEBUG_RETURN(softHSM == NULL_PTR, "C_CreateObject", "Library is not initialized",
+                     CKR_CRYPTOKI_NOT_INITIALIZED);
+
+  softHSM->lockMutex();
+  CK_RV rv = softHSM->createObject(hSession, pTemplate, ulCount, phObject);
+  softHSM->unlockMutex();
+
+  return rv;
 }
 
 CK_RV C_CopyObject(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ATTRIBUTE_PTR, CK_ULONG, CK_OBJECT_HANDLE_PTR) {

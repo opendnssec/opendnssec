@@ -42,7 +42,7 @@
 #define CHECK_DB_RESPONSE(stmt) \
   if(stmt) { \
     while(sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL) == SQLITE_BUSY); \
-    return 0; \
+    return CK_INVALID_HANDLE; \
   }
 
 // Prepare the SQL statement
@@ -257,7 +257,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPub(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE
   int retVal = 0;
   while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {}
   if(retVal != SQLITE_OK) {
-    return 0;
+    return CK_INVALID_HANDLE;
   }
 
   CHECK_DB_RESPONSE(sqlite3_step(insert_object_sql) != SQLITE_DONE);
@@ -362,7 +362,7 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
   int retVal = 0;
   while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {}
   if(retVal != SQLITE_OK) {
-    return 0;
+    return CK_INVALID_HANDLE;
   }
 
   CHECK_DB_RESPONSE(sqlite3_step(insert_object_sql) != SQLITE_DONE);
@@ -427,8 +427,6 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
   this->saveAttributeBigInt(objectID, CKA_PRIME_2, &bigPrime2);
 
   CK_BBOOL bolVal;
-  CK_BBOOL isPrivate = CK_TRUE;
-  CK_BBOOL isToken = CK_FALSE;
 
   // Extract the attributes
   for(CK_ULONG i = 0; i < ulPrivateKeyAttributeCount; i++) {
@@ -441,6 +439,8 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
                           pPrivateKeyTemplate[i].ulValueLen) != CKR_OK);
         break;
       // Bool
+      case CKA_TOKEN:
+      case CKA_PRIVATE:
       case CKA_DERIVE:
       case CKA_MODIFIABLE:
       case CKA_DECRYPT:
@@ -448,24 +448,9 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
       case CKA_SIGN_RECOVER:
       case CKA_UNWRAP:
       case CKA_WRAP_WITH_TRUSTED:
-      case CKA_ALWAYS_AUTHENTICATE:
         if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
           CHECK_DB_RESPONSE(this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, 
                             pPrivateKeyTemplate[i].ulValueLen) != CKR_OK);
-        }
-        break;
-      case CKA_TOKEN:
-        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
-          CHECK_DB_RESPONSE(this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, 
-                            pPrivateKeyTemplate[i].ulValueLen) != CKR_OK);
-          isToken = *(CK_BBOOL*)pPrivateKeyTemplate[i].pValue;
-        }
-        break;
-      case CKA_PRIVATE:
-        if(pPrivateKeyTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
-          CHECK_DB_RESPONSE(this->saveAttribute(objectID, pPrivateKeyTemplate[i].type, pPrivateKeyTemplate[i].pValue, 
-                            pPrivateKeyTemplate[i].ulValueLen) != CKR_OK);
-          isPrivate = *(CK_BBOOL*)pPrivateKeyTemplate[i].pValue;
         }
         break;
       // Date
@@ -506,6 +491,140 @@ CK_OBJECT_HANDLE SoftDatabase::addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUT
 
   return objectID;
 }
+
+// Import an external public key. The template has been validated.
+
+CK_OBJECT_HANDLE SoftDatabase::importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  // Begin the transaction
+  int retVal = 0;
+  while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {}
+  if(retVal != SQLITE_OK) {
+    return CK_INVALID_HANDLE;
+  }
+
+  CHECK_DB_RESPONSE(sqlite3_step(insert_object_sql) != SQLITE_DONE);
+  CK_OBJECT_HANDLE objectID = sqlite3_last_insert_rowid(db);
+  sqlite3_reset(insert_object_sql);
+
+  CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
+  CK_DATE emptyDate;
+
+  // Created by db handle. So we can remove the correct session objects in the future.
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
+
+  // General information
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LOCAL, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+
+  // Default values, may be changed by the template.
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LABEL, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_ID, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_SUBJECT, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_PRIVATE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_MODIFIABLE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_TOKEN, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_DERIVE, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_ENCRYPT, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VERIFY, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VERIFY_RECOVER, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_WRAP, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
+
+  // Extract the attributes
+  for(CK_ULONG i = 0; i < ulCount; i++) {
+    if(pTemplate[i].type == CKA_MODULUS) {
+      BigInt bigModulus = BigInt(0);
+      bigModulus.binary_decode((byte*)pTemplate[i].pValue, pTemplate[i].ulValueLen);
+      CK_ULONG bits = bigModulus.bits();
+      CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_MODULUS_BITS, &bits, sizeof(bits)) != CKR_OK);
+    }
+    CHECK_DB_RESPONSE(this->saveAttribute(objectID, pTemplate[i].type, pTemplate[i].pValue,
+                      pTemplate[i].ulValueLen) != CKR_OK);
+  }
+
+  while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {}
+
+  return objectID;
+}
+
+// Import an external private key. The template has been validated.
+
+CK_OBJECT_HANDLE SoftDatabase::importPrivateKey(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  // Begin the transaction
+  int retVal = 0;
+  while((retVal = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL)) == SQLITE_BUSY) {}
+  if(retVal != SQLITE_OK) {
+    return CK_INVALID_HANDLE;
+  }
+
+  CHECK_DB_RESPONSE(sqlite3_step(insert_object_sql) != SQLITE_DONE);
+  CK_OBJECT_HANDLE objectID = sqlite3_last_insert_rowid(db);
+  sqlite3_reset(insert_object_sql);
+
+  CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
+  CK_DATE emptyDate;
+
+  // Created by db handle. So we can remove the correct session objects in the future.
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_VENDOR_DEFINED, &db, sizeof(db)) != CKR_OK);
+
+  // General information
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LOCAL, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+
+  // Default values, may be changed by the template.
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_LABEL, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_ID, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_SUBJECT, NULL_PTR, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_PRIVATE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_MODIFIABLE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_TOKEN, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_DERIVE, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_WRAP_WITH_TRUSTED, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_ALWAYS_AUTHENTICATE, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_SENSITIVE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_ALWAYS_SENSITIVE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_DECRYPT, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_SIGN, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_SIGN_RECOVER, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_UNWRAP, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_EXTRACTABLE, &ckFalse, sizeof(ckFalse)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_NEVER_EXTRACTABLE, &ckTrue, sizeof(ckTrue)) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_START_DATE, &emptyDate, 0) != CKR_OK);
+  CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_END_DATE, &emptyDate, 0) != CKR_OK);
+
+  CK_BBOOL bolVal;
+
+  // Extract the attributes
+  for(CK_ULONG i = 0; i < ulCount; i++) {
+    switch(pTemplate[i].type) {
+      case CKA_SENSITIVE:
+        CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_SENSITIVE, pTemplate[i].pValue,
+                          pTemplate[i].ulValueLen) != CKR_OK);
+        CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_ALWAYS_SENSITIVE, pTemplate[i].pValue,
+                          pTemplate[i].ulValueLen) != CKR_OK);
+        break;
+      case CKA_EXTRACTABLE:
+        CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_EXTRACTABLE, pTemplate[i].pValue,
+                          pTemplate[i].ulValueLen) != CKR_OK);
+        if(*(CK_BBOOL*)pTemplate[i].pValue == CK_FALSE) {
+          bolVal = CK_TRUE;
+        } else {
+          bolVal = CK_FALSE;
+        }
+        CHECK_DB_RESPONSE(this->saveAttribute(objectID, CKA_NEVER_EXTRACTABLE, &bolVal, sizeof(bolVal)) != CKR_OK);
+        break;
+      default:
+        CHECK_DB_RESPONSE(this->saveAttribute(objectID, pTemplate[i].type, pTemplate[i].pValue,
+                          pTemplate[i].ulValueLen) != CKR_OK);
+        break;
+    }
+  }
+
+  while(sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) == SQLITE_BUSY) {}
+
+  return objectID;
+
+}
+
 
 // Save the attribute in the database.
 // Only update if the attribute exists.
@@ -902,17 +1021,6 @@ CK_RV SoftDatabase::setAttribute(CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE *attTe
       }
       // Invalid for other object classes
       return CKR_ATTRIBUTE_TYPE_INVALID;
-    case CKA_ALWAYS_AUTHENTICATE:
-      // We can change this for the private key
-      // but invalid for other object classes
-      if(this->getObjectClass(objectRef) != CKO_PRIVATE_KEY) {
-        return CKR_ATTRIBUTE_TYPE_INVALID;
-      }
-      // This attribute can only be changed when the CKA_PRIVATE is set to true.
-      if(this->getBooleanAttribute(objectRef, CKA_PRIVATE, CK_TRUE) != CK_FALSE) {
-        return CKR_ATTRIBUTE_READ_ONLY;
-      }
-      break;
     case CKA_SENSITIVE:
       // We can change this for the private key
       // but invalid for other object classes

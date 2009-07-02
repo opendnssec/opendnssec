@@ -11,6 +11,7 @@ libsofthsm_la_SOURCES =		main.cpp \
 				mutex.cpp \
 				file.cpp \
 				log.cpp \
+				attribute.cpp \
 				userhandling.cpp \
 				tokenhandling.cpp \
 				mechanisms.cpp \

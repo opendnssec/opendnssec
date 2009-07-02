@@ -26,14 +26,16 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SOFTHSM_SOFTHSM_H
-#define SOFTHSM_SOFTHSM_H 1
+#ifndef SOFTHSM_ATTRIBUTE_H
+#define SOFTHSM_ATTRIBUTE_H 1
 
-void usage();
-void initToken(char *slot, char *label, char *soPIN, char *userPIN);
-void showSlots();
-void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID);
-char *hexStrToBin(char *objectID, int idLength, int *newLen);
-int hexdigit_to_int(char ch);
+#include "pkcs11_unix.h"
 
-#endif /* SOFTHSM_SOFTHSM_H */
+// Includes for the crypto library
+#include <botan/rng.h>
+using namespace Botan;
+
+CK_RV valAttributePubRSA(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
+CK_RV valAttributePrivRSA(RandomNumberGenerator *rng, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
+
+#endif /* SOFTHSM_ATTRIBUTE_H */

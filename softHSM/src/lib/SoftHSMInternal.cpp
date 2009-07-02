@@ -36,6 +36,7 @@
 #include <config.h>
 #include "SoftHSMInternal.h"
 #include "log.h"
+#include "attribute.h"
 #include "userhandling.h"
 #include "tokenhandling.h"
 #include "util.h"
@@ -636,6 +637,93 @@ CK_RV SoftHSMInternal::findObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_
   session->findInitialized = true;
 
   DEBUG_MSG("C_FindObjectsInit", "OK");
+  return CKR_OK;
+}
+
+// Create an object
+
+CK_RV SoftHSMInternal::createObject(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount, CK_OBJECT_HANDLE_PTR phObject) {
+  SoftSession *session = getSession(hSession);
+  CHECK_DEBUG_RETURN(session == NULL_PTR, "C_CreateObject", "Can not find the session",
+                     CKR_SESSION_HANDLE_INVALID);
+  CHECK_DEBUG_RETURN(pTemplate == NULL_PTR, "C_CreateObject", "pTemplate must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+  CHECK_DEBUG_RETURN(phObject == NULL_PTR, "C_CreateObject", "phObject must not be a NULL_PTR",
+                     CKR_ARGUMENTS_BAD);
+
+  CK_BBOOL isToken = CK_FALSE;
+  CK_BBOOL isPrivate = CK_TRUE;
+  CK_OBJECT_CLASS oClass = CKO_VENDOR_DEFINED;
+  CK_KEY_TYPE keyType = CKK_VENDOR_DEFINED;
+
+  // Extract object information
+  for(CK_ULONG i = 0; i < ulCount; i++) {
+    switch(pTemplate[i].type) {
+      case CKA_TOKEN:
+        if(pTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          isToken = *(CK_BBOOL*)pTemplate[i].pValue;
+        }
+        break;
+      case CKA_PRIVATE:
+        if(pTemplate[i].ulValueLen == sizeof(CK_BBOOL)) {
+          isPrivate = *(CK_BBOOL*)pTemplate[i].pValue;
+        }
+        break;
+      case CKA_CLASS:
+        if(pTemplate[i].ulValueLen == sizeof(CK_OBJECT_CLASS)) {
+          oClass = *(CK_OBJECT_CLASS*)pTemplate[i].pValue;
+        }
+        break;
+      case CKA_KEY_TYPE:
+        if(pTemplate[i].ulValueLen == sizeof(CK_KEY_TYPE)) {
+          keyType = *(CK_KEY_TYPE*)pTemplate[i].pValue;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  CHECK_DEBUG_RETURN(isToken == CK_TRUE && session->isReadWrite() == CK_FALSE, "C_CreateObject",
+                     "Only session objects can be created during a read-only session.", CKR_SESSION_READ_ONLY);
+  CK_BBOOL userAuth = userAuthorization(session->getSessionState(), isToken, isPrivate, 1);
+  CHECK_DEBUG_RETURN(userAuth == CK_FALSE, "C_CreateObject", "User is not authorized", CKR_USER_NOT_LOGGED_IN);
+
+  CK_RV rv;
+  CK_OBJECT_HANDLE oHandle;
+
+  switch(oClass) {
+    case CKO_PUBLIC_KEY:
+      if(keyType == CKK_RSA) {
+        rv = valAttributePubRSA(pTemplate, ulCount);
+        CHECK_DEBUG_RETURN(rv != CKR_OK, "C_CreateObject", "Problem with object template", rv);
+        oHandle = session->db->importPublicKey(pTemplate, ulCount);
+      } else {
+        DEBUG_MSG("C_CreateObject", "The key type is not supported");
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    case CKO_PRIVATE_KEY:
+      if(keyType == CKK_RSA) {
+        rv = valAttributePrivRSA(session->rng, pTemplate, ulCount);
+        CHECK_DEBUG_RETURN(rv != CKR_OK, "C_CreateObject", "Problem with object template", rv);
+        oHandle = session->db->importPrivateKey(pTemplate, ulCount);
+      } else {
+        DEBUG_MSG("C_CreateObject", "The key type is not supported");
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+      }
+      break;
+    default:
+      DEBUG_MSG("C_CreateObject", "The object class is not supported");
+      return CKR_ATTRIBUTE_VALUE_INVALID;
+      break;
+  }
+
+  CHECK_DEBUG_RETURN(oHandle == CK_INVALID_HANDLE, "C_CreateObject", "Could not save info in database", CKR_GENERAL_ERROR);
+
+  *phObject = oHandle;
+
+  DEBUG_MSG("C_CreateObject", "OK");
   return CKR_OK;
 }
 

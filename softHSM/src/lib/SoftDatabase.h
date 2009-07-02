@@ -75,6 +75,8 @@ class SoftDatabase {
       CK_ULONG ulPublicKeyAttributeCount);
     CK_OBJECT_HANDLE addRSAKeyPriv(RSA_PrivateKey *rsaKey, CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
       CK_ULONG ulPrivateKeyAttributeCount);
+    CK_OBJECT_HANDLE importPublicKey(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
+    CK_OBJECT_HANDLE importPrivateKey(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
     void destroySessObj();
     void deleteObject(CK_OBJECT_HANDLE objRef);
 
