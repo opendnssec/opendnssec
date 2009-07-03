@@ -124,3 +124,43 @@ int KsmImportRepository(const char* repo_name, const char* repo_capacity)
     return status;
 }
 
+/*+
+ * KsmImportPolicy - Insert a policy (will not be called if policy exists, unlike above
+ *
+ *
+ * Arguments:
+ *
+ *      const char* policy_name
+ *          Name of the policy
+ *
+ *      const char* policy_description
+ *          Description for that policy
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                         -1 if an unexpected count value was returned
+-*/
+
+int KsmImportPolicy(const char* policy_name, const char* policy_description)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+
+    /* check the main argument (description may be NULL) */
+    if (policy_name == NULL) {
+        return MsgLog(KSM_INVARG, "NULL policy name");
+    }
+
+    /* Insert policy */
+    sql = DisSpecifyInit("policies", "name, description");
+    DisAppendString(&sql, policy_name);
+    DisAppendString(&sql, policy_description);
+    DisEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DisFree(sql);
+
+    return status;
+}
+

@@ -226,9 +226,7 @@ int KsmPolicy(DB_RESULT result, KSM_POLICY* data)
  *
  * Arguments:
  *      struct policy_t policy
- *      	struct to hold policy information
- *      const char* name
- *          Name of parameter to output, or NULL for all parameters.
+ *      	struct to hold policy information, it needs to have the policy name set
 -*/
 
 int KsmPolicyRead(KSM_POLICY* policy)

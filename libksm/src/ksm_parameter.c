@@ -462,7 +462,6 @@ int KsmParameterSet(const char* name, const char* category, int value, int polic
     return status;
 }
 
-
 /*+
  * KsmParameterShow - Show Parameter
  *

@@ -36,6 +36,7 @@
 #include <ksm/ksm.h>
 #include <ksm/config.h>
 #include <ksm/database.h>
+#include <ksm/datetime.h>
 #include <ksm/string_util.h>
 #include <ksm/string_util2.h>
 
@@ -45,6 +46,11 @@
 #include <libxml/xpathInternals.h>
 #include <libxml/relaxng.h>
 #include <libxml/xmlreader.h>
+
+/* Some value type flags */
+#define INT_TYPE 0
+#define DURATION_TYPE 1
+#define BOOL_TYPE 2
 
 extern char *optarg;
 char *progname = "ksmutil";
@@ -317,11 +323,11 @@ int
 db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
 {
     /* what we will read from the file */
-    char *dbschema;
-    char *host;
-    char *port;
-    char *user;
-    char *password;
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
     /* All of the XML stuff */
     xmlDocPtr doc;
     xmlDocPtr rngdoc;
@@ -735,23 +741,22 @@ int update_policies()
 
     /* what we will read from the file */
     char *policy_name;
-    int policy_id;
-    char *param_name;
-    char *param_value;
+    char *policy_description;
 
     /* All of the XML stuff */
     int ret = 0; /* status of the XML parsing */
-    xmlDocPtr doc;
-    xmlDocPtr rngdoc;
-    xmlXPathContextPtr xpathCtx;
-    xmlXPathObjectPtr xpathObj;
-    xmlRelaxNGParserCtxtPtr rngpctx;
-    xmlRelaxNGValidCtxtPtr rngctx;
-    xmlRelaxNGPtr schema;
+    xmlDocPtr doc = NULL;
+    xmlDocPtr rngdoc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlRelaxNGParserCtxtPtr rngpctx = NULL;
+    xmlRelaxNGValidCtxtPtr rngctx = NULL;
+    xmlRelaxNGPtr schema = NULL;
     xmlTextReaderPtr reader = NULL;
 
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *desc_expr = (unsigned char*) "//Policy/Description";
+
     xmlChar *sig_res_expr = (unsigned char*) "//Policy/Signatures/Resign";
     xmlChar *sig_ref_expr = (unsigned char*) "//Policy/Signatures/Refresh";
     xmlChar *val_def_expr = (unsigned char*) "//Policy/Signatures/Validity/Default";
@@ -759,9 +764,35 @@ int update_policies()
     xmlChar *sig_jit_expr = (unsigned char*) "//Policy/Signatures/Jitter";
     xmlChar *sig_off_expr = (unsigned char*) "//Policy/Signatures/InceptionOffset";
 
+    xmlChar *den_nsec3_expr = (unsigned char*) "//Policy/Denial/NSEC3";
+
+    xmlChar *den_opt_expr = (unsigned char*) "//Policy/Denial/NSEC3/OptOut";
+    xmlChar *den_resalt_expr = (unsigned char*) "//Policy/Denial/NSEC3/Resalt";
+    xmlChar *den_algo_expr = (unsigned char*) "//Policy/Denial/NSEC3/Hash/Algorithm";
+    xmlChar *den_iter_expr = (unsigned char*) "//Policy/Denial/NSEC3/Hash/Iterations";
+    xmlChar *den_salt_expr = (unsigned char*) "//Policy/Denial/NSEC3/Hash/Salt/@length";
+
+    KSM_POLICY *policy;
+
     /* Some files, the xml and rng */
     char* filename = NULL;
     char* rngfilename = NULL;
+
+    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    /* Let's check all of those mallocs, or should we use MemMalloc ? */
+    if (policy->signer == NULL || policy->signature == NULL ||
+            policy->ksk == NULL || policy->zsk == NULL || 
+            policy->denial == NULL || policy->enforcer == NULL) {
+        printf("Malloc for policy struct failed\n");
+        exit(1);
+    }
 
     StrAppend(&filename, config);
     StrAppend(&filename, "/kasp.xml");
@@ -854,24 +885,126 @@ int update_policies()
                 /* Evaluate xpath expression for Description */
                 xpathObj = xmlXPathEvalExpression(desc_expr, xpathCtx);
                 if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s; skipping repository\n", desc_expr);
+                    printf("Error: unable to evaluate xpath expression: %s; skipping policy\n", desc_expr);
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
+                policy_description = NULL;
+                StrAppend(&policy_description, (char*) xmlXPathCastToString(xpathObj));
 
-                /* TODO Insert or update this policy with the description found,
+                /* Insert or update this policy with the description found,
                    we will need the policy_id too */
+                SetPolicyDefaults(policy, policy_name);
+                status = KsmPolicyExists(policy_name);
+                if (status == 0) {
+                    /* Policy exists; we will be updating it */
+                    status = KsmPolicyRead(policy);
+                     if(status != 0) {
+                        printf("Error: unable to read policy %s; skipping\n", policy_name);
+                        /* Don't return? try to parse the rest of the file? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                }
+                else {
+                    /* New policy, insert it and get the new policy_id */
+                    status = KsmImportPolicy(policy_name, policy_description);
+                    if(status != 0) {
+                        printf("Error: unable to insert policy %s; skipping\n", policy_name);
+                        /* Don't return? try to parse the rest of the file? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    status = KsmPolicySetIdFromName(policy);
+
+                    if (status != 0) {
+                        printf("Error: unable to get policy id for %s; skipping\n", policy_name);
+                        /* Don't return? try to parse the rest of the file? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    
+                }
+
+                /* Now churn through each parameter as we find it */
+                /* SIGNATURES */
+                if ( SetParamOnPolicy(xpathCtx, sig_res_expr, "resign", "signature", policy->signature->resign, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, sig_ref_expr, "refresh", "signature", policy->signer->refresh, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, val_def_expr, "valdefault", "signature", policy->signature->valdefault, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, val_den_expr, "valdenial", "signature", policy->signature->valdenial, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, sig_jit_expr, "jitter", "signature", policy->signer->jitter, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, sig_off_expr, "clockskew", "signature", policy->signature->clockskew, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                /* Need to decide here if we have NSEC or NSEC3 */
+                xpathObj = xmlXPathEvalExpression(den_nsec3_expr, xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s\n", den_nsec3_expr);
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                /* TODO is this right? */
+                if (xpathObj->nodesetval->nodeNr > 0) {
+                    /* Found something, NSEC3 */
+                    status = KsmParameterSet("version", "denial", 3, policy->id);
+                    if (status != 0) {
+                        printf("Error: unable to insert/update %s for policy\n", "Denial version");
+                        return status;
+                    }
+
+                    if ( SetParamOnPolicy(xpathCtx, den_opt_expr, "optout", "denial", policy->denial->optout, policy->id, BOOL_TYPE) != 0) {
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    if ( SetParamOnPolicy(xpathCtx, den_resalt_expr, "resalt", "denial", policy->denial->resalt, policy->id, DURATION_TYPE) != 0) {
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    if ( SetParamOnPolicy(xpathCtx, den_algo_expr, "algorithm", "denial", policy->denial->algorithm, policy->id, INT_TYPE) != 0) {
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    if ( SetParamOnPolicy(xpathCtx, den_iter_expr, "iterations", "denial", policy->denial->iteration, policy->id, INT_TYPE) != 0) {
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    if ( SetParamOnPolicy(xpathCtx, den_salt_expr, "saltlength", "denial", policy->denial->saltlength, policy->id, INT_TYPE) != 0) {
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+
+                } else {
+                    /* Must be NSEC */
+                    status = KsmParameterSet("version", "denial", 1, policy->id);
+                    if (status != 0) {
+                        printf("Error: unable to insert/update %s for policy\n", "Denial version");
+                        return status;
+                    }
+                }
 
 
-                /* Once we have all the info then the call to make is
-                status = KsmParameterSet(const char* name, const char* category, int value, int policy_id) */
 
 
 
-
-
-                } /* End of <Policy> */
+            } /* End of <Policy> */
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
         }
@@ -897,4 +1030,114 @@ int update_policies()
 int update_zones(char* zone_list_filename)
 {
     return 0;
+}
+
+/* 
+ * This encapsulates all of the steps needed to insert/update a parameter value
+ * evaluate the xpath expression and try to update the policy value, if it has changed
+ */
+int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, const char* name, const char* category, int current_value, int policy_id, int value_type)
+{
+    int status = 0;
+    int value = 0;
+    xmlXPathObjectPtr xpathObj = NULL;
+
+    /* Evaluate xpath expression */
+    xpathObj = xmlXPathEvalExpression(xpath_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        printf("Error: unable to evaluate xpath expression: %s; skipping policy\n", xpath_expr);
+        return -1;
+    }
+
+    /* extract the value into an int */
+    if (value_type == DURATION_TYPE) {
+        status = DtXMLIntervalSeconds((char *)xmlXPathCastToString(xpathObj), &value);
+        if (status > 0) {
+            printf("Error: unable to convert interval %s to seconds, error: %i\n", xmlXPathCastToString(xpathObj), status);
+            return status;
+        }
+        else if (status == -1) {
+            printf("Warning: converting %s to seconds may not give what you expect\n", xmlXPathCastToString(xpathObj));
+        }
+    }
+    else if (value_type == BOOL_TYPE) {
+        /* Do we have an empty tag or no tag? */
+        if (xpathObj->nodesetval->nodeNr > 0) {
+            value = 1;
+        } else {
+            value = 0;
+        }
+    }
+    else {
+        status = StrStrtoi((char *)xmlXPathCastToString(xpathObj), &value);
+        if (status != 0) {
+            printf("Error: unable to convert %s to int\n", xmlXPathCastToString(xpathObj));
+            return status;
+        }
+    }
+
+    /* Now update the policy with what we found, if it is different */
+    if (value != current_value) {
+        status = KsmParameterSet(name, category, value, policy_id);
+        if (status != 0) {
+            printf("Error: unable to insert/update %s for policy\n", name);
+            return status;
+        }
+    }
+
+    return 0;
+}
+
+void SetPolicyDefaults(KSM_POLICY *policy, char *name)
+{
+    if (policy == NULL) {
+        printf("Error, no policy provided");
+        return;
+    }
+
+	if(name) policy->name = name;
+
+	policy->signer->refresh = 0;
+	policy->signer->jitter = 0;
+	policy->signer->propdelay = 0;
+	policy->signer->soamin = 0;
+	policy->signer->soattl = 0;
+	policy->signer->serial = 0;
+
+	policy->signature->clockskew = 0;
+	policy->signature->resign = 0;
+	policy->signature->valdefault = 0;
+	policy->signature->valdenial = 0;
+
+	policy->denial->version = 0;
+	policy->denial->resalt = 0;
+	policy->denial->algorithm = 0;
+	policy->denial->iteration = 0;
+	policy->denial->optout = 0;
+	policy->denial->ttl = 0;
+	policy->denial->saltlength = 0;
+
+	policy->ksk->algorithm = 0;
+	policy->ksk->bits = 0;
+	policy->ksk->lifetime = 0;
+	policy->ksk->sm = 0;
+	policy->ksk->overlap = 0;
+	policy->ksk->ttl = 0;
+	policy->ksk->rfc5011 = 0;
+	policy->ksk->type = KSM_TYPE_KSK;
+	policy->ksk->emergency_keys = 0;
+
+	policy->zsk->algorithm = 0;
+	policy->zsk->bits = 0;
+	policy->zsk->lifetime = 0;
+	policy->zsk->sm = 0;
+	policy->zsk->overlap = 0;
+	policy->zsk->ttl = 0;
+	policy->zsk->rfc5011 = 0;
+	policy->zsk->type = KSM_TYPE_ZSK;
+	policy->zsk->emergency_keys = 0;
+
+	policy->enforcer->keycreate = 0;
+	policy->enforcer->backup_interval = 0;
+	policy->enforcer->keygeninterval = 0;
 }

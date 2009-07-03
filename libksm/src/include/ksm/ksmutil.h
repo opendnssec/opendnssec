@@ -36,7 +36,9 @@
  *      function definitions of stuff in the ksmutil code.
 -*/
 #include <stdio.h>
+#include <ksm/ksm.h>
 #include <ksm/database.h>
+#include <libxml/xpath.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,6 +51,14 @@ int update_policies();
 int update_zones(char* zone_list_filename);
 int get_lite_lock(char *lock_filename, FILE* lock_fd);
 int release_lite_lock(FILE* lock_fd);
+int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, 
+                     const xmlChar* xpath_expr, 
+                     const char* name, 
+                     const char* category, 
+                     int current_value, 
+                     int policy_id, 
+                     int value_type);
+void SetPolicyDefaults(KSM_POLICY *policy, char *name);
 
 #ifdef __cplusplus
 }

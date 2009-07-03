@@ -498,6 +498,7 @@ int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy);
 
 /* KsmImport */
 int KsmImportRepository(const char* repo_name, const char* repo_capacity);
+int KsmImportPolicy(const char* policy_name, const char* policy_description);
 
 #ifdef __cplusplus
 };
