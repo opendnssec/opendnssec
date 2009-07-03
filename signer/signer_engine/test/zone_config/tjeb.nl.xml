@@ -6,8 +6,8 @@
 	<Zone name="tjeb.nl">
 
 		<Signatures>
-			<Resign>PT60S</Resign>
-			<Refresh>PT120S</Refresh>
+			<Resign>PT30S</Resign>
+			<Refresh>PT60S</Refresh>
 			<Validity>
 					<Default>PT24H</Default>
 					<Denial>P14D</Denial>
