@@ -19,7 +19,8 @@ CONF_ARG = \
 	--sysconfdir=/etc \
 	--localstatedir=/var \
 	--with-libksm=$(PREFIX) \
-	--with-libhsm=$(PREFIX)
+	--with-libhsm=$(PREFIX) \
+	--with-trang=/usr/local/lib/trang.jar
 
 ## you may have to add the one or more of the following to CONF_ARG
 #
@@ -27,7 +28,6 @@ CONF_ARG = \
 #	--with-ldns=/usr/local
 #	--with-libxml2=/usr/local
 #	--with-botan=/usr/local
-#	--with-trang=/usr/local/lib/trang.jar
 
 
 all::

@@ -60,9 +60,11 @@ void usage();
 void initToken(char *slot, char *label, char *soPIN, char *userPIN);
 void showSlots();
 void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID);
+void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID);
 char* hexStrToBin(char *objectID, int idLength, int *newLen);
 int hexdigit_to_int(char ch);
 key_material_t* importKeyMat(char *filePath, char *filePIN);
 void freeKeyMaterial(key_material_t *keyMaterial);
+CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objIDLen);
 
 #endif /* SOFTHSM_SOFTHSM_H */

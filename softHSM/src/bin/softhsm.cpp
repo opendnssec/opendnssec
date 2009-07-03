@@ -65,6 +65,9 @@ void usage() {
   printf("  --import <path>          Import a key pair from the given path.\n");
   printf("                           The file must be in PKCS#8-format.\n");
   printf("                           Use with --file-pin, --slot, --label, --id, and --pin.\n");
+  printf("  --export <path>          Export a key pair to the given path.\n");
+  printf("                           The file will be written in PKCS#8-format.\n");
+  printf("                           Use with --file-pin (will encrypt file), --slot, --id, and --pin.\n");
   printf("\n");
   printf("  --slot <number>          The slot where the token is located.\n");
   printf("  --label <text>           Defines the label of the object or the token.\n");
@@ -93,6 +96,7 @@ enum {
   OPT_SHOW_SLOTS = 0x100,
   OPT_INIT_TOKEN,
   OPT_IMPORT,
+  OPT_EXPORT,
   OPT_SLOT,
   OPT_LABEL,
   OPT_ID,
@@ -106,6 +110,7 @@ static const struct option long_options[] = {
   { "show-slots",      0, NULL, OPT_SHOW_SLOTS },
   { "init-token",      0, NULL, OPT_INIT_TOKEN },
   { "import",          1, NULL, OPT_IMPORT },
+  { "export",          1, NULL, OPT_EXPORT },
   { "slot",            1, NULL, OPT_SLOT },
   { "label",           1, NULL, OPT_LABEL },
   { "id",              1, NULL, OPT_ID },
@@ -120,7 +125,8 @@ int main(int argc, char *argv[]) {
   int option_index = 0;
   int opt;
 
-  char *filePath = NULL;
+  char *inPath = NULL;
+  char *outPath = NULL;
   char *soPIN = NULL;
   char *userPIN = NULL;
   char *filePIN = NULL;
@@ -131,6 +137,7 @@ int main(int argc, char *argv[]) {
   int doInitToken = 0;
   int doShowSlots = 0;
   int doImport = 0;
+  int doExport = 0;
   int action = 0;
 
   while ((opt = getopt_long(argc, argv, "h", long_options, &option_index)) != -1) {
@@ -146,7 +153,12 @@ int main(int argc, char *argv[]) {
       case OPT_IMPORT:
         doImport = 1;
         action++;
-        filePath = optarg;
+        inPath = optarg;
+        break;
+      case OPT_EXPORT:
+        doExport = 1;
+        action++;
+        outPath = optarg;
         break;
       case OPT_SLOT:
         slot = optarg;
@@ -198,7 +210,12 @@ int main(int argc, char *argv[]) {
 
   // Import a key pair from the given path
   if(doImport) {
-    importKeyPair(filePath, filePIN, slot, userPIN, label, objectID);
+    importKeyPair(inPath, filePIN, slot, userPIN, label, objectID);
+  }
+
+  // Export a key pair to the given path
+  if(doExport) {
+    exportKeyPair(outPath, filePIN, slot, userPIN, objectID);
   }
 
   if(action) {
@@ -492,6 +509,68 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   printf("The key pair has been imported to the token in slot %i.\n", slotID);
 }
 
+void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID) {
+  if(filePIN != NULL) {
+    int filePinLen = strlen(filePIN);
+    if(filePinLen < MIN_PIN_LEN || filePinLen > MAX_PIN_LEN) {
+      fprintf(stderr, "Error: The file PIN must have a length between %i and %i characters.\n", MIN_PIN_LEN, MAX_PIN_LEN);
+      return;
+    }
+  }
+
+  if(slot == NULL) {
+    fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
+    return;
+  }
+
+  if(userPIN == NULL) {
+    fprintf(stderr, "Error: An user PIN must be supplied. Use --pin <PIN>\n");
+    return;
+  }
+
+  if(objectID == NULL) {
+    fprintf(stderr, "Error: An ID for the object must be supplied. Use --id <hex>\n");
+    return;
+  }
+  int objIDLen = 0;
+  char *objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
+  if(objID == NULL) {
+    return;
+  }
+
+  CK_SLOT_ID slotID = atoi(slot);
+  CK_SESSION_HANDLE hSession;
+  CK_RV rv = C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  if(rv != CKR_OK) {
+    if(rv == CKR_SLOT_ID_INVALID) {
+      fprintf(stderr, "Error: The given slot does not exist.\n");
+    } else {
+      fprintf(stderr, "Error: Could not open a session on the given slot.\n");
+    }
+    free(objID);
+    return;
+  }
+
+  rv = C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
+  if(rv != CKR_OK) {
+    if(rv == CKR_PIN_INCORRECT) {
+      fprintf(stderr, "Error: The given user PIN does not match the one in the token.\n");
+    } else {
+      fprintf(stderr, "Error: Could not log in on the token.\n");
+    }
+    free(objID);
+    return;
+  }
+
+  CK_OBJECT_HANDLE oHandle = searchObject(hSession, objID, objIDLen);
+  if(oHandle == CK_INVALID_HANDLE) {
+    free(objID);
+    return;
+  }
+
+  printf("Function not fully implemented\n");
+}
+
 // Convert a char array of hexadecimal characters into a binary representation
 
 char* hexStrToBin(char *objectID, int idLength, int *newLen) {
@@ -640,4 +719,45 @@ void freeKeyMaterial(key_material_t *keyMaterial) {
     }
     free(keyMaterial);
   }
+}
+
+// Search for an object
+
+CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objIDLen) {
+  if(objID == NULL) {
+    return CK_INVALID_HANDLE;
+  }
+  CK_OBJECT_CLASS oClass = CKO_PRIVATE_KEY;
+  CK_OBJECT_HANDLE hObject = 0;
+  CK_ULONG objectCount = 0;
+
+  CK_ATTRIBUTE objTemplate[] = {
+    { CKA_CLASS, &oClass, sizeof(oClass) },
+    { CKA_ID,    objID,      objIDLen }
+  };
+
+  CK_RV rv = C_FindObjectsInit(hSession, objTemplate, 2);
+  if(rv != CKR_OK) {
+    fprintf(stderr, "Error: Could not prepare the object search.\n");
+    return CK_INVALID_HANDLE;
+  }
+
+  rv = C_FindObjects(hSession, &hObject, 1, &objectCount);
+  if(rv != CKR_OK) {
+    fprintf(stderr, "Error: Could get the search results.\n");
+    return CK_INVALID_HANDLE;
+  }
+
+  rv = C_FindObjectsFinal(hSession);
+  if(rv != CKR_OK) {
+    fprintf(stderr, "Error: Could not finalize the search.\n");
+    return CK_INVALID_HANDLE;
+  }
+
+  if(objectCount == 0) {
+    fprintf(stderr, "Error: Could not find the private key.\n");
+    return CK_INVALID_HANDLE;
+  }
+
+  return hObject;
 }
