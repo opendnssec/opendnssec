@@ -574,13 +574,13 @@ int hexdigit_to_int(char ch) {
 
 key_material_t* importKeyMat(char *filePath, char *filePIN) {
   AutoSeeded_RNG *rng = new AutoSeeded_RNG();
-  Private_Key *rsaKey = NULL;
+  Private_Key *privKey = NULL;
 
   try {
     if(filePIN == NULL) {
-      rsaKey = PKCS8::load_key(filePath, *rng);
+      privKey = PKCS8::load_key(filePath, *rng);
     } else {
-      rsaKey = PKCS8::load_key(filePath, *rng, filePIN);
+      privKey = PKCS8::load_key(filePath, *rng, filePIN);
     }
   }
   catch(std::exception& e) {
@@ -591,7 +591,13 @@ key_material_t* importKeyMat(char *filePath, char *filePIN) {
   }
   delete rng;
 
-  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
+  if(privKey->algo_name().compare("RSA") != 0) {
+    fprintf(stderr, "Error: %s is not a supported algorithm. Only RSA is supported.\n", privKey->algo_name().c_str());
+    delete privKey;
+    return NULL;
+  }
+
+  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(privKey);
   key_material_t *keyMat = (key_material_t *)malloc(sizeof(key_material_t));
   keyMat->sizeE = ifKeyPriv->get_e().bytes();
   keyMat->sizeN = ifKeyPriv->get_n().bytes();
@@ -608,7 +614,7 @@ key_material_t* importKeyMat(char *filePath, char *filePIN) {
   ifKeyPriv->get_d().binary_encode((byte *)keyMat->bigD);
   ifKeyPriv->get_p().binary_encode((byte *)keyMat->bigP);
   ifKeyPriv->get_q().binary_encode((byte *)keyMat->bigQ);
-  delete rsaKey;
+  delete privKey;
 
   return keyMat;
 }
