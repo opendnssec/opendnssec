@@ -1278,6 +1278,40 @@ hsm_create_prefix(CK_ULONG digest_len,
     return data;
 }
 
+static CK_BYTE *
+hsm_digest_through_hsm(hsm_ctx_t *ctx,
+                       hsm_session_t *session,
+                       CK_MECHANISM_TYPE mechanism_type,
+                       CK_ULONG digest_len,
+                       ldns_buffer *sign_buf)
+{
+    CK_MECHANISM digest_mechanism;
+    CK_BYTE *digest;
+    CK_RV rv;
+
+    digest_mechanism.pParameter = NULL;
+    digest_mechanism.ulParameterLen = 0;
+    digest_mechanism.mechanism = mechanism_type;
+    digest = malloc(digest_len);
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DigestInit(session->session,
+                                                 &digest_mechanism);
+    if (hsm_pkcs11_check_error(ctx, rv, "HSM digest init")) {
+        free(digest);
+        return NULL;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
+                                        ldns_buffer_begin(sign_buf),
+                                        ldns_buffer_position(sign_buf),
+                                        digest,
+                                        &digest_len);
+    if (hsm_pkcs11_check_error(ctx, rv, "HSM digest")) {
+        free(digest);
+        return NULL;
+    }
+    return digest;
+}
+
 static ldns_rdf *
 hsm_sign_buffer(hsm_ctx_t *ctx,
                 ldns_buffer *sign_buf,
@@ -1289,7 +1323,6 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
      * maximum? */
     CK_ULONG signatureLen = 512;
     CK_BYTE *signature = malloc(signatureLen);
-    CK_MECHANISM digest_mechanism;
     CK_MECHANISM sign_mechanism;
 
     ldns_rdf *sig_rdf;
@@ -1307,17 +1340,20 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
     /* some HSMs don't really handle CKM_SHA1_RSA_PKCS well, so
      * we'll do the hashing manually */
     /* When adding algorithms, remember there is another switch below */
-    digest_mechanism.pParameter = NULL;
-    digest_mechanism.ulParameterLen = 0;
     switch (algorithm) {
         case LDNS_SIGN_RSAMD5:
             digest_len = 16;
-            digest_mechanism.mechanism = CKM_MD5;
+            digest = hsm_digest_through_hsm(ctx, session,
+                                            CKM_MD5, digest_len,
+                                            sign_buf);
             break;
         case LDNS_SIGN_RSASHA1:
         case LDNS_SIGN_RSASHA1_NSEC3:
-            digest_len = 20;
-            digest_mechanism.mechanism = CKM_SHA_1;
+            digest_len = LDNS_SHA1_DIGEST_LENGTH;
+            digest = malloc(digest_len);
+            digest = ldns_sha1(ldns_buffer_begin(sign_buf),
+                               ldns_buffer_position(sign_buf),
+                               digest);
             break;
         default:
             /* log error? or should we not even get here for
@@ -1325,23 +1361,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
             return NULL;
     }
 
-    digest = malloc(digest_len);
-
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DigestInit(session->session,
-                                                 &digest_mechanism);
-    if (hsm_pkcs11_check_error(ctx, rv, "digest init")) {
-        free(digest);
-        free(signature);
-        return NULL;
-    }
-
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
-                                        ldns_buffer_begin(sign_buf),
-                                        ldns_buffer_position(sign_buf),
-                                        digest,
-                                        &digest_len);
-    if (hsm_pkcs11_check_error(ctx, rv, "digest")) {
-        free(digest);
+    if (!digest) {
         free(signature);
         return NULL;
     }
