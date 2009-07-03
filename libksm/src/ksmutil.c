@@ -51,6 +51,9 @@
 #define INT_TYPE 0
 #define DURATION_TYPE 1
 #define BOOL_TYPE 2
+#define STR_BOOL_TYPE 3
+#define REPO_TYPE 4
+#define SERIAL_TYPE 5
 
 extern char *optarg;
 char *progname = "ksmutil";
@@ -768,10 +771,38 @@ int update_policies()
 
     xmlChar *den_opt_expr = (unsigned char*) "//Policy/Denial/NSEC3/OptOut";
     xmlChar *den_resalt_expr = (unsigned char*) "//Policy/Denial/NSEC3/Resalt";
-    xmlChar *den_algo_expr = (unsigned char*) "//Policy/Denial/NSEC3/Hash/Algorithm";
+    xmlChar *den_alg_expr = (unsigned char*) "//Policy/Denial/NSEC3/Hash/Algorithm";
     xmlChar *den_iter_expr = (unsigned char*) "//Policy/Denial/NSEC3/Hash/Iterations";
     xmlChar *den_salt_expr = (unsigned char*) "//Policy/Denial/NSEC3/Hash/Salt/@length";
 
+    xmlChar *keys_ttl_expr = (unsigned char*) "//Policy/Keys/TTL";
+    xmlChar *keys_ret_expr = (unsigned char*) "//Policy/Keys/RetireSafety";
+    xmlChar *keys_pub_expr = (unsigned char*) "//Policy/Keys/PublishSafety";
+    xmlChar *keys_share_expr = (unsigned char*) "//Policy/Keys/ShareKeys";
+
+    xmlChar *ksk_alg_expr = (unsigned char*) "//Policy/Keys/KSK/Algorithm";
+    xmlChar *ksk_alg_len_expr = (unsigned char*) "//Policy/Keys/KSK/Algorithm/@length";
+    xmlChar *ksk_life_expr = (unsigned char*) "//Policy/Keys/KSK/Lifetime";
+    xmlChar *ksk_repo_expr = (unsigned char*) "//Policy/Keys/KSK/Repository";
+    xmlChar *ksk_emer_expr = (unsigned char*) "//Policy/Keys/KSK/Emergency";
+    xmlChar *ksk_5011_expr = (unsigned char*) "//Policy/Keys/KSK/RFC5011";
+
+    xmlChar *zsk_alg_expr = (unsigned char*) "//Policy/Keys/ZSK/Algorithm";
+    xmlChar *zsk_alg_len_expr = (unsigned char*) "//Policy/Keys/ZSK/Algorithm/@length";
+    xmlChar *zsk_life_expr = (unsigned char*) "//Policy/Keys/ZSK/Lifetime";
+    xmlChar *zsk_repo_expr = (unsigned char*) "//Policy/Keys/ZSK/Repository";
+    xmlChar *zsk_emer_expr = (unsigned char*) "//Policy/Keys/ZSK/Emergency";
+    
+    xmlChar *zone_prop_expr = (unsigned char*) "//Policy/Zone/PropagationDelay";
+    xmlChar *zone_soa_ttl_expr = (unsigned char*) "//Policy/Zone/SOA/TTL";
+    xmlChar *zone_min_expr = (unsigned char*) "//Policy/Zone/SOA/Minimum";
+    xmlChar *zone_serial_expr = (unsigned char*) "//Policy/Zone/SOA/Serial";
+    
+    xmlChar *parent_prop_expr = (unsigned char*) "//Policy/Parent/PropagationDelay";
+    xmlChar *parent_ds_ttl_expr = (unsigned char*) "//Policy/Parent/DS/TTL";
+    xmlChar *parent_soa_ttl_expr = (unsigned char*) "//Policy/Parent/SOA/TTL";
+    xmlChar *parent_min_expr = (unsigned char*) "//Policy/Parent/SOA/Minimum";
+    
     KSM_POLICY *policy;
 
     /* Some files, the xml and rng */
@@ -781,13 +812,17 @@ int update_policies()
     policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
     policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
     policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
     policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
     policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
     /* Let's check all of those mallocs, or should we use MemMalloc ? */
-    if (policy->signer == NULL || policy->signature == NULL ||
+    if (policy->signer == NULL || policy->signature == NULL || policy->keys == NULL ||
+            policy->zone == NULL || policy->parent == NULL || 
             policy->ksk == NULL || policy->zsk == NULL || 
             policy->denial == NULL || policy->enforcer == NULL) {
         printf("Malloc for policy struct failed\n");
@@ -954,6 +989,7 @@ int update_policies()
                     continue;
                 }
 
+                /* DENIAL */
                 /* Need to decide here if we have NSEC or NSEC3 */
                 xpathObj = xmlXPathEvalExpression(den_nsec3_expr, xpathCtx);
                 if(xpathObj == NULL) {
@@ -978,7 +1014,7 @@ int update_policies()
                         ret = xmlTextReaderRead(reader);
                         continue;
                     }
-                    if ( SetParamOnPolicy(xpathCtx, den_algo_expr, "algorithm", "denial", policy->denial->algorithm, policy->id, INT_TYPE) != 0) {
+                    if ( SetParamOnPolicy(xpathCtx, den_alg_expr, "algorithm", "denial", policy->denial->algorithm, policy->id, INT_TYPE) != 0) {
                         ret = xmlTextReaderRead(reader);
                         continue;
                     }
@@ -1000,9 +1036,105 @@ int update_policies()
                     }
                 }
 
+                /* KEYS */
+                if ( SetParamOnPolicy(xpathCtx, keys_ttl_expr, "ttl", "keys", policy->keys->ttl, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, keys_ret_expr, "retiresafety", "keys", policy->keys->retire_safety, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, keys_pub_expr, "publishsafety", "keys", policy->keys->publish_safety, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, keys_share_expr, "zones_share_keys", "keys", policy->keys->share_keys, policy->id, STR_BOOL_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                /* KSK */
+                if ( SetParamOnPolicy(xpathCtx, ksk_alg_expr, "algorithm", "ksk", policy->ksk->algorithm, policy->id, INT_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, ksk_alg_len_expr, "bits", "ksk", policy->ksk->bits, policy->id, INT_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, ksk_life_expr, "lifetime", "ksk", policy->ksk->lifetime, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, ksk_repo_expr, "repository", "ksk", policy->ksk->sm, policy->id, REPO_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, ksk_emer_expr, "emergency", "ksk", policy->ksk->emergency_keys, policy->id, INT_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, ksk_5011_expr, "rfc5011", "ksk", policy->ksk->rfc5011, policy->id, BOOL_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                /* ZSK */
+                if ( SetParamOnPolicy(xpathCtx, zsk_alg_expr, "algorithm", "zsk", policy->zsk->algorithm, policy->id, INT_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, zsk_alg_len_expr, "bits", "zsk", policy->zsk->bits, policy->id, INT_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, zsk_life_expr, "lifetime", "zsk", policy->zsk->lifetime, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, zsk_repo_expr, "repository", "zsk", policy->zsk->sm, policy->id, REPO_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, zsk_emer_expr, "emergency", "zsk", policy->zsk->emergency_keys, policy->id, INT_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
 
+                /* ZONE */
+                if ( SetParamOnPolicy(xpathCtx, zone_prop_expr, "propagationdelay", "zone", policy->zone->propdelay, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, zone_soa_ttl_expr, "ttl", "zone", policy->zone->soa_ttl, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, zone_min_expr, "min", "zone", policy->zone->soa_min, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, zone_serial_expr, "serial", "zone", policy->zone->serial, policy->id, SERIAL_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
 
-
+                /* PARENT */
+                if ( SetParamOnPolicy(xpathCtx, parent_prop_expr, "propagationdelay", "parent", policy->parent->propdelay, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, parent_ds_ttl_expr, "ttlds", "parent", policy->parent->ds_ttl, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, parent_soa_ttl_expr, "ttl", "parent", policy->parent->soa_ttl, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, parent_min_expr, "min", "parent", policy->parent->soa_min, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
 
             } /* End of <Policy> */
             /* Read the next line */
@@ -1024,11 +1156,127 @@ int update_policies()
     xmlRelaxNGFreeParserCtxt(rngpctx);
     xmlFreeDoc(rngdoc);
 
+    free(policy->enforcer);
+	free(policy->denial);
+	free(policy->keys);
+	free(policy->zsk);
+	free(policy->ksk);
+	free(policy->signature);
+	free(policy->signer);
+	free(policy);
+
     return(status);
 }
 
+/* Read zonelist (as passed in) and insert/update any zones seen */
 int update_zones(char* zone_list_filename)
 {
+    int status = 0;
+    xmlTextReaderPtr reader = NULL;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    int ret = 0; /* status of the XML parsing */
+    char* zone_name = NULL;
+    char* policy_name = NULL;
+    int policy_id = 0;
+
+    xmlChar *name_expr = (unsigned char*) "name";
+    xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
+
+    /* TODO validate the file ? */
+
+    /* Start reading the file; we will be looking for "Repository" tags */ 
+    reader = xmlNewTextReaderFilename(zone_list_filename);
+    if (reader != NULL) {
+        ret = xmlTextReaderRead(reader);
+        while (ret == 1) {
+            /* Found <Zone> */
+            if (strncmp((char*) xmlTextReaderLocalName(reader), "Zone", 4) == 0 
+                    && strncmp((char*) xmlTextReaderLocalName(reader), "ZoneList", 8) != 0
+                    && xmlTextReaderNodeType(reader) == 1) {
+                /* Get the repository name */
+                zone_name = NULL;
+                StrAppend(&zone_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
+                /* Make sure that we got something */
+                if (zone_name == NULL) {
+                    /* error */
+                    printf("Error extracting zone name from %s\n", zone_list_filename);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                printf("Zone %s found\n", zone_name);
+
+                /* Expand this node and get the rest of the info with XPath */
+                    xmlTextReaderExpand(reader);
+                    doc = xmlTextReaderCurrentDoc(reader);
+                    if (doc == NULL) {
+                        printf("Error: can not read zone \"%s\"; skipping\n", zone_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+
+                    xpathCtx = xmlXPathNewContext(doc);
+                    if(xpathCtx == NULL) {
+                        printf("Error: can not create XPath context for \"%s\"; skipping zone\n", zone_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+
+                    /* Extract the Policy name for this zone */
+                    /* Evaluate xpath expression for policy */
+                    xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
+                    if(xpathObj == NULL) {
+                        printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+
+                    policy_name = NULL;
+                    StrAppend(&policy_name, (char*) xmlXPathCastToString(xpathObj));
+                    printf("Policy set to %s.\n", policy_name);
+                    
+                    status = KsmPolicyIdFromName(policy_name, &policy_id);
+                    if (status != 0) {
+                        printf("Error, can't find policy : %s\n", policy_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+
+                    /*
+                     * Now we have all the information update/insert this repository
+                     */
+                    status = KsmImportZone(zone_name, policy_id);
+                    if (status != 0) {
+                        printf("Error Importing Zone %s\n", zone_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                }
+            /* Read the next line */
+            ret = xmlTextReaderRead(reader);
+        }
+        xmlFreeTextReader(reader);
+        if (ret != 0) {
+            printf("%s : failed to parse\n", zone_list_filename);
+        }
+    } else {
+        printf("Unable to open %s\n", zone_list_filename);
+    }
+    if (xpathCtx) {
+        xmlXPathFreeContext(xpathCtx);
+    }
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+
     return 0;
 }
 
@@ -1066,6 +1314,29 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
             value = 1;
         } else {
             value = 0;
+        }
+    }
+    else if (value_type == STR_BOOL_TYPE) {
+        if (strncasecmp((char *)xmlXPathCastToString(xpathObj), "true", 4) == 0) {
+            value = 1;
+        } else {
+            value = 0;
+        }
+    }
+    else if (value_type == REPO_TYPE) {
+        /* We need to convert the repository name into an id */
+        status = KsmSmIdFromName((char *)xmlXPathCastToString(xpathObj), &value);
+        if (status != 0) {
+            printf("Error: unable to find repository %s\n", xmlXPathCastToString(xpathObj));
+            return status;
+        }
+    }
+    else if (value_type == SERIAL_TYPE) {
+        /* We need to convert the repository name into an id */
+        status = KsmSerialIdFromName((char *)xmlXPathCastToString(xpathObj), &value);
+        if (status != 0) {
+            printf("Error: unable to find serial type %s\n", xmlXPathCastToString(xpathObj));
+            return status;
         }
     }
     else {

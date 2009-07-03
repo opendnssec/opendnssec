@@ -100,6 +100,9 @@ server_main(DAEMONCONFIG *config)
     policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
     policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
     policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
     policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
@@ -107,6 +110,8 @@ server_main(DAEMONCONFIG *config)
     policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
     /* Let's check all of those mallocs, or should we use MemMalloc ? */
     if (policy->signer == NULL || policy->signature == NULL ||
+            policy->zone == NULL || policy->parent == NULL ||
+            policy->keys == NULL ||
             policy->ksk == NULL || policy->zsk == NULL || 
             policy->denial == NULL || policy->enforcer == NULL) {
         log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
@@ -309,6 +314,9 @@ server_main(DAEMONCONFIG *config)
     free(policy->denial);
     free(policy->zsk);
     free(policy->ksk);
+    free(policy->keys);
+    free(policy->zone);
+    free(policy->parent);
     free(policy->signature);
     free(policy->signer);
     free(policy);

@@ -164,3 +164,166 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
     return status;
 }
 
+/*+
+ * KsmImportZone - Insert or update a zone
+ *
+ *
+ * Arguments:
+ *
+ *      const char* zone_name
+ *          Name of the repository
+ *
+ *      int policy_id
+ *          Policy for the zone
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                         -1 if an unexpected count value was returned
+-*/
+
+int KsmImportZone(const char* zone_name, int policy_id)
+{
+    char*       sql = NULL;     /* SQL query */
+    DB_RESULT   result;         /* Handle converted to a result object */
+    DB_ROW      row;            /* Row data */
+    int         status = 0;     /* Status return */
+    int         count = 0;      /* Do we already have a zone with this name? */
+
+    /* check the arguments */
+    if (zone_name == NULL || policy_id == 0) {
+        return MsgLog(KSM_INVARG, "NULL zone name or policy");
+    }
+
+    /* 
+     * First see if this repository exists
+     */
+    sql = DqsCountInit(DB_ZONE_TABLE);
+    DqsConditionString(&sql, "NAME", DQS_COMPARE_EQ, zone_name, 0);
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    /* If the count was 0 then we do an insert, otherwise we do an update */
+    if (count == 0)
+    {
+        sql = DisSpecifyInit(DB_ZONE_TABLE, "name, policy_id");
+        DisAppendString(&sql, zone_name);
+        DisAppendInt(&sql, policy_id);
+        DisEnd(&sql);
+
+        status = DbExecuteSqlNoResult(DbHandle(), sql);
+        DisFree(sql);
+    }
+    else if (count == 1)
+    {
+        sql = DusInit(DB_ZONE_TABLE);
+        DusSetInt(&sql, "policy_id", policy_id, 0);
+        DusConditionString(&sql, "name", DQS_COMPARE_EQ, zone_name, 0);
+        DusEnd(&sql);
+
+        status = DbExecuteSqlNoResult(DbHandle(), sql);
+        DusFree(sql);
+    }
+    else
+    {
+        return -1;
+    }
+
+    return status;
+}
+
+int KsmSmIdFromName(const char* name, int *id)
+{
+    char*   sql = NULL;         /* SQL query */
+    int     status = 0;         /* Status return */
+
+    /* check the argument */
+    if (name == NULL) {
+        return MsgLog(KSM_INVARG, "NULL name");
+    }
+
+    /* Construct the query */
+
+    sql = DqsSpecifyInit(DB_SECURITY_MODULE_TABLE,"id");
+    DqsConditionString(&sql, "name", DQS_COMPARE_EQ, name, 0);
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), id, sql);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    return status;
+}
+
+int KsmSerialIdFromName(const char* name, int *id)
+{
+    char*   sql = NULL;         /* SQL query */
+    int     status = 0;         /* Status return */
+
+    /* check the argument */
+    if (name == NULL) {
+        return MsgLog(KSM_INVARG, "NULL name");
+    }
+
+    /* Construct the query */
+
+    sql = DqsSpecifyInit("serialmodes","id");
+    DqsConditionString(&sql, "name", DQS_COMPARE_EQ, name, 0);
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), id, sql);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    return status;
+}
+
+int KsmPolicyIdFromName(const char* name, int *id)
+{
+    char*   sql = NULL;         /* SQL query */
+    int     status = 0;         /* Status return */
+
+    /* check the argument */
+    if (name == NULL) {
+        return MsgLog(KSM_INVARG, "NULL name");
+    }
+
+    /* Construct the query */
+
+    sql = DqsSpecifyInit("policies","id");
+    DqsConditionString(&sql, "name", DQS_COMPARE_EQ, name, 0);
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), id, sql);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    return status;
+}

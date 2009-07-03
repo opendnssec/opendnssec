@@ -62,6 +62,9 @@ static void TestKsmPolicyRead(void)
 	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
 	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
 	policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
 	policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
@@ -84,8 +87,11 @@ static void TestKsmPolicyRead(void)
 
 	free(policy->enforcer);
 	free(policy->denial);
+	free(policy->keys);
 	free(policy->zsk);
 	free(policy->ksk);
+    free(policy->zone);
+    free(policy->parent);
 	free(policy->signature);
 	free(policy->signer);
 	free(policy);
@@ -98,6 +104,9 @@ static void TestKsmPolicyReadId(void)
 	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
 	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
 	policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
 	policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
@@ -122,8 +131,11 @@ static void TestKsmPolicyReadId(void)
 	free(policy->name);
 	free(policy->enforcer);
 	free(policy->denial);
+	free(policy->keys);
 	free(policy->zsk);
 	free(policy->ksk);
+    free(policy->zone);
+    free(policy->parent);
 	free(policy->signature);
 	free(policy->signer);
 	free(policy);
@@ -138,6 +150,9 @@ static void TestKsmPolicy2(void)
 	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
 	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
 	policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
 	policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
@@ -166,8 +181,11 @@ static void TestKsmPolicy2(void)
 	free(policy->name);
 	free(policy->enforcer);
 	free(policy->denial);
+	free(policy->keys);
 	free(policy->zsk);
 	free(policy->ksk);
+    free(policy->zone);
+    free(policy->parent);
 	free(policy->signature);
 	free(policy->signer);
 	free(policy);
@@ -187,6 +205,9 @@ static void TestKsmPolicySalt(void)
 	policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
 	policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
 	policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
 	policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
@@ -203,8 +224,11 @@ static void TestKsmPolicySalt(void)
 
 	free(policy->enforcer);
 	free(policy->denial);
+	free(policy->keys);
 	free(policy->zsk);
 	free(policy->ksk);
+    free(policy->zone);
+    free(policy->parent);
 	free(policy->signature);
 	free(policy->signer);
 	free(policy);

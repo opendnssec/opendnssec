@@ -191,6 +191,13 @@ typedef struct {
 } KSM_DENIAL_POLICY;
 
 typedef struct {
+	int ttl;
+	int retire_safety;
+	int publish_safety;
+	int share_keys;
+} KSM_COMMON_KEY_POLICY;
+
+typedef struct {
 	int algorithm;
 	int bits;
 	int lifetime;
@@ -211,14 +218,31 @@ typedef struct {
 } KSM_ENFORCER_POLICY;
 
 typedef struct {
+    int propdelay;
+    int soa_ttl;
+    int soa_min;
+    int serial;
+} KSM_ZONE_POLICY;
+
+typedef struct {
+    int propdelay;
+    int ds_ttl;
+    int soa_ttl;
+    int soa_min;
+} KSM_PARENT_POLICY;
+
+typedef struct {
 	int id;
 	char* name;
 	KSM_SIGNER_POLICY* signer;
 	KSM_SIGNATURE_POLICY* signature;
 	KSM_DENIAL_POLICY* denial;
+	KSM_COMMON_KEY_POLICY* keys;
 	KSM_KEY_POLICY* ksk;
 	KSM_KEY_POLICY* zsk;
 	KSM_ENFORCER_POLICY* enforcer;
+	KSM_ZONE_POLICY* zone;
+	KSM_PARENT_POLICY* parent;
     int     shared_keys;
 } KSM_POLICY;
 
@@ -499,6 +523,10 @@ int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy);
 /* KsmImport */
 int KsmImportRepository(const char* repo_name, const char* repo_capacity);
 int KsmImportPolicy(const char* policy_name, const char* policy_description);
+int KsmImportZone(const char* zone_name, int policy_id);
+int KsmSmIdFromName(const char* name, int *id);
+int KsmSerialIdFromName(const char* name, int *id);
+int KsmPolicyIdFromName(const char* name, int *id);
 
 #ifdef __cplusplus
 };

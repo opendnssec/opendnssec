@@ -256,10 +256,20 @@ int KsmPolicyRead(KSM_POLICY* policy)
             	}
             	if (strncmp(data.category, "zone", 4) == 0) {
             		if (strncmp(data.name, "propagationdelay", 16) == 0) policy->signer->propdelay=data.value;
-            		if (strncmp(data.name, "min", 6) == 0) policy->signer->soamin=data.value;
-            		if (strncmp(data.name, "ttl", 6) == 0) policy->signer->soattl=data.value;
+            		if (strncmp(data.name, "min", 3) == 0) policy->signer->soamin=data.value;
+            		if (strncmp(data.name, "ttl", 2) == 0) policy->signer->soattl=data.value;
             		if (strncmp(data.name, "serial", 6) == 0) policy->signer->serial=data.value;
+            		if (strncmp(data.name, "propagationdelay", 16) == 0) policy->zone->propdelay=data.value;
+            		if (strncmp(data.name, "min", 3) == 0) policy->zone->soa_min=data.value;
+            		if (strncmp(data.name, "ttl", 3) == 0) policy->zone->soa_ttl=data.value;
+            		if (strncmp(data.name, "serial", 6) == 0) policy->zone->serial=data.value;
             	}
+                if (strncmp(data.category, "parent", 6) == 0) {
+            		if (strncmp(data.name, "propagationdelay", 16) == 0) policy->parent->propdelay=data.value;
+            		if (strncmp(data.name, "min", 3) == 0) policy->parent->soa_min=data.value;
+            		if (strncmp(data.name, "ttl", 3) == 0) policy->parent->soa_ttl=data.value;
+            		if (strncmp(data.name, "ttlds", 5) == 0) policy->parent->ds_ttl=data.value;
+                }
             	if (strncmp(data.category, "signature", 9) == 0) {
             		if (strncmp(data.name, "jitter", 6) == 0) policy->signer->jitter=data.value;
             		if (strncmp(data.name, "refresh", 7) == 0) policy->signer->refresh=data.value;
@@ -295,9 +305,14 @@ int KsmPolicyRead(KSM_POLICY* policy)
                         if (strncmp(data.name, "emergency",9) == 0) policy->ksk->emergency_keys=data.value;
             	}
             	if (strncmp(data.category, "keys", 4) == 0) {
+                    /* TODO sort out duplication here */
             		if (strncmp(data.name, "ttl",3) == 0) policy->ksk->ttl=data.value;
             		if (strncmp(data.name, "ttl",3) == 0) policy->zsk->ttl=data.value;
             		if (strncmp(data.name, "zones_share_keys",16) == 0) policy->shared_keys=data.value;
+            		if (strncmp(data.name, "ttl",3) == 0) policy->keys->ttl=data.value;
+            		if (strncmp(data.name, "zones_share_keys",16) == 0) policy->keys->share_keys=data.value;
+            		if (strncmp(data.name, "retiresafety",12) == 0) policy->keys->retire_safety=data.value;
+            		if (strncmp(data.name, "publishsafety",13) == 0) policy->keys->publish_safety=data.value;
             	}
            		/* Ignore any unknown parameters */
 
