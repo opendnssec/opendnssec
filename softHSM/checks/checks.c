@@ -52,7 +52,7 @@ void usage() {
   printf("-c\t\tTest session functions\n");
   printf("-d\t\tTest user functions\n");
   printf("-e\t\tTest random functions\n");
-  printf("-f\t\tTest key generation and object deletion\n");
+  printf("-f\t\tTest key generation and object creation/deletion\n");
   printf("-g\t\tTest object functions\n");
   printf("-h\t\tShow this help screen\n");
   printf("-i\t\tTest digest functions\n");
@@ -611,9 +611,30 @@ void runRandomCheck(unsigned int counter) {
 void runGenerateCheck(unsigned int counter) {
   unsigned int i;
   static CK_ULONG modulusBits = 768;
-  static CK_BYTE publicExponent[] = { 3 };
+  static CK_BYTE publicExponent[] = { 0x01, 0x00, 0x01 };
+  static CK_BYTE modulus[] = { 0xcb, 0x12, 0x9d, 0xba, 0x22, 0xfa, 0x2b, 0x33, 0x7e, 0x2a, 0x24, 0x65, 0x09, 0xa9,
+                               0xfb, 0x41, 0x1a, 0x0e, 0x2f, 0x89, 0x3a, 0xd6, 0x97, 0x49, 0x77, 0x6d, 0x2a, 0x6e, 0x98,
+                               0x48, 0x6b, 0xa8, 0xc4, 0x63, 0x8e, 0x46, 0x90, 0x70, 0x2e, 0xd4, 0x10, 0xc0, 0xdd, 0xa3,
+                               0x56, 0xcf, 0x97, 0x2f, 0x2f, 0xfc, 0x2d, 0xff, 0x2b, 0xf2, 0x42, 0x69, 0x4a, 0x8c, 0xf1,
+                               0x6f, 0x76, 0x32, 0xc8, 0xe1, 0x37, 0x52, 0xc1, 0xd1, 0x33, 0x82, 0x39, 0x1a, 0xb3, 0x2a,
+                               0xa8, 0x80, 0x4e, 0x19, 0x91, 0xa6, 0xa6, 0x16, 0x65, 0x30, 0x72, 0x80, 0xc3, 0x5c, 0x84,
+                               0x9b, 0x7b, 0x2c, 0x6d, 0x2d, 0x75, 0x51, 0x9f, 0xc9, 0x6d, 0xa8, 0x4d, 0x8c, 0x41, 0x41,
+                               0x12, 0xc9, 0x14, 0xc7, 0x99, 0x31, 0xe4, 0xcd, 0x97, 0x38, 0x2c, 0xca, 0x32, 0x2f, 0xeb,
+                               0x78, 0x37, 0x17, 0x87, 0xc8, 0x09, 0x5a, 0x1a, 0xaf, 0xe4, 0xc4, 0xcc, 0x83, 0xe3, 0x79,
+                               0x01, 0xd6, 0xdb, 0x8b, 0xd6, 0x24, 0x90, 0x43, 0x7b, 0xc6, 0x40, 0x57, 0x58, 0xe4, 0x49,
+                               0x2b, 0x99, 0x61, 0x71, 0x52, 0xf4, 0x8b, 0xda, 0xb7, 0x5a, 0xbf, 0xf7, 0xc5, 0x2a, 0x8b,
+                               0x1f, 0x25, 0x5e, 0x5b, 0xfb, 0x9f, 0xcc, 0x8d, 0x1c, 0x92, 0x21, 0xe9, 0xba, 0xd0, 0x54,
+                               0xf6, 0x0d, 0xe8, 0x7e, 0xb3, 0x9d, 0x9a, 0x47, 0xba, 0x1e, 0x45, 0x4e, 0xdc, 0xe5, 0x20,
+                               0x95, 0xd8, 0xe5, 0xe9, 0x51, 0xff, 0x1f, 0x9e, 0x9e, 0x60, 0x3c, 0x27, 0x1c, 0xf3, 0xc7,
+                               0xf4, 0x89, 0xaa, 0x2a, 0x80, 0xd4, 0x03, 0x5d, 0xf3, 0x39, 0xa3, 0xa7, 0xe7, 0x3f, 0xa9,
+                               0xd1, 0x31, 0x50, 0xb7, 0x0f, 0x08, 0xa2, 0x71, 0xcc, 0x6a, 0xb4, 0xb5, 0x8f, 0xcb, 0xf7,
+                               0x1f, 0x4e, 0xc8, 0x16, 0x08, 0xc0, 0x03, 0x8a, 0xce, 0x17, 0xd1, 0xdd, 0x13, 0x0f, 0xa3,
+                               0xbe, 0xa3 };
   static CK_BYTE id[] = { 123 };
-  static CK_BBOOL true = CK_TRUE;
+  static CK_BBOOL true = CK_TRUE, false = CK_FALSE;
+  static CK_BYTE label[] = "label";
+  static CK_OBJECT_CLASS pubClass = CKO_PUBLIC_KEY;
+  static CK_KEY_TYPE keyType = CKK_RSA;
   CK_ATTRIBUTE publicKeyTemplate[] = {
     {CKA_ENCRYPT, &true, sizeof(true)},
     {CKA_VERIFY, &true, sizeof(true)},
@@ -631,13 +652,26 @@ void runGenerateCheck(unsigned int counter) {
     {CKA_UNWRAP, &true, sizeof(true)},
     {CKA_TOKEN, &true, sizeof(true)}
   };
+  CK_ATTRIBUTE pubTemplate[] = {
+    {CKA_CLASS, &pubClass, sizeof(pubClass)},
+    {CKA_KEY_TYPE, &keyType, sizeof(keyType)},
+    {CKA_LABEL, label, sizeof(label)},
+    {CKA_ID, id, sizeof(id)},
+    {CKA_TOKEN, &true, sizeof(true)},
+    {CKA_VERIFY, &true, sizeof(true)},
+    {CKA_ENCRYPT, &false, sizeof(false)},
+    {CKA_WRAP, &false, sizeof(false)},
+    {CKA_PUBLIC_EXPONENT, publicExponent, sizeof(publicExponent)},
+    {CKA_MODULUS, modulus, sizeof(modulus)},
+    {CKA_CERTIFICATE_CATEGORY, NULL_PTR, 0}
+  };
 
-  printf("Checking C_GenerateKeyPair and C_DestroyObject: ");
+  printf("Checking C_GenerateKeyPair, C_DestroyObject, and C_CreateObject: ");
 
   for(i = 0; i < counter; i++) {
     CK_RV rv;
     CK_SESSION_HANDLE hSession[10];
-    CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
+    CK_OBJECT_HANDLE hPublicKey, hPrivateKey, hCreateKey;
     CK_MECHANISM mechanism = {CKM_VENDOR_DEFINED, NULL_PTR, 0};
 
     /* No init */
@@ -645,6 +679,8 @@ void runGenerateCheck(unsigned int counter) {
     rv = C_GenerateKeyPair(CK_INVALID_HANDLE, NULL_PTR, NULL_PTR, 0, NULL_PTR, 0, NULL_PTR, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
     rv = C_DestroyObject(CK_INVALID_HANDLE, CK_INVALID_HANDLE);
+    assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
+    rv = C_CreateObject(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR);
     assert(rv == CKR_CRYPTOKI_NOT_INITIALIZED);
 
     rv = C_Initialize(NULL_PTR);
@@ -696,6 +732,35 @@ void runGenerateCheck(unsigned int counter) {
     rv = C_DestroyObject(hSession[1], hPublicKey);
     assert(rv == CKR_OK);
 
+    /* C_CreateObject */
+
+    rv = C_Logout(hSession[0]);
+    assert(rv == CKR_OK);
+    rv = C_CreateObject(CK_INVALID_HANDLE, NULL_PTR, 0, NULL_PTR);
+    assert(rv == CKR_SESSION_HANDLE_INVALID);
+    rv = C_CreateObject(hSession[0], NULL_PTR, 0, NULL_PTR);
+    assert(rv == CKR_ARGUMENTS_BAD);
+    rv = C_CreateObject(hSession[0], pubTemplate, 0, NULL_PTR);
+    assert(rv == CKR_ARGUMENTS_BAD);
+    rv = C_CreateObject(hSession[0], pubTemplate, 5, &hCreateKey);
+    assert(rv == CKR_SESSION_READ_ONLY);
+    rv = C_CreateObject(hSession[1], pubTemplate, 5, &hCreateKey);
+    assert(rv == CKR_USER_NOT_LOGGED_IN);
+    rv = C_Login(hSession[0], CKU_USER, userPIN, sizeof(userPIN) - 1);
+    assert(rv == CKR_OK);
+    rv = C_CreateObject(hSession[1], pubTemplate, 0, &hCreateKey);
+    assert(rv == CKR_ATTRIBUTE_VALUE_INVALID);
+    rv = C_CreateObject(hSession[1], pubTemplate, 1, &hCreateKey);
+    assert(rv == CKR_ATTRIBUTE_VALUE_INVALID);
+    rv = C_CreateObject(hSession[1], pubTemplate, 2, &hCreateKey);
+    assert(rv == CKR_TEMPLATE_INCOMPLETE);
+    rv = C_CreateObject(hSession[1], pubTemplate, 11, &hCreateKey);
+    assert(rv == CKR_ATTRIBUTE_TYPE_INVALID);
+    rv = C_CreateObject(hSession[1], pubTemplate, 10, &hCreateKey);
+    assert(rv == CKR_OK);
+    rv = C_DestroyObject(hSession[1], hCreateKey);
+    assert(rv == CKR_OK);
+    
     rv = C_Finalize(NULL_PTR);
     assert(rv == CKR_OK);
 
