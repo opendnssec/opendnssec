@@ -29,11 +29,40 @@
 #ifndef SOFTHSM_SOFTHSM_H
 #define SOFTHSM_SOFTHSM_H 1
 
+#include "pkcs11_unix.h"
+
+typedef struct key_material_t {
+  CK_ULONG sizeE;
+  CK_ULONG sizeN;
+  CK_ULONG sizeD;
+  CK_ULONG sizeP;
+  CK_ULONG sizeQ;
+  CK_VOID_PTR bigE;
+  CK_VOID_PTR bigN;
+  CK_VOID_PTR bigD;
+  CK_VOID_PTR bigP;
+  CK_VOID_PTR bigQ;
+  key_material_t() {
+    sizeE = 0;
+    sizeN = 0;
+    sizeD = 0;
+    sizeP = 0;
+    sizeQ = 0;
+    bigE = NULL_PTR;
+    bigN = NULL_PTR;
+    bigD = NULL_PTR;
+    bigP = NULL_PTR;
+    bigQ = NULL_PTR;
+  }
+} key_material_t;
+
 void usage();
 void initToken(char *slot, char *label, char *soPIN, char *userPIN);
 void showSlots();
 void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID);
-char *hexStrToBin(char *objectID, int idLength, int *newLen);
+char* hexStrToBin(char *objectID, int idLength, int *newLen);
 int hexdigit_to_int(char ch);
+key_material_t* importKeyMat(char *filePath, char *filePIN);
+void freeKeyMaterial(key_material_t *keyMaterial);
 
 #endif /* SOFTHSM_SOFTHSM_H */

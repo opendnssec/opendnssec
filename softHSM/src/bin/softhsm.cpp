@@ -39,7 +39,6 @@
 
 #include <config.h>
 #include "softhsm.h"
-#include "pkcs11_unix.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,42 +55,47 @@
 using namespace Botan;
 
 void usage() {
-  printf("Usage: softhsm [OPTIONS]\n");
   printf("Support tool for libsofthsm\n");
+  printf("Usage: softhsm [OPTIONS]\n");
   printf("Options:\n");
-  printf("--show-slots             Display all the available slots.\n");
-  printf("--init-token             Initialize the token at a given slot.\n");
-  printf("                         Use with --slot, --label, --so-pin, and --pin.\n");
-  printf("                         WARNING: Any content in token token will be erased.\n");
-  printf("--import-key-pair <path> Import a key pair from the given path.\n");
-  printf("                         The file must be in PKCS#8-format.\n");
-  printf("                         Use with --slot, --object-label, --object-id, --file-pin, and --pin.\n");
-  printf("--slot <number>          The slot where the token is located.\n");
-  printf("--label <text>           Defines the label of the token. Max 32 chars.\n");
-  printf("--object-label <text>    Defines the label of the object.\n");
-  printf("--object-id <hex>        Defines the ID of the object. Hexadecimal characters.\n");
-  printf("--so-pin <PIN>           The PIN for the Security Officer (SO).\n");
-  printf("--pin <PIN>              The PIN for the normal user.\n");
-  printf("--file-pin <PIN>         Supply a PIN if the file is encrypted.\n");
-  printf("--help                   Shows this help.\n");
-  printf("-h                       Shows this help.\n\n\n");
-  printf("You also need to have a config file, which specifies the paths to the tokens.\n");
-  printf("Example:\n");
-  printf("  0:/home/user/my.db\n");
-  printf("  # Comments can be added\n");
-  printf("  4:/home/user/token.database\n\n");
-  printf("The path to the config file should also be configured by:\n");
-  printf("  export SOFTHSM_CONF=/home/user/config.file\n");
+  printf("  --show-slots             Display all the available slots.\n");
+  printf("  --init-token             Initialize the token at a given slot.\n");
+  printf("                           Use with --slot, --label, --so-pin, and --pin.\n");
+  printf("                           WARNING: Any content in token token will be erased.\n");
+  printf("  --import <path>          Import a key pair from the given path.\n");
+  printf("                           The file must be in PKCS#8-format.\n");
+  printf("                           Use with --file-pin, --slot, --label, --id, and --pin.\n");
+  printf("\n");
+  printf("  --slot <number>          The slot where the token is located.\n");
+  printf("  --label <text>           Defines the label of the object or the token.\n");
+  printf("  --id <hex>               Defines the ID of the object. Hexadecimal characters.\n");
+  printf("  --so-pin <PIN>           The PIN for the Security Officer (SO).\n");
+  printf("  --pin <PIN>              The PIN for the normal user.\n");
+  printf("  --file-pin <PIN>         Supply a PIN if the file is encrypted.\n");
+  printf("  --help                   Shows this help screen.\n");
+  printf("  -h                       Shows this help screen.\n");
+  printf("\n");
+  printf("\n");
+  printf("  You also need to have a config file, which specifies the paths to the tokens.\n");
+  printf("  It is located by default at %s\n", DEFAULT_SOFTHSM_CONF);
+  printf("  The path to the config file can be change by using:\n");
+  printf("      export SOFTHSM_CONF=/home/user/config.file\n");
+  printf("\n");
+  printf("  An example of a config file:\n");
+  printf("      0:/home/user/my.db\n");
+  printf("      # Comments can be added\n");
+  printf("      # Format:\n");
+  printf("      # <slot number>:<path>\n");
+  printf("      4:/home/user/token.database\n");
 }
 
 enum {
   OPT_SHOW_SLOTS = 0x100,
   OPT_INIT_TOKEN,
-  OPT_IMPORT_KEY_PAIR,
+  OPT_IMPORT,
   OPT_SLOT,
   OPT_LABEL,
-  OPT_OBJECT_LABEL,
-  OPT_OBJECT_ID,
+  OPT_ID,
   OPT_SO_PIN,
   OPT_PIN,
   OPT_FILE_PIN,
@@ -101,11 +105,10 @@ enum {
 static const struct option long_options[] = {
   { "show-slots",      0, NULL, OPT_SHOW_SLOTS },
   { "init-token",      0, NULL, OPT_INIT_TOKEN },
-  { "import-key-pair", 1, NULL, OPT_IMPORT_KEY_PAIR },
+  { "import",          1, NULL, OPT_IMPORT },
   { "slot",            1, NULL, OPT_SLOT },
   { "label",           1, NULL, OPT_LABEL },
-  { "object-label",    1, NULL, OPT_OBJECT_LABEL },
-  { "object-id",       1, NULL, OPT_OBJECT_ID },
+  { "id",              1, NULL, OPT_ID },
   { "so-pin",          1, NULL, OPT_SO_PIN },
   { "pin",             1, NULL, OPT_PIN },
   { "file-pin",        1, NULL, OPT_FILE_PIN },
@@ -122,24 +125,27 @@ int main(int argc, char *argv[]) {
   char *userPIN = NULL;
   char *filePIN = NULL;
   char *label = NULL;
-  char *objectLabel = NULL;
   char *objectID = NULL;
   char *slot = NULL;
 
   int doInitToken = 0;
   int doShowSlots = 0;
-  int doImportKeyPair = 0;
+  int doImport = 0;
+  int action = 0;
 
   while ((opt = getopt_long(argc, argv, "h", long_options, &option_index)) != -1) {
     switch (opt) {
       case OPT_SHOW_SLOTS:
         doShowSlots = 1;
+        action++;
         break;
       case OPT_INIT_TOKEN:
         doInitToken = 1;
+        action++;
         break;
-      case OPT_IMPORT_KEY_PAIR:
-        doImportKeyPair = 1;
+      case OPT_IMPORT:
+        doImport = 1;
+        action++;
         filePath = optarg;
         break;
       case OPT_SLOT:
@@ -148,10 +154,7 @@ int main(int argc, char *argv[]) {
       case OPT_LABEL:
         label = optarg;
         break;
-      case OPT_OBJECT_LABEL:
-        objectLabel = optarg;
-        break;
-      case OPT_OBJECT_ID:
+      case OPT_ID:
         objectID = optarg;
         break;
       case OPT_SO_PIN:
@@ -173,8 +176,14 @@ int main(int argc, char *argv[]) {
   }
 
   // No action given, display the usage.
-  if(doInitToken == 0 && doShowSlots == 0 && doImportKeyPair == 0) {
+  if(action == 0) {
     usage();
+  } else {
+    CK_RV rv = C_Initialize(NULL_PTR);
+    if(rv != CKR_OK) {
+      fprintf(stderr, "Error: Could not initialize libsofthsm. Probably missing the configuration file.\n");
+      exit(1);
+    }
   }
 
   // We should create the token.
@@ -182,12 +191,18 @@ int main(int argc, char *argv[]) {
     initToken(slot, label, soPIN, userPIN);
   }
 
+  // Show all available slots
   if(doShowSlots) {
     showSlots();
   }
 
-  if(doImportKeyPair) {
-    importKeyPair(filePath, filePIN, slot, userPIN, objectLabel, objectID);
+  // Import a key pair from the given path
+  if(doImport) {
+    importKeyPair(filePath, filePIN, slot, userPIN, label, objectID);
+  }
+
+  if(action) {
+    C_Finalize(NULL_PTR);
   }
 
   return 0;
@@ -201,18 +216,18 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   char user_pin_copy[MAX_PIN_LEN+1];
 
   if(slot == NULL) {
-    printf("Error: A slot number must be supplied. Use --slot <number>\n");
-    exit(1);
+    fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
+    return;
   }
 
   if(label == NULL) {
-    printf("Error: A label for the token must be supplied. Use --label <text>\n");
-    exit(1);
+    fprintf(stderr, "Error: A label for the token must be supplied. Use --label <text>\n");
+    return;
   }
 
   if(strlen(label) > 32) {
-    printf("Error: The label must not have a length greater than 32 chars.\n");
-    exit(1);
+    fprintf(stderr, "Error: The token label must not have a length greater than 32 chars.\n");
+    return;
   }
 
   if(soPIN == NULL) {
@@ -263,74 +278,60 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
   memset(paddedLabel, ' ', sizeof(paddedLabel));
   memcpy(paddedLabel, label, strlen(label));
 
-  CK_RV rv = C_Initialize(NULL_PTR);
-  if(rv != CKR_OK) {
-    printf("Could not initialize libsofthsm. Probably missing the configuration file.\n");
-    exit(1);
-  }
-
-  rv = C_InitToken(slotID, (CK_UTF8CHAR_PTR)so_pin_copy, soLength, paddedLabel);
+  CK_RV rv = C_InitToken(slotID, (CK_UTF8CHAR_PTR)so_pin_copy, soLength, paddedLabel);
 
   switch(rv) {
     case CKR_OK:
       break;
     case CKR_SLOT_ID_INVALID:
-      printf("Error: The given slot does not exist.\n");
-      exit(1);
+      fprintf(stderr, "Error: The given slot does not exist.\n");
+      return;
       break;
     case CKR_PIN_INCORRECT:
-      printf("Error: The given SO PIN does not match the one in the token.\n");
-      exit(1);
+      fprintf(stderr, "Error: The given SO PIN does not match the one in the token.\n");
+      return;
       break;
     default:
-      printf("Error: The library could not initialize the token.\n");
-      exit(1);
+      fprintf(stderr, "Error: The library could not initialize the token.\n");
+      return;
       break;
   }
 
   CK_SESSION_HANDLE hSession;
   rv = C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
   if(rv != CKR_OK) {
-    printf("Error: Could not open a session with the library.\n");
-    exit(1);
+    fprintf(stderr, "Error: Could not open a session with the library.\n");
+    return;
   }
 
   rv = C_Login(hSession, CKU_SO, (CK_UTF8CHAR_PTR)so_pin_copy, soLength);
   if(rv != CKR_OK) {
-    printf("Error: Could not log in on the token.\n");
-    exit(1);
+    fprintf(stderr, "Error: Could not log in on the token.\n");
+    return;
   }
 
   rv = C_InitPIN(hSession, (CK_UTF8CHAR_PTR)user_pin_copy, userLength);
   if(rv != CKR_OK) {
-    printf("Error: Could not initialize the user PIN.\n");
-    exit(1);
+    fprintf(stderr, "Error: Could not initialize the user PIN.\n");
+    return;
   }
-
-  C_Finalize(NULL_PTR);
 
   printf("The token has been initialized.\n");
 }
 
 void showSlots() {
-  CK_RV rv = C_Initialize(NULL_PTR);
-  if(rv != CKR_OK) {
-    printf("Could not initialize libsofthsm. Probably missing the configuration file.\n");
-    exit(1);
-  }
-
   CK_ULONG ulSlotCount;
-  rv = C_GetSlotList(CK_FALSE, NULL_PTR, &ulSlotCount);
+  CK_RV rv = C_GetSlotList(CK_FALSE, NULL_PTR, &ulSlotCount);
   if(rv != CKR_OK) {
-    printf("Could not get the number of slots.\n");
-    exit(1);
+    fprintf(stderr, "Error: Could not get the number of slots.\n");
+    return;
   }
 
   CK_SLOT_ID_PTR pSlotList = (CK_SLOT_ID_PTR)malloc(ulSlotCount*sizeof(CK_SLOT_ID));
   rv = C_GetSlotList(CK_FALSE, pSlotList, &ulSlotCount);
   if (rv != CKR_OK) {
-    printf("Could not get the slot list.\n");
-    exit(1);
+    fprintf(stderr, "Error: Could not get the slot list.\n");
+    return;
   }
 
   printf("Available slots:\n");
@@ -341,8 +342,9 @@ void showSlots() {
 
     rv = C_GetSlotInfo(pSlotList[i], &slotInfo);
     if(rv != CKR_OK) {  
-      printf("Could not get the slot info.\n");
-      exit(1);
+      fprintf(stderr, "Error: Could not get the slot info.\n");
+      free(pSlotList);
+      return;
     }
 
     printf("Slot %-2lu\n", pSlotList[i]);
@@ -354,8 +356,8 @@ void showSlots() {
 
       rv = C_GetTokenInfo(pSlotList[i], &tokenInfo);
       if(rv != CKR_OK) {
-        printf("Could not get the token info.\n");
-        exit(1);
+        fprintf(stderr, "Error: Could not get the token info.\n");
+        return;
       }
 
       printf("           Token initialized: ");
@@ -375,198 +377,153 @@ void showSlots() {
   }
 
   free(pSlotList);
-  C_Finalize(NULL_PTR);
-
 }
 
-void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID) {
-  char user_pin_copy[MAX_PIN_LEN+1];
-
+void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *label, char *objectID) {
   if(slot == NULL) {
-    printf("Error: A slot number must be supplied. Use --slot <number>\n");
-    exit(1);
+    fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
+    return;
   }
 
-  if(objectLabel == NULL) {
-    printf("Error: A label for the object must be supplied. Use --object-label <text>\n");
-    exit(1);
+  if(label == NULL) {
+    fprintf(stderr, "Error: A label for the object must be supplied. Use --label <text>\n");
+    return;
+  }
+
+  if(userPIN == NULL) {
+    fprintf(stderr, "Error: An user PIN must be supplied. Use --pin <PIN>\n");
+    return;
   }
 
   if(objectID == NULL) {
-    printf("Error: An ID for the object must be supplied. Use --object-id <hex>\n");
-    exit(1);
+    fprintf(stderr, "Error: An ID for the object must be supplied. Use --id <hex>\n");
+    return;
   }
   int objIDLen = 0;
   char *objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
-
-  if(userPIN == NULL) {
-    printf("Error: An user PIN must be supplied. Use --pin <PIN>\n");
-    free(objID);
-    exit(1);
-  }
-
-  CK_RV rv = C_Initialize(NULL_PTR);
-  if(rv != CKR_OK) {
-    printf("Could not initialize libsofthsm. Probably missing the configuration file.\n");
-    free(objID);
-    exit(1);
+  if(objID == NULL) {
+    return;
   }
 
   CK_SLOT_ID slotID = atoi(slot);
   CK_SESSION_HANDLE hSession;
-  rv = C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
+  CK_RV rv = C_OpenSession(slotID, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL_PTR, NULL_PTR, &hSession);
   if(rv != CKR_OK) {
     if(rv == CKR_SLOT_ID_INVALID) {
-      printf("Error: The given slot does not exist.\n");
+      fprintf(stderr, "Error: The given slot does not exist.\n");
     } else {
-      printf("Error: Could not open a session on the given slot.\n");
+      fprintf(stderr, "Error: Could not open a session on the given slot.\n");
     }
     free(objID);
-    exit(1);
+    return;
   }
 
   rv = C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)userPIN, strlen(userPIN));
   if(rv != CKR_OK) {
     if(rv == CKR_PIN_INCORRECT) {
-      printf("Error: The given user PIN does not match the one in the token.\n");
+      fprintf(stderr, "Error: The given user PIN does not match the one in the token.\n");
     } else {
-      printf("Error: Could not log in on the token.\n");
+      fprintf(stderr, "Error: Could not log in on the token.\n");
     }
     free(objID);
-    exit(1);
+    return;
   }
 
-  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
-  Private_Key *rsaKey = NULL_PTR;
-
-  try {
-    if(filePIN == NULL) {
-      rsaKey = PKCS8::load_key(filePath, *rng);
-    } else {
-      rsaKey = PKCS8::load_key(filePath, *rng, filePIN);
-    } 
-  } 
-  catch(std::exception& e) { 
-    printf("%s\n", e.what());
-    delete rng;
+  key_material_t *keyMat = importKeyMat(filePath, filePIN);
+  if(keyMat == NULL) {
     free(objID);
-    exit(1); 
+    return;
   }
-  delete rng;
-
-  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
-  CK_ULONG size1 = ifKeyPriv->get_e().bytes();
-  CK_ULONG size2 = ifKeyPriv->get_n().bytes();
-  CK_ULONG size3 = ifKeyPriv->get_d().bytes();
-  CK_ULONG size4 = ifKeyPriv->get_p().bytes();
-  CK_ULONG size5 = ifKeyPriv->get_q().bytes();
-  char *bigExp = (char*)malloc(size1);
-  char *bigMod = (char*)malloc(size2);
-  char *bigPrivExp = (char*)malloc(size3);
-  char *bigPrime1 = (char*)malloc(size4);
-  char *bigPrime2 = (char*)malloc(size5);
-  ifKeyPriv->get_e().binary_encode((byte *)bigExp);
-  ifKeyPriv->get_n().binary_encode((byte *)bigMod);
-  ifKeyPriv->get_d().binary_encode((byte *)bigPrivExp);
-  ifKeyPriv->get_p().binary_encode((byte *)bigPrime1);
-  ifKeyPriv->get_q().binary_encode((byte *)bigPrime2);
-  delete rsaKey;
 
   CK_OBJECT_CLASS pubClass = CKO_PUBLIC_KEY, privClass = CKO_PRIVATE_KEY;
   CK_KEY_TYPE keyType = CKK_RSA;
   CK_BBOOL ckTrue = CK_TRUE, ckFalse = CK_FALSE;
   CK_ATTRIBUTE pubTemplate[] = {
-    { CKA_CLASS,            &pubClass,   sizeof(pubClass) },
-    { CKA_KEY_TYPE,         &keyType,    sizeof(keyType) },
-    { CKA_LABEL,            objectLabel, strlen(objectLabel) },
-    { CKA_ID,               objID,       objIDLen },
-    { CKA_TOKEN,            &ckTrue,     sizeof(ckTrue) },
-    { CKA_VERIFY,           &ckTrue,     sizeof(ckTrue) },
-    { CKA_ENCRYPT,          &ckFalse,    sizeof(ckFalse) },
-    { CKA_WRAP,             &ckFalse,    sizeof(ckFalse) },
-    { CKA_PUBLIC_EXPONENT,  bigExp,      size1 },
-    { CKA_MODULUS,          bigMod,      size2 }
+    { CKA_CLASS,            &pubClass,    sizeof(pubClass) },
+    { CKA_KEY_TYPE,         &keyType,     sizeof(keyType) },
+    { CKA_LABEL,            label,        strlen(label) },
+    { CKA_ID,               objID,        objIDLen },
+    { CKA_TOKEN,            &ckTrue,      sizeof(ckTrue) },
+    { CKA_VERIFY,           &ckTrue,      sizeof(ckTrue) },
+    { CKA_ENCRYPT,          &ckFalse,     sizeof(ckFalse) },
+    { CKA_WRAP,             &ckFalse,     sizeof(ckFalse) },
+    { CKA_PUBLIC_EXPONENT,  keyMat->bigE, keyMat->sizeE },
+    { CKA_MODULUS,          keyMat->bigN, keyMat->sizeN }
   };
   CK_ATTRIBUTE privTemplate[] = {
-    { CKA_CLASS,            &privClass,  sizeof(privClass) },
-    { CKA_KEY_TYPE,         &keyType,    sizeof(keyType) },
-    { CKA_LABEL,            objectLabel, strlen(objectLabel) },
-    { CKA_ID,               objID,       objIDLen },
-    { CKA_SIGN,             &ckTrue,     sizeof(ckTrue) },
-    { CKA_DECRYPT,          &ckFalse,    sizeof(ckFalse) },
-    { CKA_UNWRAP,           &ckFalse,    sizeof(ckFalse) },
-    { CKA_SENSITIVE,        &ckTrue,     sizeof(ckTrue) },
-    { CKA_TOKEN,            &ckTrue,     sizeof(ckTrue) },
-    { CKA_PRIVATE,          &ckTrue,     sizeof(ckTrue) },
-    { CKA_EXTRACTABLE,      &ckFalse,    sizeof(ckFalse) },
-    { CKA_PUBLIC_EXPONENT,  bigExp,      size1 },
-    { CKA_MODULUS,          bigMod,      size2 },
-    { CKA_PRIVATE_EXPONENT, bigPrivExp,  size3 },
-    { CKA_PRIME_1,          bigPrime1,   size4 },
-    { CKA_PRIME_2,          bigPrime2,   size5 }
+    { CKA_CLASS,            &privClass,   sizeof(privClass) },
+    { CKA_KEY_TYPE,         &keyType,     sizeof(keyType) },
+    { CKA_LABEL,            label,        strlen(label) },
+    { CKA_ID,               objID,        objIDLen },
+    { CKA_SIGN,             &ckTrue,      sizeof(ckTrue) },
+    { CKA_DECRYPT,          &ckFalse,     sizeof(ckFalse) },
+    { CKA_UNWRAP,           &ckFalse,     sizeof(ckFalse) },
+    { CKA_SENSITIVE,        &ckTrue,      sizeof(ckTrue) },
+    { CKA_TOKEN,            &ckTrue,      sizeof(ckTrue) },
+    { CKA_PRIVATE,          &ckTrue,      sizeof(ckTrue) },
+    { CKA_EXTRACTABLE,      &ckFalse,     sizeof(ckFalse) },
+    { CKA_PUBLIC_EXPONENT,  keyMat->bigE, keyMat->sizeE },
+    { CKA_MODULUS,          keyMat->bigN, keyMat->sizeN },
+    { CKA_PRIVATE_EXPONENT, keyMat->bigD, keyMat->sizeD },
+    { CKA_PRIME_1,          keyMat->bigP, keyMat->sizeP },
+    { CKA_PRIME_2,          keyMat->bigQ, keyMat->sizeQ }
   };
 
   CK_OBJECT_HANDLE hKey1, hKey2;
   rv = C_CreateObject(hSession, privTemplate, 16, &hKey1);
   if(rv != CKR_OK) {
-    printf("%i\n", rv);
-    delete bigExp;
-    delete bigMod;
-    delete bigPrivExp;
-    delete bigPrime1;
-    delete bigPrime2;
+    freeKeyMaterial(keyMat);
     free(objID);
-    printf("Error: Could not save the private key in the token.\n");
-    exit(1);
-  }
-  rv = C_CreateObject(hSession, pubTemplate, 10, &hKey2);
-  if(rv != CKR_OK) {
-    C_DestroyObject(hSession, hKey1);
-    delete bigExp;
-    delete bigMod;
-    delete bigPrivExp;
-    delete bigPrime1;
-    delete bigPrime2;
-    free(objID);
-    printf("Error: Could not save the public key in the token.\n");
-    exit(1);
+    fprintf(stderr, "Error: Could not save the private key in the token.\n");
+    return;
   }
 
-  delete bigExp;
-  delete bigMod;
-  delete bigPrivExp;
-  delete bigPrime1;
-  delete bigPrime2;
+  rv = C_CreateObject(hSession, pubTemplate, 10, &hKey2);
+
+  freeKeyMaterial(keyMat);
   free(objID);
 
-  C_Finalize(NULL_PTR);
+  if(rv != CKR_OK) {
+    C_DestroyObject(hSession, hKey1);
+    fprintf(stderr, "Error: Could not save the public key in the token.\n");
+    return;
+  }
 
   printf("The key pair has been imported to the token in slot %i.\n", slotID);
 }
 
-char *hexStrToBin(char *objectID, int idLength, int *newLen) {
-  char *bytes;
+// Convert a char array of hexadecimal characters into a binary representation
+
+char* hexStrToBin(char *objectID, int idLength, int *newLen) {
+  char *bytes = NULL;
 
   if(idLength % 2 != 0) {
-    printf("Error: Invalid length on hex string.\n");
-    exit(1);
+    fprintf(stderr, "Error: Invalid length on hex string.\n");
+    return NULL;
   }
 
   for(int i = 0; i < idLength; i++) {
     if(hexdigit_to_int(objectID[i]) == -1) {
-      printf("Error: Invalid character in hex string.\n");
-      exit(1);
+      fprintf(stderr, "Error: Invalid character in hex string.\n");
+      return NULL;
     }
   }
 
   *newLen = idLength / 2;
   bytes = (char *)malloc(*newLen);
+  if(bytes == NULL) {
+    fprintf(stderr, "Error: Could not allocate memory.\n");
+    return NULL;
+  }
+
   for(int i = 0; i < *newLen; i++) {
     bytes[i] = hexdigit_to_int(objectID[2*i]) * 16 +
                hexdigit_to_int(objectID[2*i+1]);
   }
   return bytes;
 }
+
+// Return the integer value of a hexadecimal character
 
 int hexdigit_to_int(char ch) {
   switch (ch) {
@@ -610,5 +567,71 @@ int hexdigit_to_int(char ch) {
       return 15;
     default:
       return -1;
+  }
+}
+
+// Import key material from file
+
+key_material_t* importKeyMat(char *filePath, char *filePIN) {
+  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+  Private_Key *rsaKey = NULL;
+
+  try {
+    if(filePIN == NULL) {
+      rsaKey = PKCS8::load_key(filePath, *rng);
+    } else {
+      rsaKey = PKCS8::load_key(filePath, *rng, filePIN);
+    }
+  }
+  catch(std::exception& e) {
+    fprintf(stderr, "%s\n", e.what());
+    fprintf(stderr, "Error: Perhaps wrong path to file, wrong file format, or wrong PIN to file (--file-pin <PIN>).\n");
+    delete rng;
+    return NULL;
+  }
+  delete rng;
+
+  IF_Scheme_PrivateKey *ifKeyPriv = dynamic_cast<IF_Scheme_PrivateKey*>(rsaKey);
+  key_material_t *keyMat = (key_material_t *)malloc(sizeof(key_material_t));
+  keyMat->sizeE = ifKeyPriv->get_e().bytes();
+  keyMat->sizeN = ifKeyPriv->get_n().bytes();
+  keyMat->sizeD = ifKeyPriv->get_d().bytes();
+  keyMat->sizeP = ifKeyPriv->get_p().bytes();
+  keyMat->sizeQ = ifKeyPriv->get_q().bytes();
+  keyMat->bigE = (CK_VOID_PTR)malloc(keyMat->sizeE);
+  keyMat->bigN = (CK_VOID_PTR)malloc(keyMat->sizeN);
+  keyMat->bigD = (CK_VOID_PTR)malloc(keyMat->sizeD);
+  keyMat->bigP = (CK_VOID_PTR)malloc(keyMat->sizeP);
+  keyMat->bigQ = (CK_VOID_PTR)malloc(keyMat->sizeQ);
+  ifKeyPriv->get_e().binary_encode((byte *)keyMat->bigE);
+  ifKeyPriv->get_n().binary_encode((byte *)keyMat->bigN);
+  ifKeyPriv->get_d().binary_encode((byte *)keyMat->bigD);
+  ifKeyPriv->get_p().binary_encode((byte *)keyMat->bigP);
+  ifKeyPriv->get_q().binary_encode((byte *)keyMat->bigQ);
+  delete rsaKey;
+
+  return keyMat;
+}
+
+// Free the memory for the key material container
+
+void freeKeyMaterial(key_material_t *keyMaterial) {
+  if(keyMaterial != NULL) {
+    if(keyMaterial->bigE != NULL) {
+      free(keyMaterial->bigE);
+    }
+    if(keyMaterial->bigN != NULL) {
+      free(keyMaterial->bigN);
+    }
+    if(keyMaterial->bigD != NULL) {
+      free(keyMaterial->bigD);
+    }
+    if(keyMaterial->bigP != NULL) {
+      free(keyMaterial->bigP);
+    }
+    if(keyMaterial->bigQ != NULL) {
+      free(keyMaterial->bigQ);
+    }
+    free(keyMaterial);
   }
 }
