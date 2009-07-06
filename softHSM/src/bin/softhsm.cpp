@@ -45,14 +45,8 @@
 #include <getopt.h>
 #include <string.h>
 #include <unistd.h>
-
-// Includes for the crypto library
-#include <botan/auto_rng.h>
-#include <botan/pk_keys.h>
-#include <botan/pkcs8.h>
-#include <botan/bigint.h>
-#include <botan/if_algo.h>
-using namespace Botan;
+#include <iostream>
+#include <fstream>
 
 void usage() {
   printf("Support tool for libsofthsm\n");
@@ -69,14 +63,16 @@ void usage() {
   printf("                           The file will be written in PKCS#8-format.\n");
   printf("                           Use with --file-pin (will encrypt file), --slot, --id, and --pin.\n");
   printf("\n");
-  printf("  --slot <number>          The slot where the token is located.\n");
-  printf("  --label <text>           Defines the label of the object or the token.\n");
-  printf("  --id <hex>               Defines the ID of the object. Hexadecimal characters.\n");
-  printf("  --so-pin <PIN>           The PIN for the Security Officer (SO).\n");
-  printf("  --pin <PIN>              The PIN for the normal user.\n");
-  printf("  --file-pin <PIN>         Supply a PIN if the file is encrypted.\n");
-  printf("  --help                   Shows this help screen.\n");
   printf("  -h                       Shows this help screen.\n");
+  printf("  --file-pin <PIN>         Supply a PIN if the file is encrypted.\n");
+  printf("  --force                  Override some warnings.\n");
+  printf("  --help                   Shows this help screen.\n");
+  printf("  --id <hex>               Defines the ID of the object. Hexadecimal characters.\n");
+  printf("                           Use with --force if multiple key pairs may share the same ID.\n");
+  printf("  --label <text>           Defines the label of the object or the token.\n");
+  printf("  --pin <PIN>              The PIN for the normal user.\n");
+  printf("  --slot <number>          The slot where the token is located.\n");
+  printf("  --so-pin <PIN>           The PIN for the Security Officer (SO).\n");
   printf("\n");
   printf("\n");
   printf("  You also need to have a config file, which specifies the paths to the tokens.\n");
@@ -103,6 +99,7 @@ enum {
   OPT_SO_PIN,
   OPT_PIN,
   OPT_FILE_PIN,
+  OPT_FORCE,
   OPT_HELP
 };
 
@@ -117,6 +114,7 @@ static const struct option long_options[] = {
   { "so-pin",          1, NULL, OPT_SO_PIN },
   { "pin",             1, NULL, OPT_PIN },
   { "file-pin",        1, NULL, OPT_FILE_PIN },
+  { "force",           0, NULL, OPT_FORCE },
   { "help",            0, NULL, OPT_HELP },
   { NULL,              0, NULL, 0 }
 };
@@ -133,6 +131,7 @@ int main(int argc, char *argv[]) {
   char *label = NULL;
   char *objectID = NULL;
   char *slot = NULL;
+  int forceExec = 0;
 
   int doInitToken = 0;
   int doShowSlots = 0;
@@ -178,6 +177,9 @@ int main(int argc, char *argv[]) {
       case OPT_FILE_PIN:
         filePIN = optarg;
         break;
+      case OPT_FORCE:
+        forceExec = 1;
+        break;
       case OPT_HELP:
       case 'h':
       default:
@@ -210,7 +212,7 @@ int main(int argc, char *argv[]) {
 
   // Import a key pair from the given path
   if(doImport) {
-    importKeyPair(inPath, filePIN, slot, userPIN, label, objectID);
+    importKeyPair(inPath, filePIN, slot, userPIN, label, objectID, forceExec);
   }
 
   // Export a key pair to the given path
@@ -390,13 +392,19 @@ void showSlots() {
       } else {
         printf("yes\n");
       }
+
+      if((tokenInfo.flags & CKF_TOKEN_INITIALIZED) != 0) {
+        printf("           Token label: %.*s\n", 32, tokenInfo.label);
+      }
     }
   }
 
   free(pSlotList);
 }
 
-void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *label, char *objectID) {
+// Import a key pair from given path
+
+void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *label, char *objectID, int forceExec) {
   if(slot == NULL) {
     fprintf(stderr, "Error: A slot number must be supplied. Use --slot <number>\n");
     return;
@@ -419,6 +427,7 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   int objIDLen = 0;
   char *objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
   if(objID == NULL) {
+    fprintf(stderr, "Please edit --id <hex> to correct error.\n");
     return;
   }
 
@@ -443,6 +452,13 @@ void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
       fprintf(stderr, "Error: Could not log in on the token.\n");
     }
     free(objID);
+    return;
+  }
+
+  CK_OBJECT_HANDLE oHandle = searchObject(hSession, objID, objIDLen);
+  if(oHandle != CK_INVALID_HANDLE && forceExec == 0) {
+    free(objID);
+    fprintf(stderr, "Error: The ID is already assigned to another object. Use --force to override this message.\n");
     return;
   }
 
@@ -535,6 +551,7 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
   int objIDLen = 0;
   char *objID = hexStrToBin(objectID, strlen(objectID), &objIDLen);
   if(objID == NULL) {
+    fprintf(stderr, "Please edit --id <hex> to correct error.\n");
     return;
   }
 
@@ -562,13 +579,34 @@ void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, cha
     return;
   }
 
+  // Find the object handle
   CK_OBJECT_HANDLE oHandle = searchObject(hSession, objID, objIDLen);
+  free(objID);
   if(oHandle == CK_INVALID_HANDLE) {
-    free(objID);
+    fprintf(stderr, "Error: Could not find the private key with ID = %s\n", objectID);
     return;
   }
 
-  printf("Function not fully implemented\n");
+  // Get the path to the token database
+  char *dbPath = getDBPath(slotID);
+  if(dbPath == NULL) {
+    return;
+  }
+
+  // Extract the key directly from the database
+  Private_Key *privKey = getPrivKey(dbPath, oHandle);
+  free(dbPath);
+  if(privKey == NULL) {
+    return;
+  }
+
+  // Write the key to disk
+  rv = writeKeyToDisk(filePath, filePIN, privKey);
+  if(rv == CKR_OK) {
+    printf("The key pair has been written to %s\n", filePath);
+  }
+
+  delete privKey;
 }
 
 // Convert a char array of hexadecimal characters into a binary representation
@@ -652,6 +690,10 @@ int hexdigit_to_int(char ch) {
 // Import key material from file
 
 key_material_t* importKeyMat(char *filePath, char *filePIN) {
+  if(filePath == NULL) {
+    return NULL;
+  }
+
   AutoSeeded_RNG *rng = new AutoSeeded_RNG();
   Private_Key *privKey = NULL;
 
@@ -728,12 +770,12 @@ CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objID
     return CK_INVALID_HANDLE;
   }
   CK_OBJECT_CLASS oClass = CKO_PRIVATE_KEY;
-  CK_OBJECT_HANDLE hObject = 0;
+  CK_OBJECT_HANDLE hObject = CK_INVALID_HANDLE;
   CK_ULONG objectCount = 0;
 
   CK_ATTRIBUTE objTemplate[] = {
     { CKA_CLASS, &oClass, sizeof(oClass) },
-    { CKA_ID,    objID,      objIDLen }
+    { CKA_ID,    objID,   objIDLen }
   };
 
   CK_RV rv = C_FindObjectsInit(hSession, objTemplate, 2);
@@ -744,7 +786,7 @@ CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objID
 
   rv = C_FindObjects(hSession, &hObject, 1, &objectCount);
   if(rv != CKR_OK) {
-    fprintf(stderr, "Error: Could get the search results.\n");
+    fprintf(stderr, "Error: Could not get the search results.\n");
     return CK_INVALID_HANDLE;
   }
 
@@ -755,9 +797,240 @@ CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objID
   }
 
   if(objectCount == 0) {
-    fprintf(stderr, "Error: Could not find the private key.\n");
     return CK_INVALID_HANDLE;
   }
 
   return hObject;
+}
+
+// Write the key pair to disk
+
+CK_RV writeKeyToDisk(char *filePath, char *filePIN, Private_Key *privKey) {
+  if(filePath == NULL || privKey == NULL) {
+    return CKR_GENERAL_ERROR;
+  }
+
+  std::ofstream privFile(filePath);
+
+  if(!privFile) {
+    fprintf(stderr, "Error: Could not open file for for output.\n");
+    return CKR_GENERAL_ERROR;
+  }
+
+  AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+
+  try {
+    if(filePIN == NULL) {
+      privFile << PKCS8::PEM_encode(*privKey);
+    } else {
+      privFile << PKCS8::PEM_encode(*privKey, *rng, filePIN);
+    }
+  }
+  catch(std::exception& e) {
+    delete rng;
+    privFile.close();
+    fprintf(stderr, "%s\n", e.what());
+    fprintf(stderr, "Error: Could not write to file.\n");
+    return CKR_GENERAL_ERROR;
+  }
+
+  delete rng;
+  privFile.close();
+
+  return CKR_OK;
+}
+
+// Get the path to the database for this slot
+
+char* getDBPath(CK_SLOT_ID slotID) {
+  FILE *fp;
+
+  const char *confPath = getenv("SOFTHSM_CONF");
+
+  if(confPath == NULL) {
+    confPath = DEFAULT_SOFTHSM_CONF;
+  }
+
+  fp = fopen(confPath,"r");
+
+  if(fp == NULL) {
+    fprintf(stderr, "Error: Could not open the config file: %s", confPath);
+    return NULL;
+  }
+
+  char fileBuf[1024];
+
+  // Format in config file
+  //
+  // slotID:dbPath
+  // # Line is ignored
+
+  char *realPath = NULL;
+  while(fgets(fileBuf, sizeof(fileBuf), fp) != NULL) {
+    // End the string at the first comment or newline
+    fileBuf[strcspn(fileBuf, "#\n\r")] = '\0';
+
+    // Get the first part of the line
+    char *slotidstr = strtok(fileBuf, ":");
+
+    // Check that we have a digit in the first position, so it can be parsed.
+    if(slotidstr == NULL || !isdigit((int)*slotidstr)) {
+      continue;
+    }
+
+    if(atoi(slotidstr) == slotID) {
+      // Get the second part of the line
+      char *dbPath = strtok(NULL, ":");
+      if(dbPath == NULL) {
+        break;
+      }
+
+      int startPos = 0;
+      int endPos = strlen(dbPath);
+
+      // Find the first position without a space
+      while(isspace((int)*(dbPath + startPos)) && startPos < endPos) {
+        startPos++;
+      }
+      // Find the last position without a space
+      while(isspace((int)*(dbPath + endPos)) && startPos < endPos) {
+        endPos--;
+      }
+
+      // We must have a valid string
+      int length = endPos - startPos;
+      if(length <= 0) {
+        break;
+      }
+
+      // Create the real DB path
+      realPath = (char *)malloc(length + 1);
+      if(realPath != NULL) {
+        realPath[length] = '\0';
+        memcpy(realPath, dbPath + startPos, length);
+      }
+      break;
+    }
+  }
+
+  fclose(fp);
+
+  if(realPath == NULL) {
+    fprintf(stderr, "Error: Could not get the path to the token database.\n");
+  }
+
+  return realPath;
+}
+
+// Returns a big int of a given attribute.
+
+BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type) {
+  BigInt retVal = BigInt(0);
+
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, type);
+
+  // Get attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    if(pValue != NULL_PTR) {
+      retVal = BigInt((byte *)pValue, (u32bit)length);
+    }
+  }
+
+  sqlite3_reset(select_an_attribute_sql);
+
+  return retVal;
+}
+
+// Return the class of the object
+
+CK_OBJECT_CLASS getObjectClass(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef) {
+  CK_OBJECT_CLASS retVal = CKO_VENDOR_DEFINED;
+
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, CKA_CLASS);
+
+  // Get attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    if(pValue != NULL_PTR && length == sizeof(CK_OBJECT_CLASS)) {
+      retVal = *(CK_OBJECT_CLASS *)pValue;
+    }
+  }
+
+  sqlite3_reset(select_an_attribute_sql);
+
+  return retVal;
+}
+
+// Return the key type of the object
+
+CK_KEY_TYPE getKeyType(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef) {
+  CK_KEY_TYPE retVal = CKK_VENDOR_DEFINED;
+
+  sqlite3_bind_int(select_an_attribute_sql, 1, objectRef);
+  sqlite3_bind_int(select_an_attribute_sql, 2, CKA_KEY_TYPE);
+
+  // Get attribute
+  if(sqlite3_step(select_an_attribute_sql) == SQLITE_ROW) {
+    CK_VOID_PTR pValue = (CK_VOID_PTR)sqlite3_column_blob(select_an_attribute_sql, 0);
+    CK_ULONG length = sqlite3_column_int(select_an_attribute_sql, 1);
+
+    if(pValue != NULL_PTR && length == sizeof(CK_KEY_TYPE)) {
+      retVal = *(CK_KEY_TYPE *)pValue;
+    }
+  }
+
+  sqlite3_reset(select_an_attribute_sql);
+
+  return retVal;
+}
+
+// Get the private key from database
+
+Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle) {
+  sqlite3 *db = NULL;
+  const char select_str[] = "SELECT value,length FROM Attributes WHERE objectID = ? AND type = ?;";
+  sqlite3_stmt *select_sql = NULL;
+  Private_Key *privKey = NULL;
+
+  if(sqlite3_open(dbPath, &db) == 0 && sqlite3_prepare_v2(db, select_str, -1, &select_sql, NULL) == 0) {
+    if(getObjectClass(select_sql, oHandle) == CKO_PRIVATE_KEY && getKeyType(select_sql, oHandle) == CKK_RSA) {
+      BigInt bigN = getBigIntAttribute(select_sql, oHandle, CKA_MODULUS);
+      BigInt bigE = getBigIntAttribute(select_sql, oHandle, CKA_PUBLIC_EXPONENT);
+      BigInt bigD = getBigIntAttribute(select_sql, oHandle, CKA_PRIVATE_EXPONENT);
+      BigInt bigP = getBigIntAttribute(select_sql, oHandle, CKA_PRIME_1);
+      BigInt bigQ = getBigIntAttribute(select_sql, oHandle, CKA_PRIME_2);
+
+      AutoSeeded_RNG *rng = new AutoSeeded_RNG();
+      
+      try {
+        privKey = new RSA_PrivateKey(*rng, bigP, bigQ, bigE, bigD, bigN);
+      }
+      catch(...) {
+        fprintf(stderr, "Error: Could not extract the private key material from database.\n");
+      }
+
+      delete rng;
+    } else {
+      fprintf(stderr, "Error: Object class or key type not supported.\n");
+    }
+  } else {
+    fprintf(stderr, "Error: Database handling error.\n");
+  }
+
+  if(select_sql != NULL) {
+    sqlite3_finalize(select_sql);
+  }
+
+  if(db != NULL) {
+    sqlite3_close(db);
+  }
+
+  return privKey;
 }

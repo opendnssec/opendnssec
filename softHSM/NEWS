@@ -15,6 +15,7 @@ New in 1.0-RC2; 2009-0X-XX Rickard Bondesson
 * Simplified the configure options
 * The softhsm tool initialize the tokens by using the library.
 * Import keys via PKCS#11 and the softhsm tool.
+* Export keys via the softhsm tool
 
 New in 1.0-RC1; 2009-03-10 Rickard Bondesson
 

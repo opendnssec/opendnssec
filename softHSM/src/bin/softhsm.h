@@ -30,6 +30,16 @@
 #define SOFTHSM_SOFTHSM_H 1
 
 #include "pkcs11_unix.h"
+#include <sqlite3.h>
+
+// Includes for the crypto library
+#include <botan/auto_rng.h>
+#include <botan/pk_keys.h>
+#include <botan/rsa.h>
+#include <botan/pkcs8.h>
+#include <botan/bigint.h>
+#include <botan/if_algo.h>
+using namespace Botan;
 
 typedef struct key_material_t {
   CK_ULONG sizeE;
@@ -56,15 +66,37 @@ typedef struct key_material_t {
   }
 } key_material_t;
 
+// Main functions
+
 void usage();
 void initToken(char *slot, char *label, char *soPIN, char *userPIN);
 void showSlots();
-void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID);
+void importKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectLabel, char *objectID, int forceExec);
 void exportKeyPair(char *filePath, char *filePIN, char *slot, char *userPIN, char *objectID);
+
+// Support functions
+
+/// Hex
 char* hexStrToBin(char *objectID, int idLength, int *newLen);
 int hexdigit_to_int(char ch);
+
+/// Key material
 key_material_t* importKeyMat(char *filePath, char *filePIN);
 void freeKeyMaterial(key_material_t *keyMaterial);
+
+/// DB info
+Private_Key* getPrivKey(char *dbPath, CK_OBJECT_HANDLE oHandle);
+CK_KEY_TYPE getKeyType(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef);
+CK_OBJECT_CLASS getObjectClass(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef);
+BigInt getBigIntAttribute(sqlite3_stmt *select_an_attribute_sql, CK_OBJECT_HANDLE objectRef, CK_ATTRIBUTE_TYPE type);
+
+/// Config
+char* getDBPath(CK_SLOT_ID slotID);
+
+/// PKCS#11 support
 CK_OBJECT_HANDLE searchObject(CK_SESSION_HANDLE hSession, char *objID, int objIDLen);
+
+/// Key to file
+CK_RV writeKeyToDisk(char *filePath, char *filePIN, Private_Key *privKey);
 
 #endif /* SOFTHSM_SOFTHSM_H */

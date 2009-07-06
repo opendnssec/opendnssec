@@ -1,92 +1,117 @@
 $Id$
 
-SoftHSM is part of the OpenDNSSEC project.
-Read more at www.opendnssec.org
+  SoftHSM is part of the OpenDNSSEC project.
+  Read more at www.opendnssec.org
 
 INTRODUCTION
 
-The DNSSEC Signer, part of the OpenDNSSEC project, handles and stores its 
-cryptographic keys via the PKCS#11 interface. This interface specifies how 
-to communicate with cryptographic devices such as HSM:s (Hardware Security 
-Modules) and smart cards. The purpose of these devices is, among others, 
-to generate cryptographic keys and sign information without revealing 
-private-key material to the outside world. They are often designed to 
-perform well on these specific tasks compared to ordinary processes in a 
-normal computer.
+  The DNSSEC Signer, part of the OpenDNSSEC project, handles and stores its 
+  cryptographic keys via the PKCS#11 interface. This interface specifies how 
+  to communicate with cryptographic devices such as HSM:s (Hardware Security 
+  Modules) and smart cards. The purpose of these devices is, among others, 
+  to generate cryptographic keys and sign information without revealing 
+  private-key material to the outside world. They are often designed to 
+  perform well on these specific tasks compared to ordinary processes in a 
+  normal computer.
 
-A potential problem with the use of the PKCS#11 interface is that it might 
-limit the wide spread use of the DNSSEC Signer, since a potential user 
-might not be willing to invest in a new hardware device. To counter this 
-effect, OpenDNSSEC is providing a software implementation of a generic 
-cryptographic device with a PKCS#11 interface, the SoftHSM. SoftHSM is 
-designed to meet the requirements of the DNSSEC Signer, but can also work 
-together with other cryptographic products because of the PKCS#11 
-interface.
+  A potential problem with the use of the PKCS#11 interface is that it might 
+  limit the wide spread use of the DNSSEC Signer, since a potential user 
+  might not be willing to invest in a new hardware device. To counter this 
+  effect, OpenDNSSEC is providing a software implementation of a generic 
+  cryptographic device with a PKCS#11 interface, the SoftHSM. SoftHSM is 
+  designed to meet the requirements of the DNSSEC Signer, but can also work 
+  together with other cryptographic products because of the PKCS#11 
+  interface.
 
 DEPENDENCIES
 
-SoftHSM depends on the Botan 1.8.0 or greater (a cryptographic library) 
-and SQLite 3.4.2 or greater (a database library). They can be found at:
-  http://botan.randombit.net
-and
-  http://www.sqlite.org
+  SoftHSM depends on the Botan 1.8.0 or greater (a cryptographic library) 
+  and SQLite 3.4.2 or greater (a database library). They can be found at:
+    http://botan.randombit.net
+  and
+    http://www.sqlite.org
 
 INSTALLING
 
-1. Configure the installation/compilation scripts.
+  1. Configure the installation/compilation scripts.
 
-  ./configure
+    ./configure
 
-  Options:
+    Options:
 
-    --with-botan=DIR        The location of the Botan crypto library and 
-                            include files (default DIR=/usr/local)
-    --with-sqlite3=DIR      The location of SQLite3 library and include 
-                            files (default DIR=/usr/local)
-    --enable-64bit          Compile a 64-bit version
-    --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 
-                            3=Info 4=Debug (default INT=3)
-    --prefix=DIR            The installation directory
-                            (default DIR=/usr/local)
+      --with-botan=DIR        The location of the Botan crypto library and 
+                              include files (default DIR=/usr/local)
+      --with-sqlite3=DIR      The location of SQLite3 library and include 
+                              files (default DIR=/usr/local)
+      --enable-64bit          Compile a 64-bit version
+      --with-loglevel=INT     The log level. 0=No log 1=Error 2=Warning 
+                              3=Info 4=Debug (default INT=3)
+      --prefix=DIR            The installation directory
+                              (default DIR=/usr/local)
 
-  For more options:
+    For more options:
 
-  ./configure --help
+    ./configure --help
 
-2. Compile the source code.
+  2. Compile the source code.
 
-  make
+    make
 
-3. Install the library
+  3. Install the library
 
-  sudo make install
+    sudo make install
 
-4. Add the tokens to the slots:
+  4. Add the tokens to the slots:
 
-  The default location of the config file is $sysconfdir/softhsm.conf
-  On some systems this location is equal to /usr/local/etc/softhsm.conf
-  This location can be change by setting the environment variable.
+    The default location of the config file is $sysconfdir/softhsm.conf
+    On some systems this location is equal to /usr/local/etc/softhsm.conf
+    This location can be change by setting the environment variable.
 
-    export SOFTHSM_CONF=/home/user/config.file
+      export SOFTHSM_CONF=/home/user/config.file
 
-  Open the config file and add the slots and tokens.
+    Open the config file and add the slots and tokens.
 
-    sudo pico /home/user/config.file
+      sudo pico /home/user/config.file
 
-      0:/home/user/my.db
-      # Comments can be added
-      4:/home/user/token.database
+        0:/home/user/my.db
+        # Comments can be added
+        4:/home/user/token.database
 
-  Uninitialized tokens will be created at the given paths.
+    Uninitialized tokens will be created at the given paths.
 
-5. Initialize your tokens. Use either the softhsm tool or the PKCS#11 interface.
+  5. Initialize your tokens. Use either the softhsm tool or the PKCS#11 interface.
 
-  softhsm --init-token --slot 0 --label "My token 1"
+    softhsm --init-token --slot 0 --label "My token 1"
 
-   Type in SO PIN and user PIN.
+     Type in SO PIN and user PIN.
 
-  softhsm --init-token --slot 4 --label "A token"
+    softhsm --init-token --slot 4 --label "A token"
 
-   Type in SO PIN and user PIN.
+     Type in SO PIN and user PIN.
 
-6. Link to this library and use the PKCS#11 interface
+  6. Link to this library and use the PKCS#11 interface
+
+KEY MANAGEMENT
+
+  It is possible to export and import keys to libsofthsm.
+
+  1. Importing a key pair
+
+    Use the PKCS#11 interface or the softhsm tool where you specify the path to 
+    the key file, slot number, label and ID of the new objects, and the user PIN.
+    The file must be in PKCS#8 format.
+    
+      softhsm --import key1.pem --slot 1 --label "My key" --id A1B2 --pin 123456
+
+    Add, --file-pin <PIN>, if the key file is encrypted. 
+    Use, softhsm --help, for more info.
+
+  2. Exporting a key pair
+
+    All keys can be exported from the token database by using the softhsm tool.
+    The file will be exported in PKCS#8 format.
+
+      softhsm --export key2.pem --slot 1 --id A1B2 --pin 123456
+
+    Add, --file-pin <PIN>, if you want to output an encrypted file.
+    Use, softhsm --help, for more info.
