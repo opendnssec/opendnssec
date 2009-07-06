@@ -14,10 +14,12 @@ AC_PATH_PROG(JAVA, java)
 ACX_TRANG
 ACX_PKCS11_MODULES
 
+full_libexecdir=`eval eval eval eval eval echo "${libexecdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 
-opendnsseclibexecdir=$libexecdir/opendnssec
-opendnsseclocalstatedir=$localstatedir/opendnssec
+opendnsseclibexecdir=$full_libexecdir/opendnssec
+opendnsseclocalstatedir=$full_localstatedir/opendnssec
 opendnssecsysconfdir=$full_sysconfdir/opendnssec
 
 AC_SUBST([opendnsseclibexecdir])
