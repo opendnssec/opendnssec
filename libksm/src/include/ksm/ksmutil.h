@@ -59,6 +59,12 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx,
                      int policy_id, 
                      int value_type);
 void SetPolicyDefaults(KSM_POLICY *policy, char *name);
+int backup_file(const char* orig_file, const char* backup_file);
+int get_db_details(char** dbschema, 
+                   char** host, 
+                   char** port, 
+                   char** user, 
+                   char** password);
 
 #ifdef __cplusplus
 }

@@ -58,13 +58,14 @@ if test "x$with_mysql" = "xno"; then
   DB_TYPE="SQLITE3"
   if test "x$SQLITE_PATH" != "x"
   then
-     AC_MSG_CHECKING(what are the sqlite3 includes)
-     DB_INCLUDES="-I$SQLITE_PATH/include -DUSE_SQLITE"
-     AC_MSG_RESULT($DB_INCLUDES)
-     AC_MSG_CHECKING(what are the sqlite3 libs)
-     DB_LIBS="-L$SQLITE_PATH/lib -lsqlite3"
-     AC_MSG_RESULT($DB_LIBS)
-     AC_PATH_PROG(SQLITE3, sqlite3, $SQLITE_PATH/bin)
+      AC_MSG_CHECKING(what are the sqlite3 includes)
+      DB_INCLUDES="-I$SQLITE_PATH/include -DUSE_SQLITE"
+      AC_MSG_RESULT($DB_INCLUDES)
+      AC_MSG_CHECKING(what are the sqlite3 libs)
+      DB_LIBS="-L$SQLITE_PATH/lib -lsqlite3"
+      AC_MSG_RESULT($DB_LIBS)
+      AC_PATH_PROG(SQLITE3, sqlite3, $SQLITE_PATH/bin)
+      AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE_PATH/bin/sqlite3", [database binary])
   else
       AC_MSG_CHECKING(what are the sqlite3 includes)
       DB_INCLUDES="-I/usr/local/include -DUSE_SQLITE"
@@ -73,16 +74,21 @@ if test "x$with_mysql" = "xno"; then
       DB_LIBS="-L/usr/local/lib -lsqlite3"
       AC_MSG_RESULT($DB_LIBS)
       AC_PATH_PROG(SQLITE3, sqlite3, /usr/local/bin)
+      AC_DEFINE_UNQUOTED(SQL_BIN, "/usr/local/bin/sqlite3", [database binary])
   fi
+  AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3", [database setup script])
 else
   DB_TYPE="MYSQL"
   if test "x$MYSQL_PATH" = "x"; then
      AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH)
      AC_PATH_PROG(MYSQL, mysql)
+     AC_DEFINE_UNQUOTED(SQL_BIN, "mysql", [database binary])
   else
      AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $MYSQL_PATH/bin)
      AC_PATH_PROG(MYSQL, mysql, ,$MYSQL_PATH/bin)
+     AC_DEFINE_UNQUOTED(SQL_BIN, "$MYSQL_PATH/bin/mysql", [database binary])
   fi
+  AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.mysql", [database setup script])
   if test -z "$MYSQL"; then
      AC_MSG_ERROR([mysql not found])
   fi

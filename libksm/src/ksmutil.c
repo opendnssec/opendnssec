@@ -59,55 +59,55 @@ extern char *optarg;
 char *progname = "ksmutil";
 char *config = (char *) CONFIGDIR;
 
-void
+    void
 usage_setup ()
 {
     fprintf(stderr,
-        "usage: %s [-f config_dir] setup [path_to_kasp.xml]\n\tImport config_dir into a database (deletes current contents)\n",
-        progname);
+            "usage: %s [-f config_dir] setup [path_to_kasp.xml]\n\tImport config_dir into a database (deletes current contents)\n",
+            progname);
 }
 
-void
+    void
 usage_update ()
 {
     fprintf(stderr,
-        "usage: %s [-f config_dir] update [path_to_kasp.xml]\n\tUpdate database from config_dir\n",
-        progname);
+            "usage: %s [-f config_dir] update [path_to_kasp.xml]\n\tUpdate database from config_dir\n",
+            progname);
 }
 
-void
+    void
 usage_addzone ()
 {
     fprintf(stderr,
-        "usage: %s [-f config_dir] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n\tAdd a zone to the config_dir and database\n",
-        progname);
+            "usage: %s [-f config_dir] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n\tAdd a zone to the config_dir and database\n",
+            progname);
 }
 
-void
+    void
 usage_delzone ()
 {
     fprintf(stderr,
-        "usage: %s [-f config_dir] delzone zone\n\tDelete a zone from the config_dir and database\n",
-        progname);
+            "usage: %s [-f config_dir] delzone zone\n\tDelete a zone from the config_dir and database\n",
+            progname);
 }
 
-void
+    void
 usage_rollzone ()
 {
     fprintf(stderr,
-        "usage: %s [-f config_dir] rollzone zone [KSK|ZSK]\n\tRollover a zone (may roll all zones on that policy)\n",
-        progname);
+            "usage: %s [-f config_dir] rollzone zone [KSK|ZSK]\n\tRollover a zone (may roll all zones on that policy)\n",
+            progname);
 }
 
-void
+    void
 usage_rollpolicy ()
 {
     fprintf(stderr,
-        "usage: %s [-f config_dir] rollpolicy policy [KSK|ZSK]\n\tRollover all zones on a policy\n",
-        progname);
+            "usage: %s [-f config_dir] rollpolicy policy [KSK|ZSK]\n\tRollover all zones on a policy\n",
+            progname);
 }
 
-void
+    void
 usage ()
 {
     usage_setup ();
@@ -121,12 +121,184 @@ usage ()
 /* 
  * Do initial import of config files into database
  */
-int
+    int
 cmd_setup (int argc, char *argv[])
 {
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char* zone_list_filename;   /* Extracted from conf.xml */
+    int status = 0;
 
-    /* TODO put an "are you sure?" here */
-    printf("command not yet implemented\n");
+    /* Database connection details */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    char* backup_filename = NULL;
+    char* setup_command = NULL;
+
+    int user_certain;
+    printf("*WARNING* This will erase all data in the database; are you sure? [y/N] ");
+
+    user_certain = getchar();
+    if (user_certain != 'y' && user_certain != 'Y') {
+        printf("Okay, quitting...\n");
+        exit(0);
+    }
+
+    /* Right then, they asked for it */
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            StrFree(dbschema);
+            return(1);
+        }
+
+        /* Make a backup of the sqlite DB */
+        StrAppend(&backup_filename, dbschema);
+        StrAppend(&backup_filename, ".backup");
+
+        status = backup_file(dbschema, backup_filename);
+
+        StrFree(backup_filename);
+
+        if (status != 0) {
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+
+        /* Run the setup script */
+        /* will look like: <SQL_BIN> <DBSCHEMA> < <SQL_SETUP> */
+        StrAppend(&setup_command, SQL_BIN);
+        StrAppend(&setup_command, " ");
+        StrAppend(&setup_command, dbschema);
+        StrAppend(&setup_command, " < ");
+        StrAppend(&setup_command, SQL_SETUP);
+
+        if (system(setup_command) != 0)
+        {
+            printf("Could not call db setup command:\n\t%s\n", setup_command);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(1);
+        }
+    }
+    else {
+        /* MySQL setup */
+        /* will look like: <SQL_BIN> -u <USER> -h <HOST> -p<PASSWORD> <DBSCHEMA> < <SQL_SETUP> */
+        StrAppend(&setup_command, SQL_BIN);
+        StrAppend(&setup_command, " -u ");
+        StrAppend(&setup_command, user);
+        StrAppend(&setup_command, " -h ");
+        StrAppend(&setup_command, host);
+        if (password != NULL) {
+            StrAppend(&setup_command, " -p");
+            StrAppend(&setup_command, password);
+        }
+        StrAppend(&setup_command, " ");
+        StrAppend(&setup_command, dbschema);
+        StrAppend(&setup_command, " < ");
+        StrAppend(&setup_command, SQL_SETUP);
+
+        if (system(setup_command) != 0)
+        {
+            printf("Could not call db setup command:\n\t%s\n", setup_command);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(1);
+        }
+    }
+
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        fclose(lock_fd);
+        return(1);
+    }
+
+    /* 
+     *  Now we will read the conf.xml file again, but this time we will not validate.
+     *  Instead we just extract the RepositoryList into the database and also learn
+     *  the location of the zonelist.
+     */
+    status = update_repositories(&zone_list_filename);
+    if (status != 0) {
+        printf("Failed to update repositories\n");
+        fclose(lock_fd);
+        return(1);
+    }
+
+    /*
+     * Now read the kasp.xml which should be in the same directory.
+     * This lists all of the policies.
+     */
+    status = update_policies();
+    if (status != 0) {
+        printf("Failed to update policies\n");
+        fclose(lock_fd);
+        return(1);
+    }
+
+    /*
+     * Take the zonelist we learnt above and read it, updating or inserting zone
+     * records in the database as we go.
+     */
+    status = update_zones(zone_list_filename);
+    if (status != 0) {
+        printf("Failed to update zones\n");
+        fclose(lock_fd);
+        return(1);
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
     return 0;
 }
 
@@ -136,7 +308,7 @@ cmd_setup (int argc, char *argv[])
  * returns 0 on success
  *         1 on error (and will have sent a message to stdout)
  */
-int
+    int
 cmd_update (int argc, char *argv[])
 {
     DB_HANDLE	dbhandle;
@@ -149,17 +321,19 @@ cmd_update (int argc, char *argv[])
     status = db_connect(&dbhandle, &lock_fd, &lock_filename);
     if (status != 0) {
         printf("Failed to connect to database\n");
+        fclose(lock_fd);
         return(1);
     }
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
-     *  Instead we just extract the RepositoryList into the database and also learn the 
-     *  location of the zonelist.
+     *  Instead we just extract the RepositoryList into the database and also learn
+     *  the location of the zonelist.
      */
     status = update_repositories(&zone_list_filename);
     if (status != 0) {
         printf("Failed to update repositories\n");
+        fclose(lock_fd);
         return(1);
     }
 
@@ -170,16 +344,18 @@ cmd_update (int argc, char *argv[])
     status = update_policies();
     if (status != 0) {
         printf("Failed to update policies\n");
+        fclose(lock_fd);
         return(1);
     }
 
     /*
-     * Take the zonelist we learnt above and read it, updating or inserting zone records
-     * in the database as we go.
+     * Take the zonelist we learnt above and read it, updating or inserting zone
+     * records in the database as we go.
      */
     status = update_zones(zone_list_filename);
     if (status != 0) {
         printf("Failed to update zones\n");
+        fclose(lock_fd);
         return(1);
     }
 
@@ -188,6 +364,7 @@ cmd_update (int argc, char *argv[])
         status = release_lite_lock(lock_fd);
         if (status != 0) {
             printf("Error releasing db lock");
+            fclose(lock_fd);
             return(1);
         }
         fclose(lock_fd);
@@ -199,7 +376,7 @@ cmd_update (int argc, char *argv[])
 /* 
  * Add a zone to the config and database
  */
-int
+    int
 cmd_addzone (int argc, char *argv[])
 {
     printf("command not yet implemented\n");
@@ -209,7 +386,7 @@ cmd_addzone (int argc, char *argv[])
 /*
  * Delete a zone from the config and database
  */
-int
+    int
 cmd_delzone (int argc, char *argv[])
 {
     printf("command not yet implemented\n");
@@ -219,7 +396,7 @@ cmd_delzone (int argc, char *argv[])
 /*
  * To rollover a zone (or all zones on a policy if keys are shared)
  */
-int
+    int
 cmd_rollzone (int argc, char *argv[])
 {
     printf("command not yet implemented\n");
@@ -229,7 +406,7 @@ cmd_rollzone (int argc, char *argv[])
 /*
  * To rollover all zones on a policy
  */
-int
+    int
 cmd_rollpolicy (int argc, char *argv[])
 {
     printf("command not yet implemented\n");
@@ -239,7 +416,7 @@ cmd_rollpolicy (int argc, char *argv[])
 /* 
  * Fairly basic main, just pass most things through to their handlers
  */
-int
+    int
 main (int argc, char *argv[])
 {
     int result;
@@ -247,16 +424,16 @@ main (int argc, char *argv[])
 
     while ((ch = getopt(argc, argv, "f:h")) != -1) {
         switch (ch) {
-        case 'f':
-            config = strdup(optarg);
-            break;
-        case 'h':
-            usage();
-            exit(0);
-            break;
-        default:
-            usage();
-            exit(1);
+            case 'f':
+                config = strdup(optarg);
+                break;
+            case 'h':
+                usage();
+                exit(0);
+                break;
+            default:
+                usage();
+                exit(1);
         }
     }
     argc -= optind;
@@ -267,12 +444,12 @@ main (int argc, char *argv[])
         exit(1);
     }
 
-/* We may need this when we eventually import/export keys
-    result = hsm_open(config, hsm_prompt_pin, NULL);
-    if (result) {
-        fprintf(stderr, "hsm_open() returned %d\n", result);
-        exit(-1);
-    } */
+    /* We may need this when we eventually import/export keys
+       result = hsm_open(config, hsm_prompt_pin, NULL);
+       if (result) {
+       fprintf(stderr, "hsm_open() returned %d\n", result);
+       exit(-1);
+       } */
 
     if (!strncasecmp(argv[0], "setup", 5)) {
         argc --;
@@ -322,7 +499,7 @@ main (int argc, char *argv[])
  *        -1 if any of the config files could not be read/parsed
  *
  */
-int
+    int
 db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
 {
     /* what we will read from the file */
@@ -331,187 +508,20 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
     char *port = NULL;
     char *user = NULL;
     char *password = NULL;
-    /* All of the XML stuff */
-    xmlDocPtr doc;
-    xmlDocPtr rngdoc;
-    xmlXPathContextPtr xpathCtx;
-    xmlXPathObjectPtr xpathObj;
-    xmlRelaxNGParserCtxtPtr rngpctx;
-    xmlRelaxNGValidCtxtPtr rngctx;
-    xmlRelaxNGPtr schema;
-    xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQLite";
-    xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
-    xmlChar *mysql_port = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host/@port";
-    xmlChar *mysql_db = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Database";
-    xmlChar *mysql_user = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Username";
-    xmlChar *mysql_pass = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Password";
 
     int status;
-    int db_found = 0;
 
-    /* Some files, the xml and rng */
-    char* filename = NULL;
-    char* rngfilename = NULL;
+    char* backup_filename = NULL;
 
-    StrAppend(&filename, config);
-    StrAppend(&filename, "/conf.xml");
-
-    StrAppend(&rngfilename, config);
-    StrAppend(&rngfilename, "/conf.rng");
-
-    /* Load XML document */
-    doc = xmlParseFile(filename);
-    if (doc == NULL) {
-        printf("Error: unable to parse file \"%s\"\n", filename);
-        return(-1);
-    }
-
-    /* Load rng document: TODO make the rng stuff optional? */
-    rngdoc = xmlParseFile(rngfilename);
-    if (rngdoc == NULL) {
-        printf("Error: unable to parse file \"%s\"\n", rngfilename);
-        return(-1);
-    }
-
-    /* Create an XML RelaxNGs parser context for the relax-ng document. */
-    rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
-    if (rngpctx == NULL) {
-        printf("Error: unable to create XML RelaxNGs parser context\n");
-        return(-1);
-    }
-
-    /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
-    schema = xmlRelaxNGParse(rngpctx);
-    if (schema == NULL) {
-        printf("Error: unable to parse a schema definition resource\n");
-        return(-1);
-    }
-
-    /* Create an XML RelaxNGs validation context based on the given schema */
-    rngctx = xmlRelaxNGNewValidCtxt(schema);
-    if (rngctx == NULL) {
-        printf("Error: unable to create RelaxNGs validation context based on the schema\n");
-        return(-1);
-    }
-
-    /* Validate a document tree in memory. */
-    status = xmlRelaxNGValidateDoc(rngctx,doc);
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
     if (status != 0) {
-        printf("Error validating file \"%s\"\n", filename);
-        return(-1);
-    }
-
-    /* Now parse a value out of the conf */
-    /* Create xpath evaluation context */
-    xpathCtx = xmlXPathNewContext(doc);
-    if(xpathCtx == NULL) {
-        printf("Error: unable to create new XPath context\n");
-        xmlFreeDoc(doc);
-        return(-1);
-    }
-
-    /* Evaluate xpath expression for SQLite file location */
-    xpathObj = xmlXPathEvalExpression(litexpr, xpathCtx);
-    if(xpathObj == NULL) {
-        printf("Error: unable to evaluate xpath expression: %s\n", litexpr);
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
-        return(-1);
-    }
-
-    if(*xmlXPathCastToString(xpathObj) != '\0') {
-        db_found = SQLITE_DB;
-		    dbschema = StrStrdup( (char *)xmlXPathCastToString(xpathObj) );
-		    printf("SQLite database set to: %s\n", dbschema);
-    }
-
-    if (db_found == 0) {
-        /* Get all of the MySQL stuff read in too */
-        /* HOST */
-        xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
-		    if(xpathObj == NULL) {
-		        printf("Error: unable to evaluate xpath expression: %s\n", mysql_host);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-		    if( *xmlXPathCastToString(xpathObj) != '\0') {
-           db_found = MYSQL_DB;
-        }
-        host = StrStrdup( (char *)xmlXPathCastToString(xpathObj) );
-        printf("MySQL database host set to: %s\n", host);
-
-        /* PORT */
-        xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
-        if(xpathObj == NULL) {
-		        printf("Error: unable to evaluate xpath expression: %s\n", mysql_port);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-		    if( *xmlXPathCastToString(xpathObj) == '\0') {
-            db_found = 0;
-        }
-        port = StrStrdup( (char *)xmlXPathCastToString(xpathObj) );
-        printf("MySQL database port set to: %s\n", port);
-
-        /* SCHEMA */
-        xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
-        if(xpathObj == NULL) {
-		        printf("Error: unable to evaluate xpath expression: %s\n", mysql_db);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-		    if( *xmlXPathCastToString(xpathObj) == '\0') {
-            db_found = 0;
-        }
-        dbschema = StrStrdup( (char *)xmlXPathCastToString(xpathObj) );
-        printf("MySQL database schema set to: %s\n", dbschema);
-
-        /* DB USER */
-        xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
-        if(xpathObj == NULL) {
-		        printf("Error: unable to evaluate xpath expression: %s\n", mysql_user);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-		    if( *xmlXPathCastToString(xpathObj) == '\0') {
-            db_found = 0;
-        }
-        user = StrStrdup( (char *)xmlXPathCastToString(xpathObj) );
-        printf("MySQL database user set to: %s\n", user);
-
-        /* DB PASSWORD */
-        xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);
-        if(xpathObj == NULL) {
-		        printf("Error: unable to evaluate xpath expression: %s\n", mysql_pass);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-		    /* password may be blank */
-        
-        password = StrStrdup( (char *)xmlXPathCastToString(xpathObj) );
-        printf("MySQL database password set\n");
-
-    }
-
-    /* Check that we found one or the other database */
-    if(db_found == 0) {
-        printf("Error: unable to find complete database connection expression\n");
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
-        return(-1);
-    }
-
-    /* Check that we found the right database type */
-    if (db_found != DbFlavour()) {
-        printf("Error: database in config file does not match libksm\n");
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
-        return(-1);
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
     }
 
     /* If we are in sqlite mode then take a lock out on a file to
@@ -528,22 +538,38 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
         status = get_lite_lock(*lock_filename, *lock_fd);
         if (status != 0) {
             printf("Error getting db lock\n");
+            StrFree(dbschema);
             return(1);
         }
+
+        /* Make a backup of the sqlite DB */
+        StrAppend(&backup_filename, dbschema);
+        StrAppend(&backup_filename, ".backup");
+
+        status = backup_file(dbschema, backup_filename);
+
+        StrFree(backup_filename);
+
+        if (status != 0) {
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+
     }
 
     /* Finally we can do what we came here to do, connect to the database */
     status = DbConnect(dbhandle, dbschema, host, password, user);
-    
+
     /* Cleanup */
-    /* TODO: some other frees are needed */
-    xmlXPathFreeObject(xpathObj);
-    xmlXPathFreeContext(xpathCtx);
-    xmlFreeDoc(doc);
-    xmlRelaxNGFree(schema);
-    xmlRelaxNGFreeValidCtxt(rngctx);
-    xmlRelaxNGFreeParserCtxt(rngpctx);
-    xmlFreeDoc(rngdoc);
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
 
     return(status);
 }
@@ -552,15 +578,15 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
    happy with multiple connections.
 
    The following 2 functions take out a lock and release it
-*/
+ */
 
 int get_lite_lock(char *lock_filename, FILE* lock_fd)
 {
     struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
     struct timeval tv;
-  
+
     fl.l_pid = getpid();
-    
+
     while (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
         if (errno == EACCES || errno == EAGAIN) {
             printf("%s already locked, sleep\n", lock_filename);
@@ -587,7 +613,7 @@ int release_lite_lock(FILE* lock_fd)
     if (lock_fd == NULL) {
         return 1;
     }
-    
+
     if (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
         return 1;
     }
@@ -792,42 +818,22 @@ int update_policies()
     xmlChar *zsk_life_expr = (unsigned char*) "//Policy/Keys/ZSK/Lifetime";
     xmlChar *zsk_repo_expr = (unsigned char*) "//Policy/Keys/ZSK/Repository";
     xmlChar *zsk_emer_expr = (unsigned char*) "//Policy/Keys/ZSK/Emergency";
-    
+
     xmlChar *zone_prop_expr = (unsigned char*) "//Policy/Zone/PropagationDelay";
     xmlChar *zone_soa_ttl_expr = (unsigned char*) "//Policy/Zone/SOA/TTL";
     xmlChar *zone_min_expr = (unsigned char*) "//Policy/Zone/SOA/Minimum";
     xmlChar *zone_serial_expr = (unsigned char*) "//Policy/Zone/SOA/Serial";
-    
+
     xmlChar *parent_prop_expr = (unsigned char*) "//Policy/Parent/PropagationDelay";
     xmlChar *parent_ds_ttl_expr = (unsigned char*) "//Policy/Parent/DS/TTL";
     xmlChar *parent_soa_ttl_expr = (unsigned char*) "//Policy/Parent/SOA/TTL";
     xmlChar *parent_min_expr = (unsigned char*) "//Policy/Parent/SOA/Minimum";
-    
+
     KSM_POLICY *policy;
 
     /* Some files, the xml and rng */
     char* filename = NULL;
     char* rngfilename = NULL;
-
-    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
-    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
-    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
-    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
-    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
-    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
-    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
-    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-    /* Let's check all of those mallocs, or should we use MemMalloc ? */
-    if (policy->signer == NULL || policy->signature == NULL || policy->keys == NULL ||
-            policy->zone == NULL || policy->parent == NULL || 
-            policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL) {
-        printf("Malloc for policy struct failed\n");
-        exit(1);
-    }
 
     StrAppend(&filename, config);
     StrAppend(&filename, "/kasp.xml");
@@ -875,6 +881,27 @@ int update_policies()
     if (status != 0) {
         printf("Error validating file \"%s\"\n", filename);
         return(-1);
+    }
+
+    /* Allocate some space for our policy */
+    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
+    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    /* Let's check all of those mallocs, or should we use MemMalloc ? */
+    if (policy->signer == NULL || policy->signature == NULL || policy->keys == NULL ||
+            policy->zone == NULL || policy->parent == NULL || 
+            policy->ksk == NULL || policy->zsk == NULL || 
+            policy->denial == NULL || policy->enforcer == NULL) {
+        printf("Malloc for policy struct failed\n");
+        exit(1);
     }
 
     /* Switch to the XmlTextReader API so that we can consider each policy separately */
@@ -935,7 +962,7 @@ int update_policies()
                 if (status == 0) {
                     /* Policy exists; we will be updating it */
                     status = KsmPolicyRead(policy);
-                     if(status != 0) {
+                    if(status != 0) {
                         printf("Error: unable to read policy %s; skipping\n", policy_name);
                         /* Don't return? try to parse the rest of the file? */
                         ret = xmlTextReaderRead(reader);
@@ -959,7 +986,7 @@ int update_policies()
                         ret = xmlTextReaderRead(reader);
                         continue;
                     }
-                    
+
                 }
 
                 /* Now churn through each parameter as we find it */
@@ -1003,7 +1030,8 @@ int update_policies()
                     status = KsmParameterSet("version", "denial", 3, policy->id);
                     if (status != 0) {
                         printf("Error: unable to insert/update %s for policy\n", "Denial version");
-                        return status;
+                        ret = xmlTextReaderRead(reader);
+                        continue;
                     }
 
                     if ( SetParamOnPolicy(xpathCtx, den_opt_expr, "optout", "denial", policy->denial->optout, policy->id, BOOL_TYPE) != 0) {
@@ -1032,7 +1060,8 @@ int update_policies()
                     status = KsmParameterSet("version", "denial", 1, policy->id);
                     if (status != 0) {
                         printf("Error: unable to insert/update %s for policy\n", "Denial version");
-                        return status;
+                        ret = xmlTextReaderRead(reader);
+                        continue;
                     }
                 }
 
@@ -1157,13 +1186,13 @@ int update_policies()
     xmlFreeDoc(rngdoc);
 
     free(policy->enforcer);
-	free(policy->denial);
-	free(policy->keys);
-	free(policy->zsk);
-	free(policy->ksk);
-	free(policy->signature);
-	free(policy->signer);
-	free(policy);
+    free(policy->denial);
+    free(policy->keys);
+    free(policy->zsk);
+    free(policy->ksk);
+    free(policy->signature);
+    free(policy->signer);
+    free(policy);
 
     return(status);
 }
@@ -1210,56 +1239,56 @@ int update_zones(char* zone_list_filename)
                 printf("Zone %s found\n", zone_name);
 
                 /* Expand this node and get the rest of the info with XPath */
-                    xmlTextReaderExpand(reader);
-                    doc = xmlTextReaderCurrentDoc(reader);
-                    if (doc == NULL) {
-                        printf("Error: can not read zone \"%s\"; skipping\n", zone_name);
-                        /* Don't return? try to parse the rest of the zones? */
-                        ret = xmlTextReaderRead(reader);
-                        continue;
-                    }
-
-                    xpathCtx = xmlXPathNewContext(doc);
-                    if(xpathCtx == NULL) {
-                        printf("Error: can not create XPath context for \"%s\"; skipping zone\n", zone_name);
-                        /* Don't return? try to parse the rest of the zones? */
-                        ret = xmlTextReaderRead(reader);
-                        continue;
-                    }
-
-                    /* Extract the Policy name for this zone */
-                    /* Evaluate xpath expression for policy */
-                    xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
-                    if(xpathObj == NULL) {
-                        printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
-                        /* Don't return? try to parse the rest of the zones? */
-                        ret = xmlTextReaderRead(reader);
-                        continue;
-                    }
-
-                    policy_name = NULL;
-                    StrAppend(&policy_name, (char*) xmlXPathCastToString(xpathObj));
-                    printf("Policy set to %s.\n", policy_name);
-                    
-                    status = KsmPolicyIdFromName(policy_name, &policy_id);
-                    if (status != 0) {
-                        printf("Error, can't find policy : %s\n", policy_name);
-                        /* Don't return? try to parse the rest of the zones? */
-                        ret = xmlTextReaderRead(reader);
-                        continue;
-                    }
-
-                    /*
-                     * Now we have all the information update/insert this repository
-                     */
-                    status = KsmImportZone(zone_name, policy_id);
-                    if (status != 0) {
-                        printf("Error Importing Zone %s\n", zone_name);
-                        /* Don't return? try to parse the rest of the zones? */
-                        ret = xmlTextReaderRead(reader);
-                        continue;
-                    }
+                xmlTextReaderExpand(reader);
+                doc = xmlTextReaderCurrentDoc(reader);
+                if (doc == NULL) {
+                    printf("Error: can not read zone \"%s\"; skipping\n", zone_name);
+                    /* Don't return? try to parse the rest of the zones? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
                 }
+
+                xpathCtx = xmlXPathNewContext(doc);
+                if(xpathCtx == NULL) {
+                    printf("Error: can not create XPath context for \"%s\"; skipping zone\n", zone_name);
+                    /* Don't return? try to parse the rest of the zones? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                /* Extract the Policy name for this zone */
+                /* Evaluate xpath expression for policy */
+                xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
+                    /* Don't return? try to parse the rest of the zones? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                policy_name = NULL;
+                StrAppend(&policy_name, (char*) xmlXPathCastToString(xpathObj));
+                printf("Policy set to %s.\n", policy_name);
+
+                status = KsmPolicyIdFromName(policy_name, &policy_id);
+                if (status != 0) {
+                    printf("Error, can't find policy : %s\n", policy_name);
+                    /* Don't return? try to parse the rest of the zones? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                /*
+                 * Now we have all the information update/insert this repository
+                 */
+                status = KsmImportZone(zone_name, policy_id);
+                if (status != 0) {
+                    printf("Error Importing Zone %s\n", zone_name);
+                    /* Don't return? try to parse the rest of the zones? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+            }
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
         }
@@ -1366,49 +1395,323 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
         return;
     }
 
-	if(name) policy->name = name;
+    if(name) policy->name = name;
 
-	policy->signer->refresh = 0;
-	policy->signer->jitter = 0;
-	policy->signer->propdelay = 0;
-	policy->signer->soamin = 0;
-	policy->signer->soattl = 0;
-	policy->signer->serial = 0;
+    policy->signer->refresh = 0;
+    policy->signer->jitter = 0;
+    policy->signer->propdelay = 0;
+    policy->signer->soamin = 0;
+    policy->signer->soattl = 0;
+    policy->signer->serial = 0;
 
-	policy->signature->clockskew = 0;
-	policy->signature->resign = 0;
-	policy->signature->valdefault = 0;
-	policy->signature->valdenial = 0;
+    policy->signature->clockskew = 0;
+    policy->signature->resign = 0;
+    policy->signature->valdefault = 0;
+    policy->signature->valdenial = 0;
 
-	policy->denial->version = 0;
-	policy->denial->resalt = 0;
-	policy->denial->algorithm = 0;
-	policy->denial->iteration = 0;
-	policy->denial->optout = 0;
-	policy->denial->ttl = 0;
-	policy->denial->saltlength = 0;
+    policy->denial->version = 0;
+    policy->denial->resalt = 0;
+    policy->denial->algorithm = 0;
+    policy->denial->iteration = 0;
+    policy->denial->optout = 0;
+    policy->denial->ttl = 0;
+    policy->denial->saltlength = 0;
 
-	policy->ksk->algorithm = 0;
-	policy->ksk->bits = 0;
-	policy->ksk->lifetime = 0;
-	policy->ksk->sm = 0;
-	policy->ksk->overlap = 0;
-	policy->ksk->ttl = 0;
-	policy->ksk->rfc5011 = 0;
-	policy->ksk->type = KSM_TYPE_KSK;
-	policy->ksk->emergency_keys = 0;
+    policy->ksk->algorithm = 0;
+    policy->ksk->bits = 0;
+    policy->ksk->lifetime = 0;
+    policy->ksk->sm = 0;
+    policy->ksk->overlap = 0;
+    policy->ksk->ttl = 0;
+    policy->ksk->rfc5011 = 0;
+    policy->ksk->type = KSM_TYPE_KSK;
+    policy->ksk->emergency_keys = 0;
 
-	policy->zsk->algorithm = 0;
-	policy->zsk->bits = 0;
-	policy->zsk->lifetime = 0;
-	policy->zsk->sm = 0;
-	policy->zsk->overlap = 0;
-	policy->zsk->ttl = 0;
-	policy->zsk->rfc5011 = 0;
-	policy->zsk->type = KSM_TYPE_ZSK;
-	policy->zsk->emergency_keys = 0;
+    policy->zsk->algorithm = 0;
+    policy->zsk->bits = 0;
+    policy->zsk->lifetime = 0;
+    policy->zsk->sm = 0;
+    policy->zsk->overlap = 0;
+    policy->zsk->ttl = 0;
+    policy->zsk->rfc5011 = 0;
+    policy->zsk->type = KSM_TYPE_ZSK;
+    policy->zsk->emergency_keys = 0;
 
-	policy->enforcer->keycreate = 0;
-	policy->enforcer->backup_interval = 0;
-	policy->enforcer->keygeninterval = 0;
+    policy->enforcer->keycreate = 0;
+    policy->enforcer->backup_interval = 0;
+    policy->enforcer->keygeninterval = 0;
+}
+
+/* make a backup of a file
+ * Returns 0 on success
+ *         1 on error
+ *        -1 if it could read the original but not open the backup
+ */
+int backup_file(const char* orig_file, const char* backup_file)
+{
+    FILE *from, *to;
+    int ch;
+
+    errno = 0;
+    /* open source file */
+    if((from = fopen( orig_file, "rb"))==NULL) {
+        if (errno == ENOENT) {
+            printf("File %s does not exist, nothing to backup\n", orig_file);
+            return(0);
+        }
+        else {
+            printf("Cannot open source file.\n");
+            return(1); /* No point in trying to connect */
+        }
+    }
+
+    /* open destination file */
+    if((to = fopen(backup_file, "wb"))==NULL) {
+        printf("Cannot open destination file, will not make backup.\n");
+        fclose(from);
+        return(-1);
+    }
+    else {
+        /* copy the file */
+        while(!feof(from)) {
+            ch = fgetc(from);
+            if(ferror(from)) {
+                printf("Error reading source file.\n");
+                fclose(from);
+                fclose(to);
+                return(1);
+            }
+            if(!feof(from)) fputc(ch, to);
+            if(ferror(to)) {
+                printf("Error writing destination file.\n");
+                fclose(from);
+                fclose(to);
+                return(1);
+            }
+        }
+
+        if(fclose(from)==EOF) {
+            printf("Error closing source file.\n");
+            fclose(from);
+            fclose(to);
+            return(1);
+        }
+
+        if(fclose(to)==EOF) {
+            printf("Error closing destination file.\n");
+            fclose(from);
+            fclose(to);
+            return(1);
+        }
+    }
+    return(0);
+}
+
+/* 
+ * Given a conf.xml location extract the database details contained within it
+ *
+ * The caller will need to StrFree the char**s passed in
+ *
+ * Returns 0 if a full set of details was found
+ *         1 if something didn't look right
+ *        -1 if any of the config files could not be read/parsed
+ *
+ */
+    int
+get_db_details(char** dbschema, char** host, char** port, char** user, char** password)
+{
+    /* All of the XML stuff */
+    xmlDocPtr doc;
+    xmlDocPtr rngdoc;
+    xmlXPathContextPtr xpathCtx;
+    xmlXPathObjectPtr xpathObj;
+    xmlRelaxNGParserCtxtPtr rngpctx;
+    xmlRelaxNGValidCtxtPtr rngctx;
+    xmlRelaxNGPtr schema;
+    xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQLite";
+    xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
+    xmlChar *mysql_port = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host/@port";
+    xmlChar *mysql_db = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Database";
+    xmlChar *mysql_user = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Username";
+    xmlChar *mysql_pass = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Password";
+
+    int status;
+    int db_found = 0;
+
+    /* Some files, the xml and rng */
+    char* filename = NULL;
+    char* rngfilename = NULL;
+
+    StrAppend(&filename, config);
+    StrAppend(&filename, "/conf.xml");
+
+    StrAppend(&rngfilename, config);
+    StrAppend(&rngfilename, "/conf.rng");
+
+    /* Load XML document */
+    doc = xmlParseFile(filename);
+    if (doc == NULL) {
+        printf("Error: unable to parse file \"%s\"\n", filename);
+        return(-1);
+    }
+
+    /* Load rng document: TODO make the rng stuff optional? */
+    rngdoc = xmlParseFile(rngfilename);
+    if (rngdoc == NULL) {
+        printf("Error: unable to parse file \"%s\"\n", rngfilename);
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs parser context for the relax-ng document. */
+    rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+    if (rngpctx == NULL) {
+        printf("Error: unable to create XML RelaxNGs parser context\n");
+        return(-1);
+    }
+
+    /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
+    schema = xmlRelaxNGParse(rngpctx);
+    if (schema == NULL) {
+        printf("Error: unable to parse a schema definition resource\n");
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs validation context based on the given schema */
+    rngctx = xmlRelaxNGNewValidCtxt(schema);
+    if (rngctx == NULL) {
+        printf("Error: unable to create RelaxNGs validation context based on the schema\n");
+        return(-1);
+    }
+
+    /* Validate a document tree in memory. */
+    status = xmlRelaxNGValidateDoc(rngctx,doc);
+    if (status != 0) {
+        printf("Error validating file \"%s\"\n", filename);
+        return(-1);
+    }
+
+    /* Now parse a value out of the conf */
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        printf("Error: unable to create new XPath context\n");
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    /* Evaluate xpath expression for SQLite file location */
+    xpathObj = xmlXPathEvalExpression(litexpr, xpathCtx);
+    if(xpathObj == NULL) {
+        printf("Error: unable to evaluate xpath expression: %s\n", litexpr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    if(*xmlXPathCastToString(xpathObj) != '\0') {
+        db_found = SQLITE_DB;
+        StrAppend(dbschema, (char *)xmlXPathCastToString(xpathObj) );
+        printf("SQLite database set to: %s\n", *dbschema);
+    }
+
+    if (db_found == 0) {
+        /* Get all of the MySQL stuff read in too */
+        /* HOST */
+        xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
+        if(xpathObj == NULL) {
+            printf("Error: unable to evaluate xpath expression: %s\n", mysql_host);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
+        }
+        if( *xmlXPathCastToString(xpathObj) != '\0') {
+            db_found = MYSQL_DB;
+        }
+        StrAppend(host, (char *)xmlXPathCastToString(xpathObj) );
+        printf("MySQL database host set to: %s\n", *host);
+
+        /* PORT */
+        xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
+        if(xpathObj == NULL) {
+            printf("Error: unable to evaluate xpath expression: %s\n", mysql_port);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
+        }
+        if( *xmlXPathCastToString(xpathObj) == '\0') {
+            db_found = 0;
+        }
+        StrAppend(port, (char *)xmlXPathCastToString(xpathObj) );
+        printf("MySQL database port set to: %s\n", *port);
+
+        /* SCHEMA */
+        xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
+        if(xpathObj == NULL) {
+            printf("Error: unable to evaluate xpath expression: %s\n", mysql_db);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
+        }
+        if( *xmlXPathCastToString(xpathObj) == '\0') {
+            db_found = 0;
+        }
+        StrAppend(dbschema, (char *)xmlXPathCastToString(xpathObj) );
+        printf("MySQL database schema set to: %s\n", *dbschema);
+
+        /* DB USER */
+        xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
+        if(xpathObj == NULL) {
+            printf("Error: unable to evaluate xpath expression: %s\n", mysql_user);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
+        }
+        if( *xmlXPathCastToString(xpathObj) == '\0') {
+            db_found = 0;
+        }
+        StrAppend(user, (char *)xmlXPathCastToString(xpathObj) );
+        printf("MySQL database user set to: %s\n", *user);
+
+        /* DB PASSWORD */
+        xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);
+        if(xpathObj == NULL) {
+            printf("Error: unable to evaluate xpath expression: %s\n", mysql_pass);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
+        }
+        /* password may be blank */
+
+        StrAppend(password, (char *)xmlXPathCastToString(xpathObj) );
+        printf("MySQL database password set\n");
+
+    }
+
+    /* Check that we found one or the other database */
+    if(db_found == 0) {
+        printf("Error: unable to find complete database connection expression\n");
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    /* Check that we found the right database type */
+    if (db_found != DbFlavour()) {
+        printf("Error: database in config file does not match libksm\n");
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    /* Cleanup */
+    /* TODO: some other frees are needed */
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
+    xmlRelaxNGFree(schema);
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(rngdoc);
+
+    return(status);
 }
