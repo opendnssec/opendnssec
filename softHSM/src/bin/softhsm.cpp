@@ -310,6 +310,11 @@ void initToken(char *slot, char *label, char *soPIN, char *userPIN) {
       fprintf(stderr, "Error: The given SO PIN does not match the one in the token.\n");
       return;
       break;
+    case CKR_TOKEN_NOT_PRESENT:
+      fprintf(stderr, "Error: The token is not present.\n");
+      fprintf(stderr, "Error: Probably missing write permissions, please check the path and file given in the configuration.\n");
+      return;
+      break;
     default:
       fprintf(stderr, "Error: The library could not initialize the token.\n");
       return;
