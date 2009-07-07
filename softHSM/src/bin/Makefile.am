@@ -4,7 +4,8 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = 		-I$(srcdir)/../lib \
 			-I$(srcdir)/../lib/cryptoki \
-			@BOTAN_INCLUDES@
+			@BOTAN_INCLUDES@ \
+			@SQLITE3_INCLUDES@
 
 bin_PROGRAMS =		softhsm
 softhsm_SOURCES =	softhsm.cpp softhsm.h
