@@ -1,7 +1,5 @@
 # $Id: Makefile.am 915 2009-06-03 17:27:47Z rb $
 
-ACLOCAL_AMFLAGS = -I m4
-
 MAINTAINERCLEANFILES = \
 	config.log config.status \
 	$(srcdir)/Makefile.in \

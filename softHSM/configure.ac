@@ -124,7 +124,6 @@ AC_SUBST([softhsmdbdir])
 # Generate the make files
 AC_OUTPUT(
 	Makefile
-	m4/Makefile
 	src/Makefile
 	src/lib/Makefile
 	src/bin/Makefile

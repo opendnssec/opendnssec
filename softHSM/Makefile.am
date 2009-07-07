@@ -1,7 +1,5 @@
 # $Id$
 
-ACLOCAL_AMFLAGS = -I m4
-
 MAINTAINERCLEANFILES = \
 	config.log config.status \
 	$(srcdir)/Makefile.in \
@@ -11,7 +9,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = src checks m4
+SUBDIRS = src checks
 
 install-data-hook:
 	test -d ${sysconfdir} || \

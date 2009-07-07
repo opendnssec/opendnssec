@@ -35,6 +35,7 @@ libksm_la_SOURCES += \
 endif
 
 bin_PROGRAMS = ksmutil
+ksmutil_LDADD = libksm.la
 
 ksmutil_LDADD = @XML2_LIBS@  libksm.la
 

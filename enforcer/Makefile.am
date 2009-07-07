@@ -1,7 +1,5 @@
 # $Id: Makefile.am 615 2009-05-06 08:52:03Z jakob $
 
-ACLOCAL_AMFLAGS = -I m4
-
 MAINTAINERCLEANFILES = \
 	config.log config.status \
 	$(srcdir)/Makefile.in \
@@ -16,4 +14,3 @@ SUBDIRS = common communicated keygend
 install-data-hook:
 	mkdir -p $(localstatedir)/run/opendnssec
 	mkdir -p $(localstatedir)/opendnssec
-	
