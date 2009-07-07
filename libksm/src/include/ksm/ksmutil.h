@@ -65,6 +65,16 @@ int get_db_details(char** dbschema,
                    char** port, 
                    char** user, 
                    char** password);
+int read_zonelist_filename(char** zone_list_filename);
+xmlDocPtr add_zone_node(const char *docname,
+                        const char *zone_name, 
+                        const char *policy_name, 
+                        const char *sig_conf_name, 
+                        const char *input_name, 
+                        const char *output_name);
+xmlDocPtr del_zone_node(const char *docname,
+                        const char *zone_name);
+void list_zone_node(const char *docname);
 
 #ifdef __cplusplus
 }

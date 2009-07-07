@@ -165,6 +165,9 @@ AC_SUBST([ksmincludedir])
 conf_file_dir=$sysconfdir/opendnssec
 AC_DEFINE_UNQUOTED(CONFIGDIR, ["`eval echo $conf_file_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
 
+open_var_dir="$prefix/var/opendnssec"
+AC_DEFINE_UNQUOTED(VAR_DIR, ["`eval echo $open_var_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC var directory])
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile

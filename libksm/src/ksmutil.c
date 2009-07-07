@@ -92,6 +92,14 @@ usage_delzone ()
 }
 
     void
+usage_listzone ()
+{
+    fprintf(stderr,
+            "usage: %s [-f config_dir] listzone\n\tList zones from the zonelist.xml in config_dir\n",
+            progname);
+}
+
+    void
 usage_rollzone ()
 {
     fprintf(stderr,
@@ -114,6 +122,7 @@ usage ()
     usage_update ();
     usage_addzone ();
     usage_delzone ();
+    usage_listzone ();
     usage_rollzone ();
     usage_rollpolicy ();
 }
@@ -176,6 +185,7 @@ cmd_setup (int argc, char *argv[])
         status = get_lite_lock(lock_filename, lock_fd);
         if (status != 0) {
             printf("Error getting db lock\n");
+            fclose(lock_fd);
             StrFree(dbschema);
             return(1);
         }
@@ -189,6 +199,7 @@ cmd_setup (int argc, char *argv[])
         StrFree(backup_filename);
 
         if (status != 0) {
+            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
@@ -208,6 +219,7 @@ cmd_setup (int argc, char *argv[])
         if (system(setup_command) != 0)
         {
             printf("Could not call db setup command:\n\t%s\n", setup_command);
+            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
@@ -236,6 +248,7 @@ cmd_setup (int argc, char *argv[])
         if (system(setup_command) != 0)
         {
             printf("Could not call db setup command:\n\t%s\n", setup_command);
+            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
@@ -248,9 +261,19 @@ cmd_setup (int argc, char *argv[])
 
     /* try to connect to the database */
     status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
     if (status != 0) {
         printf("Failed to connect to database\n");
-        fclose(lock_fd);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     }
 
@@ -262,7 +285,9 @@ cmd_setup (int argc, char *argv[])
     status = update_repositories(&zone_list_filename);
     if (status != 0) {
         printf("Failed to update repositories\n");
-        fclose(lock_fd);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     }
 
@@ -273,7 +298,9 @@ cmd_setup (int argc, char *argv[])
     status = update_policies();
     if (status != 0) {
         printf("Failed to update policies\n");
-        fclose(lock_fd);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     }
 
@@ -284,7 +311,9 @@ cmd_setup (int argc, char *argv[])
     status = update_zones(zone_list_filename);
     if (status != 0) {
         printf("Failed to update zones\n");
-        fclose(lock_fd);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     }
 
@@ -374,22 +403,286 @@ cmd_update (int argc, char *argv[])
 }
 
 /* 
- * Add a zone to the config and database
+ * Add a zone to the config and database.
+ *
+ * Use XMLwriter to update the zonelist.xml found in conf.xml.
+ * Then call update_zones to push these changes into the database.
+ * zonelist.xml will be backed up, as will the DB file if we are using sqlite
+ *
  */
     int
 cmd_addzone (int argc, char *argv[])
 {
-    printf("command not yet implemented\n");
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+
+    char* zonelist_filename = NULL;
+    char* backup_filename = NULL;
+    char* db_backup_filename = NULL;
+    /* The settings that we need for the zone */
+    char* zone_name = NULL;
+    char* policy_name = NULL;
+    char* sig_conf_name = NULL;
+    char* input_name = NULL;
+    char* output_name = NULL;
+
+    /* Database connection details */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    xmlDocPtr doc = NULL;
+
+    int status = 0;
+
+    /* See what arguments we were passed (if any) otherwise set the defaults */
+    if (argc != 1 && argc != 5) {
+        usage_addzone();
+        return -1;
+    }
+    StrAppend(&zone_name, argv[0]);
+    if (argc == 5) {
+        StrAppend(&policy_name, argv[1]);
+        StrAppend(&sig_conf_name, argv[2]);
+        StrAppend(&input_name, argv[3]);
+        StrAppend(&output_name, argv[4]);
+    }
+    else {
+        StrAppend(&policy_name, "default");
+
+        StrAppend(&sig_conf_name, VAR_DIR);
+        StrAppend(&sig_conf_name, "/config/");
+        StrAppend(&sig_conf_name, zone_name);
+        StrAppend(&sig_conf_name, ".xml");
+
+        StrAppend(&input_name, VAR_DIR);
+        StrAppend(&input_name, "/unsigned/");
+        StrAppend(&input_name, zone_name);
+
+        StrAppend(&output_name, VAR_DIR);
+        StrAppend(&output_name, "/signed/");
+        StrAppend(&output_name, zone_name);
+    }
+
+    /* Set zonelist from the conf.xml that we have got */
+    status = read_zonelist_filename(&zonelist_filename);
+    if (status != 0) {
+        printf("couldn't read zonelist\n");
+        return(1);
+    }
+
+    /* Read the file and add our new node in memory */
+    /* TODO don't add if it already exists */
+    xmlKeepBlanksDefault(0);
+    xmlTreeIndentString = "\t";
+    doc = add_zone_node(zonelist_filename, zone_name, policy_name, sig_conf_name, input_name, output_name);
+    if (doc == NULL) {
+        return(1);
+    }
+
+    /* Backup the current zonelist */
+    StrAppend(&backup_filename, zonelist_filename);
+    StrAppend(&backup_filename, ".backup");
+    status = backup_file(zonelist_filename, backup_filename);
+    StrFree(backup_filename);
+    if (status != 0) {
+        StrFree(zonelist_filename);
+        StrFree(zone_name);
+        StrFree(policy_name);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
+        return(status);
+    }
+
+    /* Save our new one over, TODO should we validate it first? */
+    xmlSaveFormatFile(zonelist_filename, doc, 1);
+    xmlFreeDoc(doc);
+
+    /*
+     * Push this new zonelist into the database
+     */
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            fclose(lock_fd);
+            StrFree(dbschema);
+            return(1);
+        }
+
+        /* Make a backup of the sqlite DB */
+        StrAppend(&db_backup_filename, dbschema);
+        StrAppend(&db_backup_filename, ".backup");
+
+        status = backup_file(dbschema, db_backup_filename);
+
+        StrFree(db_backup_filename);
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    status = update_zones(zonelist_filename);
+    if (status != 0) {
+        printf("Failed to update zones\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
     return 0;
 }
 
 /*
- * Delete a zone from the config and database
+ * Delete a zone from the config 
+ * TODO should it delete from the DB too? 
  */
     int
 cmd_delzone (int argc, char *argv[])
 {
-    printf("command not yet implemented\n");
+
+    char* zonelist_filename = NULL;
+    char* backup_filename = NULL;
+    /* The settings that we need for the zone */
+    char* zone_name = NULL;
+
+    xmlDocPtr doc = NULL;
+
+    int status = 0;
+
+    /* See what arguments we were passed (if any) otherwise set the defaults */
+    if (argc != 1) {
+        usage_delzone();
+        return -1;
+    }
+    StrAppend(&zone_name, argv[0]);
+
+    /* Set zonelist from the conf.xml that we have got */
+    status = read_zonelist_filename(&zonelist_filename);
+    if (status != 0) {
+        printf("couldn't read zonelist\n");
+        return(1);
+    }
+
+    /* Read the file and delete our zone node in memory */
+    doc = del_zone_node(zonelist_filename, zone_name);
+    if (doc == NULL) {
+        return(1);
+    }
+
+    /* Backup the current zonelist */
+    StrAppend(&backup_filename, zonelist_filename);
+    StrAppend(&backup_filename, ".backup");
+    status = backup_file(zonelist_filename, backup_filename);
+    StrFree(backup_filename);
+    if (status != 0) {
+        StrFree(zonelist_filename);
+        StrFree(zone_name);
+        return(status);
+    }
+
+    /* Save our new one over, TODO should we validate it first? */
+    status = xmlSaveFormatFile(zonelist_filename, doc, 1);
+    xmlFreeDoc(doc);
+    if (status == -1) {
+        printf("Could not save %s\n", zonelist_filename);
+        return(1);
+    }
+
+    return 0;
+}
+
+/*
+ * Delete a zone from the config 
+ * TODO should it delete from the DB too? 
+ */
+    int
+cmd_listzone (int argc, char *argv[])
+{
+
+    char* zonelist_filename = NULL;
+
+    int status = 0;
+
+    /* See what arguments we were passed (if any) otherwise set the defaults */
+    if (argc != 0) {
+        usage_listzone();
+        return -1;
+    }
+
+    /* Set zonelist from the conf.xml that we have got */
+    status = read_zonelist_filename(&zonelist_filename);
+    if (status != 0) {
+        printf("couldn't read zonelist\n");
+        return(1);
+    }
+
+    /* Read the file and list the zones as we go */
+    list_zone_node(zonelist_filename);
+
     return 0;
 }
 
@@ -467,6 +760,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_delzone(argc, argv);
+    } else if (!strncasecmp(argv[0], "listzone", 8)) {
+        argc --;
+        argv ++;
+        result = cmd_listzone(argc, argv);
     } else if (!strncasecmp(argv[0], "rollzone", 8)) {
         argc --;
         argv ++;
@@ -1492,15 +1789,12 @@ int backup_file(const char* orig_file, const char* backup_file)
 
         if(fclose(from)==EOF) {
             printf("Error closing source file.\n");
-            fclose(from);
             fclose(to);
             return(1);
         }
 
         if(fclose(to)==EOF) {
             printf("Error closing destination file.\n");
-            fclose(from);
-            fclose(to);
             return(1);
         }
     }
@@ -1714,4 +2008,221 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     xmlFreeDoc(rngdoc);
 
     return(status);
+}
+
+/* 
+ *  Read the conf.xml file, we will not validate as that was done as we read the database.
+ *  Instead we just extract the RepositoryList into the database and also learn the 
+ *  location of the zonelist.
+ */
+int read_zonelist_filename(char** zone_list_filename)
+{
+    xmlTextReaderPtr reader = NULL;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    int ret = 0; /* status of the XML parsing */
+    char* filename = NULL;
+
+    xmlChar *zonelist_expr = (unsigned char*) "//Signer/ZoneListFile";
+
+    StrAppend(&filename, config);
+    StrAppend(&filename, "/conf.xml");
+    /* Start reading the file; we will be looking for "Signer" tags */ 
+    reader = xmlNewTextReaderFilename(filename);
+    if (reader != NULL) {
+        ret = xmlTextReaderRead(reader);
+        while (ret == 1) {
+            /* Found <Signer> */
+            if (strncmp((char*) xmlTextReaderLocalName(reader), "Signer", 6) == 0 
+                    && strncmp((char*) xmlTextReaderLocalName(reader), "SignerThreads", 13) != 0
+                    && xmlTextReaderNodeType(reader) == 1) {
+
+                /* Expand this node and get the rest of the info with XPath */
+                xmlTextReaderExpand(reader);
+                doc = xmlTextReaderCurrentDoc(reader);
+                if (doc == NULL) {
+                    printf("Error: can not read Signer section\n");
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                xpathCtx = xmlXPathNewContext(doc);
+                if(xpathCtx == NULL) {
+                    printf("Error: can not create XPath context for Signer section\n");
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                /* Evaluate xpath expression for ZoneListFile */
+                xpathObj = xmlXPathEvalExpression(zonelist_expr, xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                *zone_list_filename = NULL;
+                StrAppend(zone_list_filename, (char*) xmlXPathCastToString(xpathObj));
+                printf("zonelist filename set to %s.\n", *zone_list_filename);
+            }
+            /* Read the next line */
+            ret = xmlTextReaderRead(reader);
+        }
+        xmlFreeTextReader(reader);
+        if (ret != 0) {
+            printf("%s : failed to parse\n", filename);
+            return(1);
+        }
+    } else {
+        printf("Unable to open %s\n", filename);
+        return(1);
+    }
+    if (xpathCtx) {
+        xmlXPathFreeContext(xpathCtx);
+    }
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+
+    return 0;
+}
+
+xmlDocPtr add_zone_node(const char *docname,
+                        const char *zone_name, 
+                        const char *policy_name, 
+                        const char *sig_conf_name, 
+                        const char *input_name, 
+                        const char *output_name)
+{
+    xmlDocPtr doc;
+    xmlNodePtr cur;
+    xmlNodePtr newzonenode;
+    xmlNodePtr newpolicynode;
+    xmlNodePtr newsignode;
+    xmlNodePtr newadaptnode;
+    xmlNodePtr newinputnode;
+    xmlNodePtr newinfilenode;
+    xmlNodePtr newoutputnode;
+    xmlNodePtr newoutfilenode;
+    xmlAttrPtr newattr;
+    doc = xmlParseFile(docname);
+    if (doc == NULL ) {
+        fprintf(stderr,"Document not parsed successfully. \n");
+        return (NULL);
+    }
+    cur = xmlDocGetRootElement(doc);
+    if (cur == NULL) {
+        fprintf(stderr,"empty document\n");
+        xmlFreeDoc(doc);
+        return (NULL);
+    }
+    if (xmlStrcmp(cur->name, (const xmlChar *) "ZoneList")) {
+        fprintf(stderr,"document of the wrong type, root node != %s", "ZoneList");
+        xmlFreeDoc(doc);
+        return (NULL);
+    }
+    newzonenode = xmlNewTextChild(cur, NULL, (const xmlChar *)"Zone", NULL);
+    newattr = xmlNewProp(newzonenode, (const xmlChar *)"name", (const xmlChar *)zone_name);
+
+    newpolicynode = xmlNewTextChild (newzonenode, NULL, (const xmlChar *)"Policy", (const xmlChar *)policy_name);
+
+    newsignode = xmlNewTextChild (newzonenode, NULL, (const xmlChar *)"SignerConfiguration", (const xmlChar *)sig_conf_name);
+
+    newadaptnode = xmlNewChild (newzonenode, NULL, (const xmlChar *)"Adapters", NULL);
+
+    newinputnode = xmlNewChild (newadaptnode, NULL, (const xmlChar *)"Input", NULL);
+
+    newinfilenode = xmlNewTextChild (newinputnode, NULL, (const xmlChar *)"File", (const xmlChar *)input_name);
+
+    newoutputnode = xmlNewChild (newadaptnode, NULL, (const xmlChar *)"Output", NULL);
+
+    newoutfilenode = xmlNewTextChild (newoutputnode, NULL, (const xmlChar *)"File", (const xmlChar *)output_name);
+
+    return(doc);
+}
+
+xmlDocPtr del_zone_node(const char *docname,
+                        const char *zone_name)
+{
+    xmlDocPtr doc;
+    xmlNodePtr root;
+    xmlNodePtr cur;
+
+    doc = xmlParseFile(docname);
+    if (doc == NULL ) {
+        fprintf(stderr,"Document not parsed successfully. \n");
+        return (NULL);
+    }
+    root = xmlDocGetRootElement(doc);
+    if (root == NULL) {
+        fprintf(stderr,"empty document\n");
+        xmlFreeDoc(doc);
+        return (NULL);
+    }
+    if (xmlStrcmp(root->name, (const xmlChar *) "ZoneList")) {
+        fprintf(stderr,"document of the wrong type, root node != %s", "ZoneList");
+        xmlFreeDoc(doc);
+        return (NULL);
+    }
+
+    /* Zone nodes are children of the root */
+    for(cur = root->children; cur != NULL; cur = cur->next)
+    {
+        /* is this the zone we are looking for? */
+        if (xmlStrcmp( xmlGetProp(cur, (xmlChar *) "name"), (const xmlChar *) zone_name) == 0)
+        {
+            xmlUnlinkNode(cur);
+            cur = root->children; /* May pass through multiple times, but will remove all instances of the zone */
+        }
+    }
+    xmlFreeNode(cur);
+
+    return(doc);
+}
+
+void list_zone_node(const char *docname)
+{
+    xmlDocPtr doc;
+    xmlNodePtr root;
+    xmlNodePtr cur;
+    xmlNodePtr pol;
+
+    doc = xmlParseFile(docname);
+    if (doc == NULL ) {
+        fprintf(stderr,"Document not parsed successfully. \n");
+        return;
+    }
+    root = xmlDocGetRootElement(doc);
+    if (root == NULL) {
+        fprintf(stderr,"empty document\n");
+        xmlFreeDoc(doc);
+        return;
+    }
+    if (xmlStrcmp(root->name, (const xmlChar *) "ZoneList")) {
+        fprintf(stderr,"document of the wrong type, root node != %s", "ZoneList");
+        xmlFreeDoc(doc);
+        return;
+    }
+
+    /* Zone nodes are children of the root */
+    for(cur = root->children; cur != NULL; cur = cur->next)
+    {
+        if (xmlStrcmp( cur->name, (const xmlChar *)"Zone") == 0) {
+            printf("Found Zone: %s; ", xmlGetProp(cur, (xmlChar *) "name"));
+            for(pol = cur->children; pol != NULL; pol = pol->next)
+            {
+                if (xmlStrcmp( pol->name, (const xmlChar *)"Policy") == 0)
+                {
+                    printf("on policy %s\n", xmlNodeGetContent(pol));
+                }
+            }
+        }
+    }
+
+    xmlFreeDoc(doc);
+
+    return;
 }
