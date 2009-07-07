@@ -18,6 +18,6 @@ install-data-hook:
 	test -d ${sysconfdir} || \
 		${INSTALL} -d ${sysconfdir}
 	test -f ${sysconfdir}/softhsm.conf || \
-		${INSTALL_DATA} ${builddir}/softhsm.conf ${sysconfdir}
+		${INSTALL_DATA} ${top_builddir}/softhsm.conf ${sysconfdir}
 	test -d ${softhsmdbdir} || \
 		${INSTALL} -d -m 700 ${softhsmdbdir}

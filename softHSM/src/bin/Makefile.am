@@ -3,7 +3,8 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = 		-I$(srcdir)/../lib \
-			-I$(srcdir)/../lib/cryptoki
+			-I$(srcdir)/../lib/cryptoki \
+			@BOTAN_INCLUDES@
 
 bin_PROGRAMS =		softhsm
 softhsm_SOURCES =	softhsm.cpp softhsm.h
