@@ -11,8 +11,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = src checks
-
+SUBDIRS = src checks m4
 
 install-data-hook:
 	test -d ${sysconfdir} || \

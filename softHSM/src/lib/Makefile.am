@@ -19,7 +19,6 @@ libsofthsm_la_SOURCES =		main.cpp \
 				SoftSlot.cpp \
 				SoftSession.cpp \
 				SoftFind.cpp \
-				SoftAttribute.cpp \
 				SoftDatabase.cpp \
 				SoftKeyStore.cpp
 libsofthsm_la_LIBADD =		@BOTAN_LIBS@ @SQLITE3_LIBS@
