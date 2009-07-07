@@ -105,6 +105,9 @@ make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns
 void
 handle_name(FILE *out_file, ldns_rr *rr, uint32_t soa_min_ttl, ldns_rr_list *rr_list, ldns_rr **prev_nsec, ldns_rr **first_nsec)
 {
+	/* Unused parameter */
+	(void)prev_nsec;
+
 	if (rr && ldns_rr_list_rr_count(rr_list) > 0) {
 		if (ldns_dname_compare(ldns_rr_owner(rr), ldns_rr_list_owner(rr_list)) == 0) {
 			ldns_rr_list_push_rr(rr_list, rr);
