@@ -296,6 +296,8 @@ void DqsOrderBy(char** query, const char* field)
 
 void DqsEnd(char** query)
 {
+    /* Unused parameter */
+    (void)query;
     return;
 }
 

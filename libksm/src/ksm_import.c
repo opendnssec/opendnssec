@@ -68,8 +68,6 @@
 int KsmImportRepository(const char* repo_name, const char* repo_capacity)
 {
     char*       sql = NULL;     /* SQL query */
-    DB_RESULT   result;         /* Handle converted to a result object */
-    DB_ROW      row;            /* Row data */
     int         status = 0;     /* Status return */
     int         count = 0;      /* Do we already have a repository with this name? */
 
@@ -185,8 +183,6 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
 int KsmImportZone(const char* zone_name, int policy_id)
 {
     char*       sql = NULL;     /* SQL query */
-    DB_RESULT   result;         /* Handle converted to a result object */
-    DB_ROW      row;            /* Row data */
     int         status = 0;     /* Status return */
     int         count = 0;      /* Do we already have a zone with this name? */
 

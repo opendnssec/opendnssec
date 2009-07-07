@@ -106,6 +106,9 @@ void MsgDefaultOutput(const char* text)
 
 void MsgNoOutput(const char* text)
 {
+    /* Unused parameter*/
+    (void)text;
+
     return;
 }
 

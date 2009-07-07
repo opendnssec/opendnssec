@@ -1118,6 +1118,10 @@ int KsmRequestAvailableCount(int keytype, const char* datetime, KSM_PARCOLL* par
     char*   sql;            /* SQL command to be isssued */
     int     status;         /* Status return */
 
+    /* Unused parameters */
+    (void)datetime;
+    (void)parameters;
+
     /* Create the SQL command to interrogate the database */
 
     sql = DqsCountInit("KEYDATA_VIEW");
@@ -1312,6 +1316,9 @@ int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count, int z
     char*   sql = NULL;     /* SQL command */
     int     status;         /* Status return */
 
+    /* Unused parameter */
+    (void)datetime;
+
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
     DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_READY, clause++);
@@ -1440,8 +1447,11 @@ int KsmRequestIssueKeys(int keytype, KSM_REQUEST_CALLBACK callback,
 
 int KsmRequestPrintKey(void* context, KSM_KEYDATA* data)
 {
-	printf("%s %lu %d %d %s\n", KsmKeywordStateValueToName(data->state),
-		data->keypair_id, data->keytype, data->algorithm, data->location);
+    /* Unused parameter */
+    (void)context;
 
-	return 0;
+    printf("%s %lu %d %d %s\n", KsmKeywordStateValueToName(data->state),
+           data->keypair_id, data->keytype, data->algorithm, data->location);
+
+    return 0;
 }

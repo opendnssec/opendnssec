@@ -203,6 +203,8 @@ void DusConditionKeyword(char** query, const char* field,
 
 void DusEnd(char** sql)
 {
+    /* Unused parameter */
+    (void)sql;
     return;
 }
 
