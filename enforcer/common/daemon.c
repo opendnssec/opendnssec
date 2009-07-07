@@ -87,15 +87,15 @@ main(int argc, char *argv[]){
     const char* program;		/* Temporary for program name */
     
     config.pidfile = NULL;
-    config.program = (char *)calloc(MAX_PROG_NAME_LENGTH, sizeof(char));
+    config.program = NULL;
     config.user = (unsigned char *)calloc(MAX_USER_LENGTH, sizeof(char));
     config.host = (unsigned char *)calloc(MAX_HOST_LENGTH, sizeof(char));
     config.password = (unsigned char *)calloc(MAX_PASSWORD_LENGTH, sizeof(char));
     config.schema = (unsigned char *)calloc(MAX_SCHEMA_LENGTH, sizeof(char));
     config.port = (unsigned char *)calloc(MAX_PORT_LENGTH, sizeof(char));
 
-    if (config.user == NULL || config.program == NULL || config.host == NULL || 
-            config.password == NULL || config.schema == NULL || config.port == NULL ) {
+    if (config.user == NULL || config.host == NULL || config.password == NULL || 
+          config.schema == NULL || config.port == NULL ) {
         log_msg(&config, LOG_ERR, "Malloc for config struct failed\n");
         exit(1);
     }
@@ -199,7 +199,6 @@ main(int argc, char *argv[]){
 
     /* To satisfy code checkers let's free stuff here */
     free(config.user);
-    free(config.program);
     free(config.host);
     free(config.password);
     free(config.schema);

@@ -86,7 +86,7 @@ typedef bool _Bool;
 typedef struct
 {
     /* stuff that daemons always have */
-    char *program;
+    const char *program;
     bool debug;
     pid_t pid;
     char *pidfile;
