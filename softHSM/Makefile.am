@@ -11,6 +11,8 @@ MAINTAINERCLEANFILES = \
 
 SUBDIRS = src checks
 
+EXTRA_DIST = m4
+
 install-data-hook:
 	test -d ${sysconfdir} || \
 		${INSTALL} -d ${sysconfdir}
