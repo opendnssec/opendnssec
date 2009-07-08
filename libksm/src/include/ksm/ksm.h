@@ -58,6 +58,7 @@ int KsmInit(void);
 int KsmRundown(void);
 
 #define KSM_NAME_LENGTH     256         /* Includes trailing NULL */
+#define KSM_POLICY_DESC_LENGTH     256  /* Includes trailing NULL */
 #define KSM_TIME_LENGTH     32          /* Includes trailing NULL */
 
 #define KSM_SQL_SIZE        1024        /* Max size of SQL statement */
@@ -234,6 +235,7 @@ typedef struct {
 typedef struct {
 	int id;
 	char* name;
+	char* description;
 	KSM_SIGNER_POLICY* signer;
 	KSM_SIGNATURE_POLICY* signature;
 	KSM_DENIAL_POLICY* denial;

@@ -108,6 +108,7 @@ server_main(DAEMONCONFIG *config)
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
     policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     /* Let's check all of those mallocs, or should we use MemMalloc ? */
     if (policy->signer == NULL || policy->signature == NULL ||
             policy->zone == NULL || policy->parent == NULL ||
@@ -310,6 +311,7 @@ server_main(DAEMONCONFIG *config)
     log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
 
     free(policy->name);
+    free(policy->description);
     free(policy->enforcer);
     free(policy->denial);
     free(policy->zsk);

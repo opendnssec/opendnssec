@@ -76,7 +76,7 @@ int KsmPolicyInit(DB_RESULT* result, const char* name)
 
     /* Construct the query */
 
-    sql = DqsSpecifyInit("policies","id, name");
+    sql = DqsSpecifyInit("policies","id, name, description");
     if (name) {
         DqsConditionString(&sql, "NAME", DQS_COMPARE_EQ, name, where++);
     }
@@ -758,6 +758,7 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy)
         status = DbFetchRow(result, &row);
         if (status == 0) {
             DbInt(row, DB_POLICY_ID, &policy->id);
+            DbStringBuffer(row, DB_POLICY_DESCRIPTION, policy->description, KSM_POLICY_DESC_LENGTH*sizeof(char));
         }
         else if (status == -1) {
         /* No rows to return (but no error) */

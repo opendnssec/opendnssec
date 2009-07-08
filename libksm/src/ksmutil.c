@@ -99,6 +99,14 @@ usage_listzone ()
             progname);
 }
 
+   void
+usage_export ()
+{
+    fprintf(stderr,
+            "usage: %s export [policy]\n\texport all policies [or named policy] to xml\n",
+            progname);
+}
+
     void
 usage_rollzone ()
 {
@@ -123,6 +131,7 @@ usage ()
     usage_addzone ();
     usage_delzone ();
     usage_listzone ();
+    usage_export ();
     usage_rollzone ();
     usage_rollpolicy ();
 }
@@ -687,6 +696,111 @@ cmd_listzone (int argc, char *argv[])
 }
 
 /*
+ * To export policies (all, unless one is named) to xml
+ */
+    int
+cmd_export (int argc, char *argv[])
+{
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+    
+    DB_RESULT result;
+    int status = 0;
+    xmlDocPtr doc = xmlNewDoc((const xmlChar *)"1.0");
+    xmlNodePtr root;
+    KSM_POLICY *policy;
+    char* policy_name = NULL;
+
+    /* See what arguments we were passed (if any) otherwise set the defaults */
+    if (argc == 1) {
+         StrAppend(&policy_name, argv[0]);
+    }
+    else if (argc > 1) {
+        usage_export();
+        return -1;
+    }
+
+    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
+    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+    
+    /* Setup doc with a root node of <KASP> */
+    xmlKeepBlanksDefault(0);
+    xmlTreeIndentString = "    ";
+    root = xmlNewDocNode(doc, NULL, (const xmlChar *)"KASP", NULL);
+    (void) xmlDocSetRootElement(doc, root);
+
+    /* Read all policies */
+    status = KsmPolicyInit(&result, policy_name);
+    if (status == 0) {
+        /* get the first policy */
+        status = KsmPolicy(result, policy);
+        KsmPolicyRead(policy);
+
+        while (status == 0) {
+            append_policy(doc, policy);
+
+            /* get next policy */
+            status = KsmPolicy(result, policy);
+            KsmPolicyRead(policy);
+
+        }
+    }
+
+    xmlSaveFormatFile("-", doc, 1);
+
+    xmlFreeDoc(doc);
+    free(policy->description);
+    free(policy->name);
+    free(policy->enforcer);
+    free(policy->denial);
+    free(policy->keys);
+    free(policy->zsk);
+    free(policy->ksk);
+    free(policy->zone);
+    free(policy->parent);
+    free(policy->signature);
+    free(policy->signer);
+    free(policy);
+
+    return 0;
+}
+
+/*
  * To rollover a zone (or all zones on a policy if keys are shared)
  */
     int
@@ -764,6 +878,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_listzone(argc, argv);
+    } else if (!strncasecmp(argv[0], "export", 6)) {
+        argc --;
+        argv ++;
+        result = cmd_export(argc, argv);
     } else if (!strncasecmp(argv[0], "rollzone", 8)) {
         argc --;
         argv ++;
@@ -1265,6 +1383,7 @@ int update_policies()
                         ret = xmlTextReaderRead(reader);
                         continue;
                     }
+                    /* TODO Set description here ? */
                 }
                 else {
                     /* New policy, insert it and get the new policy_id */
@@ -1905,7 +2024,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     if(*xmlXPathCastToString(xpathObj) != '\0') {
         db_found = SQLITE_DB;
         StrAppend(dbschema, (char *)xmlXPathCastToString(xpathObj) );
-        printf("SQLite database set to: %s\n", *dbschema);
+        fprintf(stderr, "SQLite database set to: %s\n", *dbschema);
     }
 
     if (db_found == 0) {
@@ -2100,13 +2219,9 @@ xmlDocPtr add_zone_node(const char *docname,
     xmlDocPtr doc;
     xmlNodePtr cur;
     xmlNodePtr newzonenode;
-    xmlNodePtr newpolicynode;
-    xmlNodePtr newsignode;
     xmlNodePtr newadaptnode;
     xmlNodePtr newinputnode;
-    xmlNodePtr newinfilenode;
     xmlNodePtr newoutputnode;
-    xmlNodePtr newoutfilenode;
     xmlAttrPtr newattr;
     doc = xmlParseFile(docname);
     if (doc == NULL ) {
@@ -2127,19 +2242,19 @@ xmlDocPtr add_zone_node(const char *docname,
     newzonenode = xmlNewTextChild(cur, NULL, (const xmlChar *)"Zone", NULL);
     newattr = xmlNewProp(newzonenode, (const xmlChar *)"name", (const xmlChar *)zone_name);
 
-    newpolicynode = xmlNewTextChild (newzonenode, NULL, (const xmlChar *)"Policy", (const xmlChar *)policy_name);
+    (void) xmlNewTextChild (newzonenode, NULL, (const xmlChar *)"Policy", (const xmlChar *)policy_name);
 
-    newsignode = xmlNewTextChild (newzonenode, NULL, (const xmlChar *)"SignerConfiguration", (const xmlChar *)sig_conf_name);
+    (void) xmlNewTextChild (newzonenode, NULL, (const xmlChar *)"SignerConfiguration", (const xmlChar *)sig_conf_name);
 
     newadaptnode = xmlNewChild (newzonenode, NULL, (const xmlChar *)"Adapters", NULL);
 
     newinputnode = xmlNewChild (newadaptnode, NULL, (const xmlChar *)"Input", NULL);
 
-    newinfilenode = xmlNewTextChild (newinputnode, NULL, (const xmlChar *)"File", (const xmlChar *)input_name);
+    (void) xmlNewTextChild (newinputnode, NULL, (const xmlChar *)"File", (const xmlChar *)input_name);
 
     newoutputnode = xmlNewChild (newadaptnode, NULL, (const xmlChar *)"Output", NULL);
 
-    newoutfilenode = xmlNewTextChild (newoutputnode, NULL, (const xmlChar *)"File", (const xmlChar *)output_name);
+    (void) xmlNewTextChild (newoutputnode, NULL, (const xmlChar *)"File", (const xmlChar *)output_name);
 
     return(doc);
 }
@@ -2225,4 +2340,149 @@ void list_zone_node(const char *docname)
     xmlFreeDoc(doc);
 
     return;
+}
+
+int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
+{
+    xmlNodePtr root;
+    xmlNodePtr policy_node;
+    xmlNodePtr signatures_node;
+    xmlNodePtr validity_node;
+    xmlNodePtr denial_node;
+    xmlNodePtr nsec_node;
+    xmlNodePtr hash_node;
+    xmlNodePtr salt_node;
+    xmlNodePtr keys_node;
+    xmlNodePtr ksk_node;
+    xmlNodePtr ksk_alg_node;
+    xmlNodePtr zsk_node;
+    xmlNodePtr zsk_alg_node;
+    xmlNodePtr zone_node;
+    xmlNodePtr zone_soa_node;
+    xmlNodePtr parent_node;
+    xmlNodePtr parent_ds_node;
+    xmlNodePtr parent_soa_node;
+    char temp_time[32];
+   
+    root = xmlDocGetRootElement(doc);
+    if (root == NULL) {
+        fprintf(stderr,"empty document\n");
+        return(1);
+    }
+    if (xmlStrcmp(root->name, (const xmlChar *) "KASP")) {
+        fprintf(stderr,"document of the wrong type, root node != %s", "KASP");
+        return(1);
+    }
+
+    policy_node = xmlNewTextChild(root, NULL, (const xmlChar *)"Policy", NULL);
+    (void) xmlNewProp(policy_node, (const xmlChar *)"name", (const xmlChar *)policy->name);
+    (void) xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Description", (const xmlChar *)policy->description);
+
+    /* SIGNATURES */
+    signatures_node = xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Signatures", NULL);
+    snprintf(temp_time, 32, "PT%dS", policy->signature->resign);
+    (void) xmlNewTextChild(signatures_node, NULL, (const xmlChar *)"Resign", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->signer->refresh);
+    (void) xmlNewTextChild(signatures_node, NULL, (const xmlChar *)"Refresh", (const xmlChar *)temp_time);
+    validity_node = xmlNewTextChild(signatures_node, NULL, (const xmlChar *)"Validity", NULL);
+    snprintf(temp_time, 32, "PT%dS", policy->signature->valdefault);
+    (void) xmlNewTextChild(validity_node, NULL, (const xmlChar *)"Default", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->signature->valdenial);
+    (void) xmlNewTextChild(validity_node, NULL, (const xmlChar *)"Denial", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->signer->jitter);
+    (void) xmlNewTextChild(signatures_node, NULL, (const xmlChar *)"Jitter", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->signature->clockskew);
+    (void) xmlNewTextChild(signatures_node, NULL, (const xmlChar *)"InceptionOffset", (const xmlChar *)temp_time);
+
+    /* DENIAL */
+    denial_node = xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Denial", NULL);
+    if (policy->denial->version == 1) /* NSEC */
+    {
+        (void) xmlNewTextChild(denial_node, NULL, (const xmlChar *)"NSEC", NULL);
+    }
+    else    /* NSEC3 */
+    {
+        nsec_node = xmlNewTextChild(denial_node, NULL, (const xmlChar *)"NSEC3", NULL);
+        if (policy->denial->optout == 1)
+        {
+            (void) xmlNewTextChild(nsec_node, NULL, (const xmlChar *)"OptOut", NULL);
+        }
+        snprintf(temp_time, 32, "PT%dS", policy->denial->resalt);
+        (void) xmlNewTextChild(nsec_node, NULL, (const xmlChar *)"Resalt", (const xmlChar *)temp_time);
+        hash_node = xmlNewTextChild(nsec_node, NULL, (const xmlChar *)"Hash", NULL);
+        snprintf(temp_time, 32, "%d", policy->denial->algorithm);
+        (void) xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Algorithm", (const xmlChar *)temp_time);
+        snprintf(temp_time, 32, "%d", policy->denial->iteration);
+        (void) xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Iteration", (const xmlChar *)temp_time);
+        snprintf(temp_time, 32, "%d", policy->denial->saltlength);
+        salt_node = xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Salt", NULL);
+        (void) xmlNewProp(salt_node, (const xmlChar *)"length", (const xmlChar *)temp_time);
+    }
+
+    /* KEYS */
+    keys_node = xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Keys", NULL);
+    snprintf(temp_time, 32, "PT%dS", policy->keys->ttl);
+    (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"TTL", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->keys->retire_safety);
+    (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"RetireSafety", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->keys->publish_safety);
+    (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"PublishSafety", (const xmlChar *)temp_time);
+    if (policy->keys->share_keys == 1)
+    {
+            (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"SharedKeys", NULL);
+    }
+    /*(void) xmlNewDocComment(doc, (const xmlChar *)"Parameters that are different for zsks and ksks");*/
+    /* KSK */
+    ksk_node = xmlNewTextChild(keys_node, NULL, (const xmlChar *)"KSK", NULL);
+    snprintf(temp_time, 32, "%d", policy->ksk->algorithm);
+    ksk_alg_node = xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Algorithm", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "%d", policy->ksk->bits);
+    (void) xmlNewProp(ksk_alg_node, (const xmlChar *)"length", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->ksk->lifetime);
+    (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Lifetime", (const xmlChar *)temp_time);
+    (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Repository", (const xmlChar *)policy->ksk->sm_name);
+    snprintf(temp_time, 32, "%d", policy->ksk->emergency_keys);
+    (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Emergency", (const xmlChar *)temp_time);
+    if (policy->ksk->rfc5011 == 1)
+    {
+        (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"RFC5011", NULL);
+    }
+
+    /* ZSK */
+    zsk_node = xmlNewTextChild(keys_node, NULL, (const xmlChar *)"ZSK", NULL);
+    snprintf(temp_time, 32, "%d", policy->zsk->algorithm);
+    zsk_alg_node = xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Algorithm", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "%d", policy->zsk->bits);
+    (void) xmlNewProp(zsk_alg_node, (const xmlChar *)"length", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->zsk->lifetime);
+    (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Lifetime", (const xmlChar *)temp_time);
+    (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Repository", (const xmlChar *)policy->zsk->sm_name);
+    snprintf(temp_time, 32, "%d", policy->zsk->emergency_keys);
+    (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Emergency", (const xmlChar *)temp_time);
+
+    /* ZONE */
+    zone_node = xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Zone", NULL);
+    snprintf(temp_time, 32, "PT%dS", policy->zone->propdelay);
+    (void) xmlNewTextChild(zone_node, NULL, (const xmlChar *)"PropagationDelay", (const xmlChar *)temp_time);
+    zone_soa_node = xmlNewTextChild(zone_node, NULL, (const xmlChar *)"SOA", NULL);
+    snprintf(temp_time, 32, "PT%dS", policy->zone->soa_ttl);
+    (void) xmlNewTextChild(zone_soa_node, NULL, (const xmlChar *)"TTL", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->zone->soa_min);
+    (void) xmlNewTextChild(zone_soa_node, NULL, (const xmlChar *)"Minimum", (const xmlChar *)temp_time);
+    (void) xmlNewTextChild(zone_soa_node, NULL, (const xmlChar *)"Serial", (const xmlChar *) KsmKeywordSerialValueToName(policy->zone->serial));
+
+    /* PARENT */
+    parent_node = xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Parent", NULL);
+    snprintf(temp_time, 32, "PT%dS", policy->parent->propdelay);
+    (void) xmlNewTextChild(parent_node, NULL, (const xmlChar *)"PropagationDelay", (const xmlChar *)temp_time);
+    parent_ds_node = xmlNewTextChild(parent_node, NULL, (const xmlChar *)"DS", NULL);
+    snprintf(temp_time, 32, "PT%dS", policy->parent->ds_ttl);
+    (void) xmlNewTextChild(parent_ds_node, NULL, (const xmlChar *)"TTL", (const xmlChar *)temp_time);
+    parent_soa_node = xmlNewTextChild(parent_node, NULL, (const xmlChar *)"SOA", NULL);
+    snprintf(temp_time, 32, "PT%dS", policy->parent->soa_ttl);
+    (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"TTL", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "PT%dS", policy->parent->soa_min);
+    (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"Minimum", (const xmlChar *)temp_time);
+
+    return(0);
 }

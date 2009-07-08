@@ -75,6 +75,7 @@ xmlDocPtr add_zone_node(const char *docname,
 xmlDocPtr del_zone_node(const char *docname,
                         const char *zone_name);
 void list_zone_node(const char *docname);
+int append_policy(xmlDocPtr doc, KSM_POLICY *policy);
 
 #ifdef __cplusplus
 }
