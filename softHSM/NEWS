@@ -2,7 +2,7 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-New in 1.0-RC2; 2009-0X-XX Rickard Bondesson
+New in 1.0-RC2; 2009-07-08 Rickard Bondesson
 
 * Added a check for the Botan library in config script
 * SoftHSM will not add a default label/ID to a key pair when the
