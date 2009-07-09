@@ -34,7 +34,7 @@
 			<TTL>PT3600S</TTL>
 			<RetireSafety>PT3600S</RetireSafety>
 			<PublishSafety>PT3600S</PublishSafety>
-			<ShareKeys>true</ShareKeys>
+			<!-- <ShareKeys/> -->
 
 			<!-- Parameters for KSK only -->
 			<KSK>
