@@ -86,6 +86,9 @@ class EngineConfiguration:
         self.tools_dir = \
              Util.get_xml_data("Configuration/Signer/ToolsDirectory",
                                xml_blob, True)
+        if not self.tools_dir:
+            self.tools_dir = "@opendnsseclibexecdir@"
+
         self.notify_command = \
              Util.get_xml_data("Configuration/Signer/NotifyCommand",
                                xml_blob, True)

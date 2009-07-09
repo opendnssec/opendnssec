@@ -54,7 +54,8 @@ start = element Configuration {
 		# Location to store the zonelist XML file
 		element ZoneListFile { xsd:string }?,
 
-		# Location of the signer tools
+		# Location of the signer tools, if other than the installed path.
+		# default $(libexecdir)/opendnssec
 		element ToolsDirectory { xsd:string }?,
 		
 		# Number of Worker Threads

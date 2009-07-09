@@ -37,7 +37,6 @@
 	<Signer>
 		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
 		<ZoneListFile>@opendnssecsysconfdir@/zonelist.xml</ZoneListFile>
-		<ToolsDirectory>@opendnsseclibexecdir@</ToolsDirectory>
 		<WorkerThreads>8</WorkerThreads>
 		<SignerThreads>1</SignerThreads>
 	</Signer>

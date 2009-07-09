@@ -36,7 +36,8 @@ ACX_LDNS
 ACX_LIBXML2
 ACX_LIBHSM
 
-opendnsseclibexecdir="\$(libexecdir)/opendnssec"
+full_libexecdir=`eval eval eval eval eval echo "${libexecdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+opendnsseclibexecdir=$full_libexecdir/opendnssec
 
 AC_SUBST([opendnsseclibexecdir])
 
@@ -45,4 +46,4 @@ AM_PATH_PYTHON
 AC_CONFIG_HEADERS([tools/config.h])
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
-AC_OUTPUT(Makefile tools/Makefile signer_engine/Makefile signer_engine/signer_engine)
+AC_OUTPUT(Makefile tools/Makefile signer_engine/Makefile signer_engine/signer_engine signer_engine/EngineConfig.py)
