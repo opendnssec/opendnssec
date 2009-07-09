@@ -499,6 +499,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
     char    buffer[KSM_SQL_SIZE];   /* update statement for salt_stamp */
     unsigned int    nchar;          /* Number of characters converted */
     int     i = 0;              /* a counter */
+    char*   hex_chars = "0123456789abcdef"; /* for "manual" random string */
 
     /* check the argument */
     if (policy == NULL) {
@@ -573,13 +574,6 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
             return status;
         } else {
             /* salt needs updating, or is null */
-            /* call into libhsm */
-            status = hsm_random_buffer(ctx, newsalt, policy->denial->saltlength);
-            if (status != 0) {
-                StrFree(datetime_now);
-                return status;
-            }
-
             salt = (char *)calloc(KSM_SALT_LENGTH, sizeof(char));
             if (salt == NULL) {
                 MsgLog(KSM_INVARG, "Could not allocate memory for salt");
@@ -587,20 +581,35 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
                 exit(1);
             }
 
-            /* build up our salt as hex (is this method better than using printf?) */
-            for (i = 0; i < policy->denial->saltlength; i++) {
-                temp_ul = (newsalt[i] & 0xf) + '0';
-                if (temp_ul > '9') {
-                    temp_ul = temp_ul - '0' + ('A' - 10);
-                }
-                salt[2 * i] = temp_ul;
+            /* call into libhsm */
+            if (ctx != NULL) {
+                status = hsm_random_buffer(ctx, newsalt, policy->denial->saltlength);
 
-                temp_ul = ((newsalt[i] >> 4) & 0xf) + '0';
-                if (temp_ul > '9') {
-                    temp_ul = temp_ul - '0' + ('A' - 10);
-                }
-                salt[2 * i + 1] = temp_ul;
+                /* build up our salt as hex (is this method better than using printf?) */
+                for (i = 0; i < policy->denial->saltlength; i++) {
+                    temp_ul = (newsalt[i] & 0xf) + '0';
+                    if (temp_ul > '9') {
+                        temp_ul = temp_ul - '0' + ('A' - 10);
+                    }
+                    salt[2 * i] = temp_ul;
 
+                    temp_ul = ((newsalt[i] >> 4) & 0xf) + '0';
+                    if (temp_ul > '9') {
+                        temp_ul = temp_ul - '0' + ('A' - 10);
+                    }
+                    salt[2 * i + 1] = temp_ul;
+                }
+            } else {
+                /* No hsm ctx, do our best(ish) */
+                srand( time(0) );
+                for (i = 0; i < 2*(policy->denial->saltlength); i++) {
+                    salt[i] = hex_chars[rand()%strlen(hex_chars)];
+                }
+            }
+            if (status != 0) {
+                StrFree(datetime_now);
+                StrFree(salt);
+                return status;
             }
             StrStrncpy(policy->denial->salt, salt, KSM_SALT_LENGTH);
             StrStrncpy(policy->denial->salt_stamp, datetime_now, KSM_TIME_LENGTH);

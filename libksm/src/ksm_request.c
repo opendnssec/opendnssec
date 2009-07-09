@@ -375,57 +375,124 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
 int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zone_id)
 {
-    int     count;          /* Count of keys whose date will be set */
-    int     set = 0;        /* For the update "set" clause */
+    int     count = 0;      /* Count of keys whose date will be set */
     char*   sql = NULL;     /* For creating the SQL command */
     int     status = 0;     /* Status return */
     int     where = 0;      /* For the SQL selection */
+    int     i = 0;          /* A counter */
+    int     j = 0;          /* Another counter */
+    char*   insql = NULL;   /* SQL "IN" clause */
+    int*    keyids;         /* List of IDs of keys to promote */
+    DB_RESULT    result;    /* List result set */
+    KSM_KEYDATA  data;      /* Data for this key */
+    char    buffer[32];     /* For integer conversion */
 
-    if (DbgIsSet(DBG_M_REQUEST)) {
+    /* Count how many keys will have the retire date set */
 
-        /* Count how many keys will have the retire date set */
-
-        sql = DqsCountInit("KEYDATA_VIEW");
-        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
-        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
-        if (zone_id != -1) {
-            DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
-        }
-        DqsEnd(&sql);
-
-        status = DbIntQuery(DbHandle(), &count, sql);
-        DqsFree(sql);
-
-        if (status == 0) {
-            MsgLog(KME_ACTKEYRET, count);
-        }
-        else {
-            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-        }
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
     }
+    DqsEnd(&sql);
+
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+    }
+
+    if (count == 0) {
+        /* Nothing to do NO ACTIVE KEYS! */
+        return status;
+    }
+
+    /* Allocate space for the list of key IDs */
+    keyids = MemMalloc(count * sizeof(int));
+
+    /* Get the list of IDs */
+
+    where = 0;
+    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
+    DqsEnd(&sql);
+
+    status = KsmKeyInitSql(&result, sql);
+    DqsFree(sql);
 
     if (status == 0) {
-
-		/*
-		 * Update the keys.  This is done after a status check, as the debug
-		 * code may have hit a database error, in which case we won't query the
-		 * database again. ("status" is initialized to success in case the debug
-		 * code is not executed.)
-		 */
-
-        where = set = 0;
-        sql = DusInit("KEYDATA_VIEW");
-        DusSetString(&sql, "RETIRE", datetime, set++);
-        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, where++);
-        DusConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
-        if (zone_id != -1) {
-            DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+        while (status == 0) {
+            status = KsmKey(result, &data);
+            if (status == 0) {
+                keyids[i] = data.keypair_id;
+                i++;
+            }
         }
-        DusEnd(&sql);
 
-        status = DbExecuteSqlNoResult(DbHandle(), sql);
-        DusFree(sql);
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        } else {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            StrFree(keyids);
+            return status;
+        }
+
+        KsmKeyEnd(result);
+
+    } else {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        StrFree(keyids);
+		return status;
+	}
+    
+    /*
+     * Now construct the "IN" statement listing the IDs of the keys we
+     * are planning to change the state of.
+     */
+
+    StrAppend(&insql, "(");
+    for (j = 0; j < i; ++j) {
+        if (j != 0) {
+            StrAppend(&insql, ",");
+        }
+        snprintf(buffer, sizeof(buffer), "%d", keyids[j]);
+        StrAppend(&insql, buffer);
     }
+    StrAppend(&insql, ")");
+
+    /*
+     * Update the keys.  This is done after a status check, as the debug
+     * code may have hit a database error, in which case we won't query the
+     * database again. ("status" is initialized to success in case the debug
+     * code is not executed.)
+     */
+
+    sql = DusInit("keypairs");
+    DusSetString(&sql, "RETIRE", datetime, 0);
+
+    DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 0);
+    StrFree(insql);
+    DusEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DusFree(sql);
+
+    /* Report any errors */
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+
+    StrFree(keyids);
 
     return status;
 }

@@ -98,6 +98,7 @@ extern "C" {
 #define DB_ZONE_FIELDS 			"id, name"
 #define DB_ZONE_ID				0
 #define DB_ZONE_NAME			1
+#define DB_ZONE_POLICY_ID   	2
 
 /* policy select variables, including salt */
 #define DB_POLICY_ID	0

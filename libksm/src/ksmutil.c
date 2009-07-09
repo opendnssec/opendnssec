@@ -806,7 +806,114 @@ cmd_export (int argc, char *argv[])
     int
 cmd_rollzone (int argc, char *argv[])
 {
-    printf("command not yet implemented\n");
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+    DB_RESULT	result;         /* Result of parameter query */
+    KSM_PARAMETER data;         /* Parameter information */
+    
+    char* zone_name = NULL;
+    int key_type = 0;
+    int zone_id = 0;
+    int policy_id = 0;
+
+    int status = 0;
+    int user_certain;
+
+    char*   datetime = DtParseDateTimeString("now");
+
+    if (argc > 2 || argc == 0) {
+        usage_rollzone();
+        return -1;
+    }
+
+    /* See what arguments we were passed */
+    StrAppend(&zone_name, argv[0]);
+    if (argc == 2) {
+        StrToLower(argv[1]);
+        key_type = KsmKeywordTypeNameToValue(argv[1]);
+    }
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+    if (status != 0) {
+        return(status);
+    }
+
+    status = KsmZoneIdAndPolicyFromName(zone_name, &policy_id, &zone_id);
+    if (status != 0) {
+        return(status);
+    }
+
+    /* Get the shared_keys parameter */
+    status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
+    if (status != 0) {
+        return(status);
+    }
+    status = KsmParameter(result, &data);
+    if (status != 0) {
+        return(status);
+    }
+    KsmParameterEnd(result);
+    
+    /* Warn and confirm if this will roll more than one zone */
+    if (data.value == 1) {
+        printf("*WARNING* This zone shares keys with others, they will all be rolled; are you sure? [y/N] ");
+
+        user_certain = getchar();
+        if (user_certain != 'y' && user_certain != 'Y') {
+            printf("Okay, quitting...\n");
+            exit(0);
+        }
+    }
+
+    /* retire the active key(s) */
+    if (key_type == 0) {
+        /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
+        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, NULL, policy_id, zone_id);
+        if (status != 0) {
+            return(status);
+        }
+        /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
+        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, NULL, policy_id, zone_id);
+        if (status != 0) {
+            return(status);
+        }
+    }
+    else {
+        /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
+        KsmRequestKeys(key_type, 1, datetime, printKey, NULL, policy_id, zone_id);
+        if (status != 0) {
+            return(status);
+        }
+    }
+
+    /* Need to poke the communicator to wake it up */
+    if (system("killall -HUP communicated") != 0)
+    {
+        fprintf(stderr, "Could not HUP communicated\n");
+    }
+
     return 0;
 }
 
@@ -2342,6 +2449,10 @@ void list_zone_node(const char *docname)
     return;
 }
 
+/*
+ * Given a doc that has the start of the kasp-like xml and a policy structure
+ * create the policy tag and contents in that doc
+ */
 int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
 {
     xmlNodePtr root;
@@ -2485,4 +2596,24 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"Minimum", (const xmlChar *)temp_time);
 
     return(0);
+}
+
+/*
+ * CallBack to print key info to stdout
+ */
+int printKey(void* context, KSM_KEYDATA* key_data)
+{
+    if (key_data->state == KSM_STATE_RETIRE) {
+        if (key_data->keytype == KSM_TYPE_KSK)
+        {
+            fprintf(stdout, "KSK:");
+        }
+        if (key_data->keytype == KSM_TYPE_ZSK)
+        {
+            fprintf(stdout, "ZSK:");
+        }
+        fprintf(stdout, " %s Retired\n", key_data->location);
+    }
+
+    return 0;
 }

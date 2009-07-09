@@ -278,3 +278,67 @@ int KsmZoneIdFromName(const char* zone_name, int* zone_id)
     DbFreeResult(result);
     return status;
 }
+
+/*+
+ * KsmZoneIdAndPolicyFromName
+ *
+ * Arguments:
+ *          const char* zone_name   name of the zone to get the id for
+ *          int*        policy_id   returned id
+ *          int*        zone_id     returned id
+ *
+ * Returns:
+ *      int
+ *          Status return:
+ *              0           success
+ *              -1          no record found
+ *              non-zero    some error occurred and a message has been output.
+ *
+ *          If the status is non-zero, the returned data is meaningless.
+-*/
+int KsmZoneIdAndPolicyFromName(const char* zone_name, int* policy_id, int* zone_id)
+{
+    int     where = 0;          /* WHERE clause value */
+    char*   sql = NULL;         /* SQL query */
+    DB_RESULT       result;     /* Handle converted to a result object */
+    DB_ROW      row;            /* Row data */
+    int     status = 0;         /* Status return */
+
+    /* check the argument */
+    if (zone_name == NULL) {
+        return MsgLog(KSM_INVARG, "NULL zone name");
+    }
+
+    /* Construct the query */
+
+    sql = DqsSpecifyInit("zones","id, name, policy_id");
+    DqsConditionString(&sql, "NAME", DQS_COMPARE_EQ, zone_name, where++);
+    DqsOrderBy(&sql, "id");
+
+    /* Execute query and free up the query string */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        DbFreeResult(result);
+        return status;
+	}
+
+    /* Get the next row from the data */
+    status = DbFetchRow(result, &row);
+    if (status == 0) {
+        DbInt(row, DB_ZONE_ID, zone_id);
+        DbInt(row, DB_ZONE_POLICY_ID, policy_id);
+    }
+    else if (status == -1) {}
+        /* No rows to return (but no DB error) */
+	else {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+	}
+
+    DbFreeRow(row);
+    DbFreeResult(result);
+    return status;
+}

@@ -277,6 +277,7 @@ int KsmZone(DB_RESULT handle, KSM_ZONE *data);
 int KsmZoneCount(DB_RESULT handle, int* count);
 int KsmZoneCountInit(DB_RESULT* handle, int id);
 int KsmZoneIdFromName(const char* zone_name, int* zone_id);
+int KsmZoneIdAndPolicyFromName(const char* zone_name, int* policy_id, int* zone_id);
 
 #define UNSIGNED 0
 #define SIGNED 1
