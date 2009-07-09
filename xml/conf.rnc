@@ -70,7 +70,7 @@ start = element Configuration {
 mysql = element MySQL {
 	element Host {
 			# default port is 3306
-			attribute port { xsd:positiveInteger },
+			attribute port { xsd:positiveInteger { maxInclusive = "65535" } },
 			# default hostname is 127.0.0.1
 			xsd:string }?,
 	element Database { xsd:string },
