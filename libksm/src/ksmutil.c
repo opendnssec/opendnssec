@@ -890,19 +890,19 @@ cmd_rollzone (int argc, char *argv[])
     /* retire the active key(s) */
     if (key_type == 0) {
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
-        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, NULL, policy_id, zone_id);
+        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone_id);
         if (status != 0) {
             return(status);
         }
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
-        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, NULL, policy_id, zone_id);
+        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone_id);
         if (status != 0) {
             return(status);
         }
     }
     else {
         /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
-        KsmRequestKeys(key_type, 1, datetime, printKey, NULL, policy_id, zone_id);
+        KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_id);
         if (status != 0) {
             return(status);
         }
@@ -923,7 +923,98 @@ cmd_rollzone (int argc, char *argv[])
     int
 cmd_rollpolicy (int argc, char *argv[])
 {
-    printf("command not yet implemented\n");
+        /* Database connection details */
+    DB_HANDLE	dbhandle;
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+    
+    char* policy_name = NULL;
+    int key_type = 0;
+    int policy_id = 0;
+
+    int status = 0;
+    int user_certain;
+
+    char*   datetime = DtParseDateTimeString("now");
+
+    if (argc > 2 || argc == 0) {
+        usage_rollpolicy();
+        return -1;
+    }
+
+    /* See what arguments we were passed */
+    StrAppend(&policy_name, argv[0]);
+    if (argc == 2) {
+        StrToLower(argv[1]);
+        key_type = KsmKeywordTypeNameToValue(argv[1]);
+    }
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+    if (status != 0) {
+        return(status);
+    }
+
+    status = KsmPolicyIdFromName(policy_name, &policy_id);
+    if (status != 0) {
+        return(status);
+    }
+
+    /* Warn and confirm */
+    printf("*WARNING* This will roll all keys on the policy; are you sure? [y/N] ");
+
+    user_certain = getchar();
+    if (user_certain != 'y' && user_certain != 'Y') {
+        printf("Okay, quitting...\n");
+        exit(0);
+    }
+
+    /* retire the active key(s) */
+    if (key_type == 0) {
+        /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
+        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, -1);
+        if (status != 0) {
+            return(status);
+        }
+        /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
+        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, -1);
+        if (status != 0) {
+            return(status);
+        }
+    }
+    else {
+        /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
+        KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, -1);
+        if (status != 0) {
+            return(status);
+        }
+    }
+
+    /* Need to poke the communicator to wake it up */
+    if (system("killall -HUP communicated") != 0)
+    {
+        fprintf(stderr, "Could not HUP communicated\n");
+    }
+
     return 0;
 }
 
@@ -2603,7 +2694,8 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
  */
 int printKey(void* context, KSM_KEYDATA* key_data)
 {
-    if (key_data->state == KSM_STATE_RETIRE) {
+    (char *) context;
+    if (key_data->state == KSM_STATE_RETIRE && strcasecmp(key_data->retire, context) == 0) {
         if (key_data->keytype == KSM_TYPE_KSK)
         {
             fprintf(stdout, "KSK:");

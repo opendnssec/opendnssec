@@ -295,6 +295,20 @@ int KsmSerialIdFromName(const char* name, int *id)
     return status;
 }
 
+/*+
+ * KsmPolicyIdFromName - Given a policy name return the id
+ *
+ *
+ * Arguments:
+ *      
+ *          Name of the policy.
+ *
+ *
+ * Returns:
+ *      int
+ *          0       Success, value found
+ *          Other   Error
+-*/
 int KsmPolicyIdFromName(const char* name, int *id)
 {
     char*   sql = NULL;         /* SQL query */
