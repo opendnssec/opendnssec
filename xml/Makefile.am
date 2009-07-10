@@ -44,3 +44,4 @@ install-data-hook:
 	${INSTALL_DATA} ${top_builddir}/zonelist.xml ${sysconfdir}/zonelist.xml.sample
 	test -f ${sysconfdir}/kasp.xml || \
 		${INSTALL_DATA} ${top_builddir}/kasp.xml ${sysconfdir}
+	${INSTALL_DATA} ${top_builddir}/kasp.xml ${sysconfdir}/kasp.xml.sample
