@@ -2,7 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-dist_bin_SCRIPTS = kaspimport
+# dist_bin_SCRIPTS = kaspimport
 
 CLEANFILES = $(dist_bin_SCRIPTS)
 
