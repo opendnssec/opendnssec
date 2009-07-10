@@ -4,7 +4,7 @@
 		<SignerConfiguration>zone_config/tjeb.nl.xml.nsec3</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<File>unsigned_zones/tjeb.nl</File>
+				<File>unsigned_zones/tjeb.nl.nsec3</File>
 			</Input>
 			<Output>
 				<File>signed_zones/tjeb.nl.nsec3</File>

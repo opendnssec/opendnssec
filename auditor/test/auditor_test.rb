@@ -38,12 +38,12 @@ class AuditorTest < Test::Unit::TestCase
   end
 
   def test_bad_file_nsec
-    # Get a known-bad zone file 
+    # Get a known-bad zone file
     # Make sure that all known errors are caught
     stderr = IO::pipe
     path = "test/signer_test_bad/"
     filename = "zonelist_nsec.xml"
-    run_auditor_with_syslog(path, filename, stderr) 
+    run_auditor_with_syslog(path, filename, stderr, 3)
 
 
     remaining_strings = []
@@ -51,35 +51,37 @@ class AuditorTest < Test::Unit::TestCase
       remaining_strings.push(line)
     end
     expected_strings = [
-    # Check the errors in the zone which are common to both NSEC and NSEC3
-    #  -  non dnssec data : missing data and
-    #        extra data
-    #  -  bad SEP : no SEP flag set, and
-    #  invalid key.
-    #  Also bad protocol  and algorithm
-    #  -  RRSIG : missing RRSIG for key alg,
-    #      bad sig,
-    #      bad inception and
-    #      bad expiration
-    "RRSet (www.tjeb.nl, AAAA) failed verification : Signature record not in validity period, tag = 1390",
-    "RRSet (www.tjeb.nl, NSEC) failed verification : Signature record not in validity period, tag = 1390",
-    "Inception error for www.tjeb.nl, NSEC : Signature inception is 1275722596, time now is",
-    "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, A, have :",
-    "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl.	3600	IN	A	1.2.3.4",
-    "RRSet (not.there.tjeb.nl, A) failed verification : No signatures in the RRSet : not.there.tjeb.nl, A, tag = none",
-    "contains invalid RR : tjeb.nl.", # DNSKEY
-    "No DNSKEY RR with SEP bit set in output zone",
+      # Check the errors in the zone which are common to both NSEC and NSEC3
+      #  -  non dnssec data : missing data and
+      #        extra data
+      #  -  bad SEP : no SEP flag set, and
+      #  invalid key.
+      #  Also bad protocol  and algorithm
+      #  -  RRSIG : missing RRSIG for key alg,
+      #      bad sig,
+      #      bad inception and
+      #      bad expiration
+      "RRSet (www.tjeb.nl, AAAA) failed verification : Signature record not in validity period, tag = 1390",
+      "RRSet (www.tjeb.nl, NSEC) failed verification : Signature record not in validity period, tag = 1390",
+      "Inception error for www.tjeb.nl, NSEC : Signature inception is 1275722596, time now is",
+      "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, A, have :",
+      "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl.	3600	IN	A	1.2.3.4",
+      "RRSet (not.there.tjeb.nl, A) failed verification : No signatures in the RRSet : not.there.tjeb.nl, A, tag = none",
+      "RRSet (tjeb.nl, RRSIG) failed verification : No RRSet to veryify",
+      "contains invalid RR : tjeb.nl.", # DNSKEY
+      "Expected SOA RR as first record ",
+      #    "No DNSKEY RR with SEP bit set in output zone", # Need this key - or else RRSIGs won't verify
 
 
-    # Now check the NSEC specific stuff
-    # - NSEC3 and NSEC3PARAMs in zone
-    # - missing NSEC RR for one domain
-    # - wrong ttl for one NSEC
-    # - missing and extra RR types for one NSEC
-    # - extra NSEC for closed loop of each next domain
-    # - missing NSEC for closed loop of each next domain
+      # Now check the NSEC specific stuff
+      # - NSEC3 and NSEC3PARAMs in zone
+      # - missing NSEC RR for one domain
+      # - wrong ttl for one NSEC
+      # - missing and extra RR types for one NSEC
+      # - extra NSEC for closed loop of each next domain
+      # - missing NSEC for closed loop of each next domain
       "NSEC3PARAM RRs included in NSEC-signed zone",
-      "Output zone does not contain out of zone non-DNSSEC RRSet : A, ff.wat.out.of.zones.	143	IN	A	123.123.123.123",
+      "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones.	143	IN	A	123.123.123.123",
       "No NSEC record for tjeb.nl",
       "NSEC record should have SOA of 3600, but is bla.tjeb.nl.	360	IN	NSEC	dragon.tjeb.nl ( NS RRSIG NSEC )",
       "NSEC includes A which is not in rrsets for dragon.tjeb.nl",
@@ -88,7 +90,8 @@ class AuditorTest < Test::Unit::TestCase
       "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, NSEC, have :",
       "RRSet (not.there.tjeb.nl, NSEC) failed verification : No signatures in the RRSet : not.there.tjeb.nl, NSEC, tag = none",
       "Can't follow NSEC loop from www.tjeb.nl to tjeb.nl",
-      "Some NSEC records left after folowing closed loop. Details : not.there.tjeb.nl.	3600	IN	NSEC	really.not.there.tjeb.nl ( NSEC A ), End of extra NSEC list"
+      "NSEC record left after folowing closed loop : not.there.tjeb.nl",
+      "Can't follow NSEC loop from not.there.tjeb.nl to really.not.there.tjeb.nl"
     ]
     remaining_strings.reverse.each {|line|
       expected_strings.each {|expected|
@@ -110,21 +113,50 @@ class AuditorTest < Test::Unit::TestCase
     }
     assert(success, "NSEC bad file not audited correctly")
   end
-
+  
   def test_bad_file_nsec3
-    # Get a known-bad zone file 
+    # Get a known-bad zone file
     # Make sure that all known errors are caught
     stderr = IO::pipe
     path = "test/signer_test_bad/"
     filename = "zonelist_nsec3.xml"
-    run_auditor_with_syslog(path, filename, stderr) 
-
-
+    run_auditor_with_syslog(path, filename, stderr, 3)
+  
+  
     remaining_strings = []
     while (line = stderr[0].gets)
       remaining_strings.push(line)
     end
-    expected_strings = [ # @TODO@ NSEC3 error strings!
+    expected_strings = [ # NSEC3 error strings
+      #   1. There are no NSEC records in the zone.
+      "NSEC RRs included in NSEC3-signed zone",
+      "RRSIGS should include algorithm RSASHA1-NSEC3-SHA1 for bla.tjeb.nl, NSEC",
+      "RRSet (bla.tjeb.nl, NSEC) failed verification : No signatures in the RRSet : bla.tjeb.nl, NSEC",
+
+      #   2. If an NSEC3PARAM RR is found:
+      #         a There is only one NSEC3PARAM record in the zone, and it is present at the apex of the zone
+            "Multiple NSEC3PARAM RRs for tjeb.nl",
+            "NSEC3PARAM seen at there subdomain : should be at zone apex",
+            "RRSIGS should include algorithm RSASHA1-NSEC3-SHA1 for not.there.tjeb.nl, NSEC3PARAM, have :",
+            "RRSet (not.there.tjeb.nl, NSEC3PARAM) failed verification : No signatures in the RRSet",
+      #         b The flags field of the record must be zero.
+            "NSEC3PARAM flags should be 0, but were 1",
+
+      #         c Each NSEC3 record present in the zone has the same hash algorithm iterations and salt parameters.
+      "NSEC3 has wrong salt : should be beef but was dead",
+      "NSEC3 has wrong iterations : should be 5 but was 10",
+      "NSEC3 has wrong algorithm : should be SHA-1 but was",
+      "RRSet (cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl, NSEC3) failed verification : Signature failed to cryptographically verify",
+      #
+      #   3. Each NSEC3 record has bits correctly set to indicate the types of RRs associated with the domain.
+      #   @TODO@
+      #
+      #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
+      "Can't follow NSEC3 loop from cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl to aa35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl"
+      #
+      #   5. If an NSEC3 record does not have the opt-out bit set, there are no domain names in the zone for which the hash lies between the hash of this domain name and the value in the "Next Hashed Owner" name field.
+      #   @TODO@
+      #
     ]
     remaining_strings.reverse.each {|line|
       expected_strings.each {|expected|
@@ -146,9 +178,6 @@ class AuditorTest < Test::Unit::TestCase
     }
     assert(success, "NSEC3 bad file not audited correctly")
     # Now check the NSEC3 specific stuff
-    # - @TODO@ extra NSEC record in zone
-    # - @TODO@ two NSEC3PARAMs (one with bad flags and bad hash and salt)
-    # - @TODO@ bad NSEC3 - wrong RR types (missing and extra)
     # - @TODO@ extra next_hashed on one NSEC3
     # - @TODO@ one next_hashed NSEC3 missing
     # - @TODO@ opt-out : insert extra NSEC3 for fictional record between NSEC3 and next_hashed
@@ -165,7 +194,7 @@ class AuditorTest < Test::Unit::TestCase
   #    fail "Implement bad partial scanning test!"
   #  end
 
-  def run_auditor_with_syslog(path, filename, stderr, expected_ret = nil)
+  def run_auditor_with_syslog(path, filename, stderr, expected_ret)
     runner = Runner.new
 
     pid = fork {
@@ -176,17 +205,13 @@ class AuditorTest < Test::Unit::TestCase
       options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
       Syslog.open("auditor_test", options) {|syslog|
-        ret = runner.run_with_syslog(path, filename, syslog)
+        ret = runner.run_with_syslog(path, [], filename, syslog) # Audit all zones
       }
       exit!(ret)
     }
     stderr[1].close
     Process.waitpid(pid)
     ret_val = $?.exitstatus
-    if (expected_ret)
-      assert_equal(expected_ret, ret_val, "Expected return of 0 from successful auditor run")
-    else
-      assert(ret_val != 0, "Expected error return from auditor")
-    end
+    assert_equal(expected_ret, ret_val, "Expected return of 0 from successful auditor run")
   end
 end

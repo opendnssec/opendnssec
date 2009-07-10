@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: conf.xml 1057 2009-06-17 13:33:44Z jakob $ -->
+
+<Configuration>
+
+	<RepositoryList>
+		<Repository name="softHSM">
+			<Module>/usr/local/lib/libsofthsm.so</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+	</RepositoryList>
+
+	<Logging>
+		<Syslog><Facility>local0</Facility></Syslog>
+	</Logging>
+
+	<Enforcer>
+		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
+		<Interval>PT3600S</Interval>
+		<KeygenInterval>PT3M</KeygenInterval>
+		<BackupDelay>P3D</BackupDelay>
+	</Enforcer>
+
+	<Signer>
+		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>
+		<ZoneListFile>/etc/opendnssec/zonelist.xml</ZoneListFile>
+		<!-- toolsdir will be removed, but is used for testing atm -->
+		<ToolsDirectory>/usr/local/libexec/opendnssec</ToolsDirectory>
+	</Signer>
+
+</Configuration>

@@ -59,8 +59,8 @@
 				</Parameters>
 				<Hash>
 					<Algorithm>1</Algorithm>
-					<Iterations>10</Iterations>
-					<Salt>656d6d6b7469736169646f677461</Salt>
+					<Iterations>5</Iterations>
+					<Salt>62656566</Salt>
 				</Hash>
 			</NSEC3>
 		</Denial>

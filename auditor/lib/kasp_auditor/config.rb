@@ -35,7 +35,6 @@ module KASPAuditor
 #      print "Opening config file : #{config_file_loc}\n"
       File.open(config_file_loc, 'r') {|file|
         doc = REXML::Document.new(file)
-        #        doc.elements.each("SignerConfiguration/Zone") {|z|
         z = doc.elements['SignerConfiguration/Zone']
 #        print "Name : #{z.attributes['name']}"
         new_zone = Zone.new(z.attributes['name'])
@@ -44,8 +43,6 @@ module KASPAuditor
         new_zone.denial = Zone::Denial.new(z.elements['Denial'])
         new_zone.keys = Zone::Keys.new(z.elements['Keys'])
         @zone = new_zone
-        #          @zones.push(new_zone)
-        #        }
       }
     end
     def self.xsd_duration_to_seconds xsd_duration
@@ -114,7 +111,7 @@ module KASPAuditor
         end
         class Nsec
         end
-        class Nsec3 # @TODO@ Actually create a Dnsruby::Resource::RR::NSEC3 here?
+        class Nsec3
           attr_accessor :optout, :hash 
           def initialize(e)
             @optout = false
@@ -127,8 +124,8 @@ module KASPAuditor
             attr_accessor :algorithm, :iterations, :salt
             def initialize(e)
               @algorithm = e.elements['Algorithm'].text.to_i
-              @iterations = e.elements['Algorithm'].text.to_i
-              @salt = e.elements['Algorithm'].text
+              @iterations = e.elements['Iterations'].text.to_i
+              @salt = Dnsruby::RR::NSEC3.decode_salt(e.elements['Salt'].text)
             end
           end
         end

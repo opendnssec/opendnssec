@@ -57,12 +57,12 @@ module KASPAuditor
           if (input_file_loc.index("/") != 0)
             input_file_loc = path + input_file_loc
           end
-          print "Input file location : #{input_file_loc}\n"
+          print "Unsigned file location : #{input_file_loc}\n"
           output_file_loc = z.elements["Adapters"].elements['Output'].elements["File"].text
           if (output_file_loc.index("/") != 0)
             output_file_loc = path + output_file_loc
           end
-          print "Output file location : #{output_file_loc}\n"
+          print "Signed file location : #{output_file_loc}\n"
           zones.push([config, input_file_loc, output_file_loc])
         }
       }
