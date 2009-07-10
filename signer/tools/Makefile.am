@@ -10,7 +10,7 @@ opendnsseclibexec_PROGRAMS= \
 	zone_reader get_serial \
 	nseccer nsec3er \
 	signer create_dnskey \
-	finalizer
+	finalizer signer_threads
 
 zone_reader_SOURCES=		zone_reader.c util.c
 zone_reader_LDADD=		@LDNS_LIBS@
@@ -22,6 +22,8 @@ nsec3er_SOURCES=		nsec3er.c util.c
 nsec3er_LDADD=			@LDNS_LIBS@ @LIBHSM_LIBS@
 signer_SOURCES=			signer.c util.c
 signer_LDADD=			@LDNS_LIBS@ @LIBHSM_LIBS@
+signer_threads_SOURCES=			signer_threads.c util.c
+signer_threads_LDADD=			@LDNS_LIBS@ @LIBHSM_LIBS@ -lpthread
 create_dnskey_SOURCES=		create_dnskey.c util.c
 create_dnskey_LDADD=		@LDNS_LIBS@ @LIBHSM_LIBS@
 finalizer_SOURCES=		finalizer.c util.c
