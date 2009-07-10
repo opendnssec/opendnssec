@@ -51,9 +51,8 @@
 #define INT_TYPE 0
 #define DURATION_TYPE 1
 #define BOOL_TYPE 2
-#define STR_BOOL_TYPE 3
-#define REPO_TYPE 4
-#define SERIAL_TYPE 5
+#define REPO_TYPE 3
+#define SERIAL_TYPE 4
 
 extern char *optarg;
 char *progname = "ksmutil";
@@ -1692,7 +1691,7 @@ int update_policies()
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
-                if ( SetParamOnPolicy(xpathCtx, keys_share_expr, "zones_share_keys", "keys", policy->keys->share_keys, policy->id, STR_BOOL_TYPE) != 0) {
+                if ( SetParamOnPolicy(xpathCtx, keys_share_expr, "zones_share_keys", "keys", policy->keys->share_keys, policy->id, BOOL_TYPE) != 0) {
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
@@ -1954,13 +1953,6 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
     else if (value_type == BOOL_TYPE) {
         /* Do we have an empty tag or no tag? */
         if (xpathObj->nodesetval->nodeNr > 0) {
-            value = 1;
-        } else {
-            value = 0;
-        }
-    }
-    else if (value_type == STR_BOOL_TYPE) {
-        if (strncasecmp((char *)xmlXPathCastToString(xpathObj), "true", 4) == 0) {
             value = 1;
         } else {
             value = 0;
