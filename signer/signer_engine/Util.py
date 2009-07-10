@@ -124,6 +124,33 @@ def write_p(subp, val, prefix):
         subp.stdin.write(str(val))
         subp.stdin.write("\n")
 
+def syslog_facility_int(string):
+    """Returns the syslog integer for the given facility string"""
+    facilities = {"KERN": syslog.LOG_KERN,
+                  "USER": syslog.LOG_USER,
+                  "MAIL": syslog.LOG_MAIL,
+                  "DAEMON": syslog.LOG_DAEMON,
+                  "AUTH": syslog.LOG_AUTH,
+                  "LPR": syslog.LOG_LPR,
+                  "NEWS": syslog.LOG_NEWS,
+                  "UUCP": syslog.LOG_UUCP,
+                  "CRON": syslog.LOG_CRON,
+                  "LOCAL0": syslog.LOG_LOCAL0,
+                  "LOCAL1": syslog.LOG_LOCAL1,
+                  "LOCAL2": syslog.LOG_LOCAL2,
+                  "LOCAL3": syslog.LOG_LOCAL3,
+                  "LOCAL4": syslog.LOG_LOCAL4,
+                  "LOCAL5": syslog.LOG_LOCAL5,
+                  "LOCAL6": syslog.LOG_LOCAL6,
+                  "LOCAL7": syslog.LOG_LOCAL7
+                 }
+    try:
+        return facilities[string.upper()]
+    except KeyError:
+        print "Warning: unknown syslog facility %s, using DAEMON"%\
+              string.upper()
+        return syslog.LOG_DAEMON
+
 def datestamp(timestamp):
     """Returns the date (YYYYMMddhhmmss) representation of the given
     timestamp (seconds since epoch)"""

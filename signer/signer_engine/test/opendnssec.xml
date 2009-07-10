@@ -11,6 +11,9 @@
 		</Repository>
 	</RepositoryList>
 
+	<Logging>
+		<Syslog><Facility>local0</Facility></Syslog>
+	</Logging>
 	<Enforcer>
 		<Interval>PT3600S</Interval>
 		<KeygenInterval>P3M</KeygenInterval>

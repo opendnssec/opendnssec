@@ -72,6 +72,8 @@ class Engine:
         self.zonelist = None
         self.command_socket = None
         self.locked = False
+        syslog.openlog("OpenDNSSEC signer engine",
+                       0, self.config.syslog_facility)
 
     def get_zonelist_filename(self):
         """Returns the absolute pathname to the file containing the
@@ -493,7 +495,6 @@ def main():
     #
     # main loop
     #
-    syslog.openlog("OpenDNSSEC signer engine")
     try:
         engine = Engine(config_file)
         print engine.read_zonelist()
