@@ -22,17 +22,10 @@ libksm_la_SOURCES = \
 	memory.c message.c string_util.c string_util2.c \
 	compat/strlcpy.c compat/strlcat.c
 
-if MYSQL
-libksm_la_SOURCES += \
-	database_access_mysql.c \
-	database_connection_mysql.c \
-	database_support_mysql.c 
-else
 libksm_la_SOURCES += \
 	database_access_lite.c \
 	database_connection_lite.c \
 	database_support_lite.c
-endif
 
 bin_PROGRAMS = ksmutil
 ksmutil_LDADD = libksm.la @XML2_LIBS@

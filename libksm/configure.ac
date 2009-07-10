@@ -20,9 +20,6 @@ fi
 
 ACX_PEDANTIC
 ACX_STRICT
-ACX_LIBXML2
-
-# Checks for libraries.
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -43,82 +40,21 @@ AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul])
 AC_REPLACE_FUNCS(strlcat)
 AC_REPLACE_FUNCS(strlcpy)
 
-# Check for mysql
-AC_ARG_WITH(mysql,
-[  --with-mysql=DIR        Look for mysql in this dir ],
-  [ MYSQL_PATH="$withval"],
- [ with_mysql=no ]
-)
-# Check for sqlite3
-AC_ARG_WITH(sqlite3,
-[  --with-sqlite3=DIR      Look for sqlite3 in this dir ],
-   SQLITE_PATH="$withval"
-)
-if test "x$with_mysql" = "xno"; then
-  DB_TYPE="SQLITE3"
-  if test "x$SQLITE_PATH" != "x"
-  then
-      AC_MSG_CHECKING(what are the sqlite3 includes)
-      DB_INCLUDES="-I$SQLITE_PATH/include -DUSE_SQLITE"
-      AC_MSG_RESULT($DB_INCLUDES)
-      AC_MSG_CHECKING(what are the sqlite3 libs)
-      DB_LIBS="-L$SQLITE_PATH/lib -lsqlite3"
-      AC_MSG_RESULT($DB_LIBS)
-      AC_PATH_PROG(SQLITE3, sqlite3, $SQLITE_PATH/bin)
-      AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE_PATH/bin/sqlite3", [database binary])
-  else
-      AC_MSG_CHECKING(what are the sqlite3 includes)
-      DB_INCLUDES="-I/usr/local/include -DUSE_SQLITE"
-      AC_MSG_RESULT($DB_INCLUDES)
-      AC_MSG_CHECKING(what are the sqlite3 libs)
-      DB_LIBS="-L/usr/local/lib -lsqlite3"
-      AC_MSG_RESULT($DB_LIBS)
-      AC_PATH_PROG(SQLITE3, sqlite3, /usr/local/bin)
-      AC_DEFINE_UNQUOTED(SQL_BIN, "/usr/local/bin/sqlite3", [database binary])
-  fi
-  AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3", [database setup script])
-else
-  DB_TYPE="MYSQL"
-  if test "x$MYSQL_PATH" = "x"; then
-     AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH)
-     AC_PATH_PROG(MYSQL, mysql)
-     AC_DEFINE_UNQUOTED(SQL_BIN, "mysql", [database binary])
-  else
-     AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $MYSQL_PATH/bin)
-     AC_PATH_PROG(MYSQL, mysql, ,$MYSQL_PATH/bin)
-     AC_DEFINE_UNQUOTED(SQL_BIN, "$MYSQL_PATH/bin/mysql", [database binary])
-  fi
-  AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.mysql", [database setup script])
-  if test -z "$MYSQL"; then
-     AC_MSG_ERROR([mysql not found])
-  fi
-  if test -x "$MYSQL_CONFIG"
-  then
-  AC_MSG_CHECKING(mysql version)
-  MYSQL_VERSION="`$MYSQL_CONFIG --version`"
-  AC_MSG_RESULT($MYSQL_VERSION)
-  if test ${MYSQL_VERSION//.*/} -le 4 ; then
-       AC_MSG_ERROR([mysql must be newer than 5.0.0])
-  fi
+ACX_LIBXML2
+ACX_CUNIT
+ACX_LIBHSM
+ACX_SQLITE3
 
-     AC_MSG_CHECKING(what are the mysql includes)
-     # MySQL v4 uses --include while v3 uses --cflags
-     DB_INCLUDES="`$MYSQL_CONFIG --include` -DBIG_JOINS=1 -DUSE_MYSQL" || \
-         DB_INCLUDES="`$MYSQL_CONFIG --cflags`"
-     AC_MSG_RESULT($DB_INCLUDES)
-     AC_MSG_CHECKING(what are the mysql libs)
-     DB_LIBS="`$MYSQL_CONFIG --libs_r`"
-     AC_MSG_RESULT($DB_LIBS)
-  fi
-fi
+# for now, only SQLite3 is supported
+DB_INCLUDES=$SQLITE3_INCLUDES
+DB_LIBS=$SQLITE3_LIBS
+DB_TYPE=sqlite3
+AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary])
+AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3", [database setup script])
 
-AM_CONDITIONAL([MYSQL], [test "x$with_mysql" != "xno"]) 
 AC_SUBST(DB_INCLUDES)
 AC_SUBST(DB_LIBS)
 AC_SUBST(DB_TYPE)
-
-ACX_CUNIT
-ACX_LIBHSM
 
 AC_ARG_WITH(dbname,
 [  --with-dbname=DB_NAME   Database name/schema for unit tests  ],
