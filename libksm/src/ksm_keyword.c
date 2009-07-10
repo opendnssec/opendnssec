@@ -106,6 +106,7 @@ static STR_KEYWORD_ELEMENT m_serial_keywords[] = {
     {KSM_SERIAL_UNIX_STRING,        KSM_SERIAL_UNIX},
     {KSM_SERIAL_COUNTER_STRING,     KSM_SERIAL_COUNTER},
     {KSM_SERIAL_DATE_STRING,        KSM_SERIAL_DATE},
+    {KSM_SERIAL_KEEP_STRING,        KSM_SERIAL_KEEP},
     {NULL,                          -1}
 };
 
