@@ -2004,6 +2004,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     ldns_buffer *sign_buf;
     ldns_rdf *b64_rdf;
     (void) ctx;
+    size_t i;
 
     if (!key) return NULL;
     if (!sign_params) return NULL;
@@ -2021,6 +2022,11 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
         ldns_buffer_free(sign_buf);
         /* ERROR */
         return NULL;
+    }
+
+    /* make it canonical */
+    for(i = 0; i < ldns_rr_list_rr_count(rrset); i++) {
+        ldns_rr2canonical(ldns_rr_list_rr(rrset, i));
     }
 
     /* add the rrset in sign_buf */
