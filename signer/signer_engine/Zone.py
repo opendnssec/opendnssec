@@ -479,6 +479,12 @@ class Zone:
                 soa_serial = output_serial + 1
         elif self.zone_config.soa_serial == "keep":
             soa_serial = self.get_input_serial();
+            # it must be larger than the output serial!
+            # otherwise updates won't be accepted
+            output_serial = self.get_output_serial()
+            if output_serial >= soa_serial:
+                syslog.syslog(syslog.LOG_ERR, "Error: serial setting is set to 'keep', but input serial has not increased. Aborting sign operation for " + self.zone_name)
+                return None
         else:
             syslog.syslog(syslog.LOG_WARNING,
                           "warning: unknown serial type " +\
@@ -516,6 +522,8 @@ class Zone:
                               "set serial to " + str(soa_serial))
                 sign_p.stdin.write(":soa_serial " +\
                                    str(soa_serial) + "\n")
+            else:
+                return False
         #move time to engine?
         sign_time = int(time.time())
         Util.write_p(sign_p,
@@ -577,7 +585,7 @@ class Zone:
                 try:
                     sig_count = int(line[30:])
                 except ValueError:
-                    syslog.syslog(syslog.LOG_ERROR,
+                    syslog.syslog(syslog.LOG_ERR,
                                   "signer returned bad value for " +
                                   "signature count: " + line[30:])
             else:
