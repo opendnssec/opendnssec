@@ -13,7 +13,7 @@ test_SOURCES = \
 	test_ksm_policy.c test_ksm_purge.c test_ksm_request.c \
 	test_ksm_update.c test_ksm_zone.c test_message.c test_routines.c \
 	test_routines_cunit.c test_routines_database.c test_string_util.c \
-	test_string_util2.c
+	test_string_util2.c test_ksm_import.c
 	
 TESTS_ENVIRONMENT = \
 	DB_HOST="@DB_HOST@" \

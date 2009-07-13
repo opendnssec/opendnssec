@@ -68,6 +68,7 @@ int TestKsmKeyDelete(void);
 int TestKsmUpdate(void);
 int TestKsmPolicy(void);
 int TestKsmZone(void);
+int TestKsmImport(void);
 
 /*
  * main() - Main Testing Routine
@@ -112,7 +113,8 @@ int main(int argc, char **argv)
         (! TestKsmKeyDelete()) &&
         (! TestKsmUpdate()) &&
         (! TestKsmPolicy()) &&
-        (! TestKsmZone()) 
+        (! TestKsmZone()) &&
+        (! TestKsmImport())
         ) {
 
         /* Run all the tests */
