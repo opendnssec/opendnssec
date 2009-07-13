@@ -477,6 +477,8 @@ class Zone:
             output_serial = self.get_output_serial()
             if output_serial >= soa_serial:
                 soa_serial = output_serial + 1
+        elif self.zone_config.soa_serial == "keep":
+            soa_serial = self.get_input_serial();
         else:
             syslog.syslog(syslog.LOG_WARNING,
                           "warning: unknown serial type " +\
