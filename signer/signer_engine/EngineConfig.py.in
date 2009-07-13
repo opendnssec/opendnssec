@@ -77,6 +77,14 @@ class EngineConfiguration:
     def from_xml(self, xml_blob):
         """Searches the xml blob for the configuration values"""
 
+        syslog_facility_string = \
+             Util.get_xml_data("Configuration/Logging/Syslog/Facility",
+                               xml_blob, False)
+        if not syslog_facility_string:
+            syslog_facility_string = "LOG_DAEMON"
+        self.syslog_facility = \
+             Util.syslog_facility_int(syslog_facility_string)
+
         self.zonelist_file = \
              Util.get_xml_data("Configuration/Signer/ZoneListFile",
                                xml_blob, True)
