@@ -623,7 +623,7 @@ class Zone:
         by the configuration to do so. If the auditor returns 0, True
         is returned (and we can continue with finalize()). If not, log
         error and return False"""
-        if self.zonelist_entry.audit:
+        if self.zone_config.audit:
             cmd = ["/bin/echo"]
             # add extra options here
             audit_p = Util.run_tool(cmd)

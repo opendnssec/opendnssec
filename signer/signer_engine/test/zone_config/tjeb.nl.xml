@@ -4,6 +4,7 @@
 
 <SignerConfiguration>
 	<Zone name="tjeb.nl">
+		<Audit/>
 		<Signatures>
 			<Resign>PT30S</Resign>
 			<Refresh>PT60S</Refresh>

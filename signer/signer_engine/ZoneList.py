@@ -49,19 +49,17 @@ class ZoneListEntry:
     - input adapter data (depends on type)
     - output adapter type (currently only file)
     - output adapter data (depends on type)
-    - audit (true if zone should be audited by the signer)
     """
 
     def __init__(self, zone_name, configuration_file, input_adapter,
                  input_adapter_data, output_adapter,
-                 output_adapter_data, audit):
+                 output_adapter_data):
         self.zone_name = zone_name
         self.configuration_file = configuration_file
         self.input_adapter = input_adapter
         self.input_adapter_data = input_adapter_data
         self.output_adapter = output_adapter
         self.output_adapter_data = output_adapter_data
-        self.audit = audit
 
     def is_same(self, other):
         """Returns True if there is no difference between this
@@ -71,8 +69,7 @@ class ZoneListEntry:
                self.input_adapter == other.input_adapter and \
                self.input_adapter_data == other.input_adapter_data and \
                self.output_adapter == other.output_adapter and \
-               self.output_adapter_data == other.output_adapter_data and \
-               self.audit == other.audit
+               self.output_adapter_data == other.output_adapter_data
 
 class ZoneList:
     """List of current Zones"""
@@ -129,16 +126,12 @@ class ZoneList:
                 output_adapter = self.ADAPTER_FILE
             else:
                 raise ZoneListError("Unknown output adapter")
-            audit = False
-            if Evaluate("Audit", xmlb):
-                audit = True
             self.entries[zone_name] = ZoneListEntry(zone_name,
                                                     configuration_file,
                                                     input_adapter,
                                                     input_adapter_data,
                                                     output_adapter,
-                                                    output_adapter_data,
-                                                    audit)
+                                                    output_adapter_data)
 
     def merge(self, new_zonelist):
         """'Merges' two zone lists.
