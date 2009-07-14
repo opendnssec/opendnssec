@@ -434,6 +434,7 @@ cmd_addzone (int argc, char *argv[])
     char* sig_conf_name = NULL;
     char* input_name = NULL;
     char* output_name = NULL;
+    int policy_id = 0;
 
     /* Database connection details */
     char *dbschema = NULL;
@@ -581,9 +582,19 @@ cmd_addzone (int argc, char *argv[])
         return(1);
     }
 
-    status = update_zones(zonelist_filename);
+    /* Now stick this zone into the database */
+    status = KsmPolicyIdFromName(policy_name, &policy_id);
     if (status != 0) {
+        printf("Error, can't find policy : %s\n", policy_name);
         printf("Failed to update zones\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+    status = KsmImportZone(zone_name, policy_id);
+    if (status != 0) {
+        printf("Failed to Import zone\n");
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
@@ -600,6 +611,8 @@ cmd_addzone (int argc, char *argv[])
         }
         fclose(lock_fd);
     }
+
+    printf("Imported zone: %s\n", zone_name);
 
     return 0;
 }
@@ -724,19 +737,6 @@ cmd_export (int argc, char *argv[])
         return -1;
     }
 
-    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
-    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
-    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
-    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
-    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
-    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
-    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
-    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-    policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
-
     /* Read the database details out of conf.xml */
     status = get_db_details(&dbschema, &host, &port, &user, &password);
     if (status != 0) {
@@ -756,7 +756,29 @@ cmd_export (int argc, char *argv[])
     StrFree(dbschema);
     StrFree(user);
     StrFree(password);
-    
+   
+    /* Make some space for the policy */ 
+    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
+    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
+    if (policy->signer == NULL || policy->signature == NULL || 
+            policy->zone == NULL || policy->parent == NULL ||
+            policy->keys == NULL ||
+            policy->ksk == NULL || policy->zsk == NULL || 
+            policy->denial == NULL || policy->enforcer == NULL) {
+        fprintf(stderr, "Malloc for policy struct failed\n");
+        exit(1);
+    }
+
     /* Setup doc with a root node of <KASP> */
     xmlKeepBlanksDefault(0);
     xmlTreeIndentString = "    ";
@@ -807,11 +829,15 @@ cmd_rollzone (int argc, char *argv[])
 {
     /* Database connection details */
     DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+
     char *dbschema = NULL;
     char *host = NULL;
     char *port = NULL;
     char *user = NULL;
     char *password = NULL;
+    char* db_backup_filename = NULL;
     DB_RESULT	result;         /* Result of parameter query */
     KSM_PARAMETER data;         /* Parameter information */
     
@@ -847,6 +873,45 @@ cmd_rollzone (int argc, char *argv[])
         StrFree(password);
         return(status);
     }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            fclose(lock_fd);
+            StrFree(dbschema);
+            return(1);
+        }
+
+        /* Make a backup of the sqlite DB */
+        StrAppend(&db_backup_filename, dbschema);
+        StrAppend(&db_backup_filename, ".backup");
+
+        status = backup_file(dbschema, db_backup_filename);
+
+        StrFree(db_backup_filename);
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
     /* try to connect to the database */
     status = DbConnect(&dbhandle, dbschema, host, password, user);
     /* Free these up early */
@@ -861,16 +926,25 @@ cmd_rollzone (int argc, char *argv[])
 
     status = KsmZoneIdAndPolicyFromName(zone_name, &policy_id, &zone_id);
     if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(status);
     }
 
     /* Get the shared_keys parameter */
     status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
     if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(status);
     }
     status = KsmParameter(result, &data);
     if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(status);
     }
     KsmParameterEnd(result);
@@ -882,6 +956,9 @@ cmd_rollzone (int argc, char *argv[])
         user_certain = getchar();
         if (user_certain != 'y' && user_certain != 'Y') {
             printf("Okay, quitting...\n");
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
             exit(0);
         }
     }
@@ -890,21 +967,32 @@ cmd_rollzone (int argc, char *argv[])
     if (key_type == 0) {
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
         KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone_id);
-        if (status != 0) {
+        /*if (status != 0) {
             return(status);
-        }
+        }*/
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
         KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone_id);
-        if (status != 0) {
+        /*if (status != 0) {
             return(status);
-        }
+        }*/
     }
     else {
         /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
         KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_id);
-        if (status != 0) {
+        /*if (status != 0) {
             return(status);
+        }*/
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
         }
+        fclose(lock_fd);
     }
 
     /* Need to poke the communicator to wake it up */
@@ -922,13 +1010,17 @@ cmd_rollzone (int argc, char *argv[])
     int
 cmd_rollpolicy (int argc, char *argv[])
 {
-        /* Database connection details */
+    /* Database connection details */
     DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+
     char *dbschema = NULL;
     char *host = NULL;
     char *port = NULL;
     char *user = NULL;
     char *password = NULL;
+    char* db_backup_filename = NULL;
     
     char* policy_name = NULL;
     int key_type = 0;
@@ -961,6 +1053,45 @@ cmd_rollpolicy (int argc, char *argv[])
         StrFree(password);
         return(status);
     }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            fclose(lock_fd);
+            StrFree(dbschema);
+            return(1);
+        }
+
+        /* Make a backup of the sqlite DB */
+        StrAppend(&db_backup_filename, dbschema);
+        StrAppend(&db_backup_filename, ".backup");
+
+        status = backup_file(dbschema, db_backup_filename);
+
+        StrFree(db_backup_filename);
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
     /* try to connect to the database */
     status = DbConnect(&dbhandle, dbschema, host, password, user);
     /* Free these up early */
@@ -970,11 +1101,17 @@ cmd_rollpolicy (int argc, char *argv[])
     StrFree(user);
     StrFree(password);
     if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(status);
     }
 
     status = KsmPolicyIdFromName(policy_name, &policy_id);
     if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(status);
     }
 
@@ -984,6 +1121,9 @@ cmd_rollpolicy (int argc, char *argv[])
     user_certain = getchar();
     if (user_certain != 'y' && user_certain != 'Y') {
         printf("Okay, quitting...\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         exit(0);
     }
 
@@ -991,21 +1131,32 @@ cmd_rollpolicy (int argc, char *argv[])
     if (key_type == 0) {
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
         KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, -1);
-        if (status != 0) {
+        /*if (status != 0) {
             return(status);
-        }
+        }*/
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
         KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, -1);
-        if (status != 0) {
+        /*if (status != 0) {
             return(status);
-        }
+        }*/
     }
     else {
         /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
         KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, -1);
-        if (status != 0) {
+        /*if (status != 0) {
             return(status);
+        }*/
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
         }
+        fclose(lock_fd);
     }
 
     /* Need to poke the communicator to wake it up */
@@ -1967,7 +2118,7 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
         }
     }
     else if (value_type == SERIAL_TYPE) {
-        /* We need to convert the repository name into an id */
+        /* We need to convert the serial name into an id */
         status = KsmSerialIdFromName((char *)xmlXPathCastToString(xpathObj), &value);
         if (status != 0) {
             printf("Error: unable to find serial type %s\n", xmlXPathCastToString(xpathObj));
@@ -2412,7 +2563,6 @@ xmlDocPtr add_zone_node(const char *docname,
     xmlNodePtr newadaptnode;
     xmlNodePtr newinputnode;
     xmlNodePtr newoutputnode;
-    xmlAttrPtr newattr;
     doc = xmlParseFile(docname);
     if (doc == NULL ) {
         fprintf(stderr,"Document not parsed successfully. \n");
@@ -2430,7 +2580,7 @@ xmlDocPtr add_zone_node(const char *docname,
         return (NULL);
     }
     newzonenode = xmlNewTextChild(cur, NULL, (const xmlChar *)"Zone", NULL);
-    newattr = xmlNewProp(newzonenode, (const xmlChar *)"name", (const xmlChar *)zone_name);
+    (void) xmlNewProp(newzonenode, (const xmlChar *)"name", (const xmlChar *)zone_name);
 
     (void) xmlNewTextChild (newzonenode, NULL, (const xmlChar *)"Policy", (const xmlChar *)policy_name);
 
@@ -2686,8 +2836,7 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
  */
 int printKey(void* context, KSM_KEYDATA* key_data)
 {
-    (char *) context;
-    if (key_data->state == KSM_STATE_RETIRE && strcasecmp(key_data->retire, context) == 0) {
+    if (key_data->state == KSM_STATE_RETIRE && strcasecmp(key_data->retire, (char *)context) == 0) {
         if (key_data->keytype == KSM_TYPE_KSK)
         {
             fprintf(stdout, "KSK:");
