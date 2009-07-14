@@ -49,26 +49,28 @@ sub main {
     my $percent_ds = 0;
     my $percent_a = 0;
     my $percent_aaaa = 0;
-    my $input_path;
-    my $config_path;
     my $output_path;
+    my $add_to_ksm = 0;
+    my $config_path;
+    my $signer_output_path;
     my $ksm_policy;
 
     GetOptions(
-        'help|?'        => \$help,
-        'zonename=s'    => \$zone_name,
-        'nzones=i'      => \$number_zones,
-        'ttl=i'         => \$ttl,
-        'nrr=i'         => \$number_rr,
-        'pns=i'         => \$percent_ns,
-        'nns=i'         => \$number_ns,
-        'pds=i'         => \$percent_ds,
-        'pa=i'          => \$percent_a,
-        'paaaa=i'       => \$percent_aaaa,
-        'input=s'       => \$input_path,
-        'config=s'      => \$config_path,
-        'output=s'      => \$output_path,
-        'policy=s'      => \$ksm_policy
+        'help|?'         => \$help,
+        'zonename=s'     => \$zone_name,
+        'nzones=i'       => \$number_zones,
+        'ttl=i'          => \$ttl,
+        'nrr=i'          => \$number_rr,
+        'pns=i'          => \$percent_ns,
+        'nns=i'          => \$number_ns,
+        'pds=i'          => \$percent_ds,
+        'pa=i'           => \$percent_a,
+        'paaaa=i'        => \$percent_aaaa,
+        'output=s'       => \$output_path,
+        'addtoksm'       => \$add_to_ksm,
+        'config=s'       => \$config_path,
+        'signeroutput=s' => \$signer_output_path,
+        'policy=s'       => \$ksm_policy
     ) or pod2usage(1);
     pod2usage(1) if ($help);
 
@@ -88,10 +90,6 @@ sub main {
         print "Error: You must specify the number of RR to create per zone (not including zone apex).\n";
         pod2usage(1);
     }
-    if($number_ns <= 0) {
-        print "Error: You must specify how many NS there should be in a NS RRset.\n";
-       pod2usage(1);
-    } 
     if($percent_ns < 0 || $percent_ds < 0 || $percent_a < 0 || $percent_aaaa < 0) {
         print "Error: The number of percent must be between 0 and 100.\n";
         pod2usage(1);
@@ -104,32 +102,12 @@ sub main {
         print "Error: You must specify a number greater than 0 for one of NS, A, and AAAA.\n";
         pod2usage(1);
     }
-    unless($input_path) {
-        print "Error: You must specify a path where the zones will be stored.\n";
-        pod2usage(1);
-    }
-    unless(-d $input_path) {
-        print "Error: The input path is not a directory.\n";
-        exit 1;
-    }
-    unless(-w $input_path) {
-        print "Error: The input path is not writable.\n";
-        exit 1;
-    }
-    unless($config_path) {
-        print "Error: You must specify a path where communicated should output the signing configuration\n";
-        pod2usage(1);
-    }
-    unless(-d $config_path) {
-        print "Error: The config path is not a directory.\n";
-        exit 1;
-    }
-    unless(-w $config_path) {
-        print "Error: The config path is not writable.\n";
-        exit 1;
-    }
+    if($percent_ns > 0 && $number_ns <= 0) {
+        print "Error: You must specify how many NS there should be in a NS RRset.\n";
+       pod2usage(1);
+    } 
     unless($output_path) {
-        print "Error: You must specify a path where the Signer Engine should save the signed zones.\n";
+        print "Error: You must specify a path where the zones will be stored.\n";
         pod2usage(1);
     }
     unless(-d $output_path) {
@@ -140,15 +118,37 @@ sub main {
         print "Error: The output path is not writable.\n";
         exit 1;
     }
-    unless($ksm_policy) {
-        print "Error: You must specify the policy that the zones should be signed with.\n";
-        pod2usage(1);
+    if($add_to_ksm) {
+        unless($config_path) {
+            print "Error: You must specify a path where communicated should output the signing configuration\n";
+            pod2usage(1);
+        }
+        unless(-d $config_path) {
+            print "Error: The config path is not a directory.\n";
+            exit 1;
+        }
+        unless(-w $config_path) {
+            print "Error: The config path is not writable.\n";
+            exit 1;
+        }
+        unless($signer_output_path) {
+            print "Error: You must specify a path where the Signer Engine should save the signed zones.\n";
+            pod2usage(1);
+        }
+        unless(-d $signer_output_path) {
+            print "Error: The signer output path is not a directory.\n";
+            exit 1;
+        }
+        unless($ksm_policy) {
+            print "Error: You must specify the policy that the zones should be signed with.\n";
+            pod2usage(1);
+        }
     }
 
     my $zone_counter = 1;
     for($zone_counter = 1; $zone_counter <= $number_zones; $zone_counter++) {
         createZone($number_zones, $zone_counter, $zone_name, $ttl, $number_rr, $percent_ns, $number_ns, $percent_ds, 
-                   $percent_a, $percent_aaaa, $input_path, $config_path, $output_path, $ksm_policy);
+                   $percent_a, $percent_aaaa, $output_path, $add_to_ksm, $config_path, $signer_output_path, $ksm_policy);
     }
 }
 
@@ -163,9 +163,10 @@ sub createZone {
     my $percent_ds = shift;
     my $percent_a = shift;
     my $percent_aaaa = shift;
-    my $input_path = shift;
-    my $config_path = shift;
     my $output_path = shift;
+    my $add_to_ksm = shift;
+    my $config_path = shift;
+    my $signer_output_path = shift;
     my $ksm_policy = shift;
 
     my $zone_name;
@@ -175,7 +176,7 @@ sub createZone {
         $zone_name = sprintf("%i%s", $zone_counter, $old_zone_name);
     }
 
-    open my $file_handle, ">", "$input_path/$zone_name" or die("Error: Could not open file for output.");
+    open my $file_handle, ">", "$output_path/$zone_name" or die("Error: Could not open file for output.");
 
     createZoneApex($file_handle, $zone_name, $ttl);
 
@@ -190,14 +191,16 @@ sub createZone {
 
     close $file_handle;
 
-    my $full_config = "$config_path/$zone_name.xml";
-    $full_config =~ s/\/\//\//g;
-    my $full_input = "$input_path/$zone_name";
-    $full_input =~ s/\/\//\//g;
-    my $full_output = "$output_path/$zone_name";
-    $full_output =~ s/\/\//\//g;
+    if($add_to_ksm) {
+        my $full_config = "$config_path/$zone_name.xml";
+        $full_config =~ s/\/\//\//g;
+        my $full_output = "$output_path/$zone_name";
+        $full_output =~ s/\/\//\//g;
+        my $full_signer_output = "$signer_output_path/$zone_name";
+        $full_signer_output =~ s/\/\//\//g;
 
-    system("ksmutil", "addzone", $zone_name, $ksm_policy, $full_config, $full_input, $full_output);
+        system("ksmutil", "addzone", $zone_name, $ksm_policy, $full_config, $full_output, $full_signer_output);
+    }
 }
 
 sub createZoneApex {
@@ -286,9 +289,11 @@ Options:
  --pds N          0-100 % chance that a delegation will get a DS RR
  --pa N           0-100 % chance that a subdomain will get an A RR
  --paaaa N        0-100 % chance that a subdomain will get an AAAA RR
- --input S        Directory where OpenDNSSEC can find the zone
- --config S       Directory where zone signing configuration can be stored
- --output S       Directory where the signed zone will go
+ --output S       Directory where the generated zones can be stored
+ --addtoksm       If the zones should be added to OpenDNSSEC via the ksmutil.
+                  Use with --config, --signeroutput, and --policy
+ --config S       Directory where the zone signing configuration can be stored
+ --signeroutput S Directory where the signed zone will go
  --policy S       The policy that OpenDNSSEC will use to sign the zone
 
 zonegen will generate zone files and add them to OpenDNSSEC via ksmutil.
