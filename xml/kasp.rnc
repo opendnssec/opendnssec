@@ -89,7 +89,9 @@ start = element KASP {
 
 			# Expected parent SOA parameters
 			element SOA { anysoa }
-		}
+		},
+		
+		audit?
 	}+
 }
 
@@ -139,3 +141,5 @@ anykey = element Algorithm {
 ttl = element TTL { xsd:duration }
 
 propagationdelay = element PropagationDelay { xsd:duration }
+
+audit = element Audit { empty }

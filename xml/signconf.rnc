@@ -50,11 +50,13 @@ zone = element Zone {
 		},
 
 		# What parameters to use for the SOA record
-		soa
+		soa,
+		
+		# Auditing parameters
+		audit?
 	}
 
 algorithm = element Algorithm { xsd:nonNegativeInteger { maxInclusive = "255" } }
-
 
 ttl = element TTL { xsd:duration }
 
@@ -76,3 +78,5 @@ nsec3 = element NSEC3 {
 			element Salt { xsd:string }
 		}
 	}
+
+audit = element Audit { empty }
