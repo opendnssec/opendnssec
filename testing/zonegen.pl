@@ -212,7 +212,7 @@ sub createZoneApex {
     my $zone_name = shift;
     my $ttl = shift;
 
-    print $file_handle "$zone_name. $ttl IN SOA ns1.$zone_name. hostmaster.$zone_name. 1000 1200 180 1209600 $ttl\n";
+    print $file_handle "$zone_name. $ttl IN SOA ns1.$zone_name. postmaster.$zone_name. 1000 1200 180 1209600 $ttl\n";
     print $file_handle "$zone_name. $ttl IN MX 10 mail.$zone_name.\n";
     print $file_handle "$zone_name. $ttl IN NS ns1.$zone_name.\n";
     print $file_handle "$zone_name. $ttl IN NS ns2.$zone_name.\n";
