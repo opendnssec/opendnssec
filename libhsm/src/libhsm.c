@@ -44,6 +44,7 @@
 
 #include "libhsm.h"
 #include "libhsmdns.h"
+#include "compat/strlcpy.h"
 
 #include <cryptoki.h>
 #include <pkcs11.h>
