@@ -725,9 +725,12 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
         }
         if(key_pair_id > 0) {
-            /* TODO should this do all zones if keys are shared? 
-                (yes, faster; no, will ignore zones not in zonelist) */
-            KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, &ignore);
+            /* This will do all zones if keys are shared */ 
+            if (policy->keys->share_keys == 1) {
+                status = KsmDnssecKeyCreateOnPolicy(policy->id, key_pair_id, key_type);
+            } else {
+                status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, &ignore);
+            }
         } else {
             /* TODO what would this mean? */
         }

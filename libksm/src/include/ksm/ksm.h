@@ -125,6 +125,7 @@ typedef struct {
 
 int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, int alg, const char* generate, DB_ID* id);
 int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id);
+int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype);
 int KsmKeyInitSql(DB_RESULT* result, const char* sql);
 int KsmKeyInit(DB_RESULT* result, DQS_QUERY_CONDITION* condition);
 int KsmKeyInitId(DB_RESULT* result, DB_ID id);

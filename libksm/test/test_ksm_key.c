@@ -363,6 +363,58 @@ static void TestKsmKeyGetUnallocated(void)
     CU_ASSERT_EQUAL(keypair_id, 4);
 }
 
+/*+
+ * TestKsmKeyCreateOnPolicy - Test Key Create code for shared key policies
+ *
+ * Description:
+ *      Tests that keys are created when requested
+-*/
+
+static void TestKsmDnssecKeyCreateOnPolicy(void)
+{
+
+    DB_ID           key_pair_id;     /* Created key ID */
+    DB_ID           dnsseckey_id;   /* Created key ID */
+    int             status = 0;     /* Status return */
+    int			    rowcount;	    /* Number of rows returned */
+	char*		    sql;		    /* Constructed query */
+	int			    where = 0;	    /* WHERE clause count */
+    int             zone_id = 1;
+
+    /* Create a new keypair entry */
+    int     policy_id = 2;
+    char*   HSMKeyID = "0x1";
+    int     smID = 1;
+    int     size = 1024;
+    int     alg = KSM_ALGORITHM_DSASHA1;
+    char*   generate = "2009-01-01";
+
+    /* make sure that sharing is turned on */
+    status = KsmParameterSet("zones_share_keys", "keys", 1, policy_id);
+	CU_ASSERT_EQUAL(status, 0);
+
+    status = KsmKeyPairCreate(policy_id, HSMKeyID, smID, size, alg, generate, &key_pair_id);
+	CU_ASSERT_EQUAL(status, 0);
+
+    /* Now create rows in dnsseckeys for the above */
+    status = KsmDnssecKeyCreateOnPolicy(policy_id, key_pair_id, KSM_TYPE_ZSK);
+	CU_ASSERT_EQUAL(status, 0);
+
+	/* Check that a key has been added */
+
+	sql = DqsCountInit("dnsseckeys");
+	DqsConditionInt(&sql, "keypair_id", DQS_COMPARE_EQ, key_pair_id, where++);
+	DqsEnd(&sql);
+	status = DbIntQuery(DbHandle(), &rowcount, sql);
+	DqsFree(sql);
+
+	CU_ASSERT_EQUAL(status, 0);
+
+    /* There are 2 zones on this policy */
+	CU_ASSERT_EQUAL(rowcount, 2);
+
+}
+
 /*
  * TestKsmKey - Create Test Suite
  *
@@ -389,6 +441,7 @@ int TestKsmKey(void)
         {"KsmKeyCountQueue", TestKsmKeyCountQueue},
         {"KsmKeyCountUnallocated", TestKsmKeyCountUnallocated},
         {"KsmKeyGetUnallocated", TestKsmKeyGetUnallocated},
+        {"KsmDnssecKeyCreateOnPolicy", TestKsmDnssecKeyCreateOnPolicy},
         {NULL,                      NULL}
     };
 

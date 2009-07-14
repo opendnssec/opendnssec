@@ -174,7 +174,61 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id)
     return status;
 }
 
+/*+
+ * KsmDnssecKeyCreateOnPolicy - Create Entries in Dnsseckeys table 
+ *                              (i.e. when a key is assigned to a policy that shares 
+ *                              keys between zones)
+ *
+ * Description:
+ *      Allocates a key in the database.
+ *
+ * Arguments:
+ *      int policy_id
+ *          policy that the keys will be allocated to
+ *
+ *      int keypair_id
+ *          key that will be allocated
+ *
+ *      int keytype
+ *          type of key that will be allocated
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+-*/
 
+int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype)
+{
+    DB_ID       ignore = 0;
+    int         status = 0;         /* Status return */
+    DB_RESULT   result;             /* List result set */
+    KSM_ZONE*   zone;               /* Zone information */
+    
+	zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
+    zone->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    
+    status = KsmZoneInit(&result, policy_id);
+    if (status == 0) {
+        while (status == 0) {
+            status = KsmZone(result, zone);
+            if (status == 0) {
+                status = KsmDnssecKeyCreate(zone->id, keypair_id, keytype, &ignore);
+            }
+        }
+    }
+
+    /* Convert EOF status to success */
+    if (status == -1) {
+        status = 0;
+    }
+
+    DbFreeResult(result);
+
+	free(zone->name);
+	free(zone);
+
+    return status;
+}
 
 /*+
  * KsmKeyModify - Modify KEYDATA Entry
