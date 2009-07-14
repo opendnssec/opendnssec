@@ -181,12 +181,12 @@ sub createZone {
     createZoneApex($file_handle, $zone_name, $ttl);
 
     my $rr_counter = 0;
-    my $sub_domain_counter = 0;
+    my $label_counter = 0;
     while($rr_counter < $number_rr) {
-        my $sub_domain_name = sprintf("subdomain%i.%s", $sub_domain_counter + 1, $zone_name);
-        $rr_counter += createSubDomain($file_handle, $sub_domain_name, $ttl, $percent_ns, $number_ns, 
-                                       $percent_ds, $percent_a, $percent_aaaa);
-        $sub_domain_counter++;
+        my $label_name = sprintf("label%i.%s", $label_counter + 1, $zone_name);
+        $rr_counter += createLabel($file_handle, $label_name, $ttl, $percent_ns, $number_ns, 
+                                   $percent_ds, $percent_a, $percent_aaaa);
+        $label_counter++;
     }
 
     close $file_handle;
@@ -218,7 +218,7 @@ sub createZoneApex {
     print $file_handle "ns2.$zone_name. $ttl IN A 192.0.2.1\n";
 }
 
-sub createSubDomain() {
+sub createLabel() {
     my $file_handle = shift;
     my $domain_name = shift;
     my $ttl = shift;
@@ -271,7 +271,7 @@ __END__
 
 =head1 NAME
 
-zonegen - a simple script that generates zone and adds them via ksmutil
+zonegen - a simple script that generates zone and can add them via ksmutil
 
 =head1 SYNOPSIS
 
@@ -280,7 +280,7 @@ zonegen [options]
 Options:
 
  --help           brief help message
- --zonename S     The name of the zone. FQDN. Multiple zones will get a number as a prefix
+ --zonename S     The name of the zone. E.g. largetld or suffix.org. Multiple zones will get a number as a prefix
  --nzones N       Number of zones to generate
  --ttl N          The TTL to use
  --nrr N          Minimum number of RR per zone (not including zone apex, 8 RR)
@@ -296,15 +296,12 @@ Options:
  --signeroutput S Directory where the signed zone will go
  --policy S       The policy that OpenDNSSEC will use to sign the zone
 
-zonegen will generate zone files and add them to OpenDNSSEC via ksmutil.
+zonegen will generate zone files and can add them to OpenDNSSEC via ksmutil.
 
-Example - To generate many small zones (ISP). 5000 zones, each with an apex of 8 RR. Minimum 2 extra RR, where each new sub domain get an A RR and 
-only 5 
-percent get an AAAA RR:
+Example - To generate many small zones (ISP). 5000 zones, each with an apex of 8 RR. Minimum 2 extra RR, where each new sub domain get an A RR and only 5 percent get an AAAA RR:
 
-  --nzones 5000 --nrr 2 --pa 100 --paaaa 5
+  perl zonegen.pl --zonename suffix.org --nzones 5000 --nrr 2 --pa 100 --paaaa 5 --output ./
 
-Example - To generate a single large zone (TLD). A single zone with minimum one million RR. Each deletegation gets new NS with glue and 10 percent 
-will have a DS RR:
+Example - To generate a single large zone (e.g. TLD). A single zone with minimum one million RR. Each deletegation gets new NS with glue and 10 percent will have a DS RR:
 
-  --nzones 1 --nrr 1000000 --nns 2 --pns 100 --pds 10
+  perl zonegen.pl --zonename largetld --nzones 1 --nrr 1000000 --nns 2 --pns 100 --pds 10 --output ./
