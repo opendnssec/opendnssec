@@ -139,6 +139,10 @@ sub main {
             print "Error: The signer output path is not a directory.\n";
             exit 1;
         }
+        if($output_path eq $signer_output_path) {
+            print "Error: The signer output directory must not be equal to the output directory.\nOr else will the Signer Engine overwrite the original file.\n";
+            exit 1;
+        }
         unless($ksm_policy) {
             print "Error: You must specify the policy that the zones should be signed with.\n";
             pod2usage(1);
