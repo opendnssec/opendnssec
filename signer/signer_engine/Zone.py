@@ -249,11 +249,11 @@ class Zone:
             if not unsorted_zone_file:
                 syslog.syslog(syslog.LOG_ERR,
                               "Error opening zone input file: " +
-                              self.get_zone_input_filename());
+                              self.get_zone_input_filename())
             else:
                 syslog.syslog(syslog.LOG_INFO,
                               "Writing file to zone_reader: " +
-                              self.get_zone_input_filename());
+                              self.get_zone_input_filename())
             for line in unsorted_zone_file:
                 sort_process.stdin.write(line)
             sort_process.stdin.close()
@@ -320,15 +320,16 @@ class Zone:
             if not sort_process:
                 raise OSError("Sorter not found")
 
-            unsorted_zone_file = open(self.get_zone_tmp_filename(".signed"), "r")
+            unsorted_zone_file = open(
+                             self.get_zone_tmp_filename(".signed"), "r")
             if not unsorted_zone_file:
                 syslog.syslog(syslog.LOG_ERR,
                               "Error opening zone input file: " +
-                              self.get_zone_tmp_filename(".signed"));
+                              self.get_zone_tmp_filename(".signed"))
             else:
                 syslog.syslog(syslog.LOG_INFO,
                               "Writing file to zone_reader: " +
-                              self.get_zone_tmp_filename(".signed"));
+                              self.get_zone_tmp_filename(".signed"))
             for line in unsorted_zone_file:
                 sort_process.stdin.write(line)
             sort_process.stdin.close()
@@ -403,13 +404,13 @@ class Zone:
                 if self.zone_config.denial_nsec3_optout:
                     cmd.append("-p")
                 nsec_p = Util.run_tool(cmd)
-            #nsecced_zone_file = open(self.get_zone_tmp_filename(".signed"), "w")
             if nsec_p:
                 for line in nsec_p.stderr:
                     syslog.syslog(syslog.LOG_ERR,
                                 "stderr from nseccer: " + line)
         else: # no signatures
-            syslog.syslog(syslog.LOG_INFO, "No signatures set, not adding NSEC(3) records\n")
+            syslog.syslog(syslog.LOG_INFO,
+                "No signatures set, not adding NSEC(3) records\n")
             try:
                 shutil.copy(self.get_zone_tmp_filename(".sorted"),
                             self.get_zone_tmp_filename(".nsecced"))
@@ -421,22 +422,23 @@ class Zone:
 
     def perform_action(self):
         """Depending on the value set to zone.action, this method
-           will sort, nsecify and/or sign the zone"""
-        syslog.syslog(syslog.LOG_INFO, "ZONE CONFIG OPTION: " + str(self.action))
+           will sort, nsecify, sign and/or audit the zone"""
+        syslog.syslog(syslog.LOG_INFO,
+                      "Zone action to perform: " + str(self.action))
 
         if self.action >= ZoneConfig.RESIGN and os.path.exists(
                           self.get_zone_tmp_filename(".signed")):
-            if self.sign():
-               self.finalize()
+            if self.sign() and self.audit():
+                self.finalize()
         elif self.action >= ZoneConfig.RENSEC and os.path.exists(
                             self.get_zone_tmp_filename(".sorted")) and\
                             self.nsecify():
-            if self.sign():
+            if self.sign() and self.audit():
                 self.finalize()
         elif self.action >= ZoneConfig.REREAD and os.path.isfile(
                                         self.get_zone_input_filename()):
             if self.sort_input() and self.nsecify():
-                if self.sign():
+                if self.sign() and self.audit():
                     self.finalize()
         elif self.action >= ZoneConfig.RESORT and os.path.isfile(
                                         self.get_zone_input_filename()):
@@ -445,7 +447,7 @@ class Zone:
             ## if any.
             if self.sort_signed() and self.sort_input() and \
                self.nsecify():
-                if self.sign():
+                if self.sign() and self.audit():
                     self.finalize()
         else:
             syslog.syslog(syslog.LOG_ERR, "Input file missing: " +\
@@ -483,7 +485,10 @@ class Zone:
             # otherwise updates won't be accepted
             output_serial = self.get_output_serial()
             if output_serial >= soa_serial:
-                syslog.syslog(syslog.LOG_ERR, "Error: serial setting is set to 'keep', but input serial has not increased. Aborting sign operation for " + self.zone_name)
+                syslog.syslog(syslog.LOG_ERR,
+                  "Error: serial setting is set to 'keep', but input "
+                  "serial has not increased. Aborting sign operation "
+                  "for " + self.zone_name)
                 return None
         else:
             syslog.syslog(syslog.LOG_WARNING,
@@ -530,9 +535,11 @@ class Zone:
                      Util.datestamp(self.get_expiration_timestamp(sign_time)),
                      ":expiration ")
         if self.zone_config.signatures_validity_denial:
-            Util.write_p(sign_p,
-                         Util.datestamp(self.get_expiration_timestamp_denial(sign_time)),
-                         ":expiration_denial ")
+            Util.write_p(
+                sign_p,
+                Util.datestamp(
+                     self.get_expiration_timestamp_denial(sign_time)),
+                ":expiration_denial ")
         if self.zone_config.signatures_jitter and \
            self.zone_config.signatures_jitter != 0:
             Util.write_p(sign_p,
@@ -545,9 +552,11 @@ class Zone:
                      Util.datestamp(self.get_refresh_timestamp(sign_time)),
                      ":refresh ")
         if self.zone_config.signatures_validity_denial:
-            Util.write_p(sign_p,
-                         Util.datestamp(self.get_refresh_timestamp_denial(sign_time)),
-                         ":refresh_denial ")
+            Util.write_p(
+                 sign_p,
+                 Util.datestamp(
+                      self.get_refresh_timestamp_denial(sign_time)),
+                 ":refresh_denial ")
 
         for k in self.zone_config.signature_keys:
             syslog.syslog(syslog.LOG_DEBUG,
@@ -579,7 +588,7 @@ class Zone:
         nsecced_f.close()
         sign_p.stdin.close()
         sign_p.wait()
-        sig_count = 0;
+        sig_count = 0
         for line in sign_p.stderr:
             if line[:30] == "Number of signatures created: ":
                 try:
@@ -608,6 +617,20 @@ class Zone:
             os.remove(self.get_zone_tmp_filename(".signed2"))
             return False
         return True
+
+    def audit(self):
+        """Calls the auditor on the signed output file, if specified
+        by the configuration to do so. If the auditor returns 0, True
+        is returned (and we can continue with finalize()). If not, log
+        error and return False"""
+        if self.zonelist_entry.audit:
+            cmd = ["/bin/echo"]
+            # add extra options here
+            audit_p = Util.run_tool(cmd)
+            result = audit_p.wait()
+            return result == 0
+        else:
+            return True
 
     def finalize(self):
         """Runs the finalizer tool on the signed zone file, and produces

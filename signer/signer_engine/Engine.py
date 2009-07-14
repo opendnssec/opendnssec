@@ -104,7 +104,7 @@ class Engine:
     def run(self):
         """Start the engine, add some workers, and create the command
         channel to listen on."""
-        i = 1;
+        i = 1
         while i <= self.config.worker_threads:
             self.add_worker(str(i))
             i += 1
@@ -180,8 +180,8 @@ class Engine:
                  "zones           show the currently known zones",
                  "sign <zone>     schedule zone for immediate (re-)signing",
                  "clear <zone>    delete the internal storage of the given",
-                 "                zone name. All signatures will be regenerated",
-                 "                on the next re-sign.",
+                 "                zone name. All signatures will be ",
+                 "                regenerated on the next re-sign.",
                  "queue           show the current task queue",
                  "flush           execute all scheduled tasks immediately",
                  "update <zone>   check for changed zone conf xml file, if",

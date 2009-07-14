@@ -65,7 +65,7 @@ class Task:
                 self.how.perform_action()
             except Exception, e:
                 syslog.syslog(syslog.LOG_ERR,
-                              "Error while signing: " + str(e));
+                              "Error while signing: " + str(e))
         elif self.what == Task.NOTIFY_SERVER:
             syslog.syslog(syslog.LOG_INFO, "Run task: notify server")
         elif self.what == Task.DUMMY:

@@ -147,7 +147,7 @@ def syslog_facility_int(string):
     try:
         return facilities[string.upper()]
     except KeyError:
-        print "Warning: unknown syslog facility %s, using DAEMON"%\
+        print "Warning: unknown syslog facility %s, using DAEMON" % \
               string.upper()
         return syslog.LOG_DAEMON
 

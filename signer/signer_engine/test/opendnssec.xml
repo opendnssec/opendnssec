@@ -12,7 +12,7 @@
 	</RepositoryList>
 
 	<Logging>
-		<Syslog><Facility>local0</Facility></Syslog>
+		<Syslog><Facility>user</Facility></Syslog>
 	</Logging>
 	<Enforcer>
 		<Interval>PT3600S</Interval>

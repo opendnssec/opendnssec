@@ -75,6 +75,8 @@ class ZoneConfig:
         self.soa_ttl = None
         self.soa_minimum = None
         self.soa_serial = None
+        
+        self.audit = True
 
         self.last_modified = None
         self.xml_file = xml_file
@@ -282,4 +284,8 @@ class ZoneConfig:
             raise ZoneConfigError("Serial option should be one of: " +
                                  "keep, unixtime, datecounter, counter")
 
+        if Evaluate("SignerConfiguration/Zone/Audit", signer_config):
+            self.audit = True
+        else:
+            self.audit = False
 
