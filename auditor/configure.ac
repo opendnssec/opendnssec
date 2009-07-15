@@ -7,7 +7,7 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 
-AM_PATH_RUBY(,with_ruby=yes, with_ruby=no)
+AM_PATH_RUBY([], [], [])
 
 full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 
