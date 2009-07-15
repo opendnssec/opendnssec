@@ -1,12 +1,15 @@
 module KASPAuditor
-  class Preparser
-    SEPARATOR = 11.chr # "\v" Vertical Tab
-
-    # This class needs to read a zone file, and transform it to a form suitable to be sorted by the OS sort command.
-    # So, $ORIGIN directives need to be respected.
-    # All RRs should be rewritten in fully expanded form, one RR per line.
+    # This class reads a zone file, and transforms it to a form suitable to be sorted by the OS sort command.
     # For purposes of sorting, each RR should be prepended by the reversed domain name, followed by a separator.
-    # @TODO@ TEST THIS!!!
+    #(each label of the name is preserved - the labels are simply written in reverse order)
+    # This allows the auditor to operate on a zone file which is essentially in canonical order.
+  class Preparser
+
+    # @TODO@ Need to use different separator - difficult, since arbitrary data
+    # can be encoded in name labels. Just have to hope we don't find a zone
+    # with many vertical tabs in the names!
+    SEPARATOR = "\v" # "\v" Vertical Tab
+
 
 
     # We then need to make sure that the auditor skips everything before the separator when it loads the zones
@@ -14,9 +17,14 @@ module KASPAuditor
 
     # Call the OS sort command (with the appropriate separator).
     def sort(file)
-      system("sort -t #{SEPARATOR} #{file}.parsed > #{file}.sorted")
+      system("sort -t$'#{SEPARATOR}' #{file}.parsed > #{file}.sorted")
     end
 
+    # Take an input zone file ("zonefile") and output a new file ("zonefile.sorted")
+    # The output file has each (expanded) line prepended by the labels of the owner
+    # name for the RR in reversed order.
+    # The type is also prepended to the line - this allows RRSets to be ordered
+    # with the RRSIG and NSEC records last.
     def normalise_zone_and_add_prepended_names(infile, outfile)
       print "Writing normalised output to #{outfile}\n"
       origin = ""
@@ -69,11 +77,8 @@ module KASPAuditor
       }
     end
 
+    # Take a domain name, and return the form to be prepended to the RR.
     def prepare(domain)
-      #      return domain.reverse
-      # Used to just reverse domain. But this is rubbish.
-      # Instead, want to find each non-escaped "." - But to do this, we're going to have to get the actual name.
-
       # Check if the name contains any escape characters ("\") - If not, then just reverse elements.
       # If it does contain esape characters, then parse it as a proper name.
 
@@ -88,6 +93,7 @@ module KASPAuditor
       end
     end
 
+    # Take a line from the input zone file, and return the normalised form
     def normalise_line(line, origin, last_name)
       # Note that a freestanding "@" is used to denote the current origin - we can simply replace that straight away
       line.sub!(" @ ", " #{origin} ")
@@ -122,6 +128,9 @@ module KASPAuditor
       return line, name, type_string
     end
 
+    # Frig the RR type so that NSEC records appear last in the RRSets.
+    # Also make sure that DNSKEYs come first (so we have a key to verify
+    # the RRSet with!).
     def prefix_for_rrset_order(type, type_was)
       # Now make sure that NSEC(3) RRs go to the back of the list
       if ['NSEC', 'NSEC3'].include?type.string

@@ -32,11 +32,11 @@ module KASPAuditor
     attr_accessor :zone
     def initialize(config_file_loc)
       #      @zones = []
-#      print "Opening config file : #{config_file_loc}\n"
+      #      print "Opening config file : #{config_file_loc}\n"
       File.open(config_file_loc, 'r') {|file|
         doc = REXML::Document.new(file)
         z = doc.elements['SignerConfiguration/Zone']
-#        print "Name : #{z.attributes['name']}"
+        #        print "Name : #{z.attributes['name']}"
         new_zone = Zone.new(z.attributes['name'])
         # Fill out new zone
         new_zone.signatures = Zone::Signatures.new(z.elements['Signatures'])
@@ -45,6 +45,22 @@ module KASPAuditor
         @zone = new_zone
       }
     end
+    # Check the defined hash algorithm against the denial type. If NSEC3 is
+    # being used, then make sure that the key algorithm is consistent with NSEC3.
+    # Return true if an inconsistent key algorithm is used with NSEC3.
+    # Return false otherwise.
+    def inconsistent_nsec3_algorithm?
+      if (@zone.denial.nsec3)
+        @zone.keys.keys.each {|key|
+          if ((key != Dnsruby::Algorithms.DSA_NSEC3_SHA1) &&
+                (key != Dnsruby::Algorithms.RSASHA1_NSEC3_SHA1))
+            return true
+          end
+        }
+      end
+      return false
+    end
+    
     def self.xsd_duration_to_seconds xsd_duration
       # XSDDuration hack
       xsd_duration = "P0DT#{$1}" if xsd_duration =~ /^PT(.*)$/
@@ -112,7 +128,7 @@ module KASPAuditor
         class Nsec
         end
         class Nsec3
-          attr_accessor :optout, :hash 
+          attr_accessor :optout, :hash
           def initialize(e)
             @optout = false
             if (e.elements['OptOut'])
@@ -135,21 +151,32 @@ module KASPAuditor
       end
       class Keys
         attr_accessor :ttl, :keys
-          def initialize(e)
-              ttl_text = e.elements['TTL'].text
-              @ttl = Config.xsd_duration_to_seconds(ttl_text)
-              # Don't think we need any of the Key elements just now
-          end
+        def initialize(e)
+          ttl_text = e.elements['TTL'].text
+          @ttl = Config.xsd_duration_to_seconds(ttl_text)
+          @keys = []
+          e.get_elements('Key').each {|k|
+            key = Key.new(k)
+            @keys.push(key)
+          }
+        end
         class Key
-          # Shouldn't need to use the Key element for the auditor
+          # Shouldn't need to use the Key element for the auditor - actually,
+          # need the algorithm element for now
+          # @TODO@ Will need to complete loading Key for the policy configuration checker
           attr_accessor :ttl, :flags, :algorithm, :locator, :ksk, :zsk, :publish
+          
+          def initialize(e)
+            @algorithm = e.elements['Algorithm'].text.to_i
+          end
+
           #                       element Key {
           #	                                # DNSKEY flags
           #	                                element Flags { xsd:positiveInteger },
           #
           #	                                # DNSKEY algorithm
           #	                                algorithm,
-          #	             
+          #
           #	                                # The key locator is matched against PKCS#11 CKA_ID in hex
           #	                                # e.g. DFE7265B-783F-4186-8538-0AA784C2F31D
           #	                                # is written as DFE7265B783F418685380AA784C2F31D

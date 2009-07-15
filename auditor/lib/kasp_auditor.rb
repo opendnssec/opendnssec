@@ -108,11 +108,18 @@ module KASPAuditor
 
     # Given a list of configured zones, and a list of zones_to_audit, return
     # only those configured zones which are in the list of zones_to_audit.
+    # Ignore a trailing dot.
     def check_zones_to_audit(zones, zones_to_audit)
       # If a list of zones to audit has been specified, then only check those
       if (zones_to_audit.length > 0)
         zones.each {|zone|
-          zones.delete(zone) if !(zones_to_audit.include?zone[0].zone.name)
+          if (!(zones_to_audit.include?zone[0].zone.name))
+            if (zone[0].zone.name[zone[0].zone.name.length() -1, 1] != ".")
+              zones.delete(zone) if !(zones_to_audit.include?(zone[0].zone.name+"."))
+            else
+              zones.delete(zone)
+            end
+          end
         }
       end
     end

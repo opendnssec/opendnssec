@@ -70,5 +70,5 @@ www.tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
 www.tjeb.nl.		 3600		 IN		 RRSIG		 AAAA 5 3 3600 20000701000029 20000605072316 1390 tjeb.nl. qFNxfuVt9ZeOfFGnL4eesjAdd2eeVvkgOLm5qMuoCAOi2bwsLdTD5xeRLi+ajgif0h5j1X99ClR+Xi2zkrcCVgMy2xcNgaCTGIoVN77m9Cv6SN4zMVFI1/M9S1nw+R0Q5MTR9kS+nm6MdT5oHurQnXq9lo9qrhFDU/yRQ9DWQi0= ;{id = 1390}
 www.tjeb.nl.		 3600		 IN		 NSEC		 tjeb.nl. A AAAA RRSIG NSEC 
 www.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC 5 3 3600 20300701000042 20100605072316 1390 tjeb.nl. CwB93MZIGjM/CP5TKsUlrSG6P44sS5c7QQImpQKpusd1q9zzV1HelMMK85YJotklJ5OuzaWv/K/IFlfJP2/BAB4I6rixQbBP2DcwqtEPloOEsUbBBggmnR0mzV1heEgfwF/NugOdChjMkdoqo+13Q/GXdzF1f6H3midP5rb4/XY= ;{id = 1390}
-not.there.tjeb.nl  3600  IN  NSEC  really.not.there.tjeb.nl NSEC A
-not.there.tjeb.nl 3600 IN A 1.2.3.4
+not.there.tjeb.nl.  3600  IN  NSEC  really.not.there.tjeb.nl NSEC A
+not.there.tjeb.nl. 3600 IN A 1.2.3.4

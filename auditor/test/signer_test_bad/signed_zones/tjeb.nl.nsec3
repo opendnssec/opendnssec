@@ -65,6 +65,6 @@ www.tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
 www.tjeb.nl.		 3600		 IN		 RRSIG		 AAAA 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. igbC7rPH+t2ANPMsiyBG22e6owaNazVLgyYN4kdDmB9Yw37aa3HTqOOwi5ssAqwsn9uG8N7Mx9K8blQfIYiJi0eRZ8cNhqggWHjP5tP7hX5psFRxGl1Kno/Xuke8eEkgCSJU8+/mJPViGB9XvD2lQJf3Ufbe4F+53eLF8Eav+GM= ;{id = 13838}
 929p027vb26s89h6fv5j7hmsis4tcr1p.tjeb.nl.		 3600		 IN		 NSEC3		 1 0 5 beef  9rs4nbe7128ap5i6v196ge2iag5b7rcq A AAAA RRSIG 
 929p027vb26s89h6fv5j7hmsis4tcr1p.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. q4ECLySO5bVzwg6krsdWAYAe7kKvfTSUCOwokf6tr69j7KddRweIT/0MQ+J80Dda96rYsCIP9uox03+h1fllpEhryXq9QvYA7XlIAXx6PNOcJOpNVJ1daCYXE0DkH2yJyykJ+eEsmF0hnXZ/teS8t0XQAwZOyI/1k5NwYqX2MmY= ;{id = 13838}
-not.there.tjeb.nl.		 3600		 IN		 NSEC3PARAM		 1 1 5 beef
+not.there.tjeb.nl.		 3600		 IN		 NSEC3PARAM		 2 1 4 beefff
 bla.tjeb.nl.		 3600		 IN		 NSEC		 dragon.tjeb.nl. NS RRSIG NSEC
 ;

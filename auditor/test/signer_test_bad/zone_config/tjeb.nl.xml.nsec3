@@ -58,9 +58,9 @@
 					<TTL>PT3600S</TTL>
 				</Parameters>
 				<Hash>
-					<Algorithm>1</Algorithm>
-					<Iterations>5</Iterations>
-					<Salt>62656566</Salt>
+					<Algorithm>2</Algorithm>
+					<Iterations>4</Iterations>
+					<Salt>626565666666</Salt>
 				</Hash>
 			</NSEC3>
 		</Denial>

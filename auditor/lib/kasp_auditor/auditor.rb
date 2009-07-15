@@ -45,6 +45,9 @@ module KASPAuditor
     end
     #This version of the auditor will work on sorted zone files, rather than loading whole zones into memory
     def check_zone(config, unsigned_file, signed_file)
+      if (config.inconsistent_nsec3_algorithm?)
+        log(LOG_WARNING, "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used")
+      end
       # Load SOA record from top of original signed and unsigned files!
       soa_rr= load_soas(unsigned_file, signed_file)
       log(LOG_INFO, "Auditing #{soa_rr.name} zone : #{config.zone.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
@@ -361,7 +364,7 @@ module KASPAuditor
       #      end
       # Check that the NSEC3PARAMs are the same as those defined in the Config
       if (l_rr.salt != config.zone.denial.nsec3.hash.salt)
-        log(LOG_ERR, "NSEC3PARAM has wrong salt : should be #{config.zone.denial.nsec3.hash.salt} but was #{Dnsruby::RR::NSEC3.decode_salt(l_rr.salt)}")
+        log(LOG_ERR, "NSEC3PARAM has wrong salt : should be #{config.zone.denial.nsec3.hash.salt} but was #{(l_rr.salt)}")
       end
       if (l_rr.iterations != config.zone.denial.nsec3.hash.iterations)
         log(LOG_ERR, "NSEC3PARAM has wrong iterations : should be #{config.zone.denial.nsec3.hash.iterations} but was #{l_rr.iterations}")
@@ -474,7 +477,7 @@ module KASPAuditor
         # Keep track of the RRSet we're currently loading - as soon as all the RRs have been loaded, then check the RRSIG
         # So, keep track of the last RR type (or type_covered, if RRSIG)
         # When that changes, check the signature for the RRSet
-        if (current_rrset.add(l_rr))
+        if (current_rrset.add(l_rr, false))
           if (l_rr.type == Types.RRSIG)
             if !(types_covered.include?Types.RRSIG)
               types_covered.push(Types.RRSIG)
@@ -489,7 +492,7 @@ module KASPAuditor
           # Now check the signatures!
           check_signature(current_rrset, config, soa_rr, is_glue, is_unsigned_delegation)
           current_rrset = RRSet.new
-          current_rrset.add(l_rr)
+          current_rrset.add(l_rr, false)
           types_covered.push(l_rr.type)
         end
 
@@ -697,7 +700,10 @@ module KASPAuditor
       if (pri.to_i < @ret_val)
         @ret_val = pri.to_i
       end
+      begin
       @syslog.log(pri, msg)
+      rescue ArgumentError # Make sure we continue no matter what
+      end
     end
 
     # Check if the name is out of the zone

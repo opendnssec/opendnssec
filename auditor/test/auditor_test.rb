@@ -23,8 +23,8 @@ class AuditorTest < Test::Unit::TestCase
     filename = "zonelist_nsec.xml"
     run_auditor_with_syslog(path, filename, stderr, 0)
 
-    # Check syslog to ensure no messages left while this test ran
-    assert_equal(nil, err = stderr[0].gets, "Didn't expect any messages in syslog from good auditor run, but got : #{err}\n")
+    success = check_syslog(stderr, [])
+    assert(success, "NSEC good file not audited correctly")
   end
 
   def test_good_file_nsec3
@@ -33,8 +33,8 @@ class AuditorTest < Test::Unit::TestCase
     filename = "zonelist_nsec3.xml"
     run_auditor_with_syslog(path, filename, stderr, 0)
 
-    # Check syslog to ensure no messages left while this test ran
-    assert_equal(nil, err = stderr[0].gets, "Didn't expect any messages in syslog from good auditor run, but got : #{err}\n")
+    success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used"])
+    assert(success, "NSEC3 good file not audited correctly")
   end
 
   def test_bad_file_nsec
@@ -46,10 +46,6 @@ class AuditorTest < Test::Unit::TestCase
     run_auditor_with_syslog(path, filename, stderr, 3)
 
 
-    remaining_strings = []
-    while (line = stderr[0].gets)
-      remaining_strings.push(line)
-    end
     expected_strings = [
       # Check the errors in the zone which are common to both NSEC and NSEC3
       #  -  non dnssec data : missing data and
@@ -93,24 +89,7 @@ class AuditorTest < Test::Unit::TestCase
       "NSEC record left after folowing closed loop : not.there.tjeb.nl",
       "Can't follow NSEC loop from not.there.tjeb.nl to really.not.there.tjeb.nl"
     ]
-    remaining_strings.reverse.each {|line|
-      expected_strings.each {|expected|
-        if (line.index(expected))
-          remaining_strings.delete(line)
-          expected_strings.delete(expected)
-          break
-        end
-      }
-    }
-    success = true
-    expected_strings.each {|string|
-      print "Couldn't find expected error : #{string}\n"
-      success = false
-    }
-    remaining_strings.each {|line|
-      print "Got unexpected error : #{line}\n"
-      success= false
-    }
+    success = check_syslog(stderr, expected_strings)
     assert(success, "NSEC bad file not audited correctly")
   end
   
@@ -122,12 +101,8 @@ class AuditorTest < Test::Unit::TestCase
     filename = "zonelist_nsec3.xml"
     run_auditor_with_syslog(path, filename, stderr, 3)
   
-  
-    remaining_strings = []
-    while (line = stderr[0].gets)
-      remaining_strings.push(line)
-    end
     expected_strings = [ # NSEC3 error strings
+     "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
       #   1. There are no NSEC records in the zone.
       "NSEC RRs included in NSEC3-signed zone",
       "RRSIGS should include algorithm RSASHA1-NSEC3-SHA1 for bla.tjeb.nl, NSEC",
@@ -135,12 +110,15 @@ class AuditorTest < Test::Unit::TestCase
 
       #   2. If an NSEC3PARAM RR is found:
       #         a There is only one NSEC3PARAM record in the zone, and it is present at the apex of the zone
-            "Multiple NSEC3PARAM RRs for tjeb.nl",
-            "NSEC3PARAM seen at there subdomain : should be at zone apex",
-            "RRSIGS should include algorithm RSASHA1-NSEC3-SHA1 for not.there.tjeb.nl, NSEC3PARAM, have :",
-            "RRSet (not.there.tjeb.nl, NSEC3PARAM) failed verification : No signatures in the RRSet",
+      "Multiple NSEC3PARAM RRs for tjeb.nl",
+      "NSEC3PARAM seen at there subdomain : should be at zone apex",
+      "RRSIGS should include algorithm RSASHA1-NSEC3-SHA1 for not.there.tjeb.nl, NSEC3PARAM, have :",
+      "RRSet (not.there.tjeb.nl, NSEC3PARAM) failed verification : No signatures in the RRSet",
       #         b The flags field of the record must be zero.
-            "NSEC3PARAM flags should be 0, but were 1",
+      "NSEC3PARAM flags should be 0, but were 1",
+      "NSEC3PARAM has wrong salt : should be beefff but was beef",
+      "NSEC3PARAM has wrong iterations : should be 4 but was 5",
+      "NSEC3PARAM has wrong algorithm : should be 2 but was SHA-1",
 
       #         c Each NSEC3 record present in the zone has the same hash algorithm iterations and salt parameters.
       "NSEC3 has wrong salt : should be beef but was dead",
@@ -155,9 +133,25 @@ class AuditorTest < Test::Unit::TestCase
       "Can't follow NSEC3 loop from cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl to aa35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl"
       #
       #   5. If an NSEC3 record does not have the opt-out bit set, there are no domain names in the zone for which the hash lies between the hash of this domain name and the value in the "Next Hashed Owner" name field.
-      #   @TODO@
+      #   @TODO@ this should be easy to implement! But how do we test?
       #
     ]
+    success = check_syslog(stderr, expected_strings)
+    assert(success, "NSEC3 bad file not audited correctly")
+    # Now check the NSEC3 specific stuff
+    # - @TODO@ extra next_hashed on one NSEC3
+    # - @TODO@ one next_hashed NSEC3 missing
+    # - @TODO@ opt-out : insert extra NSEC3 for fictional record between NSEC3 and next_hashed
+    #
+  end
+
+  def check_syslog(stderr, expected_strings)
+    remaining_strings = []
+    while (line = stderr[0].gets)
+      remaining_strings.push(line)
+    end
+    expected_strings.push("Auditing tjeb.nl zone :")
+    expected_strings.push("Finished auditing tjeb.nl zone")
     remaining_strings.reverse.each {|line|
       expected_strings.each {|expected|
         if (line.index(expected))
@@ -176,12 +170,7 @@ class AuditorTest < Test::Unit::TestCase
       print "Got unexpected error : #{line}\n"
       success= false
     }
-    assert(success, "NSEC3 bad file not audited correctly")
-    # Now check the NSEC3 specific stuff
-    # - @TODO@ extra next_hashed on one NSEC3
-    # - @TODO@ one next_hashed NSEC3 missing
-    # - @TODO@ opt-out : insert extra NSEC3 for fictional record between NSEC3 and next_hashed
-    #
+    return success
   end
 
   #  def test_partial_scan_good
@@ -212,6 +201,6 @@ class AuditorTest < Test::Unit::TestCase
     stderr[1].close
     Process.waitpid(pid)
     ret_val = $?.exitstatus
-    assert_equal(expected_ret, ret_val, "Expected return of 0 from successful auditor run")
+    assert_equal(expected_ret, ret_val, "Expected return of #{expected_ret} from successful auditor run")
   end
 end
