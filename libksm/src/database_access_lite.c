@@ -336,7 +336,8 @@ int DbFetchRow(DB_RESULT result, DB_ROW* row)
 			status = sqlite3_step(result->data);
 			if (status == SQLITE_DONE) {
 				/* End of result set */
-				*row = NULL;
+                /* leave freeing the row to the calling function */
+				/* *row = NULL; */
 
 				status = -1;
 			}

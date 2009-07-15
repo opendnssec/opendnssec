@@ -190,7 +190,7 @@ int KsmParameterExist(DB_RESULT* result, const char* name, const char* category,
 int KsmParameter(DB_RESULT result, KSM_PARAMETER* data)
 {
     int         status = 0;     /* Return status */
-    DB_ROW		row;            /* Row data */
+    DB_ROW		row = NULL;     /* Row data */
 
     if (data == NULL) {
         return MsgLog(KSM_INVARG, "NULL data");
@@ -219,7 +219,9 @@ int KsmParameter(DB_RESULT result, KSM_PARAMETER* data)
         status = DbInt(row, DB_PARAMETER_VALUE, &(data->value));
     }
 
-	DbFreeRow(row);
+    if (row != NULL) {
+        DbFreeRow(row);
+    }
 
     return status;
 }

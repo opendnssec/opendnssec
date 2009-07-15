@@ -195,8 +195,10 @@ cmd_setup (int argc, char *argv[])
             printf("Error getting db lock\n");
             fclose(lock_fd);
             StrFree(dbschema);
+            StrFree(lock_filename);
             return(1);
         }
+        StrFree(lock_filename);
 
         /* Make a backup of the sqlite DB */
         StrAppend(&backup_filename, dbschema);
@@ -233,8 +235,10 @@ cmd_setup (int argc, char *argv[])
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
+            StrFree(setup_command);
             return(1);
         }
+        StrFree(setup_command);
     }
     else {
         /* MySQL setup */
@@ -262,8 +266,10 @@ cmd_setup (int argc, char *argv[])
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
+            StrFree(setup_command);
             return(1);
         }
+        StrFree(setup_command);
     }
 
 
@@ -325,6 +331,8 @@ cmd_setup (int argc, char *argv[])
         return(1);
     }
 
+    StrFree(zone_list_filename);
+
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
         status = release_lite_lock(lock_fd);
@@ -335,6 +343,8 @@ cmd_setup (int argc, char *argv[])
         }
         fclose(lock_fd);
     }
+
+    DbDisconnect(dbhandle);
 
     return 0;
 }
@@ -361,6 +371,7 @@ cmd_update (int argc, char *argv[])
         fclose(lock_fd);
         return(1);
     }
+    StrFree(lock_filename);
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
@@ -395,6 +406,7 @@ cmd_update (int argc, char *argv[])
         fclose(lock_fd);
         return(1);
     }
+    StrFree(zone_list_filename);
 
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
@@ -406,6 +418,8 @@ cmd_update (int argc, char *argv[])
         }
         fclose(lock_fd);
     }
+
+    DbDisconnect(dbhandle);
 
     return 0;
 }
@@ -614,6 +628,8 @@ cmd_addzone (int argc, char *argv[])
 
     printf("Imported zone: %s\n", zone_name);
 
+    DbDisconnect(dbhandle);
+
     return 0;
 }
 
@@ -818,6 +834,8 @@ cmd_export (int argc, char *argv[])
     free(policy->signer);
     free(policy);
 
+    DbDisconnect(dbhandle);
+
     return 0;
 }
 
@@ -921,6 +939,9 @@ cmd_rollzone (int argc, char *argv[])
     StrFree(user);
     StrFree(password);
     if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(status);
     }
 
@@ -1000,6 +1021,8 @@ cmd_rollzone (int argc, char *argv[])
     {
         fprintf(stderr, "Could not HUP communicated\n");
     }
+
+    DbDisconnect(dbhandle);
 
     return 0;
 }
@@ -1164,6 +1187,8 @@ cmd_rollpolicy (int argc, char *argv[])
     {
         fprintf(stderr, "Could not HUP communicated\n");
     }
+
+    DbDisconnect(dbhandle);
 
     return 0;
 }
@@ -1400,6 +1425,8 @@ int update_repositories(char** zone_list_filename)
     char* filename = NULL;
     char* repo_name = NULL;
     char* repo_capacity = NULL;
+    char* tag_name = NULL;
+    char* temp_char = NULL;
 
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *capacity_expr = (unsigned char*) "//Repository/Capacity";
@@ -1412,13 +1439,16 @@ int update_repositories(char** zone_list_filename)
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
+            tag_name = (char*) xmlTextReaderLocalName(reader);
             /* Found <Repository> */
-            if (strncmp((char*) xmlTextReaderLocalName(reader), "Repository", 10) == 0 
-                    && strncmp((char*) xmlTextReaderLocalName(reader), "RepositoryList", 14) != 0
+            if (strncmp(tag_name, "Repository", 10) == 0 
+                    && strncmp(tag_name, "RepositoryList", 14) != 0
                     && xmlTextReaderNodeType(reader) == 1) {
                 /* Get the repository name */
                 repo_name = NULL;
-                StrAppend(&repo_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
+                temp_char = (char*) xmlTextReaderGetAttribute(reader, name_expr);
+                StrAppend(&repo_name, temp_char);
+                StrFree(temp_char);
                 /* Make sure that we got something */
                 if (repo_name == NULL) {
                     /* error */
@@ -1450,6 +1480,8 @@ int update_repositories(char** zone_list_filename)
 
                 /* Evaluate xpath expression for capacity */
                 xpathObj = xmlXPathEvalExpression(capacity_expr, xpathCtx);
+                xmlXPathFreeContext(xpathCtx);
+
                 if(xpathObj == NULL) {
                     printf("Error: unable to evaluate xpath expression: %s; skipping repository\n", capacity_expr);
                     /* Don't return? try to parse the rest of the file? */
@@ -1457,9 +1489,13 @@ int update_repositories(char** zone_list_filename)
                     continue;
                 }
                 repo_capacity = NULL;
-                StrAppend(&repo_capacity, (char*) xmlXPathCastToString(xpathObj));
+                temp_char = (char*) xmlXPathCastToString(xpathObj);
+                StrAppend(&repo_capacity, temp_char);
+                StrFree(temp_char);
                 printf("Capacity set to %s.\n", repo_capacity);
-
+                
+                xmlXPathFreeObject(xpathObj);
+                
                 /*
                  * Now we have all the information update/insert this repository
                  */
@@ -1470,10 +1506,13 @@ int update_repositories(char** zone_list_filename)
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
+
+                StrFree(repo_name);
+                StrFree(repo_capacity);
             }
             /* Found <Signer> */
-            else if (strncmp((char*) xmlTextReaderLocalName(reader), "Signer", 6) == 0 
-                    && strncmp((char*) xmlTextReaderLocalName(reader), "SignerThreads", 13) != 0
+            else if (strncmp(tag_name, "Signer", 6) == 0 
+                    && strncmp(tag_name, "SignerThreads", 13) != 0
                     && xmlTextReaderNodeType(reader) == 1) {
 
                 /* Expand this node and get the rest of the info with XPath */
@@ -1496,6 +1535,7 @@ int update_repositories(char** zone_list_filename)
 
                 /* Evaluate xpath expression for ZoneListFile */
                 xpathObj = xmlXPathEvalExpression(zonelist_expr, xpathCtx);
+                xmlXPathFreeContext(xpathCtx);
                 if(xpathObj == NULL) {
                     printf("Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
                     /* Don't return? try to parse the rest of the file? */
@@ -1503,11 +1543,17 @@ int update_repositories(char** zone_list_filename)
                     continue;
                 }
                 *zone_list_filename = NULL;
-                StrAppend(zone_list_filename, (char*) xmlXPathCastToString(xpathObj));
+                temp_char = (char*) xmlXPathCastToString(xpathObj);
+                StrAppend(zone_list_filename, temp_char);
+                StrFree(temp_char);
                 printf("zonelist filename set to %s.\n", *zone_list_filename);
+
+                xmlXPathFreeObject(xpathObj);
             }
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
+
+            StrFree(tag_name);
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {
@@ -1516,12 +1562,11 @@ int update_repositories(char** zone_list_filename)
     } else {
         printf("Unable to open %s\n", filename);
     }
-    if (xpathCtx) {
-        xmlXPathFreeContext(xpathCtx);
-    }
     if (doc) {
         xmlFreeDoc(doc);
     }
+
+    StrFree(filename);
 
     return 0;
 }
@@ -1534,10 +1579,13 @@ int update_policies()
     /* what we will read from the file */
     char *policy_name;
     char *policy_description;
+    char *temp_char;
+    char *tag_name;
 
     /* All of the XML stuff */
     int ret = 0; /* status of the XML parsing */
     xmlDocPtr doc = NULL;
+    xmlDocPtr pol_doc = NULL;
     xmlDocPtr rngdoc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
@@ -1608,6 +1656,8 @@ int update_policies()
     doc = xmlParseFile(filename);
     if (doc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", filename);
+        StrFree(filename);
+        StrFree(rngfilename);
         return(-1);
     }
 
@@ -1615,13 +1665,17 @@ int update_policies()
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", rngfilename);
+        StrFree(filename);
+        StrFree(rngfilename);
         return(-1);
     }
+    StrFree(rngfilename);
 
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
     if (rngpctx == NULL) {
         printf("Error: unable to create XML RelaxNGs parser context\n");
+        StrFree(filename);
         return(-1);
     }
 
@@ -1629,6 +1683,7 @@ int update_policies()
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
         printf("Error: unable to parse a schema definition resource\n");
+        StrFree(filename);
         return(-1);
     }
 
@@ -1636,6 +1691,7 @@ int update_policies()
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
         printf("Error: unable to create RelaxNGs validation context based on the schema\n");
+        StrFree(filename);
         return(-1);
     }
 
@@ -1643,6 +1699,7 @@ int update_policies()
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
         printf("Error validating file \"%s\"\n", filename);
+        StrFree(filename);
         return(-1);
     }
 
@@ -1657,7 +1714,7 @@ int update_policies()
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     /* Let's check all of those mallocs, or should we use MemMalloc ? */
     if (policy->signer == NULL || policy->signature == NULL || policy->keys == NULL ||
             policy->zone == NULL || policy->parent == NULL || 
@@ -1672,12 +1729,15 @@ int update_policies()
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
+            tag_name = (char*) xmlTextReaderLocalName(reader);
             /* Found <Policy> */
-            if (strncmp((char*) xmlTextReaderLocalName(reader), "Policy", 6) == 0 
+            if (strncmp(tag_name, "Policy", 6) == 0 
                     && xmlTextReaderNodeType(reader) == 1) {
                 /* Get the policy name */
                 policy_name = NULL;
-                StrAppend(&policy_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
+                temp_char = (char*) xmlTextReaderGetAttribute(reader, name_expr);
+                StrAppend(&policy_name, temp_char);
+                StrFree(temp_char);
                 /* Make sure that we got something */
                 if (policy_name == NULL) {
                     /* error */
@@ -1691,15 +1751,16 @@ int update_policies()
 
                 /* Expand this node and get the rest of the info with XPath */
                 xmlTextReaderExpand(reader);
-                doc = xmlTextReaderCurrentDoc(reader);
-                if (doc == NULL) {
+                pol_doc = xmlTextReaderCurrentDoc(reader);
+                if (pol_doc == NULL) {
                     printf("Error: can not read policy \"%s\"; skipping\n", policy_name);
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
 
-                xpathCtx = xmlXPathNewContext(doc);
+                xpathCtx = xmlXPathNewContext(pol_doc);
+
                 if(xpathCtx == NULL) {
                     printf("Error: can not create XPath context for \"%s\"; skipping policy\n", policy_name);
                     /* Don't return? try to parse the rest of the file? */
@@ -1716,7 +1777,10 @@ int update_policies()
                     continue;
                 }
                 policy_description = NULL;
-                StrAppend(&policy_description, (char*) xmlXPathCastToString(xpathObj));
+                temp_char = (char *)xmlXPathCastToString(xpathObj);
+                StrAppend(&policy_description, temp_char);
+                StrFree(temp_char);
+                xmlXPathFreeObject(xpathObj);
 
                 /* Insert or update this policy with the description found,
                    we will need the policy_id too */
@@ -1752,6 +1816,10 @@ int update_policies()
                     }
 
                 }
+
+                /* Free up some stuff that we don't need any more */
+                StrFree(policy_name);
+                StrFree(policy_description);
 
                 /* Now churn through each parameter as we find it */
                 /* SIGNATURES */
@@ -1828,6 +1896,7 @@ int update_policies()
                         continue;
                     }
                 }
+                xmlXPathFreeObject(xpathObj);
 
                 /* KEYS */
                 if ( SetParamOnPolicy(xpathCtx, keys_ttl_expr, "ttl", "keys", policy->keys->ttl, policy->id, DURATION_TYPE) != 0) {
@@ -1932,8 +2001,10 @@ int update_policies()
             } /* End of <Policy> */
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
+            StrFree(tag_name);
         }
         xmlFreeTextReader(reader);
+        xmlFreeDoc(pol_doc);
         if (ret != 0) {
             printf("%s : failed to parse\n", filename);
         }
@@ -1941,22 +2012,28 @@ int update_policies()
 
     /* Cleanup */
     /* TODO: some other frees are needed */
-    xmlXPathFreeObject(xpathObj);
     xmlXPathFreeContext(xpathCtx);
-    xmlFreeDoc(doc);
+    /* TODO work out why the call below segfaults on solaris */
     xmlRelaxNGFree(schema);
     xmlRelaxNGFreeValidCtxt(rngctx);
     xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(doc);
     xmlFreeDoc(rngdoc);
 
+    free(policy->description);
+    StrFree(policy->name);
     free(policy->enforcer);
     free(policy->denial);
     free(policy->keys);
     free(policy->zsk);
     free(policy->ksk);
+    free(policy->zone);
+    free(policy->parent);
     free(policy->signature);
     free(policy->signer);
     free(policy);
+
+    StrFree(filename);
 
     return(status);
 }
@@ -1972,6 +2049,8 @@ int update_zones(char* zone_list_filename)
     int ret = 0; /* status of the XML parsing */
     char* zone_name = NULL;
     char* policy_name = NULL;
+    char* temp_char = NULL;
+    char* tag_name = NULL;
     int policy_id = 0;
 
     xmlChar *name_expr = (unsigned char*) "name";
@@ -1984,13 +2063,16 @@ int update_zones(char* zone_list_filename)
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
+            tag_name = (char*) xmlTextReaderLocalName(reader);
             /* Found <Zone> */
-            if (strncmp((char*) xmlTextReaderLocalName(reader), "Zone", 4) == 0 
-                    && strncmp((char*) xmlTextReaderLocalName(reader), "ZoneList", 8) != 0
+            if (strncmp(tag_name, "Zone", 4) == 0 
+                    && strncmp(tag_name, "ZoneList", 8) != 0
                     && xmlTextReaderNodeType(reader) == 1) {
                 /* Get the repository name */
                 zone_name = NULL;
-                StrAppend(&zone_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
+                temp_char = (char*) xmlTextReaderGetAttribute(reader, name_expr);
+                StrAppend(&zone_name, temp_char);
+                StrFree(temp_char);
                 /* Make sure that we got something */
                 if (zone_name == NULL) {
                     /* error */
@@ -2023,6 +2105,7 @@ int update_zones(char* zone_list_filename)
                 /* Extract the Policy name for this zone */
                 /* Evaluate xpath expression for policy */
                 xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
+                xmlXPathFreeContext(xpathCtx);
                 if(xpathObj == NULL) {
                     printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
                     /* Don't return? try to parse the rest of the zones? */
@@ -2031,8 +2114,11 @@ int update_zones(char* zone_list_filename)
                 }
 
                 policy_name = NULL;
-                StrAppend(&policy_name, (char*) xmlXPathCastToString(xpathObj));
+                temp_char = (char *)xmlXPathCastToString(xpathObj);
+                StrAppend(&policy_name, temp_char);
+                StrFree(temp_char);
                 printf("Policy set to %s.\n", policy_name);
+                xmlXPathFreeObject(xpathObj);
 
                 status = KsmPolicyIdFromName(policy_name, &policy_id);
                 if (status != 0) {
@@ -2052,9 +2138,14 @@ int update_zones(char* zone_list_filename)
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
+
+                StrFree(zone_name);
+                StrFree(policy_name);
+
             }
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
+            StrFree(tag_name);
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {
@@ -2062,9 +2153,6 @@ int update_zones(char* zone_list_filename)
         }
     } else {
         printf("Unable to open %s\n", zone_list_filename);
-    }
-    if (xpathCtx) {
-        xmlXPathFreeContext(xpathCtx);
     }
     if (doc) {
         xmlFreeDoc(doc);
@@ -2081,6 +2169,7 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
 {
     int status = 0;
     int value = 0;
+    char* temp_char;
     xmlXPathObjectPtr xpathObj = NULL;
 
     /* Evaluate xpath expression */
@@ -2092,14 +2181,17 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
 
     /* extract the value into an int */
     if (value_type == DURATION_TYPE) {
-        status = DtXMLIntervalSeconds((char *)xmlXPathCastToString(xpathObj), &value);
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        status = DtXMLIntervalSeconds(temp_char, &value);
         if (status > 0) {
-            printf("Error: unable to convert interval %s to seconds, error: %i\n", xmlXPathCastToString(xpathObj), status);
+            printf("Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+            StrFree(temp_char);
             return status;
         }
         else if (status == -1) {
-            printf("Warning: converting %s to seconds may not give what you expect\n", xmlXPathCastToString(xpathObj));
+            printf("Warning: converting %s to seconds may not give what you expect\n", temp_char);
         }
+        StrFree(temp_char);
     }
     else if (value_type == BOOL_TYPE) {
         /* Do we have an empty tag or no tag? */
@@ -2111,26 +2203,35 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
     }
     else if (value_type == REPO_TYPE) {
         /* We need to convert the repository name into an id */
-        status = KsmSmIdFromName((char *)xmlXPathCastToString(xpathObj), &value);
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        status = KsmSmIdFromName(temp_char, &value);
         if (status != 0) {
-            printf("Error: unable to find repository %s\n", xmlXPathCastToString(xpathObj));
+            printf("Error: unable to find repository %s\n", temp_char);
+            StrFree(temp_char);
             return status;
         }
+        StrFree(temp_char);
     }
     else if (value_type == SERIAL_TYPE) {
         /* We need to convert the serial name into an id */
-        status = KsmSerialIdFromName((char *)xmlXPathCastToString(xpathObj), &value);
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        status = KsmSerialIdFromName(temp_char, &value);
         if (status != 0) {
-            printf("Error: unable to find serial type %s\n", xmlXPathCastToString(xpathObj));
+            printf("Error: unable to find serial type %s\n", temp_char);
+            StrFree(temp_char);
             return status;
         }
+        StrFree(temp_char);
     }
     else {
-        status = StrStrtoi((char *)xmlXPathCastToString(xpathObj), &value);
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        status = StrStrtoi(temp_char, &value);
         if (status != 0) {
-            printf("Error: unable to convert %s to int\n", xmlXPathCastToString(xpathObj));
+            printf("Error: unable to convert %s to int\n", temp_char);
+            StrFree(temp_char);
             return status;
         }
+        StrFree(temp_char);
     }
 
     /* Now update the policy with what we found, if it is different */
@@ -2142,6 +2243,8 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
         }
     }
 
+    xmlXPathFreeObject(xpathObj);
+
     return 0;
 }
 
@@ -2152,7 +2255,7 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
         return;
     }
 
-    if(name) policy->name = name;
+    if(name) policy->name = StrStrdup(name);
 
     policy->signer->refresh = 0;
     policy->signer->jitter = 0;
@@ -2173,6 +2276,11 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->denial->optout = 0;
     policy->denial->ttl = 0;
     policy->denial->saltlength = 0;
+
+    policy->keys->ttl = 0;
+    policy->keys->retire_safety = 0;
+    policy->keys->publish_safety = 0;
+    policy->keys->share_keys = 0;
 
     policy->ksk->algorithm = 0;
     policy->ksk->bits = 0;
@@ -2197,6 +2305,17 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->enforcer->keycreate = 0;
     policy->enforcer->backup_interval = 0;
     policy->enforcer->keygeninterval = 0;
+
+    policy->zone->propdelay = 0;
+    policy->zone->soa_ttl = 0;
+    policy->zone->soa_min = 0;
+    policy->zone->serial = 0;
+
+    policy->parent->propdelay = 0;
+    policy->parent->ds_ttl = 0;
+    policy->parent->soa_ttl = 0;
+    policy->parent->soa_min = 0;
+
 }
 
 /* make a backup of a file
@@ -2291,6 +2410,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
 
     int status;
     int db_found = 0;
+    char* temp_char = NULL;
 
     /* Some files, the xml and rng */
     char* filename = NULL;
@@ -2306,6 +2426,8 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     doc = xmlParseFile(filename);
     if (doc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", filename);
+        StrFree(filename);
+        StrFree(rngfilename);
         return(-1);
     }
 
@@ -2313,20 +2435,25 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", rngfilename);
+        StrFree(filename);
+        StrFree(rngfilename);
         return(-1);
     }
+    StrFree(rngfilename);
 
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
     if (rngpctx == NULL) {
         printf("Error: unable to create XML RelaxNGs parser context\n");
+        StrFree(filename);
         return(-1);
     }
 
-    /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
+    /* parse a schema definition resource and build an internal XML Schema structure which can be used to validate instances. */
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
         printf("Error: unable to parse a schema definition resource\n");
+        StrFree(filename);
         return(-1);
     }
 
@@ -2334,6 +2461,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
         printf("Error: unable to create RelaxNGs validation context based on the schema\n");
+        StrFree(filename);
         return(-1);
     }
 
@@ -2341,8 +2469,10 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
         printf("Error validating file \"%s\"\n", filename);
+        StrFree(filename);
         return(-1);
     }
+    StrFree(filename);
 
     /* Now parse a value out of the conf */
     /* Create xpath evaluation context */
@@ -2362,9 +2492,11 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         return(-1);
     }
 
-    if(*xmlXPathCastToString(xpathObj) != '\0') {
+    if(xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
-        StrAppend(dbschema, (char *)xmlXPathCastToString(xpathObj) );
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        StrAppend(dbschema, temp_char);
+        StrFree(temp_char);
         fprintf(stderr, "SQLite database set to: %s\n", *dbschema);
     }
 
@@ -2378,10 +2510,12 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             xmlFreeDoc(doc);
             return(-1);
         }
-        if( *xmlXPathCastToString(xpathObj) != '\0') {
+        if(xpathObj->nodesetval->nodeNr > 0) {
             db_found = MYSQL_DB;
         }
-        StrAppend(host, (char *)xmlXPathCastToString(xpathObj) );
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        StrAppend(host, temp_char);
+        StrFree(temp_char);
         printf("MySQL database host set to: %s\n", *host);
 
         /* PORT */
@@ -2392,10 +2526,12 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             xmlFreeDoc(doc);
             return(-1);
         }
-        if( *xmlXPathCastToString(xpathObj) == '\0') {
+        if(xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
-        StrAppend(port, (char *)xmlXPathCastToString(xpathObj) );
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        StrAppend(port, temp_char);
+        StrFree(temp_char);
         printf("MySQL database port set to: %s\n", *port);
 
         /* SCHEMA */
@@ -2406,10 +2542,12 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             xmlFreeDoc(doc);
             return(-1);
         }
-        if( *xmlXPathCastToString(xpathObj) == '\0') {
+        if(xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
-        StrAppend(dbschema, (char *)xmlXPathCastToString(xpathObj) );
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        StrAppend(dbschema, temp_char);
+        StrFree(temp_char);
         printf("MySQL database schema set to: %s\n", *dbschema);
 
         /* DB USER */
@@ -2420,10 +2558,12 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             xmlFreeDoc(doc);
             return(-1);
         }
-        if( *xmlXPathCastToString(xpathObj) == '\0') {
+        if(xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
-        StrAppend(user, (char *)xmlXPathCastToString(xpathObj) );
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        StrAppend(user, temp_char);
+        StrFree(temp_char);
         printf("MySQL database user set to: %s\n", *user);
 
         /* DB PASSWORD */
@@ -2435,8 +2575,10 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             return(-1);
         }
         /* password may be blank */
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        StrAppend(password, temp_char);
+        StrFree(temp_char);
 
-        StrAppend(password, (char *)xmlXPathCastToString(xpathObj) );
         printf("MySQL database password set\n");
 
     }
@@ -2462,10 +2604,13 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     xmlXPathFreeObject(xpathObj);
     xmlXPathFreeContext(xpathCtx);
     xmlFreeDoc(doc);
+    /* TODO work out why the call below segfaults on solaris */
     xmlRelaxNGFree(schema);
     xmlRelaxNGFreeValidCtxt(rngctx);
     xmlRelaxNGFreeParserCtxt(rngpctx);
     xmlFreeDoc(rngdoc);
+
+    StrFree(temp_char);
 
     return(status);
 }
@@ -2483,6 +2628,8 @@ int read_zonelist_filename(char** zone_list_filename)
     xmlXPathObjectPtr xpathObj = NULL;
     int ret = 0; /* status of the XML parsing */
     char* filename = NULL;
+    char* temp_char = NULL;
+    char* tag_name = NULL;
 
     xmlChar *zonelist_expr = (unsigned char*) "//Signer/ZoneListFile";
 
@@ -2493,9 +2640,10 @@ int read_zonelist_filename(char** zone_list_filename)
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
+            tag_name = (char*) xmlTextReaderLocalName(reader);
             /* Found <Signer> */
-            if (strncmp((char*) xmlTextReaderLocalName(reader), "Signer", 6) == 0 
-                    && strncmp((char*) xmlTextReaderLocalName(reader), "SignerThreads", 13) != 0
+            if (strncmp(tag_name, "Signer", 6) == 0 
+                    && strncmp(tag_name, "SignerThreads", 13) != 0
                     && xmlTextReaderNodeType(reader) == 1) {
 
                 /* Expand this node and get the rest of the info with XPath */
@@ -2525,11 +2673,14 @@ int read_zonelist_filename(char** zone_list_filename)
                     continue;
                 }
                 *zone_list_filename = NULL;
-                StrAppend(zone_list_filename, (char*) xmlXPathCastToString(xpathObj));
+                temp_char = (char *)xmlXPathCastToString(xpathObj);
+                StrAppend(zone_list_filename, temp_char);
+                StrFree(temp_char);
                 printf("zonelist filename set to %s.\n", *zone_list_filename);
             }
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
+            StrFree(tag_name);
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {

@@ -359,7 +359,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
 int KsmPolicyParameter(DB_RESULT result, KSM_POLICY_PARAMETER* data)
 {
     int         status = 0;     /* Return status */
-    DB_ROW     row;            /* Row data */
+    DB_ROW      row = NULL;     /* Row data */
 
     /* check the argument */
     if (data == NULL) {
@@ -386,7 +386,9 @@ int KsmPolicyParameter(DB_RESULT result, KSM_POLICY_PARAMETER* data)
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
 	}
 
-    DbFreeRow(row);
+    if (row != NULL) {
+        DbFreeRow(row);
+    }
 
     return status;
 }
