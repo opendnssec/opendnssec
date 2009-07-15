@@ -50,6 +50,7 @@ import traceback
 import threading
 import Util
 import syslog
+import signal
 
 import Zone
 from ZoneConfig import ZoneConfig, ZoneConfigError
@@ -63,6 +64,7 @@ class Engine:
     """Main signer engine class"""
     def __init__(self, config_file_name):
         # todo: read config etc
+        self.config_file_name = config_file_name
         self.config = EngineConfiguration(config_file_name)
         self.config.check_config()
         self.task_queue = TaskQueue()
@@ -118,6 +120,8 @@ class Engine:
                                        socket.SO_REUSEADDR, 1)
         self.command_socket.bind(("localhost", 47806))
         self.command_socket.listen(5)
+        syslog.syslog(syslog.LOG_INFO, "Engine running")
+
         while True:
             #(client_socket, address) = self.command_socket.accept()
             client_socket = self.command_socket.accept()[0]
@@ -299,7 +303,10 @@ class Engine:
     def stop_engine(self):
         """Stop the workers and quit the engine"""
         self.stop_workers()
-        sys.exit(0)
+        self.command_socket.shutdown(socket.SHUT_RDWR)
+        self.command_socket.close()
+        self.command_socket = None
+        syslog.closelog()
 
     def read_zonelist(self):
         """Reads the list of zones from the zone list xml file. Added
@@ -453,6 +460,31 @@ class Engine:
         except KeyError:
             raise EngineError("Zone " + zone_name + " not found")
 
+# need global engine var for signal handling, stop and restart
+engine = None
+
+def signal_handler_stop(signum, frame):
+    global engine
+    try:
+        syslog.syslog(syslog.LOG_INFO, "Got signal: " + str(signum))
+        if signum == 15:
+            syslog.syslog(syslog.LOG_ERR, "Stopping engine")
+            if engine:
+                engine.stop_engine()
+            else:
+                syslog.syslog(syslog.LOG_ERR, "Engine already stopped?")
+            sys.exit(0)
+        elif signum == 1:
+            syslog.syslog(syslog.LOG_ERR, "Restarting engine")
+            if engine:
+                config_file = engine.config_file_name
+                engine.stop_engine()
+                engine = Engine(config_file)
+                engine.read_zonelist()
+                engine.run()
+    except Exception, e:
+        syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
+    
 class EngineError(Exception):
     """General error in the Engine"""
     def __init__(self, value):
@@ -470,6 +502,7 @@ def usage():
     print "-v\t\tBe verbose"
 
 def main():
+    global engine
     """Main. start an engine and run it"""
     #
     # option handling
@@ -499,6 +532,10 @@ def main():
         engine = Engine(config_file)
         print engine.read_zonelist()
         print "output redirected to syslog"
+        # catch signals
+        signal.signal(signal.SIGTERM, signal_handler_stop)
+        signal.signal(signal.SIGHUP, signal_handler_stop)
+        
         daemonize_engine()
         engine.run()
     except EngineConfigurationError, ece:
@@ -509,7 +546,7 @@ def main():
     except ZoneListError, zle:
         print "zonelist error: " + str(zle) + ". Stopping engine"
     except KeyboardInterrupt:
-        engine.stop_workers()
+        engine.stop()
 
 class EngineNullDevice:
     """Null device class, used for daemonizing"""
