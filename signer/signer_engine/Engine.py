@@ -331,7 +331,7 @@ class Engine:
             syslog.syslog(syslog.LOG_ERR,
                 "error parsing zonelist xml file: " + str(zle))
             syslog.syslog(syslog.LOG_ERR, "not updating zones")
-            return "zonelist error: " + str(zle) + ". Zones not updated"
+            raise zle
 
     def check_zone_conf_updates(self):
         """For all running zones, check the last modified time of the
@@ -506,6 +506,8 @@ def main():
     except IOError, ioe:
         print "Error, engine configuration could not be read;"
         print str(ioe)
+    except ZoneListError, zle:
+        print "zonelist error: " + str(zle) + ". Stopping engine"
     except KeyboardInterrupt:
         engine.stop_workers()
 
