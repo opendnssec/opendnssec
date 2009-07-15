@@ -58,7 +58,7 @@ void KsmPurge(void)
     DB_RESULT	result;         /* Result of parameter query */
     int     where = 0;
     int     keypair_id;
-	DB_ROW		row;		/* Row object */
+	DB_ROW		row = NULL;		/* Row object */
     int status = 0;
 
     /* Construct the SQL; don't rely on cascading delete */

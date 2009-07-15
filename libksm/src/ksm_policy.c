@@ -154,7 +154,7 @@ int KsmPolicyExists(const char* name)
 {
     int             status;     /* Status return */
     DB_RESULT       result;     /* Handle converted to a result object */
-    DB_ROW          row;        /* Row data */
+    DB_ROW          row = NULL; /* Row data */
 
     status = KsmPolicyInit(&result, name);
     if (status == 0) {
@@ -193,7 +193,7 @@ int KsmPolicyExists(const char* name)
 int KsmPolicy(DB_RESULT result, KSM_POLICY* data)
 {
     int         status = 0;     /* Return status */
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;     /* Row data */
 
     /* check the argument */
     if (data == NULL) {
@@ -213,7 +213,9 @@ int KsmPolicy(DB_RESULT result, KSM_POLICY* data)
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
 	}
 
-    DbFreeRow(row);
+    if (row != NULL) {
+        DbFreeRow(row);
+    }
 
     return status;
 }
@@ -422,7 +424,7 @@ int KsmPolicyNameFromId(KSM_POLICY* policy)
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;         /* SQL query */
     DB_RESULT       result;     /* Handle converted to a result object */
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;            /* Row data */
     int     status = 0;         /* Status return */
 
     /* check the argument */
@@ -491,7 +493,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;         /* SQL query */
     DB_RESULT       result;     /* Handle converted to a result object */
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;            /* Row data */
     int     status = 0;         /* Status return */
     char*   datetime_now = DtParseDateTimeString("now");    /* where are we in time */
     int     time_diff;          /* how many second have elapsed */
@@ -659,9 +661,9 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;         /* SQL query */
     DB_RESULT       result;     /* Handle converted to a result object */
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;            /* Row data */
     DB_RESULT       result2;     /* Handle converted to a result object */
-    DB_ROW      row2;            /* Row data */
+    DB_ROW      row2 = NULL;            /* Row data */
     int     status = 0;         /* Status return */
 
     /* check the argument */
@@ -757,7 +759,7 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy)
 {
     int             status;     /* Status return */
     DB_RESULT       result;     /* Handle converted to a result object */
-    DB_ROW          row;        /* Row data */
+    DB_ROW          row = NULL; /* Row data */
 
     if (policy == NULL || policy->name == NULL) {
         return MsgLog(KSM_INVARG, "NULL policy or name");

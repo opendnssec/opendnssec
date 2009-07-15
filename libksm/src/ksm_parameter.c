@@ -136,7 +136,7 @@ int KsmParameterExist(DB_RESULT* result, const char* name, const char* category,
 {
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;         /* SQL query */
-    DB_ROW		row;            /* Row data */
+    DB_ROW		row = NULL;            /* Row data */
     int     status = 0;         /* Status return */
 
     /* Construct the query */

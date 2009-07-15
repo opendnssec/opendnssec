@@ -541,7 +541,7 @@ int KsmKeyInitId(DB_RESULT* result, DB_ID id)
 
 int KsmKey(DB_RESULT result, KSM_KEYDATA* data)
 {
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;     /* Row data */
     int         status = 0;     /* Return status */
 
     /* Check arguments */
@@ -979,7 +979,7 @@ int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *ke
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;         /* SQL query */
     DB_RESULT       result;     /* Handle converted to a result object */
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;     /* Row data */
     int     status = 0;         /* Status return */
 
     /* check the arguments? */

@@ -152,7 +152,7 @@ int KsmZoneCountInit(DB_RESULT* result, int id)
 int KsmZone(DB_RESULT result, KSM_ZONE *data)
 {
     int         status = 0;     /* Return status */
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;     /* Row data */
 
     /* Get the next row from the data */
     status = DbFetchRow(result, &row);
@@ -170,7 +170,9 @@ int KsmZone(DB_RESULT result, KSM_ZONE *data)
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
 	}
 
-    DbFreeRow(row);
+    if (row != NULL) {
+        DbFreeRow(row);
+    }
 
     return status;
 }
@@ -195,7 +197,7 @@ int KsmZone(DB_RESULT result, KSM_ZONE *data)
 int KsmZoneCount(DB_RESULT result, int* count)
 {
 	int         status = 0;     /* Return status */
-	DB_ROW      row;            /* Row data */
+	DB_ROW      row = NULL;            /* Row data */
 
 	/* Get the next row from the data */
     status = DbFetchRow(result, &row);
@@ -238,7 +240,7 @@ int KsmZoneIdFromName(const char* zone_name, int* zone_id)
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;         /* SQL query */
     DB_RESULT       result;     /* Handle converted to a result object */
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;            /* Row data */
     int     status = 0;         /* Status return */
 
     /* check the argument */
@@ -301,7 +303,7 @@ int KsmZoneIdAndPolicyFromName(const char* zone_name, int* policy_id, int* zone_
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;         /* SQL query */
     DB_RESULT       result;     /* Handle converted to a result object */
-    DB_ROW      row;            /* Row data */
+    DB_ROW      row = NULL;            /* Row data */
     int     status = 0;         /* Status return */
 
     /* check the argument */

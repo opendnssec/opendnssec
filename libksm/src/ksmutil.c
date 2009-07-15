@@ -2013,7 +2013,6 @@ int update_policies()
     /* Cleanup */
     /* TODO: some other frees are needed */
     xmlXPathFreeContext(xpathCtx);
-    /* TODO work out why the call below segfaults on solaris */
     xmlRelaxNGFree(schema);
     xmlRelaxNGFreeValidCtxt(rngctx);
     xmlRelaxNGFreeParserCtxt(rngpctx);
@@ -2604,7 +2603,6 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     xmlXPathFreeObject(xpathObj);
     xmlXPathFreeContext(xpathCtx);
     xmlFreeDoc(doc);
-    /* TODO work out why the call below segfaults on solaris */
     xmlRelaxNGFree(schema);
     xmlRelaxNGFreeValidCtxt(rngctx);
     xmlRelaxNGFreeParserCtxt(rngpctx);

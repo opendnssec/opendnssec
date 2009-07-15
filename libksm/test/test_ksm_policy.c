@@ -222,6 +222,8 @@ static void TestKsmPolicySalt(void)
 
 	policy->name = "default";
 	policy->id = 2;
+    policy->denial->resalt = 0;
+    policy->denial->saltlength = 30;
 
 	/* Do the salt/resalt */
 

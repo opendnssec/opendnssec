@@ -167,7 +167,7 @@ int KsmDNSSECKeysStateCountInit(DB_RESULT* result, int policy_id, KSM_KEY_POLICY
 int KsmDNSSECKeysInSMCount(DB_RESULT result, int* count)
 {
 	int         status = 0;     /* Return status */
-	DB_ROW      row;            /* Row data */
+	DB_ROW      row = NULL;     /* Row data */
 
 	/* Get the next row from the data */
 
