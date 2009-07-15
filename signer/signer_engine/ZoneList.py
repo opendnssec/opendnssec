@@ -107,9 +107,6 @@ class ZoneList:
     def from_xml(self, xml_blob):
         """Reads the list of zones from xml_blob"""
         xmlbs = Evaluate("ZoneList/Zone", xml_blob)
-        if not xmlbs:
-            raise ZoneListError("No ZoneList/Zone entries "+
-                                "in zone list file")
         for xmlb in xmlbs:
             zone_name = xmlb.attributes["name"].value
             configuration_file = Util.get_xml_data(
