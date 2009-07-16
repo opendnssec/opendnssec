@@ -22,3 +22,5 @@ install-data-hook:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signconf
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/unsigned
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signed
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/run
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/run/opendnssec

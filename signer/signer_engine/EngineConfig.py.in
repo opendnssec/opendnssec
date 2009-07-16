@@ -57,7 +57,10 @@ class EngineConfiguration:
         self.tools_dir = None
         self.notify_command = None
         self.config_file_name = config_file_name
-        self.command_socket_file = "@localstatedir@"+os.sep+"opendnssec"+os.sep+"commands"
+        self.command_socket_file = "@localstatedir@" + os.sep + \
+                                   "run" + os.sep + \
+                                   "opendnssec" + os.sep + \
+                                   "engine.sock"
         if config_file_name:
             self.read_config_file(config_file_name)
         
