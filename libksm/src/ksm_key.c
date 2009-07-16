@@ -784,7 +784,7 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
         *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.nemzskeys + 1; 
     } 
 
-    if (shared_keys == KSM_KEYS_NOT_SHARED) { 
+    if (shared_keys == KSM_KEYS_SHARED) { 
         *count *= zone_count;
     }
 
