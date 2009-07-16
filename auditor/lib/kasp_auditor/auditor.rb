@@ -478,9 +478,9 @@ module KASPAuditor
         # So, keep track of the last RR type (or type_covered, if RRSIG)
         # When that changes, check the signature for the RRSet
         if (current_rrset.add(l_rr, false))
-          if (l_rr.type == Types.RRSIG)
-            if !(types_covered.include?Types.RRSIG)
-              types_covered.push(Types.RRSIG)
+          if (l_rr.type == Types::RRSIG)
+            if !(types_covered.include?Types::RRSIG)
+              types_covered.push(Types::RRSIG)
             end
           else
             if (!types_covered.include?l_rr.type)
@@ -496,7 +496,7 @@ module KASPAuditor
           types_covered.push(l_rr.type)
         end
 
-        if (l_rr.type == Types.DNSKEY) # Check the DNSKEYs
+        if (l_rr.type == Types::DNSKEY) # Check the DNSKEYs
           check_dnskey(l_rr, config)
           if (l_rr.sep_key?)
             seen_dnskey_sep_set = true
@@ -507,17 +507,17 @@ module KASPAuditor
           print "Using key #{l_rr.key_tag}\n"
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
 
-        elsif (l_rr.type == Types.NSEC)
+        elsif (l_rr.type == Types::NSEC)
           if (!@first_nsec)
             @first_nsec = l_rr
           end
           seen_nsec_for_domain = true
           check_nsec(l_rr, config, soa_rr, types_covered)
 
-        elsif (l_rr.type == Types.NSEC3PARAM)
+        elsif (l_rr.type == Types::NSEC3PARAM)
           check_nsec3param(l_rr, config, subdomain, soa_rr)
 
-        elsif (l_rr.type == Types.NSEC3)
+        elsif (l_rr.type == Types::NSEC3)
           if (!@first_nsec)
             @first_nsec = l_rr
           end
@@ -587,7 +587,7 @@ module KASPAuditor
     # Error if it is in zone, warn if it is out of zone.
     def process_additional_unsigned_rr(unsigned_rr, soa_rr)
       if !out_of_zone(unsigned_rr.name, soa_rr.name)
-        if ([Types.RRSIG, Types.RRSIG, Types.NSEC, Types.NSEC3, Types.NSEC3PARAM].include?unsigned_rr.type)
+        if ([Types::RRSIG, Types::RRSIG, Types::NSEC, Types::NSEC3, Types::NSEC3PARAM].include?unsigned_rr.type)
           # Ignore DNSSEC data in input zone?
           log(LOG_WARNING, "#{unsigned_rr.type} RR present in unsigned file : #{unsigned_rr}")
         else
@@ -602,7 +602,7 @@ module KASPAuditor
     # error (unless it is an SOA, in which case we info the serial change
     def process_additional_signed_rr(rr, soa)
       # There was an extra signed record that wasn't in the unsigned - check it out
-      if (rr.type == Types.SOA)
+      if (rr.type == Types::SOA)
         if (rr.name == soa.name)
           log(LOG_INFO, "SOA differs : from #{soa.serial} to #{rr.serial}")
         else
@@ -686,7 +686,7 @@ module KASPAuditor
         next if (line.index(';') == 0)
         next if (!line || (line.length == 0))
         soa = RR.create(line)
-        if (soa.type != Types.SOA)
+        if (soa.type != Types::SOA)
           log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got #{soa}")
           next
         end
@@ -711,7 +711,6 @@ module KASPAuditor
       return !((name.subdomain_of?soa_name) || (name == soa_name))
     end
     
-
 
 
     #    def check_signatures(config, domain_rrsets, soa, nss, keys)
