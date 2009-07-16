@@ -37,6 +37,7 @@ import optparse
 
 import sys
 import socket
+import os
 
 def send_msg(msg, c_sock):
     """Send a message to the engine"""
@@ -71,28 +72,33 @@ def run(c_sock):
         print "cmd> ",
         cmd = sys.stdin.readline()
 
-def engine_cli(args, host="localhost", port=47806):
+def engine_cli(args, file):
     """Command interface to engine, args is a List of strings, if not
     None or empty, the list will be concatenated and sent to the engine
     at host:port"""
     try:
-        cl_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        cl_sock.connect((host, port))
+        cl_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        print "connecting to " + file
+        cl_sock.connect(file)
         if args and len(args) > 0:
             send_msg(" ".join(args) + "\n", cl_sock)
         else:
             run(cl_sock)
         cl_sock.shutdown(0)
     except socket.error, serr:
-        print "Error connecting to " + host + ":" + str(port) + ": " + str(serr)
+        print "Error opening domain socket %s: %s" % (file, str(serr))
+        print serr
+
 def parse_args():
     """Parse port and host options"""
     try:
         parser = optparse.OptionParser()
-        parser.add_option("-n", "--host", dest="host", default="localhost")
-        parser.add_option("-p", "--port", dest="port", default=47806)
+        #parser.add_option("-n", "--host", dest="host", default="localhost")
+        #parser.add_option("-p", "--port", dest="port", default=47806)
+        parser.add_option("-f", "--file", dest="file",
+                        default="@localstatedir@" + os.sep + "opendnssec" + os.sep + "commands")
         (options, arguments) = parser.parse_args()
-        engine_cli(arguments, options.host, int(options.port))
+        engine_cli(arguments, options.file)
     except ValueError, vae:
         print str(vae)
 

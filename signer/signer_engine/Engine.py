@@ -51,12 +51,14 @@ import threading
 import Util
 import syslog
 import signal
+import errno
 
 import Zone
 from ZoneConfig import ZoneConfig, ZoneConfigError
 from EngineConfig import EngineConfiguration, EngineConfigurationError
 from Worker import Worker, TaskQueue, Task
 from ZoneList import ZoneList, ZoneListError
+
 
 MSGLEN = 1024
 
@@ -114,14 +116,24 @@ class Engine:
         # create socket to listen for commands on
         # only listen on localhost atm
 
-        self.command_socket = socket.socket(socket.AF_INET,
+        self.command_socket = socket.socket(socket.AF_UNIX,
                                             socket.SOCK_STREAM)
         self.command_socket.setsockopt(socket.SOL_SOCKET,
                                        socket.SO_REUSEADDR, 1)
-        self.command_socket.bind(("localhost", 47806))
-        self.command_socket.listen(5)
-        syslog.syslog(syslog.LOG_INFO, "Engine running")
-
+        # should the previous instance not have shut down cleanly
+        # remove the socket
+        try:
+            os.remove(self.config.command_socket_file)
+        except OSError, ose:
+            if ose.errno != errno.ENOENT:
+                raise ose
+        self.command_socket.bind(self.config.command_socket_file)
+        try:
+                self.command_socket.listen(5)
+                syslog.syslog(syslog.LOG_INFO, "Engine running")
+        except Exception, e:
+                print e
+                sys.exit(0)
         while True:
             #(client_socket, address) = self.command_socket.accept()
             client_socket = self.command_socket.accept()[0]
@@ -306,6 +318,7 @@ class Engine:
         self.command_socket.shutdown(socket.SHUT_RDWR)
         self.command_socket.close()
         self.command_socket = None
+        os.remove(self.config.command_socket_file)
         syslog.closelog()
 
     def read_zonelist(self):
@@ -546,7 +559,7 @@ def main():
     except ZoneListError, zle:
         print "zonelist error: " + str(zle) + ". Stopping engine"
     except KeyboardInterrupt:
-        engine.stop()
+        engine.stop_engine()
 
 class EngineNullDevice:
     """Null device class, used for daemonizing"""
