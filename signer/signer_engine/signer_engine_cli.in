@@ -90,7 +90,7 @@ def engine_cli(args, file):
         print serr
 
 def parse_args():
-    """Parse port and host options"""
+    """Parse options"""
     try:
         parser = optparse.OptionParser()
         #parser.add_option("-n", "--host", dest="host", default="localhost")

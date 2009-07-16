@@ -511,18 +511,20 @@ def usage():
     print "Usage: engine.py [OPTIONS]"
     print "Options:"
     print "-c <file>\tRead configuration from file"
+    print "-d\t\tDo not daemonize the engine"
     print "-h\t\tShow this help and exit"
     print "-v\t\tBe verbose"
 
 def main():
-    global engine
     """Main. start an engine and run it"""
+    global engine
+    daemonize = True
     #
     # option handling
     #
     try:
-        opts = getopt.getopt(sys.argv[1:], "c:h",
-                             ["--config=", "help", "output="])[0]
+        opts = getopt.getopt(sys.argv[1:], "dc:h",
+                             ["no-daemon", "config=", "help"])[0]
     except getopt.GetoptError, err:
         # will print something like "option -a not recognized"
         print str(err)
@@ -530,11 +532,13 @@ def main():
         sys.exit(2)
     config_file = "/etc/engine.conf"
     for opt, arg in opts:
-        if opt == "-c":
+        if opt in ("-d", "--no-daemon"):
+            daemonize = False
+        elif opt in ("-c", "--config"):
             config_file = arg
         elif opt in ("-h", "--help"):
             usage()
-            sys.exit()
+            sys.exit(0)
         else:
             assert False, "unhandled option: " + opt
 
@@ -549,7 +553,8 @@ def main():
         signal.signal(signal.SIGTERM, signal_handler_stop)
         signal.signal(signal.SIGHUP, signal_handler_stop)
         
-        daemonize_engine()
+        if daemonize:
+            daemonize_engine()
         engine.run()
     except EngineConfigurationError, ece:
         print ece
