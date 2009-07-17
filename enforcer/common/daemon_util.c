@@ -102,9 +102,9 @@ log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
 
 
     static void
-usage(void)
+usage(const char* prog)
 {
-    fprintf(stderr, "Usage: ods_enf [OPTION]...\n");
+    fprintf(stderr, "Usage: %s [OPTION]...\n", prog);
     fprintf(stderr, "OpenDNSSEC Enforcer Daemon.\n\n");
     fprintf(stderr, "Supported options:\n");
     fprintf(stderr, "  -d          Debug.\n");
@@ -112,7 +112,7 @@ usage(void)
     fprintf(stderr, "  -P pidfile  Specify the PID file to write.\n");
 
     fprintf(stderr, "  -v          Print version.\n");
-    fprintf(stderr, "  -?          This help.\n");
+    fprintf(stderr, "  -[?|h]      This help.\n");
 }
 
     static void
@@ -184,7 +184,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
     /*
      * Read the command line
      */
-    while ((c = getopt(*argc, argv, "dv?u:P:")) != -1) {
+    while ((c = getopt(*argc, argv, "hdv?u:P:")) != -1) {
         switch (c) {
             case 'd':
                 config->debug = true;
@@ -231,14 +231,17 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
                     }
                 }   
                 break;
+            case 'h':
+                usage(config->program);
+                exit(0);
             case '?':
-                usage();
+                usage(config->program);
                 exit(0);
             case 'v':
                 version();
                 exit(0);
             default:
-                usage();
+                usage(config->program);
                 exit(0);
         }
     }
