@@ -720,6 +720,7 @@ class Zone:
                        self.zone_config.signatures_resign_time -\
                        time.time())
         except OSError:
+            syslog.syslog(syslog.LOG_INFO, "No output file found, seconds to resign: 0")
             return 0
 
     def get_expiration_timestamp(self, time_offset):

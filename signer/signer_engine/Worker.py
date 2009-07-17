@@ -59,11 +59,6 @@ class Task:
         """Run this task"""
         if self.what == Task.SIGN_ZONE:
             try:
-                syslog.syslog(syslog.LOG_INFO,
-                              "worker " +\
-                              self.name +\
-                              " run task: sign zone: " +\
-                              str(self.how.zone_name))
                 self.how.perform_action()
             except Exception, e:
                 syslog.syslog(syslog.LOG_ERR,
@@ -192,13 +187,17 @@ class Worker(threading.Thread):
             if self.queue.has_task(now):
                 task = self.queue.get_task()
                 self.queue.release()
+                syslog.syslog(syslog.LOG_INFO, "Got task for worker " + self.name)
                 if self.work:
+                    syslog.syslog(syslog.LOG_INFO, "Worker " + self.name + " run task")
                     task.run()
                     if task.repeat_interval > 0:
                         task.when = now + task.repeat_interval
                         self.queue.lock()
                         self.queue.add_task(task)
                         self.queue.release()
+                else:
+                    syslog.syslog(syslog.LOG_INFO, "But worker has been told not to do anything any more")
             else:
                 self.queue.release()
                 syslog.syslog(syslog.LOG_INFO,
