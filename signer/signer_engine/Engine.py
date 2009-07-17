@@ -105,9 +105,7 @@ class Engine:
         self.condition.notifyAll()
         self.condition.release()
 
-    def run(self):
-        """Start the engine, add some workers, and create the command
-        channel to listen on."""
+    def setup_engine(self):
         i = 1
         while i <= self.config.worker_threads:
             self.add_worker(str(i))
@@ -146,6 +144,9 @@ class Engine:
         except Exception, e:
                 print e
                 sys.exit(0)
+
+    def run(self):
+        """Just keep running until command channel is closed"""
         while self.command_socket:
             #(client_socket, address) = self.command_socket.accept()
             client_socket = self.command_socket.accept()[0]
@@ -515,6 +516,7 @@ def signal_handler_stop(signum, frame):
                 engine.stop_engine()
                 engine = Engine(config_file)
                 engine.read_zonelist()
+                engine.setup_engine()
                 engine.run()
     except Exception, e:
         syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
@@ -576,7 +578,7 @@ def main():
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
         signal.signal(signal.SIGHUP, signal_handler_stop)
-        
+        engine.setup_engine()
         if daemonize:
             daemonize_engine()
         else:
