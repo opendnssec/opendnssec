@@ -559,14 +559,15 @@ def main():
     try:
         engine = Engine(config_file)
         print engine.read_zonelist()
-        print "running as pid " + str(os.getpid())
-        print "output redirected to syslog"
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
         signal.signal(signal.SIGHUP, signal_handler_stop)
         
         if daemonize:
             daemonize_engine()
+        else:
+            print "running as pid " + str(os.getpid())
+        print "output redirected to syslog"
         engine.run()
     except EngineConfigurationError, ece:
         print ece
@@ -596,9 +597,11 @@ def daemonize_engine():
         # get our own session and fixup std[in,out,err]
         os.setsid()
         sys.stdin.close()
+        oldstdout = sys.stdout
         sys.stdout = EngineNullDevice()
         sys.stderr = EngineNullDevice()
         if (not os.fork()):
+            oldstdout.write("running as pid " + str(os.getpid())+"\n")
             # hang around till adopted by init
             ppid = os.getppid()
             while (ppid != 1):
