@@ -1502,8 +1502,12 @@ int update_repositories(char** zone_list_filename)
                 temp_char = (char*) xmlXPathCastToString(xpathObj);
                 StrAppend(&repo_capacity, temp_char);
                 StrFree(temp_char);
-                printf("Capacity set to %s.\n", repo_capacity);
-                
+                if (strlen(repo_capacity) == 0) {
+                    printf("No Maximum Capacity set.\n");
+                } else {
+                    printf("Capacity set to %s.\n", repo_capacity);
+                }
+
                 xmlXPathFreeObject(xpathObj);
                 
                 /*
