@@ -124,12 +124,17 @@ class Engine:
         # remove the socket
         try:
             os.remove(self.config.command_socket_file)
-        except OSError, ose:
-            if ose.errno != errno.ENOENT:
-                raise ose
+        except Exception, e:
+            if not e.errno or e.errno != errno.ENOENT:
+                raise e
         try:
             syslog.syslog(syslog.LOG_INFO, "opening socket: " + self.config.command_socket_file)
             self.command_socket.bind(self.config.command_socket_file)
+        except IOError, ioe:
+            syslog.syslog(syslog.LOG_ERR,
+                          "Error: i/o error opening domain socket" + \
+                          self.config.command_socket_file)
+            raise ose
         except OSError, ose:
             syslog.syslog(syslog.LOG_ERR,
                           "Error: unable to open domain socket" + \
@@ -316,7 +321,7 @@ class Engine:
         """Stop all workers"""
         for worker in self.workers:
             syslog.syslog(syslog.LOG_INFO,
-                          "stopping worker" + worker.name)
+                          "stopping worker " + worker.name)
             worker.work = False
         # wait for thread to finish
         self.notify_all()
@@ -562,7 +567,11 @@ def main():
     # main loop
     #
     try:
-        engine = Engine(config_file)
+        try:
+            engine = Engine(config_file)
+        except IOError, ioe:
+            print "Error, engine configuration could not be read;"
+            print str(ioe)
         print engine.read_zonelist()
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
@@ -576,9 +585,6 @@ def main():
         engine.run()
     except EngineConfigurationError, ece:
         print ece
-    except IOError, ioe:
-        print "Error, engine configuration could not be read;"
-        print str(ioe)
     except ZoneListError, zle:
         print "zonelist error: " + str(zle) + ". Stopping engine"
     except KeyboardInterrupt:
