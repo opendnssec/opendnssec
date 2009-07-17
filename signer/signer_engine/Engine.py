@@ -155,13 +155,13 @@ class Engine:
                     command = self.receive_command(client_socket)
                     response = self.handle_command(command)
                     self.send_response(response + "\n\n", client_socket)
-                    syslog.syslog(syslog.LOG_DEBUG,
+                    syslog.syslog(syslog.LOG_INFO,
                                   "Done handling command")
             except socket.error:
-                syslog.syslog(syslog.LOG_DEBUG,
+                syslog.syslog(syslog.LOG_INFO,
                               "Connection closed by peer")
             except RuntimeError:
-                syslog.syslog(syslog.LOG_DEBUG,
+                syslog.syslog(syslog.LOG_INFO,
                               "Connection closed by peer")
 
     @staticmethod
@@ -181,7 +181,7 @@ class Engine:
     def send_response(msg, client_socket):
         """Send a response back to the client issuing a command"""
         totalsent = 0
-        syslog.syslog(syslog.LOG_DEBUG, "Sending response: " + msg)
+        syslog.syslog(syslog.LOG_INFO, "Sending response: " + msg)
         while totalsent < MSGLEN and totalsent < len(msg):
             sent = client_socket.send(msg[totalsent:])
             if sent == 0:
@@ -308,14 +308,14 @@ class Engine:
     def lock(self, caller=None):
         """Simple spinlock on engine"""
         while (self.locked):
-            syslog.syslog(syslog.LOG_DEBUG, caller +\
+            syslog.syslog(syslog.LOG_INFO, caller +\
                           "waiting for lock on engine to be released")
             time.sleep(1)
         self.locked = True
     
     def release(self):
         """Releases the lock"""
-        syslog.syslog(syslog.LOG_DEBUG, "Releasing lock on engine")
+        syslog.syslog(syslog.LOG_INFO, "Releasing lock on engine")
         self.locked = False
 
     def stop_workers(self):

@@ -154,7 +154,7 @@ class Zone:
     def find_key_details(self, key):
         """Fills in the details about the key by querying all configured
         HSM tokens for the key (by its locator value)."""
-        syslog.syslog(syslog.LOG_DEBUG,
+        syslog.syslog(syslog.LOG_INFO,
                       "Generating DNSKEY rr for " + str(key["locator"]))
         # just try all modules to generate the dnskey?
         # first one to return anything is good?
@@ -175,9 +175,9 @@ class Zone:
         for line in create_p.stderr:
             syslog.syslog(syslog.LOG_ERR,
                         "create_dnskey stderr: " + line)
-        syslog.syslog(syslog.LOG_DEBUG,
+        syslog.syslog(syslog.LOG_INFO,
                       "create_dnskey status: " + str(status))
-        syslog.syslog(syslog.LOG_DEBUG,
+        syslog.syslog(syslog.LOG_INFO,
                       "equality: " + str(status == 0))
         if status == 0:
             key["tool_key_id"] = key["locator"]
@@ -192,7 +192,7 @@ class Zone:
         stored yet (i.e. the DNSKEY string)"""
         if not k["dnskey"]:
             try:
-                syslog.syslog(syslog.LOG_DEBUG,
+                syslog.syslog(syslog.LOG_INFO,
                               "No information yet for key " +\
                               k["locator"])
                 if not self.find_key_details(k):
@@ -523,7 +523,7 @@ class Zone:
         if self.zone_config.soa_serial:
             soa_serial = self.find_serial()
             if soa_serial:
-                syslog.syslog(syslog.LOG_DEBUG,
+                syslog.syslog(syslog.LOG_INFO,
                               "set serial to " + str(soa_serial))
                 sign_p.stdin.write(":soa_serial " +\
                                    str(soa_serial) + "\n")
@@ -559,13 +559,13 @@ class Zone:
                  ":refresh_denial ")
 
         for k in self.zone_config.signature_keys:
-            syslog.syslog(syslog.LOG_DEBUG,
+            syslog.syslog(syslog.LOG_INFO,
                           "use signature key: " + k["locator"])
             if not k["dnskey"]:
-                syslog.syslog(syslog.LOG_DEBUG,
+                syslog.syslog(syslog.LOG_INFO,
                           "no dnskey yet")
                 try:
-                    syslog.syslog(syslog.LOG_DEBUG,
+                    syslog.syslog(syslog.LOG_INFO,
                                   "No information yet for key " +\
                                   k["locator"])
                     self.find_key_details(k)
@@ -583,7 +583,7 @@ class Zone:
                 Util.write_p(sign_p, " ".join(scmd), ":add_ksk ")
         nsecced_f = open(self.get_zone_tmp_filename(".nsecced"))
         for line in nsecced_f:
-            #syslog.syslog(syslog.LOG_DEBUG, "send to signer " + l)
+            #syslog.syslog(syslog.LOG_INFO, "send to signer " + l)
             sign_p.stdin.write(line)
         nsecced_f.close()
         sign_p.stdin.close()
@@ -682,17 +682,17 @@ class Zone:
         if caller:
             msg = str(caller) + ": " + msg
         while (self.locked):
-            syslog.syslog(syslog.LOG_DEBUG, msg)
+            syslog.syslog(syslog.LOG_INFO, msg)
             time.sleep(1)
         self.locked = True
         msg = "Zone " + self.zone_name + " locked"
         if caller:
             msg = msg + " by " + str(caller)
-        syslog.syslog(syslog.LOG_DEBUG, msg)
+        syslog.syslog(syslog.LOG_INFO, msg)
     
     def release(self):
         """Release the lock on this zone"""
-        syslog.syslog(syslog.LOG_DEBUG,
+        syslog.syslog(syslog.LOG_INFO,
                       "Releasing lock on zone " + self.zone_name)
         self.locked = False
 

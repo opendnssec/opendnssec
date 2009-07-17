@@ -42,7 +42,7 @@ class ToolException(Exception):
 def run_tool(command, input_fd=None):
     """Run a system command with Popen(), if input_fd is not given,
        it will be set to PIPE. The subprocess is returned."""
-    syslog.syslog(syslog.LOG_DEBUG, "Run command: '"+" ".join(command)+"'")
+    syslog.syslog(syslog.LOG_INFO, "Run command: '"+" ".join(command)+"'")
     try:
         if (input_fd):
             subp = subprocess.Popen(command, stdin=input_fd,
@@ -117,7 +117,7 @@ def write_p(subp, val, prefix):
     """If val is not None, write prefix + str(val) + "\n" to the stdin
     of subp"""
     if subp.stdin and val:
-        syslog.syslog(syslog.LOG_DEBUG,
+        syslog.syslog(syslog.LOG_INFO,
                       "write to subp: " +\
                       prefix + str(val))
         subp.stdin.write(prefix)
