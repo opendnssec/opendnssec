@@ -317,6 +317,8 @@ class Engine:
         for worker in self.workers:
             syslog.syslog(syslog.LOG_INFO, "stopping worker")
             worker.work = False
+            # wait for thread to finish
+            worker.join()
         self.notify_all()
 
     def stop_engine(self):
