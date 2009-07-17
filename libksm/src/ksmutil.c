@@ -461,6 +461,8 @@ cmd_addzone (int argc, char *argv[])
 
     int status = 0;
 
+    char *path = getenv("PWD");
+
     /* See what arguments we were passed (if any) otherwise set the defaults */
     if (argc != 1 && argc != 5) {
         usage_addzone();
@@ -469,9 +471,28 @@ cmd_addzone (int argc, char *argv[])
     StrAppend(&zone_name, argv[0]);
     if (argc == 5) {
         StrAppend(&policy_name, argv[1]);
+
+        /*
+         * Turn any relative paths into absolute (sort of, not the neatest output)
+         */
+        if (*argv[2] != '/') {
+            StrAppend(&sig_conf_name, path);
+            StrAppend(&sig_conf_name, "/");
+        }
         StrAppend(&sig_conf_name, argv[2]);
+
+        if (*argv[3] != '/') {
+            StrAppend(&input_name, path);
+            StrAppend(&input_name, "/");
+        }
         StrAppend(&input_name, argv[3]);
+
+        if (*argv[4] != '/') {
+            StrAppend(&output_name, path);
+            StrAppend(&output_name, "/");
+        }
         StrAppend(&output_name, argv[4]);
+
     }
     else {
         StrAppend(&policy_name, "default");
