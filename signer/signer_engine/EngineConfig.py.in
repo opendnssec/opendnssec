@@ -51,7 +51,9 @@ class EngineConfigurationError(Exception):
 
 class EngineConfiguration:
     """Engine Configuration options"""
-    def __init__(self, config_file_name=None):
+    def __init__(self, config_file_name):
+        if not config_file_name:
+            config_file_name = "@sysconfdir@/opendnssec/conf.xml"
         self.zonelist_file = None
         self.zone_tmp_dir = None
         self.tools_dir = None
@@ -127,10 +129,10 @@ class EngineConfiguration:
         # yet
         if not os.path.exists(self.zone_tmp_dir):
             raise EngineConfigurationError(\
-                "WorkingDirectory does not exist")
+                "WorkingDirectory " + self.zone_tmp_dir + " does not exist")
         if not os.path.exists(self.tools_dir):
             raise EngineConfigurationError(\
-                "tools does not exist")
+                "Tools directory " + self.tools_dir + " does not exist")
         if not os.path.exists(self.tools_dir + os.sep + "signer"):
             raise EngineConfigurationError(\
                 "signer tools appear missing")

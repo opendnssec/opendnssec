@@ -535,7 +535,7 @@ class EngineError(Exception):
 
 def usage():
     """Prints usage"""
-    print "Usage: engine.py [OPTIONS]"
+    print "Usage: ", sys.argv[0], ", [OPTIONS]"
     print "Options:"
     print "-c <file>\tRead configuration from file"
     print "-d\t\tDo not daemonize the engine"
@@ -557,7 +557,7 @@ def main():
         print str(err)
         usage()
         sys.exit(2)
-    config_file = "/etc/engine.conf"
+    config_file = None
     for opt, arg in opts:
         if opt in ("-d", "--no-daemon"):
             daemonize = False
