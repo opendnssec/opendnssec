@@ -2,6 +2,10 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
+EXTRA_DIST = \
+	$(srcdir)/lib/*.rb \
+	$(srcdir)/lib/kasp_auditor/*.rb
+
 MAINTAINERCLEANFILES = \
 	config.log config.status \
 	$(srcdir)/Makefile.in \

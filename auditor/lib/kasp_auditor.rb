@@ -52,6 +52,9 @@ module KASPAuditor
     # The
     def run(path, zones_to_audit = [], filename="zonelist.xml")
       #      path = ARGV[0] + "/"
+      if (!path || path.length() == 0)
+        path = "/etc/opendnssec/"
+      end
       if (path[path.length() -1,1] != "/")
         path = path+ "/"
       end
