@@ -60,7 +60,9 @@ class Task:
         if self.what == Task.SIGN_ZONE:
             try:
                 syslog.syslog(syslog.LOG_INFO,
-                              "Run task: sign zone: " +\
+                              "worker " +\
+                              self.name +\
+                              " run task: sign zone: " +\
                               str(self.how.zone_name))
                 self.how.perform_action()
             except Exception, e:
@@ -200,7 +202,9 @@ class Worker(threading.Thread):
             else:
                 self.queue.release()
                 syslog.syslog(syslog.LOG_INFO,
-                              "no task for worker, sleep for " +\
+                              "no task for worker " +\
+                              self.name +\
+                              ", sleep for " +\
                               str(self.queue.time_till_next(now)))
                 interval = self.queue.time_till_next(now)
                 if self.work:
