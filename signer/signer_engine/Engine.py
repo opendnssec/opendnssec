@@ -127,7 +127,14 @@ class Engine:
         except OSError, ose:
             if ose.errno != errno.ENOENT:
                 raise ose
-        self.command_socket.bind(self.config.command_socket_file)
+        try:
+            syslog.syslog(syslog.LOG_INFO, "opening socket: " + self.config.command_socket_file)
+            self.command_socket.bind(self.config.command_socket_file)
+        except OSError, ose:
+            syslog.syslog(syslog.LOG_ERR,
+                          "Error: unable to open domain socket" + \
+                          self.config.command_socket_file)
+            raise ose
         try:
                 self.command_socket.listen(5)
                 syslog.syslog(syslog.LOG_INFO, "Engine running")
@@ -318,7 +325,10 @@ class Engine:
         self.command_socket.shutdown(socket.SHUT_RDWR)
         self.command_socket.close()
         self.command_socket = None
-        os.remove(self.config.command_socket_file)
+        try:
+            os.remove(self.config.command_socket_file)
+        except OSError:
+            syslog.syslog(syslog.LOG_INFO, "no command channel to clean up")
         syslog.closelog()
 
     def read_zonelist(self):
@@ -548,6 +558,7 @@ def main():
     try:
         engine = Engine(config_file)
         print engine.read_zonelist()
+        print "running as pid " + str(os.getpid())
         print "output redirected to syslog"
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
@@ -564,6 +575,10 @@ def main():
     except ZoneListError, zle:
         print "zonelist error: " + str(zle) + ". Stopping engine"
     except KeyboardInterrupt:
+        engine.stop_engine()
+    except Exception, e:
+        print "Unable to continue, stopping:"
+        print e
         engine.stop_engine()
 
 class EngineNullDevice:
