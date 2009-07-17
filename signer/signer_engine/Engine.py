@@ -500,16 +500,20 @@ engine = None
 
 def signal_handler_stop(signum, frame):
     global engine
-    try:
-        syslog.syslog(syslog.LOG_INFO, "Got signal: " + str(signum))
-        if signum == 15:
+    syslog.syslog(syslog.LOG_INFO, "Got signal: " + str(signum))
+    if signum == 15:
+        try:
             syslog.syslog(syslog.LOG_ERR, "Stopping engine")
             if engine:
                 engine.stop_engine()
             else:
                 syslog.syslog(syslog.LOG_ERR, "Engine already stopped?")
+        except Exception, e:
+            syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
+        finally:
             sys.exit(0)
-        elif signum == 1:
+    elif signum == 1:
+        try:
             syslog.syslog(syslog.LOG_ERR, "Restarting engine")
             if engine:
                 config_file = engine.config_file_name
@@ -518,8 +522,8 @@ def signal_handler_stop(signum, frame):
                 engine.read_zonelist()
                 engine.setup_engine()
                 engine.run()
-    except Exception, e:
-        syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
+        except Exception, e:
+            syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
     
 class EngineError(Exception):
     """General error in the Engine"""
