@@ -141,7 +141,7 @@ class Engine:
         except Exception, e:
                 print e
                 sys.exit(0)
-        while True:
+        while self.command_socket:
             #(client_socket, address) = self.command_socket.accept()
             client_socket = self.command_socket.accept()[0]
             try:
@@ -322,9 +322,10 @@ class Engine:
     def stop_engine(self):
         """Stop the workers and quit the engine"""
         self.stop_workers()
-        self.command_socket.shutdown(socket.SHUT_RDWR)
-        self.command_socket.close()
-        self.command_socket = None
+        if self.command_socket:
+            self.command_socket.shutdown(socket.SHUT_RDWR)
+            self.command_socket.close()
+            self.command_socket = None
         try:
             os.remove(self.config.command_socket_file)
         except OSError:
