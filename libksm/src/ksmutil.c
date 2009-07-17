@@ -524,8 +524,14 @@ cmd_addzone (int argc, char *argv[])
     /* Save our new one over, TODO should we validate it first? */
     status = xmlSaveFormatFile(zonelist_filename, doc, 1);
     xmlFreeDoc(doc);
-    if (status != 0) {
+    if (status == -1) {
         printf("couldn't save zonelist\n");
+        StrFree(zonelist_filename);
+        StrFree(zone_name);
+        StrFree(policy_name);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
         return(1);
     }
 
