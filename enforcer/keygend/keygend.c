@@ -191,6 +191,7 @@ server_main(DAEMONCONFIG *config)
                 }
 
                 new_keys = keys_needed - keys_in_queue;
+/*    fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, keys_needed, keys_in_queue); */
 
                 /* TODO: check capacity of HSM will not be exceeded */
                 /* Create the required keys */
@@ -236,6 +237,7 @@ server_main(DAEMONCONFIG *config)
                 }
 
                 new_keys = keys_needed - keys_in_queue;
+/*    fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, keys_needed, keys_in_queue); */
                 
                 /* TODO: check capacity of HSM will not be exceeded */
                 for (i = new_keys ; i > 0 ; i--) {

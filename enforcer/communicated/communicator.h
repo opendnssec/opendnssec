@@ -42,5 +42,6 @@ void server_main(DAEMONCONFIG *config);
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy);
 int commKeyConfig(void* context, KSM_KEYDATA* key_data);
 int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name);
+int read_zonelist_filename(char** zone_list_filename);
 
 #endif /* ENFORCER_COMMUNICATOR_H */

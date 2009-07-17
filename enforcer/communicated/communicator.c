@@ -44,6 +44,7 @@
 #include "kaspaccess.h"
 #include "ksm/ksm.h"
 #include "ksm/memory.h"
+#include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 #include "ksm/datetime.h"
 #include "config.h"
@@ -91,7 +92,7 @@ server_main(DAEMONCONFIG *config)
     xmlXPathObjectPtr xpathObj = NULL;
 
     int ret = 0; /* status of the XML parsing */
-    char* zonelist_filename = ZONELISTFILE;
+    char* zonelist_filename = NULL;
     char* zone_name;
     char* current_policy;
     char* current_filename;
@@ -134,6 +135,13 @@ server_main(DAEMONCONFIG *config)
         exit(1);
     }
     kaspSetPolicyDefaults(policy, NULL);
+
+    /* Let's find our zonelist from the conf.xml */
+    status = read_zonelist_filename(&zonelist_filename);
+    if (status != 0) {
+        log_msg(NULL, LOG_ERR, "couldn't read zonelist filename\n");
+        exit(1);
+    }
 
     /* We keep the HSM connection open for the lifetime of the daemon */ 
     result = hsm_open(CONFIGFILE, hsm_prompt_pin, NULL);
@@ -365,6 +373,8 @@ server_main(DAEMONCONFIG *config)
 
     result = hsm_close();
     log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
+
+    StrFree(zonelist_filename);
 
     free(policy->name);
     free(policy->description);
@@ -699,6 +709,8 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     }
 
     new_keys = keys_needed - keys_in_queue;
+   
+/*    fprintf(stderr, "comm(%d): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", key_type, new_keys, keys_needed, keys_in_queue); */
 
     /* Allocate keys */
     for (i=0 ; i < new_keys ; i++){
@@ -738,4 +750,87 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     }
 
     return status;
+}
+
+/* 
+ *  Read the conf.xml file, extract the location of the zonelist.
+ */
+int read_zonelist_filename(char** zone_list_filename)
+{
+    xmlTextReaderPtr reader = NULL;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    int ret = 0; /* status of the XML parsing */
+    char* filename = NULL;
+    char* temp_char = NULL;
+    char* tag_name = NULL;
+
+    xmlChar *zonelist_expr = (unsigned char*) "//Signer/ZoneListFile";
+
+    StrAppend(&filename, CONFIGFILE);
+    /* Start reading the file; we will be looking for "Signer" tags */ 
+    reader = xmlNewTextReaderFilename(filename);
+    if (reader != NULL) {
+        ret = xmlTextReaderRead(reader);
+        while (ret == 1) {
+            tag_name = (char*) xmlTextReaderLocalName(reader);
+            /* Found <Signer> */
+            if (strncmp(tag_name, "Signer", 6) == 0 
+                    && strncmp(tag_name, "SignerThreads", 13) != 0
+                    && xmlTextReaderNodeType(reader) == 1) {
+
+                /* Expand this node and get the rest of the info with XPath */
+                xmlTextReaderExpand(reader);
+                doc = xmlTextReaderCurrentDoc(reader);
+                if (doc == NULL) {
+                    printf("Error: can not read Signer section\n");
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                xpathCtx = xmlXPathNewContext(doc);
+                if(xpathCtx == NULL) {
+                    printf("Error: can not create XPath context for Signer section\n");
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                /* Evaluate xpath expression for ZoneListFile */
+                xpathObj = xmlXPathEvalExpression(zonelist_expr, xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                *zone_list_filename = NULL;
+                temp_char = (char *)xmlXPathCastToString(xpathObj);
+                StrAppend(zone_list_filename, temp_char);
+                StrFree(temp_char);
+                printf("zonelist filename set to %s.\n", *zone_list_filename);
+            }
+            /* Read the next line */
+            ret = xmlTextReaderRead(reader);
+            StrFree(tag_name);
+        }
+        xmlFreeTextReader(reader);
+        if (ret != 0) {
+            printf("%s : failed to parse\n", filename);
+            return(1);
+        }
+    } else {
+        printf("Unable to open %s\n", filename);
+        return(1);
+    }
+    if (xpathCtx) {
+        xmlXPathFreeContext(xpathCtx);
+    }
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+
+    return 0;
 }
