@@ -6,6 +6,12 @@ require 'kasp_auditor.rb'
 include KASPAuditor
 
 path = ARGV[0] 
+if ((path=="-?") || (path=="-h"))
+  print "Usage : kasp_auditor [path_to_opendnssec_files [<list_of_zones_to_audit>]]\n"
+  print " If no path is given, then /etc/opendnssec is used.\n"
+  print " If no zones are given, then all the defined zones are audited.\n"
+  exit(0)
+end
 pos = 1
 zones = []
 while (ARGV[pos])
