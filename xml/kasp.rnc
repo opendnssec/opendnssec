@@ -72,7 +72,7 @@ start = element KASP {
 			# Expected zone SOA parameters
 			element SOA {
 				anysoa,
-				element Serial { "counter" | "unixtime" | "datecounter" }?
+				element Serial { "counter" | "unixtime" | "datecounter" | "keep" }?
 			}
 		},
 
