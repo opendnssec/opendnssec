@@ -168,6 +168,7 @@ class Zone:
               ]
         create_p = Util.run_tool(cmd)
         if not create_p:
+            syslog.syslog(syslog.LOG_ERR, "Error running create_dnskey")
             return
         for line in create_p.stdout:
             output = line

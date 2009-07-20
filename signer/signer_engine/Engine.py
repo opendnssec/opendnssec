@@ -499,6 +499,13 @@ class Engine:
         it will be scheduled for immediate signing"""
         try:
             zone = self.zones[zone_name]
+            syslog.syslog(syslog.LOG_INFO,
+                          "Scheduling task to sign zone " + \
+                          zone_name + \
+                          " at " + \
+                          str(when) + \
+                          " with resign time " + \
+                          str(zone.zone_config.signatures_resign_time))
             self.task_queue.lock()
             self.task_queue.add_task(
                 Task(when,
