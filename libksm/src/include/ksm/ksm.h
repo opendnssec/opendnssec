@@ -234,6 +234,10 @@ typedef struct {
 } KSM_PARENT_POLICY;
 
 typedef struct {
+    int audit;
+} KSM_AUDIT_POLICY;
+
+typedef struct {
 	int id;
 	char* name;
 	char* description;
@@ -246,6 +250,7 @@ typedef struct {
 	KSM_ENFORCER_POLICY* enforcer;
 	KSM_ZONE_POLICY* zone;
 	KSM_PARENT_POLICY* parent;
+	KSM_AUDIT_POLICY* audit;
     int     shared_keys;
 } KSM_POLICY;
 

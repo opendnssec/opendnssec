@@ -155,6 +155,7 @@ insert into categories (name) values ("keys");
 insert into categories (name) values ("enforcer");
 insert into categories (name) values ("zone");
 insert into categories (name) values ("parent");
+insert into categories (name) values ("audit");
 
 # default serial number modes
 insert into serialmodes (name, description) values ("unixtime", "seconds since 1 Jan 1970");
@@ -214,4 +215,5 @@ insert into parameters (name, description, category_id) select "backupdelay", "h
 insert into parameters (name, description, category_id) select "zones_share_keys", "do all zones on this policy share the same keys", id from categories where name="keys";
 insert into parameters (name, description, category_id) select "registrationdelay", "Dr", id from categories where name="parent";
 
+insert into parameters (name, description, category_id) select "audit", "placeholder for audit tag", id from categories where name="audit";
 COMMIT;

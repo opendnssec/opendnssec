@@ -107,6 +107,7 @@ server_main(DAEMONCONFIG *config)
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
     policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     /* Let's check all of those mallocs, or should we use MemMalloc ? */
@@ -114,7 +115,8 @@ server_main(DAEMONCONFIG *config)
             policy->zone == NULL || policy->parent == NULL ||
             policy->keys == NULL ||
             policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL) {
+            policy->denial == NULL || policy->enforcer == NULL ||
+            policy->audit == NULL) {
         log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
         exit(1);
     }
@@ -315,6 +317,7 @@ server_main(DAEMONCONFIG *config)
 
     free(policy->name);
     free(policy->description);
+    free(policy->audit);
     free(policy->enforcer);
     free(policy->denial);
     free(policy->zsk);

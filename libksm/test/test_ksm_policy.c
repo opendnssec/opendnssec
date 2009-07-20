@@ -69,6 +69,7 @@ static void TestKsmPolicyRead(void)
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
 	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
 
 	policy->name = "default";
@@ -87,6 +88,7 @@ static void TestKsmPolicyRead(void)
 	CU_ASSERT_EQUAL(status, 0);
 
     free(policy->description);
+    free(policy->audit);
 	free(policy->enforcer);
 	free(policy->denial);
 	free(policy->keys);
@@ -113,6 +115,7 @@ static void TestKsmPolicyReadId(void)
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
 	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
 	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
 
@@ -133,6 +136,7 @@ static void TestKsmPolicyReadId(void)
 
     free(policy->description);
 	free(policy->name);
+    free(policy->audit);
 	free(policy->enforcer);
 	free(policy->denial);
 	free(policy->keys);
@@ -161,6 +165,7 @@ static void TestKsmPolicy2(void)
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
 	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
 	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
 
@@ -185,6 +190,7 @@ static void TestKsmPolicy2(void)
 	;
     free(policy->description);
 	free(policy->name);
+    free(policy->audit);
 	free(policy->enforcer);
 	free(policy->denial);
 	free(policy->keys);
@@ -218,6 +224,7 @@ static void TestKsmPolicySalt(void)
 	policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
 	policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
 	policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
 
 	policy->name = "default";
@@ -232,6 +239,7 @@ static void TestKsmPolicySalt(void)
 	CU_ASSERT_EQUAL(status, 0);
 
     free(policy->description);
+    free(policy->audit);
 	free(policy->enforcer);
 	free(policy->denial);
 	free(policy->keys);

@@ -97,6 +97,18 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 	policy->enforcer->keycreate = 0;
 	policy->enforcer->backup_interval = 0;
 	policy->enforcer->keygeninterval = 0;
+
+    policy->zone->propdelay = 0;
+    policy->zone->soa_ttl = 0;
+    policy->zone->soa_min = 0;
+    policy->zone->serial = 0;
+
+    policy->parent->propdelay = 0;
+    policy->parent->ds_ttl = 0;
+    policy->parent->soa_ttl = 0;
+    policy->parent->soa_min = 0;
+
+    policy->audit->audit = 0;
 }
 
 /*

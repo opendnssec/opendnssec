@@ -815,13 +815,15 @@ cmd_export (int argc, char *argv[])
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
     policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     if (policy->signer == NULL || policy->signature == NULL || 
             policy->zone == NULL || policy->parent == NULL ||
             policy->keys == NULL ||
             policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL) {
+            policy->denial == NULL || policy->enforcer == NULL ||
+            policy->audit == NULL) {
         fprintf(stderr, "Malloc for policy struct failed\n");
         exit(1);
     }
@@ -832,7 +834,7 @@ cmd_export (int argc, char *argv[])
     root = xmlNewDocNode(doc, NULL, (const xmlChar *)"KASP", NULL);
     (void) xmlDocSetRootElement(doc, root);
 
-    /* Read all policies */
+    /* Read policies (all if policy_name == NULL; else named policy only) */
     status = KsmPolicyInit(&result, policy_name);
     if (status == 0) {
         /* get the first policy */
@@ -854,6 +856,7 @@ cmd_export (int argc, char *argv[])
     xmlFreeDoc(doc);
     free(policy->description);
     free(policy->name);
+    free(policy->audit);
     free(policy->enforcer);
     free(policy->denial);
     free(policy->keys);
@@ -1675,6 +1678,8 @@ int update_policies()
     xmlChar *parent_soa_ttl_expr = (unsigned char*) "//Policy/Parent/SOA/TTL";
     xmlChar *parent_min_expr = (unsigned char*) "//Policy/Parent/SOA/Minimum";
 
+    xmlChar *audit_expr = (unsigned char*) "//Policy/Audit";
+
     KSM_POLICY *policy;
 
     /* Some files, the xml and rng */
@@ -1749,12 +1754,14 @@ int update_policies()
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     /* Let's check all of those mallocs, or should we use MemMalloc ? */
     if (policy->signer == NULL || policy->signature == NULL || policy->keys == NULL ||
             policy->zone == NULL || policy->parent == NULL || 
             policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL) {
+            policy->denial == NULL || policy->enforcer == NULL ||
+            policy->audit == NULL) {
         printf("Malloc for policy struct failed\n");
         exit(1);
     }
@@ -2033,6 +2040,12 @@ int update_policies()
                     continue;
                 }
 
+                /* AUDIT */
+                if ( SetParamOnPolicy(xpathCtx, audit_expr, "audit", "audit", policy->audit->audit, policy->id, BOOL_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
             } /* End of <Policy> */
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
@@ -2056,6 +2069,7 @@ int update_policies()
 
     free(policy->description);
     StrFree(policy->name);
+    free(policy->audit);
     free(policy->enforcer);
     free(policy->denial);
     free(policy->keys);
@@ -2198,6 +2212,8 @@ int update_zones(char* zone_list_filename)
 /* 
  * This encapsulates all of the steps needed to insert/update a parameter value
  * evaluate the xpath expression and try to update the policy value, if it has changed
+ * TODO possible bug where parmeters which have a value of 0 are not written (because we 
+ * only write what looks like it has changed
  */
 int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, const char* name, const char* category, int current_value, int policy_id, int value_type)
 {
@@ -2269,7 +2285,7 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
     }
 
     /* Now update the policy with what we found, if it is different */
-    if (value != current_value) {
+    if (value != current_value || current_value == 0) {
         status = KsmParameterSet(name, category, value, policy_id);
         if (status != 0) {
             printf("Error: unable to insert/update %s for policy\n", name);
@@ -2349,6 +2365,8 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->parent->ds_ttl = 0;
     policy->parent->soa_ttl = 0;
     policy->parent->soa_min = 0;
+
+    policy->audit->audit = 0;
 
 }
 
@@ -2890,6 +2908,7 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     xmlNodePtr parent_node;
     xmlNodePtr parent_ds_node;
     xmlNodePtr parent_soa_node;
+/*    xmlNodePtr audit_node; void until we put something in it */
     char temp_time[32];
    
     root = xmlDocGetRootElement(doc);
@@ -3011,6 +3030,12 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"TTL", (const xmlChar *)temp_time);
     snprintf(temp_time, 32, "PT%dS", policy->parent->soa_min);
     (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"Minimum", (const xmlChar *)temp_time);
+
+    /* AUDIT */
+    if (policy->audit->audit == 1)
+    {
+        (void) xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Audit", NULL);
+    }
 
     return(0);
 }
