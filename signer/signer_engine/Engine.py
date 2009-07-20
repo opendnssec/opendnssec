@@ -493,7 +493,7 @@ class Engine:
         result = []
         for zone in self.zones.values():
             result.append(str(zone))
-        return "".join(result)
+        return "\n".join(result)
     
     # 'general' sign zone now function
     # todo: put only zone names in queue and let worker get the zone?
