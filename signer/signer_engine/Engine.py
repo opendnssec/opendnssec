@@ -296,6 +296,7 @@ class Engine:
                         elif zone.zone_config.check_config_file_update():
                             response += "Zone config updated"
                             self.update_zone(zone.zone_name)
+                            self.notify()
                         else:
                             response += "Zone config has not changed"
                     except KeyError:
@@ -303,6 +304,7 @@ class Engine:
             if command[:4] == "stop":
                 self.stop_engine()
                 response = "Engine stopped"
+                
         except EngineError, exc:
             response = str(exc)
         except Exception, exc:
@@ -606,6 +608,8 @@ def main():
             print "running as pid " + str(os.getpid())
         print "output redirected to syslog"
         engine.run()
+        # just to be sure
+        engine.stop_workers()
     except EngineConfigurationError, ece:
         print ece
     except ZoneListError, zle:
@@ -616,6 +620,7 @@ def main():
         print "Unable to continue, stopping:"
         print e
         engine.stop_engine()
+    sys.exit(0)
 
 class EngineNullDevice:
     """Null device class, used for daemonizing"""
