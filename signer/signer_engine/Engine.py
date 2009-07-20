@@ -228,7 +228,10 @@ class Engine:
                 response = self.get_zones()
             if command[:4] == "sign":
                 # do full resort/rensec/sign
-                if args[1] == "all":
+                if len(args) < 2:
+                    response = "sign command needs an argument " +\
+                               "(either 'all' or a zone name)"
+                elif args[1] == "all":
                     for zone in self.zones.keys():
                         self.zones[zone].action = ZoneConfig.REREAD
                         self.schedule_signing(zone)
