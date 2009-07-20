@@ -302,7 +302,9 @@ class Engine:
                         else:
                             response += "Zone config has not changed"
                     except KeyError:
-                        response += "Zone " + args[1] + " not found"
+                        response += "Zone " + args[1] + " not found, updating all zones\n"
+                        response += self.read_zonelist()
+                        response += "\n" + self.check_zone_conf_updates()
                 self.notify_all()
             if command[:4] == "stop":
                 self.stop_engine()
