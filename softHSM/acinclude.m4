@@ -123,22 +123,19 @@ AC_DEFUN([ACX_CUNIT],[
 	AC_SUBST(CUNIT_INCLUDES)
 	AC_SUBST(CUNIT_LIBS)
 ])
-# $Id: acx_dlopen.m4 1122 2009-06-24 10:37:50Z jakob $
+# $Id: acx_dlopen.m4 1330 2009-07-20 13:50:10Z jelte $
 
 AC_DEFUN([ACX_DLOPEN],[
-	AC_CHECK_FUNC(dlopen, [
-			if test $ac_cv_func_dlopen = yes; then
-			AC_DEFINE(HAVE_DLOPEN, 1, [Whether dlopen is available])
-			fi
-		], [
-			AC_CHECK_FUNC(LoadLibrary, [
-				if test $ac_cv_func_LoadLibrary = yes; then
-					AC_DEFINE(HAVE_LOADLIBRARY, 1, [Whether LoadLibrary is available])
-				fi
-			], [
-				AC_MSG_ERROR(No dynamic library loading support)
-			])
-		])
+  AC_CHECK_LIB([dl],[dlopen], 
+    [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])
+    LIBS="$LIBS -ldl"],
+    [AC_CHECK_FUNC(LoadLibrary, 
+      [if test $ac_cv_func_LoadLibrary = yes; then
+        AC_DEFINE(HAVE_LOADLIBRARY, 1, [Whether LoadLibrary is available])
+      fi
+      ], [AC_MSG_ERROR(No dynamic library loading support)]
+    )]
+  )
 ])
 # $Id: acx_ldns.m4 1195 2009-06-26 11:32:18Z jakob $
 

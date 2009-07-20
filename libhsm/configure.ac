@@ -24,7 +24,7 @@ ACX_PEDANTIC
 ACX_STRICT
  
 # Checks for libraries.
-AC_CHECK_LIB([dl], [dlopen])
+#AC_CHECK_LIB([dl], [dlopen])
 
 # Checks for header files.
 AC_HEADER_STDC
