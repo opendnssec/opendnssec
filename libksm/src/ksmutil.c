@@ -720,6 +720,12 @@ cmd_delzone (int argc, char *argv[])
         return(1);
     }
 
+    /* TODO call the signer_engine_cli to tell it that the zonelist has changed */
+    if (system(SIGNER_CLI) != 0)
+    {
+        printf("Could not call signer_engine\n");
+    }
+
     return 0;
 }
 

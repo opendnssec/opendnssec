@@ -104,6 +104,9 @@ AC_DEFINE_UNQUOTED(CONFIGDIR, ["`eval echo $conf_file_dir | sed s,NONE,$ac_defau
 open_var_dir="$prefix/var/opendnssec"
 AC_DEFINE_UNQUOTED(VAR_DIR, ["`eval echo $open_var_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC var directory])
 
+signer_cli="$prefix/bin/signer_engine_cli update"
+AC_DEFINE_UNQUOTED(SIGNER_CLI, ["`eval echo $signer_cli | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine cli])
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
