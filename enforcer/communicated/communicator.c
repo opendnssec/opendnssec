@@ -694,14 +694,14 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     }
 
     /* Make sure that enough keys are allocated to this zone */
-    /* How many do we need ? */
-    status = KsmKeyPredict(policy->id, key_type, policy->shared_keys, interval, &keys_needed);
+    /* How many do we need ? (set sharing to 1 so that we get the number needed for a single zone on this policy */
+    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
         return 3;
     }
 
-    /* How many do we have ? */
+    /* How many do we have ? TODO should this include the currently active key?*/
     status = KsmKeyCountQueue(key_type, &keys_in_queue, zone_id);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current key numbers for zone\n");

@@ -784,7 +784,7 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
         *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.nemzskeys + 1; 
     } 
 
-    if (shared_keys == KSM_KEYS_SHARED) { 
+    if (shared_keys == KSM_KEYS_NOT_SHARED) { 
         *count *= zone_count;
     }
 
@@ -827,8 +827,8 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
      * are included in the output. 
      */ 
  
-    nchar = snprintf(in, sizeof(in), "(%d, %d, %d)", 
-        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY); 
+    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d)", 
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE); 
     if (nchar >= sizeof(in)) { 
         status = MsgLog(KME_BUFFEROVF, "KsmKeyCountQueue"); 
         return status; 
