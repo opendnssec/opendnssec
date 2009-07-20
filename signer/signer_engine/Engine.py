@@ -296,11 +296,11 @@ class Engine:
                         elif zone.zone_config.check_config_file_update():
                             response += "Zone config updated"
                             self.update_zone(zone.zone_name)
-                            self.notify()
                         else:
                             response += "Zone config has not changed"
                     except KeyError:
                         response += "Zone " + args[1] + " not found"
+                self.notify_all()
             if command[:4] == "stop":
                 self.stop_engine()
                 response = "Engine stopped"
