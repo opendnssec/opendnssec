@@ -94,15 +94,21 @@ class Engine:
     # notify a worker that there might be something to do
     def notify(self):
         """Wake up the first waiting worker"""
+        syslog.syslog(syslog.LOG_INFO, "acquire cond")
         self.condition.acquire()
+        syslog.syslog(syslog.LOG_INFO, "notify")
         self.condition.notify()
+        syslog.syslog(syslog.LOG_INFO, "release cond")
         self.condition.release()
     
     # notify all workers that there might be something to do
     def notify_all(self):
         """Wake up all workers"""
+        syslog.syslog(syslog.LOG_INFO, "acquire cond")
         self.condition.acquire()
+        syslog.syslog(syslog.LOG_INFO, "notify")
         self.condition.notifyAll()
+        syslog.syslog(syslog.LOG_INFO, "release cond")
         self.condition.release()
 
     def setup_engine(self):
@@ -320,27 +326,37 @@ class Engine:
 
     def stop_workers(self):
         """Stop all workers"""
+        syslog.syslog(syslog.LOG_INFO, "call stop_workers()")
         for worker in self.workers:
             syslog.syslog(syslog.LOG_INFO,
                           "stopping worker " + worker.name)
             worker.work = False
         # wait for thread to finish
+        syslog.syslog(syslog.LOG_INFO, "wake all workers so they can finish")
         self.notify_all()
-        for worker in self.workers:
-            worker.join()
-        self.notify_all()
+        syslog.syslog(syslog.LOG_INFO, "let workers finish")
+        #for worker in self.workers:
+            #syslog.syslog(syslog.LOG_INFO, "let worker " + worker.name + " finish")
+            #worker.join()
+            #time.sleep(1)
+            #syslog.syslog(syslog.LOG_INFO, "worker " + worker.name + " finished")
 
     def stop_engine(self):
         """Stop the workers and quit the engine"""
+        syslog.syslog(syslog.LOG_INFO, "call stop_workers()")
         self.stop_workers()
         if self.command_socket:
+            syslog.syslog(syslog.LOG_INFO, "shut down command socket")
             self.command_socket.shutdown(socket.SHUT_RDWR)
+            syslog.syslog(syslog.LOG_INFO, "close command socket")
             self.command_socket.close()
             self.command_socket = None
         try:
+            syslog.syslog(syslog.LOG_INFO, "remove command socket")
             os.remove(self.config.command_socket_file)
         except OSError:
             syslog.syslog(syslog.LOG_INFO, "no command channel to clean up")
+        syslog.syslog(syslog.LOG_INFO, "close syslog")
         syslog.closelog()
 
     def read_zonelist(self):
@@ -505,6 +521,7 @@ def signal_handler_stop(signum, frame):
         try:
             syslog.syslog(syslog.LOG_ERR, "Stopping engine")
             if engine:
+                syslog.syslog(syslog.LOG_ERR, "call stop_engine")
                 engine.stop_engine()
             else:
                 syslog.syslog(syslog.LOG_ERR, "Engine already stopped?")
