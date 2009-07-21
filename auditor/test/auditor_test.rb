@@ -88,6 +88,7 @@ class AuditorTest < Test::Unit::TestCase
       "Can't follow NSEC loop from www.tjeb.nl to tjeb.nl",
       "NSEC record left after folowing closed loop : not.there.tjeb.nl",
       "Can't follow NSEC loop from not.there.tjeb.nl to really.not.there.tjeb.nl"
+      # @TODO@ Check SOA Serial == KEEP
     ]
     success = check_syslog(stderr, expected_strings)
     assert(success, "NSEC bad file not audited correctly")

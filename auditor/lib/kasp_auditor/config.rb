@@ -42,6 +42,7 @@ module KASPAuditor
         new_zone.signatures = Zone::Signatures.new(z.elements['Signatures'])
         new_zone.denial = Zone::Denial.new(z.elements['Denial'])
         new_zone.keys = Zone::Keys.new(z.elements['Keys'])
+        new_zone.soa = Zone::SOA.new(z.elements['SOA'])
         @zone = new_zone
       }
     end
@@ -80,7 +81,7 @@ module KASPAuditor
       def initialize(name=nil)
         @name = name
       end
-      attr_accessor :name, :signatures, :keys, :denial
+      attr_accessor :name, :signatures, :keys, :denial, :soa
         
       class Signatures
         #               element Signatures {
@@ -147,7 +148,23 @@ module KASPAuditor
         end
       end
       class SOA
+        UNIXTIME = "unixtime"
+        COUNTER = "counter"
+        DATECOUNTER = "datecounter"
+        KEEP = "keep"
         attr_accessor :ttl, :minimum, :serial
+        def initialize(e)
+          ttl_text = e.elements['TTL'].text
+          @ttl = Config.xsd_duration_to_seconds(ttl_text)
+          min_text = e.elements['Minimum'].text
+          @minimum = Config.xsd_duration_to_seconds(min_text)
+          @serial = e.elements['Serial'].text
+          if (!([UNIXTIME, COUNTER, DATECOUNTER, KEEP].include?@serial))
+            # @TODO@ Log errors encountered in config?
+            # Leave to policy configuration auditor
+            print "ERROR : zone serial type incorrect! (#{@serial} found)\n"
+          end
+        end
       end
       class Keys
         attr_accessor :ttl, :keys

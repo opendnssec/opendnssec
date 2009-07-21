@@ -49,7 +49,7 @@ module KASPAuditor
         log(LOG_WARNING, "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used")
       end
       # Load SOA record from top of original signed and unsigned files!
-      soa_rr= load_soas(unsigned_file, signed_file)
+      soa_rr= load_soas(config, unsigned_file, signed_file)
       log(LOG_INFO, "Auditing #{soa_rr.name} zone : #{config.zone.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
 
       File.open(unsigned_file + ".sorted") {|unsignedfile|
@@ -591,7 +591,7 @@ module KASPAuditor
           # Ignore DNSSEC data in input zone?
           log(LOG_WARNING, "#{unsigned_rr.type} RR present in unsigned file : #{unsigned_rr}")
         else
-        log(LOG_ERR, "Output zone does not contain non-DNSSEC RRSet : #{unsigned_rr.type}, #{unsigned_rr}")
+          log(LOG_ERR, "Output zone does not contain non-DNSSEC RRSet : #{unsigned_rr.type}, #{unsigned_rr}")
         end
       else
         log(LOG_WARNING, "Output zone does not contain out of zone RRSet : #{unsigned_rr.type}, #{unsigned_rr}")
@@ -661,7 +661,7 @@ module KASPAuditor
     end
 
     # Load the SOAs from the *unparsed* files.
-    def load_soas(input_file, output_file)
+    def load_soas(config, input_file, output_file)
       # Load the SOA record from both zones, and check they are the same.
       signed_soa = get_soa_from_file(output_file)
       unsigned_soa = get_soa_from_file(input_file)
@@ -671,11 +671,22 @@ module KASPAuditor
         log(LOG_ERR, "Different SOA name in signed zone! (was #{unsigned_soa.name} in unsigned zone, but is #{signed_soa.name} in signed zone")
       end
       if (signed_soa.serial != unsigned_soa.serial)
-        log(LOG_INFO, "SOA differs : from #{unsigned_soa.serial} to #{signed_soa.serial}")
+        if (config.zone.soa.serial == Config.Zone.SOA.KEEP)
+          # The policy configuration for the zone says that the SOA serial
+          # should stay the same through the signing process. So, if it's changed,
+          # and we're in SOA.KEEP, then log an error
+          log(LOG_ERR, "Policy configuration is to keep SOA serial the same, " +
+              "but is has changed from #{unsigned_soa.serial} to " +
+              "#{signed_soa.serial}")
+        else
+          log(LOG_INFO, "SOA differs : from #{unsigned_soa.serial} to #{signed_soa.serial}")
+        end
+        if (signed_soa.ttl != unsigned_soa.ttl)
+          log(LOG_ERR, "SOA TTL differs : from #{unsigned_soa.ttl} to #{signed_soa.ttl}")
+        end
       end
-      if (signed_soa.ttl != unsigned_soa.ttl)
-        log(LOG_ERR, "SOA TTL differs : from #{unsigned_soa.ttl} to #{signed_soa.ttl}")
-      end
+
+
       return unsigned_soa
     end
 
@@ -701,7 +712,7 @@ module KASPAuditor
         @ret_val = pri.to_i
       end
       begin
-      @syslog.log(pri, msg)
+        @syslog.log(pri, msg)
       rescue ArgumentError # Make sure we continue no matter what
       end
     end
