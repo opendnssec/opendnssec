@@ -214,9 +214,11 @@ class Worker(threading.Thread):
                     if interval == 0:
                         syslog.syslog("worker " + self.name + " released lock by going to wait (indef)")
                         self.condition.wait()
+                        self.condition.release()
                     else:
                         syslog.syslog("worker " + self.name + " released lock by going to wait (for ttime)")
                         self.condition.wait(interval)
+                        self.condition.release()
                 else:
                     self.condition.release()
                     syslog.syslog("worker " + self.name + " released lock")

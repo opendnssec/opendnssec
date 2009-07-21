@@ -166,10 +166,13 @@ class Zone:
                 "-t", str(key["ttl"]),
                 key["locator"]
               ]
-        create_p = Util.run_tool(cmd)
+        #create_p = Util.run_tool(cmd)
+        create_p = subprocess.Popen(cmd,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
         if not create_p:
             syslog.syslog(syslog.LOG_ERR, "Error running create_dnskey")
-            return
+            return False
         for line in create_p.stdout:
             output = line
         status = create_p.wait()
@@ -180,7 +183,7 @@ class Zone:
                       "create_dnskey status: " + str(status))
         syslog.syslog(syslog.LOG_INFO,
                       "equality: " + str(status == 0))
-        if status == 0:
+        if status == 0 and output:
             key["tool_key_id"] = key["locator"]
             key["dnskey"] = str(output)
             syslog.syslog(syslog.LOG_INFO,
@@ -569,7 +572,8 @@ class Zone:
                     syslog.syslog(syslog.LOG_INFO,
                                   "No information yet for key " +\
                                   k["locator"])
-                    self.find_key_details(k)
+                    if not self.find_key_details(k):
+                        return False
                 except ToolException:
                     syslog.syslog(syslog.LOG_ERR,
                                   "Error: Unable to find key " +\

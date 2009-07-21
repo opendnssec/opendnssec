@@ -342,11 +342,11 @@ class Engine:
         syslog.syslog(syslog.LOG_INFO, "wake all workers so they can finish")
         self.notify_all()
         syslog.syslog(syslog.LOG_INFO, "let workers finish")
-        #for worker in self.workers:
-            #syslog.syslog(syslog.LOG_INFO, "let worker " + worker.name + " finish")
-            #worker.join()
+        for worker in self.workers:
+            syslog.syslog(syslog.LOG_INFO, "let worker " + worker.name + " finish")
+            worker.join()
             #time.sleep(1)
-            #syslog.syslog(syslog.LOG_INFO, "worker " + worker.name + " finished")
+            syslog.syslog(syslog.LOG_INFO, "worker " + worker.name + " finished")
 
     def stop_engine(self):
         """Stop the workers and quit the engine"""
