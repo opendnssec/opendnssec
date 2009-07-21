@@ -1,7 +1,8 @@
 # $Id$
 
 AC_DEFUN([ACX_DLOPEN],[
-  AC_CHECK_FUNC(dlopen,, [
+  AC_CHECK_FUNC(dlopen, [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])],
+  [
     AC_CHECK_LIB([dl],[dlopen], 
       [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])
       LIBS="$LIBS -ldl"],

@@ -123,10 +123,11 @@ AC_DEFUN([ACX_CUNIT],[
 	AC_SUBST(CUNIT_INCLUDES)
 	AC_SUBST(CUNIT_LIBS)
 ])
-# $Id: acx_dlopen.m4 1335 2009-07-20 22:37:56Z jelte $
+# $Id: acx_dlopen.m4 1336 2009-07-21 09:15:22Z jelte $
 
 AC_DEFUN([ACX_DLOPEN],[
-  AC_CHECK_FUNC(dlopen,, [
+  AC_CHECK_FUNC(dlopen, [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])],
+  [
     AC_CHECK_LIB([dl],[dlopen], 
       [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])
       LIBS="$LIBS -ldl"],
