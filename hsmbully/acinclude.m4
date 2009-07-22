@@ -372,11 +372,18 @@ AC_DEFUN([ACX_PKCS11_MODULES],[
 		[ pkcs11_opensc_module="$withval" ],
 		[ pkcs11_opensc_module="/usr/lib/pkcs11/opensc-pkcs11.so" ]
 	)
+
+	AC_ARG_WITH(pkcs11-epass2000, 
+		AC_HELP_STRING([--with-pkcs11-opensc=PATH],[specify path of ePass2000 library to use for regression testing (default /usr/lib/libepsng_p11.so)]),
+		[ pkcs11_opensc_module="$withval" ],
+		[ pkcs11_opensc_module="/usr/lib/libepsng_p11.so" ]
+	)
 	
 	AC_SUBST(pkcs11_softhsm_module)
 	AC_SUBST(pkcs11_sca6000_module)
 	AC_SUBST(pkcs11_etoken_module)
 	AC_SUBST(pkcs11_opensc_module)
+	AC_SUBST(pkcs11_epass2000_module)
 ])
 # $Id: acx_rpath.m4 1190 2009-06-26 08:35:57Z jakob $
 

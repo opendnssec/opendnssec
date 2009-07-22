@@ -66,7 +66,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <dlfcn.h>
 
+#include <sys/types.h>
 
 #include <CUnit/Automated.h>
 
@@ -122,13 +124,12 @@ ame)
 
 
 static int ck_rv = CKR_OK;
-static char cumsgbuf [1025];
 static CK_SLOT_ID slotid;
 
 #define WARN(s) fprintf (stderr, "%s\n", s)
 #define GETRV(x) { ck_rv = (x); }
 #define TESTRV(s,x) { ck_rv = (x); if (ck_rv!=CKR_OK) { fprintf (stderr, "%s: Error %08x in retval\n", s, ck_rv); } }
-// #define TESTRV(s,x) { if (ck_rv==CKR_OK) { ck_rv = (x); fprintf (stderr, "Return value %08lx at %s:%d\n", ck_rv, __FILE__, __LINE__); } if (ck_rv==CKR_OK) { printf ("Pass: %s\n", (s)); } else { snprintf (cumsgbuf, sizeof (cumsgbuf)-1, "Return value %08lx is not CKR_OK: %s", ck_rv, (s)); cumsgbuf [sizeof (cumsgbuf)-1] = '\0'; fprintf (stderr, "Fail: %s\n", cumsgbuf); } }
+// #define TESTRV(s,x) { static char cumsgbuf [1025]; if (ck_rv==CKR_OK) { ck_rv = (x); fprintf (stderr, "Return value %08lx at %s:%d\n", ck_rv, __FILE__, __LINE__); } if (ck_rv==CKR_OK) { printf ("Pass: %s\n", (s)); } else { snprintf (cumsgbuf, sizeof (cumsgbuf)-1, "Return value %08lx is not CKR_OK: %s", ck_rv, (s)); cumsgbuf [sizeof (cumsgbuf)-1] = '\0'; fprintf (stderr, "Fail: %s\n", cumsgbuf); } }
 #define MKFATAL() { if (ck_rv != CKR_OK) exit (1); }
 #define LASTRVOK() (ck_rv==CKR_OK)
 
@@ -258,9 +259,9 @@ void testslot_initiation (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			C_Login (seshdl, CKU_SO, ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			C_Login (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
 		TESTRV ("Setting up user PIN",
-			C_InitPIN (seshdl, ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		TESTRV ("Logging out after setting setting up PIN",
 			C_Logout (seshdl));
 #	endif
@@ -304,7 +305,7 @@ void testslot_initiation (void) {
 		if (choice_login) {
 			GETRV (C_Login (seshdl,
 					choice_user? CKU_USER: CKU_SO,
-					choice_user? ASCII_PIN_USER: ASCII_PIN_SO,
+					(CK_UTF8CHAR_PTR) (choice_user? ASCII_PIN_USER: ASCII_PIN_SO),
 					choice_user? strlen (ASCII_PIN_USER): strlen (ASCII_PIN_SO)));
 			if (choice_session) {
 				MKFATAL ();
@@ -342,7 +343,7 @@ void testslot_initiation (void) {
 		 * Operation 1.  Initialise the user PIN.
 		 * This is only possible during an SO RW session.
 		 */
-		GETRV (C_InitPIN (seshdl, ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		GETRV (C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		if (choice_session && choice_login && choice_rw && !choice_user) {
 			if (LASTRVOK ()) {
 				CU_PASS ("Properly accepted operation #1 during initiation test");
@@ -363,10 +364,10 @@ void testslot_initiation (void) {
 		 * Login need not have succeeded for this to work.
 		 */
 		GETRV (C_SetPIN (seshdl,
-			(choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
-			(choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER),
-			(choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
-			(choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER)));
+			(CK_UTF8CHAR_PTR) (choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
+			(CK_ULONG) (choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER),
+			(CK_UTF8CHAR_PTR) (choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
+			(CK_ULONG) (choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER)));
 		if (choice_session && choice_login && choice_rw) {
 			if (LASTRVOK ()) {
 				CU_PASS ("Properly accepted operation #2 during initiation test");
@@ -476,14 +477,14 @@ void testslot_fragmentation (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			C_Login (seshdl, CKU_SO, ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			C_Login (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
 		TESTRV ("Setting up user PIN",
-			C_InitPIN (seshdl, ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		TESTRV ("Logging out after setting setting up PIN",
 			C_Logout (seshdl));
 #	endif
 	TESTRV ("Logging into token for fragmentation test",
-		C_Login (seshdl, CKU_USER, ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		C_Login (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 	MKFATAL ();
 
 	/*
@@ -594,7 +595,7 @@ void testslot_keysizing (void) {
 	CK_SESSION_HANDLE seshdl;
 	CK_BYTE noappinfo;
 
-	int minbytes, maxbytes, curbytes;
+	CK_ULONG minbytes, maxbytes, curbytes;
 
 	CK_RV retval;
 
@@ -611,14 +612,14 @@ void testslot_keysizing (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			C_Login (seshdl, CKU_SO, ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			C_Login (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
 		TESTRV ("Setting up user PIN",
-			C_InitPIN (seshdl, ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		TESTRV ("Logging out after setting setting up PIN",
 			C_Logout (seshdl));
 #	endif
 	TESTRV ("Logging into token for keysizing test",
-		C_Login (seshdl, CKU_USER, ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		C_Login (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 	MKFATAL ();
 
 	/*
@@ -724,14 +725,14 @@ void testslot_signing (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			C_Login (seshdl, CKU_SO, ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			C_Login (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
 		TESTRV ("Setting up user PIN",
-			C_InitPIN (seshdl, ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		TESTRV ("Logging out after setting setting up PIN",
 			C_Logout (seshdl));
 #	endif
 	TESTRV ("Logging into token for signing test",
-		C_Login (seshdl, CKU_USER, ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		C_Login (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 	MKFATAL ();
 
 	/*
@@ -779,7 +780,7 @@ void testslot_signing (void) {
 				C_SignInit (seshdl, &mech, priv));
 			TESTRV ("Constructing signature",
 				C_Sign (seshdl, data, sizeof (data), sig, &siglen));
-			if (siglen * 8 != modbits) {
+			if (siglen * 8 != (CK_ULONG) modbits) {
 				CU_FAIL ("Signature length differs from promised length in signing test");
 			} else {
 				CU_PASS ("Signature length matches promised length in signing test");
@@ -831,7 +832,7 @@ void bailout (void) {
 void inittoken (void) {
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Formatting the token",
-			 C_InitToken (slotid, ASCII_PIN_SO, strlen (ASCII_PIN_SO), TOKENLABEL_32CHARS));
+			 C_InitToken (slotid, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO), (CK_UTF8CHAR_PTR) TOKENLABEL_32CHARS));
 #	else
 	CU_PASS ("Skipping token initialisation in non-destructive test mode.  Existing USER/SO PIN values must be as set in source.");
 #	endif
@@ -846,7 +847,18 @@ int main (int argc, char *argv []) {
 	CK_SLOT_ID slotlist [2];
 	CK_ULONG slotcount = 2;
 	CU_pSuite st [4];
+	void *p11hdl;
 
+	if (argc == 2) {
+		p11hdl = dlopen (argv [1], RTLD_NOW);
+		if (p11hdl == NULL) {
+			fprintf (stderr, "%s: Failed to open %s: %s\n", argv [0], argv [1], dlerror ());
+			exit (1);
+		}
+	} else {
+		fprintf (stderr, "Usage: %s /path/to/pkcs11-library\n", argv [0]);
+		exit (1);
+	}
 
 	/*
  	 * Register test suites and tests.
@@ -890,7 +902,7 @@ int main (int argc, char *argv []) {
 	TESTRV ("Obtaining list of slots",
 		 C_GetSlotList (TRUE, slotlist, &slotcount));
 	if (slotcount != 1) {
-		fprintf (stderr, "Number of slots is %d, so not equal to 1 -- unsure which to test\n", slotcount);
+		fprintf (stderr, "Number of slots is %d, so not equal to 1 -- unsure which to test\n", (int) slotcount);
 		exit (1);
 	}
 	slotid = slotlist [0];
@@ -926,6 +938,7 @@ int main (int argc, char *argv []) {
 	 * Terminate without error-reporting return value.
 	 */
 	CU_cleanup_registry ();
+	dlclose (p11hdl);
 	exit (0);
 }
 
