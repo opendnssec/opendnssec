@@ -59,6 +59,7 @@ int KsmRundown(void);
 
 #define KSM_NAME_LENGTH     256         /* Includes trailing NULL */
 #define KSM_POLICY_DESC_LENGTH     256  /* Includes trailing NULL */
+#define KSM_POLICY_AUDIT_LENGTH    4096 /* Includes trailing NULL */
 #define KSM_TIME_LENGTH     32          /* Includes trailing NULL */
 
 #define KSM_SQL_SIZE        1024        /* Max size of SQL statement */
@@ -250,7 +251,8 @@ typedef struct {
 	KSM_ENFORCER_POLICY* enforcer;
 	KSM_ZONE_POLICY* zone;
 	KSM_PARENT_POLICY* parent;
-	KSM_AUDIT_POLICY* audit;
+	/*KSM_AUDIT_POLICY* audit;*/
+	char* audit;
     int     shared_keys;
 } KSM_POLICY;
 
@@ -535,6 +537,7 @@ int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy);
 int KsmImportRepository(const char* repo_name, const char* repo_capacity);
 int KsmImportPolicy(const char* policy_name, const char* policy_description);
 int KsmImportZone(const char* zone_name, int policy_id);
+int KsmImportAudit(int policy_id, const char* audit_contents);
 int KsmSmIdFromName(const char* name, int *id);
 int KsmSerialIdFromName(const char* name, int *id);
 int KsmPolicyIdFromName(const char* name, int *id);

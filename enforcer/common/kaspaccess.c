@@ -108,7 +108,6 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->parent->soa_ttl = 0;
     policy->parent->soa_min = 0;
 
-    policy->audit->audit = 0;
 }
 
 /*

@@ -46,6 +46,7 @@
 #include <libxml/xpathInternals.h>
 #include <libxml/relaxng.h>
 #include <libxml/xmlreader.h>
+#include <libxml/xmlsave.h>
 
 /* Some value type flags */
 #define INT_TYPE 0
@@ -773,7 +774,7 @@ cmd_export (int argc, char *argv[])
     char *port = NULL;
     char *user = NULL;
     char *password = NULL;
-    
+
     DB_RESULT result;
     int status = 0;
     xmlDocPtr doc = xmlNewDoc((const xmlChar *)"1.0");
@@ -821,15 +822,15 @@ cmd_export (int argc, char *argv[])
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
+/*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
+    policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     if (policy->signer == NULL || policy->signature == NULL || 
             policy->zone == NULL || policy->parent == NULL ||
             policy->keys == NULL ||
             policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL ||
-            policy->audit == NULL) {
+            policy->denial == NULL || policy->enforcer == NULL) {
         fprintf(stderr, "Malloc for policy struct failed\n");
         exit(1);
     }
@@ -1623,11 +1624,14 @@ int update_policies()
     /* what we will read from the file */
     char *policy_name;
     char *policy_description;
+    char *audit_contents;
     char *temp_char;
     char *tag_name;
+    char *tag_name2;
 
     /* All of the XML stuff */
     int ret = 0; /* status of the XML parsing */
+    int ret2 = 0; /* status of the XML parsing */
     xmlDocPtr doc = NULL;
     xmlDocPtr pol_doc = NULL;
     xmlDocPtr rngdoc = NULL;
@@ -1637,6 +1641,7 @@ int update_policies()
     xmlRelaxNGValidCtxtPtr rngctx = NULL;
     xmlRelaxNGPtr schema = NULL;
     xmlTextReaderPtr reader = NULL;
+    xmlTextReaderPtr reader2 = NULL;
 
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *desc_expr = (unsigned char*) "//Policy/Description";
@@ -1684,7 +1689,7 @@ int update_policies()
     xmlChar *parent_soa_ttl_expr = (unsigned char*) "//Policy/Parent/SOA/TTL";
     xmlChar *parent_min_expr = (unsigned char*) "//Policy/Parent/SOA/Minimum";
 
-    xmlChar *audit_expr = (unsigned char*) "//Policy/Audit";
+/*    xmlChar *audit_expr = (unsigned char*) "//Policy/Audit"; */
 
     KSM_POLICY *policy;
 
@@ -1760,14 +1765,14 @@ int update_policies()
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
+/*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
+    policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     /* Let's check all of those mallocs, or should we use MemMalloc ? */
     if (policy->signer == NULL || policy->signature == NULL || policy->keys == NULL ||
             policy->zone == NULL || policy->parent == NULL || 
             policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL ||
-            policy->audit == NULL) {
+            policy->denial == NULL || policy->enforcer == NULL) {
         printf("Malloc for policy struct failed\n");
         exit(1);
     }
@@ -2047,11 +2052,34 @@ int update_policies()
                 }
 
                 /* AUDIT */
-                if ( SetParamOnPolicy(xpathCtx, audit_expr, "audit", "audit", policy->audit->audit, policy->id, BOOL_TYPE) != 0) {
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
+                /* Make Reader from pol_doc */
+                reader2 = xmlReaderWalker(pol_doc);
+                if (reader2 != NULL) {
+                    ret2 = xmlTextReaderRead(reader2);
+                    while (ret2 == 1) {
+                        tag_name2 = (char*) xmlTextReaderLocalName(reader2);
+                        /* Found <Audit> */
+                        if (strncmp(tag_name2, "Audit", 5) == 0 
+                                && xmlTextReaderNodeType(reader2) == 1) {
+                            audit_contents = (char *)xmlTextReaderReadInnerXml(reader2);
 
+                            /* Stick the audit information into the database */
+                            status = KsmImportAudit(policy->id, audit_contents);
+                            if(status != 0) {
+                                printf("Error: unable to insert Audit info for policy %s\n", policy->name);
+                                /* Don't return? try to parse the rest of the file? */
+                                ret2 = xmlTextReaderRead(reader2);
+                                continue;
+                            }
+                            StrFree(tag_name2);
+                            StrFree(audit_contents);
+                        } /* End of <Audit> */
+                        ret2 = xmlTextReaderRead(reader2);
+                    }
+
+                    xmlFreeTextReader(reader2);
+                }
+                
             } /* End of <Policy> */
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
@@ -2371,8 +2399,6 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->parent->ds_ttl = 0;
     policy->parent->soa_ttl = 0;
     policy->parent->soa_min = 0;
-
-    policy->audit->audit = 0;
 
 }
 
@@ -2914,7 +2940,11 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     xmlNodePtr parent_node;
     xmlNodePtr parent_ds_node;
     xmlNodePtr parent_soa_node;
-/*    xmlNodePtr audit_node; void until we put something in it */
+
+    xmlNodePtr audit_node;
+    xmlNodePtr encNode;
+    int ret = 0; /* status of the XML parsing */
+
     char temp_time[32];
    
     root = xmlDocGetRootElement(doc);
@@ -3038,9 +3068,15 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"Minimum", (const xmlChar *)temp_time);
 
     /* AUDIT */
-    if (policy->audit->audit == 1)
-    {
-        (void) xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Audit", NULL);
+    audit_node = xmlNewChild(policy_node, NULL, (const xmlChar *)"Audit", NULL);
+   
+    ret = xmlParseInNodeContext(audit_node, policy->audit, strlen(policy->audit), 0, &encNode);
+
+    if (ret < 0) {
+        (void) xmlNewChild(policy_node, NULL, (const xmlChar *)"Error", "audit tag contents could not be parsed");
+    }
+    else {
+        xmlAddChild(audit_node, encNode);
     }
 
     return(0);

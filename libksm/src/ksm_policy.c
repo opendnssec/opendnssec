@@ -76,7 +76,7 @@ int KsmPolicyInit(DB_RESULT* result, const char* name)
 
     /* Construct the query */
 
-    sql = DqsSpecifyInit("policies","id, name, description");
+    sql = DqsSpecifyInit("policies","id, name, description, audit");
     if (name) {
         DqsConditionString(&sql, "NAME", DQS_COMPARE_EQ, name, where++);
     }
@@ -316,9 +316,9 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "retiresafety",12) == 0) policy->keys->retire_safety=data.value;
             		if (strncmp(data.name, "publishsafety",13) == 0) policy->keys->publish_safety=data.value;
             	}
-            	if (strncmp(data.category, "audit", 5) == 0) {
+            /*	if (strncmp(data.category, "audit", 5) == 0) {
             		if (strncmp(data.name, "audit",5) == 0) policy->audit->audit=data.value;
-                }
+                }*/
            		/* Ignore any unknown parameters */
 
                 status = KsmPolicyParameter(result, &data);
@@ -775,6 +775,7 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy)
         if (status == 0) {
             DbInt(row, DB_POLICY_ID, &policy->id);
             DbStringBuffer(row, DB_POLICY_DESCRIPTION, policy->description, KSM_POLICY_DESC_LENGTH*sizeof(char));
+            DbStringBuffer(row, DB_POLICY_AUDIT, policy->audit, KSM_POLICY_AUDIT_LENGTH*sizeof(char));
         }
         else if (status == -1) {
         /* No rows to return (but no error) */

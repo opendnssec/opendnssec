@@ -41,8 +41,8 @@ INSERT INTO TEST_BASIC VALUES(NULL, 200, 'ABC', '20080102');
 INSERT INTO TEST_BASIC VALUES(NULL, 300, 'DEF', '20080103');
 
 -- Create 2 policies:
-INSERT INTO policies VALUES (NULL,'opendnssec','special policy for enforcer config', NULL, NULL);
-INSERT INTO policies VALUES (NULL,'default','A default policy that will amaze you and your friends', NULL, NULL);
+INSERT INTO policies VALUES (NULL,'opendnssec','special policy for enforcer config', NULL, NULL, NULL);
+INSERT INTO policies VALUES (NULL,'default','A default policy that will amaze you and your friends', NULL, NULL, NULL);
 
 -- Parameter_policies for default
 INSERT INTO parameters_policies VALUES (1,1,2,7200);

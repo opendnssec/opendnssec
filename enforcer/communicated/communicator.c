@@ -121,7 +121,8 @@ server_main(DAEMONCONFIG *config)
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY));
+/*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
+    policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
 
@@ -492,12 +493,9 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     fprintf(file, "\t\t\t<Serial>%s</Serial>\n", KsmKeywordSerialValueToName( policy->signer->serial) );
     fprintf(file, "\t\t</SOA>\n");
 
-    if (policy->audit->audit == 1)
-    {
-        fprintf(file, "\n");
-        fprintf(file, "\t\t<Audit />\n");
-        fprintf(file, "\n");
-    }
+    fprintf(file, "\n");
+    fprintf(file, "\t\t<Audit>%s</Audit>\n", policy->audit);
+    fprintf(file, "\n");
 
     fprintf(file, "\t</Zone>\n");
     fprintf(file, "</SignerConfiguration>\n");

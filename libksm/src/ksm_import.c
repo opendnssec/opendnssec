@@ -237,6 +237,41 @@ int KsmImportZone(const char* zone_name, int policy_id)
     return status;
 }
 
+/*+
+ * KsmImportAudit - Import contents of the Audit tag for a policy, which will already exist
+ *
+ *
+ * Arguments:
+ *
+ *      int policy_id
+ *          ID of the policy
+ *
+ *      const char* audit_contents
+ *          Audit information for that policy
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                         -1 if an unexpected count value was returned
+-*/
+
+int KsmImportAudit(int policy_id, const char* audit_contents)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+
+    /* Insert policy */
+    sql = DusInit("policies");
+    DusSetString(&sql, "audit", audit_contents, 0);
+    DusConditionInt(&sql, "id", DQS_COMPARE_EQ, policy_id, 0);
+    DusEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DusFree(sql);
+
+    return status;
+}
+
 int KsmSmIdFromName(const char* name, int *id)
 {
     char*   sql = NULL;         /* SQL query */
