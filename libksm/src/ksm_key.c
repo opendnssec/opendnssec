@@ -612,6 +612,10 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data)
             data->location, sizeof(data->location));
     }
 
+	if (status == 0) {
+        status = DbInt(row, DB_KEYDATA_COMPROMISED, &(data->compromised));
+	}
+
 	DbFreeRow(row);
 
     return status;

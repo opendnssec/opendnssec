@@ -115,6 +115,7 @@ typedef struct {
     char    HSMKey_id[KSM_NAME_LENGTH]; /* TODO is this long enough ? */
     DB_ID	dnsseckey_id;
     int     zone_id;
+    int     compromised;
 
     /*
      * The remaining fields are used for data manipulation and are not part of

@@ -134,7 +134,8 @@ select k.id as id, k.state as state, k.generate as generate, k.publish as publis
     k.ready as ready, k.active as active, k.retire as retire, k.dead as dead, 
     d.keytype as keytype, k.algorithm as algorithm, k.HSMkey_id as location,
     d.zone_id as zone_id, k.policy_id as policy_id, 
-    k.securitymodule_id as securitymodule_id, k.size as size
+    k.securitymodule_id as securitymodule_id, k.size as size,
+    k.compromisedflag as compromisedflag
 from  keypairs k left outer join dnsseckeys d
 on k.id = d.keypair_id;
 

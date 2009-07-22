@@ -304,11 +304,11 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
         if (ready <= 0) {
             /*
              * If active <= 0 then we can promote a published key as this is the 
-             * first pass for this zone.
+             * first pass for this zone (assuming that we are not rolling).
              * NB: A consequence of this is that these keys will have no "ready"
              *     time as they are never in the "ready" state.
              */
-            if (active <= 0) {
+            if (active <= 0 && rollover != 1) {
                 /* TODO log what we are doing? */
                 status = KsmRequestChangeStateN(keytype, datetime, 1,
                                     KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
@@ -478,6 +478,7 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
 
     sql = DusInit("keypairs");
     DusSetString(&sql, "RETIRE", datetime, 0);
+    DusSetInt(&sql, "compromisedflag", 1, 1);
 
     DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 0);
     StrFree(insql);

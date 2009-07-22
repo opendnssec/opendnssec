@@ -140,7 +140,7 @@ where p.category_id = c.id;
 create or replace view KEYDATA_VIEW as
 select k.id, k.state,	k.generate, k.publish, k.ready,	k.active,	k.retire,
        k.dead, d.keytype, k.algorithm,	k.HSMkey_id as location, d.zone_id,
-       k.policy_id, k.securitymodule_id, k.size
+       k.policy_id, k.securitymodule_id, k.size, k.compromisedflag
 from keypairs k left outer join dnsseckeys d
 on k.id = d.keypair_id;
 
