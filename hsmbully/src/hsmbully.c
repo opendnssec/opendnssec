@@ -66,7 +66,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <dlfcn.h>
 
 #include <sys/types.h>
 
@@ -847,18 +846,6 @@ int main (int argc, char *argv []) {
 	CK_SLOT_ID slotlist [2];
 	CK_ULONG slotcount = 2;
 	CU_pSuite st [4];
-	void *p11hdl;
-
-	if (argc == 2) {
-		p11hdl = dlopen (argv [1], RTLD_NOW);
-		if (p11hdl == NULL) {
-			fprintf (stderr, "%s: Failed to open %s: %s\n", argv [0], argv [1], dlerror ());
-			exit (1);
-		}
-	} else {
-		fprintf (stderr, "Usage: %s /path/to/pkcs11-library\n", argv [0]);
-		exit (1);
-	}
 
 	/*
  	 * Register test suites and tests.
@@ -938,7 +925,6 @@ int main (int argc, char *argv []) {
 	 * Terminate without error-reporting return value.
 	 */
 	CU_cleanup_registry ();
-	dlclose (p11hdl);
 	exit (0);
 }
 

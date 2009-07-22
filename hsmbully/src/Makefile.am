@@ -7,6 +7,8 @@ AM_CPPFLAGS =	-I$(srcdir)/.. \
 		@CUNIT_INCLUDES@
 AM_CFLAGS =	-std=c99
 
+AM_LDFLAGS =	-rdynamic
+
 bin_PROGRAMS = hsmbully
 
 hsmbully_LDADD = @pkcs11_module@ @CUNIT_LIBS@

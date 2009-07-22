@@ -37,9 +37,9 @@ ACX_CUNIT
 ACX_DLOPEN
 
 AC_ARG_WITH(pkcs11, 
-	AC_HELP_STRING([--with-pkcs11=PATH],[specify path of PKCS#11 library to use]),
-	[ pkcs11_module="$withval" ],
-	[ pkcs11_module="$prefix/lib/libsofthsm.so" ]
+AC_HELP_STRING([--with-pkcs11=PATH],[specify path of PKCS#11 library to use]),
+[ pkcs11_module="$withval" ],
+[ pkcs11_module="$prefix/lib/libsofthsm.so" ]
 )
 
 AC_SUBST(pkcs11_module)
