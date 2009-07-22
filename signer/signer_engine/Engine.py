@@ -111,15 +111,15 @@ class Engine:
         syslog.syslog(syslog.LOG_INFO, "release cond")
         self.condition.release()
 
-    def setup_engine(self):
+    def start_workers(self):
         i = 1
         while i <= self.config.worker_threads:
             self.add_worker(str(i))
             i += 1
 
+    def setup_engine(self):
         # create socket to listen for commands on
         # only listen on localhost atm
-
         self.command_socket = socket.socket(socket.AF_UNIX,
                                             socket.SOCK_STREAM)
         self.command_socket.setsockopt(socket.SOL_SOCKET,
@@ -551,6 +551,7 @@ def signal_handler_stop(signum, frame):
                 engine.stop_engine()
                 engine = Engine(config_file)
                 engine.read_zonelist()
+                engine.start_workers()
                 engine.setup_engine()
                 engine.run()
         except Exception, e:
@@ -613,12 +614,12 @@ def main():
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
         signal.signal(signal.SIGHUP, signal_handler_stop)
+        engine.setup_engine()
         if daemonize:
             daemonize_engine()
         else:
             print "running as pid " + str(os.getpid())
-        engine.setup_engine()
-        print "output redirected to syslog"
+        engine.start_workers()
         engine.run()
         # just to be sure
         engine.stop_workers()
