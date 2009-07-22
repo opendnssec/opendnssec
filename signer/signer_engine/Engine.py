@@ -613,11 +613,11 @@ def main():
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
         signal.signal(signal.SIGHUP, signal_handler_stop)
-        engine.setup_engine()
         if daemonize:
             daemonize_engine()
         else:
             print "running as pid " + str(os.getpid())
+        engine.setup_engine()
         print "output redirected to syslog"
         engine.run()
         # just to be sure
