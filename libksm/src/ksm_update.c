@@ -378,10 +378,13 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      */
 
     if (data->keytype == KSM_TYPE_ZSK) {
-        deltat = data->siglifetime + collection->propdelay + collection->ret_safety;
+        deltat = collection->zsksiglife + collection->propdelay + collection->ret_safety;
     }
     else if (data->keytype == KSM_TYPE_KSK) {
-        /* for a KSK this can be 0; are we happy with that? Might revisit this in the future */
+        /* 
+         * for a KSK this can be 0 (from the timings draft); are we happy with that? 
+         * Might revisit this in the future as it might be a surprise for people 
+         */
         deltat = 0;
     }
     else {

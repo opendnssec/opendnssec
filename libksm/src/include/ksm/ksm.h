@@ -392,7 +392,7 @@ void KsmPurge(void);
 #define KSM_PAR_SOATTL_STRING           "ttl"
 #define KSM_PAR_SOATTL_CAT              "zone"
 #define KSM_PAR_ZSKSIGLIFE              432000      /* 5 days */
-#define KSM_PAR_ZSKSIGLIFE_STRING       "ttl"
+#define KSM_PAR_ZSKSIGLIFE_STRING       "valdefault"
 #define KSM_PAR_ZSKSIGLIFE_CAT          "signature"
 #define KSM_PAR_ZSKLIFE                 2592000     /* 30 days */
 #define KSM_PAR_ZSKLIFE_STRING          "lifetime"
