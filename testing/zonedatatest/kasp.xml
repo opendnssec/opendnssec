@@ -3,7 +3,7 @@
 <!-- $Id$ -->
 
 <KASP>
-	<Policy name="default">
+	<Policy name="policy1">
 		<Description>A default policy that will amaze you and your friends</Description>
 		<Signatures>
 			<Resign>PT6M</Resign>
