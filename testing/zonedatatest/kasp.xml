@@ -7,12 +7,12 @@
 		<Description>A default policy that will amaze you and your friends</Description>
 		<Signatures>
 			<Resign>PT6M</Resign>
-			<Refresh>PT30M</Refresh>
+			<Refresh>P4D</Refresh>
 			<Validity>
-					<Default>PT1H</Default>
-					<Denial>PT1H</Denial>
+					<Default>P7D</Default>
+					<Denial>P7D</Denial>
 			</Validity>
-			<Jitter>PT10M</Jitter>
+			<Jitter>P12H</Jitter>
 			<InceptionOffset>PT300S</InceptionOffset>
 		</Signatures>
 
@@ -31,7 +31,7 @@
 			<!-- Parameters for KSK only -->
 			<KSK>
 				<Algorithm length="2048">5</Algorithm>
-				<Lifetime>PT4H</Lifetime>
+				<Lifetime>P1Y</Lifetime>
 				<Repository>softHSM</Repository>
 				<Emergency>2</Emergency>
 				<RFC5011/>
@@ -40,7 +40,7 @@
 			<!-- Parameters for ZSK only -->
 			<ZSK>
 				<Algorithm length="1024">5</Algorithm>
-				<Lifetime>PT2H</Lifetime>
+				<Lifetime>P1M</Lifetime>
 				<Repository>softHSM</Repository>
 				<Emergency>2</Emergency>
 			</ZSK>
