@@ -86,11 +86,13 @@ def engine_cli(args, file):
             run(cl_sock)
         cl_sock.shutdown(0)
     except socket.error, serr:
-        if hasattr(serr, "errno") and serr.errno == 2:
+        if (hasattr(serr, "errno") and serr.errno == 2) or \
+           isinstance(serr, socket.error) and serr[0] == 2:
             print "Unable to connect to engine. It might not be running."
         else:
             print "Error opening domain socket %s: %s" % (file, str(serr))
-            print serr
+            print serr.__class__
+            raise serr
 
 def parse_args():
     """Parse options"""
