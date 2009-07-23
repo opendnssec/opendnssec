@@ -132,7 +132,7 @@ class Engine:
         try:
             os.remove(self.config.command_socket_file)
         except Exception, e:
-            if not e.errno or e.errno != errno.ENOENT:
+            if hasattr(e, "errno") and e.errno != errno.ENOENT:
                 raise e
         try:
             syslog.syslog(syslog.LOG_INFO, "opening socket: " + self.config.command_socket_file)
