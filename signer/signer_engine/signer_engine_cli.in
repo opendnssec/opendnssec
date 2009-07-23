@@ -95,14 +95,15 @@ def engine_cli(args, file):
 def parse_args():
     """Parse options"""
     try:
-        parser = optparse.OptionParser()
+        parser = optparse.OptionParser("Usage: %prog [options] command\n\nThe command 'help' shows a complete list of commands")
         #parser.add_option("-n", "--host", dest="host", default="localhost")
         #parser.add_option("-p", "--port", dest="port", default=47806)
         parser.add_option("-f", "--file", dest="file",
-                        default="@localstatedir@" + os.sep + \
-                                "run" + os.sep +\
-                                "opendnssec" + os.sep + \
-                                "engine.sock")
+                          help="connect to domain socket <file>",
+                          default="@localstatedir@" + os.sep + \
+                                  "run" + os.sep +\
+                                  "opendnssec" + os.sep + \
+                                  "engine.sock")
         (options, arguments) = parser.parse_args()
         engine_cli(arguments, options.file)
     except ValueError, vae:
