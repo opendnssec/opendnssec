@@ -1690,6 +1690,7 @@ int update_policies()
     xmlChar *parent_min_expr = (unsigned char*) "//Policy/Parent/SOA/Minimum";
 
 /*    xmlChar *audit_expr = (unsigned char*) "//Policy/Audit"; */
+    int audit_found = 0;    /* flag to say whether an Audit flag was found or not */
 
     KSM_POLICY *policy;
 
@@ -2065,6 +2066,7 @@ int update_policies()
 
                             /* Stick the audit information into the database */
                             status = KsmImportAudit(policy->id, audit_contents);
+                            audit_found = 1;
                             if(status != 0) {
                                 printf("Error: unable to insert Audit info for policy %s\n", policy->name);
                                 /* Don't return? try to parse the rest of the file? */
@@ -2075,6 +2077,11 @@ int update_policies()
                             StrFree(audit_contents);
                         } /* End of <Audit> */
                         ret2 = xmlTextReaderRead(reader2);
+                    }
+
+                    /* Indicate in the database if we didn't find an audit tag */
+                    if (audit_found == 0) {
+                        status = KsmImportAudit(policy->id, "NULL");
                     }
 
                     xmlFreeTextReader(reader2);
@@ -3068,15 +3075,17 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"Minimum", (const xmlChar *)temp_time);
 
     /* AUDIT */
-    audit_node = xmlNewChild(policy_node, NULL, (const xmlChar *)"Audit", NULL);
-   
-    ret = xmlParseInNodeContext(audit_node, policy->audit, strlen(policy->audit), 0, &encNode);
+    if (strncmp(policy->audit, "NULL", 4) != 0) {
+        audit_node = xmlNewChild(policy_node, NULL, (const xmlChar *)"Audit", NULL);
 
-    if (ret < 0) {
-        (void) xmlNewChild(policy_node, NULL, (const xmlChar *)"Error", "audit tag contents could not be parsed");
-    }
-    else {
-        xmlAddChild(audit_node, encNode);
+        ret = xmlParseInNodeContext(audit_node, policy->audit, strlen(policy->audit), 0, &encNode);
+
+        if (ret < 0) {
+            (void) xmlNewChild(policy_node, NULL, (const xmlChar *)"Error", "audit tag contents could not be parsed");
+        }
+        else {
+            xmlAddChild(audit_node, encNode);
+        }
     }
 
     return(0);

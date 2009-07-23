@@ -493,9 +493,11 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     fprintf(file, "\t\t\t<Serial>%s</Serial>\n", KsmKeywordSerialValueToName( policy->signer->serial) );
     fprintf(file, "\t\t</SOA>\n");
 
-    fprintf(file, "\n");
-    fprintf(file, "\t\t<Audit>%s</Audit>\n", policy->audit);
-    fprintf(file, "\n");
+    if (strncmp(policy->audit, "NULL", 4) != 0) {
+        fprintf(file, "\n");
+        fprintf(file, "\t\t<Audit>%s</Audit>\n", policy->audit);
+        fprintf(file, "\n");
+    }
 
     fprintf(file, "\t</Zone>\n");
     fprintf(file, "</SignerConfiguration>\n");
