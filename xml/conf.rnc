@@ -17,7 +17,7 @@ start = element Configuration {
 			element TokenLabel { xsd:string },
 
 			# PKCS#11 Login Credentials (asked for if not specified)
-			element PIN { xsd:string }?,
+			element PIN { xsd:string },
 
 			# Maxmimum number of key pairs in the Repository (if limited)
 			element Capacity { xsd:positiveInteger }?
