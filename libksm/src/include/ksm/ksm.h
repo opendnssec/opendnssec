@@ -510,6 +510,7 @@ int KsmRequestAvailableCount(int keytype, const char* datetime,
 int KsmRequestGenerateCount(int keytype, int* count, int zone_id);
 int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count, int zone_id);
 int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count, int zone_id);
+int KsmRequestCheckFirstPass(int keytype, int* first_pass_flag, int zone_id);
 
 int KsmRequestIssueKeys(int keytype, KSM_REQUEST_CALLBACK callback,
 	void* context, int zone_id);

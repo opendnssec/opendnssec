@@ -203,6 +203,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
     int     active;         /* Number of active keys to be retired */
     KSM_PARCOLL collection; /* Parameters collection */
     int     ready;          /* Number of keys in the "ready" state */
+    int     first_pass;     /* Indicates if this zone has been published before */
     int     status;         /* Status return */
 
 	/* Check that we have a valid key type */
@@ -302,13 +303,19 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
          */
 
         if (ready <= 0) {
+
             /*
-             * If active <= 0 then we can promote a published key as this is the 
-             * first pass for this zone (assuming that we are not rolling).
+             * If this is the first pass for this zone. Then we can promote a key 
+             * to active from published
              * NB: A consequence of this is that these keys will have no "ready"
              *     time as they are never in the "ready" state.
              */
-            if (active <= 0 && rollover != 1) {
+            status = KsmRequestCheckFirstPass(keytype, &first_pass, zone_id);
+            if (status != 0) {
+                return status;
+            }
+
+            if (first_pass == 1) {
                 /* TODO log what we are doing? */
                 status = KsmRequestChangeStateN(keytype, datetime, 1,
                                     KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
@@ -1407,6 +1414,61 @@ int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count, int z
     return status;
 }
 
+/*
+ * KsmRequestCheckFirstPass - Work out if this zone has been processed before
+ *
+ * Description:
+ *      Counts the number of keys above the PUBLISH state; if this is 0 then this is
+ *      a new zone.
+ *
+ * Arguments:
+ *      int keytype
+ *          Either KSK or ZSK, depending on the key type
+ *
+ *      int* first_pass_flag
+ *          Indicator as to the result
+ *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
+ * Returns:
+ *      int
+ *          Status return. 0 => success, Other => error, in which case a message
+ *          will have been output.
+-*/
+
+int KsmRequestCheckFirstPass(int keytype, int* first_pass_flag, int zone_id)
+{
+    int     clause = 0;     /* Clause counter */
+    char*   sql = NULL;     /* SQL command */
+    int     status;         /* Status return */
+    int     count = 0;      /* Number of matching keys */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_GT, KSM_STATE_PUBLISH, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
+    DqsEnd(&sql);
+
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+    if (count == 0) {
+        /* No "ready, active, retired or dead" keys */
+        *first_pass_flag = 1;
+    }
+    else {
+        *first_pass_flag = 0;
+    }
+
+    return status;
+}
 
 /*+
  * KsmRequestIssueKeys - Issue Keys
