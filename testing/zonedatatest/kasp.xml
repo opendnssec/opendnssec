@@ -12,7 +12,7 @@
 					<Default>P7D</Default>
 					<Denial>P7D</Denial>
 			</Validity>
-			<Jitter>P12H</Jitter>
+			<Jitter>PT12H</Jitter>
 			<InceptionOffset>PT300S</InceptionOffset>
 		</Signatures>
 
