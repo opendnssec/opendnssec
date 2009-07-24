@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id$ -->
+
+<Configuration>
+	<RepositoryList>
+		<Repository name="default">
+			<Module>/opt/Keyper/PKCS11Provider/pkcs11.so</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>123456</PIN>
+			<Capacity>1000</Capacity>
+		</Repository>
+	</RepositoryList>
+</Configuration>

@@ -31,7 +31,10 @@ token.db othertoken.db:
 		--so-pin 12345678 --pin 123456
 
 regress:
-	@echo use target 'regress-{sca6000,softhsm,etoken,opensc,multi}'
+	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,multi}'
+
+regress-aepkeyper: hsmtest
+	./hsmtest -f conf-aepkeyper.xml -gsdr
 
 regress-sca6000: hsmtest
 	./hsmtest -f conf-sca6000.xml -gsdr
