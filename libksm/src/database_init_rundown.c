@@ -58,7 +58,7 @@ static int m_initialized = 0;       /* Default is not */
 void DbInit(void)
 {
     if (! m_initialized) {
-        MsgRegister(DBS_MIN_VALUE, DBS_MAX_VALUE, m_messages, NULL);
+        MsgRegister(DBS_MIN_VALUE, DBS_MAX_VALUE, d_messages, NULL);
         m_initialized = 1;
     }
 

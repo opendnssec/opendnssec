@@ -317,6 +317,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
             if (first_pass == 1) {
                 /* TODO log what we are doing? */
+                (void) MsgLog(KME_NOREADYKEY);
                 status = KsmRequestChangeStateN(keytype, datetime, 1,
                                     KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
                 if (status != 0) {

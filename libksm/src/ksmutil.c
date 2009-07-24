@@ -39,6 +39,11 @@
 #include <ksm/datetime.h>
 #include <ksm/string_util.h>
 #include <ksm/string_util2.h>
+#include "ksm/kmemsg.h"
+#include "ksm/kmedef.h"
+#include "ksm/dbsmsg.h"
+#include "ksm/dbsdef.h"
+#include "ksm/message.h"
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -1264,6 +1269,11 @@ main (int argc, char *argv[])
         usage();
         exit(1);
     }
+
+    /*(void) KsmInit();*/
+    MsgInit();
+    MsgRegister(KME_MIN_VALUE, KME_MAX_VALUE, m_messages, ksm_log_msg);
+    MsgRegister(DBS_MIN_VALUE, DBS_MAX_VALUE, d_messages, ksm_log_msg);
 
     /* We may need this when we eventually import/export keys
        result = hsm_open(config, hsm_prompt_pin, NULL);
@@ -3109,4 +3119,13 @@ int printKey(void* context, KSM_KEYDATA* key_data)
     }
 
     return 0;
+}
+
+/*
+ * log function suitable for libksm callback
+ */
+    void
+ksm_log_msg(const char *format)
+{
+    fprintf(stderr, format);
 }

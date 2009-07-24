@@ -51,6 +51,13 @@
 #include "daemon.h"
 #include "daemon_util.h"
 
+#include "ksm/ksm.h"
+#include "ksm/dbsmsg.h"
+#include "ksm/dbsdef.h"
+#include "ksm/kmemsg.h"
+#include "ksm/kmedef.h"
+#include "ksm/message.h"
+
 extern int server_init(DAEMONCONFIG *config);
 extern void server_main(DAEMONCONFIG *config);
 
@@ -191,6 +198,10 @@ main(int argc, char *argv[]){
 
     log_msg(&config, LOG_NOTICE, "%s started (version %s), pid %d", PACKAGE_NAME, PACKAGE_VERSION, 
             (int) config.pid);
+
+    MsgInit();
+    MsgRegister(KME_MIN_VALUE, KME_MAX_VALUE, m_messages, ksm_log_msg);
+    MsgRegister(DBS_MIN_VALUE, DBS_MAX_VALUE, d_messages, ksm_log_msg);
 
     /* Do something. You need to provide this function somewhere */
     server_main(&config);

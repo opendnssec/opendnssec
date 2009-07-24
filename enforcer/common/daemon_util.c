@@ -100,6 +100,14 @@ log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
     va_end(args);
 }
 
+/*
+ * log function suitable for libksm callback
+ */
+    void
+ksm_log_msg(const char *format)
+{
+    syslog(LOG_ERR, format);
+}
 
     static void
 usage(const char* prog)

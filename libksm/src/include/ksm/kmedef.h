@@ -70,6 +70,7 @@
 #define KME_UNKEYTYPE	(KME_BASE + 22)		/* ERROR: unknown key type, code %d */
 #define KME_UNRCONCOD   (KME_BASE + 23)     /* WARNING: unrecognised condition code %d: code ignored */
 #define KME_UNRKEYSTA   (KME_BASE + 24)     /* WARNING: key ID %d is in unrecognised state %d */
+#define KME_PROM_PUB    (KME_BASE + 25)     /* INFO: Promoting key from publish to active as this is the first pass for the zone */
 
 
 #endif /* KSM_KMEDEF_H */
