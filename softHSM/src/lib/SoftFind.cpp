@@ -45,14 +45,13 @@ SoftFind::~SoftFind() {
   DELETE_PTR(next);
 }
 
-// Add the object handle if we are the last one in the chain.
-// Or else pass it on the next one.
+// Add the object handle and push the old results backward.
 
 void SoftFind::addFind(CK_OBJECT_HANDLE newObject) {
-  if(next == NULL_PTR) {
-    findObject = newObject;
-    next = new SoftFind();
-  } else {
-    next->addFind(newObject);
-  }
+  SoftFind *newNext = new SoftFind();
+  newNext->next = next;
+  newNext->findObject = findObject;
+
+  next = newNext;
+  findObject = newObject;
 }
