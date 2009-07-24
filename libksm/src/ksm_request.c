@@ -1037,8 +1037,9 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
         status = KsmRequestGenerateCount(keytype, &gencnt, zone_id);
         if (status == 0) {
             if (gencnt < newkeys) {
+                /* TODO work out why we are hitting this (spuriously?) 
                 status = MsgLog(KME_INSFGENKEY, gencnt,
-                    KsmKeywordTypeValueToName(keytype));
+                    KsmKeywordTypeValueToName(keytype)); */
             }
 			DbgLog(DBG_M_REQUEST, KME_GENERATECNT, gencnt,
 				KsmKeywordTypeValueToName(keytype));
