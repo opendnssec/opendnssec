@@ -113,6 +113,7 @@ CK_RV softInitToken(SoftSlot *currentSlot, CK_UTF8CHAR_PTR pPin, CK_ULONG ulPinL
   EXEC_DB(db, "DROP TABLE IF EXISTS Objects");
   EXEC_DB(db, "DROP TABLE IF EXISTS Attributes");
   EXEC_DB(db, "DROP TRIGGER IF EXISTS deleteTrigger");
+  EXEC_DB(db, "VACUUM");
 
   // Add the structure
   EXEC_DB(db, sqlDBSchemaVersion);
