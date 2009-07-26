@@ -848,9 +848,6 @@ hsm_hex_parse(const char *hex, size_t *len)
     if (!hex) return NULL;
     hex_len = strlen(hex);
     if (hex_len % 2 != 0) {
-        fprintf(stderr,
-                "Error: bad hex data for key id: %s\n",
-                hex);
         return NULL;
     }
 
@@ -1546,7 +1543,6 @@ hsm_open(const char *config,
     /* Create xpath evaluation context */
     xpath_ctx = xmlXPathNewContext(doc);
     if(xpath_ctx == NULL) {
-        fprintf(stderr,"Error: unable to create new XPath context\n");
         xmlFreeDoc(doc);
         hsm_ctx_free(_hsm_ctx);
         _hsm_ctx = NULL;
@@ -1557,7 +1553,6 @@ hsm_open(const char *config,
     xexpr = (xmlChar *)"//Configuration/RepositoryList/Repository";
     xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
     if(xpath_obj == NULL) {
-        fprintf(stderr,"Error: unable to evaluate xpath expression\n");
         xmlXPathFreeContext(xpath_ctx);
         xmlFreeDoc(doc);
         hsm_ctx_free(_hsm_ctx);
