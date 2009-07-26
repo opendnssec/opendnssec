@@ -1,6 +1,6 @@
 # $Id$
 
-AC_INIT([signer_engine], [0.1], [jelte@NLnetLabs.nl])
+AC_INIT([signer_engine], [0.0.1], [jelte@NLnetLabs.nl])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
