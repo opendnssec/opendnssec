@@ -267,7 +267,6 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
 
         if (hDLL == NULL) {
             /* Failed to load the PKCS #11 library */
-            fprintf(stderr, "LoadLibrary(%s) failed: %s\n", module->path);
             return CKR_FUNCTION_FAILED;
         }
 
@@ -281,8 +280,6 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
 
         if (pDynLib == NULL) {
             /* Failed to load the PKCS #11 library */
-            fprintf(stderr, "dlopen(%s) failed: %s\n",
-                module->path, dlerror());
             return CKR_FUNCTION_FAILED;
         }
 
@@ -292,7 +289,6 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
         module->handle = pDynLib;
 
 #else
-        fprintf(stderr, "Error: dl given, no dynamic library support compiled in\n");
         return CKR_FUNCTION_FAILED;
 #endif
     } else {
@@ -300,14 +296,12 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
 #ifdef HAVE_PKCS11_MODULE
         return C_GetFunctionList(pkcs11_functions);
 #else
-        fprintf(stderr, "Error: no pkcs11 module given, none compiled in\n");
         return CKR_FUNCTION_FAILED;
 #endif
     }
 
     if (pGetFunctionList == NULL) {
         /* Failed to load the PKCS #11 library */
-        fprintf(stderr, "Error: no function list\n");
         return CKR_FUNCTION_FAILED;
     }
 
@@ -1546,7 +1540,6 @@ hsm_open(const char *config,
     doc = xmlParseFile(config_file);
     free(config_file); 
     if (doc == NULL) {
-        fprintf(stderr, "Error: unable to parse file \"%s\"\n", config_file);
         return HSM_CONFIG_FILE_ERROR;
     }
 
