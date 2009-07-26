@@ -12,3 +12,5 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
 SUBDIRS = src
+
+EXTRA_DIST = examples doc
