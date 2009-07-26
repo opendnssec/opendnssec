@@ -1618,17 +1618,13 @@ hsm_open(const char *config,
                         result = HSM_OK;
                     }
                 }
-                if (result == HSM_OK) {
-                    /* TODO: syslog error/succes? */
-                    /*fprintf(stdout,
-                            "repository '%s' added\n",
-                            repository);*/
-                } else {
-                    fprintf(stderr, "error adding module\n");
-                }
                 free(repository);
                 free(token_label);
                 free(module_path);
+
+                if (result != HSM_OK) {
+					break;
+				}
             }
         }
     }
@@ -1637,7 +1633,7 @@ hsm_open(const char *config,
     xmlXPathFreeContext(xpath_ctx);
     xmlFreeDoc(doc);
     xmlCleanupParser();
-    return 0;
+    return result;
 }
 
 char *
