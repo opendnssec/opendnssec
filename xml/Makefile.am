@@ -37,11 +37,11 @@ regress: $(RNG)
 
 install-data-hook:
 	test -f ${sysconfdir}/conf.xml || \
-		${INSTALL_DATA} ${top_builddir}/conf.xml ${sysconfdir}
-	${INSTALL_DATA} ${top_builddir}/conf.xml ${sysconfdir}/conf.xml.sample
+		${INSTALL_DATA} ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
 	test -f ${sysconfdir}/zonelist.xml || \
-		${INSTALL_DATA} ${top_builddir}/zonelist.xml ${sysconfdir}
-	${INSTALL_DATA} ${top_builddir}/zonelist.xml ${sysconfdir}/zonelist.xml.sample
+		${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}/zonelist.xml.sample
 	test -f ${sysconfdir}/kasp.xml || \
-		${INSTALL_DATA} ${top_builddir}/kasp.xml ${sysconfdir}
-	${INSTALL_DATA} ${top_builddir}/kasp.xml ${sysconfdir}/kasp.xml.sample
+		${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}/kasp.xml.sample

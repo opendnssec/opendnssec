@@ -18,7 +18,7 @@ MAINTAINERCLEANFILES = \
 bin_SCRIPTS = kasp_auditor
 
 install-data-hook:
-	${INSTALL} -d -m 755 $(opendnsseclibdir)
-	${INSTALL} -d -m 755 $(opendnsseclibdir)/kasp_auditor
-	${INSTALL_DATA} $(srcdir)/lib/*.rb $(opendnsseclibdir)
-	${INSTALL_DATA} $(srcdir)/lib/kasp_auditor/*.rb $(opendnsseclibdir)/kasp_auditor
+	${INSTALL} -d -m 755 ${DESTDIR}$(opendnsseclibdir)
+	${INSTALL} -d -m 755 ${DESTDIR}$(opendnsseclibdir)/kasp_auditor
+	${INSTALL_DATA} $(srcdir)/lib/*.rb ${DESTDIR}$(opendnsseclibdir)
+	${INSTALL_DATA} $(srcdir)/lib/kasp_auditor/*.rb ${DESTDIR}$(opendnsseclibdir)/kasp_auditor

@@ -17,8 +17,8 @@ EXTRA_DIST = m4
 
 install-data-hook:
 	test -d ${sysconfdir} || \
-		${INSTALL} -d ${sysconfdir}
+		${INSTALL} -d ${DESTDIR}${sysconfdir}
 	test -f ${sysconfdir}/softhsm.conf || \
-		${INSTALL_DATA} ${top_builddir}/softhsm.conf ${sysconfdir}
+		${INSTALL_DATA} ${top_builddir}/softhsm.conf ${DESTDIR}${sysconfdir}
 	test -d ${softhsmdbdir} || \
-		${INSTALL} -d -m 700 ${softhsmdbdir}
+		${INSTALL} -d -m 700 ${DESTDIR}${softhsmdbdir}
