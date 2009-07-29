@@ -197,7 +197,7 @@ AC_DEFUN([ACX_LDNS],[
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
 ])
-# $Id: acx_libhsm.m4 1391 2009-07-29 09:19:24Z jelte $
+# $Id: acx_libhsm.m4 1395 2009-07-29 13:41:10Z jelte $
 
 AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
@@ -255,7 +255,7 @@ AC_DEFUN([ACX_LIBHSM],[
 	AC_SUBST(LIBHSM_INCLUDES)
 	AC_SUBST(LIBHSM_LIBS)
 ])
-# $Id: acx_libksm.m4 1391 2009-07-29 09:19:24Z jelte $
+# $Id: acx_libksm.m4 1395 2009-07-29 13:41:10Z jelte $
 
 AC_DEFUN([ACX_LIBKSM],[
 	AC_ARG_WITH(libksm, 
@@ -282,30 +282,27 @@ AC_DEFUN([ACX_LIBKSM],[
 
         ACX_ABS_SRCDIR # defines ac_sub_srcdir as an absolute path
         
-	AC_CHECK_HEADERS(ksm/ksm.h,
-	[
-		AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,
-		[
-			AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
-		])
-	],
-	[
-		# dnl ok we don't have an installed library, use the source
-		# (makefile will figure it out)
-		if test ! -f $ac_sub_srcdir/../../libksm/src/include/ksm/ksm.h; then
-			if test ! -f $ac_sub_srcdir/../libksm/src/include/ksm/ksm.h; then
+	# dnl ok we don't have an installed library, use the source
+	# (makefile will figure it out)
+	if test ! -f $ac_sub_srcdir/../../libksm/src/include/ksm/ksm.h; then
+		if test ! -f $ac_sub_srcdir/../libksm/src/include/ksm/ksm.h; then
+			AC_CHECK_HEADERS(ksm/ksm.h, [
+				AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,, [
+					AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
+				])
+			], [
 				AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
-			else
-				LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../libksm/src/include -I../../libksm/src/include"
-				LIBKSM_LIBS="$LIBKSM_LIBS -L../../libksm/src/.libs"
-				BUILD_LIBKSM="../libksm"
-			fi
+			])
 		else
-			LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../../libksm/src/include -I../../libksm/src/include"
-			LIBKSM_LIBS="$LIBKSM_LIBS -L../../../libksm/src/.libs"
+			LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../libksm/src/include -I../../libksm/src/include"
+			LIBKSM_LIBS="$LIBKSM_LIBS -L../../libksm/src/.libs"
 			BUILD_LIBKSM="../libksm"
 		fi
-	])
+	else
+		LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../../libksm/src/include -I../../libksm/src/include"
+		LIBKSM_LIBS="$LIBKSM_LIBS -L../../../libksm/src/.libs"
+		BUILD_LIBKSM="../libksm"
+	fi
 
 
 	CPPFLAGS=$tmp_CPPFLAGS
