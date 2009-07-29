@@ -7,10 +7,8 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 
-AC_CONFIG_SUBDIRS([softHSM libhsm libksm signer enforcer xml])
+AC_CONFIG_SUBDIRS([softHSM libhsm libksm enforcer signer auditor xml])
 
-AC_CONFIG_FILES([
-	Makefile
-])
+AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
