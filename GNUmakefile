@@ -18,8 +18,6 @@ CONF_ARG = \
 	--prefix=$(PREFIX) \
 	--sysconfdir=/etc \
 	--localstatedir=/var \
-	--with-libksm=$(PREFIX) \
-	--with-libhsm=$(PREFIX) \
 	--with-trang=/usr/local/lib/trang.jar
 
 ## you may have to add the one or more of the following to CONF_ARG
@@ -30,10 +28,10 @@ CONF_ARG = \
 #	--with-botan=/usr/local
 
 
-all::
-	@echo "use 'make autogen build' to build AND install OpenDNSSEC"
+all:
+	@echo "use 'make autogen configure build install' to build and install OpenDNSSEC"
 
-autogen::
+autogen:
 	@for dir in $(SUBDIRS); do \
 		target=`pwd`/$$dir; \
 		echo "running autogen.sh in $$target" ;\
@@ -41,16 +39,27 @@ autogen::
 		echo "" ;\
 	done
 
+configure:
+	@for dir in $(SUBDIRS); do \
+		test -d $(BUILDDIR)/$$dir || mkdir -p $(BUILDDIR)/$$dir ;\
+		echo "running configure in $(BUILDDIR)/$$dir" ;\
+		(cd $(BUILDDIR)/$$dir; $(SRCDIR)/$$dir/configure $(CONF_ARG)) ||\
+		exit ;\
+	done
+
 build:: $(SUBDIRS)
 
-clean::
+clean:
 	@for dir in $(SUBDIRS); do \
-		(cd $(BUILDDIR)/$$dir; $(MAKE) clean );\
+		$(MAKE) -C $(BUILDDIR)/$$dir clean ;\
 	done
 
 $(SUBDIRS)::
-	test -d $(BUILDDIR)/$@ || mkdir -p $(BUILDDIR)/$@
-	(cd $(BUILDDIR)/$@; $(SRCDIR)/$@/configure $(CONF_ARG))
 	$(MAKE) -C $(BUILDDIR)/$@ $(MAKE_FLAGS)
-	$(SUDO) $(MAKE) -C $(BUILDDIR)/$@ install
 
+install:
+	@for dir in $(SUBDIRS); do \
+		echo "running install in $(BUILDDIR)/$$dir" ;\
+		$(SUDO) $(MAKE) -C $(BUILDDIR)/$$dir install ;\
+		echo "" ;\
+	done

@@ -123,7 +123,7 @@ AC_DEFUN([ACX_CUNIT],[
 	AC_SUBST(CUNIT_INCLUDES)
 	AC_SUBST(CUNIT_LIBS)
 ])
-# $Id: acx_dlopen.m4 1336 2009-07-21 09:15:22Z jelte $
+# $Id: acx_dlopen.m4 1339 2009-07-21 14:05:51Z jelte $
 
 AC_DEFUN([ACX_DLOPEN],[
   AC_CHECK_FUNC(dlopen, [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])],
@@ -212,12 +212,46 @@ AC_DEFUN([ACX_LIBHSM],[
 	CPPFLAGS="$CPPFLAGS $XML2_INCLUDES $LIBHSM_INCLUDES"
 	LIBS="$LIBS -L$LIBHSM_PATH/lib"
 
-	AC_CHECK_HEADERS(libhsm.h,,[AC_MSG_ERROR([Can't find libhsm headers])])
-	AC_CHECK_LIB(hsm,hsm_create_context,,[AC_MSG_ERROR([Can't find libhsm library])])
+	BUILD_LIBHSM=""
+
+	case "$srcdir" in
+	.) # No --srcdir option.  We are building in place.
+		ac_sub_srcdir=`pwd` ;;
+	/*) # Absolute path.
+		ac_sub_srcdir=$srcdir/$ac_config_dir ;;
+	*) # Relative path.
+		ac_sub_srcdir=$ac_dots$srcdir/$ac_config_dir ;;
+	esac
+
+	AC_CHECK_HEADERS(libhsm.h,
+	[
+		AC_CHECK_LIB(hsm,hsm_create_context,,
+		[
+			AC_MSG_ERROR([libhsm not found on system, and libhsm source not present, use --with-libhsm=path.])
+		])
+	],
+	[
+		# dnl ok we don't have an installed library, use the source
+		# (makefile will figure it out)
+		if test ! -f $ac_sub_srcdir/../../libhsm/src/libhsm.h; then
+			if test ! -f $ac_sub_srcdir/../libhsm/src/libhsm.h; then
+				AC_MSG_ERROR([libhsm not found on system, and libhsm source not present, use --with-libhsm=path.])
+			else
+				LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../libhsm/src"
+				LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
+				BUILD_LIBHSM="../libhsm"
+			fi
+		else
+			LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../../libhsm/src"
+			LIBHSM_LIBS="$LIBHSM_LIBS -L../../../libhsm/src/.libs"
+			BUILD_LIBHSM="../libhsm"
+		fi
+	])
 
 	CPPFLAGS=$tmp_CPPFLAGS
 	LIBS=$tmp_LIBS
 
+	AC_SUBST(BUILD_LIBHSM)
 	AC_SUBST(LIBHSM_INCLUDES)
 	AC_SUBST(LIBHSM_LIBS)
 ])
@@ -246,12 +280,36 @@ AC_DEFUN([ACX_LIBKSM],[
 	CPPFLAGS="$CPPFLAGS $LIBKSM_INCLUDES"
 	LIBS="$LIBS $LIBKSM_LIBS"
 
-	#AC_CHECK_HEADER(ksm/ksm.h,,[AC_MSG_ERROR([Can't find libksm headers:(])])
-	AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,[AC_MSG_ERROR([Can't find libksm library])])
+	AC_CHECK_HEADERS(ksm/ksm.h,
+	[
+		AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,
+		[
+			AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
+		])
+	],
+	[
+		# dnl ok we don't have an installed library, use the source
+		# (makefile will figure it out)
+		if test ! -f $srcdir/../../libksm/src/include/ksm/ksm.h; then
+			if test ! -f $srcdir/../libksm/src/include/ksm/ksm.h; then
+				AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
+			else
+				LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$srcdir/../libksm/src/include -I../../libksm/src/include"
+				LIBKSM_LIBS="$LIBKSM_LIBS -L../../libksm/src/.libs"
+				BUILD_LIBKSM="../libksm"
+			fi
+		else
+			LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$srcdir/../../libksm/src/include -I../../libksm/src/include"
+			LIBKSM_LIBS="$LIBKSM_LIBS -L../../../libksm/src/.libs"
+			BUILD_LIBKSM="../libksm"
+		fi
+	])
+
 
 	CPPFLAGS=$tmp_CPPFLAGS
 	LIBS=$tmp_LIBS
 
+	AC_SUBST(BUILD_LIBKSM)
 	AC_SUBST(LIBKSM_INCLUDES)
 	AC_SUBST(LIBKSM_LIBS)
 ])

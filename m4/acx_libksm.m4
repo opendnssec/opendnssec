@@ -23,12 +23,36 @@ AC_DEFUN([ACX_LIBKSM],[
 	CPPFLAGS="$CPPFLAGS $LIBKSM_INCLUDES"
 	LIBS="$LIBS $LIBKSM_LIBS"
 
-	#AC_CHECK_HEADER(ksm/ksm.h,,[AC_MSG_ERROR([Can't find libksm headers:(])])
-	AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,[AC_MSG_ERROR([Can't find libksm library])])
+	AC_CHECK_HEADERS(ksm/ksm.h,
+	[
+		AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,
+		[
+			AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
+		])
+	],
+	[
+		# dnl ok we don't have an installed library, use the source
+		# (makefile will figure it out)
+		if test ! -f $srcdir/../../libksm/src/include/ksm/ksm.h; then
+			if test ! -f $srcdir/../libksm/src/include/ksm/ksm.h; then
+				AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
+			else
+				LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$srcdir/../libksm/src/include -I../../libksm/src/include"
+				LIBKSM_LIBS="$LIBKSM_LIBS -L../../libksm/src/.libs"
+				BUILD_LIBKSM="../libksm"
+			fi
+		else
+			LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$srcdir/../../libksm/src/include -I../../libksm/src/include"
+			LIBKSM_LIBS="$LIBKSM_LIBS -L../../../libksm/src/.libs"
+			BUILD_LIBKSM="../libksm"
+		fi
+	])
+
 
 	CPPFLAGS=$tmp_CPPFLAGS
 	LIBS=$tmp_LIBS
 
+	AC_SUBST(BUILD_LIBKSM)
 	AC_SUBST(LIBKSM_INCLUDES)
 	AC_SUBST(LIBKSM_LIBS)
 ])
