@@ -225,7 +225,7 @@ AC_DEFUN([ACX_LDNS],[
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
 ])
-# $Id: acx_libhsm.m4 1395 2009-07-29 13:41:10Z jelte $
+# $Id: acx_libhsm.m4 1406 2009-07-29 17:09:22Z jelte $
 
 AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
@@ -268,12 +268,12 @@ AC_DEFUN([ACX_LIBHSM],[
 		else
 			LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../libhsm/src"
 			LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
-			BUILD_LIBHSM="../libhsm"
+			BUILD_LIBHSM="../../libhsm/src/libhsm.la"
 		fi
 	else
 		LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../../libhsm/src"
-		LIBHSM_LIBS="$LIBHSM_LIBS -L../../../libhsm/src/.libs"
-		BUILD_LIBHSM="../libhsm"
+		LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
+		BUILD_LIBHSM="../../libhsm/src/.libs/libhsm.la"
 	fi
 
 	CPPFLAGS=$tmp_CPPFLAGS
@@ -324,12 +324,12 @@ AC_DEFUN([ACX_LIBKSM],[
 		else
 			LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../libksm/src/include -I../../libksm/src/include"
 			LIBKSM_LIBS="$LIBKSM_LIBS -L../../libksm/src/.libs"
-			BUILD_LIBKSM="../libksm"
+			BUILD_LIBKSM="../../libksm/src/libksm.la"
 		fi
 	else
 		LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../../libksm/src/include -I../../libksm/src/include"
 		LIBKSM_LIBS="$LIBKSM_LIBS -L../../../libksm/src/.libs"
-		BUILD_LIBKSM="../libksm"
+		BUILD_LIBKSM="../../libksm/src/libksm.la"
 	fi
 
 

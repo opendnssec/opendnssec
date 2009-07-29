@@ -17,7 +17,7 @@ keygend_DEPENDENCIES = @BUILD_LIBHSM@ @BUILD_LIBKSM@
 EXTRA_DIST = $(srcdir)/*.h
 
 ../../libhsm/src/libhsm.la:
-	(cd ../../libhsm/src && ${MAKE} libhsm.la)
+	(cd ../../libhsm/src; ${MAKE} libhsm.la)
 
-../../libhsm/src/libksm.la:
-	(cd ../../libksm/src && ${MAKE} libksm.la)
+../../libksm/src/libksm.la:
+	(cd ../../libksm/src; ${MAKE} libksm.la)

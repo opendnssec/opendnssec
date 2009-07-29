@@ -7,12 +7,9 @@ SUBDIRS = include
 AM_CPPFLAGS = \
 	-I$(srcdir)/include \
 	-Iinclude \
-	 @LIBHSM_INCLUDES@ \
-	 @DB_INCLUDES@ \
-     @XML2_INCLUDES@
-
-../../libhsm/src/.libs/libhsm.la:
-	(cd ../../libhsm && ${MAKE})
+	@LIBHSM_INCLUDES@ \
+	@DB_INCLUDES@ \
+	@XML2_INCLUDES@
 
 libksm_la_DEPENDENCIES = @BUILD_LIBHSM@
 libksm_la_LIBADD = @DB_LIBS@ @LIBHSM_LIBS@
@@ -35,3 +32,6 @@ bin_PROGRAMS = ksmutil
 ksmutil_LDADD = libksm.la @XML2_LIBS@
 
 lib_LTLIBRARIES = libksm.la
+
+../../libhsm/src/libhsm.la:
+	(cd ../../libhsm/src; ${MAKE})

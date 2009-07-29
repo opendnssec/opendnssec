@@ -16,5 +16,5 @@ communicated_DEPENDENCIES = @BUILD_LIBKSM@
 
 EXTRA_DIST = $(srcdir)/*.h
 
-../../libhsm/src/libksm.la:
-	(cd ../../libksm/src && ${MAKE} libksm.la)
+../../libksm/src/libksm.la:
+	(cd ../../libksm/src; ${MAKE} libksm.la)

@@ -39,12 +39,12 @@ AC_DEFUN([ACX_LIBKSM],[
 		else
 			LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../libksm/src/include -I../../libksm/src/include"
 			LIBKSM_LIBS="$LIBKSM_LIBS -L../../libksm/src/.libs"
-			BUILD_LIBKSM="../libksm"
+			BUILD_LIBKSM="../../libksm/src/libksm.la"
 		fi
 	else
 		LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../../libksm/src/include -I../../libksm/src/include"
 		LIBKSM_LIBS="$LIBKSM_LIBS -L../../../libksm/src/.libs"
-		BUILD_LIBKSM="../libksm"
+		BUILD_LIBKSM="../../libksm/src/libksm.la"
 	fi
 
 
