@@ -24,16 +24,9 @@ AC_DEFUN([ACX_LIBHSM],[
 	LIBS="$LIBS -L$LIBHSM_PATH/lib"
 
 	BUILD_LIBHSM=""
-
-	case "$srcdir" in
-	.) # No --srcdir option.  We are building in place.
-		ac_sub_srcdir=`pwd` ;;
-	/*) # Absolute path.
-		ac_sub_srcdir=$srcdir/$ac_config_dir ;;
-	*) # Relative path.
-		ac_sub_srcdir=$ac_dots$srcdir/$ac_config_dir ;;
-	esac
-
+	
+	ACX_ABS_SRCDIR # defines ac_sub_srcdir as an absolute path
+	
 	# dnl ok we don't have an installed library, use the source
 	# (makefile will figure it out)
 	if test ! -f $ac_sub_srcdir/../../libhsm/src/libhsm.h; then
