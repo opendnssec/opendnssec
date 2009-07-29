@@ -255,7 +255,7 @@ AC_DEFUN([ACX_LIBHSM],[
 	AC_SUBST(LIBHSM_INCLUDES)
 	AC_SUBST(LIBHSM_LIBS)
 ])
-# $Id: acx_libksm.m4 1395 2009-07-29 13:41:10Z jelte $
+# $Id: acx_libksm.m4 1398 2009-07-29 14:11:04Z jelte $
 
 AC_DEFUN([ACX_LIBKSM],[
 	AC_ARG_WITH(libksm, 
