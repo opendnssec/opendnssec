@@ -187,7 +187,7 @@ AC_DEFUN([ACX_LDNS],[
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
 ])
-# $Id: acx_libhsm.m4 1122 2009-06-24 10:37:50Z jakob $
+# $Id: acx_libhsm.m4 1389 2009-07-29 09:04:45Z jelte $
 
 AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
@@ -223,30 +223,27 @@ AC_DEFUN([ACX_LIBHSM],[
 		ac_sub_srcdir=$ac_dots$srcdir/$ac_config_dir ;;
 	esac
 
-	AC_CHECK_HEADERS(libhsm.h,
-	[
-		AC_CHECK_LIB(hsm,hsm_create_context,,
-		[
-			AC_MSG_ERROR([libhsm not found on system, and libhsm source not present, use --with-libhsm=path.])
-		])
-	],
-	[
-		# dnl ok we don't have an installed library, use the source
-		# (makefile will figure it out)
-		if test ! -f $ac_sub_srcdir/../../libhsm/src/libhsm.h; then
-			if test ! -f $ac_sub_srcdir/../libhsm/src/libhsm.h; then
-				AC_MSG_ERROR([libhsm not found on system, and libhsm source not present, use --with-libhsm=path.])
-			else
-				LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../libhsm/src"
-				LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
-				BUILD_LIBHSM="../libhsm"
-			fi
+	# dnl ok we don't have an installed library, use the source
+	# (makefile will figure it out)
+	if test ! -f $ac_sub_srcdir/../../libhsm/src/libhsm.h; then
+		if test ! -f $ac_sub_srcdir/../libhsm/src/libhsm.h; then
+			AC_CHECK_HEADERS(libhsm.h, [
+				AC_CHECK_LIB(hsm,hsm_create_context,, [
+					AC_MSG_ERROR([libhsm not found on system, and libhsm source not present, use --with-libhsm=path.])
+				])
+			], [
+				AC_MSG_ERROR([libhsm headers not found in source tree or on system])
+			])
 		else
-			LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../../libhsm/src"
-			LIBHSM_LIBS="$LIBHSM_LIBS -L../../../libhsm/src/.libs"
+			LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../libhsm/src"
+			LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
 			BUILD_LIBHSM="../libhsm"
 		fi
-	])
+	else
+		LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../../libhsm/src"
+		LIBHSM_LIBS="$LIBHSM_LIBS -L../../../libhsm/src/.libs"
+		BUILD_LIBHSM="../libhsm"
+	fi
 
 	CPPFLAGS=$tmp_CPPFLAGS
 	LIBS=$tmp_LIBS
@@ -255,7 +252,7 @@ AC_DEFUN([ACX_LIBHSM],[
 	AC_SUBST(LIBHSM_INCLUDES)
 	AC_SUBST(LIBHSM_LIBS)
 ])
-# $Id: acx_libksm.m4 1209 2009-06-29 14:26:11Z jelte $
+# $Id: acx_libksm.m4 1389 2009-07-29 09:04:45Z jelte $
 
 AC_DEFUN([ACX_LIBKSM],[
 	AC_ARG_WITH(libksm, 
