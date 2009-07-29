@@ -629,10 +629,15 @@ class Zone:
         is returned (and we can continue with finalize()). If not, log
         error and return False"""
         if self.zone_config.audit:
-            cmd = ["/bin/echo"]
+            syslog.syslog(syslog.LOG_INFO, "Running auditor on zone")
+            cmd = [self.engine_config.bindir + os.sep + "kasp_auditor",\
+                   self.engine_config.sysconfdir + os.sep + "opendnssec",\
+                   self.zone_name]
             # add extra options here
             audit_p = Util.run_tool(cmd)
             result = audit_p.wait()
+            syslog.syslog(syslog.LOG_INFO,
+                          "Auditor result: " + str(result))
             return result == 0
         else:
             return True

@@ -53,16 +53,19 @@ class EngineConfiguration:
     """Engine Configuration options"""
     def __init__(self, config_file_name):
         if not config_file_name:
-            config_file_name = "@sysconfdir@/opendnssec/conf.xml"
+            config_file_name = "@sysconfdir@/opendnssec/conf.xml".replace("${prefix}", "@prefix@")
         self.zonelist_file = None
         self.zone_tmp_dir = None
         self.tools_dir = None
         self.notify_command = None
         self.config_file_name = config_file_name
-        self.command_socket_file = "@localstatedir@" + os.sep + \
+        self.command_socket_file = "@localstatedir@".replace("${prefix}", "@prefix@") +\
+                                   os.sep + \
                                    "run" + os.sep + \
                                    "opendnssec" + os.sep + \
                                    "engine.sock"
+        self.bindir = "@bindir@".replace("${exec_prefix}", "@exec_prefix@").replace("${prefix}", "@prefix@")
+        self.sysconfdir = "@sysconfdir@".replace("${prefix}", "@prefix@")
         if config_file_name:
             self.read_config_file(config_file_name)
         
