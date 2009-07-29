@@ -268,12 +268,12 @@ AC_DEFUN([ACX_LIBHSM],[
 		else
 			LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../libhsm/src"
 			LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
-			BUILD_LIBHSM="../libhsm"
+			BUILD_LIBHSM="../../libhsm/src/.libs/libhsm.la"
 		fi
 	else
 		LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../../libhsm/src"
-		LIBHSM_LIBS="$LIBHSM_LIBS -L../../../libhsm/src/.libs"
-		BUILD_LIBHSM="../libhsm"
+		LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
+		BUILD_LIBHSM="../../libhsm/src/.libs/libhsm.la"
 	fi
 
 	CPPFLAGS=$tmp_CPPFLAGS

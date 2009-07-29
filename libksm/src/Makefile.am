@@ -11,6 +11,10 @@ AM_CPPFLAGS = \
 	 @DB_INCLUDES@ \
      @XML2_INCLUDES@
 
+../../libhsm/src/.libs/libhsm.la:
+	(cd ../../libhsm && ${MAKE})
+
+libksm_la_DEPENDENCIES = @BUILD_LIBHSM@
 libksm_la_LIBADD = @DB_LIBS@ @LIBHSM_LIBS@
 
 libksm_la_SOURCES = \

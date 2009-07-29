@@ -12,10 +12,16 @@ opendnsseclibexec_PROGRAMS= \
 	signer create_dnskey \
 	finalizer signer_threads
 
+../../libhsm/src/.libs/libhsm.la:
+	(cd ../../libhsm && ${MAKE})
+ 
+
+opendnsseclibexec_DEPENDENCIES = @BUILD_LIBHSM@
 zone_reader_SOURCES=		zone_reader.c util.c
 zone_reader_LDADD=		@LDNS_LIBS@
 get_serial_SOURCES=		get_serial.c util.c
 get_serial_LDADD=		@LDNS_LIBS@
+nseccer_DEPENDENCIES = @BUILD_LIBHSM@
 nseccer_SOURCES=		nseccer.c util.c
 nseccer_LDADD=			@LDNS_LIBS@ @LIBHSM_LIBS@
 nsec3er_SOURCES=		nsec3er.c util.c

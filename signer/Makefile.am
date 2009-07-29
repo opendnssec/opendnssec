@@ -12,7 +12,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.guess $(srcdir)/config.sub \
 	$(srcdir)/py-compile
 
-SUBDIRS = $(BUILD_LIBHSM) tools signer_engine
+SUBDIRS = tools signer_engine
 
 # TODO: move this to general opendnssec install
 install-data-hook:
