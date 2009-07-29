@@ -1,4 +1,4 @@
-# $Id: configure.ac 1335 2009-07-20 22:37:56Z jelte $
+# $Id$
 
 AC_PREREQ(2.61)
 AC_INIT([opendnssec], [0.0.1], [])
