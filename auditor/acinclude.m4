@@ -187,7 +187,7 @@ AC_DEFUN([ACX_LDNS],[
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
 ])
-# $Id: acx_libhsm.m4 1389 2009-07-29 09:04:45Z jelte $
+# $Id: acx_libhsm.m4 1390 2009-07-29 09:11:06Z jelte $
 
 AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
