@@ -44,6 +44,7 @@ ACX_LIBXML2
 ACX_CUNIT
 ACX_LIBHSM
 ACX_SQLITE3
+ACX_DBPARAMS
 
 # for now, only SQLite3 is supported
 DB_INCLUDES=$SQLITE3_INCLUDES
@@ -55,30 +56,6 @@ AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3"
 AC_SUBST(DB_INCLUDES)
 AC_SUBST(DB_LIBS)
 AC_SUBST(DB_TYPE)
-
-AC_ARG_WITH(dbname,
-[  --with-dbname=DB_NAME   Database name/schema for unit tests  ],
-   DB_NAME="$withval"
-)
-AC_SUBST(DB_NAME)
-
-AC_ARG_WITH(dbhost,
-[  --with-dbhost=DB_HOST   Database host for unit tests  ],
-   DB_HOST="$withval"
-)
-AC_SUBST(DB_HOST)
-
-AC_ARG_WITH(dbpass,
-[  --with-dbpass=DB_PASS   Database host for unit tests  ],
-   DB_PASS="$withval"
-)
-AC_SUBST(DB_PASS)
-
-AC_ARG_WITH(dbuser,
-[  --with-dbuser=DB_USER   Database host for unit tests  ],
-   DB_USER="$withval"
-)
-AC_SUBST(DB_USER)
 
 AH_BOTTOM([
 #ifndef HAVE_STRLCPY

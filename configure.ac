@@ -28,30 +28,10 @@ fi
 ACX_CUNIT
 ACX_SQLITE3
 AM_PATH_PYTHON
+ACX_DBPARAMS
 
 # auditor
 AM_PATH_RUBY([], [], [])
-
-AC_ARG_WITH(dbname,
-[  --with-dbname=DB_NAME   Database name/schema for unit tests  ],
-   DB_NAME="$withval"
-)
-
-AC_ARG_WITH(dbhost,
-[  --with-dbhost=DB_HOST   Database host for unit tests  ],
-   DB_HOST="$withval"
-)
-
-AC_ARG_WITH(dbpass,
-[  --with-dbpass=DB_PASS   Database host for unit tests  ],
-   DB_PASS="$withval"
-)
-
-AC_ARG_WITH(dbuser,
-[  --with-dbuser=DB_USER   Database host for unit tests  ],
-   DB_USER="$withval"
-)
-
 
 AC_CONFIG_SUBDIRS([softHSM libhsm libksm enforcer signer auditor xml])
 
