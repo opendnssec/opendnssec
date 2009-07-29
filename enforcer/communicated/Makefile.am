@@ -12,5 +12,9 @@ sbin_PROGRAMS = communicated
 
 communicated_SOURCES = communicator.c
 communicated_LDADD = ../common/libenforcer.a @XML2_LIBS@ @LIBKSM_LIBS@
+communicated_DEPENDENCIES = @BUILD_LIBKSM@
 
 EXTRA_DIST = $(srcdir)/*.h
+
+../../libhsm/src/libksm.la:
+	(cd ../../libksm/src && ${MAKE} libksm.la)
