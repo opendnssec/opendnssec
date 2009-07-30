@@ -33,5 +33,7 @@ ksmutil_LDADD = libksm.la @XML2_LIBS@
 
 lib_LTLIBRARIES = libksm.la
 
+EXTRA_DIST = $(srcdir)/compat/*.c
+
 ../../libhsm/src/libhsm.la:
 	(cd ../../libhsm/src; ${MAKE})
