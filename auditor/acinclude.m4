@@ -178,7 +178,7 @@ AC_DEFUN([ACX_DLOPEN],[
     )
   ])
 ])
-# $Id: acx_ldns.m4 1411 2009-07-30 07:37:36Z jakob $
+# $Id: acx_ldns.m4 1428 2009-07-30 10:41:25Z jakob $
 
 AC_DEFUN([ACX_LDNS],[
 	AC_ARG_WITH(ldns, 
@@ -217,7 +217,7 @@ AC_DEFUN([ACX_LDNS],[
 	LIBS="$LIBS $LDNS_LIBS"
 
 	AC_CHECK_LIB(ldns, ldns_rr_new,,[AC_MSG_ERROR([Can't find ldns library])])
-	AC_CHECK_FUNC(ldns_sha1,[],[AC_MSG_ERROR([ldns library too old, please update it])])
+	AC_CHECK_FUNC(ldns_sha1,[],[AC_MSG_ERROR([ldns library too old (1.6.0 or later required)])])
 	
 	CPPFLAGS=$tmp_INCLUDES
 	LIBS=$tmp_LIBS
