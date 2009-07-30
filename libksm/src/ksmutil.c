@@ -2521,7 +2521,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     StrAppend(&filename, config);
     StrAppend(&filename, "/conf.xml");
 
-    StrAppend(&rngfilename, config);
+    StrAppend(&rngfilename, datadir);
     StrAppend(&rngfilename, "/conf.rng");
 
     /* Load XML document */
