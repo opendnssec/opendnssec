@@ -17,4 +17,5 @@ bin_PROGRAMS = hsmutil
 
 hsmutil_LDADD = libhsm.la
 
-EXTRA_DIST = $(srcdir)/cryptoki/*.h $(srcdir)/compat/*.{c,h}
+EXTRA_DIST = $(srcdir)/cryptoki/*.h
+EXTRA_DIST += $(srcdir)/compat/*.c $(srcdir)/compat/*.h
