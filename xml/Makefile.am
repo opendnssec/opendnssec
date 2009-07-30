@@ -14,8 +14,9 @@ RNG =	conf.rng kasp.rng zonelist.rng signconf.rng
 XML =	conf.xml kasp.xml zonelist.xml signconf.xml
 
 sysconfdir = @sysconfdir@/opendnssec
+datadir = @datadir@/opendnssec
 
-dist_sysconf_DATA = ${RNG} ${RNC}
+dist_data_DATA = ${RNG} ${RNC}
 
 CLEANFILES =	*.rng
 

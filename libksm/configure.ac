@@ -67,16 +67,20 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 ])
 
 opendnssecsysconf="\$(sysconfdir)/opendnssec"
+opendnssecdatadir="\$(datadir)/opendnssec"
 ksmdatadir="\$(datadir)/opendnssec"
 ksmincludedir="\$(includedir)/ksm"
 
 AC_SUBST([opendnssecsysconf])
+AC_SUBST([opendnssecdatadir])
 AC_SUBST([ksmdatadir])
 AC_SUBST([ksmincludedir])
 
 # Set up the default configuration file location
-conf_file_dir=$sysconfdir/opendnssec
+conf_file_dir=$opendnssecsysconf
+data_dir=$opendnssecdatadir
 AC_DEFINE_UNQUOTED(CONFIGDIR, ["`eval echo $conf_file_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
+AC_DEFINE_UNQUOTED(DATADIR, ["`eval echo $data_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC data files])
 
 open_var_dir="$prefix/var/opendnssec"
 AC_DEFINE_UNQUOTED(VAR_DIR, ["`eval echo $open_var_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC var directory])

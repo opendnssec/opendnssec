@@ -62,6 +62,7 @@
 
 extern char *optarg;
 char *progname = "ksmutil";
+char *datadir = (char *) DATADIR;
 char *config = (char *) CONFIGDIR;
 
     void
@@ -1711,7 +1712,7 @@ int update_policies()
     StrAppend(&filename, config);
     StrAppend(&filename, "/kasp.xml");
 
-    StrAppend(&rngfilename, config);
+    StrAppend(&rngfilename, datadir);
     StrAppend(&rngfilename, "/kasp.rng");
 
     /* Load XML document */
