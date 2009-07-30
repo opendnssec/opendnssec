@@ -18,7 +18,7 @@ datadir = @datadir@/opendnssec
 
 dist_data_DATA = ${RNG} ${RNC}
 
-CLEANFILES =	*.rng *.xml
+CLEANFILES =	*.rng
 
 SUFFIXES = .rng .rnc .xml
 
