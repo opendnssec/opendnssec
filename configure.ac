@@ -13,7 +13,6 @@ ACX_BOTAN
 # xml
 AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(JAVA, java)
-ACX_TRANG
 
 # libhsm
 ACX_LIBXML2
