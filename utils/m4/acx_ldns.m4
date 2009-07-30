@@ -37,7 +37,7 @@ AC_DEFUN([ACX_LDNS],[
 	LIBS="$LIBS $LDNS_LIBS"
 
 	AC_CHECK_LIB(ldns, ldns_rr_new,,[AC_MSG_ERROR([Can't find ldns library])])
-	AC_CHECK_FUNC(ldns_sha1,[],[AC_MSG_ERROR([ldns library too old, please update it])])
+	AC_CHECK_FUNC(ldns_sha1,[],[AC_MSG_ERROR([ldns library too old (1.6.0 or later required)])])
 	
 	CPPFLAGS=$tmp_INCLUDES
 	LIBS=$tmp_LIBS
