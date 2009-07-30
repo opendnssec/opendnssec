@@ -31,6 +31,16 @@ AC_DEFUN([ACX_64BIT],[
 	fi
 
 ])
+AC_DEFUN([ACX_ABS_SRCDIR], [
+case "$srcdir" in
+  .) # No --srcdir option.  We are building in place.
+    ac_sub_srcdir=`pwd` ;;
+  /*) # Absolute path.
+    ac_sub_srcdir=$srcdir/$ac_config_dir ;;
+  *) # Relative path.
+    ac_sub_srcdir=`pwd`/$ac_dots$srcdir/$ac_config_dir ;;
+esac
+])
 # $Id: acx_botan.m4 1161 2009-06-24 14:46:27Z rb $
 
 AC_DEFUN([ACX_BOTAN],[
@@ -123,7 +133,35 @@ AC_DEFUN([ACX_CUNIT],[
 	AC_SUBST(CUNIT_INCLUDES)
 	AC_SUBST(CUNIT_LIBS)
 ])
-# $Id: acx_dlopen.m4 1336 2009-07-21 09:15:22Z jelte $
+# $Id: acx_dbparams.m4 1403 2009-07-29 16:54:59Z jakob $
+
+AC_DEFUN([ACX_DBPARAMS],[
+
+	AC_ARG_WITH(dbname,
+		[AS_HELP_STRING([--with-dbname=DB_NAME],[Database name/schema for unit tests])],
+		DB_NAME="$withval"
+	)
+	AC_SUBST(DB_NAME)
+	
+	AC_ARG_WITH(dbhost,
+		[AS_HELP_STRING([--with-dbhost=DB_HOST],[Database host for unit tests])],
+		DB_HOST="$withval"
+	)
+	AC_SUBST(DB_HOST)
+	
+	AC_ARG_WITH(dbuser,
+		[AS_HELP_STRING([--with-dbuser=DB_USER],[Database user for unit tests])],
+		DB_USER="$withval"
+	)
+	AC_SUBST(DB_USER)
+	
+	AC_ARG_WITH(dbpass,
+		[AS_HELP_STRING([--with-dbpass=DB_PASS],[Database password for unit tests])],
+		DB_PASS="$withval"
+	)
+	AC_SUBST(DB_PASS)
+])
+# $Id: acx_dlopen.m4 1339 2009-07-21 14:05:51Z jelte $
 
 AC_DEFUN([ACX_DLOPEN],[
   AC_CHECK_FUNC(dlopen, [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])],
@@ -187,7 +225,7 @@ AC_DEFUN([ACX_LDNS],[
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
 ])
-# $Id: acx_libhsm.m4 1122 2009-06-24 10:37:50Z jakob $
+# $Id: acx_libhsm.m4 1406 2009-07-29 17:09:22Z jelte $
 
 AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
@@ -212,16 +250,40 @@ AC_DEFUN([ACX_LIBHSM],[
 	CPPFLAGS="$CPPFLAGS $XML2_INCLUDES $LIBHSM_INCLUDES"
 	LIBS="$LIBS -L$LIBHSM_PATH/lib"
 
-	AC_CHECK_HEADERS(libhsm.h,,[AC_MSG_ERROR([Can't find libhsm headers])])
-	AC_CHECK_LIB(hsm,hsm_create_context,,[AC_MSG_ERROR([Can't find libhsm library])])
+	BUILD_LIBHSM=""
+	
+	ACX_ABS_SRCDIR # defines ac_sub_srcdir as an absolute path
+	
+	# dnl ok we don't have an installed library, use the source
+	# (makefile will figure it out)
+	if test ! -f $ac_sub_srcdir/../../libhsm/src/libhsm.h; then
+		if test ! -f $ac_sub_srcdir/../libhsm/src/libhsm.h; then
+			AC_CHECK_HEADERS(libhsm.h, [
+				AC_CHECK_LIB(hsm,hsm_create_context,, [
+					AC_MSG_ERROR([libhsm not found on system, and libhsm source not present, use --with-libhsm=path.])
+				])
+			], [
+				AC_MSG_ERROR([libhsm headers not found in source tree or on system])
+			])
+		else
+			LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../libhsm/src"
+			LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
+			BUILD_LIBHSM="../../libhsm/src/libhsm.la"
+		fi
+	else
+		LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../../libhsm/src"
+		LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
+		BUILD_LIBHSM="../../libhsm/src/.libs/libhsm.la"
+	fi
 
 	CPPFLAGS=$tmp_CPPFLAGS
 	LIBS=$tmp_LIBS
 
+	AC_SUBST(BUILD_LIBHSM)
 	AC_SUBST(LIBHSM_INCLUDES)
 	AC_SUBST(LIBHSM_LIBS)
 ])
-# $Id: acx_libksm.m4 1209 2009-06-29 14:26:11Z jelte $
+# $Id: acx_libksm.m4 1398 2009-07-29 14:11:04Z jelte $
 
 AC_DEFUN([ACX_LIBKSM],[
 	AC_ARG_WITH(libksm, 
@@ -246,12 +308,35 @@ AC_DEFUN([ACX_LIBKSM],[
 	CPPFLAGS="$CPPFLAGS $LIBKSM_INCLUDES"
 	LIBS="$LIBS $LIBKSM_LIBS"
 
-	#AC_CHECK_HEADER(ksm/ksm.h,,[AC_MSG_ERROR([Can't find libksm headers:(])])
-	AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,,[AC_MSG_ERROR([Can't find libksm library])])
+        ACX_ABS_SRCDIR # defines ac_sub_srcdir as an absolute path
+        
+	# dnl ok we don't have an installed library, use the source
+	# (makefile will figure it out)
+	if test ! -f $ac_sub_srcdir/../../libksm/src/include/ksm/ksm.h; then
+		if test ! -f $ac_sub_srcdir/../libksm/src/include/ksm/ksm.h; then
+			AC_CHECK_HEADERS(ksm/ksm.h, [
+				AC_CHECK_LIB(ksm,KsmPolicyPopulateSMFromIds,, [
+					AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
+				])
+			], [
+				AC_MSG_ERROR([libksm not found on system, and libksm source not present, use --with-libksm=path.])
+			])
+		else
+			LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../libksm/src/include -I../../libksm/src/include"
+			LIBKSM_LIBS="$LIBKSM_LIBS -L../../libksm/src/.libs"
+			BUILD_LIBKSM="../../libksm/src/libksm.la"
+		fi
+	else
+		LIBKSM_INCLUDES="$LIBKSM_INCLUDE -I$ac_sub_srcdir/../../libksm/src/include -I../../libksm/src/include"
+		LIBKSM_LIBS="$LIBKSM_LIBS -L../../../libksm/src/.libs"
+		BUILD_LIBKSM="../../libksm/src/libksm.la"
+	fi
+
 
 	CPPFLAGS=$tmp_CPPFLAGS
 	LIBS=$tmp_LIBS
 
+	AC_SUBST(BUILD_LIBKSM)
 	AC_SUBST(LIBKSM_INCLUDES)
 	AC_SUBST(LIBKSM_LIBS)
 ])
@@ -348,43 +433,36 @@ AC_DEFUN([ACX_PEDANTIC],[
 ])
 # $Id: acx_pkcs11_modules.m4 1142 2009-06-24 12:09:07Z jakob $
 
-#RvR# AC_DEFUN([ACX_PKCS11_MODULES],[
-#RvR#	AC_ARG_WITH(pkcs11-softhsm, 
-#RvR#		AC_HELP_STRING([--with-pkcs11-softhsm=PATH],[specify path of SoftHSM library to use for regression testing (default PREFIX/lib/libsofthsm.so)]),
-#RvR#		[ pkcs11_softhsm_module="$withval" ],
-#RvR#		[ pkcs11_softhsm_module="$prefix/lib/libsofthsm.so" ]
-#RvR#	)
-#RvR#	
-#RvR#	AC_ARG_WITH(pkcs11-sca6000, 
-#RvR#		AC_HELP_STRING([--with-pkcs11-sca6000=PATH],[specify path of SCA6000 library to use for regression testing (default /usr/lib/libpkcs11.so)]),
-#RvR#		[ pkcs11_sca6000_module="$withval" ],
-#RvR#		[ pkcs11_sca6000_module="/usr/lib/libpkcs11.so" ]
-#RvR#	)
-#RvR#	
-#RvR#	AC_ARG_WITH(pkcs11-etoken, 
-#RvR#		AC_HELP_STRING([--with-pkcs11-etoken=PATH],[specify path of Aladdin eToken library to use for regression testing (default /usr/local/lib/libeTPkcs11.so)]),
-#RvR#		[ pkcs11_etoken_module="$withval" ],
-#RvR#		[ pkcs11_etoken_module="/usr/local/lib/libeTPkcs11.so" ]
-#RvR#	)
-#RvR#	
-#RvR#	AC_ARG_WITH(pkcs11-opensc, 
-#RvR#		AC_HELP_STRING([--with-pkcs11-opensc=PATH],[specify path of Aladdin eToken library to use for regression testing (default /usr/lib/pkcs11/opensc-pkcs11.so)]),
-#RvR#		[ pkcs11_opensc_module="$withval" ],
-#RvR#		[ pkcs11_opensc_module="/usr/lib/pkcs11/opensc-pkcs11.so" ]
-#RvR#	)
-#RvR#
-#RvR#	AC_ARG_WITH(pkcs11-epass2000, 
-#RvR#		AC_HELP_STRING([--with-pkcs11-opensc=PATH],[specify path of ePass2000 library to use for regression testing (default /usr/lib/libepsng_p11.so)]),
-#RvR#		[ pkcs11_opensc_module="$withval" ],
-#RvR#		[ pkcs11_opensc_module="/usr/lib/libepsng_p11.so" ]
-#RvR#	)
-#RvR#	
-#RvR#	AC_SUBST(pkcs11_softhsm_module)
-#RvR#	AC_SUBST(pkcs11_sca6000_module)
-#RvR#	AC_SUBST(pkcs11_etoken_module)
-#RvR#	AC_SUBST(pkcs11_opensc_module)
-#RvR#	AC_SUBST(pkcs11_epass2000_module)
-#RvR#])
+AC_DEFUN([ACX_PKCS11_MODULES],[
+	AC_ARG_WITH(pkcs11-softhsm, 
+		AC_HELP_STRING([--with-pkcs11-softhsm=PATH],[specify path of SoftHSM library to use for regression testing (default PREFIX/lib/libsofthsm.so)]),
+		[ pkcs11_softhsm_module="$withval" ],
+		[ pkcs11_softhsm_module="$prefix/lib/libsofthsm.so" ]
+	)
+	
+	AC_ARG_WITH(pkcs11-sca6000, 
+		AC_HELP_STRING([--with-pkcs11-sca6000=PATH],[specify path of SCA6000 library to use for regression testing (default /usr/lib/libpkcs11.so)]),
+		[ pkcs11_sca6000_module="$withval" ],
+		[ pkcs11_sca6000_module="/usr/lib/libpkcs11.so" ]
+	)
+	
+	AC_ARG_WITH(pkcs11-etoken, 
+		AC_HELP_STRING([--with-pkcs11-etoken=PATH],[specify path of Aladdin eToken library to use for regression testing (default /usr/local/lib/libeTPkcs11.so)]),
+		[ pkcs11_etoken_module="$withval" ],
+		[ pkcs11_etoken_module="/usr/local/lib/libeTPkcs11.so" ]
+	)
+	
+	AC_ARG_WITH(pkcs11-opensc, 
+		AC_HELP_STRING([--with-pkcs11-opensc=PATH],[specify path of Aladdin eToken library to use for regression testing (default /usr/lib/pkcs11/opensc-pkcs11.so)]),
+		[ pkcs11_opensc_module="$withval" ],
+		[ pkcs11_opensc_module="/usr/lib/pkcs11/opensc-pkcs11.so" ]
+	)
+	
+	AC_SUBST(pkcs11_softhsm_module)
+	AC_SUBST(pkcs11_sca6000_module)
+	AC_SUBST(pkcs11_etoken_module)
+	AC_SUBST(pkcs11_opensc_module)
+])
 # $Id: acx_rpath.m4 1190 2009-06-26 08:35:57Z jakob $
 
 dnl Add option to disable the evil rpath. Check whether to use rpath or not.
