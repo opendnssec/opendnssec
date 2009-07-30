@@ -35,7 +35,7 @@ regress: $(RNG)
 	done
 
 install-data-hook:
-	test -d ${sysconfdir} || mkdir ${DESTDIR}${sysconfdir}
+	test -d ${sysconfdir} || mkdir -p ${DESTDIR}${sysconfdir}
 	test -f ${sysconfdir}/conf.xml || \
 		${INSTALL_DATA} ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
