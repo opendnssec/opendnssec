@@ -11,7 +11,6 @@ AM_INIT_AUTOMAKE(foreign)
 AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(JAVA, java)
 
-ACX_TRANG
 ACX_PKCS11_MODULES
 
 full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`

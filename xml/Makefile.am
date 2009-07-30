@@ -22,9 +22,7 @@ CLEANFILES =	*.rng
 SUFFIXES = .rng .rnc .xml
 
 .rnc.rng:
-	@test "x@TRANG@" != "x" || \
-		(echo "trang is required to (re)build XML schemas"; false)
-	@TRANG@ $< $@
+	java -jar $(srcdir)/trang-20030619/trang.jar $< $@
 
 regress: $(RNG)
 	@test -x ${XMLLINT} || \
