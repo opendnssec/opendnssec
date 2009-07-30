@@ -66,9 +66,13 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
 
-opendnssecsysconf="\$(sysconfdir)/opendnssec"
-opendnssecdatadir="\$(datadir)/opendnssec"
-ksmdatadir="\$(datadir)/opendnssec"
+full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+
+opendnssecsysconfdir=$full_sysconfdir/opendnssec
+opendnssecdatadir=$full_datadir/opendnssec
+
+ksmdatadir=$opendnssecdatadir
 ksmincludedir="\$(includedir)/ksm"
 
 AC_SUBST([opendnssecsysconf])
@@ -77,8 +81,8 @@ AC_SUBST([ksmdatadir])
 AC_SUBST([ksmincludedir])
 
 # Set up the default configuration file location
-conf_file_dir=$sysconfdir/opendnssec
-data_dir=$datadir/opendnssec
+conf_file_dir=$opendnssecsysconfdir
+data_dir=$opendnssecdatadir
 AC_DEFINE_UNQUOTED(CONFIGDIR, ["`eval echo $conf_file_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
 AC_DEFINE_UNQUOTED(DATADIR, ["`eval echo $data_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC data files])
 
