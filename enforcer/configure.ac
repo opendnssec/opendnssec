@@ -46,12 +46,21 @@ ACX_LIBKSM
 
 AC_SUBST(RUNTIME_PATH)
 
-keygend_conf_file=$sysconfdir/opendnssec/conf.xml
+full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+
+opendnssecsysconfdir=$full_sysconfdir/opendnssec
+opendnssecdatadir=$full_datadir/opendnssec
+
+keygend_conf_file=$opendnssecsysconfdir/conf.xml
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
-keygend_conf_schema=$datadir/opendnssec/conf.rng
+
+keygend_conf_schema=$opendnssecdatadir/conf.rng
 AC_DEFINE_UNQUOTED(CONFIGRNG, ["`eval echo $keygend_conf_schema  | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration schema file])
+
 com_pid_file=$localstatedir/run/opendnssec/communicated.pid
 AC_DEFINE_UNQUOTED(COM_PID, ["`eval echo $com_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC communicated pid file])
+
 keygen_pid_file=$localstatedir/run/opendnssec/keygend.pid
 AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC keygend pid file])
 
