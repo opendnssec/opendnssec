@@ -77,8 +77,8 @@ AC_SUBST([ksmdatadir])
 AC_SUBST([ksmincludedir])
 
 # Set up the default configuration file location
-conf_file_dir=$opendnssecsysconf
-data_dir=$opendnssecdatadir
+conf_file_dir=$sysconfdir/opendnssec
+data_dir=$datadir/opendnssec
 AC_DEFINE_UNQUOTED(CONFIGDIR, ["`eval echo $conf_file_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
 AC_DEFINE_UNQUOTED(DATADIR, ["`eval echo $data_dir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC data files])
 
