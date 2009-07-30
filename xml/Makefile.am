@@ -23,7 +23,7 @@ CLEANFILES =	*.rng
 SUFFIXES = .rng .rnc .xml
 
 .rnc.rng:
-	java -jar $(srcdir)/trang-20030619/trang.jar $< $@
+	java -jar $(srcdir)/trang/trang.jar $< $@
 
 regress: $(RNG)
 	@test -x ${XMLLINT} || \
