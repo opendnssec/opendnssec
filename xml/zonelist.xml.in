@@ -3,7 +3,8 @@
 <!-- $Id$ -->
 
 <ZoneList>
-	<Zone name="opendnssec.se">
+<!--
+	<Zone name="example.com">
 		<Policy>default</Policy>
 		<SignerConfiguration>@opendnsseclocalstatedir@/signconf/example.com.xml</SignerConfiguration>
 		<Adapters>
@@ -15,4 +16,5 @@
 			</Output>
 		</Adapters>
 	</Zone>
+-->
 </ZoneList>
