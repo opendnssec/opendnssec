@@ -37,6 +37,7 @@
 
 // Standard includes
 #include <stdlib.h>
+#include <stdio.h>
 
 // Rollback the object if it can't be saved
 #define CHECK_DB_RESPONSE(stmt) \
