@@ -29,28 +29,48 @@ require 'dnsruby'
 include Dnsruby
 include Syslog::Constants
 module KASPAuditor
-  class Auditor
+  # The Auditor class performs the actual auditing of the parsed zone files.
+  # It processes the canonically sorted files one top-level sub-domain of the
+  # zone at a time. If processing an NSEC3-signed zone, then the auditor will
+  # also create some transient files (to allow it to check the types_covered
+  # field of the NSEC3 record, and to check opt-out). These files will be
+  # removed at the end of the run.
+  class Auditor # :nodoc: all
     def initialize(syslog)
       @syslog = syslog
+      reset
+    end
+    def reset
       @ret_val = 999
       @keys = []
       @algs = []
       @last_nsec3_hashed = nil
       @nsec3param = nil
+      @first_nsec3 = nil
       @count = 0
       @last_nsec = nil
       @first_nsec = nil
       @warned_about_nsec3param = false
       @zone_name = ""
+      @soa = nil
+      @config = nil
     end
-    #This version of the auditor will work on sorted zone files, rather than loading whole zones into memory
-    def check_zone(config, unsigned_file, signed_file)
-      if (config.inconsistent_nsec3_algorithm?)
+    def set_config(c)
+      @config = c
+      if (@config.inconsistent_nsec3_algorithm?)
         log(LOG_WARNING, "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used")
       end
+    end
+    
+    #This version of the auditor will work on sorted zone files, rather than loading whole zones into memory
+    def check_zone(cnfg, unsigned_file, signed_file)
+      reset
+      set_config(cnfg)
+      nsec3auditor = Nsec3Auditor.new(self)
+      nsec3auditor.delete_nsec3_files(signed_file)
       # Load SOA record from top of original signed and unsigned files!
-      soa_rr= load_soas(config, unsigned_file, signed_file)
-      log(LOG_INFO, "Auditing #{soa_rr.name} zone : #{config.zone.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
+      load_soas(unsigned_file, signed_file)
+      log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.zone.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
 
       File.open(unsigned_file + ".sorted") {|unsignedfile|
         File.open(signed_file + ".sorted") {|signedfile|
@@ -71,40 +91,45 @@ module KASPAuditor
             # Then process that domain
             #
             # Of course, we will always load one record too many here. We need to keep that last record
-            # so we can build up the next subdomains rrsets with it (although watch out for EOF here!).
+            # so we can build up the next subdomains rrsets with it.
             unsigned_domain_rrs = []
-            compare_return = compare_subdomain_of_zone(soa_rr.name, last_signed_rr, last_unsigned_rr)
+            compare_return = compare_subdomain_of_zone(last_signed_rr, last_unsigned_rr)
             while (compare_return != 0 && (!unsignedfile.eof? || !signedfile.eof?))
               # Work out which file is behind, then continue loading records from that zone until we're at the same subdomain of the zone soa
               if (compare_return > 0) # unsigned < signed
                 # Log missing signed subdomain - check if out of zone first
-                process_additional_unsigned_rr(last_unsigned_rr, soa_rr)
+                process_additional_unsigned_rr(last_unsigned_rr)
                 # Load next unsigned record
                 #                print "Loading another unsigned record to catch up to signed\n"
                 last_unsigned_rr = get_next_rr(unsignedfile)
               elsif (compare_return < 0) # unsigned > signed
                 #                print "Signed file behind unsigned - loading next subdomain from #{last_signed_rr.name}\n"
-                last_signed_rr = load_signed_subdomain(config, signedfile, last_signed_rr, soa_rr, [])
+                last_signed_rr = load_signed_subdomain(signedfile, signed_file, last_signed_rr, [])
                 #                print "Last signed rr now: #{last_signed_rr}\n"
               end
               #              print"Comparing signed #{last_signed_rr} to unsigned #{last_unsigned_rr}\n"
-              compare_return = compare_subdomain_of_zone(soa_rr.name, last_signed_rr, last_unsigned_rr)
+              compare_return = compare_subdomain_of_zone(last_signed_rr, last_unsigned_rr)
             end
 
             # Now we're at the same subdomain of the zone name. Keep loading from both files until the subdomain changes in that file.
             #            print "Now at #{last_signed_rr.name} for signed, and #{last_unsigned_rr.name} for unsigned\n"
-            unsigned_domain_rrs, last_unsigned_rr = load_unsigned_subdomain(unsignedfile, last_unsigned_rr, soa_rr)
-            last_signed_rr = load_signed_subdomain(config, signedfile, last_signed_rr, soa_rr, unsigned_domain_rrs)
+            unsigned_domain_rrs, last_unsigned_rr = load_unsigned_subdomain(unsignedfile, last_unsigned_rr)
+            last_signed_rr = load_signed_subdomain(signedfile, signed_file, last_signed_rr, unsigned_domain_rrs)
 
           end
           if (last_unsigned_rr)
-            process_additional_unsigned_rr(last_unsigned_rr, soa_rr)
+            process_additional_unsigned_rr(last_unsigned_rr)
           end
         }
       }
-      do_final_nsec_check(config)
-      #      return -@ret_val
-      log(LOG_INFO, "Finished auditing #{soa_rr.name} zone")
+      # Check the last nsec(3) record in the chain points back to the start
+      do_final_nsec_check()
+
+      # Now check the NSEC3 opt out and types_covered, if applicable
+      if (@config.zone.denial.nsec3)
+        nsec3auditor.check_nsec3_types_and_opt_out(signed_file)
+      end
+      log(LOG_INFO, "Finished auditing #{@soa.name} zone")
       if (@ret_val == 999)
         return 0
       else
@@ -114,14 +139,14 @@ module KASPAuditor
     end
 
     # Make sure that the last NSEC(3) record points back to the first one
-    def do_final_nsec_check(config)
-      if (config.zone.denial.nsec && (@first_nsec.type == Dnsruby::Types.NSEC))
+    def do_final_nsec_check()
+      if (@config.zone.denial.nsec && (@first_nsec.type == Dnsruby::Types.NSEC))
         # Now check that the last nsec points to the first nsec
         if (@first_nsec && (@last_nsec.next_domain == @first_nsec.name))
         else
           log(LOG_ERR, "Can't follow NSEC loop from #{@last_nsec.name} to #{@last_nsec.next_domain}")
         end
-      elsif (config.zone.denial.nsec3 && ((@first_nsec.type == Dnsruby::Types.NSEC3)))
+      elsif (@config.zone.denial.nsec3 && ((@first_nsec.type == Dnsruby::Types.NSEC3)))
         # Now check that the last nsec3 points to the first nsec3
         if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
         else
@@ -151,10 +176,10 @@ module KASPAuditor
     end
 
     # Work out which subdomain of the zone we want to load next
-    def get_subdomain_to_load(last_rr, soa_rr)
+    def get_subdomain_to_load(last_rr)
       return "" if (!last_rr)
       subdomain = last_rr.name
-      soa_rr.name.labels.length.times {|n|
+      @soa.name.labels.length.times {|n|
         subdomain = lose_last_label(subdomain)
       }
       subdomain = subdomain.labels()[subdomain.labels.length() - 1]
@@ -162,12 +187,12 @@ module KASPAuditor
     end
 
     # Load in the next subdomain of the zone from the unsigned file
-    def load_unsigned_subdomain(file, last_rr, soa_rr)
-      subdomain = get_subdomain_to_load(last_rr, soa_rr)
+    def load_unsigned_subdomain(file, last_rr)
+      subdomain = get_subdomain_to_load(last_rr)
       #      print "Loading unsigned subdomain : #{subdomain}\n"
       domain_rrs = []
       l_rr = last_rr
-      while (l_rr && test_subdomain(l_rr, subdomain, soa_rr))
+      while (l_rr && test_subdomain(l_rr, subdomain))
         #        print "Loaded unsigned RR : #{l_rr}\n"
         # Add the last_rr to the domain_rrsets
         domain_rrs.push(l_rr)
@@ -197,15 +222,15 @@ module KASPAuditor
     end
 
     # Check the RRSIG for this RRSet
-    def check_signature(rrset, config, soa, is_glue, is_unsigned_delegation)
+    def check_signature(rrset, is_glue, is_unsigned_delegation)
       return if is_glue
       return if is_unsigned_delegation
-      return if (out_of_zone(rrset.name, soa.name))
+      return if (out_of_zone(rrset.name))
       rrset_sig_types = []
       rrset.sigs.each {|sig| rrset_sig_types.push(sig.algorithm)}
       @algs.each {|alg|
         if !(rrset_sig_types.include?alg)
-          if ((rrset.type == Types.NS) && (rrset.name != soa.name)) # NS RRSet NOT at zone apex is OK
+          if ((rrset.type == Types.NS) && (rrset.name != @soa.name)) # NS RRSet NOT at zone apex is OK
           else
             s = ""
             rrset_sig_types.each {|t| s = s + " #{t} "}
@@ -217,14 +242,8 @@ module KASPAuditor
       #          print "Verifying RRSIG for #{rrset}\n"
       # @TODO@ Create an RRSET with *only* the RRSIG we are interested in - check that they all verify ok?
       # Check if this is an NS RRSet other than the zone apex - if so, then skip the verify test
-      if ((rrset.type == Types.NS) && ((rrset.name != soa.name)))
+      if ((rrset.type == Types.NS) && ((rrset.name != @soa.name)))
         # Skip the verify test
-        #            next if (ns_rrsets.length > 0 && ds_rrsets.length == 0)
-        #            next if (types_covered.include?Types.NS && !(types_covered.include?Types.DS))
-        #          elsif (rrset.sigs.length == 0 &&
-        ##                (ns_rrsets.length > 0 && ds_rrsets.length == 0))
-        #                (types_covered.include?Types.NS && !(types_covered.include?Types.DS)))
-        #            next # unsigned delegation
       else
         begin
           #          print "About to verify #{rrset.name} #{rrset.type}, #{rrset.rrs.length} RRs, #{rrset.sigs.length} RRSIGs, #{@keys.length} keys\n"
@@ -237,16 +256,16 @@ module KASPAuditor
       #  c) inception date in past by at least interval specified by config
       rrset.sigs.each {|sig|
         time_now = KASPTime.get_current_time
-        if (sig.inception >= (time_now + config.zone.signatures.inception_offset))
-          log(LOG_ERR, "Inception error for #{sig.name}, #{sig.type_covered} : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}")
+        if (sig.inception >= (time_now + @config.zone.signatures.inception_offset))
+          log(LOG_ERR, "Inception error for #{sig.name}, #{sig.type_covered} : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}")
         else
-          #                      print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"
+          #                      print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"
         end
 
         #  d) expiration date in future by at least interval specified by config
-        validity = config.zone.signatures.validity.default
+        validity = @config.zone.signatures.validity.default
         if ([Types.NSEC, Types.NSEC3, Types.NSEC3PARAM].include?rrset.type)
-          validity = config.zone.signatures.validity.denial
+          validity = @config.zone.signatures.validity.denial
         end
         #  We want to check that at least the validity period remains before the signatures expire
         # @TODO@ Probably want to have a validity WARN level and an ERROR level for validity
@@ -259,8 +278,8 @@ module KASPAuditor
     end
 
     # Get the string for the type of denial this zone is using : either "NSEC" or "NSEC3"
-    def nsec_string(config)
-      if (config.zone.denial.nsec)
+    def nsec_string()
+      if (@config.zone.denial.nsec)
         return "NSEC"
       else
         return "NSEC3"
@@ -268,19 +287,14 @@ module KASPAuditor
     end
 
     # Check the TTL of the NSEC(3) record
-    def check_nsec_ttl(nsec, soa)
-      if (nsec.ttl != soa.minimum)
-        log(LOG_ERR, "#{nsec.type} record should have SOA of #{soa.minimum}, but is #{nsec}")
+    def check_nsec_ttl(nsec)
+      if (nsec.ttl != @soa.minimum)
+        log(LOG_ERR, "#{nsec.type} record should have SOA of #{@soa.minimum}, but is #{nsec}")
       end
     end
 
     # Check the types covered by this NSEC record
     def check_nsec_types(nsec, types)
-      #      print "Checking NSEC types for {"
-      #      nsec.types.each {|type| print " " + type.string}
-      #      print " } from {"
-      #      types.each {|type| print " " + type.string}
-      #      print " }\n"
       nsec.types.each {|type|
         if !(types.include?type)
           log(LOG_ERR, "#{nsec.type} includes #{type} which is not in rrsets for #{nsec.name}")
@@ -321,14 +335,14 @@ module KASPAuditor
     end
 
     # Check this NSEC record
-    def check_nsec(l_rr, config, soa_rr, types_covered)
+    def check_nsec(l_rr, types_covered)
       # Check the policy is not for NSEC3!
-      if !(config.zone.denial.nsec)
+      if !(@config.zone.denial.nsec)
         log(LOG_ERR, "NSEC RRs included in NSEC3-signed zone")
         return
       end
       # We can check the TTL of the NSEC here
-      check_nsec_ttl(l_rr, soa_rr)
+      check_nsec_ttl(l_rr)
       # Check RR types
       check_nsec_types(l_rr, types_covered)
       if (@last_nsec)
@@ -339,15 +353,15 @@ module KASPAuditor
     end
 
     # Check this NSEC3PARAM record
-    def check_nsec3param(l_rr, config, subdomain, soa_rr)
+    def check_nsec3param(l_rr, subdomain)
       # Check the policy is not for NSEC!
-      if (config.zone.denial.nsec)
+      if (@config.zone.denial.nsec)
         log(LOG_ERR, "NSEC3PARAM RRs included in NSEC-signed zone")
         return
       end
       # Check NSEC3PARAM flags
       if (l_rr.flags != 0)
-        log(LOG_ERR, "NSEC3PARAM flags should be 0, but were #{l_rr.flags} for #{soa_rr.name}")
+        log(LOG_ERR, "NSEC3PARAM flags should be 0, but were #{l_rr.flags} for #{@soa.name}")
       end
       # Check that we are at the apex of the zone here
       if (subdomain && (subdomain != ""))
@@ -359,30 +373,32 @@ module KASPAuditor
         # We know that no NSECs should have been seen by now, as this record is at the zone apex and NSEC(3) RRs appear at the bottom of the RRSets for the domain
         @nsec3param = l_rr
       else
-        log(LOG_ERR, "Multiple NSEC3PARAM RRs for #{soa_rr.name}")
+        log(LOG_ERR, "Multiple NSEC3PARAM RRs for #{@soa.name}")
       end
       #      end
       # Check that the NSEC3PARAMs are the same as those defined in the Config
-      if (l_rr.salt != config.zone.denial.nsec3.hash.salt)
-        log(LOG_ERR, "NSEC3PARAM has wrong salt : should be #{config.zone.denial.nsec3.hash.salt} but was #{(l_rr.salt)}")
+      if (l_rr.salt != @config.zone.denial.nsec3.hash.salt)
+        log(LOG_ERR, "NSEC3PARAM has wrong salt : should be #{@config.zone.denial.nsec3.hash.salt} but was #{(l_rr.salt)}")
       end
-      if (l_rr.iterations != config.zone.denial.nsec3.hash.iterations)
-        log(LOG_ERR, "NSEC3PARAM has wrong iterations : should be #{config.zone.denial.nsec3.hash.iterations} but was #{l_rr.iterations}")
+      if (l_rr.iterations != @config.zone.denial.nsec3.hash.iterations)
+        log(LOG_ERR, "NSEC3PARAM has wrong iterations : should be #{@config.zone.denial.nsec3.hash.iterations} but was #{l_rr.iterations}")
       end
-      if (l_rr.hash_alg != config.zone.denial.nsec3.hash.algorithm)
-        log(LOG_ERR, "NSEC3PARAM has wrong algorithm : should be #{config.zone.denial.nsec3.hash.algorithm} but was #{l_rr.hash_alg.string}")
+      if (l_rr.hash_alg != @config.zone.denial.nsec3.hash.algorithm)
+        log(LOG_ERR, "NSEC3PARAM has wrong algorithm : should be #{@config.zone.denial.nsec3.hash.algorithm} but was #{l_rr.hash_alg.string}")
       end
     end
 
     # Check this NSEC3 record
-    def check_nsec3(l_rr, config, soa_rr)
+    def check_nsec3(l_rr, signed_file)
       # Check the policy is not for NSEC!
-      if (config.zone.denial.nsec)
+      if (@config.zone.denial.nsec)
         log(LOG_ERR, "NSEC3 RRs included in NSEC-signed zone")
+        return
       end
       if (!@nsec3param && !@warned_about_nsec3param)
         log(LOG_ERR, "NSEC3 record found for #{l_rr.name}, before NSEC3PARAM record was found - won't report again for this zone")
         @warned_about_nsec3param = true
+        @first_nsec3 = l_rr # Store so we have something to work with
       end
       if (@nsec3param)
         # Check that the parameters are the same as those defined in the NSEC3PARAM
@@ -397,7 +413,7 @@ module KASPAuditor
         end
       end
       # Check TTL
-      check_nsec_ttl(l_rr, soa_rr)
+      check_nsec_ttl(l_rr)
       #  Check NSEC3 next_hashed chain
       if (@last_nsec)
         check_nsec_next(l_rr, get_next_nsec3_name(@last_nsec))
@@ -405,23 +421,18 @@ module KASPAuditor
         check_nsec_next(l_rr, nil)
       end
 
-      # @TODO@     If an NSEC3 record does not have the opt-out bit set, there are no domain names in the zone for which
-      # the hash lies between the hash of this domain name and the value in the "Next Hashed Owner" name field.
-
-
-      # @TODO@ Check RR types - IS THIS POSSIBLE? NSEC3 domain may be found before actual domain - not sure how to cope with this
-      # @TODO@ When we go through original preparser, can we build up info on NSEC3s?
-      # NO - TOO EXPENSIVE IN PRE-PARSER! Can we construct the name->hashed map to a file as we go through the main stage of the auditor?
-      #
-      # For checking types : 
-      # @TODO@ If using NSEC3, then check for empty nonterminals in the input zone
-      #            if (nsec.type == Types.NSEC3)
-      #              # If the input zone does not contain the pre-hashed nsec3 name, then ignore it
-      #              if (!hash_to_domain_map[nsec.name.canonical])
-      #                # Ignore
-      #                return
-      #              end
-      #            end
+      # Now record the owner name, the next hashed, and the types associated with it
+      # This information will be used by the NSEC3Auditor once the zone file has
+      # been processed.
+      File.open(signed_file+".nsec3", "a") { |f|
+        types = get_types_string(l_rr.types)
+        f.write("#{l_rr.name.to_s} #{types}\n")
+      }
+      if (!l_rr.opt_out?)
+        File.open(signed_file+".optout", "a") { |f|
+          f.write("#{l_rr.name.to_s} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
+        }
+      end
     end
 
     # Work out the Name that next_hashed points to (adds the zone name)
@@ -431,27 +442,27 @@ module KASPAuditor
     end
 
     # Check the DNSKEY RR
-    def check_dnskey(l_rr, config)
+    def check_dnskey(l_rr)
       if (l_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
         log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
       end
       # Protocol check done by dnsruby when loading DNSKEY RR
       # Algorithm check done by dnsruby when loading DNSKEY RR
       # Check TTL
-      if (config.zone.keys.ttl != l_rr.ttl)
-        log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{config.zone.keys.ttl}")
+      if (@config.zone.keys.ttl != l_rr.ttl)
+        log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{@config.zone.keys.ttl}")
       end
     end
 
     # Load the next subdomain of the zone from the signed file
     # This method also audits the subdomain.
     # It is passed the loaded subdomain from the unsigned file, which it checks against.
-    def load_signed_subdomain(config, file, last_rr, soa_rr, unsigned_domain_rrs = nil)
+    def load_signed_subdomain(file, signed_file, last_rr, unsigned_domain_rrs = nil)
       # Load next subdomain of the zone (specified in the last_rr.name)
       # Keep going until zone subdomain changes.
       # If we are loading the signed zone, then we also check the records against the unsigned, and build up useful data for the auditing code
       return if !last_rr
-      subdomain = get_subdomain_to_load(last_rr, soa_rr)
+      subdomain = get_subdomain_to_load(last_rr)
       #      print "Loading signed subdomain : #{subdomain}\n"
       seen_dnskey_sep_set = false
       seen_dnskey_sep_clear = false
@@ -462,11 +473,16 @@ module KASPAuditor
       current_rrset = RRSet.new
       is_glue = false
       is_unsigned_delegation = false
-      while (l_rr && test_subdomain(l_rr, subdomain, soa_rr))
+      while (l_rr && test_subdomain(l_rr, subdomain))
         #                print "Loaded signed RR : #{l_rr}\n"
 
         # Remember to reset types_covered when the domain changes
         if (l_rr.name != current_domain)
+          if (@config.zone.denial.nsec3)
+            # Build up a list of hashed domains and the types seen there,
+            # iff we're using NSEC3
+            write_types_to_file(current_domain, signed_file, types_covered)
+          end
           is_glue = true
           seen_nsec_for_domain = false
           types_covered = []
@@ -478,9 +494,9 @@ module KASPAuditor
         # So, keep track of the last RR type (or type_covered, if RRSIG)
         # When that changes, check the signature for the RRSet
         if (current_rrset.add(l_rr, false))
-          if (l_rr.type == Types::RRSIG)
-            if !(types_covered.include?Types::RRSIG)
-              types_covered.push(Types::RRSIG)
+          if (l_rr.type == Types.RRSIG)
+            if !(types_covered.include?Types.RRSIG)
+              types_covered.push(Types.RRSIG)
             end
           else
             if (!types_covered.include?l_rr.type)
@@ -490,14 +506,14 @@ module KASPAuditor
         else
           # We have a complete RRSet.
           # Now check the signatures!
-          check_signature(current_rrset, config, soa_rr, is_glue, is_unsigned_delegation)
+          check_signature(current_rrset, is_glue, is_unsigned_delegation)
           current_rrset = RRSet.new
           current_rrset.add(l_rr, false)
           types_covered.push(l_rr.type)
         end
 
         if (l_rr.type == Types::DNSKEY) # Check the DNSKEYs
-          check_dnskey(l_rr, config)
+          check_dnskey(l_rr)
           if (l_rr.sep_key?)
             seen_dnskey_sep_set = true
           else
@@ -512,36 +528,41 @@ module KASPAuditor
             @first_nsec = l_rr
           end
           seen_nsec_for_domain = true
-          check_nsec(l_rr, config, soa_rr, types_covered)
+          check_nsec(l_rr, types_covered)
 
         elsif (l_rr.type == Types::NSEC3PARAM)
-          check_nsec3param(l_rr, config, subdomain, soa_rr)
+          check_nsec3param(l_rr, subdomain)
 
         elsif (l_rr.type == Types::NSEC3)
           if (!@first_nsec)
             @first_nsec = l_rr
           end
-          check_nsec3(l_rr, config, soa_rr)
+          check_nsec3(l_rr, signed_file)
 
         end
         # Check if the record exists in both zones - if not, print an error
         if (unsigned_domain_rrs  && !unsigned_domain_rrs.delete(l_rr)) # delete the record from the unsigned
           # ADDITIONAL SIGNED RECORD!! Check if we should error on it
-          process_additional_signed_rr(l_rr, soa_rr)
+          process_additional_signed_rr(l_rr)
         end
         l_rr = get_next_rr(file)
       end
+      if (@config.zone.denial.nsec3)
+        # Build up a list of hashed domains and the types seen there,
+        # iff we're using NSEC3
+        write_types_to_file(current_domain, signed_file, types_covered)
+      end
       # Remember to check the signatures of the final RRSet!
-      check_signature(current_rrset, config, soa_rr, is_glue, is_unsigned_delegation)
-      if (config.zone.denial.nsec)
+      check_signature(current_rrset, is_glue, is_unsigned_delegation)
+      if (@config.zone.denial.nsec)
         if (!is_glue)
           if (!seen_nsec_for_domain)
-            log(LOG_ERR, "No #{nsec_string(config)} record for #{current_domain}")
+            log(LOG_ERR, "No #{nsec_string()} record for #{current_domain}")
           end
         else
           if (current_rrset.length == 0)
             if (seen_nsec_for_domain)
-              log(LOG_ERR, "#{nsec_string(config)} record seen for #{current_domain}, which is glue")
+              log(LOG_ERR, "#{nsec_string()} record seen for #{current_domain}, which is glue")
             end
           end
         end
@@ -551,7 +572,7 @@ module KASPAuditor
       if (unsigned_domain_rrs && unsigned_domain_rrs.length > 0)
         unsigned_domain_rrs.each { |unsigned_rr|
           # Check if out of zone - if not, then print an error
-          process_additional_unsigned_rr(unsigned_rr, soa_rr)
+          process_additional_unsigned_rr(unsigned_rr)
         }
       end
       print_if_count(10000, subdomain, l_rr)
@@ -559,6 +580,45 @@ module KASPAuditor
         check_dnskeys_at_zone_apex(seen_dnskey_sep_set, seen_dnskey_sep_clear)
       end
       return l_rr
+    end
+
+    def write_types_to_file(domain, signed_file, types_covered)
+      # This method is called if an NSEC3-sgned zone is being audited.
+      # It records the types actually seen at the owner name, and the hashed
+      # owner name. At the end of the auditing run, this is checked against
+      # the notes of what the NSEC3 RR claimed *should* be at the owner name.
+      #
+      # It builds a transient file (<zone_file>.types) which has records of the
+      # following form:
+      #   <hashed_name> <unhashed_name> <[type1] [type2] ...>
+      return if (types_covered.include?Types.NSEC3) # Only interested in real domains
+      #      return if (out_of_zone(domain)) # Only interested in domains which should be here!
+      types_string = get_types_string(types_covered)
+      salt = ""
+      iterations = 0
+      hash_alg = Nsec3HashAlgorithms.SHA_1
+      if (@nsec3param)
+        salt = @nsec3param.salt
+        iterations = @nsec3param.iterations
+        hash_alg = @nsec3param.hash_alg
+      elsif (@first_nsec3)
+        salt = @first_nsec3.salt
+        iterations = @first_nsec3.iterations
+        hash_alg - @first_nsec3.hash_alg
+      end
+      hashed_domain = RR::NSEC3.calculate_hash(domain, iterations,
+        RR::NSEC3.decode_salt(salt), hash_alg)
+      File.open(signed_file+".types", "a") { |f|
+        f.write("#{hashed_domain+"."+@soa.name.to_s} #{domain} #{types_string}\n")
+      }
+    end
+
+    def get_types_string(types_covered)
+      types_string = ""
+      types_covered.uniq.each {|type|
+        types_string += " #{type}"
+      }
+      return types_string
     end
 
     # Print where we are every max records
@@ -585,8 +645,8 @@ module KASPAuditor
 
     # There is an extra RR in the unsigned file to the signed file.
     # Error if it is in zone, warn if it is out of zone.
-    def process_additional_unsigned_rr(unsigned_rr, soa_rr)
-      if !out_of_zone(unsigned_rr.name, soa_rr.name)
+    def process_additional_unsigned_rr(unsigned_rr)
+      if !out_of_zone(unsigned_rr.name)
         if ([Types::RRSIG, Types::RRSIG, Types::NSEC, Types::NSEC3, Types::NSEC3PARAM].include?unsigned_rr.type)
           # Ignore DNSSEC data in input zone?
           log(LOG_WARNING, "#{unsigned_rr.type} RR present in unsigned file : #{unsigned_rr}")
@@ -600,11 +660,11 @@ module KASPAuditor
 
     # There is an extra RR in the signed file. If it is not a DNSSEC record, then
     # error (unless it is an SOA, in which case we info the serial change
-    def process_additional_signed_rr(rr, soa)
+    def process_additional_signed_rr(rr)
       # There was an extra signed record that wasn't in the unsigned - check it out
       if (rr.type == Types::SOA)
-        if (rr.name == soa.name)
-          log(LOG_INFO, "SOA differs : from #{soa.serial} to #{rr.serial}")
+        if (rr.name == @soa.name)
+          log(LOG_INFO, "SOA differs : from #{@soa.serial} to #{rr.serial}")
         else
           log(LOG_ERROR,"Different SOA name in output zone!")
         end
@@ -616,17 +676,17 @@ module KASPAuditor
     # Check to see if we are still in the same subdomain of the zone
     # e.g. true for ("a.b.c", "b.c.", "c")
     # but false for ("z.a.b.c", "a.b.c", "c")
-    def test_subdomain(rr, subdomain, soa_rr)
+    def test_subdomain(rr, subdomain)
       ret = false
       rr_name = rr.name
-      soa_rr.name.labels.length.times {|n|
+      @soa.name.labels.length.times {|n|
         rr_name = lose_last_label(rr_name)
       }
 
       if (subdomain && rr_name)
         ret = (rr_name.labels()[rr_name.labels.length() - 1] == subdomain)
       else
-        ret =  (rr.name == soa_rr.name)
+        ret =  (rr.name == @soa.name)
       end
       return ret
     end
@@ -638,9 +698,9 @@ module KASPAuditor
       return n
     end
 
-    # Are we in the same main subdomain of the zone?
-    # @TODO@ SURELY THIS REPLICATES test_subdomain?
-    def compare_subdomain_of_zone(soa, n1, n2)
+    def compare_subdomain_of_zone(n1, n2)
+      # Are we in the same main subdomain of the zone?
+      # @TODO@ SURELY THIS REPLICATES test_subdomain?
       return 0 if (!n1 && !n2)
       return -1 if !n1
       return 1 if !n2
@@ -649,9 +709,9 @@ module KASPAuditor
       name2 = n2.name
       # Look at the label immediately before the soa name, and see if they are the same.
       # So, we need to strip the soa off, then look at the last label
-      soa.labels.length.times {|n|
-        name1 = name1 = lose_last_label(name1)
-        name2 = name2= lose_last_label(name2)
+      @soa.name.labels.length.times {|n|
+        name1 = lose_last_label(name1)
+        name2= lose_last_label(name2)
       }
       return 0 if ((name1.labels.length == 0) && (name2.labels.length == 0))
       #      print "Now comparing subdomains of #{name1} and #{name2} (#{name1.labels[name1.labels.length-1]}, #{name2.labels[name2.labels.length-1]}\n"
@@ -661,7 +721,7 @@ module KASPAuditor
     end
 
     # Load the SOAs from the *unparsed* files.
-    def load_soas(config, input_file, output_file)
+    def load_soas(input_file, output_file)
       # Load the SOA record from both zones, and check they are the same.
       signed_soa = get_soa_from_file(output_file)
       unsigned_soa = get_soa_from_file(input_file)
@@ -671,7 +731,7 @@ module KASPAuditor
         log(LOG_ERR, "Different SOA name in signed zone! (was #{unsigned_soa.name} in unsigned zone, but is #{signed_soa.name} in signed zone")
       end
       if (signed_soa.serial != unsigned_soa.serial)
-        if (config.zone.soa.serial == Config.Zone.SOA.KEEP)
+        if (@config.zone.soa.serial == Config.Zone.SOA.KEEP)
           # The policy configuration for the zone says that the SOA serial
           # should stay the same through the signing process. So, if it's changed,
           # and we're in SOA.KEEP, then log an error
@@ -687,7 +747,7 @@ module KASPAuditor
       end
 
 
-      return unsigned_soa
+      @soa =  unsigned_soa
     end
 
     # Load the SOA from an unparsed file
@@ -718,248 +778,128 @@ module KASPAuditor
     end
 
     # Check if the name is out of the zone
-    def out_of_zone(name, soa_name)
-      return !((name.subdomain_of?soa_name) || (name == soa_name))
+    def out_of_zone(name)
+      return !((name.subdomain_of?@soa.name) || (name == @soa.name))
     end
-    
 
 
-    #    def check_signatures(config, domain_rrsets, soa, nss, keys)
-    #      # Need to get DNSKEY RRSet for zone.
-    #      # Then, check each signed domain against it
-    #      # Want to check each signed domain :
-    #      algs = []
-    #      if (keys.length > 0)
-    #        #        keys.rrs.each {|key|
-    #        keys.each {|key|
-    #          #          print "Using key #{key.key_tag}\n"
-    #          algs.push(key.algorithm) if !algs.include?key.algorithm
-    #        }
-    #      end
-    #
-    #
-    #      domain_rrsets.each {|domain, rrsets|
-    #        #        print "Checking domain #{domain}\n"
-    #        # @TODO@ If rr arrays are in order, then we can just go through each of those for each domain name
-    #        #          rrsets.each {|rrsets|
-    #        # Skip if this is glue
-    #        next if (is_glue(domain, soa, nss))
-    #        #        print "Checked glue\n"
-    #        # Also skip the verify test if this is an unsigned delegation
-    #        # (NS records but no DS records)
-    #        ns_rrsets = rrsets.select{|rrset| rrset.type == Types.NS}
-    #        ds_rrsets = rrsets.select{|rrset| rrset.type == Types.DS}
-    #        print "#{ns_rrsets.length} NS, #{ds_rrsets.length} DS for #{domain}\n"
-    #
-    #        #        print "starting going through sigs\n"
-    #
-    #        next if out_of_zone(domain, soa.name)
-    #        rrsets.each {|rrset|
-    #          #        print "Checking sigs for #{domain}, #{rrset.type}\n"
-    #          #  a) RRSIG for each algorith  for which there is a DNSKEY
-    #          rrset_sig_types = []
-    #          rrset.sigs.each {|sig| rrset_sig_types.push(sig.algorithm)}
-    #          algs.each {|alg|
-    #            if !(rrset_sig_types.include?alg)
-    #              if ((rrset.type == Types.NS) && (rrset.name != soa.name)) # NS RRSet NOT at zone apex is OK
-    #              else
-    #                s = ""
-    #                rrset_sig_types.each {|t| s = s + " #{t} "}
-    #                log(LOG_ERR, "RRSIGS should include algorithm #{alg} for #{rrset.name}, #{rrset.type}, have :#{s}")
-    #              end
-    #            end
-    #          }
-    #          #  b) RRSIGs validate for at least one key in DNSKEY RRSet  (Note: except for the zone apex, there should be no RRSIG for NS RRsets.)
-    #          #          print "Verifying RRSIG for #{rrset}\n"
-    #          # @TODO@ Create an RRSET with *only* the RRSIG we are interested in - check that they all verify ok?
-    #          # Check if this is an NS RRSet other than the zone apex - if so, then skip the verify test
-    #          if ((rrset.type == Types.NS) && ((rrset.name != soa.name)))
-    #            # Skip the verify test
-    #            next if (ns_rrsets.length > 0 && ds_rrsets.length == 0)
-    #          elsif (rrset.sigs.length == 0 && (ns_rrsets.length > 0 && ds_rrsets.length == 0))
-    #            next # unsigned delegation
-    #          else
-    #            begin
-    #              #              print "About to verify #{rrset.name} #{rrset.type}, #{rrset.rrs.length} RRs, #{rrset.sigs.length} RRSIGs, #{keys.length} keys\n"
-    #              Dnssec.verify_rrset(rrset, keys)
-    #              #              print "Verified OK!!\n"
-    #            rescue VerifyError => e
-    #              log(LOG_ERR, "RRSet (#{rrset.name}, #{rrset.type}) failed verification : #{e}, tag = #{rrset.sigs()[0] ? rrset.sigs()[0].key_tag : 'none'}")
-    #            end
-    #          end
-    #          rrset.sigs.each {|sig|
-    #            #  c) inception date in past by at least interval specified by config
-    #            time_now = KASPTime.get_current_time
-    #            if (sig.inception >= (time_now + config.zone.signatures.inception_offset))
-    #              log(LOG_ERR, "Inception error for #{sig.name}, #{sig.type_covered} : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}")
-    #            else
-    #              #            print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"
-    #            end
-    #
-    #            #  d) expiration date in future by at least interval specified by config
-    #            validity = config.zone.signatures.validity.default
-    #            if ([Types.NSEC, Types.NSEC3, Types.NSEC3PARAM].include?rrset.type)
-    #              validity = config.zone.signatures.validity.denial
-    #            end
-    #            #  We want to check that at least the validity period remains before the signatures expire
-    #            # @TODO@ Probably want to have a validity WARN level and an ERROR level for validity
-    #            if ((sig.expiration -  time_now).abs <=  validity)
-    #              log(LOG_ERR, "Validity error for #{sig.name}, #{sig.type_covered} : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}")
-    #            else
-    #              #            print "OK : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}\n"
-    #            end
-    #          }
-    #        }
-    #      }
-    #      #      print "\nFINISHE D CHECKING RRSIG\n\n"
-    #    end
 
-    #
-    #    def check_nsec_ttl_and_types(nsec, soa, domain_rrsets, hash_to_domain_map = nil)
-    #      if (nsec.ttl != soa.minimum)
-    #        log(LOG_ERR, "#{nsec.type} record should have SOA of #{soa.minimum}, but is #{nsec}")
-    #      end
-    #      # Check the types field of the NSEC RRs to make sure that they cover the right types!
-    #      # Problem with NSEC3 here - they have HASHED owner name. So we need to match the nsec3.name up with the HASHED owner name.
-    #      # So we need a map of domain name <-> Hashed owner name
-    #      rrset_array=[]
-    #      if ([Types.NSEC3, Types.NSEC3PARAM].include?nsec.type )
-    #        rrset_array = domain_rrsets[hash_to_domain_map[nsec.name.canonical]]
-    #        if (!rrset_array)
-    #          rrset_array = domain_rrsets[nsec.name]
-    #        end
-    #      else
-    #        rrset_array = domain_rrsets[nsec.name]
-    #      end
-    #      if (!rrset_array)
-    #        log(LOG_ERR, "Failed looking up RR types for #{nsec.type} for #{nsec.name}")
-    #        return
-    #      end
-    #      types = []
-    #      seen_rrsig = false
-    #      rrset_array.each {|rrset|
-    #        types.push(rrset.type)
-    #        if (!seen_rrsig && (rrset.sigs.length > 0))
-    #          seen_rrsig = true
-    #          types.push(Types.RRSIG)
-    #        end
-    #      }
-    #      nsec.types.each {|type|
-    #        if !(types.include?type)
-    #          log(LOG_ERR, "#{nsec.type} includes #{type} which is not in rrsets for #{nsec.name}")
-    ##          print "Unhashed = "
-    #          hash_to_domain_map.each_pair{ |key, value|
-    ##            print "#{key} : #{value}\n"
-    #          }
-    #        end
-    #        types.delete(type)
-    #      }
-    #      if (types.length > 0)
-    #        # If using NSEC3, then check for empty nonterminals in the input zone
-    #        if (nsec.type == Types.NSEC3)
-    #          # If the input zone does not contain the pre-hashed nsec3 name, then ignore it
-    #          if (!hash_to_domain_map[nsec.name.canonical])
-    #            # Ignore
-    #            return
-    #          end
-    #        end
-    #        # Otherwise, log the missing types
-    #        s = ""
-    #        types.each {|t| s = s + " #{t} "}
-    #        log(LOG_ERR, "#{s} types not in #{nsec.type} for #{nsec.name}")
-    #      end
-    #    end
-    #
-    #    def check_nsec3(config, nsecs, nsec3s, nsec3params, nsec3names, domains, soa, domain_rrsets, nss)
-    #      if (nsecs.length > 0)
-    #        log(LOG_ERR, "NSEC RRs included in NSEC3-signed zone")
-    #      end
-    #      nsec3param = nil
-    #
-    #      if (nsec3s.length == 0)
-    #        log(LOG_ERR, "No NSEC3 records in zone #{soa.name}")
-    #        return
-    #      end
-    #
-    #      # Create a list of the hashed owner names in the zone
-    #      nsec3 = nsec3s[0]
-    #      hash_to_domain_map = {}
-    #      hashed_domains = []
-    #      (domains - nsec3names).each {|domain|
-    #        hashed_domain = (RR::NSEC3.calculate_hash(domain, nsec3.iterations, RR::NSEC3.decode_salt(nsec3.salt), nsec3.hash_alg))
-    #        hashed_domains.push(hashed_domain)
-    #        hashed_domain = Name.create(hashed_domain.to_s + "." + soa.name.to_s)
-    #        hash_to_domain_map[hashed_domain.canonical] = domain
-    #        #      print "Added #{hashed_domain} for #{domain}\n"
-    #      }
-    #      #    hashed_domains = hash_to_domain_map.values
-    #      hashed_domains.sort!
-    #
-    #      if (nsec3params.length > 0)
-    #        # Check NSEC3PARAM - if present, must be only one, and present at apex
-    #        #                  - flags should be zero
-    #        #                  - All NSEC3 records in zone have same alg and salt params as nsec3param
-    #        if (nsec3params.length > 1)
-    #          log(LOG_ERR, "#{nsec3params.length} NSEC3PARAM RRs for #{soa.name}")
-    #        end
-    #        nsec3param = nsec3params[0]
-    #        if (nsec3param.flags != 0)
-    #          log(LOG_ERR, "NSEC3PARAM flags should be 0, but were #{nsec3param.flags} for #{soa.name}")
-    #        end
-    #      end
-    #
-    #      nsec3s.each {|nsec3|
-    #        if (nsec3param)
-    #          if (nsec3.hash_alg != nsec3param.hash_alg)
-    #            log(LOG_ERR, "#{nsec3.name} NSEC3 has algorithm #{nsec3.hash_alg}, but NSEC3PARAM has #{nsec3param.hash_alg}")
-    #          end
-    #          if (nsec3.salt != nsec3param.salt)
-    #            log(LOG_ERR, "#{nsec3.name} NSEC3 has salt #{nsec3.salt}, but NSEC3PARAM has #{nsec3param.salt}")
-    #          end
-    #        end
-    #        # NSEC3 RR has correct bits set to identify RR types in RRSet
-    #        check_nsec_ttl_and_types(nsec3, soa, domain_rrsets, hash_to_domain_map)
-    #
-    #        # Take next hashed owner name out of list
-    #        next_hashed = Name.create(RR::NSEC3.encode_next_hashed(nsec3.next_hashed) + "." + soa.name.to_s + ".")
-    #        nsec3names.delete(next_hashed)
-    #
-    #        if !(nsec3.opt_out?)
-    #          # If an NSEC3 record does not have the opt-out bit set, there are no domain names in the zone for which
-    #          # the hash lies between the hash of this domain name and the value in the "Next Hashed Owner" name field.
-    #          # @TODO@ What about glue records and unsigned delegations?
-    #          # Glue records are not signed.
-    #          # Delegation to an unsigned sub-domain MAY not be signed if the opt-out bit is set.
-    #
-    #          # so - check hashed_domains for anything in between nsec3.name and nsec3.next_hashed
-    #          found_domains = hashed_domains.select {|hash| ((nsec3.name.to_s < hash) && (hash < RR::NSEC3.encode_next_hashed(nsec3.next_hashed)))}
-    #          found_domains.each {|domain|
-    #            # Check that domain is :
-    #            # a) Not a glue record, and
-    #            # b) @TODO@ Not an unsigned delegation (NS but no DS), and
-    #            # c) Not out of zone
-    #            # Need to find unhashed domain...
-    #            unhashed_domain = hash_to_domain_map[Name.create(domain.to_s + "." + soa.name.to_s).canonical]
-    #
-    #            if ((is_glue(unhashed_domain, soa, nss) ||
-    #                    (out_of_zone(unhashed_domain, soa.name))))
-    #              found_domains.delete(domain)
-    #            end
-    #          }
-    #          if (found_domains.length > 0)
-    #            log(LOG_ERR, "#{found_domains.length} domains between #{nsec3.name} and #{RR::NSEC3.encode_next_hashed(nsec3.next_hashed)}, with opt out not set")
-    #          end
-    #
-    #        end
-    #      }
-    #      # NSEC3 next_hashed should form closed loop of all NSEC3s (but not all domains)
-    #      # We have already removed all the next_hashed names from the list of nsec3names - so there should
-    #      # be no nsec3names left in the list
-    #      if (nsec3names.length > 0)
-    #        log(LOG_ERR, "#{nsec3names.length} NSEC3 names outside of closed loop of hashed owner names")
-    #      end
-    #      #      print "\nFINISHED CHECKING NSEC3\n\n"
-    #    end
-    #
+    # The Nsec3Auditor class checks the NSEC3 types_covered and opt-out.
+    # It runs through files which were created during the main auditing phase,
+    # which include lists of NSEC3 RR types_covered, as well as lists of the
+    # actual types found at the unhashed domain name.
+    # The files also record those NSEC3 RRs for which opt-out was not set.
+    class Nsec3Auditor
+      def initialize(parent)
+        @parent = parent
+      end
+      def check_nsec3_types_and_opt_out(signed_file)
+        # First of all we will have to sort the types file.
+        system("sort -t$' ' #{signed_file}.types > #{signed_file}.types.sorted")
+
+        # Go through each name in the files and check them
+        # We want to check two things :
+        # a) types covered
+        # b) no hashes in between non-opt-out names
+
+        # This checks the types covered for each domain name
+        File.open(signed_file+".types.sorted") {|ftypes|
+          File.open(signed_file+".nsec3") {|fnsec3|
+            File.open(signed_file + ".optout") {|foptout|
+              while (!ftypes.eof? && !fnsec3.eof? && !foptout.eof?)
+                types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
+                nsec3_name, nsec3_types = get_name_and_types(fnsec3)
+                owner, next_hashed = get_next_non_optout(foptout)
+                owner, next_hashed = check_optout(owner, next_hashed, types_name, foptout)
+                
+                while ((nsec3_name < types_name) && (!fnsec3.eof?))
+                  # An empty nonterminal
+                  #                  log(LOG_WARNING, "Found NSEC3 record for hashed domain which couldn't be found in the zone (#{nsec3_name})")
+                  nsec3_name, nsec3_types = get_name_and_types(fnsec3)
+                end
+                while ((types_name < nsec3_name) && (!ftypes.eof?)) 
+                  log(LOG_ERR, "Found RRs for #{types_name_unhashed} (#{types_name}) which was not covered by an NSEC3 record")
+                  types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
+
+                  # Check the optout names as we load in more types
+                  owner, next_hashed = check_optout(owner, next_hashed, types_name, foptout)
+                end
+                # Now check the NSEC3 types_covered against the types ACTUALLY at the name
+                if (types_types != nsec3_types)
+                  log(LOG_ERR, "ERROR : expected #{@parent.get_types_string(nsec3_types)}" +
+                      " at #{types_name_unhashed} (#{nsec3_name}) but found " +
+                      "#{@parent.get_types_string(types_types)}")
+                end
+              end
+            }
+          }
+        }
+
+        # Now delete any intermediary files, if we're using NSEC3
+        delete_nsec3_files(signed_file)
+      end
+
+      def check_optout(owner, next_hashed, types_name, foptout)
+        #  Check the optout names
+        if (types_name > owner)
+          if (types_name >= next_hashed)
+            # Load next non-optout
+            owner, next_hashed = get_next_non_optout(foptout)
+          else
+            # ERROR!
+            log(LOG_ERR, "Found domain whose hash (#{types_name}) is between owner (#{owner}) and next_hashed (#{next_hashed})for non-optout NSEC3")
+          end
+        end
+        return owner, next_hashed
+      end
+
+
+      def get_next_non_optout(file)
+        loptout = file.gets
+        owner, next_hashed = loptout.split" "
+        return owner, next_hashed
+      end
+
+      def get_name_and_types(file, get_unhashed_name = false)
+        line = file.gets
+        array = line.split" "
+        name = array[0]
+        types = []
+        num = 1
+        unhashed_name = nil
+        if (get_unhashed_name)
+          num = 2
+          unhashed_name = array[1]
+        end
+        (array.length-num).times {|i|
+          #        type = Types.new(array[i+1])
+          #        types.push(type)
+          types.push(array[i+num])
+        }
+        if (get_unhashed_name)
+          return name, unhashed_name, types.uniq.sort
+        else
+          return name, types.uniq.sort
+        end
+      end
+
+      def delete_nsec3_files(signed_file)
+        # Delete the intermediary files used for NSEC3 checking
+        [signed_file+".nsec3", signed_file+".types", signed_file+".optout",
+          signed_file+".types.sorted"].each {|f|
+          begin
+            File.delete(f)
+          rescue Exception => e
+            #          print "Can't delete file #{f}, error : #{e}\n"
+          end
+        }
+      end
+
+      def log(pri, msg)
+        @parent.log(pri, msg)
+      end
+
+    end
+
   end
 end

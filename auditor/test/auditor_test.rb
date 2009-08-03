@@ -128,22 +128,21 @@ class AuditorTest < Test::Unit::TestCase
       "RRSet (cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl, NSEC3) failed verification : Signature failed to cryptographically verify",
       #
       #   3. Each NSEC3 record has bits correctly set to indicate the types of RRs associated with the domain.
-      #   @TODO@
+      "expected  MX RRSIG at test.test.tjeb.nl (cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl) but found  A RRSIG",
+      "Found RRs for not.there.tjeb.nl (52cd45tiauj3n8vs8vs4mvdsigb34leh.tjeb.nl) which was not covered by an NSEC3 record",
+      "Found RRs for bla.tjeb.nl (dsr9s1udf6urti95hvhv1b04tooihn7a.tjeb.nl) which was not covered by an NSEC3 record",
+
       #
       #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
+    # - @TODO@ extra next_hashed on one NSEC3
       "Can't follow NSEC3 loop from cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl to aa35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl"
       #
       #   5. If an NSEC3 record does not have the opt-out bit set, there are no domain names in the zone for which the hash lies between the hash of this domain name and the value in the "Next Hashed Owner" name field.
-      #   @TODO@ this should be easy to implement! But how do we test?
+      #   @TODO@ how do we test? Would need to find a domain whose hash was right... :-/
       #
     ]
     success = check_syslog(stderr, expected_strings)
     assert(success, "NSEC3 bad file not audited correctly")
-    # Now check the NSEC3 specific stuff
-    # - @TODO@ extra next_hashed on one NSEC3
-    # - @TODO@ one next_hashed NSEC3 missing
-    # - @TODO@ opt-out : insert extra NSEC3 for fictional record between NSEC3 and next_hashed
-    #
   end
 
   def check_syslog(stderr, expected_strings)
@@ -174,6 +173,7 @@ class AuditorTest < Test::Unit::TestCase
     return success
   end
 
+  # @TODO@ Partial scanning
   #  def test_partial_scan_good
   #    fail "Implement good partial scanning test!"
   #    # @TODO@ Is there any need for NSEC(3) versions of these partial test methods?

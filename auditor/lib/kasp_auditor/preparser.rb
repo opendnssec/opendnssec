@@ -1,8 +1,11 @@
 module KASPAuditor
-    # This class reads a zone file, and transforms it to a form suitable to be sorted by the OS sort command.
-    # For purposes of sorting, each RR should be prepended by the reversed domain name, followed by a separator.
-    #(each label of the name is preserved - the labels are simply written in reverse order)
-    # This allows the auditor to operate on a zone file which is essentially in canonical order.
+    # This class reads a zone file, and transforms it to a form suitable to be
+    # sorted by the OS sort command.
+    # For purposes of sorting, each RR should be prepended by the reversed
+    # domain name, followed by a separator (each label of the name is preserved
+    #  - the labels are simply written in reverse order)
+    # This allows the auditor to operate on a zone file which is essentially
+    # in canonical order.
   class Preparser
 
     # @TODO@ Need to use different separator - difficult, since arbitrary data
@@ -11,9 +14,6 @@ module KASPAuditor
     SEPARATOR = "\v" # "\v" Vertical Tab
 
 
-
-    # We then need to make sure that the auditor skips everything before the separator when it loads the zones
-    #   or else we need another method to scan the file again and remove the prepended reversed names ( + separators)
 
     # Call the OS sort command (with the appropriate separator).
     def sort(file)

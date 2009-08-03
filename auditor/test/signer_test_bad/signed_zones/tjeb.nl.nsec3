@@ -56,7 +56,7 @@ nsec3.tjeb.nl.		 3600		 IN		 RRSIG		 DS 7 3 3600 20100101000000 20090611135226 1
 ;
 test.test.tjeb.nl.		 1234		 IN		 A		 195.169.221.157
 test.test.tjeb.nl.		 1234		 IN		 RRSIG		 A 7 4 1234 20100101000000 20090611135226 13838 tjeb.nl. tavNav/gNkbiEzBYyO+pz/UpN0qxCCB4pJDNRhON+v1WhBMyeS+OF45ICysOK4PzZyDW4zUdK75jOh3ySaRz1AQFvEZdT1ynfZvoISvIflimKgFIN39iz3DCFZ7LslhxPDqjpe7jS3Qpv+1vj5YOxJtoYknIfWAplI8AG/wcXEw= ;{id = 13838}
-cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl.		 3600		 IN		 NSEC3		 2 0 10 dead  aa35pgoisfecot5i7fratgsu2m4k23lu A RRSIG 
+cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl.		 3600		 IN		 NSEC3		 2 0 10 dead  aa35pgoisfecot5i7fratgsu2m4k23lu MX RRSIG 
 cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl.		 3600		 IN		 RRSIG		 NSEC3 7 3 3600 20100101000000 20090611135226 13838 tjeb.nl. Y82yvhdQRn4qxdTGzTNrmWxBHL0Z81kRxf5V9tCE+gSwwUi6Ieyo0xQ5trSlZVGGKYzE9Nxpan4Nfar6QB0l3Lr6bFKPklqQM0XQQqDodpbX/wPFkrPNZQSqAyFeyzNYZ8I2s70nh49T0OLjgg8q64gkOi6v/D0Zu07ioaA7u2k= ;{id = 13838}
 ;
 www.tjeb.nl.		 3600		 IN		 A		 195.169.221.157

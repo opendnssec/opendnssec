@@ -38,18 +38,25 @@ require 'kasp_auditor/preparser.rb'
 # the signing process has run successfully. It checks that no data has been
 # lost (or non-DNSSEC data added), and that all the DNSSEC records are correct.
 # It used the OpenDNSSEC standard logging (defined in /etc/opendnssec/conf.xml)
-# @TODO@ This module should be able to take an optional list of zones to check.
-# If this parameter is not present, then all the zones in zonelist.xml will be
-# checked.
+# Several transient files are created during this process - they are removed
+# when the process is complete.
 module KASPAuditor
-  # First version of auditor ran by loading whole zone into memory. This won't work for large zones.
-  # Second version of auditor needs to run by processing zone files one domain name at a time (one subdomain of the zone at a time, that is)
-  # To do that, we need a zone file which has been sorted into subdomain order. We can do that by using OS sort command on a list of reversed domain names.
+  # The KASPAuditor takes the signed and unsigned zones and compares them.
+  # It first parses both files, and creates transient files which are then
+  # sorted into canonical order. These files are then processed by the
+  # Auditor. If processing an NSEC3-signed file, the Auditor will create
+  # additional temporary files, which are processed after the main auditing
+  # run.
   class Runner
 
     # Run the auditor.
-    # The filename is optional for testing purposes.
-    # The
+    # The path is the path to the opendnssec installation (often /etc/opendnssec)
+    # A list of zones to audit may be passed. If populated, then only those
+    # zones in the list, which also appear in the zonelist file, will be
+    # audited. If an empty list is passed, or nothing, then all zones in the
+    # zonelist will be audited.
+    # The filename is optional for testing purposes, and defaults to
+    # zonelist.xml
     def run(path, zones_to_audit = [], filename="zonelist.xml")
       #      path = ARGV[0] + "/"
       if (!path || path.length() == 0)
@@ -64,7 +71,7 @@ module KASPAuditor
     end
 
     # This method is provided so that the test code can use its own syslog
-    def run_with_syslog(path, zones_to_audit, filename, syslog)
+    def run_with_syslog(path, zones_to_audit, filename, syslog) # :nodoc: all
       if (path[path.length() -1,1] != "/")
         path = path+ "/"
       end
@@ -97,11 +104,14 @@ module KASPAuditor
             print "Error sorting file : #{ret_status}\n"
           end
         }
-
         # Now audit the pre-parsed and sorted file
         auditor = Auditor.new(syslog)
         ret_val = auditor.check_zone(config, input_file, output_file)
         ret = ret_val if (ret_val < ret)
+        [input_file, output_file].each {|f|
+          delete_file(f+".parsed")
+          delete_file(f+".sorted")
+        }
 
       }
       ret = 0 if (ret == -99)
@@ -112,7 +122,7 @@ module KASPAuditor
     # Given a list of configured zones, and a list of zones_to_audit, return
     # only those configured zones which are in the list of zones_to_audit.
     # Ignore a trailing dot.
-    def check_zones_to_audit(zones, zones_to_audit)
+    def check_zones_to_audit(zones, zones_to_audit) # :nodoc: all
       # If a list of zones to audit has been specified, then only check those
       if (zones_to_audit.length > 0)
         zones.each {|zone|
@@ -131,7 +141,7 @@ module KASPAuditor
     # Try to load the syslog facility from the conf.xml file.
     # Returns a Syslog::Constants value
     # Returns Syslog::LOG_DAEMON on any error
-    def get_syslog_facility(path)
+    def get_syslog_facility(path) # :nodoc: all
       File.open(path + "conf.xml" , 'r') {|file|
         begin
           doc = REXML::Document.new(file)
@@ -176,7 +186,7 @@ module KASPAuditor
       }
     end
 
-    def delete_file(f)
+    def delete_file(f) # :nodoc: all
       begin
         File.delete(f)
       rescue Exception => e
