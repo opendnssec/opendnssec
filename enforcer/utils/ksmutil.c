@@ -32,9 +32,10 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include "config.h"
+
 #include <ksm/ksmutil.h>
 #include <ksm/ksm.h>
-#include <ksm/config.h>
 #include <ksm/database.h>
 #include <ksm/datetime.h>
 #include <ksm/string_util.h>

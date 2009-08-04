@@ -4,7 +4,9 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = \
 	-I$(srcdir)/../common \
+	-I$(builddir)/../common \
 	-I$(srcdir)/../ksm/include \
+	-I$(builddir)/../ksm/include \
 	@LIBHSM_INCLUDES@ \
 	@XML2_INCLUDES@
 
@@ -13,7 +15,7 @@ dist_opendnssecdata_DATA = database_create.sqlite3
 bin_PROGRAMS = ksmutil
 
 ksmutil_LDADD = ../ksm/libksm.a
-ksmutil_LDADD += @XML2_LIBS@ @SQLITE3_LIBS@ @LIBHSM_LIBS@
+ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@
 ksmutil_DEPENDENCIES = @BUILD_LIBHSM@
 
 ../../libhsm/src/libhsm.la:

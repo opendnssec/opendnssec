@@ -86,6 +86,7 @@ AC_SUBST([opendnssecdatadir])
 
 opendnssecsysconfdir=$full_sysconfdir/opendnssec
 opendnssecdatadir=$full_datadir/opendnssec
+opendnsseclocalstatedir="$prefix/var/opendnssec"
 
 keygend_conf_file=$opendnssecsysconfdir/conf.xml
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
@@ -102,6 +103,11 @@ AC_DEFINE_UNQUOTED(KEYGEN_PID, ["`eval echo $keygen_pid_file | sed s,NONE,$ac_de
 signer_cli="$prefix/bin/signer_engine_cli update"
 AC_DEFINE_UNQUOTED(SIGNER_CLI, ["`eval echo $signer_cli | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine cli])
 
+AC_DEFINE_UNQUOTED(CONFIGDIR, ["`eval echo $opendnssecsysconfdir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
+AC_DEFINE_UNQUOTED(DATADIR, ["`eval echo $opendnssecdatadir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC data files])
+AC_DEFINE_UNQUOTED(VAR_DIR, ["`eval echo $opendnsseclocalstatedir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC var directory])
+
+
 AC_CONFIG_FILES([
 Makefile
 ksm/Makefile
@@ -112,4 +118,5 @@ communicated/Makefile
 keygend/Makefile
 utils/Makefile
 ])
+
 AC_OUTPUT

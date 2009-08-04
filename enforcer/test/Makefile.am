@@ -2,7 +2,11 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS = -I$(srcdir)/../ksm/include @CUNIT_INCLUDES@ @DB_INCLUDES@
+AM_CPPFLAGS = \
+	-I$(srcdir)/../ksm/include \
+	-I$(builddir)/../ksm/include \
+	@CUNIT_INCLUDES@ \
+	@DB_INCLUDES@
 
 check_PROGRAMS = test
 

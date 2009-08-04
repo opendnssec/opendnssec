@@ -6,7 +6,7 @@ SUBDIRS = include
 
 AM_CPPFLAGS = \
 	-I$(srcdir)/include \
-	-Iinclude \
+	-I$(builddir)/include \
 	@LIBHSM_INCLUDES@ \
 	@DB_INCLUDES@ \
 	@XML2_INCLUDES@
