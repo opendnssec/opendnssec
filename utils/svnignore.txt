@@ -20,6 +20,7 @@ ltmain.sh
 missing
 mkinstalldirs
 stamp-h*
+obj
 
 .deps
 .libs
