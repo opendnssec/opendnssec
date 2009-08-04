@@ -200,7 +200,9 @@ cmd_setup (int argc, char *argv[])
         status = get_lite_lock(lock_filename, lock_fd);
         if (status != 0) {
             printf("Error getting db lock\n");
-            fclose(lock_fd);
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
             StrFree(dbschema);
             StrFree(lock_filename);
             return(1);
@@ -375,7 +377,6 @@ cmd_update (int argc, char *argv[])
     status = db_connect(&dbhandle, &lock_fd, &lock_filename);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        fclose(lock_fd);
         return(1);
     }
     StrFree(lock_filename);
@@ -592,7 +593,9 @@ cmd_addzone (int argc, char *argv[])
         status = get_lite_lock(lock_filename, lock_fd);
         if (status != 0) {
             printf("Error getting db lock\n");
-            fclose(lock_fd);
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
             StrFree(dbschema);
             return(1);
         }
@@ -953,7 +956,9 @@ cmd_rollzone (int argc, char *argv[])
         status = get_lite_lock(lock_filename, lock_fd);
         if (status != 0) {
             printf("Error getting db lock\n");
-            fclose(lock_fd);
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
             StrFree(dbschema);
             return(1);
         }
@@ -1138,7 +1143,9 @@ cmd_rollpolicy (int argc, char *argv[])
         status = get_lite_lock(lock_filename, lock_fd);
         if (status != 0) {
             printf("Error getting db lock\n");
-            fclose(lock_fd);
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
             StrFree(dbschema);
             return(1);
         }
@@ -1378,6 +1385,9 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
         status = get_lite_lock(*lock_filename, *lock_fd);
         if (status != 0) {
             printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(*lock_fd);
+            }
             StrFree(dbschema);
             return(1);
         }
@@ -1391,6 +1401,7 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
         StrFree(backup_filename);
 
         if (status != 0) {
+            fclose(*lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
@@ -1424,6 +1435,11 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
 {
     struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
     struct timeval tv;
+
+    if (lock_fd == NULL) {
+        printf("%s could not be opened\n", lock_filename);
+        return 1;
+    }
 
     fl.l_pid = getpid();
 
@@ -3092,7 +3108,7 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
         ret = xmlParseInNodeContext(audit_node, policy->audit, strlen(policy->audit), 0, &encNode);
 
         if (ret < 0) {
-            (void) xmlNewChild(policy_node, NULL, (const xmlChar *)"Error", "audit tag contents could not be parsed");
+            (void) xmlNewChild(policy_node, NULL, (const xmlChar *)"Error", (const xmlChar *)"audit tag contents could not be parsed");
         }
         else {
             xmlAddChild(audit_node, encNode);
@@ -3128,5 +3144,5 @@ int printKey(void* context, KSM_KEYDATA* key_data)
     void
 ksm_log_msg(const char *format)
 {
-    fprintf(stderr, format);
+    fprintf(stderr, "%s\n", format);
 }

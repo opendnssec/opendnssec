@@ -557,7 +557,12 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
 {
     struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
     struct timeval tv;
-  
+
+    if (lock_fd == NULL) {
+        log_msg(NULL, LOG_ERR, "%s could not be opened\n", lock_filename);
+        return 1;
+    }
+
     fl.l_pid = getpid();
     
     while (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
