@@ -31,27 +31,39 @@ include REXML
 
 module KASPAuditor
   class Parse
-    def self.parse(path, filename, syslog)
-      # Load the config file, then check each of the zones defined there
+    def self.parse(path, zonelist_filename, kasp_filename, syslog)
+      # We need to open [/etc/opendnssec/]conf.xml,
+      #                 [/etc/opendnssec/]kasp.xml,
+      #                 [/etc/opendnssec/]zonelist.xml
+      #
+      # The zonelist.xml specified the zones. It also specified the policy for
+      # the zone.
+      # The policy refers to a policy defined in kasp.xml, which specifies all
+      # except for the salt.
+      # The conf.xml specifies the signer working directory, as well as the syslog
+      # So, we parse zonelist.xml. We should read the policy from there.
+      # We should then read the kasp.xml file to find the policy of interest.
+      # We also need to read SignerConfiguration, just so we know the salt.
       zones = []
-      #    File.open(path+"zonelist.xml", 'r') {|file|
-      File.open(path + filename, 'r') {|file|
-        print "Opened file #{path+filename}\n"
+      File.open(zonelist_filename, 'r') {|file|
+        print "Opened zonelist file #{zonelist_filename}\n"
         doc = REXML::Document.new(file)
         doc.elements.each("ZoneList/Zone") {|z|
           # First load the config files
           zone_name = z.attributes['name']
           print "Processing zone name #{zone_name}\n"
           policy = z.elements['Policy'].text
-          #          print "Policy #{policy}\n"
+                   print "Policy #{policy}\n"
 
           config_file_loc = z.elements["SignerConfiguration"].text
           if (config_file_loc.index("/") != 0)
             config_file_loc = path + config_file_loc
           end
-          print "Config file location : #{config_file_loc}\n"
+
+          print "Zone Config file location : #{config_file_loc}\n"
+          print "KASP Config file location : #{kasp_filename}\n"
           # Now parse the config file
-          config = Config.new(config_file_loc)
+          config = Config.new(kasp_filename, policy, config_file_loc)
 
           input_file_loc = z.elements["Adapters"].elements['Input'].elements["File"].text
           if (input_file_loc.index("/") != 0)

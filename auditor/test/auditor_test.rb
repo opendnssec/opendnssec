@@ -20,8 +20,9 @@ class AuditorTest < Test::Unit::TestCase
 
     stderr = IO::pipe
     path = "test/signer_test_good/"
-    filename = "zonelist_nsec.xml"
-    run_auditor_with_syslog(path, filename, stderr, 0)
+    zonelist_filename = "zonelist_nsec.xml"
+    kasp_filename = "kasp_nsec.xml"
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0)
 
     success = check_syslog(stderr, [])
     assert(success, "NSEC good file not audited correctly")
@@ -30,8 +31,9 @@ class AuditorTest < Test::Unit::TestCase
   def test_good_file_nsec3
     stderr = IO::pipe
     path = "test/signer_test_good/"
-    filename = "zonelist_nsec3.xml"
-    run_auditor_with_syslog(path, filename, stderr, 0)
+    zonelist_filename = "zonelist_nsec3.xml"
+    kasp_filename = "kasp_nsec3.xml"
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0)
 
     success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used"])
     assert(success, "NSEC3 good file not audited correctly")
@@ -42,8 +44,9 @@ class AuditorTest < Test::Unit::TestCase
     # Make sure that all known errors are caught
     stderr = IO::pipe
     path = "test/signer_test_bad/"
-    filename = "zonelist_nsec.xml"
-    run_auditor_with_syslog(path, filename, stderr, 3)
+    zonelist_filename = "zonelist_nsec.xml"
+    kasp_filename = "kasp_nsec.xml"
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3)
 
 
     expected_strings = [
@@ -89,6 +92,9 @@ class AuditorTest < Test::Unit::TestCase
       "NSEC record left after folowing closed loop : not.there.tjeb.nl",
       "Can't follow NSEC loop from not.there.tjeb.nl to really.not.there.tjeb.nl"
       # @TODO@ Check SOA Serial == KEEP
+
+      # @TODO@ Check DNSKEY alg codes and lengths against kasp.xml
+      # @TODO@ Update online spec some time!
     ]
     success = check_syslog(stderr, expected_strings)
     assert(success, "NSEC bad file not audited correctly")
@@ -99,8 +105,9 @@ class AuditorTest < Test::Unit::TestCase
     # Make sure that all known errors are caught
     stderr = IO::pipe
     path = "test/signer_test_bad/"
-    filename = "zonelist_nsec3.xml"
-    run_auditor_with_syslog(path, filename, stderr, 3)
+    zonelist_filename = "zonelist_nsec3.xml"
+    kasp_filename = "kasp_nsec3.xml"
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3)
   
     expected_strings = [ # NSEC3 error strings
      "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
@@ -184,7 +191,7 @@ class AuditorTest < Test::Unit::TestCase
   #    fail "Implement bad partial scanning test!"
   #  end
 
-  def run_auditor_with_syslog(path, filename, stderr, expected_ret)
+  def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret)
     runner = Runner.new
 
     pid = fork {
@@ -195,7 +202,7 @@ class AuditorTest < Test::Unit::TestCase
       options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
       Syslog.open("auditor_test", options) {|syslog|
-        ret = runner.run_with_syslog(path, [], filename, syslog) # Audit all zones
+        ret = runner.run_with_syslog(path, [], path + zonelist_filename, path + kasp_filename, syslog, "test") # Audit all zones
       }
       exit!(ret)
     }

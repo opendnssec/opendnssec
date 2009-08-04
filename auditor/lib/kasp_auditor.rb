@@ -55,9 +55,7 @@ module KASPAuditor
     # zones in the list, which also appear in the zonelist file, will be
     # audited. If an empty list is passed, or nothing, then all zones in the
     # zonelist will be audited.
-    # The filename is optional for testing purposes, and defaults to
-    # zonelist.xml
-    def run(path, zones_to_audit = [], filename="zonelist.xml")
+    def run(path, zones_to_audit = [])
       #      path = ARGV[0] + "/"
       if (!path || path.length() == 0)
         path = "/etc/opendnssec/"
@@ -65,17 +63,19 @@ module KASPAuditor
       if (path[path.length() -1,1] != "/")
         path = path+ "/"
       end
-      syslog_facility = get_syslog_facility(path)
-      Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(path, zones_to_audit, filename, syslog)
+      syslog_facility, working, zonelist = get_syslog_and_working_folder_and_zonelist(path)
+      kasp_file = path + "kasp.xml"
+
+      Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(path, zones_to_audit, zonelist, kasp_file, syslog, working)
       }
     end
 
     # This method is provided so that the test code can use its own syslog
-    def run_with_syslog(path, zones_to_audit, filename, syslog) # :nodoc: all
+    def run_with_syslog(path, zones_to_audit, zonelist_file, kasp_file, syslog, working) # :nodoc: all
       if (path[path.length() -1,1] != "/")
         path = path+ "/"
       end
-      zones = Parse.parse(path, filename, syslog)
+      zones = Parse.parse(path, zonelist_file, kasp_file, syslog)
       check_zones_to_audit(zones, zones_to_audit)
       # Now check the input and output zones using the config
       print "Checking #{zones.length} zones\n"
@@ -88,14 +88,15 @@ module KASPAuditor
       zones.each {|config, input_file, output_file|
 
         # PREPARSE THE INPUT AND OUTPUT FILES!!!
-        pp = Preparser.new
+        pp = Preparser.new()
         pids=[]
         [input_file, output_file].each {|f|
-          delete_file(f+".parsed")
-          delete_file(f+".sorted")
+          delete_file(working+get_name(f)+".parsed")
+          delete_file(working+get_name(f)+".sorted")
           pids.push(fork {
-              pp.normalise_zone_and_add_prepended_names(f, f+".parsed")
-              pp.sort(f)
+              pp.normalise_zone_and_add_prepended_names(f, working+get_name(f)+".parsed")
+              pp.sort(working+get_name(f)+".parsed",
+                  working+get_name(f)+".sorted")
             })
         }
         pids.each {|pid|
@@ -105,18 +106,26 @@ module KASPAuditor
           end
         }
         # Now audit the pre-parsed and sorted file
-        auditor = Auditor.new(syslog)
-        ret_val = auditor.check_zone(config, input_file, output_file)
+        auditor = Auditor.new(syslog, working)
+        ret_val = auditor.check_zone(config, working+get_name(input_file)+".sorted",
+          working + get_name(output_file)+".sorted",
+          input_file, output_file)
         ret = ret_val if (ret_val < ret)
         [input_file, output_file].each {|f|
-          delete_file(f+".parsed")
-          delete_file(f+".sorted")
+          delete_file(working+get_name(f)+".parsed")
+          delete_file(working+get_name(f)+".sorted")
         }
 
       }
       ret = 0 if (ret == -99)
       ret = 0 if (ret >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
       exit(ret)
+    end
+
+    def get_name(f)
+      # Return the filename, minus the path
+      a = f.split(File::SEPARATOR)
+      return "/" + a[a.length()-1]
     end
 
     # Given a list of configured zones, and a list of zones_to_audit, return
@@ -138,51 +147,26 @@ module KASPAuditor
     end
 
 
-    # Try to load the syslog facility from the conf.xml file.
+    # Try to load the info from the conf.xml file.
+    # Loads syslog facility, working folder and the zonelist file
     # Returns a Syslog::Constants value
     # Returns Syslog::LOG_DAEMON on any error
-    def get_syslog_facility(path) # :nodoc: all
+    def get_syslog_and_working_folder_and_zonelist(path) # :nodoc: all
+      working = path
+      zonelist = "zonelist.xml"
       File.open(path + "conf.xml" , 'r') {|file|
         begin
           doc = REXML::Document.new(file)
+          working = doc.elements['Configuration/Signer/WorkingDirectory'].text
+          zonelist = doc.elements['Configuration/Signer/ZoneListFile'].text
           facility = doc.elements['Configuration/Logging/Syslog/Facility'].text
           # Now turn the facility string into a Syslog::Constants format....
           syslog_facility = eval "Syslog::LOG_" + facility.upcase
           print "Logging facility : #{facility}, #{syslog_facility}\n"
-          return syslog_facility
+          return syslog_facility, working, zonelist
         rescue Exception
-          return Syslog::LOG_DAEMON
+          return Syslog::LOG_DAEMON, working, zonelist
         end
-      }
-    end
-
-    # This method allows the auditor to run on files which have already been preparsed.
-    # This is primarily for debugging purposes
-    def run_no_preparse(path, zones_to_audit = [], filename="zonelist.xml") # :nodoc: all
-      if (path[path.length() -1, 1] != "/")
-        path = path+ "/"
-      end
-      syslog_facility = get_syslog_facility(path)
-      Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) {|syslog|
-        zones = Parse.parse(path, filename, syslog)
-        check_zones_to_audit(zones, zones_to_audit)
-        # Now check the input and output zones using the config
-        print "Checking #{zones.length} zones\n"
-        if (zones.length == 0)
-          syslog.log(LOG_ERR, "Couldn't find any zones to load")
-          print "Couldn't find any zones to load"
-          exit(-LOG_ERR)
-        end
-        auditor = Auditor.new(syslog)
-        ret = 999 # Return value to controlling process
-        zones.each {|config, input_file, output_file|
-          ret_val = auditor.check_zone(config, input_file, output_file)
-          ret = ret_val if (ret_val < ret)
-
-        }
-        ret = 0 if (ret == 999)
-        ret = 0 if (ret >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
-        exit(ret)
       }
     end
 

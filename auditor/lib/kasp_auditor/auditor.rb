@@ -35,9 +35,14 @@ module KASPAuditor
   # also create some transient files (to allow it to check the types_covered
   # field of the NSEC3 record, and to check opt-out). These files will be
   # removed at the end of the run.
+
+  # @TODO@ SOA Checks - format, etc.
+  
   class Auditor # :nodoc: all
-    def initialize(syslog)
+    def initialize(syslog, working)
       @syslog = syslog
+      @working = working
+      print "Working folder : #{@working}\n"
       reset
     end
     def reset
@@ -63,17 +68,17 @@ module KASPAuditor
     end
     
     #This version of the auditor will work on sorted zone files, rather than loading whole zones into memory
-    def check_zone(cnfg, unsigned_file, signed_file)
+    def check_zone(cnfg, unsigned_file, signed_file, original_unsigned_file, original_signed_file)
       reset
       set_config(cnfg)
-      nsec3auditor = Nsec3Auditor.new(self)
-      nsec3auditor.delete_nsec3_files(signed_file)
+      nsec3auditor = Nsec3Auditor.new(self, @working)
+      nsec3auditor.delete_nsec3_files()
       # Load SOA record from top of original signed and unsigned files!
-      load_soas(unsigned_file, signed_file)
-      log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.zone.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
+      load_soas(original_unsigned_file, original_signed_file)
+      log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
 
-      File.open(unsigned_file + ".sorted") {|unsignedfile|
-        File.open(signed_file + ".sorted") {|signedfile|
+      File.open(unsigned_file) {|unsignedfile|
+        File.open(signed_file) {|signedfile|
 
           last_signed_rr = get_next_rr(signedfile)
           last_unsigned_rr = get_next_rr(unsignedfile)
@@ -126,8 +131,8 @@ module KASPAuditor
       do_final_nsec_check()
 
       # Now check the NSEC3 opt out and types_covered, if applicable
-      if (@config.zone.denial.nsec3)
-        nsec3auditor.check_nsec3_types_and_opt_out(signed_file)
+      if (@config.denial.nsec3)
+        nsec3auditor.check_nsec3_types_and_opt_out()
       end
       log(LOG_INFO, "Finished auditing #{@soa.name} zone")
       if (@ret_val == 999)
@@ -140,13 +145,13 @@ module KASPAuditor
 
     # Make sure that the last NSEC(3) record points back to the first one
     def do_final_nsec_check()
-      if (@config.zone.denial.nsec && (@first_nsec.type == Dnsruby::Types.NSEC))
+      if (@config.denial.nsec && (@first_nsec.type == Dnsruby::Types.NSEC))
         # Now check that the last nsec points to the first nsec
         if (@first_nsec && (@last_nsec.next_domain == @first_nsec.name))
         else
           log(LOG_ERR, "Can't follow NSEC loop from #{@last_nsec.name} to #{@last_nsec.next_domain}")
         end
-      elsif (@config.zone.denial.nsec3 && ((@first_nsec.type == Dnsruby::Types.NSEC3)))
+      elsif (@config.denial.nsec3 && ((@first_nsec.type == Dnsruby::Types.NSEC3)))
         # Now check that the last nsec3 points to the first nsec3
         if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
         else
@@ -256,16 +261,16 @@ module KASPAuditor
       #  c) inception date in past by at least interval specified by config
       rrset.sigs.each {|sig|
         time_now = KASPTime.get_current_time
-        if (sig.inception >= (time_now + @config.zone.signatures.inception_offset))
-          log(LOG_ERR, "Inception error for #{sig.name}, #{sig.type_covered} : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}")
+        if (sig.inception >= (time_now + @config.signatures.inception_offset))
+          log(LOG_ERR, "Inception error for #{sig.name}, #{sig.type_covered} : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.signatures.inception_offset}, difference = #{time_now - sig.inception}")
         else
-          #                      print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.zone.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"
+          #                      print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"
         end
 
         #  d) expiration date in future by at least interval specified by config
-        validity = @config.zone.signatures.validity.default
+        validity = @config.signatures.validity.default
         if ([Types.NSEC, Types.NSEC3, Types.NSEC3PARAM].include?rrset.type)
-          validity = @config.zone.signatures.validity.denial
+          validity = @config.signatures.validity.denial
         end
         #  We want to check that at least the validity period remains before the signatures expire
         # @TODO@ Probably want to have a validity WARN level and an ERROR level for validity
@@ -279,7 +284,7 @@ module KASPAuditor
 
     # Get the string for the type of denial this zone is using : either "NSEC" or "NSEC3"
     def nsec_string()
-      if (@config.zone.denial.nsec)
+      if (@config.denial.nsec)
         return "NSEC"
       else
         return "NSEC3"
@@ -337,7 +342,7 @@ module KASPAuditor
     # Check this NSEC record
     def check_nsec(l_rr, types_covered)
       # Check the policy is not for NSEC3!
-      if !(@config.zone.denial.nsec)
+      if !(@config.denial.nsec)
         log(LOG_ERR, "NSEC RRs included in NSEC3-signed zone")
         return
       end
@@ -355,7 +360,7 @@ module KASPAuditor
     # Check this NSEC3PARAM record
     def check_nsec3param(l_rr, subdomain)
       # Check the policy is not for NSEC!
-      if (@config.zone.denial.nsec)
+      if (@config.denial.nsec)
         log(LOG_ERR, "NSEC3PARAM RRs included in NSEC-signed zone")
         return
       end
@@ -377,21 +382,21 @@ module KASPAuditor
       end
       #      end
       # Check that the NSEC3PARAMs are the same as those defined in the Config
-      if (l_rr.salt != @config.zone.denial.nsec3.hash.salt)
-        log(LOG_ERR, "NSEC3PARAM has wrong salt : should be #{@config.zone.denial.nsec3.hash.salt} but was #{(l_rr.salt)}")
+      if (l_rr.salt != @config.denial.nsec3.hash.salt)
+        log(LOG_ERR, "NSEC3PARAM has wrong salt : should be #{@config.denial.nsec3.hash.salt} but was #{(l_rr.salt)}")
       end
-      if (l_rr.iterations != @config.zone.denial.nsec3.hash.iterations)
-        log(LOG_ERR, "NSEC3PARAM has wrong iterations : should be #{@config.zone.denial.nsec3.hash.iterations} but was #{l_rr.iterations}")
+      if (l_rr.iterations != @config.denial.nsec3.hash.iterations)
+        log(LOG_ERR, "NSEC3PARAM has wrong iterations : should be #{@config.denial.nsec3.hash.iterations} but was #{l_rr.iterations}")
       end
-      if (l_rr.hash_alg != @config.zone.denial.nsec3.hash.algorithm)
-        log(LOG_ERR, "NSEC3PARAM has wrong algorithm : should be #{@config.zone.denial.nsec3.hash.algorithm} but was #{l_rr.hash_alg.string}")
+      if (l_rr.hash_alg != @config.denial.nsec3.hash.algorithm)
+        log(LOG_ERR, "NSEC3PARAM has wrong algorithm : should be #{@config.denial.nsec3.hash.algorithm} but was #{l_rr.hash_alg.string}")
       end
     end
 
     # Check this NSEC3 record
     def check_nsec3(l_rr, signed_file)
       # Check the policy is not for NSEC!
-      if (@config.zone.denial.nsec)
+      if (@config.denial.nsec)
         log(LOG_ERR, "NSEC3 RRs included in NSEC-signed zone")
         return
       end
@@ -424,12 +429,12 @@ module KASPAuditor
       # Now record the owner name, the next hashed, and the types associated with it
       # This information will be used by the NSEC3Auditor once the zone file has
       # been processed.
-      File.open(signed_file+".nsec3", "a") { |f|
+      File.open(@working + "/audit"+".nsec3", "a") { |f|
         types = get_types_string(l_rr.types)
         f.write("#{l_rr.name.to_s} #{types}\n")
       }
       if (!l_rr.opt_out?)
-        File.open(signed_file+".optout", "a") { |f|
+        File.open(@working + "/audit"+".optout", "a") { |f|
           f.write("#{l_rr.name.to_s} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
         }
       end
@@ -443,14 +448,16 @@ module KASPAuditor
 
     # Check the DNSKEY RR
     def check_dnskey(l_rr)
+        # @TODO@ We should also do more checks against the policy here -
+        # e.g. algorithm code and length
       if (l_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
         log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
       end
       # Protocol check done by dnsruby when loading DNSKEY RR
       # Algorithm check done by dnsruby when loading DNSKEY RR
       # Check TTL
-      if (@config.zone.keys.ttl != l_rr.ttl)
-        log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{@config.zone.keys.ttl}")
+      if (@config.keys.ttl != l_rr.ttl)
+        log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{@config.keys.ttl}")
       end
     end
 
@@ -478,7 +485,7 @@ module KASPAuditor
 
         # Remember to reset types_covered when the domain changes
         if (l_rr.name != current_domain)
-          if (@config.zone.denial.nsec3)
+          if (@config.denial.nsec3)
             # Build up a list of hashed domains and the types seen there,
             # iff we're using NSEC3
             write_types_to_file(current_domain, signed_file, types_covered)
@@ -547,14 +554,14 @@ module KASPAuditor
         end
         l_rr = get_next_rr(file)
       end
-      if (@config.zone.denial.nsec3)
+      if (@config.denial.nsec3)
         # Build up a list of hashed domains and the types seen there,
         # iff we're using NSEC3
         write_types_to_file(current_domain, signed_file, types_covered)
       end
       # Remember to check the signatures of the final RRSet!
       check_signature(current_rrset, is_glue, is_unsigned_delegation)
-      if (@config.zone.denial.nsec)
+      if (@config.denial.nsec)
         if (!is_glue)
           if (!seen_nsec_for_domain)
             log(LOG_ERR, "No #{nsec_string()} record for #{current_domain}")
@@ -608,7 +615,7 @@ module KASPAuditor
       end
       hashed_domain = RR::NSEC3.calculate_hash(domain, iterations,
         RR::NSEC3.decode_salt(salt), hash_alg)
-      File.open(signed_file+".types", "a") { |f|
+      File.open(@working + "/audit"+".types", "a") { |f|
         f.write("#{hashed_domain+"."+@soa.name.to_s} #{domain} #{types_string}\n")
       }
     end
@@ -731,7 +738,7 @@ module KASPAuditor
         log(LOG_ERR, "Different SOA name in signed zone! (was #{unsigned_soa.name} in unsigned zone, but is #{signed_soa.name} in signed zone")
       end
       if (signed_soa.serial != unsigned_soa.serial)
-        if (@config.zone.soa.serial == Config.Zone.SOA.KEEP)
+        if (@config.soa.serial == Config::SOA::KEEP)
           # The policy configuration for the zone says that the SOA serial
           # should stay the same through the signing process. So, if it's changed,
           # and we're in SOA.KEEP, then log an error
@@ -790,12 +797,13 @@ module KASPAuditor
     # actual types found at the unhashed domain name.
     # The files also record those NSEC3 RRs for which opt-out was not set.
     class Nsec3Auditor
-      def initialize(parent)
+      def initialize(parent, working)
         @parent = parent
+        @working = working
       end
-      def check_nsec3_types_and_opt_out(signed_file)
+      def check_nsec3_types_and_opt_out()
         # First of all we will have to sort the types file.
-        system("sort -t$' ' #{signed_file}.types > #{signed_file}.types.sorted")
+        system("sort -t$' ' #{@working}/audit.types > #{@working}/audit.types.sorted")
 
         # Go through each name in the files and check them
         # We want to check two things :
@@ -803,14 +811,14 @@ module KASPAuditor
         # b) no hashes in between non-opt-out names
 
         # This checks the types covered for each domain name
-        File.open(signed_file+".types.sorted") {|ftypes|
-          File.open(signed_file+".nsec3") {|fnsec3|
-            File.open(signed_file + ".optout") {|foptout|
+        File.open(@working + "/audit"+".types.sorted") {|ftypes|
+          File.open(@working + "/audit"+".nsec3") {|fnsec3|
+            File.open(@working + "/audit" + ".optout") {|foptout|
               while (!ftypes.eof? && !fnsec3.eof? && !foptout.eof?)
                 types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
                 nsec3_name, nsec3_types = get_name_and_types(fnsec3)
                 owner, next_hashed = get_next_non_optout(foptout)
-                owner, next_hashed = check_optout(owner, next_hashed, types_name, foptout)
+                owner, next_hashed = check_optout(types_name_unhashed, owner, next_hashed, types_name, foptout)
                 
                 while ((nsec3_name < types_name) && (!fnsec3.eof?))
                   # An empty nonterminal
@@ -822,7 +830,7 @@ module KASPAuditor
                   types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
 
                   # Check the optout names as we load in more types
-                  owner, next_hashed = check_optout(owner, next_hashed, types_name, foptout)
+                  owner, next_hashed = check_optout(types_name_unhashed, owner, next_hashed, types_name, foptout)
                 end
                 # Now check the NSEC3 types_covered against the types ACTUALLY at the name
                 if (types_types != nsec3_types)
@@ -836,10 +844,10 @@ module KASPAuditor
         }
 
         # Now delete any intermediary files, if we're using NSEC3
-        delete_nsec3_files(signed_file)
+        delete_nsec3_files()
       end
 
-      def check_optout(owner, next_hashed, types_name, foptout)
+      def check_optout(types_name_unhashed, owner, next_hashed, types_name, foptout)
         #  Check the optout names
         if (types_name > owner)
           if (types_name >= next_hashed)
@@ -847,7 +855,7 @@ module KASPAuditor
             owner, next_hashed = get_next_non_optout(foptout)
           else
             # ERROR!
-            log(LOG_ERR, "Found domain whose hash (#{types_name}) is between owner (#{owner}) and next_hashed (#{next_hashed})for non-optout NSEC3")
+            log(LOG_ERR, "Found domain (#{types_name_unhashed}) whose hash (#{types_name}) is between owner (#{owner}) and next_hashed (#{next_hashed})for non-optout NSEC3")
           end
         end
         return owner, next_hashed
@@ -883,10 +891,11 @@ module KASPAuditor
         end
       end
 
-      def delete_nsec3_files(signed_file)
+      def delete_nsec3_files()
         # Delete the intermediary files used for NSEC3 checking
-        [signed_file+".nsec3", signed_file+".types", signed_file+".optout",
-          signed_file+".types.sorted"].each {|f|
+        [@working+"/audit.nsec3", @working+"/audit.types",
+          @working+"/audit.optout",
+          @working+"/audit.types.sorted"].each {|f|
           begin
             File.delete(f)
           rescue Exception => e

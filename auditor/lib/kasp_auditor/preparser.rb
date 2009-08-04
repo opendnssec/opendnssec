@@ -16,8 +16,8 @@ module KASPAuditor
 
 
     # Call the OS sort command (with the appropriate separator).
-    def sort(file)
-      system("sort -t$'#{SEPARATOR}' #{file}.parsed > #{file}.sorted")
+    def sort(file1, file2)
+      system("sort -t$'#{SEPARATOR}' #{file1} > #{file2}")
     end
 
     # Take an input zone file ("zonefile") and output a new file ("zonefile.sorted")
