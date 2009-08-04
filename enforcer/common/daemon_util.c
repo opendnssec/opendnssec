@@ -37,9 +37,8 @@
  *
  * Most of this is based on stuff I have seen in NSD
  */
-#include "config.h"
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <syslog.h>
@@ -56,6 +55,7 @@
 #include <libxml/xpathInternals.h>
 #include <libxml/relaxng.h>
 
+#include "config.h"
 #include "daemon.h"
 #include "daemon_util.h"
 
