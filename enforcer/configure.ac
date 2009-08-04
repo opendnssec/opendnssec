@@ -118,6 +118,7 @@ common/Makefile
 communicated/Makefile
 keygend/Makefile
 utils/Makefile
+test/Makefile
 ])
 
 AC_OUTPUT
