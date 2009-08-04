@@ -39,8 +39,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "config.h"
+
 #include "ksm/string_util.h"
-#include "ksm/config.h"
 #include "ksm/message.h"
 #include "ksm/ksmdef.h"
 

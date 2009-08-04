@@ -40,8 +40,9 @@
 #include <string.h>
 #include <time.h>
 
+#include "config.h"
+
 #include "ksm/ksm.h"
-#include "ksm/config.h"
 #include "ksm/datetime.h"
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"

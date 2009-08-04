@@ -10,7 +10,7 @@ AM_INIT_AUTOMAKE(foreign)
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_CONFIG_SRCDIR([common/daemon.h])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADER([common/config.h])
 
 # Checks for programs.
 AC_PROG_CC
