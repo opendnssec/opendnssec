@@ -1,6 +1,6 @@
 # $Id$
 
-TARGETS = softHSM libhsm libksm enforcer signer auditor xml hsmbully .
+TARGETS = softHSM libhsm enforcer signer auditor xml hsmbully .
 
 all:
 
