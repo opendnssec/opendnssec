@@ -4,20 +4,16 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = \
 	-I$(srcdir)/../common \
-	@XML2_INCLUDES@ \
+	-I$(srcdir)/../ksm/include \
 	@LIBHSM_INCLUDES@ \
-	@LIBKSM_INCLUDES@
+	@XML2_INCLUDES@
 
 sbin_PROGRAMS = keygend
 
 keygend_SOURCES = keygend.c
-keygend_LDADD = ../common/libenforcer.a @XML2_LIBS@ @LIBKSM_LIBS@
-keygend_DEPENDENCIES = @BUILD_LIBHSM@ @BUILD_LIBKSM@
-
-EXTRA_DIST = $(srcdir)/*.h
+keygend_LDADD = ../common/libenforcer.a ../ksm/libksm.a
+keygend_LDADD += @XML2_LIBS@ @SQLITE3_LIBS@ @LIBHSM_LIBS@
+keygend_DEPENDENCIES = @BUILD_LIBHSM@
 
 ../../libhsm/src/libhsm.la:
 	(cd ../../libhsm/src; ${MAKE} libhsm.la)
-
-../../libksm/src/libksm.la:
-	(cd ../../libksm/src; ${MAKE} libksm.la)
