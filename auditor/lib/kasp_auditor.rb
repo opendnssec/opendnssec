@@ -198,32 +198,48 @@ module KASPAuditor
       }
     end
 
+    def change_uid(uid_text)
+      uid = Etc.getpwnam((uid_text+"").untaint).uid
+      print "Setting uid to #{uid_text}, #{uid}\n"
+      Process::Sys.setuid(uid)
+    end
+
+    def change_chroot(dir)
+      print "Setting Directory chroot to #{dir}\n"
+      Dir.chroot((dir+"").untaint)
+    end
+
+    def change_group(gid_text)
+      gid = Etc.getgrnam((gid_text+"").untaint).gid
+      print "Setting group id to #{gid_text}, #{gid}\n"
+      Process::Sys.setgid(gid)
+    end
+
     def load_privileges(doc)
+      # Configuration/Privileges may be overridden by Auditor/Privileges
       begin
-        if (doc.elements['Configuration/Privileges/Directory'])
-          dir = doc.elements['Configuration/Privileges/Directory'].text
-          print "Setting Directory chroot to #{dir}\n"
-          Dir.chroot((dir+"").untaint)
+        if (doc.elements['Configuration/Auditor/Privileges/Directory'])
+          change_chroot(doc.elements['Configuration/Auditor/Privileges/Directory'].text)
+        elsif (doc.elements['Configuration/Privileges/Directory'])
+          change_chroot(doc.elements['Configuration/Privileges/Directory'].text)
         end
       rescue Exception => e
         print "Couldn't set Configuration/Privileges/Directory (#{e})\n"
       end
       begin
-        if (doc.elements['Configuration/Privileges/User'])
-          uid_text = doc.elements['Configuration/Privileges/User'].text
-          uid = Etc.getpwnam((uid_text+"").untaint).uid
-          print "Setting uid to #{uid_text}, #{uid}\n"
-          Process::Sys.setuid(uid)
+        if (doc.elements['Configuration/Auditor/Privileges/User'])
+          change_uid(doc.elements['Configuration/Auditor/Privileges/User'].text)
+        elsif (doc.elements['Configuration/Privileges/User'])
+          change_uid(doc.elements['Configuration/Privileges/User'].text)
         end
       rescue Exception => e
         print "Couldn't set Configuration/Privileges/User (#{e})\n"
       end
       begin
-        if (doc.elements['Configuration/Privileges/Group'])
-          gid_text = doc.elements['Configuration/Privileges/Group'].text
-          gid = Etc.getgrnam((gid_text+"").untaint).gid
-          print "Setting group id to #{gid_text}, #{gid}\n"
-          Process::Sys.setgid(gid)
+        if (doc.elements['Configuration/Auditor/Privileges/Group'])
+          change_group(doc.elements['Configuration/Auditor/Privileges/Group'].text)
+        elsif (doc.elements['Configuration/Privileges/Group'])
+          change_group(doc.elements['Configuration/Privileges/Group'].text)
         end
       rescue Exception => e
         print "Couldn't set Configuration/Privileges/Group (#{e})\n"
