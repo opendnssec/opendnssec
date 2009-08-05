@@ -63,7 +63,6 @@
 
 extern char *optarg;
 char *progname = "ksmutil";
-char *schemadir = (char *) SCHEMADIR;
 char *config = (char *) CONFIGDIR;
 
     void
