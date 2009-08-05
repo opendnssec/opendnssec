@@ -186,7 +186,7 @@ server_main(DAEMONCONFIG *config)
                     /* TODO exit? continue with next policy? */
                 }
                 /* Find out how many suitable keys we have */
-                status = KsmKeyCountUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &keys_in_queue);
+                status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, config->keygeninterval, rightnow, &keys_in_queue);
                 if (status != 0) {
                     log_msg(NULL, LOG_ERR, "Could not count current key numbers for policy\n");
                     /* TODO exit? continue with next policy? */
@@ -231,7 +231,7 @@ server_main(DAEMONCONFIG *config)
                     /* TODO exit? continue with next policy? */
                 }
                 /* Find out how many suitable keys we have */
-                status = KsmKeyCountUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &keys_in_queue);
+                status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, config->keygeninterval, rightnow, &keys_in_queue);
                 if (status != 0) {
                     log_msg(NULL, LOG_ERR, "Could not count current key numbers for policy\n");
                     /* TODO exit? continue with next policy? */

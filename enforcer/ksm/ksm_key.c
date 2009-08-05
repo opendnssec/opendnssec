@@ -863,11 +863,12 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
 }
 
 /*+ 
- * KsmKeyCountUnallocated - Return Number of Unallocated Keys given a number of parameters 
+ * KsmKeyCountStillGood - Return Number of Keys that will still be usable at a particular
+ *                        time given a number of parameters 
  * 
  * Description: 
  *      Returns the number of keys in the KSM_STATE_GENERATE, KSM_STATE_PUBLISH,  
- *      and KSM_STATE_READY state. 
+ *      KSM_STATE_READY and KSM_STATE_ACTIVE state after the given interval. 
  * 
  * Arguments:
  *      int policy_id
@@ -882,6 +883,10 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
  *      int algorithm
  *          algorithm of key desired
  *              (-1 == all algorithms`)
+ *      int interval
+ *          how many seconds in the future we are talking about
+ *      const char* datetime
+ *          string describing when this calculation is being run
  * 
  *      int* count (returned) 
  *          Number of keys in the que. 
@@ -892,12 +897,13 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
  *          message will have been output. 
 -*/ 
  
-int KsmKeyCountUnallocated(int policy_id, int sm, int bits, int algorithm, int *count)
+int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count)
 { 
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;     /* SQL to interrogate database */ 
     int     status = 0;     /* Status return */ 
     char    in[128];        /* Easily large enought for three keys */ 
+    char    buffer[256];    /* For constructing part of the command */
     size_t  nchar;          /* Number of output characters */ 
  
     /* 
@@ -905,13 +911,28 @@ int KsmKeyCountUnallocated(int policy_id, int sm, int bits, int algorithm, int *
      * are included in the output. 
      */ 
  
-    nchar = snprintf(in, sizeof(in), "(%d, %d, %d)", 
-        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY); 
+    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d)", 
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE); 
     if (nchar >= sizeof(in)) { 
-        status = MsgLog(KME_BUFFEROVF, "KsmKeyCountUnallocated"); 
+        status = MsgLog(KME_BUFFEROVF, "KsmKeyCountStillGood"); 
         return status; 
     } 
- 
+
+    /* 
+     * TODO is there an alternative to DATE_ADD which is more generic? 
+     */
+#ifdef USE_MYSQL
+    nchar = snprintf(buffer, sizeof(buffer),
+        "DATE_ADD(\"%s\", INTERVAL %d SECOND)", datetime, interval);
+#else
+    nchar = snprintf(buffer, sizeof(buffer),
+        "DATETIME('%s', '+%d SECONDS')", datetime, interval);
+#endif /* USE_MYSQL */
+    if (nchar >= sizeof(buffer)) {
+        status = MsgLog(KME_BUFFEROVF, "KsmKeyCountStillGood");
+        return status;
+    }
+
     /* Create the SQL command to interrogate the database */ 
  
     sql = DqsCountInit("KEYDATA_VIEW");
@@ -928,8 +949,18 @@ int KsmKeyCountUnallocated(int policy_id, int sm, int bits, int algorithm, int *
         DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
     }
 
-    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, where++); 
-    DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, where++);
+
+    /* Can't use our generic functions for this aggregated clause */
+#ifdef USE_MYSQL
+    StrAppend(&sql, " and (RETIRE > ");
+#else
+    StrAppend(&sql, " and (DATETIME(RETIRE) > ");
+#endif /* USE_MYSQL */
+    StrAppend(&sql, buffer);
+    StrAppend(&sql, " or RETIRE is NULL)");
+
+    /*DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);*/
     DqsEnd(&sql); 
  
     /* Execute the query and free resources */ 
