@@ -775,7 +775,7 @@ int read_zonelist_filename(char** zone_list_filename)
     char* temp_char = NULL;
     char* tag_name = NULL;
 
-    xmlChar *zonelist_expr = (unsigned char*) "//Signer/ZoneListFile";
+    xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
 
     StrAppend(&filename, CONFIGFILE);
     /* Start reading the file; we will be looking for "Signer" tags */ 

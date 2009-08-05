@@ -15,6 +15,7 @@
 		<Logging>
 			<Syslog><Facility>user</Facility></Syslog>
 		</Logging>
+		<ZoneListFile>zonelist.xml</ZoneListFile>
 	</Common>
 
 	<Enforcer>
@@ -25,7 +26,6 @@
 
 	<Signer>
 		<WorkingDirectory>tmp</WorkingDirectory>
-		<ZoneListFile>zonelist.xml</ZoneListFile>
 		<!-- toolsdir will be removed, but
 		is used for testing atm -->
 		<ToolsDirectory>../../tools</ToolsDirectory>

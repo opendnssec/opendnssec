@@ -95,7 +95,7 @@ class EngineConfiguration:
              Util.syslog_facility_int(syslog_facility_string)
 
         self.zonelist_file = \
-             Util.get_xml_data("Configuration/Signer/ZoneListFile",
+             Util.get_xml_data("Configuration/Common/ZoneListFile",
                                xml_blob, True)
         self.zone_tmp_dir = \
              Util.get_xml_data("Configuration/Signer/WorkingDirectory",

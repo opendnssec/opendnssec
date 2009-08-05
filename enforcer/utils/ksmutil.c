@@ -1499,7 +1499,7 @@ int update_repositories(char** zone_list_filename)
 
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *capacity_expr = (unsigned char*) "//Repository/Capacity";
-    xmlChar *zonelist_expr = (unsigned char*) "//Signer/ZoneListFile";
+    xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
 
     StrAppend(&filename, config);
     StrAppend(&filename, "/conf.xml");

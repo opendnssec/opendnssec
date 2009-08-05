@@ -31,7 +31,16 @@ start = element Configuration {
 			element Syslog {
 				element Facility { xsd:string }
 			}
-		}?
+		}?,
+
+		# Location to find the KASP
+		element PolicyFile { xsd:string }?,
+
+		# Location to store the zonelist XML file
+		element ZoneListFile { xsd:string }?,	
+
+		# Location of directory for the SignerConfiguration files
+		element SignerConfigurationDirectory { xsd:string }?
 	}?,
 
 	# Configuration parameters for the KASP Enforcer
@@ -57,9 +66,6 @@ start = element Configuration {
 
 		# Location to store intermediate zone information
 		element WorkingDirectory { xsd:string }?,
-
-		# Location to store the zonelist XML file
-		element ZoneListFile { xsd:string }?,
 
 		# Location of the signer tools, if other than the default directory.
 		# Used mainly for debugging.

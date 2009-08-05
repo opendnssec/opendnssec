@@ -27,6 +27,10 @@
 		<Logging>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
+		
+		<PolicyFile>@opendnssecsysconfdir@/kasp.xml</PolicyFile>
+		<ZoneListFile>@opendnssecsysconfdir@/zonelist.xml</ZoneListFile>
+		<SignerConfigurationDirectory>@opendnsseclocalstatedir@/config</SignerConfigurationDirectory>
 	<Common>
 
 	<Enforcer>
@@ -38,7 +42,6 @@
 
 	<Signer>
 		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
-		<ZoneListFile>@opendnssecsysconfdir@/zonelist.xml</ZoneListFile>
 		<WorkerThreads>8</WorkerThreads>
 		<SignerThreads>1</SignerThreads>
 	</Signer>
