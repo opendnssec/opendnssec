@@ -63,7 +63,7 @@
 
 extern char *optarg;
 char *progname = "ksmutil";
-char *datadir = (char *) DATADIR;
+char *schemadir = (char *) SCHEMADIR;
 char *config = (char *) CONFIGDIR;
 
     void
@@ -1761,7 +1761,7 @@ int update_policies(char* kasp_filename)
     /* Some files, the xml and rng */
     char* rngfilename = NULL;
 
-    StrAppend(&rngfilename, datadir);
+    StrAppend(&rngfilename, SCHEMADIR);
     StrAppend(&rngfilename, "/kasp.rng");
 
     /* Load XML document */
@@ -2562,7 +2562,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     StrAppend(&filename, config);
     StrAppend(&filename, "/conf.xml");
 
-    StrAppend(&rngfilename, datadir);
+    StrAppend(&rngfilename, SCHEMADIR);
     StrAppend(&rngfilename, "/conf.rng");
 
     /* Load XML document */
