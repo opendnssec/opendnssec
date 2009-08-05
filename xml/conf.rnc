@@ -23,7 +23,7 @@ start = element Configuration {
 			element Capacity { xsd:positiveInteger }?
 		}*
 	},
-
+	
 	# Configuration parameters for logging
 	element Logging {
 		element Syslog {
@@ -68,6 +68,10 @@ start = element Configuration {
 
 		# Number of Signer Threads
 		element SignerThreads { xsd:positiveInteger }?
+	}?,
+
+	element Auditor {
+		privs?
 	}?
 }
 
