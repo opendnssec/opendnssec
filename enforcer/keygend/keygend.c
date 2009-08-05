@@ -201,16 +201,18 @@ server_main(DAEMONCONFIG *config)
                         if (policy->ksk->algorithm == 5 || policy->ksk->algorithm == 7 ) {
                             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
                             if (key) {
-                                log_msg(config, LOG_INFO,"Created key in HSM\n");
+                                /* log_msg(config, LOG_INFO,"Created key in HSM\n"); */
                             } else {
                                 log_msg(config, LOG_ERR,"Error creating key in HSM\n");
                                 exit(1);
                             }
                             id = hsm_get_key_id(ctx, key);
-                        /*DbBeginTransaction();*/
                             status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
-                        /*DbCommit();*/
-                            log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with id: %s in HSM: %s.", policy->ksk->bits,
+                            if (status != 0) {
+                                log_msg(config, LOG_ERR,"Error creating key in Database\n");
+                                exit(1);
+                            }
+                            log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with id: %s in HSM: %s and database.", policy->ksk->bits,
                                     policy->ksk->algorithm, id, policy->ksk->sm_name);
                             free(id);
                         } else {
@@ -245,14 +247,18 @@ server_main(DAEMONCONFIG *config)
                    if (policy->zsk->algorithm == 5 || policy->zsk->algorithm == 7) {
                        key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
                        if (key) {
-                           log_msg(config, LOG_INFO,"Created key in HSM\n");
+                           /* log_msg(config, LOG_INFO,"Created key in HSM\n"); */
                        } else {
                            log_msg(config, LOG_ERR,"Error creating key in HSM\n");
                            exit(1);
                        }
                        id = hsm_get_key_id(ctx, key);
                        status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
-                       log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with id: %s in HSM: %s.", policy->zsk->bits,
+                       if (status != 0) {
+                           log_msg(config, LOG_ERR,"Error creating key in Database\n");
+                           exit(1);
+                       }
+                       log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with id: %s in HSM: %s and database.", policy->zsk->bits,
                                policy->zsk->algorithm, id, policy->zsk->sm_name);
                        free(id);
                     } else {
