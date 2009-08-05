@@ -11,6 +11,13 @@
 		</Repository>
 	</RepositoryList>
 
+	<Common>
+		<Logging>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+		<ZoneListFile>/etc/opendnssec/zonelist.xml</ZoneListFile>
+	</Common>
+
 	<Enforcer>
 		<Interval>PT3600S</Interval>
 		<KeygenInterval>P3M</KeygenInterval>
@@ -19,7 +26,6 @@
 
 	<Signer>
 		<WorkingDirectory>tmp</WorkingDirectory>
-		<ZoneListFile>zonelist.xml</ZoneListFile>
 		<!-- toolsdir will be removed, but
 		is used for testing atm -->
 		<ToolsDirectory>../../tools</ToolsDirectory>

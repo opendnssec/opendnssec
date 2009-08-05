@@ -12,9 +12,12 @@
 		</Repository>
 	</RepositoryList>
 
-	<Logging>
-		<Syslog><Facility>local0</Facility></Syslog>
-	</Logging>
+	<Common>
+		<Logging>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+		<ZoneListFile>/etc/opendnssec/zonelist.xml</ZoneListFile>
+	</Common>
 
 	<Enforcer>
 		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
@@ -25,7 +28,6 @@
 
 	<Signer>
 		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>
-		<ZoneListFile>/etc/opendnssec/zonelist.xml</ZoneListFile>
 		<!-- toolsdir will be removed, but is used for testing atm -->
 		<ToolsDirectory>/usr/local/libexec/opendnssec</ToolsDirectory>
 	</Signer>

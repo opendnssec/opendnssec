@@ -158,8 +158,8 @@ module KASPAuditor
         begin
           doc = REXML::Document.new(file)
           working = doc.elements['Configuration/Signer/WorkingDirectory'].text
-          zonelist = doc.elements['Configuration/Signer/ZoneListFile'].text
-          facility = doc.elements['Configuration/Logging/Syslog/Facility'].text
+          zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
+          facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
           # Now turn the facility string into a Syslog::Constants format....
           syslog_facility = eval "Syslog::LOG_" + facility.upcase
           print "Logging facility : #{facility}, #{syslog_facility}\n"
