@@ -69,8 +69,7 @@ module KASPAuditor
       if (path[path.length() -1,1] != "/")
         path = path+ "/"
       end
-      syslog_facility, working, zonelist = load_config_xml(path)
-      kasp_file = path + "kasp.xml"
+      syslog_facility, working, zonelist, kasp_file = load_config_xml(path)
 
       Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(path, zones_to_audit, zonelist, kasp_file, syslog, working)
       }
@@ -165,30 +164,36 @@ module KASPAuditor
     # Returns Syslog::LOG_DAEMON on any error
     def load_config_xml(path) # :nodoc: all
       working = path
-      zonelist = "zonelist.xml"
+      zonelist = ""
+      kasp = ""
       print "Reading config from #{working + 'conf.xml'}\n"
       File.open((working + "conf.xml").untaint , 'r') {|file|
+        doc = REXML::Document.new(file)
         begin
-          doc = REXML::Document.new(file)
-          begin
-            working = doc.elements['Configuration/Signer/WorkingDirectory'].text
-          rescue Exception
-            KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
-          end
-          begin
-            zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
-          rescue Exception
-            KASPAuditor.exit("Can't read zonelist location from conf.xml - exiting", 1)
-          end
-          load_privileges(doc)
+          working = doc.elements['Configuration/Signer/WorkingDirectory'].text
+        rescue Exception
+          KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
+        end
+        begin
+          zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
+        rescue Exception
+          KASPAuditor.exit("Can't read zonelist location from conf.xml - exiting", 1)
+        end
+        begin
+          kasp = doc.elements['Configuration/Common/PolicyFile'].text
+        rescue Exception
+          KASPAuditor.exit("Can't read KASP policy location from conf.xml - exiting", 1)
+        end
+        load_privileges(doc)
+        begin
           facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
           # Now turn the facility string into a Syslog::Constants format....
           syslog_facility = eval "Syslog::LOG_" + (facility.upcase+"").untaint
           print "Logging facility : #{facility}, #{syslog_facility}\n"
-          return syslog_facility, working, zonelist
+          return syslog_facility, working, zonelist, kasp
         rescue Exception => e
           print "Error reading config : #{e}\n"
-          return Syslog::LOG_DAEMON, working, zonelist
+          return Syslog::LOG_DAEMON, working, zonelist,kasp
         end
       }
     end
