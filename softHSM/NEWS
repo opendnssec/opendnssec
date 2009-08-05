@@ -2,7 +2,15 @@ $Id$
 
 NEWS for SoftHSM -- History of user visible changes
 
-New in 1.0-RC2; 2009-07-08 Rickard Bondesson
+SoftHSM trunk
+
+* Vacuum the empty space in the database when initializing it
+* Minor speed improvment when searching for objects
+* Fixed build problem with GCC >= 4.3
+* Fixed some linking problem
+
+
+SoftHSM 1.0-RC2 - 2009-07-08
 
 * Added a check for the Botan library in config script
 * SoftHSM will not add a default label/ID to a key pair when the
@@ -17,12 +25,14 @@ New in 1.0-RC2; 2009-07-08 Rickard Bondesson
 * Import keys via PKCS#11 and the softhsm tool.
 * Export keys via the softhsm tool
 
-New in 1.0-RC1; 2009-03-10 Rickard Bondesson
+
+SoftHSM 1.0-RC1 - 2009-03-10
 
 * Versioning moved to the configure script
 * This is release candidate 1
 
-New in 0.5; 2009-02-20 Rickard Bondesson
+
+SoftHSM 0.5 - 2009-02-20
 
 * Admin tool for creating tokens.
 * Config file in /etc/softhsm.conf
@@ -30,24 +40,28 @@ New in 0.5; 2009-02-20 Rickard Bondesson
   them are closed.
 * User credentials as specified in PKCS#11
 
-New in 0.4; 2009-02-10 Rickard Bondesson
+
+SoftHSM 0.4 - 2009-02-10
 
 * Only one library is compiled (libsofthsm.so). The log level
   is defined by using the flag --with-loglevel
 
-New in 0.3; 2009-02-03 Rickard Bondesson
+
+SoftHSM 0.3 - 2009-02-03
 
 * A better mutex handling. Each PKCS#11 function call is treated 
   as atomic functions. The mutex handling is activated when given 
   correct parameters to the init function. 
 
-New in 0.2; 2009-01-23 Rickard Bondesson
+
+SoftHSM in 0.2 - 2009-01-23
 
 * Two libraries are compiled. One normal (libsofthsm.so) and
   one for debugging (libsofthsm.d.so). The debug info is saved
   in the syslog.
 
-New in 0.1; 2009-01-21 Rickard Bondesson
+
+SoftHSM 0.1 - 2009-01-21
 
 * Starting point of the NEWS file.
 * Have an interface to the user in accordance with PKCS#11.
