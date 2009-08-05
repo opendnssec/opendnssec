@@ -81,11 +81,11 @@ module KASPAuditor
               f.write(line)
             }
           rescue Errno::ENOENT
-            KASPAuditor.exit("ERROR - Can't open unsigned file : #{infile}", 1)
+            KASPAuditor.exit("ERROR - Can't open zone file : #{infile}", 1)
           end
         }
       rescue Errno::ENOENT
-        KASPAuditor.exit("ERROR - Can't open signed file : #{outfile}", 1)
+        KASPAuditor.exit("ERROR - Can't open temporary output file : #{outfile}", 1)
       end
     end
 
