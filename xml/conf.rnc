@@ -24,11 +24,14 @@ start = element Configuration {
 		}*
 	},
 	
-	# Configuration parameters for logging
-	element Logging {
-		element Syslog {
-			element Facility { xsd:string }
-		}
+	# Common configuration options
+	element Common {
+		# Configuration parameters for logging
+		element Logging {
+			element Syslog {
+				element Facility { xsd:string }
+			}
+		}?
 	}?,
 
 	# Configuration parameters for the KASP Enforcer

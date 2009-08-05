@@ -274,7 +274,7 @@ ReadConfig(DAEMONCONFIG *config)
     xmlChar *mysql_db = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Database";
     xmlChar *mysql_user = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Username";
     xmlChar *mysql_pass = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Password";
-    xmlChar *log_user_expr = (unsigned char*) "//Configuration/Logging/Syslog/Facility";
+    xmlChar *log_user_expr = (unsigned char*) "//Configuration/Common/Logging/Syslog/Facility";
 
     int mysec = 0;
     char *logFacilityName;

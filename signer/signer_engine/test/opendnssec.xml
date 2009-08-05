@@ -11,9 +11,12 @@
 		</Repository>
 	</RepositoryList>
 
-	<Logging>
-		<Syslog><Facility>user</Facility></Syslog>
-	</Logging>
+	<Common>
+		<Logging>
+			<Syslog><Facility>user</Facility></Syslog>
+		</Logging>
+	</Common>
+
 	<Enforcer>
 		<Interval>PT3600S</Interval>
 		<KeygenInterval>P3M</KeygenInterval>

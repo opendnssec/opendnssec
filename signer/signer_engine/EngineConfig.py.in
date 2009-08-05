@@ -87,7 +87,7 @@ class EngineConfiguration:
         """Searches the xml blob for the configuration values"""
 
         syslog_facility_string = \
-             Util.get_xml_data("Configuration/Logging/Syslog/Facility",
+             Util.get_xml_data("Configuration/Common/Logging/Syslog/Facility",
                                xml_blob, False)
         if not syslog_facility_string:
             syslog_facility_string = "LOG_DAEMON"

@@ -23,9 +23,11 @@
 
 	</RepositoryList>
 
-	<Logging>
-		<Syslog><Facility>local0</Facility></Syslog>
-	</Logging>
+	<Common>
+		<Logging>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+	<Common>
 
 	<Enforcer>
 		<Datastore><SQLite>@opendnsseclocalstatedir@/kasp.db</SQLite></Datastore>
