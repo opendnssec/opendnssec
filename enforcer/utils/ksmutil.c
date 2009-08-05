@@ -1454,7 +1454,7 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
             select(0, NULL, NULL, NULL, &tv);
 
         } else {
-            printf("couldn't get lock on %s, error\n", lock_filename);
+            printf("couldn't get lock on %s; %s\n", lock_filename, strerror(errno));
             return 1;
         }
     }
