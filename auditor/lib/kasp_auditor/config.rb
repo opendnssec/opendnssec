@@ -30,11 +30,11 @@ module KASPAuditor
   # Represents KASP configuration file
   # Also loads salt in from <zone_config>.xml SignerConfiguration file.
   class Config
-    attr_accessor :zone
-    def initialize(kasp_file_loc, policy, config_file_loc)
+    def initialize(zone_name, kasp_file_loc, policy, config_file_loc)
       #      @zones = []
       #      print "Opening config file : #{config_file_loc}\n"
       # Read the kasp.xml file
+      @name = (zone_name.to_s+"").untaint
       begin
         File.open((kasp_file_loc+"").untaint, 'r') {|file|
           doc = REXML::Document.new(file)

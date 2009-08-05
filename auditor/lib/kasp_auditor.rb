@@ -144,9 +144,9 @@ module KASPAuditor
       # If a list of zones to audit has been specified, then only check those
       if (zones_to_audit.length > 0)
         zones.each {|zone|
-          if (!(zones_to_audit.include?zone[0].zone.name))
-            if (zone[0].zone.name[zone[0].zone.name.length() -1, 1] != ".")
-              zones.delete(zone) if !(zones_to_audit.include?(zone[0].zone.name+"."))
+          if (!(zones_to_audit.include?zone[0].name))
+            if (zone[0].name[zone[0].name.length() -1, 1] != ".")
+              zones.delete(zone) if !(zones_to_audit.include?(zone[0].name+"."))
             else
               zones.delete(zone)
             end
