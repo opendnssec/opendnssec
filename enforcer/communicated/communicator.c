@@ -352,6 +352,11 @@ server_main(DAEMONCONFIG *config)
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
             exit(0);
         }
+        /* Or SIGINT */
+        if (config->term == 2 ){
+            log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
+            exit(0);
+        }
 
         /* sleep for the configured interval */
         tv.tv_sec = config->interval;
@@ -362,6 +367,11 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */ 
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            exit(0);
+        }
+        /* Or SIGINT */
+        if (config->term == 2 ){
+            log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
             exit(0);
         }
     }
@@ -778,22 +788,21 @@ int read_zonelist_filename(char** zone_list_filename)
     xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
 
     StrAppend(&filename, CONFIGFILE);
-    /* Start reading the file; we will be looking for "Signer" tags */ 
+    /* Start reading the file; we will be looking for "Common" tags */ 
     reader = xmlNewTextReaderFilename(filename);
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
             tag_name = (char*) xmlTextReaderLocalName(reader);
-            /* Found <Signer> */
-            if (strncmp(tag_name, "Signer", 6) == 0 
-                    && strncmp(tag_name, "SignerThreads", 13) != 0
+            /* Found <Common> */
+            if (strncmp(tag_name, "Common", 6) == 0 
                     && xmlTextReaderNodeType(reader) == 1) {
 
                 /* Expand this node and get the rest of the info with XPath */
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    printf("Error: can not read Signer section\n");
+                    printf("Error: can not read Common section\n");
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -801,7 +810,7 @@ int read_zonelist_filename(char** zone_list_filename)
 
                 xpathCtx = xmlXPathNewContext(doc);
                 if(xpathCtx == NULL) {
-                    printf("Error: can not create XPath context for Signer section\n");
+                    printf("Error: can not create XPath context for Common section\n");
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;

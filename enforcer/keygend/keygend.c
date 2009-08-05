@@ -290,6 +290,11 @@ server_main(DAEMONCONFIG *config)
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
             exit(0);
         }
+        /* Or SIGINT */
+        if (config->term == 2 ){
+            log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
+            exit(0);
+        }
 
         /* sleep for the key gen interval */
         tv.tv_sec = config->keygeninterval;
@@ -300,6 +305,11 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            exit(0);
+        }
+        /* Or SIGINT */
+        if (config->term == 2 ){
+            log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
             exit(0);
         }
     }

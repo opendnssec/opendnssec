@@ -78,9 +78,10 @@ sig_handler (int sig)
         case SIGUSR1:
             break;
         case SIGINT:
+            config.term = 2;
             break;
         case SIGTERM:
-						config.term = 1;
+            config.term = 1;
             break;
         default:      
             break;

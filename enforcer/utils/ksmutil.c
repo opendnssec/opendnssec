@@ -1583,16 +1583,15 @@ int update_repositories(char** zone_list_filename)
                 StrFree(repo_name);
                 StrFree(repo_capacity);
             }
-            /* Found <Signer> */
-            else if (strncmp(tag_name, "Signer", 6) == 0 
-                    && strncmp(tag_name, "SignerThreads", 13) != 0
+            /* Found <Common> */
+            else if (strncmp(tag_name, "Common", 6) == 0 
                     && xmlTextReaderNodeType(reader) == 1) {
 
                 /* Expand this node and get the rest of the info with XPath */
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    printf("Error: can not read Signer section\n");
+                    printf("Error: can not read Common section\n");
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -1600,7 +1599,7 @@ int update_repositories(char** zone_list_filename)
 
                 xpathCtx = xmlXPathNewContext(doc);
                 if(xpathCtx == NULL) {
-                    printf("Error: can not create XPath context for Signer section\n");
+                    printf("Error: can not create XPath context for Common section\n");
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -2749,26 +2748,25 @@ int read_zonelist_filename(char** zone_list_filename)
     char* temp_char = NULL;
     char* tag_name = NULL;
 
-    xmlChar *zonelist_expr = (unsigned char*) "//Signer/ZoneListFile";
+    xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
 
     StrAppend(&filename, config);
     StrAppend(&filename, "/conf.xml");
-    /* Start reading the file; we will be looking for "Signer" tags */ 
+    /* Start reading the file; we will be looking for "Common" tags */ 
     reader = xmlNewTextReaderFilename(filename);
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
             tag_name = (char*) xmlTextReaderLocalName(reader);
-            /* Found <Signer> */
-            if (strncmp(tag_name, "Signer", 6) == 0 
-                    && strncmp(tag_name, "SignerThreads", 13) != 0
+            /* Found <Common> */
+            if (strncmp(tag_name, "Common", 6) == 0 
                     && xmlTextReaderNodeType(reader) == 1) {
 
                 /* Expand this node and get the rest of the info with XPath */
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    printf("Error: can not read Signer section\n");
+                    printf("Error: can not read Common section\n");
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -2776,7 +2774,7 @@ int read_zonelist_filename(char** zone_list_filename)
 
                 xpathCtx = xmlXPathNewContext(doc);
                 if(xpathCtx == NULL) {
-                    printf("Error: can not create XPath context for Signer section\n");
+                    printf("Error: can not create XPath context for Common section\n");
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
