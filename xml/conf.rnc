@@ -37,10 +37,7 @@ start = element Configuration {
 		element PolicyFile { xsd:string }?,
 
 		# Location to store the zonelist XML file
-		element ZoneListFile { xsd:string }?,	
-
-		# Location of directory for the SignerConfiguration files
-		element SignerConfigurationDirectory { xsd:string }?
+		element ZoneListFile { xsd:string }?
 	}?,
 
 	# Configuration parameters for the KASP Enforcer

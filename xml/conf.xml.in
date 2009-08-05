@@ -30,7 +30,6 @@
 		
 		<PolicyFile>@opendnssecsysconfdir@/kasp.xml</PolicyFile>
 		<ZoneListFile>@opendnssecsysconfdir@/zonelist.xml</ZoneListFile>
-		<SignerConfigurationDirectory>@opendnsseclocalstatedir@/config</SignerConfigurationDirectory>
 	</Common>
 
 	<Enforcer>
