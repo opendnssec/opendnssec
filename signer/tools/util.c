@@ -43,6 +43,13 @@ read_line(FILE *input, char *line, int multiline)
 	li = 0;
 	for (i = 0; i < MAX_LINE_LEN; i++) {
 		c = getc(input);
+		/* if a comment does not start at the beginning of the line,
+		 * skip it completely */
+		if (i > 0 && c == ';') {
+			while(c != EOF && c != '\n') {
+				c = getc(input);
+			}
+		}
 		if (c == EOF) {
 			if (depth != 0) {
 				fprintf(stderr, "bracket mismatch in multiline RR"
