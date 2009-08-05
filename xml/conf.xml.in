@@ -45,4 +45,8 @@
 		<SignerThreads>1</SignerThreads>
 	</Signer>
 
+	<Auditor>
+		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
+	</Auditor>
+
 </Configuration>

@@ -77,7 +77,10 @@ start = element Configuration {
 	}?,
 
 	element Auditor {
-		privs?
+		privs?,
+
+		# Location to store intermediate audit information
+		element WorkingDirectory { xsd:string }?
 	}?
 }
 
