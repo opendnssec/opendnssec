@@ -25,11 +25,6 @@
 	</Enforcer>
 
 	<Signer>
-		<Privileges>
-			<User>jelte</User>
-			<Group>root</Group>
-			<Directory>/tmp/a</Directory>
-		</Privileges>
 		<WorkingDirectory>tmp</WorkingDirectory>
 		<!-- toolsdir will be removed, but
 		is used for testing atm -->
