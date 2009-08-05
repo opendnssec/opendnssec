@@ -70,7 +70,7 @@ char *config = (char *) CONFIGDIR;
 usage_setup ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] setup [path_to_kasp.xml]\n\tImport config_dir into a database (deletes current contents)\n",
+            "usage: %s [-f config_dir] setup\n\tImport config_dir into a database (deletes current contents)\n",
             progname);
 }
 
@@ -78,7 +78,7 @@ usage_setup ()
 usage_update ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] update [path_to_kasp.xml]\n\tUpdate database from config_dir\n",
+            "usage: %s [-f config_dir] update\n\tUpdate database from config_dir\n",
             progname);
 }
 
@@ -153,6 +153,7 @@ cmd_setup (int argc, char *argv[])
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
     char* lock_filename;    /* name for the lock file (so we can close it) */
     char* zone_list_filename;   /* Extracted from conf.xml */
+    char* kasp_filename;    /* Extracted from conf.xml */
     int status = 0;
 
     /* Database connection details */
@@ -304,9 +305,9 @@ cmd_setup (int argc, char *argv[])
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
      *  Instead we just extract the RepositoryList into the database and also learn
-     *  the location of the zonelist.
+     *  the location of the zonelist and kasp.
      */
-    status = update_repositories(&zone_list_filename);
+    status = update_repositories(&zone_list_filename, &kasp_filename);
     if (status != 0) {
         printf("Failed to update repositories\n");
         if (DbFlavour() == SQLITE_DB) {
@@ -319,7 +320,7 @@ cmd_setup (int argc, char *argv[])
      * Now read the kasp.xml which should be in the same directory.
      * This lists all of the policies.
      */
-    status = update_policies();
+    status = update_policies(kasp_filename);
     if (status != 0) {
         printf("Failed to update policies\n");
         if (DbFlavour() == SQLITE_DB) {
@@ -327,6 +328,8 @@ cmd_setup (int argc, char *argv[])
         }
         return(1);
     }
+
+    StrFree(kasp_filename);
 
     /*
      * Take the zonelist we learnt above and read it, updating or inserting zone
@@ -372,6 +375,7 @@ cmd_update (int argc, char *argv[])
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
     char* lock_filename;    /* name for the lock file (so we can close it) */
     char* zone_list_filename;   /* Extracted from conf.xml */
+    char* kasp_filename;   /* Extracted from conf.xml */
     int status = 0;
 
     /* try to connect to the database */
@@ -387,7 +391,7 @@ cmd_update (int argc, char *argv[])
      *  Instead we just extract the RepositoryList into the database and also learn
      *  the location of the zonelist.
      */
-    status = update_repositories(&zone_list_filename);
+    status = update_repositories(&zone_list_filename, &kasp_filename);
     if (status != 0) {
         printf("Failed to update repositories\n");
         fclose(lock_fd);
@@ -398,7 +402,7 @@ cmd_update (int argc, char *argv[])
      * Now read the kasp.xml which should be in the same directory.
      * This lists all of the policies.
      */
-    status = update_policies();
+    status = update_policies(kasp_filename);
     if (status != 0) {
         printf("Failed to update policies\n");
         fclose(lock_fd);
@@ -1483,7 +1487,7 @@ int release_lite_lock(FILE* lock_fd)
  *  Instead we just extract the RepositoryList into the database and also learn the 
  *  location of the zonelist.
  */
-int update_repositories(char** zone_list_filename)
+int update_repositories(char** zone_list_filename, char** kasp_filename)
 {
     int status = 0;
     xmlTextReaderPtr reader = NULL;
@@ -1500,6 +1504,7 @@ int update_repositories(char** zone_list_filename)
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *capacity_expr = (unsigned char*) "//Repository/Capacity";
     xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
+    xmlChar *kaspfile_expr = (unsigned char*) "//Common/PolicyFile";
 
     StrAppend(&filename, config);
     StrAppend(&filename, "/conf.xml");
@@ -1607,7 +1612,6 @@ int update_repositories(char** zone_list_filename)
 
                 /* Evaluate xpath expression for ZoneListFile */
                 xpathObj = xmlXPathEvalExpression(zonelist_expr, xpathCtx);
-                xmlXPathFreeContext(xpathCtx);
                 if(xpathObj == NULL) {
                     printf("Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
                     /* Don't return? try to parse the rest of the file? */
@@ -1619,6 +1623,32 @@ int update_repositories(char** zone_list_filename)
                 StrAppend(zone_list_filename, temp_char);
                 StrFree(temp_char);
                 printf("zonelist filename set to %s.\n", *zone_list_filename);
+
+                /* Evaluate xpath expression for KaspFile */
+                xpathObj = xmlXPathEvalExpression(kaspfile_expr, xpathCtx);
+                xmlXPathFreeContext(xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s\n", kaspfile_expr);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                *kasp_filename = NULL;
+                if (xpathObj->nodesetval->nodeNr > 0) {
+                    /*
+                     * Found Something, set it
+                     */
+                    temp_char = (char*) xmlXPathCastToString(xpathObj);
+                    StrAppend(kasp_filename, temp_char);
+                    StrFree(temp_char);
+                } else {
+                    /*
+                     * Set a default
+                     */
+                    StrAppend(kasp_filename, config);
+                    StrAppend(kasp_filename, "/kasp.xml");
+                }
+                printf("kasp filename set to %s.\n", *kasp_filename);
 
                 xmlXPathFreeObject(xpathObj);
             }
@@ -1644,7 +1674,7 @@ int update_repositories(char** zone_list_filename)
 }
 
 /* Read kasp.xml, validate it and grab each policy in it as we go. */
-int update_policies()
+int update_policies(char* kasp_filename)
 {
     int status;
 
@@ -1722,20 +1752,15 @@ int update_policies()
     KSM_POLICY *policy;
 
     /* Some files, the xml and rng */
-    char* filename = NULL;
     char* rngfilename = NULL;
-
-    StrAppend(&filename, config);
-    StrAppend(&filename, "/kasp.xml");
 
     StrAppend(&rngfilename, datadir);
     StrAppend(&rngfilename, "/kasp.rng");
 
     /* Load XML document */
-    doc = xmlParseFile(filename);
+    doc = xmlParseFile(kasp_filename);
     if (doc == NULL) {
-        printf("Error: unable to parse file \"%s\"\n", filename);
-        StrFree(filename);
+        printf("Error: unable to parse file \"%s\"\n", kasp_filename);
         StrFree(rngfilename);
         return(-1);
     }
@@ -1744,7 +1769,6 @@ int update_policies()
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", rngfilename);
-        StrFree(filename);
         StrFree(rngfilename);
         return(-1);
     }
@@ -1754,7 +1778,6 @@ int update_policies()
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
     if (rngpctx == NULL) {
         printf("Error: unable to create XML RelaxNGs parser context\n");
-        StrFree(filename);
         return(-1);
     }
 
@@ -1762,7 +1785,6 @@ int update_policies()
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
         printf("Error: unable to parse a schema definition resource\n");
-        StrFree(filename);
         return(-1);
     }
 
@@ -1770,15 +1792,13 @@ int update_policies()
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
         printf("Error: unable to create RelaxNGs validation context based on the schema\n");
-        StrFree(filename);
         return(-1);
     }
 
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
-        printf("Error validating file \"%s\"\n", filename);
-        StrFree(filename);
+        printf("Error validating file \"%s\"\n", kasp_filename);
         return(-1);
     }
 
@@ -1806,7 +1826,7 @@ int update_policies()
     }
 
     /* Switch to the XmlTextReader API so that we can consider each policy separately */
-    reader = xmlNewTextReaderFilename(filename);
+    reader = xmlNewTextReaderFilename(kasp_filename);
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
@@ -1822,7 +1842,7 @@ int update_policies()
                 /* Make sure that we got something */
                 if (policy_name == NULL) {
                     /* error */
-                    printf("Error extracting policy name from %s\n", filename);
+                    printf("Error extracting policy name from %s\n", kasp_filename);
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -2122,7 +2142,7 @@ int update_policies()
         xmlFreeTextReader(reader);
         xmlFreeDoc(pol_doc);
         if (ret != 0) {
-            printf("%s : failed to parse\n", filename);
+            printf("%s : failed to parse\n", kasp_filename);
         }
     }
 
@@ -2148,8 +2168,6 @@ int update_policies()
     free(policy->signature);
     free(policy->signer);
     free(policy);
-
-    StrFree(filename);
 
     return(status);
 }

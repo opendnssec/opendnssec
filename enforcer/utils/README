@@ -3,10 +3,10 @@ $Id$
 
 This is a utility that allows several different actions to be performed (relatively) easily:
 
-ksmutil [-f config_dir] setup [path_to_kasp.xml]
+ksmutil [-f config_dir] setup
     Import conf.xml (from config_dir) into a database (deletes current contents)
 
-ksmutil [-f config_dir] update [path_to_kasp.xml]
+ksmutil [-f config_dir] update
     Update database from config_dir (like above, but existing contents are kept)
 
 ksmutil [-f config_dir] addzone zone [policy] [path_to_signerconf.xml] [input] [output]
