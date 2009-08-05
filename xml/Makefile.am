@@ -16,11 +16,14 @@ XML =	conf.xml kasp.xml zonelist.xml signconf.xml
 sysconfdir = @sysconfdir@/opendnssec
 datadir = @datadir@/opendnssec
 
+noinst_DATA = ${XML}
+
 dist_data_DATA = ${RNG} ${RNC}
 
-CLEANFILES =	*.rng
+CLEANFILES =	*.rng *.xml
 
 SUFFIXES = .rng .rnc .xml
+
 
 .rnc.rng:
 	java -jar $(srcdir)/trang/trang.jar $< $@
