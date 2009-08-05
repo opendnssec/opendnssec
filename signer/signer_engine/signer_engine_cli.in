@@ -85,6 +85,7 @@ def engine_cli(args, file):
         else:
             run(cl_sock)
         cl_sock.shutdown(0)
+        return 0
     except socket.error, serr:
         if (hasattr(serr, "errno") and serr.errno == 2) or \
            isinstance(serr, socket.error) and serr[0] == 2:
@@ -93,6 +94,7 @@ def engine_cli(args, file):
             print "Error opening domain socket %s: %s" % (file, str(serr))
             print serr.__class__
             raise serr
+        return 1
 
 def parse_args():
     """Parse options"""
@@ -108,10 +110,16 @@ def parse_args():
                                   "opendnssec" + os.sep + \
                                   "engine.sock")
         (options, arguments) = parser.parse_args()
-        engine_cli(arguments, options.file)
+        return engine_cli(arguments, options.file)
     except ValueError, vae:
         print str(vae)
+        return 1
 
 if __name__ == "__main__":
     # if we have no arguments, go to interactive mode
-    parse_args()
+    try:
+        result = parse_args()
+        sys.exit(result)
+    except Exception, e:
+        print str(e)
+        sys.exit(2)
