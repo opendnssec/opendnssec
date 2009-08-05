@@ -1,0 +1,12 @@
+$Id$
+
+
+OpenDNSSEC trunk
+
+* conf.xml format changed
+* libksm integrated into enforcer and installed separately
+
+
+OpenDNSSEC 1.0a1 - 2009-07-30
+
+* Initial release (aka "Technology Preview")
