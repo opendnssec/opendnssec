@@ -47,7 +47,6 @@ read_line(FILE *input, char *line, int multiline)
 		/* if a comment does not start at the beginning of the line,
 		 * skip it completely */
 		if (i > 0 && c == ';' && !in_string && lc != '\\') {
-			fprintf(stderr, "[XX] skip to end of line\n");
 			while(c != EOF && c != '\n') {
 				c = getc(input);
 			}
