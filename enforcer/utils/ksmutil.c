@@ -350,7 +350,7 @@ cmd_setup (int argc, char *argv[])
     if (DbFlavour() == SQLITE_DB) {
         status = release_lite_lock(lock_fd);
         if (status != 0) {
-            printf("Error releasing db lock");
+            printf("Error releasing db lock: %s", strerror(errno));
             fclose(lock_fd);
             return(1);
         }
@@ -1438,7 +1438,7 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
 
 int get_lite_lock(char *lock_filename, FILE* lock_fd)
 {
-    struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
+    struct flock fl;
     struct timeval tv;
 
     if (lock_fd == NULL) {
@@ -1446,6 +1446,9 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
         return 1;
     }
 
+    memset(&fl, 0, sizeof(struct flock));
+    fl.l_type = F_WRLCK;
+    fl.l_whence = SEEK_SET;
     fl.l_pid = getpid();
 
     while (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
@@ -1469,11 +1472,15 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
 
 int release_lite_lock(FILE* lock_fd)
 {
-    struct flock fl = { F_UNLCK, SEEK_SET, 0,       0,     0 };
+    struct flock fl;
 
     if (lock_fd == NULL) {
         return 1;
     }
+
+    memset(&fl, 0, sizeof(struct flock));
+    fl.l_type = F_UNLCK;
+    fl.l_whence = SEEK_SET;
 
     if (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
         return 1;
