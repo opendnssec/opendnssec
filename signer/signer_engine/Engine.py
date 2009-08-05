@@ -52,6 +52,8 @@ import Util
 import syslog
 import signal
 import errno
+import grp
+import pwd
 
 import Zone
 from ZoneConfig import ZoneConfig, ZoneConfigError
@@ -76,6 +78,7 @@ class Engine:
         self.zonelist = None
         self.command_socket = None
         self.locked = False
+        self.chrooted = False
         syslog.openlog("OpenDNSSEC signer engine",
                        0, self.config.syslog_facility)
 
@@ -153,6 +156,54 @@ class Engine:
         except Exception, e:
                 print e
                 sys.exit(0)
+
+
+        if self.config.privs_groupname:
+            try:
+                gid = grp.getgrnam(self.config.privs_groupname)[2]
+            except Exception, e:
+                estr = "Unable to drop privileges to group '" +\
+                       self.config.privs_groupname + "': " + str(e)
+                syslog.syslog(syslog.LOG_ERR, estr)
+                raise EngineError(estr)
+
+        if self.config.privs_username:
+            try:
+                uid = pwd.getpwnam(self.config.privs_username)[2]
+            except Exception, e:
+                estr = "Unable to drop privileges to user " +\
+                       self.config.privs_username + ": " + str(e)
+                syslog.syslog(syslog.LOG_ERR, estr)
+                raise EngineError(estr)
+
+        # finally, chroot
+        if self.config.privs_chroot and not self.chrooted:
+            try:
+                os.chroot(self.config.privs_chroot)
+                self.chrooted = True
+            except Exception, e:
+                estr = "Unable to chroot() to " +\
+                       self.config.privs_chroot + ": " + str(e)
+                syslog.syslog(syslog.LOG_ERR, estr)
+                raise EngineError(estr)
+
+        if self.config.privs_groupname:
+            try:
+                os.setgid(gid)
+            except Exception, e:
+                estr = "Unable to drop privileges to group '" +\
+                       self.config.privs_groupname + "': " + str(e)
+                syslog.syslog(syslog.LOG_ERR, estr)
+                raise EngineError(estr)
+
+        if self.config.privs_username:
+            try:
+                os.setuid(uid)
+            except Exception, e:
+                estr = "Unable to drop privileges to user " +\
+                       self.config.privs_username + ": " + str(e)
+                syslog.syslog(syslog.LOG_ERR, estr)
+                raise EngineError(estr)
 
     def run(self):
         """Just keep running until command channel is closed"""

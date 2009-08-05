@@ -102,7 +102,8 @@ def parse_args():
         #parser.add_option("-p", "--port", dest="port", default=47806)
         parser.add_option("-f", "--file", dest="file",
                           help="connect to domain socket <file>",
-                          default="@localstatedir@" + os.sep + \
+                          default="@localstatedir@".replace("${prefix}", "@prefix@")+\
+                                  os.sep + \
                                   "run" + os.sep +\
                                   "opendnssec" + os.sep + \
                                   "engine.sock")

@@ -66,6 +66,9 @@ class EngineConfiguration:
                                    "engine.sock"
         self.bindir = "@bindir@".replace("${exec_prefix}", "@exec_prefix@").replace("${prefix}", "@prefix@")
         self.sysconfdir = "@sysconfdir@".replace("${prefix}", "@prefix@")
+        self.privs_chroot = None
+        self.privs_username = None
+        self.privs_groupname = None
         if config_file_name:
             self.read_config_file(config_file_name)
         
@@ -122,6 +125,17 @@ class EngineConfiguration:
         else:
             # default to 4
             self.worker_threads = 4
+
+        # chroot and privileges
+        self.privs_username = \
+             Util.get_xml_data("Configuration/Signer/Privileges/User",
+                               xml_blob, True)
+        self.privs_groupname = \
+             Util.get_xml_data("Configuration/Signer/Privileges/Group",
+                               xml_blob, True)
+        self.privs_chroot = \
+             Util.get_xml_data("Configuration/Signer/Privileges/Directory",
+                               xml_blob, True)
 
     def check_config(self):
         """Verifies whether the configuration is correct for the
