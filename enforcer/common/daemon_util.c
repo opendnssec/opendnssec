@@ -555,7 +555,7 @@ ReadConfig(DAEMONCONFIG *config)
 
 int get_lite_lock(char *lock_filename, FILE* lock_fd)
 {
-    struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
+    struct flock fl;
     struct timeval tv;
 
     if (lock_fd == NULL) {
@@ -563,6 +563,9 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
         return 1;
     }
 
+    memset(&fl, 0, sizeof(struct flock));
+    fl.l_type = F_WRLCK;
+    fl.l_whence = SEEK_SET;
     fl.l_pid = getpid();
     
     while (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
@@ -575,7 +578,7 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
             select(0, NULL, NULL, NULL, &tv);
 
         } else {
-            log_msg(NULL, LOG_INFO, "couldn't get lock on %s, error\n", lock_filename);
+            log_msg(NULL, LOG_INFO, "couldn't get lock on %s, %s\n", lock_filename, strerror(errno));
             return 1;
         }
     }
@@ -586,12 +589,16 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
 
 int release_lite_lock(FILE* lock_fd)
 {
-    struct flock fl = { F_UNLCK, SEEK_SET, 0,       0,     0 };
+    struct flock fl;
 
     if (lock_fd == NULL) {
         return 1;
     }
     
+    memset(&fl, 0, sizeof(struct flock));
+    fl.l_type = F_UNLCK;
+    fl.l_whence = SEEK_SET;
+
     if (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
         return 1;
     }
