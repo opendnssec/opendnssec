@@ -34,10 +34,10 @@ start = element Configuration {
 		}?,
 
 		# Location to find the KASP
-		element PolicyFile { xsd:string }?,
+		element PolicyFile { xsd:string },
 
 		# Location to store the zonelist XML file
-		element ZoneListFile { xsd:string }?
+		element ZoneListFile { xsd:string }
 	}?,
 
 	# Configuration parameters for the KASP Enforcer
