@@ -1,11 +1,11 @@
 module KASPAuditor
-    # This class reads a zone file, and transforms it to a form suitable to be
-    # sorted by the OS sort command.
-    # For purposes of sorting, each RR should be prepended by the reversed
-    # domain name, followed by a separator (each label of the name is preserved
-    #  - the labels are simply written in reverse order)
-    # This allows the auditor to operate on a zone file which is essentially
-    # in canonical order.
+  # This class reads a zone file, and transforms it to a form suitable to be
+  # sorted by the OS sort command.
+  # For purposes of sorting, each RR should be prepended by the reversed
+  # domain name, followed by a separator (each label of the name is preserved
+  #  - the labels are simply written in reverse order)
+  # This allows the auditor to operate on a zone file which is essentially
+  # in canonical order.
   class Preparser
 
     # @TODO@ Need to use different separator - difficult, since arbitrary data
@@ -39,46 +39,54 @@ module KASPAuditor
       if  File.exist?(outfile)
         File.delete(outfile)
       end
-      File.open(outfile, File::CREAT|File::RDWR) { |f|
-        IO.foreach(infile) { |line|
-          count = count + 1
-          if (count == 10000)
-            print "#{line}"
-            count = 0
+      begin
+        File.open(outfile, File::CREAT|File::RDWR) { |f|
+          begin
+            IO.foreach(infile) { |line|
+              count = count + 1
+              if (count == 10000)
+                print "#{line}"
+                count = 0
+              end
+              next if (line.index(';') == 0)
+              next if (!line || (line.length == 0))
+              if (line.index("$ORIGIN") == 0)
+                origin = line.split()[1].strip #  $ORIGIN <domain-name> [<comment>]
+                print "Setting $ORIGIN to #{origin}\n"
+                next
+              end
+              if (continued_line)
+                # Add the next line until we see a ")"
+                line = continued_line.strip.chomp + line
+                if (line.index(")"))
+                  # OK
+                  continued_line = false
+                end
+              end
+              open_bracket = line.index("(")
+              if (open_bracket)
+                # Keep going until we see ")"
+                if (line.index(")") > open_bracket)
+                  # OK
+                  continued_line = false
+                else
+                  continued_line = line
+                end
+              end
+              next if continued_line
+              line, domain, type = normalise_line(line, origin, last_name)
+              last_name = domain
+              # Append the domain name and the RR Type here - e.g. "$NS"
+              line = prepare(domain) + "$" + type + SEPARATOR + line
+              f.write(line)
+            }
+          rescue Errno::ENOENT
+            KASPAuditor.exit("ERROR - Can't open unsigned file : #{infile}", 1)
           end
-          next if (line.index(';') == 0)
-          next if (!line || (line.length == 0))
-          if (line.index("$ORIGIN") == 0)
-            origin = line.split()[1].strip #  $ORIGIN <domain-name> [<comment>]
-            print "Setting $ORIGIN to #{origin}\n"
-            next
-          end
-          if (continued_line)
-            # Add the next line until we see a ")"
-            line = continued_line.strip.chomp + line
-            if (line.index(")"))
-              # OK
-              continued_line = false
-            end
-          end
-          open_bracket = line.index("(")
-          if (open_bracket)
-            # Keep going until we see ")"
-            if (line.index(")") > open_bracket)
-              # OK
-              continued_line = false
-            else
-              continued_line = line
-            end
-          end
-          next if continued_line
-          line, domain, type = normalise_line(line, origin, last_name)
-          last_name = domain
-          # Append the domain name and the RR Type here - e.g. "$NS"
-          line = prepare(domain) + "$" + type + SEPARATOR + line
-          f.write(line)
         }
-      }
+      rescue Errno::ENOENT
+        KASPAuditor.exit("ERROR - Can't open signed file : #{outfile}", 1)
+      end
     end
 
     # Take a domain name, and return the form to be prepended to the RR.

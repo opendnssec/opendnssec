@@ -41,6 +41,11 @@ require 'kasp_auditor/preparser.rb'
 # Several transient files are created during this process - they are removed
 # when the process is complete.
 module KASPAuditor
+  def KASPAuditor.exit(msg, err)
+    # @TODO@ Log exit msg
+    print msg + "\n"
+    Kernel.exit(err)
+  end
   $SAFE = 1
   # The KASPAuditor takes the signed and unsigned zones and compares them.
   # It first parses both files, and creates transient files which are then
@@ -82,8 +87,7 @@ module KASPAuditor
       print "Checking #{zones.length} zones\n"
       if (zones.length == 0)
         syslog.log(LOG_ERR, "Couldn't find any zones to load")
-        print "Couldn't find any zones to load"
-        exit(-LOG_ERR)
+        KASPAuditor.exit("Couldn't find any zones to load", -LOG_ERR)
       end
       ret = 999 # Return value to controlling process
       zones.each {|config, input_file, output_file|
@@ -100,23 +104,28 @@ module KASPAuditor
                 working+get_name(f)+".sorted")
             })
         }
+        do_audit = true
         pids.each {|pid|
           ret_id, ret_status = Process.wait2(pid)
           if (ret_status != 0)
-            print "Error sorting file : #{ret_status}\n"
+            print "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone\n"
+            syslog.log(LOG_ERR, "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone")
+            ret = 1
+            do_audit = false
           end
         }
-        # Now audit the pre-parsed and sorted file
-        auditor = Auditor.new(syslog, working)
-        ret_val = auditor.check_zone(config, working+get_name(input_file)+".sorted",
-          working + get_name(output_file)+".sorted",
-          input_file, output_file)
-        ret = ret_val if (ret_val < ret)
-        [input_file, output_file].each {|f|
-          delete_file(working+get_name(f)+".parsed")
-          delete_file(working+get_name(f)+".sorted")
-        }
-
+        if (do_audit)
+          # Now audit the pre-parsed and sorted file
+          auditor = Auditor.new(syslog, working)
+          ret_val = auditor.check_zone(config, working+get_name(input_file)+".sorted",
+            working + get_name(output_file)+".sorted",
+            input_file, output_file)
+          ret = ret_val if (ret_val < ret)
+          [input_file, output_file].each {|f|
+            delete_file(working+get_name(f)+".parsed")
+            delete_file(working+get_name(f)+".sorted")
+          }
+        end
       }
       ret = 0 if (ret == -99)
       ret = 0 if (ret >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
@@ -164,14 +173,12 @@ module KASPAuditor
           begin
             working = doc.elements['Configuration/Signer/WorkingDirectory'].text
           rescue Exception
-            print"Can't read working directory from conf.xml - exiting\n"
-            exit(3)
+            KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
           end
           begin
             zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
           rescue Exception
-            print"Can't read zonelist location from conf.xml - exiting\n"
-            exit(3)
+            KASPAuditor.exit("Can't read zonelist location from conf.xml - exiting", 1)
           end
           load_privileges(doc)
           facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text

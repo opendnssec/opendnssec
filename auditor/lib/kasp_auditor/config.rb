@@ -35,36 +35,44 @@ module KASPAuditor
       #      @zones = []
       #      print "Opening config file : #{config_file_loc}\n"
       # Read the kasp.xml file
-      File.open((kasp_file_loc+"").untaint, 'r') {|file|
-        doc = REXML::Document.new(file)
+      begin
+        File.open((kasp_file_loc+"").untaint, 'r') {|file|
+          doc = REXML::Document.new(file)
 
-        # Now find the appropiate policy
-        doc.elements.each('KASP/Policy') {|p|
-          if (p.attributes['name'] == policy)
-            # Now load the policy in!
+          # Now find the appropiate policy
+          doc.elements.each('KASP/Policy') {|p|
+            if (p.attributes['name'] == policy)
+              # Now load the policy in!
           
-            # @TODO@ Check out Zone.SOA - should be able to monitor SOA with that
+              # @TODO@ Check out Zone.SOA - should be able to monitor SOA with that
 
-            #        # Fill out new zone
-            @signatures = Signatures.new(p.elements['Signatures'])
-            @denial = Denial.new(p.elements['Denial'])
-            @keys = Keys.new(p.elements['Keys'])
-            @soa = SOA.new(p.elements['Zone/SOA'])
-          end
+              #        # Fill out new zone
+              @signatures = Signatures.new(p.elements['Signatures'])
+              @denial = Denial.new(p.elements['Denial'])
+              @keys = Keys.new(p.elements['Keys'])
+              @soa = SOA.new(p.elements['Zone/SOA'])
+            end
+          }
         }
-      }
+      rescue Errno::ENOENT
+        KASPAuditor.exit("ERROR - Can't find KASP file : #{kasp_file_loc}", 1)
+      end
       #
       # Read the salt ONLY from the SignerConfiguration
       if (@denial.nsec3)
-        File.open((config_file_loc.to_s+"").untaint, 'r') {|file|
-          doc = REXML::Document.new(file)
-          e = doc.elements['SignerConfiguration/Zone/Denial/NSEC3/Hash/']
-          @denial.nsec3.hash.salt = Dnsruby::RR::NSEC3.decode_salt(e.elements['Salt'].text)
-          if (@denial.nsec3.hash.salt.length.to_i != @denial.nsec3.hash.salt_length.to_i)
-            # @TODO@ RAISE AN ERROR
-            print "ERROR : SALT LENGTH IS #{@denial.nsec3.hash.salt.length}, but should be #{@denial.nsec3.hash.salt_length}\n"
-          end
-        }
+        begin
+          File.open((config_file_loc.to_s+"").untaint, 'r') {|file|
+            doc = REXML::Document.new(file)
+            e = doc.elements['SignerConfiguration/Zone/Denial/NSEC3/Hash/']
+            @denial.nsec3.hash.salt = Dnsruby::RR::NSEC3.decode_salt(e.elements['Salt'].text)
+            if (@denial.nsec3.hash.salt.length.to_i != @denial.nsec3.hash.salt_length.to_i)
+              # @TODO@ RAISE AN ERROR
+              print "ERROR : SALT LENGTH IS #{@denial.nsec3.hash.salt.length}, but should be #{@denial.nsec3.hash.salt_length}\n"
+            end
+          }
+        rescue Errno::ENOENT
+          KASPAuditor.exit("ERROR - Can't find SignerConfiguration file : #{kasp_file_loc}", 1)
+        end
       end
     end
     # Check the defined hash algorithm against the denial type. If NSEC3 is
