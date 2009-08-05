@@ -903,7 +903,7 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
     char*   sql = NULL;     /* SQL to interrogate database */ 
     int     status = 0;     /* Status return */ 
     char    in[128];        /* Easily large enought for three keys */ 
-    char    buffer[256];    /* For constructing part of the command */
+    char    buffer[512];    /* For constructing part of the command */
     size_t  nchar;          /* Number of output characters */ 
  
     /* 
@@ -935,7 +935,7 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
 
     /* Create the SQL command to interrogate the database */ 
  
-    sql = DqsCountInit("KEYDATA_VIEW");
+    sql = DqsCountInit("keypairs");
     if (policy_id != -1) {
         DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
     }
