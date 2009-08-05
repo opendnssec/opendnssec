@@ -97,6 +97,7 @@ server_main(DAEMONCONFIG *config)
     char* current_policy;
     char* current_filename;
     int zone_id = -1;
+    int signer_flag = 1; /* Is the signer responding? (1 == yes) */
     
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
@@ -306,7 +307,7 @@ server_main(DAEMONCONFIG *config)
                     }
 
                     /* turn this zone and policy into a file */
-                    status2 = commGenSignConf(zone_name, zone_id, current_filename, policy);
+                    status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag);
                     if (status2 != 0) {
                         log_msg(config, LOG_ERR, "Error writing signconf");
                         /* Don't return? try to parse the rest of the zones? */
@@ -357,6 +358,9 @@ server_main(DAEMONCONFIG *config)
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
             exit(0);
         }
+
+        /* Reset the signer flag */
+        signer_flag = 1;
 
         /* sleep for the configured interval */
         tv.tv_sec = config->interval;
@@ -409,7 +413,7 @@ server_main(DAEMONCONFIG *config)
 
  *  returns 0 on success and -1 if something went wrong
  */
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy)
+int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag)
 {
     int status = 0;
     FILE *file, *file2;
@@ -609,19 +613,24 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
             return -1;
         }
 
-        /* call the signer engine to tell it that something changed */
-        /* TODO for beta version connect straight to the socket
-                should we make a blocking call on this?
-                should we call it here or after we have written all of the files?
-                have timeout if call is blocking */
-        signer_command = NULL;
-        StrAppend(&signer_command, SIGNER_CLI);
-        StrAppend(&signer_command, " ");
-        StrAppend(&signer_command, zone_name);
+        if (*signer_flag == 1) {
+            /* call the signer engine to tell it that something changed */
+            /* TODO for beta version connect straight to the socket
+               should we make a blocking call on this?
+               should we call it here or after we have written all of the files?
+               have timeout if call is blocking */
+            signer_command = NULL;
+            StrAppend(&signer_command, SIGNER_CLI);
+            StrAppend(&signer_command, " ");
+            StrAppend(&signer_command, zone_name);
 
-        if (system(signer_command) != 0)
-        {
-            log_msg(NULL, LOG_ERR, "Could not call signer_engine\n");
+            status = system(signer_command);
+            if (status != 0)
+            {
+                log_msg(NULL, LOG_ERR, "Could not call signer_engine\n");
+                log_msg(NULL, LOG_INFO, "Will continue: call signer_engine_cli update to manually update zones\n");
+                *signer_flag = 0;
+            }
         }
     }
     else {
