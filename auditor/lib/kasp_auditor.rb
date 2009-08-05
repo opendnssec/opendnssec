@@ -170,7 +170,7 @@ module KASPAuditor
       File.open((working + "conf.xml").untaint , 'r') {|file|
         doc = REXML::Document.new(file)
         begin
-          working = doc.elements['Configuration/Signer/WorkingDirectory'].text
+          working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
         rescue Exception
           KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
         end
