@@ -40,13 +40,14 @@ read_line(FILE *input, char *line, int multiline)
 	int depth = 0;
 	int in_string = 0;
 
-	char c;
+	char c, lc = 0;
 	li = 0;
 	for (i = 0; i < MAX_LINE_LEN; i++) {
 		c = getc(input);
 		/* if a comment does not start at the beginning of the line,
 		 * skip it completely */
-		if (i > 0 && c == ';' && !in_string) {
+		if (i > 0 && c == ';' && !in_string && lc != '\\') {
+			fprintf(stderr, "[XX] skip to end of line\n");
 			while(c != EOF && c != '\n') {
 				c = getc(input);
 			}
@@ -62,7 +63,7 @@ read_line(FILE *input, char *line, int multiline)
 			} else {
 				return -1;
 			}
-		} else if (c == '"') {
+		} else if (c == '"' && lc != '\\') {
 			in_string = 1 - in_string;
 			line[li] = c;
 			li++;
@@ -94,6 +95,7 @@ read_line(FILE *input, char *line, int multiline)
 				break;
 			}
 		}
+		lc = c;
 	}
 	if (depth != 0) {
 		fprintf(stderr, "bracket mismatch in multiline RR"
