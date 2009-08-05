@@ -33,9 +33,11 @@ start = element Configuration {
 
 	# Configuration parameters for the KASP Enforcer
 	element Enforcer {
+		privs?,
+
 		# Where to store internal Enforcer state
 		element Datastore { (mysql | sqlite) },
-		
+
 		# Interval between runs of the key rollover procedure
 		element Interval { xsd:duration },
 
@@ -48,6 +50,8 @@ start = element Configuration {
 
 	# Configuration parameters for the Signer 
 	element Signer {
+		privs?,
+
 		# Location to store intermediate zone information
 		element WorkingDirectory { xsd:string }?,
 
@@ -65,6 +69,17 @@ start = element Configuration {
 		# Number of Signer Threads
 		element SignerThreads { xsd:positiveInteger }?
 	}?
+}
+
+privs = element Privileges {
+	# User to drop privs to
+	element User { xsd:string }?,
+	
+	# Group to drop privs to
+	element Group { xsd:string }?,
+	
+	# Directory to chroot() to after startup 
+	element Directory { xsd:string }?
 }
 
 mysql = element MySQL {
