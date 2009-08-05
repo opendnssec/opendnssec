@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	}
 
 	while (line_len >= 0) {
-		line_len = read_line(input_file, line);
+		line_len = read_line(input_file, line, 1);
 		if (line_len > 0) {
 			if (line[0] != ';') {
 				status = ldns_rr_new_frm_str(&cur_rr, line, 0, NULL, NULL);

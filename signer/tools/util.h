@@ -30,5 +30,5 @@
 
 #include <ldns/ldns.h>
 
-int read_line(FILE *input, char *line);
+int read_line(FILE *input, char *line, int multiline);
 void rr_list_clear(ldns_rr_list *rr_list);

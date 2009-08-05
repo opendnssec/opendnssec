@@ -92,7 +92,7 @@ main(int argc, char **argv)
 	}
 
 	while (line_len >= 0) {
-		line_len = read_line(input_file, line);
+		line_len = read_line(input_file, line, 0);
 		if (line_len > 0) {
 			if (line[0] != ';') {
 				(void) ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
@@ -113,7 +113,7 @@ main(int argc, char **argv)
 
 	/* and finish off the rest */
 	while (line_len >= 0) {
-		line_len = read_line(input_file, line);
+		line_len = read_line(input_file, line, 0);
 		if (line_len > 0) {
 			handle_line(line);
 		}

@@ -169,7 +169,7 @@ create_nsec_records(FILE *input_file,
 	if (soa_min_ttl == 0) {
 		line_len = 0;
 		while (line_len >= 0 && soa_min_ttl == 0) {
-			line_len = read_line(input_file, line);
+			line_len = read_line(input_file, line, 0);
 			pre_soa_lines[pre_count] = strdup(line);
 			pre_count++;
 			if (line_len > 0 && line[0] != ';') {
@@ -196,7 +196,7 @@ create_nsec_records(FILE *input_file,
 
 	/* and do the rest of the file */
 	while (line_len >= 0) {
-		line_len = read_line(input_file, line);
+		line_len = read_line(input_file, line, 0);
 		if (line_len > 0) {
 			handle_line(out_file, line, line_len, soa_min_ttl, rr_list, &prev_nsec, &first_nsec);
 		}

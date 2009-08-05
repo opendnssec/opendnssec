@@ -582,6 +582,7 @@ main(int argc, char **argv)
 	ldns_rdf *zone_name = NULL, *origin = NULL, *tmp;
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
+	char *multiline_rr = NULL;
 	
 	int line_len;
 	char line[MAX_LINE_LEN];
@@ -714,7 +715,7 @@ main(int argc, char **argv)
 	origin = ldns_rdf_clone(zone_name);
 	line_len = 0;
 	while (line_len >= 0) {
-		line_len = read_line(rr_files[file_count], line);
+		line_len = read_line(rr_files[file_count], line, 1);
 		if (line_len > 0) {
 			if (line[0] == '$') {
 				tmp = directive_origin(line);
@@ -870,7 +871,7 @@ main(int argc, char **argv)
 						 * input if it is stdin, so the calling process does
 						 * not write to a nonexisting pipe */
 						while (line_len >= 0) {
-							line_len = read_line(rr_files[file_count], line);
+							line_len = read_line(rr_files[file_count], line, 1);
 						}
 						/* unlink the output file if it is not stdout, we do not
 						 * want partial output going to the next tool */
@@ -880,6 +881,9 @@ main(int argc, char **argv)
 						}
 						exit(EXIT_FAILURE);
 					}
+				}
+				if (multiline_rr) {
+					free(multiline_rr);
 				}
 			}
 			line_nr++;

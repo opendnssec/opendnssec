@@ -34,23 +34,51 @@
 #include "util.h"
 
 int
-read_line(FILE *input, char *line)
+read_line(FILE *input, char *line, int multiline)
 {
-	int i;
+	int i, li;
+	int depth = 0;
 	
 	char c;
+	li = 0;
 	for (i = 0; i < MAX_LINE_LEN; i++) {
 		c = getc(input);
 		if (c == EOF) {
-			return -1;
+			if (depth != 0) {
+				fprintf(stderr, "bracket mismatch in multiline RR"
+				                "; missing )\n");
+			}
+			if (li > 0) {
+				line[li] = '\0';
+				return li;
+			} else {
+				return -1;
+			}
+		} else if (c == '(' && multiline) {
+			depth++;
+		} else if (c == ')' && multiline) {
+			if (depth < 1) { 
+				fprintf(stderr, "bracket mismatch in multiline RR"
+				                "; missing (\n");
+				line[li] = '\0';
+				return li;
+			}
+			depth--;
 		} else if (c != '\n') {
-			line[i] = c;
+			line[li] = c;
+			li++;
 		} else {
-			break;
+			if (!multiline || depth == 0) {
+				break;
+			}
 		}
 	}
-	line[i] = '\0';
-	return i;
+	if (depth != 0) {
+		fprintf(stderr, "bracket mismatch in multiline RR"
+		                "; missing )\n");
+	}
+	line[li] = '\0';
+	return li;
 }
 
 /* frees all ldns_rr records in the list, and sets the count to 0 */
