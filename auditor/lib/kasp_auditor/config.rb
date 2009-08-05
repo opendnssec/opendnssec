@@ -35,7 +35,7 @@ module KASPAuditor
       #      @zones = []
       #      print "Opening config file : #{config_file_loc}\n"
       # Read the kasp.xml file
-      File.open(kasp_file_loc, 'r') {|file|
+      File.open((kasp_file_loc+"").untaint, 'r') {|file|
         doc = REXML::Document.new(file)
 
         # Now find the appropiate policy
@@ -56,7 +56,7 @@ module KASPAuditor
       #
       # Read the salt ONLY from the SignerConfiguration
       if (@denial.nsec3)
-        File.open(config_file_loc, 'r') {|file|
+        File.open((config_file_loc.to_s+"").untaint, 'r') {|file|
           doc = REXML::Document.new(file)
           e = doc.elements['SignerConfiguration/Zone/Denial/NSEC3/Hash/']
           @denial.nsec3.hash.salt = Dnsruby::RR::NSEC3.decode_salt(e.elements['Salt'].text)

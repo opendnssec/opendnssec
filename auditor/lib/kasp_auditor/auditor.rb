@@ -41,7 +41,7 @@ module KASPAuditor
   class Auditor # :nodoc: all
     def initialize(syslog, working)
       @syslog = syslog
-      @working = working
+      @working = (working.to_s + "").untaint
       print "Working folder : #{@working}\n"
       reset
     end
@@ -77,6 +77,8 @@ module KASPAuditor
       load_soas(original_unsigned_file, original_signed_file)
       log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
 
+      signed_file = (signed_file.to_s + "").untaint
+      unsigned_file = (unsigned_file.to_s + "").untaint
       File.open(unsigned_file) {|unsignedfile|
         File.open(signed_file) {|signedfile|
 
@@ -760,6 +762,7 @@ module KASPAuditor
     # Load the SOA from an unparsed file
     def get_soa_from_file(file)
       # SOA should always be first (non-comment) line
+      file = (file.to_s+"").untaint
       IO.foreach(file) {|line|
         next if (line.index(';') == 0)
         next if (!line || (line.length == 0))

@@ -45,8 +45,8 @@ module KASPAuditor
       # We should then read the kasp.xml file to find the policy of interest.
       # We also need to read SignerConfiguration, just so we know the salt.
       zones = []
-      File.open(zonelist_filename, 'r') {|file|
-        print "Opened zonelist file #{zonelist_filename}\n"
+        print "Opening zonelist file #{zonelist_filename}\n"
+      File.open((zonelist_filename.to_s+"").untaint, 'r') {|file|
         doc = REXML::Document.new(file)
         doc.elements.each("ZoneList/Zone") {|z|
           # First load the config files

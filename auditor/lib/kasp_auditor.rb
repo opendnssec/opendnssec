@@ -41,6 +41,7 @@ require 'kasp_auditor/preparser.rb'
 # Several transient files are created during this process - they are removed
 # when the process is complete.
 module KASPAuditor
+  $SAFE = 1
   # The KASPAuditor takes the signed and unsigned zones and compares them.
   # It first parses both files, and creates transient files which are then
   # sorted into canonical order. These files are then processed by the
@@ -63,7 +64,7 @@ module KASPAuditor
       if (path[path.length() -1,1] != "/")
         path = path+ "/"
       end
-      syslog_facility, working, zonelist = get_syslog_and_working_folder_and_zonelist(path)
+      syslog_facility, working, zonelist = load_config_xml(path)
       kasp_file = path + "kasp.xml"
 
       Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(path, zones_to_audit, zonelist, kasp_file, syslog, working)
@@ -96,7 +97,7 @@ module KASPAuditor
           pids.push(fork {
               pp.normalise_zone_and_add_prepended_names(f, working+get_name(f)+".parsed")
               pp.sort(working+get_name(f)+".parsed",
-                  working+get_name(f)+".sorted")
+                working+get_name(f)+".sorted")
             })
         }
         pids.each {|pid|
@@ -149,25 +150,72 @@ module KASPAuditor
 
     # Try to load the info from the conf.xml file.
     # Loads syslog facility, working folder and the zonelist file
+    # If Privileges items are specified, then user, groups and chroot are
+    # adjusted accordingly.
     # Returns a Syslog::Constants value
     # Returns Syslog::LOG_DAEMON on any error
-    def get_syslog_and_working_folder_and_zonelist(path) # :nodoc: all
+    def load_config_xml(path) # :nodoc: all
       working = path
       zonelist = "zonelist.xml"
-      File.open(path + "conf.xml" , 'r') {|file|
+      print "Reading config from #{working + 'conf.xml'}\n"
+      File.open((working + "conf.xml").untaint , 'r') {|file|
         begin
           doc = REXML::Document.new(file)
-          working = doc.elements['Configuration/Signer/WorkingDirectory'].text
-          zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
+          begin
+            working = doc.elements['Configuration/Signer/WorkingDirectory'].text
+          rescue Exception
+            print"Can't read working directory from conf.xml - exiting\n"
+            exit(3)
+          end
+          begin
+            zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
+          rescue Exception
+            print"Can't read zonelist location from conf.xml - exiting\n"
+            exit(3)
+          end
+          load_privileges(doc)
           facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
           # Now turn the facility string into a Syslog::Constants format....
-          syslog_facility = eval "Syslog::LOG_" + facility.upcase
+          syslog_facility = eval "Syslog::LOG_" + (facility.upcase+"").untaint
           print "Logging facility : #{facility}, #{syslog_facility}\n"
           return syslog_facility, working, zonelist
-        rescue Exception
+        rescue Exception => e
+          print "Error reading config : #{e}\n"
           return Syslog::LOG_DAEMON, working, zonelist
         end
       }
+    end
+
+    def load_privileges(doc)
+      begin
+        if (doc.elements['Configuration/Privileges/Directory'])
+          dir = doc.elements['Configuration/Privileges/Directory'].text
+          print "Setting Directory chroot to #{dir}\n"
+          Dir.chroot((dir+"").untaint)
+        end
+      rescue Exception => e
+        print "Couldn't set Configuration/Privileges/Directory (#{e})\n"
+      end
+      begin
+        if (doc.elements['Configuration/Privileges/User'])
+          uid_text = doc.elements['Configuration/Privileges/User'].text
+          uid = Etc.getpwnam((uid_text+"").untaint).uid
+          print "Setting uid to #{uid_text}, #{uid}\n"
+          Process::Sys.setuid(uid)
+        end
+      rescue Exception => e
+        print "Couldn't set Configuration/Privileges/User (#{e})\n"
+      end
+      begin
+        if (doc.elements['Configuration/Privileges/Group'])
+          gid_text = doc.elements['Configuration/Privileges/Group'].text
+          gid = Etc.getgrnam((gid_text+"").untaint).gid
+          print "Setting group id to #{gid_text}, #{gid}\n"
+          Process::Sys.setgid(gid)
+        end
+      rescue Exception => e
+        print "Couldn't set Configuration/Privileges/Group (#{e})\n"
+      end
     end
 
     def delete_file(f) # :nodoc: all

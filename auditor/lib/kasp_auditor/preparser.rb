@@ -17,6 +17,8 @@ module KASPAuditor
 
     # Call the OS sort command (with the appropriate separator).
     def sort(file1, file2)
+      file1=(file1.to_s+"").untaint
+      file2=(file2.to_s+"").untaint
       system("sort -t$'#{SEPARATOR}' #{file1} > #{file2}")
     end
 
@@ -32,6 +34,8 @@ module KASPAuditor
       continued_line = nil
       count = 0
       # Need to replace any existing files
+      infile = (infile.to_s+"").untaint
+      outfile = (outfile.to_s+"").untaint
       if  File.exist?(outfile)
         File.delete(outfile)
       end
