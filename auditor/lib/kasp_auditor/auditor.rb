@@ -431,12 +431,12 @@ module KASPAuditor
       # Now record the owner name, the next hashed, and the types associated with it
       # This information will be used by the NSEC3Auditor once the zone file has
       # been processed.
-      File.open(@working + "/audit"+".nsec3", "a") { |f|
+      File.open(@working + "/audit.nsec3.#{Process.pid}", "a") { |f|
         types = get_types_string(l_rr.types)
         f.write("#{l_rr.name.to_s} #{types}\n")
       }
       if (!l_rr.opt_out?)
-        File.open(@working + "/audit"+".optout", "a") { |f|
+        File.open(@working + "/audit.optout.#{Process.pid}", "a") { |f|
           f.write("#{l_rr.name.to_s} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
         }
       end
@@ -450,8 +450,8 @@ module KASPAuditor
 
     # Check the DNSKEY RR
     def check_dnskey(l_rr)
-        # @TODO@ We should also do more checks against the policy here -
-        # e.g. algorithm code and length
+      # @TODO@ We should also do more checks against the policy here -
+      # e.g. algorithm code and length
       if (l_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
         log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
       end
@@ -617,7 +617,7 @@ module KASPAuditor
       end
       hashed_domain = RR::NSEC3.calculate_hash(domain, iterations,
         RR::NSEC3.decode_salt(salt), hash_alg)
-      File.open(@working + "/audit"+".types", "a") { |f|
+      File.open(@working + "/audit.types.#{Process.pid}", "a") { |f|
         f.write("#{hashed_domain+"."+@soa.name.to_s} #{domain} #{types_string}\n")
       }
     end
@@ -806,7 +806,7 @@ module KASPAuditor
       end
       def check_nsec3_types_and_opt_out()
         # First of all we will have to sort the types file.
-        system("sort -t$' ' #{@working}/audit.types > #{@working}/audit.types.sorted")
+        system("sort -t$' ' #{@working}/audit.types.#{Process.pid} > #{@working}/audit.types.sorted.#{Process.pid}")
 
         # Go through each name in the files and check them
         # We want to check two things :
@@ -814,9 +814,9 @@ module KASPAuditor
         # b) no hashes in between non-opt-out names
 
         # This checks the types covered for each domain name
-        File.open(@working + "/audit"+".types.sorted") {|ftypes|
-          File.open(@working + "/audit"+".nsec3") {|fnsec3|
-            File.open(@working + "/audit" + ".optout") {|foptout|
+        File.open(@working + "/audit.types.sorted.#{Process.pid}") {|ftypes|
+          File.open(@working + "/audit.nsec3.#{Process.pid}") {|fnsec3|
+            File.open(@working + "/audit.optout.#{Process.pid}") {|foptout|
               while (!ftypes.eof? && !fnsec3.eof? && !foptout.eof?)
                 types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
                 nsec3_name, nsec3_types = get_name_and_types(fnsec3)
@@ -896,13 +896,14 @@ module KASPAuditor
 
       def delete_nsec3_files()
         # Delete the intermediary files used for NSEC3 checking
-        [@working+"/audit.nsec3", @working+"/audit.types",
-          @working+"/audit.optout",
-          @working+"/audit.types.sorted"].each {|f|
-          begin
-            File.delete(f)
-          rescue Exception => e
-            #          print "Can't delete file #{f}, error : #{e}\n"
+        w = Dir.new(@working)
+        w.each {|f|
+          if ((f.index("audit")) && (f.index("#{Process.pid}")))
+            begin
+              File.delete(@working + "/" + f.untaint)
+            rescue Exception => e
+              print "Can't delete temporary auditor file #{f}, error : #{e}\n"
+            end
           end
         }
       end

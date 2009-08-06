@@ -88,6 +88,7 @@ module KASPAuditor
         syslog.log(LOG_ERR, "Couldn't find any zones to load")
         KASPAuditor.exit("Couldn't find any zones to load", -LOG_ERR)
       end
+      pid = Process.pid
       ret = 999 # Return value to controlling process
       zones.each {|config, input_file, output_file|
 
@@ -95,17 +96,17 @@ module KASPAuditor
         pp = Preparser.new()
         pids=[]
         [input_file, output_file].each {|f|
-          delete_file(working+get_name(f)+".parsed")
-          delete_file(working+get_name(f)+".sorted")
+          delete_file(working+get_name(f)+".parsed.#{pid}")
+          delete_file(working+get_name(f)+".sorted.#{pid}")
           pids.push(fork {
-              pp.normalise_zone_and_add_prepended_names(f, working+get_name(f)+".parsed")
-              pp.sort(working+get_name(f)+".parsed",
-                working+get_name(f)+".sorted")
+              pp.normalise_zone_and_add_prepended_names(f, working+get_name(f)+".parsed.#{pid}")
+              pp.sort(working+get_name(f)+".parsed.#{pid}",
+                working+get_name(f)+".sorted.#{pid}")
             })
         }
         do_audit = true
-        pids.each {|pid|
-          ret_id, ret_status = Process.wait2(pid)
+        pids.each {|id|
+          ret_id, ret_status = Process.wait2(id)
           if (ret_status != 0)
             print "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone\n"
             syslog.log(LOG_ERR, "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone")
@@ -116,13 +117,13 @@ module KASPAuditor
         if (do_audit)
           # Now audit the pre-parsed and sorted file
           auditor = Auditor.new(syslog, working)
-          ret_val = auditor.check_zone(config, working+get_name(input_file)+".sorted",
-            working + get_name(output_file)+".sorted",
+          ret_val = auditor.check_zone(config, working+get_name(input_file)+".sorted.#{pid}",
+            working + get_name(output_file)+".sorted.#{pid}",
             input_file, output_file)
           ret = ret_val if (ret_val < ret)
           [input_file, output_file].each {|f|
-            delete_file(working+get_name(f)+".parsed")
-            delete_file(working+get_name(f)+".sorted")
+            delete_file(working+get_name(f)+".parsed.#{pid}")
+            delete_file(working+get_name(f)+".sorted.#{pid}")
           }
         end
       }
@@ -248,9 +249,9 @@ module KASPAuditor
 
     def delete_file(f) # :nodoc: all
       begin
-        File.delete(f)
+        File.delete(f.untaint)
       rescue Exception => e
-        #        print "Error deleting #{f} : #{e}\n"
+#                print "Error deleting #{f} : #{e}\n"
       end
     end
 
