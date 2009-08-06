@@ -3,21 +3,87 @@
 # $Id$
 
 require 'kasp_auditor.rb'
+require 'optparse'
+require 'ostruct'
+
 include KASPAuditor
 
-path = ARGV[0] 
-if ((path=="-?") || (path=="-h"))
-  print "Usage : kasp_auditor [path_to_opendnssec_files [<list_of_zones_to_audit>]]\n"
-  print " If no path is given, then /etc/opendnssec is used.\n"
-  print " If no zones are given, then all the defined zones are audited.\n"
-  exit(0)
+class OptionsParser
+#
+    # Return a structure describing the options.
+    #
+    def self.parse(args)
+      # The options specified on the command line will be collected in *options*.
+      # We set default values here.
+path = "/etc/opendnssec/"
+      options = OpenStruct.new
+      options.kasp_file = path + "kasp.xml"
+      options.conf_file = path + "conf.xml"
+      options.zone_name = nil
+      options.signed_temp = nil
+
+      opts = OptionParser.new do |opts|
+        opts.banner = "Usage: kasp_auditor [options]"
+
+        opts.separator ""
+        opts.separator "Specific options:"
+
+        # conf.xml
+        opts.on("-c", "--conf [PATH_TO_CONF_FILE]",
+                "Path to OpenDNSSEC configuration file",
+                "  (defaults to /etc/opendnssec/conf.xml)") do |ext|
+          options.conf_file = ext
+        end
+
+        # kasp.xml
+        opts.on("-k", "--kasp [PATH_TO_KASP_FILE]",
+                "Path to KASP policy file",
+                "  (defaults to /etc/opendnssec/kasp.xml)") do |ext|
+          options.kasp_file = ext
+        end
+
+        # zone_name
+        opts.on("-z", "--zone [ZONE_NAME]",
+                "Single zone to audit",
+                "  (defaults to audit all zones)") do |ext|
+          options.zone_name = ext
+        end
+
+        # signed_temp
+        opts.on("-s", "--signed [PATH_TO_SIGNED_FILE]",
+                "If a single zone is specified, then this option may override",
+                "  the specified signed file with another. This is for use by",
+                "  the signer.",
+                "  (defaults to audit all zones)") do |ext|
+          options.signed_temp = ext
+        end
+
+
+        opts.separator ""
+        opts.separator "Common options:"
+
+        # No argument, shows at tail.  This will print an options summary.
+        # Try it and see!
+        opts.on_tail("-h", "-?", "--help", "Show this message") do
+          puts opts
+          exit
+        end
+
+      end
+
+      opts.parse!(args)
+      options
+    end  # parse()
 end
-pos = 1
-zones = []
-while (ARGV[pos])
-  zones.push(ARGV[pos])
-  pos += 1
-end
+
 runner = Runner.new
-print "Path : #{path}, zones : #{zones}\n"
-runner.run(path, zones)
+options = OptionsParser.parse(ARGV)
+runner.kasp_file = options.kasp_file
+runner.conf_file = options.conf_file
+if (options.zone_name)
+  runner.zone_name = options.zone_name
+  if (options.signed_temp)
+    runner.signed_temp = options.signed_temp
+  end
+end
+runner.run

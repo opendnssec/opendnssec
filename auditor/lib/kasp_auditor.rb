@@ -54,34 +54,34 @@ module KASPAuditor
   # additional temporary files, which are processed after the main auditing
   # run.
   class Runner
+    DEFAULT_PATH="/etc/opendnssec/"
+    DEFAULT_CONF_FILE = "conf.xml"
+
+    attr_accessor :kasp_file, :zone_name, :signed_temp, :conf_file
 
     # Run the auditor.
-    # The path is the path to the opendnssec installation (often /etc/opendnssec)
-    # A list of zones to audit may be passed. If populated, then only those
-    # zones in the list, which also appear in the zonelist file, will be
-    # audited. If an empty list is passed, or nothing, then all zones in the
-    # zonelist will be audited.
-    def run(path, zones_to_audit = [])
-      #      path = ARGV[0] + "/"
-      if (!path || path.length() == 0)
-        path = "/etc/opendnssec/"
+    def run
+      path = DEFAULT_PATH
+      conf_file = @conf_file
+      if (!conf_file)
+        conf_file = DEFAULT_CONF_FILE
       end
-      if (path[path.length() -1,1] != "/")
-        path = path+ "/"
+      syslog_facility, working, zonelist, kasp_file = load_config_xml(path, conf_file)
+      if (@kasp_file)
+        kasp_file = @kasp_file
       end
-      syslog_facility, working, zonelist, kasp_file = load_config_xml(path)
 
-      Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(path, zones_to_audit, zonelist, kasp_file, syslog, working)
+      Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(path, zonelist, kasp_file, syslog, working)
       }
     end
 
     # This method is provided so that the test code can use its own syslog
-    def run_with_syslog(path, zones_to_audit, zonelist_file, kasp_file, syslog, working) # :nodoc: all
+    def run_with_syslog(path, zonelist_file, kasp_file, syslog, working) # :nodoc: all
       if (path[path.length() -1,1] != "/")
         path = path+ "/"
       end
       zones = Parse.parse(path, zonelist_file, kasp_file, syslog)
-      check_zones_to_audit(zones, zones_to_audit)
+      #      check_zones_to_audit(zones, zones_to_audit)
       # Now check the input and output zones using the config
       print "Checking #{zones.length} zones\n"
       if (zones.length == 0)
@@ -163,40 +163,47 @@ module KASPAuditor
     # adjusted accordingly.
     # Returns a Syslog::Constants value
     # Returns Syslog::LOG_DAEMON on any error
-    def load_config_xml(path) # :nodoc: all
+    def load_config_xml(path, conf_file) # :nodoc: all
       working = path
       zonelist = ""
       kasp = ""
-      print "Reading config from #{working + 'conf.xml'}\n"
-      File.open((working + "conf.xml").untaint , 'r') {|file|
-        doc = REXML::Document.new(file)
-        begin
-          working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
-        rescue Exception
-          KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
-        end
-        begin
-          zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
-        rescue Exception
-          KASPAuditor.exit("Can't read zonelist location from conf.xml - exiting", 1)
-        end
-        begin
-          kasp = doc.elements['Configuration/Common/PolicyFile'].text
-        rescue Exception
-          KASPAuditor.exit("Can't read KASP policy location from conf.xml - exiting", 1)
-        end
-        load_privileges(doc)
-        begin
-          facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
-          # Now turn the facility string into a Syslog::Constants format....
-          syslog_facility = eval "Syslog::LOG_" + (facility.upcase+"").untaint
-          print "Logging facility : #{facility}, #{syslog_facility}\n"
-          return syslog_facility, working, zonelist, kasp
-        rescue Exception => e
-          print "Error reading config : #{e}\n"
-          return Syslog::LOG_DAEMON, working, zonelist,kasp
-        end
-      }
+      if (!conf_file || (conf_file == ""))
+        conf_file = working + DEFAULT_CONF_FILE
+      end
+      print "Reading config from #{conf_file}\n"
+      begin
+        File.open((conf_file + "").untaint , 'r') {|file|
+          doc = REXML::Document.new(file)
+          begin
+            working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
+          rescue Exception
+            KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
+          end
+          begin
+            zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
+          rescue Exception
+            KASPAuditor.exit("Can't read zonelist location from conf.xml - exiting", 1)
+          end
+          begin
+            kasp = doc.elements['Configuration/Common/PolicyFile'].text
+          rescue Exception
+            KASPAuditor.exit("Can't read KASP policy location from conf.xml - exiting", 1)
+          end
+          load_privileges(doc)
+          begin
+            facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
+            # Now turn the facility string into a Syslog::Constants format....
+            syslog_facility = eval "Syslog::LOG_" + (facility.upcase+"").untaint
+            print "Logging facility : #{facility}, #{syslog_facility}\n"
+            return syslog_facility, working, zonelist, kasp
+          rescue Exception => e
+            print "Error reading config : #{e}\n"
+            return Syslog::LOG_DAEMON, working, zonelist,kasp
+          end
+        }
+      rescue Errno::ENOENT
+        KASPAuditor.exit("ERROR - Can't find config file : #{conf_file}", 1)
+      end
     end
 
     def change_uid(uid_text)
@@ -251,7 +258,7 @@ module KASPAuditor
       begin
         File.delete(f.untaint)
       rescue Exception => e
-#                print "Error deleting #{f} : #{e}\n"
+        #                print "Error deleting #{f} : #{e}\n"
       end
     end
 
@@ -262,4 +269,5 @@ module KASPAuditor
       return Time.now.to_i
     end
   end
+
 end
