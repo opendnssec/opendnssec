@@ -87,7 +87,7 @@ AC_SUBST([opendnssecdatadir])
 
 opendnssecsysconfdir=$full_sysconfdir/opendnssec
 opendnssecdatadir=$full_datadir/opendnssec
-opendnsseclocalstatedir="$prefix/var/opendnssec"
+opendnsseclocalstatedir="$localstatedir/opendnssec"
 
 keygend_conf_file=$opendnssecsysconfdir/conf.xml
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
