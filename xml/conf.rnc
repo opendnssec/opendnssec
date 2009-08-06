@@ -73,7 +73,10 @@ start = element Configuration {
 		element WorkerThreads { xsd:positiveInteger }?,
 
 		# Number of Signer Threads
-		element SignerThreads { xsd:positiveInteger }?
+		element SignerThreads { xsd:positiveInteger }?,
+		
+		# Ssytem command to call after a zone has been (re)signed
+		element NotifyCommand { xsd:string }?
 	}?,
 
 	element Auditor {

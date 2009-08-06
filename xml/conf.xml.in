@@ -43,6 +43,9 @@
 		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
 		<WorkerThreads>8</WorkerThreads>
 		<SignerThreads>1</SignerThreads>
+		<!--
+		<NotifyCommand>/usr/local/bin/my_nameserver_reload_command</NotifyCommand>
+		-->
 	</Signer>
 
 	<Auditor>
