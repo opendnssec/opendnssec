@@ -75,7 +75,7 @@ start = element Configuration {
 		# Number of Signer Threads
 		element SignerThreads { xsd:positiveInteger }?,
 		
-		# Ssytem command to call after a zone has been (re)signed
+		# System command to call after a zone has been (re)signed
 		element NotifyCommand { xsd:string }?
 	}?,
 
