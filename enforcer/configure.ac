@@ -82,12 +82,13 @@ AC_SUBST(DB_TYPE)
 
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 
 AC_SUBST([opendnssecdatadir])
 
 opendnssecsysconfdir=$full_sysconfdir/opendnssec
 opendnssecdatadir=$full_datadir/opendnssec
-opendnsseclocalstatedir="$localstatedir/opendnssec"
+opendnsseclocalstatedir="$full_localstatedir/opendnssec"
 
 keygend_conf_file=$opendnssecsysconfdir/conf.xml
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $keygend_conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
