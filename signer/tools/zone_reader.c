@@ -487,6 +487,7 @@ is_directive_ttl(const char *line) {
 static uint32_t
 directive_ttl(const char *line) {
 	size_t len, pos;
+	char *endptr;
 	if (!line) return 0;
 	len = strlen(line);
 	pos = 5;
@@ -497,7 +498,7 @@ directive_ttl(const char *line) {
 		       line[pos] == '\n')) {
 			pos++;
 		}
-		if (pos < len && isdigit(line[pos])) return atol(&line[pos]);
+		if (pos < len && isdigit(line[pos])) return ldns_str2period(&line[pos], &endptr);
 	}
 	return 0;
 }
