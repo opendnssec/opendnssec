@@ -276,6 +276,7 @@ class Engine:
                  "update <zone>   check for changed zone conf xml file, if",
                  "                <zone> is not given all zones are checked",
                  "stop            stop the engine",
+                 "restart         restart the engine",
                  "verbosity <nr>  set verbosity (notimpl)"]
                 response = "\n".join(lst)
             if command[:5] == "zones":
@@ -362,6 +363,9 @@ class Engine:
                 self.notify_all()
             if command[:4] == "stop":
                 self.stop_engine()
+                response = "Engine stopped"
+            if command[:7] == "restart":
+                signal_handler_stop(1, None)
                 response = "Engine stopped"
                 
         except EngineError, exc:

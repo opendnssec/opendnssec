@@ -45,6 +45,9 @@ def send_msg(msg, c_sock):
     if msg[:4] == "stop":
         print "Sent stop command to engine"
         sys.exit(0)
+    if msg[:7] == "restart":
+        print "Sent restart command to engine"
+        sys.exit(0)
     msg = ''
     chunk = ''
     prevchunk = ''
