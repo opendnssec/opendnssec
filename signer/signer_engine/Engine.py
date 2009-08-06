@@ -587,14 +587,15 @@ def signal_handler_stop(signum, frame):
     syslog.syslog(syslog.LOG_INFO, "Got signal: " + str(signum))
     if signum == 15:
         try:
-            syslog.syslog(syslog.LOG_ERR, "Stopping engine")
-            if engine:
-                syslog.syslog(syslog.LOG_ERR, "call stop_engine")
-                engine.stop_engine()
-            else:
-                syslog.syslog(syslog.LOG_ERR, "Engine already stopped?")
-        except Exception, e:
-            syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
+            try:
+                syslog.syslog(syslog.LOG_ERR, "Stopping engine")
+                if engine:
+                    syslog.syslog(syslog.LOG_ERR, "call stop_engine")
+                    engine.stop_engine()
+                else:
+                    syslog.syslog(syslog.LOG_ERR, "Engine already stopped?")
+            except Exception, e:
+                syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
         finally:
             sys.exit(0)
     elif signum == 1:
