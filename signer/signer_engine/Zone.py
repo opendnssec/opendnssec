@@ -155,7 +155,7 @@ class Zone:
         """Fills in the details about the key by querying all configured
         HSM tokens for the key (by its locator value)."""
         syslog.syslog(syslog.LOG_INFO,
-                      "Generating DNSKEY rr for " + str(key["locator"]))
+                      "Generating DNSKEY RR for " + str(key["locator"]))
         # just try all modules to generate the dnskey?
         # first one to return anything is good?
         cmd = [ self.get_tool_filename("create_dnskey"),
