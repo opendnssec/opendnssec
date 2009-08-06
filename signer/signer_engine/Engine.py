@@ -562,24 +562,32 @@ class Engine:
         it will be scheduled for immediate signing"""
         try:
             zone = self.zones[zone_name]
-            syslog.syslog(syslog.LOG_INFO,
-                          "Scheduling task to sign zone " + \
-                          zone_name + \
-                          " at " + \
-                          str(when) + \
-                          " with resign time " + \
-                          str(zone.zone_config.signatures_resign_time))
-            self.task_queue.lock()
-            self.task_queue.add_task(
-                Task(when,
-                     Task.SIGN_ZONE,
-                     zone,
-                     True,
-                     zone.zone_config.signatures_resign_time
+            if not zone.zone_config:
+                syslog.syslog(syslog.LOG_INFO,
+                              "No config yet for zone " + \
+                              zone_name)
+                zone.read_config()
+            if zone.zone_config:
+                syslog.syslog(syslog.LOG_INFO,
+                              "Scheduling task to sign zone " + \
+                              zone_name + \
+                              " at " + \
+                              str(when) + \
+                              " with resign time " + \
+                              str(zone.zone_config.signatures_resign_time))
+                self.task_queue.lock()
+                self.task_queue.add_task(
+                    Task(when,
+                         Task.SIGN_ZONE,
+                         zone,
+                         True,
+                         zone.zone_config.signatures_resign_time
+                    )
                 )
-            )
-            self.task_queue.release()
-            self.notify()
+                self.task_queue.release()
+                self.notify()
+        except ZoneConfigError, e:
+            raise EngineError("Error reading zone config for " + zone_name + ": " + str(e))
         except KeyError:
             raise EngineError("Zone " + zone_name + " not found")
 
