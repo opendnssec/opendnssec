@@ -202,7 +202,7 @@ class AuditorTest < Test::Unit::TestCase
       options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
       Syslog.open("auditor_test", options) {|syslog|
-        ret = runner.run_with_syslog(path, path + zonelist_filename, path + kasp_filename, syslog, "test/tmp") # Audit all zones
+        ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, syslog, "test/tmp") # Audit all zones
       }
       exit!(ret)
     }

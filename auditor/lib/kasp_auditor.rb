@@ -69,17 +69,14 @@ module KASPAuditor
         kasp_file = @kasp_file
       end
 
-      Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(path, zonelist, kasp_file, syslog, working)
+      Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(zonelist, kasp_file, syslog, working)
       }
     end
 
     # This method is provided so that the test code can use its own syslog
-    def run_with_syslog(path, zonelist_file, kasp_file, syslog, working) # :nodoc: all
-      if (path[path.length() -1,1] != "/")
-        path = path+ "/"
-      end
-      zones = Parse.parse(path, zonelist_file, kasp_file, syslog)
-      #      check_zones_to_audit(zones, zones_to_audit)
+    def run_with_syslog(zonelist_file, kasp_file, syslog, working) # :nodoc: all
+      zones = Parse.parse(File.dirname(kasp_file)  + "/", zonelist_file, kasp_file, syslog)
+      check_zones_to_audit(zones)
       # Now check the input and output zones using the config
       print "Checking #{zones.length} zones\n"
       if (zones.length == 0)
@@ -139,18 +136,22 @@ module KASPAuditor
     # Given a list of configured zones, and a list of zones_to_audit, return
     # only those configured zones which are in the list of zones_to_audit.
     # Ignore a trailing dot.
-    def check_zones_to_audit(zones, zones_to_audit) # :nodoc: all
-      # If a list of zones to audit has been specified, then only check those
-      if (zones_to_audit.length > 0)
-        zones.each {|zone|
-          if (!(zones_to_audit.include?zone[0].name))
-            if (zone[0].name[zone[0].name.length() -1, 1] != ".")
-              zones.delete(zone) if !(zones_to_audit.include?(zone[0].name+"."))
-            else
-              zones.delete(zone)
-            end
+    def check_zones_to_audit(zones) # :nodoc: all
+      # If @zone_name is present, then only check that zone
+      if @zone_name
+        zones.each {|z|
+          if (z[0].name != @zone_name)
+            zones.delete(z)
           end
         }
+        if (zones.length == 0)
+          KASPAuditor.exit("Can't find #{@zone} zone in zonelist", 1)
+        end
+        if (@signed_temp)
+          # Then, if @signed is also present, then use that name for the
+          # signed zonefile.
+          zones[0][2] = @signed_temp
+        end
       end
     end
 
