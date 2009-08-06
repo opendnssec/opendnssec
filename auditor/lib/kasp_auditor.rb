@@ -54,19 +54,17 @@ module KASPAuditor
   # additional temporary files, which are processed after the main auditing
   # run.
   class Runner
-    DEFAULT_PATH="/etc/opendnssec/"
-    DEFAULT_CONF_FILE = "conf.xml"
+    DEFAULT_CONF_FILE = "/etc/opendnssec/conf.xml"
 
     attr_accessor :kasp_file, :zone_name, :signed_temp, :conf_file
 
     # Run the auditor.
     def run
-      path = DEFAULT_PATH
       conf_file = @conf_file
       if (!conf_file)
         conf_file = DEFAULT_CONF_FILE
       end
-      syslog_facility, working, zonelist, kasp_file = load_config_xml(path, conf_file)
+      syslog_facility, working, zonelist, kasp_file = load_config_xml(conf_file)
       if (@kasp_file)
         kasp_file = @kasp_file
       end
@@ -163,12 +161,12 @@ module KASPAuditor
     # adjusted accordingly.
     # Returns a Syslog::Constants value
     # Returns Syslog::LOG_DAEMON on any error
-    def load_config_xml(path, conf_file) # :nodoc: all
-      working = path
+    def load_config_xml(conf_file) # :nodoc: all
+      working = ""
       zonelist = ""
       kasp = ""
       if (!conf_file || (conf_file == ""))
-        conf_file = working + DEFAULT_CONF_FILE
+        conf_file = DEFAULT_CONF_FILE
       end
       print "Reading config from #{conf_file}\n"
       begin
