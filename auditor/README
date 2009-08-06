@@ -83,9 +83,15 @@ Running Manually
 Although the auditor is designed to be run by the signer, it
 can also be run manually :
 
-kasp_auditor <path_to_opendnssec> [<zone1> <zone2>...]
+kasp_auditor [--conf path/to/conf.xml] [--kasp path/to/kasp.xml]
+        [--zone zone_to_audit [--signed path/to/temp/signed.zone] 
 
-e.g. kasp_auditor /etc/opendnssec/ example.com
+All zones will be audited by default. If --zone is specified, then 
+only that zone will be audited. If --signed is specified for the 
+zone, then the auditor will use that file as the signed output
+file, instead of the file specified in the zonelist.
+
+e.g. kasp_auditor --conf /etc/opendnssec/conf.xml
 
 
 
