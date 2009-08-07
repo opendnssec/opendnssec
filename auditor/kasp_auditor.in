@@ -15,7 +15,7 @@ class OptionsParser
     def self.parse(args)
       # The options specified on the command line will be collected in *options*.
       # We set default values here.
-path = "/etc/opendnssec/"
+      path = "@sysconfdir@/opednssec/".sub("${prefix}", "@prefix@")
       options = OpenStruct.new
       options.kasp_file = path + "kasp.xml"
       options.conf_file = path + "conf.xml"
