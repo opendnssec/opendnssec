@@ -16,6 +16,7 @@
 			<Syslog><Facility>user</Facility></Syslog>
 		</Logging>
 		<ZoneListFile>zonelist.xml</ZoneListFile>
+		<PolicyFile>./kasp.xml</PolicyFile>
 	</Common>
 
 	<Enforcer>
@@ -35,4 +36,7 @@
 		<NotifyCommand>echo "ping"</NotifyCommand>
 		<WorkerThreads>2</WorkerThreads>
 	</Signer>
+	<Auditor>
+		<WorkingDirectory>/tmp</WorkingDirectory>
+	</Auditor>
 </Configuration>
