@@ -510,7 +510,7 @@ cmd_addzone (int argc, char *argv[])
         StrAppend(&policy_name, "default");
 
         StrAppend(&sig_conf_name, VAR_DIR);
-        StrAppend(&sig_conf_name, "/config/");
+        StrAppend(&sig_conf_name, "/signconf/");
         StrAppend(&sig_conf_name, zone_name);
         StrAppend(&sig_conf_name, ".xml");
 
