@@ -1628,6 +1628,7 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
                 temp_char = (char*) xmlXPathCastToString(xpathObj);
                 StrAppend(zone_list_filename, temp_char);
                 StrFree(temp_char);
+                xmlXPathFreeObject(xpathObj);
                 printf("zonelist filename set to %s.\n", *zone_list_filename);
 
                 /* Evaluate xpath expression for KaspFile */
@@ -2126,9 +2127,9 @@ int update_policies(char* kasp_filename)
                                 ret2 = xmlTextReaderRead(reader2);
                                 continue;
                             }
-                            StrFree(tag_name2);
                             StrFree(audit_contents);
                         } /* End of <Audit> */
+                        StrFree(tag_name2);
                         ret2 = xmlTextReaderRead(reader2);
                     }
 
