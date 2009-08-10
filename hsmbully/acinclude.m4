@@ -316,7 +316,7 @@ AC_DEFUN([ACX_LIBXML2],[
 	AC_SUBST(XML2_INCLUDES)
 	AC_SUBST(XML2_LIBS)
 ])
-# $Id: acx_mysql.m4 1122 2009-06-24 10:37:50Z jakob $
+# $Id: acx_mysql.m4 1543 2009-08-10 11:15:52Z jakob $
 
 AC_DEFUN([ACX_MYSQL],[
 	AC_ARG_WITH(mysql,
@@ -324,15 +324,17 @@ AC_DEFUN([ACX_MYSQL],[
 		[
 			MYSQL_PATH="$withval"
 			AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $MYSQL_PATH/bin)
-			AC_PATH_PROG(MYSQL, mysql, ,$MYSQL_PATH/bin)
+			AC_PATH_PROGS(MYSQL, mysql, mysql, $MYSQL_PATH/bin)
 		],[
 			MYSQL_PATH="/usr/local"
 			AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH)
-			AC_PATH_PROG(MYSQL, mysql)
+			AC_PATH_PROGS(MYSQL, mysql, mysql)
 		])
-	if test -z "$MYSQL"; then
-		AC_MSG_ERROR([mysql not found])
+
+	if ! test -x "$MYSQL"; then
+		AC_MSG_ERROR([mysql command not found])
 	fi
+
 	if test -x "$MYSQL_CONFIG"
 	then
 		AC_MSG_CHECKING(mysql version)
@@ -432,18 +434,24 @@ AC_DEFUN([ACX_RUNTIME_PATH_ADD], [
 		fi
 	fi
 ])
-# $Id: acx_sqlite3.m4 1122 2009-06-24 10:37:50Z jakob $
+# $Id: acx_sqlite3.m4 1543 2009-08-10 11:15:52Z jakob $
 
 AC_DEFUN([ACX_SQLITE3],[
 	AC_ARG_WITH(sqlite3,
         	AC_HELP_STRING([--with-sqlite3=PATH],[Specify prefix of path of SQLite3]),
 		[
 			SQLITE3_PATH="$withval"
-			AC_PATH_PROG(SQLITE3, sqlite3, $withval/bin)
+			AC_PATH_PROGS(SQLITE3, sqlite3, sqlite3, $withval/bin)
+			
 		],[
 			SQLITE3_PATH="/usr/local"
-			AC_PATH_PROG(SQLITE3, sqlite3, $PATH)
+			AC_PATH_PROGS(SQLITE3, sqlite3, sqlite3, $PATH)
 		])
+	
+	
+	if ! test -x "$SQLITE3"; then
+		AC_MSG_ERROR([sqlite3 command not found])
+	fi
 	
 	AC_MSG_CHECKING(what are the SQLite3 includes)
 	SQLITE3_INCLUDES="-I$SQLITE3_PATH/include"
