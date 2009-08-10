@@ -5,10 +5,11 @@ AC_DEFUN([ACX_SQLITE3],[
         	AC_HELP_STRING([--with-sqlite3=PATH],[Specify prefix of path of SQLite3]),
 		[
 			SQLITE3_PATH="$withval"
-			AC_PATH_PROG(SQLITE3, sqlite3, $withval/bin)
+			AC_PATH_PROGS(SQLITE3, sqlite3, sqlite3, $withval/bin)
+			
 		],[
 			SQLITE3_PATH="/usr/local"
-			AC_PATH_PROG(SQLITE3, sqlite3, $PATH)
+			AC_PATH_PROGS(SQLITE3, sqlite3, sqlite3, $PATH)
 		])
 	
 	AC_MSG_CHECKING(what are the SQLite3 includes)

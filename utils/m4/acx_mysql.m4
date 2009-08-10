@@ -6,11 +6,11 @@ AC_DEFUN([ACX_MYSQL],[
 		[
 			MYSQL_PATH="$withval"
 			AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $MYSQL_PATH/bin)
-			AC_PATH_PROG(MYSQL, mysql, ,$MYSQL_PATH/bin)
+			AC_PATH_PROGS(MYSQL, mysql, mysql, $MYSQL_PATH/bin)
 		],[
 			MYSQL_PATH="/usr/local"
 			AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH)
-			AC_PATH_PROG(MYSQL, mysql)
+			AC_PATH_PROGS(MYSQL, mysql, mysql)
 		])
 	if test -z "$MYSQL"; then
 		AC_MSG_ERROR([mysql not found])
