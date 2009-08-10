@@ -12,9 +12,11 @@ AC_DEFUN([ACX_MYSQL],[
 			AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH)
 			AC_PATH_PROGS(MYSQL, mysql, mysql)
 		])
-	if test -z "$MYSQL"; then
-		AC_MSG_ERROR([mysql not found])
+
+	if ! test -x "$MYSQL"; then
+		AC_MSG_ERROR([mysql command not found])
 	fi
+
 	if test -x "$MYSQL_CONFIG"
 	then
 		AC_MSG_CHECKING(mysql version)
