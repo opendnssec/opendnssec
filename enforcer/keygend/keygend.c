@@ -54,7 +54,7 @@ int
 server_init(DAEMONCONFIG *config)
 {
     if (config == NULL) {
-        log_msg(NULL, LOG_ERR, "Error, no config provided");
+        log_msg(NULL, LOG_ERR, "Error in server_init, no config provided");
         exit(1);
     }
 
@@ -93,7 +93,7 @@ server_main(DAEMONCONFIG *config)
     int new_keys = 0;       /* number of keys required */
    
     if (config == NULL) {
-        log_msg(NULL, LOG_ERR, "Error, no config provided");
+        log_msg(NULL, LOG_ERR, "Error in server_main, no config provided");
         exit(1);
     }
 
@@ -182,13 +182,13 @@ server_main(DAEMONCONFIG *config)
                 /* Find out how many ksk keys are needed for the POLICY */
                 status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &keys_needed);
                 if (status != 0) {
-                    log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
+                    log_msg(NULL, LOG_ERR, "Could not predict ksk requirement for next interval for %s\n", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
                 /* Find out how many suitable keys we have */
                 status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, config->keygeninterval, rightnow, &keys_in_queue);
                 if (status != 0) {
-                    log_msg(NULL, LOG_ERR, "Could not count current key numbers for policy\n");
+                    log_msg(NULL, LOG_ERR, "Could not count current ksk numbers for policy %s\n", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
 
@@ -216,7 +216,7 @@ server_main(DAEMONCONFIG *config)
                                     policy->ksk->algorithm, id, policy->ksk->sm_name);
                             free(id);
                         } else {
-                            log_msg(config, LOG_ERR, "Key algorithm unsupported by libhsm.");
+                            log_msg(config, LOG_ERR, "Key algorithm %d unsupported by libhsm.", policy->ksk->algorithm);
                             exit(1);
                         }
                  }
@@ -229,13 +229,13 @@ server_main(DAEMONCONFIG *config)
                 /* Find out how many zsk keys are needed for the POLICY */
                 status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &keys_needed);
                 if (status != 0) {
-                    log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
+                    log_msg(NULL, LOG_ERR, "Could not predict zsk requirement for next intervalfor %s\n", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
                 /* Find out how many suitable keys we have */
                 status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, config->keygeninterval, rightnow, &keys_in_queue);
                 if (status != 0) {
-                    log_msg(NULL, LOG_ERR, "Could not count current key numbers for policy\n");
+                    log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s\n", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
 
@@ -262,7 +262,7 @@ server_main(DAEMONCONFIG *config)
                                policy->zsk->algorithm, id, policy->zsk->sm_name);
                        free(id);
                     } else {
-                       log_msg(config, LOG_ERR, "unsupported key algorithm.");
+                        log_msg(config, LOG_ERR, "Key algorithm %d unsupported by libhsm.", policy->zsk->algorithm);
                        exit(1);
                     }
                 }

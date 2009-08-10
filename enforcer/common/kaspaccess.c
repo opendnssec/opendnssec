@@ -48,7 +48,7 @@ void
 kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 {
     if (policy == NULL) {
-        log_msg(NULL, LOG_ERR, "Error, no policy provided");
+        log_msg(NULL, LOG_ERR, "Error in kaspSetPolicyDefaults, no policy provided");
         return;
     }
 

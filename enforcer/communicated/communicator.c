@@ -58,7 +58,7 @@
 server_init(DAEMONCONFIG *config)
 {
     if (config == NULL) {
-        log_msg(NULL, LOG_ERR, "Error, no config provided");
+        log_msg(NULL, LOG_ERR, "Error in server_init, no config provided");
         exit(1);
     }
 
@@ -108,7 +108,7 @@ server_main(DAEMONCONFIG *config)
     KSM_POLICY *policy;
 
     if (config == NULL) {
-        log_msg(NULL, LOG_ERR, "Error, no config provided");
+        log_msg(NULL, LOG_ERR, "Error in server_main, no config provided");
         exit(1);
     }
 
@@ -247,7 +247,7 @@ server_main(DAEMONCONFIG *config)
                     }
                     current_policy = NULL;
                     StrAppend(&current_policy, (char*) xmlXPathCastToString(xpathObj));
-                    log_msg(config, LOG_INFO, "Policy set to %s.", current_policy);
+                    log_msg(config, LOG_INFO, "Policy for %s set to %s.", zone_name, current_policy);
                     if (current_policy != policy->name) {
                         /* Read new Policy */ 
                         kaspSetPolicyDefaults(policy, current_policy);
@@ -259,7 +259,7 @@ server_main(DAEMONCONFIG *config)
                             ret = xmlTextReaderRead(reader);
                             continue;
                         }
-                        log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
+                        log_msg(config, LOG_INFO, "Policy %s found in DB.", policy->name);
 
                         /* Update the salt if it is not up to date */
                         if (policy->denial->version == 3)
@@ -269,7 +269,7 @@ server_main(DAEMONCONFIG *config)
                             /*DbCommit();*/
                             if (status2 != 0) {
                                 /* Don't return? try to parse the rest of the zones? */
-                                log_msg(config, LOG_ERR, "Error updating salt: %d", status2);
+                                log_msg(config, LOG_ERR, "Error (%d) updating salt for %s", status2, policy->name);
                                 ret = xmlTextReaderRead(reader);
                                 continue;
                             }
@@ -293,14 +293,14 @@ server_main(DAEMONCONFIG *config)
                     /* Make sure that enough keys are allocated to this zone */
                     status2 = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval, zone_name);
                     if (status2 != 0) {
-                        log_msg(config, LOG_ERR, "Error allocating keys to zone");
+                        log_msg(config, LOG_ERR, "Error allocating zsks to zone %s", zone_name);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
                     }
                     status2 = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval, zone_name);
                     if (status2 != 0) {
-                        log_msg(config, LOG_ERR, "Error allocating keys to zone");
+                        log_msg(config, LOG_ERR, "Error allocating ksks to zone %s", zone_name);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
@@ -309,7 +309,7 @@ server_main(DAEMONCONFIG *config)
                     /* turn this zone and policy into a file */
                     status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag);
                     if (status2 != 0) {
-                        log_msg(config, LOG_ERR, "Error writing signconf");
+                        log_msg(config, LOG_ERR, "Error writing signconf for %s", zone_name);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
@@ -430,7 +430,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     if (zone_name == NULL || current_filename == NULL || policy == NULL)
     {
         /* error */
-        log_msg(NULL, LOG_ERR, "NULL policy or zone provided\n");
+        log_msg(NULL, LOG_ERR, "commGenSignConf, NULL policy or zone provided\n");
         MemFree(datetime);
         return -1;
     }
@@ -725,14 +725,14 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     /* How many do we need ? (set sharing to 1 so that we get the number needed for a single zone on this policy */
     status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed);
     if (status != 0) {
-        log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval\n");
+        log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval for %s\n", zone_name);
         return 3;
     }
 
     /* How many do we have ? TODO should this include the currently active key?*/
     status = KsmKeyCountQueue(key_type, &keys_in_queue, zone_id);
     if (status != 0) {
-        log_msg(NULL, LOG_ERR, "Could not count current key numbers for zone\n");
+        log_msg(NULL, LOG_ERR, "Could not count current key numbers for zone %s\n", zone_name);
         return 3;
     }
 
@@ -811,7 +811,7 @@ int read_zonelist_filename(char** zone_list_filename)
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    printf("Error: can not read Common section\n");
+                    log_msg(NULL, LOG_ERR, "Error: can not read Common section of %s\n", filename);
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -819,7 +819,7 @@ int read_zonelist_filename(char** zone_list_filename)
 
                 xpathCtx = xmlXPathNewContext(doc);
                 if(xpathCtx == NULL) {
-                    printf("Error: can not create XPath context for Common section\n");
+                    log_msg(NULL, LOG_ERR, "Error: can not create XPath context for Common section\n");
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -828,7 +828,7 @@ int read_zonelist_filename(char** zone_list_filename)
                 /* Evaluate xpath expression for ZoneListFile */
                 xpathObj = xmlXPathEvalExpression(zonelist_expr, xpathCtx);
                 if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
+                    log_msg(NULL, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -837,7 +837,7 @@ int read_zonelist_filename(char** zone_list_filename)
                 temp_char = (char *)xmlXPathCastToString(xpathObj);
                 StrAppend(zone_list_filename, temp_char);
                 StrFree(temp_char);
-                printf("zonelist filename set to %s.\n", *zone_list_filename);
+                log_msg(NULL, LOG_INFO, "zonelist filename set to %s.\n", *zone_list_filename);
             }
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
@@ -845,11 +845,11 @@ int read_zonelist_filename(char** zone_list_filename)
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {
-            printf("%s : failed to parse\n", filename);
+            log_msg(NULL, LOG_ERR, "%s : failed to parse\n", filename);
             return(1);
         }
     } else {
-        printf("Unable to open %s\n", filename);
+        log_msg(NULL, LOG_ERR, "Unable to open %s\n", filename);
         return(1);
     }
     if (xpathCtx) {

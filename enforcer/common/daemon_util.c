@@ -489,7 +489,7 @@ ReadConfig(DAEMONCONFIG *config)
 
     /* Check that we found one or the other database */
     if(db_found == 0) {
-        log_msg(config, LOG_ERR, "Error: unable to find complete database connection expression\n");
+        log_msg(config, LOG_ERR, "Error: unable to find complete database connection expression in %s\n", filename);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -497,7 +497,7 @@ ReadConfig(DAEMONCONFIG *config)
 
     /* Check that we found the right database type */
     if (db_found != DbFlavour()) {
-        log_msg(config, LOG_ERR, "Error: database in config file does not match libksm\n");
+        log_msg(config, LOG_ERR, "Error: database in config file %s does not match libksm\n", filename);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
