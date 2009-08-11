@@ -61,13 +61,18 @@ module KASPAuditor
       # Read the salt ONLY from the SignerConfiguration
       if (@denial.nsec3)
         begin
-          File.open((config_file_loc.to_s+"").untaint, 'r') {|file|
+          conf_f = (config_file_loc.to_s+"").untaint
+          File.open(conf_f, 'r') {|file|
             doc = REXML::Document.new(file)
             e = doc.elements['SignerConfiguration/Zone/Denial/NSEC3/Hash/']
-            @denial.nsec3.hash.salt = Dnsruby::RR::NSEC3.decode_salt(e.elements['Salt'].text)
-            if (@denial.nsec3.hash.salt.length.to_i != @denial.nsec3.hash.salt_length.to_i)
-              # @TODO@ RAISE AN ERROR
-              print "ERROR : SALT LENGTH IS #{@denial.nsec3.hash.salt.length}, but should be #{@denial.nsec3.hash.salt_length}\n"
+            if (e)
+              @denial.nsec3.hash.salt = Dnsruby::RR::NSEC3.decode_salt(e.elements['Salt'].text)
+              if (@denial.nsec3.hash.salt.length.to_i != @denial.nsec3.hash.salt_length.to_i)
+                # @TODO@ RAISE AN ERROR
+                print "ERROR : SALT LENGTH IS #{@denial.nsec3.hash.salt.length}, but should be #{@denial.nsec3.hash.salt_length}\n"
+              end
+            else
+              KASPAuditor.exit("ERROR - can't read salt from SignerConfiguration file : #{conf_f}")
             end
           }
         rescue Errno::ENOENT
