@@ -63,7 +63,8 @@ module KASPAuditor
           print "Zone Config file location : #{config_file_loc}\n"
           print "KASP Config file location : #{kasp_filename}\n"
           # Now parse the config file
-          config = Config.new(zone_name, kasp_filename, policy, config_file_loc)
+          config = Config.new(zone_name, kasp_filename, policy,
+            config_file_loc, syslog)
 
           input_file_loc = z.elements["Adapters"].elements['Input'].elements["File"].text
           if (input_file_loc.index("/") != 0)

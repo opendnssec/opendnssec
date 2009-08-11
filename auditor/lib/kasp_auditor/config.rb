@@ -30,11 +30,13 @@ module KASPAuditor
   # Represents KASP configuration file
   # Also loads salt in from <zone_config>.xml SignerConfiguration file.
   class Config
-    def initialize(zone_name, kasp_file_loc, policy, config_file_loc)
+    attr_reader :err
+    def initialize(zone_name, kasp_file_loc, policy, config_file_loc, syslog)
       #      @zones = []
       #      print "Opening config file : #{config_file_loc}\n"
       # Read the kasp.xml file
       @name = (zone_name.to_s+"").untaint
+      @err = 0
       begin
         File.open((kasp_file_loc+"").untaint, 'r') {|file|
           doc = REXML::Document.new(file)
@@ -68,8 +70,13 @@ module KASPAuditor
             if (e)
               @denial.nsec3.hash.salt = Dnsruby::RR::NSEC3.decode_salt(e.elements['Salt'].text)
               if (@denial.nsec3.hash.salt.length.to_i != @denial.nsec3.hash.salt_length.to_i)
-                # @TODO@ RAISE AN ERROR
-                print "ERROR : SALT LENGTH IS #{@denial.nsec3.hash.salt.length}, but should be #{@denial.nsec3.hash.salt_length}\n"
+                msg = "ERROR : SALT LENGTH IS #{@denial.nsec3.hash.salt.length}, but should be #{@denial.nsec3.hash.salt_length}"
+                print "#{Syslog::LOG_ERR}: #{msg}\n"
+                begin
+                  syslog.log(Syslog::LOG_ERR, msg)
+                rescue ArgumentError # Make sure we continue no matter what
+                end
+                @err = Syslog::LOG_ERR
               end
             else
               KASPAuditor.exit("ERROR - can't read salt from SignerConfiguration file : #{conf_f}")

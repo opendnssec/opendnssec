@@ -139,6 +139,8 @@ class AuditorTest < Test::Unit::TestCase
       "Found RRs for not.there.tjeb.nl (52cd45tiauj3n8vs8vs4mvdsigb34leh.tjeb.nl) which was not covered by an NSEC3 record",
       "Found RRs for bla.tjeb.nl (dsr9s1udf6urti95hvhv1b04tooihn7a.tjeb.nl) which was not covered by an NSEC3 record",
 
+      "SALT LENGTH IS 6, but should be 4",
+
       #
       #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
     # - @TODO@ extra next_hashed on one NSEC3
