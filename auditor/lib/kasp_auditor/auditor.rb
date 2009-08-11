@@ -147,6 +147,10 @@ module KASPAuditor
 
     # Make sure that the last NSEC(3) record points back to the first one
     def do_final_nsec_check()
+      if (!@first_nsec)
+        log(LOG_ERR, "No #{nsec_string} records in zone")
+        return
+      end
       if (@config.denial.nsec && (@first_nsec.type == Dnsruby::Types.NSEC))
         # Now check that the last nsec points to the first nsec
         if (@first_nsec && (@last_nsec.next_domain == @first_nsec.name))
