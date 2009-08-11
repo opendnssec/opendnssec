@@ -93,6 +93,8 @@ typedef struct
     uid_t uid;
     gid_t gid;
     char *username;
+    char *groupname;
+    char *chrootdir;
 		/* flag to indicate that SIGTERM was recieved */
 		int term;
 

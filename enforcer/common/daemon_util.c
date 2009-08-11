@@ -45,6 +45,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <pwd.h>
+#include <grp.h>
 #include <ctype.h>
 #include <signal.h>
 #include <fcntl.h>
@@ -67,10 +68,140 @@
     int
 permsDrop(DAEMONCONFIG* config)
 {
-    if (setgid(config->gid) != 0 || setuid(config->uid) !=0) {
-        log_msg(config, LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
-        return -1;
+    int status = 0;
+
+    xmlDocPtr doc;
+    xmlDocPtr rngdoc;
+    xmlXPathContextPtr xpathCtx;
+    xmlXPathObjectPtr xpathObj;
+    xmlRelaxNGParserCtxtPtr rngpctx;
+    xmlRelaxNGValidCtxtPtr rngctx;
+    xmlRelaxNGPtr schema;
+    xmlChar *user_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/User";
+    xmlChar *group_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/Group";
+
+    char* filename = CONFIGFILE;
+    char* rngfilename = CONFIGRNG;
+
+    char* temp_char = NULL;
+    struct passwd *pwd;
+    struct group *grp;
+    
+    /* Load XML document */
+    doc = xmlParseFile(filename);
+    if (doc == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", filename);
+        return(-1);
     }
+
+    /* Load rng document */
+    rngdoc = xmlParseFile(rngfilename);
+    if (rngdoc == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", rngfilename);
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs parser context for the relax-ng document. */
+    rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+    if (rngpctx == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to create XML RelaxNGs parser context\n");
+        return(-1);
+    }
+
+    /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
+    schema = xmlRelaxNGParse(rngpctx);
+    if (schema == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to parse a schema definition resource\n");
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs validation context based on the given schema */
+    rngctx = xmlRelaxNGNewValidCtxt(schema);
+    if (rngctx == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to create RelaxNGs validation context based on the schema\n");
+        return(-1);
+    }
+
+    /* Validate a document tree in memory. */
+    status = xmlRelaxNGValidateDoc(rngctx,doc);
+    if (status != 0) {
+        log_msg(config, LOG_ERR, "Error validating file \"%s\"\n", filename);
+        return(-1);
+    }
+
+    /* Now parse a value out of the conf */
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        log_msg(config, LOG_ERR,"Error: unable to create new XPath context\n");
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    
+    /* Set the user to drop to if specified; else just set the uid as the real one */
+    xpathObj = xmlXPathEvalExpression(user_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", user_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    if (xpathObj->nodesetval->nodeNr > 0) {
+        temp_char = (char*) xmlXPathCastToString(xpathObj);
+        StrAppend(&config->username, temp_char);
+        StrFree(temp_char);
+        xmlXPathFreeObject(xpathObj);
+
+        /* Lookup the user id in /etc/passwd */
+        if ((pwd = getpwnam(config->username)) == NULL) {
+            log_msg(config, LOG_ERR, "user '%s' does not exist. exiting...", config->username);
+            exit(1);
+        } else {
+            config->uid = pwd->pw_uid;
+        }
+        endpwent();
+
+        if (setuid(config->uid) != 0) {
+            log_msg(config, LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
+            return -1;
+        }
+        log_msg(config, LOG_INFO, "user set to: %s(%d)\n", config->username, config->uid);
+    } else {
+        config->uid = getuid();
+    }
+
+    /* Set the group if specified; else just set the gid as the real one */
+    xpathObj = xmlXPathEvalExpression(group_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", group_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    if (xpathObj->nodesetval->nodeNr > 0) {
+        temp_char = (char*) xmlXPathCastToString(xpathObj);
+        StrAppend(&config->groupname, temp_char);
+        StrFree(temp_char);
+        xmlXPathFreeObject(xpathObj);
+
+        /* Lookup the group id in /etc/groups */
+        if ((grp = getgrnam(config->groupname)) == NULL) {
+            log_msg(config, LOG_ERR, "group '%s' does not exist. exiting...", config->groupname);
+            exit(1);
+        } else {
+            config->gid = grp->gr_gid;
+        }
+        endgrent();
+
+        if (setgid(config->gid) != 0) {
+            log_msg(config, LOG_ERR, "unable to drop group privileges: %s", strerror(errno));
+            return -1;
+        }
+        log_msg(config, LOG_INFO, "group set to: %s(%d)\n", config->groupname, config->gid);
+    } else {
+        config->gid = getgid();
+    }   
+
     return 0;
 }
 
@@ -106,7 +237,7 @@ log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
     void
 ksm_log_msg(const char *format)
 {
-    syslog(LOG_ERR, format);
+    syslog(LOG_ERR, "%s", format);
 }
 
     static void
@@ -116,7 +247,7 @@ usage(const char* prog)
     fprintf(stderr, "OpenDNSSEC Enforcer Daemon.\n\n");
     fprintf(stderr, "Supported options:\n");
     fprintf(stderr, "  -d          Debug.\n");
-    fprintf(stderr, "  -u user     Change effective uid to the specified user.\n");
+/*    fprintf(stderr, "  -u user     Change effective uid to the specified user.\n");*/
     fprintf(stderr, "  -P pidfile  Specify the PID file to write.\n");
 
     fprintf(stderr, "  -v          Print version.\n");
@@ -201,6 +332,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
                 config->pidfile = optarg;
                 break;
             case 'u':
+                break; /* disable this feature */
                 config->username = optarg;
                 /* Parse the username into uid and gid */
                 config->gid = getgid();
