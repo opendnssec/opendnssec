@@ -137,7 +137,39 @@ permsDrop(DAEMONCONFIG* config)
         xmlFreeDoc(doc);
         return(-1);
     }
-    
+   
+    /* Set the group if specified; else just set the gid as the real one */
+    xpathObj = xmlXPathEvalExpression(group_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", group_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    if (xpathObj->nodesetval->nodeNr > 0) {
+        temp_char = (char*) xmlXPathCastToString(xpathObj);
+        StrAppend(&config->groupname, temp_char);
+        StrFree(temp_char);
+        xmlXPathFreeObject(xpathObj);
+
+        /* Lookup the group id in /etc/groups */
+        if ((grp = getgrnam(config->groupname)) == NULL) {
+            log_msg(config, LOG_ERR, "group '%s' does not exist. exiting...", config->groupname);
+            exit(1);
+        } else {
+            config->gid = grp->gr_gid;
+        }
+        endgrent();
+
+        if (setgid(config->gid) != 0) {
+            log_msg(config, LOG_ERR, "unable to drop group privileges: %s", strerror(errno));
+            return -1;
+        }
+        log_msg(config, LOG_INFO, "group set to: %s(%d)\n", config->groupname, config->gid);
+    } else {
+        config->gid = getgid();
+    }
+
     /* Set the user to drop to if specified; else just set the uid as the real one */
     xpathObj = xmlXPathEvalExpression(user_expr, xpathCtx);
     if(xpathObj == NULL) {
@@ -169,38 +201,6 @@ permsDrop(DAEMONCONFIG* config)
     } else {
         config->uid = getuid();
     }
-
-    /* Set the group if specified; else just set the gid as the real one */
-    xpathObj = xmlXPathEvalExpression(group_expr, xpathCtx);
-    if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", group_expr);
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
-        return(-1);
-    }
-    if (xpathObj->nodesetval->nodeNr > 0) {
-        temp_char = (char*) xmlXPathCastToString(xpathObj);
-        StrAppend(&config->groupname, temp_char);
-        StrFree(temp_char);
-        xmlXPathFreeObject(xpathObj);
-
-        /* Lookup the group id in /etc/groups */
-        if ((grp = getgrnam(config->groupname)) == NULL) {
-            log_msg(config, LOG_ERR, "group '%s' does not exist. exiting...", config->groupname);
-            exit(1);
-        } else {
-            config->gid = grp->gr_gid;
-        }
-        endgrent();
-
-        if (setgid(config->gid) != 0) {
-            log_msg(config, LOG_ERR, "unable to drop group privileges: %s", strerror(errno));
-            return -1;
-        }
-        log_msg(config, LOG_INFO, "group set to: %s(%d)\n", config->groupname, config->gid);
-    } else {
-        config->gid = getgid();
-    }   
 
     return 0;
 }
