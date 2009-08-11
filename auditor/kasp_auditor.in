@@ -17,7 +17,6 @@ class OptionsParser
       # We set default values here.
       path = "@sysconfdir@/opendnssec/".sub("${prefix}", "@prefix@")
       options = OpenStruct.new
-      options.default_kasp_file = path + "kasp.xml"
       options.default_conf_file = path + "conf.xml"
       options.zone_name = nil
       options.signed_temp = nil
@@ -80,16 +79,11 @@ runner = Runner.new
 options = OptionsParser.parse(ARGV)
 if (options.conf_file)
     runner.conf_file = options.conf_file
-    if (options.kasp_file)
-        runner.kasp_file = options.kasp_file
-    end
 else
     runner.conf_file = options.default_conf_file
-    if (options.kasp_file)
-        runner.kasp_file = options.kasp_file
-    else
-        runner.kasp_file = options.default_kasp_file
-    end
+end
+if (options.kasp_file)
+    runner.kasp_file = options.kasp_file
 end
 if (options.zone_name)
   runner.zone_name = options.zone_name
