@@ -88,9 +88,12 @@ server_main(DAEMONCONFIG *config)
     FILE *lock_fd = NULL;  /* for sqlite file locking */
     char *lock_filename = NULL;
 
-    int keys_needed = 0;    /* Total No of keys needed before next generation run */
+    int ksks_needed = 0;    /* Total No of ksks needed before next generation run */
+    int zsks_needed = 0;    /* Total No of zsks needed before next generation run */
     int keys_in_queue = 0;  /* number of unused keys */
     int new_keys = 0;       /* number of keys required */
+
+    int same_keys = 0;      /* Do ksks and zsks look the same ? */
    
     if (config == NULL) {
         log_msg(NULL, LOG_ERR, "Error in server_main, no config provided");
@@ -179,8 +182,13 @@ server_main(DAEMONCONFIG *config)
 
                 rightnow = DtParseDateTimeString("now");
 
+                if (policy->ksk->sm == policy->zsk->sm && policy->ksk->bits == policy->zsk->bits && policy->ksk->algorithm == policy->zsk->algorithm) {
+                    same_keys = 1;
+                } else {
+                    same_keys = 0;
+                }
                 /* Find out how many ksk keys are needed for the POLICY */
-                status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &keys_needed);
+                status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &ksks_needed);
                 if (status != 0) {
                     log_msg(NULL, LOG_ERR, "Could not predict ksk requirement for next interval for %s\n", policy->name);
                     /* TODO exit? continue with next policy? */
@@ -192,8 +200,8 @@ server_main(DAEMONCONFIG *config)
                     /* TODO exit? continue with next policy? */
                 }
 
-                new_keys = keys_needed - keys_in_queue;
-/*    fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, keys_needed, keys_in_queue); */
+                new_keys = ksks_needed - keys_in_queue;
+/*    fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
 
                 /* TODO: check capacity of HSM will not be exceeded */
                 /* Create the required keys */
@@ -222,12 +230,11 @@ server_main(DAEMONCONFIG *config)
                  }
 
                 /* Find out how many zsk keys are needed */
-                keys_needed = 0;
                 keys_in_queue = 0;
                 new_keys = 0;
 
                 /* Find out how many zsk keys are needed for the POLICY */
-                status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &keys_needed);
+                status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &zsks_needed);
                 if (status != 0) {
                     log_msg(NULL, LOG_ERR, "Could not predict zsk requirement for next intervalfor %s\n", policy->name);
                     /* TODO exit? continue with next policy? */
@@ -238,9 +245,13 @@ server_main(DAEMONCONFIG *config)
                     log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s\n", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
+                /* Might have to account for ksks */
+                if (same_keys) {
+                    keys_in_queue -= ksks_needed;
+                }
 
-                new_keys = keys_needed - keys_in_queue;
-/*    fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, keys_needed, keys_in_queue); */
+                new_keys = zsks_needed - keys_in_queue;
+/*    fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
                 
                 /* TODO: check capacity of HSM will not be exceeded */
                 for (i = new_keys ; i > 0 ; i--) {
