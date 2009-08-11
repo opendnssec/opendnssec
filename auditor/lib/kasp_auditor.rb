@@ -89,15 +89,10 @@ module KASPAuditor
         # PREPARSE THE INPUT AND OUTPUT FILES!!!
         pp = Preparser.new()
         pids=[]
-        [input_file, output_file].each {|f|
-          delete_file(working+get_name(f)+".parsed.#{pid}")
-          delete_file(working+get_name(f)+".sorted.#{pid}")
-          pids.push(fork {
-              pp.normalise_zone_and_add_prepended_names(f, working+get_name(f)+".parsed.#{pid}")
-              pp.sort(working+get_name(f)+".parsed.#{pid}",
-                working+get_name(f)+".sorted.#{pid}")
-            })
-        }
+          new_pid = normalise_and_sort(input_file, "in", pid, working, pp)
+          pids.push(new_pid)
+          new_pid = normalise_and_sort(output_file, "out", pid, working, pp)
+          pids.push(new_pid)
         do_audit = true
         pids.each {|id|
           ret_id, ret_status = Process.wait2(id)
@@ -111,19 +106,31 @@ module KASPAuditor
         if (do_audit)
           # Now audit the pre-parsed and sorted file
           auditor = Auditor.new(syslog, working)
-          ret_val = auditor.check_zone(config, working+get_name(input_file)+".sorted.#{pid}",
-            working + get_name(output_file)+".sorted.#{pid}",
+          ret_val = auditor.check_zone(config, working+get_name(input_file)+".in.sorted.#{pid}",
+            working + get_name(output_file)+".out.sorted.#{pid}",
             input_file, output_file)
           ret = ret_val if (ret_val < ret)
-          [input_file, output_file].each {|f|
-            delete_file(working+get_name(f)+".parsed.#{pid}")
-            delete_file(working+get_name(f)+".sorted.#{pid}")
+          [input_file + ".in", output_file + ".out"].each {|f|
+            delete_file(working + get_name(f)+".parsed.#{pid}")
+            delete_file(working + get_name(f)+".sorted.#{pid}")
           }
         end
       }
       ret = 0 if (ret == -99)
       ret = 0 if (ret >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
       exit(ret)
+    end
+
+    def normalise_and_sort(f, prefix, pid, working, pp)
+      parsed_file = working+get_name(f)+".#{prefix}.parsed.#{pid}"
+      sorted_file = working+get_name(f)+".#{prefix}.sorted.#{pid}"
+          delete_file(parsed_file)
+          delete_file(sorted_file)
+          new_pid = (fork {
+              pp.normalise_zone_and_add_prepended_names(f, parsed_file)
+              pp.sort(parsed_file, sorted_file)
+            })
+          return new_pid
     end
 
     def get_name(f)
