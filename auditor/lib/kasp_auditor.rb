@@ -54,7 +54,6 @@ module KASPAuditor
   # additional temporary files, which are processed after the main auditing
   # run.
   class Runner
-    DEFAULT_CONF_FILE = "/etc/opendnssec/conf.xml"
 
     attr_accessor :kasp_file, :zone_name, :signed_temp, :conf_file
 
@@ -62,7 +61,7 @@ module KASPAuditor
     def run
       conf_file = @conf_file
       if (!conf_file)
-        conf_file = DEFAULT_CONF_FILE
+        KASPAuditor.exit("No configuration file specified", 1)
       end
       syslog_facility, working, zonelist, kasp_file = load_config_xml(conf_file)
       if (@kasp_file)
@@ -166,9 +165,6 @@ module KASPAuditor
       working = ""
       zonelist = ""
       kasp = ""
-      if (!conf_file || (conf_file == ""))
-        conf_file = DEFAULT_CONF_FILE
-      end
       print "Reading config from #{conf_file}\n"
       begin
         File.open((conf_file + "").untaint , 'r') {|file|
