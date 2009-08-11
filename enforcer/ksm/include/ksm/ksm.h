@@ -138,7 +138,8 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
 int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count);
 int KsmKeyCountQueue(int keytype, int* count, int zone_id);
 int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count);
-int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id);    
+int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id);   int KsmLinkKeys(const char* zone_name, int policy_id);
+
 /* delete */
 
 int KsmDeleteKeyRange(int minid, int maxid);

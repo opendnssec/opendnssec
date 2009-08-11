@@ -660,6 +660,16 @@ cmd_addzone (int argc, char *argv[])
         return(1);
     }
 
+    /* If need be (keys shared on policy) link existing keys to zone */
+    status = KsmLinkKeys(zone_name, policy_id);
+    if (status != 0) {
+        printf("Failed to Link Keys to zone\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
         status = release_lite_lock(lock_fd);
