@@ -147,7 +147,7 @@ module KASPAuditor
 
     # Make sure that the last NSEC(3) record points back to the first one
     def do_final_nsec_check()
-      if (!@first_nsec)
+      if ((!@first_nsec) && (!@first_nsec3))
         log(LOG_ERR, "No #{nsec_string} records in zone")
         return
       end
