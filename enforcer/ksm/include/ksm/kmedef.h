@@ -56,7 +56,7 @@
 #define KME_INSFGENKEY  (KME_BASE +  8)     /* ERROR: only %d %ss available in 'generate' state - request abandoned */
 #define KME_KEYCHSTATE  (KME_BASE +  9)     /* INFO: moving %d key(s) from '%s' state to '%s' state */
 #define KME_KEYCNTSUMM  (KME_BASE + 10)     /* INFO: %d keys required, therefore %d new keys need to be put in 'publish' state */
-#define KME_NOREADYKEY  (KME_BASE + 11)     /* WARNING: cannot continue with key rollover as there are no keys in the 'ready' state */
+#define KME_NOREADYKEY  (KME_BASE + 11)     /* WARNING: key rollover not completed as there are no keys in the 'ready' state; communicated will try again when it runs next */
 #define KME_NOSUCHPAR   (KME_BASE + 12)     /* ERROR: no such parameter with name %s */
 #define KME_NOTFOUND    (KME_BASE + 13)     /* ERROR: unable to find object '%s' */
 #define KME_NOTIMPL     (KME_BASE + 14)     /* WARNING: Command not implemented yet */
@@ -70,7 +70,7 @@
 #define KME_UNKEYTYPE	(KME_BASE + 22)		/* ERROR: unknown key type, code %d */
 #define KME_UNRCONCOD   (KME_BASE + 23)     /* WARNING: unrecognised condition code %d: code ignored */
 #define KME_UNRKEYSTA   (KME_BASE + 24)     /* WARNING: key ID %d is in unrecognised state %d */
-#define KME_PROM_PUB    (KME_BASE + 25)     /* INFO: Promoting key from publish to active as this is the first pass for the zone */
+#define KME_PROM_PUB    (KME_BASE + 25)     /* INFO: Promoting %s from publish to active as this is the first pass for the zone */
 
 
 #endif /* KSM_KMEDEF_H */

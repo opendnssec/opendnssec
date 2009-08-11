@@ -317,7 +317,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
             if (first_pass == 1) {
                 /* TODO log what we are doing? */
-                (void) MsgLog(KME_NOREADYKEY);
+                (void) MsgLog(KME_PROM_PUB, (keytype == KSM_TYPE_KSK) ? "KSK" : "ZSK");
                 status = KsmRequestChangeStateN(keytype, datetime, 1,
                                     KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
                 if (status != 0) {
@@ -499,7 +499,6 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
     if (status != 0) {
         status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
     }
-
 
     StrFree(keyids);
 
