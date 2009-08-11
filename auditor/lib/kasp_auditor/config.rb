@@ -60,8 +60,8 @@ module KASPAuditor
       #
       # Read the salt ONLY from the SignerConfiguration
       if (@denial.nsec3)
+        conf_f = (config_file_loc.to_s+"").untaint
         begin
-          conf_f = (config_file_loc.to_s+"").untaint
           File.open(conf_f, 'r') {|file|
             doc = REXML::Document.new(file)
             e = doc.elements['SignerConfiguration/Zone/Denial/NSEC3/Hash/']
@@ -76,7 +76,7 @@ module KASPAuditor
             end
           }
         rescue Errno::ENOENT
-          KASPAuditor.exit("ERROR - Can't find SignerConfiguration file : #{kasp_file_loc}", 1)
+          KASPAuditor.exit("ERROR - Can't find SignerConfiguration file : #{conf_f}", 1)
         end
       end
     end
