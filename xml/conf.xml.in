@@ -33,6 +33,14 @@
 	</Common>
 
 	<Enforcer>
+<!--
+		<Privileges>
+			<User>opendnssec</User>
+			<Group>opendnssec</Group>
+			<Directory>/</Directory>
+		</Privileges>
+-->
+
 		<Datastore><SQLite>@opendnsseclocalstatedir@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<KeygenInterval>PT3M</KeygenInterval>
@@ -40,6 +48,14 @@
 	</Enforcer>
 
 	<Signer>
+<!--
+		<Privileges>
+			<User>opendnssec</User>
+			<Group>opendnssec</Group>
+			<Directory>/</Directory>
+		</Privileges>
+-->
+
 		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
 		<WorkerThreads>8</WorkerThreads>
 		<SignerThreads>1</SignerThreads>
@@ -49,6 +65,14 @@
 	</Signer>
 
 	<Auditor>
+<!--
+		<Privileges>
+			<User>opendnssec</User>
+			<Group>opendnssec</Group>
+			<Directory>/</Directory>
+		</Privileges>
+-->
+
 		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
 	</Auditor>
 
