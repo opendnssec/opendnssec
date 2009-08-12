@@ -7,10 +7,9 @@ AM_CPPFLAGS =	-I$(srcdir)/.. \
 		@CUNIT_INCLUDES@
 AM_CFLAGS =	-std=c99
 
-AM_LDFLAGS =	-rdynamic -ldl -lm
-
 bin_PROGRAMS = hsmbully
 
 hsmbully_LDADD = @CUNIT_LIBS@
+hsmbully_LDFLAGS = -ldl -lm
 
 EXTRA_DIST = $(srcdir)/cryptoki/*.h
