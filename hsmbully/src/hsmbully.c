@@ -36,14 +36,6 @@
  */
 
 
-#ifndef ASCII_PIN_SO
-#  define ASCII_PIN_SO "4321"
-#endif
-
-#ifndef ASCII_PIN_USER
-#  define ASCII_PIN_USER "1234"
-#endif
-
 #ifndef TOKENLABEL_32CHARS
 #  define TOKENLABEL_32CHARS "OpenDNSSEC Token Stress Test    "
 #endif
@@ -65,9 +57,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 #include <dlfcn.h>
 #include <strings.h>
+#include <unistd.h>
+#include <getopt.h>
 
 #include <sys/types.h>
 
@@ -150,6 +145,10 @@ static CK_MECHANISM_INFO mech_sha1_rsa_pkcs;
 static CK_MECHANISM_INFO mech_sha_1;
 // static CK_MECHANISM_INFO mech_sha256;		/* for future use? */
 // static CK_MECHANISM_INFO mech_sha512;		/* for future use? */
+
+/* PIN codes for this test are ASCII, and null-terminated strings */
+static char ascii_pin_user [128] = "";
+static char ascii_pin_so [128] = "";
 
 
 /* =============================================================== */
@@ -246,8 +245,8 @@ void testslot_initiation (void) {
 	/* Complain if user PIN and SO PIN are the same -- this will bring
 	 * out more subtlety in the tests to follow.
 	 */
-	if (strlen (ASCII_PIN_USER) == strlen (ASCII_PIN_SO)) {
-		if (!memcmp (ASCII_PIN_USER, ASCII_PIN_SO, strlen (ASCII_PIN_USER))) {
+	if (strlen (ascii_pin_user) == strlen (ascii_pin_so)) {
+		if (!memcmp (ascii_pin_user, ascii_pin_so, strlen (ascii_pin_user))) {
 			CU_FAIL ("SO PIN and USER PIN should differ to get the best results from the initiation test");
 		}
 	}
@@ -265,9 +264,9 @@ void testslot_initiation (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so)));
 		TESTRV ("Setting up user PIN",
-			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		TESTRV ("Logging out after setting setting up PIN",
 			P11("C_Logout") (seshdl));
 #	endif
@@ -311,8 +310,8 @@ void testslot_initiation (void) {
 		if (choice_login) {
 			GETRV (P11("C_Login") (seshdl,
 					choice_user? CKU_USER: CKU_SO,
-					(CK_UTF8CHAR_PTR) (choice_user? ASCII_PIN_USER: ASCII_PIN_SO),
-					choice_user? strlen (ASCII_PIN_USER): strlen (ASCII_PIN_SO)));
+					(CK_UTF8CHAR_PTR) (choice_user? ascii_pin_user: ascii_pin_so),
+					choice_user? strlen (ascii_pin_user): strlen (ascii_pin_so)));
 			if (choice_session) {
 				MKFATAL ();
 			} else {
@@ -349,7 +348,7 @@ void testslot_initiation (void) {
 		 * Operation 1.  Initialise the user PIN.
 		 * This is only possible during an SO RW session.
 		 */
-		GETRV (P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		GETRV (P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		if (choice_session && choice_login && choice_rw && !choice_user) {
 			if (LASTRVOK ()) {
 				CU_PASS ("Properly accepted operation #1 during initiation test");
@@ -370,10 +369,10 @@ void testslot_initiation (void) {
 		 * Login need not have succeeded for this to work.
 		 */
 		GETRV (P11("C_SetPIN") (seshdl,
-			(CK_UTF8CHAR_PTR) (choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
-			(CK_ULONG) (choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER),
-			(CK_UTF8CHAR_PTR) (choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
-			(CK_ULONG) (choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER)));
+			(CK_UTF8CHAR_PTR) (choice_login && !choice_user)? ascii_pin_so: ascii_pin_user,
+			(CK_ULONG) (choice_login && !choice_user)? strlen (ascii_pin_so): strlen (ascii_pin_user),
+			(CK_UTF8CHAR_PTR) (choice_login && !choice_user)? ascii_pin_so: ascii_pin_user,
+			(CK_ULONG) (choice_login && !choice_user)? strlen (ascii_pin_so): strlen (ascii_pin_user)));
 		if (choice_session && choice_login && choice_rw) {
 			if (LASTRVOK ()) {
 				CU_PASS ("Properly accepted operation #2 during initiation test");
@@ -483,14 +482,14 @@ void testslot_fragmentation (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so)));
 		TESTRV ("Setting up user PIN",
-			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		TESTRV ("Logging out after setting setting up PIN",
 			P11("C_Logout") (seshdl));
 #	endif
 	TESTRV ("Logging into token for fragmentation test",
-		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 	MKFATAL ();
 
 	/*
@@ -618,14 +617,14 @@ void testslot_keysizing (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so)));
 		TESTRV ("Setting up user PIN",
-			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		TESTRV ("Logging out after setting setting up PIN",
 			P11("C_Logout") (seshdl));
 #	endif
 	TESTRV ("Logging into token for keysizing test",
-		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 	MKFATAL ();
 
 	/*
@@ -731,14 +730,14 @@ void testslot_signing (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so)));
 		TESTRV ("Setting up user PIN",
-			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		TESTRV ("Logging out after setting setting up PIN",
 			P11("C_Logout") (seshdl));
 #	endif
 	TESTRV ("Logging into token for signing test",
-		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 	MKFATAL ();
 
 	/*
@@ -842,12 +841,54 @@ void bailout (void) {
 void inittoken (void) {
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Formatting the token",
-			 P11("C_InitToken") (slotid, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO), (CK_UTF8CHAR_PTR) TOKENLABEL_32CHARS));
+			 P11("C_InitToken") (slotid, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so), (CK_UTF8CHAR_PTR) TOKENLABEL_32CHARS));
 #	else
 	CU_PASS ("Skipping token initialisation in non-destructive test mode.  Existing USER/SO PIN values must be as set in source.");
 #	endif
 }
 
+
+/* Commandline options */
+static const char *opts = "hp:s:l:";	// t:
+static const struct option longopts[] = {
+	{ "help", 0, NULL, 'h' },
+	{ "pin", 1, NULL, 'p' },
+	{ "so-pin", 1, NULL, 's' },
+	{ "pkcs11lib",1, NULL, 'l' },
+	// { "token", 1, NULL, 't' },
+	{ NULL, 0, NULL, 0 }
+};
+
+
+/* Sanity check a PIN to see if it is:
+ *  - only ASCII
+ *  - null-terminated but not longer than the available space
+ *  - not yet set in previous options
+ */
+void storepin (char *kind, char *newval, char *dest, size_t maxstrlen) {
+	char *this;
+	if (*dest) {
+		fprintf (stderr, "You should not provide multiple %s PIN codes\n", kind);
+		exit (1);
+	}
+	if (! *newval) {
+		fprintf (stderr, "The %s PIN should not be empty\n", kind);
+		exit (1);
+	}
+	if (strlen (newval) > maxstrlen) {
+		fprintf (stderr, "The %s PIN should not exceed %d characters\n", kind, maxstrlen);
+		exit (1);
+	}
+	this = newval;
+	while (*this) {
+		if ((*this < 32) || (*this >= 127)) {
+			fprintf (stderr, "The %s PIN should not contain characters outside the printable ASCII range\n", kind);
+			exit (1);
+		}
+		this++;
+	}
+	strcpy (dest, newval);
+}
 
 
 /* Main routine: Initialise the PKCS #11 interface and find a slot ID to test.
@@ -857,25 +898,52 @@ int main (int argc, char *argv []) {
 	CK_SLOT_ID slotlist [2];
 	CK_ULONG slotcount = 2;
 	CU_pSuite st [4];
+	int opt;
+	int todo;
+	extern char *optarg;
 
 	/*
 	 * Test arguments.
 	 */
-	if ((argc != 2) || (argv [0] == NULL)) {
-		fprintf (stderr, "Usage: %s /path/to/libpkcs11.so\n", argv [0]);
-		exit (1);
-	}
-	if (strstr (argv [1], "softhsm")) {
-		fprintf (stderr, "WARNING -- It appears you are using the SoftHSM library.\nIt may not constrain memory size, causing this test to run extremely long.\n");
-	}
-
-	/*
-	 * Open the PKCS #11 library.
-	 */
-	p11 = dlopen (argv [1], RTLD_NOW | RTLD_GLOBAL);
-	if (!p11) {
-		fprintf (stderr, "%s\n", dlerror ());
-		exit (1);
+	todo = 1;
+	while (todo && (opt = getopt_long (argc, argv, opts, longopts, NULL))) {
+		switch (opt) {
+		case 'p':	// --pin
+			storepin ("user", optarg, ascii_pin_user, sizeof (ascii_pin_user) - 1);
+			break;
+			
+		case 's':	// --so-pin
+			storepin ("SO", optarg, ascii_pin_so, sizeof (ascii_pin_so) - 1);
+			break;
+		case 'l':	// --pkcs1llib
+			if (p11) {
+				fprintf (stderr, "You should not open multiple PKCS #11 libraries\n");
+				exit (1);
+			}
+			if (strstr (argv [1], "softhsm")) {
+				fprintf (stderr, "WARNING -- It appears you are using the SoftHSM library.\nIt may not constrain memory size, causing this test to run extremely long.\n");
+			}
+			p11 = dlopen (optarg, RTLD_NOW | RTLD_GLOBAL);
+			if (!p11) {
+				fprintf (stderr, "%s\n", dlerror ());
+				exit (1);
+			}
+			break;
+		// case 't':
+		// Token?
+		case -1:		// Done -- but are we, really?
+			if ((*ascii_pin_user) && (*ascii_pin_so) && p11) {
+				todo = 0;
+				break;
+			}
+			// else continue...
+			fprintf (stderr, "Please set all values required.\n");
+		case 'h':
+		case ':':
+		case '?':
+			fprintf (stderr, "Usage: %s --pin 1234 --so-pin 4321 --pkcs11lib /path/to/libpkcs11.so\n", argv [0]);
+			exit (opt != 'h');
+		}
 	}
 
 	/*
