@@ -33,7 +33,7 @@
 		<!-- script to run when zones have changed -->
 		<!-- if you have a lot of zones, you might want
 		     to buffer these in the script -->
-		<NotifyCommand>echo "ping"</NotifyCommand>
+		<NotifyCommand>echo "ping %zone"</NotifyCommand>
 		<WorkerThreads>2</WorkerThreads>
 	</Signer>
 	<Auditor>

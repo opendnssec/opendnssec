@@ -67,7 +67,6 @@ MSGLEN = 1024
 class Engine:
     """Main signer engine class"""
     def __init__(self, config_file_name):
-        # todo: read config etc
         self.config_file_name = config_file_name
         self.config = EngineConfiguration(config_file_name)
         self.config.check_config()

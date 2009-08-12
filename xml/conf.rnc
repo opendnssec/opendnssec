@@ -76,6 +76,7 @@ start = element Configuration {
 		element SignerThreads { xsd:positiveInteger }?,
 		
 		# System command to call after a zone has been (re)signed
+		# '%zone' in the string will be replaced by the zone name
 		element NotifyCommand { xsd:string }?
 	}?,
 

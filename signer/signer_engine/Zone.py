@@ -632,6 +632,7 @@ class Zone:
             syslog.syslog(syslog.LOG_INFO, "Running auditor on zone")
             cmd = [self.engine_config.bindir + os.sep + "kasp_auditor",\
                    self.engine_config.sysconfdir + os.sep + "opendnssec",\
+                   "-s", self.get_zone_tmp_filename(".signed"),\
                    self.zone_name]
             # add extra options here
             audit_p = Util.run_tool(cmd)
@@ -663,19 +664,22 @@ class Zone:
             output.write(line)
         output.close()
         if self.engine_config.notify_command:
+            notify_cmd = self.engine_config.notify_command.replace("%zone",
+                                                        self.zone_name)
             syslog.syslog(syslog.LOG_INFO,
-                          "Running update notify script")
-            (status, output) = commands.getstatusoutput(
-                self.engine_config.notify_command)
+                          "Running update notify command:" + notify_cmd)
+            (status, output) = commands.getstatusoutput(notify_cmd)
             if status != 0:
                 syslog.syslog(syslog.LOG_ERR,
-                              "Error running notification script")
+                              "Error running notification command")
                 syslog.syslog(syslog.LOG_ERR,
                               output)
             else:
                 syslog.syslog(syslog.LOG_INFO,
-                              "Update notify script has run")
-
+                              "Update notify command has run")
+                if output:
+                    syslog.syslog(syslog.LOG_INFO,
+                                  "output: " + output)
     def clear_database(self):
         """Remove the internal files, containing the sorted, nsecced,
         and signed zone. The final output is not deleted. On next run
