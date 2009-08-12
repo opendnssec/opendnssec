@@ -557,6 +557,11 @@ module KASPAuditor
         if (unsigned_domain_rrs  && !unsigned_domain_rrs.delete(l_rr)) # delete the record from the unsigned
           # ADDITIONAL SIGNED RECORD!! Check if we should error on it
           process_additional_signed_rr(l_rr)
+          if (l_rr.type == Types.SOA)
+            unsigned_domain_rrs.each {|u_rr|
+              unsigned_domain_rrs.delete(u_rr) if u_rr.type == Types.SOA
+            }
+          end
         end
         l_rr = get_next_rr(file)
       end
