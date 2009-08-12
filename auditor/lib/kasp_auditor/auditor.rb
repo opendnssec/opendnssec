@@ -275,11 +275,12 @@ module KASPAuditor
 
         #  d) expiration date in future by at least interval specified by config
         refresh = @config.signatures.refresh
+        resign = @config.signatures.resign
         # We want to check that there is at least the refresh period left before
         # the signature expires.
         # @TODO@ Probably want to have a WARN level and an ERROR level
-        if (time_now > (sig.expiration - refresh))
-          log(LOG_ERR, "Signature expiration (#{sig.expiration}) for #{sig.name}, #{sig.type_covered} should be later than the refresh period (#{refresh}) from now #{time_now}")
+        if (time_now > (sig.expiration - refresh + resign))
+          log(LOG_ERR, "Signature expiration (#{sig.expiration}) for #{sig.name}, #{sig.type_covered} should be later than (the refresh period (#{refresh}) - the resign period (#{resign})) from now (#{time_now})")
         else
           #            print "OK : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}\n"
         end
