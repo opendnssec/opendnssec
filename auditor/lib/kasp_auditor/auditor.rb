@@ -693,13 +693,7 @@ module KASPAuditor
     # error (unless it is an SOA, in which case we info the serial change
     def process_additional_signed_rr(rr)
       # There was an extra signed record that wasn't in the unsigned - check it out
-      if (rr.type == Types::SOA)
-        if (rr.name == @soa.name)
-          log(LOG_INFO, "SOA differs : from #{@soa.serial} to #{rr.serial}")
-        else
-          log(LOG_ERROR,"Different SOA name in output zone!")
-        end
-      elsif (!(["NSEC", "NSEC3", "RRSIG", "DNSKEY", "NSEC3PARAM"].include?rr.type.string))
+      if (!(["SOA", "NSEC", "NSEC3", "RRSIG", "DNSKEY", "NSEC3PARAM"].include?rr.type.string))
         log(LOG_ERR, "non-DNSSEC RRSet #{rr.type} included in Output that was not present in Input : #{rr}")
       end
     end
