@@ -16,17 +16,18 @@ start = element KASP {
 			# how often should the zone be (re)signed?
 			element Resign { xsd:duration },
 
-			# how often should existing signatures be refreshed?
+			# the signatures are reused for a period of time
+			# how long time before the expiration of the signature should it be refreshed?
 			element Refresh { xsd:duration },
 
-			# for how long should we sign?
+			# for how long should a signature be valid?
 			element Validity {
 				element Default { xsd:duration },
 				element Denial { xsd:duration }
 			},
 
 			# how much should we jitter the signature expiration time?
-			# (e.g. decrease the expiration time by X)
+			# (e.g. increase the expiration time by X)
 			element Jitter { xsd:duration },
 
 			# how much should we predate the signature inception time?
