@@ -135,6 +135,7 @@ server_main(DAEMONCONFIG *config)
             policy->denial == NULL || policy->enforcer == NULL ||
             policy->audit == NULL) {
         log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
+        unlink(config->pidfile);
         exit(1);
     }
     kaspSetPolicyDefaults(policy, NULL);
@@ -143,6 +144,7 @@ server_main(DAEMONCONFIG *config)
     status = read_zonelist_filename(&zonelist_filename);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "couldn't read zonelist filename\n");
+        unlink(config->pidfile);
         exit(1);
     }
 
@@ -157,6 +159,7 @@ server_main(DAEMONCONFIG *config)
         status = ReadConfig(config);
         if (status != 0) {
             log_msg(config, LOG_ERR, "Error reading config");
+            unlink(config->pidfile);
             exit(1);
         }
 
@@ -174,6 +177,7 @@ server_main(DAEMONCONFIG *config)
             status = get_lite_lock(lock_filename, lock_fd);
             if (status != 0) {
                 log_msg(config, LOG_ERR, "Error getting db lock");
+                unlink(config->pidfile);
                 exit(1);
             }
         }
@@ -343,6 +347,7 @@ server_main(DAEMONCONFIG *config)
             status = release_lite_lock(lock_fd);
             if (status != 0) {
                 log_msg(config, LOG_ERR, "Error releasing db lock");
+                unlink(config->pidfile);
                 exit(1);
             }
             fclose(lock_fd);
@@ -351,11 +356,13 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */ 
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            unlink(config->pidfile);
             exit(0);
         }
         /* Or SIGINT */
         if (config->term == 2 ){
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
+            unlink(config->pidfile);
             exit(0);
         }
 
@@ -371,11 +378,13 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */ 
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            unlink(config->pidfile);
             exit(0);
         }
         /* Or SIGINT */
         if (config->term == 2 ){
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
+            unlink(config->pidfile);
             exit(0);
         }
     }

@@ -122,6 +122,7 @@ server_main(DAEMONCONFIG *config)
             policy->denial == NULL || policy->enforcer == NULL ||
             policy->audit == NULL) {
         log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
+        unlink(config->pidfile);
         exit(1);
     }
     kaspSetPolicyDefaults(policy, NULL);
@@ -137,6 +138,7 @@ server_main(DAEMONCONFIG *config)
         status = ReadConfig(config);
         if (status != 0) {
             log_msg(config, LOG_ERR, "Error reading config");
+            unlink(config->pidfile);
             exit(1);
         }
 
@@ -154,6 +156,7 @@ server_main(DAEMONCONFIG *config)
             status = get_lite_lock(lock_filename, lock_fd);
             if (status != 0) {
                 log_msg(config, LOG_ERR, "Error getting db lock");
+                unlink(config->pidfile);
                 exit(1);
             }
         }
@@ -212,12 +215,14 @@ server_main(DAEMONCONFIG *config)
                                 /* log_msg(config, LOG_INFO,"Created key in HSM\n"); */
                             } else {
                                 log_msg(config, LOG_ERR,"Error creating key in HSM\n");
+                                unlink(config->pidfile);
                                 exit(1);
                             }
                             id = hsm_get_key_id(ctx, key);
                             status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
                             if (status != 0) {
                                 log_msg(config, LOG_ERR,"Error creating key in Database\n");
+                                unlink(config->pidfile);
                                 exit(1);
                             }
                             log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with id: %s in HSM: %s and database.", policy->ksk->bits,
@@ -225,6 +230,7 @@ server_main(DAEMONCONFIG *config)
                             free(id);
                         } else {
                             log_msg(config, LOG_ERR, "Key algorithm %d unsupported by libhsm.", policy->ksk->algorithm);
+                            unlink(config->pidfile);
                             exit(1);
                         }
                  }
@@ -261,12 +267,14 @@ server_main(DAEMONCONFIG *config)
                            /* log_msg(config, LOG_INFO,"Created key in HSM\n"); */
                        } else {
                            log_msg(config, LOG_ERR,"Error creating key in HSM\n");
+                           unlink(config->pidfile);
                            exit(1);
                        }
                        id = hsm_get_key_id(ctx, key);
                        status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
                        if (status != 0) {
                            log_msg(config, LOG_ERR,"Error creating key in Database\n");
+                           unlink(config->pidfile);
                            exit(1);
                        }
                        log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with id: %s in HSM: %s and database.", policy->zsk->bits,
@@ -274,6 +282,7 @@ server_main(DAEMONCONFIG *config)
                        free(id);
                     } else {
                         log_msg(config, LOG_ERR, "Key algorithm %d unsupported by libhsm.", policy->zsk->algorithm);
+                        unlink(config->pidfile);
                        exit(1);
                     }
                 }
@@ -284,6 +293,7 @@ server_main(DAEMONCONFIG *config)
             }
         } else {
             log_msg(config, LOG_ERR, "Error querying KASP DB for policies.");
+            unlink(config->pidfile);
             exit(1);
         }
         DbFreeResult(handle);
@@ -297,6 +307,7 @@ server_main(DAEMONCONFIG *config)
             status = release_lite_lock(lock_fd);
             if (status != 0) {
                 log_msg(config, LOG_ERR, "Error releasing db lock");
+                unlink(config->pidfile);
                 exit(1);
             }
             fclose(lock_fd);
@@ -305,11 +316,13 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            unlink(config->pidfile);
             exit(0);
         }
         /* Or SIGINT */
         if (config->term == 2 ){
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
+            unlink(config->pidfile);
             exit(0);
         }
 
@@ -322,11 +335,13 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
+            unlink(config->pidfile);
             exit(0);
         }
         /* Or SIGINT */
         if (config->term == 2 ){
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
+            unlink(config->pidfile);
             exit(0);
         }
     }
