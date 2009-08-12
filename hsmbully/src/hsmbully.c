@@ -162,7 +162,7 @@ static CK_MECHANISM_INFO mech_sha_1;
  * Algorithm source: ZX Spectrum, ROM addresses 0x25F8..0x2624
  */
 int randomish (int range) {
-	static u_int32_t seed = 0x1234;
+	static uint32_t seed = 0x1234;
 	if (range > 65537) {
 		CU_FAIL ("Cannot provide randomish ranges beyond 65536 -- use another PRN");
 		exit (1);
@@ -651,7 +651,7 @@ void testslot_keysizing (void) {
 		CK_ATTRIBUTE templ [] = {
 			{ CKA_MODULUS, NULL_PTR, 0 },
 		};
-		u_int8_t *modulus;
+		uint8_t *modulus;
 		retval = newkeypair (seshdl, modbits, &pub, &priv);
 		TESTRV ("Creating key pair in modulus size test", retval);
 		ok = ok && (retval == CKR_OK);
