@@ -19,7 +19,7 @@ module KASPAuditor
     def sort(file1, file2)
       file1=(file1.to_s+"").untaint
       file2=(file2.to_s+"").untaint
-      system("sort -t$'#{SEPARATOR}' #{file1} > #{file2}")
+      system("sort -t'#{SEPARATOR}' #{file1} > #{file2}")
     end
 
     # Take an input zone file ("zonefile") and output a new file ("zonefile.sorted")

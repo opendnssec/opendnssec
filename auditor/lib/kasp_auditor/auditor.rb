@@ -810,7 +810,7 @@ module KASPAuditor
       end
       def check_nsec3_types_and_opt_out()
         # First of all we will have to sort the types file.
-        system("sort -t$' ' #{@working}/audit.types.#{Process.pid} > #{@working}/audit.types.sorted.#{Process.pid}")
+        system("sort -t' ' #{@working}/audit.types.#{Process.pid} > #{@working}/audit.types.sorted.#{Process.pid}")
 
         # Go through each name in the files and check them
         # We want to check two things :
