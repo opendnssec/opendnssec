@@ -281,7 +281,7 @@ module KASPAuditor
         #  We want to check that at least the validity period remains before the signatures expire
         # @TODO@ Probably want to have a validity WARN level and an ERROR level for validity
         if ((sig.expiration -  time_now).abs <=  validity)
-          log(LOG_ERR, "Validity error for #{sig.name}, #{sig.type_covered} : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}")
+          log(LOG_ERR, "Validity error for #{sig.name}, #{sig.type_covered} : Validity is #{validity}, but only #{sig.expiration - time_now} remain (signature expiration is #{sig.expiration}, time now is #{time_now})")
         else
           #            print "OK : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}\n"
         end
