@@ -865,7 +865,7 @@ int main (int argc, char *argv []) {
 		fprintf (stderr, "Usage: %s /path/to/libpkcs11.so\n", argv [0]);
 		exit (1);
 	}
-	if (strcasestr (argv [1], "softhsm")) {
+	if (strstr (argv [1], "softhsm")) {
 		fprintf (stderr, "WARNING -- It appears you are using the SoftHSM library.\nIt may not constrain memory size, causing this test to run extremely long.\n");
 	}
 
