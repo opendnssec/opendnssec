@@ -46,6 +46,7 @@
 #include "ksm/ksm_internal.h"
 #include "ksm/message.h"
 #include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 /*+
  * KsmImportRepository - Insert or update a repository
@@ -369,6 +370,113 @@ int KsmPolicyIdFromName(const char* name, int *id)
         status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
         return status;
 	}
+
+    return status;
+}
+
+/*+
+ * KsmMarkBackup - Mark a backup as having been done
+ *
+ *
+ * Arguments:
+ *
+ *      int repo_id
+ *          ID of the repository (-1 for all)
+ *
+ *      const char* datetime
+ *          When the backup was done
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int KsmMarkBackup(int repo_id, const char* datetime)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+
+    /* Update rows */
+    sql = DusInit("keypairs");
+    DusSetString(&sql, "BACKUP", datetime, 0);
+    if (repo_id != -1) {
+        DusConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, repo_id, 0);
+        StrAppend(&sql, " and backup is null");
+    } else {
+        StrAppend(&sql, " where backup is null");
+    }
+    DusEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DusFree(sql);
+
+    return status;
+}
+
+/*+
+ * KsmListBackups - Output a list of all backups perfomed
+ *
+ *
+ * Arguments:
+ *
+ *      int repo_id
+ *          ID of the repository (-1 for all)
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int KsmListBackups(int repo_id)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+    char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+
+    char*       temp_date = NULL; /* place to store date returned */
+    char*       temp_repo = NULL; /* place to store repository returned */
+
+    /* Select rows */
+    StrAppend(&sql, "select k.backup, s.name from keypairs k, securitymodules s ");
+    StrAppend(&sql, "where s.id = k.securitymodule_id ");
+    if (repo_id != -1) {
+        StrAppend(&sql, "and s.id = ");
+        snprintf(stringval, KSM_INT_STR_SIZE, "%d", repo_id);
+        StrAppend(&sql, stringval);
+    }
+    StrAppend(&sql, " group by backup order by backup");
+
+    DusEnd(&sql);
+
+    status = DbExecuteSql(DbHandle(), sql, &result);
+
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+        printf("Date:                    Repository:\n");
+        while (status == 0) {
+            /* Got a row, print it */
+            DbString(row, 0, &temp_date);
+            DbString(row, 1, &temp_repo);
+
+            printf("%-24s %s\n", temp_date, temp_repo);
+            
+            status = DbFetchRow(result, &row);
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+
+        DbFreeResult(result);
+    }
+
+    DusFree(sql);
 
     return status;
 }

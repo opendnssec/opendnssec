@@ -130,6 +130,14 @@ usage_rollpolicy ()
 }
 
     void
+usage_backup ()
+{
+    fprintf(stderr,
+            "usage: %s [-f config_dir] backup [done|list] [repository]\n\tIndicate that a key backup has been performed or list dates when backups were made\n",
+            progname);
+}
+
+    void
 usage ()
 {
     usage_setup ();
@@ -140,6 +148,7 @@ usage ()
     usage_export ();
     usage_rollzone ();
     usage_rollpolicy ();
+    usage_backup ();
 }
 
 /* 
@@ -1261,6 +1270,166 @@ cmd_rollpolicy (int argc, char *argv[])
     return 0;
 }
 
+/*
+ * note that fact that a backup has been performed
+ */
+    int
+cmd_backup (int argc, char *argv[])
+{
+    int status = 0;
+
+    char* subcommand = NULL;
+    char* repository = NULL;
+    int repo_id = -1;
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+    char* db_backup_filename = NULL;
+
+    char* datetime = DtParseDateTimeString("now");
+
+    /* See what arguments we were passed (if any) otherwise set the defaults */
+    if (argc != 1 && argc != 2) {
+        usage_backup();
+        return -1;
+    }
+
+    StrAppend(&subcommand, argv[0]);
+    if (argc == 2) {
+        StrAppend(&repository, argv[1]);
+    }
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(dbschema);
+            return(1);
+        }
+
+        /* Make a backup of the sqlite DB */
+        StrAppend(&db_backup_filename, dbschema);
+        StrAppend(&db_backup_filename, ".backup");
+
+        status = backup_file(dbschema, db_backup_filename);
+
+        StrFree(db_backup_filename);
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Turn repo name into an id (if provided) */
+    if (repository != NULL) {
+        status = KsmSmIdFromName(repository, &repo_id);
+        if (status != 0) {
+            printf("Error: unable to find repository %s\n", repository);
+            return status;
+        }
+    }
+
+    if (!strncasecmp(subcommand, "done", 4)) {
+
+        status = KsmMarkBackup(repo_id, datetime);
+        if (status != 0) {
+            printf("Error: failed to mark backup as done\n");
+            return status;
+        }
+
+        if (repository != NULL) {
+            printf("Marked repository %s as backed up at %s\n", repository, datetime);
+        } else {
+            printf("Marked all repositories as backed up at %s\n", datetime);
+        }
+    }
+    else if (!strncasecmp(subcommand, "list", 4)) {
+        /* TODO put work in here */
+        status = KsmListBackups(repo_id);
+
+        if (status != 0) {
+            printf("Error: failed to list backups\n");
+            return status;
+        }
+    }
+    else {
+        printf("Unknown command \"backup %s\"\n", subcommand);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
+    DbDisconnect(dbhandle);
+    return 0;
+}
+
 /* 
  * Fairly basic main, just pass most things through to their handlers
  */
@@ -1336,6 +1505,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_rollpolicy(argc, argv);
+    } else if (!strncasecmp(argv[0], "backup", 6)) {
+        argc --;
+        argv ++;
+        result = cmd_backup(argc, argv);
     } else {
         printf("Unknown command: %s\n", argv[0]);
         usage();

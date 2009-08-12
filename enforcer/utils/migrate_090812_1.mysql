@@ -1,0 +1,3 @@
+-- Migrate existing database for key backup stuff
+
+alter table keypairs add column backup timestamp null default null;

@@ -86,6 +86,7 @@ create table keypairs(
   policy_id        mediumint,
   compromisedflag tinyint,
   publickey     varchar(1024),                -- public key data
+  backup        varchar(64) null default null,  -- time when backup was performed
   
   foreign key (securitymodule_id) references securitymodules (id),
   foreign key (policy_id) references policies (id)
