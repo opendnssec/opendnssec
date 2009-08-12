@@ -146,9 +146,12 @@ static CK_MECHANISM_INFO mech_sha_1;
 // static CK_MECHANISM_INFO mech_sha256;		/* for future use? */
 // static CK_MECHANISM_INFO mech_sha512;		/* for future use? */
 
-/* PIN codes for this test are ASCII, and null-terminated strings */
+/* PIN codes for this tool are ASCII, and null-terminated strings */
 static char ascii_pin_user [128] = "";
 static char ascii_pin_so [128] = "";
+
+/* Whether this tool should destroy all data on the HSM or not */
+static int nondestructive = 1;
 
 
 /* =============================================================== */
@@ -262,14 +265,14 @@ void testslot_initiation (void) {
 	/*
 	 * Possibly setup the user PIN to use.
 	 */
-#	ifndef NON_DESTRUCTIVE_TESTING
+	if (nondestructive) {
 		TESTRV ("Logging into token for setting up PIN",
 			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so)));
 		TESTRV ("Setting up user PIN",
 			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		TESTRV ("Logging out after setting setting up PIN",
 			P11("C_Logout") (seshdl));
-#	endif
+	}
 
 	/*
 	 * Close the RW session with the slot
@@ -480,14 +483,14 @@ void testslot_fragmentation (void) {
 	/*
 	 * Login to token as USER (possibly after setting up the PIN to use)
 	 */
-#	ifndef NON_DESTRUCTIVE_TESTING
+	if (nondestructive) {
 		TESTRV ("Logging into token for setting up PIN",
 			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so)));
 		TESTRV ("Setting up user PIN",
 			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		TESTRV ("Logging out after setting setting up PIN",
 			P11("C_Logout") (seshdl));
-#	endif
+	}
 	TESTRV ("Logging into token for fragmentation test",
 		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 	MKFATAL ();
@@ -615,14 +618,14 @@ void testslot_keysizing (void) {
 	/*
 	 * Login to token as USER (possibly after setting up the PIN to use)
 	 */
-#	ifndef NON_DESTRUCTIVE_TESTING
+	if (nondestructive) {
 		TESTRV ("Logging into token for setting up PIN",
 			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so)));
 		TESTRV ("Setting up user PIN",
 			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		TESTRV ("Logging out after setting setting up PIN",
 			P11("C_Logout") (seshdl));
-#	endif
+	}
 	TESTRV ("Logging into token for keysizing test",
 		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 	MKFATAL ();
@@ -728,14 +731,14 @@ void testslot_signing (void) {
 	/*
 	 * Login to token as USER (possibly after setting up the PIN to use)
 	 */
-#	ifndef NON_DESTRUCTIVE_TESTING
+	if (nondestructive) {
 		TESTRV ("Logging into token for setting up PIN",
 			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so)));
 		TESTRV ("Setting up user PIN",
 			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 		TESTRV ("Logging out after setting setting up PIN",
 			P11("C_Logout") (seshdl));
-#	endif
+	}
 	TESTRV ("Logging into token for signing test",
 		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ascii_pin_user, strlen (ascii_pin_user)));
 	MKFATAL ();
@@ -839,22 +842,23 @@ void bailout (void) {
 /* Initialise the token.
  */
 void inittoken (void) {
-#	ifndef NON_DESTRUCTIVE_TESTING
+	if (nondestructive) {
 		TESTRV ("Formatting the token",
 			 P11("C_InitToken") (slotid, (CK_UTF8CHAR_PTR) ascii_pin_so, strlen (ascii_pin_so), (CK_UTF8CHAR_PTR) TOKENLABEL_32CHARS));
-#	else
-	CU_PASS ("Skipping token initialisation in non-destructive test mode.  Existing USER/SO PIN values must be as set in source.");
-#	endif
+	} else {
+		CU_PASS ("Skipping token initialisation in non-destructive test mode.  Existing USER/SO PIN values must be as set in source.");
+	}
 }
 
 
 /* Commandline options */
-static const char *opts = "hp:s:l:";	// t:
+static const char *opts = "hp:s:l:x";	// t:
 static const struct option longopts[] = {
 	{ "help", 0, NULL, 'h' },
 	{ "pin", 1, NULL, 'p' },
 	{ "so-pin", 1, NULL, 's' },
 	{ "pkcs11lib",1, NULL, 'l' },
+	{ "destructive", 0, NULL, 'x' },
 	// { "token", 1, NULL, 't' },
 	{ NULL, 0, NULL, 0 }
 };
@@ -931,6 +935,13 @@ int main (int argc, char *argv []) {
 			break;
 		// case 't':
 		// Token?
+		case 'x':	// --destructive
+			if (!nondestructive) {
+				fprintf (stderr, "You should not specify your destructive wishes more than once\n");
+				exit (1);
+			}
+			nondestructive = 0;
+			break;
 		case -1:		// Done -- but are we, really?
 			if ((*ascii_pin_user) && (*ascii_pin_so) && p11) {
 				todo = 0;
@@ -941,7 +952,7 @@ int main (int argc, char *argv []) {
 		case 'h':
 		case ':':
 		case '?':
-			fprintf (stderr, "Usage: %s --pin 1234 --so-pin 4321 --pkcs11lib /path/to/libpkcs11.so\n", argv [0]);
+			fprintf (stderr, "Usage: %s [--destructive] --pin 1234 --so-pin 4321 --pkcs11lib /path/to/libpkcs11.so\n", argv [0]);
 			exit (opt != 'h');
 		}
 	}
