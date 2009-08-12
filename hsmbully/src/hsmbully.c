@@ -66,6 +66,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <dlfcn.h>
+#include <strings.h>
 
 #include <sys/types.h>
 
@@ -125,6 +127,9 @@ ame)
 static int ck_rv = CKR_OK;
 static CK_SLOT_ID slotid;
 
+typedef CK_RV p11fn ();
+#define P11(fn) ((p11fn *) (dlsym (p11, (fn))))
+
 #define WARN(s) fprintf (stderr, "%s\n", s)
 #define GETRV(x) { ck_rv = (x); }
 #define TESTRV(s,x) { ck_rv = (x); if (ck_rv!=CKR_OK) { fprintf (stderr, "%s: Error %08x in retval\n", s, ck_rv); } }
@@ -135,6 +140,8 @@ static CK_SLOT_ID slotid;
 
 /* =============================================================== */
 
+
+static void *p11 = NULL;
 
 static CK_MECHANISM_INFO mech_rsa_pkcs_key_pair_gen;
 static CK_MECHANISM_INFO mech_sha1_rsa_pkcs;
@@ -216,7 +223,7 @@ CK_RV newkeypair (CK_SESSION_HANDLE seshdl,
 		{ CKA_UNWRAP, &false, sizeof (false) },
 		{ CKA_DERIVE, &false, sizeof (false) },
 	};
-	return C_GenerateKeyPair (
+	return P11("C_GenerateKeyPair") (
 			seshdl,
 			&mech,
 			pubtmpl, sizeof (pubtmpl) / sizeof (*pubtmpl),
@@ -249,7 +256,7 @@ void testslot_initiation (void) {
 	 *  Open RW session with slot
 	 */
 	TESTRV ("Opening session for initiation test",
-		C_OpenSession (slotid, CKF_SERIAL_SESSION | CKF_RW_SESSION,
+		P11("C_OpenSession") (slotid, CKF_SERIAL_SESSION | CKF_RW_SESSION,
 				(void *) &noappinfo, NULL_PTR, &seshdl));
 	MKFATAL ();
 
@@ -258,18 +265,18 @@ void testslot_initiation (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			C_Login (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
 		TESTRV ("Setting up user PIN",
-			C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		TESTRV ("Logging out after setting setting up PIN",
-			C_Logout (seshdl));
+			P11("C_Logout") (seshdl));
 #	endif
 
 	/*
 	 * Close the RW session with the slot
 	 */
 	TESTRV ("Closing RW SO session for setup of initiation test",
-		C_CloseSession (seshdl));
+		P11("C_CloseSession") (seshdl));
 
 	/*
 	 * Iterate over the actual test, running (distorted) scripts.
@@ -291,7 +298,7 @@ void testslot_initiation (void) {
 		 */
 		if (choice_session) {
 			TESTRV ("Opening session for fragmentation test",
-				C_OpenSession (slotid,
+				P11("C_OpenSession") (slotid,
 						CKF_SERIAL_SESSION |
 					(choice_rw? CKF_RW_SESSION: 0),
 						(void *) &noappinfo, NULL_PTR, &seshdl));
@@ -302,7 +309,7 @@ void testslot_initiation (void) {
 		 * Login as the token user or SO (with 10% chance of failure).
 		 */
 		if (choice_login) {
-			GETRV (C_Login (seshdl,
+			GETRV (P11("C_Login") (seshdl,
 					choice_user? CKU_USER: CKU_SO,
 					(CK_UTF8CHAR_PTR) (choice_user? ASCII_PIN_USER: ASCII_PIN_SO),
 					choice_user? strlen (ASCII_PIN_USER): strlen (ASCII_PIN_SO)));
@@ -342,7 +349,7 @@ void testslot_initiation (void) {
 		 * Operation 1.  Initialise the user PIN.
 		 * This is only possible during an SO RW session.
 		 */
-		GETRV (C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		GETRV (P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		if (choice_session && choice_login && choice_rw && !choice_user) {
 			if (LASTRVOK ()) {
 				CU_PASS ("Properly accepted operation #1 during initiation test");
@@ -362,7 +369,7 @@ void testslot_initiation (void) {
 		 * This is only possible during an RW session.
 		 * Login need not have succeeded for this to work.
 		 */
-		GETRV (C_SetPIN (seshdl,
+		GETRV (P11("C_SetPIN") (seshdl,
 			(CK_UTF8CHAR_PTR) (choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
 			(CK_ULONG) (choice_login && !choice_user)? strlen (ASCII_PIN_SO): strlen (ASCII_PIN_USER),
 			(CK_UTF8CHAR_PTR) (choice_login && !choice_user)? ASCII_PIN_SO: ASCII_PIN_USER,
@@ -385,7 +392,7 @@ void testslot_initiation (void) {
 		 * Logout from the current session.  Note errors and check
 		 * if they are rightfully reported.
 		 */
-		GETRV (C_Logout (seshdl));
+		GETRV (P11("C_Logout") (seshdl));
 		if (LASTRVOK ()) {
 			if (choice_session && choice_login) {
 				CU_PASS ("Properly accepted logout in initiation test");
@@ -404,7 +411,7 @@ void testslot_initiation (void) {
 		 * Logout from the current session.  Note errors and check
 		 * if they are rightfully reported.
 		 */
-		GETRV (C_Logout (seshdl));
+		GETRV (P11("C_Logout") (seshdl));
 		if (! LASTRVOK ()) {
 			if (choice_session && choice_login) {
 				CU_FAIL ("Incorrectly failed logout in initiation test");
@@ -415,7 +422,7 @@ void testslot_initiation (void) {
 		 * Close the current session.  Note errors and check if they
 		 * are rightfully reported.
 		 */
-		GETRV (C_CloseSession (seshdl));
+		GETRV (P11("C_CloseSession") (seshdl));
 		if (LASTRVOK ()) {
 			if (choice_session) {
 				CU_PASS ("Properly accepted session close in initiation test");
@@ -467,7 +474,7 @@ void testslot_fragmentation (void) {
 	 *  Open RW session with slot
 	 */
 	TESTRV ("Opening session for fragmentation test",
-		C_OpenSession (slotid, CKF_SERIAL_SESSION | CKF_RW_SESSION,
+		P11("C_OpenSession") (slotid, CKF_SERIAL_SESSION | CKF_RW_SESSION,
 				(void *) &noappinfo, NULL_PTR, &seshdl));
 	MKFATAL ();
 
@@ -476,14 +483,14 @@ void testslot_fragmentation (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			C_Login (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
 		TESTRV ("Setting up user PIN",
-			C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		TESTRV ("Logging out after setting setting up PIN",
-			C_Logout (seshdl));
+			P11("C_Logout") (seshdl));
 #	endif
 	TESTRV ("Logging into token for fragmentation test",
-		C_Login (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 	MKFATAL ();
 
 	/*
@@ -551,9 +558,9 @@ void testslot_fragmentation (void) {
 	for (testctr = 0; testctr < THOUSANDS; testctr++) {
 		int victim = randomish (keypairs);
 		TESTRV ("Removing a private key for fragmentation testing",
-			 C_DestroyObject (seshdl, keys [victim].priv));
+			 P11("C_DestroyObject") (seshdl, keys [victim].priv));
 		TESTRV ("Removing a public key for fragmentation testing",
-			 C_DestroyObject (seshdl, keys [victim].pub));
+			 P11("C_DestroyObject") (seshdl, keys [victim].pub));
 		TESTRV ("Creating new key pair that ought to just fit in prior deleted key storage space",
 			newkeypair (
 				seshdl,
@@ -568,18 +575,18 @@ void testslot_fragmentation (void) {
 	 */
 	for (kp=0; kp<keypairs; kp++) {
 		TESTRV ("Removing a private key after fragmentation test",
-			 C_DestroyObject (seshdl, keys [kp].priv));
+			 P11("C_DestroyObject") (seshdl, keys [kp].priv));
 		TESTRV ("Removing a public key after fragmentation test",
-			 C_DestroyObject (seshdl, keys [kp].pub));
+			 P11("C_DestroyObject") (seshdl, keys [kp].pub));
 	}
 	if (keys) {
 		free (keys);
 		keys = NULL;
 	}
 	TESTRV ("Logging out after fragmentation test",
-		 C_Logout (seshdl));
+		 P11("C_Logout") (seshdl));
 	TESTRV ("Closing session after fragmentation test",
-		 C_CloseSession (seshdl));
+		 P11("C_CloseSession") (seshdl));
 }
 
 
@@ -602,7 +609,7 @@ void testslot_keysizing (void) {
 	 *  Open RW session with slot
 	 */
 	TESTRV ("Opening session for fragmentation test",
-		C_OpenSession (slotid, CKF_SERIAL_SESSION | CKF_RW_SESSION,
+		P11("C_OpenSession") (slotid, CKF_SERIAL_SESSION | CKF_RW_SESSION,
 				(void *) &noappinfo, NULL_PTR, &seshdl));
 	MKFATAL ();
 
@@ -611,14 +618,14 @@ void testslot_keysizing (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			C_Login (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
 		TESTRV ("Setting up user PIN",
-			C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		TESTRV ("Logging out after setting setting up PIN",
-			C_Logout (seshdl));
+			P11("C_Logout") (seshdl));
 #	endif
 	TESTRV ("Logging into token for keysizing test",
-		C_Login (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 	MKFATAL ();
 
 	/*
@@ -650,7 +657,7 @@ void testslot_keysizing (void) {
 		ok = ok && (retval == CKR_OK);
 		if (ok) {
 			TESTRV ("Obtaining length of modulus attribute field",
-				C_GetAttributeValue (seshdl, pub, templ, sizeof (templ) / sizeof (*templ)));
+				P11("C_GetAttributeValue") (seshdl, pub, templ, sizeof (templ) / sizeof (*templ)));
 			ok = ok && LASTRVOK ();
 		}
 		if (ok) {
@@ -659,7 +666,7 @@ void testslot_keysizing (void) {
 			CU_ASSERT_PTR_NOT_NULL (modulus);
 			templ [0].pValue = (CK_VOID_PTR) modulus;
 			TESTRV ("Obtaining modulus attribute field",
-				C_GetAttributeValue (seshdl, pub, templ, sizeof (templ) / sizeof (*templ)));
+				P11("C_GetAttributeValue") (seshdl, pub, templ, sizeof (templ) / sizeof (*templ)));
 			ok = ok && LASTRVOK ();
 			CU_ASSERT_NOT_EQUAL_FATAL ((CK_ULONG) templ [0].ulValueLen, (CK_ULONG) -1);
 			while ((templ [0].ulValueLen > 0) && (*modulus == 0x00)) {
@@ -679,9 +686,9 @@ void testslot_keysizing (void) {
 		}
 		if (retval == CKR_OK) {
 			TESTRV ("Destroying private key in modulus size test",
-				 C_DestroyObject (seshdl, priv));
+				 P11("C_DestroyObject") (seshdl, priv));
 			TESTRV ("Destroying public key in modulus size test",
-				 C_DestroyObject (seshdl, pub));
+				 P11("C_DestroyObject") (seshdl, pub));
 		}
 		curbytes++;
 	}
@@ -690,9 +697,9 @@ void testslot_keysizing (void) {
 	 * Cleanup.
 	 */
 	TESTRV ("Logging out after modulus size test",
-		 C_Logout (seshdl));
+		 P11("C_Logout") (seshdl));
 	TESTRV ("Closing session after modulus size test",
-		 C_CloseSession (seshdl));
+		 P11("C_CloseSession") (seshdl));
 
 }
 
@@ -715,7 +722,7 @@ void testslot_signing (void) {
 	 *  Open RW session with slot
 	 */
 	TESTRV ("Opening session for fragmentation test",
-		C_OpenSession (slotid, CKF_SERIAL_SESSION | CKF_RW_SESSION,
+		P11("C_OpenSession") (slotid, CKF_SERIAL_SESSION | CKF_RW_SESSION,
 				(void *) &noappinfo, NULL_PTR, &seshdl));
 	MKFATAL ();
 
@@ -724,14 +731,14 @@ void testslot_signing (void) {
 	 */
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Logging into token for setting up PIN",
-			C_Login (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
+			P11("C_Login") (seshdl, CKU_SO, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO)));
 		TESTRV ("Setting up user PIN",
-			C_InitPIN (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+			P11("C_InitPIN") (seshdl, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 		TESTRV ("Logging out after setting setting up PIN",
-			C_Logout (seshdl));
+			P11("C_Logout") (seshdl));
 #	endif
 	TESTRV ("Logging into token for signing test",
-		C_Login (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
+		P11("C_Login") (seshdl, CKU_USER, (CK_UTF8CHAR_PTR) ASCII_PIN_USER, strlen (ASCII_PIN_USER)));
 	MKFATAL ();
 
 	/*
@@ -776,18 +783,18 @@ void testslot_signing (void) {
 			}
 			siglen = maxbytes;
 			TESTRV ("Initiating signature",
-				C_SignInit (seshdl, &mech, priv));
+				P11("C_SignInit") (seshdl, &mech, priv));
 			TESTRV ("Constructing signature",
-				C_Sign (seshdl, data, sizeof (data), sig, &siglen));
+				P11("C_Sign") (seshdl, data, sizeof (data), sig, &siglen));
 			if (siglen * 8 != (CK_ULONG) modbits) {
 				CU_FAIL ("Signature length differs from promised length in signing test");
 			} else {
 				CU_PASS ("Signature length matches promised length in signing test");
 			}
 			TESTRV ("Initiating signature verification",
-				C_VerifyInit (seshdl, &mech, pub));
+				P11("C_VerifyInit") (seshdl, &mech, pub));
 			TESTRV ("Performing signature verification",
-				C_Verify (seshdl, data, sizeof (data), sig, siglen));
+				P11("C_Verify") (seshdl, data, sizeof (data), sig, siglen));
 			if (! LASTRVOK () ) {
 				CU_FAIL ("Signature was incorrectly made in signing test");
 			} else {
@@ -799,18 +806,18 @@ void testslot_signing (void) {
 		/* Destroy the key pair used in this test iteration.
 		 */
 		TESTRV ("Destroying private key in modulus size test",
-			 C_DestroyObject (seshdl, priv));
+			 P11("C_DestroyObject") (seshdl, priv));
 		TESTRV ("Destroying public key in modulus size test",
-			 C_DestroyObject (seshdl, pub));
+			 P11("C_DestroyObject") (seshdl, pub));
 	}
 
 	/*
 	 * Cleanup.
 	 */
 	TESTRV ("Logging out after modulus size test",
-		 C_Logout (seshdl));
+		 P11("C_Logout") (seshdl));
 	TESTRV ("Closing session after modulus size test",
-		 C_CloseSession (seshdl));
+		 P11("C_CloseSession") (seshdl));
 }
 
 
@@ -821,7 +828,11 @@ void testslot_signing (void) {
  */
 void bailout (void) {
 	TESTRV ("Finalising PKCS #11 library",
-		 C_Finalize (NULL_PTR));
+		 P11("C_Finalize") (NULL_PTR));
+	if (p11) {
+		dlclose (p11);
+		p11 = NULL;
+	}
 	CU_cleanup_registry ();
 }
 
@@ -831,7 +842,7 @@ void bailout (void) {
 void inittoken (void) {
 #	ifndef NON_DESTRUCTIVE_TESTING
 		TESTRV ("Formatting the token",
-			 C_InitToken (slotid, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO), (CK_UTF8CHAR_PTR) TOKENLABEL_32CHARS));
+			 P11("C_InitToken") (slotid, (CK_UTF8CHAR_PTR) ASCII_PIN_SO, strlen (ASCII_PIN_SO), (CK_UTF8CHAR_PTR) TOKENLABEL_32CHARS));
 #	else
 	CU_PASS ("Skipping token initialisation in non-destructive test mode.  Existing USER/SO PIN values must be as set in source.");
 #	endif
@@ -846,6 +857,26 @@ int main (int argc, char *argv []) {
 	CK_SLOT_ID slotlist [2];
 	CK_ULONG slotcount = 2;
 	CU_pSuite st [4];
+
+	/*
+	 * Test arguments.
+	 */
+	if ((argc != 2) || (argv [0] == NULL)) {
+		fprintf (stderr, "Usage: %s /path/to/libpkcs11.so\n", argv [0]);
+		exit (1);
+	}
+	if (strcasestr (argv [1], "softhsm")) {
+		fprintf (stderr, "WARNING -- It appears you are using the SoftHSM library.\nIt may not constrain memory size, causing this test to run extremely long.\n");
+	}
+
+	/*
+	 * Open the PKCS #11 library.
+	 */
+	p11 = dlopen (argv [1], RTLD_NOW | RTLD_GLOBAL);
+	if (!p11) {
+		fprintf (stderr, "%s\n", dlerror ());
+		exit (1);
+	}
 
 	/*
  	 * Register test suites and tests.
@@ -883,11 +914,11 @@ int main (int argc, char *argv []) {
 	 * Initialise the library and demand only one slot with a token.
 	 */
 	TESTRV ("Initialising PKCS #11 library",
-		 C_Initialize (NULL_PTR));
+		 P11("C_Initialize") (NULL_PTR));
 	MKFATAL ();
 	atexit (bailout);
 	TESTRV ("Obtaining list of slots",
-		 C_GetSlotList (TRUE, slotlist, &slotcount));
+		 P11("C_GetSlotList") (TRUE, slotlist, &slotcount));
 	if (slotcount != 1) {
 		fprintf (stderr, "Number of slots is %d, so not equal to 1 -- unsure which to test\n", (int) slotcount);
 		exit (1);
@@ -898,13 +929,13 @@ int main (int argc, char *argv []) {
 	 * Obtain mechanism information from the token.
  	 */
 	TESTRV ("Getting number of mechanisms from token",
-		 C_GetMechanismInfo (slotid, CKM_RSA_PKCS_KEY_PAIR_GEN, &mech_rsa_pkcs_key_pair_gen));
+		 P11("C_GetMechanismInfo") (slotid, CKM_RSA_PKCS_KEY_PAIR_GEN, &mech_rsa_pkcs_key_pair_gen));
 	MKFATAL ();
 	TESTRV ("Getting number of mechanisms from token",
-		 C_GetMechanismInfo (slotid, CKM_SHA1_RSA_PKCS, &mech_sha1_rsa_pkcs));
+		 P11("C_GetMechanismInfo") (slotid, CKM_SHA1_RSA_PKCS, &mech_sha1_rsa_pkcs));
 	MKFATAL ();
 	TESTRV ("Getting number of mechanisms from token",
-		 C_GetMechanismInfo (slotid, CKM_SHA_1, &mech_sha_1));
+		 P11("C_GetMechanismInfo") (slotid, CKM_SHA_1, &mech_sha_1));
 	MKFATAL ();
 
 	/*
@@ -920,6 +951,14 @@ int main (int argc, char *argv []) {
 	 */
 	CU_list_tests_to_file ();
 	CU_automated_run_tests ();
+
+	/*
+	 * Unload the PKCS #11 library
+	 */
+	if (p11) {
+		dlclose (p11);
+		p11 = NULL;
+	}
 
 	/*
 	 * Terminate without error-reporting return value.

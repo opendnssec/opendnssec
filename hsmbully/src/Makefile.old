@@ -5,10 +5,11 @@ PKCS11INC=./pkcs11-include/
 
 CUNITLIB=/usr/local/lib/libcunit.a
 # PKCS11LIB=/usr/lib/libepsng_p11.so
-PKCS11LIB=/usr/local/lib/libsofthsm.so
+# PKCS11LIB=/usr/local/lib/libsofthsm.so
 
 INCS=-I $(CUNITINC) -I $(PKCS11INC)
-LIBS=$(CUNITLIB) $(PKCS11LIB) -lbotan
+# LIBS=$(CUNITLIB) $(PKCS11LIB) -lbotan
+LIBS=$(CUNITLIB) -ldl -lm
 
 #
 # During development of this test, it takes too long to run tests at full
