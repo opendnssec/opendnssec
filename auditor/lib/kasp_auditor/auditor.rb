@@ -274,14 +274,12 @@ module KASPAuditor
         end
 
         #  d) expiration date in future by at least interval specified by config
-        validity = @config.signatures.validity.default
-        if ([Types.NSEC, Types.NSEC3, Types.NSEC3PARAM].include?rrset.type)
-          validity = @config.signatures.validity.denial
-        end
-        #  We want to check that at least the validity period remains before the signatures expire
-        # @TODO@ Probably want to have a validity WARN level and an ERROR level for validity
-        if ((sig.expiration -  time_now).abs <=  validity)
-          log(LOG_ERR, "Validity error for #{sig.name}, #{sig.type_covered} : Validity is #{validity}, but only #{sig.expiration - time_now} remain (signature expiration is #{sig.expiration}, time now is #{time_now})")
+        refresh = @config.signatures.refresh
+        # We want to check that there is at least the refresh period left before
+        # the signature expires.
+        # @TODO@ Probably want to have a WARN level and an ERROR level
+        if (time_now > (sig.expiration - refresh))
+          log(LOG_ERR, "Signature expiration (#{sig.expiration}) for #{sig.name}, #{sig.type_covered} should be later than the refresh period (#{refresh}) from now #{time_now}")
         else
           #            print "OK : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}\n"
         end
