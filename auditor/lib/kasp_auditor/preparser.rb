@@ -11,15 +11,17 @@ module KASPAuditor
     # @TODO@ Need to use different separator - difficult, since arbitrary data
     # can be encoded in name labels. Just have to hope we don't find a zone
     # with many vertical tabs in the names!
-    SEPARATOR = "\v" # "\v" Vertical Tab
-
+    SORT_SEPARATOR = "\v" # "\v" Vertical Tab
+    
+    NAME_SEPARATOR = "\0\0$~$~$~\0\0"
+    LABEL_SEPARATOR = "\0\1\0"
 
 
     # Call the OS sort command (with the appropriate separator).
     def sort(file1, file2)
       file1=(file1.to_s+"").untaint
       file2=(file2.to_s+"").untaint
-      system("sort -f -t'#{SEPARATOR}' #{file1} > #{file2}")
+      system("sort -f -t'#{SORT_SEPARATOR}' #{file1} > #{file2}")
     end
 
     # Take an input zone file ("zonefile") and output a new file ("zonefile.sorted")
@@ -77,7 +79,7 @@ module KASPAuditor
               line, domain, type = normalise_line(line, origin, last_name)
               last_name = domain
               # Append the domain name and the RR Type here - e.g. "$NS"
-              line = prepare(domain) + "$" + type + SEPARATOR + line
+              line = prepare(domain) + NAME_SEPARATOR + type + SORT_SEPARATOR + line
               f.write(line)
             }
           rescue Errno::ENOENT
@@ -98,10 +100,10 @@ module KASPAuditor
         name = Name.create(domain)
         labels = name.labels
         new_name = Name.new(labels.reverse, true)
-        return new_name.to_s.downcase
+        return new_name.labels.join(LABEL_SEPARATOR).downcase
       else
         # Simply reverse each label
-        return domain.split(".").reverse!.join(".").downcase
+        return domain.split(".").reverse!.join(LABEL_SEPARATOR).downcase
       end
     end
 

@@ -174,7 +174,8 @@ module KASPAuditor
         next if (!line || (line.length == 0))
         # Strip off prepended name up to "\v" character before creating RR
         begin
-          rr_text = line[line.index(Preparser::SEPARATOR) + 1, line.length]
+          rr_text = line[line.index(Preparser::SORT_SEPARATOR) + 
+              Preparser::SORT_SEPARATOR.length, line.length]
           rr = RR.create(rr_text)
           #          print "Loaded #{rr}\n"
           return rr
