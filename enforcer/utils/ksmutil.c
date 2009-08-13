@@ -518,16 +518,16 @@ cmd_addzone (int argc, char *argv[])
     else {
         StrAppend(&policy_name, "default");
 
-        StrAppend(&sig_conf_name, VAR_DIR);
+        StrAppend(&sig_conf_name, LOCALSTATE_DIR);
         StrAppend(&sig_conf_name, "/signconf/");
         StrAppend(&sig_conf_name, zone_name);
         StrAppend(&sig_conf_name, ".xml");
 
-        StrAppend(&input_name, VAR_DIR);
+        StrAppend(&input_name, LOCALSTATE_DIR);
         StrAppend(&input_name, "/unsigned/");
         StrAppend(&input_name, zone_name);
 
-        StrAppend(&output_name, VAR_DIR);
+        StrAppend(&output_name, LOCALSTATE_DIR);
         StrAppend(&output_name, "/signed/");
         StrAppend(&output_name, zone_name);
     }
@@ -1929,16 +1929,12 @@ int update_policies(char* kasp_filename)
     KSM_POLICY *policy;
 
     /* Some files, the xml and rng */
-    char* rngfilename = NULL;
-
-    StrAppend(&rngfilename, SCHEMA_DIR);
-    StrAppend(&rngfilename, "/kasp.rng");
+    const char* rngfilename = SCHEMA_DIR "/kasp.rng";
 
     /* Load XML document */
     doc = xmlParseFile(kasp_filename);
     if (doc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", kasp_filename);
-        StrFree(rngfilename);
         return(-1);
     }
 
@@ -1946,10 +1942,8 @@ int update_policies(char* kasp_filename)
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", rngfilename);
-        StrFree(rngfilename);
         return(-1);
     }
-    StrFree(rngfilename);
 
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
@@ -2713,16 +2707,12 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     char* temp_char = NULL;
 
     /* Some files, the xml and rng */
-    char* rngfilename = NULL;
-
-    StrAppend(&rngfilename, SCHEMA_DIR);
-    StrAppend(&rngfilename, "/conf.rng");
+    const char* rngfilename = SCHEMA_DIR "/conf.rng";
 
     /* Load XML document */
     doc = xmlParseFile(config);
     if (doc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", config);
-        StrFree(rngfilename);
         return(-1);
     }
 
@@ -2730,10 +2720,8 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", rngfilename);
-        StrFree(rngfilename);
         return(-1);
     }
-    StrFree(rngfilename);
 
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);

@@ -91,20 +91,18 @@ opendnssecdatadir=$full_datadir/opendnssec
 opendnsseclocalstatedir="$full_localstatedir/opendnssec"
 
 conf_file=$opendnssecsysconfdir/conf.xml
-conf_schema=$opendnssecdatadir/conf.rng
 com_pid_file=$localstatedir/run/opendnssec/communicated.pid
 keygen_pid_file=$localstatedir/run/opendnssec/keygend.pid
 signer_cli="$prefix/bin/signer_engine_cli update"
 
 AC_DEFINE_UNQUOTED(CONFIG_DIR, ["`eval echo $opendnssecsysconfdir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
 AC_DEFINE_UNQUOTED(CONFIG_FILE, ["`eval echo $conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
-AC_DEFINE_UNQUOTED(CONFIG_RNG, ["`eval echo $conf_schema  | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration schema file])
 
 AC_DEFINE_UNQUOTED(COM_PIDFILE, ["`eval echo $com_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC communicated pid file])
 AC_DEFINE_UNQUOTED(KEYGEN_PIDFILE, ["`eval echo $keygen_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC keygend pid file])
 
 AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["`eval echo $signer_cli | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine cli])
-AC_DEFINE_UNQUOTED(VAR_DIR, ["`eval echo $opendnsseclocalstatedir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC var directory])
+AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, ["`eval echo $opendnsseclocalstatedir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC var directory])
 AC_DEFINE_UNQUOTED(SCHEMA_DIR, ["`eval echo $opendnssecdatadir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC data files])
 
 

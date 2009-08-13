@@ -81,7 +81,7 @@ permsDrop(DAEMONCONFIG* config)
     xmlChar *group_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/Group";
 
     char* filename = CONFIG_FILE;
-    char* rngfilename = CONFIG_RNG;
+    char* rngfilename = SCHEMA_DIR "/conf.rng";
 
     char* temp_char = NULL;
     struct passwd *pwd;
@@ -414,7 +414,7 @@ ReadConfig(DAEMONCONFIG *config)
     int status;
     int db_found = 0;
     char* filename = CONFIG_FILE;
-    char* rngfilename = CONFIG_RNG;
+    char* rngfilename = SCHEMA_DIR "/conf.rng";
 
     log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
 
