@@ -791,6 +791,43 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy)
     return status;
 }
 
+KSM_POLICY *KsmPolicyAlloc()
+{
+        KSM_POLICY *policy;
+    
+        policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+        policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
+        policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+        policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+        policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+        policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
+        policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+        policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+        policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+        policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+        policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+        /*  policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
+        policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
+        
+        /*  if allocation fails, return NULL*/
+        if (policy->description == NULL ||
+            policy->signer == NULL ||
+            policy->signature == NULL ||
+            policy->denial == NULL ||
+            policy->keys == NULL ||
+            policy->ksk == NULL ||
+            policy->zsk == NULL || 
+            policy->enforcer == NULL ||
+            policy->zone == NULL ||
+            policy->parent == NULL || 
+            policy->audit == NULL) {
+                KsmPolicyFree(policy);
+                return NULL;
+        }
+        
+        return policy;
+}
+
 void KsmPolicyFree(KSM_POLICY *policy)
 {	
     free(policy->name);
