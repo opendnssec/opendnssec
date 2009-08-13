@@ -86,38 +86,51 @@ module KASPAuditor
       pid = Process.pid
       ret = 999 # Return value to controlling process
       zones.each {|config, input_file, output_file|
-
-        # PREPARSE THE INPUT AND OUTPUT FILES!!!
-        pp = Preparser.new()
-        pids=[]
-        new_pid = normalise_and_sort(input_file, "in", pid, working, pp)
-        pids.push(new_pid)
-        new_pid = normalise_and_sort(output_file, "out", pid, working, pp)
-        pids.push(new_pid)
         do_audit = true
-        pids.each {|id|
-          ret_id, ret_status = Process.wait2(id)
-          if (ret_status != 0)
-            syslog.log(LOG_ERR, "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone")
-            ret = 1
-            do_audit = false
-          end
+        [{input_file, "Unsigned"}, {output_file, "Signed"}].each {|set|
+          set.each {|f, text|
+            if (!(File.exist?((f.to_s+"").untaint)))
+              msg = "#{text} file #{f} does not exist"
+              print(msg+"\n")
+              syslog.log(LOG_ERR, msg)
+              ret = 1
+              do_audit = false
+            end
+          }
         }
+
         if (do_audit)
-          # Now audit the pre-parsed and sorted file
-          auditor = Auditor.new(syslog, working)
-          ret_val = auditor.check_zone(config, working+get_name(input_file)+".in.sorted.#{pid}",
-            working + get_name(output_file)+".out.sorted.#{pid}",
-            input_file, output_file)
-          ret = ret_val if (ret_val < ret)
-          if ((config.err > 0) && (config.err < ret))
-            ret = config.err
+          # PREPARSE THE INPUT AND OUTPUT FILES!!!
+          pp = Preparser.new()
+          pids=[]
+          new_pid = normalise_and_sort(input_file, "in", pid, working, pp)
+          pids.push(new_pid)
+          new_pid = normalise_and_sort(output_file, "out", pid, working, pp)
+          pids.push(new_pid)
+          pids.each {|id|
+            ret_id, ret_status = Process.wait2(id)
+            if (ret_status != 0)
+              syslog.log(LOG_ERR, "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone")
+              ret = 1
+              do_audit = false
+            end
+          }
+          if (do_audit)
+            # Now audit the pre-parsed and sorted file
+            auditor = Auditor.new(syslog, working)
+            ret_val = auditor.check_zone(config, working+get_name(input_file)+".in.sorted.#{pid}",
+              working + get_name(output_file)+".out.sorted.#{pid}",
+              input_file, output_file)
+            ret = ret_val if (ret_val < ret)
+            if ((config.err > 0) && (config.err < ret))
+              ret = config.err
+            end
           end
+          [input_file + ".in", output_file + ".out"].each {|f|
+            delete_file(working + get_name(f)+".parsed.#{pid}")
+            delete_file(working + get_name(f)+".sorted.#{pid}")
+          }
         end
-        [input_file + ".in", output_file + ".out"].each {|f|
-          delete_file(working + get_name(f)+".parsed.#{pid}")
-          delete_file(working + get_name(f)+".sorted.#{pid}")
-        }
       }
       ret = 0 if (ret == -99)
       ret = 0 if (ret >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
@@ -144,7 +157,7 @@ module KASPAuditor
     def get_name(f)
       # Return the filename, minus the path
       a = f.split(File::SEPARATOR)
-      return "/" + a[a.length()-1]
+      return File::SEPARATOR + a[a.length()-1]
     end
 
     # Given a list of configured zones, and a list of zones_to_audit, return
