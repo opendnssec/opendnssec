@@ -893,19 +893,7 @@ cmd_export (int argc, char *argv[])
     xmlSaveFormatFile("-", doc, 1);
 
     xmlFreeDoc(doc);
-    free(policy->description);
-    free(policy->name);
-    free(policy->audit);
-    free(policy->enforcer);
-    free(policy->denial);
-    free(policy->keys);
-    free(policy->zsk);
-    free(policy->ksk);
-    free(policy->zone);
-    free(policy->parent);
-    free(policy->signature);
-    free(policy->signer);
-    free(policy);
+    KsmPolicyFree(policy);
 
     DbDisconnect(dbhandle);
 
@@ -2343,20 +2331,7 @@ int update_policies(char* kasp_filename)
     xmlRelaxNGFreeParserCtxt(rngpctx);
     xmlFreeDoc(doc);
     xmlFreeDoc(rngdoc);
-
-    free(policy->description);
-    StrFree(policy->name);
-    free(policy->audit);
-    free(policy->enforcer);
-    free(policy->denial);
-    free(policy->keys);
-    free(policy->zsk);
-    free(policy->ksk);
-    free(policy->zone);
-    free(policy->parent);
-    free(policy->signature);
-    free(policy->signer);
-    free(policy);
+    KsmPolicyFree(policy);
 
     return(status);
 }

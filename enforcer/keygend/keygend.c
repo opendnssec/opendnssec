@@ -358,17 +358,5 @@ server_main(DAEMONCONFIG *config)
     result = hsm_close();
     log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
 
-    free(policy->name);
-    free(policy->description);
-    free(policy->audit);
-    free(policy->enforcer);
-    free(policy->denial);
-    free(policy->zsk);
-    free(policy->ksk);
-    free(policy->keys);
-    free(policy->zone);
-    free(policy->parent);
-    free(policy->signature);
-    free(policy->signer);
-    free(policy);
+    KsmPolicyFree(policy);
 }

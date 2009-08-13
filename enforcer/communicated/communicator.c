@@ -400,21 +400,7 @@ server_main(DAEMONCONFIG *config)
     log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
 
     StrFree(zonelist_filename);
-
-    free(policy->name);
-    free(policy->description);
-    free(policy->audit);
-    free(policy->enforcer);
-    free(policy->denial);
-    free(policy->zsk);
-    free(policy->ksk);
-    free(policy->keys);
-    free(policy->zone);
-    free(policy->parent);
-    free(policy->signature);
-    free(policy->signer);
-    free(policy);
-
+    KsmPolicyFree(policy);
 }
 
 /*

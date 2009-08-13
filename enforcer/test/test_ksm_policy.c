@@ -88,18 +88,7 @@ static void TestKsmPolicyRead(void)
 
 	CU_ASSERT_EQUAL(status, 0);
 
-    free(policy->description);
-    free(policy->audit);
-	free(policy->enforcer);
-	free(policy->denial);
-	free(policy->keys);
-	free(policy->zsk);
-	free(policy->ksk);
-    free(policy->zone);
-    free(policy->parent);
-	free(policy->signature);
-	free(policy->signer);
-	free(policy);
+    KsmPolicyFree(policy);
 }
 
 static void TestKsmPolicyReadId(void)
@@ -136,19 +125,7 @@ static void TestKsmPolicyReadId(void)
 
 	CU_ASSERT_EQUAL(status, 0);
 
-    free(policy->description);
-	free(policy->name);
-    free(policy->audit);
-	free(policy->enforcer);
-	free(policy->denial);
-	free(policy->keys);
-	free(policy->zsk);
-	free(policy->ksk);
-    free(policy->zone);
-    free(policy->parent);
-	free(policy->signature);
-	free(policy->signer);
-	free(policy);
+    KsmPolicyFree(policy);
 }
 
 static void TestKsmPolicy2(void)
@@ -190,20 +167,8 @@ static void TestKsmPolicy2(void)
 		DbFreeResult(result);
 
 	}
-	;
-    free(policy->description);
-	free(policy->name);
-    free(policy->audit);
-	free(policy->enforcer);
-	free(policy->denial);
-	free(policy->keys);
-	free(policy->zsk);
-	free(policy->ksk);
-    free(policy->zone);
-    free(policy->parent);
-	free(policy->signature);
-	free(policy->signer);
-	free(policy);
+	
+	KsmPolicyFree(policy);
 }
 
 /*+
@@ -242,18 +207,7 @@ static void TestKsmPolicySalt(void)
 
 	CU_ASSERT_EQUAL(status, 0);
 
-    free(policy->description);
-    free(policy->audit);
-	free(policy->enforcer);
-	free(policy->denial);
-	free(policy->keys);
-	free(policy->zsk);
-	free(policy->ksk);
-    free(policy->zone);
-    free(policy->parent);
-	free(policy->signature);
-	free(policy->signer);
-	free(policy);
+    KsmPolicyFree(policy);
 
     DbCommit();
 }
