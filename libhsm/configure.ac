@@ -83,12 +83,11 @@ AC_CONFIG_FILES([
 Makefile
 src/Makefile
 checks/Makefile
-])
-
-AC_OUTPUT([
 checks/conf-softhsm.xml
 checks/conf-sca6000.xml
 checks/conf-etoken.xml
 checks/conf-multi.xml
 checks/conf-opensc.xml
 ])
+
+AC_OUTPUT
