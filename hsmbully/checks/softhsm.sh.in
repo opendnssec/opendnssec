@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# $Id$
+
+SOFTHSM_CONF=softhsm.conf
+export SOFTHSM_CONF
+
+USER_PIN=1234
+SO_PIN=12345678
+
+rm -f ${SOFTHSM_CONF}
+echo "0:hsmbully.db" >${SOFTHSM_CONF}
+
+softhsm --init-token --slot 0 --label 'hsmbully test token' --pin ${USER_PIN} --so-pin ${SO_PIN}
+
+../src/hsmbully --pin ${USER_PIN} --so-pin ${SO_PIN} --pkcs11lib @pkcs11_softhsm_module@
