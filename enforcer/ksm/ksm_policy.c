@@ -790,3 +790,20 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy)
     DbFreeResult(result);
     return status;
 }
+
+void KsmPolicyFree(KSM_POLICY *policy)
+{	
+    free(policy->name);
+    free(policy->description);
+    free(policy->signer);
+    free(policy->signature);
+    free(policy->denial);
+    free(policy->keys);
+    free(policy->ksk);
+    free(policy->zsk);
+    free(policy->enforcer);
+    free(policy->zone);
+    free(policy->parent);
+    free(policy->audit);
+    free(policy);
+}

@@ -275,6 +275,7 @@ int KsmPolicyNameFromId(KSM_POLICY* policy);
 int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx);
 int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy);
 int KsmPolicySetIdFromName(KSM_POLICY *policy);
+void KsmPolicyFree(KSM_POLICY *policy);
 
 /* ksmZone */
 typedef struct {
