@@ -63,7 +63,7 @@
 
 extern char *optarg;
 char *progname = "ksmutil";
-char *config = (char *) CONFIGDIR;
+char *config = (char *) CONFIG_DIR;
 
     void
 usage_setup ()
@@ -754,7 +754,7 @@ cmd_delzone (int argc, char *argv[])
     }
 
     /* TODO call the signer_engine_cli to tell it that the zonelist has changed */
-    if (system(SIGNER_CLI) != 0)
+    if (system(SIGNER_CLI_COMMAND) != 0)
     {
         printf("Could not call signer_engine\n");
     }
@@ -1944,7 +1944,7 @@ int update_policies(char* kasp_filename)
     /* Some files, the xml and rng */
     char* rngfilename = NULL;
 
-    StrAppend(&rngfilename, SCHEMADIR);
+    StrAppend(&rngfilename, SCHEMA_DIR);
     StrAppend(&rngfilename, "/kasp.rng");
 
     /* Load XML document */
@@ -2745,7 +2745,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     StrAppend(&filename, config);
     StrAppend(&filename, "/conf.xml");
 
-    StrAppend(&rngfilename, SCHEMADIR);
+    StrAppend(&rngfilename, SCHEMA_DIR);
     StrAppend(&rngfilename, "/conf.rng");
 
     /* Load XML document */

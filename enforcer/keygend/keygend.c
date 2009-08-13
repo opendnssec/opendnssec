@@ -60,7 +60,7 @@ server_init(DAEMONCONFIG *config)
 
     /* set the default pidfile if nothing was provided on the command line*/
     if (config->pidfile == NULL) {
-        config->pidfile = KEYGEN_PID;
+        config->pidfile = KEYGEN_PIDFILE;
     }
 
     return 0;
@@ -128,7 +128,7 @@ server_main(DAEMONCONFIG *config)
     kaspSetPolicyDefaults(policy, NULL);
    
     /* We keep the HSM connection open for the lifetime of the daemon */ 
-    result = hsm_open(CONFIGFILE, hsm_prompt_pin, NULL);
+    result = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
     log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
     ctx = hsm_create_context();
 

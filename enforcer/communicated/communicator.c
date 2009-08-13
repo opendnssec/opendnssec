@@ -64,7 +64,7 @@ server_init(DAEMONCONFIG *config)
 
     /* set the default pidfile if nothing was provided on the command line*/
     if (config->pidfile == NULL) {
-        config->pidfile = COM_PID;
+        config->pidfile = COM_PIDFILE;
     }
 
     return 0;
@@ -149,7 +149,7 @@ server_main(DAEMONCONFIG *config)
     }
 
     /* We keep the HSM connection open for the lifetime of the daemon */ 
-    result = hsm_open(CONFIGFILE, hsm_prompt_pin, NULL);
+    result = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
     log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
     ctx = hsm_create_context();
 
@@ -629,7 +629,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                should we call it here or after we have written all of the files?
                have timeout if call is blocking */
             signer_command = NULL;
-            StrAppend(&signer_command, SIGNER_CLI);
+            StrAppend(&signer_command, SIGNER_CLI_COMMAND);
             StrAppend(&signer_command, " ");
             StrAppend(&signer_command, zone_name);
 
@@ -805,7 +805,7 @@ int read_zonelist_filename(char** zone_list_filename)
 
     xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
 
-    StrAppend(&filename, CONFIGFILE);
+    StrAppend(&filename, CONFIG_FILE);
     /* Start reading the file; we will be looking for "Common" tags */ 
     reader = xmlNewTextReaderFilename(filename);
     if (reader != NULL) {
