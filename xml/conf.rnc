@@ -20,7 +20,10 @@ start = element Configuration {
 			element PIN { xsd:string },
 
 			# Maxmimum number of key pairs in the Repository (if limited)
-			element Capacity { xsd:positiveInteger }?
+			element Capacity { xsd:positiveInteger }?,
+			
+			# Require backup of keys before use (recommended, but not default)
+			element RequireBackup { empty }?
 		}*
 	},
 	

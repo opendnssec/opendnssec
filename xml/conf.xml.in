@@ -18,6 +18,7 @@
 			<TokenLabel>Sun Metaslot</TokenLabel>
 			<PIN>test:1234</PIN>
 			<Capacity>1000</Capacity>
+			<RequireBackup/>
 		</Repository>
 -->
 
