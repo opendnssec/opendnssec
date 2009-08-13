@@ -1552,6 +1552,7 @@ int KsmRequestIssueKeys(int keytype, KSM_REQUEST_CALLBACK callback,
         KsmKeyEnd(result);
     }
 
+    DqsFree(sql);
     return status;
 }
 

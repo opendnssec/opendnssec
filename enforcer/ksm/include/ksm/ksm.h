@@ -440,6 +440,7 @@ typedef struct {            /* Holds collection of parameters */
     int     ret_safety;     /* Retire safety margin */
 } KSM_PARCOLL;
 
+int KsmCollectionInit(KSM_PARCOLL* data);
 int KsmParameterClockskew(KSM_PARCOLL* collection);
 int KsmParameterKskLifetime(KSM_PARCOLL* collection);
 int KsmParameterEmergencyKSKeys(KSM_PARCOLL* collection);

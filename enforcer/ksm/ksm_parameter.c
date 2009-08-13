@@ -317,6 +317,51 @@ int KsmParameterValue(const char* name, const char* category, int* value, int po
 
 
 /*+
+ * KsmCollectionInit - Fill In Parameter Collection with defaults
+ *
+ * Description:
+ *      Fills in the parameter collection object with the values of the
+ *      parameters given in ksm.h.
+ *
+ * Arguments:
+ *      KSM_PARCOLL* data
+ *          Pointer to the parameter collection object.  This will be filled in
+ *          by this function.
+ *
+ * Returns:
+ *      int
+ *          0       Success
+ *          Other   One or more errors,  in which case a message will have been
+ *                  output.
+-*/
+
+int KsmCollectionInit(KSM_PARCOLL* data)
+{
+    if (data == NULL) {
+        return MsgLog(KSM_INVARG, "NULL data");
+    }
+
+    data->clockskew = KSM_PAR_CLOCKSKEW;
+    data->ksklife = KSM_PAR_KSKLIFE;
+    data->nemkskeys = KSM_PAR_NEMKSKEYS;
+    data->nemzskeys = KSM_PAR_NEMZSKEYS;
+    data->propdelay = KSM_PAR_PROPDELAY;
+    data->signint = KSM_PAR_SIGNINT;
+    data->soamin = KSM_PAR_SOAMIN;
+    data->soattl = KSM_PAR_SOATTL;
+    data->zsksiglife = KSM_PAR_ZSKSIGLIFE;
+    data->zsklife = KSM_PAR_ZSKLIFE;
+    data->zskttl = KSM_PAR_ZSKTTL;
+    data->kskttl = KSM_PAR_KSKTTL;
+    data->kskpropdelay = KSM_PAR_KSKPROPDELAY;
+    data->regdelay = KSM_PAR_REGDELAY;
+    data->pub_safety = KSM_PAR_PUBSAFETY;
+    data->ret_safety = KSM_PAR_RETSAFETY;
+
+    return(0);
+}
+
+/*+
  * KsmParameterCollection - Fill In Parameter Collection Given Name
  *
  * Description:

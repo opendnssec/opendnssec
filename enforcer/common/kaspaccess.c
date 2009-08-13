@@ -37,6 +37,8 @@
 #include "daemon.h"
 #include "daemon_util.h"
 #include "kaspaccess.h"
+#include "ksm/string_util.h"
+#include "ksm/string_util2.h"
 
 /*
 * Set defaults for policies
@@ -52,7 +54,10 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
         return;
     }
 
-	if(name) policy->name = name;
+	if (name) {
+        StrFree(policy->name);
+        StrAppend(&policy->name, name);
+    }
 
 	policy->signer->refresh = 0;
 	policy->signer->jitter = 0;

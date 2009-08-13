@@ -39,6 +39,8 @@
 #include <string.h>
 #include <syslog.h>
 
+#include <libxml/parser.h>
+
 #include "daemon.h"
 #include "daemon_util.h"
 #include "kaspaccess.h"
@@ -154,6 +156,7 @@ server_main(DAEMONCONFIG *config)
 
             lock_fd = fopen(lock_filename, "w");
             status = get_lite_lock(lock_filename, lock_fd);
+            StrFree(lock_filename);
             if (status != 0) {
                 log_msg(config, LOG_ERR, "Error getting db lock");
                 unlink(config->pidfile);
@@ -172,7 +175,7 @@ server_main(DAEMONCONFIG *config)
             while (status == 0) {
                 log_msg(config, LOG_INFO, "Policy %s found.", policy->name);
                 /* Clear the policy struct */
-                kaspSetPolicyDefaults(policy, policy->name);
+                kaspSetPolicyDefaults(policy, NULL);
 
                 /* Read the parameters for that policy */
                 status = kaspReadPolicy(policy);
@@ -316,14 +319,12 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
-            unlink(config->pidfile);
-            exit(0);
+            break;
         }
         /* Or SIGINT */
         if (config->term == 2 ){
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
-            unlink(config->pidfile);
-            exit(0);
+            break;
         }
 
         /* sleep for the key gen interval */
@@ -335,18 +336,14 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
-            unlink(config->pidfile);
-            exit(0);
+            break;
         }
         /* Or SIGINT */
         if (config->term == 2 ){
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
-            unlink(config->pidfile);
-            exit(0);
+            break;
         }
     }
-    log_msg(config, LOG_INFO, "Disconnecting from Database...");
-    kaspDisconnect(&dbhandle);
 
     /*
      * Destroy HSM context
@@ -359,4 +356,9 @@ server_main(DAEMONCONFIG *config)
     log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
 
     KsmPolicyFree(policy);
+
+    unlink(config->pidfile);
+
+    xmlCleanupParser();
+
 }

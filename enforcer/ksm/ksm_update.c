@@ -73,11 +73,13 @@ int KsmUpdate(int policy_id, int zone_id)
     KSM_PARCOLL         collection;     /* Collection of parameters for zone */
     KSM_KEYDATA         data;           /* Data about the key */
     DB_RESULT           result;         /* For iterating through keys */
-    int                 status;         /* Status return */
+    int                 status = 0;         /* Status return */
     DQS_QUERY_CONDITION condition[2];       /* Condition codes */
 
-    /* Get the values of the parameters */
+    /* Set collection defaults */
+    KsmCollectionInit(&collection);
 
+    /* Get the values of the parameters */
     status = KsmParameterCollection(&collection, policy_id);
     if (status == 0) {
 

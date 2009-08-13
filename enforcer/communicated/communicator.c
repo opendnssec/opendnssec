@@ -96,6 +96,7 @@ server_main(DAEMONCONFIG *config)
     char* zone_name;
     char* current_policy;
     char* current_filename;
+    char *tag_name;
     int zone_id = -1;
     int signer_flag = 1; /* Is the signer responding? (1 == yes) */
     
@@ -106,6 +107,8 @@ server_main(DAEMONCONFIG *config)
     struct timeval tv;
 
     KSM_POLICY *policy;
+
+    char* temp_char = NULL;
 
     if (config == NULL) {
         log_msg(NULL, LOG_ERR, "Error in server_main, no config provided");
@@ -175,6 +178,7 @@ server_main(DAEMONCONFIG *config)
 
             lock_fd = fopen(lock_filename, "w");
             status = get_lite_lock(lock_filename, lock_fd);
+            StrFree(lock_filename);
             if (status != 0) {
                 log_msg(config, LOG_ERR, "Error getting db lock");
                 unlink(config->pidfile);
@@ -190,13 +194,16 @@ server_main(DAEMONCONFIG *config)
         if (reader != NULL) {
             ret = xmlTextReaderRead(reader);
             while (ret == 1) {
+                tag_name = (char*) xmlTextReaderLocalName(reader);
                 /* Found <Zone> */
-                if (strncmp((char*) xmlTextReaderLocalName(reader), "Zone", 4) == 0 
-                        && strncmp((char*) xmlTextReaderLocalName(reader), "ZoneList", 8) != 0
+                if (strncmp(tag_name, "Zone", 4) == 0 
+                        && strncmp(tag_name, "ZoneList", 8) != 0
                         && xmlTextReaderNodeType(reader) == 1) {
                     /* Get the zone name (TODO what if this is null?) */
                     zone_name = NULL;
-                    StrAppend(&zone_name, (char*) xmlTextReaderGetAttribute(reader, name_expr));
+                    temp_char = (char*) xmlTextReaderGetAttribute(reader, name_expr);
+                    StrAppend(&zone_name, temp_char);
+                    StrFree(temp_char);
                     /* Make sure that we got something */
                     if (zone_name == NULL) {
                         /* error */
@@ -250,8 +257,12 @@ server_main(DAEMONCONFIG *config)
                         continue;
                     }
                     current_policy = NULL;
-                    StrAppend(&current_policy, (char*) xmlXPathCastToString(xpathObj));
+                    temp_char = (char*) xmlXPathCastToString(xpathObj);
+                    StrAppend(&current_policy, temp_char);
+                    StrFree(temp_char);
                     log_msg(config, LOG_INFO, "Policy for %s set to %s.", zone_name, current_policy);
+                    xmlXPathFreeObject(xpathObj);
+
                     if (current_policy != policy->name) {
                         /* Read new Policy */ 
                         kaspSetPolicyDefaults(policy, current_policy);
@@ -282,8 +293,12 @@ server_main(DAEMONCONFIG *config)
                         /* Policy is same as previous zone, do not re-read */
                     }
 
+                    StrFree(current_policy);
+
                     /* Evaluate xpath expression for signer configuration filename */
                     xpathObj = xmlXPathEvalExpression(filename_expr, xpathCtx);
+                    xmlXPathFreeContext(xpathCtx);
+
                     if(xpathObj == NULL) {
                         log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
                         /* Don't return? try to parse the rest of the zones? */
@@ -291,8 +306,11 @@ server_main(DAEMONCONFIG *config)
                         continue;
                     }
                     current_filename = NULL;
-                    StrAppend(&current_filename, (char*) xmlXPathCastToString(xpathObj));
+                    temp_char = (char*)xmlXPathCastToString(xpathObj);
+                    StrAppend(&current_filename, temp_char);
+                    StrFree(temp_char);
                     log_msg(config, LOG_INFO, "Config will be output to %s.", current_filename);
+                    xmlXPathFreeObject(xpathObj);
                     /* TODO should we check that we have not written to this file in this run?*/
                     /* Make sure that enough keys are allocated to this zone */
                     status2 = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval, zone_name);
@@ -318,9 +336,13 @@ server_main(DAEMONCONFIG *config)
                         ret = xmlTextReaderRead(reader);
                         continue;
                     }
+
+                    StrFree(current_filename);
+                    StrFree(zone_name);
                 }
                 /* Read the next line */
                 ret = xmlTextReaderRead(reader);
+                StrFree(tag_name);
             }
             xmlFreeTextReader(reader);
             if (ret != 0) {
@@ -329,14 +351,8 @@ server_main(DAEMONCONFIG *config)
         } else {
             log_msg(config, LOG_ERR, "Unable to open %s\n", zonelist_filename);
         }
-        if (xpathCtx) {
-            xmlXPathFreeContext(xpathCtx);
-        }
-        if (doc) {
-            xmlFreeDoc(doc);
-        }
 
-        /* StrFree(zone_name); ??*/
+        xmlFreeDoc(doc);
 
         /* Release our hold on the database */
         log_msg(config, LOG_INFO, "Disconnecting from Database...");
@@ -356,14 +372,12 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */ 
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
-            unlink(config->pidfile);
-            exit(0);
+            break;
         }
         /* Or SIGINT */
         if (config->term == 2 ){
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
-            unlink(config->pidfile);
-            exit(0);
+            break;
         }
 
         /* Reset the signer flag */
@@ -378,14 +392,12 @@ server_main(DAEMONCONFIG *config)
         /* If we have been sent a SIGTERM then it is time to exit */ 
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");
-            unlink(config->pidfile);
-            exit(0);
+            break;
         }
         /* Or SIGINT */
         if (config->term == 2 ){
             log_msg(config, LOG_INFO, "Received SIGINT, exiting...");
-            unlink(config->pidfile);
-            exit(0);
+            break;
         }
     }
 
@@ -401,6 +413,10 @@ server_main(DAEMONCONFIG *config)
 
     StrFree(zonelist_filename);
     KsmPolicyFree(policy);
+
+    unlink(config->pidfile);
+
+    xmlCleanupParser();
 }
 
 /*
@@ -445,6 +461,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         /* error */
         log_msg(NULL, LOG_ERR, "Could not open: %s\n", temp_filename);
         MemFree(datetime);
+        StrFree(temp_filename);
+        StrFree(old_filename);
         return -1;
     }
 
@@ -534,6 +552,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     if (status == EOF) /* close failed... do something? */
     {
         log_msg(NULL, LOG_ERR, "Could not close: %s\n", temp_filename);
+        StrFree(temp_filename);
+        StrFree(old_filename);
         return -1;
     }
 
@@ -543,6 +563,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     {
         /* error */
         log_msg(NULL, LOG_ERR, "Could not reopen: %s\n", temp_filename);
+        StrFree(temp_filename);
+        StrFree(old_filename);
         return -1;
     }
     
@@ -557,6 +579,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                 log_msg(NULL, LOG_ERR, "Could not read: %s\n", temp_filename);
                 fclose(file);
                 fclose(file2);
+                StrFree(temp_filename);
+                StrFree(old_filename);
                 return -1;
             }
             char2 = fgetc(file2);
@@ -564,6 +588,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                 log_msg(NULL, LOG_ERR, "Could not read: %s\n", current_filename);
                 fclose(file);
                 fclose(file2);
+                StrFree(temp_filename);
+                StrFree(old_filename);
                 return -1;
             }
             if(char1 != char2) {
@@ -577,6 +603,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         {
             log_msg(NULL, LOG_ERR, "Could not close: %s\n", current_filename);
             fclose(file);
+            StrFree(temp_filename);
+            StrFree(old_filename);
             return -1;
         }
     }
@@ -585,6 +613,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     if (status == EOF) /* close failed... do something? */
     {
         log_msg(NULL, LOG_ERR, "Could not close: %s\n", temp_filename);
+        StrFree(temp_filename);
+        StrFree(old_filename);
         return -1;
     }
 
@@ -598,6 +628,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         {
             /* cope with initial condition of files not existing */
             log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s\n", current_filename, old_filename);
+            StrFree(old_filename);
+            StrFree(temp_filename);
             return -1;
         }
 
@@ -605,6 +637,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         if (rename(temp_filename, current_filename) != 0)
         {
             log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s\n", temp_filename, current_filename);
+            StrFree(old_filename);
+            StrFree(temp_filename);
             return -1;
         }
 
@@ -626,6 +660,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                 log_msg(NULL, LOG_INFO, "Will continue: call signer_engine_cli update to manually update zones\n");
                 *signer_flag = 0;
             }
+
+            StrFree(signer_command);
         }
     }
     else {
@@ -633,9 +669,13 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         if (remove(temp_filename) != 0)
         {
             log_msg(NULL, LOG_ERR, "Could not remove: %s\n", temp_filename);
+            StrFree(old_filename);
+            StrFree(temp_filename);
             return -1;
         }
     }
+    StrFree(old_filename);
+    StrFree(temp_filename);
 
     return 0;
 }
@@ -832,6 +872,7 @@ int read_zonelist_filename(char** zone_list_filename)
                 temp_char = (char *)xmlXPathCastToString(xpathObj);
                 StrAppend(zone_list_filename, temp_char);
                 StrFree(temp_char);
+                xmlXPathFreeObject(xpathObj);
                 log_msg(NULL, LOG_INFO, "zonelist filename set to %s.\n", *zone_list_filename);
             }
             /* Read the next line */
@@ -853,6 +894,7 @@ int read_zonelist_filename(char** zone_list_filename)
     if (doc) {
         xmlFreeDoc(doc);
     }
+    StrFree(filename);
 
     return 0;
 }

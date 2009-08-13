@@ -70,13 +70,13 @@ permsDrop(DAEMONCONFIG* config)
 {
     int status = 0;
 
-    xmlDocPtr doc;
-    xmlDocPtr rngdoc;
-    xmlXPathContextPtr xpathCtx;
-    xmlXPathObjectPtr xpathObj;
-    xmlRelaxNGParserCtxtPtr rngpctx;
-    xmlRelaxNGValidCtxtPtr rngctx;
-    xmlRelaxNGPtr schema;
+    xmlDocPtr doc = NULL;
+    xmlDocPtr rngdoc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlRelaxNGParserCtxtPtr rngpctx = NULL;
+    xmlRelaxNGValidCtxtPtr rngctx = NULL;
+    xmlRelaxNGPtr schema = NULL;
     xmlChar *user_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/User";
     xmlChar *group_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/Group";
 
@@ -163,6 +163,8 @@ permsDrop(DAEMONCONFIG* config)
 
         if (setgid(config->gid) != 0) {
             log_msg(config, LOG_ERR, "unable to drop group privileges: %s", strerror(errno));
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
             return -1;
         }
         log_msg(config, LOG_INFO, "group set to: %s(%d)\n", config->groupname, config->gid);
@@ -195,12 +197,21 @@ permsDrop(DAEMONCONFIG* config)
 
         if (setuid(config->uid) != 0) {
             log_msg(config, LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
             return -1;
         }
         log_msg(config, LOG_INFO, "user set to: %s(%d)\n", config->username, config->uid);
     } else {
         config->uid = getuid();
     }
+
+    xmlXPathFreeContext(xpathCtx);
+    xmlRelaxNGFree(schema);
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(doc);
+    xmlFreeDoc(rngdoc);
 
     return 0;
 }
@@ -390,13 +401,13 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
 int
 ReadConfig(DAEMONCONFIG *config)
 {
-    xmlDocPtr doc;
-    xmlDocPtr rngdoc;
-    xmlXPathContextPtr xpathCtx;
-    xmlXPathObjectPtr xpathObj;
-    xmlRelaxNGParserCtxtPtr rngpctx;
-    xmlRelaxNGValidCtxtPtr rngctx;
-    xmlRelaxNGPtr schema;
+    xmlDocPtr doc = NULL;
+    xmlDocPtr rngdoc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlRelaxNGParserCtxtPtr rngpctx = NULL;
+    xmlRelaxNGValidCtxtPtr rngctx = NULL;
+    xmlRelaxNGPtr schema = NULL;
     xmlChar *ki_expr = (unsigned char*) "//Configuration/Enforcer/KeygenInterval";
     xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
     xmlChar *bi_expr = (unsigned char*) "//Configuration/Enforcer/BackupDelay";
@@ -415,6 +426,9 @@ ReadConfig(DAEMONCONFIG *config)
     int db_found = 0;
     char* filename = CONFIG_FILE;
     char* rngfilename = SCHEMA_DIR "/conf.rng";
+
+    char* temp_char = NULL;
+    unsigned char* temp_uchar = NULL;
 
     log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
 
@@ -460,6 +474,10 @@ ReadConfig(DAEMONCONFIG *config)
         log_msg(config, LOG_ERR, "Error validating file \"%s\"\n", filename);
         return(-1);
     }
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFree(schema);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(rngdoc);
 
     /* Now parse a value out of the conf */
     /* Create xpath evaluation context */
@@ -479,16 +497,20 @@ ReadConfig(DAEMONCONFIG *config)
         return(-1);
     }
 
-    status = DtXMLIntervalSeconds((char *)xmlXPathCastToString(xpathObj), &mysec);
+    temp_char = (char *)xmlXPathCastToString(xpathObj);
+    status = DtXMLIntervalSeconds(temp_char, &mysec);
     if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", xmlXPathCastToString(xpathObj), status);
+        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+        StrFree(temp_char);
         return status;
     }
     else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", xmlXPathCastToString(xpathObj));
+        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", temp_char);
     }
     config->keygeninterval = mysec;
     log_msg(config, LOG_INFO, "Key Generation Interval: %i\n", config->keygeninterval);
+    StrFree(temp_char);
+    xmlXPathFreeObject(xpathObj);
 
     /* Evaluate xpath expression for interval */
     /* TODO check that we can reuse xpathObj even if something has not worked */
@@ -500,16 +522,20 @@ ReadConfig(DAEMONCONFIG *config)
         return(-1);
     }
 
-    status = DtXMLIntervalSeconds((char *)xmlXPathCastToString(xpathObj), &mysec);
+    temp_char = (char *)xmlXPathCastToString(xpathObj);
+    status = DtXMLIntervalSeconds(temp_char, &mysec);
     if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", xmlXPathCastToString(xpathObj), status);
+        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+        StrFree(temp_char);
         return status;
     }
     else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", xmlXPathCastToString(xpathObj));
+        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", temp_char);
     }
     config->interval = mysec;
     log_msg(config, LOG_INFO, "Communication Interval: %i\n", config->interval);
+    StrFree(temp_char);
+    xmlXPathFreeObject(xpathObj);
 
     /* Evaluate xpath expression for backup interval */
     xpathObj = xmlXPathEvalExpression(bi_expr, xpathCtx);
@@ -520,16 +546,20 @@ ReadConfig(DAEMONCONFIG *config)
         return(-1);
     }
 
-    status = DtXMLIntervalSeconds((char *)xmlXPathCastToString(xpathObj), &mysec);
+    temp_char = (char *)xmlXPathCastToString(xpathObj);
+    status = DtXMLIntervalSeconds(temp_char, &mysec);
     if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", xmlXPathCastToString(xpathObj), status);
+        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+        StrFree(temp_char);
         return status;
     }
     else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", xmlXPathCastToString(xpathObj));
+        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", temp_char);
     }
     config->backupinterval = mysec;
     log_msg(config, LOG_INFO, "HSM Backup Interval: %i\n", config->backupinterval);
+    StrFree(temp_char);
+    xmlXPathFreeObject(xpathObj);
 
     /* Evaluate xpath expression for SQLite file location */
 		
@@ -540,11 +570,16 @@ ReadConfig(DAEMONCONFIG *config)
         xmlFreeDoc(doc);
         return(-1);
     }
-    if(*xmlXPathCastToString(xpathObj) != '\0') {
+    if(xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
-		    config->schema = xmlXPathCastToString(xpathObj);
-		    log_msg(config, LOG_INFO, "SQLite database set to: %s\n", config->schema);
+        config->schema = xmlXPathCastToString(xpathObj);
+        /*config->schema = NULL;
+        temp_uchar = xmlXPathCastToString(xpathObj);
+		StrAppend(&config->schema, temp_uchar);
+        StrFree(temp_uchar); */
+        log_msg(config, LOG_INFO, "SQLite database set to: %s\n", config->schema);
     }
+    xmlXPathFreeObject(xpathObj);
 
     if (db_found == 0) {
         /* Get all of the MySQL stuff read in too */
@@ -556,11 +591,12 @@ ReadConfig(DAEMONCONFIG *config)
 		        xmlFreeDoc(doc);
 		        return(-1);
 		    }
-		    if( *xmlXPathCastToString(xpathObj) != '\0') {
+            if(xpathObj->nodesetval->nodeNr > 0) {
            db_found = MYSQL_DB;
         }
         config->host = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database host set to: %s\n", config->host);
+        xmlXPathFreeObject(xpathObj);
 
         /* PORT */
         xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
@@ -570,11 +606,12 @@ ReadConfig(DAEMONCONFIG *config)
 		        xmlFreeDoc(doc);
 		        return(-1);
 		    }
-		    if( *xmlXPathCastToString(xpathObj) == '\0') {
+            if(xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         config->port = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database port set to: %s\n", config->port);
+        xmlXPathFreeObject(xpathObj);
 
         /* SCHEMA */
         xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
@@ -584,11 +621,12 @@ ReadConfig(DAEMONCONFIG *config)
 		        xmlFreeDoc(doc);
 		        return(-1);
 		    }
-		    if( *xmlXPathCastToString(xpathObj) == '\0') {
+            if(xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         config->schema = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database schema set to: %s\n", config->schema);
+        xmlXPathFreeObject(xpathObj);
 
         /* DB USER */
         xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
@@ -598,11 +636,12 @@ ReadConfig(DAEMONCONFIG *config)
 		        xmlFreeDoc(doc);
 		        return(-1);
 		    }
-		    if( *xmlXPathCastToString(xpathObj) == '\0') {
+            if(xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         config->user = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database user set to: %s\n", config->user);
+        xmlXPathFreeObject(xpathObj);
 
         /* DB PASSWORD */
         xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);
@@ -616,6 +655,7 @@ ReadConfig(DAEMONCONFIG *config)
         
         config->password = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "MySQL database password set\n");
+        xmlXPathFreeObject(xpathObj);
 
     }
 
@@ -644,7 +684,10 @@ ReadConfig(DAEMONCONFIG *config)
         return(-1);
     }
 
-    logFacilityName =  StrStrdup( (char *)xmlXPathCastToString(xpathObj) );
+    temp_char = (char *)xmlXPathCastToString(xpathObj);
+    logFacilityName =  StrStrdup( temp_char );
+    StrFree(temp_char);
+    xmlXPathFreeObject(xpathObj);
 
     /* If nothing was found use the defaults, else set what we got */
     if (strlen(logFacilityName) == 0) {
@@ -666,13 +709,8 @@ ReadConfig(DAEMONCONFIG *config)
 
     /* Cleanup */
     /* TODO: some other frees are needed */
-    xmlXPathFreeObject(xpathObj);
     xmlXPathFreeContext(xpathCtx);
     xmlFreeDoc(doc);
-    xmlRelaxNGFree(schema);
-    xmlRelaxNGFreeValidCtxt(rngctx);
-    xmlRelaxNGFreeParserCtxt(rngpctx);
-    xmlFreeDoc(rngdoc);
     StrFree(logFacilityName);
 
     return(0);

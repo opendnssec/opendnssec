@@ -57,6 +57,7 @@
 #include "ksm/kmemsg.h"
 #include "ksm/kmedef.h"
 #include "ksm/message.h"
+#include "ksm/string_util.h"
 
 extern int server_init(DAEMONCONFIG *config);
 extern void server_main(DAEMONCONFIG *config);
@@ -207,14 +208,16 @@ main(int argc, char *argv[]){
     /* Do something. You need to provide this function somewhere */
     server_main(&config);
 
-    /* NOTREACH */
-
-    /* To satisfy code checkers let's free stuff here */
+    /* Free stuff here (exit from sigs pass through) */
     free(config.user);
     free(config.host);
     free(config.password);
     free(config.schema);
     free(config.port);
+
+    StrFree(config.username);
+    StrFree(config.groupname);
+    StrFree(config.chrootdir);
 
     exit(0);
 
