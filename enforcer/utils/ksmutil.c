@@ -63,13 +63,13 @@
 
 extern char *optarg;
 char *progname = "ksmutil";
-char *config = (char *) CONFIG_DIR;
+char *config = (char *) CONFIG_FILE;
 
     void
 usage_setup ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] setup\n\tImport config_dir into a database (deletes current contents)\n",
+            "usage: %s [-f config] setup\n\tImport config into a database (deletes current contents)\n",
             progname);
 }
 
@@ -77,7 +77,7 @@ usage_setup ()
 usage_update ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] update\n\tUpdate database from config_dir\n",
+            "usage: %s [-f config] update\n\tUpdate database from config\n",
             progname);
 }
 
@@ -85,7 +85,7 @@ usage_update ()
 usage_addzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n\tAdd a zone to the config_dir and database\n",
+            "usage: %s [-f config] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n\tAdd a zone to the config and database\n",
             progname);
 }
 
@@ -93,7 +93,7 @@ usage_addzone ()
 usage_delzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] delzone zone\n\tDelete a zone from the config_dir and database\n",
+            "usage: %s [-f config] delzone zone\n\tDelete a zone from the config and database\n",
             progname);
 }
 
@@ -101,7 +101,7 @@ usage_delzone ()
 usage_listzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] listzone\n\tList zones from the zonelist.xml in config_dir\n",
+            "usage: %s [-f config] listzone\n\tList zones from the zonelist.xml in config\n",
             progname);
 }
 
@@ -109,7 +109,7 @@ usage_listzone ()
 usage_export ()
 {
     fprintf(stderr,
-            "usage: %s export [policy]\n\texport all policies [or named policy] to xml\n",
+            "usage: [-f config] %s export [policy]\n\texport all policies [or named policy] to xml\n",
             progname);
 }
 
@@ -117,7 +117,7 @@ usage_export ()
 usage_rollzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] rollzone zone [KSK|ZSK]\n\tRollover a zone (may roll all zones on that policy)\n",
+            "usage: %s [-f config] rollzone zone [KSK|ZSK]\n\tRollover a zone (may roll all zones on that policy)\n",
             progname);
 }
 
@@ -125,7 +125,7 @@ usage_rollzone ()
 usage_rollpolicy ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] rollpolicy policy [KSK|ZSK]\n\tRollover all zones on a policy\n",
+            "usage: %s [-f config] rollpolicy policy [KSK|ZSK]\n\tRollover all zones on a policy\n",
             progname);
 }
 
@@ -133,7 +133,7 @@ usage_rollpolicy ()
 usage_backup ()
 {
     fprintf(stderr,
-            "usage: %s [-f config_dir] backup [done|list] [repository]\n\tIndicate that a key backup has been performed or list dates when backups were made\n",
+            "usage: %s [-f config] backup [done|list] [repository]\n\tIndicate that a key backup has been performed or list dates when backups were made\n",
             progname);
 }
 
@@ -1695,10 +1695,8 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
     xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
     xmlChar *kaspfile_expr = (unsigned char*) "//Common/PolicyFile";
 
-    StrAppend(&filename, config);
-    StrAppend(&filename, "/conf.xml");
     /* Start reading the file; we will be looking for "Repository" tags */ 
-    reader = xmlNewTextReaderFilename(filename);
+    reader = xmlNewTextReaderFilename(config);
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
@@ -1715,7 +1713,7 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
                 /* Make sure that we got something */
                 if (repo_name == NULL) {
                     /* error */
-                    printf("Error extracting repository name from %s\n", filename);
+                    printf("Error extracting repository name from %s\n", config);
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -1835,7 +1833,8 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
                     /*
                      * Set a default
                      */
-                    StrAppend(kasp_filename, config);
+                    /* XXX this should be parse from the the main config */
+                    StrAppend(kasp_filename, CONFIG_DIR);
                     StrAppend(kasp_filename, "/kasp.xml");
                 }
                 printf("kasp filename set to %s.\n", *kasp_filename);
@@ -2739,20 +2738,15 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     char* temp_char = NULL;
 
     /* Some files, the xml and rng */
-    char* filename = NULL;
     char* rngfilename = NULL;
-
-    StrAppend(&filename, config);
-    StrAppend(&filename, "/conf.xml");
 
     StrAppend(&rngfilename, SCHEMA_DIR);
     StrAppend(&rngfilename, "/conf.rng");
 
     /* Load XML document */
-    doc = xmlParseFile(filename);
+    doc = xmlParseFile(config);
     if (doc == NULL) {
-        printf("Error: unable to parse file \"%s\"\n", filename);
-        StrFree(filename);
+        printf("Error: unable to parse file \"%s\"\n", config);
         StrFree(rngfilename);
         return(-1);
     }
@@ -2761,7 +2755,6 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", rngfilename);
-        StrFree(filename);
         StrFree(rngfilename);
         return(-1);
     }
@@ -2771,7 +2764,6 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
     if (rngpctx == NULL) {
         printf("Error: unable to create XML RelaxNGs parser context\n");
-        StrFree(filename);
         return(-1);
     }
 
@@ -2779,7 +2771,6 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
         printf("Error: unable to parse a schema definition resource\n");
-        StrFree(filename);
         return(-1);
     }
 
@@ -2787,18 +2778,15 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
         printf("Error: unable to create RelaxNGs validation context based on the schema\n");
-        StrFree(filename);
         return(-1);
     }
 
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
-        printf("Error validating file \"%s\"\n", filename);
-        StrFree(filename);
+        printf("Error validating file \"%s\"\n", config);
         return(-1);
     }
-    StrFree(filename);
 
     /* Now parse a value out of the conf */
     /* Create xpath evaluation context */
@@ -2952,16 +2940,13 @@ int read_zonelist_filename(char** zone_list_filename)
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
     int ret = 0; /* status of the XML parsing */
-    char* filename = NULL;
     char* temp_char = NULL;
     char* tag_name = NULL;
 
     xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
 
-    StrAppend(&filename, config);
-    StrAppend(&filename, "/conf.xml");
     /* Start reading the file; we will be looking for "Common" tags */ 
-    reader = xmlNewTextReaderFilename(filename);
+    reader = xmlNewTextReaderFilename(config);
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
@@ -3008,11 +2993,11 @@ int read_zonelist_filename(char** zone_list_filename)
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {
-            printf("%s : failed to parse\n", filename);
+            printf("%s : failed to parse\n", config);
             return(1);
         }
     } else {
-        printf("Unable to open %s\n", filename);
+        printf("Unable to open %s\n", config);
         return(1);
     }
     if (xpathCtx) {
