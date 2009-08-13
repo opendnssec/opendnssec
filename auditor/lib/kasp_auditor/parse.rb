@@ -45,23 +45,18 @@ module KASPAuditor
       # We should then read the kasp.xml file to find the policy of interest.
       # We also need to read SignerConfiguration, just so we know the salt.
       zones = []
-        print "Opening zonelist file #{zonelist_filename}\n"
       File.open((zonelist_filename.to_s+"").untaint, 'r') {|file|
         doc = REXML::Document.new(file)
         doc.elements.each("ZoneList/Zone") {|z|
           # First load the config files
           zone_name = z.attributes['name']
-          print "Processing zone name #{zone_name}\n"
           policy = z.elements['Policy'].text
-                   print "Policy #{policy}\n"
 
           config_file_loc = z.elements["SignerConfiguration"].text
           if (config_file_loc.index("/") != 0)
             config_file_loc = path + config_file_loc
           end
 
-          print "Zone Config file location : #{config_file_loc}\n"
-          print "KASP Config file location : #{kasp_filename}\n"
           # Now parse the config file
           config = Config.new(zone_name, kasp_filename, policy,
             config_file_loc, syslog)
@@ -70,12 +65,10 @@ module KASPAuditor
           if (input_file_loc.index("/") != 0)
             input_file_loc = path + input_file_loc
           end
-          print "Unsigned file location : #{input_file_loc}\n"
           output_file_loc = z.elements["Adapters"].elements['Output'].elements["File"].text
           if (output_file_loc.index("/") != 0)
             output_file_loc = path + output_file_loc
           end
-          print "Signed file location : #{output_file_loc}\n"
           zones.push([config, input_file_loc, output_file_loc])
         }
       }

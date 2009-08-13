@@ -42,7 +42,6 @@ module KASPAuditor
     def initialize(syslog, working)
       @syslog = syslog
       @working = (working.to_s + "").untaint
-      print "Working folder : #{@working}\n"
       reset
     end
     def reset
@@ -214,7 +213,7 @@ module KASPAuditor
         # If this is a DNSKEY record, then remember to add it to the keys!
         if (l_rr.type == Types.DNSKEY)
           @keys.push(l_rr)
-          print "Using key #{l_rr.key_tag}\n"
+#          print "Using key #{l_rr.key_tag}\n"
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
         end
         l_rr = get_next_rr(file)
@@ -533,7 +532,6 @@ module KASPAuditor
             seen_dnskey_sep_clear = true
           end
           @keys.push(l_rr)
-          print "Using key #{l_rr.key_tag}\n"
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
 
         elsif (l_rr.type == Types::NSEC)
@@ -593,7 +591,6 @@ module KASPAuditor
           process_additional_unsigned_rr(unsigned_rr)
         }
       end
-      print_if_count(10000, subdomain, l_rr)
       if (!subdomain || subdomain == "")
         check_dnskeys_at_zone_apex(seen_dnskey_sep_set, seen_dnskey_sep_clear)
       end
@@ -652,16 +649,6 @@ module KASPAuditor
         types_string += " #{type}"
       }
       return types_string
-    end
-
-    # Print where we are every max records
-    def print_if_count(max, subdomain, l_rr)
-      if (@count == max)
-        print "Finished loading signed #{subdomain} subdomain - returning #{l_rr}\n"
-        @count = 0
-      else
-        @count = @count + 1
-      end
     end
 
     # Check if we ar at the zone apex - if we are, then check we have seen DNSKEYs

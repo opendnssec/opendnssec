@@ -79,7 +79,6 @@ module KASPAuditor
       zones = Parse.parse(File.dirname(kasp_file)  + "/", zonelist_file, kasp_file, syslog)
       check_zones_to_audit(zones)
       # Now check the input and output zones using the config
-      print "Checking #{zones.length} zones\n"
       if (zones.length == 0)
         syslog.log(LOG_ERR, "Couldn't find any zones to load")
         KASPAuditor.exit("Couldn't find any zones to load", -LOG_ERR)
@@ -99,7 +98,6 @@ module KASPAuditor
         pids.each {|id|
           ret_id, ret_status = Process.wait2(id)
           if (ret_status != 0)
-            print "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone\n"
             syslog.log(LOG_ERR, "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone")
             ret = 1
             do_audit = false
@@ -123,6 +121,9 @@ module KASPAuditor
       }
       ret = 0 if (ret == -99)
       ret = 0 if (ret >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
+      if (ret == 0)
+        print "Auditor found no errors\n"
+      end
       exit(ret)
     end
 
@@ -177,7 +178,6 @@ module KASPAuditor
       working = ""
       zonelist = ""
       kasp = ""
-      print "Reading config from #{conf_file}\n"
       begin
         File.open((conf_file + "").untaint , 'r') {|file|
           doc = REXML::Document.new(file)
@@ -201,7 +201,6 @@ module KASPAuditor
             facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
             # Now turn the facility string into a Syslog::Constants format....
             syslog_facility = eval "Syslog::LOG_" + (facility.upcase+"").untaint
-            print "Logging facility : #{facility}, #{syslog_facility}\n"
             return syslog_facility, working, zonelist, kasp
           rescue Exception => e
             print "Error reading config : #{e}\n"
@@ -215,18 +214,15 @@ module KASPAuditor
 
     def change_uid(uid_text)
       uid = Etc.getpwnam((uid_text+"").untaint).uid
-      print "Setting uid to #{uid_text}, #{uid}\n"
       Process::Sys.setuid(uid)
     end
 
     def change_chroot(dir)
-      print "Setting Directory chroot to #{dir}\n"
       Dir.chroot((dir+"").untaint)
     end
 
     def change_group(gid_text)
       gid = Etc.getgrnam((gid_text+"").untaint).gid
-      print "Setting group id to #{gid_text}, #{gid}\n"
       Process::Sys.setgid(gid)
     end
 

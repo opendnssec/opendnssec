@@ -30,11 +30,9 @@ module KASPAuditor
     # The type is also prepended to the line - this allows RRSets to be ordered
     # with the RRSIG and NSEC records last.
     def normalise_zone_and_add_prepended_names(infile, outfile)
-      print "Writing normalised output to #{outfile}\n"
       origin = ""
       last_name = nil
       continued_line = nil
-      count = 0
       # Need to replace any existing files
       infile = (infile.to_s+"").untaint
       outfile = (outfile.to_s+"").untaint
@@ -45,16 +43,11 @@ module KASPAuditor
         File.open(outfile, File::CREAT|File::RDWR) { |f|
           begin
             IO.foreach(infile) { |line|
-              count = count + 1
-              if (count == 10000)
-                print "#{line}"
-                count = 0
-              end
               next if (line.index(';') == 0)
               next if (!line || (line.length == 0))
               if (line.index("$ORIGIN") == 0)
                 origin = line.split()[1].strip #  $ORIGIN <domain-name> [<comment>]
-                print "Setting $ORIGIN to #{origin}\n"
+#                print "Setting $ORIGIN to #{origin}\n"
                 next
               end
               if (continued_line)
