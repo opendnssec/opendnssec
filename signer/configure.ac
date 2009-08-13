@@ -1,6 +1,7 @@
 # $Id$
 
-AC_INIT([signer_engine], [0.0.1], [jelte@NLnetLabs.nl])
+AC_PREREQ(2.61)
+AC_INIT([signer_engine],[0.0.1],[jelte@NLnetLabs.nl])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
@@ -45,15 +46,15 @@ AM_INIT_AUTOMAKE
 AM_PATH_PYTHON
 AC_CONFIG_HEADERS([tools/config.h])
 AC_PROG_INSTALL
-AC_PROG_LIBTOOL
+LT_INIT
 
 AC_CONFIG_FILES([
-Makefile
-tools/Makefile
-signer_engine/Makefile
-signer_engine/signer_engine
-signer_engine/EngineConfig.py
-signer_engine/signer_engine_cli
+	Makefile
+	tools/Makefile
+	signer_engine/Makefile
+	signer_engine/signer_engine
+	signer_engine/EngineConfig.py
+	signer_engine/signer_engine_cli
 ])
 
 AC_OUTPUT

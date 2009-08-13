@@ -1,7 +1,7 @@
 # $Id$
 
-AC_PREREQ(2.61)
-AC_INIT([opendnssec], [0.0.1], [])
+AC_PREREQ(2.63)
+AC_INIT([opendnssec],[0.0.1],[])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])

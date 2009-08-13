@@ -1,7 +1,7 @@
 # $Id$
 
 AC_PREREQ(2.61)
-AC_INIT([enforcer], [0.0.1], [jad@jadickinson.co.uk])
+AC_INIT([enforcer],[0.0.1],[jad@jadickinson.co.uk])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
@@ -15,7 +15,7 @@ AC_CONFIG_HEADER([common/config.h])
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PROG_LIBTOOL
+LT_INIT
 
 ACX_PEDANTIC
 ACX_STRICT
@@ -111,15 +111,15 @@ AC_DEFINE_UNQUOTED(SCHEMADIR, ["`eval echo $opendnssecdatadir | sed s,NONE,$ac_d
 
 
 AC_CONFIG_FILES([
-Makefile
-ksm/Makefile
-ksm/include/Makefile
-ksm/include/ksm/Makefile
-common/Makefile
-communicated/Makefile
-keygend/Makefile
-utils/Makefile
-test/Makefile
+	Makefile
+	ksm/Makefile
+	ksm/include/Makefile
+	ksm/include/ksm/Makefile
+	common/Makefile
+	communicated/Makefile
+	keygend/Makefile
+	utils/Makefile
+	test/Makefile
 ])
 
 AC_OUTPUT

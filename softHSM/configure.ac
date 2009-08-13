@@ -33,10 +33,8 @@ define([SOFTHSM_VERSION_AGE], [0])
 ##################
 
 # Init 
-AC_PREREQ(2.61)
-AC_INIT([libsofthsm],
-	[SOFTHSM_VERSION_MAJOR.SOFTHSM_VERSION_MINOR.SOFTHSM_VERSION_FIX[]PACKAGE_SUFFIX],
-	[rickard.bondesson@iis.se])
+AC_PREREQ(2.63)
+AC_INIT([libsofthsm],[SOFTHSM_VERSION_MAJOR.SOFTHSM_VERSION_MINOR.SOFTHSM_VERSION_FIX[]PACKAGE_SUFFIX],[rickard.bondesson@iis.se])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_SRCDIR([src/Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
@@ -115,18 +113,20 @@ AC_DEFINE_UNQUOTED(
 )
 
 # Generate the libtool script and install script 
-AC_PROG_LIBTOOL 
+LT_INIT 
 AC_PROG_INSTALL
 
 softhsmdbdir=${localstatedir}/softhsm
 AC_SUBST([softhsmdbdir])
 
 # Generate the make files
-AC_OUTPUT(
+AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	src/lib/Makefile
 	src/bin/Makefile
 	checks/Makefile
 	softhsm.conf
-)
+])
+
+AC_OUTPUT
