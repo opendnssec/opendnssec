@@ -113,8 +113,8 @@ AC_DEFINE_UNQUOTED(
 )
 
 # Generate the libtool script and install script 
-LT_INIT 
 AC_PROG_INSTALL
+AC_PROG_LIBTOOL
 
 softhsmdbdir=${localstatedir}/softhsm
 AC_SUBST([softhsmdbdir])
