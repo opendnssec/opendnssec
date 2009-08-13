@@ -33,7 +33,7 @@ define([SOFTHSM_VERSION_AGE], [0])
 ##################
 
 # Init 
-AC_PREREQ(2.63)
+AC_PREREQ(2.61)
 AC_INIT([libsofthsm],[SOFTHSM_VERSION_MAJOR.SOFTHSM_VERSION_MINOR.SOFTHSM_VERSION_FIX[]PACKAGE_SUFFIX],[rickard.bondesson@iis.se])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_SRCDIR([src/Makefile.am])
