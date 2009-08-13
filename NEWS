@@ -3,8 +3,25 @@ $Id$
 
 OpenDNSSEC trunk
 
+Features:
 * conf.xml format changed
+* Read the default path to kasp.xml from conf.xml
 * libksm integrated into enforcer (and no longer installed)
+* Dropping privileges as specified
+* Option to specify that a key from a specific repository 
+  should not be used if it has not been backed up
+* ksmutil backup done, to signal that the keys are backed up
+* KASP Auditor should now function properly
+* A quick start script is available
+
+Bugfixes:
+* Signer Engine can now read standard bind format correctly
+* make install creates an incorrectly named directory
+* ksmutil addzone defaults to wrong path
+* SoftHSM links libsofthsm to build directory
+* libksm install problem when builddir == srcdir
+* Missing include of header file in SoftHSM
+* Text about a problem with Botan on some systems.
 
 
 OpenDNSSEC 1.0a1 - 2009-07-30
