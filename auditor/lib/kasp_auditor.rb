@@ -110,14 +110,14 @@ module KASPAuditor
             working + get_name(output_file)+".out.sorted.#{pid}",
             input_file, output_file)
           ret = ret_val if (ret_val < ret)
-          [input_file + ".in", output_file + ".out"].each {|f|
-            delete_file(working + get_name(f)+".parsed.#{pid}")
-            delete_file(working + get_name(f)+".sorted.#{pid}")
-          }
           if ((config.err > 0) && (config.err < ret))
             ret = config.err
           end
         end
+        [input_file + ".in", output_file + ".out"].each {|f|
+          delete_file(working + get_name(f)+".parsed.#{pid}")
+          delete_file(working + get_name(f)+".sorted.#{pid}")
+        }
       }
       ret = 0 if (ret == -99)
       ret = 0 if (ret >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
