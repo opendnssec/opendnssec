@@ -71,6 +71,8 @@
 #define KME_UNRCONCOD   (KME_BASE + 23)     /* WARNING: unrecognised condition code %d: code ignored */
 #define KME_UNRKEYSTA   (KME_BASE + 24)     /* WARNING: key ID %d is in unrecognised state %d */
 #define KME_PROM_PUB    (KME_BASE + 25)     /* INFO: Promoting %s from publish to active as this is the first pass for the zone */
+#define KME_BACK_FATAL  (KME_BASE + 26)     /* ERROR: Trying to make non-backed up %s active when RequireBackup flag is set */
+#define KME_BACK_NON_FATAL  (KME_BASE + 27)     /* WARNING: Making non-backed up %s active, PLEASE make sure that you know the potential problems of using keys which are not recoverable */
 
 
 #endif /* KSM_KMEDEF_H */

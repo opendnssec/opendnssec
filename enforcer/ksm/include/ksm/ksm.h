@@ -209,6 +209,7 @@ typedef struct {
 	int sm;
 	char sm_name[KSM_NAME_LENGTH];
 	unsigned long sm_capacity;
+    int require_backup;
 	int overlap;
 	int ttl;
 	int rfc5011;
@@ -490,7 +491,7 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
 
 typedef int (*KSM_REQUEST_CALLBACK)(void* context, KSM_KEYDATA* key);
 
-void KsmRequestKeys(int keytype, int rollover, const char* datetime,
+int KsmRequestKeys(int keytype, int rollover, const char* datetime,
 	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id);
 int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id);
@@ -541,7 +542,7 @@ int KsmPolicyZskTtl(KSM_PARCOLL* collection);
 int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy);
 
 /* KsmImport */
-int KsmImportRepository(const char* repo_name, const char* repo_capacity);
+int KsmImportRepository(const char* repo_name, const char* repo_capacity, int require_backup);
 int KsmImportPolicy(const char* policy_name, const char* policy_description);
 int KsmImportZone(const char* zone_name, int policy_id);
 int KsmImportAudit(int policy_id, const char* audit_contents);

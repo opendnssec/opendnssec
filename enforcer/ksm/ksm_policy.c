@@ -332,7 +332,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
         return status;
     }
 
-    /* convert security module ids into names */
+    /* convert security module ids into names, capacities and requirebackup flags */
     status = KsmPolicyPopulateSMFromIds(policy);
 
     return status;
@@ -695,6 +695,7 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
     if (status == 0) {
         DbStringBuffer(row, DB_SECURITY_MODULE_NAME, policy->ksk->sm_name, KSM_NAME_LENGTH*sizeof(char));
         DbUnsignedLong(row, DB_SECURITY_MODULE_CAPACITY, &(policy->ksk->sm_capacity));
+        DbInt(row, DB_SECURITY_MODULE_REQUIREBACKUP, &(policy->ksk->require_backup));
     }
     else if (status == -1) {}
         /* No rows to return (but no error) */
@@ -731,6 +732,7 @@ int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)
     if (status == 0) {
         DbStringBuffer(row2, DB_SECURITY_MODULE_NAME, policy->zsk->sm_name, KSM_NAME_LENGTH*sizeof(char));
         DbUnsignedLong(row2, DB_SECURITY_MODULE_CAPACITY, &(policy->zsk->sm_capacity));
+        DbInt(row2, DB_SECURITY_MODULE_REQUIREBACKUP, &(policy->zsk->require_backup));
     }
     else if (status == -1) {}
         /* No rows to return (but no error) */

@@ -90,10 +90,11 @@ extern "C" {
 #define DB_POLICY_PARAMETER_VALUE       2
 
 #define DB_SECURITY_MODULE_TABLE	"securitymodules"
-#define DB_SECURITY_MODULE_FIELDS	"id, name, capacity"
+#define DB_SECURITY_MODULE_FIELDS	"id, name, capacity, requirebackup"
 #define DB_SECURITY_MODULE_ID		0
 #define DB_SECURITY_MODULE_NAME 	1
 #define DB_SECURITY_MODULE_CAPACITY 2
+#define DB_SECURITY_MODULE_REQUIREBACKUP 3
 
 #define DB_ZONE_TABLE			"zones"
 #define DB_ZONE_FIELDS 			"id, name"

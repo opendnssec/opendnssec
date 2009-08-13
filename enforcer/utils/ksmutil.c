@@ -1684,11 +1684,13 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
     char* filename = NULL;
     char* repo_name = NULL;
     char* repo_capacity = NULL;
+    int require_backup = 0;
     char* tag_name = NULL;
     char* temp_char = NULL;
 
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *capacity_expr = (unsigned char*) "//Repository/Capacity";
+    xmlChar *backup_expr = (unsigned char*) "//Repository/RequireBackup";
     xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
     xmlChar *kaspfile_expr = (unsigned char*) "//Common/PolicyFile";
 
@@ -1738,7 +1740,6 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
 
                 /* Evaluate xpath expression for capacity */
                 xpathObj = xmlXPathEvalExpression(capacity_expr, xpathCtx);
-                xmlXPathFreeContext(xpathCtx);
 
                 if(xpathObj == NULL) {
                     printf("Error: unable to evaluate xpath expression: %s; skipping repository\n", capacity_expr);
@@ -1757,11 +1758,34 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
                 }
 
                 xmlXPathFreeObject(xpathObj);
+
+                /* See if we were gven a "RequireBackup" tag or not */
+                xpathObj = xmlXPathEvalExpression(backup_expr, xpathCtx);
+                xmlXPathFreeContext(xpathCtx);
+
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s; skipping repository\n", backup_expr);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if (xpathObj->nodesetval->nodeNr > 0) {
+                    /*
+                     * tag present
+                     */
+                    require_backup = 1;
+                    printf("RequireBackup set.\n");
+                } else {
+                    require_backup = 0;
+                    printf("RequireBackup NOT set; please make sure that you know the potential problems of using keys which are not recoverable\n");
+                }
+
+                xmlXPathFreeObject(xpathObj);
                 
                 /*
                  * Now we have all the information update/insert this repository
                  */
-                status = KsmImportRepository(repo_name, repo_capacity);
+                status = KsmImportRepository(repo_name, repo_capacity, require_backup);
                 if (status != 0) {
                     printf("Error Importing Repository %s", repo_name);
                     /* Don't return? try to parse the rest of the zones? */

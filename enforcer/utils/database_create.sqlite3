@@ -22,7 +22,8 @@ drop table if exists policies;
 create table securitymodules (
   id            integer primary key autoincrement,    -- id for sm
   name          varchar(30) not null,  -- name of the sm
-  capacity      mediumint not null
+  capacity      mediumint not null,
+  requirebackup tinyint default 1
 );
 
 -- categories - stores the possible categories (or uses) of parameters

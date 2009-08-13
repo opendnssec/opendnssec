@@ -60,13 +60,16 @@
  *      const char* repo_capacity
  *          Capacity for that repository
  *
+ *      int require_backup
+ *          flag to indicate if keys in this repo need to be backed up before they can be used
+ *
  * Returns:
  *      int
  *          Status return.  0 on success.
  *                         -1 if an unexpected count value was returned
 -*/
 
-int KsmImportRepository(const char* repo_name, const char* repo_capacity)
+int KsmImportRepository(const char* repo_name, const char* repo_capacity, int require_backup)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -97,9 +100,10 @@ int KsmImportRepository(const char* repo_name, const char* repo_capacity)
     /* If the count was 0 then we do an insert, otherwise we do an update */
     if (count == 0)
     {
-        sql = DisSpecifyInit(DB_SECURITY_MODULE_TABLE, "name, capacity");
+        sql = DisSpecifyInit(DB_SECURITY_MODULE_TABLE, "name, capacity, requirebackup");
         DisAppendString(&sql, repo_name);
         DisAppendString(&sql, repo_capacity);
+        DisAppendInt(&sql, require_backup);
         DisEnd(&sql);
 
         status = DbExecuteSqlNoResult(DbHandle(), sql);
@@ -109,6 +113,7 @@ int KsmImportRepository(const char* repo_name, const char* repo_capacity)
     {
         sql = DusInit(DB_SECURITY_MODULE_TABLE);
         DusSetString(&sql, "capacity", repo_capacity, 0);
+        DusSetInt(&sql, "requirebackup", require_backup, 1);
         DusConditionString(&sql, "name", DQS_COMPARE_EQ, repo_name, 0);
         DusEnd(&sql);
 

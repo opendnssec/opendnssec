@@ -23,6 +23,7 @@ create table securitymodules (
   id            tinyint not null auto_increment,    # id for sm
   name          varchar(30) not null,  # name of the sm
   capacity      mediumint not null,
+  requirebackup tinyint default 1,
 
   constraint primary key (id)
 )ENGINE=InnoDB;

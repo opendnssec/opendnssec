@@ -330,7 +330,13 @@ server_main(DAEMONCONFIG *config)
 
                     /* turn this zone and policy into a file */
                     status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag);
-                    if (status2 != 0) {
+                    if (status2 == -2) {
+                        log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                    else if (status2 != 0) {
                         log_msg(config, LOG_ERR, "Error writing signconf for %s", zone_name);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
@@ -423,6 +429,7 @@ server_main(DAEMONCONFIG *config)
  *  generate the configuration file for the signer
 
  *  returns 0 on success and -1 if something went wrong
+ *                           -2 if the RequestKeys call failed
  */
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag)
 {
@@ -508,7 +515,20 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     fprintf(file, "\t\t<Keys>\n");
     fprintf(file, "\t\t\t<TTL>PT%dS</TTL>\n", policy->ksk->ttl);
 
-    KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id);
+    status = KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id);
+    if (status != 0) {
+        /* 
+         * Something went wrong (it should have been logged) stop this zone.
+         * Clean up the files, don't call the signer and move on to the next zone.
+         */
+
+        status = fclose(file);
+        unlink(temp_filename);
+        MemFree(datetime);
+        StrFree(temp_filename);
+        StrFree(old_filename);
+        return -2;
+    }
 
     fprintf(file, "\t\t</Keys>\n");
 

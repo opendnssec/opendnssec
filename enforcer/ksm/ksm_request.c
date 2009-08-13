@@ -89,7 +89,7 @@
  *
 -*/
 
-void KsmRequestKeys(int keytype, int rollover, const char* datetime,
+int KsmRequestKeys(int keytype, int rollover, const char* datetime,
 	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id)
 {
     int         status;     /* Status return */
@@ -100,7 +100,7 @@ void KsmRequestKeys(int keytype, int rollover, const char* datetime,
         /* Something went wrong */
 
         MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-        return;
+        return status;
     }
 
     /* Update the estimated times of state change */
@@ -115,7 +115,7 @@ void KsmRequestKeys(int keytype, int rollover, const char* datetime,
             
             if (status != 0) {
                 DbRollback();
-                return;
+                return status;
             }
         }
         else {
@@ -123,14 +123,14 @@ void KsmRequestKeys(int keytype, int rollover, const char* datetime,
 				callback, context, policy_id, zone_id);
             if (status != 0) {
                 DbRollback();
-                return;
+                return status;
             }
 
             status = KsmRequestKeysByType(KSM_TYPE_ZSK, rollover, datetime,
 				callback, context, policy_id, zone_id);
             if (status != 0) {
                 DbRollback();
-                return;
+                return status;
             }
         }
 
@@ -142,7 +142,7 @@ void KsmRequestKeys(int keytype, int rollover, const char* datetime,
             status = KsmUpdate(policy_id, zone_id);
             if (status != 0) {
                 DbRollback();
-                return;
+                return status;
             }
             else
             {
@@ -156,7 +156,7 @@ void KsmRequestKeys(int keytype, int rollover, const char* datetime,
         DbRollback();
     }
 
-    return;
+    return status;
 }
 
 
@@ -820,9 +820,13 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
     char*               insql = NULL;       /* SQL "IN" clause */
     int*                keyids;             /* List of IDs of keys to promote */
     int                 setclause = 0;      /* For the "SET" clauses */
-    char*               sql = NULL;         /* SQL statement */
+    char*               sql1 = NULL;        /* SQL statement */
+    char*               sql2 = NULL;        /* SQL statement */
+    char*               sql3 = NULL;        /* SQL statement */
     int                 status;             /* Status return */
     int                 whereclause = 0;    /* For the "WHERE" clauses */
+    int                 count1 = 0;         /* No. of non-backed up keys */
+    int                 count2 = 0;         /* No. of non-backed up keys which should be */
 
     /* Just checking */
     if (count <= 0) {
@@ -893,6 +897,66 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
         dst_name = StrStrdup(KsmKeywordStateValueToName(dst_state));
         (void) StrToUpper(dst_name);
 
+        if (dst_state == KSM_STATE_ACTIVE) {
+            /*
+             * We are making the key(s) active so check the backedupness of these keys, 
+             * and compare with the requirebackup flag on their repository
+             */
+            /*
+             * First see if we have any which are not backed up
+             */
+            StrAppend(&sql1, "select count(*) from keypairs where id in ");
+            StrAppend(&sql1, insql);
+            StrAppend(&sql1, " and backup is null");
+
+            status = DbIntQuery(DbHandle(), &count1, sql1);
+            DqsFree(sql1);
+
+            if (status != 0)
+            {
+                status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+                StrFree(insql);
+                MemFree(keyids);
+                return status;
+            }
+
+            if (count1 != 0) {
+                /*
+                 * See if any of these are supposed to be backed up
+                 */
+
+                StrAppend(&sql2, "select count(*) from keypairs k, securitymodules s where s.id = k.securitymodule_id and k.id in ");
+                StrAppend(&sql2, insql);
+                StrAppend(&sql2, " and k.backup is null and s.requirebackup = 1");
+
+                status = DbIntQuery(DbHandle(), &count2, sql2);
+                DqsFree(sql2);
+
+                if (status != 0)
+                {
+                    status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+                    StrFree(insql);
+                    MemFree(keyids);
+                    return status;
+                }
+
+                if (count2 != 0) {
+                    /*
+                     * This is bad; log an error and return
+                     */
+                    status = MsgLog(KME_BACK_FATAL, (keytype == KSM_TYPE_KSK) ? "KSK" : "ZSK");
+                    StrFree(insql);
+                    MemFree(keyids);
+                    return status;
+                }
+
+                /*
+                 * We allow this, but with a strong warning
+                 */
+                (void) MsgLog(KME_BACK_NON_FATAL, (keytype == KSM_TYPE_KSK) ? "KSK" : "ZSK");
+            }
+        }
+
         /*
          * Now construct the "UPDATE" statement and execute it.  This relies on
          * the fact that the name of the state is the same as the name of
@@ -900,17 +964,17 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
          * that state.
          */
 
-        sql = DusInit("keypairs");
-        DusSetInt(&sql, "STATE", dst_state, setclause++);
-        DusSetString(&sql, dst_name, datetime, setclause++);
+        sql3 = DusInit("keypairs");
+        DusSetInt(&sql3, "STATE", dst_state, setclause++);
+        DusSetString(&sql3, dst_name, datetime, setclause++);
         StrFree(dst_name);
 
-        DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, whereclause++);
+        DusConditionKeyword(&sql3, "ID", DQS_COMPARE_IN, insql, whereclause++);
         StrFree(insql);
-        DusEnd(&sql);
+        DusEnd(&sql3);
 
-        status = DbExecuteSqlNoResult(DbHandle(), sql);
-        DusFree(sql);
+        status = DbExecuteSqlNoResult(DbHandle(), sql3);
+        DusFree(sql3);
 
         /* Report any errors */
 
