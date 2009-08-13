@@ -9,7 +9,6 @@ AM_CFLAGS =	-std=c99
 
 bin_PROGRAMS = hsmbully
 
-hsmbully_LDADD = @CUNIT_LIBS@
-hsmbully_LDFLAGS = -lm
+hsmbully_LDADD = @CUNIT_LIBS@ -lm
 
 EXTRA_DIST = $(srcdir)/cryptoki/*.h
