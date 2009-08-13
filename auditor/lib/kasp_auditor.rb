@@ -41,6 +41,8 @@ require 'kasp_auditor/preparser.rb'
 # Several transient files are created during this process - they are removed
 # when the process is complete.
 module KASPAuditor
+  ENV['LC_ALL']= "C"
+
   def KASPAuditor.exit(msg, err)
     # @TODO@ Log exit msg
     print msg + "\n"
