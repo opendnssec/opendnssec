@@ -633,7 +633,7 @@ class Zone:
             cmd = [self.engine_config.bindir + os.sep + "kasp_auditor",\
                    self.engine_config.sysconfdir + os.sep + "opendnssec",\
                    "-s", self.get_zone_tmp_filename(".signed"),\
-                   self.zone_name]
+                   "-z", self.zone_name]
             # add extra options here
             audit_p = Util.run_tool(cmd)
             result = audit_p.wait()
