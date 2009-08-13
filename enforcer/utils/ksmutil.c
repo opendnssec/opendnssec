@@ -62,14 +62,15 @@
 #define SERIAL_TYPE 4
 
 extern char *optarg;
-char *progname = "ksmutil";
+const char *progname = "ksmutil";
 char *config = (char *) CONFIG_FILE;
 
     void
 usage_setup ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] setup\n\tImport config into a database (deletes current contents)\n",
+            "usage: %s [-f config] setup\n"
+            "\tImport config into a database (deletes current contents)\n",
             progname);
 }
 
@@ -77,7 +78,8 @@ usage_setup ()
 usage_update ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] update\n\tUpdate database from config\n",
+            "usage: %s [-f config] update\n"
+            "\tUpdate database from config\n",
             progname);
 }
 
@@ -85,7 +87,8 @@ usage_update ()
 usage_addzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n\tAdd a zone to the config and database\n",
+            "usage: %s [-f config] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n"
+            "\tAdd a zone to the config and database\n",
             progname);
 }
 
@@ -93,7 +96,8 @@ usage_addzone ()
 usage_delzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] delzone zone\n\tDelete a zone from the config and database\n",
+            "usage: %s [-f config] delzone zone\n"
+            "\tDelete a zone from the config and database\n",
             progname);
 }
 
@@ -101,7 +105,8 @@ usage_delzone ()
 usage_listzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] listzone\n\tList zones from the zonelist.xml in config\n",
+            "usage: %s [-f config] listzone\n"
+            "\tList zones from the zonelist.xml in config\n",
             progname);
 }
 
@@ -109,7 +114,8 @@ usage_listzone ()
 usage_export ()
 {
     fprintf(stderr,
-            "usage: [-f config] %s export [policy]\n\texport all policies [or named policy] to xml\n",
+            "usage: [-f config] %s export [policy]\n"
+            "\texport all policies [or named policy] to xml\n",
             progname);
 }
 
@@ -117,7 +123,8 @@ usage_export ()
 usage_rollzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] rollzone zone [KSK|ZSK]\n\tRollover a zone (may roll all zones on that policy)\n",
+            "usage: %s [-f config] rollzone zone [KSK|ZSK]\n"
+            "\tRollover a zone (may roll all zones on that policy)\n",
             progname);
 }
 
@@ -125,7 +132,8 @@ usage_rollzone ()
 usage_rollpolicy ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] rollpolicy policy [KSK|ZSK]\n\tRollover all zones on a policy\n",
+            "usage: %s [-f config] rollpolicy policy [KSK|ZSK]\n"
+            "\tRollover all zones on a policy\n",
             progname);
 }
 
@@ -133,7 +141,8 @@ usage_rollpolicy ()
 usage_backup ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] backup [done|list] [repository]\n\tIndicate that a key backup has been performed or list dates when backups were made\n",
+            "usage: %s [-f config] backup [done|list] [repository]\n"
+            "\tIndicate that a key backup has been performed or list dates when backups were made\n",
             progname);
 }
 
