@@ -1520,7 +1520,7 @@ hsm_open(const char *config,
     char *token_label;
     char *module_path;
     char *module_pin;
-    int result;
+    int result = HSM_OK;
     int tries;
 
     /* create an internal context with an attached session for each
