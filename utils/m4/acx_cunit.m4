@@ -17,6 +17,8 @@ AC_DEFUN([ACX_CUNIT],[
 	CUNIT_LIBS="-L$CUNIT_PATH/lib -lcunit"
 	AC_MSG_RESULT($CUNIT_LIBS)
 
+	AC_CHECK_LIB(cunit, CU_run_test,,[AC_MSG_NOTICE([Can't find cunit library])])
+
 	AC_SUBST(CUNIT_INCLUDES)
 	AC_SUBST(CUNIT_LIBS)
 ])
