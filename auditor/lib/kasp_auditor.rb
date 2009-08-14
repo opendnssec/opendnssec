@@ -248,9 +248,9 @@ module KASPAuditor
       Process::Sys.setuid(uid)
     end
 
-    def change_chroot(dir)
-      Dir.chroot((dir+"").untaint)
-    end
+    #def change_chroot(dir)
+    #  Dir.chroot((dir+"").untaint)
+    #end
 
     def change_group(gid_text)
       gid = Etc.getgrnam((gid_text+"").untaint).gid
@@ -259,15 +259,15 @@ module KASPAuditor
 
     def load_privileges(doc)
       # Configuration/Privileges may be overridden by Auditor/Privileges
-      begin
-        if (doc.elements['Configuration/Auditor/Privileges/Directory'])
-          change_chroot(doc.elements['Configuration/Auditor/Privileges/Directory'].text)
-        elsif (doc.elements['Configuration/Privileges/Directory'])
-          change_chroot(doc.elements['Configuration/Privileges/Directory'].text)
-        end
-      rescue Exception => e
-        print "Couldn't set Configuration/Privileges/Directory (#{e})\n"
-      end
+      #begin
+      #  if (doc.elements['Configuration/Auditor/Privileges/Directory'])
+      #    change_chroot(doc.elements['Configuration/Auditor/Privileges/Directory'].text)
+      #  elsif (doc.elements['Configuration/Privileges/Directory'])
+      #    change_chroot(doc.elements['Configuration/Privileges/Directory'].text)
+      #  end
+      #rescue Exception => e
+      #  print "Couldn't set Configuration/Privileges/Directory (#{e})\n"
+      #end
       begin
         if (doc.elements['Configuration/Auditor/Privileges/User'])
           change_uid(doc.elements['Configuration/Auditor/Privileges/User'].text)
