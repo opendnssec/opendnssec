@@ -550,7 +550,13 @@ int KsmSmIdFromName(const char* name, int *id);
 int KsmSerialIdFromName(const char* name, int *id);
 int KsmPolicyIdFromName(const char* name, int *id);
 int KsmMarkBackup(int repo_id, const char* datetime);
+
+/* KsmList */
 int KsmListBackups(int repo_id);
+int KsmListRepos();
+int KsmListPolicies();
+int KsmListRollovers(int zone_id);
+int KsmListKeys(int zone_id);
 
 #ifdef __cplusplus
 };

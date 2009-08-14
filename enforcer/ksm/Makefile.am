@@ -16,7 +16,7 @@ noinst_LIBRARIES = libksm.a
 libksm_a_SOURCES = \
 	database_init_rundown.c datetime.c dd_string.c debug.c di_string.c \
 	dq_string.c du_string.c ksm_dnsseckeys.c ksm_import.c ksm_init_rundown.c \
-	ksm_key.c ksm_key_delete.c ksm_keyword.c ksm_parameter.c \
+	ksm_key.c ksm_key_delete.c ksm_keyword.c ksm_list.c ksm_parameter.c \
 	ksm_parameter_value.c ksm_policy.c ksm_policy_value.c ksm_purge.c \
 	ksm_request.c ksm_time.c ksm_update.c ksm_version.c ksm_zone.c \
 	memory.c message.c string_util.c string_util2.c \

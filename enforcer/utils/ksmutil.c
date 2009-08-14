@@ -147,6 +147,15 @@ usage_backup ()
 }
 
     void
+usage_list ()
+{
+    fprintf(stderr,
+            "usage: %s [-f config] list [repositories|policies|keys|rollovers|backups] [qualifier]\n"
+            "\tList specified aspect of the current configuration\n",
+            progname);
+}
+
+    void
 usage ()
 {
     usage_setup ();
@@ -158,6 +167,7 @@ usage ()
     usage_rollzone ();
     usage_rollpolicy ();
     usage_backup ();
+    usage_list ();
 }
 
 /* 
@@ -1336,6 +1346,7 @@ cmd_backup (int argc, char *argv[])
         }
 
         /* Make a backup of the sqlite DB */
+        /* TODO skip this if we are only doing a list */
         StrAppend(&db_backup_filename, dbschema);
         StrAppend(&db_backup_filename, ".backup");
 
@@ -1396,7 +1407,6 @@ cmd_backup (int argc, char *argv[])
         }
     }
     else if (!strncasecmp(subcommand, "list", 4)) {
-        /* TODO put work in here */
         status = KsmListBackups(repo_id);
 
         if (status != 0) {
@@ -1410,6 +1420,226 @@ cmd_backup (int argc, char *argv[])
             fclose(lock_fd);
         }
         return(1);
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
+    DbDisconnect(dbhandle);
+    return 0;
+}
+
+/*
+ * List whatever was asked of us
+ */
+    int
+cmd_list (int argc, char *argv[])
+{
+    int status = 0;
+    int done_something = 0;
+
+    char* subcommand = NULL;    /* What to list */
+    char* qualifier = NULL;     /* Any further specification */
+    int qualifier_id = -1;      /* ID of qualifer (if given) */
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    /* See what arguments we were passed (if any) otherwise we will list everything */
+    if (argc != 0 && argc != 1 && argc != 2) {
+        usage_backup();
+        return -1;
+    }
+
+    if (argc == 1) {
+        StrAppend(&subcommand, argv[0]);
+    } else if (argc == 2) {
+        StrAppend(&subcommand, argv[0]);
+        StrAppend(&qualifier, argv[1]);
+    } else {
+        StrAppend(&subcommand, "all");
+    }
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(dbschema);
+            return(1);
+        }
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Start the work here */
+
+    /* REPOSITORIES */
+    if (!strncasecmp(subcommand, "rep", 3) || !strncasecmp(subcommand, "all", 3)) {
+        done_something = 1;
+        printf("Repositories:\n");
+
+        status = KsmListRepos();
+
+        if (status != 0) {
+            printf("Error: failed to list repositories\n");
+            return status;
+        }
+
+        printf("\n");
+    }
+    /* POLICIES */
+    if (!strncasecmp(subcommand, "pol", 3) || !strncasecmp(subcommand, "all", 3)) {
+        done_something = 1;
+        printf("Policies:\n");
+
+        status = KsmListPolicies();
+
+        if (status != 0) {
+            printf("Error: failed to list policies\n");
+            return status;
+        }
+
+        printf("\n");
+    }
+    /* KEYS */
+    if (!strncasecmp(subcommand, "key", 3) || !strncasecmp(subcommand, "all", 3)) {
+        done_something = 1;
+
+        /* Turn zone name into an id (if provided) */
+        if (qualifier != NULL) {
+            status = KsmZoneIdFromName(qualifier, &qualifier_id);
+            if (status != 0) {
+                printf("Error: unable to find a zone named \"%s\" in database\n", qualifier);
+                return status;
+            }
+        }
+
+        printf("Keys:\n");
+
+        status = KsmListKeys(qualifier_id);
+
+        if (status != 0) {
+            printf("Error: failed to list keys\n");
+            return status;
+        }
+
+        printf("\n");
+    }
+    /* ROLLOVERS */
+    if (!strncasecmp(subcommand, "rol", 3) || !strncasecmp(subcommand, "all", 3)) {
+        done_something = 1;
+
+        /* Turn zone name into an id (if provided) */
+        if (qualifier != NULL) {
+            status = KsmZoneIdFromName(qualifier, &qualifier_id);
+            if (status != 0) {
+                printf("Error: unable to find a zone named \"%s\" in database\n", qualifier);
+                return status;
+            }
+        }
+
+        printf("Rollovers:\n");
+
+        status = KsmListRollovers(qualifier_id);
+
+        if (status != 0) {
+            printf("Error: failed to list rollovers\n");
+            return status;
+        }
+
+        printf("\n");
+    }
+    /* BACKUPS */
+    if (!strncasecmp(subcommand, "bac", 3) || !strncasecmp(subcommand, "all", 3)) {
+        done_something = 1;
+
+        /* Turn repo name into an id (if provided) */
+        if (qualifier != NULL) {
+            status = KsmSmIdFromName(qualifier, &qualifier_id);
+            if (status != 0) {
+                printf("Error: unable to find a repository named \"%s\" in database\n", qualifier);
+                return status;
+            }
+        }
+
+        printf("Backups:\n");
+        status = KsmListBackups(qualifier_id);
+
+        if (status != 0) {
+            printf("Error: failed to list backups\n");
+            return status;
+        }
+        printf("\n");
+    }
+
+    /* If done_something is still 0 then we did not recognise the option provided */
+    if (done_something == 0) {
+        printf("Unknown command \"list %s\"\n", subcommand);
     }
 
     /* Release sqlite lock file (if we have it) */
@@ -1506,6 +1736,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_backup(argc, argv);
+    } else if (!strncasecmp(argv[0], "list", 4)) {
+        argc --;
+        argv ++;
+        result = cmd_list(argc, argv);
     } else {
         printf("Unknown command: %s\n", argv[0]);
         usage();
