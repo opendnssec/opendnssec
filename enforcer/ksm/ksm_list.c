@@ -96,7 +96,7 @@ int KsmListBackups(int repo_id)
             DbString(row, 0, &temp_date);
             DbString(row, 1, &temp_repo);
 
-            printf("%-24s %s\n", temp_date, temp_repo);
+            printf("%-24s %s\n", (temp_date == NULL) ? "(null)" : temp_date, temp_repo);
             
             status = DbFetchRow(result, &row);
         }
