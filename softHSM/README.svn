@@ -5,6 +5,6 @@ configuration scripts before continuing with the real README.
 
 1. You need to install automake, autoconf, libtool, etc.
 
-2. Run the command 'sh autogen.sh'
+2. Run the command 'autoreconf --install --force'
 
 3. Continue reading in the file README.
