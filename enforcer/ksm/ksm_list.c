@@ -284,7 +284,7 @@ int KsmListRollovers(int zone_id)
             DbInt(row, 1, &temp_type);
             DbString(row, 2, &temp_date);
 
-            printf("%-31s %-13s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", temp_date);
+            printf("%-31s %-13s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", (temp_date == NULL) ? "(not scheduled)" : temp_date);
             
             status = DbFetchRow(result, &row);
         }
@@ -361,16 +361,16 @@ int KsmListKeys(int zone_id)
             DbString(row, 6, &temp_dead);
 
             if (temp_state == KSM_STATE_PUBLISH) {
-                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), temp_ready);
+                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
             }
             else if (temp_state == KSM_STATE_READY) {
                 printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), "next rollover");
             }
             else if (temp_state == KSM_STATE_ACTIVE) {
-                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), temp_retire);
+                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_retire == NULL) ? "(not scheduled)" : temp_retire);
             }
             else if (temp_state == KSM_STATE_RETIRE) {
-                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), temp_dead);
+                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_dead == NULL) ? "(not scheduled)" : temp_dead);
             }
             
             status = DbFetchRow(result, &row);
