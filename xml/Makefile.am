@@ -12,6 +12,7 @@ MAINTAINERCLEANFILES = \
 RNC =	conf.rnc kasp.rnc zonelist.rnc signconf.rnc
 RNG =	conf.rng kasp.rng zonelist.rng signconf.rng
 XML =	conf.xml kasp.xml zonelist.xml signconf.xml
+XSL=	kasp2html.xsl
 
 sysconfdir = @sysconfdir@/opendnssec
 datadir = @datadir@/opendnssec
