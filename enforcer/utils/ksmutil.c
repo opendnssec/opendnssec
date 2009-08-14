@@ -1376,7 +1376,7 @@ cmd_backup (int argc, char *argv[])
     if (repository != NULL) {
         status = KsmSmIdFromName(repository, &repo_id);
         if (status != 0) {
-            printf("Error: unable to find repository %s\n", repository);
+            printf("Error: unable to find a repository named \"%s\" in database\n", repository);
             return status;
         }
     }
