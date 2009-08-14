@@ -20,6 +20,7 @@ class OptionsParser
       options.default_conf_file = path + "conf.xml"
       options.zone_name = nil
       options.signed_temp = nil
+      options.daemonize = false
 
       opts = OptionParser.new do |opts|
         opts.banner = "Usage: kasp_auditor [options]"
@@ -58,6 +59,14 @@ class OptionsParser
         end
 
 
+        # daemonize
+        opts.on("-d", "--daemonize",
+                "Run the auditor as a daemon") do |ext|
+           options.daemonize = true
+        end
+
+
+
         opts.separator ""
         opts.separator "Common options:"
 
@@ -91,4 +100,8 @@ if (options.zone_name)
     runner.signed_temp = options.signed_temp
   end
 end
-runner.run
+if (options.daemonize)
+  runner.run_as_daemon()
+else
+  runner.run()
+end
