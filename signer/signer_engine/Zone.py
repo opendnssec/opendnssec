@@ -432,18 +432,18 @@ class Zone:
 
         if self.action >= ZoneConfig.RESIGN and os.path.exists(
                           self.get_zone_tmp_filename(".signed")):
-            if self.sign() and self.audit():
-                self.finalize()
+            if self.sign() and self.finalize() and self.audit():
+                self.move_output()
         elif self.action >= ZoneConfig.RENSEC and os.path.exists(
                             self.get_zone_tmp_filename(".sorted")) and\
                             self.nsecify():
-            if self.sign() and self.audit():
-                self.finalize()
+            if self.sign() and self.finalize() and self.audit():
+                self.move_output()
         elif self.action >= ZoneConfig.REREAD and os.path.isfile(
                                         self.get_zone_input_filename()):
             if self.sort_input() and self.nsecify():
-                if self.sign() and self.audit():
-                    self.finalize()
+                if self.sign() and self.finalize() and self.audit():
+                    self.move_output()
         elif self.action >= ZoneConfig.RESORT and os.path.isfile(
                                         self.get_zone_input_filename()):
             ## the sorting config has changed. We must also re-sort the
@@ -451,8 +451,8 @@ class Zone:
             ## if any.
             if self.sort_signed() and self.sort_input() and \
                self.nsecify():
-                if self.sign() and self.audit():
-                    self.finalize()
+                if self.sign() and self.finalize() and self.audit():
+                    self.move_output()
         else:
             syslog.syslog(syslog.LOG_ERR, "Input file missing: " +\
                           self.get_zone_input_filename())
@@ -632,7 +632,7 @@ class Zone:
             syslog.syslog(syslog.LOG_INFO, "Running auditor on zone")
             cmd = [self.engine_config.bindir + os.sep + "kasp_auditor",\
                    self.engine_config.sysconfdir + os.sep + "opendnssec",\
-                   "-s", self.get_zone_tmp_filename(".signed"),\
+                   "-s", self.get_zone_tmp_filename(".finalized"),\
                    "-z", self.zone_name]
             # add extra options here
             audit_p = Util.run_tool(cmd)
@@ -653,8 +653,8 @@ class Zone:
               ]
         finalize_p = Util.run_tool(cmd)
         if not finalize_p:
-            return
-        output = open(self.get_zone_output_filename(), "w")
+            return False
+        output = open(self.get_zone_tmp_filename(".finalized"), "w")
         output.write("; Signed on " +\
                      datetime.fromtimestamp(self.last_signed)\
                      .strftime("%Y-%m-%d %H:%M:%S") + "\n")
@@ -663,6 +663,15 @@ class Zone:
         for line in finalize_p.stderr:
             output.write(line)
         output.close()
+        return True
+
+    def move_output(self):
+        """Moves the output of the finalizer to the final output
+           destination, and calls a notify command if configured"""
+        syslog.syslog(syslog.LOG_INFO, "Output zone to " +
+                      self.get_zone_output_filename())
+        Util.move_file(self.get_zone_tmp_filename(".finalized"),
+                       self.get_zone_output_filename())
         if self.engine_config.notify_command:
             notify_cmd = self.engine_config.notify_command.replace("%zone",
                                                         self.zone_name)
