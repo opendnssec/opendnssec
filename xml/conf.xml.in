@@ -38,7 +38,6 @@
 		<Privileges>
 			<User>opendnssec</User>
 			<Group>opendnssec</Group>
-			<Directory>/</Directory>
 		</Privileges>
 -->
 

@@ -96,10 +96,7 @@ privs = element Privileges {
 	element User { xsd:string }?,
 	
 	# Group to drop privs to
-	element Group { xsd:string }?,
-	
-	# Directory to chroot() to after startup 
-	element Directory { xsd:string }?
+	element Group { xsd:string }?
 }
 
 mysql = element MySQL {
