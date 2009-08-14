@@ -77,7 +77,7 @@ class Engine:
         self.zonelist = None
         self.command_socket = None
         self.locked = False
-        self.chrooted = False
+        #self.chrooted = False
         syslog.openlog("OpenDNSSEC signer engine",
                        0, self.config.syslog_facility)
 
@@ -176,15 +176,15 @@ class Engine:
                 raise EngineError(estr)
 
         # finally, chroot
-        if self.config.privs_chroot and not self.chrooted:
-            try:
-                os.chroot(self.config.privs_chroot)
-                self.chrooted = True
-            except Exception, e:
-                estr = "Unable to chroot() to " +\
-                       self.config.privs_chroot + ": " + str(e)
-                syslog.syslog(syslog.LOG_ERR, estr)
-                raise EngineError(estr)
+        #if self.config.privs_chroot and not self.chrooted:
+        #    try:
+        #        os.chroot(self.config.privs_chroot)
+        #        self.chrooted = True
+        #    except Exception, e:
+        #        estr = "Unable to chroot() to " +\
+        #               self.config.privs_chroot + ": " + str(e)
+        #        syslog.syslog(syslog.LOG_ERR, estr)
+        #        raise EngineError(estr)
 
         if self.config.privs_groupname:
             try:
