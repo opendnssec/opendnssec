@@ -40,7 +40,6 @@ Once built the communicated binary takes the following options:
 -s <SCHEMA>     schema to use in the KASP DB (or DB file if using sqlite)
 -p <PASS>       password for DB schema user 
 -h <HOST>       host machine of DB 
--u <USER>       local user to suid as 
 -P <FILE>       pid file to use
 -d              debug mode (do not daemonise)
 

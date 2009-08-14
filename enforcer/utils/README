@@ -3,13 +3,13 @@ $Id$
 
 This is a utility that allows several different actions to be performed (relatively) easily:
 
-ksmutil [-f config_dir] setup
+ksmutil [-f config] setup
     Import conf.xml (from config_dir) into a database (deletes current contents)
 
-ksmutil [-f config_dir] update
+ksmutil [-f config] update
     Update database from config_dir (like above, but existing contents are kept)
 
-ksmutil [-f config_dir] addzone zone [policy] [path_to_signerconf.xml] [input] [output]
+ksmutil [-f config] addzone zone [policy] [path_to_signerconf.xml] [input] [output]
     Add a zone to the config_dir and database
     zone == zone name
     policy == name of policy for zone to be put on
@@ -20,17 +20,17 @@ ksmutil [-f config_dir] addzone zone [policy] [path_to_signerconf.xml] [input] [
     If left blank then defaults will be provided for the latter 4 options.
     A backup of the sqlite DB file is made (if appropriate).
 
-ksmutil [-f config_dir] delzone zone
+ksmutil [-f config] delzone zone
     Delete a zone from the config_dir and database
     A backup of the sqlite DB file is made (if appropriate).
 
-ksmutil [-f config_dir] listzone
+ksmutil [-f config] listzone
     List zones from the zonelist.xml in config_dir
 
 ksmutil export [policy]
 export all policies [or named policy] to xml (in kasp.xml format)
 
-ksmutil [-f config_dir] rollzone zone [KSK|ZSK]
+ksmutil [-f config] rollzone zone [KSK|ZSK]
     Rollover a zone (may roll all zones on that policy)
     the final option specifies the type of key to roll (both are rolled if nothing is specified)
     after running the rollover the communicator will be woken up so that the signer can be sent the new information
@@ -38,8 +38,12 @@ ksmutil [-f config_dir] rollzone zone [KSK|ZSK]
     If the policy that the zone is on specifies that keys are shared then all zones on that policy will be rolled.
     A backup of the sqlite DB file is made (if appropriate).
 
-ksmutil [-f config_dir] rollpolicy policy [KSK|ZSK]
+ksmutil [-f config] rollpolicy policy [KSK|ZSK]
     Rollover all zones on a policy
     the final option specifies the type of key to roll (both are rolled if nothing is specified)
     after running the rollover the communicator will be woken up so that the signer can be sent the new information
     A backup of the sqlite DB file is made (if appropriate).
+
+ksmutil [-f config] backup [done|list] [repository]
+    Indicate that a key backup has been performed or list dates when backups were made.
+   This is especially important if the repository used has the "RequireBackup" flag set. Include this call in a HSM backup process to avoid warnings or errors about using non-backed up keys.
