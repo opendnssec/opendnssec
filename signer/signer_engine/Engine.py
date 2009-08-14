@@ -156,7 +156,7 @@ class Engine:
                 print e
                 sys.exit(0)
 
-
+    def drop_privileges(self):
         if self.config.privs_groupname:
             try:
                 gid = grp.getgrnam(self.config.privs_groupname)[2]
@@ -681,6 +681,7 @@ def main():
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
         signal.signal(signal.SIGHUP, signal_handler_stop)
+        engine.drop_privileges()
         engine.setup_engine()
         if daemonize:
             daemonize_engine()
