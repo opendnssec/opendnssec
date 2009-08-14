@@ -267,6 +267,7 @@ class Engine:
                  "Commands:",
                  "zones           show the currently known zones",
                  "sign <zone>     schedule zone for immediate (re-)signing",
+                 "                --all schedules all zones",
                  "clear <zone>    delete the internal storage of the given",
                  "                zone name. All signatures will be ",
                  "                regenerated on the next re-sign.",
@@ -284,8 +285,8 @@ class Engine:
                 # do full resort/rensec/sign
                 if len(args) < 2:
                     response = "sign command needs an argument " +\
-                               "(either 'all' or a zone name)"
-                elif args[1] == "all":
+                               "(either '--all' or a zone name)"
+                elif args[1] == "--all":
                     for zone in self.zones.keys():
                         self.zones[zone].action = ZoneConfig.REREAD
                         self.schedule_signing(zone)
@@ -339,7 +340,7 @@ class Engine:
                 response = "All tasks scheduled immediately"
                 self.notify_all()
             if command[:6] == "update":
-                if len(args) == 1 or args[1] == "all":
+                if len(args) == 1 or args[1] == "--all":
                     response = self.read_zonelist()
                     response += "\n" + self.check_zone_conf_updates()
                 else:
