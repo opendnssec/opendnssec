@@ -217,7 +217,9 @@ main(int argc, char *argv[]){
 
     StrFree(config.username);
     StrFree(config.groupname);
+#if 0
     StrFree(config.chrootdir);
+#endif
 
     exit(0);
 

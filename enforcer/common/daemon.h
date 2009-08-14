@@ -94,7 +94,9 @@ typedef struct
     gid_t gid;
     char *username;
     char *groupname;
+#if 0
     char *chrootdir;
+#endif
 		/* flag to indicate that SIGTERM was recieved */
 		int term;
 
