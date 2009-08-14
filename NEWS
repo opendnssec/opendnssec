@@ -13,7 +13,7 @@ Features:
 * ksmutil backup done, to signal that the keys are backed up
 * KASP Auditor should now function properly
 * A quick start script is available
-* XSLT to translate KASP into English (HTML)
+* XSLT to translate KASP into readable text (HTML)
 * Changes to the KASP DB, please apply:
   If want to use your old DB:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090812_1.sqlite3
