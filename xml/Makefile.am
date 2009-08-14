@@ -19,7 +19,7 @@ datadir = @datadir@/opendnssec
 
 noinst_DATA = ${XML}
 
-dist_data_DATA = ${RNG} ${RNC}
+dist_data_DATA = ${RNG} ${RNC} ${XSL}
 
 CLEANFILES =	*.rng *.xml
 
