@@ -1,0 +1,3 @@
+-- Migrate existing database for key backup stuff
+
+alter table keypairs add column backup varchar(64) null default null;

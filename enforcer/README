@@ -1,0 +1,48 @@
+$Id$
+
+This code should work but is not fully tested
+
+Introduction
+------------
+The communicator is the program which takes the policy and key information from the KASP database and turns it into an xml file that the signer can use.
+
+Pre-requisites
+--------------
+1) libksm needs to have been at least built, if not installed.
+    (Note that whether we will use MySQL or sqlite is decided at the time that
+     libksm is built.)
+
+2) libhsm
+
+
+Building the Software
+---------------------
+
+If from svn then you need to run ./autogen.sh
+
+To build just run ./configure; make; make install
+
+Note that setting CFLAGS to "-g" before the configure stage ensures that the final binary is built with the optimizer turned off. (overrides the default -g -O2)
+
+The following options can be passed to configure;
+
+--prefix=<dir>                  Installation directory. All files will be 
+                                installed relative to this path.
+--with-libksm=<dir>             Where you installed libksm
+--with-libhsm=<dir>             Where you installed libhsm
+
+
+Running the Communicator
+------------------------
+
+Once built the communicated binary takes the following options:
+-n <NAME>       name of KASP DB user
+-s <SCHEMA>     schema to use in the KASP DB (or DB file if using sqlite)
+-p <PASS>       password for DB schema user 
+-h <HOST>       host machine of DB 
+-P <FILE>       pid file to use
+-d              debug mode (do not daemonise)
+
+Your LD_LIBRARY_PATH environment variable will need to include the libksm libs.
+
+Note that currently the output is hardcoded to go to the current working directory; this will be fixed when it reads the config file properly

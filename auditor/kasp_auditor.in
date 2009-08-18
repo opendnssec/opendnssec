@@ -1,0 +1,107 @@
+#!@RUBY@ -I@opendnsseclibdir@
+#
+# $Id$
+
+require 'kasp_auditor.rb'
+require 'optparse'
+require 'ostruct'
+
+include KASPAuditor
+
+class OptionsParser
+#
+    # Return a structure describing the options.
+    #
+    def self.parse(args)
+      # The options specified on the command line will be collected in *options*.
+      # We set default values here.
+      path = "@sysconfdir@/opendnssec/".sub("${prefix}", "@prefix@")
+      options = OpenStruct.new
+      options.default_conf_file = path + "conf.xml"
+      options.zone_name = nil
+      options.signed_temp = nil
+      options.daemonize = false
+
+      opts = OptionParser.new do |opts|
+        opts.banner = "Usage: kasp_auditor [options]"
+
+        opts.separator ""
+        opts.separator "Specific options:"
+
+        # conf.xml
+        opts.on("-c", "--conf [PATH_TO_CONF_FILE]",
+                "Path to OpenDNSSEC configuration file",
+                "  (defaults to /etc/opendnssec/conf.xml)") do |ext|
+          options.conf_file = ext
+        end
+
+        # kasp.xml
+        opts.on("-k", "--kasp [PATH_TO_KASP_FILE]",
+                "Path to KASP policy file",
+                "  (defaults to /etc/opendnssec/kasp.xml)") do |ext|
+          options.kasp_file = ext
+        end
+
+        # zone_name
+        opts.on("-z", "--zone [ZONE_NAME]",
+                "Single zone to audit",
+                "  (defaults to audit all zones)") do |ext|
+          options.zone_name = ext
+        end
+
+        # signed_temp
+        opts.on("-s", "--signed [PATH_TO_SIGNED_FILE]",
+                "If a single zone is specified, then this option may override",
+                "  the specified signed file with another. This is for use by",
+                "  the signer.",
+                "  (defaults to audit all zones)") do |ext|
+          options.signed_temp = ext
+        end
+
+
+        # daemonize
+        opts.on("-d", "--daemonize",
+                "Run the auditor as a daemon") do |ext|
+           options.daemonize = true
+        end
+
+
+
+        opts.separator ""
+        opts.separator "Common options:"
+
+        # No argument, shows at tail.  This will print an options summary.
+        # Try it and see!
+        opts.on_tail("-h", "-?", "--help", "Show this message") do
+          puts opts
+          exit
+        end
+
+      end
+
+      opts.parse!(args)
+      options
+    end  # parse()
+end
+
+runner = Runner.new
+options = OptionsParser.parse(ARGV)
+if (options.conf_file)
+    runner.conf_file = options.conf_file
+else
+    runner.conf_file = options.default_conf_file
+end
+if (options.kasp_file)
+    runner.kasp_file = options.kasp_file
+end
+if (options.zone_name)
+  runner.zone_name = options.zone_name
+  if (options.signed_temp)
+    runner.signed_temp = options.signed_temp
+  end
+end
+if (options.daemonize)
+  runner.run_as_daemon()
+else
+  runner.run()
+end

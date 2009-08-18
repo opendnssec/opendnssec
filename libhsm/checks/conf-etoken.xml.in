@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: conf-sca6000.xml 803 2009-05-26 14:57:54Z jakob $ -->
+
+<Configuration>
+	<RepositoryList>
+		<Repository name="default">
+			<Module>@pkcs11_etoken_module@</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>test.1234</PIN>
+			<Capacity>10</Capacity>
+		</Repository>
+	</RepositoryList>
+</Configuration>

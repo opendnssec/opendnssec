@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: conf-softhsm.xml 806 2009-05-27 10:05:41Z jelte $ -->
+
+<Configuration>
+	<RepositoryList>
+		<Repository name="default">
+			<Module>@pkcs11_softhsm_module@</Module>
+			<TokenLabel>softHSM</TokenLabel>
+			<PIN>123456</PIN>
+		</Repository>
+	</RepositoryList>
+</Configuration>

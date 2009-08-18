@@ -1,0 +1,107 @@
+# $Id$
+#
+# Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+# GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
+
+start = element SignerConfiguration { zone }
+
+zone = element Zone {
+		attribute name { xsd:string },
+
+		# This section is taken directly from the corresponding KASP policy
+		element Signatures {
+			element Resign { xsd:duration },
+			element Refresh { xsd:duration },
+			element Validity {
+				element Default { xsd:duration },
+				element Denial { xsd:duration }
+			},
+			element Jitter { xsd:duration },
+			element InceptionOffset { xsd:duration }
+		},
+
+		# use NSEC or NSEC3?
+		element Denial { (nsec | nsec3)	},
+
+		element Keys {
+			# TTL for all DNSKEYs
+			ttl,
+
+			element Key {
+				# DNSKEY flags
+				element Flags { xsd:nonNegativeInteger { maxInclusive = "65535" } },
+				
+				# DNSKEY algorithm
+				algorithm,
+				
+				# The key locator is matched against PKCS#11 CKA_ID in hex
+				# e.g. DFE7265B-783F-4186-8538-0AA784C2F31D
+				# is written as DFE7265B783F418685380AA784C2F31D
+				element Locator { xsd:string },
+
+				# sign all the DNSKEY RRsets with this key?
+				element KSK { empty }?,
+				
+				# sign all non-DNSKEY RRsets with this key?
+				element ZSK { empty }?,
+				
+				# include this key in the zonefile?
+				element Publish { empty }?
+			}+
+		},
+
+		# What parameters to use for the SOA record
+		soa,
+		
+		# Auditing parameters
+		audit?
+	}
+
+algorithm = element Algorithm { xsd:nonNegativeInteger { maxInclusive = "255" } }
+
+ttl = element TTL { xsd:duration }
+
+soa = element SOA {
+		ttl,
+		element Minimum { xsd:duration },
+		element Serial { "counter" | "unixtime" | "datecounter" | "keep" }?
+	}
+
+nsec = element NSEC { empty }
+
+# This section is taken directly from the corresponding KASP policy
+# (except that the NSEC3 Salt is not optional)
+nsec3 = element NSEC3 {
+		element OptOut { empty }?,
+		element Hash {
+			algorithm,
+			element Iterations { xsd:positiveInteger { maxInclusive = "65535" } },
+			element Salt { xsd:string }
+		}
+	}
+
+audit = element Audit { empty }

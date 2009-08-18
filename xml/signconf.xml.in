@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id$ -->
+
+<SignerConfiguration>
+	<Zone name="opendnssec.org">
+
+		<Signatures>
+			<Resign>PT2H</Resign>
+			<Refresh>P3D</Refresh>
+			<Validity>
+					<Default>P7D</Default>
+					<Denial>P14D</Denial>
+			</Validity>
+			<Jitter>PT12H</Jitter>
+			<InceptionOffset>PT300S</InceptionOffset>
+		</Signatures>
+
+		<Denial>
+			<NSEC3>
+				<OptOut/>
+				<Hash>
+					<Algorithm>1</Algorithm>
+					<Iterations>10</Iterations>
+					<Salt>656d6d6b7469736169646f677461</Salt>
+				</Hash>
+			</NSEC3>
+		</Denial>
+
+		<Keys>
+			<TTL>PT3600S</TTL>
+
+			<Key>
+				<Flags>257</Flags>
+				<Algorithm>5</Algorithm>
+				<Locator>DFE7265B783F418685380AA784C2F31D</Locator>
+				<KSK/>
+				<Publish/>
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>5</Algorithm>
+				<Locator>8D76C0C49FEB4A97B8E920C7552401CE</Locator>
+				<ZSK/>
+				<Publish/>
+			</Key>
+		</Keys>
+
+		<SOA>
+			<TTL>PT3600S</TTL>
+			<Minimum>PT3600S</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+
+	</Zone>
+</SignerConfiguration>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: conf-sca6000.xml 803 2009-05-26 14:57:54Z jakob $ -->
+
+<Configuration>
+	<RepositoryList>
+		<Repository name="default">
+			<Module>@pkcs11_opensc_module@</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+	</RepositoryList>
+</Configuration>

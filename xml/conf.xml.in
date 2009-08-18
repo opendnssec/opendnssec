@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id$ -->
+
+<Configuration>
+
+	<RepositoryList>
+
+		<Repository name="softHSM">
+			<Module>@pkcs11_softhsm_module@</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+
+<!--
+		<Repository name="sca6000">
+			<Module>@pkcs11_sca6000_module@</Module>
+			<TokenLabel>Sun Metaslot</TokenLabel>
+			<PIN>test:1234</PIN>
+			<Capacity>1000</Capacity>
+			<RequireBackup/>
+		</Repository>
+-->
+
+	</RepositoryList>
+
+	<Common>
+		<Logging>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+		
+		<PolicyFile>@opendnssecsysconfdir@/kasp.xml</PolicyFile>
+		<ZoneListFile>@opendnssecsysconfdir@/zonelist.xml</ZoneListFile>
+	</Common>
+
+	<Enforcer>
+<!--
+		<Privileges>
+			<User>opendnssec</User>
+			<Group>opendnssec</Group>
+		</Privileges>
+-->
+
+		<Datastore><SQLite>@opendnsseclocalstatedir@/kasp.db</SQLite></Datastore>
+		<Interval>PT3600S</Interval>
+		<KeygenInterval>PT3M</KeygenInterval>
+		<BackupDelay>P3D</BackupDelay>
+	</Enforcer>
+
+	<Signer>
+<!--
+		<Privileges>
+			<User>opendnssec</User>
+			<Group>opendnssec</Group>
+			<Directory>/</Directory>
+		</Privileges>
+-->
+
+		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
+		<WorkerThreads>8</WorkerThreads>
+		<SignerThreads>1</SignerThreads>
+		<!--
+		<NotifyCommand>/usr/local/bin/my_nameserver_reload_command</NotifyCommand>
+		-->
+	</Signer>
+
+	<Auditor>
+<!--
+		<Privileges>
+			<User>opendnssec</User>
+			<Group>opendnssec</Group>
+			<Directory>/</Directory>
+		</Privileges>
+-->
+
+		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
+	</Auditor>
+
+</Configuration>

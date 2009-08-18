@@ -1,0 +1,138 @@
+# $Id$
+#
+# Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+# GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
+
+start = element Configuration {
+	
+	# List of all known Key Repositories (aka HSM:s)
+	element RepositoryList {
+		element Repository {
+			# Symbolic name of Repository
+			attribute name { xsd:string },
+
+			# PKCS#11 Module (aka shared library)
+			element Module { xsd:string },
+
+			# PKCS#11 Token Label,
+			element TokenLabel { xsd:string },
+
+			# PKCS#11 Login Credentials (asked for if not specified)
+			element PIN { xsd:string },
+
+			# Maxmimum number of key pairs in the Repository (if limited)
+			element Capacity { xsd:positiveInteger }?,
+			
+			# Require backup of keys before use (recommended, but not default)
+			element RequireBackup { empty }?
+		}*
+	},
+	
+	# Common configuration options
+	element Common {
+		# Configuration parameters for logging
+		element Logging {
+			element Syslog {
+				element Facility { xsd:string }
+			}
+		}?,
+
+		# Location to find the KASP
+		element PolicyFile { xsd:string },
+
+		# Location to store the zonelist XML file
+		element ZoneListFile { xsd:string }
+	},
+
+	# Configuration parameters for the KASP Enforcer
+	element Enforcer {
+		privs?,
+
+		# Where to store internal Enforcer state
+		element Datastore { (mysql | sqlite) },
+
+		# Interval between runs of the key rollover procedure
+		element Interval { xsd:duration },
+
+		# Interval between runs of the key pre-generation procedure
+		element KeygenInterval { xsd:duration },
+
+		# Interval between runs of the key backup procedure
+		element BackupDelay { xsd:duration }
+	},
+
+	# Configuration parameters for the Signer 
+	element Signer {
+		privs?,
+
+		# Location to store intermediate zone information
+		element WorkingDirectory { xsd:string }?,
+
+		# Location of the signer tools, if other than the default directory.
+		# Used mainly for debugging.
+		# default $(libexecdir)/opendnssec
+		element ToolsDirectory { xsd:string }?,
+		
+		# Number of Worker Threads
+		element WorkerThreads { xsd:positiveInteger }?,
+
+		# Number of Signer Threads
+		element SignerThreads { xsd:positiveInteger }?,
+		
+		# System command to call after a zone has been (re)signed
+		# '%zone' in the string will be replaced by the zone name
+		element NotifyCommand { xsd:string }?
+	}?,
+
+	element Auditor {
+		privs?,
+
+		# Location to store intermediate audit information
+		element WorkingDirectory { xsd:string }?
+	}?
+}
+
+privs = element Privileges {
+	# User to drop privs to
+	element User { xsd:string }?,
+	
+	# Group to drop privs to
+	element Group { xsd:string }?
+}
+
+mysql = element MySQL {
+	element Host {
+			# default port is 3306
+			attribute port { xsd:positiveInteger { maxInclusive = "65535" } },
+			# default hostname is 127.0.0.1
+			xsd:string }?,
+	element Database { xsd:string },
+	element Username { xsd:string },
+	element Password { xsd:string }	
+}
+
+sqlite = element SQLite { xsd:string }
