@@ -87,10 +87,14 @@
  *      int zone_id
  *          ID of zone that we are looking at (-1 == all zones)
  *
+ *      int run_interval
+ *          how frequently do we run?
+ *
 -*/
 
 int KsmRequestKeys(int keytype, int rollover, const char* datetime,
-	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id)
+	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id, 
+    int run_interval)
 {
     int         status;     /* Status return */
 
@@ -111,7 +115,7 @@ int KsmRequestKeys(int keytype, int rollover, const char* datetime,
 
         if ((keytype == KSM_TYPE_KSK) || (keytype == KSM_TYPE_ZSK)) {
             status = KsmRequestKeysByType(keytype, rollover, datetime,
-				callback, context, policy_id, zone_id);
+				callback, context, policy_id, zone_id, run_interval);
             
             if (status != 0) {
                 DbRollback();
@@ -120,14 +124,14 @@ int KsmRequestKeys(int keytype, int rollover, const char* datetime,
         }
         else {
             status = KsmRequestKeysByType(KSM_TYPE_KSK, rollover, datetime,
-				callback, context, policy_id, zone_id);
+				callback, context, policy_id, zone_id, run_interval);
             if (status != 0) {
                 DbRollback();
                 return status;
             }
 
             status = KsmRequestKeysByType(KSM_TYPE_ZSK, rollover, datetime,
-				callback, context, policy_id, zone_id);
+				callback, context, policy_id, zone_id, run_interval);
             if (status != 0) {
                 DbRollback();
                 return status;
@@ -191,6 +195,9 @@ int KsmRequestKeys(int keytype, int rollover, const char* datetime,
  *      int zone_id
  *          ID of zone that we are looking at
  *
+ *      int run_interval
+ *          how frequently do we run?
+ *
  * Returns:
  *      int
  *          Status return.  0 = Success, other = error (in which case a message
@@ -198,7 +205,8 @@ int KsmRequestKeys(int keytype, int rollover, const char* datetime,
 -*/
 
 int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
-	KSM_REQUEST_CALLBACK callback,  void* context, int policy_id, int zone_id)
+	KSM_REQUEST_CALLBACK callback,  void* context, int policy_id, int zone_id,
+    int run_interval)
 {
     int     active;         /* Number of active keys to be retired */
     KSM_PARCOLL collection; /* Parameters collection */
@@ -261,7 +269,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * publish state.
      */
 
-    status = KsmRequestChangeStateGeneratePublishConditional(keytype, datetime, &collection, zone_id);
+    status = KsmRequestChangeStateGeneratePublishConditional(keytype, datetime, &collection, zone_id, run_interval);
     if (status != 0) {
         return status;
     }
@@ -1034,6 +1042,9 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
  *      int zone_id
  *          ID of zone that we are looking at (-1 == all zones)
  *
+ *      int run_interval
+ *          how frequently do we run?
+ *
  * Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
@@ -1041,7 +1052,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
 -*/
 
 int KsmRequestChangeStateGeneratePublishConditional(int keytype,
-	const char* datetime, KSM_PARCOLL* collection, int zone_id)
+	const char* datetime, KSM_PARCOLL* collection, int zone_id, int run_interval)
 {
     int     availkeys;      /* Number of availkeys keys */
     int     gencnt;         /* Number of keys in generate state */
@@ -1051,9 +1062,8 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
     int     status;         /* Status return */
 
     /* How many active keys will be retired in the immediate future */
-
     status = KsmRequestPendingRetireCount(keytype, datetime, collection,
-        &pendret, zone_id);
+        &pendret, zone_id, run_interval);
     if (status != 0) {
         return status;
     }
@@ -1091,6 +1101,7 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
      */
 
     newkeys = reqkeys - (availkeys - pendret);
+    /* fprintf(stderr, "%s: keytype(%d): newkeys(%d) = reqkeys(%d) - (availkeys(%d) - pendret(%d))\n", datetime, keytype, newkeys, reqkeys, availkeys, pendret); */
 	DbgLog(DBG_M_REQUEST, KME_KEYCNTSUMM, reqkeys, newkeys);
 
     if (newkeys > 0) {
@@ -1100,9 +1111,8 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
         status = KsmRequestGenerateCount(keytype, &gencnt, zone_id);
         if (status == 0) {
             if (gencnt < newkeys) {
-                /* TODO work out why we are hitting this (spuriously?) 
                 status = MsgLog(KME_INSFGENKEY, gencnt,
-                    KsmKeywordTypeValueToName(keytype)); */
+                    KsmKeywordTypeValueToName(keytype), newkeys);
             }
 			DbgLog(DBG_M_REQUEST, KME_GENERATECNT, gencnt,
 				KsmKeywordTypeValueToName(keytype));
@@ -1158,14 +1168,16 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
 -*/
 
 int KsmRequestPendingRetireCount(int keytype, const char* datetime,
-    KSM_PARCOLL* parameters, int* count, int zone_id)
+    KSM_PARCOLL* parameters, int* count, int zone_id, int interval)
 {
     char    buffer[256];    /* For constructing part of the command */
     int     clause = 0;     /* Used in constructing SQL statement */
     size_t  nchar;          /* Number of characters written */
     char*   sql;            /* SQL command to be isssued */
     int     status;         /* Status return */
+    int     total_interval; /* The InitialPublicationInterval + interval (when we will run again) */
 
+    total_interval = KsmParameterInitialPublicationInterval(parameters) + interval;
     /* Create the SQL command to interrogate the database */
 
     sql = DqsCountInit("KEYDATA_VIEW");
@@ -1183,11 +1195,11 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
         "DATE_ADD(\"%s\", INTERVAL %d SECOND)",
-        datetime, KsmParameterInitialPublicationInterval(parameters));
+        datetime, total_interval);
 #else
     nchar = snprintf(buffer, sizeof(buffer),
         "DATETIME('%s', '+%d SECONDS')",
-        datetime, KsmParameterInitialPublicationInterval(parameters));
+        datetime, total_interval);
 #endif /* USE_MYSQL */
     if (nchar >= sizeof(buffer)) {
         status = MsgLog(KME_BUFFEROVF, "KsmRequestKeys");

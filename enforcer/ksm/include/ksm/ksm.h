@@ -492,9 +492,11 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
 typedef int (*KSM_REQUEST_CALLBACK)(void* context, KSM_KEYDATA* key);
 
 int KsmRequestKeys(int keytype, int rollover, const char* datetime,
-	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id);
+	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id,
+    int run_interval);
 int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
-	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id);
+	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id,
+    int run_interval);
 int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zone_id);
 int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id);
 int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id);
@@ -508,9 +510,10 @@ int KsmRequestChangeStateReadyActive(int keytype, const char* datetime,
 int KsmRequestChangeStateN(int keytype, const char* datetime,
     int count, int src_state, int dst_state, int zone_id);
 int KsmRequestChangeStateGeneratePublishConditional( int keytype,
-	const char* datetime, KSM_PARCOLL* collection, int zone_id);
+	const char* datetime, KSM_PARCOLL* collection, int zone_id,
+    int run_interval);
 int KsmRequestPendingRetireCount(int keytype, const char* datetime,
-	KSM_PARCOLL* parameters, int* count, int zone_id);
+	KSM_PARCOLL* parameters, int* count, int zone_id, int interval);
 int KsmRequestAvailableCount(int keytype, const char* datetime,
 	KSM_PARCOLL* parameters, int* count, int zone_id);
 int KsmRequestGenerateCount(int keytype, int* count, int zone_id);

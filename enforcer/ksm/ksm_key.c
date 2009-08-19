@@ -818,7 +818,7 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
  *          Status return. 0 => success, Other implies error, in which case a 
  *          message will have been output. 
 -*/ 
- 
+
 int KsmKeyCountQueue(int keytype, int* count, int zone_id) 
 { 
     int     clause = 0;     /* Clause count */ 
@@ -905,13 +905,22 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
     int     status = 0;     /* Status return */ 
     char    in[128];        /* Easily large enought for three keys */ 
     char    buffer[512];    /* For constructing part of the command */
-    size_t  nchar;          /* Number of output characters */ 
+    size_t  nchar;          /* Number of output characters */
+    int     total_interval; /* interval plus retirement time */
+    KSM_PARCOLL collection; /* Parameters collection */
  
     /* 
      * Construct the "IN" statement listing the states of the keys that 
      * are included in the output. 
      */ 
- 
+
+    /* Get list of parameters */
+    status = KsmParameterCollection(&collection, policy_id);
+    if (status != 0) {
+        return status;
+    }
+    total_interval = KsmParameterInitialPublicationInterval(&collection) + interval;
+
     nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d)", 
         KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE); 
     if (nchar >= sizeof(in)) { 
@@ -924,10 +933,10 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
      */
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
-        "DATE_ADD(\"%s\", INTERVAL %d SECOND)", datetime, interval);
+        "DATE_ADD(\"%s\", INTERVAL %d SECOND)", datetime, total_interval);
 #else
     nchar = snprintf(buffer, sizeof(buffer),
-        "DATETIME('%s', '+%d SECONDS')", datetime, interval);
+        "DATETIME('%s', '+%d SECONDS')", datetime, total_interval);
 #endif /* USE_MYSQL */
     if (nchar >= sizeof(buffer)) {
         status = MsgLog(KME_BUFFEROVF, "KsmKeyCountStillGood");

@@ -329,7 +329,7 @@ server_main(DAEMONCONFIG *config)
                     }
 
                     /* turn this zone and policy into a file */
-                    status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag);
+                    status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval);
                     if (status2 == -2) {
                         log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                         /* Don't return? try to parse the rest of the zones? */
@@ -431,7 +431,7 @@ server_main(DAEMONCONFIG *config)
  *  returns 0 on success and -1 if something went wrong
  *                           -2 if the RequestKeys call failed
  */
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag)
+int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval)
 {
     int status = 0;
     FILE *file, *file2;
@@ -515,7 +515,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     fprintf(file, "\t\t<Keys>\n");
     fprintf(file, "\t\t\t<TTL>PT%dS</TTL>\n", policy->ksk->ttl);
 
-    status = KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id);
+    status = KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id, run_interval);
     if (status != 0) {
         /* 
          * Something went wrong (it should have been logged) stop this zone.
@@ -761,10 +761,13 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     int status = 0;
     int keys_needed = 0;
     int keys_in_queue = 0;
+    int keys_pending_retirement = 0;
     int new_keys = 0;
     int key_pair_id = 0;
     int i = 0;
     DB_ID ignore = 0;
+    KSM_PARCOLL collection; /* Parameters collection */
+    char*   datetime = DtParseDateTimeString("now");
 
     if (policy == NULL) {
         log_msg(NULL, LOG_ERR, "NULL policy sent to allocateKeysToZone\n");
@@ -774,6 +777,12 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     if (key_type != KSM_TYPE_KSK && key_type != KSM_TYPE_ZSK) {
         log_msg(NULL, LOG_ERR, "Unknown keytype: %i in allocateKeysToZone\n", key_type);
         return 1;
+    }
+
+    /* Get list of parameters */
+    status = KsmParameterCollection(&collection, policy->id);
+    if (status != 0) {
+        return status;
     }
 
     /* Make sure that enough keys are allocated to this zone */
@@ -791,9 +800,16 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
         return 3;
     }
 
-    new_keys = keys_needed - keys_in_queue;
+    /* or about to retire */
+    status = KsmRequestPendingRetireCount(key_type, datetime, &collection, &keys_pending_retirement, zone_id, interval);
+    if (status != 0) {
+        log_msg(NULL, LOG_ERR, "Could not count keys which may retire before the next run (for zone %s)\n", zone_name);
+        return 3;
+    }
+
+    new_keys = keys_needed - (keys_in_queue - keys_pending_retirement);
    
-/*    fprintf(stderr, "comm(%d): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", key_type, new_keys, keys_needed, keys_in_queue); */
+    /* fprintf(stderr, "comm(%d) %s: new_keys(%d) = keys_needed(%d) - (keys_in_queue(%d) - keys_pending_retirement(%d))\n", key_type, zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement); */
 
     /* Allocate keys */
     for (i=0 ; i < new_keys ; i++){
@@ -826,6 +842,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             } else {
                 status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, &ignore);
             }
+            /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
         } else {
             /* TODO what would this mean? */
         }

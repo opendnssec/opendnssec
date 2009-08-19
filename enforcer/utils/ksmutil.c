@@ -1069,19 +1069,19 @@ cmd_rollzone (int argc, char *argv[])
     /* retire the active key(s) */
     if (key_type == 0) {
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
-        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone_id);
+        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone_id, 0);
         /*if (status != 0) {
             return(status);
         }*/
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
-        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone_id);
+        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone_id, 0);
         /*if (status != 0) {
             return(status);
         }*/
     }
     else {
         /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
-        KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_id);
+        KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_id, 0);
         /*if (status != 0) {
             return(status);
         }*/
@@ -1237,19 +1237,19 @@ cmd_rollpolicy (int argc, char *argv[])
     /* retire the active key(s) */
     if (key_type == 0) {
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
-        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, -1);
+        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, -1, 0);
         /*if (status != 0) {
             return(status);
         }*/
         /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
-        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, -1);
+        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, -1, 0);
         /*if (status != 0) {
             return(status);
         }*/
     }
     else {
         /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
-        KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, -1);
+        KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, -1, 0);
         /*if (status != 0) {
             return(status);
         }*/
