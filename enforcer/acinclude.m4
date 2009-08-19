@@ -111,7 +111,7 @@ AC_DEFUN([ACX_BOTAN],[
 	AC_SUBST(BOTAN_INCLUDES)
 	AC_SUBST(BOTAN_LIBS)
 ])
-# $Id: acx_cunit.m4 1591 2009-08-13 08:19:46Z jakob $
+# $Id: acx_cunit.m4 1647 2009-08-17 12:07:30Z jakob $
 
 AC_DEFUN([ACX_CUNIT],[
 	AC_ARG_WITH(cunit,
@@ -130,7 +130,20 @@ AC_DEFUN([ACX_CUNIT],[
 	CUNIT_LIBS="-L$CUNIT_PATH/lib -lcunit"
 	AC_MSG_RESULT($CUNIT_LIBS)
 
-	AC_CHECK_LIB(cunit, CU_run_test,,[AC_MSG_NOTICE([Can't find cunit library])])
+	tmp_CPPFLAGS=$INCLUDES
+	tmp_LIBS=$LIBS
+
+	CPPFLAGS="$CPPFLAGS $CUNIT_INCLUDES"
+	LIBS="$LIBS $CUNIT_LIBS"
+
+	AC_CHECK_LIB(cunit, CU_run_test, [],[
+		AC_MSG_NOTICE([Can't find cunit library])
+		CUNIT_INCLUDES=
+		CUNIT_LIBS=
+	])
+
+	CPPFLAGS=$tmp_INCLUDES
+	LIBS=$tmp_LIBS
 
 	AC_SUBST(CUNIT_INCLUDES)
 	AC_SUBST(CUNIT_LIBS)
@@ -227,7 +240,7 @@ AC_DEFUN([ACX_LDNS],[
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
 ])
-# $Id: acx_libhsm.m4 1497 2009-08-05 12:41:17Z jelte $
+# $Id: acx_libhsm.m4 1660 2009-08-19 08:06:43Z jakob $
 
 AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
@@ -238,38 +251,39 @@ AC_DEFUN([ACX_LIBHSM],[
 			LIBHSM_PATH="/usr/local"
 		])
 
-	AC_MSG_CHECKING(what are the libhsm includes)
-	LIBHSM_INCLUDES="-I$LIBHSM_PATH/include"
-	AC_MSG_RESULT($LIBHSM_INCLUDES)
-
-	AC_MSG_CHECKING(what are the libhsm libs)
-	LIBHSM_LIBS="-L$LIBHSM_PATH/lib -lhsm"
-	AC_MSG_RESULT($LIBHSM_INCLUDES)
-
 	tmp_CPPFLAGS=$CPPFLAGS
 	tmp_LIBS=$LIBS
 
-	CPPFLAGS="$CPPFLAGS $XML2_INCLUDES $LIBHSM_INCLUDES"
-	LIBS="$LIBS -L$LIBHSM_PATH/lib"
-
 	BUILD_LIBHSM=""
-	
+
 	ACX_ABS_SRCDIR # defines ac_sub_srcdir as an absolute path
 	
-	# dnl ok we don't have an installed library, use the source
-	# (makefile will figure it out)
-	if test ! -f $ac_sub_srcdir/../libhsm/config.h; then
+	if test -f ../libhsm/config.h; then
+		AC_MSG_NOTICE([using libhsm from source tree])
+		LIBHSM_INCLUDES="-I$ac_sub_srcdir/../libhsm/src"
+		LIBHSM_LIBS="-L../../libhsm/src/.libs -lhsm"
+		BUILD_LIBHSM="../../libhsm/src/libhsm.la"
+	else
+		AC_MSG_NOTICE([no libhsm in source tree, looking elsewhere])
+	
+		AC_MSG_CHECKING(what are the libhsm includes)
+		LIBHSM_INCLUDES="-I$LIBHSM_PATH/include"
+		AC_MSG_RESULT($LIBHSM_INCLUDES)
+
+		AC_MSG_CHECKING(what are the libhsm libs)
+		LIBHSM_LIBS="-L$LIBHSM_PATH/lib -lhsm"
+		AC_MSG_RESULT($LIBHSM_INCLUDES)
+
+		CPPFLAGS="$CPPFLAGS $XML2_INCLUDES $LIBHSM_INCLUDES"
+		LIBS="$LIBS -L$LIBHSM_PATH/lib"
+
 		AC_CHECK_HEADERS(libhsm.h, [
 			AC_CHECK_LIB(hsm,hsm_create_context,, [
-				AC_MSG_ERROR([libhsm not found on system, and libhsm source not present, use --with-libhsm=path.])
-			])
+				AC_MSG_ERROR([libhsm not found on system and libhsm source not present; use --with-libhsm=path])
+				])
 		], [
-			AC_MSG_ERROR([libhsm headers not found in source tree or on system])
+			AC_MSG_ERROR([libhsm not found in source tree nor on system])
 		])
-	else
-		LIBHSM_INCLUDES="$LIBHSM_INCLUDE -I$ac_sub_srcdir/../libhsm/src"
-		LIBHSM_LIBS="$LIBHSM_LIBS -L../../libhsm/src/.libs"
-		BUILD_LIBHSM="../../libhsm/src/libhsm.la"
 	fi
 
 	CPPFLAGS=$tmp_CPPFLAGS
