@@ -31,14 +31,14 @@ class OptionsParser
         # conf.xml
         opts.on("-c", "--conf [PATH_TO_CONF_FILE]",
                 "Path to OpenDNSSEC configuration file",
-                "  (defaults to /etc/opendnssec/conf.xml)") do |ext|
+                "  (defaults to " + options.default_conf_file + ")") do |ext|
           options.conf_file = ext
         end
 
         # kasp.xml
         opts.on("-k", "--kasp [PATH_TO_KASP_FILE]",
                 "Path to KASP policy file",
-                "  (defaults to /etc/opendnssec/kasp.xml)") do |ext|
+                "  (defaults to the path given in the configuration file)") do |ext|
           options.kasp_file = ext
         end
 
@@ -54,7 +54,7 @@ class OptionsParser
                 "If a single zone is specified, then this option may override",
                 "  the specified signed file with another. This is for use by",
                 "  the signer.",
-                "  (defaults to audit all zones)") do |ext|
+                "  (defaults to the path given in the zone list)") do |ext|
           options.signed_temp = ext
         end
 
