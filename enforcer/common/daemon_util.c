@@ -428,7 +428,6 @@ ReadConfig(DAEMONCONFIG *config)
     char* rngfilename = SCHEMA_DIR "/conf.rng";
 
     char* temp_char = NULL;
-    unsigned char* temp_uchar = NULL;
 
     log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
 
