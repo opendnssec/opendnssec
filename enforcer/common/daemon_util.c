@@ -572,10 +572,6 @@ ReadConfig(DAEMONCONFIG *config)
     if(xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
         config->schema = xmlXPathCastToString(xpathObj);
-        /*config->schema = NULL;
-        temp_uchar = xmlXPathCastToString(xpathObj);
-		StrAppend(&config->schema, temp_uchar);
-        StrFree(temp_uchar); */
         log_msg(config, LOG_INFO, "SQLite database set to: %s\n", config->schema);
     }
     xmlXPathFreeObject(xpathObj);
