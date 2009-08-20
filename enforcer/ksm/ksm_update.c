@@ -350,11 +350,11 @@ void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     }
 
     /* 
-     * Update the retire time if the key is not marked as compromised.
+     * Update the retire time if the key is not marked as fixedDate.
      * If we asked for a rollover, but no keys were ready then a compromised key
      * may still be active.
      */
-    if (!data->compromised) {
+    if (!data->fixedDate) {
         (void) KsmUpdateKeyTime(data, "ACTIVE", "RETIRE", deltat);
     }
 

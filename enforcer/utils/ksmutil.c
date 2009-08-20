@@ -156,6 +156,23 @@ usage_list ()
 }
 
     void
+usage_import ()
+{
+    fprintf(stderr,
+            "usage: %s [-f config] import key <CKA_ID> <HSM> <ZONE> <KEYTYPE> <SIZE> <ALGORITHM> <STATE> <TIME> [RETIRE_TIME]\n"
+            "\tImport a key into ksm\n"
+            "\t\t<KEYTYPE> can be one of KSK or ZSK\n"
+            "\t\t<SIZE> size of key in bits\n", progname);
+
+    fprintf(stderr,
+            "\t\t<ALGORITHM> can be one of RSASHA1 or RSASHA1-NSEC3-SHA1 (5 or 7)\n"
+            "\t\t<STATE> can be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n"
+            "\t\t<TIME> is the date when it entered the state given\n"
+            "\t\t[RETIRE TIME] is the date when it should retire (if entered as active)\n"
+            "\t\t\t(possible time format YYYY[MM[DD[HH[MM[SS]]]]] use ksmutil -h for full list\n");
+}
+
+    void
 usage ()
 {
     usage_setup ();
@@ -168,8 +185,28 @@ usage ()
     usage_rollpolicy ();
     usage_backup ();
     usage_list ();
+    usage_import ();
 }
 
+    void
+date_help()
+{
+    fprintf(stderr,
+        "\n\tAllowed date/time strings are of the form:\n"
+ 
+        "\tYYYYMMDD[HH[MM[SS]]]                (all numeric)\n"
+        "\n" 
+        "\tor  D-MMM-YYYY[:| ]HH[:MM[:SS]]     (alphabetic  month)\n"
+        "\tor  DD-MMM-YYYY[:| ]HH[:MM[:SS]]    (alphabetic  month)\n"
+        "\tor  YYYY-MMM-DD[:| ]HH[:MM[:SS]]    (alphabetic month)\n"
+        "\n" 
+        "\tD-MM-YYYY[:| ]HH[:MM[:SS]]          (numeric month)\n"
+        "\tDD-MM-YYYY[:| ]HH[:MM[:SS]]         (numeric month)\n"
+        "\tor  YYYY-MM-DD[:| ]HH[:MM[:SS]]     (numeric month)\n"
+        "\n" 
+        "\t... and the distinction between them is given by the location of the\n"
+        "\thyphens.\n");
+}
 /* 
  * Do initial import of config files into database
  */
@@ -1657,6 +1694,381 @@ cmd_list (int argc, char *argv[])
     return 0;
 }
 
+/*
+ * import a key into the ksm and set its values as specified
+ */
+    int
+cmd_import (int argc, char *argv[])
+{
+    int status = 0;
+
+    char* subcommand = NULL; /* has to be "key" at the moment */
+    char* cka_id = NULL;     /* will become location */
+    char* hsm = NULL;        /* name of repo this key is in */
+    char* zone = NULL;       /* name of zone this key is on */
+    char* keytype = NULL;    /* KSK or ZSK */
+    char* size = NULL;       /* Size of key in bits */
+    char* algorithm = NULL;  /* RSASHA1 or RSASHA1-NSEC3-SHA1 (5 or 7) */
+    char* state = NULL;      /* GENERATED, PUBLISHED, READY, ACTIVE or RETIRED */
+    char* time = NULL;       /* time at which it entered the above state */
+    char* opt_time = NULL;   /* time at which it should retire (maybe provided) */
+
+    int repo_id = -1;
+    int zone_id = -1;
+    int policy_id = -1;
+    int cka_id_exists = -1; /* do we already have this id in the HSM */
+    int keytype_id = -1;
+    int size_int = -1;
+    int algo_id = -1;
+    int state_id = -1;
+    char form_time[KSM_TIME_LENGTH]; /* YYYY-MM-DD HH:MM:SS + NULL Time after we reformat it */
+    char form_opt_time[KSM_TIME_LENGTH]; /* Opt_time after we reformat it */
+
+    DB_ID   keypair_id = 0;    /* This will be set when we enter the keypair */
+    DB_ID   ignore = 0;        /* This will be set when we enter the dnsseckey */
+
+    struct tm   datetime;       /* Used for getting the date/time */
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+    char* db_backup_filename = NULL;
+
+    DB_RESULT	result;         /* Result of parameter query */
+    KSM_PARAMETER data;         /* Parameter information */
+
+    int user_certain;           /* Continue ? */
+    
+    /* See what arguments we were passed (if any) otherwise set the defaults */
+    if (argc != 9 && argc != 10) {
+        usage_import();
+        return -1;
+    }
+
+    StrAppend(&subcommand, argv[0]);
+    StrAppend(&cka_id, argv[1]);
+    StrAppend(&hsm, argv[2]);
+    StrAppend(&zone, argv[3]);
+    StrAppend(&keytype, argv[4]);
+    StrAppend(&size, argv[5]);
+    StrAppend(&algorithm, argv[6]);
+    StrAppend(&state, argv[7]);
+    StrAppend(&time, argv[8]);
+    if (argc == 10) {
+        StrAppend(&opt_time, argv[9]);
+    }
+
+    if (strncmp(subcommand, "key", 3) != 0) {
+        printf("Error: Unrecognised command \"import %s\"\n", subcommand);
+        return(1);
+    }
+        
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(dbschema);
+            return(1);
+        }
+
+        /* Make a backup of the sqlite DB */
+        /* TODO skip this if we are only doing a list */
+        StrAppend(&db_backup_filename, dbschema);
+        StrAppend(&db_backup_filename, ".backup");
+
+        status = backup_file(dbschema, db_backup_filename);
+
+        StrFree(db_backup_filename);
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* check that the repository specified exists */
+    status = KsmSmIdFromName(hsm, &repo_id);
+    if (status != 0) {
+        printf("Error: unable to find a repository named \"%s\" in database\n", hsm);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return status;
+    }
+
+    /* check that the zone name is valid and use it to get some ids */
+    status = KsmZoneIdAndPolicyFromName(zone, &policy_id, &zone_id);
+    if (status != 0) {
+        printf("Error: unable to find a zone named \"%s\" in database\n", zone);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+
+    /* Check that the cka_id does not exist (in the specified HSM) */
+    status = (KsmCheckHSMkeyID(repo_id, cka_id, &cka_id_exists));
+    if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+    if (cka_id_exists == 1) {
+        printf("Error: key with cka_id \"%s\" already exists in database\n", cka_id);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Check the Keytype */
+    if (strncmp(keytype, "KSK", 3) == 0 || strncmp(keytype, "257", 3) == 0) {
+        keytype_id = 257;
+    }
+    else if (strncmp(keytype, "ZSK", 3) == 0 || strncmp(keytype, "256", 3) == 0) {
+        keytype_id = 256;
+    }
+    else {
+        printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", keytype);
+
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+        
+    /* Check the size is numeric */
+    if (StrIsDigits(size)) {
+        status = StrStrtoi(size, &size_int);
+        if (status != 0) {
+            printf("Error: Unable to convert size \"%s\"; to an integer\n", size);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(status);
+        }
+    }
+    else {
+        printf("Error: Size \"%s\"; should be numeric only\n", size);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+        
+    /* Check the algorithm */
+    if (strncmp(algorithm, "rsasha1", 7) == 0 || strncmp(algorithm, "5", 1) == 0) {
+        algo_id = 5;
+    }
+    else if (strncmp(algorithm, "rsasha1-nsec3-sha1", 18) == 0 || strncmp(algorithm, "7", 1) == 0) {
+        algo_id = 7;
+    }
+    else {
+        printf("Error: Unrecognised algorithm %s; should be one of RSASHA1 or RSASHA1-NSEC3-SHA1\n", algorithm);
+
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Check the state */
+    if (strncmp(state, "generate", 8) == 0 || strncmp(state, "1", 1) == 0) {
+        state_id = 1;
+    }
+    else if (strncmp(state, "publish", 7) == 0 || strncmp(state, "2", 1) == 0) {
+        state_id = 2;
+    }
+    else if (strncmp(state, "ready", 5) == 0 || strncmp(state, "3", 1) == 0) {
+        state_id = 3;
+    }
+    else if (strncmp(state, "active", 6) == 0 || strncmp(state, "4", 1) == 0) {
+        state_id = 4;
+    }
+    else if (strncmp(state, "retire", 6) == 0 || strncmp(state, "5", 1) == 0) {
+        state_id = 5;
+    }
+    else {
+        printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", state);
+
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Check, and convert, the time(s) */
+    status = DtGeneral(time, &datetime);
+    if (status != 0) {
+        printf("Error: unable to convert \"%s\" into a date\n", time);
+        date_help();
+
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+    else {
+        snprintf(form_time, KSM_TIME_LENGTH, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
+            datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday,
+            datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
+    }
+
+    if (opt_time != NULL) {
+        /* can only specify a retire time if the key is being inserted in the active state */
+        if (state_id != KSM_STATE_ACTIVE) {
+            printf("Error: unable to specify retire time for a key in state \"%s\"\n", state);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(status);
+        }
+
+        status = DtGeneral(opt_time, &datetime);
+        if (status != 0) {
+            printf("Error: unable to convert retire time \"%s\" into a date\n", opt_time);
+            date_help();
+
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(status);
+        }
+        else {
+            snprintf(form_opt_time, KSM_TIME_LENGTH, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
+                    datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday,
+                    datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
+        }
+    }
+
+    /* Find out if this zone has any others on a "shared keys" policy and warn */
+    status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
+    if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+    status = KsmParameter(result, &data);
+    if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+    KsmParameterEnd(result);
+    
+    /* Warn and confirm if this will roll more than one zone */
+    if (data.value == 1) {
+        printf("*WARNING* This zone shares keys with others, the key will be added to all; are you sure? [y/N] ");
+
+        user_certain = getchar();
+        if (user_certain != 'y' && user_certain != 'Y') {
+            printf("Okay, quitting...\n");
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            exit(0);
+        }
+    }
+
+    /* create basic keypair */
+    status = KsmImportKeyPair(policy_id, cka_id, repo_id, size_int, algo_id, state_id, form_time, form_opt_time, &keypair_id);
+    if (status != 0) {
+        printf("Error: couldn't import key\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+
+    /* allocate key to zone(s) */
+    if (data.value == 1) {
+        status = KsmDnssecKeyCreateOnPolicy(policy_id, (int) keypair_id, keytype_id);
+    } else {
+        status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, &ignore);
+    }
+
+    if (status != 0) {
+        printf("Error: couldn't allocate key to zone(s)\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+
+    printf("Key imported into zone(s)\n");
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
+    DbDisconnect(dbhandle);
+    return 0;
+}
+
 /* 
  * Fairly basic main, just pass most things through to their handlers
  */
@@ -1673,6 +2085,7 @@ main (int argc, char *argv[])
                 break;
             case 'h':
                 usage();
+                date_help();
                 exit(0);
                 break;
             default:
@@ -1740,6 +2153,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_list(argc, argv);
+    } else if (!strncasecmp(argv[0], "import", 6)) {
+        argc --;
+        argv ++;
+        result = cmd_import(argc, argv);
     } else {
         printf("Unknown command: %s\n", argv[0]);
         usage();

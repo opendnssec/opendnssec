@@ -494,7 +494,8 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
 
     sql = DusInit("keypairs");
     DusSetString(&sql, "RETIRE", datetime, 0);
-    DusSetInt(&sql, "compromisedflag", 1, 1);
+    DusSetInt(&sql, "fixedDate", 1, 1);
+    DusSetInt(&sql, "compromisedflag", 1, 2);
 
     DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 0);
     StrFree(insql);

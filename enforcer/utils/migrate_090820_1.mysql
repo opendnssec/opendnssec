@@ -1,0 +1,11 @@
+-- Migrate existing database for key import stuff
+
+alter table keypairs add column fixedDate tinyint default 0;
+
+-- Rebuild the KEYDATA view
+create or replace view KEYDATA_VIEW as
+select k.id, k.state,	k.generate, k.publish, k.ready,	k.active,	k.retire,
+       k.dead, d.keytype, k.algorithm,	k.HSMkey_id as location, d.zone_id,
+       k.policy_id, k.securitymodule_id, k.size, k.compromisedflag, k.fixedDate
+from keypairs k left outer join dnsseckeys d
+on k.id = d.keypair_id;

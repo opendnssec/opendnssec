@@ -614,7 +614,7 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data)
     }
 
 	if (status == 0) {
-        status = DbInt(row, DB_KEYDATA_COMPROMISED, &(data->compromised));
+        status = DbInt(row, DB_KEYDATA_FIXED_DATE, &(data->fixedDate));
 	}
 
 	DbFreeRow(row);

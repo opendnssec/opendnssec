@@ -115,7 +115,7 @@ typedef struct {
     char    HSMKey_id[KSM_NAME_LENGTH]; /* TODO is this long enough ? */
     DB_ID	dnsseckey_id;
     int     zone_id;
-    int     compromised;
+    int     fixedDate;
 
     /*
      * The remaining fields are used for data manipulation and are not part of
@@ -324,6 +324,8 @@ void KsmPurge(void);
 #define KSM_ALGORITHM_DSASHA1_STRING    "dsasha1"
 #define KSM_ALGORITHM_RSASHA1           5
 #define KSM_ALGORITHM_RSASHA1_STRING    "rsasha1"
+#define KSM_ALGORITHM_RSASHA1_NSEC3_SHA1 7
+#define KSM_ALGORITHM_RSASHA1_NSEC3_SHA1_STRING "rsasha1-nsec3-sha1"
 #define KSM_ALGORITHM_INDIRECT          252
 #define KSM_ALGORITHM_INDIRECT_STRING   "indirect"
 #define KSM_ALGORITHM_PRIVDOM           253
@@ -549,10 +551,12 @@ int KsmImportRepository(const char* repo_name, const char* repo_capacity, int re
 int KsmImportPolicy(const char* policy_name, const char* policy_description);
 int KsmImportZone(const char* zone_name, int policy_id);
 int KsmImportAudit(int policy_id, const char* audit_contents);
+int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, const char* opt_time, DB_ID* id);
 int KsmSmIdFromName(const char* name, int *id);
 int KsmSerialIdFromName(const char* name, int *id);
 int KsmPolicyIdFromName(const char* name, int *id);
 int KsmMarkBackup(int repo_id, const char* datetime);
+int KsmCheckHSMkeyID(int repo_id, const char* cka_id, int *exists);
 
 /* KsmList */
 int KsmListBackups(int repo_id);

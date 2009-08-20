@@ -3,9 +3,12 @@ $Id$
 OpenDNSSEC trunk
 
 Features:
+* ksmutil import key implemented
 
 Bugfixes:
-
+* Better display of null backups (i.e. backup required) in ksmutil list
+* Don't show historical rollovers in ksmutil list
+* Fix key counting routines so that they all agree
 
 OpenDNSSEC 1.0a2 - 2009-08-14
 

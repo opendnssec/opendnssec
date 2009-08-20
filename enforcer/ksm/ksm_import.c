@@ -278,6 +278,90 @@ int KsmImportAudit(int policy_id, const char* audit_contents)
     return status;
 }
 
+/*+
+ * KsmImportKeyPair - Create Entry in the KeyPairs table for an existing key
+ *
+ * Description:
+ *      Creates a key in the database. If the retire time is set then it is marked as
+ *          fixed (I.e. it will not be changed to fit the policy timings.)
+ *
+ * Arguments:
+ *      policy_id
+ *          policy that the key is created for
+ *      HSMKeyID
+ *          ID the key is refered to in the HSM
+ *      smID
+ *          security module ID
+ *      size
+ *          size of key
+ *      alg
+ *          algorithm used
+ *      state
+ *          state to set key to
+ *      time
+ *          timestamp of entry into state given
+ *      opt_time
+ *          timestamp for key to retire (if active)
+ *
+ *      DB_ID* id (returned)
+ *          ID of the created entry.  This will be undefined on error.
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+-*/
+int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, const char* opt_time, DB_ID* id)
+{
+    unsigned long rowid;			/* ID of last inserted row */
+    int         status = 0;         /* Status return */
+    char*       sql = NULL;         /* SQL Statement */
+    char*       columns = NULL;     /* what columns are we setting */
+
+    /* Check arguments */
+    if (id == NULL) {
+        return MsgLog(KSM_INVARG, "NULL id");
+    }
+
+    StrAppend(&columns, "policy_id, HSMkey_id, securitymodule_id, size, algorithm, state, ");
+    StrAppend(&columns, KsmKeywordStateValueToName(state));
+    if (opt_time != NULL) {
+        StrAppend(&columns, ", retire, fixedDate");
+    }
+
+    sql = DisSpecifyInit("keypairs", columns);
+    DisAppendInt(&sql, policy_id);
+    DisAppendString(&sql, HSMKeyID);
+    DisAppendInt(&sql, smID);
+    DisAppendInt(&sql, size);
+    DisAppendInt(&sql, alg);
+    DisAppendInt(&sql, state);
+    DisAppendString(&sql, time);
+    if (opt_time != NULL) {
+        DisAppendString(&sql, opt_time);
+        DisAppendInt(&sql, 1);
+    }
+    DisEnd(&sql);
+
+    /* Execute the statement */
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DisFree(sql);
+
+    if (status == 0) {
+
+        /* Succcess, get the ID of the inserted record */
+
+		status = DbLastRowId(DbHandle(), &rowid);
+		if (status == 0) {
+			*id = (DB_ID) rowid;
+		}
+    }
+
+    /* TODO Fix retire time if needed */
+
+    return status;
+}
+
 int KsmSmIdFromName(const char* name, int *id)
 {
     char*   sql = NULL;         /* SQL query */
@@ -417,5 +501,67 @@ int KsmMarkBackup(int repo_id, const char* datetime)
     DusFree(sql);
 
     return status;
+}
+
+/*+
+ * KsmCheckHSMkeyID - Checks if the cka_id exists in the hsm specified
+ *
+ *
+ * Arguments:
+ *
+ *      int repo_id
+ *          ID of the repository (-1 for all)
+ *
+ *      const char* cka_id
+ *          ID to look for
+ *
+ *      int *exists
+ *          Flag to say if the ID exists
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                         -1 if an unexpected count value was returned
+-*/
+
+int KsmCheckHSMkeyID(int repo_id, const char* cka_id, int *exists)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+    int         count = 0;      /* Do we already have a key with this ID? */
+
+    /* check the arguments */
+    if (cka_id == NULL) {
+        return MsgLog(KSM_INVARG, "NULL cka_id");
+    }
+
+    /* 
+     * Set up the count
+     */
+    sql = DqsCountInit("keypairs");
+    DqsConditionString(&sql, "HSMkey_id", DQS_COMPARE_EQ, cka_id, 0);
+    if (repo_id != -1) {
+        DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, repo_id, 1);
+    }
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    if (count > 0) {
+        *exists = 1;
+    }
+    else {
+        *exists = 0;
+    }
+
+    return 0;
 }
 
