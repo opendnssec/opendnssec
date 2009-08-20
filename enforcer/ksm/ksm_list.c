@@ -360,7 +360,7 @@ int KsmListRollovers(int zone_id)
  *                          other on fail
  */
 
-int KsmListKeys(int zone_id)
+int KsmListKeys(int zone_id, int long_list)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -375,9 +375,11 @@ int KsmListKeys(int zone_id)
     char*       temp_active = NULL; /* place to store active date returned */
     char*       temp_retire = NULL; /* place to store retire date returned */
     char*       temp_dead = NULL;   /* place to store dead date returned */
+    char*       temp_loc = NULL;    /* place to store location returned */
+    char*       temp_hsm = NULL;    /* place to store hsm returned */
 
     /* Select rows */
-    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead from zones z, KEYDATA_VIEW k where z.id = k.zone_id and state != 6 and zone_id is not null ");
+    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name from securitymodules s, zones z, KEYDATA_VIEW k where z.id = k.zone_id and s.id = k.securitymodule_id and state != 6 and zone_id is not null ");
     if (zone_id != -1) {
         StrAppend(&sql, "and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
@@ -391,7 +393,12 @@ int KsmListKeys(int zone_id)
 
     if (status == 0) {
         status = DbFetchRow(result, &row);
-        printf("Zone:                           Keytype:      State:    Date of next transition:\n");
+        if (long_list == 1) {
+            printf("Zone:                           Keytype:      State:    Date of next transition:  cka_id:                           HSM:\n");
+        }
+        else {
+            printf("Zone:                           Keytype:      State:    Date of next transition:\n");
+        }
         while (status == 0) {
             /* Got a row, print it */
             DbString(row, 0, &temp_zone);
@@ -401,18 +408,27 @@ int KsmListKeys(int zone_id)
             DbString(row, 4, &temp_active);
             DbString(row, 5, &temp_retire);
             DbString(row, 6, &temp_dead);
+            DbString(row, 7, &temp_loc);
+            DbString(row, 8, &temp_hsm);
 
             if (temp_state == KSM_STATE_PUBLISH) {
-                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
             }
             else if (temp_state == KSM_STATE_READY) {
-                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), "next rollover");
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), "next rollover");
             }
             else if (temp_state == KSM_STATE_ACTIVE) {
-                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_retire == NULL) ? "(not scheduled)" : temp_retire);
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_retire == NULL) ? "(not scheduled)" : temp_retire);
             }
             else if (temp_state == KSM_STATE_RETIRE) {
-                printf("%-31s %-13s %-9s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_dead == NULL) ? "(not scheduled)" : temp_dead);
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_dead == NULL) ? "(not scheduled)" : temp_dead);
+            }
+
+            if (long_list == 1) {
+                printf("%-33s %s\n", temp_loc, temp_hsm);
+            }
+            else {
+                printf("\n");
             }
             
             status = DbFetchRow(result, &row);
@@ -428,6 +444,14 @@ int KsmListKeys(int zone_id)
     }
 
     DusFree(sql);
+
+    DbStringFree(temp_zone);
+    DbStringFree(temp_ready);
+    DbStringFree(temp_active);
+    DbStringFree(temp_retire);
+    DbStringFree(temp_dead);
+    DbStringFree(temp_loc);
+    DbStringFree(temp_hsm);
 
     return status;
 }

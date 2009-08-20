@@ -150,8 +150,9 @@ usage_backup ()
 usage_list ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] list [repositories|policies|keys|rollovers|backups] [qualifier]\n"
-            "\tList specified aspect of the current configuration\n",
+            "usage: %s [-f config] [-l] list [repositories|policies|keys|rollovers|backups] [qualifier]\n"
+            "\tList specified aspect of the current configuration\n"
+            "\t-l returns more information on keys\n",
             progname);
 }
 
@@ -1478,7 +1479,7 @@ cmd_backup (int argc, char *argv[])
  * List whatever was asked of us
  */
     int
-cmd_list (int argc, char *argv[])
+cmd_list (int argc, char *argv[], int long_list)
 {
     int status = 0;
     int done_something = 0;
@@ -1499,7 +1500,7 @@ cmd_list (int argc, char *argv[])
 
     /* See what arguments we were passed (if any) otherwise we will list everything */
     if (argc != 0 && argc != 1 && argc != 2) {
-        usage_backup();
+        usage_list();
         return -1;
     }
 
@@ -1618,7 +1619,7 @@ cmd_list (int argc, char *argv[])
 
         printf("Keys:\n");
 
-        status = KsmListKeys(qualifier_id);
+        status = KsmListKeys(qualifier_id, long_list);
 
         if (status != 0) {
             printf("Error: failed to list keys\n");
@@ -1803,7 +1804,6 @@ cmd_import (int argc, char *argv[])
         }
 
         /* Make a backup of the sqlite DB */
-        /* TODO skip this if we are only doing a list */
         StrAppend(&db_backup_filename, dbschema);
         StrAppend(&db_backup_filename, ".backup");
 
@@ -2077,8 +2077,9 @@ main (int argc, char *argv[])
 {
     int result;
     int ch;
+    int long_list = 0;
 
-    while ((ch = getopt(argc, argv, "f:h")) != -1) {
+    while ((ch = getopt(argc, argv, "f:hl")) != -1) {
         switch (ch) {
             case 'f':
                 config = strdup(optarg);
@@ -2087,6 +2088,9 @@ main (int argc, char *argv[])
                 usage();
                 date_help();
                 exit(0);
+                break;
+            case 'l':
+                long_list = 1;
                 break;
             default:
                 usage();
@@ -2152,7 +2156,7 @@ main (int argc, char *argv[])
     } else if (!strncasecmp(argv[0], "list", 4)) {
         argc --;
         argv ++;
-        result = cmd_list(argc, argv);
+        result = cmd_list(argc, argv, long_list);
     } else if (!strncasecmp(argv[0], "import", 6)) {
         argc --;
         argv ++;

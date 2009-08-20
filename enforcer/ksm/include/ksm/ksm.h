@@ -563,7 +563,7 @@ int KsmListBackups(int repo_id);
 int KsmListRepos();
 int KsmListPolicies();
 int KsmListRollovers(int zone_id);
-int KsmListKeys(int zone_id);
+int KsmListKeys(int zone_id, int long_list);
 
 #ifdef __cplusplus
 };
