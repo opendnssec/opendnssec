@@ -96,8 +96,9 @@ usage_addzone ()
 usage_delzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] delzone zone\n"
-            "\tDelete a zone from the config and database\n",
+            "usage: %s [-f config] [-a] delzone zone\n"
+            "\tDelete a zone from the config and database\n"
+            "\t-a will delete all zones from the config and database\n",
             progname);
 }
 
@@ -756,27 +757,118 @@ cmd_addzone (int argc, char *argv[])
 
 /*
  * Delete a zone from the config 
- * TODO should it delete from the DB too? 
  */
     int
-cmd_delzone (int argc, char *argv[])
+cmd_delzone (int argc, char *argv[], int do_all)
 {
 
     char* zonelist_filename = NULL;
     char* backup_filename = NULL;
     /* The settings that we need for the zone */
     char* zone_name = NULL;
+    int zone_id = -1;
 
     xmlDocPtr doc = NULL;
 
     int status = 0;
+    int user_certain;           /* Continue ? */
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
 
     /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc != 1) {
+    if (argc != 0 && do_all == 1) {
+        usage_delzone();
+        return -1;
+    }
+    else if (argc != 1 && do_all == 0) {
         usage_delzone();
         return -1;
     }
     StrAppend(&zone_name, argv[0]);
+
+    /* Warn and confirm if they have asked to delete all zones */
+    if (do_all == 1) {
+        printf("*WARNING* This will remove all zones from OpenDNSSEC; are you sure? [y/N] ");
+
+        user_certain = getchar();
+        if (user_certain != 'y' && user_certain != 'Y') {
+            printf("Okay, quitting...\n");
+            exit(0);
+        }
+    }
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(dbschema);
+            return(1);
+        }
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /*
+     * DO XML STUFF FIRST
+     */
 
     /* Set zonelist from the conf.xml that we have got */
     status = read_zonelist_filename(&zonelist_filename);
@@ -785,8 +877,8 @@ cmd_delzone (int argc, char *argv[])
         return(1);
     }
 
-    /* Read the file and delete our zone node in memory */
-    doc = del_zone_node(zonelist_filename, zone_name);
+    /* Read the file and delete our zone node(s) in memory */
+    doc = del_zone_node(zonelist_filename, zone_name, do_all);
     if (doc == NULL) {
         return(1);
     }
@@ -810,18 +902,40 @@ cmd_delzone (int argc, char *argv[])
         return(1);
     }
 
-    /* TODO call the signer_engine_cli to tell it that the zonelist has changed */
-    if (system(SIGNER_CLI_COMMAND) != 0)
-    {
-        printf("Could not call signer_engine\n");
+    /*
+     * NOW SORT OUT THE DATABASE (zone_id will still be -1 if we are deleting all)
+     */
+
+    /* See if the zone exists and get its ID, assuming we are not deleting all */
+    if (do_all == 0) {
+        status = KsmZoneIdFromName(zone_name, &zone_id);
+        if (status != 0) {
+            printf("Couldn't find zone %s\n", zone_name);
+            return(1);
+        }
+    }
+
+    status = KsmDeleteZone(zone_id);
+
+    if (status != 0) {
+        printf("Error: failed to remove zone%s from database\n", (do_all == 1) ? "s" : "");
+        return status;
+    }
+    
+    /* Call the signer_engine_cli to tell it that the zonelist has changed */
+    /* TODO Should we do this when we remove a zone? */
+    if (do_all == 0) {
+        if (system(SIGNER_CLI_COMMAND) != 0)
+        {
+            printf("Could not call signer_engine\n");
+        }
     }
 
     return 0;
 }
 
 /*
- * Delete a zone from the config 
- * TODO should it delete from the DB too? 
+ * List a zone 
  */
     int
 cmd_listzone (int argc, char *argv[])
@@ -2095,9 +2209,13 @@ main (int argc, char *argv[])
     int result;
     int ch;
     int long_list = 0;
+    int do_all = 0;
 
-    while ((ch = getopt(argc, argv, "f:hl")) != -1) {
+    while ((ch = getopt(argc, argv, "af:hl")) != -1) {
         switch (ch) {
+            case 'a':
+                do_all = 1;
+                break;
             case 'f':
                 config = strdup(optarg);
                 break;
@@ -2149,7 +2267,7 @@ main (int argc, char *argv[])
     } else if (!strncasecmp(argv[0], "delzone", 7)) {
         argc --;
         argv ++;
-        result = cmd_delzone(argc, argv);
+        result = cmd_delzone(argc, argv, do_all);
     } else if (!strncasecmp(argv[0], "listzone", 8)) {
         argc --;
         argv ++;
@@ -3728,7 +3846,8 @@ xmlDocPtr add_zone_node(const char *docname,
 }
 
 xmlDocPtr del_zone_node(const char *docname,
-                        const char *zone_name)
+                        const char *zone_name,
+                        int do_all)
 {
     xmlDocPtr doc;
     xmlNodePtr root;
@@ -3751,17 +3870,32 @@ xmlDocPtr del_zone_node(const char *docname,
         return (NULL);
     }
 
-    /* Zone nodes are children of the root */
-    for(cur = root->children; cur != NULL; cur = cur->next)
-    {
-        /* is this the zone we are looking for? */
-        if (xmlStrcmp( xmlGetProp(cur, (xmlChar *) "name"), (const xmlChar *) zone_name) == 0)
+    /* If we are removing all zones then just replace the root node with an empty one */
+    if (do_all == 1) {
+        cur = root->children;
+        while (cur != NULL)
         {
             xmlUnlinkNode(cur);
-            cur = root->children; /* May pass through multiple times, but will remove all instances of the zone */
+            xmlFreeNode(cur);
+
+            cur = root->children;
         }
     }
-    xmlFreeNode(cur);
+    else {
+
+    /* Zone nodes are children of the root */
+        for(cur = root->children; cur != NULL; cur = cur->next)
+        {
+            /* is this the zone we are looking for? */
+            if (xmlStrcmp( xmlGetProp(cur, (xmlChar *) "name"), (const xmlChar *) zone_name) == 0)
+            {
+                xmlUnlinkNode(cur);
+
+                cur = root->children; /* May pass through multiple times, but will remove all instances of the zone */
+            }
+        }
+        xmlFreeNode(cur);
+    }
 
     return(doc);
 }

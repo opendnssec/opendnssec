@@ -344,3 +344,57 @@ int KsmZoneIdAndPolicyFromName(const char* zone_name, int* policy_id, int* zone_
     DbFreeResult(result);
     return status;
 }
+
+/*+
+ * KsmDeleteZone
+ *
+ * Description:
+ *          Will remove all dnsseckeys allocated to a zone before removing the entry in
+ *          the zones table itself
+ *
+ * Arguments:
+ *          int        zone_id     id of the zone to be deleted (-1 will delete all)
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+-*/
+
+int KsmDeleteZone(int zone_id)
+{
+    int         status = 0;         /* Status return */
+    char*       sql = NULL;         /* SQL Statement */
+
+    /* Delete from dnsseckeys */
+    sql = DdsInit("dnsseckeys");
+    if (zone_id != -1) {
+        DdsConditionInt(&sql, "zone_id", DQS_COMPARE_EQ, zone_id, 0);
+    }
+    DdsEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DdsFree(sql);
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    /* Delete from zones */
+    sql = DdsInit("zones");
+    if (zone_id != -1) {
+        DdsConditionInt(&sql, "id", DQS_COMPARE_EQ, zone_id, 0);
+    }
+    DdsEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DdsFree(sql);
+
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    return status;
+}
