@@ -1438,6 +1438,7 @@ cmd_backup (int argc, char *argv[])
     int status = 0;
 
     char* subcommand = NULL;
+    char* case_subcommand = NULL;   /* Upper case copy of subcommand */
     char* repository = NULL;
     int repo_id = -1;
 
@@ -1544,11 +1545,14 @@ cmd_backup (int argc, char *argv[])
         }
     }
 
-    if (!strncasecmp(subcommand, "done", 4)) {
+    case_subcommand = StrStrdup(subcommand);
+    (void) StrToUpper(case_subcommand);
+    if (!strncmp(case_subcommand, "DONE", 4)) {
 
         status = KsmMarkBackup(repo_id, datetime);
         if (status != 0) {
             printf("Error: failed to mark backup as done\n");
+            StrFree(case_subcommand);
             return status;
         }
 
@@ -1558,11 +1562,12 @@ cmd_backup (int argc, char *argv[])
             printf("Marked all repositories as backed up at %s\n", datetime);
         }
     }
-    else if (!strncasecmp(subcommand, "list", 4)) {
+    else if (!strncmp(case_subcommand, "LIST", 4)) {
         status = KsmListBackups(repo_id);
 
         if (status != 0) {
             printf("Error: failed to list backups\n");
+            StrFree(case_subcommand);
             return status;
         }
     }
@@ -1571,8 +1576,10 @@ cmd_backup (int argc, char *argv[])
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(case_subcommand);
         return(1);
     }
+    StrFree(case_subcommand);
 
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
@@ -1599,6 +1606,7 @@ cmd_list (int argc, char *argv[], int long_list)
     int done_something = 0;
 
     char* subcommand = NULL;    /* What to list */
+    char* case_subcommand = NULL;    /* Upper case copy of subcommand */
     char* qualifier = NULL;     /* Any further specification */
     int qualifier_id = -1;      /* ID of qualifer (if given) */
 
@@ -1689,9 +1697,11 @@ cmd_list (int argc, char *argv[], int long_list)
     }
 
     /* Start the work here */
+    case_subcommand = StrStrdup(subcommand);
+    (void) StrToUpper(case_subcommand);
 
     /* REPOSITORIES */
-    if (!strncasecmp(subcommand, "rep", 3) || !strncasecmp(subcommand, "all", 3)) {
+    if (!strncmp(case_subcommand, "REP", 3) || !strncmp(case_subcommand, "ALL", 3)) {
         done_something = 1;
         printf("Repositories:\n");
 
@@ -1699,13 +1709,14 @@ cmd_list (int argc, char *argv[], int long_list)
 
         if (status != 0) {
             printf("Error: failed to list repositories\n");
+            StrFree(case_subcommand);
             return status;
         }
 
         printf("\n");
     }
     /* POLICIES */
-    if (!strncasecmp(subcommand, "pol", 3) || !strncasecmp(subcommand, "all", 3)) {
+    if (!strncmp(case_subcommand, "POL", 3) || !strncmp(case_subcommand, "ALL", 3)) {
         done_something = 1;
         printf("Policies:\n");
 
@@ -1713,13 +1724,14 @@ cmd_list (int argc, char *argv[], int long_list)
 
         if (status != 0) {
             printf("Error: failed to list policies\n");
+            StrFree(case_subcommand);
             return status;
         }
 
         printf("\n");
     }
     /* KEYS */
-    if (!strncasecmp(subcommand, "key", 3) || !strncasecmp(subcommand, "all", 3)) {
+    if (!strncmp(case_subcommand, "KEY", 3) || !strncmp(case_subcommand, "ALL", 3)) {
         done_something = 1;
 
         /* Turn zone name into an id (if provided) */
@@ -1727,6 +1739,7 @@ cmd_list (int argc, char *argv[], int long_list)
             status = KsmZoneIdFromName(qualifier, &qualifier_id);
             if (status != 0) {
                 printf("Error: unable to find a zone named \"%s\" in database\n", qualifier);
+                StrFree(case_subcommand);
                 return status;
             }
         }
@@ -1737,13 +1750,14 @@ cmd_list (int argc, char *argv[], int long_list)
 
         if (status != 0) {
             printf("Error: failed to list keys\n");
+            StrFree(case_subcommand);
             return status;
         }
 
         printf("\n");
     }
     /* ROLLOVERS */
-    if (!strncasecmp(subcommand, "rol", 3) || !strncasecmp(subcommand, "all", 3)) {
+    if (!strncmp(case_subcommand, "ROL", 3) || !strncmp(case_subcommand, "ALL", 3)) {
         done_something = 1;
 
         /* Turn zone name into an id (if provided) */
@@ -1751,6 +1765,7 @@ cmd_list (int argc, char *argv[], int long_list)
             status = KsmZoneIdFromName(qualifier, &qualifier_id);
             if (status != 0) {
                 printf("Error: unable to find a zone named \"%s\" in database\n", qualifier);
+                StrFree(case_subcommand);
                 return status;
             }
         }
@@ -1761,13 +1776,14 @@ cmd_list (int argc, char *argv[], int long_list)
 
         if (status != 0) {
             printf("Error: failed to list rollovers\n");
+            StrFree(case_subcommand);
             return status;
         }
 
         printf("\n");
     }
     /* BACKUPS */
-    if (!strncasecmp(subcommand, "bac", 3) || !strncasecmp(subcommand, "all", 3)) {
+    if (!strncmp(case_subcommand, "BAC", 3) || !strncmp(case_subcommand, "ALL", 3)) {
         done_something = 1;
 
         /* Turn repo name into an id (if provided) */
@@ -1775,6 +1791,7 @@ cmd_list (int argc, char *argv[], int long_list)
             status = KsmSmIdFromName(qualifier, &qualifier_id);
             if (status != 0) {
                 printf("Error: unable to find a repository named \"%s\" in database\n", qualifier);
+                StrFree(case_subcommand);
                 return status;
             }
         }
@@ -1784,10 +1801,12 @@ cmd_list (int argc, char *argv[], int long_list)
 
         if (status != 0) {
             printf("Error: failed to list backups\n");
+            StrFree(case_subcommand);
             return status;
         }
         printf("\n");
     }
+    StrFree(case_subcommand);
 
     /* If done_something is still 0 then we did not recognise the option provided */
     if (done_something == 0) {
@@ -2210,6 +2229,7 @@ main (int argc, char *argv[])
     int ch;
     int long_list = 0;
     int do_all = 0;
+    char* case_command = NULL;
 
     while ((ch = getopt(argc, argv, "af:hl")) != -1) {
         switch (ch) {
@@ -2252,47 +2272,50 @@ main (int argc, char *argv[])
        exit(-1);
        } */
 
-    if (!strncasecmp(argv[0], "setup", 5)) {
+    case_command = StrStrdup(argv[0]);
+    (void) StrToUpper(case_command);
+
+    if (!strncmp(case_command, "SETUP", 5)) {
         argc --;
         argv ++;
         result = cmd_setup(argc, argv);
-    } else if (!strncasecmp(argv[0], "update", 6)) {
+    } else if (!strncmp(case_command, "UPDATE", 6)) {
         argc --;
         argv ++;
         result = cmd_update(argc, argv);
-    } else if (!strncasecmp(argv[0], "addzone", 7)) {
+    } else if (!strncmp(case_command, "ADDZONE", 7)) {
         argc --;
         argv ++;
         result = cmd_addzone(argc, argv);
-    } else if (!strncasecmp(argv[0], "delzone", 7)) {
+    } else if (!strncmp(case_command, "DELZONE", 7)) {
         argc --;
         argv ++;
         result = cmd_delzone(argc, argv, do_all);
-    } else if (!strncasecmp(argv[0], "listzone", 8)) {
+    } else if (!strncmp(case_command, "LISTZONE", 8)) {
         argc --;
         argv ++;
         result = cmd_listzone(argc, argv);
-    } else if (!strncasecmp(argv[0], "export", 6)) {
+    } else if (!strncmp(case_command, "EXPORT", 6)) {
         argc --;
         argv ++;
         result = cmd_export(argc, argv);
-    } else if (!strncasecmp(argv[0], "rollzone", 8)) {
+    } else if (!strncmp(case_command, "ROLLZONE", 8)) {
         argc --;
         argv ++;
         result = cmd_rollzone(argc, argv);
-    } else if (!strncasecmp(argv[0], "rollpolicy", 10)) {
+    } else if (!strncmp(case_command, "ROLLPOLICY", 10)) {
         argc --;
         argv ++;
         result = cmd_rollpolicy(argc, argv);
-    } else if (!strncasecmp(argv[0], "backup", 6)) {
+    } else if (!strncmp(case_command, "BACKUP", 6)) {
         argc --;
         argv ++;
         result = cmd_backup(argc, argv);
-    } else if (!strncasecmp(argv[0], "list", 4)) {
+    } else if (!strncmp(case_command, "LIST", 4)) {
         argc --;
         argv ++;
         result = cmd_list(argc, argv, long_list);
-    } else if (!strncasecmp(argv[0], "import", 6)) {
+    } else if (!strncmp(case_command, "IMPORT", 6)) {
         argc --;
         argv ++;
         result = cmd_import(argc, argv);
@@ -2301,6 +2324,8 @@ main (int argc, char *argv[])
         usage();
         result = -1;
     }
+
+    StrFree(case_command);
 
     /*(void) hsm_close();*/
     /*if (config) free(config);*/
