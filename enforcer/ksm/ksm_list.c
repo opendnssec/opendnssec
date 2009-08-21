@@ -367,6 +367,7 @@ int KsmListKeys(int zone_id, int long_list)
     char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
     DB_RESULT	result;         /* Result of the query */
     DB_ROW      row = NULL;     /* Row data */
+    int         done_row = 0;   /* Have we printed a row this loop? */
 
     char*       temp_zone = NULL;   /* place to store zone name returned */
     int         temp_type = 0;      /* place to store key type returned */
@@ -410,24 +411,29 @@ int KsmListKeys(int zone_id, int long_list)
             DbString(row, 6, &temp_dead);
             DbString(row, 7, &temp_loc);
             DbString(row, 8, &temp_hsm);
+            done_row = 0;
 
             if (temp_state == KSM_STATE_PUBLISH) {
                 printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
+                done_row = 1;
             }
             else if (temp_state == KSM_STATE_READY) {
                 printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), "next rollover");
+                done_row = 1;
             }
             else if (temp_state == KSM_STATE_ACTIVE) {
                 printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_retire == NULL) ? "(not scheduled)" : temp_retire);
+                done_row = 1;
             }
             else if (temp_state == KSM_STATE_RETIRE) {
                 printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_dead == NULL) ? "(not scheduled)" : temp_dead);
+                done_row = 1;
             }
 
-            if (long_list == 1) {
+            if (done_row == 1 && long_list == 1) {
                 printf("%-33s %s\n", temp_loc, temp_hsm);
             }
-            else {
+            else if (done_row == 1) {
                 printf("\n");
             }
             
