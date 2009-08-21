@@ -395,7 +395,7 @@ int KsmListKeys(int zone_id, int long_list)
     if (status == 0) {
         status = DbFetchRow(result, &row);
         if (long_list == 1) {
-            printf("Zone:                           Keytype:      State:    Date of next transition:  cka_id:                           HSM:\n");
+            printf("Zone:                           Keytype:      State:    Date of next transition:  CKA_ID:                           HSM:\n");
         }
         else {
             printf("Zone:                           Keytype:      State:    Date of next transition:\n");
