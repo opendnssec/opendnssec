@@ -1714,6 +1714,11 @@ cmd_import (int argc, char *argv[])
     char* time = NULL;       /* time at which it entered the above state */
     char* opt_time = NULL;   /* time at which it should retire (maybe provided) */
 
+    /* some strings to hold upper case versions of arguments */
+    char* case_keytype = NULL;    /* KSK or ZSK */
+    char* case_algorithm = NULL;  /* RSASHA1 or RSASHA1-NSEC3-SHA1 (5 or 7) */
+    char* case_state = NULL;      /* GENERATED, PUBLISHED, READY, ACTIVE or RETIRED */
+
     int repo_id = -1;
     int zone_id = -1;
     int policy_id = -1;
@@ -1877,10 +1882,12 @@ cmd_import (int argc, char *argv[])
     }
 
     /* Check the Keytype */
-    if (strncmp(keytype, "KSK", 3) == 0 || strncmp(keytype, "257", 3) == 0) {
+    case_keytype = StrStrdup(keytype);
+    (void) StrToUpper(case_keytype);
+    if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(keytype, "257", 3) == 0) {
         keytype_id = 257;
     }
-    else if (strncmp(keytype, "ZSK", 3) == 0 || strncmp(keytype, "256", 3) == 0) {
+    else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(keytype, "256", 3) == 0) {
         keytype_id = 256;
     }
     else {
@@ -1889,8 +1896,10 @@ cmd_import (int argc, char *argv[])
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(case_keytype);
         return(1);
     }
+    StrFree(case_keytype);
         
     /* Check the size is numeric */
     if (StrIsDigits(size)) {
@@ -1912,10 +1921,12 @@ cmd_import (int argc, char *argv[])
     }
         
     /* Check the algorithm */
-    if (strncmp(algorithm, "rsasha1", 7) == 0 || strncmp(algorithm, "5", 1) == 0) {
+    case_algorithm = StrStrdup(algorithm);
+    (void) StrToUpper(case_algorithm);
+    if (strncmp(case_algorithm, "RSASHA1", 7) == 0 || strncmp(algorithm, "5", 1) == 0) {
         algo_id = 5;
     }
-    else if (strncmp(algorithm, "rsasha1-nsec3-sha1", 18) == 0 || strncmp(algorithm, "7", 1) == 0) {
+    else if (strncmp(case_algorithm, "RSASHA1-NSEC3-SHA1", 18) == 0 || strncmp(algorithm, "7", 1) == 0) {
         algo_id = 7;
     }
     else {
@@ -1924,23 +1935,27 @@ cmd_import (int argc, char *argv[])
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(case_algorithm);
         return(1);
     }
+    StrFree(case_algorithm);
 
     /* Check the state */
-    if (strncmp(state, "generate", 8) == 0 || strncmp(state, "1", 1) == 0) {
+    case_state = StrStrdup(state);
+    (void) StrToUpper(case_state);
+    if (strncmp(case_state, "GENERATE", 8) == 0 || strncmp(state, "1", 1) == 0) {
         state_id = 1;
     }
-    else if (strncmp(state, "publish", 7) == 0 || strncmp(state, "2", 1) == 0) {
+    else if (strncmp(case_state, "PUBLISH", 7) == 0 || strncmp(state, "2", 1) == 0) {
         state_id = 2;
     }
-    else if (strncmp(state, "ready", 5) == 0 || strncmp(state, "3", 1) == 0) {
+    else if (strncmp(case_state, "READY", 5) == 0 || strncmp(state, "3", 1) == 0) {
         state_id = 3;
     }
-    else if (strncmp(state, "active", 6) == 0 || strncmp(state, "4", 1) == 0) {
+    else if (strncmp(case_state, "ACTIVE", 6) == 0 || strncmp(state, "4", 1) == 0) {
         state_id = 4;
     }
-    else if (strncmp(state, "retire", 6) == 0 || strncmp(state, "5", 1) == 0) {
+    else if (strncmp(case_state, "RETIRE", 6) == 0 || strncmp(state, "5", 1) == 0) {
         state_id = 5;
     }
     else {
@@ -1949,8 +1964,10 @@ cmd_import (int argc, char *argv[])
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(case_state);
         return(1);
     }
+    StrFree(case_state);
 
     /* Check, and convert, the time(s) */
     status = DtGeneral(time, &datetime);
