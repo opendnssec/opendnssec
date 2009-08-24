@@ -342,15 +342,21 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
             /* Step 8. Make a key active. */
 
             status = KsmRequestChangeStateReadyActive(keytype, datetime, 1, zone_id);
-            if (status != 0) {
-                return status;
-            }
+            /* 
+             * If we didn't complete due to non-backed up keys then skip the 
+             * retire step; otherwise carry on.
+             */
+            if (status != KME_BACK_FATAL) {
+                if (status != 0) {
+                    return status;
+                }
 
-            /* Step 9. ... and retire old active keys */
+                /* Step 9. ... and retire old active keys */
 
-            status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id);
-            if (status != 0) {
-                return status;
+                status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id);
+                if (status != 0) {
+                    return status;
+                }
             }
         }
     }
