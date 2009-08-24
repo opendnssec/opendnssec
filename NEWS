@@ -4,6 +4,12 @@ OpenDNSSEC trunk
 
 Features:
 * ksmutil import key implemented
+* warn (by sending a message to the log) about impending key rollover
+* Changes to the KASP DB, please apply:
+  If want to use your old DB:
+    sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090820_1.sqlite3
+  Or start fresh (with loss of information):
+    ksmutil setup
 
 Bugfixes:
 * Better display of null backups (i.e. backup required) in ksmutil list

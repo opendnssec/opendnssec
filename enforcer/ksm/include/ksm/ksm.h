@@ -565,6 +565,7 @@ int KsmListRepos();
 int KsmListPolicies();
 int KsmListRollovers(int zone_id);
 int KsmListKeys(int zone_id, int long_list);
+int KsmCheckNextRollover(int keytype, int zone_id, char** datetime);
 
 #ifdef __cplusplus
 };

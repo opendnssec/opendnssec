@@ -461,3 +461,59 @@ int KsmListKeys(int zone_id, int long_list)
 
     return status;
 }
+
+/*+
+ * KsmCheckNextRollover - Find next expected rollover
+ *
+ *
+ * Arguments:
+ *
+ *      int keytype
+ *          KSK or ZSK
+ *
+ *      int zone_id
+ *          ID of the zone
+ *
+ *      char** datetime
+ *          (returned) date that a rollover is expected
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int KsmCheckNextRollover(int keytype, int zone_id, char** datetime)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+
+    /* Select rows */
+    sql = DqsSpecifyInit("KEYDATA_VIEW", "retire");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, 0);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, 1);
+    DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 2);
+    StrAppend(&sql, " order by retire asc");
+
+    DqsEnd(&sql);
+
+    status = DbExecuteSql(DbHandle(), sql, &result);
+
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+
+        /* First row should be the closest rollover if there are multiple active keys */
+        if (status == 0) {
+            DbString(row, 0, datetime);
+        }
+
+        DbFreeResult(result);
+        DbFreeRow(row);
+    }
+
+    DusFree(sql);
+
+    return status;
+}

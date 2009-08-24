@@ -99,6 +99,8 @@ server_main(DAEMONCONFIG *config)
     char *tag_name;
     int zone_id = -1;
     int signer_flag = 1; /* Is the signer responding? (1 == yes) */
+    char* ksk_expected = NULL;  /* When is the next ksk rollover expected? */
+    char* zsk_expected = NULL;  /* When is the next zsk rollover expected? */
     
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
@@ -109,6 +111,10 @@ server_main(DAEMONCONFIG *config)
     KSM_POLICY *policy;
 
     char* temp_char = NULL;
+
+    /* Stuff to see if we need to log an "impending rollover" warning */
+    char* datetime = NULL;
+    int roll_time = 0;
 
     if (config == NULL) {
         log_msg(NULL, LOG_ERR, "Error in server_main, no config provided");
@@ -343,8 +349,44 @@ server_main(DAEMONCONFIG *config)
                         continue;
                     }
 
+                    /* See if we need to send a warning about an impending rollover */
+                    datetime = DtParseDateTimeString("now");
+                    /* First the KSK */
+                    status2 = KsmCheckNextRollover(KSM_TYPE_KSK, zone_id, &ksk_expected);
+                    if (status2 != 0) {
+                        log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
+                        /* TODO should we quit or continue? */
+                    }
+                    status2 = DtDateDiff(ksk_expected, datetime, &roll_time);
+                    if (status2 != 0) {
+                        log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
+                    }
+                    /* TODO parameterise this; use 10mins for now though */
+                    if (roll_time <= 600 && roll_time >= (600 - config->interval)) {
+                        log_msg(config, LOG_ERR, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
+                    }
+
+                    /* Then the ZSK */
+                    status2 = KsmCheckNextRollover(KSM_TYPE_ZSK, zone_id, &zsk_expected);
+                    if (status2 != 0) {
+                        log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
+                        /* TODO should we quit or continue? */
+                    }
+                    status2 = DtDateDiff(zsk_expected, datetime, &roll_time);
+                    if (status2 != 0) {
+                        log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
+                    }
+                    /* TODO parameterise this; use 10mins for now though */
+                    if (roll_time <= 600 && roll_time >= (600 - config->interval)) {
+                        log_msg(config, LOG_ERR, "Rollover of ZSK expected at %s for %s", zsk_expected, zone_name);
+                    }
+
+                    
+
+
                     StrFree(current_filename);
                     StrFree(zone_name);
+                    StrFree(datetime);
                 }
                 /* Read the next line */
                 ret = xmlTextReaderRead(reader);
