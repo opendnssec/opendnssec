@@ -54,7 +54,7 @@ usage ()
 {
     fprintf(stderr,
         "usage: %s "
-        "[-f config] [-i iterations] [-s keysize] [-t threads]\n",
+        "[-f config] [-r repository] [-i iterations] [-s keysize] [-t threads]\n",
         progname);
 }
 
@@ -145,13 +145,16 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt(argc, argv, "f:i:s:t:")) != -1) {
+    while ((ch = getopt(argc, argv, "f:i:r:s:t:")) != -1) {
         switch (ch) {
         case 'f':
             config = strdup(optarg);
             break;
         case 'i':
             iterations = atoi(optarg);
+            break;
+        case 'r':
+            repository = strdup(optarg);
             break;
         case 's':
             keysize = atoi(optarg);
@@ -165,10 +168,12 @@ main (int argc, char *argv[])
         }
     }
 
+#if 0
     if (!config) {
         usage();
         exit(1);
     }
+#endif
 
     /* Open HSM library */
     fprintf(stderr, "Opening HSM Library...\n");
