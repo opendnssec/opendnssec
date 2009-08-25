@@ -76,6 +76,23 @@ hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key)
 }
 
 void
+hsm_test_random()
+{
+    hsm_ctx_t *ctx = NULL;
+
+    uint32_t r32;
+    uint64_t r64;
+    
+    printf("Generating 32-bit random data... ");
+    r32 = hsm_random32(ctx);
+    printf("%u\n", r32);
+    
+    printf("Generating 64-bit random data... ");
+    r64 = hsm_random64(ctx);
+    printf("%llu\n", r64);
+}
+
+void
 hsm_test (const char *repository)
 {
     int result;
@@ -86,6 +103,9 @@ hsm_test (const char *repository)
     hsm_key_t *key = NULL;
     char *id;
     
+    /*
+     * Test key generation, signing and deletion for a number of key size
+     */
     for (unsigned int i=0; i<(sizeof(keysizes)/sizeof(unsigned int)); i++) {
         keysize = keysizes[i];
         
@@ -107,7 +127,7 @@ hsm_test (const char *repository)
             printf("\n");
         }
 
-        printf("Deleting key... ", keysize);
+        printf("Deleting key... ");
         result = hsm_remove_key(ctx, key);
         if (result) {
             printf("Failed to delete key, error: %d\n", result);   
@@ -117,4 +137,6 @@ hsm_test (const char *repository)
         
         printf("\n");
     }
+    
+    hsm_test_random();
 }
