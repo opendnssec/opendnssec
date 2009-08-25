@@ -136,6 +136,7 @@ hsm_test (const char *repository)
         if (!id) {
             printf("Failed\n");
             hsm_print_error(ctx);
+            printf("\n");
             continue;
         } else {
             printf("OK, %s\n", id);
@@ -161,6 +162,6 @@ hsm_test (const char *repository)
 
         printf("\n");
     }
-
+    
     hsm_test_random();
 }
