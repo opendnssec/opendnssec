@@ -11,10 +11,10 @@ AM_CFLAGS =	-std=c99
 
 EXTRA_DIST =	$(srcdir)/*.xml $(srcdir)/softhsm.conf
 
-noinst_PROGRAMS = hsmtest
+noinst_PROGRAMS = hsmcheck
  
-hsmtest_LDADD = ../src/libhsm.la @LDNS_LIBS@ @XML2_LIBS@
-hsmtest_LDFLAGS = -no-install
+hsmcheck_LDADD = ../src/libhsm.la @LDNS_LIBS@ @XML2_LIBS@
+hsmcheck_LDFLAGS = -no-install
 
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
 
@@ -30,23 +30,23 @@ token.db othertoken.db:
 regress:
 	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,multi}'
 
-regress-aepkeyper: hsmtest
-	./hsmtest -f conf-aepkeyper.xml -gsdr
+regress-aepkeyper: hsmcheck
+	./hsmcheck -f conf-aepkeyper.xml -gsdr
 
-regress-sca6000: hsmtest
-	./hsmtest -f conf-sca6000.xml -gsdr
+regress-sca6000: hsmcheck
+	./hsmcheck -f conf-sca6000.xml -gsdr
 
-regress-softhsm: hsmtest token.db
+regress-softhsm: hsmcheck token.db
 	env $(SOFTHSM_ENV) \
-	./hsmtest -f conf-softhsm.xml -gsdr
+	./hsmcheck -f conf-softhsm.xml -gsdr
 
-regress-etoken: hsmtest
-	./hsmtest -f conf-etoken.xml -gsdr
+regress-etoken: hsmcheck
+	./hsmcheck -f conf-etoken.xml -gsdr
 
-regress-opensc: hsmtest
-	./hsmtest -f conf-opensc.xml -gsdr
+regress-opensc: hsmcheck
+	./hsmcheck -f conf-opensc.xml -gsdr
 
-regress-multi: hsmtest token.db othertoken.db
+regress-multi: hsmcheck token.db othertoken.db
 	env $(SOFTHSM_ENV) \
-	./hsmtest -f conf-multi.xml -gsdr
+	./hsmcheck -f conf-multi.xml -gsdr
 
