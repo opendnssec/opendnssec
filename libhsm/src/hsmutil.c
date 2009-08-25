@@ -75,12 +75,21 @@ usage_dnskey ()
 }
 
 void
+usage_test ()
+{
+    fprintf(stderr,
+        "usage: %s [-f config] test [repository]\n",
+        progname);
+}
+
+void
 usage ()
 {
     usage_list();
     usage_generate();
     usage_remove();
     usage_dnskey();
+    usage_test();
 }
 
 int
@@ -255,6 +264,23 @@ cmd_dnskey (int argc, char *argv[])
 }
 
 int
+cmd_test (int argc, char *argv[])
+{
+    char *repository = NULL;
+
+    if (argc) {
+        repository = strdup(argv[0]);
+        argc--;
+        argv++;
+
+        printf("Testing repository: %s\n\n", repository);
+        hsm_test(repository);
+    } else {
+        usage_test();
+    }
+}
+
+int
 main (int argc, char *argv[])
 {
     int result;
@@ -288,7 +314,7 @@ main (int argc, char *argv[])
 
     result = hsm_open(config, hsm_prompt_pin, NULL);
     if (result) {
-        fprintf(stderr, "hsm_open() returned %d\n", result);
+        hsm_print_error(NULL);
         exit(-1);
     }
 
@@ -308,6 +334,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_dnskey(argc, argv);
+    } else if (!strcasecmp(argv[0], "test")) {
+        argc --;
+        argv ++;
+        result = cmd_test(argc, argv);
     } else {
         usage();
         result = -1;

@@ -16,6 +16,8 @@ nobase_include_HEADERS = $(srcdir)/*.h
 bin_PROGRAMS = hsmutil hsmspeed
 
 hsmutil_LDADD = libhsm.la
+hsmutil_SOURCES = hsmutil.c hsmtest.c
+
 hsmspeed_LDADD = libhsm.la -lpthread
 
 EXTRA_DIST = $(srcdir)/cryptoki/*.h
