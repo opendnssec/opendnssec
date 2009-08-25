@@ -67,11 +67,11 @@ hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key)
     } else {
         result = 1;
     }
-    
+
     ldns_rr_list_deep_free(rrset);
     hsm_sign_params_free(sign_params);
     ldns_rr_free(dnskey_rr);
-    
+
     return result;
 }
 
@@ -80,13 +80,25 @@ hsm_test_random()
 {
     hsm_ctx_t *ctx = NULL;
 
+    int result;
+    unsigned char rnd_buf[1024];
     uint32_t r32;
     uint64_t r64;
-    
+
+    printf("Generating %d bytes of random data... ", sizeof(rnd_buf));
+    result = hsm_random_buffer(ctx, rnd_buf, sizeof(rnd_buf));
+    if (result) {
+        printf("Failed, error: %d\n", result);
+        hsm_print_error(ctx);
+        return;
+    } else {
+        printf("OK\n");
+    }
+
     printf("Generating 32-bit random data... ");
     r32 = hsm_random32(ctx);
     printf("%u\n", r32);
-    
+
     printf("Generating 64-bit random data... ");
     r64 = hsm_random64(ctx);
     printf("%llu\n", r64);
@@ -102,41 +114,54 @@ hsm_test (const char *repository)
     hsm_ctx_t *ctx = NULL;
     hsm_key_t *key = NULL;
     char *id;
-    
+
     /*
      * Test key generation, signing and deletion for a number of key size
      */
     for (unsigned int i=0; i<(sizeof(keysizes)/sizeof(unsigned int)); i++) {
         keysize = keysizes[i];
-        
+
         printf("Generating %d-bit RSA key... ", keysize);
         key = hsm_generate_rsa_key(ctx, repository, keysize);
-        
-        if (!key) {    
-            printf("Key generation failed.\n");
+        if (!key) {
+            printf("Failed\n");
+            hsm_print_error(ctx);
             continue;
         } else {
-            printf("\n");
+            printf("OK\n");
+            hsm_print_error(ctx);
+        }
+
+        printf("Extracting key identifier... ");
+        id = hsm_get_key_id(ctx, key);
+        if (!id) {
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            continue;
+        } else {
+            printf("OK, %s\n", id);
         }
 
         printf("Signing with key... ");
         result = hsm_test_sign(ctx, key);
         if (result) {
-            printf("Failed to sign, error: %d\n", result);  
+            printf("Failed, error: %d\n", result);
+            hsm_print_error(ctx);
         } else {
-            printf("\n");
+            printf("OK\n");
         }
 
         printf("Deleting key... ");
         result = hsm_remove_key(ctx, key);
         if (result) {
-            printf("Failed to delete key, error: %d\n", result);   
+            printf("Failed: error: %d\n", result);
+            hsm_print_error(ctx);
         } else {
-            printf("\n");
+            printf("OK\n");
         }
-        
+
         printf("\n");
     }
-    
+
     hsm_test_random();
 }
