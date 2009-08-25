@@ -53,7 +53,7 @@ module KASPAuditor
           policy = z.elements['Policy'].text
 
           config_file_loc = z.elements["SignerConfiguration"].text
-          if (config_file_loc.index("/") != 0)
+          if (config_file_loc.index(File::SEPARATOR) != 0)
             config_file_loc = path + config_file_loc
           end
 
@@ -62,11 +62,11 @@ module KASPAuditor
             config_file_loc, syslog)
 
           input_file_loc = z.elements["Adapters"].elements['Input'].elements["File"].text
-          if (input_file_loc.index("/") != 0)
+          if (input_file_loc.index(File::SEPARATOR) != 0)
             input_file_loc = path + input_file_loc
           end
           output_file_loc = z.elements["Adapters"].elements['Output'].elements["File"].text
-          if (output_file_loc.index("/") != 0)
+          if (output_file_loc.index(File::SEPARATOR) != 0)
             output_file_loc = path + output_file_loc
           end
           zones.push([config, input_file_loc, output_file_loc])

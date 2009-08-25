@@ -92,7 +92,8 @@ module KASPAuditor
 
     # This method is provided so that the test code can use its own syslog
     def run_with_syslog(zonelist_file, kasp_file, syslog, working) # :nodoc: all
-      zones = Parse.parse(File.dirname(kasp_file)  + "/", zonelist_file, kasp_file, syslog)
+      zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
+        zonelist_file, kasp_file, syslog)
       check_zones_to_audit(zones)
       # Now check the input and output zones using the config
       if (zones.length == 0)
