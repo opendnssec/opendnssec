@@ -54,7 +54,7 @@ usage ()
 {
     fprintf(stderr,
         "usage: %s "
-        "[-f config] [-r repository] [-i iterations] [-s keysize] [-t threads]\n",
+        "[-f config] -r repository [-i iterations] [-s keysize] [-t threads]\n",
         progname);
 }
 
@@ -132,7 +132,7 @@ main (int argc, char *argv[])
     static struct timeval start,end;
 
     char *config = NULL;
-    const char *repository = "default";
+    const char *repository = NULL;
     
     sign_arg_t sign_arg_array[PTHREAD_THREADS_MAX];
     
@@ -166,6 +166,11 @@ main (int argc, char *argv[])
             usage();
             exit(1);
         }
+    }
+
+    if (!repository) {
+        usage();
+        exit(1);
     }
 
 #if 0
