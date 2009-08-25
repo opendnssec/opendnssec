@@ -905,7 +905,7 @@ module KASPAuditor
         w.each {|f|
           if ((f.index("audit")) && (f.index("#{Process.pid}")))
             begin
-              File.delete(@working + "/" + f.untaint)
+              File.delete(@working + File::SEPARATOR + f.untaint)
             rescue Exception => e
               print "Can't delete temporary auditor file #{f}, error : #{e}\n"
             end
