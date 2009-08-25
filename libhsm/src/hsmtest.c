@@ -129,7 +129,6 @@ hsm_test (const char *repository)
             continue;
         } else {
             printf("OK\n");
-            hsm_print_error(ctx);
         }
 
         printf("Extracting key identifier... ");
