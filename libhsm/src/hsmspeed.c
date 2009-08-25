@@ -203,7 +203,7 @@ main (int argc, char *argv[])
         fprintf(stderr, "Temporary key created: %s\n", id);
         free(id);           
     } else {
-        fprintf(stderr, "hsm_generate_rsa_key() could not generate a key pair\n");
+        fprintf(stderr, "Could not generate a key pair in repository \"%s\"\n", repository);
         exit(-1);
     }
     
