@@ -98,7 +98,9 @@ usage ()
     usage_remove();
     usage_dnskey();
     usage_test();
+#if 0
     usage_debug();
+#endif
 }
 
 int
