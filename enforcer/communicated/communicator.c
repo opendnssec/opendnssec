@@ -350,6 +350,8 @@ server_main(DAEMONCONFIG *config)
                     }
 
                     /* See if we need to send a warning about an impending rollover */
+/* Disable this code for 1.0 alpha3 as the configuration of it is not done */
+if(0) {
                     datetime = DtParseDateTimeString("now");
                     /* First the KSK */
                     status2 = KsmCheckNextRollover(KSM_TYPE_KSK, zone_id, &ksk_expected);
@@ -381,12 +383,12 @@ server_main(DAEMONCONFIG *config)
                         log_msg(config, LOG_ERR, "Rollover of ZSK expected at %s for %s", zsk_expected, zone_name);
                     }
 
+                    StrFree(datetime);
                     
-
+}
 
                     StrFree(current_filename);
                     StrFree(zone_name);
-                    StrFree(datetime);
                 }
                 /* Read the next line */
                 ret = xmlTextReaderRead(reader);

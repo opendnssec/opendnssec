@@ -1,10 +1,12 @@
 $Id$
 
+
+* warn (by sending a message to the log) about impending key rollover - (Postponed to after 1.0a3)
+
 OpenDNSSEC 1.0a3 - 2009-08-26
 
 Features:
 * ksmutil import key implemented for importing key ID of existing keys
-* warn (by sending a message to the log) about impending key rollover
 * "hsmspeed" will test the speed of the HSM.
 * "hsmutil test" will test the HSM against OpenDNSSEC.
 * Changes to the KASP DB, please apply:
