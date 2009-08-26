@@ -1,8 +1,6 @@
 $Id$
 
 
-* warn (by sending a message to the log) about impending key rollover - (Postponed to after 1.0a3)
-
 OpenDNSSEC 1.0a3 - 2009-08-26
 
 Features:
