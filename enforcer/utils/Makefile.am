@@ -8,7 +8,8 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/../ksm/include \
 	-I$(builddir)/../ksm/include \
 	@LIBHSM_INCLUDES@ \
-	@XML2_INCLUDES@
+	@XML2_INCLUDES@ \
+    @DB_INCLUDES@
 
 dist_opendnssecdata_DATA = database_create.sqlite3
 
