@@ -350,8 +350,8 @@ server_main(DAEMONCONFIG *config)
                     }
 
                     /* See if we need to send a warning about an impending rollover */
-/* Disable this code for 1.0 alpha3 as the configuration of it is not done */
-if(0) {
+
+#if 0 /* Disable this code for 1.0 alpha3 as the configuration of it is not done */
                     datetime = DtParseDateTimeString("now");
                     /* First the KSK */
                     status2 = KsmCheckNextRollover(KSM_TYPE_KSK, zone_id, &ksk_expected);
@@ -384,9 +384,7 @@ if(0) {
                     }
 
                     StrFree(datetime);
-                    
-}
-
+#endif
                     StrFree(current_filename);
                     StrFree(zone_name);
                 }
