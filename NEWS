@@ -1,5 +1,9 @@
 $Id$
 
+OpenDNSSEC trunk
+
+* warn (by sending a message to the log) about impending key rollover
+
 
 OpenDNSSEC 1.0a3 - 2009-08-26
 
