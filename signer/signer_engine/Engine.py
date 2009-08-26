@@ -699,7 +699,8 @@ def main():
         engine.stop_engine()
     except Exception, e:
         print "Unable to continue, stopping:"
-        print e
+        print "Unexpected error:", sys.exc_info()[0]
+        raise e
         engine.stop_engine()
     sys.exit(0)
 
