@@ -351,7 +351,7 @@ hsm_random64(hsm_ctx_t *ctx);
    optional credentials (may be NULL, but then undefined)
    This function changes the global state, and is not threadsafe
 
-\param reposiroty the name of the repository
+\param repository the name of the repository
 \param token_label the name of the token to attach
 \param path the path of the shared PKCS#11 library
 \param pin the PIN to log into the token
