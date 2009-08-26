@@ -1,20 +1,29 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.0a3 - 2009-08-26
 
 Features:
-* ksmutil import key implemented
+* ksmutil import key implemented for importing key ID of existing keys
 * warn (by sending a message to the log) about impending key rollover
+* "hsmspeed" will test the speed of the HSM.
+* "hsmutil test" will test the HSM against OpenDNSSEC.
 * Changes to the KASP DB, please apply:
   If want to use your old DB:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090820_1.sqlite3
-  Or start fresh (with loss of information):
+  Or start fresh (with loss of information. User should remove old keys from the HSM):
     ksmutil setup
 
 Bugfixes:
 * Better display of null backups (i.e. backup required) in ksmutil list
 * Don't show historical rollovers in ksmutil list
 * Fix key counting routines so that they all agree
+* Missing SQLite includes in the Enforcer
+
+Known bugs:
+* Signer Engine not starting correctly in RHEL5.
+  Use "signer_engine -d" for now
+* "signer_engine_cli clear <ZONE>" crashes on missing files
+
 
 OpenDNSSEC 1.0a2 - 2009-08-14
 
