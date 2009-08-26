@@ -83,6 +83,14 @@ usage_test ()
 }
 
 void
+usage_debug ()
+{
+    fprintf(stderr,
+        "usage: %s [-f config] debug\n",
+        progname);
+}
+
+void
 usage ()
 {
     usage_list();
@@ -90,6 +98,7 @@ usage ()
     usage_remove();
     usage_dnskey();
     usage_test();
+    usage_debug();
 }
 
 int
@@ -281,6 +290,12 @@ cmd_test (int argc, char *argv[])
 }
 
 int
+cmd_debug (int argc, char *argv[])
+{
+    hsm_print_ctx(NULL);
+}
+
+int
 main (int argc, char *argv[])
 {
     int result;
@@ -338,6 +353,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_test(argc, argv);
+    } else if (!strcasecmp(argv[0], "debug")) {
+        argc --;
+        argv ++;
+        result = cmd_debug(argc, argv);
     } else {
         usage();
         result = -1;

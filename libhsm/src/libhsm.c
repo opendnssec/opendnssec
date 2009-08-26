@@ -2357,6 +2357,7 @@ void
 hsm_print_session(hsm_session_t *session)
 {
     printf("\t\tmodule at %p (sym %p)\n", (void *) session->module, (void *) session->module->sym);
+    printf("\t\tmodule path: %s\n", session->module->path);
     printf("\t\trepository name: %s\n", session->module->name);
     printf("\t\ttoken label: %s\n", session->module->token_label);
     printf("\t\tsess handle: %u\n", (unsigned int) session->session);
