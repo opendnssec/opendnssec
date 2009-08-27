@@ -1008,9 +1008,9 @@ cmd_export (int argc, char *argv[], int do_all)
 
     /* Key information */
     hsm_key_t *key = NULL;
-    ldns_rr *dnskey_rr;
-    ldns_rr *ds_sha1_rr;
-    ldns_rr *ds_sha256_rr;
+    ldns_rr *dnskey_rr = NULL;
+    ldns_rr *ds_sha1_rr = NULL;
+    ldns_rr *ds_sha256_rr = NULL;
     hsm_sign_params_t *sign_params;
 
     char* sql = NULL;
@@ -1236,9 +1236,13 @@ cmd_export (int argc, char *argv[], int do_all)
         /* TODO when the above is working then replicate it twice for the case where keytype == -1 */
 
         hsm_sign_params_free(sign_params);
-        ldns_rr_free(dnskey_rr);
-        if (strncmp(case_subcommand, "DS", 2) == 0) {
+        if (dnskey_rr != NULL) {
+            ldns_rr_free(dnskey_rr);
+        }
+        if (ds_sha1_rr != NULL) {
             ldns_rr_free(ds_sha1_rr);
+        }
+        if (ds_sha256_rr != NULL) {
             ldns_rr_free(ds_sha256_rr);
         }
         hsm_key_free(key);
