@@ -37,6 +37,8 @@
 #include <ksm/ksmutil.h>
 #include <ksm/ksm.h>
 #include <ksm/database.h>
+#include "ksm/database_statement.h"
+#include "ksm/db_fields.h"
 #include <ksm/datetime.h>
 #include <ksm/string_util.h>
 #include <ksm/string_util2.h>
@@ -45,6 +47,10 @@
 #include "ksm/dbsmsg.h"
 #include "ksm/dbsdef.h"
 #include "ksm/message.h"
+
+#include <libhsm.h>
+#include <libhsmdns.h>
+#include <ldns/ldns.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -115,8 +121,10 @@ usage_listzone ()
 usage_export ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] export [policy]\n"
-            "\texport all policies [or named policy] to xml\n",
+            "usage: %s [-f config] export [policy|keys|ds] <[policy_name]|zone_name> [keytype]\n"
+            "\tpolicy: export all policies [or named policy] to xml\n"
+            "\tkeys: export dnskey RRs for named zone [KSK unless ZSK specified]\n"
+            "\tds: export ds RRs for named zone [KSK unless ZSK specified]\n",
             progname);
 }
 
@@ -965,11 +973,14 @@ cmd_listzone (int argc, char *argv[])
 }
 
 /*
- * To export policies (all, unless one is named) to xml
+ * To export: 
+ *          policies (all, unless one is named) to xml
+ *          keys|ds for zone
  */
     int
 cmd_export (int argc, char *argv[])
 {
+    int status = 0;
     /* Database connection details */
     DB_HANDLE	dbhandle;
     char *dbschema = NULL;
@@ -978,20 +989,85 @@ cmd_export (int argc, char *argv[])
     char *user = NULL;
     char *password = NULL;
 
-    DB_RESULT result;
-    int status = 0;
     xmlDocPtr doc = xmlNewDoc((const xmlChar *)"1.0");
     xmlNodePtr root;
     KSM_POLICY *policy;
-    char* policy_name = NULL;
+
+    char* subcommand = NULL;
+    char* qualifier = NULL;
+    char* keytype = NULL;
+    char* zone_name = NULL;
+
+    char* case_subcommand = NULL;
+    char* case_keytype = NULL;
+
+    int zone_id = -1;
+    int keytype_id = KSM_TYPE_KSK;
+
+    /* Key information */
+    hsm_key_t *key = NULL;
+    ldns_rr *dnskey_rr;
+    ldns_rr *ds_sha1_rr;
+    ldns_rr *ds_sha256_rr;
+    hsm_sign_params_t *sign_params;
+
+    char* sql = NULL;
+    KSM_KEYDATA data;       /* Data for each key */
+    DB_RESULT	result;     /* Result set from query */
+
+    /* 
+       Command should look like:
+       ksmutil export [policy|keys|ds] <[policy_name]|zone_name> [keytype]
+       call it           subcommand              qualifier        keytype
+     */  
 
     /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc == 1) {
-         StrAppend(&policy_name, argv[0]);
-    }
-    else if (argc > 1) {
+    if (argc == 0 || argc >= 4) {
         usage_export();
         return -1;
+    }
+    StrAppend(&subcommand, argv[0]);
+
+    /* Check the subcommand */
+    case_subcommand = StrStrdup(subcommand);
+    (void) StrToUpper(case_subcommand);
+    if (strncmp(case_subcommand, "POLICY", 6) != 0 && 
+            strncmp(case_subcommand, "KEYS", 4) != 0 && 
+            strncmp(case_subcommand, "DS", 2)) {
+        printf("Error: Unrecognised command \"export %s\"\n", subcommand);
+        StrFree(case_subcommand);
+        return(1);
+    }
+
+    if (argc >= 2) {
+         StrAppend(&qualifier, argv[1]);
+    } 
+
+    if (argc == 3) {
+        if (strncmp(case_subcommand, "POLICY", 6) == 0) {
+            printf("Error: command \"export polcy\" requires one policy name at a time\n");
+            StrFree(case_subcommand);
+            return(1);
+        }
+
+        StrAppend(&keytype, argv[2]);
+
+        /* Check the Keytype */
+        case_keytype = StrStrdup(keytype);
+        (void) StrToUpper(case_keytype);
+        if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(keytype, "257", 3) == 0) {
+            keytype_id = 257;
+        }
+        else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(keytype, "256", 3) == 0) {
+            keytype_id = 256;
+        }
+        else {
+            printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", keytype);
+
+            StrFree(case_keytype);
+            return(1);
+        }
+        StrFree(case_keytype);
     }
 
     /* Read the database details out of conf.xml */
@@ -1013,59 +1089,161 @@ cmd_export (int argc, char *argv[])
     StrFree(dbschema);
     StrFree(user);
     StrFree(password);
-   
-    /* Make some space for the policy */ 
-    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
-    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
-    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
-    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
-    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
-    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
-    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
-    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-/*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
-    policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
-    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-    policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
-    if (policy->signer == NULL || policy->signature == NULL || 
-            policy->zone == NULL || policy->parent == NULL ||
-            policy->keys == NULL ||
-            policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL) {
-        fprintf(stderr, "Malloc for policy struct failed\n");
-        exit(1);
-    }
+  
+    if (strncmp(case_subcommand, "POLICY", 6) == 0) {
+        /* Make some space for the policy */ 
+        policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+        policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+        policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+        policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+        policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+        policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
+        policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+        policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+        policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+        policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+        /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
+        policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
+        policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+        policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
+        if (policy->signer == NULL || policy->signature == NULL || 
+                policy->zone == NULL || policy->parent == NULL ||
+                policy->keys == NULL ||
+                policy->ksk == NULL || policy->zsk == NULL || 
+                policy->denial == NULL || policy->enforcer == NULL) {
+            fprintf(stderr, "Malloc for policy struct failed\n");
+            exit(1);
+        }
 
-    /* Setup doc with a root node of <KASP> */
-    xmlKeepBlanksDefault(0);
-    xmlTreeIndentString = "    ";
-    root = xmlNewDocNode(doc, NULL, (const xmlChar *)"KASP", NULL);
-    (void) xmlDocSetRootElement(doc, root);
+        /* Setup doc with a root node of <KASP> */
+        xmlKeepBlanksDefault(0);
+        xmlTreeIndentString = "    ";
+        root = xmlNewDocNode(doc, NULL, (const xmlChar *)"KASP", NULL);
+        (void) xmlDocSetRootElement(doc, root);
 
-    /* Read policies (all if policy_name == NULL; else named policy only) */
-    status = KsmPolicyInit(&result, policy_name);
-    if (status == 0) {
-        /* get the first policy */
-        status = KsmPolicy(result, policy);
-        KsmPolicyRead(policy);
-
-        while (status == 0) {
-            append_policy(doc, policy);
-
-            /* get next policy */
+        /* Read policies (all if policy_name == NULL; else named policy only) */
+        status = KsmPolicyInit(&result, qualifier);
+        if (status == 0) {
+            /* get the first policy */
             status = KsmPolicy(result, policy);
             KsmPolicyRead(policy);
 
+            while (status == 0) {
+                append_policy(doc, policy);
+
+                /* get next policy */
+                status = KsmPolicy(result, policy);
+                KsmPolicyRead(policy);
+
+            }
         }
+
+        xmlSaveFormatFile("-", doc, 1);
+
+        xmlFreeDoc(doc);
+        KsmPolicyFree(policy);
+    }
+    else {
+        /* ASKED TO EXPORT KEY OR DS RECORD */
+
+        /* check that the zone name is valid and use it to get some ids */
+        if (qualifier != NULL) {
+            status = KsmZoneIdFromName(qualifier, &zone_id);
+            if (status != 0) {
+                printf("Error: unable to find a zone named \"%s\" in database\n", qualifier);
+                return(status);
+            }
+        }
+
+        status = hsm_open(config, hsm_prompt_pin, NULL);
+        if (status) {
+            hsm_print_error(NULL);
+            exit(-1);
+        }
+
+        sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, 0);
+        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype_id, 1);
+        if (zone_id != -1) {
+            DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 2);
+        }
+        DqsEnd(&sql);
+
+        status = KsmKeyInitSql(&result, sql);
+        if (status == 0) {
+            status = KsmKey(result, &data);
+            while (status == 0) {
+
+                /* Code to output the DNSKEY record  (stolen from hsmutil) */
+                key = hsm_find_key_by_id(NULL, data.location);
+
+                if (!key) {
+                    printf("Key %s in DB but not repository\n", data.location);
+                    return -1;
+                }
+
+                sign_params = hsm_sign_params_new();
+                /* If zone_id == -1 then we need to work out the zone name from data.zone_id */
+                if (zone_id == -1) {
+                    status = KsmZoneNameFromId(data.zone_id, &zone_name);
+                    if (status != 0) {
+                        printf("Error: unable to find zone name for id %d\n", zone_id);
+                        return(status);
+                    }
+                    sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone_name);
+                    StrFree(zone_name);
+                }
+                else {
+                    sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, qualifier);
+                }
+
+                sign_params->algorithm = data.algorithm;
+                sign_params->flags = LDNS_KEY_ZONE_KEY;
+                if (keytype_id == KSM_TYPE_KSK) {
+                    sign_params->flags += LDNS_KEY_SEP_KEY;
+                }
+                dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+                sign_params->keytag = ldns_calc_keytag(dnskey_rr);
+
+                if (strncmp(case_subcommand, "KEYS", 4) == 0) {
+                    printf("\n%s DNSKEY record:\n\n", (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    ldns_rr_print(stdout, dnskey_rr);
+                }
+                else {
+
+                    printf("\n%s DS record (SHA1):\n\n", (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
+                    ldns_rr_print(stdout, ds_sha1_rr);
+
+                    printf("\n%s DS record (SHA256):\n\n", (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
+                    ldns_rr_print(stdout, ds_sha256_rr);
+                }
+
+                status = KsmKey(result, &data);
+
+            }
+            /* Convert EOF status to success */
+            if (status == -1) {
+                status = 0;
+            }
+
+            KsmKeyEnd(result);
+        }
+
+        /* TODO when the above is working then replicate it twice for the case where keytype == -1 */
+
+        hsm_sign_params_free(sign_params);
+        ldns_rr_free(dnskey_rr);
+        if (strncmp(case_subcommand, "DS", 2) == 0) {
+            ldns_rr_free(ds_sha1_rr);
+            ldns_rr_free(ds_sha256_rr);
+        }
+        hsm_key_free(key);
+
     }
 
-    xmlSaveFormatFile("-", doc, 1);
-
-    xmlFreeDoc(doc);
-    KsmPolicyFree(policy);
-
+    StrFree(case_subcommand);
     DbDisconnect(dbhandle);
 
     return 0;

@@ -614,6 +614,10 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data)
     }
 
 	if (status == 0) {
+        status = DbInt(row, DB_KEYDATA_ZONE_ID, &(data->zone_id));
+	}
+
+	if (status == 0) {
         status = DbInt(row, DB_KEYDATA_FIXED_DATE, &(data->fixedDate));
 	}
 

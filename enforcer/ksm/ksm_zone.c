@@ -398,3 +398,65 @@ int KsmDeleteZone(int zone_id)
 
     return status;
 }
+
+/*+
+ * KsmZoneNameFromId
+ *
+ * Arguments:
+ *          int         zone_id     id of the zone to get the name for
+ *          char**      zone_name   returned name
+ *
+ * Returns:
+ *      int
+ *          Status return:
+ *              0           success
+ *              -1          no record found
+ *              non-zero    some error occurred and a message has been output.
+ *
+ *          If the status is non-zero, the returned data is meaningless.
+-*/
+int KsmZoneNameFromId(int zone_id, char** zone_name)
+{
+    int     where = 0;          /* WHERE clause value */
+    char*   sql = NULL;         /* SQL query */
+    DB_RESULT       result;     /* Handle converted to a result object */
+    DB_ROW      row = NULL;            /* Row data */
+    int     status = 0;         /* Status return */
+
+    /* check the argument */
+    if (zone_id == -1) {
+        return MsgLog(KSM_INVARG, "NULL zone id");
+    }
+
+    /* Construct the query */
+
+    sql = DqsSpecifyInit("zones","id, name");
+    DqsConditionInt(&sql, "id", DQS_COMPARE_EQ, zone_id, where++);
+    DqsOrderBy(&sql, "id");
+
+    /* Execute query and free up the query string */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        DbFreeResult(result);
+        return status;
+	}
+
+    /* Get the next row from the data */
+    status = DbFetchRow(result, &row);
+    if (status == 0) {
+        DbString(row, DB_ZONE_NAME, zone_name);
+    }
+    else if (status == -1) {}
+        /* No rows to return (but no DB error) */
+	else {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+	}
+
+    DbFreeRow(row);
+    DbFreeResult(result);
+    return status;
+}
