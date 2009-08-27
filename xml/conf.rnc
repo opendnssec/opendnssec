@@ -85,7 +85,7 @@ start = element Configuration {
 		element BackupDelay { xsd:duration },
 		
 		# How long before a KSK Rollover should we start warning
-		element RolloverNotification { xsd:duration}?
+		element RolloverNotification { xsd:duration }?
 	},
 
 	# Configuration parameters for the Signer 
