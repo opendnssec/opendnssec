@@ -68,6 +68,7 @@
 #define SERIAL_TYPE 4
 
 extern char *optarg;
+extern int optind;
 const char *progname = "ksmutil";
 char *config = (char *) CONFIG_FILE;
 
@@ -121,11 +122,12 @@ usage_listzone ()
 usage_export ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] export [policy|keys|ds] <[policy_name]|zone_name> [keytype]\n"
+            "usage: %s [-f config] export policy [policy_name]\n"
+            "   or: %s [-f config] [-a] export [keys|ds] [zone_name] [keytype]\n"
             "\tpolicy: export all policies [or named policy] to xml\n"
             "\tkeys: export dnskey RRs for named zone [KSK unless ZSK specified]\n"
             "\tds: export ds RRs for named zone [KSK unless ZSK specified]\n",
-            progname);
+            progname, progname);
 }
 
     void
@@ -978,7 +980,7 @@ cmd_listzone (int argc, char *argv[])
  *          keys|ds for zone
  */
     int
-cmd_export (int argc, char *argv[])
+cmd_export (int argc, char *argv[], int do_all)
 {
     int status = 0;
     /* Database connection details */
@@ -2476,7 +2478,7 @@ main (int argc, char *argv[])
     } else if (!strncmp(case_command, "EXPORT", 6)) {
         argc --;
         argv ++;
-        result = cmd_export(argc, argv);
+        result = cmd_export(argc, argv, do_all);
     } else if (!strncmp(case_command, "ROLLZONE", 8)) {
         argc --;
         argv ++;

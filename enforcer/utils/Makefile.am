@@ -11,6 +11,7 @@ AM_CPPFLAGS = \
 	@XML2_INCLUDES@ \
     @DB_INCLUDES@ \
     @LDNS_INCLUDES@
+AM_CFLAGS =	-std=c99
 
 dist_opendnssecdata_DATA = database_create.sqlite3
 
