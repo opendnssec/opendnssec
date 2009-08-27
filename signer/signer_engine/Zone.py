@@ -697,6 +697,9 @@ class Zone:
         os.remove(self.get_zone_tmp_filename(".sorted"))
         os.remove(self.get_zone_tmp_filename(".nsecced"))
         os.remove(self.get_zone_tmp_filename(".signed"))
+        os.remove(self.get_zone_tmp_filename(".signed.sorted"))
+        os.remove(self.get_zone_tmp_filename(".signed2"))
+        os.remove(self.get_zone_tmp_filename(".finalized"))
         
     def lock(self, caller=None):
         """Lock the zone with a simple spinlock"""
