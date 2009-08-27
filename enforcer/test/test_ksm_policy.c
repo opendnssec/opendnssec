@@ -72,8 +72,9 @@ static void TestKsmPolicyRead(void)
 /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
     policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
+	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
 
-	policy->name = "default";
+	StrAppend(&policy->name, "default");
 
 	/* Call KsmPolicyRead */
 
@@ -195,8 +196,9 @@ static void TestKsmPolicySalt(void)
 /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
     policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
+	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
 
-	policy->name = "default";
+	StrAppend(&policy->name, "default");
 	policy->id = 2;
     policy->denial->resalt = 0;
     policy->denial->saltlength = 30;

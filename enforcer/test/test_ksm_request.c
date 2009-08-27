@@ -103,7 +103,7 @@ static void TestKsmRequestKeys(void)
         KSM_STATE_GENERATE, KSM_STATE_PUBLISH, zone_id);
 
 	/* Check that keys of a particular type can be requested */
-    KsmRequestKeys(keytype, rollover, datetime, TestCallbackFn, NULL, 2, zone_id);
+    KsmRequestKeys(keytype, rollover, datetime, TestCallbackFn, NULL, 2, zone_id, 0);
 
 	CU_ASSERT_EQUAL(status, 1); /* just make sure that something flags this as needing more work */
 	CU_ASSERT_EQUAL(no_keys, 1);

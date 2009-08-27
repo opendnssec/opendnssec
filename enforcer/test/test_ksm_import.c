@@ -77,7 +77,7 @@ static void TestKsmImportRepository(void)
 	CU_ASSERT_EQUAL(count, 0);
 
     /* Create X */
-    status = KsmImportRepository(repo_name, repo_capacity);
+    status = KsmImportRepository(repo_name, repo_capacity, 0);
 	CU_ASSERT_EQUAL(status, 0);
 
     /* Show that the repository X does now exist */
@@ -96,7 +96,7 @@ static void TestKsmImportRepository(void)
 	CU_ASSERT_EQUAL(count, 500);
 
     /* update X */
-    status = KsmImportRepository(repo_name, "5000");
+    status = KsmImportRepository(repo_name, "5000", 0);
 	CU_ASSERT_EQUAL(status, 0);
 
     /* Get the new capacity */

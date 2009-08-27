@@ -319,13 +319,13 @@ static void TestKsmKeyCountUnallocated(void)
     int count;
     int status;
 
-    status = KsmKeyCountUnallocated(policy_id, sm, bits, algorithm, &count);
+/*    status = KsmKeyCountStillGood(policy_id, sm, bits, algorithm, &count);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 15); 
 
     algorithm = KSM_ALGORITHM_RSASHA1;
-    status = KsmKeyCountUnallocated(policy_id, sm, bits, algorithm, &count);
+    status = KsmKeyCountStillGood(policy_id, sm, bits, algorithm, &count);*/
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 13);
@@ -439,7 +439,7 @@ int TestKsmKey(void)
         {"KsmKeyModify", TestKsmKeyModify},
         {"KsmKeyPredict", TestKsmKeyPredict},
         {"KsmKeyCountQueue", TestKsmKeyCountQueue},
-        {"KsmKeyCountUnallocated", TestKsmKeyCountUnallocated},
+/*        {"KsmKeyCountUnallocated", TestKsmKeyCountUnallocated},*/
         {"KsmKeyGetUnallocated", TestKsmKeyGetUnallocated},
         {"KsmDnssecKeyCreateOnPolicy", TestKsmDnssecKeyCreateOnPolicy},
         {NULL,                      NULL}
