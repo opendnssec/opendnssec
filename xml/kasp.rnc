@@ -42,7 +42,8 @@ start = element KASP {
 			element Resign { xsd:duration },
 
 			# the signatures are reused for a period of time
-			# how long time before the expiration of the signature should it be refreshed?
+			# how long time before the expiration of the signature 
+			# should it be refreshed?
 			element Refresh { xsd:duration },
 
 			# for how long should a signature be valid?
@@ -162,7 +163,11 @@ anykey = element Algorithm {
 	# Number of emergency keys
 	# For KSKs you can use 1 to indicate that you are
 	# doing double signatures
-	element Emergency { xsd:nonNegativeInteger }
+	element Emergency { xsd:nonNegativeInteger },
+			
+	# use manual KSK key rollover?
+	element ManualRollover { empty }?
+
 
 ttl = element TTL { xsd:duration }
 
