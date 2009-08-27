@@ -5,6 +5,9 @@ OpenDNSSEC trunk
 * warn (by sending a message to the log) about impending key rollover
 * add export of DNSKEY and DS records to ksmutil
 
+Bugfixes:
+* "signer_engine_cli clear <ZONE>" dont crash on missing files anymore
+  and removes all internal files now
 
 OpenDNSSEC 1.0a3 - 2009-08-26
 
