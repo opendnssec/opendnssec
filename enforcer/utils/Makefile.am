@@ -9,14 +9,15 @@ AM_CPPFLAGS = \
 	-I$(builddir)/../ksm/include \
 	@LIBHSM_INCLUDES@ \
 	@XML2_INCLUDES@ \
-    @DB_INCLUDES@
+    @DB_INCLUDES@ \
+    @LDNS_INCLUDES@
 
 dist_opendnssecdata_DATA = database_create.sqlite3
 
 bin_PROGRAMS = ksmutil
 
 ksmutil_LDADD = ../ksm/libksm.a
-ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@
+ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@ @LDNS_LIBS@
 ksmutil_DEPENDENCIES = @BUILD_LIBHSM@
 
 ../../libhsm/src/libhsm.la:
