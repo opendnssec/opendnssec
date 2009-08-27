@@ -694,12 +694,18 @@ class Zone:
         and signed zone. The final output is not deleted. On next run
         of perform_action, all actions will be performed, and the
         zone will be completely signed again."""
-        os.remove(self.get_zone_tmp_filename(".sorted"))
-        os.remove(self.get_zone_tmp_filename(".nsecced"))
-        os.remove(self.get_zone_tmp_filename(".signed"))
-        os.remove(self.get_zone_tmp_filename(".signed.sorted"))
-        os.remove(self.get_zone_tmp_filename(".signed2"))
-        os.remove(self.get_zone_tmp_filename(".finalized"))
+        if os.path.exists(self.get_zone_tmp_filename(".sorted")):
+            os.remove(self.get_zone_tmp_filename(".sorted"))
+        if os.path.exists(self.get_zone_tmp_filename(".nsecced")):
+            os.remove(self.get_zone_tmp_filename(".nsecced"))
+        if os.path.exists(self.get_zone_tmp_filename(".signed")):
+            os.remove(self.get_zone_tmp_filename(".signed"))
+        if os.path.exists(self.get_zone_tmp_filename(".signed.sorted")):
+            os.remove(self.get_zone_tmp_filename(".signed.sorted"))
+        if os.path.exists(self.get_zone_tmp_filename(".signed2")):
+            os.remove(self.get_zone_tmp_filename(".signed2"))
+        if os.path.exists(self.get_zone_tmp_filename(".finalized")):
+            os.remove(self.get_zone_tmp_filename(".finalized"))
         
     def lock(self, caller=None):
         """Lock the zone with a simple spinlock"""
