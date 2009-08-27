@@ -122,12 +122,15 @@ usage_listzone ()
 usage_export ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] export policy [policy_name]\n"
-            "   or: %s [-f config] [-a] export [keys|ds] [zone_name] [keytype]\n"
+            "usage: %s [-f config] [-a] export policy [policy_name]\n"
+            "   or: %s [-f config] [-a] export [keys|ds] [zone_name] [state] [keytype]\n"
             "\tpolicy: export all policies [or named policy] to xml\n"
+            "\t\t-a: export all policies; omit policy_name\n"
             "\tkeys: export dnskey RRs for named zone [KSK unless ZSK specified]\n"
-            "\tds: export ds RRs for named zone [KSK unless ZSK specified]\n",
-            progname, progname);
+            "\tds: export ds RRs for named zone [KSK unless ZSK specified]\n"
+            "\t\t-a: export all keys or ds records; omit zone_name\n"
+            "\t\t[state] can be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED (default = ACTIVE)\n"
+            ,progname, progname);
 }
 
     void
@@ -997,13 +1000,16 @@ cmd_export (int argc, char *argv[], int do_all)
 
     char* subcommand = NULL;
     char* qualifier = NULL;
-    char* keytype = NULL;
+    char* qual2 = NULL;
+    char* qual3 = NULL;
     char* zone_name = NULL;
 
-    char* case_subcommand = NULL;
-    char* case_keytype = NULL;
+    char* case_subcommand = NULL;   /* POLICY, KEYS or DS */
+    char* case_qual2 = NULL;        /* GENERATED, PUBLISHED, READY, ACTIVE or RETIRED */
+    char* case_qual3 = NULL;        /* KSK or ZSK */
 
     int zone_id = -1;
+    int state_id = KSM_STATE_ACTIVE;
     int keytype_id = KSM_TYPE_KSK;
 
     /* Key information */
@@ -1019,12 +1025,17 @@ cmd_export (int argc, char *argv[], int do_all)
 
     /* 
        Command should look like:
-       ksmutil export [policy|keys|ds] <[policy_name]|zone_name> [keytype]
-       call it           subcommand              qualifier        keytype
+       ksmutil export policy [policy_name]
+       call it       subcommand qualifier
+       OR
+       ksmutil export [keys|ds] [zone_name] [state] [keytype]
+       call it        subcommand qualifier   qual2    qual3
+
+       if do_all == 1 then zone_name should be null
      */  
 
     /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc == 0 || argc >= 4) {
+    if (argc == 0 || argc >= 5) {
         usage_export();
         return -1;
     }
@@ -1041,35 +1052,90 @@ cmd_export (int argc, char *argv[], int do_all)
         return(1);
     }
 
-    if (argc >= 2) {
-         StrAppend(&qualifier, argv[1]);
+    if (argc >= 2 && do_all == 0) {
+        /* argv[1] should be policy name or zone name */
+        StrAppend(&qualifier, argv[1]);
     } 
 
-    if (argc == 3) {
+    if (argc >= 2 && do_all == 1) {
+        /* argv[1] should be state or keytype */
+        StrAppend(&qual2, argv[1]);
+        if (strncmp(case_subcommand, "POLICY", 6) == 0) {
+            printf("Error: command \"export polcy\" requires no policy_name with -a flag\n");
+            StrFree(case_subcommand);
+            return(1);
+        }
+    }
+    if (argc >= 3 && do_all == 0) {
+        /* argv[2] should be state or keytype */
+        StrAppend(&qual2, argv[2]);
+
         if (strncmp(case_subcommand, "POLICY", 6) == 0) {
             printf("Error: command \"export polcy\" requires one policy name at a time\n");
             StrFree(case_subcommand);
             return(1);
         }
+    }
+    if (argc >= 3 && do_all == 1) {
+        /* argv[2] should be keytype */
+        StrAppend(&qual3, argv[2]);
+    }
+    if (argc == 4) {
+        /* argv[3] should be keytype */
+        StrAppend(&qual3, argv[3]);
+    }
 
-        StrAppend(&keytype, argv[2]);
-
-        /* Check the Keytype */
-        case_keytype = StrStrdup(keytype);
-        (void) StrToUpper(case_keytype);
-        if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(keytype, "257", 3) == 0) {
-            keytype_id = 257;
+    /* Check qual2, can be state or keytype */
+    if (qual2 != NULL) {
+        case_qual2 = StrStrdup(qual2);
+        (void) StrToUpper(case_qual2);
+        if (strncmp(case_qual2, "KSK", 3) == 0 || strncmp(qual2, "257", 3) == 0) {
+            keytype_id = KSM_TYPE_KSK;
         }
-        else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(keytype, "256", 3) == 0) {
-            keytype_id = 256;
+        else if (strncmp(case_qual2, "ZSK", 3) == 0 || strncmp(qual2, "256", 3) == 0) {
+            keytype_id = KSM_TYPE_ZSK;
+        }
+        else if (strncmp(case_qual2, "GENERATE", 8) == 0 || strncmp(qual2, "1", 1) == 0) {
+            state_id = KSM_STATE_GENERATE;
+        }
+        else if (strncmp(case_qual2, "PUBLISH", 7) == 0 || strncmp(qual2, "2", 1) == 0) {
+            state_id =  KSM_STATE_PUBLISH;
+        }
+        else if (strncmp(case_qual2, "READY", 5) == 0 || strncmp(qual2, "3", 1) == 0) {
+            state_id =  KSM_STATE_READY;
+        }
+        else if (strncmp(case_qual2, "ACTIVE", 6) == 0 || strncmp(qual2, "4", 1) == 0) {
+            state_id =  KSM_STATE_ACTIVE;
+        }
+        else if (strncmp(case_qual2, "RETIRE", 6) == 0 || strncmp(qual2, "5", 1) == 0) {
+            state_id =  KSM_STATE_DEAD;
         }
         else {
-            printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", keytype);
+            printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", qual2);
 
-            StrFree(case_keytype);
+            StrFree(case_qual2);
             return(1);
         }
-        StrFree(case_keytype);
+        StrFree(case_qual2);
+    }
+
+    /* Check qual3, can be keytype */
+    if (qual3 != NULL) {
+        case_qual3 = StrStrdup(qual3);
+        (void) StrToUpper(case_qual3);
+        if (strncmp(case_qual3, "KSK", 3) == 0 || strncmp(qual3, "257", 3) == 0) {
+            keytype_id = KSM_TYPE_KSK;
+        }
+        else if (strncmp(case_qual3, "ZSK", 3) == 0 || strncmp(qual3, "256", 3) == 0) {
+            keytype_id = KSM_TYPE_ZSK;
+        }
+        else {
+            printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", qual3);
+
+            StrFree(case_qual3);
+            return(1);
+        }
+        StrFree(case_qual3);
     }
 
     /* Read the database details out of conf.xml */
@@ -1164,7 +1230,7 @@ cmd_export (int argc, char *argv[], int do_all)
         }
 
         sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
-        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, 0);
+        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, state_id, 0);
         DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype_id, 1);
         if (zone_id != -1) {
             DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 2);
@@ -1208,16 +1274,16 @@ cmd_export (int argc, char *argv[], int do_all)
                 sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
                 if (strncmp(case_subcommand, "KEYS", 4) == 0) {
-                    printf("\n%s DNSKEY record:\n\n", (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    printf("\n%s %s DNSKEY record:\n\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                     ldns_rr_print(stdout, dnskey_rr);
                 }
                 else {
 
-                    printf("\n%s DS record (SHA1):\n\n", (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    printf("\n%s %s DS record (SHA1):\n\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                     ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
                     ldns_rr_print(stdout, ds_sha1_rr);
 
-                    printf("\n%s DS record (SHA256):\n\n", (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    printf("\n%s %s DS record (SHA256):\n\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                     ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
                     ldns_rr_print(stdout, ds_sha256_rr);
                 }
