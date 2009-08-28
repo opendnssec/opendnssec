@@ -92,6 +92,15 @@ int DtNow(struct tm* datetime)
     time_t  curtime;    /* Current time */
     struct tm *ptr;     /* Pointer to returned result */
 
+#ifdef ENFORCER_TIMESHIFT
+    char *override;
+
+    override = getenv("ENFORCER_TIMESHIFT");
+    if (override) {
+        return DtParseDateTime(override, datetime);
+    }
+#endif /* ENFORCER_TIMESHIFT */
+
     (void) time(&curtime);
     ptr = localtime_r(&curtime, datetime);
     return (ptr ? 0 : 1);

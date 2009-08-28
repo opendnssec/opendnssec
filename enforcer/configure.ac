@@ -106,6 +106,9 @@ AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["`eval echo $signer_cli | sed s,NONE,$ac
 AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, ["`eval echo $opendnsseclocalstatedir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC var directory])
 AC_DEFINE_UNQUOTED(SCHEMA_DIR, ["`eval echo $opendnssecdatadir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC data files])
 
+AC_ARG_ENABLE(timeshift,
+	AC_HELP_STRING([--with-timeshift],[Enable timeshift debug]),
+	[AC_DEFINE_UNQUOTED(ENFORCER_TIMESHIFT, 1, [timeshift debug])],[])
 
 AC_CONFIG_FILES([
 	Makefile
