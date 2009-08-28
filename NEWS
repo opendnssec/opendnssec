@@ -2,7 +2,10 @@ $Id$
 
 OpenDNSSEC trunk
 
-* warn (by sending a message to the log) about impending key rollover
+* warn (by sending a message to the log) about:
+    - impending key rollover
+    - Rollover occurrance
+    - when it is safe to remove a DS record
 * add export of DNSKEY and DS records to ksmutil
 
 Bugfixes:

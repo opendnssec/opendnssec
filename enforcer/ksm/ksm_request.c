@@ -213,6 +213,9 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
     int     ready;          /* Number of keys in the "ready" state */
     int     first_pass;     /* Indicates if this zone has been published before */
     int     status;         /* Status return */
+    char*   zone_name = NULL;  /* For rollover message, if needed */
+    DB_RESULT	result;        /* Result of parameter query */
+    KSM_PARAMETER data;        /* Parameter information */
 
 	/* Check that we have a valid key type */
 
@@ -248,7 +251,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * time.
      */
 
-    status = KsmRequestChangeStateRetireDead(keytype, datetime, zone_id);
+    status = KsmRequestChangeStateRetireDead(keytype, datetime, zone_id, policy_id);
     if (status != 0) {
         return status;
     }
@@ -258,7 +261,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * been in the zone long enough.
      */
 
-    status = KsmRequestChangeStatePublishReady(keytype, datetime, zone_id);
+    status = KsmRequestChangeStatePublishReady(keytype, datetime, zone_id, policy_id);
     if (status != 0) {
         return status;
     }
@@ -353,9 +356,35 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
                 /* Step 9. ... and retire old active keys */
 
-                status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id);
+                status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id);
                 if (status != 0) {
                     return status;
+                }
+
+                /* Log that a rollover has happened */
+                status = KsmZoneNameFromId(zone_id, &zone_name);
+                if (status != 0) {
+                    status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+                    return(status);
+                }
+                /* Get the shared_keys parameter */
+                status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
+                if (status != 0) {
+                    status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+                    return(status);
+                }
+                status = KsmParameter(result, &data);
+                if (status != 0) {
+                    status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+                    return(status);
+                }
+                KsmParameterEnd(result);
+                if (data.value == 0) {
+                    (void) MsgLog(KME_ROLL_ZONE, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name);
+                    StrFree(zone_name);
+                }
+                else {
+                    (void) MsgLog(KME_ROLL_POLICY, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name, zone_name);
                 }
             }
         }
@@ -548,22 +577,22 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
  *          error message will have been output.
 -*/
 
-int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id)
+int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_PUBLISH, KSM_STATE_READY, zone_id);
+        KSM_STATE_PUBLISH, KSM_STATE_READY, zone_id, policy_id);
 }
 
-int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id)
+int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_ACTIVE, KSM_STATE_RETIRE, zone_id);
+        KSM_STATE_ACTIVE, KSM_STATE_RETIRE, zone_id, policy_id);
 }
 
-int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id)
+int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_RETIRE, KSM_STATE_DEAD, zone_id);
+        KSM_STATE_RETIRE, KSM_STATE_DEAD, zone_id, policy_id);
 }
 
 
@@ -593,6 +622,9 @@ int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_
  *      int zone_id
  *          ID of zone that we are looking at (-1 == all zones)
  *
+ *      int policy_id
+ *          ID of the policy that we are looking at
+ *
  *  Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
@@ -600,7 +632,7 @@ int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_
 -*/
 
 int KsmRequestChangeState(int keytype, const char* datetime,
-    int src_state, int dst_state, int zone_id)
+    int src_state, int dst_state, int zone_id, int policy_id)
 {
     int     where = 0;		/* for the SELECT statement */
     char*   dst_col = NULL; /* Destination column */
@@ -614,7 +646,11 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     int*    keyids;         /* List of IDs of keys to promote */
     DB_RESULT    result;    /* List result set */
     KSM_KEYDATA  data;      /* Data for this key */
-    char    buffer[32];         /* For integer conversion */
+    char    buffer[32];     /* For integer conversion */
+    char*   zone_name = NULL;  /* For DS removal message, if needed */
+    
+    DB_RESULT	result2;         /* Result of parameter query */
+    KSM_PARAMETER data2;         /* Parameter information */
 
     /* Create the destination column name */
 
@@ -737,6 +773,33 @@ int KsmRequestChangeState(int keytype, const char* datetime,
         status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
     }
 
+    /* If we moved a KSK from retire to dead then the DS can be removed */
+    if (dst_state == KSM_STATE_DEAD && keytype == KSM_TYPE_KSK) {
+         status = KsmZoneNameFromId(zone_id, &zone_name);
+         if (status != 0) {
+             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+             return(status);
+         }
+         /* Get the shared_keys parameter */
+         status = KsmParameterInit(&result2, "zones_share_keys", "keys", policy_id);
+         if (status != 0) {
+             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+             return(status);
+         }
+         status = KsmParameter(result2, &data2);
+         if (status != 0) {
+             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+             return(status);
+         }
+         KsmParameterEnd(result2);
+         if (data2.value == 0) {
+             (void) MsgLog(KME_DS_REM_ZONE, zone_name);
+             StrFree(zone_name);
+         }
+         else {
+             (void) MsgLog(KME_DS_REM_POLICY, zone_name);
+         }
+    }
 
     StrFree(dst_col);
     StrFree(keyids);

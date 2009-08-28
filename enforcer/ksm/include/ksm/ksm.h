@@ -502,11 +502,11 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id,
     int run_interval);
 int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zone_id);
-int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id);
-int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id);
-int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id);
+int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id);
+int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id);
+int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id);
 int KsmRequestChangeState(int keytype, const char* datetime, int src_state,
-	int dst_state, int zone_id);
+	int dst_state, int zone_id, int policy_id);
 int KsmRequestChangeStateGeneratePublish(int keytype, const char* datetime,
 	int count, int zone_id);
 int KsmRequestChangeStateReadyActive(int keytype, const char* datetime,
