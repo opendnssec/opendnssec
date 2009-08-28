@@ -126,6 +126,7 @@ hsm_test (const char *repository)
         if (!key) {
             printf("Failed\n");
             hsm_print_error(ctx);
+            printf("\n");
             continue;
         } else {
             printf("OK\n");
@@ -137,7 +138,6 @@ hsm_test (const char *repository)
             printf("Failed\n");
             hsm_print_error(ctx);
             printf("\n");
-            continue;
         } else {
             printf("OK, %s\n", id);
         }
