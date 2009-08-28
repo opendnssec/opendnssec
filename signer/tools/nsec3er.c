@@ -30,11 +30,11 @@
  * This tool creates NSEC3 records
  *
  * This code is provided AS-IS, you know the drill, use at own risk
- * 
+ *
  * The input must be sorted in 'NSEC3-space' (with sorter.c)
  * And empty nonterminals must be present at the right locations
  * as comments of the form '; Empty nonterminal: <domain name>'
- * 
+ *
  * Written by Jelte Jansen
  */
 
@@ -404,7 +404,6 @@ create_nsec3_records(FILE *input_file,
 	char *pre_soa_lines[MAX_LINE_LEN];
 	size_t pre_count = 0, i;
 	if (soa_min_ttl == 0) {
-		
 		line_len = 0;
 		while (line_len >= 0 && soa_min_ttl == 0) {
 			line_len = read_line(input_file, line, 0);
@@ -419,7 +418,13 @@ create_nsec3_records(FILE *input_file,
 						soa_min_ttl = ldns_rr_ttl(rr);
 					}
 				}
-				ldns_rr_free(rr);
+				if (status == LDNS_STATUS_OK)
+					ldns_rr_free(rr);
+				else {
+					fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
+						ldns_get_errorstr_by_id(status), line);
+					return status;
+				}
 			}
 		}
 	}

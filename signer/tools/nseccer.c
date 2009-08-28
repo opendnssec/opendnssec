@@ -163,7 +163,7 @@ create_nsec_records(FILE *input_file,
 	ldns_rr_list *rr_list;
 	ldns_rr *prev_nsec;
 	ldns_rr *first_nsec = NULL;
-	
+
 	char *pre_soa_lines[MAX_LINE_LEN];
 	size_t pre_count = 0, i;
 	if (soa_min_ttl == 0) {
@@ -181,7 +181,13 @@ create_nsec_records(FILE *input_file,
 						soa_min_ttl = ldns_rr_ttl(rr);
 					}
 				}
-				ldns_rr_free(rr);
+				if (result == LDNS_STATUS_OK)
+					ldns_rr_free(rr);
+				else {
+					fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
+						ldns_get_errorstr_by_id(result), line);
+					return result;
+				}
 			}
 		}
 	}
