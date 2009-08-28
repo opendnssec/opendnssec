@@ -85,7 +85,7 @@ hsm_test_random()
     uint32_t r32;
     uint64_t r64;
 
-    printf("Generating %d bytes of random data... ", sizeof(rnd_buf));
+    printf("Generating %lu bytes of random data... ", sizeof(rnd_buf));
     result = hsm_random_buffer(ctx, rnd_buf, sizeof(rnd_buf));
     if (result) {
         printf("Failed, error: %d\n", result);
