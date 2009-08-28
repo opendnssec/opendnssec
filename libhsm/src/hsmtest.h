@@ -29,7 +29,7 @@
 #ifndef HSMTEST_H
 #define HSMTEST_H 1
 
-void
+int
 hsm_test (const char *repository);
 
 #endif /* HSMTEST_H */

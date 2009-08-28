@@ -286,16 +286,20 @@ cmd_test (int argc, char *argv[])
         argv++;
 
         printf("Testing repository: %s\n\n", repository);
-        hsm_test(repository);
+        return hsm_test(repository);
     } else {
         usage_test();
     }
+    
+    return 0;
 }
 
 int
-cmd_debug (int argc, char *argv[])
+cmd_debug ()
 {
     hsm_print_ctx(NULL);
+
+    return 0;
 }
 
 int
@@ -359,7 +363,7 @@ main (int argc, char *argv[])
     } else if (!strcasecmp(argv[0], "debug")) {
         argc --;
         argv ++;
-        result = cmd_debug(argc, argv);
+        result = cmd_debug();
     } else {
         usage();
         result = -1;

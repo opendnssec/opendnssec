@@ -76,7 +76,7 @@ hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key)
     return result;
 }
 
-static void
+static int
 hsm_test_random()
 {
     hsm_ctx_t *ctx = NULL;
@@ -91,7 +91,7 @@ hsm_test_random()
     if (result) {
         printf("Failed, error: %d\n", result);
         hsm_print_error(ctx);
-        return;
+        return 1;
     } else {
         printf("OK\n");
     }
@@ -103,9 +103,11 @@ hsm_test_random()
     printf("Generating 64-bit random data... ");
     r64 = hsm_random64(ctx);
     printf("%llu\n", r64);
+    
+    return 0;
 }
 
-void
+int
 hsm_test (const char *repository)
 {
     int result;
@@ -115,11 +117,12 @@ hsm_test (const char *repository)
     hsm_ctx_t *ctx = NULL;
     hsm_key_t *key = NULL;
     char *id;
+    int errors = 0;
 
     /* Check for repository before starting any tests */
     if (hsm_token_attached(ctx, repository) == 0) {
         hsm_print_error(ctx);
-        return;        
+        return 1;
     }
 
     /*
@@ -131,6 +134,7 @@ hsm_test (const char *repository)
         printf("Generating %d-bit RSA key... ", keysize);
         key = hsm_generate_rsa_key(ctx, repository, keysize);
         if (!key) {
+            errors++;
             printf("Failed\n");
             hsm_print_error(ctx);
             printf("\n");
@@ -142,6 +146,7 @@ hsm_test (const char *repository)
         printf("Extracting key identifier... ");
         id = hsm_get_key_id(ctx, key);
         if (!id) {
+            errors++;
             printf("Failed\n");
             hsm_print_error(ctx);
             printf("\n");
@@ -152,6 +157,7 @@ hsm_test (const char *repository)
         printf("Signing with key... ");
         result = hsm_test_sign(ctx, key);
         if (result) {
+            errors++;
             printf("Failed, error: %d\n", result);
             hsm_print_error(ctx);
         } else {
@@ -161,6 +167,7 @@ hsm_test (const char *repository)
         printf("Deleting key... ");
         result = hsm_remove_key(ctx, key);
         if (result) {
+            errors++;
             printf("Failed: error: %d\n", result);
             hsm_print_error(ctx);
         } else {
@@ -170,5 +177,9 @@ hsm_test (const char *repository)
         printf("\n");
     }
     
-    hsm_test_random();
+    if (hsm_test_random()) {
+        errors++;
+    }
+    
+    return errors;
 }
