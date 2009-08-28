@@ -55,7 +55,7 @@ void
 usage_generate ()
 {
     fprintf(stderr,
-        "usage: %s [-f config] generate [repository] rsa [keysize]\n",
+        "usage: %s [-f config] generate repository rsa [keysize]\n",
         progname);
 }
 
@@ -112,6 +112,7 @@ cmd_list (int argc, char *argv[])
 
     size_t key_count = 0;
     hsm_key_t **keys;
+    hsm_ctx_t *ctx = NULL;
     
     const char *key_info_format = "%-20s  %-32s  %-10s\n";
     
@@ -120,6 +121,12 @@ cmd_list (int argc, char *argv[])
         repository = strdup(argv[0]);
         argc--;
         argv++;
+ 
+        /* Check for repository before starting using it */
+        if (hsm_token_attached(ctx, repository) == 0) {
+           hsm_print_error(ctx);
+           return 1;
+        }
 
         printf("Listing keys in repository: %s\n", repository);
         keys = hsm_list_keys_repository(NULL, &key_count, repository);
@@ -166,6 +173,7 @@ cmd_generate (int argc, char *argv[])
     unsigned int keysize = 1024;
 
     hsm_key_t *key = NULL;
+    hsm_ctx_t *ctx = NULL;
 
     if (argc != 3) {
         usage_generate();
@@ -173,6 +181,14 @@ cmd_generate (int argc, char *argv[])
     }
 
     repository = strdup(argv[0]);
+
+    /* Check for repository before starting using it */
+    if (hsm_token_attached(ctx, repository) == 0) {
+       hsm_print_error(ctx);
+       return 1;
+    }
+
+
     algorithm = strdup(argv[1]);
     keysize = atoi(argv[2]);
 
