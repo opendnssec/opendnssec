@@ -100,7 +100,6 @@ server_main(DAEMONCONFIG *config)
     int zone_id = -1;
     int signer_flag = 1; /* Is the signer responding? (1 == yes) */
     char* ksk_expected = NULL;  /* When is the next ksk rollover expected? */
-    char* zsk_expected = NULL;  /* When is the next zsk rollover expected? */
     
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
