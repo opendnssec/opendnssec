@@ -1527,6 +1527,7 @@ hsm_open(const char *config,
     char *module_pin;
     int result = HSM_OK;
     int tries;
+    int repositories = 0;
 
     /* create an internal context with an attached session for each
      * configured HSM. */
@@ -1618,14 +1619,23 @@ hsm_open(const char *config,
                 if (result != HSM_OK) {
 					break;
 				}
+				
+                repositories++;
             }
         }
     }
-
+    
     xmlXPathFreeObject(xpath_obj);
     xmlXPathFreeContext(xpath_ctx);
     xmlFreeDoc(doc);
     xmlCleanupParser();
+
+    if (result == HSM_OK && repositories == 0) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
+            "No repositories found");
+        return HSM_NO_REPOSITORIES;
+    }
+
     return result;
 }
 
