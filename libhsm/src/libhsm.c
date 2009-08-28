@@ -1137,6 +1137,11 @@ hsm_find_repository_session(hsm_ctx_t *ctx, const char *repository)
             }
         }
     }
+    
+    hsm_ctx_set_error(ctx, HSM_REPOSITORY_NOT_FOUND,
+                    "hsm_find_repository_session()",
+                    "Can't find repository: %s", repository);
+
     return NULL;
 }
 
@@ -2411,7 +2416,7 @@ hsm_print_error(hsm_ctx_t *gctx)
     }
     
     if (ctx->error) {
-        fprintf(stderr, "Error: %s (%s)\n",
+        fprintf(stderr, "%s: %s\n",
             ctx->error_action, ctx->error_message);
     } else {
         fprintf(stderr, "Unknown error\n");

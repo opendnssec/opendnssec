@@ -45,6 +45,7 @@
 #define HSM_ERROR                 0x10000001
 #define HSM_PIN_INCORRECT         0x10000002
 #define HSM_CONFIG_FILE_ERROR     0x10000003
+#define HSM_REPOSITORY_NOT_FOUND  0x10000004
 
 
 /*! Data type to describe an HSM */
