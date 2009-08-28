@@ -411,6 +411,7 @@ ReadConfig(DAEMONCONFIG *config)
     xmlChar *ki_expr = (unsigned char*) "//Configuration/Enforcer/KeygenInterval";
     xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
     xmlChar *bi_expr = (unsigned char*) "//Configuration/Enforcer/BackupDelay";
+    xmlChar *rn_expr = (unsigned char*) "//Configuration/Enforcer/RolloverNotification";
     xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQLite";
     xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
     xmlChar *mysql_port = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host/@port";
@@ -559,6 +560,37 @@ ReadConfig(DAEMONCONFIG *config)
     log_msg(config, LOG_INFO, "HSM Backup Interval: %i\n", config->backupinterval);
     StrFree(temp_char);
     xmlXPathFreeObject(xpathObj);
+
+    /* Evaluate xpath expression for rollover notification interval */
+    xpathObj = xmlXPathEvalExpression(rn_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", rn_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    if (xpathObj->nodesetval->nodeNr > 0) {
+        /* Tag RolloverNotification is present; set rolloverNotify */
+        temp_char = (char *)xmlXPathCastToString(xpathObj);
+        status = DtXMLIntervalSeconds(temp_char, &mysec);
+        if (status > 0) {
+            log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+            StrFree(temp_char);
+            return status;
+        }
+        else if (status == -1) {
+            log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", temp_char);
+        }
+        config->rolloverNotify = mysec;
+        log_msg(config, LOG_INFO, "Rollover Notification Interval: %i\n", config->rolloverNotify);
+        StrFree(temp_char);
+        xmlXPathFreeObject(xpathObj);
+    }
+    else {
+        /* Tag RolloverNotification absent, set rolloverNotify to -1 */
+        config->rolloverNotify = -1;
+    }
 
     /* Evaluate xpath expression for SQLite file location */
 		

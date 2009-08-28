@@ -111,6 +111,8 @@ typedef struct
     int backupinterval;
     int keygeninterval;
 
+    int rolloverNotify;
+
     int log_user; /* log facility (or default of LOG_DAEMON) */
 
 } DAEMONCONFIG;
