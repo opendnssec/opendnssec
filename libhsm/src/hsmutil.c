@@ -47,7 +47,7 @@ void
 usage_list ()
 {
     fprintf(stderr,
-        "usage: %s [-f config] list [repository]\n",
+        "usage: %s [-f config] \"list\" [repository]\n",
         progname);
 }
 
@@ -55,7 +55,7 @@ void
 usage_generate ()
 {
     fprintf(stderr,
-        "usage: %s [-f config] generate repository rsa [keysize]\n",
+        "usage: %s [-f config] \"generate\" repository \"rsa\" [keysize]\n",
         progname);
 }
 
@@ -63,7 +63,7 @@ void
 usage_remove ()
 {
     fprintf(stderr,
-        "usage: %s [-f config] remove [id]\n",
+        "usage: %s [-f config] \"remove\" id\n",
         progname);
 }
 
@@ -71,7 +71,7 @@ void
 usage_dnskey ()
 {
     fprintf(stderr,
-        "usage: %s [-f config] dnskey [id] [name]\n",
+        "usage: %s [-f config] \"dnskey\" id name\n",
         progname);
 }
 
@@ -79,7 +79,7 @@ void
 usage_test ()
 {
     fprintf(stderr,
-        "usage: %s [-f config] test [repository]\n",
+        "usage: %s [-f config] \"test\" repository\n",
         progname);
 }
 
