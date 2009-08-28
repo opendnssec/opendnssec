@@ -115,6 +115,12 @@ hsm_test (const char *repository)
     hsm_key_t *key = NULL;
     char *id;
 
+    /* Check for repository before starting any tests */
+    if (hsm_token_attached(ctx, repository) == 0) {
+        hsm_print_error(ctx);
+        return;        
+    }
+
     /*
      * Test key generation, signing and deletion for a number of key size
      */
