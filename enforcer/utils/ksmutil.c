@@ -1528,6 +1528,11 @@ cmd_rollpolicy (int argc, char *argv[])
     char *user = NULL;
     char *password = NULL;
     char* db_backup_filename = NULL;
+
+    DB_RESULT   result;     /* To see if the policy shares keys or not */
+    KSM_PARAMETER data;     /* Parameter information */
+    DB_RESULT   result2;    /* For looping over the zones on the policy */
+	KSM_ZONE*   zone;
     
     char* policy_name = NULL;
     int key_type = 0;
@@ -1636,25 +1641,59 @@ cmd_rollpolicy (int argc, char *argv[])
         exit(0);
     }
 
-    /* retire the active key(s) */
-    if (key_type == 0) {
-        /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
-        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, -1, 0);
-        /*if (status != 0) {
-            return(status);
-        }*/
-        /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
-        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, -1, 0);
-        /*if (status != 0) {
-            return(status);
-        }*/
+    /* Find out if this policy shares keys, (we only need to do one zone if this is the case) */
+    status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
+    if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
     }
+    status = KsmParameter(result, &data);
+    if (status != 0) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
+    }
+    KsmParameterEnd(result);
+    
+    status = KsmZoneInit(&result2, policy_id);
+    if (status == 0) {
+        
+        zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
+        zone->name = (char *)calloc(KSM_ZONE_NAME_LENGTH, sizeof(char));
+
+        status = KsmZone(result2, zone);
+
+        while (status == 0) {
+
+            /* retire the active key(s) */
+            if (key_type == 0) {
+                KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone->id, 0);
+                KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone->id, 0);
+            }
+            else {
+                KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone->id, 0);
+            }
+
+            /* We can leave now if the policy shares keys */
+            if (data.value == 1) {
+                break;
+            }
+
+            status = KsmZone(result2, zone);
+        }
+
+        free(zone->name);
+        free(zone);
+
+    } 
     else {
-        /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
-        KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, -1, 0);
-        /*if (status != 0) {
-            return(status);
-        }*/
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(status);
     }
 
     /* Release sqlite lock file (if we have it) */
