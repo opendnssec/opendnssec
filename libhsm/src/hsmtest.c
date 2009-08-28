@@ -27,6 +27,7 @@
  */
 
 #include "config.h"
+#include "hsmtest.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -37,7 +38,7 @@
 #include <libhsmdns.h>
 
 
-int
+static int
 hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key)
 {
     int result;
@@ -75,7 +76,7 @@ hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key)
     return result;
 }
 
-void
+static void
 hsm_test_random()
 {
     hsm_ctx_t *ctx = NULL;

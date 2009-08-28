@@ -28,6 +28,7 @@
  */
 
 #include "config.h"
+#include "hsmtest.h"
 
 #include <stdio.h>
 #include <string.h>
