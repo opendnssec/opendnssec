@@ -2365,6 +2365,10 @@ hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
                 return 1;
         }
     }
+    
+    hsm_ctx_set_error(ctx, HSM_REPOSITORY_NOT_FOUND,
+                    "hsm_token_attached()",
+                    "Can't find repository: %s", repository);
     return 0;
 }
 
