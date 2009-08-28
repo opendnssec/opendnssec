@@ -334,8 +334,11 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
     /*
      * Read the command line
      */
-    while ((c = getopt(*argc, argv, "hdv?u:P:")) != -1) {
+    while ((c = getopt(*argc, argv, "1hdv?u:P:")) != -1) {
         switch (c) {
+            case '1':
+                config->once = true;
+                break;
             case 'd':
                 config->debug = true;
                 break;

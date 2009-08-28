@@ -316,6 +316,11 @@ server_main(DAEMONCONFIG *config)
             fclose(lock_fd);
         }
 
+        if (config->once == true ){
+            log_msg(config, LOG_INFO, "Running once only, exiting...");
+            break;
+        }
+
         /* If we have been sent a SIGTERM then it is time to exit */
         if (config->term == 1 ){
             log_msg(config, LOG_INFO, "Received SIGTERM, exiting...");

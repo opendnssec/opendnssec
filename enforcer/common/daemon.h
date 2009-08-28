@@ -88,6 +88,7 @@ typedef struct
     /* stuff that daemons always have */
     const char *program;
     bool debug;
+    bool once;
     pid_t pid;
     char *pidfile;
     uid_t uid;

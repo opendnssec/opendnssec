@@ -94,7 +94,10 @@ main(int argc, char *argv[]){
     int fd;
     struct sigaction action;
     const char* program;		/* Temporary for program name */
-    
+   
+    config.debug = false;
+    config.once = false;
+
     config.pidfile = NULL;
     config.program = NULL;
     config.user = (unsigned char *)calloc(MAX_USER_LENGTH, sizeof(char));
