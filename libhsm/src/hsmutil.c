@@ -44,67 +44,19 @@ char *progname = "hsmutil";
 
 
 void
-usage_list ()
-{
-    fprintf(stderr,
-        "  \"list\" [repository]\n",
-        progname);
-}
-
-void
-usage_generate ()
-{
-    fprintf(stderr,
-        "  \"generate\" repository \"rsa\" [keysize]\n",
-        progname);
-}
-
-void
-usage_remove ()
-{
-    fprintf(stderr,
-        "  \"remove\" id\n",
-        progname);
-}
-
-void
-usage_dnskey ()
-{
-    fprintf(stderr,
-        "  \"dnskey\" id name\n",
-        progname);
-}
-
-void
-usage_test ()
-{
-    fprintf(stderr,
-        "  \"test\" repository\n",
-        progname);
-}
-
-void
-usage_debug ()
-{
-    fprintf(stderr,
-        "  \"debug\"\n",
-        progname);
-}
-
-void
 usage ()
 {
     fprintf(stderr,
         "usage: %s [-f config] command [options]\n",
         progname);
 
-    usage_list();
-    usage_generate();
-    usage_remove();
-    usage_dnskey();
-    usage_test();
+    fprintf(stderr,"  \"list\" [repository]\n");
+    fprintf(stderr,"  \"generate\" repository \"rsa\" [keysize]\n");
+    fprintf(stderr,"  \"remove\" id\n");
+    fprintf(stderr,"  \"dnskey\" id name\n");
+    fprintf(stderr,"  \"test\" repository\n");
 #if 0
-    usage_debug();
+    fprintf(stderr,"  \"debug\"\n");
 #endif
 }
 
@@ -180,7 +132,7 @@ cmd_generate (int argc, char *argv[])
     hsm_ctx_t *ctx = NULL;
 
     if (argc != 3) {
-        usage_generate();
+        usage();
         return -1;
     }
 
@@ -228,7 +180,7 @@ cmd_remove (int argc, char *argv[])
     hsm_key_t *key = NULL;
 
     if (argc != 1) {
-        usage_remove();
+        usage();
         return -1;
     }
 
@@ -266,7 +218,7 @@ cmd_dnskey (int argc, char *argv[])
     hsm_sign_params_t *sign_params;
 
     if (argc != 2) {
-        usage_dnskey();
+        usage();
         return -1;
     }
 
@@ -308,7 +260,7 @@ cmd_test (int argc, char *argv[])
         printf("Testing repository: %s\n\n", repository);
         return hsm_test(repository);
     } else {
-        usage_test();
+        usage();
     }
     
     return 0;
