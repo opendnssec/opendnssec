@@ -1274,16 +1274,16 @@ cmd_export (int argc, char *argv[], int do_all)
                 sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
                 if (strncmp(case_subcommand, "KEYS", 4) == 0) {
-                    printf("\n%s %s DNSKEY record:\n\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    printf("\n;%s %s DNSKEY record:\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                     ldns_rr_print(stdout, dnskey_rr);
                 }
                 else {
 
-                    printf("\n%s %s DS record (SHA1):\n\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    printf("\n;%s %s DS record (SHA1):\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                     ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
                     ldns_rr_print(stdout, ds_sha1_rr);
 
-                    printf("\n%s %s DS record (SHA256):\n\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                    printf("\n;%s %s DS record (SHA256):\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                     ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
                     ldns_rr_print(stdout, ds_sha256_rr);
                 }
