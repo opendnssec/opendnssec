@@ -6,6 +6,7 @@ AC_INIT([signer_engine],[0.0.3],[jelte@NLnetLabs.nl])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
+ACX_PREFIXHACK
 
 AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
 

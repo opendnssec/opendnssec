@@ -6,6 +6,7 @@ AC_INIT([libhsm],[0.0.3],[jelte@nlnetlabs.nl])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
+ACX_PREFIXHACK
 
 AC_CONFIG_SRCDIR([src/libhsm.c])
 AC_CONFIG_HEADER([config.h])

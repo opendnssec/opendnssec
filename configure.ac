@@ -6,6 +6,7 @@ AC_INIT([opendnssec],[0.0.1],[])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
+ACX_PREFIXHACK
 
 AC_CONFIG_SUBDIRS([ libhsm enforcer signer xml ])
 

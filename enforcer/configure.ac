@@ -6,6 +6,7 @@ AC_INIT([enforcer],[0.0.3],[jad@jadickinson.co.uk])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
+ACX_PREFIXHACK
 
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
