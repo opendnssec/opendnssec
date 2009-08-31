@@ -9,11 +9,13 @@ AC_DEFUN([ACX_PREFIXHACK],[
 			case "$sysconfdir" in
 				'${prefix}/etc')
 					sysconfdir=/etc
+					AC_MSG_NOTICE([sysconfdir set to $sysconfdir])
 					;;
 			esac
 			case "$localstatedir" in
 				'${prefix}/var')
 					localstatedir=/var
+					AC_MSG_NOTICE([localstate set to $localstatedir])
 					;;
 			esac
 			;;
