@@ -7,6 +7,9 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 
+AC_CONFIG_SUBDIRS([ libhsm enforcer signer xml ])
+
+
 # xml
 AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(JAVA, java)
@@ -27,9 +30,17 @@ AM_PATH_PYTHON
 ACX_DBPARAMS
 
 # auditor
-AM_PATH_RUBY([], [], [])
-
-AC_CONFIG_SUBDIRS([libhsm libksm enforcer signer auditor xml])
+AC_ARG_ENABLE(auditor,
+	AC_HELP_STRING([--enable-auditor],
+		[Enable auditor build (default enabled)]),
+	[],[])
+if test "${enable_auditor+set}" != set; then
+	enable_auditor=yes
+fi
+if test "${enable_auditor}" = yes; then
+	AM_PATH_RUBY([], [], [])
+	AC_CONFIG_SUBDIRS([ auditor ])
+fi
 
 AC_CONFIG_FILES([Makefile])
 
