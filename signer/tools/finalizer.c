@@ -71,10 +71,9 @@ main(int argc, char **argv)
 	FILE *input_file = stdin;
 	char line[MAX_LINE_LEN];
 	int line_len = 0;
-	char *pre_soa_lines[MAX_LINE_LEN];
-	size_t pre_count = 0, i;
+	size_t line_count = 0, soa_line = 0;
 	ldns_rr *rr;
-	
+
 	while ((c = getopt(argc, argv, "f:h")) != -1) {
 		switch(c) {
 			case 'f':
@@ -98,25 +97,25 @@ main(int argc, char **argv)
 				(void) ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
 				if (rr && ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
 					printf("%s\n", line);
+					soa_line = line_count;
 					break;
 				}
 			}
-			pre_soa_lines[pre_count++] = strdup(line);
+			line_count++;
 		}
 	}
 
-	/* do the skipped lines */
-	for (i = 0; i < pre_count; i++) {
-		handle_line(pre_soa_lines[i]);
-		free(pre_soa_lines[i]);
-	}
+	rewind(input_file);
+	line_count = 0;
 
-	/* and finish off the rest */
 	while (line_len >= 0) {
 		line_len = read_line(input_file, line, 0);
+		if (soa_line == line_count) /* we have already printed the SOA */
+			continue;
 		if (line_len > 0) {
 			handle_line(line);
 		}
+		line_count++;
 	}
 
 	if (input_file != stdin) {
