@@ -7,6 +7,7 @@ OpenDNSSEC trunk
     - Rollover occurrance
     - when it is safe to remove a DS record
 * add export of DNSKEY and DS records to ksmutil
+* add configure option '--disable-auditor' to disable building the auditor
 
 Bugfixes:
 * "signer_engine_cli clear <ZONE>" dont crash on missing files anymore
