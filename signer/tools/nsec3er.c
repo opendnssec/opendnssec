@@ -401,14 +401,10 @@ create_nsec3_records(FILE *input_file,
 	 * instead of copying the first lines (in a big big nsec3 zone this
 	 * might become quite much)
 	 */
-	char *pre_soa_lines[MAX_LINE_LEN];
-	size_t pre_count = 0, i;
 	if (soa_min_ttl == 0) {
 		line_len = 0;
 		while (line_len >= 0 && soa_min_ttl == 0) {
 			line_len = read_line(input_file, line, 0);
-			pre_soa_lines[pre_count] = strdup(line);
-			pre_count++;
 			if (line_len > 0 && line[0] != ';') {
 				status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
 				if (status == LDNS_STATUS_OK &&
@@ -432,15 +428,7 @@ create_nsec3_records(FILE *input_file,
 	status = LDNS_STATUS_OK;
 	rr_list = ldns_rr_list_new();
 
-	/* ok, now handle the lines we skipped over */
-	for (i = 0; i < pre_count; i++) {
-		handle_line(out_file, pre_soa_lines[i],
-		            strlen(pre_soa_lines[i]), origin,
-		            soa_min_ttl, &prev_name, n3p, rr_list, &prev_nsec, &first_nsec);
-		free(pre_soa_lines[i]);
-	}
-
-	/* and do the rest of the file */
+	rewind(input_file);
 	while (line_len >= 0) {
 		line_len = read_line(input_file, line, 0);
 		if (line_len > 0) {

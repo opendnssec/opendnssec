@@ -30,9 +30,9 @@
  * This tool creates NSEC records
  *
  * This code is provided AS-IS, you know the drill, use at own risk
- * 
+ *
  * Input must be sorted
- * 
+ *
  * Written by Jelte Jansen
  */
 
@@ -79,12 +79,12 @@ void
 make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec)
 {
 	ldns_rr *nsec_rr;
-	
+
 	/* handle rrset */
 	if (1) {
 		ldns_rr_list_print(out_file, rr_list);
 	}
-	
+
 	/* create nsec and print it */
 	nsec_rr = ldns_create_nsec(ldns_rr_list_owner(rr_list),
 							   ldns_rr_owner(to),
@@ -164,14 +164,10 @@ create_nsec_records(FILE *input_file,
 	ldns_rr *prev_nsec;
 	ldns_rr *first_nsec = NULL;
 
-	char *pre_soa_lines[MAX_LINE_LEN];
-	size_t pre_count = 0, i;
 	if (soa_min_ttl == 0) {
 		line_len = 0;
 		while (line_len >= 0 && soa_min_ttl == 0) {
 			line_len = read_line(input_file, line, 0);
-			pre_soa_lines[pre_count] = strdup(line);
-			pre_count++;
 			if (line_len > 0 && line[0] != ';') {
 				result = ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
 				if (result == LDNS_STATUS_OK &&
@@ -192,13 +188,10 @@ create_nsec_records(FILE *input_file,
 		}
 	}
 
+	result = LDNS_STATUS_OK;
 	rr_list = ldns_rr_list_new();
-	/* ok, now handle the lines we skipped over */
-	for (i = 0; i < pre_count; i++) {
-		handle_line(out_file, pre_soa_lines[i], strlen(pre_soa_lines[i]),
-		            soa_min_ttl, rr_list, &prev_nsec, &first_nsec);
-		free(pre_soa_lines[i]);
-	}
+
+	rewind(input_file);
 
 	/* and do the rest of the file */
 	while (line_len >= 0) {
@@ -266,7 +259,6 @@ main(int argc, char **argv)
 				break;
 		}
 	}
-	
 
 	status = create_nsec_records(input_file,
 	                             out_file,
@@ -278,6 +270,6 @@ main(int argc, char **argv)
 	if (out_file != stdout) {
 		fclose(out_file);
 	}
-	
+
 	return 0;
 }

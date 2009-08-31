@@ -435,7 +435,7 @@ class Zone:
             if self.sign() and self.finalize() and self.audit():
                 self.move_output()
         elif self.action >= ZoneConfig.RENSEC and os.path.exists(
-                            self.get_zone_tmp_filename(".sorted")) and\
+                            self.get_zone_tmp_filename(".sorted")) and \
                             self.nsecify():
             if self.sign() and self.finalize() and self.audit():
                 self.move_output()
