@@ -255,7 +255,7 @@ handle_name(FILE *out_file,
 				*prev_nsec = new_nsec;
 			}
 			ldns_rr_list_print(out_file, rr_list);
-			
+
 			rr_list_clear(rr_list);
 			ldns_rr_list_push_rr(rr_list, rr);
 		}
@@ -280,7 +280,7 @@ handle_name(FILE *out_file,
 				}
 				*prev_nsec = new_nsec;
 				ldns_rr_list_print(out_file, rr_list);
-				
+
 				rr_list_clear(rr_list);
 			}
 			/* then create the ENT */
@@ -538,7 +538,7 @@ main(int argc, char **argv)
 				n3p->salt = LDNS_XMALLOC(uint8_t, n3p->salt_length);
 				for (c = 0; c < (int) strlen(optarg); c += 2) {
 					if (isxdigit(optarg[c]) && isxdigit(optarg[c+1])) {
-						n3p->salt[c/2] = 
+						n3p->salt[c/2] =
 							(uint8_t) ldns_hexdigit_to_int(optarg[c]) *
 							16 + ldns_hexdigit_to_int(optarg[c+1]);
 					} else {
@@ -578,7 +578,7 @@ main(int argc, char **argv)
 				break;
 		}
 	}
-	
+
 	/* origin is mandatory for creating the correct nsec3 owner names
 	 */
 	if (!origin) {
@@ -592,7 +592,7 @@ main(int argc, char **argv)
 		        ldns_get_errorstr_by_id(status));
 		exit(1);
 	}
-	
+
 	/*
 	 * So here's what we are going to do;
 	 * Since the input data is already ordered in 'nsec3-space', we
