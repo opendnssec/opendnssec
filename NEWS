@@ -12,6 +12,8 @@ OpenDNSSEC trunk
 Bugfixes:
 * "signer_engine_cli clear <ZONE>" dont crash on missing files anymore
   and removes all internal files now
+* Bugreport #18, #19: Fix segfault at nseccer, nsec3er or finalizer when 
+  handling large zones.
 
 OpenDNSSEC 1.0a3 - 2009-08-26
 
