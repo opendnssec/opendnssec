@@ -1017,7 +1017,7 @@ cmd_export (int argc, char *argv[], int do_all)
     ldns_rr *dnskey_rr = NULL;
     ldns_rr *ds_sha1_rr = NULL;
     ldns_rr *ds_sha256_rr = NULL;
-    hsm_sign_params_t *sign_params;
+    hsm_sign_params_t *sign_params = NULL;
 
     char* sql = NULL;
     KSM_KEYDATA data;       /* Data for each key */
