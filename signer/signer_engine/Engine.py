@@ -697,6 +697,8 @@ def main():
         print "zonelist error: " + str(zle) + ". Stopping engine"
     except KeyboardInterrupt:
         engine.stop_engine()
+    except SystemExit: # python 2.4 compatible code
+        pass
     except Exception, e:
         print "Unable to continue, stopping:"
         print "Unexpected error:", sys.exc_info()[0]

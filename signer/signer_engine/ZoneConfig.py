@@ -150,7 +150,7 @@ class ZoneConfig:
         we read the configuration for this zone. Returns true if the
         configuration file hasn't been read at all."""
         return not self.last_modified or \
-               os.stat(self.xml_file).st_mtime\
+               os.stat(self.xml_file).st_mtime \
                > self.last_modified        
 
     def from_xml_file(self, xml_file_name):
