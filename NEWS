@@ -2,6 +2,7 @@ $Id$
 
 OpenDNSSEC trunk
 
+Features:
 * warn (by sending a message to the log) about:
     - impending key rollover
     - Rollover occurrance
@@ -21,6 +22,7 @@ Bugfixes:
   and removes all internal files now
 * Bugreport #18, #19: Fix segfault at nseccer, nsec3er or finalizer when 
   handling large zones.
+* Signer Engine starts correctly (problem was python 2.4, not RHEL5).
 
 OpenDNSSEC 1.0a3 - 2009-08-26
 
