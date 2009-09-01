@@ -188,6 +188,22 @@ server_main(DAEMONCONFIG *config)
 
                 rightnow = DtParseDateTimeString("now");
 
+                /* Check datetime in case it came back NULL */
+                if (rightnow == NULL) {
+#ifdef ENFORCER_TIMESHIFT
+                    char *override;
+
+                    override = getenv("ENFORCER_TIMESHIFT");
+                    if (override) {
+                        log_msg(config, LOG_DEBUG, "Couldn't turn \"%s\" into a date, quitting...\n", override);
+                        exit(1);
+                    }
+#endif /* ENFORCER_TIMESHIFT */
+
+                    log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
+                    exit(1);
+                }
+
                 if (policy->ksk->sm == policy->zsk->sm && policy->ksk->bits == policy->zsk->bits && policy->ksk->algorithm == policy->zsk->algorithm) {
                     same_keys = 1;
                 } else {

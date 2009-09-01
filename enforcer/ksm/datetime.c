@@ -44,6 +44,7 @@
 
 #include "ksm/ksm.h"
 #include "ksm/datetime.h"
+#include "ksm/kmedef.h"
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 
@@ -97,6 +98,7 @@ int DtNow(struct tm* datetime)
 
     override = getenv("ENFORCER_TIMESHIFT");
     if (override) {
+        (void) MsgLog(KME_TIMESHIFT, override);
         return DtParseDateTime(override, datetime);
     }
 #endif /* ENFORCER_TIMESHIFT */

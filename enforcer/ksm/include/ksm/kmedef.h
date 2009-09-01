@@ -77,6 +77,7 @@
 #define KME_DS_REM_POLICY  (KME_BASE + 29)     /* INFO: Old DS record for %s and all zones on its policy can now be removed (key moved for retired to dead state) */
 #define KME_ROLL_ZONE  (KME_BASE + 30)     /* INFO: %s has been rolled for %s  */
 #define KME_ROLL_POLICY  (KME_BASE + 31)     /* INFO: %s has been rolled for %s (and any zones sharing keys with %s) */
+#define KME_TIMESHIFT  (KME_BASE + 32)     /* DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to %s */
 
 
 #endif /* KSM_KMEDEF_H */

@@ -1351,6 +1351,22 @@ cmd_rollzone (int argc, char *argv[])
 
     char*   datetime = DtParseDateTimeString("now");
 
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+#ifdef ENFORCER_TIMESHIFT
+        char *override;
+
+        override = getenv("ENFORCER_TIMESHIFT");
+        if (override) {
+            printf("Couldn't turn \"%s\" into a date, quitting...\n", override);
+            exit(1);
+        }
+#endif /* ENFORCER_TIMESHIFT */
+
+        printf("Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
+
     if (argc > 2 || argc == 0) {
         usage_rollzone();
         return -1;
@@ -1542,6 +1558,22 @@ cmd_rollpolicy (int argc, char *argv[])
     int user_certain;
 
     char*   datetime = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+#ifdef ENFORCER_TIMESHIFT
+        char *override;
+
+        override = getenv("ENFORCER_TIMESHIFT");
+        if (override) {
+            printf("Couldn't turn \"%s\" into a date, quitting...\n", override);
+            exit(1);
+        }
+#endif /* ENFORCER_TIMESHIFT */
+
+        printf("Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
 
     if (argc > 2 || argc == 0) {
         usage_rollpolicy();
@@ -1743,6 +1775,22 @@ cmd_backup (int argc, char *argv[])
     char* db_backup_filename = NULL;
 
     char* datetime = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+#ifdef ENFORCER_TIMESHIFT
+        char *override;
+
+        override = getenv("ENFORCER_TIMESHIFT");
+        if (override) {
+            printf("Couldn't turn \"%s\" into a date, quitting...\n", override);
+            exit(1);
+        }
+#endif /* ENFORCER_TIMESHIFT */
+
+        printf("Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
 
     /* See what arguments we were passed (if any) otherwise set the defaults */
     if (argc != 1 && argc != 2) {

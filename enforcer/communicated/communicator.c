@@ -351,6 +351,23 @@ server_main(DAEMONCONFIG *config)
                     /* See if we need to send a warning about an impending rollover */
                     if (config->rolloverNotify != -1) {
                         datetime = DtParseDateTimeString("now");
+
+                        /* Check datetime in case it came back NULL */
+                        if (datetime == NULL) {
+#ifdef ENFORCER_TIMESHIFT
+                            char *override;
+
+                            override = getenv("ENFORCER_TIMESHIFT");
+                            if (override) {
+                                log_msg(config, LOG_DEBUG, "Couldn't turn \"%s\" into a date, quitting...\n", override);
+                                exit(1);
+                            }
+#endif /* ENFORCER_TIMESHIFT */
+
+                            log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
+                            exit(1);
+                        }
+
                         /* First the KSK */
                         status2 = KsmCheckNextRollover(KSM_TYPE_KSK, zone_id, &ksk_expected);
                         if (status2 != 0) {
@@ -474,6 +491,22 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                                file.) */
     char *signer_command;   /* how we will call the signer */
     char*   datetime = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+#ifdef ENFORCER_TIMESHIFT
+        char *override;
+
+        override = getenv("ENFORCER_TIMESHIFT");
+        if (override) {
+            log_msg(NULL, LOG_DEBUG, "Couldn't turn \"%s\" into a date, quitting...\n", override);
+            exit(1);
+        }
+#endif /* ENFORCER_TIMESHIFT */
+
+        log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
 
     if (zone_name == NULL || current_filename == NULL || policy == NULL)
     {
@@ -798,6 +831,22 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     DB_ID ignore = 0;
     KSM_PARCOLL collection; /* Parameters collection */
     char*   datetime = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+#ifdef ENFORCER_TIMESHIFT
+        char *override;
+
+        override = getenv("ENFORCER_TIMESHIFT");
+        if (override) {
+            log_msg(NULL, LOG_DEBUG, "Couldn't turn \"%s\" into a date, quitting...\n", override);
+            exit(1);
+        }
+#endif /* ENFORCER_TIMESHIFT */
+
+        log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
 
     if (policy == NULL) {
         log_msg(NULL, LOG_ERR, "NULL policy sent to allocateKeysToZone\n");

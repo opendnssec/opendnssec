@@ -515,6 +515,22 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
         return -1;
     }
 
+    /* Check datetime in case it came back NULL */
+    if (datetime_now == NULL) {
+#ifdef ENFORCER_TIMESHIFT
+        char *override;
+
+        override = getenv("ENFORCER_TIMESHIFT");
+        if (override) {
+            printf("Couldn't turn \"%s\" into a date, quitting...\n", override);
+            exit(1);
+        }
+#endif /* ENFORCER_TIMESHIFT */
+
+        printf("Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
+
     /* Construct the query */
 
     sql = DqsSpecifyInit("policies","id, salt, salt_stamp");
