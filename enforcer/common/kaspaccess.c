@@ -88,6 +88,7 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 	policy->ksk->rfc5011 = 0;
 	policy->ksk->type = KSM_TYPE_KSK;
 	policy->ksk->emergency_keys = 0;
+    policy->ksk->manual_rollover = 0;
 
 	policy->zsk->algorithm = 0;
 	policy->zsk->bits = 0;
@@ -98,6 +99,7 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 	policy->zsk->rfc5011 = 0;
 	policy->zsk->type = KSM_TYPE_ZSK;
 	policy->zsk->emergency_keys = 0;
+    policy->zsk->manual_rollover = 0;
 
 	policy->enforcer->keycreate = 0;
 	policy->enforcer->backup_interval = 0;

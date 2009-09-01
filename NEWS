@@ -8,6 +8,13 @@ OpenDNSSEC trunk
     - when it is safe to remove a DS record
 * add export of DNSKEY and DS records to ksmutil
 * add configure option '--disable-auditor' to disable building the auditor
+* Added <ManualRollover/> tag to kasp.xml; this allows automatic rollovers
+    to be turned off in a policy for either keytype.
+* Changes to the KASP DB, please apply:
+  If want to use your old DB:
+    sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090901_1.sqlite3
+  Or start fresh (with loss of information. User should remove old keys from the HSM):
+    ksmutil setup
 
 Bugfixes:
 * "signer_engine_cli clear <ZONE>" dont crash on missing files anymore

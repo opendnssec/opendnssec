@@ -3090,6 +3090,7 @@ int update_policies(char* kasp_filename)
     xmlChar *ksk_life_expr = (unsigned char*) "//Policy/Keys/KSK/Lifetime";
     xmlChar *ksk_repo_expr = (unsigned char*) "//Policy/Keys/KSK/Repository";
     xmlChar *ksk_emer_expr = (unsigned char*) "//Policy/Keys/KSK/Emergency";
+    xmlChar *ksk_man_roll_expr = (unsigned char*) "//Policy/Keys/KSK/ManualRollover";
     xmlChar *ksk_5011_expr = (unsigned char*) "//Policy/Keys/KSK/RFC5011";
 
     xmlChar *zsk_alg_expr = (unsigned char*) "//Policy/Keys/ZSK/Algorithm";
@@ -3097,6 +3098,7 @@ int update_policies(char* kasp_filename)
     xmlChar *zsk_life_expr = (unsigned char*) "//Policy/Keys/ZSK/Lifetime";
     xmlChar *zsk_repo_expr = (unsigned char*) "//Policy/Keys/ZSK/Repository";
     xmlChar *zsk_emer_expr = (unsigned char*) "//Policy/Keys/ZSK/Emergency";
+    xmlChar *zsk_man_roll_expr = (unsigned char*) "//Policy/Keys/ZSK/ManualRollover";
 
     xmlChar *zone_prop_expr = (unsigned char*) "//Policy/Zone/PropagationDelay";
     xmlChar *zone_soa_ttl_expr = (unsigned char*) "//Policy/Zone/SOA/TTL";
@@ -3393,6 +3395,10 @@ int update_policies(char* kasp_filename)
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
+                if ( SetParamOnPolicy(xpathCtx, ksk_man_roll_expr, "manual_rollover", "ksk", policy->ksk->manual_rollover, policy->id, BOOL_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
                 if ( SetParamOnPolicy(xpathCtx, ksk_5011_expr, "rfc5011", "ksk", policy->ksk->rfc5011, policy->id, BOOL_TYPE) != 0) {
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -3415,6 +3421,10 @@ int update_policies(char* kasp_filename)
                     continue;
                 }
                 if ( SetParamOnPolicy(xpathCtx, zsk_emer_expr, "emergency", "zsk", policy->zsk->emergency_keys, policy->id, INT_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                if ( SetParamOnPolicy(xpathCtx, zsk_man_roll_expr, "manual_rollover", "zsk", policy->zsk->manual_rollover, policy->id, BOOL_TYPE) != 0) {
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
@@ -3770,6 +3780,7 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->ksk->rfc5011 = 0;
     policy->ksk->type = KSM_TYPE_KSK;
     policy->ksk->emergency_keys = 0;
+    policy->ksk->manual_rollover = 0;
 
     policy->zsk->algorithm = 0;
     policy->zsk->bits = 0;
@@ -3780,6 +3791,7 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->zsk->rfc5011 = 0;
     policy->zsk->type = KSM_TYPE_ZSK;
     policy->zsk->emergency_keys = 0;
+    policy->zsk->manual_rollover = 0;
 
     policy->enforcer->keycreate = 0;
     policy->enforcer->backup_interval = 0;
@@ -4416,6 +4428,10 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Repository", (const xmlChar *)policy->ksk->sm_name);
     snprintf(temp_time, 32, "%d", policy->ksk->emergency_keys);
     (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Emergency", (const xmlChar *)temp_time);
+    if (policy->ksk->manual_rollover == 1)
+    {
+        (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"ManualRollover", NULL);
+    }
     if (policy->ksk->rfc5011 == 1)
     {
         (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"RFC5011", NULL);
@@ -4432,6 +4448,10 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Repository", (const xmlChar *)policy->zsk->sm_name);
     snprintf(temp_time, 32, "%d", policy->zsk->emergency_keys);
     (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Emergency", (const xmlChar *)temp_time);
+    if (policy->zsk->manual_rollover == 1)
+    {
+        (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"ManualRollover", NULL);
+    }
 
     /* ZONE */
     zone_node = xmlNewTextChild(policy_node, NULL, (const xmlChar *)"Zone", NULL);

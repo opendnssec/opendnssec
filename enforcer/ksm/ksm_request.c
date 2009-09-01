@@ -215,7 +215,8 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
     int     status;         /* Status return */
     char*   zone_name = NULL;  /* For rollover message, if needed */
     DB_RESULT	result;        /* Result of parameter query */
-    KSM_PARAMETER data;        /* Parameter information */
+    KSM_PARAMETER shared;      /* Parameter information */
+    int     manual_rollover = 0;    /* Flag specific to keytype */
 
 	/* Check that we have a valid key type */
 
@@ -232,6 +233,13 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
     status = KsmParameterCollection(&collection, policy_id);
     if (status != 0) {
         return status;
+    }
+
+    if (keytype == KSM_TYPE_KSK) {
+        manual_rollover = collection.kskmanroll;
+    }
+    else if (keytype == KSM_TYPE_ZSK) {
+        manual_rollover = collection.zskmanroll;
     }
 
     /*
@@ -298,6 +306,25 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
     if ((active <= 0) || (rollover)) {
 
+        /* Get some info that we need for logging later */
+        status = KsmZoneNameFromId(zone_id, &zone_name);
+        if (status != 0) {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            return(status);
+        }
+        /* Get the shared_keys parameter */
+        status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
+        if (status != 0) {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            return(status);
+        }
+        status = KsmParameter(result, &shared);
+        if (status != 0) {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            return(status);
+        }
+        KsmParameterEnd(result);
+
         /*
          * Step 6. If there are keys to be made active, count the number of keys
          * in the "READY" state.
@@ -340,6 +367,9 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
                 /* TODO return here? */
             }
         }
+        else if (manual_rollover == 1 && rollover == 0) {
+            (void) MsgLog(KME_MAN_ROLL_REQUIRED, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name);
+        }
         else {
 
             /* Step 8. Make a key active. */
@@ -362,32 +392,15 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
                 }
 
                 /* Log that a rollover has happened */
-                status = KsmZoneNameFromId(zone_id, &zone_name);
-                if (status != 0) {
-                    status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-                    return(status);
-                }
-                /* Get the shared_keys parameter */
-                status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
-                if (status != 0) {
-                    status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-                    return(status);
-                }
-                status = KsmParameter(result, &data);
-                if (status != 0) {
-                    status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-                    return(status);
-                }
-                KsmParameterEnd(result);
-                if (data.value == 0) {
+                if (shared.value == 0) {
                     (void) MsgLog(KME_ROLL_ZONE, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name);
-                    StrFree(zone_name);
                 }
                 else {
                     (void) MsgLog(KME_ROLL_POLICY, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name, zone_name);
                 }
             }
         }
+        StrFree(zone_name);
     }
 
     /* Step 10. Issue the keys */

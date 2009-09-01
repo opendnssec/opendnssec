@@ -1,0 +1,4 @@
+-- Migrate existing database for key manual rollover stuff
+
+insert into parameters (name, description, category_id) select "manual_rollover", "Do not automatically roll ksks when their time is up", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "manual_rollover", "Do not automatically roll zsks when their time is up", id from categories where name="zsk";

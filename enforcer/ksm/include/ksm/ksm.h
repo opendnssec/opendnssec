@@ -215,6 +215,7 @@ typedef struct {
 	int rfc5011;
 	int type;
 	int emergency_keys;
+    int manual_rollover;
 } KSM_KEY_POLICY;
 
 typedef struct {
@@ -425,6 +426,12 @@ void KsmPurge(void);
 #define KSM_PAR_RETSAFETY               172800      /* 2 days */
 #define KSM_PAR_RETSAFETY_STRING        "retiresafety"
 #define KSM_PAR_RETSAFETY_CAT           "keys"
+#define KSM_PAR_KSK_MAN_ROLL            0      /* false (i.e. automatic roll) */
+#define KSM_PAR_KSK_MAN_ROLL_STRING     "manual_rollover"
+#define KSM_PAR_KSK_MAN_ROLL_CAT        "ksk"
+#define KSM_PAR_ZSK_MAN_ROLL            0      /* false (i.e. automatic roll) */
+#define KSM_PAR_ZSK_MAN_ROLL_STRING     "manual_rollover"
+#define KSM_PAR_ZSK_MAN_ROLL_CAT        "zsk"
 
 typedef struct {            /* Holds collection of parameters */
     int     clockskew;      /* Clock skew */
@@ -443,6 +450,8 @@ typedef struct {            /* Holds collection of parameters */
     int     regdelay;       /* KSK Registration delay */
     int     pub_safety;     /* Publish safety margin */
     int     ret_safety;     /* Retire safety margin */
+    int     kskmanroll;     /* Do we only roll the KSK manually? */
+    int     zskmanroll;     /* Do we only roll the ZSK manually? */
 } KSM_PARCOLL;
 
 int KsmCollectionInit(KSM_PARCOLL* data);
