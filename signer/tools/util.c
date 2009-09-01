@@ -78,7 +78,7 @@ read_line(FILE *input, char *line, int multiline)
 				line[li] = c;
 				li++;
 			} else {
-				if (depth < 1) { 
+				if (depth < 1) {
 					fprintf(stderr, "bracket mismatch in multiline RR"
 									"; missing (\n");
 					line[li] = '\0';

@@ -101,8 +101,8 @@ main(int argc, char **argv)
 					break;
 				}
 			}
-			line_count++;
 		}
+		line_count++;
 	}
 
 	rewind(input_file);
@@ -111,7 +111,11 @@ main(int argc, char **argv)
 	while (line_len >= 0) {
 		line_len = read_line(input_file, line, 0);
 		if (soa_line == line_count) /* we have already printed the SOA */
+		{
+			line_count++;
 			continue;
+		}
+
 		if (line_len > 0) {
 			handle_line(line);
 		}
