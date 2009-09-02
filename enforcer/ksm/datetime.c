@@ -965,7 +965,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
                 if (is_time) {
                     multiplier = 60;
                 } else {
-                    multiplier = 30 * 24 * 60 * 60;
+                    multiplier = 31 * 24 * 60 * 60;
                     warning = 1;
                 }
                 break;
