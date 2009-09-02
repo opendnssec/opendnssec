@@ -112,8 +112,8 @@ module KASPAuditor
       from_min = 0 | a.min * 60
       from_hour = 0 | a.hour * 60 * 60
       from_day = 0 | a.day * 60 * 60 * 24
-      from_month = 0 | a.month * 60 * 60 * 24 * 30
-      from_year = 0 | a.year * 60 * 60 * 24 * 30 * 12
+      from_month = 0 | a.month * 60 * 60 * 24 * 31
+      from_year = 0 | a.year * 60 * 60 * 24 * 365
       # XSD::XSDDuration seconds hack.
       x = a.sec.to_s.to_i + from_min + from_hour + from_day + from_month + from_year
       return x
