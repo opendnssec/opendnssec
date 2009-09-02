@@ -32,6 +32,7 @@ module KASPAuditor
   class Config
     attr_reader :err
     def initialize(zone_name, kasp_file_loc, policy, config_file_loc, syslog)
+      return if !zone_name
       #      @zones = []
       #      print "Opening config file : #{config_file_loc}\n"
       # Read the kasp.xml file
@@ -215,10 +216,13 @@ module KASPAuditor
         }
       end
       class AnyKey
-        attr_accessor :algorithm, :alg_length
+        attr_accessor :algorithm, :alg_length, :emergency, :lifetime
         def initialize(e)
           # Algorithm length and value
           @algorithm = Dnsruby::Algorithms.new(e.elements['Algorithm'].text.to_i)
+          @emergency = e.elements['Emergency'].text.to_i
+        lifetime_text = e.elements['Lifetime'].text
+        @lifetime = Config.xsd_duration_to_seconds(lifetime_text)
           e.elements.each('Algorithm') {|s|
             @alg_length = s.attributes['length']
           }
