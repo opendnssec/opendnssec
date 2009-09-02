@@ -213,7 +213,7 @@ module KASPAuditor
         # If this is a DNSKEY record, then remember to add it to the keys!
         if (l_rr.type == Types.DNSKEY)
           @keys.push(l_rr)
-#          print "Using key #{l_rr.key_tag}\n"
+          #          print "Using key #{l_rr.key_tag}\n"
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
         end
         l_rr = get_next_rr(file)
@@ -434,12 +434,12 @@ module KASPAuditor
       # Now record the owner name, the next hashed, and the types associated with it
       # This information will be used by the NSEC3Auditor once the zone file has
       # been processed.
-      File.open(@working + "/audit.nsec3.#{Process.pid}", "a") { |f|
+      File.open(@working + "#{File::SEPARATOR}audit.nsec3.#{Process.pid}", "a") { |f|
         types = get_types_string(l_rr.types)
         f.write("#{l_rr.name.to_s} #{types}\n")
       }
       if (!l_rr.opt_out?)
-        File.open(@working + "/audit.optout.#{Process.pid}", "a") { |f|
+        File.open(@working + "#{File::SEPARATOR}audit.optout.#{Process.pid}", "a") { |f|
           f.write("#{l_rr.name.to_s} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
         }
       end
@@ -638,7 +638,7 @@ module KASPAuditor
       end
       hashed_domain = RR::NSEC3.calculate_hash(domain, iterations,
         RR::NSEC3.decode_salt(salt), hash_alg)
-      File.open(@working + "/audit.types.#{Process.pid}", "a") { |f|
+      File.open(@working + "#{File::SEPARATOR}audit.types.#{Process.pid}", "a") { |f|
         f.write("#{hashed_domain+"."+@soa.name.to_s} #{domain} #{types_string}\n")
       }
     end
@@ -811,7 +811,7 @@ module KASPAuditor
       end
       def check_nsec3_types_and_opt_out()
         # First of all we will have to sort the types file.
-        system("sort -t' ' #{@working}/audit.types.#{Process.pid} > #{@working}/audit.types.sorted.#{Process.pid}")
+        system("sort -t' ' #{@working}#{File::SEPARATOR}audit.types.#{Process.pid} > #{@working}#{File::SEPARATOR}audit.types.sorted.#{Process.pid}")
 
         # Go through each name in the files and check them
         # We want to check two things :
@@ -819,9 +819,12 @@ module KASPAuditor
         # b) no hashes in between non-opt-out names
 
         # This checks the types covered for each domain name
-        File.open(@working + "/audit.types.sorted.#{Process.pid}") {|ftypes|
-          File.open(@working + "/audit.nsec3.#{Process.pid}") {|fnsec3|
-            File.open(@working + "/audit.optout.#{Process.pid}") {|foptout|
+        File.open(@working + 
+            "#{File::SEPARATOR}audit.types.sorted.#{Process.pid}") {|ftypes|
+          File.open(@working + 
+              "#{File::SEPARATOR}audit.nsec3.#{Process.pid}") {|fnsec3|
+            File.open(@working + 
+                "#{File::SEPARATOR}audit.optout.#{Process.pid}") {|foptout|
               while (!ftypes.eof? && !fnsec3.eof? && !foptout.eof?)
                 types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
                 nsec3_name, nsec3_types = get_name_and_types(fnsec3)
@@ -918,6 +921,7 @@ module KASPAuditor
       end
 
     end
+
 
   end
 end
