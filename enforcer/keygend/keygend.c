@@ -190,16 +190,6 @@ server_main(DAEMONCONFIG *config)
 
                 /* Check datetime in case it came back NULL */
                 if (rightnow == NULL) {
-#ifdef ENFORCER_TIMESHIFT
-                    char *override;
-
-                    override = getenv("ENFORCER_TIMESHIFT");
-                    if (override) {
-                        log_msg(config, LOG_DEBUG, "Couldn't turn \"%s\" into a date, quitting...\n", override);
-                        exit(1);
-                    }
-#endif /* ENFORCER_TIMESHIFT */
-
                     log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
                     exit(1);
                 }

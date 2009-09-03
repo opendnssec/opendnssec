@@ -1353,16 +1353,6 @@ cmd_rollzone (int argc, char *argv[])
 
     /* Check datetime in case it came back NULL */
     if (datetime == NULL) {
-#ifdef ENFORCER_TIMESHIFT
-        char *override;
-
-        override = getenv("ENFORCER_TIMESHIFT");
-        if (override) {
-            printf("Couldn't turn \"%s\" into a date, quitting...\n", override);
-            exit(1);
-        }
-#endif /* ENFORCER_TIMESHIFT */
-
         printf("Couldn't turn \"now\" into a date, quitting...\n");
         exit(1);
     }
@@ -1561,16 +1551,6 @@ cmd_rollpolicy (int argc, char *argv[])
 
     /* Check datetime in case it came back NULL */
     if (datetime == NULL) {
-#ifdef ENFORCER_TIMESHIFT
-        char *override;
-
-        override = getenv("ENFORCER_TIMESHIFT");
-        if (override) {
-            printf("Couldn't turn \"%s\" into a date, quitting...\n", override);
-            exit(1);
-        }
-#endif /* ENFORCER_TIMESHIFT */
-
         printf("Couldn't turn \"now\" into a date, quitting...\n");
         exit(1);
     }
@@ -1778,16 +1758,6 @@ cmd_backup (int argc, char *argv[])
 
     /* Check datetime in case it came back NULL */
     if (datetime == NULL) {
-#ifdef ENFORCER_TIMESHIFT
-        char *override;
-
-        override = getenv("ENFORCER_TIMESHIFT");
-        if (override) {
-            printf("Couldn't turn \"%s\" into a date, quitting...\n", override);
-            exit(1);
-        }
-#endif /* ENFORCER_TIMESHIFT */
-
         printf("Couldn't turn \"now\" into a date, quitting...\n");
         exit(1);
     }

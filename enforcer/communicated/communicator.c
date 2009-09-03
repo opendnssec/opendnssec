@@ -354,16 +354,6 @@ server_main(DAEMONCONFIG *config)
 
                         /* Check datetime in case it came back NULL */
                         if (datetime == NULL) {
-#ifdef ENFORCER_TIMESHIFT
-                            char *override;
-
-                            override = getenv("ENFORCER_TIMESHIFT");
-                            if (override) {
-                                log_msg(config, LOG_DEBUG, "Couldn't turn \"%s\" into a date, quitting...\n", override);
-                                exit(1);
-                            }
-#endif /* ENFORCER_TIMESHIFT */
-
                             log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
                             exit(1);
                         }
@@ -494,16 +484,6 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 
     /* Check datetime in case it came back NULL */
     if (datetime == NULL) {
-#ifdef ENFORCER_TIMESHIFT
-        char *override;
-
-        override = getenv("ENFORCER_TIMESHIFT");
-        if (override) {
-            log_msg(NULL, LOG_DEBUG, "Couldn't turn \"%s\" into a date, quitting...\n", override);
-            exit(1);
-        }
-#endif /* ENFORCER_TIMESHIFT */
-
         log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
         exit(1);
     }
@@ -834,16 +814,6 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 
     /* Check datetime in case it came back NULL */
     if (datetime == NULL) {
-#ifdef ENFORCER_TIMESHIFT
-        char *override;
-
-        override = getenv("ENFORCER_TIMESHIFT");
-        if (override) {
-            log_msg(NULL, LOG_DEBUG, "Couldn't turn \"%s\" into a date, quitting...\n", override);
-            exit(1);
-        }
-#endif /* ENFORCER_TIMESHIFT */
-
         log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
         exit(1);
     }

@@ -95,11 +95,19 @@ int DtNow(struct tm* datetime)
 
 #ifdef ENFORCER_TIMESHIFT
     char *override;
+    int status;
 
     override = getenv("ENFORCER_TIMESHIFT");
     if (override) {
         (void) MsgLog(KME_TIMESHIFT, override);
-        return DtParseDateTime(override, datetime);
+        status = DtParseDateTime(override, datetime);
+
+        if (status) {
+                printf("Couldn't turn \"%s\" into a date, quitting...\n", override);
+                exit(1);
+        }
+
+        return status;
     }
 #endif /* ENFORCER_TIMESHIFT */
 
