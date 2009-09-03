@@ -223,6 +223,9 @@ module KASPAuditor
           @emergency = e.elements['Emergency'].text.to_i
         lifetime_text = e.elements['Lifetime'].text
         @lifetime = Config.xsd_duration_to_seconds(lifetime_text)
+        if (@lifetime == 0)
+          @lifetime = 999999999999
+        end
           e.elements.each('Algorithm') {|s|
             @alg_length = s.attributes['length']
           }
