@@ -41,6 +41,7 @@
 -*/
 
 #include <stdio.h>
+#include <limits.h>
 
 #include "ksm/database.h"
 #include "ksm/db_fields.h"
@@ -349,6 +350,11 @@ void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         return;
     }
 
+    /* "Infinite" lifetime */
+    if (deltat == 0) {
+        deltat = INT_MAX -1;
+    }
+
     /* 
      * Update the retire time if the key is not marked as fixedDate.
      * If we asked for a rollover, but no keys were ready then a compromised key
@@ -464,6 +470,7 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
     if (data == NULL || source == NULL || destination == NULL) {
         return MsgLog(KSM_INVARG, "NULL argument");
     }
+
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
         "UPDATE keypairs SET %s = %s + INTERVAL %d SECOND WHERE ID = %lu",
@@ -473,6 +480,7 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
         "UPDATE keypairs SET %s = DATETIME(%s, '+%d SECONDS') WHERE ID = %lu",
         destination, source, interval, (unsigned long) data->keypair_id);
 #endif /* USE_MYSQL */
+
     if (nchar < sizeof(buffer)) {
 
         /* All OK, execute the statement */

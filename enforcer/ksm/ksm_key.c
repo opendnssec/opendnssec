@@ -776,21 +776,22 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
         return status;
     }
 
-    /* Avoid div by 0 (just in case) */
-    if (coll.ksklife == 0 || coll.zsklife == 0) {
-        *count = -1;
-        status = MsgLog(KSM_INVARG, "lifetime of key is 0");
-        return status;
-    }
-
     /* We should have the policy now */
     if (keytype == KSM_TYPE_KSK)
     {
-        *count = ((interval + coll.pub_safety)/coll.ksklife) + coll.nemkskeys + 1;
+        if (coll.ksklife == 0) {
+            *count = coll.nemkskeys + 1;
+        } else {
+            *count = ((interval + coll.pub_safety)/coll.ksklife) + coll.nemkskeys + 1;
+        }
     }
     else if (keytype == KSM_TYPE_ZSK)
     {
-        *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.nemzskeys + 1; 
+        if (coll.zsklife == 0) {
+            *count = coll.nemzskeys + 1;
+        } else {
+            *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.nemzskeys + 1;
+        }
     } 
 
     if (shared_keys == KSM_KEYS_NOT_SHARED) { 
