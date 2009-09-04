@@ -25,8 +25,6 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'dnsruby'
-include Dnsruby
 include Syslog::Constants
 module KASPAuditor
   # The Auditor class performs the actual auditing of the parsed zone files.
@@ -39,14 +37,16 @@ module KASPAuditor
   # @TODO@ SOA Checks - format, etc.
   
   class Auditor # :nodoc: all
-    def initialize(syslog, working)
+    def initialize(syslog, working, enforcer_interval)
       @syslog = syslog
       @working = (working.to_s + "").untaint
+      @enforcer_interval = enforcer_interval
       reset
     end
     def reset
       @ret_val = 999
       @keys = []
+      @keys_used = []
       @algs = []
       @last_nsec3_hashed = nil
       @nsec3param = nil
@@ -58,6 +58,7 @@ module KASPAuditor
       @zone_name = ""
       @soa = nil
       @config = nil
+      @key_tracker = nil
     end
     def set_config(c)
       @config = c
@@ -75,6 +76,7 @@ module KASPAuditor
       # Load SOA record from top of original signed and unsigned files!
       load_soas(original_unsigned_file, original_signed_file)
       log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
+      @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
 
       signed_file = (signed_file.to_s + "").untaint
       unsigned_file = (unsigned_file.to_s + "").untaint
@@ -128,6 +130,7 @@ module KASPAuditor
           end
         }
       }
+      @key_tracker.process_key_data(@keys, @keys_used)
       # Check the last nsec(3) record in the chain points back to the start
       do_final_nsec_check()
 
@@ -263,6 +266,13 @@ module KASPAuditor
         rescue VerifyError => e
           log(LOG_ERR, "RRSet (#{rrset.name}, #{rrset.type}) failed verification : #{e}, tag = #{rrset.sigs()[0] ? rrset.sigs()[0].key_tag : 'none'}")
         end
+        # Add the key_tags to the list of tags which have actually been used in this zone
+        # This is used for tracking key lifecycles through time (with the KeyTracker)
+        rrset.sigs.each {|sig|
+          if (!@keys_used.include?sig.key_tag)
+            @keys_used.push(sig.key_tag)
+          end
+        }
       end
       #  c) inception date in past by at least interval specified by config
       rrset.sigs.each {|sig|

@@ -91,7 +91,11 @@ class AuditorTest < Test::Unit::TestCase
       "RRSet (not.there.tjeb.nl, NSEC) failed verification : No signatures in the RRSet : not.there.tjeb.nl, NSEC, tag = none",
       "Can't follow NSEC loop from www.tjeb.nl to tjeb.nl",
       "NSEC record left after folowing closed loop : not.there.tjeb.nl",
-      "Can't follow NSEC loop from not.there.tjeb.nl to really.not.there.tjeb.nl"
+      "Can't follow NSEC loop from not.there.tjeb.nl to really.not.there.tjeb.nl",
+
+      # Key lifetime tracking
+      "Not enough prepublished KSKs! Should be 2 but have 0",
+      "Not enough prepublished ZSKs! Should be 2 but have 0"
       # @TODO@ Check SOA Serial == KEEP
 
       # @TODO@ Check DNSKEY alg codes and lengths against kasp.xml
@@ -111,7 +115,7 @@ class AuditorTest < Test::Unit::TestCase
     run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3)
   
     expected_strings = [ # NSEC3 error strings
-     "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
+      "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
       #   1. There are no NSEC records in the zone.
       "NSEC RRs included in NSEC3-signed zone",
       "RRSIGS should include algorithm RSASHA1-NSEC3-SHA1 for bla.tjeb.nl, NSEC",
@@ -144,7 +148,7 @@ class AuditorTest < Test::Unit::TestCase
 
       #
       #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
-    # - @TODO@ extra next_hashed on one NSEC3
+      # - @TODO@ extra next_hashed on one NSEC3
       "Can't follow NSEC3 loop from cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl to aa35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl"
       #
       #   5. If an NSEC3 record does not have the opt-out bit set, there are no domain names in the zone for which the hash lies between the hash of this domain name and the value in the "Next Hashed Owner" name field.
@@ -155,13 +159,15 @@ class AuditorTest < Test::Unit::TestCase
     assert(success, "NSEC3 bad file not audited correctly")
   end
 
-  def check_syslog(stderr, expected_strings)
+  def check_syslog(stderr, expected_strings, add_default_msg=true)
     remaining_strings = []
     while (line = stderr[0].gets)
       remaining_strings.push(line)
     end
-    expected_strings.push("Auditing tjeb.nl zone :")
-    expected_strings.push("Finished auditing tjeb.nl zone")
+    if (add_default_msg)
+      expected_strings.push("Auditing tjeb.nl zone :")
+      expected_strings.push("Finished auditing tjeb.nl zone")
+    end
     remaining_strings.reverse.each {|line|
       expected_strings.each {|expected|
         if (line.index(expected))
@@ -197,6 +203,11 @@ class AuditorTest < Test::Unit::TestCase
   def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret)
     runner = Runner.new
 
+    begin
+    File.delete("test/tmp/tracker/tjeb.nl")
+    rescue Exception
+    end
+
     pid = fork {
       stderr[0].close
       STDERR.reopen(stderr[1])
@@ -205,7 +216,7 @@ class AuditorTest < Test::Unit::TestCase
       options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
       Syslog.open("auditor_test", options) {|syslog|
-        ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, syslog, "test/tmp") # Audit all zones
+        ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, syslog, "test/tmp", 3600) # Audit all zones
       }
       exit!(ret)
     }
@@ -213,5 +224,183 @@ class AuditorTest < Test::Unit::TestCase
     Process.waitpid(pid)
     ret_val = $?.exitstatus
     assert_equal(expected_ret, ret_val, "Expected return of #{expected_ret} from successful auditor run")
+  end
+
+  def test_key_tracking
+    # The auditor tracks which keys it has seen in zones it audits.
+    # It tracks them as they are pre-published, used, and retired.
+    # If the number of pre-published KSK or ZSKs is less than [ZSK, KSK]->Emergency
+    # then a warning is generated
+    # Check that a single key (KSK or ZSK) is not active longer than
+    # (KSK->Lifetime + Enforcer->Interval) or (ZSK->Lifetime + Enforcer->Interval)
+    # Again, a warning is generated
+    #
+    # 
+    # Exercise the KeyTracker in isolation - install a new cache, then call
+    #    KeyTracker#process_key_data to process keys found during an auditor run.
+    #    Then ensure that the cache has been rewritten correctly, and the
+    #    expected errors written to syslog.
+    begin
+    File.delete("test/tmp/tracker/example.com.")
+    rescue Exception
+    end
+    stderr = IO::pipe
+    pid = fork {
+      stderr[0].close
+      STDERR.reopen(stderr[1])
+      stderr[1].close
+
+      options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
+
+      Syslog.open("auditor_test", options) {|syslog|
+        run_keytracker_tests(syslog)
+        exit!(0)
+      }
+    }
+    stderr[1].close
+    Process.waitpid(pid)
+
+    # Now check stderr for error strings
+    expected_strings=[
+      # Not enough pre-published ZSK
+      "Not enough prepublished ZSKs! Should be 2 but have 0",
+      # Not enough pre-published KSK
+      "Not enough prepublished KSKs! Should be 2 but have 0",
+      # KSK too long in use
+      "KSK 52937 in use too long - should be max 1 but has been 2",
+      # ZSK too long in use
+      "ZSK 51901 in use too long - should be max 1 but has been 2"
+    ]
+    success = check_syslog(stderr, expected_strings, false)
+    assert(success, "Keys not correctly tracked over time")
+  end
+
+  class FakeAnykey
+    attr_accessor :algorithm, :alg_length, :emergency, :lifetime
+  end
+
+  class FakeKeys
+    attr_accessor :ttl, :ksks, :zsks
+    def initialize
+      @ksks = []
+      @zsks = []
+    end
+  end
+
+  def run_keytracker_tests(syslog)
+    # Run the keytracker tests from within the created test environment
+
+    # So, create some keys for testing
+    ksk_key1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::SEP_KEY|RR::DNSKEY::ZONE_KEY,
+        :algorithm => 1, :key => "zsk_key1"})
+    key1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
+        :key => "AAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+    key2 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
+        :key => "EBAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+    key3 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
+        :key => "GEAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+    key5011 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
+        :key => "BEAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+    keynot5011 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
+        :key => "BEAAAAOhdFlVHeivG77Zos6htgLyIkBOn18ujX4Q7Xs6U7SDQdi6FBE5 OQ8754ppfuF3Lg1ywNLHQ5bjibquSG7TuCT6DWL3kw+hESYmWTeEev9K RnxqTA+FVIfhJaPjMh7y+AsX39b8KVQ32IYdttOiz30sMhHHPBvL4dLC 4eCQXwUbinHRWSnKpKDXwuaUUtQkPqkEc4rEy/cZ3ld408vMlcc73OcK t+ttJeyQR1dJ0LoYHvH0WBzIWg3jUPmz/hSWrZ+V2n0TISQz0qdVGzhJ vahGvRstNk4pWG1MjwVgCvnc18+QiEV4leVU7B4XjM9dRpIMzJvLaq+B d8CxiWvjpSu/"})
+    sep_key = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
+        :key => "AAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+
+    # Now load the (empty) cache for the zone, and fill it with data about a
+    # fake audit in progress.
+
+    config = KASPAuditor::Config.new(nil, nil, nil, nil, nil)
+    # Set up values in the config so that warnings are generated when we
+    # have long-running KSK/ZSK, or there are not enough pre-published ZSK/KSK
+    keys = FakeKeys.new
+    ksk = FakeAnykey.new
+    ksk.emergency = 2
+    ksk.lifetime = 1
+    zsk = FakeAnykey.new
+    zsk.emergency = 2
+    zsk.lifetime = 1
+    keys.zsks.push(zsk)
+    keys.ksks.push(ksk)
+    config.keys = keys
+
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    assert(checker.cache.inuse.length == 0)
+    assert(checker.cache.retired.length == 0)
+    assert(checker.cache.prepublished.length == 0)
+
+    checker.process_key_data([ksk_key1, key1, keynot5011, key3],
+      [ksk_key1.key_tag, keynot5011.key_tag])
+    assert(checker.cache.inuse.length == 2)
+    assert(checker.cache.retired.length == 0)
+    assert(checker.cache.prepublished.length == 2)
+
+    sleep(0.1)
+    checker.process_key_data([ksk_key1, key1, keynot5011, key5011],
+      [key1.key_tag, ksk_key1.key_tag, key5011.key_tag])
+    assert(checker.cache.inuse.length == 3)
+    assert(checker.cache.retired.length == 1)
+    assert(checker.cache.prepublished.length == 0)
+
+    # Now sleep for over a second and check that the lifetime warnings
+    # are emitted
+    sleep(1.5)
+    key5011.revoked = true
+    checker.process_key_data([ksk_key1, key2, key5011, key1],
+      [ksk_key1.key_tag, key2.key_tag, key1.key_tag])
+    assert(checker.cache.retired.length == 1)
+    assert(checker.cache.inuse.length == 3)
+    assert(checker.cache.prepublished.length == 0)
+
+  end
+
+  def test_tracker_cache
+    begin
+    File.delete("test/tmp/tracker/example.com.")
+    rescue Exception
+    end
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil, 1)
+    cache = checker.cache
+    time = Time.now.to_i
+    k1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5, :key => "AAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+    k2 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5, :key => "EBAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+    k3 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
+        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5, :key => "GEAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+
+    cache.add_retired_key_with_time(k1, time)
+    cache.add_inuse_key_with_time(k2, time)
+    cache.add_inuse_key_with_time(k3, time)
+    checker.save_tracker_cache
+
+    new_checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil,1)
+    assert(new_checker.cache.retired.length == 1)
+    assert(new_checker.cache.include_retired_key?(k1))
+    assert(new_checker.cache.inuse.length == 2)
+    assert(new_checker.cache.include_inuse_key?(k2))
+    assert(new_checker.cache.include_inuse_key?(k3))
+    assert(new_checker.cache.include_inuse_key?(k2))
+    assert(new_checker.cache.include_inuse_key?(k3))
+    assert(new_checker.cache.include_key?(k1))
+    assert(new_checker.cache.include_key?(k2))
+    assert(new_checker.cache.include_key?(k3))
+    #    assert(new_checker.cache.retired_maybe.length == 0)
+    assert(new_checker.cache.prepublished.length == 0)
+    new_checker.cache.delete_retired_key(k1)
+    new_checker.cache.delete_inuse_key(k2)
+    new_checker.cache.delete_inuse_key(k3)
+    new_checker.save_tracker_cache
+
+    n_c = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil,1)
+    assert(n_c.cache.prepublished.length == 0)
+    assert(n_c.cache.inuse.length == 0)
+    assert(n_c.cache.retired.length == 0)
   end
 end

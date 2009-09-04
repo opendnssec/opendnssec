@@ -28,7 +28,10 @@
 require 'rubygems'
 require 'syslog'
 include Syslog::Constants
+require 'dnsruby'
+include Dnsruby
 require 'kasp_auditor/config.rb'
+require 'kasp_auditor/key_tracker.rb'
 require 'kasp_auditor/auditor.rb'
 require 'kasp_auditor/parse.rb'
 require 'kasp_auditor/preparser.rb'
@@ -66,12 +69,15 @@ module KASPAuditor
       if (!conf_file)
         KASPAuditor.exit("No configuration file specified", 1)
       end
-      syslog_facility, working, zonelist, kasp_file = load_config_xml(conf_file)
+      syslog_facility, working, zonelist, kasp_file, enforcer_interval =
+        load_config_xml(conf_file)
       if (@kasp_file)
         kasp_file = @kasp_file
       end
 
-      Syslog.open("kasp_auditor", Syslog::LOG_PID | Syslog::LOG_CONS, syslog_facility) { |syslog| run_with_syslog(zonelist, kasp_file, syslog, working)
+      Syslog.open("kasp_auditor", Syslog::LOG_PID |
+        Syslog::LOG_CONS, syslog_facility) { |syslog|
+        run_with_syslog(zonelist, kasp_file, syslog, working, enforcer_interval)
       }
     end
 
@@ -91,7 +97,7 @@ module KASPAuditor
     end
 
     # This method is provided so that the test code can use its own syslog
-    def run_with_syslog(zonelist_file, kasp_file, syslog, working) # :nodoc: all
+    def run_with_syslog(zonelist_file, kasp_file, syslog, working, enforcer_interval) # :nodoc: all
       zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
         zonelist_file, kasp_file, syslog)
       check_zones_to_audit(zones)
@@ -134,7 +140,7 @@ module KASPAuditor
           }
           if (do_audit)
             # Now audit the pre-parsed and sorted file
-            auditor = Auditor.new(syslog, working)
+            auditor = Auditor.new(syslog, working, enforcer_interval)
             ret_val = auditor.check_zone(config, working+get_name(input_file)+".in.sorted.#{pid}",
               working + get_name(output_file)+".out.sorted.#{pid}",
               input_file, output_file)
@@ -213,6 +219,13 @@ module KASPAuditor
       begin
         File.open((conf_file + "").untaint , 'r') {|file|
           doc = REXML::Document.new(file)
+          enforcer_interval = 3600
+          begin
+            e_i_text = doc.elements['Configuration/Enforcer/Interval'].text
+            enforcer_interval = Config.xsd_duration_to_seconds(e_i_text)
+          rescue Exception
+            print "Can't read Enforcer->Interval from Configuration\n"
+          end
           begin
             working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
           rescue Exception
@@ -236,7 +249,7 @@ module KASPAuditor
             return syslog_facility, working, zonelist, kasp
           rescue Exception => e
             print "Error reading config : #{e}\n"
-            return Syslog::LOG_DAEMON, working, zonelist,kasp
+            return Syslog::LOG_DAEMON, working, zonelist,kasp, enforcer_interval
           end
         }
       rescue Errno::ENOENT
