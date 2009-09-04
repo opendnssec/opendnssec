@@ -146,7 +146,7 @@ permsDrop(DAEMONCONFIG* config)
         xmlFreeDoc(doc);
         return(-1);
     }
-    if (xpathObj->nodesetval->nodeNr > 0) {
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         temp_char = (char*) xmlXPathCastToString(xpathObj);
         StrAppend(&config->groupname, temp_char);
         StrFree(temp_char);
@@ -180,7 +180,7 @@ permsDrop(DAEMONCONFIG* config)
         xmlFreeDoc(doc);
         return(-1);
     }
-    if (xpathObj->nodesetval->nodeNr > 0) {
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         temp_char = (char*) xmlXPathCastToString(xpathObj);
         StrAppend(&config->username, temp_char);
         StrFree(temp_char);
@@ -573,7 +573,7 @@ ReadConfig(DAEMONCONFIG *config)
         return(-1);
     }
 
-    if (xpathObj->nodesetval->nodeNr > 0) {
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         /* Tag RolloverNotification is present; set rolloverNotify */
         temp_char = (char *)xmlXPathCastToString(xpathObj);
         status = DtXMLIntervalSeconds(temp_char, &mysec);
@@ -604,7 +604,7 @@ ReadConfig(DAEMONCONFIG *config)
         xmlFreeDoc(doc);
         return(-1);
     }
-    if(xpathObj->nodesetval->nodeNr > 0) {
+    if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
         config->schema = xmlXPathCastToString(xpathObj);
         log_msg(config, LOG_INFO, "SQLite database set to: %s\n", config->schema);
@@ -621,7 +621,7 @@ ReadConfig(DAEMONCONFIG *config)
 		        xmlFreeDoc(doc);
 		        return(-1);
 		    }
-            if(xpathObj->nodesetval->nodeNr > 0) {
+            if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
            db_found = MYSQL_DB;
         }
         config->host = xmlXPathCastToString(xpathObj);
@@ -636,7 +636,7 @@ ReadConfig(DAEMONCONFIG *config)
 		        xmlFreeDoc(doc);
 		        return(-1);
 		    }
-            if(xpathObj->nodesetval->nodeNr > 0) {
+            if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         config->port = xmlXPathCastToString(xpathObj);
@@ -651,7 +651,7 @@ ReadConfig(DAEMONCONFIG *config)
 		        xmlFreeDoc(doc);
 		        return(-1);
 		    }
-            if(xpathObj->nodesetval->nodeNr > 0) {
+            if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         config->schema = xmlXPathCastToString(xpathObj);
@@ -666,7 +666,7 @@ ReadConfig(DAEMONCONFIG *config)
 		        xmlFreeDoc(doc);
 		        return(-1);
 		    }
-            if(xpathObj->nodesetval->nodeNr > 0) {
+            if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         config->user = xmlXPathCastToString(xpathObj);

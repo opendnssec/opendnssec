@@ -2891,7 +2891,7 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
-                if (xpathObj->nodesetval->nodeNr > 0) {
+                if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
                     /*
                      * tag present
                      */
@@ -2965,7 +2965,7 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
                     continue;
                 }
                 *kasp_filename = NULL;
-                if (xpathObj->nodesetval->nodeNr > 0) {
+                if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
                     /*
                      * Found Something, set it
                      */
@@ -3286,7 +3286,7 @@ int update_policies(char* kasp_filename)
                     continue;
                 }
                 /* TODO is this right? */
-                if (xpathObj->nodesetval->nodeNr > 0) {
+                if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
                     /* Found something, NSEC3 */
                     status = KsmParameterSet("version", "denial", 3, policy->id);
                     if (status != 0) {
@@ -3654,7 +3654,7 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
     }
     else if (value_type == BOOL_TYPE) {
         /* Do we have an empty tag or no tag? */
-        if (xpathObj->nodesetval->nodeNr > 0) {
+        if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             value = 1;
         } else {
             value = 0;
@@ -3936,7 +3936,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         return(-1);
     }
 
-    if(xpathObj->nodesetval->nodeNr > 0) {
+    if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
         temp_char = (char *)xmlXPathCastToString(xpathObj);
         StrAppend(dbschema, temp_char);
@@ -3954,7 +3954,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             xmlFreeDoc(doc);
             return(-1);
         }
-        if(xpathObj->nodesetval->nodeNr > 0) {
+        if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             db_found = MYSQL_DB;
         }
         temp_char = (char *)xmlXPathCastToString(xpathObj);
@@ -3970,7 +3970,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             xmlFreeDoc(doc);
             return(-1);
         }
-        if(xpathObj->nodesetval->nodeNr > 0) {
+        if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         temp_char = (char *)xmlXPathCastToString(xpathObj);
@@ -3986,7 +3986,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             xmlFreeDoc(doc);
             return(-1);
         }
-        if(xpathObj->nodesetval->nodeNr > 0) {
+        if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         temp_char = (char *)xmlXPathCastToString(xpathObj);
@@ -4002,7 +4002,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             xmlFreeDoc(doc);
             return(-1);
         }
-        if(xpathObj->nodesetval->nodeNr > 0) {
+        if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             db_found = 0;
         }
         temp_char = (char *)xmlXPathCastToString(xpathObj);
