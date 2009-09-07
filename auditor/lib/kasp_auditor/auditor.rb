@@ -309,7 +309,7 @@ module KASPAuditor
     # Check the TTL of the NSEC(3) record
     def check_nsec_ttl(nsec)
       if (nsec.ttl != @soa.minimum)
-        log(LOG_ERR, "#{nsec.type} record should have SOA of #{@soa.minimum}, but is #{nsec}")
+        log(LOG_ERR, "#{nsec.type} record should have TTL of #{@soa.minimum}, but is #{nsec}")
       end
     end
 
