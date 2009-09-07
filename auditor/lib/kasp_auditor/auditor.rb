@@ -760,7 +760,7 @@ module KASPAuditor
           # should stay the same through the signing process. So, if it's changed,
           # and we're in SOA.KEEP, then log an error
           log(LOG_ERR, "Policy configuration is to keep SOA serial the same, " +
-              "but is has changed from #{unsigned_soa.serial} to " +
+              "but has changed from #{unsigned_soa.serial} to " +
               "#{signed_soa.serial}")
         else
           log(LOG_INFO, "SOA differs : from #{unsigned_soa.serial} to #{signed_soa.serial}")
