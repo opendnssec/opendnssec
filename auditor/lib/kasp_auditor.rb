@@ -110,8 +110,8 @@ module KASPAuditor
       ret = 999 # Return value to controlling process
       zones.each {|config, input_file, output_file|
         do_audit = true
-        [{input_file, "Unsigned"}, {output_file, "Signed"}].each {|set|
-          set.each {|f, text|
+        [{input_file => "Unsigned"}, {output_file => "Signed"}].each {|hash|
+          hash.each {|f, text|
             if (!(File.exist?((f.to_s+"").untaint)))
               msg = "#{text} file #{f} does not exist"
               print(msg+"\n")
