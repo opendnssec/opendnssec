@@ -35,7 +35,7 @@
  * so filter that out before you pass your records to this program
  * (TODO: read glue from inline comments and print them out as 'normal'
  * records)
- * 
+ *
  */
 
 #include <stdio.h>
@@ -80,12 +80,12 @@ typedef struct {
 	/*ldns_pkcs11_module_list *pkcs11_module_list;*/
 	key_list *zsks;
 	key_list *ksks;
-	
+
 	/* settings for SOA values that are changed */
 	uint32_t soa_ttl;
 	uint32_t soa_serial;
 	uint32_t soa_minimum;
-	
+
 	/* and let's keep some statistics */
 	unsigned long existing_sigs;
 	unsigned long removed_sigs;
@@ -197,17 +197,17 @@ key_list_add_key(key_list *list,
 		hsm_sign_params_free(params);
 		return;
 	}
-	
+
 	params->flags = atoi(key_flags_str);
 	params->owner = ldns_rdf_clone(cfg->origin);
 	dnskey = hsm_get_dnskey(NULL, key, params);
-	
+
 	list->keys[list->key_count] = key;
 	list->keytags[list->key_count] = ldns_calc_keytag(dnskey);
 	list->algorithms[list->key_count] = params->algorithm;
 	list->use_key[list->key_count] = 1;
 	list->key_count++;
-	
+
 	ldns_rr_free(dnskey);
 	hsm_sign_params_free(params);
 }
@@ -278,7 +278,7 @@ void check_tm(struct tm tm)
 		fprintf(stderr, "The day must be in the range 1 to 31\n");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	if (tm.tm_hour < 0 || tm.tm_hour > 23) {
 		fprintf(stderr, "The hour must be in the range 0-23\n");
 		exit(EXIT_FAILURE);
@@ -355,7 +355,7 @@ read_arg(const char *istr, char **next)
 			*next = NULL;
 		}
 	}
-	
+
 	return result;
 }
 
@@ -404,7 +404,7 @@ handle_command(FILE *output, current_config *cfg,
 	char *next;
 	ldns_status result = LDNS_STATUS_OK;
 	(void)line_len;
-	
+
 	cmd = read_arg(line, &next);
 	if (!cmd) {
 		return LDNS_STATUS_ERR;
@@ -535,7 +535,7 @@ void
 set_use_key_for(key_list *list, ldns_rr *rrsig, int use)
 {
 	size_t i;
-	
+
 	for (i = 0; i < list->key_count; i++) {
 		if (list->keytags[i] ==
 		    ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
@@ -549,7 +549,7 @@ int
 key_enabled_for(key_list *list, ldns_rr *rrsig)
 {
 	size_t i;
-	
+
 	for (i = 0; i < list->key_count; i++) {
 		if (list->keytags[i] ==
 		    ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
@@ -622,7 +622,7 @@ read_rr_from_file(FILE *file, FILE *out,
 	int line_len;
 	ldns_rr *rr = NULL;
 	ldns_status status, cmd_res;
-	
+
 	while (!rr) {
 		line_len = read_line(file, line, 0);
 		if (line_len < 0) {
@@ -909,7 +909,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 	ldns_rr_list *signed_zone_rrset = NULL;
 	ldns_rr_list *signed_zone_signatures = NULL;
 	int cmp;
-	
+
 	new_zone_reader = rrset_reader_new(input);
 	if (signed_zone) {
 		signed_zone_reader = rrset_reader_new(signed_zone);
@@ -963,7 +963,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 * anyway, we can assume that the signed data has been
 			 * resorted, and that there are no nsec3 records anymore
 			 * In that case, we treat the data as new */
-			while (cmp != 0 && 
+			while (cmp != 0 &&
 			       ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_NSEC3 &&
 				   ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3
 			     ) {
@@ -990,7 +990,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 			}
-			
+
 			/* if the cur rrset name > signed rrset name then data has
 			 * been removed, reread signed rrset */
 			while (cmp > 0 && signed_zone_rrset) {
@@ -1087,6 +1087,8 @@ int main(int argc, char **argv)
 	char *config_file = NULL;
 	int result;
 	int print_creation_count = 0;
+	struct timeval t_start,t_end;
+	double elapsed;
 
 	cfg = current_config_new();
 	input = stdin;
@@ -1147,7 +1149,12 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Error initializing libhsm\n");
 		exit(2);
 	}
+
+	gettimeofday(&t_start, NULL);
+
 	result = read_input(input, prev_zone, output, cfg);
+
+	gettimeofday(&t_end, NULL);
 
 	hsm_close();
 	fprintf(output, "; Last refresh stats: existing: %lu, removed %lu, created %lu\n",
@@ -1156,7 +1163,13 @@ int main(int argc, char **argv)
 	        cfg->created_sigs);
 
 	if (print_creation_count) {
-		fprintf(stderr, "Number of signatures created: %lu\n", cfg->created_sigs);
+		elapsed = (double) TIMEVAL_SUB(t_end, t_start);
+		if (elapsed > 0)
+			fprintf(stderr, "signer: number of signatures created: %lu (%u rr/sec)\n",
+				cfg->created_sigs, (unsigned) (cfg->created_sigs / elapsed));
+		else
+			fprintf(stderr, "signer: number of signatures created: %lu (within a second)\n",
+				cfg->created_sigs);
 	}
 	if (result == 1) {
 		return 0;

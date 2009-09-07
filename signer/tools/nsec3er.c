@@ -55,6 +55,8 @@ struct nsec3_params_struct {
 };
 typedef struct nsec3_params_struct nsec3_params;
 
+uint32_t nsec3_counter = 0;
+
 nsec3_params *
 nsec3_params_new()
 {
@@ -139,6 +141,7 @@ create_nsec3(ldns_rdf *name,
 		                          n3p->salt,
 		                          empty_nonterminal);
 	ldns_rr_set_ttl(new_nsec3, ttl);
+	nsec3_counter++;
 	return new_nsec3;
 }
 
@@ -209,7 +212,7 @@ find_from_name(ldns_rr_list *rr_list, ldns_rdf *default_name)
  * skip it or create a nonterminal
  * if names differ, create nonterminal, empty list
  * if prev_nsec is set, link nsec to new, make new the prev
- * 
+ *
  */
 ldns_status
 handle_name(FILE *out_file,
@@ -452,6 +455,9 @@ main(int argc, char **argv)
 	bool echo_input = true;
 	FILE *input_file = stdin;
 	FILE *out_file = stdout;
+	/* For timming statistics */
+	struct timeval t_start, t_end;
+	double elapsed;
 
 	ldns_status status = LDNS_STATUS_OK;
 	ldns_rdf *origin = NULL;
@@ -605,12 +611,24 @@ main(int argc, char **argv)
 	 * the previous NSEC3, so we need to keep track of those too.
 	 *
 	 */
+
+	gettimeofday(&t_start, NULL);
 	status = create_nsec3_records(input_file,
 	                              out_file,
 	                              origin,
 	                              n3p,
 	                              soa_min_ttl);
+	gettimeofday(&t_end, NULL);
 
+	if (nsec3_counter > 0) {
+		elapsed = (double) TIMEVAL_SUB(t_end, t_start);
+		if (elapsed > 0)
+			fprintf(stderr, "nsec3er: %d NSEC3 records generated (%u rr/sec)\n",
+				nsec3_counter, (unsigned) (nsec3_counter / elapsed) );
+		else
+			fprintf(stderr, "nsec3er: %d NSEC3 records generated within a second\n",
+				nsec3_counter);
+	}
 
 	if (origin) {
 		ldns_rdf_deep_free(origin);

@@ -27,6 +27,7 @@
  */
 
 #define MAX_LINE_LEN 65535
+#define TIMEVAL_SUB(a,b) ((((a).tv_sec - (b).tv_sec)) + ((a).tv_usec - (b).tv_usec) / 1000000)
 
 #include <ldns/ldns.h>
 

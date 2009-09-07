@@ -44,6 +44,8 @@
 #include <ldns/ldns.h>
 #include "util.h"
 
+uint32_t nsec_counter = 0;
+
 bool
 is_same_name(ldns_rr *a, ldns_rr *b)
 {
@@ -91,6 +93,8 @@ make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns
 							   rr_list);
 	ldns_rr_set_ttl(nsec_rr, ttl);
 	ldns_rr_print(out_file, nsec_rr);
+
+    nsec_counter++;
 
 	if (first_nsec && !(*first_nsec)) {
 		*first_nsec = ldns_rr_clone(nsec_rr);
@@ -148,8 +152,6 @@ handle_line(FILE *out_file,
 	}
 	return LDNS_STATUS_OK;
 }
-
-
 
 ldns_status
 create_nsec_records(FILE *input_file,
@@ -218,6 +220,9 @@ main(int argc, char **argv)
 	bool echo_input = true;
 	FILE *input_file = stdin;
 	FILE *out_file = stdout;
+	/* For timing statistics */
+	struct timeval t_start, t_end;
+	double elapsed;
 
 	ldns_status status;
 	uint32_t soa_min_ttl = 0;
@@ -260,9 +265,24 @@ main(int argc, char **argv)
 		}
 	}
 
+	gettimeofday(&t_start, NULL);
+
 	status = create_nsec_records(input_file,
 	                             out_file,
 	                             soa_min_ttl);
+
+	gettimeofday(&t_end, NULL);
+
+	/* Print statistics */
+	if (nsec_counter > 0) {
+		elapsed = (double) TIMEVAL_SUB(t_end, t_start);
+		if (elapsed > 0)
+			fprintf(stderr, "nseccer: %d NSEC records generated (%u rr/sec)\n",
+				nsec_counter, (unsigned) (nsec_counter / elapsed));
+		else
+			fprintf(stderr, "nseccer: %d NSEC records generated within a second\n",
+				nsec_counter);
+	}
 
 	if (input_file != stdin) {
 		fclose(input_file);
