@@ -341,7 +341,6 @@ class AuditorTest < Test::Unit::TestCase
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 2)
 
-    sleep(0.1)
     checker.process_key_data([ksk_key1, key1, keynot5011, key5011],
       [key1.key_tag, ksk_key1.key_tag, key5011.key_tag])
     assert(checker.cache.inuse.length == 3)
@@ -350,7 +349,7 @@ class AuditorTest < Test::Unit::TestCase
 
     # Now sleep for over a second and check that the lifetime warnings
     # are emitted
-    sleep(1.5)
+    sleep(2.1)
     key5011.revoked = true
     checker.process_key_data([ksk_key1, key2, key5011, key1],
       [ksk_key1.key_tag, key2.key_tag, key1.key_tag])
