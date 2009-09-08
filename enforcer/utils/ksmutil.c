@@ -76,108 +76,100 @@ char *config = (char *) CONFIG_FILE;
 usage_setup ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] setup\n"
-            "\tImport config into a database (deletes current contents)\n",
-            progname);
+            "  setup\n"
+            "\tImport config into a database (deletes current contents)\n");
 }
 
     void
 usage_update ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] update\n"
-            "\tUpdate database from config\n",
-            progname);
+            "  update\n"
+            "\tUpdate database from config\n");
 }
 
     void
 usage_addzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n"
-            "\tAdd a zone to the config and database\n",
-            progname);
+            "  addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n"
+            "\tAdd a zone to the config and database\n");
 }
 
     void
 usage_delzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] [-a] delzone zone\n"
+            "  [-a] delzone zone\n"
             "\tDelete a zone from the config and database\n"
-            "\t-a will delete all zones from the config and database\n",
-            progname);
+            "\t-a will delete all zones from the config and database\n");
 }
 
     void
 usage_listzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] listzone\n"
-            "\tList zones from the zonelist.xml in config\n",
-            progname);
+            "  listzone\n"
+            "\tList zones from the zonelist.xml in config\n");
 }
 
    void
 usage_export ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] [-a] export policy [policy_name]\n"
-            "   or: %s [-f config] [-a] export [keys|ds] [zone_name] [state] [keytype]\n"
-            "\tpolicy: export all policies [or named policy] to xml\n"
-            "\t\t-a: export all policies; omit policy_name\n"
+            "  [-a] export policy [policy_name]\n"
+            "\texport all policies [or named policy] to xml\n"
+            "\t\t-a: export all policies; omit policy_name\n");
+
+    fprintf(stderr,
+            "  [-a] export [keys|ds] [zone_name] [state] [keytype]\n"
             "\tkeys: export dnskey RRs for named zone [KSK unless ZSK specified]\n"
             "\tds: export ds RRs for named zone [KSK unless ZSK specified]\n"
             "\t\t-a: export all keys or ds records; omit zone_name\n"
-            "\t\t[state] can be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED (default = ACTIVE)\n"
-            ,progname, progname);
+            "\t\t[state] can be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED (default = ACTIVE)\n");
 }
 
     void
 usage_rollzone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] rollzone zone [KSK|ZSK]\n"
-            "\tRollover a zone (may roll all zones on that policy)\n",
-            progname);
+            "  rollzone zone [KSK|ZSK]\n"
+            "\tRollover a zone (may roll all zones on that policy)\n");
 }
 
     void
 usage_rollpolicy ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] rollpolicy policy [KSK|ZSK]\n"
-            "\tRollover all zones on a policy\n",
-            progname);
+            "  rollpolicy policy [KSK|ZSK]\n"
+            "\tRollover all zones on a policy\n");
 }
 
     void
 usage_backup ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] backup [done|list] [repository]\n"
-            "\tIndicate that a key backup has been performed or list dates when backups were made\n",
-            progname);
+            "  backup [done|list] [repository]\n"
+            "\tIndicate that a key backup has been performed or list dates when backups were made\n");
 }
 
     void
 usage_list ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] [-l] list [repositories|policies|keys|rollovers|backups] [qualifier]\n"
+            "  [-l] list [repositories|policies|keys|rollovers|backups] [qualifier]\n"
             "\tList specified aspect of the current configuration\n"
-            "\t-l returns more information on keys\n",
-            progname);
+            "\t-l returns more information on keys\n");
 }
 
     void
 usage_import ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] import key <CKA_ID> <HSM> <ZONE> <KEYTYPE> <SIZE> <ALGORITHM> <STATE> <TIME> [RETIRE_TIME]\n"
+            "  import key <CKA_ID> <HSM> <ZONE> <KEYTYPE> <SIZE> <ALGORITHM> <STATE> <TIME> [RETIRE_TIME]\n"
             "\tImport a key into ksm\n"
             "\t\t<KEYTYPE> can be one of KSK or ZSK\n"
-            "\t\t<SIZE> size of key in bits\n", progname);
+            "\t\t<SIZE> size of key in bits\n");
 
     fprintf(stderr,
             "\t\t<ALGORITHM> can be one of RSASHA1 or RSASHA1-NSEC3-SHA1 (5 or 7)\n"
@@ -190,6 +182,10 @@ usage_import ()
     void
 usage ()
 {
+    fprintf(stderr,
+            "usage: %s [-f config] command [options]\n\n",
+	    progname);
+
     usage_setup ();
     usage_update ();
     usage_addzone ();
