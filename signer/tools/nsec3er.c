@@ -289,9 +289,13 @@ handle_name(FILE *out_file,
 			/* then create the ENT */
 			new_nsec = create_nsec3(ent_name, origin, ttl,
 			                        rr_list, n3p, 1);
-			link_nsec3_rrs(*prev_nsec, new_nsec);
-			ldns_rr_print(out_file, *prev_nsec);
-			ldns_rr_free(*prev_nsec);
+			if (*prev_nsec) {
+				link_nsec3_rrs(*prev_nsec, new_nsec);
+				ldns_rr_print(out_file, *prev_nsec);
+				ldns_rr_free(*prev_nsec);
+			} else {
+				*first_nsec = ldns_rr_clone(new_nsec);
+			}
 			*prev_nsec = new_nsec;
 		}
 	} else {
@@ -314,8 +318,11 @@ handle_name(FILE *out_file,
 			ldns_rr_list_print(out_file, rr_list);
 			rr_list_clear(rr_list);
 		}
-		link_nsec3_rrs(*prev_nsec, *first_nsec);
-		ldns_rr_print(out_file, *prev_nsec);
+
+		if (*prev_nsec) {
+			link_nsec3_rrs(*prev_nsec, *first_nsec);
+			ldns_rr_print(out_file, *prev_nsec);
+		}
 	}
 	return LDNS_STATUS_OK;
 }
