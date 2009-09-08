@@ -58,6 +58,12 @@ full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#"
 opendnsseclibdir=$full_libdir/opendnssec
 AC_SUBST([opendnsseclibdir])
 
+AC_SUBST(TIMESHIFT, false)
+
+AC_ARG_ENABLE(timeshift,
+        AC_HELP_STRING([--enable-timeshift],[Enable timeshift debug]),
+        [AC_SUBST(TIMESHIFT, true)],[])
+
 AC_CONFIG_FILES([
 	Makefile
 	kasp_auditor

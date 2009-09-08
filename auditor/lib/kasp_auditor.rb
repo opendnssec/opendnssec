@@ -62,6 +62,7 @@ module KASPAuditor
   class Runner
 
     attr_accessor :kasp_file, :zone_name, :signed_temp, :conf_file
+    attr_accessor :enable_timeshift
 
     # Run the auditor.
     def run
@@ -98,6 +99,9 @@ module KASPAuditor
 
     # This method is provided so that the test code can use its own syslog
     def run_with_syslog(zonelist_file, kasp_file, syslog, working, enforcer_interval) # :nodoc: all
+      if (@enable_timeshift)
+        configure_timeshift
+      end
       zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
         zonelist_file, kasp_file, syslog)
       check_zones_to_audit(zones)
@@ -181,6 +185,12 @@ module KASPAuditor
       # Return the filename, minus the path
       a = f.split(File::SEPARATOR)
       return File::SEPARATOR + a[a.length()-1]
+    end
+
+    def configure_timeshift
+      # @TODO@ Frig Time.now to ENV['ENFORCER_TIMESHIFT']
+      # If environment variable not present, then ignore
+      # @TODO@ REMEMBER TO RESET TIME AT END OF RUN!! (if it was changed)
     end
 
     # Given a list of configured zones, and a list of zones_to_audit, return

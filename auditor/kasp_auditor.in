@@ -16,6 +16,8 @@ class OptionsParser
       # The options specified on the command line will be collected in *options*.
       # We set default values here.
       path = "@sysconfdir@/opendnssec/".sub("${prefix}", "@prefix@")
+      enable_timeshift = @TIMESHIFT@
+      print "ENABLE TIMESHIFT = #{enable_timeshift}\n"
       options = OpenStruct.new
       options.default_conf_file = path + "conf.xml"
       options.zone_name = nil
@@ -99,6 +101,9 @@ if (options.zone_name)
   if (options.signed_temp)
     runner.signed_temp = options.signed_temp
   end
+end
+if (options.enable_timeshift)
+  runner.enable_timeshift = true
 end
 if (options.daemonize)
   runner.run_as_daemon()
