@@ -17,7 +17,6 @@ class OptionsParser
       # We set default values here.
       path = "@sysconfdir@/opendnssec/".sub("${prefix}", "@prefix@")
       enable_timeshift = @TIMESHIFT@
-      print "ENABLE TIMESHIFT = #{enable_timeshift}\n"
       options = OpenStruct.new
       options.default_conf_file = path + "conf.xml"
       options.zone_name = nil
