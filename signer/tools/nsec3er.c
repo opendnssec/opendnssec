@@ -449,6 +449,11 @@ create_nsec3_records(FILE *input_file,
 	handle_name(out_file, NULL, origin, soa_min_ttl, prev_name, rr_list,
 	            &prev_nsec, &first_nsec, n3p, NULL, 0);
 	ldns_rr_list_deep_free(rr_list);
+
+	if (prev_nsec)
+		ldns_rr_free(prev_nsec);
+	if (first_nsec)
+		ldns_rr_free(first_nsec);
 	ldns_rdf_deep_free(prev_name);
 	return status;
 }
