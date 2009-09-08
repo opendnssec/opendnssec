@@ -131,7 +131,7 @@ module KASPAuditor
         while (line = f.gets)
           key_string, status_string, time  = line.split(SEPARATOR)
           key = RR.create(key_string)
-          eval "cache.add_#{status_string.downcase}_key_with_time(key, #{time})"
+          eval "cache.add_#{status_string.downcase}_key_with_time(key, #{time})".untaint
         end
       }
       return cache
@@ -148,7 +148,7 @@ module KASPAuditor
           status = s.downcase
           eval "@cache.#{status}.each {|key, time|
               write_key_to_file(f, key.to_s, status, time)
-            }"
+            }".untaint
         }
 
       }
