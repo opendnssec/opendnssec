@@ -256,7 +256,7 @@ module KASPAuditor
             facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
             # Now turn the facility string into a Syslog::Constants format....
             syslog_facility = eval "Syslog::LOG_" + (facility.upcase+"").untaint
-            return syslog_facility, working, zonelist, kasp
+            return syslog_facility, working, zonelist, kasp, enforcer_interval
           rescue Exception => e
             print "Error reading config : #{e}\n"
             return Syslog::LOG_DAEMON, working, zonelist,kasp, enforcer_interval
