@@ -129,6 +129,15 @@ main(int argc, char *argv[]){
     /* useful message */
     log_msg(&config, LOG_INFO, "%s starting...", PACKAGE_NAME);
 
+#ifdef ENFORCER_TIMESHIFT
+    if (getenv("ENFORCER_TIMESHIFT")) {
+        log_msg(&config, LOG_INFO, "Timeshift mode detected, running once only!");
+        fprintf(stderr, "WARNING: Timeshift mode detected, running once only!\n");
+        config.once = true;
+        config.debug = true;
+    }
+#endif /* ENFORCER_TIMESHIFT */
+
     /* Process command line */
     cmdlParse(&config, &argc, argv);
     if(config.debug) log_msg(&config, LOG_INFO, "%s DEBUG ON.", PACKAGE_NAME);
