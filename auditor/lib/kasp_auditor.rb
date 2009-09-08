@@ -321,11 +321,5 @@ module KASPAuditor
     end
 
   end
-  class KASPTime # :nodoc: all
-    # This allows the test code to frig the system time to use old test data.
-    def KASPTime.get_current_time
-      return Time.now.to_i
-    end
-  end
 
 end

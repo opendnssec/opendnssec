@@ -2,12 +2,15 @@ require 'test/unit'
 require 'kasp_auditor.rb'
 include KASPAuditor
 
-# Giving up on getting long-expiry test data.
-# Instead, just use the good test data we have, and frig the system time.
-module KASPAuditor
-  class KASPTime
-    def KASPTime.get_current_time
-      return 1245393132
+# Use the good test data we have, and frig the system time.
+class Time # @TODO@ Can't use this to test enable_timeshift
+  class << self
+    alias_method :original_now, :now
+    def now
+      if (!@start)
+        @start = original_now.to_i
+      end
+      return 1245393132 + (original_now.to_i - @start)
     end
   end
 end
