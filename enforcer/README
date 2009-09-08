@@ -46,3 +46,13 @@ Once built the communicated binary takes the following options:
 Your LD_LIBRARY_PATH environment variable will need to include the libksm libs.
 
 Note that currently the output is hardcoded to go to the current working directory; this will be fixed when it reads the config file properly
+
+
+Debuging
+--------
+Warning: DO NOT TRY THIS EXCEPT FOR DEBUGGING PURPOSES
+
+If the enforcer is build with the '--enable-timeshift' option, one can
+override the system clock using the ENFORCER_TIMESHIFT environment variable.
+ENFORCER_TIMESHIFT should be set to the timestamp (in YYYYMMDDHHMMSS format).
+When running with timeshift, the program will run once only and exit.
