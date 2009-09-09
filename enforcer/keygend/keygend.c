@@ -86,6 +86,7 @@ server_main(DAEMONCONFIG *config)
     int result;
     hsm_ctx_t *ctx = NULL;
     hsm_key_t *key = NULL;
+    char *hsm_error_message = NULL;
     
     FILE *lock_fd = NULL;  /* for sqlite file locking */
     char *lock_filename = NULL;
@@ -131,7 +132,17 @@ server_main(DAEMONCONFIG *config)
    
     /* We keep the HSM connection open for the lifetime of the daemon */ 
     result = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
-    log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
+    if (result) {
+        hsm_error_message = hsm_get_error(ctx);
+        if (hsm_error_message) {
+            log_msg(config, LOG_ERR, hsm_error_message);
+            free(hsm_error_message);
+        } else {
+            log_msg(config, LOG_ERR, "hsm_open() result: %d\n", result);
+        }
+        exit(1);
+    }
+    log_msg(config, LOG_INFO, "HSM opened successfully.\n");
     ctx = hsm_create_context();
 
     while (1) {
@@ -224,6 +235,11 @@ server_main(DAEMONCONFIG *config)
                                 /* log_msg(config, LOG_INFO,"Created key in HSM\n"); */
                             } else {
                                 log_msg(config, LOG_ERR,"Error creating key in HSM\n");
+                                hsm_error_message = hsm_get_error(ctx);
+                                if (hsm_error_message) {
+                                    log_msg(config, LOG_ERR, hsm_error_message);
+                                    free(hsm_error_message);
+                                }
                                 unlink(config->pidfile);
                                 exit(1);
                             }
@@ -231,6 +247,11 @@ server_main(DAEMONCONFIG *config)
                             status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
                             if (status != 0) {
                                 log_msg(config, LOG_ERR,"Error creating key in Database\n");
+                                hsm_error_message = hsm_get_error(ctx);
+                                if (hsm_error_message) {
+                                    log_msg(config, LOG_ERR, hsm_error_message);
+                                    free(hsm_error_message);
+                                }
                                 unlink(config->pidfile);
                                 exit(1);
                             }
@@ -276,6 +297,11 @@ server_main(DAEMONCONFIG *config)
                            /* log_msg(config, LOG_INFO,"Created key in HSM\n"); */
                        } else {
                            log_msg(config, LOG_ERR,"Error creating key in HSM\n");
+                           hsm_error_message = hsm_get_error(ctx);
+                           if (hsm_error_message) {
+                               log_msg(config, LOG_ERR, hsm_error_message);
+                               free(hsm_error_message);
+                           }
                            unlink(config->pidfile);
                            exit(1);
                        }
@@ -283,6 +309,11 @@ server_main(DAEMONCONFIG *config)
                        status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
                        if (status != 0) {
                            log_msg(config, LOG_ERR,"Error creating key in Database\n");
+                           hsm_error_message = hsm_get_error(ctx);
+                           if (hsm_error_message) {
+                               log_msg(config, LOG_ERR, hsm_error_message);
+                               free(hsm_error_message);
+                           }
                            unlink(config->pidfile);
                            exit(1);
                        }
