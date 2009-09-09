@@ -270,9 +270,9 @@ class AuditorTest < Test::Unit::TestCase
       # Not enough pre-published KSK
       "Not enough prepublished KSKs! Should be 2 but have 0",
       # KSK too long in use
-      "KSK 52937 in use too long - should be max 1 but has been 2",
+      "KSK 52937 in use too long - should be max 1 but has been",
       # ZSK too long in use
-      "ZSK 51901 in use too long - should be max 1 but has been 2"
+      "ZSK 51901 in use too long - should be max 1 but has been"
     ]
     success = check_syslog(stderr, expected_strings, false)
     assert(success, "Keys not correctly tracked over time")
