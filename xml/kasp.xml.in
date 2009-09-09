@@ -73,6 +73,7 @@
 				<Minimum>PT3600S</Minimum>
 			</SOA>
 		</Parent>
+		<Audit/>
 	</Policy>
 	
 </KASP>
