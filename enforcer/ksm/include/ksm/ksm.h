@@ -44,7 +44,6 @@ extern "C" {
 #include <ksm/database.h>
 #include <ksm/database_statement.h>
 
-#include "libhsm.h"
 
 /* General */
 
@@ -274,7 +273,7 @@ int KsmPolicy(DB_RESULT handle, KSM_POLICY* data);
 int KsmPolicyParameter(DB_RESULT handle, KSM_POLICY_PARAMETER* data);
 int KsmPolicyReadFromId(KSM_POLICY* policy);
 int KsmPolicyNameFromId(KSM_POLICY* policy);
-int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx);
+int KsmPolicyUpdateSalt(KSM_POLICY* policy);
 int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy);
 int KsmPolicySetIdFromName(KSM_POLICY *policy);
 

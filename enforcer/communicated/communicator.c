@@ -49,8 +49,6 @@
 #include "ksm/datetime.h"
 #include "config.h"
 
-#include "libhsm.h"
-
 #include <libxml/xmlreader.h>
 #include <libxml/xpath.h>
 
@@ -82,9 +80,6 @@ server_main(DAEMONCONFIG *config)
 
     FILE *lock_fd = NULL;  /* for sqlite file locking */
     char *lock_filename = NULL;
-
-    int result;
-    hsm_ctx_t *ctx = NULL;
 
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
@@ -155,11 +150,6 @@ server_main(DAEMONCONFIG *config)
         unlink(config->pidfile);
         exit(1);
     }
-
-    /* We keep the HSM connection open for the lifetime of the daemon */ 
-    result = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
-    log_msg(config, LOG_INFO, "hsm_open result: %d", result);
-    ctx = hsm_create_context();
 
     while (1) {
 
@@ -285,7 +275,7 @@ server_main(DAEMONCONFIG *config)
                         if (policy->denial->version == 3)
                         {
                             /*DbBeginTransaction();*/
-                            status2 = KsmPolicyUpdateSalt(policy, ctx);
+                            status2 = KsmPolicyUpdateSalt(policy);
                             /*DbCommit();*/
                             if (status2 != 0) {
                                 /* Don't return? try to parse the rest of the zones? */
@@ -443,16 +433,6 @@ server_main(DAEMONCONFIG *config)
             break;
         }
     }
-
-    /*
-     * Destroy HSM context
-     */
-    if (ctx) {
-      hsm_destroy_context(ctx);
-    }
-
-    result = hsm_close();
-    log_msg(config, LOG_INFO, "all done! hsm_close result: %d", result);
 
     StrFree(zonelist_filename);
     KsmPolicyFree(policy);

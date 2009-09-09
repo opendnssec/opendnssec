@@ -492,7 +492,7 @@ int KsmPolicyNameFromId(KSM_POLICY* policy)
  *
 -*/
 
-int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
+int KsmPolicyUpdateSalt(KSM_POLICY* policy)
 {
     /* First work out what the current salt is and when it was created */
     int     where = 0;          /* WHERE clause value */
@@ -503,8 +503,6 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
     char*   datetime_now = DtParseDateTimeString("now");    /* where are we in time */
     int     time_diff;          /* how many second have elapsed */
     char*   salt;               /* This will be the salt that we create */
-    unsigned char newsalt[KSM_SALT_LENGTH];         /* buffer for random data */
-    unsigned long temp_ul;          /* this will hold the random number */
     char    buffer[KSM_SQL_SIZE];   /* update statement for salt_stamp */
     unsigned int    nchar;          /* Number of characters converted */
     int     i = 0;              /* a counter */
@@ -596,31 +594,11 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy, hsm_ctx_t* ctx)
                 exit(1);
             }
 
-            /* call into libhsm */
-            if (ctx != NULL) {
-                status = hsm_random_buffer(ctx, newsalt, policy->denial->saltlength);
-
-                /* build up our salt as hex (is this method better than using printf?) */
-                for (i = 0; i < policy->denial->saltlength; i++) {
-                    temp_ul = (newsalt[i] & 0xf) + '0';
-                    if (temp_ul > '9') {
-                        temp_ul = temp_ul - '0' + ('A' - 10);
-                    }
-                    salt[2 * i] = temp_ul;
-
-                    temp_ul = ((newsalt[i] >> 4) & 0xf) + '0';
-                    if (temp_ul > '9') {
-                        temp_ul = temp_ul - '0' + ('A' - 10);
-                    }
-                    salt[2 * i + 1] = temp_ul;
-                }
-            } else {
-                /* No hsm ctx, do our best(ish) */
-                srand( time(0) );
-                for (i = 0; i < 2*(policy->denial->saltlength); i++) {
-                    salt[i] = hex_chars[rand()%strlen(hex_chars)];
-                }
+            srand( time(0) );
+            for (i = 0; i < 2*(policy->denial->saltlength); i++) {
+                salt[i] = hex_chars[rand()%strlen(hex_chars)];
             }
+
             if (status != 0) {
                 StrFree(datetime_now);
                 StrFree(salt);
