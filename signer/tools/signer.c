@@ -1164,6 +1164,7 @@ int main(int argc, char **argv)
 
 	if (print_creation_count) {
 		elapsed = (double) TIMEVAL_SUB(t_end, t_start);
+		fprintf(stderr, "Number of signatures created: %lu\n", cfg->created_sigs); 
 		if (elapsed > 0)
 			fprintf(stderr, "signer: number of signatures created: %lu (%u rr/sec)\n",
 				cfg->created_sigs, (unsigned) (cfg->created_sigs / elapsed));
