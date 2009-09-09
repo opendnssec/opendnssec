@@ -29,7 +29,9 @@ SUFFIXES = .rng .rnc .xml
 
 
 .rnc.rng:
-	java -jar $(srcdir)/trang/trang.jar $< $@
+	@test -x ${JAVA} || \
+		(echo "java is required for converting RelaxNG Compact to RelaxNG"; false)
+	${JAVA} -jar $(srcdir)/trang/trang.jar $< $@
 
 regress: $(RNG)
 	@test -x ${XMLLINT} || \
