@@ -382,6 +382,17 @@ int
 hsm_token_attached(hsm_ctx_t *ctx,
                    const char *repository);
 
+/*! Return the current error message
+
+The returned message is allocated data, and must be free()d by the caller
+
+\param ctx HSM context
+\return error message string
+*/
+
+char *
+hsm_get_error(hsm_ctx_t *gctx);
+
 /* a few debug functions for applications */
 void hsm_print_session(hsm_session_t *session);
 void hsm_print_ctx(hsm_ctx_t *gctx);

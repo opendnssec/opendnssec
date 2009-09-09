@@ -2372,6 +2372,36 @@ hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
     return 0;
 }
 
+char *
+hsm_get_error(hsm_ctx_t *gctx)
+{
+    hsm_ctx_t *ctx;
+
+    char *message;
+
+    if (!gctx) {
+        ctx = _hsm_ctx;
+    } else {
+        ctx = gctx;
+    }
+
+    if (ctx->error) {
+        message = malloc(HSM_ERROR_MSGSIZE);
+
+        if (message == NULL) {
+            return strdup("libhsm memory allocation failed");
+        }
+
+        snprintf(message, HSM_ERROR_MSGSIZE,
+            "%s: %s",
+            ctx->error_action ? ctx->error_action : "unknown()",
+            ctx->error_message ? ctx->error_message : "unknown error");
+        return message;
+    };
+    
+    return NULL;
+}
+
 void
 hsm_print_session(hsm_session_t *session)
 {
@@ -2421,17 +2451,13 @@ hsm_print_key(hsm_key_t *key) {
 void
 hsm_print_error(hsm_ctx_t *gctx)
 {
-    hsm_ctx_t *ctx;
+    char *message;
 
-    if (!gctx) {
-        ctx = _hsm_ctx;
-    } else {
-        ctx = gctx;
-    }
+    message = hsm_get_error(gctx);
     
-    if (ctx->error) {
-        fprintf(stderr, "%s: %s\n",
-            ctx->error_action, ctx->error_message);
+    if (message) {
+        fprintf(stderr, "%s\n", message);
+        free(message);
     } else {
         fprintf(stderr, "Unknown error\n");
     }
