@@ -205,7 +205,7 @@ static void TestKsmPolicySalt(void)
 
 	/* Do the salt/resalt */
 
-	status = KsmPolicyUpdateSalt(policy, NULL);
+	status = KsmPolicyUpdateSalt(policy);
 
 	CU_ASSERT_EQUAL(status, 0);
 
