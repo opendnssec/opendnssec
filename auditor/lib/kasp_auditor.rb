@@ -100,7 +100,7 @@ module KASPAuditor
     # This method is provided so that the test code can use its own syslog
     def run_with_syslog(zonelist_file, kasp_file, syslog, working, enforcer_interval) # :nodoc: all
       if (@enable_timeshift)
-        configure_timeshift
+        configure_timeshift(syslog)
       end
       zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
         zonelist_file, kasp_file, syslog)
@@ -186,11 +186,32 @@ module KASPAuditor
       a = f.split(File::SEPARATOR)
       return File::SEPARATOR + a[a.length()-1]
     end
+    
+    def Runner.timeshift
+      return @@timeshift
+    end
 
-    def configure_timeshift
-      # @TODO@ Frig Time.now to ENV['ENFORCER_TIMESHIFT']
-      # If environment variable not present, then ignore
-      # @TODO@ REMEMBER TO RESET TIME AT END OF RUN!! (if it was changed)
+    def configure_timeshift(syslog)
+      # Frig Time.now to ENV['ENFORCER_TIMESHIFT']
+      if (@enable_timeshift)
+        timeshift = ENV['ENFORCER_TIMESHIFT']
+
+        # If environment variable not present, then ignore
+        if (timeshift)
+          # Change the time
+          year = timeshift[0,4]
+          mon = timeshift[4,2]
+          day = timeshift[6,2]
+          hour = timeshift[8,2]
+          min = timeshift[10,2]
+          sec = timeshift[12,2]
+
+          syslog.log(LOG_INFO, "Timeshifting to #{timeshift}\n")
+
+          @@timeshift = Time.gm(year, mon, day, hour, min, sec).to_i
+          require 'time_shift.rb'
+        end
+      end
     end
 
     # Given a list of configured zones, and a list of zones_to_audit, return
