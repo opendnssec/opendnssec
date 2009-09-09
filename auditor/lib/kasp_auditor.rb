@@ -207,8 +207,9 @@ module KASPAuditor
           sec = timeshift[12,2]
 
           syslog.log(LOG_INFO, "Timeshifting to #{timeshift}\n")
+          print "Timeshifting to #{timeshift}\n"
 
-          @@timeshift = Time.gm(year, mon, day, hour, min, sec).to_i
+          @@timeshift = Time.mktime(year, mon, day, hour, min, sec).to_i
           require 'time_shift.rb'
         end
       end
