@@ -108,7 +108,7 @@ main(int argc, char *argv[]){
 
     if (config.user == NULL || config.host == NULL || config.password == NULL || 
           config.schema == NULL || config.port == NULL ) {
-        log_msg(&config, LOG_ERR, "Malloc for config struct failed\n");
+        log_msg(&config, LOG_ERR, "Malloc for config struct failed");
         exit(1);
     }
     config.term = 0;

@@ -90,42 +90,42 @@ permsDrop(DAEMONCONFIG* config)
     /* Load XML document */
     doc = xmlParseFile(filename);
     if (doc == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", filename);
+        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", filename);
         return(-1);
     }
 
     /* Load rng document */
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", rngfilename);
+        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", rngfilename);
         return(-1);
     }
 
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
     if (rngpctx == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to create XML RelaxNGs parser context\n");
+        log_msg(config, LOG_ERR, "Error: unable to create XML RelaxNGs parser context");
         return(-1);
     }
 
     /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse a schema definition resource\n");
+        log_msg(config, LOG_ERR, "Error: unable to parse a schema definition resource");
         return(-1);
     }
 
     /* Create an XML RelaxNGs validation context based on the given schema */
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to create RelaxNGs validation context based on the schema\n");
+        log_msg(config, LOG_ERR, "Error: unable to create RelaxNGs validation context based on the schema");
         return(-1);
     }
 
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
-        log_msg(config, LOG_ERR, "Error validating file \"%s\"\n", filename);
+        log_msg(config, LOG_ERR, "Error validating file \"%s\"", filename);
         return(-1);
     }
 
@@ -133,7 +133,7 @@ permsDrop(DAEMONCONFIG* config)
     /* Create xpath evaluation context */
     xpathCtx = xmlXPathNewContext(doc);
     if(xpathCtx == NULL) {
-        log_msg(config, LOG_ERR,"Error: unable to create new XPath context\n");
+        log_msg(config, LOG_ERR,"Error: unable to create new XPath context");
         xmlFreeDoc(doc);
         return(-1);
     }
@@ -141,7 +141,7 @@ permsDrop(DAEMONCONFIG* config)
     /* Set the group if specified; else just set the gid as the real one */
     xpathObj = xmlXPathEvalExpression(group_expr, xpathCtx);
     if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", group_expr);
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", group_expr);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -167,7 +167,7 @@ permsDrop(DAEMONCONFIG* config)
             xmlFreeDoc(doc);
             return -1;
         }
-        log_msg(config, LOG_INFO, "group set to: %s(%d)\n", config->groupname, config->gid);
+        log_msg(config, LOG_INFO, "group set to: %s(%d)", config->groupname, config->gid);
     } else {
         config->gid = getgid();
     }
@@ -175,7 +175,7 @@ permsDrop(DAEMONCONFIG* config)
     /* Set the user to drop to if specified; else just set the uid as the real one */
     xpathObj = xmlXPathEvalExpression(user_expr, xpathCtx);
     if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", user_expr);
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", user_expr);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -201,7 +201,7 @@ permsDrop(DAEMONCONFIG* config)
             xmlFreeDoc(doc);
             return -1;
         }
-        log_msg(config, LOG_INFO, "user set to: %s(%d)\n", config->username, config->uid);
+        log_msg(config, LOG_INFO, "user set to: %s(%d)", config->username, config->uid);
     } else {
         config->uid = getuid();
     }
@@ -433,48 +433,48 @@ ReadConfig(DAEMONCONFIG *config)
 
     char* temp_char = NULL;
 
-    log_msg(config, LOG_INFO, "Reading config \"%s\"\n", filename);
+    log_msg(config, LOG_INFO, "Reading config \"%s\"", filename);
 
     /* Load XML document */
     doc = xmlParseFile(filename);
     if (doc == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", filename);
+        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", filename);
         return(-1);
     }
 
     /* Load rng document */
-    log_msg(config, LOG_INFO, "Reading config schema \"%s\"\n", rngfilename);
+    log_msg(config, LOG_INFO, "Reading config schema \"%s\"", rngfilename);
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"\n", rngfilename);
+        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", rngfilename);
         return(-1);
     }
 
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
     if (rngpctx == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to create XML RelaxNGs parser context\n");
+        log_msg(config, LOG_ERR, "Error: unable to create XML RelaxNGs parser context");
         return(-1);
     }
 
     /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse a schema definition resource\n");
+        log_msg(config, LOG_ERR, "Error: unable to parse a schema definition resource");
         return(-1);
     }
 
     /* Create an XML RelaxNGs validation context based on the given schema */
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to create RelaxNGs validation context based on the schema\n");
+        log_msg(config, LOG_ERR, "Error: unable to create RelaxNGs validation context based on the schema");
         return(-1);
     }
 
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
-        log_msg(config, LOG_ERR, "Error validating file \"%s\"\n", filename);
+        log_msg(config, LOG_ERR, "Error validating file \"%s\"", filename);
         return(-1);
     }
     xmlRelaxNGFreeValidCtxt(rngctx);
@@ -486,7 +486,7 @@ ReadConfig(DAEMONCONFIG *config)
     /* Create xpath evaluation context */
     xpathCtx = xmlXPathNewContext(doc);
     if(xpathCtx == NULL) {
-        log_msg(config, LOG_ERR,"Error: unable to create new XPath context\n");
+        log_msg(config, LOG_ERR,"Error: unable to create new XPath context");
         xmlFreeDoc(doc);
         return(-1);
     }
@@ -494,7 +494,7 @@ ReadConfig(DAEMONCONFIG *config)
     /* Evaluate xpath expression for keygen interval */
     xpathObj = xmlXPathEvalExpression(ki_expr, xpathCtx);
     if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", ki_expr);
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", ki_expr);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -503,15 +503,15 @@ ReadConfig(DAEMONCONFIG *config)
     temp_char = (char *)xmlXPathCastToString(xpathObj);
     status = DtXMLIntervalSeconds(temp_char, &mysec);
     if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i", temp_char, status);
         StrFree(temp_char);
         return status;
     }
     else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", temp_char);
+        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
     }
     config->keygeninterval = mysec;
-    log_msg(config, LOG_INFO, "Key Generation Interval: %i\n", config->keygeninterval);
+    log_msg(config, LOG_INFO, "Key Generation Interval: %i", config->keygeninterval);
     StrFree(temp_char);
     xmlXPathFreeObject(xpathObj);
 
@@ -519,7 +519,7 @@ ReadConfig(DAEMONCONFIG *config)
     /* TODO check that we can reuse xpathObj even if something has not worked */
     xpathObj = xmlXPathEvalExpression(iv_expr, xpathCtx);
     if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", iv_expr);
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", iv_expr);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -528,22 +528,22 @@ ReadConfig(DAEMONCONFIG *config)
     temp_char = (char *)xmlXPathCastToString(xpathObj);
     status = DtXMLIntervalSeconds(temp_char, &mysec);
     if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i", temp_char, status);
         StrFree(temp_char);
         return status;
     }
     else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", temp_char);
+        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
     }
     config->interval = mysec;
-    log_msg(config, LOG_INFO, "Communication Interval: %i\n", config->interval);
+    log_msg(config, LOG_INFO, "Communication Interval: %i", config->interval);
     StrFree(temp_char);
     xmlXPathFreeObject(xpathObj);
 
     /* Evaluate xpath expression for backup interval */
     xpathObj = xmlXPathEvalExpression(bi_expr, xpathCtx);
     if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", bi_expr);
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", bi_expr);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -552,22 +552,22 @@ ReadConfig(DAEMONCONFIG *config)
     temp_char = (char *)xmlXPathCastToString(xpathObj);
     status = DtXMLIntervalSeconds(temp_char, &mysec);
     if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i", temp_char, status);
         StrFree(temp_char);
         return status;
     }
     else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", temp_char);
+        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
     }
     config->backupinterval = mysec;
-    log_msg(config, LOG_INFO, "HSM Backup Interval: %i\n", config->backupinterval);
+    log_msg(config, LOG_INFO, "HSM Backup Interval: %i", config->backupinterval);
     StrFree(temp_char);
     xmlXPathFreeObject(xpathObj);
 
     /* Evaluate xpath expression for rollover notification interval */
     xpathObj = xmlXPathEvalExpression(rn_expr, xpathCtx);
     if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", rn_expr);
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", rn_expr);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -578,15 +578,15 @@ ReadConfig(DAEMONCONFIG *config)
         temp_char = (char *)xmlXPathCastToString(xpathObj);
         status = DtXMLIntervalSeconds(temp_char, &mysec);
         if (status > 0) {
-            log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+            log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i", temp_char, status);
             StrFree(temp_char);
             return status;
         }
         else if (status == -1) {
-            log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect\n", temp_char);
+            log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
         }
         config->rolloverNotify = mysec;
-        log_msg(config, LOG_INFO, "Rollover Notification Interval: %i\n", config->rolloverNotify);
+        log_msg(config, LOG_INFO, "Rollover Notification Interval: %i", config->rolloverNotify);
         StrFree(temp_char);
         xmlXPathFreeObject(xpathObj);
     }
@@ -599,7 +599,7 @@ ReadConfig(DAEMONCONFIG *config)
 		
     xpathObj = xmlXPathEvalExpression(litexpr, xpathCtx);
     if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", litexpr);
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", litexpr);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -607,7 +607,7 @@ ReadConfig(DAEMONCONFIG *config)
     if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
         config->schema = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "SQLite database set to: %s\n", config->schema);
+        log_msg(config, LOG_INFO, "SQLite database set to: %s", config->schema);
     }
     xmlXPathFreeObject(xpathObj);
 
@@ -616,7 +616,7 @@ ReadConfig(DAEMONCONFIG *config)
         /* HOST */
         xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
 		    if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_host);
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_host);
 		        xmlXPathFreeContext(xpathCtx);
 		        xmlFreeDoc(doc);
 		        return(-1);
@@ -625,13 +625,13 @@ ReadConfig(DAEMONCONFIG *config)
            db_found = MYSQL_DB;
         }
         config->host = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database host set to: %s\n", config->host);
+        log_msg(config, LOG_INFO, "MySQL database host set to: %s", config->host);
         xmlXPathFreeObject(xpathObj);
 
         /* PORT */
         xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
         if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_port);
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_port);
 		        xmlXPathFreeContext(xpathCtx);
 		        xmlFreeDoc(doc);
 		        return(-1);
@@ -640,13 +640,13 @@ ReadConfig(DAEMONCONFIG *config)
             db_found = 0;
         }
         config->port = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database port set to: %s\n", config->port);
+        log_msg(config, LOG_INFO, "MySQL database port set to: %s", config->port);
         xmlXPathFreeObject(xpathObj);
 
         /* SCHEMA */
         xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
         if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_db);
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_db);
 		        xmlXPathFreeContext(xpathCtx);
 		        xmlFreeDoc(doc);
 		        return(-1);
@@ -655,13 +655,13 @@ ReadConfig(DAEMONCONFIG *config)
             db_found = 0;
         }
         config->schema = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database schema set to: %s\n", config->schema);
+        log_msg(config, LOG_INFO, "MySQL database schema set to: %s", config->schema);
         xmlXPathFreeObject(xpathObj);
 
         /* DB USER */
         xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
         if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_user);
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_user);
 		        xmlXPathFreeContext(xpathCtx);
 		        xmlFreeDoc(doc);
 		        return(-1);
@@ -670,13 +670,13 @@ ReadConfig(DAEMONCONFIG *config)
             db_found = 0;
         }
         config->user = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database user set to: %s\n", config->user);
+        log_msg(config, LOG_INFO, "MySQL database user set to: %s", config->user);
         xmlXPathFreeObject(xpathObj);
 
         /* DB PASSWORD */
         xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);
         if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", mysql_pass);
+		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_pass);
 		        xmlXPathFreeContext(xpathCtx);
 		        xmlFreeDoc(doc);
 		        return(-1);
@@ -684,14 +684,14 @@ ReadConfig(DAEMONCONFIG *config)
 		    /* password may be blank */
         
         config->password = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database password set\n");
+        log_msg(config, LOG_INFO, "MySQL database password set");
         xmlXPathFreeObject(xpathObj);
 
     }
 
     /* Check that we found one or the other database */
     if(db_found == 0) {
-        log_msg(config, LOG_ERR, "Error: unable to find complete database connection expression in %s\n", filename);
+        log_msg(config, LOG_ERR, "Error: unable to find complete database connection expression in %s", filename);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -699,7 +699,7 @@ ReadConfig(DAEMONCONFIG *config)
 
     /* Check that we found the right database type */
     if (db_found != DbFlavour()) {
-        log_msg(config, LOG_ERR, "Error: database in config file %s does not match libksm\n", filename);
+        log_msg(config, LOG_ERR, "Error: database in config file %s does not match libksm", filename);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -708,7 +708,7 @@ ReadConfig(DAEMONCONFIG *config)
     /* Evaluate xpath expression for log facility (user) */
     xpathObj = xmlXPathEvalExpression(log_user_expr, xpathCtx);
     if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", log_user_expr);
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", log_user_expr);
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
@@ -723,16 +723,16 @@ ReadConfig(DAEMONCONFIG *config)
     if (strlen(logFacilityName) == 0) {
         logFacilityName = StrStrdup( (char *)DEFAULT_LOG_FACILITY_STRING );
         config->log_user = DEFAULT_LOG_FACILITY;
-        log_msg(config, LOG_INFO, "Using default log user: %s\n", logFacilityName);
+        log_msg(config, LOG_INFO, "Using default log user: %s", logFacilityName);
     } else {
         status = get_log_user(logFacilityName, &my_log_user);
         if (status > 0) {
-            log_msg(config, LOG_ERR, "Error: unable to set log user: %s, error: %i\n", logFacilityName, status);
+            log_msg(config, LOG_ERR, "Error: unable to set log user: %s, error: %i", logFacilityName, status);
             StrFree(logFacilityName);
             return status;
         }
         config->log_user = my_log_user;
-        log_msg(config, LOG_INFO, "Log User set to: %s\n", logFacilityName);
+        log_msg(config, LOG_INFO, "Log User set to: %s", logFacilityName);
     }
 
     log_switch(my_log_user, logFacilityName, config->program);
@@ -759,7 +759,7 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
     struct timeval tv;
 
     if (lock_fd == NULL) {
-        log_msg(NULL, LOG_ERR, "%s could not be opened\n", lock_filename);
+        log_msg(NULL, LOG_ERR, "%s could not be opened", lock_filename);
         return 1;
     }
 
@@ -770,7 +770,7 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
     
     while (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
         if (errno == EACCES || errno == EAGAIN) {
-            log_msg(NULL, LOG_INFO, "%s already locked, sleep\n", lock_filename);
+            log_msg(NULL, LOG_INFO, "%s already locked, sleep", lock_filename);
 
             /* sleep for 10 seconds TODO make this configurable? */
             tv.tv_sec = 10;
@@ -778,7 +778,7 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
             select(0, NULL, NULL, NULL, &tv);
 
         } else {
-            log_msg(NULL, LOG_INFO, "couldn't get lock on %s, %s\n", lock_filename, strerror(errno));
+            log_msg(NULL, LOG_INFO, "couldn't get lock on %s, %s", lock_filename, strerror(errno));
             return 1;
         }
     }

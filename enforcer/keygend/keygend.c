@@ -124,7 +124,7 @@ server_main(DAEMONCONFIG *config)
             policy->ksk == NULL || policy->zsk == NULL || 
             policy->denial == NULL || policy->enforcer == NULL ||
             policy->audit == NULL) {
-        log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
+        log_msg(config, LOG_ERR, "Malloc for policy struct failed");
         unlink(config->pidfile);
         exit(1);
     }
@@ -138,11 +138,11 @@ server_main(DAEMONCONFIG *config)
             log_msg(config, LOG_ERR, hsm_error_message);
             free(hsm_error_message);
         } else {
-            log_msg(config, LOG_ERR, "hsm_open() result: %d\n", result);
+            log_msg(config, LOG_ERR, "hsm_open() result: %d", result);
         }
         exit(1);
     }
-    log_msg(config, LOG_INFO, "HSM opened successfully.\n");
+    log_msg(config, LOG_INFO, "HSM opened successfully.");
     ctx = hsm_create_context();
 
     while (1) {
@@ -201,7 +201,7 @@ server_main(DAEMONCONFIG *config)
 
                 /* Check datetime in case it came back NULL */
                 if (rightnow == NULL) {
-                    log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
+                    log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...");
                     exit(1);
                 }
 
@@ -213,13 +213,13 @@ server_main(DAEMONCONFIG *config)
                 /* Find out how many ksk keys are needed for the POLICY */
                 status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->keygeninterval, &ksks_needed);
                 if (status != 0) {
-                    log_msg(NULL, LOG_ERR, "Could not predict ksk requirement for next interval for %s\n", policy->name);
+                    log_msg(NULL, LOG_ERR, "Could not predict ksk requirement for next interval for %s", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
                 /* Find out how many suitable keys we have */
                 status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, config->keygeninterval, rightnow, &keys_in_queue);
                 if (status != 0) {
-                    log_msg(NULL, LOG_ERR, "Could not count current ksk numbers for policy %s\n", policy->name);
+                    log_msg(NULL, LOG_ERR, "Could not count current ksk numbers for policy %s", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
 
@@ -232,9 +232,9 @@ server_main(DAEMONCONFIG *config)
                         if (policy->ksk->algorithm == 5 || policy->ksk->algorithm == 7 ) {
                             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
                             if (key) {
-                                /* log_msg(config, LOG_INFO,"Created key in HSM\n"); */
+                                /* log_msg(config, LOG_INFO,"Created key in HSM"); */
                             } else {
-                                log_msg(config, LOG_ERR,"Error creating key in HSM\n");
+                                log_msg(config, LOG_ERR,"Error creating key in HSM");
                                 hsm_error_message = hsm_get_error(ctx);
                                 if (hsm_error_message) {
                                     log_msg(config, LOG_ERR, hsm_error_message);
@@ -246,7 +246,7 @@ server_main(DAEMONCONFIG *config)
                             id = hsm_get_key_id(ctx, key);
                             status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
                             if (status != 0) {
-                                log_msg(config, LOG_ERR,"Error creating key in Database\n");
+                                log_msg(config, LOG_ERR,"Error creating key in Database");
                                 hsm_error_message = hsm_get_error(ctx);
                                 if (hsm_error_message) {
                                     log_msg(config, LOG_ERR, hsm_error_message);
@@ -272,13 +272,13 @@ server_main(DAEMONCONFIG *config)
                 /* Find out how many zsk keys are needed for the POLICY */
                 status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->keygeninterval, &zsks_needed);
                 if (status != 0) {
-                    log_msg(NULL, LOG_ERR, "Could not predict zsk requirement for next intervalfor %s\n", policy->name);
+                    log_msg(NULL, LOG_ERR, "Could not predict zsk requirement for next intervalfor %s", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
                 /* Find out how many suitable keys we have */
                 status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, config->keygeninterval, rightnow, &keys_in_queue);
                 if (status != 0) {
-                    log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s\n", policy->name);
+                    log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s", policy->name);
                     /* TODO exit? continue with next policy? */
                 }
                 /* Might have to account for ksks */
@@ -294,9 +294,9 @@ server_main(DAEMONCONFIG *config)
                    if (policy->zsk->algorithm == 5 || policy->zsk->algorithm == 7) {
                        key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
                        if (key) {
-                           /* log_msg(config, LOG_INFO,"Created key in HSM\n"); */
+                           /* log_msg(config, LOG_INFO,"Created key in HSM"); */
                        } else {
-                           log_msg(config, LOG_ERR,"Error creating key in HSM\n");
+                           log_msg(config, LOG_ERR,"Error creating key in HSM");
                            hsm_error_message = hsm_get_error(ctx);
                            if (hsm_error_message) {
                                log_msg(config, LOG_ERR, hsm_error_message);
@@ -308,7 +308,7 @@ server_main(DAEMONCONFIG *config)
                        id = hsm_get_key_id(ctx, key);
                        status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
                        if (status != 0) {
-                           log_msg(config, LOG_ERR,"Error creating key in Database\n");
+                           log_msg(config, LOG_ERR,"Error creating key in Database");
                            hsm_error_message = hsm_get_error(ctx);
                            if (hsm_error_message) {
                                log_msg(config, LOG_ERR, hsm_error_message);
@@ -395,7 +395,7 @@ server_main(DAEMONCONFIG *config)
     }
 
     result = hsm_close();
-    log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
+    log_msg(config, LOG_INFO, "all done! hsm_close result: %d", result);
 
     KsmPolicyFree(policy);
 

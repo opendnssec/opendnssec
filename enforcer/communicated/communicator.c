@@ -142,7 +142,7 @@ server_main(DAEMONCONFIG *config)
             policy->ksk == NULL || policy->zsk == NULL || 
             policy->denial == NULL || policy->enforcer == NULL ||
             policy->audit == NULL) {
-        log_msg(config, LOG_ERR, "Malloc for policy struct failed\n");
+        log_msg(config, LOG_ERR, "Malloc for policy struct failed");
         unlink(config->pidfile);
         exit(1);
     }
@@ -151,14 +151,14 @@ server_main(DAEMONCONFIG *config)
     /* Let's find our zonelist from the conf.xml */
     status = read_zonelist_filename(&zonelist_filename);
     if (status != 0) {
-        log_msg(NULL, LOG_ERR, "couldn't read zonelist filename\n");
+        log_msg(NULL, LOG_ERR, "couldn't read zonelist filename");
         unlink(config->pidfile);
         exit(1);
     }
 
     /* We keep the HSM connection open for the lifetime of the daemon */ 
     result = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
-    log_msg(config, LOG_INFO, "hsm_open result: %d\n", result);
+    log_msg(config, LOG_INFO, "hsm_open result: %d", result);
     ctx = hsm_create_context();
 
     while (1) {
@@ -212,7 +212,7 @@ server_main(DAEMONCONFIG *config)
                     /* Make sure that we got something */
                     if (zone_name == NULL) {
                         /* error */
-                        log_msg(NULL, LOG_ERR, "Error extracting zone name from %s\n", zonelist_filename);
+                        log_msg(NULL, LOG_ERR, "Error extracting zone name from %s", zonelist_filename);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
@@ -226,7 +226,7 @@ server_main(DAEMONCONFIG *config)
                     if (status != 0 || zone_id == -1)
                     {
                         /* error */
-                        log_msg(NULL, LOG_ERR, "Error looking up zone \"%s\" in database (maybe it doesn't exist?)\n", zone_name);
+                        log_msg(NULL, LOG_ERR, "Error looking up zone \"%s\" in database (maybe it doesn't exist?)", zone_name);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
@@ -236,7 +236,7 @@ server_main(DAEMONCONFIG *config)
                     xmlTextReaderExpand(reader);
                     doc = xmlTextReaderCurrentDoc(reader);
                     if (doc == NULL) {
-                        log_msg(config, LOG_ERR, "Error: can not read zone \"%s\"; skipping\n", zone_name);
+                        log_msg(config, LOG_ERR, "Error: can not read zone \"%s\"; skipping", zone_name);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
@@ -246,7 +246,7 @@ server_main(DAEMONCONFIG *config)
 
                     xpathCtx = xmlXPathNewContext(doc);
                     if(xpathCtx == NULL) {
-                        log_msg(config, LOG_ERR,"Error: can not create XPath context for \"%s\"; skipping zone\n", zone_name);
+                        log_msg(config, LOG_ERR,"Error: can not create XPath context for \"%s\"; skipping zone", zone_name);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
@@ -256,7 +256,7 @@ server_main(DAEMONCONFIG *config)
                     /* Evaluate xpath expression for policy */
                     xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
                     if(xpathObj == NULL) {
-                        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
+                        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone", policy_expr);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
@@ -305,7 +305,7 @@ server_main(DAEMONCONFIG *config)
                     xmlXPathFreeContext(xpathCtx);
 
                     if(xpathObj == NULL) {
-                        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
+                        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone", policy_expr);
                         /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
@@ -354,7 +354,7 @@ server_main(DAEMONCONFIG *config)
 
                         /* Check datetime in case it came back NULL */
                         if (datetime == NULL) {
-                            log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
+                            log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...");
                             exit(1);
                         }
 
@@ -384,10 +384,10 @@ server_main(DAEMONCONFIG *config)
             }
             xmlFreeTextReader(reader);
             if (ret != 0) {
-                log_msg(config, LOG_ERR, "%s : failed to parse\n", zonelist_filename);
+                log_msg(config, LOG_ERR, "%s : failed to parse", zonelist_filename);
             }
         } else {
-            log_msg(config, LOG_ERR, "Unable to open %s\n", zonelist_filename);
+            log_msg(config, LOG_ERR, "Unable to open %s", zonelist_filename);
         }
 
         xmlFreeDoc(doc);
@@ -452,7 +452,7 @@ server_main(DAEMONCONFIG *config)
     }
 
     result = hsm_close();
-    log_msg(config, LOG_INFO, "all done! hsm_close result: %d\n", result);
+    log_msg(config, LOG_INFO, "all done! hsm_close result: %d", result);
 
     StrFree(zonelist_filename);
     KsmPolicyFree(policy);
@@ -484,14 +484,14 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 
     /* Check datetime in case it came back NULL */
     if (datetime == NULL) {
-        log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
+        log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...");
         exit(1);
     }
 
     if (zone_name == NULL || current_filename == NULL || policy == NULL)
     {
         /* error */
-        log_msg(NULL, LOG_ERR, "commGenSignConf, NULL policy or zone provided\n");
+        log_msg(NULL, LOG_ERR, "commGenSignConf, NULL policy or zone provided");
         MemFree(datetime);
         return -1;
     }
@@ -509,7 +509,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     if (file == NULL)
     {
         /* error */
-        log_msg(NULL, LOG_ERR, "Could not open: %s\n", temp_filename);
+        log_msg(NULL, LOG_ERR, "Could not open: %s", temp_filename);
         MemFree(datetime);
         StrFree(temp_filename);
         StrFree(old_filename);
@@ -614,7 +614,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 
     if (status == EOF) /* close failed... do something? */
     {
-        log_msg(NULL, LOG_ERR, "Could not close: %s\n", temp_filename);
+        log_msg(NULL, LOG_ERR, "Could not close: %s", temp_filename);
         StrFree(temp_filename);
         StrFree(old_filename);
         return -1;
@@ -625,7 +625,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     if (file == NULL)
     {
         /* error */
-        log_msg(NULL, LOG_ERR, "Could not reopen: %s\n", temp_filename);
+        log_msg(NULL, LOG_ERR, "Could not reopen: %s", temp_filename);
         StrFree(temp_filename);
         StrFree(old_filename);
         return -1;
@@ -639,7 +639,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         while(!feof(file)) {
             char1 = fgetc(file);
             if(ferror(file)) {
-                log_msg(NULL, LOG_ERR, "Could not read: %s\n", temp_filename);
+                log_msg(NULL, LOG_ERR, "Could not read: %s", temp_filename);
                 fclose(file);
                 fclose(file2);
                 StrFree(temp_filename);
@@ -648,7 +648,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
             }
             char2 = fgetc(file2);
             if(ferror(file2)) {
-                log_msg(NULL, LOG_ERR, "Could not read: %s\n", current_filename);
+                log_msg(NULL, LOG_ERR, "Could not read: %s", current_filename);
                 fclose(file);
                 fclose(file2);
                 StrFree(temp_filename);
@@ -664,7 +664,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         status = fclose(file2);
         if (status == EOF) /* close failed... do something? */
         {
-            log_msg(NULL, LOG_ERR, "Could not close: %s\n", current_filename);
+            log_msg(NULL, LOG_ERR, "Could not close: %s", current_filename);
             fclose(file);
             StrFree(temp_filename);
             StrFree(old_filename);
@@ -675,7 +675,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     status = fclose(file);
     if (status == EOF) /* close failed... do something? */
     {
-        log_msg(NULL, LOG_ERR, "Could not close: %s\n", temp_filename);
+        log_msg(NULL, LOG_ERR, "Could not close: %s", temp_filename);
         StrFree(temp_filename);
         StrFree(old_filename);
         return -1;
@@ -690,7 +690,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         if (status != 0 && status != -1)
         {
             /* cope with initial condition of files not existing */
-            log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s\n", current_filename, old_filename);
+            log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s", current_filename, old_filename);
             StrFree(old_filename);
             StrFree(temp_filename);
             return -1;
@@ -699,7 +699,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         /* Then copy our temp into place */
         if (rename(temp_filename, current_filename) != 0)
         {
-            log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s\n", temp_filename, current_filename);
+            log_msg(NULL, LOG_ERR, "Could not rename: %s -> %s", temp_filename, current_filename);
             StrFree(old_filename);
             StrFree(temp_filename);
             return -1;
@@ -719,8 +719,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
             status = system(signer_command);
             if (status != 0)
             {
-                log_msg(NULL, LOG_ERR, "Could not call signer_engine\n");
-                log_msg(NULL, LOG_INFO, "Will continue: call signer_engine_cli update to manually update zones\n");
+                log_msg(NULL, LOG_ERR, "Could not call signer_engine");
+                log_msg(NULL, LOG_INFO, "Will continue: call signer_engine_cli update to manually update zones");
                 *signer_flag = 0;
             }
 
@@ -728,10 +728,10 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         }
     }
     else {
-        log_msg(NULL, LOG_INFO, "No change to: %s\n", current_filename);
+        log_msg(NULL, LOG_INFO, "No change to: %s", current_filename);
         if (remove(temp_filename) != 0)
         {
-            log_msg(NULL, LOG_ERR, "Could not remove: %s\n", temp_filename);
+            log_msg(NULL, LOG_ERR, "Could not remove: %s", temp_filename);
             StrFree(old_filename);
             StrFree(temp_filename);
             return -1;
@@ -814,17 +814,17 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 
     /* Check datetime in case it came back NULL */
     if (datetime == NULL) {
-        log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...\n");
+        log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...");
         exit(1);
     }
 
     if (policy == NULL) {
-        log_msg(NULL, LOG_ERR, "NULL policy sent to allocateKeysToZone\n");
+        log_msg(NULL, LOG_ERR, "NULL policy sent to allocateKeysToZone");
         return 1;
     }
 
     if (key_type != KSM_TYPE_KSK && key_type != KSM_TYPE_ZSK) {
-        log_msg(NULL, LOG_ERR, "Unknown keytype: %i in allocateKeysToZone\n", key_type);
+        log_msg(NULL, LOG_ERR, "Unknown keytype: %i in allocateKeysToZone", key_type);
         return 1;
     }
 
@@ -838,21 +838,21 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     /* How many do we need ? (set sharing to 1 so that we get the number needed for a single zone on this policy */
     status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed);
     if (status != 0) {
-        log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval for %s\n", zone_name);
+        log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval for %s", zone_name);
         return 3;
     }
 
     /* How many do we have ? TODO should this include the currently active key?*/
     status = KsmKeyCountQueue(key_type, &keys_in_queue, zone_id);
     if (status != 0) {
-        log_msg(NULL, LOG_ERR, "Could not count current key numbers for zone %s\n", zone_name);
+        log_msg(NULL, LOG_ERR, "Could not count current key numbers for zone %s", zone_name);
         return 3;
     }
 
     /* or about to retire */
     status = KsmRequestPendingRetireCount(key_type, datetime, &collection, &keys_pending_retirement, zone_id, interval);
     if (status != 0) {
-        log_msg(NULL, LOG_ERR, "Could not count keys which may retire before the next run (for zone %s)\n", zone_name);
+        log_msg(NULL, LOG_ERR, "Could not count keys which may retire before the next run (for zone %s)", zone_name);
         return 3;
     }
 
@@ -866,21 +866,21 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
         if (key_type == KSM_TYPE_KSK) {
             status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
             if (status == -1) {
-                log_msg(NULL, LOG_ERR, "Not enough keys to satisfy ksk policy for zone: %s\n", zone_name);
+                log_msg(NULL, LOG_ERR, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
                 return 2;
             }
             else if (status != 0) {
-                log_msg(NULL, LOG_ERR, "Could not get an unallocated ksk for zone: %s\n", zone_name);
+                log_msg(NULL, LOG_ERR, "Could not get an unallocated ksk for zone: %s", zone_name);
                 return 3;
             }
         } else {
             status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
             if (status == -1) {
-                log_msg(NULL, LOG_ERR, "Not enough keys to satisfy zsk policy for zone: %s\n", zone_name);
+                log_msg(NULL, LOG_ERR, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
                 return 2;
             }
             else if (status != 0) {
-                log_msg(NULL, LOG_ERR, "Could not get an unallocated zsk for zone: %s\n", zone_name);
+                log_msg(NULL, LOG_ERR, "Could not get an unallocated zsk for zone: %s", zone_name);
                 return 3;
             }
         }
@@ -932,7 +932,7 @@ int read_zonelist_filename(char** zone_list_filename)
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    log_msg(NULL, LOG_ERR, "Error: can not read Common section of %s\n", filename);
+                    log_msg(NULL, LOG_ERR, "Error: can not read Common section of %s", filename);
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -940,7 +940,7 @@ int read_zonelist_filename(char** zone_list_filename)
 
                 xpathCtx = xmlXPathNewContext(doc);
                 if(xpathCtx == NULL) {
-                    log_msg(NULL, LOG_ERR, "Error: can not create XPath context for Common section\n");
+                    log_msg(NULL, LOG_ERR, "Error: can not create XPath context for Common section");
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -949,7 +949,7 @@ int read_zonelist_filename(char** zone_list_filename)
                 /* Evaluate xpath expression for ZoneListFile */
                 xpathObj = xmlXPathEvalExpression(zonelist_expr, xpathCtx);
                 if(xpathObj == NULL) {
-                    log_msg(NULL, LOG_ERR, "Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
+                    log_msg(NULL, LOG_ERR, "Error: unable to evaluate xpath expression: %s", zonelist_expr);
                     /* Don't return? try to parse the rest of the file? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -959,7 +959,7 @@ int read_zonelist_filename(char** zone_list_filename)
                 StrAppend(zone_list_filename, temp_char);
                 StrFree(temp_char);
                 xmlXPathFreeObject(xpathObj);
-                log_msg(NULL, LOG_INFO, "zonelist filename set to %s.\n", *zone_list_filename);
+                log_msg(NULL, LOG_INFO, "zonelist filename set to %s.", *zone_list_filename);
             }
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
@@ -967,11 +967,11 @@ int read_zonelist_filename(char** zone_list_filename)
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {
-            log_msg(NULL, LOG_ERR, "%s : failed to parse\n", filename);
+            log_msg(NULL, LOG_ERR, "%s : failed to parse", filename);
             return(1);
         }
     } else {
-        log_msg(NULL, LOG_ERR, "Unable to open %s\n", filename);
+        log_msg(NULL, LOG_ERR, "Unable to open %s", filename);
         return(1);
     }
     if (xpathCtx) {
