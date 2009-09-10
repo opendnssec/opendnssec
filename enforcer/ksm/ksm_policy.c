@@ -48,8 +48,6 @@
 #include "ksm/message.h"
 #include "ksm/string_util.h"
 
-#include "libhsm.h"
-
 /*+
  * KsmPolicyInit - Query for Policy Information
  *
