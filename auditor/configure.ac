@@ -1,7 +1,7 @@
 # $Id$
 
 AC_PREREQ(2.61)
-AC_INIT([auditor],[0.0.3],[alex.dalitz@nominet.org.uk])
+AC_INIT([auditor],[0.0.4],[alex.dalitz@nominet.org.uk])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
