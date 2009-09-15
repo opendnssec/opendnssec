@@ -673,8 +673,10 @@ class Zone:
         Util.move_file(self.get_zone_tmp_filename(".finalized"),
                        self.get_zone_output_filename())
         if self.engine_config.notify_command:
-            notify_cmd = self.engine_config.notify_command.replace("%zone",
-                                                        self.zone_name)
+            notify_cmd = self.engine_config.notify_command.replace("%zonefile",
+                                                        self.get_zone_output_filename())
+
+            notify_cmd = notify_cmd.replace("%zone", self.zone_name)
             syslog.syslog(syslog.LOG_INFO,
                           "Running update notify command:" + notify_cmd)
             (status, output) = commands.getstatusoutput(notify_cmd)
