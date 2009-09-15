@@ -28,10 +28,10 @@
 
 /*
  * get_serial
- * 
+ *
  * This tool takes a zone file and prints the serial number found
  * in the (first) SOA rr it reads
- * 
+ *
  * by default, it will read a zone from stdin
  * if the file is not found, or there is no soa record, 0 will be
  * printed (and non-zero returned)
@@ -43,7 +43,7 @@
 #include <ldns/ldns.h>
 #include "util.h"
 
-uint32_t get_serial(ldns_rr *rr) 
+uint32_t get_serial(ldns_rr *rr)
 {
 	uint32_t serial = 0;
 	if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
@@ -52,7 +52,7 @@ uint32_t get_serial(ldns_rr *rr)
 	return serial;
 }
 
-void 
+void
 usage(FILE *out)
 {
 	fprintf(out, "Usage: get_serial [options]\n");
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	ldns_status status;
 	uint32_t serial;
 	char c;
-	
+
 	while ((c = getopt(argc, argv, "f:h")) != -1) {
 		switch(c) {
 		case 'f':
