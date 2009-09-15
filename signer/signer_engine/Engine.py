@@ -534,6 +534,8 @@ class Engine:
             elif config_action >= ZoneConfig.RESORT:
                 # perform immediately
                 self.schedule_signing(zone_name)
+ 
+            zone.use_axfr = self.config.use_axfr
             succeeded = True
         except ZoneConfigError, zce:
             syslog.syslog(syslog.LOG_ERR,

@@ -78,6 +78,11 @@ class Zone:
         result.append("last config file read: " + str(self.last_read))
         return "\n".join(result)
 
+    def get_zone_axfr_filename(self):
+        """Returns the file name of the stored AXFR file"""
+        zone_axfr_dir = "/opt/opendnssec/var/opendnssec/axfr"
+        return zone_axfr_dir + os.sep + self.zone_name
+
     def get_zone_input_filename(self):
         """Returns the file name of the source zone file"""
         return self.zonelist_entry.input_adapter_data
@@ -107,6 +112,7 @@ class Zone:
         except Exception, e:
             # treat every exception as a configuration error
             raise ZoneConfigError(str(e))
+
     def get_input_serial(self):
         """Returns the serial number from the SOA record in the input
         zone file"""
@@ -208,6 +214,17 @@ class Zone:
                               "Error: Unable to find key " +\
                               k["locator"])
                 syslog.syslog(syslog.LOG_ERR, str(exc))
+
+    def fetch_axfr(self):
+        """Retrieve the zone through AXFR. If use_axfr is false, do
+        nothing. Otherwise, move the transferred file to the input
+        adapter file."""
+        if self.use_axfr:
+            if os.path.exists(self.get_zone_axfr_filename()):
+                syslog.syslog(syslog.LOG_INFO, "Fetch zone: " + self.zone_name)
+                Util.move_file(self.get_zone_axfr_filename(),
+                       self.get_zone_input_filename())
+        return True;
 
     def sort_input(self):
         """Sort the zone according to the relevant signing details
@@ -439,12 +456,12 @@ class Zone:
                             self.nsecify():
             if self.sign() and self.finalize() and self.audit():
                 self.move_output()
-        elif self.action >= ZoneConfig.REREAD and os.path.isfile(
+        elif self.action >= ZoneConfig.REREAD and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
             if self.sort_input() and self.nsecify():
                 if self.sign() and self.finalize() and self.audit():
                     self.move_output()
-        elif self.action >= ZoneConfig.RESORT and os.path.isfile(
+        elif self.action >= ZoneConfig.RESORT and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
             ## the sorting config has changed. We must also re-sort the
             ## internal zone storage containing our previous signatures,

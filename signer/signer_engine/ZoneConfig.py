@@ -86,13 +86,6 @@ class ZoneConfig:
     # we don't override __cmp__ because we use self-defined results
     # from low to high: every results implies the above ones
     # (is that a correct assumption?)
-    # NO_CHANGE   0
-    # NO_SCHEDULE 1
-    # RESCHEDULE  2
-    # RESORT      3
-    # RENSEC      4
-    # RESIGN      5
-    # 
     def compare_config(self, ocfg):
         """Compares this configuration to another one. The result value
         will specify what to do with the zone according to the changes

@@ -1,7 +1,7 @@
 # $Id$
 
 AC_PREREQ(2.61)
-AC_INIT([signer_engine],[0.0.4],[jelte@NLnetLabs.nl])
+AC_INIT([signer_engine],[0.0.4],[matthijs@NLnetLabs.nl])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])

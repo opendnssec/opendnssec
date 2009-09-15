@@ -33,6 +33,7 @@ There is an example config file in <repos>/signer_engine/engine.conf
 import os
 import re
 import Util
+from Ft.Xml.XPath import Evaluate
 from xml.dom import minidom
 from xml.parsers.expat import ExpatError
 
@@ -54,6 +55,7 @@ class EngineConfiguration:
     def __init__(self, config_file_name):
         if not config_file_name:
             config_file_name = "@sysconfdir@/opendnssec/conf.xml".replace("${prefix}", "@prefix@")
+        self.use_axfr = False
         self.zonelist_file = None
         self.zone_tmp_dir = None
         self.tools_dir = None
@@ -100,6 +102,10 @@ class EngineConfiguration:
         self.zonelist_file = \
              Util.get_xml_data("Configuration/Common/ZoneListFile",
                                xml_blob, True)
+
+        if Evaluate("Configuration/Common/AXFR", xml_blob):
+            self.use_axfr = True
+
         self.zone_tmp_dir = \
              Util.get_xml_data("Configuration/Signer/WorkingDirectory",
                                xml_blob, True)
