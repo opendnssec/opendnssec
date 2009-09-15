@@ -114,3 +114,40 @@ rr_list_clear(ldns_rr_list *rr_list) {
 	ldns_rr_list_set_rr_count(rr_list, 0);
 }
 
+/* lookup serial */
+static uint32_t
+get_serial(ldns_rr *rr)
+{
+	uint32_t serial = 0;
+	if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+		serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, 2));
+	}
+	return serial;
+}
+
+uint32_t
+lookup_serial(FILE* fd)
+{
+	ldns_rr *cur_rr;
+	char line[MAX_LINE_LEN];
+	ldns_status status;
+	uint32_t serial;
+	int line_len = 0;
+
+	while (line_len >= 0) {
+		line_len = read_line(fd, line, 1);
+		if (line_len > 0) {
+			if (line[0] != ';') {
+				status = ldns_rr_new_frm_str(&cur_rr, line, 0, NULL, NULL);
+				if (status == LDNS_STATUS_OK) {
+					serial = get_serial(cur_rr);
+					ldns_rr_free(cur_rr);
+					if (serial != 0) {
+                        return serial;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}

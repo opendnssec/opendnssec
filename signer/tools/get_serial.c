@@ -43,15 +43,6 @@
 #include <ldns/ldns.h>
 #include "util.h"
 
-uint32_t get_serial(ldns_rr *rr)
-{
-	uint32_t serial = 0;
-	if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
-		serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, 2));
-	}
-	return serial;
-}
-
 void
 usage(FILE *out)
 {
@@ -63,12 +54,8 @@ usage(FILE *out)
 
 int main(int argc, char **argv)
 {
-	ldns_rr *cur_rr;
-	char line[MAX_LINE_LEN];
-	int line_len = 0;
 	FILE *input_file = stdin;
 	FILE *output_file = stdout;
-	ldns_status status;
 	uint32_t serial;
 	char c;
 
@@ -92,22 +79,12 @@ int main(int argc, char **argv)
 		}
 	}
 
-	while (line_len >= 0) {
-		line_len = read_line(input_file, line, 1);
-		if (line_len > 0) {
-			if (line[0] != ';') {
-				status = ldns_rr_new_frm_str(&cur_rr, line, 0, NULL, NULL);
-				if (status == LDNS_STATUS_OK) {
-					serial = get_serial(cur_rr);
-					ldns_rr_free(cur_rr);
-					if (serial != 0) {
-						fprintf(output_file, "%u\n", (unsigned int) serial);
-						return 0;
-					}
-				}
-			}
-		}
+	serial = lookup_serial(input_file);
+	if (serial != 0) {
+		fprintf(output_file, "%u\n", (unsigned int) serial);
+		return 0;
 	}
+
 	fprintf(output_file, "0\n");
 	return 1;
 }
