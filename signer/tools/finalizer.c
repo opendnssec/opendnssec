@@ -91,7 +91,7 @@ main(int argc, char **argv)
 	}
 
 	while (line_len >= 0) {
-		line_len = read_line(input_file, line, 0);
+		line_len = read_line(input_file, line, 0, 0);
 		if (line_len > 0) {
 			if (line[0] != ';') {
 				(void) ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
@@ -109,7 +109,7 @@ main(int argc, char **argv)
 	line_count = 0;
 
 	while (line_len >= 0) {
-		line_len = read_line(input_file, line, 0);
+		line_len = read_line(input_file, line, 0, 0);
 		if (soa_line == line_count) /* we have already printed the SOA */
 		{
 			line_count++;

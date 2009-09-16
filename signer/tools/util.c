@@ -34,7 +34,7 @@
 #include "util.h"
 
 int
-read_line(FILE *input, char *line, int multiline)
+read_line(FILE *input, char *line, int multiline, int skip_comments)
 {
 	int i, li;
 	int depth = 0;
@@ -48,7 +48,11 @@ read_line(FILE *input, char *line, int multiline)
 		 * skip it completely */
 		if (i > 0 && c == ';' && !in_string && lc != '\\') {
 			while(c != EOF && c != '\n') {
-				c = getc(input);
+				if (!skip_comments && !multiline) {
+					line[li] = c;
+					li++;
+				}
+					c = getc(input);
 			}
 		}
 		if (c == EOF) {
@@ -135,7 +139,7 @@ lookup_serial(FILE* fd)
 	int line_len = 0;
 
 	while (line_len >= 0) {
-		line_len = read_line(fd, line, 1);
+		line_len = read_line(fd, line, 1, 0);
 		if (line_len > 0) {
 			if (line[0] != ';') {
 				status = ldns_rr_new_frm_str(&cur_rr, line, 0, NULL, NULL);

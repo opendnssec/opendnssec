@@ -987,7 +987,7 @@ read_rr_from_file(FILE *file, FILE *out,
 	ldns_status status, cmd_res;
 	
 	while (!rr) {
-		line_len = read_line(file, line, 1);
+		line_len = read_line(file, line, 1, 0);
 		if (line_len < 0) {
 			return NULL;
 		}

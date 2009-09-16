@@ -717,7 +717,7 @@ main(int argc, char **argv)
 	origin = ldns_rdf_clone(zone_name);
 	line_len = 0;
 	while (line_len >= 0) {
-		line_len = read_line(rr_files[file_count], line, 1);
+		line_len = read_line(rr_files[file_count], line, 1, 1);
 		if (line_len > 0) {
 			if (line[0] == '$') {
 				tmp = directive_origin(line);
@@ -873,7 +873,7 @@ main(int argc, char **argv)
 						 * input if it is stdin, so the calling process does
 						 * not write to a nonexisting pipe */
 						while (line_len >= 0) {
-							line_len = read_line(rr_files[file_count], line, 1);
+							line_len = read_line(rr_files[file_count], line, 1, 1);
 						}
 						/* unlink the output file if it is not stdout, we do not
 						 * want partial output going to the next tool */
