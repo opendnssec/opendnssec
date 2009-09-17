@@ -145,7 +145,7 @@ node_for_rr_name(ldns_rr *rr, ldns_rbnode_t *node)
 	ldns_rr *cur_rr;
 	size_t pos = 0;
 	ldns_status status;
-	
+
 	cur_data = (rr_data *) node->data;
 	if (!cur_data->ent_for) {
 		status = ldns_wire2rr(&cur_rr,
@@ -377,6 +377,7 @@ usage(FILE *out)
 	fprintf(out, "-p\t\tDon't add NSEC3PARAM record when using NSEC3\n");
 	fprintf(out, "-s <salt>\tUse this salt for NSEC3 hashed name calculation\n");
 	fprintf(out, "-t <count>\tUse <count> iterations for NSEC3 hashed name calculation\n");
+	fprintf(out, "-a <algo>\tUse <algo> as the NSEC3 hash algorithm number\n");
 }
 
 /* hmm, this might be a good contender for inclusion in ldns */
@@ -717,7 +718,7 @@ main(int argc, char **argv)
 	origin = ldns_rdf_clone(zone_name);
 	line_len = 0;
 	while (line_len >= 0) {
-		line_len = read_line(rr_files[file_count], line, 1, 1);
+		line_len = read_line(rr_files[file_count], line, 1, 0);
 		if (line_len > 0) {
 			if (line[0] == '$') {
 				tmp = directive_origin(line);
@@ -868,12 +869,12 @@ main(int argc, char **argv)
 				} else {
 					if (status != LDNS_STATUS_SYNTAX_EMPTY) {
 						fprintf(stderr, "Warning: %s:\n", ldns_get_errorstr_by_id(status));
-						fprintf(stderr, "%s\n", line);
+						fprintf(stderr, "%i: %s\n", line_nr, line);
 						/* we are going to quit. read and drop rest of
 						 * input if it is stdin, so the calling process does
 						 * not write to a nonexisting pipe */
 						while (line_len >= 0) {
-							line_len = read_line(rr_files[file_count], line, 1, 1);
+							line_len = read_line(rr_files[file_count], line, 1, 0);
 						}
 						/* unlink the output file if it is not stdout, we do not
 						 * want partial output going to the next tool */
@@ -908,7 +909,7 @@ main(int argc, char **argv)
 			ldns_rr_free(cur_rr);
 			cur_rr = NULL;
 		}
-	} else if (status != LDNS_STATUS_SYNTAX_EMPTY && 
+	} else if (status != LDNS_STATUS_SYNTAX_EMPTY &&
 	           status != LDNS_STATUS_SYNTAX_TTL &&
 	           status != LDNS_STATUS_SYNTAX_ORIGIN) {
 		fprintf(stderr, "Parse error in input line %d: %s\n",
