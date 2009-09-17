@@ -704,6 +704,7 @@ def main():
     except Exception, e:
         print "Unable to continue, stopping:"
         print "Unexpected error:", sys.exc_info()[0]
+        syslog.syslog(syslog.LOG_ERR, "Error: " +  str(e))
         raise e
         engine.stop_engine()
     sys.exit(0)
