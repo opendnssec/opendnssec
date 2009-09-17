@@ -7,10 +7,13 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.h.in
 
 opendnsseclibexec_PROGRAMS= \
-	zone_reader get_serial \
+	sorter zone_reader get_serial \
 	nseccer nsec3er \
 	signer create_dnskey \
 	finalizer signer_threads
+
+sorter_SOURCES=			sorter.c util.c
+sorter_LDADD=			@LDNS_LIBS@
 
 zone_reader_SOURCES=		zone_reader.c util.c
 zone_reader_LDADD=		@LDNS_LIBS@
