@@ -192,7 +192,7 @@ ent_for_ns_only(ldns_rr *rr, ldns_rbtree_t *tree)
 	}
 	return 0;
 }
-    
+
 void
 print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 {
@@ -200,7 +200,7 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 	ldns_rdf *dname;
 	ldns_status status;
 	size_t pos = 0;
-	
+
 	if (rrd->ooz) {
 		fprintf(out, "; Out-of-zone data: ");
 	} else if (rrd->glue) {
@@ -325,7 +325,7 @@ compare_rr_data(const void *a, const void *b)
 				 * 1 instead of 0 here */
 				result = 1;
 			}
-		} else 
+		} else
 		if (rb->type == LDNS_RR_TYPE_RRSIG &&
 			ra->type != LDNS_RR_TYPE_RRSIG) {
 			if (ra->type > rb->type_covered) {
@@ -395,7 +395,7 @@ find_empty_nonterminals(ldns_rdf *zone_name,
 	int lpos;
 	ldns_rdf *new_name;
 	int count = 0;
-	
+
 	/* Since the names are in canonical order, we can
 	 * recognize empty non-terminals by their labels;
 	 * every label after the first one on the next owner
@@ -425,7 +425,7 @@ find_empty_nonterminals(ldns_rdf *zone_name,
 			if (!new_name) {
 				return -1;
 			}
-			
+
 			nonterminals[count] = new_name;
 			count++;
 		}
@@ -558,7 +558,7 @@ main(int argc, char **argv)
 	ldns_rbtree_t *ns_tree;
 	ldns_rr *cur_rr, *prev_rr;
 	rr_data *cur_rr_data;
-	
+
 	/* empty nonterminal detection */
 	ldns_rdf *empty_nonterminals[100];
 	int empty_nonterminal_count, eni;
@@ -586,7 +586,7 @@ main(int argc, char **argv)
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
 	char *multiline_rr = NULL;
-	
+
 	int line_len;
 	char line[MAX_LINE_LEN];
 
@@ -659,7 +659,7 @@ main(int argc, char **argv)
 			}
 			for (c = 0; c < (int) strlen(optarg); c += 2) {
 				if (isxdigit(optarg[c]) && isxdigit(optarg[c+1])) {
-					nsec3_salt[c/2] = 
+					nsec3_salt[c/2] =
 						(uint8_t) ldns_hexdigit_to_int(optarg[c]) * 16 +
 						ldns_hexdigit_to_int(optarg[c+1]);
 				} else {
@@ -680,7 +680,7 @@ main(int argc, char **argv)
 		usage(stderr);
 		exit(EXIT_FAILURE);
 	}
-	
+
 	if (!zone_name) {
 		fprintf(stderr, "Error, no zone name specified (-o)\n");
 		exit(EXIT_FAILURE);
@@ -779,7 +779,6 @@ main(int argc, char **argv)
 						cur_rr = NULL;
 						continue;
 					}
-					
 					cur_rr_data = rr_data_new();
 
 					if (!(ldns_dname_compare(ldns_rr_owner(cur_rr), origin) == 0 ||
@@ -790,6 +789,7 @@ main(int argc, char **argv)
 												   ldns_rr_owner(prev_rr),
 												   ldns_rr_owner(cur_rr),
 												   empty_nonterminals);
+
 						for (eni = 0; eni < empty_nonterminal_count; eni++) {
 							cur_rr_data->name = ldns_nsec3_hash_name(
 												empty_nonterminals[eni],
@@ -831,7 +831,7 @@ main(int argc, char **argv)
 					}
 					cur_rr_data->type = ldns_rr_get_type(cur_rr);
 					if (cur_rr_data->type == LDNS_RR_TYPE_RRSIG) {
-						cur_rr_data->type_covered = 
+						cur_rr_data->type_covered =
 						    ldns_rdf2rr_type(
 							     ldns_rr_rrsig_typecovered(cur_rr));
 						/* since we removed NSEC and NSEC3, also remove
@@ -844,11 +844,11 @@ main(int argc, char **argv)
 							continue;
 						}
 					}
-					
+
 					status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
 											cur_rr,
 											LDNS_SECTION_ANY_NOQUESTION);
-					
+
 					ldns_rbtree_insert(rr_tree,
 									rr_data2node(cur_rr_data));
 					if (cur_rr_data->type == LDNS_RR_TYPE_NS) {
@@ -862,7 +862,7 @@ main(int argc, char **argv)
 							}
 						}
 					}
-					
+
 					ldns_rr_free(prev_rr);
 					prev_rr = cur_rr;
 					cur_rr = NULL;
@@ -939,7 +939,6 @@ main(int argc, char **argv)
 		status = ldns_rr2buffer_wire(cur_rr_data->rr_buf,
 		                             my_nsec3params,
 		                             LDNS_SECTION_ANY_NOQUESTION);
-		
 		ldns_rbtree_insert(rr_tree, rr_data2node(cur_rr_data));
 	}
 
@@ -960,7 +959,7 @@ main(int argc, char **argv)
 	if (prev_rr) {
 		ldns_rr_free(prev_rr);
 	}
-	
+
 	if (origin) {
 		ldns_rdf_deep_free(origin);
 	}
