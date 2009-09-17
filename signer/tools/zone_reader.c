@@ -27,8 +27,8 @@
  */
 
 /*
- * This tool reads input zone files.
- * It sorts the zone according in the needed order (either canonical
+ * This tool reads sorted zone files.
+ * It resorts the zone according in the needed order (either canonical
  * or in NSEC3 order)
  * It also marks empty non-terminals, glue and out-of-zone data, and
  * converts those to comments. For NSEC3, it adds an NSEC3PARAM RR if
@@ -363,7 +363,7 @@ compare_dname(const void *a, const void *b)
 void
 usage(FILE *out)
 {
-	fprintf(out, "Usage: sorter [OPTIONS]\n");
+	fprintf(out, "Usage: zone_reader [OPTIONS]\n");
 	fprintf(out, "Sorts the zone read from stdin in canonical order.\n");
 	fprintf(out, "If -n, -s or -i are given, the rrs are sorted according\n");
 	fprintf(out, "to their NSEC3-hashed name.\n");
