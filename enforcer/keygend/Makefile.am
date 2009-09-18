@@ -18,5 +18,7 @@ keygend_LDADD = ../common/libenforcer.a ../ksm/libksm.a
 keygend_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@
 keygend_DEPENDENCIES = @BUILD_LIBHSM@
 
+EXTRA_DIST = $(srcdir)/*.h
+
 ../../libhsm/src/libhsm.la:
 	(cd ../../libhsm/src; ${MAKE} libhsm.la)

@@ -44,5 +44,7 @@ create_dnskey_DEPENDENCIES=	@BUILD_LIBHSM@
 finalizer_SOURCES=		finalizer.c util.c
 finalizer_LDADD=		@LDNS_LIBS@
 
+EXTRA_DIST = $(srcdir)/*.h
+
 ../../libhsm/src/libhsm.la:
 	(cd ../../libhsm/src; ${MAKE} libhsm.la)

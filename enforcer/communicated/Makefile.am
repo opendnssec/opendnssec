@@ -15,3 +15,5 @@ sbin_PROGRAMS = communicated
 communicated_SOURCES = communicator.c
 communicated_LDADD = ../common/libenforcer.a ../ksm/libksm.a
 communicated_LDADD += @XML2_LIBS@ @DB_LIBS@
+
+EXTRA_DIST = $(srcdir)/*.h
