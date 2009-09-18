@@ -1,7 +1,13 @@
 $Id$
 
 OpenDNSSEC trunk
+
+Features:
 * support %zonefile expansion in the signer engine NotifyCommand 
+
+Bugfixes:
+* Read <OptOut/> correclty from the kasp.xml
+* Correclty discover Empty Non-Terminals when reading input zonefile
 
 OpenDNSSEC 1.0a4 - 2009-09-10
 
