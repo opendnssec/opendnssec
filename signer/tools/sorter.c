@@ -303,6 +303,22 @@ directive_include(const char *line, FILE *rr_files[], int *file_count)
 	return 0;
 }
 
+static int
+line_contains_space_only(char* line, int line_len)
+{
+	int i;
+
+	for (i=0; i<line_len; i++) {
+		if (line[i] != ' ' &&
+			line[i] != '\t' &&
+			line[i] != '\n' &&
+			line[i] != '\0')
+			return 0;
+	}
+	return 1;
+}
+
+
 int
 main(int argc, char **argv)
 {
@@ -395,7 +411,8 @@ main(int argc, char **argv)
 	line_len = 0;
 	while (line_len >= 0) {
 		line_len = read_line(rr_files[file_count], line, 1, 0);
-		if (line_len > 0) {
+		if (line_len >= 0 && !line_contains_space_only(line, line_len)) {
+			fprintf(stderr, "<stderr> read_line: %s\n", line);
 			if (line[0] == '$') {
 				tmp = directive_origin(line);
 				if (tmp) {
