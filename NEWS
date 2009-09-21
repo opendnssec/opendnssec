@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.0a5 - 2009-09-21
 
 Features:
 * support %zonefile expansion in the signer engine NotifyCommand 

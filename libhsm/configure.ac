@@ -1,7 +1,7 @@
 # $Id$
 
 AC_PREREQ(2.61)
-AC_INIT([libhsm],[0.0.4],[jelte@nlnetlabs.nl])
+AC_INIT([libhsm],[0.0.5],[jelte@nlnetlabs.nl])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
