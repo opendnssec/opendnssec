@@ -15,7 +15,7 @@ sbin_PROGRAMS = keygend
 
 keygend_SOURCES = keygend.c
 keygend_LDADD = ../common/libenforcer.a ../ksm/libksm.a
-keygend_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@
+keygend_LDADD += @LIBHSM_LIBS@ @XML2_LIBS@ @DB_LIBS@
 keygend_DEPENDENCIES = @BUILD_LIBHSM@
 
 EXTRA_DIST = $(srcdir)/*.h
