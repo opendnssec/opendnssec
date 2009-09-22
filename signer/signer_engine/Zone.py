@@ -78,11 +78,6 @@ class Zone:
         result.append("last config file read: " + str(self.last_read))
         return "\n".join(result)
 
-    def get_zone_axfr_filename(self):
-        """Returns the file name of the stored AXFR file"""
-        zone_axfr_dir = "/opt/opendnssec/var/opendnssec/axfr"
-        return zone_axfr_dir + os.sep + self.zone_name
-
     def get_zone_input_filename(self):
         """Returns the file name of the source zone file"""
         return self.zonelist_entry.input_adapter_data
@@ -91,6 +86,11 @@ class Zone:
         """Returns the file name of the final signed output file"""
         return self.zonelist_entry.output_adapter_data
         
+    def get_zone_axfr_filename(self):
+        """Returns the file name of the stored AXFR file"""
+        zone_input_filename = get_zone_input_filename()
+        return zone_input_filename + os.sep + ".axfr"
+
     def get_zone_config_filename(self):
         """Returns the file name of the zone configuration xml file"""
         return self.zonelist_entry.configuration_file
