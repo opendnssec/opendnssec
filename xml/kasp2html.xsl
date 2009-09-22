@@ -276,6 +276,9 @@
 			<xsl:when test=". = 'keep'">
 				<xsl:text>Keep Serial from the Unsigned Zone</xsl:text>						
 			</xsl:when>
+			<xsl:when test=". = 'keepcounter'">
+				<xsl:text>Keep Serial from the Unsigned Zone, fallback to Counter if it is equal or lower than the Serial from the Signed Zone</xsl:text>
+			</xsl:when>
 			<xsl:otherwise>
 				<xsl:value-of select="."/>
 			</xsl:otherwise>
