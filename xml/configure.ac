@@ -30,6 +30,7 @@ AC_CONFIG_FILES([
 	kasp.xml
 	signconf.xml
 	zonelist.xml
+	zonefetch.xml
 ])
 
 AC_OUTPUT
