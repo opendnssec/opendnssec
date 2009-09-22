@@ -11,9 +11,9 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-RNC =	conf.rnc kasp.rnc zonelist.rnc signconf.rnc
-RNG =	conf.rng kasp.rng zonelist.rng signconf.rng
-XML =	conf.xml kasp.xml zonelist.xml signconf.xml
+RNC =	conf.rnc kasp.rnc zonelist.rnc signconf.rnc zonefetch.rnc
+RNG =	conf.rng kasp.rng zonelist.rng signconf.rng zonefetch.rng
+XML =	conf.xml kasp.xml zonelist.xml signconf.xml zonefetch.xml
 XSL=	kasp2html.xsl
 
 TRANG=	$(srcdir)/trang/trang.jar
@@ -53,6 +53,8 @@ install-data-hook:
 	${INSTALL_DATA} ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
 	test -f ${sysconfdir}/zonelist.xml || \
 		${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}
+	test -f ${sysconfdir}/zonefetch.xml || \
+		${INSTALL_DATA} ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}/zonelist.xml.sample
 	test -f ${sysconfdir}/kasp.xml || \
 		${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}

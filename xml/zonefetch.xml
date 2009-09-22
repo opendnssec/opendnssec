@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id$ -->
+
+<ZoneFetch>
+	<Default>
+		<TSIG>
+			<Name>secret.example.com.</Name>
+			<Algorithm>hmac-sha256</Algorithm>
+			<Secret>sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=</Secret>
+		</TSIG>
+		<Address><IPv4>192.0.2.0</IPv4></Address>
+	</Default>
+</ZoneFetch>

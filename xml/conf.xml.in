@@ -31,6 +31,10 @@
 		
 		<PolicyFile>@opendnssecsysconfdir@/kasp.xml</PolicyFile>
 		<ZoneListFile>@opendnssecsysconfdir@/zonelist.xml</ZoneListFile>
+
+	<!--
+		<ZoneFetchFile>@opendnssecsysconfdir@/zonefetch.xml</ZoneFetchFile>
+	-->
 	</Common>
 
 	<Enforcer>

@@ -66,6 +66,9 @@ start = element Configuration {
 
 		# Location to store the zonelist XML file
 		element ZoneListFile { xsd:string }
+
+		# Location to store the zonefetch XML file
+		element ZoneFetchFile { xsd:string }=
 	},
 
 	# Configuration parameters for the KASP Enforcer
