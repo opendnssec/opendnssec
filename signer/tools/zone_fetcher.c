@@ -317,6 +317,19 @@ read_zonelist(const char* filename)
     return zonelist_start;
 }
 
+static void
+odd_xfer(char* zone_name, char* output_file, uint32_t serial, config_type* config)
+{
+    if (config->use_tsig) {
+        fprintf(stderr, "nsd-xfer -s %u [-T <%s:%s:%s>] -z %s -f %s.axfr %s\n",
+            serial, config->tsig_name, config->tsig_algo, config->tsig_secret,
+            zone_name, output_file, config->server_name);
+    } else {
+        fprintf(stderr, "nsd-xfer -s %u -z %s -f %s.axfr %s\n",
+            serial, zone_name, output_file, config->server_name);
+   }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -375,14 +388,7 @@ main(int argc, char **argv)
                 serial = lookup_serial(fd);
             }
             /* send the request */
-            if (config->use_tsig) {
-                fprintf(stderr, "nsd-xfer -s %u [-T <%s:%s:%s>] -z %s -f %s.axfr %s\n",
-                    serial, config->tsig_name, config->tsig_algo, config->tsig_secret,
-                    zonelist->name, zonelist->input_file, config->server_name);
-            } else {
-                fprintf(stderr, "nsd-xfer -s %u -z %s -f %s.axfr %s\n",
-                    serial, zonelist->name, zonelist->input_file, config->server_name);
-            }
+            odd_xfer(zonelist->name, zonelist->input_file, serial, config);
             /* next */
             zonelist = zonelist->next;
         }
