@@ -258,6 +258,7 @@ usage(const char* prog)
     fprintf(stderr, "OpenDNSSEC Enforcer Daemon.\n\n");
     fprintf(stderr, "Supported options:\n");
     fprintf(stderr, "  -d          Debug.\n");
+    fprintf(stderr, "  -1          Run once, then exit.\n");
 /*    fprintf(stderr, "  -u user     Change effective uid to the specified user.\n");*/
     fprintf(stderr, "  -P pidfile  Specify the PID file to write.\n");
 
