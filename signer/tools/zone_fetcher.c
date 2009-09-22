@@ -152,20 +152,20 @@ read_axfr_config(const char* filename, config_type* cfg)
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
                     fprintf(stderr, "zone_fetcher: can not read config file %s\n", filename);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
                     fprintf(stderr, "zone_fetcher: can not create XPath context for %s\n",
                         filename);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
                 /* Extract the master server address */
                 xpathObj = xmlXPathEvalExpression(server_expr, xpathCtx);
                 if (xpathObj == NULL) {
                     fprintf(stderr, "zone_fetcher: can not locate master server(s) in %s\n",
                         filename);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
                 server_name = (char*) xmlXPathCastToString(xpathObj);
 
@@ -179,7 +179,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                     if (xpathObj == NULL) {
                         fprintf(stderr, "zone_fetcher: can not locate TSIG name in %s\n",
                             filename);
-                        exit(1);
+                        exit(EXIT_FAILURE);
                     }
                     tsig_name = (char*) xmlXPathCastToString(xpathObj);
 
@@ -187,7 +187,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                     if (xpathObj == NULL) {
                         fprintf(stderr, "zone_fetcher: can not locate TSIG algorithm in %s\n",
                             filename);
-                        exit(1);
+                        exit(EXIT_FAILURE);
                     }
                     tsig_algo = (char*) xmlXPathCastToString(xpathObj);
 
@@ -195,7 +195,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                     if (xpathObj == NULL) {
                         fprintf(stderr, "zone_fetcher: can not locate TSIG secret in %s\n",
                             filename);
-                        exit(1);
+                        exit(EXIT_FAILURE);
                     }
                     tsig_secret = (char*) xmlXPathCastToString(xpathObj);
 
@@ -218,11 +218,11 @@ read_axfr_config(const char* filename, config_type* cfg)
         xmlFreeTextReader(reader);
         if (ret != 0) {
             fprintf(stderr, "zone_fetcher: failed to parse config file %s\n", filename);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     } else {
         fprintf(stderr, "zone_fetcher: unable to open config file %s\n", filename);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     cfg->use_tsig = use_tsig;
@@ -308,9 +308,11 @@ read_zonelist(const char* filename)
         xmlFreeTextReader(reader);
         if (ret != 0) {
             fprintf(stderr, "zone_fetcher: failed to parse zonelist %s\n", filename);
+            exit(EXIT_FAILURE);
         }
     } else {
         fprintf(stderr, "zone_fetcher: unable to open zonelist %s\n", filename);
+        exit(EXIT_FAILURE);
     }
     return zonelist_start;
 }
@@ -355,8 +357,7 @@ main(int argc, char **argv)
 
     /* read transfer configuration */
     config = new_config();
-    if (config_file)
-        c = read_axfr_config(config_file, config);
+    c = read_axfr_config(config_file, config);
 
     /* [TODO] daemonize */
     /* [TODO] listen to NOTIFY messages */
