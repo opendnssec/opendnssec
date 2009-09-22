@@ -55,7 +55,7 @@ class EngineConfiguration:
     def __init__(self, config_file_name):
         if not config_file_name:
             config_file_name = "@sysconfdir@/opendnssec/conf.xml".replace("${prefix}", "@prefix@")
-        self.use_axfr = False
+        self.zonefetch_file = None
         self.zonelist_file = None
         self.zone_tmp_dir = None
         self.tools_dir = None
@@ -103,8 +103,9 @@ class EngineConfiguration:
              Util.get_xml_data("Configuration/Common/ZoneListFile",
                                xml_blob, True)
 
-        if Evaluate("Configuration/Common/AXFR", xml_blob):
-            self.use_axfr = True
+        self.zonefetch_file = \
+             Util.get_xml_data("Configuration/Common/ZoneFetchFile",
+                               xml_blob, True)
 
         self.zone_tmp_dir = \
              Util.get_xml_data("Configuration/Signer/WorkingDirectory",

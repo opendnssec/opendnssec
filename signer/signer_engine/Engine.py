@@ -517,6 +517,10 @@ class Engine:
         zone.lock()
         zone.zonelist_entry = self.zonelist.entries[zone_name]
         old_config = zone.zone_config
+        if self.config.zonefetch_file is None:
+            zone.use_axfr = False
+        else:
+            zone.use_axfr = True
         succeeded = False
         try:
             zone.read_config()
@@ -534,8 +538,7 @@ class Engine:
             elif config_action >= ZoneConfig.RESORT:
                 # perform immediately
                 self.schedule_signing(zone_name)
- 
-            zone.use_axfr = self.config.use_axfr
+
             succeeded = True
         except ZoneConfigError, zce:
             syslog.syslog(syslog.LOG_ERR,
