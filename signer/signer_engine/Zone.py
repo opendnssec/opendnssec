@@ -88,7 +88,7 @@ class Zone:
         
     def get_zone_axfr_filename(self):
         """Returns the file name of the stored AXFR file"""
-        zone_input_filename = get_zone_input_filename()
+        zone_input_filename = self.get_zone_input_filename()
         return zone_input_filename + os.sep + ".axfr"
 
     def get_zone_config_filename(self):
@@ -590,11 +590,15 @@ class Zone:
     def find_serial(self):
         """Finds the serial number as specified in the xml file.
            By default, the serial from the input file will simply be
-           copied. Options are 'unixtime', 'counter', and 'datecounter'
-        """
+           copied. Options are 'unixtime', 'counter', and 'datecounter',
+           'keep' and 'keepcounter'."""
         soa_serial = None
         if self.zone_config.soa_serial == "unixtime":
             soa_serial = int(time.time())
+            prev_serial = self.get_output_serial()
+            if prev_serial >= soa_serial:
+                soa_serial = prev_serial + 1
+            update_serial = soa_serial - prev_serial
         elif self.zone_config.soa_serial == "counter":
             # try output serial first, if not found, use input
             prev_serial = self.get_output_serial()
@@ -602,36 +606,43 @@ class Zone:
                 prev_serial = self.get_input_serial()
             if not prev_serial:
                 prev_serial = 0
-            soa_serial = prev_serial + 1
+            update_serial = 1
         elif self.zone_config.soa_serial == "datecounter":
             # if current output serial >= <date>00,
             # just increment by one
             soa_serial = int(time.strftime("%Y%m%d")) * 100
-            output_serial = self.get_output_serial()
-            if output_serial >= soa_serial:
-                soa_serial = output_serial + 1
+            prev_serial = self.get_output_serial()
+            if prev_serial >= soa_serial:
+                soa_serial = prev_serial + 1
+            update_serial = soa_serial - prev_serial
         elif self.zone_config.soa_serial == "keep":
             soa_serial = self.get_input_serial();
             # it must be larger than the output serial!
             # otherwise updates won't be accepted
-            output_serial = self.get_output_serial()
-            if output_serial >= soa_serial:
+            prev_serial = self.get_output_serial()
+            if prev_serial >= soa_serial:
                 syslog.syslog(syslog.LOG_ERR,
                   "Error: serial setting is set to 'keep', but input "
                   "serial has not increased. Aborting sign operation "
                   "for " + self.zone_name)
                 return None
+            update_serial = 0
         elif self.zone_config.soa_serial == "keepcounter":
             soa_serial = self.get_input_serial();
             # it must be larger than the output serial!
             # otherwise updates won't be accepted
-            output_serial = self.get_output_serial()
-            if output_serial >= soa_serial:
-                soa_serial = output_serial + 1
+            prev_serial = self.get_output_serial()
+            if prev_serial >= soa_serial:
+                soa_serial = prev_serial + 1
+            update_serial = soa_serial - prev_serial
         else:
             syslog.syslog(syslog.LOG_WARNING,
                           "warning: unknown serial type " +\
                           self.zone_config.soa_serial)
+        # RFC 1982
+        if update_serial > (2**31)-1:
+            update_serial = (2**31)-1
+        soa_serial = int( (prev_serial + update_serial) % (2**32))
         return soa_serial
         
     def sign(self):
