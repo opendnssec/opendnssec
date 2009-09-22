@@ -621,6 +621,13 @@ class Zone:
                   "serial has not increased. Aborting sign operation "
                   "for " + self.zone_name)
                 return None
+        elif self.zone_config.soa_serial == "keepcounter":
+            soa_serial = self.get_input_serial();
+            # it must be larger than the output serial!
+            # otherwise updates won't be accepted
+            output_serial = self.get_output_serial()
+            if output_serial >= soa_serial:
+                soa_serial = output_serial + 1
         else:
             syslog.syslog(syslog.LOG_WARNING,
                           "warning: unknown serial type " +\
