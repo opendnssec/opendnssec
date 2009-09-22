@@ -1,0 +1,3 @@
+-- Migrate existing database for addition of "keepcounter" serial type
+
+insert into serialmodes (name, description) values ("keepcounter", "Signer should not change the serial, unless necessary");
