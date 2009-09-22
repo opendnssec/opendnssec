@@ -1,7 +1,8 @@
 $Id$
 
 OpenDNSSEC trunk
-* ...
+* "Emergency Keys" renamed to "Standby Keys" as this better reflects their role
+  as we use them.
 
 OpenDNSSEC 1.0a5 - 2009-09-21
 
