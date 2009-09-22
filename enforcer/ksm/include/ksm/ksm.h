@@ -213,7 +213,7 @@ typedef struct {
 	int ttl;
 	int rfc5011;
 	int type;
-	int emergency_keys;
+	int standby_keys;
     int manual_rollover;
 } KSM_KEY_POLICY;
 
@@ -386,12 +386,12 @@ void KsmPurge(void);
 #define KSM_PAR_PROPDELAY               3600        /* 1 hour */
 #define KSM_PAR_PROPDELAY_STRING        "propagationdelay"
 #define KSM_PAR_PROPDELAY_CAT           "zone"
-#define KSM_PAR_NEMKSKEYS               1
-#define KSM_PAR_NEMKSKEYS_STRING        "emergency"
-#define KSM_PAR_NEMKSKEYS_CAT           "ksk"
-#define KSM_PAR_NEMZSKEYS               1
-#define KSM_PAR_NEMZSKEYS_STRING        "emergency"
-#define KSM_PAR_NEMZSKEYS_CAT           "ksk"
+#define KSM_PAR_STANDBYKSKS             1
+#define KSM_PAR_STANDBYKSKS_STRING      "standby"
+#define KSM_PAR_STANDBYKSKS_CAT         "ksk"
+#define KSM_PAR_STANDBYZSKS             1
+#define KSM_PAR_STANDBYZSKS_STRING      "standby"
+#define KSM_PAR_STANDBYZSKS_CAT         "ksk"
 #define KSM_PAR_SIGNINT                 7200        /* 2 hours */
 #define KSM_PAR_SIGNINT_STRING          "resign"
 #define KSM_PAR_SIGNINT_CAT             "signature"
@@ -435,8 +435,8 @@ void KsmPurge(void);
 typedef struct {            /* Holds collection of parameters */
     int     clockskew;      /* Clock skew */
     int     ksklife;        /* Lifetime of a KSK */
-    int     nemkskeys;      /* Number of emergency Key Signing keys */
-    int     nemzskeys;      /* Number of emergency Zone signing keys */
+    int     standbyksks;    /* Number of Standby Key Signing keys */
+    int     standbyzsks;    /* Number of Standby Zone signing keys */
     int     propdelay;      /* Propagation delay */
     int     signint;        /* Signing interval - how long signing the zone takes */
     int     soamin;         /* "Minimum" value from SOA record */
@@ -456,8 +456,8 @@ typedef struct {            /* Holds collection of parameters */
 int KsmCollectionInit(KSM_PARCOLL* data);
 int KsmParameterClockskew(KSM_PARCOLL* collection);
 int KsmParameterKskLifetime(KSM_PARCOLL* collection);
-int KsmParameterEmergencyKSKeys(KSM_PARCOLL* collection);
-int KsmParameterEmergencyZSKeys(KSM_PARCOLL* collection);
+int KsmParameterStandbyKSKeys(KSM_PARCOLL* collection);
+int KsmParameterStandbyZSKeys(KSM_PARCOLL* collection);
 int KsmParameterPropagationDelay(KSM_PARCOLL* collection);
 int KsmParameterSigningInterval(KSM_PARCOLL* collection);
 int KsmParameterSoaMin(KSM_PARCOLL* collection);
@@ -548,7 +548,7 @@ int KsmRequestDNSSECKeysPendingRetireCount(KSM_KEY_POLICY, const char* datetime,
 
 int KsmPolicyClockskew(KSM_SIGNATURE_POLICY *policy);
 int KsmPolicyKeyLifetime(KSM_KEY_POLICY *policy);
-int KsmPolicyEmergencyKeys(KSM_KEY_POLICY *policy);
+int KsmPolicyStandbyKeys(KSM_KEY_POLICY *policy);
 int KsmPolicyPropagationDelay(KSM_SIGNER_POLICY *policy);
 int KsmPolicySigningInterval(KSM_PARCOLL* collection);
 int KsmPolicySoaMin(KSM_SIGNER_POLICY *policy);

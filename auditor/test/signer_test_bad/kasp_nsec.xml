@@ -31,7 +31,7 @@
 				<Algorithm length="2048">5</Algorithm>
 				<Lifetime>P1Y</Lifetime>
 				<Repository>softHSM</Repository>
-				<Emergency>2</Emergency>
+				<Standby>2</Standby>
 				<RFC5011/>
 			</KSK>
 
@@ -39,7 +39,7 @@
 				<Algorithm length="1024">5</Algorithm>
 				<Lifetime>P14D</Lifetime>
 				<Repository>softHSM</Repository>
-				<Emergency>2</Emergency>
+				<Standby>2</Standby>
 			</ZSK>
 		</Keys>
 

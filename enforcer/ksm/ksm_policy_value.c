@@ -79,7 +79,7 @@ int KsmPolicyKeyLifetime(KSM_KEY_POLICY *policy)
     return policy->lifetime;
 }
 
-int KsmPolicyEmergencyKeys(KSM_KEY_POLICY *policy)
+int KsmPolicyStandbyKeys(KSM_KEY_POLICY *policy)
 {
     /* check the argument */
     if (policy == NULL) {

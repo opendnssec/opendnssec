@@ -706,7 +706,7 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *      Dt	= interval
  *      Sp	= safety margin
  *      Lk	= lifetime of the key (either KSK or ZSK)
- *      Ek  = no of emergency keys 
+ *      Ek  = no of standby keys 
  * 
  *      no of keys = ( (Dt + Sp)/Lk ) + Ek
  *      
@@ -780,17 +780,17 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
     if (keytype == KSM_TYPE_KSK)
     {
         if (coll.ksklife == 0) {
-            *count = coll.nemkskeys + 1;
+            *count = coll.standbyksks + 1;
         } else {
-            *count = ((interval + coll.pub_safety)/coll.ksklife) + coll.nemkskeys + 1;
+            *count = ((interval + coll.pub_safety)/coll.ksklife) + coll.standbyksks + 1;
         }
     }
     else if (keytype == KSM_TYPE_ZSK)
     {
         if (coll.zsklife == 0) {
-            *count = coll.nemzskeys + 1;
+            *count = coll.standbyzsks + 1;
         } else {
-            *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.nemzskeys + 1;
+            *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.standbyzsks + 1;
         }
     } 
 

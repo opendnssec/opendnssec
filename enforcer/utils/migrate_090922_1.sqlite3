@@ -1,0 +1,3 @@
+-- Migrate existing database for rename of emergency keys to standby keys
+
+update parameters set name = "standby" where name = "emergency";

@@ -3055,7 +3055,7 @@ int update_policies(char* kasp_filename)
     xmlChar *ksk_alg_len_expr = (unsigned char*) "//Policy/Keys/KSK/Algorithm/@length";
     xmlChar *ksk_life_expr = (unsigned char*) "//Policy/Keys/KSK/Lifetime";
     xmlChar *ksk_repo_expr = (unsigned char*) "//Policy/Keys/KSK/Repository";
-    xmlChar *ksk_emer_expr = (unsigned char*) "//Policy/Keys/KSK/Emergency";
+    xmlChar *ksk_standby_expr = (unsigned char*) "//Policy/Keys/KSK/Standby";
     xmlChar *ksk_man_roll_expr = (unsigned char*) "//Policy/Keys/KSK/ManualRollover";
     xmlChar *ksk_5011_expr = (unsigned char*) "//Policy/Keys/KSK/RFC5011";
 
@@ -3063,7 +3063,7 @@ int update_policies(char* kasp_filename)
     xmlChar *zsk_alg_len_expr = (unsigned char*) "//Policy/Keys/ZSK/Algorithm/@length";
     xmlChar *zsk_life_expr = (unsigned char*) "//Policy/Keys/ZSK/Lifetime";
     xmlChar *zsk_repo_expr = (unsigned char*) "//Policy/Keys/ZSK/Repository";
-    xmlChar *zsk_emer_expr = (unsigned char*) "//Policy/Keys/ZSK/Emergency";
+    xmlChar *zsk_standby_expr = (unsigned char*) "//Policy/Keys/ZSK/Standby";
     xmlChar *zsk_man_roll_expr = (unsigned char*) "//Policy/Keys/ZSK/ManualRollover";
 
     xmlChar *zone_prop_expr = (unsigned char*) "//Policy/Zone/PropagationDelay";
@@ -3357,7 +3357,7 @@ int update_policies(char* kasp_filename)
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
-                if ( SetParamOnPolicy(xpathCtx, ksk_emer_expr, "emergency", "ksk", policy->ksk->emergency_keys, policy->id, INT_TYPE) != 0) {
+                if ( SetParamOnPolicy(xpathCtx, ksk_standby_expr, "standby", "ksk", policy->ksk->standby_keys, policy->id, INT_TYPE) != 0) {
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
@@ -3386,7 +3386,7 @@ int update_policies(char* kasp_filename)
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
-                if ( SetParamOnPolicy(xpathCtx, zsk_emer_expr, "emergency", "zsk", policy->zsk->emergency_keys, policy->id, INT_TYPE) != 0) {
+                if ( SetParamOnPolicy(xpathCtx, zsk_standby_expr, "standby", "zsk", policy->zsk->standby_keys, policy->id, INT_TYPE) != 0) {
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
@@ -3745,7 +3745,7 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->ksk->ttl = 0;
     policy->ksk->rfc5011 = 0;
     policy->ksk->type = KSM_TYPE_KSK;
-    policy->ksk->emergency_keys = 0;
+    policy->ksk->standby_keys = 0;
     policy->ksk->manual_rollover = 0;
 
     policy->zsk->algorithm = 0;
@@ -3756,7 +3756,7 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->zsk->ttl = 0;
     policy->zsk->rfc5011 = 0;
     policy->zsk->type = KSM_TYPE_ZSK;
-    policy->zsk->emergency_keys = 0;
+    policy->zsk->standby_keys = 0;
     policy->zsk->manual_rollover = 0;
 
     policy->enforcer->keycreate = 0;
@@ -4392,8 +4392,8 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     snprintf(temp_time, 32, "PT%dS", policy->ksk->lifetime);
     (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Lifetime", (const xmlChar *)temp_time);
     (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Repository", (const xmlChar *)policy->ksk->sm_name);
-    snprintf(temp_time, 32, "%d", policy->ksk->emergency_keys);
-    (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Emergency", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "%d", policy->ksk->standby_keys);
+    (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"Standby", (const xmlChar *)temp_time);
     if (policy->ksk->manual_rollover == 1)
     {
         (void) xmlNewTextChild(ksk_node, NULL, (const xmlChar *)"ManualRollover", NULL);
@@ -4412,8 +4412,8 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     snprintf(temp_time, 32, "PT%dS", policy->zsk->lifetime);
     (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Lifetime", (const xmlChar *)temp_time);
     (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Repository", (const xmlChar *)policy->zsk->sm_name);
-    snprintf(temp_time, 32, "%d", policy->zsk->emergency_keys);
-    (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Emergency", (const xmlChar *)temp_time);
+    snprintf(temp_time, 32, "%d", policy->zsk->standby_keys);
+    (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"Standby", (const xmlChar *)temp_time);
     if (policy->zsk->manual_rollover == 1)
     {
         (void) xmlNewTextChild(zsk_node, NULL, (const xmlChar *)"ManualRollover", NULL);

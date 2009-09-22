@@ -160,10 +160,10 @@ anykey = element Algorithm {
 	element Lifetime { xsd:duration },
 	element Repository { xsd:string },
 
-	# Number of emergency keys
+	# Number of Standby keys
 	# For KSKs you can use 1 to indicate that you are
 	# doing double signatures
-	element Emergency { xsd:nonNegativeInteger },
+	element Standby { xsd:nonNegativeInteger },
 			
 	# use manual KSK key rollover?
 	element ManualRollover { empty }?

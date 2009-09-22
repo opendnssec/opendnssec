@@ -312,8 +312,8 @@
 			<td class="value"><xsl:value-of select="Repository"/></td>
 		</tr>
 		<tr>
-			<td class="tag"><xsl:text>Number of Emergency Keys</xsl:text></td>
-			<td class="value"><xsl:value-of select="Emergency"/></td>
+			<td class="tag"><xsl:text>Number of Standby Keys</xsl:text></td>
+			<td class="value"><xsl:value-of select="Standby"/></td>
 		</tr>
 	</xsl:template>
 

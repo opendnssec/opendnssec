@@ -220,7 +220,7 @@ module KASPAuditor
         def initialize(e)
           # Algorithm length and value
           @algorithm = Dnsruby::Algorithms.new(e.elements['Algorithm'].text.to_i)
-          @emergency = e.elements['Emergency'].text.to_i
+          @emergency = e.elements['Standby'].text.to_i
         lifetime_text = e.elements['Lifetime'].text
         @lifetime = Config.xsd_duration_to_seconds(lifetime_text)
         if (@lifetime == 0)

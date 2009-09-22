@@ -186,14 +186,14 @@ insert into parameters (name, description, category_id) select "publishsafety", 
 insert into parameters (name, description, category_id) select "algorithm", "ksk algorithm", id from categories where name="ksk";
 insert into parameters (name, description, category_id) select "bits", "ksk key size", id from categories where name="ksk";
 insert into parameters (name, description, category_id) select "lifetime", "ksk lifetime", id from categories where name="ksk";
-insert into parameters (name, description, category_id) select "emergency", "number of ksks is use at any one time", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "standby", "number of ksks is use at any one time", id from categories where name="ksk";
 insert into parameters (name, description, category_id) select "repository", "default ksk sm (for newly generated keys)", id from categories where name="ksk";
 insert into parameters (name, description, category_id) select "rfc5011", "are we doing rfc5011?", id from categories where name="ksk";
 
 insert into parameters (name, description, category_id) select "algorithm", "zsk algorithm", id from categories where name="zsk";
 insert into parameters (name, description, category_id) select "bits", "zsk key size", id from categories where name="zsk";
 insert into parameters (name, description, category_id) select "lifetime", "zsk lifetime", id from categories where name="zsk";
-insert into parameters (name, description, category_id) select "emergency", "number of zsks is use at any one time", id from categories where name="zsk";
+insert into parameters (name, description, category_id) select "standby", "number of zsks is use at any one time", id from categories where name="zsk";
 insert into parameters (name, description, category_id) select "repository", "default zsk sm (for newly generated keys)", id from categories where name="zsk";
 
 insert into parameters (name, description, category_id) select "propagationdelay", "Dp", id from categories where name="zone";

@@ -51,7 +51,7 @@
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 
-
+/* TODO Then nomenclature needs to be updated to agree with that in the timing draft */
 
 /*+
  * KsmRequestKeys - Request Keys for Output
@@ -1090,7 +1090,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
  * Description:
  *      Unlike the other "Change State" functions, this is conditional.  It
  *      promotes keys in the "Generate" state to the "Publish" state to maintain
- *      the required number of keys active/emergency keys when the active keys
+ *      the required number of keys active/standby keys when the active keys
  *      are retired.
  *
  *      a) For the given time, work out how many "active" keys have a retire
@@ -1106,7 +1106,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
  *      c) Now look at the difference (Nt - Npr).  This is the number of keys
  *         that will be (potentially) usable after the active key retires.
  *         If this number is less than (1 + Ne) (where Ne is the number of
- *         emergency keys), move the difference from the generated state into
+ *         standby keys), move the difference from the generated state into
  *         the published state.
  *
  * Arguments:
@@ -1162,15 +1162,15 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
 	DbgLog(DBG_M_REQUEST, KME_AVAILCNT, availkeys);
 
     /*
-     * We need at least one active key and "number of emergency keys" ready
+     * We need at least one active key and "number of standby keys" ready
      * keys at any one time.
      */
 
     if (keytype == KSM_TYPE_KSK) {
-        reqkeys = 1 + KsmParameterEmergencyKSKeys(collection);
+        reqkeys = 1 + KsmParameterStandbyKSKeys(collection);
     }
     else if (keytype == KSM_TYPE_ZSK) {
-        reqkeys = 1 + KsmParameterEmergencyZSKeys(collection);
+        reqkeys = 1 + KsmParameterStandbyZSKeys(collection);
     }
     else {
         /* should not get here */

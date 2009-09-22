@@ -268,7 +268,7 @@ static void TestKsmKeyPredict(void)
     status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
 
     CU_ASSERT_EQUAL(status, 0);
-    CU_ASSERT_EQUAL(count, 7); /* 4 rollovers, 2 emergency plus one to get ready */
+    CU_ASSERT_EQUAL(count, 7); /* 4 rollovers, 2 standby plus one to get ready */
 
     keytype = KSM_TYPE_ZSK;
     status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count);

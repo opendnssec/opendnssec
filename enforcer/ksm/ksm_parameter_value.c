@@ -79,24 +79,24 @@ int KsmParameterKskLifetime(KSM_PARCOLL* collection)
     return collection->ksklife;
 }
 
-int KsmParameterEmergencyKSKeys(KSM_PARCOLL* collection)
+int KsmParameterStandbyKSKeys(KSM_PARCOLL* collection)
 {
     /* check the argument */
     if (collection == NULL) {
         MsgLog(KSM_INVARG, "NULL collection");
         return -1;
     }
-    return collection->nemkskeys;
+    return collection->standbyksks;
 }
 
-int KsmParameterEmergencyZSKeys(KSM_PARCOLL* collection)
+int KsmParameterStandbyZSKeys(KSM_PARCOLL* collection)
 {
     /* check the argument */
     if (collection == NULL) {
         MsgLog(KSM_INVARG, "NULL collection");
         return -1;
     }
-    return collection->nemzskeys;
+    return collection->standbyzsks;
 }
 
 int KsmParameterPropagationDelay(KSM_PARCOLL* collection)

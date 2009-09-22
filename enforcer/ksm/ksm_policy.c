@@ -293,7 +293,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "repository",10) == 0) policy->zsk->sm=data.value;
             		if (strncmp(data.name, "overlap",7) == 0) policy->zsk->overlap=data.value;
             		if (strncmp(data.name, "bits",4) == 0) policy->zsk->bits=data.value;
-                    if (strncmp(data.name, "emergency",9) == 0) policy->zsk->emergency_keys=data.value;
+                    if (strncmp(data.name, "standby",7) == 0) policy->zsk->standby_keys=data.value;
                     if (strncmp(data.name, "manual_rollover",15) == 0) policy->zsk->manual_rollover=data.value;
             	}
             	if (strncmp(data.category, "ksk", 3) == 0) {
@@ -303,7 +303,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "overlap",7) == 0) policy->ksk->overlap=data.value;
             		if (strncmp(data.name, "rfc5011",7) == 0) policy->ksk->rfc5011=data.value;
             		if (strncmp(data.name, "bits",4) == 0) policy->ksk->bits=data.value;
-                    if (strncmp(data.name, "emergency",9) == 0) policy->ksk->emergency_keys=data.value;
+                    if (strncmp(data.name, "standby",7) == 0) policy->ksk->standby_keys=data.value;
                     if (strncmp(data.name, "manual_rollover",15) == 0) policy->ksk->manual_rollover=data.value;
             	}
             	if (strncmp(data.category, "keys", 4) == 0) {
