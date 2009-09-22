@@ -368,6 +368,8 @@ void KsmPurge(void);
 #define KSM_SERIAL_DATE             3
 #define KSM_SERIAL_KEEP_STRING      "keep"
 #define KSM_SERIAL_KEEP             4
+#define KSM_SERIAL_KEEPCOUNTER_STRING "keepcounter"
+#define KSM_SERIAL_KEEPCOUNTER      5
 
 #define KSM_KEYS_NOT_SHARED         0
 #define KSM_KEYS_SHARED             1
