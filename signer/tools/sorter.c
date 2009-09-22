@@ -412,7 +412,6 @@ main(int argc, char **argv)
 	while (line_len >= 0) {
 		line_len = read_line(rr_files[file_count], line, 1, 0);
 		if (line_len >= 0 && !line_contains_space_only(line, line_len)) {
-			fprintf(stderr, "<stderr> read_line: %s\n", line);
 			if (line[0] == '$') {
 				tmp = directive_origin(line);
 				if (tmp) {
