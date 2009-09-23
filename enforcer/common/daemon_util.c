@@ -86,6 +86,8 @@ permsDrop(DAEMONCONFIG* config)
     char* temp_char = NULL;
     struct passwd *pwd;
     struct group *grp;
+    gid_t oldgid = getegid();
+    uid_t olduid = geteuid();
     
     /* Load XML document */
     doc = xmlParseFile(filename);
@@ -159,9 +161,19 @@ permsDrop(DAEMONCONFIG* config)
         } else {
             config->gid = grp->gr_gid;
         }
+
+        /* If we are root then drop all groups other than the final one */
+        if (!olduid) setgroups(1, &(grp->gr_gid));
         endgrent();
 
-        if (setgid(config->gid) != 0) {
+#if !defined(linux)
+        setegid(config->gid);
+        status = setgid(config->gid);
+#else
+        status = setregid(config->gid, config->gid);
+#endif /* !defined(linux) */
+
+        if (status != 0) {
             log_msg(config, LOG_ERR, "unable to drop group privileges: %s", strerror(errno));
             xmlXPathFreeContext(xpathCtx);
             xmlFreeDoc(doc);
@@ -169,7 +181,7 @@ permsDrop(DAEMONCONFIG* config)
         }
         log_msg(config, LOG_INFO, "group set to: %s(%d)", config->groupname, config->gid);
     } else {
-        config->gid = getgid();
+        config->gid = oldgid;
     }
 
     /* Set the user to drop to if specified; else just set the uid as the real one */
@@ -195,7 +207,14 @@ permsDrop(DAEMONCONFIG* config)
         }
         endpwent();
 
-        if (setuid(config->uid) != 0) {
+#if !defined(linux)
+        seteuid(config->uid);
+        status = setuid(config->uid);
+#else
+        status = setreuid(config->uid, config->uid);
+#endif /* !defined(linux) */
+
+        if (status != 0) {
             log_msg(config, LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
             xmlXPathFreeContext(xpathCtx);
             xmlFreeDoc(doc);
@@ -203,7 +222,7 @@ permsDrop(DAEMONCONFIG* config)
         }
         log_msg(config, LOG_INFO, "user set to: %s(%d)", config->username, config->uid);
     } else {
-        config->uid = getuid();
+        config->uid = olduid;
     }
 
     xmlXPathFreeContext(xpathCtx);
