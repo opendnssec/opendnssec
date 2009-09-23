@@ -27,12 +27,16 @@
 
 #include "config.h"
 #include "util.h"
+#include "zone_fetcher.h"
 
 #include <getopt.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -42,29 +46,7 @@
 #include <libxml/xmlreader.h>
 #include <libxml/xmlsave.h>
 
-/**
- * Config.
- */
-typedef struct config_struct config_type;
-struct config_struct
-{
-    char* server_name;
-    char* tsig_name;
-    char* tsig_algo;
-    char* tsig_secret;
-    int use_tsig;
-};
-
-/**
- * Zone list.
- */
-typedef struct zonelist_struct zonelist_type;
-struct zonelist_struct
-{
-    char* name;
-    char* input_file;
-    zonelist_type* next;
-};
+static int sig_quit = 0;
 
 static void
 usage(FILE *out)
@@ -72,6 +54,9 @@ usage(FILE *out)
     fprintf(out, "Usage: zone_fetcher [OPTIONS]\n");
     fprintf(out, "Transfers zones from their master.\n");
     fprintf(out, "Options:\n");
+    fprintf(out, "-c <file>\t\tThe zonefetch.xml <file>\n");
+    fprintf(out, "-d\t\tRun as daemon\n");
+    fprintf(out, "-h\t\tShow this help\n");
     fprintf(out, "-h\t\tShow this help\n");
     fprintf(out, "-z <file>\tThe zonelist.xml <file>\n");
 }
@@ -80,6 +65,7 @@ static config_type*
 new_config(void)
 {
     config_type* cfg = (config_type*) malloc(sizeof(config_type));
+    cfg->pidfile = NULL;
     cfg->server_name = NULL;
     cfg->tsig_name = NULL;
     cfg->tsig_algo = NULL;
@@ -95,6 +81,7 @@ free_config(config_type* cfg)
         if (cfg->tsig_algo)   free((void*) cfg->tsig_algo);
         if (cfg->tsig_secret) free((void*) cfg->tsig_secret);
         if (cfg->server_name) free((void*) cfg->server_name);
+        if (cfg->pidfile)     free((void*) cfg->pidfile);
         free((void*) cfg);
     }
 }
@@ -125,7 +112,7 @@ read_axfr_config(const char* filename, config_type* cfg)
 {
     int ret;
     int use_tsig = 0;
-    char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *server_name;
+    char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *server_name, *pidfile;
 
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
@@ -136,6 +123,7 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlChar *tsig_algo_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Algorithm";
     xmlChar *tsig_secret_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Secret";
     xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/Address";
+    xmlChar *pidfile_expr = (unsigned char*) "//ZoneFetch/PidFile";
 
     /* In case zonelist is huge use the XmlTextReader API so that we don't hold the whole file in memory */
     reader = xmlNewTextReaderFilename(filename);
@@ -168,6 +156,11 @@ read_axfr_config(const char* filename, config_type* cfg)
                     exit(EXIT_FAILURE);
                 }
                 server_name = (char*) xmlXPathCastToString(xpathObj);
+
+                /* Extract the pid file */
+                xpathObj = xmlXPathEvalExpression(pidfile_expr, xpathCtx);
+                if (xpathObj != NULL)
+                    pidfile = (char*) xmlXPathCastToString(xpathObj);
 
                 /* Extract the tsig credentials */
                 xpathObj = xmlXPathEvalExpression(tsig_expr, xpathCtx);
@@ -209,6 +202,8 @@ read_axfr_config(const char* filename, config_type* cfg)
 
                 cfg->server_name = strdup(server_name);
                 free(server_name);
+                cfg->pidfile = strdup(pidfile);
+                free(pidfile);
             }
 
             /* Read the next line */
@@ -317,6 +312,89 @@ read_zonelist(const char* filename)
     return zonelist_start;
 }
 
+/** Write pidfile */
+static int
+writepid(char* pidfile, pid_t pid)
+{
+    FILE * fd;
+    char pidbuf[32];
+    size_t result = 0, size = 0;
+
+    snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
+    if ((fd = fopen(pidfile, "w")) ==  NULL ) {
+        fprintf(stderr, "zone_fetcher: cannot open pidfile %s: %s\n", pidfile, strerror(errno));
+        return -1;
+    }
+    size = strlen(pidbuf);
+    if (size == 0)
+        result = 1;
+    result = fwrite((const void*) pidbuf, 1, size, fd);
+    if (result == 0) {
+        fprintf(stderr, "zone_fetcher: write to pidfile failed: %s\n", strerror(errno));
+    } else if (result < size) {
+        fprintf(stderr, "zone_fetcher: short write to pidfile (disk full?)\n");
+        result = 0;
+    } else
+        result = 1;
+    if (!result) {
+        fprintf(stderr, "zone_fetcher: cannot write pidfile %s: %s\n", pidfile, strerror(errno));
+        fclose(fd);
+        return -1;
+    }
+    fclose(fd);
+    return 0;
+}
+
+/** Signal handling. */
+static void
+sig_handler(int sig)
+{
+    switch (sig)
+    {
+        case SIGTERM:
+        case SIGHUP:
+            sig_quit = 1;
+            break;
+        default:
+            break;
+    }
+    return;
+}
+
+static pid_t
+setup_daemon(config_type* config)
+{
+    pid_t pid = -1;
+    struct sigaction action;
+
+    switch ((pid = fork()))
+    {
+        case 0: /* child */
+            break;
+        case -1: /* error */
+            fprintf(stderr, "zone_fetcher: fork() failed: %s\n", strerror(errno));
+            exit(1);
+        default: /* parent is done */
+            exit(0);
+    }
+    if (setsid() == -1)
+    {
+        fprintf(stderr, "setsid() failed: %s\n", strerror(errno));
+        exit(1);
+    }
+    /* setup signal handing */
+    action.sa_handler = sig_handler;
+    sigfillset(&action.sa_mask);
+    action.sa_flags = 0;
+    sigaction(SIGHUP, &action, NULL);
+
+    pid = getpid();
+    if (writepid(config->pidfile, pid) == -1)
+        exit(1);
+
+    return pid;
+}
+
 static void
 odd_xfer(char* zone_name, char* output_file, uint32_t serial, config_type* config)
 {
@@ -338,12 +416,16 @@ main(int argc, char **argv)
     config_type* config = NULL;
     uint32_t serial = 0;
     FILE* fd;
-    int c;
+    int c, run_as_daemon = 0;
+    pid_t pid = 0;
 
-    while ((c = getopt(argc, argv, "c:hz:")) != -1) {
+    while ((c = getopt(argc, argv, "c:dhz:")) != -1) {
         switch (c) {
         case 'c':
             config_file = optarg;
+            break;
+        case 'd':
+            run_as_daemon = 1;
             break;
         case 'h':
             usage(stdout);
@@ -372,29 +454,41 @@ main(int argc, char **argv)
     config = new_config();
     c = read_axfr_config(config_file, config);
 
-    /* [TODO] daemonize */
+	if (run_as_daemon)
+        pid = setup_daemon(config);
+
     /* [TODO] listen to NOTIFY messages */
     /* [TODO] respect the EXPIRE value? */
 
     if (config->server_name && strlen(config->server_name) > 0) {
-        /* foreach zone, do a single axfr request */
-        zonelist = zonelist_start;
-        while (zonelist != NULL) {
-            /* get latest serial */
-            fd = fopen(zonelist->input_file, "r");
-            if (!fd) {
-                serial = 0;
-            } else {
-                serial = lookup_serial(fd);
-            }
-            /* send the request */
-            odd_xfer(zonelist->name, zonelist->input_file, serial, config);
-            /* next */
-            zonelist = zonelist->next;
-        }
+        do {
+           if (sig_quit) { run_as_daemon = 0; break; }
+
+           /* foreach zone, do a single axfr request */
+           zonelist = zonelist_start;
+           while (zonelist != NULL) {
+               /* get latest serial */
+               fd = fopen(zonelist->input_file, "r");
+               if (!fd) {
+                   serial = 0;
+               } else {
+                   serial = lookup_serial(fd);
+               }
+               /* send the request */
+               odd_xfer(zonelist->name, zonelist->input_file, serial, config);
+               /* next */
+               zonelist = zonelist->next;
+           }
+
+           if (run_as_daemon) /* run once an hour */
+               sleep(3600);
+        } while (run_as_daemon);
     }
 
+    if (unlink(config->pidfile) == -1)
+        fprintf(stderr, "zone_fetcher: unlink pidfile %s failed: %s\n", config->pidfile, strerror(errno));
     free_config(config);
     free_zonelist(zonelist);
+    fprintf(stderr, "zone_fetcher: done\n");
     return 0;
 }
