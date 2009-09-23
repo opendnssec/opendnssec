@@ -587,6 +587,21 @@ class Zone:
         # be to just resign
         self.action = ZoneConfig.RESIGN
 
+    def compare_serial(self, s1, s2):
+        """Compare two serials according to RFC 1982. Return 0 if equal, 
+           -1 if s1 is bigger, 1 if s1 is smaller."""
+        if s1 == s2:
+            return 0
+        if s1 < s2 and (s2 - s1) < (2**31):
+            return 1
+        if s1 > s2 and (s1 - s2) > (2**31):
+            return 1
+        if s1 < s2 and (s2 - s1) > (2**31):
+            return -1
+        if s1 > s2 and (s1 - s2) < (2**31):
+            return -1
+        return 0
+
     def find_serial(self):
         """Finds the serial number as specified in the xml file.
            By default, the serial from the input file will simply be
@@ -596,7 +611,7 @@ class Zone:
         if self.zone_config.soa_serial == "unixtime":
             soa_serial = int(time.time())
             prev_serial = self.get_output_serial()
-            if prev_serial >= soa_serial:
+            if self.compare_serial(prev_serial, soa_serial) <= 0:
                 soa_serial = prev_serial + 1
             update_serial = soa_serial - prev_serial
         elif self.zone_config.soa_serial == "counter":
@@ -612,7 +627,7 @@ class Zone:
             # just increment by one
             soa_serial = int(time.strftime("%Y%m%d")) * 100
             prev_serial = self.get_output_serial()
-            if prev_serial >= soa_serial:
+            if self.compare_serial(prev_serial, soa_serial) <= 0:
                 soa_serial = prev_serial + 1
             update_serial = soa_serial - prev_serial
         elif self.zone_config.soa_serial == "keep":
@@ -620,7 +635,7 @@ class Zone:
             # it must be larger than the output serial!
             # otherwise updates won't be accepted
             prev_serial = self.get_output_serial()
-            if prev_serial >= soa_serial:
+            if self.compare_serial(prev_serial, soa_serial) <= 0:
                 syslog.syslog(syslog.LOG_ERR,
                   "Error: serial setting is set to 'keep', but input "
                   "serial has not increased. Aborting sign operation "
@@ -632,7 +647,7 @@ class Zone:
             # it must be larger than the output serial!
             # otherwise updates won't be accepted
             prev_serial = self.get_output_serial()
-            if prev_serial >= soa_serial:
+            if self.compare_serial(prev_serial, soa_serial) <= 0:
                 soa_serial = prev_serial + 1
             update_serial = soa_serial - prev_serial
         else:
