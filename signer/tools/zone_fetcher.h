@@ -29,18 +29,32 @@
 #include <stdint.h>
 #include <string.h>
 
+#define DNS_PORT 53
+
+/**
+ * Servers.
+ */
+typedef struct serverlist_struct serverlist_type;
+struct serverlist_struct
+{
+    int family;
+    int port;
+    char* ipaddr;
+    serverlist_type* next;
+};
+
 /**
  * Config.
  */
 typedef struct config_struct config_type;
 struct config_struct
 {
-    char* pidfile;
-    char* server_name;
+    int use_tsig;
     char* tsig_name;
     char* tsig_algo;
     char* tsig_secret;
-    int use_tsig;
+    char* pidfile;
+    serverlist_type* serverlist;
 };
 
 /**
@@ -66,4 +80,3 @@ struct axfr_state_struct
     int s;              /* AXFR socket.  */
     int    done;        /* AXFR is complete.  */
 };
-

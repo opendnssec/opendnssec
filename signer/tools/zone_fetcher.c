@@ -29,13 +29,18 @@
 #include "util.h"
 #include "zone_fetcher.h"
 
-#include <getopt.h>
+#include <arpa/inet.h>
 #include <errno.h>
+#include <getopt.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include <libxml/tree.h>
@@ -61,31 +66,6 @@ usage(FILE *out)
     fprintf(out, "-z <file>\tThe zonelist.xml <file>\n");
 }
 
-static config_type*
-new_config(void)
-{
-    config_type* cfg = (config_type*) malloc(sizeof(config_type));
-    cfg->pidfile = NULL;
-    cfg->server_name = NULL;
-    cfg->tsig_name = NULL;
-    cfg->tsig_algo = NULL;
-    cfg->tsig_secret = NULL;
-    return cfg;
-}
-
-static void
-free_config(config_type* cfg)
-{
-    if (cfg) {
-        if (cfg->tsig_name)   free((void*) cfg->tsig_name);
-        if (cfg->tsig_algo)   free((void*) cfg->tsig_algo);
-        if (cfg->tsig_secret) free((void*) cfg->tsig_secret);
-        if (cfg->server_name) free((void*) cfg->server_name);
-        if (cfg->pidfile)     free((void*) cfg->pidfile);
-        free((void*) cfg);
-    }
-}
-
 static zonelist_type*
 new_zone(char* zone_name, char* input_file)
 {
@@ -107,22 +87,82 @@ free_zonelist(zonelist_type* zlt)
     }
 }
 
+static serverlist_type*
+new_server(char* ipv4, char* ipv6, char* port)
+{
+    serverlist_type* slt = (serverlist_type*) malloc(sizeof(serverlist_type));
+    if (ipv4) {
+        slt->family = AF_INET;
+        slt->ipaddr = strdup(ipv4);
+    }
+    else if (ipv6) {
+        slt->family = AF_INET6;
+        slt->ipaddr = strdup(ipv6);
+    }
+    if (port)
+        slt->port = atoi(port);
+    else
+        slt->port = DNS_PORT;
+    slt->next = NULL;
+    return slt;
+}
+
+static void
+free_serverlist(serverlist_type* slt)
+{
+    if (slt) {
+        free_serverlist(slt->next);
+        free((void*) slt->ipaddr);
+        free((void*) slt);
+    }
+}
+
+static config_type*
+new_config(void)
+{
+    config_type* cfg = (config_type*) malloc(sizeof(config_type));
+    cfg->use_tsig = 0;
+    cfg->pidfile = NULL;
+    cfg->tsig_name = NULL;
+    cfg->tsig_algo = NULL;
+    cfg->tsig_secret = NULL;
+    cfg->serverlist = NULL;
+    return cfg;
+}
+
+static void
+free_config(config_type* cfg)
+{
+    if (cfg) {
+        if (cfg->tsig_name)   free((void*) cfg->tsig_name);
+        if (cfg->tsig_algo)   free((void*) cfg->tsig_algo);
+        if (cfg->tsig_secret) free((void*) cfg->tsig_secret);
+        if (cfg->pidfile)     free((void*) cfg->pidfile);
+        free_serverlist(cfg->serverlist);
+        free((void*) cfg);
+    }
+}
+
 static int
 read_axfr_config(const char* filename, config_type* cfg)
 {
-    int ret;
-    int use_tsig = 0;
-    char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *server_name, *pidfile;
+    int ret, i, use_tsig = 0;
+    char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *pidfile, *ipv4, *ipv6, *port;
+    serverlist_type* serverlist = NULL, *serverlist_start = NULL;
 
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
+    xmlNode *curNode = NULL;
     xmlChar *tsig_expr = (unsigned char*) "//ZoneFetch/Default/TSIG";
     xmlChar *tsig_name_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Name";
     xmlChar *tsig_algo_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Algorithm";
     xmlChar *tsig_secret_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Secret";
     xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/Address";
+    xmlChar *ipv4_expr = (unsigned char*) "//ZoneFetch/Default/Address/IPv4";
+    xmlChar *ipv6_expr = (unsigned char*) "//ZoneFetch/Default/Address/IPv6";
+    xmlChar *port_expr = (unsigned char*) "//ZoneFetch/Default/Address/Port";
     xmlChar *pidfile_expr = (unsigned char*) "//ZoneFetch/PidFile";
 
     /* In case zonelist is huge use the XmlTextReader API so that we don't hold the whole file in memory */
@@ -131,7 +171,7 @@ read_axfr_config(const char* filename, config_type* cfg)
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
             tag_name = (char*) xmlTextReaderLocalName(reader);
-            /* Found <Zone> */
+            /* Found <ZoneFetch> */
             if (strncmp(tag_name, "ZoneFetch", 8) == 0 &&
                 xmlTextReaderNodeType(reader) == 1) {
 
@@ -148,6 +188,11 @@ read_axfr_config(const char* filename, config_type* cfg)
                         filename);
                     exit(EXIT_FAILURE);
                 }
+                /* Extract the pid file */
+                xpathObj = xmlXPathEvalExpression(pidfile_expr, xpathCtx);
+                if (xpathObj != NULL)
+                    pidfile = (char*) xmlXPathCastToString(xpathObj);
+
                 /* Extract the master server address */
                 xpathObj = xmlXPathEvalExpression(server_expr, xpathCtx);
                 if (xpathObj == NULL) {
@@ -155,12 +200,38 @@ read_axfr_config(const char* filename, config_type* cfg)
                         filename);
                     exit(EXIT_FAILURE);
                 }
-                server_name = (char*) xmlXPathCastToString(xpathObj);
+                if (xpathObj->nodesetval) {
+                    for (i=0; i < xpathObj->nodesetval->nodeNr; i++) {
+                        ipv4 = NULL;
+                        ipv6 = NULL;
+                        port = NULL;
+                        curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+                        while (curNode) {
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"IPv4"))
+                                ipv4 = (char *) xmlNodeGetContent(curNode);
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"IPv6"))
+                                ipv6 = (char *) xmlNodeGetContent(curNode);
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"Port"))
+                                port = (char *) xmlNodeGetContent(curNode);
+                            curNode = curNode->next;
+                       }
+                       if (ipv4 || ipv6) {
+                           if (serverlist == NULL) {
+                               serverlist = new_server(ipv4, ipv6, port);
+                               serverlist_start = serverlist;
+                           }
+                           else {
+                               serverlist->next = new_server(ipv4, ipv6, port);
+                               serverlist = serverlist->next;
+                           }
+                       }
 
-                /* Extract the pid file */
-                xpathObj = xmlXPathEvalExpression(pidfile_expr, xpathCtx);
-                if (xpathObj != NULL)
-                    pidfile = (char*) xmlXPathCastToString(xpathObj);
+                       if (ipv4) free(ipv4);
+                       if (ipv6) free(ipv6);
+                       if (port) free(port);
+                    }
+                }
+                cfg->serverlist = serverlist_start;
 
                 /* Extract the tsig credentials */
                 xpathObj = xmlXPathEvalExpression(tsig_expr, xpathCtx);
@@ -200,8 +271,6 @@ read_axfr_config(const char* filename, config_type* cfg)
                     free(tsig_secret);
                 }
 
-                cfg->server_name = strdup(server_name);
-                free(server_name);
                 cfg->pidfile = strdup(pidfile);
                 free(pidfile);
             }
@@ -398,14 +467,24 @@ setup_daemon(config_type* config)
 static void
 odd_xfer(char* zone_name, char* output_file, uint32_t serial, config_type* config)
 {
-    if (config->use_tsig) {
-        fprintf(stderr, "nsd-xfer -s %u [-T <%s:%s:%s>] -z %s -f %s.axfr %s\n",
-            serial, config->tsig_name, config->tsig_algo, config->tsig_secret,
-            zone_name, output_file, config->server_name);
-    } else {
-        fprintf(stderr, "nsd-xfer -s %u -z %s -f %s.axfr %s\n",
-            serial, zone_name, output_file, config->server_name);
-   }
+    serverlist_type* serverlist = NULL;
+
+    if (config && config->serverlist) {
+        serverlist = config->serverlist;
+        while (serverlist) {
+            if (config->use_tsig) {
+                fprintf(stderr, "nsd-xfer -s %u -p %u %s [-T <%s:%s:%s>] -z %s -f %s.axfr %s\n",
+                serial, serverlist->port, (serverlist->family==AF_INET6?"-6":"-4"),
+                config->tsig_name, config->tsig_algo, config->tsig_secret,
+                zone_name, output_file, serverlist->ipaddr);
+            } else {
+                fprintf(stderr, "nsd-xfer -s %u -p %u %s -z %s -f %s.axfr %s\n",
+                serial, serverlist->port, (serverlist->family==AF_INET6?"-6":"-4"),
+                zone_name, output_file, serverlist->ipaddr);
+            }
+            serverlist = serverlist->next;
+        }
+    }
 }
 
 int
@@ -413,11 +492,12 @@ main(int argc, char **argv)
 {
     const char* zonelist_file = NULL, *config_file = NULL;
     zonelist_type* zonelist = NULL, *zonelist_start = NULL;
+    serverlist_type* serverlist = NULL;
     config_type* config = NULL;
+    int c, i, run_as_daemon = 0, running = 0, sockfd = 0, ifs = 0;
     uint32_t serial = 0;
-    FILE* fd;
-    int c, run_as_daemon = 0;
     pid_t pid = 0;
+    FILE* fd;
 
     while ((c = getopt(argc, argv, "c:dhz:")) != -1) {
         switch (c) {
@@ -454,15 +534,30 @@ main(int argc, char **argv)
     config = new_config();
     c = read_axfr_config(config_file, config);
 
+    running = run_as_daemon;
 	if (run_as_daemon)
         pid = setup_daemon(config);
 
     /* [TODO] listen to NOTIFY messages */
     /* [TODO] respect the EXPIRE value? */
 
-    if (config->server_name && strlen(config->server_name) > 0) {
+    serverlist = config->serverlist;
+    if (serverlist) {
+        /* initialize sockets */
+/*
+        while (serverlist) {
+            if (serverlist->family == AF_INET)
+                bzero(&(serverlist->servaddr), sizeof(serverlist->servaddr));
+                serverlist->servaddr.sin_family = AF_INET;
+                servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+                servaddr.sin_port = 53;
+            }
+            serverlist = serverlist->next;
+        }
+*/
+        /* do forever */
         do {
-           if (sig_quit) { run_as_daemon = 0; break; }
+           if (sig_quit) { running = 0; break; }
 
            /* foreach zone, do a single axfr request */
            zonelist = zonelist_start;
@@ -482,10 +577,10 @@ main(int argc, char **argv)
 
            if (run_as_daemon) /* run once an hour */
                sleep(3600);
-        } while (run_as_daemon);
+        } while (running);
     }
 
-    if (unlink(config->pidfile) == -1)
+    if (run_as_daemon && unlink(config->pidfile) == -1)
         fprintf(stderr, "zone_fetcher: unlink pidfile %s failed: %s\n", config->pidfile, strerror(errno));
     free_config(config);
     free_zonelist(zonelist);
