@@ -25,11 +25,19 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-#define DNS_PORT 53
+#define DNS_PORT_STRING "53"
+#define INBUF_SIZE      4096 /* max size for incoming queries */
 
 /**
  * Servers.
@@ -40,6 +48,8 @@ struct serverlist_struct
     int family;
     int port;
     char* ipaddr;
+    struct sockaddr_in servaddr;
+    struct sockaddr_in6 servaddr6;
     serverlist_type* next;
 };
 
@@ -69,14 +79,31 @@ struct zonelist_struct
 };
 
 /**
- * State of transfer.
+ * Sockets.
  */
-typedef struct axfr_state_struct axfr_state_type;
-struct axfr_state_struct
+struct odd_socket
 {
-    size_t packets_received;
-    size_t bytes_received;
-
-    int s;              /* AXFR socket.  */
-    int    done;        /* AXFR is complete.  */
+    struct addrinfo* addr;
+    int s;
 };
+
+typedef struct sockets_struct sockets_type;
+struct sockets_struct
+{
+    struct odd_socket tcp[2];
+    struct odd_socket udp[2];
+};
+
+/**
+ * User data.
+ */
+struct handle_udp_userdata {
+    int udp_sock;
+    struct sockaddr_storage addr_him;
+    socklen_t hislen;
+};
+
+struct handle_tcp_userdata {
+    int s;
+};
+

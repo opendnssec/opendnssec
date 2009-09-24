@@ -29,19 +29,10 @@
 #include "util.h"
 #include "zone_fetcher.h"
 
-#include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <signal.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -102,7 +93,7 @@ new_server(char* ipv4, char* ipv6, char* port)
     if (port)
         slt->port = atoi(port);
     else
-        slt->port = DNS_PORT;
+        slt->port = atoi(DNS_PORT_STRING);
     slt->next = NULL;
     return slt;
 }
@@ -160,9 +151,6 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlChar *tsig_algo_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Algorithm";
     xmlChar *tsig_secret_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Secret";
     xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/Address";
-    xmlChar *ipv4_expr = (unsigned char*) "//ZoneFetch/Default/Address/IPv4";
-    xmlChar *ipv6_expr = (unsigned char*) "//ZoneFetch/Default/Address/IPv6";
-    xmlChar *port_expr = (unsigned char*) "//ZoneFetch/Default/Address/Port";
     xmlChar *pidfile_expr = (unsigned char*) "//ZoneFetch/PidFile";
 
     /* In case zonelist is huge use the XmlTextReader API so that we don't hold the whole file in memory */
@@ -442,14 +430,14 @@ setup_daemon(config_type* config)
             break;
         case -1: /* error */
             fprintf(stderr, "zone_fetcher: fork() failed: %s\n", strerror(errno));
-            exit(1);
+            exit(EXIT_FAILURE);
         default: /* parent is done */
             exit(0);
     }
     if (setsid() == -1)
     {
         fprintf(stderr, "setsid() failed: %s\n", strerror(errno));
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     /* setup signal handing */
     action.sa_handler = sig_handler;
@@ -459,9 +447,180 @@ setup_daemon(config_type* config)
 
     pid = getpid();
     if (writepid(config->pidfile, pid) == -1)
-        exit(1);
+        exit(EXIT_FAILURE);
 
     return pid;
+}
+
+static int
+init_sockets(sockets_type* sockets)
+{
+    int r, i, ip6_support = 1, on = 0;
+    struct addrinfo hints[2];
+#if defined(SO_REUSEADDR) || defined(IPV6_V6ONLY)
+    on = 1;
+#endif
+
+
+    /* UDP / IPv6 */
+    for (i = 0; i < 2; i++) {
+        memset(&hints[i], 0, sizeof(hints[i]));
+        hints[i].ai_family = AF_INET6;
+        hints[i].ai_flags = AI_PASSIVE;
+        hints[i].ai_socktype = SOCK_DGRAM;
+    }
+
+    if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[1], &(sockets->udp[1].addr))) != 0) {
+        fprintf(stderr, "zone_fetcher: cannot parse address: getaddrinfo: %s %s\n",
+            gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+    }
+    if ((sockets->udp[1].s = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
+        if (errno == EAFNOSUPPORT) {
+            fprintf(stderr, "zone_fetcher: fallback to UDP4, no IPv6: not supported\n");
+            ip6_support = 0;
+        } else {
+            fprintf(stderr, "can't create udp/ipv6 socket: %s\n", strerror(errno));
+            return -1;
+        }
+    }
+    if (ip6_support) {
+#ifdef IPV6_V6ONLY
+        if (setsockopt(sockets->udp[1].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0) {
+            fprintf(stderr, "zone_fetcher: setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
+                strerror(errno));
+            return -1;
+        }
+#endif /* IPV6_V6ONLY */
+        if (fcntl(sockets->udp[1].s, F_SETFL, O_NONBLOCK) == -1) {
+            fprintf(stderr, "zone_fetcher: cannot fcntl udp/ipv6: %s\n", strerror(errno));
+        }
+        if (bind(sockets->udp[1].s,
+                 (struct sockaddr *) sockets->udp[1].addr->ai_addr,
+                 sockets->udp[1].addr->ai_addrlen) != 0) {
+            fprintf(stderr, "zone_fetcher: can't bind udp/ipv6 socket: %s\n", strerror(errno));
+            return -1;
+        }
+    }
+
+    /* UDP / IPv4 */
+#ifdef IPV6_V6ONLY
+    for (i = 0; i < 2; i++) {
+        hints[i].ai_family = AF_INET;
+    }
+#endif /* IPV6_V6ONLY */
+
+    if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[0], &(sockets->udp[0].addr))) != 0) {
+        fprintf(stderr, "zone_fetcher: cannot parse address: getaddrinfo: %s %s\n",
+            gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+    }
+    if ((sockets->udp[0].s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+        fprintf(stderr, "zone_fetcher: can't create udp/ipv4 socket: %s\n", strerror(errno));
+        return -1;
+    }
+    if (fcntl(sockets->udp[0].s, F_SETFL, O_NONBLOCK) == -1) {
+        fprintf(stderr, "zone_fetcher: cannot fcntl udp/ipv4: %s\n", strerror(errno));
+    }
+    if (bind(sockets->udp[0].s,
+             (struct sockaddr *) sockets->udp[0].addr->ai_addr,
+             sockets->udp[0].addr->ai_addrlen) != 0) {
+        fprintf(stderr, "zone_fetcher: can't bind udp/ipv4 socket: %s\n", strerror(errno));
+        return -1;
+    }
+
+    /* TCP / IPv6 */
+    for (i = 0; i < 2; i++) {
+        hints[i].ai_family = AF_INET6;
+        hints[i].ai_socktype = SOCK_STREAM;
+    }
+
+    if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[1], &(sockets->tcp[1].addr))) != 0) {
+        fprintf(stderr, "zone_fetcher: cannot parse address: getaddrinfo: %s %s\n",
+            gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+    }
+    if ((sockets->tcp[1].s = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
+        if (errno == EAFNOSUPPORT) {
+            fprintf(stderr, "zone_fetcher: fallback to TCP4, no IPv6: not supported\n");
+            ip6_support = 0;
+        } else {
+            fprintf(stderr, "can't create tcp/ipv6 socket: %s\n", strerror(errno));
+            return -1;
+        }
+    }
+    if (ip6_support) {
+#ifdef IPV6_V6ONLY
+        if (setsockopt(sockets->tcp[1].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0) {
+            fprintf(stderr, "zone_fetcher: setsockopt(..., IPV6_V6ONLY, ...) failed: %s\n",
+                strerror(errno));
+            return -1;
+        }
+#endif /* IPV6_V6ONLY */
+        if (setsockopt(sockets->tcp[1].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+            fprintf(stderr, "zone_fetcher: setsockopt(..., SO_REUSEADDR, ...) failed: %s\n", strerror(errno));
+        }
+        if (fcntl(sockets->tcp[1].s, F_SETFL, O_NONBLOCK) == -1) {
+            fprintf(stderr, "zone_fetcher: cannot fcntl udp/ipv6: %s\n", strerror(errno));
+        }
+        if (bind(sockets->tcp[1].s,
+                 (struct sockaddr *) sockets->tcp[1].addr->ai_addr,
+                 sockets->tcp[1].addr->ai_addrlen) != 0) {
+            fprintf(stderr, "zone_fetcher: can't bind tcp/ipv6 socket: %s\n", strerror(errno));
+            return -1;
+        }
+        if (listen(sockets->tcp[1].s, 5) == -1) {
+            fprintf(stderr, "zone_fetcher: can't listen to tcp/ipv6 socket: %s\n", strerror(errno));
+            return -1;
+        }
+    }
+
+    /* TCP / IPv4 */
+#ifdef IPV6_V6ONLY
+    for (i = 0; i < 2; i++) {
+        hints[i].ai_family = AF_INET;
+    }
+#endif /* IPV6_V6ONLY */
+
+    if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[0], &(sockets->tcp[0].addr))) != 0) {
+        fprintf(stderr, "zone_fetcher: cannot parse address: getaddrinfo: %s %s\n",
+            gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+    }
+    if ((sockets->tcp[0].s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        fprintf(stderr, "zone_fetcher: can't create tcp/ipv4 socket: %s\n", strerror(errno));
+        return -1;
+    }
+#ifdef SO_REUSEADDR
+    if (setsockopt(sockets->tcp[0].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+        fprintf(stderr, "zone_fetcher: setsockopt(..., SO_REUSEADDR, ...) failed: %s\n", strerror(errno));
+    }
+#endif /* SO_REUSEADDR */
+    if (fcntl(sockets->tcp[0].s, F_SETFL, O_NONBLOCK) == -1) {
+        fprintf(stderr, "zone_fetcher: cannot fcntl tcp/ipv4: %s\n", strerror(errno));
+    }
+    if (bind(sockets->tcp[0].s,
+             (struct sockaddr *) sockets->tcp[0].addr->ai_addr,
+             sockets->tcp[0].addr->ai_addrlen) != 0) {
+        fprintf(stderr, "zone_fetcher: can't bind tcp/ipv4 socket: %s\n", strerror(errno));
+        return -1;
+    }
+    if (listen(sockets->tcp[0].s, 5) == -1) {
+        fprintf(stderr, "zone_fetcher: can't listen to tcp/ipv4 socket: %s", strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+static void
+free_sockets(sockets_type* sockets)
+{
+    close(sockets->udp[0].s);
+    close(sockets->udp[1].s);
+    close(sockets->tcp[0].s);
+    close(sockets->tcp[1].s);
+
+    free((void*)sockets->udp[0].addr);
+    free((void*)sockets->udp[1].addr);
+    free((void*)sockets->tcp[0].addr);
+    free((void*)sockets->tcp[1].addr);
 }
 
 static void
@@ -487,17 +646,131 @@ odd_xfer(char* zone_name, char* output_file, uint32_t serial, config_type* confi
     }
 }
 
+static void
+read_n_bytes(int sock, uint8_t* buf, size_t sz)
+{
+    size_t count = 0;
+    while(count < sz) {
+        ssize_t nb = recv(sock, buf+count, sz-count, 0);
+        if(nb < 0) {
+            fprintf(stderr, "zone_fetcher: recv() failed: %s\n", strerror(errno));
+            return;
+        }
+        count += nb;
+    }
+}
+
+static void
+handle_udp(int udp_sock, int *count)
+{
+    ssize_t nb;
+    uint8_t inbuf[INBUF_SIZE];
+    struct handle_udp_userdata userdata;
+
+    userdata.udp_sock = udp_sock;
+    userdata.hislen = (socklen_t) sizeof(userdata.addr_him);
+    nb = recvfrom(udp_sock, inbuf, INBUF_SIZE, 0,
+        (struct sockaddr*)&userdata.addr_him, &userdata.hislen);
+    if (nb < 1) {
+        fprintf(stderr, "zone_fetcher: recvfrom() failed: %s\n", strerror(errno));
+        return;
+    }
+    fprintf(stderr, "zone_fetcher: received NOTIFY over UDP.\n");
+/*
+    handle_query(inbuf, nb, entries, count, transport_udp, send_udp,
+        &userdata, do_verbose?logfile:0);
+*/
+}
+
+static void
+handle_tcp(int tcp_sock, int *count)
+{
+    int s;
+    struct sockaddr_storage addr_him;
+    socklen_t hislen;
+    uint8_t inbuf[INBUF_SIZE];
+    uint16_t tcplen;
+    struct handle_tcp_userdata userdata;
+
+    /* accept */
+    hislen = (socklen_t)sizeof(addr_him);
+    if((s = accept(tcp_sock, (struct sockaddr*)&addr_him, &hislen)) < 0) {
+        fprintf(stderr, "zone_fetcher: accept() failed: %s\n", strerror(errno));
+        return;
+    }
+    userdata.s = s;
+
+    /* tcp recv */
+    read_n_bytes(s, (uint8_t*)&tcplen, sizeof(tcplen));
+    tcplen = ntohs(tcplen);
+    if(tcplen >= INBUF_SIZE) {
+        fprintf(stderr, "zone_fetcher: query %d bytes too large, buffer %d bytes.\n",
+            tcplen, INBUF_SIZE);
+        close(s);
+        return;
+    }
+    read_n_bytes(s, inbuf, tcplen);
+
+    fprintf(stderr, "zone_fetcher: received NOTIFY over TCP.\n");
+/*
+    handle_query(inbuf, (ssize_t) tcplen, entries, count, transport_tcp,
+        send_tcp, &userdata, do_verbose?logfile:0);
+*/
+    close(s);
+}
+
+
+static void
+xfrd_ns(sockets_type* sockets, config_type* cfg)
+{
+    fd_set rset, wset, eset;
+    struct timeval timeout;
+    int count, maxfd;
+
+    /* service */
+    count = 0;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+    while (1) {
+        FD_ZERO(&rset);
+        FD_ZERO(&wset);
+        FD_ZERO(&eset);
+        FD_SET(sockets->udp[0].s, &rset);
+        FD_SET(sockets->udp[1].s, &rset);
+        FD_SET(sockets->tcp[0].s, &rset);
+        FD_SET(sockets->tcp[1].s, &rset);
+
+        maxfd = sockets->udp[0].s;
+        if (sockets->udp[1].s > maxfd) maxfd = sockets->udp[1].s;
+        if (sockets->tcp[0].s > maxfd) maxfd = sockets->tcp[0].s;
+        if (sockets->tcp[1].s > maxfd) maxfd = sockets->tcp[1].s;
+
+        if (select(maxfd+1, &rset, &wset, &eset, NULL) < 0) {
+            fprintf(stderr, "zone_fetcher: select(): %s\n", strerror(errno));
+        }
+
+        if (FD_ISSET(sockets->udp[0].s, &rset))
+            handle_udp(sockets->udp[0].s, &count);
+        if (FD_ISSET(sockets->udp[1].s, &rset))
+            handle_udp(sockets->udp[1].s, &count);
+        if (FD_ISSET(sockets->tcp[0].s, &rset))
+            handle_tcp(sockets->tcp[0].s, &count);
+        if (FD_ISSET(sockets->tcp[1].s, &rset))
+            handle_tcp(sockets->tcp[1].s, &count);
+    }
+}
+
 int
 main(int argc, char **argv)
 {
     const char* zonelist_file = NULL, *config_file = NULL;
     zonelist_type* zonelist = NULL, *zonelist_start = NULL;
-    serverlist_type* serverlist = NULL;
     config_type* config = NULL;
-    int c, i, run_as_daemon = 0, running = 0, sockfd = 0, ifs = 0;
+    int c, run_as_daemon = 0, running = 0;
     uint32_t serial = 0;
     pid_t pid = 0;
     FILE* fd;
+    sockets_type sockets;
 
     while ((c = getopt(argc, argv, "c:dhz:")) != -1) {
         switch (c) {
@@ -535,55 +808,50 @@ main(int argc, char **argv)
     c = read_axfr_config(config_file, config);
 
     running = run_as_daemon;
-	if (run_as_daemon)
+	if (run_as_daemon) {
         pid = setup_daemon(config);
-
-    /* [TODO] listen to NOTIFY messages */
-    /* [TODO] respect the EXPIRE value? */
-
-    serverlist = config->serverlist;
-    if (serverlist) {
-        /* initialize sockets */
-/*
-        while (serverlist) {
-            if (serverlist->family == AF_INET)
-                bzero(&(serverlist->servaddr), sizeof(serverlist->servaddr));
-                serverlist->servaddr.sin_family = AF_INET;
-                servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-                servaddr.sin_port = 53;
-            }
-            serverlist = serverlist->next;
+        /* listen to NOTIFY messages */
+        c = init_sockets(&sockets);
+        if (c == -1) {
+            fprintf(stderr, "zone_fetcher: failed to initialize sockets\n");
+            exit(EXIT_FAILURE);
         }
-*/
-        /* do forever */
-        do {
-           if (sig_quit) { running = 0; break; }
-
-           /* foreach zone, do a single axfr request */
-           zonelist = zonelist_start;
-           while (zonelist != NULL) {
-               /* get latest serial */
-               fd = fopen(zonelist->input_file, "r");
-               if (!fd) {
-                   serial = 0;
-               } else {
-                   serial = lookup_serial(fd);
-               }
-               /* send the request */
-               odd_xfer(zonelist->name, zonelist->input_file, serial, config);
-               /* next */
-               zonelist = zonelist->next;
-           }
-
-           if (run_as_daemon) /* run once an hour */
-               sleep(3600);
-        } while (running);
     }
 
-    if (run_as_daemon && unlink(config->pidfile) == -1)
-        fprintf(stderr, "zone_fetcher: unlink pidfile %s failed: %s\n", config->pidfile, strerror(errno));
+    /* foreach zone, do a single axfr request */
+    zonelist = zonelist_start;
+    while (zonelist != NULL) {
+        /* get latest serial */
+        fd = fopen(zonelist->input_file, "r");
+        if (!fd) {
+            serial = 0;
+        } else {
+            serial = lookup_serial(fd);
+        }
+        /* send the request */
+        odd_xfer(zonelist->name, zonelist->input_file, serial, config);
+        /* next */
+        zonelist = zonelist->next;
+    }
+
+    /* and now run our service */
+    if (run_as_daemon) {
+        xfrd_ns(&sockets, config);
+
+        if (unlink(config->pidfile) == -1)
+            fprintf(stderr, "zone_fetcher: unlink pidfile %s failed: %s\n", config->pidfile, strerror(errno));
+        free_sockets(&sockets);
+    }
+
+    /* done */
     free_config(config);
     free_zonelist(zonelist);
     fprintf(stderr, "zone_fetcher: done\n");
     return 0;
 }
+
+/* [TODO]:
+ * - respect the EXPIRE value?
+ * ..
+ */
+
