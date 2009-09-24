@@ -53,9 +53,10 @@ install-data-hook:
 	${INSTALL_DATA} ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
 	test -f ${sysconfdir}/zonelist.xml || \
 		${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}/zonelist.xml.sample
 	test -f ${sysconfdir}/zonefetch.xml || \
 		${INSTALL_DATA} ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}
-	${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}/zonelist.xml.sample
+	${INSTALL_DATA} ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}/zonefetch.xml.sample
 	test -f ${sysconfdir}/kasp.xml || \
 		${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}/kasp.xml.sample
