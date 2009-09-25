@@ -49,7 +49,42 @@ AC_FUNC_MEMCMP
 AC_FUNC_MKTIME
 AC_FUNC_REALLOC
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul])
+AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul setregid setreuid])
+
+AC_CHECK_FUNCS(setresuid, [
+	dnl Some platorms have setresuid that isn't implemented, test for this
+	AC_MSG_CHECKING(if setresuid seems to work)
+	AC_RUN_IFELSE(
+		[AC_LANG_SOURCE([[
+#include <stdlib.h>
+#include <errno.h>
+int main(){errno=0; setresuid(0,0,0); if (errno==ENOSYS) exit(1); else exit(0);}
+		]])],
+		[AC_MSG_RESULT(yes)],
+		[AC_DEFINE(BROKEN_SETRESUID, 1,
+			[Define if your setresuid() is broken])
+		 AC_MSG_RESULT(not implemented)],
+		[AC_MSG_WARN([cross compiling: not checking setresuid])]
+	)
+])
+
+AC_CHECK_FUNCS(setresgid, [
+	dnl Some platorms have setresgid that isn't implemented, test for this
+	AC_MSG_CHECKING(if setresgid seems to work)
+	AC_RUN_IFELSE(
+		[AC_LANG_SOURCE([[
+#include <stdlib.h>
+#include <errno.h>
+int main(){errno=0; setresgid(0,0,0); if (errno==ENOSYS) exit(1); else exit(0);}
+		]])],
+		[AC_MSG_RESULT(yes)],
+		[AC_DEFINE(BROKEN_SETRESGID, 1,
+			[Define if your setresgid() is broken])
+		 AC_MSG_RESULT(not implemented)],
+		[AC_MSG_WARN([cross compiling: not checking setresuid])]
+	)
+])
+
 AC_REPLACE_FUNCS(strlcat)
 AC_REPLACE_FUNCS(strlcpy)
 
@@ -122,5 +157,15 @@ AC_CONFIG_FILES([
 	utils/Makefile
 	test/Makefile
 ])
+
+# Check for some target-specific stuff
+case "$host" in
+*-*-darwin*)
+    AC_DEFINE(SETEUID_BREAKS_SETUID, 1,
+	    [Define if your platform breaks doing a seteuid before a setuid])
+	AC_DEFINE(BROKEN_SETREUID, 1, [Define if your setreuid() is broken])
+	AC_DEFINE(BROKEN_SETREGID, 1, [Define if your setregid() is broken])
+    ;;
+esac
 
 AC_OUTPUT

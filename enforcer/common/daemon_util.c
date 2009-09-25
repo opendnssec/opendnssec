@@ -37,6 +37,7 @@
  *
  * Most of this is based on stuff I have seen in NSD
  */
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -207,12 +208,18 @@ permsDrop(DAEMONCONFIG* config)
         }
         endpwent();
 
-#if !defined(linux)
-        seteuid(config->uid);
-        status = setuid(config->uid);
-#else
+#if defined(HAVE_SETRESUID) && !defined(BROKEN_SETRESUID)
+        status = setresuid(config->uid, config->uid, config->uid);
+#elif defined(HAVE_SETREUID) && !defined(BROKEN_SETREUID)
         status = setreuid(config->uid, config->uid);
-#endif /* !defined(linux) */
+#else
+
+# ifndef SETEUID_BREAKS_SETUID        
+        seteuid(config->uid);
+#endif  /* SETEUID_BREAKS_SETUID */
+
+        status = setuid(config->uid);
+#endif
 
         if (status != 0) {
             log_msg(config, LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
