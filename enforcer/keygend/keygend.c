@@ -234,7 +234,7 @@ server_main(DAEMONCONFIG *config)
                             if (key) {
                                 /* log_msg(config, LOG_INFO,"Created key in HSM"); */
                             } else {
-                                log_msg(config, LOG_ERR,"Error creating key in HSM");
+                                log_msg(config, LOG_ERR,"Error creating key in HSM %s", policy->ksk->sm_name);
                                 hsm_error_message = hsm_get_error(ctx);
                                 if (hsm_error_message) {
                                     log_msg(config, LOG_ERR, hsm_error_message);
@@ -296,7 +296,7 @@ server_main(DAEMONCONFIG *config)
                        if (key) {
                            /* log_msg(config, LOG_INFO,"Created key in HSM"); */
                        } else {
-                           log_msg(config, LOG_ERR,"Error creating key in HSM");
+                           log_msg(config, LOG_ERR,"Error creating key in HSM %s", policy->zsk->sm_name);
                            hsm_error_message = hsm_get_error(ctx);
                            if (hsm_error_message) {
                                log_msg(config, LOG_ERR, hsm_error_message);
