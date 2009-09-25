@@ -6,7 +6,7 @@ define([LIBHSM_VERSION], [0.0.5])
 # API add, remove, changed; current++, revision=0
 # API add; age++
 # API remove; age=0
-define([LIBHSM_SHLIB_CURRENT] , [0])
+define([LIBHSM_SHLIB_CURRENT],  [0])
 define([LIBHSM_SHLIB_REVISION], [1])
 define([LIBHSM_SHLIB_AGE],      [0])
 
