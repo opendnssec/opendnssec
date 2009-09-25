@@ -10,5 +10,6 @@
 			<Secret>sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=</Secret>
 		</TSIG>
 		<Address><IPv4>192.0.2.0</IPv4></Address>
+		<Port>53</Port>
 	</Default>
 </ZoneFetch>

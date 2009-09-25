@@ -41,4 +41,5 @@ source =
 		element Algorithm { xsd:string },
 		element Secret { xsd:string }
 	}?,
-	element Address { (ipv4 | ipv6) }+
+	element Address { (ipv4 | ipv6) }+,
+	element Port { xsd:positiveInteger { maxInclusive = "65535" } }?
