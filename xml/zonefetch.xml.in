@@ -9,7 +9,6 @@
 			<Algorithm>hmac-sha256</Algorithm>
 			<Secret>sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=</Secret>
 		</TSIG>
-		<Address><IPv4>192.0.2.0</IPv4></Address>
-		<Port>53</Port>
+		<Address><IPv4>192.0.2.0</IPv4><Port>53</Port></Address>
 	</Default>
 </ZoneFetch>

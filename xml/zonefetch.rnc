@@ -33,6 +33,7 @@ start = element ZoneFetch {
 
 ipv4 = element IPv4 { xsd:string }
 ipv6 = element IPv6 { xsd:string }
+port = element Port { xsd:positiveInteger { maxInclusive = "65535" } }
 
 source =
 	element TSIG {
@@ -41,5 +42,4 @@ source =
 		element Algorithm { xsd:string },
 		element Secret { xsd:string }
 	}?,
-	element Address { (ipv4 | ipv6) }+,
-	element Port { xsd:positiveInteger { maxInclusive = "65535" } }?
+	element Address { (ipv4 | ipv6), port? }+
