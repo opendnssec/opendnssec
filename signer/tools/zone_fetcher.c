@@ -138,7 +138,7 @@ static int
 read_axfr_config(const char* filename, config_type* cfg)
 {
     int ret, i, use_tsig = 0;
-    char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *pidfile, *ipv4, *ipv6, *port;
+    char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *pidfile = NULL, *ipv4, *ipv6, *port;
     serverlist_type* serverlist = NULL, *serverlist_start = NULL;
 
     xmlTextReaderPtr reader = NULL;
