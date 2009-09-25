@@ -153,6 +153,11 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/Address";
     xmlChar *pidfile_expr = (unsigned char*) "//ZoneFetch/PidFile";
 
+    if (filename == NULL) {
+        fprintf(stderr, "zone_fetcher: no configfile provided\n");
+        exit(EXIT_FAILURE);
+    }
+
     /* In case zonelist is huge use the XmlTextReader API so that we don't hold the whole file in memory */
     reader = xmlNewTextReaderFilename(filename);
     if (reader != NULL) {
@@ -294,6 +299,11 @@ read_zonelist(const char* filename)
     xmlXPathObjectPtr xpathObj = NULL;
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *adapter_expr = (unsigned char*) "//Zone/Adapters/Input/File";
+
+    if (filename == NULL) {
+        fprintf(stderr, "zone_fetcher: no zonelist provided\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* In case zonelist is huge use the XmlTextReader API so that we don't hold the whole file in memory */
     reader = xmlNewTextReaderFilename(filename);
