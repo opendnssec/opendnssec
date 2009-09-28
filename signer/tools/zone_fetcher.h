@@ -41,17 +41,44 @@
 #define INBUF_SIZE      4096 /* max size for incoming queries */
 
 /**
+ * Access control.
+ */
+union acl_addr_storage {
+    struct in_addr addr;
+    struct in6_addr addr6;
+};
+
+/**
  * Servers.
  */
 typedef struct serverlist_struct serverlist_type;
 struct serverlist_struct
 {
     int family;
-    int port;
-    char* ipaddr;
-    struct sockaddr_in servaddr;
-    struct sockaddr_in6 servaddr6;
+    unsigned int port;  /* 0 == no port */
+    const char* ipaddr;
+    union acl_addr_storage addr;
+    union acl_addr_storage range_mask;
+    enum {
+        acl_range_single = 0,   /* single adress */
+        acl_range_mask = 1, /* 10.20.30.40&255.255.255.0 */
+        acl_range_subnet = 2,   /* 10.20.30.40/28 */
+        acl_range_minmax = 3    /* 10.20.30.40-10.20.30.60 (mask=max) */
+    } rangetype;
+
     serverlist_type* next;
+};
+
+/**
+ * Zone list.
+ */
+typedef struct zonelist_struct zonelist_type;
+struct zonelist_struct
+{
+    const char* name;
+    ldns_rdf* dname;
+    char* input_file;
+    zonelist_type* next;
 };
 
 /**
@@ -65,18 +92,8 @@ struct config_struct
     char* tsig_algo;
     char* tsig_secret;
     char* pidfile;
+    zonelist_type* zonelist;
     serverlist_type* serverlist;
-};
-
-/**
- * Zone list.
- */
-typedef struct zonelist_struct zonelist_type;
-struct zonelist_struct
-{
-    char* name;
-    char* input_file;
-    zonelist_type* next;
 };
 
 /**
@@ -107,4 +124,9 @@ struct handle_udp_userdata {
 struct handle_tcp_userdata {
     int s;
 };
+
+/**
+ * Transport type.
+ */
+enum transport_type {transport_any = 0, transport_udp, transport_tcp };
 

@@ -62,6 +62,7 @@ new_zone(char* zone_name, char* input_file)
 {
     zonelist_type* zlt = (zonelist_type*) malloc(sizeof(zonelist_type));
     zlt->name = strdup(zone_name);
+    zlt->dname = ldns_dname_new_frm_str(zone_name);
     zlt->input_file = strdup(input_file);
     zlt->next = NULL;
     return zlt;
@@ -118,6 +119,7 @@ new_config(void)
     cfg->tsig_algo = NULL;
     cfg->tsig_secret = NULL;
     cfg->serverlist = NULL;
+    cfg->zonelist = NULL;
     return cfg;
 }
 
@@ -138,7 +140,7 @@ static int
 read_axfr_config(const char* filename, config_type* cfg)
 {
     int ret, i, use_tsig = 0;
-    char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *pidfile = NULL, *ipv4, *ipv6, *port;
+    char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *ipv4, *ipv6, *port;
     serverlist_type* serverlist = NULL, *serverlist_start = NULL;
 
     xmlTextReaderPtr reader = NULL;
@@ -626,7 +628,7 @@ free_sockets(sockets_type* sockets)
 }
 
 static void
-odd_xfer(char* zone_name, char* output_file, uint32_t serial, config_type* config)
+odd_xfer(const char* zone_name, char* output_file, uint32_t serial, config_type* config)
 {
     serverlist_type* serverlist = NULL;
 
@@ -649,6 +651,142 @@ odd_xfer(char* zone_name, char* output_file, uint32_t serial, config_type* confi
 }
 
 static void
+send_udp(uint8_t* buf, size_t len, void* data)
+{
+    struct handle_udp_userdata *userdata = (struct handle_udp_userdata*)data;
+    /* udp send reply */
+    ssize_t nb;
+    nb = sendto(userdata->udp_sock, buf, len, 0,
+        (struct sockaddr*)&userdata->addr_him, userdata->hislen);
+    if (nb == -1)
+        fprintf(stderr, "zone_fetcher: sendto() failed: %s\n", strerror(errno));
+    else if ((size_t)nb != len)
+        fprintf(stderr, "zone_fetcher: sendto(): only sent %d of %d octets.\n",
+            (int)nb, (int)len);
+}
+
+static void
+write_n_bytes(int sock, uint8_t* buf, size_t sz)
+{
+    size_t count = 0;
+    while(count < sz) {
+        ssize_t nb = send(sock, buf+count, sz-count, 0);
+        if(nb < 0) {
+            fprintf(stderr, "zone_fetcher: send() failed: %s\n", strerror(errno));
+            return;
+        }
+        count += nb;
+    }
+}
+
+static void
+send_tcp(uint8_t* buf, size_t len, void* data)
+{
+    struct handle_tcp_userdata *userdata = (struct handle_tcp_userdata*)data;
+    uint16_t tcplen;
+    /* tcp send reply */
+    tcplen = htons(len);
+    write_n_bytes(userdata->s, (uint8_t*)&tcplen, sizeof(tcplen));
+    write_n_bytes(userdata->s, buf, len);
+}
+
+static void
+handle_query(uint8_t* inbuf, ssize_t inlen,
+    void (*sendfunc)(uint8_t*, size_t, void*),
+    void* userdata, config_type* config)
+{
+    serverlist_type* serverlist = NULL;
+    zonelist_type* zonelist = NULL;
+    ldns_status status = LDNS_STATUS_OK;
+    ldns_pkt *query_pkt = NULL;
+    ldns_rr *query_rr = NULL;
+    int acl_matches = 0;
+    uint32_t serial = 0;
+    char* owner_name = NULL;
+    uint8_t *outbuf = NULL;
+    size_t answer_size = 0;
+    FILE* fd;
+
+    /* acl */
+    if (config && config->serverlist) {
+        serverlist = config->serverlist;
+        while (serverlist) {
+            if (0) {
+                acl_matches = 1;
+                break;
+            }
+            serverlist = serverlist->next;
+        }
+    }
+/*
+    if (!acl_matches)
+        return;
+*/
+
+    /* packet parsing */
+    status = ldns_wire2pkt(&query_pkt, inbuf, (size_t)inlen);
+    if (status != LDNS_STATUS_OK) {
+        fprintf(stderr, "zone_fetcher: got bad packet: %s\n", ldns_get_errorstr_by_id(status));
+        return;
+    }
+    query_rr = ldns_rr_list_rr(ldns_pkt_question(query_pkt), 0);
+
+    if (ldns_pkt_get_opcode(query_pkt) != LDNS_PACKET_NOTIFY ||
+        ldns_pkt_get_rcode(query_pkt)  != LDNS_RCODE_NOERROR ||
+        ldns_pkt_qr(query_pkt) ||
+        !ldns_pkt_aa(query_pkt) ||
+        ldns_pkt_tc(query_pkt) ||
+        ldns_pkt_rd(query_pkt) ||
+        ldns_pkt_ra(query_pkt) ||
+        ldns_pkt_cd(query_pkt) ||
+        ldns_pkt_ad(query_pkt) ||
+        ldns_pkt_qdcount(query_pkt) != 1 ||
+        ldns_pkt_nscount(query_pkt) != 0 ||
+        ldns_pkt_arcount(query_pkt) != 0 ||
+        ldns_rr_get_type(query_rr) != LDNS_RR_TYPE_SOA ||
+        ldns_rr_get_class(query_rr) != LDNS_RR_CLASS_IN)
+    {
+        fprintf(stderr, "zone_fetcher: drop bad notify\n");
+        ldns_pkt_free(query_pkt);
+        return;
+    }
+
+    /* NOTIFY OK */
+    ldns_pkt_set_qr(query_pkt, 1);
+    status = ldns_pkt2wire(&outbuf, query_pkt, &answer_size);
+    if (status != LDNS_STATUS_OK) {
+        fprintf(stderr, "zone_fetcher: error creating notify response: %s\n", ldns_get_errorstr_by_id(status));
+    }
+    sendfunc(outbuf, answer_size, userdata);
+    LDNS_FREE(outbuf);
+
+    /* send AXFR request */
+    if (config)
+        zonelist = config->zonelist;
+    while (zonelist) {
+        if (ldns_dname_compare(ldns_rr_owner(query_rr), zonelist->dname) == 0) {
+            /* get latest serial */
+            fd = fopen(zonelist->input_file, "r");
+            if (!fd) {
+                serial = 0;
+            } else {
+                serial = lookup_serial(fd);
+            }
+            /* send the request */
+            odd_xfer(zonelist->name, zonelist->input_file, serial, config);
+            ldns_pkt_free(query_pkt);
+            return;
+        }
+        /* next */
+        zonelist = zonelist->next;
+    }
+    owner_name = ldns_rdf2str(ldns_rr_owner(query_rr));
+    fprintf(stderr, "zone_fetcher: notify received for unknown zone: %s\n", owner_name);
+    free((void*)owner_name);
+    ldns_pkt_free(query_pkt);
+}
+
+static void
 read_n_bytes(int sock, uint8_t* buf, size_t sz)
 {
     size_t count = 0;
@@ -663,7 +801,7 @@ read_n_bytes(int sock, uint8_t* buf, size_t sz)
 }
 
 static void
-handle_udp(int udp_sock, int *count)
+handle_udp(int udp_sock, config_type* config)
 {
     ssize_t nb;
     uint8_t inbuf[INBUF_SIZE];
@@ -677,15 +815,12 @@ handle_udp(int udp_sock, int *count)
         fprintf(stderr, "zone_fetcher: recvfrom() failed: %s\n", strerror(errno));
         return;
     }
-    fprintf(stderr, "zone_fetcher: received NOTIFY over UDP.\n");
-/*
-    handle_query(inbuf, nb, entries, count, transport_udp, send_udp,
-        &userdata, do_verbose?logfile:0);
-*/
+
+    handle_query(inbuf, nb, send_udp, &userdata, config);
 }
 
 static void
-handle_tcp(int tcp_sock, int *count)
+handle_tcp(int tcp_sock, config_type* config)
 {
     int s;
     struct sockaddr_storage addr_him;
@@ -713,14 +848,10 @@ handle_tcp(int tcp_sock, int *count)
     }
     read_n_bytes(s, inbuf, tcplen);
 
-    fprintf(stderr, "zone_fetcher: received NOTIFY over TCP.\n");
-/*
-    handle_query(inbuf, (ssize_t) tcplen, entries, count, transport_tcp,
-        send_tcp, &userdata, do_verbose?logfile:0);
-*/
+    handle_query(inbuf, (ssize_t) tcplen, send_tcp, &userdata, config);
+
     close(s);
 }
-
 
 static void
 xfrd_ns(sockets_type* sockets, config_type* cfg)
@@ -754,13 +885,13 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
         }
 
         if (FD_ISSET(sockets->udp[0].s, &rset))
-            handle_udp(sockets->udp[0].s, &count);
+            handle_udp(sockets->udp[0].s, cfg);
         if (FD_ISSET(sockets->udp[1].s, &rset))
-            handle_udp(sockets->udp[1].s, &count);
+            handle_udp(sockets->udp[1].s, cfg);
         if (FD_ISSET(sockets->tcp[0].s, &rset))
-            handle_tcp(sockets->tcp[0].s, &count);
+            handle_tcp(sockets->tcp[0].s, cfg);
         if (FD_ISSET(sockets->tcp[1].s, &rset))
-            handle_tcp(sockets->tcp[1].s, &count);
+            handle_tcp(sockets->tcp[1].s, cfg);
     }
 }
 
@@ -768,9 +899,9 @@ int
 main(int argc, char **argv)
 {
     const char* zonelist_file = NULL, *config_file = NULL;
-    zonelist_type* zonelist = NULL, *zonelist_start = NULL;
+    zonelist_type *zonelist = NULL;
     config_type* config = NULL;
-    int c, run_as_daemon = 0, running = 0;
+    int c, run_as_daemon = 0;
     uint32_t serial = 0;
     pid_t pid = 0;
     FILE* fd;
@@ -804,27 +935,14 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    /* read zone list */
-    zonelist_start = read_zonelist(zonelist_file);
-
     /* read transfer configuration */
     config = new_config();
     config->pidfile = strdup(PID_FILENAME_STRING);
     c = read_axfr_config(config_file, config);
-
-    running = run_as_daemon;
-	if (run_as_daemon) {
-        pid = setup_daemon(config);
-        /* listen to NOTIFY messages */
-        c = init_sockets(&sockets);
-        if (c == -1) {
-            fprintf(stderr, "zone_fetcher: failed to initialize sockets\n");
-            exit(EXIT_FAILURE);
-        }
-    }
+    config->zonelist = read_zonelist(zonelist_file);
 
     /* foreach zone, do a single axfr request */
-    zonelist = zonelist_start;
+    zonelist = config->zonelist;
     while (zonelist != NULL) {
         /* get latest serial */
         fd = fopen(zonelist->input_file, "r");
@@ -839,8 +957,14 @@ main(int argc, char **argv)
         zonelist = zonelist->next;
     }
 
-    /* and now run our service */
-    if (run_as_daemon) {
+	if (run_as_daemon) {
+        pid = setup_daemon(config);
+        /* listen to NOTIFY messages */
+        c = init_sockets(&sockets);
+        if (c == -1) {
+            fprintf(stderr, "zone_fetcher: failed to initialize sockets\n");
+            exit(EXIT_FAILURE);
+        }
         xfrd_ns(&sockets, config);
 
         if (unlink(config->pidfile) == -1)
@@ -857,5 +981,6 @@ main(int argc, char **argv)
 
 /* [TODO]:
  * - respect the EXPIRE value?
- * ..
+ * - replace dummy odd_xfer with something more useful.
+ * - syslog
  */
