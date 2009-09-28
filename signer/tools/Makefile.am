@@ -19,7 +19,7 @@ sorter_LDADD=			@LDNS_LIBS@
 zone_reader_SOURCES=		zone_reader.c util.c
 zone_reader_LDADD=		@LDNS_LIBS@
 
-zone_fetcher_SOURCES=		zone_fetcher.c util.c
+zone_fetcher_SOURCES=		zone_fetcher.c util.c logging.c logging.h
 zone_fetcher_LDADD=		@LDNS_LIBS@ @XML2_LIBS@
 
 get_serial_SOURCES=		get_serial.c util.c

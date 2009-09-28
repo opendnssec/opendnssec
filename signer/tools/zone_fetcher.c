@@ -26,6 +26,7 @@
  */
 
 #include "config.h"
+#include "logging.h"
 #include "util.h"
 #include "zone_fetcher.h"
 

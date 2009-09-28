@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: logging.h 1813 2009-09-16 11:33:29Z matthijs $
  *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
@@ -26,13 +26,14 @@
  *
  */
 
-#define MAX_LINE_LEN 65535
-#define TIMEVAL_SUB(a,b) ((((a).tv_sec - (b).tv_sec)) + ((a).tv_usec - (b).tv_usec) / 1000000)
+#include <stdio.h>
+#include <stdarg.h>
 
-#include <ldns/ldns.h>
+#define ODD_MAXLEN 1024
 
-int read_line(FILE *input, char *line, int multiline, int skip_comments);
-void rr_list_clear(ldns_rr_list *rr_list);
-uint32_t lookup_serial(FILE* fd);
+void log_open(int facility, const char *program_name);
+void log_close(void);
+void log_msg(int priority, const char *format, ...);
+
 
 
