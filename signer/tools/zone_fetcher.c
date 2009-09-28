@@ -151,7 +151,6 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlChar *tsig_algo_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Algorithm";
     xmlChar *tsig_secret_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Secret";
     xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/Address";
-    xmlChar *pidfile_expr = (unsigned char*) "//ZoneFetch/PidFile";
 
     if (filename == NULL) {
         fprintf(stderr, "zone_fetcher: no configfile provided\n");
@@ -181,10 +180,6 @@ read_axfr_config(const char* filename, config_type* cfg)
                         filename);
                     exit(EXIT_FAILURE);
                 }
-                /* Extract the pid file */
-                xpathObj = xmlXPathEvalExpression(pidfile_expr, xpathCtx);
-                if (xpathObj != NULL)
-                    pidfile = (char*) xmlXPathCastToString(xpathObj);
 
                 /* Extract the master server address */
                 xpathObj = xmlXPathEvalExpression(server_expr, xpathCtx);
@@ -263,9 +258,6 @@ read_axfr_config(const char* filename, config_type* cfg)
                     free(tsig_algo);
                     free(tsig_secret);
                 }
-
-                cfg->pidfile = strdup(pidfile);
-                free(pidfile);
             }
 
             /* Read the next line */
@@ -389,7 +381,7 @@ writepid(char* pidfile, pid_t pid)
 
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
     if ((fd = fopen(pidfile, "w")) ==  NULL ) {
-        fprintf(stderr, "zone_fetcher: cannot open pidfile %s: %s\n", pidfile, strerror(errno));
+        fprintf(stderr, "zone_fetcher: cannot open pidfile %s for writing: %s\n", pidfile, strerror(errno));
         return -1;
     }
     size = strlen(pidbuf);
@@ -756,6 +748,8 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
         if (sockets->tcp[1].s > maxfd) maxfd = sockets->tcp[1].s;
 
         if (select(maxfd+1, &rset, &wset, &eset, NULL) < 0) {
+            if (errno == EINTR)
+                break;
             fprintf(stderr, "zone_fetcher: select(): %s\n", strerror(errno));
         }
 
@@ -815,6 +809,7 @@ main(int argc, char **argv)
 
     /* read transfer configuration */
     config = new_config();
+    config->pidfile = strdup(PID_FILENAME_STRING);
     c = read_axfr_config(config_file, config);
 
     running = run_as_daemon;
@@ -864,4 +859,3 @@ main(int argc, char **argv)
  * - respect the EXPIRE value?
  * ..
  */
-

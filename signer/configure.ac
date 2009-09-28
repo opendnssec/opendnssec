@@ -28,6 +28,10 @@ int test() {
 }
 ], [CFLAGS="-D__EXTENSIONS__ $CFLAGS"])
 
+fetch_pid_file=$localstatedir/run/opendnssec/zone_fetcher.pid
+
+AC_DEFINE_UNQUOTED(FETCH_PIDFILE, ["`eval echo $fetch_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC zone fetcher pid file])
+
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, inet_pton)
 
