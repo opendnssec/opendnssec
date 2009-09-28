@@ -585,7 +585,6 @@ main(int argc, char **argv)
 	ldns_rdf *zone_name = NULL, *origin = NULL, *tmp;
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
-	char *multiline_rr = NULL;
 
 	int line_len;
 	char line[MAX_LINE_LEN];
@@ -884,9 +883,6 @@ main(int argc, char **argv)
 						}
 						exit(EXIT_FAILURE);
 					}
-				}
-				if (multiline_rr) {
-					free(multiline_rr);
 				}
 			}
 			line_nr++;
