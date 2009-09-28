@@ -138,7 +138,27 @@ server_main(DAEMONCONFIG *config)
             log_msg(config, LOG_ERR, hsm_error_message);
             free(hsm_error_message);
         } else {
-            log_msg(config, LOG_ERR, "hsm_open() result: %d", result);
+            /* decode the error code ourselves 
+               TODO find if there is a better way to do this (and can all of these be returned? are there others?) */
+            switch (result) {
+                case HSM_ERROR:
+                    log_msg(config, LOG_ERR, "hsm_open() result: HSM error");
+                    break;
+                case HSM_PIN_INCORRECT:
+                    log_msg(config, LOG_ERR, "hsm_open() result: incorrect PIN");
+                    break;
+                case HSM_CONFIG_FILE_ERROR:
+                    log_msg(config, LOG_ERR, "hsm_open() result: config file error");
+                    break;
+                case HSM_REPOSITORY_NOT_FOUND:
+                    log_msg(config, LOG_ERR, "hsm_open() result: repository not found");
+                    break;
+                case HSM_NO_REPOSITORIES:
+                    log_msg(config, LOG_ERR, "hsm_open() result: no repositories");
+                    break;
+                default:
+                    log_msg(config, LOG_ERR, "hsm_open() result: %d", result);
+            }
         }
         exit(1);
     }
