@@ -776,6 +776,12 @@ cmd_delzone (int argc, char *argv[], int do_all)
     /* The settings that we need for the zone */
     char* zone_name = NULL;
     int zone_id = -1;
+    int policy_id = -1;
+    int zone_count = -1;
+
+    DB_RESULT	result;         /* Result of parameter query */
+    DB_RESULT	result2;        /* Result of zone count query */
+    KSM_PARAMETER shared;       /* Parameter information */
 
     xmlDocPtr doc = NULL;
 
@@ -917,13 +923,50 @@ cmd_delzone (int argc, char *argv[], int do_all)
 
     /* See if the zone exists and get its ID, assuming we are not deleting all */
     if (do_all == 0) {
-        status = KsmZoneIdFromName(zone_name, &zone_id);
+        status = KsmZoneIdAndPolicyFromName(zone_name, &policy_id, &zone_id);
         if (status != 0) {
             printf("Couldn't find zone %s\n", zone_name);
             return(1);
         }
+
+        /* Get the shared_keys parameter */
+        status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
+        if (status != 0) {
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(status);
+        }
+        status = KsmParameter(result, &shared);
+        if (status != 0) {
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(status);
+        }
+        KsmParameterEnd(result);
+    
+        /* how many zones on this policy (needed to unlink keys) */ 
+        status = KsmZoneCountInit(&result2, policy_id); 
+        if (status == 0) { 
+            status = KsmZoneCount(result2, &zone_count); 
+        } 
+        DbFreeResult(result2);
     }
 
+    /* Mark keys as dead if appropriate */
+    if ((shared.value == 1 && zone_count == 1) || shared.value == 0 || do_all == 1) {
+        status = KsmMarkKeysAsDead(zone_id);
+        if (status != 0) {
+            printf("Error: failed to mark keys as dead in database\n");
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(status);
+        }
+    }
+
+    /* Finally, we can delete the zone (and any dnsseckeys entries) */
     status = KsmDeleteZone(zone_id);
 
     if (status != 0) {

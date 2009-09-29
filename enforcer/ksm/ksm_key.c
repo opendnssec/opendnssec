@@ -1158,3 +1158,99 @@ int KsmLinkKeys(const char* zone_name, int policy_id)
 
     return 0;
 }
+
+/*+
+ * KsmMarkKeysAsDead - When deleting zones we may need to indicate that keys are now dead
+ *                     (i.e. when keysharing is turned off or if we removed is the last zone on a policy)
+ *
+ * Description:
+ *      Marks selected keys as dead in the database.
+ *
+ * Arguments:
+ *      int zone_id
+ *          ID of the zone (-1 if all zones are being removed)
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+-*/
+
+int KsmMarkKeysAsDead(int zone_id)
+{
+    int status = 0;
+
+    DB_RESULT	    result;         /* Result of query */
+    KSM_KEYDATA     data;           /* key information */
+    char*           sql = NULL;     /* SQL query */
+    int             clause = 0;
+
+    /* Find all the keys which are on that zone but are not already dead */
+    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+    DqsConditionInt(&sql, "state", DQS_COMPARE_LT, KSM_STATE_DEAD, clause++);
+    DqsConditionInt(&sql, "state", DQS_COMPARE_GT, KSM_STATE_GENERATE, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "zone_id", DQS_COMPARE_EQ, zone_id, clause++);
+    }
+    DqsEnd(&sql);
+
+    /* Now iterate round the keys meeting the condition and print them */
+
+    status = KsmKeyInitSql(&result, sql);
+    if (status == 0) {
+        status = KsmKey(result, &data);
+        while (status == 0) {
+
+            /* Kill the Key */
+			status = KsmKillKey(data.keypair_id);
+			if (status == 0) {
+				status = KsmKey(result, &data);
+			}
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+
+        KsmKeyEnd(result);
+    }
+
+    return 0;
+}
+
+/*+
+ * KsmKillKey - Update key status to "dead"
+ *
+ * Description:
+ *      Changes a keys status to dead (from any state)
+ *
+ * Arguments:
+ *      int keypair_id
+ *          Which key to process
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+-*/
+
+int KsmKillKey(int keypair_id)
+{
+    int         status = 0;         /* Status return */
+    char*       sql = NULL;         /* SQL Statement */
+    int         set = 0;
+
+    sql = DusInit("keypairs");
+    DusSetInt(&sql, "STATE", KSM_STATE_DEAD, set++);
+    DusSetString(&sql, "DEAD", DtParseDateTimeString("now"), set++);
+    DusConditionInt(&sql, "ID", DQS_COMPARE_EQ, keypair_id, 0);
+    DusEnd(&sql);
+
+    /* Execute the statement */
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DusFree(sql);
+
+    return status;
+}
+
