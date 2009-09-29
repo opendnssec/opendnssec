@@ -161,7 +161,6 @@ insert into serialmodes (name, description) values ("unixtime", "seconds since 1
 insert into serialmodes (name, description) values ("counter", "add one everytime updated");
 insert into serialmodes (name, description) values ("datecounter", "YYYYMMDDXX");
 insert into serialmodes (name, description) values ("keep", "Signer should not change the serial");
-insert into serialmodes (name, description) values ("keepcounter", "Signer should not change the serial, unless necessary");
 
 -- default parameters
 insert into parameters (name, description, category_id) select "resign", "re-signing interval", id from categories where name="signature";

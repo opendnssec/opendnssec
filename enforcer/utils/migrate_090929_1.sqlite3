@@ -1,0 +1,8 @@
+-- Migrate existing database for removal of "keepcounter" serial type
+
+update parameters_policies 
+	set value = (select id from serialmodes where name = "counter") 
+	where parameter_id = (select id from parameters where name = "serial")
+	and value = (select id from serialmodes where name = "keepcounter");
+
+delete from serialmodes where name = "keepcounter";
