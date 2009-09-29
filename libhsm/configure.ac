@@ -11,7 +11,7 @@ define([LIBHSM_SHLIB_REVISION], [1])
 define([LIBHSM_SHLIB_AGE],      [0])
 
 AC_PREREQ(2.61)
-AC_INIT([libhsm], LIBHSM_VERSION, [jelte@nlnetlabs.nl])
+AC_INIT([libhsm], LIBHSM_VERSION, [])
 
 # needed to build correct soname
 AC_SUBST(LIBTOOL_VERSION_INFO, "LIBHSM_SHLIB_CURRENT:LIBHSM_SHLIB_REVISION:LIBHSM_SHLIB_AGE")
@@ -88,10 +88,24 @@ AC_ARG_WITH(pkcs11-opensc,
 	[ pkcs11_opensc_module="/usr/lib/pkcs11/opensc-pkcs11.so" ]
 )
 
+AC_ARG_WITH(pkcs11-ncipher, 
+	AS_HELP_STRING([--with-pkcs11-ncipher=PATH],[specify path of nCiper library to use for regression testing (default /opt/nfast/toolkits/pkcs11/libcknfast.so)]),
+	[ pkcs11_ncipher_module="$withval" ],
+	[ pkcs11_ncipher_module="/opt/nfast/toolkits/pkcs11/libcknfast.so" ]
+)
+
+AC_ARG_WITH(pkcs11-aepkeyper, 
+	AS_HELP_STRING([--with-pkcs11-aepkeyper=PATH],[specify path of AEP Keyper library to use for regression testing (default /opt/Keyper/PKCS11Provider/pkcs11.so)]),
+	[ pkcs11_aepkeyper_module="$withval" ],
+	[ pkcs11_aepkeyper_module="/opt/Keyper/PKCS11Provider/pkcs11.so" ]
+)
+
 AC_SUBST(pkcs11_softhsm_module)
 AC_SUBST(pkcs11_sca6000_module)
 AC_SUBST(pkcs11_etoken_module)
 AC_SUBST(pkcs11_opensc_module)
+AC_SUBST(pkcs11_aepkeyper_module)
+AC_SUBST(pkcs11_ncipher_module)
 
 AC_CONFIG_FILES([
 	Makefile
@@ -102,6 +116,8 @@ AC_CONFIG_FILES([
 	checks/conf-etoken.xml
 	checks/conf-multi.xml
 	checks/conf-opensc.xml
+	checks/conf-ncipher.xml
+	checks/conf-aepkeyper.xml
 ])
 
 AC_OUTPUT
