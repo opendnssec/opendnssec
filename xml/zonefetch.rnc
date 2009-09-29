@@ -56,7 +56,8 @@ source =
 	element SourceAddress { localAddress }?,
 
 	# <address of host to request AXFR from
-	# DEFAULT: none	
+	# incoming NOTIFY has to match this address as well
+	# DEFAULT: none
 	element RequestTransfer { remoteAddress }+
 
 ipv4 = element IPv4 { xsd:string }

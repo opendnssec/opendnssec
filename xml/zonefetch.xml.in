@@ -29,6 +29,7 @@
 		</SourceAddress>
 
 		<!-- address of host to request AXFR from -->
+		<!-- incoming NOTIFY has to match this address as well -->
 		<!-- DEFAULT: none -->
 		<RequestTransfer>
 			<IPv4>192.0.2.2</IPv4><Port>53</Port>
