@@ -889,6 +889,11 @@ module KASPAuditor
         # b) no hashes in between non-opt-out names
 
         # This checks the types covered for each domain name
+        if (!File.exists?(@working +
+                "#{File::SEPARATOR}audit.optout.#{Process.pid}"))
+          File.new(@working +
+                "#{File::SEPARATOR}audit.optout.#{Process.pid}", "w")
+        end
         File.open(@working + 
             "#{File::SEPARATOR}audit.types.sorted.#{Process.pid}") {|ftypes|
           File.open(@working + 
