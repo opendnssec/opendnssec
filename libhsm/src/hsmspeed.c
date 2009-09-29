@@ -63,7 +63,7 @@ sign (void *arg)
 {
     hsm_ctx_t *ctx = NULL;
     hsm_key_t *key = NULL;
-    
+
     size_t i;
     unsigned int iterations = 0;
 
@@ -94,7 +94,7 @@ sign (void *arg)
 
     /* Do some signing */
     for (i=0; i<iterations; i++) {
-        sig = hsm_sign_rrset(ctx, rrset, key, sign_params); 
+        sig = hsm_sign_rrset(ctx, rrset, key, sign_params);
         if (! sig) {
             fprintf(stderr,
                     "hsm_sign_rrset() returned error: %s in %s\n",
@@ -102,18 +102,18 @@ sign (void *arg)
                     ctx->error_action
             );
             break;
-        }               
+        }
         ldns_rr_free(sig);
     }
-    
+
     /* Clean up */
     ldns_rr_list_deep_free(rrset);
     hsm_sign_params_free(sign_params);
-    ldns_rr_free(dnskey_rr);    
+    ldns_rr_free(dnskey_rr);
     hsm_destroy_context(ctx);
-    
+
     fprintf(stderr, "Signer thread #%d done.\n", sign_arg->id);
-    
+
     pthread_exit(NULL);
 }
 
@@ -133,9 +133,9 @@ main (int argc, char *argv[])
 
     char *config = NULL;
     const char *repository = NULL;
-    
+
     sign_arg_t sign_arg_array[PTHREAD_THREADS_MAX];
-    
+
     pthread_t      thread_array[PTHREAD_THREADS_MAX];
     pthread_attr_t thread_attr;
     void          *thread_status;
@@ -182,7 +182,7 @@ main (int argc, char *argv[])
 
     /* Open HSM library */
     fprintf(stderr, "Opening HSM Library...\n");
-    result = hsm_open(config, hsm_prompt_pin, NULL);    
+    result = hsm_open(config, hsm_prompt_pin, NULL);
     if (result) {
         fprintf(stderr, "hsm_open() returned %d\n", result);
         exit(-1);
@@ -201,16 +201,16 @@ main (int argc, char *argv[])
     if (key) {
         char *id = hsm_get_key_id(ctx, key);
         fprintf(stderr, "Temporary key created: %s\n", id);
-        free(id);           
+        free(id);
     } else {
         fprintf(stderr, "Could not generate a key pair in repository \"%s\"\n", repository);
         exit(-1);
     }
-    
+
     /* Prepare threads */
     pthread_attr_init(&thread_attr);
     pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_JOINABLE);
-    
+
     for (n=0; n<threads; n++) {
         sign_arg_array[n].id = n;
         sign_arg_array[n].ctx = hsm_create_context();
@@ -225,7 +225,7 @@ main (int argc, char *argv[])
     fprintf(stderr, "Signing %d RRsets using %d %s...\n",
         iterations, threads, (threads > 1 ? "threads" : "thread"));
     gettimeofday(&start, NULL);
-    
+
     /* Create threads for signing */
     for (n=0; n<threads; n++) {
         result = pthread_create(&thread_array[n], &thread_attr,
@@ -241,7 +241,7 @@ main (int argc, char *argv[])
         result = pthread_join(thread_array[n], &thread_status);
         if (result) {
             fprintf(stderr, "pthread_join() returned %d\n", result);
-            exit(EXIT_FAILURE);         
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -256,7 +256,7 @@ main (int argc, char *argv[])
     printf("%d %s, %d signatures per thread, %.2f sig/s (RSA %d bits)\n",
         threads, (threads > 1 ? "threads" : "thread"), iterations,
         speed, keysize);
-    
+
     /* Delete temporary key */
     fprintf(stderr, "Deleting temporary key...\n");
     result = hsm_remove_key(ctx, key);
@@ -269,6 +269,6 @@ main (int argc, char *argv[])
     hsm_destroy_context(ctx);
     (void) hsm_close();
     if (config) free(config);
-    
+
     return 0;
 }

@@ -211,11 +211,11 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...)
 {
     va_list args;
-    
+
     if (ctx && ctx->error == 0) {
         ctx->error = error;
         ctx->error_action = action;
-        
+
         va_start(args, message);
         vsnprintf(ctx->error_message, sizeof(ctx->error_message),
             message, args);
@@ -772,7 +772,7 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
     if ((CK_LONG)template[0].ulValueLen < 1) {
         return 0;
     }
-    
+
     return modulus_bits;
 }
 
@@ -910,7 +910,7 @@ hsm_get_id_for_object(hsm_ctx_t *ctx,
         *len = 0;
         return NULL;
     }
-    
+
     template[0].pValue = malloc(template[0].ulValueLen);
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
@@ -1029,7 +1029,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
         }
     }
     free(key_handles);
-    
+
     *count = total_count;
     return keys;
 }
@@ -1141,7 +1141,7 @@ hsm_find_repository_session(hsm_ctx_t *ctx, const char *repository)
             }
         }
     }
-    
+
     hsm_ctx_set_error(ctx, HSM_REPOSITORY_NOT_FOUND,
                     "hsm_find_repository_session()",
                     "Can't find repository: %s", repository);
@@ -1545,7 +1545,7 @@ hsm_open(const char *config,
 
     /* Load XML document */
     doc = xmlParseFile(config_file);
-    free(config_file); 
+    free(config_file);
     if (doc == NULL) {
         return HSM_CONFIG_FILE_ERROR;
     }
@@ -1623,12 +1623,12 @@ hsm_open(const char *config,
                 if (result != HSM_OK) {
 					break;
 				}
-				
+
                 repositories++;
             }
         }
     }
-    
+
     xmlXPathFreeObject(xpath_obj);
     xmlXPathFreeContext(xpath_ctx);
     xmlFreeDoc(doc);
@@ -1741,10 +1741,10 @@ hsm_list_keys_repository(hsm_ctx_t *ctx,
                          const char *repository)
 {
     hsm_session_t *session;
-    
+
     if (!repository) return NULL;
     if (!ctx) ctx = _hsm_ctx;
-    
+
     session = hsm_find_repository_session(ctx, repository);
     if (!session) {
         *count = 0;
@@ -1758,7 +1758,7 @@ hsm_count_keys(hsm_ctx_t *ctx)
 {
     size_t count = 0;
     unsigned int i;
-    
+
     if (!ctx) ctx = _hsm_ctx;
     for (i = 0; i < ctx->session_count; i++) {
         count += hsm_count_keys_session(ctx, ctx->session[i]);
@@ -1771,10 +1771,10 @@ hsm_count_keys_repository(hsm_ctx_t *ctx,
                           const char *repository)
 {
     hsm_session_t *session;
-    
+
     if (!repository) return 0;
     if (!ctx) ctx = _hsm_ctx;
-    
+
     session = hsm_find_repository_session(ctx, repository);
     if (!session) {
         return 0;
@@ -1788,11 +1788,11 @@ hsm_find_key_by_id(hsm_ctx_t *ctx, const char *id)
     unsigned char *id_bytes;
     size_t len;
     hsm_key_t *key;
-    
+
     id_bytes = hsm_hex_parse(id, &len);
 
     if (!id_bytes) return NULL;
-    
+
     key = hsm_find_key_by_id_bin(ctx, id_bytes, len);
     free(id_bytes);
     return key;
@@ -1889,7 +1889,7 @@ hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
     if (hsm_pkcs11_check_error(ctx, rv, "Destroy private key")) {
         return -3;
     }
-    
+
     key->private_key = 0;
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
                                                key->public_key);
@@ -1926,22 +1926,22 @@ hsm_get_key_id(hsm_ctx_t *ctx, const hsm_key_t *key)
     char *id_str;
     size_t len;
     hsm_session_t *session;
-    
+
     if (!ctx) ctx = _hsm_ctx;
     if (!key) return NULL;
 
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
-    
+
     id = hsm_get_id_for_object(ctx, session, key->public_key, &len);
     if (!id) return NULL;
-    
+
     /* this is plain binary data, we need to convert it to hex */
     id_str = malloc(len * 2 + 1);
     if (!id_str) return NULL;
 
     hsm_hex_unparse(id_str, id, len);
-    
+
     free(id);
 
     return id_str;
@@ -1957,7 +1957,7 @@ hsm_get_key_info(hsm_ctx_t *ctx,
     if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
-    
+
     key_info = malloc(sizeof(hsm_key_info_t));
 
     key_info->id = hsm_get_key_id(ctx, key);
@@ -2369,7 +2369,7 @@ hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
                 return 1;
         }
     }
-    
+
     hsm_ctx_set_error(ctx, HSM_REPOSITORY_NOT_FOUND,
                     "hsm_token_attached()",
                     "Can't find repository: %s", repository);
@@ -2402,7 +2402,7 @@ hsm_get_error(hsm_ctx_t *gctx)
             ctx->error_message ? ctx->error_message : "unknown error");
         return message;
     };
-    
+
     return NULL;
 }
 
@@ -2458,7 +2458,7 @@ hsm_print_error(hsm_ctx_t *gctx)
     char *message;
 
     message = hsm_get_error(gctx);
-    
+
     if (message) {
         fprintf(stderr, "%s\n", message);
         free(message);

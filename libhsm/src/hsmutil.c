@@ -69,15 +69,15 @@ cmd_list (int argc, char *argv[])
     size_t key_count = 0;
     hsm_key_t **keys;
     hsm_ctx_t *ctx = NULL;
-    
+
     const char *key_info_format = "%-20s  %-32s  %-10s\n";
-    
+
 
     if (argc) {
         repository = strdup(argv[0]);
         argc--;
         argv++;
- 
+
         /* Check for repository before starting using it */
         if (hsm_token_attached(ctx, repository) == 0) {
            hsm_print_error(ctx);
@@ -262,7 +262,7 @@ cmd_test (int argc, char *argv[])
     } else {
         usage();
     }
-    
+
     return 0;
 }
 

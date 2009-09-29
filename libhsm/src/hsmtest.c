@@ -103,7 +103,7 @@ hsm_test_random()
     printf("Generating 64-bit random data... ");
     r64 = hsm_random64(ctx);
     printf("%llu\n", r64);
-    
+
     return 0;
 }
 
@@ -176,10 +176,10 @@ hsm_test (const char *repository)
 
         printf("\n");
     }
-    
+
     if (hsm_test_random()) {
         errors++;
     }
-    
+
     return errors;
 }
