@@ -2092,7 +2092,7 @@ cmd_list (int argc, char *argv[], int long_list)
 
         printf("Keys:\n");
 
-        status = KsmListKeys(qualifier_id, long_list);
+        status = ListKeys(qualifier_id, long_list);
 
         if (status != 0) {
             printf("Error: failed to list keys\n");
@@ -4530,4 +4530,158 @@ int printKey(void* context, KSM_KEYDATA* key_data)
 ksm_log_msg(const char *format)
 {
     fprintf(stderr, "%s\n", format);
+}
+
+/*+
+ * ListKeys - Output a list of Keys
+ *
+ *
+ * Arguments:
+ *
+ *      int zone_id
+ *          ID of the zone (-1 for all)
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int ListKeys(int zone_id, int long_list)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+    char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+    int         done_row = 0;   /* Have we printed a row this loop? */
+
+    char*       temp_zone = NULL;   /* place to store zone name returned */
+    int         temp_type = 0;      /* place to store key type returned */
+    int         temp_state = 0;     /* place to store key state returned */
+    char*       temp_ready = NULL;  /* place to store ready date returned */
+    char*       temp_active = NULL; /* place to store active date returned */
+    char*       temp_retire = NULL; /* place to store retire date returned */
+    char*       temp_dead = NULL;   /* place to store dead date returned */
+    char*       temp_loc = NULL;    /* place to store location returned */
+    char*       temp_hsm = NULL;    /* place to store hsm returned */
+    int         temp_alg = 0;       /* place to store algorithm returned */
+
+    /* Key information */
+    hsm_key_t *key = NULL;
+    ldns_rr *dnskey_rr = NULL;
+    hsm_sign_params_t *sign_params = NULL;
+
+    if (long_list) {
+        /* connect to the HSM */
+        status = hsm_open(config, hsm_prompt_pin, NULL);
+        if (status) {
+            hsm_print_error(NULL);
+            return(-1);
+        }
+    }
+
+    /* Select rows */
+    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm from securitymodules s, zones z, KEYDATA_VIEW k where z.id = k.zone_id and s.id = k.securitymodule_id and state != 6 and zone_id is not null ");
+    if (zone_id != -1) {
+        StrAppend(&sql, "and zone_id = ");
+        snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
+        StrAppend(&sql, stringval);
+    }
+    StrAppend(&sql, " order by zone_id");
+
+    DusEnd(&sql);
+
+    status = DbExecuteSql(DbHandle(), sql, &result);
+
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+        if (long_list == 1) {
+            printf("Zone:                           Keytype:      State:    Date of next transition:  CKA_ID:                           Repository:                       Keytag:\n");
+        }
+        else {
+            printf("Zone:                           Keytype:      State:    Date of next transition:\n");
+        }
+        while (status == 0) {
+            /* Got a row, print it */
+            DbString(row, 0, &temp_zone);
+            DbInt(row, 1, &temp_type);
+            DbInt(row, 2, &temp_state);
+            DbString(row, 3, &temp_ready);
+            DbString(row, 4, &temp_active);
+            DbString(row, 5, &temp_retire);
+            DbString(row, 6, &temp_dead);
+            DbString(row, 7, &temp_loc);
+            DbString(row, 8, &temp_hsm);
+            DbInt(row, 9, &temp_alg);
+            done_row = 0;
+
+            if (temp_state == KSM_STATE_PUBLISH) {
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
+                done_row = 1;
+            }
+            else if (temp_state == KSM_STATE_READY) {
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), "next rollover");
+                done_row = 1;
+            }
+            else if (temp_state == KSM_STATE_ACTIVE) {
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_retire == NULL) ? "(not scheduled)" : temp_retire);
+                done_row = 1;
+            }
+            else if (temp_state == KSM_STATE_RETIRE) {
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_dead == NULL) ? "(not scheduled)" : temp_dead);
+                done_row = 1;
+            }
+
+            if (done_row == 1 && long_list == 1) {
+                key = hsm_find_key_by_id(NULL, temp_loc);
+                if (!key) {
+                    printf("%-33s %s NOT IN HSM\n", temp_loc, temp_hsm);
+                } else {
+                    sign_params = hsm_sign_params_new();
+                    sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, temp_zone);
+                    sign_params->algorithm = temp_alg;
+                    sign_params->flags = LDNS_KEY_ZONE_KEY;
+                    if (temp_type == KSM_TYPE_KSK) {
+                        sign_params->flags += LDNS_KEY_SEP_KEY;
+                    }
+                    dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+                    sign_params->keytag = ldns_calc_keytag(dnskey_rr);
+
+                    printf("%-33s %-33s %d\n", temp_loc, temp_hsm, sign_params->keytag);
+                }
+            }
+            else if (done_row == 1) {
+                printf("\n");
+            }
+            
+            status = DbFetchRow(result, &row);
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+
+        DbFreeResult(result);
+    }
+
+    DusFree(sql);
+
+    DbStringFree(temp_zone);
+    DbStringFree(temp_ready);
+    DbStringFree(temp_active);
+    DbStringFree(temp_retire);
+    DbStringFree(temp_dead);
+    DbStringFree(temp_loc);
+    DbStringFree(temp_hsm);
+
+    hsm_sign_params_free(sign_params);
+    if (dnskey_rr != NULL) {
+        ldns_rr_free(dnskey_rr);
+    }
+    hsm_key_free(key);
+
+    return status;
 }

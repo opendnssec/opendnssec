@@ -1,13 +1,13 @@
 $Id$
 
 OpenDNSSEC trunk
+* "ksmutil list keys" now displays the keytag if the -l flag is passed to it.
 * "Emergency Keys" renamed to "Standby Keys" as this better reflects their role
   as we use them.
 * The behaviour of SOA Serial value 'counter' changed according to Ticket #31.
-* 2 changes to the KASP DB, please apply:
+* changes to the KASP DB, please apply:
   If want to use your old DB:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090922_1.sqlite3
-    sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090922_2.sqlite3
   Or start fresh (with loss of information. User should remove old keys from the HSM):
     ksmutil setup
 
