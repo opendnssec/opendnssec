@@ -44,7 +44,7 @@ source =
 		element Name { xsd:string },
 		# http://www.iana.org/assignments/tsig-algorithm-names
 		element Algorithm { xsd:string },
-		element Secret { xsd:string }
+		element Secret { xsd:base64Binary }
 	}?,
 	element SourceAddress { localAddress }?,
 	element RequestTransfer { remoteAddress }+
