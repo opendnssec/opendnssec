@@ -216,11 +216,11 @@ module KASPAuditor
         }
       end
       class AnyKey
-        attr_accessor :algorithm, :alg_length, :emergency, :lifetime
+        attr_accessor :algorithm, :alg_length, :standby, :lifetime
         def initialize(e)
           # Algorithm length and value
           @algorithm = Dnsruby::Algorithms.new(e.elements['Algorithm'].text.to_i)
-          @emergency = e.elements['Standby'].text.to_i
+          @standby = e.elements['Standby'].text.to_i
         lifetime_text = e.elements['Lifetime'].text
         @lifetime = Config.xsd_duration_to_seconds(lifetime_text)
         if (@lifetime == 0)

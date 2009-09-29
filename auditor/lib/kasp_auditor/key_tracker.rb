@@ -101,7 +101,7 @@ module KASPAuditor
 
     # So, each run, the auditor needs to load the key caches for the zone, then
     # audit the zone, keeping track of which keys are used. The key caches are
-    # then updated. The auditor needs to run the lifetime, numEmergency checks
+    # then updated. The auditor needs to run the lifetime, numStandby checks
     # on the keys as well.
     #
     # If the key caches can't be found, then create new ones.
@@ -181,13 +181,13 @@ module KASPAuditor
     def run_checks
       # We also need to perform the auditing checks against the config
       # Checks to be performed :
-      #   a) Warn if number of prepublished KSKs < KSK:Emergency
-      # @TODO@ THIS IS WRONG - LOOK UP EMERGENCY PER KEY!!!
-      ksk_min_emergency = 999999999999
+      #   a) Warn if number of prepublished KSKs < KSK:Standby
+      # @TODO@ THIS IS WRONG - LOOK UP STANDBY PER KEY!!!
+      ksk_min_standby = 999999999999
       ksk_min_lifetime = 999999999999
       @config.keys.ksks().length.times {|i|
-        if (@config.keys.ksks()[i].emergency < ksk_min_emergency)
-          ksk_min_emergency = @config.keys.ksks()[i].emergency
+        if (@config.keys.ksks()[i].standby < ksk_min_standby)
+          ksk_min_standby = @config.keys.ksks()[i].standby
         end
         if (@config.keys.ksks()[i].lifetime < ksk_min_lifetime)
           ksk_min_lifetime = @config.keys.ksks()[i].lifetime
@@ -197,18 +197,18 @@ module KASPAuditor
       prepublished_ksk_count = @cache.prepublished.keys.select {|k|
         k.zone_key? && k.sep_key?
       }.length
-      if (prepublished_ksk_count < ksk_min_emergency)
-        msg = "Not enough prepublished KSKs! Should be #{ksk_min_emergency} but have #{prepublished_ksk_count}"
+      if (prepublished_ksk_count < ksk_min_standby)
+        msg = "Not enough prepublished KSKs! Should be #{ksk_min_standby} but have #{prepublished_ksk_count}"
         print "#{msg}\n"
         @parent.log(LOG_WARNING, msg)
       end
-      #   b) Warn if number of prepublished ZSKs < ZSK:Emergency
-      # @TODO@ THIS IS WRONG - LOOK UP EMERGENCY PER KEY!!!
-      zsk_min_emergency = 999999999999
+      #   b) Warn if number of prepublished ZSKs < ZSK:Standby
+      # @TODO@ THIS IS WRONG - LOOK UP STANDBY PER KEY!!!
+      zsk_min_standby = 999999999999
       zsk_min_lifetime = 999999999999
       @config.keys.zsks().length.times {|i|
-        if (@config.keys.zsks()[i].emergency < zsk_min_emergency)
-          zsk_min_emergency = @config.keys.zsks()[i].emergency
+        if (@config.keys.zsks()[i].standby < zsk_min_standby)
+          zsk_min_standby = @config.keys.zsks()[i].standby
         end
         if (@config.keys.zsks()[i].lifetime < zsk_min_lifetime)
           zsk_min_lifetime = @config.keys.zsks()[i].lifetime
@@ -217,8 +217,8 @@ module KASPAuditor
       prepublished_zsk_count = @cache.prepublished.keys.select {|k|
         k.zone_key? && !k.sep_key?
       }.length
-      if (prepublished_zsk_count < ksk_min_emergency)
-        msg = "Not enough prepublished ZSKs! Should be #{zsk_min_emergency} but have #{prepublished_zsk_count}"
+      if (prepublished_zsk_count < ksk_min_standby)
+        msg = "Not enough prepublished ZSKs! Should be #{zsk_min_standby} but have #{prepublished_zsk_count}"
         print "#{msg}\n"
         @parent.log(LOG_WARNING, msg)
       end

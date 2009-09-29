@@ -232,7 +232,7 @@ class AuditorTest < Test::Unit::TestCase
   def test_key_tracking
     # The auditor tracks which keys it has seen in zones it audits.
     # It tracks them as they are pre-published, used, and retired.
-    # If the number of pre-published KSK or ZSKs is less than [ZSK, KSK]->Emergency
+    # If the number of pre-published KSK or ZSKs is less than [ZSK, KSK]->Standby
     # then a warning is generated
     # Check that a single key (KSK or ZSK) is not active longer than
     # (KSK->Lifetime + Enforcer->Interval) or (ZSK->Lifetime + Enforcer->Interval)
@@ -279,7 +279,7 @@ class AuditorTest < Test::Unit::TestCase
   end
 
   class FakeAnykey
-    attr_accessor :algorithm, :alg_length, :emergency, :lifetime
+    attr_accessor :algorithm, :alg_length, :standby, :lifetime
   end
 
   class FakeKeys
@@ -324,10 +324,10 @@ class AuditorTest < Test::Unit::TestCase
     # have long-running KSK/ZSK, or there are not enough pre-published ZSK/KSK
     keys = FakeKeys.new
     ksk = FakeAnykey.new
-    ksk.emergency = 2
+    ksk.standby = 2
     ksk.lifetime = 1
     zsk = FakeAnykey.new
-    zsk.emergency = 2
+    zsk.standby = 2
     zsk.lifetime = 1
     keys.zsks.push(zsk)
     keys.ksks.push(ksk)
