@@ -29,9 +29,11 @@ datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 
 start = element ZoneList {
 	element Zone {
+		# Name of zone
 		attribute name { xsd:string },
 
 		# What policy applies to this zone?
+		# (matches symbolic name of policy in in kasp.xml)
 		element Policy { xsd:string },
 
 		# What file containts the signer configuration for this zone?	
