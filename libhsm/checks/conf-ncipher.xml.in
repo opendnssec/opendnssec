@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: conf-aepkeyper.xml.in 1358 2009-07-24 07:36:02Z rb $ -->
+<!-- $Id$ -->
 
 <Configuration>
 	<RepositoryList>
 		<Repository name="default">
-			<Module>/opt/nfast/toolkits/pkcs11/libcknfast.so</Module>
+			<Module>@pkcs11_ncipher_module@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234567890</PIN>
 		</Repository>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: conf-sca6000.xml 803 2009-05-26 14:57:54Z jakob $ -->
+<!-- $Id$ -->
 
 <Configuration>
 	<RepositoryList>

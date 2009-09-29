@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: conf-softhsm.xml 806 2009-05-27 10:05:41Z jelte $ -->
+<!-- $Id$ -->
 
 <Configuration>
 	<RepositoryList>
