@@ -28,7 +28,7 @@ token.db othertoken.db:
 		--so-pin 12345678 --pin 123456
 
 regress:
-	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,multi}'
+	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,ncipher,multi}'
 
 regress-aepkeyper: hsmcheck
 	./hsmcheck -f conf-aepkeyper.xml -gsdr
@@ -45,6 +45,9 @@ regress-etoken: hsmcheck
 
 regress-opensc: hsmcheck
 	./hsmcheck -f conf-opensc.xml -gsdr
+
+regress-ncipher: hsmcheck
+	./hsmcheck -f conf-ncipher.xml -gsdr
 
 regress-multi: hsmcheck token.db othertoken.db
 	env $(SOFTHSM_ENV) \
