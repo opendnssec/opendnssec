@@ -199,7 +199,6 @@ module KASPAuditor
       }.length
       if (prepublished_ksk_count < ksk_min_standby)
         msg = "Not enough prepublished KSKs! Should be #{ksk_min_standby} but have #{prepublished_ksk_count}"
-        print "#{msg}\n"
         @parent.log(LOG_WARNING, msg)
       end
       #   b) Warn if number of prepublished ZSKs < ZSK:Standby
@@ -219,7 +218,6 @@ module KASPAuditor
       }.length
       if (prepublished_zsk_count < ksk_min_standby)
         msg = "Not enough prepublished ZSKs! Should be #{zsk_min_standby} but have #{prepublished_zsk_count}"
-        print "#{msg}\n"
         @parent.log(LOG_WARNING, msg)
       end
       @cache.inuse.each {|key, timestamp|
@@ -228,8 +226,7 @@ module KASPAuditor
           # @TODO@ But which ZSK to use?
           lifetime = zsk_min_lifetime + @enforcer_interval # @TODO@ @config.keys.ksks()[0].lifetime + Enforcer->Interval
           if timestamp < (Time.now.to_i - lifetime)
-            msg = "ZSK #{key.key_tag} in use too long - should be max #{lifetime} but has been #{Time.now.to_i-timestamp}"
-            print "#{msg}\n"
+            msg = "ZSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
             @parent.log(LOG_WARNING, msg)
           end
         else
@@ -237,8 +234,7 @@ module KASPAuditor
           # @TODO@ But which ZSK to use?
           lifetime = ksk_min_lifetime + @enforcer_interval # @TODO@ @config.keys.ksks()[0].lifetime + Enforcer->Interval
           if timestamp < (Time.now.to_i - lifetime)
-            msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} but has been #{Time.now.to_i-timestamp}"
-            print "#{msg}\n"
+            msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
             @parent.log(LOG_WARNING, msg)
           end
         end
