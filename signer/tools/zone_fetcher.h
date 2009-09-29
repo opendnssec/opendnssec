@@ -58,14 +58,6 @@ struct serverlist_struct
     unsigned int port;  /* 0 == no port */
     const char* ipaddr;
     union acl_addr_storage addr;
-    union acl_addr_storage range_mask;
-    enum {
-        acl_range_single = 0,   /* single adress */
-        acl_range_mask = 1, /* 10.20.30.40&255.255.255.0 */
-        acl_range_subnet = 2,   /* 10.20.30.40/28 */
-        acl_range_minmax = 3    /* 10.20.30.40-10.20.30.60 (mask=max) */
-    } rangetype;
-
     serverlist_type* next;
 };
 
@@ -124,9 +116,3 @@ struct handle_udp_userdata {
 struct handle_tcp_userdata {
     int s;
 };
-
-/**
- * Transport type.
- */
-enum transport_type {transport_any = 0, transport_udp, transport_tcp };
-
