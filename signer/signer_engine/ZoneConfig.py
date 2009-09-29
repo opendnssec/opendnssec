@@ -273,9 +273,9 @@ class ZoneConfig:
         # todo: check for known values
         self.soa_serial = Util.get_xml_data(
             "SignerConfiguration/Zone/SOA/Serial", signer_config, True)
-        if self.soa_serial not in ["keep", "unixtime", "datecounter", "counter", "keepcounter" ]:
+        if self.soa_serial not in ["keep", "unixtime", "datecounter", "counter" ]:
             raise ZoneConfigError("Serial option should be one of: " +
-                                 "keep, unixtime, datecounter, counter, keepcounter")
+                                 "keep, unixtime, datecounter, counter")
 
         if Evaluate("SignerConfiguration/Zone/Audit", signer_config):
             self.audit = True

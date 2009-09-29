@@ -605,8 +605,8 @@ class Zone:
     def find_serial(self):
         """Finds the serial number as specified in the xml file.
            By default, the serial from the input file will simply be
-           copied. Options are 'unixtime', 'counter', and 'datecounter',
-           'keep' and 'keepcounter'."""
+           copied. Options are 'unixtime', 'counter', and 'datecounter'
+           and 'keep'."""
         soa_serial = None
         if self.zone_config.soa_serial == "unixtime":
             soa_serial = int(time.time())
@@ -615,13 +615,13 @@ class Zone:
                 soa_serial = prev_serial + 1
             update_serial = soa_serial - prev_serial
         elif self.zone_config.soa_serial == "counter":
-            # try output serial first, if not found, use input
+            soa_serial = self.get_input_serial();
+            # it must be larger than the output serial!
+            # otherwise updates won't be accepted
             prev_serial = self.get_output_serial()
-            if not prev_serial:
-                prev_serial = self.get_input_serial()
-            if not prev_serial:
-                prev_serial = 0
-            update_serial = 1
+            if self.compare_serial(prev_serial, soa_serial) <= 0:
+                soa_serial = prev_serial + 1
+            update_serial = soa_serial - prev_serial
         elif self.zone_config.soa_serial == "datecounter":
             # if current output serial >= <date>00,
             # just increment by one
@@ -642,14 +642,6 @@ class Zone:
                   "for " + self.zone_name)
                 return None
             update_serial = 0
-        elif self.zone_config.soa_serial == "keepcounter":
-            soa_serial = self.get_input_serial();
-            # it must be larger than the output serial!
-            # otherwise updates won't be accepted
-            prev_serial = self.get_output_serial()
-            if self.compare_serial(prev_serial, soa_serial) <= 0:
-                soa_serial = prev_serial + 1
-            update_serial = soa_serial - prev_serial
         else:
             syslog.syslog(syslog.LOG_WARNING,
                           "warning: unknown serial type " +\

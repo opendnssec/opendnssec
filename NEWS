@@ -3,7 +3,6 @@ $Id$
 OpenDNSSEC trunk
 * "Emergency Keys" renamed to "Standby Keys" as this better reflects their role
   as we use them.
-* "keepcounter" serial type added
 * 2 changes to the KASP DB, please apply:
   If want to use your old DB:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090922_1.sqlite3
