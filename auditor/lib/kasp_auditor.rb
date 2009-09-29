@@ -315,15 +315,6 @@ module KASPAuditor
       #  print "Couldn't set Configuration/Privileges/Directory (#{e})\n"
       #end
       begin
-        if (doc.elements['Configuration/Auditor/Privileges/User'])
-          change_uid(doc.elements['Configuration/Auditor/Privileges/User'].text)
-        elsif (doc.elements['Configuration/Privileges/User'])
-          change_uid(doc.elements['Configuration/Privileges/User'].text)
-        end
-      rescue Exception => e
-        print "Couldn't set Configuration/Privileges/User (#{e})\n"
-      end
-      begin
         if (doc.elements['Configuration/Auditor/Privileges/Group'])
           change_group(doc.elements['Configuration/Auditor/Privileges/Group'].text)
         elsif (doc.elements['Configuration/Privileges/Group'])
@@ -331,6 +322,15 @@ module KASPAuditor
         end
       rescue Exception => e
         print "Couldn't set Configuration/Privileges/Group (#{e})\n"
+      end
+      begin
+        if (doc.elements['Configuration/Auditor/Privileges/User'])
+          change_uid(doc.elements['Configuration/Auditor/Privileges/User'].text)
+        elsif (doc.elements['Configuration/Privileges/User'])
+          change_uid(doc.elements['Configuration/Privileges/User'].text)
+        end
+      rescue Exception => e
+        print "Couldn't set Configuration/Privileges/User (#{e})\n"
       end
     end
 

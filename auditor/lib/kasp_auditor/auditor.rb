@@ -181,7 +181,8 @@ module KASPAuditor
           rr = RR.create(rr_text)
           #          print "Loaded #{rr}\n"
           return rr
-        rescue DecodeError => e
+          #        rescue DecodeError => e
+        rescue Exception => e
           log(LOG_ERR, "File contains invalid RR : #{rr_text.chomp}, ERROR : #{e}")
         end
 
@@ -777,10 +778,69 @@ module KASPAuditor
     # Load the SOA from an unparsed file
     def get_soa_from_file(file)
       # SOA should always be first (non-comment) line
+      # This is now a horrible hack, having been extended to cover multi-line SOAs
+      # with "xh" format times (rather than just seconds)
       file = (file.to_s+"").untaint
+      ttl = 0
+      continued_line = false
       IO.foreach(file) {|line|
         next if (line.index(';') == 0)
         next if (!line || (line.length == 0))
+        next if line.index("$ORIGIN") == 0
+        if (line.index("$TTL") == 0)
+          ttl = Preparser.get_ttl(line.split()[1].strip) #  $TTL <ttl>
+          next
+        end
+        next if line.index("$TTL") == 0
+
+        # Cope with multi-line SOAs!!!
+        if (continued_line)
+          comment_index = continued_line.index(";")
+          if (comment_index)
+            continued_line = continued_line[0, comment_index]
+          end
+          line = continued_line.strip.chomp + line
+          if (line.index(")"))
+            # OK
+            continued_line = false
+          end
+        end
+        open_bracket = line.index("(")
+        if (open_bracket)
+          # Keep going until we see ")"
+          index = line.index(")")
+          if (index && (index > open_bracket))
+            # OK
+            continued_line = false
+          else
+            continued_line = line
+          end
+        end
+        next if continued_line
+
+        comment_index = line.index(";")
+        if (comment_index)
+          line = line[0, comment_index] + "\n"
+        end
+        line.sub!("(", "")
+        line.sub!(")", "")
+
+        # If TTL is missing, then add the $TTL value in to the string
+        split = line.split
+        if (split[1].to_i == 0)
+          line = split[0] + " #{ttl} "
+          (split.length - 1).times {|i| line += "#{split[i+1]} "}
+          line += "\n"
+        end
+
+        if (!line.index("SOA"))
+          log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got #{line.chomp}")
+          next
+        end
+
+        # Replace the 3h, 10m, etc. format with real numbers
+        line = Preparser.frig_soa_ttl(line)
+
         soa = RR.create(line)
         if (soa.type != Types::SOA)
           log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got #{soa}")

@@ -55,8 +55,11 @@ module KASPAuditor
     # with the RRSIG and NSEC records last.
     def normalise_zone_and_add_prepended_names(infile, outfile)
       origin = ""
+      ttl = 0
       last_name = nil
       continued_line = nil
+      parsing_soa = false
+      seen_soa = false
       # Need to replace any existing files
       infile = (infile.to_s+"").untaint
       outfile = (outfile.to_s+"").untaint
@@ -69,13 +72,27 @@ module KASPAuditor
             IO.foreach(infile) { |line|
               next if (line.index(';') == 0)
               next if (!line || (line.length == 0))
+              if ((line.index("SOA")) && (!seen_soa))
+                parsing_soa = true
+                seen_soa = true
+              end
               if (line.index("$ORIGIN") == 0)
                 origin = line.split()[1].strip #  $ORIGIN <domain-name> [<comment>]
-#                print "Setting $ORIGIN to #{origin}\n"
+                #                print "Setting $ORIGIN to #{origin}\n"
+                next
+              end
+              if (line.index("$TTL") == 0)
+                ttl = Preparser.get_ttl(line.split()[1].strip) #  $TTL <ttl>
+                #                print "Setting $TTL to #{ttl}\n"
                 next
               end
               if (continued_line)
                 # Add the next line until we see a ")"
+                # REMEMBER TO STRIP OFF COMMENTS!!!
+                comment_index = continued_line.index(";")
+                if (comment_index)
+                  continued_line = continued_line[0, comment_index]
+                end
                 line = continued_line.strip.chomp + line
                 if (line.index(")"))
                   # OK
@@ -85,7 +102,8 @@ module KASPAuditor
               open_bracket = line.index("(")
               if (open_bracket)
                 # Keep going until we see ")"
-                if (line.index(")") > open_bracket)
+                index = line.index(")")
+                if (index && (index > open_bracket))
                   # OK
                   continued_line = false
                 else
@@ -93,7 +111,15 @@ module KASPAuditor
                 end
               end
               next if continued_line
-              line, domain, type = normalise_line(line, origin, last_name)
+
+              comment_index = line.index(";")
+              if (comment_index)
+                line = line[0, comment_index] + "\n"
+              end
+
+              # If SOA, then replace "3h" etc. with expanded seconds
+              line, domain, type = normalise_line(line, origin, ttl, last_name, parsing_soa)
+              parsing_soa = false
               last_name = domain
               # Append the domain name and the RR Type here - e.g. "$NS"
               line = prepare(domain) + NAME_SEPARATOR + type + SORT_SEPARATOR + line
@@ -125,7 +151,7 @@ module KASPAuditor
     end
 
     # Take a line from the input zone file, and return the normalised form
-    def normalise_line(line, origin, last_name)
+    def normalise_line(line, origin, ttl, last_name, is_soa)
       # Note that a freestanding "@" is used to denote the current origin - we can simply replace that straight away
       line.sub!(" @ ", " #{origin} ")
       # Note that no domain name may be specified in the RR - in that case, last_name should be used. How do we tell? Tab or space at start of line.
@@ -136,6 +162,20 @@ module KASPAuditor
       # o We need to identify the domain name in the record, and then
       split = line.split
       name = split[0].strip
+
+      # If the second field is not a number, then we should add the TTL to the line
+      if (((split[1]).to_i == 0) && (split[1] != "0"))
+        # Add the TTL
+        line = name + " #{ttl} "
+        (split.length - 1).times {|i| line += "#{split[i+1]} "}
+        line += "\n"
+        split = line.split
+      end
+
+      if (is_soa)
+        line = replace_soa_ttl_fields(line)
+      end
+
       # Add the type so we can load the zone one RRSet at a time.
       type = Types.new(split[3].strip)
       type_was = type
@@ -157,6 +197,43 @@ module KASPAuditor
       type_string=prefix_for_rrset_order(type, type_was)
       
       return line, name, type_string
+    end
+
+    def Preparser.get_ttl(ttl_text)
+      # Get the TTL in seconds from the m, h, d, w format
+      # If no letter afterwards, then in seconds already
+      ttl = 0
+      case ttl_text[ttl_text.length-1, 1]
+      when "m" then
+        ttl = 60 * (ttl_text[0, ttl_text.length() - 1].to_i)
+      when "h" then
+        ttl = 3600 * (ttl_text[0, ttl_text.length() - 1].to_i)
+      when "d" then
+        ttl = 3600 * 24 * (ttl_text[0, ttl_text.length() - 1].to_i)
+      when "m" then
+        ttl = 30 * 3600 * 24 * (ttl_text[0, ttl_text.length() - 1].to_i)
+      else
+        ttl = ttl_text.to_i
+      end
+      return ttl
+    end
+
+    def replace_soa_ttl_fields(line)
+      return Preparser.frig_soa_ttl(line)
+    end
+
+    def Preparser.frig_soa_ttl(line)
+      # Remove the ( and )
+      line.sub!("(", "")
+      line.sub!(")", "")
+      # Replace any fields which evaluate to 0
+      split = line.split
+      4.times {|i|
+        x = i + 7
+        split[x].strip!
+        split[x] = get_ttl(split[x]).to_s
+      }
+      return split.join(" ") + "\n"
     end
 
     # Frig the RR type so that NSEC records appear last in the RRSets.
