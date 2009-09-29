@@ -8,7 +8,6 @@
 			<Module>/opt/Keyper/PKCS11Provider/pkcs11.so</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>123456</PIN>
-			<Capacity>1000</Capacity>
 		</Repository>
 	</RepositoryList>
 </Configuration>
