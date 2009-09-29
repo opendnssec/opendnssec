@@ -76,6 +76,8 @@ read_line(FILE *input, char *line, int multiline, int skip_comments)
 				li++;
 			} else {
 				depth++;
+				line[li] = ' ';
+				li++;
 			}
 		} else if (c == ')' && multiline && !in_string) {
 			if (in_string) {
@@ -88,6 +90,8 @@ read_line(FILE *input, char *line, int multiline, int skip_comments)
 					line[li] = '\0';
 					return li;
 				}
+				line[li] = ' ';
+				li++;
 			}
 			depth--;
 		} else if (c != '\n') {

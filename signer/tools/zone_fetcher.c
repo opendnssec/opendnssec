@@ -499,7 +499,6 @@ init_sockets(sockets_type* sockets)
     on = 1;
 #endif
 
-
     /* UDP / IPv6 */
     for (i = 0; i < 2; i++) {
         memset(&hints[i], 0, sizeof(hints[i]));

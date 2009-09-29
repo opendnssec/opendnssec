@@ -11,6 +11,9 @@ OpenDNSSEC trunk
   Or start fresh (with loss of information. User should remove old keys from the HSM):
     ksmutil setup
 
+Bugfixes:
+* Make sure that parenthesis in zonefiles don't concatenate rdata fields.
+
 OpenDNSSEC 1.0a5 - 2009-09-21
 
 Features:
