@@ -98,7 +98,7 @@ new_server(char* ipv4, char* ipv6, char* port)
     if (port)
         slt->port = atoi(port);
     else
-        slt->port = 0;
+        slt->port = atoi(DNS_PORT_STRING);
     memset(&slt->addr, 0, sizeof(union acl_addr_storage));
 
     if (slt->family == AF_INET6) {
@@ -867,8 +867,6 @@ acl_matches(struct sockaddr_storage* addr, config_type* config)
             if (serverlist->family == AF_INET6) {
                 struct sockaddr_in6* addr6 = (struct sockaddr_in6*)addr;
                 if (serverlist->family == addr->ss_family &&
-                    (serverlist->port == 0 ||
-                     serverlist->port == ntohs(addr6->sin6_port)) &&
                     memcmp(&addr6->sin6_addr, &serverlist->addr.addr6,
                      sizeof(struct in6_addr)) == 0)
                 {
@@ -878,8 +876,6 @@ acl_matches(struct sockaddr_storage* addr, config_type* config)
            else {
                 struct sockaddr_in* addr4 = (struct sockaddr_in*)addr;
                 if (serverlist->family == addr4->sin_family &&
-                    (serverlist->port == 0 ||
-                     serverlist->port == ntohs(addr4->sin_port)) &&
                     memcmp(&addr4->sin_addr, &serverlist->addr.addr,
                      sizeof(struct in_addr)) == 0)
                 {
@@ -1100,5 +1096,6 @@ main(int argc, char **argv)
 
 /* [TODO]:
  * - replace dummy odd_xfer with something more useful.
- * - acl
+ * - ListenNotify
+ * - SourceAddress
  */
