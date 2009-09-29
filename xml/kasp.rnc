@@ -76,6 +76,9 @@ start = element KASP {
 			# do the zones share the same keys?
 			element ShareKeys { empty }?,
 
+			# enforcer may purge keys after this amount of time
+			element Purge { xsd:duration }?,
+
 			# Key Signing Keys
 			element KSK {
 				# generic key definition, see below

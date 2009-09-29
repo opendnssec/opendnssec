@@ -35,6 +35,7 @@
 			<RetireSafety>PT3600S</RetireSafety>
 			<PublishSafety>PT3600S</PublishSafety>
 			<!-- <ShareKeys/> -->
+			<Purge>P14D</Purge>
 
 			<!-- Parameters for KSK only -->
 			<KSK>
