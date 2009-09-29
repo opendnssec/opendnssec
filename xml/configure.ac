@@ -10,6 +10,7 @@ ACX_PREFIXHACK
 
 # Checks for programs.
 AC_PATH_PROG(XMLLINT, xmllint)
+AC_PATH_PROG(XSLTPROC, xsltproc)
 AC_PATH_PROG(JAVA, java)
 
 ACX_PKCS11_MODULES

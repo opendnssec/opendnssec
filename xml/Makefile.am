@@ -45,6 +45,10 @@ regress: $(RNG)
 		 	`basename $$i .xml`.rng \
 			$(top_builddir)/$$i; \
 	done
+	@test -x ${XSLTPROC} || \
+		(echo "xsltproc is required for regression tests"; false)
+	${XSLTPROC} -o kasp.html kasp2html.xsl kasp.xml
+	
 
 install-data-hook:
 	test -d ${sysconfdir} || mkdir -p ${DESTDIR}${sysconfdir}
