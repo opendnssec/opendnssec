@@ -30,6 +30,7 @@
 #include "util.h"
 #include "zone_fetcher.h"
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -98,6 +99,21 @@ new_server(char* ipv4, char* ipv6, char* port)
         slt->port = atoi(port);
     else
         slt->port = atoi(DNS_PORT_STRING);
+    memset(&slt->addr, 0, sizeof(union acl_addr_storage));
+
+    if (slt->family == AF_INET6) {
+        if (inet_pton(slt->family, slt->ipaddr, &slt->addr.addr6) != 1) {
+            log_msg(LOG_ERR, "zone fetcher encountered bad ip address '%s'",
+                slt->ipaddr);
+        }
+    }
+    else {
+        if (inet_pton(slt->family, slt->ipaddr, &slt->addr.addr) != 1) {
+            log_msg(LOG_ERR, "zone fetcher encountered bad ip address '%s'",
+                slt->ipaddr);
+        }
+    }
+
     slt->next = NULL;
     return slt;
 }
@@ -732,33 +748,15 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     void (*sendfunc)(uint8_t*, size_t, void*),
     void* userdata, config_type* config)
 {
-    serverlist_type* serverlist = NULL;
     zonelist_type* zonelist = NULL;
     ldns_status status = LDNS_STATUS_OK;
     ldns_pkt *query_pkt = NULL;
     ldns_rr *query_rr = NULL;
-    int acl_matches = 0;
     uint32_t serial = 0;
     char* owner_name = NULL;
     uint8_t *outbuf = NULL;
     size_t answer_size = 0;
     FILE* fd;
-
-    /* acl */
-    if (config && config->serverlist) {
-        serverlist = config->serverlist;
-        while (serverlist) {
-            if (0) {
-                acl_matches = 1;
-                break;
-            }
-            serverlist = serverlist->next;
-        }
-    }
-/*
-    if (!acl_matches)
-        return;
-*/
 
     /* packet parsing */
     status = ldns_wire2pkt(&query_pkt, inbuf, (size_t)inlen);
@@ -785,7 +783,6 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
         ldns_rr_get_class(query_rr) != LDNS_RR_CLASS_IN)
     {
         log_msg(LOG_INFO, "zone fetcher drop bad notify");
-        ldns_pkt_free(query_pkt);
         return;
     }
 
@@ -803,7 +800,8 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     if (config)
         zonelist = config->zonelist;
     while (zonelist) {
-        if (ldns_dname_compare(ldns_rr_owner(query_rr), zonelist->dname) == 0) {
+        if (ldns_dname_compare(ldns_rr_owner(query_rr), zonelist->dname) == 0)
+        {
             /* get latest serial */
             fd = fopen(zonelist->input_file, "r");
             if (!fd) {
@@ -841,23 +839,69 @@ read_n_bytes(int sock, uint8_t* buf, size_t sz)
     }
 }
 
+static char*
+addr2ip(struct sockaddr_storage addr, char* remote, size_t len)
+{
+    if (addr.ss_family == AF_INET6) {
+        if (!inet_ntop(AF_INET6, &((struct sockaddr_in6 *)&addr)->sin6_addr,
+            remote, len)) {
+            return NULL;
+        }
+    } else {
+        if (!inet_ntop(AF_INET, &((struct sockaddr_in *)&addr)->sin_addr,
+            remote, len))
+            return NULL;
+    }
+
+    return remote;
+}
+
+static int
+acl_matches(struct sockaddr* addr, size_t len, config_type* config)
+{
+    serverlist_type* serverlist = NULL;
+
+    if (config && config->serverlist) {
+        serverlist = config->serverlist;
+        while (serverlist) {
+            if (0) {
+                return 1;
+            }
+            serverlist = serverlist->next;
+        }
+    }
+    return 0;
+}
+
 static void
 handle_udp(int udp_sock, config_type* config)
 {
     ssize_t nb;
     uint8_t inbuf[INBUF_SIZE];
     struct handle_udp_userdata userdata;
+    char* remote;
 
     userdata.udp_sock = udp_sock;
     userdata.hislen = (socklen_t) sizeof(userdata.addr_him);
     nb = recvfrom(udp_sock, inbuf, INBUF_SIZE, 0,
-        (struct sockaddr*)&userdata.addr_him, &userdata.hislen);
+        (struct sockaddr*) &userdata.addr_him, &userdata.hislen);
     if (nb < 1) {
         log_msg(LOG_ERR, "zone fetcher recvfrom() failed: %s",
             strerror(errno));
         return;
     }
 
+    /* acl */
+    if (!acl_matches( (struct sockaddr*) &userdata.addr_him,
+        userdata.hislen, config)) {
+        remote = (char*) malloc(sizeof(char)*userdata.hislen);
+        log_msg(LOG_INFO, "zone fetcher refused message from "
+            "unauthoritative source: %s",
+            addr2ip(userdata.addr_him, remote,
+            userdata.hislen));
+        free((void*)remote);
+        return;
+    }
     handle_query(inbuf, nb, send_udp, &userdata, config);
 }
 
@@ -870,6 +914,7 @@ handle_tcp(int tcp_sock, config_type* config)
     uint8_t inbuf[INBUF_SIZE];
     uint16_t tcplen;
     struct handle_tcp_userdata userdata;
+    char* remote;
 
     /* accept */
     hislen = (socklen_t)sizeof(addr_him);
@@ -890,8 +935,16 @@ handle_tcp(int tcp_sock, config_type* config)
     }
     read_n_bytes(s, inbuf, tcplen);
 
+    /* acl */
+    if (!acl_matches((struct sockaddr*) &addr_him, hislen, config)) {
+        remote = (char*) malloc(sizeof(char)*hislen);
+        log_msg(LOG_INFO, "zone fetcher refused message from "
+            "unauthoritative source: %s",
+            addr2ip(addr_him, remote, hislen));
+        free((void*)remote);
+        return;
+    }
     handle_query(inbuf, (ssize_t) tcplen, send_tcp, &userdata, config);
-
     close(s);
 }
 
