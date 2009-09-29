@@ -28,9 +28,36 @@
 datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 
 start = element ZoneFetch {
+
+	# where to listen for notifies
+	# DEFAULT: do not listen to notify
 	element NotifyListen { localAddress }?,
+
+	# default inbound AXFR settings
+	# (per zone settings not yet implemented)
 	element Default { source }
 }
+
+source =
+	# TSIG secret for inbound AXFR
+	# DEFAULT: do not use TSIG
+	element TSIG {
+		element Name { xsd:string },
+
+		# http://www.iana.org/assignments/tsig-algorithm-names
+		element Algorithm { xsd:string },
+		
+		# base64 encoded secret
+		element Secret { xsd:base64Binary }
+	}?,
+
+	# address to use as source for inbound AXFR
+	# DEFAULT: bind to INADDR_ANY
+	element SourceAddress { localAddress }?,
+
+	# <address of host to request AXFR from
+	# DEFAULT: none	
+	element RequestTransfer { remoteAddress }+
 
 ipv4 = element IPv4 { xsd:string }
 ipv6 = element IPv6 { xsd:string }
@@ -38,13 +65,3 @@ port = element Port { xsd:positiveInteger { maxInclusive = "65535" } }
 
 localAddress = (ipv4 | ipv6)?, port?
 remoteAddress = (ipv4 | ipv6), port? 
-
-source =
-	element TSIG {
-		element Name { xsd:string },
-		# http://www.iana.org/assignments/tsig-algorithm-names
-		element Algorithm { xsd:string },
-		element Secret { xsd:base64Binary }
-	}?,
-	element SourceAddress { localAddress }?,
-	element RequestTransfer { remoteAddress }+

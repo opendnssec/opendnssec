@@ -4,17 +4,34 @@
 
 <ZoneFetch>
 	<!-- where to listen for notifies -->
+	<!-- DEFAULT: do not listen to notify -->
 	<NotifyListen><Port>53</Port></NotifyListen>
-	
+
 	<!-- default inbound AXFR settings
 	     (per zone setting not yet implemented) -->
 	<Default>
+		<!-- TSIG secret for inbound AXFR -->
+		<!-- DEFAULT: don't use TSIG -->
 		<TSIG>
 			<Name>secret.example.com.</Name>
+			
+			<!-- http://www.iana.org/assignments/tsig-algorithm-names -->
 			<Algorithm>hmac-sha256</Algorithm>
+			
+			<!-- base64 encoded secret -->
 			<Secret>sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=</Secret>
 		</TSIG>
-		<SourceAddress><IPv4>192.0.2.1</IPv4></SourceAddress>
-		<RequestTransfer><IPv4>192.0.2.2</IPv4><Port>53</Port></RequestTransfer>
+
+		<!-- address to use as source for inbound AXFR -->
+		<!-- DEFAULT: bind to INADDR_ANY -->
+		<SourceAddress>
+			<IPv4>192.0.2.1</IPv4>
+		</SourceAddress>
+
+		<!-- address of host to request AXFR from -->
+		<!-- DEFAULT: none -->
+		<RequestTransfer>
+			<IPv4>192.0.2.2</IPv4><Port>53</Port>
+		</RequestTransfer>
 	</Default>
 </ZoneFetch>
