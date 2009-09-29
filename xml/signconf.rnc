@@ -30,9 +30,10 @@ datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 start = element SignerConfiguration { zone }
 
 zone = element Zone {
+		# zone name
 		attribute name { xsd:string },
 
-		# This section is taken directly from the corresponding KASP policy
+		# this section is taken directly from the corresponding KASP policy
 		element Signatures {
 			element Resign { xsd:duration },
 			element Refresh { xsd:duration },
@@ -58,10 +59,10 @@ zone = element Zone {
 				# DNSKEY algorithm
 				algorithm,
 				
-				# The key locator is matched against PKCS#11 CKA_ID in hex
-				# e.g. DFE7265B-783F-4186-8538-0AA784C2F31D
-				# is written as DFE7265B783F418685380AA784C2F31D
-				element Locator { xsd:string },
+				# The key locator is matched against the
+				# PKCS#11 CKA_ID and is specified as a string
+				# of hex characters.
+				element Locator { xsd:hexBinary },
 
 				# sign all the DNSKEY RRsets with this key?
 				element KSK { empty }?,
@@ -88,9 +89,18 @@ ttl = element TTL { xsd:duration }
 soa = element SOA {
 		ttl,
 		element Minimum { xsd:duration },
-		element Serial { "counter" | "unixtime" | "datecounter" | "keep" }?
+		serial
 	}
 
+# see kasp.rnc for description
+serial = element Serial {
+	"counter" |
+	"datecounter" |
+	"unixtime" |
+	"keep"
+}
+
+# This section is taken directly from the corresponding KASP policy
 nsec = element NSEC { empty }
 
 # This section is taken directly from the corresponding KASP policy
@@ -104,4 +114,5 @@ nsec3 = element NSEC3 {
 		}
 	}
 
+# This section is taken directly from the corresponding KASP policy
 audit = element Audit { empty }

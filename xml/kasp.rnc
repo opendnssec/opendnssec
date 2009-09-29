@@ -30,19 +30,22 @@ datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 start = element KASP {
 
 	element Policy {
+		# (short) symbolic name for Policy
 		attribute name { xsd:string },
+
+		# description of policy (free text)
 		element Description { xsd:string },
 
-		# signatures: hold parameters related to signatures
+		# <Signatures> hold parameters related to signatures
 		# These will go in the signature category in the DB
 		# Most of these will be passed to the signer without
-		# processing
+		# processing.
 		element Signatures {
 			# how often should the zone be (re)signed?
 			element Resign { xsd:duration },
 
 			# the signatures are reused for a period of time
-			# how long time before the expiration of the signature 
+			# how long time before the expiration of the signature
 			# should it be refreshed?
 			element Refresh { xsd:duration },
 
@@ -79,7 +82,7 @@ start = element KASP {
 			# enforcer may purge keys after this amount of time
 			element Purge { xsd:duration }?,
 
-			# Key Signing Keys
+			# Key Signing Keys (KSK) parameters
 			element KSK {
 				# generic key definition, see below
 				anykey,
@@ -88,7 +91,7 @@ start = element KASP {
 				element RFC5011 { empty }?
 			}*,
 
-			# Zone Signing Keys
+			# Zone Signing Keys (ZSK) parameters
 			element ZSK {
 				# generic key definition, see below
 				anykey
@@ -102,7 +105,7 @@ start = element KASP {
 			# Expected zone SOA parameters
 			element SOA {
 				anysoa,
-				element Serial { "counter" | "unixtime" | "datecounter" | "keep" }?
+				serial
 			}
 		},
 
@@ -120,9 +123,23 @@ start = element KASP {
 			# Expected parent SOA parameters
 			element SOA { anysoa }
 		},
-		
+
 		audit?
 	}+
+}
+
+serial = element Serial {
+	# use increasing counter (sync with unsigned zone if possible)
+	"counter" |
+
+	# use increasing counter in YYYYMMDDxx format
+	"datecounter" |
+
+	# use unix timestamp as an 32-bit unsigned integer
+	"unixtime" |
+
+	# keep the serial from unsigned zone (do not resign unless incremented)
+	"keep"
 }
 
 nsec = element NSEC { empty }
@@ -138,7 +155,7 @@ nsec3 = element NSEC3 {
 	element Hash {
 		element Algorithm { xsd:nonNegativeInteger { maxInclusive = "255" } },
 		element Iterations { xsd:positiveInteger { maxInclusive = "65535" } },
-		
+
 		# Salt length in octets
 		element Salt {
 			attribute length { xsd:positiveInteger { maxInclusive = "255" } },
@@ -167,7 +184,7 @@ anykey = element Algorithm {
 	# For KSKs you can use 1 to indicate that you are
 	# doing double signatures
 	element Standby { xsd:nonNegativeInteger },
-			
+
 	# use manual KSK key rollover?
 	element ManualRollover { empty }?
 
