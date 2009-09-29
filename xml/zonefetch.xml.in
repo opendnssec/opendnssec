@@ -3,12 +3,18 @@
 <!-- $Id$ -->
 
 <ZoneFetch>
+	<!-- where to listen for notifies -->
+	<NotifyListen><Port>53</Port></NotifyListen>
+	
+	<!-- default inbound AXFR settings
+	     (per zone setting not yet implemented) -->
 	<Default>
 		<TSIG>
 			<Name>secret.example.com.</Name>
 			<Algorithm>hmac-sha256</Algorithm>
 			<Secret>sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=</Secret>
 		</TSIG>
-		<Address><IPv4>192.0.2.0</IPv4><Port>53</Port></Address>
+		<SourceAddress><IPv4>192.0.2.1</IPv4></SourceAddress>
+		<RequestTransfer><IPv4>192.0.2.2</IPv4><Port>53</Port></RequestTransfer>
 	</Default>
 </ZoneFetch>

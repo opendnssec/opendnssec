@@ -28,12 +28,16 @@
 datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 
 start = element ZoneFetch {
+	element NotifyListen { localAddress }?,
 	element Default { source }
 }
 
 ipv4 = element IPv4 { xsd:string }
 ipv6 = element IPv6 { xsd:string }
 port = element Port { xsd:positiveInteger { maxInclusive = "65535" } }
+
+localAddress = (ipv4 | ipv6)?, port?
+remoteAddress = (ipv4 | ipv6), port? 
 
 source =
 	element TSIG {
@@ -42,4 +46,5 @@ source =
 		element Algorithm { xsd:string },
 		element Secret { xsd:string }
 	}?,
-	element Address { (ipv4 | ipv6), port? }+
+	element SourceAddress { localAddress }?,
+	element RequestTransfer { remoteAddress }+
