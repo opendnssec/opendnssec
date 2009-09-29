@@ -47,6 +47,7 @@
 #define HSM_CONFIG_FILE_ERROR     0x10000003
 #define HSM_REPOSITORY_NOT_FOUND  0x10000004
 #define HSM_NO_REPOSITORIES       0x10000005
+#define HSM_MODULE_NOT_FOUND      0x10000006
 
 
 /*! Data type to describe an HSM */

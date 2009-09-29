@@ -456,8 +456,11 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
     module = hsm_module_new(repository, token_label, module_path);
     if (!module) return HSM_ERROR;
     rv = hsm_pkcs11_load_functions(module);
-    if (hsm_pkcs11_check_error(ctx, rv, "Load functions")) {
-        return HSM_ERROR;
+    if (rv != CKR_OK) {
+        hsm_ctx_set_error(ctx, HSM_MODULE_NOT_FOUND,
+	    "hsm_session_init()",
+	    "PKCS#11 module load failed: %s", module_path);
+        return HSM_MODULE_NOT_FOUND;
     }
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize(NULL);
     /* ALREADY_INITIALIZED is ok, apparently we are using a second
