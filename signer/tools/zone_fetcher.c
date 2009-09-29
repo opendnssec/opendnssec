@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <signal.h>
+#include <syslog.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -53,6 +54,7 @@ usage(FILE *out)
     fprintf(out, "Options:\n");
     fprintf(out, "-c <file>\t\tThe zonefetch.xml <file>\n");
     fprintf(out, "-d\t\tRun as daemon\n");
+    fprintf(out, "-f <facility>\t\tLog with <facility>\n");
     fprintf(out, "-h\t\tShow this help\n");
     fprintf(out, "-h\t\tShow this help\n");
     fprintf(out, "-z <file>\tThe zonelist.xml <file>\n");
@@ -156,11 +158,12 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/Address";
 
     if (filename == NULL) {
-        fprintf(stderr, "zone_fetcher: no configfile provided\n");
+        log_msg(LOG_CRIT, "no zone fetcher configfile provided");
         exit(EXIT_FAILURE);
     }
 
-    /* In case zonelist is huge use the XmlTextReader API so that we don't hold the whole file in memory */
+    /* In case zonelist is huge use the XmlTextReader API so that we don't
+     * hold the whole file in memory */
     reader = xmlNewTextReaderFilename(filename);
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
@@ -174,21 +177,22 @@ read_axfr_config(const char* filename, config_type* cfg)
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    fprintf(stderr, "zone_fetcher: can not read config file %s\n", filename);
+                    log_msg(LOG_ERR, "can not read zone fetcher configfile "
+                        "%s", filename);
                     exit(EXIT_FAILURE);
                 }
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
-                    fprintf(stderr, "zone_fetcher: can not create XPath context for %s\n",
-                        filename);
+                    log_msg(LOG_CRIT, "zone fetcher can not create XPath "
+                        "context for %s", filename);
                     exit(EXIT_FAILURE);
                 }
 
                 /* Extract the master server address */
                 xpathObj = xmlXPathEvalExpression(server_expr, xpathCtx);
                 if (xpathObj == NULL) {
-                    fprintf(stderr, "zone_fetcher: can not locate master server(s) in %s\n",
-                        filename);
+                    log_msg(LOG_CRIT, "zone fetcher can not locate master "
+                        "server(s) in %s", filename);
                     exit(EXIT_FAILURE);
                 }
                 if (xpathObj->nodesetval) {
@@ -232,24 +236,24 @@ read_axfr_config(const char* filename, config_type* cfg)
                 if (use_tsig) {
                     xpathObj = xmlXPathEvalExpression(tsig_name_expr, xpathCtx);
                     if (xpathObj == NULL) {
-                        fprintf(stderr, "zone_fetcher: can not locate TSIG name in %s\n",
-                            filename);
+                        log_msg(LOG_ERR, "zone fetcher can not locate TSIG "
+                            " name in %s", filename);
                         exit(EXIT_FAILURE);
                     }
                     tsig_name = (char*) xmlXPathCastToString(xpathObj);
 
                     xpathObj = xmlXPathEvalExpression(tsig_algo_expr, xpathCtx);
                     if (xpathObj == NULL) {
-                        fprintf(stderr, "zone_fetcher: can not locate TSIG algorithm in %s\n",
-                            filename);
+                        log_msg(LOG_ERR, "zone fetcher can not locate TSIG "
+                            "algorithm in %s", filename);
                         exit(EXIT_FAILURE);
                     }
                     tsig_algo = (char*) xmlXPathCastToString(xpathObj);
 
                     xpathObj = xmlXPathEvalExpression(tsig_secret_expr, xpathCtx);
                     if (xpathObj == NULL) {
-                        fprintf(stderr, "zone_fetcher: can not locate TSIG secret in %s\n",
-                            filename);
+                        log_msg(LOG_ERR, "zone fetcher can not locate TSIG "
+                            "secret in %s", filename);
                         exit(EXIT_FAILURE);
                     }
                     tsig_secret = (char*) xmlXPathCastToString(xpathObj);
@@ -269,11 +273,13 @@ read_axfr_config(const char* filename, config_type* cfg)
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {
-            fprintf(stderr, "zone_fetcher: failed to parse config file %s\n", filename);
+            log_msg(LOG_ERR, "zone fetcher failed to parse config file %s",
+                filename);
             exit(EXIT_FAILURE);
         }
     } else {
-        fprintf(stderr, "zone_fetcher: unable to open config file %s\n", filename);
+        log_msg(LOG_ERR, "zone fetcher was unable to open config file %s",
+            filename);
         exit(EXIT_FAILURE);
     }
 
@@ -296,7 +302,7 @@ read_zonelist(const char* filename)
     xmlChar *adapter_expr = (unsigned char*) "//Zone/Adapters/Input/File";
 
     if (filename == NULL) {
-        fprintf(stderr, "zone_fetcher: no zonelist provided\n");
+        log_msg(LOG_CRIT, "no zonelist provided for zone fetcher");
         exit(EXIT_FAILURE);
     }
 
@@ -315,7 +321,8 @@ read_zonelist(const char* filename)
                 /* Make sure that we got something */
                 if (zone_name == NULL) {
                     /* error */
-                    fprintf(stderr, "zone_fetcher: error extracting zone name from %s\n", filename);
+                    log_msg(LOG_ERR, "zone fetcher failed to extract zone "
+                        "name from %s", filename);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -324,14 +331,16 @@ read_zonelist(const char* filename)
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    fprintf(stderr, "zone_fetcher: can not read zone \"%s\"; skipping\n", zone_name);
+                    log_msg(LOG_ERR, "zone fetcher could not read zone "
+                        "\"%s\"; skipping", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
-                    fprintf(stderr, "zone_fetcher: can not create XPath context for \"%s\"; skipping zone\n", zone_name);
+                    log_msg(LOG_ERR, "zone fetcher can not create XPath "
+                        "context for \"%s\"; skipping zone", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -339,7 +348,8 @@ read_zonelist(const char* filename)
                 /* Extract the Input File Adapter filename */
                 xpathObj = xmlXPathEvalExpression(adapter_expr, xpathCtx);
                 if (xpathObj == NULL) {
-                    fprintf(stderr, "zone_fetcher: unable to evaluate xpath expression: %s; skipping zone\n", adapter_expr);
+                    log_msg(LOG_ERR, "zone fetcher was unable to evaluate "
+                        "xpath expression: %s; skipping zone", adapter_expr);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -364,11 +374,13 @@ read_zonelist(const char* filename)
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {
-            fprintf(stderr, "zone_fetcher: failed to parse zonelist %s\n", filename);
+            log_msg(LOG_ERR, "zone fetcher failed to parse zonelist %s",
+                filename);
             exit(EXIT_FAILURE);
         }
     } else {
-        fprintf(stderr, "zone_fetcher: unable to open zonelist %s\n", filename);
+        log_msg(LOG_ERR, "zone fetcher was unable to open zonelist %s",
+            filename);
         exit(EXIT_FAILURE);
     }
     return zonelist_start;
@@ -384,7 +396,8 @@ writepid(char* pidfile, pid_t pid)
 
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
     if ((fd = fopen(pidfile, "w")) ==  NULL ) {
-        fprintf(stderr, "zone_fetcher: cannot open pidfile %s for writing: %s\n", pidfile, strerror(errno));
+        log_msg(LOG_ERR, "zone fetcher could not open pidfile %s for "
+            "writing: %s", pidfile, strerror(errno));
         return -1;
     }
     size = strlen(pidbuf);
@@ -392,14 +405,17 @@ writepid(char* pidfile, pid_t pid)
         result = 1;
     result = fwrite((const void*) pidbuf, 1, size, fd);
     if (result == 0) {
-        fprintf(stderr, "zone_fetcher: write to pidfile failed: %s\n", strerror(errno));
+        log_msg(LOG_ERR, "zone fetcher failed to write to pidfile: %s",
+            strerror(errno));
     } else if (result < size) {
-        fprintf(stderr, "zone_fetcher: short write to pidfile (disk full?)\n");
+        log_msg(LOG_ERR, "zone fetcher had short write to pidfile "
+            "(disk full?)");
         result = 0;
     } else
         result = 1;
     if (!result) {
-        fprintf(stderr, "zone_fetcher: cannot write pidfile %s: %s\n", pidfile, strerror(errno));
+        log_msg(LOG_CRIT, "zone fetcher could not write pidfile %s: %s",
+            pidfile, strerror(errno));
         fclose(fd);
         return -1;
     }
@@ -434,14 +450,15 @@ setup_daemon(config_type* config)
         case 0: /* child */
             break;
         case -1: /* error */
-            fprintf(stderr, "zone_fetcher: fork() failed: %s\n", strerror(errno));
+            log_msg(LOG_CRIT, "zone fetche fork() failed: %s",
+                strerror(errno));
             exit(EXIT_FAILURE);
         default: /* parent is done */
             exit(0);
     }
     if (setsid() == -1)
     {
-        fprintf(stderr, "setsid() failed: %s\n", strerror(errno));
+        log_msg(LOG_CRIT, "zone fetcher setsid() failed: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
     /* setup signal handing */
@@ -476,33 +493,37 @@ init_sockets(sockets_type* sockets)
     }
 
     if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[1], &(sockets->udp[1].addr))) != 0) {
-        fprintf(stderr, "zone_fetcher: cannot parse address: getaddrinfo: %s %s\n",
-            gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+        log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
+            "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
     }
     if ((sockets->udp[1].s = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
         if (errno == EAFNOSUPPORT) {
-            fprintf(stderr, "zone_fetcher: fallback to UDP4, no IPv6: not supported\n");
+            log_msg(LOG_ERR, "zone fetcher fallback to UDP4, no IPv6: "
+                " not supported");
             ip6_support = 0;
         } else {
-            fprintf(stderr, "can't create udp/ipv6 socket: %s\n", strerror(errno));
+            log_msg(LOG_CRIT, "zone fetcher can't create udp/ipv6 socket: %s",
+                strerror(errno));
             return -1;
         }
     }
     if (ip6_support) {
 #ifdef IPV6_V6ONLY
         if (setsockopt(sockets->udp[1].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0) {
-            fprintf(stderr, "zone_fetcher: setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
-                strerror(errno));
+            log_msg(LOG_CRIT, "zone fetcher setsockopt(..., IPV6_V6ONLY, ...) "
+            " failed: %s", strerror(errno));
             return -1;
         }
 #endif /* IPV6_V6ONLY */
         if (fcntl(sockets->udp[1].s, F_SETFL, O_NONBLOCK) == -1) {
-            fprintf(stderr, "zone_fetcher: cannot fcntl udp/ipv6: %s\n", strerror(errno));
+            log_msg(LOG_ERR, "zone fetcher cannot fcntl udp/ipv6: %s",
+                strerror(errno));
         }
         if (bind(sockets->udp[1].s,
                  (struct sockaddr *) sockets->udp[1].addr->ai_addr,
                  sockets->udp[1].addr->ai_addrlen) != 0) {
-            fprintf(stderr, "zone_fetcher: can't bind udp/ipv6 socket: %s\n", strerror(errno));
+            log_msg(LOG_CRIT, "zone fetcher can't bind udp/ipv6 socket: %s",
+                strerror(errno));
             return -1;
         }
     }
@@ -515,20 +536,23 @@ init_sockets(sockets_type* sockets)
 #endif /* IPV6_V6ONLY */
 
     if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[0], &(sockets->udp[0].addr))) != 0) {
-        fprintf(stderr, "zone_fetcher: cannot parse address: getaddrinfo: %s %s\n",
-            gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+        log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
+            "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
     }
     if ((sockets->udp[0].s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        fprintf(stderr, "zone_fetcher: can't create udp/ipv4 socket: %s\n", strerror(errno));
+        log_msg(LOG_CRIT, "zone fetcher can't create udp/ipv4 socket: %s",
+            strerror(errno));
         return -1;
     }
     if (fcntl(sockets->udp[0].s, F_SETFL, O_NONBLOCK) == -1) {
-        fprintf(stderr, "zone_fetcher: cannot fcntl udp/ipv4: %s\n", strerror(errno));
+        log_msg(LOG_ERR, "zone fetcher cannot fcntl udp/ipv4: %s",
+            strerror(errno));
     }
     if (bind(sockets->udp[0].s,
              (struct sockaddr *) sockets->udp[0].addr->ai_addr,
              sockets->udp[0].addr->ai_addrlen) != 0) {
-        fprintf(stderr, "zone_fetcher: can't bind udp/ipv4 socket: %s\n", strerror(errno));
+        log_msg(LOG_CRIT, "zone fetcher can't bind udp/ipv4 socket: %s",
+            strerror(errno));
         return -1;
     }
 
@@ -539,40 +563,46 @@ init_sockets(sockets_type* sockets)
     }
 
     if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[1], &(sockets->tcp[1].addr))) != 0) {
-        fprintf(stderr, "zone_fetcher: cannot parse address: getaddrinfo: %s %s\n",
-            gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+        log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
+            "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
     }
     if ((sockets->tcp[1].s = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
         if (errno == EAFNOSUPPORT) {
-            fprintf(stderr, "zone_fetcher: fallback to TCP4, no IPv6: not supported\n");
+            log_msg(LOG_ERR, "zone fetcher fallback to TCP4, no IPv6: "
+                "not supported");
             ip6_support = 0;
         } else {
-            fprintf(stderr, "can't create tcp/ipv6 socket: %s\n", strerror(errno));
+            log_msg(LOG_CRIT, "zone fetcher can't create tcp/ipv6 socket: %s",
+                strerror(errno));
             return -1;
         }
     }
     if (ip6_support) {
 #ifdef IPV6_V6ONLY
         if (setsockopt(sockets->tcp[1].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0) {
-            fprintf(stderr, "zone_fetcher: setsockopt(..., IPV6_V6ONLY, ...) failed: %s\n",
-                strerror(errno));
+            log_msg(LOG_CRIT, "zone fetcher setsockopt(..., IPV6_V6ONLY, ...) "
+                "failed: %s", strerror(errno));
             return -1;
         }
 #endif /* IPV6_V6ONLY */
         if (setsockopt(sockets->tcp[1].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
-            fprintf(stderr, "zone_fetcher: setsockopt(..., SO_REUSEADDR, ...) failed: %s\n", strerror(errno));
+            log_msg(LOG_ERR, "zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
+                "failed: %s", strerror(errno));
         }
         if (fcntl(sockets->tcp[1].s, F_SETFL, O_NONBLOCK) == -1) {
-            fprintf(stderr, "zone_fetcher: cannot fcntl udp/ipv6: %s\n", strerror(errno));
+            log_msg(LOG_ERR, "zone fetcher cannot fcntl udp/ipv6: %s",
+                strerror(errno));
         }
         if (bind(sockets->tcp[1].s,
                  (struct sockaddr *) sockets->tcp[1].addr->ai_addr,
                  sockets->tcp[1].addr->ai_addrlen) != 0) {
-            fprintf(stderr, "zone_fetcher: can't bind tcp/ipv6 socket: %s\n", strerror(errno));
+            log_msg(LOG_CRIT, "zone fetcher can't bind tcp/ipv6 socket: %s",
+                strerror(errno));
             return -1;
         }
         if (listen(sockets->tcp[1].s, 5) == -1) {
-            fprintf(stderr, "zone_fetcher: can't listen to tcp/ipv6 socket: %s\n", strerror(errno));
+            log_msg(LOG_CRIT, "zone fetcher can't listen to tcp/ipv6 socket: "
+                "%s", strerror(errno));
             return -1;
         }
     }
@@ -585,29 +615,34 @@ init_sockets(sockets_type* sockets)
 #endif /* IPV6_V6ONLY */
 
     if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[0], &(sockets->tcp[0].addr))) != 0) {
-        fprintf(stderr, "zone_fetcher: cannot parse address: getaddrinfo: %s %s\n",
-            gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+        log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
+            "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
     }
     if ((sockets->tcp[0].s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        fprintf(stderr, "zone_fetcher: can't create tcp/ipv4 socket: %s\n", strerror(errno));
+        log_msg(LOG_CRIT, "zone fetcher can't create tcp/ipv4 socket: %s",
+            strerror(errno));
         return -1;
     }
 #ifdef SO_REUSEADDR
     if (setsockopt(sockets->tcp[0].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
-        fprintf(stderr, "zone_fetcher: setsockopt(..., SO_REUSEADDR, ...) failed: %s\n", strerror(errno));
+        log_msg(LOG_ERR, "zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
+            "failed: %s", strerror(errno));
     }
 #endif /* SO_REUSEADDR */
     if (fcntl(sockets->tcp[0].s, F_SETFL, O_NONBLOCK) == -1) {
-        fprintf(stderr, "zone_fetcher: cannot fcntl tcp/ipv4: %s\n", strerror(errno));
+        log_msg(LOG_ERR, "zone fetcher cannot fcntl tcp/ipv4: %s",
+            strerror(errno));
     }
     if (bind(sockets->tcp[0].s,
              (struct sockaddr *) sockets->tcp[0].addr->ai_addr,
              sockets->tcp[0].addr->ai_addrlen) != 0) {
-        fprintf(stderr, "zone_fetcher: can't bind tcp/ipv4 socket: %s\n", strerror(errno));
+        log_msg(LOG_CRIT, "zone fetcher can't bind tcp/ipv4 socket: %s",
+            strerror(errno));
         return -1;
     }
     if (listen(sockets->tcp[0].s, 5) == -1) {
-        fprintf(stderr, "zone_fetcher: can't listen to tcp/ipv4 socket: %s", strerror(errno));
+        log_msg(LOG_CRIT, "zone fetcher can't listen to tcp/ipv4 socket: %s",
+            strerror(errno));
         return -1;
     }
 
@@ -660,9 +695,9 @@ send_udp(uint8_t* buf, size_t len, void* data)
     nb = sendto(userdata->udp_sock, buf, len, 0,
         (struct sockaddr*)&userdata->addr_him, userdata->hislen);
     if (nb == -1)
-        fprintf(stderr, "zone_fetcher: sendto() failed: %s\n", strerror(errno));
+        log_msg(LOG_ERR, "zone fetcher sendto() failed: %s", strerror(errno));
     else if ((size_t)nb != len)
-        fprintf(stderr, "zone_fetcher: sendto(): only sent %d of %d octets.\n",
+        log_msg(LOG_ERR, "zone fetcher sendto(): only sent %d of %d octets.",
             (int)nb, (int)len);
 }
 
@@ -673,7 +708,8 @@ write_n_bytes(int sock, uint8_t* buf, size_t sz)
     while(count < sz) {
         ssize_t nb = send(sock, buf+count, sz-count, 0);
         if(nb < 0) {
-            fprintf(stderr, "zone_fetcher: send() failed: %s\n", strerror(errno));
+            log_msg(LOG_ERR, "zone fetcher send() failed: %s",
+                strerror(errno));
             return;
         }
         count += nb;
@@ -727,7 +763,8 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     /* packet parsing */
     status = ldns_wire2pkt(&query_pkt, inbuf, (size_t)inlen);
     if (status != LDNS_STATUS_OK) {
-        fprintf(stderr, "zone_fetcher: got bad packet: %s\n", ldns_get_errorstr_by_id(status));
+        log_msg(LOG_INFO, "zone fetcher got bad packet: %s",
+            ldns_get_errorstr_by_id(status));
         return;
     }
     query_rr = ldns_rr_list_rr(ldns_pkt_question(query_pkt), 0);
@@ -747,7 +784,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
         ldns_rr_get_type(query_rr) != LDNS_RR_TYPE_SOA ||
         ldns_rr_get_class(query_rr) != LDNS_RR_CLASS_IN)
     {
-        fprintf(stderr, "zone_fetcher: drop bad notify\n");
+        log_msg(LOG_INFO, "zone fetcher drop bad notify");
         ldns_pkt_free(query_pkt);
         return;
     }
@@ -756,7 +793,8 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     ldns_pkt_set_qr(query_pkt, 1);
     status = ldns_pkt2wire(&outbuf, query_pkt, &answer_size);
     if (status != LDNS_STATUS_OK) {
-        fprintf(stderr, "zone_fetcher: error creating notify response: %s\n", ldns_get_errorstr_by_id(status));
+        log_msg(LOG_ERR, "zone fetcher error creating notify response: %s",
+            ldns_get_errorstr_by_id(status));
     }
     sendfunc(outbuf, answer_size, userdata);
     LDNS_FREE(outbuf);
@@ -782,7 +820,8 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
         zonelist = zonelist->next;
     }
     owner_name = ldns_rdf2str(ldns_rr_owner(query_rr));
-    fprintf(stderr, "zone_fetcher: notify received for unknown zone: %s\n", owner_name);
+    log_msg(LOG_NOTICE, "zone fetcher notify received for unknown zone: %s",
+        owner_name);
     free((void*)owner_name);
     ldns_pkt_free(query_pkt);
 }
@@ -794,7 +833,8 @@ read_n_bytes(int sock, uint8_t* buf, size_t sz)
     while(count < sz) {
         ssize_t nb = recv(sock, buf+count, sz-count, 0);
         if(nb < 0) {
-            fprintf(stderr, "zone_fetcher: recv() failed: %s\n", strerror(errno));
+            log_msg(LOG_ERR, "zone fetcher recv() failed: %s",
+                strerror(errno));
             return;
         }
         count += nb;
@@ -813,7 +853,8 @@ handle_udp(int udp_sock, config_type* config)
     nb = recvfrom(udp_sock, inbuf, INBUF_SIZE, 0,
         (struct sockaddr*)&userdata.addr_him, &userdata.hislen);
     if (nb < 1) {
-        fprintf(stderr, "zone_fetcher: recvfrom() failed: %s\n", strerror(errno));
+        log_msg(LOG_ERR, "zone fetcher recvfrom() failed: %s",
+            strerror(errno));
         return;
     }
 
@@ -833,7 +874,7 @@ handle_tcp(int tcp_sock, config_type* config)
     /* accept */
     hislen = (socklen_t)sizeof(addr_him);
     if((s = accept(tcp_sock, (struct sockaddr*)&addr_him, &hislen)) < 0) {
-        fprintf(stderr, "zone_fetcher: accept() failed: %s\n", strerror(errno));
+        log_msg(LOG_ERR, "zone fetcher accept() failed: %s", strerror(errno));
         return;
     }
     userdata.s = s;
@@ -842,8 +883,8 @@ handle_tcp(int tcp_sock, config_type* config)
     read_n_bytes(s, (uint8_t*)&tcplen, sizeof(tcplen));
     tcplen = ntohs(tcplen);
     if(tcplen >= INBUF_SIZE) {
-        fprintf(stderr, "zone_fetcher: query %d bytes too large, buffer %d bytes.\n",
-            tcplen, INBUF_SIZE);
+        log_msg(LOG_ERR, "zone fetcher query %d bytes too large, "
+            "buffer %d bytes.", tcplen, INBUF_SIZE);
         close(s);
         return;
     }
@@ -882,7 +923,7 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
         if (select(maxfd+1, &rset, &wset, &eset, NULL) < 0) {
             if (errno == EINTR)
                 break;
-            fprintf(stderr, "zone_fetcher: select(): %s\n", strerror(errno));
+            log_msg(LOG_ERR, "zone fetcher select(): %s", strerror(errno));
         }
 
         if (FD_ISSET(sockets->udp[0].s, &rset))
@@ -907,8 +948,9 @@ main(int argc, char **argv)
     pid_t pid = 0;
     FILE* fd;
     sockets_type sockets;
+    int facility = LOG_DAEMON;
 
-    while ((c = getopt(argc, argv, "c:dhz:")) != -1) {
+    while ((c = getopt(argc, argv, "c:df:hz:")) != -1) {
         switch (c) {
         case 'c':
             config_file = optarg;
@@ -922,17 +964,16 @@ main(int argc, char **argv)
         case 'z':
             zonelist_file = optarg;
             break;
-        case '?':
         default:
-            usage(stderr);
             exit(EXIT_FAILURE);
             break;
         }
     }
 
+    log_open(facility, "OpenDNSSEC signer engine");
+
     if (argc > optind) {
-        fprintf(stderr, "zone_fetcher: error: extraneous arguments\n");
-        usage(stderr);
+        log_msg(LOG_CRIT, "zone fetcher error: extraneous arguments");
         exit(EXIT_FAILURE);
     }
 
@@ -941,6 +982,8 @@ main(int argc, char **argv)
     config->pidfile = strdup(PID_FILENAME_STRING);
     c = read_axfr_config(config_file, config);
     config->zonelist = read_zonelist(zonelist_file);
+
+    log_msg(LOG_INFO, "zone fetcher started");
 
     /* foreach zone, do a single axfr request */
     zonelist = config->zonelist;
@@ -963,25 +1006,27 @@ main(int argc, char **argv)
         /* listen to NOTIFY messages */
         c = init_sockets(&sockets);
         if (c == -1) {
-            fprintf(stderr, "zone_fetcher: failed to initialize sockets\n");
+            log_msg(LOG_CRIT, "zone fetcher failed to initialize sockets");
             exit(EXIT_FAILURE);
         }
         xfrd_ns(&sockets, config);
 
-        if (unlink(config->pidfile) == -1)
-            fprintf(stderr, "zone_fetcher: unlink pidfile %s failed: %s\n", config->pidfile, strerror(errno));
+        if (unlink(config->pidfile) == -1) {
+            log_msg(LOG_ERR, "unlink pidfile %s failed: %s", config->pidfile,
+                strerror(errno));
+        }
         free_sockets(&sockets);
     }
 
     /* done */
     free_config(config);
     free_zonelist(zonelist);
-    fprintf(stderr, "zone_fetcher: done\n");
+    log_msg(LOG_INFO, "zone fetcher done");
+    log_close();
     return 0;
 }
 
 /* [TODO]:
- * - respect the EXPIRE value?
  * - replace dummy odd_xfer with something more useful.
- * - syslog
+ * - acl
  */
