@@ -88,7 +88,7 @@ ttl = element TTL { xsd:duration }
 soa = element SOA {
 		ttl,
 		element Minimum { xsd:duration },
-		element Serial { "counter" | "unixtime" | "datecounter" | "keep" | "keepcounter" }?
+		element Serial { "counter" | "unixtime" | "datecounter" | "keep" }?
 	}
 
 nsec = element NSEC { empty }
