@@ -62,15 +62,15 @@
 
 		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
 		<WorkerThreads>8</WorkerThreads>
-		<SignerThreads>1</SignerThreads>
-	<!--
-		the <NotifyCommmand> will expand the following variables:
 
-		%zone      the name of the zone that was signed
-		%zonefile  the filename of the signed zone
+		<!-- the <NotifyCommmand> will expand the following variables:
 
+		     %zone      the name of the zone that was signed
+		     %zonefile  the filename of the signed zone
+		-->
+<!--
 		<NotifyCommand>/usr/local/bin/my_nameserver_reload_command</NotifyCommand>
-	-->
+-->
 	</Signer>
 
 	<Auditor>

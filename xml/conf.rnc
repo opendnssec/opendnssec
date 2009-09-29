@@ -32,7 +32,7 @@ start = element Configuration {
 	# List of all known Key Repositories (aka HSM:s)
 	element RepositoryList {
 		element Repository {
-			# Symbolic name of Repository
+			# Symbolic name of repository
 			attribute name { xsd:string },
 
 			# PKCS#11 Module (aka shared library)
@@ -41,13 +41,14 @@ start = element Configuration {
 			# PKCS#11 Token Label,
 			element TokenLabel { xsd:string },
 
-			# PKCS#11 Login Credentials (asked for if not specified)
+			# PKCS#11 Login Credentials
 			element PIN { xsd:string },
 
-			# Maxmimum number of key pairs in the Repository (if limited)
+			# Maxmimum number of key pairs in the repository
+			# DEFAULT: infinite
 			element Capacity { xsd:positiveInteger }?,
 			
-			# Require backup of keys before use (recommended, but not default)
+			# Require backup of keys before use (optional)
 			element RequireBackup { empty }?
 		}*
 	},
@@ -57,22 +58,24 @@ start = element Configuration {
 		# Configuration parameters for logging
 		element Logging {
 			element Syslog {
-				element Facility { xsd:string }
+				# syslog facility
+				element Facility { syslogFacility }
 			}
 		}?,
 
-		# Location to find the KASP
+		# Location to find the KASP file
 		element PolicyFile { xsd:string },
 
 		# Location to store the zonelist XML file
 		element ZoneListFile { xsd:string },
 
-		# Location to store the zonefetch XML file
+		# Location to store the zonefetch XML file (optional)
 		element ZoneFetchFile { xsd:string }?
 	},
 
 	# Configuration parameters for the KASP Enforcer
 	element Enforcer {
+		# User & group to drop privs to
 		privs?,
 
 		# Where to store internal Enforcer state
@@ -87,34 +90,36 @@ start = element Configuration {
 		# Interval between runs of the key backup procedure
 		element BackupDelay { xsd:duration },
 		
-		# How long before a KSK Rollover should we start warning
+		# How long before a KSK Rollover should we start warning (optional)
 		element RolloverNotification { xsd:duration }?
 	},
 
 	# Configuration parameters for the Signer 
 	element Signer {
+		# User & group to drop privs to
 		privs?,
 
 		# Location to store intermediate zone information
+		# DEFAULT: $(localstatedir)/opendnssec/tmp
 		element WorkingDirectory { xsd:string }?,
 
-		# Location of the signer tools, if other than the default directory.
-		# Used mainly for debugging.
-		# default $(libexecdir)/opendnssec
+		# Location of the signer tools
+		# DEFAULT: $(libexecdir)/opendnssec
 		element ToolsDirectory { xsd:string }?,
 		
 		# Number of Worker Threads
+		# DEFAULT: 4
 		element WorkerThreads { xsd:positiveInteger }?,
 
-		# Number of Signer Threads
-		element SignerThreads { xsd:positiveInteger }?,
-		
 		# System command to call after a zone has been (re)signed
+		#
 		# '%zone' in the string will be replaced by the zone name
+		# '%znefile' in the string will be replaced by the zone file		
 		element NotifyCommand { xsd:string }?
 	}?,
 
 	element Auditor {
+		# User & group to drop privs to
 		privs?,
 
 		# Location to store intermediate audit information
@@ -122,21 +127,33 @@ start = element Configuration {
 	}?
 }
 
+syslogFacility = (
+	"kern" | "user" | "mail" | "daemon" | "auth" |
+	"lpr" | "news" | "uucp" | "cron" |
+	"local0" | "local1" | "local2" | "local3" |
+	"local4" | "local5" | "local6" | "local7"
+	)
+
 privs = element Privileges {
-	# User to drop privs to
+	# DEFAULT: no not drop privs
 	element User { xsd:string }?,
 	
-	# Group to drop privs to
+	# DEFAULT: no not drop privs
 	element Group { xsd:string }?
 }
 
 mysql = element MySQL {
 	element Host {
-			# default port is 3306
-			attribute port { xsd:positiveInteger { maxInclusive = "65535" } },
-			# default hostname is 127.0.0.1
-			xsd:string }?,
+		# DEFAULT: 3306
+		attribute port { xsd:positiveInteger { maxInclusive = "65535" } },
+		
+		# DEFAULT: 127.0.0.1
+		xsd:string }?,
+
+	# database to use for KASP tables
 	element Database { xsd:string },
+
+	# username and password used to connect to database
 	element Username { xsd:string },
 	element Password { xsd:string }	
 }
