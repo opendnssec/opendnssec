@@ -166,6 +166,10 @@
 				</td>
 			</tr>
 			<tr>
+				<td class="tag"><xsl:text>Purge dead keys after</xsl:text></td>
+			  <td class="value"><xsl:value-of select="Purge"/></td>
+			</tr>
+			<tr>
 				<td colspan="2"><b><xsl:text>KSK</xsl:text></b></td>
 			</tr>		
 			<xsl:apply-templates select="KSK"/>
