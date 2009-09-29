@@ -98,7 +98,7 @@ new_server(char* ipv4, char* ipv6, char* port)
     if (port)
         slt->port = atoi(port);
     else
-        slt->port = atoi(DNS_PORT_STRING);
+        slt->port = 0;
     memset(&slt->addr, 0, sizeof(union acl_addr_storage));
 
     if (slt->family == AF_INET6) {
@@ -857,16 +857,36 @@ addr2ip(struct sockaddr_storage addr, char* remote, size_t len)
 }
 
 static int
-acl_matches(struct sockaddr* addr, size_t len, config_type* config)
+acl_matches(struct sockaddr_storage* addr, config_type* config)
 {
     serverlist_type* serverlist = NULL;
 
     if (config && config->serverlist) {
         serverlist = config->serverlist;
         while (serverlist) {
-            if (0) {
-                return 1;
+            if (serverlist->family == AF_INET6) {
+                struct sockaddr_in6* addr6 = (struct sockaddr_in6*)addr;
+                if (serverlist->family == addr->ss_family &&
+                    (serverlist->port == 0 ||
+                     serverlist->port == ntohs(addr6->sin6_port)) &&
+                    memcmp(&addr6->sin6_addr, &serverlist->addr.addr6,
+                     sizeof(struct in6_addr)) == 0)
+                {
+                    return 1;
+                }
             }
+           else {
+                struct sockaddr_in* addr4 = (struct sockaddr_in*)addr;
+                if (serverlist->family == addr4->sin_family &&
+                    (serverlist->port == 0 ||
+                     serverlist->port == ntohs(addr4->sin_port)) &&
+                    memcmp(&addr4->sin_addr, &serverlist->addr.addr,
+                     sizeof(struct in_addr)) == 0)
+                {
+                    return 1;
+                }
+            }
+
             serverlist = serverlist->next;
         }
     }
@@ -892,8 +912,7 @@ handle_udp(int udp_sock, config_type* config)
     }
 
     /* acl */
-    if (!acl_matches( (struct sockaddr*) &userdata.addr_him,
-        userdata.hislen, config)) {
+    if (!acl_matches(&userdata.addr_him, config)) {
         remote = (char*) malloc(sizeof(char)*userdata.hislen);
         log_msg(LOG_INFO, "zone fetcher refused message from "
             "unauthoritative source: %s",
@@ -936,7 +955,7 @@ handle_tcp(int tcp_sock, config_type* config)
     read_n_bytes(s, inbuf, tcplen);
 
     /* acl */
-    if (!acl_matches((struct sockaddr*) &addr_him, hislen, config)) {
+    if (!acl_matches(&addr_him, config)) {
         remote = (char*) malloc(sizeof(char)*hislen);
         log_msg(LOG_INFO, "zone fetcher refused message from "
             "unauthoritative source: %s",
