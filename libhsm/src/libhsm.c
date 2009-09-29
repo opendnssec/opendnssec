@@ -447,6 +447,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
                  char *module_path, char *pin)
 {
     CK_RV rv;
+    CK_RV rv_login;
     hsm_module_t *module;
     CK_SLOT_ID slot_id;
     CK_SESSION_HANDLE session_handle;
@@ -479,11 +480,12 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
         hsm_module_free(module);
         return HSM_ERROR;
     }
-    rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Login(session_handle,
+    rv_login = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Login(session_handle,
                                    CKU_USER,
                                    (unsigned char *) pin,
                                    strlen((char *)pin));
-    if (rv == CKR_OK) {
+
+    if (rv_login == CKR_OK) {
         *session = hsm_session_new(module, session_handle);
         return HSM_OK;
     } else {
@@ -507,10 +509,12 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
         }
         hsm_module_free(module);
         *session = NULL;
-        switch(rv) {
+        switch(rv_login) {
         case CKR_PIN_INCORRECT:
+            hsm_ctx_set_error(ctx, HSM_PIN_INCORRECT,
+	            "hsm_session_init",
+		    "Incorrect PIN for repository %s", repository);
             return HSM_PIN_INCORRECT;
-            break;
         default:
             return HSM_ERROR;
         }
