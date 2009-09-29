@@ -515,7 +515,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
         switch(rv_login) {
         case CKR_PIN_INCORRECT:
             hsm_ctx_set_error(ctx, HSM_PIN_INCORRECT,
-	            "hsm_session_init",
+	            "hsm_session_init()",
 		    "Incorrect PIN for repository %s", repository);
             return HSM_PIN_INCORRECT;
         default:
