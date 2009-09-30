@@ -60,6 +60,7 @@
 #include "config.h"
 #include "daemon.h"
 #include "daemon_util.h"
+#include "privdrop.h"
 
 #include "ksm/database.h"
 #include "ksm/datetime.h"
@@ -83,13 +84,9 @@ permsDrop(DAEMONCONFIG* config)
 
     char* filename = CONFIG_FILE;
     char* rngfilename = SCHEMA_DIR "/conf.rng";
-
     char* temp_char = NULL;
-    struct passwd *pwd;
-    struct group *grp;
-    gid_t oldgid = getegid();
-    uid_t olduid = geteuid();
-    
+
+
     /* Load XML document */
     doc = xmlParseFile(filename);
     if (doc == NULL) {
@@ -140,8 +137,8 @@ permsDrop(DAEMONCONFIG* config)
         xmlFreeDoc(doc);
         return(-1);
     }
-   
-    /* Set the group if specified; else just set the gid as the real one */
+
+    /* Set the group if specified */
     xpathObj = xmlXPathEvalExpression(group_expr, xpathCtx);
     if(xpathObj == NULL) {
         log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", group_expr);
@@ -154,38 +151,11 @@ permsDrop(DAEMONCONFIG* config)
         StrAppend(&config->groupname, temp_char);
         StrFree(temp_char);
         xmlXPathFreeObject(xpathObj);
-
-        /* Lookup the group id in /etc/groups */
-        if ((grp = getgrnam(config->groupname)) == NULL) {
-            log_msg(config, LOG_ERR, "group '%s' does not exist. exiting...", config->groupname);
-            exit(1);
-        } else {
-            config->gid = grp->gr_gid;
-        }
-
-        /* If we are root then drop all groups other than the final one */
-        if (!olduid) setgroups(1, &(grp->gr_gid));
-        endgrent();
-
-#if !defined(linux)
-        setegid(config->gid);
-        status = setgid(config->gid);
-#else
-        status = setregid(config->gid, config->gid);
-#endif /* !defined(linux) */
-
-        if (status != 0) {
-            log_msg(config, LOG_ERR, "unable to drop group privileges: %s", strerror(errno));
-            xmlXPathFreeContext(xpathCtx);
-            xmlFreeDoc(doc);
-            return -1;
-        }
-        log_msg(config, LOG_INFO, "group set to: %s(%d)", config->groupname, config->gid);
     } else {
-        config->gid = oldgid;
+        config->groupname = NULL;
     }
 
-    /* Set the user to drop to if specified; else just set the uid as the real one */
+    /* Set the user to drop to if specified */
     xpathObj = xmlXPathEvalExpression(user_expr, xpathCtx);
     if(xpathObj == NULL) {
         log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", user_expr);
@@ -198,39 +168,14 @@ permsDrop(DAEMONCONFIG* config)
         StrAppend(&config->username, temp_char);
         StrFree(temp_char);
         xmlXPathFreeObject(xpathObj);
-
-        /* Lookup the user id in /etc/passwd */
-        if ((pwd = getpwnam(config->username)) == NULL) {
-            log_msg(config, LOG_ERR, "user '%s' does not exist. exiting...", config->username);
-            exit(1);
-        } else {
-            config->uid = pwd->pw_uid;
-        }
-        endpwent();
-
-#if defined(HAVE_SETRESUID) && !defined(BROKEN_SETRESUID)
-        status = setresuid(config->uid, config->uid, config->uid);
-#elif defined(HAVE_SETREUID) && !defined(BROKEN_SETREUID)
-        status = setreuid(config->uid, config->uid);
-#else
-
-# ifndef SETEUID_BREAKS_SETUID        
-        seteuid(config->uid);
-#endif  /* SETEUID_BREAKS_SETUID */
-
-        status = setuid(config->uid);
-#endif
-
-        if (status != 0) {
-            log_msg(config, LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
-            xmlXPathFreeContext(xpathCtx);
-            xmlFreeDoc(doc);
-            return -1;
-        }
-        log_msg(config, LOG_INFO, "user set to: %s(%d)", config->username, config->uid);
     } else {
-        config->uid = olduid;
+        config->username = NULL;
     }
+
+    privdrop(config->username, config->groupname, NULL);
+
+    config->uid = geteuid();
+    config->gid = getegid();
 
     xmlXPathFreeContext(xpathCtx);
     xmlRelaxNGFree(schema);
