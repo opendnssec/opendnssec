@@ -287,7 +287,7 @@ writepid (DAEMONCONFIG *config)
     fclose(fd);
 
     if (chown(config->pidfile, config->uid, config->gid) == -1) {
-        log_msg(config, LOG_ERR, "cannot chown %u.%u %s: %s",
+        log_msg(config, LOG_ERR, "cannot chown(%u,%u) %s: %s",
                 (unsigned) config->uid, (unsigned) config->gid,
                 config->pidfile, strerror(errno));
         return -1;
