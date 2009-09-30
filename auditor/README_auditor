@@ -53,7 +53,7 @@ Version 1.36 or greater of dnsruby is required.
 Installation
 -------------------------------------------------------------------
 
-From the base directory <opendnssec>/signer :
+From the base directory <opendnssec>/auditor :
 
 autoreconf --install
 ./configure
