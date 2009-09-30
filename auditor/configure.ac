@@ -54,6 +54,11 @@ if test "x$have_ruby_rexml_document" = "x"; then
 fi
 AC_MSG_RESULT([yes])
 
+# check for xmllint
+AC_PATH_PROG(XMLLINT, xmllint)
+if test "x$XMLLINT" = "x"; then
+    AC_MSG_ERROR([xmllint required, but not found.])
+fi
 
 full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 
