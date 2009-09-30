@@ -42,7 +42,7 @@
 
 
 int
-privdrop(const char *username, const char *groupname, const char *chroot)
+privdrop(const char *username, const char *groupname, const char *newroot)
 {
     int status;
 
@@ -80,12 +80,18 @@ privdrop(const char *username, const char *groupname, const char *chroot)
         endgrent();
     }
 
-    /* XXX when we implement chroot(), we do it here */
+    /* Change root if requested */
+    if (newroot) {
+       if (chroot(newroot) != 0 || chdir("/") != 0) {
+            syslog(LOG_ERR, "chroot to '%s' failed. exiting...\n", newroot);
+            exit(1);
+       }
+    }
 
     /* Drop gid? */
     if (groupname) {
         /* If we are root then drop all groups other than the final one */
-        if (!olduid) setgroups(1, &(grp->gr_gid));
+        if (!olduid) setgroups(1, &(gid));
 
 #if !defined(linux)
         setegid(gid);

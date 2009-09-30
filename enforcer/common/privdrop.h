@@ -31,6 +31,6 @@
 
 int privdrop(const char *username,
              const char *groupname,
-             const char *chroot);
+             const char *newroot);
 
 #endif /* ENFORCER_PRIVDROP_H */
