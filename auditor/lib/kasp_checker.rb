@@ -4,6 +4,8 @@ require 'xsd/datatypes'
 require 'rexml/document'
 include REXML
 
+require 'etc'
+
 
 module KASPChecker
   class Checker
@@ -44,6 +46,7 @@ module KASPChecker
           slog.log(level, msg)
         }
       end
+      # @TODO@ Convert the level into text, rather than a number? e.g. "WARNING"
       print "#{level}: #{msg}\n"
     end
     
@@ -97,19 +100,14 @@ module KASPChecker
 
     # Load the specified config file and sanity check it.
     # The file should have been validated against the RNG before this method is
-    # called.
+    # called. 
+    # Sets the syslog facility if it is defined.
     # Returns the configured location of the kasp.xml configuration file.
     def check_config_file(conf_file)
       kasp_file = nil
-      #     @TODO@
       begin
         File.open((conf_file + "").untaint , 'r') {|file|
           doc = REXML::Document.new(file)
-          begin
-            kasp_file = doc.elements['Configuration/Common/PolicyFile'].text
-          rescue Exception
-            log(LOG_ERR, "Can't read KASP policy location from conf.xml - exiting")
-          end
           begin
             facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
             # Now turn the facility string into a Syslog::Constants format....
@@ -119,6 +117,76 @@ module KASPChecker
             print "Error reading syslog config : #{e}\n"
             #            @syslog = Syslog::LOG_DAEMON
           end
+          begin
+            kasp_file = doc.elements['Configuration/Common/PolicyFile'].text
+          rescue Exception
+            log(LOG_ERR, "Can't read KASP policy location from conf.xml - exiting")
+          end
+
+          #  Checks we need to run on conf.xml :
+          #   1. If a user and/or group is defined in the conf.xml then check that it exists.
+          #   Do this for *all* privs instances (in Signer, Auditor and Enforcer as well as top-level)
+          doc.root.each_element('//Privileges/User') {|user|
+            # Now check the user exists
+            # @TODO@ Keep a list of the users/groups we have already warned for, and make sure we only warn for them once
+            begin
+              Etc.getpwnam((user.text+"").untaint).uid
+            rescue ArgumentError
+              log(LOG_ERR, "User #{user.text} does not exist")
+            end
+          }
+          doc.root.each_element('//Privileges/Group') {|group|
+            # Now check the group exists
+            # @TODO@ Keep a list of the users/groups we have already warned for, and make sure we only warn for them once
+            begin
+              gid = Etc.getgrnam((group.text+"").untaint).gid
+            rescue ArgumentError
+              log(LOG_ERR, "Group #{group.text} does not exist")
+            end
+          }
+          # The Directory code is commented out until we support chroot again
+          #          doc.root.each_element('//Privileges/Directory') {|dir|
+          #            print "Dir : #{dir}\n"
+          #            # Now check the directory
+          #            if (!File.exist?(dir))
+          #              log(LOG_ERR, "Direcotry #{dir} cannot be found")
+          #            end
+          #          }
+          #
+          #   2. If there are multiple repositories of the same type
+          #   (i.e. Module is the same for them), then each must have a unique TokenLabel
+          # So, for each Repository, get the Name, Module and TokenLabel.
+          # Then make sure that there are no repositories which share both Module
+          #  and TokenLabel
+          repositories = {}
+          doc.get_elements('Configuration/RepositoryList/Repository').each {|repository|
+            name = repository.name
+            mod = repository.elements['Module'].text
+            #   5. Check that the shared library (Module) exists.
+            if (!File.exist?((mod+"").untaint))
+              log(LOG_ERR, "Module #{mod} in Repository #{name} cannot be found")
+            end
+
+            tokenlabel = repository.elements['TokenLabel'].text
+            print "Checking Module #{mod} and TokenLabel #{tokenlabel} in Repository #{name}\n"
+            # Now check if repositories already includes the [mod, tokenlabel] hash
+            if (repositories.values.include?([mod, tokenlabel]))
+              log(LOG_ERR, "Multiple Repositories in #{conf_file} have the same Module (#{mod}) and TokenLabel (#{tokenlabel}), for Repository #{name}")
+            end
+            repositories[name] =  [mod, tokenlabel]
+            #   3. If a repository specifies a capacity, the capacity must be greater than zero.
+            # This check is performed when the XML is validated against the RNG (which specifies positiveInteger for Capacity)
+          }
+
+
+          #
+          #  Also 
+          #   1. @TODO@ If 'm' is used in the XSDDuration, then warn the user that 31 days will be used instead of one month.
+          #   2. @TODO@ If 'y' is used in the XSDDuration, then warn the user that 365 days will be used instead of one year.
+          #   3. @TODO@ Check that any paths used exist and will be writable after dropping privileges to the defined user/group.
+
+
+
         }
       rescue Errno::ENOENT
         log(LOG_ERR, "ERROR - Can't find config file : #{conf_file}")
@@ -128,7 +196,31 @@ module KASPChecker
 
 
     def check_kasp_file(kasp_file)
-      # @TODO@
+      begin
+        File.open(kasp_file, 'r') {|file|
+          doc = REXML::Document.new(file)
+          # Run the following checks on kasp.xml :
+          #   1. @TODO@ Warn if a policy named "default" does not exist.
+          #   2. @TODO@ For all policies, check that the "Re-sign" interval is less than the "Refresh" interval.
+          #   3. @TODO@ Ensure that the "Default" and "Denial" validity periods are greater than the "Refresh" interval.
+          #   4. @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
+          #   5. @TODO@ Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
+          #   6. @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
+          #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
+          #   8. @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
+          #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
+          #  10. @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+          #  11. @TODO@ Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
+          #  12. @TODO@ Check that the value of the "Serial" tag is valid.
+          #
+          #   Also
+          #   1. @TODO@ If 'm' is used in the XSDDuration, then warn the user that 31 days will be used instead of one month.
+          #   2. @TODO@ If 'y' is used in the XSDDuration, then warn the user that 365 days will be used instead of one year.
+          #   3. @TODO@ Check that any paths used exist and will be writable after dropping privileges to the defined user/group.
+        }
+      rescue Errno::ENOENT
+        log(LOG_ERR, "ERROR - Can't find config file : #{kasp_file}")
+      end
     end
   end
 end
