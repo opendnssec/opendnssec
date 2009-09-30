@@ -583,8 +583,10 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
 
     i = 0;
     while (walk) {
-        log_msg(LOG_INFO, "init socket for IPv%i %s:%s",
-             walk->family==AF_INET6?6:4, walk->ipaddr, walk->port);
+        log_msg(LOG_DEBUG, "init socket for IPv%i %s:%s",
+             walk->family==AF_INET6?6:4,
+             strlen(walk->ipaddr)>0?walk->ipaddr:"INADDR_ANY",
+             walk->port);
 
 #ifndef IPV6_V6ONLY
         hints[i].ai_family = walk->family;
