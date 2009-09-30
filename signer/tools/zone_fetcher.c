@@ -66,7 +66,7 @@ new_zone(char* zone_name, char* input_file)
 {
     zonelist_type* zlt = (zonelist_type*) malloc(sizeof(zonelist_type));
     zlt->name = strdup(zone_name);
-    zlt->dname = ldns_dname_new_frm_str(zone_name);
+    zlt->dname = ldns_dname_new_frm_str(zlt->name);
     zlt->input_file = strdup(input_file);
     zlt->next = NULL;
     return zlt;
@@ -77,7 +77,9 @@ free_zonelist(zonelist_type* zlt)
 {
     if (zlt) {
         free_zonelist(zlt->next);
+        log_msg(LOG_DEBUG, "zone fetcher free zone %s", zlt->name);
         free((void*) zlt->name);
+        ldns_rdf_deep_free(zlt->dname);
         free((void*) zlt->input_file);
         free((void*) zlt);
     }
@@ -99,7 +101,7 @@ new_server(char* ipv4, char* ipv6, char* port)
     if (port)
         slt->port = strdup(port);
     else
-        slt->port = strdup(DNS_PORT_STRING);
+        slt->port = NULL;
     memset(&slt->addr, 0, sizeof(union acl_addr_storage));
 
     if (slt->family == AF_INET6 && strlen(slt->ipaddr) > 0) {
@@ -124,6 +126,7 @@ free_serverlist(serverlist_type* slt)
 {
     if (slt) {
         free_serverlist(slt->next);
+        log_msg(LOG_DEBUG, "zone fetcher free server %s:%s", slt->ipaddr, slt->port);
         if (slt->port)   free((void*) slt->port);
         if (slt->ipaddr) free((void*) slt->ipaddr);
         free((void*) slt);
@@ -133,7 +136,7 @@ free_serverlist(serverlist_type* slt)
 static config_type*
 new_config(void)
 {
-    config_type* cfg = (config_type*) malloc(sizeof(config_type));
+    config_type* cfg = (config_type*) malloc(sizeof(config_type)); /* not freed */
     cfg->use_tsig = 0;
     cfg->pidfile = NULL;
     cfg->tsig_name = NULL;
@@ -153,6 +156,7 @@ free_config(config_type* cfg)
         if (cfg->tsig_algo)   free((void*) cfg->tsig_algo);
         if (cfg->tsig_secret) free((void*) cfg->tsig_secret);
         if (cfg->pidfile)     free((void*) cfg->pidfile);
+        free_zonelist(cfg->zonelist);
         free_serverlist(cfg->serverlist);
         free_serverlist(cfg->notifylist);
         free((void*) cfg);
@@ -164,8 +168,8 @@ read_axfr_config(const char* filename, config_type* cfg)
 {
     int ret, i, use_tsig = 0;
     char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *ipv4, *ipv6, *port;
-    serverlist_type* serverlist = NULL, *serverlist_start = NULL;
-    serverlist_type* notifylist = NULL, *notifylist_start = NULL;
+    serverlist_type* serverlist = NULL;
+    serverlist_type* notifylist = NULL;
 
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
@@ -186,7 +190,7 @@ read_axfr_config(const char* filename, config_type* cfg)
 
     /* In case zonelist is huge use the XmlTextReader API so that we don't
      * hold the whole file in memory */
-    reader = xmlNewTextReaderFilename(filename);
+    reader = xmlNewTextReaderFilename(filename); /* not properly freed */
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
@@ -234,21 +238,21 @@ read_axfr_config(const char* filename, config_type* cfg)
                        }
                        if (ipv4 || ipv6) {
                            if (serverlist == NULL) {
-                               serverlist = new_server(ipv4, ipv6, port);
-                               serverlist_start = serverlist;
+                               serverlist = new_server(ipv4, ipv6, port); /* not freed */
+                               cfg->serverlist = serverlist;
                            }
                            else {
-                               serverlist->next = new_server(ipv4, ipv6, port);
+                               serverlist->next = new_server(ipv4, ipv6, port); /* not freed */
                                serverlist = serverlist->next;
                            }
                        }
 
-                       if (ipv4) free(ipv4);
-                       if (ipv6) free(ipv6);
-                       if (port) free(port);
+                       if (ipv4) free((void*) ipv4);
+                       if (ipv6) free((void*) ipv6);
+                       if (port) free((void*) port);
                     }
                 }
-                cfg->serverlist = serverlist_start;
+                xmlXPathFreeObject(xpathObj);
 
                 /* Extract the notify listen address */
                 xpathObj = xmlXPathEvalExpression(notify_expr, xpathCtx);
@@ -271,7 +275,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                            if (!ipv4 && !ipv6) {
                                if (notifylist == NULL) {
                                    notifylist = new_server("", NULL, port);
-                                   notifylist_start = notifylist;
+                                   cfg->notifylist = notifylist;
 
                                    notifylist->next = new_server(NULL, "", port);
                                    notifylist = notifylist->next;
@@ -286,7 +290,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                            }
                            else if (notifylist == NULL) {
                                notifylist = new_server(ipv4, ipv6, port);
-                               notifylist_start = notifylist;
+                               cfg->notifylist = notifylist;
                            }
                            else {
                                notifylist->next = new_server(ipv4, ipv6, port);
@@ -294,17 +298,18 @@ read_axfr_config(const char* filename, config_type* cfg)
                            }
                        }
 
-                       if (ipv4) free(ipv4);
-                       if (ipv6) free(ipv6);
-                       if (port) free(port);
+                       if (ipv4) free((void*) ipv4);
+                       if (ipv6) free((void*) ipv6);
+                       if (port) free((void*) port);
                     }
+                    xmlXPathFreeObject(xpathObj);
                 }
-                cfg->notifylist = notifylist_start;
 
                 /* Extract the tsig credentials */
                 xpathObj = xmlXPathEvalExpression(tsig_expr, xpathCtx);
                 if (xpathObj != NULL) {
                     use_tsig = 1;
+                    xmlXPathFreeObject(xpathObj);
                 }
                 if (use_tsig) {
                     xpathObj = xmlXPathEvalExpression(tsig_name_expr, xpathCtx);
@@ -314,6 +319,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                         exit(EXIT_FAILURE);
                     }
                     tsig_name = (char*) xmlXPathCastToString(xpathObj);
+                    xmlXPathFreeObject(xpathObj);
 
                     xpathObj = xmlXPathEvalExpression(tsig_algo_expr, xpathCtx);
                     if (xpathObj == NULL) {
@@ -322,6 +328,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                         exit(EXIT_FAILURE);
                     }
                     tsig_algo = (char*) xmlXPathCastToString(xpathObj);
+                    xmlXPathFreeObject(xpathObj);
 
                     xpathObj = xmlXPathEvalExpression(tsig_secret_expr, xpathCtx);
                     if (xpathObj == NULL) {
@@ -330,21 +337,25 @@ read_axfr_config(const char* filename, config_type* cfg)
                         exit(EXIT_FAILURE);
                     }
                     tsig_secret = (char*) xmlXPathCastToString(xpathObj);
+                    xmlXPathFreeObject(xpathObj);
 
                     cfg->tsig_name = strdup(tsig_name);
                     cfg->tsig_algo = strdup(tsig_algo);
                     cfg->tsig_secret = strdup(tsig_secret);
-                    free(tsig_name);
-                    free(tsig_algo);
-                    free(tsig_secret);
+                    free((void*) tsig_name);
+                    free((void*) tsig_algo);
+                    free((void*) tsig_secret);
                 }
+
+                xmlXPathFreeContext(xpathCtx);
             }
 
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
-            free(tag_name);
+            free((void*) tag_name);
         }
         xmlFreeTextReader(reader);
+        xmlFreeDoc(doc);
         if (ret != 0) {
             log_msg(LOG_ERR, "zone fetcher failed to parse config file %s",
                 filename);
@@ -418,6 +429,7 @@ read_zonelist(const char* filename)
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
+
                 /* Extract the Input File Adapter filename */
                 xpathObj = xmlXPathEvalExpression(adapter_expr, xpathCtx);
                 if (xpathObj == NULL) {
@@ -428,24 +440,28 @@ read_zonelist(const char* filename)
                     continue;
                 }
                 input_file = (char*) xmlXPathCastToString(xpathObj);
+                xmlXPathFreeObject(xpathObj);
 
                 if (zonelist == NULL) {
-                    zonelist = new_zone(zone_name, input_file);
+                    zonelist = new_zone(zone_name, input_file); /* not freed */
                     zonelist_start = zonelist;
                 }
                 else {
                     zonelist->next = new_zone(zone_name, input_file);
                     zonelist = zonelist->next;
                 }
-				free(zone_name);
-				free(input_file);
+				free((void*) zone_name);
+				free((void*) input_file);
+
+                xmlXPathFreeContext(xpathCtx);
             }
 
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
-            free(tag_name);
+            free((void*) tag_name);
         }
         xmlFreeTextReader(reader);
+        xmlFreeDoc(doc);
         if (ret != 0) {
             log_msg(LOG_ERR, "zone fetcher failed to parse zonelist %s",
                 filename);
@@ -456,6 +472,7 @@ read_zonelist(const char* filename)
             filename);
         exit(EXIT_FAILURE);
     }
+
     return zonelist_start;
 }
 
@@ -555,6 +572,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
     struct addrinfo hints[MAX_INTERFACES];
     serverlist_type* walk = list;
     const char* node = NULL;
+    const char* port = NULL;
 #if defined(SO_REUSEADDR) || defined(IPV6_V6ONLY)
     on = 1;
 #endif
@@ -586,18 +604,19 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         log_msg(LOG_DEBUG, "init socket for IPv%i %s:%s",
              walk->family==AF_INET6?6:4,
              strlen(walk->ipaddr)>0?walk->ipaddr:"INADDR_ANY",
-             walk->port);
+             walk->port?walk->port:DNS_PORT_STRING);
 
 #ifndef IPV6_V6ONLY
         hints[i].ai_family = walk->family;
 #endif  /* IPV6_V6ONLY */
         node = strlen(walk->ipaddr) > 0 ? walk->ipaddr : NULL;
+        port = walk->port ? walk->port : DNS_PORT_STRING;
         if (node != NULL)
             hints[i].ai_flags |= AI_NUMERICHOST;
         /* UDP */
         hints[i].ai_socktype = SOCK_DGRAM;
         /* getaddrinfo */
-        if ((r = getaddrinfo(node, walk->port, &hints[i],
+        if ((r = getaddrinfo(node, port, &hints[i],
             &(sockets->udp[i].addr))) != 0) {
             log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
                 "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
@@ -659,7 +678,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         /* TCP */
         hints[i].ai_socktype = SOCK_STREAM;
         /* getaddrinfo */
-        if ((r = getaddrinfo(node, walk->port, &hints[i],
+        if ((r = getaddrinfo(node, port, &hints[i],
             &(sockets->tcp[i].addr))) != 0) {
             log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
                 "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
@@ -757,17 +776,20 @@ free_sockets(sockets_type* sockets)
     size_t i = 0;
 
     for (i=0; i < MAX_INTERFACES; i++) {
-        if (sockets->udp[i].s != -1)
+        if (sockets->udp[i].s != -1) {
             close(sockets->udp[i].s);
-        if (sockets->tcp[i].s != -1)
+            free((void*)sockets->udp[i].addr);
+        }
+        if (sockets->tcp[i].s != -1) {
             close(sockets->tcp[i].s);
-        free((void*)sockets->udp[i].addr);
-        free((void*)sockets->tcp[i].addr);
+            free((void*)sockets->tcp[i].addr);
+        }
     }
 }
 
 static void
-odd_xfer(const char* zone_name, char* output_file, uint32_t serial, config_type* config)
+odd_xfer(const char* zone_name, char* output_file, uint32_t serial,
+    config_type* config)
 {
     serverlist_type* serverlist = NULL;
 
@@ -896,6 +918,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
                 serial = 0;
             } else {
                 serial = lookup_serial(fd);
+                fclose(fd);
             }
             /* send the request */
             odd_xfer(zonelist->name, zonelist->input_file, serial, config);
@@ -1133,7 +1156,7 @@ main(int argc, char **argv)
 
     /* read transfer configuration */
     config = new_config();
-    config->pidfile = strdup(PID_FILENAME_STRING);
+    config->pidfile = strdup(PID_FILENAME_STRING); /* not freed */
     c = read_axfr_config(config_file, config);
     config->zonelist = read_zonelist(zonelist_file);
 
@@ -1148,6 +1171,7 @@ main(int argc, char **argv)
             serial = 0;
         } else {
             serial = lookup_serial(fd);
+            fclose(fd);
         }
         /* send the request */
         odd_xfer(zonelist->name, zonelist->input_file, serial, config);
@@ -1173,16 +1197,15 @@ main(int argc, char **argv)
     }
 
     /* done */
-    free_config(config);
-    free_zonelist(zonelist);
     log_msg(LOG_INFO, "zone fetcher done");
+    free_config(config);
+    log_msg(LOG_DEBUG, "zone fetcher config cleared");
     log_close();
     return 0;
 }
 
 /* [TODO]:
  * - replace dummy odd_xfer with something more useful.
- * - ListenNotify
  * - TSIG
  * - PrivDrop
  */
