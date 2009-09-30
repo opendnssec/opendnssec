@@ -66,7 +66,8 @@ class AuditorTest < Test::Unit::TestCase
       "RRSet (www.tjeb.nl, AAAA) failed verification : Signature record not in validity period, tag = 1390",
       "RRSet (www.tjeb.nl, NSEC) failed verification : Signature record not in validity period, tag = 1390",
       "Inception error for www.tjeb.nl, NSEC : Signature inception is 1275722596, time now is",
-      "Signature expiration (962409629) for www.tjeb.nl, AAAA should be later than (the refresh period (120) - the resign period (60)) from now",
+      # Taken out next warning, as we already have an error for expired RRSIG for this record
+#      "Signature expiration (962409629) for www.tjeb.nl, AAAA should be later than (the refresh period (120) - the resign period (60)) from now",
       "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, A, have :",
       "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl.	3600	IN	A	1.2.3.4",
       "RRSet (not.there.tjeb.nl, A) failed verification : No signatures in the RRSet : not.there.tjeb.nl, A, tag = none",
