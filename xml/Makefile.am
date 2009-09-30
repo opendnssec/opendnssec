@@ -47,7 +47,8 @@ regress: $(RNG)
 	done
 	@test -x ${XSLTPROC} || \
 		(echo "xsltproc is required for regression tests"; false)
-	${XSLTPROC} -o kasp.html $(srcdir)/kasp2html.xsl kasp.xml
+	@${XSLTPROC} -o kasp.html $(srcdir)/kasp2html.xsl kasp.xml && \
+		(echo "kasp.xml built")
 	
 
 install-data-hook:
