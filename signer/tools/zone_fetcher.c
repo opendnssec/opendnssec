@@ -583,6 +583,9 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
 
     i = 0;
     while (walk) {
+        log_msg(LOG_INFO, "init socket for IPv%i %s:%s",
+             walk->family==AF_INET6?6:4, walk->ipaddr, walk->port);
+
 #ifndef IPV6_V6ONLY
         hints[i].ai_family = walk->family;
 #endif  /* IPV6_V6ONLY */
@@ -613,13 +616,13 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             }
         }
 
-        if (sockets->udp[i].addr->ai_family != AF_INET6) {
+        if (walk->family != AF_INET6) {
             if (fcntl(sockets->udp[i].s, F_SETFL,
                 O_NONBLOCK) == -1) {
                 log_msg(LOG_ERR, "zone fetcher cannot fcntl "
                 "UDP: %s", strerror(errno));
             }
-            if (bind(sockets->udp[1].s,
+            if (bind(sockets->udp[i].s,
                 (struct sockaddr *) sockets->udp[i].addr->ai_addr,
                 sockets->udp[i].addr->ai_addrlen) != 0)
             {
@@ -665,9 +668,9 @@ free_sockets(sockets_type* sockets)
 
     for (i=0; i < MAX_INTERFACES; i++) {
         if (sockets->udp[i].s != -1)
-            close(sockets->udp[0].s);
+            close(sockets->udp[i].s);
         if (sockets->tcp[i].s != -1)
-            close(sockets->tcp[0].s);
+            close(sockets->tcp[i].s);
         free((void*)sockets->udp[i].addr);
         free((void*)sockets->tcp[i].addr);
     }
