@@ -171,7 +171,7 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlChar *tsig_name_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Name";
     xmlChar *tsig_algo_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Algorithm";
     xmlChar *tsig_secret_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Secret";
-    xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/Address";
+    xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/RequestTransfer";
 
     if (filename == NULL) {
         log_msg(LOG_CRIT, "no zone fetcher configfile provided");
@@ -1097,4 +1097,5 @@ main(int argc, char **argv)
  * - replace dummy odd_xfer with something more useful.
  * - ListenNotify
  * - SourceAddress
+ * - TSIG
  */
