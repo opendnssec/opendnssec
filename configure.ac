@@ -34,8 +34,8 @@ ACX_DBPARAMS
 
 # auditor
 AC_ARG_ENABLE(auditor,
-	AC_HELP_STRING([--enable-auditor],
-		[Enable auditor build (default enabled)]),
+	AC_HELP_STRING([--disable-auditor],
+		[Disable auditor build (default enabled)]),
 	[],[])
 if test "${enable_auditor+set}" != set; then
 	enable_auditor=yes
