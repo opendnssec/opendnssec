@@ -61,9 +61,13 @@ if test "x$XMLLINT" = "x"; then
 fi
 
 full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 
 opendnsseclibdir=$full_libdir/opendnssec
+opendnssecdatadir=$full_datadir/opendnssec
+
 AC_SUBST([opendnsseclibdir])
+AC_SUBST([opendnssecdatadir])
 
 AC_SUBST(TIMESHIFT, false)
 
