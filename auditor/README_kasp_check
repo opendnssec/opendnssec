@@ -61,6 +61,11 @@ To run the kasp_check test files, run the command :
 
   ruby test/checker_test.rb
 
+If you wish to test the checker locally before installing it, then
+run the following command from <path_to_OpenDNSSEC>/auditor :
+
+  ruby -I lib test/checker_test.rb
+
 -------------------------------------------------------------------
 Running
 -------------------------------------------------------------------
