@@ -51,10 +51,6 @@ source =
 		element Secret { xsd:base64Binary }
 	}?,
 
-	# address to use as source for inbound AXFR
-	# DEFAULT: bind to INADDR_ANY
-	element SourceAddress { localAddress }?,
-
 	# <address of host to request AXFR from
 	# incoming NOTIFY has to match this address as well
 	# DEFAULT: none

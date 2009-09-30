@@ -22,12 +22,6 @@
 			<Secret>sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=</Secret>
 		</TSIG>
 
-		<!-- address to use as source for inbound AXFR -->
-		<!-- DEFAULT: bind to INADDR_ANY -->
-		<SourceAddress>
-			<IPv4>192.0.2.1</IPv4>
-		</SourceAddress>
-
 		<!-- address of host to request AXFR from -->
 		<!-- incoming NOTIFY has to match this address as well -->
 		<!-- DEFAULT: none -->
