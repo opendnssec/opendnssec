@@ -257,7 +257,7 @@ module KASPAuditor
       #   f) Keys which are not inuse, but still in zone, and which were previously known, should be retired
       keys.each {|key|
         #        print "Checking published key #{key.key_tag_pre_revoked}\n"
-        if !@cache.include_key?(key)
+        if !@cache.include_inuse_key?(key)
           #          print "Unseen key #{key.key_tag_pre_revoked}\n"
           if !keys_used.include?(key.key_tag_pre_revoked)
             #            print "Unseen key #{key.key_tag_pre_revoked} not in use - adding to prepublished\n"
