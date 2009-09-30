@@ -1,5 +1,9 @@
 require 'syslog'
 include Syslog::Constants
+require 'xsd/datatypes'
+require 'rexml/document'
+include REXML
+
 
 module KASPChecker
   class Checker
@@ -34,7 +38,10 @@ module KASPChecker
 
     def log(level, msg)
       if (@syslog)
-        @syslog.log(level, msg)
+        Syslog.open("kasp_check", Syslog::LOG_PID |
+          Syslog::LOG_CONS, @syslog) { |slog|
+          slog.log(level, msg)
+        }
       end
       print "#{level}: #{msg}\n"
     end
@@ -92,7 +99,30 @@ module KASPChecker
     # called.
     # Returns the configured location of the kasp.xml configuration file.
     def check_config_file(conf_file)
+      kasp_file = nil
       #     @TODO@
+      begin
+        File.open((conf_file + "").untaint , 'r') {|file|
+          doc = REXML::Document.new(file)
+          begin
+            kasp_file = doc.elements['Configuration/Common/PolicyFile'].text
+          rescue Exception
+            log(LOG_ERR, "Can't read KASP policy location from conf.xml - exiting")
+          end
+          begin
+            facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
+            # Now turn the facility string into a Syslog::Constants format....
+            syslog_facility = eval "Syslog::LOG_" + (facility.upcase+"").untaint
+            @syslog = syslog_facility
+          rescue Exception => e
+            print "Error reading syslog config : #{e}\n"
+            #            @syslog = Syslog::LOG_DAEMON
+          end
+        }
+      rescue Errno::ENOENT
+        log(LOG_ERR, "ERROR - Can't find config file : #{conf_file}")
+      end
+      return kasp_file
     end
 
 
