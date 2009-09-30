@@ -7,6 +7,7 @@ include REXML
 
 module KASPChecker
   class Checker
+    $SAFE = 1
     KASP_FILE = "kasp"
     CONF_FILE = "conf"
     attr_accessor :conf_file, :kasp_file, :rng_path, :xmllint
@@ -122,7 +123,7 @@ module KASPChecker
       rescue Errno::ENOENT
         log(LOG_ERR, "ERROR - Can't find config file : #{conf_file}")
       end
-      return kasp_file
+      return ((kasp_file+"").untaint)
     end
 
 
