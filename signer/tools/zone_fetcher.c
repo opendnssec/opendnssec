@@ -654,6 +654,94 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             }
         }
 
+        /* TCP */
+        hints[i].ai_socktype = SOCK_STREAM;
+        /* getaddrinfo */
+        if ((r = getaddrinfo(node, walk->port, &hints[i],
+            &(sockets->tcp[i].addr))) != 0) {
+            log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
+                "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+        }
+        /* socket */
+        if ((sockets->tcp[i].s = socket(walk->family, SOCK_STREAM, 0)) == -1)
+        {
+            if (walk->family == AF_INET6 && errno == EAFNOSUPPORT)
+            {
+                log_msg(LOG_ERR, "zone fetcher fallback to TCP4, no IPv6: "
+                    " not supported");
+                ip6_support = 0;
+            }
+            else {
+            log_msg(LOG_CRIT, "zone fetcher can't create TCP socket: %s",
+                strerror(errno));
+            return -1;
+            }
+        }
+        /* setsockopt */
+        if (walk->family != AF_INET6) {
+            if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
+                sizeof(on)) < 0) {
+                log_msg(LOG_ERR, "zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
+                    "failed: %s", strerror(errno));
+            }
+            /* fcntl */
+            if (fcntl(sockets->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
+                log_msg(LOG_ERR, "zone fetcher cannot fcntl TCP: %s",
+                    strerror(errno));
+            }
+            /* bind */
+            if (bind(sockets->tcp[i].s,
+                (struct sockaddr *) sockets->tcp[i].addr->ai_addr,
+                sockets->tcp[i].addr->ai_addrlen) != 0) {
+                log_msg(LOG_CRIT, "zone fetcher can't bind TCP socket: %s",
+                    strerror(errno));
+                return -1;
+            }
+            /* listen */
+            if (listen(sockets->tcp[i].s, 5) == -1) {
+                log_msg(LOG_CRIT, "zone fetcher can't listen to TCP socket: "
+                    "%s", strerror(errno));
+                return -1;
+            }
+        } else if (ip6_support) {
+            /* setsockopt */
+            if (sockets->tcp[i].addr->ai_family == AF_INET6 && ip6_support) {
+#ifdef IPV6_V6ONLY
+                if (setsockopt(sockets->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
+                    sizeof(on)) < 0)
+                {
+                    log_msg(LOG_CRIT, "zone fetcher setsockopt(..., IPV6_V6ONLY, "
+                        "...) failed: %s", strerror(errno));
+                    return -1;
+                }
+#endif /* IPV6_V6ONLY */
+            }
+            if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
+                sizeof(on)) < 0) {
+                log_msg(LOG_ERR, "zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
+                    "failed: %s", strerror(errno));
+            }
+            /* fcntl */
+            if (fcntl(sockets->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
+                log_msg(LOG_ERR, "zone fetcher cannot fcntl TCP: %s",
+                    strerror(errno));
+            }
+            /* bind */
+            if (bind(sockets->tcp[i].s,
+                (struct sockaddr *) sockets->tcp[i].addr->ai_addr,
+                sockets->tcp[i].addr->ai_addrlen) != 0) {
+                log_msg(LOG_CRIT, "zone fetcher can't bind TCP socket: %s",
+                    strerror(errno));
+                return -1;
+            }
+            /* listen */
+            if (listen(sockets->tcp[i].s, 5) == -1) {
+                log_msg(LOG_CRIT, "zone fetcher can't listen to TCP socket: "
+                    "%s", strerror(errno));
+                return -1;
+            }
+        }
+
         walk = walk->next;
         i++;
     }
