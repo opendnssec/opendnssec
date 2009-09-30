@@ -76,6 +76,7 @@ int KsmListBackups(int repo_id)
 
     char*       temp_date = NULL; /* place to store date returned */
     char*       temp_repo = NULL; /* place to store repository returned */
+    int         temp_backup_req = 0; /* place to store backuprequired returned */
 
     /* Select rows */
     StrAppend(&sql, "select k.backup, s.name from keypairs k, securitymodules s ");
@@ -118,7 +119,7 @@ int KsmListBackups(int repo_id)
     DusFree(sql);
 
     /* List repos which need a backup */
-    StrAppend(&sql2, "select s.name from keypairs k, securitymodules s ");
+    StrAppend(&sql2, "select s.name, s.requirebackup from keypairs k, securitymodules s ");
     StrAppend(&sql2, "where s.id = k.securitymodule_id ");
     if (repo_id != -1) {
         StrAppend(&sql2, "and s.id = ");
@@ -137,8 +138,13 @@ int KsmListBackups(int repo_id)
         while (status == 0) {
             /* Got a row, print it */
             DbString(row, 0, &temp_repo);
+            DbInt(row, 1, &temp_backup_req);
 
-            printf("Repository %s has unbacked up keys\n", temp_repo);
+            if (temp_backup_req == 0) {
+                printf("Repository %s has unbacked up keys (that can be used)\n", temp_repo);
+            } else {
+                printf("Repository %s has unbacked up keys (that will not be used)\n", temp_repo);
+            }
             
             status = DbFetchRow(result2, &row2);
         }
