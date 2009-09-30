@@ -568,7 +568,14 @@ class Zone:
                 self.move_output()
         elif self.action >= ZoneConfig.REREAD and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
-            if self.sort_input() and self.preprocess() and self.nsecify():
+            ser_out = self.get_output_serial();
+            ser_in = self.get_input_serial();
+            if self.zone_config.soa_serial == "keep" and \
+                              self.compare_serial(ser_out, ser_in) <= 0:
+                syslog.syslog(syslog.LOG_ERR, "Cannot keep input serial " + str(ser_in) +\
+                                              ", output serial " + str(ser_out) +\
+                                              " is too large. Aborting operation")
+            elif self.sort_input() and self.preprocess() and self.nsecify():
                 if self.sign() and self.finalize() and self.audit():
                     self.move_output()
         elif self.action >= ZoneConfig.RESORT and self.fetch_axfr() and os.path.isfile(
@@ -576,7 +583,15 @@ class Zone:
             ## the sorting config has changed. We must also re-sort the
             ## internal zone storage containing our previous signatures,
             ## if any.
-            if self.sort_signed() and self.preprocess_signed() and self.sort_input() and \
+            ser_out = self.get_output_serial();
+            ser_in = self.get_input_serial();
+            if self.zone_config.soa_serial == "keep" and \
+                              self.compare_serial(ser_out, ser_in) <= 0:
+                syslog.syslog(syslog.LOG_ERR, "Cannot keep input serial " + str(ser_in) +\
+                                              ", output serial " + str(ser_out) +\
+                                              " is too large. Aborting operation")
+
+            elif self.sort_signed() and self.preprocess_signed() and self.sort_input() and \
                self.preprocess() and self.nsecify():
                 if self.sign() and self.finalize() and self.audit():
                     self.move_output()

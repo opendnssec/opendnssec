@@ -68,6 +68,7 @@ new_zone(char* zone_name, char* input_file)
     zlt->name = strdup(zone_name);
     zlt->dname = ldns_dname_new_frm_str(zlt->name);
     zlt->input_file = strdup(input_file);
+    zlt->do_axfr = 0;
     zlt->next = NULL;
     return zlt;
 }
@@ -159,6 +160,7 @@ free_config(config_type* cfg)
         free_zonelist(cfg->zonelist);
         free_serverlist(cfg->serverlist);
         free_serverlist(cfg->notifylist);
+        ldns_resolver_free(cfg->xfrd);
         free((void*) cfg);
     }
 }
@@ -793,6 +795,8 @@ odd_xfer(const char* zone_name, char* output_file, uint32_t serial,
 {
     serverlist_type* serverlist = NULL;
 
+
+
     if (config && config->serverlist) {
         serverlist = config->serverlist;
         while (serverlist) {
@@ -810,6 +814,33 @@ odd_xfer(const char* zone_name, char* output_file, uint32_t serial,
             serverlist = serverlist->next;
         }
     }
+}
+
+static ldns_resolver*
+init_xfrd(config_type* config)
+{
+    serverlist_type* servers;
+    ldns_rdf* ns = NULL;
+
+    ldns_resolver* xfrd = ldns_resolver_new();
+    if (config) {
+        if (config->use_tsig) {
+            ldns_resolver_set_tsig_keyname(xfrd, config->tsig_name);
+            ldns_resolver_set_tsig_algorithm(xfrd, config->tsig_algo);
+            ldns_resolver_set_tsig_keydata(xfrd, config->tsig_secret);
+        }
+        ldns_resolver_set_port(xfrd, atoi(DNS_PORT_STRING));
+        ldns_resolver_set_recursive(xfrd, 0);
+
+        servers = config->serverlist;
+/*
+        while (servers) {
+            status = ldns_resolver_push_nameserver(xfrd, ns);
+        }
+*/
+
+    }
+    return xfrd;
 }
 
 static void
@@ -920,8 +951,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
                 serial = lookup_serial(fd);
                 fclose(fd);
             }
-            /* send the request */
-            odd_xfer(zonelist->name, zonelist->input_file, serial, config);
+            zonelist->do_axfr = 1;
             ldns_pkt_free(query_pkt);
             return;
         }
@@ -1068,6 +1098,7 @@ handle_tcp(int tcp_sock, config_type* config)
             "unauthoritative source: %s",
             addr2ip(addr_him, remote, hislen));
         free((void*)remote);
+        close(s);
         return;
     }
     handle_query(inbuf, (ssize_t) tcplen, send_tcp, &userdata, config);
@@ -1079,6 +1110,7 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
 {
     fd_set rset, wset, eset;
     struct timeval timeout;
+    zonelist_type* zonelist;
     int count, maxfd = 0;
     size_t i;
 
@@ -1111,6 +1143,17 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
             if (sockets->tcp[i].s != -1 && FD_ISSET(sockets->tcp[i].s, &rset))
                 handle_tcp(sockets->tcp[i].s, cfg);
         }
+
+        if (cfg) {
+            zonelist = cfg->zonelist;
+            while (zonelist) {
+                if (zonelist->do_axfr) {
+                    zonelist->do_axfr = 0;
+                }
+                zonelist = zonelist->next;
+            }
+        }
+
     }
 }
 
@@ -1159,8 +1202,10 @@ main(int argc, char **argv)
     config->pidfile = strdup(PID_FILENAME_STRING); /* not freed */
     c = read_axfr_config(config_file, config);
     config->zonelist = read_zonelist(zonelist_file);
+    config->xfrd = init_xfrd(config);
 
     log_msg(LOG_INFO, "zone fetcher started");
+
 
     /* foreach zone, do a single axfr request */
     zonelist = config->zonelist;

@@ -71,6 +71,7 @@ struct zonelist_struct
     const char* name;
     ldns_rdf* dname;
     char* input_file;
+    int do_axfr;
     zonelist_type* next;
 };
 
@@ -88,6 +89,7 @@ struct config_struct
     zonelist_type* zonelist;
     serverlist_type* serverlist;
     serverlist_type* notifylist;
+    ldns_resolver* xfrd;
 };
 
 /**
