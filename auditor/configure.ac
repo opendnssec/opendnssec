@@ -1,7 +1,9 @@
 # $Id$
 
+m4_sinclude([../version.m4])
+
 AC_PREREQ(2.61)
-AC_INIT([auditor],[0.0.5],[])
+AC_INIT([opendnssec-auditor], OPENDNSSEC_VERSION)
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
