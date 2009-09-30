@@ -99,7 +99,7 @@ new_server(char* ipv4, char* ipv6, char* port)
     if (port)
         slt->port = strdup(port);
     else
-        slt->port = NULL;
+        slt->port = strdup(DNS_PORT_STRING);
     memset(&slt->addr, 0, sizeof(union acl_addr_storage));
 
     if (slt->family == AF_INET6 && strlen(slt->ipaddr) > 0) {
@@ -570,12 +570,12 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
     /* if no NotifyListen was provided, we create the default IPv4/IPv6
      * address info structures */
     if (!walk) {
-#ifdef IPV6_V6ONLY
+#ifdef  IPV6_V6ONLY
         hints[0].ai_family = AF_INET6;
         hints[1].ai_family = AF_INET;
         walk = new_server(NULL, "", NULL);
         walk->next = new_server("", NULL, NULL);
-#else /* !IPV6_V6ONLY */
+#else   /* !IPV6_V6ONLY */
         hints[0].ai_family = AF_INET6;
         walk = new_server(NULL, "", NULL);
 #endif  /* IPV6_V6ONLY */
@@ -583,7 +583,9 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
 
     i = 0;
     while (walk) {
+#ifndef IPV6_V6ONLY
         hints[i].ai_family = walk->family;
+#endif  /* IPV6_V6ONLY */
         node = strlen(walk->ipaddr) > 0 ? walk->ipaddr : NULL;
         if (node != NULL)
             hints[i].ai_flags |= AI_NUMERICHOST;
@@ -604,10 +606,11 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                     " not supported");
                 ip6_support = 0;
             }
-        } else {
-            log_msg(LOG_CRIT, "zone fetcher can't create UDP socket: %s",
-                strerror(errno));
-            return -1;
+            else {
+                log_msg(LOG_CRIT, "zone fetcher can't create UDP socket: %s",
+                    strerror(errno));
+                return -1;
+            }
         }
 
         if (sockets->udp[i].addr->ai_family != AF_INET6) {
@@ -987,9 +990,9 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
         }
 
         for (i=0; i < MAX_INTERFACES; i++) {
-            if (FD_ISSET(sockets->udp[i].s, &rset))
+            if (sockets->udp[i].s != -1 && FD_ISSET(sockets->udp[i].s, &rset))
                 handle_udp(sockets->udp[i].s, cfg);
-            if (FD_ISSET(sockets->tcp[i].s, &rset))
+            if (sockets->tcp[i].s != -1 && FD_ISSET(sockets->tcp[i].s, &rset))
                 handle_tcp(sockets->tcp[i].s, cfg);
         }
     }
