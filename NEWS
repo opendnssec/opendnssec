@@ -1,6 +1,8 @@
 $Id$
 
 OpenDNSSEC trunk
+* enforcer database now has a version number. If it differs from a #define in the
+  code then the software will not connect to the database.
 * "ksmutil list keys" now displays the keytag if the -l flag is passed to it.
 * "Emergency Keys" renamed to "Standby Keys" as this better reflects their role
   as we use them.
@@ -8,6 +10,7 @@ OpenDNSSEC trunk
 * changes to the KASP DB, please apply:
   If want to use your old DB:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090922_1.sqlite3
+    sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090930_1.sqlite3
   Or start fresh (with loss of information. User should remove old keys from the HSM):
     ksmutil setup
 

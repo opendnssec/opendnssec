@@ -79,6 +79,8 @@
 #define KME_ROLL_POLICY  (KME_BASE + 31)     /* INFO: %s has been rolled for %s (and any zones sharing keys with %s) */
 #define KME_TIMESHIFT  (KME_BASE + 32)     /* DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to %s */
 #define KME_MAN_ROLL_REQUIRED  (KME_BASE + 33)     /* INFO: Manual rollover due for %s of zone %s */
+#define KME_WRONG_DB_VER (KME_BASE + 34)     /* ERROR: database version number incompatible with software; require %d, found %d. Please run the migration scripts */
+#define KME_DB_ADMIN    (KME_BASE + 35)     /* ERROR: Too many rows returned from dbadmin table; there should be only one. */
 
 
 #endif /* KSM_KMEDEF_H */

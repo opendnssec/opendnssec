@@ -15,8 +15,17 @@ drop table if exists zones;
 drop table if exists keypairs;
 drop table if exists securitymodules;
 drop table if exists policies;
+drop table if exists dbadmin;
 
 -- Now for the tables that actually hold real data.
+
+-- dbadmin - holds the version of the database
+CREATE TABLE "dbadmin" (
+    "version" INTEGER NOT NULL DEFAULT (1),
+    "description" TEXT
+);
+
+insert into dbadmin values (1, "This needs to be in sync with the version defined in database.h");
 
 -- security modules - store information about all the sms used
 create table securitymodules (

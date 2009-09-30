@@ -37,6 +37,7 @@
 #include "ksm/database.h"
 #include "ksm/dbsdef.h"
 #include "ksm/dbsmsg.h"
+#include "ksm/kmedef.h"
 #include "ksm/message.h"
 
 /* Flag as to whether the database modules have been initialized */
@@ -89,4 +90,53 @@ int DbFlavour(void)
 #else
     return SQLITE_DB;
 #endif
+}
+
+/*+
+ * db_version_check
+ *
+ * Description:
+ *      Check the version of the database against the version in database.h
+ *
+ * Arguments:
+ *      None
+-*/
+
+int db_version_check(void)
+{
+    char*       sql = "select version from dbadmin";     /* SQL query */
+    int         status = 0;     /* Status return */
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+    int         version = 0;    /* Version returned */
+
+    /* Select rows */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+        while (status == 0) {
+            /* Got a row, print it */
+            DbInt(row, 0, &version);
+
+            /* Check it */
+            if (version != KSM_DB_VERSION) {
+                return MsgLog(KME_WRONG_DB_VER, KSM_DB_VERSION, version);
+            }
+
+            status = DbFetchRow(result, &row);
+            /* should only have one row */
+            if (status == 0) {
+                return MsgLog(KME_DB_ADMIN);
+            }
+        }
+
+        /* Convert EOF status to success */
+        if (status == -1) {
+            status = 0;
+        }
+
+        DbFreeResult(result);
+    }
+
+    return status;
 }

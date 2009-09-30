@@ -42,6 +42,8 @@ extern "C" {
 
 #include <stdlib.h>
 
+#define KSM_DB_VERSION 1    /* This needs to match that given in the dbadmin table */
+
 #define MYSQL_DB 1
 #define SQLITE_DB 2
 
@@ -147,7 +149,7 @@ int DbRollback(void);
 /* What sort of DB are we running */
 
 int DbFlavour(void);
-
+int db_version_check(void);
 
 #ifdef __cplusplus
 };

@@ -1,0 +1,9 @@
+-- Migrate existing database for db version number
+
+-- dbadmin - holds the version of the database
+CREATE TABLE "dbadmin" (
+    "version" INTEGER NOT NULL DEFAULT (1),
+    "description" TEXT
+);
+
+insert into dbadmin values (1, "This needs to be in sync with the version defined in database.h");

@@ -1196,6 +1196,11 @@ cmd_export (int argc, char *argv[], int do_all)
     StrFree(dbschema);
     StrFree(user);
     StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        return(1);
+    }
   
     if (strncmp(case_subcommand, "POLICY", 6) == 0) {
         /* Make some space for the policy */ 
