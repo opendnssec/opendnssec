@@ -4,7 +4,7 @@
 
 <ZoneFetch>
 	<!-- where to listen for notifies -->
-	<!-- DEFAULT: do not listen to notify -->
+	<!-- DEFAULT: do not listen to notify on specific address -->
 	<NotifyListen><Port>53</Port></NotifyListen>
 
 	<!-- default inbound AXFR settings
