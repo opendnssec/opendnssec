@@ -87,6 +87,7 @@ static serverlist_type*
 new_server(char* ipv4, char* ipv6, char* port)
 {
     serverlist_type* slt = (serverlist_type*) malloc(sizeof(serverlist_type));
+    slt->family = AF_UNSPEC;
     if (ipv4) {
         slt->family = AF_INET;
         slt->ipaddr = strdup(ipv4);
@@ -96,18 +97,18 @@ new_server(char* ipv4, char* ipv6, char* port)
         slt->ipaddr = strdup(ipv6);
     }
     if (port)
-        slt->port = atoi(port);
+        slt->port = strdup(port);
     else
-        slt->port = atoi(DNS_PORT_STRING);
+        slt->port = NULL;
     memset(&slt->addr, 0, sizeof(union acl_addr_storage));
 
-    if (slt->family == AF_INET6) {
+    if (slt->family == AF_INET6 && strlen(slt->ipaddr) > 0) {
         if (inet_pton(slt->family, slt->ipaddr, &slt->addr.addr6) != 1) {
             log_msg(LOG_ERR, "zone fetcher encountered bad ip address '%s'",
                 slt->ipaddr);
         }
     }
-    else {
+    else if (slt->family == AF_INET && strlen(slt->ipaddr) > 0) {
         if (inet_pton(slt->family, slt->ipaddr, &slt->addr.addr) != 1) {
             log_msg(LOG_ERR, "zone fetcher encountered bad ip address '%s'",
                 slt->ipaddr);
@@ -123,7 +124,8 @@ free_serverlist(serverlist_type* slt)
 {
     if (slt) {
         free_serverlist(slt->next);
-        free((void*) slt->ipaddr);
+        if (slt->port)   free((void*) slt->port);
+        if (slt->ipaddr) free((void*) slt->ipaddr);
         free((void*) slt);
     }
 }
@@ -138,6 +140,7 @@ new_config(void)
     cfg->tsig_algo = NULL;
     cfg->tsig_secret = NULL;
     cfg->serverlist = NULL;
+    cfg->notifylist = NULL;
     cfg->zonelist = NULL;
     return cfg;
 }
@@ -151,6 +154,7 @@ free_config(config_type* cfg)
         if (cfg->tsig_secret) free((void*) cfg->tsig_secret);
         if (cfg->pidfile)     free((void*) cfg->pidfile);
         free_serverlist(cfg->serverlist);
+        free_serverlist(cfg->notifylist);
         free((void*) cfg);
     }
 }
@@ -161,6 +165,7 @@ read_axfr_config(const char* filename, config_type* cfg)
     int ret, i, use_tsig = 0;
     char* tag_name, *tsig_name, *tsig_algo, *tsig_secret, *ipv4, *ipv6, *port;
     serverlist_type* serverlist = NULL, *serverlist_start = NULL;
+    serverlist_type* notifylist = NULL, *notifylist_start = NULL;
 
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
@@ -172,6 +177,7 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlChar *tsig_algo_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Algorithm";
     xmlChar *tsig_secret_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Secret";
     xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/RequestTransfer";
+    xmlChar *notify_expr = (unsigned char*) "//ZoneFetch/NotifyListen";
 
     if (filename == NULL) {
         log_msg(LOG_CRIT, "no zone fetcher configfile provided");
@@ -243,6 +249,57 @@ read_axfr_config(const char* filename, config_type* cfg)
                     }
                 }
                 cfg->serverlist = serverlist_start;
+
+                /* Extract the notify listen address */
+                xpathObj = xmlXPathEvalExpression(notify_expr, xpathCtx);
+                if (xpathObj != NULL && xpathObj->nodesetval) {
+                    for (i=0; i < xpathObj->nodesetval->nodeNr; i++) {
+                        ipv4 = NULL;
+                        ipv6 = NULL;
+                        port = NULL;
+                        curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+                        while (curNode) {
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"IPv4"))
+                                ipv4 = (char *) xmlNodeGetContent(curNode);
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"IPv6"))
+                                ipv6 = (char *) xmlNodeGetContent(curNode);
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"Port"))
+                                port = (char *) xmlNodeGetContent(curNode);
+                            curNode = curNode->next;
+                       }
+                       if (ipv4 || ipv6 || port) {
+                           if (!ipv4 && !ipv6) {
+                               if (notifylist == NULL) {
+                                   notifylist = new_server("", NULL, port);
+                                   notifylist_start = notifylist;
+
+                                   notifylist->next = new_server(NULL, "", port);
+                                   notifylist = notifylist->next;
+                               }
+                               else {
+                                   notifylist->next = new_server("", NULL, port);
+                                   notifylist = notifylist->next;
+
+                                   notifylist->next = new_server(NULL, "", port);
+                                   notifylist = notifylist->next;
+                               }
+                           }
+                           else if (notifylist == NULL) {
+                               notifylist = new_server(ipv4, ipv6, port);
+                               notifylist_start = notifylist;
+                           }
+                           else {
+                               notifylist->next = new_server(ipv4, ipv6, port);
+                               notifylist = notifylist->next;
+                           }
+                       }
+
+                       if (ipv4) free(ipv4);
+                       if (ipv6) free(ipv6);
+                       if (port) free(port);
+                    }
+                }
+                cfg->notifylist = notifylist_start;
 
                 /* Extract the tsig credentials */
                 xpathObj = xmlXPathEvalExpression(tsig_expr, xpathCtx);
@@ -687,13 +744,14 @@ odd_xfer(const char* zone_name, char* output_file, uint32_t serial, config_type*
         serverlist = config->serverlist;
         while (serverlist) {
             if (config->use_tsig) {
-                fprintf(stderr, "nsd-xfer -s %u -p %u %s [-T <%s:%s:%s>] -z %s -f %s.axfr %s\n",
-                serial, serverlist->port, (serverlist->family==AF_INET6?"-6":"-4"),
+                fprintf(stderr, "nsd-xfer -s %u -p %s [-T <%s:%s:%s>] "
+                    "-z %s -f %s.axfr %s\n",
+                serial, serverlist->port,
                 config->tsig_name, config->tsig_algo, config->tsig_secret,
                 zone_name, output_file, serverlist->ipaddr);
             } else {
-                fprintf(stderr, "nsd-xfer -s %u -p %u %s -z %s -f %s.axfr %s\n",
-                serial, serverlist->port, (serverlist->family==AF_INET6?"-6":"-4"),
+                fprintf(stderr, "nsd-xfer -s %u -p %s -z %s -f %s.axfr %s\n",
+                serial, serverlist->port,
                 zone_name, output_file, serverlist->ipaddr);
             }
             serverlist = serverlist->next;
@@ -1096,6 +1154,6 @@ main(int argc, char **argv)
 /* [TODO]:
  * - replace dummy odd_xfer with something more useful.
  * - ListenNotify
- * - SourceAddress
  * - TSIG
+ * - PrivDrop
  */
