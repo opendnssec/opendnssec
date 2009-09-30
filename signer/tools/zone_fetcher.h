@@ -39,6 +39,7 @@
 #define PID_FILENAME_STRING FETCH_PIDFILE
 #define DNS_PORT_STRING "53"
 #define INBUF_SIZE      4096 /* max size for incoming queries */
+#define MAX_INTERFACES  128
 
 /**
  * Access control.
@@ -101,8 +102,8 @@ struct odd_socket
 typedef struct sockets_struct sockets_type;
 struct sockets_struct
 {
-    struct odd_socket tcp[2];
-    struct odd_socket udp[2];
+    struct odd_socket tcp[MAX_INTERFACES];
+    struct odd_socket udp[MAX_INTERFACES];
 };
 
 /**

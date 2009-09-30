@@ -548,174 +548,108 @@ setup_daemon(config_type* config)
 }
 
 static int
-init_sockets(sockets_type* sockets)
+init_sockets(sockets_type* sockets, serverlist_type* list)
 {
-    int r, i, ip6_support = 1, on = 0;
-    struct addrinfo hints[2];
+    int r, ip6_support = 1, on = 0;
+    size_t i;
+    struct addrinfo hints[MAX_INTERFACES];
+    serverlist_type* walk = list;
+    const char* node = NULL;
 #if defined(SO_REUSEADDR) || defined(IPV6_V6ONLY)
     on = 1;
 #endif
 
-    /* UDP / IPv6 */
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < MAX_INTERFACES; i++) {
         memset(&hints[i], 0, sizeof(hints[i]));
         hints[i].ai_family = AF_INET6;
         hints[i].ai_flags = AI_PASSIVE;
+        sockets->udp[i].s = -1;
+        sockets->tcp[i].s = -1;
+    }
+
+    /* if no NotifyListen was provided, we create the default IPv4/IPv6
+     * address info structures */
+    if (!walk) {
+#ifdef IPV6_V6ONLY
+        hints[0].ai_family = AF_INET6;
+        hints[1].ai_family = AF_INET;
+        walk = new_server(NULL, "", NULL);
+        walk->next = new_server("", NULL, NULL);
+#else /* !IPV6_V6ONLY */
+        hints[0].ai_family = AF_INET6;
+        walk = new_server(NULL, "", NULL);
+#endif  /* IPV6_V6ONLY */
+    }
+
+    i = 0;
+    while (walk) {
+        hints[i].ai_family = walk->family;
+        node = strlen(walk->ipaddr) > 0 ? walk->ipaddr : NULL;
+        if (node != NULL)
+            hints[i].ai_flags |= AI_NUMERICHOST;
+        /* UDP */
         hints[i].ai_socktype = SOCK_DGRAM;
-    }
-
-    if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[1], &(sockets->udp[1].addr))) != 0) {
-        log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
-            "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
-    }
-    if ((sockets->udp[1].s = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
-        if (errno == EAFNOSUPPORT) {
-            log_msg(LOG_ERR, "zone fetcher fallback to UDP4, no IPv6: "
-                " not supported");
-            ip6_support = 0;
+        /* getaddrinfo */
+        if ((r = getaddrinfo(node, walk->port, &hints[i],
+            &(sockets->udp[i].addr))) != 0) {
+            log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
+                "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+        }
+        /* socket */
+        if ((sockets->udp[i].s = socket(walk->family, SOCK_DGRAM, 0)) == -1)
+        {
+            if (walk->family == AF_INET6 && errno == EAFNOSUPPORT)
+            {
+                log_msg(LOG_ERR, "zone fetcher fallback to UDP4, no IPv6: "
+                    " not supported");
+                ip6_support = 0;
+            }
         } else {
-            log_msg(LOG_CRIT, "zone fetcher can't create udp/ipv6 socket: %s",
+            log_msg(LOG_CRIT, "zone fetcher can't create UDP socket: %s",
                 strerror(errno));
             return -1;
         }
-    }
-    if (ip6_support) {
+
+        if (sockets->udp[i].addr->ai_family != AF_INET6) {
+            if (fcntl(sockets->udp[i].s, F_SETFL,
+                O_NONBLOCK) == -1) {
+                log_msg(LOG_ERR, "zone fetcher cannot fcntl "
+                "UDP: %s", strerror(errno));
+            }
+            if (bind(sockets->udp[1].s,
+                (struct sockaddr *) sockets->udp[i].addr->ai_addr,
+                sockets->udp[i].addr->ai_addrlen) != 0)
+            {
+                log_msg(LOG_CRIT, "zone fetcher can't bind udp/ipv4 socket: %s",
+                    strerror(errno));
+                return -1;
+            }
+        }
+        else if (ip6_support) {
 #ifdef IPV6_V6ONLY
-        if (setsockopt(sockets->udp[1].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0) {
-            log_msg(LOG_CRIT, "zone fetcher setsockopt(..., IPV6_V6ONLY, ...) "
-            " failed: %s", strerror(errno));
-            return -1;
-        }
+            if (setsockopt(sockets->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
+                sizeof(on)) < 0)
+            {
+                log_msg(LOG_CRIT, "zone fetcher setsockopt(..., IPV6_V6ONLY, "
+                "...) failed: %s", strerror(errno));
+                return -1;
+            }
 #endif /* IPV6_V6ONLY */
-        if (fcntl(sockets->udp[1].s, F_SETFL, O_NONBLOCK) == -1) {
-            log_msg(LOG_ERR, "zone fetcher cannot fcntl udp/ipv6: %s",
-                strerror(errno));
+            if (fcntl(sockets->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
+                log_msg(LOG_ERR, "zone fetcher cannot fcntl UDP: %s",
+                    strerror(errno));
+            }
+            if (bind(sockets->udp[i].s,
+                (struct sockaddr *) sockets->udp[i].addr->ai_addr,
+                sockets->udp[i].addr->ai_addrlen) != 0) {
+                log_msg(LOG_CRIT, "zone fetcher can't bind UDP socket: %s",
+                    strerror(errno));
+                return -1;
+            }
         }
-        if (bind(sockets->udp[1].s,
-                 (struct sockaddr *) sockets->udp[1].addr->ai_addr,
-                 sockets->udp[1].addr->ai_addrlen) != 0) {
-            log_msg(LOG_CRIT, "zone fetcher can't bind udp/ipv6 socket: %s",
-                strerror(errno));
-            return -1;
-        }
-    }
 
-    /* UDP / IPv4 */
-#ifdef IPV6_V6ONLY
-    for (i = 0; i < 2; i++) {
-        hints[i].ai_family = AF_INET;
-    }
-#endif /* IPV6_V6ONLY */
-
-    if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[0], &(sockets->udp[0].addr))) != 0) {
-        log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
-            "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
-    }
-    if ((sockets->udp[0].s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        log_msg(LOG_CRIT, "zone fetcher can't create udp/ipv4 socket: %s",
-            strerror(errno));
-        return -1;
-    }
-    if (fcntl(sockets->udp[0].s, F_SETFL, O_NONBLOCK) == -1) {
-        log_msg(LOG_ERR, "zone fetcher cannot fcntl udp/ipv4: %s",
-            strerror(errno));
-    }
-    if (bind(sockets->udp[0].s,
-             (struct sockaddr *) sockets->udp[0].addr->ai_addr,
-             sockets->udp[0].addr->ai_addrlen) != 0) {
-        log_msg(LOG_CRIT, "zone fetcher can't bind udp/ipv4 socket: %s",
-            strerror(errno));
-        return -1;
-    }
-
-    /* TCP / IPv6 */
-    for (i = 0; i < 2; i++) {
-        hints[i].ai_family = AF_INET6;
-        hints[i].ai_socktype = SOCK_STREAM;
-    }
-
-    if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[1], &(sockets->tcp[1].addr))) != 0) {
-        log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
-            "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
-    }
-    if ((sockets->tcp[1].s = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
-        if (errno == EAFNOSUPPORT) {
-            log_msg(LOG_ERR, "zone fetcher fallback to TCP4, no IPv6: "
-                "not supported");
-            ip6_support = 0;
-        } else {
-            log_msg(LOG_CRIT, "zone fetcher can't create tcp/ipv6 socket: %s",
-                strerror(errno));
-            return -1;
-        }
-    }
-    if (ip6_support) {
-#ifdef IPV6_V6ONLY
-        if (setsockopt(sockets->tcp[1].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0) {
-            log_msg(LOG_CRIT, "zone fetcher setsockopt(..., IPV6_V6ONLY, ...) "
-                "failed: %s", strerror(errno));
-            return -1;
-        }
-#endif /* IPV6_V6ONLY */
-        if (setsockopt(sockets->tcp[1].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
-            log_msg(LOG_ERR, "zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
-                "failed: %s", strerror(errno));
-        }
-        if (fcntl(sockets->tcp[1].s, F_SETFL, O_NONBLOCK) == -1) {
-            log_msg(LOG_ERR, "zone fetcher cannot fcntl udp/ipv6: %s",
-                strerror(errno));
-        }
-        if (bind(sockets->tcp[1].s,
-                 (struct sockaddr *) sockets->tcp[1].addr->ai_addr,
-                 sockets->tcp[1].addr->ai_addrlen) != 0) {
-            log_msg(LOG_CRIT, "zone fetcher can't bind tcp/ipv6 socket: %s",
-                strerror(errno));
-            return -1;
-        }
-        if (listen(sockets->tcp[1].s, 5) == -1) {
-            log_msg(LOG_CRIT, "zone fetcher can't listen to tcp/ipv6 socket: "
-                "%s", strerror(errno));
-            return -1;
-        }
-    }
-
-    /* TCP / IPv4 */
-#ifdef IPV6_V6ONLY
-    for (i = 0; i < 2; i++) {
-        hints[i].ai_family = AF_INET;
-    }
-#endif /* IPV6_V6ONLY */
-
-    if ((r = getaddrinfo(NULL, DNS_PORT_STRING, &hints[0], &(sockets->tcp[0].addr))) != 0) {
-        log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
-            "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
-    }
-    if ((sockets->tcp[0].s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        log_msg(LOG_CRIT, "zone fetcher can't create tcp/ipv4 socket: %s",
-            strerror(errno));
-        return -1;
-    }
-#ifdef SO_REUSEADDR
-    if (setsockopt(sockets->tcp[0].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
-        log_msg(LOG_ERR, "zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
-            "failed: %s", strerror(errno));
-    }
-#endif /* SO_REUSEADDR */
-    if (fcntl(sockets->tcp[0].s, F_SETFL, O_NONBLOCK) == -1) {
-        log_msg(LOG_ERR, "zone fetcher cannot fcntl tcp/ipv4: %s",
-            strerror(errno));
-    }
-    if (bind(sockets->tcp[0].s,
-             (struct sockaddr *) sockets->tcp[0].addr->ai_addr,
-             sockets->tcp[0].addr->ai_addrlen) != 0) {
-        log_msg(LOG_CRIT, "zone fetcher can't bind tcp/ipv4 socket: %s",
-            strerror(errno));
-        return -1;
-    }
-    if (listen(sockets->tcp[0].s, 5) == -1) {
-        log_msg(LOG_CRIT, "zone fetcher can't listen to tcp/ipv4 socket: %s",
-            strerror(errno));
-        return -1;
+        walk = walk->next;
+        i++;
     }
 
     return 0;
@@ -724,15 +658,16 @@ init_sockets(sockets_type* sockets)
 static void
 free_sockets(sockets_type* sockets)
 {
-    close(sockets->udp[0].s);
-    close(sockets->udp[1].s);
-    close(sockets->tcp[0].s);
-    close(sockets->tcp[1].s);
+    size_t i = 0;
 
-    free((void*)sockets->udp[0].addr);
-    free((void*)sockets->udp[1].addr);
-    free((void*)sockets->tcp[0].addr);
-    free((void*)sockets->tcp[1].addr);
+    for (i=0; i < MAX_INTERFACES; i++) {
+        if (sockets->udp[i].s != -1)
+            close(sockets->udp[0].s);
+        if (sockets->tcp[i].s != -1)
+            close(sockets->tcp[0].s);
+        free((void*)sockets->udp[i].addr);
+        free((void*)sockets->tcp[i].addr);
+    }
 }
 
 static void
@@ -1025,7 +960,8 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
 {
     fd_set rset, wset, eset;
     struct timeval timeout;
-    int count, maxfd;
+    int count, maxfd = 0;
+    size_t i;
 
     /* service */
     count = 0;
@@ -1035,15 +971,14 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
         FD_ZERO(&rset);
         FD_ZERO(&wset);
         FD_ZERO(&eset);
-        FD_SET(sockets->udp[0].s, &rset);
-        FD_SET(sockets->udp[1].s, &rset);
-        FD_SET(sockets->tcp[0].s, &rset);
-        FD_SET(sockets->tcp[1].s, &rset);
-
-        maxfd = sockets->udp[0].s;
-        if (sockets->udp[1].s > maxfd) maxfd = sockets->udp[1].s;
-        if (sockets->tcp[0].s > maxfd) maxfd = sockets->tcp[0].s;
-        if (sockets->tcp[1].s > maxfd) maxfd = sockets->tcp[1].s;
+        for (i=0; i < MAX_INTERFACES; i++) {
+            if (sockets->udp[i].s != -1)
+                FD_SET(sockets->udp[i].s, &rset);
+            if (sockets->tcp[i].s != -1)
+                FD_SET(sockets->tcp[i].s, &rset);
+            if (sockets->udp[i].s > maxfd) maxfd = sockets->udp[i].s;
+            if (sockets->tcp[i].s > maxfd) maxfd = sockets->tcp[i].s;
+        }
 
         if (select(maxfd+1, &rset, &wset, &eset, NULL) < 0) {
             if (errno == EINTR)
@@ -1051,14 +986,12 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
             log_msg(LOG_ERR, "zone fetcher select(): %s", strerror(errno));
         }
 
-        if (FD_ISSET(sockets->udp[0].s, &rset))
-            handle_udp(sockets->udp[0].s, cfg);
-        if (FD_ISSET(sockets->udp[1].s, &rset))
-            handle_udp(sockets->udp[1].s, cfg);
-        if (FD_ISSET(sockets->tcp[0].s, &rset))
-            handle_tcp(sockets->tcp[0].s, cfg);
-        if (FD_ISSET(sockets->tcp[1].s, &rset))
-            handle_tcp(sockets->tcp[1].s, cfg);
+        for (i=0; i < MAX_INTERFACES; i++) {
+            if (FD_ISSET(sockets->udp[i].s, &rset))
+                handle_udp(sockets->udp[i].s, cfg);
+            if (FD_ISSET(sockets->tcp[i].s, &rset))
+                handle_tcp(sockets->tcp[i].s, cfg);
+        }
     }
 }
 
@@ -1129,7 +1062,7 @@ main(int argc, char **argv)
 	if (run_as_daemon) {
         pid = setup_daemon(config);
         /* listen to NOTIFY messages */
-        c = init_sockets(&sockets);
+        c = init_sockets(&sockets, config->notifylist);
         if (c == -1) {
             log_msg(LOG_CRIT, "zone fetcher failed to initialize sockets");
             exit(EXIT_FAILURE);
