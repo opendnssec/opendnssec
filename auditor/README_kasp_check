@@ -1,4 +1,75 @@
-kasp_check
-----------
+KASP Checkerr README
+--------------------
+
+The KASP checker is written to check the OpenDNSSEC configuration.
+The checker and its tools are part of the OpenDNSSEC project.
+For more information, visit http://www.opendnssec.org
+
+CONTENTS
+    Introduction
+    Dependencies
+    Installation
+    Testing
+    Running Manually
+
+-------------------------------------------------------------------
+Introduction
+-------------------------------------------------------------------
+
+The KASP Checker checks the configuration of the OpenDNSSEC system.
+It checks that the conf.xml and kasp.xml files validate against
+the RNG specification, and that the values contained in the files
+are mutually consistent and sane.
+
+The kasp_check program will display any issues it has found to the
+console. If a syslog facility has been correctly defined in the
+configuration file, then the output will also be written to syslog.
+
+-------------------------------------------------------------------
+Dependencies
+-------------------------------------------------------------------
+
+The kasp_check utility depends on Ruby being available on the 
+target system.
+
+-------------------------------------------------------------------
+Installation
+-------------------------------------------------------------------
+
+From the base directory <opendnssec>/auditor :
+
+autoreconf --install
+./configure
+make
+make install
+
+--prefix=<dir>    Installation directory. All files will be installed
+                  relative to this path, and default search paths will
+                  be relative to the prefix. Defaults to /usr/local
 
 
+The kasp_check invocation script will be installed in
+<prefix>/bin
+The Ruby libraries will be installed in
+<prefix>/lib/opendnssec
+
+-------------------------------------------------------------------
+Testing
+-------------------------------------------------------------------
+
+To run the kasp_check test files, run the command :
+
+  ruby test/checker_test.rb
+
+-------------------------------------------------------------------
+Running
+-------------------------------------------------------------------
+
+kasp_check [--conf path/to/conf.xml] [--kasp path/to/kasp.xml]
+
+e.g. kasp_check --conf /etc/opendnssec/conf.xml
+
+
+
+
+Any problems, please contact alex@nominet.org.uk
