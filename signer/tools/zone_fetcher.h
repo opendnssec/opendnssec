@@ -55,7 +55,7 @@ typedef struct serverlist_struct serverlist_type;
 struct serverlist_struct
 {
     int family;
-    unsigned int port;  /* 0 == no port */
+    const char* port;  /* 0 == no port */
     const char* ipaddr;
     union acl_addr_storage addr;
     serverlist_type* next;
@@ -86,6 +86,7 @@ struct config_struct
     char* pidfile;
     zonelist_type* zonelist;
     serverlist_type* serverlist;
+    serverlist_type* notifylist;
 };
 
 /**
