@@ -385,7 +385,6 @@ ReadConfig(DAEMONCONFIG *config)
     xmlRelaxNGPtr schema = NULL;
     xmlChar *ki_expr = (unsigned char*) "//Configuration/Enforcer/KeygenInterval";
     xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
-    xmlChar *bi_expr = (unsigned char*) "//Configuration/Enforcer/BackupDelay";
     xmlChar *rn_expr = (unsigned char*) "//Configuration/Enforcer/RolloverNotification";
     xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQLite";
     xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
@@ -475,7 +474,7 @@ ReadConfig(DAEMONCONFIG *config)
     temp_char = (char *)xmlXPathCastToString(xpathObj);
     status = DtXMLIntervalSeconds(temp_char, &mysec);
     if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i", temp_char, status);
+        log_msg(config, LOG_ERR, "Error: unable to convert KeygenInterval %s to seconds, error: %i", temp_char, status);
         StrFree(temp_char);
         return status;
     }
@@ -500,7 +499,7 @@ ReadConfig(DAEMONCONFIG *config)
     temp_char = (char *)xmlXPathCastToString(xpathObj);
     status = DtXMLIntervalSeconds(temp_char, &mysec);
     if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i", temp_char, status);
+        log_msg(config, LOG_ERR, "Error: unable to convert Interval %s to seconds, error: %i", temp_char, status);
         StrFree(temp_char);
         return status;
     }
@@ -509,30 +508,6 @@ ReadConfig(DAEMONCONFIG *config)
     }
     config->interval = mysec;
     log_msg(config, LOG_INFO, "Communication Interval: %i", config->interval);
-    StrFree(temp_char);
-    xmlXPathFreeObject(xpathObj);
-
-    /* Evaluate xpath expression for backup interval */
-    xpathObj = xmlXPathEvalExpression(bi_expr, xpathCtx);
-    if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", bi_expr);
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
-        return(-1);
-    }
-
-    temp_char = (char *)xmlXPathCastToString(xpathObj);
-    status = DtXMLIntervalSeconds(temp_char, &mysec);
-    if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i", temp_char, status);
-        StrFree(temp_char);
-        return status;
-    }
-    else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
-    }
-    config->backupinterval = mysec;
-    log_msg(config, LOG_INFO, "HSM Backup Interval: %i", config->backupinterval);
     StrFree(temp_char);
     xmlXPathFreeObject(xpathObj);
 
@@ -550,7 +525,7 @@ ReadConfig(DAEMONCONFIG *config)
         temp_char = (char *)xmlXPathCastToString(xpathObj);
         status = DtXMLIntervalSeconds(temp_char, &mysec);
         if (status > 0) {
-            log_msg(config, LOG_ERR, "Error: unable to convert interval %s to seconds, error: %i", temp_char, status);
+            log_msg(config, LOG_ERR, "Error: unable to convert RolloverNotification %s to seconds, error: %i", temp_char, status);
             StrFree(temp_char);
             return status;
         }
