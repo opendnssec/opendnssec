@@ -50,13 +50,13 @@ usage ()
        "usage: %s [-c config] command [options]\n",
         progname);
 
-    fprintf(stderr,"  \"list\" [repository]\n");
-    fprintf(stderr,"  \"generate\" repository \"rsa\" [keysize]\n");
-    fprintf(stderr,"  \"remove\" id\n");
-    fprintf(stderr,"  \"dnskey\" id name\n");
-    fprintf(stderr,"  \"test\" repository\n");
+    fprintf(stderr,"  list [repository]\n");
+    fprintf(stderr,"  generate <repository> rsa <keysize>\n");
+    fprintf(stderr,"  remove <id>\n");
+    fprintf(stderr,"  dnskey <id> <name>\n");
+    fprintf(stderr,"  test <repository>\n");
 #if 0
-    fprintf(stderr,"  \"debug\"\n");
+    fprintf(stderr,"  debug\n");
 #endif
 }
 
