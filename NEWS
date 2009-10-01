@@ -22,6 +22,11 @@ OpenDNSSEC trunk
 Bugfixes:
 * Make sure that parenthesis in zonefiles don't concatenate rdata fields.
 
+Known issues:
+* TCP-support for LDNS on Solaris is currently broken due to an issue with
+  SO_RCVTIMEO. The result is that the zonefetcher doesn't work. No other parts
+  of OpenDNSSEC is affected by this bug. There is currently no workaround.
+
 OpenDNSSEC 1.0a5 - 2009-09-21
 
 Features:
