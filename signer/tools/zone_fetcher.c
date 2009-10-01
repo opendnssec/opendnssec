@@ -848,6 +848,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             if (errno != EINPROGRESS) {
                 log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
                     ldns_get_errorstr_by_id(status));
+                /* why? */
             }
         }
 
@@ -1313,6 +1314,13 @@ main(int argc, char **argv)
     config = new_config();
     config->pidfile = strdup(PID_FILENAME_STRING); /* not freed */
     c = read_axfr_config(config_file, config);
+    if (config->serverlist == NULL) {
+        log_msg(LOG_CRIT, "zone fetcher error: no master servers configured "
+            "with <RequestTransfer>");
+        free_config(config);
+        exit(EXIT_FAILURE);
+    }
+
     config->zonelist = read_zonelist(zonelist_file);
     config->xfrd = init_xfrd(config);
 
