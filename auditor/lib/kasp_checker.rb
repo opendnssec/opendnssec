@@ -276,13 +276,32 @@ module KASPChecker
                   "(#{inception_offset_secs} seconds) for #{name} policy in #{kasp_file}")
             end
 
-            #   6. @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
+            #   6. Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
+            publish_safety_secs = get_duration(policy, 'Keys/PublishSafety')
+            retire_safety_secs = get_duration(policy, 'Keys/RetireSafety')
+            ttl_secs = get_duration(policy, 'Keys/TTL')
+            [{publish_safety_secs , "Keys/PublishSafety"}, {retire_safety_secs, "Keys/RetireSafety"}].each {|pair|
+              pair.each {|time, label|
+                if (time < (0.1 * ttl_secs))
+                  log(LOG_WARNING, "#{label} (#{time} seconds) in #{name} policy" +
+                    " in #{kasp_file} is less than 0.1 * TTL (#{ttl_secs} seconds)")
+                end
+                if (time > (5 * ttl_secs))
+                  log(LOG_WARNING, "#{label} (#{time} seconds) in #{name} policy" +
+                    " in #{kasp_file} is more than 5 * TTL (#{ttl_secs} seconds)")
+                end
+                }
+            }
+
+
+            # For all keys...
             #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
-            #   8. @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
             #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
             #  10. @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+
             #  11. @TODO@ Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
             #  12. @TODO@ Check that the value of the "Serial" tag is valid.
+            #   8. @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
           }
 
           #   1. Warn if a policy named "default" does not exist.
