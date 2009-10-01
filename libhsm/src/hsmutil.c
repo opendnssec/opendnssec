@@ -47,7 +47,7 @@ void
 usage ()
 {
     fprintf(stderr,
-        "usage: %s [-f config] command [options]\n",
+       "usage: %s [-c config] command [options]\n",
         progname);
 
     fprintf(stderr,"  \"list\" [repository]\n");
@@ -284,9 +284,9 @@ main (int argc, char *argv[])
     int ch;
     /* progname = argv[0]; */
 
-    while ((ch = getopt(argc, argv, "f:h")) != -1) {
+    while ((ch = getopt(argc, argv, "c:h")) != -1) {
         switch (ch) {
-        case 'f':
+        case 'c':
             config = strdup(optarg);
             break;
         case 'h':
