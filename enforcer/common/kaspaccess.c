@@ -55,7 +55,9 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
     }
 
 	if (name) {
-        StrFree(policy->name);
+        if (policy->name) {
+            StrFree(policy->name);
+        }
         StrAppend(&policy->name, name);
     }
 

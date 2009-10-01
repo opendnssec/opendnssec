@@ -194,11 +194,13 @@ void log_init(int facility, const char *program_name)
 }
 
 /* Switch log to new facility */
-void log_switch(int facility, const char *facility_name, const char *program_name)
+void log_switch(int facility, const char *facility_name, const char *program_name, int verbose)
 {
     closelog();
 	openlog(program_name, 0, facility);
-    log_msg(NULL, LOG_INFO, "Switched log facility to: %s", facility_name);
+    if (verbose) {
+        log_msg(NULL, LOG_INFO, "Switched log facility to: %s", facility_name);
+    }
 }
 
 
@@ -374,7 +376,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
 }
 
 int
-ReadConfig(DAEMONCONFIG *config)
+ReadConfig(DAEMONCONFIG *config, int verbose)
 {
     xmlDocPtr doc = NULL;
     xmlDocPtr rngdoc = NULL;
@@ -383,8 +385,8 @@ ReadConfig(DAEMONCONFIG *config)
     xmlRelaxNGParserCtxtPtr rngpctx = NULL;
     xmlRelaxNGValidCtxtPtr rngctx = NULL;
     xmlRelaxNGPtr schema = NULL;
-    xmlChar *ki_expr = (unsigned char*) "//Configuration/Enforcer/KeygenInterval";
     xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
+    xmlChar *mk_expr = (unsigned char*) "//Configuration/Enforcer/ManualKeyGeneration";
     xmlChar *rn_expr = (unsigned char*) "//Configuration/Enforcer/RolloverNotification";
     xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQLite";
     xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
@@ -404,7 +406,9 @@ ReadConfig(DAEMONCONFIG *config)
 
     char* temp_char = NULL;
 
-    log_msg(config, LOG_INFO, "Reading config \"%s\"", filename);
+    if (verbose) {
+        log_msg(config, LOG_INFO, "Reading config \"%s\"", filename);
+    }
 
     /* Load XML document */
     doc = xmlParseFile(filename);
@@ -414,7 +418,9 @@ ReadConfig(DAEMONCONFIG *config)
     }
 
     /* Load rng document */
-    log_msg(config, LOG_INFO, "Reading config schema \"%s\"", rngfilename);
+    if (verbose) {
+        log_msg(config, LOG_INFO, "Reading config schema \"%s\"", rngfilename);
+    }
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", rngfilename);
@@ -462,32 +468,7 @@ ReadConfig(DAEMONCONFIG *config)
         return(-1);
     }
 
-    /* Evaluate xpath expression for keygen interval */
-    xpathObj = xmlXPathEvalExpression(ki_expr, xpathCtx);
-    if(xpathObj == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", ki_expr);
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
-        return(-1);
-    }
-
-    temp_char = (char *)xmlXPathCastToString(xpathObj);
-    status = DtXMLIntervalSeconds(temp_char, &mysec);
-    if (status > 0) {
-        log_msg(config, LOG_ERR, "Error: unable to convert KeygenInterval %s to seconds, error: %i", temp_char, status);
-        StrFree(temp_char);
-        return status;
-    }
-    else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
-    }
-    config->keygeninterval = mysec;
-    log_msg(config, LOG_INFO, "Key Generation Interval: %i", config->keygeninterval);
-    StrFree(temp_char);
-    xmlXPathFreeObject(xpathObj);
-
     /* Evaluate xpath expression for interval */
-    /* TODO check that we can reuse xpathObj even if something has not worked */
     xpathObj = xmlXPathEvalExpression(iv_expr, xpathCtx);
     if(xpathObj == NULL) {
         log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", iv_expr);
@@ -507,9 +488,29 @@ ReadConfig(DAEMONCONFIG *config)
         log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
     }
     config->interval = mysec;
-    log_msg(config, LOG_INFO, "Communication Interval: %i", config->interval);
+    if (verbose) {
+        log_msg(config, LOG_INFO, "Communication Interval: %i", config->interval);
+    }
     StrFree(temp_char);
     xmlXPathFreeObject(xpathObj);
+
+    /* Evaluate xpath expression for Manual key generation */
+    xpathObj = xmlXPathEvalExpression(mk_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mk_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+        /* Manual key generation tag is present */
+        config->manualKeyGeneration = 1;
+    }
+    else {
+        /* Tag absent */
+        config->manualKeyGeneration = 0;
+    }
 
     /* Evaluate xpath expression for rollover notification interval */
     xpathObj = xmlXPathEvalExpression(rn_expr, xpathCtx);
@@ -533,7 +534,9 @@ ReadConfig(DAEMONCONFIG *config)
             log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
         }
         config->rolloverNotify = mysec;
-        log_msg(config, LOG_INFO, "Rollover Notification Interval: %i", config->rolloverNotify);
+        if (verbose) {
+            log_msg(config, LOG_INFO, "Rollover Notification Interval: %i", config->rolloverNotify);
+        }
         StrFree(temp_char);
         xmlXPathFreeObject(xpathObj);
     }
@@ -554,7 +557,9 @@ ReadConfig(DAEMONCONFIG *config)
     if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
         config->schema = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "SQLite database set to: %s", config->schema);
+        if (verbose) {
+            log_msg(config, LOG_INFO, "SQLite database set to: %s", config->schema);
+        }
     }
     xmlXPathFreeObject(xpathObj);
 
@@ -572,7 +577,9 @@ ReadConfig(DAEMONCONFIG *config)
            db_found = MYSQL_DB;
         }
         config->host = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database host set to: %s", config->host);
+        if (verbose) {
+            log_msg(config, LOG_INFO, "MySQL database host set to: %s", config->host);
+        }
         xmlXPathFreeObject(xpathObj);
 
         /* PORT */
@@ -587,7 +594,9 @@ ReadConfig(DAEMONCONFIG *config)
             db_found = 0;
         }
         config->port = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database port set to: %s", config->port);
+        if (verbose) {
+            log_msg(config, LOG_INFO, "MySQL database port set to: %s", config->port);
+        }
         xmlXPathFreeObject(xpathObj);
 
         /* SCHEMA */
@@ -602,7 +611,9 @@ ReadConfig(DAEMONCONFIG *config)
             db_found = 0;
         }
         config->schema = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database schema set to: %s", config->schema);
+        if (verbose) {
+            log_msg(config, LOG_INFO, "MySQL database schema set to: %s", config->schema);
+        }
         xmlXPathFreeObject(xpathObj);
 
         /* DB USER */
@@ -617,7 +628,9 @@ ReadConfig(DAEMONCONFIG *config)
             db_found = 0;
         }
         config->user = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database user set to: %s", config->user);
+        if (verbose) {
+            log_msg(config, LOG_INFO, "MySQL database user set to: %s", config->user);
+        }
         xmlXPathFreeObject(xpathObj);
 
         /* DB PASSWORD */
@@ -631,7 +644,9 @@ ReadConfig(DAEMONCONFIG *config)
 		    /* password may be blank */
         
         config->password = xmlXPathCastToString(xpathObj);
-        log_msg(config, LOG_INFO, "MySQL database password set");
+        if (verbose) {
+            log_msg(config, LOG_INFO, "MySQL database password set");
+        }
         xmlXPathFreeObject(xpathObj);
 
     }
@@ -670,7 +685,9 @@ ReadConfig(DAEMONCONFIG *config)
     if (strlen(logFacilityName) == 0) {
         logFacilityName = StrStrdup( (char *)DEFAULT_LOG_FACILITY_STRING );
         config->log_user = DEFAULT_LOG_FACILITY;
-        log_msg(config, LOG_INFO, "Using default log user: %s", logFacilityName);
+        if (verbose) {
+            log_msg(config, LOG_INFO, "Using default log user: %s", logFacilityName);
+        }
     } else {
         status = get_log_user(logFacilityName, &my_log_user);
         if (status > 0) {
@@ -679,10 +696,12 @@ ReadConfig(DAEMONCONFIG *config)
             return status;
         }
         config->log_user = my_log_user;
-        log_msg(config, LOG_INFO, "Log User set to: %s", logFacilityName);
+        if (verbose) {
+            log_msg(config, LOG_INFO, "Log User set to: %s", logFacilityName);
+        }
     }
 
-    log_switch(my_log_user, logFacilityName, config->program);
+    log_switch(my_log_user, logFacilityName, config->program, verbose);
 
     /* Cleanup */
     /* TODO: some other frees are needed */

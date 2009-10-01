@@ -108,10 +108,9 @@ typedef struct
     unsigned char* schema;
     unsigned char* port;
     uint16_t interval;
+    uint16_t keygeninterval; /* TODO remove this */
     int keycreate;
-    int backupinterval;
-    int keygeninterval;
-
+    int manualKeyGeneration;
     int rolloverNotify;
 
     int log_user; /* log facility (or default of LOG_DAEMON) */

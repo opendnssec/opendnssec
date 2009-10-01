@@ -250,8 +250,8 @@ int KsmPolicyRead(KSM_POLICY* policy)
             status = KsmPolicyParameter(result, &data);
             while (status == 0) {
             	if (strncmp(data.category, "enforcer", 8) == 0) {
-/*            		if (strncmp(data.name, "keycreate", 9) == 0) policy->enforcer->keycreate=data.value; */
-            		if (strncmp(data.name, "backup_interval", 15) == 0) policy->enforcer->backup_interval=data.value;
+/*            		if (strncmp(data.name, "keycreate", 9) == 0) policy->enforcer->keycreate=data.value;
+            		if (strncmp(data.name, "backup_interval", 15) == 0) policy->enforcer->backup_interval=data.value; */
 			if (strncmp(data.name, "keygeninterval", 14) == 0) policy->enforcer->keygeninterval=data.value;
             	}
             	if (strncmp(data.category, "zone", 4) == 0) {
@@ -782,6 +782,7 @@ KSM_POLICY *KsmPolicyAlloc()
         KSM_POLICY *policy;
     
         policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+        policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
         policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
         policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
         policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));

@@ -1,6 +1,8 @@
 $Id$
 
 OpenDNSSEC trunk
+* communicated and keygend combined to form "enforcerd" (although this name will 
+  change).
 * ksmutil command line changes. Most commands have changed slightly, some have
   changed lots. See http://svn.opendnssec.org/docs/command-tools-syntax.txt .
 * enforcer database now has a version number. If it differs from a #define in the

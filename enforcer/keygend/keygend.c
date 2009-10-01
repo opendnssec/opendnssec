@@ -168,7 +168,7 @@ server_main(DAEMONCONFIG *config)
     while (1) {
 
         /* Read the config file */
-        status = ReadConfig(config);
+        status = ReadConfig(config, 1);
         if (status != 0) {
             log_msg(config, LOG_ERR, "Error reading config");
             unlink(config->pidfile);
