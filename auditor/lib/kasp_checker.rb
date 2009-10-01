@@ -126,21 +126,27 @@ module KASPChecker
           #  Checks we need to run on conf.xml :
           #   1. If a user and/or group is defined in the conf.xml then check that it exists.
           #   Do this for *all* privs instances (in Signer, Auditor and Enforcer as well as top-level)
+          warned_users = []
           doc.root.each_element('//Privileges/User') {|user|
             # Now check the user exists
-            # @TODO@ Keep a list of the users/groups we have already warned for, and make sure we only warn for them once
+            # Keep a list of the users/groups we have already warned for, and make sure we only warn for them once
+            next if (warned_users.include?(user.text))
             begin
               Etc.getpwnam((user.text+"").untaint).uid
             rescue ArgumentError
+              warned_users.push(user.text)
               log(LOG_ERR, "User #{user.text} does not exist")
             end
           }
+          warned_groups = []
           doc.root.each_element('//Privileges/Group') {|group|
             # Now check the group exists
-            # @TODO@ Keep a list of the users/groups we have already warned for, and make sure we only warn for them once
+            # Keep a list of the users/groups we have already warned for, and make sure we only warn for them once
+            next if (warned_groups.include?(group.text))
             begin
-              gid = Etc.getgrnam((group.text+"").untaint).gid
+              Etc.getgrnam((group.text+"").untaint).gid
             rescue ArgumentError
+              warned_groups.push(group.text)
               log(LOG_ERR, "Group #{group.text} does not exist")
             end
           }
