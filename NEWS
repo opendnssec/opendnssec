@@ -1,22 +1,25 @@
 $Id$
 
 OpenDNSSEC trunk
-* kasp_check command added to check the conf.xml and kasp.xml configuration files for sanity and consistency
-* communicated and keygend combined to form "enforcerd" (although this name will 
-  change).
-* ksmutil command line changes. Most commands have changed slightly, some have
-  changed lots. See http://svn.opendnssec.org/docs/command-tools-syntax.txt .
-* enforcer database now has a version number. If it differs from a #define in the
-  code then the software will not connect to the database.
+* kasp_check command added to check the conf.xml and kasp.xml
+  configuration files for sanity and consistency
+* communicated and keygend combined to form "enforcerd" (although this
+  name will change).
+* ksmutil command line changes. Most commands have changed slightly, some
+  have changed lots.
+  See http://svn.opendnssec.org/docs/command-tools-syntax.txt .
+* enforcer database now has a version number. If it differs from a #define
+  in the code then the software will not connect to the database.
 * "ksmutil list keys" now displays the keytag if the -l flag is passed to it.
-* "Emergency Keys" renamed to "Standby Keys" as this better reflects their role
-  as we use them.
+* "Emergency Keys" renamed to "Standby Keys" as this better reflects their
+  role as we use them.
 * The behaviour of SOA Serial value 'counter' changed according to Ticket #31.
 * changes to the KASP DB, please apply:
-  If want to use your old DB:
+  If want to use your old database, use the following commands to upgrade:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090922_1.sqlite3
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090930_1.sqlite3
-  Or start fresh (with loss of information. User should remove old keys from the HSM):
+  Or start fresh (with loss of information. User should remove old keys
+  from the HSM):
     ksmutil setup
 * move xml/ to conf/ (part of repository clean)
 
@@ -52,7 +55,8 @@ Features:
 * Changes to the KASP DB, please apply:
   If want to use your old DB:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090901_1.sqlite3
-  Or start fresh (with loss of information. User should remove old keys from the HSM):
+  Or start fresh (with loss of information. User should remove old keys
+  from the HSM):
     ksmutil setup
 
 Bugfixes:
@@ -71,7 +75,8 @@ Features:
 * Changes to the KASP DB, please apply:
   If want to use your old DB:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090820_1.sqlite3
-  Or start fresh (with loss of information. User should remove old keys from the HSM):
+  Or start fresh (with loss of information. User should remove old keys
+  from the HSM):
     ksmutil setup
 
 Bugfixes:
