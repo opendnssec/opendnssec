@@ -789,7 +789,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     uint32_t new_serial = 0;
     ldns_pkt* qpkt = NULL, *apkt;
     FILE* fd = NULL;
-    char* lock_ext = ".axfr.lock";
+    char lock_ext[32];
     char* axfr_ext = ".axfr";
     char* axfr_file;
     int soa_seen = 0;
@@ -825,6 +825,9 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
 
     if (serial < new_serial) {
         if (zone && zone->input_file) {
+            snprintf(lock_ext, sizeof(lock_ext), "%s.%lu",
+                axfr_ext, (unsigned long) getpid());
+
             strlength = strlen(zone->input_file) + strlen(lock_ext);
             axfr_file = (char*) malloc(sizeof(char) * (strlength + 1));
             if (axfr_file) {
@@ -1225,25 +1228,6 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
 static int
 facility2int(const char* facility)
 {
-     facilities = {"KERN": syslog.LOG_KERN,
-                  "USER": syslog.LOG_USER,
-                  "MAIL": syslog.LOG_MAIL,
-                  "DAEMON": syslog.LOG_DAEMON,
-                  "AUTH": syslog.LOG_AUTH,
-                  "LPR": syslog.LOG_LPR,
-                  "NEWS": syslog.LOG_NEWS,
-                  "UUCP": syslog.LOG_UUCP,
-                  "CRON": syslog.LOG_CRON,
-                  "LOCAL0": syslog.LOG_LOCAL0,
-                  "LOCAL1": syslog.LOG_LOCAL1,
-                  "LOCAL2": syslog.LOG_LOCAL2,
-                  "LOCAL3": syslog.LOG_LOCAL3,
-                  "LOCAL4": syslog.LOG_LOCAL4,
-                  "LOCAL5": syslog.LOG_LOCAL5,
-                  "LOCAL6": syslog.LOG_LOCAL6,
-                  "LOCAL7": syslog.LOG_LOCAL7
-                 }
-
     if (strncasecmp(facility, "KERN", 4) && strlen(facility) == 4)
         return LOG_KERN;
     else if (strncasecmp(facility, "USER", 4) && strlen(facility) == 4)
