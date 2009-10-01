@@ -1,6 +1,7 @@
 $Id$
 
 OpenDNSSEC trunk
+* kasp_check command added to check the conf.xml and kasp.xml configuration files for sanity and consistency
 * communicated and keygend combined to form "enforcerd" (although this name will 
   change).
 * ksmutil command line changes. Most commands have changed slightly, some have
