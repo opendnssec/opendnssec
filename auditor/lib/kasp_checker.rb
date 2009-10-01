@@ -363,7 +363,21 @@ module KASPChecker
               " policy in #{kasp_file} - should be 6 or 7")
         end
       end
-      #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
+
+      #   9. The key strength should be checked for sanity - warn if less than 1024 or more than 4096
+      begin
+      key_length = key.elements['Algorithm'].attributes['length'].to_i
+      if (key_length < 1024)
+        log(LOG_WARNING, "Key length of #{key_length} used for #{type} in #{policy}"+
+          " policy in #{kasp_file}. Should probably be 1024 or more")
+      elsif (key_length > 4096)
+        log(LOG_WARNING, "Key length of #{key_length} used for #{type} in #{policy}"+
+          " policy in #{kasp_file}. Should probably be 4096 or less")
+      end
+      rescue Exception
+        # Fine - this is an optional element
+      end
+
 
       #  10. Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
       repository = key.elements['Repository'].text
