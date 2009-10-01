@@ -324,8 +324,22 @@ module KASPChecker
                   " for #{name} Policy in #{kasp_file}")
             end
 
-            #  12. @TODO@ Check that the value of the "Serial" tag is valid.
-            #   8. @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
+            #  12. Check that the value of the "Serial" tag is valid.
+            # - this check is performed by validating the XML against the RNG
+
+            #   8. If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
+            resigns_per_day = (60 * 60 * 24) / resign_secs
+            if (resigns_per_day > 99)
+              # Check if the datecounter is used - if so, warn
+              policy.each_element('//Serial') {|serial|
+                if (serial.text.downcase == "datecounter")
+                  log(LOG_ERR, "Serial type datecounter used in #{name} policy"+
+                    " in #{kasp_file}, but #{resigns_per_day} re-signs requested."+
+                   " No more than 99 re-signs per day should be used with datecounter"+
+                 " as only 2 digits are allocated for the version number")
+                end
+              }
+            end
           }
 
           #   1. Warn if a policy named "default" does not exist.
@@ -378,14 +392,12 @@ module KASPChecker
         # Fine - this is an optional element
       end
 
-
       #  10. Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
       repository = key.elements['Repository'].text
       if (!@repositories.keys.include?repository)
         log(LOG_ERR, "Unknown repository (#{repository}) defined for #{type} in"+
            " #{policy} policy in #{kasp_file}")
       end
-
     end
 
     def get_duration(doc, element, kasp_file)
