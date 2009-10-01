@@ -3,6 +3,7 @@ include Syslog::Constants
 require 'xsd/datatypes'
 require 'rexml/document'
 include REXML
+require 'kasp_auditor/config.rb'
 
 require 'etc'
 
@@ -223,9 +224,24 @@ module KASPChecker
           doc = REXML::Document.new(file)
           # Run the following checks on kasp.xml :
           policy_names = []
-          doc.elements.each('KASP/Policy') {|p|
-            name = p.attributes['name']
+          doc.elements.each('KASP/Policy') {|policy|
+            name = policy.attributes['name']
             policy_names.push(name)
+
+            #   2. For all policies, check that the "Re-sign" interval is less than the "Refresh" interval.
+            resign = policy.elements['Signatures/Resign'].text
+            # Now get the numSeconds from the XSDDuration format
+            resign_secs = KASPAuditor::Config.xsd_duration_to_seconds(resign)
+            refresh = policy.elements['Signatures/Refresh'].text
+            # Now get the numSeconds from the XSDDuration format
+            refresh_secs = KASPAuditor::Config.xsd_duration_to_seconds(refresh)
+            if (refresh_secs <= resign_secs)
+              log(LOG_ERR, "The Refresh interval (#{refresh_secs}) for #{name}" +
+                  " Policy in #{kasp_file} is less than the Resign interval" +
+                  " (#{resign_secs})")
+            end
+
+
             #   3. @TODO@ Ensure that the "Default" and "Denial" validity periods are greater than the "Refresh" interval.
             #   4. @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
             #   5. @TODO@ Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
