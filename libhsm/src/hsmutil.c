@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #include <libhsm.h>
@@ -312,6 +313,8 @@ main (int argc, char *argv[])
         exit(-1);
     }
 
+    openlog("hsmutil", LOG_PID, LOG_USER);
+
     if (!strcasecmp(argv[0], "list")) {
         argc --;
         argv ++;
@@ -343,6 +346,8 @@ main (int argc, char *argv[])
 
     (void) hsm_close();
     if (config) free(config);
+
+    closelog();
 
     exit(result);
 }
