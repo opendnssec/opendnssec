@@ -1826,6 +1826,146 @@ cmd_rollpolicy ()
 }
 
 /*
+ * purge dead keys from the database
+ */
+    int
+cmd_keypurge ()
+{
+    int status = 0;
+
+    int policy_id = -1;
+    int zone_id = -1;
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+    char* db_backup_filename = NULL;
+
+    char* datetime = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+        printf("Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(dbschema);
+            return(1);
+        }
+
+        /* Make a backup of the sqlite DB */
+        /* TODO skip this if we are only doing a list */
+        StrAppend(&db_backup_filename, dbschema);
+        StrAppend(&db_backup_filename, ".backup");
+
+        status = backup_file(dbschema, db_backup_filename);
+
+        StrFree(db_backup_filename);
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Turn policy name into an id (if provided) */
+    if (o_policy != NULL) {
+        status = KsmPolicyIdFromName(o_policy, &policy_id);
+        if (status != 0) {
+            printf("Error: unable to find a policy named \"%s\" in database\n", o_policy);
+            return status;
+        }
+    }
+
+    /* Turn zone name into an id (if provided) */
+    if (o_zone != NULL) {
+        status = KsmZoneIdFromName(o_zone, &zone_id);
+        if (status != 0) {
+            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+            return status;
+        }
+    }
+
+    status = PurgeKeys(zone_id, policy_id);
+
+    if (status != 0) {
+        printf("Error: failed to purge dead keys\n");
+        return status;
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
+    DbDisconnect(dbhandle);
+    return 0;
+}
+
+/*
  * note that fact that a backup has been performed
  */
     int
@@ -3085,8 +3225,15 @@ main (int argc, char *argv[])
             }
         }
         else if (!strncmp(case_verb, "PURGE", 5)) {
-            printf("key purge not implemented\n");
-            result = -1;
+            if ((o_zone != NULL && o_policy == NULL) || 
+                    (o_zone == NULL && o_policy != NULL)){
+                result = cmd_keypurge();
+            }
+            else {
+                printf("Please provide either a zone OR a policy to key purge\n");
+                usage_keypurge();
+                result = -1;
+            }
         } else {
             printf("Unknown command: key %s\n", case_verb);
             usage_key();
@@ -5131,6 +5278,150 @@ int ListKeys(int zone_id)
     if (dnskey_rr != NULL) {
         ldns_rr_free(dnskey_rr);
     }
+    hsm_key_free(key);
+
+    return status;
+}
+
+/*+
+ * PurgeKeys - Purge dead Keys
+ *
+ *
+ * Arguments:
+ *
+ *      int zone_id
+ *          ID of the zone 
+ *
+ *      int policy_id
+ *          ID of the policy
+ *
+ * N.B. Only one of the arguments should be set, the other should be -1
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int PurgeKeys(int zone_id, int policy_id)
+{
+    char*       sql = NULL;     /* SQL query */
+    char*       sql2 = NULL;    /* SQL query */
+    char*       sql3 = NULL;    /* SQL query */
+    int         status = 0;     /* Status return */
+    char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+
+    int         temp_id = -1;       /* place to store the key id returned */
+    char*       temp_dead = NULL;   /* place to store dead date returned */
+    char*       temp_loc = NULL;    /* place to store location returned */
+
+    /* Key information */
+    hsm_key_t *key = NULL;
+
+    if ((zone_id == -1 && policy_id == -1) || 
+            (zone_id != -1 && policy_id != -1)){
+        printf("Please provide either a zone OR a policy to key purge\n");
+        usage_keypurge();
+        return(1);
+    }
+
+    /* connect to the HSM */
+    status = hsm_open(config, hsm_prompt_pin, NULL);
+    if (status) {
+        hsm_print_error(NULL);
+        return(-1);
+    }
+
+    /* Select rows */
+    StrAppend(&sql, "select id, dead, location from KEYDATA_VIEW where state = 6 ");
+    if (zone_id != -1) {
+        StrAppend(&sql, "and zone_id = ");
+        snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
+        StrAppend(&sql, stringval);
+    }
+    if (policy_id != -1) {
+        StrAppend(&sql, "and policy_id = ");
+        snprintf(stringval, KSM_INT_STR_SIZE, "%d", policy_id);
+        StrAppend(&sql, stringval);
+    }
+    /* stop us doing the same key twice */
+    StrAppend(&sql, " group by location");
+
+    DusEnd(&sql);
+
+    status = DbExecuteSql(DbHandle(), sql, &result);
+
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+        while (status == 0) {
+            /* Got a row, purge it */
+            DbInt(row, 0, &temp_id);
+            DbString(row, 1, &temp_dead);
+            DbString(row, 2, &temp_loc);
+
+            /* Delete from dnsseckeys */
+            sql2 = DdsInit("dnsseckeys");
+            DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+            DdsEnd(&sql);
+
+            status = DbExecuteSqlNoResult(DbHandle(), sql2);
+            DdsFree(sql2);
+            if (status != 0)
+            {
+                printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                return status;
+            }
+
+            /* Delete from keypairs */
+            sql3 = DdsInit("keypairs");
+            DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
+            DdsEnd(&sql);
+
+            status = DbExecuteSqlNoResult(DbHandle(), sql3);
+            DdsFree(sql3);
+            if (status != 0)
+            {
+                printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                return status;
+            }
+
+            /* Delete from the HSM */
+            key = hsm_find_key_by_id(NULL, temp_loc);
+
+            if (!key) {
+                printf("Key not found: %s\n", temp_loc);
+                return -1;
+            }
+
+            result = hsm_remove_key(NULL, key);
+
+            if (!result) {
+                printf("Key remove successful.\n");
+            } else {
+                printf("Key remove failed.\n");
+                return -1;
+            }
+
+            /* NEXT! */ 
+            status = DbFetchRow(result, &row);
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+
+        DbFreeResult(result);
+    }
+
+    DusFree(sql);
+
+    DbStringFree(temp_dead);
+    DbStringFree(temp_loc);
+
     hsm_key_free(key);
 
     return status;

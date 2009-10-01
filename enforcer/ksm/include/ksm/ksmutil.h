@@ -79,6 +79,7 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy);
 int printKey(void* context, KSM_KEYDATA* key_data);
 void ksm_log_msg(const char *format);
 int ListKeys(int zone_id);
+int PurgeKeys(int zone_id, int policy_id);
 
 #ifdef __cplusplus
 }
