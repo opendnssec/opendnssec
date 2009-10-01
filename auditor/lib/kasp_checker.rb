@@ -259,7 +259,16 @@ module KASPChecker
                 "(#{refresh_secs} seconds)")
             end
 
-            #   4. @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
+            #   4. Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
+            jitter_secs = get_duration(policy, 'Signatures/Jitter')
+            max_default_denial=[default_secs, denial_secs].max
+            max_default_denial_type = max_default_denial == default_secs ? "Default" : "Denial"
+            if (jitter_secs > (max_default_denial * 0.5))
+              log(LOG_WARNING, "Jitter time (#{jitter_secs} seconds) is large" +
+                 " compared to Validity/#{max_default_denial_type} " +
+                 "(#{max_default_denial} seconds) for #{name} policy")
+            end
+
             #   5. @TODO@ Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
             #   6. @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
             #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
