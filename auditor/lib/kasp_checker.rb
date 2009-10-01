@@ -168,7 +168,10 @@ module KASPChecker
           repositories = {}
           doc.elements.each('Configuration/RepositoryList/Repository') {|repository|
             name = repository.attributes['name']
-            # @TODO@ Check if two repositories exist with the same name
+            # Check if two repositories exist with the same name
+            if (repositories.keys.include?name)
+              log(LOG_ERR, "Two repositories exist with the same name (#{name})")
+            end
             mod = repository.elements['Module'].text
             #   5. Check that the shared library (Module) exists.
             if (!File.exist?((mod+"").untaint))
@@ -227,7 +230,10 @@ module KASPChecker
           policy_names = []
           doc.elements.each('KASP/Policy') {|policy|
             name = policy.attributes['name']
-            # @TODO@ Check if two policies exist with the same name
+            # Check if two policies exist with the same name
+            if (policy_names.include?name)
+              log(LOG_ERR, "Two policies exist with the same name (#{name})")
+            end
             policy_names.push(name)
 
             #   2. For all policies, check that the "Re-sign" interval is less than the "Refresh" interval.
