@@ -157,7 +157,7 @@ usage_repo ()
 usage_policyexport ()
 {
     fprintf(stderr,
-            "  policy export --policy [policy_name]\n"
+            "  policy export\n"
             "\t--policy [policy_name] | --all\n");
 }
 
@@ -185,10 +185,13 @@ usage_keylist ()
             "  key list\n"
             "\t[--verbose]\n"
             "\t--zone <zone> | --all             aka -z / -a\n"
+#if 0
             "\t(will appear soon:\n"
             "\t[--keystate <state>]              aka -e\n"
             "\t[--keytype <type>]                aka -t\n"
-            "\t[--ds]                            aka -d)\n");
+            "\t[--ds]                            aka -d)\n"
+#endif
+    );
 }
 
     void
@@ -252,8 +255,8 @@ usage_key ()
 usage_backup ()
 {
     fprintf(stderr,
-            "  backup done\n\t--repository <repository>     aka -r\n"
-	        "  backup list\n\t--repository <repository>     aka -r\n");
+            "  backup done\n\t--repository <repository>       aka -r\n"
+            "  backup list\n\t--repository <repository>       aka -r\n");
 }
 
     void
