@@ -7,9 +7,15 @@ INTRODUCTION
   It secures zone data just before it is published in an authoritative
   name server.
 
-  More informnation can be found at the project website at www.opendnssec.org
-  and on the development WIKI/TRAC at trac.opendnssec.org. Please report
-  any bugs via TRAC.
+
+MORE INFORMATION
+
+  More informnation can be found at the project website available at
+  http://www.opendnssec.org/ and on the development WIKI/TRAC at
+  http://trac.opendnssec.org/.
+
+  Information about announcements, bug reporting and mailing lists can
+  be found at http://www.opendnssec.org/support/.
 
 
 DEPENDENCIES
@@ -21,6 +27,9 @@ DEPENDENCIES
   - SQLite3
   - Python
   - 4Suite Python XML Library
+
+  To run OpenDNSSEC, one must have at least one crypto module providing a
+  PKCS#11 library, e.g. SoftHSM (http://www.opendnssec.org/softHSM)
 
   The Auditor has some additional dependencies:
 
