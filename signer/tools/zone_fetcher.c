@@ -57,7 +57,7 @@ usage(FILE *out)
     fprintf(out, "-d\t\tRun as daemon\n");
     fprintf(out, "-f <facility>\t\tLog with <facility>\n");
     fprintf(out, "-h\t\tShow this help\n");
-    fprintf(out, "-h\t\tShow this help\n");
+    fprintf(out, "-i\t\tGive information about the config settings\n");
     fprintf(out, "-z <file>\tThe zonelist.xml <file>\n");
 }
 
@@ -1274,6 +1274,50 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
     }
 }
 
+static void
+list_settings(config_type* config, const char* filename)
+{
+    zonelist_type* zones = NULL;
+    serverlist_type* servers = NULL;
+
+    if (config) {
+        fprintf(stdout, "configuration settings:\n");
+        fprintf(stdout, "filename: %s\n", filename);
+        fprintf(stdout, "pidfile: %s\n", config->pidfile);
+        fprintf(stdout, "tsig: %s\n", config->use_tsig?"yes":"no");
+        if (config->use_tsig) {
+            fprintf(stdout, "tsig name: %s\n", config->tsig_name);
+            fprintf(stdout, "tsig algorithm: %s\n", config->tsig_algo);
+            fprintf(stdout, "tsig secret: ?\n");
+        }
+        fprintf(stdout, "zones: %s\n", config->zonelist?"":"none");
+        zones = config->zonelist;
+        while (zones) {
+            fprintf(stdout, "\t%s\n", zones->name);
+            zones = zones->next;
+        }
+        fprintf(stdout, "master servers: %s\n", config->serverlist?"":"none");
+        servers = config->serverlist;
+        while (servers) {
+            fprintf(stdout, "\t%s\n", servers->ipaddr);
+            servers = servers->next;
+        }
+        fprintf(stdout, "interfaces: %s\n", config->notifylist?"":"none");
+        servers = config->notifylist;
+        while (servers) {
+            fprintf(stdout, "\t%s\n", servers->ipaddr);
+            servers = servers->next;
+        }
+        if (config->xfrd) {
+            fprintf(stdout, "transfer daemon available\n");
+        }
+        else {
+            fprintf(stdout, "transfer daemon missing\n");
+        }
+    }
+    else fprintf(stdout, "no config\n");
+}
+
 static int
 facility2int(const char* facility)
 {
@@ -1327,8 +1371,9 @@ main(int argc, char **argv)
     FILE* fd;
     sockets_type sockets;
     int facility = LOG_DAEMON;
+    int info = 0;
 
-    while ((c = getopt(argc, argv, "c:df:hz:")) != -1) {
+    while ((c = getopt(argc, argv, "c:df:hiz:")) != -1) {
         switch (c) {
         case 'c':
             config_file = optarg;
@@ -1342,6 +1387,9 @@ main(int argc, char **argv)
         case 'h':
             usage(stdout);
             exit(EXIT_SUCCESS);
+        case 'i':
+            info = 1;
+            break;
         case 'z':
             zonelist_file = optarg;
             break;
@@ -1362,15 +1410,20 @@ main(int argc, char **argv)
     config = new_config();
     config->pidfile = strdup(PID_FILENAME_STRING); /* not freed */
     c = read_axfr_config(config_file, config);
+    config->zonelist = read_zonelist(zonelist_file);
+    config->xfrd = init_xfrd(config);
+
+    if (info) {
+        list_settings(config, config_file);
+        exit(0);
+    }
+
     if (config->serverlist == NULL) {
         log_msg(LOG_CRIT, "zone fetcher error: no master servers configured "
             "with <RequestTransfer>");
         free_config(config);
         exit(EXIT_FAILURE);
     }
-
-    config->zonelist = read_zonelist(zonelist_file);
-    config->xfrd = init_xfrd(config);
 
     log_msg(LOG_INFO, "zone fetcher started");
 
