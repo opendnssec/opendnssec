@@ -187,17 +187,34 @@ module KASPChecker
 
           #
           #  Also 
-          #   1. @TODO@ If 'm' is used in the XSDDuration, then warn the user that 31 days will be used instead of one month.
-          #   2. @TODO@ If 'y' is used in the XSDDuration, then warn the user that 365 days will be used instead of one year.
-          #   3. @TODO@ Check that any paths used exist and will be writable after dropping privileges to the defined user/group.
-
-
+          # check durations for Interval KeygenInterval and RolloverNotification (the only duration elements in conf.xml)
+          ["Enforcer/KeygenInterval", "Enforcer/Interval", "Enforcer/RolloverNotification"].each {|element|
+            check_duration_element(doc, element, conf_file)
+          }
 
         }
       rescue Errno::ENOENT
         log(LOG_ERR, "ERROR - Can't find config file : #{conf_file}")
       end
       return ((kasp_file+"").untaint)
+    end
+
+    def check_duration_element(doc, name, filename)
+      #   1. If 'm' is used in the XSDDuration, then warn the user that 31 days will be used instead of one month.
+      #   2. If 'y' is used in the XSDDuration, then warn the user that 365 days will be used instead of one year.
+      doc.root.each_element("//"+name) {|element|
+        duration = element.text
+        #           print "Checking duration of #{name} : #{duration}, #{duration.length}\n"
+        last_digit = duration[duration.length-1, 1].downcase
+        if (last_digit == "m")
+          log(LOG_WARNING, "M used in duration field for #{name} (#{duration})" +
+              " in #{filename} - this will be interpreted as 31 days")
+        end
+        if (last_digit == "y")
+          log(LOG_WARNING, "Y used in duration field for #{name} (#{duration})" +
+              " in #{filename} - this will be interpreted as 365 days")
+        end
+      }
     end
 
 
@@ -219,10 +236,14 @@ module KASPChecker
           #  11. @TODO@ Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
           #  12. @TODO@ Check that the value of the "Serial" tag is valid.
           #
-          #   Also
-          #   1. @TODO@ If 'm' is used in the XSDDuration, then warn the user that 31 days will be used instead of one month.
-          #   2. @TODO@ If 'y' is used in the XSDDuration, then warn the user that 365 days will be used instead of one year.
-          #   3. @TODO@ Check that any paths used exist and will be writable after dropping privileges to the defined user/group.
+
+          ["Signatures/Resign", "Signatures/Refresh", "Signatures/Validity/Default",
+            "Signatures/Validity/Denial", "Signatures/Jitter",
+            "Signatures/InceptionOffset", "Keys/RetireSafety", "Keys/PublishSafety",
+            "Keys/Purge", "NSEC3/Resalt", "SOA/Minimum", "ZSK/Lifetime",
+            "KSK/Lifetime", "TTL", "PropagationDelay"].each {|element|
+            check_duration_element(doc, element, kasp_file)
+          }
         }
       rescue Errno::ENOENT
         log(LOG_ERR, "ERROR - Can't find config file : #{kasp_file}")
