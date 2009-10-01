@@ -240,12 +240,25 @@ module KASPChecker
             resign_secs = get_duration(policy,'Signatures/Resign')
             refresh_secs = get_duration(policy, 'Signatures/Refresh')
             if (refresh_secs <= resign_secs)
-              log(LOG_ERR, "The Refresh interval (#{refresh_secs}) for #{name}" +
-                  " Policy in #{kasp_file} is less than the Resign interval" +
-                  " (#{resign_secs})")
+              log(LOG_ERR, "The Refresh interval (#{refresh_secs} seconds) for " +
+                  "#{name} Policy in #{kasp_file} is less than the Resign interval" +
+                  " (#{resign_secs} seconds)")
             end
 
-            #   3. @TODO@ Ensure that the "Default" and "Denial" validity periods are greater than the "Refresh" interval.
+            #   3. Ensure that the "Default" and "Denial" validity periods are greater than the "Refresh" interval.
+            default_secs = get_duration(policy, 'Signatures/Validity/Default')
+            denial_secs = get_duration(policy, 'Signatures/Validity/Denial')
+            if (default_secs <= refresh_secs)
+              log(LOG_ERR, "Validity/Default (#{default_secs} seconds) for #{name} " +
+                "policy in #{kasp_file} is less than the Refresh interval " +
+                "(#{refresh_secs} seconds)")
+            end
+            if (denial_secs <= refresh_secs)
+              log(LOG_ERR, "Validity/Denial (#{denial_secs} seconds) for #{name} " +
+                "policy in #{kasp_file} is less than the Refresh interval " +
+                "(#{refresh_secs} seconds)")
+            end
+
             #   4. @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
             #   5. @TODO@ Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
             #   6. @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
