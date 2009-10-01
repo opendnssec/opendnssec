@@ -11,4 +11,4 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = libhsm enforcer signer auditor xml
+SUBDIRS = libhsm enforcer signer auditor conf

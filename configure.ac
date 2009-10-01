@@ -10,7 +10,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
-AC_CONFIG_SUBDIRS([ libhsm enforcer signer xml ])
+AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf ])
 
 
 # xml

@@ -3,7 +3,7 @@
 m4_sinclude([../version.m4])
 
 AC_PREREQ(2.61)
-AC_INIT([opendnssec-xml], OPENDNSSEC_VERSION)
+AC_INIT([opendnssec-conf], OPENDNSSEC_VERSION)
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
