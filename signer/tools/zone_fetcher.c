@@ -1244,39 +1244,39 @@ facility2int(const char* facility)
                   "LOCAL7": syslog.LOG_LOCAL7
                  }
 
-    if (strncmp(facility, "KERN", 4) && strlen(facility) == 4)
+    if (strncasecmp(facility, "KERN", 4) && strlen(facility) == 4)
         return LOG_KERN;
-    else if (strncmp(facility, "USER", 4) && strlen(facility) == 4)
+    else if (strncasecmp(facility, "USER", 4) && strlen(facility) == 4)
         return LOG_USER;
-    else if (strncmp(facility, "MAIL", 4) && strlen(facility) == 4)
+    else if (strncasecmp(facility, "MAIL", 4) && strlen(facility) == 4)
         return LOG_MAIL;
-    else if (strncmp(facility, "DAEMON", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "DAEMON", 6) && strlen(facility) == 6)
         return LOG_DAEMON;
-    else if (strncmp(facility, "AUTH", 4) && strlen(facility) == 4)
+    else if (strncasecmp(facility, "AUTH", 4) && strlen(facility) == 4)
         return LOG_AUTH;
-    else if (strncmp(facility, "LPR", 3) && strlen(facility) == 3)
+    else if (strncasecmp(facility, "LPR", 3) && strlen(facility) == 3)
         return LOG_LPR;
-    else if (strncmp(facility, "NEWS", 4) && strlen(facility) == 4)
+    else if (strncasecmp(facility, "NEWS", 4) && strlen(facility) == 4)
         return LOG_NEWS;
-    else if (strncmp(facility, "UUCP", 4) && strlen(facility) == 4)
+    else if (strncasecmp(facility, "UUCP", 4) && strlen(facility) == 4)
         return LOG_UUCP;
-    else if (strncmp(facility, "CRON", 4) && strlen(facility) == 4)
+    else if (strncasecmp(facility, "CRON", 4) && strlen(facility) == 4)
         return LOG_CRON;
-    else if (strncmp(facility, "LOCAL0", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "LOCAL0", 6) && strlen(facility) == 6)
         return LOG_LOCAL0;
-    else if (strncmp(facility, "LOCAL1", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "LOCAL1", 6) && strlen(facility) == 6)
         return LOG_LOCAL1;
-    else if (strncmp(facility, "LOCAL2", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "LOCAL2", 6) && strlen(facility) == 6)
         return LOG_LOCAL2;
-    else if (strncmp(facility, "LOCAL3", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "LOCAL3", 6) && strlen(facility) == 6)
         return LOG_LOCAL3;
-    else if (strncmp(facility, "LOCAL4", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "LOCAL4", 6) && strlen(facility) == 6)
         return LOG_LOCAL4;
-    else if (strncmp(facility, "LOCAL5", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "LOCAL5", 6) && strlen(facility) == 6)
         return LOG_LOCAL5;
-    else if (strncmp(facility, "LOCAL6", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "LOCAL6", 6) && strlen(facility) == 6)
         return LOG_LOCAL6;
-    else if (strncmp(facility, "LOCAL7", 6) && strlen(facility) == 6)
+    else if (strncasecmp(facility, "LOCAL7", 6) && strlen(facility) == 6)
         return LOG_LOCAL7;
 
     return LOG_DAEMON;
