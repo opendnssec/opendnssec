@@ -790,8 +790,9 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     ldns_pkt* qpkt = NULL, *apkt;
     FILE* fd = NULL;
     char lock_ext[32];
-    char* axfr_ext = ".axfr";
     char* axfr_file;
+    char* mv_axfr;
+    char* signer_engine_cli_sign;
     int soa_seen = 0;
     size_t strlength = 0;
 
@@ -825,8 +826,8 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
 
     if (serial < new_serial) {
         if (zone && zone->input_file) {
-            snprintf(lock_ext, sizeof(lock_ext), "%s.%lu",
-                axfr_ext, (unsigned long) getpid());
+            snprintf(lock_ext, sizeof(lock_ext), "axfr.%lu",
+                (unsigned long) getpid());
 
             strlength = strlen(zone->input_file) + strlen(lock_ext);
             axfr_file = (char*) malloc(sizeof(char) * (strlength + 1));
@@ -834,12 +835,13 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 axfr_file = strcpy(axfr_file, zone->input_file);
                 axfr_file = strcat(axfr_file, lock_ext);
                 fd = fopen(axfr_file, "w");
-                free((void*)axfr_file);
             }
         }
         if (!fd) {
             log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
                 axfr_file);
+            if (axfr_file)
+                free((void*)axfr_file);
             return;
         }
 
@@ -848,8 +850,8 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             if (errno != EINPROGRESS) {
                 log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
                     ldns_get_errorstr_by_id(status));
-                /* why? */
-                log_msg(LOG_DEBUG, "tcp_connect failed: %s", strerror(errno));
+                free((void*)axfr_file);
+                return;
             }
         }
 
@@ -874,7 +876,52 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 "successfully", zone->name, new_serial);
 
             /* moving and kicking */
+            strlength = strlen("mv ") + strlen(axfr_file) + 1 +
+                strlen(zone->input_file) + strlen(".axfr");
+            mv_axfr = (char*) malloc(sizeof(char) * (strlength + 1));
+            if (mv_axfr) {
+                mv_axfr = strcpy(mv_axfr, "mv ");
+                mv_axfr = strcat(mv_axfr, axfr_file);
+                mv_axfr = strcat(mv_axfr, " ");
+                mv_axfr = strcat(mv_axfr, zone->input_file);
+                mv_axfr = strcat(mv_axfr, ".axfr");
+
+                if (system(mv_axfr)) {
+                    strlength = strlen(SIGNER_CLI_COMMAND) +
+                        strlen(zone->name) + 1;
+                    signer_engine_cli_sign = (char*) malloc(sizeof(char) *
+                        (strlength + 1));
+                    if (signer_engine_cli_sign) {
+                        signer_engine_cli_sign = strcpy(signer_engine_cli_sign,
+                            SIGNER_CLI_COMMAND);
+                        signer_engine_cli_sign = strcat(signer_engine_cli_sign,
+                            " ");
+                        signer_engine_cli_sign = strcat(signer_engine_cli_sign,
+                            zone->name);
+                        if (system(signer_engine_cli_sign) == -1) {
+                            log_msg(LOG_ERR, "zone fetcher could not kick "
+                                "the signer engine to sign zone %s",
+                                zone->name);
+                        }
+                        free((void*) signer_engine_cli_sign);
+                    }
+                    else {
+                        log_msg(LOG_ERR, "zone fetcher malloc failed "
+                            "for signer_engine_cli sign");
+                    }
+                    free((void*) mv_axfr);
+                }
+                else {
+                     log_msg(LOG_ERR, "zone fetcher could not move AXFR to "
+                         "%s.axfr", zone->input_file);
+                }
+            }
+            else {
+                log_msg(LOG_ERR, "zone fetcher malloc failed "
+                    "for mv AXFR");
+            }
         }
+        free((void*)axfr_file);
         fclose(fd);
     }
     else {

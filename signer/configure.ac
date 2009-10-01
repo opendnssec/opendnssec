@@ -31,8 +31,10 @@ int test() {
 ], [CFLAGS="-D__EXTENSIONS__ $CFLAGS"])
 
 fetch_pid_file=$localstatedir/run/opendnssec/zone_fetcher.pid
+signer_cli="$prefix/bin/signer_engine_cli sign"
 
 AC_DEFINE_UNQUOTED(FETCH_PIDFILE, ["`eval echo $fetch_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC zone fetcher pid file])
+AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["`eval echo $signer_cli | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine cli])
 
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, inet_pton)
