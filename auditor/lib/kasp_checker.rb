@@ -165,8 +165,8 @@ module KASPChecker
           # Then make sure that there are no repositories which share both Module
           #  and TokenLabel
           repositories = {}
-          doc.get_elements('Configuration/RepositoryList/Repository').each {|repository|
-            name = repository.name
+          doc.elements.each('Configuration/RepositoryList/Repository') {|repository|
+            name = repository.attributes['name']
             mod = repository.elements['Module'].text
             #   5. Check that the shared library (Module) exists.
             if (!File.exist?((mod+"").untaint))
@@ -183,7 +183,6 @@ module KASPChecker
             #   3. If a repository specifies a capacity, the capacity must be greater than zero.
             # This check is performed when the XML is validated against the RNG (which specifies positiveInteger for Capacity)
           }
-
 
           #
           #  Also 
@@ -223,19 +222,27 @@ module KASPChecker
         File.open(kasp_file, 'r') {|file|
           doc = REXML::Document.new(file)
           # Run the following checks on kasp.xml :
-          #   1. @TODO@ Warn if a policy named "default" does not exist.
-          #   2. @TODO@ For all policies, check that the "Re-sign" interval is less than the "Refresh" interval.
-          #   3. @TODO@ Ensure that the "Default" and "Denial" validity periods are greater than the "Refresh" interval.
-          #   4. @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
-          #   5. @TODO@ Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
-          #   6. @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
-          #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
-          #   8. @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
-          #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
-          #  10. @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
-          #  11. @TODO@ Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
-          #  12. @TODO@ Check that the value of the "Serial" tag is valid.
-          #
+          policy_names = []
+          doc.elements.each('KASP/Policy') {|p|
+            name = p.attributes['name']
+            policy_names.push(name)
+            #   3. @TODO@ Ensure that the "Default" and "Denial" validity periods are greater than the "Refresh" interval.
+            #   4. @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
+            #   5. @TODO@ Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
+            #   6. @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
+            #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
+            #   8. @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
+            #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
+            #  10. @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+            #  11. @TODO@ Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
+            #  12. @TODO@ Check that the value of the "Serial" tag is valid.
+          }
+
+          #   1. Warn if a policy named "default" does not exist.
+          if (!policy_names.include?"default")
+            log(LOG_WARNING, "No policy named 'default' in #{kasp_file}. This " +
+                "means you will need to refer explicitly to the policy for each zone")
+          end
 
           ["Signatures/Resign", "Signatures/Refresh", "Signatures/Validity/Default",
             "Signatures/Validity/Denial", "Signatures/Jitter",
