@@ -849,6 +849,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
                     ldns_get_errorstr_by_id(status));
                 /* why? */
+                log_msg(LOG_DEBUG, "tcp_connect failed: %s", strerror(errno));
             }
         }
 
