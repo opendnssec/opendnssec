@@ -9,8 +9,8 @@ AC_INIT([opendnssec-libhsm], OPENDNSSEC_VERSION)
 # API add, remove, changed; current++, revision=0
 # API add; age++
 # API remove; age=0
-define([LIBHSM_SHLIB_CURRENT],  [0])
-define([LIBHSM_SHLIB_REVISION], [1])
+define([LIBHSM_SHLIB_CURRENT],  [1])
+define([LIBHSM_SHLIB_REVISION], [0])
 define([LIBHSM_SHLIB_AGE],      [0])
 
 # needed to build correct soname
