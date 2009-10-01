@@ -179,7 +179,7 @@ module KASPChecker
             end
 
             tokenlabel = repository.elements['TokenLabel'].text
-#            print "Checking Module #{mod} and TokenLabel #{tokenlabel} in Repository #{name}\n"
+            #            print "Checking Module #{mod} and TokenLabel #{tokenlabel} in Repository #{name}\n"
             # Now check if repositories already includes the [mod, tokenlabel] hash
             if (repositories.values.include?([mod, tokenlabel]))
               log(LOG_ERR, "Multiple Repositories in #{conf_file} have the same Module (#{mod}) and TokenLabel (#{tokenlabel}), for Repository #{name}")
@@ -294,17 +294,25 @@ module KASPChecker
             }
 
 
+            # Get the denial type (NSEC or NSEC3)
+            denial_type = nil
+            if (policy.elements['Denial/NSEC'])
+              denial_type = "NSEC"
+            else
+              denial_type = "NSEC3"
+            end
+
             # For all keys (if any are configured)...
             max = 9999999999999999
             ksk_lifetime = max
             zsk_lifetime = max
             policy.each_element('//ZSK') {|zsk|
-              check_key(zsk, "ZSK", policy, kasp_file)
+              check_key(zsk, "ZSK", name, kasp_file, denial_type)
               zskl = get_duration(zsk, 'Lifetime', kasp_file)
               zsk_lifetime = [zsk_lifetime, zskl].min
             }
             policy.each_element('//KSK') {|ksk|
-              check_key(ksk, "KSK", policy, kasp_file)
+              check_key(ksk, "KSK", name, kasp_file, denial_type)
               kskl = get_duration(ksk, 'Lifetime', kasp_file)
               ksk_lifetime = [ksk_lifetime, kskl].min
             }
@@ -339,8 +347,22 @@ module KASPChecker
       end
     end
 
-    def check_key(key, type, policy, kasp_file)
+    def check_key(key, type, policy, kasp_file, denial_type)
       #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
+      alg = key.elements['Algorithm'].text
+      if (denial_type == "NSEC")
+        # Check correct algorithm used for NSEC
+        if ((["6","7"].include?alg))
+          log(LOG_ERR, "Incompatible algorithm (#{alg}) used for NSEC in #{policy}"+
+            " policy in #{kasp_file}")
+        end
+      else
+        # Check correct algorithm used for NSEC3
+        if (!(["6","7"].include?alg))
+          log(LOG_ERR, "Incompatible algorithm (#{alg}) used for NSEC3 in #{policy}" +
+              " policy in #{kasp_file} - should be 6 or 7")
+        end
+      end
       #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
       #  10. @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
     end
