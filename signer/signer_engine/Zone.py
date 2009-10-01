@@ -89,7 +89,7 @@ class Zone:
     def get_zone_axfr_filename(self):
         """Returns the file name of the stored AXFR file"""
         zone_input_filename = self.get_zone_input_filename()
-        return zone_input_filename + os.sep + ".axfr"
+        return zone_input_filename + ".axfr"
 
     def get_zone_config_filename(self):
         """Returns the file name of the zone configuration xml file"""
@@ -220,8 +220,8 @@ class Zone:
         nothing. Otherwise, move the transferred file to the input
         adapter file."""
         if self.use_axfr:
+            syslog.syslog(syslog.LOG_INFO, "Fetch zone: " + self.get_zone_axfr_filename())
             if os.path.exists(self.get_zone_axfr_filename()):
-                syslog.syslog(syslog.LOG_INFO, "Fetch zone: " + self.zone_name)
                 Util.move_file(self.get_zone_axfr_filename(),
                        self.get_zone_input_filename())
         return True;

@@ -886,7 +886,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 mv_axfr = strcat(mv_axfr, zone->input_file);
                 mv_axfr = strcat(mv_axfr, ".axfr");
 
-                if (system(mv_axfr)) {
+                if (system(mv_axfr) != -1) {
                     strlength = strlen(SIGNER_CLI_COMMAND) +
                         strlen(zone->name) + 1;
                     signer_engine_cli_sign = (char*) malloc(sizeof(char) *
