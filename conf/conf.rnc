@@ -87,6 +87,9 @@ start = element Configuration {
 		# Interval between runs of the key pre-generation procedure
 		element KeygenInterval { xsd:duration },
 
+		# Use manual key generation?
+		element ManualKeyGeneration { empty }?,
+
 		# How long before a KSK Rollover should we start warning (optional)
 		element RolloverNotification { xsd:duration }?
 	},
