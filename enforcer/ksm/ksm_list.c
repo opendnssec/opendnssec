@@ -127,7 +127,7 @@ int KsmListBackups(int repo_id)
         StrAppend(&sql2, stringval);
     }
     StrAppend(&sql2, " and k.backup is null");
-    StrAppend(&sql2, " group by backup order by backup");
+    StrAppend(&sql2, " group by s.name order by s.name");
 
     DusEnd(&sql2);
 
