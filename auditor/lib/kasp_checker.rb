@@ -82,7 +82,7 @@ module KASPChecker
         while (line = stderr[0].gets)
           line.chomp!
           if line.index(" validates")
-            log(LOG_INFO, line)
+            log(LOG_INFO, line + " OK")
           else
             log(LOG_ERR, line)
           end
