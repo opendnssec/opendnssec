@@ -78,7 +78,6 @@ free_zonelist(zonelist_type* zlt)
 {
     if (zlt) {
         free_zonelist(zlt->next);
-        log_msg(LOG_DEBUG, "zone fetcher free zone %s", zlt->name);
         free((void*) zlt->name);
         ldns_rdf_deep_free(zlt->dname);
         free((void*) zlt->input_file);
@@ -127,7 +126,6 @@ free_serverlist(serverlist_type* slt)
 {
     if (slt) {
         free_serverlist(slt->next);
-        log_msg(LOG_DEBUG, "zone fetcher free server %s:%s", slt->ipaddr, slt->port);
         if (slt->port)   free((void*) slt->port);
         if (slt->ipaddr) free((void*) slt->ipaddr);
         free((void*) slt);
@@ -603,11 +601,6 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
 
     i = 0;
     while (walk) {
-        log_msg(LOG_DEBUG, "init socket for IPv%i %s:%s",
-             walk->family==AF_INET6?6:4,
-             strlen(walk->ipaddr)>0?walk->ipaddr:"INADDR_ANY",
-             walk->port?walk->port:DNS_PORT_STRING);
-
 #ifndef IPV6_V6ONLY
         hints[i].ai_family = walk->family;
 #endif  /* IPV6_V6ONLY */
@@ -790,29 +783,67 @@ free_sockets(sockets_type* sockets)
 }
 
 static void
-odd_xfer(const char* zone_name, char* output_file, uint32_t serial,
-    config_type* config)
+odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
 {
-    serverlist_type* serverlist = NULL;
+    ldns_status status = LDNS_STATUS_OK;
+    ldns_rr* axfr_rr = NULL, *soa_rr = NULL;
+    uint32_t new_serial = 0;
+    ldns_pkt* qpkt = NULL, *apkt;
 
+    /* soa serial query */
+    qpkt = ldns_pkt_query_new(ldns_rdf_clone(zone->dname),
+        LDNS_RR_TYPE_SOA, LDNS_RR_CLASS_IN, LDNS_RD);
+    if (!qpkt) {
+        log_msg(LOG_ERR, "zone fetcher failed to create SOA query. "
+            "Aborting AXFR");
+        return;
+    }
+    status = ldns_resolver_send_pkt(&apkt, config->xfrd, qpkt);
+    if (status != LDNS_STATUS_OK) {
+        log_msg(LOG_ERR, "zone fetcher failed to send SOA query: %s",
+            ldns_get_errorstr_by_id(status));
+        return;
+    }
+    ldns_pkt_print(stdout, apkt);
+    ldns_pkt_free(qpkt);
+    if (ldns_pkt_ancount(apkt) == 1) {
+        soa_rr = ldns_rr_list_rr(ldns_pkt_answer(apkt), 0);
+        new_serial = ldns_rdf2native_int32(ldns_rr_rdf(soa_rr, 2));
+    }
+    else {
+        log_msg(LOG_ERR, "zone fetcher saw SOA response with ANCOUNT != 1"
+            "Aborting AXFR");
+        /* retry? */
+        return;
+    }
 
-
-    if (config && config->serverlist) {
-        serverlist = config->serverlist;
-        while (serverlist) {
-            if (config->use_tsig) {
-                fprintf(stderr, "nsd-xfer -s %u -p %s [-T <%s:%s:%s>] "
-                    "-z %s -f %s.axfr %s\n",
-                serial, serverlist->port,
-                config->tsig_name, config->tsig_algo, config->tsig_secret,
-                zone_name, output_file, serverlist->ipaddr);
-            } else {
-                fprintf(stderr, "nsd-xfer -s %u -p %s -z %s -f %s.axfr %s\n",
-                serial, serverlist->port,
-                zone_name, output_file, serverlist->ipaddr);
+    if (serial < new_serial) {
+        status = ldns_axfr_start(config->xfrd, zone->dname, LDNS_RR_CLASS_IN);
+        if (status != LDNS_STATUS_OK) {
+            if (errno != EINPROGRESS) {
+                log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
+                    ldns_get_errorstr_by_id(status));
             }
-            serverlist = serverlist->next;
         }
+
+        axfr_rr = ldns_axfr_next(config->xfrd);
+        if (!axfr_rr) {
+            log_msg(LOG_ERR, "zone fetcher AXFR for %s failed", zone->name);
+        }
+        else {
+            while (axfr_rr) {
+                ldns_rr_print(stdout, axfr_rr);
+                ldns_rr_free(axfr_rr);
+                axfr_rr = ldns_axfr_next(config->xfrd);
+            }
+
+            log_msg(LOG_INFO, "zone fetcher transferred zone %s serial %u "
+                "successfully", zone->name, new_serial);
+        }
+    }
+    else {
+        log_msg(LOG_INFO, "zone fetcher zone %s is already up to date, "
+            "serial is %u", zone->name, serial);
     }
 }
 
@@ -821,24 +852,38 @@ init_xfrd(config_type* config)
 {
     serverlist_type* servers;
     ldns_rdf* ns = NULL;
+    ldns_status status = LDNS_STATUS_OK;
 
     ldns_resolver* xfrd = ldns_resolver_new();
     if (config) {
-        if (config->use_tsig) {
+        if (config->use_tsig && 0) {
             ldns_resolver_set_tsig_keyname(xfrd, config->tsig_name);
             ldns_resolver_set_tsig_algorithm(xfrd, config->tsig_algo);
             ldns_resolver_set_tsig_keydata(xfrd, config->tsig_secret);
         }
         ldns_resolver_set_port(xfrd, atoi(DNS_PORT_STRING));
         ldns_resolver_set_recursive(xfrd, 0);
+        ldns_resolver_set_debug(xfrd, 1);
 
         servers = config->serverlist;
-/*
         while (servers) {
-            status = ldns_resolver_push_nameserver(xfrd, ns);
+            if (servers->family == AF_INET6)
+                ns = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_AAAA, servers->ipaddr);
+            else
+                ns = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_A, servers->ipaddr);
+            if (ns)
+                status = ldns_resolver_push_nameserver(xfrd, ns);
+            else {
+                log_msg(LOG_ERR, "zone fetcher could not use %s for transfer "
+                    "request: could not parse ip address", servers->ipaddr);
+            }
+            if (status != LDNS_STATUS_OK) {
+                log_msg(LOG_ERR, "zone fetcher could not use %s for transfer "
+                    "request: %s", servers->ipaddr,
+                    ldns_get_errorstr_by_id(status));
+            }
+            servers = servers->next;
         }
-*/
-
     }
     return xfrd;
 }
@@ -928,6 +973,8 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     }
 
     /* NOTIFY OK */
+    log_msg(LOG_INFO, "zone fetcher received NOTIFY for zone %s",
+        zonelist->name);
     ldns_pkt_set_qr(query_pkt, 1);
     status = ldns_pkt2wire(&outbuf, query_pkt, &answer_size);
     if (status != LDNS_STATUS_OK) {
@@ -951,7 +998,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
                 serial = lookup_serial(fd);
                 fclose(fd);
             }
-            zonelist->do_axfr = 1;
+            odd_xfer(zonelist, serial, config);
             ldns_pkt_free(query_pkt);
             return;
         }
@@ -1110,7 +1157,6 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
 {
     fd_set rset, wset, eset;
     struct timeval timeout;
-    zonelist_type* zonelist;
     int count, maxfd = 0;
     size_t i;
 
@@ -1143,17 +1189,6 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
             if (sockets->tcp[i].s != -1 && FD_ISSET(sockets->tcp[i].s, &rset))
                 handle_tcp(sockets->tcp[i].s, cfg);
         }
-
-        if (cfg) {
-            zonelist = cfg->zonelist;
-            while (zonelist) {
-                if (zonelist->do_axfr) {
-                    zonelist->do_axfr = 0;
-                }
-                zonelist = zonelist->next;
-            }
-        }
-
     }
 }
 
@@ -1219,7 +1254,7 @@ main(int argc, char **argv)
             fclose(fd);
         }
         /* send the request */
-        odd_xfer(zonelist->name, zonelist->input_file, serial, config);
+        odd_xfer(zonelist, serial, config);
         /* next */
         zonelist = zonelist->next;
     }
@@ -1244,13 +1279,13 @@ main(int argc, char **argv)
     /* done */
     log_msg(LOG_INFO, "zone fetcher done");
     free_config(config);
-    log_msg(LOG_DEBUG, "zone fetcher config cleared");
     log_close();
     return 0;
 }
 
 /* [TODO]:
- * - replace dummy odd_xfer with something more useful.
+ * - Hook into signer engine
+ * - Store AXFR on disk
  * - TSIG
  * - PrivDrop
  */
