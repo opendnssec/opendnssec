@@ -80,6 +80,8 @@ int printKey(void* context, KSM_KEYDATA* key_data);
 void ksm_log_msg(const char *format);
 int ListKeys(int zone_id);
 int PurgeKeys(int zone_id, int policy_id);
+int cmd_genkeys();
+void SetPolicyDefaults(KSM_POLICY *policy, char *name);
 
 #ifdef __cplusplus
 }

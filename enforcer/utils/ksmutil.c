@@ -80,6 +80,7 @@ char *o_algo = NULL;
 char *o_input = NULL;
 char *o_cka_id = NULL;
 char *o_size = NULL;
+char *o_interval = NULL;
 char *o_output = NULL;
 char *o_policy = NULL;
 char *o_repository = NULL;
@@ -239,6 +240,15 @@ usage_keypurge ()
 }
 
     void
+usage_keygen ()
+{
+    fprintf(stderr,
+            "  key generate\n"
+		    "\t--policy <policy>\n"
+            "\t--interval <interval>\n");
+}
+
+    void
 usage_key ()
 {
     fprintf(stderr,
@@ -249,6 +259,7 @@ usage_key ()
     usage_keyimport ();
     usage_keyroll ();
     usage_keypurge ();
+    usage_keygen ();
 }
 
     void
@@ -287,6 +298,7 @@ usage ()
     usage_keyimport ();
     usage_keyroll ();
     usage_keypurge ();
+    usage_keygen ();
     usage_backup ();
     usage_rollover ();
 
@@ -3049,6 +3061,7 @@ main (int argc, char *argv[])
         {"help",    no_argument,       0, 'h'},
         {"input",   required_argument, 0, 'i'},
         {"cka_id",  required_argument, 0, 'k'},
+        {"interval",  required_argument, 0, 'n'},
         {"output",  required_argument, 0, 'o'},
         {"policy",  required_argument, 0, 'p'},
         {"repository",  required_argument, 0, 'r'},
@@ -3093,6 +3106,9 @@ main (int argc, char *argv[])
                 break;
             case 'k':
                 o_cka_id = StrStrdup(optarg);
+                break;
+            case 'n':
+                o_interval = StrStrdup(optarg);
                 break;
             case 'o':
                 o_output = StrStrdup(optarg);
@@ -3200,7 +3216,7 @@ main (int argc, char *argv[])
     } else if (!strncmp(case_command, "KEY", 3)) {
         argc --; argc --;
         argv ++; argv ++;
-        /* verb should be list, export import, rollover or purge */
+        /* verb should be list, export import, rollover, purge or generate */
         if (!strncmp(case_verb, "LIST", 4)) {
             result = cmd_listkeys();
         }
@@ -3234,6 +3250,9 @@ main (int argc, char *argv[])
                 usage_keypurge();
                 result = -1;
             }
+        }
+        else if (!strncmp(case_verb, "GENERATE", 8)) {
+            result = cmd_genkeys();
         } else {
             printf("Unknown command: key %s\n", case_verb);
             usage_key();
@@ -5395,9 +5414,9 @@ int PurgeKeys(int zone_id, int policy_id)
                 return -1;
             }
 
-            result = hsm_remove_key(NULL, key);
+            status = hsm_remove_key(NULL, key);
 
-            if (!result) {
+            if (!status) {
                 printf("Key remove successful.\n");
             } else {
                 printf("Key remove failed.\n");
@@ -5426,3 +5445,325 @@ int PurgeKeys(int zone_id, int policy_id)
 
     return status;
 }
+
+int cmd_genkeys()
+{
+    int status = 0;
+
+    int interval = -1;
+
+    KSM_POLICY* policy;
+    hsm_ctx_t *ctx = NULL;
+
+    char *rightnow;
+    int i = 0;
+    char *id;
+    hsm_key_t *key = NULL;
+    char *hsm_error_message = NULL;
+    DB_ID ignore = 0;
+    int ksks_needed = 0;    /* Total No of ksks needed before next generation run */
+    int zsks_needed = 0;    /* Total No of zsks needed before next generation run */
+    int keys_in_queue = 0;  /* number of unused keys */
+    int new_keys = 0;       /* number of keys required */
+
+    int same_keys = 0;      /* Do ksks and zsks look the same ? */
+
+        /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+    char* db_backup_filename = NULL;
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(dbschema);
+            return(1);
+        }
+
+        /* Make a backup of the sqlite DB */
+        StrAppend(&db_backup_filename, dbschema);
+        StrAppend(&db_backup_filename, ".backup");
+
+        status = backup_file(dbschema, db_backup_filename);
+
+        StrFree(db_backup_filename);
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    policy = KsmPolicyAlloc();
+    if (policy == NULL) {
+        printf("Malloc for policy struct failed\n");
+        exit(1);
+    }
+
+    if (o_policy == NULL) {
+        printf("Please provide a policy name with the --policy option\n");
+        return(1);
+    }
+    if (o_interval == NULL) {
+        printf("Please provide an interval with the --interval option\n");
+        return(1);
+    }
+
+    SetPolicyDefaults(policy, o_policy);
+  
+    status = KsmPolicyExists(o_policy);
+    if (status == 0) {
+        /* Policy exists */
+        status = KsmPolicyRead(policy);
+        if(status != 0) {
+            printf("Error: unable to read policy %s from database\n", o_policy);
+            return status;
+        }
+    } else {
+        printf("Error: policy %s doesn't exist in database\n", o_policy);
+        return status;
+    }
+
+    if  (policy->shared_keys == 1 ) {
+        printf("Key sharing is On\n");
+    } else {
+        printf("Key sharing is Off\n");
+    }
+
+    status = DtXMLIntervalSeconds(o_interval, &interval);
+    if (status > 0) {
+        printf("Error: unable to convert Interval %s to seconds, error: %i\n", o_interval, status);
+        return status;
+    }
+    else if (status == -1) {
+        printf("Warning: converting %s to seconds may not give what you expect\n", o_interval);
+    }
+
+    /* Connect to the hsm */
+    status = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
+    if (status) {
+        hsm_error_message = hsm_get_error(ctx);
+        if (hsm_error_message) {
+            printf("%s\n", hsm_error_message);
+            free(hsm_error_message);
+        } else {
+            /* decode the error code ourselves 
+               TODO find if there is a better way to do this (and can all of these be returned? are there others?) */
+            switch (status) {
+                case HSM_ERROR:
+                    printf("hsm_open() result: HSM error\n");
+                    break;
+                case HSM_PIN_INCORRECT:
+                    printf("hsm_open() result: incorrect PIN\n");
+                    break;
+                case HSM_CONFIG_FILE_ERROR:
+                    printf("hsm_open() result: config file error\n");
+                    break;
+                case HSM_REPOSITORY_NOT_FOUND:
+                    printf("hsm_open() result: repository not found\n");
+                    break;
+                case HSM_NO_REPOSITORIES:
+                    printf("hsm_open() result: no repositories\n");
+                    break;
+                default:
+                    printf("hsm_open() result: %d", status);
+            }
+        }
+        exit(1);
+    }
+    printf("HSM opened successfully.\n");
+    ctx = hsm_create_context();
+
+    rightnow = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (rightnow == NULL) {
+        printf("Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
+
+    if (policy->ksk->sm == policy->zsk->sm && policy->ksk->bits == policy->zsk->bits && policy->ksk->algorithm == policy->zsk->algorithm) {
+        same_keys = 1;
+    } else {
+        same_keys = 0;
+    }
+    /* Find out how many ksk keys are needed for the POLICY */
+    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, interval, &ksks_needed);
+    if (status != 0) {
+        printf("Could not predict ksk requirement for next interval for %s\n", policy->name);
+        /* TODO exit? continue with next policy? */
+    }
+    /* Find out how many suitable keys we have */
+    status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, interval, rightnow, &keys_in_queue);
+    if (status != 0) {
+        printf("Could not count current ksk numbers for policy %s\n", policy->name);
+        /* TODO exit? continue with next policy? */
+    }
+
+    new_keys = ksks_needed - keys_in_queue;
+    /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
+
+    /* TODO: check capacity of HSM will not be exceeded */
+    /* Create the required keys */
+    for (i=new_keys ; i > 0 ; i--){
+        if (policy->ksk->algorithm == 5 || policy->ksk->algorithm == 7 ) {
+            key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
+            if (key) {
+                /* log_msg(config, LOG_INFO,"Created key in HSM"); */
+            } else {
+                printf("Error creating key in repository %s\n", policy->ksk->sm_name);
+                hsm_error_message = hsm_get_error(ctx);
+                if (hsm_error_message) {
+                    printf("%s\n", hsm_error_message);
+                    free(hsm_error_message);
+                }
+                exit(1);
+            }
+            id = hsm_get_key_id(ctx, key);
+            status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
+            if (status != 0) {
+                printf("Error creating key in Database\n");
+                hsm_error_message = hsm_get_error(ctx);
+                if (hsm_error_message) {
+                    printf("%s\n", hsm_error_message);
+                    free(hsm_error_message);
+                }
+                exit(1);
+            }
+            printf("Created KSK size: %i, alg: %i with id: %s in HSM: %s and database.\n", policy->ksk->bits,
+                    policy->ksk->algorithm, id, policy->ksk->sm_name);
+            free(id);
+        } else {
+            printf("Key algorithm %d unsupported by libhsm.\n", policy->ksk->algorithm);
+            exit(1);
+        }
+    }
+
+    /* Find out how many zsk keys are needed */
+    keys_in_queue = 0;
+    new_keys = 0;
+
+    /* Find out how many zsk keys are needed for the POLICY */
+    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, interval, &zsks_needed);
+    if (status != 0) {
+        printf("Could not predict zsk requirement for next interval for %s\n", policy->name);
+        /* TODO exit? continue with next policy? */
+    }
+    /* Find out how many suitable keys we have */
+    status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, interval, rightnow, &keys_in_queue);
+    if (status != 0) {
+        printf("Could not count current zsk numbers for policy %s\n", policy->name);
+        /* TODO exit? continue with next policy? */
+    }
+    /* Might have to account for ksks */
+    if (same_keys) {
+        keys_in_queue -= ksks_needed;
+    }
+
+    new_keys = zsks_needed - keys_in_queue;
+    /* fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
+
+    /* TODO: check capacity of HSM will not be exceeded */
+    for (i = new_keys ; i > 0 ; i--) {
+        if (policy->zsk->algorithm == 5 || policy->zsk->algorithm == 7) {
+            key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
+            if (key) {
+                /* log_msg(config, LOG_INFO,"Created key in HSM"); */
+            } else {
+                printf("Error creating key in repository %s\n", policy->zsk->sm_name);
+                hsm_error_message = hsm_get_error(ctx);
+                if (hsm_error_message) {
+                    printf("%s\n", hsm_error_message);
+                    free(hsm_error_message);
+                }
+                exit(1);
+            }
+            id = hsm_get_key_id(ctx, key);
+            status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
+            if (status != 0) {
+                printf("Error creating key in Database\n");
+                hsm_error_message = hsm_get_error(ctx);
+                if (hsm_error_message) {
+                    printf("%s\n", hsm_error_message);
+                    free(hsm_error_message);
+                }
+                exit(1);
+            }
+            printf("Created ZSK size: %i, alg: %i with id: %s in HSM: %s and database.\n", policy->zsk->bits,
+                    policy->zsk->algorithm, id, policy->zsk->sm_name);
+            free(id);
+        } else {
+            printf("Key algorithm %d unsupported by libhsm.\n", policy->zsk->algorithm);
+            exit(1);
+        }
+    }
+    StrFree(rightnow);
+
+    /*
+     * Destroy HSM context
+     */
+    if (ctx) {
+        hsm_destroy_context(ctx);
+    }
+    status = hsm_close();
+    printf("all done! hsm_close result: %d\n", status);
+
+    KsmPolicyFree(policy);
+    
+    return status;
+}
+
