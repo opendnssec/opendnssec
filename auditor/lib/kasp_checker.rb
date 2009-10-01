@@ -266,10 +266,16 @@ module KASPChecker
             if (jitter_secs > (max_default_denial * 0.5))
               log(LOG_WARNING, "Jitter time (#{jitter_secs} seconds) is large" +
                  " compared to Validity/#{max_default_denial_type} " +
-                 "(#{max_default_denial} seconds) for #{name} policy")
+                 "(#{max_default_denial} seconds) for #{name} policy in #{kasp_file}")
             end
 
-            #   5. @TODO@ Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
+            #   5. Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
+            inception_offset_secs = get_duration(policy, 'Signatures/InceptionOffset')
+            if (inception_offset_secs > (10 * 60))
+              log(LOG_WARNING, "InceptionOffset is higher than expected " +
+                  "(#{inception_offset_secs} seconds) for #{name} policy in #{kasp_file}")
+            end
+
             #   6. @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
             #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
             #   8. @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
