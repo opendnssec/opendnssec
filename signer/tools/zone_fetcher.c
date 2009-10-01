@@ -788,6 +788,12 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     ldns_rr* axfr_rr = NULL, *soa_rr = NULL;
     uint32_t new_serial = 0;
     ldns_pkt* qpkt = NULL, *apkt;
+    FILE* fd = NULL;
+    char* lock_ext = ".axfr.lock";
+    char* axfr_ext = ".axfr";
+    char* axfr_file;
+    int soa_seen = 0;
+    size_t strlength = 0;
 
     /* soa serial query */
     qpkt = ldns_pkt_query_new(ldns_rdf_clone(zone->dname),
@@ -818,6 +824,22 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     }
 
     if (serial < new_serial) {
+        if (zone && zone->input_file) {
+            strlength = strlen(zone->input_file) + strlen(lock_ext);
+            axfr_file = (char*) malloc(sizeof(char) * (strlength + 1));
+            if (axfr_file) {
+                axfr_file = strcpy(axfr_file, zone->input_file);
+                axfr_file = strcat(axfr_file, lock_ext);
+                fd = fopen(axfr_file, "w");
+                free((void*)axfr_file);
+            }
+        }
+        if (!fd) {
+            log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
+                axfr_file);
+            return;
+        }
+
         status = ldns_axfr_start(config->xfrd, zone->dname, LDNS_RR_CLASS_IN);
         if (status != LDNS_STATUS_OK) {
             if (errno != EINPROGRESS) {
@@ -832,14 +854,23 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
         }
         else {
             while (axfr_rr) {
-                ldns_rr_print(stdout, axfr_rr);
+                if (ldns_rr_get_type(axfr_rr) == LDNS_RR_TYPE_SOA) {
+                    if (!soa_seen) {
+                        soa_seen = 1;
+                        ldns_rr_print(fd, axfr_rr);
+                    }
+                } else {
+                    ldns_rr_print(fd, axfr_rr);
+                }
                 ldns_rr_free(axfr_rr);
                 axfr_rr = ldns_axfr_next(config->xfrd);
             }
-
             log_msg(LOG_INFO, "zone fetcher transferred zone %s serial %u "
                 "successfully", zone->name, new_serial);
+
+            /* moving and kicking */
         }
+        fclose(fd);
     }
     else {
         log_msg(LOG_INFO, "zone fetcher zone %s is already up to date, "
@@ -1285,6 +1316,6 @@ main(int argc, char **argv)
 /* [TODO]:
  * - Hook into signer engine
  * - Store AXFR on disk
- * - TSIG
  * - PrivDrop
+ * - fork it?
  */
