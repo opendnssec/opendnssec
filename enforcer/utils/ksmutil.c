@@ -34,6 +34,9 @@
 
 #include "config.h"
 
+#include <getopt.h>
+#include <string.h>
+
 #include <ksm/ksmutil.h>
 #include <ksm/ksm.h>
 #include <ksm/database.h>
@@ -72,6 +75,23 @@ extern int optind;
 const char *progname = "ksmutil";
 char *config = (char *) CONFIG_FILE;
 
+char *o_keystate = NULL;
+char *o_algo = NULL;
+char *o_input = NULL;
+char *o_cka_id = NULL;
+char *o_size = NULL;
+char *o_output = NULL;
+char *o_policy = NULL;
+char *o_repository = NULL;
+char *o_signerconf = NULL;
+char *o_keytype = NULL;
+char *o_time = NULL;
+char *o_retire = NULL;
+char *o_zone = NULL;
+static int all_flag = 0;
+static int ds_flag = 0;
+static int verbose_flag = 0;
+
     void
 usage_setup ()
 {
@@ -89,94 +109,159 @@ usage_update ()
 }
 
     void
-usage_addzone ()
+usage_zoneadd ()
 {
     fprintf(stderr,
-            "  addzone zone [policy] [path_to_signerconf.xml] [input] [output]\n"
-            "\tAdd a zone to the config and database\n");
+            "  zone add\n"
+            "\t--zone <zone>                     aka -z\n"
+            "\t[--policy <policy>]               aka -p\n"
+            "\t[--signerconf <signerconf.xml>]   aka -s\n"
+            "\t[--input <input>]                 aka -i\n"
+            "\t[--output <output>]               aka -o\n");
 }
 
     void
-usage_delzone ()
+usage_zonedel ()
 {
     fprintf(stderr,
-            "  [-a] delzone zone\n"
-            "\tDelete a zone from the config and database\n"
-            "\t-a will delete all zones from the config and database\n");
+            "  zone delete\n"
+            "\t--zone <zone> | --all             aka -z / -a\n");
 }
 
     void
-usage_listzone ()
+usage_zonelist ()
 {
     fprintf(stderr,
-            "  listzone\n"
-            "\tList zones from the zonelist.xml in config\n");
-}
-
-   void
-usage_export ()
-{
-    fprintf(stderr,
-            "  [-a] export policy [policy_name]\n"
-            "\texport all policies [or named policy] to xml\n"
-            "\t\t-a: export all policies; omit policy_name\n");
-
-    fprintf(stderr,
-            "  [-a] export [keys|ds] [zone_name] [state] [keytype]\n"
-            "\tkeys: export dnskey RRs for named zone [KSK unless ZSK specified]\n"
-            "\tds: export ds RRs for named zone [KSK unless ZSK specified]\n"
-            "\t\t-a: export all keys or ds records; omit zone_name\n"
-            "\t\t[state] can be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED (default = ACTIVE)\n");
+            "  zone list\n");
 }
 
     void
-usage_rollzone ()
+usage_zone ()
 {
     fprintf(stderr,
-            "  rollzone zone [KSK|ZSK]\n"
-            "\tRollover a zone (may roll all zones on that policy)\n");
+            "usage: %s [-f config] zone \n\n",
+	    progname);
+    usage_zoneadd ();
+    usage_zonedel ();
+    usage_zonelist ();
 }
 
     void
-usage_rollpolicy ()
+usage_repo ()
 {
     fprintf(stderr,
-            "  rollpolicy policy [KSK|ZSK]\n"
-            "\tRollover all zones on a policy\n");
+            "  repository list\n");
+}
+
+    void
+usage_policyexport ()
+{
+    fprintf(stderr,
+            "  policy export --policy [policy_name]\n"
+            "\t--policy [policy_name] | --all\n");
+}
+
+    void
+usage_policylist ()
+{
+    fprintf(stderr,
+            "  policy list\n");
+}
+
+    void
+usage_policy ()
+{
+    fprintf(stderr,
+            "usage: %s [-f config] \n\n",
+	    progname);
+    usage_policyexport ();
+    usage_policylist ();
+}
+
+    void
+usage_keylist ()
+{
+    fprintf(stderr,
+            "  key list\n"
+            "\t[--verbose]\n"
+            "\t--zone <zone> | --all             aka -z / -a\n"
+            "\t(will appear soon:\n"
+            "\t[--keystate <state>]              aka -e\n"
+            "\t[--keytype <type>]                aka -t\n"
+            "\t[--ds]                            aka -d)\n");
+}
+
+    void
+usage_keyexport ()
+{
+    fprintf(stderr,
+            "  key export\n"
+            "\t--zone <zone> | --all             aka -z / -a\n"
+            "\t[--keystate <state>]              aka -e\n"
+            "\t[--keytype <type>]                aka -t\n"
+            "\t[--ds]                            aka -d\n");
+}
+
+    void
+usage_keyimport ()
+{
+    fprintf(stderr,
+            "  key import\n"
+            "\t--cka_id <CKA_ID>                 aka -k\n"
+            "\t--repository <repository>         aka -r\n"
+            "\t--zone <zone>                     aka -z\n"
+            "\t--bits <size>                     aka -b\n"
+            "\t--algorithm <algorithm>           aka -g\n"
+            "\t--keystate <state>                aka -e\n"
+            "\t--keytype <type>                  aka -t\n"
+            "\t--time <time>                     aka -w\n"
+            "\t[--retire <retire>]               aka -y\n");
+}
+
+    void
+usage_keyroll ()
+{
+    fprintf(stderr,
+            "  key rollover\n"
+            "\t[--zone zone] [--keytype <type>]\n"
+		    "\t[--policy policy] [--keytype <type>]\n");
+}
+
+    void
+usage_keypurge ()
+{
+    fprintf(stderr,
+            "  key purge\n\t--zone <zone>                   aka -z\n"
+	        "  key purge\n\t--policy <policy>               aka -p\n");
+}
+
+    void
+usage_key ()
+{
+    fprintf(stderr,
+            "usage: %s [-f config] \n\n",
+	    progname);
+    usage_keylist ();
+    usage_keyexport ();
+    usage_keyimport ();
+    usage_keyroll ();
+    usage_keypurge ();
 }
 
     void
 usage_backup ()
 {
     fprintf(stderr,
-            "  backup [done|list] [repository]\n"
-            "\tIndicate that a key backup has been performed or list dates when backups were made\n");
+            "  backup done\n\t--repository <repository>     aka -r\n"
+	        "  backup list\n\t--repository <repository>     aka -r\n");
 }
 
     void
-usage_list ()
+usage_rollover ()
 {
     fprintf(stderr,
-            "  [-l] list [repositories|policies|keys|rollovers|backups] [qualifier]\n"
-            "\tList specified aspect of the current configuration\n"
-            "\t-l returns more information on keys\n");
-}
-
-    void
-usage_import ()
-{
-    fprintf(stderr,
-            "  import key <CKA_ID> <HSM> <ZONE> <KEYTYPE> <SIZE> <ALGORITHM> <STATE> <TIME> [RETIRE_TIME]\n"
-            "\tImport a key into ksm\n"
-            "\t\t<KEYTYPE> can be one of KSK or ZSK\n"
-            "\t\t<SIZE> size of key in bits\n");
-
-    fprintf(stderr,
-            "\t\t<ALGORITHM> can be one of RSASHA1 or RSASHA1-NSEC3-SHA1 (5 or 7)\n"
-            "\t\t<STATE> can be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n"
-            "\t\t<TIME> is the date when it entered the state given\n"
-            "\t\t[RETIRE TIME] is the date when it should retire (if entered as active)\n"
-            "\t\t\t(possible time format YYYY[MM[DD[HH[MM[SS]]]]] use ksmutil -h for full list\n");
+            "  rollover list\n"
+            "\t[--zone <zone>]\n");
 }
 
     void
@@ -188,15 +273,20 @@ usage ()
 
     usage_setup ();
     usage_update ();
-    usage_addzone ();
-    usage_delzone ();
-    usage_listzone ();
-    usage_export ();
-    usage_rollzone ();
-    usage_rollpolicy ();
+    usage_zoneadd ();
+    usage_zonedel ();
+    usage_zonelist ();
+    usage_repo ();
+    usage_policyexport ();
+    usage_policylist ();
+    usage_keylist ();
+    usage_keyexport ();
+    usage_keyimport ();
+    usage_keyroll ();
+    usage_keypurge ();
     usage_backup ();
-    usage_list ();
-    usage_import ();
+    usage_rollover ();
+
 }
 
     void
@@ -218,11 +308,26 @@ date_help()
         "\t... and the distinction between them is given by the location of the\n"
         "\thyphens.\n");
 }
+
+void
+states_help()
+{
+    fprintf(stderr,
+            "key states: GENERATED|PUBLISHED|READY|ACTIVE|RETIRED|REVOKED|DEAD\n");
+}
+
+void
+types_help()
+{
+    fprintf(stderr,
+            "key types:  KSK|ZSK\n");
+}
+
 /* 
  * Do initial import of config files into database
  */
     int
-cmd_setup (int argc, char *argv[])
+cmd_setup ()
 {
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
@@ -444,7 +549,7 @@ cmd_setup (int argc, char *argv[])
  *         1 on error (and will have sent a message to stdout)
  */
     int
-cmd_update (int argc, char *argv[])
+cmd_update ()
 {
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
@@ -521,7 +626,7 @@ cmd_update (int argc, char *argv[])
  *
  */
     int
-cmd_addzone (int argc, char *argv[])
+cmd_addzone ()
 {
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
@@ -531,8 +636,6 @@ cmd_addzone (int argc, char *argv[])
     char* backup_filename = NULL;
     char* db_backup_filename = NULL;
     /* The settings that we need for the zone */
-    char* zone_name = NULL;
-    char* policy_name = NULL;
     char* sig_conf_name = NULL;
     char* input_name = NULL;
     char* output_name = NULL;
@@ -552,51 +655,57 @@ cmd_addzone (int argc, char *argv[])
     char *path = getenv("PWD");
 
     /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc != 1 && argc != 5) {
-        usage_addzone();
-        return -1;
+    if (o_zone == NULL) {
+        printf("Please specify a zone with the --zone option\n");
+        usage_zone();
+        return(1);
     }
-    StrAppend(&zone_name, argv[0]);
-    if (argc == 5) {
-        StrAppend(&policy_name, argv[1]);
 
-        /*
-         * Turn any relative paths into absolute (sort of, not the neatest output)
-         */
-        if (*argv[2] != '/') {
-            StrAppend(&sig_conf_name, path);
-            StrAppend(&sig_conf_name, "/");
-        }
-        StrAppend(&sig_conf_name, argv[2]);
-
-        if (*argv[3] != '/') {
-            StrAppend(&input_name, path);
-            StrAppend(&input_name, "/");
-        }
-        StrAppend(&input_name, argv[3]);
-
-        if (*argv[4] != '/') {
-            StrAppend(&output_name, path);
-            StrAppend(&output_name, "/");
-        }
-        StrAppend(&output_name, argv[4]);
-
+    if (o_policy == NULL) {
+        o_policy = StrStrdup("default");
     }
-    else {
-        StrAppend(&policy_name, "default");
-
+    /*
+     * Set defaults and turn any relative paths into absolute 
+     * (sort of, not the neatest output)
+     */
+    if (o_signerconf == NULL) {
         StrAppend(&sig_conf_name, LOCALSTATE_DIR);
         StrAppend(&sig_conf_name, "/signconf/");
-        StrAppend(&sig_conf_name, zone_name);
+        StrAppend(&sig_conf_name, o_zone);
         StrAppend(&sig_conf_name, ".xml");
+    }
+    else if (*o_signerconf != '/') {
+        StrAppend(&sig_conf_name, path);
+        StrAppend(&sig_conf_name, "/");
+        StrAppend(&sig_conf_name, o_signerconf);
+    } else {
+        StrAppend(&sig_conf_name, o_signerconf);
+    }
 
+    if (o_input == NULL) {
         StrAppend(&input_name, LOCALSTATE_DIR);
         StrAppend(&input_name, "/unsigned/");
-        StrAppend(&input_name, zone_name);
+        StrAppend(&input_name, o_zone);
+    }
+    else if (*o_input != '/') {
+        StrAppend(&input_name, path);
+        StrAppend(&input_name, "/");
+        StrAppend(&input_name, o_input);
+    } else {
+        StrAppend(&input_name, o_input);
+    }
 
+    if (o_output == NULL) {
         StrAppend(&output_name, LOCALSTATE_DIR);
         StrAppend(&output_name, "/signed/");
-        StrAppend(&output_name, zone_name);
+        StrAppend(&output_name, o_zone);
+    }
+    else if (*o_output != '/') {
+        StrAppend(&output_name, path);
+        StrAppend(&output_name, "/");
+        StrAppend(&output_name, o_output);
+    } else {
+        StrAppend(&output_name, o_output);
     }
 
     /* Set zonelist from the conf.xml that we have got */
@@ -610,7 +719,7 @@ cmd_addzone (int argc, char *argv[])
     /* TODO don't add if it already exists */
     xmlKeepBlanksDefault(0);
     xmlTreeIndentString = "\t";
-    doc = add_zone_node(zonelist_filename, zone_name, policy_name, sig_conf_name, input_name, output_name);
+    doc = add_zone_node(zonelist_filename, o_zone, o_policy, sig_conf_name, input_name, output_name);
     if (doc == NULL) {
         return(1);
     }
@@ -622,8 +731,6 @@ cmd_addzone (int argc, char *argv[])
     StrFree(backup_filename);
     if (status != 0) {
         StrFree(zonelist_filename);
-        StrFree(zone_name);
-        StrFree(policy_name);
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
@@ -636,8 +743,6 @@ cmd_addzone (int argc, char *argv[])
     if (status == -1) {
         printf("couldn't save zonelist\n");
         StrFree(zonelist_filename);
-        StrFree(zone_name);
-        StrFree(policy_name);
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
@@ -718,16 +823,16 @@ cmd_addzone (int argc, char *argv[])
     }
 
     /* Now stick this zone into the database */
-    status = KsmPolicyIdFromName(policy_name, &policy_id);
+    status = KsmPolicyIdFromName(o_policy, &policy_id);
     if (status != 0) {
-        printf("Error, can't find policy : %s\n", policy_name);
+        printf("Error, can't find policy : %s\n", o_policy);
         printf("Failed to update zones\n");
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
         return(1);
     }
-    status = KsmImportZone(zone_name, policy_id);
+    status = KsmImportZone(o_zone, policy_id);
     if (status != 0) {
         printf("Failed to Import zone\n");
         if (DbFlavour() == SQLITE_DB) {
@@ -737,7 +842,7 @@ cmd_addzone (int argc, char *argv[])
     }
 
     /* If need be (keys shared on policy) link existing keys to zone */
-    status = KsmLinkKeys(zone_name, policy_id);
+    status = KsmLinkKeys(o_zone, policy_id);
     if (status != 0) {
         printf("Failed to Link Keys to zone\n");
         if (DbFlavour() == SQLITE_DB) {
@@ -757,7 +862,7 @@ cmd_addzone (int argc, char *argv[])
         fclose(lock_fd);
     }
 
-    printf("Imported zone: %s\n", zone_name);
+    printf("Imported zone: %s\n", o_zone);
 
     DbDisconnect(dbhandle);
 
@@ -768,13 +873,12 @@ cmd_addzone (int argc, char *argv[])
  * Delete a zone from the config 
  */
     int
-cmd_delzone (int argc, char *argv[], int do_all)
+cmd_delzone ()
 {
 
     char* zonelist_filename = NULL;
     char* backup_filename = NULL;
     /* The settings that we need for the zone */
-    char* zone_name = NULL;
     int zone_id = -1;
     int policy_id = -1;
     int zone_count = -1;
@@ -798,19 +902,18 @@ cmd_delzone (int argc, char *argv[], int do_all)
     char *user = NULL;
     char *password = NULL;
 
-    /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc != 0 && do_all == 1) {
-        usage_delzone();
-        return -1;
+    /* We should either have a policy name or --all but not both */
+    if (all_flag && o_zone != NULL) {
+        printf("can not use --all with --zone\n");
+        return(1);
+    } 
+    else if (!all_flag && o_zone == NULL) {
+        printf("please specify either --zone <zone> or --all\n");
+        return(1);
     }
-    else if (argc != 1 && do_all == 0) {
-        usage_delzone();
-        return -1;
-    }
-    StrAppend(&zone_name, argv[0]);
 
     /* Warn and confirm if they have asked to delete all zones */
-    if (do_all == 1) {
+    if (all_flag == 1) {
         printf("*WARNING* This will remove all zones from OpenDNSSEC; are you sure? [y/N] ");
 
         user_certain = getchar();
@@ -893,7 +996,7 @@ cmd_delzone (int argc, char *argv[], int do_all)
     }
 
     /* Read the file and delete our zone node(s) in memory */
-    doc = del_zone_node(zonelist_filename, zone_name, do_all);
+    doc = del_zone_node(zonelist_filename, o_zone);
     if (doc == NULL) {
         return(1);
     }
@@ -905,7 +1008,6 @@ cmd_delzone (int argc, char *argv[], int do_all)
     StrFree(backup_filename);
     if (status != 0) {
         StrFree(zonelist_filename);
-        StrFree(zone_name);
         return(status);
     }
 
@@ -922,10 +1024,10 @@ cmd_delzone (int argc, char *argv[], int do_all)
      */
 
     /* See if the zone exists and get its ID, assuming we are not deleting all */
-    if (do_all == 0) {
-        status = KsmZoneIdAndPolicyFromName(zone_name, &policy_id, &zone_id);
+    if (all_flag == 0) {
+        status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
         if (status != 0) {
-            printf("Couldn't find zone %s\n", zone_name);
+            printf("Couldn't find zone %s\n", o_zone);
             return(1);
         }
 
@@ -955,7 +1057,7 @@ cmd_delzone (int argc, char *argv[], int do_all)
     }
 
     /* Mark keys as dead if appropriate */
-    if ((shared.value == 1 && zone_count == 1) || shared.value == 0 || do_all == 1) {
+    if ((shared.value == 1 && zone_count == 1) || shared.value == 0 || all_flag == 1) {
         status = KsmMarkKeysAsDead(zone_id);
         if (status != 0) {
             printf("Error: failed to mark keys as dead in database\n");
@@ -970,13 +1072,13 @@ cmd_delzone (int argc, char *argv[], int do_all)
     status = KsmDeleteZone(zone_id);
 
     if (status != 0) {
-        printf("Error: failed to remove zone%s from database\n", (do_all == 1) ? "s" : "");
+        printf("Error: failed to remove zone%s from database\n", (all_flag == 1) ? "s" : "");
         return status;
     }
     
     /* Call the signer_engine_cli to tell it that the zonelist has changed */
     /* TODO Should we do this when we remove a zone? */
-    if (do_all == 0) {
+    if (all_flag == 0) {
         if (system(SIGNER_CLI_COMMAND) != 0)
         {
             printf("Could not call signer_engine\n");
@@ -990,18 +1092,12 @@ cmd_delzone (int argc, char *argv[], int do_all)
  * List a zone 
  */
     int
-cmd_listzone (int argc, char *argv[])
+cmd_listzone ()
 {
 
     char* zonelist_filename = NULL;
 
     int status = 0;
-
-    /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc != 0) {
-        usage_listzone();
-        return -1;
-    }
 
     /* Set zonelist from the conf.xml that we have got */
     status = read_zonelist_filename(&zonelist_filename);
@@ -1018,11 +1114,10 @@ cmd_listzone (int argc, char *argv[])
 
 /*
  * To export: 
- *          policies (all, unless one is named) to xml
  *          keys|ds for zone
  */
     int
-cmd_export (int argc, char *argv[], int do_all)
+cmd_exportkeys ()
 {
     int status = 0;
     /* Database connection details */
@@ -1033,23 +1128,13 @@ cmd_export (int argc, char *argv[], int do_all)
     char *user = NULL;
     char *password = NULL;
 
-    xmlDocPtr doc = xmlNewDoc((const xmlChar *)"1.0");
-    xmlNodePtr root;
-    KSM_POLICY *policy;
-
-    char* subcommand = NULL;
-    char* qualifier = NULL;
-    char* qual2 = NULL;
-    char* qual3 = NULL;
-    char* zone_name = NULL;
-
-    char* case_subcommand = NULL;   /* POLICY, KEYS or DS */
-    char* case_qual2 = NULL;        /* GENERATED, PUBLISHED, READY, ACTIVE or RETIRED */
-    char* case_qual3 = NULL;        /* KSK or ZSK */
-
     int zone_id = -1;
     int state_id = KSM_STATE_ACTIVE;
     int keytype_id = KSM_TYPE_KSK;
+
+    char *case_keytype = NULL;
+    char *case_keystate = NULL;
+    char *zone_name = NULL;
 
     /* Key information */
     hsm_key_t *key = NULL;
@@ -1062,119 +1147,52 @@ cmd_export (int argc, char *argv[], int do_all)
     KSM_KEYDATA data;       /* Data for each key */
     DB_RESULT	result;     /* Result set from query */
 
-    /* 
-       Command should look like:
-       ksmutil export policy [policy_name]
-       call it       subcommand qualifier
-       OR
-       ksmutil export [keys|ds] [zone_name] [state] [keytype]
-       call it        subcommand qualifier   qual2    qual3
-
-       if do_all == 1 then zone_name should be null
-     */  
-
     /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc == 0 || argc >= 5) {
-        usage_export();
-        return -1;
-    }
-    StrAppend(&subcommand, argv[0]);
-
-    /* Check the subcommand */
-    case_subcommand = StrStrdup(subcommand);
-    (void) StrToUpper(case_subcommand);
-    if (strncmp(case_subcommand, "POLICY", 6) != 0 && 
-            strncmp(case_subcommand, "KEYS", 4) != 0 && 
-            strncmp(case_subcommand, "DS", 2)) {
-        printf("Error: Unrecognised command \"export %s\"\n", subcommand);
-        StrFree(case_subcommand);
-        return(1);
-    }
-
-    if (argc >= 2 && do_all == 0) {
-        /* argv[1] should be policy name or zone name */
-        StrAppend(&qualifier, argv[1]);
-    } 
-
-    if (argc >= 2 && do_all == 1) {
-        /* argv[1] should be state or keytype */
-        StrAppend(&qual2, argv[1]);
-        if (strncmp(case_subcommand, "POLICY", 6) == 0) {
-            printf("Error: command \"export polcy\" requires no policy_name with -a flag\n");
-            StrFree(case_subcommand);
-            return(1);
-        }
-    }
-    if (argc >= 3 && do_all == 0) {
-        /* argv[2] should be state or keytype */
-        StrAppend(&qual2, argv[2]);
-
-        if (strncmp(case_subcommand, "POLICY", 6) == 0) {
-            printf("Error: command \"export polcy\" requires one policy name at a time\n");
-            StrFree(case_subcommand);
-            return(1);
-        }
-    }
-    if (argc >= 3 && do_all == 1) {
-        /* argv[2] should be keytype */
-        StrAppend(&qual3, argv[2]);
-    }
-    if (argc == 4) {
-        /* argv[3] should be keytype */
-        StrAppend(&qual3, argv[3]);
-    }
-
-    /* Check qual2, can be state or keytype */
-    if (qual2 != NULL) {
-        case_qual2 = StrStrdup(qual2);
-        (void) StrToUpper(case_qual2);
-        if (strncmp(case_qual2, "KSK", 3) == 0 || strncmp(qual2, "257", 3) == 0) {
-            keytype_id = KSM_TYPE_KSK;
-        }
-        else if (strncmp(case_qual2, "ZSK", 3) == 0 || strncmp(qual2, "256", 3) == 0) {
-            keytype_id = KSM_TYPE_ZSK;
-        }
-        else if (strncmp(case_qual2, "GENERATE", 8) == 0 || strncmp(qual2, "1", 1) == 0) {
+    /* Check keystate, can be state or keytype */
+    if (o_keystate != NULL) {
+        case_keystate = StrStrdup(o_keystate);
+        (void) StrToUpper(case_keystate);
+        if (strncmp(case_keystate, "GENERATE", 8) == 0 || strncmp(o_keystate, "1", 1) == 0) {
             state_id = KSM_STATE_GENERATE;
         }
-        else if (strncmp(case_qual2, "PUBLISH", 7) == 0 || strncmp(qual2, "2", 1) == 0) {
+        else if (strncmp(case_keystate, "PUBLISH", 7) == 0 || strncmp(o_keystate, "2", 1) == 0) {
             state_id =  KSM_STATE_PUBLISH;
         }
-        else if (strncmp(case_qual2, "READY", 5) == 0 || strncmp(qual2, "3", 1) == 0) {
+        else if (strncmp(case_keystate, "READY", 5) == 0 || strncmp(o_keystate, "3", 1) == 0) {
             state_id =  KSM_STATE_READY;
         }
-        else if (strncmp(case_qual2, "ACTIVE", 6) == 0 || strncmp(qual2, "4", 1) == 0) {
+        else if (strncmp(case_keystate, "ACTIVE", 6) == 0 || strncmp(o_keystate, "4", 1) == 0) {
             state_id =  KSM_STATE_ACTIVE;
         }
-        else if (strncmp(case_qual2, "RETIRE", 6) == 0 || strncmp(qual2, "5", 1) == 0) {
+        else if (strncmp(case_keystate, "RETIRE", 6) == 0 || strncmp(o_keystate, "5", 1) == 0) {
             state_id =  KSM_STATE_DEAD;
         }
         else {
-            printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", qual2);
+            printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", o_keystate);
 
-            StrFree(case_qual2);
+            StrFree(case_keystate);
             return(1);
         }
-        StrFree(case_qual2);
+        StrFree(case_keystate);
     }
 
-    /* Check qual3, can be keytype */
-    if (qual3 != NULL) {
-        case_qual3 = StrStrdup(qual3);
-        (void) StrToUpper(case_qual3);
-        if (strncmp(case_qual3, "KSK", 3) == 0 || strncmp(qual3, "257", 3) == 0) {
+    /* Check keytype */
+    if (o_keytype != NULL) {
+        case_keytype = StrStrdup(o_keytype);
+        (void) StrToUpper(case_keytype);
+        if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(o_keytype, "257", 3) == 0) {
             keytype_id = KSM_TYPE_KSK;
         }
-        else if (strncmp(case_qual3, "ZSK", 3) == 0 || strncmp(qual3, "256", 3) == 0) {
+        else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(o_keytype, "256", 3) == 0) {
             keytype_id = KSM_TYPE_ZSK;
         }
         else {
-            printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", qual3);
+            printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", o_keytype);
 
-            StrFree(case_qual3);
+            StrFree(case_keytype);
             return(1);
         }
-        StrFree(case_qual3);
+        StrFree(case_keytype);
     }
 
     /* Read the database details out of conf.xml */
@@ -1202,164 +1220,220 @@ cmd_export (int argc, char *argv[], int do_all)
         return(1);
     }
   
-    if (strncmp(case_subcommand, "POLICY", 6) == 0) {
-        /* Make some space for the policy */ 
-        policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
-        policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
-        policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
-        policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
-        policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
-        policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
-        policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-        policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-        policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
-        policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-        /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
-        policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
-        policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-        policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
-        if (policy->signer == NULL || policy->signature == NULL || 
-                policy->zone == NULL || policy->parent == NULL ||
-                policy->keys == NULL ||
-                policy->ksk == NULL || policy->zsk == NULL || 
-                policy->denial == NULL || policy->enforcer == NULL) {
-            fprintf(stderr, "Malloc for policy struct failed\n");
-            exit(1);
+
+    /* check that the zone name is valid and use it to get some ids */
+    if (o_zone != NULL) {
+        status = KsmZoneIdFromName(o_zone, &zone_id);
+        if (status != 0) {
+            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+            return(status);
+        }
+    }
+
+    status = hsm_open(config, hsm_prompt_pin, NULL);
+    if (status) {
+        hsm_print_error(NULL);
+        exit(-1);
+    }
+
+    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, state_id, 0);
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype_id, 1);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 2);
+    }
+    DqsEnd(&sql);
+
+    status = KsmKeyInitSql(&result, sql);
+    if (status == 0) {
+        status = KsmKey(result, &data);
+        while (status == 0) {
+
+            /* Code to output the DNSKEY record  (stolen from hsmutil) */
+            key = hsm_find_key_by_id(NULL, data.location);
+
+            if (!key) {
+                printf("Key %s in DB but not repository\n", data.location);
+                return -1;
+            }
+
+            sign_params = hsm_sign_params_new();
+            /* If zone_id == -1 then we need to work out the zone name from data.zone_id */
+            if (zone_id == -1) {
+                status = KsmZoneNameFromId(data.zone_id, &zone_name);
+                if (status != 0) {
+                    printf("Error: unable to find zone name for id %d\n", zone_id);
+                    return(status);
+                }
+                sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone_name);
+                StrFree(zone_name);
+            }
+            else {
+                sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, o_zone);
+            }
+
+            sign_params->algorithm = data.algorithm;
+            sign_params->flags = LDNS_KEY_ZONE_KEY;
+            if (keytype_id == KSM_TYPE_KSK) {
+                sign_params->flags += LDNS_KEY_SEP_KEY;
+            }
+            dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+            sign_params->keytag = ldns_calc_keytag(dnskey_rr);
+
+            if (ds_flag == 0) {
+                printf("\n;%s %s DNSKEY record:\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                ldns_rr_print(stdout, dnskey_rr);
+            }
+            else {
+
+                printf("\n;%s %s DS record (SHA1):\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
+                ldns_rr_print(stdout, ds_sha1_rr);
+
+                printf("\n;%s %s DS record (SHA256):\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
+                ldns_rr_print(stdout, ds_sha256_rr);
+            }
+
+            status = KsmKey(result, &data);
+
+        }
+        /* Convert EOF status to success */
+        if (status == -1) {
+            status = 0;
         }
 
-        /* Setup doc with a root node of <KASP> */
-        xmlKeepBlanksDefault(0);
-        xmlTreeIndentString = "    ";
-        root = xmlNewDocNode(doc, NULL, (const xmlChar *)"KASP", NULL);
-        (void) xmlDocSetRootElement(doc, root);
+        KsmKeyEnd(result);
+    }
 
-        /* Read policies (all if policy_name == NULL; else named policy only) */
-        status = KsmPolicyInit(&result, qualifier);
-        if (status == 0) {
-            /* get the first policy */
+    /* TODO when the above is working then replicate it twice for the case where keytype == -1 */
+
+    hsm_sign_params_free(sign_params);
+    if (dnskey_rr != NULL) {
+        ldns_rr_free(dnskey_rr);
+    }
+    if (ds_sha1_rr != NULL) {
+        ldns_rr_free(ds_sha1_rr);
+    }
+    if (ds_sha256_rr != NULL) {
+        ldns_rr_free(ds_sha256_rr);
+    }
+    hsm_key_free(key);
+
+    DbDisconnect(dbhandle);
+
+    return 0;
+}
+
+/*
+ * To export: 
+ *          policies (all, unless one is named) to xml
+ */
+    int
+cmd_exportpolicy ()
+{
+    int status = 0;
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    xmlDocPtr doc = xmlNewDoc((const xmlChar *)"1.0");
+    xmlNodePtr root;
+    KSM_POLICY *policy;
+
+    DB_RESULT	result;     /* Result set from query */
+
+    /* We should either have a policy name or --all but not both */
+    if (all_flag && o_policy != NULL) {
+        printf("can not use --all with --policy\n");
+        return(1);
+    } 
+    else if (!all_flag && o_policy == NULL) {
+        printf("please specify either --policy <policy> or --all\n");
+        return(1);
+    } 
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        return(1);
+    }
+
+    /* Make some space for the policy */ 
+    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
+    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
+    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
+    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
+    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
+    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
+    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
+    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
+    /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
+    policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
+    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
+    policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
+    if (policy->signer == NULL || policy->signature == NULL || 
+            policy->zone == NULL || policy->parent == NULL ||
+            policy->keys == NULL ||
+            policy->ksk == NULL || policy->zsk == NULL || 
+            policy->denial == NULL || policy->enforcer == NULL) {
+        fprintf(stderr, "Malloc for policy struct failed\n");
+        exit(1);
+    }
+
+    /* Setup doc with a root node of <KASP> */
+    xmlKeepBlanksDefault(0);
+    xmlTreeIndentString = "    ";
+    root = xmlNewDocNode(doc, NULL, (const xmlChar *)"KASP", NULL);
+    (void) xmlDocSetRootElement(doc, root);
+
+    /* Read policies (all if policy_name == NULL; else named policy only) */
+    status = KsmPolicyInit(&result, o_policy);
+    if (status == 0) {
+        /* get the first policy */
+        status = KsmPolicy(result, policy);
+        KsmPolicyRead(policy);
+
+        while (status == 0) {
+            append_policy(doc, policy);
+
+            /* get next policy */
             status = KsmPolicy(result, policy);
             KsmPolicyRead(policy);
 
-            while (status == 0) {
-                append_policy(doc, policy);
-
-                /* get next policy */
-                status = KsmPolicy(result, policy);
-                KsmPolicyRead(policy);
-
-            }
         }
-
-        xmlSaveFormatFile("-", doc, 1);
-
-        xmlFreeDoc(doc);
-        KsmPolicyFree(policy);
-    }
-    else {
-        /* ASKED TO EXPORT KEY OR DS RECORD */
-
-        /* check that the zone name is valid and use it to get some ids */
-        if (qualifier != NULL) {
-            status = KsmZoneIdFromName(qualifier, &zone_id);
-            if (status != 0) {
-                printf("Error: unable to find a zone named \"%s\" in database\n", qualifier);
-                return(status);
-            }
-        }
-
-        status = hsm_open(config, hsm_prompt_pin, NULL);
-        if (status) {
-            hsm_print_error(NULL);
-            exit(-1);
-        }
-
-        sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
-        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, state_id, 0);
-        DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype_id, 1);
-        if (zone_id != -1) {
-            DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 2);
-        }
-        DqsEnd(&sql);
-
-        status = KsmKeyInitSql(&result, sql);
-        if (status == 0) {
-            status = KsmKey(result, &data);
-            while (status == 0) {
-
-                /* Code to output the DNSKEY record  (stolen from hsmutil) */
-                key = hsm_find_key_by_id(NULL, data.location);
-
-                if (!key) {
-                    printf("Key %s in DB but not repository\n", data.location);
-                    return -1;
-                }
-
-                sign_params = hsm_sign_params_new();
-                /* If zone_id == -1 then we need to work out the zone name from data.zone_id */
-                if (zone_id == -1) {
-                    status = KsmZoneNameFromId(data.zone_id, &zone_name);
-                    if (status != 0) {
-                        printf("Error: unable to find zone name for id %d\n", zone_id);
-                        return(status);
-                    }
-                    sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone_name);
-                    StrFree(zone_name);
-                }
-                else {
-                    sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, qualifier);
-                }
-
-                sign_params->algorithm = data.algorithm;
-                sign_params->flags = LDNS_KEY_ZONE_KEY;
-                if (keytype_id == KSM_TYPE_KSK) {
-                    sign_params->flags += LDNS_KEY_SEP_KEY;
-                }
-                dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
-                sign_params->keytag = ldns_calc_keytag(dnskey_rr);
-
-                if (strncmp(case_subcommand, "KEYS", 4) == 0) {
-                    printf("\n;%s %s DNSKEY record:\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
-                    ldns_rr_print(stdout, dnskey_rr);
-                }
-                else {
-
-                    printf("\n;%s %s DS record (SHA1):\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
-                    ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
-                    ldns_rr_print(stdout, ds_sha1_rr);
-
-                    printf("\n;%s %s DS record (SHA256):\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
-                    ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
-                    ldns_rr_print(stdout, ds_sha256_rr);
-                }
-
-                status = KsmKey(result, &data);
-
-            }
-            /* Convert EOF status to success */
-            if (status == -1) {
-                status = 0;
-            }
-
-            KsmKeyEnd(result);
-        }
-
-        /* TODO when the above is working then replicate it twice for the case where keytype == -1 */
-
-        hsm_sign_params_free(sign_params);
-        if (dnskey_rr != NULL) {
-            ldns_rr_free(dnskey_rr);
-        }
-        if (ds_sha1_rr != NULL) {
-            ldns_rr_free(ds_sha1_rr);
-        }
-        if (ds_sha256_rr != NULL) {
-            ldns_rr_free(ds_sha256_rr);
-        }
-        hsm_key_free(key);
-
     }
 
-    StrFree(case_subcommand);
+    xmlSaveFormatFile("-", doc, 1);
+
+    xmlFreeDoc(doc);
+    KsmPolicyFree(policy);
+
     DbDisconnect(dbhandle);
 
     return 0;
@@ -1369,7 +1443,7 @@ cmd_export (int argc, char *argv[], int do_all)
  * To rollover a zone (or all zones on a policy if keys are shared)
  */
     int
-cmd_rollzone (int argc, char *argv[])
+cmd_rollzone ()
 {
     /* Database connection details */
     DB_HANDLE	dbhandle;
@@ -1385,7 +1459,6 @@ cmd_rollzone (int argc, char *argv[])
     DB_RESULT	result;         /* Result of parameter query */
     KSM_PARAMETER data;         /* Parameter information */
     
-    char* zone_name = NULL;
     int key_type = 0;
     int zone_id = 0;
     int policy_id = 0;
@@ -1401,16 +1474,10 @@ cmd_rollzone (int argc, char *argv[])
         exit(1);
     }
 
-    if (argc > 2 || argc == 0) {
-        usage_rollzone();
-        return -1;
-    }
-
-    /* See what arguments we were passed */
-    StrAppend(&zone_name, argv[0]);
-    if (argc == 2) {
-        StrToLower(argv[1]);
-        key_type = KsmKeywordTypeNameToValue(argv[1]);
+    /* If we were given a keytype, turn it into a number */
+    if (o_keytype != NULL) {
+        StrToLower(o_keytype);
+        key_type = KsmKeywordTypeNameToValue(o_keytype);
     }
 
     /* Read the database details out of conf.xml */
@@ -1479,7 +1546,7 @@ cmd_rollzone (int argc, char *argv[])
         return(status);
     }
 
-    status = KsmZoneIdAndPolicyFromName(zone_name, &policy_id, &zone_id);
+    status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
     if (status != 0) {
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
@@ -1520,23 +1587,11 @@ cmd_rollzone (int argc, char *argv[])
 
     /* retire the active key(s) */
     if (key_type == 0) {
-        /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_ZSK, datetime, zone_id);*/
         KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone_id, 0);
-        /*if (status != 0) {
-            return(status);
-        }*/
-        /*status = KsmRequestSetActiveExpectedRetire(KSM_TYPE_KSK, datetime, zone_id);*/
         KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone_id, 0);
-        /*if (status != 0) {
-            return(status);
-        }*/
     }
     else {
-        /*status = KsmRequestSetActiveExpectedRetire(key_type, datetime, zone_id);*/
         KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_id, 0);
-        /*if (status != 0) {
-            return(status);
-        }*/
     }
 
     /* Release sqlite lock file (if we have it) */
@@ -1565,7 +1620,7 @@ cmd_rollzone (int argc, char *argv[])
  * To rollover all zones on a policy
  */
     int
-cmd_rollpolicy (int argc, char *argv[])
+cmd_rollpolicy ()
 {
     /* Database connection details */
     DB_HANDLE	dbhandle;
@@ -1584,7 +1639,6 @@ cmd_rollpolicy (int argc, char *argv[])
     DB_RESULT   result2;    /* For looping over the zones on the policy */
 	KSM_ZONE*   zone;
     
-    char* policy_name = NULL;
     int key_type = 0;
     int policy_id = 0;
 
@@ -1599,16 +1653,10 @@ cmd_rollpolicy (int argc, char *argv[])
         exit(1);
     }
 
-    if (argc > 2 || argc == 0) {
-        usage_rollpolicy();
-        return -1;
-    }
-
-    /* See what arguments we were passed */
-    StrAppend(&policy_name, argv[0]);
-    if (argc == 2) {
-        StrToLower(argv[1]);
-        key_type = KsmKeywordTypeNameToValue(argv[1]);
+    /* If we were given a keytype, turn it into a number */
+    if (o_keytype != NULL) {
+        StrToLower(o_keytype);
+        key_type = KsmKeywordTypeNameToValue(o_keytype);
     }
 
     /* Read the database details out of conf.xml */
@@ -1677,7 +1725,7 @@ cmd_rollpolicy (int argc, char *argv[])
         return(status);
     }
 
-    status = KsmPolicyIdFromName(policy_name, &policy_id);
+    status = KsmPolicyIdFromName(o_policy, &policy_id);
     if (status != 0) {
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
@@ -1778,13 +1826,10 @@ cmd_rollpolicy (int argc, char *argv[])
  * note that fact that a backup has been performed
  */
     int
-cmd_backup (int argc, char *argv[])
+cmd_backup ()
 {
     int status = 0;
 
-    char* subcommand = NULL;
-    char* case_subcommand = NULL;   /* Upper case copy of subcommand */
-    char* repository = NULL;
     int repo_id = -1;
 
     /* Database connection details */
@@ -1804,17 +1849,6 @@ cmd_backup (int argc, char *argv[])
     if (datetime == NULL) {
         printf("Couldn't turn \"now\" into a date, quitting...\n");
         exit(1);
-    }
-
-    /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc != 1 && argc != 2) {
-        usage_backup();
-        return -1;
-    }
-
-    StrAppend(&subcommand, argv[0]);
-    if (argc == 2) {
-        StrAppend(&repository, argv[1]);
     }
 
     /* Read the database details out of conf.xml */
@@ -1888,49 +1922,25 @@ cmd_backup (int argc, char *argv[])
     }
 
     /* Turn repo name into an id (if provided) */
-    if (repository != NULL) {
-        status = KsmSmIdFromName(repository, &repo_id);
+    if (o_repository != NULL) {
+        status = KsmSmIdFromName(o_repository, &repo_id);
         if (status != 0) {
-            printf("Error: unable to find a repository named \"%s\" in database\n", repository);
+            printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
             return status;
         }
     }
 
-    case_subcommand = StrStrdup(subcommand);
-    (void) StrToUpper(case_subcommand);
-    if (!strncmp(case_subcommand, "DONE", 4)) {
-
-        status = KsmMarkBackup(repo_id, datetime);
-        if (status != 0) {
-            printf("Error: failed to mark backup as done\n");
-            StrFree(case_subcommand);
-            return status;
-        }
-
-        if (repository != NULL) {
-            printf("Marked repository %s as backed up at %s\n", repository, datetime);
-        } else {
-            printf("Marked all repositories as backed up at %s\n", datetime);
-        }
+    status = KsmMarkBackup(repo_id, datetime);
+    if (status != 0) {
+        printf("Error: failed to mark backup as done\n");
+        return status;
     }
-    else if (!strncmp(case_subcommand, "LIST", 4)) {
-        status = KsmListBackups(repo_id);
 
-        if (status != 0) {
-            printf("Error: failed to list backups\n");
-            StrFree(case_subcommand);
-            return status;
-        }
+    if (o_repository != NULL) {
+        printf("Marked repository %s as backed up at %s\n", o_repository, datetime);
+    } else {
+        printf("Marked all repositories as backed up at %s\n", datetime);
     }
-    else {
-        printf("Unknown command \"backup %s\"\n", subcommand);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
-        StrFree(case_subcommand);
-        return(1);
-    }
-    StrFree(case_subcommand);
 
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
@@ -1948,17 +1958,13 @@ cmd_backup (int argc, char *argv[])
 }
 
 /*
- * List whatever was asked of us
+ * List rollovers
  */
     int
-cmd_list (int argc, char *argv[], int long_list)
+cmd_listrolls ()
 {
     int status = 0;
-    int done_something = 0;
 
-    char* subcommand = NULL;    /* What to list */
-    char* case_subcommand = NULL;    /* Upper case copy of subcommand */
-    char* qualifier = NULL;     /* Any further specification */
     int qualifier_id = -1;      /* ID of qualifer (if given) */
 
     /* Database connection details */
@@ -1970,21 +1976,6 @@ cmd_list (int argc, char *argv[], int long_list)
     char *port = NULL;
     char *user = NULL;
     char *password = NULL;
-
-    /* See what arguments we were passed (if any) otherwise we will list everything */
-    if (argc != 0 && argc != 1 && argc != 2) {
-        usage_list();
-        return -1;
-    }
-
-    if (argc == 1) {
-        StrAppend(&subcommand, argv[0]);
-    } else if (argc == 2) {
-        StrAppend(&subcommand, argv[0]);
-        StrAppend(&qualifier, argv[1]);
-    } else {
-        StrAppend(&subcommand, "all");
-    }
 
     /* Read the database details out of conf.xml */
     status = get_db_details(&dbschema, &host, &port, &user, &password);
@@ -2047,122 +2038,464 @@ cmd_list (int argc, char *argv[], int long_list)
         return(1);
     }
 
-    /* Start the work here */
-    case_subcommand = StrStrdup(subcommand);
-    (void) StrToUpper(case_subcommand);
-
-    /* REPOSITORIES */
-    if (!strncmp(case_subcommand, "REP", 3) || !strncmp(case_subcommand, "ALL", 3)) {
-        done_something = 1;
-        printf("Repositories:\n");
-
-        status = KsmListRepos();
-
+    /* Turn zone name into an id (if provided) */
+    if (o_zone != NULL) {
+        status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
-            printf("Error: failed to list repositories\n");
-            StrFree(case_subcommand);
+            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
             return status;
         }
-
-        printf("\n");
     }
-    /* POLICIES */
-    if (!strncmp(case_subcommand, "POL", 3) || !strncmp(case_subcommand, "ALL", 3)) {
-        done_something = 1;
-        printf("Policies:\n");
 
-        status = KsmListPolicies();
+    printf("Rollovers:\n");
 
+    status = KsmListRollovers(qualifier_id);
+
+    if (status != 0) {
+        printf("Error: failed to list rollovers\n");
+        return status;
+    }
+
+    printf("\n");
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
         if (status != 0) {
-            printf("Error: failed to list policies\n");
-            StrFree(case_subcommand);
-            return status;
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
         }
-
-        printf("\n");
+        fclose(lock_fd);
     }
-    /* KEYS */
-    if (!strncmp(case_subcommand, "KEY", 3) || !strncmp(case_subcommand, "ALL", 3)) {
-        done_something = 1;
 
-        /* Turn zone name into an id (if provided) */
-        if (qualifier != NULL) {
-            status = KsmZoneIdFromName(qualifier, &qualifier_id);
-            if (status != 0) {
-                printf("Error: unable to find a zone named \"%s\" in database\n", qualifier);
-                StrFree(case_subcommand);
-                return status;
+    DbDisconnect(dbhandle);
+    return 0;
+}
+
+/*
+ * List backups
+ */
+    int
+cmd_listbackups ()
+{
+    int status = 0;
+
+    int qualifier_id = -1;      /* ID of qualifer (if given) */
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
             }
+            StrFree(dbschema);
+            return(1);
         }
-
-        printf("Keys:\n");
-
-        status = ListKeys(qualifier_id, long_list);
 
         if (status != 0) {
-            printf("Error: failed to list keys\n");
-            StrFree(case_subcommand);
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Turn repo name into an id (if provided) */
+    if (o_repository != NULL) {
+        status = KsmSmIdFromName(o_repository, &qualifier_id);
+        if (status != 0) {
+            printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
             return status;
         }
-
-        printf("\n");
     }
-    /* ROLLOVERS */
-    if (!strncmp(case_subcommand, "ROL", 3) || !strncmp(case_subcommand, "ALL", 3)) {
-        done_something = 1;
 
-        /* Turn zone name into an id (if provided) */
-        if (qualifier != NULL) {
-            status = KsmZoneIdFromName(qualifier, &qualifier_id);
-            if (status != 0) {
-                printf("Error: unable to find a zone named \"%s\" in database\n", qualifier);
-                StrFree(case_subcommand);
-                return status;
+    printf("Backups:\n");
+    status = KsmListBackups(qualifier_id);
+
+    if (status != 0) {
+        printf("Error: failed to list backups\n");
+        return status;
+    }
+    printf("\n");
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
+    DbDisconnect(dbhandle);
+    return 0;
+}
+
+/*
+ * List repos
+ */
+    int
+cmd_listrepo ()
+{
+    int status = 0;
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
             }
+            StrFree(dbschema);
+            return(1);
         }
-
-        printf("Rollovers:\n");
-
-        status = KsmListRollovers(qualifier_id);
 
         if (status != 0) {
-            printf("Error: failed to list rollovers\n");
-            StrFree(case_subcommand);
-            return status;
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
         }
-
-        printf("\n");
     }
-    /* BACKUPS */
-    if (!strncmp(case_subcommand, "BAC", 3) || !strncmp(case_subcommand, "ALL", 3)) {
-        done_something = 1;
 
-        /* Turn repo name into an id (if provided) */
-        if (qualifier != NULL) {
-            status = KsmSmIdFromName(qualifier, &qualifier_id);
-            if (status != 0) {
-                printf("Error: unable to find a repository named \"%s\" in database\n", qualifier);
-                StrFree(case_subcommand);
-                return status;
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    printf("Repositories:\n");
+
+    status = KsmListRepos();
+
+    if (status != 0) {
+        printf("Error: failed to list repositories\n");
+        return status;
+    }
+
+    printf("\n");
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
+    DbDisconnect(dbhandle);
+    return 0;
+}
+
+/*
+ * List policy
+ */
+    int
+cmd_listpolicy ()
+{
+    int status = 0;
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
             }
+            StrFree(dbschema);
+            return(1);
         }
-
-        printf("Backups:\n");
-        status = KsmListBackups(qualifier_id);
 
         if (status != 0) {
-            printf("Error: failed to list backups\n");
-            StrFree(case_subcommand);
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    printf("Policies:\n");
+
+    status = KsmListPolicies();
+
+    if (status != 0) {
+        printf("Error: failed to list policies\n");
+        return status;
+    }
+
+    printf("\n");
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
+    DbDisconnect(dbhandle);
+    return 0;
+}
+
+/*
+ * List keys
+ */
+    int
+cmd_listkeys ()
+{
+    int status = 0;
+    int qualifier_id = -1;
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char* lock_filename;    /* name for the lock file (so we can close it) */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* If we are in sqlite mode then take a lock out on a file to
+       prevent multiple access (not sure that we can be sure that sqlite is
+       safe for multiple processes to access). */
+    if (DbFlavour() == SQLITE_DB) {
+
+        /* set up lock filename (it may have changed?) */
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(dbschema);
+            return(1);
+        }
+
+        if (status != 0) {
+            fclose(lock_fd);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(status);
+        }
+    }
+
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+
+    /* Free these up early */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        return(1);
+    }
+
+    /* Turn zone name into an id (if provided) */
+    if (o_zone != NULL) {
+        status = KsmZoneIdFromName(o_zone, &qualifier_id);
+        if (status != 0) {
+            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
             return status;
         }
-        printf("\n");
     }
-    StrFree(case_subcommand);
 
-    /* If done_something is still 0 then we did not recognise the option provided */
-    if (done_something == 0) {
-        printf("Unknown command \"list %s\"\n", subcommand);
+    printf("Keys:\n");
+
+    status = ListKeys(qualifier_id);
+
+    if (status != 0) {
+        printf("Error: failed to list keys\n");
+        return status;
     }
+
+    printf("\n");
 
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
@@ -2183,20 +2516,9 @@ cmd_list (int argc, char *argv[], int long_list)
  * import a key into the ksm and set its values as specified
  */
     int
-cmd_import (int argc, char *argv[])
+cmd_import ()
 {
     int status = 0;
-
-    char* subcommand = NULL; /* has to be "key" at the moment */
-    char* cka_id = NULL;     /* will become location */
-    char* hsm = NULL;        /* name of repo this key is in */
-    char* zone = NULL;       /* name of zone this key is on */
-    char* keytype = NULL;    /* KSK or ZSK */
-    char* size = NULL;       /* Size of key in bits */
-    char* algorithm = NULL;  /* RSASHA1 or RSASHA1-NSEC3-SHA1 (5 or 7) */
-    char* state = NULL;      /* GENERATED, PUBLISHED, READY, ACTIVE or RETIRED */
-    char* time = NULL;       /* time at which it entered the above state */
-    char* opt_time = NULL;   /* time at which it should retire (maybe provided) */
 
     /* some strings to hold upper case versions of arguments */
     char* case_keytype = NULL;    /* KSK or ZSK */
@@ -2235,31 +2557,6 @@ cmd_import (int argc, char *argv[])
 
     int user_certain;           /* Continue ? */
     
-    /* See what arguments we were passed (if any) otherwise set the defaults */
-    if (argc != 9 && argc != 10) {
-        usage_import();
-        return -1;
-    }
-
-    StrAppend(&subcommand, argv[0]);
-    StrAppend(&cka_id, argv[1]);
-    StrAppend(&hsm, argv[2]);
-    StrAppend(&zone, argv[3]);
-    StrAppend(&keytype, argv[4]);
-    StrAppend(&size, argv[5]);
-    StrAppend(&algorithm, argv[6]);
-    StrAppend(&state, argv[7]);
-    StrAppend(&time, argv[8]);
-    if (argc == 10) {
-        StrAppend(&opt_time, argv[9]);
-    }
-
-    if (strncmp(subcommand, "key", 3) != 0) {
-        printf("Error: Unrecognised command \"import %s\"\n", subcommand);
-        return(1);
-    }
-        
-
     /* Read the database details out of conf.xml */
     status = get_db_details(&dbschema, &host, &port, &user, &password);
     if (status != 0) {
@@ -2329,53 +2626,69 @@ cmd_import (int argc, char *argv[])
         return(1);
     }
 
-    /* check that the repository specified exists */
-    status = KsmSmIdFromName(hsm, &repo_id);
-    if (status != 0) {
-        printf("Error: unable to find a repository named \"%s\" in database\n", hsm);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
+    /* check that the repository is specified and exists */
+    if (o_repository == NULL) {
+        printf("Error: please specify a repository with the --repository flag\n");
+        return(1);
+    } else {
+
+        status = KsmSmIdFromName(o_repository, &repo_id);
+        if (status != 0) {
+            printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return status;
         }
-        return status;
     }
 
     /* check that the zone name is valid and use it to get some ids */
-    status = KsmZoneIdAndPolicyFromName(zone, &policy_id, &zone_id);
-    if (status != 0) {
-        printf("Error: unable to find a zone named \"%s\" in database\n", zone);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
+    if (o_zone == NULL) {
+        printf("Error: please specify a zone with the --zone flag\n");
+        return(1);
+    } else {
+        status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
+        if (status != 0) {
+            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(status);
         }
-        return(status);
     }
 
     /* Check that the cka_id does not exist (in the specified HSM) */
-    status = (KsmCheckHSMkeyID(repo_id, cka_id, &cka_id_exists));
-    if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
-        return(status);
-    }
-    if (cka_id_exists == 1) {
-        printf("Error: key with cka_id \"%s\" already exists in database\n", cka_id);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+    if (o_cka_id == NULL) {
+        printf("Error: please specify a cka_id with the --cka_id flag\n");
         return(1);
+    } else {
+        status = (KsmCheckHSMkeyID(repo_id, o_cka_id, &cka_id_exists));
+        if (status != 0) {
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(status);
+        }
+        if (cka_id_exists == 1) {
+            printf("Error: key with cka_id \"%s\" already exists in database\n", o_cka_id);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            return(1);
+        }
     }
 
     /* Check the Keytype */
-    case_keytype = StrStrdup(keytype);
+    case_keytype = StrStrdup(o_keytype);
     (void) StrToUpper(case_keytype);
-    if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(keytype, "257", 3) == 0) {
+    if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(o_keytype, "257", 3) == 0) {
         keytype_id = 257;
     }
-    else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(keytype, "256", 3) == 0) {
+    else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(o_keytype, "256", 3) == 0) {
         keytype_id = 256;
     }
     else {
-        printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", keytype);
+        printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", o_keytype);
 
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
@@ -2386,10 +2699,10 @@ cmd_import (int argc, char *argv[])
     StrFree(case_keytype);
         
     /* Check the size is numeric */
-    if (StrIsDigits(size)) {
-        status = StrStrtoi(size, &size_int);
+    if (StrIsDigits(o_size)) {
+        status = StrStrtoi(o_size, &size_int);
         if (status != 0) {
-            printf("Error: Unable to convert size \"%s\"; to an integer\n", size);
+            printf("Error: Unable to convert size \"%s\"; to an integer\n", o_size);
             if (DbFlavour() == SQLITE_DB) {
                 fclose(lock_fd);
             }
@@ -2397,7 +2710,7 @@ cmd_import (int argc, char *argv[])
         }
     }
     else {
-        printf("Error: Size \"%s\"; should be numeric only\n", size);
+        printf("Error: Size \"%s\"; should be numeric only\n", o_size);
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
@@ -2405,16 +2718,16 @@ cmd_import (int argc, char *argv[])
     }
         
     /* Check the algorithm */
-    case_algorithm = StrStrdup(algorithm);
+    case_algorithm = StrStrdup(o_algo);
     (void) StrToUpper(case_algorithm);
-    if (strncmp(case_algorithm, "RSASHA1", 7) == 0 || strncmp(algorithm, "5", 1) == 0) {
+    if (strncmp(case_algorithm, "RSASHA1", 7) == 0 || strncmp(o_algo, "5", 1) == 0) {
         algo_id = 5;
     }
-    else if (strncmp(case_algorithm, "RSASHA1-NSEC3-SHA1", 18) == 0 || strncmp(algorithm, "7", 1) == 0) {
+    else if (strncmp(case_algorithm, "RSASHA1-NSEC3-SHA1", 18) == 0 || strncmp(o_algo, "7", 1) == 0) {
         algo_id = 7;
     }
     else {
-        printf("Error: Unrecognised algorithm %s; should be one of RSASHA1 or RSASHA1-NSEC3-SHA1\n", algorithm);
+        printf("Error: Unrecognised algorithm %s; should be one of RSASHA1 or RSASHA1-NSEC3-SHA1\n", o_algo);
 
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
@@ -2425,25 +2738,25 @@ cmd_import (int argc, char *argv[])
     StrFree(case_algorithm);
 
     /* Check the state */
-    case_state = StrStrdup(state);
+    case_state = StrStrdup(o_keystate);
     (void) StrToUpper(case_state);
-    if (strncmp(case_state, "GENERATE", 8) == 0 || strncmp(state, "1", 1) == 0) {
+    if (strncmp(case_state, "GENERATE", 8) == 0 || strncmp(o_keystate, "1", 1) == 0) {
         state_id = 1;
     }
-    else if (strncmp(case_state, "PUBLISH", 7) == 0 || strncmp(state, "2", 1) == 0) {
+    else if (strncmp(case_state, "PUBLISH", 7) == 0 || strncmp(o_keystate, "2", 1) == 0) {
         state_id = 2;
     }
-    else if (strncmp(case_state, "READY", 5) == 0 || strncmp(state, "3", 1) == 0) {
+    else if (strncmp(case_state, "READY", 5) == 0 || strncmp(o_keystate, "3", 1) == 0) {
         state_id = 3;
     }
-    else if (strncmp(case_state, "ACTIVE", 6) == 0 || strncmp(state, "4", 1) == 0) {
+    else if (strncmp(case_state, "ACTIVE", 6) == 0 || strncmp(o_keystate, "4", 1) == 0) {
         state_id = 4;
     }
-    else if (strncmp(case_state, "RETIRE", 6) == 0 || strncmp(state, "5", 1) == 0) {
+    else if (strncmp(case_state, "RETIRE", 6) == 0 || strncmp(o_keystate, "5", 1) == 0) {
         state_id = 5;
     }
     else {
-        printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", state);
+        printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", o_keystate);
 
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
@@ -2454,9 +2767,9 @@ cmd_import (int argc, char *argv[])
     StrFree(case_state);
 
     /* Check, and convert, the time(s) */
-    status = DtGeneral(time, &datetime);
+    status = DtGeneral(o_time, &datetime);
     if (status != 0) {
-        printf("Error: unable to convert \"%s\" into a date\n", time);
+        printf("Error: unable to convert \"%s\" into a date\n", o_time);
         date_help();
 
         if (DbFlavour() == SQLITE_DB) {
@@ -2470,19 +2783,19 @@ cmd_import (int argc, char *argv[])
             datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
     }
 
-    if (opt_time != NULL) {
+    if (o_retire != NULL) {
         /* can only specify a retire time if the key is being inserted in the active state */
         if (state_id != KSM_STATE_ACTIVE) {
-            printf("Error: unable to specify retire time for a key in state \"%s\"\n", state);
+            printf("Error: unable to specify retire time for a key in state \"%s\"\n", o_keystate);
             if (DbFlavour() == SQLITE_DB) {
                 fclose(lock_fd);
             }
             return(status);
         }
 
-        status = DtGeneral(opt_time, &datetime);
+        status = DtGeneral(o_retire, &datetime);
         if (status != 0) {
-            printf("Error: unable to convert retire time \"%s\" into a date\n", opt_time);
+            printf("Error: unable to convert retire time \"%s\" into a date\n", o_retire);
             date_help();
 
             if (DbFlavour() == SQLITE_DB) {
@@ -2529,7 +2842,7 @@ cmd_import (int argc, char *argv[])
     }
 
     /* create basic keypair */
-    status = KsmImportKeyPair(policy_id, cka_id, repo_id, size_int, algo_id, state_id, form_time, form_opt_time, &keypair_id);
+    status = KsmImportKeyPair(policy_id, o_cka_id, repo_id, size_int, algo_id, state_id, form_time, form_opt_time, &keypair_id);
     if (status != 0) {
         printf("Error: couldn't import key\n");
         if (DbFlavour() == SQLITE_DB) {
@@ -2578,25 +2891,92 @@ main (int argc, char *argv[])
 {
     int result;
     int ch;
-    int long_list = 0;
-    int do_all = 0;
     char* case_command = NULL;
+    char* case_verb = "NULL";
 
-    while ((ch = getopt(argc, argv, "af:hl")) != -1) {
+    int option_index = 0;
+    static struct option long_options[] =
+    {
+        {"all",     no_argument,       0, 'a'},
+        {"bits",    required_argument, 0, 'b'},
+        {"config",  required_argument, 0, 'c'},
+        {"ds",      no_argument,       0, 'd'},
+        {"keystate", required_argument, 0, 'e'},
+        {"algorithm", required_argument, 0, 'g'},
+        {"help",    no_argument,       0, 'h'},
+        {"input",   required_argument, 0, 'i'},
+        {"cka_id",  required_argument, 0, 'k'},
+        {"output",  required_argument, 0, 'o'},
+        {"policy",  required_argument, 0, 'p'},
+        {"repository",  required_argument, 0, 'r'},
+        {"signerconf",  required_argument, 0, 's'},
+        {"keytype", required_argument, 0, 't'},
+        {"time",    required_argument, 0, 'w'},
+        {"retire",  required_argument, 0, 'y'},
+        {"verbose", no_argument,       0, 'v'},
+        {"zone",    required_argument, 0, 'z'},
+        {0,0,0,0}
+    };
+
+    while ((ch = getopt_long(argc, argv, "ab:c:de:hi:k:o:p:r:s:t:vw:y:z:", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'a':
-                do_all = 1;
+                all_flag = 1;
                 break;
-            case 'f':
-                config = strdup(optarg);
+            case 'b':
+                o_size = StrStrdup(optarg);
+                break;
+            case 'c':
+                config = StrStrdup(optarg);
+                break;
+            case 'd':
+                ds_flag = 1;
+                break;
+            case 'e':
+                o_keystate = StrStrdup(optarg);
+                break;
+            case 'g':
+                o_algo = StrStrdup(optarg);
                 break;
             case 'h':
                 usage();
+                states_help();
+                types_help();
                 date_help();
                 exit(0);
                 break;
-            case 'l':
-                long_list = 1;
+            case 'i':
+                o_input = StrStrdup(optarg);
+                break;
+            case 'k':
+                o_cka_id = StrStrdup(optarg);
+                break;
+            case 'o':
+                o_output = StrStrdup(optarg);
+                break;
+            case 'p':
+                o_policy = StrStrdup(optarg);
+                break;
+            case 'r':
+                o_repository = StrStrdup(optarg);
+                break;
+            case 's':
+                o_signerconf = StrStrdup(optarg);
+                break;
+            case 't':
+                o_keytype = StrStrdup(optarg);
+                break;
+            case 'v':
+                verbose_flag = 1;
+                break;
+            case 'w':
+                o_time = StrStrdup(optarg);
+                break;
+            case 'y':
+                o_retire = StrStrdup(optarg);
+                break;
+            case 'z':
+                o_zone = StrStrdup(optarg);
                 break;
             default:
                 usage();
@@ -2611,65 +2991,128 @@ main (int argc, char *argv[])
         exit(1);
     }
 
+
     /*(void) KsmInit();*/
     MsgInit();
     MsgRegister(KME_MIN_VALUE, KME_MAX_VALUE, m_messages, ksm_log_msg);
     MsgRegister(DBS_MIN_VALUE, DBS_MAX_VALUE, d_messages, ksm_log_msg);
 
-    /* We may need this when we eventually import/export keys
-       result = hsm_open(config, hsm_prompt_pin, NULL);
-       if (result) {
-       fprintf(stderr, "hsm_open() returned %d\n", result);
-       exit(-1);
-       } */
-
+    /* command should be one of SETUP UPDATE ZONE REPOSITORY POLICY KEY BACKUP or ROLLOVER */
     case_command = StrStrdup(argv[0]);
     (void) StrToUpper(case_command);
+    if (argc > 1) {
+        /* verb should be stuff like ADD, LIST, DELETE, etc */
+        case_verb = StrStrdup(argv[1]);
+        (void) StrToUpper(case_verb);
+    }
 
     if (!strncmp(case_command, "SETUP", 5)) {
         argc --;
         argv ++;
-        result = cmd_setup(argc, argv);
+        result = cmd_setup();
     } else if (!strncmp(case_command, "UPDATE", 6)) {
         argc --;
         argv ++;
-        result = cmd_update(argc, argv);
-    } else if (!strncmp(case_command, "ADDZONE", 7)) {
-        argc --;
-        argv ++;
-        result = cmd_addzone(argc, argv);
-    } else if (!strncmp(case_command, "DELZONE", 7)) {
-        argc --;
-        argv ++;
-        result = cmd_delzone(argc, argv, do_all);
-    } else if (!strncmp(case_command, "LISTZONE", 8)) {
-        argc --;
-        argv ++;
-        result = cmd_listzone(argc, argv);
-    } else if (!strncmp(case_command, "EXPORT", 6)) {
-        argc --;
-        argv ++;
-        result = cmd_export(argc, argv, do_all);
-    } else if (!strncmp(case_command, "ROLLZONE", 8)) {
-        argc --;
-        argv ++;
-        result = cmd_rollzone(argc, argv);
-    } else if (!strncmp(case_command, "ROLLPOLICY", 10)) {
-        argc --;
-        argv ++;
-        result = cmd_rollpolicy(argc, argv);
+        result = cmd_update();
+    } else if (!strncmp(case_command, "ZONE", 4)) {
+        argc --; argc --;
+        argv ++; argv ++;
+
+        /* verb should be add, delete or list */
+        if (!strncmp(case_verb, "ADD", 3)) {
+            result = cmd_addzone();
+        } else if (!strncmp(case_verb, "DELETE", 6)) {
+            result = cmd_delzone();
+        } else if (!strncmp(case_verb, "LIST", 4)) {
+            result = cmd_listzone();
+        } else {
+            printf("Unknown command: zone %s\n", case_verb);
+            usage_zone();
+            result = -1;
+        }
+    } else if (!strncmp(case_command, "REPOSITORY", 10)) {
+        argc --; argc --;
+        argv ++; argv ++;
+        /* verb should be list */
+        if (!strncmp(case_verb, "LIST", 4)) {
+            result = cmd_listrepo();
+        } else {
+            printf("Unknown command: repository %s\n", case_verb);
+            usage_repo();
+            result = -1;
+        }
+    } else if (!strncmp(case_command, "POLICY", 6)) {
+        argc --; argc --;
+        argv ++; argv ++;
+        /* verb should be export or list */
+        if (!strncmp(case_verb, "EXPORT", 6)) {
+            result = cmd_exportpolicy();
+        } else if (!strncmp(case_verb, "LIST", 4)) {
+            result = cmd_listpolicy();
+        } else {
+            printf("Unknown command: policy %s\n", case_verb);
+            usage_policy();
+            result = -1;
+        }
+    } else if (!strncmp(case_command, "KEY", 3)) {
+        argc --; argc --;
+        argv ++; argv ++;
+        /* verb should be list, export import, rollover or purge */
+        if (!strncmp(case_verb, "LIST", 4)) {
+            result = cmd_listkeys();
+        }
+        else if (!strncmp(case_verb, "EXPORT", 6)) {
+            result = cmd_exportkeys();
+        }
+        else if (!strncmp(case_verb, "IMPORT", 6)) {
+            result = cmd_import();
+        }
+        else if (!strncmp(case_verb, "ROLLOVER", 8)) {
+            /* Are we rolling a zone or a whole policy? */
+            if (o_zone != NULL && o_policy == NULL) {
+                result = cmd_rollzone();
+            }
+            else if (o_zone == NULL && o_policy != NULL) {
+                result = cmd_rollpolicy();
+            }
+            else {
+                printf("Please provide either a zone OR a policy to rollover\n");
+                usage_keyroll();
+                result = -1;
+            }
+        }
+        else if (!strncmp(case_verb, "PURGE", 5)) {
+            printf("key purge not implemented\n");
+            result = -1;
+        } else {
+            printf("Unknown command: key %s\n", case_verb);
+            usage_key();
+            result = -1;
+        }
     } else if (!strncmp(case_command, "BACKUP", 6)) {
-        argc --;
-        argv ++;
-        result = cmd_backup(argc, argv);
-    } else if (!strncmp(case_command, "LIST", 4)) {
-        argc --;
-        argv ++;
-        result = cmd_list(argc, argv, long_list);
-    } else if (!strncmp(case_command, "IMPORT", 6)) {
-        argc --;
-        argv ++;
-        result = cmd_import(argc, argv);
+        argc --; argc --;
+        argv ++; argv ++;
+        /* verb should be done or list */
+        if (!strncmp(case_verb, "DONE", 4)) {
+            result = cmd_backup();
+        }
+        else if (!strncmp(case_verb, "LIST", 4)) {
+            result = cmd_listbackups();
+        } else {
+            printf("Unknown command: backup %s\n", case_verb);
+            usage_backup();
+            result = -1;
+        }
+    } else if (!strncmp(case_command, "ROLLOVER", 8)) {
+        argc --; argc --;
+        argv ++; argv ++;
+        if (!strncmp(case_verb, "LIST", 4)) {
+            result = cmd_listrolls();
+        } else {
+            printf("Unknown command: rollover %s\n", case_verb);
+            usage_rollover();
+            result = -1;
+        }
     } else {
         printf("Unknown command: %s\n", argv[0]);
         usage();
@@ -4234,8 +4677,7 @@ xmlDocPtr add_zone_node(const char *docname,
 }
 
 xmlDocPtr del_zone_node(const char *docname,
-                        const char *zone_name,
-                        int do_all)
+                        const char *zone_name)
 {
     xmlDocPtr doc;
     xmlNodePtr root;
@@ -4259,7 +4701,7 @@ xmlDocPtr del_zone_node(const char *docname,
     }
 
     /* If we are removing all zones then just replace the root node with an empty one */
-    if (do_all == 1) {
+    if (all_flag == 1) {
         cur = root->children;
         while (cur != NULL)
         {
@@ -4552,7 +4994,7 @@ ksm_log_msg(const char *format)
  *                          other on fail
  */
 
-int ListKeys(int zone_id, int long_list)
+int ListKeys(int zone_id)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -4577,7 +5019,7 @@ int ListKeys(int zone_id, int long_list)
     ldns_rr *dnskey_rr = NULL;
     hsm_sign_params_t *sign_params = NULL;
 
-    if (long_list) {
+    if (verbose_flag) {
         /* connect to the HSM */
         status = hsm_open(config, hsm_prompt_pin, NULL);
         if (status) {
@@ -4601,7 +5043,7 @@ int ListKeys(int zone_id, int long_list)
 
     if (status == 0) {
         status = DbFetchRow(result, &row);
-        if (long_list == 1) {
+        if (verbose_flag == 1) {
             printf("Zone:                           Keytype:      State:    Date of next transition:  CKA_ID:                           Repository:                       Keytag:\n");
         }
         else {
@@ -4638,7 +5080,7 @@ int ListKeys(int zone_id, int long_list)
                 done_row = 1;
             }
 
-            if (done_row == 1 && long_list == 1) {
+            if (done_row == 1 && verbose_flag == 1) {
                 key = hsm_find_key_by_id(NULL, temp_loc);
                 if (!key) {
                     printf("%-33s %s NOT IN HSM\n", temp_loc, temp_hsm);

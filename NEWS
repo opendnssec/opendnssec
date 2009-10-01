@@ -1,6 +1,8 @@
 $Id$
 
 OpenDNSSEC trunk
+* ksmutil command line changes. Most commands have changed slightly, some have
+  changed lots. See http://svn.opendnssec.org/docs/command-tools-syntax.txt .
 * enforcer database now has a version number. If it differs from a #define in the
   code then the software will not connect to the database.
 * "ksmutil list keys" now displays the keytag if the -l flag is passed to it.

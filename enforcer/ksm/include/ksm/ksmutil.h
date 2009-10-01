@@ -73,13 +73,12 @@ xmlDocPtr add_zone_node(const char *docname,
                         const char *input_name, 
                         const char *output_name);
 xmlDocPtr del_zone_node(const char *docname,
-                        const char *zone_name,
-                        int do_all);
+                        const char *zone_name);
 void list_zone_node(const char *docname);
 int append_policy(xmlDocPtr doc, KSM_POLICY *policy);
 int printKey(void* context, KSM_KEYDATA* key_data);
 void ksm_log_msg(const char *format);
-int ListKeys(int zone_id, int long_list);
+int ListKeys(int zone_id);
 
 #ifdef __cplusplus
 }
