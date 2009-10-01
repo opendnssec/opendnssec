@@ -168,6 +168,7 @@ module KASPChecker
           repositories = {}
           doc.elements.each('Configuration/RepositoryList/Repository') {|repository|
             name = repository.attributes['name']
+            # @TODO@ Check if two repositories exist with the same name
             mod = repository.elements['Module'].text
             #   5. Check that the shared library (Module) exists.
             if (!File.exist?((mod+"").untaint))
@@ -226,21 +227,17 @@ module KASPChecker
           policy_names = []
           doc.elements.each('KASP/Policy') {|policy|
             name = policy.attributes['name']
+            # @TODO@ Check if two policies exist with the same name
             policy_names.push(name)
 
             #   2. For all policies, check that the "Re-sign" interval is less than the "Refresh" interval.
-            resign = policy.elements['Signatures/Resign'].text
-            # Now get the numSeconds from the XSDDuration format
-            resign_secs = KASPAuditor::Config.xsd_duration_to_seconds(resign)
-            refresh = policy.elements['Signatures/Refresh'].text
-            # Now get the numSeconds from the XSDDuration format
-            refresh_secs = KASPAuditor::Config.xsd_duration_to_seconds(refresh)
+            resign_secs = get_duration(policy,'Signatures/Resign')
+            refresh_secs = get_duration(policy, 'Signatures/Refresh')
             if (refresh_secs <= resign_secs)
               log(LOG_ERR, "The Refresh interval (#{refresh_secs}) for #{name}" +
                   " Policy in #{kasp_file} is less than the Resign interval" +
                   " (#{resign_secs})")
             end
-
 
             #   3. @TODO@ Ensure that the "Default" and "Denial" validity periods are greater than the "Refresh" interval.
             #   4. @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
@@ -270,6 +267,18 @@ module KASPChecker
         }
       rescue Errno::ENOENT
         log(LOG_ERR, "ERROR - Can't find config file : #{kasp_file}")
+      end
+    end
+
+    def get_duration(doc, element)
+      begin
+        text = doc.elements[element].text
+        # Now get the numSeconds from the XSDDuration format
+        duration = KASPAuditor::Config.xsd_duration_to_seconds(text)
+        return duration
+      rescue Exception
+        log(LOG_ERR, "Can't find #{element} in #{doc.attributes['name']}")
+        return 0
       end
     end
   end
