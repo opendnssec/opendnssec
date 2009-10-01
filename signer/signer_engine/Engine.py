@@ -67,8 +67,8 @@ MSGLEN = 1024
 class Engine:
     """Main signer engine class"""
     def __init__(self, config_file_name):
-        self.config_file_name = config_file_name
         self.config = EngineConfiguration(config_file_name)
+        self.config_file_name = self.config.config_file_name
         self.config.check_config()
         self.task_queue = TaskQueue()
         self.workers = []
@@ -81,10 +81,19 @@ class Engine:
         syslog.openlog("OpenDNSSEC signer engine",
                        0, self.config.syslog_facility)
 
+    def get_tool_filename(self, tool_name):
+        """Returns the complete path to the tool file tool_name"""
+        return self.config.tools_dir + os.sep + tool_name
+
     def get_zonelist_filename(self):
         """Returns the absolute pathname to the file containing the
         zone list xml data"""
         return self.config.zonelist_file
+
+    def get_zonefetch_filename(self):
+        """Returns the absolute pathname to the file containing the
+        zone fetch xml data"""
+        return self.config.zonefetch_file
         
     def add_worker(self, name):
         """Add a worker to the engine"""
@@ -118,6 +127,20 @@ class Engine:
         while i <= self.config.worker_threads:
             self.add_worker(str(i))
             i += 1
+
+    def start_zonefetcher(self):
+        """Kicks off the zone fetcher daemon."""
+        result = 0
+        zone_file = self.get_zonelist_filename()
+        cfg_file = self.get_zonefetch_filename()
+        cmd = [ self.get_tool_filename("zone_fetcher"),
+                "-c", cfg_file,
+                "-z", zone_file,
+                "-d",
+                "-f", self.config.syslog_facility_string
+        ]
+
+        zone_fetcher_c = Util.run_tool(cmd)
 
     def setup_engine(self):
         # create socket to listen for commands on
@@ -406,10 +429,21 @@ class Engine:
             #time.sleep(1)
             syslog.syslog(syslog.LOG_INFO, "worker " + worker.name + " finished")
 
+    def stop_zonefetcher(self):
+        """Stop the zone fetcher daemon"""
+        pid_file = self.config.zonefetch_pidfile
+        pf = open(pid_file, 'r')
+        pid = pf.read()
+        syslog.syslog(syslog.LOG_INFO, "send kill to pid " + pid)
+        pf.close()
+        os.kill(int(pid), signal.SIGHUP)
+
     def stop_engine(self):
-        """Stop the workers and quit the engine"""
+        """Stop the workers, the zone fetcher and quit the engine"""
         syslog.syslog(syslog.LOG_INFO, "call stop_workers()")
         self.stop_workers()
+        if self.config.zonefetch_file is not None:
+            self.stop_zonefetcher()
         if self.command_socket:
             syslog.syslog(syslog.LOG_INFO, "shut down command socket")
             self.command_socket.shutdown(socket.SHUT_RDWR)
@@ -623,6 +657,8 @@ def signal_handler_stop(signum, frame):
                 engine.stop_engine()
                 engine = Engine(config_file)
                 engine.read_zonelist()
+                if engine.config.zonefetch_file is not None:
+                    engine.start_zonefetcher()
                 engine.start_workers()
                 engine.setup_engine()
                 engine.run()
@@ -692,6 +728,8 @@ def main():
             daemonize_engine()
         else:
             print "running as pid " + str(os.getpid())
+        if engine.config.zonefetch_file is not None:
+            engine.start_zonefetcher()
         engine.start_workers()
         engine.run()
         # just to be sure

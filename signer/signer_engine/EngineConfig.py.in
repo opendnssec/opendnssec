@@ -55,6 +55,8 @@ class EngineConfiguration:
     def __init__(self, config_file_name):
         if not config_file_name:
             config_file_name = "@sysconfdir@/opendnssec/conf.xml".replace("${prefix}", "@prefix@")
+        self.config_file_name = config_file_name
+        self.zonefetch_pidfile = "@localstatedir@/run/opendnssec/zone_fetcher.pid".replace("${prefix}", "@prefix@")
         self.zonefetch_file = None
         self.zonelist_file = None
         self.zone_tmp_dir = None
@@ -96,6 +98,7 @@ class EngineConfiguration:
                                xml_blob, False)
         if not syslog_facility_string:
             syslog_facility_string = "LOG_DAEMON"
+        self.syslog_facility_string = syslog_facility_string
         self.syslog_facility = \
              Util.syslog_facility_int(syslog_facility_string)
 

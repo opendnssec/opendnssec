@@ -539,7 +539,7 @@ setup_daemon(config_type* config)
         case 0: /* child */
             break;
         case -1: /* error */
-            log_msg(LOG_CRIT, "zone fetche fork() failed: %s",
+            log_msg(LOG_CRIT, "zone fetcher fork() failed: %s",
                 strerror(errno));
             exit(EXIT_FAILURE);
         default: /* parent is done */
