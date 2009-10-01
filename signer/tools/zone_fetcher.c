@@ -68,7 +68,6 @@ new_zone(char* zone_name, char* input_file)
     zlt->name = strdup(zone_name);
     zlt->dname = ldns_dname_new_frm_str(zlt->name);
     zlt->input_file = strdup(input_file);
-    zlt->do_axfr = 0;
     zlt->next = NULL;
     return zlt;
 }
@@ -804,16 +803,17 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             ldns_get_errorstr_by_id(status));
         return;
     }
-    ldns_pkt_print(stdout, apkt);
     ldns_pkt_free(qpkt);
     if (ldns_pkt_ancount(apkt) == 1) {
         soa_rr = ldns_rr_list_rr(ldns_pkt_answer(apkt), 0);
         new_serial = ldns_rdf2native_int32(ldns_rr_rdf(soa_rr, 2));
+        ldns_pkt_free(apkt);
     }
     else {
         log_msg(LOG_ERR, "zone fetcher saw SOA response with ANCOUNT != 1"
             "Aborting AXFR");
         /* retry? */
+        ldns_pkt_free(apkt);
         return;
     }
 
@@ -856,14 +856,13 @@ init_xfrd(config_type* config)
 
     ldns_resolver* xfrd = ldns_resolver_new();
     if (config) {
-        if (config->use_tsig && 0) {
+        if (config->use_tsig) {
             ldns_resolver_set_tsig_keyname(xfrd, config->tsig_name);
             ldns_resolver_set_tsig_algorithm(xfrd, config->tsig_algo);
             ldns_resolver_set_tsig_keydata(xfrd, config->tsig_secret);
         }
         ldns_resolver_set_port(xfrd, atoi(DNS_PORT_STRING));
         ldns_resolver_set_recursive(xfrd, 0);
-        ldns_resolver_set_debug(xfrd, 1);
 
         servers = config->serverlist;
         while (servers) {

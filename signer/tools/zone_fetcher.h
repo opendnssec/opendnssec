@@ -71,7 +71,6 @@ struct zonelist_struct
     const char* name;
     ldns_rdf* dname;
     char* input_file;
-    int do_axfr;
     zonelist_type* next;
 };
 
