@@ -179,7 +179,7 @@ module KASPChecker
             end
 
             tokenlabel = repository.elements['TokenLabel'].text
-            print "Checking Module #{mod} and TokenLabel #{tokenlabel} in Repository #{name}\n"
+#            print "Checking Module #{mod} and TokenLabel #{tokenlabel} in Repository #{name}\n"
             # Now check if repositories already includes the [mod, tokenlabel] hash
             if (repositories.values.include?([mod, tokenlabel]))
               log(LOG_ERR, "Multiple Repositories in #{conf_file} have the same Module (#{mod}) and TokenLabel (#{tokenlabel}), for Repository #{name}")
@@ -237,8 +237,8 @@ module KASPChecker
             policy_names.push(name)
 
             #   2. For all policies, check that the "Re-sign" interval is less than the "Refresh" interval.
-            resign_secs = get_duration(policy,'Signatures/Resign')
-            refresh_secs = get_duration(policy, 'Signatures/Refresh')
+            resign_secs = get_duration(policy,'Signatures/Resign', kasp_file)
+            refresh_secs = get_duration(policy, 'Signatures/Refresh', kasp_file)
             if (refresh_secs <= resign_secs)
               log(LOG_ERR, "The Refresh interval (#{refresh_secs} seconds) for " +
                   "#{name} Policy in #{kasp_file} is less than the Resign interval" +
@@ -246,60 +246,76 @@ module KASPChecker
             end
 
             #   3. Ensure that the "Default" and "Denial" validity periods are greater than the "Refresh" interval.
-            default_secs = get_duration(policy, 'Signatures/Validity/Default')
-            denial_secs = get_duration(policy, 'Signatures/Validity/Denial')
+            default_secs = get_duration(policy, 'Signatures/Validity/Default', kasp_file)
+            denial_secs = get_duration(policy, 'Signatures/Validity/Denial', kasp_file)
             if (default_secs <= refresh_secs)
               log(LOG_ERR, "Validity/Default (#{default_secs} seconds) for #{name} " +
-                "policy in #{kasp_file} is less than the Refresh interval " +
-                "(#{refresh_secs} seconds)")
+                  "policy in #{kasp_file} is less than the Refresh interval " +
+                  "(#{refresh_secs} seconds)")
             end
             if (denial_secs <= refresh_secs)
               log(LOG_ERR, "Validity/Denial (#{denial_secs} seconds) for #{name} " +
-                "policy in #{kasp_file} is less than the Refresh interval " +
-                "(#{refresh_secs} seconds)")
+                  "policy in #{kasp_file} is less than the Refresh interval " +
+                  "(#{refresh_secs} seconds)")
             end
 
             #   4. Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period. (This is a bit arbitrary. The point is to get the user to realise that there will be a large spread in the signature lifetimes.)
-            jitter_secs = get_duration(policy, 'Signatures/Jitter')
+            jitter_secs = get_duration(policy, 'Signatures/Jitter', kasp_file)
             max_default_denial=[default_secs, denial_secs].max
             max_default_denial_type = max_default_denial == default_secs ? "Default" : "Denial"
             if (jitter_secs > (max_default_denial * 0.5))
               log(LOG_WARNING, "Jitter time (#{jitter_secs} seconds) is large" +
-                 " compared to Validity/#{max_default_denial_type} " +
-                 "(#{max_default_denial} seconds) for #{name} policy in #{kasp_file}")
+                  " compared to Validity/#{max_default_denial_type} " +
+                  "(#{max_default_denial} seconds) for #{name} policy in #{kasp_file}")
             end
 
             #   5. Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
-            inception_offset_secs = get_duration(policy, 'Signatures/InceptionOffset')
+            inception_offset_secs = get_duration(policy, 'Signatures/InceptionOffset', kasp_file)
             if (inception_offset_secs > (10 * 60))
               log(LOG_WARNING, "InceptionOffset is higher than expected " +
                   "(#{inception_offset_secs} seconds) for #{name} policy in #{kasp_file}")
             end
 
             #   6. Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
-            publish_safety_secs = get_duration(policy, 'Keys/PublishSafety')
-            retire_safety_secs = get_duration(policy, 'Keys/RetireSafety')
-            ttl_secs = get_duration(policy, 'Keys/TTL')
+            publish_safety_secs = get_duration(policy, 'Keys/PublishSafety', kasp_file)
+            retire_safety_secs = get_duration(policy, 'Keys/RetireSafety', kasp_file)
+            ttl_secs = get_duration(policy, 'Keys/TTL', kasp_file)
             [{publish_safety_secs , "Keys/PublishSafety"}, {retire_safety_secs, "Keys/RetireSafety"}].each {|pair|
               pair.each {|time, label|
                 if (time < (0.1 * ttl_secs))
                   log(LOG_WARNING, "#{label} (#{time} seconds) in #{name} policy" +
-                    " in #{kasp_file} is less than 0.1 * TTL (#{ttl_secs} seconds)")
+                      " in #{kasp_file} is less than 0.1 * TTL (#{ttl_secs} seconds)")
                 end
                 if (time > (5 * ttl_secs))
                   log(LOG_WARNING, "#{label} (#{time} seconds) in #{name} policy" +
-                    " in #{kasp_file} is more than 5 * TTL (#{ttl_secs} seconds)")
+                      " in #{kasp_file} is more than 5 * TTL (#{ttl_secs} seconds)")
                 end
-                }
+              }
             }
 
 
-            # For all keys...
-            #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
-            #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
-            #  10. @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+            # For all keys (if any are configured)...
+            max = 9999999999999999
+            ksk_lifetime = max
+            zsk_lifetime = max
+            policy.each_element('//ZSK') {|zsk|
+              check_key(zsk, "ZSK", policy, kasp_file)
+              zskl = get_duration(zsk, 'Lifetime', kasp_file)
+              zsk_lifetime = [zsk_lifetime, zskl].min
+            }
+            policy.each_element('//KSK') {|ksk|
+              check_key(ksk, "KSK", policy, kasp_file)
+              kskl = get_duration(ksk, 'Lifetime', kasp_file)
+              ksk_lifetime = [ksk_lifetime, kskl].min
+            }
 
-            #  11. @TODO@ Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
+            #  11. Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
+            if ((ksk_lifetime != max) && (zsk_lifetime != max) && (ksk_lifetime < zsk_lifetime))
+              log(LOG_WARNING, "KSK minimum lifetime (#{ksk_lifetime} seconds)" +
+                  " is less than ZSK minimum lifetime (#{zsk_lifetime} seconds)"+
+                  " for #{name} Policy in #{kasp_file}")
+            end
+
             #  12. @TODO@ Check that the value of the "Serial" tag is valid.
             #   8. @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
           }
@@ -323,14 +339,20 @@ module KASPChecker
       end
     end
 
-    def get_duration(doc, element)
+    def check_key(key, type, policy, kasp_file)
+      #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
+      #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
+      #  10. @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+    end
+
+    def get_duration(doc, element, kasp_file)
       begin
         text = doc.elements[element].text
         # Now get the numSeconds from the XSDDuration format
         duration = KASPAuditor::Config.xsd_duration_to_seconds(text)
         return duration
       rescue Exception
-        log(LOG_ERR, "Can't find #{element} in #{doc.attributes['name']}")
+        log(LOG_ERR, "Can't find #{element} in #{doc.attributes['name']} in #{kasp_file}")
         return 0
       end
     end
