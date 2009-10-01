@@ -4,7 +4,11 @@ This code should work but is not fully tested
 
 Introduction
 ------------
-The communicator is the program which takes the policy and key information from the KASP database and turns it into an xml file that the signer can use.
+There are 2 main jobs that the enforcerd has to perform:
+1) keygeneration - i.e. make sure that there are enough keys for all of the zones
+and
+2) communication - i.e. take the policy and key information from the KASP database 
+                        and turn it into an xml file that the signer can use.
 
 Pre-requisites
 --------------
@@ -32,16 +36,15 @@ The following options can be passed to configure;
 --with-libhsm=<dir>             Where you installed libhsm
 
 
-Running the Communicator
+Running enforcerd
 ------------------------
 
-Once built the communicated binary takes the following options:
--n <NAME>       name of KASP DB user
--s <SCHEMA>     schema to use in the KASP DB (or DB file if using sqlite)
--p <PASS>       password for DB schema user 
--h <HOST>       host machine of DB 
--P <FILE>       pid file to use
+Once built the enforcerd binary takes the following options:
+-1              run once and then exit
 -d              debug mode (do not daemonise)
+-P <FILE>       overwrite the default pidfile location
+-h -?           show help and exit
+-v              show version and exit
 
 Your LD_LIBRARY_PATH environment variable will need to include the libksm libs.
 
