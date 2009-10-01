@@ -197,10 +197,11 @@ module KASPChecker
           }
 
         }
+      return ((kasp_file+"").untaint)
       rescue Errno::ENOENT
         log(LOG_ERR, "ERROR - Can't find config file : #{conf_file}")
+        return nil
       end
-      return ((kasp_file+"").untaint)
     end
 
     def check_duration_element(doc, name, filename)
