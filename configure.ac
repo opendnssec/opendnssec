@@ -45,6 +45,6 @@ if test "${enable_auditor}" = yes; then
 	AC_CONFIG_SUBDIRS([ auditor ])
 fi
 
-AC_CONFIG_FILES([Makefile po/Makefile.in])
+AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
