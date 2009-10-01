@@ -165,11 +165,11 @@ module KASPChecker
           # So, for each Repository, get the Name, Module and TokenLabel.
           # Then make sure that there are no repositories which share both Module
           #  and TokenLabel
-          repositories = {}
+          @repositories = {}
           doc.elements.each('Configuration/RepositoryList/Repository') {|repository|
             name = repository.attributes['name']
             # Check if two repositories exist with the same name
-            if (repositories.keys.include?name)
+            if (@repositories.keys.include?name)
               log(LOG_ERR, "Two repositories exist with the same name (#{name})")
             end
             mod = repository.elements['Module'].text
@@ -181,10 +181,10 @@ module KASPChecker
             tokenlabel = repository.elements['TokenLabel'].text
             #            print "Checking Module #{mod} and TokenLabel #{tokenlabel} in Repository #{name}\n"
             # Now check if repositories already includes the [mod, tokenlabel] hash
-            if (repositories.values.include?([mod, tokenlabel]))
+            if (@repositories.values.include?([mod, tokenlabel]))
               log(LOG_ERR, "Multiple Repositories in #{conf_file} have the same Module (#{mod}) and TokenLabel (#{tokenlabel}), for Repository #{name}")
             end
-            repositories[name] =  [mod, tokenlabel]
+            @repositories[name] =  [mod, tokenlabel]
             #   3. If a repository specifies a capacity, the capacity must be greater than zero.
             # This check is performed when the XML is validated against the RNG (which specifies positiveInteger for Capacity)
           }
@@ -348,23 +348,30 @@ module KASPChecker
     end
 
     def check_key(key, type, policy, kasp_file, denial_type)
-      #   7. @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
+      #   7. The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
       alg = key.elements['Algorithm'].text
       if (denial_type == "NSEC")
         # Check correct algorithm used for NSEC
         if ((["6","7"].include?alg))
-          log(LOG_ERR, "Incompatible algorithm (#{alg}) used for NSEC in #{policy}"+
+          log(LOG_ERR, "Incompatible algorithm (#{alg}) used for #{type} NSEC in #{policy}"+
             " policy in #{kasp_file}")
         end
       else
         # Check correct algorithm used for NSEC3
         if (!(["6","7"].include?alg))
-          log(LOG_ERR, "Incompatible algorithm (#{alg}) used for NSEC3 in #{policy}" +
+          log(LOG_ERR, "Incompatible algorithm (#{alg}) used for #{type} NSEC3 in #{policy}" +
               " policy in #{kasp_file} - should be 6 or 7")
         end
       end
       #   9. @TODO@ The key strength should be checked for sanity - e.g. "1024" bit key is good, but "1023" or "10" is suspect.
-      #  10. @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+
+      #  10. Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+      repository = key.elements['Repository'].text
+      if (!@repositories.keys.include?repository)
+        log(LOG_ERR, "Unknown repository (#{repository}) defined for #{type} in"+
+           " #{policy} policy in #{kasp_file}")
+      end
+
     end
 
     def get_duration(doc, element, kasp_file)
