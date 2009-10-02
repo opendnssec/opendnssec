@@ -1,6 +1,7 @@
 $Id$
 
 OpenDNSSEC trunk
+* <Purge> tag added to automatically purge keys that have been dead for some interval
 * rename all OpenDNSSEC command line tools and daemons to ods-XXX
 * kasp_check command added to check the conf.xml and kasp.xml
   configuration files for sanity and consistency

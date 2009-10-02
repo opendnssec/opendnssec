@@ -218,6 +218,9 @@ server_main(DAEMONCONFIG *config)
                 /* Find all zones and do communication stuff */
 
                 /* Purge dead keys if we are asked to in this policy */
+                if (policy->keys->purge != -1) {
+                    status = do_purge(policy->keys->purge, policy->id);
+                }
 
                 /* get next policy */
                 status = KsmPolicy(handle, policy);
@@ -1207,4 +1210,150 @@ int read_zonelist_filename(const char* filename, char** zone_list_filename)
     }
 
     return 0;
+}
+
+/*+
+ * do_purge - Purge dead Keys
+ *
+ *
+ * Arguments:
+ *
+ *      int interval
+ *          how long a key needs to have been dead for before we purge it
+ *
+ *      int policy_id
+ *          ID of the policy
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int do_purge(int interval, int policy_id)
+{
+    char*       sql = NULL;     /* SQL query */
+    char*       sql2 = NULL;    /* SQL query */
+    char*       sql3 = NULL;    /* SQL query */
+    int         status = 0;     /* Status return */
+    char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+
+    char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
+    unsigned int    nchar;          /* Number of characters converted */
+
+    int         temp_id = -1;       /* place to store the key id returned */
+    char*       temp_dead = NULL;   /* place to store dead date returned */
+    char*       temp_loc = NULL;    /* place to store location returned */
+
+    char *rightnow;
+
+    /* Key information */
+    hsm_key_t *key = NULL;
+
+    log_msg(NULL, LOG_DEBUG, "Purging keys...");
+
+    rightnow = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (rightnow == NULL) {
+        log_msg(NULL, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...");
+        exit(1);
+    }
+
+    /* Select rows */
+    StrAppend(&sql, "select id, dead, location from KEYDATA_VIEW where state = 6 ");
+
+#ifdef USE_MYSQL
+    nchar = snprintf(buffer, sizeof(buffer),
+        "and DEAD < %s - INTERVAL %d SECOND ", rightnow, interval);
+#else
+    nchar = snprintf(buffer, sizeof(buffer),
+        "and DEAD < DATETIME('%s', '-%d SECONDS') ", rightnow, interval);
+#endif /* USE_MYSQL */
+
+    StrAppend(&sql, buffer);
+    if (policy_id != -1) {
+        StrAppend(&sql, "and policy_id = ");
+        snprintf(stringval, KSM_INT_STR_SIZE, "%d", policy_id);
+        StrAppend(&sql, stringval);
+    }
+    /* stop us doing the same key twice */
+    StrAppend(&sql, " group by location");
+
+    DusEnd(&sql);
+
+    status = DbExecuteSql(DbHandle(), sql, &result);
+
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+        while (status == 0) {
+            /* Got a row, purge it */
+            DbInt(row, 0, &temp_id);
+            DbString(row, 1, &temp_dead);
+            DbString(row, 2, &temp_loc);
+
+            /* Delete from dnsseckeys */
+            sql2 = DdsInit("dnsseckeys");
+            DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+            DdsEnd(&sql);
+
+            status = DbExecuteSqlNoResult(DbHandle(), sql2);
+            DdsFree(sql2);
+            if (status != 0)
+            {
+                log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
+                return status;
+            }
+
+            /* Delete from keypairs */
+            sql3 = DdsInit("keypairs");
+            DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
+            DdsEnd(&sql);
+
+            status = DbExecuteSqlNoResult(DbHandle(), sql3);
+            DdsFree(sql3);
+            if (status != 0)
+            {
+                log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
+                return status;
+            }
+
+            /* Delete from the HSM */
+            key = hsm_find_key_by_id(NULL, temp_loc);
+
+            if (!key) {
+                log_msg(NULL, LOG_ERR, "Key not found: %s\n", temp_loc);
+                return -1;
+            }
+
+            status = hsm_remove_key(NULL, key);
+
+            if (!status) {
+                log_msg(NULL, LOG_INFO, "Key remove successful.\n");
+            } else {
+                log_msg(NULL, LOG_ERR, "Key remove failed.\n");
+                return -1;
+            }
+
+            /* NEXT! */ 
+            status = DbFetchRow(result, &row);
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+
+        DbFreeResult(result);
+    }
+
+    DusFree(sql);
+
+    DbStringFree(temp_dead);
+    DbStringFree(temp_loc);
+
+    return status;
 }
