@@ -36,6 +36,11 @@ signer_cli="$prefix/bin/ods-signer sign"
 AC_DEFINE_UNQUOTED(FETCH_PIDFILE, ["`eval echo $fetch_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC zone fetcher pid file])
 AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["`eval echo $signer_cli | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine cli])
 
+# check if setreuid en setregid fail, on MacOSX10.4(darwin8).
+if echo $build_os | grep darwin8 > /dev/null; then
+    AC_DEFINE(DARWIN_BROKEN_SETREUID, 1, [Define this if on macOSX10.4-darwin8 and setreuid and setregid do not work])
+fi
+
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, inet_pton)
 

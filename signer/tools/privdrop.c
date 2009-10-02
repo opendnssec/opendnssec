@@ -31,13 +31,16 @@
 #include <unistd.h>
 #include <string.h>
 #include <syslog.h>
+#include <sys/types.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "config.h"
+#include "logging.h"
 #include "privdrop.h"
 
 
@@ -53,17 +56,17 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     gid_t gid, oldgid;
 
     /* Save effective uid/gid */
-    uid = olduid = geteuid();
-    gid = oldgid = getegid();
+    uid = olduid = getuid();
+    gid = oldgid = getgid();
 
     /* Check if we're going to drop uid */
     if (username) {
         /* Lookup the user id in /etc/passwd */
         if ((pwd = getpwnam(username)) == NULL) {
-            syslog(LOG_ERR, "user '%s' does not exist. exiting...\n", username);
+            log_msg(LOG_ERR, "zone fetcher user '%s' does not exist. exiting...", username);
             exit(1);
         } else {
-	    uid = pwd->pw_uid;
+            uid = pwd->pw_uid;
         }
         endpwent();
     }
@@ -72,7 +75,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     if (groupname) {
         /* Lookup the group id in /etc/groups */
         if ((grp = getgrnam(groupname)) == NULL) {
-            syslog(LOG_ERR, "group '%s' does not exist. exiting...\n", groupname);
+            log_msg(LOG_ERR, "zone fetcher group '%s' does not exist. exiting...", groupname);
             exit(1);
         } else {
             gid = grp->gr_gid;
@@ -83,57 +86,48 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     /* Change root if requested */
     if (newroot) {
        if (chroot(newroot) != 0 || chdir("/") != 0) {
-            syslog(LOG_ERR, "chroot to '%s' failed. exiting...\n", newroot);
+            log_msg(LOG_ERR, "zone fetcher chroot to '%s' failed. exiting...", newroot);
             exit(1);
        }
+
+       log_msg(LOG_INFO, "zone fetcher changed root to '%s'", newroot);
     }
 
     /* Drop gid? */
     if (groupname) {
-        /* If we are root then drop all groups other than the final one */
-        if (!olduid) setgroups(1, &(gid));
+#ifdef HAVE_SETRESGID
+        if ((status = setresgid(gid, gid, gid)) != 0)
+#elif defined(HAVE_SETREGID) && !defined(DARWIN_BROKEN_SETREUID)
+            if ((status = setregid(gid)) != 0)
+#else /* use setgid */
+                if ((status = setgid(gid)) != 0)
+#endif /* HAVE_SETRESGID */
+                    log_msg(LOG_ERR, "zone fetcher unable to set group id of %s (%lu): %s",
+                        groupname, (unsigned long) gid, strerror(errno));
 
-#if !defined(linux)
-        setegid(gid);
-        status = setgid(gid);
-#else
-        status = setregid(gid, gid);
-#endif /* !defined(linux) */
-
-        if (status != 0) {
-           syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n",
-               groupname, (unsigned long) gid);
-           exit(1);
-           return -1;
-        } else {
-            syslog(LOG_ERR, "group set to: %s (%lu)\n", groupname, (unsigned long) gid);
-        }
+        if (status != 0)
+            return status;
+        else
+            log_msg(LOG_INFO, "zone fetcher dropped group privileges to %s (%lu)",
+                        groupname, (unsigned long) gid);
     }
 
     /* Drop uid? */
     if (username) {
-        /* Set the user to drop to if specified; else just set the uid as the real one */
-#if defined(HAVE_SETRESUID) && !defined(BROKEN_SETRESUID)
-        status = setresuid(uid, uid, uid);
-#elif defined(HAVE_SETREUID) && !defined(BROKEN_SETREUID)
-        status = setreuid(uid, uid);
-#else
-
-# ifndef SETEUID_BREAKS_SETUID
-        seteuid(uid);
-# endif  /* SETEUID_BREAKS_SETUID */
-
-        status = setuid(uid);
-#endif
-
-        if (status != 0) {
-           syslog(LOG_ERR, "unable to drop user privileges: %s (%lu). exiting...\n",
-               username, (unsigned long) uid);
-           exit(1);
-           return -1;
-        } else {
-            syslog(LOG_ERR, "user set to: %s (%lu)\n", username, (unsigned long) uid);
-        }
+#ifdef HAVE_SETRESUID
+        if ((status = setresuid(uid,uid,uid)) != 0)
+#elif defined(HAVE_SETREUID) && !defined(DARWIN_BROKEN_SETREUID)
+            if ((status = setreuid(uid,uid)) != 0)
+#else /* use setuid */
+                if ((status = setuid(uid)) != 0)
+#endif /* HAVE_SETRESUID */
+                    log_msg(LOG_ERR, "zone fetcher unable to set user id of %s (%lu): %s",
+                        username, (unsigned long) uid, strerror(errno));
+        if (status != 0)
+            return status;
+        else
+            log_msg(LOG_INFO, "zone fetcher dropped user privileges to %s (%lu)",
+                        username, (unsigned long) uid);
     }
 
     return 0;
