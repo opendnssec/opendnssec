@@ -98,10 +98,11 @@ typedef struct
 #if 0
     char *chrootdir;
 #endif
-		/* flag to indicate that SIGTERM was recieved */
-		int term;
+    /* flag to indicate that SIGTERM was recieved */
+    int term;
 
     /* Add app specific stuff here */
+    char *configfile;
     unsigned char* user;
     unsigned char* host;
     unsigned char* password;

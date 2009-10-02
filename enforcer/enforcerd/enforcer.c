@@ -114,8 +114,12 @@ server_main(DAEMONCONFIG *config)
 
     /* If we are doing key generation then connect to the hsm */
     if (config->manualKeyGeneration == 0) {
-        /* We keep the HSM connection open for the lifetime of the daemon */ 
-        result = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
+        /* We keep the HSM connection open for the lifetime of the daemon */
+        if (config->configfile != NULL) {
+            result = hsm_open(config->configfile, hsm_prompt_pin, NULL);
+        } else {
+            result = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
+        }
         if (result) {
             hsm_error_message = hsm_get_error(ctx);
             if (hsm_error_message) {
@@ -473,7 +477,12 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
     int roll_time = 0;
 
     /* Let's find our zonelist from the conf.xml */
-    status = read_zonelist_filename(&zonelist_filename);
+    if (config->configfile != NULL) {
+        status = read_zonelist_filename(config->configfile, &zonelist_filename);
+    } else {
+        status = read_zonelist_filename(CONFIG_FILE, &zonelist_filename);
+    }
+    
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "couldn't read zonelist filename");
         unlink(config->pidfile);
@@ -1123,20 +1132,18 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 /* 
  *  Read the conf.xml file, extract the location of the zonelist.
  */
-int read_zonelist_filename(char** zone_list_filename)
+int read_zonelist_filename(const char* filename, char** zone_list_filename)
 {
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
     int ret = 0; /* status of the XML parsing */
-    char* filename = NULL;
     char* temp_char = NULL;
     char* tag_name = NULL;
 
     xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
 
-    StrAppend(&filename, CONFIG_FILE);
     /* Start reading the file; we will be looking for "Common" tags */ 
     reader = xmlNewTextReaderFilename(filename);
     if (reader != NULL) {
@@ -1199,7 +1206,6 @@ int read_zonelist_filename(char** zone_list_filename)
     if (doc) {
         xmlFreeDoc(doc);
     }
-    StrFree(filename);
 
     return 0;
 }

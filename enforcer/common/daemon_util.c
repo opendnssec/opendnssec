@@ -308,10 +308,13 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
     /*
      * Read the command line
      */
-    while ((c = getopt(*argc, argv, "1hdv?u:P:")) != -1) {
+    while ((c = getopt(*argc, argv, "1c:hdv?u:P:")) != -1) {
         switch (c) {
             case '1':
                 config->once = true;
+                break;
+            case 'c':
+                config->configfile = optarg;
                 break;
             case 'd':
                 config->debug = true;
@@ -401,10 +404,17 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     int my_log_user = DEFAULT_LOG_FACILITY;
     int status;
     int db_found = 0;
-    char* filename = CONFIG_FILE;
+    char* filename = NULL;
     char* rngfilename = SCHEMA_DIR "/conf.rng";
 
     char* temp_char = NULL;
+
+    /* Change the config file location if one was provided on the command line */
+    if (config->configfile != NULL) {
+        filename = StrStrdup(config->configfile);
+    } else {
+        filename = StrStrdup(CONFIG_FILE);
+    }
 
     if (verbose) {
         log_msg(config, LOG_INFO, "Reading config \"%s\"", filename);
@@ -708,6 +718,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     xmlXPathFreeContext(xpathCtx);
     xmlFreeDoc(doc);
     StrFree(logFacilityName);
+    StrFree(filename);
 
     return(0);
 
