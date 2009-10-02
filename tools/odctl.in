@@ -50,16 +50,21 @@ case "$1" in
 	;;
 
 'start')
-	shift
-	$prefix/sbin/enforcerd $@
+	echo "Starting signer engine..."
+	$prefix/sbin/signer_engine
+	echo "Starting enforcer..."
+	$prefix/sbin/enforcerd
 	;;
 
 'stop')
+	echo "Stopping enforcer..."
 	if [ -r $enforcer_pid_file ]; then
 		kill -TERM `cat $enforcer_pid_file`
 	else
 		echo "Cannot find PID file"
 	fi
+	echo "Stopping signer engine.."
+	$prefix/sbin/signer_engine_cli stop
 	;;
 	
 *)
