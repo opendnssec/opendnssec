@@ -228,7 +228,7 @@ ksm_log_msg(const char *format)
 usage(const char* prog)
 {
     fprintf(stderr, "Usage: %s [OPTION]...\n", prog);
-    fprintf(stderr, "OpenDNSSEC Enforcer Daemon.\n\n");
+    fprintf(stderr, "OpenDNSSEC Enforcer version %s\n\n", VERSION);
     fprintf(stderr, "Supported options:\n");
     fprintf(stderr, "  -c <file>   Use alternate conf.xml.\n");
     fprintf(stderr, "  -d          Debug.\n");
