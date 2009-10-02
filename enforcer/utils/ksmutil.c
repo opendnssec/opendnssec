@@ -227,8 +227,9 @@ usage_keyroll ()
 {
     fprintf(stderr,
             "  key rollover\n"
-            "\t[--zone zone] [--keytype <type>]\n"
-		    "\t[--policy policy] [--keytype <type>]\n");
+            "\t--zone zone [--keytype <type>]\n"
+            "  key rollover\n"
+		    "\t--policy policy [--keytype <type>]\n");
 }
 
     void
