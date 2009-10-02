@@ -51,7 +51,8 @@ case "$1" in
 
 'start')
 	echo "Starting signer engine..."
-	$prefix/sbin/ods-signerd
+	$prefix/bin/ods-signer start
+
 	echo "Starting enforcer..."
 	$prefix/sbin/ods-enforcerd
 	;;
@@ -63,6 +64,7 @@ case "$1" in
 	else
 		echo "Cannot find PID file"
 	fi
+
 	echo "Stopping signer engine.."
 	$prefix/bin/ods-signer stop
 	;;
