@@ -44,6 +44,7 @@
 
 #include "ksm/ksm.h"
 #include "ksm/datetime.h"
+#include "ksm/message.h"
 #include "ksm/kmedef.h"
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"
