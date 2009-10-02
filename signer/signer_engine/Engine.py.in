@@ -807,5 +807,5 @@ def daemonize_engine():
 
 
 if __name__ == '__main__':
-    print "Python engine proof of concept, v 0.0002 alpha"
+    print "OpenDNSSEC signer engine version @VERSION@"
     main()

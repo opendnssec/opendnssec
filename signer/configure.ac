@@ -66,6 +66,7 @@ AC_CONFIG_FILES([
 	Makefile
 	tools/Makefile
 	signer_engine/Makefile
+	signer_engine/Engine.py
 	signer_engine/EngineConfig.py
 	signer_engine/ods-signer
 	signer_engine/ods-signerd
