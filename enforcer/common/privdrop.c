@@ -101,11 +101,12 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #endif /* !defined(linux) */
 
         if (status != 0) {
-           syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n", groupname, gid);
+           syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n",
+               groupname, (unsigned long) gid);
            exit(1);
            return -1;
         } else {
-            syslog(LOG_ERR, "group set to: %s (%lu)\n", groupname, gid);
+            syslog(LOG_ERR, "group set to: %s (%lu)\n", groupname, (unsigned long) gid);
         }
     }
 
@@ -126,11 +127,12 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #endif
 
         if (status != 0) {
-           syslog(LOG_ERR, "unable to drop user privileges: %s (%lu). exiting...\n", username, uid);
+           syslog(LOG_ERR, "unable to drop user privileges: %s (%lu). exiting...\n",
+               username, (unsigned long) uid);
            exit(1);
            return -1;
         } else {
-            syslog(LOG_ERR, "user set to: %s (%lu)\n", username, uid);
+            syslog(LOG_ERR, "user set to: %s (%lu)\n", username, (unsigned long) uid);
         }
     }
 
