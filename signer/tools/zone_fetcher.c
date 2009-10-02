@@ -794,7 +794,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     ldns_pkt* qpkt = NULL, *apkt;
     FILE* fd = NULL;
     char lock_ext[32];
-    char* axfr_file;
+    char* axfr_file = NULL;
     char* mv_axfr;
     char* signer_engine_cli_sign;
     int soa_seen = 0;
@@ -829,6 +829,15 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     }
 
     if (serial < new_serial) {
+        status = ldns_axfr_start(config->xfrd, zone->dname, LDNS_RR_CLASS_IN);
+        if (status != LDNS_STATUS_OK) {
+            if (errno != EINPROGRESS) {
+                log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
+                    ldns_get_errorstr_by_id(status));
+                return;
+            }
+        }
+
         if (zone && zone->input_file) {
             snprintf(lock_ext, sizeof(lock_ext), "axfr.%lu",
                 (unsigned long) getpid());
@@ -839,25 +848,23 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 axfr_file = strcpy(axfr_file, zone->input_file);
                 axfr_file = strcat(axfr_file, lock_ext);
                 fd = fopen(axfr_file, "w");
+                if (!fd) {
+                    log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
+                        axfr_file);
+                    return;
+                }
             }
         }
+
         if (!fd) {
-            log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
-                axfr_file);
+            log_msg(LOG_ERR, "zone fetcher cannot store start AXFR: no file descriptor");
             if (axfr_file)
                 free((void*)axfr_file);
             return;
         }
 
-        status = ldns_axfr_start(config->xfrd, zone->dname, LDNS_RR_CLASS_IN);
-        if (status != LDNS_STATUS_OK) {
-            if (errno != EINPROGRESS) {
-                log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
-                    ldns_get_errorstr_by_id(status));
-                free((void*)axfr_file);
-                return;
-            }
-        }
+        assert(fd);
+        assert(axfr_file);
 
         axfr_rr = ldns_axfr_next(config->xfrd);
         if (!axfr_rr) {
