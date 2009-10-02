@@ -797,7 +797,7 @@ class Zone:
         error and return False"""
         if self.zone_config.audit:
             syslog.syslog(syslog.LOG_INFO, "Running auditor on zone")
-            cmd = [self.engine_config.bindir + os.sep + "kasp_auditor",\
+            cmd = [self.engine_config.bindir + os.sep + "ods-auditor",\
                    self.engine_config.sysconfdir + os.sep + "opendnssec",\
                    "-s", self.get_zone_tmp_filename(".finalized"),\
                    "-z", self.zone_name]
