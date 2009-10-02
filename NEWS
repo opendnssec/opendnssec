@@ -1,38 +1,47 @@
 $Id$
 
 OpenDNSSEC trunk
-* <Purge> tag added to automatically purge keys that have been dead for some interval
-* rename all OpenDNSSEC command line tools and daemons to ods-XXX
-* kasp_check command added to check the conf.xml and kasp.xml
-  configuration files for sanity and consistency
-* communicated and keygend combined to form "enforcerd" (although this
-  name will change).
-* ksmutil command line changes. Most commands have changed slightly, some
-  have changed lots.
-  See http://svn.opendnssec.org/docs/command-tools-syntax.txt .
-* enforcer database now has a version number. If it differs from a #define
-  in the code then the software will not connect to the database.
+* <Purge> tag added to automatically delete keys that have been dead
+  for some interval.
+* Rename all OpenDNSSEC command line tools and daemons to ods-XXX (e.g.
+  ksmutil becomes ods-ksmutil).
+* kasp_check command added to check the conf.xml and kasp.xml configuration
+  files for sanity and consistency.
+* communicated and keygend combined to form "ods-enforcerd".
+* ksmutil command line changes. Most commands have changed slightly, but
+  there are some significant changes (see
+  http://svn.opendnssec.org/docs/command-tools-syntax.txt for details.)
+* Enforcer database now has a version number. If it differs from the version
+  number in the code (specified via a #define statement), the software will
+  issue an error message and not connect to the database.
 * "ksmutil list keys" now displays the keytag if the -l flag is passed to it.
 * "Emergency Keys" renamed to "Standby Keys" as this better reflects their
-  role as we use them.
-* The behaviour of SOA Serial value 'counter' changed according to Ticket #31.
-* changes to the KASP DB, please apply:
+  role in OpenDNSSEC.
+* The behaviour of SOA Serial value 'counter' has changed according to
+  Ticket #31.
+* The directory "xml" and been renamed to "conf". (This is part of repository
+  clean.)
+* There are changes to the KASP DB:
+
   If want to use your old database, use the following commands to upgrade:
+
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090922_1.sqlite3
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090930_1.sqlite3
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_091002_1.sqlite3
-  Or start fresh (with loss of information. User should remove old keys
-  from the HSM):
+
+  Or, to start a new (with loss of information), remove old keys from the HSM
+  and issue the command:
+
     ksmutil setup
-* move xml/ to conf/ (part of repository clean)
 
 Bugfixes:
 * Make sure that parenthesis in zonefiles don't concatenate rdata fields.
 
 Known issues:
 * TCP-support for LDNS on Solaris is currently broken due to an issue with
-  SO_RCVTIMEO. The result is that the zonefetcher doesn't work. No other parts
-  of OpenDNSSEC is affected by this bug. There is currently no workaround.
+  SO_RCVTIMEO. The result is that the zonefetcher doesn't work. No other
+  parts of OpenDNSSEC is affected by this bug.
+  There is currently no workaround.
 
 OpenDNSSEC 1.0a5 - 2009-09-21
 
