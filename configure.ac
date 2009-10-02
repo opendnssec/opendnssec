@@ -45,6 +45,10 @@ if test "${enable_auditor}" = yes; then
 	AC_CONFIG_SUBDIRS([ auditor ])
 fi
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([
+	Makefile
+	tools/Makefile
+	tools/odctl
+])
 
 AC_OUTPUT
