@@ -51,10 +51,13 @@ ACX_LDNS
 ACX_LIBXML2
 ACX_LIBHSM
 
+full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_libexecdir=`eval eval eval eval eval echo "${libexecdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 opendnsseclibexecdir=$full_libexecdir/opendnssec
+signer_engine=$full_sbindir/ods-signerd
 
 AC_SUBST([opendnsseclibexecdir])
+AC_SUBST([signer_engine])
 
 AM_INIT_AUTOMAKE
 AM_PATH_PYTHON
