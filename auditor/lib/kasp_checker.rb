@@ -47,8 +47,14 @@ module KASPChecker
           slog.log(level, msg)
         }
       end
-      # @TODO@ Convert the level into text, rather than a number? e.g. "WARNING"
-      print "#{level}: #{msg}\n"
+      # Convert the level into text, rather than a number? e.g. "WARNING"
+      level_string = case level
+      when LOG_ERR then "ERROR"
+      when LOG_WARNING then "WARNING"
+      when LOG_INFO then "INFO"
+      when LOG_FATAL then "FATAL"
+      end
+      print "#{level_string}: #{msg}\n"
     end
     
     def validate_file(file, type)
@@ -82,7 +88,7 @@ module KASPChecker
         while (line = stderr[0].gets)
           line.chomp!
           if line.index(" validates")
-            log(LOG_INFO, line + " OK")
+            #            log(LOG_INFO, line + " OK")
           else
             log(LOG_ERR, line)
           end
@@ -197,7 +203,7 @@ module KASPChecker
           }
 
         }
-      return ((kasp_file+"").untaint)
+        return ((kasp_file+"").untaint)
       rescue Errno::ENOENT
         log(LOG_ERR, "ERROR - Can't find config file : #{conf_file}")
         return nil
@@ -335,9 +341,9 @@ module KASPChecker
               policy.each_element('//Serial') {|serial|
                 if (serial.text.downcase == "datecounter")
                   log(LOG_ERR, "Serial type datecounter used in #{name} policy"+
-                    " in #{kasp_file}, but #{resigns_per_day} re-signs requested."+
-                   " No more than 99 re-signs per day should be used with datecounter"+
-                 " as only 2 digits are allocated for the version number")
+                      " in #{kasp_file}, but #{resigns_per_day} re-signs requested."+
+                      " No more than 99 re-signs per day should be used with datecounter"+
+                      " as only 2 digits are allocated for the version number")
                 end
               }
             end
@@ -369,7 +375,7 @@ module KASPChecker
         # Check correct algorithm used for NSEC
         if ((["6","7"].include?alg))
           log(LOG_ERR, "Incompatible algorithm (#{alg}) used for #{type} NSEC in #{policy}"+
-            " policy in #{kasp_file}")
+              " policy in #{kasp_file}")
         end
       else
         # Check correct algorithm used for NSEC3
@@ -381,14 +387,14 @@ module KASPChecker
 
       #   9. The key strength should be checked for sanity - warn if less than 1024 or more than 4096
       begin
-      key_length = key.elements['Algorithm'].attributes['length'].to_i
-      if (key_length < 1024)
-        log(LOG_WARNING, "Key length of #{key_length} used for #{type} in #{policy}"+
-          " policy in #{kasp_file}. Should probably be 1024 or more")
-      elsif (key_length > 4096)
-        log(LOG_WARNING, "Key length of #{key_length} used for #{type} in #{policy}"+
-          " policy in #{kasp_file}. Should probably be 4096 or less")
-      end
+        key_length = key.elements['Algorithm'].attributes['length'].to_i
+        if (key_length < 1024)
+          log(LOG_WARNING, "Key length of #{key_length} used for #{type} in #{policy}"+
+              " policy in #{kasp_file}. Should probably be 1024 or more")
+        elsif (key_length > 4096)
+          log(LOG_WARNING, "Key length of #{key_length} used for #{type} in #{policy}"+
+              " policy in #{kasp_file}. Should probably be 4096 or less")
+        end
       rescue Exception
         # Fine - this is an optional element
       end
@@ -397,7 +403,7 @@ module KASPChecker
       repository = key.elements['Repository'].text
       if (!@repositories.keys.include?repository)
         log(LOG_ERR, "Unknown repository (#{repository}) defined for #{type} in"+
-           " #{policy} policy in #{kasp_file}")
+            " #{policy} policy in #{kasp_file}")
       end
     end
 
