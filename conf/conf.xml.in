@@ -47,7 +47,6 @@
 
 		<Datastore><SQLite>@opendnsseclocalstatedir@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
-		<KeygenInterval>PT3M</KeygenInterval>
 	</Enforcer>
 
 	<Signer>

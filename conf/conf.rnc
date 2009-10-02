@@ -84,9 +84,6 @@ start = element Configuration {
 		# Interval between runs of the key rollover procedure
 		element Interval { xsd:duration },
 
-		# Interval between runs of the key pre-generation procedure
-		element KeygenInterval { xsd:duration },
-
 		# Use manual key generation?
 		element ManualKeyGeneration { empty }?,
 
