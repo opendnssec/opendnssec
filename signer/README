@@ -186,10 +186,10 @@ place the output of that in the directory you specified.
 running the engine
 ------------------
 
-You can run the engine by calling <prefix>/sbin/ods-signerd
+You can run the engine bij calling <prefix>/bin/ods-signer start
 
 If everything is ok, you should see the following output:
-$ ./ods-signerd
+$ ./ods-signer start
 Python engine proof of concept, v 0.0002 alpha
 Zone list updated: 0 removed, 1 added, 0 updated
 output redirected to syslog
