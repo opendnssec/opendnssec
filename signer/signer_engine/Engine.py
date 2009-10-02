@@ -137,7 +137,10 @@ class Engine:
                 "-c", cfg_file,
                 "-z", zone_file,
                 "-d",
-                "-f", self.config.syslog_facility_string
+                "-f", self.config.syslog_facility_string,
+                "-g", self.config.privs_groupname,
+                "-u", self.config.privs_username,
+                "-t", self.config.privs_chroot
         ]
 
         zone_fetcher_c = Util.run_tool(cmd)
