@@ -197,8 +197,8 @@ module KASPChecker
 
           #
           #  Also 
-          # check durations for Interval KeygenInterval and RolloverNotification (the only duration elements in conf.xml)
-          ["Enforcer/KeygenInterval", "Enforcer/Interval", "Enforcer/RolloverNotification"].each {|element|
+          # check durations for Interval and RolloverNotification (the only duration elements in conf.xml)
+          ["Enforcer/Interval", "Enforcer/RolloverNotification"].each {|element|
             check_duration_element(doc, element, conf_file)
           }
 
