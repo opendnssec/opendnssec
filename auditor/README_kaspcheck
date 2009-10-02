@@ -21,7 +21,7 @@ It checks that the conf.xml and kasp.xml files validate against
 the RNG specification, and that the values contained in the files
 are mutually consistent and sane.
 
-The kasp_check program will display any issues it has found to the
+The ods-kaspcheck program will display any issues it has found to the
 console. If a syslog facility has been correctly defined in the
 configuration file, then the output will also be written to syslog.
 
@@ -29,7 +29,7 @@ configuration file, then the output will also be written to syslog.
 Dependencies
 -------------------------------------------------------------------
 
-The kasp_check utility depends on Ruby being available on the 
+The ods-kaspcheck utility depends on Ruby being available on the 
 target system.
 
 -------------------------------------------------------------------
@@ -48,7 +48,7 @@ make install
                   be relative to the prefix. Defaults to /usr/local
 
 
-The kasp_check invocation script will be installed in
+The ods-kaspcheck invocation script will be installed in
 <prefix>/bin
 The Ruby libraries will be installed in
 <prefix>/lib/opendnssec
@@ -57,7 +57,7 @@ The Ruby libraries will be installed in
 Testing
 -------------------------------------------------------------------
 
-To run the kasp_check test files, run the command :
+To run the ods-kaspcheck test files, run the command :
 
   ruby test/checker_test.rb
 
@@ -70,9 +70,9 @@ run the following command from <path_to_OpenDNSSEC>/auditor :
 Running
 -------------------------------------------------------------------
 
-kasp_check [--conf path/to/conf.xml] [--kasp path/to/kasp.xml]
+ods-kaspcheck [--conf path/to/conf.xml] [--kasp path/to/kasp.xml]
 
-e.g. kasp_check --conf /etc/opendnssec/conf.xml
+e.g. ods-kaspcheck --conf /etc/opendnssec/conf.xml
 
 
 

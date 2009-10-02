@@ -20,7 +20,7 @@ class OptionsParser
       options.default_conf_file = path + "conf.xml"
 
       opts = OptionParser.new do |opts|
-        opts.banner = "Usage: kasp_check [options]"
+        opts.banner = "Usage: ods-kaspcheck [options]"
 
         opts.separator ""
         opts.separator "Specific options:"

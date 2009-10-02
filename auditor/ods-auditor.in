@@ -24,7 +24,7 @@ class OptionsParser
       options.daemonize = false
 
       opts = OptionParser.new do |opts|
-        opts.banner = "Usage: kasp_auditor [options]"
+        opts.banner = "Usage: ods-auditor [options]"
 
         opts.separator ""
         opts.separator "Specific options:"

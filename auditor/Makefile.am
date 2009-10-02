@@ -15,7 +15,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-bin_SCRIPTS = kasp_auditor kasp_check
+bin_SCRIPTS = ods-auditor ods-kaspcheck
 
 install-data-hook:
 	${INSTALL} -d -m 755 ${DESTDIR}$(opendnsseclibdir)
