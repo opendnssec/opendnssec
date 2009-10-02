@@ -27,6 +27,7 @@
 
 #include "config.h"
 #include "logging.h"
+#include "privdrop.h"
 #include "util.h"
 #include "zone_fetcher.h"
 
@@ -56,8 +57,11 @@ usage(FILE *out)
     fprintf(out, "-c <file>\t\tThe zonefetch.xml <file>\n");
     fprintf(out, "-d\t\tRun as daemon\n");
     fprintf(out, "-f <facility>\t\tLog with <facility>\n");
+    fprintf(out, "-g <group>\tDrop group privileges to those of <group>\n");
     fprintf(out, "-h\t\tShow this help\n");
     fprintf(out, "-i\t\tGive information about the config settings\n");
+    fprintf(out, "-t <chroot>\tSpecifies the directory to chroot to upon startup\n");
+    fprintf(out, "-u <user>\tDrop user privileges to those of <user>\n");
     fprintf(out, "-z <file>\tThe zonelist.xml <file>\n");
 }
 
@@ -1372,8 +1376,11 @@ main(int argc, char **argv)
     sockets_type sockets;
     int facility = LOG_DAEMON;
     int info = 0;
+    const char* group = NULL;
+    const char* user = NULL;
+    const char* chroot = NULL;
 
-    while ((c = getopt(argc, argv, "c:df:hiz:")) != -1) {
+    while ((c = getopt(argc, argv, "c:df:g:hit:u:z:")) != -1) {
         switch (c) {
         case 'c':
             config_file = optarg;
@@ -1384,11 +1391,20 @@ main(int argc, char **argv)
         case 'f':
             facility = facility2int(optarg);
             break;
+        case 'g':
+            group = optarg;
+            break;
         case 'h':
             usage(stdout);
             exit(EXIT_SUCCESS);
         case 'i':
             info = 1;
+            break;
+        case 't':
+            chroot = optarg;
+            break;
+        case 'u':
+            user = optarg;
             break;
         case 'z':
             zonelist_file = optarg;
@@ -1453,6 +1469,12 @@ main(int argc, char **argv)
             log_msg(LOG_CRIT, "zone fetcher failed to initialize sockets");
             exit(EXIT_FAILURE);
         }
+        /* drop privileges */
+        if (privdrop(user, group, chroot) != 0) {
+            log_msg(LOG_CRIT, "zone fetcher failed to drop privileges");
+            exit(EXIT_FAILURE);
+        }
+
         xfrd_ns(&sockets, config);
 
         if (unlink(config->pidfile) == -1) {
@@ -1470,8 +1492,6 @@ main(int argc, char **argv)
 }
 
 /* [TODO]:
- * - Hook into signer engine
- * - Store AXFR on disk
  * - PrivDrop
  * - fork it?
  */
