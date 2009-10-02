@@ -349,9 +349,9 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         if (policy->ksk->algorithm == 5 || policy->ksk->algorithm == 7 ) {
             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
             if (key) {
-                /* log_msg(config, LOG_INFO,"Created key in HSM"); */
+                log_msg(config, LOG_DEBUG, "Created key in repository %s", policy->ksk->sm_name);
             } else {
-                log_msg(config, LOG_ERR,"Error creating key in repository %s", policy->ksk->sm_name);
+                log_msg(config, LOG_ERR, "Error creating key in repository %s", policy->ksk->sm_name);
                 hsm_error_message = hsm_get_error(ctx);
                 if (hsm_error_message) {
                     log_msg(config, LOG_ERR, hsm_error_message);
@@ -372,7 +372,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                 unlink(config->pidfile);
                 exit(1);
             }
-            log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with id: %s in HSM: %s and database.", policy->ksk->bits,
+            log_msg(config, LOG_INFO, "Created KSK size: %i, alg: %i with id: %s in repository: %s and database.", policy->ksk->bits,
                     policy->ksk->algorithm, id, policy->ksk->sm_name);
             free(id);
         } else {
@@ -411,9 +411,9 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         if (policy->zsk->algorithm == 5 || policy->zsk->algorithm == 7) {
             key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
             if (key) {
-                /* log_msg(config, LOG_INFO,"Created key in HSM"); */
+                log_msg(config, LOG_DEBUG, "Created key in repository %s", policy->zsk->sm_name);
             } else {
-                log_msg(config, LOG_ERR,"Error creating key in repository %s", policy->zsk->sm_name);
+                log_msg(config, LOG_ERR, "Error creating key in repository %s", policy->zsk->sm_name);
                 hsm_error_message = hsm_get_error(ctx);
                 if (hsm_error_message) {
                     log_msg(config, LOG_ERR, hsm_error_message);
@@ -434,7 +434,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                 unlink(config->pidfile);
                 exit(1);
             }
-            log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with id: %s in HSM: %s and database.", policy->zsk->bits,
+            log_msg(config, LOG_INFO, "Created ZSK size: %i, alg: %i with id: %s in repository: %s and database.", policy->zsk->bits,
                     policy->zsk->algorithm, id, policy->zsk->sm_name);
             free(id);
         } else {
