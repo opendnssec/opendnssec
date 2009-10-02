@@ -202,6 +202,7 @@ typedef struct {
 	int retire_safety;
 	int publish_safety;
 	int share_keys;
+	int purge;
 } KSM_COMMON_KEY_POLICY;
 
 typedef struct {

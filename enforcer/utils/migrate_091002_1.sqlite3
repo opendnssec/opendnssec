@@ -1,0 +1,4 @@
+-- Migrate existing database for purge option
+
+insert into parameters (name, description, category_id) select "purge", "interval that dead keys can stay in the database", id from categories where name="keys";
+

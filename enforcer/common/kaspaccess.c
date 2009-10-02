@@ -81,6 +81,12 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 	policy->denial->ttl = 0;
 	policy->denial->saltlength = 0;
 
+    policy->keys->ttl = 0;
+    policy->keys->retire_safety = 0;
+    policy->keys->publish_safety = 0;
+    policy->keys->share_keys = 0;
+    policy->keys->purge = -1;
+
 	policy->ksk->algorithm = 0;
 	policy->ksk->bits = 0;
 	policy->ksk->lifetime = 0;

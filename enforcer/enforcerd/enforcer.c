@@ -207,6 +207,8 @@ server_main(DAEMONCONFIG *config)
                 /* TODO move communicated stuff here eventually */
                 /* Find all zones and do communication stuff */
 
+                /* Purge dead keys if we are asked to in this policy */
+
                 /* get next policy */
                 status = KsmPolicy(handle, policy);
             }

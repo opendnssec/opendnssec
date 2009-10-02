@@ -232,4 +232,6 @@ insert into parameters (name, description, category_id) select "manual_rollover"
 insert into parameters (name, description, category_id) select "manual_rollover", "Do not automatically roll zsks when their time is up", id from categories where name="zsk";
 
 insert into parameters (name, description, category_id) select "audit", "placeholder for audit tag", id from categories where name="audit";
+
+insert into parameters (name, description, category_id) select "purge", "interval that dead keys can stay in the database", id from categories where name="keys";
 COMMIT;

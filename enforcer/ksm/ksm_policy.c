@@ -315,6 +315,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "zones_share_keys",16) == 0) policy->keys->share_keys=data.value;
             		if (strncmp(data.name, "retiresafety",12) == 0) policy->keys->retire_safety=data.value;
             		if (strncmp(data.name, "publishsafety",13) == 0) policy->keys->publish_safety=data.value;
+            		if (strncmp(data.name, "purge",5) == 0) policy->keys->purge=data.value;
             	}
             /*	if (strncmp(data.category, "audit", 5) == 0) {
             		if (strncmp(data.name, "audit",5) == 0) policy->audit->audit=data.value;

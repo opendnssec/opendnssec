@@ -3713,6 +3713,7 @@ int update_policies(char* kasp_filename)
     xmlChar *keys_ret_expr = (unsigned char*) "//Policy/Keys/RetireSafety";
     xmlChar *keys_pub_expr = (unsigned char*) "//Policy/Keys/PublishSafety";
     xmlChar *keys_share_expr = (unsigned char*) "//Policy/Keys/ShareKeys";
+    xmlChar *keys_purge_expr = (unsigned char*) "//Policy/Keys/Purge";
 
     xmlChar *ksk_alg_expr = (unsigned char*) "//Policy/Keys/KSK/Algorithm";
     xmlChar *ksk_alg_len_expr = (unsigned char*) "//Policy/Keys/KSK/Algorithm/@length";
@@ -4003,6 +4004,10 @@ int update_policies(char* kasp_filename)
                     ret = xmlTextReaderRead(reader);
                     continue;
                 }
+                if ( SetParamOnPolicy(xpathCtx, keys_purge_expr, "purge", "keys", policy->keys->purge, policy->id, DURATION_TYPE) != 0) {
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
                 /* KSK */
                 if ( SetParamOnPolicy(xpathCtx, ksk_alg_expr, "algorithm", "ksk", policy->ksk->algorithm, policy->id, INT_TYPE) != 0) {
                     ret = xmlTextReaderRead(reader);
@@ -4287,7 +4292,7 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
 {
     int status = 0;
     int value = 0;
-    char* temp_char;
+    char* temp_char = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
 
     /* Evaluate xpath expression */
@@ -4299,17 +4304,21 @@ int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, const xmlChar* xpath_expr, con
 
     /* extract the value into an int */
     if (value_type == DURATION_TYPE) {
-        temp_char = (char *)xmlXPathCastToString(xpathObj);
-        status = DtXMLIntervalSeconds(temp_char, &value);
-        if (status > 0) {
-            printf("Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+        if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            temp_char = (char *)xmlXPathCastToString(xpathObj);
+            status = DtXMLIntervalSeconds(temp_char, &value);
+            if (status > 0) {
+                printf("Error: unable to convert interval %s to seconds, error: %i\n", temp_char, status);
+                StrFree(temp_char);
+                return status;
+            }
+            else if (status == -1) {
+                printf("Warning: converting %s to seconds may not give what you expect\n", temp_char);
+            }
             StrFree(temp_char);
-            return status;
+        } else {
+            value = -1;
         }
-        else if (status == -1) {
-            printf("Warning: converting %s to seconds may not give what you expect\n", temp_char);
-        }
-        StrFree(temp_char);
     }
     else if (value_type == BOOL_TYPE) {
         /* Do we have an empty tag or no tag? */
@@ -4399,6 +4408,7 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
     policy->keys->retire_safety = 0;
     policy->keys->publish_safety = 0;
     policy->keys->share_keys = 0;
+    policy->keys->purge = -1;
 
     policy->ksk->algorithm = 0;
     policy->ksk->bits = 0;
@@ -5043,6 +5053,10 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     if (policy->keys->share_keys == 1)
     {
             (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"SharedKeys", NULL);
+    }
+    if (policy->keys->purge != -1) {
+        snprintf(temp_time, 32, "PT%dS", policy->keys->purge);
+    (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"Purge", (const xmlChar *)temp_time);
     }
     /*(void) xmlNewDocComment(doc, (const xmlChar *)"Parameters that are different for zsks and ksks");*/
     /* KSK */
