@@ -262,7 +262,7 @@ class ZoneConfig:
             self.denial_nsec3_iterations = \
                 int(Util.get_xml_data("Hash/Iterations", nsec3_xml))
             self.denial_nsec3_salt = \
-                Util.get_xml_data("Hash/Salt", nsec3_xml)
+                Util.get_xml_data("Hash/Salt", nsec3_xml, 1)
 
         self.soa_ttl = Util.parse_duration(
             Util.get_xml_data("SignerConfiguration/Zone/SOA/TTL",

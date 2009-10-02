@@ -293,11 +293,13 @@ class Zone:
         if self.zone_config.denial_nsec3:
             cmd.extend([
                         "-n",
-                        "-s", self.zone_config.denial_nsec3_salt,
                         "-t",
                         str(self.zone_config.denial_nsec3_iterations),
                         "-a",
                         str(self.zone_config.denial_nsec3_algorithm)])
+            if self.zone_config.denial_nsec3_salt:
+                cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
+
             # tell the reader not to append the NSEC3PARAM record
             # if we are not going to add signatures
             if len(self.zone_config.signature_keys) <= 0:
@@ -435,11 +437,12 @@ class Zone:
         if self.zone_config.denial_nsec3:
             cmd.extend([
                         "-n",
-                        "-s", self.zone_config.denial_nsec3_salt,
                         "-t",
                         str(self.zone_config.denial_nsec3_iterations),
                         "-a",
                         str(self.zone_config.denial_nsec3_algorithm)])
+            if self.zone_config.denial_nsec3_salt:
+                cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
             # tell the reader not to append the NSEC3PARAM record
             # if we are not going to add signatures
             if len(self.zone_config.signature_keys) <= 0:
@@ -518,8 +521,6 @@ class Zone:
                 cmd = [
                     self.get_tool_filename("nsec3er"),
                     "-o", self.zone_name,
-                    "-s",
-                    self.zone_config.denial_nsec3_salt,
                     "-t",
                     str(self.zone_config.denial_nsec3_iterations),
                     "-a",
@@ -529,6 +530,8 @@ class Zone:
                     "-w",
                     self.get_zone_tmp_filename(".nsecced")
                 ]
+                if self.zone_config.denial_nsec3_salt:
+                    cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
                 if self.zone_config.denial_nsec3_ttl:
                     cmd.append("-m")
                     cmd.append(str(self.zone_config.denial_nsec3_ttl))

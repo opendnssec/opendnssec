@@ -38,6 +38,7 @@ import optparse
 import sys
 import socket
 import os
+import subprocess
 
 def send_msg(msg, c_sock):
     """Send a message to the engine"""
@@ -79,6 +80,13 @@ def engine_cli(args, file):
     """Command interface to engine, args is a List of strings, if not
     None or empty, the list will be concatenated and sent to the engine
     at host:port"""
+
+    if args and len(args) > 0:
+        start_cmd = " ".join(args)
+        if start_cmd[:5] == "start":
+            os.system("@signer_engine@")
+            sys.exit(0)
+
     try:
         cl_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         print "connecting to " + file
