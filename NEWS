@@ -27,6 +27,7 @@ OpenDNSSEC 1.0.0b1 - 2009-10-02
 * The directory "xml" and been renamed to "conf". (This is part of repository
   clean.)
 * There are changes to the KASP DB:
+* Zone fetcher added, that will do AXFR from the master.
 
   If want to use your old database, use the following commands to upgrade:
 
