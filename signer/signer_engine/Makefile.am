@@ -4,8 +4,8 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 signerdir =	@libdir@/opendnssec/signer
 
-bin_SCRIPTS =	signer_engine_cli
-sbin_SCRIPTS =	signer_engine
+bin_SCRIPTS =	ods-signer
+sbin_SCRIPTS =	ods-signerd
 
 signer_PYTHON = \
 	Engine.py \

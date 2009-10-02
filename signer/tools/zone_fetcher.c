@@ -796,7 +796,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     char lock_ext[32];
     char* axfr_file = NULL;
     char* mv_axfr;
-    char* signer_engine_cli_sign;
+    char* engine_sign_cmd;
     int soa_seen = 0;
     size_t strlength = 0;
 
@@ -900,25 +900,25 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 if (system(mv_axfr) != -1) {
                     strlength = strlen(SIGNER_CLI_COMMAND) +
                         strlen(zone->name) + 1;
-                    signer_engine_cli_sign = (char*) malloc(sizeof(char) *
+                    engine_sign_cmd = (char*) malloc(sizeof(char) *
                         (strlength + 1));
-                    if (signer_engine_cli_sign) {
-                        signer_engine_cli_sign = strcpy(signer_engine_cli_sign,
+                    if (engine_sign_cmd) {
+                        engine_sign_cmd = strcpy(engine_sign_cmd,
                             SIGNER_CLI_COMMAND);
-                        signer_engine_cli_sign = strcat(signer_engine_cli_sign,
+                        engine_sign_cmd = strcat(engine_sign_cmd,
                             " ");
-                        signer_engine_cli_sign = strcat(signer_engine_cli_sign,
+                        engine_sign_cmd = strcat(engine_sign_cmd,
                             zone->name);
-                        if (system(signer_engine_cli_sign) == -1) {
+                        if (system(engine_sign_cmd) == -1) {
                             log_msg(LOG_ERR, "zone fetcher could not kick "
                                 "the signer engine to sign zone %s",
                                 zone->name);
                         }
-                        free((void*) signer_engine_cli_sign);
+                        free((void*) engine_sign_cmd);
                     }
                     else {
                         log_msg(LOG_ERR, "zone fetcher malloc failed "
-                            "for signer_engine_cli sign");
+                            "for engine_sign_cmd");
                     }
                     free((void*) mv_axfr);
                 }
