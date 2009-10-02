@@ -36,6 +36,7 @@
 
 #include <getopt.h>
 #include <string.h>
+#include <syslog.h>
 
 #include <ksm/ksmutil.h>
 #include <ksm/ksm.h>
@@ -5269,7 +5270,7 @@ int ListKeys(int zone_id)
             if (done_row == 1 && verbose_flag == 1) {
                 key = hsm_find_key_by_id(NULL, temp_loc);
                 if (!key) {
-                    printf("%-33s %s NOT IN HSM\n", temp_loc, temp_hsm);
+                    printf("%-33s %s NOT IN repository\n", temp_loc, temp_hsm);
                 } else {
                     sign_params = hsm_sign_params_new();
                     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, temp_zone);
@@ -5680,7 +5681,9 @@ int cmd_genkeys()
         if (policy->ksk->algorithm == 5 || policy->ksk->algorithm == 7 ) {
             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
             if (key) {
-                /* log_msg(config, LOG_INFO,"Created key in HSM"); */
+                if (verbose_flag) {
+                    printf("Created key in repository %s", policy->ksk->sm_name);
+                }
             } else {
                 printf("Error creating key in repository %s\n", policy->ksk->sm_name);
                 hsm_error_message = hsm_get_error(ctx);
@@ -5701,7 +5704,7 @@ int cmd_genkeys()
                 }
                 exit(1);
             }
-            printf("Created KSK size: %i, alg: %i with id: %s in HSM: %s and database.\n", policy->ksk->bits,
+            printf("Created KSK size: %i, alg: %i with id: %s in repository: %s and database.\n", policy->ksk->bits,
                     policy->ksk->algorithm, id, policy->ksk->sm_name);
             free(id);
         } else {
@@ -5739,7 +5742,9 @@ int cmd_genkeys()
         if (policy->zsk->algorithm == 5 || policy->zsk->algorithm == 7) {
             key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
             if (key) {
-                /* log_msg(config, LOG_INFO,"Created key in HSM"); */
+                if (verbose_flag) {
+                    printf("Created key in repository %s", policy->zsk->sm_name);
+                }
             } else {
                 printf("Error creating key in repository %s\n", policy->zsk->sm_name);
                 hsm_error_message = hsm_get_error(ctx);
@@ -5760,7 +5765,7 @@ int cmd_genkeys()
                 }
                 exit(1);
             }
-            printf("Created ZSK size: %i, alg: %i with id: %s in HSM: %s and database.\n", policy->zsk->bits,
+            printf("Created ZSK size: %i, alg: %i with id: %s in repository: %s and database.\n", policy->zsk->bits,
                     policy->zsk->algorithm, id, policy->zsk->sm_name);
             free(id);
         } else {
