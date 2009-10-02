@@ -28,7 +28,7 @@
 #
 
 progname="odctl"
-prefix="@prefix@"
+prefix="@full_prefix@"
 enforcer_pid_file="@localstatedir@/run/opendnssec/enforcerd.pid"
 
 

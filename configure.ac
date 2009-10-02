@@ -45,6 +45,9 @@ if test "${enable_auditor}" = yes; then
 	AC_CONFIG_SUBDIRS([ auditor ])
 fi
 
+full_prefix=`eval eval eval eval eval echo "${prefix}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+AC_SUBST([full_prefix])
+
 AC_CONFIG_FILES([
 	Makefile
 	tools/Makefile
