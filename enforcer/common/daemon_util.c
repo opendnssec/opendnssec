@@ -230,6 +230,7 @@ usage(const char* prog)
     fprintf(stderr, "Usage: %s [OPTION]...\n", prog);
     fprintf(stderr, "OpenDNSSEC Enforcer Daemon.\n\n");
     fprintf(stderr, "Supported options:\n");
+    fprintf(stderr, "  -c <file>   Use alternate conf.xml.\n");
     fprintf(stderr, "  -d          Debug.\n");
     fprintf(stderr, "  -1          Run once, then exit.\n");
 /*    fprintf(stderr, "  -u user     Change effective uid to the specified user.\n");*/
