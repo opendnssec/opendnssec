@@ -44,6 +44,7 @@
 
 #include "ksm/database.h"
 #include "ksm/database_statement.h"
+#include "ksm/datetime.h"
 #include "ksm/db_fields.h"
 #include "ksm/debug.h"
 #include "ksm/kmedef.h"
