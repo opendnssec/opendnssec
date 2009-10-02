@@ -136,12 +136,20 @@ class Engine:
         cmd = [ self.get_tool_filename("zone_fetcher"),
                 "-c", cfg_file,
                 "-z", zone_file,
-                "-d",
-                "-f", self.config.syslog_facility_string,
-                "-g", self.config.privs_groupname,
-                "-u", self.config.privs_username,
-                "-t", self.config.privs_chroot
-        ]
+                "-d" ]
+
+        if self.config.syslog_facility_string:
+            cmd.append("-f")
+            cmd.append(self.zone_config.syslog_facility_string)
+        if self.config.privs_groupname:
+            cmd.append("-g")
+            cmd.append(self.zone_config.privs_groupname)
+        if self.config.privs_username:
+            cmd.append("-u")
+            cmd.append(self.zone_config.privs_userame)
+#        if self.config.privs_chroot:
+#            cmd.append("-t")
+#            cmd.append(self.zone_config.privs_chroot)
 
         zone_fetcher_c = Util.run_tool(cmd)
 
@@ -183,21 +191,21 @@ class Engine:
                 sys.exit(0)
 
     def drop_privileges(self):
-        if self.config.privs_groupname:
-            try:
-                gid = grp.getgrnam(self.config.privs_groupname)[2]
-            except Exception, e:
-                estr = "Unable to drop privileges to group '" +\
-                       self.config.privs_groupname + "': " + str(e)
-                syslog.syslog(syslog.LOG_ERR, estr)
-                raise EngineError(estr)
-
         if self.config.privs_username:
             try:
                 uid = pwd.getpwnam(self.config.privs_username)[2]
             except Exception, e:
                 estr = "Unable to drop privileges to user " +\
                        self.config.privs_username + ": " + str(e)
+                syslog.syslog(syslog.LOG_ERR, estr)
+                raise EngineError(estr)
+
+        if self.config.privs_groupname:
+            try:
+                gid = grp.getgrnam(self.config.privs_groupname)[2]
+            except Exception, e:
+                estr = "Unable to drop privileges to group '" +\
+                       self.config.privs_groupname + "': " + str(e)
                 syslog.syslog(syslog.LOG_ERR, estr)
                 raise EngineError(estr)
 
@@ -214,21 +222,33 @@ class Engine:
 
         if self.config.privs_groupname:
             try:
-                os.setgid(gid)
+                os.setresgid(gid, gid, gid)
             except Exception, e:
-                estr = "Unable to drop privileges to group '" +\
-                       self.config.privs_groupname + "': " + str(e)
-                syslog.syslog(syslog.LOG_ERR, estr)
-                raise EngineError(estr)
+                try:
+                    os.setregid(gid)
+                except Exception, e:
+                    try:
+                         os.setgid(gid)
+                    except Exception, e:
+                        estr = "Unable to drop privileges to group '" +\
+                               self.config.privs_groupname + "': " + str(e)
+                        syslog.syslog(syslog.LOG_ERR, estr)
+                        raise EngineError(estr)
 
         if self.config.privs_username:
             try:
-                os.setuid(uid)
+                os.setresuid(uid, uid, uid)
             except Exception, e:
-                estr = "Unable to drop privileges to user " +\
-                       self.config.privs_username + ": " + str(e)
-                syslog.syslog(syslog.LOG_ERR, estr)
-                raise EngineError(estr)
+                try:
+                    os.setreuid(uid)
+                except Exception, e:
+                    try:
+                         os.setuid(uid)
+                    except Exception, e:
+                        estr = "Unable to drop privileges to user '" +\
+                               self.config.privs_username + "': " + str(e)
+                        syslog.syslog(syslog.LOG_ERR, estr)
+                        raise EngineError(estr)
 
     def run(self):
         """Just keep running until command channel is closed"""
@@ -725,8 +745,8 @@ def main():
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
         signal.signal(signal.SIGHUP, signal_handler_stop)
-        engine.drop_privileges()
         engine.setup_engine()
+        engine.drop_privileges()
         if daemonize:
             daemonize_engine()
         else:
