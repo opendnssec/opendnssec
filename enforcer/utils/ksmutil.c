@@ -5597,7 +5597,7 @@ int cmd_genkeys()
     }
 
     /* Connect to the hsm */
-    status = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
+    status = hsm_open(config, hsm_prompt_pin, NULL);
     if (status) {
         hsm_error_message = hsm_get_error(ctx);
         if (hsm_error_message) {
