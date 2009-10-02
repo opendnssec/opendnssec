@@ -63,7 +63,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     if (username) {
         /* Lookup the user id in /etc/passwd */
         if ((pwd = getpwnam(username)) == NULL) {
-            log_msg(LOG_ERR, "zone fetcher user '%s' does not exist. exiting...", username);
+            syslog(LOG_ERR, "user '%s' does not exist. exiting...", username);
             exit(1);
         } else {
             uid = pwd->pw_uid;
@@ -75,7 +75,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     if (groupname) {
         /* Lookup the group id in /etc/groups */
         if ((grp = getgrnam(groupname)) == NULL) {
-            log_msg(LOG_ERR, "zone fetcher group '%s' does not exist. exiting...", groupname);
+            syslog(LOG_ERR, "group '%s' does not exist. exiting...", groupname);
             exit(1);
         } else {
             gid = grp->gr_gid;
@@ -86,11 +86,11 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     /* Change root if requested */
     if (newroot) {
        if (chroot(newroot) != 0 || chdir("/") != 0) {
-            log_msg(LOG_ERR, "zone fetcher chroot to '%s' failed. exiting...", newroot);
+            syslog(LOG_ERR, "chroot to '%s' failed. exiting...", newroot);
             exit(1);
        }
 
-       log_msg(LOG_INFO, "zone fetcher changed root to '%s'", newroot);
+       syslog(LOG_INFO, "changed root to '%s'", newroot);
     }
 
     /* Drop gid? */
@@ -102,13 +102,13 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #else /* use setgid */
                 if ((status = setgid(gid)) != 0)
 #endif /* HAVE_SETRESGID */
-                    log_msg(LOG_ERR, "zone fetcher unable to set group id of %s (%lu): %s",
+                    syslog(LOG_ERR, "unable to set group id of %s (%lu): %s",
                         groupname, (unsigned long) gid, strerror(errno));
 
         if (status != 0)
             return status;
         else
-            log_msg(LOG_INFO, "zone fetcher dropped group privileges to %s (%lu)",
+            syslog(LOG_INFO, "dropped group privileges to %s (%lu)",
                         groupname, (unsigned long) gid);
     }
 
@@ -121,12 +121,12 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #else /* use setuid */
                 if ((status = setuid(uid)) != 0)
 #endif /* HAVE_SETRESUID */
-                    log_msg(LOG_ERR, "zone fetcher unable to set user id of %s (%lu): %s",
+                    syslog(LOG_ERR, "unable to set user id of %s (%lu): %s",
                         username, (unsigned long) uid, strerror(errno));
         if (status != 0)
             return status;
         else
-            log_msg(LOG_INFO, "zone fetcher dropped user privileges to %s (%lu)",
+            syslog(LOG_INFO, "dropped user privileges to %s (%lu)",
                         username, (unsigned long) uid);
     }
 
