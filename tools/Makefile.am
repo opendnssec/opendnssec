@@ -9,4 +9,4 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-bin_SCRIPTS = odctl
+bin_SCRIPTS = ods-control

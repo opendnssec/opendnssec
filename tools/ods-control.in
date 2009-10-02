@@ -36,24 +36,24 @@ case "$1" in
 
 'ksm')
 	shift
-	$prefix/bin/ksmutil $@
+	$prefix/bin/ods-ksmutil $@
 	;;
 
 'hsm')
 	shift
-	$prefix/bin/hsmutil $@
+	$prefix/bin/ods-hsmutil $@
 	;;
 	
 'signer')
 	shift
-	$prefix/bin/signer_engine_cli $@
+	$prefix/bin/ods-signer $@
 	;;
 
 'start')
 	echo "Starting signer engine..."
-	$prefix/sbin/signer_engine
+	$prefix/sbin/ods-signerd
 	echo "Starting enforcer..."
-	$prefix/sbin/enforcerd
+	$prefix/sbin/ods-enforcerd
 	;;
 
 'stop')
@@ -64,7 +64,7 @@ case "$1" in
 		echo "Cannot find PID file"
 	fi
 	echo "Stopping signer engine.."
-	$prefix/sbin/signer_engine_cli stop
+	$prefix/bin/ods-signer stop
 	;;
 	
 *)
