@@ -54,15 +54,15 @@ usage(FILE *out)
     fprintf(out, "Usage: zone_fetcher [OPTIONS]\n");
     fprintf(out, "Transfers zones from their master.\n");
     fprintf(out, "Options:\n");
-    fprintf(out, "-c <file>\t\tThe zonefetch.xml <file>\n");
-    fprintf(out, "-d\t\tRun as daemon\n");
-    fprintf(out, "-f <facility>\t\tLog with <facility>\n");
-    fprintf(out, "-g <group>\tDrop group privileges to those of <group>\n");
-    fprintf(out, "-h\t\tShow this help\n");
-    fprintf(out, "-i\t\tGive information about the config settings\n");
-    fprintf(out, "-t <chroot>\tSpecifies the directory to chroot to upon startup\n");
-    fprintf(out, "-u <user>\tDrop user privileges to those of <user>\n");
-    fprintf(out, "-z <file>\tThe zonelist.xml <file>\n");
+    fprintf(out, "-c <file>     The zonefetch.xml <file>\n");
+    fprintf(out, "-d            Run as daemon\n");
+    fprintf(out, "-f <facility> Log with <facility>\n");
+    fprintf(out, "-g <group>    Drop group privileges to those of <group>\n");
+    fprintf(out, "-h            Show this help\n");
+    fprintf(out, "-i            Give information about the config settings\n");
+    fprintf(out, "-t <chroot>   Specifies the directory to chroot to upon startup\n");
+    fprintf(out, "-u <user>     Drop user privileges to those of <user>\n");
+    fprintf(out, "-z <file>     The zonelist.xml <file>\n");
 }
 
 static zonelist_type*
