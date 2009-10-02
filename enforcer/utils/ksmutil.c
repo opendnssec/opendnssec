@@ -5682,7 +5682,7 @@ int cmd_genkeys()
             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
             if (key) {
                 if (verbose_flag) {
-                    printf("Created key in repository %s", policy->ksk->sm_name);
+                    printf("Created key in repository %s\n", policy->ksk->sm_name);
                 }
             } else {
                 printf("Error creating key in repository %s\n", policy->ksk->sm_name);
@@ -5743,7 +5743,7 @@ int cmd_genkeys()
             key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
             if (key) {
                 if (verbose_flag) {
-                    printf("Created key in repository %s", policy->zsk->sm_name);
+                    printf("Created key in repository %s\n", policy->zsk->sm_name);
                 }
             } else {
                 printf("Error creating key in repository %s\n", policy->zsk->sm_name);
