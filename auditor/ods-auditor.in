@@ -97,9 +97,9 @@ if (options.kasp_file)
 end
 if (options.zone_name)
   runner.zone_name = options.zone_name
-  if (options.signed_temp)
-    runner.signed_temp = options.signed_temp
-  end
+end
+if (options.signed_temp)
+  runner.signed_temp = options.signed_temp
 end
 if (options.enable_timeshift)
   runner.enable_timeshift = true

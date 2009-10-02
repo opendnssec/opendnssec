@@ -229,11 +229,11 @@ module KASPAuditor
         if (zones.length == 0)
           KASPAuditor.exit("Can't find #{@zone} zone in zonelist", 1)
         end
-        if (@signed_temp)
-          # Then, if @signed is also present, then use that name for the
-          # signed zonefile.
-          zones[0][2] = @signed_temp
-        end
+      end
+      if (@signed_temp)
+        # Then, if @signed is also present, then use that name for the
+        # signed zonefile.
+        zones[0][2] = @signed_temp
       end
     end
 
