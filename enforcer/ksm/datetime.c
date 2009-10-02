@@ -677,7 +677,7 @@ int DtIntervalSeconds(const char* text, int* interval)
     char    number[32];     /* Long enough for any number */
     int     status = 0;     /* Status return */
     int     length;         /* Lengthof the string */
-    long    multiplier;     /* Multiplication factor */
+    long    multiplier = 1; /* Multiplication factor */
 
     if (text && interval && *text) {
 
@@ -930,7 +930,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
     int     status = 0;     /* Status return */
     int     length;         /* Length of the string */
     int     length_mod = 0; /* How many characters have we chopped off the start? */
-    long    multiplier;     /* Multiplication factor */
+    long    multiplier = 1; /* Multiplication factor */
     short   is_time = 0;    /* Do we have a Time section or not */
     short   warning = 0;    /* Do we need to a warning code for duration approximation? */
     short   negative = 0;   /* Is the value negative ? */     
