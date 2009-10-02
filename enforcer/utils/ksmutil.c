@@ -1098,7 +1098,7 @@ cmd_delzone ()
     if (all_flag == 0) {
         if (system(SIGNER_CLI_COMMAND) != 0)
         {
-            printf("Could not call signer_engine\n");
+            printf("Could not call signer engine\n");
         }
     }
 

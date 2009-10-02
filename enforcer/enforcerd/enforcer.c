@@ -949,7 +949,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
             status = system(signer_command);
             if (status != 0)
             {
-                log_msg(NULL, LOG_ERR, "Could not call signer_engine");
+                log_msg(NULL, LOG_ERR, "Could not call signer engine");
                 log_msg(NULL, LOG_INFO, "Will continue: call 'ods-signer update' to manually update zones");
                 *signer_flag = 0;
             }
