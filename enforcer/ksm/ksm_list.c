@@ -79,14 +79,14 @@ int KsmListBackups(int repo_id)
     int         temp_backup_req = 0; /* place to store backuprequired returned */
 
     /* Select rows */
-    StrAppend(&sql, "select k.backup, s.name from keypairs k, securitymodules s ");
+    StrAppend(&sql, "select distinct k.backup, s.name from keypairs k, securitymodules s ");
     StrAppend(&sql, "where s.id = k.securitymodule_id ");
     if (repo_id != -1) {
         StrAppend(&sql, "and s.id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", repo_id);
         StrAppend(&sql, stringval);
     }
-    StrAppend(&sql, " group by backup order by backup");
+    StrAppend(&sql, " order by backup");
 
     DusEnd(&sql);
 
