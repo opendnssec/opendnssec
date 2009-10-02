@@ -48,7 +48,7 @@ fi
 AC_CONFIG_FILES([
 	Makefile
 	tools/Makefile
-	tools/odctl
+	tools/ods-control
 ])
 
 AC_OUTPUT
