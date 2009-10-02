@@ -41,7 +41,7 @@
 
 
 extern char *optarg;
-char *progname = "hsmutil";
+char *progname = NULL;
 
 
 void
@@ -283,7 +283,7 @@ main (int argc, char *argv[])
     char *config = NULL;
 
     int ch;
-    /* progname = argv[0]; */
+    progname = argv[0];
 
     while ((ch = getopt(argc, argv, "c:h")) != -1) {
         switch (ch) {

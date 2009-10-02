@@ -13,12 +13,20 @@ libhsm_la_LDFLAGS = -dl -version-info @LIBTOOL_VERSION_INFO@
 libhsm_la_LIBADD = @LDNS_LIBS@ @XML2_LIBS@
 nobase_include_HEADERS = $(srcdir)/*.h
 
-bin_PROGRAMS = hsmutil hsmspeed
+bin_PROGRAMS = ods-hsmutil ods-hsmspeed
 
-hsmutil_LDADD = libhsm.la
-hsmutil_SOURCES = hsmutil.c hsmtest.c
+ods_hsmutil_SOURCES = hsmutil.c hsmtest.c
+ods_hsmutil_LDADD = libhsm.la
 
-hsmspeed_LDADD = libhsm.la -lpthread
+ods_hsmspeed_SOURCES = hsmspeed.c
+ods_hsmspeed_LDADD = libhsm.la -lpthread
 
 EXTRA_DIST = $(srcdir)/cryptoki/*.h
 EXTRA_DIST += $(srcdir)/compat/*.c $(srcdir)/compat/*.h
+
+
+install-data-hook:
+	rm -f $(DESTDIR)$(bindir)/hsmutil
+	$(LN_S)	ods-hsmutil $(DESTDIR)$(bindir)/hsmutil
+	rm -f $(DESTDIR)$(bindir)/hsmspeed
+	$(LN_S)	ods-hsmspeed $(DESTDIR)$(bindir)/hsmspeed
