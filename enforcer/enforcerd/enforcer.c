@@ -554,7 +554,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 log_msg(config, LOG_INFO, "Policy for %s set to %s.", zone_name, current_policy);
                 xmlXPathFreeObject(xpathObj);
 
-                if (strcmp(current_policy, policy->name) == 0) {
+                if (strcmp(current_policy, policy->name) != 0) {
                     /* Read new Policy */ 
                     kaspSetPolicyDefaults(policy, current_policy);
 
