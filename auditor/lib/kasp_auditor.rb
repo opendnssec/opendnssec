@@ -76,7 +76,7 @@ module KASPAuditor
         kasp_file = @kasp_file
       end
 
-      Syslog.open("kasp_auditor", Syslog::LOG_PID |
+      Syslog.open("ods-auditor", Syslog::LOG_PID |
         Syslog::LOG_CONS, syslog_facility) { |syslog|
         run_with_syslog(zonelist, kasp_file, syslog, working, enforcer_interval)
       }

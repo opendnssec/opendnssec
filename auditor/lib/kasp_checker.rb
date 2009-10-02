@@ -42,7 +42,7 @@ module KASPChecker
 
     def log(level, msg)
       if (@syslog)
-        Syslog.open("kasp_check", Syslog::LOG_PID |
+        Syslog.open("ods-kaspcheck", Syslog::LOG_PID |
           Syslog::LOG_CONS, @syslog) { |slog|
           slog.log(level, msg)
         }
