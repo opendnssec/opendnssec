@@ -78,7 +78,7 @@ class Engine:
         self.command_socket = None
         self.locked = False
         #self.chrooted = False
-        syslog.openlog("OpenDNSSEC signer engine",
+        syslog.openlog("OpenDNSSEC ods-signerd",
                        0, self.config.syslog_facility)
 
     def get_tool_filename(self, tool_name):
