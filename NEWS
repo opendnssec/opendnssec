@@ -19,6 +19,7 @@ OpenDNSSEC trunk
   If want to use your old database, use the following commands to upgrade:
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090922_1.sqlite3
     sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_090930_1.sqlite3
+    sqlite3 <PATH_TO_ENFORCER.DB> < enforcer/utils/migrate_091002_1.sqlite3
   Or start fresh (with loss of information. User should remove old keys
   from the HSM):
     ksmutil setup
