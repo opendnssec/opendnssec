@@ -199,6 +199,16 @@ server_main(DAEMONCONFIG *config)
                 /* Read the parameters for that policy */
                 status = kaspReadPolicy(policy);
 
+                /* Update the salt if it is not up to date */
+                if (policy->denial->version == 3)
+                {
+                    status = KsmPolicyUpdateSalt(policy);
+                    if (status != 0) {
+                        /* Don't return? */
+                        log_msg(config, LOG_ERR, "Error (%d) updating salt for %s", status, policy->name);
+                    }
+                }
+
                 /* Do keygen stuff if required */
                 if (config->manualKeyGeneration == 0) {
                     status = do_keygen(config, policy, ctx);
@@ -578,19 +588,6 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     }
                     log_msg(config, LOG_INFO, "Policy %s found in DB.", policy->name);
 
-                    /* Update the salt if it is not up to date */
-                    if (policy->denial->version == 3)
-                    {
-                        /*DbBeginTransaction();*/
-                        status2 = KsmPolicyUpdateSalt(policy);
-                        /*DbCommit();*/
-                        if (status2 != 0) {
-                            /* Don't return? try to parse the rest of the zones? */
-                            log_msg(config, LOG_ERR, "Error (%d) updating salt for %s", status2, policy->name);
-                            ret = xmlTextReaderRead(reader);
-                            continue;
-                        }
-                    }
                 } else {
                     /* Policy is same as previous zone, do not re-read */
                 }
