@@ -1622,10 +1622,10 @@ cmd_rollzone ()
         fclose(lock_fd);
     }
 
-    /* Need to poke the communicator to wake it up */
-    if (system("killall -HUP communicated") != 0)
+    /* Need to poke the enforcer to wake it up */
+    if (system("killall -HUP ods-enforcerd") != 0)
     {
-        fprintf(stderr, "Could not HUP communicated\n");
+        fprintf(stderr, "Could not HUP ods-enforcerd\n");
     }
 
     DbDisconnect(dbhandle);
@@ -1828,10 +1828,10 @@ cmd_rollpolicy ()
         fclose(lock_fd);
     }
 
-    /* Need to poke the communicator to wake it up */
-    if (system("killall -HUP communicated") != 0)
+    /* Need to poke the enforcer to wake it up */
+    if (system("killall -HUP ods-enforcerd") != 0)
     {
-        fprintf(stderr, "Could not HUP communicated\n");
+        fprintf(stderr, "Could not HUP ods-enforcerd\n");
     }
 
     DbDisconnect(dbhandle);
