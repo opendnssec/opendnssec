@@ -72,7 +72,7 @@
 
 extern char *optarg;
 extern int optind;
-const char *progname = "ksmutil";
+const char *progname = NULL;
 char *config = (char *) CONFIG_FILE;
 
 char *o_keystate = NULL;
@@ -3074,6 +3074,8 @@ main (int argc, char *argv[])
         {"zone",    required_argument, 0, 'z'},
         {0,0,0,0}
     };
+
+    progname = argv[0];
 
     while ((ch = getopt_long(argc, argv, "ab:c:de:hi:k:o:p:r:s:t:vw:y:z:", long_options, &option_index)) != -1) {
         switch (ch) {

@@ -16,14 +16,19 @@ AM_CFLAGS = -std=c99
 
 dist_opendnssecdata_DATA = database_create.sqlite3
 
-bin_PROGRAMS = ksmutil
+bin_PROGRAMS = ods-ksmutil
 
-ksmutil_LDADD = ../ksm/libksm.a
-ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@ @LDNS_LIBS@
-ksmutil_DEPENDENCIES = @BUILD_LIBHSM@
+ods_ksmutil_SOURCES = ksmutil.c
+ods_ksmutil_LDADD = ../ksm/libksm.a
+ods_ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@ @LDNS_LIBS@
+ods_ksmutil_DEPENDENCIES = @BUILD_LIBHSM@
 
 ../../libhsm/src/libhsm.la:
 	(cd ../../libhsm/src; ${MAKE} libhsm.la)
 
 ../ksm/libksm.a:
 	(cd ../ksm; ${MAKE} libksm.a)
+
+install-data-hook:
+	rm -f $(DESTDIR)$(bindir)/ksmutil
+	$(LN_S) ods-ksmutil $(DESTDIR)$(bindir)/ksmutil
