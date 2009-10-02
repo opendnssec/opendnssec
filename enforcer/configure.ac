@@ -28,6 +28,24 @@ if test -z "$PERL"; then
 	AC_MSG_ERROR([perl not found])
 fi
 
+CHECK_COMPILER_FLAG(std=c99, [C99FLAG="-std=c99"])
+CHECK_COMPILER_FLAG(xc99, [C99FLAG="-xc99"])
+CHECK_COMPILER_FLAG_NEEDED($C99FLAG, [#include <stdbool.h>], [CFLAGS="$CFLAGS $C99FLAG"])
+
+CHECK_COMPILER_FLAG_NEEDED(-D__EXTENSIONS__,
+[
+#include "confdefs.h"
+#include <stdlib.h>
+#include <unistd.h>
+
+int test() {
+	int a;
+	char **opts = NULL;
+	a = getopt(2, opts, "a");
+	return a;
+}
+], [CFLAGS="-D__EXTENSIONS__ $CFLAGS"])
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdlib.h string.h syslog.h unistd.h stdio.h])
