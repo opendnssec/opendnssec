@@ -703,6 +703,8 @@ class Zone:
                                    str(soa_serial) + "\n")
             else:
                 return False
+            if self.zone_config.soa_serial == "keep":
+                sign_p.stdin.write(":soa_serial_keep 1\n")
         #move time to engine?
         sign_time = int(time.time())
         Util.write_p(sign_p,
@@ -781,7 +783,7 @@ class Zone:
         # result and return False
         # Addition: unless we didn't set any keys (in which case we
         # *should* write the output file)
-        if sig_count > 1 or len(self.zone_config.signature_keys) <= 0:
+        if sig_count > 0 or len(self.zone_config.signature_keys) <= 0:
             syslog.syslog(syslog.LOG_INFO, "Created " +
                           str(sig_count) + " new signatures")
             Util.move_file(self.get_zone_tmp_filename(".signed2"),
