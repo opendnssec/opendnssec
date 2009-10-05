@@ -84,6 +84,7 @@ typedef struct {
 	/* settings for SOA values that are changed */
 	uint32_t soa_ttl;
 	uint32_t soa_serial;
+	uint32_t soa_serial_keep;
 	uint32_t soa_minimum;
 
 	/* and let's keep some statistics */
@@ -228,6 +229,7 @@ current_config_new()
 	cfg->ksks = key_list_new();
 	cfg->soa_ttl = 0;
 	cfg->soa_serial = 0;
+	cfg->soa_serial_keep = 0;
 	cfg->soa_minimum = 0;
 	cfg->existing_sigs = 0;
 	cfg->removed_sigs = 0;
@@ -498,6 +500,13 @@ handle_command(FILE *output, current_config *cfg,
 			fprintf(output, "; Error: missing argument in soa_serial command\n");
 		} else {
 			cfg->soa_serial = atol(arg1);
+		}
+	} else if (strcmp(cmd, "soa_serial_keep") == 0) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in soa_serial_keep command\n");
+		} else {
+			cfg->soa_serial_keep = atol(arg1);
 		}
 	} else if (strcmp(cmd, "soa_minimum") == 0) {
 		arg1 = read_arg(next, &next);
@@ -780,7 +789,7 @@ check_existing_sigs(ldns_rr_list *sigs,
 		 * signatures. Otherwise, we'll have to check
 		 * them and mark which keys should still be used
 		 * to create new ones
-		 * 
+		 *
 		 * *always* update SOA RRSIG
 		 */
 		if (refresh || type_covered == LDNS_RR_TYPE_SOA) {
@@ -839,7 +848,7 @@ sign_rrset(ldns_rr_list *rrset,
 
 	/* skip delegation rrsets */
 	if (rr_list_delegation_only(cfg->origin, rrset)) return;
-	
+
 	params->owner = ldns_rdf_clone(cfg->origin);
 	params->inception = cfg->inception;
 	if (ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)) ==
@@ -893,6 +902,78 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 	}
 	return ldns_rr_compare_no_rdata(ldns_rr_list_rr(a, 0),
 	                                ldns_rr_list_rr(b, 0));
+}
+
+int
+rr_list_compare_soa(ldns_rr_list* a, ldns_rr_list* b, current_config* cfg)
+{
+	size_t i = 0;
+	int rr_cmp;
+    ldns_rr* soa1, *soa2;
+
+	assert(a != NULL);
+	assert(b != NULL);
+
+	for (i = 0; i < ldns_rr_list_rr_count(a) && i < ldns_rr_list_rr_count(b); i++) {
+		rr_cmp = ldns_rr_compare(ldns_rr_list_rr(a, i), ldns_rr_list_rr(b, i));
+		if (rr_cmp != 0) {
+			if (ldns_rr_list_type(a) == LDNS_RR_TYPE_SOA) {
+				soa1 = ldns_rr_list_rr(a, i);
+				soa2 = ldns_rr_list_rr(b, i);
+				/* NAME, CLASS, TYPE, RDLENGTH */
+				if (ldns_rr_compare_no_rdata(soa1, soa2) != 0)
+					return rr_cmp;
+				/* MNAME, RNAME, ..., REFRESH, RETRY, EXPIRE, ... */
+				if ((ldns_rdf_compare(ldns_rr_rdf(soa1, 0), ldns_rr_rdf(soa2, 0))) != 0 ||
+				    (ldns_rdf_compare(ldns_rr_rdf(soa1, 1), ldns_rr_rdf(soa2, 1))) != 0 ||
+				    (ldns_rdf_compare(ldns_rr_rdf(soa1, 3), ldns_rr_rdf(soa2, 3))) != 0 ||
+				    (ldns_rdf_compare(ldns_rr_rdf(soa1, 4), ldns_rr_rdf(soa2, 4))) != 0 ||
+				    (ldns_rdf_compare(ldns_rr_rdf(soa1, 5), ldns_rr_rdf(soa2, 5))) != 0)
+				{
+					return rr_cmp;
+				}
+
+				/* SERIAL */
+				if (cfg->soa_serial == 0 && /* we did not change it */
+					ldns_rdf_compare(ldns_rr_rdf(soa1, 2), ldns_rr_rdf(soa2, 2)) != 0) {
+					return rr_cmp;
+				}
+				if (cfg->soa_serial_keep != 0 && /* soa serial is keep, force change */
+					ldns_rdf_compare(ldns_rr_rdf(soa1, 2), ldns_rr_rdf(soa2, 2)) != 0) {
+					return rr_cmp;
+				}
+
+				/* MINIMUM */
+				if (cfg->soa_minimum == 0 && /* we did not change it */
+					ldns_rdf_compare(ldns_rr_rdf(soa1, 6), ldns_rr_rdf(soa2, 6)) != 0) {
+					return rr_cmp;
+				}
+
+				/* TTL */
+				if (cfg->soa_ttl == 0 && /* we did not change it */
+					ldns_rr_ttl(soa1) != ldns_rr_ttl(soa2)) {
+					if (ldns_rr_ttl(soa1) < ldns_rr_ttl(soa2))
+						return 1;
+					else
+						return -1;
+				}
+
+				/* consider the same */
+				return 0;
+			} else
+				return rr_cmp;
+		}
+	}
+
+	if (i == ldns_rr_list_rr_count(a) &&
+		i != ldns_rr_list_rr_count(b)) {
+		return 1;
+	} else if (i == ldns_rr_list_rr_count(b) &&
+			   i != ldns_rr_list_rr_count(a)) {
+		return -1;
+	}
+
+	return 0;
 }
 
 /* returns 0 when an rrset has successfully been read and handled
@@ -965,8 +1046,8 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 * In that case, we treat the data as new */
 			while (cmp != 0 &&
 			       ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_NSEC3 &&
-				   ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3
-			     ) {
+				   ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3)
+			{
 				ldns_rr_list_print(output, new_zone_rrset);
 				if (new_zone_signatures) {
 					check_existing_sigs(new_zone_signatures, output, cfg);
@@ -1042,14 +1123,33 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 						fprintf(stderr, "rrset changed\n");
 					}
 					sign_rrset(new_zone_rrset, output, cfg);
+					/* special case: SOA */
+					if (ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_SOA) {
+						if (rr_list_compare_soa(new_zone_rrset, signed_zone_rrset, cfg) == 0)
+						{
+							fprintf(stderr, "rrset SOA changed, but should be considered unchanged\n");
+							cfg->created_sigs -= cfg->zsks->key_count;
+						}
+						else
+							fprintf(stderr, "rrset SOA changed\n");
+					}
+
 				} else {
 					ldns_rr_list_print(output, new_zone_rrset);
 					check_existing_sigs(new_zone_signatures, output, cfg);
 					check_existing_sigs(signed_zone_signatures, output, cfg);
 					if (cfg->verbosity >= 4) {
-						fprintf(stderr, "rrset still the same\n");
+						fprintf(stderr, "rrset%s still the same\n",
+							ldns_rr_list_type(new_zone_rrset) == 6 ? " SOA":"");
 					}
 					sign_rrset(new_zone_rrset, output, cfg);
+					/* special case: SOA */
+					if (ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_SOA) {
+						if (rr_list_compare_soa(new_zone_rrset, signed_zone_rrset, cfg) == 0)
+						{
+							cfg->created_sigs -= cfg->zsks->key_count;
+						}
+					}
 				}
 			}
 			/* in our search for the next signed rrset, we may have
@@ -1164,7 +1264,7 @@ int main(int argc, char **argv)
 
 	if (print_creation_count) {
 		elapsed = (double) TIMEVAL_SUB(t_end, t_start);
-		fprintf(stderr, "Number of signatures created: %lu\n", cfg->created_sigs); 
+		fprintf(stderr, "Number of signatures created: %lu\n", cfg->created_sigs);
 		if (elapsed > 0)
 			fprintf(stderr, "signer: number of signatures created: %lu (%u rr/sec)\n",
 				cfg->created_sigs, (unsigned) (cfg->created_sigs / elapsed));
