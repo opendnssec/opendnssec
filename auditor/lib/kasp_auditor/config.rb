@@ -69,9 +69,10 @@ module KASPAuditor
             doc = REXML::Document.new(file)
             e = doc.elements['SignerConfiguration/Zone/Denial/NSEC3/Hash/']
             if (e)
-              @denial.nsec3.hash.salt = Dnsruby::RR::NSEC3.decode_salt(e.elements['Salt'].text)
-              if (@denial.nsec3.hash.salt.length.to_i != @denial.nsec3.hash.salt_length.to_i)
-                msg = "ERROR : SALT LENGTH IS #{@denial.nsec3.hash.salt.length}, but should be #{@denial.nsec3.hash.salt_length}"
+              @denial.nsec3.hash.salt = e.elements['Salt'].text
+              decoded_salt = Dnsruby::RR::NSEC3.decode_salt(@denial.nsec3.hash.salt)
+              if (decoded_salt.length.to_i != @denial.nsec3.hash.salt_length.to_i)
+                msg = "ERROR : SALT LENGTH IS #{decoded_salt.length}, but should be #{@denial.nsec3.hash.salt_length}"
                 print "#{Syslog::LOG_ERR}: #{msg}\n"
                 begin
                   syslog.log(Syslog::LOG_ERR, msg)

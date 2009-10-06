@@ -60,7 +60,7 @@
 				<Hash>
 					<Algorithm>1</Algorithm>
 					<Iterations>5</Iterations>
-					<Salt>62656566</Salt>
+					<Salt>beef</Salt>
 				</Hash>
 			</NSEC3>
 		</Denial>

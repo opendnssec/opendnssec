@@ -24,7 +24,7 @@
 				<Hash>
 					<Algorithm>1</Algorithm>
 					<Iterations>5</Iterations>
-					<Salt length="4"/>
+					<Salt length="2"/>
 				</Hash>
 			</NSEC3>
 		</Denial>
