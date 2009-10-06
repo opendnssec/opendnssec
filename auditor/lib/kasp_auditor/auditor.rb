@@ -173,6 +173,7 @@ module KASPAuditor
       while (!file.eof?)
         line = file.gets
         next if (line.index(';') == 0)
+        next if (line.strip.length == 0)
         next if (!line || (line.length == 0))
         # Strip off prepended name up to "\v" character before creating RR
         begin
@@ -751,6 +752,7 @@ module KASPAuditor
       signed_soa = get_soa_from_file(output_file)
       unsigned_soa = get_soa_from_file(input_file)
       @zone_name = unsigned_soa.name.to_s
+
       # Then return the SOA record (of the signed zone)
       if (signed_soa.name != unsigned_soa.name)
         log(LOG_ERR, "Different SOA name in signed zone! (was #{unsigned_soa.name} in unsigned zone, but is #{signed_soa.name} in signed zone")
@@ -781,14 +783,22 @@ module KASPAuditor
       # This is now a horrible hack, having been extended to cover multi-line SOAs
       # with "xh" format times (rather than just seconds)
       file = (file.to_s+"").untaint
-      ttl = 0
+      @ttl = 0
+      @origin = @config.name.to_s
+      if (!Name.create(@origin).absolute?)
+        @origin += "."
+      end
+      @last_name = ""
       continued_line = false
       IO.foreach(file) {|line|
         next if (line.index(';') == 0)
         next if (!line || (line.length == 0))
-        next if line.index("$ORIGIN") == 0
+        if line.index("$ORIGIN") == 0
+          @origin = line.split()[1].strip
+          next
+        end
         if (line.index("$TTL") == 0)
-          ttl = Preparser.get_ttl(line.split()[1].strip) #  $TTL <ttl>
+          @ttl = Preparser.get_ttl(line.split()[1].strip) #  $TTL <ttl>
           next
         end
         next if line.index("$TTL") == 0
@@ -825,27 +835,24 @@ module KASPAuditor
         line.sub!("(", "")
         line.sub!(")", "")
 
-        # If TTL is missing, then add the $TTL value in to the string
-        split = line.split
-        if (split[1].to_i == 0)
-          line = split[0] + " #{ttl} "
-          (split.length - 1).times {|i| line += "#{split[i+1]} "}
-          line += "\n"
-        end
+        line, domain, type = Preparser.normalise_line(line, @origin, @ttl, @last_name)
+
+        @last_name = domain
 
         if (!line.index("SOA"))
           log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got #{line.chomp}")
           next
         end
 
-        # Replace the 3h, 10m, etc. format with real numbers
-        line = Preparser.frig_soa_ttl(line)
+        #        # Replace the 3h, 10m, etc. format with real numbers
+        #        line = Preparser.frig_soa_ttl(line)
 
         soa = RR.create(line)
         if (soa.type != Types::SOA)
           log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got #{soa}")
           next
         end
+
         return soa
       }
     end
@@ -892,7 +899,7 @@ module KASPAuditor
         if (!File.exists?(@working +
                 "#{File::SEPARATOR}audit.optout.#{Process.pid}"))
           File.new(@working +
-                "#{File::SEPARATOR}audit.optout.#{Process.pid}", "w")
+              "#{File::SEPARATOR}audit.optout.#{Process.pid}", "w")
         end
         File.open(@working + 
             "#{File::SEPARATOR}audit.types.sorted.#{Process.pid}") {|ftypes|

@@ -53,12 +53,14 @@ module KASPAuditor
     # name for the RR in reversed order.
     # The type is also prepended to the line - this allows RRSets to be ordered
     # with the RRSIG and NSEC records last.
-    def normalise_zone_and_add_prepended_names(infile, outfile)
-      origin = ""
+    def normalise_zone_and_add_prepended_names(zone, infile, outfile)
+      origin = zone
+      if (!Name.create(origin).absolute?)
+        origin = origin + "."
+      end
       ttl = 0
       last_name = nil
       continued_line = nil
-      parsing_soa = false
       seen_soa = false
       # Need to replace any existing files
       infile = (infile.to_s+"").untaint
@@ -71,9 +73,9 @@ module KASPAuditor
           begin
             IO.foreach(infile) { |line|
               next if (line.index(';') == 0)
+              next if (line.strip.length == 0)
               next if (!line || (line.length == 0))
               if ((line.index("SOA")) && (!seen_soa))
-                parsing_soa = true
                 seen_soa = true
               end
               if (line.index("$ORIGIN") == 0)
@@ -118,7 +120,7 @@ module KASPAuditor
               end
 
               # If SOA, then replace "3h" etc. with expanded seconds
-              line, domain, type = normalise_line(line, origin, ttl, last_name, parsing_soa)
+              line, domain, type = Preparser.normalise_line(line, origin, ttl, last_name)
               parsing_soa = false
               last_name = domain
               # Append the domain name and the RR Type here - e.g. "$NS"
@@ -151,17 +153,26 @@ module KASPAuditor
     end
 
     # Take a line from the input zone file, and return the normalised form
-    def normalise_line(line, origin, ttl, last_name, is_soa)
+    def self.normalise_line(line, origin, ttl, last_name)
       # Note that a freestanding "@" is used to denote the current origin - we can simply replace that straight away
-      line.sub!(" @ ", " #{origin} ")
+      line.sub!("@ ", "#{origin} ")
       # Note that no domain name may be specified in the RR - in that case, last_name should be used. How do we tell? Tab or space at start of line.
       if ((line[0] == " ") || (line[0] == "\t"))
         line = last_name + " " + line
       end
       line.strip
+      is_soa = false
+      if (line.index("SOA") && line.index("SOA") < 4)
+        is_soa = true
+      end
       # o We need to identify the domain name in the record, and then
       split = line.split
       name = split[0].strip
+      # o add $ORIGIN to it if it is not absolute
+      dnsname = Name.create(name)
+      if (!dnsname.absolute?)
+        name = (name + "." + origin)
+      end
 
       # If the second field is not a number, then we should add the TTL to the line
       if (((split[1]).to_i == 0) && (split[1] != "0"))
@@ -173,7 +184,7 @@ module KASPAuditor
       end
 
       if (is_soa)
-        line = replace_soa_ttl_fields(line)
+        line = self.replace_soa_ttl_fields(line)
       end
 
       # Add the type so we can load the zone one RRSet at a time.
@@ -183,18 +194,8 @@ module KASPAuditor
         # If this is an RRSIG record, then add the TYPE COVERED rather than the type - this allows us to load a complete RRSet at a time
         type = Types.new(split[4].strip)
       end
-      # o add $ORIGIN to it if it is not absolute
-      if (name[name.length-1] != 46)
-        if (origin.length == 0)
-          # @TODO@ Log error?
-          print "Relative name #{name} set before $ORIGIN encountered!\n"
-          #          exit(-1)
-        end
-        name = name + "." + origin
-      end
-      # o remove comments?
 
-      type_string=prefix_for_rrset_order(type, type_was)
+      type_string=self.prefix_for_rrset_order(type, type_was)
       
       return line, name, type_string
     end
@@ -218,7 +219,7 @@ module KASPAuditor
       return ttl
     end
 
-    def replace_soa_ttl_fields(line)
+    def self.replace_soa_ttl_fields(line)
       return Preparser.frig_soa_ttl(line)
     end
 
@@ -239,7 +240,7 @@ module KASPAuditor
     # Frig the RR type so that NSEC records appear last in the RRSets.
     # Also make sure that DNSKEYs come first (so we have a key to verify
     # the RRSet with!).
-    def prefix_for_rrset_order(type, type_was)
+    def self.prefix_for_rrset_order(type, type_was)
       # Now make sure that NSEC(3) RRs go to the back of the list
       if ['NSEC', 'NSEC3'].include?type.string
         if (type_was == Types.RRSIG)

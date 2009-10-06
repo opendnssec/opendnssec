@@ -130,9 +130,9 @@ module KASPAuditor
           # PREPARSE THE INPUT AND OUTPUT FILES!!!
           pp = Preparser.new()
           pids=[]
-          new_pid = normalise_and_sort(input_file, "in", pid, working, pp)
+          new_pid = normalise_and_sort(config.name, input_file, "in", pid, working, pp)
           pids.push(new_pid)
-          new_pid = normalise_and_sort(output_file, "out", pid, working, pp)
+          new_pid = normalise_and_sort(config.name, output_file, "out", pid, working, pp)
           pids.push(new_pid)
           pids.each {|id|
             ret_id, ret_status = Process.wait2(id)
@@ -169,13 +169,13 @@ module KASPAuditor
       exit(ret)
     end
 
-    def normalise_and_sort(f, prefix, pid, working, pp)
+    def normalise_and_sort(zone, f, prefix, pid, working, pp)
       parsed_file = working+get_name(f)+".#{prefix}.parsed.#{pid}"
       sorted_file = working+get_name(f)+".#{prefix}.sorted.#{pid}"
       delete_file(parsed_file)
       delete_file(sorted_file)
       new_pid = (fork {
-          pp.normalise_zone_and_add_prepended_names(f, parsed_file)
+          pp.normalise_zone_and_add_prepended_names(zone, f, parsed_file)
           pp.sort(parsed_file, sorted_file)
         })
       return new_pid
