@@ -22,7 +22,7 @@ DEPENDENCIES
 
   OpenDNSSEC depends on  a number of external packages:
 
-  - libmxl2
+  - libmxl2 (including xmllint)
   - LDNS
   - SQLite3
   - Python
