@@ -2,7 +2,8 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
+* SignerThreads and KeygenInterval has been deprecated (actually removed
+  just before 1.0.0b1).
 
 OpenDNSSEC 1.0.0b1 - 2009-10-02
 
