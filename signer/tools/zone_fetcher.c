@@ -801,6 +801,13 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     size_t strlength = 0;
 
     /* soa serial query */
+    if (!zone || !zone->dname) {
+        log_msg(LOG_ERR, "zone fetcher failed to provide a zone for AXFR ");
+        return;
+    }
+/* Coverity comment:
+   Event deref_ptr: Directly dereferenced pointer "zone"
+*/
     qpkt = ldns_pkt_query_new(ldns_rdf_clone(zone->dname),
         LDNS_RR_TYPE_SOA, LDNS_RR_CLASS_IN, LDNS_RD);
     if (!qpkt) {
@@ -838,12 +845,20 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             }
         }
 
+/* Coverity comment:
+   Event check_after_deref: Pointer "zone" dereferenced before NULL check
+*/
         if (zone && zone->input_file) {
             snprintf(lock_ext, sizeof(lock_ext), "axfr.%lu",
                 (unsigned long) getpid());
 
             strlength = strlen(zone->input_file) + strlen(lock_ext);
             axfr_file = (char*) malloc(sizeof(char) * (strlength + 1));
+/* Coverity comment:
+   Event const: After this line, the value of "axfr_file" is equal to 0
+   Event new_values: Conditional "axfr_file != NULL"
+   Why?
+*/
             if (axfr_file) {
                 axfr_file = strcpy(axfr_file, zone->input_file);
                 axfr_file = strcat(axfr_file, lock_ext);
@@ -851,16 +866,14 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 if (!fd) {
                     log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
                         axfr_file);
+                    free((void*)axfr_file);
                     return;
                 }
             }
-        }
-
-        if (!fd) {
-            log_msg(LOG_ERR, "zone fetcher cannot store start AXFR: no file descriptor");
-            if (axfr_file)
-                free((void*)axfr_file);
-            return;
+            else {
+                log_msg(LOG_ERR, "zone fetcher cannot create AXFR backup file");
+                return;
+            }
         }
 
         assert(fd);
@@ -891,11 +904,11 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 strlen(zone->input_file) + strlen(".axfr");
             mv_axfr = (char*) malloc(sizeof(char) * (strlength + 1));
             if (mv_axfr) {
-                mv_axfr = strcpy(mv_axfr, "mv ");
-                mv_axfr = strcat(mv_axfr, axfr_file);
-                mv_axfr = strcat(mv_axfr, " ");
-                mv_axfr = strcat(mv_axfr, zone->input_file);
-                mv_axfr = strcat(mv_axfr, ".axfr");
+                (void) strcpy(mv_axfr, "mv ");
+                (void) strcat(mv_axfr, axfr_file);
+                (void) strcat(mv_axfr, " ");
+                (void) strcat(mv_axfr, zone->input_file);
+                (void) strcat(mv_axfr, ".axfr");
 
                 if (system(mv_axfr) != -1) {
                     strlength = strlen(SIGNER_CLI_COMMAND) +
@@ -920,12 +933,12 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                         log_msg(LOG_ERR, "zone fetcher malloc failed "
                             "for engine_sign_cmd");
                     }
-                    free((void*) mv_axfr);
                 }
                 else {
                      log_msg(LOG_ERR, "zone fetcher could not move AXFR to "
                          "%s.axfr", zone->input_file);
                 }
+                free((void*) mv_axfr);
             }
             else {
                 log_msg(LOG_ERR, "zone fetcher malloc failed "

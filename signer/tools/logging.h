@@ -29,11 +29,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define ODD_MAXLEN 1024
+#define ODD_MAXLEN 512
 
 void log_open(int facility, const char *program_name);
 void log_close(void);
 void log_msg(int priority, const char *format, ...);
-
-
-
