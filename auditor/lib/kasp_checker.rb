@@ -219,7 +219,7 @@ module KASPChecker
         duration = element.text
         #           print "Checking duration of #{name} : #{duration}, #{duration.length}\n"
         last_digit = duration[duration.length-1, 1].downcase
-        if (last_digit == "m")
+        if (last_digit == "m" && !(/T/=~duration))
           log(LOG_WARNING, "In #{(policy == "conf.xml") ? ' Configuration' : ' policy ' + policy + ', '} M used in duration field for #{name} (#{duration})" +
               " in #{filename} - this will be interpreted as 31 days")
         end
