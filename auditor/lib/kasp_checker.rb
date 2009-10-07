@@ -201,7 +201,7 @@ module KASPChecker
           #  Also 
           # check durations for Interval and RolloverNotification (the only duration elements in conf.xml)
           ["Enforcer/Interval", "Enforcer/RolloverNotification"].each {|element|
-            check_duration_element(doc, element, conf_file)
+            check_duration_element("conf.xml", doc, element, conf_file)
           }
 
         }
@@ -212,7 +212,7 @@ module KASPChecker
       end
     end
 
-    def check_duration_element(doc, name, filename)
+    def check_duration_element(policy, doc, name, filename)
       #   1. If 'm' is used in the XSDDuration, then warn the user that 31 days will be used instead of one month.
       #   2. If 'y' is used in the XSDDuration, then warn the user that 365 days will be used instead of one year.
       doc.root.each_element("//"+name) {|element|
@@ -220,11 +220,11 @@ module KASPChecker
         #           print "Checking duration of #{name} : #{duration}, #{duration.length}\n"
         last_digit = duration[duration.length-1, 1].downcase
         if (last_digit == "m")
-          log(LOG_WARNING, "M used in duration field for #{name} (#{duration})" +
+          log(LOG_WARNING, "In #{(policy == "conf.xml") ? ' Configuration' : ' policy ' + policy + ', '} M used in duration field for #{name} (#{duration})" +
               " in #{filename} - this will be interpreted as 31 days")
         end
         if (last_digit == "y")
-          log(LOG_WARNING, "Y used in duration field for #{name} (#{duration})" +
+          log(LOG_WARNING, "In #{(policy == "conf.xml") ? ' Configuration' : ' policy ' + policy + ', '} Y used in duration field for #{name} (#{duration})" +
               " in #{filename} - this will be interpreted as 365 days")
         end
       }
@@ -349,6 +349,13 @@ module KASPChecker
                 end
               }
             end
+          ["Signatures/Resign", "Signatures/Refresh", "Signatures/Validity/Default",
+            "Signatures/Validity/Denial", "Signatures/Jitter",
+            "Signatures/InceptionOffset", "Keys/RetireSafety", "Keys/PublishSafety",
+            "Keys/Purge", "NSEC3/Resalt", "SOA/Minimum", "ZSK/Lifetime",
+            "KSK/Lifetime", "TTL", "PropagationDelay"].each {|element|
+            check_duration_element(name, doc, element, kasp_file)
+          }
           }
 
           #   1. Warn if a policy named "default" does not exist.
@@ -357,13 +364,6 @@ module KASPChecker
                 "means you will need to refer explicitly to the policy for each zone")
           end
 
-          ["Signatures/Resign", "Signatures/Refresh", "Signatures/Validity/Default",
-            "Signatures/Validity/Denial", "Signatures/Jitter",
-            "Signatures/InceptionOffset", "Keys/RetireSafety", "Keys/PublishSafety",
-            "Keys/Purge", "NSEC3/Resalt", "SOA/Minimum", "ZSK/Lifetime",
-            "KSK/Lifetime", "TTL", "PropagationDelay"].each {|element|
-            check_duration_element(doc, element, kasp_file)
-          }
         }
       rescue Errno::ENOENT
         log(LOG_ERR, "ERROR - Can't find config file : #{kasp_file}")
