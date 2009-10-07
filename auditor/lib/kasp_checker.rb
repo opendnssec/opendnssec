@@ -66,6 +66,8 @@ module KASPChecker
         else
           rng_location = @rng_path + "/kasp.rng"
         end
+        rng_location = (rng_location.to_s + "").untaint
+        file = (file.to_s + "").untaint
 
         stderr = IO::pipe
         pid = fork {
@@ -76,7 +78,7 @@ module KASPChecker
           options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
           Syslog.open("kasp_check_internal", options) {|syslog|
-            ret = system("#{xmllint} --noout --relaxng #{rng_location} #{file}")
+            ret = system("#{(@xmllint.to_s + "").untaint} --noout --relaxng #{rng_location} #{file}")
             exit!(ret)
           }
         }
