@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+!/usr/bin/env python
 #
 # $Id$
 #
@@ -140,16 +140,16 @@ class Engine:
 
         if self.config.syslog_facility_string:
             cmd.append("-f")
-            cmd.append(self.zone_config.syslog_facility_string)
+            cmd.append(self.config.syslog_facility_string)
         if self.config.privs_groupname:
             cmd.append("-g")
-            cmd.append(self.zone_config.privs_groupname)
+            cmd.append(self.config.privs_groupname)
         if self.config.privs_username:
             cmd.append("-u")
-            cmd.append(self.zone_config.privs_userame)
+            cmd.append(self.config.privs_userame)
 #        if self.config.privs_chroot:
 #            cmd.append("-t")
-#            cmd.append(self.zone_config.privs_chroot)
+#            cmd.append(self.config.privs_chroot)
 
         zone_fetcher_c = Util.run_tool(cmd)
 
