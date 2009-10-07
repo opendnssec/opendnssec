@@ -567,10 +567,8 @@ hsm_ctx_free(hsm_ctx_t *ctx)
 {
     unsigned int i;
     if (ctx) {
-        if (ctx->session) {
-            for (i = 0; i < ctx->session_count; i++) {
-                hsm_session_free(ctx->session[i]);
-            }
+        for (i = 0; i < ctx->session_count; i++) {
+            hsm_session_free(ctx->session[i]);
         }
         free(ctx);
     }
