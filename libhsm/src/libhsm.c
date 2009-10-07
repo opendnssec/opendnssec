@@ -877,7 +877,7 @@ hsm_hex_unparse(char *dst, unsigned char *src, size_t len)
     size_t i;
 
     for (i = 0; i < len; i++) {
-        snprintf(dst_len, dst + (2*i), "%02x", src[i]);
+        snprintf(dst + (2*i), dst_len, "%02x", src[i]);
     }
     dst[len*2] = '\0';
 }
