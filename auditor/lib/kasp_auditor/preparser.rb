@@ -170,9 +170,10 @@ module KASPAuditor
       split = line.split
       name = split[0].strip
       # o add $ORIGIN to it if it is not absolute
-      dnsname = Name.create(name)
-      if (!dnsname.absolute?)
-        name = (name + "." + origin)
+      if !(/\.\z/ =~ name)
+        new_name = name + "." + origin
+        line.sub!(name, new_name)
+        name = new_name
       end
 
       # If the second field is not a number, then we should add the TTL to the line
