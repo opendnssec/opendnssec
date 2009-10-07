@@ -233,6 +233,8 @@ ksm_log_msg(const char *format)
     void
 log_xml_error(void *ignore, const char *format, ...)
 {
+    (void) ignore;
+
     /* TODO: if the variable arg list is bad then random errors can occur */ 
     va_list args;
     va_start(args, format);
@@ -244,6 +246,8 @@ log_xml_error(void *ignore, const char *format, ...)
     void
 log_xml_warn(void *ignore, const char *format, ...)
 {
+    (void) ignore;
+
     /* TODO: if the variable arg list is bad then random errors can occur */ 
     va_list args;
     va_start(args, format);
