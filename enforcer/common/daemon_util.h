@@ -48,6 +48,8 @@ void log_init(int facility, const char *program_name);
 void log_switch(int facility, const char *facility_name, const char *program_name, int verbose);
 void log_msg(DAEMONCONFIG* config, int priority, const char *format, ...);
 void ksm_log_msg(const char *format);
+void log_xml_error(void *ignore, const char *format, ...);
+void log_xml_warn(void *ignore, const char *format, ...);
 int permsDrop(DAEMONCONFIG* config);
 int writepid (DAEMONCONFIG *config);
 int ReadConfig(DAEMONCONFIG *config, int verbose);

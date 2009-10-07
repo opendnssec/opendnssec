@@ -122,6 +122,11 @@ permsDrop(DAEMONCONFIG* config)
         return(-1);
     }
 
+    xmlRelaxNGSetParserErrors(rngctx,
+		(xmlRelaxNGValidityErrorFunc) log_xml_error,
+		(xmlRelaxNGValidityWarningFunc) log_xml_warn,
+		NULL);
+
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
@@ -222,6 +227,28 @@ log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
 ksm_log_msg(const char *format)
 {
     syslog(LOG_ERR, "%s", format);
+}
+
+/* XML Error Message */
+    void
+log_xml_error(void *ignore, const char *format, ...)
+{
+    /* TODO: if the variable arg list is bad then random errors can occur */ 
+    va_list args;
+    va_start(args, format);
+    vsyslog(LOG_ERR, format, args);
+    va_end(args);
+}
+
+/* XML Warning Message */
+    void
+log_xml_warn(void *ignore, const char *format, ...)
+{
+    /* TODO: if the variable arg list is bad then random errors can occur */ 
+    va_list args;
+    va_start(args, format);
+    vsyslog(LOG_INFO, format, args);
+    va_end(args);
 }
 
     static void
@@ -458,6 +485,11 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         log_msg(config, LOG_ERR, "Error: unable to create RelaxNGs validation context based on the schema");
         return(-1);
     }
+
+    xmlRelaxNGSetParserErrors(rngctx,
+		(xmlRelaxNGValidityErrorFunc) log_xml_error,
+		(xmlRelaxNGValidityWarningFunc) log_xml_warn,
+		NULL);
 
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
