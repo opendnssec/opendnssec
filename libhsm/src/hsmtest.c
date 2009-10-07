@@ -154,6 +154,7 @@ hsm_test (const char *repository)
         } else {
             printf("OK, %s\n", id);
         }
+        free(id);
 
         printf("Signing with key... ");
         result = hsm_test_sign(ctx, key);
@@ -174,6 +175,8 @@ hsm_test (const char *repository)
         } else {
             printf("OK\n");
         }
+
+        free(key);
 
         printf("\n");
     }

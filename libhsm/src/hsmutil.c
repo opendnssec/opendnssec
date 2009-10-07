@@ -200,12 +200,11 @@ cmd_remove (int argc, char *argv[])
         printf("Key remove successful.\n");
     } else {
         printf("Key remove failed.\n");
-        return -1;
     }
 
     hsm_key_free(key);
 
-    return 0;
+    return result;
 }
 
 int
