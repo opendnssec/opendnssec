@@ -1145,11 +1145,8 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 					if (ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_SOA) {
 						if (rr_list_compare_soa(new_zone_rrset, signed_zone_rrset, cfg) == 0)
 						{
-							fprintf(stderr, "rrset SOA changed, but should be considered unchanged\n");
 							cfg->created_sigs -= cfg->zsks->key_count;
 						}
-						else
-							fprintf(stderr, "rrset SOA changed\n");
 					}
 
 				} else {
@@ -1186,14 +1183,17 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 		ldns_rr_list_deep_free(new_zone_signatures);
 		ldns_rr_list_deep_free(signed_zone_rrset);
 		ldns_rr_list_deep_free(signed_zone_signatures);
-		free(new_zone_reader);
-		if (signed_zone_reader) {
-			free(signed_zone_reader);
-		}
 		new_zone_rrset = NULL;
 		new_zone_signatures = NULL;
 		signed_zone_rrset = NULL;
 		signed_zone_signatures = NULL;
+	}
+
+	if (new_zone_reader) {
+		free(new_zone_reader);
+	}
+	if (signed_zone_reader) {
+		free(signed_zone_reader);
 	}
 
 	return 0;
@@ -1286,7 +1286,6 @@ int main(int argc, char **argv)
 
 	if (print_creation_count) {
 		elapsed = (double) TIMEVAL_SUB(t_end, t_start);
-		fprintf(stderr, "Number of signatures created: %lu\n", cfg->created_sigs);
 		if (elapsed > 0)
 			fprintf(stderr, "signer: number of signatures created: %lu (%u rr/sec)\n",
 				cfg->created_sigs, (unsigned) (cfg->created_sigs / elapsed));

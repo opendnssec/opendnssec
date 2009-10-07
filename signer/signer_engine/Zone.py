@@ -778,9 +778,6 @@ class Zone:
                 syslog.syslog(syslog.LOG_WARNING,
                               "signer stderr: " + line)
         self.last_signed = sign_time
-        # a value of 1 means only the SOA has changed, i.e. no 'new'
-        # signatures, since soa is always changed. If so, drop the
-        # result and return False
         # Addition: unless we didn't set any keys (in which case we
         # *should* write the output file)
         if sig_count > 0 or len(self.zone_config.signature_keys) <= 0:
