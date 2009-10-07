@@ -250,7 +250,7 @@ module KASPChecker
             refresh_secs = get_duration(policy, 'Signatures/Refresh', kasp_file)
             if (refresh_secs <= resign_secs)
               log(LOG_ERR, "The Refresh interval (#{refresh_secs} seconds) for " +
-                  "#{name} Policy in #{kasp_file} is less than the Resign interval" +
+                  "#{name} Policy in #{kasp_file} is less than or equal to the Resign interval" +
                   " (#{resign_secs} seconds)")
             end
 
@@ -264,7 +264,7 @@ module KASPChecker
             end
             if (denial_secs <= refresh_secs)
               log(LOG_ERR, "Validity/Denial (#{denial_secs} seconds) for #{name} " +
-                  "policy in #{kasp_file} is less than the Refresh interval " +
+                  "policy in #{kasp_file} is less than or equal to the Refresh interval " +
                   "(#{refresh_secs} seconds)")
             end
 
