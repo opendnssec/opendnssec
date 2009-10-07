@@ -27,7 +27,8 @@ dist_data_DATA = ${RNG} ${RNC} ${XSL}
 
 EXTRA_DIST = ${TRANG}
 
-CLEANFILES =	*.rng *.xml
+CLEANFILES =+		*.xml
+DISTCLEANFILES =+	*.rng
 
 SUFFIXES = .rng .rnc .xml
 
