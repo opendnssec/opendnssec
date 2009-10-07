@@ -86,6 +86,8 @@ static void TestAlgorithmKeywordConvert(void)
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("rs"));
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("r"));
 
+    /* add tests for dsa-nsec3-sha1, rsasha1-nsec3-sha1, rsasha256, rsasha512 */
+
     CU_ASSERT_EQUAL(KSM_ALGORITHM_INDIRECT, KsmKeywordAlgorithmNameToValue("indirect"));
     CU_ASSERT_EQUAL(KSM_ALGORITHM_INDIRECT, KsmKeywordAlgorithmNameToValue("indirec"));
     CU_ASSERT_EQUAL(KSM_ALGORITHM_INDIRECT, KsmKeywordAlgorithmNameToValue("indire"));
