@@ -64,13 +64,9 @@ class ZoneConfig:
         self.denial_nsec3_iterations = 0
         self.denial_nsec3_salt = None
         self.nsec3_param_rr = None
-        # i still think nsec TTL should not be configurable
-        self.denial_nsec3_ttl = 0
         self.keys = {}
         self.signature_keys = []
         self.publish_keys = []
-
-        self.denial_ttl = None
 
         self.soa_ttl = None
         self.soa_minimum = None
@@ -106,9 +102,7 @@ class ZoneConfig:
            self.nsec3_param_rr != ocfg.nsec3_param_rr:
             result = self.RESORT
 
-        elif self.denial_nsec3_optout != ocfg.denial_nsec3_optout or \
-             self.denial_nsec3_ttl != ocfg.denial_nsec3_ttl or \
-             self.denial_ttl != ocfg.denial_ttl:
+        elif self.denial_nsec3_optout != ocfg.denial_nsec3_optout:
             result = self.RENSEC
 
         elif self.signature_keys != ocfg.signature_keys or \
@@ -227,9 +221,6 @@ class ZoneConfig:
             Util.get_xml_data(
                 "SignerConfiguration/Zone/Signatures/InceptionOffset",
                 signer_config))
-        #self.denial_ttl = Util.parse_duration(
-        #    Util.get_xml_data("SignerConfiguration/Denial/",
-        #                      signer_config))
         xmlbs = Evaluate("SignerConfiguration/Zone/Signatures/zsk",
                          signer_config)
         for xmlb in xmlbs:
@@ -253,8 +244,6 @@ class ZoneConfig:
         for nsec3_xml in nsec3_xmls:
             self.denial_nsec3 = True
             self.denial_nsec = False
-            self.denial_nsec3_ttl = Util.parse_duration(
-                Util.get_xml_data("parameters/TTL", nsec3_xml, True))
             if Evaluate("OptOut", nsec3_xml):
                 self.denial_nsec3_optout = True
             self.denial_nsec3_algorithm = \

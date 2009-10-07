@@ -510,13 +510,17 @@ class Zone:
                       "NSEC(3)ing zone: " + self.zone_name)
         if len(self.zone_config.signature_keys) > 0:
             if self.zone_config.denial_nsec:
-                nsec_p = Util.run_tool(
-                                  [self.get_tool_filename("nseccer"),
-                                   "-f",
-                                   self.get_zone_tmp_filename(".processed"),
-                                   "-w",
-                                   self.get_zone_tmp_filename(".nsecced")
-                                   ])
+                cmd = [
+                    self.get_tool_filename("nseccer"),
+                    "-f",
+                    self.get_zone_tmp_filename(".processed"),
+                    "-w",
+                    self.get_zone_tmp_filename(".nsecced")
+                ]
+                if self.zone_config.soa_minimum:
+                    cmd.append("-m")
+                    cmd.append(str(self.zone_config.soa_minimum))
+                nsec_p = Util.run_tool(cmd)
             elif self.zone_config.denial_nsec3:
                 cmd = [
                     self.get_tool_filename("nsec3er"),
@@ -530,11 +534,11 @@ class Zone:
                     "-w",
                     self.get_zone_tmp_filename(".nsecced")
                 ]
+                if self.zone_config.soa_minimum:
+                    cmd.append("-m")
+                    cmd.append(str(self.zone_config.soa_minimum))
                 if self.zone_config.denial_nsec3_salt:
                     cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
-                if self.zone_config.denial_nsec3_ttl:
-                    cmd.append("-m")
-                    cmd.append(str(self.zone_config.denial_nsec3_ttl))
                 if self.zone_config.denial_nsec3_optout:
                     cmd.append("-p")
                 nsec_p = Util.run_tool(cmd)

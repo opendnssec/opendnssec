@@ -420,9 +420,12 @@ create_nsec3_records(FILE *input_file,
 				if (status == LDNS_STATUS_OK &&
 					ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
 					soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
+					/* dont need to check SOA TTL with SOA Minimum (story 1434332) */
+/*
 					if (ldns_rr_ttl(rr) < soa_min_ttl) {
 						soa_min_ttl = ldns_rr_ttl(rr);
 					}
+*/
 				}
 				if (status == LDNS_STATUS_OK)
 					ldns_rr_free(rr);
