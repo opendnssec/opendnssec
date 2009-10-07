@@ -100,8 +100,8 @@ int KsmListBackups(int repo_id)
             DbString(row, 0, &temp_date);
             DbString(row, 1, &temp_repo);
 
-            if (temp_date != NULL) {
-                printf("%-24s %s\n", (temp_date == NULL) ? "(null)" : temp_date, temp_repo);
+            if (temp_date != NULL) { /* Ignore non-backup */
+                printf("%-24s %s\n", temp_date, temp_repo);
             }
             
             status = DbFetchRow(result, &row);
@@ -117,6 +117,8 @@ int KsmListBackups(int repo_id)
     }
 
     DusFree(sql);
+    DbFreeRow(row);
+    DbStringFree(temp_date);
 
     /* List repos which need a backup */
     StrAppend(&sql2, "select s.name, s.requirebackup from keypairs k, securitymodules s ");
@@ -159,6 +161,8 @@ int KsmListBackups(int repo_id)
     }
 
     DusFree(sql2);
+    DbFreeRow(row2);
+    DbStringFree(temp_repo);
 
     return status;
 }
@@ -220,6 +224,9 @@ int KsmListRepos()
     }
 
     DusFree(sql);
+    DbFreeRow(row);
+    DbStringFree(temp_name);
+    DbStringFree(temp_cap);
 
     return status;
 }
@@ -279,6 +286,9 @@ int KsmListPolicies()
     }
 
     DusFree(sql);
+    DbFreeRow(row);
+    DbStringFree(temp_name);
+    DbStringFree(temp_desc);
 
     return status;
 }
@@ -347,6 +357,9 @@ int KsmListRollovers(int zone_id)
     }
 
     DusFree(sql);
+    DbFreeRow(row);
+    DbStringFree(temp_zone);
+    DbStringFree(temp_date);
 
     return status;
 }

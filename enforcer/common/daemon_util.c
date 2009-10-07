@@ -687,19 +687,10 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         return(-1);
     }
 
-    temp_char = (char *)xmlXPathCastToString(xpathObj);
-    logFacilityName =  StrStrdup( temp_char );
-    StrFree(temp_char);
-    xmlXPathFreeObject(xpathObj);
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+        /* tag present */
+        logFacilityName = (char *)xmlXPathCastToString(xpathObj);
 
-    /* If nothing was found use the defaults, else set what we got */
-    if (strlen(logFacilityName) == 0) {
-        logFacilityName = StrStrdup( (char *)DEFAULT_LOG_FACILITY_STRING );
-        config->log_user = DEFAULT_LOG_FACILITY;
-        if (verbose) {
-            log_msg(config, LOG_INFO, "Using default log user: %s", logFacilityName);
-        }
-    } else {
         status = get_log_user(logFacilityName, &my_log_user);
         if (status > 0) {
             log_msg(config, LOG_ERR, "Error: unable to set log user: %s, error: %i", logFacilityName, status);
@@ -710,7 +701,17 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         if (verbose) {
             log_msg(config, LOG_INFO, "Log User set to: %s", logFacilityName);
         }
+
+    } else {
+        /* tag _not_ present, use default */
+        logFacilityName = StrStrdup( (char *)DEFAULT_LOG_FACILITY_STRING );
+        config->log_user = DEFAULT_LOG_FACILITY;
+        if (verbose) {
+            log_msg(config, LOG_INFO, "Using default log user: %s", logFacilityName);
+        }
     }
+
+    xmlXPathFreeObject(xpathObj);
 
     log_switch(my_log_user, logFacilityName, config->program, verbose);
 

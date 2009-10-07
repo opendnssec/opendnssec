@@ -310,17 +310,22 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
         status = KsmZoneNameFromId(zone_id, &zone_name);
         if (status != 0) {
             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            if (zone_name != NULL) {
+                StrFree(zone_name);
+            }
             return(status);
         }
         /* Get the shared_keys parameter */
         status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
         if (status != 0) {
             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            StrFree(zone_name);
             return(status);
         }
         status = KsmParameter(result, &shared);
         if (status != 0) {
             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            StrFree(zone_name);
             return(status);
         }
         KsmParameterEnd(result);
@@ -332,6 +337,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
         status = KsmRequestCountReadyKey(keytype, datetime, &ready, zone_id);
         if (status != 0) {
+            StrFree(zone_name);
             return status;
         }
 
@@ -350,6 +356,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
              */
             status = KsmRequestCheckFirstPass(keytype, &first_pass, zone_id);
             if (status != 0) {
+                StrFree(zone_name);
                 return status;
             }
 
@@ -359,6 +366,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
                 status = KsmRequestChangeStateN(keytype, datetime, 1,
                                     KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
                 if (status != 0) {
+                    StrFree(zone_name);
                     return status;
                 }
             }
@@ -381,6 +389,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
              */
             if (status != KME_BACK_FATAL) {
                 if (status != 0) {
+                    StrFree(zone_name);
                     return status;
                 }
 
@@ -388,6 +397,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
                 status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id);
                 if (status != 0) {
+                    StrFree(zone_name);
                     return status;
                 }
 
@@ -763,6 +773,8 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     }
     StrAppend(&insql, ")");
 
+    StrFree(keyids);
+
     /*
      * Update the keys.  This is done after a status check, as the debug
      * code may have hit a database error, in which case we won't query the
@@ -777,6 +789,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 0);
     StrFree(insql);
     DusEnd(&sql);
+    StrFree(dst_col);
 
     status = DbExecuteSqlNoResult(DbHandle(), sql);
     DusFree(sql);
@@ -791,17 +804,22 @@ int KsmRequestChangeState(int keytype, const char* datetime,
          status = KsmZoneNameFromId(zone_id, &zone_name);
          if (status != 0) {
              status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+             if (zone_name != NULL) {
+                 StrFree(zone_name);
+             }
              return(status);
          }
          /* Get the shared_keys parameter */
          status = KsmParameterInit(&result2, "zones_share_keys", "keys", policy_id);
          if (status != 0) {
              status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+             StrFree(zone_name);
              return(status);
          }
          status = KsmParameter(result2, &data2);
          if (status != 0) {
              status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+             StrFree(zone_name);
              return(status);
          }
          KsmParameterEnd(result2);
@@ -814,8 +832,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
          }
     }
 
-    StrFree(dst_col);
-    StrFree(keyids);
+    StrFree(zone_name);
 
     return status;
 }
@@ -1008,6 +1025,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
                 status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
                 StrFree(insql);
                 MemFree(keyids);
+                StrFree(dst_name);
                 return status;
             }
 
@@ -1028,6 +1046,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
                     status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
                     StrFree(insql);
                     MemFree(keyids);
+                    StrFree(dst_name);
                     return status;
                 }
 
@@ -1038,6 +1057,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
                     status = MsgLog(KME_BACK_FATAL, (keytype == KSM_TYPE_KSK) ? "KSK" : "ZSK");
                     StrFree(insql);
                     MemFree(keyids);
+                    StrFree(dst_name);
                     return status;
                 }
 

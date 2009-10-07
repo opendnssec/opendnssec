@@ -510,6 +510,7 @@ cmd_setup ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(zone_list_filename);
         return(1);
     }
 
@@ -523,6 +524,7 @@ cmd_setup ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(zone_list_filename);
         return(1);
     }
 
@@ -533,6 +535,7 @@ cmd_setup ()
      * records in the database as we go.
      */
     status = update_zones(zone_list_filename);
+    StrFree(zone_list_filename);
     if (status != 0) {
         printf("Failed to update zones\n");
         if (DbFlavour() == SQLITE_DB) {
@@ -540,8 +543,6 @@ cmd_setup ()
         }
         return(1);
     }
-
-    StrFree(zone_list_filename);
 
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
@@ -577,11 +578,14 @@ cmd_update ()
 
     /* try to connect to the database */
     status = db_connect(&dbhandle, &lock_fd, &lock_filename);
+    StrFree(lock_filename);
     if (status != 0) {
         printf("Failed to connect to database\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     }
-    StrFree(lock_filename);
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
@@ -591,7 +595,9 @@ cmd_update ()
     status = update_repositories(&zone_list_filename, &kasp_filename);
     if (status != 0) {
         printf("Failed to update repositories\n");
-        fclose(lock_fd);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     }
 
@@ -602,7 +608,10 @@ cmd_update ()
     status = update_policies(kasp_filename);
     if (status != 0) {
         printf("Failed to update policies\n");
-        fclose(lock_fd);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        StrFree(zone_list_filename);
         return(1);
     }
 
@@ -613,7 +622,10 @@ cmd_update ()
     status = update_zones(zone_list_filename);
     if (status != 0) {
         printf("Failed to update zones\n");
-        fclose(lock_fd);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        StrFree(zone_list_filename);
         return(1);
     }
     StrFree(zone_list_filename);
@@ -729,6 +741,7 @@ cmd_addzone ()
     status = read_zonelist_filename(&zonelist_filename);
     if (status != 0) {
         printf("couldn't read zonelist\n");
+        StrFree(zonelist_filename);
         return(1);
     }
 
@@ -738,6 +751,7 @@ cmd_addzone ()
     xmlTreeIndentString = "\t";
     doc = add_zone_node(zonelist_filename, o_zone, o_policy, sig_conf_name, input_name, output_name);
     if (doc == NULL) {
+        StrFree(zonelist_filename);
         return(1);
     }
 
@@ -756,6 +770,7 @@ cmd_addzone ()
 
     /* Save our new one over, TODO should we validate it first? */
     status = xmlSaveFormatFile(zonelist_filename, doc, 1);
+    StrFree(zonelist_filename);
     xmlFreeDoc(doc);
     if (status == -1) {
         printf("couldn't save zonelist\n");
@@ -968,19 +983,14 @@ cmd_delzone ()
             if (lock_fd != NULL) {
                 fclose(lock_fd);
             }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        if (status != 0) {
-            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
-            return(status);
+            return(1);
         }
+
     }
 
     /* try to connect to the database */
@@ -1009,12 +1019,20 @@ cmd_delzone ()
     status = read_zonelist_filename(&zonelist_filename);
     if (status != 0) {
         printf("couldn't read zonelist\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        StrFree(zonelist_filename);
         return(1);
     }
 
     /* Read the file and delete our zone node(s) in memory */
     doc = del_zone_node(zonelist_filename, o_zone);
     if (doc == NULL) {
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        StrFree(zonelist_filename);
         return(1);
     }
 
@@ -1025,14 +1043,21 @@ cmd_delzone ()
     StrFree(backup_filename);
     if (status != 0) {
         StrFree(zonelist_filename);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(status);
     }
 
     /* Save our new one over, TODO should we validate it first? */
     status = xmlSaveFormatFile(zonelist_filename, doc, 1);
     xmlFreeDoc(doc);
+    StrFree(zonelist_filename);
     if (status == -1) {
         printf("Could not save %s\n", zonelist_filename);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     }
 
@@ -1045,6 +1070,9 @@ cmd_delzone ()
         status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
         if (status != 0) {
             printf("Couldn't find zone %s\n", o_zone);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
             return(1);
         }
 
@@ -1074,7 +1102,7 @@ cmd_delzone ()
     }
 
     /* Mark keys as dead if appropriate */
-    if ((shared.value == 1 && zone_count == 1) || shared.value == 0 || all_flag == 1) {
+    if (all_flag == 1 || (shared.value == 1 && zone_count == 1) || shared.value == 0) {
         status = KsmMarkKeysAsDead(zone_id);
         if (status != 0) {
             printf("Error: failed to mark keys as dead in database\n");
@@ -1090,6 +1118,9 @@ cmd_delzone ()
 
     if (status != 0) {
         printf("Error: failed to remove zone%s from database\n", (all_flag == 1) ? "s" : "");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return status;
     }
     
@@ -1100,6 +1131,17 @@ cmd_delzone ()
         {
             printf("Could not call signer engine\n");
         }
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
     }
 
     return 0;
@@ -1120,11 +1162,16 @@ cmd_listzone ()
     status = read_zonelist_filename(&zonelist_filename);
     if (status != 0) {
         printf("couldn't read zonelist\n");
+        if (zonelist_filename != NULL) {
+            StrFree(zonelist_filename);
+        }
         return(1);
     }
 
     /* Read the file and list the zones as we go */
     list_zone_node(zonelist_filename);
+
+    StrFree(zonelist_filename);
 
     return 0;
 }
@@ -1280,6 +1327,7 @@ cmd_exportkeys ()
                 status = KsmZoneNameFromId(data.zone_id, &zone_name);
                 if (status != 0) {
                     printf("Error: unable to find zone name for id %d\n", zone_id);
+                    hsm_sign_params_free(sign_params);
                     return(status);
                 }
                 sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone_name);
@@ -1312,6 +1360,8 @@ cmd_exportkeys ()
                 ldns_rr_print(stdout, ds_sha256_rr);
             }
 
+            hsm_sign_params_free(sign_params);
+            hsm_key_free(key);
             status = KsmKey(result, &data);
 
         }
@@ -1325,7 +1375,6 @@ cmd_exportkeys ()
 
     /* TODO when the above is working then replicate it twice for the case where keytype == -1 */
 
-    hsm_sign_params_free(sign_params);
     if (dnskey_rr != NULL) {
         ldns_rr_free(dnskey_rr);
     }
@@ -1335,7 +1384,6 @@ cmd_exportkeys ()
     if (ds_sha256_rr != NULL) {
         ldns_rr_free(ds_sha256_rr);
     }
-    hsm_key_free(key);
 
     DbDisconnect(dbhandle);
 
@@ -1488,6 +1536,7 @@ cmd_rollzone ()
     /* Check datetime in case it came back NULL */
     if (datetime == NULL) {
         printf("Couldn't turn \"now\" into a date, quitting...\n");
+        StrFree(datetime);
         exit(1);
     }
 
@@ -1505,6 +1554,7 @@ cmd_rollzone ()
         StrFree(dbschema);
         StrFree(user);
         StrFree(password);
+        StrFree(datetime);
         return(status);
     }
 
@@ -1525,6 +1575,7 @@ cmd_rollzone ()
             if (lock_fd != NULL) {
                 fclose(lock_fd);
             }
+            StrFree(datetime);
             StrFree(dbschema);
             return(1);
         }
@@ -1544,6 +1595,7 @@ cmd_rollzone ()
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
+            StrFree(datetime);
             return(status);
         }
     }
@@ -1560,6 +1612,7 @@ cmd_rollzone ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
 
@@ -1568,6 +1621,7 @@ cmd_rollzone ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
 
@@ -1577,6 +1631,7 @@ cmd_rollzone ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
     status = KsmParameter(result, &data);
@@ -1584,6 +1639,7 @@ cmd_rollzone ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
     KsmParameterEnd(result);
@@ -1598,6 +1654,7 @@ cmd_rollzone ()
             if (DbFlavour() == SQLITE_DB) {
                 fclose(lock_fd);
             }
+            StrFree(datetime);
             exit(0);
         }
     }
@@ -1611,6 +1668,7 @@ cmd_rollzone ()
         KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_id, 0);
     }
 
+    StrFree(datetime);
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
         status = release_lite_lock(lock_fd);
@@ -1684,6 +1742,7 @@ cmd_rollpolicy ()
         StrFree(dbschema);
         StrFree(user);
         StrFree(password);
+        StrFree(datetime);
         return(status);
     }
 
@@ -1705,6 +1764,7 @@ cmd_rollpolicy ()
                 fclose(lock_fd);
             }
             StrFree(dbschema);
+            StrFree(datetime);
             return(1);
         }
 
@@ -1723,6 +1783,7 @@ cmd_rollpolicy ()
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
+            StrFree(datetime);
             return(status);
         }
     }
@@ -1739,6 +1800,7 @@ cmd_rollpolicy ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
 
@@ -1747,6 +1809,7 @@ cmd_rollpolicy ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
 
@@ -1759,6 +1822,7 @@ cmd_rollpolicy ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         exit(0);
     }
 
@@ -1768,6 +1832,7 @@ cmd_rollpolicy ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
     status = KsmParameter(result, &data);
@@ -1775,6 +1840,7 @@ cmd_rollpolicy ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
     KsmParameterEnd(result);
@@ -1814,8 +1880,11 @@ cmd_rollpolicy ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(status);
     }
+
+    StrFree(datetime);
 
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
@@ -1860,14 +1929,6 @@ cmd_keypurge ()
     char *user = NULL;
     char *password = NULL;
     char* db_backup_filename = NULL;
-
-    char* datetime = DtParseDateTimeString("now");
-
-    /* Check datetime in case it came back NULL */
-    if (datetime == NULL) {
-        printf("Couldn't turn \"now\" into a date, quitting...\n");
-        exit(1);
-    }
 
     /* Read the database details out of conf.xml */
     status = get_db_details(&dbschema, &host, &port, &user, &password);
@@ -1944,6 +2005,9 @@ cmd_keypurge ()
         status = KsmPolicyIdFromName(o_policy, &policy_id);
         if (status != 0) {
             printf("Error: unable to find a policy named \"%s\" in database\n", o_policy);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
             return status;
         }
     }
@@ -1953,6 +2017,9 @@ cmd_keypurge ()
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
             return status;
         }
     }
@@ -1961,6 +2028,9 @@ cmd_keypurge ()
 
     if (status != 0) {
         printf("Error: failed to purge dead keys\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return status;
     }
 
@@ -2016,6 +2086,7 @@ cmd_backup ()
         StrFree(dbschema);
         StrFree(user);
         StrFree(password);
+        StrFree(datetime);
         return(status);
     }
 
@@ -2037,6 +2108,7 @@ cmd_backup ()
                 fclose(lock_fd);
             }
             StrFree(dbschema);
+            StrFree(datetime);
             return(1);
         }
 
@@ -2056,6 +2128,7 @@ cmd_backup ()
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
+            StrFree(datetime);
             return(status);
         }
     }
@@ -2075,6 +2148,7 @@ cmd_backup ()
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
+        StrFree(datetime);
         return(1);
     }
 
@@ -2083,6 +2157,10 @@ cmd_backup ()
         status = KsmSmIdFromName(o_repository, &repo_id);
         if (status != 0) {
             printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            StrFree(datetime);
             return status;
         }
     }
@@ -2090,6 +2168,10 @@ cmd_backup ()
     status = KsmMarkBackup(repo_id, datetime);
     if (status != 0) {
         printf("Error: failed to mark backup as done\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        StrFree(datetime);
         return status;
     }
 
@@ -2099,6 +2181,7 @@ cmd_backup ()
         printf("Marked all repositories as backed up at %s\n", datetime);
     }
 
+    StrFree(datetime);
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
         status = release_lite_lock(lock_fd);
@@ -2162,19 +2245,14 @@ cmd_listrolls ()
             if (lock_fd != NULL) {
                 fclose(lock_fd);
             }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        if (status != 0) {
-            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
-            return(status);
+            return(1);
         }
+
     }
 
     /* try to connect to the database */
@@ -2200,6 +2278,9 @@ cmd_listrolls ()
         status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
             return status;
         }
     }
@@ -2210,6 +2291,9 @@ cmd_listrolls ()
 
     if (status != 0) {
         printf("Error: failed to list rollovers\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return status;
     }
 
@@ -2278,19 +2362,14 @@ cmd_listbackups ()
             if (lock_fd != NULL) {
                 fclose(lock_fd);
             }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        if (status != 0) {
-            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
-            return(status);
+            return(1);
         }
+
     }
 
     /* try to connect to the database */
@@ -2316,6 +2395,9 @@ cmd_listbackups ()
         status = KsmSmIdFromName(o_repository, &qualifier_id);
         if (status != 0) {
             printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
             return status;
         }
     }
@@ -2325,6 +2407,9 @@ cmd_listbackups ()
 
     if (status != 0) {
         printf("Error: failed to list backups\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return status;
     }
     printf("\n");
@@ -2390,19 +2475,14 @@ cmd_listrepo ()
             if (lock_fd != NULL) {
                 fclose(lock_fd);
             }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        if (status != 0) {
-            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
-            return(status);
+            return(1);
         }
+
     }
 
     /* try to connect to the database */
@@ -2429,6 +2509,9 @@ cmd_listrepo ()
 
     if (status != 0) {
         printf("Error: failed to list repositories\n");
+        if (lock_fd != NULL) {
+            fclose(lock_fd);
+        }
         return status;
     }
 
@@ -2495,19 +2578,14 @@ cmd_listpolicy ()
             if (lock_fd != NULL) {
                 fclose(lock_fd);
             }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        if (status != 0) {
-            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
-            return(status);
+            return(1);
         }
+
     }
 
     /* try to connect to the database */
@@ -2534,6 +2612,9 @@ cmd_listpolicy ()
 
     if (status != 0) {
         printf("Error: failed to list policies\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return status;
     }
 
@@ -2601,19 +2682,14 @@ cmd_listkeys ()
             if (lock_fd != NULL) {
                 fclose(lock_fd);
             }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        if (status != 0) {
-            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
             StrFree(user);
             StrFree(password);
-            return(status);
+            return(1);
         }
+
     }
 
     /* try to connect to the database */
@@ -2639,6 +2715,9 @@ cmd_listkeys ()
         status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
             return status;
         }
     }
@@ -2649,6 +2728,9 @@ cmd_listkeys ()
 
     if (status != 0) {
         printf("Error: failed to list keys\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return status;
     }
 
@@ -2786,6 +2868,9 @@ cmd_import ()
     /* check that the repository is specified and exists */
     if (o_repository == NULL) {
         printf("Error: please specify a repository with the --repository flag\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     } else {
 
@@ -2802,6 +2887,9 @@ cmd_import ()
     /* check that the zone name is valid and use it to get some ids */
     if (o_zone == NULL) {
         printf("Error: please specify a zone with the --zone flag\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     } else {
         status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
@@ -2817,6 +2905,9 @@ cmd_import ()
     /* Check that the cka_id does not exist (in the specified HSM) */
     if (o_cka_id == NULL) {
         printf("Error: please specify a cka_id with the --cka_id flag\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         return(1);
     } else {
         status = (KsmCheckHSMkeyID(repo_id, o_cka_id, &cka_id_exists));
@@ -3351,7 +3442,7 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
         status = get_lite_lock(*lock_filename, *lock_fd);
         if (status != 0) {
             printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
+            if (*lock_fd != NULL) {
                 fclose(*lock_fd);
             }
             StrFree(dbschema);
@@ -3792,25 +3883,9 @@ int update_policies(char* kasp_filename)
     }
 
     /* Allocate some space for our policy */
-    policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
-    policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
-    policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
-    policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
-    policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
-    policy->keys = (KSM_COMMON_KEY_POLICY *)malloc(sizeof(KSM_COMMON_KEY_POLICY));
-    policy->ksk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-    policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
-    policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
-    policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-/*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
-    policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
-    policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
-    /* Let's check all of those mallocs, or should we use MemMalloc ? */
-    if (policy->signer == NULL || policy->signature == NULL || policy->keys == NULL ||
-            policy->zone == NULL || policy->parent == NULL || 
-            policy->ksk == NULL || policy->zsk == NULL || 
-            policy->denial == NULL || policy->enforcer == NULL) {
-        printf("Malloc for policy struct failed\n");
+    policy = KsmPolicyAlloc();
+    if (policy == NULL) {
+        printf("Malloc for policy struct failed");
         exit(1);
     }
 
@@ -5283,6 +5358,9 @@ int ListKeys(int zone_id)
                     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
                     printf("%-33s %-33s %d\n", temp_loc, temp_hsm, sign_params->keytag);
+
+                    hsm_sign_params_free(sign_params);
+                    hsm_key_free(key);
                 }
             }
             else if (done_row == 1) {
@@ -5302,6 +5380,7 @@ int ListKeys(int zone_id)
     }
 
     DusFree(sql);
+    DbFreeRow(row);
 
     DbStringFree(temp_zone);
     DbStringFree(temp_ready);
@@ -5311,11 +5390,9 @@ int ListKeys(int zone_id)
     DbStringFree(temp_loc);
     DbStringFree(temp_hsm);
 
-    hsm_sign_params_free(sign_params);
     if (dnskey_rr != NULL) {
         ldns_rr_free(dnskey_rr);
     }
-    hsm_key_free(key);
 
     return status;
 }
@@ -5408,6 +5485,9 @@ int PurgeKeys(int zone_id, int policy_id)
             if (status != 0)
             {
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                DbStringFree(temp_dead);
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
                 return status;
             }
 
@@ -5421,6 +5501,9 @@ int PurgeKeys(int zone_id, int policy_id)
             if (status != 0)
             {
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                DbStringFree(temp_dead);
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
                 return status;
             }
 
@@ -5429,15 +5512,23 @@ int PurgeKeys(int zone_id, int policy_id)
 
             if (!key) {
                 printf("Key not found: %s\n", temp_loc);
+                DbStringFree(temp_dead);
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
                 return -1;
             }
 
             status = hsm_remove_key(NULL, key);
 
+            hsm_key_free(key);
+
             if (!status) {
                 printf("Key remove successful.\n");
             } else {
                 printf("Key remove failed.\n");
+                DbStringFree(temp_dead);
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
                 return -1;
             }
 
@@ -5455,11 +5546,10 @@ int PurgeKeys(int zone_id, int policy_id)
     }
 
     DusFree(sql);
+    DbFreeRow(row);
 
     DbStringFree(temp_dead);
     DbStringFree(temp_loc);
-
-    hsm_key_free(key);
 
     return status;
 }
@@ -5569,15 +5659,26 @@ int cmd_genkeys()
     policy = KsmPolicyAlloc();
     if (policy == NULL) {
         printf("Malloc for policy struct failed\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
         exit(1);
     }
 
     if (o_policy == NULL) {
         printf("Please provide a policy name with the --policy option\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        KsmPolicyFree(policy);
         return(1);
     }
     if (o_interval == NULL) {
         printf("Please provide an interval with the --interval option\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        KsmPolicyFree(policy);
         return(1);
     }
 
@@ -5589,10 +5690,18 @@ int cmd_genkeys()
         status = KsmPolicyRead(policy);
         if(status != 0) {
             printf("Error: unable to read policy %s from database\n", o_policy);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            KsmPolicyFree(policy);
             return status;
         }
     } else {
         printf("Error: policy %s doesn't exist in database\n", o_policy);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        KsmPolicyFree(policy);
         return status;
     }
 
@@ -5605,6 +5714,10 @@ int cmd_genkeys()
     status = DtXMLIntervalSeconds(o_interval, &interval);
     if (status > 0) {
         printf("Error: unable to convert Interval %s to seconds, error: %i\n", o_interval, status);
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        KsmPolicyFree(policy);
         return status;
     }
     else if (status == -1) {
@@ -5641,6 +5754,10 @@ int cmd_genkeys()
                     printf("hsm_open() result: %d", status);
             }
         }
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        KsmPolicyFree(policy);
         exit(1);
     }
     printf("HSM opened successfully.\n");
@@ -5651,6 +5768,10 @@ int cmd_genkeys()
     /* Check datetime in case it came back NULL */
     if (rightnow == NULL) {
         printf("Couldn't turn \"now\" into a date, quitting...\n");
+        if (DbFlavour() == SQLITE_DB) {
+            fclose(lock_fd);
+        }
+        KsmPolicyFree(policy);
         exit(1);
     }
 
@@ -5691,9 +5812,14 @@ int cmd_genkeys()
                     printf("%s\n", hsm_error_message);
                     free(hsm_error_message);
                 }
+                if (DbFlavour() == SQLITE_DB) {
+                    fclose(lock_fd);
+                }
+                KsmPolicyFree(policy);
                 exit(1);
             }
             id = hsm_get_key_id(ctx, key);
+            hsm_key_free(key);
             status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
             if (status != 0) {
                 printf("Error creating key in Database\n");
@@ -5702,6 +5828,10 @@ int cmd_genkeys()
                     printf("%s\n", hsm_error_message);
                     free(hsm_error_message);
                 }
+                if (DbFlavour() == SQLITE_DB) {
+                    fclose(lock_fd);
+                }
+                KsmPolicyFree(policy);
                 exit(1);
             }
             printf("Created KSK size: %i, alg: %i with id: %s in repository: %s and database.\n", policy->ksk->bits,
@@ -5709,6 +5839,10 @@ int cmd_genkeys()
             free(id);
         } else {
             printf("Key algorithm %d unsupported by libhsm.\n", policy->ksk->algorithm);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            KsmPolicyFree(policy);
             exit(1);
         }
     }
@@ -5752,9 +5886,14 @@ int cmd_genkeys()
                     printf("%s\n", hsm_error_message);
                     free(hsm_error_message);
                 }
+                if (DbFlavour() == SQLITE_DB) {
+                    fclose(lock_fd);
+                }
+                KsmPolicyFree(policy);
                 exit(1);
             }
             id = hsm_get_key_id(ctx, key);
+            hsm_key_free(key);
             status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
             if (status != 0) {
                 printf("Error creating key in Database\n");
@@ -5763,6 +5902,10 @@ int cmd_genkeys()
                     printf("%s\n", hsm_error_message);
                     free(hsm_error_message);
                 }
+                if (DbFlavour() == SQLITE_DB) {
+                    fclose(lock_fd);
+                }
+                KsmPolicyFree(policy);
                 exit(1);
             }
             printf("Created ZSK size: %i, alg: %i with id: %s in repository: %s and database.\n", policy->zsk->bits,
@@ -5770,6 +5913,10 @@ int cmd_genkeys()
             free(id);
         } else {
             printf("Key algorithm %d unsupported by libhsm.\n", policy->zsk->algorithm);
+            if (DbFlavour() == SQLITE_DB) {
+                fclose(lock_fd);
+            }
+            KsmPolicyFree(policy);
             exit(1);
         }
     }
@@ -5786,6 +5933,17 @@ int cmd_genkeys()
 
     KsmPolicyFree(policy);
     
+    /* Release sqlite lock file (if we have it) */
+    if (DbFlavour() == SQLITE_DB) {
+        status = release_lite_lock(lock_fd);
+        if (status != 0) {
+            printf("Error releasing db lock");
+            fclose(lock_fd);
+            return(1);
+        }
+        fclose(lock_fd);
+    }
+
     return status;
 }
 

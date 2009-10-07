@@ -374,6 +374,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                 exit(1);
             }
             id = hsm_get_key_id(ctx, key);
+            hsm_key_free(key);
             status = KsmKeyPairCreate(policy->id, id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, rightnow, &ignore);
             if (status != 0) {
                 log_msg(config, LOG_ERR,"Error creating key in Database");
@@ -433,9 +434,11 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                     free(hsm_error_message);
                 }
                 unlink(config->pidfile);
+                hsm_key_free(key);
                 exit(1);
             }
             id = hsm_get_key_id(ctx, key);
+            hsm_key_free(key);
             status = KsmKeyPairCreate(policy->id, id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, rightnow, &ignore);
             if (status != 0) {
                 log_msg(config, LOG_ERR,"Error creating key in Database");
@@ -1050,17 +1053,20 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 
     if (policy == NULL) {
         log_msg(NULL, LOG_ERR, "NULL policy sent to allocateKeysToZone");
+        StrFree(datetime);
         return 1;
     }
 
     if (key_type != KSM_TYPE_KSK && key_type != KSM_TYPE_ZSK) {
         log_msg(NULL, LOG_ERR, "Unknown keytype: %i in allocateKeysToZone", key_type);
+        StrFree(datetime);
         return 1;
     }
 
     /* Get list of parameters */
     status = KsmParameterCollection(&collection, policy->id);
     if (status != 0) {
+        StrFree(datetime);
         return status;
     }
 
@@ -1069,6 +1075,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval for %s", zone_name);
+        StrFree(datetime);
         return 3;
     }
 
@@ -1076,6 +1083,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     status = KsmKeyCountQueue(key_type, &keys_in_queue, zone_id);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current key numbers for zone %s", zone_name);
+        StrFree(datetime);
         return 3;
     }
 
@@ -1083,9 +1091,11 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     status = KsmRequestPendingRetireCount(key_type, datetime, &collection, &keys_pending_retirement, zone_id, interval);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count keys which may retire before the next run (for zone %s)", zone_name);
+        StrFree(datetime);
         return 3;
     }
 
+    StrFree(datetime);
     new_keys = keys_needed - (keys_in_queue - keys_pending_retirement);
 
     /* fprintf(stderr, "comm(%d) %s: new_keys(%d) = keys_needed(%d) - (keys_in_queue(%d) - keys_pending_retirement(%d))\n", key_type, zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement); */
@@ -1283,6 +1293,7 @@ int do_purge(int interval, int policy_id)
     StrAppend(&sql, " group by location");
 
     DusEnd(&sql);
+    StrFree(rightnow);
 
     status = DbExecuteSql(DbHandle(), sql, &result);
 
@@ -1304,6 +1315,9 @@ int do_purge(int interval, int policy_id)
             if (status != 0)
             {
                 log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
+                DbStringFree(temp_dead);
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
                 return status;
             }
 
@@ -1317,6 +1331,9 @@ int do_purge(int interval, int policy_id)
             if (status != 0)
             {
                 log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
+                DbStringFree(temp_dead);
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
                 return status;
             }
 
@@ -1325,15 +1342,23 @@ int do_purge(int interval, int policy_id)
 
             if (!key) {
                 log_msg(NULL, LOG_ERR, "Key not found: %s\n", temp_loc);
+                DbStringFree(temp_dead);
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
                 return -1;
             }
 
             status = hsm_remove_key(NULL, key);
 
+            hsm_key_free(key);
+
             if (!status) {
                 log_msg(NULL, LOG_INFO, "Key remove successful.\n");
             } else {
                 log_msg(NULL, LOG_ERR, "Key remove failed.\n");
+                DbStringFree(temp_dead);
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
                 return -1;
             }
 
@@ -1351,6 +1376,7 @@ int do_purge(int interval, int policy_id)
     }
 
     DusFree(sql);
+    DbFreeRow(row);
 
     DbStringFree(temp_dead);
     DbStringFree(temp_loc);

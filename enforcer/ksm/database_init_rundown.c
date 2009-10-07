@@ -120,12 +120,16 @@ int db_version_check(void)
 
             /* Check it */
             if (version != KSM_DB_VERSION) {
+                DbFreeRow(row);
+                DbFreeResult(result);
                 return MsgLog(KME_WRONG_DB_VER, KSM_DB_VERSION, version);
             }
 
             status = DbFetchRow(result, &row);
             /* should only have one row */
             if (status == 0) {
+                DbFreeRow(row);
+                DbFreeResult(result);
                 return MsgLog(KME_DB_ADMIN);
             }
         }
@@ -138,5 +142,6 @@ int db_version_check(void)
         DbFreeResult(result);
     }
 
+    DbFreeRow(row);
     return status;
 }

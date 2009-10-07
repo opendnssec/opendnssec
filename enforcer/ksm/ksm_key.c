@@ -1240,10 +1240,17 @@ int KsmKillKey(int keypair_id)
     int         status = 0;         /* Status return */
     char*       sql = NULL;         /* SQL Statement */
     int         set = 0;
+    char*       now = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (now == NULL) {
+        printf("Couldn't turn \"now\" into a date, quitting...\n");
+        exit(1);
+    }
 
     sql = DusInit("keypairs");
     DusSetInt(&sql, "STATE", KSM_STATE_DEAD, set++);
-    DusSetString(&sql, "DEAD", DtParseDateTimeString("now"), set++);
+    DusSetString(&sql, "DEAD", now, set++);
     DusConditionInt(&sql, "ID", DQS_COMPARE_EQ, keypair_id, 0);
     DusEnd(&sql);
 
@@ -1251,6 +1258,8 @@ int KsmKillKey(int keypair_id)
 
     status = DbExecuteSqlNoResult(DbHandle(), sql);
     DusFree(sql);
+
+    StrFree(now);
 
     return status;
 }
