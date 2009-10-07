@@ -4,6 +4,7 @@ OpenDNSSEC trunk
 
 * SignerThreads and KeygenInterval has been deprecated (actually removed
   just before 1.0.0b1).
+* Added support for RSA/SHA256 and RSA/SHA512 to libhsm. No API changes.
 
 OpenDNSSEC 1.0.0b1 - 2009-10-02
 
