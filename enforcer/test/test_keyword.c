@@ -70,10 +70,6 @@ static void TestAlgorithmKeywordConvert(void)
     CU_ASSERT_EQUAL(KSM_ALGORITHM_DH, KsmKeywordAlgorithmNameToValue("dh"));
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("d"));
 
-    CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("dsasha1"));
-    CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("dsasha"));
-    CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("dsash"));
-    CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("dsas"));
     CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("dsa"));
     CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("ds"));
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("d"));
@@ -116,7 +112,7 @@ static void TestAlgorithmKeywordConvert(void)
 
     CU_ASSERT_STRING_EQUAL("rsamd5", KsmKeywordAlgorithmValueToName(KSM_ALGORITHM_RSAMD5));
     CU_ASSERT_STRING_EQUAL("dh", KsmKeywordAlgorithmValueToName(KSM_ALGORITHM_DH));
-    CU_ASSERT_STRING_EQUAL("dsasha1", KsmKeywordAlgorithmValueToName(KSM_ALGORITHM_DSASHA1));
+    CU_ASSERT_STRING_EQUAL("dsa", KsmKeywordAlgorithmValueToName(KSM_ALGORITHM_DSASHA1));
     CU_ASSERT_STRING_EQUAL("rsasha1", KsmKeywordAlgorithmValueToName(KSM_ALGORITHM_RSASHA1));
     CU_ASSERT_STRING_EQUAL("indirect", KsmKeywordAlgorithmValueToName(KSM_ALGORITHM_INDIRECT));
     CU_ASSERT_STRING_EQUAL("domain", KsmKeywordAlgorithmValueToName(KSM_ALGORITHM_PRIVDOM));

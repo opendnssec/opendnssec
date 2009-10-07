@@ -327,7 +327,7 @@ void KsmPurge(void);
 #define KSM_ALGORITHM_DH                2
 #define KSM_ALGORITHM_DH_STRING         "dh"
 #define KSM_ALGORITHM_DSASHA1           3
-#define KSM_ALGORITHM_DSASHA1_STRING    "dsasha1"
+#define KSM_ALGORITHM_DSASHA1_STRING    "dsa"
 #define KSM_ALGORITHM_RSASHA1           5
 #define KSM_ALGORITHM_RSASHA1_STRING    "rsasha1"
 #define KSM_ALGORITHM_DSA_NSEC3_SHA1        6
