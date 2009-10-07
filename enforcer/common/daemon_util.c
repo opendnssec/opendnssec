@@ -51,6 +51,9 @@
 #include <signal.h>
 #include <fcntl.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -308,6 +311,43 @@ writepid (DAEMONCONFIG *config)
     FILE * fd;
     char pidbuf[32];
 
+    char* directory = NULL;
+    char* slash;
+    struct stat stat_ret;
+    char *path = getenv("PWD");
+
+    /* Find the directory part of the (fully qualified) pidfile */
+    if (*config->pidfile != '/') {
+        StrAppend(&directory, path);
+        StrAppend(&directory, "/");
+        StrAppend(&directory, config->pidfile);
+    } else {
+        directory = StrStrdup(config->pidfile);
+    }
+    slash = strrchr(directory, '/');
+    *slash = 0;
+
+    /* Check that it exists */
+    if (stat(directory, &stat_ret) != 0) {
+
+        if (errno != ENOENT) {
+            log_msg(config, LOG_ERR, "cannot stat directory %s: %s",
+                    directory, strerror(errno));
+            return -1;
+        }
+    }
+
+    if (S_ISDIR(stat_ret.st_mode)) {
+        /* Do nothing, the directory exists already */
+    } else {
+        /* try to create it */
+        if (make_directory(directory) != 0) {
+            StrFree(directory);
+            return -1;
+        }
+    }
+    StrFree(directory);
+
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) config->pid);
 
     if ((fd = fopen(config->pidfile, "w")) ==  NULL ) {
@@ -330,7 +370,36 @@ writepid (DAEMONCONFIG *config)
     return 0;
 }
 
+int make_directory(const char* path) {
 
+    char* parent;
+    char* slash;
+    struct stat stat_ret;
+
+    parent = StrStrdup(path);
+    slash = strrchr(parent, '/');
+
+    *slash = 0;
+
+    stat(parent, &stat_ret);
+
+    if (!S_ISDIR(stat_ret.st_mode)) {
+
+        make_directory(parent);
+
+    }
+
+    if (mkdir(path, (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) != 0) {
+        log_msg(NULL, LOG_ERR, "cannot create directory %s: %s\n",
+                path, strerror(errno));
+        StrFree(parent);
+        return 1;
+    }
+
+    StrFree(parent);
+    return 0;
+
+}
 
     void
 cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)

@@ -52,6 +52,7 @@ void log_xml_error(void *ignore, const char *format, ...);
 void log_xml_warn(void *ignore, const char *format, ...);
 int permsDrop(DAEMONCONFIG* config);
 int writepid (DAEMONCONFIG *config);
+int make_directory(const char* path);
 int ReadConfig(DAEMONCONFIG *config, int verbose);
 int get_lite_lock(char *lock_filename, FILE* lock_fd);
 int release_lite_lock(FILE* lock_fd);
