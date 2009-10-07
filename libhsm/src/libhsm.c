@@ -672,7 +672,8 @@ hsm_ctx_clone(hsm_ctx_t *ctx)
             if (!new_session) {
                 /* one of the sessions failed to clone. Clear the
                  * new ctx and return NULL */
-                hsm_ctx_close(ctx, 0);
+                hsm_ctx_close(new_ctx, 0);
+		hsm_ctx_free(new_ctx);
                 return NULL;
             }
             hsm_ctx_add_session(new_ctx, new_session);
@@ -999,6 +1000,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                                                  max_object_count,
                                                  &objectCount);
         if (hsm_pkcs11_check_error(ctx, rv, "Find first object")) {
+            free(key_handles);
             *count = 0;
             return NULL;
         }
@@ -1324,7 +1326,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
     /* TODO: depends on type and key, or just leave it at current
      * maximum? */
     CK_ULONG signatureLen = 512;
-    CK_BYTE *signature = malloc(signatureLen);
+    CK_BYTE *signature = NULL;
     CK_MECHANISM sign_mechanism;
 
     ldns_rdf *sig_rdf;
@@ -1338,6 +1340,11 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
 
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
+
+    signature = malloc(signatureLen);
+    if (signature == NULL) {
+        return NULL;
+    }
 
     /* some HSMs don't really handle CKM_SHA1_RSA_PKCS well, so
      * we'll do the hashing manually */
