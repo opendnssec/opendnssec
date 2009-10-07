@@ -673,7 +673,6 @@ hsm_ctx_clone(hsm_ctx_t *ctx)
                 /* one of the sessions failed to clone. Clear the
                  * new ctx and return NULL */
                 hsm_ctx_close(new_ctx, 0);
-		hsm_ctx_free(new_ctx);
                 return NULL;
             }
             hsm_ctx_add_session(new_ctx, new_session);
@@ -1399,6 +1398,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
+	    free(signature);
             return NULL;
     }
 
@@ -1425,6 +1425,9 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
+            free(data);
+            free(digest);
+	    free(signature);
             return NULL;
     }
 
