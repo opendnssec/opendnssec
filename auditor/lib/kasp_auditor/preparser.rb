@@ -156,6 +156,7 @@ module KASPAuditor
     def self.normalise_line(line, origin, ttl, last_name)
       # Note that a freestanding "@" is used to denote the current origin - we can simply replace that straight away
       line.sub!("@ ", "#{origin} ")
+      line.sub!("@\t", "#{origin} ")
       # Note that no domain name may be specified in the RR - in that case, last_name should be used. How do we tell? Tab or space at start of line.
       if ((line[0] == " ") || (line[0] == "\t"))
         line = last_name + " " + line
