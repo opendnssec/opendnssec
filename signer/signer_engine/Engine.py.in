@@ -761,6 +761,8 @@ def main():
         print ece
     except ZoneListError, zle:
         print "zonelist error: " + str(zle) + ". Stopping engine"
+    except EnvironmentError, enve:
+        print "environment error: " + str(enve) + ". Stopping engine"
     except KeyboardInterrupt:
         engine.stop_engine()
     except SystemExit: # python 2.4 compatible code
