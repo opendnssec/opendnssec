@@ -122,7 +122,7 @@ permsDrop(DAEMONCONFIG* config)
         return(-1);
     }
 
-    xmlRelaxNGSetParserErrors(rngctx,
+    xmlRelaxNGSetValidErrors(rngctx,
 		(xmlRelaxNGValidityErrorFunc) log_xml_error,
 		(xmlRelaxNGValidityWarningFunc) log_xml_warn,
 		NULL);
@@ -490,7 +490,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         return(-1);
     }
 
-    xmlRelaxNGSetParserErrors(rngctx,
+    xmlRelaxNGSetValidErrors(rngctx,
 		(xmlRelaxNGValidityErrorFunc) log_xml_error,
 		(xmlRelaxNGValidityWarningFunc) log_xml_warn,
 		NULL);
