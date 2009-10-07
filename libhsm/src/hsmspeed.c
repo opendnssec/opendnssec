@@ -39,6 +39,10 @@
 
 #define PTHREAD_THREADS_MAX 2048
 
+/* Algorithm identifier and name */
+ldns_algorithm  algorithm = LDNS_RSASHA1;
+const char     *algoname  = "RSA/SHA1";
+
 extern char *optarg;
 char *progname = NULL;
 
@@ -87,7 +91,7 @@ sign (void *arg)
     status = ldns_rr_new_frm_str(&rr, "regress.opendnssec.se. IN A 124.124.124.124", 0, NULL, NULL);
     if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
     sign_params = hsm_sign_params_new();
-    sign_params->algorithm = LDNS_RSASHA1;
+    sign_params->algorithm = algorithm;
     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "opendnssec.se.");
     dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
@@ -222,8 +226,8 @@ main (int argc, char *argv[])
         sign_arg_array[n].iterations = iterations;
     }
 
-    fprintf(stderr, "Signing %d RRsets using %d %s...\n",
-        iterations, threads, (threads > 1 ? "threads" : "thread"));
+    fprintf(stderr, "Signing %d RRsets with %s using %d %s...\n",
+        iterations, algoname, threads, (threads > 1 ? "threads" : "thread"));
     gettimeofday(&start, NULL);
 
     /* Create threads for signing */

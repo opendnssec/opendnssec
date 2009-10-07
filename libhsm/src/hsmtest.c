@@ -39,7 +39,7 @@
 
 
 static int
-hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key)
+hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key, ldns_algorithm alg)
 {
     int result;
     ldns_rr_list *rrset;
@@ -56,7 +56,7 @@ hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key)
     if (status == LDNS_STATUS_OK) ldns_rr_list_push_rr(rrset, rr);
 
     sign_params = hsm_sign_params_new();
-    sign_params->algorithm = LDNS_RSASHA1;
+    sign_params->algorithm = alg;
     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "example.com.");
     dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
@@ -156,14 +156,36 @@ hsm_test (const char *repository)
         }
         free(id);
 
-        printf("Signing with key... ");
-        result = hsm_test_sign(ctx, key);
+        printf("Signing (RSA/SHA1) with key... ");
+        result = hsm_test_sign(ctx, key, LDNS_RSASHA1);
         if (result) {
             errors++;
             printf("Failed, error: %d\n", result);
             hsm_print_error(ctx);
         } else {
             printf("OK\n");
+        }
+
+        printf("Signing (RSA/SHA256) with key... ");
+        result = hsm_test_sign(ctx, key, LDNS_RSASHA256);
+        if (result) {
+            errors++;
+            printf("Failed, error: %d\n", result);
+            hsm_print_error(ctx);
+        } else {
+            printf("OK\n");
+        }
+
+        if ( keysize >= 1024) {
+            printf("Signing (RSA/SHA512) with key... ");
+            result = hsm_test_sign(ctx, key, LDNS_RSASHA512);
+            if (result) {
+                errors++;
+                printf("Failed, error: %d\n", result);
+                hsm_print_error(ctx);
+            } else {
+                printf("OK\n");
+            }
         }
 
         printf("Deleting key... ");

@@ -1265,6 +1265,8 @@ hsm_create_prefix(CK_ULONG digest_len,
     CK_BYTE *data;
     const CK_BYTE RSA_MD5_ID[] = { 0x30, 0x20, 0x30, 0x0C, 0x06, 0x08, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
     const CK_BYTE RSA_SHA1_ID[] = { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2B, 0x0E, 0x03, 0x02, 0x1A, 0x05, 0x00, 0x04, 0x14 };
+    const CK_BYTE RSA_SHA256_ID[] = { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20 };
+    const CK_BYTE RSA_SHA512_ID[] = { 0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40 };
 
     switch(algorithm) {
         case LDNS_SIGN_RSAMD5:
@@ -1277,6 +1279,16 @@ hsm_create_prefix(CK_ULONG digest_len,
             *data_size = sizeof(RSA_SHA1_ID) + digest_len;
             data = malloc(*data_size);
             memcpy(data, RSA_SHA1_ID, sizeof(RSA_SHA1_ID));
+            break;
+	case LDNS_SIGN_RSASHA256:
+            *data_size = sizeof(RSA_SHA256_ID) + digest_len;
+            data = malloc(*data_size);
+            memcpy(data, RSA_SHA256_ID, sizeof(RSA_SHA256_ID));
+            break;
+	case LDNS_SIGN_RSASHA512:
+            *data_size = sizeof(RSA_SHA512_ID) + digest_len;
+            data = malloc(*data_size);
+            memcpy(data, RSA_SHA512_ID, sizeof(RSA_SHA512_ID));
             break;
         default:
             return NULL;
@@ -1358,6 +1370,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                             CKM_MD5, digest_len,
                                             sign_buf);
             break;
+
         case LDNS_SIGN_RSASHA1:
         case LDNS_SIGN_RSASHA1_NSEC3:
             digest_len = LDNS_SHA1_DIGEST_LENGTH;
@@ -1366,6 +1379,23 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                ldns_buffer_position(sign_buf),
                                digest);
             break;
+
+        case LDNS_SIGN_RSASHA256:
+            digest_len = LDNS_SHA256_DIGEST_LENGTH;
+            digest = malloc(digest_len);
+            digest = ldns_sha256(ldns_buffer_begin(sign_buf),
+                                 ldns_buffer_position(sign_buf),
+                                 digest);
+            break;
+
+        case LDNS_SIGN_RSASHA512:
+            digest_len = LDNS_SHA512_DIGEST_LENGTH;
+            digest = malloc(digest_len);
+            digest = ldns_sha512(ldns_buffer_begin(sign_buf),
+                                 ldns_buffer_position(sign_buf),
+                                 digest);
+            break;
+
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
@@ -1388,6 +1418,8 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         case LDNS_SIGN_RSAMD5:
         case LDNS_SIGN_RSASHA1:
         case LDNS_SIGN_RSASHA1_NSEC3:
+        case LDNS_SIGN_RSASHA256:
+        case LDNS_SIGN_RSASHA512:
             sign_mechanism.mechanism = CKM_RSA_PKCS;
             break;
         default:
