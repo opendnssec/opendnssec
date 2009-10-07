@@ -53,7 +53,7 @@
 #define KME_EXISTS      (KME_BASE +  5)     /* ERROR: object with name '%s' already exists */
 #define KME_FLDMISMAT   (KME_BASE +  6)     /* ERROR: program error - number of fields returned did not match number expected */
 #define KME_GENERATECNT (KME_BASE +  7)     /* INFO: %d %ss available in 'generate' state */
-#define KME_INSFGENKEY  (KME_BASE +  8)     /* ERROR: %d %ss available in 'generate' state (need %d) - unable to promote until keygend runs */
+#define KME_INSFGENKEY  (KME_BASE +  8)     /* ERROR: %d %ss available in 'generate' state (need %d) - unable to promote until key generation has run */
 #define KME_KEYCHSTATE  (KME_BASE +  9)     /* INFO: moving %d key(s) from '%s' state to '%s' state */
 #define KME_KEYCNTSUMM  (KME_BASE + 10)     /* INFO: %d keys required, therefore %d new keys need to be put in 'publish' state */
 #define KME_NOREADYKEY  (KME_BASE + 11)     /* WARNING: key rollover not completed as there are no keys in the 'ready' state; communicated will try again when it runs next */
