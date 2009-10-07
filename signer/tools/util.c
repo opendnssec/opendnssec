@@ -43,7 +43,7 @@ read_line(FILE *input, char *line, int multiline, int skip_comments)
 	char c, lc = 0;
 	li = 0;
 	for (i = 0; i < MAX_LINE_LEN; i++) {
-		c = getc(input);
+		c = (char) getc(input);
 		/* if a comment does not start at the beginning of the line,
 		 * skip it completely */
 		if (i > 0 && c == ';' && !in_string && lc != '\\') {
@@ -52,7 +52,7 @@ read_line(FILE *input, char *line, int multiline, int skip_comments)
 					line[li] = c;
 					li++;
 				}
-					c = getc(input);
+					c = (char) getc(input);
 			}
 		}
 		if (c == EOF) {

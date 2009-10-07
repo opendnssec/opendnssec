@@ -168,24 +168,32 @@ key_list_add_key(key_list *list,
 		if (!list->keys) {
 			fprintf(stderr,
 			        "Out of memory while adding key, aborting\n");
+			hsm_key_free(key);
+			return;
 		}
 		list->keytags = realloc(list->keytags,
 		                        sizeof(uint16_t) * list->capacity);
 		if (!list->keytags) {
 			fprintf(stderr,
 			        "Out of memory while adding key, aborting\n");
+			hsm_key_free(key);
+			return;
 		}
 		list->algorithms = realloc(list->algorithms,
 		                        sizeof(uint8_t) * list->capacity);
 		if (!list->algorithms) {
 			fprintf(stderr,
 			        "Out of memory while adding key, aborting\n");
+			hsm_key_free(key);
+			return;
 		}
 		list->use_key = realloc(list->use_key,
 		                        sizeof(int) * list->capacity);
 		if (!list->use_key) {
 			fprintf(stderr,
 			        "Out of memory while adding key, aborting\n");
+			hsm_key_free(key);
+			return;
 		}
 	}
 
@@ -195,6 +203,7 @@ key_list_add_key(key_list *list,
 		/* TODO: check for unknown algo's too? */
 		fprintf(stderr, "; Error: Bad algorithm: %s, skipping key\n",
 		        key_algorithm_str);
+		hsm_key_free(key);
 		hsm_sign_params_free(params);
 		return;
 	}
@@ -372,6 +381,9 @@ parse_time (const char *time_str)
 	*/
 	memset(&tm, 0, sizeof(tm));
 
+/* Coverity comment:
+   use of sscanf() is seen as a security risk
+*/
 	if (strlen(time_str) == 8 && sscanf(time_str,
 								  "%4d%2d%2d",
 								  &tm.tm_year,
@@ -843,6 +855,9 @@ sign_rrset(ldns_rr_list *rrset,
 	params = hsm_sign_params_new();
 	if (!cfg->origin) {
 		fprintf(stderr, "Origin not set! Unable to continue.\n");
+		if (params) {
+			hsm_sign_params_free(params);
+		}
 		exit(1);
 	}
 
@@ -867,6 +882,9 @@ sign_rrset(ldns_rr_list *rrset,
 			if (cfg->expiration_denial &&
 			    (ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC ||
 			     ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC3)) {
+/* Coverity comment:
+   use of rand() is seen as a security risk
+*/
 				params->expiration = cfg->expiration_denial +
 			                   (cfg->jitter ? rand() % cfg->jitter : 0);
 			} else {
@@ -1168,6 +1186,10 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 		ldns_rr_list_deep_free(new_zone_signatures);
 		ldns_rr_list_deep_free(signed_zone_rrset);
 		ldns_rr_list_deep_free(signed_zone_signatures);
+		free(new_zone_reader);
+		if (signed_zone_reader) {
+			free(signed_zone_reader);
+		}
 		new_zone_rrset = NULL;
 		new_zone_signatures = NULL;
 		signed_zone_rrset = NULL;

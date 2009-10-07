@@ -328,9 +328,9 @@ main(int argc, char **argv)
 	 * store it along with either its name or its hashed name
 	 * in an rbtree
 	 */
-	ldns_rbtree_t *rr_tree;
-	ldns_rr *cur_rr, *prev_rr;
-	rr_data *cur_rr_data;
+	ldns_rbtree_t *rr_tree = NULL;
+	ldns_rr *cur_rr = NULL, *prev_rr = NULL;
+	rr_data *cur_rr_data = NULL;
 
 	/* options */
 	int c;
@@ -473,6 +473,8 @@ main(int argc, char **argv)
 						 * want partial output going to the next tool */
 						if (out_file != stdout) {
 							fclose(out_file);
+						}
+						if (out_file_name) {
 							unlink(out_file_name);
 						}
 						exit(EXIT_FAILURE);
@@ -509,6 +511,8 @@ main(int argc, char **argv)
 		 * want partial output going to the next tool */
 		if (out_file != stdout) {
 			fclose(out_file);
+		}
+		if (out_file_name) {
 			unlink(out_file_name);
 		}
 		exit(EXIT_FAILURE);
