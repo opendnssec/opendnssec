@@ -376,14 +376,14 @@ module KASPChecker
       if (denial_type == "NSEC")
         # Check correct algorithm used for NSEC
         if ((["6","7"].include?alg))
-          log(LOG_ERR, "Incompatible algorithm (#{alg}) used for #{type} NSEC in #{policy}"+
-              " policy in #{kasp_file}")
+          log(LOG_ERR, "In policy #{policy}, incompatible algorithm (#{alg}) used for #{type} NSEC"+
+              " in #{kasp_file}")
         end
       else
         # Check correct algorithm used for NSEC3
         if (!(["6","7"].include?alg))
-          log(LOG_ERR, "Incompatible algorithm (#{alg}) used for #{type} NSEC3 in #{policy}" +
-              " policy in #{kasp_file} - should be 6 or 7")
+          log(LOG_ERR, "In policy #{policy}, incompatible algorithm (#{alg}) used for #{type} NSEC3" +
+              " in #{kasp_file} - should be 6 or 7")
         end
       end
 
