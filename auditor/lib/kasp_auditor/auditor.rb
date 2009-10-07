@@ -768,6 +768,15 @@ module KASPAuditor
         else
           log(LOG_INFO, "SOA differs : from #{unsigned_soa.serial} to #{signed_soa.serial}")
         end
+      end
+      # Check if the Policy specifies an SOA TTL
+      if (@config.soa.ttl)
+        # If it does, then check that it is used
+        if (signed_soa.ttl != @config.soa.ttl)
+          log(LOG_ERR, "SOA TTL should be #{@config.soa.ttl} as defined in zone policy. Was #{signed_soa.ttl}")
+        end
+      else
+        # Otherwise, check that the unsigned SOA TTL == signed SOA TTL
         if (signed_soa.ttl != unsigned_soa.ttl)
           log(LOG_ERR, "SOA TTL differs : from #{unsigned_soa.ttl} to #{signed_soa.ttl}")
         end
