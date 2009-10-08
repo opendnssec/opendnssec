@@ -70,7 +70,7 @@ new_zone(char* zone_name, char* input_file)
 {
     zonelist_type* zlt = (zonelist_type*) malloc(sizeof(zonelist_type));
     zlt->name = strdup(zone_name);
-    zlt->dname = ldns_dname_new_frm_str(zlt->name);
+    zlt->dname = ldns_dname_new_frm_str(zone_name);
     zlt->input_file = strdup(input_file);
     zlt->next = NULL;
     return zlt;
@@ -82,7 +82,9 @@ free_zonelist(zonelist_type* zlt)
     if (zlt) {
         free_zonelist(zlt->next);
         free((void*) zlt->name);
-        ldns_rdf_deep_free(zlt->dname);
+        if (zlt->dname) {
+            ldns_rdf_deep_free(zlt->dname);
+        }
         free((void*) zlt->input_file);
         free((void*) zlt);
     }
@@ -180,9 +182,6 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlXPathObjectPtr xpathObj = NULL;
     xmlNode *curNode = NULL;
     xmlChar *tsig_expr = (unsigned char*) "//ZoneFetch/Default/TSIG";
-    xmlChar *tsig_name_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Name";
-    xmlChar *tsig_algo_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Algorithm";
-    xmlChar *tsig_secret_expr = (unsigned char*) "//ZoneFetch/Default/TSIG/Secret";
     xmlChar *server_expr = (unsigned char*) "//ZoneFetch/Default/RequestTransfer";
     xmlChar *notify_expr = (unsigned char*) "//ZoneFetch/NotifyListen";
 
@@ -219,12 +218,12 @@ read_axfr_config(const char* filename, config_type* cfg)
 
                 /* Extract the master server address */
                 xpathObj = xmlXPathEvalExpression(server_expr, xpathCtx);
-                if (xpathObj == NULL) {
+                if (xpathObj == NULL || !xpathObj->nodesetval) {
                     log_msg(LOG_CRIT, "zone fetcher can not locate master "
                         "server(s) in %s", filename);
                     exit(EXIT_FAILURE);
                 }
-                if (xpathObj->nodesetval) {
+                else {
                     for (i=0; i < xpathObj->nodesetval->nodeNr; i++) {
                         ipv4 = NULL;
                         ipv6 = NULL;
@@ -310,44 +309,46 @@ read_axfr_config(const char* filename, config_type* cfg)
 
                 /* Extract the tsig credentials */
                 xpathObj = xmlXPathEvalExpression(tsig_expr, xpathCtx);
-                if (xpathObj != NULL) {
-                    use_tsig = 1;
-                    xmlXPathFreeObject(xpathObj);
-                }
-                if (use_tsig) {
-                    xpathObj = xmlXPathEvalExpression(tsig_name_expr, xpathCtx);
-                    if (xpathObj == NULL) {
-                        log_msg(LOG_ERR, "zone fetcher can not locate TSIG "
-                            " name in %s", filename);
-                        exit(EXIT_FAILURE);
-                    }
-                    tsig_name = (char*) xmlXPathCastToString(xpathObj);
-                    xmlXPathFreeObject(xpathObj);
-
-                    xpathObj = xmlXPathEvalExpression(tsig_algo_expr, xpathCtx);
-                    if (xpathObj == NULL) {
-                        log_msg(LOG_ERR, "zone fetcher can not locate TSIG "
-                            "algorithm in %s", filename);
-                        exit(EXIT_FAILURE);
-                    }
-                    tsig_algo = (char*) xmlXPathCastToString(xpathObj);
-                    xmlXPathFreeObject(xpathObj);
-
-                    xpathObj = xmlXPathEvalExpression(tsig_secret_expr, xpathCtx);
-                    if (xpathObj == NULL) {
-                        log_msg(LOG_ERR, "zone fetcher can not locate TSIG "
-                            "secret in %s", filename);
-                        exit(EXIT_FAILURE);
-                    }
-                    tsig_secret = (char*) xmlXPathCastToString(xpathObj);
-                    xmlXPathFreeObject(xpathObj);
-
-                    cfg->tsig_name = strdup(tsig_name);
-                    cfg->tsig_algo = strdup(tsig_algo);
-                    cfg->tsig_secret = strdup(tsig_secret);
-                    free((void*) tsig_name);
-                    free((void*) tsig_algo);
-                    free((void*) tsig_secret);
+                if (xpathObj != NULL && xpathObj->nodesetval) {
+                    for (i=0; i < xpathObj->nodesetval->nodeNr; i++) {
+                        tsig_name = NULL;
+                        tsig_algo = NULL;
+                        tsig_secret = NULL;
+                        curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+                        while (curNode) {
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"Name"))
+                                tsig_name = (char *) xmlNodeGetContent(curNode);
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"Algorithm"))
+                                tsig_algo = (char *) xmlNodeGetContent(curNode);
+                            if (xmlStrEqual(curNode->name, (const xmlChar *)"Secret"))
+                                tsig_secret = (char *) xmlNodeGetContent(curNode);
+                            curNode = curNode->next;
+                       }
+                       if (tsig_name && tsig_algo && tsig_secret) {
+                           use_tsig = 1;
+                           if (cfg->tsig_name) {
+                               free((void*) tsig_name);
+                           }
+                           if (cfg->tsig_algo) {
+                               free((void*) tsig_algo);
+                           }
+                           if (cfg->tsig_secret) {
+                               free((void*) tsig_secret);
+                           }
+                           cfg->tsig_name = strdup(tsig_name);
+                           cfg->tsig_algo = strdup(tsig_algo);
+                           cfg->tsig_secret = strdup(tsig_secret);
+                       }
+                       if (tsig_name) {
+                           free((void*) tsig_name);
+                       }
+                       if (tsig_algo) {
+                           free((void*) tsig_algo);
+                       }
+                       if (tsig_secret) {
+                           free((void*) tsig_secret);
+                       }
+                   }
                 }
 
                 xmlXPathFreeContext(xpathCtx);
@@ -435,7 +436,7 @@ read_zonelist(const char* filename)
 
                 /* Extract the Input File Adapter filename */
                 xpathObj = xmlXPathEvalExpression(adapter_expr, xpathCtx);
-                if (xpathObj == NULL) {
+                if (xpathObj == NULL || !xpathObj->nodesetval) {
                     log_msg(LOG_ERR, "zone fetcher was unable to evaluate "
                         "xpath expression: %s; skipping zone", adapter_expr);
                     /* Don't return? try to parse the rest of the zones? */
@@ -819,12 +820,14 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     if (status != LDNS_STATUS_OK) {
         log_msg(LOG_ERR, "zone fetcher failed to send SOA query: %s",
             ldns_get_errorstr_by_id(status));
+        ldns_pkt_free(qpkt);
         return;
     }
-    ldns_pkt_free(qpkt);
     if (ldns_pkt_ancount(apkt) == 1) {
         soa_rr = ldns_rr_list_rr(ldns_pkt_answer(apkt), 0);
-        new_serial = ldns_rdf2native_int32(ldns_rr_rdf(soa_rr, 2));
+        if (soa_rr && ldns_rr_get_type(soa_rr) == LDNS_RR_TYPE_SOA) {
+            new_serial = ldns_rdf2native_int32(ldns_rr_rdf(soa_rr, 2));
+        }
         ldns_pkt_free(apkt);
     }
     else {
@@ -837,6 +840,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
 
     if (serial < new_serial) {
         status = ldns_axfr_start(config->xfrd, zone->dname, LDNS_RR_CLASS_IN);
+        ldns_pkt_free(qpkt);
         if (status != LDNS_STATUS_OK) {
             if (errno != EINPROGRESS) {
                 log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
@@ -849,7 +853,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
    Event check_after_deref: Pointer "zone" dereferenced before NULL check
 */
         if (zone && zone->input_file) {
-            snprintf(lock_ext, sizeof(lock_ext), "axfr.%lu",
+            snprintf(lock_ext, sizeof(lock_ext), ".axfr.%lu",
                 (unsigned long) getpid());
 
             strlength = strlen(zone->input_file) + strlen(lock_ext);
