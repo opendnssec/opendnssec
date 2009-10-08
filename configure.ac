@@ -10,7 +10,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
-AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf ])
+AC_CONFIG_SUBDIRS([ libhsm enforcer signer auditor conf ])
 
 
 # xml
@@ -33,17 +33,7 @@ AM_PATH_PYTHON
 ACX_DBPARAMS
 
 # auditor
-AC_ARG_ENABLE(auditor,
-	AC_HELP_STRING([--disable-auditor],
-		[Disable auditor build (default enabled)]),
-	[],[])
-if test "${enable_auditor+set}" != set; then
-	enable_auditor=yes
-fi
-if test "${enable_auditor}" = yes; then
-	AM_PATH_RUBY([], [], [])
-	AC_CONFIG_SUBDIRS([ auditor ])
-fi
+AM_PATH_RUBY([], [], [])
 
 full_prefix=`eval eval eval eval eval echo "${prefix}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 AC_SUBST([full_prefix])
