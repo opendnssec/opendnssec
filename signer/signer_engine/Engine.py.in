@@ -221,6 +221,8 @@ class Engine:
         #        raise EngineError(estr)
 
         if self.config.privs_groupname:
+            os.chown(os.path.dirname(self.config.command_socket_file),
+                -1, gid)
             try:
                 os.setresgid(gid, gid, gid)
             except Exception, e:
@@ -236,6 +238,8 @@ class Engine:
                         raise EngineError(estr)
 
         if self.config.privs_username:
+            os.chown(os.path.dirname(self.config.command_socket_file),
+                uid, -1)
             try:
                 os.setresuid(uid, uid, uid)
             except Exception, e:
