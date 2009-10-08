@@ -2421,6 +2421,22 @@ hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
     return 0;
 }
 
+int
+hsm_supported_algorithm(ldns_algorithm algorithm)
+{
+    switch(algorithm) {
+        case LDNS_SIGN_RSAMD5:
+        case LDNS_SIGN_RSASHA1:
+        case LDNS_SIGN_RSASHA1_NSEC3:
+        case LDNS_SIGN_RSASHA256:
+        case LDNS_SIGN_RSASHA512:
+            return 0;
+            break;
+        default:
+            return -1;
+    }
+}
+
 char *
 hsm_get_error(hsm_ctx_t *gctx)
 {

@@ -118,4 +118,12 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
                const hsm_sign_params_t *sign_params);
 
 
+/*! Check if a given DNSSEC algorithm is supported
+
+\param ldns_algorithm algorithm number
+\return 0 if supported, -1 otherwise
+*/
+int
+hsm_supported_algorithm(ldns_algorithm algorithm);
+
 #endif /* HSMDNS_H */
