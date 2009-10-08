@@ -50,6 +50,7 @@
 
 #include "daemon.h"
 #include "daemon_util.h"
+#include "privdrop.h"
 
 #include "ksm/ksm.h"
 #include "ksm/dbsmsg.h"
@@ -188,19 +189,31 @@ main(int argc, char *argv[]){
     action.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &action, NULL);
 
-    /* 
-     * Drop permissions.
-     * You may want to move this in to the server init code
-     * if you need to do other stuff such as bind to low ports first
-     */
-    if (permsDrop(&config) != 0) {
+    /* Get perms that we will be dropping to */
+    if (getPermsForDrop(&config) != 0) {
         exit(1);
     }
-
-    /* Run the server specific code. You need to provide this function somewhere */
+    
+    /* Run the server specific code. You need to provide this function somewhere
+        this sets our pidfile */
     if (server_init(&config) != 0) {
         exit(1);
     }
+
+    /* make the directory for the pidfile if required; do this before we drop
+       privs */
+    if (createPidDir(&config) != 0) {
+        exit(1);
+    }
+
+    /* 
+     * Drop permissions.
+     * This function exits if something goes wrong
+     */
+    privdrop(config.username, config.groupname, NULL);
+
+    config.uid = geteuid();
+    config.gid = getegid();
 
     /* write the pidfile */
     config.pid = getpid();

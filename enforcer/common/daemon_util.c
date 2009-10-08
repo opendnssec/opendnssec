@@ -63,7 +63,6 @@
 #include "config.h"
 #include "daemon.h"
 #include "daemon_util.h"
-#include "privdrop.h"
 
 #include "ksm/database.h"
 #include "ksm/datetime.h"
@@ -71,7 +70,7 @@
 #include "ksm/string_util2.h"
 
     int
-permsDrop(DAEMONCONFIG* config)
+getPermsForDrop(DAEMONCONFIG* config)
 {
     int status = 0;
 
@@ -89,6 +88,8 @@ permsDrop(DAEMONCONFIG* config)
     char* rngfilename = SCHEMA_DIR "/conf.rng";
     char* temp_char = NULL;
 
+    struct passwd *pwd;
+    struct group  *grp;
 
     /* Load XML document */
     doc = xmlParseFile(filename);
@@ -180,10 +181,27 @@ permsDrop(DAEMONCONFIG* config)
         config->username = NULL;
     }
 
-    privdrop(config->username, config->groupname, NULL);
-
-    config->uid = geteuid();
-    config->gid = getegid();
+    /* Set uid and gid if required */
+    if (config->username != NULL) {
+        /* Lookup the user id in /etc/passwd */
+        if ((pwd = getpwnam(config->username)) == NULL) {
+            syslog(LOG_ERR, "user '%s' does not exist. exiting...\n", config->username);
+            exit(1);
+        } else {
+            config->uid = pwd->pw_uid;
+        }
+        endpwent();
+    }
+    if (config->groupname) {
+        /* Lookup the group id in /etc/groups */
+        if ((grp = getgrnam(config->groupname)) == NULL) {
+            syslog(LOG_ERR, "group '%s' does not exist. exiting...\n", config->groupname);
+            exit(1);
+        } else {
+            config->gid = grp->gr_gid;
+        }
+        endgrent();
+    }
 
     xmlXPathFreeContext(xpathCtx);
     xmlRelaxNGFree(schema);
@@ -311,6 +329,31 @@ writepid (DAEMONCONFIG *config)
     FILE * fd;
     char pidbuf[32];
 
+    snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) config->pid);
+
+    if ((fd = fopen(config->pidfile, "w")) ==  NULL ) {
+        return -1;
+    }
+
+    if (!write_data(config, fd, pidbuf, strlen(pidbuf))) {
+        fclose(fd);
+        return -1;
+    }
+    fclose(fd);
+
+    if (chown(config->pidfile, config->uid, config->gid) == -1) {
+        log_msg(config, LOG_ERR, "cannot chown(%u,%u) %s: %s",
+                (unsigned) config->uid, (unsigned) config->gid,
+                config->pidfile, strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+    int
+createPidDir (DAEMONCONFIG *config)
+{
     char* directory = NULL;
     char* slash;
     struct stat stat_ret;
@@ -347,25 +390,6 @@ writepid (DAEMONCONFIG *config)
         }
     }
     StrFree(directory);
-
-    snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) config->pid);
-
-    if ((fd = fopen(config->pidfile, "w")) ==  NULL ) {
-        return -1;
-    }
-
-    if (!write_data(config, fd, pidbuf, strlen(pidbuf))) {
-        fclose(fd);
-        return -1;
-    }
-    fclose(fd);
-
-    if (chown(config->pidfile, config->uid, config->gid) == -1) {
-        log_msg(config, LOG_ERR, "cannot chown(%u,%u) %s: %s",
-                (unsigned) config->uid, (unsigned) config->gid,
-                config->pidfile, strerror(errno));
-        return -1;
-    }
 
     return 0;
 }
