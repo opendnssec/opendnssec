@@ -986,7 +986,10 @@ init_xfrd(config_type* config)
             ldns_resolver_set_tsig_algorithm(xfrd, config->tsig_algo);
             ldns_resolver_set_tsig_keydata(xfrd, config->tsig_secret);
         }
-        ldns_resolver_set_port(xfrd, atoi(DNS_PORT_STRING));
+        if (config->serverlist && config->serverlist->port)
+            ldns_resolver_set_port(xfrd, atoi(config->serverlist->port));
+        else
+            ldns_resolver_set_port(xfrd, atoi(DNS_PORT_STRING));
         ldns_resolver_set_recursive(xfrd, 0);
 
         servers = config->serverlist;
