@@ -5432,6 +5432,8 @@ int PurgeKeys(int zone_id, int policy_id)
     char*       temp_dead = NULL;   /* place to store dead date returned */
     char*       temp_loc = NULL;    /* place to store location returned */
 
+    int         done_something = 0; /* have we done anything? */
+
     /* Key information */
     hsm_key_t *key = NULL;
 
@@ -5475,6 +5477,7 @@ int PurgeKeys(int zone_id, int policy_id)
             DbInt(row, 0, &temp_id);
             DbString(row, 1, &temp_dead);
             DbString(row, 2, &temp_loc);
+            done_something = 1;
 
             /* Delete from dnsseckeys */
             sql2 = DdsInit("dnsseckeys");
@@ -5544,6 +5547,10 @@ int PurgeKeys(int zone_id, int policy_id)
         }
 
         DbFreeResult(result);
+    }
+
+    if (done_something == 0) {
+        printf("No keys to purge.\n");
     }
 
     DusFree(sql);
