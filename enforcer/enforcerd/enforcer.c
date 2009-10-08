@@ -359,7 +359,8 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     /* TODO: check capacity of HSM will not be exceeded */
     /* Create the required keys */
     for (i=new_keys ; i > 0 ; i--){
-        if (policy->ksk->algorithm == 5 || policy->ksk->algorithm == 7 ) {
+        if (hsm_supported_algorithm(policy->ksk->algorithm) == 0) {
+            /* NOTE: for now we know that libhsm only supports RSA keys */
             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
             if (key) {
                 log_msg(config, LOG_DEBUG, "Created key in repository %s", policy->ksk->sm_name);
@@ -390,7 +391,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                     policy->ksk->algorithm, id, policy->ksk->sm_name);
             free(id);
         } else {
-            log_msg(config, LOG_ERR, "Key algorithm %d unsupported by libhsm.", policy->ksk->algorithm);
+            log_msg(config, LOG_ERR, "Key algorithm %d unsupported by libhsm, exiting...", policy->ksk->algorithm);
             unlink(config->pidfile);
             exit(1);
         }
@@ -422,7 +423,8 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
 
     /* TODO: check capacity of HSM will not be exceeded */
     for (i = new_keys ; i > 0 ; i--) {
-        if (policy->zsk->algorithm == 5 || policy->zsk->algorithm == 7) {
+        if (hsm_supported_algorithm(policy->zsk->algorithm) == 0) {
+            /* NOTE: for now we know that libhsm only supports RSA keys */
             key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
             if (key) {
                 log_msg(config, LOG_DEBUG, "Created key in repository %s", policy->zsk->sm_name);
@@ -454,7 +456,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                     policy->zsk->algorithm, id, policy->zsk->sm_name);
             free(id);
         } else {
-            log_msg(config, LOG_ERR, "Key algorithm %d unsupported by libhsm.", policy->zsk->algorithm);
+            log_msg(config, LOG_ERR, "Key algorithm %d unsupported by libhsm, exiting...", policy->zsk->algorithm);
             unlink(config->pidfile);
             exit(1);
         }

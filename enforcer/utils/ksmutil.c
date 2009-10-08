@@ -2966,24 +2966,25 @@ cmd_import ()
     }
         
     /* Check the algorithm */
-    case_algorithm = StrStrdup(o_algo);
-    (void) StrToUpper(case_algorithm);
-    if (strncmp(case_algorithm, "RSASHA1", 7) == 0 || strncmp(o_algo, "5", 1) == 0) {
-        algo_id = 5;
-    }
-    else if (strncmp(case_algorithm, "RSASHA1-NSEC3-SHA1", 18) == 0 || strncmp(o_algo, "7", 1) == 0) {
-        algo_id = 7;
-    }
-    else {
-        printf("Error: Unrecognised algorithm %s; should be one of RSASHA1 or RSASHA1-NSEC3-SHA1\n", o_algo);
+    if (StrIsDigits(o_algo)) {
+        /* Accept it as-is; The HSM will tell us if the number is not valid */
+        status = StrStrtoi(o_algo, &algo_id);
+    } else {
+        /* Convert name to an id, we get 0 if it is unrecognised */
+        case_algorithm = StrStrdup(o_algo);
+        (void) StrToLower(case_algorithm);
 
+        algo_id = KsmKeywordAlgorithmNameToValue(case_algorithm);
+        StrFree(case_algorithm);
+    }
+
+    if (status != 0 || algo_id == 0 || hsm_supported_algorithm(algo_id) != 0) {
+        printf("Error: Key algorithm %s not supported; try one of RSASHA1, RSASHA1-NSEC3-SHA1 or RSASHA256\n", o_algo);
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
-        StrFree(case_algorithm);
-        return(1);
+        return(status);
     }
-    StrFree(case_algorithm);
 
     /* Check the state */
     case_state = StrStrdup(o_keystate);
@@ -5799,7 +5800,8 @@ int cmd_genkeys()
     /* TODO: check capacity of HSM will not be exceeded */
     /* Create the required keys */
     for (i=new_keys ; i > 0 ; i--){
-        if (policy->ksk->algorithm == 5 || policy->ksk->algorithm == 7 ) {
+        if (hsm_supported_algorithm(policy->ksk->algorithm) == 0) {
+            /* NOTE: for now we know that libhsm only supports RSA keys */
             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
             if (key) {
                 if (verbose_flag) {
@@ -5873,7 +5875,8 @@ int cmd_genkeys()
 
     /* TODO: check capacity of HSM will not be exceeded */
     for (i = new_keys ; i > 0 ; i--) {
-        if (policy->zsk->algorithm == 5 || policy->zsk->algorithm == 7) {
+        if (hsm_supported_algorithm(policy->zsk->algorithm) == 0) {
+            /* NOTE: for now we know that libhsm only supports RSA keys */
             key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
             if (key) {
                 if (verbose_flag) {
