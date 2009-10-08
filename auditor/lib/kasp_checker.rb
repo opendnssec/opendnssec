@@ -195,39 +195,35 @@ module KASPChecker
             @repositories[name] =  [mod, tokenlabel]
             #   3. If a repository specifies a capacity, the capacity must be greater than zero.
             # This check is performed when the XML is validated against the RNG (which specifies positiveInteger for Capacity)
+            #
+            #  Also
           }
-
-          #
-          #  Also 
           # check durations for Interval and RolloverNotification (the only duration elements in conf.xml)
           ["Enforcer/Interval", "Enforcer/RolloverNotification"].each {|element|
-            check_duration_element("conf.xml", doc, element, conf_file)
+            doc.root.each_element("//"+element) {|el| check_duration_element_proc(el, "conf.xml", element, conf_file)}
           }
+
 
         }
         return ((kasp_file+"").untaint)
       rescue Errno::ENOENT
-        log(LOG_ERR, "ERROR - Can't find config file : #{conf_file}")
+        log(LOG_ERR, "Can't find config file : #{conf_file}")
         return nil
       end
     end
 
-    def check_duration_element(policy, doc, name, filename)
-      #   1. If 'm' is used in the XSDDuration, then warn the user that 31 days will be used instead of one month.
-      #   2. If 'y' is used in the XSDDuration, then warn the user that 365 days will be used instead of one year.
-      doc.root.each_element("//"+name) {|element|
-        duration = element.text
-        #           print "Checking duration of #{name} : #{duration}, #{duration.length}\n"
-        last_digit = duration[duration.length-1, 1].downcase
-        if (last_digit == "m" && !(/T/=~duration))
-          log(LOG_WARNING, "In #{(policy == "conf.xml") ? ' Configuration' : ' policy ' + policy + ', '} M used in duration field for #{name} (#{duration})" +
-              " in #{filename} - this will be interpreted as 31 days")
-        end
-        if (last_digit == "y")
-          log(LOG_WARNING, "In #{(policy == "conf.xml") ? ' Configuration' : ' policy ' + policy + ', '} Y used in duration field for #{name} (#{duration})" +
-              " in #{filename} - this will be interpreted as 365 days")
-        end
-      }
+    def check_duration_element_proc(element, policy, name, filename)
+      duration = element.text
+      #           print "Checking duration of #{name} : #{duration}, #{duration.length}\n"
+      last_digit = duration[duration.length-1, 1].downcase
+      if (last_digit == "m" && !(/T/=~duration))
+        log(LOG_WARNING, "In #{(policy == "conf.xml") ? 'Configuration' : 'policy ' + policy + ', '} M used in duration field for #{name} (#{duration})" +
+            " in #{filename} - this will be interpreted as 31 days")
+      end
+      if (last_digit == "y")
+        log(LOG_WARNING, "In #{(policy == "conf.xml") ? 'Configuration' : 'policy ' + policy + ', '} Y used in duration field for #{name} (#{duration})" +
+            " in #{filename} - this will be interpreted as 365 days")
+      end
     end
 
 
@@ -349,13 +345,13 @@ module KASPChecker
                 end
               }
             end
-          ["Signatures/Resign", "Signatures/Refresh", "Signatures/Validity/Default",
-            "Signatures/Validity/Denial", "Signatures/Jitter",
-            "Signatures/InceptionOffset", "Keys/RetireSafety", "Keys/PublishSafety",
-            "Keys/Purge", "NSEC3/Resalt", "SOA/Minimum", "ZSK/Lifetime",
-            "KSK/Lifetime", "TTL", "PropagationDelay"].each {|element|
-            check_duration_element(name, doc, element, kasp_file)
-          }
+            ["Signatures/Resign", "Signatures/Refresh", "Signatures/Validity/Default",
+              "Signatures/Validity/Denial", "Signatures/Jitter",
+              "Signatures/InceptionOffset", "Keys/RetireSafety", "Keys/PublishSafety",
+              "Keys/Purge", "NSEC3/Resalt", "SOA/Minimum", "ZSK/Lifetime",
+              "KSK/Lifetime", "TTL", "PropagationDelay"].each {|element|
+              policy.each_element(element) {|el| check_duration_element_proc(el, name, element, kasp_file)}
+            }
           }
 
           #   1. Warn if a policy named "default" does not exist.
@@ -366,7 +362,7 @@ module KASPChecker
 
         }
       rescue Errno::ENOENT
-        log(LOG_ERR, "ERROR - Can't find config file : #{kasp_file}")
+        log(LOG_ERR, "Can't find config file : #{kasp_file}")
       end
     end
 
