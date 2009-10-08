@@ -41,7 +41,7 @@ class OptionsParser
 
         opts.on("-v", "--version", # Override default
                "Display version information") do |x|
-           print "See OpenDNSSEC version\n"
+           print "@VERSION@\n"
            exit
         end
 
