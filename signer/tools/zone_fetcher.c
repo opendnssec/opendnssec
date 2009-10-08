@@ -583,7 +583,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
 
     for (i = 0; i < MAX_INTERFACES; i++) {
         memset(&hints[i], 0, sizeof(hints[i]));
-        hints[i].ai_family = AF_INET6;
+        hints[i].ai_family = AF_UNSPEC;
         hints[i].ai_flags = AI_PASSIVE;
         sockets->udp[i].s = -1;
         sockets->tcp[i].s = -1;
@@ -605,9 +605,6 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
 
     i = 0;
     while (walk) {
-#ifndef IPV6_V6ONLY
-        hints[i].ai_family = walk->family;
-#endif  /* IPV6_V6ONLY */
         node = strlen(walk->ipaddr) > 0 ? walk->ipaddr : NULL;
         port = walk->port ? walk->port : DNS_PORT_STRING;
         if (node != NULL)
@@ -617,14 +614,21 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         /* getaddrinfo */
         if ((r = getaddrinfo(node, port, &hints[i],
             &(sockets->udp[i].addr))) != 0) {
-            log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
-                "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+            if (hints[i].ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
+                log_msg(LOG_ERR, "zone fetcher fallback to UDP4, no IPv6: "
+                    " not supported");
+                ip6_support = 0;
+                continue;
+            }
+            log_msg(LOG_ERR, "zone fetcher cannot parse address %s:%s: "
+                "getaddrinfo (%i): %s %s", node, port, walk->family,
+                 gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
         }
+
         /* socket */
-        if ((sockets->udp[i].s = socket(walk->family, SOCK_DGRAM, 0)) == -1)
-        {
-            if (walk->family == AF_INET6 && errno == EAFNOSUPPORT)
-            {
+        if ((sockets->udp[i].s = socket(sockets->udp[i].addr->ai_family,
+            SOCK_DGRAM, 0)) == -1) {
+            if (sockets->udp[i].addr->ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
                 log_msg(LOG_ERR, "zone fetcher fallback to UDP4, no IPv6: "
                     " not supported");
                 ip6_support = 0;
@@ -636,7 +640,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             }
         }
 
-        if (walk->family != AF_INET6) {
+        if (sockets->udp[i].addr->ai_family != AF_INET6) {
             if (fcntl(sockets->udp[i].s, F_SETFL,
                 O_NONBLOCK) == -1) {
                 log_msg(LOG_ERR, "zone fetcher cannot fcntl "
@@ -679,14 +683,21 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         /* getaddrinfo */
         if ((r = getaddrinfo(node, port, &hints[i],
             &(sockets->tcp[i].addr))) != 0) {
-            log_msg(LOG_ERR, "zone fetcher cannot parse address: getaddrinfo: "
-                "%s %s", gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
+            if (hints[i].ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
+                log_msg(LOG_ERR, "zone fetcher fallback to UDP4, no IPv6: "
+                    " not supported");
+                ip6_support = 0;
+                continue;
+            }
+            log_msg(LOG_ERR, "zone fetcher cannot parse address %s:%s: "
+                "getaddrinfo (%i): %s %s", node, port, walk->family,
+                 gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
         }
         /* socket */
-        if ((sockets->tcp[i].s = socket(walk->family, SOCK_STREAM, 0)) == -1)
-        {
-            if (walk->family == AF_INET6 && errno == EAFNOSUPPORT)
-            {
+        if ((sockets->tcp[i].s = socket(sockets->tcp[i].addr->ai_family,
+            SOCK_STREAM, 0)) == -1) {
+            if (sockets->tcp[i].addr->ai_family == AF_INET6 &&
+                errno == EAFNOSUPPORT) {
                 log_msg(LOG_ERR, "zone fetcher fallback to TCP4, no IPv6: "
                     " not supported");
                 ip6_support = 0;
@@ -698,7 +709,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             }
         }
         /* setsockopt */
-        if (walk->family != AF_INET6) {
+        if (sockets->tcp[i].addr->ai_family != AF_INET6) {
             if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
                 sizeof(on)) < 0) {
                 log_msg(LOG_ERR, "zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
