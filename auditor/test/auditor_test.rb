@@ -87,7 +87,7 @@ class AuditorTest < Test::Unit::TestCase
       "NSEC3PARAM RRs included in NSEC-signed zone",
       "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones.	143	IN	A	123.123.123.123",
       "No NSEC record for tjeb.nl",
-      "NSEC record should have TTL of 3600, but is bla.tjeb.nl.	360	IN	NSEC	dragon.tjeb.nl ( NS RRSIG NSEC )",
+      "NSEC record should have TTL of 3600 from zone policy //Zone/SOA/Minimum, but is bla.tjeb.nl.	360	IN	NSEC	dragon.tjeb.nl ( NS RRSIG NSEC )",
       "NSEC includes A which is not in rrsets for dragon.tjeb.nl",
       "RRSIG  types not in NSEC for dragon.tjeb.nl",
       "RRSet (dragon.tjeb.nl, NSEC) failed verification : Signature failed to cryptographically verify, tag = 1390",
