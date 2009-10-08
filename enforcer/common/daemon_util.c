@@ -341,7 +341,7 @@ writepid (DAEMONCONFIG *config)
         /* Do nothing, the directory exists already */
     } else {
         /* try to create it */
-        if (make_directory(directory) != 0) {
+        if (make_directory(config, directory) != 0) {
             StrFree(directory);
             return -1;
         }
@@ -370,7 +370,7 @@ writepid (DAEMONCONFIG *config)
     return 0;
 }
 
-int make_directory(const char* path) {
+int make_directory(DAEMONCONFIG* config, const char* path) {
 
     char* parent;
     char* slash;
@@ -385,18 +385,26 @@ int make_directory(const char* path) {
 
     if (!S_ISDIR(stat_ret.st_mode)) {
 
-        make_directory(parent);
+        make_directory(config, parent);
 
     }
+
+    StrFree(parent);
 
     if (mkdir(path, (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) != 0) {
         log_msg(NULL, LOG_ERR, "cannot create directory %s: %s\n",
                 path, strerror(errno));
-        StrFree(parent);
+        return 1;
+    }
+    
+
+    if (chown(path, config->uid, config->gid) == -1) {
+        log_msg(config, LOG_ERR, "cannot chown(%u,%u) %s: %s",
+                (unsigned) config->uid, (unsigned) config->gid,
+                path, strerror(errno));
         return 1;
     }
 
-    StrFree(parent);
     return 0;
 
 }
