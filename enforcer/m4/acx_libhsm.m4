@@ -1,4 +1,4 @@
-# $Id: acx_libhsm.m4 1660 2009-08-19 08:06:43Z jakob $
+# $Id: acx_libhsm.m4 2152 2009-10-08 08:51:13Z jakob $
 
 AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
@@ -30,7 +30,7 @@ AC_DEFUN([ACX_LIBHSM],[
 
 		AC_MSG_CHECKING(what are the libhsm libs)
 		LIBHSM_LIBS="-L$LIBHSM_PATH/lib -lhsm"
-		AC_MSG_RESULT($LIBHSM_INCLUDES)
+		AC_MSG_RESULT($LIBHSM_LIBS)
 
 		CPPFLAGS="$CPPFLAGS $XML2_INCLUDES $LIBHSM_INCLUDES"
 		LIBS="$LIBS -L$LIBHSM_PATH/lib"
