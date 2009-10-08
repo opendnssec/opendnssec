@@ -315,12 +315,12 @@ module KASPChecker
             max = 9999999999999999
             ksk_lifetime = max
             zsk_lifetime = max
-            policy.each_element('//ZSK') {|zsk|
+            policy.each_element('Keys/ZSK') {|zsk|
               check_key(zsk, "ZSK", name, kasp_file, denial_type)
               zskl = get_duration(zsk, 'Lifetime', kasp_file)
               zsk_lifetime = [zsk_lifetime, zskl].min
             }
-            policy.each_element('//KSK') {|ksk|
+            policy.each_element('Keys/KSK') {|ksk|
               check_key(ksk, "KSK", name, kasp_file, denial_type)
               kskl = get_duration(ksk, 'Lifetime', kasp_file)
               ksk_lifetime = [ksk_lifetime, kskl].min
