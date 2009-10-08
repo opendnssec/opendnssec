@@ -9,6 +9,9 @@ OpenDNSSEC trunk
 Bugfixes:
 * Bugreport #33 (#35): Output a signed zone if only the SOA record changed. 
 * Zone fetcher did not start correctly
+* Create the pid / socket directory if it not yet exists, with the correct
+  privileges.
+* Signer Engine now catches exception if running with incorrect permission.
 
 OpenDNSSEC 1.0.0b1 - 2009-10-02
 
