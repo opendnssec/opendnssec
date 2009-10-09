@@ -1,5 +1,9 @@
 $Id$
 
+OpenDNSSEC trunk
+
+* ...
+
 OpenDNSSEC 1.0.0b2 - 2009-10-09
 
 * Added experimental support for RSA/SHA256 and RSA/SHA512 to KASP enforcer
