@@ -49,7 +49,7 @@
 			<!-- Parameters for ZSK only -->
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>P14D</Lifetime>
+				<Lifetime>P30D</Lifetime>
 				<Repository>softHSM</Repository>
 				<Standby>1</Standby>
 			</ZSK>
