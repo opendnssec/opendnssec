@@ -11,7 +11,7 @@
 			<Refresh>P3D</Refresh>
 			<Validity>
 					<Default>P7D</Default>
-					<Denial>P14D</Denial>
+					<Denial>P7D</Denial>
 			</Validity>
 			<Jitter>PT12H</Jitter>
 			<InceptionOffset>PT300S</InceptionOffset>
