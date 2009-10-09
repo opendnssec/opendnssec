@@ -50,10 +50,14 @@ module KASPAuditor
               # @TODO@ Check out Zone.SOA - should be able to monitor SOA with that
 
               #        # Fill out new zone
-              @signatures = Signatures.new(p.elements['Signatures'])
-              @denial = Denial.new(p.elements['Denial'])
-              @keys = Keys.new(p.elements['Keys'])
-              @soa = SOA.new(p.elements['Zone/SOA'])
+              begin
+                @signatures = Signatures.new(p.elements['Signatures'])
+                @denial = Denial.new(p.elements['Denial'])
+                @keys = Keys.new(p.elements['Keys'])
+                @soa = SOA.new(p.elements['Zone/SOA'])
+              rescue Exception => e
+                KASPAuditor.exit("ERROR - Configuration file #{kasp_file_loc} can't be loaded. Try running ods-kaspcheck to check the configuration.", 1)
+              end
             end
           }
         }
@@ -222,11 +226,11 @@ module KASPAuditor
           # Algorithm length and value
           @algorithm = Dnsruby::Algorithms.new(e.elements['Algorithm'].text.to_i)
           @standby = e.elements['Standby'].text.to_i
-        lifetime_text = e.elements['Lifetime'].text
-        @lifetime = Config.xsd_duration_to_seconds(lifetime_text)
-        if (@lifetime == 0)
-          @lifetime = 999999999999
-        end
+          lifetime_text = e.elements['Lifetime'].text
+          @lifetime = Config.xsd_duration_to_seconds(lifetime_text)
+          if (@lifetime == 0)
+            @lifetime = 999999999999
+          end
           e.elements.each('Algorithm') {|s|
             @alg_length = s.attributes['length']
           }
