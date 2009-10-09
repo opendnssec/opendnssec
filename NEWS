@@ -2,8 +2,8 @@ $Id$
 
 OpenDNSSEC trunk
 
-* Added support for RSA/SHA256 and RSA/SHA512 to KASP enforcer and the
-  signer engine.
+* Added experimental support for RSA/SHA256 and RSA/SHA512 to KASP enforcer
+  and the signer engine.
 * SignerThreads and KeygenInterval has been deprecated (actually removed
   just before 1.0.0b1).
 * Added support for RSA/SHA256 and RSA/SHA512 to libhsm. No API changes.
