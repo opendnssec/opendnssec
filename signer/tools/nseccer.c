@@ -230,7 +230,7 @@ main(int argc, char **argv)
 	ldns_status status;
 	uint32_t soa_min_ttl = 0;
 
-	while ((c = getopt(argc, argv, "f:nv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "f:m:nv:w:")) != -1) {
 		switch(c) {
 			case 'f':
 				input_file = fopen(optarg, "r");
@@ -245,6 +245,13 @@ main(int argc, char **argv)
 				usage(stderr);
 				exit(0);
 				break;
+            case 'm':
+                soa_min_ttl = (uint32_t) atol(optarg);
+                if (soa_min_ttl == 0) {
+                    fprintf(stderr, "Warning: Minimum SOA ttl out of bounds\n");
+                    soa_min_ttl = 0;
+                }
+                break;
 			case 'n':
 				echo_input = false;
 				break;
