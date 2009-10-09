@@ -52,7 +52,7 @@ module KASPChecker
       when LOG_ERR then "ERROR"
       when LOG_WARNING then "WARNING"
       when LOG_INFO then "INFO"
-      when LOG_FATAL then "FATAL"
+      when LOG_CRIT then "CRITICAL"
       end
       print "#{level_string}: #{msg}\n"
     end
@@ -116,7 +116,12 @@ module KASPChecker
       kasp_file = nil
       begin
         File.open((conf_file + "").untaint , 'r') {|file|
-          doc = REXML::Document.new(file)
+          begin
+            doc = REXML::Document.new(file)
+          rescue Exception => e
+            log(LOG_CRIT, "Can't understand #{conf_file} - exiting")
+            exit(1)
+          end
           begin
             facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
             # Now turn the facility string into a Syslog::Constants format....
@@ -229,8 +234,14 @@ module KASPChecker
 
     def check_kasp_file(kasp_file)
       begin
-        File.open(kasp_file, 'r') {|file|
-          doc = REXML::Document.new(file)
+        File.open((kasp_file.to_s+"").untaint, 'r') {|file|
+          begin
+            doc = REXML::Document.new(file)
+          rescue Exception => e
+            log(LOG_CRIT, "Can't understand #{file} - exiting")
+            exit(1)
+          end
+
           # Run the following checks on kasp.xml :
           policy_names = []
           doc.elements.each('KASP/Policy') {|policy|
@@ -329,19 +340,20 @@ module KASPChecker
                   " for #{name} Policy in #{kasp_file}")
             end
 
-            #  12. Check that the value of the "Serial" tag is valid.
-            # - this check is performed by validating the XML against the RNG
-
             #   8. If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
             resigns_per_day = (60 * 60 * 24) / resign_secs
             if (resigns_per_day > 99)
               # Check if the datecounter is used - if so, warn
-              policy.each_element('//Serial') {|serial|
+              policy.each_element('Zone/SOA/Serial') {|serial|
                 if (serial.text.downcase == "datecounter")
-                  log(LOG_ERR, "Serial type datecounter used in #{name} policy"+
-                      " in #{kasp_file}, but #{resigns_per_day} re-signs requested."+
+                  log(LOG_ERR, "In #{kasp_file}, policy #{name}, serial type datecounter used"+
+                      " but #{resigns_per_day} re-signs requested."+
                       " No more than 99 re-signs per day should be used with datecounter"+
                       " as only 2 digits are allocated for the version number")
+                  #  12. Check that the value of the "Serial" tag is valid.
+                elsif !(["unixtime", "datecounter", "keep", "counter"].include?serial.text.downcase)
+                  log(LOG_ERR, "In #{kasp_file}, policy #{name}, unknown Serial type encountered ('#{serial.text}')." +
+                      " Should be either 'unixtime', 'counter', 'datecounter' or 'keep'")
                 end
               }
             end

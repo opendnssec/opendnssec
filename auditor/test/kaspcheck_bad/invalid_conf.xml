@@ -5,16 +5,16 @@
 	<RepositoryList>
 
 		<Repository name="softHSM">
-			<Module>test/kaspcheck_bad/kasp.xml</Module>
+			<Module>test/kaspcheck_bad/nvalid_kasp.xml</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
 		</Repository>
-
+<InvalidNode/>
 	</RepositoryList>
 
 	<Common>
 		<Logging>
-			<Syslog><Facility>local0</Facility></Syslog>
+			<Syslog><Oops>local0</Facility></Syslog>
 		</Logging>
 		
 		<PolicyFile>test/kaspcheck_bad/kasp.xml</PolicyFile>

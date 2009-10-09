@@ -15,17 +15,29 @@ class CheckerTest < Test::Unit::TestCase
         ]))
   end
 
-  def test_bad_config
-    stderr = run_checker("ods-kaspcheck -c test/kaspcheck_bad/conf.xml")
-    # @TODO@ Fill in expected error strings here
-    assert(check_output(stderr, [
+  def test_broken_validation
           # RNG validation errors
           # ---------------------
-          "ERROR: test/kaspcheck_bad/conf.xml:13: element UnknownNode: Relax-NG validity error : Did not expect element UnknownNode there",
-          "ERROR: test/kaspcheck_bad/conf.xml fails to validate",
-          "ERROR: test/kaspcheck_bad/kasp.xml:4: element BadNode: Relax-NG validity error : Did not expect element BadNode there",
-          "ERROR: test/kaspcheck_bad/kasp.xml fails to validate",
+    stderr = run_checker("ods-kaspcheck -c test/kaspcheck_bad/invalid_conf.xml")
+    assert(check_output(stderr, [
+          "ERROR: test/kaspcheck_bad/invalid_conf.xml:17: parser error : Opening and ending tag mismatch: Oops line 17 and Facility",
+          "ERROR: 			<Syslog><Oops>local0</Facility></Syslog>",
+          "CRITICAL: Can't understand test/kaspcheck_bad/invalid_conf.xml - exiting",
+          "ERROR:" # Pointer to error in XML
+        ]))
+    stderr = run_checker("ods-kaspcheck -k test/kaspcheck_bad/invalid_kasp.xml -c test/kaspcheck_good/conf.xml")
+    assert(check_output(stderr, [
+          "ERROR: test/kaspcheck_bad/invalid_kasp.xml:12: element InvalidNode: Relax-NG validity error : Did not expect element InvalidNode there",
+          "ERROR: test/kaspcheck_bad/invalid_kasp.xml fails to validate",
+          "ERROR: Can't find Signatures/Jitter in default in test/kaspcheck_bad/invalid_kasp.xml"
+        ]))
+  end
 
+  def test_bad_config
+    stderr = run_checker("ods-kaspcheck -c test/kaspcheck_bad/conf.xml")
+    # Fill in expected error strings here
+    assert(check_output(stderr, [
+          "ERROR: test/kaspcheck_bad/kasp.xml fails to validate",
           # General Checks
           # --------------
         
@@ -39,47 +51,47 @@ class CheckerTest < Test::Unit::TestCase
           # Conf.xml checks
           # ---------------
 
-          # User/groups exist
+          # @TODO@ User/groups exist
 
-          # Multiple repositories of same type should have unique TokenLabels
+          # @TODO@ Multiple repositories of same type should have unique TokenLabels
 
-          # If repository specifies capacity, it should be greater than 0
+          # @TODO@ If repository specifies capacity, it should be greater than 0
 
-          # Check that the shared library (Module) exists
+          # @TODO@ Check that the shared library (Module) exists
 
-          # Check if two repositories exist with the same name
+          # @TODO@ Check if two repositories exist with the same name
 
           # Kasp.xml checks
           # ---------------
 
-          # No policy named "default"
+          # @TODO@ No policy named "default"
 
-          # Two policies with the same name
+          # @TODO@ Two policies with the same name
 
-          # "Resign" should be less than "refresh"
+          # @TODO@ "Resign" should be less than "refresh"
 
-          # "Default" and "denial" validity periods are greater than the "Refresh" interval
+          # @TODO@ "Default" and "denial" validity periods are greater than the "Refresh" interval
 
-          # Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period.
+          # @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period.
 
           # Warn if the InceptionOffset is greater than ten minutes.
           "WARNING: InceptionOffset is higher than expected (2678400 seconds) for default policy in test/kaspcheck_bad/kasp.xml",
 
-          # Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
+          # @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
 
-          # The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
+          # @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
 
-          # If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
+          # @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
 
-          # The key strength should be checked for sanity - warn if less than 1024 or more than 4096
+          # @TODO@ The key strength should be checked for sanity - warn if less than 1024 or more than 4096
 
-          # Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+          # @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
 
-          # Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
+          # @TODO@ Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
 
-          # Check that the value of the "Serial" tag is valid.
-
-          "Finish writing checks!!"
+          # @TODO@ Check that the value of the "Serial" tag is valid.
+          "ERROR: test/kaspcheck_bad/kasp.xml:54: element Serial: Relax-NG validity error : Error validating value",
+          "ERROR: test/kaspcheck_bad/kasp.xml:54: element Serial: Relax-NG validity error : Element Serial failed to validate content"
         ]))
   end
 
@@ -88,6 +100,7 @@ class CheckerTest < Test::Unit::TestCase
     pid = fork {
       stderr[0].close
       STDOUT.reopen(stderr[1])
+      STDERR.reopen(stderr[1])
       stderr[1].close
 
       system(command)

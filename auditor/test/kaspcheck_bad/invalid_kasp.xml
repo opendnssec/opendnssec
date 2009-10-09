@@ -9,8 +9,9 @@
         <Default>P7D</Default>
         <Denial>P14D</Denial>
       </Validity>
-      <Jitter>PT12M</Jitter>
-      <InceptionOffset>P1M</InceptionOffset>
+<InvalidNode/>
+      <Jitter>bad_text</Jitter>
+      <InceptionOffset>PT300S</InceptionOffset>
     </Signatures>
     <Denial>
       <NSEC3>
@@ -51,7 +52,7 @@
       <SOA>
         <TTL>PT3600S</TTL>
         <Minimum>PT3600S</Minimum>
-        <Serial>rubbish</Serial>
+        <Serial>unixtime</Serial>
       </SOA>
     </Zone>
     <Parent>
