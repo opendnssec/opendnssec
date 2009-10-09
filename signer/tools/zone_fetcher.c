@@ -1011,6 +1011,11 @@ init_xfrd(config_type* config)
             }
             servers = servers->next;
         }
+        if (ldns_resolver_nameserver_count(xfrd) <= 0) {
+            log_msg(LOG_ERR, "zone fetcher could not find any valid name "
+                "servers");
+        }
+
     }
     return xfrd;
 }
