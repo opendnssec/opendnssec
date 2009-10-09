@@ -167,7 +167,7 @@ module KASPAuditor
         is_soa = true
       end
       # o We need to identify the domain name in the record, and then
-      split = line.split
+      split = line.split(' ') # split on whitespace
       name = split[0].strip
       # o add $ORIGIN to it if it is not absolute
       if !(/\.\z/ =~ name)

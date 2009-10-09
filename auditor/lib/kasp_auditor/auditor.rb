@@ -855,7 +855,7 @@ module KASPAuditor
         @last_name = domain
 
         if (!line.index("SOA"))
-          log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got #{line.chomp}")
+          log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got line : #{line.chomp}")
           next
         end
 
@@ -864,7 +864,7 @@ module KASPAuditor
 
         soa = RR.create(line)
         if (soa.type != Types::SOA)
-          log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got #{soa}")
+          log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got RR : #{soa}")
           next
         end
 
