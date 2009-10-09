@@ -67,6 +67,7 @@ usage(FILE *out)
 	fprintf(out, "-f <file>\tRead RR's from file instead of stdin\n");
 	fprintf(out, "-h\t\tShow this text\n");
 	fprintf(out, "-n\t\tDon't echo the input records\n");
+	fprintf(out, "-m <minimum>\tUse this value for the NSEC TTL\n"");
 	fprintf(out, "-v <level>\tVerbosity level\n");
 	fprintf(out, "\n");
 	fprintf(out, "When a new owner name is read (or input stops),\n");
