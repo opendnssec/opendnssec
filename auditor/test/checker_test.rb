@@ -16,17 +16,19 @@ class CheckerTest < Test::Unit::TestCase
   end
 
   def test_broken_validation
-          # RNG validation errors
-          # ---------------------
+    # RNG validation errors
+    # ---------------------
     stderr = run_checker("ods-kaspcheck -c test/kaspcheck_bad/invalid_conf.xml")
     assert(check_output(stderr, [
-          "ERROR: test/kaspcheck_bad/invalid_conf.xml:17: parser error : Opening and ending tag mismatch: Oops line 17 and Facility",
-          "ERROR: 			<Syslog><Oops>local0</Facility></Syslog>",
-          "CRITICAL: Can't understand test/kaspcheck_bad/invalid_conf.xml - exiting",
-          "ERROR:" # Pointer to error in XML
-        ]))
-    stderr = run_checker("ods-kaspcheck -k test/kaspcheck_bad/invalid_kasp.xml -c test/kaspcheck_good/conf.xml")
-    assert(check_output(stderr, [
+          "ERROR: test/kaspcheck_bad/invalid_conf.xml:15: element InvalidNode: Relax-NG validity error : Did not expect element InvalidNode there",
+          "ERROR: test/kaspcheck_bad/invalid_conf.xml fails to validate",
+
+          # If repository specifies capacity, it should be greater than 0
+          "ERROR: test/kaspcheck_bad/invalid_conf.xml:11: element Capacity: Relax-NG validity error : Error validating datatype positiveInteger",
+          "ERROR: test/kaspcheck_bad/invalid_conf.xml:11: element Capacity: Relax-NG validity error : Element Capacity failed to validate content",
+          "ERROR: test/kaspcheck_bad/invalid_conf.xml:11: element Capacity: Relax-NG validity error : Type positiveInteger doesn't allow value '0'",
+
+          # KASP errors
           "ERROR: test/kaspcheck_bad/invalid_kasp.xml:12: element InvalidNode: Relax-NG validity error : Did not expect element InvalidNode there",
           "ERROR: test/kaspcheck_bad/invalid_kasp.xml fails to validate",
           "ERROR: Can't find Signatures/Jitter in default in test/kaspcheck_bad/invalid_kasp.xml"
@@ -51,15 +53,18 @@ class CheckerTest < Test::Unit::TestCase
           # Conf.xml checks
           # ---------------
 
-          # @TODO@ User/groups exist
+          # User/groups exist
+          "ERROR: Group shouldnt_be_here_blah does not exist",
+          "ERROR: User lah_de_dah_dafffy_duck does not exist",
 
-          # @TODO@ Multiple repositories of same type should have unique TokenLabels
+          # Multiple repositories of same type should have unique TokenLabels
+          "ERROR: Multiple Repositories in test/kaspcheck_bad/conf.xml have the same Module (test/kaspcheck_bad/kasp.xml) and TokenLabel (OpenDNSSEC), for Repository anotherHSM",
 
-          # @TODO@ If repository specifies capacity, it should be greater than 0
+          # Check that the shared library (Module) exists
+          "ERROR: Module really/really/not/here/promise in Repository softHSM cannot be found",
 
-          # @TODO@ Check that the shared library (Module) exists
-
-          # @TODO@ Check if two repositories exist with the same name
+          # Check if two repositories exist with the same name
+          "ERROR: Two repositories exist with the same name (softHSM)",
 
           # Kasp.xml checks
           # ---------------
@@ -99,7 +104,8 @@ class CheckerTest < Test::Unit::TestCase
           "WARNING: Key length of 48 used for KSK in registry policy in test/kaspcheck_bad/kasp.xml. Should probably be 1024 or more",
           "WARNING: Key length of 6048 used for KSK in namedtwice policy in test/kaspcheck_bad/kasp.xml. Should probably be 4096 or less",
 
-          # @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+          # Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
+          "ERROR: Unknown repository (unknownHSM) defined for KSK in registry policy in test/kaspcheck_bad/kasp.xml",
 
           # Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
           "WARNING: KSK minimum lifetime (31536000 seconds) is less than ZSK minimum lifetime (120960000 seconds) for namedtwice Policy in test/kaspcheck_bad/kasp.xml",

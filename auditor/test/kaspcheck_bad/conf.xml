@@ -9,7 +9,17 @@
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
 		</Repository>
-
+		<Repository name="anotherHSM">
+			<Module>test/kaspcheck_bad/kasp.xml</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+		<Repository name="softHSM">
+			<Module>really/really/not/here/promise</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+ 
 	</RepositoryList>
 
 	<Common>
@@ -30,8 +40,8 @@
 
 	<Signer>
 		<Privileges>
-			<User>root</User>
-<!--			<Group>users</Group>  -->
+			<User>lah_de_dah_dafffy_duck</User>
+			<Group>shouldnt_be_here_blah</Group> 
 		</Privileges>
 
 		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>

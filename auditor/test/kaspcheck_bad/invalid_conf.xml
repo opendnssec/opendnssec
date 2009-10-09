@@ -5,19 +5,20 @@
 	<RepositoryList>
 
 		<Repository name="softHSM">
-			<Module>test/kaspcheck_bad/nvalid_kasp.xml</Module>
+			<Module>test/kaspcheck_bad/invalid_kasp.xml</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
+            <Capacity>0</Capacity>
 		</Repository>
-<InvalidNode/>
-	</RepositoryList>
 
+	</RepositoryList>
+<InvalidNode/>
 	<Common>
 		<Logging>
-			<Syslog><Oops>local0</Facility></Syslog>
+			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		
-		<PolicyFile>test/kaspcheck_bad/kasp.xml</PolicyFile>
+		<PolicyFile>test/kaspcheck_bad/invalid_kasp.xml</PolicyFile>
 		<ZoneListFile>/etc/opendnssec/zonelist.xml</ZoneListFile>
 
 	</Common>
@@ -25,7 +26,7 @@
 	<Enforcer>
 
 		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
-		<Interval>P1Y</Interval>
+		<Interval>P30D</Interval>
 	</Enforcer>
 
 	<Signer>

@@ -100,7 +100,7 @@
       <KSK>
         <Algorithm length="48">7</Algorithm>
         <Lifetime>P365D</Lifetime>
-        <Repository>softHSM</Repository>
+        <Repository>unknownHSM</Repository>
         <Standby>1</Standby>
         <RFC5011/>
       </KSK>
