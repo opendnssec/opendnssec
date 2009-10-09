@@ -51,6 +51,19 @@ ACX_LDNS
 ACX_LIBXML2
 ACX_LIBHSM
 
+AM_PATH_PYTHON
+
+dnl check for different python packages
+for module in getopt os sys socket time traceback threading syslog signal errno grp pwd re Ft.Xml.XPath xml.dom xml.parsers.expat subprocess optparse datetime getpass shutil commands;
+do
+if ! $PYTHON -c 'import '$module'' > /dev/null 2>&1; then
+    echo 'Checking for python module '$module'... not found'
+    AC_MSG_ERROR([Python module '$module' not found])
+else
+    echo 'Checking for python module '$module'... ok'
+fi
+done
+
 full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_libexecdir=`eval eval eval eval eval echo "${libexecdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 opendnsseclibexecdir=$full_libexecdir/opendnssec
@@ -60,7 +73,6 @@ AC_SUBST([opendnsseclibexecdir])
 AC_SUBST([signer_engine])
 
 AM_INIT_AUTOMAKE
-AM_PATH_PYTHON
 AC_CONFIG_HEADERS([tools/config.h])
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
