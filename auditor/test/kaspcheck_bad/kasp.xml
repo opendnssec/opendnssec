@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <KASP>
-  <Policy name="default">
+  <Policy name="namedtwice">
     <Description>A default policy that will amaze you and your friends</Description>
     <Signatures>
       <Resign>PT2H</Resign>
@@ -41,7 +41,7 @@
       <!-- Parameters for ZSK only -->
       <ZSK>
         <Algorithm length="1024">7</Algorithm>
-        <Lifetime>P14D</Lifetime>
+        <Lifetime>P1400D</Lifetime>
         <Repository>softHSM</Repository>
         <Standby>1</Standby>
       </ZSK>
@@ -69,11 +69,11 @@
   <Policy name="registry">
     <Description>A default policy that will amaze you and your friends</Description>
     <Signatures>
-      <Resign>PT2H</Resign>
-      <Refresh>P3D</Refresh>
+      <Resign>PT2M</Resign>
+      <Refresh>PT1M</Refresh>
       <Validity>
-        <Default>P7D</Default>
-        <Denial>P14D</Denial>
+        <Default>PT1S</Default>
+        <Denial>PT2S</Denial>
       </Validity>
       <Jitter>PT12H</Jitter>
       <InceptionOffset>PT300S</InceptionOffset>
@@ -92,13 +92,71 @@
     <Keys>
       <!-- Parameters for both KSK and ZSK -->
       <TTL>PT3600S</TTL>
+      <RetireSafety>PT1S</RetireSafety>
+      <PublishSafety>PT1S</PublishSafety>
+      <!-- <ShareKeys/> -->
+      <Purge>P14D</Purge>
+      <!-- Parameters for KSK only -->
+      <KSK>
+        <Algorithm length="48">7</Algorithm>
+        <Lifetime>P365D</Lifetime>
+        <Repository>softHSM</Repository>
+        <Standby>1</Standby>
+        <RFC5011/>
+      </KSK>
+      <!-- Parameters for ZSK only -->
+      <ZSK>
+        <Algorithm length="1024">5</Algorithm>
+        <Lifetime>P14D</Lifetime>
+        <Repository>softHSM</Repository>
+        <Standby>1</Standby>
+      </ZSK>
+    </Keys>
+    <Zone>
+      <PropagationDelay>PT9999S</PropagationDelay>
+      <SOA>
+        <TTL>PT3600S</TTL>
+        <Minimum>PT3600S</Minimum>
+        <Serial>datecounter</Serial>
+      </SOA>
+    </Zone>
+    <Parent>
+      <PropagationDelay>PT9999S</PropagationDelay>
+      <DS>
+        <TTL>PT3600S</TTL>
+      </DS>
+      <SOA>
+        <TTL>PT3600S</TTL>
+        <Minimum>PT3600S</Minimum>
+      </SOA>
+    </Parent>
+  </Policy>
+  
+    <Policy name="namedtwice">
+    <Description>A default policy that will amaze you and your friends</Description>
+    <Signatures>
+      <Resign>PT2H</Resign>
+      <Refresh>P3D</Refresh>
+      <Validity>
+        <Default>P7D</Default>
+        <Denial>P14D</Denial>
+      </Validity>
+      <Jitter>PT12M</Jitter>
+      <InceptionOffset>PT300S</InceptionOffset>
+    </Signatures>
+    <Denial>
+      <NSEC/>
+    </Denial>
+    <Keys>
+      <!-- Parameters for both KSK and ZSK -->
+      <TTL>PT3600S</TTL>
       <RetireSafety>PT3600S</RetireSafety>
       <PublishSafety>PT3600S</PublishSafety>
       <!-- <ShareKeys/> -->
       <Purge>P14D</Purge>
       <!-- Parameters for KSK only -->
       <KSK>
-        <Algorithm length="2048">7</Algorithm>
+        <Algorithm length="6048">7</Algorithm>
         <Lifetime>P365D</Lifetime>
         <Repository>softHSM</Repository>
         <Standby>1</Standby>
@@ -130,5 +188,6 @@
         <Minimum>PT3600S</Minimum>
       </SOA>
     </Parent>
+    <Audit />
   </Policy>
 </KASP>

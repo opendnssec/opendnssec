@@ -43,10 +43,10 @@ class CheckerTest < Test::Unit::TestCase
         
           # Duration checks in various elements in both files
           "WARNING: In Configuration Y used in duration field for Enforcer/Interval (P1Y) in test/kaspcheck_bad/conf.xml - this will be interpreted as 365 days",
-          "WARNING: In policy default,  M used in duration field for Signatures/InceptionOffset (P1M) in test/kaspcheck_bad/kasp.xml - this will be interpreted as 31 days",
+          "WARNING: In policy namedtwice,  M used in duration field for Signatures/InceptionOffset (P1M) in test/kaspcheck_bad/kasp.xml - this will be interpreted as 31 days",
 
 
-          # Uknown paths - e.g. HSM, chdir, etc.
+          # # @TODO@ Uknown paths - e.g. HSM, chdir, etc.
 
           # Conf.xml checks
           # ---------------
@@ -64,32 +64,47 @@ class CheckerTest < Test::Unit::TestCase
           # Kasp.xml checks
           # ---------------
 
-          # @TODO@ No policy named "default"
+          # No policy named "default"
+          "WARNING: No policy named 'default' in test/kaspcheck_bad/kasp.xml. This means you will need to refer explicitly to the policy for each zone",
 
-          # @TODO@ Two policies with the same name
+          # Two policies with the same name
+          "ERROR: Two policies exist with the same name (namedtwice)",
 
-          # @TODO@ "Resign" should be less than "refresh"
+          # "Resign" should be less than "refresh"
+          "ERROR: The Refresh interval (60 seconds) for registry Policy in test/kaspcheck_bad/kasp.xml is less than or equal to the Resign interval (120 seconds)",
 
-          # @TODO@ "Default" and "denial" validity periods are greater than the "Refresh" interval
+          # "Default" and "denial" validity periods are greater than the "Refresh" interval
+          "ERROR: Validity/Default (1 seconds) for registry policy in test/kaspcheck_bad/kasp.xml is less than the Refresh interval (60 seconds)",
+          "ERROR: Validity/Denial (2 seconds) for registry policy in test/kaspcheck_bad/kasp.xml is less than or equal to the Refresh interval (60 seconds)",
 
-          # @TODO@ Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period.
+          # Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period.
+          "WARNING: Jitter time (43200 seconds) is large compared to Validity/Denial (2 seconds) for registry policy in test/kaspcheck_bad/kasp.xml",
 
           # Warn if the InceptionOffset is greater than ten minutes.
-          "WARNING: InceptionOffset is higher than expected (2678400 seconds) for default policy in test/kaspcheck_bad/kasp.xml",
+          "WARNING: InceptionOffset is higher than expected (2678400 seconds) for namedtwice policy in test/kaspcheck_bad/kasp.xml",
 
-          # @TODO@ Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
+          # Warn if the "PublishSafety" and "RetireSafety" margins are less than 0.1 * TTL or more than 5 * TTL.
+          "WARNING: Keys/PublishSafety (1 seconds) in registry policy in test/kaspcheck_bad/kasp.xml is less than 0.1 * TTL (3600 seconds)",
+          "WARNING: Keys/RetireSafety (1 seconds) in registry policy in test/kaspcheck_bad/kasp.xml is less than 0.1 * TTL (3600 seconds)",
 
-          # @TODO@ The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
+          # The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
+          "ERROR: In policy registry, incompatible algorithm (5) used for ZSK NSEC3 in test/kaspcheck_bad/kasp.xml - should be 6 or 7",
+          "ERROR: In policy namedtwice, incompatible algorithm (7) used for ZSK NSEC in test/kaspcheck_bad/kasp.xml",
+          "ERROR: In policy namedtwice, incompatible algorithm (7) used for KSK NSEC in test/kaspcheck_bad/kasp.xml",
 
-          # @TODO@ If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
+          # If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
+          "ERROR: In test/kaspcheck_bad/kasp.xml, policy registry, serial type datecounter used but 720 re-signs requested. No more than 99 re-signs per day should be used with datecounter as only 2 digits are allocated for the version number",
 
-          # @TODO@ The key strength should be checked for sanity - warn if less than 1024 or more than 4096
+          # The key strength should be checked for sanity - warn if less than 1024 or more than 4096
+          "WARNING: Key length of 48 used for KSK in registry policy in test/kaspcheck_bad/kasp.xml. Should probably be 1024 or more",
+          "WARNING: Key length of 6048 used for KSK in namedtwice policy in test/kaspcheck_bad/kasp.xml. Should probably be 4096 or less",
 
           # @TODO@ Check that repositories listed in the KSK and ZSK sections are defined in conf.xml.
 
-          # @TODO@ Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
+          # Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
+          "WARNING: KSK minimum lifetime (31536000 seconds) is less than ZSK minimum lifetime (120960000 seconds) for namedtwice Policy in test/kaspcheck_bad/kasp.xml",
 
-          # @TODO@ Check that the value of the "Serial" tag is valid.
+          # Check that the value of the "Serial" tag is valid.
           "ERROR: test/kaspcheck_bad/kasp.xml:54: element Serial: Relax-NG validity error : Error validating value",
           "ERROR: test/kaspcheck_bad/kasp.xml:54: element Serial: Relax-NG validity error : Element Serial failed to validate content"
         ]))
