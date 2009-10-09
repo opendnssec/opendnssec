@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration>
+
+	<RepositoryList>
+
+		<Repository name="softHSM">
+			<Module>test/kaspcheck_good/kasp.xml</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+
+
+	</RepositoryList>
+
+	<Common>
+		<Logging>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+		
+		<PolicyFile>test/kaspcheck_good/kasp.xml</PolicyFile>
+		<ZoneListFile>/etc/opendnssec/zonelist.xml</ZoneListFile>
+
+	</Common>
+
+	<Enforcer>
+
+		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
+		<Interval>PT3600S</Interval>
+	</Enforcer>
+
+	<Signer>
+		<Privileges>
+			<User>root</User>
+<!--			<Group>users</Group>  -->
+		</Privileges>
+
+		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>
+
+		<!-- the <NotifyCommmand> will expand the following variables:
+
+		     %zone      the name of the zone that was signed
+		     %zonefile  the filename of the signed zone
+		-->
+<!--
+		<NotifyCommand>/usr/local/bin/my_nameserver_reload_command</NotifyCommand>
+-->
+	</Signer>
+
+	<Auditor>
+		<Privileges>
+			<User>root</User>
+<!--			<Group>users</Group> -->
+		</Privileges>
+
+		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>
+	</Auditor>
+
+</Configuration>
