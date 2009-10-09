@@ -52,17 +52,7 @@ ACX_LIBXML2
 ACX_LIBHSM
 
 AM_PATH_PYTHON
-
-dnl check for different python packages
-for module in getopt os sys socket time traceback threading syslog signal errno grp pwd re Ft.Xml.XPath xml.dom xml.parsers.expat subprocess optparse datetime getpass shutil commands;
-do
-if ! $PYTHON -c 'import '$module'' > /dev/null 2>&1; then
-    echo 'Checking for python module '$module'... not found'
-    AC_MSG_ERROR([Python module '$module' not found])
-else
-    echo 'Checking for python module '$module'... ok'
-fi
-done
+ACX_PYTHON_MODULE([getopt os sys socket time traceback threading syslog signal errno grp pwd re Ft.Xml.XPath xml.dom xml.parsers.expat subprocess optparse datetime getpass shutil commands])
 
 full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_libexecdir=`eval eval eval eval eval echo "${libexecdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
