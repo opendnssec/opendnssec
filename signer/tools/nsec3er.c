@@ -90,7 +90,7 @@ usage(FILE *out)
 	fprintf(out, "-f <int>\tSet NSEC3 flags\n");
 	fprintf(out, "-h\t\tShow this text\n");
 	fprintf(out, "-i <file>\tRead RR's from file instead of stdin\n");
-	fprintf(out, "-m <minimum>\tUse this value for the NSEC TTL\n"");
+	fprintf(out, "-m <minimum>\tUse this value for the NSEC TTL\n");
 	fprintf(out, "-n\t\tDon't echo the input records\n");
 	fprintf(out, "-o\t\tname of the zone (mandatory)\n");
 	fprintf(out, "-p\t\tOpt-out (NS-only sets will not get an NSEC3\n");
