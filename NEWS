@@ -6,6 +6,8 @@ OpenDNSSEC trunk
 
 OpenDNSSEC 1.0.0b2 - 2009-10-09
 
+* Added experimental support for RSA/SHA256 and RSA/SHA512 to KASP auditor.
+  Dnsruby version 1.38 or higher required for SHA2 support.
 * Added experimental support for RSA/SHA256 and RSA/SHA512 to KASP enforcer
   and the signer engine.
 * SignerThreads and KeygenInterval has been deprecated (actually removed
