@@ -1711,8 +1711,14 @@ cmd_rollpolicy ()
 
     DB_RESULT   result;     /* To see if the policy shares keys or not */
     KSM_PARAMETER data;     /* Parameter information */
-    DB_RESULT   result2;    /* For looping over the zones on the policy */
+    DB_RESULT   result2;    /* For counting the zones on the policy */
+    DB_RESULT   result3;    /* For looping over the zones on the policy */
 	KSM_ZONE*   zone;
+
+    int zone_count = -1;
+    int *zone_list = NULL;
+    int n = 0;
+    int i = 0;
     
     int key_type = 0;
     int policy_id = 0;
@@ -1844,32 +1850,60 @@ cmd_rollpolicy ()
         return(status);
     }
     KsmParameterEnd(result);
-    
-    status = KsmZoneInit(&result2, policy_id);
+
+    /* Find out how many zones we will need to do */
+    if (data.value == 0) {
+        /* how many zones on this policy */ 
+        status = KsmZoneCountInit(&result2, policy_id); 
+        if (status == 0) { 
+            status = KsmZoneCount(result2, &zone_count); 
+        } 
+        DbFreeResult(result2); 
+
+        if (status == 0) { 
+            /* make sure that we have at least one zone */ 
+            if (zone_count == 0) {
+                printf("No zones on policy; nothing to roll\n");
+                StrFree(datetime);
+                return status; 
+            } 
+        } else { 
+            printf("Couldn't count zones on policy; quitting...\n");
+            exit(1); 
+        }
+    }
+    else {
+        /* Keys are shared, so we only need to do the first zone */
+        zone_count = 1;
+    }
+
+    /* Allocate space for our array */
+    zone_list = (int *)calloc(zone_count, sizeof(int));
+    if (zone_list == NULL) {
+        printf("Couldn't calloc zone list for policy; quitting...\n");
+        exit(1); 
+    }
+
+    status = KsmZoneInit(&result3, policy_id);
     if (status == 0) {
         
         zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
         zone->name = (char *)calloc(KSM_ZONE_NAME_LENGTH, sizeof(char));
 
-        status = KsmZone(result2, zone);
+        status = KsmZone(result3, zone);
 
         while (status == 0) {
 
-            /* retire the active key(s) */
-            if (key_type == 0) {
-                KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone->id, 0);
-                KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone->id, 0);
-            }
-            else {
-                KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone->id, 0);
-            }
+            /* Get the zone_id */
+            zone_list[n] = zone->id;
+            n++;
 
             /* We can leave now if the policy shares keys */
             if (data.value == 1) {
                 break;
             }
 
-            status = KsmZone(result2, zone);
+            status = KsmZone(result3, zone);
         }
 
         free(zone->name);
@@ -1881,10 +1915,25 @@ cmd_rollpolicy ()
             fclose(lock_fd);
         }
         StrFree(datetime);
+        free(zone_list);
         return(status);
     }
+    DbFreeResult(result3);
 
+    /* Now we can do the work (outside of any other DB loops to satisfy sqlite < 3.6.5) */
+    for (i = zone_count-1; i >= 0; i--) { 
+
+        /* retire the active key(s) */
+        if (key_type == 0) {
+            KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone_list[i], 0);
+            KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone_list[i], 0);
+        }
+        else {
+            KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_list[i], 0);
+        }
+    }
     StrFree(datetime);
+    free(zone_list);
 
     /* Release sqlite lock file (if we have it) */
     if (DbFlavour() == SQLITE_DB) {
