@@ -663,6 +663,7 @@ class Zone:
                   "serial has not increased. Aborting sign operation "
                   "for " + self.zone_name)
                 return None
+            prev_serial = soa_serial
             update_serial = 0
         else:
             syslog.syslog(syslog.LOG_WARNING,
