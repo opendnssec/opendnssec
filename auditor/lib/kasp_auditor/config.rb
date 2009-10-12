@@ -43,8 +43,10 @@ module KASPAuditor
           doc = REXML::Document.new(file)
 
           # Now find the appropiate policy
+          found_policy = false
           doc.elements.each('KASP/Policy') {|p|
             if (p.attributes['name'] == policy)
+              found_policy = true
               # Now load the policy in!
           
               # @TODO@ Check out Zone.SOA - should be able to monitor SOA with that
@@ -60,6 +62,9 @@ module KASPAuditor
               end
             end
           }
+          if (!found_policy)
+            KASPAuditor.exit("ERROR - Can't find policy #{policy} in KASP Policy.", 1)
+          end
         }
       rescue Errno::ENOENT
         KASPAuditor.exit("ERROR - Can't find KASP file : #{kasp_file_loc}", 1)
