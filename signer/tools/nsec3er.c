@@ -390,7 +390,7 @@ create_nsec3_records(FILE *input_file,
                      FILE *out_file,
                      ldns_rdf *origin,
                      nsec3_params *n3p,
-					 uint32_t soa_min_ttl)
+					 uint32_t soa_min_ttl, int soa_from_engine)
 {
 	ldns_status status;
 
@@ -412,7 +412,7 @@ create_nsec3_records(FILE *input_file,
 	 * instead of copying the first lines (in a big big nsec3 zone this
 	 * might become quite much)
 	 */
-	if (soa_min_ttl == 0) {
+	if (soa_min_ttl == 0 && !soa_from_engine) {
 		line_len = 0;
 		while (line_len >= 0 && soa_min_ttl == 0) {
 			line_len = read_line(input_file, line, 0, 0);
@@ -467,6 +467,7 @@ main(int argc, char **argv)
 {
 	int verbosity = 5;
 	int c;
+	int soa_from_engine = 0;
 	uint32_t soa_min_ttl = 0;
 	bool echo_input = true;
 	FILE *input_file = stdin;
@@ -514,6 +515,7 @@ main(int argc, char **argv)
 				break;
 			case 'm':
 				soa_min_ttl = (uint32_t) atol(optarg);
+				soa_from_engine = 1;
 				if (soa_min_ttl == 0) {
 					fprintf(stderr, "Warning: Minimum SOA ttl out of bounds\n");
 					soa_min_ttl = 0;
@@ -633,7 +635,7 @@ main(int argc, char **argv)
 	                              out_file,
 	                              origin,
 	                              n3p,
-	                              soa_min_ttl);
+	                              soa_min_ttl, soa_from_engine);
 	gettimeofday(&t_end, NULL);
 
 	if (nsec3_counter > 0) {
