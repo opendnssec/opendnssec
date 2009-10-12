@@ -2,7 +2,9 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
+Bugfixes:
+* The LDNS bug that affected SRV records has been fixed in ldns-trunk.
+
 
 OpenDNSSEC 1.0.0b2 - 2009-10-09
 
