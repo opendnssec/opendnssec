@@ -1812,6 +1812,7 @@ cmd_rollpolicy ()
 
     status = KsmPolicyIdFromName(o_policy, &policy_id);
     if (status != 0) {
+        printf("Error, can't find policy : %s\n", o_policy);
         if (DbFlavour() == SQLITE_DB) {
             fclose(lock_fd);
         }
