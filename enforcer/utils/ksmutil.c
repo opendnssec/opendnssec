@@ -5856,14 +5856,16 @@ int cmd_genkeys()
     /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
 
     /* Check capacity of HSM will not be exceeded */
-    current_count = hsm_count_keys_repository(ctx, policy->ksk->sm_name);
-    if (current_count >=  policy->ksk->sm_capacity) {
-        printf("Repository %s is full, cannot create more KSKs for policy %s\n", policy->ksk->sm_name, policy->name);
-        new_keys = 0;
-    }
-    else if (current_count + new_keys >  policy->ksk->sm_capacity) {
-        printf("Repository %s is nearly full, will create %lu KSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_keys);
-        new_keys = policy->ksk->sm_capacity - current_count;
+    if (policy->ksk->sm_capacity != 0) {
+        current_count = hsm_count_keys_repository(ctx, policy->ksk->sm_name);
+        if (current_count >= policy->ksk->sm_capacity) {
+            printf("Repository %s is full, cannot create more KSKs for policy %s\n", policy->ksk->sm_name, policy->name);
+            new_keys = 0;
+        }
+        else if (current_count + new_keys >  policy->ksk->sm_capacity) {
+            printf("Repository %s is nearly full, will create %lu KSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_keys);
+            new_keys = policy->ksk->sm_capacity - current_count;
+        }
     }
 
     /* Create the required keys */
@@ -5943,14 +5945,16 @@ int cmd_genkeys()
     /* fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
 
     /* Check capacity of HSM will not be exceeded */
-    current_count = hsm_count_keys_repository(ctx, policy->zsk->sm_name);
-    if (current_count >=  policy->zsk->sm_capacity) {
-        printf("Repository %s is full, cannot create more ZSKs for policy %s\n", policy->zsk->sm_name, policy->name);
-        new_keys = 0;
-    }
-    else if (current_count + new_keys >  policy->zsk->sm_capacity) {
-        printf("Repository %s is nearly full, will create %lu ZSKs for policy %s (reduced from %d)\n", policy->zsk->sm_name, policy->zsk->sm_capacity - current_count, policy->name, new_keys);
-        new_keys = policy->zsk->sm_capacity - current_count;
+    if (policy->zsk->sm_capacity != 0) {
+        current_count = hsm_count_keys_repository(ctx, policy->zsk->sm_name);
+        if (current_count >= policy->zsk->sm_capacity) {
+            printf("Repository %s is full, cannot create more ZSKs for policy %s\n", policy->zsk->sm_name, policy->name);
+            new_keys = 0;
+        }
+        else if (current_count + new_keys >  policy->zsk->sm_capacity) {
+            printf("Repository %s is nearly full, will create %lu ZSKs for policy %s (reduced from %d)\n", policy->zsk->sm_name, policy->zsk->sm_capacity - current_count, policy->name, new_keys);
+            new_keys = policy->zsk->sm_capacity - current_count;
+        }
     }
 
     /* Create the required keys */
