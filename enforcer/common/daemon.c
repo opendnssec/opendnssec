@@ -154,6 +154,7 @@ main(int argc, char *argv[]){
                 unlink(config.pidfile);
                 exit(1);
             default:
+                fprintf(stdout, "OpenDNSSEC ods-enforcerd started (version %s), pid %d\n", PACKAGE_VERSION, (int) config.pid);
                 log_msg(&config, LOG_INFO, "%s Parent exiting...", PACKAGE_NAME);
                 exit(0);
         }
