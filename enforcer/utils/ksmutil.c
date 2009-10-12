@@ -5631,6 +5631,7 @@ int cmd_genkeys()
     int zsks_needed = 0;    /* Total No of zsks needed before next generation run */
     int keys_in_queue = 0;  /* number of unused keys */
     int new_keys = 0;       /* number of keys required */
+    unsigned int current_count = 0;  /* number of keys already in HSM */
 
     int same_keys = 0;      /* Do ksks and zsks look the same ? */
 
@@ -5854,7 +5855,17 @@ int cmd_genkeys()
     new_keys = ksks_needed - keys_in_queue;
     /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
 
-    /* TODO: check capacity of HSM will not be exceeded */
+    /* Check capacity of HSM will not be exceeded */
+    current_count = hsm_count_keys_repository(ctx, policy->ksk->sm_name);
+    if (current_count >=  policy->ksk->sm_capacity) {
+        printf("Repository %s is full, cannot create more KSKs for policy %s\n", policy->ksk->sm_name, policy->name);
+        new_keys = 0;
+    }
+    else if (current_count + new_keys >  policy->ksk->sm_capacity) {
+        printf("Repository %s is nearly full, will create %lu KSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_keys);
+        new_keys = policy->ksk->sm_capacity - current_count;
+    }
+
     /* Create the required keys */
     for (i=new_keys ; i > 0 ; i--){
         if (hsm_supported_algorithm(policy->ksk->algorithm) == 0) {
@@ -5909,6 +5920,7 @@ int cmd_genkeys()
     /* Find out how many zsk keys are needed */
     keys_in_queue = 0;
     new_keys = 0;
+    current_count = 0;
 
     /* Find out how many zsk keys are needed for the POLICY */
     status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, interval, &zsks_needed);
@@ -5930,7 +5942,18 @@ int cmd_genkeys()
     new_keys = zsks_needed - keys_in_queue;
     /* fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
 
-    /* TODO: check capacity of HSM will not be exceeded */
+    /* Check capacity of HSM will not be exceeded */
+    current_count = hsm_count_keys_repository(ctx, policy->zsk->sm_name);
+    if (current_count >=  policy->zsk->sm_capacity) {
+        printf("Repository %s is full, cannot create more ZSKs for policy %s\n", policy->zsk->sm_name, policy->name);
+        new_keys = 0;
+    }
+    else if (current_count + new_keys >  policy->zsk->sm_capacity) {
+        printf("Repository %s is nearly full, will create %lu ZSKs for policy %s (reduced from %d)\n", policy->zsk->sm_name, policy->zsk->sm_capacity - current_count, policy->name, new_keys);
+        new_keys = policy->zsk->sm_capacity - current_count;
+    }
+
+    /* Create the required keys */
     for (i = new_keys ; i > 0 ; i--) {
         if (hsm_supported_algorithm(policy->zsk->algorithm) == 0) {
             /* NOTE: for now we know that libhsm only supports RSA keys */
