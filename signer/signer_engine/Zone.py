@@ -517,7 +517,7 @@ class Zone:
                     "-w",
                     self.get_zone_tmp_filename(".nsecced")
                 ]
-                if self.zone_config.soa_minimum:
+                if self.zone_config.soa_minimum >= 0:
                     cmd.append("-m")
                     cmd.append(str(self.zone_config.soa_minimum))
                 nsec_p = Util.run_tool(cmd)
@@ -534,7 +534,7 @@ class Zone:
                     "-w",
                     self.get_zone_tmp_filename(".nsecced")
                 ]
-                if self.zone_config.soa_minimum:
+                if self.zone_config.soa_minimum >= 0:
                     cmd.append("-m")
                     cmd.append(str(self.zone_config.soa_minimum))
                 if self.zone_config.denial_nsec3_salt:
