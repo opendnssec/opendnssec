@@ -321,6 +321,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     unsigned int current_count = 0;  /* number of keys already in HSM */
 
     int same_keys = 0;      /* Do ksks and zsks look the same ? */
+    int ksks_created = 0;   /* Were any KSKs created? */
 
     if  (policy->shared_keys == 1 ) {
         log_msg(config, LOG_INFO, "Key sharing is On");
@@ -409,6 +410,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
             exit(1);
         }
     }
+    ksks_created = new_keys;
 
     /* Find out how many zsk keys are needed */
     keys_in_queue = 0;
@@ -489,6 +491,14 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         }
     }
     StrFree(rightnow);
+
+    /* Log if a backup needs to be run for these keys */
+    if (ksks_created && policy->ksk->require_backup) {
+        log_msg(config, LOG_INFO, "NOTE: keys generated in repository %s will not become active until they have been backed up", policy->ksk->sm_name);
+    }
+    if (new_keys && policy->zsk->require_backup && (policy->zsk->sm != policy->ksk->sm)) {
+        log_msg(config, LOG_INFO, "NOTE: keys generated in repository %s will not become active until they have been backed up", policy->zsk->sm_name);
+    }
 
     return status;
 }

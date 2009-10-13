@@ -5634,6 +5634,7 @@ int cmd_genkeys()
     unsigned int current_count = 0;  /* number of keys already in HSM */
 
     int same_keys = 0;      /* Do ksks and zsks look the same ? */
+    int ksks_created = 0;   /* Were any KSKs created? */
 
         /* Database connection details */
     DB_HANDLE	dbhandle;
@@ -5918,6 +5919,7 @@ int cmd_genkeys()
             exit(1);
         }
     }
+    ksks_created = new_keys;
 
     /* Find out how many zsk keys are needed */
     keys_in_queue = 0;
@@ -6008,6 +6010,14 @@ int cmd_genkeys()
         }
     }
     StrFree(rightnow);
+
+    /* Log if a backup needs to be run for these keys */
+    if (ksks_created && policy->ksk->require_backup) {
+        printf("NOTE: keys generated in repository %s will not become active until they have been backed up\n", policy->ksk->sm_name);
+    }
+    if (new_keys && policy->zsk->require_backup && (policy->zsk->sm != policy->ksk->sm)) {
+        printf("NOTE: keys generated in repository %s will not become active until they have been backed up\n", policy->zsk->sm_name);
+    }
 
     /*
      * Destroy HSM context
