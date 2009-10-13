@@ -259,13 +259,13 @@ class ZoneConfig:
         self.soa_minimum = Util.parse_duration(
             Util.get_xml_data("SignerConfiguration/Zone/SOA/Minimum",
                               signer_config, True))
+		
         # todo: check for known values
         self.soa_serial = Util.get_xml_data(
             "SignerConfiguration/Zone/SOA/Serial", signer_config, True)
         if self.soa_serial not in ["keep", "unixtime", "datecounter", "counter" ]:
             raise ZoneConfigError("Serial option should be one of: " +
                                  "keep, unixtime, datecounter, counter")
-
         if Evaluate("SignerConfiguration/Zone/Audit", signer_config):
             self.audit = True
         else:

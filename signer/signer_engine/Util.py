@@ -116,7 +116,7 @@ DURATION_REGEX_ALT2 = re.compile("^(?P<negative>-)?P"
 def write_p(subp, val, prefix):
     """If val is not None, write prefix + str(val) + "\n" to the stdin
     of subp"""
-    if subp.stdin and val:
+    if subp.stdin and not val == None:
         syslog.syslog(syslog.LOG_INFO,
                       "write to subp: " +\
                       prefix + str(val))

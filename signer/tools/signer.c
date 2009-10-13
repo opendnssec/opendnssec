@@ -82,6 +82,9 @@ typedef struct {
 	key_list *ksks;
 
 	/* settings for SOA values that are changed */
+	int cfg_soa_ttl;
+	int cfg_soa_minimum;
+
 	uint32_t soa_ttl;
 	uint32_t soa_serial;
 	uint32_t soa_serial_keep;
@@ -236,9 +239,11 @@ current_config_new()
 	cfg->origin = NULL;
 	cfg->zsks = key_list_new();
 	cfg->ksks = key_list_new();
+	cfg->cfg_soa_ttl = 0;
 	cfg->soa_ttl = 0;
 	cfg->soa_serial = 0;
 	cfg->soa_serial_keep = 0;
+	cfg->cfg_soa_minimum = 0;
 	cfg->soa_minimum = 0;
 	cfg->existing_sigs = 0;
 	cfg->removed_sigs = 0;
@@ -505,6 +510,7 @@ handle_command(FILE *output, current_config *cfg,
 			fprintf(output, "; Error: missing argument in soa_ttl command\n");
 		} else {
 			cfg->soa_ttl = atol(arg1);
+			cfg->cfg_soa_ttl = 1;
 		}
 	} else if (strcmp(cmd, "soa_serial") == 0) {
 		arg1 = read_arg(next, &next);
@@ -526,6 +532,7 @@ handle_command(FILE *output, current_config *cfg,
 			fprintf(output, "; Error: missing argument in soa_minimum command\n");
 		} else {
 			cfg->soa_minimum = atol(arg1);
+			cfg->cfg_soa_minimum = 1;
 		}
 	} else if (strcmp(cmd, "stop") == 0) {
 		result = LDNS_STATUS_NULL;
@@ -595,7 +602,7 @@ enable_key_for(key_list *list, ldns_rr *rrsig)
 void
 update_soa_record(ldns_rr *soa, current_config *cfg)
 {
-	if (cfg->soa_ttl != 0) {
+	if (cfg->cfg_soa_ttl != 0) {
 		ldns_rr_set_ttl(soa, cfg->soa_ttl);
 	}
 	if (cfg->soa_serial != 0) {
@@ -605,7 +612,7 @@ update_soa_record(ldns_rr *soa, current_config *cfg)
 											  cfg->soa_serial),
 						2);
 	}
-	if (cfg->soa_minimum != 0) {
+	if (cfg->cfg_soa_minimum != 0) {
 		ldns_rdf_deep_free(ldns_rr_rdf(soa, 6));
 		ldns_rr_set_rdf(soa,
 						ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
@@ -962,13 +969,13 @@ rr_list_compare_soa(ldns_rr_list* a, ldns_rr_list* b, current_config* cfg)
 				}
 
 				/* MINIMUM */
-				if (cfg->soa_minimum == 0 && /* we did not change it */
+				if (cfg->cfg_soa_minimum == 0 && /* we did not change it */
 					ldns_rdf_compare(ldns_rr_rdf(soa1, 6), ldns_rr_rdf(soa2, 6)) != 0) {
 					return rr_cmp;
 				}
 
 				/* TTL */
-				if (cfg->soa_ttl == 0 && /* we did not change it */
+				if (cfg->cfg_soa_ttl == 0 && /* we did not change it */
 					ldns_rr_ttl(soa1) != ldns_rr_ttl(soa2)) {
 					if (ldns_rr_ttl(soa1) < ldns_rr_ttl(soa2))
 						return 1;
