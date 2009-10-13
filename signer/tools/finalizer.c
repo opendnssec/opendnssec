@@ -60,6 +60,7 @@ handle_line(char *line) {
 	if (strlen(line) > 8 && strncmp("; Glue: ", line, 8) == 0) {
 		printf("%s\n", line+8);
 	} else {
+		/* do we want to print out-of-zone data, empty non-terminals? */
 		printf("%s\n", line);
 	}
 }
