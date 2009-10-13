@@ -516,9 +516,8 @@ main(int argc, char **argv)
 			case 'm':
 				soa_min_ttl = (uint32_t) atol(optarg);
 				soa_from_engine = 1;
-				if (soa_min_ttl == 0) {
-					fprintf(stderr, "Warning: Minimum SOA ttl out of bounds\n");
-					soa_min_ttl = 0;
+				if (soa_min_ttl == 0 && !isdigit(optarg[0])) {
+					fprintf(stderr, "Warning: Could not parse the SOA ttl, will use ttl = 0.\n");
 				}
 				break;
 			case 'o':
