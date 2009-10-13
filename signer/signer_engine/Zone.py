@@ -701,7 +701,7 @@ class Zone:
                      ":soa_minimum ")
         if self.zone_config.soa_serial:
             soa_serial = self.find_serial()
-            if soa_serial: # allow for serial 0?
+            if not soa_serial == None:
                 syslog.syslog(syslog.LOG_INFO,
                               "set serial to " + str(soa_serial))
                 sign_p.stdin.write(":soa_serial " +\
