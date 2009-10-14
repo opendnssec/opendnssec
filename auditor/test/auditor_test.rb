@@ -198,7 +198,7 @@ class AuditorTest < Test::Unit::TestCase
   #    fail "Implement good partial scanning test!"
   #    # @TODO@ Is there any need for NSEC(3) versions of these partial test methods?
   #    # Not really - just go with the first type of NSEC(3) seen, and run RR type checks
-  #  end
+    #  end
   #
   #  def test_partial_scan_bad
   #    fail "Implement bad partial scanning test!"
@@ -273,7 +273,9 @@ class AuditorTest < Test::Unit::TestCase
       # KSK too long in use
       "KSK 52937 in use too long - should be max 1 seconds but has been",
       # ZSK too long in use
-      "ZSK 51901 in use too long - should be max 1 seconds but has been"
+      "ZSK 51901 in use too long - should be max 1 seconds but has been",
+      # SOA serial checking
+      "SOA serial has decreased - used to be 101 but is now 100"
     ]
     success = check_syslog(stderr, expected_strings, false)
     assert(success, "Keys not correctly tracked over time")
@@ -293,6 +295,8 @@ class AuditorTest < Test::Unit::TestCase
 
   def run_keytracker_tests(syslog)
     # Run the keytracker tests from within the created test environment
+    # @TODO@ Test the SOA serial tracking!
+    # @TODO@ Test errors from keys entering inuse without sufficient prepublished time
 
     # So, create some keys for testing
     ksk_key1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
@@ -340,13 +344,13 @@ class AuditorTest < Test::Unit::TestCase
     assert(checker.cache.prepublished.length == 0)
 
     checker.process_key_data([ksk_key1, key1, keynot5011, key3],
-      [ksk_key1.key_tag, keynot5011.key_tag])
+      [ksk_key1.key_tag, keynot5011.key_tag], 100)
     assert(checker.cache.inuse.length == 2)
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 2)
 
     checker.process_key_data([ksk_key1, key1, keynot5011, key5011],
-      [key1.key_tag, ksk_key1.key_tag, key5011.key_tag])
+      [key1.key_tag, ksk_key1.key_tag, key5011.key_tag], 101)
     assert(checker.cache.inuse.length == 3)
     assert(checker.cache.retired.length == 1)
     assert(checker.cache.prepublished.length == 0)
@@ -356,7 +360,7 @@ class AuditorTest < Test::Unit::TestCase
     sleep(2.1)
     key5011.revoked = true
     checker.process_key_data([ksk_key1, key2, key5011, key1],
-      [ksk_key1.key_tag, key2.key_tag, key1.key_tag])
+      [ksk_key1.key_tag, key2.key_tag, key1.key_tag], 100)
     assert(checker.cache.retired.length == 1)
     assert(checker.cache.inuse.length == 3)
     assert(checker.cache.prepublished.length == 0)
@@ -369,6 +373,7 @@ class AuditorTest < Test::Unit::TestCase
     rescue Exception
     end
     checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil, 1)
+    checker.last_soa_serial = 0
     cache = checker.cache
     time = Time.now.to_i
     k1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
@@ -381,6 +386,7 @@ class AuditorTest < Test::Unit::TestCase
     cache.add_retired_key_with_time(k1, time)
     cache.add_inuse_key_with_time(k2, time)
     cache.add_inuse_key_with_time(k3, time)
+    assert(checker.cache.retired.length == 1)
     checker.save_tracker_cache
 
     new_checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil,1)
