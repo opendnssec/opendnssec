@@ -47,16 +47,19 @@ module KASPAuditor
     class Status < Dnsruby::CodeMapper
       PREPUBLISHED = 1
       INUSE = 2
-      #        RETIRED_MAYBE = 3 # @TODO@ Is this really necessary?
       RETIRED = 4
-      #        DEAD = 5 # @TODO@ Is this really necessary?
       update
     end
 
+    # @TODO@ Add SOA tracking - error if the SOA ever goes down.
+    # @TODO@ Also add timestamp for "first ever scan"
+    # i.e. add two lines at top of file :
+    # <first_timestamp>
+    # <last_soa_serial>
+    # Add these to the load/save cache methods
+
     SEPARATOR = "\0\0$~$~$~\0\0"
     class Cache
-      # @TODO@ Store the DNSKEY itself
-      # @TODO@ How do handle identifying REVOKED keys now? Still need to use key_tag_pre_revoked somehow...
       # Set up add_inuse_key, etc.
       Status.strings.each {|s| eval "attr_reader :#{s.downcase}"}
       Status.strings.each {|s| eval "def add_#{s.downcase}_key(key)
@@ -98,6 +101,7 @@ module KASPAuditor
     end
 
     attr_reader :cache
+    attr_accessor :last_soa_serial
 
     # So, each run, the auditor needs to load the key caches for the zone, then
     # audit the zone, keeping track of which keys are used. The key caches are
@@ -113,6 +117,8 @@ module KASPAuditor
       @parent  = parent
       @config = config
       @enforcer_interval = enforcer_interval
+      @last_soa_serial = nil
+      @initial_timestamp = Time.now.to_i
       @cache = load_tracker_cache()
     end
 
@@ -128,7 +134,17 @@ module KASPAuditor
       Dir.mkdir(dir) unless File.directory?(dir)
       File.open(filename, File::CREAT) { |f|
         # Now load the cache
+        # @TODO@ Is there an initial timestamp and a current SOA serial to load?
+        count = 0
         while (line = f.gets)
+          count += 1
+          if (count == 1)
+            @initial_timestamp = line.chomp.to_i
+            next
+          elsif (count == 2)
+            @last_soa_serial = line.chomp.to_i
+            next
+          end
           key_string, status_string, time  = line.split(SEPARATOR)
           key = RR.create(key_string)
           eval "cache.add_#{status_string.downcase}_key_with_time(key, #{time})".untaint
@@ -143,6 +159,9 @@ module KASPAuditor
       # original location (overwriting the original)
       tracker_file = get_tracker_filename
       File.open(tracker_file + ".temp", 'w') { |f|
+        # First, save the initial timestamp and the current SOA serial
+        f.puts(@initial_timestamp.to_s)
+        f.puts(@last_soa_serial.to_s)
         # Now save the cache!!
         Status.strings.each {|s|
           status = s.downcase
@@ -171,8 +190,16 @@ module KASPAuditor
     # used to sign RRSIGs in the zone.
     # The data is then used to track the lifecycle of zone keys, and perform
     # associated auditing checks
-    def process_key_data(keys, keys_used)
+    def process_key_data(keys, keys_used, soa_serial)
       update_cache(keys, keys_used)
+      if (@last_soa_serial)
+        if (soa_serial < @last_soa_serial)
+          @parent.log(LOG_ERR, "SOA serial has decreased - used to be #{@last_soa_serial} but is now #{soa_serial}")
+        end
+      else
+        @last_soa_serial = soa_serial
+      end
+      @last_soa_serial = soa_serial
       run_checks
       # Then we need to save the data
       save_tracker_cache
@@ -239,7 +266,8 @@ module KASPAuditor
           end
         end
       }
-      #
+      # @TODO@ Error if a key is seen in use without having first been seen in prepublished for at least the zone SOA TTL
+      # @TODO@ Remember not to warn if we haven't been running as long as the zone SOA TTL...
     end
 
     def update_cache(keys, keys_used)
