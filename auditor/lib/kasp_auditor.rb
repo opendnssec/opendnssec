@@ -102,8 +102,13 @@ module KASPAuditor
       if (@enable_timeshift)
         configure_timeshift(syslog)
       end
+      zones = nil
+      begin
       zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
         zonelist_file, kasp_file, syslog)
+      rescue Exception => e
+        KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR)
+      end
       check_zones_to_audit(zones)
       # Now check the input and output zones using the config
       if (zones.length == 0)
