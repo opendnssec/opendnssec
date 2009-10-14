@@ -104,8 +104,8 @@ module KASPAuditor
       end
       zones = nil
       begin
-      zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
-        zonelist_file, kasp_file, syslog)
+        zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
+          zonelist_file, kasp_file, syslog)
       rescue Exception => e
         KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR)
       end
@@ -146,21 +146,27 @@ module KASPAuditor
               do_audit = false
             end
           }
-          if (do_audit)
-            # Now audit the pre-parsed and sorted file
-            auditor = Auditor.new(syslog, working, enforcer_interval)
-            ret_val = auditor.check_zone(config, working+get_name(input_file)+".in.sorted.#{pid}",
-              working + get_name(output_file)+".out.sorted.#{pid}",
-              input_file, output_file)
-            ret = ret_val if (ret_val < ret)
-            if ((config.err > 0) && (config.err < ret))
-              ret = config.err
+          begin
+            if (do_audit)
+              # Now audit the pre-parsed and sorted file
+              auditor = Auditor.new(syslog, working, enforcer_interval)
+              ret_val = auditor.check_zone(config, working+get_name(input_file)+".in.sorted.#{pid}",
+                working + get_name(output_file)+".out.sorted.#{pid}",
+                input_file, output_file)
+              ret = ret_val if (ret_val < ret)
+              if ((config.err > 0) && (config.err < ret))
+                ret = config.err
+              end
             end
+          rescue Exception=> e
+            syslog.log(LOG_ERR, "Unexpected error auditing files (#{input_file} and #{output_file}) : ERR #{e}- moving on to next zone")
+            ret = 1
+          ensure
+            [input_file + ".in", output_file + ".out"].each {|f|
+              delete_file(working + get_name(f)+".parsed.#{pid}")
+              delete_file(working + get_name(f)+".sorted.#{pid}")
+            }
           end
-          [input_file + ".in", output_file + ".out"].each {|f|
-            delete_file(working + get_name(f)+".parsed.#{pid}")
-            delete_file(working + get_name(f)+".sorted.#{pid}")
-          }
         end
       }
       ret = 0 if (ret == -99)
