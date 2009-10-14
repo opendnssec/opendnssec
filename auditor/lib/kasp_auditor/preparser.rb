@@ -48,20 +48,24 @@ module KASPAuditor
       system("sort -f -t'#{SORT_SEPARATOR}' #{file1} > #{file2}")
     end
 
+    def initialize(zone)
+      @origin = zone
+      if (!Name.create(@origin).absolute?)
+        @origin = @origin + "."
+      end
+      @last_explicit_ttl = 0
+      @last_explicit_class = Classes.new("IN")
+      @last_name = nil
+      @continued_line = nil
+      @seen_soa = false
+    end
+
     # Take an input zone file ("zonefile") and output a new file ("zonefile.sorted")
     # The output file has each (expanded) line prepended by the labels of the owner
     # name for the RR in reversed order.
     # The type is also prepended to the line - this allows RRSets to be ordered
     # with the RRSIG and NSEC records last.
-    def normalise_zone_and_add_prepended_names(zone, infile, outfile)
-      origin = zone
-      if (!Name.create(origin).absolute?)
-        origin = origin + "."
-      end
-      ttl = 0
-      last_name = nil
-      continued_line = nil
-      seen_soa = false
+    def normalise_zone_and_add_prepended_names(infile, outfile)
       # Need to replace any existing files
       infile = (infile.to_s+"").untaint
       outfile = (outfile.to_s+"").untaint
@@ -72,60 +76,15 @@ module KASPAuditor
         File.open(outfile, File::CREAT|File::RDWR) { |f|
           begin
             IO.foreach(infile) { |line|
-              next if (line.index(';') == 0)
-              next if (line.strip.length == 0)
-              next if (!line || (line.length == 0))
-              if ((line.index("SOA")) && (!seen_soa))
-                seen_soa = true
-              end
-              if (line.index("$ORIGIN") == 0)
-                origin = line.split()[1].strip #  $ORIGIN <domain-name> [<comment>]
-                #                print "Setting $ORIGIN to #{origin}\n"
-                next
-              end
-              if (line.index("$TTL") == 0)
-                ttl = Preparser.get_ttl(line.split()[1].strip) #  $TTL <ttl>
-                #                print "Setting $TTL to #{ttl}\n"
-                next
-              end
-              if (continued_line)
-                # Add the next line until we see a ")"
-                # REMEMBER TO STRIP OFF COMMENTS!!!
-                comment_index = continued_line.index(";")
-                if (comment_index)
-                  continued_line = continued_line[0, comment_index]
-                end
-                line = continued_line.strip.chomp + line
-                if (line.index(")"))
-                  # OK
-                  continued_line = false
-                end
-              end
-              open_bracket = line.index("(")
-              if (open_bracket)
-                # Keep going until we see ")"
-                index = line.index(")")
-                if (index && (index > open_bracket))
-                  # OK
-                  continued_line = false
-                else
-                  continued_line = line
-                end
-              end
-              next if continued_line
+              ret = process_line(line)
 
-              comment_index = line.index(";")
-              if (comment_index)
-                line = line[0, comment_index] + "\n"
-              end
 
-              # If SOA, then replace "3h" etc. with expanded seconds
-              line, domain, type = Preparser.normalise_line(line, origin, ttl, last_name)
-              parsing_soa = false
-              last_name = domain
-              # Append the domain name and the RR Type here - e.g. "$NS"
-              line = prepare(domain) + NAME_SEPARATOR + type + SORT_SEPARATOR + line
-              f.write(line)
+              if (ret)
+                new_line, type = ret
+                # Append the domain name and the RR Type here - e.g. "$NS"
+                line_to_write = prepare(@last_name) + NAME_SEPARATOR + type + SORT_SEPARATOR + new_line
+                f.write(line_to_write)
+              end
             }
           rescue Errno::ENOENT
             KASPAuditor.exit("ERROR - Can't open zone file : #{infile}", 1)
@@ -134,6 +93,58 @@ module KASPAuditor
       rescue Errno::ENOENT
         KASPAuditor.exit("ERROR - Can't open temporary output file : #{outfile}", 1)
       end
+    end
+
+    def process_line(line)
+      return nil if (line.index(';') == 0)
+      return nil if (line.strip.length == 0)
+      return nil if (!line || (line.length == 0))
+      if ((line.index("SOA")) && (!@seen_soa))
+        @seen_soa = true
+      end
+      if (line.index("$ORIGIN") == 0)
+        @origin = line.split()[1].strip #  $ORIGIN <domain-name> [<comment>]
+        #                print "Setting $ORIGIN to #{@origin}\n"
+        return nil
+      end
+      if (line.index("$TTL") == 0)
+        @last_explicit_ttl = get_ttl(line.split()[1].strip) #  $TTL <ttl>
+        #                print "Setting $TTL to #{ttl}\n"
+        return nil
+      end
+      if (@continued_line)
+        # Add the next line until we see a ")"
+        # REMEMBER TO STRIP OFF COMMENTS!!!
+        comment_index = @continued_line.index(";")
+        if (comment_index)
+          @continued_line = @continued_line[0, comment_index]
+        end
+        line = @continued_line.strip.chomp + line
+        if (line.index(")"))
+          # OK
+          @continued_line = false
+        end
+      end
+      open_bracket = line.index("(")
+      if (open_bracket)
+        # Keep going until we see ")"
+        index = line.index(")")
+        if (index && (index > open_bracket))
+          # OK
+          @continued_line = false
+        else
+          @continued_line = line
+        end
+      end
+      return nil if @continued_line
+
+      comment_index = line.index(";")
+      if (comment_index)
+        line = line[0, comment_index] + "\n"
+      end
+
+      # If SOA, then replace "3h" etc. with expanded seconds
+      normalise_line(line, @origin, @last_explicit_ttl, @last_name, @last_explicit_class)
     end
 
     # Take a domain name, and return the form to be prepended to the RR.
@@ -153,19 +164,19 @@ module KASPAuditor
     end
 
     # Take a line from the input zone file, and return the normalised form
-    def self.normalise_line(line, origin, ttl, last_name)
+    def normalise_line(line, origin, last_explicit_ttl, last_name, last_explicit_class)
       # Note that a freestanding "@" is used to denote the current origin - we can simply replace that straight away
+      # Remove the ( and )
+      line.sub!("(", "")
+      line.sub!(")", "")
       line.sub!("@ ", "#{origin} ")
       line.sub!("@\t", "#{origin} ")
       # Note that no domain name may be specified in the RR - in that case, last_name should be used. How do we tell? Tab or space at start of line.
       if ((line[0] == " ") || (line[0] == "\t"))
         line = last_name + " " + line
       end
-      line.strip
-      is_soa = false
-      if (line.index("SOA") && line.index("SOA") < 4)
-        is_soa = true
-      end
+      line.strip!
+      
       # o We need to identify the domain name in the record, and then
       split = line.split(' ') # split on whitespace
       name = split[0].strip
@@ -174,35 +185,58 @@ module KASPAuditor
         new_name = name + "." + origin
         line.sub!(name, new_name)
         name = new_name
+        split = line.split
       end
 
       # If the second field is not a number, then we should add the TTL to the line
       if (((split[1]).to_i == 0) && (split[1] != "0"))
         # Add the TTL
-        line = name + " #{ttl} "
+        line = name + " #{last_explicit_ttl} "
         (split.length - 1).times {|i| line += "#{split[i+1]} "}
         line += "\n"
         split = line.split
+      else
+        @last_explicit_ttl = split[1].to_i
       end
 
-      if (is_soa)
-        line = self.replace_soa_ttl_fields(line)
+      # Now see if the clas is included. If not, then we should default to the last class used.
+      begin
+        klass = Classes.new(split[2])
+        @last_explicit_class = klass
+      rescue ArgumentError
+        # Wasn't a CLASS
+        # So add the last explicit class in
+        line = ""
+        (2).times {|i| line += "#{split[i]} "}
+        line += " #{last_explicit_class} "
+        (split.length - 2).times {|i| line += "#{split[i+2]} "}
+        line += "\n"
+        split = line.split
+      rescue Error => e
       end
 
       # Add the type so we can load the zone one RRSet at a time.
       type = Types.new(split[3].strip)
+      is_soa = (type == Types::SOA)
       type_was = type
       if (type == Types.RRSIG)
         # If this is an RRSIG record, then add the TYPE COVERED rather than the type - this allows us to load a complete RRSet at a time
         type = Types.new(split[4].strip)
       end
 
-      type_string=self.prefix_for_rrset_order(type, type_was)
-      
-      return line, name, type_string
+      type_string=prefix_for_rrset_order(type, type_was)
+      @last_name = name
+
+      if (is_soa)
+        line = replace_soa_ttl_fields(line)
+      end
+
+      line = line.chomp + "\n"
+
+      return line, type_string
     end
 
-    def Preparser.get_ttl(ttl_text)
+    def get_ttl(ttl_text)
       # Get the TTL in seconds from the m, h, d, w format
       # If no letter afterwards, then in seconds already
       ttl = 0
@@ -221,14 +255,7 @@ module KASPAuditor
       return ttl
     end
 
-    def self.replace_soa_ttl_fields(line)
-      return Preparser.frig_soa_ttl(line)
-    end
-
-    def Preparser.frig_soa_ttl(line)
-      # Remove the ( and )
-      line.sub!("(", "")
-      line.sub!(")", "")
+    def replace_soa_ttl_fields(line)
       # Replace any fields which evaluate to 0
       split = line.split
       4.times {|i|
@@ -242,7 +269,7 @@ module KASPAuditor
     # Frig the RR type so that NSEC records appear last in the RRSets.
     # Also make sure that DNSKEYs come first (so we have a key to verify
     # the RRSet with!).
-    def self.prefix_for_rrset_order(type, type_was)
+    def prefix_for_rrset_order(type, type_was)
       # Now make sure that NSEC(3) RRs go to the back of the list
       if ['NSEC', 'NSEC3'].include?type.string
         if (type_was == Types.RRSIG)

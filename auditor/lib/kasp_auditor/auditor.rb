@@ -130,7 +130,7 @@ module KASPAuditor
           end
         }
       }
-      @key_tracker.process_key_data(@keys, @keys_used)
+      @key_tracker.process_key_data(@keys, @keys_used, @soa.serial)
       # Check the last nsec(3) record in the chain points back to the start
       do_final_nsec_check()
 
@@ -180,7 +180,6 @@ module KASPAuditor
           rr_text = line[line.index(Preparser::SORT_SEPARATOR) + 
               Preparser::SORT_SEPARATOR.length, line.length]
           rr = RR.create(rr_text)
-          #          print "Loaded #{rr}\n"
           return rr
           #        rescue DecodeError => e
         rescue Exception => e
@@ -795,80 +794,26 @@ module KASPAuditor
     # Load the SOA from an unparsed file
     def get_soa_from_file(file)
       # SOA should always be first (non-comment) line
-      # This is now a horrible hack, having been extended to cover multi-line SOAs
-      # with "xh" format times (rather than just seconds)
       file = (file.to_s+"").untaint
-      @ttl = 0
-      @origin = @config.name.to_s
-      if (!Name.create(@origin).absolute?)
-        @origin += "."
-      end
-      @last_name = ""
-      continued_line = false
+      pp = Preparser.new(@config.name.to_s)
+
       IO.foreach(file) {|line|
-        next if (line.index(';') == 0)
-        next if (!line || (line.length == 0))
-        if line.index("$ORIGIN") == 0
-          @origin = line.split()[1].strip
-          next
-        end
-        if (line.index("$TTL") == 0)
-          @ttl = Preparser.get_ttl(line.split()[1].strip) #  $TTL <ttl>
-          next
-        end
-        next if line.index("$TTL") == 0
-
-        # Cope with multi-line SOAs!!!
-        if (continued_line)
-          comment_index = continued_line.index(";")
-          if (comment_index)
-            continued_line = continued_line[0, comment_index]
+        ret = pp.process_line(line)
+        if (ret)
+          new_line, unused = ret
+          rr = RR.create(new_line)
+          if (rr.type.to_s != "SOA")
+            log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got line : #{new_line.chomp}")
+            next
           end
-          line = continued_line.strip.chomp + line
-          if (line.index(")"))
-            # OK
-            continued_line = false
+          if (rr.type != Types::SOA)
+            log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got RR : #{rr}")
+            next
           end
-        end
-        open_bracket = line.index("(")
-        if (open_bracket)
-          # Keep going until we see ")"
-          index = line.index(")")
-          if (index && (index > open_bracket))
-            # OK
-            continued_line = false
-          else
-            continued_line = line
-          end
-        end
-        next if continued_line
 
-        comment_index = line.index(";")
-        if (comment_index)
-          line = line[0, comment_index] + "\n"
-        end
-        line.sub!("(", "")
-        line.sub!(")", "")
-
-        line, domain, type = Preparser.normalise_line(line, @origin, @ttl, @last_name)
-
-        @last_name = domain
-
-        if (!line.index("SOA"))
-          log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got line : #{line.chomp}")
-          next
+          return rr
         end
 
-        #        # Replace the 3h, 10m, etc. format with real numbers
-        #        line = Preparser.frig_soa_ttl(line)
-
-        soa = RR.create(line)
-        if (soa.type != Types::SOA)
-          log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got RR : #{soa}")
-          next
-        end
-
-        return soa
       }
     end
 
