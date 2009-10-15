@@ -56,6 +56,7 @@
 #include "ksm/datetime.h"
 
 #include "libhsm.h"
+#include "libhsmdns.h"
 
     int
 server_init(DAEMONCONFIG *config)
