@@ -9,4 +9,9 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-bin_SCRIPTS = ods-enforcerd.init ods-signerd.init
+EXTRA_DIST = \
+	README \
+	ods-enforcerd-smf.xml \
+	ods-signerd-smf.xml \
+	ods-enforcerd.init.in \
+	ods-signerd.init.in
