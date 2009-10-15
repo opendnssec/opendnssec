@@ -43,6 +43,8 @@ AC_CONFIG_FILES([
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile
+	tools/solaris/ods-enforcerd.init
+	tools/solaris/ods-signerd.init
 ])
 
 AC_OUTPUT
