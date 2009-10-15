@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+# $Id$
+#
+# Copyright (c) 2009 Nominet UK. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+# GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+export SOFTHSM_CONF=/export/home/sion/temp/opendnssec/install/etc/opendnssec/softhsm.conf
+export LD_LIBRARY_PATH=LD_LIBRARY_PATH:/export/home/sion/temp/opendnssec/install/lib:/export/home/sion/work/subversion/ldns/lib:/usr/local/lib
+
+enforcer_bin_file="@full_prefix@/sbin/ods-enforcerd"
+enforcer_pid_file="@localstatedir@/run/opendnssec/enforcerd.pid"
+
+case "$1" in
+'start')
+
+# Check program is not running
+    ps -ef | grep '$enforcer_bin_file' | grep -v grep
+    if [ $? -eq 0 ]
+    then
+        echo "ods-enforcerd is already running"
+        exit 0
+    fi
+
+# Start program up
+    if [ -x $enforcer_bin_file ]
+    then
+        echo "Starting enforcer"
+	    $enforcer_bin_file &
+    fi
+
+    ;;
+
+
+'stop')
+# Stop programs
+    if [ -x $enforcer_pid_file ]
+    then
+        echo "Stopping ods-enforcerd via pid_file"
+        kill -TERM `cat $enforcer_pid_file`
+    else
+        PID=`ps -ef | grep '$enforcer_bin_file' | grep -v grep | awk '{ print $2 }'`
+        if [ ! -z "$PID" ]
+        then
+            echo "Stopping ods-enforcerd via pid"
+            kill $PID
+        fi
+    fi
+
+    ;;
+
+*)
+    echo "Usage: $0 { start | stop }"
+        exit 1
+        ;;
+esac
+
+exit 0

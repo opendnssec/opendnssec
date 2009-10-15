@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+
+<service_bundle type='manifest' name='OpenDNSSEC:ods-signerd'>
+
+<service
+        name='application/OpenDNSSEC/ods-signerd'
+        type='service'
+        version='1'>
+
+        <create_default_instance enabled='false' />
+
+        <single_instance />
+
+        <dependency name='fs'
+            grouping='require_all'
+            restart_on='none'
+            type='service'>
+            <service_fmri value='svc:/system/filesystem/local' />
+        </dependency>
+
+        <!-- We probably need the network to be up for this to work? -->
+        <dependency name='network'
+            grouping='require_any'
+            restart_on='error'
+            type='service'>
+                <service_fmri value='svc:/network/service' />
+        </dependency>
+
+<!-- This says that multi-user mode is not considered complete until opendnssec has started up -->
+<!--        <dependent
+                name='opendnssec_multi-user'
+                grouping='optional_all'
+                restart_on='none'>
+                <service_fmri value='svc:/milestone/multi-user' />
+        </dependent> -->
+
+        <!--
+                The timeout needs to be large enough to wait for startup.
+        -->
+        <exec_method
+            type='method'
+            name='start'
+            exec='/lib/svc/method/OpenDNSSEC/ods-signerd.init start'
+            timeout_seconds='10' />
+
+        <exec_method
+            type='method'
+            name='stop'
+            exec=':kill'
+            timeout_seconds='60' />
+
+        <stability value='Unstable' />
+
+        <template>
+                <common_name>
+                        <loctext xml:lang='C'>
+                        OpenDNSSEC
+                        </loctext>
+                </common_name>
+                <documentation>
+                        <manpage title='ods-signerd' section='8' />
+                </documentation>
+        </template>
+</service>
+
+</service_bundle>

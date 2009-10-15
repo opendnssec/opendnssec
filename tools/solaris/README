@@ -1,0 +1,43 @@
+# $Id$
+
+Solaris scripts to control OpenDNSSEC processes:
+
+Any package for solaris should probably include something like the following:
+
+In the prototype:
+
+...
+i preremove
+i postinstall
+d none /lib/svc/method/OpenDNSSEC 0755 root root
+d none /var/svc/manifest/application/OpenDNSSEC 0755 root root
+d none /lib/svc/method/OpenDNSSEC/ods-signerd.init=ods-signerd.init 0555 root root
+d none /lib/svc/method/OpenDNSSEC/ods-enforcerd.init=ods-enforcerd.init 0555 root root
+f none /var/svc/manifest/application/OpenDNSSEC/ods-signerd-smf.xml=ods-signerd-smf.xml 0555 root root
+f none /var/svc/manifest/application/OpenDNSSEC/ods-enforcerd-smf.xml=ods-enforcerd-smf.xml 0555 root root
+...
+
+In the preremove
+
+...
+/usr/sbin/svcadm disable ods-enforcerd
+/usr/sbin/svccfg -v delete svc:/application/OpenDNSSEC/ods-enforcerd:default
+
+/usr/sbin/svcadm disable ods-signerd
+/usr/sbin/svccfg -v delete svc:/application/OpenDNSSEC/ods-signerd:default
+...
+
+In the postinstall
+
+...
+/usr/sbin/svccfg -v import /var/svc/manifest/application/OpenDNSSEC/ods-signerd-smf.xml
+/usr/sbin/svccfg -v import /var/svc/manifest/application/OpenDNSSEC/ods-enforcerd-smf.xml
+...
+
+
+Then you can use:
+
+svcadm [enable|disable] ods-signerd
+svcadm [enable|disable] ods-enforcerd
+
+to control the processes
