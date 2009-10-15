@@ -42,6 +42,7 @@ AC_CONFIG_FILES([
 	Makefile
 	tools/Makefile
 	tools/ods-control
+	tools/solaris/Makefile
 ])
 
 AC_OUTPUT
