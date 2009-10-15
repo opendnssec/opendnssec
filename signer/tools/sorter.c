@@ -159,17 +159,12 @@ print_rrs(FILE *out, ldns_rbtree_t *rr_tree)
 int
 compare_rr_data(const void *a, const void *b)
 {
-	int result;
 	rr_data *ra, *rb;
 
 	ra = (rr_data *) a;
 	rb = (rr_data *) b;
 
-	result = ldns_dname_compare(ra->name, rb->name);
-	if (result == 0) {
-		result = ldns_rr_compare(ra->rr, rb->rr);
-	}
-	return result;
+	return ldns_rr_compare(ra->rr, rb->rr);
 }
 
 int
