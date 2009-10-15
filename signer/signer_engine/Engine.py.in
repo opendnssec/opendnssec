@@ -326,6 +326,7 @@ class Engine:
                  "update <zone>   check for changed zone conf xml file, if",
                  "                <zone> is not given all zones are checked",
                  "stop            stop the engine",
+                 "start           start the engine",
                  "restart         restart the engine",
                  "verbosity <nr>  set verbosity (notimpl)"]
                 response = "\n".join(lst)

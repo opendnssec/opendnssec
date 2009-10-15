@@ -19,13 +19,13 @@ As part of the OpenDNSSEC project, the task of the signer engine is to
 schedule signing operation on DNS zones. Taking input from the KASP, it
 will automatically sign zones and keep their signatures up-to-date.
 
-In this version, it can only do file-to-file signing, and not use AXFR
-or IXFR. When a zone has changed, the engine can run a specified
-command, for instance to signal an actual DNS server that it should
-reload its zones.
+In this version, it can do file-to-file signing or AXFR-to-file signing.
+When a zone has changed, the engine can run a specified command, for
+instance to signal an actual DNS server that it should reload its zones.
 
-The current signer engine consists of two parts; The actual scheduler
-and a set of tools to do zone manipulation.
+The current signer engine consists of three parts; The actual scheduler,
+a set of tools to do zone manipulation and a zone fetcher that takes care
+of AXFR.
 
 The scheduler is written in Python and is run as a daemon. When a zone
 needs to be sorted or (re)signed, it will call the necessary tools,
@@ -33,6 +33,9 @@ which are written in C, to do the actual work. It uses a
 worker/task-queue design, where the worker threads will suspend
 until there is something to do. 
 
+The zone fetcher is started by the scheduler if a zone fetch configuration
+is configured. The zone fetcher will do AXFR requests for all zones upon
+startup and upon receiving a valid NOTIFY message. 
 
 -------------------------------------------------------------------
 DEPENDENCIES
@@ -69,12 +72,10 @@ use the options provided with configure:
                   relative to this path, and default search paths will
                   be relative to the prefix. Defaults to /usr/local
 
-
 The tools, and the main engine invocation script, will be installed in
 <prefix>/bin
 The python libraries will be installed in
 <prefix>/lib/python/signer_engine/
-
 
 -------------------------------------------------------------------
 INTERACTION FROM THE COMMAND LINE
@@ -84,6 +85,7 @@ If the engine is running (see the next section on how to run
 one manually), you can interact with it using the tool ods-signer.
 
 If you give no arguments, it will connect to the engine and go to
+interactive mode. Only the start command cannot be called in
 interactive mode. The command 'help' shows a list of possible
 commands:
 $ ods-signer
@@ -96,6 +98,8 @@ flush           execute all scheduled tasks immediately
 update          re-read the zonelist xml file
                 and check for changed zoneconf.xml files
 stop            stop the engine
+start           start the engine (only when signer is not running)
+restart         restart the engine
 verbosity <nr>  set verbosity (notimpl)
 
 cmd> quit
@@ -142,7 +146,7 @@ script with the element <NotifyCommand> below <Signer>.
 The rest of the values can be left to their defaults.
 
 The elements and their exact meanings are described here:
-http://www.opendnssec.se/browser/trunk/xml/opendnssec/conf.rnc
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/conf.rnc
 
 zonelist.xml
 ------------
@@ -150,13 +154,30 @@ zonelist.xml
 You can tell the engine what zones to sign with
 <prefix>/etc/zonelist.xml
 An example zone list file can be found at
-http://www.opendnssec.se/browser/trunk/xml/opendnssec/zonelist.xml
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/zonelist.xml
 
 The elements and their exact meanings are described here:
-http://www.opendnssec.se/browser/trunk/xml/opendnssec/zonelist.rnc
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/zonelist.rnc
 
 This file will specify the specific zone configuration, and its
 in- and output-files.
+
+
+zonefetch.xml
+------------
+
+You can tell the engine where and how to get the zones from the master
+servers with
+<prefix>/etc/zonefetch.xml
+An example zone list file can be found at
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/zonefetch.xml
+
+The elements and their exact meanings are described here:
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/zonefetch.rnc
+
+This file will specify the interface to listen NOTIFY messages on, 
+the master servers that are allowed to send NOTIFY messages and to
+contact for zone transfers and optionally, the TSIG credentials.
 
 
 zone configuration
@@ -164,10 +185,10 @@ zone configuration
 
 At the location pointed to in your zonelist.xml, you should create
 a signer configuration xml file. An example can be found at:
-http://www.opendnssec.se/browser/trunk/xml/opendnssec/signconf.xml
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/signconf.xml
 
 The elements and their exact meanings are described here:
-http://www.opendnssec.se/browser/trunk/xml/opendnssec/signconf.rnc
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/signconf.rnc
 
 
 zone file
@@ -176,11 +197,6 @@ zone file
 Finally, you will need to give the engine an actual zone file to
 work on. You will have already specified the location of this file
 in the zonelist.xml file above.
-
-At the moment, the engine does not understand all directives that
-are standard in bind zone files (like $TTL and $ORIGIN), so you
-might need to run your unsigned zone through ldns-read-zone, and
-place the output of that in the directory you specified.
 
 
 running the engine
