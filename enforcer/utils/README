@@ -1,49 +1,130 @@
 $Id$
 
+ods-ksmutil
 
 This is a utility that allows several different actions to be performed (relatively) easily:
 
-ksmutil [-f config] setup
-    Import conf.xml (from config_dir) into a database (deletes current contents)
+## global options
 
-ksmutil [-f config] update
-    Update database from config_dir (like above, but existing contents are kept)
+	--config <config>          aka -c
 
-ksmutil [-f config] addzone zone [policy] [path_to_signerconf.xml] [input] [output]
-    Add a zone to the config_dir and database
-    zone == zone name
-    policy == name of policy for zone to be put on
-    path_to_signerconf.xml == Signerconf entry in zonelist
-    input == Input entry in zonelist
-    output == Output entry in zonelist
+        Change the conf.xml file that is used, from the default.
 
-    If left blank then defaults will be provided for the latter 4 options.
-    A backup of the sqlite DB file is made (if appropriate).
+## commands
 
-ksmutil [-f config] delzone zone
-    Delete a zone from the config_dir and database
-    A backup of the sqlite DB file is made (if appropriate).
+	setup
 
-ksmutil [-f config] listzone
-    List zones from the zonelist.xml in config_dir
+        Import conf.xml, kasp.xml and zonelist.xml into a database 
+        (deletes current contents, including any keys).
 
-ksmutil export [policy]
-export all policies [or named policy] to xml (in kasp.xml format)
+	update
 
-ksmutil [-f config] rollzone zone [KSK|ZSK]
-    Rollover a zone (may roll all zones on that policy)
-    the final option specifies the type of key to roll (both are rolled if nothing is specified)
-    after running the rollover the communicator will be woken up so that the signer can be sent the new information
+        Update database from config_dir (like above, but existing contents 
+        are kept)
 
-    If the policy that the zone is on specifies that keys are shared then all zones on that policy will be rolled.
-    A backup of the sqlite DB file is made (if appropriate).
+	zone add
+		--zone <zone>                     aka -z
+		[--policy <policy>]               aka -p
+		[--signerconf <signerconf.xml>]   aka -s
+		[--input <input>]                 aka -i
+		[--output <output>]               aka -o
 
-ksmutil [-f config] rollpolicy policy [KSK|ZSK]
-    Rollover all zones on a policy
-    the final option specifies the type of key to roll (both are rolled if nothing is specified)
-    after running the rollover the communicator will be woken up so that the signer can be sent the new information
-    A backup of the sqlite DB file is made (if appropriate).
+        Add a zone to both zonelist.xml and the database (both locations 
+        read from conf.xml).
+        Defaults are provided for all options but zone name.
 
-ksmutil [-f config] backup [done|list] [repository]
-    Indicate that a key backup has been performed or list dates when backups were made.
-   This is especially important if the repository used has the "RequireBackup" flag set. Include this call in a HSM backup process to avoid warnings or errors about using non-backed up keys.
+	zone delete
+		--zone <zone> | --all             aka -z / -a
+
+        Delete a zone to both zonelist.xml and the database (both locations 
+        read from conf.xml).
+
+	zone list
+
+        List zones from the zonelist.xml
+
+	repository list
+
+        List repositories from the database
+
+	policy export
+		--policy <policy> | --all         aka -p / -a
+
+        Export a policy from the database in kasp.xml format.
+
+	policy list
+
+        List policies available.
+
+	key list
+		[--verbose]
+		--zone <zone> | --all             aka -z / -a
+(will appear soon:
+		[--keystate <state>]              aka -e
+		[--keytype <type>]                aka -t
+		[--ds]                            aka -d    )
+
+        List information about keys in zone. --verbose 
+
+	key export
+		--zone <zone> | --all             aka -z
+		[--keystate <state>]              aka -e
+		[--keytype <type>]                aka -t
+		[--ds]                            aka -d
+
+        Export key information in a suitable format for putting into a zonefile
+
+	key import
+		--cka_id <CKA_ID>                 aka -k
+		--repository <repository>         aka -r
+		--zone <zone>                     aka -z
+		--bits <size>                     aka -b
+		--algorithm <algorithm>           aka -g
+		--keystate <state>                aka -e
+		--keytype <type>                  aka -t
+		--time <time>                     aka -w
+		[--retire <retire>]               aka -y
+
+        Add a key which was created outside of the OpenDNSSEC code into the database
+		
+	key rollover
+		--zone zone [--keytype <type>]
+	key rollover
+		--policy policy [--keytype <type>]
+
+        Rollover active keys on a zone or policy
+        "keytype" specifies the type of key to roll (both are rolled if nothing is specified)
+        After running, the enforcer will be woken up so that the signer can be sent the new information
+
+        If the policy that the zone is on specifies that keys are shared then all zones on that policy will be rolled.
+        A backup of the sqlite DB file is made (if appropriate).
+	
+	key purge --zone <zone>                   aka -z
+	key purge --policy <policy>               aka -p
+
+        Remove keys that are in the "Dead" state from the repository and from the enforcer DB
+
+    key generate
+        --policy <policy>                     aka -p
+        --interval <interval>                 aka -n
+
+        Create enough keys for the given policy to last for the period of time given by interval.
+
+	backup done --repository <repository>     aka -r
+        
+        Indicate that a backup of the given repository has been done, all non-backed up keys will now be marked as backed up.
+        This is especially important if the repository used has the "RequireBackup" flag set.
+        Include this call in a HSM backup process to avoid warnings or errors about using non-backed up keys.
+	
+	backup list --repository <repository>     aka -r
+
+        List the backups that have been made on the given repository.
+
+	rollover list
+
+        List the expected dates and times of upcoming rollovers.
+
+
+key states: GENERATED|PUBLISHED|READY|ACTIVE|RETIRED|REVOKED|DEAD
+key types:  KSK|ZSK
+
