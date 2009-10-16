@@ -5,6 +5,11 @@ OpenDNSSEC trunk
 Bugfixes:
 * The LDNS bug that affected SRV records has been fixed in ldns-trunk.
 
+Bugfixes:
+* Bugreport #41: Fix for SOA serial 'keep'.
+* Allow for SOA Serial/TTL/Minimum values of zero.
+* Correct socket binding of NotifyListen.
+
 
 OpenDNSSEC 1.0.0b2 - 2009-10-09
 
