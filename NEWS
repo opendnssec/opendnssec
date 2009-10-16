@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.0.0b3 - 2009-10-16
 
 * The auditor now tracks the SOA serial over time
 * The auditor (dnsruby) supports RSA/SHA256 and RSA/SHA512
