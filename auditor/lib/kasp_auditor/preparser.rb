@@ -187,7 +187,17 @@ module KASPAuditor
       end
 
       # If the second field is not a number, then we should add the TTL to the line
-      if (((split[1]).to_i == 0) && (split[1] != "0"))
+      # Remember we can get "m" "w" "y" here! So need to check for appropriate regexp...
+      found_ttl_regexp = (split[1]=~/[0,1,2,3,4,5,6,7,8,9]*[m,w,h,y]$/)
+      if (found_ttl_regexp == 0)
+        # Replace the formatted ttl with an actual number
+        ttl = get_ttl(split[1])
+        line = name + " #{ttl} "
+        @last_explicit_ttl = ttl
+        (split.length - 2).times {|i| line += "#{split[i+2]} "}
+        line += "\n"
+        split = line.split
+      elsif (((split[1]).to_i == 0) && (split[1] != "0"))
         # Add the TTL
         line = name + " #{last_explicit_ttl} "
         (split.length - 1).times {|i| line += "#{split[i+1]} "}
