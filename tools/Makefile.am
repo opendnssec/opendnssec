@@ -9,4 +9,6 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
+SUBDIRS = solaris
+
 bin_SCRIPTS = ods-control
