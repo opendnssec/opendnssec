@@ -159,7 +159,7 @@ module KASPAuditor
               end
             end
           rescue Exception=> e
-            syslog.log(LOG_ERR, "Unexpected error auditing files (#{input_file} and #{output_file}) : ERR #{e}- moving on to next zone")
+            syslog.log(LOG_ERR, "Unexpected error auditing files (#{input_file} and #{output_file}) : ERR #{e}- moving on to next zone. Trace for debugging : #{e.backtrace.join("\n")}")
             ret = 1
           ensure
             [input_file + ".in", output_file + ".out"].each {|f|
