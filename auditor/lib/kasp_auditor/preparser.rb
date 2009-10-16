@@ -32,10 +32,7 @@ module KASPAuditor
   # in canonical order.
   class Preparser
 
-    # @TODO@ Need to use different separator - difficult, since arbitrary data
-    # can be encoded in name labels. Just have to hope we don't find a zone
-    # with many vertical tabs in the names!
-    SORT_SEPARATOR = "\v" # "\v" Vertical Tab
+    SORT_SEPARATOR = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" # "\v" Vertical Tab
     
     NAME_SEPARATOR = "\0\0$~$~$~\0\0"
     LABEL_SEPARATOR = "\0\1\0"
@@ -45,7 +42,7 @@ module KASPAuditor
     def sort(file1, file2)
       file1=(file1.to_s+"").untaint
       file2=(file2.to_s+"").untaint
-      system("sort -f -t'#{SORT_SEPARATOR}' #{file1} > #{file2}")
+      system("sort -f #{file1} > #{file2}")
     end
 
     def initialize(zone)
