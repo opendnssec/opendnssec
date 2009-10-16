@@ -88,6 +88,7 @@ start = element KASP {
 				anykey,
 
 				# use RFC 5011 for key rollover?
+				# Not implemented yet
 				element RFC5011 { empty }?
 			}*,
 
@@ -181,11 +182,11 @@ anykey = element Algorithm {
 	element Repository { xsd:string },
 
 	# Number of Standby keys
-	# For KSKs you can use 1 to indicate that you are
-	# doing double signatures
+	# Makes the rollover faster, since the key is
+	# already pre-published and ready.
 	element Standby { xsd:nonNegativeInteger },
 
-	# use manual KSK key rollover?
+	# Use manual key rollover?
 	element ManualRollover { empty }?
 
 

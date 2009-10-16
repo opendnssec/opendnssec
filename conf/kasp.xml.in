@@ -43,7 +43,7 @@
 				<Lifetime>P1Y</Lifetime>
 				<Repository>softHSM</Repository>
 				<Standby>1</Standby>
-				<RFC5011/>
+				<!-- <ManualRollover/> -->
 			</KSK>
 
 			<!-- Parameters for ZSK only -->
@@ -74,7 +74,9 @@
 				<Minimum>PT3600S</Minimum>
 			</SOA>
 		</Parent>
+
 		<Audit/>
+
 	</Policy>
 	
 </KASP>
