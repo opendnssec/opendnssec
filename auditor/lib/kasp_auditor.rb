@@ -109,7 +109,7 @@ module KASPAuditor
       rescue Exception => e
         KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR)
       end
-      check_zones_to_audit(zones)
+      zones = check_zones_to_audit(zones)
       # Now check the input and output zones using the config
       if (zones.length == 0)
         syslog.log(LOG_ERR, "Couldn't find any zones to load")
@@ -246,6 +246,7 @@ module KASPAuditor
         # signed zonefile.
         zones[0][2] = @signed_temp
       end
+      return zones
     end
 
 
