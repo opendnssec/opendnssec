@@ -11,6 +11,7 @@ Bugfixes:
 * Allow for SOA Serial/TTL/Minimum values of zero.
 * Correct socket binding of NotifyListen.
 * Systems with older SQLite had problem rolling keys on a policy.
+* Auditor now handles SSHFP and NAPTR records correctly (but needs Dnsruby 1.39)
 
 
 OpenDNSSEC 1.0.0b2 - 2009-10-09
