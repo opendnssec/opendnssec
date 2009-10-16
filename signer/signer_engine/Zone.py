@@ -805,7 +805,7 @@ class Zone:
         if self.zone_config.audit:
             syslog.syslog(syslog.LOG_INFO, "Running auditor on zone")
             cmd = [self.engine_config.bindir + os.sep + "ods-auditor",\
-                   self.engine_config.sysconfdir + os.sep + "opendnssec",\
+                   "-c", self.engine_config.config_file_name,\
                    "-s", self.get_zone_tmp_filename(".finalized"),\
                    "-z", self.zone_name]
             # add extra options here
