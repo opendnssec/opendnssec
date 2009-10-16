@@ -188,7 +188,7 @@ module KASPAuditor
 
       # If the second field is not a number, then we should add the TTL to the line
       # Remember we can get "m" "w" "y" here! So need to check for appropriate regexp...
-      found_ttl_regexp = (split[1]=~/[0-9]*[mdhy]$/)
+      found_ttl_regexp = (split[1]=~/^[0-9]+[smhdw]$/)
       if (found_ttl_regexp == 0)
         # Replace the formatted ttl with an actual number
         ttl = get_ttl(split[1])
@@ -249,14 +249,16 @@ module KASPAuditor
       # If no letter afterwards, then in seconds already
       ttl = 0
       case ttl_text[ttl_text.length-1, 1]
+      when "s" then
+        ttl = (ttl_text[0, ttl_text.length() - 1].to_i)
+      when "m" then
+        ttl = 60 * (ttl_text[0, ttl_text.length() - 1].to_i)
       when "h" then
         ttl = 3600 * (ttl_text[0, ttl_text.length() - 1].to_i)
       when "d" then
         ttl = 3600 * 24 * (ttl_text[0, ttl_text.length() - 1].to_i)
-      when "m" then
-        ttl = 30 * 3600 * 24 * (ttl_text[0, ttl_text.length() - 1].to_i)
-      when "y" then
-        ttl = 365 * 3600 * 24 * (ttl_text[0, ttl_text.length() - 1].to_i)
+      when "w" then
+        ttl = 7 * 3600 * 24 * (ttl_text[0, ttl_text.length() - 1].to_i)
       else
         ttl = ttl_text.to_i
       end
