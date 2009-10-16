@@ -683,15 +683,17 @@ module KASPAuditor
     # There is an extra RR in the unsigned file to the signed file.
     # Error if it is in zone, warn if it is out of zone.
     def process_additional_unsigned_rr(unsigned_rr)
-      if unsigned_rr && !out_of_zone(unsigned_rr.name)
-        if ([Types::RRSIG, Types::RRSIG, Types::NSEC, Types::NSEC3, Types::NSEC3PARAM].include?unsigned_rr.type)
-          # Ignore DNSSEC data in input zone?
-          log(LOG_WARNING, "#{unsigned_rr.type} RR present in unsigned file : #{unsigned_rr}")
+      if (unsigned_rr)
+        if !out_of_zone(unsigned_rr.name)
+          if ([Types::RRSIG, Types::RRSIG, Types::NSEC, Types::NSEC3, Types::NSEC3PARAM].include?unsigned_rr.type)
+            # Ignore DNSSEC data in input zone?
+            log(LOG_WARNING, "#{unsigned_rr.type} RR present in unsigned file : #{unsigned_rr}")
+          else
+            log(LOG_ERR, "Output zone does not contain non-DNSSEC RRSet : #{unsigned_rr.type}, #{unsigned_rr}")
+          end
         else
-          log(LOG_ERR, "Output zone does not contain non-DNSSEC RRSet : #{unsigned_rr.type}, #{unsigned_rr}")
+          log(LOG_WARNING, "Output zone does not contain out of zone RRSet : #{unsigned_rr.type}, #{unsigned_rr}")
         end
-      else
-        log(LOG_WARNING, "Output zone does not contain out of zone RRSet : #{unsigned_rr.type}, #{unsigned_rr}")
       end
     end
 
