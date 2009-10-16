@@ -164,6 +164,7 @@ module KASPAuditor
     def normalise_line(line, origin, last_explicit_ttl, last_name, last_explicit_class)
       # Note that a freestanding "@" is used to denote the current origin - we can simply replace that straight away
       # Remove the ( and )
+      line.chomp!
       line.sub!("(", "")
       line.sub!(")", "")
       line.sub!("@ ", "#{origin} ")
@@ -228,7 +229,7 @@ module KASPAuditor
         line = replace_soa_ttl_fields(line)
       end
 
-      line = line.chomp + "\n"
+      line = line.split.join(' ').strip + "\n"
 
       return line, type_string
     end
