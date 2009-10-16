@@ -244,7 +244,15 @@ module KASPAuditor
       if (@signed_temp)
         # Then, if @signed is also present, then use that name for the
         # signed zonefile.
-        zones[0][2] = @signed_temp
+        temp_zone = []
+        zones.each {|array|
+          if (array[0] == @zone_name)
+            temp_zone=array
+          end
+        }
+        temp_zone[2] = @signed_temp
+        zones = [temp_zone]
+#        zones[0][2] = @signed_temp
       end
       return zones
     end
