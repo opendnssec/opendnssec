@@ -9,7 +9,8 @@ AM_CPPFLAGS = \
 	-I$(builddir)/../ksm/include \
 	@LIBHSM_INCLUDES@ \
 	@XML2_INCLUDES@ \
-	@DB_INCLUDES@
+	@DB_INCLUDES@ \
+	@LDNS_INCLUDES@
 
 sbin_PROGRAMS = ods-enforcerd
 
