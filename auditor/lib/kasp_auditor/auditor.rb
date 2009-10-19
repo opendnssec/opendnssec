@@ -728,7 +728,7 @@ module KASPAuditor
     # Get rid of the last label in the Name
     def lose_last_label(name)
       if (name.labels.length == 1)
-        return Name.new(".")
+        return Name.create(".")
       end
       n = Name.new(name.labels()[0, name.labels.length-1], name.absolute?)
       return n
