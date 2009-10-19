@@ -309,7 +309,7 @@ module KASPAuditor
 
     # Check the TTL of the NSEC(3) record
     def check_nsec_ttl(nsec)
-      if (@config.soa.minimum)
+      if (@config.soa && @config.soa.minimum)
         if (nsec.ttl != @config.soa.minimum)
           log(LOG_ERR, "#{nsec.type} record should have TTL of #{@config.soa.minimum} from zone policy //Zone/SOA/Minimum, but is #{nsec}")
         end
@@ -727,6 +727,9 @@ module KASPAuditor
 
     # Get rid of the last label in the Name
     def lose_last_label(name)
+      if (name.labels.length == 1)
+        return Name.new(".")
+      end
       n = Name.new(name.labels()[0, name.labels.length-1], name.absolute?)
       return n
     end
