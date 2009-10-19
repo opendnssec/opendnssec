@@ -170,16 +170,17 @@ module KASPAuditor
     def normalise_line(line)
       # Note that a freestanding "@" is used to denote the current origin - we can simply replace that straight away
       # Remove the ( and )
+      # Note that no domain name may be specified in the RR - in that case, last_name should be used. How do we tell? Tab or space at start of line.
+      if ((line[0,1] == " ") || (line[0,1] == "\t"))
+        line = @last_name + " " + line
+      end
       line.chomp!
       line.sub!("(", "")
       line.sub!(")", "")
       line.sub!("@ ", "#{@origin} ")
       line.sub!("@\t", "#{@origin} ")
-      # Note that no domain name may be specified in the RR - in that case, last_name should be used. How do we tell? Tab or space at start of line.
-      if ((line[0] == " ") || (line[0] == "\t"))
-        line = @last_name + " " + line
-      end
       line.strip!
+
       
       # o We need to identify the domain name in the record, and then
       split = line.split(' ') # split on whitespace
