@@ -45,12 +45,18 @@ module KASPAuditor
       system("sort -f #{file1} > #{file2}")
     end
 
-    def initialize(zone)
-      @origin = zone
+    def initialize(config)
+      @origin = config.name
+      @config = config
+
       if (!Name.create(@origin).absolute?)
         @origin = @origin + "."
       end
-      @last_explicit_ttl = 0
+      if (config.soa.minimum && !@last_explicit_ttl)
+        @last_explicit_ttl = config.soa.minimum
+      else
+        @last_explicit_ttl = 0
+      end
       @last_explicit_class = Classes.new("IN")
       @last_name = nil
       @continued_line = nil
@@ -141,7 +147,7 @@ module KASPAuditor
       end
 
       # If SOA, then replace "3h" etc. with expanded seconds
-      normalise_line(line, @origin, @last_explicit_ttl, @last_name, @last_explicit_class)
+      normalise_line(line)
     end
 
     # Take a domain name, and return the form to be prepended to the RR.
@@ -161,17 +167,17 @@ module KASPAuditor
     end
 
     # Take a line from the input zone file, and return the normalised form
-    def normalise_line(line, origin, last_explicit_ttl, last_name, last_explicit_class)
+    def normalise_line(line)
       # Note that a freestanding "@" is used to denote the current origin - we can simply replace that straight away
       # Remove the ( and )
       line.chomp!
       line.sub!("(", "")
       line.sub!(")", "")
-      line.sub!("@ ", "#{origin} ")
-      line.sub!("@\t", "#{origin} ")
+      line.sub!("@ ", "#{@origin} ")
+      line.sub!("@\t", "#{@origin} ")
       # Note that no domain name may be specified in the RR - in that case, last_name should be used. How do we tell? Tab or space at start of line.
       if ((line[0] == " ") || (line[0] == "\t"))
-        line = last_name + " " + line
+        line = @last_name + " " + line
       end
       line.strip!
       
@@ -180,7 +186,7 @@ module KASPAuditor
       name = split[0].strip
       # o add $ORIGIN to it if it is not absolute
       if !(/\.\z/ =~ name)
-        new_name = name + "." + origin
+        new_name = name + "." + @origin
         line.sub!(name, new_name)
         name = new_name
         split = line.split
@@ -199,7 +205,19 @@ module KASPAuditor
         split = line.split
       elsif (((split[1]).to_i == 0) && (split[1] != "0"))
         # Add the TTL
-        line = name + " #{last_explicit_ttl} "
+        if (!@last_explicit_ttl)
+          # If this is the SOA record, and no @last_explicit_ttl is defined,
+          # then we need to try the SOA TTL element from the config. Otherwise,
+          # find the SOA Minimum field, and use that.
+          # We should also generate a warning to that effect
+          # How do we know if it is an SOA record at this stage? It must be, or
+          # else @last_explicit_ttl should be defined
+          # We could put a marker in the RR for now - and replace it once we know
+          # the actual type. If the type is not SOA then, then we can raise an error
+          line = name + " %MISSING_TTL% "
+        else
+          line = name + " #{@last_explicit_ttl} "
+        end
         (split.length - 1).times {|i| line += "#{split[i+1]} "}
         line += "\n"
         split = line.split
@@ -216,7 +234,7 @@ module KASPAuditor
         # So add the last explicit class in
         line = ""
         (2).times {|i| line += "#{split[i]} "}
-        line += " #{last_explicit_class} "
+        line += " #{@last_explicit_class} "
         (split.length - 2).times {|i| line += "#{split[i+2]} "}
         line += "\n"
         split = line.split
@@ -236,7 +254,20 @@ module KASPAuditor
       @last_name = name
 
       if (is_soa)
+        if (@config.soa && @config.soa.ttl)
+          # Replace the %MISSING_TTL% text with the SOA TTL from the config
+          line.sub!(" %MISSING_TTL% ", " #{@config.soa.ttl} ")
+        else
+          # Can we try the @last_explicit_ttl?
+          if (@last_explicit_ttl)
+            line.sub!(" %MISSING_TTL% ", " #{last_explicit_ttl} ")
+          end
+        end
         line = replace_soa_ttl_fields(line)
+        if (!@last_explicit_ttl)
+          soa_rr = Dnsruby::RR.create(line)
+          @last_explicit_ttl = soa_rr.minimum
+        end
       end
 
       line = line.split.join(' ').strip + "\n"

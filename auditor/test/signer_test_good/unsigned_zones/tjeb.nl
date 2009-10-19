@@ -1,4 +1,3 @@
-$TTL  1h
 @		 	 IN		 SOA		 ns.tjeb.nl. jelte.tjeb.nl. 481 28800 7200 604800 3600
 @		  IN		 AAAA		 2002:c3a9:dd9d:1::1
 @		  IN		 MX		 10 sol.nlnetlabs.nl.
