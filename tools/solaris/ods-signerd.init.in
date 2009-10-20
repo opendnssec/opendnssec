@@ -26,8 +26,8 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-export SOFTHSM_CONF=/export/home/sion/temp/opendnssec/install/etc/opendnssec/softhsm.conf
-export LD_LIBRARY_PATH=LD_LIBRARY_PATH:/export/home/sion/temp/opendnssec/install/lib:/export/home/sion/work/subversion/ldns/lib:/usr/local/lib
+# export SOFTHSM_CONF=/etc/softhsm.conf
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:@full_prefix@/lib
 
 signer_bin_file="@full_prefix@/sbin/ods-signerd"
 signer_cli_file="@full_prefix@/bin/ods-signer"
