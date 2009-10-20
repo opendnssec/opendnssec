@@ -75,7 +75,7 @@ module KASPAuditor
       nsec3auditor.delete_nsec3_files()
       # Load SOA record from top of original signed and unsigned files!
       load_soas(original_unsigned_file, original_signed_file)
-      if (@config.name != @soa.name)
+      if (@config.name != @soa.name.to_s)
         log(LOG_ERR, "SOA name (#{@soa.name}) is different to the configured zone name (#{@config.name}) - aborting")
         return 1
       end
