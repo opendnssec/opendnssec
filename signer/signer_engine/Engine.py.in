@@ -146,7 +146,7 @@ class Engine:
             cmd.append(self.config.privs_groupname)
         if self.config.privs_username:
             cmd.append("-u")
-            cmd.append(self.config.privs_userame)
+            cmd.append(self.config.privs_username)
 #        if self.config.privs_chroot:
 #            cmd.append("-t")
 #            cmd.append(self.config.privs_chroot)
