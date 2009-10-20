@@ -3,6 +3,8 @@
  *
  * Copyright (c) 2009 Nominet UK. All rights reserved.
  *
+ * Based heavily on uidswap.c from openssh-5.2p1
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -52,6 +54,10 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     uid_t uid, olduid;
     gid_t gid, oldgid;
 
+    long ngroups_max;
+    gid_t *final_groups;
+    int final_group_len = -1;
+
     /* Save effective uid/gid */
     uid = olduid = geteuid();
     gid = oldgid = getegid();
@@ -88,17 +94,47 @@ privdrop(const char *username, const char *groupname, const char *newroot)
        }
     }
 
-    /* Drop gid? */
-    if (groupname) {
+    /* Do Additional groups first */
+    if (username != NULL && !olduid) {
+        if (initgroups(username, gid) < 0) {
+            syslog(LOG_ERR, "initgroups failed: %s: %.100s", username, strerror(errno));
+            exit(1);
+        }
+
+        ngroups_max = sysconf(_SC_NGROUPS_MAX) + 1;
+        final_groups = (gid_t *)malloc(ngroups_max *sizeof(gid_t));
+        if (final_groups == NULL) {
+            syslog(LOG_ERR, "Malloc for group struct failed");
+            exit(1);
+        }
+
+        final_group_len = getgroups(ngroups_max, final_groups);
+        /* If we are root then drop all groups other than the final one */
+        if (!olduid) setgroups(final_group_len, final_groups);
+
+        free(final_groups);
+    }
+    else {
         /* If we are root then drop all groups other than the final one */
         if (!olduid) setgroups(1, &(gid));
+    }
 
-#if !defined(linux)
-        setegid(gid);
-        status = setgid(gid);
-#else
+    /* Drop gid? */
+    if (groupname) {
+
+#if defined(HAVE_SETRESGID) && !defined(BROKEN_SETRESGID)
+        status = setresgid(gid, gid, gid);
+#elif defined(HAVE_SETREGID) && !defined(BROKEN_SETREGID)
         status = setregid(gid, gid);
-#endif /* !defined(linux) */
+#else
+        status = setegid(gid);
+        if (status != 0) {
+           syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n",
+               groupname, (unsigned long) gid);
+           exit(1);
+        }
+        status = setgid(gid);
+#endif
 
         if (status != 0) {
            syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n",
@@ -120,7 +156,12 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #else
 
 # ifndef SETEUID_BREAKS_SETUID
-        seteuid(uid);
+        status = seteuid(uid);
+        if (status != 0) {
+           syslog(LOG_ERR, "unable to drop user privileges (seteuid): %s (%lu). exiting...\n",
+               username, (unsigned long) uid);
+           exit(1);
+        }
 # endif  /* SETEUID_BREAKS_SETUID */
 
         status = setuid(uid);
