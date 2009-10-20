@@ -435,114 +435,6 @@ find_empty_nonterminals(ldns_rdf *zone_name,
 	return count;
 }
 
-/* if the line is '$ORIGIN <name>', the name is returned
- * in a newly allocated ldns_rdf. If the line contains anything
- * else, NULL is returned. The returned rdf must be freed with
- * ldns_rdf_deep_free() */
-static ldns_rdf *
-directive_origin(const char *line)
-{
-	size_t len, pos;
-	ldns_rdf *new_origin;
-	if (!line) return NULL;
-	len = strlen(line);
-	if (len > 8 && strncmp(line, "$ORIGIN ", 8) == 0) {
-		pos = 8;
-		/* skip whitespace */
-		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
-		       line[pos] == '\n')) {
-			pos++;
-		}
-		if (pos >= len) {
-			/* bad directive, no name given */
-			return NULL;
-		} else {
-			new_origin = ldns_dname_new_frm_str(&line[pos]);
-			return new_origin;
-		}
-	}
-	return NULL;
-}
-
-/* returns 1 if the line is '$TTL <int>', 0 otherwise */
-/* We cannot directly return atol(int), because then we wouldn't
- * be able to use the directive $TTL 0 */
-static int
-is_directive_ttl(const char *line) {
-	size_t len, pos;
-	if (!line) return 0;
-	len = strlen(line);
-	if (len > 5 && strncmp(line, "$TTL ", 5) == 0) {
-		pos = 5;
-		/* skip whitespace */
-		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
-		       line[pos] == '\n')) {
-			pos++;
-		}
-		if (pos < len && isdigit(line[pos])) return 1;
-	}
-	return 0;
-}
-
-/* returns the ttl from $TTL */
-static uint32_t
-directive_ttl(const char *line) {
-	size_t len, pos;
-	const char *endptr;
-	if (!line) return 0;
-	len = strlen(line);
-	pos = 5;
-	if (len > 5 && strncmp(line, "$TTL ", 5) == 0) {
-		pos = 5;
-		/* skip whitespace */
-		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
-		       line[pos] == '\n')) {
-			pos++;
-		}
-		if (pos < len && isdigit(line[pos]))
-			return ldns_str2period(&line[pos], &endptr);
-	}
-	return 0;
-}
-
-/* automatically handles include, and returns 1 if this is a correct
- * $INCLUDE directive. Returns 0 otherwise */
-static int
-directive_include(const char *line, FILE *rr_files[], int *file_count)
-{
-	size_t len, pos;
-	if (!line || !file_count) return 0;
-	len = strlen(line);
-	if (len > 9 && strncmp(line, "$INCLUDE ", 9) == 0) {
-		pos = 9;
-		/* skip whitespace */
-		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
-		       line[pos] == '\n')) {
-			pos++;
-		}
-		if (pos < len) {
-			if (*file_count >= MAX_FILES - 1) {
-				fprintf(stderr, "Error: maximum depth of $INCLUDE "
-				                "reached. Stopping at %s\n", line);
-				return 0;
-			}
-			(*file_count)++;
-			rr_files[*file_count] = fopen(&line[pos], "r");
-			if (!rr_files[*file_count]) {
-				fprintf(stderr, "Error opening %s for reading: %s\n",
-				        &line[pos], strerror(errno));
-				(*file_count)--;
-				return 0;
-			} else {
-				return 1;
-			}
-		} else {
-			return 0;
-		}
-	}
-	return 0;
-}
-
 int
 main(int argc, char **argv)
 {
@@ -581,7 +473,7 @@ main(int argc, char **argv)
 
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
-	ldns_rdf *zone_name = NULL, *origin = NULL, *tmp;
+	ldns_rdf *zone_name = NULL, *origin = NULL;
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
 
