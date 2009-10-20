@@ -139,8 +139,8 @@ int KsmListBackups(int repo_id)
         status = DbFetchRow(result2, &row2);
         while (status == 0) {
             /* Got a row, print it */
-            DbString(row, 0, &temp_repo);
-            DbInt(row, 1, &temp_backup_req);
+            DbString(row2, 0, &temp_repo);
+            DbInt(row2, 1, &temp_backup_req);
 
             if (temp_backup_req == 0) {
                 printf("Repository %s has unbacked up keys (that can be used)\n", temp_repo);
