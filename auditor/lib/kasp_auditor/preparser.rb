@@ -271,9 +271,49 @@ module KASPAuditor
         end
       end
 
-      line = line.split.join(' ').strip + "\n"
+      line = line.split.join(' ').strip
+      # We need to fix up any non-absolute names in the RR
+      # Some RRs have a single name, at the end of the string -
+      #   to do these, we can just check the last character for "." and add the
+      #   "." + origin string if necessary
+      if ([Types::MX, Types::NS, Types::AFSDB, Types::NAPTR, Types::RT,
+            Types::SRV, Types::CNAME, Types::MB, Types::MG, Types::MR,
+            Types::PTR].include?type_was)
+        if (line[line.length-1, 1] != ".")
+          line = line + "." + @origin.to_s
+        end
+      end
+      # Other RRs have several names. These should be parsed by Dnsruby,
+      #   and the names adjusted there.
+      if ([Types::MINFO, Types::PX, Types::RP].include?type_was)
+        parsed_rr = Dnsruby::RR.create(line)
+        case parsed_rr.type
+        when Types::MINFO
+          if (!parsed_rr.rmailbx.absolute?)
+            parsed_rr.rmailbx = parsed_rr.rmailbx.to_s + "." + @origin.to_s
+          end
+          if (!parsed_rr.emailbx.absolute?)
+            parsed_rr.emailbx = parsed_rr.emailbx.to_s + "." + @origin.to_s
+          end
+        when Types::PX
+          if (!parsed_rr.map822.absolute?)
+            parsed_rr.map822 = parsed_rr.map822.to_s + "." + @origin.to_s
+          end
+          if (!parsed_rr.mapx400.absolute?)
+            parsed_rr.mapx400 = parsed_rr.mapx400.to_s + "." + @origin.to_s
+          end
+        when Types::RP
+          if (!parsed_rr.mailbox.absolute?)
+            parsed_rr.mailbox = parsed_rr.mailbox.to_s + "." + @origin.to_s
+          if (!parsed_rr.txtdomain.absolute?)
+            parsed_rr.txtdomain = parsed_rr.txtdomain.to_s + "." + @origin.to_s
+          end
+          end
+        end
+        line = parsed_rr.to_s
+      end
 
-      return line, type_string
+      return line + "\n", type_string
     end
 
     def get_ttl(ttl_text)

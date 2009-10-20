@@ -1,7 +1,7 @@
 tjeb.nl.		 1h		 IN		 SOA		 ns.tjeb.nl. jelte.tjeb.nl. 278 28800 7200 604800 3600
 tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
 tjeb.nl.		 3600		 IN		 MX		 10 sol.nlnetlabs.nl.
-tjeb.nl.		 3600		 IN		 NS		 ns.tjeb.nl.
+tjeb.nl.		 3600		 IN		 NS		 ns
 tjeb.nl.		 3600		 IN		 NS		 ns-ext.nlnetlabs.nl.
 tjeb.nl.		 3600		 IN		 A		 195.169.221.157
 dragon.tjeb.nl.		 1234		 IN		 AAAA		 2002:c3a9:dd9d:8:219:d1ff:fe81:5c10
@@ -20,5 +20,5 @@ otherdel.tjeb.nl. 123		 IN		 NS		 b.asdf.nl.
 ent.to.tjeb.nl. 111		 IN		 NS		 a.aaaa.nl.
 ent.to.tjeb.nl. 111		 IN		 NS		 b.aaaa.nl.
 ff.wat.out.of.zones. 143 IN		 A 		 123.123.123.123
-bla.tjeb.nl. 1111		 IN		 NS		 glue.bla.tjeb.nl.
+bla.tjeb.nl. 1111		 IN		 NS		 glue.bla
 glue.bla.tjeb.nl. 1234		 IN		 A		 222.222.222.222
