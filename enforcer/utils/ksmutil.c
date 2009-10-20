@@ -1865,6 +1865,9 @@ cmd_rollpolicy ()
             /* make sure that we have at least one zone */ 
             if (zone_count == 0) {
                 printf("No zones on policy; nothing to roll\n");
+                if (DbFlavour() == SQLITE_DB) {
+                    fclose(lock_fd);
+                }
                 StrFree(datetime);
                 return status; 
             } 
