@@ -240,6 +240,9 @@ class Zone:
                 "-f", self.get_zone_input_filename(),
                 "-w", self.get_zone_tmp_filename(".sorted")
               ]
+        if self.zone_config.soa_minimum >= 0:
+            cmd.append("-m")
+            cmd.append(str(self.zone_config.soa_minimum))
         sort_process = Util.run_tool(cmd, subprocess.PIPE)
         
         try:
