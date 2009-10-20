@@ -376,6 +376,9 @@ class Zone:
                 "-f", self.get_zone_tmp_filename(".signed"),
                 "-w", self.get_zone_tmp_filename(".signed.sorted")
               ]
+        if self.zone_config.soa_minimum >= 0:
+            cmd.append("-m")
+            cmd.append(str(self.zone_config.soa_minimum))
         sort_process = Util.run_tool(cmd, subprocess.PIPE)
         
         # sort published keys and zone data
