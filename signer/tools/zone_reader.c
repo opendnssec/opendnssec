@@ -581,7 +581,6 @@ main(int argc, char **argv)
 
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
-	uint32_t default_ttl = 3600;
 	ldns_rdf *zone_name = NULL, *origin = NULL, *tmp;
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
@@ -719,21 +718,8 @@ main(int argc, char **argv)
 	while (line_len >= 0) {
 		line_len = read_line(rr_files[file_count], line, 1, 0);
 		if (line_len > 0) {
-			if (line[0] == '$') {
-				tmp = directive_origin(line);
-				if (tmp) {
-					ldns_rdf_deep_free(origin);
-					origin = tmp;
-				} else if (is_directive_ttl(line)) {
-					default_ttl = directive_ttl(line);
-				} else if (directive_include(line, rr_files,
-				                             &file_count)) {
-					/* Handled automatically by directive_include() */
-				} else {
-					fprintf(stderr, "Error in directive %s\n", line);
-				}
-				continue;
-			} else if (line[0] == ';') {
+			/* no directives possible */
+			if (line[0] == ';') {
 				/* pass through comments, except comments made by me,
 				 * i.e. "Empty non-terminal" */
 				if (strncmp(line, "; Empty non-terminal", 20) != 0) {
@@ -744,7 +730,7 @@ main(int argc, char **argv)
 			} else {
 				status = ldns_rr_new_frm_str(&cur_rr,
 				                             line,
-				                             default_ttl,
+				                             0, /* sorter already gave all RRs explicit TTL */
 				                             origin,
 				                             &prev_name);
 				if (status == LDNS_STATUS_OK) {
