@@ -75,6 +75,10 @@ module KASPAuditor
       nsec3auditor.delete_nsec3_files()
       # Load SOA record from top of original signed and unsigned files!
       load_soas(original_unsigned_file, original_signed_file)
+      if (@config.name != @soa.name)
+        log(LOG_ERR, "SOA name (#{@soa.name}) is different to the configured zone name (#{@config.name}) - aborting")
+        return 1
+      end
       log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
       @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
 
@@ -727,7 +731,7 @@ module KASPAuditor
 
     # Get rid of the last label in the Name
     def lose_last_label(name)
-      if (name.labels.length == 1)
+      if ((name.labels.length == 1) || (name.labels.length == 0))
         return Name.create(".")
       end
       n = Name.new(name.labels()[0, name.labels.length-1], name.absolute?)
