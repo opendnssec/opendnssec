@@ -138,6 +138,8 @@ class Zone:
         output file"""
         result = 0
         zone_file = self.get_zone_output_filename()
+        if not os.path.exists(zone_file):
+            return 0
         cmd = [ self.get_tool_filename("get_serial"),
                 "-f", zone_file ]
         get_serial_c = Util.run_tool(cmd)
