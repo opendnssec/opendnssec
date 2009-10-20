@@ -3,7 +3,7 @@
 @		  IN		 MX		 10 sol.nlnetlabs.nl.
 @		  IN		 MX		 50 xs4all.dacht.net.
 @		  IN		 NS		 ns
-tjeb.nl.		 		 NS		 ns-ext.nlnetlabs.nl.
+		 		 NS		 ns-ext.nlnetlabs.nl.
 tjeb.nl.		  IN		 A		 195.169.221.157
 dragon		  IN		 AAAA		 2002:c3a9:dd9d:8:219:d1ff:fe81:5c10
 nepmail		 3600				 MX		 10 mirre.nlnetlabs.nl.

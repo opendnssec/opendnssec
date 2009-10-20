@@ -232,14 +232,16 @@ module KASPAuditor
     def check_zones_to_audit(zones) # :nodoc: all
       # If @zone_name is present, then only check that zone
       if @zone_name
+        to_keep = nil
         zones.each {|z|
-          if (z[0].name != @zone_name)
-            zones.delete(z)
+          if (z[0].name == @zone_name.to_s)
+            to_keep = z
           end
         }
-        if (zones.length == 0)
+        if (!to_keep)
           KASPAuditor.exit("Can't find #{@zone} zone in zonelist", 1)
         end
+        zones = [to_keep]
       end
       if (@signed_temp)
         # Then, if @signed is also present, then use that name for the
