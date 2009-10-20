@@ -42,7 +42,7 @@ module KASPAuditor
     def sort(file1, file2)
       file1=(file1.to_s+"").untaint
       file2=(file2.to_s+"").untaint
-      system("sort -f #{file1} > #{file2}")
+      system("sort #{file1} > #{file2}")
     end
 
     def initialize(config)
