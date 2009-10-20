@@ -184,6 +184,7 @@ usage(FILE *out)
 	fprintf(out, "Usage: sorter [OPTIONS]\n");
 	fprintf(out, "Sorts the zone read from stdin in canonical order.\n");
 	fprintf(out, "Options:\n");
+	fprintf(out, "-m <minimum>\tSOA minimum\n");
 	fprintf(out, "-o <origin>\tZone origin\n");
 	fprintf(out, "-f <file>\tRead zone from <file> instead of stdin\n");
 	fprintf(out, "-w <file>\tWrite sorted zone to <file> instead of stdout\n");
@@ -338,7 +339,8 @@ main(int argc, char **argv)
 
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
-	uint32_t default_ttl = 3600;
+	uint32_t default_ttl = 0;
+	int soa_minimum_set = 0;
 	ldns_rdf *zone_name = NULL, *origin = NULL, *tmp;
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
@@ -349,7 +351,7 @@ main(int argc, char **argv)
 	rr_files[0] = stdin;
 	out_file = stdout;
 
-	while ((c = getopt(argc, argv, "f:ho:w:")) != -1) {
+	while ((c = getopt(argc, argv, "f:hm:o:w:")) != -1) {
 		switch (c) {
 		case 'f':
 			if (rr_files[0] != stdin) {
@@ -364,6 +366,10 @@ main(int argc, char **argv)
 				        optarg, strerror(errno));
 				exit(1);
 			}
+			break;
+		case 'm':
+			soa_minimum_set = 1;
+			default_ttl = atoi(optarg);
 			break;
 		case 'h':
 			usage(stdout);
@@ -404,6 +410,11 @@ main(int argc, char **argv)
 	origin = ldns_rdf_clone(zone_name);
 	line_len = 0;
 	while (line_len >= 0) {
+		if (!soa_minimum_set) {
+			default_ttl = lookup_minimum(rr_files[file_count]);
+			soa_minimum_set = 1;
+	    }
+
 		line_len = read_line(rr_files[file_count], line, 1, 0);
 		if (line_len >= 0 && !line_contains_space_only(line, line_len)) {
 			if (line[0] == '$') {
