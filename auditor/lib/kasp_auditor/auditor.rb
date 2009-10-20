@@ -137,7 +137,7 @@ module KASPAuditor
           end
         }
       }
-      @key_tracker.process_key_data(@keys, @keys_used, @soa.serial)
+      @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @soa.ttl)
       # Check the last nsec(3) record in the chain points back to the start
       do_final_nsec_check()
 

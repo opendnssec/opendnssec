@@ -134,7 +134,7 @@ module KASPAuditor
       Dir.mkdir(dir) unless File.directory?(dir)
       File.open(filename, File::CREAT) { |f|
         # Now load the cache
-        # @TODO@ Is there an initial timestamp and a current SOA serial to load?
+        # Is there an initial timestamp and a current SOA serial to load?
         count = 0
         while (line = f.gets)
           count += 1
@@ -190,7 +190,7 @@ module KASPAuditor
     # used to sign RRSIGs in the zone.
     # The data is then used to track the lifecycle of zone keys, and perform
     # associated auditing checks
-    def process_key_data(keys, keys_used, soa_serial)
+    def process_key_data(keys, keys_used, soa_serial, soa_ttl)
       update_cache(keys, keys_used)
       if (@last_soa_serial)
         if (soa_serial < @last_soa_serial)
@@ -200,12 +200,12 @@ module KASPAuditor
         @last_soa_serial = soa_serial
       end
       @last_soa_serial = soa_serial
-      run_checks
+      run_checks(soa_ttl)
       # Then we need to save the data
       save_tracker_cache
     end
 
-    def run_checks
+    def run_checks(soa_ttl)
       # We also need to perform the auditing checks against the config
       # Checks to be performed :
       #   a) Warn if number of prepublished KSKs < KSK:Standby
@@ -266,8 +266,29 @@ module KASPAuditor
           end
         end
       }
-      # @TODO@ Error if a key is seen in use without having first been seen in prepublished for at least the zone SOA TTL
-      # @TODO@ Remember not to warn if we haven't been running as long as the zone SOA TTL...
+      check_inuse_keys_history(soa_ttl)
+    end
+    
+    def check_inuse_keys_history(soa_ttl)
+      # Error if a key is seen in use without having first been seen in prepublished for at least the zone SOA TTL
+      # Remember not to warn if we haven't been running as long as the zone SOA TTL...
+      if (Time.now.to_i >= (@initial_timestamp + soa_ttl))
+        # Has a key jumped to in-use without having gone through prepublished for at least soa_ttl?
+        # Just load the cache from disk again - then we could compare the two
+        old_cache = load_tracker_cache
+        @cache.inuse.keys.each {|new_inuse_key|
+          next if old_cache.inuse.keys.include?new_inuse_key
+          if (!old_cache.include_prepublished_key?new_inuse_key)
+            @parent.log(LOG_ERR, "Key (#{new_inuse_key.key_tag}) has gone straight to active use without a prepublished phase")
+            next
+          end
+          old_key_timestamp = old_cache.prepublished[new_inuse_key]
+          if ((Time.now.to_i - old_key_timestamp) < soa_ttl)
+            @parent.log(LOG_ERR, "Key (#{new_inuse_key.key_tag}) has gone to active use, but has only been prepublished for" +
+              " #{(Time.now.to_i - old_key_timestamp)} seconds. Zone SOA ttl is #{soa_ttl}")
+          end
+        }
+      end
     end
 
     def update_cache(keys, keys_used)

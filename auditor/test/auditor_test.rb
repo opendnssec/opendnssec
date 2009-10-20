@@ -275,7 +275,8 @@ class AuditorTest < Test::Unit::TestCase
       # ZSK too long in use
       "ZSK 51901 in use too long - should be max 1 seconds but has been",
       # SOA serial checking
-      "SOA serial has decreased - used to be 101 but is now 100"
+      "SOA serial has decreased - used to be 101 but is now 100",
+      "Key (56013) has gone straight to active use without a prepublished phase"
     ]
     success = check_syslog(stderr, expected_strings, false)
     assert(success, "Keys not correctly tracked over time")
@@ -344,13 +345,13 @@ class AuditorTest < Test::Unit::TestCase
     assert(checker.cache.prepublished.length == 0)
 
     checker.process_key_data([ksk_key1, key1, keynot5011, key3],
-      [ksk_key1.key_tag, keynot5011.key_tag], 100)
+      [ksk_key1.key_tag, keynot5011.key_tag], 100, 1)
     assert(checker.cache.inuse.length == 2)
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 2)
 
     checker.process_key_data([ksk_key1, key1, keynot5011, key5011],
-      [key1.key_tag, ksk_key1.key_tag, key5011.key_tag], 101)
+      [key1.key_tag, ksk_key1.key_tag, key5011.key_tag], 101, 1)
     assert(checker.cache.inuse.length == 3)
     assert(checker.cache.retired.length == 1)
     assert(checker.cache.prepublished.length == 0)
@@ -360,7 +361,7 @@ class AuditorTest < Test::Unit::TestCase
     sleep(2.1)
     key5011.revoked = true
     checker.process_key_data([ksk_key1, key2, key5011, key1],
-      [ksk_key1.key_tag, key2.key_tag, key1.key_tag], 100)
+      [ksk_key1.key_tag, key2.key_tag, key1.key_tag], 100, 1)
     assert(checker.cache.retired.length == 1)
     assert(checker.cache.inuse.length == 3)
     assert(checker.cache.prepublished.length == 0)
