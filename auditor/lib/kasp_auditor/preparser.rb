@@ -102,6 +102,8 @@ module KASPAuditor
       return nil if (line.index(';') == 0)
       return nil if (line.strip.length == 0)
       return nil if (!line || (line.length == 0))
+      comment = line.index(';')
+      line = line[0, comment] if comment
       if ((line.index("SOA")) && (!@seen_soa))
         @seen_soa = true
       end
