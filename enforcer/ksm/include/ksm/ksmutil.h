@@ -45,7 +45,8 @@ extern "C" {
 #endif
 
 /* Function definitions */
-int db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename);
+int db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, int backup);
+void db_disconnect(FILE* lock_fd);
 int update_repositories(char** zone_list_filename, char** kasp_filename);
 int update_policies();
 int update_zones(char* zone_list_filename);

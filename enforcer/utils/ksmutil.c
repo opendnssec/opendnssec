@@ -348,7 +348,6 @@ cmd_setup ()
 {
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
     char* zone_list_filename;   /* Extracted from conf.xml */
     char* kasp_filename;    /* Extracted from conf.xml */
     int status = 0;
@@ -360,7 +359,6 @@ cmd_setup ()
     char *user = NULL;
     char *password = NULL;
 
-    char* backup_filename = NULL;
     char* setup_command = NULL;
 
     int user_certain;
@@ -374,9 +372,18 @@ cmd_setup ()
 
     /* Right then, they asked for it */
 
+    /* try to connect to the database */
+    status = db_connect(&dbhandle, &lock_fd, 1);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
+
     /* Read the database details out of conf.xml */
     status = get_db_details(&dbschema, &host, &port, &user, &password);
     if (status != 0) {
+        db_disconnect(lock_fd);
         StrFree(host);
         StrFree(port);
         StrFree(dbschema);
@@ -389,42 +396,6 @@ cmd_setup ()
        prevent multiple access (not sure that we can be sure that sqlite is
        safe for multiple processes to access). */
     if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(dbschema);
-            StrFree(lock_filename);
-            return(1);
-        }
-        StrFree(lock_filename);
-
-        /* Make a backup of the sqlite DB */
-        StrAppend(&backup_filename, dbschema);
-        StrAppend(&backup_filename, ".backup");
-
-        status = backup_file(dbschema, backup_filename);
-
-        StrFree(backup_filename);
-
-        if (status != 0) {
-            fclose(lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(status);
-        }
 
         /* Run the setup script */
         /* will look like: <SQL_BIN> <DBSCHEMA> < <SQL_SETUP> */
@@ -480,24 +451,12 @@ cmd_setup ()
         StrFree(setup_command);
     }
 
-
-    /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
     /* Free these up early */
     StrFree(host);
     StrFree(port);
     StrFree(dbschema);
     StrFree(user);
     StrFree(password);
-
-    if (status != 0) {
-        printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
-        return(1);
-    }
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
@@ -507,9 +466,7 @@ cmd_setup ()
     status = update_repositories(&zone_list_filename, &kasp_filename);
     if (status != 0) {
         printf("Failed to update repositories\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(zone_list_filename);
         return(1);
     }
@@ -521,9 +478,7 @@ cmd_setup ()
     status = update_policies(kasp_filename);
     if (status != 0) {
         printf("Failed to update policies\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(zone_list_filename);
         return(1);
     }
@@ -538,22 +493,12 @@ cmd_setup ()
     StrFree(zone_list_filename);
     if (status != 0) {
         printf("Failed to update zones\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock: %s", strerror(errno));
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
 
@@ -571,19 +516,15 @@ cmd_update ()
 {
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
     char* zone_list_filename;   /* Extracted from conf.xml */
     char* kasp_filename;   /* Extracted from conf.xml */
     int status = 0;
 
     /* try to connect to the database */
-    status = db_connect(&dbhandle, &lock_fd, &lock_filename);
-    StrFree(lock_filename);
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -595,9 +536,7 @@ cmd_update ()
     status = update_repositories(&zone_list_filename, &kasp_filename);
     if (status != 0) {
         printf("Failed to update repositories\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -608,9 +547,7 @@ cmd_update ()
     status = update_policies(kasp_filename);
     if (status != 0) {
         printf("Failed to update policies\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(zone_list_filename);
         return(1);
     }
@@ -622,24 +559,14 @@ cmd_update ()
     status = update_zones(zone_list_filename);
     if (status != 0) {
         printf("Failed to update zones\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(zone_list_filename);
         return(1);
     }
     StrFree(zone_list_filename);
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
 
@@ -659,23 +586,13 @@ cmd_addzone ()
 {
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-
     char* zonelist_filename = NULL;
     char* backup_filename = NULL;
-    char* db_backup_filename = NULL;
     /* The settings that we need for the zone */
     char* sig_conf_name = NULL;
     char* input_name = NULL;
     char* output_name = NULL;
     int policy_id = 0;
-
-    /* Database connection details */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
 
     xmlDocPtr doc = NULL;
 
@@ -785,91 +702,26 @@ cmd_addzone ()
      * Push this new zonelist into the database
      */
 
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        /* Make a backup of the sqlite DB */
-        StrAppend(&db_backup_filename, dbschema);
-        StrAppend(&db_backup_filename, ".backup");
-
-        status = backup_file(dbschema, db_backup_filename);
-
-        StrFree(db_backup_filename);
-
-        if (status != 0) {
-            fclose(lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(status);
-        }
-    }
-
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
-    }
+    } 
 
     /* Now stick this zone into the database */
     status = KsmPolicyIdFromName(o_policy, &policy_id);
     if (status != 0) {
         printf("Error, can't find policy : %s\n", o_policy);
         printf("Failed to update zones\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
     status = KsmImportZone(o_zone, policy_id);
     if (status != 0) {
         printf("Failed to Import zone\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -877,22 +729,12 @@ cmd_addzone ()
     status = KsmLinkKeys(o_zone, policy_id);
     if (status != 0) {
         printf("Failed to Link Keys to zone\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     printf("Imported zone: %s\n", o_zone);
 
@@ -927,12 +769,6 @@ cmd_delzone ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
 
     /* We should either have a policy name or --all but not both */
     if (all_flag && o_zone != NULL) {
@@ -955,59 +791,11 @@ cmd_delzone ()
         }
     }
 
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(1);
-        }
-
-    }
-
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -1019,9 +807,7 @@ cmd_delzone ()
     status = read_zonelist_filename(&zonelist_filename);
     if (status != 0) {
         printf("couldn't read zonelist\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(zonelist_filename);
         return(1);
     }
@@ -1029,9 +815,7 @@ cmd_delzone ()
     /* Read the file and delete our zone node(s) in memory */
     doc = del_zone_node(zonelist_filename, o_zone);
     if (doc == NULL) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(zonelist_filename);
         return(1);
     }
@@ -1043,9 +827,7 @@ cmd_delzone ()
     StrFree(backup_filename);
     if (status != 0) {
         StrFree(zonelist_filename);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(status);
     }
 
@@ -1055,9 +837,7 @@ cmd_delzone ()
     StrFree(zonelist_filename);
     if (status == -1) {
         printf("Could not save %s\n", zonelist_filename);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -1070,25 +850,19 @@ cmd_delzone ()
         status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
         if (status != 0) {
             printf("Couldn't find zone %s\n", o_zone);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(1);
         }
 
         /* Get the shared_keys parameter */
         status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
         if (status != 0) {
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(status);
         }
         status = KsmParameter(result, &shared);
         if (status != 0) {
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(status);
         }
         KsmParameterEnd(result);
@@ -1106,9 +880,7 @@ cmd_delzone ()
         status = KsmMarkKeysAsDead(zone_id);
         if (status != 0) {
             printf("Error: failed to mark keys as dead in database\n");
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(status);
         }
     }
@@ -1118,9 +890,7 @@ cmd_delzone ()
 
     if (status != 0) {
         printf("Error: failed to remove zone%s from database\n", (all_flag == 1) ? "s" : "");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return status;
     }
     
@@ -1134,15 +904,7 @@ cmd_delzone ()
     }
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     return 0;
 }
@@ -1186,11 +948,6 @@ cmd_exportkeys ()
     int status = 0;
     /* Database connection details */
     DB_HANDLE	dbhandle;
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
 
     int zone_id = -1;
     int state_id = KSM_STATE_ACTIVE;
@@ -1259,31 +1016,12 @@ cmd_exportkeys ()
         StrFree(case_keytype);
     }
 
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, NULL, 0);
     if (status != 0) {
         printf("Failed to connect to database\n");
         return(1);
     }
-  
 
     /* check that the zone name is valid and use it to get some ids */
     if (o_zone != NULL) {
@@ -1400,11 +1138,6 @@ cmd_exportpolicy ()
     int status = 0;
     /* Database connection details */
     DB_HANDLE	dbhandle;
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
 
     xmlDocPtr doc = xmlNewDoc((const xmlChar *)"1.0");
     xmlNodePtr root;
@@ -1422,26 +1155,8 @@ cmd_exportpolicy ()
         return(1);
     } 
 
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, NULL, 0);
     if (status != 0) {
         printf("Failed to connect to database\n");
         return(1);
@@ -1513,14 +1228,6 @@ cmd_rollzone ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-    char* db_backup_filename = NULL;
     DB_RESULT	result;         /* Result of parameter query */
     KSM_PARAMETER data;         /* Parameter information */
     
@@ -1546,81 +1253,18 @@ cmd_rollzone ()
         key_type = KsmKeywordTypeNameToValue(o_keytype);
     }
 
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        StrFree(datetime);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(datetime);
-            StrFree(dbschema);
-            return(1);
-        }
-
-        /* Make a backup of the sqlite DB */
-        StrAppend(&db_backup_filename, dbschema);
-        StrAppend(&db_backup_filename, ".backup");
-
-        status = backup_file(dbschema, db_backup_filename);
-
-        StrFree(db_backup_filename);
-
-        if (status != 0) {
-            fclose(lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            StrFree(datetime);
-            return(status);
-        }
-    }
-
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
         StrFree(datetime);
-        return(status);
+        return(1);
     }
 
     status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         return(status);
     }
@@ -1628,17 +1272,13 @@ cmd_rollzone ()
     /* Get the shared_keys parameter */
     status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         return(status);
     }
     status = KsmParameter(result, &data);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         return(status);
     }
@@ -1651,9 +1291,7 @@ cmd_rollzone ()
         user_certain = getchar();
         if (user_certain != 'y' && user_certain != 'Y') {
             printf("Okay, quitting...\n");
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             StrFree(datetime);
             exit(0);
         }
@@ -1670,15 +1308,7 @@ cmd_rollzone ()
 
     StrFree(datetime);
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     /* Need to poke the enforcer to wake it up */
     if (system("killall -HUP ods-enforcerd") != 0)
@@ -1700,14 +1330,6 @@ cmd_rollpolicy ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-    char* db_backup_filename = NULL;
 
     DB_RESULT   result;     /* To see if the policy shares keys or not */
     KSM_PARAMETER data;     /* Parameter information */
@@ -1740,82 +1362,19 @@ cmd_rollpolicy ()
         key_type = KsmKeywordTypeNameToValue(o_keytype);
     }
 
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        StrFree(datetime);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(dbschema);
-            StrFree(datetime);
-            return(1);
-        }
-
-        /* Make a backup of the sqlite DB */
-        StrAppend(&db_backup_filename, dbschema);
-        StrAppend(&db_backup_filename, ".backup");
-
-        status = backup_file(dbschema, db_backup_filename);
-
-        StrFree(db_backup_filename);
-
-        if (status != 0) {
-            fclose(lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            StrFree(datetime);
-            return(status);
-        }
-    }
-
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
         StrFree(datetime);
-        return(status);
+        return(1);
     }
 
     status = KsmPolicyIdFromName(o_policy, &policy_id);
     if (status != 0) {
         printf("Error, can't find policy : %s\n", o_policy);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         return(status);
     }
@@ -1826,9 +1385,7 @@ cmd_rollpolicy ()
     user_certain = getchar();
     if (user_certain != 'y' && user_certain != 'Y') {
         printf("Okay, quitting...\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         exit(0);
     }
@@ -1836,17 +1393,13 @@ cmd_rollpolicy ()
     /* Find out if this policy shares keys, (we only need to do one zone if this is the case) */
     status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         return(status);
     }
     status = KsmParameter(result, &data);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         return(status);
     }
@@ -1865,9 +1418,7 @@ cmd_rollpolicy ()
             /* make sure that we have at least one zone */ 
             if (zone_count == 0) {
                 printf("No zones on policy; nothing to roll\n");
-                if (DbFlavour() == SQLITE_DB) {
-                    fclose(lock_fd);
-                }
+                db_disconnect(lock_fd);
                 StrFree(datetime);
                 return status; 
             } 
@@ -1915,9 +1466,7 @@ cmd_rollpolicy ()
 
     } 
     else {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         free(zone_list);
         return(status);
@@ -1940,15 +1489,7 @@ cmd_rollpolicy ()
     free(zone_list);
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     /* Need to poke the enforcer to wake it up */
     if (system("killall -HUP ods-enforcerd") != 0)
@@ -1975,81 +1516,12 @@ cmd_keypurge ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-    char* db_backup_filename = NULL;
-
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        /* Make a backup of the sqlite DB */
-        /* TODO skip this if we are only doing a list */
-        StrAppend(&db_backup_filename, dbschema);
-        StrAppend(&db_backup_filename, ".backup");
-
-        status = backup_file(dbschema, db_backup_filename);
-
-        StrFree(db_backup_filename);
-
-        if (status != 0) {
-            fclose(lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(status);
-        }
-    }
 
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -2058,9 +1530,7 @@ cmd_keypurge ()
         status = KsmPolicyIdFromName(o_policy, &policy_id);
         if (status != 0) {
             printf("Error: unable to find a policy named \"%s\" in database\n", o_policy);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return status;
         }
     }
@@ -2070,9 +1540,7 @@ cmd_keypurge ()
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return status;
         }
     }
@@ -2081,22 +1549,12 @@ cmd_keypurge ()
 
     if (status != 0) {
         printf("Error: failed to purge dead keys\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return status;
     }
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
     return 0;
@@ -2115,13 +1573,6 @@ cmd_backup ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-    char* db_backup_filename = NULL;
 
     char* datetime = DtParseDateTimeString("now");
 
@@ -2131,76 +1582,11 @@ cmd_backup ()
         exit(1);
     }
 
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        StrFree(datetime);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(dbschema);
-            StrFree(datetime);
-            return(1);
-        }
-
-        /* Make a backup of the sqlite DB */
-        /* TODO skip this if we are only doing a list */
-        StrAppend(&db_backup_filename, dbschema);
-        StrAppend(&db_backup_filename, ".backup");
-
-        status = backup_file(dbschema, db_backup_filename);
-
-        StrFree(db_backup_filename);
-
-        if (status != 0) {
-            fclose(lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            StrFree(datetime);
-            return(status);
-        }
-    }
-
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         return(1);
     }
@@ -2210,9 +1596,7 @@ cmd_backup ()
         status = KsmSmIdFromName(o_repository, &repo_id);
         if (status != 0) {
             printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             StrFree(datetime);
             return status;
         }
@@ -2221,9 +1605,7 @@ cmd_backup ()
     status = KsmMarkBackup(repo_id, datetime);
     if (status != 0) {
         printf("Error: failed to mark backup as done\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(datetime);
         return status;
     }
@@ -2236,15 +1618,7 @@ cmd_backup ()
 
     StrFree(datetime);
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
     return 0;
@@ -2263,66 +1637,12 @@ cmd_listrolls ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(1);
-        }
-
-    }
 
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -2331,9 +1651,7 @@ cmd_listrolls ()
         status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return status;
         }
     }
@@ -2344,24 +1662,14 @@ cmd_listrolls ()
 
     if (status != 0) {
         printf("Error: failed to list rollovers\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return status;
     }
 
     printf("\n");
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
     return 0;
@@ -2380,66 +1688,12 @@ cmd_listbackups ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(1);
-        }
-
-    }
 
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 0);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -2448,9 +1702,7 @@ cmd_listbackups ()
         status = KsmSmIdFromName(o_repository, &qualifier_id);
         if (status != 0) {
             printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return status;
         }
     }
@@ -2460,23 +1712,13 @@ cmd_listbackups ()
 
     if (status != 0) {
         printf("Error: failed to list backups\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return status;
     }
     printf("\n");
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
     return 0;
@@ -2493,66 +1735,12 @@ cmd_listrepo ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(1);
-        }
-
-    }
 
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 0);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -2571,15 +1759,7 @@ cmd_listrepo ()
     printf("\n");
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
     return 0;
@@ -2596,66 +1776,12 @@ cmd_listpolicy ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(1);
-        }
-
-    }
 
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 0);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -2665,24 +1791,14 @@ cmd_listpolicy ()
 
     if (status != 0) {
         printf("Error: failed to list policies\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return status;
     }
 
     printf("\n");
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
     return 0;
@@ -2700,66 +1816,12 @@ cmd_listkeys ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(1);
-        }
-
-    }
 
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 0);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
@@ -2768,9 +1830,7 @@ cmd_listkeys ()
         status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return status;
         }
     }
@@ -2781,24 +1841,14 @@ cmd_listkeys ()
 
     if (status != 0) {
         printf("Error: failed to list keys\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return status;
     }
 
     printf("\n");
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
     return 0;
@@ -2836,103 +1886,31 @@ cmd_import ()
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-    char* db_backup_filename = NULL;
 
     DB_RESULT	result;         /* Result of parameter query */
     KSM_PARAMETER data;         /* Parameter information */
 
     int user_certain;           /* Continue ? */
-    
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        /* Make a backup of the sqlite DB */
-        StrAppend(&db_backup_filename, dbschema);
-        StrAppend(&db_backup_filename, ".backup");
-
-        status = backup_file(dbschema, db_backup_filename);
-
-        StrFree(db_backup_filename);
-
-        if (status != 0) {
-            fclose(lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(status);
-        }
-    }
-
+  
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
     /* check that the repository is specified and exists */
     if (o_repository == NULL) {
         printf("Error: please specify a repository with the --repository flag\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     } else {
 
         status = KsmSmIdFromName(o_repository, &repo_id);
         if (status != 0) {
             printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return status;
         }
     }
@@ -2940,17 +1918,13 @@ cmd_import ()
     /* check that the zone name is valid and use it to get some ids */
     if (o_zone == NULL) {
         printf("Error: please specify a zone with the --zone flag\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     } else {
         status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(status);
         }
     }
@@ -2958,23 +1932,17 @@ cmd_import ()
     /* Check that the cka_id does not exist (in the specified HSM) */
     if (o_cka_id == NULL) {
         printf("Error: please specify a cka_id with the --cka_id flag\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     } else {
         status = (KsmCheckHSMkeyID(repo_id, o_cka_id, &cka_id_exists));
         if (status != 0) {
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(status);
         }
         if (cka_id_exists == 1) {
             printf("Error: key with cka_id \"%s\" already exists in database\n", o_cka_id);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(1);
         }
     }
@@ -2991,9 +1959,7 @@ cmd_import ()
     else {
         printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", o_keytype);
 
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(case_keytype);
         return(1);
     }
@@ -3004,17 +1970,13 @@ cmd_import ()
         status = StrStrtoi(o_size, &size_int);
         if (status != 0) {
             printf("Error: Unable to convert size \"%s\"; to an integer\n", o_size);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(status);
         }
     }
     else {
         printf("Error: Size \"%s\"; should be numeric only\n", o_size);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(status);
     }
         
@@ -3033,9 +1995,7 @@ cmd_import ()
 
     if (status != 0 || algo_id == 0 || hsm_supported_algorithm(algo_id) != 0) {
         printf("Error: Key algorithm %s not supported; try one of RSASHA1, RSASHA1-NSEC3-SHA1 or RSASHA256\n", o_algo);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(status);
     }
 
@@ -3060,9 +2020,7 @@ cmd_import ()
     else {
         printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", o_keystate);
 
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         StrFree(case_state);
         return(1);
     }
@@ -3074,9 +2032,7 @@ cmd_import ()
         printf("Error: unable to convert \"%s\" into a date\n", o_time);
         date_help();
 
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(status);
     }
     else {
@@ -3089,9 +2045,7 @@ cmd_import ()
         /* can only specify a retire time if the key is being inserted in the active state */
         if (state_id != KSM_STATE_ACTIVE) {
             printf("Error: unable to specify retire time for a key in state \"%s\"\n", o_keystate);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(status);
         }
 
@@ -3100,9 +2054,7 @@ cmd_import ()
             printf("Error: unable to convert retire time \"%s\" into a date\n", o_retire);
             date_help();
 
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             return(status);
         }
         else {
@@ -3115,16 +2067,12 @@ cmd_import ()
     /* Find out if this zone has any others on a "shared keys" policy and warn */
     status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(status);
     }
     status = KsmParameter(result, &data);
     if (status != 0) {
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(status);
     }
     KsmParameterEnd(result);
@@ -3136,9 +2084,7 @@ cmd_import ()
         user_certain = getchar();
         if (user_certain != 'y' && user_certain != 'Y') {
             printf("Okay, quitting...\n");
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             exit(0);
         }
     }
@@ -3147,9 +2093,7 @@ cmd_import ()
     status = KsmImportKeyPair(policy_id, o_cka_id, repo_id, size_int, algo_id, state_id, form_time, form_opt_time, &keypair_id);
     if (status != 0) {
         printf("Error: couldn't import key\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(status);
     }
 
@@ -3162,24 +2106,14 @@ cmd_import ()
 
     if (status != 0) {
         printf("Error: couldn't allocate key to zone(s)\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(status);
     }
 
     printf("Key imported into zone(s)\n");
 
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
     return 0;
@@ -3451,6 +2385,7 @@ main (int argc, char *argv[])
  *
  * A lock will be taken out on the DB if it is SQLite; so it is important to release it
  * in the calling Fn when we are done with it.
+ * If backup is set to 1 then a backup will be made (of a sqlite DB file)
  *
  * Returns 0 if a connection was made.
  *         1 if a connection could not be made.
@@ -3458,7 +2393,7 @@ main (int argc, char *argv[])
  *
  */
     int
-db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
+db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, int backup)
 {
     /* what we will read from the file */
     char *dbschema = NULL;
@@ -3470,6 +2405,7 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
     int status;
 
     char* backup_filename = NULL;
+    char* lock_filename;
 
     /* Read the database details out of conf.xml */
     status = get_db_details(&dbschema, &host, &port, &user, &password);
@@ -3488,37 +2424,44 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
     if (DbFlavour() == SQLITE_DB) {
 
         /* set up lock filename (it may have changed?) */
-        *lock_filename = NULL;
-        StrAppend(lock_filename, dbschema);
-        StrAppend(lock_filename, ".our_lock");
+        if (lock_fd != NULL) {
+            lock_filename = NULL;
+            StrAppend(&lock_filename, dbschema);
+            StrAppend(&lock_filename, ".our_lock");
 
-        *lock_fd = fopen(*lock_filename, "w");
-        status = get_lite_lock(*lock_filename, *lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (*lock_fd != NULL) {
-                fclose(*lock_fd);
+            *lock_fd = fopen(lock_filename, "w");
+            status = get_lite_lock(lock_filename, *lock_fd);
+            if (status != 0) {
+                printf("Error getting db lock\n");
+                if (*lock_fd != NULL) {
+                    fclose(*lock_fd);
+                }
+                StrFree(dbschema);
+                return(1);
             }
-            StrFree(dbschema);
-            return(1);
+            StrFree(lock_filename);
         }
 
         /* Make a backup of the sqlite DB */
-        StrAppend(&backup_filename, dbschema);
-        StrAppend(&backup_filename, ".backup");
+        if (backup == 1) {
+            StrAppend(&backup_filename, dbschema);
+            StrAppend(&backup_filename, ".backup");
 
-        status = backup_file(dbschema, backup_filename);
+            status = backup_file(dbschema, backup_filename);
 
-        StrFree(backup_filename);
+            StrFree(backup_filename);
 
-        if (status != 0) {
-            fclose(*lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(status);
+            if (status != 0) {
+                if (lock_fd != NULL) {
+                    fclose(*lock_fd);
+                }
+                StrFree(host);
+                StrFree(port);
+                StrFree(dbschema);
+                StrFree(user);
+                StrFree(password);
+                return(status);
+            }
         }
 
     }
@@ -3534,6 +2477,29 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, char** lock_filename)
     StrFree(password);
 
     return(status);
+}
+
+/* 
+ * Release the lock if the DB is SQLite
+ *
+ */
+    void
+db_disconnect(FILE* lock_fd)
+{
+    int status = 0;
+
+    if (DbFlavour() == SQLITE_DB) {
+        if (lock_fd != NULL) {
+            status = release_lite_lock(lock_fd);
+            if (status != 0) {
+                printf("Error releasing db lock");
+                fclose(lock_fd);
+                return;
+            }
+            fclose(lock_fd);
+        }
+    }
+    return;
 }
 
 /* To overcome the potential differences in sqlite compile flags assume that it is not
@@ -5642,105 +4608,31 @@ int cmd_genkeys()
         /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* lock_filename;    /* name for the lock file (so we can close it) */
-    char *dbschema = NULL;
-    char *host = NULL;
-    char *port = NULL;
-    char *user = NULL;
-    char *password = NULL;
-    char* db_backup_filename = NULL;
-
-    /* Read the database details out of conf.xml */
-    status = get_db_details(&dbschema, &host, &port, &user, &password);
-    if (status != 0) {
-        StrFree(host);
-        StrFree(port);
-        StrFree(dbschema);
-        StrFree(user);
-        StrFree(password);
-        return(status);
-    }
-
-    /* If we are in sqlite mode then take a lock out on a file to
-       prevent multiple access (not sure that we can be sure that sqlite is
-       safe for multiple processes to access). */
-    if (DbFlavour() == SQLITE_DB) {
-
-        /* set up lock filename (it may have changed?) */
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
-
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(dbschema);
-            return(1);
-        }
-
-        /* Make a backup of the sqlite DB */
-        StrAppend(&db_backup_filename, dbschema);
-        StrAppend(&db_backup_filename, ".backup");
-
-        status = backup_file(dbschema, db_backup_filename);
-
-        StrFree(db_backup_filename);
-
-        if (status != 0) {
-            fclose(lock_fd);
-            StrFree(host);
-            StrFree(port);
-            StrFree(dbschema);
-            StrFree(user);
-            StrFree(password);
-            return(status);
-        }
-    }
 
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
-
-    /* Free these up early */
-    StrFree(host);
-    StrFree(port);
-    StrFree(dbschema);
-    StrFree(user);
-    StrFree(password);
-
+    status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
         printf("Failed to connect to database\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         return(1);
     }
 
     policy = KsmPolicyAlloc();
     if (policy == NULL) {
         printf("Malloc for policy struct failed\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         exit(1);
     }
 
     if (o_policy == NULL) {
         printf("Please provide a policy name with the --policy option\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         KsmPolicyFree(policy);
         return(1);
     }
     if (o_interval == NULL) {
         printf("Please provide an interval with the --interval option\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         KsmPolicyFree(policy);
         return(1);
     }
@@ -5753,17 +4645,13 @@ int cmd_genkeys()
         status = KsmPolicyRead(policy);
         if(status != 0) {
             printf("Error: unable to read policy %s from database\n", o_policy);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             KsmPolicyFree(policy);
             return status;
         }
     } else {
         printf("Error: policy %s doesn't exist in database\n", o_policy);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         KsmPolicyFree(policy);
         return status;
     }
@@ -5777,9 +4665,7 @@ int cmd_genkeys()
     status = DtXMLIntervalSeconds(o_interval, &interval);
     if (status > 0) {
         printf("Error: unable to convert Interval %s to seconds, error: %i\n", o_interval, status);
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         KsmPolicyFree(policy);
         return status;
     }
@@ -5817,9 +4703,7 @@ int cmd_genkeys()
                     printf("hsm_open() result: %d", status);
             }
         }
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         KsmPolicyFree(policy);
         exit(1);
     }
@@ -5831,9 +4715,7 @@ int cmd_genkeys()
     /* Check datetime in case it came back NULL */
     if (rightnow == NULL) {
         printf("Couldn't turn \"now\" into a date, quitting...\n");
-        if (DbFlavour() == SQLITE_DB) {
-            fclose(lock_fd);
-        }
+        db_disconnect(lock_fd);
         KsmPolicyFree(policy);
         exit(1);
     }
@@ -5888,9 +4770,7 @@ int cmd_genkeys()
                     printf("%s\n", hsm_error_message);
                     free(hsm_error_message);
                 }
-                if (DbFlavour() == SQLITE_DB) {
-                    fclose(lock_fd);
-                }
+                db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
                 exit(1);
             }
@@ -5904,9 +4784,7 @@ int cmd_genkeys()
                     printf("%s\n", hsm_error_message);
                     free(hsm_error_message);
                 }
-                if (DbFlavour() == SQLITE_DB) {
-                    fclose(lock_fd);
-                }
+                db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
                 exit(1);
             }
@@ -5915,9 +4793,7 @@ int cmd_genkeys()
             free(id);
         } else {
             printf("Key algorithm %d unsupported by libhsm.\n", policy->ksk->algorithm);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             KsmPolicyFree(policy);
             exit(1);
         }
@@ -5978,9 +4854,7 @@ int cmd_genkeys()
                     printf("%s\n", hsm_error_message);
                     free(hsm_error_message);
                 }
-                if (DbFlavour() == SQLITE_DB) {
-                    fclose(lock_fd);
-                }
+                db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
                 exit(1);
             }
@@ -5994,9 +4868,7 @@ int cmd_genkeys()
                     printf("%s\n", hsm_error_message);
                     free(hsm_error_message);
                 }
-                if (DbFlavour() == SQLITE_DB) {
-                    fclose(lock_fd);
-                }
+                db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
                 exit(1);
             }
@@ -6005,9 +4877,7 @@ int cmd_genkeys()
             free(id);
         } else {
             printf("Key algorithm %d unsupported by libhsm.\n", policy->zsk->algorithm);
-            if (DbFlavour() == SQLITE_DB) {
-                fclose(lock_fd);
-            }
+            db_disconnect(lock_fd);
             KsmPolicyFree(policy);
             exit(1);
         }
@@ -6034,15 +4904,7 @@ int cmd_genkeys()
     KsmPolicyFree(policy);
     
     /* Release sqlite lock file (if we have it) */
-    if (DbFlavour() == SQLITE_DB) {
-        status = release_lite_lock(lock_fd);
-        if (status != 0) {
-            printf("Error releasing db lock");
-            fclose(lock_fd);
-            return(1);
-        }
-        fclose(lock_fd);
-    }
+    db_disconnect(lock_fd);
 
     return status;
 }
