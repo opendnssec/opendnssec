@@ -34,5 +34,6 @@
 int read_line(FILE *input, char *line, int multiline, int skip_comments);
 void rr_list_clear(ldns_rr_list *rr_list);
 uint32_t lookup_serial(FILE* fd);
+uint32_t lookup_minimum(FILE* fd);
 
 

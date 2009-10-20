@@ -122,24 +122,24 @@ rr_list_clear(ldns_rr_list *rr_list) {
 	ldns_rr_list_set_rr_count(rr_list, 0);
 }
 
-/* lookup serial */
+/* lookup serial, minimum */
 static uint32_t
-get_serial(ldns_rr *rr)
+get_soa_rdata(ldns_rr *rr, int rnum)
 {
-	uint32_t serial = 0;
+	uint32_t rdata = 0;
 	if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
-		serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, 2));
+		rdata = ldns_rdf2native_int32(ldns_rr_rdf(rr, rnum));
 	}
-	return serial;
+	return rdata;
 }
 
-uint32_t
-lookup_serial(FILE* fd)
+static uint32_t
+lookup_soa_rdata(FILE* fd, int rnum)
 {
 	ldns_rr *cur_rr;
 	char line[MAX_LINE_LEN];
 	ldns_status status;
-	uint32_t serial;
+	uint32_t rdata;
 	int line_len = 0;
 
 	while (line_len >= 0) {
@@ -148,14 +148,26 @@ lookup_serial(FILE* fd)
 			if (line[0] != ';') {
 				status = ldns_rr_new_frm_str(&cur_rr, line, 0, NULL, NULL);
 				if (status == LDNS_STATUS_OK) {
-					serial = get_serial(cur_rr);
+					rdata = get_soa_rdata(cur_rr, rnum);
 					ldns_rr_free(cur_rr);
-					if (serial != 0) {
-                        return serial;
+					if (rdata != 0) {
+                        return rdata;
 					}
 				}
 			}
 		}
 	}
 	return 0;
+}
+
+uint32_t
+lookup_serial(FILE* fd)
+{
+	return lookup_soa_rdata(fd, 2);
+}
+
+uint32_t
+lookup_minimum(FILE* fd)
+{
+	return lookup_soa_rdata(fd, 6);
 }
