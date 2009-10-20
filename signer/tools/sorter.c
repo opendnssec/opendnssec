@@ -202,8 +202,8 @@ directive_origin(const char *line)
 	ldns_rdf *new_origin;
 	if (!line) return NULL;
 	len = strlen(line);
-	if (len > 8 && strncmp(line, "$ORIGIN ", 8) == 0) {
-		pos = 8;
+	if (len > 7 && strncmp(line, "$ORIGIN", 7) == 0) {
+		pos = 7;
 		/* skip whitespace */
 		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
 		       line[pos] == '\n')) {
@@ -228,8 +228,8 @@ is_directive_ttl(const char *line) {
 	size_t len, pos;
 	if (!line) return 0;
 	len = strlen(line);
-	if (len > 5 && strncmp(line, "$TTL ", 5) == 0) {
-		pos = 5;
+	if (len > 4 && strncmp(line, "$TTL", 4) == 0) {
+		pos = 4;
 		/* skip whitespace */
 		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
 		       line[pos] == '\n')) {
@@ -247,9 +247,8 @@ directive_ttl(const char *line) {
 	const char *endptr;
 	if (!line) return 0;
 	len = strlen(line);
-	pos = 5;
-	if (len > 5 && strncmp(line, "$TTL ", 5) == 0) {
-		pos = 5;
+	if (len > 4 && strncmp(line, "$TTL", 4) == 0) {
+		pos = 4;
 		/* skip whitespace */
 		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
 		       line[pos] == '\n')) {
