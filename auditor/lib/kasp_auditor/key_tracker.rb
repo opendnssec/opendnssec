@@ -42,6 +42,8 @@ module KASPAuditor
   # DEAD keys may be purged from the file (and may indeed never appear).
   # The key_tag will be the PRE-REVOKED key_tag (even for revoked keys).
   # The timestamp field records the time the key first entered the new state.
+  # The file starts with two records - one for the timestamp at which the file
+  # was originally created, and one for the last SOA serial that was seen.
   #
   class KeyTracker
     class Status < Dnsruby::CodeMapper
@@ -51,14 +53,10 @@ module KASPAuditor
       update
     end
 
-    # @TODO@ Add SOA tracking - error if the SOA ever goes down.
-    # @TODO@ Also add timestamp for "first ever scan"
-    # i.e. add two lines at top of file :
-    # <first_timestamp>
-    # <last_soa_serial>
-    # Add these to the load/save cache methods
-
     SEPARATOR = "\0\0$~$~$~\0\0"
+
+    # The Cache holds the data for each of the Status levels.
+    # It is dynamically generated from the Status levels.
     class Cache
       # Set up add_inuse_key, etc.
       Status.strings.each {|s| eval "attr_reader :#{s.downcase}"}
@@ -205,6 +203,7 @@ module KASPAuditor
       save_tracker_cache
     end
 
+    # run the checks on the new zone data
     def run_checks(soa_ttl)
       # We also need to perform the auditing checks against the config
       # Checks to be performed :
