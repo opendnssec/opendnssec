@@ -296,8 +296,6 @@ class AuditorTest < Test::Unit::TestCase
 
   def run_keytracker_tests(syslog)
     # Run the keytracker tests from within the created test environment
-    # @TODO@ Test the SOA serial tracking!
-    # @TODO@ Test errors from keys entering inuse without sufficient prepublished time
 
     # So, create some keys for testing
     ksk_key1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
