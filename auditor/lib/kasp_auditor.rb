@@ -35,7 +35,6 @@ require 'kasp_auditor/key_tracker.rb'
 require 'kasp_auditor/auditor.rb'
 require 'kasp_auditor/parse.rb'
 require 'kasp_auditor/preparser.rb'
-require 'kasp_auditor/auditor_daemon.rb'
 
 # This module provides auditing capabilities to OpenDNSSEC.
 # Once an unsigned zone has been signed, this module is used to check that
@@ -57,6 +56,7 @@ module KASPAuditor
     Kernel.exit(err)
   end
   $SAFE = 1
+
   # The KASPAuditor takes the signed and unsigned zones and compares them.
   # It first parses both files, and creates transient files which are then
   # sorted into canonical order. These files are then processed by the
@@ -84,21 +84,6 @@ module KASPAuditor
         Syslog::LOG_CONS, syslog_facility) { |syslog|
         run_with_syslog(zonelist, kasp_file, syslog, working, enforcer_interval)
       }
-    end
-
-    def run_as_daemon
-      daemon = AuditorDaemon.new
-      daemon.conf_file = @conf_file
-      if (@kasp_file)
-        daemon.kasp_file = @kasp_file
-      end
-      if (@zone_name)
-        daemon.zone_name = @zone_name
-        if (@signed_temp)
-          daemon.signed_temp = @signed_temp
-        end
-      end
-      daemon.run
     end
 
     # This method is provided so that the test code can use its own syslog

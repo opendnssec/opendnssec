@@ -21,7 +21,6 @@ class OptionsParser
       options.default_conf_file = path + "conf.xml"
       options.zone_name = nil
       options.signed_temp = nil
-      options.daemonize = false
 
       opts = OptionParser.new do |opts|
         opts.banner = "Usage: ods-auditor [options]"
@@ -60,12 +59,6 @@ class OptionsParser
         end
 
 
-        # daemonize
-        opts.on("-d", "--daemonize",
-                "Run the auditor as a daemon") do |ext|
-           options.daemonize = true
-        end
-
         opts.on("-v", "--version", # Override default
                "Display version information") do |x|
            print "@VERSION@\n"
@@ -86,13 +79,19 @@ class OptionsParser
 
       end
 
-      opts.parse!(args)
+      begin
+        opts.parse!(args)
+      rescue OptionParser::InvalidOption => e
+        print "Invalid option : #{e}\n"
+        puts opts
+        exit
+      end
       options
     end  # parse()
 end
 
+  options = OptionsParser.parse(ARGV)
 runner = Runner.new
-options = OptionsParser.parse(ARGV)
 if (options.conf_file)
     runner.conf_file = options.conf_file
 else
@@ -110,8 +109,4 @@ end
 if (options.enable_timeshift)
   runner.enable_timeshift = true
 end
-if (options.daemonize)
-  runner.run_as_daemon()
-else
-  runner.run()
-end
+runner.run()
