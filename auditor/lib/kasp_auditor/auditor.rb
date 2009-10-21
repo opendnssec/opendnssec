@@ -37,12 +37,20 @@ module KASPAuditor
   # @TODO@ SOA Checks - format, etc.
   
   class Auditor # :nodoc: all
+    # Create a new Auditor - pass in the created syslog for logging, the path
+    # of the working (temporary) directory, and the //Enforcer/Interval
+    # Once created, use the check_zone method to audit a zone.
+    # An Auditor class can be reset using the reset method, but it's probably
+    # best to create a new Auditor for each zone you want to audit.
+    # This class is thread-safe.
     def initialize(syslog, working, enforcer_interval)
       @syslog = syslog
       @working = (working.to_s + "").untaint
       @enforcer_interval = enforcer_interval
       reset
     end
+    # Reset the auditor - used privately. It's best to instantiate a new Auditor
+    # for each zone you want to audit.
     def reset
       @ret_val = 999
       @keys = []
@@ -60,14 +68,28 @@ module KASPAuditor
       @config = nil
       @key_tracker = nil
     end
-    def set_config(c)
+    def set_config(c) # :nodoc: all
       @config = c
       if (@config.inconsistent_nsec3_algorithm?)
         log(LOG_WARNING, "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used")
       end
     end
-    
-    #This version of the auditor will work on sorted zone files, rather than loading whole zones into memory
+
+    # Actually audit a zone.
+    # Pass in the Config object, and the paths to :
+    #  the parsed and sorted signed file
+    #  the parsed and sorted unsigned file
+    #  the original (unparsed) unsigned file
+    #  the original (unparsed) signed file
+    # Returns an error code equivalent to the worst log level message created.
+    # A non-zero return is only generated if LOG_ERR or worse log level messages
+    # were created.
+    # If the zone to be audited is NSEC3-signed, then additional temporary files
+    # will be created during the audit. These will be deleted at the end of the
+    # audit.
+    # In order to track keys over time, a "permanent temporary" file is created,
+    # in a "tracker" folder in the working directory. This will not be deleted
+    # by the auditor, as it is required to keep state on the zone over time.
     def check_zone(cnfg, unsigned_file, signed_file, original_unsigned_file, original_signed_file)
       reset
       set_config(cnfg)
@@ -119,7 +141,7 @@ module KASPAuditor
                 last_unsigned_rr = get_next_rr(unsignedfile)
               elsif (compare_return < 0) # unsigned > signed
                 #                print "Signed file behind unsigned - loading next subdomain from #{last_signed_rr.name}\n"
-                last_signed_rr = load_signed_subdomain(signedfile, signed_file, last_signed_rr, [])
+                last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, [])
                 #                print "Last signed rr now: #{last_signed_rr}\n"
               end
               #              print"Comparing signed #{last_signed_rr} to unsigned #{last_unsigned_rr}\n"
@@ -129,7 +151,7 @@ module KASPAuditor
             # Now we're at the same subdomain of the zone name. Keep loading from both files until the subdomain changes in that file.
             #            print "Now at #{last_signed_rr.name} for signed, and #{last_unsigned_rr.name} for unsigned\n"
             unsigned_domain_rrs, last_unsigned_rr = load_unsigned_subdomain(unsignedfile, last_unsigned_rr)
-            last_signed_rr = load_signed_subdomain(signedfile, signed_file, last_signed_rr, unsigned_domain_rrs)
+            last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, unsigned_domain_rrs)
 
           end
           if (last_unsigned_rr)
@@ -137,7 +159,9 @@ module KASPAuditor
           end
         }
       }
+      # Now take a look at how the keys are changing over time...
       @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @soa.ttl)
+
       # Check the last nsec(3) record in the chain points back to the start
       do_final_nsec_check()
 
@@ -145,6 +169,8 @@ module KASPAuditor
       if (@config.denial.nsec3)
         nsec3auditor.check_nsec3_types_and_opt_out()
       end
+
+      # Now sort out the return value
       log(LOG_INFO, "Finished auditing #{@soa.name} zone")
       if (@ret_val == 999)
         return 0
@@ -218,9 +244,6 @@ module KASPAuditor
         #        print "Loaded unsigned RR : #{l_rr}\n"
         # Add the last_rr to the domain_rrsets
         domain_rrs.push(l_rr)
-        #        if (["NSEC", "NSEC3", "RRSIG", "DNSKEY", "NSEC3PARAM"].include?rr.type.string)
-        #          log(LOG_WARNING, "DNSSEC RRSet present in input zone (#{rr.name}, #{rr.type}")
-        #        end
         # If this is a DNSKEY record, then remember to add it to the keys!
         if (l_rr.type == Types.DNSKEY)
           @keys.push(l_rr)
@@ -423,7 +446,7 @@ module KASPAuditor
     end
 
     # Check this NSEC3 record
-    def check_nsec3(l_rr, signed_file)
+    def check_nsec3(l_rr)
       # Check the policy is not for NSEC!
       if (@config.denial.nsec)
         log(LOG_ERR, "NSEC3 RRs included in NSEC-signed zone")
@@ -493,7 +516,7 @@ module KASPAuditor
     # Load the next subdomain of the zone from the signed file
     # This method also audits the subdomain.
     # It is passed the loaded subdomain from the unsigned file, which it checks against.
-    def load_signed_subdomain(file, signed_file, last_rr, unsigned_domain_rrs = nil)
+    def load_signed_subdomain(file, last_rr, unsigned_domain_rrs = nil)
       # Load next subdomain of the zone (specified in the last_rr.name)
       # Keep going until zone subdomain changes.
       # If we are loading the signed zone, then we also check the records against the unsigned, and build up useful data for the auditing code
@@ -517,7 +540,7 @@ module KASPAuditor
           if (@config.denial.nsec3)
             # Build up a list of hashed domains and the types seen there,
             # iff we're using NSEC3
-            write_types_to_file(current_domain, signed_file, types_covered)
+            write_types_to_file(current_domain, types_covered)
           end
           is_glue = true
           seen_nsec_for_domain = false
@@ -572,7 +595,7 @@ module KASPAuditor
           if (!@first_nsec)
             @first_nsec = l_rr
           end
-          check_nsec3(l_rr, signed_file)
+          check_nsec3(l_rr)
 
         end
         # Check if the record exists in both zones - if not, print an error
@@ -590,7 +613,7 @@ module KASPAuditor
       if (@config.denial.nsec3)
         # Build up a list of hashed domains and the types seen there,
         # iff we're using NSEC3
-        write_types_to_file(current_domain, signed_file, types_covered)
+        write_types_to_file(current_domain, types_covered)
       end
       # Remember to check the signatures of the final RRSet!
       check_signature(current_rrset, is_glue, is_unsigned_delegation)
@@ -621,6 +644,7 @@ module KASPAuditor
       return l_rr
     end
 
+    # Delete a processed RR from the unsigned domain cache
     def delete_rr(unsigned_domain_rrs, l_rr)
       if (l_rr.type == Types.AAAA)
         # We need to inspect the data here - old versions of Dnsruby::RR#==
@@ -636,15 +660,17 @@ module KASPAuditor
       end
     end
 
-    def write_types_to_file(domain, signed_file, types_covered)
-      # This method is called if an NSEC3-sgned zone is being audited.
-      # It records the types actually seen at the owner name, and the hashed
-      # owner name. At the end of the auditing run, this is checked against
-      # the notes of what the NSEC3 RR claimed *should* be at the owner name.
-      #
-      # It builds a transient file (<zone_file>.types) which has records of the
-      # following form:
-      #   <hashed_name> <unhashed_name> <[type1] [type2] ...>
+    # This method is called if an NSEC3-sgned zone is being audited.
+    # It records the types actually seen at the owner name, and the hashed
+    # owner name. At the end of the auditing run, this is checked against
+    # the notes of what the NSEC3 RR claimed *should* be at the owner name.
+    #
+    # It builds a transient file (<zone_file>.types) which has records of the
+    # following form:
+    #   <hashed_name> <unhashed_name> <[type1] [type2] ...>
+    #
+    # It is passed the domain, and the types seen at the domain
+    def write_types_to_file(domain, types_covered)
       return if (types_covered.include?Types.NSEC3) # Only interested in real domains
       #      return if (out_of_zone(domain)) # Only interested in domains which should be here!
       types_string = get_types_string(types_covered)
@@ -667,6 +693,7 @@ module KASPAuditor
       }
     end
 
+    # Turn the types_covered array into a string to display in the log
     def get_types_string(types_covered)
       types_string = ""
       types_covered.uniq.each {|type|
@@ -741,6 +768,7 @@ module KASPAuditor
       return n
     end
 
+    # Are n1 and n2 in the same subdomain of the zone SOA?
     def compare_subdomain_of_zone(n1, n2)
       # Are we in the same main subdomain of the zone?
       # @TODO@ SURELY THIS REPLICATES test_subdomain?
@@ -853,7 +881,11 @@ module KASPAuditor
     # which include lists of NSEC3 RR types_covered, as well as lists of the
     # actual types found at the unhashed domain name.
     # The files also record those NSEC3 RRs for which opt-out was not set.
+    # This class is for private use by the Auditor class
     class Nsec3Auditor
+      # Initialise the Nsec3Auditor.
+      # The parent is taken for ease of testing.
+      # The working directory is passed.
       def initialize(parent, working)
         @parent = parent
         @working = working
@@ -912,8 +944,8 @@ module KASPAuditor
         delete_nsec3_files()
       end
 
+      #  Check the optout names
       def check_optout(types_name_unhashed, owner, next_hashed, types_name, foptout)
-        #  Check the optout names
         if (types_name > owner)
           if (types_name >= next_hashed)
             # Load next non-optout
@@ -945,8 +977,6 @@ module KASPAuditor
           unhashed_name = array[1]
         end
         (array.length-num).times {|i|
-          #        type = Types.new(array[i+1])
-          #        types.push(type)
           types.push(array[i+num])
         }
         if (get_unhashed_name)
@@ -956,8 +986,8 @@ module KASPAuditor
         end
       end
 
+      # Delete the intermediary files used for NSEC3 checking
       def delete_nsec3_files()
-        # Delete the intermediary files used for NSEC3 checking
         w = Dir.new(@working)
         w.each {|f|
           if ((f.index("audit")) && (f.index("#{Process.pid}")))
