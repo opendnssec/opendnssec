@@ -4,7 +4,7 @@
 <service_bundle type='manifest' name='OpenDNSSEC:ods-enforcerd'>
 
 <service
-        name='application/OpenDNSSEC/ods-enforcerd'
+        name='site/opendnssec/enforcer'
         type='service'
         version='1'>
 
@@ -41,7 +41,7 @@
         <exec_method
             type='method'
             name='start'
-            exec='/lib/svc/method/OpenDNSSEC/ods-enforcerd.init start'
+            exec='/lib/svc/method/opendnssec/ods-enforcerd.init start'
             timeout_seconds='10' />
 
         <exec_method

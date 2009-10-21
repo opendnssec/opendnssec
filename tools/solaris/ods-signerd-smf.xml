@@ -4,7 +4,7 @@
 <service_bundle type='manifest' name='OpenDNSSEC:ods-signerd'>
 
 <service
-        name='application/OpenDNSSEC/ods-signerd'
+        name='site/opendnssec/signer'
         type='service'
         version='1'>
 
@@ -41,7 +41,7 @@
         <exec_method
             type='method'
             name='start'
-            exec='/lib/svc/method/OpenDNSSEC/ods-signerd.init start'
+            exec='/lib/svc/method/opendnssec/ods-signerd.init start'
             timeout_seconds='10' />
 
         <exec_method
