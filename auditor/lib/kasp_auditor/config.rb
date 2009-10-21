@@ -58,16 +58,16 @@ module KASPAuditor
                 @keys = Keys.new(p.elements['Keys'])
                 @soa = SOA.new(p.elements['Zone/SOA'])
               rescue Exception => e
-                KASPAuditor.exit("ERROR - Configuration file #{kasp_file_loc} can't be loaded. Try running ods-kaspcheck to check the configuration.", 1)
+                KASPAuditor.exit("ERROR - Configuration file #{kasp_file_loc} can't be loaded. Try running ods-kaspcheck to check the configuration.", 1, syslog)
               end
             end
           }
           if (!found_policy)
-            KASPAuditor.exit("ERROR - Can't find policy #{policy} in KASP Policy.", 1)
+            KASPAuditor.exit("ERROR - Can't find policy #{policy} in KASP Policy.", 1, syslog)
           end
         }
       rescue Errno::ENOENT
-        KASPAuditor.exit("ERROR - Can't find KASP file : #{kasp_file_loc}", 1)
+        KASPAuditor.exit("ERROR - Can't find KASP file : #{kasp_file_loc}", 1, syslog)
       end
       #
       # Read the salt ONLY from the SignerConfiguration
@@ -90,11 +90,11 @@ module KASPAuditor
                 @err = Syslog::LOG_ERR
               end
             else
-              KASPAuditor.exit("ERROR - can't read salt from SignerConfiguration file : #{conf_f}")
+              KASPAuditor.exit("ERROR - can't read salt from SignerConfiguration file : #{conf_f}", 1, syslog)
             end
           }
         rescue Errno::ENOENT
-          KASPAuditor.exit("ERROR - Can't find SignerConfiguration file : #{conf_f}", 1)
+          KASPAuditor.exit("ERROR - Can't find SignerConfiguration file : #{conf_f}", 1, syslog)
         end
       end
     end

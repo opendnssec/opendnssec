@@ -45,10 +45,14 @@ require 'kasp_auditor/auditor_daemon.rb'
 # Several transient files are created during this process - they are removed
 # when the process is complete.
 module KASPAuditor
+  # Make sure that the "sort" command works uniformly across platforms
   ENV['LC_ALL']= "C"
 
-  def KASPAuditor.exit(msg, err)
-    # @TODO@ Log exit msg
+  # Give up - all is lost
+  def KASPAuditor.exit(msg, err, log = nil)
+    if (log)
+      log.log(LOG_ERR, msg)
+    end
     print msg + "\n"
     Kernel.exit(err)
   end
@@ -107,13 +111,12 @@ module KASPAuditor
         zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
           zonelist_file, kasp_file, syslog)
       rescue Exception => e
-        KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR)
+        KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR, syslog)
       end
-      zones = check_zones_to_audit(zones)
+      zones = check_zones_to_audit(zones, syslog)
       # Now check the input and output zones using the config
       if (zones.length == 0)
-        syslog.log(LOG_ERR, "Couldn't find any zones to load")
-        KASPAuditor.exit("Couldn't find any zones to load", -LOG_ERR)
+        KASPAuditor.exit("Couldn't find any zones to load", -LOG_ERR, syslog)
       end
       pid = Process.pid
       ret = 999 # Return value to controlling process
@@ -229,7 +232,7 @@ module KASPAuditor
     # Given a list of configured zones, and a list of zones_to_audit, return
     # only those configured zones which are in the list of zones_to_audit.
     # Ignore a trailing dot.
-    def check_zones_to_audit(zones) # :nodoc: all
+    def check_zones_to_audit(zones, syslog) # :nodoc: all
       # If @zone_name is present, then only check that zone
       if @zone_name
         to_keep = nil
@@ -239,7 +242,7 @@ module KASPAuditor
           end
         }
         if (!to_keep)
-          KASPAuditor.exit("Can't find #{@zone} zone in zonelist", 1)
+          KASPAuditor.exit("Can't find #{@zone} zone in zonelist", 1, syslog)
         end
         zones = [to_keep]
       end
