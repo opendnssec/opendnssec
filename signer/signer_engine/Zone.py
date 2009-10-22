@@ -772,6 +772,11 @@ class Zone:
             if (k["ksk"]):
                 Util.write_p(sign_p, " ".join(scmd), ":add_ksk ")
         nsecced_f = open(self.get_zone_tmp_filename(".nsecced"))
+        if not nsecced_f:
+            syslog.syslog(syslog.LOG_ERR,
+                          "Error opening nsecced zone file: " +
+                          self.get_zone_tmp_filename(".nsecced"))
+            return False
         for line in nsecced_f:
             #syslog.syslog(syslog.LOG_INFO, "send to signer " + l)
             sign_p.stdin.write(line)
@@ -837,6 +842,11 @@ class Zone:
         if not finalize_p:
             return False
         output = open(self.get_zone_tmp_filename(".finalized"), "w")
+        if not output:
+            syslog.syslog(syslog.LOG_ERR,
+                          "Error opening finalized zone file: " +
+                          self.get_zone_tmp_filename(".finalized"))
+            return False
         output.write("; Signed on " +\
                      datetime.fromtimestamp(self.last_signed)\
                      .strftime("%Y-%m-%d %H:%M:%S") + "\n")

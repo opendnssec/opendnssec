@@ -86,6 +86,7 @@ class EngineConfiguration:
             self.from_xml(xmlb)
             xmlb.unlink()
         except ExpatError, exe:
+            print "syntax error in configuration file " + input_file
             raise EngineConfigurationError(str(exe))
         except IOError, ioe:
             raise EngineConfigurationError(str(ioe))
