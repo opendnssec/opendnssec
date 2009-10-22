@@ -28,4 +28,4 @@
 
 ENGINE_LOC=@prefix@/lib/opendnssec/signer
 PYTHONPATH=${ENGINE_LOC}:$PYTHONPATH
-python ${ENGINE_LOC}/Engine.py $@
+@PYTHON@ ${ENGINE_LOC}/Engine.py $@
