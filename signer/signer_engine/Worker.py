@@ -181,16 +181,16 @@ class Worker(threading.Thread):
     def run(self):
         """Run the worker; check for a task in the queue and do it"""
         while self.work:
-            syslog.syslog("worker " + self.name + " acquiring lock")
+            syslog.syslog(syslog.LOG_DEBUG, "worker " + self.name + " acquiring lock")
             self.condition.acquire()
-            syslog.syslog("worker " + self.name + " acquired lock")
+            syslog.syslog(syslog.LOG_DEBUG, "worker " + self.name + " acquired lock")
             self.queue.lock()
             now = time.time()
             if self.queue.has_task(now):
                 task = self.queue.get_task()
                 self.queue.release()
                 self.condition.release()
-                syslog.syslog("worker " + self.name + " released lock")
+                syslog.syslog(syslog.LOG_DEBUG, "worker " + self.name + " released lock")
                 syslog.syslog(syslog.LOG_DEBUG, "Got task for worker " + self.name)
                 if self.work:
                     syslog.syslog(syslog.LOG_DEBUG, "Worker " + self.name + " run task")
@@ -212,15 +212,15 @@ class Worker(threading.Thread):
                 interval = self.queue.time_till_next(now)
                 if self.work:
                     if interval == 0:
-                        syslog.syslog("worker " + self.name + " released lock by going to wait (indef)")
+                        syslog.syslog(LOG_DEBUG, "worker " + self.name + " released lock by going to wait (indef)")
                         self.condition.wait()
                         self.condition.release()
                     else:
-                        syslog.syslog("worker " + self.name + " released lock by going to wait (for ttime)")
+                        syslog.syslog(LOG_DEBUG, "worker " + self.name + " released lock by going to wait (for ttime)")
                         self.condition.wait(interval)
                         self.condition.release()
                 else:
                     self.condition.release()
-                    syslog.syslog("worker " + self.name + " released lock")
+                    syslog.syslog(LOG_DEBUG, "worker " + self.name + " released lock")
 
 
