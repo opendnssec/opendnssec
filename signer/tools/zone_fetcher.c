@@ -187,6 +187,7 @@ read_axfr_config(const char* filename, config_type* cfg)
 
     if (filename == NULL) {
         log_msg(LOG_CRIT, "no zone fetcher configfile provided");
+        log_msg(LOG_NOTICE, "exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -207,12 +208,14 @@ read_axfr_config(const char* filename, config_type* cfg)
                 if (doc == NULL) {
                     log_msg(LOG_ERR, "can not read zone fetcher configfile "
                         "%s", filename);
+                    log_msg(LOG_NOTICE, "exiting...");
                     exit(EXIT_FAILURE);
                 }
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
                     log_msg(LOG_CRIT, "zone fetcher can not create XPath "
                         "context for %s", filename);
+                    log_msg(LOG_NOTICE, "exiting...");
                     exit(EXIT_FAILURE);
                 }
 
@@ -221,6 +224,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                 if (xpathObj == NULL || !xpathObj->nodesetval) {
                     log_msg(LOG_CRIT, "zone fetcher can not locate master "
                         "server(s) in %s", filename);
+                    log_msg(LOG_NOTICE, "exiting...");
                     exit(EXIT_FAILURE);
                 }
                 else {
@@ -363,11 +367,13 @@ read_axfr_config(const char* filename, config_type* cfg)
         if (ret != 0) {
             log_msg(LOG_ERR, "zone fetcher failed to parse config file %s",
                 filename);
+            log_msg(LOG_NOTICE, "exiting...");
             exit(EXIT_FAILURE);
         }
     } else {
         log_msg(LOG_ERR, "zone fetcher was unable to open config file %s",
             filename);
+        log_msg(LOG_NOTICE, "exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -391,6 +397,7 @@ read_zonelist(const char* filename)
 
     if (filename == NULL) {
         log_msg(LOG_CRIT, "no zonelist provided for zone fetcher");
+        log_msg(LOG_NOTICE, "exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -469,11 +476,13 @@ read_zonelist(const char* filename)
         if (ret != 0) {
             log_msg(LOG_ERR, "zone fetcher failed to parse zonelist %s",
                 filename);
+            log_msg(LOG_NOTICE, "exiting...");
             exit(EXIT_FAILURE);
         }
     } else {
         log_msg(LOG_ERR, "zone fetcher was unable to open zonelist %s",
             filename);
+        log_msg(LOG_NOTICE, "exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -546,6 +555,7 @@ setup_daemon(config_type* config)
         case -1: /* error */
             log_msg(LOG_CRIT, "zone fetcher fork() failed: %s",
                 strerror(errno));
+            log_msg(LOG_NOTICE, "exiting...");
             exit(EXIT_FAILURE);
         default: /* parent is done */
             exit(0);
@@ -553,6 +563,7 @@ setup_daemon(config_type* config)
     if (setsid() == -1)
     {
         log_msg(LOG_CRIT, "zone fetcher setsid() failed: %s", strerror(errno));
+        log_msg(LOG_NOTICE, "exiting...");
         exit(EXIT_FAILURE);
     }
     /* setup signal handing */
@@ -1518,6 +1529,7 @@ main(int argc, char **argv)
                 log_msg(LOG_ERR, "unlink pidfile %s failed: %s", config->pidfile,
                     strerror(errno));
             }
+            log_msg(LOG_NOTICE, "exiting...");
             exit(EXIT_FAILURE);
         }
         /* drop privileges */
@@ -1528,6 +1540,7 @@ main(int argc, char **argv)
                     strerror(errno));
             }
             free_sockets(&sockets);
+            log_msg(LOG_NOTICE, "exiting...");
             exit(EXIT_FAILURE);
         }
 
