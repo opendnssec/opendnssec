@@ -124,7 +124,7 @@ module KASPAuditor
         if (comment_index)
           @continued_line = @continued_line[0, comment_index]
         end
-        line = @continued_line.strip.chomp + line
+        line = @continued_line.strip.chomp + " " + line
         if (line.index(")"))
           # OK
           @continued_line = false
