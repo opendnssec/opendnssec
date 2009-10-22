@@ -662,6 +662,49 @@ cmd_addzone ()
         return(1);
     }
 
+    /*
+     * Push this new zonelist into the database
+     */
+
+    /* try to connect to the database */
+    status = db_connect(&dbhandle, &lock_fd, 1);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
+        return(1);
+    } 
+
+    /* Now stick this zone into the database */
+    status = KsmPolicyIdFromName(o_policy, &policy_id);
+    if (status != 0) {
+        printf("Error, can't find policy : %s\n", o_policy);
+        printf("Failed to update zones\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
+    status = KsmImportZone(o_zone, policy_id, 1);
+    if (status != 0) {
+        if (status == -2) {
+            printf("Failed to Import zone; it already exists\n");
+        } else {
+            printf("Failed to Import zone\n");
+        }
+        db_disconnect(lock_fd);
+        return(1);
+    }
+
+    /* If need be (keys shared on policy) link existing keys to zone */
+    status = KsmLinkKeys(o_zone, policy_id);
+    if (status != 0) {
+        printf("Failed to Link Keys to zone\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
+
+    /* Release sqlite lock file (if we have it) */
+    db_disconnect(lock_fd);
+    DbDisconnect(dbhandle);
+
     /* Read the file and add our new node in memory */
     /* TODO don't add if it already exists */
     xmlKeepBlanksDefault(0);
@@ -698,47 +741,7 @@ cmd_addzone ()
         return(1);
     }
 
-    /*
-     * Push this new zonelist into the database
-     */
-
-    /* try to connect to the database */
-    status = db_connect(&dbhandle, &lock_fd, 1);
-    if (status != 0) {
-        printf("Failed to connect to database\n");
-        db_disconnect(lock_fd);
-        return(1);
-    } 
-
-    /* Now stick this zone into the database */
-    status = KsmPolicyIdFromName(o_policy, &policy_id);
-    if (status != 0) {
-        printf("Error, can't find policy : %s\n", o_policy);
-        printf("Failed to update zones\n");
-        db_disconnect(lock_fd);
-        return(1);
-    }
-    status = KsmImportZone(o_zone, policy_id);
-    if (status != 0) {
-        printf("Failed to Import zone\n");
-        db_disconnect(lock_fd);
-        return(1);
-    }
-
-    /* If need be (keys shared on policy) link existing keys to zone */
-    status = KsmLinkKeys(o_zone, policy_id);
-    if (status != 0) {
-        printf("Failed to Link Keys to zone\n");
-        db_disconnect(lock_fd);
-        return(1);
-    }
-
-    /* Release sqlite lock file (if we have it) */
-    db_disconnect(lock_fd);
-
     printf("Imported zone: %s\n", o_zone);
-
-    DbDisconnect(dbhandle);
 
     return 0;
 }
@@ -3348,7 +3351,7 @@ int update_zones(char* zone_list_filename)
                 /*
                  * Now we have all the information update/insert this repository
                  */
-                status = KsmImportZone(zone_name, policy_id);
+                status = KsmImportZone(zone_name, policy_id, 0);
                 if (status != 0) {
                     printf("Error Importing Zone %s\n", zone_name);
                     /* Don't return? try to parse the rest of the zones? */

@@ -180,13 +180,17 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
  *      int policy_id
  *          Policy for the zone
  *
+ *      int fail_if_exists
+ *          Set to 1 if you don't want to update existing zones
+ *
  * Returns:
  *      int
  *          Status return.  0 on success.
  *                         -1 if an unexpected count value was returned
+ *                         -2 if the zone exists and fail_if_exists == 1
 -*/
 
-int KsmImportZone(const char* zone_name, int policy_id)
+int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -198,7 +202,7 @@ int KsmImportZone(const char* zone_name, int policy_id)
     }
 
     /* 
-     * First see if this repository exists
+     * First see if this zone exists
      */
     sql = DqsCountInit(DB_ZONE_TABLE);
     DqsConditionString(&sql, "NAME", DQS_COMPARE_EQ, zone_name, 0);
@@ -227,6 +231,9 @@ int KsmImportZone(const char* zone_name, int policy_id)
     }
     else if (count == 1)
     {
+        if (fail_if_exists == 1) {
+            return -2;
+        }
         sql = DusInit(DB_ZONE_TABLE);
         DusSetInt(&sql, "policy_id", policy_id, 0);
         DusConditionString(&sql, "name", DQS_COMPARE_EQ, zone_name, 0);
