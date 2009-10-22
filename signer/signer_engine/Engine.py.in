@@ -415,6 +415,8 @@ class Engine:
             if command[:4] == "stop":
                 self.stop_engine()
                 response = "Engine stopped"
+            if command[:5] == "start":
+                response = "Engine already running"
             if command[:7] == "restart":
                 signal_handler_stop(1, None)
                 response = "Engine stopped"
