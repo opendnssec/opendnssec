@@ -1,5 +1,5 @@
 /*
- * $Id: sorter.c 1816 2009-09-17 09:48:15Z matthijs $
+ * $Id$
  *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *

@@ -1,5 +1,5 @@
 /*
- * $Id: signer.c 1222 2009-07-01 17:16:57Z jelte $
+ * $Id$
  *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *

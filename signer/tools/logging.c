@@ -1,5 +1,5 @@
 /*
- * $Id: logging.c 1813 2009-09-16 11:33:29Z matthijs $
+ * $Id$
  *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
