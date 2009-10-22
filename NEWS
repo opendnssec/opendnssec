@@ -2,8 +2,11 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
+* Default TTL in case of $TTL or explicit RR TTL becomes the SOA Minimum value (was 3600).
 
+Bugfixes:
+* Trailing spaces are not part of the domain name/ include file/ ttl in directives.
+* nsec3er: Print final RRset, even if no NSEC3 was needed at that RRset.
 
 OpenDNSSEC 1.0.0b3 - 2009-10-16
 
