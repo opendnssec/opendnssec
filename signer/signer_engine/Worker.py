@@ -1,4 +1,4 @@
-# $Id$
+/# $Id$
 #
 # Copyright (c) 2009 NLNet Labs. All rights reserved.
 #
@@ -64,9 +64,9 @@ class Task:
                 syslog.syslog(syslog.LOG_ERR,
                               "Error while signing: " + str(e))
         elif self.what == Task.NOTIFY_SERVER:
-            syslog.syslog(syslog.LOG_INFO, "Run task: notify server")
+            syslog.syslog(syslog.LOG_DEBUG, "Run task: notify server")
         elif self.what == Task.DUMMY:
-            syslog.syslog(syslog.LOG_INFO, "Run task: dummy task ")
+            syslog.syslog(syslog.LOG_DEBUG, "Run task: dummy task ")
         else:
             syslog.syslog(syslog.LOG_ERR,
                           "Error: unknown task: " + str(self.what))
@@ -191,9 +191,9 @@ class Worker(threading.Thread):
                 self.queue.release()
                 self.condition.release()
                 syslog.syslog("worker " + self.name + " released lock")
-                syslog.syslog(syslog.LOG_INFO, "Got task for worker " + self.name)
+                syslog.syslog(syslog.LOG_DEBUG, "Got task for worker " + self.name)
                 if self.work:
-                    syslog.syslog(syslog.LOG_INFO, "Worker " + self.name + " run task")
+                    syslog.syslog(syslog.LOG_DEBUG, "Worker " + self.name + " run task")
                     task.run()
                     if task.repeat_interval > 0:
                         task.when = now + task.repeat_interval
@@ -201,10 +201,10 @@ class Worker(threading.Thread):
                         self.queue.add_task(task)
                         self.queue.release()
                 else:
-                    syslog.syslog(syslog.LOG_INFO, "But worker has been told not to do anything any more")
+                    syslog.syslog(syslog.LOG_DEBUG, "But worker has been told not to do anything any more")
             else:
                 self.queue.release()
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_DEBUG,
                               "no task for worker " +\
                               self.name +\
                               ", sleep for " +\
