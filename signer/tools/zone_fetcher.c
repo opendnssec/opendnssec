@@ -1513,12 +1513,21 @@ main(int argc, char **argv)
         /* listen to NOTIFY messages */
         c = init_sockets(&sockets, config->notifylist);
         if (c == -1) {
-            log_msg(LOG_CRIT, "zone fetcher failed to initialize sockets");
+            log_msg(LOG_ERR, "zone fetcher failed to initialize sockets");
+            if (unlink(config->pidfile) == -1) {
+                log_msg(LOG_ERR, "unlink pidfile %s failed: %s", config->pidfile,
+                    strerror(errno));
+            }
             exit(EXIT_FAILURE);
         }
         /* drop privileges */
         if (privdrop(user, group, chroot) != 0) {
-            log_msg(LOG_CRIT, "zone fetcher failed to drop privileges");
+            log_msg(LOG_ERR, "zone fetcher failed to drop privileges");
+            if (unlink(config->pidfile) == -1) {
+                log_msg(LOG_ERR, "unlink pidfile %s failed: %s", config->pidfile,
+                    strerror(errno));
+            }
+            free_sockets(&sockets);
             exit(EXIT_FAILURE);
         }
 
