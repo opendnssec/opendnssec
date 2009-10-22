@@ -316,9 +316,9 @@ handle_name(FILE *out_file,
 				*first_nsec = ldns_rr_clone(new_nsec);
 			}
 			*prev_nsec = new_nsec;
-			ldns_rr_list_print(out_file, rr_list);
-			rr_list_clear(rr_list);
 		}
+		ldns_rr_list_print(out_file, rr_list);
+		rr_list_clear(rr_list);
 
 		if (*prev_nsec) {
 			link_nsec3_rrs(*prev_nsec, *first_nsec);
