@@ -52,6 +52,7 @@ import signal
 import errno
 import grp
 import pwd
+import optparse
 
 import Zone
 from ZoneConfig import ZoneConfig, ZoneConfigError
@@ -460,14 +461,17 @@ class Engine:
     def stop_zonefetcher(self):
         """Stop the zone fetcher daemon"""
         pid_file = self.config.zonefetch_pidfile
-        pf = open(pid_file, 'r')
-        pid = pf.read()
-        syslog.syslog(syslog.LOG_INFO, "send kill to pid " + pid)
-        pf.close()
-        try:
-            os.kill(int(pid), signal.SIGHUP)
-        except OSError:
-            syslog.syslog(syslog.LOG_ERR, "could not stop zone fetcher: no such process " + pid)
+        if not os.path.exists(pid_file):
+            syslog.syslog(syslog.LOG_ERR, "could not stop zone fetcher: pid file does not exist: " + pid_file)
+        else:
+            pf = open(pid_file, 'r')
+            pid = pf.read()
+            syslog.syslog(syslog.LOG_INFO, "send kill to pid " + pid)
+            pf.close()
+            try:
+                os.kill(int(pid), signal.SIGHUP)
+            except OSError:
+                syslog.syslog(syslog.LOG_ERR, "could not stop zone fetcher: no such process " + pid)
 
     def stop_engine(self):
         """Stop the workers, the zone fetcher and quit the engine"""
@@ -815,7 +819,53 @@ def daemonize_engine():
         os.wait()
         sys.exit()
 
+def check_engine_running(args, file):
+    """Command interface to engine, args is a List of strings, if not
+    None or empty, the list will be concatenated and sent to the engine
+    at host:port"""
+
+    try:
+        cl_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        cl_sock.connect(file)
+        print "Engine already running"
+        cl_sock.shutdown(0)
+        return 0
+    except socket.error, serr:
+        return 1
+
+
+def parse_args():
+    """Parse options"""
+    try:
+        parser = optparse.OptionParser("Usage: %prog [options] command\n\nThe command 'help' shows a complete list of commands")
+        #parser.add_option("-n", "--host", dest="host", default="localhost")
+        parser.add_option("-a", "--all",
+                  action="store_true", dest="all", default=False,
+                  help="when using the command sign, sign all zones")
+
+        parser.add_option("-f", "--file", dest="file",
+                          help="connect to domain socket <file>",
+                          default="@localstatedir@".replace("${prefix}", "@prefix@")+\
+                                  os.sep + \
+                                  "run" + os.sep +\
+                                  "opendnssec" + os.sep + \
+                                  "engine.sock")
+        (options, arguments) = parser.parse_args()
+        if options.all:
+            arguments.append("--all")
+        return check_engine_running(arguments, options.file)
+    except ValueError, vae:
+        print str(vae)
+        return 0
 
 if __name__ == '__main__':
-    print "OpenDNSSEC signer engine version @VERSION@"
-    main()
+    # if we have no arguments, go to interactive mode
+    try:
+        result = parse_args()
+        if result == 1:
+            print "OpenDNSSEC signer engine version @VERSION@"
+            main()
+    except Exception, e:
+        print "Exception occured"
+        raise e
+        sys.exit(2)
