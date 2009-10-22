@@ -50,6 +50,9 @@
  */
 #define DEFAULT_RR_MALLOC 20
 
+static void trimr_string(char* str);
+static void rm_comments(char* str, char c);
+
 struct rr_data_struct {
 	ldns_rdf *name;
 	ldns_rr_type type;
@@ -201,6 +204,9 @@ directive_origin(const char *line)
 	size_t len, pos;
 	ldns_rdf *new_origin;
 	if (!line) return NULL;
+    rm_comments((char*) line, ';');
+    trimr_string((char*) line);
+
 	len = strlen(line);
 	if (len > 7 && strncmp(line, "$ORIGIN", 7) == 0) {
 		pos = 7;
@@ -227,6 +233,8 @@ static int
 is_directive_ttl(const char *line) {
 	size_t len, pos;
 	if (!line) return 0;
+    rm_comments((char*) line, ';');
+    trimr_string((char*) line);
 	len = strlen(line);
 	if (len > 4 && strncmp(line, "$TTL", 4) == 0) {
 		pos = 4;
@@ -246,6 +254,8 @@ directive_ttl(const char *line) {
 	size_t len, pos;
 	const char *endptr;
 	if (!line) return 0;
+    rm_comments((char*) line, ';');
+    trimr_string((char*) line);
 	len = strlen(line);
 	if (len > 4 && strncmp(line, "$TTL", 4) == 0) {
 		pos = 4;
@@ -267,6 +277,8 @@ directive_include(const char *line, FILE *rr_files[], int *file_count)
 {
 	size_t len, pos;
 	if (!line || !file_count) return 0;
+    rm_comments((char*) line, ';');
+    trimr_string((char*) line);
 	len = strlen(line);
 	if (len > 9 && strncmp(line, "$INCLUDE ", 9) == 0) {
 		pos = 9;
@@ -411,6 +423,7 @@ main(int argc, char **argv)
 	while (line_len >= 0) {
 		if (!soa_minimum_set) {
 			default_ttl = lookup_minimum(rr_files[file_count]);
+            rewind(rr_files[file_count]);
 			soa_minimum_set = 1;
 	    }
 
@@ -548,4 +561,39 @@ main(int argc, char **argv)
 	}
 
 	return 0;
+}
+
+/** Remove leading and trailing whitespace */
+static void
+trimr_string(char* str)
+{
+    int i = strlen(str), nl = 0;
+    /* trailing */
+    while (i>0)
+    {
+        --i;
+        if (str[i] == '\n')
+            nl = 1;
+        if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n')
+            str[i] = '\0';
+        else
+            break;
+    }
+    if (nl)
+        str[++i] = '\n';
+}
+
+/* Remove comments */
+static void
+rm_comments(char* str, char c)
+{
+    while (*str != '\0' && *str != c)
+        str++;
+    /* everything after c is comment */
+    if (*str == c)
+    {
+        *str = '\n';
+        str++;
+        *str = '\0';
+    }
 }
