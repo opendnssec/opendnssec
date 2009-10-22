@@ -212,15 +212,15 @@ class Worker(threading.Thread):
                 interval = self.queue.time_till_next(now)
                 if self.work:
                     if interval == 0:
-                        syslog.syslog(LOG_DEBUG, "worker " + self.name + " released lock by going to wait (indef)")
+                        syslog.syslog(syslog.LOG_DEBUG, "worker " + self.name + " released lock by going to wait (indef)")
                         self.condition.wait()
                         self.condition.release()
                     else:
-                        syslog.syslog(LOG_DEBUG, "worker " + self.name + " released lock by going to wait (for ttime)")
+                        syslog.syslog(syslog.LOG_DEBUG, "worker " + self.name + " released lock by going to wait (for ttime)")
                         self.condition.wait(interval)
                         self.condition.release()
                 else:
                     self.condition.release()
-                    syslog.syslog(LOG_DEBUG, "worker " + self.name + " released lock")
+                    syslog.syslog(syslog.LOG_DEBUG, "worker " + self.name + " released lock")
 
 
