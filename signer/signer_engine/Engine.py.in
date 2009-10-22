@@ -466,7 +466,10 @@ class Engine:
         pid = pf.read()
         syslog.syslog(syslog.LOG_INFO, "send kill to pid " + pid)
         pf.close()
-        os.kill(int(pid), signal.SIGHUP)
+        try:
+            os.kill(int(pid), signal.SIGHUP)
+        except OSError:
+            syslog.syslog(syslog.LOG_ERR, "could not stop zone fetcher: no such process " + pid)
 
     def stop_engine(self):
         """Stop the workers, the zone fetcher and quit the engine"""
