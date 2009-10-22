@@ -367,7 +367,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
             new_keys = 0;
         }
         else if (current_count + new_keys >  policy->ksk->sm_capacity) {
-            log_msg(config, LOG_ERR, "Repository %s is nearly full, will create %lu KSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_keys);
+            log_msg(config, LOG_WARNING, "Repository %s is nearly full, will create %lu KSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_keys);
             new_keys = policy->ksk->sm_capacity - current_count;
         }
     }
@@ -446,7 +446,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
             new_keys = 0;
         }
         else if (current_count + new_keys >  policy->zsk->sm_capacity) {
-            log_msg(config, LOG_ERR, "Repository %s is nearly full, will create %lu ZSKs for policy %s (reduced from %d)\n", policy->zsk->sm_name, policy->zsk->sm_capacity - current_count, policy->name, new_keys);
+            log_msg(config, LOG_WARNING, "Repository %s is nearly full, will create %lu ZSKs for policy %s (reduced from %d)\n", policy->zsk->sm_name, policy->zsk->sm_capacity - current_count, policy->name, new_keys);
             new_keys = policy->zsk->sm_capacity - current_count;
         }
     }
@@ -710,7 +710,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     }
 
                     if (roll_time <= config->rolloverNotify) {
-                        log_msg(config, LOG_ERR, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
+                        log_msg(config, LOG_INFO, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
                     }
                     StrFree(datetime);
                 }
@@ -1146,7 +1146,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
         if (key_type == KSM_TYPE_KSK) {
             status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
             if (status == -1) {
-                log_msg(NULL, LOG_ERR, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
                 return 2;
             }
             else if (status != 0) {
@@ -1156,7 +1156,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
         } else {
             status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
             if (status == -1) {
-                log_msg(NULL, LOG_ERR, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
                 return 2;
             }
             else if (status != 0) {

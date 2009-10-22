@@ -247,7 +247,21 @@ log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
     void
 ksm_log_msg(const char *format)
 {
-    syslog(LOG_ERR, "%s", format);
+    if (strncmp(format, "ERROR:", 6) == 0) {
+        syslog(LOG_ERR, "%s", format);
+    }
+    else if (strncmp(format, "INFO:", 5) == 0) {
+        syslog(LOG_INFO, "%s", format);
+    }
+    else if (strncmp(format, "WARNING:", 8) == 0) {
+        syslog(LOG_WARNING, "%s", format);
+    }
+    else if (strncmp(format, "DEBUG:", 6) == 0) {
+        syslog(LOG_DEBUG, "%s", format);
+    }
+    else {
+        syslog(LOG_ERR, "%s", format);
+    }
 }
 
 /* XML Error Message */
