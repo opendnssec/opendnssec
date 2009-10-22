@@ -280,8 +280,8 @@ directive_include(const char *line, FILE *rr_files[], int *file_count)
     rm_comments((char*) line, ';');
     trimr_string((char*) line);
 	len = strlen(line);
-	if (len > 9 && strncmp(line, "$INCLUDE ", 9) == 0) {
-		pos = 9;
+	if (len > 8 && strncmp(line, "$INCLUDE", 8) == 0) {
+		pos = 8;
 		/* skip whitespace */
 		while (pos < len && (line[pos] == ' ' || line[pos] == '\t' ||
 		       line[pos] == '\n')) {
