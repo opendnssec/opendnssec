@@ -488,16 +488,16 @@ class Engine:
         if self.config.zonefetch_file is not None:
             self.stop_zonefetcher()
         if self.command_socket:
-            syslog.syslog(syslog.LOG_INFO, "shut down command socket")
-            self.command_socket.shutdown(socket.SHUT_RDWR)
-            syslog.syslog(syslog.LOG_INFO, "close command socket")
-            self.command_socket.close()
-            self.command_socket = None
-        try:
-            syslog.syslog(syslog.LOG_INFO, "remove command socket")
-            os.remove(self.config.command_socket_file)
-        except OSError:
-            syslog.syslog(syslog.LOG_INFO, "no command channel to clean up")
+            try:
+                syslog.syslog(syslog.LOG_INFO, "shut down command socket")
+                self.command_socket.shutdown(socket.SHUT_RDWR)
+                syslog.syslog(syslog.LOG_INFO, "close command socket")
+                self.command_socket.close()
+                self.command_socket = None
+                syslog.syslog(syslog.LOG_INFO, "remove command socket")
+                os.remove(self.config.command_socket_file)
+            except OSError:
+                syslog.syslog(syslog.LOG_INFO, "no command channel to clean up")
         syslog.syslog(syslog.LOG_INFO, "close syslog")
         syslog.closelog()
 
