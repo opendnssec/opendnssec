@@ -486,8 +486,11 @@ class Engine:
             self.stop_zonefetcher()
         if self.command_socket:
             try:
-                syslog.syslog(syslog.LOG_INFO, "shut down command socket")
-                self.command_socket.shutdown(socket.SHUT_RDWR)
+                try:
+                    syslog.syslog(syslog.LOG_INFO, "shut down command socket")
+                    self.command_socket.shutdown(socket.SHUT_RDWR)
+                except socket.error, soe:
+                    syslog.syslog(syslog.LOG_WARNING, "shutdown socket failed, " + str(soe) + ". Continue with close.")
                 syslog.syslog(syslog.LOG_DEBUG, "close command socket")
                 self.command_socket.close()
                 self.command_socket = None
