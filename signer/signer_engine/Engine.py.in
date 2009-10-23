@@ -496,6 +496,8 @@ class Engine:
                 self.command_socket = None
                 syslog.syslog(syslog.LOG_INFO, "remove command socket")
                 os.remove(self.config.command_socket_file)
+            except socket.error, soe:
+                syslog.syslog(syslog.LOG_ERR, "socket close failed: " + str(soe)) 
             except OSError:
                 syslog.syslog(syslog.LOG_INFO, "no command channel to clean up")
         syslog.syslog(syslog.LOG_INFO, "close syslog")
