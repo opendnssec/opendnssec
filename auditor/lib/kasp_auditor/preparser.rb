@@ -322,7 +322,7 @@ module KASPAuditor
       # Get the TTL in seconds from the m, h, d, w format
       # If no letter afterwards, then in seconds already
       ttl = 0
-      case ttl_text[ttl_text.length-1, 1]
+      case ttl_text[ttl_text.length-1, 1].downcase
       when "s" then
         ttl = (ttl_text[0, ttl_text.length() - 1].to_i)
       when "m" then
