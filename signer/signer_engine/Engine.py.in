@@ -104,21 +104,21 @@ class Engine:
     # notify a worker that there might be something to do
     def notify(self):
         """Wake up the first waiting worker"""
-        syslog.syslog(syslog.LOG_INFO, "acquire cond")
+        syslog.syslog(syslog.LOG_DEBUG, "acquire cond")
         self.condition.acquire()
-        syslog.syslog(syslog.LOG_INFO, "notify")
+        syslog.syslog(syslog.LOG_DEBUG, "notify")
         self.condition.notify()
-        syslog.syslog(syslog.LOG_INFO, "release cond")
+        syslog.syslog(syslog.LOG_DEBUG, "release cond")
         self.condition.release()
     
     # notify all workers that there might be something to do
     def notify_all(self):
         """Wake up all workers"""
-        syslog.syslog(syslog.LOG_INFO, "acquire cond")
+        syslog.syslog(syslog.LOG_DEBUG, "acquire cond")
         self.condition.acquire()
-        syslog.syslog(syslog.LOG_INFO, "notify")
+        syslog.syslog(syslog.LOG_DEBUG, "notify")
         self.condition.notifyAll()
-        syslog.syslog(syslog.LOG_INFO, "release cond")
+        syslog.syslog(syslog.LOG_DEBUG, "release cond")
         self.condition.release()
 
     def start_workers(self):
@@ -436,32 +436,32 @@ class Engine:
     def lock(self, caller=None):
         """Simple spinlock on engine"""
         while (self.locked):
-            syslog.syslog(syslog.LOG_INFO, caller +\
+            syslog.syslog(syslog.LOG_DEBUG, caller +\
                           "waiting for lock on engine to be released")
             time.sleep(1)
         self.locked = True
     
     def release(self):
         """Releases the lock"""
-        syslog.syslog(syslog.LOG_INFO, "Releasing lock on engine")
+        syslog.syslog(syslog.LOG_DEBUG, "Releasing lock on engine")
         self.locked = False
 
     def stop_workers(self):
         """Stop all workers"""
-        syslog.syslog(syslog.LOG_INFO, "call stop_workers()")
+        syslog.syslog(syslog.LOG_DEBUG, "call stop_workers()")
         for worker in self.workers:
-            syslog.syslog(syslog.LOG_INFO,
+            syslog.syslog(syslog.LOG_DEBUG,
                           "stopping worker " + worker.name)
             worker.work = False
         # wait for thread to finish
-        syslog.syslog(syslog.LOG_INFO, "wake all workers so they can finish")
+        syslog.syslog(syslog.LOG_DEBUG, "wake all workers so they can finish")
         self.notify_all()
-        syslog.syslog(syslog.LOG_INFO, "let workers finish")
+        syslog.syslog(syslog.LOG_DEBUG, "let workers finish")
         for worker in self.workers:
-            syslog.syslog(syslog.LOG_INFO, "let worker " + worker.name + " finish")
+            syslog.syslog(syslog.LOG_DEBUG, "let worker " + worker.name + " finish")
             worker.join()
             #time.sleep(1)
-            syslog.syslog(syslog.LOG_INFO, "worker " + worker.name + " finished")
+            syslog.syslog(syslog.LOG_DEBUG, "worker " + worker.name + " finished")
 
     def stop_zonefetcher(self):
         """Stop the zone fetcher daemon"""
@@ -480,7 +480,7 @@ class Engine:
 
     def stop_engine(self):
         """Stop the workers, the zone fetcher and quit the engine"""
-        syslog.syslog(syslog.LOG_INFO, "call stop_workers()")
+        syslog.syslog(syslog.LOG_DEBUG, "call stop_workers()")
         self.stop_workers()
         if self.config.zonefetch_file is not None:
             self.stop_zonefetcher()
@@ -488,15 +488,15 @@ class Engine:
             try:
                 syslog.syslog(syslog.LOG_INFO, "shut down command socket")
                 self.command_socket.shutdown(socket.SHUT_RDWR)
-                syslog.syslog(syslog.LOG_INFO, "close command socket")
+                syslog.syslog(syslog.LOG_DEBUG, "close command socket")
                 self.command_socket.close()
                 self.command_socket = None
-                syslog.syslog(syslog.LOG_INFO, "remove command socket")
+                syslog.syslog(syslog.LOG_DEBUG, "remove command socket")
                 os.remove(self.config.command_socket_file)
             except socket.error, soe:
                 syslog.syslog(syslog.LOG_ERR, "socket close failed: " + str(soe)) 
             except OSError:
-                syslog.syslog(syslog.LOG_INFO, "no command channel to clean up")
+                syslog.syslog(syslog.LOG_DEBUG, "no command channel to clean up")
         syslog.syslog(syslog.LOG_INFO, "close syslog")
         syslog.closelog()
 
