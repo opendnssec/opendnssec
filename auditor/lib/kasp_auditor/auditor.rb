@@ -905,6 +905,11 @@ module KASPAuditor
           File.new(@working +
               "#{File::SEPARATOR}audit.optout.#{Process.pid}", "w")
         end
+        if (!File.exists?(@working +
+                "#{File::SEPARATOR}audit.nsec3.#{Process.pid}"))
+          File.new(@working +
+              "#{File::SEPARATOR}audit.nsec3.#{Process.pid}", "w")
+        end
         File.open(@working + 
             "#{File::SEPARATOR}audit.types.sorted.#{Process.pid}") {|ftypes|
           File.open(@working + 
