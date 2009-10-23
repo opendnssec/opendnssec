@@ -10,12 +10,11 @@ OpenDNSSEC trunk
 Bugfixes:
 * Trailing spaces are not part of the domain name/ include file/ ttl in directives.
 * nsec3er: Print final RRset, even if no NSEC3 was needed at that RRset.
+* Proper privileges dropping when creating the command socket
+* Signer sometimes didn't terminate if socket shutdown failed.
 
 Known issues:
 * The Signer Engine fails with broken pipes sometimes.
-* Some of the Signer Engine processes do not close down, when they are supposed to.
-* Privileges are not dropped when creating socket on some systems.
-
 
 
 OpenDNSSEC 1.0.0b3 - 2009-10-16
