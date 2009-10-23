@@ -190,6 +190,7 @@ class Engine:
                 sys.exit(0)
 
     def drop_privileges(self):
+        uid = -1
         if self.config.privs_username:
             try:
                 uid = pwd.getpwnam(self.config.privs_username)[2]
@@ -199,6 +200,7 @@ class Engine:
                 syslog.syslog(syslog.LOG_ERR, estr)
                 raise EngineError(estr)
 
+        gid = -1
         if self.config.privs_groupname:
             try:
                 gid = grp.getgrnam(self.config.privs_groupname)[2]
@@ -219,9 +221,15 @@ class Engine:
         #        syslog.syslog(syslog.LOG_ERR, estr)
         #        raise EngineError(estr)
 
-        if self.config.privs_groupname:
+        try:
             os.chown(os.path.dirname(self.config.command_socket_file),
-                -1, gid)
+                uid, gid)
+        except Exception, che:
+            syslog.syslog("Unable to chown socket file: " + str(che))
+
+        if self.config.privs_groupname:
+            syslog.syslog(syslog.LOG_INFO, "Drop privileges to group " + self.config.privs_groupname)
+
             try:
                 os.setresgid(gid, gid, gid)
             except Exception, e:
@@ -237,8 +245,8 @@ class Engine:
                         raise EngineError(estr)
 
         if self.config.privs_username:
-            os.chown(os.path.dirname(self.config.command_socket_file),
-                uid, -1)
+            syslog.syslog(syslog.LOG_INFO, "Drop privileges to user " + self.config.privs_username)
+
             try:
                 os.setresuid(uid, uid, uid)
             except Exception, e:
@@ -859,6 +867,9 @@ def parse_args():
         return 0
 
 if __name__ == '__main__':
+    #print "OpenDNSSEC signer engine version @VERSION@"
+    #main()
+    #
     # if we have no arguments, go to interactive mode
     try:
         result = parse_args()
