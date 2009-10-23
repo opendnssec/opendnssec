@@ -75,10 +75,10 @@ module KASPAuditor
           end"}
       # Set up include_inuse_key?, etc.
       Status.strings.each {|s| eval "def include_#{s.downcase}_key?(key)
-                   @#{s.downcase}.keys.each {|k|
+                   @#{s.downcase}.each {|k,v|
                       if ((k == key) || (k.key_tag_pre_revoked ==
                               key.key_tag_pre_revoked))
-                         return true
+                         return v
                       end
                    }
                    return false
@@ -277,11 +277,12 @@ module KASPAuditor
         old_cache = load_tracker_cache
         @cache.inuse.keys.each {|new_inuse_key|
           next if old_cache.inuse.keys.include?new_inuse_key
-          if (!old_cache.include_prepublished_key?new_inuse_key)
+          old_key_timestamp = old_cache.include_prepublished_key?new_inuse_key
+          if (!old_key_timestamp)
             @parent.log(LOG_ERR, "Key (#{new_inuse_key.key_tag}) has gone straight to active use without a prepublished phase")
             next
           end
-          old_key_timestamp = old_cache.prepublished[new_inuse_key]
+
           if ((Time.now.to_i - old_key_timestamp) < soa_ttl)
             @parent.log(LOG_ERR, "Key (#{new_inuse_key.key_tag}) has gone to active use, but has only been prepublished for" +
               " #{(Time.now.to_i - old_key_timestamp)} seconds. Zone SOA ttl is #{soa_ttl}")
