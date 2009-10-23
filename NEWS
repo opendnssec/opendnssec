@@ -3,6 +3,7 @@ $Id$
 OpenDNSSEC trunk
 
 * Default TTL in case of $TTL or explicit RR TTL becomes the SOA Minimum value (was 3600).
+* The signer engine will check if another engine is already running before starting.
 
 Bugfixes:
 * Trailing spaces are not part of the domain name/ include file/ ttl in directives.
