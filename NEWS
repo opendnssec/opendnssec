@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.0.0b4 - 2009-10-23
 
 * Default TTL in case of $TTL or explicit RR TTL becomes the SOA Minimum value (was 3600).
 * The signer engine will check if another engine is already running before starting.
