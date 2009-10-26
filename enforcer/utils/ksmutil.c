@@ -372,14 +372,6 @@ cmd_setup ()
 
     /* Right then, they asked for it */
 
-    /* try to connect to the database */
-    status = db_connect(&dbhandle, &lock_fd, 1);
-    if (status != 0) {
-        printf("Failed to connect to database\n");
-        db_disconnect(lock_fd);
-        return(1);
-    }
-
     /* Read the database details out of conf.xml */
     status = get_db_details(&dbschema, &host, &port, &user, &password);
     if (status != 0) {
@@ -457,6 +449,14 @@ cmd_setup ()
     StrFree(dbschema);
     StrFree(user);
     StrFree(password);
+
+    /* try to connect to the database */
+    status = db_connect(&dbhandle, &lock_fd, 1);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
