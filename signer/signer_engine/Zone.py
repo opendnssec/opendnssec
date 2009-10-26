@@ -187,9 +187,9 @@ class Zone:
         for line in create_p.stderr:
             syslog.syslog(syslog.LOG_ERR,
                         "create_dnskey stderr: " + line)
-        syslog.syslog(syslog.LOG_INFO,
+        syslog.syslog(syslog.LOG_DEBUG,
                       "create_dnskey status: " + str(status))
-        syslog.syslog(syslog.LOG_INFO,
+        syslog.syslog(syslog.LOG_DEBUG,
                       "equality: " + str(status == 0))
         if status == 0 and output:
             key["tool_key_id"] = key["locator"]
@@ -262,16 +262,16 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
             syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
-            syslog.syslog(syslog.LOG_WARNING, str(exc))
-            syslog.syslog(syslog.LOG_WARNING,
+            syslog.syslog(syslog.LOG_ERR, str(exc))
+            syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
             if sort_process:
                 for line in sort_process.stderr:
-                    syslog.syslog(syslog.LOG_WARNING,
+                    syslog.syslog(syslog.LOG_ERR,
                                   "sorter stderr: " + line)
             #raise exc
         if succeeded:
-            syslog.syslog(syslog.LOG_INFO, "Done sorting")
+            syslog.syslog(syslog.LOG_DEBUG, "Done sorting")
         else:
             syslog.syslog(syslog.LOG_ERR, "Sorting failed")
         return succeeded
@@ -325,7 +325,7 @@ class Zone:
                               "Error opening sorted zone file: " +
                               self.get_zone_tmp_filename(".sorted"))
             else:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_DEBUG,
                               "Writing file to zone_reader: " +
                               self.get_zone_tmp_filename(".sorted"))
             for line in unprocessed_zone_file:
@@ -345,16 +345,16 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
             syslog.syslog(syslog.LOG_ERR, "Error preprocessing zone\n")
-            syslog.syslog(syslog.LOG_WARNING, str(exc))
-            syslog.syslog(syslog.LOG_WARNING,
+            syslog.syslog(syslog.LOG_ERR, str(exc))
+            syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
             if sort_process:
                 for line in sort_process.stderr:
-                    syslog.syslog(syslog.LOG_WARNING,
+                    syslog.syslog(syslog.LOG_ERR,
                                   "zone_reader stderr: " + line)
             #raise exc
         if succeeded:
-            syslog.syslog(syslog.LOG_INFO, "Done preprocessing")
+            syslog.syslog(syslog.LOG_DEBUG, "Done preprocessing")
         else:
             syslog.syslog(syslog.LOG_ERR, "Preprocessing failed")
         return succeeded
@@ -368,7 +368,7 @@ class Zone:
 
         # if we have no signed zone yet, simply return ok
         if not os.path.exists(self.get_zone_tmp_filename(".signed")):
-            syslog.syslog(syslog.LOG_INFO, "No signed zone yet")
+            syslog.syslog(syslog.LOG_WARNING, "No signed zone yet")
             return True
         
         cmd = [ self.get_tool_filename("sorter"),
@@ -393,7 +393,7 @@ class Zone:
                               "Error opening zone input file: " +
                               self.get_zone_tmp_filename(".signed"))
             else:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_DEBUG,
                               "Writing file to sorter: " +
                               self.get_zone_tmp_filename(".signed"))
             for line in unsorted_zone_file:
@@ -412,16 +412,16 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
             syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
-            syslog.syslog(syslog.LOG_WARNING, str(exc))
-            syslog.syslog(syslog.LOG_WARNING,
+            syslog.syslog(syslog.LOG_ERR, str(exc))
+            syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
             if sort_process:
                 for line in sort_process.stderr:
-                    syslog.syslog(syslog.LOG_WARNING,
+                    syslog.syslog(syslog.LOG_ERR,
                                   "sorter stderr: " + line)
             #raise exc
         if succeeded:
-            syslog.syslog(syslog.LOG_INFO, "Done sorting")
+            syslog.syslog(syslog.LOG_DEBUG, "Done sorting")
         else:
             syslog.syslog(syslog.LOG_ERR, "Sorting failed")
         return succeeded
@@ -435,7 +435,7 @@ class Zone:
 
         # if we have no signed, preprocessed zone yet, simply return ok
         if not os.path.exists(self.get_zone_tmp_filename(".signed.processed")):
-            syslog.syslog(syslog.LOG_INFO, "No signed zone yet")
+            syslog.syslog(syslog.LOG_WARNING, "No signed zone yet")
             return True
         
         cmd = [ self.get_tool_filename("zone_reader"),
@@ -469,7 +469,7 @@ class Zone:
                               "Error opening sorted zone file: " +
                               self.get_zone_tmp_filename(".signed.sorted"))
             else:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_DEBUG,
                               "Writing file to zone_reader: " +
                               self.get_zone_tmp_filename(".signed.sorted"))
             for line in unprocessed_zone_file:
@@ -489,12 +489,12 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
             syslog.syslog(syslog.LOG_ERR, "Error processing zone\n")
-            syslog.syslog(syslog.LOG_WARNING, str(exc))
-            syslog.syslog(syslog.LOG_WARNING,
+            syslog.syslog(syslog.LOG_ERR, str(exc))
+            syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
             if sort_process:
                 for line in sort_process.stderr:
-                    syslog.syslog(syslog.LOG_WARNING,
+                    syslog.syslog(syslog.LOG_ERR,
                                   "zone_reader stderr: " + line)
             #raise exc
         if succeeded:
@@ -502,7 +502,7 @@ class Zone:
                         "/tmp/myzone")
             Util.move_file(self.get_zone_tmp_filename(".signed.processed"),
                            self.get_zone_tmp_filename(".signed"))
-            syslog.syslog(syslog.LOG_INFO, "Done preprocessing")
+            syslog.syslog(syslog.LOG_DEBUG, "Done preprocessing")
         else:
             syslog.syslog(syslog.LOG_ERR, "Preprocessing failed")
         return succeeded
@@ -555,15 +555,15 @@ class Zone:
                     syslog.syslog(syslog.LOG_ERR,
                                 "stderr from nseccer: " + line)
         else: # no signatures
-            syslog.syslog(syslog.LOG_INFO,
+            syslog.syslog(syslog.LOG_WARNING,
                 "No signatures set, not adding NSEC(3) records\n")
             try:
                 shutil.copy(self.get_zone_tmp_filename(".processed"),
                             self.get_zone_tmp_filename(".nsecced"))
             except Exception, e:
-                syslog.syslog(syslog.LOG_INFO, "Error in copy: " + str(e))
+                syslog.syslog(syslog.LOG_ERR, "Error in copy: " + str(e))
 
-            syslog.syslog(syslog.LOG_INFO, "done\n")
+        syslog.syslog(syslog.LOG_DEBUG, "Done nseccing")
         return True
 
     def perform_action(self):
@@ -710,7 +710,7 @@ class Zone:
         if self.zone_config.soa_serial:
             soa_serial = self.find_serial()
             if not soa_serial == None:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_DEBUG,
                               "set serial to " + str(soa_serial))
                 sign_p.stdin.write(":soa_serial " +\
                                    str(soa_serial) + "\n")
@@ -748,13 +748,13 @@ class Zone:
                  ":refresh_denial ")
 
         for k in self.zone_config.signature_keys:
-            syslog.syslog(syslog.LOG_INFO,
+            syslog.syslog(syslog.LOG_DEBUG,
                           "use signature key: " + k["locator"])
             if not k["dnskey"]:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_WARNING,
                           "no dnskey yet")
                 try:
-                    syslog.syslog(syslog.LOG_INFO,
+                    syslog.syslog(syslog.LOG_WARNING,
                                   "No information yet for key " +\
                                   k["locator"])
                     if not self.find_key_details(k):
@@ -793,7 +793,7 @@ class Zone:
                                   "signer returned bad value for " +
                                   "signature count: " + line[30:])
             else:
-                syslog.syslog(syslog.LOG_WARNING,
+                syslog.syslog(syslog.LOG_ERR,
                               "signer stderr: " + line)
         self.last_signed = sign_time
         # Addition: unless we didn't set any keys (in which case we
@@ -878,7 +878,7 @@ class Zone:
                 syslog.syslog(syslog.LOG_ERR,
                               output)
             else:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_DEBUG,
                               "Update notify command has run")
                 if output:
                     syslog.syslog(syslog.LOG_INFO,
@@ -910,17 +910,17 @@ class Zone:
         if caller:
             msg = str(caller) + ": " + msg
         while (self.locked):
-            syslog.syslog(syslog.LOG_INFO, msg)
+            syslog.syslog(syslog.LOG_DEBUG, msg)
             time.sleep(1)
         self.locked = True
         msg = "Zone " + self.zone_name + " locked"
         if caller:
             msg = msg + " by " + str(caller)
-        syslog.syslog(syslog.LOG_INFO, msg)
+        syslog.syslog(syslog.LOG_DEBUG, msg)
     
     def release(self):
         """Release the lock on this zone"""
-        syslog.syslog(syslog.LOG_INFO,
+        syslog.syslog(syslog.LOG_DEBUG,
                       "Releasing lock on zone " + self.zone_name)
         self.locked = False
 
@@ -948,7 +948,7 @@ class Zone:
                        self.zone_config.signatures_resign_time -\
                        time.time())
         except OSError:
-            syslog.syslog(syslog.LOG_INFO, "No output file found, seconds to resign: 0")
+            syslog.syslog(syslog.LOG_WARNING, "No output file found, seconds to resign: 0")
             return 0
 
     def get_expiration_timestamp(self, time_offset):

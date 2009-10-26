@@ -222,7 +222,7 @@ class Engine:
             os.chown(os.path.dirname(self.config.command_socket_file),
                 uid, gid)
         except Exception, che:
-            syslog.syslog("Unable to chown socket file: " + str(che))
+            syslog.syslog(syslog.LOG_ERR, "Unable to chown socket file: " + str(che))
 
         if self.config.privs_groupname:
             syslog.syslog(syslog.LOG_INFO, "Drop privileges to group " + self.config.privs_groupname)
@@ -268,13 +268,13 @@ class Engine:
                     command = self.receive_command(client_socket)
                     response = self.handle_command(command)
                     self.send_response(response + "\n\n", client_socket)
-                    syslog.syslog(syslog.LOG_INFO,
+                    syslog.syslog(syslog.LOG_DEBUG,
                                   "Done handling command")
             except socket.error:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_ERR,
                               "Connection closed by peer")
             except RuntimeError:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_ERR,
                               "Connection closed by peer")
 
     @staticmethod
@@ -294,7 +294,7 @@ class Engine:
     def send_response(msg, client_socket):
         """Send a response back to the client issuing a command"""
         totalsent = 0
-        syslog.syslog(syslog.LOG_INFO, "Sending response: " + msg)
+        syslog.syslog(syslog.LOG_DEBUG, "Sending response: " + msg)
         while totalsent < MSGLEN and totalsent < len(msg):
             sent = client_socket.send(msg[totalsent:])
             if sent == 0:
@@ -471,7 +471,7 @@ class Engine:
         else:
             pf = open(pid_file, 'r')
             pid = pf.read()
-            syslog.syslog(syslog.LOG_INFO, "send kill to pid " + pid)
+            syslog.syslog(syslog.LOG_DEBUG, "send kill to pid " + pid)
             pf.close()
             try:
                 os.kill(int(pid), signal.SIGHUP)
@@ -487,7 +487,7 @@ class Engine:
         if self.command_socket:
             try:
                 try:
-                    syslog.syslog(syslog.LOG_INFO, "shut down command socket")
+                    syslog.syslog(syslog.LOG_DEBUG, "shut down command socket")
                     self.command_socket.shutdown(socket.SHUT_RDWR)
                 except socket.error, soe:
                     syslog.syslog(syslog.LOG_WARNING, "shutdown socket failed, " + str(soe) + ". Continue with close.")
@@ -499,7 +499,7 @@ class Engine:
             except socket.error, soe:
                 syslog.syslog(syslog.LOG_ERR, "socket close failed: " + str(soe)) 
             except OSError:
-                syslog.syslog(syslog.LOG_DEBUG, "no command channel to clean up")
+                syslog.syslog(syslog.LOG_INFO, "no command channel to clean up")
         syslog.syslog(syslog.LOG_INFO, "close syslog")
         syslog.closelog()
 
@@ -532,7 +532,7 @@ class Engine:
         except ZoneListError, zle:
             syslog.syslog(syslog.LOG_ERR,
                 "error parsing zonelist xml file: " + str(zle))
-            syslog.syslog(syslog.LOG_ERR, "not updating zones")
+            syslog.syslog(syslog.LOG_INFO, "not updating zones")
             raise zle
 
     def check_zone_conf_updates(self):
@@ -647,7 +647,7 @@ class Engine:
         try:
             zone = self.zones[zone_name]
             if not zone.zone_config:
-                syslog.syslog(syslog.LOG_INFO,
+                syslog.syslog(syslog.LOG_WARNING,
                               "No config yet for zone " + \
                               zone_name)
                 zone.read_config()
@@ -680,13 +680,13 @@ engine = None
 
 def signal_handler_stop(signum, frame):
     global engine
-    syslog.syslog(syslog.LOG_INFO, "Got signal: " + str(signum))
+    syslog.syslog(syslog.LOG_DEBUG, "Got signal: " + str(signum))
     if signum == 15:
         try:
             try:
-                syslog.syslog(syslog.LOG_ERR, "Stopping engine")
+                syslog.syslog(syslog.LOG_INFO, "Stopping engine")
                 if engine:
-                    syslog.syslog(syslog.LOG_ERR, "call stop_engine")
+                    syslog.syslog(syslog.LOG_DEBUG, "call stop_engine")
                     engine.stop_engine()
                 else:
                     syslog.syslog(syslog.LOG_ERR, "Engine already stopped?")
@@ -696,7 +696,7 @@ def signal_handler_stop(signum, frame):
             sys.exit(0)
     elif signum == 1:
         try:
-            syslog.syslog(syslog.LOG_ERR, "Restarting engine")
+            syslog.syslog(syslog.LOG_INFO, "Restarting engine")
             if engine:
                 config_file = engine.config_file_name
                 engine.stop_engine()
