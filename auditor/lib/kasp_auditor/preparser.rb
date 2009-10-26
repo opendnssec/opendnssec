@@ -60,6 +60,7 @@ module KASPAuditor
       @last_explicit_class = Classes.new("IN")
       @last_name = nil
       @continued_line = nil
+      @in_quoted_section = false
       @seen_soa = false
     end
 
@@ -102,8 +103,10 @@ module KASPAuditor
       return nil if (line.index(';') == 0)
       return nil if (line.strip.length == 0)
       return nil if (!line || (line.length == 0))
-      comment = line.index(';')
-      line = line[0, comment] if comment
+      @in_quoted_section = false if !@continued_line
+
+      line = strip_comments(line)
+
       if ((line.index("SOA")) && (!@seen_soa))
         @seen_soa = true
       end
@@ -120,10 +123,7 @@ module KASPAuditor
       if (@continued_line)
         # Add the next line until we see a ")"
         # REMEMBER TO STRIP OFF COMMENTS!!!
-        comment_index = @continued_line.index(";")
-        if (comment_index)
-          @continued_line = @continued_line[0, comment_index]
-        end
+        @continued_line = strip_comments(@continued_line)
         line = @continued_line.strip.chomp + " " + line
         if (line.index(")"))
           # OK
@@ -143,13 +143,43 @@ module KASPAuditor
       end
       return nil if @continued_line
 
-      comment_index = line.index(";")
-      if (comment_index)
-        line = line[0, comment_index] + "\n"
-      end
+      line = strip_comments(line) + "\n"
 
       # If SOA, then replace "3h" etc. with expanded seconds
       normalise_line(line)
+    end
+
+    def strip_comments(line)
+      last_index = 0
+      # Are we currently in a quoted section?
+      # Does a quoted section begin or end in this line?
+      # Are there any semi-colons?
+      # Ary any of the semi-colons inside a quoted section?
+      while (next_index = line.index(";", last_index + 1))
+        # Have there been any quotes since we last looked?
+        process_quotes(line[last_index, next_index])
+
+        # Now use @in_quoted_section to work out if the ';' terminates the line
+        if (!@in_quoted_section)
+          return line[0,next_index]
+        end
+
+        last_index = next_index
+      end
+      # Check out the quote situation to the end of the line
+      process_quotes(line[last_index, line.length-1])
+
+      return line
+    end
+
+    def process_quotes(section)
+      # Look through the section of text and set the @in_quoted_section
+      # as it should be at the end of the given section
+      last_index = 0
+      while (next_index = section.index("\"", last_index + 1))
+        @in_quoted_section = !@in_quoted_section
+        last_index = next_index
+      end
     end
 
     # Take a domain name, and return the form to be prepended to the RR.
@@ -307,9 +337,9 @@ module KASPAuditor
         when Types::RP
           if (!parsed_rr.mailbox.absolute?)
             parsed_rr.mailbox = parsed_rr.mailbox.to_s + "." + @origin.to_s
-          if (!parsed_rr.txtdomain.absolute?)
-            parsed_rr.txtdomain = parsed_rr.txtdomain.to_s + "." + @origin.to_s
-          end
+            if (!parsed_rr.txtdomain.absolute?)
+              parsed_rr.txtdomain = parsed_rr.txtdomain.to_s + "." + @origin.to_s
+            end
           end
         end
         line = parsed_rr.to_s
