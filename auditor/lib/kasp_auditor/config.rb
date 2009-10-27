@@ -30,6 +30,9 @@ module KASPAuditor
   # Represents KASP configuration file
   # Also loads salt in from <zone_config>.xml SignerConfiguration file.
   class Config
+    class ConfigLoadError < Exception
+    end
+
     attr_reader :err
     def initialize(zone_name, kasp_file_loc, policy, config_file_loc, syslog)
       return if !zone_name
@@ -58,16 +61,16 @@ module KASPAuditor
                 @keys = Keys.new(p.elements['Keys'])
                 @soa = SOA.new(p.elements['Zone/SOA'])
               rescue Exception => e
-                KASPAuditor.exit("ERROR - Configuration file #{kasp_file_loc} can't be loaded. Try running ods-kaspcheck to check the configuration.", 1, syslog)
+                raise ConfigLoadError.new("ERROR - Configuration file #{kasp_file_loc} can't be loaded. Try running ods-kaspcheck to check the configuration.")
               end
             end
           }
           if (!found_policy)
-            KASPAuditor.exit("ERROR - Can't find policy #{policy} in KASP Policy.", 1, syslog)
+            raise ConfigLoadError.new("ERROR - Can't find policy #{policy} in KASP Policy.")
           end
         }
       rescue Errno::ENOENT
-        KASPAuditor.exit("ERROR - Can't find KASP file : #{kasp_file_loc}", 1, syslog)
+        raise ConfigLoadError.new("ERROR - Can't find KASP file : #{kasp_file_loc}")
       end
       #
       # Read the salt ONLY from the SignerConfiguration
@@ -90,11 +93,11 @@ module KASPAuditor
                 @err = Syslog::LOG_ERR
               end
             else
-              KASPAuditor.exit("ERROR - can't read salt from SignerConfiguration file : #{conf_f}", 1, syslog)
+              raise ConfigLoadError.new("ERROR - can't read salt from SignerConfiguration file : #{conf_f}")
             end
           }
         rescue Errno::ENOENT
-          KASPAuditor.exit("ERROR - Can't find SignerConfiguration file : #{conf_f}", 1, syslog)
+          raise ConfigLoadError.new("ERROR - Can't find SignerConfiguration file : #{conf_f}")
         end
       end
     end

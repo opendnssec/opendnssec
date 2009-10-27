@@ -58,18 +58,24 @@ module KASPAuditor
           end
 
           # Now parse the config file
-          config = Config.new(zone_name, kasp_filename, policy,
-            config_file_loc, syslog)
+          begin
+            config = Config.new(zone_name, kasp_filename, policy,
+              config_file_loc, syslog)
 
-          input_file_loc = z.elements["Adapters"].elements['Input'].elements["File"].text
-          if (input_file_loc.index(File::SEPARATOR) != 0)
-            input_file_loc = path + input_file_loc
+            input_file_loc = z.elements["Adapters"].elements['Input'].elements["File"].text
+            if (input_file_loc.index(File::SEPARATOR) != 0)
+              input_file_loc = path + input_file_loc
+            end
+            output_file_loc = z.elements["Adapters"].elements['Output'].elements["File"].text
+            if (output_file_loc.index(File::SEPARATOR) != 0)
+              output_file_loc = path + output_file_loc
+            end
+            zones.push([config, input_file_loc, output_file_loc])
+          rescue Config::ConfigLoadError => e
+            msg = "Can't load #{zone_name} SignerConfiguration file (#{config_file_loc}) : #{e}"
+            print msg+"\n"
+            syslog.log(LOG_ERR, msg)
           end
-          output_file_loc = z.elements["Adapters"].elements['Output'].elements["File"].text
-          if (output_file_loc.index(File::SEPARATOR) != 0)
-            output_file_loc = path + output_file_loc
-          end
-          zones.push([config, input_file_loc, output_file_loc])
         }
       }
       return zones

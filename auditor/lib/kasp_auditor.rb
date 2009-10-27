@@ -227,7 +227,7 @@ module KASPAuditor
           end
         }
         if (!to_keep)
-          KASPAuditor.exit("Can't find #{@zone} zone in zonelist", 1, syslog)
+          KASPAuditor.exit("Can't find #{@zone_name} zone in zonelist", 1, syslog)
         end
         zones = [to_keep]
       end
