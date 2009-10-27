@@ -46,19 +46,20 @@ read_line(FILE *input, char *line, int multiline, int skip_comments)
 		c = (char) getc(input);
 		/* if a comment does not start at the beginning of the line,
 		 * skip it completely */
-		if (i > 0 && c == ';' && !in_string && lc != '\\') {
+		if (c == ';' && !in_string && lc != '\\') {
 			while(c != EOF && c != '\n') {
 				if (!skip_comments && !multiline) {
 					line[li] = c;
 					li++;
 				}
-					c = (char) getc(input);
+				c = (char) getc(input);
 			}
 		}
+
 		if (c == EOF) {
 			if (depth != 0) {
 				fprintf(stderr, "bracket mismatch in multiline RR"
-				                "; missing )\n");
+				                "; eof, depth=%i, missing )\n", depth);
 			}
 			if (li > 0) {
 				line[li] = '\0';
@@ -106,7 +107,7 @@ read_line(FILE *input, char *line, int multiline, int skip_comments)
 	}
 	if (depth != 0) {
 		fprintf(stderr, "bracket mismatch in multiline RR"
-		                "; missing )\n");
+		                "; depth=%i, missing )\n", depth);
 	}
 	line[li] = '\0';
 	return li;
