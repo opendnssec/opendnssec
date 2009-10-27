@@ -166,6 +166,7 @@ create_nsec_records(FILE *input_file,
 	ldns_rr_list *rr_list;
 	ldns_rr *prev_nsec;
 	ldns_rr *first_nsec = NULL;
+	ldns_rr *first_rr = NULL;
 
 	if (soa_min_ttl == 0 && !soa_from_engine) {
 		line_len = 0;
@@ -207,11 +208,16 @@ create_nsec_records(FILE *input_file,
 		}
 	}
 
+	first_rr = ldns_rr_list_rr(rr_list, 0);
 	/* and loop to start */
 	if (ldns_rr_list_rr_count(rr_list) > 0 && first_nsec) {
 		make_nsec(out_file, first_nsec, soa_min_ttl, rr_list, &first_nsec);
+		ldns_rr_list_deep_free(rr_list);
+	} else {
+		make_nsec(out_file, first_rr, soa_min_ttl, rr_list, &first_nsec);
+		ldns_rr_list_free(rr_list);
+		ldns_rr_free(first_nsec);
 	}
-	ldns_rr_list_deep_free(rr_list);
 
 	return result;
 }
