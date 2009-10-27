@@ -4,6 +4,8 @@ KASP Auditor README
 The KASP auditor is written to check the output of the signer.
 The auditor and its tools are part of the OpenDNSSEC project.
 For more information, visit http://www.opendnssec.org
+The Auditor requirements may be found at :
+http://trac.opendnssec.org/wiki/Signer/AuditorRequirements
 
 CONTENTS
     Introduction
