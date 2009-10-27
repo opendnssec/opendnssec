@@ -373,7 +373,6 @@ class Zone:
         
         cmd = [ self.get_tool_filename("sorter"),
                 "-o", self.zone_name,
-                "-f", self.get_zone_tmp_filename(".signed"),
                 "-w", self.get_zone_tmp_filename(".signed.sorted")
               ]
         if self.zone_config.soa_minimum >= 0:
@@ -398,6 +397,7 @@ class Zone:
                               self.get_zone_tmp_filename(".signed"))
             for line in unsorted_zone_file:
                 sort_process.stdin.write(line)
+            sort_process.stdin.close()
             unsorted_zone_file.close()
             #sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
 
