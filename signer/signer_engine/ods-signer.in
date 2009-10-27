@@ -69,12 +69,14 @@ def run(c_sock):
     are printed to stdout"""
     print "cmd> ",
     cmd = sys.stdin.readline()
+    cmd = cmd.strip() + "\n"
     while cmd:
         if cmd[:4] == "quit" or cmd[:4] == "exit":
             sys.exit(0)
         send_msg(cmd, c_sock)
         print "cmd> ",
         cmd = sys.stdin.readline()
+        cmd = cmd.strip() + "\n"
 
 def engine_cli(args, file):
     """Command interface to engine, args is a List of strings, if not
