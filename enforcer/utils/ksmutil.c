@@ -364,6 +364,7 @@ cmd_setup ()
     char *password = NULL;
 
     char* setup_command = NULL;
+    char* lock_filename = NULL;
 
     int user_certain;
     printf("*WARNING* This will erase all data in the database; are you sure? [y/N] ");
@@ -392,6 +393,27 @@ cmd_setup ()
        prevent multiple access (not sure that we can be sure that sqlite is
        safe for multiple processes to access). */
     if (DbFlavour() == SQLITE_DB) {
+
+        /* Make sure that nothing is happening to the DB */
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(lock_filename);
+            StrFree(host);
+            StrFree(port);
+            StrFree(dbschema);
+            StrFree(user);
+            StrFree(password);
+            return(1);
+        }
+        StrFree(lock_filename);
 
         /* Run the setup script */
         /* will look like: <SQL_BIN> <DBSCHEMA> < <SQL_SETUP> */
@@ -422,6 +444,8 @@ cmd_setup ()
             printf("Couldn't fix permissions on file %s\n", dbschema);
             printf("Will coninue with setup, but you may need to manually change ownership\n");
         }
+
+        db_disconnect(lock_fd);
     }
     else {
         /* MySQL setup */
@@ -5074,11 +5098,26 @@ int fix_file_perms(const char *dbschema)
         endgrent();
     }
 
+    /* Change ownership of the db file */
     if (chown(dbschema, uid, gid) == -1) {
         printf("cannot chown(%u,%u) %s: %s",
                 (unsigned) uid, (unsigned) gid, dbschema, strerror(errno));
         return -1;
     }
+
+    /* and change ownership of the lock file */
+    temp_char = NULL;
+    StrAppend(&temp_char, dbschema);
+    StrAppend(&temp_char, ".our_lock");
+
+    if (chown(temp_char, uid, gid) == -1) {
+        printf("cannot chown(%u,%u) %s: %s",
+                (unsigned) uid, (unsigned) gid, temp_char, strerror(errno));
+        StrFree(temp_char);
+        return -1;
+    }
+
+    StrFree(temp_char);
 
     xmlXPathFreeContext(xpathCtx);
     xmlRelaxNGFree(schema);
