@@ -47,11 +47,11 @@ def run_tool(command, input_fd=None):
         if (input_fd):
             subp = subprocess.Popen(command, stdin=input_fd,
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+                                    stderr=subprocess.PIPE, close_fds=True)
         else:
             subp = subprocess.Popen(command, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+                                    stderr=subprocess.PIPE, close_fds=True)
         return subp
     except OSError:
         syslog.syslog(syslog.LOG_ERR, "command not found: " + command[0])

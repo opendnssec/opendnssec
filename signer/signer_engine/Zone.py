@@ -177,7 +177,7 @@ class Zone:
         #create_p = Util.run_tool(cmd)
         create_p = subprocess.Popen(cmd,
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+                                    stderr=subprocess.PIPE, close_fds=True)
         if not create_p:
             syslog.syslog(syslog.LOG_ERR, "Error running create_dnskey")
             return False
