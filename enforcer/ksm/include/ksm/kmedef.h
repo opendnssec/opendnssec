@@ -56,7 +56,7 @@
 #define KME_INSFGENKEY  (KME_BASE +  8)     /* INFO: %d %ss available in 'generate' state (need %d) - unable to promote until more keys generated */
 #define KME_KEYCHSTATE  (KME_BASE +  9)     /* INFO: moving %d key(s) from '%s' state to '%s' state */
 #define KME_KEYCNTSUMM  (KME_BASE + 10)     /* INFO: %d keys required, therefore %d new keys need to be put in 'publish' state */
-#define KME_NOREADYKEY  (KME_BASE + 11)     /* WARNING: key rollover not completed as there are no keys in the 'ready' state; communicated will try again when it runs next */
+#define KME_NOREADYKEY  (KME_BASE + 11)     /* WARNING: key rollover not completed as there are no keys in the 'ready' state; ods-enforcerd will try again when it runs next */
 #define KME_NOSUCHPAR   (KME_BASE + 12)     /* ERROR: no such parameter with name %s */
 #define KME_NOTFOUND    (KME_BASE + 13)     /* ERROR: unable to find object '%s' */
 #define KME_NOTIMPL     (KME_BASE + 14)     /* WARNING: Command not implemented yet */
