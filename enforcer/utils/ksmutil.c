@@ -25,6 +25,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -37,6 +38,9 @@
 #include <getopt.h>
 #include <string.h>
 #include <syslog.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include <ksm/ksmutil.h>
 #include <ksm/ksm.h>
@@ -410,6 +414,14 @@ cmd_setup ()
             return(1);
         }
         StrFree(setup_command);
+
+        /* If we are running as root then chmod the file so that the 
+           final user/group can access it. */
+        if (fix_file_perms(dbschema) != 0)
+        {
+            printf("Couldn't fix permissions on file %s\n", dbschema);
+            printf("Will coninue with setup, but you may need to manually change ownership\n");
+        }
     }
     else {
         /* MySQL setup */
@@ -4912,3 +4924,168 @@ int cmd_genkeys()
     return status;
 }
 
+/* Make sure (if we can) that the permissions on a file are correct for the user/group in conf.xml */
+
+int fix_file_perms(const char *dbschema)
+{
+    struct stat stat_ret;
+    
+    int status = 0;
+
+    xmlDocPtr doc = NULL;
+    xmlDocPtr rngdoc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlRelaxNGParserCtxtPtr rngpctx = NULL;
+    xmlRelaxNGValidCtxtPtr rngctx = NULL;
+    xmlRelaxNGPtr schema = NULL;
+    xmlChar *user_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/User";
+    xmlChar *group_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/Group";
+
+    char* filename = CONFIG_FILE;
+    char* rngfilename = SCHEMA_DIR "/conf.rng";
+    char* temp_char = NULL;
+
+    struct passwd *pwd;
+    struct group  *grp;
+
+    int uid = -1;
+    int gid = -1;
+    char *username = NULL;
+    char *groupname = NULL;
+
+    printf("fixing permissions on file %s\n", dbschema);
+    /* First see if we are running as root, if not then return */
+    if (geteuid() != 0) {
+        return 0;
+    }
+
+    /* Now see if the file exists, if it does not then return */
+    if (stat(dbschema, &stat_ret) != 0) {
+        printf("cannot stat file %s: %s", dbschema, strerror(errno));
+        return -1;
+    }
+
+    /* OKAY... read conf.xml for the user and group */
+    /* Load XML document */
+    doc = xmlParseFile(filename);
+    if (doc == NULL) {
+        printf("Error: unable to parse file \"%s\"", filename);
+        return(-1);
+    }
+
+    /* Load rng document */
+    rngdoc = xmlParseFile(rngfilename);
+    if (rngdoc == NULL) {
+        printf("Error: unable to parse file \"%s\"", rngfilename);
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs parser context for the relax-ng document. */
+    rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+    if (rngpctx == NULL) {
+        printf("Error: unable to create XML RelaxNGs parser context");
+        return(-1);
+    }
+
+    /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
+    schema = xmlRelaxNGParse(rngpctx);
+    if (schema == NULL) {
+        printf("Error: unable to parse a schema definition resource");
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs validation context based on the given schema */
+    rngctx = xmlRelaxNGNewValidCtxt(schema);
+    if (rngctx == NULL) {
+        printf("Error: unable to create RelaxNGs validation context based on the schema");
+        return(-1);
+    }
+
+    /* Validate a document tree in memory. */
+    status = xmlRelaxNGValidateDoc(rngctx,doc);
+    if (status != 0) {
+        printf("Error validating file \"%s\"", filename);
+        return(-1);
+    }
+
+    /* Now parse a value out of the conf */
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        printf("Error: unable to create new XPath context");
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    /* Set the group if specified */
+    xpathObj = xmlXPathEvalExpression(group_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        printf("Error: unable to evaluate xpath expression: %s", group_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+        temp_char = (char*) xmlXPathCastToString(xpathObj);
+        StrAppend(&groupname, temp_char);
+        StrFree(temp_char);
+        xmlXPathFreeObject(xpathObj);
+    } else {
+        groupname = NULL;
+    }
+
+    /* Set the user to drop to if specified */
+    xpathObj = xmlXPathEvalExpression(user_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        printf("Error: unable to evaluate xpath expression: %s", user_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+        temp_char = (char*) xmlXPathCastToString(xpathObj);
+        StrAppend(&username, temp_char);
+        StrFree(temp_char);
+        xmlXPathFreeObject(xpathObj);
+    } else {
+        username = NULL;
+    }
+
+    /* Set uid and gid if required */
+    if (username != NULL) {
+        /* Lookup the user id in /etc/passwd */
+        if ((pwd = getpwnam(username)) == NULL) {
+            printf("user '%s' does not exist. cannot chown %s...\n", username, dbschema);
+            return(1);
+        } else {
+            uid = pwd->pw_uid;
+        }
+        endpwent();
+    }
+    if (groupname) {
+        /* Lookup the group id in /etc/groups */
+        if ((grp = getgrnam(groupname)) == NULL) {
+            printf("group '%s' does not exist. cannot chown %s...\n", groupname, dbschema);
+            exit(1);
+        } else {
+            gid = grp->gr_gid;
+        }
+        endgrent();
+    }
+
+    if (chown(dbschema, uid, gid) == -1) {
+        printf("cannot chown(%u,%u) %s: %s",
+                (unsigned) uid, (unsigned) gid, dbschema, strerror(errno));
+        return -1;
+    }
+
+    xmlXPathFreeContext(xpathCtx);
+    xmlRelaxNGFree(schema);
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(doc);
+    xmlFreeDoc(rngdoc);
+
+    return 0;
+}
