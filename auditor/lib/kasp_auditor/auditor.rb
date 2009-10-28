@@ -37,6 +37,9 @@ module KASPAuditor
   # @TODO@ SOA Checks - format, etc.
   
   class Auditor # :nodoc: all
+   class FatalError < Exception
+   end
+   ##
     # Create a new Auditor - pass in the created syslog for logging, the path
     # of the working (temporary) directory, and the //Enforcer/Interval
     # Once created, use the check_zone method to audit a zone.
@@ -95,79 +98,83 @@ module KASPAuditor
       set_config(cnfg)
       nsec3auditor = Nsec3Auditor.new(self, @working)
       nsec3auditor.delete_nsec3_files()
-      # Load SOA record from top of original signed and unsigned files!
-      load_soas(original_unsigned_file, original_signed_file)
-      if ((@config.name != @soa.name.to_s) && (@config.name != @soa.name.to_s.chop))
-        log(LOG_ERR, "SOA name (#{@soa.name}) is different to the configured zone name (#{@config.name}) - aborting")
-        return 1
-      end
-      if (!@soa.name.absolute?)
-        log(LOG_ERR, "SOA name not absolute #{@soa.name} - aborting")
-      end
-      log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
-      @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
+      begin
+        # Load SOA record from top of original signed and unsigned files!
+        load_soas(original_unsigned_file, original_signed_file)
+        if ((@config.name != @soa.name.to_s) && (@config.name != @soa.name.to_s.chop))
+          log(LOG_ERR, "SOA name (#{@soa.name}) is different to the configured zone name (#{@config.name}) - aborting")
+          return 1
+        end
+        if (!@soa.name.absolute?)
+          log(LOG_ERR, "SOA name not absolute #{@soa.name} - aborting")
+        end
+        log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
+        @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
 
-      signed_file = (signed_file.to_s + "").untaint
-      unsigned_file = (unsigned_file.to_s + "").untaint
-      File.open(unsigned_file) {|unsignedfile|
-        File.open(signed_file) {|signedfile|
+        signed_file = (signed_file.to_s + "").untaint
+        unsigned_file = (unsigned_file.to_s + "").untaint
+        File.open(unsigned_file) {|unsignedfile|
+          File.open(signed_file) {|signedfile|
 
-          last_signed_rr = get_next_rr(signedfile)
-          last_unsigned_rr = get_next_rr(unsignedfile)
-          while (!unsignedfile.eof? || !signedfile.eof?)
+            last_signed_rr = get_next_rr(signedfile)
+            last_unsigned_rr = get_next_rr(unsignedfile)
+            while (!unsignedfile.eof? || !signedfile.eof?)
 
-            # Load up zone one subdomain (of zone) at a time. This may be many RRSets.
-            #   Keep loading until we have all the RRSets for that subdomain.
-            # Do this in both files. If they get out of step, then resynch using alphabetical order as guide.
+              # Load up zone one subdomain (of zone) at a time. This may be many RRSets.
+              #   Keep loading until we have all the RRSets for that subdomain.
+              # Do this in both files. If they get out of step, then resynch using alphabetical order as guide.
 
-            # So, load the next record from each file.
-            # Compare the records (first subdomain of soa.name)
-            # If they are not the same, then print out all the RRs which are for a different name.
-            #    - keep going through "lowest" file until subdomain of other file is reached.
-            # If they are the same, then continue loading that subdomain from both files.
-            # Then process that domain
-            #
-            # Of course, we will always load one record too many here. We need to keep that last record
-            # so we can build up the next subdomains rrsets with it.
-            unsigned_domain_rrs = []
-            compare_return = compare_subdomain_of_zone(last_signed_rr, last_unsigned_rr)
-            while (last_unsigned_rr && compare_return != 0 && (!unsignedfile.eof? || !signedfile.eof?))
-              # Work out which file is behind, then continue loading records from that zone until we're at the same subdomain of the zone soa
-              if (compare_return > 0) # unsigned < signed
-                # Log missing signed subdomain - check if out of zone first
-                process_additional_unsigned_rr(last_unsigned_rr)
-                # Load next unsigned record
-                #                print "Loading another unsigned record to catch up to signed\n"
-                last_unsigned_rr = get_next_rr(unsignedfile)
-              elsif (compare_return < 0) # unsigned > signed
-                #                print "Signed file behind unsigned - loading next subdomain from #{last_signed_rr.name}\n"
-                last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, [])
-                #                print "Last signed rr now: #{last_signed_rr}\n"
-              end
-              #              print"Comparing signed #{last_signed_rr} to unsigned #{last_unsigned_rr}\n"
+              # So, load the next record from each file.
+              # Compare the records (first subdomain of soa.name)
+              # If they are not the same, then print out all the RRs which are for a different name.
+              #    - keep going through "lowest" file until subdomain of other file is reached.
+              # If they are the same, then continue loading that subdomain from both files.
+              # Then process that domain
+              #
+              # Of course, we will always load one record too many here. We need to keep that last record
+              # so we can build up the next subdomains rrsets with it.
+              unsigned_domain_rrs = []
               compare_return = compare_subdomain_of_zone(last_signed_rr, last_unsigned_rr)
+              while (last_unsigned_rr && compare_return != 0 && (!unsignedfile.eof? || !signedfile.eof?))
+                # Work out which file is behind, then continue loading records from that zone until we're at the same subdomain of the zone soa
+                if (compare_return > 0) # unsigned < signed
+                  # Log missing signed subdomain - check if out of zone first
+                  process_additional_unsigned_rr(last_unsigned_rr)
+                  # Load next unsigned record
+                  #                print "Loading another unsigned record to catch up to signed\n"
+                  last_unsigned_rr = get_next_rr(unsignedfile)
+                elsif (compare_return < 0) # unsigned > signed
+                  #                print "Signed file behind unsigned - loading next subdomain from #{last_signed_rr.name}\n"
+                  last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, [])
+                  #                print "Last signed rr now: #{last_signed_rr}\n"
+                end
+                #              print"Comparing signed #{last_signed_rr} to unsigned #{last_unsigned_rr}\n"
+                compare_return = compare_subdomain_of_zone(last_signed_rr, last_unsigned_rr)
+              end
+
+              # Now we're at the same subdomain of the zone name. Keep loading from both files until the subdomain changes in that file.
+              #            print "Now at #{last_signed_rr.name} for signed, and #{last_unsigned_rr.name} for unsigned\n"
+              unsigned_domain_rrs, last_unsigned_rr = load_unsigned_subdomain(unsignedfile, last_unsigned_rr)
+              last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, unsigned_domain_rrs)
+
             end
-
-            # Now we're at the same subdomain of the zone name. Keep loading from both files until the subdomain changes in that file.
-            #            print "Now at #{last_signed_rr.name} for signed, and #{last_unsigned_rr.name} for unsigned\n"
-            unsigned_domain_rrs, last_unsigned_rr = load_unsigned_subdomain(unsignedfile, last_unsigned_rr)
-            last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, unsigned_domain_rrs)
-
-          end
-          if (last_unsigned_rr)
-            process_additional_unsigned_rr(last_unsigned_rr)
-          end
+            if (last_unsigned_rr)
+              process_additional_unsigned_rr(last_unsigned_rr)
+            end
+          }
         }
-      }
-      # Now take a look at how the keys are changing over time...
-      @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @soa.ttl)
+        # Now take a look at how the keys are changing over time...
+        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @soa.ttl)
 
-      # Check the last nsec(3) record in the chain points back to the start
-      do_final_nsec_check()
+        # Check the last nsec(3) record in the chain points back to the start
+        do_final_nsec_check()
 
-      # Now check the NSEC3 opt out and types_covered, if applicable
-      if (@config.denial.nsec3)
-        nsec3auditor.check_nsec3_types_and_opt_out()
+        # Now check the NSEC3 opt out and types_covered, if applicable
+        if (@config.denial.nsec3)
+          nsec3auditor.check_nsec3_types_and_opt_out()
+        end
+      rescue FatalError => e
+        return 3
       end
 
       # Now sort out the return value
@@ -855,6 +862,8 @@ module KASPAuditor
         end
 
       }
+      log(LOG_ERR, "Can't load SOA from #{file}")
+      raise FatalError.new("Can't load SOA from #{file}")
     end
 
     # Log the message, and set the return value to the most serious code so far
