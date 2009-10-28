@@ -227,7 +227,7 @@ module KASPAuditor
 
       # If the second field is not a number, then we should add the TTL to the line
       # Remember we can get "m" "w" "y" here! So need to check for appropriate regexp...
-      found_ttl_regexp = (split[1]=~/^[0-9]+[smhdw]$/)
+      found_ttl_regexp = (split[1]=~/^[0-9]+[smhdw]/)
       if (found_ttl_regexp == 0)
         # Replace the formatted ttl with an actual number
         ttl = get_ttl(split[1])
@@ -348,25 +348,40 @@ module KASPAuditor
       return line + "\n", type_string
     end
 
-    def get_ttl(ttl_text)
-      # Get the TTL in seconds from the m, h, d, w format
+    # Get the TTL in seconds from the m, h, d, w format
+    def get_ttl(ttl_text_in)
       # If no letter afterwards, then in seconds already
-      ttl = 0
-      case ttl_text[ttl_text.length-1, 1].downcase
-      when "s" then
-        ttl = (ttl_text[0, ttl_text.length() - 1].to_i)
-      when "m" then
-        ttl = 60 * (ttl_text[0, ttl_text.length() - 1].to_i)
-      when "h" then
-        ttl = 3600 * (ttl_text[0, ttl_text.length() - 1].to_i)
-      when "d" then
-        ttl = 3600 * 24 * (ttl_text[0, ttl_text.length() - 1].to_i)
-      when "w" then
-        ttl = 7 * 3600 * 24 * (ttl_text[0, ttl_text.length() - 1].to_i)
-      else
-        ttl = ttl_text.to_i
+      # Could be e.g. "3d4h12m" - unclear if "4h5w" is legal - best assume it is
+      # So, search out each letter in the string, and get the number before it.
+      ttl_text = ttl_text_in.downcase
+      index = ttl_text.index(/[whdms]/)
+      if (!index)
+        return ttl_text.to_i
       end
-      return ttl
+      last_index = -1
+      total = 0
+      while (index)
+        letter = ttl_text[index]
+        number = ttl_text[last_index + 1, index-last_index-1].to_i
+        new_number = 0
+        case letter
+        when 115 then # "s"
+          new_number = number
+        when 109 then # "m"
+          new_number = number * 60
+        when 104 then # "h"
+          new_number = number * 3600
+        when 100 then # "d"
+          new_number = number * 3600 * 24
+        when 119 then # "w"
+          new_number = number * 3600 * 24 * 7
+        end
+        total += new_number
+          
+        last_index = index
+        index = ttl_text.index(/[whdms]/, last_index + 1)
+      end
+      return total
     end
 
     def replace_soa_ttl_fields(line)
