@@ -11,7 +11,6 @@ Bugfixes:
 * Signer Engine: Fixed NSAP, IPSECKEY, and SIG parsing (in LDNS trunk).
 * Signer Engine: Disable multiline parsing when the line is commented out.
 * Signer Engine: The tools are not hanging any more. Better pipe handling.
-* Signer Engine: DS at NS is not out of zone.
 * ods-signer: The command parser was too strict with white spaces.
 
 
