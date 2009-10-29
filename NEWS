@@ -2,7 +2,17 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
+Bugfixes:
+* Auditor: Fixed TXT parsing.
+* ods-ksmutil: Database could not be created for first time users.
+* ods-ksmutil: Set the correct privileges on the database.
+* Signer Engine: Tweek log levels.
+* Signer Engine: Fixed segmentation fault with WKS RR (in LDNS trunk).
+* Signer Engine: Fixed NSAP, IPSECKEY, and SIG parsing (in LDNS trunk).
+* Signer Engine: Disable multiline parsing when the line is commented out.
+* Signer Engine: The tools are not hanging any more. Better pipe handling.
+* Signer Engine: DS at NS is not out of zone.
+* ods-signer: The command parser was too strict with white spaces.
 
 
 OpenDNSSEC 1.0.0b4 - 2009-10-23
