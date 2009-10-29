@@ -293,7 +293,7 @@ module KASPAuditor
         else
           # Can we try the @last_explicit_ttl?
           if (@last_explicit_ttl)
-            line.sub!(" %MISSING_TTL% ", " #{last_explicit_ttl} ")
+            line.sub!(" %MISSING_TTL% ", " #{@last_explicit_ttl} ")
           end
         end
         line = replace_soa_ttl_fields(line)
