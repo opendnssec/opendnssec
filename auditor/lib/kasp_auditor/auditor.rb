@@ -655,10 +655,19 @@ module KASPAuditor
     def delete_rr(unsigned_domain_rrs, l_rr)
       if (l_rr.type == Types.AAAA)
         # We need to inspect the data here - old versions of Dnsruby::RR#==
-        # compare the rdata as well as well as the instance variables.
+        # compare the rdata as well as the instance variables.
         unsigned_domain_rrs.each {|u_rr|
           if ((u_rr.name == l_rr.name) && (u_rr.type == l_rr.type) &&
                 (u_rr.address == l_rr.address))
+            return unsigned_domain_rrs.delete(u_rr)
+          end
+        }
+      elsif (l_rr.type == Types.DS)
+        # Dnsruby 1.39 fails to compare DS RRs correctly - this is fixed for future versions
+        unsigned_domain_rrs.each {|u_rr|
+          if ((u_rr.name == l_rr.name) && (u_rr.type == l_rr.type) &&
+                (u_rr.key_tag == l_rr.key_tag) && (u_rr.digestbin == l_rr.digestbin) &&
+              (u_rr.algorithm == l_rr.algorithm) && (u_rr.digest_type == l_rr.digest_type))
             return unsigned_domain_rrs.delete(u_rr)
           end
         }
