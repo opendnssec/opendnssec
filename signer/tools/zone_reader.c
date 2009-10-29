@@ -363,7 +363,8 @@ print_rrs(FILE *out, ldns_rbtree_t *rr_tree, ldns_rbtree_t *ns_tree, ldns_rdf *o
 		     (cur_data->type == LDNS_RR_TYPE_A ||
 		      cur_data->type == LDNS_RR_TYPE_AAAA)) {
 			mark_possible_glue(cur_data, ns_tree, origin);
-		} else if (!cur_data->ent_for && cur_data->type != LDNS_RR_TYPE_NS) {
+		} else if (!cur_data->ent_for && cur_data->type != LDNS_RR_TYPE_NS &&
+		    cur_data->type != LDNS_RR_TYPE_DS) {
 			mark_possible_ooz(cur_data, ns_tree, origin);
 		}
 		print_rr_data(out, (rr_data *) cur_node->data, rr_tree);
