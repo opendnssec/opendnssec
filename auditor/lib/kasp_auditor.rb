@@ -88,6 +88,8 @@ module KASPAuditor
 
     # This method is provided so that the test code can use its own syslog
     def run_with_syslog(zonelist_file, kasp_file, syslog, working, enforcer_interval) # :nodoc: all
+      syslog.log(LOG_INFO, "Auditor started")
+      print("Auditor started\n")
       if (@enable_timeshift)
         configure_timeshift(syslog)
       end
@@ -106,6 +108,8 @@ module KASPAuditor
       pid = Process.pid
       ret = 999 # Return value to controlling process
       zones.each {|config, input_file, output_file|
+        syslog.log(LOG_INFO, "Auditor starting on #{config.name}")
+        print("Auditor starting on #{config.name}\n")
         do_audit = true
         [{input_file => "Unsigned"}, {output_file => "Signed"}].each {|hash|
           hash.each {|f, text|

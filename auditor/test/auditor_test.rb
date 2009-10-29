@@ -169,6 +169,8 @@ class AuditorTest < Test::Unit::TestCase
       remaining_strings.push(line)
     end
     if (add_default_msg)
+      expected_strings.push("Auditor started")
+      expected_strings.push("Auditor starting on tjeb.nl")
       expected_strings.push("Auditing tjeb.nl zone :")
       expected_strings.push("Finished auditing tjeb.nl zone")
     end
