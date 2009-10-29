@@ -227,7 +227,7 @@ module KASPAuditor
 
       # If the second field is not a number, then we should add the TTL to the line
       # Remember we can get "m" "w" "y" here! So need to check for appropriate regexp...
-      found_ttl_regexp = (split[1]=~/^[0-9]+[smhdw]/)
+      found_ttl_regexp = (split[1]=~/^[0-9]+[smhdwSMHDW]/)
       if (found_ttl_regexp == 0)
         # Replace the formatted ttl with an actual number
         ttl = get_ttl(split[1])
