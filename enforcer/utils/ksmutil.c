@@ -2490,7 +2490,7 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, int backup)
 
             StrFree(backup_filename);
 
-            if (status != 0) {
+            if (status == 1) {
                 if (lock_fd != NULL) {
                     fclose(*lock_fd);
                 }
@@ -2532,7 +2532,7 @@ db_disconnect(FILE* lock_fd)
             status = release_lite_lock(lock_fd);
             if (status != 0) {
                 printf("Error releasing db lock");
-                fclose(lock_fd);
+                /*fclose(lock_fd);*/
                 return;
             }
             fclose(lock_fd);
