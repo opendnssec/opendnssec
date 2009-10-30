@@ -459,9 +459,13 @@ main(int argc, char **argv)
 				                             &prev_name);
 				if (status == LDNS_STATUS_OK) {
 					if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NSEC ||
-					    ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NSEC3) {
+					    ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_NSEC3 ||
 						/* remove all nsec and nsec3 records. These
 						 * will be re-added by nsec(3)er.*/
+					    ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_RRSIG) {
+						/* remove all signatures. These will be added
+						 * by the signer. Or do we need to keep them in
+                         * case of a secure domain transfer? */
 						ldns_rr_free(cur_rr);
 						cur_rr = NULL;
 						continue;
