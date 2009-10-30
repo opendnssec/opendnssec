@@ -3760,11 +3760,13 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
             db_found = MYSQL_DB;
+            temp_char = (char *)xmlXPathCastToString(xpathObj);
+            StrAppend(host, temp_char);
+            StrFree(temp_char);
+            printf("MySQL database host set to: %s\n", *host);
+        } else {
+            db_found = 0;
         }
-        temp_char = (char *)xmlXPathCastToString(xpathObj);
-        StrAppend(host, temp_char);
-        StrFree(temp_char);
-        printf("MySQL database host set to: %s\n", *host);
 
         /* PORT */
         xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
@@ -3775,12 +3777,13 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            temp_char = (char *)xmlXPathCastToString(xpathObj);
+            StrAppend(port, temp_char);
+            StrFree(temp_char);
+            printf("MySQL database port set to: %s\n", *port);
+        } else {
             db_found = 0;
         }
-        temp_char = (char *)xmlXPathCastToString(xpathObj);
-        StrAppend(port, temp_char);
-        StrFree(temp_char);
-        printf("MySQL database port set to: %s\n", *port);
 
         /* SCHEMA */
         xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
@@ -3791,12 +3794,13 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            temp_char = (char *)xmlXPathCastToString(xpathObj);
+            StrAppend(dbschema, temp_char);
+            StrFree(temp_char);
+            printf("MySQL database schema set to: %s\n", *dbschema);
+        } else {
             db_found = 0;
         }
-        temp_char = (char *)xmlXPathCastToString(xpathObj);
-        StrAppend(dbschema, temp_char);
-        StrFree(temp_char);
-        printf("MySQL database schema set to: %s\n", *dbschema);
 
         /* DB USER */
         xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
@@ -3807,12 +3811,13 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            temp_char = (char *)xmlXPathCastToString(xpathObj);
+            StrAppend(user, temp_char);
+            StrFree(temp_char);
+            printf("MySQL database user set to: %s\n", *user);
+        } else {
             db_found = 0;
         }
-        temp_char = (char *)xmlXPathCastToString(xpathObj);
-        StrAppend(user, temp_char);
-        StrFree(temp_char);
-        printf("MySQL database user set to: %s\n", *user);
 
         /* DB PASSWORD */
         xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);

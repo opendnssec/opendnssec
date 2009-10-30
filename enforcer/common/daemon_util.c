@@ -731,69 +731,72 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         /* Get all of the MySQL stuff read in too */
         /* HOST */
         xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
-		    if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_host);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-            if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
-           db_found = MYSQL_DB;
+        if(xpathObj == NULL) {
+            log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_host);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
         }
-        config->host = xmlXPathCastToString(xpathObj);
-        if (verbose) {
-            log_msg(config, LOG_INFO, "MySQL database host set to: %s", config->host);
+        if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            db_found = MYSQL_DB;
+            config->host = xmlXPathCastToString(xpathObj);
+            if (verbose) {
+                log_msg(config, LOG_INFO, "MySQL database host set to: %s", config->host);
+            }
         }
         xmlXPathFreeObject(xpathObj);
 
         /* PORT */
         xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
         if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_port);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-            if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
-            db_found = 0;
+            log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_port);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
         }
-        config->port = xmlXPathCastToString(xpathObj);
-        if (verbose) {
-            log_msg(config, LOG_INFO, "MySQL database port set to: %s", config->port);
+        if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            config->port = xmlXPathCastToString(xpathObj);
+            if (verbose) {
+                log_msg(config, LOG_INFO, "MySQL database port set to: %s", config->port);
+            }
+        } else {
+            db_found = 0;
         }
         xmlXPathFreeObject(xpathObj);
 
         /* SCHEMA */
         xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
         if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_db);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-            if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
-            db_found = 0;
+            log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_db);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
         }
-        config->schema = xmlXPathCastToString(xpathObj);
-        if (verbose) {
-            log_msg(config, LOG_INFO, "MySQL database schema set to: %s", config->schema);
+        if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            config->schema = xmlXPathCastToString(xpathObj);
+            if (verbose) {
+                log_msg(config, LOG_INFO, "MySQL database schema set to: %s", config->schema);
+            }
+        } else {
+            db_found = 0;
         }
         xmlXPathFreeObject(xpathObj);
 
         /* DB USER */
         xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
         if(xpathObj == NULL) {
-		        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_user);
-		        xmlXPathFreeContext(xpathCtx);
-		        xmlFreeDoc(doc);
-		        return(-1);
-		    }
-            if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
-            db_found = 0;
+            log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", mysql_user);
+            xmlXPathFreeContext(xpathCtx);
+            xmlFreeDoc(doc);
+            return(-1);
         }
-        config->user = xmlXPathCastToString(xpathObj);
-        if (verbose) {
-            log_msg(config, LOG_INFO, "MySQL database user set to: %s", config->user);
+        if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            config->user = xmlXPathCastToString(xpathObj);
+            if (verbose) {
+                log_msg(config, LOG_INFO, "MySQL database user set to: %s", config->user);
+            }
+        } else {
+            db_found = 0;
         }
         xmlXPathFreeObject(xpathObj);
 

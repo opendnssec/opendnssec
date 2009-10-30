@@ -20,9 +20,9 @@ drop table if exists dbadmin;
 # now create the tables
 
 # dbadmin - holds the version of the database
-CREATE TABLE "dbadmin" (
-    "version" INTEGER NOT NULL DEFAULT (1),
-    "description" TEXT
+CREATE TABLE dbadmin (
+    version INTEGER NOT NULL,
+    description varchar(255)
 );
 
 insert into dbadmin values (1, "This needs to be in sync with the version defined in database.h");

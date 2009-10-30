@@ -837,6 +837,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
          * Something went wrong (it should have been logged) stop this zone.
          * Clean up the files, don't call the signer and move on to the next zone.
          */
+        log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
 
         status = fclose(file);
         unlink(temp_filename);
@@ -1317,7 +1318,7 @@ int do_purge(int interval, int policy_id)
 
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
-        "and DEAD < %s - INTERVAL %d SECOND ", rightnow, interval);
+        "and DEAD < DATE_ADD('%s', INTERVAL -%d SECOND) ", rightnow, interval);
 #else
     nchar = snprintf(buffer, sizeof(buffer),
         "and DEAD < DATETIME('%s', '-%d SECONDS') ", rightnow, interval);

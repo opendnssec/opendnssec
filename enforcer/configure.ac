@@ -113,7 +113,6 @@ AC_SUBST(RUNTIME_PATH)
 ACX_CUNIT
 ACX_LIBXML2
 ACX_LIBHSM
-ACX_SQLITE3
 ACX_DBPARAMS
 ACX_LDNS
 
@@ -126,16 +125,59 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
 
+# Check for mysql 
+AC_ARG_WITH(mysql, 
+            [  --with-mysql=DIR        Look for mysql in this dir ], 
+            [ MYSQL_PATH="$withval"], 
+            [ with_mysql=no ] 
+            )
+if test "x$with_mysql" = "xno"; then
+    # for now, only SQLite3 is supported
+    ACX_SQLITE3
 
-# for now, only SQLite3 is supported
-DB_INCLUDES=$SQLITE3_INCLUDES
-DB_LIBS=$SQLITE3_LIBS
-DB_TYPE=sqlite3
-AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary])
-AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3", [database setup script])
-AC_SUBST(DB_INCLUDES)
-AC_SUBST(DB_LIBS)
-AC_SUBST(DB_TYPE)
+    DB_INCLUDES=$SQLITE3_INCLUDES
+    DB_LIBS=$SQLITE3_LIBS
+    DB_TYPE=sqlite3
+    AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary])
+    AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3", [database setup script])
+    AC_SUBST(DB_INCLUDES)
+    AC_SUBST(DB_LIBS)
+    AC_SUBST(DB_TYPE)
+else 
+    DB_TYPE="MYSQL" 
+    if test "x$MYSQL_PATH" = "x"; then 
+        AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $PATH) 
+        AC_PATH_PROG(MYSQL, mysql) 
+        AC_DEFINE_UNQUOTED(SQL_BIN, "mysql", [database binary]) 
+    else 
+        AC_PATH_PROGS(MYSQL_CONFIG, mysql_config, mysql_config, $MYSQL_PATH/bin) 
+        AC_PATH_PROG(MYSQL, mysql, ,$MYSQL_PATH/bin) 
+        AC_DEFINE_UNQUOTED(SQL_BIN, "$MYSQL_PATH/bin/mysql", [database binary]) 
+    fi 
+    AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.mysql", [database setup script]) 
+    if test -z "$MYSQL"; then 
+        AC_MSG_ERROR([mysql not found]) 
+    fi 
+    if test -x "$MYSQL_CONFIG" 
+    then 
+        AC_MSG_CHECKING(mysql version) 
+        MYSQL_VERSION="`$MYSQL_CONFIG --version`" 
+        AC_MSG_RESULT($MYSQL_VERSION) 
+        if test ${MYSQL_VERSION//.*/} -le 4 ; then 
+            AC_MSG_ERROR([mysql must be newer than 5.0.0]) 
+        fi
+        AC_MSG_CHECKING(what are the mysql includes) 
+        # MySQL v4 uses --include while v3 uses --cflags 
+        DB_INCLUDES="`$MYSQL_CONFIG --include` -DBIG_JOINS=1 -DUSE_MYSQL" || \ 
+        DB_INCLUDES="`$MYSQL_CONFIG --cflags`" 
+        AC_MSG_RESULT($DB_INCLUDES) 
+        AC_MSG_CHECKING(what are the mysql libs) 
+        DB_LIBS="`$MYSQL_CONFIG --libs_r`" 
+        AC_MSG_RESULT($DB_LIBS) 
+    fi 
+fi
+
+AM_CONDITIONAL([MYSQL], [test "x$with_mysql" != "xno"])
 
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`

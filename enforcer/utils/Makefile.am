@@ -14,7 +14,11 @@ AM_CPPFLAGS = \
 
 AM_CFLAGS = -std=c99
 
+if MYSQL
+dist_opendnssecdata_DATA = database_create.mysql
+else
 dist_opendnssecdata_DATA = database_create.sqlite3
+endif
 
 bin_PROGRAMS = ods-ksmutil
 

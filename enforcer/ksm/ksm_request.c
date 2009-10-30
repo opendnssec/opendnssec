@@ -1297,7 +1297,7 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
      */
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
-        "DATE_ADD(\"%s\", INTERVAL %d SECOND)",
+        "DATE_ADD('%s', INTERVAL %d SECOND)",
         datetime, total_interval);
 #else
     nchar = snprintf(buffer, sizeof(buffer),

@@ -473,7 +473,7 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
 
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
-        "UPDATE keypairs SET %s = %s + INTERVAL %d SECOND WHERE ID = %lu",
+        "UPDATE keypairs SET %s = DATE_ADD(%s, INTERVAL %d SECOND) WHERE ID = %lu",
         destination, source, interval, (unsigned long) data->keypair_id);
 #else
     nchar = snprintf(buffer, sizeof(buffer),

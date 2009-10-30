@@ -939,7 +939,7 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
      */
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
-        "DATE_ADD(\"%s\", INTERVAL %d SECOND)", datetime, total_interval);
+        "DATE_ADD('%s', INTERVAL %d SECOND)", datetime, total_interval);
 #else
     nchar = snprintf(buffer, sizeof(buffer),
         "DATETIME('%s', '+%d SECONDS')", datetime, total_interval);

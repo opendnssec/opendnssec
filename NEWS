@@ -2,6 +2,8 @@ $Id$
 
 OpenDNSSEC trunk
 
+* Reintroduce MySQL for enforcer back-end on an experimental footing
+
 Bugfixes:
 * Auditor: Fixed TXT parsing.
 * ods-ksmutil: Database could not be created for first time users.
