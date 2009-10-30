@@ -11,8 +11,10 @@ Bugfixes:
 * Signer Engine: Fixed NSAP, IPSECKEY, and SIG parsing (in LDNS trunk).
 * Signer Engine: Disable multiline parsing when the line is commented out.
 * Signer Engine: The tools are not hanging any more. Better pipe handling.
-* ods-signer: The command parser was too strict with white spaces.
-
+* Signer Engine: NSEC zone even if only 1 NSEC is needed.
+* Signer Engine: Don't create NSEC3 records for empty non terminals that lead to glue.
+* Signer Engine: LDNS can now parse explicit TTLs that are non-numbers (for example 3d2h, in LDNS trunk).
+* Bugreport #43: ods-signer: The command parser was too strict with white spaces.
 
 OpenDNSSEC 1.0.0b4 - 2009-10-23
 
