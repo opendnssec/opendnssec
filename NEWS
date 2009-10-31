@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.0.0b5 - 2009-10-31
 
 * Reintroduce MySQL for enforcer back-end on an experimental footing
 
