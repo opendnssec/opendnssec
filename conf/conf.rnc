@@ -132,10 +132,10 @@ syslogFacility = (
 	)
 
 privs = element Privileges {
-	# DEFAULT: no not drop privs
+	# DEFAULT: do not drop privs
 	element User { xsd:string }?,
 	
-	# DEFAULT: no not drop privs
+	# DEFAULT: do not drop privs
 	element Group { xsd:string }?
 }
 
