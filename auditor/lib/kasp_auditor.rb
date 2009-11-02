@@ -108,6 +108,7 @@ module KASPAuditor
       pid = Process.pid
       ret = 999 # Return value to controlling process
       zones.each {|config, input_file, output_file|
+        next if !config
         syslog.log(LOG_INFO, "Auditor starting on #{config.name}")
         print("Auditor starting on #{config.name}\n")
         do_audit = true
