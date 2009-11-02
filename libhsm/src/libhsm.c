@@ -453,6 +453,9 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
     CK_SESSION_HANDLE session_handle;
     int first = 1;
 
+    CK_C_INITIALIZE_ARGS InitArgs = {NULL, NULL, NULL, NULL,
+                                     CKF_OS_LOCKING_OK, NULL };
+
     module = hsm_module_new(repository, token_label, module_path);
     if (!module) return HSM_ERROR;
     rv = hsm_pkcs11_load_functions(module);
@@ -462,7 +465,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
 	    "PKCS#11 module load failed: %s", module_path);
         return HSM_MODULE_NOT_FOUND;
     }
-    rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize(NULL);
+    rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize((CK_VOID_PTR) &InitArgs);
     /* ALREADY_INITIALIZED is ok, apparently we are using a second
      * device with the same library */
     if (rv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
