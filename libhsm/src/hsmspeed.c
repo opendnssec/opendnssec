@@ -58,7 +58,7 @@ usage ()
 {
     fprintf(stderr,
         "usage: %s "
-        "[-f config] -r repository [-i iterations] [-s keysize] [-t threads]\n",
+        "[-c config] -r repository [-i iterations] [-s keysize] [-t threads]\n",
         progname);
 }
 
@@ -149,9 +149,9 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt(argc, argv, "f:i:r:s:t:")) != -1) {
+    while ((ch = getopt(argc, argv, "c:i:r:s:t:")) != -1) {
         switch (ch) {
-        case 'f':
+        case 'c':
             config = strdup(optarg);
             break;
         case 'i':
