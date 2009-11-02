@@ -31,7 +31,7 @@ Errors and warnings are written to the configured log facility.
 
 Checks performed include : DNSKEY, NSEC(3), RRSIG and NSEC3PARAM
 checks. More details are available on the OpenDNSSEC website :
-http://www.opendnssec.org
+http://trac.opendnssec.org/wiki/Signer/AuditorRequirements
 
 -------------------------------------------------------------------
 Dependencies
@@ -103,6 +103,17 @@ file, instead of the file specified in the zonelist.
 e.g. ods-auditor --conf /etc/opendnssec/conf.xml
 
 
+------------------------------------------------------------------
+Known Issues
+------------------------------------------------------------------
+
+The auditor is known to take a long time to sort through very 
+large zones. If your zone is very large, and needs to be signed
+very often, then you may need to disable the auditor (to do this,
+remove the <Audit/> tag from kasp.xml).
+
+Future versions of the auditor will have a "partial audit" option
+for use with very large zones.
 
 
 Any problems, please contact alex@nominet.org.uk
