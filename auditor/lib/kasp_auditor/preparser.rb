@@ -76,10 +76,12 @@ module KASPAuditor
       if  File.exist?(outfile)
         File.delete(outfile)
       end
+      @line_num = 0
       begin
         File.open(outfile, File::CREAT|File::RDWR) { |f|
           begin
             IO.foreach(infile) { |line|
+              @line_num += 1
               ret = process_line(line)
 
 
@@ -149,7 +151,7 @@ module KASPAuditor
       begin
         return normalise_line(line)
       rescue Exception => e
-        print "ERROR parsing line : #{line}\n"
+        print "ERROR parsing line #{@line_num} : #{line}\n"
         return "\n", Types::ANY
       end
     end
