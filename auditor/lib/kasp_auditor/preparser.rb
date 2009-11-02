@@ -164,11 +164,11 @@ module KASPAuditor
       # Ary any of the semi-colons inside a quoted section?
       while (next_index = line.index(";", last_index + 1))
         # Have there been any quotes since we last looked?
-        process_quotes(line[last_index, next_index])
+        process_quotes(line[last_index, next_index - last_index])
 
         # Now use @in_quoted_section to work out if the ';' terminates the line
         if (!@in_quoted_section)
-          return line[0,next_index]
+          return line[0,next_index - last_index]
         end
 
         last_index = next_index
