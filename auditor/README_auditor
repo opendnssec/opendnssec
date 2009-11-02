@@ -49,7 +49,7 @@ install it to the target system. Depending on how Ruby is
 installed on the target system, it may be necessary to run the
 above command as root.
 
-Version 1.36 or greater of dnsruby is required.
+Version 1.39 or greater of dnsruby is required.
 
 -------------------------------------------------------------------
 Installation
