@@ -86,7 +86,7 @@ module KASPAuditor
               if (ret)
                 new_line, type = ret
                 # Append the domain name and the RR Type here - e.g. "$NS"
-                line_to_write = prepare(@last_name) + NAME_SEPARATOR + type + SORT_SEPARATOR + new_line
+                line_to_write = prepare(@last_name) + NAME_SEPARATOR + type.to_s + SORT_SEPARATOR + new_line
                 f.write(line_to_write)
               end
             }
@@ -146,7 +146,12 @@ module KASPAuditor
       line = strip_comments(line) + "\n"
 
       # If SOA, then replace "3h" etc. with expanded seconds
-      normalise_line(line)
+      begin
+        return normalise_line(line)
+      rescue Exception => e
+        print "ERROR parsing line : #{line}\n"
+        return "\n", Types::ANY
+      end
     end
 
     def strip_comments(line)
