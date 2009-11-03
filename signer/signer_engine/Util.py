@@ -181,7 +181,7 @@ def parse_duration(duration_string):
             if not match:
                 raise Exception("Bad duration format: " +duration_string)
 
-    result += parse_duration_part(match, "years", 31556926)
+    result += parse_duration_part(match, "years", 31536000)
     result += parse_duration_part(match, "months", 2678400)
     result += parse_duration_part(match, "weeks", 604800)
     result += parse_duration_part(match, "days", 86400)
