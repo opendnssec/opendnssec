@@ -56,7 +56,6 @@ class ZoneConfig:
         self.signatures_inception_offset = 0
         #self.signatures_zsk_refs = []
         #self.signatures_ksk_refs = []
-        self.publish_keys = []
         self.denial_nsec = False
         self.denial_nsec3 = False
         self.denial_nsec3_optout = False
