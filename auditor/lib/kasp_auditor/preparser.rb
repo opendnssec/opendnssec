@@ -379,9 +379,9 @@ module KASPAuditor
         when 104 then # "h"
           new_number = number * 3600
         when 100 then # "d"
-          new_number = number * 3600 * 24
+          new_number = number * 86400
         when 119 then # "w"
-          new_number = number * 3600 * 24 * 7
+          new_number = number * 604800
         end
         total += new_number
           
