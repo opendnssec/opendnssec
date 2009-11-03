@@ -891,7 +891,7 @@ int DtDateDiff(const char* date1, const char* date2, int* result)
  *          H       Hours - multiply number by 3600 (no. seconds in an hour)
  *          D       Day - multiply number by 86400 (no. seconds in a day)
  *          W       Week - multiply number by 604,800 (no. seconds in a week)
- *          M       Month - multiply number by 2,592,000 (no. seconds in 30 days)
+ *          M       Month - multiply number by 2,678,400 (no. seconds in 31 days)
  *          Y       Year - multiply number by 31,536,000 (no. seconds in 365 days)
  *
  *      Lower-case characters are not recognised.
