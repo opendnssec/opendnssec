@@ -20,19 +20,26 @@ Bugfixes:
 * Signer Engine: Disable multiline parsing when the line is commented out.
 * Signer Engine: The tools are not hanging any more. Better pipe handling.
 * Signer Engine: NSEC zone even if only 1 NSEC is needed.
-* Signer Engine: Don't create NSEC3 records for empty non terminals that lead to glue.
-* Signer Engine: LDNS can now parse explicit TTLs that are non-numbers (for example 3d2h, in LDNS trunk).
-* Bugreport #43: ods-signer: The command parser was too strict with white spaces.
+* Signer Engine: Don't create NSEC3 records for empty non terminals that
+  lead to glue.
+* Signer Engine: LDNS can now parse explicit TTLs that are non-numbers
+  (for example 3d2h, in LDNS trunk).
+* Bugreport #43: ods-signer: The command parser was too strict with white
+  spaces.
 
 OpenDNSSEC 1.0.0b4 - 2009-10-23
 
-* Default TTL in case of $TTL or explicit RR TTL becomes the SOA Minimum value (was 3600).
-* The signer engine will check if another engine is already running before starting.
+* Default TTL in case of $TTL or explicit RR TTL becomes the SOA Minimum
+  value (was 3600).
+* The signer engine will check if another engine is already running before
+  starting.
 * Startup scripts for Solaris (SMF).
-* Auditor gives an error if key moves to "in use" without sufficient "prepublished" time.
+* Auditor gives an error if key moves to "in use" without sufficient
+  "prepublished" time.
 
 Bugfixes:
-* Trailing spaces are not part of the domain name/ include file/ ttl in directives.
+* Trailing spaces are not part of the domain name/ include file/ ttl in
+  directives.
 * nsec3er: Print final RRset, even if no NSEC3 was needed at that RRset.
 * Proper privileges dropping when creating the command socket
 * Signer sometimes didn't terminate if socket shutdown failed.
@@ -52,7 +59,8 @@ Bugfixes:
 * Allow for SOA Serial/TTL/Minimum values of zero.
 * Correct socket binding of NotifyListen.
 * Systems with older SQLite had problem rolling keys on a policy.
-* Auditor now handles SSHFP and NAPTR records correctly (but needs Dnsruby 1.39)
+* Auditor now handles SSHFP and NAPTR records correctly
+  (but needs Dnsruby 1.39)
 * Auditor now handles TTLs in zone file with suffix s, m, h, d, and w.
 
 
