@@ -2,7 +2,8 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
+* ods-hsmutil now has a command ("purge") to remove ALL keys from a given
+  repository.
 
 
 OpenDNSSEC 1.0.0b5 - 2009-10-31
