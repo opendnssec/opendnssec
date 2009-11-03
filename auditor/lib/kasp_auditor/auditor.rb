@@ -193,13 +193,13 @@ module KASPAuditor
         log(LOG_ERR, "No #{nsec_string} records in zone")
         return
       end
-      if (@config.denial.nsec && (@first_nsec.type == Dnsruby::Types.NSEC))
+      if (@config.denial.nsec && (@first_nsec.type == Dnsruby::Types::NSEC))
         # Now check that the last nsec points to the first nsec
         if (@first_nsec && (@last_nsec.next_domain == @first_nsec.name))
         else
           log(LOG_ERR, "Can't follow NSEC loop from #{@last_nsec.name} to #{@last_nsec.next_domain}")
         end
-      elsif (@config.denial.nsec3 && ((@first_nsec.type == Dnsruby::Types.NSEC3)))
+      elsif (@config.denial.nsec3 && ((@first_nsec.type == Dnsruby::Types::NSEC3)))
         # Now check that the last nsec3 points to the first nsec3
         if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
         else
@@ -252,7 +252,7 @@ module KASPAuditor
         # Add the last_rr to the domain_rrsets
         domain_rrs.push(l_rr)
         # If this is a DNSKEY record, then remember to add it to the keys!
-        if (l_rr.type == Types.DNSKEY)
+        if (l_rr.type == Types::DNSKEY)
           @keys.push(l_rr)
           #          print "Using key #{l_rr.key_tag}\n"
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
@@ -266,7 +266,7 @@ module KASPAuditor
 
     # Work out what RRSet type this belongs to
     def get_type_from_rr(rr)
-      if (rr.type == Types.RRSIG)
+      if (rr.type == Types::RRSIG)
         return rr.type_covered
       else
         return rr.type
@@ -282,7 +282,7 @@ module KASPAuditor
       rrset.sigs.each {|sig| rrset_sig_types.push(sig.algorithm)}
       @algs.each {|alg|
         if !(rrset_sig_types.include?alg)
-          if ((rrset.type == Types.NS) && (rrset.name != @soa.name)) # NS RRSet NOT at zone apex is OK
+          if ((rrset.type == Types::NS) && (rrset.name != @soa.name)) # NS RRSet NOT at zone apex is OK
           else
             s = ""
             rrset_sig_types.each {|t| s = s + " #{t} "}
@@ -294,7 +294,7 @@ module KASPAuditor
       #          print "Verifying RRSIG for #{rrset}\n"
       # @TODO@ Create an RRSET with *only* the RRSIG we are interested in - check that they all verify ok?
       # Check if this is an NS RRSet other than the zone apex - if so, then skip the verify test
-      if ((rrset.type == Types.NS) && ((rrset.name != @soa.name)))
+      if ((rrset.type == Types::NS) && ((rrset.name != @soa.name)))
         # Skip the verify test
       else
         begin
@@ -560,8 +560,8 @@ module KASPAuditor
         # So, keep track of the last RR type (or type_covered, if RRSIG)
         # When that changes, check the signature for the RRSet
         if (current_rrset.add(l_rr, false))
-          if (l_rr.type == Types.RRSIG)
-            if !(types_covered.include?Types.RRSIG)
+          if (l_rr.type == Types::RRSIG)
+            if !(types_covered.include?Types::RRSIG)
               types_covered.push(Types.RRSIG)
             end
           else
@@ -609,9 +609,9 @@ module KASPAuditor
         if (unsigned_domain_rrs  &&  !delete_rr(unsigned_domain_rrs, l_rr)) # delete the record from the unsigned
           # ADDITIONAL SIGNED RECORD!! Check if we should error on it
           process_additional_signed_rr(l_rr)
-          if (l_rr.type == Types.SOA)
+          if (l_rr.type == Types::SOA)
             unsigned_domain_rrs.each {|u_rr|
-              unsigned_domain_rrs.delete(u_rr) if u_rr.type == Types.SOA
+              unsigned_domain_rrs.delete(u_rr) if u_rr.type == Types::SOA
             }
           end
         end
@@ -653,7 +653,7 @@ module KASPAuditor
 
     # Delete a processed RR from the unsigned domain cache
     def delete_rr(unsigned_domain_rrs, l_rr)
-      if (l_rr.type == Types.AAAA)
+      if (l_rr.type == Types::AAAA)
         # We need to inspect the data here - old versions of Dnsruby::RR#==
         # compare the rdata as well as the instance variables.
         unsigned_domain_rrs.each {|u_rr|
@@ -662,7 +662,7 @@ module KASPAuditor
             return unsigned_domain_rrs.delete(u_rr)
           end
         }
-      elsif (l_rr.type == Types.DS)
+      elsif (l_rr.type == Types::DS)
         # Dnsruby 1.39 fails to compare DS RRs correctly - this is fixed for future versions
         unsigned_domain_rrs.each {|u_rr|
           if ((u_rr.name == l_rr.name) && (u_rr.type == l_rr.type) &&
@@ -687,7 +687,7 @@ module KASPAuditor
     #
     # It is passed the domain, and the types seen at the domain
     def write_types_to_file(domain, types_covered)
-      return if (types_covered.include?Types.NSEC3) # Only interested in real domains
+      return if (types_covered.include?Types::NSEC3) # Only interested in real domains
       #      return if (out_of_zone(domain)) # Only interested in domains which should be here!
       types_string = get_types_string(types_covered)
       salt = ""
