@@ -54,6 +54,7 @@ usage ()
     fprintf(stderr,"  list [repository]\n");
     fprintf(stderr,"  generate <repository> rsa <keysize>\n");
     fprintf(stderr,"  remove <id>\n");
+    fprintf(stderr,"  purge <repository>\n");
     fprintf(stderr,"  dnskey <id> <name>\n");
     fprintf(stderr,"  test <repository>\n");
 #if 0
@@ -208,6 +209,81 @@ cmd_remove (int argc, char *argv[])
 }
 
 int
+cmd_purge (int argc, char *argv[])
+{
+    int result;
+    int final_result = 0;
+
+    size_t i;
+    char *repository = NULL;
+    char confirm[16];
+
+    size_t key_count = 0;
+    hsm_key_t **keys;
+    hsm_ctx_t *ctx = NULL;
+
+    if (argc != 1) {
+        usage();
+        return -1;
+    }
+
+    repository = strdup(argv[0]);
+    argc--;
+    argv++;
+
+    /* Check for repository before starting using it */
+    if (hsm_token_attached(ctx, repository) == 0) {
+        hsm_print_error(ctx);
+        return 1;
+    }
+
+    printf("Purging all keys from repository: %s\n", repository);
+    keys = hsm_list_keys_repository(NULL, &key_count, repository);
+
+    printf("%u %s found.\n\n", (unsigned int) key_count,
+        (key_count > 1 ? "keys" : "key"));
+
+    if (!keys) {
+        return -1;
+    }
+
+    if (key_count == 0) {
+       return -1;
+    }
+
+    printf("Are you sure you want to remove ALL keys from repository %s ? (YES/NO) ", repository);
+    fgets(confirm, sizeof(confirm) - 1, stdin);
+    if (strncasecmp(confirm, "yes", 3) != 0) {
+        printf("\nPurge cancelled.\n");
+        return -1;
+    } else {
+        printf("\nStarting purge...\n");
+    }
+
+    for (i = 0; i < key_count; i++) {
+        hsm_key_info_t *key_info;
+        hsm_key_t *key = keys[i];
+
+        key_info = hsm_get_key_info(NULL, key);
+        result = hsm_remove_key(NULL, key);
+
+        if (!result) {
+            printf("Key remove successful: %s\n", key_info->id);
+        } else {
+            printf("Key remove failed: %s\n", key_info->id);
+            final_result++;
+        }
+
+        hsm_key_info_free(key_info);
+    }
+    hsm_key_list_free(keys, key_count);
+
+    printf("Purge done.\n");
+
+    return final_result;
+}
+
+int
 cmd_dnskey (int argc, char *argv[])
 {
     char *id;
@@ -326,6 +402,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_remove(argc, argv);
+    } else if (!strcasecmp(argv[0], "purge")) {
+        argc --;
+        argv ++;
+        result = cmd_purge(argc, argv);
     } else if (!strcasecmp(argv[0], "dnskey")) {
         argc --;
         argv ++;
