@@ -114,8 +114,6 @@ ACX_CUNIT
 ACX_LIBXML2
 ACX_LIBHSM
 ACX_DBPARAMS
-ACX_SQLITE3
-ACX_MYSQL
 ACX_LDNS
 
 AH_BOTTOM([
@@ -127,20 +125,14 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
 
-if test "x$with_mysql" = "xno"; then
+AC_ARG_ENABLE(mysql,
+        AC_HELP_STRING([--enable-mysql],
+                [Enable MySQL database driver (experimental)]),
+                [],[])
 
-	DB_TYPE=sqlite3 
-	DB_INCLUDES=$SQLITE3_INCLUDES 
-	DB_LIBS=$SQLITE3_LIBS 
+if test "${enable_mysql+set}" = set; then
 
-	AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3", [database setup script]) 
-
-	AC_SUBST(DB_TYPE) 
-	AC_SUBST(DB_INCLUDES) 
-	AC_SUBST(DB_LIBS) 
-
-else
+	ACX_MYSQL
 
     	DB_TYPE=mysql
 	DB_INCLUDES=$MYSQL_INCLUDES
@@ -153,9 +145,24 @@ else
 	AC_SUBST(DB_INCLUDES) 
 	AC_SUBST(DB_LIBS) 
 
+else
+
+	ACX_SQLITE3
+
+	DB_TYPE=sqlite3 
+	DB_INCLUDES=$SQLITE3_INCLUDES 
+	DB_LIBS=$SQLITE3_LIBS 
+
+	AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary]) 
+	AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3", [database setup script]) 
+
+	AC_SUBST(DB_TYPE) 
+	AC_SUBST(DB_INCLUDES) 
+	AC_SUBST(DB_LIBS) 
+
 fi
 
-AM_CONDITIONAL([USE_MYSQL],  [test "x$with_mysql" != "xno"]) 
+AM_CONDITIONAL([USE_MYSQL], [test "${enable_mysql+set}" = set])
 
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
