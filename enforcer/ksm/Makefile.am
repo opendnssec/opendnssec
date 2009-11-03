@@ -21,7 +21,7 @@ libksm_a_SOURCES = \
 	memory.c message.c string_util.c string_util2.c \
 	compat/strlcpy.c compat/strlcat.c
 
-if MYSQL
+if USE_MYSQL
 libksm_a_SOURCES += \
 	database_access_mysql.c \
 	database_connection_mysql.c \
