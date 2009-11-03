@@ -42,13 +42,14 @@
 
 extern char *optarg;
 char *progname = NULL;
+unsigned int verbose = 0;
 
 
 void
 usage ()
 {
     fprintf(stderr,
-       "usage: %s [-c config] command [options]\n",
+       "usage: %s [-c config] [-v] command [options]\n",
         progname);
 
     fprintf(stderr,"  list [repository]\n");
@@ -157,8 +158,12 @@ cmd_generate (int argc, char *argv[])
         key = hsm_generate_rsa_key(NULL, repository, keysize);
 
         if (key) {
-            printf("Key generation successful.\n");
-            hsm_print_key(key);
+            hsm_key_info_t *key_info;
+
+            key_info = hsm_get_key_info(NULL, key);
+            printf("Key generation successful: %s\n", key_info->id);
+            hsm_key_info_free(key_info);
+            if (verbose) hsm_print_key(key);
             hsm_key_free(key);
         } else {
             printf("Key generation failed.\n");
@@ -360,10 +365,13 @@ main (int argc, char *argv[])
     int ch;
     progname = argv[0];
 
-    while ((ch = getopt(argc, argv, "c:h")) != -1) {
+    while ((ch = getopt(argc, argv, "c:vh")) != -1) {
         switch (ch) {
         case 'c':
             config = strdup(optarg);
+            break;
+        case 'v':
+            verbose++;
             break;
         case 'h':
             usage();
