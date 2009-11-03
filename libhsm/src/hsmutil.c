@@ -94,7 +94,7 @@ cmd_list (int argc, char *argv[])
     }
 
     printf("%u %s found.\n\n", (unsigned int) key_count,
-        (key_count > 1 ? "keys" : "key"));
+        (key_count > 1 || key_count == 0 ? "keys" : "key"));
 
     if (!keys) {
         return -1;
@@ -241,7 +241,7 @@ cmd_purge (int argc, char *argv[])
     keys = hsm_list_keys_repository(NULL, &key_count, repository);
 
     printf("%u %s found.\n\n", (unsigned int) key_count,
-        (key_count > 1 ? "keys" : "key"));
+        (key_count > 1 || key_count == 0 ? "keys" : "key"));
 
     if (!keys) {
         return -1;
