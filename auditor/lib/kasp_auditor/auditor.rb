@@ -137,7 +137,7 @@ module KASPAuditor
               compare_return = compare_subdomain_of_zone(last_signed_rr, last_unsigned_rr)
               while (last_unsigned_rr && compare_return != 0 && (!unsignedfile.eof? || !signedfile.eof?))
                 # Work out which file is behind, then continue loading records from that zone until we're at the same subdomain of the zone soa
-                if (compare_return > 0) # unsigned < signed
+                if ((compare_return > 0) || (!last_signed_rr)) # unsigned < signed
                   # Log missing signed subdomain - check if out of zone first
                   process_additional_unsigned_rr(last_unsigned_rr)
                   # Load next unsigned record
