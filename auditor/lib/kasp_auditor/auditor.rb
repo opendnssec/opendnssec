@@ -37,9 +37,9 @@ module KASPAuditor
   # @TODO@ SOA Checks - format, etc.
   
   class Auditor # :nodoc: all
-   class FatalError < Exception
-   end
-   ##
+    class FatalError < Exception
+    end
+    ##
     # Create a new Auditor - pass in the created syslog for logging, the path
     # of the working (temporary) directory, and the //Enforcer/Interval
     # Once created, use the check_zone method to audit a zone.
@@ -274,9 +274,12 @@ module KASPAuditor
     end
 
     # Check the RRSIG for this RRSet
-    def check_signature(rrset, is_glue, is_unsigned_delegation)
+    def check_signature(rrset, is_glue, delegation)
       return if is_glue
-      return if is_unsigned_delegation
+      if (delegation && ([Types::AAAA, Types::A].include?rrset.type))
+        # glue - don't verify
+        return
+      end
       return if (out_of_zone(rrset.name))
       rrset_sig_types = []
       rrset.sigs.each {|sig| rrset_sig_types.push(sig.algorithm)}
@@ -538,7 +541,7 @@ module KASPAuditor
       seen_nsec_for_domain = false
       current_rrset = RRSet.new
       is_glue = false
-      is_unsigned_delegation = false
+      delegation = false
       while (l_rr && test_subdomain(l_rr, subdomain))
         #                print "Loaded signed RR : #{l_rr}\n"
 
@@ -549,11 +552,17 @@ module KASPAuditor
             # iff we're using NSEC3
             write_types_to_file(current_domain, types_covered)
           end
+          if !(l_rr.name.subdomain_of?current_domain)
+            delegation = false
+          end
           is_glue = true
           seen_nsec_for_domain = false
           types_covered = []
           types_covered.push(l_rr.type)
           current_domain = l_rr.name
+        end
+        if l_rr.type == Types::NS
+          delegation = true
         end
 
         # Keep track of the RRSet we're currently loading - as soon as all the RRs have been loaded, then check the RRSIG
@@ -572,7 +581,7 @@ module KASPAuditor
         else
           # We have a complete RRSet.
           # Now check the signatures!
-          check_signature(current_rrset, is_glue, is_unsigned_delegation)
+          check_signature(current_rrset, is_glue, delegation)
           current_rrset = RRSet.new
           current_rrset.add(l_rr, false)
           types_covered.push(l_rr.type)
@@ -623,7 +632,7 @@ module KASPAuditor
         write_types_to_file(current_domain, types_covered)
       end
       # Remember to check the signatures of the final RRSet!
-      check_signature(current_rrset, is_glue, is_unsigned_delegation)
+      check_signature(current_rrset, is_glue, delegation)
       if (@config.denial.nsec)
         if (!is_glue)
           if (!seen_nsec_for_domain)
@@ -667,7 +676,7 @@ module KASPAuditor
         unsigned_domain_rrs.each {|u_rr|
           if ((u_rr.name == l_rr.name) && (u_rr.type == l_rr.type) &&
                 (u_rr.key_tag == l_rr.key_tag) && (u_rr.digestbin == l_rr.digestbin) &&
-              (u_rr.algorithm == l_rr.algorithm) && (u_rr.digest_type == l_rr.digest_type))
+                (u_rr.algorithm == l_rr.algorithm) && (u_rr.digest_type == l_rr.digest_type))
             return unsigned_domain_rrs.delete(u_rr)
           end
         }

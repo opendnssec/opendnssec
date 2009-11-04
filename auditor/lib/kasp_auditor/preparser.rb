@@ -408,14 +408,17 @@ module KASPAuditor
     def prefix_for_rrset_order(type, type_was)
       # Now make sure that NSEC(3) RRs go to the back of the list
       if ['NSEC', 'NSEC3'].include?type.string
-        if (type_was == Types.RRSIG)
+        if (type_was == Types::RRSIG)
           # Get the RRSIG first
           type_string = "ZZ" + type.string
         else
           type_string = "ZZZ" + type.string
         end
-      elsif type == Types.DNSKEY
+      elsif type == Types::DNSKEY
         type_string = "0" + type.string
+      elsif type == Types::NS
+        # Make sure that we see the NS records first so we know the delegation status
+        type_string = "1" + type.string
       else
         type_string = type.string
       end
