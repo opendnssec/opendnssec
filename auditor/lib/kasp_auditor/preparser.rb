@@ -168,7 +168,7 @@ module KASPAuditor
 
         # Now use @in_quoted_section to work out if the ';' terminates the line
         if (!@in_quoted_section)
-          return line[0,next_index - last_index]
+          return line[0,next_index]
         end
 
         last_index = next_index
