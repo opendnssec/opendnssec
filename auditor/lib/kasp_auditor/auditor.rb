@@ -39,6 +39,7 @@ module KASPAuditor
   class Auditor # :nodoc: all
     class FatalError < Exception
     end
+    EMPTY_NAME = Name.create(".")
     ##
     # Create a new Auditor - pass in the created syslog for logging, the path
     # of the working (temporary) directory, and the //Enforcer/Interval
@@ -234,9 +235,7 @@ module KASPAuditor
     def get_subdomain_to_load(last_rr)
       return "" if (!last_rr)
       subdomain = last_rr.name
-      @soa.name.labels.length.times {|n|
-        subdomain = lose_last_label(subdomain)
-      }
+      subdomain = lose_n_labels(subdomain, @soa.name.labels.length)
       subdomain = subdomain.labels()[subdomain.labels.length() - 1]
       return subdomain
     end
@@ -771,9 +770,7 @@ module KASPAuditor
     def test_subdomain(rr, subdomain)
       ret = false
       rr_name = rr.name
-      @soa.name.labels.length.times {|n|
-        rr_name = lose_last_label(rr_name)
-      }
+      rr_name = lose_n_labels(rr_name, @soa.name.labels.length)
 
       if (subdomain && rr_name)
         ret = (rr_name.labels()[rr_name.labels.length() - 1] == subdomain)
@@ -785,11 +782,11 @@ module KASPAuditor
 
 
     # Get rid of the last label in the Name
-    def lose_last_label(name)
-      if ((name.labels.length == 1) || (name.labels.length == 0))
-        return Name.create(".")
+    def lose_n_labels(name, n)
+      if (name.labels.length <= n)
+        return EMPTY_NAME # Name.create(".")
       end
-      n = Name.new(name.labels()[0, name.labels.length-1], name.absolute?)
+      n = Name.new(name.labels()[0, name.labels.length-n], name.absolute?)
       return n
     end
 
@@ -803,16 +800,15 @@ module KASPAuditor
 
       name1 = n1.name
       name2 = n2.name
+      return 0 if ((name1.labels.length <= @soa.name.labels.length) &&
+          (name2.labels.length <= @soa.name.labels.length))
+      return -1 if name2.labels.length <= @soa.name.labels.length
+      return 1 if name1.labels.length <= @soa.name.labels.length
       # Look at the label immediately before the soa name, and see if they are the same.
       # So, we need to strip the soa off, then look at the last label
-      @soa.name.labels.length.times {|n|
-        name1 = lose_last_label(name1)
-        name2= lose_last_label(name2)
-      }
-      return 0 if ((name1.labels.length == 0) && (name2.labels.length == 0))
+      name1 = lose_n_labels(name1, @soa.name.labels.length)
+      name2= lose_n_labels(name2, @soa.name.labels.length)
       #      print "Now comparing subdomains of #{name1} and #{name2} (#{name1.labels[name1.labels.length-1]}, #{name2.labels[name2.labels.length-1]}\n"
-      return -1 if name2.labels.length == 0
-      return 1 if name1.labels.length == 0
       return ((name1.labels[name1.labels.length-1]) <=> (name2.labels[name2.labels.length-1]))
     end
 
