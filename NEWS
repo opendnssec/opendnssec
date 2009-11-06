@@ -1,9 +1,15 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.0.0b6 - 2009-11-06
 
 * ods-hsmutil now has a command ("purge") to remove ALL keys from a given
   repository.
+
+Bugfixes:
+* Some minor bugfixes for the auditor
+* Better detection for MySQL (now requires --enable-mysql to build)
+* Init PKCS#11 library with CKF_OS_LOCKING_OK
+* Change config file flag to hsmspeed
 
 
 OpenDNSSEC 1.0.0b5 - 2009-10-31
