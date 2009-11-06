@@ -164,6 +164,10 @@ module KASPChecker
               log(LOG_ERR, "Group #{group.text} does not exist")
             end
           }
+
+          check_db(doc)
+
+
           # The Directory code is commented out until we support chroot again
           #          doc.root.each_element('//Privileges/Directory') {|dir|
           #            print "Dir : #{dir}\n"
@@ -215,6 +219,65 @@ module KASPChecker
         log(LOG_ERR, "Can't find config file : #{conf_file}")
         return nil
       end
+    end
+
+    def check_db(doc)
+      # Now check that the DB is writable by the user
+      # //Enforcer/Datastore/Sqlite
+      doc.root.each_element('/Configuration/Enforcer/Datastore/SQLite') {|sqlite|
+        file = sqlite.text
+        stat = File::Stat.new((file+"").untaint)
+        # Get the User and Group from the file - default to current
+        user_name=nil
+        group_name=nil
+        begin
+          user_name = doc.elements['Configuration/Enforcer/Privileges/User'].text
+        rescue Exception
+        end
+        begin
+          group_name = doc.elements['Configuration/Enforcer/Privileges/Group'].text
+        rescue Exception
+        end
+        if (user_name || group_name)
+          # Other user of group specified - will need to fire up another process,
+          # passing in the UID and GID to change to, and then inspect return
+          pid = fork {
+            # Do all the changes and then check writable
+            begin
+              if (group_name)
+                group = Etc.getgrnam((group_name+"").untaint).gid
+                Process::Sys.setgid(group)
+              end
+              if (user_name)
+                user = Etc.getpwnam((user_name+"").untaint).uid
+                Process::Sys.setuid(user)
+              end
+            rescue Exception => e
+              log(LOG_ERR, "Can't change to #{user_name}, #{group_name} to check DB write permissions")
+            end
+            if (stat.writable?)
+              exit(0)
+            else
+              exit(-1)
+            end
+          }
+          Process.wait(pid)
+          ret_status = $? >> 8
+          if (ret_status != 0)
+            log(LOG_ERR, "#{user_name} user can not write to DB file #{file}\n")
+          end
+        else
+          # No user/group specified - now check that the file is writable by current user
+          if !(stat.writable?)
+            log(LOG_ERR, "Current user can not write to DB file #{file}\n")
+          end
+
+        end
+      }
+      doc.root.each_element('//Enforcer/Datastore/MySQL') {|mysql|
+        # @TODO@ If //Enforcer/Datastore/MySQL is used, then we could try to connect to the database?
+
+      }
     end
 
     def check_duration_element_proc(element, policy, name, filename)
