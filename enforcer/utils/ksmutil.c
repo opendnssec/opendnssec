@@ -1930,7 +1930,42 @@ cmd_import ()
     KSM_PARAMETER data;         /* Parameter information */
 
     int user_certain;           /* Continue ? */
-  
+
+    /* Chech that we got all arguments. */
+
+    if (o_cka_id == NULL) {
+        printf("Error: please specify a CKA_ID with the --cka_id <CKA_ID>\n");
+        return(1);
+    }
+    if (o_repository == NULL) {
+        printf("Error: please specify a repository with the --repository <repository>\n");
+        return(1);
+    }
+    if (o_zone == NULL) {
+        printf("Error: please specify a zone with the --zone <zone>\n");
+        return(1);
+    }
+    if (o_size == NULL) {
+        printf("Error: please specify the number of bits with the --bits <size>\n");
+        return(1);
+    }
+    if (o_algo == NULL) {
+        printf("Error: please specify the algorithm with the --algorithm <algorithm>\n");
+        return(1);
+    }
+    if (o_keystate == NULL) {
+        printf("Error: please specify the state with the --keystate <state>\n");
+        return(1);
+    }
+    if (o_keytype == NULL) {
+        printf("Error: please specify a keytype, KSK or ZSK, with the --keytype <type>\n");
+        return(1);
+    }
+    if (o_time == NULL) {
+        printf("Error: please specify the time of when the key entered the given state with the --time <time>\n");
+        return(1);
+    }
+
     /* try to connect to the database */
     status = db_connect(&dbhandle, &lock_fd, 1);
     if (status != 0) {
@@ -1939,90 +1974,64 @@ cmd_import ()
         return(1);
     }
 
-    /* check that the repository is specified and exists */
-    if (o_repository == NULL) {
-        printf("Error: please specify a repository with the --repository flag\n");
+    /* check that the repository exists */
+    status = KsmSmIdFromName(o_repository, &repo_id);
+    if (status != 0) {
+        printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
         db_disconnect(lock_fd);
-        return(1);
-    } else {
-
-        status = KsmSmIdFromName(o_repository, &repo_id);
-        if (status != 0) {
-            printf("Error: unable to find a repository named \"%s\" in database\n", o_repository);
-            db_disconnect(lock_fd);
-            return status;
-        }
+        return status;
     }
 
     /* check that the zone name is valid and use it to get some ids */
-    if (o_zone == NULL) {
-        printf("Error: please specify a zone with the --zone flag\n");
+    status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
+    if (status != 0) {
+        printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
         db_disconnect(lock_fd);
-        return(1);
-    } else {
-        status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
-        if (status != 0) {
-            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            db_disconnect(lock_fd);
-            return(status);
-        }
+        return(status);
     }
 
     /* Check that the cka_id does not exist (in the specified HSM) */
-    if (o_cka_id == NULL) {
-        printf("Error: please specify a cka_id with the --cka_id flag\n");
+    status = (KsmCheckHSMkeyID(repo_id, o_cka_id, &cka_id_exists));
+    if (status != 0) {
+        db_disconnect(lock_fd);
+        return(status);
+    }
+    if (cka_id_exists == 1) {
+        printf("Error: key with cka_id \"%s\" already exists in database\n", o_cka_id);
         db_disconnect(lock_fd);
         return(1);
-    } else {
-        status = (KsmCheckHSMkeyID(repo_id, o_cka_id, &cka_id_exists));
-        if (status != 0) {
-            db_disconnect(lock_fd);
-            return(status);
-        }
-        if (cka_id_exists == 1) {
-            printf("Error: key with cka_id \"%s\" already exists in database\n", o_cka_id);
-            db_disconnect(lock_fd);
-            return(1);
-        }
     }
 
     /* Check the Keytype */
-    if (o_keytype == NULL) {
-        printf("Error: please specify a keytype, KSK or ZSK, with the --keytype <type>\n");
-        db_disconnect(lock_fd);
-        return(1);
-    } else {
-        case_keytype = StrStrdup(o_keytype);
-        (void) StrToUpper(case_keytype);
-        if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(o_keytype, "257", 3) == 0) {
-            keytype_id = 257;
-        }
-        else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(o_keytype, "256", 3) == 0) {
-            keytype_id = 256;
-        }
-        else {
-            printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", o_keytype);
-
-            db_disconnect(lock_fd);
-            StrFree(case_keytype);
-            return(1);
-        }
-        StrFree(case_keytype);
+    case_keytype = StrStrdup(o_keytype);
+    (void) StrToUpper(case_keytype);
+    if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(o_keytype, "257", 3) == 0) {
+        keytype_id = 257;
     }
+    else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(o_keytype, "256", 3) == 0) {
+        keytype_id = 256;
+    }
+    else {
+        printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", o_keytype);
+
+        db_disconnect(lock_fd);
+        StrFree(case_keytype);
+        return(1);
+    }
+    StrFree(case_keytype);
         
     /* Check the size is numeric */
     if (StrIsDigits(o_size)) {
         status = StrStrtoi(o_size, &size_int);
         if (status != 0) {
-            printf("Error: Unable to convert size \"%s\"; to an integer\n", o_size);
+            printf("Error: Unable to convert bits \"%s\"; to an integer\n", o_size);
             db_disconnect(lock_fd);
             return(status);
         }
-    }
-    else {
-        printf("Error: Size \"%s\"; should be numeric only\n", o_size);
+    } else {
+        printf("Error: Bits \"%s\"; should be numeric only\n", o_size);
         db_disconnect(lock_fd);
-        return(status);
+        return(1);
     }
         
     /* Check the algorithm */
