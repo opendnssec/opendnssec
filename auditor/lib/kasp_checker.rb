@@ -225,8 +225,12 @@ module KASPChecker
       # Now check that the DB is writable by the user
       # //Enforcer/Datastore/Sqlite
       doc.root.each_element('/Configuration/Enforcer/Datastore/SQLite') {|sqlite|
-        file = sqlite.text
-        stat = File::Stat.new((file+"").untaint)
+        file = ((sqlite.text+"").untaint)
+        if !File.exist?(file)
+          log(LOG_ERR, "Can't find DB file : #{file}")
+          return
+        end
+        stat = File::Stat.new(file)
         # Get the User and Group from the file - default to current
         user_name=nil
         group_name=nil
@@ -437,7 +441,7 @@ module KASPChecker
 
         }
       rescue Errno::ENOENT
-        log(LOG_ERR, "Can't find config file : #{kasp_file}")
+        log(LOG_ERR, "Can't find KASP config file : #{kasp_file}")
       end
     end
 
