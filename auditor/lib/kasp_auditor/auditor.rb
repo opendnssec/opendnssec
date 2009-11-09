@@ -856,7 +856,8 @@ module KASPAuditor
     def get_soa_from_file(file)
       # SOA should always be first (non-comment) line
       file = (file.to_s+"").untaint
-      pp = Preparser.new(@config)
+      pp = Dnsruby::ZoneReader.new(@config.name, @config.soa ? @config.soa.minimum : nil,
+        @config.soa ? @config.soa.ttl : nil)
 
       IO.foreach(file) {|line|
         ret = pp.process_line(line)
