@@ -1987,22 +1987,28 @@ cmd_import ()
     }
 
     /* Check the Keytype */
-    case_keytype = StrStrdup(o_keytype);
-    (void) StrToUpper(case_keytype);
-    if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(o_keytype, "257", 3) == 0) {
-        keytype_id = 257;
-    }
-    else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(o_keytype, "256", 3) == 0) {
-        keytype_id = 256;
-    }
-    else {
-        printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", o_keytype);
-
+    if (o_keytype == NULL) {
+        printf("Error: please specify a keytype, KSK or ZSK, with the --keytype <type>\n");
         db_disconnect(lock_fd);
-        StrFree(case_keytype);
         return(1);
+    } else {
+        case_keytype = StrStrdup(o_keytype);
+        (void) StrToUpper(case_keytype);
+        if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(o_keytype, "257", 3) == 0) {
+            keytype_id = 257;
+        }
+        else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(o_keytype, "256", 3) == 0) {
+            keytype_id = 256;
+        }
+        else {
+            printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", o_keytype);
+
+            db_disconnect(lock_fd);
+            StrFree(case_keytype);
+            return(1);
+        }
+        StrFree(case_keytype);
     }
-    StrFree(case_keytype);
         
     /* Check the size is numeric */
     if (StrIsDigits(o_size)) {
