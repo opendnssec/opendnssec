@@ -25,7 +25,7 @@
 
 	<Enforcer>
 
-		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
+		<Datastore><SQLite>test/kaspcheck_bad/invalid_kasp.xml</SQLite></Datastore>
 		<Interval>P30D</Interval>
 	</Enforcer>
 

@@ -34,7 +34,7 @@
 
 	<Enforcer>
 
-		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
+		<Datastore><SQLite>test/does_not_exist</SQLite></Datastore>
 		<Interval>P1Y</Interval>
 	</Enforcer>
 

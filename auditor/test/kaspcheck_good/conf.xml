@@ -25,7 +25,7 @@
 
 	<Enforcer>
 
-		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
+		<Datastore><SQLite>test/kaspcheck_good/kasp.xml</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 	</Enforcer>
 

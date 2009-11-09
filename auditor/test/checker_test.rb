@@ -52,7 +52,7 @@ class CheckerTest < Test::Unit::TestCase
 
           # Conf.xml checks
           # ---------------
-
+          "Can't find DB file : test/does_not_exist",
           # User/groups exist
           "ERROR: Group shouldnt_be_here_blah does not exist",
           "ERROR: User lah_de_dah_dafffy_duck does not exist",
