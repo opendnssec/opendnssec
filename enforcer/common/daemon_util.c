@@ -728,6 +728,8 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     xmlXPathFreeObject(xpathObj);
 
     if (db_found == 0) {
+        db_found = MYSQL_DB;
+
         /* Get all of the MySQL stuff read in too */
         /* HOST */
         xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
@@ -738,7 +740,6 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
-            db_found = MYSQL_DB;
             config->host = xmlXPathCastToString(xpathObj);
             if (verbose) {
                 log_msg(config, LOG_INFO, "MySQL database host set to: %s", config->host);
@@ -759,8 +760,6 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             if (verbose) {
                 log_msg(config, LOG_INFO, "MySQL database port set to: %s", config->port);
             }
-        } else {
-            db_found = 0;
         }
         xmlXPathFreeObject(xpathObj);
 
