@@ -90,6 +90,11 @@ typedef struct {
 	uint32_t soa_serial_keep;
 	uint32_t soa_minimum;
 
+	/* settings for NSEC3 if used */
+	uint32_t nsec3_algorithm;
+	uint32_t nsec3_iterations;
+	char* nsec3_salt;
+
 	/* and let's keep some statistics */
 	unsigned long existing_sigs;
 	unsigned long removed_sigs;
@@ -97,6 +102,8 @@ typedef struct {
 
 	int verbosity;
 } current_config;
+
+current_config* global_cfg = NULL;
 
 key_list *
 key_list_new()
@@ -239,6 +246,9 @@ current_config_new()
 	cfg->origin = NULL;
 	cfg->zsks = key_list_new();
 	cfg->ksks = key_list_new();
+	cfg->nsec3_algorithm = 0;
+	cfg->nsec3_iterations = 0;
+	cfg->nsec3_salt = NULL;
 	cfg->cfg_soa_ttl = 0;
 	cfg->soa_ttl = 0;
 	cfg->soa_serial = 0;
@@ -261,6 +271,7 @@ current_config_free(current_config *cfg)
 		}
 		if (cfg->zsks) free(cfg->zsks);
 		if (cfg->ksks) free(cfg->ksks);
+		if (cfg->nsec3_salt) free(cfg->nsec3_salt);
 		free(cfg);
 	}
 }
@@ -493,6 +504,27 @@ handle_command(FILE *output, current_config *cfg,
 			fprintf(output, "; Error: missing argument in refresh_denial command\n");
 		} else {
 			cfg->refresh_denial = parse_time(arg1);
+		}
+	} else if (strcmp(cmd, "nsec3_algorithm") == 0) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in nsec3_algorithm command\n");
+		} else {
+			cfg->nsec3_algorithm = atol(arg1);
+		}
+	} else if (strcmp(cmd, "nsec3_iterations") == 0) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in nsec3_iterations command\n");
+		} else {
+			cfg->nsec3_iterations = atol(arg1);
+		}
+	} else if (strcmp(cmd, "nsec3_salt") == 0) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in nsec3_salt command\n");
+		} else {
+			cfg->nsec3_salt = strdup(arg1);
 		}
 	} else if (strcmp(cmd, "origin") == 0) {
 		arg1 = read_arg(next, &next);
@@ -911,6 +943,13 @@ sign_rrset(ldns_rr_list *rrset,
 int
 compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 {
+	ldns_rr* rr1, *rr2;
+	ldns_rdf* rdf1, *rdf2;
+    size_t rr1_len, rr2_len, offset;
+	uint8_t nsec3_salt_length = 0;
+	uint8_t* nsec3_salt = NULL;
+	int c, ret = 0;
+
 	if (ldns_rr_list_rr_count(a) == 0) {
 		if (ldns_rr_list_rr_count(b) == 0) {
 			return 0;
@@ -925,8 +964,68 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 			return 1;
 		}
 	}
-	return ldns_rr_compare_no_rdata(ldns_rr_list_rr(a, 0),
-	                                ldns_rr_list_rr(b, 0));
+
+	rr1 = ldns_rr_list_rr(a, 0);
+	rr2 = ldns_rr_list_rr(b, 0);
+	rr1_len = ldns_rr_uncompressed_size(rr1);
+	rr2_len = ldns_rr_uncompressed_size(rr2);
+
+	if (global_cfg && global_cfg->nsec3_algorithm) {
+		if (global_cfg->nsec3_salt) {
+			nsec3_salt_length = (uint8_t) (strlen(global_cfg->nsec3_salt) / 2);
+			nsec3_salt = LDNS_XMALLOC(uint8_t, nsec3_salt_length);
+			for (c = 0; c < (int) strlen(global_cfg->nsec3_salt); c += 2) {
+				if (isxdigit((int) global_cfg->nsec3_salt[c]) && isxdigit((int) global_cfg->nsec3_salt[c+1])) {
+					nsec3_salt[c/2] = (uint8_t) ldns_hexdigit_to_int(global_cfg->nsec3_salt[c]) * 16 +
+						ldns_hexdigit_to_int(global_cfg->nsec3_salt[c+1]);
+				} else {
+					fprintf(stderr, "Salt value is not valid hex data.\n");
+					exit(EXIT_FAILURE);
+				}
+			}
+		}
+
+		rdf1 = ldns_nsec3_hash_name(ldns_rr_owner(rr1),
+					global_cfg->nsec3_algorithm,
+					global_cfg->nsec3_iterations,
+	                nsec3_salt_length,
+					nsec3_salt);
+		rdf2 = ldns_nsec3_hash_name(ldns_rr_owner(rr2),
+					global_cfg->nsec3_algorithm,
+					global_cfg->nsec3_iterations,
+	                nsec3_salt_length,
+					nsec3_salt);
+
+		ret = 0;
+		if (ldns_dname_compare(rdf1, rdf2) < 0) {
+			ret = -1;
+		} else if (ldns_dname_compare(rdf1, rdf2) > 0) {
+			ret = 1;
+		}
+
+		ldns_rdf_deep_free(rdf1);
+		ldns_rdf_deep_free(rdf2);
+		if (nsec3_salt) free(nsec3_salt);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	/* continue normal rr_compare_no_rdata */
+	if (ldns_rr_get_class(rr1) != ldns_rr_get_class(rr2)) {
+		return ldns_rr_get_class(rr1) - ldns_rr_get_class(rr2);
+	}
+	if (ldns_rr_get_type(rr1) != ldns_rr_get_type(rr2)) {
+		return ldns_rr_get_type(rr1) - ldns_rr_get_type(rr2);
+	}
+	offset = ldns_rdf_size(ldns_rr_owner(rr1)) + 4 + 2 + 2 + 2;
+	if (offset > rr1_len || offset > rr2_len) {
+		if (rr1_len == rr2_len) {
+			return 0;
+		}
+		return ((int) rr2_len - (int) rr1_len);
+	}
+	return 0;
 }
 
 int
@@ -1219,6 +1318,7 @@ int main(int argc, char **argv)
 	double elapsed;
 
 	cfg = current_config_new();
+	global_cfg = cfg;
 	input = stdin;
 	output = stdout;
 
