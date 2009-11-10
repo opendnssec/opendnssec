@@ -718,6 +718,15 @@ class Zone:
                 return False
             if self.zone_config.soa_serial == "keep":
                 sign_p.stdin.write(":soa_serial_keep 1\n")
+        # nsec3 params
+        if self.zone_config.denial_nsec3:
+            sign_p.stdin.write(":nsec3_algorithm " +\
+                str(self.zone_config.denial_nsec3_algorithm) + "\n")
+            sign_p.stdin.write(":nsec3_iterations " +\
+                str(self.zone_config.denial_nsec3_iterations) + "\n")
+            sign_p.stdin.write(":nsec3_salt " +\
+                self.zone_config.denial_nsec3_salt + "\n")
+
         #move time to engine?
         sign_time = int(time.time())
         Util.write_p(sign_p,
