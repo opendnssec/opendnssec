@@ -380,7 +380,6 @@ cmd_setup ()
     /* Read the database details out of conf.xml */
     status = get_db_details(&dbschema, &host, &port, &user, &password);
     if (status != 0) {
-        db_disconnect(lock_fd);
         StrFree(host);
         StrFree(port);
         StrFree(dbschema);
@@ -426,7 +425,7 @@ cmd_setup ()
         if (system(setup_command) != 0)
         {
             printf("Could not call db setup command:\n\t%s\n", setup_command);
-            fclose(lock_fd);
+            db_disconnect(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
@@ -444,8 +443,6 @@ cmd_setup ()
             printf("Couldn't fix permissions on file %s\n", dbschema);
             printf("Will coninue with setup, but you may need to manually change ownership\n");
         }
-
-        db_disconnect(lock_fd);
     }
     else {
         /* MySQL setup */
@@ -469,7 +466,6 @@ cmd_setup ()
         if (system(setup_command) != 0)
         {
             printf("Could not call db setup command:\n\t%s\n", setup_command);
-            fclose(lock_fd);
             StrFree(host);
             StrFree(port);
             StrFree(dbschema);
@@ -481,20 +477,25 @@ cmd_setup ()
         StrFree(setup_command);
     }
 
+    /* try to connect to the database */
+    status = DbConnect(&dbhandle, dbschema, host, password, user);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(1);
+    }
+
     /* Free these up early */
     StrFree(host);
     StrFree(port);
     StrFree(dbschema);
     StrFree(user);
     StrFree(password);
-
-    /* try to connect to the database */
-    status = db_connect(&dbhandle, &lock_fd, 1);
-    if (status != 0) {
-        printf("Failed to connect to database\n");
-        db_disconnect(lock_fd);
-        return(1);
-    }
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
