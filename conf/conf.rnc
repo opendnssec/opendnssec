@@ -142,7 +142,7 @@ privs = element Privileges {
 mysql = element MySQL {
 	element Host {
 		# DEFAULT: 3306
-		attribute port { xsd:positiveInteger { maxInclusive = "65535" } },
+		attribute port { xsd:positiveInteger { maxInclusive = "65535" } }?,
 		
 		# DEFAULT: 127.0.0.1
 		xsd:string }?,
