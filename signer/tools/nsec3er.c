@@ -230,7 +230,6 @@ handle_name(FILE *out_file,
 {
 	ldns_rr *new_nsec;
 	ldns_rdf *from_name = NULL;
-	char* nsec_name_str = NULL;
 
 	from_name = find_from_name(rr_list, prev_name);
 	if (rr) {
@@ -250,9 +249,6 @@ handle_name(FILE *out_file,
 			} else {
 				new_nsec = create_nsec3(from_name,
 				                        origin, ttl, rr_list, n3p, 0);
-				nsec_name_str = ldns_rdf2str(ldns_rr_owner(new_nsec));
-				fprintf(out_file, "; NSEC3: %s\n", nsec_name_str);
-				free(nsec_name_str);
 				if (*prev_nsec) {
 					link_nsec3_rrs(*prev_nsec, new_nsec);
 					ldns_rr_print(out_file, *prev_nsec);
@@ -279,9 +275,6 @@ handle_name(FILE *out_file,
 			if (ldns_rr_list_rr_count(rr_list) > 0) {
 				new_nsec = create_nsec3(from_name, origin, ttl,
 										rr_list, n3p, 0);
-				nsec_name_str = ldns_rdf2str(ldns_rr_owner(new_nsec));
-				fprintf(out_file, "; NSEC3: %s\n", nsec_name_str);
-				free(nsec_name_str);
 				if (*prev_nsec) {
 					link_nsec3_rrs(*prev_nsec, new_nsec);
 					ldns_rr_print(out_file, *prev_nsec);
@@ -297,9 +290,6 @@ handle_name(FILE *out_file,
 			/* then create the ENT */
 			new_nsec = create_nsec3(ent_name, origin, ttl,
 			                        rr_list, n3p, 1);
-			nsec_name_str = ldns_rdf2str(ldns_rr_owner(new_nsec));
-			fprintf(out_file, "; NSEC3: %s\n", nsec_name_str);
-			free(nsec_name_str);
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
 				ldns_rr_print(out_file, *prev_nsec);
@@ -318,9 +308,6 @@ handle_name(FILE *out_file,
 		   ) {
 			new_nsec = create_nsec3(from_name,
 			                        origin, ttl, rr_list, n3p, 0);
-			nsec_name_str = ldns_rdf2str(ldns_rr_owner(new_nsec));
-			fprintf(out_file, "; NSEC3: %s\n", nsec_name_str);
-			free(nsec_name_str);
    			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
 				ldns_rr_print(out_file, *prev_nsec);
