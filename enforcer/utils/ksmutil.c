@@ -453,8 +453,10 @@ cmd_setup ()
         StrAppend(&setup_command, SQL_BIN);
         StrAppend(&setup_command, " -u ");
         StrAppend(&setup_command, user);
-        StrAppend(&setup_command, " -h ");
-        StrAppend(&setup_command, host);
+        if (host != NULL) {
+            StrAppend(&setup_command, " -h ");
+            StrAppend(&setup_command, host);
+        }
         if (password != NULL) {
             StrAppend(&setup_command, " -p");
             StrAppend(&setup_command, password);
@@ -3764,8 +3766,10 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     }
 
     if (db_found == 0) {
+        db_found = MYSQL_DB;
+
         /* Get all of the MySQL stuff read in too */
-        /* HOST */
+        /* HOST, optional */
         xpathObj = xmlXPathEvalExpression(mysql_host, xpathCtx);
         if(xpathObj == NULL) {
             printf("Error: unable to evaluate xpath expression: %s\n", mysql_host);
@@ -3774,16 +3778,13 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
-            db_found = MYSQL_DB;
             temp_char = (char *)xmlXPathCastToString(xpathObj);
             StrAppend(host, temp_char);
             StrFree(temp_char);
             printf("MySQL database host set to: %s\n", *host);
-        } else {
-            db_found = 0;
         }
 
-        /* PORT */
+        /* PORT, optional */
         xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
         if(xpathObj == NULL) {
             printf("Error: unable to evaluate xpath expression: %s\n", mysql_port);
@@ -3796,8 +3797,6 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             StrAppend(port, temp_char);
             StrFree(temp_char);
             printf("MySQL database port set to: %s\n", *port);
-        } else {
-            db_found = 0;
         }
 
         /* SCHEMA */
