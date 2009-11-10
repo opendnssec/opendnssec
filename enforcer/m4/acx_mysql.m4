@@ -23,7 +23,7 @@ AC_DEFUN([ACX_MYSQL],[
 		fi
 	
 		AC_MSG_CHECKING(what are the MySQL includes)
-		MYSQL_INCLUDES="`$MYSQL_CONFIG --include` -DBIG_JOINS=1 -DUSE_MYSQL"
+		MYSQL_INCLUDES="`$MYSQL_CONFIG --include` -DBIG_JOINS=1 -DUSE_MYSQL -Wno-long-long"
 		AC_MSG_RESULT($MYSQL_INCLUDES)
 
 		AC_MSG_CHECKING(what are the MySQL libs)
