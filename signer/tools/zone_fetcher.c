@@ -1559,8 +1559,3 @@ main(int argc, char **argv)
     log_close();
     return 0;
 }
-
-/* [TODO]:
- * - PrivDrop
- * - fork it?
- */
