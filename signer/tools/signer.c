@@ -68,6 +68,7 @@ typedef struct {
 typedef struct {
 	/* general current settings */
 	ldns_rdf *origin;
+	ldns_rdf *nsec3_origin;
 
 	/* settings for signatures that are generated */
 	uint32_t inception;
@@ -237,6 +238,7 @@ current_config_new()
 	cfg->jitter = 0;
 	cfg->echo_input = 0;
 	cfg->origin = NULL;
+	cfg->nsec3_origin = NULL;
 	cfg->zsks = key_list_new();
 	cfg->ksks = key_list_new();
 	cfg->cfg_soa_ttl = 0;
@@ -258,6 +260,9 @@ current_config_free(current_config *cfg)
 	if (cfg) {
 		if (cfg->origin) {
 			ldns_rdf_deep_free(cfg->origin);
+		}
+		if (cfg->nsec3_origin) {
+			ldns_rdf_deep_free(cfg->nsec3_origin);
 		}
 		if (cfg->zsks) free(cfg->zsks);
 		if (cfg->ksks) free(cfg->ksks);
@@ -660,7 +665,15 @@ read_rr_from_file(FILE *file, FILE *out,
 			continue;
 		}
 		if (line[0] == ';') {
-			if (pass_comments) {
+			if (strncmp(line, "; NSEC3: ", 9) == 0) {
+				if (cfg->nsec3_origin) {
+					ldns_rdf_deep_free(cfg->nsec3_origin);
+				}
+				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "Encountered nsec3 dname: %s\n", line+9);
+				}
+				status = ldns_str2rdf_dname(&cfg->nsec3_origin, line+9);
+			} else if (pass_comments) {
 				fprintf(out, "%s\n", line);
 			}
 		} else if (line[0] == ':') {
