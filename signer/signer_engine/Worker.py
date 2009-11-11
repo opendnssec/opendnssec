@@ -38,6 +38,7 @@ class Task:
     """
 
     # Task identifiers
+    DO_NOTHING = 0
     SIGN_ZONE = 1
     NOTIFY_SERVER = 2
     DUMMY = 3
@@ -67,10 +68,18 @@ class Task:
             syslog.syslog(syslog.LOG_DEBUG, "Run task: notify server")
         elif self.what == Task.DUMMY:
             syslog.syslog(syslog.LOG_DEBUG, "Run task: dummy task ")
+        elif self.what == Task.DO_NOTHING:
+            syslog.syslog(syslog.LOG_DEBUG, "Run task: do nothing ")
+			# we could also clear internal data of the zone here
         else:
             syslog.syslog(syslog.LOG_ERR,
                           "Error: unknown task: " + str(self.what))
             
+    def cancel(self):
+        """Cancel task"""
+        self.what = Task.DO_NOTHING
+        self.repeat_interval = 0
+    
     def __cmp__(self, other):
         return self.when - other.when
     
@@ -83,10 +92,13 @@ class Task:
             res.append("I will sign zone ")
             res.append(self.how.zone_name)
         elif self.what == Task.NOTIFY_SERVER:
-            res.append("I will notify the nameserer")
+            res.append("I will notify the nameserver ")
         elif self.what == Task.DUMMY:
-            res.append("I will print")
+            res.append("I will print ")
             res.append(str(self.how))
+        elif self.what == Task.DO_NOTHING:
+            res.append("I will remove zone ")
+            res.append(self.how.zone_name)
         else:
             res.append("I have an unknown task...")
         return " ".join(res)
@@ -108,7 +120,7 @@ class TaskQueue:
     def release(self):
         """Releases the lock"""
         self.locked = False
-    
+
     def add_task(self, task):
         """Add a task to the queue. If the task hase replace set to
         True, and another task in the queue with the same what and
