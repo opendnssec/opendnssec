@@ -844,6 +844,7 @@ class Zone:
         the final output zone, for use with the master nameserver.
         Will also run the notifier script from the engine configuration,
         if set. (<UpdateNotifier>)"""
+        rr_count = 0
         cmd = [self.get_tool_filename("finalizer"),
                "-f", self.get_zone_tmp_filename(".signed")
               ]
@@ -860,9 +861,13 @@ class Zone:
                      datetime.fromtimestamp(self.last_signed)\
                      .strftime("%Y-%m-%d %H:%M:%S") + "\n")
         for line in finalize_p.stdout:
+            rr_count = rr_count + 1
             output.write(line)
         for line in finalize_p.stderr:
             output.write(line)
+        if rr_count == 0:
+            syslog.syslog(syslog.LOG_ERR, "No resource records in output")
+            return False
         output.close()
         return True
 
