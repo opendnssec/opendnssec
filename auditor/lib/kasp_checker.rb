@@ -448,13 +448,7 @@ module KASPChecker
     def check_key(key, type, policy, kasp_file, denial_type)
       #   7. The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
       alg = key.elements['Algorithm'].text
-      if (denial_type == "NSEC")
-        # Check correct algorithm used for NSEC
-        if ((["6","7"].include?alg))
-          log(LOG_ERR, "In policy #{policy}, incompatible algorithm (#{alg}) used for #{type} NSEC"+
-              " in #{kasp_file}")
-        end
-      else
+      if (denial_type == "NSEC3")
         # Check correct algorithm used for NSEC3
         if (!(["6","7"].include?alg))
           log(LOG_ERR, "In policy #{policy}, incompatible algorithm (#{alg}) used for #{type} NSEC3" +
