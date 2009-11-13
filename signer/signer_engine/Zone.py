@@ -155,6 +155,26 @@ class Zone:
                           "Warning: get_serial returned " + str(status))
             return 0
 
+    def get_class(self):
+        """Returns the class of the SOA record in the input
+        zone file"""
+        result = 0
+        cmd = [ self.get_tool_filename("get_class"),
+                "-f", self.get_zone_tmp_filename(".sorted") ]
+        get_class_c = Util.run_tool(cmd)
+        if not get_class_c:
+            return result
+        for line in get_class_c.stdout:
+            result = int(line)
+        status = get_class_c.wait()
+        if (status == 0):
+            return str(result)
+        else:
+            syslog.syslog(syslog.LOG_WARNING,
+                          "Warning: get_class returned " + str(status))
+            return str(1)
+
+
     # this uses the locator value to find the right pkcs11 module
     # creates a DNSKEY string to add to the unsigned zone,
     # and calculates the correct tool_key_id
@@ -168,6 +188,7 @@ class Zone:
         # first one to return anything is good?
         cmd = [ self.get_tool_filename("create_dnskey"),
                 "-c", self.engine_config.config_file_name,
+                "-k", self.get_class(),
                 "-o", self.zone_name,
                 "-a", str(key["algorithm"]),
                 "-f", str(key["flags"]),
@@ -292,6 +313,7 @@ class Zone:
             self.check_key_values(k)
 
         cmd = [ self.get_tool_filename("zone_reader"),
+                "-k", self.get_class(),
                 "-o", self.zone_name,
                 "-w", self.get_zone_tmp_filename(".processed")
               ]
@@ -439,6 +461,7 @@ class Zone:
             return True
         
         cmd = [ self.get_tool_filename("zone_reader"),
+                "-k", self.get_class(),
                 "-o", self.zone_name,
                 "-w", self.get_zone_tmp_filename(".signed.processed")
               ]
