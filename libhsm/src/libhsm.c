@@ -1473,6 +1473,7 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 {
     ldns_rr *rrsig;
     uint32_t orig_ttl;
+    uint32_t orig_class;
     time_t now;
     uint8_t label_count;
 
@@ -1483,7 +1484,9 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 
     /* set the type on the new signature */
     orig_ttl = ldns_rr_ttl(ldns_rr_list_rr(rrset, 0));
+    orig_class = ldns_rr_get_class(ldns_rr_list_rr(rrset, 0));
 
+    ldns_rr_set_class(rrsig, orig_class);
     ldns_rr_set_ttl(rrsig, orig_ttl);
     ldns_rr_set_owner(rrsig,
               ldns_rdf_clone(
