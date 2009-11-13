@@ -25,7 +25,7 @@ class AuditorTest < Test::Unit::TestCase
     path = "test/signer_test_good/"
     zonelist_filename = "zonelist_nsec.xml"
     kasp_filename = "kasp_nsec.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0)
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp")
 
     success = check_syslog(stderr, [])
     assert(success, "NSEC good file not audited correctly")
@@ -36,7 +36,7 @@ class AuditorTest < Test::Unit::TestCase
     path = "test/signer_test_good/"
     zonelist_filename = "zonelist_nsec3.xml"
     kasp_filename = "kasp_nsec3.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0)
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp")
 
     success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used"])
     assert(success, "NSEC3 good file not audited correctly")
@@ -49,7 +49,7 @@ class AuditorTest < Test::Unit::TestCase
     path = "test/signer_test_bad/"
     zonelist_filename = "zonelist_nsec.xml"
     kasp_filename = "kasp_nsec.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3)
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp1")
 
 
     expected_strings = [
@@ -67,7 +67,7 @@ class AuditorTest < Test::Unit::TestCase
       "RRSet (www.tjeb.nl, NSEC) failed verification : Signature record not in validity period, tag = 1390",
       "Inception error for www.tjeb.nl, NSEC : Signature inception is 1275722596, time now is",
       # Taken out next warning, as we already have an error for expired RRSIG for this record
-#      "Signature expiration (962409629) for www.tjeb.nl, AAAA should be later than (the refresh period (120) - the resign period (60)) from now",
+      #      "Signature expiration (962409629) for www.tjeb.nl, AAAA should be later than (the refresh period (120) - the resign period (60)) from now",
       "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, A, have :",
       "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl.	3600	IN	A	1.2.3.4",
       "RRSet (not.there.tjeb.nl, A) failed verification : No signatures in the RRSet : not.there.tjeb.nl, A, tag = none",
@@ -116,7 +116,7 @@ class AuditorTest < Test::Unit::TestCase
     path = "test/signer_test_bad/"
     zonelist_filename = "zonelist_nsec3.xml"
     kasp_filename = "kasp_nsec3.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3)
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp1")
   
     expected_strings = [ # NSEC3 error strings
       "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
@@ -200,19 +200,21 @@ class AuditorTest < Test::Unit::TestCase
   #    fail "Implement good partial scanning test!"
   #    # @TODO@ Is there any need for NSEC(3) versions of these partial test methods?
   #    # Not really - just go with the first type of NSEC(3) seen, and run RR type checks
-    #  end
+  #  end
   #
   #  def test_partial_scan_bad
   #    fail "Implement bad partial scanning test!"
   #  end
 
-  def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret)
+  def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret, working)
     runner = Runner.new
 
-    begin
-    File.delete("test/tmp/tracker/tjeb.nl")
-    rescue Exception
-    end
+    ["test/tmp/tracker/tjeb.nl", "test/tmp1/tracker/tjeb.nl"].each {|f|
+      begin
+        File.delete(f)
+      rescue Exception
+      end
+    }
 
     pid = fork {
       stderr[0].close
@@ -222,7 +224,7 @@ class AuditorTest < Test::Unit::TestCase
       options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
       Syslog.open("auditor_test", options) {|syslog|
-        ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, syslog, "test/tmp", 3600) # Audit all zones
+        ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, syslog, working, 3600) # Audit all zones
       }
       exit!(ret)
     }
@@ -247,7 +249,7 @@ class AuditorTest < Test::Unit::TestCase
     #    Then ensure that the cache has been rewritten correctly, and the
     #    expected errors written to syslog.
     begin
-    File.delete("test/tmp/tracker/example.com.")
+      File.delete("test/tmp/tracker/example.com.")
     rescue Exception
     end
     stderr = IO::pipe
@@ -370,7 +372,7 @@ class AuditorTest < Test::Unit::TestCase
 
   def test_tracker_cache
     begin
-    File.delete("test/tmp/tracker/example.com.")
+      File.delete("test/tmp/tracker/example.com.")
     rescue Exception
     end
     checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil, 1)
