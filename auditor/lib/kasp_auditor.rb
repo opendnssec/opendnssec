@@ -74,7 +74,7 @@ module KASPAuditor
       if (!conf_file)
         KASPAuditor.exit("No configuration file specified", 1)
       end
-      syslog_facility, working, zonelist, kasp_file, enforcer_interval =
+      syslog_facility, working, signer_working_folder, zonelist, kasp_file, enforcer_interval =
         load_config_xml(conf_file)
       if (@kasp_file)
         kasp_file = @kasp_file
@@ -82,12 +82,14 @@ module KASPAuditor
 
       Syslog.open("ods-auditor", Syslog::LOG_PID |
         Syslog::LOG_CONS, syslog_facility) { |syslog|
-        run_with_syslog(zonelist, kasp_file, syslog, working, enforcer_interval)
+        run_with_syslog(zonelist, kasp_file, syslog, working, 
+          signer_working_folder, enforcer_interval)
       }
     end
 
     # This method is provided so that the test code can use its own syslog
-    def run_with_syslog(zonelist_file, kasp_file, syslog, working, enforcer_interval) # :nodoc: all
+    def run_with_syslog(zonelist_file, kasp_file, syslog, 
+        working, signer_working_folder, enforcer_interval) # :nodoc: all
       syslog.log(LOG_INFO, "Auditor started")
       print("Auditor started\n")
       if (@enable_timeshift)
@@ -96,7 +98,7 @@ module KASPAuditor
       zones = nil
       begin
         zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
-          zonelist_file, kasp_file, syslog, working)
+          zonelist_file, kasp_file, syslog, signer_working_folder)
       rescue Exception => e
         KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR, syslog)
       end
@@ -261,6 +263,7 @@ module KASPAuditor
     # Returns Syslog::LOG_DAEMON on any error
     def load_config_xml(conf_file) # :nodoc: all
       working = ""
+      signer_working = ""
       zonelist = ""
       kasp = ""
       begin
@@ -279,6 +282,11 @@ module KASPAuditor
             KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
           end
           begin
+            signer_working = doc.elements['Configuration/Signer/WorkingDirectory'].text
+          rescue Exception
+            KASPAuditor.exit("Can't read signer working directory from conf.xml - exiting", 1)
+          end
+          begin
             zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
           rescue Exception
             KASPAuditor.exit("Can't read zonelist location from conf.xml - exiting", 1)
@@ -293,10 +301,10 @@ module KASPAuditor
             facility = doc.elements['Configuration/Common/Logging/Syslog/Facility'].text
             # Now turn the facility string into a Syslog::Constants format....
             syslog_facility = eval "Syslog::LOG_" + (facility.upcase+"").untaint
-            return syslog_facility, working, zonelist, kasp, enforcer_interval
+            return syslog_facility, working, signer_working, zonelist, kasp, enforcer_interval
           rescue Exception => e
             print "Error reading config : #{e}\n"
-            return Syslog::LOG_DAEMON, working, zonelist,kasp, enforcer_interval
+            return Syslog::LOG_DAEMON, working, signer_working, zonelist,kasp, enforcer_interval
           end
         }
       rescue Errno::ENOENT
