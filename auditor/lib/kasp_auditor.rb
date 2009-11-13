@@ -98,7 +98,7 @@ module KASPAuditor
       zones = nil
       begin
         zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
-          zonelist_file, kasp_file, syslog, signer_working_folder)
+          zonelist_file, kasp_file, syslog)
       rescue Exception => e
         KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR, syslog)
       end
@@ -109,10 +109,11 @@ module KASPAuditor
       end
       pid = Process.pid
       ret = 999 # Return value to controlling process
-      zones.each {|config, input_file, output_file|
+      zones.each {|config, output_file|
         next if !config
         syslog.log(LOG_INFO, "Auditor starting on #{config.name}")
         print("Auditor starting on #{config.name}\n")
+        input_file = signer_working_folder + File::Separator + config.name + ".unsorted"
         do_audit = true
         [{input_file => "Unsigned"}, {output_file => "Signed"}].each {|hash|
           hash.each {|f, text|
@@ -241,15 +242,13 @@ module KASPAuditor
       if (@signed_temp)
         # Then, if @signed is also present, then use that name for the
         # signed zonefile.
-        unsigned = ""
         conf = nil
         zones.each {|array|
           if (array[0].name == @zone_name.to_s)
             conf = array[0]
-            unsigned = array[1]
           end
         }
-        zones=[[conf, unsigned, @signed_temp]]
+        zones=[[conf, @signed_temp]]
       end
       return zones
     end

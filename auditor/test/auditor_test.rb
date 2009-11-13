@@ -116,7 +116,7 @@ class AuditorTest < Test::Unit::TestCase
     path = "test/signer_test_bad/"
     zonelist_filename = "zonelist_nsec3.xml"
     kasp_filename = "kasp_nsec3.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp1")
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp2")
   
     expected_strings = [ # NSEC3 error strings
       "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
