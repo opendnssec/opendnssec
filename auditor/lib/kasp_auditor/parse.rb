@@ -31,7 +31,7 @@ include REXML
 
 module KASPAuditor
   class Parse
-    def self.parse(path, zonelist_filename, kasp_filename, syslog)
+    def self.parse(path, zonelist_filename, kasp_filename, syslog, working_folder)
       # We need to open [/etc/opendnssec/]conf.xml,
       #                 [/etc/opendnssec/]kasp.xml,
       #                 [/etc/opendnssec/]zonelist.xml
@@ -63,9 +63,12 @@ module KASPAuditor
               config_file_loc, syslog)
 
             input_file_loc = z.elements["Adapters"].elements['Input'].elements["File"].text
-            if (input_file_loc.index(File::SEPARATOR) != 0)
-              input_file_loc = path + input_file_loc
-            end
+            # Input file should not come from the unsigned/<zone> file.
+            # It should come from tmp/<zone>.unsorted
+            sep = input_file_loc.rindex(File::Separator)
+            filename = input_file_loc[(sep ? sep + 1 : 0), input_file_loc.length]
+            input_file_loc = working_folder + File::Separator + filename + ".unsorted"
+
             output_file_loc = z.elements["Adapters"].elements['Output'].elements["File"].text
             if (output_file_loc.index(File::SEPARATOR) != 0)
               output_file_loc = path + output_file_loc

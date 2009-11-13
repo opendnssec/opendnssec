@@ -96,7 +96,7 @@ module KASPAuditor
       zones = nil
       begin
         zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
-          zonelist_file, kasp_file, syslog)
+          zonelist_file, kasp_file, syslog, working)
       rescue Exception => e
         KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR, syslog)
       end
