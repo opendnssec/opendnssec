@@ -2,9 +2,18 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
 * ods-auditor: Dnsruby version 1.40 or later required.
 * ods-kaspcheck: Checks Enforcer SQLite datastore to ensure writable
+* Signer Engine: LDNS 1.6.2 is recommended (bugfixes)
+* The supported RRs are documented on the wiki
+
+Bugfixes:
+* ods-ksmutil: Segmentation fault when missing arguments to "key import"
+* KASP Enforcer: Improved support for MySQL (experimental)
+* Signer Engine: DLV is included in NSEC RR (fixed in LDNS 1.6.2)
+* Signer Engine: Better handling of removed zones
+* Signer Engine: Correct handling of zero length rdata - RFC3597 style (fixed in LDNS trunk)
+
 
 OpenDNSSEC 1.0.0b6 - 2009-11-06
 
