@@ -538,6 +538,7 @@ main(int argc, char **argv)
 	uint8_t nsec3_salt_length = 0;
 	uint8_t *nsec3_salt = NULL;
 	char *out_file_name = NULL;
+	ldns_rr_class klass = LDNS_RR_CLASS_IN;
 	ldns_rr *my_nsec3params = NULL;
 
 	/* for readig RRs */
@@ -574,6 +575,9 @@ main(int argc, char **argv)
 				        optarg, strerror(errno));
 				exit(1);
 			}
+			break;
+		case 'k':
+			klass = (ldns_rr_class) atoi(optarg);
 			break;
 		case 'h':
 			usage(stdout);
@@ -657,6 +661,7 @@ main(int argc, char **argv)
 
 	if (nsec3) {
 		my_nsec3params = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
+		ldns_rr_set_class(my_nsec3params, klass);
 		ldns_rr_set_owner(my_nsec3params, ldns_rdf_clone(zone_name));
 		ldns_nsec3_add_param_rdfs(my_nsec3params,
 		                          nsec3_algorithm,
