@@ -82,6 +82,7 @@ void
 make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec)
 {
 	ldns_rr *nsec_rr;
+	lnds_rr_class klass;
 
 	/* handle rrset */
 	if (1) {
@@ -92,6 +93,8 @@ make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns
 	nsec_rr = ldns_create_nsec(ldns_rr_list_owner(rr_list),
 							   ldns_rr_owner(to),
 							   rr_list);
+	klass = ldns_rr_get_class(ldns_rr_list_rr(rr_list, 0));
+	ldns_rr_set_class(nsec_rr, klass);
 	ldns_rr_set_ttl(nsec_rr, ttl);
 	ldns_rr_print(out_file, nsec_rr);
 

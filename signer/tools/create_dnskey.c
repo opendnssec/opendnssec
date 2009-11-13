@@ -63,6 +63,7 @@ usage(FILE *out)
 	fprintf(out, "-a <algorithm>\tSet DNSKEY algorithm (default %u)\n", DEFAULT_ALGORITHM);
 	fprintf(out, "-c <file>\tSpecifies the OpenDNSSEC config file\n");
 	fprintf(out, "-f <flags>\tFlags for the DNSKEY RRs (default %u)\n", DEFAULT_FLAGS);
+	fprintf(out, "-k <class>\tClass to use (default IN)\n");
 	fprintf(out, "-h\t\tShow this help screen\n");
 	fprintf(out, "-t <ttl>\tTTL for the DNSKEY RR (default %u)\n", DEFAULT_TTL);
 /*
@@ -86,6 +87,7 @@ main(int argc, char **argv)
 	int flags_i;
 	ldns_rr *key_rr;
 	uint32_t ttl = DEFAULT_TTL;
+	ldns_rr_class klass = LDNS_RR_CLASS_IN;
 
 	hsm_sign_params_t *params;
 	hsm_key_t *key;
@@ -122,6 +124,9 @@ main(int argc, char **argv)
 			case 'h':
 				usage(stdout);
 				exit(0);
+				break;
+			case 'k':
+				klass = (ldns_rr_class) atoi(optarg);
 				break;
 			case 'o':
 				params->owner = ldns_dname_new_frm_str(optarg);
@@ -168,7 +173,7 @@ main(int argc, char **argv)
 			key_rr = hsm_get_dnskey(NULL, key, params);
 			if (key_rr) {
 				ldns_rr_set_ttl(key_rr, ttl);
-				
+				ldsn_rr_set_class(key_rr, klass);
 				ldns_rr_print(stdout, key_rr);
 				found = 1;
 

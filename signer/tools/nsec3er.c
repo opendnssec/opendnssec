@@ -132,6 +132,7 @@ create_nsec3(ldns_rdf *name,
              int empty_nonterminal)
 {
 	ldns_rr *new_nsec3;
+	ldns_rr_class klass;
 	new_nsec3 = ldns_create_nsec3(name,
 		                          origin,
 		                          rr_list,
@@ -141,6 +142,8 @@ create_nsec3(ldns_rdf *name,
 		                          n3p->salt_length,
 		                          n3p->salt,
 		                          empty_nonterminal);
+	klass = ldns_rr_get_class(ldns_rr_list_rr(rr_list, 0));
+	ldns_rr_set_class(new_nsec3, klass);
 	ldns_rr_set_ttl(new_nsec3, ttl);
 	nsec3_counter++;
 	return new_nsec3;
