@@ -258,6 +258,9 @@ class Zone:
                       "Sorting zone: " + self.zone_name)
         succeeded = False
 
+        shutil.copy(self.get_zone_input_filename(),
+            self.get_zone_tmp_filename(".unsorted"))
+
         cmd = [ self.get_tool_filename("sorter"),
                 "-o", self.zone_name,
                 "-f", self.get_zone_input_filename(),
@@ -929,6 +932,8 @@ class Zone:
             os.remove(self.get_zone_tmp_filename(".processed"))
         if os.path.exists(self.get_zone_tmp_filename(".sorted")):
             os.remove(self.get_zone_tmp_filename(".sorted"))
+        if os.path.exists(self.get_zone_tmp_filename(".unsorted")):
+            os.remove(self.get_zone_tmp_filename(".unsorted"))
         if os.path.exists(self.get_zone_tmp_filename(".nsecced")):
             os.remove(self.get_zone_tmp_filename(".nsecced"))
         if os.path.exists(self.get_zone_tmp_filename(".signed")):
