@@ -132,7 +132,7 @@ create_nsec3(ldns_rdf *name,
              int empty_nonterminal)
 {
 	ldns_rr *new_nsec3;
-	ldns_rr_class klass;
+	ldns_rr_class klass = LDNS_RR_CLASS_IN;
 	new_nsec3 = ldns_create_nsec3(name,
 		                          origin,
 		                          rr_list,
@@ -142,7 +142,9 @@ create_nsec3(ldns_rdf *name,
 		                          n3p->salt_length,
 		                          n3p->salt,
 		                          empty_nonterminal);
-	klass = ldns_rr_get_class(ldns_rr_list_rr(rr_list, 0));
+	if (ldns_rr_list_rr_count(rr_list) > 0) {
+		klass = ldns_rr_get_class(ldns_rr_list_rr(rr_list, 0));
+	}
 	ldns_rr_set_class(new_nsec3, klass);
 	ldns_rr_set_ttl(new_nsec3, ttl);
 	nsec3_counter++;
@@ -223,13 +225,15 @@ handle_name(FILE *out_file,
             ldns_rr *rr,
             ldns_rdf *origin,
             uint32_t ttl,
+			ldns_rr_class klass,
             ldns_rdf *prev_name,
             ldns_rr_list *rr_list,
             ldns_rr **prev_nsec,
             ldns_rr **first_nsec,
             nsec3_params *n3p,
             ldns_rdf *ent_name,
-            int ent_ns)
+            int ent_ns
+)
 {
 	ldns_rr *new_nsec;
 	ldns_rdf *from_name = NULL;
@@ -293,6 +297,8 @@ handle_name(FILE *out_file,
 			/* then create the ENT */
 			new_nsec = create_nsec3(ent_name, origin, ttl,
 			                        rr_list, n3p, 1);
+			ldns_rr_set_class(new_nsec, klass);
+
 			if (*prev_nsec) {
 				link_nsec3_rrs(*prev_nsec, new_nsec);
 				ldns_rr_print(out_file, *prev_nsec);
@@ -337,6 +343,7 @@ handle_line(FILE *out_file,
             int line_len,
             ldns_rdf *origin,
             uint32_t soa_min_ttl,
+            ldns_rr_class soa_class,
             ldns_rdf **prev_name,
             nsec3_params *n3p,
             ldns_rr_list *rr_list,
@@ -350,7 +357,7 @@ handle_line(FILE *out_file,
 		if (line[0] != ';') {
 			status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
 			if (status == LDNS_STATUS_OK) {
-				handle_name(out_file, rr, origin, soa_min_ttl, *prev_name,
+				handle_name(out_file, rr, origin, soa_min_ttl, soa_class, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p, NULL,
 				            0);
 				ldns_rdf_deep_free(*prev_name);
@@ -369,14 +376,14 @@ handle_line(FILE *out_file,
 			 */
 			if ((ent_name = get_name_from_line(line,
 									  "; Empty non-terminal: "))) {
-				handle_name(out_file, NULL, origin, soa_min_ttl, *prev_name,
+				handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p,
 				            ent_name, 0);
 				ldns_rdf_deep_free(*prev_name);
 				*prev_name = ent_name;
 			} else if ((ent_name = get_name_from_line(line,
 								 "; Empty non-terminal to NS: "))) {
-				handle_name(out_file, NULL, origin, soa_min_ttl, *prev_name,
+				handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p,
 				            ent_name, 1);
 				ldns_rdf_deep_free(*prev_name);
@@ -396,12 +403,14 @@ create_nsec3_records(FILE *input_file,
 					 uint32_t soa_min_ttl, int soa_from_engine)
 {
 	ldns_status status;
+	int soa_found = 0;
 
 	/* for file reading */
 	int line_len = 0;
 	char line[MAX_LINE_LEN];
 
 	/* for tracking data on what to create */
+	ldns_rr_class soa_class = LDNS_RR_CLASS_IN;
 	ldns_rr_list *rr_list;
 	ldns_rr *rr;
 	ldns_rr *prev_nsec = NULL;
@@ -415,15 +424,21 @@ create_nsec3_records(FILE *input_file,
 	 * instead of copying the first lines (in a big big nsec3 zone this
 	 * might become quite much)
 	 */
-	if (soa_min_ttl == 0 && !soa_from_engine) {
+	if (1) {
 		line_len = 0;
-		while (line_len >= 0 && soa_min_ttl == 0) {
+		while (line_len >= 0 && soa_found == 0) {
 			line_len = read_line(input_file, line, 0, 0);
 			if (line_len > 0 && line[0] != ';') {
 				status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
 				if (status == LDNS_STATUS_OK &&
 					ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
-					soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
+
+					if (soa_min_ttl && !soa_from_engine) {
+						soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
+					}
+
+					soa_class = ldns_rr_get_class(rr);
+					soa_found = 1;
 					/* dont need to check SOA TTL with SOA Minimum (story 1434332) */
 /*
 					if (ldns_rr_ttl(rr) < soa_min_ttl) {
@@ -449,11 +464,11 @@ create_nsec3_records(FILE *input_file,
 	while (line_len >= 0) {
 		line_len = read_line(input_file, line, 0, 0);
 		if (line_len > 0) {
-			handle_line(out_file, line, line_len, origin, soa_min_ttl,
+			handle_line(out_file, line, line_len, origin, soa_min_ttl, soa_class,
 			             &prev_name, n3p, rr_list, &prev_nsec, &first_nsec);
 		}
 	}
-	handle_name(out_file, NULL, origin, soa_min_ttl, prev_name, rr_list,
+	handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, prev_name, rr_list,
 	            &prev_nsec, &first_nsec, n3p, NULL, 0);
 	ldns_rr_list_deep_free(rr_list);
 
