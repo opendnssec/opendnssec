@@ -173,7 +173,7 @@ main(int argc, char **argv)
 			key_rr = hsm_get_dnskey(NULL, key, params);
 			if (key_rr) {
 				ldns_rr_set_ttl(key_rr, ttl);
-				ldsn_rr_set_class(key_rr, klass);
+				ldns_rr_set_class(key_rr, klass);
 				ldns_rr_print(stdout, key_rr);
 				found = 1;
 

@@ -82,7 +82,7 @@ void
 make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec)
 {
 	ldns_rr *nsec_rr;
-	lnds_rr_class klass;
+	ldns_rr_class klass;
 
 	/* handle rrset */
 	if (1) {
