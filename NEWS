@@ -13,6 +13,7 @@ Bugfixes:
 * Signer Engine: DLV is included in NSEC RR (fixed in LDNS 1.6.2)
 * Signer Engine: Better handling of removed zones
 * Signer Engine: Correct handling of zero length rdata - RFC3597 style (fixed in LDNS trunk)
+* Signer Engine: Inherit class of zone to DNSSEC-related RRs
 
 
 OpenDNSSEC 1.0.0b6 - 2009-11-06
