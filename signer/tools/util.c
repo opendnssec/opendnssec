@@ -172,3 +172,28 @@ lookup_minimum(FILE* fd)
 {
 	return lookup_soa_rdata(fd, 6);
 }
+
+ldns_rr_class
+lookup_class(FILE* fd)
+{
+	ldns_rr *cur_rr;
+	char line[MAX_LINE_LEN];
+	ldns_status status;
+	ldns_rr_class soa_class;
+	int line_len = 0;
+
+	while (line_len >= 0) {
+		line_len = read_line(fd, line, 1, 0);
+		if (line_len > 0) {
+			if (line[0] != ';') {
+				status = ldns_rr_new_frm_str(&cur_rr, line, 0, NULL, NULL);
+				if (status == LDNS_STATUS_OK) {
+					soa_class = ldns_rr_get_class(cur_rr);
+					ldns_rr_free(cur_rr);
+                    return soa_class;
+				}
+			}
+		}
+	}
+	return LDNS_RR_CLASS_IN;
+}

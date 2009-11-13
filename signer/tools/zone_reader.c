@@ -553,7 +553,7 @@ main(int argc, char **argv)
 	rr_files[0] = stdin;
 	out_file = stdout;
 
-	while ((c = getopt(argc, argv, "a:f:hno:ps:t:w:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:hk: no:ps:t:w:")) != -1) {
 		switch (c) {
 		case 'a':
 			nsec3_algorithm = (uint8_t) atoi(optarg);

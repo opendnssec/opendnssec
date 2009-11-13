@@ -103,7 +103,7 @@ main(int argc, char **argv)
 	params->algorithm = DEFAULT_ALGORITHM;
 	params->flags = DEFAULT_FLAGS;
 	
-	while ((c = getopt(argc, argv, "a:c:f:ho:r:t:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:c:f:hk:o:r:t:v:")) != -1) {
 		switch(c) {
 			case 'a':
 				params->algorithm = atoi(optarg);

@@ -26,15 +26,66 @@
  *
  */
 
-#define MAX_LINE_LEN 65535
-#define TIMEVAL_SUB(a,b) ((((a).tv_sec - (b).tv_sec)) + ((a).tv_usec - (b).tv_usec) / 1000000)
+/*
+ * get_class
+ *
+ * This tool takes a zone file and prints the class value found
+ * in the (first) SOA rr it reads
+ *
+ * by default, it will read a zone from stdin
+ * if the file is not found, or there is no soa record, 1 (IN) will be
+ * printed.
+ */
+
+#include <errno.h>
+#include <getopt.h>
 
 #include <ldns/ldns.h>
+#include "util.h"
 
-int read_line(FILE *input, char *line, int multiline, int skip_comments);
-void rr_list_clear(ldns_rr_list *rr_list);
-uint32_t lookup_class(FILE* fd);
-uint32_t lookup_serial(FILE* fd);
-uint32_t lookup_minimum(FILE* fd);
+void
+usage(FILE *out)
+{
+	fprintf(out, "Usage: get_class [options]\n");
+	fprintf(out, "options:\n");
+	fprintf(out, "-f <file>: read zone from file instead of stdin\n");
+	fprintf(out, "-h: show this text\n");
+}
 
+int main(int argc, char **argv)
+{
+	FILE *input_file = stdin;
+	FILE *output_file = stdout;
+	ldns_rr_class klass;
+	char c;
+
+	while ((c = getopt(argc, argv, "f:h")) != -1) {
+		switch(c) {
+		case 'f':
+			input_file = fopen(optarg, "r");
+			if (!input_file) {
+				fprintf(stderr,
+				        "Unable to open %s for reading: %s\n",
+				        optarg,
+				        strerror(errno));
+				fprintf(output_file, "0\n");
+				exit(1);
+			}
+			break;
+		case 'h':
+			usage(stdout);
+			exit(0);
+			break;
+		}
+	}
+
+	klass = lookup_class(input_file);
+	if (klass != 0) {
+		fprintf(output_file, "%u\n", (unsigned int) klass);
+		return 0;
+	}
+
+	fprintf(output_file, "1\n");
+	return 0;
+}
 
