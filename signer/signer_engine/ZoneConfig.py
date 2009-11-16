@@ -237,6 +237,7 @@ class ZoneConfig:
         if Evaluate("SignerConfiguration/Zone/Denial/NSEC",
                     signer_config):
             self.denial_nsec = True
+            self.denial_nsec3 = False
 
         nsec3_xmls = Evaluate("SignerConfiguration/Zone/Denial/NSEC3",
                               signer_config)

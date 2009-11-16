@@ -738,20 +738,20 @@ class Zone:
             if not soa_serial == None:
                 syslog.syslog(syslog.LOG_DEBUG,
                               "set serial to " + str(soa_serial))
-                sign_p.stdin.write(":soa_serial " +\
-                                   str(soa_serial) + "\n")
+                Util.write_p(sign_p, str(soa_serial), ":soa_serial ")
             else:
                 return False
             if self.zone_config.soa_serial == "keep":
-                sign_p.stdin.write(":soa_serial_keep 1\n")
+                Util.write_p(sign_p, "1", ":soa_serial_keep ")
         # nsec3 params
         if self.zone_config.denial_nsec3:
-            sign_p.stdin.write(":nsec3_algorithm " +\
-                str(self.zone_config.denial_nsec3_algorithm) + "\n")
-            sign_p.stdin.write(":nsec3_iterations " +\
-                str(self.zone_config.denial_nsec3_iterations) + "\n")
-            sign_p.stdin.write(":nsec3_salt " +\
-                self.zone_config.denial_nsec3_salt + "\n")
+            syslog.syslog(syslog.LOG_DEBUG, "set nsec3 values");
+            Util.write_p(sign_p, str(self.zone_config.denial_nsec3_algorithm),
+                ":nsec3_algorithm ")
+            Util.write_p(sign_p, str(self.zone_config.denial_nsec3_iterations),
+                ":nsec3_iterations ")
+            Util.write_p(sign_p, self.zone_config.denial_nsec3_salt,
+                ":nsec3_salt ") 
 
         #move time to engine?
         sign_time = int(time.time())
