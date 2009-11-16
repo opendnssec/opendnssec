@@ -914,7 +914,7 @@ sign_rrset(ldns_rr_list *rrset,
 	for (i = 0; i < keys->key_count; i++) {
 		if (keys->use_key[i]) {
 			if (cfg->verbosity >= 4) {
-				fprintf(stderr, "new signature\n");
+				fprintf(output, "; new signature\n");
 			}
 			params->keytag = keys->keytags[i];
 			params->algorithm = keys->algorithms[i];
@@ -952,15 +952,27 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 
 	if (ldns_rr_list_rr_count(a) == 0) {
 		if (ldns_rr_list_rr_count(b) == 0) {
+			if (global_cfg->verbosity >= 4) {
+				fprintf(stderr, "Compared RRsets: both empty\n");
+			}
 			return 0;
 		} else {
+			if (global_cfg->verbosity >= 4) {
+				fprintf(stderr, "Compared RRsets: count differs\n");
+			}
 			return -1;
 		}
 	}
 	if (ldns_rr_list_rr_count(b) == 0) {
 		if (ldns_rr_list_rr_count(a) == 0) {
+			if (global_cfg->verbosity >= 4) {
+				fprintf(stderr, "Compared RRsets: both empty\n");
+			}
 			return 0;
 		} else {
+			if (global_cfg->verbosity >= 4) {
+				fprintf(stderr, "Compared RRsets: count differs\n");
+			}
 			return 1;
 		}
 	}
@@ -970,7 +982,7 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 	rr1_len = ldns_rr_uncompressed_size(rr1);
 	rr2_len = ldns_rr_uncompressed_size(rr2);
 
-	if (global_cfg && global_cfg->nsec3_algorithm) {
+	if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_NSEC3 && global_cfg && global_cfg->nsec3_algorithm) {
 		if (global_cfg->nsec3_salt) {
 			nsec3_salt_length = (uint8_t) (strlen(global_cfg->nsec3_salt) / 2);
 			nsec3_salt = LDNS_XMALLOC(uint8_t, nsec3_salt_length);
@@ -996,6 +1008,15 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 	                nsec3_salt_length,
 					nsec3_salt);
 
+		if (global_cfg->verbosity >= 4) {
+			fprintf(stderr, "Compare hash(%s)=%s vs. hash(%s)=%s\n",
+				ldns_rdf2str(ldns_rr_owner(rr1)),
+				ldns_rdf2str(rdf1),
+				ldns_rdf2str(ldns_rr_owner(rr2)),
+				ldns_rdf2str(rdf2)
+			);
+		}
+
 		ret = 0;
 		if (ldns_dname_compare(rdf1, rdf2) < 0) {
 			ret = -1;
@@ -1007,23 +1028,41 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 		ldns_rdf_deep_free(rdf2);
 		if (nsec3_salt) free(nsec3_salt);
 		if (ret != 0) {
+			if (global_cfg->verbosity >= 4) {
+				fprintf(stderr, "Compared RRsets: hash(owner) differs [cmp=%i]\n", ret);
+			}
 			return ret;
 		}
 	}
 
 	/* continue normal rr_compare_no_rdata */
 	if (ldns_rr_get_class(rr1) != ldns_rr_get_class(rr2)) {
+		if (global_cfg->verbosity >= 4) {
+			fprintf(stderr, "Compared RRsets: class differs [cmp=%i]\n", ldns_rr_get_class(rr1) - ldns_rr_get_class(rr2));
+		}
 		return ldns_rr_get_class(rr1) - ldns_rr_get_class(rr2);
 	}
 	if (ldns_rr_get_type(rr1) != ldns_rr_get_type(rr2)) {
+		if (global_cfg->verbosity >= 4) {
+			fprintf(stderr, "Compared RRsets: type differs [cmp=%i]\n", ldns_rr_get_type(rr1) - ldns_rr_get_type(rr2));
+		}
 		return ldns_rr_get_type(rr1) - ldns_rr_get_type(rr2);
 	}
 	offset = ldns_rdf_size(ldns_rr_owner(rr1)) + 4 + 2 + 2 + 2;
 	if (offset > rr1_len || offset > rr2_len) {
 		if (rr1_len == rr2_len) {
+			if (global_cfg->verbosity >= 4) {
+				fprintf(stderr, "Compared RRsets: rdlen the same [cmp=0]\n");
+			}
 			return 0;
 		}
+		if (global_cfg->verbosity >= 4) {
+			fprintf(stderr, "Compared RRsets: rdlen differs [cmp=%i]\n", ((int) rr2_len - (int) rr1_len));
+		}
 		return ((int) rr2_len - (int) rr1_len);
+	}
+	if (global_cfg->verbosity >= 4) {
+		fprintf(stderr, "Compared RRsets: the same\n");
 	}
 	return 0;
 }
@@ -1218,7 +1257,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				ldns_rr_list_print(output, new_zone_rrset);
 				check_existing_sigs(new_zone_signatures, output, cfg);
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "new data, signing\n");
+					fprintf(output, "; new data, signing\n");
 				}
 				sign_rrset(new_zone_rrset, output, cfg);
 				ldns_rr_list_deep_free(new_zone_rrset);
@@ -1240,11 +1279,11 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			/* sigs with same keytag in input get priority */
 			if (cmp == 0 && new_zone_rrset && signed_zone_rrset) {
 				if (ldns_rr_list_compare(new_zone_rrset, signed_zone_rrset) != 0) {
+					if (cfg->verbosity >= 4) {
+						fprintf(output, "; rrset changed\n");
+					}
 					ldns_rr_list_print(output, new_zone_rrset);
 					check_existing_sigs(new_zone_signatures, output, cfg);
-					if (cfg->verbosity >= 4) {
-						fprintf(stderr, "rrset changed\n");
-					}
 					sign_rrset(new_zone_rrset, output, cfg);
 					/* special case: SOA */
 					if (ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_SOA) {
@@ -1255,13 +1294,13 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 					}
 
 				} else {
-					ldns_rr_list_print(output, new_zone_rrset);
-					check_existing_sigs(new_zone_signatures, output, cfg);
-					check_existing_sigs(signed_zone_signatures, output, cfg);
 					if (cfg->verbosity >= 4) {
-						fprintf(stderr, "rrset%s still the same\n",
+						fprintf(output, "; rrset%s still the same\n",
 							ldns_rr_list_type(new_zone_rrset) == 6 ? " SOA":"");
 					}
+					ldns_rr_list_print(output, new_zone_rrset);
+					check_existing_sigs(new_zone_signatures, output, cfg);
+					/* check_existing_sigs(signed_zone_signatures, output, cfg); */
 					sign_rrset(new_zone_rrset, output, cfg);
 					/* special case: SOA */
 					if (ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_SOA) {
@@ -1279,7 +1318,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				ldns_rr_list_print(output, new_zone_rrset);
 				check_existing_sigs(new_zone_signatures, output, cfg);
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "new data at end, signing\n");
+					fprintf(output, "; new data at end, signing\n");
 				}
 				sign_rrset(new_zone_rrset, output, cfg);
 			}
