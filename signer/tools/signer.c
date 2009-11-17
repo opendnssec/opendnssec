@@ -817,6 +817,7 @@ check_existing_sigs(ldns_rr_list *sigs,
 	uint32_t expiration;
 	uint32_t refresh;
 	ldns_rr_type type_covered;
+	int printed;
 
 	for (i = 0; i < ldns_rr_list_rr_count(sigs); i++) {
 		/* check the refresh date for this signature. If the signature
@@ -849,14 +850,18 @@ check_existing_sigs(ldns_rr_list *sigs,
 				/* ok, drop sig, resign */
 				cfg->removed_sigs++;
 			} else {
+				printed = 0;
 				/* leave sig, disable key */
 				/* but only if it wasn't disabled yet */
 				if (key_enabled_for(cfg->zsks, cur_sig)) {
 					ldns_rr_print(output, cur_sig);
+					printed = 1;
 					disable_key_for(cfg->zsks, cur_sig);
 				}
 				if (key_enabled_for(cfg->ksks, cur_sig)) {
-					ldns_rr_print(output, cur_sig);
+					if (!printed) {
+						ldns_rr_print(output, cur_sig);
+					}
 					disable_key_for(cfg->ksks, cur_sig);
 				}
 			}
@@ -1336,7 +1341,7 @@ nsec3_removed:
 					}
 					ldns_rr_list_print(output, new_zone_rrset);
 					check_existing_sigs(new_zone_signatures, output, cfg);
-					/* check_existing_sigs(signed_zone_signatures, output, cfg); */
+					check_existing_sigs(signed_zone_signatures, output, cfg);
 					sign_rrset(new_zone_rrset, output, cfg);
 					/* special case: SOA */
 					if (ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_SOA) {
