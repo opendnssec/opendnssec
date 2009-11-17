@@ -2,6 +2,17 @@
 
 <!-- $Id$ -->
 
+<!--
+  
+  NOTE:  The default policy below is a TEMPLATE ONLY and should be reviewed
+         before used in any production environment. The administrator should
+         consult the OpenDNSSEC documentation before changing any parameters.
+         
+         If you can read this message, it is likely that this file has not
+         been reviewed nor updated.
+
+  -->
+
 <KASP>
 
 	<Policy name="default">
