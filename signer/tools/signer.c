@@ -982,7 +982,10 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 	rr1_len = ldns_rr_uncompressed_size(rr1);
 	rr2_len = ldns_rr_uncompressed_size(rr2);
 
-	if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_NSEC3 && global_cfg && global_cfg->nsec3_algorithm) {
+	if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_NSEC3 &&
+		ldns_rr_get_type(rr2) != LDNS_RR_TYPE_NSEC3 &&
+		global_cfg && global_cfg->nsec3_algorithm) {
+
 		if (global_cfg->nsec3_salt) {
 			nsec3_salt_length = (uint8_t) (strlen(global_cfg->nsec3_salt) / 2);
 			nsec3_salt = LDNS_XMALLOC(uint8_t, nsec3_salt_length);
@@ -1033,6 +1036,16 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 			}
 			return ret;
 		}
+	} else if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_NSEC3) {
+		/* NSEC3 removed */
+		return 1;
+	} else if (ldns_rr_get_type(rr2) != LDNS_RR_TYPE_NSEC3) {
+		/* NSEC3 added */
+		return -1;
+	} else {
+		/* both NSEC3 */
+		return ldns_rr_compare_no_rdata(ldns_rr_list_rr(a, 0),
+                                    ldns_rr_list_rr(b, 0));
 	}
 
 	/* continue normal rr_compare_no_rdata */
@@ -1237,6 +1250,7 @@ nsec3_encountered:
 			}
 			/* if the cur rrset name > signed rrset name then data has
 			 * been removed, reread signed rrset */
+nsec3_removed:
 			while (cmp > 0 && signed_zone_rrset) {
 				ldns_rr_list_deep_free(signed_zone_rrset);
 				if (signed_zone_signatures) ldns_rr_list_deep_free(signed_zone_signatures);
@@ -1251,6 +1265,16 @@ nsec3_encountered:
 					ldns_rr_list_print(stderr, signed_zone_signatures);
 				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
+				if (cmp != 0 &&
+					ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_NSEC3 &&
+					ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3) {
+					goto nsec3_encountered;
+				}
+				if (cmp != 0 &&
+					ldns_rr_list_type(new_zone_rrset) != LDNS_RR_TYPE_NSEC3 &&
+					ldns_rr_list_type(signed_zone_rrset) == LDNS_RR_TYPE_NSEC3) {
+					goto nsec3_removed;
+				}
 			}
 			/* if the cur rrset name < signer rrset name then data is new
 			 */
@@ -1276,9 +1300,14 @@ nsec3_encountered:
 				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 				if (cmp != 0 &&
-                   ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_NSEC3 &&
-                   ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3) {
+					ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_NSEC3 &&
+					ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3) {
 					goto nsec3_encountered;
+				}
+				if (cmp != 0 &&
+					ldns_rr_list_type(new_zone_rrset) != LDNS_RR_TYPE_NSEC3 &&
+					ldns_rr_list_type(signed_zone_rrset) == LDNS_RR_TYPE_NSEC3) {
+					goto nsec3_removed;
 				}
 			}
 			/* if same, and rrset not same, treat as new */
