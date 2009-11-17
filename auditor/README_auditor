@@ -115,5 +115,10 @@ remove the <Audit/> tag from kasp.xml).
 Future versions of the auditor will have a "partial audit" option
 for use with very large zones.
 
+The signer currently starts one Ruby Virtual Machine for each zone
+which is to be audited. If you have many thousands of zones, this
+may consume excessive resource : the <Audit/> element should be
+removed if this is the case.
+
 
 Any problems, please contact alex@nominet.org.uk
