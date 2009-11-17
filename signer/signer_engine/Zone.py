@@ -600,12 +600,12 @@ class Zone:
 
         if self.action >= ZoneConfig.RESIGN and os.path.exists(
                           self.get_zone_tmp_filename(".signed")):
-            if self.sign() and self.finalize() and self.audit():
+            if self.sign(False) and self.finalize() and self.audit():
                 self.move_output()
         elif self.action >= ZoneConfig.RENSEC and os.path.exists(
                             self.get_zone_tmp_filename(".processed")) and \
                             self.nsecify():
-            if self.sign() and self.finalize() and self.audit():
+            if self.sign(False) and self.finalize() and self.audit():
                 self.move_output()
         elif self.action >= ZoneConfig.REREAD and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
@@ -617,7 +617,7 @@ class Zone:
                                               ", output serial " + str(ser_out) +\
                                               " is too large. Aborting operation")
             elif self.sort_input() and self.preprocess() and self.nsecify():
-                if self.sign() and self.finalize() and self.audit():
+                if self.sign(True) and self.finalize() and self.audit():
                     self.move_output()
         elif self.action >= ZoneConfig.RESORT and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
@@ -634,7 +634,7 @@ class Zone:
 
             elif self.sort_signed() and self.preprocess_signed() and self.sort_input() and \
                self.preprocess() and self.nsecify():
-                if self.sign() and self.finalize() and self.audit():
+                if self.sign(True) and self.finalize() and self.audit():
                     self.move_output()
         else:
             syslog.syslog(syslog.LOG_ERR, "Input file missing: " +\
@@ -709,7 +709,7 @@ class Zone:
         soa_serial = int( (prev_serial + update_serial) % (2**32))
         return soa_serial
         
-    def sign(self):
+    def sign(self, force):
         """Takes the file created by nsecify() or by the previous call
            to sign(), and (re)signs the zone. Returns True if signatures
            have been added or remade. On error, or if nothing has
@@ -833,7 +833,7 @@ class Zone:
         self.last_signed = sign_time
         # Addition: unless we didn't set any keys (in which case we
         # *should* write the output file)
-        if sig_count > 0 or len(self.zone_config.signature_keys) <= 0:
+        if force or sig_count > 0 or len(self.zone_config.signature_keys) <= 0:
             syslog.syslog(syslog.LOG_INFO, "Created " +
                           str(sig_count) + " new signatures")
             Util.move_file(self.get_zone_tmp_filename(".signed2"),
