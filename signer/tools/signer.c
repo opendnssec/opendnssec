@@ -1161,7 +1161,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 		signed_zone_reader = NULL;
 	}
 
-	while((new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1))) {
+	while ((new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1))) {
 		if (ldns_rr_list_rr_count(new_zone_rrset) == 0) {
 			ldns_rr_list_free(new_zone_rrset);
 			continue;
@@ -1206,11 +1206,11 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			 * anyway, we can assume that the signed data has been
 			 * resorted, and that there are no nsec3 records anymore
 			 * In that case, we treat the data as new */
+nsec3_encountered:
 			while (cmp != 0 &&
 			       ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_NSEC3 &&
 				   ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3)
 			{
-				ldns_rr_list_print(output, new_zone_rrset);
 				if (new_zone_signatures) {
 					check_existing_sigs(new_zone_signatures, output, cfg);
 					ldns_rr_list_deep_free(new_zone_signatures);
@@ -1219,8 +1219,10 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 					fprintf(stderr, "NSEC3, signing\n");
 					ldns_rr_list_print(stderr, signed_zone_rrset);
 				}
+				ldns_rr_list_print(output, new_zone_rrset);
 				sign_rrset(new_zone_rrset, output, cfg);
 				ldns_rr_list_deep_free(new_zone_rrset);
+
 				new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1);
 				if (cfg->verbosity >= 4) {
 					fprintf(stderr, "Read rrset from input:\n");
@@ -1233,7 +1235,6 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
 			}
-
 			/* if the cur rrset name > signed rrset name then data has
 			 * been removed, reread signed rrset */
 			while (cmp > 0 && signed_zone_rrset) {
@@ -1254,14 +1255,15 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			/* if the cur rrset name < signer rrset name then data is new
 			 */
 			while (cmp < 0 && new_zone_rrset) {
-				ldns_rr_list_print(output, new_zone_rrset);
 				check_existing_sigs(new_zone_signatures, output, cfg);
 				if (cfg->verbosity >= 4) {
 					fprintf(output, "; new data, signing\n");
 				}
+				ldns_rr_list_print(output, new_zone_rrset);
 				sign_rrset(new_zone_rrset, output, cfg);
 				ldns_rr_list_deep_free(new_zone_rrset);
 				ldns_rr_list_deep_free(new_zone_signatures);
+
 				new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1);
 				if (cfg->verbosity >= 4) {
 					fprintf(stderr, "Read rrset from input:\n");
@@ -1273,6 +1275,11 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 					ldns_rr_list_print(stderr, new_zone_signatures);
 				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
+				if (cmp != 0 &&
+                   ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_NSEC3 &&
+                   ldns_rr_list_type(signed_zone_rrset) != LDNS_RR_TYPE_NSEC3) {
+					goto nsec3_encountered;
+				}
 			}
 			/* if same, and rrset not same, treat as new */
 			/* if same, and rrset same, check old sigs as well */
@@ -1314,7 +1321,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 			/* in our search for the next signed rrset, we may have
 			 * reached the end, in which case we have new rrsets at
 			 * the input */
-			if (cmp > 0 && !signed_zone_rrset) {
+			else if (cmp > 0 && !signed_zone_rrset) {
 				ldns_rr_list_print(output, new_zone_rrset);
 				check_existing_sigs(new_zone_signatures, output, cfg);
 				if (cfg->verbosity >= 4) {
@@ -1323,6 +1330,7 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 				sign_rrset(new_zone_rrset, output, cfg);
 			}
 		}
+
 		ldns_rr_list_deep_free(new_zone_rrset);
 		ldns_rr_list_deep_free(new_zone_signatures);
 		ldns_rr_list_deep_free(signed_zone_rrset);
@@ -1331,6 +1339,10 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 		new_zone_signatures = NULL;
 		signed_zone_rrset = NULL;
 		signed_zone_signatures = NULL;
+	}
+
+	if (cfg->verbosity >= 4) {
+		fprintf(output, "; done\n");
 	}
 
 	if (new_zone_reader) {
