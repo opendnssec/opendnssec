@@ -444,6 +444,9 @@ int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
     status = KsmParameterValue(KSM_PAR_ZSK_MAN_ROLL_STRING, KSM_PAR_ZSK_MAN_ROLL_CAT, &(data->zskmanroll), policy_id, &param_id);
     if (status > 0) return status;
 
+    status = KsmParameterValue(KSM_PAR_DSTTL_STRING, KSM_PAR_DSTTL_CAT, &(data->dsttl), policy_id, &param_id);
+    if (status > 0) return status;
+
     return 0;
 }
 

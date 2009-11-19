@@ -84,6 +84,8 @@ int PurgeKeys(int zone_id, int policy_id);
 int cmd_genkeys();
 void SetPolicyDefaults(KSM_POLICY *policy, char *name);
 int fix_file_perms(const char *dbschema);
+int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char **temp_cka_id);
+int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime);
 
 #ifdef __cplusplus
 }

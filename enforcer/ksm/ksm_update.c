@@ -398,9 +398,15 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     else if (data->keytype == KSM_TYPE_KSK) {
         /* 
          * for a KSK this can be 0 (from the timings draft); are we happy with that? 
-         * Might revisit this in the future as it might be a surprise for people 
+         * Might revisit this in the future as it might be a surprise for people
+         *
+         * Change of heart... make this as large as we can so that keys stay retired
+         * until some manual process tells us that its DS record has been removed.
+         * 
+         * second change of heart:
+         * Don't do anything here, this time is set when the ds-seen command is issued.
          */
-        deltat = 0;
+        return;
     }
     else {
         return;

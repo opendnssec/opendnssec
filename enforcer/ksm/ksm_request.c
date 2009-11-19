@@ -378,10 +378,15 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
         else if (manual_rollover == 1 && rollover == 0) {
             (void) MsgLog(KME_MAN_ROLL_REQUIRED, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name);
         }
+        else if (keytype == KSM_TYPE_KSK) {
+            /* A rollover should be occuring... For KSKs we just prompt for
+             * the user to submit their DS record
+             * TODO Include the keytag or cka-id in the message */
+            (void) MsgLog(KME_DS_SUBMISSION, zone_name);
+        }
         else {
 
             /* Step 8. Make a key active. */
-
             status = KsmRequestChangeStateReadyActive(keytype, datetime, 1, zone_id);
             /* 
              * If we didn't complete due to non-backed up keys then skip the 
@@ -394,7 +399,6 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
                 }
 
                 /* Step 9. ... and retire old active keys */
-
                 status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id);
                 if (status != 0) {
                     StrFree(zone_name);

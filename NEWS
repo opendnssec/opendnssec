@@ -6,6 +6,7 @@ OpenDNSSEC trunk
   glue or unsigned delegations have been added and/or removed (yet).
 * Signer Engine: Fix adding duplicate signatures in case of single key is being used as both ZSK and KSK.
 * Bugreport #46: Vanishing records
+* KSK rollover now holds at the point where the new key is made active until the command "ods-ksmutil key ds-seen" is issued.
 
 OpenDNSSEC 1.0.0b7 - 2009-11-16
 

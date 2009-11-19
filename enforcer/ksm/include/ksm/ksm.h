@@ -280,6 +280,7 @@ int KsmPolicyNameFromId(KSM_POLICY* policy);
 int KsmPolicyUpdateSalt(KSM_POLICY* policy);
 int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy);
 int KsmPolicySetIdFromName(KSM_POLICY *policy);
+int KsmPolicyIdFromZoneId(int zone_id, int* policy_id);
 
 KSM_POLICY *KsmPolicyAlloc();
 void KsmPolicyFree(KSM_POLICY *policy);
@@ -441,6 +442,9 @@ void KsmPurge(void);
 #define KSM_PAR_ZSK_MAN_ROLL            0      /* false (i.e. automatic roll) */
 #define KSM_PAR_ZSK_MAN_ROLL_STRING     "manual_rollover"
 #define KSM_PAR_ZSK_MAN_ROLL_CAT        "zsk"
+#define KSM_PAR_DSTTL                   3600
+#define KSM_PAR_DSTTL_STRING            "ttlds"
+#define KSM_PAR_DSTTL_CAT               "parent"
 
 typedef struct {            /* Holds collection of parameters */
     int     clockskew;      /* Clock skew */
@@ -461,6 +465,7 @@ typedef struct {            /* Holds collection of parameters */
     int     ret_safety;     /* Retire safety margin */
     int     kskmanroll;     /* Do we only roll the KSK manually? */
     int     zskmanroll;     /* Do we only roll the ZSK manually? */
+    int     dsttl;          /* TTL of the DS record */
 } KSM_PARCOLL;
 
 int KsmCollectionInit(KSM_PARCOLL* data);
