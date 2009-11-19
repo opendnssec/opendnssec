@@ -25,7 +25,7 @@
 					<Denial>P7D</Denial>
 			</Validity>
 			<Jitter>PT12H</Jitter>
-			<InceptionOffset>PT300S</InceptionOffset>
+			<InceptionOffset>PT3600S</InceptionOffset>
 		</Signatures>
 
 		<Denial>
@@ -67,7 +67,7 @@
 		</Keys>
 
 		<Zone>
-			<PropagationDelay>PT9999S</PropagationDelay>
+			<PropagationDelay>PT43200S</PropagationDelay>
 			<SOA>
 				<TTL>PT3600S</TTL>
 				<Minimum>PT3600S</Minimum>
@@ -81,8 +81,8 @@
 				<TTL>PT3600S</TTL>
 			</DS>
 			<SOA>
-				<TTL>PT3600S</TTL>
-				<Minimum>PT3600S</Minimum>
+				<TTL>PT172800S</TTL>
+				<Minimum>PT10800S</Minimum>
 			</SOA>
 		</Parent>
 
