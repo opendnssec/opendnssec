@@ -81,7 +81,7 @@ create table policies (
 # zones - stores the zones
 create table zones(
   id            mediumint not null auto_increment,    # id
-  name          varchar(30) not null ,  # name of the parameter
+  name          varchar(300) not null ,  # name of the parameter
   policy_id     mediumint not null,
 
   constraint primary key (id),

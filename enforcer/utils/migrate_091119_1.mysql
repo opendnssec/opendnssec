@@ -1,0 +1,3 @@
+-- Fix width of zone name column
+
+alter table zones modify name varchar(300);

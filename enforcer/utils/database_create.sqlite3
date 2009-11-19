@@ -73,7 +73,7 @@ create table policies (
 -- zones - stores the zones
 create table zones(
   id            integer primary key autoincrement,    -- id
-  name          varchar(30) not null ,  -- name of the parameter
+  name          varchar(300) not null ,  -- name of the parameter
   policy_id     mediumint not null,
   
   foreign key (policy_id) references policies (id)
