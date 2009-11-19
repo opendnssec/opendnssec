@@ -5348,13 +5348,14 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
     /* TODO do I need to use the view */
     StrAppend(&sql, "select k.zone_id, k.location, k.algorithm from KEYDATA_VIEW k where state IN (2, 3) and zone_id is not null and k.keytype = 257");
     if (*zone_id != -1) {
-        StrAppend(&sql, "and zone_id = ");
+        StrAppend(&sql, " and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", *zone_id);
         StrAppend(&sql, stringval);
     }
     if (cka_id != NULL) {
-        StrAppend(&sql, "and k.location = ");
+        StrAppend(&sql, " and k.location = '");
         StrAppend(&sql, cka_id);
+        StrAppend(&sql, "'");
     }
     /* where location is unique? */
     StrAppend(&sql, " group by location");
@@ -5529,7 +5530,7 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
 
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
-        "DATE_ADD(%s, INTERVAL %d SECOND) ", datetime, deltat);
+        "DATE_ADD('%s', INTERVAL %d SECOND) ", datetime, deltat);
 #else
     nchar = snprintf(buffer, sizeof(buffer),
         "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
