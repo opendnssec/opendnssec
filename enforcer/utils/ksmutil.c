@@ -5519,9 +5519,9 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
     /* 2) Retire the oldest active key, and set its deadtime */
     /* work out which key */
     snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
-    StrAppend(&where_clause, "(select id from keydata_view where state = 4 and keytype = 257 and zone_id = ");
+    StrAppend(&where_clause, "(select id from KEYDATA_VIEW where state = 4 and keytype = 257 and zone_id = ");
     StrAppend(&where_clause, stringval);
-    StrAppend(&where_clause, " and retire = (select min(retire) from keydata_view where state = 4 and keytype = 257 and zone_id = ");
+    StrAppend(&where_clause, " and retire = (select min(retire) from KEYDATA_VIEW where state = 4 and keytype = 257 and zone_id = ");
     StrAppend(&where_clause, stringval);
     StrAppend(&where_clause, "))");
 
