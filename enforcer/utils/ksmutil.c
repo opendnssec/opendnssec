@@ -2001,7 +2001,7 @@ cmd_dsseen()
 
     /* If the keycount is 0 then write a message and exit */
     if (key_count == 0) {
-        printf("No keys matched your parameters, please check the parameters\n");
+        printf("No keys in the READY state matched your parameters, please check the parameters\n");
         db_disconnect(lock_fd);
         return -1;
     }
@@ -5346,7 +5346,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
 
     /* Select rows */
     /* TODO do I need to use the view */
-    StrAppend(&sql, "select k.zone_id, k.location, k.algorithm from KEYDATA_VIEW k where state IN (2, 3) and zone_id is not null and k.keytype = 257");
+    StrAppend(&sql, "select k.zone_id, k.location, k.algorithm from KEYDATA_VIEW k where state = 3 and zone_id is not null and k.keytype = 257");
     if (*zone_id != -1) {
         StrAppend(&sql, " and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", *zone_id);
@@ -5526,7 +5526,7 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
     StrAppend(&where_clause, "))");
 
     /* work out what its deadtime should become */
-    deltat = MAX((collection.dsttl + collection.kskpropdelay), (collection.kskttl + collection.propdelay)) + collection.ret_safety;
+    deltat = collection.dsttl + collection.kskpropdelay + collection.ret_safety;
 
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
