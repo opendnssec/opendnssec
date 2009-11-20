@@ -301,7 +301,7 @@ server_main(DAEMONCONFIG *config)
 
     unlink(config->pidfile);
 
-    xmlCleanupParser();               
+    xmlCleanupParser();
 
 }
 
@@ -713,6 +713,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                         log_msg(config, LOG_INFO, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
                     }
                     StrFree(datetime);
+                    StrFree(ksk_expected);
                 }
 
                 StrFree(current_filename);
@@ -731,6 +732,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
     }
 
     xmlFreeDoc(doc);
+    StrFree(zonelist_filename);
 
     return status;
 }

@@ -675,6 +675,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         /* Tag absent */
         config->manualKeyGeneration = 0;
     }
+    xmlXPathFreeObject(xpathObj);
 
     /* Evaluate xpath expression for rollover notification interval */
     xpathObj = xmlXPathEvalExpression(rn_expr, xpathCtx);
@@ -720,6 +721,9 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     }
     if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
+        if (config->schema != NULL) {
+            StrFree(config->schema);
+        }
         config->schema = xmlXPathCastToString(xpathObj);
         if (verbose) {
             log_msg(config, LOG_INFO, "SQLite database set to: %s", config->schema);
@@ -740,6 +744,9 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            if (config->host != NULL) {
+                StrFree(config->host);
+            }
             config->host = xmlXPathCastToString(xpathObj);
             if (verbose) {
                 log_msg(config, LOG_INFO, "MySQL database host set to: %s", config->host);
@@ -772,6 +779,9 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            if (config->schema != NULL) {
+                StrFree(config->schema);
+            }
             config->schema = xmlXPathCastToString(xpathObj);
             if (verbose) {
                 log_msg(config, LOG_INFO, "MySQL database schema set to: %s", config->schema);
@@ -790,6 +800,9 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            if (config->user != NULL) {
+                StrFree(config->user);
+            }
             config->user = xmlXPathCastToString(xpathObj);
             if (verbose) {
                 log_msg(config, LOG_INFO, "MySQL database user set to: %s", config->user);
@@ -809,6 +822,9 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
 		    }
 		    /* password may be blank */
         
+        if (config->password != NULL) {
+            StrFree(config->password);
+        }
         config->password = xmlXPathCastToString(xpathObj);
         if (verbose) {
             log_msg(config, LOG_INFO, "MySQL database password set");
