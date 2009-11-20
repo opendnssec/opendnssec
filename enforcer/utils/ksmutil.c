@@ -5577,6 +5577,7 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
     char*       sql2 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
     char*       where_clause = NULL;
+    int         id = -1;        /* ID of key to retire */
 
     char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
     char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
@@ -5625,11 +5626,21 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
     /* 2) Retire the oldest active key, and set its deadtime */
     /* work out which key */
     snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
-    StrAppend(&where_clause, "(select id from KEYDATA_VIEW where state = 4 and keytype = 257 and zone_id = ");
+    StrAppend(&where_clause, "select id from KEYDATA_VIEW where state = 4 and keytype = 257 and zone_id = ");
     StrAppend(&where_clause, stringval);
     StrAppend(&where_clause, " and retire = (select min(retire) from KEYDATA_VIEW where state = 4 and keytype = 257 and zone_id = ");
     StrAppend(&where_clause, stringval);
-    StrAppend(&where_clause, "))");
+    StrAppend(&where_clause, ")");
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), &id, where_clause);
+    StrFree(where_clause);
+    if (status != 0)
+    {
+        printf("Error: failed to find ID of key to retire\n");
+        DbRollback();
+        return status;
+	}
 
     /* work out what its deadtime should become */
     deltat = collection.dsttl + collection.kskpropdelay + collection.ret_safety;
@@ -5647,12 +5658,10 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
     DusSetString(&sql2, KsmKeywordStateValueToName(KSM_STATE_RETIRE), datetime, 1);
     StrAppend(&sql2, ", DEAD = ");
     StrAppend(&sql2, buffer);
-    DusConditionKeyword(&sql2, "ID", DQS_COMPARE_EQ, where_clause, 0);
+    DusConditionInt(&sql2, "ID", DQS_COMPARE_EQ, id, 0);
 
     status = DbExecuteSqlNoResult(DbHandle(), sql2);
     DusFree(sql2);
-
-    StrFree(where_clause);
 
     /* Report any errors */
     if (status != 0) {
