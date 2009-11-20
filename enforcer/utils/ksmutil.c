@@ -299,6 +299,13 @@ usage_rollover ()
 }
 
     void
+usage_database ()
+{
+    fprintf(stderr,
+            "  database backup\n\t[--output <output>]         aka -o\n");
+}
+
+    void
 usage ()
 {
     fprintf(stderr,
@@ -322,6 +329,7 @@ usage ()
     usage_keydsseen ();
     usage_backup ();
     usage_rollover ();
+    usage_database ();
 
 }
 
@@ -2309,6 +2317,93 @@ cmd_import ()
     return 0;
 }
 
+/*
+ * make a backup of a sqlite database
+ */
+    int
+cmd_dbbackup ()
+{
+    /* Database details */
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+
+    /* what we will read from the file */
+    char *dbschema = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *user = NULL;
+    char *password = NULL;
+
+    int status;
+
+    char* backup_filename = NULL;
+    char* lock_filename;
+
+    char *path = getenv("PWD");
+
+    if (DbFlavour() != SQLITE_DB) {
+        printf("Sorry, currently this utility can only backup a sqlite database file\n");
+        return -1;
+    }
+
+    /* Read the database details out of conf.xml */
+    status = get_db_details(&dbschema, &host, &port, &user, &password);
+    if (status != 0) {
+        StrFree(host);
+        StrFree(port);
+        StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
+        return(status);
+    }
+
+    /* set up lock filename (it may have changed?) */
+    if (lock_fd != NULL) {
+        lock_filename = NULL;
+        StrAppend(&lock_filename, dbschema);
+        StrAppend(&lock_filename, ".our_lock");
+
+        lock_fd = fopen(lock_filename, "w");
+        status = get_lite_lock(lock_filename, lock_fd);
+        if (status != 0) {
+            printf("Error getting db lock\n");
+            if (lock_fd != NULL) {
+                fclose(lock_fd);
+            }
+            StrFree(dbschema);
+            return(1);
+        }
+        StrFree(lock_filename);
+    }
+
+    /* Work out what file to output */
+    if (o_output == NULL) {
+        StrAppend(&backup_filename, dbschema);
+        StrAppend(&backup_filename, ".backup");
+    } else if (*o_output != '/') {
+        StrAppend(&backup_filename, path);
+        StrAppend(&backup_filename, "/");
+        StrAppend(&backup_filename, o_output);
+    } else {
+        StrAppend(&backup_filename, o_output);
+    }
+
+    status = backup_file(dbschema, backup_filename);
+
+    StrFree(backup_filename);
+
+    /* Cleanup */
+    StrFree(host);
+    StrFree(port);
+    StrFree(dbschema);
+    StrFree(user);
+    StrFree(password);
+
+    /* Release sqlite lock file (if we have it) */
+    db_disconnect(lock_fd);
+
+    return status;
+}
+
 /* 
  * Fairly basic main, just pass most things through to their handlers
  */
@@ -2560,6 +2655,17 @@ main (int argc, char *argv[])
         } else {
             printf("Unknown command: rollover %s\n", case_verb);
             usage_rollover();
+            result = -1;
+        }
+    } else if (!strncmp(case_command, "DATABASE", 8)) {
+        argc --; argc --;
+        argv ++; argv ++;
+        /* verb should be backup */
+        if (!strncmp(case_verb, "BACKUP", 6)) {
+            result = cmd_dbbackup();
+        } else {
+            printf("Unknown command: database %s\n", case_verb);
+            usage_database();
             result = -1;
         }
     } else {

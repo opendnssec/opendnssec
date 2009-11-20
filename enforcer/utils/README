@@ -127,6 +127,12 @@ This is a utility that allows several different actions to be performed (relativ
 
         List the backups that have been made on the given repository.
 
+    database backup [--output <output>]       aka -o
+
+        Make a copy of the enforcer database (if using sqlite). 
+        It makes sure that the database is in a consistent state by taking a lock out first.
+        If --output is omitted then the usual enforcer.db.backup is used.
+
 	rollover list
 
         List the expected dates and times of upcoming rollovers.
