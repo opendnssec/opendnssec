@@ -825,6 +825,10 @@ check_existing_sigs(ldns_rr_list *sigs,
 		 * was set to anything other than 0, we need to use
 		 * expiration_denial instead of :expiration */
 		cur_sig = ldns_rr_list_rr(sigs, i);
+		if (!cur_sig) {
+			/* hm ok, this was not expected: just create a new signature. */
+			continue;
+		}
 		cfg->existing_sigs++;
 		type_covered = ldns_rdf2native_int16(
 		                  ldns_rr_rrsig_typecovered(cur_sig));
@@ -936,10 +940,13 @@ sign_rrset(ldns_rr_list *rrset,
 			                   (cfg->jitter ? rand() % cfg->jitter : 0);
 			}
 			sig = hsm_sign_rrset(NULL, rrset,  keys->keys[i], params);
-
-			cfg->created_sigs++;
-			ldns_rr_print(output, sig);
-			ldns_rr_free(sig);
+			if (sig) {
+				cfg->created_sigs++;
+				ldns_rr_print(output, sig);
+				ldns_rr_free(sig);
+			} else {
+				fprintf(output, "; signing failed\n");
+			}
 		}
 	}
 	hsm_sign_params_free(params);
