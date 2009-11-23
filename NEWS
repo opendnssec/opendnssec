@@ -1,5 +1,10 @@
 $Id$
 
+OpenDNSSEC 1.0.0b8 - trunk
+
+* ...
+
+
 OpenDNSSEC 1.0.0b8 - 2009-11-23
 
 * ods-ksmutil: KSK rollover now holds at the point where the new key is made
