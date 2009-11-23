@@ -122,11 +122,11 @@ usage_zoneadd ()
 {
     fprintf(stderr,
             "  zone add\n"
-            "\t--zone <zone>                     aka -z\n"
-            "\t[--policy <policy>]               aka -p\n"
-            "\t[--signerconf <signerconf.xml>]   aka -s\n"
-            "\t[--input <input>]                 aka -i\n"
-            "\t[--output <output>]               aka -o\n");
+            "\t--zone <zone>                            aka -z\n"
+            "\t[--policy <policy>]                      aka -p\n"
+            "\t[--signerconf <signerconf.xml>]          aka -s\n"
+            "\t[--input <input>]                        aka -i\n"
+            "\t[--output <output>]                      aka -o\n");
 }
 
     void
@@ -134,7 +134,7 @@ usage_zonedel ()
 {
     fprintf(stderr,
             "  zone delete\n"
-            "\t--zone <zone> | --all             aka -z / -a\n");
+            "\t--zone <zone> | --all                    aka -z / -a\n");
 }
 
     void
@@ -167,7 +167,7 @@ usage_policyexport ()
 {
     fprintf(stderr,
             "  policy export\n"
-            "\t--policy [policy_name] | --all\n");
+            "\t--policy [policy_name] | --all           aka -p / -a\n");
 }
 
     void
@@ -193,12 +193,12 @@ usage_keylist ()
     fprintf(stderr,
             "  key list\n"
             "\t[--verbose]\n"
-            "\t--zone <zone> | --all             aka -z / -a\n"
+            "\t--zone <zone> | --all                    aka -z / -a\n"
 #if 0
             "\t(will appear soon:\n"
-            "\t[--keystate <state>]              aka -e\n"
-            "\t[--keytype <type>]                aka -t\n"
-            "\t[--ds]                            aka -d)\n"
+            "\t[--keystate <state>]                     aka -e\n"
+            "\t[--keytype <type>]                       aka -t\n"
+            "\t[--ds]                                   aka -d)\n"
 #endif
     );
 }
@@ -208,10 +208,10 @@ usage_keyexport ()
 {
     fprintf(stderr,
             "  key export\n"
-            "\t--zone <zone> | --all             aka -z / -a\n"
-            "\t[--keystate <state>]              aka -e\n"
-            "\t[--keytype <type>]                aka -t\n"
-            "\t[--ds]                            aka -d\n");
+            "\t--zone <zone> | --all                    aka -z / -a\n"
+            "\t[--keystate <state>]                     aka -e\n"
+            "\t[--keytype <type>]                       aka -t\n"
+            "\t[--ds]                                   aka -d\n");
 }
 
     void
@@ -219,15 +219,15 @@ usage_keyimport ()
 {
     fprintf(stderr,
             "  key import\n"
-            "\t--cka_id <CKA_ID>                 aka -k\n"
-            "\t--repository <repository>         aka -r\n"
-            "\t--zone <zone>                     aka -z\n"
-            "\t--bits <size>                     aka -b\n"
-            "\t--algorithm <algorithm>           aka -g\n"
-            "\t--keystate <state>                aka -e\n"
-            "\t--keytype <type>                  aka -t\n"
-            "\t--time <time>                     aka -w\n"
-            "\t[--retire <retire>]               aka -y\n");
+            "\t--cka_id <CKA_ID>                        aka -k\n"
+            "\t--repository <repository>                aka -r\n"
+            "\t--zone <zone>                            aka -z\n"
+            "\t--bits <size>                            aka -b\n"
+            "\t--algorithm <algorithm>                  aka -g\n"
+            "\t--keystate <state>                       aka -e\n"
+            "\t--keytype <type>                         aka -t\n"
+            "\t--time <time>                            aka -w\n"
+            "\t[--retire <retire>]                      aka -y\n");
 }
 
     void
@@ -235,17 +235,19 @@ usage_keyroll ()
 {
     fprintf(stderr,
             "  key rollover\n"
-            "\t--zone zone [--keytype <type>]\n"
+            "\t--zone zone [--keytype <type>]           aka -z\n"
             "  key rollover\n"
-		    "\t--policy policy [--keytype <type>]\n");
+            "\t--policy policy [--keytype <type>]       aka -p\n");
 }
 
     void
 usage_keypurge ()
 {
     fprintf(stderr,
-            "  key purge\n\t--zone <zone>                     aka -z\n"
-	        "  key purge\n\t--policy <policy>                 aka -p\n");
+            "  key purge\n"
+            "\t--zone <zone>                            aka -z\n"
+            "  key purge\n"
+            "\t--policy <policy>                        aka -p\n");
 }
 
     void
@@ -262,9 +264,8 @@ usage_keydsseen ()
 {
     fprintf(stderr,
             "  key ds-seen\n"
-		    "\t--zone <zone>                     aka -z\n"
-            "\t--keytag <keytag>                 aka -x\n"
-		    "\t--cka_id <CKA_ID>                 aka -k\n");
+            "\t--zone <zone>                            aka -z\n"
+            "\t--keytag <keytag> | --cka_id <CKA_ID>    aka -x / -k\n");
 }
 
     void
@@ -286,8 +287,10 @@ usage_key ()
 usage_backup ()
 {
     fprintf(stderr,
-            "  backup done\n\t--repository <repository>       aka -r\n"
-            "  backup list\n\t--repository <repository>       aka -r\n");
+            "  backup done\n"
+            "\t--repository <repository>                aka -r\n"
+            "  backup list\n"
+            "\t--repository <repository>                aka -r\n");
 }
 
     void
@@ -302,7 +305,8 @@ usage_rollover ()
 usage_database ()
 {
     fprintf(stderr,
-            "  database backup\n\t[--output <output>]         aka -o\n");
+            "  database backup\n"
+            "\t[--output <output>]                      aka -o\n");
 }
 
     void
@@ -1952,7 +1956,7 @@ cmd_dsseen()
 
     /* Check that we have either a keytag or a cka_id */
     if (o_keytag == NULL && o_cka_id == NULL) {
-        printf("Please provide a keytag or a cka_id for the key (cka_id will be used if both are provided\n");
+        printf("Please provide a keytag or a CKA_ID for the key (CKA_ID will be used if both are provided\n");
         usage_keydsseen();
         return(-1);
     }
@@ -2141,7 +2145,7 @@ cmd_import ()
         return(status);
     }
     if (cka_id_exists == 1) {
-        printf("Error: key with cka_id \"%s\" already exists in database\n", o_cka_id);
+        printf("Error: key with CKA_ID \"%s\" already exists in database\n", o_cka_id);
         db_disconnect(lock_fd);
         return(1);
     }
@@ -5504,7 +5508,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                     *temp_cka_id = NULL;
                     StrAppend(temp_cka_id, temp_loc);
                     *zone_id = temp_zone_id;
-                    printf("Found key with cka_id %s\n", temp_loc);
+                    printf("Found key with CKA_ID %s\n", temp_loc);
                 }
 
                 hsm_sign_params_free(sign_params);
@@ -5517,7 +5521,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                     *temp_cka_id = NULL;
                     StrAppend(temp_cka_id, temp_loc);
                     *zone_id = temp_zone_id;
-                    printf("Found key with cka_id %s\n", temp_loc);
+                    printf("Found key with CKA_ID %s\n", temp_loc);
                 }
             }
             
