@@ -303,7 +303,8 @@ int DbFetchRow(DB_RESULT result, DB_ROW* row)
 			 * used, so mysql_fetch_row returns NULL only on end of file.
 			 */
 
-			*row = NULL;
+            /* leave freeing the row to the calling function */
+			/* *row = NULL; */
 			status = -1;
 		}
 	}

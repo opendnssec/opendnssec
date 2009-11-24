@@ -763,6 +763,9 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             return(-1);
         }
         if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+            if (config->port != NULL) {
+                StrFree(config->port);
+            }
             config->port = xmlXPathCastToString(xpathObj);
             if (verbose) {
                 log_msg(config, LOG_INFO, "MySQL database port set to: %s", config->port);
