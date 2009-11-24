@@ -26,6 +26,6 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ENGINE_LOC=@prefix@/lib/opendnssec/signer
+ENGINE_LOC=@libdir@/opendnssec/signer
 PYTHONPATH=${ENGINE_LOC}:$PYTHONPATH
 @PYTHON@ ${ENGINE_LOC}/Engine.py $@
