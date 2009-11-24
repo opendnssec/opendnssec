@@ -155,7 +155,7 @@ nsec3 = element NSEC3 {
 	# NSEC3 hash parameters
 	element Hash {
 		element Algorithm { xsd:nonNegativeInteger { maxInclusive = "255" } },
-		element Iterations { xsd:positiveInteger { maxInclusive = "65535" } },
+		element Iterations { xsd:nonNegativeInteger { maxInclusive = "65535" } },
 
 		# Salt length in octets
 		element Salt {
