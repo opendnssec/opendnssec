@@ -5610,9 +5610,20 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
     }
 
     /* 1) Make the selected Key active */
+
+#ifdef USE_MYSQL
+    nchar = snprintf(buffer, sizeof(buffer),
+        "DATE_ADD('%s', INTERVAL %d SECOND) ", datetime, collection.ksklife);
+#else
+    nchar = snprintf(buffer, sizeof(buffer),
+        "DATETIME('%s', '+%d SECONDS') ", datetime, collection.ksklife);
+#endif /* USE_MYSQL */
+
     sql1 = DusInit("keypairs");
     DusSetInt(&sql1, "STATE", KSM_STATE_ACTIVE, 0);
     DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_ACTIVE), datetime, 1);
+    StrAppend(&sql1, ", RETIRE = ");
+    StrAppend(&sql1, buffer);
 
     DusConditionString(&sql1, "HSMkey_id", DQS_COMPARE_EQ, cka_id, 0);
     DusEnd(&sql1);
