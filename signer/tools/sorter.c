@@ -145,16 +145,18 @@ print_rr_data(FILE *out, rr_data *rrd)
 }
 
 void
-print_rrs(FILE *out, ldns_rbtree_t *rr_tree)
+print_rrs(FILE *out, ldns_rbtree_t *rr_tree, int* count)
 {
 	ldns_rbnode_t *cur_node;
 	rr_data *cur_data;
 
 	cur_node = ldns_rbtree_first(rr_tree);
 
+	*count = 0;
 	while (cur_node && cur_node != LDNS_RBTREE_NULL) {
 		cur_data = (rr_data *) cur_node->data;
 		print_rr_data(out, (rr_data *) cur_node->data);
+		(*count)++;
 		cur_node = ldns_rbtree_next(cur_node);
 	}
 }
@@ -340,7 +342,7 @@ main(int argc, char **argv)
 	rr_data *cur_rr_data = NULL;
 
 	/* options */
-	int c;
+	int c, count = 0;
 	FILE *rr_files[MAX_FILES];
 	/* actually, the *real* count would be file_count +1, but
 	 * then we would have to use -1 everywhere in the code */
@@ -540,7 +542,7 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	print_rrs(out_file, rr_tree);
+	print_rrs(out_file, rr_tree, &count);
 
 	if (zone_name) {
 		ldns_rdf_deep_free(zone_name);
@@ -559,6 +561,8 @@ main(int argc, char **argv)
 					    rr_data_node_free,
 					    NULL);
 	ldns_rbtree_free(rr_tree);
+
+    fprintf(stderr, "Number of records sorted: %i\n", count);
 
 	if (out_file != stdout) {
 		fclose(out_file);
