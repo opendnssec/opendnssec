@@ -71,7 +71,7 @@ class AuditorTest < Test::Unit::TestCase
       "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, A, have :",
       "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl.	3600	IN	A	1.2.3.4",
       "RRSet (not.there.tjeb.nl, A) failed verification : No signatures in the RRSet : not.there.tjeb.nl, A, tag = none",
-      "RRSet (tjeb.nl, RRSIG) failed verification : No RRSet to veryify",
+      "RRSet (tjeb.nl, RRSIG) failed verification : No RRSet to verify, tag = 1390",
       "contains invalid RR : tjeb.nl.", # DNSKEY
       "Expected SOA RR as first record ",
       #    "No DNSKEY RR with SEP bit set in output zone", # Need this key - or else RRSIGs won't verify
@@ -340,6 +340,7 @@ class AuditorTest < Test::Unit::TestCase
     keys.zsks.push(zsk)
     keys.ksks.push(ksk)
     config.keys = keys
+    config.audit_tag_present = true
 
     checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
     assert(checker.cache.inuse.length == 0)

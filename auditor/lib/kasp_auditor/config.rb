@@ -45,6 +45,7 @@ module KASPAuditor
         File.open((kasp_file_loc+"").untaint, 'r') {|file|
           doc = REXML::Document.new(file)
 
+
           # Now find the appropiate policy
           found_policy = false
           doc.elements.each('KASP/Policy') {|p|
@@ -55,6 +56,10 @@ module KASPAuditor
               # @TODO@ Check out Zone.SOA - should be able to monitor SOA with that
 
               #        # Fill out new zone
+              @audit_tag_present = false
+              p.elements.each('Audit') {|a|
+                @audit_tag_present = true
+              }
               begin
                 @signatures = Signatures.new(p.elements['Signatures'])
                 @denial = Denial.new(p.elements['Denial'])
@@ -132,7 +137,7 @@ module KASPAuditor
       return x
     end
 
-    attr_accessor :name, :signatures, :keys, :denial, :soa
+    attr_accessor :name, :signatures, :keys, :denial, :soa, :audit_tag_present
         
     class Signatures
       attr_accessor :resign, :refresh, :jitter, :inception_offset, :validity

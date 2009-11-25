@@ -205,6 +205,7 @@ module KASPAuditor
 
     # run the checks on the new zone data
     def run_checks(soa_ttl)
+      # @TODO@ If !@config.audit_tag_present then only run checks on keys in use too long.
       # We also need to perform the auditing checks against the config
       # Checks to be performed :
       #   a) Warn if number of prepublished KSKs < KSK:Standby
@@ -265,7 +266,9 @@ module KASPAuditor
           end
         end
       }
-      check_inuse_keys_history(soa_ttl)
+      if (@config.audit_tag_present)
+        check_inuse_keys_history(soa_ttl)
+      end
     end
     
     def check_inuse_keys_history(soa_ttl)
@@ -285,7 +288,7 @@ module KASPAuditor
 
           if ((Time.now.to_i - old_key_timestamp) < soa_ttl)
             @parent.log(LOG_ERR, "Key (#{new_inuse_key.key_tag}) has gone to active use, but has only been prepublished for" +
-              " #{(Time.now.to_i - old_key_timestamp)} seconds. Zone SOA ttl is #{soa_ttl}")
+                " #{(Time.now.to_i - old_key_timestamp)} seconds. Zone SOA ttl is #{soa_ttl}")
           end
         }
       end
