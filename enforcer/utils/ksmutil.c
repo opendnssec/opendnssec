@@ -697,6 +697,7 @@ cmd_addzone ()
     char* input_name = NULL;
     char* output_name = NULL;
     int policy_id = 0;
+    int new_zone;   /* ignored */
 
     xmlDocPtr doc = NULL;
 
@@ -786,7 +787,7 @@ cmd_addzone ()
         db_disconnect(lock_fd);
         return(1);
     }
-    status = KsmImportZone(o_zone, policy_id, 1);
+    status = KsmImportZone(o_zone, policy_id, 1, &new_zone);
     if (status != 0) {
         if (status == -2) {
             printf("Failed to Import zone; it already exists\n");
@@ -3654,6 +3655,7 @@ int update_zones(char* zone_list_filename)
     char* temp_char = NULL;
     char* tag_name = NULL;
     int policy_id = 0;
+    int new_zone = 0;   /* flag to say if the zone is new or not */
 
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
@@ -3733,7 +3735,7 @@ int update_zones(char* zone_list_filename)
                 /*
                  * Now we have all the information update/insert this repository
                  */
-                status = KsmImportZone(zone_name, policy_id, 0);
+                status = KsmImportZone(zone_name, policy_id, 0, &new_zone);
                 if (status != 0) {
                     printf("Error Importing Zone %s\n", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -3741,8 +3743,21 @@ int update_zones(char* zone_list_filename)
                     continue;
                 }
 
+                /* If need be link existing keys to zone */
+                if (new_zone == 1) {
+                    status = KsmLinkKeys(zone_name, policy_id);
+                    if (status != 0) {
+                        printf("Failed to Link Keys to zone\n");
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
+                }
+
                 StrFree(zone_name);
                 StrFree(policy_name);
+
+                new_zone = 0;
 
             }
             /* Read the next line */

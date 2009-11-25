@@ -183,6 +183,9 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
  *      int fail_if_exists
  *          Set to 1 if you don't want to update existing zones
  *
+ *      int *new_zone
+ *          (returned) indicate if the zone was new to the database
+ *
  * Returns:
  *      int
  *          Status return.  0 on success.
@@ -190,7 +193,7 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
  *                         -2 if the zone exists and fail_if_exists == 1
 -*/
 
-int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists)
+int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -228,6 +231,8 @@ int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists)
 
         status = DbExecuteSqlNoResult(DbHandle(), sql);
         DisFree(sql);
+
+        *new_zone = 1;
     }
     else if (count == 1)
     {
@@ -241,6 +246,8 @@ int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists)
 
         status = DbExecuteSqlNoResult(DbHandle(), sql);
         DusFree(sql);
+
+        *new_zone = 0;
     }
     else
     {

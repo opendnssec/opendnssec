@@ -7,7 +7,8 @@ OpenDNSSEC trunk
 
 Bugfixes:
 * Signer Engine: Output better information if the HSM fails with the signing.
-
+* ods-ksmutil: update zonelist correctly links keys to new zones if key sharing 
+  is turned on.
 
 OpenDNSSEC 1.0.0b8 - 2009-11-23
 
