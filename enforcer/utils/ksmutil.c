@@ -113,7 +113,10 @@ usage_setup ()
 usage_update ()
 {
     fprintf(stderr,
-            "  update\n"
+            "  update kasp\n"
+            "  update zonelist\n"
+            "  update conf\n"
+            "  update all\n"
             "\tUpdate database from config\n");
 }
 
@@ -578,13 +581,14 @@ cmd_setup ()
  *         1 on error (and will have sent a message to stdout)
  */
     int
-cmd_update ()
+cmd_update (const char* qualifier)
 {
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
     char* zone_list_filename;   /* Extracted from conf.xml */
     char* kasp_filename;   /* Extracted from conf.xml */
     int status = 0;
+    int done_something = 0;
 
     /* try to connect to the database */
     status = db_connect(&dbhandle, &lock_fd, 1);
@@ -596,40 +600,74 @@ cmd_update ()
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
-     *  Instead we just extract the RepositoryList into the database and also learn
-     *  the location of the zonelist.
+     *  Instead we just learn the location of the zonelist.xml and kasp.xml files.
      */
-    status = update_repositories(&zone_list_filename, &kasp_filename);
-    if (status != 0) {
-        printf("Failed to update repositories\n");
-        db_disconnect(lock_fd);
-        return(1);
+    if (strncmp(qualifier, "ZONELIST", 8) == 0 ||
+            strncmp(qualifier, "KASP", 4) == 0 ||
+            strncmp(qualifier, "ALL", 3) == 0) {
+        status = read_filenames(&zone_list_filename, &kasp_filename);
+        if (status != 0) {
+            printf("Failed to read conf.xml\n");
+            db_disconnect(lock_fd);
+            return(1);
+        }
+    }
+
+    /* 
+     *  Read the conf.xml file yet again, but this time we will not validate.
+     *  Instead we just extract the RepositoryList into the database.
+     */
+    if (strncmp(qualifier, "CONF", 4) == 0 ||
+            strncmp(qualifier, "ALL", 3) == 0) {
+        status = update_repositories();
+        if (status != 0) {
+            printf("Failed to update repositories\n");
+            db_disconnect(lock_fd);
+            return(1);
+        }
+        done_something = 1;
     }
 
     /*
      * Now read the kasp.xml which should be in the same directory.
      * This lists all of the policies.
      */
-    status = update_policies(kasp_filename);
-    if (status != 0) {
-        printf("Failed to update policies\n");
-        db_disconnect(lock_fd);
-        StrFree(zone_list_filename);
-        return(1);
+    if (strncmp(qualifier, "KASP", 4) == 0 ||
+            strncmp(qualifier, "ALL", 3) == 0) {
+        status = update_policies(kasp_filename);
+        StrFree(kasp_filename);
+        if (status != 0) {
+            printf("Failed to update policies\n");
+            db_disconnect(lock_fd);
+            StrFree(zone_list_filename);
+            return(1);
+        }
+        done_something = 1;
     }
 
     /*
      * Take the zonelist we learnt above and read it, updating or inserting zone
      * records in the database as we go.
      */
-    status = update_zones(zone_list_filename);
-    if (status != 0) {
-        printf("Failed to update zones\n");
-        db_disconnect(lock_fd);
+    if (strncmp(qualifier, "ZONELIST", 8) == 0 ||
+            strncmp(qualifier, "ALL", 3) == 0) {
+        status = update_zones(zone_list_filename);
         StrFree(zone_list_filename);
-        return(1);
+        if (status != 0) {
+            printf("Failed to update zones\n");
+            db_disconnect(lock_fd);
+            return(1);
+        }
+        done_something = 1;
     }
-    StrFree(zone_list_filename);
+
+    /*
+     * See if we did anything, otherwise log an error
+     */
+    if (done_something == 0) {
+        printf("Unrecognised command update %s. Please specify one of:\n", qualifier);
+        usage_update();
+    }
 
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
@@ -2548,7 +2586,7 @@ main (int argc, char *argv[])
     } else if (!strncmp(case_command, "UPDATE", 6)) {
         argc --;
         argv ++;
-        result = cmd_update();
+        result = cmd_update(case_verb);
     } else if (!strncmp(case_command, "ZONE", 4)) {
         argc --; argc --;
         argv ++; argv ++;
@@ -2869,11 +2907,120 @@ int release_lite_lock(FILE* lock_fd)
 }
 
 /* 
- *  Read the conf.xml file, we will not validate as that was done as we read the database.
- *  Instead we just extract the RepositoryList into the database and also learn the 
- *  location of the zonelist.
+ *  Now we will read the conf.xml file again, but this time we will not validate.
+ *  Instead we just learn the location of the zonelist.xml and kasp.xml files.
  */
-int update_repositories(char** zone_list_filename, char** kasp_filename)
+int read_filenames(char** zone_list_filename, char** kasp_filename)
+{
+    xmlTextReaderPtr reader = NULL;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    int ret = 0; /* status of the XML parsing */
+    char* tag_name = NULL;
+    char* temp_char = NULL;
+
+    xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
+    xmlChar *kaspfile_expr = (unsigned char*) "//Common/PolicyFile";
+
+    /* Start reading the file; we will be looking for "Repository" tags */ 
+    reader = xmlNewTextReaderFilename(config);
+    if (reader != NULL) {
+        ret = xmlTextReaderRead(reader);
+        while (ret == 1) {
+            tag_name = (char*) xmlTextReaderLocalName(reader);
+            /* Found <Common> */
+            if (strncmp(tag_name, "Common", 6) == 0 
+                    && xmlTextReaderNodeType(reader) == 1) {
+
+                /* Expand this node and get the rest of the info with XPath */
+                xmlTextReaderExpand(reader);
+                doc = xmlTextReaderCurrentDoc(reader);
+                if (doc == NULL) {
+                    printf("Error: can not read Common section\n");
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                xpathCtx = xmlXPathNewContext(doc);
+                if(xpathCtx == NULL) {
+                    printf("Error: can not create XPath context for Common section\n");
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                /* Evaluate xpath expression for ZoneListFile */
+                xpathObj = xmlXPathEvalExpression(zonelist_expr, xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                *zone_list_filename = NULL;
+                temp_char = (char*) xmlXPathCastToString(xpathObj);
+                StrAppend(zone_list_filename, temp_char);
+                StrFree(temp_char);
+                xmlXPathFreeObject(xpathObj);
+                printf("zonelist filename set to %s.\n", *zone_list_filename);
+
+                /* Evaluate xpath expression for KaspFile */
+                xpathObj = xmlXPathEvalExpression(kaspfile_expr, xpathCtx);
+                xmlXPathFreeContext(xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s\n", kaspfile_expr);
+                    /* Don't return? try to parse the rest of the file? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+                *kasp_filename = NULL;
+                if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+                    /*
+                     * Found Something, set it
+                     */
+                    temp_char = (char*) xmlXPathCastToString(xpathObj);
+                    StrAppend(kasp_filename, temp_char);
+                    StrFree(temp_char);
+                } else {
+                    /*
+                     * Set a default
+                     */
+                    /* XXX this should be parse from the the main config */
+                    StrAppend(kasp_filename, CONFIG_DIR);
+                    StrAppend(kasp_filename, "/kasp.xml");
+                }
+                printf("kasp filename set to %s.\n", *kasp_filename);
+
+                xmlXPathFreeObject(xpathObj);
+            }
+            /* Read the next line */
+            ret = xmlTextReaderRead(reader);
+
+            StrFree(tag_name);
+        }
+        xmlFreeTextReader(reader);
+        if (ret != 0) {
+            printf("%s : failed to parse\n", config);
+            return(1);
+        }
+    } else {
+        printf("Unable to open %s\n", config);
+            return(1);
+    }
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+
+    return 0;
+}
+
+/* 
+ *  Read the conf.xml file yet again, but this time we will not validate.
+ *  Instead we just extract the RepositoryList into the database.
+ */
+int update_repositories()
 {
     int status = 0;
     xmlTextReaderPtr reader = NULL;
@@ -2881,7 +3028,6 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
     int ret = 0; /* status of the XML parsing */
-    char* filename = NULL;
     char* repo_name = NULL;
     char* repo_capacity = NULL;
     int require_backup = 0;
@@ -2891,8 +3037,6 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *capacity_expr = (unsigned char*) "//Repository/Capacity";
     xmlChar *backup_expr = (unsigned char*) "//Repository/RequireBackup";
-    xmlChar *zonelist_expr = (unsigned char*) "//Common/ZoneListFile";
-    xmlChar *kaspfile_expr = (unsigned char*) "//Common/PolicyFile";
 
     /* Start reading the file; we will be looking for "Repository" tags */ 
     reader = xmlNewTextReaderFilename(config);
@@ -2996,72 +3140,6 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
                 StrFree(repo_name);
                 StrFree(repo_capacity);
             }
-            /* Found <Common> */
-            else if (strncmp(tag_name, "Common", 6) == 0 
-                    && xmlTextReaderNodeType(reader) == 1) {
-
-                /* Expand this node and get the rest of the info with XPath */
-                xmlTextReaderExpand(reader);
-                doc = xmlTextReaderCurrentDoc(reader);
-                if (doc == NULL) {
-                    printf("Error: can not read Common section\n");
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                xpathCtx = xmlXPathNewContext(doc);
-                if(xpathCtx == NULL) {
-                    printf("Error: can not create XPath context for Common section\n");
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                /* Evaluate xpath expression for ZoneListFile */
-                xpathObj = xmlXPathEvalExpression(zonelist_expr, xpathCtx);
-                if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s\n", zonelist_expr);
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-                *zone_list_filename = NULL;
-                temp_char = (char*) xmlXPathCastToString(xpathObj);
-                StrAppend(zone_list_filename, temp_char);
-                StrFree(temp_char);
-                xmlXPathFreeObject(xpathObj);
-                printf("zonelist filename set to %s.\n", *zone_list_filename);
-
-                /* Evaluate xpath expression for KaspFile */
-                xpathObj = xmlXPathEvalExpression(kaspfile_expr, xpathCtx);
-                xmlXPathFreeContext(xpathCtx);
-                if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s\n", kaspfile_expr);
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-                *kasp_filename = NULL;
-                if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
-                    /*
-                     * Found Something, set it
-                     */
-                    temp_char = (char*) xmlXPathCastToString(xpathObj);
-                    StrAppend(kasp_filename, temp_char);
-                    StrFree(temp_char);
-                } else {
-                    /*
-                     * Set a default
-                     */
-                    /* XXX this should be parse from the the main config */
-                    StrAppend(kasp_filename, CONFIG_DIR);
-                    StrAppend(kasp_filename, "/kasp.xml");
-                }
-                printf("kasp filename set to %s.\n", *kasp_filename);
-
-                xmlXPathFreeObject(xpathObj);
-            }
             /* Read the next line */
             ret = xmlTextReaderRead(reader);
 
@@ -3069,16 +3147,16 @@ int update_repositories(char** zone_list_filename, char** kasp_filename)
         }
         xmlFreeTextReader(reader);
         if (ret != 0) {
-            printf("%s : failed to parse\n", filename);
+            printf("%s : failed to parse\n", config);
+            return(1);
         }
     } else {
-        printf("Unable to open %s\n", filename);
+        printf("Unable to open %s\n", config);
+        return(1);
     }
     if (doc) {
         xmlFreeDoc(doc);
     }
-
-    StrFree(filename);
 
     return 0;
 }

@@ -47,8 +47,9 @@ extern "C" {
 /* Function definitions */
 int db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, int backup);
 void db_disconnect(FILE* lock_fd);
-int update_repositories(char** zone_list_filename, char** kasp_filename);
-int update_policies();
+int read_filenames(char** zone_list_filename, char** kasp_filename);
+int update_repositories();
+int update_policies(char* kasp_filename);
 int update_zones(char* zone_list_filename);
 int get_lite_lock(char *lock_filename, FILE* lock_fd);
 int release_lite_lock(FILE* lock_fd);

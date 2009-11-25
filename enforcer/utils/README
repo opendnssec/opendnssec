@@ -17,7 +17,10 @@ This is a utility that allows several different actions to be performed (relativ
         Import conf.xml, kasp.xml and zonelist.xml into a database 
         (deletes current contents, including any keys).
 
-	update
+	update kasp
+    update zonelist
+    update conf
+    update all
 
         Update database from config_dir (like above, but existing contents 
         are kept)
