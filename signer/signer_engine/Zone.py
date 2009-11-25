@@ -133,11 +133,11 @@ class Zone:
                           "Warning: get_serial returned " + str(status))
             return 0
 
-    def get_output_serial(self):
+    def get_finalized_serial(self):
         """Returns the serial number from the SOA record in the signed
-        output file"""
+        finalized file"""
         result = 0
-        zone_file = self.get_zone_output_filename()
+        zone_file = self.get_zone_tmp_filename(".finalized")
         if not os.path.exists(zone_file):
             return 0
         cmd = [ self.get_tool_filename("get_serial"),
@@ -154,6 +154,36 @@ class Zone:
             syslog.syslog(syslog.LOG_WARNING,
                           "Warning: get_serial returned " + str(status))
             return 0
+
+    def write_output_serial(self):
+        """Writes the serial file using the finalized zonefile"""
+        result = self.get_finalized_serial()
+        serial_file = self.get_zone_tmp_filename(".serial")
+        try:
+            f = open(serial_file, 'w')
+            f.write(str(result))
+            f.close()
+            syslog.syslog(syslog.LOG_INFO,
+                      "Stored output serial: " + str(result))
+        except IOError, ioe:
+            syslog.syslog(syslog.LOG_ERR, "Error reading serial file")
+            syslog.syslog(syslog.LOG_ERR, str(ioe))
+
+    def get_output_serial(self):
+        """Returns the serial number from the .serial file"""
+        result = 0
+        serial_file = self.get_zone_tmp_filename(".serial")
+        if not os.path.exists(serial_file):
+            return 0
+
+        try:
+            f = open(serial_file, 'r')
+            result = int(f.readline())
+            f.close()
+        except IOError, ioe:
+            syslog.syslog(syslog.LOG_ERR, "Error reading serial file")
+            syslog.syslog(syslog.LOG_ERR, str(ioe))
+        return result
 
     def get_class(self):
         """Returns the class of the SOA record in the input
@@ -282,10 +312,10 @@ class Zone:
             if sort_process.wait() == 0:
                 succeeded = True
         except IOError, ioe:
-            syslog.syslog(syslog.LOG_ERR, "Error reading input zone\n")
+            syslog.syslog(syslog.LOG_ERR, "Error reading input zone")
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
-            syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
+            syslog.syslog(syslog.LOG_ERR, "Error sorting zone")
             syslog.syslog(syslog.LOG_ERR, str(exc))
             syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
@@ -366,10 +396,10 @@ class Zone:
             if sort_process.wait() == 0:
                 succeeded = True
         except IOError, ioe:
-            syslog.syslog(syslog.LOG_ERR, "Error reading sorted zone\n")
+            syslog.syslog(syslog.LOG_ERR, "Error reading sorted zone")
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
-            syslog.syslog(syslog.LOG_ERR, "Error preprocessing zone\n")
+            syslog.syslog(syslog.LOG_ERR, "Error preprocessing zone")
             syslog.syslog(syslog.LOG_ERR, str(exc))
             syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
@@ -433,10 +463,10 @@ class Zone:
             if sort_process.wait() == 0:
                 succeeded = True
         except IOError, ioe:
-            syslog.syslog(syslog.LOG_ERR, "Error reading input zone\n")
+            syslog.syslog(syslog.LOG_ERR, "Error reading input zone")
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
-            syslog.syslog(syslog.LOG_ERR, "Error sorting zone\n")
+            syslog.syslog(syslog.LOG_ERR, "Error sorting zone")
             syslog.syslog(syslog.LOG_ERR, str(exc))
             syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
@@ -511,10 +541,10 @@ class Zone:
             if sort_process.wait() == 0:
                 succeeded = True
         except IOError, ioe:
-            syslog.syslog(syslog.LOG_ERR, "Error reading sorted zone\n")
+            syslog.syslog(syslog.LOG_ERR, "Error reading sorted zone")
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
-            syslog.syslog(syslog.LOG_ERR, "Error processing zone\n")
+            syslog.syslog(syslog.LOG_ERR, "Error processing zone")
             syslog.syslog(syslog.LOG_ERR, str(exc))
             syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
@@ -582,7 +612,7 @@ class Zone:
                                 "stderr from nseccer: " + line)
         else: # no signatures
             syslog.syslog(syslog.LOG_WARNING,
-                "No signatures set, not adding NSEC(3) records\n")
+                "No signatures set, not adding NSEC(3) records")
             try:
                 shutil.copy(self.get_zone_tmp_filename(".processed"),
                             self.get_zone_tmp_filename(".nsecced"))
@@ -902,6 +932,7 @@ class Zone:
            destination, and calls a notify command if configured"""
         syslog.syslog(syslog.LOG_INFO, "Output zone to " +
                       self.get_zone_output_filename())
+        self.write_output_serial()
         Util.move_file(self.get_zone_tmp_filename(".finalized"),
                        self.get_zone_output_filename())
         if self.engine_config.notify_command:
