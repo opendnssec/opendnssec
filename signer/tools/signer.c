@@ -946,6 +946,7 @@ sign_rrset(ldns_rr_list *rrset,
 				ldns_rr_free(sig);
 			} else {
 				fprintf(output, "; signing failed\n");
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
