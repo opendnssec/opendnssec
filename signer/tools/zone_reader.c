@@ -586,7 +586,7 @@ main(int argc, char **argv)
 		case 't':
 			nsec3 = true;
 			nsec3_iterations = atoi(optarg);
-			if (nsec3_iterations == 0) {
+			if (nsec3_iterations == 0 && !isdigit(optarg[0])) {
 				fprintf(stderr,
 					   "Error parsing number for iterations: %s\n",
 					   optarg);
