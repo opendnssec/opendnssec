@@ -263,10 +263,10 @@ usage_keygen ()
 }
 
     void
-usage_keydsseen ()
+usage_keykskroll ()
 {
     fprintf(stderr,
-            "  key ds-seen\n"
+            "  key ksk-roll\n"
             "\t--zone <zone>                            aka -z\n"
             "\t--keytag <keytag> | --cka_id <CKA_ID>    aka -x / -k\n");
 }
@@ -283,7 +283,7 @@ usage_key ()
     usage_keyroll ();
     usage_keypurge ();
     usage_keygen ();
-    usage_keydsseen ();
+    usage_keykskroll ();
 }
 
     void
@@ -333,7 +333,7 @@ usage ()
     usage_keyroll ();
     usage_keypurge ();
     usage_keygen ();
-    usage_keydsseen ();
+    usage_keykskroll ();
     usage_backup ();
     usage_rollover ();
     usage_database ();
@@ -1971,7 +1971,7 @@ cmd_listkeys ()
        make this key active
  */
     int
-cmd_dsseen()
+cmd_kskroll()
 {
     int status = 0;
     int zone_id = -1;
@@ -1979,6 +1979,7 @@ cmd_dsseen()
     int key_count = -1;
     int keytag_int = -1;
     char* temp_cka_id = NULL; /* This will be set if we find a single matching key */
+    int user_certain;           /* Continue ? */
 
     /* Database connection details */
     DB_HANDLE	dbhandle;
@@ -1996,8 +1997,17 @@ cmd_dsseen()
     /* Check that we have either a keytag or a cka_id */
     if (o_keytag == NULL && o_cka_id == NULL) {
         printf("Please provide a keytag or a CKA_ID for the key (CKA_ID will be used if both are provided\n");
-        usage_keydsseen();
+        usage_keykskroll();
         return(-1);
+    }
+
+    /* Warn and confirm that they realise this will retire the old key */
+    printf("*WARNING* This will retire the currently active KSK; are you sure? [y/N] ");
+
+    user_certain = getchar();
+    if (user_certain != 'y' && user_certain != 'Y') {
+        printf("Okay, quitting...\n");
+        exit(0);
     }
 
     /* try to connect to the database */
@@ -2631,7 +2641,7 @@ main (int argc, char *argv[])
     } else if (!strncmp(case_command, "KEY", 3)) {
         argc --; argc --;
         argv ++; argv ++;
-        /* verb should be list, export import, rollover, purge, generate or ds-seen */
+        /* verb should be list, export import, rollover, purge, generate or ksk-roll */
         if (!strncmp(case_verb, "LIST", 4)) {
             result = cmd_listkeys();
         }
@@ -2669,8 +2679,8 @@ main (int argc, char *argv[])
         else if (!strncmp(case_verb, "GENERATE", 8)) {
             result = cmd_genkeys();
         }
-        else if (!strncmp(case_verb, "DS-SEEN", 7)) {
-            result = cmd_dsseen();
+        else if (!strncmp(case_verb, "KSK-ROLL", 8)) {
+            result = cmd_kskroll();
         } else {
             printf("Unknown command: key %s\n", case_verb);
             usage_key();

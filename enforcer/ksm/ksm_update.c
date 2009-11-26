@@ -404,7 +404,7 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
          * until some manual process tells us that its DS record has been removed.
          * 
          * second change of heart:
-         * Don't do anything here, this time is set when the ds-seen command is issued.
+         * Don't do anything here, this time is set when the ksk-roll command is issued.
          */
         return;
     }

@@ -113,7 +113,7 @@ This is a utility that allows several different actions to be performed (relativ
 
         Create enough keys for the given policy to last for the period of time given by interval.
 
-    key ds-seen
+    key ksk-roll
         --zone <zone>                         aka -z
         --keytag <keytag>                     aka -x
 		--cka_id <CKA_ID>                     aka -k
