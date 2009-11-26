@@ -357,7 +357,7 @@ class Zone:
                         str(self.zone_config.denial_nsec3_iterations),
                         "-a",
                         str(self.zone_config.denial_nsec3_algorithm)])
-            if self.zone_config.denial_nsec3_salt:
+            if self.zone_config.denial_nsec3_salt and self.zone_config.denial_nsec3_salt != "-":
                 cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
 
             # tell the reader not to append the NSEC3PARAM record
@@ -505,7 +505,7 @@ class Zone:
                         str(self.zone_config.denial_nsec3_iterations),
                         "-a",
                         str(self.zone_config.denial_nsec3_algorithm)])
-            if self.zone_config.denial_nsec3_salt:
+            if self.zone_config.denial_nsec3_salt and self.zone_config.denial_nsec3_salt != "-":
                 cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
             # tell the reader not to append the NSEC3PARAM record
             # if we are not going to add signatures
@@ -601,7 +601,7 @@ class Zone:
                 if self.zone_config.soa_minimum >= 0:
                     cmd.append("-m")
                     cmd.append(str(self.zone_config.soa_minimum))
-                if self.zone_config.denial_nsec3_salt:
+                if self.zone_config.denial_nsec3_salt and self.zone_config.denial_nsec3_salt != "-":
                     cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
                 if self.zone_config.denial_nsec3_optout:
                     cmd.append("-p")
@@ -780,8 +780,9 @@ class Zone:
                 ":nsec3_algorithm ")
             Util.write_p(sign_p, str(self.zone_config.denial_nsec3_iterations),
                 ":nsec3_iterations ")
-            Util.write_p(sign_p, self.zone_config.denial_nsec3_salt,
-                ":nsec3_salt ") 
+            if self.zone_config.denial_nsec3_salt and self.zone_config.denial_nsec3_salt != "-":
+                Util.write_p(sign_p, self.zone_config.denial_nsec3_salt,
+                    ":nsec3_salt ") 
 
         #move time to engine?
         sign_time = int(time.time())
