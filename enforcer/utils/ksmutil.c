@@ -529,10 +529,21 @@ cmd_setup ()
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
+     *  Instead we just learn the location of the zonelist.xml and kasp.xml files.
+     */
+    status = read_filenames(&zone_list_filename, &kasp_filename);
+    if (status != 0) {
+        printf("Failed to read conf.xml\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
+
+    /* 
+     *  Now we will read the conf.xml file again, but this time we will not validate.
      *  Instead we just extract the RepositoryList into the database and also learn
      *  the location of the zonelist and kasp.
      */
-    status = update_repositories(&zone_list_filename, &kasp_filename);
+    status = update_repositories();
     if (status != 0) {
         printf("Failed to update repositories\n");
         db_disconnect(lock_fd);
