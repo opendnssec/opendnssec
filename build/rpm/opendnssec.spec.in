@@ -1,0 +1,70 @@
+# $Id$
+Summary: opendnssec
+Name: opendnssec
+Version: @OPENDNSSEC_VERSION@
+Release: 1
+License: BSD
+Group: System Environment/Daemons
+Source: opendnssec-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+# Following are optional fields
+URL: http://www.opendnssec.org/files/source/%{name}-%{version}.tar.gz
+Requires: python, libxml2, sqlite, ruby, rubygem-dnsruby >= 1.4, ldns >= 1.6.2
+BuildPreReq: rubygem-dnsruby >= 1.4, ldns >= 1.6.2
+Obsoletes: opendnssec
+
+
+%description
+OpenDNSSEC was created as an open-source turn-key solution for DNSSEC. 
+It secures zone data just before it is published in an authoritative 
+name server.  OpenDNSSEC takes in unsigned zones, adds the signatures 
+and other records for DNSSEC and passes it on to the authoritative name 
+servers for that zone. DNS is complicated, and so is digital signing; 
+their combination in DNSSEC is of course complex as well. The idea of 
+OpenDNSSEC is to handle such difficulties, to relieve the administrator 
+of them after a one-time effort for setting it up.  The storage of keys 
+is done through a PKCS #11 standard interface. To deploy OpenDNSSEC, an 
+implementation of this interface is needed, for example a software 
+library, an HSM or perhaps a simpler token.
+
+%prep
+%setup -q
+
+%build
+CFLAGS="$RPM_OPT_FLAGS" %{configure}
+%{__make}
+
+%install
+rm -rf %{buildroot}
+%{__make} DESTDIR=%{buildroot} install
+mkdir -p %{buildroot}/%{_var}/run/opendnssec
+mkdir -p %{buildroot}/%{_sysconfdir}/init.d
+install -c -m 755 tools/ods-control %{buildroot}/%{_sysconfdir}/init.d/ods-control
+cd %{buildroot}
+
+%post
+/sbin/chkconfig --add ods-control
+
+
+%clean
+[ "$RPM_BUILD_ROOT" != "/" ] && rm -rf "$RPM_BUILD_ROOT"
+
+%files
+%defattr(-,opendnssec,opendnssec)
+%config %{_sysconfdir}/opendnssec/*
+%{_localstatedir}/*
+%defattr(-,root,root)
+%{_sysconfdir}/init.d/*
+%{_bindir}/*
+%{_sbindir}/*
+%{_includedir}/*
+%{_libdir}/*
+%{_prefix}/libexec/opendnssec
+%{_prefix}/share/opendnssec
+
+%changelog
+* Wed Nov 25 2009  <andyh@nominet.org.uk>
+- Cleaned up and updated for 1.0.0b8
+
+* Thu Oct 29 2009  <andyh@nominet.org.uk>
+- Initial spec file
