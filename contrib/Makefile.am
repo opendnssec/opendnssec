@@ -15,9 +15,8 @@ MAINTAINERCLEANFILES = \
 SPEC = opendnssec.spec
 
 noinst_DATA = ${SPEC}
-
-DISTCLEANFILES =+	${SPEC}
-
+dist_data_DATA = ${SPEC}
+DISTCLEANFILES =+ ${SPEC}
 
 opendnssec.spec: opendnssec.spec.in
 	sed 's/OPENDNSSEC_VERSION/@VERSION@/' < $(srcdir)/opendnssec.spec.in > $@
