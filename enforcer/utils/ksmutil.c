@@ -540,8 +540,7 @@ cmd_setup ()
 
     /* 
      *  Now we will read the conf.xml file again, but this time we will not validate.
-     *  Instead we just extract the RepositoryList into the database and also learn
-     *  the location of the zonelist and kasp.
+     *  Instead we just extract the RepositoryList into the database
      */
     status = update_repositories();
     if (status != 0) {
