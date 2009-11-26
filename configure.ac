@@ -56,7 +56,7 @@ AC_CONFIG_FILES([
 	tools/solaris/Makefile
 	tools/solaris/ods-enforcerd.init
 	tools/solaris/ods-signerd.init
-	build/rpm/opendnssec.spec
+	contrib/Makefile
 ])
 
 AC_OUTPUT

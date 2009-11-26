@@ -6,6 +6,7 @@ OpenDNSSEC trunk
   be updated separately.
 * ods-ksmutil: "ds-seen" renamed to "ksk-roll" which is a more accurate 
   description of its effect. (ds-seen will reappear in v1.1)
+* add contributed .spec file for RPM builds
 
 Bugfixes:
 * Signer Engine: Output better information if the HSM fails with the signing.
