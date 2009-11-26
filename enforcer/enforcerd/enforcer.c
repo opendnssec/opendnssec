@@ -818,7 +818,11 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         fprintf(file, "\t\t\t\t<Hash>\n");
         fprintf(file, "\t\t\t\t\t<Algorithm>%d</Algorithm>\n", policy->denial->algorithm);
         fprintf(file, "\t\t\t\t\t<Iterations>%d</Iterations>\n", policy->denial->iteration);
-        fprintf(file, "\t\t\t\t\t<Salt>%s</Salt>\n", policy->denial->salt);
+        if (policy->denial->salt[0] == '\0') {
+            fprintf(file, "\t\t\t\t\t<Salt>-</Salt>\n");
+        } else {
+            fprintf(file, "\t\t\t\t\t<Salt>%s</Salt>\n", policy->denial->salt);
+        }
         fprintf(file, "\t\t\t\t</Hash>\n");
         fprintf(file, "\t\t\t</NSEC3>\n");
     } else {
