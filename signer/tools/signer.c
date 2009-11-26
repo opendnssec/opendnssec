@@ -59,6 +59,7 @@ typedef struct {
 typedef struct {
 	hsm_key_t **keys;
 	uint16_t *keytags;
+	uint16_t *flags;
 	uint8_t *algorithms;
 	int *use_key;
 	size_t key_count;
@@ -129,6 +130,12 @@ key_list_new()
 		        "Out of memory while creating key list, aborting\n");
 		exit(1);
 	}
+	list->flags = malloc(sizeof(uint16_t) * list->capacity);
+	if (!list->flags) {
+		fprintf(stderr,
+		        "Out of memory while creating key list, aborting\n");
+		exit(1);
+	}
 	list->algorithms = malloc(sizeof(uint8_t) * list->capacity);
 	if (!list->algorithms) {
 		fprintf(stderr,
@@ -149,6 +156,7 @@ key_list_free(key_list *list)
 {
 	if (list->keys) free(list->keys);
 	if (list->keytags) free(list->keytags);
+	if (list->flags) free(list->flags);
 	if (list->algorithms) free(list->algorithms);
 	if (list->use_key) free(list->use_key);
 	free(list);
@@ -225,6 +233,7 @@ key_list_add_key(key_list *list,
 	list->keys[list->key_count] = key;
 	list->keytags[list->key_count] = ldns_calc_keytag(dnskey);
 	list->algorithms[list->key_count] = params->algorithm;
+	list->flags[list->key_count] = params->flags;
 	list->use_key[list->key_count] = 1;
 	list->key_count++;
 
@@ -891,12 +900,27 @@ rr_list_delegation_only(ldns_rdf *origin, ldns_rr_list *rr_list)
 	return 1;
 }
 
+static ldns_status
+signature_verifies(ldns_rr_list* rrset, ldns_rr* sig, const hsm_key_t *key,	const hsm_sign_params_t *params)
+{
+	ldns_status ret = LDNS_STATUS_OK;
+	ldns_rr* dnskey = hsm_get_dnskey(NULL, key, params);
+	ldns_rr_list* keylist = ldns_rr_list_new();
+	ldns_rr_list* good_keylist = ldns_rr_list_new();
+	ldns_rr_list_push_rr(keylist, dnskey);
+	ret = ldns_verify_rrsig_keylist(rrset, sig, keylist, good_keylist);
+	ldns_rr_list_deep_free(keylist);
+	ldns_rr_list_free(good_keylist);
+	return ret;
+}
+
 void
 sign_rrset(ldns_rr_list *rrset,
            FILE *output,
            current_config *cfg)
 {
 	size_t i;
+	ldns_status status = LDNS_STATUS_OK;
 	ldns_rr *sig;
 	key_list *keys;
 	hsm_sign_params_t *params;
@@ -927,6 +951,7 @@ sign_rrset(ldns_rr_list *rrset,
 			}
 			params->keytag = keys->keytags[i];
 			params->algorithm = keys->algorithms[i];
+			params->flags = keys->flags[i];
 			if (cfg->expiration_denial &&
 			    (ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC ||
 			     ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC3)) {
@@ -940,12 +965,23 @@ sign_rrset(ldns_rr_list *rrset,
 			                   (cfg->jitter ? rand() % cfg->jitter : 0);
 			}
 			sig = hsm_sign_rrset(NULL, rrset,  keys->keys[i], params);
-			if (sig) {
+			if (sig)
+				status = signature_verifies(rrset, sig, keys->keys[i], params);
+
+			if (sig && status == LDNS_STATUS_OK) {
+				if (cfg->verbosity >= 4) {
+					fprintf(output, "; signature verifies\n");
+				}
 				cfg->created_sigs++;
 				ldns_rr_print(output, sig);
 				ldns_rr_free(sig);
+			} else if (sig) {
+				fprintf(output, "; signing failed: %s\n", ldns_get_errorstr_by_id(status));
+				ldns_rr_print(output, sig);
+				ldns_rr_free(sig);
+				exit(EXIT_FAILURE);
 			} else {
-				fprintf(output, "; signing failed\n");
+				fprintf(output, "; signing failed: hsm returned null signature\n");
 				exit(EXIT_FAILURE);
 			}
 		}
