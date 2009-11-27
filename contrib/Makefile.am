@@ -14,6 +14,8 @@ MAINTAINERCLEANFILES = \
 
 SPEC = opendnssec.spec
 
+EXTRA_DIST = *.spec.in
+
 noinst_DATA = ${SPEC}
 dist_data_DATA = ${SPEC}
 DISTCLEANFILES =+ ${SPEC}
