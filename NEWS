@@ -1,5 +1,10 @@
 $Id$
 
+OpenDNSSEC trunk
+
+* ...
+
+
 OpenDNSSEC 1.0.0b9 - 2009-11-27
 
 * ods-ksmutil: update command split so that individual configuration files can
