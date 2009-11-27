@@ -14,6 +14,8 @@ Bugfixes:
 * ods-ksmutil: update zonelist correctly links keys to new zones if key sharing 
   is turned on.
 * Bugreport #59: Problem starting ods-signer on a 64-bit machine
+* ods-ksmutil: update zonelist command now correctly adds and deletes zones (and
+  sorts out their keys).
 
 OpenDNSSEC 1.0.0b8 - 2009-11-23
 

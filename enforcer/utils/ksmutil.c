@@ -3676,13 +3676,53 @@ int update_zones(char* zone_list_filename)
     char* tag_name = NULL;
     int policy_id = 0;
     int new_zone = 0;   /* flag to say if the zone is new or not */
+    int file_zone_count = 0; /* As a quick check we will compare the number of */
+    int db_zone_count = 0;   /* zones in the file to the number in the database */
+    int* zone_ids;      /* List of zone_ids seen from zonelist.xml */
+    int temp_id;
+
+    char* sql = NULL;
+    DB_RESULT	result;         /* Result of the query */
+    DB_RESULT	result2;        /* Result of the query */
+    DB_RESULT	result3;        /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+    KSM_PARAMETER shared;       /* Parameter information */
+    int seen_zone = 0;
+    int temp_count = 0;
+    int i = 0;
 
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
 
     /* TODO validate the file ? */
+    /* Read through the file counting zones TODO better way to do this? */
+    reader = xmlNewTextReaderFilename(zone_list_filename);
+    if (reader != NULL) {
+        ret = xmlTextReaderRead(reader);
+        while (ret == 1) {
+            tag_name = (char*) xmlTextReaderLocalName(reader);
+            /* Found <Zone> */
+            if (strncmp(tag_name, "Zone", 4) == 0 
+                    && strncmp(tag_name, "ZoneList", 8) != 0
+                    && xmlTextReaderNodeType(reader) == 1) {
+                file_zone_count++;
+            }
+            /* Read the next line */
+            ret = xmlTextReaderRead(reader);
+            StrFree(tag_name);
+        }
+        xmlFreeTextReader(reader);
+        if (ret != 0) {
+            printf("%s : failed to parse\n", zone_list_filename);
+        }
+    } else {
+        printf("Unable to open %s\n", zone_list_filename);
+    }
 
-    /* Start reading the file; we will be looking for "Repository" tags */ 
+    /* Allocate space for the list of zone IDs */
+    zone_ids = MemMalloc(file_zone_count * sizeof(int));
+
+    /* Start reading the file; we will be looking for "Zone" tags */ 
     reader = xmlNewTextReaderFilename(zone_list_filename);
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
@@ -3765,6 +3805,7 @@ int update_zones(char* zone_list_filename)
 
                 /* If need be link existing keys to zone */
                 if (new_zone == 1) {
+                    printf("Added zone %s to database\n", zone_name);
                     status = KsmLinkKeys(zone_name, policy_id);
                     if (status != 0) {
                         printf("Failed to Link Keys to zone\n");
@@ -3773,6 +3814,18 @@ int update_zones(char* zone_list_filename)
                         continue;
                     }
                 }
+
+                /* make a note of the zone_id */
+                status = KsmZoneIdFromName(zone_name, &temp_id);
+                if (status != 0) {
+                    printf("Error: unable to find a zone named \"%s\" in database\n", zone_name);
+                    return(status);
+                }
+               
+               /* need to malloc this first, count zones in advance somehow? */
+               /* can we do this in libxml, or do we need to realloc as we go? */ 
+                zone_ids[i] = temp_id;
+                i++;
 
                 StrFree(zone_name);
                 StrFree(policy_name);
@@ -3794,6 +3847,97 @@ int update_zones(char* zone_list_filename)
     if (doc) {
         xmlFreeDoc(doc);
     }
+
+    /* Now see how many zones are in the database */
+    sql = DqsCountInit(DB_ZONE_TABLE);
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), &db_zone_count, sql);
+    DqsFree(sql);
+
+    /* If the 2 numbers match then our work is done */
+    if (file_zone_count == db_zone_count) {
+        return 0;
+    }
+    /* If the file count is larger then something went wrong */
+    else if (file_zone_count > db_zone_count) {
+        printf("Failed to add all zones from zonelist\n");
+        return(1);
+    }
+
+    /* If we get here we need to do some deleting, get each zone in the db 
+     * and see if it is in the zone_list that we built earlier */
+    /* In case there are thousands of zones we don't use an "IN" clause*/
+    sql = DqsSpecifyInit(DB_ZONE_TABLE, "id, name, policy_id");
+    DqsOrderBy(&sql, "ID");
+    DqsEnd(&sql);
+
+    status = DbExecuteSql(DbHandle(), sql, &result);
+
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+        while (status == 0) {
+            DbInt(row, 0, &temp_id);
+            DbString(row, 1, &zone_name);
+            DbInt(row, 2, &policy_id);
+
+            seen_zone = 0;
+            for (i = 0; i < db_zone_count; ++i) {
+                if (temp_id == zone_ids[i]) {
+                    seen_zone = 1;
+                    break;
+                }
+            }
+            
+            if (seen_zone == 0) {
+                /* We need to delete this zone */
+                /* Get the shared_keys parameter */
+                printf("Removing zone %s from database\n", zone_name);
+
+                status = KsmParameterInit(&result2, "zones_share_keys", "keys", policy_id);
+                if (status != 0) {
+                    return(status);
+                }
+                status = KsmParameter(result2, &shared);
+                if (status != 0) {
+                    return(status);
+                }
+                KsmParameterEnd(result2);
+
+                /* how many zones on this policy (needed to unlink keys) */ 
+                status = KsmZoneCountInit(&result3, policy_id); 
+                if (status == 0) { 
+                    status = KsmZoneCount(result3, &temp_count); 
+                } 
+                DbFreeResult(result3);
+
+                /* Mark keys as dead if appropriate */
+                if ((shared.value == 1 && temp_count == 1) || shared.value == 0) {
+                    status = KsmMarkKeysAsDead(temp_id);
+                    if (status != 0) {
+                        printf("Error: failed to mark keys as dead in database\n");
+                        return(status);
+                    }
+                }
+
+                /* Finally, we can delete the zone (and any dnsseckeys entries) */
+                status = KsmDeleteZone(temp_id);
+            }
+
+            status = DbFetchRow(result, &row);
+        }
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+        DbFreeResult(result);
+    }
+    
+    DusFree(sql);
+    DbFreeRow(row);
+    DbStringFree(zone_name);
 
     return 0;
 }
