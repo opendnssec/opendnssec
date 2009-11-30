@@ -71,7 +71,7 @@
 			<SOA>
 				<TTL>PT3600S</TTL>
 				<Minimum>PT3600S</Minimum>
-				<Serial>datecounter</Serial>
+				<Serial>unixtime</Serial>
 			</SOA>
 		</Zone>
 
