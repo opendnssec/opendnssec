@@ -808,7 +808,7 @@ free_sockets(sockets_type* sockets)
     }
 }
 
-static void
+static int
 odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
 {
     ldns_status status = LDNS_STATUS_OK;
@@ -826,7 +826,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     /* soa serial query */
     if (!zone || !zone->dname) {
         log_msg(LOG_ERR, "zone fetcher failed to provide a zone for AXFR ");
-        return;
+        return -1;
     }
 /* Coverity comment:
    Event deref_ptr: Directly dereferenced pointer "zone"
@@ -836,14 +836,14 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     if (!qpkt) {
         log_msg(LOG_ERR, "zone fetcher failed to create SOA query. "
             "Aborting AXFR");
-        return;
+        return -1;
     }
     status = ldns_resolver_send_pkt(&apkt, config->xfrd, qpkt);
     if (status != LDNS_STATUS_OK) {
         log_msg(LOG_ERR, "zone fetcher failed to send SOA query: %s",
             ldns_get_errorstr_by_id(status));
         ldns_pkt_free(qpkt);
-        return;
+        return -1;
     }
     if (ldns_pkt_ancount(apkt) == 1) {
         soa_rr = ldns_rr_list_rr(ldns_pkt_answer(apkt), 0);
@@ -853,11 +853,11 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
         ldns_pkt_free(apkt);
     }
     else {
-        log_msg(LOG_ERR, "zone fetcher saw SOA response with ANCOUNT != 1"
+        log_msg(LOG_ERR, "zone fetcher saw SOA response with ANCOUNT != 1, "
             "Aborting AXFR");
         /* retry? */
         ldns_pkt_free(apkt);
-        return;
+        return -1;
     }
 
     if (serial < new_serial) {
@@ -867,7 +867,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             if (errno != EINPROGRESS) {
                 log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
                     ldns_get_errorstr_by_id(status));
-                return;
+                return -1;
             }
         }
 
@@ -896,12 +896,12 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                     log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
                         axfr_file);
                     free((void*)axfr_file);
-                    return;
+                    return -1;
                 }
             }
             else {
                 log_msg(LOG_ERR, "zone fetcher cannot create AXFR backup file");
-                return;
+                return -1;
             }
         }
 
@@ -911,6 +911,8 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
         axfr_rr = ldns_axfr_next(config->xfrd);
         if (!axfr_rr) {
             log_msg(LOG_ERR, "zone fetcher AXFR for %s failed", zone->name);
+            unlink(axfr_file);
+            return -1;
         }
         else {
             while (axfr_rr) {
@@ -964,14 +966,18 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                     }
                 }
                 else {
-                     log_msg(LOG_ERR, "zone fetcher could not move AXFR to "
-                         "%s.axfr", zone->input_file);
+                    log_msg(LOG_ERR, "zone fetcher could not move AXFR to "
+                        "%s.axfr", zone->input_file);
                 }
                 free((void*) mv_axfr);
+                unlink(axfr_file);
+                return 0;
             }
             else {
                 log_msg(LOG_ERR, "zone fetcher malloc failed "
                     "for mv AXFR");
+                unlink(axfr_file);
+                return 1;
             }
         }
         free((void*)axfr_file);
@@ -981,6 +987,8 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
         log_msg(LOG_INFO, "zone fetcher zone %s is already up to date, "
             "serial is %u", zone->name, serial);
     }
+
+    return 0;
 }
 
 static ldns_resolver*
@@ -1142,7 +1150,9 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
                 serial = lookup_serial(fd);
                 fclose(fd);
             }
-            odd_xfer(zonelist, serial, config);
+            if (odd_xfer(zonelist, serial, config) != 0) {
+                log_msg(LOG_ERR, "AXFR for zone '%s' failed", zonelist->name);
+            }
             ldns_pkt_free(query_pkt);
             return;
         }
@@ -1514,7 +1524,9 @@ main(int argc, char **argv)
             fclose(fd);
         }
         /* send the request */
-        odd_xfer(zonelist, serial, config);
+        if (odd_xfer(zonelist, serial, config) != 0) {
+            log_msg(LOG_ERR, "AXFR for zone '%s' failed", zonelist->name);
+        }
         /* next */
         zonelist = zonelist->next;
     }
