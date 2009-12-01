@@ -994,7 +994,7 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 {
 	ldns_rr* rr1, *rr2;
 	ldns_rdf* rdf1, *rdf2;
-    size_t rr1_len, rr2_len, offset;
+	size_t rr1_len, rr2_len;
 	uint8_t nsec3_salt_length = 0;
 	uint8_t* nsec3_salt = NULL;
 	int c, ret = 0;
@@ -1085,48 +1085,18 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 			}
 			return ret;
 		}
-	} else if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_NSEC3) {
+	} else if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_NSEC3 &&
+		global_cfg && global_cfg->nsec3_algorithm) {
 		/* NSEC3 removed */
 		return 1;
-	} else if (ldns_rr_get_type(rr2) != LDNS_RR_TYPE_NSEC3) {
+	} else if (ldns_rr_get_type(rr2) != LDNS_RR_TYPE_NSEC3 &&
+		global_cfg && global_cfg->nsec3_algorithm) {
 		/* NSEC3 added */
 		return -1;
-	} else {
-		/* both NSEC3 */
-		return ldns_rr_compare_no_rdata(ldns_rr_list_rr(a, 0),
-                                    ldns_rr_list_rr(b, 0));
 	}
 
-	/* continue normal rr_compare_no_rdata */
-	if (ldns_rr_get_class(rr1) != ldns_rr_get_class(rr2)) {
-		if (global_cfg->verbosity >= 4) {
-			fprintf(stderr, "Compared RRsets: class differs [cmp=%i]\n", ldns_rr_get_class(rr1) - ldns_rr_get_class(rr2));
-		}
-		return ldns_rr_get_class(rr1) - ldns_rr_get_class(rr2);
-	}
-	if (ldns_rr_get_type(rr1) != ldns_rr_get_type(rr2)) {
-		if (global_cfg->verbosity >= 4) {
-			fprintf(stderr, "Compared RRsets: type differs [cmp=%i]\n", ldns_rr_get_type(rr1) - ldns_rr_get_type(rr2));
-		}
-		return ldns_rr_get_type(rr1) - ldns_rr_get_type(rr2);
-	}
-	offset = ldns_rdf_size(ldns_rr_owner(rr1)) + 4 + 2 + 2 + 2;
-	if (offset > rr1_len || offset > rr2_len) {
-		if (rr1_len == rr2_len) {
-			if (global_cfg->verbosity >= 4) {
-				fprintf(stderr, "Compared RRsets: rdlen the same [cmp=0]\n");
-			}
-			return 0;
-		}
-		if (global_cfg->verbosity >= 4) {
-			fprintf(stderr, "Compared RRsets: rdlen differs [cmp=%i]\n", ((int) rr2_len - (int) rr1_len));
-		}
-		return ((int) rr2_len - (int) rr1_len);
-	}
-	if (global_cfg->verbosity >= 4) {
-		fprintf(stderr, "Compared RRsets: the same\n");
-	}
-	return 0;
+	/* continue normal rr_compare_no_rdata: both NSEC3 or no NSEC3 involved */
+	return ldns_rr_compare_no_rdata(rr1, rr2);
 }
 
 int
