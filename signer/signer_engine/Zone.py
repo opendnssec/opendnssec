@@ -49,7 +49,9 @@ class Zone:
         self.engine_config = engine_config
         self.locked = False
         self.scheduled = None
-        
+        self.in_progress = False
+        self.schedule_now = False
+
         # information received from KASP through the xml file
         self.zone_config = None
         
@@ -671,7 +673,8 @@ class Zone:
                           self.get_zone_input_filename())
         # if nothing in the config changes, the next action will always
         # be to just resign
-        self.action = ZoneConfig.RESIGN
+        if not self.schedule_now:
+            self.action = ZoneConfig.RESIGN
 
     def compare_serial(self, s1, s2):
         """Compare two serials according to RFC 1982. Return 0 if equal, 
@@ -844,7 +847,7 @@ class Zone:
                           self.get_zone_tmp_filename(".nsecced"))
             return False
         for line in nsecced_f:
-            #syslog.syslog(syslog.LOG_INFO, "send to signer " + l)
+            #syslog.syslog(syslog.LOG_DEBUG, "send to signer " + line)
             sign_p.stdin.write(line)
         nsecced_f.close()
         sign_p.stdin.close()

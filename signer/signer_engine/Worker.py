@@ -200,6 +200,7 @@ class Worker(threading.Thread):
             now = time.time()
             if self.queue.has_task(now):
                 task = self.queue.get_task()
+                task.how.in_progress = True
                 self.queue.release()
                 self.condition.release()
                 syslog.syslog(syslog.LOG_DEBUG, "worker " + self.name + " released lock")
@@ -209,10 +210,18 @@ class Worker(threading.Thread):
                     task.run()
                     if task.repeat_interval > 0:
                         task.when = now + task.repeat_interval
+                        # immediately sign this zone again
+                        if task.how.schedule_now:
+                            task.when = now
+                            task.how.schedule_now = False
                         self.queue.lock()
                         self.queue.add_task(task)
+                        task.how.in_progress = False
                         self.queue.release()
+                    else:
+                        task.how.in_progress = False
                 else:
+                    task.how.in_progress = False
                     syslog.syslog(syslog.LOG_DEBUG, "But worker has been told not to do anything any more")
             else:
                 self.queue.release()

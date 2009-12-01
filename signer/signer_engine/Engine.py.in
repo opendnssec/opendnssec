@@ -651,7 +651,7 @@ class Engine:
                               "No config yet for zone " + \
                               zone_name)
                 zone.read_config()
-            if zone.zone_config:
+            if zone.zone_config and not zone.in_progress:
                 syslog.syslog(syslog.LOG_INFO,
                               "Scheduling task to sign zone " + \
                               zone_name + \
@@ -669,6 +669,14 @@ class Engine:
                 zone.scheduled = task
                 self.task_queue.release()
                 self.notify()
+            elif zone.zone_config:
+                # special scheduling
+                zone.schedule_now = True
+                syslog.syslog(syslog.LOG_WARNING,
+                              "Scheduling task to sign zone " + \
+                              zone_name + \
+                              ", zone in progress, scheduling as soon as possible")
+
         except ZoneConfigError, e:
             raise EngineError("Error reading zone config for " + zone_name + ": " + str(e))
         except KeyError:
