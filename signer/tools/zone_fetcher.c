@@ -1483,7 +1483,7 @@ main(int argc, char **argv)
         }
     }
 
-    log_open(facility, argv[0]);
+    log_open(facility, "zone_fetcher");
 
     if (argc > optind) {
         log_msg(LOG_CRIT, "zone fetcher error: extraneous arguments");
