@@ -1384,8 +1384,8 @@ nsec3_removed:
 							ldns_rr_list_type(new_zone_rrset) == 6 ? " SOA":"");
 					}
 					ldns_rr_list_print(output, new_zone_rrset);
-					check_existing_sigs(new_zone_signatures, output, cfg);
 					check_existing_sigs(signed_zone_signatures, output, cfg);
+					check_existing_sigs(new_zone_signatures, output, cfg);
 					sign_rrset(new_zone_rrset, output, cfg);
 					/* special case: SOA */
 					if (ldns_rr_list_type(new_zone_rrset) == LDNS_RR_TYPE_SOA) {
