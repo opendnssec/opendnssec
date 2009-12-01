@@ -97,8 +97,16 @@ def engine_cli(args, file):
         if args and len(args) > 0:
             start_cmd = " ".join(args)
             if start_cmd[:5] == "start":
-                os.system("@signer_engine@")
-                sys.exit(0)
+                try:
+                    p = subprocess.Popen("@signer_engine@", shell=True)
+                    retcode = os.waitpid(p.pid, 0)[1]
+                    if retcode < 0:
+                        print "Engine was terminated by signal"
+                    else:
+                        return retcode
+                except OSError, e:
+                    print "Unable to start engine: " + e
+                    return 1
 
         if (hasattr(serr, "errno") and serr.errno == 2) or \
            isinstance(serr, socket.error) and serr[0] == 2:
