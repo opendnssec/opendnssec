@@ -260,6 +260,7 @@ cmd_purge (int argc, char *argv[])
     fgets(confirm, sizeof(confirm) - 1, stdin);
     if (strncasecmp(confirm, "yes", 3) != 0) {
         printf("\nPurge cancelled.\n");
+        hsm_key_list_free(keys, key_count);
         return -1;
     } else {
         printf("\nStarting purge...\n");
