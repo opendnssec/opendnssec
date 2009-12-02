@@ -3,6 +3,8 @@ $Id$
 OpenDNSSEC trunk
 
 * ...
+* ods-auditor: dnsruby-1.41 should be used (includes fixes for zero length
+  salt and RFC3597 unknown classes)
 
 
 OpenDNSSEC 1.0.0b9 - 2009-11-27
