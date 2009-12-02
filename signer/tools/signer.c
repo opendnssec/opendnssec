@@ -267,7 +267,7 @@ current_config_new()
 	cfg->existing_sigs = 0;
 	cfg->removed_sigs = 0;
 	cfg->created_sigs = 0;
-	cfg->verbosity = 1;
+	cfg->verbosity = 4;
 	return cfg;
 }
 
@@ -1248,8 +1248,9 @@ nsec3_encountered:
 					ldns_rr_list_deep_free(new_zone_signatures);
 				}
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "NSEC3, signing\n");
-					ldns_rr_list_print(stderr, signed_zone_rrset);
+					fprintf(output, "; NSEC3, signing\n");
+					fprintf(stderr, "NSEC3, signing:\n");
+					ldns_rr_list_print(stderr, new_zone_rrset);
 				}
 				ldns_rr_list_print(output, new_zone_rrset);
 				sign_rrset(new_zone_rrset, output, cfg);
@@ -1257,12 +1258,12 @@ nsec3_encountered:
 
 				new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1);
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "Read rrset from input:\n");
+					fprintf(stderr, "NSEC3 signed, read rrset from input:\n");
 					ldns_rr_list_print(stderr, new_zone_rrset);
 				}
 				new_zone_signatures = read_signatures(new_zone_reader, output, cfg, 1);
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "Read signatures from input:\n");
+					fprintf(stderr, "NSEC3 signed, read signatures from input:\n");
 					ldns_rr_list_print(stderr, new_zone_signatures);
 				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
@@ -1300,6 +1301,8 @@ nsec3_removed:
 			while (cmp < 0 && new_zone_rrset) {
 				check_existing_sigs(new_zone_signatures, output, cfg);
 				if (cfg->verbosity >= 4) {
+					fprintf(stderr, "New data, signing:\n");
+					ldns_rr_list_print(stderr, new_zone_rrset);
 					fprintf(output, "; new data, signing\n");
 				}
 				ldns_rr_list_print(output, new_zone_rrset);
@@ -1309,12 +1312,12 @@ nsec3_removed:
 
 				new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1);
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "Read rrset from input:\n");
+					fprintf(stderr, "Continue, read rrset from input:\n");
 					ldns_rr_list_print(stderr, new_zone_rrset);
 				}
 				new_zone_signatures = read_signatures(new_zone_reader, output, cfg, 1);
 				if (cfg->verbosity >= 4) {
-					fprintf(stderr, "Read signatures from input:\n");
+					fprintf(stderr, "Continue, read signatures from input:\n");
 					ldns_rr_list_print(stderr, new_zone_signatures);
 				}
 				cmp = compare_list_rrset(new_zone_rrset, signed_zone_rrset);
@@ -1328,6 +1331,11 @@ nsec3_removed:
 					ldns_rr_list_type(signed_zone_rrset) == LDNS_RR_TYPE_NSEC3) {
 					goto nsec3_removed;
 				}
+				if (cmp > 0 &&
+					ldns_rr_list_type(new_zone_rrset) != LDNS_RR_TYPE_NSEC3) {
+					goto nsec3_removed;
+				}
+
 			}
 			/* if same, and rrset not same, treat as new */
 			/* if same, and rrset same, check old sigs as well */
@@ -1336,6 +1344,8 @@ nsec3_removed:
 				if (ldns_rr_list_compare(new_zone_rrset, signed_zone_rrset) != 0) {
 					if (cfg->verbosity >= 4) {
 						fprintf(output, "; rrset changed\n");
+						fprintf(stderr, "RRset changed:\n");
+						ldns_rr_list_print(stderr, new_zone_rrset);
 					}
 					ldns_rr_list_print(output, new_zone_rrset);
 					check_existing_sigs(new_zone_signatures, output, cfg);
@@ -1352,6 +1362,8 @@ nsec3_removed:
 					if (cfg->verbosity >= 4) {
 						fprintf(output, "; rrset%s still the same\n",
 							ldns_rr_list_type(new_zone_rrset) == 6 ? " SOA":"");
+						fprintf(stderr, "RRset the same:\n");
+						ldns_rr_list_print(stderr, new_zone_rrset);
 					}
 					ldns_rr_list_print(output, new_zone_rrset);
 					check_existing_sigs(signed_zone_signatures, output, cfg);
@@ -1370,11 +1382,13 @@ nsec3_removed:
 			 * reached the end, in which case we have new rrsets at
 			 * the input */
 			else if (cmp > 0 && !signed_zone_rrset) {
-				ldns_rr_list_print(output, new_zone_rrset);
-				check_existing_sigs(new_zone_signatures, output, cfg);
 				if (cfg->verbosity >= 4) {
 					fprintf(output, "; new data at end, signing\n");
+					fprintf(stderr, "New data at end, signing:\n");
+					ldns_rr_list_print(stderr, new_zone_rrset);
 				}
+				ldns_rr_list_print(output, new_zone_rrset);
+				check_existing_sigs(new_zone_signatures, output, cfg);
 				sign_rrset(new_zone_rrset, output, cfg);
 			}
 		}
