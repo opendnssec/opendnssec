@@ -44,9 +44,11 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <strings.h>
+#include <syslog.h>
 
 #include <ldns/ldns.h>
 
+#include "logging.h"
 #include "util.h"
 #include <libhsm.h>
 #include <libhsmdns.h>
@@ -294,6 +296,7 @@ usage(FILE *out)
 	fprintf(out, "-c <file>\t\tUse the specified OpenDNSSEC configuration file\n");
 	fprintf(out, "-f <file>\t\tRead from file instead of stdin\n");
 	fprintf(out, "-h\t\t\tShow this help\n");
+	fprintf(out, "-l <facility>\t\tSyslog facility\n");
 	fprintf(out, "-p <file>\t\tRead a previous output of this tool for existing signatures\n");
 	fprintf(out, "-w <file>\t\tWrite the output to this file (default stdout)\n");
 	fprintf(out, "-r\t\t\tPrints the number of signatures generated to stderr. On success, this will\n");
@@ -1435,13 +1438,14 @@ int main(int argc, char **argv)
 	int print_creation_count = 0;
 	struct timeval t_start,t_end;
 	double elapsed;
+	int facility = LOG_DAEMON;
 
 	cfg = current_config_new();
 	global_cfg = cfg;
 	input = stdin;
 	output = stdout;
 
-	while ((c = getopt(argc, argv, "c:f:hnp:w:r")) != -1) {
+	while ((c = getopt(argc, argv, "c:f:hl:p:w:r")) != -1) {
 		switch(c) {
 		case 'c':
 			config_file = optarg;
@@ -1459,6 +1463,9 @@ int main(int argc, char **argv)
 		case 'h':
 			usage(stdout);
 			exit(0);
+			break;
+		case 'l':
+			facility = facility2int(optarg);
 			break;
 		case 'p':
 			prev_zone = fopen(optarg, "r");

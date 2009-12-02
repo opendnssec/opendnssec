@@ -29,6 +29,8 @@
 #include "logging.h"
 
 #include <syslog.h>
+#include <string.h>
+#include <strings.h>
 
 static int logging_to_syslog = 0;
 
@@ -66,5 +68,46 @@ log_msg(int priority, const char *format, ...)
     va_start(args, format);
     log_vmsg(priority, format, args);
     va_end(args);
+}
+
+int
+facility2int(const char* facility)
+{
+    if (strncasecmp(facility, "KERN", 4) && strlen(facility) == 4)
+        return LOG_KERN;
+    else if (strncasecmp(facility, "USER", 4) && strlen(facility) == 4)
+        return LOG_USER;
+    else if (strncasecmp(facility, "MAIL", 4) && strlen(facility) == 4)
+        return LOG_MAIL;
+    else if (strncasecmp(facility, "DAEMON", 6) && strlen(facility) == 6)
+        return LOG_DAEMON;
+    else if (strncasecmp(facility, "AUTH", 4) && strlen(facility) == 4)
+        return LOG_AUTH;
+    else if (strncasecmp(facility, "LPR", 3) && strlen(facility) == 3)
+        return LOG_LPR;
+    else if (strncasecmp(facility, "NEWS", 4) && strlen(facility) == 4)
+        return LOG_NEWS;
+    else if (strncasecmp(facility, "UUCP", 4) && strlen(facility) == 4)
+        return LOG_UUCP;
+    else if (strncasecmp(facility, "CRON", 4) && strlen(facility) == 4)
+        return LOG_CRON;
+    else if (strncasecmp(facility, "LOCAL0", 6) && strlen(facility) == 6)
+        return LOG_LOCAL0;
+    else if (strncasecmp(facility, "LOCAL1", 6) && strlen(facility) == 6)
+        return LOG_LOCAL1;
+    else if (strncasecmp(facility, "LOCAL2", 6) && strlen(facility) == 6)
+        return LOG_LOCAL2;
+    else if (strncasecmp(facility, "LOCAL3", 6) && strlen(facility) == 6)
+        return LOG_LOCAL3;
+    else if (strncasecmp(facility, "LOCAL4", 6) && strlen(facility) == 6)
+        return LOG_LOCAL4;
+    else if (strncasecmp(facility, "LOCAL5", 6) && strlen(facility) == 6)
+        return LOG_LOCAL5;
+    else if (strncasecmp(facility, "LOCAL6", 6) && strlen(facility) == 6)
+        return LOG_LOCAL6;
+    else if (strncasecmp(facility, "LOCAL7", 6) && strlen(facility) == 6)
+        return LOG_LOCAL7;
+
+    return LOG_DAEMON;
 }
 

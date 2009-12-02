@@ -36,7 +36,7 @@ nsec3er_SOURCES=		nsec3er.c util.c
 nsec3er_LDADD=			@LDNS_LIBS@ @LIBHSM_LIBS@
 nsec3er_DEPENDENCIES=		@BUILD_LIBHSM@
 
-signer_SOURCES=			signer.c util.c
+signer_SOURCES=			signer.c util.c logging.c logging.h
 signer_LDADD=			@LDNS_LIBS@ @LIBHSM_LIBS@
 signer_DEPENDENCIES=		@BUILD_LIBHSM@
 
