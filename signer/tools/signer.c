@@ -981,16 +981,14 @@ sign_rrset(ldns_rr_list *rrset,
 			} else if (sig) {
 				fprintf(output, "; signing failed: %s\n", ldns_get_errorstr_by_id(status));
 				ldns_rr_print(output, sig);
-				fprintf(stderr, "WARNING: HSM returned BOGUS signature! Abort signing, "
-					"retry on next resign\n");
-				ldns_rr_print(stderr, sig);
 				ldns_rr_free(sig);
+				log_msg(LOG_ALERT, "WARNING: HSM returned BOGUS signature! Abort signing, "
+					"retry on next resign\n");
 				exit(EXIT_FAILURE);
 			} else {
 				fprintf(output, "; signing failed: hsm returned null signature\n");
-				fprintf(stderr, "WARNING: HSM returned NULL signature! Abort signing, "
+				log_msg(LOG_ALERT, "WARNING: HSM returned NULL signature! Abort signing, "
 					"retry on next resign\n");
-				ldns_rr_print(stderr, sig);
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -1498,6 +1496,8 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	log_open(facility, "signer");
+
 	result = hsm_open(config_file, hsm_prompt_pin, NULL);
 	if (result != HSM_OK) {
 		fprintf(stderr, "Error initializing libhsm\n");
@@ -1526,6 +1526,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "signer: number of signatures created: %lu (within a second)\n",
 				cfg->created_sigs);
 	}
+
+	log_close();
+
 	if (result == 1) {
 		return 0;
 	} else {
