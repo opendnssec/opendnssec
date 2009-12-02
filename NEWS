@@ -6,10 +6,14 @@ OpenDNSSEC trunk
   salt and RFC3597 unknown classes)
 
 Bugfixes:
-* Signer Engine: Zonefetcher left empty files.
-* Signer Engine: Scheduled a single zone multiple times.
+* Signer Engine: 1.0.0b8 introduced a bug that no signatures where reused.
+  Re-fixed.
+* Signer Engine: Fix ods-signer start (could hang on MacOSX)
+* Signer Engine: Mark a zone in progress if in use by one of the tools.
+  Prevents multiple tasks being created for the same zone.
 * Signer Engine: Dropped records when zone content changed.
-* Signer Engine: Did not reuse signatures.
+* Zone fetcher: Clean up empty files if AXFR failed
+* Zone fetcher: Make syslogging RFC-compliant
 
 
 OpenDNSSEC 1.0.0b9 - 2009-11-27
