@@ -2419,24 +2419,22 @@ cmd_dbbackup ()
         return(status);
     }
 
-    /* set up lock filename (it may have changed?) */
-    if (lock_fd != NULL) {
-        lock_filename = NULL;
-        StrAppend(&lock_filename, dbschema);
-        StrAppend(&lock_filename, ".our_lock");
+    /* set up DB lock */
+    lock_filename = NULL;
+    StrAppend(&lock_filename, dbschema);
+    StrAppend(&lock_filename, ".our_lock");
 
-        lock_fd = fopen(lock_filename, "w");
-        status = get_lite_lock(lock_filename, lock_fd);
-        if (status != 0) {
-            printf("Error getting db lock\n");
-            if (lock_fd != NULL) {
-                fclose(lock_fd);
-            }
-            StrFree(dbschema);
-            return(1);
+    lock_fd = fopen(lock_filename, "w");
+    status = get_lite_lock(lock_filename, lock_fd);
+    if (status != 0) {
+        printf("Error getting db lock\n");
+        if (lock_fd != NULL) {
+            fclose(lock_fd);
         }
-        StrFree(lock_filename);
+        StrFree(dbschema);
+        return(1);
     }
+    StrFree(lock_filename);
 
     /* Work out what file to output */
     if (o_output == NULL) {
@@ -2461,7 +2459,7 @@ cmd_dbbackup ()
     StrFree(user);
     StrFree(password);
 
-    /* Release sqlite lock file (if we have it) */
+    /* Release sqlite lock */
     db_disconnect(lock_fd);
 
     return status;
@@ -3819,6 +3817,7 @@ int update_zones(char* zone_list_filename)
                 status = KsmZoneIdFromName(zone_name, &temp_id);
                 if (status != 0) {
                     printf("Error: unable to find a zone named \"%s\" in database\n", zone_name);
+                    StrFree(zone_ids);
                     return(status);
                 }
                
@@ -3858,11 +3857,13 @@ int update_zones(char* zone_list_filename)
 
     /* If the 2 numbers match then our work is done */
     if (file_zone_count == db_zone_count) {
+        StrFree(zone_ids);
         return 0;
     }
     /* If the file count is larger then something went wrong */
     else if (file_zone_count > db_zone_count) {
         printf("Failed to add all zones from zonelist\n");
+        StrFree(zone_ids);
         return(1);
     }
 
@@ -3897,10 +3898,15 @@ int update_zones(char* zone_list_filename)
 
                 status = KsmParameterInit(&result2, "zones_share_keys", "keys", policy_id);
                 if (status != 0) {
+                    DbFreeRow(row);
+                    DbStringFree(zone_name);
                     return(status);
                 }
                 status = KsmParameter(result2, &shared);
                 if (status != 0) {
+                    DbFreeRow(row);
+                    DbStringFree(zone_name);
+                    StrFree(zone_ids);
                     return(status);
                 }
                 KsmParameterEnd(result2);
@@ -3917,6 +3923,7 @@ int update_zones(char* zone_list_filename)
                     status = KsmMarkKeysAsDead(temp_id);
                     if (status != 0) {
                         printf("Error: failed to mark keys as dead in database\n");
+                        StrFree(zone_ids);
                         return(status);
                     }
                 }
@@ -3938,6 +3945,7 @@ int update_zones(char* zone_list_filename)
     DusFree(sql);
     DbFreeRow(row);
     DbStringFree(zone_name);
+    StrFree(zone_ids);
 
     return 0;
 }
@@ -5769,7 +5777,6 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                 }
 
                 hsm_sign_params_free(sign_params);
-                hsm_key_free(key);
             }
             if (key && cka_id != NULL && strncmp(cka_id, temp_loc, strlen(temp_loc)) == 0) {
                 /* Or have we matched a provided cka_id */
@@ -5780,6 +5787,10 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                     *zone_id = temp_zone_id;
                     printf("Found key with CKA_ID %s\n", temp_loc);
                 }
+            }
+
+            if (key) {
+                hsm_key_free(key);
             }
             
             status = DbFetchRow(result, &row);
@@ -5943,7 +5954,7 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
     }
 
     /* 3) Commit or Rollback */
-    if (status == 0) {
+    if (status == 0) { /* It actually can't be anything else */
         /* Everything worked by the looks of it */
         DbCommit();
     } else {
