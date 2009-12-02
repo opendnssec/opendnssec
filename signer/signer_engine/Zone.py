@@ -754,6 +754,10 @@ class Zone:
                "-r"
               ]
 
+        if self.engine_config.syslog_facility_string:
+            cmd.append("-l")
+            cmd.append(self.engine_config.syslog_facility_string)
+
         sign_p = Util.run_tool(cmd)
         if not sign_p:
             if not self.last_signed:
