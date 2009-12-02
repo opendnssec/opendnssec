@@ -978,10 +978,16 @@ sign_rrset(ldns_rr_list *rrset,
 			} else if (sig) {
 				fprintf(output, "; signing failed: %s\n", ldns_get_errorstr_by_id(status));
 				ldns_rr_print(output, sig);
+				fprintf(stderr, "WARNING: HSM returned BOGUS signature! Abort signing, "
+					"retry on next resign\n");
+				ldns_rr_print(stderr, sig);
 				ldns_rr_free(sig);
 				exit(EXIT_FAILURE);
 			} else {
 				fprintf(output, "; signing failed: hsm returned null signature\n");
+				fprintf(stderr, "WARNING: HSM returned NULL signature! Abort signing, "
+					"retry on next resign\n");
+				ldns_rr_print(stderr, sig);
 				exit(EXIT_FAILURE);
 			}
 		}
