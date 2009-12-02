@@ -267,7 +267,7 @@ current_config_new()
 	cfg->existing_sigs = 0;
 	cfg->removed_sigs = 0;
 	cfg->created_sigs = 0;
-	cfg->verbosity = 4;
+	cfg->verbosity = 1;
 	return cfg;
 }
 
