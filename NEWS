@@ -2,9 +2,14 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
 * ods-auditor: dnsruby-1.41 should be used (includes fixes for zero length
   salt and RFC3597 unknown classes)
+
+Bugfixes:
+* Signer Engine: Zonefetcher left empty files.
+* Signer Engine: Scheduled a single zone multiple times.
+* Signer Engine: Dropped records when zone content changed.
+* Signer Engine: Did not reuse signatures.
 
 
 OpenDNSSEC 1.0.0b9 - 2009-11-27
