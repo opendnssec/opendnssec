@@ -188,9 +188,16 @@ class Engine:
 
     def drop_privileges(self):
         uid = -1
+        additional_groups = []
         if self.config.privs_username:
             try:
                 uid = pwd.getpwnam(self.config.privs_username)[2]
+
+                # additional groups
+                additional_groups = [ entry[2]
+                                      for entry in grp.getgrall()
+                                      if self.config.privs_username in entry[3] ]
+
             except Exception, e:
                 estr = "Unable to drop privileges to user " +\
                        self.config.privs_username + ": " + str(e)
@@ -223,6 +230,15 @@ class Engine:
                 uid, gid)
         except Exception, che:
             syslog.syslog(syslog.LOG_ERR, "Unable to chown socket file: " + str(che))
+
+        if additional_groups:
+            try:
+                syslog.syslog(syslog.LOG_DEBUG, "additional groups: " + str(additional_groups))
+                os.setgroups(additional_groups)
+            except Exception, e:
+                estr = "Unable to set groups: " + str(e)
+                syslog.syslog(syslog.LOG_ERR, estr)
+                raise EngineError(estr)
 
         if self.config.privs_groupname:
             syslog.syslog(syslog.LOG_INFO, "Drop privileges to group " + self.config.privs_groupname)
@@ -274,8 +290,8 @@ class Engine:
                 syslog.syslog(syslog.LOG_ERR,
                               "Connection closed by peer")
             except RuntimeError:
-                syslog.syslog(syslog.LOG_ERR,
-                              "Connection closed by peer")
+                syslog.syslog(syslog.LOG_INFO,
+                              "Client socket shut down")
 
     @staticmethod
     def receive_command(client_socket):
@@ -793,6 +809,8 @@ def main():
         # just to be sure
         engine.stop_workers()
     except EngineConfigurationError, ece:
+        print ece
+    except EngineError, ece:
         print ece
     except ZoneListError, zle:
         print "zonelist error: " + str(zle) + ". Stopping engine"
