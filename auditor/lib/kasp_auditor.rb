@@ -333,11 +333,11 @@ module KASPAuditor
         target_gid = Etc.getgrnam((group+"").untaint).gid if group
 
         if uid != target_uid or gid != target_gid
-          Process.initgroups(user, target_gid)
+          Process.initgroups(user, target_gid) if target_gid
 
-          Process::GID.change_privilege(target_gid)
+          Process::GID.change_privilege(target_gid) if target_gid
 
-          Process::UID.change_privilege(target_uid)
+          Process::UID.change_privilege(target_uid) if target_uid
         end
       rescue Exception => e
         KASPAuditor.exit("Couldn't set User, Group to #{user.inspect}, #{group.inspect} : (#{e})", 1)
