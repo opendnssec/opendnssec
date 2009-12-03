@@ -325,6 +325,25 @@ module KASPAuditor
       Process::Sys.setgid(gid)
     end
 
+    def change_privilege(user, group)
+      return if !user && !group
+      begin
+        uid, gid = Process.euid, Process.egid
+        target_uid = Etc.getpwnam((user+"").untaint).uid if user
+        target_gid = Etc.getgrnam((group+"").untaint).gid if group
+
+        if uid != target_uid or gid != target_gid
+          Process.initgroups(user, target_gid)
+
+          Process::GID.change_privilege(target_gid)
+
+          Process::UID.change_privilege(target_uid)
+        end
+      rescue Exception => e
+        KASPAuditor.exit("Couldn't set User, Group to #{user.inspect}, #{group.inspect} : (#{e})", 1)
+      end
+    end
+
     def load_privileges(doc)
       # Configuration/Privileges may be overridden by Auditor/Privileges
       #begin
@@ -336,24 +355,18 @@ module KASPAuditor
       #rescue Exception => e
       #  print "Couldn't set Configuration/Privileges/Directory (#{e})\n"
       #end
-      begin
-        if (doc.elements['Configuration/Auditor/Privileges/Group'])
-          change_group(doc.elements['Configuration/Auditor/Privileges/Group'].text)
-        elsif (doc.elements['Configuration/Privileges/Group'])
-          change_group(doc.elements['Configuration/Privileges/Group'].text)
-        end
-      rescue Exception => e
-        print "Couldn't set Configuration/Privileges/Group (#{e})\n"
+      user, group = nil
+      if (doc.elements['Configuration/Auditor/Privileges/Group'])
+        group=(doc.elements['Configuration/Auditor/Privileges/Group'].text)
+      elsif (doc.elements['Configuration/Privileges/Group'])
+        group=(doc.elements['Configuration/Privileges/Group'].text)
       end
-      begin
-        if (doc.elements['Configuration/Auditor/Privileges/User'])
-          change_uid(doc.elements['Configuration/Auditor/Privileges/User'].text)
-        elsif (doc.elements['Configuration/Privileges/User'])
-          change_uid(doc.elements['Configuration/Privileges/User'].text)
-        end
-      rescue Exception => e
-        print "Couldn't set Configuration/Privileges/User (#{e})\n"
+      if (doc.elements['Configuration/Auditor/Privileges/User'])
+        user=(doc.elements['Configuration/Auditor/Privileges/User'].text)
+      elsif (doc.elements['Configuration/Privileges/User'])
+        user=(doc.elements['Configuration/Privileges/User'].text)
       end
+      change_privilege(user, group)
     end
 
     def delete_file(f) # :nodoc: all
