@@ -81,12 +81,12 @@ module KASPAuditor
                 f.write(line_to_write)
               end
             }
-          rescue Errno::ENOENT
-            KASPAuditor.exit("ERROR - Can't open zone file : #{infile}", 1)
+          rescue Exception => e
+            KASPAuditor.exit("ERROR - Can't open zone file : #{infile.inspect} : #{e}", 1)
           end
         }
-      rescue Errno::ENOENT
-        KASPAuditor.exit("ERROR - Can't open temporary output file : #{outfile}", 1)
+      rescue Exception => e
+        KASPAuditor.exit("ERROR - Can't open temporary output file : #{outfile.inspect} : #{e}", 1)
       end
     end
 
