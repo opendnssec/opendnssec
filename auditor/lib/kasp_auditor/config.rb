@@ -71,11 +71,11 @@ module KASPAuditor
             end
           }
           if (!found_policy)
-            raise ConfigLoadError.new("ERROR - Can't find policy #{policy} in KASP Policy.")
+            raise ConfigLoadError.new("ERROR - Can't find policy #{policy.inspect} in KASP Policy.")
           end
         }
-      rescue Errno::ENOENT
-        raise ConfigLoadError.new("ERROR - Can't find KASP file : #{kasp_file_loc}")
+      rescue Exception => e
+        raise ConfigLoadError.new("ERROR - Can't find KASP file : #{kasp_file_loc.inspect} : #{e}")
       end
       #
       # Read the salt ONLY from the SignerConfiguration
