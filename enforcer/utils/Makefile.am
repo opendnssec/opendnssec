@@ -32,7 +32,3 @@ ods_ksmutil_DEPENDENCIES = @BUILD_LIBHSM@
 
 ../ksm/libksm.a:
 	(cd ../ksm; ${MAKE} libksm.a)
-
-install-data-hook:
-	rm -f $(DESTDIR)$(bindir)/ksmutil
-	$(LN_S) ods-ksmutil $(DESTDIR)$(bindir)/ksmutil

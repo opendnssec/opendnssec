@@ -23,10 +23,3 @@ ods_hsmspeed_LDADD = libhsm.la -lpthread
 
 EXTRA_DIST = $(srcdir)/cryptoki/*.h
 EXTRA_DIST += $(srcdir)/compat/*.c $(srcdir)/compat/*.h
-
-
-install-data-hook:
-	rm -f $(DESTDIR)$(bindir)/hsmutil
-	$(LN_S)	ods-hsmutil $(DESTDIR)$(bindir)/hsmutil
-	rm -f $(DESTDIR)$(bindir)/hsmspeed
-	$(LN_S)	ods-hsmspeed $(DESTDIR)$(bindir)/hsmspeed
