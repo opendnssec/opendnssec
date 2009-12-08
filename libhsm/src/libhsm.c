@@ -2012,6 +2012,9 @@ hsm_get_key_info(hsm_ctx_t *ctx,
     key_info = malloc(sizeof(hsm_key_info_t));
 
     key_info->id = hsm_get_key_id(ctx, key);
+    if (key_info->id == NULL) {
+        key_info->id = strdup("");
+    }
 
     key_info->algorithm = (unsigned long) hsm_get_key_algorithm(ctx,
                                                                 session,
