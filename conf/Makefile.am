@@ -55,14 +55,14 @@ regress: $(RNG)
 install-data-hook:
 	test -d ${sysconfdir} || mkdir -p ${DESTDIR}${sysconfdir}
 	test -f ${sysconfdir}/conf.xml || \
-		${INSTALL_DATA} ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}
-	${INSTALL_DATA} ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
+		${INSTALL_DATA} -m 0640 ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} -m 640 ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
 	test -f ${sysconfdir}/zonelist.xml || \
 		${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}/zonelist.xml.sample
 	test -f ${sysconfdir}/zonefetch.xml || \
-		${INSTALL_DATA} ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}
-	${INSTALL_DATA} ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}/zonefetch.xml.sample
+		${INSTALL_DATA} -m 0640 ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} -m 640 ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}/zonefetch.xml.sample
 	test -f ${sysconfdir}/kasp.xml || \
 		${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}/kasp.xml.sample
