@@ -758,6 +758,10 @@ class Zone:
             cmd.append("-l")
             cmd.append(self.engine_config.syslog_facility_string)
 
+        soa_serial = self.find_serial()
+        if self.zone_config.soa_serial and soa_serial == None:
+            return False;
+
         sign_p = Util.run_tool(cmd)
         if not sign_p:
             if not self.last_signed:
@@ -771,13 +775,9 @@ class Zone:
         Util.write_p(sign_p, self.zone_config.soa_minimum,
                      ":soa_minimum ")
         if self.zone_config.soa_serial:
-            soa_serial = self.find_serial()
-            if not soa_serial == None:
-                syslog.syslog(syslog.LOG_DEBUG,
-                              "set serial to " + str(soa_serial))
-                Util.write_p(sign_p, str(soa_serial), ":soa_serial ")
-            else:
-                return False
+            syslog.syslog(syslog.LOG_DEBUG,
+                          "set serial to " + str(soa_serial))
+            Util.write_p(sign_p, str(soa_serial), ":soa_serial ")
             if self.zone_config.soa_serial == "keep":
                 Util.write_p(sign_p, "1", ":soa_serial_keep ")
         # nsec3 params
