@@ -557,6 +557,7 @@ cmd_setup ()
     status = update_policies(kasp_filename);
     if (status != 0) {
         printf("Failed to update policies\n");
+        printf("SETUP FAILED\n");
         db_disconnect(lock_fd);
         StrFree(zone_list_filename);
         return(1);
@@ -3522,8 +3523,20 @@ int update_policies(char* kasp_filename)
                     continue;
                 }
                 if ( SetParamOnPolicy(xpathCtx, ksk_repo_expr, "repository", "ksk", policy->ksk->sm, policy->id, REPO_TYPE) != 0) {
-                    ret = xmlTextReaderRead(reader);
-                    continue;
+                    printf("Please either add the repository to conf.xml or remove the reference to it from kasp.xml\n");
+                    /* return the error, we do not want to continue */
+                    StrFree(tag_name);
+                    xmlFreeTextReader(reader);
+                    xmlFreeDoc(pol_doc);
+                    xmlXPathFreeContext(xpathCtx);
+                    xmlRelaxNGFree(schema);
+                    xmlRelaxNGFreeValidCtxt(rngctx);
+                    xmlRelaxNGFreeParserCtxt(rngpctx);
+                    xmlFreeDoc(doc);
+                    xmlFreeDoc(rngdoc);
+                    KsmPolicyFree(policy);
+
+                    return(1);
                 }
                 if ( SetParamOnPolicy(xpathCtx, ksk_standby_expr, "standby", "ksk", policy->ksk->standby_keys, policy->id, INT_TYPE) != 0) {
                     ret = xmlTextReaderRead(reader);
@@ -3551,8 +3564,20 @@ int update_policies(char* kasp_filename)
                     continue;
                 }
                 if ( SetParamOnPolicy(xpathCtx, zsk_repo_expr, "repository", "zsk", policy->zsk->sm, policy->id, REPO_TYPE) != 0) {
-                    ret = xmlTextReaderRead(reader);
-                    continue;
+                    printf("Please either add the repository to conf.xml or remove the reference to it from kasp.xml\n");
+                    /* return the error, we do not want to continue */
+                    StrFree(tag_name);
+                    xmlFreeTextReader(reader);
+                    xmlFreeDoc(pol_doc);
+                    xmlXPathFreeContext(xpathCtx);
+                    xmlRelaxNGFree(schema);
+                    xmlRelaxNGFreeValidCtxt(rngctx);
+                    xmlRelaxNGFreeParserCtxt(rngpctx);
+                    xmlFreeDoc(doc);
+                    xmlFreeDoc(rngdoc);
+                    KsmPolicyFree(policy);
+
+                    return(1);
                 }
                 if ( SetParamOnPolicy(xpathCtx, zsk_standby_expr, "standby", "zsk", policy->zsk->standby_keys, policy->id, INT_TYPE) != 0) {
                     ret = xmlTextReaderRead(reader);
