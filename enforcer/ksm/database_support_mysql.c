@@ -290,8 +290,8 @@ int DbUnsignedLong(DB_ROW row, int field_index, unsigned long *value)
 
 int DbIntQuery(DB_HANDLE handle, int* value, const char* query)
 {
-	DB_RESULT	result;		/* Result object */
-	DB_ROW		row;		/* Row object */
+	DB_RESULT	result = NULL;	/* Result object */
+	DB_ROW		row = NULL;	/* Row object */
     int			status;		/* Status return */
 
     status = DbExecuteSql(handle, query, &result);
