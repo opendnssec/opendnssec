@@ -831,6 +831,8 @@ class Zone:
                                   "No information yet for key " +\
                                   k["locator"])
                     if not self.find_key_details(k):
+                        sign_p.stdin.close()
+                        sign_p.wait()
                         return False
                 except ToolException:
                     syslog.syslog(syslog.LOG_ERR,
