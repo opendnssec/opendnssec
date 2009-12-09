@@ -893,6 +893,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
         axfr_rr = ldns_axfr_next(config->xfrd);
         if (!axfr_rr) {
             log_msg(LOG_ERR, "zone fetcher AXFR for %s failed", zone->name);
+	    fclose(fd);
             unlink(axfr_file);
             return -1;
         }
@@ -911,6 +912,9 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             }
             log_msg(LOG_INFO, "zone fetcher transferred zone %s serial %u "
                 "successfully", zone->name, new_serial);
+
+	    /* Close file before moving it */
+	    fclose(fd);
 
             /* moving and kicking */
             snprintf(dest_file, sizeof(dest_file), "%s.axfr", zone->input_file);
@@ -944,7 +948,6 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             }
             return 0;
         }
-        fclose(fd);
     }
     else {
         log_msg(LOG_INFO, "zone fetcher zone %s is already up to date, "
