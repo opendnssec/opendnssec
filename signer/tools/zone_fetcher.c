@@ -817,8 +817,8 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     ldns_pkt* qpkt = NULL, *apkt;
     FILE* fd = NULL;
     char lock_ext[32];
-    char* axfr_file = NULL;
-    char* mv_axfr;
+    char axfr_file[MAXPATHLEN];
+    char dest_file[MAXPATHLEN];
     char* engine_sign_cmd;
     int soa_seen = 0;
     size_t strlength = 0;
@@ -875,32 +875,14 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
    Event check_after_deref: Pointer "zone" dereferenced before NULL check
 */
         if (zone && zone->input_file) {
-            snprintf(lock_ext, sizeof(lock_ext), ".axfr.%lu",
+            snprintf(lock_ext, sizeof(lock_ext), "axfr.%lu",
                 (unsigned long) getpid());
 
-            strlength = strlen(zone->input_file) + strlen(lock_ext);
-            axfr_file = (char*) malloc(sizeof(char) * (strlength + 1));
-/* Coverity comment:
-   Event const: After this line, the value of "axfr_file" is equal to 0
-   Event new_values: Conditional "axfr_file != NULL"
-   Why?
-*/
-            if (axfr_file) {
-/* Coverity comment:
-      use of strcpy / strcat is seen as a security risk
-*/
-                axfr_file = strcpy(axfr_file, zone->input_file);
-                axfr_file = strcat(axfr_file, lock_ext);
-                fd = fopen(axfr_file, "w");
-                if (!fd) {
-                    log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
-                        axfr_file);
-                    free((void*)axfr_file);
-                    return -1;
-                }
-            }
-            else {
-                log_msg(LOG_ERR, "zone fetcher cannot create AXFR backup file");
+	    snprintf(axfr_file, sizeof(axfr_file), "%s.%s", axfr_file, lock_ext);
+            fd = fopen(axfr_file, "w");
+            if (!fd) {
+                log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
+                    axfr_file);
                 return -1;
             }
         }
@@ -931,56 +913,37 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
                 "successfully", zone->name, new_serial);
 
             /* moving and kicking */
-            strlength = strlen("mv ") + strlen(axfr_file) + 1 +
-                strlen(zone->input_file) + strlen(".axfr");
-            mv_axfr = (char*) malloc(sizeof(char) * (strlength + 1));
-            if (mv_axfr) {
-                (void) strcpy(mv_axfr, "mv ");
-                (void) strcat(mv_axfr, axfr_file);
-                (void) strcat(mv_axfr, " ");
-                (void) strcat(mv_axfr, zone->input_file);
-                (void) strcat(mv_axfr, ".axfr");
-
-                if (system(mv_axfr) != -1) {
-                    strlength = strlen(SIGNER_CLI_COMMAND) +
-                        strlen(zone->name) + 1;
-                    engine_sign_cmd = (char*) malloc(sizeof(char) *
-                        (strlength + 1));
-                    if (engine_sign_cmd) {
-                        engine_sign_cmd = strcpy(engine_sign_cmd,
-                            SIGNER_CLI_COMMAND);
-                        engine_sign_cmd = strcat(engine_sign_cmd,
-                            " ");
-                        engine_sign_cmd = strcat(engine_sign_cmd,
+            snprintf(dest_file, sizeof(dest_file), "%s.axfr", zone->input_file);
+            if(rename(axfr_file, dest_file) == 0) {
+                strlength = strlen(SIGNER_CLI_COMMAND) +
+                    strlen(zone->name) + 1;
+                engine_sign_cmd = (char*) malloc(sizeof(char) *
+                    (strlength + 1));
+                if (engine_sign_cmd) {
+                    engine_sign_cmd = strcpy(engine_sign_cmd,
+                        SIGNER_CLI_COMMAND);
+                    engine_sign_cmd = strcat(engine_sign_cmd,
+                        " ");
+                    engine_sign_cmd = strcat(engine_sign_cmd,
+                        zone->name);
+                    if (system(engine_sign_cmd) == -1) {
+                        log_msg(LOG_ERR, "zone fetcher could not kick "
+                            "the signer engine to sign zone %s",
                             zone->name);
-                        if (system(engine_sign_cmd) == -1) {
-                            log_msg(LOG_ERR, "zone fetcher could not kick "
-                                "the signer engine to sign zone %s",
-                                zone->name);
-                        }
-                        free((void*) engine_sign_cmd);
                     }
-                    else {
-                        log_msg(LOG_ERR, "zone fetcher malloc failed "
-                            "for engine_sign_cmd");
-                    }
+                    free((void*) engine_sign_cmd);
                 }
                 else {
-                    log_msg(LOG_ERR, "zone fetcher could not move AXFR to "
-                        "%s.axfr", zone->input_file);
+                    log_msg(LOG_ERR, "zone fetcher malloc failed "
+                        "for engine_sign_cmd");
                 }
-                free((void*) mv_axfr);
-                unlink(axfr_file);
-                return 0;
             }
             else {
-                log_msg(LOG_ERR, "zone fetcher malloc failed "
-                    "for mv AXFR");
-                unlink(axfr_file);
-                return 1;
+                log_msg(LOG_ERR, "zone fetcher could not move AXFR to %s",
+                    dest_file);
             }
+            return 0;
         }
-        free((void*)axfr_file);
         fclose(fd);
     }
     else {
