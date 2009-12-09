@@ -819,9 +819,8 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
     char lock_ext[32];
     char axfr_file[MAXPATHLEN];
     char dest_file[MAXPATHLEN];
-    char* engine_sign_cmd;
+    char engine_sign_cmd[MAXPATHLEN + 1024]; 
     int soa_seen = 0;
-    size_t strlength = 0;
 
     /* soa serial query */
     if (!zone || !zone->dname) {
@@ -919,27 +918,11 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             /* moving and kicking */
             snprintf(dest_file, sizeof(dest_file), "%s.axfr", zone->input_file);
             if(rename(axfr_file, dest_file) == 0) {
-                strlength = strlen(SIGNER_CLI_COMMAND) +
-                    strlen(zone->name) + 1;
-                engine_sign_cmd = (char*) malloc(sizeof(char) *
-                    (strlength + 1));
-                if (engine_sign_cmd) {
-                    engine_sign_cmd = strcpy(engine_sign_cmd,
-                        SIGNER_CLI_COMMAND);
-                    engine_sign_cmd = strcat(engine_sign_cmd,
-                        " ");
-                    engine_sign_cmd = strcat(engine_sign_cmd,
-                        zone->name);
-                    if (system(engine_sign_cmd) == -1) {
-                        log_msg(LOG_ERR, "zone fetcher could not kick "
-                            "the signer engine to sign zone %s",
-                            zone->name);
-                    }
-                    free((void*) engine_sign_cmd);
-                }
-                else {
-                    log_msg(LOG_ERR, "zone fetcher malloc failed "
-                        "for engine_sign_cmd");
+                snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
+                    "%s %s", SIGNER_CLI_COMMAND, zone->name);
+                if (system(engine_sign_cmd) == -1) {
+                    log_msg(LOG_ERR, "zone fetcher could not kick "
+                        "the signer engine to sign zone %s", zone->name);
                 }
             }
             else {
