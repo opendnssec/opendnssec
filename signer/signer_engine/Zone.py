@@ -760,7 +760,7 @@ class Zone:
 
         soa_serial = self.find_serial()
         if self.zone_config.soa_serial and soa_serial == None:
-            return False;
+            return False
 
         sign_p = Util.run_tool(cmd)
         if not sign_p:
