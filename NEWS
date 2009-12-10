@@ -4,6 +4,13 @@ OpenDNSSEC trunk
 
 * ...
 
+Bugfixes:
+* Signer Engine: Signer processes could remain open, if they were not close 
+  correctly.
+* ods-ksmutil: Got a segmentation fault, when an HSM was missing in the 
+  configuration. Only applied to versions using MySQL.
+* Zone fetcher: Did not close files before moving them.
+
 
 OpenDNSSEC 1.0.0rc1 - 2009-12-04
 
