@@ -450,9 +450,9 @@ module KASPChecker
       alg = key.elements['Algorithm'].text
       if (denial_type == "NSEC3")
         # Check correct algorithm used for NSEC3
-        if (!(["6","7"].include?alg))
+        if (!(["6","7","8","10"].include?alg))
           log(LOG_ERR, "In policy #{policy}, incompatible algorithm (#{alg}) used for #{type} NSEC3" +
-              " in #{kasp_file} - should be 6 or 7")
+              " in #{kasp_file} - should be 6,7,8 or 10")
         end
       end
 
