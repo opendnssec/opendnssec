@@ -114,7 +114,9 @@ module KASPAuditor
       if (@denial.nsec3)
         @keys.keys.each {|key|
           if ((key.algorithm != Dnsruby::Algorithms.DSA_NSEC3_SHA1) &&
-                (key.algorithm != Dnsruby::Algorithms.RSASHA1_NSEC3_SHA1))
+                (key.algorithm != Dnsruby::Algorithms.RSASHA1_NSEC3_SHA1) &&
+                (key.algorithm != Dnsruby::Algorithms.RSASHA256) &&
+                (key.algorithm != Dnsruby::Algorithms.RSASHA512))
             return true
           end
         }
