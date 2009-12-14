@@ -182,6 +182,27 @@ module KASPAuditor
       return @working + "#{File::SEPARATOR}tracker#{File::SEPARATOR}" + @zone
     end
 
+    #Compare two serials according to RFC 1982. Return 0 if equal,
+    #-1 if s1 is bigger, 1 if s1 is smaller.
+    def compare_serial(s1, s2)
+      if s1 == s2
+        return 0
+      end
+      if s1 < s2 and (s2 - s1) < (2**31)
+          return 1
+      end
+      if s1 > s2 and (s1 - s2) > (2**31)
+          return 1
+      end
+      if s1 < s2 and (s2 - s1) > (2**31)
+          return -1
+      end
+      if s1 > s2 and (s1 - s2) < (2**31)
+          return -1
+      end
+      return 0
+    end
+
     # The auditor calls this method at the end of the auditing run.
     # It passes in all the keys it has seen, and the keys it has seen used.
     # keys is a list of DNSKeys, and keys_used is a list of the key_tags
@@ -191,9 +212,7 @@ module KASPAuditor
     def process_key_data(keys, keys_used, soa_serial, soa_ttl)
       update_cache(keys, keys_used)
       if (@last_soa_serial)
-        #        if (soa_serial < @last_soa_serial)
-        #define DNS_SERIAL_GT(a, b) ((int)(((a) - (b)) & 0xFFFFFFFF) > 0)
-        if (((soa_serial.to_i - @last_soa_serial.to_i) & 0xFFFFFFFF) >= 0xFFFFFFF)
+        if (compare_serial(soa_serial, @last_soa_serial) == 1)
           @parent.log(LOG_ERR, "SOA serial has decreased - used to be #{@last_soa_serial} but is now #{soa_serial}")
         end
       else
