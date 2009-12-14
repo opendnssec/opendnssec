@@ -46,6 +46,8 @@
 #include <libxml/xmlreader.h>
 #include <libxml/xmlsave.h>
 
+#define DNS_SERIAL_GT(a, b) ((int)(((a) - (b)) & 0xFFFFFFFF) > 0)
+
 static int sig_quit = 0;
 
 static void
@@ -859,7 +861,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
         return -1;
     }
 
-    if (serial < new_serial) {
+    if (DNS_SERIAL_GT(new_serial, serial)) {
         status = ldns_axfr_start(config->xfrd, zone->dname, LDNS_RR_CLASS_IN);
         ldns_pkt_free(qpkt);
         if (status != LDNS_STATUS_OK) {
@@ -877,7 +879,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             snprintf(lock_ext, sizeof(lock_ext), "axfr.%lu",
                 (unsigned long) getpid());
 
-	    snprintf(axfr_file, sizeof(axfr_file), "%s.%s", zone->input_file, lock_ext);
+            snprintf(axfr_file, sizeof(axfr_file), "%s.%s", zone->input_file, lock_ext);
             fd = fopen(axfr_file, "w");
             if (!fd) {
                 log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
@@ -887,7 +889,6 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
         }
 
         assert(fd);
-        assert(axfr_file);
 
         axfr_rr = ldns_axfr_next(config->xfrd);
         if (!axfr_rr) {
