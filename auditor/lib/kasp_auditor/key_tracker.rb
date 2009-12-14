@@ -191,7 +191,9 @@ module KASPAuditor
     def process_key_data(keys, keys_used, soa_serial, soa_ttl)
       update_cache(keys, keys_used)
       if (@last_soa_serial)
-        if (soa_serial < @last_soa_serial)
+        #        if (soa_serial < @last_soa_serial)
+        #define DNS_SERIAL_GT(a, b) ((int)(((a) - (b)) & 0xFFFFFFFF) > 0)
+        if (((soa_serial.to_i - @last_soa_serial.to_i) & 0xFFFFFFFF) >= 0xFFFFFFF)
           @parent.log(LOG_ERR, "SOA serial has decreased - used to be #{@last_soa_serial} but is now #{soa_serial}")
         end
       else
