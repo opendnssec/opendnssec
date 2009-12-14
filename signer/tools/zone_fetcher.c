@@ -877,7 +877,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             snprintf(lock_ext, sizeof(lock_ext), "axfr.%lu",
                 (unsigned long) getpid());
 
-	    snprintf(axfr_file, sizeof(axfr_file), "%s.%s", axfr_file, lock_ext);
+	    snprintf(axfr_file, sizeof(axfr_file), "%s.%s", zone->input_file, lock_ext);
             fd = fopen(axfr_file, "w");
             if (!fd) {
                 log_msg(LOG_ERR, "zone fetcher cannot store AXFR to file %s",
