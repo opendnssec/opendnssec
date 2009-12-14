@@ -72,6 +72,7 @@ module KASPAuditor
           begin
             IO.foreach(infile) { |line|
               ret = process_line(line)
+              next if !ret
 
 
               if (ret)
@@ -95,8 +96,8 @@ module KASPAuditor
       begin
         @zone_reader.process_line(line, true)
       rescue Exception => e
-        print "ERROR parsing line #{@line_num} : #{line}\n"
-        return "\n", Types::ANY
+#        print "ERROR parsing line #{@line_num} : #{line}\n"
+        return false # "\n", Types::ANY
       end
     end
 

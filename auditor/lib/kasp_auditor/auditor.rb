@@ -71,6 +71,8 @@ module KASPAuditor
       @soa = nil
       @config = nil
       @key_tracker = nil
+      @key_cache = nil
+      @unknown_nsecs = {}
     end
     def set_config(c) # :nodoc: all
       @config = c
@@ -111,6 +113,7 @@ module KASPAuditor
         end
         log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
         @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
+        #        @key_cache = @key_tracker.load_tracker_cache
 
         signed_file = (signed_file.to_s + "").untaint
         unsigned_file = (unsigned_file.to_s + "").untaint
@@ -216,15 +219,33 @@ module KASPAuditor
         next if (line.index(';') == 0)
         next if (line.strip.length == 0)
         next if (!line || (line.length == 0))
-        # Strip off prepended name up to "\v" character before creating RR
+        rr_text = "\n"
         begin
-          rr_text = line[line.index(Preparser::SORT_SEPARATOR) + 
+          # Strip off prepended name up to "\v" character before creating RR
+          rr_text = line[line.index(Preparser::SORT_SEPARATOR) +
               Preparser::SORT_SEPARATOR.length, line.length]
+        rescue Exception => e
+          log(LOG_INFO, "File contains unrecognisable line : #{rr_text}, ERROR : #{e} - skipping this line")
+          next
+        end
+        begin
           rr = RR.create(rr_text)
           return rr
           #        rescue DecodeError => e
         rescue Exception => e
-          log(LOG_ERR, "File contains invalid RR : #{rr_text.chomp}, ERROR : #{e}")
+          split = rr_text.split
+          if (split[3].index("NSEC3"))
+            @unknown_nsecs[split[0]] = split[8] # Store the next name
+          elsif (split[3].index("NSEC"))
+            @unknown_nsecs[split[0]] = split[4] # Store the next name
+          end
+          # Assume this is a valid, but unsupported, type - we then need simply to ignore it.
+          # But we also need to ignore the NSEC/NSEC3 and the RRSIG(s) (including for the hashed owner name)
+          # So - if we're loading an NSEC3 record, then make sure we grab the owner name
+          # We can then check it in the NSEC3 chain, and not try to validate the RRSIG for that NSEC3.
+          #
+          #          log(LOG_ERR, "File contains invalid RR : #{rr_text.chomp}, ERROR : #{e}")
+          log(LOG_INFO, "File contains invalid RR : #{rr_text.chomp}, ERROR : #{e} - skipping this record")
         end
 
       end
@@ -297,6 +318,9 @@ module KASPAuditor
       # @TODO@ Create an RRSET with *only* the RRSIG we are interested in - check that they all verify ok?
       # Check if this is an NS RRSet other than the zone apex - if so, then skip the verify test
       if ((rrset.type == Types::NS) && ((rrset.name != @soa.name)))
+        # Skip the verify test
+      elsif (@unknown_nsecs[rrset.name.to_s+"."])
+        log(LOG_INFO,"Skipping verification test for #{rrset.name}, #{rrset.type} : Original type is not supported")
         # Skip the verify test
       else
         begin
@@ -387,6 +411,15 @@ module KASPAuditor
       compare_val = (last_next <=> rr.name)
       if (compare_val > 0)
         # last was greater than we expected - we missed an NSEC
+        # Was the NSEC in the unknown_nsecs list?
+        if (n = @unknown_nsecs[last_next.to_s+"."])
+          # We missed one because the type was unknown.
+          # So - fix up the list. We need to check that the unknown NSEC points to rr.name
+          if (n == (rr.name.labels()[0].to_s))
+            @last_nsec = rr
+            return
+          end
+        end
         # print an error
         log(LOG_ERR, "Can't follow #{rr.type} loop from #{@last_nsec.name} to #{last_next}")
       elsif (compare_val < 0)
@@ -511,6 +544,7 @@ module KASPAuditor
     def check_dnskey(l_rr)
       # @TODO@ We should also do more checks against the policy here -
       # e.g. algorithm code and length
+      # @TODO@ When adding these checks, also make sure we only check DNSKEYs which are not in the @key_cache
       if (l_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
         log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
       end
