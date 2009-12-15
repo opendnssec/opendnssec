@@ -213,8 +213,8 @@ module KASPAuditor
         if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
         else
           # An unknown NSEC3 could be between the last and first
-          if (@unknown_nsecs[@last_nsec.next_domain.to_s+"."] &&
-                (@unknown_nsecs[@last_nsec.next_domain.to_s+"."] == @first_nsec.name.labels()[0].to_s))
+          if (@unknown_nsecs[@last_nsec.next_hashed.to_s+"."] &&
+                (@unknown_nsecs[@last_nsec.next_hashed.to_s+"."] == @first_nsec.name.labels()[0].to_s))
           else
             log(LOG_ERR, "Can't follow NSEC3 loop from #{@last_nsec.name} to #{get_next_nsec3_name(@last_nsec)}. Was actually #{@first_nsec.name}")
           end
