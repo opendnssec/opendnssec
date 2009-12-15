@@ -175,7 +175,7 @@ module KASPAuditor
 
         # Now check the NSEC3 opt out and types_covered, if applicable
         if (@config.denial.nsec3)
-          nsec3auditor.check_nsec3_types_and_opt_out()
+          nsec3auditor.check_nsec3_types_and_opt_out(@unknown_nsecs)
         end
       rescue FatalError => e
         return 3
@@ -201,13 +201,23 @@ module KASPAuditor
         # Now check that the last nsec points to the first nsec
         if (@first_nsec && (@last_nsec.next_domain == @first_nsec.name))
         else
-          log(LOG_ERR, "Can't follow NSEC loop from #{@last_nsec.name} to #{@last_nsec.next_domain}")
+          # An unknown NSEC could be between the last and first
+          if (@unknown_nsecs[@last_nsec.next_domain.to_s+"."] && 
+                (@unknown_nsecs[@last_nsec.next_domain.to_s+"."] == @first_nsec.name.labels()[0].to_s))
+          else
+            log(LOG_ERR, "Can't follow NSEC loop from #{@last_nsec.name} to #{@last_nsec.next_domain}")
+          end
         end
       elsif (@config.denial.nsec3 && ((@first_nsec.type == Dnsruby::Types::NSEC3)))
         # Now check that the last nsec3 points to the first nsec3
         if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
         else
-          log(LOG_ERR, "Can't follow NSEC3 loop from #{@last_nsec.name} to #{get_next_nsec3_name(@last_nsec)}. Was actually #{@first_nsec.name}")
+          # An unknown NSEC3 could be between the last and first
+          if (@unknown_nsecs[@last_nsec.next_domain.to_s+"."] &&
+                (@unknown_nsecs[@last_nsec.next_domain.to_s+"."] == @first_nsec.name.labels()[0].to_s))
+          else
+            log(LOG_ERR, "Can't follow NSEC3 loop from #{@last_nsec.name} to #{get_next_nsec3_name(@last_nsec)}. Was actually #{@first_nsec.name}")
+          end
         end
       end
     end
@@ -669,7 +679,10 @@ module KASPAuditor
       if (@config.denial.nsec)
         if (!is_glue)
           if (!seen_nsec_for_domain)
-            log(LOG_ERR, "No #{nsec_string()} record for #{current_domain}")
+            if (@unknown_nsecs[current_rrset.name.to_s+"."])
+            else
+              log(LOG_ERR, "No #{nsec_string()} record for #{current_domain}")
+            end
           end
         else
           if (current_rrset.length == 0)
@@ -948,7 +961,7 @@ module KASPAuditor
         @parent = parent
         @working = working
       end
-      def check_nsec3_types_and_opt_out()
+      def check_nsec3_types_and_opt_out(unknown_nsecs)
         # First of all we will have to sort the types file.
         system("sort -t' ' #{@working}#{File::SEPARATOR}audit.types.#{Process.pid} > #{@working}#{File::SEPARATOR}audit.types.sorted.#{Process.pid}")
 
@@ -985,8 +998,10 @@ module KASPAuditor
                   #                  log(LOG_WARNING, "Found NSEC3 record for hashed domain which couldn't be found in the zone (#{nsec3_name})")
                   nsec3_name, nsec3_types = get_name_and_types(fnsec3)
                 end
-                while ((types_name < nsec3_name) && (!ftypes.eof?)) 
-                  log(LOG_ERR, "Found RRs for #{types_name_unhashed} (#{types_name}) which was not covered by an NSEC3 record")
+                while ((types_name < nsec3_name) && (!ftypes.eof?))
+                  if (!unknown_nsecs.include?(types_name+"."))
+                    log(LOG_ERR, "Found RRs for #{types_name_unhashed} (#{types_name}) which was not covered by an NSEC3 record")
+                  end
                   types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
 
                   # Check the optout names as we load in more types
