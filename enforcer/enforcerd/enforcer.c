@@ -674,7 +674,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 }
 
                 /* turn this zone and policy into a file */
-                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval);
+                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration);
                 if (status2 == -2) {
                     log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -743,7 +743,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
  *  returns 0 on success and -1 if something went wrong
  *                           -2 if the RequestKeys call failed
  */
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval)
+int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen)
 {
     int status = 0;
     FILE *file, *file2;
@@ -755,6 +755,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                                round potentially different behaviour of rename over existing
                                file.) */
     char *signer_command;   /* how we will call the signer */
+    int     gencnt;         /* Number of keys in generate state */
     char*   datetime = DtParseDateTimeString("now");
 
     /* Check datetime in case it came back NULL */
@@ -843,7 +844,25 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
          * Something went wrong (it should have been logged) stop this zone.
          * Clean up the files, don't call the signer and move on to the next zone.
          */
-        log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
+        /* check for the specific case of not having any keys */
+        if(man_key_gen == 1 && status == -1) {
+            status = KsmRequestGenerateCount(KSM_TYPE_KSK, &gencnt, zone_id);
+            if (status == 0 && gencnt == 0) {
+                log_msg(NULL, LOG_ERR, "There are no KSKs in the generate state; please use \"ods-ksmutil key generate\" to make some.\n");
+            }
+            else if (status == 0) {
+                status = KsmRequestGenerateCount(KSM_TYPE_ZSK, &gencnt, zone_id);
+                if (status == 0 && gencnt == 0) {
+                    log_msg(NULL, LOG_ERR, "There are no ZSKs in the generate state; please use \"ods-ksmutil key generate\" to make some.\n");
+                }
+            }
+            else {
+                log_msg(NULL, LOG_ERR, "KsmRequestGenerateCount returned: %d", status);
+            }
+        }
+        else {
+            log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
+        }
 
         status = fclose(file);
         unlink(temp_filename);
