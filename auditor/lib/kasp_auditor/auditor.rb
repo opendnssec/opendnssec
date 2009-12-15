@@ -1006,7 +1006,7 @@ module KASPAuditor
                   nsec3_name, nsec3_types = get_name_and_types(fnsec3)
                 end
                 while ((types_name < nsec3_name) && (!ftypes.eof?))
-                  if (!unknown_nsecs.include?(types_name+"."))
+                  if (!unknown_nsecs[types_name_unhashed+"."])
                     log(LOG_ERR, "Found RRs for #{types_name_unhashed} (#{types_name}) which was not covered by an NSEC3 record")
                   end
                   types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
