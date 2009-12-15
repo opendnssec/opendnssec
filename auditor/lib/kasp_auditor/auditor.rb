@@ -425,9 +425,16 @@ module KASPAuditor
         if (n = @unknown_nsecs[last_next.to_s+"."])
           # We missed one because the type was unknown.
           # So - fix up the list. We need to check that the unknown NSEC points to rr.name
+          if (rr.type == "NSEC3")
           if (n == (rr.name.labels()[0].to_s))
             @last_nsec = rr
             return
+          end
+          else
+          if (n == (rr.name.to_s + "."))
+            @last_nsec = rr
+            return
+          end
           end
         end
         # print an error
