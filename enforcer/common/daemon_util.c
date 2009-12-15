@@ -91,17 +91,33 @@ getPermsForDrop(DAEMONCONFIG* config)
     struct passwd *pwd;
     struct group  *grp;
 
+    FILE *file;
+
     /* Load XML document */
     doc = xmlParseFile(filename);
     if (doc == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", filename);
+        /* To get a better error message try to open the file */
+        file = fopen(filename, "r");
+        if (file == NULL) {
+            log_msg(config, LOG_ERR, "Error: unable to open file \"%s\"", filename);
+        } else {
+            log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", filename);
+            fclose(file);
+        }
         return(-1);
     }
 
     /* Load rng document */
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", rngfilename);
+        /* To get a better error message try to open the file */
+        file = fopen(rngfilename, "r");
+        if (file == NULL) {
+            log_msg(config, LOG_ERR, "Error: unable to open file \"%s\"", rngfilename);
+        } else {
+            log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", rngfilename);
+            fclose(file);
+        }
         return(-1);
     }
 
@@ -558,6 +574,8 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
 
     char* temp_char = NULL;
 
+    FILE *file;
+
     /* Change the config file location if one was provided on the command line */
     if (config->configfile != NULL) {
         filename = StrStrdup(config->configfile);
@@ -572,7 +590,14 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     /* Load XML document */
     doc = xmlParseFile(filename);
     if (doc == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", filename);
+        /* To get a better error message try to open the file */
+        file = fopen(filename, "r");
+        if (file == NULL) {
+            log_msg(config, LOG_ERR, "Error: unable to open file \"%s\"", filename);
+        } else {
+            log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", filename);
+            fclose(file);
+        }
         return(-1);
     }
 
@@ -582,7 +607,14 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     }
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
-        log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", rngfilename);
+        /* To get a better error message try to open the file */
+        file = fopen(rngfilename, "r");
+        if (file == NULL) {
+            log_msg(config, LOG_ERR, "Error: unable to open file \"%s\"", rngfilename);
+        } else {
+            log_msg(config, LOG_ERR, "Error: unable to parse file \"%s\"", rngfilename);
+            fclose(file);
+        }
         return(-1);
     }
 
