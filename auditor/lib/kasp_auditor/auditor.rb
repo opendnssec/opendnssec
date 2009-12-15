@@ -203,7 +203,7 @@ module KASPAuditor
         else
           # An unknown NSEC could be between the last and first
           if (@unknown_nsecs[@last_nsec.next_domain.to_s+"." + @zone_name + "."] &&
-                (@unknown_nsecs[@last_nsec.next_domain.to_s+"." + @zone_name + "."] == @first_nsec.name.labels()[0].to_s))
+                (@unknown_nsecs[@last_nsec.next_domain.to_s+"." + @zone_name + "."] == @first_nsec.to_s+"."))
           else
             log(LOG_ERR, "Can't follow NSEC loop from #{@last_nsec.name} to #{@last_nsec.next_domain}")
           end
