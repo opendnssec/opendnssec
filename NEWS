@@ -21,7 +21,8 @@ Known issues:
   length of the used secret is 'too long' (longer than the maximum digest
   length). This problem is in LDNS 1.6.3 and previous versions. This bug is
   fixed in the upcoming LDNS 1.6.4 release.
-
+* Auditor: Some good NAPTR records may fail to verify with dnsruby-1.41.
+  This will be fixed in a future dnsruby release.
 
 OpenDNSSEC 1.0.0rc1 - 2009-12-04
 
