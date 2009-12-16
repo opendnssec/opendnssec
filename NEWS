@@ -4,6 +4,12 @@ OpenDNSSEC trunk
 
 * ...
 
+Known bugs:
+* Zone fetcher: When using TSIG, an incorrect MAC can be created if the 
+  length of the used secret is 'too long' (longer than the maximum digest
+  length). This problem is in LDNS 1.6.3 and previous versions. This bug is
+  fixed in the upcoming LDNS 1.6.4 release.
+
 Bugfixes:
 * Signer Engine: Signer processes could remain open, if they were not close 
   correctly.
