@@ -10,6 +10,11 @@ Bugfixes:
 * ods-ksmutil: Got a segmentation fault, when an HSM was missing in the 
   configuration. Only applied to versions using MySQL.
 * Zone fetcher: Did not close files before moving them.
+* Zone fetcher: The serial arithmetic was not correct.
+* Auditor: It now ignores unrecognized RR types.
+* Signer Engine: Wrong handling of escaped characters in strings 
+  (fixed in ldns trunk)
+* Set correct permissions on the configuration files.
 
 
 OpenDNSSEC 1.0.0rc1 - 2009-12-04
