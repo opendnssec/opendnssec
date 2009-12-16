@@ -23,6 +23,8 @@ Known issues:
   fixed in the upcoming LDNS 1.6.4 release.
 * Auditor: Some good NAPTR records may fail to verify with dnsruby-1.41.
   This will be fixed in a future dnsruby release.
+* TXT RRs: some TXT RRs may fail to parse correctly with dnsruby-1.41 and
+  ldns 1.6.3. This is fixed in the upcoming releases.
 
 OpenDNSSEC 1.0.0rc1 - 2009-12-04
 
