@@ -141,6 +141,7 @@ void
 print_rr_data(FILE *out, rr_data *rrd)
 {
 	ldns_rr_print(out, rrd->rr);
+	/* is fflush necessary? */
 	fflush(out);
 }
 

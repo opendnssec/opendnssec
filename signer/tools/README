@@ -128,8 +128,6 @@ Specific signing commands are passed in-line; with the following commands:
 :add_zsk <key id> <key algorithm nr> <key flags>
     adds a KSK to be used to generate signatures for all non-DNSKEY
     RRsets
-:flush_keys
-    removes all currently configured keys
 :inception <YYYYMMDD[HHmmss]>
     sets the inception date for signatures
 :expiration <YYYYMMDD[HHmmss]>

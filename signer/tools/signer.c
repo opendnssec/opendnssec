@@ -187,7 +187,7 @@ key_list_add_key(key_list *list,
 		                     sizeof(hsm_key_t *) * list->capacity);
 		if (!list->keys) {
 			fprintf(stderr,
-			        "Out of memory while adding key, aborting\n");
+			        "Out of memory while adding key, skipping key\n");
 			hsm_key_free(key);
 			return;
 		}
@@ -195,7 +195,7 @@ key_list_add_key(key_list *list,
 		                        sizeof(uint16_t) * list->capacity);
 		if (!list->keytags) {
 			fprintf(stderr,
-			        "Out of memory while adding key, aborting\n");
+			        "Out of memory while adding key, skipping key\n");
 			hsm_key_free(key);
 			return;
 		}
@@ -203,7 +203,7 @@ key_list_add_key(key_list *list,
 		                        sizeof(uint8_t) * list->capacity);
 		if (!list->algorithms) {
 			fprintf(stderr,
-			        "Out of memory while adding key, aborting\n");
+			        "Out of memory while adding key, skipping key\n");
 			hsm_key_free(key);
 			return;
 		}
@@ -211,7 +211,7 @@ key_list_add_key(key_list *list,
 		                        sizeof(int) * list->capacity);
 		if (!list->use_key) {
 			fprintf(stderr,
-			        "Out of memory while adding key, aborting\n");
+			        "Out of memory while adding key, skipping key\n");
 			hsm_key_free(key);
 			return;
 		}
@@ -219,8 +219,8 @@ key_list_add_key(key_list *list,
 
 	params = hsm_sign_params_new();
 	params->algorithm = atoi(key_algorithm_str);
-	if (params->algorithm == 0) {
-		/* TODO: check for unknown algo's too? */
+	if (params->algorithm == 0 ||
+		hsm_supported_algorithm(params->algorithm) == 0) {
 		fprintf(stderr, "; Error: Bad algorithm: %s, skipping key\n",
 		        key_algorithm_str);
 		hsm_key_free(key);
@@ -247,6 +247,10 @@ current_config *
 current_config_new()
 {
 	current_config *cfg = malloc(sizeof(current_config));
+	if (!cfg) {
+		return NULL;
+	}
+
 	cfg->inception = 0;
 	cfg->expiration = 0;
 	cfg->expiration_denial = 0;
@@ -451,94 +455,88 @@ handle_command(FILE *output, current_config *cfg,
 	if (!cmd) {
 		return LDNS_STATUS_ERR;
 	}
-	if (strcmp(cmd, "add_zsk") == 0) {
+	if (strncmp(cmd, "add_zsk", 7) == 0 && strlen(cmd) == 7) {
 		arg1 = read_arg(next, &next);
 		arg2 = read_arg(next, &next);
 		arg3 = read_arg(next, &next);
 		if (!arg1 || !arg2 || !arg3) {
 			fprintf(output, "; Error: missing argument in add_key command\n");
 		} else {
-			/*result = add_key(output, cfg, arg1, arg2, arg3, arg4);*/
-			/* todo find hsm_key */
 			key_list_add_key(cfg->zsks, arg1, arg2, arg3, cfg);
 		}
-	} else if (strcmp(cmd, "add_ksk") == 0) {
+	} else if (strncmp(cmd, "add_ksk", 7) == 0 && strlen(cmd) == 7) {
 		arg1 = read_arg(next, &next);
 		arg2 = read_arg(next, &next);
 		arg3 = read_arg(next, &next);
 		if (!arg1 || !arg2 || !arg3) {
 			fprintf(output, "; Error: missing argument in add_key command\n");
 		} else {
-			/*result = add_key(output, cfg, arg1, arg2, arg3, arg4);*/
-			/* todo find hsm_key */
 			key_list_add_key(cfg->ksks, arg1, arg2, arg3, cfg);
 		}
-	} else if (strcmp(cmd, "flush_keys") == 0) {
-		/* TODO */
-	} else if (strcmp(cmd, "inception") == 0) {
+	} else if (strncmp(cmd, "inception", 9) == 0 && strlen(cmd) == 9) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in inception command\n");
 		} else {
 			cfg->inception = parse_time(arg1);
 		}
-	} else if (strcmp(cmd, "expiration") == 0) {
+	} else if (strncmp(cmd, "expiration", 10) == 0 && strlen(cmd) == 10) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in expiration command\n");
 		} else {
 			cfg->expiration = parse_time(arg1);
 		}
-	} else if (strcmp(cmd, "expiration_denial") == 0) {
+	} else if (strncmp(cmd, "expiration_denial", 17) == 0 && strlen(cmd) == 17) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in expiration_denial command\n");
 		} else {
 			cfg->expiration_denial = parse_time(arg1);
 		}
-	} else if (strcmp(cmd, "jitter") == 0) {
+	} else if (strncmp(cmd, "jitter", 6) == 0 && strlen(cmd) == 6) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in jitter command\n");
 		} else {
 			cfg->jitter = atol(arg1);
 		}
-	} else if (strcmp(cmd, "refresh") == 0) {
+	} else if (strncmp(cmd, "refresh", 7) == 0 && strlen(cmd) == 7) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in refresh command\n");
 		} else {
 			cfg->refresh = parse_time(arg1);
 		}
-	} else if (strcmp(cmd, "refresh_denial") == 0) {
+	} else if (strncmp(cmd, "refresh_denial", 14) == 0 && strlen(cmd) == 14) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in refresh_denial command\n");
 		} else {
 			cfg->refresh_denial = parse_time(arg1);
 		}
-	} else if (strcmp(cmd, "nsec3_algorithm") == 0) {
+	} else if (strncmp(cmd, "nsec3_algorithm", 15) == 0 && strlen(cmd) == 15) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in nsec3_algorithm command\n");
 		} else {
 			cfg->nsec3_algorithm = atol(arg1);
 		}
-	} else if (strcmp(cmd, "nsec3_iterations") == 0) {
+	} else if (strncmp(cmd, "nsec3_iterations", 16) == 0 && strlen(cmd) == 16) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in nsec3_iterations command\n");
 		} else {
 			cfg->nsec3_iterations = atol(arg1);
 		}
-	} else if (strcmp(cmd, "nsec3_salt") == 0) {
+	} else if (strncmp(cmd, "nsec3_salt", 10) == 0 && strlen(cmd) == 10) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in nsec3_salt command\n");
 		} else {
 			cfg->nsec3_salt = strdup(arg1);
 		}
-	} else if (strcmp(cmd, "origin") == 0) {
+	} else if (strncmp(cmd, "origin", 6) == 0 && strlen(cmd) == 6) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in origin command\n");
@@ -548,7 +546,7 @@ handle_command(FILE *output, current_config *cfg,
 			}
 			result = ldns_str2rdf_dname(&cfg->origin, arg1);
 		}
-	} else if (strcmp(cmd, "soa_ttl") == 0) {
+	} else if (strncmp(cmd, "soa_ttl", 7) == 0 && strlen(cmd) == 7) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in soa_ttl command\n");
@@ -556,21 +554,21 @@ handle_command(FILE *output, current_config *cfg,
 			cfg->soa_ttl = atol(arg1);
 			cfg->cfg_soa_ttl = 1;
 		}
-	} else if (strcmp(cmd, "soa_serial") == 0) {
+	} else if (strncmp(cmd, "soa_serial", 10) == 0 && strlen(cmd) == 10) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in soa_serial command\n");
 		} else {
 			cfg->soa_serial = atol(arg1);
 		}
-	} else if (strcmp(cmd, "soa_serial_keep") == 0) {
+	} else if (strncmp(cmd, "soa_serial_keep", 15) == 0 && strlen(cmd) == 15) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in soa_serial_keep command\n");
 		} else {
 			cfg->soa_serial_keep = atol(arg1);
 		}
-	} else if (strcmp(cmd, "soa_minimum") == 0) {
+	} else if (strncmp(cmd, "soa_minimum", 11) == 0 && strlen(cmd) == 11) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in soa_minimum command\n");
@@ -578,7 +576,7 @@ handle_command(FILE *output, current_config *cfg,
 			cfg->soa_minimum = atol(arg1);
 			cfg->cfg_soa_minimum = 1;
 		}
-	} else if (strcmp(cmd, "stop") == 0) {
+	} else if (strncmp(cmd, "stop", 4) == 0 && strlen(cmd) == 4) {
 		result = LDNS_STATUS_NULL;
 	} else {
 		fprintf(stderr, "; Error: unknown command: %s\n", cmd);
@@ -609,6 +607,7 @@ set_use_key_for(key_list *list, ldns_rr *rrsig, int use)
 	size_t i;
 
 	for (i = 0; i < list->key_count; i++) {
+		/* What if there are multiple keys with the same keytag? */
 		if (list->keytags[i] ==
 		    ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
 			list->use_key[i] = use;
@@ -623,6 +622,7 @@ key_enabled_for(key_list *list, ldns_rr *rrsig)
 	size_t i;
 
 	for (i = 0; i < list->key_count; i++) {
+		/* What if there are multiple keys with the same keytag? */
 		if (list->keytags[i] ==
 		    ldns_rdf2native_int16(ldns_rr_rrsig_keytag(rrsig))) {
 			return list->use_key[i];
@@ -671,6 +671,9 @@ rrset_reader_new(FILE *file)
 	rrset_reader_t *reader;
 
 	reader = malloc(sizeof(rrset_reader_t));
+	if (!reader) {
+		return NULL;
+	}
 	reader->skipped_rr = NULL;
 	reader->file = file;
 
@@ -1038,6 +1041,7 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 	rr1_len = ldns_rr_uncompressed_size(rr1);
 	rr2_len = ldns_rr_uncompressed_size(rr2);
 
+	/* If we encounter non-NSEC3 data, we should compare the hash(owner)'s instead of owner's */
 	if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_NSEC3 &&
 		ldns_rr_get_type(rr2) != LDNS_RR_TYPE_NSEC3 &&
 		global_cfg && global_cfg->nsec3_algorithm) {
@@ -1193,11 +1197,20 @@ read_input(FILE *input, FILE *signed_zone, FILE *output, current_config *cfg)
 	ldns_rr_list *signed_zone_signatures = NULL;
 	int cmp;
 
-	new_zone_reader = rrset_reader_new(input);
 	if (signed_zone) {
 		signed_zone_reader = rrset_reader_new(signed_zone);
+		if (!signed_zone_reader) {
+			fprintf(stderr, "Error creating rrset reader\n");
+			return -1;
+		}
 	} else {
 		signed_zone_reader = NULL;
+	}
+
+	new_zone_reader = rrset_reader_new(input);
+	if (!new_zone_reader) {
+		fprintf(stderr, "Error creating rrset reader\n");
+		return -1;
 	}
 
 	while ((new_zone_rrset = read_rrset(new_zone_reader, output, cfg, 1))) {
@@ -1439,6 +1452,11 @@ int main(int argc, char **argv)
 	int facility = DEFAULT_LOG_FACILITY;
 
 	cfg = current_config_new();
+	if (!cfg) {
+		fprintf(stderr,	"Error: malloc failed\n");
+		exit(1);
+	}
+
 	global_cfg = cfg;
 	input = stdin;
 	output = stdout;
