@@ -28,7 +28,6 @@
 
 #include "logging.h"
 
-#include <syslog.h>
 #include <string.h>
 #include <strings.h>
 
@@ -70,44 +69,85 @@ log_msg(int priority, const char *format, ...)
     va_end(args);
 }
 
-int
-facility2int(const char* facility)
+static void strtoupper(char* string)
 {
-    if (strncasecmp(facility, "KERN", 4) && strlen(facility) == 4)
-        return LOG_KERN;
-    else if (strncasecmp(facility, "USER", 4) && strlen(facility) == 4)
-        return LOG_USER;
-    else if (strncasecmp(facility, "MAIL", 4) && strlen(facility) == 4)
-        return LOG_MAIL;
-    else if (strncasecmp(facility, "DAEMON", 6) && strlen(facility) == 6)
-        return LOG_DAEMON;
-    else if (strncasecmp(facility, "AUTH", 4) && strlen(facility) == 4)
-        return LOG_AUTH;
-    else if (strncasecmp(facility, "LPR", 3) && strlen(facility) == 3)
-        return LOG_LPR;
-    else if (strncasecmp(facility, "NEWS", 4) && strlen(facility) == 4)
-        return LOG_NEWS;
-    else if (strncasecmp(facility, "UUCP", 4) && strlen(facility) == 4)
-        return LOG_UUCP;
-    else if (strncasecmp(facility, "CRON", 4) && strlen(facility) == 4)
-        return LOG_CRON;
-    else if (strncasecmp(facility, "LOCAL0", 6) && strlen(facility) == 6)
-        return LOG_LOCAL0;
-    else if (strncasecmp(facility, "LOCAL1", 6) && strlen(facility) == 6)
-        return LOG_LOCAL1;
-    else if (strncasecmp(facility, "LOCAL2", 6) && strlen(facility) == 6)
-        return LOG_LOCAL2;
-    else if (strncasecmp(facility, "LOCAL3", 6) && strlen(facility) == 6)
-        return LOG_LOCAL3;
-    else if (strncasecmp(facility, "LOCAL4", 6) && strlen(facility) == 6)
-        return LOG_LOCAL4;
-    else if (strncasecmp(facility, "LOCAL5", 6) && strlen(facility) == 6)
-        return LOG_LOCAL5;
-    else if (strncasecmp(facility, "LOCAL6", 6) && strlen(facility) == 6)
-        return LOG_LOCAL6;
-    else if (strncasecmp(facility, "LOCAL7", 6) && strlen(facility) == 6)
-        return LOG_LOCAL7;
+    char* ptr = string;
+    if (ptr) {
+        while (*ptr) {
+            *ptr = toupper((int) *ptr);
+            ++ptr;
+        }
+    }
+    return;
+}
 
-    return LOG_DAEMON;
+
+int
+facility2int(const char* facility, int* fac)
+{
+    char* dup;
+
+    if (!facility) {
+		return 1;
+	}
+
+	dup = strdup(facility);
+	if (!dup) {
+		return 1;
+	}
+	strtoupper(dup);
+
+    if (strncmp(dup, "USER", 4) && strlen(dup) == 4)
+        *fac = LOG_USER;
+#ifdef LOG_KERN
+    else if (strncmp(dup, "KERN", 4) && strlen(dup) == 4)
+        *fac = LOG_KERN;
+#endif
+#ifdef LOG_MAIL
+    else if (strncmp(dup, "MAIL", 4) && strlen(dup) == 4)
+        *fac = LOG_MAIL;
+#endif
+#ifdef LOG_DAEMON
+    else if (strncmp(dup, "DAEMON", 6) && strlen(dup) == 6)
+        *fac = LOG_DAEMON;
+#endif
+#ifdef LOG_AUTH
+    else if (strncmp(dup, "AUTH", 4) && strlen(dup) == 4)
+        *fac = LOG_AUTH;
+#endif
+#ifdef LOG_LPR
+    else if (strncmp(dup, "LPR", 3) && strlen(dup) == 3)
+        *fac = LOG_LPR;
+#endif
+#ifdef LOG_NEWS
+    else if (strncmp(dup, "NEWS", 4) && strlen(dup) == 4)
+        *fac = LOG_NEWS;
+#endif
+#ifdef LOG_UUCP
+    else if (strncmp(dup, "UUCP", 4) && strlen(dup) == 4)
+        *fac = LOG_UUCP;
+#endif
+#ifdef LOG_CRON
+    else if (strncmp(dup, "CRON", 4) && strlen(dup) == 4)
+        *fac = LOG_CRON;
+#endif
+    else if (strncmp(dup, "LOCAL0", 6) && strlen(dup) == 6)
+        *fac = LOG_LOCAL0;
+    else if (strncmp(dup, "LOCAL1", 6) && strlen(dup) == 6)
+        *fac = LOG_LOCAL1;
+    else if (strncmp(dup, "LOCAL2", 6) && strlen(dup) == 6)
+        *fac = LOG_LOCAL2;
+    else if (strncmp(dup, "LOCAL3", 6) && strlen(dup) == 6)
+        *fac = LOG_LOCAL3;
+    else if (strncmp(dup, "LOCAL4", 6) && strlen(dup) == 6)
+        *fac = LOG_LOCAL4;
+    else if (strncmp(dup, "LOCAL5", 6) && strlen(dup) == 6)
+        *fac = LOG_LOCAL5;
+    else if (strncmp(dup, "LOCAL6", 6) && strlen(dup) == 6)
+        *fac = LOG_LOCAL6;
+    else if (strncmp(dup, "LOCAL7", 6) && strlen(dup) == 6)
+        *fac = LOG_LOCAL7;
+
+    return 0;
 }
 

@@ -28,11 +28,19 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctype.h>
+#include <syslog.h>
+
+#ifdef LOG_DAEMON
+#define DEFAULT_LOG_FACILITY LOG_DAEMON
+#else
+#define DEFAULT_LOG_FACILITY LOG_USER
+#endif /* LOG_DAEMON */
 
 #define ODD_MAXLEN 512
 
 void log_open(int facility, const char *program_name);
 void log_close(void);
 void log_msg(int priority, const char *format, ...);
-int facility2int(const char* facility);
+int facility2int(const char* facility, int* fac);
 

@@ -1351,7 +1351,7 @@ main(int argc, char **argv)
     pid_t pid = 0;
     FILE* fd;
     sockets_type sockets;
-    int facility = LOG_DAEMON;
+    int facility = DEFAULT_LOG_FACILITY;
     int info = 0;
     const char* group = NULL;
     const char* user = NULL;
@@ -1366,7 +1366,12 @@ main(int argc, char **argv)
             run_as_daemon = 1;
             break;
         case 'f':
-            facility = facility2int(optarg);
+           if (facility2int(optarg, &facility) != 0) {
+                fprintf(stderr,
+                        "Error: unable to set log facility: %s\n",
+                        optarg);
+                exit(EXIT_FAILURE);
+            }
             break;
         case 'g':
             group = optarg;

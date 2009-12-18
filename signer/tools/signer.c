@@ -1436,7 +1436,7 @@ int main(int argc, char **argv)
 	int print_creation_count = 0;
 	struct timeval t_start,t_end;
 	double elapsed;
-	int facility = LOG_DAEMON;
+	int facility = DEFAULT_LOG_FACILITY;
 
 	cfg = current_config_new();
 	global_cfg = cfg;
@@ -1463,7 +1463,12 @@ int main(int argc, char **argv)
 			exit(0);
 			break;
 		case 'l':
-			facility = facility2int(optarg);
+			if (facility2int(optarg, &facility) != 0) {
+				fprintf(stderr,
+						"Error: unable to set log facility: %s\n",
+						optarg);
+				exit(1);
+			}
 			break;
 		case 'p':
 			prev_zone = fopen(optarg, "r");
