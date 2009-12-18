@@ -85,9 +85,7 @@ make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns
 	ldns_rr_class klass;
 
 	/* handle rrset */
-	if (1) {
-		ldns_rr_list_print(out_file, rr_list);
-	}
+	ldns_rr_list_print(out_file, rr_list);
 
 	/* create nsec and print it */
 	nsec_rr = ldns_create_nsec(ldns_rr_list_owner(rr_list),
@@ -111,11 +109,8 @@ make_nsec(FILE *out_file, ldns_rr *to, uint32_t ttl, ldns_rr_list *rr_list, ldns
 }
 
 void
-handle_name(FILE *out_file, ldns_rr *rr, uint32_t soa_min_ttl, ldns_rr_list *rr_list, ldns_rr **prev_nsec, ldns_rr **first_nsec)
+handle_name(FILE *out_file, ldns_rr *rr, uint32_t soa_min_ttl, ldns_rr_list *rr_list, ldns_rr **first_nsec)
 {
-	/* Unused parameter */
-	(void)prev_nsec;
-
 	if (rr && ldns_rr_list_rr_count(rr_list) > 0) {
 		if (ldns_dname_compare(ldns_rr_owner(rr), ldns_rr_list_owner(rr_list)) == 0) {
 			ldns_rr_list_push_rr(rr_list, rr);
@@ -133,7 +128,6 @@ handle_line(FILE *out_file,
             int line_len,
             uint32_t soa_min_ttl,
             ldns_rr_list *rr_list,
-            ldns_rr **prev_nsec,
             ldns_rr **first_nsec)
 {
 	ldns_rr *rr;
@@ -143,7 +137,7 @@ handle_line(FILE *out_file,
 		if (line[0] != ';') {
 			status = ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
 			if (status == LDNS_STATUS_OK) {
-				handle_name(out_file, rr, soa_min_ttl, rr_list, prev_nsec, first_nsec);
+				handle_name(out_file, rr, soa_min_ttl, rr_list, first_nsec);
 			} else {
 				fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
 						ldns_get_errorstr_by_id(status), line);
@@ -167,10 +161,13 @@ create_nsec_records(FILE *input_file,
 	ldns_status result = LDNS_STATUS_OK;
 	ldns_rr *rr;
 	ldns_rr_list *rr_list;
-	ldns_rr *prev_nsec;
 	ldns_rr *first_nsec = NULL;
 	ldns_rr *first_rr = NULL;
 
+    /* we need to get the soa minimum value before we can do anything
+     * at all. So we need to find the SOA record and rewind the file
+     * if found.
+     */
 	if (soa_min_ttl == 0 && !soa_from_engine) {
 		line_len = 0;
 		while (line_len >= 0 && soa_min_ttl == 0) {
@@ -179,6 +176,7 @@ create_nsec_records(FILE *input_file,
 				result = ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
 				if (result == LDNS_STATUS_OK &&
 					ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+					/* we need the sixth rdata element: MINIMUM */
 					soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
 					/* dont need to check SOA TTL with SOA Minimum (story 1434332) */
 /*
@@ -207,7 +205,7 @@ create_nsec_records(FILE *input_file,
 	while (line_len >= 0) {
 		line_len = read_line(input_file, line, 0, 0);
 		if (line_len > 0) {
-			handle_line(out_file, line, line_len, soa_min_ttl, rr_list, &prev_nsec, &first_nsec);
+			handle_line(out_file, line, line_len, soa_min_ttl, rr_list, &first_nsec);
 		}
 	}
 
@@ -241,7 +239,7 @@ main(int argc, char **argv)
 	ldns_status status;
 	uint32_t soa_min_ttl = 0;
 
-	while ((c = getopt(argc, argv, "f:m:nv:w:")) != -1) {
+	while ((c = getopt(argc, argv, "f:hm:nv:w:")) != -1) {
 		switch(c) {
 			case 'f':
 				input_file = fopen(optarg, "r");

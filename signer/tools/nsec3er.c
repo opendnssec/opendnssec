@@ -110,11 +110,12 @@ usage(FILE *out)
  * list, 0 otherwise */
 int
 only_ns_in_list(const ldns_rr_list *rr_list) {
-	size_t i;
-	if (ldns_rr_list_rr_count(rr_list) == 0) {
+	size_t i, count;
+	count = ldns_rr_list_rr_count(rr_list);
+	if (count == 0) {
 		return 0;
 	}
-	for (i=0; i<ldns_rr_list_rr_count(rr_list); i++) {
+	for (i=0; i<count; i++) {
 		if (ldns_rr_get_type(ldns_rr_list_rr(rr_list, i)) !=
 								LDNS_RR_TYPE_NS) {
 			return 0;
@@ -160,7 +161,7 @@ link_nsec3_rrs(ldns_rr *nsec3_a, ldns_rr *nsec3_b)
 {
 	ldns_rdf *next_hash_rdf, *next_hash_label;
 	char *next_hash_str;
-	ldns_status status;
+	ldns_status status = LDNS_STATUS_OK;
 
 	next_hash_label = ldns_dname_label(ldns_rr_owner(nsec3_b), 0);
 	next_hash_str = ldns_rdf2str(next_hash_label);
@@ -235,6 +236,7 @@ handle_name(FILE *out_file,
             int ent_ns
 )
 {
+	ldns_status status = LDNS_STATUS_OK;
 	ldns_rr *new_nsec;
 	ldns_rdf *from_name = NULL;
 
@@ -257,7 +259,7 @@ handle_name(FILE *out_file,
 				new_nsec = create_nsec3(from_name,
 				                        origin, ttl, rr_list, n3p, 0);
 				if (*prev_nsec) {
-					link_nsec3_rrs(*prev_nsec, new_nsec);
+					status = link_nsec3_rrs(*prev_nsec, new_nsec);
 					ldns_rr_print(out_file, *prev_nsec);
 					ldns_rr_free(*prev_nsec);
 				} else {
@@ -283,7 +285,7 @@ handle_name(FILE *out_file,
 				new_nsec = create_nsec3(from_name, origin, ttl,
 										rr_list, n3p, 0);
 				if (*prev_nsec) {
-					link_nsec3_rrs(*prev_nsec, new_nsec);
+					status = link_nsec3_rrs(*prev_nsec, new_nsec);
 					ldns_rr_print(out_file, *prev_nsec);
 					ldns_rr_free(*prev_nsec);
 				} else {
@@ -300,7 +302,7 @@ handle_name(FILE *out_file,
 			ldns_rr_set_class(new_nsec, klass);
 
 			if (*prev_nsec) {
-				link_nsec3_rrs(*prev_nsec, new_nsec);
+				status = link_nsec3_rrs(*prev_nsec, new_nsec);
 				ldns_rr_print(out_file, *prev_nsec);
 				ldns_rr_free(*prev_nsec);
 			} else {
@@ -318,7 +320,7 @@ handle_name(FILE *out_file,
 			new_nsec = create_nsec3(from_name,
 			                        origin, ttl, rr_list, n3p, 0);
    			if (*prev_nsec) {
-				link_nsec3_rrs(*prev_nsec, new_nsec);
+				status = link_nsec3_rrs(*prev_nsec, new_nsec);
 				ldns_rr_print(out_file, *prev_nsec);
 				ldns_rr_free(*prev_nsec);
 			} else {
@@ -330,11 +332,11 @@ handle_name(FILE *out_file,
 		rr_list_clear(rr_list);
 
 		if (*prev_nsec) {
-			link_nsec3_rrs(*prev_nsec, *first_nsec);
+			status = link_nsec3_rrs(*prev_nsec, *first_nsec);
 			ldns_rr_print(out_file, *prev_nsec);
 		}
 	}
-	return LDNS_STATUS_OK;
+	return status;
 }
 
 ldns_status
@@ -352,12 +354,12 @@ handle_line(FILE *out_file,
 {
 	ldns_rr *rr;
 	ldns_rdf *ent_name;
-	ldns_status status;
+	ldns_status status = LDNS_STATUS_OK;
 	if (line_len > 0) {
 		if (line[0] != ';') {
 			status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
 			if (status == LDNS_STATUS_OK) {
-				handle_name(out_file, rr, origin, soa_min_ttl, soa_class, *prev_name,
+				status = handle_name(out_file, rr, origin, soa_min_ttl, soa_class, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p, NULL,
 				            0);
 				ldns_rdf_deep_free(*prev_name);
@@ -376,14 +378,14 @@ handle_line(FILE *out_file,
 			 */
 			if ((ent_name = get_name_from_line(line,
 									  "; Empty non-terminal: "))) {
-				handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, *prev_name,
+				status = handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p,
 				            ent_name, 0);
 				ldns_rdf_deep_free(*prev_name);
 				*prev_name = ent_name;
 			} else if ((ent_name = get_name_from_line(line,
 								 "; Empty non-terminal to NS: "))) {
-				handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, *prev_name,
+				status = handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p,
 				            ent_name, 1);
 				ldns_rdf_deep_free(*prev_name);
@@ -392,7 +394,7 @@ handle_line(FILE *out_file,
 			fprintf(out_file, "%s\n", line);
 		}
 	}
-	return LDNS_STATUS_OK;
+	return status;
 }
 
 ldns_status
@@ -402,7 +404,7 @@ create_nsec3_records(FILE *input_file,
                      nsec3_params *n3p,
 					 uint32_t soa_min_ttl, int soa_from_engine)
 {
-	ldns_status status;
+	ldns_status status = LDNS_STATUS_OK;
 	int soa_found = 0;
 
 	/* for file reading */
@@ -418,41 +420,40 @@ create_nsec3_records(FILE *input_file,
 	ldns_rdf *prev_name = NULL;
 
 	/* we need to get the soa minimum value before we can do anything
-	 * at all. So we need to find the SOA record and remember the lines
-	 * before it.
+	 * at all. So we need to find the SOA record and rewind the file
+	 * if found.
 	 * TODO: would it be more efficient to simply open the file twice
 	 * instead of copying the first lines (in a big big nsec3 zone this
 	 * might become quite much)
 	 */
-	if (1) {
-		line_len = 0;
-		while (line_len >= 0 && soa_found == 0) {
-			line_len = read_line(input_file, line, 0, 0);
-			if (line_len > 0 && line[0] != ';') {
-				status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
-				if (status == LDNS_STATUS_OK &&
-					ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+	line_len = 0;
+	while (line_len >= 0 && soa_found == 0) {
+		line_len = read_line(input_file, line, 0, 0);
+		if (line_len > 0 && line[0] != ';') {
+			status = ldns_rr_new_frm_str(&rr, line, 0, origin, NULL);
+			if (status == LDNS_STATUS_OK &&
+				ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
 
-					if (soa_min_ttl && !soa_from_engine) {
-						soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
-					}
+				if (soa_min_ttl && !soa_from_engine) {
+					/* we need the sixth rdata element: MINIMUM */
+					soa_min_ttl = ldns_rdf2native_int32(ldns_rr_rdf(rr, 6));
+				}
 
-					soa_class = ldns_rr_get_class(rr);
-					soa_found = 1;
-					/* dont need to check SOA TTL with SOA Minimum (story 1434332) */
+				soa_class = ldns_rr_get_class(rr);
+				soa_found = 1;
+				/* dont need to check SOA TTL with SOA Minimum (story 1434332) */
 /*
-					if (ldns_rr_ttl(rr) < soa_min_ttl) {
-						soa_min_ttl = ldns_rr_ttl(rr);
-					}
+				if (ldns_rr_ttl(rr) < soa_min_ttl) {
+					soa_min_ttl = ldns_rr_ttl(rr);
+				}
 */
-				}
-				if (status == LDNS_STATUS_OK)
-					ldns_rr_free(rr);
-				else {
-					fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
-						ldns_get_errorstr_by_id(status), line);
-					return status;
-				}
+			}
+			if (status == LDNS_STATUS_OK)
+				ldns_rr_free(rr);
+			else {
+				fprintf(stderr, "Error parsing RR (%s):\n; %s\n",
+					ldns_get_errorstr_by_id(status), line);
+				return status;
 			}
 		}
 	}
@@ -468,7 +469,7 @@ create_nsec3_records(FILE *input_file,
 			             &prev_name, n3p, rr_list, &prev_nsec, &first_nsec);
 		}
 	}
-	handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, prev_name, rr_list,
+	status = handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, prev_name, rr_list,
 	            &prev_nsec, &first_nsec, n3p, NULL, 0);
 	ldns_rr_list_deep_free(rr_list);
 
@@ -654,6 +655,11 @@ main(int argc, char **argv)
 	                              n3p,
 	                              soa_min_ttl, soa_from_engine);
 	gettimeofday(&t_end, NULL);
+
+	/* report status */
+	if (status != LDNS_STATUS_OK) {
+		fprintf(stderr, "nsec3er: error occured: %s\n", ldns_get_errorstr_by_id(status));
+	}
 
 	if (nsec3_counter > 0) {
 		elapsed = (double) TIMEVAL_SUB(t_end, t_start);

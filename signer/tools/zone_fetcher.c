@@ -584,10 +584,11 @@ setup_daemon(config_type* config)
 static int
 init_sockets(sockets_type* sockets, serverlist_type* list)
 {
-    int r, ip6_support = 1, on = 0;
+    int ret = 0, r, ip6_support = 1, on = 0;
     size_t i;
     struct addrinfo hints[MAX_INTERFACES];
     serverlist_type* walk = list;
+    serverlist_type* new_list = NULL;
     const char* node = NULL;
     const char* port = NULL;
 #if defined(SO_REUSEADDR) || defined(IPV6_V6ONLY)
@@ -608,12 +609,13 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
 #ifdef  IPV6_V6ONLY
         hints[0].ai_family = AF_INET6;
         hints[1].ai_family = AF_INET;
-        walk = new_server(NULL, "", NULL);
-        walk->next = new_server("", NULL, NULL);
+        new_list = new_server(NULL, "", NULL);
+        new_list->next = new_server("", NULL, NULL);
 #else   /* !IPV6_V6ONLY */
         hints[0].ai_family = AF_INET6;
-        walk = new_server(NULL, "", NULL);
+        new_list = new_server(NULL, "", NULL);
 #endif  /* IPV6_V6ONLY */
+        walk = new_list;
     }
 
     i = 0;
@@ -649,7 +651,8 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             else {
                 log_msg(LOG_CRIT, "zone fetcher can't create UDP socket: %s",
                     strerror(errno));
-                return -1;
+                ret = -1;
+                break;
             }
         }
 
@@ -665,7 +668,8 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             {
                 log_msg(LOG_CRIT, "zone fetcher can't bind udp/ipv4 socket: %s",
                     strerror(errno));
-                return -1;
+                ret = -1;
+                break;
             }
         }
         else if (ip6_support) {
@@ -675,7 +679,8 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             {
                 log_msg(LOG_CRIT, "zone fetcher setsockopt(..., IPV6_V6ONLY, "
                 "...) failed: %s", strerror(errno));
-                return -1;
+                ret = -1;
+                break;
             }
 #endif /* IPV6_V6ONLY */
             if (fcntl(sockets->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
@@ -687,7 +692,8 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 sockets->udp[i].addr->ai_addrlen) != 0) {
                 log_msg(LOG_CRIT, "zone fetcher can't bind UDP socket: %s",
                     strerror(errno));
-                return -1;
+                ret = -1;
+                break;
             }
         }
 
@@ -716,9 +722,10 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 ip6_support = 0;
             }
             else {
-            log_msg(LOG_CRIT, "zone fetcher can't create TCP socket: %s",
-                strerror(errno));
-            return -1;
+                log_msg(LOG_CRIT, "zone fetcher can't create TCP socket: %s",
+                    strerror(errno));
+                ret = -1;
+                break;
             }
         }
         /* setsockopt */
@@ -739,13 +746,15 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 sockets->tcp[i].addr->ai_addrlen) != 0) {
                 log_msg(LOG_CRIT, "zone fetcher can't bind TCP socket: %s",
                     strerror(errno));
-                return -1;
+                ret = -1;
+                break;
             }
             /* listen */
             if (listen(sockets->tcp[i].s, 5) == -1) {
                 log_msg(LOG_CRIT, "zone fetcher can't listen to TCP socket: "
                     "%s", strerror(errno));
-                return -1;
+                ret = -1;
+                break;
             }
         } else if (ip6_support) {
             /* setsockopt */
@@ -756,7 +765,8 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 {
                     log_msg(LOG_CRIT, "zone fetcher setsockopt(..., IPV6_V6ONLY, "
                         "...) failed: %s", strerror(errno));
-                    return -1;
+                    ret = -1;
+                    break;
                 }
 #endif /* IPV6_V6ONLY */
             }
@@ -776,13 +786,15 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 sockets->tcp[i].addr->ai_addrlen) != 0) {
                 log_msg(LOG_CRIT, "zone fetcher can't bind TCP socket: %s",
                     strerror(errno));
-                return -1;
+                ret = -1;
+                break;
             }
             /* listen */
             if (listen(sockets->tcp[i].s, 5) == -1) {
                 log_msg(LOG_CRIT, "zone fetcher can't listen to TCP socket: "
                     "%s", strerror(errno));
-                return -1;
+                ret = -1;
+                break;
             }
         }
 
@@ -790,7 +802,11 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         i++;
     }
 
-    return 0;
+	if (new_list) {
+        free_serverlist(new_list);
+	}
+
+    return ret;
 }
 
 static void
