@@ -1421,11 +1421,13 @@ main(int argc, char **argv)
     }
 
     /* read transfer configuration */
+    xmlInitParser();
     config = new_config();
     config->pidfile = strdup(PID_FILENAME_STRING); /* not freed */
     c = read_axfr_config(config_file, config);
     config->zonelist = read_zonelist(zonelist_file);
     config->xfrd = init_xfrd(config);
+	xmlCleanupParser();
 
     if (info) {
         list_settings(config, config_file);

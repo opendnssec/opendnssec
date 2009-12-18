@@ -262,6 +262,7 @@ print_rr_data(FILE *out, rr_data *rrd, ldns_rbtree_t *tree)
 		if (status == LDNS_STATUS_OK) {
 			ldns_rr_print(out, rr);
 
+			/* really need to fflush? */
 			fflush(out);
 			ldns_rr_free(rr);
 		} else {
@@ -440,6 +441,7 @@ usage(FILE *out)
 	fprintf(out, "Options:\n");
 	fprintf(out, "-o <origin>\tZone origin\n");
 	fprintf(out, "-f <file>\tRead zone from <file> instead of stdin\n");
+	fprintf(out, "-k <class>\tZone class\n");
 	fprintf(out, "-w <file>\tWrite sorted zone to <file> instead of stdout\n");
 	fprintf(out, "-h\t\tShow this help\n");
 	fprintf(out, "-n\t\tUse NSEC3 hashing as a sort base\n");
@@ -553,7 +555,7 @@ main(int argc, char **argv)
 	rr_files[0] = stdin;
 	out_file = stdout;
 
-	while ((c = getopt(argc, argv, "a:f:hk: no:ps:t:w:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:hk:no:ps:t:w:")) != -1) {
 		switch (c) {
 		case 'a':
 			nsec3_algorithm = (uint8_t) atoi(optarg);
