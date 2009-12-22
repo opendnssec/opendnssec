@@ -220,7 +220,7 @@ key_list_add_key(key_list *list,
 	params = hsm_sign_params_new();
 	params->algorithm = atoi(key_algorithm_str);
 	if (params->algorithm == 0 ||
-		hsm_supported_algorithm(params->algorithm) == 0) {
+		hsm_supported_algorithm(params->algorithm) != 0) {
 		fprintf(stderr, "; Error: Bad algorithm: %s, skipping key\n",
 		        key_algorithm_str);
 		hsm_key_free(key);
