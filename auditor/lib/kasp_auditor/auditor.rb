@@ -168,7 +168,7 @@ module KASPAuditor
           }
         }
         # Now take a look at how the keys are changing over time...
-        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @soa.ttl)
+        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @config.soa.ttl)
 
         # Check the last nsec(3) record in the chain points back to the start
         do_final_nsec_check()
