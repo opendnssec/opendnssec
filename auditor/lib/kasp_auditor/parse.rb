@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-#
 # $Id$
 #
 # Copyright (c) 2009 Nominet UK. All rights reserved.

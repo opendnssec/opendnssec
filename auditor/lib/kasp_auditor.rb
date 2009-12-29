@@ -165,7 +165,7 @@ module KASPAuditor
           end
         end
       }
-      ret = 0 if (ret == -99)
+      ret = 0 if (ret == 999)
       ret = 0 if (ret >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
       if (ret == 0)
         print "Auditor found no errors\n"

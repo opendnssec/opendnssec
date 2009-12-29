@@ -110,6 +110,7 @@ module KASPAuditor
         end
         if (!@soa.name.absolute?)
           log(LOG_ERR, "SOA name not absolute #{@soa.name} - aborting")
+          return 1
         end
         log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
         @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
@@ -208,7 +209,7 @@ module KASPAuditor
             log(LOG_ERR, "Can't follow NSEC loop from #{@last_nsec.name} to #{@last_nsec.next_domain}")
           end
         end
-      elsif (@config.denial.nsec3 && ((@first_nsec.type == Dnsruby::Types::NSEC3)))
+      elsif (@config.denial.nsec3) # && ((@first_nsec.type == Dnsruby::Types::NSEC3)))
         # Now check that the last nsec3 points to the first nsec3
         if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
         else
@@ -226,9 +227,9 @@ module KASPAuditor
     def get_next_rr(file)
       while (!file.eof?)
         line = file.gets
+        next if (!line || (line.length == 0))
         next if (line.index(';') == 0)
         next if (line.strip.length == 0)
-        next if (!line || (line.length == 0))
         rr_text = "\n"
         begin
           # Strip off prepended name up to "\v" character before creating RR
@@ -363,6 +364,7 @@ module KASPAuditor
         # We want to check that there is at least the refresh period left before
         # the signature expires.
         # @TODO@ Probably want to have a WARN level and an ERROR level
+        # Expired signatures are caught by the verify_rrset() call above
         if ((time_now <= sig.expiration) && time_now > (sig.expiration - refresh + resign))
           log(LOG_ERR, "Signature expiration (#{sig.expiration}) for #{sig.name}, #{sig.type_covered} should be later than (the refresh period (#{refresh}) - the resign period (#{resign})) from now (#{time_now})")
         else
