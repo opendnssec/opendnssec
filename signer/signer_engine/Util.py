@@ -154,7 +154,7 @@ def syslog_facility_int(string):
 def datestamp(timestamp):
     """Returns the date (YYYYMMddhhmmss) representation of the given
     timestamp (seconds since epoch)"""
-    return datetime.utcfromtimestamp(timestamp).strftime("%Y%m%d%H%M%S")
+    return datetime.fromtimestamp(timestamp).strftime("%Y%m%d%H%M%S")
 
 def parse_duration_part(match, name, multiplier):
     """If the Match object has a group 'name', its value is interpreted
