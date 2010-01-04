@@ -279,7 +279,7 @@ class Zone:
             if os.path.exists(self.get_zone_axfr_filename()):
                 Util.move_file(self.get_zone_axfr_filename(),
                        self.get_zone_input_filename())
-        return True;
+        return True
 
     def sort_input(self):
         """Sort the zone canonically. The zone is read from
@@ -641,8 +641,8 @@ class Zone:
                 self.move_output()
         elif self.action >= ZoneConfig.REREAD and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
-            ser_out = self.get_output_serial();
-            ser_in = self.get_input_serial();
+            ser_out = self.get_output_serial()
+            ser_in = self.get_input_serial()
             if self.zone_config.soa_serial == "keep" and \
                               self.compare_serial(ser_out, ser_in) <= 0:
                 syslog.syslog(syslog.LOG_ERR, "Cannot keep input serial " + str(ser_in) +\
@@ -656,8 +656,8 @@ class Zone:
             ## the sorting config has changed. We must also re-sort the
             ## internal zone storage containing our previous signatures,
             ## if any.
-            ser_out = self.get_output_serial();
-            ser_in = self.get_input_serial();
+            ser_out = self.get_output_serial()
+            ser_in = self.get_input_serial()
             if self.zone_config.soa_serial == "keep" and \
                               self.compare_serial(ser_out, ser_in) <= 0:
                 syslog.syslog(syslog.LOG_ERR, "Cannot keep input serial " + str(ser_in) +\
@@ -704,7 +704,7 @@ class Zone:
                 soa_serial = prev_serial + 1
             update_serial = soa_serial - prev_serial
         elif self.zone_config.soa_serial == "counter":
-            soa_serial = self.get_input_serial();
+            soa_serial = self.get_input_serial()
             # it must be larger than the output serial!
             # otherwise updates won't be accepted
             prev_serial = self.get_output_serial()
@@ -720,7 +720,7 @@ class Zone:
                 soa_serial = prev_serial + 1
             update_serial = soa_serial - prev_serial
         elif self.zone_config.soa_serial == "keep":
-            soa_serial = self.get_input_serial();
+            soa_serial = self.get_input_serial()
             # it must be larger than the output serial!
             # otherwise updates won't be accepted
             prev_serial = self.get_output_serial()
@@ -782,7 +782,7 @@ class Zone:
                 Util.write_p(sign_p, "1", ":soa_serial_keep ")
         # nsec3 params
         if self.zone_config.denial_nsec3:
-            syslog.syslog(syslog.LOG_DEBUG, "set nsec3 values");
+            syslog.syslog(syslog.LOG_DEBUG, "set nsec3 values")
             Util.write_p(sign_p, str(self.zone_config.denial_nsec3_algorithm),
                 ":nsec3_algorithm ")
             Util.write_p(sign_p, str(self.zone_config.denial_nsec3_iterations),
@@ -793,6 +793,7 @@ class Zone:
 
         #move time to engine?
         sign_time = int(time.time())
+        syslog.syslog(syslog.LOG_DEBUG, "sign time: " + Util.datestamp(sign_time))
         Util.write_p(sign_p,
                      Util.datestamp(self.get_expiration_timestamp(sign_time)),
                      ":expiration ")
