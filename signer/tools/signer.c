@@ -985,8 +985,10 @@ sign_rrset(ldns_rr_list *rrset,
 				fprintf(output, "; signing failed: %s\n", ldns_get_errorstr_by_id(status));
 				ldns_rr_print(output, sig);
 				ldns_rr_free(sig);
-				log_msg(LOG_ALERT, "WARNING: HSM returned BOGUS signature! Abort signing, "
-					"retry on next resign\n");
+				if (status == LDNS_STATUS_CRYPTO_BOGUS) {
+					log_msg(LOG_ALERT, "WARNING: HSM returned BOGUS signature! Abort signing, "
+						"retry on next resign\n");
+				}
 				exit(EXIT_FAILURE);
 			} else {
 				fprintf(output, "; signing failed: hsm returned null signature\n");
