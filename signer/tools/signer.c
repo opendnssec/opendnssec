@@ -1017,23 +1017,17 @@ compare_list_rrset(ldns_rr_list *a, ldns_rr_list *b)
 			return 0;
 		} else {
 			if (global_cfg->verbosity >= 4) {
-				fprintf(stderr, "Compared RRsets: count differs\n");
+				fprintf(stderr, "Compared RRsets: first RRset empty\n");
 			}
 			return -1;
 		}
 	}
+	/* ldns_rr_list_rr_count(a) != 0 */
 	if (ldns_rr_list_rr_count(b) == 0) {
-		if (ldns_rr_list_rr_count(a) == 0) {
-			if (global_cfg->verbosity >= 4) {
-				fprintf(stderr, "Compared RRsets: both empty\n");
-			}
-			return 0;
-		} else {
-			if (global_cfg->verbosity >= 4) {
-				fprintf(stderr, "Compared RRsets: count differs\n");
-			}
-			return 1;
+		if (global_cfg->verbosity >= 4) {
+			fprintf(stderr, "Compared RRsets: second RRset empty\n");
 		}
+		return 1;
 	}
 
 	rr1 = ldns_rr_list_rr(a, 0);
