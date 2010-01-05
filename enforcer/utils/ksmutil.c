@@ -2040,17 +2040,19 @@ cmd_kskroll()
     }
 
     /* Check the keytag is numeric */
-    if (o_keytag != NULL && StrIsDigits(o_keytag)) {
-        status = StrStrtoi(o_keytag, &keytag_int);
-        if (status != 0) {
-            printf("Error: Unable to convert keytag \"%s\"; to an integer\n", o_keytag);
+    if (o_keytag != NULL) {
+        if (StrIsDigits(o_keytag)) {
+            status = StrStrtoi(o_keytag, &keytag_int);
+            if (status != 0) {
+                printf("Error: Unable to convert keytag \"%s\"; to an integer\n", o_keytag);
+                db_disconnect(lock_fd);
+                return(status);
+            }
+        } else {
+            printf("Error: keytag \"%s\"; should be numeric only\n", o_keytag);
             db_disconnect(lock_fd);
-            return(status);
+            return(1);
         }
-    } else {
-        printf("Error: keytag \"%s\"; should be numeric only\n", o_keytag);
-        db_disconnect(lock_fd);
-        return(1);
     }
 
     /* 
