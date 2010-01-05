@@ -9,10 +9,8 @@ Bugfixes:
 * ods-ksmutil: The ksk-roll command did not handle its options correctly
 
 Known issues:
-* Zone fetcher: When using TSIG, an incorrect MAC can be created if the 
-  length of the used secret is 'too long' (longer than the maximum digest
-  length). This problem is in LDNS 1.6.3 and previous versions. This bug is
-  fixed in the upcoming LDNS 1.6.4 release.
+* Zone fetcher: The TSIG sha algorithm family is incompatible with BIND9
+  crypto library. A work around is to build BIND9 --with-openssl.
 * Auditor: Some good NAPTR records may fail to verify with dnsruby-1.41.
   This will be fixed in a future dnsruby release.
 * TXT RRs: Some TXT RRs with escape characters may fail to parse correctly 
