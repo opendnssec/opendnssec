@@ -10,7 +10,7 @@ Bugfixes:
 
 Known issues:
 * Zone fetcher: The TSIG sha algorithm family is incompatible with BIND9
-  crypto library. A work around is to build BIND9 --with-openssl.
+  crypto library. A fix is scheduled for BIND 9.7.0.
 * Auditor: Some good NAPTR records may fail to verify with dnsruby-1.41.
   This will be fixed in a future dnsruby release.
 * TXT RRs: Some TXT RRs with escape characters may fail to parse correctly 

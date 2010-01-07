@@ -424,7 +424,7 @@ parse_time (const char *time_str)
 		tm.tm_year -= 1900;
 		tm.tm_mon--;
 		check_tm(tm);
-		result = (uint32_t) mktime(&tm);
+		result = (uint32_t) mktime_from_utc(&tm);
 	} else if (strlen(time_str) == 14 && sscanf(time_str,
 								  "%4d%2d%2d%2d%2d%2d",
 								  &tm.tm_year,
@@ -436,7 +436,7 @@ parse_time (const char *time_str)
 		tm.tm_year -= 1900;
 		tm.tm_mon--;
 		check_tm(tm);
-		result = (uint32_t) mktime(&tm);
+		result = (uint32_t) mktime_from_utc(&tm);
 	}
 	return result;
 }
