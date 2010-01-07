@@ -1,0 +1,66 @@
+$Id$
+
+OpenDNSSEC 1.0.0 - Known Restrictions
+
+The following are the known problems and/or restrictions of release 1.0.0 of OpenDNSSEC.
+
+
+Auditor slow for large zones
+----------------------------
+The auditor is a component of OpenDNSSEC that checks that the zone file has been signed correctly and will prevent the loading of the zone if it detects an error.
+
+For large zones (of the order of millions of names), the auditor can take a significant amount of time to run, much longer than the signer.  If zone files are updated on a regular basis, the length of time needed to audit the signer output may exceed the interval between zone updates.
+
+If this is the case in your installation, it is recommended that you disable the auditor.
+
+
+Zone file may not contain certain strings
+-----------------------------------------
+Although domain names may only contain letters, digits and hyphens, the data in a resource record may contain any data - including binary information.
+
+The auditor will currently fail without warning if the zone file contains any of the following strings of characters used by the auditor in its internal processing:
+
+"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+"\0\0$~$~$~\0\0"
+"\0\1\0"
+
+(… where "\0" and "\1" indicate the characters with ASCII values of 0 and 1 respectively.)
+
+This will be addressed in a future version of the software.
+
+
+KSK rollover requires manual timing
+-----------------------------------
+OpenDNSSEC rolls a key-signing key by the double-DS pre-publication method: the DS record for the new zone is extracted from OpenDNSSEC and sent to the parent zone.  After a period of time, the KSK is changed and, after a further interval, the DS record for the old KSK is removed from the parent.
+
+The sending of the DS record to the parent zone necessarily involves manual intervention on your part, but version 1.0.0 of OpenDNSSEC also requires that you manually time two intervals:
+
+* The time between introducing the new KSK into the zone and sending the DS record to the parent.
+* Seeing the DS record in the parent zone and informing OpenDNSSEC of its presence.
+
+Future versions of the software will remove the need for tracking the time between these events.
+
+The KSK rollover procedure is described in the OpenDNSSEC documentation.
+
+
+Limitations on Number of Zones
+------------------------------
+Owing to contention in the key management database, performance is degraded if OpenDNSSEC is used to sign large numbers of zones that do not share common keys. The problem is worse if SQLite is used for the key and signature manager database.
+
+As a workaround, we suggest that either the same key is used for all zones, or that the number of zones be limited to about 5,000.
+
+This will be addressed in a future release of the software.
+
+
+Memory Leak if MySQL is Used
+----------------------------
+There is a memory leak in the MySQL implementation of the key and signature manager database.  The rate of growth of address space depends on the number of keys managed and the frequency with which the enforcer is run, but only becomes significant when OpenDNSSEC is being used to sign thousands of zones.
+
+This will be addressed in a future release of the software.  As a workaround, stopping and restarting the enforcer daemon will release the memory.
+
+
+Incompatibility in TSIG Key
+---------------------------
+When setting up a TSIG key for the zone fetcher component, it should be noted that the SHA algorithm family used by OpenDNSSEC is incompatible with the BIND-9, due to a problem in the latter's cryptographic library.
+
+The problem is fixed in the upcoming BIND-9.7 release; in the meantime, avoid using TSIG authentication between the zone fetcher and the upstream nameserver.
