@@ -4,10 +4,12 @@ OpenDNSSEC trunk
 
 * A code review was performed by members of the project group. No serious 
   problem was found. The code review resulted in some polishing of the code.
+* Dnsruby-1.42 fixes issues with TXT and NAPTR record parsing.
 
 Bugfixes:
 * ods-ksmutil: The ksk-roll command did not handle its options correctly
-
+* Auditor: Configured zone SOA TTL now used to track pre-published keys,
+  rather than the unsigned zone SOA TTL.
 
 OpenDNSSEC 1.0.0rc2 - 2009-12-16
 
