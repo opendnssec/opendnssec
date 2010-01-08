@@ -68,4 +68,4 @@ The problem is fixed in the upcoming BIND-9.7 release; in the meantime, avoid us
 
 Problem with special characters in NAPTR and TXT
 ------------------------------------------------
-There are cases where special characters are not parsed correctly in NAPTR and TXT RR. Will be fixed in dnsruby-1.42 and ldns 1.6.4, which will be released soon.
+There are cases where special characters are not parsed correctly in NAPTR and TXT RR. Will be fixed in ldns 1.6.4, which will be released soon.
