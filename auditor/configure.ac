@@ -12,13 +12,7 @@ ACX_PREFIXHACK
 
 AM_PATH_RUBY([], [], [])
 ACX_RUBY_LIBRARY([rubygems syslog openssl xsd/datatypes rexml/document])
-
-AC_MSG_CHECKING([for ruby library dnsruby])
-have_ruby_dnsruby=`$RUBY -e 'require "rubygems"; require "dnsruby"; print "yes"'`
-if test "x$have_ruby_dnsruby" = "x"; then
-    AC_MSG_ERROR([Missing ruby library dnsruby])
-fi
-AC_MSG_RESULT([yes])
+ACX_DNSRUBY(1.42)
 
 # check for xmllint
 AC_PATH_PROG(XMLLINT, xmllint)
