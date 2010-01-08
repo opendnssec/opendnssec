@@ -8,14 +8,6 @@ OpenDNSSEC trunk
 Bugfixes:
 * ods-ksmutil: The ksk-roll command did not handle its options correctly
 
-Known issues:
-* Zone fetcher: The TSIG sha algorithm family is incompatible with BIND9
-  crypto library. A fix is scheduled for BIND 9.7.0.
-* Auditor: Some good NAPTR records may fail to verify with dnsruby-1.41.
-  This will be fixed in a future dnsruby release.
-* TXT RRs: Some TXT RRs with escape characters may fail to parse correctly 
-  with dnsruby-1.41 and ldns 1.6.3. This is fixed in the upcoming releases.
-
 
 OpenDNSSEC 1.0.0rc2 - 2009-12-16
 

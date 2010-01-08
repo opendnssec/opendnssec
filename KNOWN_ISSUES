@@ -64,3 +64,8 @@ Incompatibility in TSIG Key
 When setting up a TSIG key for the zone fetcher component, it should be noted that the SHA algorithm family used by OpenDNSSEC is incompatible with the BIND-9, due to a problem in the latter's cryptographic library.
 
 The problem is fixed in the upcoming BIND-9.7 release; in the meantime, avoid using TSIG authentication between the zone fetcher and the upstream nameserver.
+
+
+Problem with special characters in NAPTR and TXT
+------------------------------------------------
+There are cases where special characters are not parsed correctly in NAPTR and TXT RR. Will be fixed in dnsruby-1.42 and ldns 1.6.4, which will be released soon.

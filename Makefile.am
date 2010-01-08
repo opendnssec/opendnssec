@@ -16,3 +16,5 @@ SUBDIRS = libhsm enforcer signer conf tools contrib
 if ENABLE_AUDITOR
 SUBDIRS += auditor
 endif
+
+EXTRA_DIST = $(srcdir)/KNOWN_ISSUES

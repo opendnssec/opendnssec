@@ -14,7 +14,7 @@ MAINTAINERCLEANFILES = \
 
 SPEC = opendnssec.spec
 
-EXTRA_DIST = *.spec.in
+EXTRA_DIST = $(srcdir)/*.spec.in
 
 noinst_DATA = ${SPEC}
 dist_data_DATA = ${SPEC}
