@@ -350,7 +350,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         /* TODO exit? continue with next policy? */
     }
     /* Find out how many suitable keys we have */
-    status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, config->interval, rightnow, &keys_in_queue);
+    status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, config->interval, rightnow, &keys_in_queue, KSM_TYPE_KSK);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current ksk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */
@@ -425,7 +425,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         /* TODO exit? continue with next policy? */
     }
     /* Find out how many suitable keys we have */
-    status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, config->interval, rightnow, &keys_in_queue);
+    status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, config->interval, rightnow, &keys_in_queue, KSM_TYPE_ZSK);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */

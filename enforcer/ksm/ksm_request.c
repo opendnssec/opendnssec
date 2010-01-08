@@ -1282,9 +1282,20 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
     size_t  nchar;          /* Number of characters written */
     char*   sql;            /* SQL command to be isssued */
     int     status;         /* Status return */
-    int     total_interval; /* The InitialPublicationInterval + interval (when we will run again) */
+    int     total_interval; /* The PublicationInterval + interval (when we will run again) */
 
-    total_interval = KsmParameterInitialPublicationInterval(parameters) + interval;
+    if (keytype == KSM_TYPE_ZSK)
+    {
+        total_interval = KsmParameterZskTtl(parameters) + 
+                         KsmParameterPropagationDelay(parameters) +
+                         KsmParameterPubSafety(parameters) +
+                         interval;
+    } else {
+        total_interval = KsmParameterKskTtl(parameters) + 
+                         KsmParameterKskPropagationDelay(parameters) +
+                         KsmParameterPubSafety(parameters) +
+                         interval;
+    }
     /* Create the SQL command to interrogate the database */
 
     sql = DqsCountInit("KEYDATA_VIEW");

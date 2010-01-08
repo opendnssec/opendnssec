@@ -898,13 +898,16 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
  *      int* count (returned) 
  *          Number of keys in the que. 
  * 
+ *      int keytype 
+ *          Key type, KSK or ZSK 
+ * 
  * Returns: 
  *      int 
  *          Status return. 0 => success, Other implies error, in which case a 
  *          message will have been output. 
 -*/ 
  
-int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count)
+int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count, int keytype)
 { 
     int     where = 0;          /* WHERE clause value */
     char*   sql = NULL;     /* SQL to interrogate database */ 
@@ -925,7 +928,19 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
     if (status != 0) {
         return status;
     }
-    total_interval = KsmParameterInitialPublicationInterval(&collection) + interval;
+
+    if (keytype == KSM_TYPE_ZSK)
+    {
+        total_interval = KsmParameterZskTtl(&collection) +
+                         KsmParameterPropagationDelay(&collection) +
+                         KsmParameterPubSafety(&collection) +
+                         interval;
+    } else {
+        total_interval = KsmParameterKskTtl(&collection) +
+                         KsmParameterKskPropagationDelay(&collection) +
+                         KsmParameterPubSafety(&collection) +
+                         interval;
+    }
 
     nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d)", 
         KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE); 

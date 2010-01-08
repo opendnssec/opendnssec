@@ -5333,7 +5333,7 @@ int cmd_genkeys()
         /* TODO exit? continue with next policy? */
     }
     /* Find out how many suitable keys we have */
-    status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, interval, rightnow, &keys_in_queue);
+    status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, interval, rightnow, &keys_in_queue, KSM_TYPE_KSK);
     if (status != 0) {
         printf("Could not count current ksk numbers for policy %s\n", policy->name);
         /* TODO exit? continue with next policy? */
@@ -5413,7 +5413,7 @@ int cmd_genkeys()
         /* TODO exit? continue with next policy? */
     }
     /* Find out how many suitable keys we have */
-    status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, interval, rightnow, &keys_in_queue);
+    status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, interval, rightnow, &keys_in_queue, KSM_TYPE_ZSK);
     if (status != 0) {
         printf("Could not count current zsk numbers for policy %s\n", policy->name);
         /* TODO exit? continue with next policy? */

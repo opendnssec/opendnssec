@@ -234,28 +234,21 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'publish' - updating\n",
         (int) data->keypair_id);
 
-    Ipc = MAX(collection->zskttl, MIN(collection->soattl, collection->soamin)) +
+    Ipc = collection->zskttl +
             collection->propdelay + collection->pub_safety;
     if (data->keytype == KSM_TYPE_ZSK) {
     /*
      * A key in the "publish" state moves into the "ready" state when it has
      * been published for at least:
      *
-     *      Ipc = max(TTLkeyc, Cc) + Dpc +Sp
+     *      Ipc = TTLkeyc + Dpc +Sp
      *
      * ... where:
      *
      *      TTLkeyc  = TTL of the ZSK DNSKEY record
-     *      Cc       = SOA negative cache time, 
      *      Dpc      = Propagation delay
      *      Sp       = Publish Safety Margin
      *
-     * The negative cache time is given as:
-     *
-     *      MIN(TTLsoa, SOAmin)
-     *
-     * ... where TTLsoa is the TTL of the SOA record and SOAmin is the value of
-     * the "Minimum" field of the SOA record.
      */
 
         deltat = Ipc;
@@ -267,24 +260,17 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      *
      *      max(Ipc, Ipp)
      *  where
-     *      Ipp = max(TTLdsp, Cp) + Dpp + Dr +Sp
+     *      Ipp = TTLdsp + Dpp + Dr +Sp
      *
      * ... where:
      *
      *      TTLdsp  = TTL of the DS record in the parent
-     *      Cp      = SOA negative cache time (of parent), 
      *      Dpp     = Propagation delay
      *      Dr      = Registration delay
      *      Sp      = Publish Safety Margin
      *
-     * The negative cache time is given as:
-     *
-     *      MIN(TTLsoa, SOAmin)
-     *
-     * ... where TTLsoa is the TTL of the SOA record and SOAmin is the value of
-     * the "Minimum" field of the SOA record.
      */
-    Ipp = MAX(collection->kskttl, MIN(collection->soattl, collection->soamin)) +
+    Ipp = collection->kskttl +
             collection->kskpropdelay + collection->regdelay + collection->pub_safety;
 
         deltat = MAX(Ipc, Ipp);
