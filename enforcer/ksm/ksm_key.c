@@ -342,25 +342,6 @@ int KsmKeyModify(KSM_KEYDATA* data, int low, int high)
 
     status = DbExecuteSqlNoResult(DbHandle(), sql);
 
-    /* This is now in a different table  */
-    /* KEYTYPE SHOULD NOT CHANGE!!!
-    if (status == 0 && (data->flags & KEYDATA_M_KEYTYPE)) {
-        sql = DusInit("dnsseckeys");
-        DusSetInt(&sql, "KEYTYPE", data->keytype, set++);
-
-        if (low == high) {
-            DusConditionInt(&sql, "ID", DQS_COMPARE_EQ, low, where++);
-        }
-        else {
-            DusConditionInt(&sql, "ID", DQS_COMPARE_GE, low, where++);
-            DusConditionInt(&sql, "ID", DQS_COMPARE_LE, high, where++);
-        }
-
-        DusEnd(&sql);
-        status = DbExecuteSqlNoResult(DbHandle(), sql);
-    }
-    */
-
     DusFree(sql);
 
     return status;

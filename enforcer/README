@@ -1,7 +1,5 @@
 $Id$
 
-This code should work but is not fully tested
-
 Introduction
 ------------
 There are 2 main jobs that the enforcerd has to perform:
@@ -47,8 +45,6 @@ Once built the enforcerd binary takes the following options:
 -v              show version and exit
 
 Your LD_LIBRARY_PATH environment variable will need to include the libksm libs.
-
-Note that currently the output is hardcoded to go to the current working directory; this will be fixed when it reads the config file properly
 
 
 Debuging

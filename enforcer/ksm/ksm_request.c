@@ -51,7 +51,7 @@
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 
-/* TODO Then nomenclature needs to be updated to agree with that in the timing draft */
+/* TODO The nomenclature needs to be updated to agree with that in the timing draft */
 
 /*+
  * KsmRequestKeys - Request Keys for Output
@@ -361,7 +361,6 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
             }
 
             if (first_pass == 1) {
-                /* TODO log what we are doing? */
                 (void) MsgLog(KME_PROM_PUB, (keytype == KSM_TYPE_KSK) ? "KSK" : "ZSK");
                 status = KsmRequestChangeStateN(keytype, datetime, 1,
                                     KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);

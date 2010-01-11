@@ -149,6 +149,7 @@ server_main(DAEMONCONFIG *config)
                         log_msg(config, LOG_ERR, "hsm_open() result: %d", result);
                 }
             }
+            unlink(config->pidfile);
             exit(1);
         }
         log_msg(config, LOG_INFO, "HSM opened successfully.");
@@ -235,7 +236,6 @@ server_main(DAEMONCONFIG *config)
         /* Communicate zones to the signer */
         do_communication(config, policy);
         
-
         DbFreeResult(handle);
 
         /* Disconnect from DB in case we are asleep for a long time */
@@ -1171,7 +1171,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
         key_pair_id = 0;
         if (key_type == KSM_TYPE_KSK) {
             status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
-            if (status == -1) {
+            if (status == -1 || key_pair_id == 0) {
                 log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
                 return 2;
             }
@@ -1181,7 +1181,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
         } else {
             status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
-            if (status == -1) {
+            if (status == -1 || key_pair_id == 0) {
                 log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
                 return 2;
             }
@@ -1199,7 +1199,9 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
             /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
         } else {
-            /* TODO what would this mean? */
+            /* This shouldn't happen */
+            log_msg(NULL, LOG_ERR, "KsmKeyGetUnallocated returned bad key_id %d for zone: %s; exiting...", key_pair_id, zone_name);
+            exit(1);
         }
 
     }

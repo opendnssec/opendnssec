@@ -249,7 +249,7 @@ void log_switch(int facility, const char *facility_name, const char *program_nam
     void
 log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
 {
-    /* TODO: if the variable arg list is bad then random errors can occur */ 
+    /* If the variable arg list is bad then random errors can occur */ 
     va_list args;
     if (config && config->debug) priority = LOG_ERR;
     va_start(args, format);
@@ -288,7 +288,7 @@ log_xml_error(void *ignore, const char *format, ...)
 
     (void) ignore;
 
-    /* TODO: if the variable arg list is bad then random errors can occur */ 
+    /* If the variable arg list is bad then random errors can occur */ 
     va_start(args, format);
     vsyslog(LOG_ERR, format, args);
     va_end(args);
@@ -302,7 +302,7 @@ log_xml_warn(void *ignore, const char *format, ...)
 
     (void) ignore;
 
-    /* TODO: if the variable arg list is bad then random errors can occur */ 
+    /* If the variable arg list is bad then random errors can occur */ 
     va_start(args, format);
     vsyslog(LOG_INFO, format, args);
     va_end(args);
@@ -543,6 +543,11 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
     }
 }
 
+/*
+ * Returns 0 if the the config file could be read and non-zero if it could not.
+ *
+ * Any function calling this should exit on a non-zero return.
+ */
 int
 ReadConfig(DAEMONCONFIG *config, int verbose)
 {

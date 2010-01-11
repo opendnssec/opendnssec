@@ -185,39 +185,6 @@ int DbExecuteSql(DB_HANDLE handle, const char* stmt_str, DB_RESULT* result)
     return status;
 }
 
-
-
-/*+
- * DbRowCount - Return Count of Rows
- *
- * Description:
- * 		Returns the number of rows in the result set.
- *
- * Arguments:
- * 		None.
- *
- * Returns:
- * 		int
- * 			Number of rows.  This is 0 on error or if the query did not return
- * 			any rows.  Note that on error, a message will have been output.
--*/
-/*
-int DbRowCount(DB_RESULT result)
-{
-	int rowcount = 0;
-
-	if (result && (result->magic == DB_RESULT_MAGIC)) {
-		rowcount = (int) mysql_num_rows(result->data);
-	}
-	else {
-		(void) MsgLog(DBS_INVARG, "DbRowCount");
-	}
-
-	return rowcount;
-}
-*/
-
-
 /*+
  * DbFreeResult - Free Result
  *

@@ -224,39 +224,6 @@ int DbExecuteSql(DB_HANDLE handle, const char* stmt_str, DB_RESULT* result)
     return status;
 }
 
-
-
-/*+
- * DbRowCount - Return Count of Rows
- *
- * Description:
- * 		Returns the number of rows in the result set.
- * 		No facility to do this in sqlite
- *
- * Arguments:
- * 		None.
- *
- * Returns:
- * 		int
- * 			-1 until this is imlemented
--*/
-/*
-int DbRowCount(DB_RESULT result)
-{
-	int rowcount = 0;
-
-	if (result && (result->magic == DB_RESULT_MAGIC)) {
-		return -1;
-	}
-	else {
-		(void) MsgLog(DBS_INVARG, "DbRowCount");
-	}
-
-	return rowcount;
-}
-*/
-
-
 /*+
  * DbFreeResult - Free Result
  *

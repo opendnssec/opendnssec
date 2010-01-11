@@ -595,9 +595,9 @@ cmd_setup ()
 cmd_update (const char* qualifier)
 {
     DB_HANDLE	dbhandle;
-    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
-    char* zone_list_filename;   /* Extracted from conf.xml */
-    char* kasp_filename;   /* Extracted from conf.xml */
+    FILE* lock_fd = NULL;  /* This is the lock file descriptor for a SQLite DB */
+    char* zone_list_filename = NULL;    /* Extracted from conf.xml */
+    char* kasp_filename = NULL;         /* Extracted from conf.xml */
     int status = 0;
     int done_something = 0;
 
@@ -634,6 +634,10 @@ cmd_update (const char* qualifier)
         if (status != 0) {
             printf("Failed to update repositories\n");
             db_disconnect(lock_fd);
+            if (strncmp(qualifier, "ALL", 3) == 0) {
+                StrFree(kasp_filename);
+                StrFree(zone_list_filename);
+            }
             return(1);
         }
         done_something = 1;
@@ -646,10 +650,10 @@ cmd_update (const char* qualifier)
     if (strncmp(qualifier, "KASP", 4) == 0 ||
             strncmp(qualifier, "ALL", 3) == 0) {
         status = update_policies(kasp_filename);
-        StrFree(kasp_filename);
         if (status != 0) {
             printf("Failed to update policies\n");
             db_disconnect(lock_fd);
+            StrFree(kasp_filename);
             StrFree(zone_list_filename);
             return(1);
         }
@@ -663,10 +667,11 @@ cmd_update (const char* qualifier)
     if (strncmp(qualifier, "ZONELIST", 8) == 0 ||
             strncmp(qualifier, "ALL", 3) == 0) {
         status = update_zones(zone_list_filename);
-        StrFree(zone_list_filename);
         if (status != 0) {
             printf("Failed to update zones\n");
             db_disconnect(lock_fd);
+            StrFree(kasp_filename);
+            StrFree(zone_list_filename);
             return(1);
         }
         done_something = 1;
@@ -684,6 +689,13 @@ cmd_update (const char* qualifier)
     db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
+
+    if (kasp_filename != NULL) {
+        StrFree(kasp_filename);
+    }
+    if (zone_list_filename != NULL) {
+        StrFree(zone_list_filename);
+    }
 
     return 0;
 }
@@ -775,6 +787,9 @@ cmd_addzone ()
     if (status != 0) {
         printf("couldn't read zonelist\n");
         StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
         return(1);
     }
 
@@ -787,6 +802,10 @@ cmd_addzone ()
     if (status != 0) {
         printf("Failed to connect to database\n");
         db_disconnect(lock_fd);
+        StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
         return(1);
     } 
 
@@ -796,6 +815,10 @@ cmd_addzone ()
         printf("Error, can't find policy : %s\n", o_policy);
         printf("Failed to update zones\n");
         db_disconnect(lock_fd);
+        StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
         return(1);
     }
     status = KsmImportZone(o_zone, policy_id, 1, &new_zone);
@@ -806,6 +829,10 @@ cmd_addzone ()
             printf("Failed to Import zone\n");
         }
         db_disconnect(lock_fd);
+        StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
         return(1);
     }
 
@@ -814,6 +841,10 @@ cmd_addzone ()
     if (status != 0) {
         printf("Failed to Link Keys to zone\n");
         db_disconnect(lock_fd);
+        StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
         return(1);
     }
 
@@ -826,6 +857,11 @@ cmd_addzone ()
     xmlKeepBlanksDefault(0);
     xmlTreeIndentString = "\t";
     doc = add_zone_node(zonelist_filename, o_zone, o_policy, sig_conf_name, input_name, output_name);
+
+    StrFree(sig_conf_name);
+    StrFree(input_name);
+    StrFree(output_name);
+
     if (doc == NULL) {
         StrFree(zonelist_filename);
         return(1);
@@ -838,9 +874,6 @@ cmd_addzone ()
     StrFree(backup_filename);
     if (status != 0) {
         StrFree(zonelist_filename);
-        StrFree(sig_conf_name);
-        StrFree(input_name);
-        StrFree(output_name);
         return(status);
     }
 
@@ -848,12 +881,9 @@ cmd_addzone ()
     status = xmlSaveFormatFile(zonelist_filename, doc, 1);
     StrFree(zonelist_filename);
     xmlFreeDoc(doc);
+
     if (status == -1) {
         printf("couldn't save zonelist\n");
-        StrFree(zonelist_filename);
-        StrFree(sig_conf_name);
-        StrFree(input_name);
-        StrFree(output_name);
         return(1);
     }
 
@@ -1543,6 +1573,8 @@ cmd_rollpolicy ()
             } 
         } else { 
             printf("Couldn't count zones on policy; quitting...\n");
+            db_disconnect(lock_fd);
+            StrFree(datetime);
             exit(1); 
         }
     }
@@ -1555,6 +1587,8 @@ cmd_rollpolicy ()
     zone_list = (int *)calloc(zone_count, sizeof(int));
     if (zone_list == NULL) {
         printf("Couldn't calloc zone list for policy; quitting...\n");
+        db_disconnect(lock_fd);
+        StrFree(datetime);
         exit(1); 
     }
 
@@ -2009,6 +2043,7 @@ cmd_kskroll()
     if (o_keytag == NULL && o_cka_id == NULL) {
         printf("Please provide a keytag or a CKA_ID for the key (CKA_ID will be used if both are provided\n");
         usage_keykskroll();
+        StrFree(datetime);
         return(-1);
     }
 
@@ -2026,6 +2061,7 @@ cmd_kskroll()
     if (status != 0) {
         printf("Failed to connect to database\n");
         db_disconnect(lock_fd);
+        StrFree(datetime);
         return(1);
     }
 
@@ -2035,6 +2071,7 @@ cmd_kskroll()
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
             db_disconnect(lock_fd);
+            StrFree(datetime);
             return status;
         }
     }
@@ -2046,11 +2083,13 @@ cmd_kskroll()
             if (status != 0) {
                 printf("Error: Unable to convert keytag \"%s\"; to an integer\n", o_keytag);
                 db_disconnect(lock_fd);
+                StrFree(datetime);
                 return(status);
             }
         } else {
             printf("Error: keytag \"%s\"; should be numeric only\n", o_keytag);
             db_disconnect(lock_fd);
+            StrFree(datetime);
             return(1);
         }
     }
@@ -2063,6 +2102,7 @@ cmd_kskroll()
     if (status != 0) {
         printf("Error: failed to count keys\n");
         db_disconnect(lock_fd);
+        StrFree(datetime);
         return status;
     }
 
@@ -2070,6 +2110,7 @@ cmd_kskroll()
     if (key_count > 1) {
         printf("More than one key matched your parameters, please include more information from the above keys\n");
         db_disconnect(lock_fd);
+        StrFree(datetime);
         return -1;
     }
 
@@ -2077,6 +2118,7 @@ cmd_kskroll()
     if (key_count == 0) {
         printf("No keys in the READY state matched your parameters, please check the parameters\n");
         db_disconnect(lock_fd);
+        StrFree(datetime);
         return -1;
     }
 
@@ -2085,6 +2127,7 @@ cmd_kskroll()
     if (status != 0) {
         printf("Error: failed to find policy for zone\n");
         db_disconnect(lock_fd);
+        StrFree(datetime);
         return status;
     }
 
@@ -2100,6 +2143,9 @@ cmd_kskroll()
     db_disconnect(lock_fd);
 
     DbDisconnect(dbhandle);
+
+    StrFree(datetime);
+    
     return status;
 }
 
@@ -2434,7 +2480,11 @@ cmd_dbbackup ()
         if (lock_fd != NULL) {
             fclose(lock_fd);
         }
+        StrFree(host);
+        StrFree(port);
         StrFree(dbschema);
+        StrFree(user);
+        StrFree(password);
         return(1);
     }
     StrFree(lock_filename);
@@ -2477,7 +2527,7 @@ main (int argc, char *argv[])
     int result;
     int ch;
     char* case_command = NULL;
-    char* case_verb = "NULL";
+    char* case_verb = NULL;
 
     int option_index = 0;
     static struct option long_options[] =
@@ -2599,7 +2649,10 @@ main (int argc, char *argv[])
         /* verb should be stuff like ADD, LIST, DELETE, etc */
         case_verb = StrStrdup(argv[1]);
         (void) StrToUpper(case_verb);
+    } else {
+        case_verb = StrStrdup("NULL");
     }
+    
 
     if (!strncmp(case_command, "SETUP", 5)) {
         argc --;
@@ -2739,6 +2792,7 @@ main (int argc, char *argv[])
     }
 
     StrFree(case_command);
+    StrFree(case_verb);
 
     /*(void) hsm_close();*/
     /*if (config) free(config);*/
@@ -2803,7 +2857,11 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, int backup)
                 if (*lock_fd != NULL) {
                     fclose(*lock_fd);
                 }
+                StrFree(host);
+                StrFree(port);
                 StrFree(dbschema);
+                StrFree(user);
+                StrFree(password);
                 return(1);
             }
             StrFree(lock_filename);
@@ -3674,7 +3732,6 @@ int update_policies(char* kasp_filename)
     }
 
     /* Cleanup */
-    /* TODO: some other frees are needed */
     xmlXPathFreeContext(xpathCtx);
     xmlRelaxNGFree(schema);
     xmlRelaxNGFreeValidCtxt(rngctx);
@@ -3927,6 +3984,7 @@ int update_zones(char* zone_list_filename)
                 if (status != 0) {
                     DbFreeRow(row);
                     DbStringFree(zone_name);
+                    StrFree(zone_ids);
                     return(status);
                 }
                 status = KsmParameter(result2, &shared);
@@ -5638,6 +5696,14 @@ int fix_file_perms(const char *dbschema)
         username = NULL;
     }
 
+    /* Free up the xml stuff, we are done with it */
+    xmlXPathFreeContext(xpathCtx);
+    xmlRelaxNGFree(schema);
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(doc);
+    xmlFreeDoc(rngdoc);
+
     /* Set uid and gid if required */
     if (username != NULL) {
         /* Lookup the user id in /etc/passwd */
@@ -5680,13 +5746,6 @@ int fix_file_perms(const char *dbschema)
     }
 
     StrFree(temp_char);
-
-    xmlXPathFreeContext(xpathCtx);
-    xmlRelaxNGFree(schema);
-    xmlRelaxNGFreeValidCtxt(rngctx);
-    xmlRelaxNGFreeParserCtxt(rngpctx);
-    xmlFreeDoc(doc);
-    xmlFreeDoc(rngdoc);
 
     return 0;
 }

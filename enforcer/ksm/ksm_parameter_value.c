@@ -211,6 +211,8 @@ int KsmParameterRetSafety(KSM_PARCOLL* collection)
 
 /*
  * Initial publication interval
+ *
+ * Make sure that you add "publish safety margin" for "real world" use
  */
 int KsmParameterInitialPublicationInterval(KSM_PARCOLL* collection)
 {
@@ -226,7 +228,6 @@ int KsmParameterInitialPublicationInterval(KSM_PARCOLL* collection)
         KsmParameterSoaMin(collection));
     pubint = max(KsmParameterZskTtl(collection), ncache) +
         KsmParameterPropagationDelay(collection);
-    /* TODO add "publish safety margin" into pubint calc. or is that what PropagationDelay is? (see p13 of Morris et al.) */
 
     return pubint;
 }

@@ -42,9 +42,7 @@
 
 /*
 * Set defaults for policies
-* TODO: need to think if we actually want to do this
-* and if it is the appropriate place
-* ALSO if we are doing set then make sure that we set everything 
+* Make sure that we set everything, any new policy items need to be added here.
 */
 void
 kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
@@ -131,23 +129,6 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 void
 kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle)
 {
-	/*
-	 * Connect to the database
-	 * specified on the command line
-	 */
-
-	/*
-	 * TODO There is a memory leak in here somewhere
-	 * ==7572== 16 bytes in 1 blocks are definitely lost in loss record 2 of 3
-	 * ==7572==    at 0x4021BDE: calloc (vg_replace_malloc.c:397)
-	 * ==7572==    by 0x804D40C: MemCalloc (memory.c:58)
-	 * ==7572==    by 0x804B8C9: MsgRegister (message.c:111)
-	 * ==7572==    by 0x804A42D: DbInitialize (database_connection.c:59)
-	 * ==7572==    by 0x804A477: DbConnect (database_connection.c:117)
-	 * ==7572==    by 0x804934E: kaspConnect (ods_kasp.c:39)
-	 * ==7572==    by 0x80492D3: main (ods_enf.c:29)
-	 *
-	 */
     /* Note that all these XML derived strings are unsigned chars */
 	if (DbConnect(handle, (char *)config->schema, (char *)config->host, (char *)config->password, (char *)config->user) != 0) {
         exit(-1);
@@ -161,13 +142,7 @@ kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle)
 void
 kaspDisconnect(DB_HANDLE*handle)
 {
-	/*
-	 * Connect to the database
-	 * specified on the command line
-	 */
-
- (void) DbDisconnect(*handle); 
-
+    (void) DbDisconnect(*handle); 
 }
 
 /*

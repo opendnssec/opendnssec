@@ -118,7 +118,6 @@ DB_HANDLE DbHandle(void);
 /* Various basic information access functions */
 
 int DbExecuteSql(DB_HANDLE handle, const char* stmt_str, DB_RESULT* result);
-/*int DbRowCount(DB_RESULT result);*/
 void DbFreeResult(DB_RESULT result);
 int DbFetchRow(DB_RESULT result, DB_ROW* row);
 void DbFreeRow(DB_ROW row);
