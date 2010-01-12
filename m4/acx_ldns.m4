@@ -37,10 +37,31 @@ AC_DEFUN([ACX_LDNS],[
 	LIBS="$LIBS $LDNS_LIBS"
 
 	AC_CHECK_LIB(ldns, ldns_rr_new,,[AC_MSG_ERROR([Can't find ldns library])])
-	AC_CHECK_FUNC(ldns_sha1,[],[AC_MSG_ERROR([ldns library too old (1.6.0 or later required)])])
-	
-	CPPFLAGS=$tmp_INCLUDES
 	LIBS=$tmp_LIBS
+
+	AC_MSG_CHECKING([for ldns version])
+	AC_LANG_PUSH([C])
+	AC_RUN_IFELSE([
+		AC_LANG_SOURCE([[
+			#include <ldns/ldns.h>
+			int main()
+			{
+			#ifdef LDNS_REVISION
+				if (LDNS_REVISION >= 0x010604)
+					return 0;
+			#endif
+				return 1;
+			}
+		]])
+	],[
+		AC_MSG_RESULT([>= 1.6.4])
+	],[
+		AC_MSG_RESULT([< 1.6.4])
+		AC_MSG_ERROR([ldns library too old (1.6.4 or later required)])
+	],[])
+	AC_LANG_POP([C])
+
+	CPPFLAGS=$tmp_INCLUDES
 
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
