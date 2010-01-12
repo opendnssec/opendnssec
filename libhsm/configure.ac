@@ -58,7 +58,7 @@ AC_REPLACE_FUNCS(strlcpy)
 AC_REPLACE_FUNCS(strlcat)
 
 ACX_LIBXML2
-ACX_LDNS
+ACX_LDNS(1,6,4)
 ACX_DLOPEN
 
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`

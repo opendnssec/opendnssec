@@ -1,4 +1,4 @@
-# $Id: acx_ldns.m4 1428 2009-07-30 10:41:25Z jakob $
+# $Id: acx_ldns.m4 2677 2010-01-12 10:18:52Z jakob $
 
 AC_DEFUN([ACX_LDNS],[
 	AC_ARG_WITH(ldns, 
@@ -40,6 +40,7 @@ AC_DEFUN([ACX_LDNS],[
 	LIBS=$tmp_LIBS
 
 	AC_MSG_CHECKING([for ldns version])
+	CHECK_LDNS_VERSION=m4_format(0x%02x%02x%02x, $1, $2, $3)
 	AC_LANG_PUSH([C])
 	AC_RUN_IFELSE([
 		AC_LANG_SOURCE([[
@@ -47,17 +48,17 @@ AC_DEFUN([ACX_LDNS],[
 			int main()
 			{
 			#ifdef LDNS_REVISION
-				if (LDNS_REVISION >= 0x010604)
+				if (LDNS_REVISION >= $CHECK_LDNS_VERSION)
 					return 0;
 			#endif
 				return 1;
 			}
 		]])
 	],[
-		AC_MSG_RESULT([>= 1.6.4])
+		AC_MSG_RESULT([>= $1.$2.$3])
 	],[
-		AC_MSG_RESULT([< 1.6.4])
-		AC_MSG_ERROR([ldns library too old (1.6.4 or later required)])
+		AC_MSG_RESULT([< $1.$2.$3])
+		AC_MSG_ERROR([ldns library too old ($1.$2.$3 or later required)])
 	],[])
 	AC_LANG_POP([C])
 
