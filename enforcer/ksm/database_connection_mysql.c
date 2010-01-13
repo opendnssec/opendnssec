@@ -194,6 +194,7 @@ int DbDisconnect(DB_HANDLE dbhandle)
 			m_dbhandle = NULL;
 		}
         mysql_close((MYSQL*) dbhandle);
+        mysql_library_end();
     }
     else {
         status = MsgLog(DBS_NOTCONN);

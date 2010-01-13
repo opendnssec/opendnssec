@@ -52,7 +52,7 @@ As a workaround, we suggest that either the same key is used for all zones, or t
 This will be addressed in a future release of the software.
 
 
-Memory Leak if MySQL is Used
+Memory Leak if MySQL is Used - FIXED pre-RC3
 ----------------------------
 There is a memory leak in the MySQL implementation of the key and signature manager database.  The rate of growth of address space depends on the number of keys managed and the frequency with which the enforcer is run, but only becomes significant when OpenDNSSEC is being used to sign thousands of zones.
 

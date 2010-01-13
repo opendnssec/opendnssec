@@ -568,6 +568,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(NULL, LOG_ERR, "Error extracting zone name from %s", zonelist_filename);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
                     continue;
                 }
 
@@ -582,6 +583,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(NULL, LOG_ERR, "Error looking up zone \"%s\" in database (maybe it doesn't exist?)", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
                     continue;
                 }
 
@@ -592,6 +595,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(config, LOG_ERR, "Error: can not read zone \"%s\"; skipping", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
                     continue;
                 }
 
@@ -602,6 +607,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(config, LOG_ERR,"Error: can not create XPath context for \"%s\"; skipping zone", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
                     continue;
                 }
 
@@ -612,6 +619,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone", policy_expr);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
                     continue;
                 }
                 current_policy = NULL;
@@ -630,6 +639,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                         /* Don't return? try to parse the rest of the zones? */
                         log_msg(config, LOG_ERR, "Error reading policy");
                         ret = xmlTextReaderRead(reader);
+                        StrFree(tag_name);
+                        StrFree(zone_name);
                         continue;
                     }
                     log_msg(config, LOG_INFO, "Policy %s found in DB.", policy->name);
@@ -648,6 +659,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone", policy_expr);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
                     continue;
                 }
                 current_filename = NULL;
@@ -663,6 +676,9 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(config, LOG_ERR, "Error allocating zsks to zone %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
+                    StrFree(current_filename);
                     continue;
                 }
                 status2 = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval, zone_name);
@@ -670,6 +686,9 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(config, LOG_ERR, "Error allocating ksks to zone %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
+                    StrFree(current_filename);
                     continue;
                 }
 
@@ -679,12 +698,18 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
+                    StrFree(current_filename);
                     continue;
                 }
                 else if (status2 != 0) {
                     log_msg(config, LOG_ERR, "Error writing signconf for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
+                    StrFree(tag_name);
+                    StrFree(zone_name);
+                    StrFree(current_filename);
                     continue;
                 }
 

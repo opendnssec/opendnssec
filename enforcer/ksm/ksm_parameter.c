@@ -278,6 +278,7 @@ void KsmParameterEnd(DB_RESULT result)
 int KsmParameterValue(const char* name, const char* category, int* value, int policy_id, int* parameter_id)
 {
     DB_RESULT       handle;     /* Handle to the parameter information */
+    DB_RESULT       handle2;     /* Handle to the parameter information */
     KSM_PARAMETER   data;       /* Parameter data */
     int             status;     /* Status return */
 
@@ -296,7 +297,7 @@ int KsmParameterValue(const char* name, const char* category, int* value, int po
             *parameter_id = data.parameter_id;
         }
         else if (status == -1) {
-            status = KsmParameterExist(&handle, name, category, parameter_id);
+            status = KsmParameterExist(&handle2, name, category, parameter_id);
             if (status == 0) {
                 /* parameter by that name exists, but is not set */
                 status = -2;
@@ -304,12 +305,13 @@ int KsmParameterValue(const char* name, const char* category, int* value, int po
             else {
                 status = MsgLog(KME_NOSUCHPAR, name);
             }
+            DbFreeResult(handle2);
         }
 
         /* ... and tidy up */
 
-        KsmParameterEnd(handle);
     }
+    DbFreeResult(handle);
 
     return status;
 }

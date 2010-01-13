@@ -15,6 +15,7 @@ Bugfixes:
 * Enforcer: There was a flaw in the implementation of the timing code (it 
   follows an earlier version of the draft and at one point does not add on 
   the safety margin).
+* Enforcer: MySQL memory leaks fixed.
 
 
 OpenDNSSEC 1.0.0rc2 - 2009-12-16

@@ -266,12 +266,12 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      *
      *      TTLdsp  = TTL of the DS record in the parent
      *      Dpp     = Propagation delay
-     *      Dr      = Registration delay
+     *      Dr      = Registration delay (Currently unused)
      *      Sp      = Publish Safety Margin
      *
      */
     Ipp = collection->kskttl +
-            collection->kskpropdelay + collection->regdelay + collection->pub_safety;
+            collection->kskpropdelay /*+ collection->regdelay*/ + collection->pub_safety;
 
         deltat = MAX(Ipc, Ipp);
 
