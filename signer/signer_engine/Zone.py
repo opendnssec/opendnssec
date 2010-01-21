@@ -298,9 +298,12 @@ class Zone:
                 "-f", self.get_zone_input_filename(),
                 "-w", self.get_zone_tmp_filename(".sorted")
               ]
-        if self.zone_config.soa_minimum >= 0:
+        if self.zone_config.soa_minimum is not None:
             cmd.append("-m")
             cmd.append(str(self.zone_config.soa_minimum))
+        if self.zone_config.dnskey_ttl is not None:
+            cmd.append("-t")
+            cmd.append(str(self.zone_config.dnskey_ttl))
         sort_process = Util.run_tool(cmd, subprocess.PIPE)
         
         try:
@@ -432,9 +435,12 @@ class Zone:
                 "-o", self.zone_name,
                 "-w", self.get_zone_tmp_filename(".signed.sorted")
               ]
-        if self.zone_config.soa_minimum >= 0:
+        if self.zone_config.soa_minimum is not None:
             cmd.append("-m")
             cmd.append(str(self.zone_config.soa_minimum))
+        if self.zone_config.dnskey_ttl is not None:
+            cmd.append("-t")
+            cmd.append(str(self.zone_config.dnskey_ttl))
         sort_process = Util.run_tool(cmd, subprocess.PIPE)
         
         # sort published keys and zone data

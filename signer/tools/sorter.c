@@ -191,6 +191,7 @@ usage(FILE *out)
 	fprintf(out, "Sorts the zone read from stdin in canonical order.\n");
 	fprintf(out, "Options:\n");
 	fprintf(out, "-m <minimum>\tSOA minimum\n");
+	fprintf(out, "-t <ttl>\tDNSKEY ttl\n");
 	fprintf(out, "-o <origin>\tZone origin\n");
 	fprintf(out, "-f <file>\tRead zone from <file> instead of stdin\n");
 	fprintf(out, "-w <file>\tWrite sorted zone to <file> instead of stdout\n");
@@ -353,8 +354,8 @@ main(int argc, char **argv)
 
 	/* for readig RRs */
 	ldns_status status = LDNS_STATUS_OK;
-	uint32_t default_ttl = 0;
-	int soa_minimum_set = 0;
+	uint32_t default_ttl = 0, dnskey_ttl = 0;
+	int soa_minimum_set = 0, dnskey_ttl_set = 0;
 	ldns_rdf *zone_name = NULL, *origin = NULL, *tmp;
 	ldns_rdf *prev_name = NULL;
 	int line_nr = 0;
@@ -365,7 +366,7 @@ main(int argc, char **argv)
 	rr_files[0] = stdin;
 	out_file = stdout;
 
-	while ((c = getopt(argc, argv, "f:hm:o:w:")) != -1) {
+	while ((c = getopt(argc, argv, "f:hm:o:t:w:")) != -1) {
 		switch (c) {
 		case 'f':
 			if (rr_files[0] != stdin) {
@@ -384,6 +385,10 @@ main(int argc, char **argv)
 		case 'm':
 			soa_minimum_set = 1;
 			default_ttl = atoi(optarg);
+			break;
+		case 't':
+			dnskey_ttl_set = 1;
+			dnskey_ttl = atoi(optarg);
 			break;
 		case 'h':
 			usage(stdout);
@@ -473,6 +478,10 @@ main(int argc, char **argv)
 						cur_rr = NULL;
 						continue;
 					}
+					if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_DNSKEY && dnskey_ttl_set) {
+						ldns_rr_set_ttl(cur_rr, dnskey_ttl);
+					}
+
 					cur_rr_data = rr_data_new();
 					cur_rr_data->name = ldns_rdf_clone(ldns_rr_owner(cur_rr));
 					cur_rr_data->type = ldns_rr_get_type(cur_rr);

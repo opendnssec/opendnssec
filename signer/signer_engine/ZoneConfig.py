@@ -63,6 +63,7 @@ class ZoneConfig:
         self.denial_nsec3_iterations = 0
         self.denial_nsec3_salt = None
         self.nsec3_param_rr = None
+        self.dnskey_ttl = None
         self.keys = {}
         self.signature_keys = []
         self.publish_keys = []
@@ -252,6 +253,10 @@ class ZoneConfig:
                 int(Util.get_xml_data("Hash/Iterations", nsec3_xml))
             self.denial_nsec3_salt = \
                 Util.get_xml_data("Hash/Salt", nsec3_xml, 1)
+
+        self.dnskey_ttl = Util.parse_duration(
+            Util.get_xml_data("SignerConfiguration/Zone/Keys/TTL",
+                              signer_config, True))
 
         self.soa_ttl = Util.parse_duration(
             Util.get_xml_data("SignerConfiguration/Zone/SOA/TTL",
