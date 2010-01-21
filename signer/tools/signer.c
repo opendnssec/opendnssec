@@ -349,8 +349,6 @@ is_same_rrset(ldns_rr *a, ldns_rr *b)
 	} else if (ldns_dname_compare(ldns_rr_owner(a),
 	                              ldns_rr_owner(b)) != 0) {
 		return false;
-	} else if (ldns_rr_ttl(a) != ldns_rr_ttl(b)) {
-		return false;
 	} else {
 		return true;
 	}
@@ -765,6 +763,7 @@ read_rrset(rrset_reader_t *reader, FILE *out,
 		}
 		if (ldns_rr_list_rr_count(rrset) > 0) {
 			if (is_same_rrset(ldns_rr_list_rr(rrset, 0), rr)) {
+				ldns_rr_set_ttl(rr, ldns_rr_ttl(ldns_rr_list_rr(rrset, 0)) );
 				ldns_rr_list_push_rr(rrset, rr);
 			} else {
 				reader->skipped_rr = rr;
@@ -907,7 +906,7 @@ rr_list_delegation_only(ldns_rdf *origin, ldns_rr_list *rr_list)
 }
 
 static ldns_status
-signature_verifies(ldns_rr_list* rrset, ldns_rr* sig, const hsm_key_t *key,	const hsm_sign_params_t *params)
+signature_verifies(ldns_rr_list* rrset, ldns_rr* sig, const hsm_key_t *key, const hsm_sign_params_t *params)
 {
 	ldns_status ret = LDNS_STATUS_OK;
 	ldns_rr* dnskey = hsm_get_dnskey(NULL, key, params);
