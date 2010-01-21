@@ -490,8 +490,8 @@ class Zone:
                       "Preprocessing signed zone: " + self.zone_name)
         succeeded = False
 
-        # if we have no signed, preprocessed zone yet, simply return ok
-        if not os.path.exists(self.get_zone_tmp_filename(".signed.processed")):
+        # if we have no signed, sorted zone yet, simply return ok
+        if not os.path.exists(self.get_zone_tmp_filename(".signed.sorted")):
             syslog.syslog(syslog.LOG_WARNING, "No signed zone yet")
             return True
         
