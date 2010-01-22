@@ -147,7 +147,7 @@ if test "${enable_mysql+set}" = set; then
 
 else
 
-	ACX_SQLITE3
+	ACX_SQLITE3(1)
 
 	DB_TYPE=sqlite3 
 	DB_INCLUDES=$SQLITE3_INCLUDES 

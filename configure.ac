@@ -28,7 +28,6 @@ if test -z "$PERL"; then
    AC_MSG_ERROR([perl not found])
 fi
 ACX_CUNIT
-ACX_SQLITE3
 AM_PATH_PYTHON
 ACX_DBPARAMS
 
