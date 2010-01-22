@@ -1,27 +1,20 @@
-# $Id: acx_sqlite3.m4 1543 2009-08-10 11:15:52Z jakob $
+# $Id: acx_sqlite3.m4 2694 2010-01-22 10:05:57Z rb $
 
 AC_DEFUN([ACX_SQLITE3],[
-	CHECK_SQLITE_BIN=$1
-
 	AC_ARG_WITH(sqlite3,
         	AC_HELP_STRING([--with-sqlite3=PATH],[Specify prefix of path of SQLite3]),
 		[
 			SQLITE3_PATH="$withval"
-			if test "x$CHECK_SQLITE_BIN" != "x0"; then
-				AC_PATH_PROGS(SQLITE3, sqlite3, sqlite3, $withval/bin)
-			fi
+			AC_PATH_PROGS(SQLITE3, sqlite3, sqlite3, $withval/bin)
 			
 		],[
 			SQLITE3_PATH="/usr/local"
-			if test "x$CHECK_SQLITE_BIN" != "x0"; then
-				AC_PATH_PROGS(SQLITE3, sqlite3, sqlite3, $PATH)
-			fi
+			AC_PATH_PROGS(SQLITE3, sqlite3, sqlite3, $PATH)
 		])
+
 	
-	if test "x$CHECK_SQLITE_BIN" != "x0"; then
-		if ! test -x "$SQLITE3"; then
-			AC_MSG_ERROR([sqlite3 command not found])
-		fi
+	if ! test -x "$SQLITE3"; then
+		AC_MSG_ERROR([sqlite3 command not found])
 	fi
 	
 	AC_MSG_CHECKING(what are the SQLite3 includes)
