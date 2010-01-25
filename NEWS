@@ -1,10 +1,11 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.0.0rc3 - 2010-01-25
 
 * A code review was performed by members of the project group. No serious 
   problem was found. The code review resulted in some polishing of the code.
-* Dnsruby-1.42 is now required, it fixes issues with TXT and NAPTR record parsing.
+* Dnsruby-1.42 is now required, it fixes issues with TXT and NAPTR record
+  parsing.
 * ldns 1.6.4 is now required.
 * Known issues has been moved from NEWS to KNOWN_ISSUES.
 
@@ -16,10 +17,11 @@ Bugfixes:
   follows an earlier version of the draft and at one point does not add on 
   the safety margin).
 * Enforcer: MySQL memory leaks fixed.
-* Signer Engine: When changing policy or rollover a key, the old signed zone was not found,
+* Signer Engine: When changing policy or rollover a key, the old signed zone
+  was not found,
   so always resulting in a fresh resign.
-* Signer Engine: RRsets with varying TTLs on the records where considered different RRsets,
-  the signer engine now eqaulizes those TTLs.
+* Signer Engine: RRsets with varying TTLs on the records where considered
+  different RRsets, the signer engine now eqaulizes those TTLs.
 
 OpenDNSSEC 1.0.0rc2 - 2009-12-16
 
