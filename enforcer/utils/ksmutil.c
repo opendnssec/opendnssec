@@ -4736,10 +4736,6 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     xmlNodePtr parent_ds_node;
     xmlNodePtr parent_soa_node;
 
-    xmlNodePtr audit_node;
-    xmlNodePtr encNode;
-    int ret = 0; /* status of the XML parsing */
-
     char temp_time[32];
    
     root = xmlDocGetRootElement(doc);
@@ -4874,18 +4870,9 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     snprintf(temp_time, 32, "PT%dS", policy->parent->soa_min);
     (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"Minimum", (const xmlChar *)temp_time);
 
-    /* AUDIT */
+    /* AUDIT (Currently this either exists and is empty or it doesn't) */
     if (strncmp(policy->audit, "NULL", 4) != 0) {
-        audit_node = xmlNewChild(policy_node, NULL, (const xmlChar *)"Audit", NULL);
-
-        ret = xmlParseInNodeContext(audit_node, policy->audit, strlen(policy->audit), 0, &encNode);
-
-        if (ret < 0) {
-            (void) xmlNewChild(policy_node, NULL, (const xmlChar *)"Error", (const xmlChar *)"audit tag contents could not be parsed");
-        }
-        else {
-            xmlAddChild(audit_node, encNode);
-        }
+        (void) xmlNewChild(policy_node, NULL, (const xmlChar *)"Audit", NULL);
     }
 
     return(0);
