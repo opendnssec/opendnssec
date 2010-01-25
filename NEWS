@@ -1,5 +1,10 @@
 $Id$
 
+OpenDNSSEC trunk
+
+* ...
+
+
 OpenDNSSEC 1.0.0rc3 - 2010-01-25
 
 * A code review was performed by members of the project group. No serious 
@@ -22,6 +27,7 @@ Bugfixes:
   so always resulting in a fresh resign.
 * Signer Engine: RRsets with varying TTLs on the records where considered
   different RRsets, the signer engine now eqaulizes those TTLs.
+
 
 OpenDNSSEC 1.0.0rc2 - 2009-12-16
 
