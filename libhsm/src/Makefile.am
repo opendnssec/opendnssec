@@ -3,7 +3,7 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS =	-I$(srcdir)/.. \
-		-I$(srcdir)/cryptoki \
+		-I$(srcdir)/cryptoki_compat \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@
 AM_CFLAGS =	-std=c99
 
@@ -21,5 +21,5 @@ ods_hsmutil_LDADD = libhsm.la
 ods_hsmspeed_SOURCES = hsmspeed.c
 ods_hsmspeed_LDADD = libhsm.la -lpthread
 
-EXTRA_DIST = $(srcdir)/cryptoki/*.h
+EXTRA_DIST = $(srcdir)/cryptoki_compat/*.h
 EXTRA_DIST += $(srcdir)/compat/*.c $(srcdir)/compat/*.h
