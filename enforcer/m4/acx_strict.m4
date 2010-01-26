@@ -1,4 +1,4 @@
-# $Id: acx_strict.m4 1122 2009-06-24 10:37:50Z jakob $
+# $Id$
 
 AC_DEFUN([ACX_STRICT],[
 	AC_ARG_ENABLE(

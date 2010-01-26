@@ -1,4 +1,4 @@
-# $Id: am_path_ruby.m4 1125 2009-06-24 10:41:39Z jakob $
+# $Id$
 #
 # AM_PATH_RUBY([MINIMUM-VERSION], [ACTION-IF-FOUND], [ACTION-IF-NOT-FOUND])
 # ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-# $Id: acx_sqlite3.m4 1543 2009-08-10 11:15:52Z jakob $
+# $Id$
 
 AC_DEFUN([ACX_PYTHON_MODULE],[
 

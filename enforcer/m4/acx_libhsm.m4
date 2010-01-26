@@ -1,4 +1,4 @@
-# $Id: acx_libhsm.m4 2152 2009-10-08 08:51:13Z jakob $
+# $Id$
 
 AC_DEFUN([ACX_LIBHSM],[
 	AC_ARG_WITH(libhsm, 
