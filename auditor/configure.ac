@@ -10,7 +10,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
-AM_PATH_RUBY([], [], [])
+AM_PROG_RUBY
 ACX_RUBY_LIBRARY([rubygems syslog openssl xsd/datatypes rexml/document])
 ACX_DNSRUBY(1.42)
 

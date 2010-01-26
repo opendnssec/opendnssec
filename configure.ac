@@ -40,7 +40,7 @@ if test "${enable_auditor+set}" != set; then
 	enable_auditor=yes
 fi
 if test "${enable_auditor}" = yes; then
-	AM_PATH_RUBY([], [], [])
+	AM_PROG_RUBY
 	AC_CONFIG_SUBDIRS([ auditor ])
 fi
 AM_CONDITIONAL([ENABLE_AUDITOR], [test "${enable_auditor}" = "yes"])
