@@ -61,51 +61,7 @@ ACX_LIBXML2
 ACX_LDNS(1,6,4)
 ACX_DLOPEN
 
-full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["${full_sysconfdir}/opendnssec/conf.xml"],[Default configuration file.])
-
-AC_ARG_WITH(pkcs11-softhsm, 
-	AS_HELP_STRING([--with-pkcs11-softhsm=PATH],[specify path of SoftHSM PKCS#11 library to use for regression testing (default PREFIX/lib/libsofthsm.so)]),
-	[ pkcs11_softhsm_module="$withval" ],
-	[ pkcs11_softhsm_module="$prefix/lib/libsofthsm.so" ]
-)
-
-AC_ARG_WITH(pkcs11-sca6000, 
-	AS_HELP_STRING([--with-pkcs11-sca6000=PATH],[specify path of SCA/6000 PKCS#11 library to use for regression testing (default /usr/lib/libpkcs11.so)]),
-	[ pkcs11_sca6000_module="$withval" ],
-	[ pkcs11_sca6000_module="/usr/lib/libpkcs11.so" ]
-)
-
-AC_ARG_WITH(pkcs11-etoken, 
-	AS_HELP_STRING([--with-pkcs11-etoken=PATH],[specify path of Aladdin eToken PKCS#11 library to use for regression testing (default /usr/local/lib/libeTPkcs11.so)]),
-	[ pkcs11_etoken_module="$withval" ],
-	[ pkcs11_etoken_module="/usr/local/lib/libeTPkcs11.so" ]
-)
-
-AC_ARG_WITH(pkcs11-opensc, 
-	AS_HELP_STRING([--with-pkcs11-opensc=PATH],[specify path of OpenSC PKCS#11 library to use for regression testing (default /usr/lib/pkcs11/opensc-pkcs11.so)]),
-	[ pkcs11_opensc_module="$withval" ],
-	[ pkcs11_opensc_module="/usr/lib/pkcs11/opensc-pkcs11.so" ]
-)
-
-AC_ARG_WITH(pkcs11-ncipher, 
-	AS_HELP_STRING([--with-pkcs11-ncipher=PATH],[specify path of nCipher PKCS#11 library to use for regression testing (default /opt/nfast/toolkits/pkcs11/libcknfast.so)]),
-	[ pkcs11_ncipher_module="$withval" ],
-	[ pkcs11_ncipher_module="/opt/nfast/toolkits/pkcs11/libcknfast.so" ]
-)
-
-AC_ARG_WITH(pkcs11-aepkeyper, 
-	AS_HELP_STRING([--with-pkcs11-aepkeyper=PATH],[specify path of AEP Keyper PKCS#11 library to use for regression testing (default /opt/Keyper/PKCS11Provider/pkcs11.so)]),
-	[ pkcs11_aepkeyper_module="$withval" ],
-	[ pkcs11_aepkeyper_module="/opt/Keyper/PKCS11Provider/pkcs11.so" ]
-)
-
-AC_SUBST(pkcs11_softhsm_module)
-AC_SUBST(pkcs11_sca6000_module)
-AC_SUBST(pkcs11_etoken_module)
-AC_SUBST(pkcs11_opensc_module)
-AC_SUBST(pkcs11_ncipher_module)
-AC_SUBST(pkcs11_aepkeyper_module)
+ACX_PKCS11_MODULES
 
 AC_CONFIG_FILES([
 	Makefile
