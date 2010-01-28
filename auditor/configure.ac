@@ -11,7 +11,7 @@ AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
 AM_PROG_RUBY
-ACX_RUBY_LIBRARY([rubygems syslog openssl xsd/datatypes rexml/document])
+ACX_RUBY_LIBRARY([syslog openssl xsd/datatypes rexml/document])
 ACX_DNSRUBY(1.42)
 
 # check for xmllint
