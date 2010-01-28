@@ -52,12 +52,7 @@ void log_close(void)
 static void
 log_vmsg(int priority, const char* s, va_list args)
 {
-    char message[ODD_MAXLEN];
-
-    vsnprintf(message, sizeof(message), s, args);
-
-    if (logging_to_syslog)
-        syslog(priority, "%s", message);
+    vsyslog(priority, s, args);
 }
 
 void
@@ -97,55 +92,55 @@ facility2int(const char* facility, int* fac)
 	}
 	strtoupper(dup);
 
-    if (strncmp(dup, "USER", 4) && strlen(dup) == 4)
+    if (strncmp(dup, "USER", 4) == 0 && strlen(dup) == 4)
         *fac = LOG_USER;
 #ifdef LOG_KERN
-    else if (strncmp(dup, "KERN", 4) && strlen(dup) == 4)
+    else if (strncmp(dup, "KERN", 4) == 0 && strlen(dup) == 4)
         *fac = LOG_KERN;
 #endif
 #ifdef LOG_MAIL
-    else if (strncmp(dup, "MAIL", 4) && strlen(dup) == 4)
+    else if (strncmp(dup, "MAIL", 4) == 0 && strlen(dup) == 4)
         *fac = LOG_MAIL;
 #endif
 #ifdef LOG_DAEMON
-    else if (strncmp(dup, "DAEMON", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "DAEMON", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_DAEMON;
 #endif
 #ifdef LOG_AUTH
-    else if (strncmp(dup, "AUTH", 4) && strlen(dup) == 4)
+    else if (strncmp(dup, "AUTH", 4) == 0 && strlen(dup) == 4)
         *fac = LOG_AUTH;
 #endif
 #ifdef LOG_LPR
-    else if (strncmp(dup, "LPR", 3) && strlen(dup) == 3)
+    else if (strncmp(dup, "LPR", 3) == 0 && strlen(dup) == 3)
         *fac = LOG_LPR;
 #endif
 #ifdef LOG_NEWS
-    else if (strncmp(dup, "NEWS", 4) && strlen(dup) == 4)
+    else if (strncmp(dup, "NEWS", 4) == 0 && strlen(dup) == 4)
         *fac = LOG_NEWS;
 #endif
 #ifdef LOG_UUCP
-    else if (strncmp(dup, "UUCP", 4) && strlen(dup) == 4)
+    else if (strncmp(dup, "UUCP", 4) == 0 && strlen(dup) == 4)
         *fac = LOG_UUCP;
 #endif
 #ifdef LOG_CRON
-    else if (strncmp(dup, "CRON", 4) && strlen(dup) == 4)
+    else if (strncmp(dup, "CRON", 4) == 0 && strlen(dup) == 4)
         *fac = LOG_CRON;
 #endif
-    else if (strncmp(dup, "LOCAL0", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "LOCAL0", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_LOCAL0;
-    else if (strncmp(dup, "LOCAL1", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "LOCAL1", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_LOCAL1;
-    else if (strncmp(dup, "LOCAL2", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "LOCAL2", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_LOCAL2;
-    else if (strncmp(dup, "LOCAL3", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "LOCAL3", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_LOCAL3;
-    else if (strncmp(dup, "LOCAL4", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "LOCAL4", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_LOCAL4;
-    else if (strncmp(dup, "LOCAL5", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "LOCAL5", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_LOCAL5;
-    else if (strncmp(dup, "LOCAL6", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "LOCAL6", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_LOCAL6;
-    else if (strncmp(dup, "LOCAL7", 6) && strlen(dup) == 6)
+    else if (strncmp(dup, "LOCAL7", 6) == 0 && strlen(dup) == 6)
         *fac = LOG_LOCAL7;
 
     return 0;

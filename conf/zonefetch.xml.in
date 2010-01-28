@@ -7,6 +7,13 @@
 	<!-- DEFAULT: do not listen to notify on specific address -->
 	<NotifyListen><Port>53</Port></NotifyListen>
 
+    <!-- To listen on a specific address, use: -->
+<!--
+    <NotifyListen>
+        <IPv4>192.0.2.100</IPv4><Port>53</Port>
+    </NotifyListen>
+-->
+
 	<!-- default inbound AXFR settings
 	     (per zone setting not yet implemented) -->
 	<Default>

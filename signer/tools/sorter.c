@@ -433,7 +433,7 @@ main(int argc, char **argv)
 			default_ttl = lookup_minimum(rr_files[file_count]);
             rewind(rr_files[file_count]);
 			soa_minimum_set = 1;
-	    }
+		}
 
 		line_len = read_line(rr_files[file_count], line, 1, 0);
 		if (line_len >= 0 && !line_contains_space_only(line, line_len)) {

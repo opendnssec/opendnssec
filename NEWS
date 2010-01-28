@@ -2,7 +2,7 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
+* Bugreport #89: Signer Engine: bug in logging.c.
 
 
 OpenDNSSEC 1.0.0rc3 - 2010-01-25
