@@ -25,10 +25,14 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'rubygems'
+begin
+  require 'dnsruby'
+rescue LoadError
+  require 'rubygems'
+  require 'dnsruby'
+end
 require 'syslog'
 include Syslog::Constants
-require 'dnsruby'
 include Dnsruby
 require 'kasp_auditor/config.rb'
 require 'kasp_auditor/key_tracker.rb'
