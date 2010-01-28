@@ -125,6 +125,7 @@ This is a utility that allows several different actions to be performed (relativ
         Indicate that a backup of the given repository has been done, all non-backed up keys will now be marked as backed up.
         This is especially important if the repository used has the "RequireBackup" flag set.
         Include this call in a HSM backup process to avoid warnings or errors about using non-backed up keys.
+        Keys generated between a backup being made and the backup done command being run will be erroneously marked as having been backed up. To avoid this, either choose a backup schedule that doesn't run while the enforcer might be generating keys, or shutdown the enforcer while a backup is performed.
 	
 	backup list --repository <repository>     aka -r
 
