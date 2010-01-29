@@ -198,6 +198,7 @@ AC_CONFIG_FILES([
 	ksm/include/ksm/Makefile
 	common/Makefile
 	enforcerd/Makefile
+	enforcerd/ods-enforcerd.8
 	utils/Makefile
 	test/Makefile
 ])

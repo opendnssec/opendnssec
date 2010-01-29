@@ -13,6 +13,7 @@ AM_CPPFLAGS = \
 	@LDNS_INCLUDES@
 
 sbin_PROGRAMS = ods-enforcerd
+man8_MANS = ods-enforcerd.8
 
 ods_enforcerd_SOURCES = enforcer.c
 ods_enforcerd_LDADD = ../common/libenforcer.a ../ksm/libksm.a

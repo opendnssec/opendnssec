@@ -6,6 +6,7 @@ signerdir =	@libdir@/opendnssec/signer
 
 bin_SCRIPTS =	ods-signer
 sbin_SCRIPTS =	ods-signerd
+man8_MANS =	ods-signerd.8
 
 signer_PYTHON = \
 	Engine.py \

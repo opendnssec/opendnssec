@@ -78,6 +78,7 @@ AC_CONFIG_FILES([
 	signer_engine/EngineConfig.py
 	signer_engine/ods-signer
 	signer_engine/ods-signerd
+	signed_engine/ods-signerd.8	
 ])
 
 # Check for some target-specific stuff
