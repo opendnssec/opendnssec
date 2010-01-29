@@ -1,0 +1,85 @@
+.TH "ods-enforcerd" "8" "DATE" "OpenDNSSEC" "OpenDNSSEC ods-enforcerd 1.0.0"
+.\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
+.\" See LICENSE for the license.
+.SH "NAME"
+.LP
+.B ods\-enforcerd
+\- OpenDNSSEC Policy Enforcer daemon (version 1.0.0).
+.SH "SYNOPSIS"
+.LP
+.B ods\-enforcerd
+.RB [ \-c 
+.IR FILE] 
+.RB [ \-d ] 
+.RB [ \-1 ] 
+.RB [ \-P 
+.IR PIDFILE ]
+.RB [ \-v ] 
+.RB [ \-h ] 
+.SH "DESCRIPTION"
+.LP
+ods\-enforcerd is part of the OpenDNSSEC software. It will enforce any policies
+that you have set up for zones under the control of OpenDNSSEC (including the generation of keys if configured to).
+For more information, go to
+.B http://www.opendnssec.org
+and visit the Documentation page.
+.LP
+Invoked with no arguments, ods\-enforcerd will read the default configuration file /etc/opendnssec/conf.xml and act according to its contents.
+.P
+.SH "OPTIONS"
+.LP
+.TP
+.B \-c\fI FILE
+Use alternate conf.xml.
+.TP
+.B \-d
+Run in debug mode.
+.TP
+.B \-1
+Run once, then exit.
+.TP
+.B \-P\fI PIDFILE
+Use alternate process-id file.
+.TP
+.B \-v
+Print the version, then exit.
+.TP
+.B \-h
+Show help, then exit.
+.P
+.SH "SIGNALS"
+.LP
+.TP
+The ods\-enforcerd can be controlled using the ods\-control utility. Signals may also be used.
+.TP
+SIGHUP   
+ods\-enforcerd runs on a schedule defined in conf.xml; this signal will interrupt that and force the daemon to wake up.
+.TP
+SIGINT, SIGTERM
+Force the daemon to stop (if it is running it will finish what it is doing first).
+.SH "CONFIGURATION"
+.LP
+The configuration of ods\-enforcerd is contained in the conf.xml file; the options available are described in the OpenDNSSEC documentation.
+.SH "DIAGNOSTICS"
+.LP
+will log all the problems via the standard syslog(8)
+.I daemon
+facility.
+.SH "FILES"
+.LP
+.TP
+/etc/opendnssec/conf.xml
+default configuration file.
+.TP
+/var/run/opendnssec/enforcerd.pid
+default process-id file.
+.P
+.SH "SEE ALSO"
+.LP
+ods\-auditor(1), ods\-control(8), ods\-hsmspeed(1), ods\-hsmutil(1), 
+ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(1), ods\-signerd(8)
+
+.SH "AUTHORS"
+.LP
+.B ods\-enforcerd
+was written by John Dickinson and Nominet as part of the OpenDNSSEC project.
