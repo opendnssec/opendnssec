@@ -1,6 +1,6 @@
 # $Id$
 
-m4_sinclude([../version.m4])
+m4_sinclude([version.m4])
 
 AC_PREREQ(2.61)
 AC_INIT([opendnssec-libhsm], OPENDNSSEC_VERSION)
