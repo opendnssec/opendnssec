@@ -11,7 +11,7 @@ MAINTAINERCLEANFILES = \
 
 SUBDIRS = solaris
 
-bin_SCRIPTS = ods-control
+sbin_SCRIPTS = ods-control
 
 man1_MANS = opendnssec.1.in
 man5_MANS = ods-timing.5.in
