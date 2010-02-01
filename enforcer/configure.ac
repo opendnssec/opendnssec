@@ -200,6 +200,7 @@ AC_CONFIG_FILES([
 	enforcerd/Makefile
 	enforcerd/ods-enforcerd.8
 	utils/Makefile
+	utils/ods-ksmutil.1
 	test/Makefile
 ])
 
