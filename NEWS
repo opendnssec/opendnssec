@@ -2,10 +2,13 @@ $Id$
 
 OpenDNSSEC trunk
 
-* Bugreport #89: Signer Engine: bug in logging.c.
 * Added manual pages for ods-ksmutil(1), ods-enforcerd(8), ods-signerd(8),
   ods-timing(5), opendnssec(7).
 * Move ods-control from PREFIX/bin to PREFIX/sbin.
+
+Bugfixes:
+* Bugreport #89: Signer Engine: bug in logging.c.
+* Auditor: Had some problems with escaped characters in domain names
 
 
 OpenDNSSEC 1.0.0rc3 - 2010-01-25
