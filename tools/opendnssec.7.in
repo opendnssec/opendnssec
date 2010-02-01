@@ -43,7 +43,7 @@ The other daemon is the Signer Engine, which in turn signs the zone content.
 It retrieves that content from a file or through AXFR, and publishes a signed
 version of the zone into a file or through AXFR.  Direct interaction with the
 Signer Engine, although not normally necessary, is possible through the
-.I ods\-signer(1)
+.I ods\-signer(8)
 command.
 .PP
 The keys that sign the zones are managed by an independent repository, which
@@ -86,7 +86,7 @@ OpenDNSSEC.
 .SH "SEE ALSO"
 .LP
 ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
-ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(1),
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(8),
 ods\-signerd(8), ods\-timing(5),
 .B http://www.opendnssec.org/
 .SH "AUTHORS"
