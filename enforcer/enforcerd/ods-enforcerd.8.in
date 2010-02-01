@@ -5,7 +5,7 @@
 .SH "NAME"
 .LP
 .B ods\-enforcerd
-\- OpenDNSSEC Policy Enforcer daemon (version 1.0.0).
+\- OpenDNSSEC Policy Enforcer daemon
 .SH "SYNOPSIS"
 .LP
 .B ods\-enforcerd

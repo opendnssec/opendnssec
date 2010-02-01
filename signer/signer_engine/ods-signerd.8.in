@@ -5,7 +5,7 @@
 .SH "NAME"
 .LP
 .B ods\-signerd
-\- OpenDNSSEC Signer Engine daemon (version 1.0.0).
+\- OpenDNSSEC Signer Engine daemon
 .SH "SYNOPSIS"
 .LP
 .B ods\-signerd
