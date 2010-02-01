@@ -4,7 +4,7 @@ OpenDNSSEC trunk
 
 * Added manual pages for ods-ksmutil(1), ods-enforcerd(8), ods-signerd(8),
   ods-timing(5), opendnssec(7).
-* Move ods-control from PREFIX/bin to PREFIX/sbin.
+* Move ods-control & ods-signer from PREFIX/bin to PREFIX/sbin.
 
 Bugfixes:
 * Bugreport #89: Signer Engine: bug in logging.c.
