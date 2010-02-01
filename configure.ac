@@ -58,6 +58,7 @@ AC_CONFIG_FILES([
 	tools/solaris/ods-signerd.init
 	tools/ods-timing.5
 	tools/opendnssec.7
+	tools/ods-control.8
 	contrib/Makefile
 ])
 

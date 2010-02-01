@@ -15,3 +15,4 @@ sbin_SCRIPTS = ods-control
 
 man5_MANS = ods-timing.5
 man7_MANS = opendnssec.7
+man8_MANS = ods-control.8
