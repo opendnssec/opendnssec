@@ -77,6 +77,7 @@ AC_CONFIG_FILES([
 	signer_engine/Engine.py
 	signer_engine/EngineConfig.py
 	signer_engine/ods-signer
+	signer_engine/ods-signer.1
 	signer_engine/ods-signerd
 	signer_engine/ods-signerd.8	
 ])
