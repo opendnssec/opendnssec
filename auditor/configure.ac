@@ -38,7 +38,9 @@ AC_ARG_ENABLE(timeshift,
 AC_CONFIG_FILES([
 	Makefile
 	ods-auditor
+	ods-auditor.1
 	ods-kaspcheck
+	ods-kaspcheck.1
 ])
 
 AC_OUTPUT

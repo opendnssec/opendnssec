@@ -1,0 +1,25 @@
+.TH "ods-kaspcheck" "1" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-kaspcheck 1.0.0"
+.\" $Id$
+.\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
+.\" See LICENSE for the license.
+.SH "NAME"
+.LP
+.SH "SYNOPSIS"
+.LP
+.SH "DESCRIPTION"
+No information yet. Will be updated in a future release.
+.LP
+.SH "OPTIONS"
+.LP
+.SH "DIAGNOSTICS"
+.LP
+.SH "SEE ALSO"
+.LP
+ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-hsmutil(1), ods\-ksmutil(1), ods\-signer(1),
+ods\-signerd(8), ods\-timing(5), opendnssec(7),
+.B http://www.opendnssec.org/
+.SH "AUTHORS"
+.LP
+.B ods\-kaspcheck
+was written by Alex Dalitz and Nominet as part of the OpenDNSSEC project.
