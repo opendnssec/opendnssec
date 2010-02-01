@@ -15,6 +15,8 @@ nobase_include_HEADERS = $(srcdir)/*.h
 
 bin_PROGRAMS = ods-hsmutil ods-hsmspeed
 
+man1_MANS = ods-hsmutil.1 ods-hsmspeed.1
+
 ods_hsmutil_SOURCES = hsmutil.c hsmtest.c
 ods_hsmutil_LDADD = libhsm.la
 

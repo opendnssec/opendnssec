@@ -69,6 +69,8 @@ ACX_PKCS11_MODULES
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
+	src/ods-hsmspeed.1
+	src/ods-hsmutil.1
 	checks/Makefile
 	checks/conf-softhsm.xml
 	checks/conf-sca6000.xml
