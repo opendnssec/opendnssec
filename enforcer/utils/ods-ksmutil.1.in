@@ -1,4 +1,4 @@
-.TH ods-ksmutil 1 DATE OpenDNSSEC "OpenDNSSEC ods-ksmutil"
+.TH "ods-ksmutil" "1" "1 February 2010" OpenDNSSEC "OpenDNSSEC ods-ksmutil"
 .\" Copyright (c) 2010, OpenDNSSEC.  All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
@@ -321,7 +321,9 @@ The location that is usually configured in conf.xml to contain unsigned zones.
 The location that is usually configured in conf.xml to contain signed zones.
 .SH "SEE ALSO"
 .LP
-opendnssec(1), ods\-timing(5),
+ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-signer(1),
+ods\-signerd(8), ods\-timing(5), opendnssec(7),
 .B http://www.opendnssec.org/
 .SH "AUTHOR"
 .LP

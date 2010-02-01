@@ -1,4 +1,4 @@
-.TH "opendnssec" "1" "DATE" "OpenDNSSEC" "OpenDNSSEC overview"
+.TH "opendnssec" "7" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC overview"
 .\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
@@ -86,6 +86,7 @@ OpenDNSSEC.
 .LP
 ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
 ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(1),
+ods\-signerd(8), ods\-timing(5),
 .B http://www.opendnssec.org/
 .SH "AUTHORS"
 .LP

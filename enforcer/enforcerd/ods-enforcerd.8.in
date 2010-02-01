@@ -1,4 +1,4 @@
-.TH "ods-enforcerd" "8" "DATE" "OpenDNSSEC" "OpenDNSSEC ods-enforcerd 1.0.0"
+.TH "ods-enforcerd" "8" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-enforcerd 1.0.0"
 .\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
@@ -76,9 +76,10 @@ default process-id file.
 .P
 .SH "SEE ALSO"
 .LP
-ods\-auditor(1), ods\-control(8), ods\-hsmspeed(1), ods\-hsmutil(1), 
-ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(1), ods\-signerd(8)
-
+ods\-auditor(1), ods\-control(8), ods\-hsmspeed(1),
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(1),
+ods\-signerd(8), ods\-timing(5), opendnssec(7),
+.B http://www.opendnssec.org/
 .SH "AUTHORS"
 .LP
 .B ods\-enforcerd
