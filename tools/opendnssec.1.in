@@ -1,0 +1,94 @@
+.TH "opendnssec" "1" "DATE" "OpenDNSSEC" "OpenDNSSEC overview"
+.\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
+.\" See LICENSE for the license.
+.SH "NAME"
+.LP
+.B OpenDNSSEC
+\- making DNSSEC easy for DNS administrators
+.SH "SYNOPSIS"
+.LP
+.B ods-control start
+.LP
+.B ods-control stop
+.LP
+.B ods-ksmutil
+.RB \fIsubcommand...\fB
+.LP
+.B ods-signer
+.RB [\fIsubcommand...\fB]
+.SH "DESCRIPTION"
+.LP
+OpenDNSSEC is a complete DNSSEC zone signing system which maintains stability and security of signed domains. DNSSEC adds many cryptographic concerns to DNS; OpenDNSSEC automates those to allow current DNS administrators to adopt DNSSEC.
+.PP
+Domain signing is done by placing OpenDNSSEC between the place where the
+zone files are edited and where they are published.  The current version
+of OpenDNSSEC supports files and AXFR to communicate the zone data;
+effectively, OpenDNSSEC acts as a "bump in the wire" between editing and
+publishing a zone.
+.PP
+OpenDNSSEC has two daemons, which are unitedly started and stopped through
+the
+.I ods\-control(8)
+command.
+The two daemons in turn invoke other programs to get their work done.
+.PP
+One of the daemons is the KASP Enforcer, which enforces policies that define
+security and timing requirements for each individual zone.  Operators tend
+to interact with the KASP Enforcer a lot, through the
+.I ods\-ksmutil(1)
+command.
+.PP
+The other daemon is the Signer Engine, which in turn signs the zone content.
+It retrieves that content from a file or through AXFR, and publishes a signed
+version of the zone into a file or through AXFR.  Direct interaction with the
+Signer Engine, although not normally necessary, is possible through the
+.I ods\-signer(1)
+command.
+.PP
+The keys that sign the zones are managed by an independent repository, which
+is accessed over a PKCS #11 interface.  The principle idea of this interface
+being to unleash access to cryptographic hardware, there are implementations
+in software.  Also, implementations range from open to commercial, and from
+very simple to highly secure.  By default, OpenDNSSEC is configured to run on
+top of a SoftHSM, but a few other commands exist to test any
+Hardware Security Module that may sit under the PKCS #11 API.
+.SH "OPERATIONAL PRACTICES"
+The approach used by OpenDNSSEC follows the best current practice of
+two kinds of key per zone:
+.TP
+.B KSK\fR or \fBKey Signing Key
+This key belongs in the apex of a zone, and is referenced in the parent
+zone (quite possibly a registry) in the form of DS records alongside
+NS records.  These parent references function as trust delegations.
+
+The KSK is usually a longer key, and it could harm the efficiency of
+secure resolvers if all individual resource records were signed with it.
+This is why it is advisable to use the KSK only to sign the ZSK.
+
+In DNS records, the KSK can usually be recognised by having its SEP
+(Secure Entry Point) flag set.
+.TP
+.B ZSK\fR or \fBZone Signing Key
+This key also belongs in the apex of a zone, and
+is actually used to sign the resource records in a zone.
+It is a shorter key for reasons of efficiency, that is rolled over
+on a fairly regular basis.  To detach these rollovers from the parent,
+the ZSK is not directly trusted by the parent zone, but instead its
+trust is established by way of a signature by the KSK on the ZSK.
+.PP
+OpenDNSSEC is mindful about the period of validity of each key, and will
+rollover in time to keep the domain signed, with new keys, without any
+downtime for the secure domain.  The only thing that is not standardised,
+and thus cannot be automated at the moment is the interface between a zone
+and its parent, so this has to be done manually, or scripted around
+OpenDNSSEC.
+.SH "SEE ALSO"
+.LP
+ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(1),
+.B http://www.opendnssec.org/
+.SH "AUTHORS"
+.LP
+.B OpenDNSSEC
+was made by the OpenDNSSEC project, to be found on
+.B http://www.opendnssec.org/

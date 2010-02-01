@@ -1,0 +1,88 @@
+.TH ods-timing 5 DATE OpenDNSSEC "OpenDNSSEC timinig"
+.\" Copyright (c) 2010, OpenDNSSEC.  All rights reserved.
+.\" See LICENSE for the license.
+.SH "NAME"
+.LP
+.B ods-timing
+\- OpenDNSSEC timing specification
+.SH "SYNOPSIS"
+.LP
+.B /etc/opendnssec/conf.xml
+.br
+.B /etc/opendnssec/kasp.xml
+.br
+.B /etc/opendnssec/zonelist.xml
+.SH "DESCRIPTION"
+.LP
+The configuration files of OpenDNSSEC need to have timing descriptions,
+notably for periods.  These descriptions follow ISO 8601 with exceptions
+for the duration of a month and a year, as these periods would be allowed
+to vary if ISO 8601 were strictly adhered to.
+.PP
+Durations are represented by the format
+.B P[n]Y[n]M[n]DT[n]H[n]M[n]S
+. In these representations, the
+.B [n]
+is replaced by the value for each of the date and time elements that follow the
+.B [n]
+. Leading zeros are not required. The capital letters \fBP\fR, \fBY\fR,
+\fBM\fR, \fBW\fR, \fBD\fR, \fBT\fR, \fBH\fR, \fBM\fR and \fBS\fR
+are designators for each of the date and time elements and are not replaced.
+.TP
+.B P
+is the duration designator (historically called "period") placed at the start of the duration representation.
+.TP
+.B Y
+is the year designator that follows the value for the number of years.
+.TP
+.B M
+is the month designator that follows the value for the number of months.
+.TP
+.B W
+is the week designator that follows the value for the number of weeks.
+.TP
+.B D
+is the day designator that follows the value for the number of days.
+.TP
+.B T
+is the time designator that precedes the time components of the representation.
+.TP
+.B H
+is the hour designator that follows the value for the number of hours.
+.TP
+.B M
+is the minute designator that follows the value for the number of minutes.
+.TP
+.B S
+is the second designator that follows the value for the number of seconds. 
+.PP
+For example, 
+.B P3Y6M4DT12H30M5S
+represents a duration of "three years, six months, four days, twelve hours, thirty minutes, and five seconds". Date and time elements including their designator may be omitted if their value is zero, and lower order elements may also be omitted for reduced precision. For example,
+.B P23DT23H
+and
+.B P4Y
+are both acceptable duration representations.
+.SH "EXCEPTION"
+.LP
+A year or month vary in duration depending on the current date. For OpenDNSSEC, we assume fixed values
+.TP
+.B One month
+is assumed to be 31 days.
+.TP
+.B One year
+is assumed to be 365 days. 
+.PP
+This exception may or may not change in future releases of OpenDNSSEC.
+The reason for making this exception is to avoid complicating this
+software in a way that may not meet any practical need.
+.SH "SEE ALSO"
+.LP
+opendnssec(1),
+ISO 8601,
+.B http://www.opendnssec.org/
+.SH "AUTHORS" 
+.LP
+.B OpenDNSSEC
+was made by the OpenDNSSEC project, to be found on
+.B http://www.opendnssec.org/
