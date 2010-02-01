@@ -13,5 +13,5 @@ SUBDIRS = solaris
 
 sbin_SCRIPTS = ods-control
 
-man5_MANS = ods-timing.5.in
-man7_MANS = opendnssec.7.in
+man5_MANS = ods-timing.5
+man7_MANS = opendnssec.7
