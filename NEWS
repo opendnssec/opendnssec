@@ -5,8 +5,8 @@ OpenDNSSEC trunk
 * Added manual pages for ods-auditor(1), ods-control(8), ods-enforcerd(8),
   ods-signerd(8), ods-signer(8), ods-hsmpseed(1), ods-hsmutil(1), 
   ods-kaspcheck(1), ods-ksmutil(1), ods-timing(5), opendnssec(7).
-
 * Move ods-control & ods-signer from PREFIX/bin to PREFIX/sbin.
+* Dnsruby-1.43 is now required
 
 Bugfixes:
 * Bugreport #89: Signer Engine: bug in logging.c.
