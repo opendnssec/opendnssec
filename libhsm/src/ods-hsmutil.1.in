@@ -1,18 +1,63 @@
-.TH "ods-hsmutil" "1" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-hsmutil"
+.TH "ods-hsmutil" "1" "2 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-hsmutil"
 .\" $Id$
 .\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
+.B ods\-hsmutil
+\- OpenDNSSEC HSM utility
 .SH "SYNOPSIS"
 .LP
+.B ods\-hsmutil
+.RB [ \-c
+.IR config ]
+.RB [ \-v ]
+.B command 
+.RB [ options ]
 .SH "DESCRIPTION"
-No information yet. Will be updated in a future release.
 .LP
+The ods\-hsmutil utility is mainly used for debugging or testing. It is 
+designed to interact directly with your HSM and can be used to manually 
+list, create or delete keys. It can also be used to perform a set of 
+basics HSM tests. Be careful before creating or deleting keys using 
+ods\-hsmutil, as the changes are not syncronized with the KASP Enforcer.
+
+The repositories are configured by the user in the OpenDNSSEC configuration
+file. The configuration contains the name of the repository, the token label,
+the user PIN, and the path to its shared library.
+.SH "COMMANDS"
+.LP
+.TP
+\fBlist\fR [\fIrepository\fR]
+List the keys that are available in all or one \fIrepository\fR
+.TP
+\fBgenerate\fR \fIrepository\fR \fBrsa\fR \fIkeysize\fR
+Generate a new RSA key with the given \fIkeysize\fR in the \fIrepository\fR
+.TP
+\fBremove\fR \fIid\fR
+Delete the key with the given \fIid\fR
+.TP
+\fBpurge\fR \fIrepository\fR
+Delete all keys in one \fIrepository\fR
+.TP
+\fBdnskey\fR \fIid\fR \fIname\fR 
+Create a DNSKEY RR for the given owner \fIname\fR based on the key with this \fIid\fR
+.TP
+\fBtest\fR \fIrepository\fR
+Perform a number of test on a \fIrepository\fR
 .SH "OPTIONS"
 .LP
-.SH "DIAGNOSTICS"
-.LP
+.TP
+\fB\-c\fR \fIconfig\fR
+Path to a OpenDNSSEC configuration file
+
+(defaults to /etc/opendnssec/conf.xml)
+.TP
+\fB\-h\fR
+Show the help screen
+.TP
+\fB\-v\fR
+Output more information by increasing the verbosity level
 .SH "SEE ALSO"
 .LP
 ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
