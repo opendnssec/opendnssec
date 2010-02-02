@@ -1,18 +1,44 @@
-.TH "ods-control" "8" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-control"
+.TH "ods-control" "8" "2 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-control"
 .\" $Id$
 .\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
+.B ods\-control
+\- OpenDNSSEC control utility
 .SH "SYNOPSIS"
 .LP
+.B ods\-control ksm ...
+.br
+.B ods\-control hsm ...
+.br
+.B ods\-control signer ...
+.br
+.B ods\-control start
+.br
+.B ods\-control stop
 .SH "DESCRIPTION"
-No information yet. Will be updated in a future release.
 .LP
+ods\-control is a helper utility which gives a combined interface for different
+command utilities within OpenDNSSEC. It can also start and stop OpenDNSSEC by 
+controlling the two daemons.
 .SH "OPTIONS"
 .LP
-.SH "DIAGNOSTICS"
-.LP
+.TP
+\fBksm\fR
+The remainder of the command line will be sent to the ods\-ksmutil utility
+.TP
+\fBhsm\fR
+The remainder of the command line will be sent to the ods\-hsmutil utility
+.TP
+\fBsigner\fR
+The remainder of the command line will be sent to the ods\-signer utility
+.TP
+\fBstart\fR
+Will start the two daemons of OpenDNSSEC, ods\-enforcerd and ods\-signerd
+.TP
+\fBstop\fR
+Will stop the two daemons of OpenDNSSEC, ods\-enforcerd and ods\-signerd
 .SH "SEE ALSO"
 .LP
 ods\-auditor(1), ods\-enforcerd(8), ods\-hsmspeed(1),
