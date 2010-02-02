@@ -30,7 +30,7 @@ ods\-auditor is a module which provides auditing capabilities to OpenDNSSEC.
 Once an unsigned zone has been signed, this module can be used to check
 that the signing process has run successfully. It checks that no data
 has been lost (or non\-DNSSEC data added), and that all the DNSSEC
-records are correct. It use the OpenDNSSEC standard logging (defined
+records are correct. It uses the OpenDNSSEC standard logging (defined
 in /etc/opendnssec/conf.xml).
 
 The Auditor takes the signed and unsigned zones and compares them. It
@@ -43,7 +43,7 @@ auditing run.
 .LP
 .TP
 \fB\-c\fR, \fB\-\-conf\fR \fIpath\fR
-Path to OpenDNSSEC configuration file
+Path to an OpenDNSSEC configuration file
 
 (defaults to /etc/opendnssec/conf.xml)
 .TP

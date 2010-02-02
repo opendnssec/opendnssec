@@ -25,7 +25,7 @@ inconsistencies. It is advisable to use this tool to check your configuration be
 .LP
 .TP
 \fB\-c\fR, \fB\-\-conf\fR \fIpath\fR
-Path to OpenDNSSEC configuration file
+Path to an OpenDNSSEC configuration file
 
 (defaults to /etc/opendnssec/conf.xml)
 .TP
