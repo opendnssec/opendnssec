@@ -1,7 +1,5 @@
-.TH "ods-control" "8" "2 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-control"
+.TH "ods-control" "8" "February 2010" "OpenDNSSEC" "OpenDNSSEC ods-control"
 .\" $Id$
-.\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
-.\" See LICENSE for the license.
 .SH "NAME"
 .LP
 .B ods\-control

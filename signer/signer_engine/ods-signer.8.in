@@ -1,7 +1,5 @@
-.TH "ods-signer" "1" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-signer"
+.TH "ods-signer" "1" "February 2010" "OpenDNSSEC" "OpenDNSSEC ods-signer"
 .\" $Id$
-.\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
-.\" See LICENSE for the license.
 .SH "NAME"
 .B ods\-signer 
 \- OpenDNSSEC Signer Engine client

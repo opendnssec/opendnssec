@@ -1,7 +1,5 @@
-.TH "ods-hsmutil" "1" "2 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-hsmutil"
+.TH "ods-hsmutil" "1" "February 2010" "OpenDNSSEC" "OpenDNSSEC ods-hsmutil"
 .\" $Id$
-.\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
-.\" See LICENSE for the license.
 .SH "NAME"
 .LP
 .B ods\-hsmutil

@@ -1,7 +1,5 @@
-.TH "opendnssec" "7" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC overview"
+.TH "opendnssec" "7" "February 2010" "OpenDNSSEC" "OpenDNSSEC overview"
 .\" $Id$
-.\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
-.\" See LICENSE for the license.
 .SH "NAME"
 .LP
 .B OpenDNSSEC
