@@ -1,18 +1,74 @@
-.TH "ods-auditor" "1" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-auditor 1.0.0"
+.TH "ods-auditor" "1" "2 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-auditor 1.0.0"
 .\" $Id$
 .\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
+.B ods\-auditor
+\- OpenDNSSEC Auditor
 .SH "SYNOPSIS"
 .LP
+.B ods\-auditor
+.RB [ \-c
+.I path
+.B \-k
+.IR path ]
+.br
+.B ods\-auditor
+.RB [ \-c
+.I path
+.B \-k
+.IR path ]
+.B \-z
+.I name
+.RB [ \-s
+.IR path ]
 .SH "DESCRIPTION"
-No information yet. Will be updated in a future release.
 .LP
+ods\-auditor is a module which provides auditing capabilities to OpenDNSSEC.
+
+Once an unsigned zone has been signed, this module can be used to check
+that the signing process has run successfully. It checks that no data
+has been lost (or non\-DNSSEC data added), and that all the DNSSEC
+records are correct. It use the OpenDNSSEC standard logging (defined
+in /etc/opendnssec/conf.xml).
+
+The Auditor takes the signed and unsigned zones and compares them. It
+first parses both files, and creates transient files which are then
+sorted into canonical order. These files are then processed by the
+Auditor. If processing an NSEC3\-signed file, the Auditor will create
+additional temporary files, which are processed after the main
+auditing run.
 .SH "OPTIONS"
 .LP
-.SH "DIAGNOSTICS"
-.LP
+.TP
+\fB\-c\fR, \fB\-\-conf\fR \fIpath\fR
+Path to OpenDNSSEC configuration file
+
+(defaults to /etc/opendnssec/conf.xml)
+.TP
+\fB\-k\fR, \fB\-\-kasp\fR \fIpath\fR
+Path to KASP policy file
+
+(defaults to the path given in the configuration file)
+.TP
+\fB\-z\fR, \fB\-\-zone\fR \fIname\fR
+Only audit the specified zone
+
+(defaults to audit all zones)
+.TP
+\fB\-s\fR, \fB\-\-signed\fR \fIpath\fR
+If a single zone is specified, then this option may override
+the default location of the signed zone file with another. This is for use by
+the signer.
+
+(defaults to the path given in the zone list)
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+Display version information
+.TP
+\fB\-h\fR, \fB\-?\fR, \fB\-\-help\fR
+Show the help screen
 .SH "SEE ALSO"
 .LP
 ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
