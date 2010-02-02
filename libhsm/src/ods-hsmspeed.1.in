@@ -1,18 +1,64 @@
-.TH "ods-hsmspeed" "1" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-hsmspeed"
+.TH "ods-hsmspeed" "1" "2 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-hsmspeed"
 .\" $Id$
 .\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
+.B ods\-hsmspeed
+\- OpenDNSSEC HSM speed tester
 .SH "SYNOPSIS"
 .LP
+.B ods\-hsmspeed
+.RB [ \-c
+.IR config ]
+.B \-r
+.I repository
+.RB [ \-i
+.IR iterations ]
+.RB [ \-s
+.IR keysize ]
+.RB [ \-t
+.IR threads ]
 .SH "DESCRIPTION"
-No information yet. Will be updated in a future release.
 .LP
+The ods\-hsmspeed utility is part of OpenDNSSEC and can be used to test the
+performance of the configured HSMs.
+
+The components of OpenDNSSEC do not talk directly to the HSMs, but uses 
+an internal library called libhsm. It then talks to the HSMs using PKCS#11. 
+The libhsm simplifies the process of creating keys and signatures for the
+other components of OpenDNSSEC.
+
+ods\-hsmspeed will measure the speed by using the libhsm. The result that you 
+get is somewhat lower than what the manufactures promises, because the libhsm
+creates some overhead to the pure PKCS#11 environment.
 .SH "OPTIONS"
 .LP
-.SH "DIAGNOSTICS"
-.LP
+.TP
+\fB\-c\fR \fIconfig\fR
+Path to an OpenDNSSEC configuration file.
+
+(defaults to /etc/opendnssec/conf.xml)
+.TP
+\fB\-i\fR \fIiterations\fR
+Specify the number of \fIiterations\fR for signing an RRset.
+A higher number of iterations will increase the performance.
+
+(defaults to 1 iteration)
+.TP
+\fB\-r\fR \fIrepository\fR
+The speed test will be performed on this \fIrepository\fR.
+.TP
+\fB\-s\fR \fIkeysize\fR
+A temporary RSA key with the given \fIkeysize\fR will be used for signing.
+
+(defaults to 1024 bit)
+.TP
+\fB\-t\fR \fIthreads\fR
+The number of \fIthreads\fR to use.
+Most HSMs will be utilized better with multiple threads.
+
+(defaults to 1 thread)
 .SH "SEE ALSO"
 .LP
 ods\-auditor(1), ods\-control(8), ods\-enforcerd(8),
@@ -22,4 +68,4 @@ ods\-signerd(8), ods\-timing(5), opendnssec(7),
 .SH "AUTHORS"
 .LP
 .B ods\-hsmspeed
-was written by Jakob Schlyter as part of the OpenDNSSEC project.
+was written by Jakob Schlyter and Nominet as part of the OpenDNSSEC project.
