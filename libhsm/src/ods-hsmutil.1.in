@@ -20,7 +20,7 @@ The ods\-hsmutil utility is mainly used for debugging or testing. It is
 designed to interact directly with your HSM and can be used to manually 
 list, create or delete keys. It can also be used to perform a set of 
 basics HSM tests. Be careful before creating or deleting keys using 
-ods\-hsmutil, as the changes are not syncronized with the KASP Enforcer.
+ods\-hsmutil, as the changes are not synchronized with the KASP Enforcer.
 
 The repositories are configured by the user in the OpenDNSSEC configuration
 file. The configuration contains the name of the repository, the token label,
@@ -44,12 +44,12 @@ Delete all keys in one \fIrepository\fR
 Create a DNSKEY RR for the given owner \fIname\fR based on the key with this \fIid\fR
 .TP
 \fBtest\fR \fIrepository\fR
-Perform a number of test on a \fIrepository\fR
+Perform a number of tests on a \fIrepository\fR
 .SH "OPTIONS"
 .LP
 .TP
 \fB\-c\fR \fIconfig\fR
-Path to a OpenDNSSEC configuration file
+Path to an OpenDNSSEC configuration file
 
 (defaults to /etc/opendnssec/conf.xml)
 .TP
