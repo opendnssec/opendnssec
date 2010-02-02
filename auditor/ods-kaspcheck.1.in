@@ -1,18 +1,44 @@
-.TH "ods-kaspcheck" "1" "1 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-kaspcheck 1.0.0"
+.TH "ods-kaspcheck" "1" "2 February 2010" "OpenDNSSEC" "OpenDNSSEC ods-kaspcheck 1.0.0"
 .\" $Id$
 .\" Copyright (c) 2010, OpenDNSSEC. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
+.B ods\-kaspcheck
+\- Performs a sanity check of the policy for OpenDNSSEC
 .SH "SYNOPSIS"
 .LP
+.B ods\-kaspcheck
+.RB [ \-c
+.I path
+.B \-k
+.IR path ]
 .SH "DESCRIPTION"
-No information yet. Will be updated in a future release.
 .LP
+The OpenDNSSEC XML configuration files (conf.xml and kasp.xml) offer the user many options to configure the OpenDNSSEC signing system. Some syntactic 
+constraints are placed on the configuration by the .rng definition (for example, whether an element is required or optional), but some semantic 
+constraints cannot be defined this way (for example, if NSEC3 is used to secure the zone, then a consistent DNSKEY algorithm choice should be made).
+
+ods\-kaspcheck is provided to check that the configuration files (conf.xml and kasp.xml) are semantically sane and contain no 
+inconsistencies. It is advisable to use this tool to check your configuration before starting to use OpenDNSSEC.
 .SH "OPTIONS"
 .LP
-.SH "DIAGNOSTICS"
-.LP
+.TP
+\fB\-c\fR, \fB\-\-conf\fR \fIpath\fR
+Path to OpenDNSSEC configuration file
+
+(defaults to /etc/opendnssec/conf.xml)
+.TP
+\fB\-k\fR, \fB\-\-kasp\fR \fIpath\fR
+Path to KASP policy file
+
+(defaults to the path given in the configuration file)
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+Display version information
+.TP
+\fB\-h\fR, \fB\-?\fR, \fB\-\-help\fR
+Show the help screen
 .SH "SEE ALSO"
 .LP
 ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
