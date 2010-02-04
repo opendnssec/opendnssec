@@ -46,12 +46,12 @@ case "$1" in
 	
 'signer')
 	shift
-	$prefix/bin/ods-signer $@
+	$prefix/sbin/ods-signer $@
 	;;
 
 'start')
 	echo "Starting signer engine..."
-	$prefix/bin/ods-signer start
+	$prefix/sbin/ods-signer start
 
 	echo "Starting enforcer..."
 	$prefix/sbin/ods-enforcerd
@@ -66,7 +66,7 @@ case "$1" in
 	fi
 
 	echo "Stopping signer engine.."
-	$prefix/bin/ods-signer stop
+	$prefix/sbin/ods-signer stop
 	;;
 	
 *)
