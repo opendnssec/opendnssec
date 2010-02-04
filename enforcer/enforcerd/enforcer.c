@@ -671,7 +671,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 xmlXPathFreeObject(xpathObj);
                 /* TODO should we check that we have not written to this file in this run?*/
                 /* Make sure that enough keys are allocated to this zone */
-                status2 = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval, zone_name);
+                status2 = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval, zone_name, config->manualKeyGeneration);
                 if (status2 != 0) {
                     log_msg(config, LOG_ERR, "Error allocating zsks to zone %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -681,7 +681,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     StrFree(current_filename);
                     continue;
                 }
-                status2 = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval, zone_name);
+                status2 = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval, zone_name, config->manualKeyGeneration);
                 if (status2 != 0) {
                     log_msg(config, LOG_ERR, "Error allocating ksks to zone %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -771,6 +771,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen)
 {
     int status = 0;
+    int status2 = 0;
     FILE *file, *file2;
     int char1, char2;      /* for the comparison between 2 files */
     int same = 0;
@@ -869,24 +870,32 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
          * Something went wrong (it should have been logged) stop this zone.
          * Clean up the files, don't call the signer and move on to the next zone.
          */
-        /* check for the specific case of not having any keys */
-        if(man_key_gen == 1 && status == -1) {
-            status = KsmRequestGenerateCount(KSM_TYPE_KSK, &gencnt, zone_id);
-            if (status == 0 && gencnt == 0) {
-                log_msg(NULL, LOG_ERR, "There are no KSKs in the generate state; please use \"ods-ksmutil key generate\" to make some.\n");
+        log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
+
+        /* check for the specific case of not having any keys 
+        TODO check that this code can ever be executed after the restructure */
+        if (status == -1) {
+            status2 = KsmRequestGenerateCount(KSM_TYPE_KSK, &gencnt, zone_id);
+            if (status2 == 0 && gencnt == 0) {
+                if(man_key_gen == 1) {
+                    log_msg(NULL, LOG_ERR, "There are no KSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
+                } else {
+                    log_msg(NULL, LOG_WARNING, "There are no KSKs in the generate state; ods-enforcerd will create some on its next run.");
+                }
             }
-            else if (status == 0) {
-                status = KsmRequestGenerateCount(KSM_TYPE_ZSK, &gencnt, zone_id);
-                if (status == 0 && gencnt == 0) {
-                    log_msg(NULL, LOG_ERR, "There are no ZSKs in the generate state; please use \"ods-ksmutil key generate\" to make some.\n");
+            else if (status2 == 0) {
+                status2 = KsmRequestGenerateCount(KSM_TYPE_ZSK, &gencnt, zone_id);
+                if (status2 == 0 && gencnt == 0) {
+                    if(man_key_gen == 1) {
+                        log_msg(NULL, LOG_ERR, "There are no ZSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
+                    } else {
+                        log_msg(NULL, LOG_WARNING, "There are no ZSKs in the generate state; ods-enforcerd will create some on its next run.");
+                    }
                 }
             }
             else {
-                log_msg(NULL, LOG_ERR, "KsmRequestGenerateCount returned: %d", status);
+                log_msg(NULL, LOG_ERR, "KsmRequestGenerateCount returned: %d", status2);
             }
-        }
-        else {
-            log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
         }
 
         status = fclose(file);
@@ -1113,6 +1122,8 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
  *          time before next run
  *      zone_name
  *          just in case we need to log something
+ *      man_key_gen
+ *          lack of keys may be an issue for the user to fix
  *
  * Returns:
  *      int
@@ -1123,7 +1134,7 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
  -*/
 
 
-int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name)
+int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen)
 {
     int status = 0;
     int keys_needed = 0;
@@ -1197,7 +1208,14 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
         if (key_type == KSM_TYPE_KSK) {
             status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
-                log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                if (man_key_gen == 0) {
+                    log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    log_msg(NULL, LOG_WARNING, "ods-enforcerd will create some more keys on its next run");
+                }
+                else {
+                    log_msg(NULL, LOG_ERR, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    log_msg(NULL, LOG_ERR, "please use \"ods-ksmutil key generate\" to create some more keys.");
+                }
                 return 2;
             }
             else if (status != 0) {
@@ -1207,7 +1225,14 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
         } else {
             status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
-                log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                if (man_key_gen == 0) {
+                    log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    log_msg(NULL, LOG_WARNING, "ods-enforcerd will create some more keys on its next run");
+                }
+                else {
+                    log_msg(NULL, LOG_ERR, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    log_msg(NULL, LOG_ERR, "please use \"ods-ksmutil key generate\" to create some more keys.");
+                }
                 return 2;
             }
             else if (status != 0) {

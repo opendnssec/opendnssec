@@ -47,7 +47,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy);
 
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen);
 int commKeyConfig(void* context, KSM_KEYDATA* key_data);
-int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name);
+int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen);
 int read_zonelist_filename(const char* filename, char** zone_list_filename);
 int do_purge(int interval, int policy_id);
 
