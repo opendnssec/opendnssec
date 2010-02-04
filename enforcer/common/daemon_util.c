@@ -84,7 +84,7 @@ getPermsForDrop(DAEMONCONFIG* config)
     xmlChar *user_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/User";
     xmlChar *group_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/Group";
 
-    char* filename = CONFIG_FILE;
+    char* filename = NULL;
     char* rngfilename = SCHEMA_DIR "/conf.rng";
     char* temp_char = NULL;
 
@@ -92,6 +92,12 @@ getPermsForDrop(DAEMONCONFIG* config)
     struct group  *grp;
 
     FILE *file;
+
+    if (config->configfile != NULL) {
+        filename = StrStrdup(config->configfile);
+    } else {
+        filename = StrStrdup(CONFIG_FILE);
+    }
 
     /* Load XML document */
     doc = xmlParseFile(filename);
