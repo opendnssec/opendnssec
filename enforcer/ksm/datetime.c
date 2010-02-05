@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 
 #include "config.h"
 
@@ -931,6 +932,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
     int     length;         /* Length of the string */
     int     length_mod = 0; /* How many characters have we chopped off the start? */
     long    multiplier = 1; /* Multiplication factor */
+    long    temp_interval = 1; /* Long version of the int we will send back */
     short   is_time = 0;    /* Do we have a Time section or not */
     short   warning = 0;    /* Do we need to a warning code for duration approximation? */
     short   negative = 0;   /* Is the value negative ? */     
@@ -1009,20 +1011,28 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
             if (length <= (long) (sizeof(number) - 1)) {
                 (void) memcpy(number, ptr, length - length_mod);
                 number[length - length_mod] = '\0';
-                status = StrStrtoi(number, interval);
+                status = StrStrtol(number, &temp_interval);
                 if (status == 0) {
 
                     /* Successful, conversion, factor in the multiplier */
 
-                    *interval *= multiplier;
+                    temp_interval *= multiplier;
 
                     if (negative == 1) {
-                        *interval = 0 - *interval;
+                        temp_interval = 0 - temp_interval;
                     }
 
                     if (warning == 1) {
                         status = -1;
                     }
+
+                    if ((temp_interval >= INT_MIN) && (temp_interval <= INT_MAX)) {
+                        *interval = (int) temp_interval;
+                    }
+                    else {
+                        status = 3;     /* Integer overflow */
+                    }
+                    
                 }
                 else {
                     status = 2;     /* Can't translate string/overflow */

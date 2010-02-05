@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include "config.h"
 
@@ -5310,7 +5311,23 @@ int cmd_genkeys()
 
     status = DtXMLIntervalSeconds(o_interval, &interval);
     if (status > 0) {
-        printf("Error: unable to convert Interval %s to seconds, error: %i\n", o_interval, status);
+        printf("Error: unable to convert Interval %s to seconds, error: ", o_interval);
+        switch (status) {
+            case 1:
+                printf("invalid interval-type.\n");
+                break;
+            case 2:
+                printf("unable to translate string.\n");
+                break;
+            case 3:
+                printf("interval too long to be an int. E.g. Maximum is ~68 years on a system with 32-bit integers.\n");
+                break;
+            case 4:
+                printf("invalid pointers or text string NULL.\n");
+                break;
+            default:
+                printf("unknown\n");
+        }
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
         return status;
@@ -5388,7 +5405,7 @@ int cmd_genkeys()
     /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
 
     /* Check capacity of HSM will not be exceeded */
-    if (policy->ksk->sm_capacity != 0) {
+    if (policy->ksk->sm_capacity != 0 && new_keys > 0) {
         current_count = hsm_count_keys_repository(ctx, policy->ksk->sm_name);
         if (current_count >= policy->ksk->sm_capacity) {
             printf("Repository %s is full, cannot create more KSKs for policy %s\n", policy->ksk->sm_name, policy->name);
@@ -5472,7 +5489,7 @@ int cmd_genkeys()
     /* fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
 
     /* Check capacity of HSM will not be exceeded */
-    if (policy->zsk->sm_capacity != 0) {
+    if (policy->zsk->sm_capacity != 0 && new_keys > 0) {
         current_count = hsm_count_keys_repository(ctx, policy->zsk->sm_name);
         if (current_count >= policy->zsk->sm_capacity) {
             printf("Repository %s is full, cannot create more ZSKs for policy %s\n", policy->zsk->sm_name, policy->name);
