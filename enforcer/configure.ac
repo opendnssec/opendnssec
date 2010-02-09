@@ -188,8 +188,14 @@ AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, ["`eval echo $opendnsseclocalstatedir | sed s
 AC_DEFINE_UNQUOTED(SCHEMA_DIR, ["`eval echo $opendnssecdatadir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC data files])
 
 AC_ARG_ENABLE(timeshift,
-	AC_HELP_STRING([--enable-timeshift],[Enable timeshift debug]),
-	[AC_DEFINE_UNQUOTED(ENFORCER_TIMESHIFT, 1, [timeshift debug])],[])
+	AC_HELP_STRING([--enable-timeshift], [Enable timeshift debug]),
+		[enable_timeshift="${enableval}"],
+		[enable_timeshift="no"])
+if test "x${enable_timeshift}" = "xyes"; then
+	AC_DEFINE_UNQUOTED(ENFORCER_TIMESHIFT, 1, [timeshift debug])
+	AC_MSG_CHECKING(if we should do timeshift debugging)
+	AC_MSG_RESULT(yes)
+fi
 
 AC_CONFIG_FILES([
 	Makefile

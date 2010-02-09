@@ -32,8 +32,14 @@ AC_SUBST([opendnssecdatadir])
 AC_SUBST(TIMESHIFT, false)
 
 AC_ARG_ENABLE(timeshift,
-        AC_HELP_STRING([--enable-timeshift],[Enable timeshift debug]),
-        [AC_SUBST(TIMESHIFT, true)],[])
+	AC_HELP_STRING([--enable-timeshift], [Enable timeshift debug]),
+		[enable_timeshift="${enableval}"],
+		[enable_timeshift="no"])
+if test "x${enable_timeshift}" = "xyes"; then
+	AC_SUBST(TIMESHIFT, true)
+	AC_MSG_CHECKING(if we should do timeshift debugging)
+	AC_MSG_RESULT(yes)
+fi
 
 AC_CONFIG_FILES([
 	Makefile
