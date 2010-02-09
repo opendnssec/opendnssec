@@ -36,11 +36,9 @@ ACX_PKCS11_MODULES
 AC_ARG_ENABLE(auditor,
 	AC_HELP_STRING([--disable-auditor],
 		[Disable auditor build (default enabled)]),
-		[],[])
-if test "${enable_auditor+set}" != set; then
-	enable_auditor=yes
-fi
-if test "${enable_auditor}" = yes; then
+		[enable_auditor="${enableval}"],
+		[enable_auditor="yes"])
+if test "x${enable_auditor}" = "xyes"; then
 	AM_PROG_RUBY
 	AC_CONFIG_SUBDIRS([ auditor ])
 fi
