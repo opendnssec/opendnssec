@@ -1,5 +1,10 @@
 $Id$
 
+OpenDNSSEC 1.0.0 - 2010-0X-0X
+
+* Fixed broken path in ods-control
+
+
 OpenDNSSEC 1.0.0rc4 - 2010-02-02
 
 * Added manual pages for ods-auditor(1), ods-control(8), ods-enforcerd(8),
