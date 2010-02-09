@@ -3,6 +3,8 @@ $Id$
 OpenDNSSEC trunk
 
 * Improved error messages when the system runs out of keys
+* Optimise communication of signconfs for multiple zones sharing keys. 
+  Group zones in zonelist.xml by policy to get this benefit.
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
