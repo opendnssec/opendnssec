@@ -788,7 +788,7 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
  * 
  * Description: 
  *      Returns the number of keys in the KSM_STATE_GENERATE, KSM_STATE_PUBLISH,  
- *      and KSM_STATE_READY state. 
+ *      KSM_STATE_READY and KSM_STATE_ACTIVE state. 
  * 
  * Arguments: 
  *      int keytype 
@@ -811,26 +811,12 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
     int     clause = 0;     /* Clause count */ 
     char*   sql = NULL;     /* SQL to interrogate database */ 
     int     status = 0;     /* Status return */ 
-    char    in[128];        /* Easily large enought for three keys */ 
-    size_t  nchar;          /* Number of output characters */ 
- 
-    /* 
-     * Construct the "IN" statement listing the states of the keys that 
-     * are included in the output. 
-     */ 
- 
-    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d)", 
-        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE); 
-    if (nchar >= sizeof(in)) { 
-        status = MsgLog(KME_BUFFEROVF, "KsmKeyCountQueue"); 
-        return status; 
-    } 
- 
+
     /* Create the SQL command to interrogate the database */ 
  
     sql = DqsCountInit("KEYDATA_VIEW"); 
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++); 
-    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, clause++); 
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_LE, KSM_STATE_ACTIVE, clause++); 
     if (zone_id != -1) { 
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++); 
     } 
