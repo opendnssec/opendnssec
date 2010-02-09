@@ -3755,6 +3755,7 @@ int update_zones(char* zone_list_filename)
     int ret = 0; /* status of the XML parsing */
     char* zone_name = NULL;
     char* policy_name = NULL;
+    char* current_policy = NULL;
     char* temp_char = NULL;
     char* tag_name = NULL;
     int policy_id = 0;
@@ -3860,19 +3861,25 @@ int update_zones(char* zone_list_filename)
                     continue;
                 }
 
-                policy_name = NULL;
+                current_policy = NULL;
                 temp_char = (char *)xmlXPathCastToString(xpathObj);
-                StrAppend(&policy_name, temp_char);
+                StrAppend(&current_policy, temp_char);
                 StrFree(temp_char);
-                printf("Policy set to %s.\n", policy_name);
+                printf("Policy set to %s.\n", current_policy);
                 xmlXPathFreeObject(xpathObj);
 
-                status = KsmPolicyIdFromName(policy_name, &policy_id);
-                if (status != 0) {
-                    printf("Error, can't find policy : %s\n", policy_name);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
+                /* If we have a different policy to last time get its ID */
+                if (policy_name == NULL || strcmp(current_policy, policy_name) != 0) {
+                    StrFree(policy_name);
+                    StrAppend(&policy_name, current_policy);
+
+                    status = KsmPolicyIdFromName(policy_name, &policy_id);
+                    if (status != 0) {
+                        printf("Error, can't find policy : %s\n", policy_name);
+                        /* Don't return? try to parse the rest of the zones? */
+                        ret = xmlTextReaderRead(reader);
+                        continue;
+                    }
                 }
 
                 /*
@@ -3906,13 +3913,12 @@ int update_zones(char* zone_list_filename)
                     return(status);
                 }
                
-               /* need to malloc this first, count zones in advance somehow? */
-               /* can we do this in libxml, or do we need to realloc as we go? */ 
+               /* We malloc'd this above */
                 zone_ids[i] = temp_id;
                 i++;
 
                 StrFree(zone_name);
-                StrFree(policy_name);
+                StrFree(current_policy);
 
                 new_zone = 0;
 
@@ -3931,6 +3937,7 @@ int update_zones(char* zone_list_filename)
     if (doc) {
         xmlFreeDoc(doc);
     }
+    StrFree(policy_name);
 
     /* Now see how many zones are in the database */
     sql = DqsCountInit(DB_ZONE_TABLE);
