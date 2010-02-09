@@ -128,9 +128,12 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 AC_ARG_ENABLE(mysql,
         AC_HELP_STRING([--enable-mysql],
                 [Enable MySQL database driver (experimental)]),
-                [],[])
+		[enable_mysql="${enableval}"],
+		[enable_mysql="no"])
 
-if test "${enable_mysql+set}" = set; then
+AC_MSG_CHECKING(if we should use SQLite or MySQL)
+if test "x${enable_mysql}" = "xyes"; then
+	AC_MSG_RESULT(MySQL)
 
 	ACX_MYSQL
 
@@ -146,6 +149,7 @@ if test "${enable_mysql+set}" = set; then
 	AC_SUBST(DB_LIBS) 
 
 else
+	AC_MSG_RESULT(SQLite)
 
 	ACX_SQLITE3
 
@@ -162,7 +166,7 @@ else
 
 fi
 
-AM_CONDITIONAL([USE_MYSQL], [test "${enable_mysql+set}" = set])
+AM_CONDITIONAL([USE_MYSQL], [test "x${enable_mysql}" = "xyes"])
 
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
