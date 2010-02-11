@@ -73,8 +73,8 @@
 #define KME_PROM_PUB    (KME_BASE + 25)     /* INFO: Promoting %s from publish to active as this is the first pass for the zone */
 #define KME_BACK_FATAL  (KME_BASE + 26)     /* ERROR: Trying to make non-backed up %s active when RequireBackup flag is set */
 #define KME_BACK_NON_FATAL  (KME_BASE + 27)     /* WARNING: Making non-backed up %s active, PLEASE make sure that you know the potential problems of using keys which are not recoverable */
-#define KME_DS_REM_ZONE  (KME_BASE + 28)     /* INFO: Old DS record for %s can now be removed (key moved for retired to dead state) */
-#define KME_DS_REM_POLICY  (KME_BASE + 29)     /* INFO: Old DS record for %s and all zones on its policy can now be removed (key moved for retired to dead state) */
+#define KME_DS_REM_ZONE  (KME_BASE + 28)     /* INFO: Old DS record for %s can now be removed (key moved from retired to dead state) */
+#define KME_DS_REM_POLICY  (KME_BASE + 29)     /* INFO: Old DS record for %s and all zones on its policy can now be removed (key moved from retired to dead state) */
 #define KME_ROLL_ZONE  (KME_BASE + 30)     /* INFO: %s has been rolled for %s  */
 #define KME_ROLL_POLICY  (KME_BASE + 31)     /* INFO: %s has been rolled for %s (and any zones sharing keys with %s) */
 #define KME_TIMESHIFT  (KME_BASE + 32)     /* DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to %s */
