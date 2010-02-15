@@ -27,9 +27,9 @@
 #
 
 # export SOFTHSM_CONF=/etc/softhsm.conf
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:@full_prefix@/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:@full_libdir@
 
-enforcer_bin_file="@full_prefix@/sbin/ods-enforcerd"
+enforcer_bin_file="@full_sbindir@/ods-enforcerd"
 enforcer_pid_file="@localstatedir@/run/opendnssec/enforcerd.pid"
 
 case "$1" in

@@ -44,8 +44,12 @@ if test "x${enable_auditor}" = "xyes"; then
 fi
 AM_CONDITIONAL([ENABLE_AUDITOR], [test "${enable_auditor}" = "yes"])
 
-full_prefix=`eval eval eval eval eval echo "${prefix}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-AC_SUBST([full_prefix])
+full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_bindir=`eval eval eval eval eval echo "${bindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+AC_SUBST([full_libdir])
+AC_SUBST([full_bindir])
+AC_SUBST([full_sbindir])
 
 AC_CONFIG_FILES([
 	Makefile

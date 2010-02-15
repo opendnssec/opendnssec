@@ -28,7 +28,8 @@
 #
 
 progname="ods-control"
-prefix="@full_prefix@"
+bindir="@full_bindir@"
+sbindir="@full_sbindir@"
 enforcer_pid_file="@localstatedir@/run/opendnssec/enforcerd.pid"
 
 
@@ -36,25 +37,25 @@ case "$1" in
 
 'ksm')
 	shift
-	$prefix/bin/ods-ksmutil $@
+	$bindir/ods-ksmutil $@
 	;;
 
 'hsm')
 	shift
-	$prefix/bin/ods-hsmutil $@
+	$bindir/ods-hsmutil $@
 	;;
 	
 'signer')
 	shift
-	$prefix/sbin/ods-signer $@
+	$sbindir/ods-signer $@
 	;;
 
 'start')
 	echo "Starting signer engine..."
-	$prefix/sbin/ods-signer start
+	$sbindir/ods-signer start
 
 	echo "Starting enforcer..."
-	$prefix/sbin/ods-enforcerd
+	$sbindir/ods-enforcerd
 	;;
 
 'stop')
@@ -66,7 +67,7 @@ case "$1" in
 	fi
 
 	echo "Stopping signer engine.."
-	$prefix/sbin/ods-signer stop
+	$sbindir/ods-signer stop
 	;;
 	
 *)
