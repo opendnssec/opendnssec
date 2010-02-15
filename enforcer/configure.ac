@@ -125,6 +125,16 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
 
+full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+
+AC_SUBST([opendnssecdatadir])
+
+opendnssecsysconfdir=$full_sysconfdir/opendnssec
+opendnssecdatadir=$full_datadir/opendnssec
+opendnsseclocalstatedir="$full_localstatedir/opendnssec"
+
 AC_ARG_ENABLE(mysql,
         AC_HELP_STRING([--enable-mysql],
                 [Enable MySQL database driver (experimental)]),
@@ -142,7 +152,7 @@ if test "x${enable_mysql}" = "xyes"; then
 	DB_LIBS=$MYSQL_LIBS
 
         AC_DEFINE_UNQUOTED(SQL_BIN, "$MYSQL", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.mysql", [database setup script]) 
+	AC_DEFINE_UNQUOTED(SQL_SETUP, ["`eval echo $opendnssecdatadir/database_create.mysql | sed s,NONE,$ac_default_prefix,g`"], [database setup script])
 
 	AC_SUBST(DB_TYPE) 
 	AC_SUBST(DB_INCLUDES) 
@@ -158,7 +168,7 @@ else
 	DB_LIBS=$SQLITE3_LIBS 
 
 	AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, "$prefix/share/opendnssec/database_create.sqlite3", [database setup script]) 
+	AC_DEFINE_UNQUOTED(SQL_SETUP, ["`eval echo $opendnssecdatadir/database_create.sqlite3 | sed s,NONE,$ac_default_prefix,g`"], [database setup script])
 
 	AC_SUBST(DB_TYPE) 
 	AC_SUBST(DB_INCLUDES) 
@@ -167,16 +177,6 @@ else
 fi
 
 AM_CONDITIONAL([USE_MYSQL], [test "x${enable_mysql}" = "xyes"])
-
-full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-
-AC_SUBST([opendnssecdatadir])
-
-opendnssecsysconfdir=$full_sysconfdir/opendnssec
-opendnssecdatadir=$full_datadir/opendnssec
-opendnsseclocalstatedir="$full_localstatedir/opendnssec"
 
 conf_file=$opendnssecsysconfdir/conf.xml
 enforcer_pid_file=$localstatedir/run/opendnssec/enforcerd.pid

@@ -11,6 +11,7 @@ Bugfixes:
 * Enforcer: Prevent int overflow when generating a large number of keys
 * Fixed various enable-options in the configure scripts
 * Respect $DESTDIR for config files
+* Looked for the database init script in $prefix/share/opendnssec and not datadir.
 
 
 OpenDNSSEC 1.0.0 - 2010-0X-XX
