@@ -127,6 +127,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 
 AC_SUBST([opendnssecdatadir])
@@ -180,7 +181,7 @@ AM_CONDITIONAL([USE_MYSQL], [test "x${enable_mysql}" = "xyes"])
 
 conf_file=$opendnssecsysconfdir/conf.xml
 enforcer_pid_file=$localstatedir/run/opendnssec/enforcerd.pid
-signer_cli="$prefix/sbin/ods-signer update"
+signer_cli="$full_sbindir/ods-signer update"
 
 AC_DEFINE_UNQUOTED(CONFIG_DIR, ["`eval echo $opendnssecsysconfdir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
 AC_DEFINE_UNQUOTED(CONFIG_FILE, ["`eval echo $conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
