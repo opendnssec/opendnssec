@@ -336,63 +336,39 @@ class Zone:
         return succeeded
 
 
-    def preprocess(self):
+    def nsecify(self):
         """Sort the zone according to the relevant signing details
         (either in 'normal' or 'NSEC3' space). The zone is read from
         the .sorted file, and the result is stored in the tmp dir,
-        with the .processed extension. If key data is not filled in with
-        find_key_details, this is done now. Returns True if the
+        with the .nsecced extension. Data that is not going to be
+        signed goes in the .optout file. If key data is not filled in
+        with find_key_details, this is done now. Returns True if the
         operation succeeded, False if it failed."""
         syslog.syslog(syslog.LOG_INFO,
-                      "Preprocessing zone: " + self.zone_name)
+                      "Nseccing zone: " + self.zone_name)
         succeeded = False
 
         for k in self.zone_config.publish_keys:
             self.check_key_values(k)
 
         cmd = [ self.get_tool_filename("zone_reader"),
+                "-c", self.engine_config.config_file_name,
+                "-f", self.get_zone_tmp_filename(".sorted"),
                 "-k", self.get_class(),
                 "-o", self.zone_name,
-                "-w", self.get_zone_tmp_filename(".processed")
+                "-s", self.get_zone_config_filename(),
+                "-w", self.get_zone_tmp_filename(".nsecced"),
+                "-x", self.get_zone_tmp_filename(".optout")
               ]
-        if self.zone_config.denial_nsec3:
-            cmd.extend([
-                        "-n",
-                        "-t",
-                        str(self.zone_config.denial_nsec3_iterations),
-                        "-a",
-                        str(self.zone_config.denial_nsec3_algorithm)])
-            if self.zone_config.denial_nsec3_salt and self.zone_config.denial_nsec3_salt != "-":
-                cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
-
-            # tell the reader not to append the NSEC3PARAM record
-            # if we are not going to add signatures
-            if len(self.zone_config.signature_keys) <= 0:
-                cmd.append("-p")
         sort_process = Util.run_tool(cmd, subprocess.PIPE)
         
         # sort published keys and zone data
         try:
             if not sort_process:
-                raise OSError("Preprocesser not found")
-            for k in self.zone_config.publish_keys:
-                if k["dnskey"]:
-                    sort_process.stdin.write(k["dnskey"])
-
-            unprocessed_zone_file = open(self.get_zone_tmp_filename(".sorted"), "r")
-            if not unprocessed_zone_file:
-                syslog.syslog(syslog.LOG_ERR,
-                              "Error opening sorted zone file: " +
-                              self.get_zone_tmp_filename(".sorted"))
-            else:
-                syslog.syslog(syslog.LOG_DEBUG,
-                              "Writing file to zone_reader: " +
-                              self.get_zone_tmp_filename(".sorted"))
-            for line in unprocessed_zone_file:
-                sort_process.stdin.write(line)
-            sort_process.stdin.close()
-            unprocessed_zone_file.close()
-            #sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
+                raise OSError("Nseccer not found")
+            syslog.syslog(syslog.LOG_DEBUG,
+                          "Writing file to zone_reader: " +
+                          self.get_zone_tmp_filename(".sorted"))
 
             for line in sort_process.stderr:
                 syslog.syslog(syslog.LOG_ERR,
@@ -404,7 +380,7 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, "Error reading sorted zone")
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
-            syslog.syslog(syslog.LOG_ERR, "Error preprocessing zone")
+            syslog.syslog(syslog.LOG_ERR, "Error nseccing zone")
             syslog.syslog(syslog.LOG_ERR, str(exc))
             syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
@@ -414,9 +390,9 @@ class Zone:
                                   "zone_reader stderr: " + line)
             #raise exc
         if succeeded:
-            syslog.syslog(syslog.LOG_DEBUG, "Done preprocessing")
+            syslog.syslog(syslog.LOG_DEBUG, "Done nseccing")
         else:
-            syslog.syslog(syslog.LOG_ERR, "Preprocessing failed")
+            syslog.syslog(syslog.LOG_ERR, "Nseccing failed")
         return succeeded
 
     def sort_signed(self):
@@ -489,8 +465,8 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, "Sorting failed")
         return succeeded
 
-    def preprocess_signed(self):
-        """Preprocess the output we created earlier according to the new
+    def nsecify_signed(self):
+        """Nsecs the output we created earlier according to the new
            nsec(3) configuration"""
         syslog.syslog(syslog.LOG_INFO,
                       "Preprocessing signed zone: " + self.zone_name)
@@ -502,45 +478,24 @@ class Zone:
             return True
         
         cmd = [ self.get_tool_filename("zone_reader"),
+                "-c", self.engine_config.config_file_name,
+                "-f", self.get_zone_tmp_filename(".signed.sorted"),
                 "-k", self.get_class(),
                 "-o", self.zone_name,
-                "-w", self.get_zone_tmp_filename(".signed.processed")
+                "-s", self.get_zone_config_filename(),
+                "-w", self.get_zone_tmp_filename(".signed.nsecced"),
+                "-x", self.get_zone_tmp_filename(".optout")
               ]
-        if self.zone_config.denial_nsec3:
-            cmd.extend([
-                        "-n",
-                        "-t",
-                        str(self.zone_config.denial_nsec3_iterations),
-                        "-a",
-                        str(self.zone_config.denial_nsec3_algorithm)])
-            if self.zone_config.denial_nsec3_salt and self.zone_config.denial_nsec3_salt != "-":
-                cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
-            # tell the reader not to append the NSEC3PARAM record
-            # if we are not going to add signatures
-            if len(self.zone_config.signature_keys) <= 0:
-                cmd.append("-p")
         sort_process = Util.run_tool(cmd, subprocess.PIPE)
         
         # sort published keys and zone data
         try:
             if not sort_process:
-                raise OSError("Preprocessor not found")
+                raise OSError("Nseccer not found")
 
-            unprocessed_zone_file = open(
-                             self.get_zone_tmp_filename(".signed.sorted"), "r")
-            if not unprocessed_zone_file:
-                syslog.syslog(syslog.LOG_ERR,
-                              "Error opening sorted zone file: " +
-                              self.get_zone_tmp_filename(".signed.sorted"))
-            else:
-                syslog.syslog(syslog.LOG_DEBUG,
-                              "Writing file to zone_reader: " +
-                              self.get_zone_tmp_filename(".signed.sorted"))
-            for line in unprocessed_zone_file:
-                sort_process.stdin.write(line)
-            sort_process.stdin.close()
-            unprocessed_zone_file.close()
-            #sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
+            syslog.syslog(syslog.LOG_DEBUG,
+                          "Writing file to zone_reader: " +
+                          self.get_zone_tmp_filename(".signed.sorted"))
 
             for line in sort_process.stderr:
                 syslog.syslog(syslog.LOG_ERR,
@@ -552,7 +507,7 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, "Error reading sorted zone")
             syslog.syslog(syslog.LOG_ERR, str(ioe))
         except OSError, exc:
-            syslog.syslog(syslog.LOG_ERR, "Error processing zone")
+            syslog.syslog(syslog.LOG_ERR, "Error nseccing zone")
             syslog.syslog(syslog.LOG_ERR, str(exc))
             syslog.syslog(syslog.LOG_ERR,
                           "Command was: " + " ".join(cmd))
@@ -562,73 +517,14 @@ class Zone:
                                   "zone_reader stderr: " + line)
             #raise exc
         if succeeded:
-            shutil.copy(self.get_zone_tmp_filename(".signed.processed"),
+            shutil.copy(self.get_zone_tmp_filename(".signed.nsecced"),
                         "/tmp/myzone")
-            Util.move_file(self.get_zone_tmp_filename(".signed.processed"),
+            Util.move_file(self.get_zone_tmp_filename(".signed.nsecced"),
                            self.get_zone_tmp_filename(".signed"))
-            syslog.syslog(syslog.LOG_DEBUG, "Done preprocessing")
+            syslog.syslog(syslog.LOG_DEBUG, "Done nseccing")
         else:
-            syslog.syslog(syslog.LOG_ERR, "Preprocessing failed")
+            syslog.syslog(syslog.LOG_ERR, "Nseccing failed")
         return succeeded
-
-    def nsecify(self):
-        """Takes the sorted zone file created with sort(), strips
-           the glue from it, and adds nsec(3) records. The output
-           is written to a new file (.signed), ready to
-           actually be signed. If the zone configuration has no
-           signature_keys set, no nsec3 records will be added,
-           but the file is just passed along the line."""
-        syslog.syslog(syslog.LOG_INFO,
-                      "NSEC(3)ing zone: " + self.zone_name)
-        if len(self.zone_config.signature_keys) > 0:
-            if self.zone_config.denial_nsec:
-                cmd = [
-                    self.get_tool_filename("nseccer"),
-                    "-f",
-                    self.get_zone_tmp_filename(".processed"),
-                    "-w",
-                    self.get_zone_tmp_filename(".nsecced")
-                ]
-                if self.zone_config.soa_minimum >= 0:
-                    cmd.append("-m")
-                    cmd.append(str(self.zone_config.soa_minimum))
-                nsec_p = Util.run_tool(cmd)
-            elif self.zone_config.denial_nsec3:
-                cmd = [
-                    self.get_tool_filename("nsec3er"),
-                    "-o", self.zone_name,
-                    "-t",
-                    str(self.zone_config.denial_nsec3_iterations),
-                    "-a",
-                    str(self.zone_config.denial_nsec3_algorithm),
-                    "-i",
-                    self.get_zone_tmp_filename(".processed"),
-                    "-w",
-                    self.get_zone_tmp_filename(".nsecced")
-                ]
-                if self.zone_config.soa_minimum >= 0:
-                    cmd.append("-m")
-                    cmd.append(str(self.zone_config.soa_minimum))
-                if self.zone_config.denial_nsec3_salt and self.zone_config.denial_nsec3_salt != "-":
-                    cmd.extend(["-s", self.zone_config.denial_nsec3_salt])
-                if self.zone_config.denial_nsec3_optout:
-                    cmd.append("-p")
-                nsec_p = Util.run_tool(cmd)
-            if nsec_p:
-                for line in nsec_p.stderr:
-                    syslog.syslog(syslog.LOG_ERR,
-                                "stderr from nseccer: " + line)
-        else: # no signatures
-            syslog.syslog(syslog.LOG_WARNING,
-                "No signatures set, not adding NSEC(3) records")
-            try:
-                shutil.copy(self.get_zone_tmp_filename(".processed"),
-                            self.get_zone_tmp_filename(".nsecced"))
-            except Exception, e:
-                syslog.syslog(syslog.LOG_ERR, "Error in copy: " + str(e))
-
-        syslog.syslog(syslog.LOG_DEBUG, "Done nseccing")
-        return True
 
     def perform_action(self):
         """Depending on the value set to zone.action, this method
@@ -641,9 +537,8 @@ class Zone:
             if self.sign(False) and self.finalize() and self.audit():
                 self.move_output()
         elif self.action >= ZoneConfig.RENSEC and os.path.exists(
-                            self.get_zone_tmp_filename(".processed")) and \
-                            self.nsecify():
-            if self.sign(False) and self.finalize() and self.audit():
+                            self.get_zone_tmp_filename(".sorted")):
+            if self.nsecify() and self.sign(False) and self.finalize() and self.audit():
                 self.move_output()
         elif self.action >= ZoneConfig.REREAD and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
@@ -654,7 +549,7 @@ class Zone:
                 syslog.syslog(syslog.LOG_ERR, "Cannot keep input serial " + str(ser_in) +\
                                               ", output serial " + str(ser_out) +\
                                               " is too large. Aborting operation")
-            elif self.sort_input() and self.preprocess() and self.nsecify():
+            elif self.sort_input() and self.nsecify():
                 if self.sign(True) and self.finalize() and self.audit():
                     self.move_output()
         elif self.action >= ZoneConfig.RESORT and self.fetch_axfr() and os.path.isfile(
@@ -670,8 +565,8 @@ class Zone:
                                               ", output serial " + str(ser_out) +\
                                               " is too large. Aborting operation")
 
-            elif self.sort_signed() and self.preprocess_signed() and self.sort_input() and \
-               self.preprocess() and self.nsecify():
+            elif self.sort_signed() and self.nsecify_signed() and self.sort_input() and \
+               self.nsecify():
                 if self.sign(True) and self.finalize() and self.audit():
                     self.move_output()
         else:
@@ -919,7 +814,8 @@ class Zone:
         if set. (<UpdateNotifier>)"""
         rr_count = 0
         cmd = [self.get_tool_filename("finalizer"),
-               "-f", self.get_zone_tmp_filename(".signed")
+               "-f", self.get_zone_tmp_filename(".signed"),
+               "-x", self.get_zone_tmp_filename(".optout")
               ]
         finalize_p = Util.run_tool(cmd)
         if not finalize_p:
@@ -976,8 +872,6 @@ class Zone:
         and signed zone. The final output is not deleted. On next run
         of perform_action, all actions will be performed, and the
         zone will be completely signed again."""
-        if os.path.exists(self.get_zone_tmp_filename(".processed")):
-            os.remove(self.get_zone_tmp_filename(".processed"))
         if os.path.exists(self.get_zone_tmp_filename(".sorted")):
             os.remove(self.get_zone_tmp_filename(".sorted"))
         if os.path.exists(self.get_zone_tmp_filename(".unsorted")):
@@ -988,10 +882,14 @@ class Zone:
             os.remove(self.get_zone_tmp_filename(".signed"))
         if os.path.exists(self.get_zone_tmp_filename(".signed.sorted")):
             os.remove(self.get_zone_tmp_filename(".signed.sorted"))
+        if os.path.exists(self.get_zone_tmp_filename(".signed.nsecced")):
+            os.remove(self.get_zone_tmp_filename(".signed.nsecced"))
         if os.path.exists(self.get_zone_tmp_filename(".signed2")):
             os.remove(self.get_zone_tmp_filename(".signed2"))
         if os.path.exists(self.get_zone_tmp_filename(".finalized")):
             os.remove(self.get_zone_tmp_filename(".finalized"))
+        if os.path.exists(self.get_zone_tmp_filename(".optout")):
+            os.remove(self.get_zone_tmp_filename(".optout"))
         
     def lock(self, caller=None):
         """Lock the zone with a simple spinlock"""
