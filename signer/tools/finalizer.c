@@ -52,6 +52,7 @@ usage(FILE *out)
 	fprintf(out, "Usage: finalizer [options]\n");
 	fprintf(out, "Options:\n");
 	fprintf(out, "-f <file>\tRead from file instead of stdin\n");
+	fprintf(out, "-x <file>\tRead OptOut file from file instead of stdin\n");
 	fprintf(out, "-h\t\tShow this help\n");
 }
 
@@ -70,16 +71,25 @@ main(int argc, char **argv)
 {
 	int c;
 	FILE *input_file = stdin;
+	FILE *optout_file = NULL;
 	char line[MAX_LINE_LEN];
 	int line_len = 0;
 	size_t line_count = 0, soa_line = 0;
 	ldns_rr *rr;
 
-	while ((c = getopt(argc, argv, "f:h")) != -1) {
+	while ((c = getopt(argc, argv, "f:hx:")) != -1) {
 		switch(c) {
 			case 'f':
 				input_file = fopen(optarg, "r");
 				if (!input_file) {
+					fprintf(stderr, "Error opening %s: %s\n",
+					        optarg, strerror(errno));
+					exit(1);
+				}
+				break;
+			case 'x':
+				optout_file = fopen(optarg, "r");
+				if (!optout_file) {
 					fprintf(stderr, "Error opening %s: %s\n",
 					        optarg, strerror(errno));
 					exit(1);
@@ -125,6 +135,19 @@ main(int argc, char **argv)
 
 	if (input_file != stdin) {
 		fclose(input_file);
+	}
+
+	if (optout_file) {
+		line_len = 0;
+		while (line_len >= 0) {
+			line_len = read_line(optout_file, line, 0, 0);
+			if (line_len > 0) {
+				handle_line(line);
+			}
+			line_count++;
+		}
+
+		fclose(optout_file);
 	}
 	return 0;
 }
