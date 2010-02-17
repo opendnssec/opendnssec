@@ -229,6 +229,7 @@ class AuditorTest < Test::Unit::TestCase
       options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
       Syslog.open("auditor_test", options) {|syslog|
+        runner.force_partial= partial
         ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, syslog, working, working, 3600) # Audit all zones
       }
       exit!(ret)

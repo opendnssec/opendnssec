@@ -133,7 +133,4 @@ end
 if (options.enable_timeshift)
   runner.enable_timeshift = true
 end
-if (options.partial_auditor) # @TODO@ Configuration option, not run-time!
-  runner.partial_auditing = true
-end
 runner.run()

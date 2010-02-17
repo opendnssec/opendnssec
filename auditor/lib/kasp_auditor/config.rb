@@ -34,6 +34,9 @@ module KASPAuditor
     end
 
     attr_reader :err
+    
+    # Should the PartialAuditor be used instead of the full Auditor?
+    attr_reader :partial_audit
     def initialize(zone_name, kasp_file_loc, policy, config_file_loc, syslog)
       return if !zone_name
       #      @zones = []
@@ -41,6 +44,7 @@ module KASPAuditor
       # Read the kasp.xml file
       @name = (zone_name.to_s+"").untaint
       @err = 0
+      @partial_audit = false
       begin
         File.open((kasp_file_loc+"").untaint, 'r') {|file|
           doc = REXML::Document.new(file)
@@ -58,7 +62,12 @@ module KASPAuditor
               #        # Fill out new zone
               @audit_tag_present = false
               p.elements.each('Audit') {|a|
+                # Read the information present in the Audit element, and
+                # figure out what sort of auditor to use - full or partial
                 @audit_tag_present = true
+                a.elements.each('Partial') {|partial|
+                  @partial_audit = true
+                }
               }
               begin
                 @signatures = Signatures.new(p.elements['Signatures'])

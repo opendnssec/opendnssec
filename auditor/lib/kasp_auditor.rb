@@ -71,11 +71,13 @@ module KASPAuditor
   class Runner
 
     attr_accessor :kasp_file, :zone_name, :signed_temp, :conf_file
-    attr_accessor :enable_timeshift, :partial_auditing
+    attr_accessor :enable_timeshift
+
+    # For testing purposes
+    attr_accessor :force_partial
 
     def initialize
       @enable_timeshift = false
-      @partial_auditing = false
     end
 
     # Run the auditor.
@@ -138,7 +140,7 @@ module KASPAuditor
         }
 
         if (do_audit)
-          if (@partial_auditing)
+          if (config.partial_audit) || @force_partial
             ret = partial_audit(ret, input_file, output_file, working, config, syslog, enforcer_interval)
           else
             ret = full_audit(ret, input_file, output_file, pid, working, config, syslog, enforcer_interval)
