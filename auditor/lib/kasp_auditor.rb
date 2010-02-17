@@ -37,6 +37,7 @@ include Dnsruby
 require 'kasp_auditor/config.rb'
 require 'kasp_auditor/key_tracker.rb'
 require 'kasp_auditor/auditor.rb'
+require 'kasp_auditor/partial_auditor.rb'
 require 'kasp_auditor/parse.rb'
 require 'kasp_auditor/preparser.rb'
 
@@ -70,7 +71,12 @@ module KASPAuditor
   class Runner
 
     attr_accessor :kasp_file, :zone_name, :signed_temp, :conf_file
-    attr_accessor :enable_timeshift
+    attr_accessor :enable_timeshift, :partial_auditing
+
+    def initialize
+      @enable_timeshift = false
+      @partial_auditing = false
+    end
 
     # Run the auditor.
     def run
@@ -132,40 +138,10 @@ module KASPAuditor
         }
 
         if (do_audit)
-          # PREPARSE THE INPUT AND OUTPUT FILES!!!
-          pids=[]
-          new_pid = normalise_and_sort(input_file, "in", pid, working, config)
-          pids.push(new_pid)
-          new_pid = normalise_and_sort(output_file, "out", pid, working, config)
-          pids.push(new_pid)
-          pids.each {|id|
-            ret_id, ret_status = Process.wait2(id)
-            if (ret_status != 0)
-              syslog.log(LOG_ERR, "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone")
-              ret = 1
-              do_audit = false
-            end
-          }
-          begin
-            if (do_audit)
-              # Now audit the pre-parsed and sorted file
-              auditor = Auditor.new(syslog, working, enforcer_interval)
-              ret_val = auditor.check_zone(config, working+get_name(input_file)+".in.sorted.#{pid}",
-                working + get_name(output_file)+".out.sorted.#{pid}",
-                input_file, output_file)
-              ret = ret_val if (ret_val < ret)
-              if ((config.err > 0) && (config.err < ret))
-                ret = config.err
-              end
-            end
-          rescue Exception=> e
-            syslog.log(LOG_ERR, "Unexpected error auditing files (#{input_file} and #{output_file}) : ERR #{e}- moving on to next zone. Trace for debugging : #{e.backtrace.join("\n")}")
-            ret = 1
-          ensure
-            [input_file + ".in", output_file + ".out"].each {|f|
-              delete_file(working + get_name(f)+".parsed.#{pid}")
-              delete_file(working + get_name(f)+".sorted.#{pid}")
-            }
+          if (@partial_auditing)
+            ret = partial_audit(ret, input_file, output_file, working, config, syslog, enforcer_interval)
+          else
+            ret = full_audit(ret, input_file, output_file, pid, working, config, syslog, enforcer_interval)
           end
         end
       }
@@ -177,6 +153,58 @@ module KASPAuditor
         print "Auditor found errors - check log for details\n"
       end
       exit(ret)
+    end
+    
+    def partial_audit(ret, input_file, output_file, working, config, syslog, enforcer_interval)
+      # Invoke the partial auditor
+      auditor = PartialAuditor.new(syslog, working)
+      ret_val = auditor.check_zone(config, input_file, output_file, enforcer_interval)
+      ret = ret_val if (ret_val < ret)
+      if ((config.err > 0) && (config.err < ret))
+        ret = config.err
+      end
+      return ret
+    end
+
+    def full_audit(ret, input_file, output_file, pid, working, config, syslog, enforcer_interval)
+      # Perform a full audit of every record. This requires sorting the zones canonically.
+      # Preparse the input and output files
+      do_audit = true
+      pids=[]
+      new_pid = normalise_and_sort(input_file, "in", pid, working, config)
+      pids.push(new_pid)
+      new_pid = normalise_and_sort(output_file, "out", pid, working, config)
+      pids.push(new_pid)
+      pids.each {|id|
+        ret_id, ret_status = Process.wait2(id)
+        if (ret_status != 0)
+          syslog.log(LOG_ERR, "Error sorting files (#{input_file} and #{output_file}) : ERR #{ret_status}- moving on to next zone")
+          ret = 1
+          do_audit = false
+        end
+      }
+      begin
+        if (do_audit)
+          # Now audit the pre-parsed and sorted file
+          auditor = Auditor.new(syslog, working, enforcer_interval)
+          ret_val = auditor.check_zone(config, working+get_name(input_file)+".in.sorted.#{pid}",
+            working + get_name(output_file)+".out.sorted.#{pid}",
+            input_file, output_file)
+          ret = ret_val if (ret_val < ret)
+          if ((config.err > 0) && (config.err < ret))
+            ret = config.err
+          end
+        end
+      rescue Exception=> e
+        syslog.log(LOG_ERR, "Unexpected error auditing files (#{input_file} and #{output_file}) : ERR #{e}- moving on to next zone. Trace for debugging : #{e.backtrace.join("\n")}")
+        ret = 1
+      ensure
+        [input_file + ".in", output_file + ".out"].each {|f|
+          delete_file(working + get_name(f)+".parsed.#{pid}")
+          delete_file(working + get_name(f)+".sorted.#{pid}")
+        }
+      end
+      return ret
     end
 
     def normalise_and_sort(f, prefix, pid, working, config)

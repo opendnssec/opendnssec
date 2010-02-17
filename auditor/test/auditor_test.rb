@@ -208,8 +208,11 @@ class AuditorTest < Test::Unit::TestCase
   #    fail "Implement bad partial scanning test!"
   #  end
 
-  def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret, working)
+  def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret, working, partial = false)
     runner = Runner.new
+    if (partial)
+      runner.partial_auditing = true
+    end
 
     ["test/tmp/tracker/tjeb.nl", "test/tmp1/tracker/tjeb.nl"].each {|f|
       begin
