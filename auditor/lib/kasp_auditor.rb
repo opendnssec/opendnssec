@@ -37,7 +37,7 @@ include Dnsruby
 require 'kasp_auditor/config.rb'
 require 'kasp_auditor/key_tracker.rb'
 require 'kasp_auditor/auditor.rb'
-require 'kasp_auditor/partial_auditor.rb'
+#require 'kasp_auditor/partial_auditor.rb'
 require 'kasp_auditor/parse.rb'
 require 'kasp_auditor/preparser.rb'
 
