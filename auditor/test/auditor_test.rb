@@ -128,19 +128,21 @@ class AuditorTest < Test::Unit::TestCase
       #   2. If an NSEC3PARAM RR is found:
       #         a There is only one NSEC3PARAM record in the zone, and it is present at the apex of the zone
       "Multiple NSEC3PARAM RRs for tjeb.nl",
-      "NSEC3PARAM seen at there subdomain : should be at zone apex",
+      "NSEC3PARAM seen at ", #there subdomain : should be at zone apex",
       "RRSIGS should include algorithm RSASHA1-NSEC3-SHA1 for not.there.tjeb.nl, NSEC3PARAM, have :",
       "RRSet (not.there.tjeb.nl, NSEC3PARAM) failed verification : No signatures in the RRSet",
       #         b The flags field of the record must be zero.
       "NSEC3PARAM flags should be 0, but were 1",
       "NSEC3PARAM has wrong salt : should be beefff but was beef",
       "NSEC3PARAM has wrong iterations : should be 4 but was 5",
-      "NSEC3PARAM has wrong algorithm : should be 2 but was SHA-1",
+      "NSEC3PARAM has wrong algorithm : should be 2 but was ", # SHA-1",
 
       #         c Each NSEC3 record present in the zone has the same hash algorithm iterations and salt parameters.
-      "NSEC3 has wrong salt : should be beef but was dead",
-      "NSEC3 has wrong iterations : should be 5 but was 10",
-      "NSEC3 has wrong algorithm : should be SHA-1 but was",
+      "NSEC3 has wrong salt : should be beefff but was dead",
+      "NSEC3 has wrong salt : should be beefff but was beef",
+      "NSEC3 has wrong iterations : should be 4 but was 10",
+      "NSEC3 has wrong iterations : should be 4 but was 5",
+      "NSEC3 has wrong algorithm : should be 2 but was", # SHA-1",
       "RRSet (cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl, NSEC3) failed verification : Signature failed to cryptographically verify",
       #
       #   3. Each NSEC3 record has bits correctly set to indicate the types of RRs associated with the domain.

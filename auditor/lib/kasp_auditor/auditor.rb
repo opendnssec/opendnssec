@@ -428,15 +428,15 @@ module KASPAuditor
           # We missed one because the type was unknown.
           # So - fix up the list. We need to check that the unknown NSEC points to rr.name
           if (rr.type == "NSEC3")
-          if (n == (rr.name.labels()[0].to_s))
-            @last_nsec = rr
-            return
-          end
+            if (n == (rr.name.labels()[0].to_s))
+              @last_nsec = rr
+              return
+            end
           else
-          if (n == (rr.name.to_s + "."))
-            @last_nsec = rr
-            return
-          end
+            if (n == (rr.name.to_s + "."))
+              @last_nsec = rr
+              return
+            end
           end
         end
         # print an error
@@ -518,17 +518,15 @@ module KASPAuditor
         @warned_about_nsec3param = true
         @first_nsec3 = l_rr # Store so we have something to work with
       end
-      if (@nsec3param)
-        # Check that the parameters are the same as those defined in the NSEC3PARAM
-        if (l_rr.salt != @nsec3param.salt)
-          log(LOG_ERR, "NSEC3 has wrong salt : should be #{@nsec3param.salt} but was #{l_rr.salt}")
-        end
-        if (l_rr.iterations != @nsec3param.iterations)
-          log(LOG_ERR, "NSEC3 has wrong iterations : should be #{@nsec3param.iterations} but was #{l_rr.iterations}")
-        end
-        if (l_rr.hash_alg != @nsec3param.hash_alg)
-          log(LOG_ERR, "NSEC3 has wrong algorithm : should be #{@nsec3param.hash_alg} but was #{l_rr.hash_alg}")
-        end
+      # Check that the parameters are the same as those defined in the config
+      if (l_rr.salt != @config.denial.nsec3.hash.salt)
+        log(LOG_ERR, "NSEC3 has wrong salt : should be #{@config.denial.nsec3.hash.salt} but was #{l_rr.salt}")
+      end
+      if (l_rr.iterations != @config.denial.nsec3.hash.iterations)
+        log(LOG_ERR, "NSEC3 has wrong iterations : should be #{@config.denial.nsec3.hash.iterations} but was #{l_rr.iterations}")
+      end
+      if (l_rr.hash_alg != @config.denial.nsec3.hash.algorithm)
+        log(LOG_ERR, "NSEC3 has wrong algorithm : should be #{@config.denial.nsec3.hash.algorithm} but was #{l_rr.hash_alg}")
       end
       # Check TTL
       check_nsec_ttl(l_rr)
