@@ -188,6 +188,11 @@ adapter_file_read_rr(FILE* fd, zone_type* zone_in, char* line, ldns_rdf** orig,
     FILE* fd_include = NULL;
     int len = 0, error = 0;
     const char *endptr;  /* unused */
+    uint32_t new_ttl = 0;
+
+    if (ttl && *ttl) {
+        new_ttl = *ttl;
+    }
 
 adfile_read_line:
     len = adapter_file_read_line(fd, line, l);
@@ -249,7 +254,10 @@ adfile_read_line:
                     break;
                 }
 
-                *status = ldns_rr_new_frm_str(&rr, line, *ttl, *orig, prev);
+                *status = ldns_rr_new_frm_str(&rr, line, &new_ttl, *orig, prev);
+                if (ttl && *ttl) {
+                    *ttl = new_ttl;
+                }
                 if (*status == LDNS_STATUS_OK) {
                     return rr;
                 } else if (*status == LDNS_STATUS_SYNTAX_EMPTY) {

@@ -467,36 +467,41 @@ zonedata_nsecify_nsec3(zonedata_type* zd, uint32_t ttl,
             }
         }
 
+        if (!apex) {
+            fprintf(stderr, "failed to create NSEC3 chain: apex not found\n");
+            return 1;
+        }
 
-       /* Sort the set of NSEC3 RRs into hash order. */
-       domain->nsec3 = zonedata_add_nsec3domain(zd, domain, nsec3params, apex->name);
-       if (domain->nsec3 == NULL) {
-           str = ldns_rdf2str(domain->name);
-           fprintf(stderr, "failed to create NSEC3 domain '%s'\n", str);
-           se_free((void*) str);
-       }
-       domain->nsec3->nsec3 = domain;
+        /* Sort the set of NSEC3 RRs into hash order. */
+        domain->nsec3 = zonedata_add_nsec3domain(zd, domain, nsec3params, apex->name);
+        if (domain->nsec3 == NULL) {
+            str = ldns_rdf2str(domain->name);
+            fprintf(stderr, "failed to create NSEC3 domain '%s'\n", str);
+            se_free((void*) str);
+            return 1;
+        }
+        domain->nsec3->nsec3 = domain;
 
-       /* The Next Hashed Owner Name field is left blank for the moment. */
+        /* The Next Hashed Owner Name field is left blank for the moment. */
 
-       /**
-        * Additionally, for collision detection purposes, optionally
-        * create an additional NSEC3 RR corresponding to the original
-        * owner name with the asterisk label prepended (i.e., as if a
-        * wildcard existed as a child of this owner name) and keep track
-        * of this original owner name. Mark this NSEC3 RR as temporary.
-       **/
-       /* [TODO] */
-       /**
-        * pseudo:
-        * wildcard_name = *.domain->name;
-        * hashed_ownername = ldns_nsec3_hash_name(domain->name,
-              nsec3params->algorithm, nsec3params->iterations,
-              nsec3params->salt_len, nsec3params->salt);
-        * domain->nsec3_wildcard = domain_create(hashed_ownername);
-       **/
+        /**
+         * Additionally, for collision detection purposes, optionally
+         * create an additional NSEC3 RR corresponding to the original
+         * owner name with the asterisk label prepended (i.e., as if a
+         * wildcard existed as a child of this owner name) and keep track
+         * of this original owner name. Mark this NSEC3 RR as temporary.
+        **/
+        /* [TODO] */
+        /**
+         * pseudo:
+         * wildcard_name = *.domain->name;
+         * hashed_ownername = ldns_nsec3_hash_name(domain->name,
+               nsec3params->algorithm, nsec3params->iterations,
+               nsec3params->salt_len, nsec3params->salt);
+         * domain->nsec3_wildcard = domain_create(hashed_ownername);
+        **/
 
-       node = ldns_rbtree_next(node);
+        node = ldns_rbtree_next(node);
     }
 
     /**

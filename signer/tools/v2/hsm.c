@@ -54,6 +54,7 @@ hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
     hsmkey = hsm_find_key_by_id(ctx, key_id->locator);
     if (hsmkey) {
         rrkey = hsm_get_dnskey(ctx, hsmkey, params);
+        hsm_key_free(hsmkey);
     } else {
         /* could not find key */
         fprintf(stderr, "could not find key %s\n", key_id->locator);
@@ -61,11 +62,8 @@ hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
     }
     hsm_sign_params_free(params);
 
-    if (!error) {
+    if (error == 0) {
         return rrkey;
-    }
-    if (rrkey) {
-        ldns_rr_free(rrkey);
     }
     return NULL;
 }
@@ -78,7 +76,7 @@ ldns_rr*
 hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
     ldns_rr_list* rrset, time_t inception, time_t expiration)
 {
-    hsm_sign_params_t* params;
+    hsm_sign_params_t* params = NULL;
     hsm_key_t* hsmkey;
     ldns_rr* rrkey = NULL;
     ldns_rr* rrsig = NULL;
@@ -102,17 +100,15 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
 
         ldns_rr_free(rrkey);
         hsm_sign_params_free(params);
+        hsm_key_free(hsmkey);
     } else {
         /* could not find key */
         fprintf(stderr, "could not find key %s\n", key_id->locator);
         error = 1;
     }
 
-    if (!error) {
+    if (error == 0) {
         return rrsig;
-    }
-    if (rrsig) {
-        ldns_rr_free(rrsig);
     }
     return NULL;
 }

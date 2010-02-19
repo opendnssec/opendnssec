@@ -149,7 +149,8 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     /* Get string */
     xexpr = (unsigned char*) expr;
     xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
-    if (xpathObj == NULL || xpathObj->nodesetval->nodeNr <= 0) {
+    if (xpathObj == NULL || xpathObj->nodesetval == NULL ||
+        xpathObj->nodesetval->nodeNr <= 0) {
         if (required) {
             fprintf(stderr, "unable to evaluate required "
                 "element: %s\n", xexpr);

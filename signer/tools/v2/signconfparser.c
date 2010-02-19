@@ -93,6 +93,7 @@ parse_sc_keys(const char* cfgfile)
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
             locator = NULL;
             flags = NULL;
+            algorithm = NULL;
             ksk = 0;
             zsk = 0;
             publish = 0;

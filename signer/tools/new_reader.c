@@ -200,8 +200,6 @@ main(int argc, char **argv)
 	int result = 0;
 
 	ldns_rr_class param_klass = LDNS_RR_CLASS_IN;
-	ldns_rdf *origin = NULL;
-	ldns_rdf *prev_name = NULL;
 
 	in_file = stdin;
 	out_file = stdout;
@@ -237,6 +235,7 @@ main(int argc, char **argv)
 			break;
 		case 'w':
 			param_out_filename = optarg;
+                        break;
 		case 'x':
 			param_optout_filename = optarg;
 			break;
@@ -312,12 +311,6 @@ main(int argc, char **argv)
 		nzr_print_nsec(out_file, zone);
 	}
 
-	if (prev_name) {
-		ldns_rdf_deep_free(prev_name);
-	}
-	if (origin) {
-		ldns_rdf_deep_free(origin);
-	}
 	zone_cleanup(zone);
 
 	if (optout_file != stdout) {
