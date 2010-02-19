@@ -799,7 +799,7 @@ def main():
         engine.setup_engine()
 
         if daemonize:
-            daemonize_engine()
+            daemonize_engine(engine)
         else:
             print "running as pid " + str(os.getpid())
         if engine.config.zonefetch_file is not None:
@@ -826,6 +826,9 @@ def main():
         syslog.syslog(syslog.LOG_ERR, "Error: " +  str(e))
         raise e
         engine.stop_engine()
+    
+    if os.path.exists(engine.config.signer_pidfile):
+        os.unlink(engine.config.signer_pidfile)
     sys.exit(0)
 
 class EngineNullDevice:
@@ -836,7 +839,7 @@ class EngineNullDevice:
         """pass"""
         pass
 
-def daemonize_engine():
+def daemonize_engine(engine):
     """Daemonize the engine"""
     if (not os.fork()):
         # get our own session and fixup std[in,out,err]
@@ -852,6 +855,11 @@ def daemonize_engine():
             while (ppid != 1):
                 time.sleep(0.5)
                 ppid = os.getppid()
+            # write pidfile
+            pid_file = engine.config.signer_pidfile
+            pf = open(pid_file, 'w')
+            pf.write(str(os.getpid()))
+            pf.close()
         else:
             # time for child to die
             os._exit(0)

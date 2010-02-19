@@ -56,6 +56,7 @@ class EngineConfiguration:
         if not config_file_name:
             config_file_name = "@sysconfdir@/opendnssec/conf.xml".replace("${prefix}", "@prefix@")
         self.config_file_name = config_file_name
+        self.signer_pidfile = "@localstatedir@/run/opendnssec/signerd.pid".replace("${prefix}", "@prefix@")
         self.zonefetch_pidfile = "@localstatedir@/run/opendnssec/zone_fetcher.pid".replace("${prefix}", "@prefix@")
         self.zonefetch_file = None
         self.zonelist_file = None
