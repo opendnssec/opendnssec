@@ -402,7 +402,7 @@ void KsmPurge(void);
 #define KSM_PAR_STANDBYKSKS_CAT         "ksk"
 #define KSM_PAR_STANDBYZSKS             1
 #define KSM_PAR_STANDBYZSKS_STRING      "standby"
-#define KSM_PAR_STANDBYZSKS_CAT         "ksk"
+#define KSM_PAR_STANDBYZSKS_CAT         "zsk"
 #define KSM_PAR_SIGNINT                 7200        /* 2 hours */
 #define KSM_PAR_SIGNINT_STRING          "resign"
 #define KSM_PAR_SIGNINT_CAT             "signature"
