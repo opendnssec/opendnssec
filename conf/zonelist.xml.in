@@ -6,13 +6,13 @@
 <!--
 	<Zone name="example.com">
 		<Policy>default</Policy>
-		<SignerConfiguration>@opendnsseclocalstatedir@/signconf/example.com.xml</SignerConfiguration>
+		<SignerConfiguration>@OPENDNSSEC_STATE_DIR@/signconf/example.com.xml</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<File>@opendnsseclocalstatedir@/unsigned/example.com</File>
+				<File>@OPENDNSSEC_STATE_DIR@/unsigned/example.com</File>
 			</Input>
 			<Output>
-				<File>@opendnsseclocalstatedir@/signed/example.com</File>
+				<File>@OPENDNSSEC_STATE_DIR@/signed/example.com</File>
 			</Output>
 		</Adapters>
 	</Zone>

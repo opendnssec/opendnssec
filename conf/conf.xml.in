@@ -29,11 +29,11 @@
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		
-		<PolicyFile>@opendnssecsysconfdir@/kasp.xml</PolicyFile>
-		<ZoneListFile>@opendnssecsysconfdir@/zonelist.xml</ZoneListFile>
+		<PolicyFile>@OPENDNSSEC_CONFIG_DIR@/kasp.xml</PolicyFile>
+		<ZoneListFile>@OPENDNSSEC_CONFIG_DIR@/zonelist.xml</ZoneListFile>
 
 	<!--
-		<ZoneFetchFile>@opendnssecsysconfdir@/zonefetch.xml</ZoneFetchFile>
+		<ZoneFetchFile>@OPENDNSSEC_CONFIG_DIR@/zonefetch.xml</ZoneFetchFile>
 	-->
 	</Common>
 
@@ -45,7 +45,7 @@
 		</Privileges>
 -->
 
-		<Datastore><SQLite>@opendnsseclocalstatedir@/kasp.db</SQLite></Datastore>
+		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 	</Enforcer>
 
@@ -57,7 +57,7 @@
 		</Privileges>
 -->
 
-		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
+		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
 		<WorkerThreads>8</WorkerThreads>
 
 		<!-- the <NotifyCommmand> will expand the following variables:
@@ -81,7 +81,7 @@
 		</Privileges>
 -->
 
-		<WorkingDirectory>@opendnsseclocalstatedir@/tmp</WorkingDirectory>
+		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
 	</Auditor>
 
 </Configuration>
