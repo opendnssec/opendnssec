@@ -301,17 +301,17 @@ YYYY-MM-DD[:| ]HH[:MM[:SS]]
 .SH "FILES"
 .LP
 .TP
-.B conf.xml
-The main configuration file for OpenDNSSEC, by default stored in @CONFIG_DIR@/.
+.B @CONFIG_FILE@
+The main configuration file for OpenDNSSEC.
 .TP
-.B zonelist.xml
-The list of zones, as defined in conf.xml, usually stored in @CONFIG_DIR@/.
+.B @CONFIG_DIR@/zonelist.xml
+The list of zones, as defined in conf.xml.
 .TP
-.B kasp.xml
-The configuration of policies that define timing and security, as defined in conf.xml, usually stored in @CONFIG_DIR@/.
+.B @CONFIG_DIR@/kasp.xml
+The configuration of policies that define timing and security, as defined in conf.xml.
 .TP
-.B enforcer.db.backup
-A backup file of the database used by the KASP Enforcer, by default it is stored in @LOCALSTATE_DIR@/.  Note that this does not include the keys, which are to be extracted from its own repository.
+.B @LOCALSTATE_DIR@/enforcer.db.backup
+A backup file of the database used by the KASP Enforcer.Note that this does not include the keys, which are to be extracted from its own repository.
 .TP
 .B @LOCALSTATE_DIR@/unsigned/
 The location that is usually configured in conf.xml to contain unsigned zones.
