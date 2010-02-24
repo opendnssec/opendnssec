@@ -1,4 +1,4 @@
-#!@RUBY@ -I@opendnsseclibdir@
+#!@RUBY@ -I@OPENDNSSEC_LIB_DIR@
 #
 # $Id$
 #
@@ -39,10 +39,10 @@ class OptionsParser
     def self.parse(args)
       # The options specified on the command line will be collected in *options*.
       # We set default values here.
-      path = "@sysconfdir@/opendnssec/".sub("${prefix}", "@prefix@")
+      path = "@OPENDNSSEC_CONFIG_DIR@"
       options = OpenStruct.new
       options.enable_timeshift = @TIMESHIFT@
-      options.default_conf_file = path + "conf.xml"
+      options.default_conf_file = path + "/conf.xml"
       options.zone_name = nil
       options.signed_temp = nil
 
