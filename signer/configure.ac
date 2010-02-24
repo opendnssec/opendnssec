@@ -10,6 +10,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
+OPENDNSSEC_COMMON
+
 AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
 
 CHECK_COMPILER_FLAG(std=c99, [C99FLAG="-std=c99"])
@@ -30,13 +32,6 @@ int test() {
 }
 ], [CFLAGS="-D__EXTENSIONS__ $CFLAGS"])
 
-signer_pid_file=$localstatedir/run/opendnssec/signerd.pid
-fetch_pid_file=$localstatedir/run/opendnssec/zone_fetcher.pid
-signer_cli="$prefix/bin/ods-signer sign"
-
-AC_DEFINE_UNQUOTED(SIGNER_PIDFILE, ["`eval echo $signer_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine pid file])
-AC_DEFINE_UNQUOTED(FETCH_PIDFILE, ["`eval echo $fetch_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC zone fetcher pid file])
-AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["`eval echo $signer_cli | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine cli])
 
 # check if setreuid en setregid fail, on MacOSX10.4(darwin8).
 if echo $build_os | grep darwin8 > /dev/null; then
@@ -56,16 +51,17 @@ ACX_LIBHSM
 AM_PATH_PYTHON
 ACX_PYTHON_MODULE([getopt os sys socket time traceback threading syslog signal errno grp pwd re Ft.Xml.XPath xml.dom xml.parsers.expat subprocess optparse datetime getpass shutil commands])
 
-full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_libexecdir=`eval eval eval eval eval echo "${libexecdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-opendnsseclibdir=$full_libdir/opendnssec
-opendnsseclibexecdir=$full_libexecdir/opendnssec
-signer_engine=$full_sbindir/ods-signerd
+OPENDNSSEC_SIGNER_SOCKET=$OPENDNSSEC_PID_DIR/engine.sock
+AC_SUBST([OPENDNSSEC_SIGNER_SOCKET])
 
-AC_SUBST([opendnsseclibdir])
-AC_SUBST([opendnsseclibexecdir])
-AC_SUBST([signer_engine])
+OPENDNSSEC_SIGNER_ENGINE=$OPENDNSSEC_SBIN_DIR/ods-signerd
+AC_SUBST([OPENDNSSEC_SIGNER_ENGINE])
+
+OPENDNSSEC_SIGNER_CLI=$OPENDNSSEC_SBIN_DIR/ods-signer
+
+AC_DEFINE_UNQUOTED(SIGNER_PIDFILE, ["$OPENDNSSEC_SIGNER_PIDFILE"], [Path to the OpenDNSSEC signer engine pid file])
+AC_DEFINE_UNQUOTED(FETCH_PIDFILE, ["$OPENDNSSEC_ENFORCER_PIDFILE"], [Path to the OpenDNSSEC zone fetcher pid file])
+AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["$OPENDNSSEC_SIGNER_CLI sign"], [Path to the OpenDNSSEC signer engine cli])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS([tools/config.h])

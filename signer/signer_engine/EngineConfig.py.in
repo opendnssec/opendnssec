@@ -54,23 +54,19 @@ class EngineConfiguration:
     """Engine Configuration options"""
     def __init__(self, config_file_name):
         if not config_file_name:
-            config_file_name = "@sysconfdir@/opendnssec/conf.xml".replace("${prefix}", "@prefix@")
+            config_file_name = "@OPENDNSSEC_CONFIG_FILE@"
         self.config_file_name = config_file_name
-        self.signer_pidfile = "@localstatedir@/run/opendnssec/signerd.pid".replace("${prefix}", "@prefix@")
-        self.zonefetch_pidfile = "@localstatedir@/run/opendnssec/zone_fetcher.pid".replace("${prefix}", "@prefix@")
+        self.signer_pidfile = "@OPENDNSSEC_SIGNER_PIDFILE@"
+        self.zonefetch_pidfile = "@OPENDNSSEC_FETCH_PIDFILE@"
         self.zonefetch_file = None
         self.zonelist_file = None
         self.zone_tmp_dir = None
         self.tools_dir = None
         self.notify_command = None
         self.config_file_name = config_file_name
-        self.command_socket_file = "@localstatedir@".replace("${prefix}", "@prefix@") +\
-                                   os.sep + \
-                                   "run" + os.sep + \
-                                   "opendnssec" + os.sep + \
-                                   "engine.sock"
-        self.bindir = "@bindir@".replace("${exec_prefix}", "@exec_prefix@").replace("${prefix}", "@prefix@")
-        self.sysconfdir = "@sysconfdir@".replace("${prefix}", "@prefix@")
+        self.command_socket_file = "@OPENDNSSEC_SIGNER_SOCKET@"
+        self.bindir = "@OPENDNSSEC_BIN_DIR@"
+        self.sysconfdir = "@OPENDNSSEC_SYSCONF_DIR@"
         #self.privs_chroot = None
         self.privs_username = None
         self.privs_groupname = None
@@ -119,7 +115,7 @@ class EngineConfiguration:
              Util.get_xml_data("Configuration/Signer/ToolsDirectory",
                                xml_blob, True)
         if not self.tools_dir:
-            self.tools_dir = "@opendnsseclibexecdir@"
+            self.tools_dir = "@OPENDNSSEC_LIBEXEC_DIR@"
 
         self.notify_command = \
              Util.get_xml_data("Configuration/Signer/NotifyCommand",

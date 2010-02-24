@@ -98,7 +98,7 @@ def engine_cli(args, file):
             start_cmd = " ".join(args)
             if start_cmd[:5] == "start":
                 try:
-                    p = subprocess.Popen("@signer_engine@", shell=True)
+                    p = subprocess.Popen("@OPENDNSSEC_SIGNER_ENGINE@", shell=True)
                     retcode = os.waitpid(p.pid, 0)[1]
                     if retcode < 0:
                         print "Engine was terminated by signal"
