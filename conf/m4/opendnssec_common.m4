@@ -1,4 +1,4 @@
-# $Id: opendnssec_common.m4 2874 2010-02-24 12:24:13Z jakob $
+# $Id$
 
 full_bindir=`eval eval eval eval eval echo "${bindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
