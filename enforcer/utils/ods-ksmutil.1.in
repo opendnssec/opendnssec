@@ -99,8 +99,8 @@ subcommand.
 The \-\-zone option names the zone to add; the \-\-policy option names
 the policy to use instead of default; the \-\-input option specifies a
 non-standard location for the unsigned zone (default is 
-/var/opendnssec/unsigned/ZONE); the \-\-output option specifies a non-standard 
-location for the signed zone (default is /var/opendnssec/signed/ZONE).
+@LOCALSTATE_DIR@/unsigned/ZONE); the \-\-output option specifies a non-standard 
+location for the signed zone (default is @LOCALSTATE_DIR@/signed/ZONE).
 .TP
 .B zone delete --zone|-z \fIname\fB
 .TP
@@ -302,21 +302,21 @@ YYYY-MM-DD[:| ]HH[:MM[:SS]]
 .LP
 .TP
 .B conf.xml
-The main configuration file for OpenDNSSEC, by default stored in /etc/opendnssec/.
+The main configuration file for OpenDNSSEC, by default stored in @CONFIG_DIR@/.
 .TP
 .B zonelist.xml
-The list of zones, as defined in conf.xml, usually stored in /etc/opendnssec/.
+The list of zones, as defined in conf.xml, usually stored in @CONFIG_DIR@/.
 .TP
 .B kasp.xml
-The configuration of policies that define timing and security, as defined in conf.xml, usually stored in /etc/opendnssec/.
+The configuration of policies that define timing and security, as defined in conf.xml, usually stored in @CONFIG_DIR@/.
 .TP
 .B enforcer.db.backup
-A backup file of the database used by the KASP Enforcer, by default it is stored in /var/opendnssec.  Note that this does not include the keys, which are to be extracted from its own repository.
+A backup file of the database used by the KASP Enforcer, by default it is stored in @LOCALSTATE_DIR@/.  Note that this does not include the keys, which are to be extracted from its own repository.
 .TP
-.B /var/opendnssec/unsigned/
+.B @LOCALSTATE_DIR@/unsigned/
 The location that is usually configured in conf.xml to contain unsigned zones.
 .TP
-.B /var/opendnssec/signed/
+.B @LOCALSTATE_DIR@/signed/
 The location that is usually configured in conf.xml to contain signed zones.
 .SH "SEE ALSO"
 .LP

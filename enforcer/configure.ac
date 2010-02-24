@@ -183,6 +183,16 @@ conf_file=$opendnssecsysconfdir/conf.xml
 enforcer_pid_file=$localstatedir/run/opendnssec/enforcerd.pid
 signer_cli="$full_sbindir/ods-signer update"
 
+CONFIG_DIR=$opendnssecsysconfdir
+CONFIG_FILE=$opendnssecsysconfdir/conf.xml
+ENFORCER_PIDFILE=$full_localstatedir/run/opendnssec/enforcerd.pid
+LOCALSTATE_DIR=$opendnsseclocalstatedir
+
+AC_SUBST(CONFIG_DIR)
+AC_SUBST(CONFIG_FILE)
+AC_SUBST(LOCALSTATE_DIR)
+AC_SUBST(ENFORCER_PIDFILE)
+
 AC_DEFINE_UNQUOTED(CONFIG_DIR, ["`eval echo $opendnssecsysconfdir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
 AC_DEFINE_UNQUOTED(CONFIG_FILE, ["`eval echo $conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
 
