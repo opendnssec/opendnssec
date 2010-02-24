@@ -23,7 +23,7 @@ For more information, go to
 .B http://www.opendnssec.org
 and visit the Documentation page.
 .LP
-Invoked with no arguments, ods\-enforcerd will read the default configuration file @CONFIG_FILE@ and act according to its contents.
+Invoked with no arguments, ods\-enforcerd will read the default configuration file @OPENDNSSEC_CONFIG_FILE@ and act according to its contents.
 .P
 .SH "OPTIONS"
 .LP
@@ -67,10 +67,10 @@ facility.
 .SH "FILES"
 .LP
 .TP
-@CONFIG_FILE@
+@OPENDNSSEC_CONFIG_FILE@
 default configuration file.
 .TP
-@ENFORCER_PIDFILE@
+@OPENDNSSEC_FETCH_PIDFILE@
 default process-id file.
 .P
 .SH "SEE ALSO"

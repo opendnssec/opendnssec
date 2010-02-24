@@ -10,6 +10,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
+OPENDNSSEC_COMMON
+
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_CONFIG_SRCDIR([common/daemon.h])
@@ -179,25 +181,12 @@ fi
 
 AM_CONDITIONAL([USE_MYSQL], [test "x${enable_mysql}" = "xyes"])
 
-CONFIG_DIR=$opendnssecsysconfdir
-CONFIG_FILE=$opendnssecsysconfdir/conf.xml
-LOCALSTATE_DIR=$opendnsseclocalstatedir
-SCHEMA_DIR=$opendnssecdatadir
-ENFORCER_PIDFILE=$full_localstatedir/run/opendnssec/enforcerd.pid
-
-AC_SUBST(CONFIG_DIR)
-AC_SUBST(CONFIG_FILE)
-AC_SUBST(LOCALSTATE_DIR)
-AC_SUBST(SCHEMA_DIR)
-AC_SUBST(ENFORCER_PIDFILE)
-
-AC_DEFINE_UNQUOTED(CONFIG_DIR, "$CONFIG_DIR", [Path to the OpenDNSSEC configuration files])
-AC_DEFINE_UNQUOTED(CONFIG_FILE, "$CONFIG_FILE", [Path to the OpenDNSSEC configuration file])
-AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, "$LOCALSTATE_DIR", [Path to the OpenDNSSEC var directory])
-AC_DEFINE_UNQUOTED(SCHEMA_DIR, "$SCHEMA_DIR", [Path to the OpenDNSSEC data files])
-AC_DEFINE_UNQUOTED(ENFORCER_PIDFILE, "ENFORCER_PIDFILE", [Path to the OpenDNSSEC enforcerd pid file])
-
-AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, "$full_sbindir/ods-signer update", [Path to the OpenDNSSEC signer engine cli])
+AC_DEFINE_UNQUOTED(CONFIG_DIR, "$OPENDNSSEC_CONFIG_DIR", [Path to the OpenDNSSEC configuration files])
+AC_DEFINE_UNQUOTED(CONFIG_FILE, "$OPENDNSSEC_CONFIG_FILE", [Path to the OpenDNSSEC configuration file])
+AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, "$OPENDNSSEC_STATE_DIR", [Path to the OpenDNSSEC var directory])
+AC_DEFINE_UNQUOTED(SCHEMA_DIR, "$OPENDNSSEC_SCHEMA_DIR", [Path to the OpenDNSSEC data files])
+AC_DEFINE_UNQUOTED(ENFORCER_PIDFILE, "$OPENDNSSEC_ENFORCER_PIDFILE", [Path to the OpenDNSSEC enforcerd pid file])
+AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
 
 AC_ARG_ENABLE(timeshift,
 	AC_HELP_STRING([--enable-timeshift], [Enable timeshift debug]),
