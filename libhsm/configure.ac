@@ -21,6 +21,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
+OPENDNSSEC_COMMON
+
 AC_CONFIG_SRCDIR([src/libhsm.c])
 AC_CONFIG_HEADER([config.h])
 
@@ -61,13 +63,7 @@ ACX_LIBXML2
 ACX_LDNS(1,6,4)
 ACX_DLOPEN
 
-full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-opendnssecsysconfdir=$full_sysconfdir/opendnssec
-
-CONFIG_FILE=$opendnssecsysconfdir/conf.xml
-AC_SUBST(CONFIG_FILE)
-
-AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$CONFIG_FILE"],[Default configuration file.])
+AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 
 ACX_PKCS11_MODULES
 
