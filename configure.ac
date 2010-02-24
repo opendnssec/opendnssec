@@ -10,8 +10,9 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
-AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf ])
+OPENDNSSEC_COMMON
 
+AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf ])
 
 # xml
 AC_PATH_PROG(XMLLINT, xmllint)
@@ -43,19 +44,6 @@ if test "x${enable_auditor}" = "xyes"; then
 	AC_CONFIG_SUBDIRS([ auditor ])
 fi
 AM_CONDITIONAL([ENABLE_AUDITOR], [test "${enable_auditor}" = "yes"])
-
-full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_bindir=`eval eval eval eval eval echo "${bindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-
-AC_SUBST([full_libdir])
-AC_SUBST([full_bindir])
-AC_SUBST([full_sbindir])
-
-opendnssecsysconfdir=$full_sysconfdir/opendnssec
-CONFIG_DIR=$opendnssecsysconfdir
-AC_SUBST(CONFIG_DIR)
 
 AC_CONFIG_FILES([
 	Makefile

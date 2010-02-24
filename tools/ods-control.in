@@ -28,9 +28,9 @@
 #
 
 progname="ods-control"
-bindir="@full_bindir@"
-sbindir="@full_sbindir@"
-enforcer_pid_file="@localstatedir@/run/opendnssec/enforcerd.pid"
+bindir="@OPENDNSSEC_BIN_DIR@"
+sbindir="@OPENDNSSEC_SBIN_DIR@"
+enforcer_pid_file="@OPENDNSSEC_PID_DIR@/enforcerd.pid"
 
 
 case "$1" in

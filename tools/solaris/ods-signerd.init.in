@@ -27,11 +27,11 @@
 #
 
 # export SOFTHSM_CONF=/etc/softhsm.conf
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:@full_libdir@
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:@OPENDNSSEC_LIB_DIR@
 
-signer_bin_file="@full_sbindir@/ods-signerd"
-signer_cli_file="@full_sbindir@/ods-signer"
-signer_pid_file="@localstatedir@/run/opendnssec/signerd.pid"
+signer_bin_file="@OPENDNSSEC_SBIN_DIR@/ods-signerd"
+signer_cli_file="@OPENDNSSEC_SBIN_DIR@/ods-signer"
+signer_pid_file="@OPENDNSSEC_PID_DIR@/signerd.pid"
 
 case "$1" in
 'start')

@@ -6,11 +6,11 @@
 \- OpenDNSSEC timing specification
 .SH "SYNOPSIS"
 .LP
-.B @CONFIG_DIR@/conf.xml
+.B @OPENDNSSEC_CONFIG_DIR@/conf.xml
 .br
-.B @CONFIG_DIR@/kasp.xml
+.B @OPENDNSSEC_CONFIG_DIR@/kasp.xml
 .br
-.B @CONFIG_DIR@/zonelist.xml
+.B @OPENDNSSEC_CONFIG_DIR@/zonelist.xml
 .SH "DESCRIPTION"
 .LP
 The configuration files of OpenDNSSEC need to have timing descriptions,
