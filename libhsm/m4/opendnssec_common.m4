@@ -12,6 +12,8 @@ full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 
+opendnsseclibexecdir=$libexecdir/opendnssec
+AC_SUBST([opendnsseclibexecdir])
 
 OPENDNSSEC_BIN_DIR=$full_bindir
 OPENDNSSEC_SBIN_DIR=$full_sbindir
