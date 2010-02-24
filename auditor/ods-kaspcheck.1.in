@@ -25,7 +25,7 @@ inconsistencies. It is advisable to use this tool to check your configuration be
 \fB\-c\fR, \fB\-\-conf\fR \fIpath\fR
 Path to an OpenDNSSEC configuration file
 
-(defaults to /etc/opendnssec/conf.xml)
+(defaults to @CONFIG_FILE@)
 .TP
 \fB\-k\fR, \fB\-\-kasp\fR \fIpath\fR
 Path to KASP policy file
