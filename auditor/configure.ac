@@ -22,12 +22,17 @@ fi
 
 full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
+full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 
 opendnsseclibdir=$full_libdir/opendnssec
 opendnssecdatadir=$full_datadir/opendnssec
+opendnssecsysconfdir=$full_sysconfdir/opendnssec
 
 AC_SUBST([opendnsseclibdir])
 AC_SUBST([opendnssecdatadir])
+
+CONFIG_FILE=$opendnssecsysconfdir/conf.xml
+AC_SUBST(CONFIG_FILE)
 
 AC_SUBST(TIMESHIFT, false)
 
