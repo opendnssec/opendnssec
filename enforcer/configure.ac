@@ -153,7 +153,7 @@ if test "x${enable_mysql}" = "xyes"; then
 	DB_LIBS=$MYSQL_LIBS
 
         AC_DEFINE_UNQUOTED(SQL_BIN, "$MYSQL", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, ["`eval echo $opendnssecdatadir/database_create.mysql | sed s,NONE,$ac_default_prefix,g`"], [database setup script])
+	AC_DEFINE_UNQUOTED(SQL_SETUP, "$opendnssecdatadir/database_create.mysql", [database setup script])
 
 	AC_SUBST(DB_TYPE) 
 	AC_SUBST(DB_INCLUDES) 
@@ -169,7 +169,7 @@ else
 	DB_LIBS=$SQLITE3_LIBS 
 
 	AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, ["`eval echo $opendnssecdatadir/database_create.sqlite3 | sed s,NONE,$ac_default_prefix,g`"], [database setup script])
+	AC_DEFINE_UNQUOTED(SQL_SETUP, "$opendnssecdatadir/database_create.sqlite3", [database setup script])
 
 	AC_SUBST(DB_TYPE) 
 	AC_SUBST(DB_INCLUDES) 
@@ -179,28 +179,25 @@ fi
 
 AM_CONDITIONAL([USE_MYSQL], [test "x${enable_mysql}" = "xyes"])
 
-conf_file=$opendnssecsysconfdir/conf.xml
-enforcer_pid_file=$localstatedir/run/opendnssec/enforcerd.pid
-signer_cli="$full_sbindir/ods-signer update"
-
 CONFIG_DIR=$opendnssecsysconfdir
 CONFIG_FILE=$opendnssecsysconfdir/conf.xml
-ENFORCER_PIDFILE=$full_localstatedir/run/opendnssec/enforcerd.pid
 LOCALSTATE_DIR=$opendnsseclocalstatedir
+SCHEMA_DIR=$opendnssecdatadir
+ENFORCER_PIDFILE=$full_localstatedir/run/opendnssec/enforcerd.pid
 
 AC_SUBST(CONFIG_DIR)
 AC_SUBST(CONFIG_FILE)
 AC_SUBST(LOCALSTATE_DIR)
+AC_SUBST(SCHEMA_DIR)
 AC_SUBST(ENFORCER_PIDFILE)
 
-AC_DEFINE_UNQUOTED(CONFIG_DIR, ["`eval echo $opendnssecsysconfdir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration files])
-AC_DEFINE_UNQUOTED(CONFIG_FILE, ["`eval echo $conf_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC configuration file])
+AC_DEFINE_UNQUOTED(CONFIG_DIR, "$CONFIG_DIR", [Path to the OpenDNSSEC configuration files])
+AC_DEFINE_UNQUOTED(CONFIG_FILE, "$CONFIG_FILE", [Path to the OpenDNSSEC configuration file])
+AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, "$LOCALSTATE_DIR", [Path to the OpenDNSSEC var directory])
+AC_DEFINE_UNQUOTED(SCHEMA_DIR, "$SCHEMA_DIR", [Path to the OpenDNSSEC data files])
+AC_DEFINE_UNQUOTED(ENFORCER_PIDFILE, "ENFORCER_PIDFILE", [Path to the OpenDNSSEC enforcerd pid file])
 
-AC_DEFINE_UNQUOTED(ENFORCER_PIDFILE, ["`eval echo $enforcer_pid_file | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC enforcerd pid file])
-
-AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["`eval echo $signer_cli | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC signer engine cli])
-AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, ["`eval echo $opendnsseclocalstatedir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC var directory])
-AC_DEFINE_UNQUOTED(SCHEMA_DIR, ["`eval echo $opendnssecdatadir | sed s,NONE,$ac_default_prefix,g`"], [Path to the OpenDNSSEC data files])
+AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, $full_sbindir/ods-signer update", [Path to the OpenDNSSEC signer engine cli])
 
 AC_ARG_ENABLE(timeshift,
 	AC_HELP_STRING([--enable-timeshift], [Enable timeshift debug]),
