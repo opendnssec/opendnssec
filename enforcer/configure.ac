@@ -197,7 +197,7 @@ AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, "$LOCALSTATE_DIR", [Path to the OpenDNSSEC va
 AC_DEFINE_UNQUOTED(SCHEMA_DIR, "$SCHEMA_DIR", [Path to the OpenDNSSEC data files])
 AC_DEFINE_UNQUOTED(ENFORCER_PIDFILE, "ENFORCER_PIDFILE", [Path to the OpenDNSSEC enforcerd pid file])
 
-AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, $full_sbindir/ods-signer update", [Path to the OpenDNSSEC signer engine cli])
+AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, "$full_sbindir/ods-signer update", [Path to the OpenDNSSEC signer engine cli])
 
 AC_ARG_ENABLE(timeshift,
 	AC_HELP_STRING([--enable-timeshift], [Enable timeshift debug]),
