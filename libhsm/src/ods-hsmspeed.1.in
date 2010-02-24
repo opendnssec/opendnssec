@@ -36,7 +36,7 @@ creates some overhead to the pure PKCS#11 environment.
 \fB\-c\fR \fIconfig\fR
 Path to an OpenDNSSEC configuration file.
 
-(defaults to /etc/opendnssec/conf.xml)
+(defaults to @CONFIG_FILE@)
 .TP
 \fB\-i\fR \fIiterations\fR
 Specify the number of \fIiterations\fR for signing an RRset.

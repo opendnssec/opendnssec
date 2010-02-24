@@ -49,7 +49,7 @@ Perform a number of tests on a \fIrepository\fR
 \fB\-c\fR \fIconfig\fR
 Path to an OpenDNSSEC configuration file
 
-(defaults to /etc/opendnssec/conf.xml)
+(defaults to @CONFIG_FILE@)
 .TP
 \fB\-h\fR
 Show the help screen

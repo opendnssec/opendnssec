@@ -62,7 +62,12 @@ ACX_LDNS(1,6,4)
 ACX_DLOPEN
 
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["${full_sysconfdir}/opendnssec/conf.xml"],[Default configuration file.])
+opendnssecsysconfdir=$full_sysconfdir/opendnssec
+
+CONFIG_FILE=$opendnssecsysconfdir/conf.xml
+AC_SUBST(CONFIG_FILE)
+
+AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$CONFIG_FILE"],[Default configuration file.])
 
 ACX_PKCS11_MODULES
 
