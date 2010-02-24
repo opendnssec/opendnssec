@@ -51,14 +51,6 @@ ACX_LIBHSM
 AM_PATH_PYTHON
 ACX_PYTHON_MODULE([getopt os sys socket time traceback threading syslog signal errno grp pwd re Ft.Xml.XPath xml.dom xml.parsers.expat subprocess optparse datetime getpass shutil commands])
 
-OPENDNSSEC_SIGNER_SOCKET=$OPENDNSSEC_PID_DIR/engine.sock
-AC_SUBST([OPENDNSSEC_SIGNER_SOCKET])
-
-OPENDNSSEC_SIGNER_ENGINE=$OPENDNSSEC_SBIN_DIR/ods-signerd
-AC_SUBST([OPENDNSSEC_SIGNER_ENGINE])
-
-OPENDNSSEC_SIGNER_CLI=$OPENDNSSEC_SBIN_DIR/ods-signer
-
 AC_DEFINE_UNQUOTED(SIGNER_PIDFILE, ["$OPENDNSSEC_SIGNER_PIDFILE"], [Path to the OpenDNSSEC signer engine pid file])
 AC_DEFINE_UNQUOTED(FETCH_PIDFILE, ["$OPENDNSSEC_ENFORCER_PIDFILE"], [Path to the OpenDNSSEC zone fetcher pid file])
 AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["$OPENDNSSEC_SIGNER_CLI sign"], [Path to the OpenDNSSEC signer engine cli])
