@@ -1067,7 +1067,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                should we call it here or after we have written all of the files?
                have timeout if call is blocking */
             signer_command = NULL;
-            StrAppend(&signer_command, SIGNER_CLI_COMMAND);
+            StrAppend(&signer_command, SIGNER_CLI_UPDATE);
             StrAppend(&signer_command, " ");
             StrAppend(&signer_command, zone_name);
 

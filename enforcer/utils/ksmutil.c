@@ -1047,7 +1047,7 @@ cmd_delzone ()
     /* Call the signer_engine_cli to tell it that the zonelist has changed */
     /* TODO Should we do this when we remove a zone? */
     if (all_flag == 0) {
-        if (system(SIGNER_CLI_COMMAND) != 0)
+        if (system(SIGNER_CLI_UPDATE) != 0)
         {
             printf("Could not call signer engine\n");
         }
