@@ -15,6 +15,8 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
+opendnsseclibdir = $(libdir)/opendnssec
+
 bin_SCRIPTS =	ods-auditor ods-kaspcheck
 
 man1_MANS =	ods-auditor.1 ods-kaspcheck.1

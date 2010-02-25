@@ -6,7 +6,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in
 
-opendnsseclibexecdir = @libexecdir@/opendnssec
+opendnsseclibexecdir = $(libexecdir)/opendnssec
 
 opendnsseclibexec_PROGRAMS= \
 	sorter get_serial get_class \
