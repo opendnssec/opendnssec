@@ -53,7 +53,7 @@ ACX_PYTHON_MODULE([getopt os sys socket time traceback threading syslog signal e
 
 AC_DEFINE_UNQUOTED(SIGNER_PIDFILE, ["$OPENDNSSEC_SIGNER_PIDFILE"], [Path to the OpenDNSSEC signer engine pid file])
 AC_DEFINE_UNQUOTED(FETCH_PIDFILE, ["$OPENDNSSEC_ENFORCER_PIDFILE"], [Path to the OpenDNSSEC zone fetcher pid file])
-AC_DEFINE_UNQUOTED(SIGNER_CLI_COMMAND, ["$OPENDNSSEC_SIGNER_CLI sign"], [Path to the OpenDNSSEC signer engine cli])
+AC_DEFINE_UNQUOTED(SIGNER_CLI_SIGN, ["$OPENDNSSEC_SIGNER_CLI sign"], [Path to the OpenDNSSEC signer engine cli])
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS([tools/config.h])
