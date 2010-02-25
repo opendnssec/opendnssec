@@ -127,17 +127,6 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
 
-full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_sbindir=`eval eval eval eval eval echo "${sbindir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-full_localstatedir=`eval eval eval eval eval echo "${localstatedir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
-
-AC_SUBST([opendnssecdatadir])
-
-opendnssecsysconfdir=$full_sysconfdir/opendnssec
-opendnssecdatadir=$full_datadir/opendnssec
-opendnsseclocalstatedir="$full_localstatedir/opendnssec"
-
 AC_ARG_ENABLE(mysql,
         AC_HELP_STRING([--enable-mysql],
                 [Enable MySQL database driver (experimental)]),
