@@ -14,6 +14,8 @@ AM_CPPFLAGS = \
 
 AM_CFLAGS = -std=c99
 
+opendnssecdatadir = $(datadir)/opendnssec
+
 if USE_MYSQL
 dist_opendnssecdata_DATA = database_create.mysql
 else
