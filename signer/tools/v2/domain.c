@@ -224,8 +224,6 @@ domain_nsecify_nsec3(domain_type* domain, domain_type* to,
     domain_nsecify_create_bitmap(domain->ns_rrset, types, &types_count);
     types[types_count] = LDNS_RR_TYPE_RRSIG;
     types_count++;
-    types[types_count] = LDNS_RR_TYPE_NSEC3;
-    types_count++;
 
     nsec_rr = ldns_rr_new();
     ldns_rr_set_type(nsec_rr, LDNS_RR_TYPE_NSEC3);
