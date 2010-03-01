@@ -30,7 +30,7 @@
 
 		<Denial>
 			<NSEC3>
-				<OptOut/>
+				<!-- <OptOut/> -->
 				<Resalt>P100D</Resalt>
 				<Hash>
 					<Algorithm>1</Algorithm>
