@@ -30,7 +30,7 @@
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:@full_prefix@/lib
 
 signer_bin_file="@full_prefix@/sbin/ods-signerd"
-signer_cli_file="@full_prefix@/bin/ods-signer"
+signer_cli_file="@full_prefix@/sbin/ods-signer"
 signer_pid_file="@localstatedir@/run/opendnssec/signerd.pid"
 
 case "$1" in
