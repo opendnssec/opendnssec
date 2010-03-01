@@ -144,7 +144,7 @@ if test "x${enable_mysql}" = "xyes"; then
 	DB_LIBS=$MYSQL_LIBS
 
         AC_DEFINE_UNQUOTED(SQL_BIN, "$MYSQL", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, "$opendnssecdatadir/database_create.mysql", [database setup script])
+	AC_DEFINE_UNQUOTED(SQL_SETUP, "$OPENDNSSEC_DATA_DIR/database_create.mysql", [database setup script])
 
 	AC_SUBST(DB_TYPE) 
 	AC_SUBST(DB_INCLUDES) 
@@ -160,7 +160,7 @@ else
 	DB_LIBS=$SQLITE3_LIBS 
 
 	AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, "$opendnssecdatadir/database_create.sqlite3", [database setup script])
+	AC_DEFINE_UNQUOTED(SQL_SETUP, "$OPENDNSSEC_DATA_DIR/database_create.sqlite3", [database setup script])
 
 	AC_SUBST(DB_TYPE) 
 	AC_SUBST(DB_INCLUDES) 
