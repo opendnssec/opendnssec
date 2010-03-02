@@ -281,21 +281,27 @@ handle_name(FILE *out_file,
 			/* first, create the NSEC3 from the list we just read to
 			 * the ENT, but only if the previous wasn't an ent as well
 			 */
-			if (ldns_rr_list_rr_count(rr_list) > 0) {
-				new_nsec = create_nsec3(from_name, origin, ttl,
-										rr_list, n3p, 0);
-				if (*prev_nsec) {
-					status = link_nsec3_rrs(*prev_nsec, new_nsec);
-					ldns_rr_print(out_file, *prev_nsec);
-					ldns_rr_free(*prev_nsec);
-				} else {
-					*first_nsec = ldns_rr_clone(new_nsec);
-				}
-				*prev_nsec = new_nsec;
-				ldns_rr_list_print(out_file, rr_list);
+			if (n3p->flags & LDNS_NSEC3_VARS_OPTOUT_MASK &&
+			    only_ns_in_list(rr_list)) {
+				/* delegation. optout. skip. */
+			} else {
+				if (ldns_rr_list_rr_count(rr_list) > 0) {
+					new_nsec = create_nsec3(from_name, origin, ttl,
+											rr_list, n3p, 0);
+					if (*prev_nsec) {
+						status = link_nsec3_rrs(*prev_nsec, new_nsec);
+						ldns_rr_print(out_file, *prev_nsec);
+						ldns_rr_free(*prev_nsec);
+					} else {
+						*first_nsec = ldns_rr_clone(new_nsec);
+					}
+					*prev_nsec = new_nsec;
+					ldns_rr_list_print(out_file, rr_list);
 
-				rr_list_clear(rr_list);
+					rr_list_clear(rr_list);
+				}
 			}
+
 			/* then create the ENT */
 			new_nsec = create_nsec3(ent_name, origin, ttl,
 			                        rr_list, n3p, 1);
@@ -376,15 +382,13 @@ handle_line(FILE *out_file,
 			 * and
 			 * ; Empty nonterminal to NS: <name>
 			 */
-			if ((ent_name = get_name_from_line(line,
-									  "; Empty non-terminal: "))) {
+			if ((ent_name = get_name_from_line(line, "; Empty non-terminal: "))) {
 				status = handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p,
 				            ent_name, 0);
 				ldns_rdf_deep_free(*prev_name);
 				*prev_name = ent_name;
-			} else if ((ent_name = get_name_from_line(line,
-								 "; Empty non-terminal to NS: "))) {
+			} else if ((ent_name = get_name_from_line(line, "; Empty non-terminal to NS: "))) {
 				status = handle_name(out_file, NULL, origin, soa_min_ttl, soa_class, *prev_name,
 				            rr_list, prev_nsec, first_nsec, n3p,
 				            ent_name, 1);
