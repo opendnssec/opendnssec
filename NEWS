@@ -13,7 +13,7 @@ Bugfixes:
 * Fixed various enable-options in the configure scripts
 * Respect $DESTDIR for config files
 * Looked for the database init script in $prefix/share/opendnssec and not datadir.
-
+* More proper memory cleanup in parsing zonefetch.xml
 
 OpenDNSSEC 1.0.0 - 2010-0X-XX
 
