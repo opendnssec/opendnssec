@@ -333,13 +333,13 @@ read_axfr_config(const char* filename, config_type* cfg)
                        if (tsig_name && tsig_algo && tsig_secret) {
                            use_tsig = 1;
                            if (cfg->tsig_name) {
-                               free((void*) tsig_name);
+                               free((void*) cfg->tsig_name);
                            }
                            if (cfg->tsig_algo) {
-                               free((void*) tsig_algo);
+                               free((void*) cfg->tsig_algo);
                            }
                            if (cfg->tsig_secret) {
-                               free((void*) tsig_secret);
+                               free((void*) cfg->tsig_secret);
                            }
                            cfg->tsig_name = strdup(tsig_name);
                            cfg->tsig_algo = strdup(tsig_algo);
