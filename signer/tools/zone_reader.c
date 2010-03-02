@@ -210,10 +210,10 @@ ent_for_glue(ldns_rr *rr, ldns_rbtree_t *tree)
 				if (cur_data->glue) {
 					return 1;
 				}
-				if (!node_for_rr_name(rr, cur_node)) {
+				cur_node = ldns_rbtree_next(cur_node);
+				if (cur_node != LDNS_RBTREE_NULL && !node_for_rr_name(rr, cur_node)) {
 					return 0;
 				}
-				cur_node = ldns_rbtree_next(cur_node);
 			}
 			return 0;
 		}
@@ -356,7 +356,6 @@ print_rrs(FILE *out, ldns_rbtree_t *rr_tree, ldns_rbtree_t *ns_tree, ldns_rdf *o
 	rr_data *cur_data;
 
 	cur_node = ldns_rbtree_first(rr_tree);
-
 	while (cur_node && cur_node != LDNS_RBTREE_NULL) {
 		cur_data = (rr_data *) cur_node->data;
 		/* mark glue */
@@ -368,6 +367,12 @@ print_rrs(FILE *out, ldns_rbtree_t *rr_tree, ldns_rbtree_t *ns_tree, ldns_rdf *o
 		    cur_data->type != LDNS_RR_TYPE_DS) {
 			mark_possible_ooz(cur_data, ns_tree, origin);
 		}
+		cur_node = ldns_rbtree_next(cur_node);
+	}
+
+	cur_node = ldns_rbtree_first(rr_tree);
+	while (cur_node && cur_node != LDNS_RBTREE_NULL) {
+		cur_data = (rr_data *) cur_node->data;
 		print_rr_data(out, (rr_data *) cur_node->data, rr_tree);
 		cur_node = ldns_rbtree_next(cur_node);
 	}
@@ -475,13 +480,17 @@ find_empty_nonterminals(ldns_rdf *zone_name,
 	 * label in the current name (counting from the end)
 	 */
 	zone_label_count = ldns_dname_label_count(zone_name);
-	cur_label_count = ldns_dname_label_count(cur_name);
+	if (!cur_name) {
+		cur_label_count = 0;
+	} else {
+		cur_label_count = ldns_dname_label_count(cur_name);
+	}
 	next_label_count = ldns_dname_label_count(next_name);
 
 	/* *nonterminals = malloc(sizeof(ldns_rdf *) * next_label_count); */
 	for (i = 1; i < next_label_count - zone_label_count; i++) {
 		lpos = cur_label_count - next_label_count + i;
-		if (lpos >= 0) {
+		if (lpos >= 0 && cur_name) {
 			l1 = ldns_dname_label(cur_name, lpos);
 		} else {
 			l1 = NULL;
@@ -500,7 +509,9 @@ find_empty_nonterminals(ldns_rdf *zone_name,
 			nonterminals[count] = new_name;
 			count++;
 		}
-		ldns_rdf_deep_free(l1);
+		if (l1) {
+			ldns_rdf_deep_free(l1);
+		}
 		ldns_rdf_deep_free(l2);
 	}
 	return count;
@@ -737,11 +748,18 @@ main(int argc, char **argv)
 					if (!(ldns_dname_compare(ldns_rr_owner(cur_rr), origin) == 0 ||
 					      ldns_dname_is_subdomain(ldns_rr_owner(cur_rr), origin))) {
 						cur_rr_data->ooz = 1;
-					} else if (prev_rr && nsec3) {
-						empty_nonterminal_count = find_empty_nonterminals(origin,
+					} else if (nsec3) {
+						if (prev_rr) {
+							empty_nonterminal_count = find_empty_nonterminals(origin,
 												   ldns_rr_owner(prev_rr),
 												   ldns_rr_owner(cur_rr),
 												   empty_nonterminals);
+						} else {
+							empty_nonterminal_count = find_empty_nonterminals(origin,
+												   NULL,
+												   ldns_rr_owner(cur_rr),
+												   empty_nonterminals);
+						}
 
 						for (eni = 0; eni < empty_nonterminal_count; eni++) {
 							cur_rr_data->name = ldns_nsec3_hash_name(
@@ -750,6 +768,7 @@ main(int argc, char **argv)
 												nsec3_iterations,
 												nsec3_salt_length,
 												nsec3_salt);
+							cur_rr_data->orig_name = ldns_rdf_clone(empty_nonterminals[eni]);
 							if (!cur_rr_data->name) {
 								fprintf(stderr, "Error creating NSEC3 name\n");
 								exit(1);
@@ -816,7 +835,9 @@ main(int argc, char **argv)
 						}
 					}
 
-					ldns_rr_free(prev_rr);
+					if (prev_rr) {
+						ldns_rr_free(prev_rr);
+					}
 					prev_rr = cur_rr;
 					cur_rr = NULL;
 				} else {
