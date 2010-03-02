@@ -713,7 +713,7 @@ main(int argc, char **argv)
 				                             origin,
 				                             &prev_name);
 				if (status == LDNS_STATUS_OK) {
-					/* iff nsec3 and this rr is an nsec3params record with
+					/* if nsec3 and this rr is an nsec3params record with
 					 * *other* params than here; remove it.
 					 * We will add a new one at the end.
 					 * it with the right one. (if there was no nsec3params
