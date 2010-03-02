@@ -41,6 +41,7 @@
 #include <libxml/xpathInternals.h>
 #include <ldns/ldns.h>
 
+#include "config.h"
 #include "eppconfig.h"
 
 static const char* head =
