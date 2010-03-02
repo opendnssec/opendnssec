@@ -125,7 +125,10 @@ start = element KASP {
 			element SOA { anysoa }
 		},
 
-		audit?
+                element Audit {
+                       # Do a partial audit?
+                       partial?
+                }*
 	}+
 }
 
@@ -194,4 +197,4 @@ ttl = element TTL { xsd:duration }
 
 propagationdelay = element PropagationDelay { xsd:duration }
 
-audit = element Audit { empty }
+partial = element Partial { empty }
