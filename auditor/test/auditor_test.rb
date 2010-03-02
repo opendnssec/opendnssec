@@ -38,7 +38,9 @@ class AuditorTest < Test::Unit::TestCase
     kasp_filename = "kasp_nsec3.xml"
     run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp")
 
-    success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used"])
+    success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
+      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
+      ])
     assert(success, "NSEC3 good file not audited correctly")
   end
 
@@ -87,7 +89,7 @@ class AuditorTest < Test::Unit::TestCase
       "NSEC3PARAM RRs included in NSEC-signed zone",
       "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones.	143	IN	A	123.123.123.123",
       "No NSEC record for tjeb.nl",
-      "NSEC record should have TTL of 3600 from zone policy //Zone/SOA/Minimum, but is bla.tjeb.nl.	360	IN	NSEC	dragon.tjeb.nl ( NS RRSIG NSEC )",
+      "NSEC record should have TTL of 3600 from zone policy //Zone/SOA/Minimum, but is bla.tjeb.nl.",
       "NSEC includes A which is not in rrsets for dragon.tjeb.nl",
       "RRSIG  types not in NSEC for dragon.tjeb.nl",
       "RRSet (dragon.tjeb.nl, NSEC) failed verification : Signature failed to cryptographically verify, tag = 1390",
@@ -152,6 +154,8 @@ class AuditorTest < Test::Unit::TestCase
 
       "SALT LENGTH IS 3, but should be 4",
 
+      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
+      
       #
       #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
       # - @TODO@ extra next_hashed on one NSEC3
@@ -160,6 +164,113 @@ class AuditorTest < Test::Unit::TestCase
       #   5. If an NSEC3 record does not have the opt-out bit set, there are no domain names in the zone for which the hash lies between the hash of this domain name and the value in the "Next Hashed Owner" name field.
       #   @TODO@ how do we test? Would need to find a domain whose hash was right... :-/
       #
+    ]
+    success = check_syslog(stderr, expected_strings)
+    assert(success, "NSEC3 bad file not audited correctly")
+  end
+
+  def test_partial_good_file_nsec
+    # Get the auditor to check a known-good zone (with signatures set well into the future)
+    # Make sure there are no errors
+
+    stderr = IO::pipe
+    path = "test/signer_test_good/"
+    zonelist_filename = "zonelist_nsec.xml"
+    kasp_filename = "kasp_nsec.xml"
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp", true)
+
+    success = check_syslog(stderr, [])
+    assert(success, "NSEC good file not audited correctly")
+  end
+
+  def test_partial_good_file_nsec3
+    stderr = IO::pipe
+    path = "test/signer_test_good/"
+    zonelist_filename = "zonelist_nsec3.xml"
+    kasp_filename = "kasp_nsec3.xml"
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp", true)
+
+    success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used"])
+    assert(success, "NSEC3 good file not audited correctly")
+  end
+
+  def test_partial_bad_file_nsec
+    # Get a known-bad zone file
+    # Make sure that all known errors are caught
+    stderr = IO::pipe
+    path = "test/signer_test_bad/"
+    zonelist_filename = "zonelist_nsec.xml"
+    kasp_filename = "kasp_nsec.xml"
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp1", true)
+
+
+    expected_strings = [
+      "RRSet (www.tjeb.nl, AAAA) failed verification : Signature record not in validity period, tag = 1390",
+      "RRSet (www.tjeb.nl, NSEC) failed verification : Signature record not in validity period, tag = 1390",
+      "Inception error for www.tjeb.nl, NSEC : Signature inception is 1275722596, time now is",
+      "RRSet (tjeb.nl, RRSIG) failed verification : No RRSet to verify, tag = 1390",
+      "contains invalid RR : tjeb.nl.", # DNSKEY
+      "Expected SOA RR as first record ",
+
+      "NSEC3PARAM RRs included in NSEC-signed zone",
+      "No NSEC record for tjeb.nl",
+      "NSEC record should have TTL of 3600 from zone policy //Zone/SOA/Minimum, but is bla.tjeb.nl.",
+      "NSEC includes A which is not in rrsets for dragon.tjeb.nl",
+      "RRSIG  types not in NSEC for dragon.tjeb.nl",
+      "RRSet (dragon.tjeb.nl, NSEC) failed verification : Signature failed to cryptographically verify, tag = 1390",
+
+      # Key lifetime tracking
+      "Not enough prepublished KSKs! Should be 2 but have 0",
+      "Not enough prepublished ZSKs! Should be 2 but have 0"
+      # @TODO@ Check SOA Serial == KEEP
+
+      # @TODO@ Check DNSKEY alg codes and lengths against kasp.xml
+      # @TODO@ Update online spec some time!
+    ]
+    success = check_syslog(stderr, expected_strings)
+    assert(success, "NSEC bad file not audited correctly")
+  end
+
+  def test_partial_bad_file_nsec3
+    # Get a known-bad zone file
+    # Make sure that all known errors are caught
+    stderr = IO::pipe
+    path = "test/signer_test_bad/"
+    zonelist_filename = "zonelist_nsec3.xml.partial"
+    kasp_filename = "kasp_nsec3_partial.xml"
+    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp2", true)
+
+    expected_strings = [ # NSEC3 error strings
+      "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
+      #   1. There are no NSEC records in the zone.
+      "NSEC RRs included in NSEC3-signed zone",
+
+      #   2. If an NSEC3PARAM RR is found:
+      #         a There is only one NSEC3PARAM record in the zone, and it is present at the apex of the zone
+      #         b The flags field of the record must be zero.
+      "NSEC3PARAM flags should be 0, but were 1",
+      "NSEC3PARAM has wrong iterations : should be 5 but was 4",
+      "NSEC3PARAM has wrong algorithm : should be 1 but was 2",
+      "NSEC3PARAM has wrong salt : should be beef but was beefff",
+      "NSEC3PARAM seen at",
+      "Multiple NSEC3PARAM RRs",
+
+      #         c Each NSEC3 record present in the zone has the same hash algorithm iterations and salt parameters.
+      "NSEC3 has wrong salt : should be beef but was dead",
+      "NSEC3 has wrong iterations : should be 5 but was 10",
+      "NSEC3 has wrong algorithm : should be 1 but was 2",
+      "RRSet (cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl, NSEC3) failed verification : Signature failed to cryptographically verify",
+      #
+      #   3. Each NSEC3 record has bits correctly set to indicate the types of RRs associated with the domain.
+      "NSEC3 includes MX which is not in rrsets for cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl",
+      "A  types not in NSEC3 for cq435smap43lf2dlg1oe4prs4rrlkhj7.tjeb.nl",
+
+      "SALT LENGTH IS 2, but should be 4",
+
+      #
+      #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
+      # - @TODO@ extra next_hashed on one NSEC3
+      "NSEC3 record left after folowing closed loop : ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl"
     ]
     success = check_syslog(stderr, expected_strings)
     assert(success, "NSEC3 bad file not audited correctly")
@@ -197,21 +308,10 @@ class AuditorTest < Test::Unit::TestCase
     return success
   end
 
-  # @TODO@ Partial scanning
-  #  def test_partial_scan_good
-  #    fail "Implement good partial scanning test!"
-  #    # @TODO@ Is there any need for NSEC(3) versions of these partial test methods?
-  #    # Not really - just go with the first type of NSEC(3) seen, and run RR type checks
-  #  end
-  #
-  #  def test_partial_scan_bad
-  #    fail "Implement bad partial scanning test!"
-  #  end
-
   def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret, working, partial = false)
     runner = Runner.new
     if (partial)
-      runner.partial_auditing = true
+      runner.force_partial = true
     end
 
     ["test/tmp/tracker/tjeb.nl", "test/tmp1/tracker/tjeb.nl"].each {|f|
