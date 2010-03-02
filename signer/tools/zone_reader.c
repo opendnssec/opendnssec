@@ -665,7 +665,7 @@ main(int argc, char **argv)
 	if (out_file_name) {
 		out_file = fopen(out_file_name, "w");
 		if (!out_file) {
-			printf("Error opening %s for writing: %s\n",
+			fprintf(stderr, "Error opening %s for writing: %s\n",
 				  out_file_name,
 				  strerror(errno));
 			exit(2);
