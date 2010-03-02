@@ -905,6 +905,8 @@ class Zone:
                    "-z", self.zone_name]
             # add extra options here
             audit_p = Util.run_tool(cmd)
+            if not audit_p:
+                return False
             result = audit_p.wait()
             syslog.syslog(syslog.LOG_INFO,
                           "Auditor result: " + str(result))
