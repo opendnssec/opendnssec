@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "config.h"
+#include "eppconfig.h"
 
 void send(int fd, char* string)
 {

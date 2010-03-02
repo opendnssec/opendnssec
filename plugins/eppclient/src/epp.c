@@ -41,7 +41,7 @@
 #include <libxml/xpathInternals.h>
 #include <ldns/ldns.h>
 
-#include "config.h"
+#include "eppconfig.h"
 
 static const char* head =
     "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
