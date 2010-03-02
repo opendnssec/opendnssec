@@ -39,9 +39,11 @@ AC_TYPE_SIZE_T
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([getpass getpassphrase memset])
 AC_REPLACE_FUNCS(strlcpy)
 AC_REPLACE_FUNCS(strlcat)
+
+AC_SEARCH_LIBS(nanosleep, rt posix4, AC_DEFINE(HAVE_NANOSLEEP, 1,
+	[Define if you have nanosleep]))
 
 ACX_LIBXML2
 ACX_LDNS(1,6,4)
