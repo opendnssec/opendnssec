@@ -47,6 +47,7 @@
 
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
+		<!-- <ManualKeyGeneration/> -->
 	</Enforcer>
 
 	<Signer>
