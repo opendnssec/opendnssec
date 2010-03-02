@@ -40,7 +40,7 @@
 #include <errno.h>
 #include <ctype.h>
 
-#include "config.h"
+#include "eppconfig.h"
 #include "epp.h"
 
 #define MAX_KEY_COUNT 100 /* max # of keys per update */

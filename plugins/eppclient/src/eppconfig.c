@@ -36,7 +36,7 @@
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
-#include "config.h"
+#include "eppconfig.h"
 
 #define CONFIG_FILE     "eppclientd.conf"
 
