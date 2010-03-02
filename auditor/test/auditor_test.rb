@@ -39,7 +39,7 @@ class AuditorTest < Test::Unit::TestCase
     run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp")
 
     success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
-      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
+#      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
       ])
     assert(success, "NSEC3 good file not audited correctly")
   end
@@ -154,7 +154,7 @@ class AuditorTest < Test::Unit::TestCase
 
       "SALT LENGTH IS 3, but should be 4",
 
-      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
+#      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
       
       #
       #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
