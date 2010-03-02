@@ -8,7 +8,7 @@ Bugfixes:
 * Fix broken path to ods-signer in zone_fetcher
 * Fix confusion between standby ZSKs and KSKs
 * Fix missing/redundant/spurious NSEC3 records
-
+* More proper memory cleanup in parsing zonefetch.xml
 
 OpenDNSSEC 1.0.0 - 2010-02-09
 
