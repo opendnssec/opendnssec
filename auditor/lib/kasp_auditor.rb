@@ -37,7 +37,7 @@ include Dnsruby
 require 'kasp_auditor/config.rb'
 require 'kasp_auditor/key_tracker.rb'
 require 'kasp_auditor/auditor.rb'
-#require 'kasp_auditor/partial_auditor.rb'
+require 'kasp_auditor/partial_auditor.rb'
 require 'kasp_auditor/parse.rb'
 require 'kasp_auditor/preparser.rb'
 
@@ -140,7 +140,7 @@ module KASPAuditor
         }
 
         if (do_audit)
-          if (config.partial_audit) || @force_partial
+          if (config.partial_audit || @force_partial)
             ret = partial_audit(ret, input_file, output_file, working, config, syslog, enforcer_interval)
           else
             ret = full_audit(ret, input_file, output_file, pid, working, config, syslog, enforcer_interval)
