@@ -39,7 +39,7 @@ class OptionsParser
     def self.parse(args)
       # The options specified on the command line will be collected in *options*.
       # We set default values here.
-      path = "@OPENDNSSEC_CONFIG_DIR@
+      path = "@OPENDNSSEC_CONFIG_DIR@"
       options = OpenStruct.new
       options.rng_path = "@OPENDNSSEC_SCHEMA_DIR@"
       options.xmllint = "@XMLLINT@"
