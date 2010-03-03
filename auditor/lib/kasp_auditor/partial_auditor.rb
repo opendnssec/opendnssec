@@ -43,7 +43,7 @@ module KASPAuditor
       # This should be read from a file or something
       scan_options = ScanOptions.new
       scan_options.follow_nsec_loop = true
-      scan_options.num_domains = 500 # @TODO@
+      scan_options.num_domains = 1000
       return scan_options
     end
 
@@ -174,11 +174,11 @@ module KASPAuditor
         found_non_sep = false
         @keys.each {|key|
           if (@keys_used.include?key.key_tag)
-          if (key.sep_key?)
-            found_sep = true
-          else
-            found_non_sep = true
-          end
+            if (key.sep_key?)
+              found_sep = true
+            else
+              found_non_sep = true
+            end
           end
         }
         if (!found_sep)
@@ -406,6 +406,12 @@ module KASPAuditor
         @non_dnssec_rr_count = 0
         @algs = []
         #        print "Starting signed zone scan\n"
+        pid = fork {
+          # Now go through the temp files for the domains of interest, and ensure that they are all good.
+          # Use the grep command to find all the domains we're interested in.
+          # Write them all out to a single file, and then process that.
+          grep_for_domains_of_interest(file, domain_filename)
+        }
         first = true
         if (!File.exists?(domain_filename))
           File.new(domain_filename, "w")
@@ -436,14 +442,13 @@ module KASPAuditor
             #            end
           }
         }
-        # @TODO@ Now check that there was at least one SEP, and one non-SEP DNSKEY - do this in the parent, which has access to the keys
 
-        # Now go through the temp files for the domains of interest, and ensure that they are all good.
-        # Use the grep command to find all the domains we're interested in.
-        # Write them all out to a single file, and then process that.
-        grep_for_domains_of_interest(file, domain_filename)
-
-        scan_temp_domain_files(domain_filename)
+        ret_id, ret_status = Process.wait2(pid)
+        if (ret_status != 0)
+          @parent.log(LOG_WARNING, "Egrep failed on #{file} - #{ret_status}")
+        else
+          scan_temp_domain_files(domain_filename)
+        end
         return @non_dnssec_rr_count, @soa
       end
 
@@ -459,6 +464,7 @@ module KASPAuditor
           else
             grep_command+="|(^#{domain})"
           end
+          break if grep_command.length > 50000
         }
         grep_command= (grep_command + "' #{file} > #{domain_filename}").untaint
         system(grep_command)
@@ -498,7 +504,7 @@ module KASPAuditor
           rrsets = []
           types = []
           sigs = []
-#          dont_check_hash = false
+          #          dont_check_hash = false
           # Pick out all the records for that domain
           IO.foreach(domain_filename) {|line|
             if (line.split()[0] == domain)
@@ -508,7 +514,7 @@ module KASPAuditor
                 next
               end
               if (rr.type == Types::NSEC3 || (rr.type == Types::RRSIG && rr.type_covered == Types::NSEC3))
-#                dont_check_hash = true # It's already a hashed owner name
+                #                dont_check_hash = true # It's already a hashed owner name
                 types.push(rr.type)
                 next
               end
@@ -542,9 +548,9 @@ module KASPAuditor
             }
           }
           rrsets.each {|rrset|
-              if (rrset.type == Types::RRSIG)
-                print "\nCAN ONLY FIND RRSIGS FOR #{rrset.name}\n\n"
-              end
+            if (rrset.type == Types::RRSIG)
+              print "\nCAN ONLY FIND RRSIGS FOR #{rrset.name}\n\n"
+            end
           }
           # And then check them
           check_domain(rrsets, types, delegation)
@@ -656,19 +662,19 @@ module KASPAuditor
       def check_nsec_types(nsec, types)
         if ((nsec.type == Types::NSEC && @config.denial.nsec) || (nsec.type == Types::NSEC3 && @config.denial.nsec3))
 
-        nsec.types.each {|type|
-          if !(types.include?type)
-            @parent.log(LOG_ERR, "#{nsec.type} includes #{type} which is not in rrsets for #{nsec.name}")
+          nsec.types.each {|type|
+            if !(types.include?type)
+              @parent.log(LOG_ERR, "#{nsec.type} includes #{type} which is not in rrsets for #{nsec.name}")
+            end
+            types.delete(type)
+          }
+          if (types.length > 0)
+            # Otherwise, log the missing types
+            s = ""
+            types.each {|t| s = s + " #{Types.new(t).to_s} "}
+            @parent.log(LOG_ERR, "#{s} types not in #{nsec.type} for #{nsec.name}")
           end
-          types.delete(type)
-        }
-        if (types.length > 0)
-          # Otherwise, log the missing types
-          s = ""
-          types.each {|t| s = s + " #{Types.new(t).to_s} "}
-          @parent.log(LOG_ERR, "#{s} types not in #{nsec.type} for #{nsec.name}")
         end
-      end
       end
     end
 
