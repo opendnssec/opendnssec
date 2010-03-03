@@ -881,11 +881,9 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
         status = ldns_axfr_start(config->xfrd, zone->dname, LDNS_RR_CLASS_IN);
         ldns_pkt_free(qpkt);
         if (status != LDNS_STATUS_OK) {
-            if (errno != EINPROGRESS) {
-                log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
-                    ldns_get_errorstr_by_id(status));
-                return -1;
-            }
+            log_msg(LOG_ERR, "zone fetcher failed to start axfr: %s",
+                ldns_get_errorstr_by_id(status));
+            return -1;
         }
 
 /* Coverity comment:
@@ -968,7 +966,11 @@ init_xfrd(config_type* config)
     if (config) {
         if (config->use_tsig) {
             ldns_resolver_set_tsig_keyname(xfrd, config->tsig_name);
-            ldns_resolver_set_tsig_algorithm(xfrd, config->tsig_algo);
+            if (strncmp(config->tsig_algo, "hmac-md5", 8) == 0) {
+                ldns_resolver_set_tsig_algorithm(xfrd, "hmac-md5.sig-alg.reg.int.");
+            } else {
+                ldns_resolver_set_tsig_algorithm(xfrd, config->tsig_algo);
+            }
             ldns_resolver_set_tsig_keydata(xfrd, config->tsig_secret);
         }
         if (config->serverlist && config->serverlist->port)

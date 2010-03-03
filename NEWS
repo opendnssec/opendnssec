@@ -16,6 +16,9 @@ Bugfixes:
 * Respect $DESTDIR for config files
 * Looked for the database init script in $prefix/share/opendnssec and not datadir.
 * More proper memory cleanup in parsing zonefetch.xml
+* Zonefetch.xml now accepts hmac-md5, which is an alias for
+  hmac-md5.sig-alg.reg.int.
+
 
 OpenDNSSEC 1.0.0 - 2010-0X-XX
 
