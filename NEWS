@@ -2,6 +2,8 @@ $Id$
 
 OpenDNSSEC trunk
 
+* Partial Auditor added
+* Dnsruby-1.44 required
 * Improved error messages when the system runs out of keys
 * Optimise communication of signconfs for multiple zones sharing keys. 
   Group zones in zonelist.xml by policy to get this benefit.
