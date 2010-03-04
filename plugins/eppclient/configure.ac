@@ -40,7 +40,6 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_FUNC_VPRINTF
 AC_REPLACE_FUNCS(strlcpy)
-AC_REPLACE_FUNCS(strlcat)
 
 AC_SEARCH_LIBS(nanosleep, rt posix4, AC_DEFINE(HAVE_NANOSLEEP, 1,
 	[Define if you have nanosleep]))
