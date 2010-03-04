@@ -457,7 +457,7 @@ static void bin2hex(char* src, char* dest, int bytes)
     *dest = 0;
 }
 
-static int format_dsdata(char* zone, char* key, char* dest)
+static int format_dsdata(char* zone, char* key, char* dest, int destsize)
 {
     char line[1024];
 
@@ -498,7 +498,7 @@ static int format_dsdata(char* zone, char* key, char* dest)
     }
     ldns_buffer_free(wiredata);
 
-    len = sprintf(dest,
+    len = snprintf(dest, destsize,
                   "    <secDNS:dsData>\n"
                   "      <secDNS:keyTag>%d</secDNS:keyTag>\n"
                   "      <secDNS:alg>%d</secDNS:alg>\n"
@@ -521,7 +521,7 @@ int epp_change_key(char* zone, char** keys, int keycount)
     char* outbuf = malloc(outsize);
 
     outlen +=
-        sprintf(outbuf,
+        snprintf(outbuf, outsize,
                 "%s"
                 "<command>\n"
                 " <update>\n"
@@ -541,7 +541,7 @@ int epp_change_key(char* zone, char** keys, int keycount)
 
     for (int i=0; i<keycount; i++) {
         char dsdata[4096];
-        int dslen = format_dsdata(zone, keys[i], dsdata);
+        int dslen = format_dsdata(zone, keys[i], dsdata, sizeof dsdata);
         if (dslen < 1) {
             free(outbuf);
             return -1;
@@ -562,7 +562,7 @@ int epp_change_key(char* zone, char** keys, int keycount)
         outbuf = realloc(outbuf, outsize);
     }
 
-    outlen += sprintf(outbuf + outlen,
+    outlen += snprintf(outbuf + outlen, outsize - outlen,
                       "   </secDNS:chg>\n"
                       "  </secDNS:update>\n"
                       " </extension>\n"

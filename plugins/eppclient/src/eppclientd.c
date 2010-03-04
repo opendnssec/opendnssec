@@ -126,7 +126,7 @@ int init()
         exit(0); /* can not lock */
     }
     char str[10];
-    sprintf(str,"%d\n",getpid());
+    snprintf(str,sizeof str,"%d\n",getpid());
     write(fd,str,strlen(str)); /* record pid to lockfile */
     fsync(fd);
 
@@ -286,7 +286,7 @@ static void send_keys(void)
     char sql[80];
     char* keys[MAX_KEY_COUNT];
     int count = 0;
-    sprintf(sql, "SELECT key FROM keys WHERE job = %d", job);
+    snprintf(sql, sizeof sql, "SELECT key FROM keys WHERE job = %d", job);
     sqlite3_prepare_v2(db, sql, -1, &sth, NULL);
     while ((rc = sqlite3_step(sth))) {
         if (rc == 101)
