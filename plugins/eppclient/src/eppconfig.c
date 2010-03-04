@@ -39,6 +39,7 @@
 
 #include "config.h"
 #include "eppconfig.h"
+#include "compat/strlcpy.h"
 
 #define CONFIG_FILE     "eppclientd.conf"
 
@@ -67,7 +68,7 @@ char* config_value(char* path)
                 node = node->children;
 
             while (node) {
-                strncpy(result + dlen, (char*)node->content, sizeof(result) - dlen);
+                strlcpy(result + dlen, (char*)node->content, sizeof(result) - dlen);
                 dlen += strlen(result + dlen);
 
                 if (dlen == sizeof result) {

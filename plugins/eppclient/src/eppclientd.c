@@ -92,7 +92,7 @@ int init()
 #endif
     /* child (daemon) continues */
     setsid(); /* obtain a new process group */
-    for (i=getdtablesize()-1; i>=0; --i)
+    for (i=sysconf(_SC_OPEN_MAX)-1; i>=0; --i)
         close(i); /* close all descriptors */
     /* open dummy stdin/-out/-err */
     i=open("/dev/null",O_RDWR);

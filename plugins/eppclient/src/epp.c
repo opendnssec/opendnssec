@@ -43,6 +43,7 @@
 
 #include "config.h"
 #include "eppconfig.h"
+#include "compat/strlcpy.h"
 
 static const char* head =
     "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
@@ -159,7 +160,8 @@ static xmlXPathContext* read_frame(void)
     if (curl_read(curl, buffer, 4))
         return NULL;
 
-    int len = ntohl(*((uint32_t*)buffer));
+    uint32_t* lenptr = (void*)buffer;
+    int len = ntohl(*lenptr);
     len -= 4;
 
     if (len >= (int)sizeof(buffer)) {
@@ -188,8 +190,8 @@ static xmlXPathContext* read_frame(void)
 static int send_frame(char* ptr, int len)
 {
     char buf[4];
-
-    *((uint32_t*)buf) = htonl(len+4);
+    uint32_t* lenptr = (void*)buf;
+    *lenptr = htonl(len+4);
 
     int rc = curl_write(curl, buf, 4);
     if (rc)
@@ -550,7 +552,7 @@ int epp_change_key(char* zone, char** keys, int keycount)
             outsize *= 2;
             outbuf = realloc(outbuf, outsize);
         }
-        strcpy(outbuf + outlen, dsdata);
+        strlcpy(outbuf + outlen, dsdata, outsize - outlen);
         outlen += dslen;
     }
 

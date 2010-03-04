@@ -5,9 +5,9 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 AM_CPPFLAGS =	-I$(srcdir)/.. \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@ \
 		@CURL_INCLUDES@ @SQLITE3_INCLUDES@
-AM_CFLAGS =	-std=c99
+AM_CFLAGS =	-std=c99 -D_XOPEN_SOURCE=600
 
-COMPAT =	compat/strlcpy.c compat/strlcat.c
+COMPAT =	compat/strlcpy.c
 
 sbin_PROGRAMS = eppclient eppclientd
 
