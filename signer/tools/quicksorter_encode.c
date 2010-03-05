@@ -481,10 +481,16 @@ static void decode_string(char** _src, char** _dest, bool domain_name)
                 *dest++ = *src;
             }
             else {
-                if (isgraph(*src))
+                if (*src == '\\') {
                     *dest++ = *src;
-                else
-                    dest += sprintf(dest, "\\%03d", *src);
+                    *dest++ = *src;
+                }
+                else {
+                    if (isgraph(*src))
+                        *dest++ = *src;
+                    else
+                        dest += sprintf(dest, "\\%03d", *src);
+                }
             }
             src++;
         }
