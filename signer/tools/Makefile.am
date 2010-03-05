@@ -17,7 +17,7 @@ opendnsseclibexec_PROGRAMS= \
 	quicksorter
 
 
-quicksorter_CFLAGS=		-std=gnu99
+quicksorter_CFLAGS=		-std=gnu99 -funsigned-char
 quicksorter_SOURCES=		quicksorter_encode.c
 quicksorter_LDADD=		quicksorter.o
 
@@ -25,7 +25,7 @@ quicksorter_LDADD=		quicksorter.o
 QUICKSORTER_O = quicksorter.o
 $(QUICKSORTER_O): quicksorter.c
 	$(MAKE) quicksorter.o \
-		CFLAGS="$(CFLAGS) -Os" \
+		CFLAGS="$(CFLAGS) -Os $(quicksorter_CFLAGS)" \
 		QUICKSORTER_O=
 
 sorter_SOURCES=			sorter.c util.c
