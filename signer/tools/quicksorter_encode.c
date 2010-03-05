@@ -671,7 +671,7 @@ static int pow2int(int value)
 }
 
 /* LOC: RFC 1876 */
-static const int globe_median = 2147483648U;
+static const unsigned int globe_median = 2147483648U;
 static void encode_loc(char** _src, char** _dest)
 {
 
