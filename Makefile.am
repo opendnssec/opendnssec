@@ -17,4 +17,8 @@ if ENABLE_AUDITOR
 SUBDIRS += auditor
 endif
 
+if ENABLE_EPPCLIENT
+SUBDIRS += plugins/eppclient
+endif
+
 EXTRA_DIST = $(srcdir)/KNOWN_ISSUES

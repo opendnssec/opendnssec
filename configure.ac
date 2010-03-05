@@ -12,7 +12,7 @@ ACX_PREFIXHACK
 
 OPENDNSSEC_COMMON
 
-AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf plugins/eppclient ])
+AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf ])
 
 # xml
 AC_PATH_PROG(XMLLINT, xmllint)
@@ -46,7 +46,16 @@ fi
 AM_CONDITIONAL([ENABLE_AUDITOR], [test "${enable_auditor}" = "yes"])
 
 # plugins/eppclient
-ACX_LIBCURL
+AC_ARG_ENABLE(eppclient,
+	AC_HELP_STRING([--enable-eppclient],
+		[Enable eppclient build (default disabled)]),
+		[enable_eppclient="${enableval}"],
+		[enable_eppclient="no"])
+if test "x${enable_eppclient}" = "xyes"; then
+	ACX_LIBCURL
+	AC_CONFIG_SUBDIRS([ plugins/eppclient ])
+fi
+AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
 
 AC_CONFIG_FILES([
 	Makefile
