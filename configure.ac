@@ -12,7 +12,7 @@ ACX_PREFIXHACK
 
 OPENDNSSEC_COMMON
 
-AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf ])
+AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf plugins/eppclient ])
 
 # xml
 AC_PATH_PROG(XMLLINT, xmllint)
@@ -44,6 +44,9 @@ if test "x${enable_auditor}" = "xyes"; then
 	AC_CONFIG_SUBDIRS([ auditor ])
 fi
 AM_CONDITIONAL([ENABLE_AUDITOR], [test "${enable_auditor}" = "yes"])
+
+# plugins/eppclient
+ACX_LIBCURL
 
 AC_CONFIG_FILES([
 	Makefile
