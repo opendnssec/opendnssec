@@ -43,7 +43,7 @@ void send(int fd, char* string)
 }
 
 
-void push_keys(int argc, char** argv)
+void push_keys(char* zone)
 {
     char* pipename = config_value("/eppclient/pipe");
     int fd = open(pipename, O_RDWR);
@@ -53,12 +53,16 @@ void push_keys(int argc, char** argv)
     }
 
     send(fd, "NEWKEYS ");
-    send(fd, argv[1]);
+    send(fd, zone);
     send(fd, " ");
 
-    for (int i=2; i<argc; i++) {
+    char line[1024];
+    while (fgets(line, sizeof line, stdin)) {
+        char* eol = strchr(line, '\n');
+        if (eol)
+            *eol = 0;
         send(fd, "\"");
-        send(fd, argv[i]);
+        send(fd, line);
         send(fd, "\" ");
     }
     send(fd, "\n");
@@ -67,8 +71,8 @@ void push_keys(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    if (argc < 3) {
-        printf("usage: %s [zone] [keys] ...\n", argv[0]);
+    if (argc < 2) {
+        printf("usage: %s [zone]\n", argv[0]);
         return -1;
     }
 
@@ -78,7 +82,7 @@ int main(int argc, char** argv)
     }
     
     read_config();
-    push_keys(argc, argv);
+    push_keys(argv[1]);
 
     return 0;
 }
