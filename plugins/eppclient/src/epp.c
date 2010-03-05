@@ -28,6 +28,9 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <netdb.h>
@@ -41,7 +44,6 @@
 #include <libxml/xpathInternals.h>
 #include <ldns/ldns.h>
 
-#include "config.h"
 #include "eppconfig.h"
 #include "compat/strlcpy.h"
 

@@ -28,6 +28,9 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +40,6 @@
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 
-#include "config.h"
 #include "eppconfig.h"
 #include "compat/strlcpy.h"
 
