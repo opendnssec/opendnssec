@@ -293,8 +293,8 @@ class Zone:
         shutil.copy(self.get_zone_input_filename(),
             self.get_zone_tmp_filename(".unsorted"))
 
-        cmd = [ self.get_tool_filename("sorter"),
-                "-o", self.zone_name,
+        cmd = [ self.get_tool_filename("quicksorter"),
+                "-o", self.zone_name + ".",
                 "-f", self.get_zone_input_filename(),
                 "-w", self.get_zone_tmp_filename(".sorted")
               ]
@@ -407,8 +407,8 @@ class Zone:
             syslog.syslog(syslog.LOG_WARNING, "No signed zone yet")
             return True
         
-        cmd = [ self.get_tool_filename("sorter"),
-                "-o", self.zone_name,
+        cmd = [ self.get_tool_filename("quicksorter"),
+                "-o", self.zone_name + ".",
                 "-w", self.get_zone_tmp_filename(".signed.sorted")
               ]
         if self.zone_config.soa_minimum is not None:
