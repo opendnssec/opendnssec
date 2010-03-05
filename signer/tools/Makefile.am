@@ -16,7 +16,6 @@ opendnsseclibexec_PROGRAMS= \
 	finalizer signer_threads \
 	quicksorter
 
-DISABLE_OPTIMIZATION = -Os
 
 quicksorter_CFLAGS=		-std=gnu99
 quicksorter_SOURCES=		quicksorter_encode.c
@@ -26,7 +25,7 @@ quicksorter_LDADD=		quicksorter.o
 QUICKSORTER_O = quicksorter.o
 $(QUICKSORTER_O): quicksorter.c
 	$(MAKE) quicksorter.o \
-		CFLAGS="$(CFLAGS) $(DISABLE_OPTIMIZATION)" \
+		CFLAGS="$(CFLAGS) -Os" \
 		QUICKSORTER_O=
 
 sorter_SOURCES=			sorter.c util.c
