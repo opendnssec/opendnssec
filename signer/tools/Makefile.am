@@ -13,10 +13,14 @@ opendnsseclibexec_PROGRAMS= \
 	zone_fetcher zone_reader \
 	nseccer nsec3er \
 	signer create_dnskey \
-	finalizer signer_threads
+	finalizer signer_threads \
+	quicksorter
 
 sorter_SOURCES=			sorter.c util.c
 sorter_LDADD=			@LDNS_LIBS@
+
+quicksorter_CFLAGS=		-Os -std=gnu99
+quicksorter_SOURCES=		quicksorter.c quicksorter_encode.c
 
 zone_reader_SOURCES=		new_reader.c util.c v2/adapter.c v2/confparser.c v2/duration.c v2/se_key.c v2/signconf.c v2/zone.c v2/adapter.h v2/confparser.h v2/duration.h v2/se_key.h v2/signconf.h v2/zonedata.c v2/adfile.c v2/domain.c v2/nsec3params.c v2/se_malloc.c v2/signconfparser.c v2/zonedata.h v2/adfile.h v2/domain.h v2/nsec3params.h v2/se_malloc.h v2/signconfparser.h v2/zone.h v2/rrset.c v2/rrset.h v2/hsm.c v2/hsm.h
 zone_reader_LDADD=		@LDNS_LIBS@ @XML2_LIBS@ @LIBHSM_LIBS@
