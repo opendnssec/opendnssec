@@ -94,7 +94,8 @@ enum {
     RD_APL,
     RD_CERT16,  /* for CERT */
     RD_HIP,
-    RD_NSAP
+    RD_NSAP,
+    RD_TXT      /* for TXT */
 };
 
 static const char format_list[NUM_TYPES][8] = {
@@ -115,7 +116,7 @@ static const char format_list[NUM_TYPES][8] = {
     /* 13: HINFO */ { 2, RD_STRING, RD_STRING },
     /* 14: MINFO */ { 2, RD_NAME, RD_NAME },
     /* 15: MX */    { 2, RD_INT16, RD_NAME },
-    /* 16: TXT */   { 1, RD_STRING },
+    /* 16: TXT */   { 1, RD_TXT },
     /* 17: RP */    { 2, RD_NAME, RD_NAME },
     /* 18: AFSDB */ { 2, RD_INT16, RD_NAME },
     /* 19: X25 */   { 1, RD_STRING },
@@ -1124,6 +1125,14 @@ static void* encode_rdata(int type, char* rdata, char* dest, char* origin)
                 encode_string(&rdata, &dest, false, NULL);
                 break;
 
+            case RD_TXT:
+                while (*rdata) {
+                    encode_string(&rdata, &dest, false, NULL);
+                    while (isspace(*rdata))
+                        rdata++;
+                }
+                break;
+
             case RD_A:
                 encode_ipv4(&rdata, &dest);
                 break;
@@ -1228,6 +1237,16 @@ static int decode_rdata(int type,
 
             case RD_STRING:
                 decode_string(&rdata, &dest, false);
+                break;
+
+            case RD_TXT:
+                while (1) {
+                    decode_string(&rdata, &dest, false);
+                    if (rdata < rstart + rdlen)
+                        *dest++ = ' ';
+                    else
+                        break;
+                }
                 break;
 
             case RD_A:
