@@ -1,0 +1,36 @@
+.TH "eppclientd" "8" "March 2010" "OpenDNSSEC" "OpenDNSSEC eppclientd"
+.\" $Id$
+.SH "NAME"
+eppclientd \- OpenDNSSEC EPP plugin daemon
+.SH "SYNOPSIS"
+eppclientd
+.SH "DESCRIPTION"
+eppclientd is a daemon used by the
+.B eppclient
+plugin for the OpenDNSSEC software.
+It performs key updates to registries using the EPP protocol.
+
+eppclientd keeps a queue of transactions in a sqlite database and regularly
+retries unsucessful transactions.
+
+After successful transfer, an acknowledge command is called to let OpenDNSSEC
+know the key update has completed.
+.SH "FILES"
+.IP \fBeppclientd.conf\fP
+The configuration file for eppclientd.
+eppclientd looks for this file in the following directories:
+/, /etc, /etc/opt, /usr/local/etc.
+See \fBeppclientd.conf(5)\fP for details.
+.IP \fBeppclientd.pipe\fP
+A pipe used to communicate between eppclient and eppclientd.
+.IP \fBeppclientd.pid\fP
+The pid and lock file used by eppclientd to ensure only one instance
+is running.
+.IP \fBeppclientd.sqlite\fP
+The database file that holds the transfer queue.
+.SH "DIAGNOSTICS"
+eppclientd logs via the standard syslog(8) facility.
+.SH "SEE ALSO"
+eppclient(8), eppclientd.conf(5)
+.SH "AUTHOR"
+Written by Björn Stenberg as part of the OpenDNSSEC project.

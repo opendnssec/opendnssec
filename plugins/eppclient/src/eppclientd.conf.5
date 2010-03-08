@@ -1,0 +1,68 @@
+.TH "eppclientd.conf" "5" "March 2010" "OpenDNSSEC" "OpenDNSSEC eppclientd.conf"
+.\" $Id$
+.SH "NAME"
+.B eppclientd.conf
+\- OpenDNSSEC EPP plugin daemon configuration file
+.SH "SYNOPSIS"
+.PP
+.B eppclientd
+.SH "DESCRIPTION"
+.LP
+eppclientd.conf is an XML file containing the configuration data for eppclient.d
+.SH "ELEMENTS"
+.LP
+.IP \fBdatabase\fP
+The path and filename of the sqlite database used as transfer queue.
+.IP \fBpipe\fP
+The path and filename of the named pipe used to communicate between eppclient and eppclientd.
+
+.IP \fBpidfile\fP
+The path and filename of the pid file used to ensure only one daemon is running.
+.IP \fBackcommand\fP
+A command used to tell OpenDNSSEC a transfer has completed successfully. You can use '%s' for the zone name.
+.IP \fBregistry\fP
+Options for each registry:
+.RS 7
+.IP \fBsuffix\fP
+The zone name suffix matching this registry.
+.IP \fBhost\fP
+Hostname of the epp server
+.IP \fBport\fP
+Port number of the epp server
+.IP \fBclID\fP
+Login id on the epp server
+.IP \fBpw\fP
+Login password on the epp server
+.IP \fBsvcExtension\fP
+Some registries require the EPP client to specify nonstandard <extURI> lines
+in the <svcExtension> section. 
+Put all such lines here, inside a CDATA block, and eppclientd will include
+them in the login message.
+.IP \fBmaxrate\fP
+If set, eppclientd throttles delivery attempts to \fImaxrate\fR tries per hour, spread evenly over the hour. I.e. 4 attempts/hour means one attempt every 15 minutes.
+.IP \fBexpirytime\fP
+Jobs are deleted if not successfully transferred after \fIexpirytime\fR seconds.
+.IP \fBclientcert\fP
+Details for the client certificate, if used:
+.RS 7
+.IP \fBfile\fP
+Path and name of the client certificate file.
+.IP \fBtype\fP
+Type of certificatate file. Supported types are PEM and DER.
+.RE
+.IP \fBclientkey\fP
+Details for the client key, if used:
+.RS 7
+.IP \fBfile\fP
+Path and name of the client key file.
+.IP \fBtype\fP
+Type of key file. Supported types are PEM and DER.
+.IP \fBpassword\fP
+Key passphrase.
+.RE
+.SH "SEE ALSO"
+.LP
+eppclient(8), eppclientd(8)
+.SH "AUTHOR"
+.LP
+Written by Björn Stenberg as part of the OpenDNSSEC project.

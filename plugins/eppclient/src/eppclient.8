@@ -1,0 +1,36 @@
+.TH "eppclient" "8" "March 2010" "OpenDNSSEC" "OpenDNSSEC eppclient"
+.\" $Id$
+.SH "NAME"
+eppclient \- OpenDNSSEC EPP plugin
+.SH "SYNOPSIS"
+eppclient
+.IR ZONE
+.SH "DESCRIPTION"
+eppclientd is a plugin for the OpenDNSSEC software.
+It performs key updates to registries using the EPP protocol.
+.SH "OPTIONS"
+.IP \fBZONE\fP
+The name of the zone the keys belong to.
+.IP \fBstdin\fP
+Pass one key per line on the standard input.
+The keys must be in DNSKEY RDATA format:
+
+<flags> <protocol> <algorithm> <public key>
+
+Flags, protocol and algorithm are numeric. Public key is base64 encoded.
+.SH "NOTE"
+If you send new keys for a zone which has a transfer pending
+(keys are not yet successfully transferred),
+then eppclient will remove the pending keys and only transfer the new.
+.SH "FILES"
+.IP \fBeppclientd.conf\fP
+The configuration file for eppclient.
+eppclient looks for this file in the following directories:
+<current directory>, /etc, /etc/opt, /usr/local/etc
+.IP \fBeppclientd.pipe\fP
+A named pipe used to communicate between eppclient and eppclientd.
+The location of this file is specified in the configuration file.
+.SH "SEE ALSO"
+eppclientd(8), eppclientd.conf(5)
+.SH "AUTHOR"
+Written by Björn Stenberg as part of the OpenDNSSEC project.
