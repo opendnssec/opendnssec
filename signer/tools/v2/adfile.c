@@ -74,10 +74,7 @@ line_contains_space_only(char* line, int line_len)
 {
     int i;
     for (i = 0; i < line_len; i++) {
-        if (line[i] != ' ' &&
-            line[i] != '\t' &&
-            line[i] != '\n' &&
-            line[i] != '\0') {
+        if (!isspace(line[i])) {
             return 0;
         }
     }
