@@ -1360,7 +1360,7 @@ int decode_rr(char* src, char* dest)
     if (class > 0 && class < NUM_CLASSES)
         dest += sprintf(dest, "%s ", classname[class]);
     else
-        dest += sprintf(dest, "CLASS%d ", type);
+        dest += sprintf(dest, "CLASS%d ", class);
 
     if (type > 0 && type < NUM_TYPES)
         dest += sprintf(dest, "%s ", typename[type]);
