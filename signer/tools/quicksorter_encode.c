@@ -428,9 +428,10 @@ static void encode_string(char** _src,
                     if (domain_name)
                         dest[len++] = tolower(*src);
                     else {
-                        dest[len++] = *src;
                         if (*src == '\"')
                             quoted = !quoted;
+                        else
+                            dest[len++] = *src;
                     }
                     break;
             }
