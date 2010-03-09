@@ -44,7 +44,6 @@
 #include <ctype.h>
 
 #include "eppconfig.h"
-#include "eppcommon.h"
 #include "epp.h"
 
 #define MAX_KEY_COUNT 100 /* max # of keys per update */
@@ -157,7 +156,7 @@ int init()
         exit(1);
     }
 
-    int pipe = open(pipename, O_RDWR | O_NDELAY);
+    int pipe = open(pipename, O_RDWR | O_NONBLOCK);
     if (pipe < 0) {
         syslog(LOG_ERR, "%s: %s", pipename, strerror(errno));
         exit(1);

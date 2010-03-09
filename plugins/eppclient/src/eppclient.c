@@ -38,7 +38,6 @@
 #include <string.h>
 
 #include "eppconfig.h"
-#include "eppcommon.h"
 
 void send(int fd, char* string)
 {
