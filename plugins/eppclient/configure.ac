@@ -52,6 +52,10 @@ ACX_LIBCURL
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
+	src/eppclient.8
+	src/eppclientd.8
+	src/eppclientd.conf
+	src/eppclientd.conf.5
 ])
 
 AC_OUTPUT
