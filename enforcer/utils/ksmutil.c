@@ -2373,6 +2373,8 @@ cmd_import ()
                     datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday,
                     datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
         }
+    } else {
+        form_opt_time[0] = '\0';
     }
 
     /* Find out if this zone has any others on a "shared keys" policy and warn */

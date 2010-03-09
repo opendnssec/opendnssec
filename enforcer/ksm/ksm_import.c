@@ -338,7 +338,7 @@ int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, in
 
     StrAppend(&columns, "policy_id, HSMkey_id, securitymodule_id, size, algorithm, state, ");
     StrAppend(&columns, KsmKeywordStateValueToName(state));
-    if (opt_time != NULL) {
+    if (opt_time[0] != '\0') {
         StrAppend(&columns, ", retire, fixedDate");
     }
 
@@ -350,7 +350,7 @@ int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, in
     DisAppendInt(&sql, alg);
     DisAppendInt(&sql, state);
     DisAppendString(&sql, time);
-    if (opt_time != NULL) {
+    if (opt_time[0] != '\0') {
         DisAppendString(&sql, opt_time);
         DisAppendInt(&sql, 1);
     }
