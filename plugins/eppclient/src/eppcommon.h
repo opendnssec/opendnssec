@@ -34,6 +34,7 @@
 
 #include <fcntl.h>
 
+/* fix building on MacOSX */
 #ifndef O_NDELAY
 #ifdef O_NONBLOCK
 #define O_NDELAY O_NONBLOCK
