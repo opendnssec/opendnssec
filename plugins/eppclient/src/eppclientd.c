@@ -44,6 +44,7 @@
 #include <ctype.h>
 
 #include "eppconfig.h"
+#include "eppcommon.h"
 #include "epp.h"
 
 #define MAX_KEY_COUNT 100 /* max # of keys per update */
