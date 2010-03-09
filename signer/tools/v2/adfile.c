@@ -145,8 +145,16 @@ adapter_file_read_line(FILE* fd, char* line, unsigned int* l)
                 line[li] = c;
                 li++;
             }
-        } else if (c == ';' && lc != '\\') {
-            comments = 1;
+        } else if (c == ';') {
+            if (in_string) {
+                line[li] = c;
+                li++;
+            } else if (lc != '\\') {
+                comments = 1;
+            } else {
+                line[li] = c;
+                li++;
+            }
         } else if (c == '\n' && lc != '\\') {
             comments = 0;
             /* if no depth issue, we are done */
