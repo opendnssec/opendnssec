@@ -288,7 +288,7 @@ calculate_domain_status(domain_type* domain)
         return;
     }
 
-    if (!domain->auth_rrset && !domain->ns_rrset) {
+    if (!domain->auth_rrset && !domain->ds_rrset && !domain->ns_rrset) {
         /* Empty Non-Terminal */
         return; /* we don't care */
     }
