@@ -474,25 +474,36 @@ static void decode_string(char** _src, char** _dest, bool domain_name)
     char* src = *_src;
     char* dest = *_dest;
     
+    if (!domain_name)
+        *dest++ = '\"';
+
     do {
         int len = *src++;
         
         for (int i=0; i<len; i++) {
-            if (domain_name && (*src == '.' || *src == '\\')) {
-                *dest++ = '\\';
-                *dest++ = *src;
-            }
-            else {
-                if (*src == '\\') {
-                    *dest++ = *src;
-                    *dest++ = *src;
-                }
-                else {
-                    if (isgraph(*src))
+            switch (*src) {
+                case '\\':
+                    *dest++ = '\\';
+                    *dest++ = '\\';
+                    break;
+
+                case '\"':
+                    *dest++ = '\\';
+                    *dest++ = '\"';
+                    break;
+
+                case '.':
+                    if (domain_name)
+                        *dest++ = '\\';
+                    *dest++ = '.';
+                    break;
+                        
+                default:
+                    if (isprint(*src))
                         *dest++ = *src;
                     else
                         dest += sprintf(dest, "\\%03d", *src);
-                }
+                    break;
             }
             src++;
         }
@@ -502,6 +513,8 @@ static void decode_string(char** _src, char** _dest, bool domain_name)
 
     if (domain_name)
         src++;
+    else
+        *dest++ = '\"';
 
     *_src = src;
     *_dest = dest;
