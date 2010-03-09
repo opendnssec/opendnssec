@@ -1,9 +1,9 @@
 <!-- $Id$ -->
 
 <eppclient>
- <database>eppclientd.sqlite</database>
- <pipe>eppclientd.pipe</pipe>
- <pidfile>eppclientd.pid</pidfile>
+ <database>@EPPCLIENTD_DB@</database>
+ <pipe>@EPPCLIENTD_PIPE@</pipe>
+ <pidfile>@EPPCLIENTD_PID@</pidfile>
  <ackcommand>echo %s</ackcommand>
  <registry>
    <suffix>.se</suffix>

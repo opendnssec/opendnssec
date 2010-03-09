@@ -16,17 +16,14 @@ retries unsucessful transactions.
 After successful transfer, an acknowledge command is called to let OpenDNSSEC
 know the key update has completed.
 .SH "FILES"
-.IP \fBeppclientd.conf\fP
-The configuration file for eppclientd.
-eppclientd looks for this file in the following directories:
-/, /etc, /etc/opt, /usr/local/etc.
+.IP \fB@EPPCLIENTD_CONF@\fP
 See \fBeppclientd.conf(5)\fP for details.
-.IP \fBeppclientd.pipe\fP
+.IP \fB@EPPCLIENTD_PIPE@\fP
 A pipe used to communicate between eppclient and eppclientd.
-.IP \fBeppclientd.pid\fP
+.IP \fB@EPPCLIENTD_PID@\fP
 The pid and lock file used by eppclientd to ensure only one instance
 is running.
-.IP \fBeppclientd.sqlite\fP
+.IP \fB@EPPCLIENTD_DB@\fP
 The database file that holds the transfer queue.
 .SH "DIAGNOSTICS"
 eppclientd logs via the standard syslog(8) facility.

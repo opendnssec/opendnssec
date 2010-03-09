@@ -43,7 +43,6 @@
 #include "eppconfig.h"
 #include "compat/strlcpy.h"
 
-#define CONFIG_FILE     "eppclientd.conf"
 
 static xmlXPathContext* context;
 
@@ -93,16 +92,10 @@ char* config_value(char* path)
 
 void read_config(void)
 {
-    xmlDoc* doc = xmlParseFile(CONFIG_FILE);
-    if (!doc)
-        doc = xmlParseFile("/etc/" CONFIG_FILE);
-    if (!doc)
-        doc = xmlParseFile("/etc/opt/" CONFIG_FILE);
-    if (!doc)
-        doc = xmlParseFile("/usr/local/etc/" CONFIG_FILE);
+    xmlDoc* doc = xmlParseFile(EPPCLIENTD_CONF);
     if (!doc) {
-        syslog(LOG_ERR, "%s: %s", CONFIG_FILE, strerror(errno));
-        perror(CONFIG_FILE);
+        syslog(LOG_ERR, "%s: %s", EPPCLIENTD_CONF, strerror(errno));
+        perror(EPPCLIENTD_CONF);
         exit(-1);
     }
 

@@ -23,11 +23,8 @@ If you send new keys for a zone which has a transfer pending
 (keys are not yet successfully transferred),
 then eppclient will remove the pending keys and only transfer the new.
 .SH "FILES"
-.IP \fBeppclientd.conf\fP
-The configuration file for eppclient.
-eppclient looks for this file in the following directories:
-<current directory>, /etc, /etc/opt, /usr/local/etc
-.IP \fBeppclientd.pipe\fP
+.IP \fB@EPPCLIENTD_CONF@\fP
+.IP \fB@EPPCLIENTD_PIPE@\fP
 A named pipe used to communicate between eppclient and eppclientd.
 The location of this file is specified in the configuration file.
 .SH "SEE ALSO"
