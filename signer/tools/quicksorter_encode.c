@@ -121,7 +121,7 @@ static const char format_list[NUM_TYPES][8] = {
     /* 18: AFSDB */ { 2, RD_INT16, RD_NAME },
     /* 19: X25 */   { 1, RD_STRING },
     /* 20: ISDN */  { 2, RD_STRING, RD_STRING },
-    /* 21: RT */    { 2, RD_INT16, RD_STRING },
+    /* 21: RT */    { 2, RD_INT16, RD_NAME },
     /* 22: NSAP */  { 1, RD_NSAP },
     /* 23: NSAP-PTR */ {0}, /* obsoleted */
     /* 24: SIG */   { 0 }, /* not supported by OpenDNSSEC */
