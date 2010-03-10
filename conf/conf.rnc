@@ -88,7 +88,11 @@ start = element Configuration {
 		element ManualKeyGeneration { empty }?,
 
 		# How long before a KSK Rollover should we start warning (optional)
-		element RolloverNotification { xsd:duration }?
+		element RolloverNotification { xsd:duration }?,
+		
+		# Command to use for submitting new DS records to a parent -
+		# the command should accept DNSKEY RRsets via STDIN
+		element DelegationSignerSubmitCommand { xsd:string }?
 	},
 
 	# Configuration parameters for the Signer 

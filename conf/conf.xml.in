@@ -48,6 +48,11 @@
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
+		
+		<!-- the <DelegationSignerSubmitCommand> will get all current
+		     DNSKEYs (as a RRset) on standard input
+		-->
+		<!-- <DelegationSignerSubmitCommand>@OPENDNSSEC_SBIN_DIR@/eppclient</DelegationSignerSubmitCommand> -->
 	</Enforcer>
 
 	<Signer>
