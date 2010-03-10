@@ -222,8 +222,12 @@ domain_nsecify_nsec3(domain_type* domain, domain_type* to,
     domain_nsecify_create_bitmap(domain->auth_rrset, types, &types_count);
     domain_nsecify_create_bitmap(domain->ds_rrset, types, &types_count);
     domain_nsecify_create_bitmap(domain->ns_rrset, types, &types_count);
-    types[types_count] = LDNS_RR_TYPE_RRSIG;
-    types_count++;
+    /* only add RRSIG type if we have authoritative data to sign */
+    if ((domain->auth_rrset || domain->ds_rrset) &&
+        domain->domain_status != DOMAIN_STATUS_OCCLUDED) {
+        types[types_count] = LDNS_RR_TYPE_RRSIG;
+        types_count++;
+    }
 
     nsec_rr = ldns_rr_new();
     ldns_rr_set_type(nsec_rr, LDNS_RR_TYPE_NSEC3);
