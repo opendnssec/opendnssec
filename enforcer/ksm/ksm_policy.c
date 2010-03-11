@@ -597,7 +597,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
                 salt[i] = hex_chars[arc4random()%strlen(hex_chars)];
             }
 #else
-            srand( time(0) );
+            srand( time(NULL) );
             for (i = 0; i < 2*(policy->denial->saltlength); i++) {
                 salt[i] = hex_chars[rand()%strlen(hex_chars)];
             }
