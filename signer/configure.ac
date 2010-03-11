@@ -60,6 +60,9 @@ AC_CONFIG_HEADERS([tools/config.h])
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
+# Checks for library functions.
+AC_CHECK_FUNCS([arc4random arc4random_uniform])
+
 AC_CONFIG_FILES([
 	Makefile
 	tools/Makefile
