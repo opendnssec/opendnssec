@@ -72,6 +72,7 @@ AC_FUNC_MKTIME
 AC_FUNC_REALLOC
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul setregid setreuid])
+AC_CHECK_FUNCS([arc4random arc4random_uniform])
 
 AC_CHECK_FUNCS(setresuid, [
 	dnl Some platorms have setresuid that isn't implemented, test for this
