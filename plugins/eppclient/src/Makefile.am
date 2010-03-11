@@ -15,7 +15,7 @@ sysconfdir =	@sysconfdir@/opendnssec
 sbin_PROGRAMS = eppclient eppclientd
 
 eppclient_SOURCES = eppclient.c eppconfig.c $(COMPAT)
-eppclient_LDADD = @XML2_LIBS@ @SQLITE3_LIBS@
+eppclient_LDADD = @LDNS_LIBS@ @XML2_LIBS@ @SQLITE3_LIBS@
 
 eppclientd_SOURCES = eppclientd.c eppconfig.c epp.c $(COMPAT)
 eppclientd_LDADD = @LDNS_LIBS@ @XML2_LIBS@ @CURL_LIBS@ @SQLITE3_LIBS@

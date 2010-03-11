@@ -42,6 +42,7 @@
 #include <sqlite3.h>
 #include <errno.h>
 #include <ctype.h>
+#include <ldns/ldns.h>
 
 #include "eppconfig.h"
 #include "epp.h"
@@ -378,87 +379,77 @@ static void send_keys(void)
         free((void*)keys[i]);
 }
 
-void store_keys(char* line)
+int store_key(char* line, int linenum)
 {
-    int rc;
-    
-    /* dig up zone */
-    char* zone = line;
-    char* p = strchr(zone, ' ');
-    if (!p) {
-        syslog(LOG_ERR, "syntax error: No whitespace after zone");
-        return;
-    }
-    *p = 0;
-    p++;
+    static int job;
 
-    /* wrap everything in a transaction */
-    rc = sqlite3_exec(db, "BEGIN TRANSACTION;", 0,0,0);
-    
+    ldns_rr* rr;
+    ldns_status rc = ldns_rr_new_frm_str(&rr, line, 0, NULL, NULL);
+    if (rc != LDNS_STATUS_OK) {
+        syslog(LOG_ERR, "parse error: %s", ldns_get_errorstr_by_id(rc));
+        return -1;
+    }
+
+    /* extract zone name */
+    char zone[256];
+    ldns_rdf* owner = ldns_rr_owner(rr);
+    ldns_buffer* obuf = ldns_buffer_new(256);
+    ldns_rdf2buffer_str(obuf, owner);
+    memset(zone, 0, sizeof zone);
+    memcpy(zone, obuf->_data, obuf->_position);
+    if (zone[strlen(zone) - 1] == '.')
+        zone[strlen(zone) - 1] = 0;
+    ldns_buffer_free(obuf);
+
     sqlite3_stmt* sth;
 
-    /* delete pending jobs for this zone */
-    rc = sqlite3_prepare_v2(db, "SELECT job FROM jobs WHERE zone=?",
-                            -1, &sth, NULL);
-    sqlite3_bind_text(sth, 1, zone, strlen(zone), SQLITE_STATIC);
-    while (sqlite3_step(sth) == 100) {
-        int job = sqlite3_column_int(sth, 0);
-        rc = delete_job(job);
-    }
-    sqlite3_finalize(sth);
-    
-    /* store zone */
-    rc = sqlite3_prepare_v2(db, "INSERT INTO jobs (zone) VALUES (?)",
-                            -1, &sth, NULL);
-    sqlite3_bind_text(sth, 1, zone, strlen(zone), SQLITE_STATIC);
-    sqlite3_step(sth);
-
-    int job = sqlite3_last_insert_rowid(db);
-
-    /* store keys */
-    int count = 0;
-    while (1) {
-        while (*p && isspace(*p))
-            p++;
-        if (*p != '\"') {
-            if (count)
-                break;
-
-            syslog(LOG_ERR, "syntax error: No quote before key: %s", p);
-            sqlite3_exec(db, "ROLLBACK TRANSACTION;", 0,0,0);
-            return;
-        }
-
-        p++; /* skip quote */
-
-        char* e = strchr(p, '\"');
-        if (!e) {
-            syslog(LOG_ERR, "syntax error: No quote after key");
-            sqlite3_exec(db, "ROLLBACK TRANSACTION;", 0,0,0);
-            return;
-        }
-        *e = 0;
-
-        rc = sqlite3_prepare_v2(db, "INSERT INTO keys (job, key) VALUES (?,?)",
+    /* the first line defines the zone */
+    if (linenum == 1) {
+        /* delete pending jobs for this zone */
+        rc = sqlite3_prepare_v2(db, "SELECT job FROM jobs WHERE zone=?",
                                 -1, &sth, NULL);
-        sqlite3_bind_int(sth, 1, job);
-        sqlite3_bind_text(sth, 2, p, strlen(p), SQLITE_STATIC);
+        sqlite3_bind_text(sth, 1, zone, strlen(zone), SQLITE_STATIC);
+        while (sqlite3_step(sth) == 100) {
+            int job = sqlite3_column_int(sth, 0);
+            rc = delete_job(job);
+        }
+        sqlite3_finalize(sth);
+    
+        /* store zone */
+        rc = sqlite3_prepare_v2(db, "INSERT INTO jobs (zone) VALUES (?)",
+                                -1, &sth, NULL);
+        sqlite3_bind_text(sth, 1, zone, strlen(zone), SQLITE_STATIC);
         sqlite3_step(sth);
-        count++;
 
-        p = e+1;
+        job = sqlite3_last_insert_rowid(db);
     }
+
+    /* create key string */
+    ldns_buffer* rdata = ldns_buffer_new(1024);
+    for (size_t i=0; i < rr->_rd_count; i++) {
+        ldns_rdf2buffer_str(rdata, rr->_rdata_fields[i]);
+        ldns_buffer_printf(rdata, " ");
+    }
+    char* keybuf = ldns_buffer2str(rdata);
+    ldns_buffer_free(rdata);
+    if (!keybuf) {
+        syslog(LOG_ERR, "ldns_buffer2str() returned NULL");
+        ldns_rr_free(rr);
+        return -1;
+    }
+
+    /* store key */
+    rc = sqlite3_prepare_v2(db, "INSERT INTO keys (job, key) VALUES (?,?)",
+                            -1, &sth, NULL);
+    sqlite3_bind_int(sth, 1, job);
+    sqlite3_bind_text(sth, 2, keybuf, strlen(keybuf), SQLITE_STATIC);
+    sqlite3_step(sth);
+    free(keybuf);
+    ldns_rr_free(rr);
+
     sqlite3_finalize(sth);
 
-    rc = sqlite3_exec(db, "COMMIT TRANSACTION;", 0,0,0);
-}
-
-
-void parse_line(char* buf)
-{
-    syslog(LOG_DEBUG, "client line: %s", buf);
-    if (!strncmp("NEWKEYS ", buf, 7))
-        store_keys(buf + 8);        
+    return 0;
 }
 
 void read_client_pipe(int pipe)
@@ -471,28 +462,49 @@ void read_client_pipe(int pipe)
         buf = malloc(bufsize);
         if (!buf) {
             syslog(LOG_CRIT, "malloc(%d) failed", bufsize);
-            exit(-1);
+            return;
         }
     }
 
     /* read byte by byte to only grab the first line */
     char c;
-    while (read(pipe, &c, 1) == 1) {
-        if (pos > bufsize-2) {
-            bufsize *= 2;
-            buf = realloc(buf, bufsize);
-            if (!buf) {
-                syslog(LOG_CRIT, "realloc(%d) failed", bufsize);
-                exit(-1);
+    if (read(pipe, &c, 1) == 1) {
+        /* wrap everything in a transaction */
+        sqlite3_exec(db, "BEGIN TRANSACTION;", 0,0,0);
+
+        int linenum = 1;
+        bool success = true;
+        do {
+            if (pos > bufsize-2) {
+                bufsize *= 2;
+                buf = realloc(buf, bufsize);
+                if (!buf) {
+                    syslog(LOG_CRIT, "realloc(%d) failed", bufsize);
+                    success = false;
+                    break;
+                }
             }
-        }
 
-        buf[pos++] = c;
+            buf[pos++] = c;
 
-        if (c == '\n') {
-            buf[pos] = 0;
-            parse_line(buf);
-            pos = 0;
+            if (c == '\n') {
+                buf[pos] = 0;
+                if (store_key(buf, linenum)) {
+                    success = false;
+                    break;
+                }
+                pos = 0;
+                linenum++;
+            }
+        } while (read(pipe, &c, 1) == 1);
+
+        if (success)
+            sqlite3_exec(db, "COMMIT TRANSACTION;", 0,0,0);
+        else {
+            sqlite3_exec(db, "ROLLBACK TRANSACTION;", 0,0,0);
+
+            /* clear the pipe */
+            while (read(pipe, &c, 1) == 1);
         }
     }
 }
