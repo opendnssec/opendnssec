@@ -812,6 +812,22 @@ module KASPAuditor
       else
         #            print "OK : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}\n"
       end
+      # Check signature lifetime :
+      # inceptionoffset + validity - jitter ≤ (exception - inception) ≤ inceptionoffset + validity +jitter
+      validity = @config.signatures.validity.default
+      if (split[4]=~/^NSEC/) && (split[4] != "NSEC3PARAM")
+        validity = @config.signatures.validity.denial
+      end
+
+      min_lifetime = @config.signatures.inception_offset + validity - @config.signatures.jitter
+      max_lifetime = @config.signatures.inception_offset + validity + @config.signatures.jitter
+      actual_lifetime = sig_expiration - sig_inception
+      if (min_lifetime > actual_lifetime)
+        log(LOG_ERR, "Signature lifetime too short - should be at least #{min_lifetime} but was #{actual_lifetime}")
+      end
+      if (max_lifetime < actual_lifetime)
+        log(LOG_ERR, "Signature lifetime too long - should be at most #{max_lifetime} but was #{actual_lifetime}")
+      end
 
       key_tag = split[10]
       @keys_used.push(key_tag) if !@keys_used.include?key_tag
