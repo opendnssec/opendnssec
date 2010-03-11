@@ -9,6 +9,9 @@ OpenDNSSEC trunk
   Group zones in zonelist.xml by policy to get this benefit.
 * Bugreport #101: Signer Engine now maintains its own pidfile.
 * Jitter redefined: now in the range of [-jitter, ..., jitter]
+* Optimized sorter: quicksorter (sorter becomes obsolete).
+* Optimized zone_reader, includes nseccing/nsec3ing (nseccer and nsec3er
+  become obsolete).
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
