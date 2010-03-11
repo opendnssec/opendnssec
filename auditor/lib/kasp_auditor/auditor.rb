@@ -371,7 +371,28 @@ module KASPAuditor
         else
           #            print "OK : Signature expiration is #{sig.expiration}, time now is #{time_now}, signature validity is #{validity}, difference = #{sig.expiration - time_now}\n"
         end
+
+        # Check signature lifetime :
+        # inceptionoffset + validity - jitter ≤ (exception - inception) ≤ inceptionoffset + validity +jitter
+        validity = @config.signatures.validity.default
+        if ([Types::NSEC, Types::NSEC3].include?sig.type_covered)
+          validity = @config.signatures.validity.denial
+        end
+
+        # Check signature lifetime
+        min_lifetime = @config.signatures.inception_offset + validity - @config.signatures.jitter
+        max_lifetime = @config.signatures.inception_offset + validity + @config.signatures.jitter
+        actual_lifetime = sig.expiration - sig.inception
+        if (min_lifetime > actual_lifetime)
+          log(LOG_ERR, "Signature lifetime too short - should be at least #{min_lifetime} but was #{actual_lifetime}")
+        end
+        if (max_lifetime < actual_lifetime)
+          log(LOG_ERR, "Signature lifetime too long - should be at most #{max_lifetime} but was #{actual_lifetime}")
+        end
+		
       }
+
+
     end
 
     # Get the string for the type of denial this zone is using : either "NSEC" or "NSEC3"
