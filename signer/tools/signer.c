@@ -298,7 +298,13 @@ jitter_expiration(uint expiration, uint32_t jitter)
 
 	if (jitter) {
 		e -= jitter;
+#ifdef HAVE_ARC4RANDOM_UNIFORM
+		e += arc4random_uniform(2 * jitter);
+#elif HAVE_ARC4RANDOM
+		e += arc4random() % (2 * jitter);
+#else
 		e += rand() % (2 * jitter);
+#endif
 	}
 
 	return e;
