@@ -45,7 +45,7 @@ re-signed.
 1 Sorting
 ---------
 
-Apart from the sorter, and the extra tools described below, the other
+Apart from the quicksorter, and the extra tools described below, the other
 tools in the pipeline all expect that the data they receive is sorted
 for their needs. In a normal signing operation, this means that the
 zone must be sorted in canonical form, ie. the names must be sorted, 
@@ -55,10 +55,10 @@ In the case of NSEC3 denial-of-existence, the names must be sorted
 in 'nsec3'-space, and within each name, the resource records must be
 sorted in canonical order.
 
-To achieve this, the tool 'sorter' can be used. Use 'sorter -h' to see
-the specific options.
+To achieve this, the tool 'quicksorter' can be used. Use 'quicksorter -h'
+to see the specific options.
 
-The sorter tool will also filter out glue records, and flag empty
+The quicksorter tool will also filter out glue records, and flag empty
 non-terminals.
 
 Glue records will be given to the output in the form
@@ -70,7 +70,7 @@ part so that the final output zone will have the glue data again.
 There are two types of empty non-terminals (ENTs), 'normal' ENTs, and
 'NS' ENTs. NS ENTs are empty non-terminals that lead to a name where
 only NS Resource records exist (while normal ENTs lead to ojne where
-other data is present). Normally, the sorter will ignore empty
+other data is present). Normally, the quicksorter will ignore empty
 non-terminals. However, if the zone is sorted in NSEC3 space, empty
 non-terminals will be marked and passed on, so the nsecifier can create
 NSEC3 records for them. They will be of the form:
@@ -85,17 +85,8 @@ If NSEC3 opt-out is also used, NS ENTs are also marked;
 
 To create a fully signed zone, NSEC(3) records must be added.
 
-There are two tools for this; 'nseccer' and 'nsec3er', which add either
-NSEC or NSEC3 records.
-
-These tools do not perform any sorting; so the input must be sorted
-in the correct order beforehand (either 'normal' or 'in nsec3 space').
-
-Use the -h argument for specific options.
-
-If a line starts with ';', it is copied to the output and ignored.
-Except when it specifies '; empty non-terminal: <name>', in which case
-the nsec3er tool will create an NSEC3 for the empty nonterminal.
+This is done by the zone reader. Depending on the signer configuration, 
+NSEC or NSEC3 records are added.
 
 4 RRSIG Addition
 ----------------
@@ -182,6 +173,8 @@ It will also re-add the glue records that are passed to it in the form
 ; Glue: <Resource Record>
 The string "; Glue: " will be removed, readding it to zone.
 
+It will also re-add the records that were set aside as being opt-out 
+records (stored in a seperate file <zone>.optout).
 
 Other tools
 -----------
@@ -190,3 +183,6 @@ There is a tool to create a DNSKEY RR from a PKCS11 key id and
 algorithm, called 'create_dnskey'. It takes the same arguments
 as 'signer', but just prints out a DNSKEY RR for each key
 specified.
+
+There is a tool to get the SOA SERIAL from a zone file, called 'get_serial'.
+Use 'get_serial -h' to see the specific options.
