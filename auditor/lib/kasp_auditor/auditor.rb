@@ -74,6 +74,7 @@ module KASPAuditor
       @key_cache = nil
       @unknown_nsecs = {}
     end
+    attr_reader :config
     def set_config(c) # :nodoc: all
       @config = c
       if (@config.inconsistent_nsec3_algorithm?)
@@ -1013,6 +1014,10 @@ module KASPAuditor
 
                   # Check the optout names as we load in more types
                   owner, next_hashed = check_optout(types_name_unhashed, owner, next_hashed, types_name, foptout)
+                end
+                # If there is only an NS record, and we are opt-out, then there should be no NSEC3 record here
+                if (@parent.config.denial.nsec3.optout && (nsec3_types.include?Types::NS) && nsec3_types.include?(Types::RRSIG) && (nsec3_types.length == 2))
+                  log(LOG_WARNING, "NSEC3 record found for #{types_name_unhashed} (#{nsec3_name}). Only an NS record is present, and opt out is being used, so no NSEC3 is expected")
                 end
                 # Now check the NSEC3 types_covered against the types ACTUALLY at the name
                 if (types_types != nsec3_types)
