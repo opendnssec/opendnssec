@@ -375,12 +375,21 @@ module KASPAuditor
           end
           next if (line.index("$ORIGIN") == 0)
           next if (line.index("$TTL") == 0)
+          if (line=~/\sDNSKEY\s|\sRRSIG\s|\sNSEC\s|\sNSEC3\s|\sNSEC3PARAM\s/)
+            begin
+              rr = RR.create(line)
+              if ([Types::RRSIG, Types::DNSKEY, Types::NSEC, Types::NSEC3, Types::NSEC3PARAM].include?rr.type)
+                @parent.log(LOG_WARNING, "#{rr.type} present in unsigned file : #{line.chomp}")
+              end
+            rescue Exception
+            end
+          end
           if (ret_line.index("soa") || ret_line.index("SOA"))
             rr = RR.create(ret_line)
             if (rr.type == Types::SOA)
               if (soa)
                 # Check not more than one SOA in file!
-                log(LOG_ERR, "Multiple SOA records found in signed file")
+                @parent.log(LOG_ERR, "Multiple SOA records found in signed file")
               end
               soa = ret_line
             end
@@ -549,7 +558,6 @@ module KASPAuditor
           }
           rrsets.each {|rrset|
             if (rrset.type == Types::RRSIG)
-              print "\nCAN ONLY FIND RRSIGS FOR #{rrset.name}\n\n"
             end
           }
           # And then check them
@@ -781,6 +789,7 @@ module KASPAuditor
     end
 
     def do_basic_rrsig_checks(line)
+      # @TODO@  Can we check the length of the RRSIG signature here?
       time_now = Time.now.to_i
       split = line.split
       sig_inception = RR::RRSIG.get_time(split[9])
