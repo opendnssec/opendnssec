@@ -1,5 +1,5 @@
 /*
- * $Id: zone_reader.c 2644 2009-12-18 13:45:33Z matthijs $
+ * $Id$
  *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
