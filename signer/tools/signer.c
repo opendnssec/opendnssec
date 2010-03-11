@@ -963,11 +963,17 @@ sign_rrset(ldns_rr_list *rrset,
 /* Coverity comment:
    use of rand() is seen as a security risk
 */
-				params->expiration = cfg->expiration_denial +
-			                   (cfg->jitter ? rand() % cfg->jitter : 0);
+				params->expiration = cfg->expiration_denial;
+				if (cfg->jitter) {
+					params->expiration -= cfg->jitter;
+					params->expiration += (rand() % (2*cfg->jitter));
+				}
 			} else {
-				params->expiration = cfg->expiration +
-			                   (cfg->jitter ? rand() % cfg->jitter : 0);
+				params->expiration = cfg->expiration;
+				if (cfg->jitter) {
+					params->expiration -= cfg->jitter;
+					params->expiration += (rand() % (2*cfg->jitter));
+				}
 			}
 			sig = hsm_sign_rrset(NULL, rrset,  keys->keys[i], params);
 			if (sig)
