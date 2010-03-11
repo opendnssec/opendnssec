@@ -12,6 +12,7 @@ OpenDNSSEC trunk
 * Optimized sorter: quicksorter (sorter becomes obsolete).
 * Optimized zone_reader, includes nseccing/nsec3ing (nseccer and nsec3er
   become obsolete).
+* Enable database selection using --with-database-backend={sqlite3|mysql}
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs

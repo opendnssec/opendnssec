@@ -118,6 +118,7 @@ ACX_LIBXML2
 ACX_LIBHSM
 ACX_DBPARAMS
 ACX_LDNS(1,6,4)
+ACX_DATABASE_BACKEND
 
 AH_BOTTOM([
 #ifndef HAVE_STRLCPY
@@ -127,49 +128,6 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
-
-AC_ARG_ENABLE(mysql,
-        AC_HELP_STRING([--enable-mysql],
-                [Enable MySQL database driver (experimental)]),
-		[enable_mysql="${enableval}"],
-		[enable_mysql="no"])
-
-AC_MSG_CHECKING(if we should use SQLite or MySQL)
-if test "x${enable_mysql}" = "xyes"; then
-	AC_MSG_RESULT(MySQL)
-
-	ACX_MYSQL
-
-    	DB_TYPE=mysql
-	DB_INCLUDES=$MYSQL_INCLUDES
-	DB_LIBS=$MYSQL_LIBS
-
-        AC_DEFINE_UNQUOTED(SQL_BIN, "$MYSQL", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, "$OPENDNSSEC_DATA_DIR/database_create.mysql", [database setup script])
-
-	AC_SUBST(DB_TYPE) 
-	AC_SUBST(DB_INCLUDES) 
-	AC_SUBST(DB_LIBS) 
-
-else
-	AC_MSG_RESULT(SQLite)
-
-	ACX_SQLITE3
-
-	DB_TYPE=sqlite3 
-	DB_INCLUDES=$SQLITE3_INCLUDES 
-	DB_LIBS=$SQLITE3_LIBS 
-
-	AC_DEFINE_UNQUOTED(SQL_BIN, "$SQLITE3", [database binary]) 
-	AC_DEFINE_UNQUOTED(SQL_SETUP, "$OPENDNSSEC_DATA_DIR/database_create.sqlite3", [database setup script])
-
-	AC_SUBST(DB_TYPE) 
-	AC_SUBST(DB_INCLUDES) 
-	AC_SUBST(DB_LIBS) 
-
-fi
-
-AM_CONDITIONAL([USE_MYSQL], [test "x${enable_mysql}" = "xyes"])
 
 AC_DEFINE_UNQUOTED(CONFIG_DIR, "$OPENDNSSEC_CONFIG_DIR", [Path to the OpenDNSSEC configuration files])
 AC_DEFINE_UNQUOTED(CONFIG_FILE, "$OPENDNSSEC_CONFIG_FILE", [Path to the OpenDNSSEC configuration file])
