@@ -592,10 +592,16 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
                 exit(1);
             }
 
+#ifdef HAVE_ARC4RANDOM
+            for (i = 0; i < 2*(policy->denial->saltlength); i++) {
+                salt[i] = hex_chars[arc4random()%strlen(hex_chars)];
+            }
+#else
             srand( time(0) );
             for (i = 0; i < 2*(policy->denial->saltlength); i++) {
                 salt[i] = hex_chars[rand()%strlen(hex_chars)];
             }
+#endif
 
             if (status != 0) {
                 StrFree(datetime_now);
