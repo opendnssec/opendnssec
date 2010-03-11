@@ -10,10 +10,10 @@
 			<Resign>PT60S</Resign>
 			<Refresh>PT120S</Refresh>
 			<Validity>
-					<Default>PT24H</Default>
-					<Denial>P14D</Denial>
+					<Default>P21Y</Default>
+					<Denial>P21Y</Denial>
 			</Validity>
-			<Jitter>PT60S</Jitter>
+			<Jitter>P50D</Jitter>
 			<InceptionOffset>-PT300S</InceptionOffset>
 		</Signatures>
 
