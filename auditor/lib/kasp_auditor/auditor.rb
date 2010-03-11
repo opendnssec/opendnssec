@@ -389,7 +389,7 @@ module KASPAuditor
         if (max_lifetime < actual_lifetime)
           log(LOG_ERR, "Signature lifetime too long - should be at most #{max_lifetime} but was #{actual_lifetime}")
         end
-		
+
       }
 
 
@@ -608,6 +608,7 @@ module KASPAuditor
       seen_dnskey_sep_set = false
       seen_dnskey_sep_clear = false
       l_rr = last_rr
+      old_rr = last_rr
       types_covered = [l_rr.type]
       current_domain = l_rr.name
       seen_nsec_for_domain = false
@@ -622,7 +623,7 @@ module KASPAuditor
           if (@config.denial.nsec3)
             # Build up a list of hashed domains and the types seen there,
             # iff we're using NSEC3
-            write_types_to_file(current_domain, types_covered)
+            write_types_to_file(current_domain, types_covered, last_rr.name, is_glue)
           end
           if !(l_rr.name.subdomain_of?current_domain)
             delegation = false
@@ -632,6 +633,7 @@ module KASPAuditor
           types_covered = []
           types_covered.push(l_rr.type)
           current_domain = l_rr.name
+          last_rr = old_rr
         end
         if l_rr.type == Types::NS
           delegation = true
@@ -696,12 +698,13 @@ module KASPAuditor
             }
           end
         end
+        old_rr = l_rr
         l_rr = get_next_rr(file)
       end
       if (@config.denial.nsec3)
         # Build up a list of hashed domains and the types seen there,
         # iff we're using NSEC3
-        write_types_to_file(current_domain, types_covered)
+        write_types_to_file(current_domain, types_covered, last_rr.name, is_glue)
       end
       # Remember to check the signatures of the final RRSet!
       check_signature(current_rrset, is_glue, delegation)
@@ -770,7 +773,7 @@ module KASPAuditor
     #   <hashed_name> <unhashed_name> <[type1] [type2] ...>
     #
     # It is passed the domain, and the types seen at the domain
-    def write_types_to_file(domain, types_covered)
+    def write_types_to_file(domain, types_covered, last_name, is_glue)
       return if (types_covered.include?Types::NSEC3) # Only interested in real domains
       #      return if (out_of_zone(domain)) # Only interested in domains which should be here!
       types_string = get_types_string(types_covered)
@@ -786,6 +789,37 @@ module KASPAuditor
         iterations = @first_nsec3.iterations
         hash_alg - @first_nsec3.hash_alg
       end
+      # Need to add non-glue empty noneterminals here too!
+      empty_nonterminals = []
+      # Have we skipped any empty nonterminals?
+      #    - check the number of labels compared to the expected number of labels
+      #    - if more than one different, then there is at least one empty nonterminal
+      name_to_check_against = @soa.name
+      if (domain.subdomain_of?(last_name))
+        # Check the number of labels since last_name
+        name_to_check_against = last_name
+      else
+        # Check the number of labels since the origin
+      end
+      last = Name.create(domain)
+      while (last.labels.length > name_to_check_against.labels.length + 1)
+        # Add the empty nonterminal to the list
+        last.labels = last.labels[1,last.labels.length]
+        empty_nonterminals.push(last)
+      end
+
+      # If so, should it be covered by an NSEC3 record?
+      #    - don't add any NSEC3 for empty nonterminals if this is only glue
+      if (!is_glue && empty_nonterminals.length > 0)
+        # If so, add the appropriate NSEC3 record to the "expected NSEC3s" file
+        empty_nonterminals.each {|empty_nonterminal|
+          add_domain_to_types_file(empty_nonterminal, iterations, salt, hash_alg, "")
+        }
+      end
+      add_domain_to_types_file(domain, iterations, salt, hash_alg, types_string)
+    end
+
+    def add_domain_to_types_file(domain, iterations, salt, hash_alg, types_string)
       hashed_domain = RR::NSEC3.calculate_hash(domain, iterations,
         RR::NSEC3.decode_salt(salt), hash_alg)
       File.open(@working + "#{File::SEPARATOR}audit.types.#{Process.pid}", "a") { |f|
@@ -1023,13 +1057,14 @@ module KASPAuditor
                 owner, next_hashed = check_optout(types_name_unhashed, owner, next_hashed, types_name, foptout)
                 
                 while ((nsec3_name < types_name) && (!fnsec3.eof?))
-                  # An empty nonterminal
-                  #                  log(LOG_WARNING, "Found NSEC3 record for hashed domain which couldn't be found in the zone (#{nsec3_name})")
+                  log(LOG_WARNING, "Found NSEC3 record for hashed domain which couldn't be found in the zone (#{nsec3_name})")
                   nsec3_name, nsec3_types = get_name_and_types(fnsec3)
                 end
                 while ((types_name < nsec3_name) && (!ftypes.eof?))
-                  if (!unknown_nsecs[types_name_unhashed+"."])
+                  if (!unknown_nsecs[types_name_unhashed+"."] && types_types.length > 0)
                     log(LOG_ERR, "Found RRs for #{types_name_unhashed} (#{types_name}) which was not covered by an NSEC3 record")
+                  else
+                    log(LOG_ERR, "Can't find NSEC3 for empty nonterminal #{types_name_unhashed} (should be #{types_name})")
                   end
                   types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
 
