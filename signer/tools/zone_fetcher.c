@@ -1094,9 +1094,8 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     /* NOTIFY OK */
     if (config) {
         zonelist = config->zonelist;
-        log_msg(LOG_INFO, "zone fetcher received NOTIFY for zone %s",
-            zonelist->name);
     }
+
     ldns_pkt_set_qr(query_pkt, 1);
     status = ldns_pkt2wire(&outbuf, query_pkt, &answer_size);
     if (status != LDNS_STATUS_OK) {
@@ -1110,6 +1109,9 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     while (zonelist) {
         if (ldns_dname_compare(ldns_rr_owner(query_rr), zonelist->dname) == 0)
         {
+            log_msg(LOG_INFO, "zone fetcher received NOTIFY for zone %s",
+                zonelist->name);
+
             /* get latest serial */
             fd = fopen(zonelist->input_file, "r");
             if (!fd) {
@@ -1127,6 +1129,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
         /* next */
         zonelist = zonelist->next;
     }
+
     owner_name = ldns_rdf2str(ldns_rr_owner(query_rr));
     log_msg(LOG_NOTICE, "zone fetcher notify received for unknown zone: %s",
         owner_name);
