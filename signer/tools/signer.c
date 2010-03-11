@@ -291,6 +291,19 @@ current_config_free(current_config *cfg)
 	}
 }
 
+static uint32_t
+jitter_expiration(uint expiration, uint32_t jitter)
+{
+	uint32_t e = expiration;
+
+	if (jitter) {
+		e -= jitter;
+		e += rand() % (2 * jitter);
+	}
+
+	return e;
+}
+
 void
 usage(FILE *out)
 {
@@ -960,20 +973,9 @@ sign_rrset(ldns_rr_list *rrset,
 			if (cfg->expiration_denial &&
 			    (ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC ||
 			     ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC3)) {
-/* Coverity comment:
-   use of rand() is seen as a security risk
-*/
-				params->expiration = cfg->expiration_denial;
-				if (cfg->jitter) {
-					params->expiration -= cfg->jitter;
-					params->expiration += (rand() % (2*cfg->jitter));
-				}
+				params->expiration = jitter_expiration(cfg->expiration_denial, cfg->jitter);
 			} else {
-				params->expiration = cfg->expiration;
-				if (cfg->jitter) {
-					params->expiration -= cfg->jitter;
-					params->expiration += (rand() % (2*cfg->jitter));
-				}
+				params->expiration = jitter_expiration(cfg->expiration, cfg->jitter);
 			}
 			sig = hsm_sign_rrset(NULL, rrset,  keys->keys[i], params);
 			if (sig)
