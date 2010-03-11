@@ -80,7 +80,6 @@ class AuditorTest < Test::Unit::TestCase
       "Expected SOA RR as first record ",
       #    "No DNSKEY RR with SEP bit set in output zone", # Need this key - or else RRSIGs won't verify
 
-
       # Now check the NSEC specific stuff
       # - NSEC3 and NSEC3PARAMs in zone
       # - missing NSEC RR for one domain
@@ -156,8 +155,9 @@ class AuditorTest < Test::Unit::TestCase
 
       "SALT LENGTH IS 3, but should be 4",
 
-      #      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
-      
+      # empty nonterminals
+      "Can't find NSEC3 for empty nonterminal there.tjeb.nl (should be nvst1l6p3svg11nc8i0upvgmd911mb7p.tjeb.nl",
+
       #
       #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
       # - @TODO@ extra next_hashed on one NSEC3
