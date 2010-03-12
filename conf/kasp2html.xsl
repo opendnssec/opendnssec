@@ -101,6 +101,14 @@
 				</td>
 			</tr>
 			<tr>
+				<td class="tag"><xsl:text>Validity DNSKEY</xsl:text></td>
+				<td class="value">
+					<xsl:call-template name="duration">
+						<xsl:with-param name="argument" select="Validity/Keys"/>
+					</xsl:call-template>
+				</td>
+			</tr>
+			<tr>
 				<td class="tag"><xsl:text>Jitter</xsl:text></td>
 				<td class="value">
 					<xsl:call-template name="duration">
