@@ -129,7 +129,7 @@
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Hash Algorithm</xsl:text></td>
-				<td class="value"><xsl:value-of select="Hash/Algorithm"/></td>
+				<td class="value"><xsl:apply-templates select="Hash/Algorithm"/></td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Hash Iterations</xsl:text></td>
@@ -259,6 +259,32 @@
 			</xsl:when>
 			<xsl:when test=". = 7">
 				<xsl:text>RSASHA1-NSEC3-SHA1</xsl:text>						
+			</xsl:when>
+			<xsl:when test=". = 8">
+				<xsl:text>RSA/SHA-256</xsl:text>						
+			</xsl:when>
+			<xsl:when test=". = 10">
+				<xsl:text>RSA/SHA-512</xsl:text>						
+			</xsl:when>
+			<xsl:when test=". = 252">
+				<xsl:text>Reserved for Indirect Keys</xsl:text>						
+			</xsl:when>
+			<xsl:when test=". = 253">
+				<xsl:text>Private algorithms - domain name</xsl:text>						
+			</xsl:when>
+			<xsl:when test=". = 254">
+				<xsl:text>Private algorithms - OID</xsl:text>						
+			</xsl:when>
+			<xsl:otherwise>
+				<xsl:value-of select="."/>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
+
+	<xsl:template match="Denial/NSEC3/Hash/Algorithm">
+		<xsl:choose>
+			<xsl:when test=". = 1">
+				<xsl:text>SHA-1</xsl:text>						
 			</xsl:when>
 			<xsl:otherwise>
 				<xsl:value-of select="."/>
