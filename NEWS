@@ -13,10 +13,14 @@ OpenDNSSEC trunk
 * Optimized zone_reader, includes nseccing/nsec3ing (nseccer and nsec3er
   become obsolete).
 * Enable database selection using --with-database-backend={sqlite3|mysql}
+* Enable the EPP-client using --enable-eppclient
+  For sending DS RR to the parent zone (Expirmental)
+* Turn NSEC3 OptOut off by default
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
 * Enforcer: Prevent int overflow when generating a large number of keys
+* Enforcer: Fixed a confusion between standby ZSKs and KSKs
 * Fixed various enable-options in the configure scripts
 * Respect $DESTDIR for config files
 * Looked for the database init script in $prefix/share/opendnssec and not datadir.
@@ -27,7 +31,8 @@ Bugfixes:
 * Fix issue of importing keys into kasp leaving random strings in the 
   retire date.
 
-OpenDNSSEC 1.0.0 - 2010-0X-XX
+
+OpenDNSSEC 1.0.0 - 2010-02-09
 
 Bugfixes:
 * Fixed broken path in ods-control
