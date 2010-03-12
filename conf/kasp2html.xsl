@@ -430,13 +430,99 @@
 			<td class="value"><xsl:value-of select="Standby"/></td>
 		</tr>
 	</xsl:template>
-	
+
+	<xsl:template name="format_date">
+		<xsl:param name="InputString"/>
+		<xsl:variable name="NumberString" select="translate($InputString, 'YMD', ';;;')"/>
+		<xsl:variable name="ProcessString" select="substring($InputString, 1, 1+string-length(substring-before($NumberString,';')))"/>
+		<xsl:variable name="RemainingString" select="substring($InputString, 1+string-length($InputString)-string-length(substring-after($NumberString,';')))"/>
+		<xsl:variable name="SuffixString" select="substring($ProcessString, string-length($ProcessString))"/>
+
+		<xsl:value-of select="substring($ProcessString, 1, string-length($ProcessString) -1)"/>
+
+		<xsl:choose>
+			<xsl:when test="$SuffixString='D'"><xsl:text> day(s)</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='M'"><xsl:text> month(s)</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='Y'"><xsl:text> year(s)</xsl:text></xsl:when>
+		</xsl:choose>
+
+		<xsl:choose>
+			<xsl:when test="string-length($RemainingString) != 0">
+				<xsl:text> </xsl:text>
+				<xsl:call-template name="format_date">
+					<xsl:with-param name="InputString" select="$RemainingString"/>
+				</xsl:call-template>
+			</xsl:when>
+		</xsl:choose>
+	</xsl:template>
+
+	<xsl:template name="format_time">
+		<xsl:param name="InputString"/>
+		<xsl:variable name="NumberString" select="translate($InputString, 'HMS', ';;;')"/>
+		<xsl:variable name="ProcessString" select="substring($InputString, 1, 1+string-length(substring-before($NumberString,';')))"/>
+		<xsl:variable name="RemainingString" select="substring($InputString, 1+string-length($InputString)-string-length(substring-after($NumberString,';')))"/>
+		<xsl:variable name="SuffixString" select="substring($ProcessString, string-length($ProcessString))"/>
+
+		<xsl:value-of select="substring($ProcessString, 1, string-length($ProcessString) -1)"/>
+
+		<xsl:choose>
+			<xsl:when test="$SuffixString='S'"><xsl:text> second(s)</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='M'"><xsl:text> minute(s)</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='H'"><xsl:text> hour(s)</xsl:text></xsl:when>
+		</xsl:choose>
+
+		<xsl:choose>
+			<xsl:when test="string-length($RemainingString) != 0">
+				<xsl:text> </xsl:text>
+				<xsl:call-template name="format_time">
+					<xsl:with-param name="InputString" select="$RemainingString"/>
+				</xsl:call-template>
+			</xsl:when>
+		</xsl:choose>
+	</xsl:template>
+
 	<!-- Convert xsd:duration to English -->
 	<xsl:template name="duration">
-	  <xsl:param name="argument" select="N/A"/>
-	  <xsl:text>[</xsl:text>
-	  <xsl:value-of select="$argument"/>
-	  <xsl:text>]</xsl:text>
+		<xsl:param name="argument" select="N/A"/>
+
+		<xsl:variable name="DateString" select="substring(substring-before($argument, 'T'),2)"/>
+		<xsl:variable name="DateStringOnly" select="substring($argument,2)"/>
+		<xsl:variable name="TimeString" select="substring-after($argument,'T')"/>
+
+		<xsl:choose>
+			<!-- Only date specified -->
+			<xsl:when test="string-length($DateString) = 0 and string-length($TimeString) = 0">
+				<xsl:call-template name="format_date">
+					<xsl:with-param name="InputString">
+						<xsl:value-of select="$DateStringOnly"/>
+					</xsl:with-param>
+				</xsl:call-template>
+			</xsl:when>
+
+			<!-- Only time specified -->
+			<xsl:when test="string-length($DateString) = 0">
+				<xsl:call-template name="format_time">
+					<xsl:with-param name="InputString">
+						<xsl:value-of select="$TimeString"/>
+					</xsl:with-param>
+				</xsl:call-template>
+			</xsl:when>
+
+			<!-- Both date & time specified -->
+			<xsl:otherwise>
+				<xsl:call-template name="format_date">
+					<xsl:with-param name="InputString">
+						<xsl:value-of select="$DateString"/>
+					</xsl:with-param>
+				</xsl:call-template>
+				<xsl:text> </xsl:text>
+				<xsl:call-template name="format_time">
+					<xsl:with-param name="InputString">
+						<xsl:value-of select="$TimeString"/>
+					</xsl:with-param>
+				</xsl:call-template>
+			</xsl:otherwise>
+		</xsl:choose>
 	</xsl:template>
 
 </xsl:stylesheet>
