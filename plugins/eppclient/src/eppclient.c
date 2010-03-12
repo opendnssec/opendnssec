@@ -105,6 +105,8 @@ int main(void)
                 ldns_buffer_free(obuf2);
                 return -1;
             }
+            ldns_buffer_free(obuf1);
+            ldns_buffer_free(obuf2);
             ldns_rr_free(rr);
         }
 
