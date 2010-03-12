@@ -21,7 +21,7 @@ TRANG=	$(srcdir)/trang/trang.jar
 sysconfdir = @sysconfdir@/opendnssec
 datadir = @datadir@/opendnssec
 
-noinst_DATA = ${XML}
+noinst_DATA = ${XML} ${XSL}
 
 dist_data_DATA = ${RNG} ${RNC} ${XSL}
 
