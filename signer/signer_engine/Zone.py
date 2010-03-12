@@ -704,6 +704,12 @@ class Zone:
                 Util.datestamp(
                      self.get_expiration_timestamp_denial(sign_time)),
                 ":expiration_denial ")
+        if self.zone_config.signatures_validity_keys:
+            Util.write_p(
+                sign_p,
+                Util.datestamp(
+                     self.get_expiration_timestamp_keys(sign_time)),
+                ":expiration_keys ")
         if self.zone_config.signatures_jitter and \
            self.zone_config.signatures_jitter != 0:
             Util.write_p(sign_p,
@@ -952,6 +958,12 @@ class Zone:
            time_offset given (for denial rrsets)."""
         return time_offset +\
                self.zone_config.signatures_validity_denial
+
+    def get_expiration_timestamp_keys(self, time_offset):
+        """Returns the absolute expiration date compared to the
+           time_offset given (for DNSKEY rrsets)."""
+        return time_offset +\
+               self.zone_config.signatures_validity_keys
 
     def get_inception_timestamp(self, time_offset):
         """Returns the absolute inception date compared to the
