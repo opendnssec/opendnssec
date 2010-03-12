@@ -16,6 +16,7 @@ AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf ])
 
 # xml
 AC_PATH_PROG(XMLLINT, xmllint)
+AC_PATH_PROG(XSLTPROC, xsltproc)
 AC_PATH_PROG(JAVA, java)
 
 # libhsm
@@ -67,6 +68,7 @@ AC_CONFIG_FILES([
 	tools/ods-timing.5
 	tools/opendnssec.7
 	tools/ods-control.8
+	tools/ods-kasp2html
 	contrib/Makefile
 ])
 

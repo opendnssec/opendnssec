@@ -17,6 +17,7 @@ OpenDNSSEC trunk
   For sending DS RR to the parent zone (experimental)
 * Turn NSEC3 OptOut off by default
 * Install kasp2html XML stylesheet
+* Add simple kasp2html conversion script
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
