@@ -935,7 +935,7 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             if(rename(axfr_file, dest_file) == 0) {
                 snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
                     "%s %s", SIGNER_CLI_SIGN, zone->name);
-                if (system(engine_sign_cmd) == -1) {
+                if (system(engine_sign_cmd) != 0) {
                     log_msg(LOG_ERR, "zone fetcher could not kick "
                         "the signer engine to sign zone %s", zone->name);
                 }
