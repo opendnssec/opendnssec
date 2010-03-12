@@ -76,6 +76,7 @@ typedef struct {
 	uint32_t inception;
 	uint32_t expiration;
 	uint32_t expiration_denial;
+	uint32_t expiration_keys;
 	uint32_t refresh;
 	uint32_t refresh_denial;
 	uint32_t jitter;
@@ -254,6 +255,7 @@ current_config_new()
 	cfg->inception = 0;
 	cfg->expiration = 0;
 	cfg->expiration_denial = 0;
+	cfg->expiration_keys = 0;
 	cfg->refresh = 0;
 	cfg->refresh_denial = 0;
 	cfg->jitter = 0;
@@ -510,6 +512,13 @@ handle_command(FILE *output, current_config *cfg,
 			fprintf(output, "; Error: missing argument in expiration_denial command\n");
 		} else {
 			cfg->expiration_denial = parse_time(arg1);
+		}
+	} else if (strncmp(cmd, "expiration_keys", 17) == 0 && strlen(cmd) == 17) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in expiration_keys command\n");
+		} else {
+			cfg->expiration_keys = parse_time(arg1);
 		}
 	} else if (strncmp(cmd, "jitter", 6) == 0 && strlen(cmd) == 6) {
 		arg1 = read_arg(next, &next);
@@ -980,6 +989,9 @@ sign_rrset(ldns_rr_list *rrset,
 			    (ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC ||
 			     ldns_rr_list_type(rrset) == LDNS_RR_TYPE_NSEC3)) {
 				params->expiration = jitter_expiration(cfg->expiration_denial, cfg->jitter);
+			} else if (cfg->expiration_keys &&
+			    (ldns_rr_list_type(rrset) == LDNS_RR_TYPE_DNSKEY)) {
+				params->expiration = jitter_expiration(cfg->expiration_keys, cfg->jitter);
 			} else {
 				params->expiration = jitter_expiration(cfg->expiration, cfg->jitter);
 			}
