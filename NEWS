@@ -14,7 +14,7 @@ OpenDNSSEC trunk
   become obsolete).
 * Enable database selection using --with-database-backend={sqlite3|mysql}
 * Enable the EPP-client using --enable-eppclient
-  For sending DS RR to the parent zone (Expirmental)
+  For sending DS RR to the parent zone (experimental)
 * Turn NSEC3 OptOut off by default
 
 Bugfixes:
