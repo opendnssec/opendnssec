@@ -11,6 +11,7 @@
 			<Validity>
 					<Default>P7D</Default>
 					<Denial>P14D</Denial>
+					<Keys>P7D</Keys>
 			</Validity>
 			<Jitter>PT12H</Jitter>
 			<InceptionOffset>PT300S</InceptionOffset>

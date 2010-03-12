@@ -23,6 +23,7 @@
 			<Validity>
 					<Default>P7D</Default>
 					<Denial>P7D</Denial>
+					<Keys>P7D</Keys>
 			</Validity>
 			<Jitter>PT12H</Jitter>
 			<InceptionOffset>PT3600S</InceptionOffset>
