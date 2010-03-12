@@ -267,7 +267,7 @@ module KASPAuditor
       prepublished_zsk_count = @cache.prepublished.keys.select {|k|
         k.zone_key? && !k.sep_key?
       }.length
-      if (prepublished_zsk_count < ksk_min_standby)
+      if (prepublished_zsk_count < zsk_min_standby)
         msg = "Not enough prepublished ZSKs! Should be #{zsk_min_standby} but have #{prepublished_zsk_count}"
         @parent.log(LOG_WARNING, msg)
       end
