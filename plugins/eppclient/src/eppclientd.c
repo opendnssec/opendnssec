@@ -129,7 +129,7 @@ int init()
         exit(0); /* can not lock */
     }
     char str[10];
-    snprintf(str,sizeof str,"%d\n",getpid());
+    snprintf(str,sizeof str,"%d\n",(unsigned int) getpid());
     write(fd,str,strlen(str)); /* record pid to lockfile */
     fsync(fd);
 
