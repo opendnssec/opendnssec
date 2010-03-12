@@ -3,9 +3,9 @@
 AC_DEFUN([ACX_DATABASE_BACKEND],[
 
 	AC_ARG_WITH(database-backend,
-	        AC_HELP_STRING([--database-backend],
+	        AC_HELP_STRING([--with-database-backend],
 	                [Select database backend (sqlite3|mysql)]),
-			[database_backend="${enableval}"],
+			[database_backend="${withval}"],
 			[database_backend="sqlite3"])
 
 	AC_MSG_CHECKING(for database backend)
