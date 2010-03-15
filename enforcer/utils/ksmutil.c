@@ -1461,7 +1461,7 @@ cmd_rollzone ()
     db_disconnect(lock_fd);
 
     /* Need to poke the enforcer to wake it up */
-    if (system("killall -HUP ods-enforcerd") != 0)
+    if (restart_enforcerd() != 0)
     {
         fprintf(stderr, "Could not HUP ods-enforcerd\n");
     }
@@ -1646,7 +1646,7 @@ cmd_rollpolicy ()
     db_disconnect(lock_fd);
 
     /* Need to poke the enforcer to wake it up */
-    if (system("killall -HUP ods-enforcerd") != 0)
+    if (restart_enforcerd() != 0)
     {
         fprintf(stderr, "Could not HUP ods-enforcerd\n");
     }
@@ -6062,4 +6062,11 @@ int SwapKSK(const char *cka_id, int zone_id, int policy_id, const char *datetime
     }
 
     return status;
+}
+
+int restart_enforcerd()
+{
+	/* ToDo: This should really be rewritten so that it will read
+	   ENFORCER_PIDFILE and send a SIGHUP itself */
+	return system(RESTART_ENFORCERD_CMD);
 }

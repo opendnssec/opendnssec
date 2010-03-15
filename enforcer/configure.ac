@@ -159,6 +159,17 @@ AC_CONFIG_FILES([
 	test/Makefile
 ])
 
+# Find out how to restart named processes
+AC_PATH_PROG(PKILL, pkill)
+AC_PATH_PROG(KILLALL, killall)
+if [ -n "$PKILL" -a -x "$PKILL"]; then
+  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "$PKILL -HUP ods-enforcerd", [Command to restart a named process])
+elif [ -n "$KILLALL" -a -x "$KILLALL"]; then
+  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "$KILLALL -HUP ods-enforcerd", [Command to restart a named process])
+else
+  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "/bin/false", [Command to restart a named process])
+fi
+
 # Check for some target-specific stuff
 case "$host" in
 *-*-darwin*)
