@@ -220,10 +220,10 @@ class ZoneConfig:
             Util.get_xml_data(
                 "SignerConfiguration/Zone/Signatures/Validity/Keys",
                 signer_config))
-	if self.signatures_validity_denial == 0:
-		self.signatures_validity_denial = self.signatures_validity_default
-	if self.signatures_validity_keys == 0:
-		self.signatures_validity_keys = self.signatures_validity_default
+        if self.signatures_validity_denial == 0:
+            self.signatures_validity_denial = self.signatures_validity_default
+        if self.signatures_validity_keys == 0:
+            self.signatures_validity_keys = self.signatures_validity_default
         self.signatures_jitter = Util.parse_duration(
             Util.get_xml_data(
                 "SignerConfiguration/Zone/Signatures/Jitter",
