@@ -9,7 +9,8 @@ AM_CFLAGS =	-std=c99
 
 lib_LTLIBRARIES = libhsm.la
 libhsm_la_SOURCES = libhsm.c compat/strlcpy.c compat/strlcat.c
-libhsm_la_LDFLAGS = -dl -version-info @LIBTOOL_VERSION_INFO@
+libhsm_la_LDFLAGS = -dl -version-info @LIBTOOL_VERSION_INFO@ \
+	 -export-symbols-regex '^hsm_.*' 
 libhsm_la_LIBADD = @LDNS_LIBS@ @XML2_LIBS@
 nobase_include_HEADERS = $(srcdir)/*.h
 
