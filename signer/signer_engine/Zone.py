@@ -727,6 +727,12 @@ class Zone:
                  Util.datestamp(
                       self.get_refresh_timestamp_denial(sign_time)),
                  ":refresh_denial ")
+        if self.zone_config.signatures_validity_keys:
+            Util.write_p(
+                 sign_p,
+                 Util.datestamp(
+                      self.get_refresh_timestamp_keys(sign_time)),
+                 ":refresh_keys ")
 
         for k in self.zone_config.signature_keys:
             syslog.syslog(syslog.LOG_DEBUG,
@@ -988,6 +994,16 @@ class Zone:
            inception date of the signature is before this time,
            the signature will be replaced."""
         return self.get_expiration_timestamp_denial(time_offset) -\
+               self.zone_config.signatures_refresh_time
+
+    def get_refresh_timestamp_keys(self, time_offset):
+        """Returns the absolute time at which signatures for DNSKEY
+           RRSets should be replaced, compared to the time_offset
+           given. The return value of this function is used by the
+           signer tool to determine 'old' signatures. If the
+           inception date of the signature is before this time,
+           the signature will be replaced."""
+        return self.get_expiration_timestamp_keys(time_offset) -\
                self.zone_config.signatures_refresh_time
 
 # quick test-as-we-go function
