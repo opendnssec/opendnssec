@@ -515,7 +515,7 @@ handle_command(FILE *output, current_config *cfg,
 		} else {
 			cfg->expiration_denial = parse_time(arg1);
 		}
-	} else if (strncmp(cmd, "expiration_keys", 17) == 0 && strlen(cmd) == 17) {
+	} else if (strncmp(cmd, "expiration_keys", 15) == 0 && strlen(cmd) == 15) {
 		arg1 = read_arg(next, &next);
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in expiration_keys command\n");
