@@ -79,6 +79,7 @@ typedef struct {
 	uint32_t expiration_keys;
 	uint32_t refresh;
 	uint32_t refresh_denial;
+	uint32_t refresh_keys;
 	uint32_t jitter;
 	int echo_input;
 	/*ldns_pkcs11_module_list *pkcs11_module_list;*/
@@ -258,6 +259,7 @@ current_config_new()
 	cfg->expiration_keys = 0;
 	cfg->refresh = 0;
 	cfg->refresh_denial = 0;
+	cfg->refresh_keys = 0;
 	cfg->jitter = 0;
 	cfg->echo_input = 0;
 	cfg->origin = NULL;
@@ -540,6 +542,13 @@ handle_command(FILE *output, current_config *cfg,
 			fprintf(output, "; Error: missing argument in refresh_denial command\n");
 		} else {
 			cfg->refresh_denial = parse_time(arg1);
+		}
+	} else if (strncmp(cmd, "refresh_keys", 12) == 0 && strlen(cmd) == 12) {
+		arg1 = read_arg(next, &next);
+		if (!arg1) {
+			fprintf(output, "; Error: missing argument in refresh_keys command\n");
+		} else {
+			cfg->refresh_keys = parse_time(arg1);
 		}
 	} else if (strncmp(cmd, "nsec3_algorithm", 15) == 0 && strlen(cmd) == 15) {
 		arg1 = read_arg(next, &next);
@@ -880,6 +889,9 @@ check_existing_sigs(ldns_rr_list *sigs,
 		    (type_covered == LDNS_RR_TYPE_NSEC ||
 			 type_covered == LDNS_RR_TYPE_NSEC3)) {
 			refresh = cfg->refresh_denial;
+		} else if (cfg->expiration_keys &&
+		    (type_covered == LDNS_RR_TYPE_DNSKEY)) {
+			refresh = cfg->refresh_keys;
 		} else {
 			refresh = cfg->refresh;
 		}
