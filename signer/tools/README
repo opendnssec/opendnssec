@@ -126,6 +126,9 @@ Specific signing commands are passed in-line; with the following commands:
 :expiration_denial <YYYYMMDD[HHmmss]>
     sets the expiration date for signatures for NSEC and NSEC3 records
     if not set, the value from :expiration will be used for denial sigs
+:expiration_keys <YYYYMMDD[HHmmss]>
+    sets the expiration date for signatures for DNSKEY records
+    if not set, the value from :expiration will be used for key sigs
 :jitter <int value>
     sets the jitter value for expiration dates
 :refresh <YYYYMMDD[HHmmss]>
