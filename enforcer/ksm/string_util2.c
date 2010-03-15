@@ -340,6 +340,11 @@ int StrKeywordSearch(const char* search, STR_KEYWORD_ELEMENT* keywords, int* val
 
                     *value = keywords[i].value;
                     status = 0;
+
+		    /* Break if we have matched the full length of the input */
+                    if (strlen(search) == strlen(keywords[i].string)) {
+                        break;
+                    }
                 }
                 else {
 
