@@ -315,7 +315,7 @@ class AuditorTest < Test::Unit::TestCase
   def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret, working, partial = false)
     runner = Runner.new
     if (partial)
-      runner.force_partial = true
+      runner.force_partial
     end
 
     ["test/tmp/tracker/tjeb.nl", "test/tmp1/tracker/tjeb.nl"].each {|f|
@@ -333,7 +333,7 @@ class AuditorTest < Test::Unit::TestCase
       options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
       Syslog.open("auditor_test", options) {|syslog|
-        runner.force_partial= partial
+        runner.force_partial if partial
         ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, syslog, working, working, 3600) # Audit all zones
       }
       exit!(ret)

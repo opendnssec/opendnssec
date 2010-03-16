@@ -74,8 +74,19 @@ module KASPAuditor
     attr_accessor :kasp_file, :zone_name, :signed_temp, :conf_file
     attr_accessor :enable_timeshift
 
-    # For testing purposes
-    attr_accessor :force_partial
+    def force_partial
+      @force_partial = true
+      if (@force_partial && @force_full)
+        raise ArgumentError.new("Can't force both full and partial auditor at once")
+      end
+    end
+
+    def force_full
+      @force_full = true
+      if (@force_full && @force_partial)
+        raise ArgumentError.new("Can't force both full and partial auditor at once")
+      end
+    end
 
     def initialize
       @enable_timeshift = false
@@ -141,7 +152,7 @@ module KASPAuditor
         }
 
         if (do_audit)
-          if (config.partial_audit || @force_partial)
+          if ((config.partial_audit && !@force_full) || @force_partial)
             ret = partial_audit(ret, input_file, output_file, working, config, syslog, enforcer_interval)
           else
             ret = full_audit(ret, input_file, output_file, pid, working, config, syslog, enforcer_interval)

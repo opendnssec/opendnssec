@@ -45,6 +45,8 @@ class OptionsParser
       options.default_conf_file = path + "/conf.xml"
       options.zone_name = nil
       options.signed_temp = nil
+      options.force_full = false
+      options.force_partial = false
 
       opts = OptionParser.new do |opts|
         opts.banner = "Usage: ods-auditor [options]"
@@ -82,11 +84,21 @@ class OptionsParser
           options.signed_temp = ext
         end
 
+        # Force full audit
+        opts.on("--full", "Force a full audit") do |ff|
+           options.force_full = ff
+        end
+
+        # Force partia audit
+        opts.on("--partial", "Force a partial audit") do |fp|
+           options.force_partial = fp
+        end
+
 
         opts.on("-v", "--version", # Override default
                "Display version information") do |x|
            print "@VERSION@\n"
-           exit
+           exit(1)
         end
 
 
@@ -98,7 +110,7 @@ class OptionsParser
         # Try it and see!
         opts.on_tail("-h", "-?", "--help", "Show this message") do
           puts opts
-          exit
+          exit(1)
         end
 
       end
@@ -108,7 +120,7 @@ class OptionsParser
       rescue OptionParser::InvalidOption => e
         print "Invalid option : #{e}\n"
         puts opts
-        exit
+        exit(1)
       end
       options
     end  # parse()
@@ -132,5 +144,14 @@ if (options.signed_temp)
 end
 if (options.enable_timeshift)
   runner.enable_timeshift = true
+end
+if (options.force_full && options.force_partial)
+  print "Can't force both full and partial audits at once\n"
+  exit(1)
+end
+if (options.force_full)
+  runner.force_full
+elsif (options.force_partial)
+  runner.force_partial
 end
 runner.run()
