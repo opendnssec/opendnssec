@@ -215,11 +215,11 @@ class ZoneConfig:
         self.signatures_validity_denial = Util.parse_duration(
             Util.get_xml_data(
                 "SignerConfiguration/Zone/Signatures/Validity/Denial",
-                signer_config))
+                signer_config, True))
         self.signatures_validity_keys = Util.parse_duration(
             Util.get_xml_data(
                 "SignerConfiguration/Zone/Signatures/Validity/Keys",
-                signer_config))
+                signer_config, True))
         if self.signatures_validity_denial == 0:
             self.signatures_validity_denial = self.signatures_validity_default
         if self.signatures_validity_keys == 0:
