@@ -71,8 +71,8 @@ module KASPAuditor
   # run.
   class Runner
 
-    attr_accessor :kasp_file, :zone_name, :signed_temp, :conf_file
-    attr_accessor :enable_timeshift
+    attr_accessor :kasp_file, :zone_name, :signed_temp, :unsigned_zone
+    attr_accessor :enable_timeshift, :conf_file
 
     def force_partial
       @force_partial = true
@@ -137,7 +137,11 @@ module KASPAuditor
         next if !config
         syslog.log(LOG_INFO, "Auditor starting on #{config.name}")
         print("Auditor starting on #{config.name}\n")
+        # Override this with @unsigned_zone if present
         input_file = signer_working_folder + File::Separator + config.name + ".unsorted"
+        if ((@zone_name == config.name) && (@unsigned_zone))
+          input_file = @unsigned_zone
+        end
         do_audit = true
         [{input_file => "Unsigned"}, {output_file => "Signed"}].each {|hash|
           hash.each {|f, text|

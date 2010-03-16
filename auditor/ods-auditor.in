@@ -45,6 +45,7 @@ class OptionsParser
       options.default_conf_file = path + "/conf.xml"
       options.zone_name = nil
       options.signed_temp = nil
+      options.unsigned_file = nil
       options.force_full = false
       options.force_partial = false
 
@@ -78,19 +79,26 @@ class OptionsParser
         # signed_temp
         opts.on("-s", "--signed [PATH_TO_SIGNED_FILE]",
                 "If a single zone is specified, then this option may override",
-                "  the specified signed file with another. This is for use by",
-                "  the signer.",
+                "  the specified signed file with another.",
                 "  (defaults to the path given in the zone list)") do |ext|
           options.signed_temp = ext
         end
 
+        # unsigned_zone
+        opts.on("-u", "--unsigned [PATH_TO_UNSIGNED_FILE]",
+                "If a single zone is specified, then this option may override",
+                "  the specified unsigned file with another.",
+                "  (defaults to the path given in the zone list)") do |ext|
+          options.unsigned_zone = ext
+        end
+
         # Force full audit
-        opts.on("--full", "Force a full audit") do |ff|
+        opts.on("-f", "--full", "Force a full audit") do |ff|
            options.force_full = ff
         end
 
         # Force partia audit
-        opts.on("--partial", "Force a partial audit") do |fp|
+        opts.on("-p", "--partial", "Force a partial audit") do |fp|
            options.force_partial = fp
         end
 
@@ -141,6 +149,9 @@ if (options.zone_name)
 end
 if (options.signed_temp)
   runner.signed_temp = options.signed_temp
+end
+if (options.unsigned_zone)
+  runner.unsigned_zone = options.unsigned_zone
 end
 if (options.enable_timeshift)
   runner.enable_timeshift = true
