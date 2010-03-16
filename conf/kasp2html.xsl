@@ -215,11 +215,11 @@
 			</tr>
 			<tr>
 				<td colspan="2"><b><xsl:text>KSK</xsl:text></b></td>
-			</tr>		
+			</tr>
 			<xsl:apply-templates select="KSK"/>
 			<tr>
 				<td colspan="2"><b><xsl:text>ZSK</xsl:text></b></td>
-			</tr>		
+			</tr>
 			<xsl:apply-templates select="ZSK"/>
 		 </table>
 	</xsl:template>
@@ -314,41 +314,59 @@
 
 	<xsl:template match="Audit">
 	</xsl:template>
-	
+
 	<xsl:template match="Keys/*/Algorithm">
 		<xsl:choose>
+			<xsl:when test=". = 0">
+				<xsl:text>Reserved (</xsl:text>
+				<xsl:value-of select="."/>
+				<xsl:text>)</xsl:text>
+			</xsl:when>
 			<xsl:when test=". = 1">
-				<xsl:text>RSA/MD5</xsl:text>						
+				<xsl:text>RSA/MD5 (deprecated)</xsl:text>
+			</xsl:when>
+			<xsl:when test=". = 1">
+				<xsl:text>Diffie-Hellman</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 3">
-				<xsl:text>DSA/SHA1</xsl:text>						
+				<xsl:text>DSA/SHA-1</xsl:text>
+			</xsl:when>
+			<xsl:when test=". = 3">
+				<xsl:text>Reserved for ECC</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 5">
-				<xsl:text>RSA/SHA-1</xsl:text>						
+				<xsl:text>RSA/SHA-1</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 6">
-				<xsl:text>DSA-NSEC3-SHA1</xsl:text>						
+				<xsl:text>DSA/SHA-1 for NSEC3</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 7">
-				<xsl:text>RSASHA1-NSEC3-SHA1</xsl:text>						
+				<xsl:text>RSA/SHA-1 for NSEC3</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 8">
-				<xsl:text>RSA/SHA-256</xsl:text>						
+				<xsl:text>RSA/SHA-256</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 10">
-				<xsl:text>RSA/SHA-512</xsl:text>						
+				<xsl:text>RSA/SHA-512</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 252">
-				<xsl:text>Reserved for Indirect Keys</xsl:text>						
+				<xsl:text>Reserved for indirect keys</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 253">
-				<xsl:text>Private algorithms - domain name</xsl:text>						
+				<xsl:text>Private algorithms - domain name</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 254">
-				<xsl:text>Private algorithms - OID</xsl:text>						
+				<xsl:text>Private algorithms - OID</xsl:text>
+			</xsl:when>
+			<xsl:when test=". = 255">
+				<xsl:text>Reserved (</xsl:text>
+				<xsl:value-of select="."/>
+				<xsl:text>)</xsl:text>
 			</xsl:when>
 			<xsl:otherwise>
+				<xsl:text>Unassigned (</xsl:text>
 				<xsl:value-of select="."/>
+				<xsl:text>)</xsl:text>
 			</xsl:otherwise>
 		</xsl:choose>
 	</xsl:template>
@@ -356,7 +374,7 @@
 	<xsl:template match="Denial/NSEC3/Hash/Algorithm">
 		<xsl:choose>
 			<xsl:when test=". = 1">
-				<xsl:text>SHA-1</xsl:text>						
+				<xsl:text>SHA-1</xsl:text>
 			</xsl:when>
 			<xsl:otherwise>
 				<xsl:value-of select="."/>
@@ -367,16 +385,16 @@
 	<xsl:template match="SOA/Serial">
 		<xsl:choose>
 			<xsl:when test=". = 'counter'">
-				<xsl:text>Counter</xsl:text>						
+				<xsl:text>Counter</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 'unixtime'">
-				<xsl:text>UNIX Timestamp (as 32-bit Unsigned Integer)</xsl:text>						
+				<xsl:text>UNIX Timestamp (as 32-bit Unsigned Integer)</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 'datecounter'">
-				<xsl:text>YYYYMMDDnn (Date + 2-Digit-Counter)</xsl:text>						
+				<xsl:text>YYYYMMDDnn (Date + 2-Digit-Counter)</xsl:text>
 			</xsl:when>
 			<xsl:when test=". = 'keep'">
-				<xsl:text>Keep Serial from the Unsigned Zone</xsl:text>						
+				<xsl:text>Keep Serial from the Unsigned Zone</xsl:text>
 			</xsl:when>
 			<xsl:otherwise>
 				<xsl:value-of select="."/>
@@ -388,7 +406,7 @@
 		<xsl:param name="bool" select="N/A"/>
 		<xsl:choose>
 			<xsl:when test="$bool">
-				<xsl:text>Yes</xsl:text>						
+				<xsl:text>Yes</xsl:text>
 			</xsl:when>
 			<xsl:otherwise>
 				<xsl:text>No</xsl:text>
@@ -401,8 +419,9 @@
 			<td class="tag"><xsl:text>Algorithm</xsl:text></td>
 			<td class="value">
 				<xsl:apply-templates select="Algorithm"/>
-				<xsl:text> / </xsl:text>
+				<xsl:text>, </xsl:text>
 				<xsl:value-of select="Algorithm/@length"/>
+				<xsl:text> bits</xsl:text>				
 			</td>
 		</tr>
 		<tr>
