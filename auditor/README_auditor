@@ -6,13 +6,18 @@ The auditor and its tools are part of the OpenDNSSEC project.
 For more information, visit http://www.opendnssec.org
 The Auditor requirements may be found at :
 http://trac.opendnssec.org/wiki/Signer/AuditorRequirements
+As of OpenDNSSEC version 1.1, a Partial Auditor is available.
+The Partial Auditor requirements may be found at :
+http://trac.opendnssec.org/wiki/Signer/PartialAuditorRequirements
 
 CONTENTS
     Introduction
+    Partial Auditor
     Dependencies
     Installation
     Testing
     Running Manually
+    Offline Full Auditing
 
 -------------------------------------------------------------------
 Introduction
@@ -34,6 +39,31 @@ checks. More details are available on the OpenDNSSEC website :
 http://trac.opendnssec.org/wiki/Signer/AuditorRequirements
 
 -------------------------------------------------------------------
+Partial Auditor
+-------------------------------------------------------------------
+
+Very large zones (for example, those with more than 1 million 
+resource records) can take a long time to process with the full
+auditor. For these zones, a Partial Auditor is provided.
+
+The partial auditor does not perform a canonical sort of the zone,
+and does not check the signature for every RRSet. It compares
+the number of non-DNSSEC resource records in the signed and 
+unsigned zones, rather than comparing every non-DNSSEC resource
+record. A sample of domains is fully checked (for correctly
+generated signatures and NSEC types), rather than every domain.
+The NSEC loop check is omitted (although the NSEC3 loop is still
+checked).
+
+All other checks (including key rollover checks and checks on
+every NSEC, NSEC3, RRSIG and DNSKEY record) are still
+performed. For full details please see :
+http://trac.opendnssec.org/wiki/Signer/PartialAuditorRequirements
+
+To enable the partial auditor, replace the <Audit/> tag in the 
+Policy in kasp.xml with <Audit><Partial/></Audit>.
+
+-------------------------------------------------------------------
 Dependencies
 -------------------------------------------------------------------
 
@@ -49,7 +79,7 @@ install it to the target system. Depending on how Ruby is
 installed on the target system, it may be necessary to run the
 above command as root.
 
-Version 1.41 or greater of dnsruby is required.
+Version 1.44 or greater of dnsruby is required.
 
 -------------------------------------------------------------------
 Installation
@@ -62,9 +92,9 @@ autoreconf --install
 make
 make install
 
---prefix=<dir>    Installation directory. All files will be installed
-                  relative to this path, and default search paths will
-                  be relative to the prefix. Defaults to /usr/local
+--prefix=<dir> Installation directory. All files will be installed
+               relative to this path, and default search paths will
+               be relative to the prefix. Defaults to /usr/local
 
 
 The auditor invocation script, will be installed in
@@ -93,15 +123,45 @@ Although the auditor is designed to be run by the signer, it
 can also be run manually :
 
 ods-auditor [--conf path/to/conf.xml] [--kasp path/to/kasp.xml]
-            [--zone zone_to_audit [--signed path/to/temp/signed.zone] 
+            [--zone zone_to_audit] [--full] [--partial]
+            [--signed path/to/temp/signed.zone]
+            [--unsigned path/to/unsigned/zone] 
+
+e.g. ods-auditor --conf /etc/opendnssec/conf.xml
 
 All zones will be audited by default. If --zone is specified, then 
 only that zone will be audited. If --signed is specified for the 
 zone, then the auditor will use that file as the signed output
-file, instead of the file specified in the zonelist.
+file, instead of the file specified in the zonelist. The --unsigned
+option works similarly for the unsigned zone file.
+If --full is specified, then the full auditor will be run without
+regard to the specified Audit type in the kasp.xml Policy. The
+--partial flag specifies that the partial auditor should be run.
+These two options cannot be used together.
 
-e.g. ods-auditor --conf /etc/opendnssec/conf.xml
+-------------------------------------------------------------------
+Offline Full Auditing
+-------------------------------------------------------------------
 
+If you are signing a very large zone, you may wish to enable 
+partial auditing to ensure that the sign/audit cycle completes by
+a certain time. However, you may also wish to perform some off-line
+full audits from time to time, to ensure that everything is still
+running smoothly.
+
+To do this, take a copy of the signed and unsigned zone files (to
+make sure that the data doesn't change while the full audit is
+being performed). Then run the auditor :
+
+ods-auditor --full -z your.zone --signed /path/to/signed/file 
+            --unsigned path/to/unsigned/file
+
+Note that the auditor expects to be run (in either full or partial
+mode) every time the zone is signed. If it is only run from time
+to time, then it may generate false errors regarding key tracking.
+This is because it has not been able to check the lifetimes of 
+keys which "suddenly" appear in the zone since the auditor has
+last run.
 
 ------------------------------------------------------------------
 Known Issues
@@ -109,11 +169,7 @@ Known Issues
 
 The auditor is known to take a long time to sort through very 
 large zones. If your zone is very large, and needs to be signed
-very often, then you may need to disable the auditor (to do this,
-remove the <Audit/> tag from kasp.xml).
-
-Future versions of the auditor will have a "partial audit" option
-for use with very large zones.
+very often, then you may need to use the partial auditor.
 
 The signer currently starts one Ruby Virtual Machine for each zone
 which is to be audited. If you have many thousands of zones, this
