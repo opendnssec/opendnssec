@@ -39,8 +39,7 @@ zone = element Zone {
 			element Refresh { xsd:duration },
 			element Validity {
 				element Default { xsd:duration },
-				element Denial { xsd:duration },
-				element Keys { xsd:duration }?
+				element Denial { xsd:duration }
 			},
 			element Jitter { xsd:duration },
 			element InceptionOffset { xsd:duration }
