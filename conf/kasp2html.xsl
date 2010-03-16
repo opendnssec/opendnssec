@@ -71,60 +71,52 @@
 			<tr>
 				<td class="tag"><xsl:text>Resign</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="Resign"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="Resign"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Refresh</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="Refresh"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="Refresh"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
-				<td class="tag"><xsl:text>Validity</xsl:text></td>
+				<td class="tag"><xsl:text>Validity Default</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="Validity/Default"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="Validity/Default"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Validity NSEC/NSEC3</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="Validity/Denial"/>
-					</xsl:call-template>
-				</td>
-			</tr>
-			<tr>
-				<td class="tag"><xsl:text>Validity DNSKEY</xsl:text></td>
-				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="Validity/Keys"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="Validity/Denial"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Jitter</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="Jitter"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="Jitter"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Inception Offset</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="InceptionOffset"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="InceptionOffset"/>
 					</xsl:call-template>
 				</td>
 			</tr>
-	   </table>
+		</table>
 	</xsl:template>
 
 	<xsl:template match="Denial">
@@ -138,7 +130,7 @@
 				<td class="tag"><xsl:text>Method</xsl:text></td>
 				<td class="value"><xsl:text>NSEC</xsl:text></td>
 			</tr>
-	   </table>
+		</table>
 	</xsl:template>
 
 	<xsl:template match="Denial/NSEC3">
@@ -150,16 +142,16 @@
 			<tr>
 				<td class="tag"><xsl:text>Opt-Out</xsl:text></td>
 				<td class="value">
-				  <xsl:call-template name="yesno">
-            <xsl:with-param name="argument" select="OptOut"/>
-          </xsl:call-template>
+					<xsl:call-template name="boolean2yesno">
+						<xsl:with-param name="bool" select="OptOut"/>
+					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Resalt</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="Resalt"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="Resalt"/>
 					</xsl:call-template>
 				</td>
 			</tr>
@@ -184,40 +176,40 @@
 			<tr>
 				<td class="tag"><xsl:text>TTL</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="TTL"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="TTL"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Retire Safety</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="RetireSafety"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="RetireSafety"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Publish Safety</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="PublishSafety"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="PublishSafety"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Share Keys?</xsl:text></td>
 				<td class="value">
-				  <xsl:call-template name="yesno">
-            <xsl:with-param name="argument" select="ShareKeys"/>
-          </xsl:call-template>
+					<xsl:call-template name="boolean2yesno">
+						<xsl:with-param name="bool" select="ShareKeys"/>
+					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>Purge dead keys after</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="Purge"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="Purge"/>
 					</xsl:call-template>
 				</td>
 			</tr>
@@ -237,9 +229,9 @@
 		<tr>
 			<td class="tag"><xsl:text>Use RFC5011?</xsl:text></td>
 			<td class="value">
-			  <xsl:call-template name="yesno">
-          <xsl:with-param name="argument" select="RFC5011"/>
-        </xsl:call-template>
+				<xsl:call-template name="boolean2yesno">
+					<xsl:with-param name="bool" select="RFC5011"/>
+				</xsl:call-template>
 			</td>
 		</tr>
 	</xsl:template>
@@ -254,24 +246,24 @@
 			<tr>
 				<td class="tag"><xsl:text>Propagation Delay</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="PropagationDelay"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="PropagationDelay"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>SOA TTL</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="SOA/TTL"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="SOA/TTL"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>SOA Minimum</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="SOA/Minimum"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="SOA/Minimum"/>
 					</xsl:call-template>
 				</td>
 			</tr>
@@ -288,32 +280,32 @@
 			<tr>
 				<td class="tag"><xsl:text>Propagation Delay</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="PropagationDelay"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="PropagationDelay"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>DS TTL</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="DS/TTL"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="DS/TTL"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>SOA TTL</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="SOA/TTL"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="SOA/TTL"/>
 					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<td class="tag"><xsl:text>SOA Minimum</xsl:text></td>
 				<td class="value">
-					<xsl:call-template name="duration">
-						<xsl:with-param name="argument" select="SOA/Minimum"/>
+					<xsl:call-template name="duration2text">
+						<xsl:with-param name="duration" select="SOA/Minimum"/>
 					</xsl:call-template>
 				</td>
 			</tr>
@@ -392,10 +384,10 @@
 		</xsl:choose>
 	</xsl:template>
 
-	<xsl:template name="yesno">
-	  <xsl:param name="argument" select="N/A"/>
+	<xsl:template name="boolean2yesno">
+		<xsl:param name="bool" select="N/A"/>
 		<xsl:choose>
-			<xsl:when test="$argument">
+			<xsl:when test="$bool">
 				<xsl:text>Yes</xsl:text>						
 			</xsl:when>
 			<xsl:otherwise>
@@ -416,8 +408,8 @@
 		<tr>
 			<td class="tag"><xsl:text>Lifetime</xsl:text></td>
 			<td class="value">
-				<xsl:call-template name="duration">
-					<xsl:with-param name="argument" select="Lifetime"/>
+				<xsl:call-template name="duration2text">
+					<xsl:with-param name="duration" select="Lifetime"/>
 				</xsl:call-template>
 			</td>
 		</tr>
@@ -482,12 +474,12 @@
 	</xsl:template>
 
 	<!-- Convert xsd:duration to English -->
-	<xsl:template name="duration">
-		<xsl:param name="argument" select="N/A"/>
+	<xsl:template name="duration2text">
+		<xsl:param name="duration" select="N/A"/>
 
-		<xsl:variable name="DateString" select="substring(substring-before($argument, 'T'),2)"/>
-		<xsl:variable name="DateStringOnly" select="substring($argument,2)"/>
-		<xsl:variable name="TimeString" select="substring-after($argument,'T')"/>
+		<xsl:variable name="DateString" select="substring(substring-before($duration, 'T'),2)"/>
+		<xsl:variable name="DateStringOnly" select="substring($duration,2)"/>
+		<xsl:variable name="TimeString" select="substring-after($duration,'T')"/>
 
 		<xsl:choose>
 			<!-- Only date specified -->
