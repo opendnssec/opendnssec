@@ -429,13 +429,17 @@
 		<xsl:variable name="ProcessString" select="substring($InputString, 1, 1+string-length(substring-before($NumberString,';')))"/>
 		<xsl:variable name="RemainingString" select="substring($InputString, 1+string-length($InputString)-string-length(substring-after($NumberString,';')))"/>
 		<xsl:variable name="SuffixString" select="substring($ProcessString, string-length($ProcessString))"/>
+		<xsl:variable name="Value" select="substring($ProcessString, 1, string-length($ProcessString) - 1)"/>
 
-		<xsl:value-of select="substring($ProcessString, 1, string-length($ProcessString) -1)"/>
+		<xsl:value-of select="$Value"/>
 
 		<xsl:choose>
-			<xsl:when test="$SuffixString='D'"><xsl:text> day(s)</xsl:text></xsl:when>
-			<xsl:when test="$SuffixString='M'"><xsl:text> month(s)</xsl:text></xsl:when>
-			<xsl:when test="$SuffixString='Y'"><xsl:text> year(s)</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='D' and $Value=1"><xsl:text> day</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='D' and $Value!=1"><xsl:text> days</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='M' and $Value=1"><xsl:text> month</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='M' and $Value!=1"><xsl:text> months</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='Y' and $Value=1"><xsl:text> year</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='Y' and $Value!=1"><xsl:text> years</xsl:text></xsl:when>
 		</xsl:choose>
 
 		<xsl:choose>
@@ -454,13 +458,17 @@
 		<xsl:variable name="ProcessString" select="substring($InputString, 1, 1+string-length(substring-before($NumberString,';')))"/>
 		<xsl:variable name="RemainingString" select="substring($InputString, 1+string-length($InputString)-string-length(substring-after($NumberString,';')))"/>
 		<xsl:variable name="SuffixString" select="substring($ProcessString, string-length($ProcessString))"/>
+		<xsl:variable name="Value" select="substring($ProcessString, 1, string-length($ProcessString) - 1)"/>
 
-		<xsl:value-of select="substring($ProcessString, 1, string-length($ProcessString) -1)"/>
+		<xsl:value-of select="$Value"/>
 
 		<xsl:choose>
-			<xsl:when test="$SuffixString='S'"><xsl:text> second(s)</xsl:text></xsl:when>
-			<xsl:when test="$SuffixString='M'"><xsl:text> minute(s)</xsl:text></xsl:when>
-			<xsl:when test="$SuffixString='H'"><xsl:text> hour(s)</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='S' and $Value=1"><xsl:text> second</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='S' and $Value!=1"><xsl:text> seconds</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='M' and $Value=1"><xsl:text> minute</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='M' and $Value!=1"><xsl:text> minutes</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='H' and $Value=1"><xsl:text> hour</xsl:text></xsl:when>
+			<xsl:when test="$SuffixString='H' and $Value!=1"><xsl:text> hours</xsl:text></xsl:when>
 		</xsl:choose>
 
 		<xsl:choose>
