@@ -74,7 +74,7 @@ int KsmPolicyInit(DB_RESULT* result, const char* name)
 
     /* Construct the query */
 
-    sql = DqsSpecifyInit("policies","id, name, description, audit");
+    sql = DqsSpecifyInit("policies","id, name, description, audit, salt");
     if (name) {
         DqsConditionString(&sql, "NAME", DQS_COMPARE_EQ, name, where++);
     }
@@ -305,6 +305,7 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "bits",4) == 0) policy->ksk->bits=data.value;
                     if (strncmp(data.name, "standby",7) == 0) policy->ksk->standby_keys=data.value;
                     if (strncmp(data.name, "manual_rollover",15) == 0) policy->ksk->manual_rollover=data.value;
+                    if (strncmp(data.name, "rollover_scheme",15) == 0) policy->ksk->rollover_scheme=data.value;
             	}
             	if (strncmp(data.category, "keys", 4) == 0) {
             		if (strncmp(data.name, "ttl",3) == 0) policy->ksk->ttl=data.value;
@@ -768,6 +769,7 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy)
             DbInt(row, DB_POLICY_ID, &policy->id);
             DbStringBuffer(row, DB_POLICY_DESCRIPTION, policy->description, KSM_POLICY_DESC_LENGTH*sizeof(char));
             DbStringBuffer(row, DB_POLICY_AUDIT, policy->audit, KSM_POLICY_AUDIT_LENGTH*sizeof(char));
+            DbStringBuffer(row, 4, policy->denial->salt, KSM_SALT_LENGTH*sizeof(char));
         }
         else if (status == -1) {
         /* No rows to return (but no error) */

@@ -77,6 +77,8 @@ static STR_KEYWORD_ELEMENT m_state_keywords[] = {
     {KSM_STATE_ACTIVE_STRING,       KSM_STATE_ACTIVE},
     {KSM_STATE_RETIRE_STRING,       KSM_STATE_RETIRE},
     {KSM_STATE_DEAD_STRING,         KSM_STATE_DEAD},
+    {KSM_STATE_DSPUBLISH_STRING,    KSM_STATE_DSPUBLISH},
+    {KSM_STATE_DSREADY_STRING,      KSM_STATE_DSREADY},
     {NULL,                          -1}
 };
 
@@ -111,6 +113,13 @@ static STR_KEYWORD_ELEMENT m_serial_keywords[] = {
     {KSM_SERIAL_COUNTER_STRING,     KSM_SERIAL_COUNTER},
     {KSM_SERIAL_DATE_STRING,        KSM_SERIAL_DATE},
     {KSM_SERIAL_KEEP_STRING,        KSM_SERIAL_KEEP},
+    {NULL,                          -1}
+};
+
+static STR_KEYWORD_ELEMENT m_roll_keywords[] = {
+    {KSM_ROLL_DNSKEY_STRING,    KSM_ROLL_DNSKEY},
+    {KSM_ROLL_DS_STRING,        KSM_ROLL_DS},
+/*    {KSM_ROLL_RRSET_STRING,     KSM_ROLL_RRSET}, */
     {NULL,                          -1}
 };
 
@@ -245,6 +254,15 @@ const char* KsmKeywordSerialValueToName(int value)
     return KsmKeywordValueToName(m_serial_keywords, value);
 }
 
+int KsmKeywordRollNameToValue(const char* name)
+{
+    return KsmKeywordNameToValue(m_roll_keywords, name);
+}
+
+const char* KsmKeywordRollValueToName(int value)
+{
+    return KsmKeywordValueToName(m_roll_keywords, value);
+}
 
 /*+
  * KsmKeywordParameterExists - Check if Keyword Exists

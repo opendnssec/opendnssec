@@ -121,7 +121,8 @@ typedef struct {
      * the KEYDATA table.
      */
 
-    int     flags;		/* States which fields are valid */
+    int     flags;		    /* States which fields are valid */
+    int     roll_scheme;	/* Which rollover scheme the key is under */
 } KSM_KEYDATA;
 
 int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, int alg, const char* generate, DB_ID* id);
@@ -134,7 +135,7 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data);
 void KsmKeyEnd(DB_RESULT result);
 int KsmKeyQuery(const char* sql, DB_RESULT* result);
 int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
-int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count);
+int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme);
 int KsmKeyCountQueue(int keytype, int* count, int zone_id);
 int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count, int keytype);
 int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id);
@@ -219,6 +220,7 @@ typedef struct {
 	int type;
 	int standby_keys;
     int manual_rollover;
+    int rollover_scheme;
 } KSM_KEY_POLICY;
 
 typedef struct {
@@ -370,6 +372,14 @@ void KsmPurge(void);
 #define KSM_STATE_RETIRE_STRING     "retire"
 #define KSM_STATE_DEAD              6
 #define KSM_STATE_DEAD_STRING       "dead"
+#define KSM_STATE_DSSUB             7
+#define KSM_STATE_DSSUB_STRING      "dssub"
+#define KSM_STATE_DSPUBLISH         8
+#define KSM_STATE_DSPUBLISH_STRING  "dspublish"
+#define KSM_STATE_DSREADY           9
+#define KSM_STATE_DSREADY_STRING    "dsready"
+#define KSM_STATE_KEYPUBLISH        10 
+#define KSM_STATE_KEYPUBLISH_STRING "keypublish"
 
 #define KSM_SERIAL_UNIX_STRING      "unixtime"
 #define KSM_SERIAL_UNIX             1
@@ -382,6 +392,14 @@ void KsmPurge(void);
 
 #define KSM_KEYS_NOT_SHARED         0
 #define KSM_KEYS_SHARED             1
+
+#define KSM_ROLL_DEFAULT            1 /* DoubleDNSKEY */
+#define KSM_ROLL_DNSKEY_STRING      "DoubleDNSKey"
+#define KSM_ROLL_DNSKEY             1
+#define KSM_ROLL_DS_STRING          "DoubleDS"
+#define KSM_ROLL_DS                 2
+#define KSM_ROLL_RRSET_STRING       "DoubleRRSet"
+#define KSM_ROLL_RRSET              3
 
 /* Reserved parameters and default values (in seconds) */
 /* TODO redefine this properly:
@@ -445,6 +463,9 @@ void KsmPurge(void);
 #define KSM_PAR_DSTTL                   3600
 #define KSM_PAR_DSTTL_STRING            "ttlds"
 #define KSM_PAR_DSTTL_CAT               "parent"
+#define KSM_PAR_KSK_ROLL                0
+#define KSM_PAR_KSK_ROLL_STRING         "rollover_scheme"
+#define KSM_PAR_KSK_ROLL_CAT            "ksk"
 
 typedef struct {            /* Holds collection of parameters */
     int     clockskew;      /* Clock skew */
@@ -466,6 +487,7 @@ typedef struct {            /* Holds collection of parameters */
     int     kskmanroll;     /* Do we only roll the KSK manually? */
     int     zskmanroll;     /* Do we only roll the ZSK manually? */
     int     dsttl;          /* TTL of the DS record */
+    int     kskroll;        /* Rollover Scheme for the KSK */
 } KSM_PARCOLL;
 
 int KsmCollectionInit(KSM_PARCOLL* data);
@@ -494,11 +516,15 @@ int KsmKeywordFormatNameToValue(const char* name);
 int KsmKeywordParameterNameToValue(const char* name);
 int KsmKeywordStateNameToValue(const char* name);
 int KsmKeywordTypeNameToValue(const char* name);
+int KsmKeywordRollNameToValue(const char* name);
+
 const char* KsmKeywordAlgorithmValueToName(int value);
 const char* KsmKeywordFormatValueToName(int value);
 const char* KsmKeywordStateValueToName(int value);
 const char* KsmKeywordTypeValueToName(int value);
 const char* KsmKeywordSerialValueToName(int value);
+const char* KsmKeywordRollValueToName(int value);
+
 int KsmKeywordParameterExists(const char* name);
 
 /* ksm_update */
@@ -511,6 +537,8 @@ void KsmUpdateReadyKeyTime(KSM_KEYDATA* data);
 void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
 void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
 void KsmUpdateDeadKeyTime(KSM_KEYDATA* data);
+void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
 int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
     const char* destination, int interval);
 
@@ -520,22 +548,29 @@ typedef int (*KSM_REQUEST_CALLBACK)(void* context, KSM_KEYDATA* key);
 
 int KsmRequestKeys(int keytype, int rollover, const char* datetime,
 	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id,
-    int run_interval);
+    int run_interval, int* NewDS);
 int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id,
-    int run_interval);
+    int run_interval, int* NewDS);
 int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zone_id);
 int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id);
-int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id);
-int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id);
+int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id, int rollover_scheme, int* NewDS);
+int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS);
+int KsmRequestChangeStateDSPublishDSReady(int keytype, const char* datetime, int zone_id, int policy_id);
 int KsmRequestChangeState(int keytype, const char* datetime, int src_state,
-	int dst_state, int zone_id, int policy_id);
+	int dst_state, int zone_id, int policy_id, int rollover_scheme, int* NewDS);
 int KsmRequestChangeStateGeneratePublish(int keytype, const char* datetime,
 	int count, int zone_id);
+int KsmRequestChangeStateGenerateDSSub(int keytype, const char* datetime,
+	int count, int zone_id);
+int KsmRequestChangeStateDSReadyKeyPublish(const char* datetime, int zone_id, int policy_id);
+int KsmRequestChangeStateKeyPublishActive(const char* datetime, int zone_id, int policy_id, int* NewDS);
 int KsmRequestChangeStateReadyActive(int keytype, const char* datetime,
 	int count, int zone_id);
 int KsmRequestChangeStateN(int keytype, const char* datetime,
     int count, int src_state, int dst_state, int zone_id);
+int KsmRequestChangeStateGenerateDSSubConditional(int keytype,
+	const char* datetime, KSM_PARCOLL* collection, int zone_id, int* NewDS);
 int KsmRequestChangeStateGeneratePublishConditional( int keytype,
 	const char* datetime, KSM_PARCOLL* collection, int zone_id,
     int run_interval);
@@ -544,6 +579,7 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
 int KsmRequestAvailableCount(int keytype, const char* datetime,
 	KSM_PARCOLL* parameters, int* count, int zone_id);
 int KsmRequestGenerateCount(int keytype, int* count, int zone_id);
+int KsmRequestStandbyKSKCount(int* count, int zone_id);
 int KsmRequestCheckActiveKey(int keytype, const char* datetime, int* count, int zone_id);
 int KsmRequestCountReadyKey(int keytype, const char* datetime, int* count, int zone_id);
 int KsmRequestCheckFirstPass(int keytype, int* first_pass_flag, int zone_id);

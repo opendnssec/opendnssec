@@ -95,6 +95,7 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 	policy->ksk->type = KSM_TYPE_KSK;
 	policy->ksk->standby_keys = 0;
     policy->ksk->manual_rollover = 0;
+    policy->ksk->rollover_scheme = KSM_ROLL_DEFAULT;
 
 	policy->zsk->algorithm = 0;
 	policy->zsk->bits = 0;
@@ -106,6 +107,7 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
 	policy->zsk->type = KSM_TYPE_ZSK;
 	policy->zsk->standby_keys = 0;
     policy->zsk->manual_rollover = 0;
+    policy->zsk->rollover_scheme = 0;
 
 	policy->enforcer->keycreate = 0;
 	policy->enforcer->backup_interval = 0;

@@ -179,6 +179,21 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         KsmUpdateDeadKeyTime(data);
         break;
 
+    case KSM_STATE_DSSUB:
+        /* Do nothing, wait for ds-seen before moving to DSPUBLISH */
+        break;
+
+    case KSM_STATE_DSPUBLISH:
+        KsmUpdateDSPublishKeyTime(data, collection);
+        break;
+
+    case KSM_STATE_DSREADY:
+        /* Do nothing, hold the standby key in this state */
+        break;
+
+    case KSM_STATE_KEYPUBLISH:
+        KsmUpdateKEYPublishKeyTime(data, collection);
+        break;
     default:
 
         /* Should not have a key in an unknown state */
@@ -222,9 +237,8 @@ void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data)
 
 void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 {
-    int deltat;  /* Time interval */
+    int deltat = 0;  /* Time interval */
     int Ipc;     /* Child zone publication interval */
-    int Ipp;     /* Parent zone publication interval */
 
     /* check the argument */
     if (data == NULL || collection == NULL) {
@@ -256,9 +270,9 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     else if (data->keytype == KSM_TYPE_KSK) {
     /*
      * A key in the "publish" state moves into the "ready" state when it has
-     * been published for at least:
+     * been published for either:
      *
-     *      max(Ipc, Ipp)
+     *      Ipc or Ipp, depending on the rollover scheme
      *  where
      *      Ipp = TTLdsp + Dpp + Dr +Sp
      *
@@ -270,11 +284,13 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      *      Sp      = Publish Safety Margin
      *
      */
-    Ipp = collection->kskttl +
-            collection->kskpropdelay /*+ collection->regdelay*/ + collection->pub_safety;
-
-        deltat = MAX(Ipc, Ipp);
-
+        if (collection->kskroll == KSM_ROLL_DNSKEY) {
+            deltat = Ipc;
+        }
+        else if (collection->kskroll == KSM_ROLL_DS) {
+            deltat = collection->kskttl + collection->kskpropdelay + 
+                collection->pub_safety; /* Ipp */
+        }
     }
     else {
         return;
@@ -355,7 +371,7 @@ void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 
 void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 {
-    int deltat;     /* Time interval */
+    int deltat = 0;     /* Time interval */
 
     /* check the argument */
     if (data == NULL || collection == NULL) {
@@ -391,8 +407,11 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
          * 
          * second change of heart:
          * Don't do anything here, this time is set when the ksk-roll command is issued.
+         *
+         * Third change
          */
-        return;
+        deltat = collection->kskttl + collection->kskpropdelay + 
+            collection->ret_safety; /* Ipp */
     }
     else {
         return;
@@ -422,6 +441,84 @@ void KsmUpdateDeadKeyTime(KSM_KEYDATA* data)
     return;
 }
 
+void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+{
+    int deltat = 0;  /* Time interval */
+
+    /* check the argument */
+    if (data == NULL || collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL argument");
+        return;
+    }
+    DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'publish' - updating\n",
+        (int) data->keypair_id);
+
+    if (data->keytype == KSM_TYPE_ZSK) {
+        /*
+         * This state should only be used by KSKs
+         */
+
+        return;
+    }
+    else if (data->keytype == KSM_TYPE_KSK) {
+    /*
+     * A key in the "dspublish" state moves into the "dsready" state when it has
+     * been published for either:
+     *
+     *      Ipp = TTLdsp + Dpp + Dr +Sp
+     *
+     * ... where:
+     *
+     *      TTLdsp  = TTL of the DS record in the parent
+     *      Dpp     = Propagation delay
+     *      Dr      = Registration delay (Currently unused)
+     *      Sp      = Publish Safety Margin
+     *
+     */
+        deltat = collection->kskttl + collection->kskpropdelay + 
+            collection->pub_safety;
+    }
+    else {
+        return;
+    }
+
+    (void) KsmUpdateKeyTime(data, "PUBLISH", "READY", deltat);
+
+    return;
+}
+
+void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+{
+    int deltat = 0;  /* Time interval */
+
+    /* check the argument */
+    if (data == NULL || collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL argument");
+        return;
+    }
+    DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'KEYpublish' - updating\n",
+        (int) data->keypair_id);
+
+    /*
+     * A key in the "KEYpublish" state moves into the "active" state when it has
+     * been published for at least:
+     *
+     *      Ipc = TTLkeyc + Dpc +Sp
+     *
+     * ... where:
+     *
+     *      TTLkeyc  = TTL of the ZSK DNSKEY record
+     *      Dpc      = Propagation delay
+     *      Sp       = Publish Safety Margin
+     *
+     */
+    deltat = collection->zskttl +
+            collection->propdelay + collection->pub_safety;
+
+    (void) KsmUpdateKeyTime(data, "PUBLISH", "ACTIVE", deltat);
+
+    return;
+}
 
 /*+
  * KsmUpdateKeyTime - Update Key Time

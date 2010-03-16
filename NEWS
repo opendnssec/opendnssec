@@ -33,6 +33,7 @@ Bugfixes:
 * Zone fetcher sometimes did not log when signalling signer engine failed.
 * Fix issue of importing keys into kasp leaving random strings in the 
   retire date.
+* Fix KSK rollover logic to be proper DoubleDNSKEY
 
 
 OpenDNSSEC 1.0.0 - 2010-02-09

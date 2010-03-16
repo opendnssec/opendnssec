@@ -13,7 +13,7 @@
 .B ods-ksmutil zone add|delete|list
 .RB ...
 .br
-.B ods-ksmutil key generate|import|export|list|purge|rollover|ksk-roll
+.B ods-ksmutil key generate|import|export|list|purge|rollover|ksk-retire|ds-seen
 .RB ...
 .br
 .B ods-ksmutil rollover list
@@ -189,23 +189,38 @@ If the policy that the zone is on specifies that keys are shared then all zones 
 If there are no keys ready to take over from the current key then the rollover will not occur immediately, but will be put off until the is a key in the ready state.
 
 .TP
-.B key ksk-roll --zone|-z \fIzone\fB
+.B key ksk-retire --zone|-z \fIzone\fB
 .TP
-.B key ksk-roll --keytag|-x \fIkeytag\fB
+.B key ksk-retire --keytag|-x \fIkeytag\fB
 .TP
-.B key ksk-roll --cka_id|-k \fIckaid\fB
+.B key ksk-retire --cka_id|-k \fIckaid\fB
+Indicate to OpenDNSSEC that a currently active key should be retired.
+If key identifiers are not provided then the oldest key in the zone 
+will be retired.
+
+If only one key is in the active state then this command will exit 
+with an error message, as completing would leave no active keys.
+
+.TP
+.B key ds-seen --keytag|-x \fIkeytag\fB
+.TP
+.B key ds-seen --cka_id|-k \fIckaid\fB
 Indicate to OpenDNSSEC that a submitted DS record has appeared in the
 parent zone, and thereby trigger the completion of a KSK rollover.
 Note that this action is not yet standardised, and can therefore not
 be solved in a generic, automatic way.  This command was designed for
 inclusion in any personalised setup that may or may not be automated.
 
-There are several ways to specify which key can roll, and the options
-reflect these alternatives.  The \-\-zone option specifies the key by
-referring to the name of the zone; the \-\-keytag option specifies the
+There are several ways to specify which DS is in DNS, and the options
+reflect these alternatives.  The \-\-keytag option specifies the
 short integer that serves as a DNSSEC handle to a key; the \-\-cka_id
 option refers to a key by way of its long hexadecimal identifier used
 to identify the key in the repository.
+
+An optional \-\-retire-current flag can also be passed in, this will move
+the existing key into the retired state at the same time as making the 
+new key active. If you wish to delay this step then leave this flag off 
+and use the ksk\-retire command when needed.
 .br
 .TP
 .B ods-ksmutil rollover list

@@ -449,6 +449,15 @@ int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
     status = KsmParameterValue(KSM_PAR_DSTTL_STRING, KSM_PAR_DSTTL_CAT, &(data->dsttl), policy_id, &param_id);
     if (status > 0) return status;
 
+/* For now we only set our default KSK rollover scheme */
+/*    status = KsmParameterValue(KSM_PAR_KSK_ROLL_STRING, KSM_PAR_KSK_ROLL_CAT, &(data->kskroll), policy_id, &param_id);
+    if (status > 0) return status;
+    else if (status == -2) 
+    { */
+        /* Not set, use our default */
+        data->kskroll = KSM_ROLL_DEFAULT;
+    /*}*/
+
     return 0;
 }
 

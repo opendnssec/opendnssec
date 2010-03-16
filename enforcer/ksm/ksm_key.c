@@ -705,6 +705,8 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *          timespan (in seconds)
  *      int *count
  *          (OUT) the number of keys (-1 on error)
+ *      int rollover_scheme
+ *          KSK rollover scheme in use
  *
  * Returns:
  *      int
@@ -714,7 +716,7 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *              Other   Error
 -*/
 
-int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count) 
+int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme) 
 { 
     int status = 0;   /* Status return */ 
     KSM_PARCOLL coll; /* Parameters collection */ 
@@ -763,9 +765,21 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
     {
         if (coll.ksklife == 0) {
             *count = coll.standbyksks + 1;
-        } else {
-            *count = ((interval + coll.pub_safety)/coll.ksklife) + coll.standbyksks + 1;
+        } 
+        else if (rollover_scheme == KSM_ROLL_DNSKEY) {
+            *count = ((interval + coll.pub_safety + coll.propdelay + coll.kskttl)/coll.ksklife) + coll.standbyksks + 1;
         }
+        else if (rollover_scheme == KSM_ROLL_DS) {
+            *count = ((interval + coll.pub_safety + coll.kskpropdelay + coll.dsttl)/coll.ksklife) + coll.standbyksks + 1;
+        }
+/*        else if (rollover_scheme == KSM_ROLL_RRSET) {
+            temp = MAX((propdelay + kskttl), (kskpropdelay + dsttl));
+            if (RFC5011) {
+                temp = max(temp, 30*24*60*60);
+            }
+            *count = ((interval + coll.pub_safety + temp)/coll.ksklife) + coll.standbyksks + 1;
+        } */
+
     }
     else if (keytype == KSM_TYPE_ZSK)
     {
@@ -789,6 +803,8 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
  * Description: 
  *      Returns the number of keys in the KSM_STATE_GENERATE, KSM_STATE_PUBLISH,  
  *      KSM_STATE_READY and KSM_STATE_ACTIVE state. 
+ *      (plus KSM_STATE_DSSUB, KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY 
+ *      for standby KSKs)
  * 
  * Arguments: 
  *      int keytype 
@@ -811,12 +827,21 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
     int     clause = 0;     /* Clause count */ 
     char*   sql = NULL;     /* SQL to interrogate database */ 
     int     status = 0;     /* Status return */ 
+    char    in[128];        /* Easily large enought for 7 keys */ 
+    size_t  nchar;          /* Number of output characters */
 
     /* Create the SQL command to interrogate the database */ 
- 
+
+    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d, %d, %d, %d)", 
+            KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_DSSUB, KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY); 
+    if (nchar >= sizeof(in)) { 
+        status = MsgLog(KME_BUFFEROVF, "KsmKeyCountQueue"); 
+        return status; 
+    }
+
     sql = DqsCountInit("KEYDATA_VIEW"); 
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++); 
-    DqsConditionInt(&sql, "STATE", DQS_COMPARE_LE, KSM_STATE_ACTIVE, clause++); 
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, clause++);
     if (zone_id != -1) { 
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++); 
     } 
@@ -841,8 +866,10 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
  *                        time given a number of parameters 
  * 
  * Description: 
- *      Returns the number of keys in the KSM_STATE_GENERATE, KSM_STATE_PUBLISH,  
- *      KSM_STATE_READY and KSM_STATE_ACTIVE state after the given interval. 
+ *      Returns the number of keys in the KSM_STATE_GENERATE, KSM_STATE_PUBLISH,
+ *      KSM_STATE_READY, KSM_STATE_ACTIVE (or KSM_STATE_DSSUB, 
+ *      KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY for standby KSKs) state after 
+ *      the given interval. 
  * 
  * Arguments:
  *      int policy_id
@@ -876,7 +903,7 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id)
  
 int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count, int keytype)
 { 
-    int     where = 0;          /* WHERE clause value */
+    int     where = 0;      /* WHERE clause value */
     char*   sql = NULL;     /* SQL to interrogate database */ 
     int     status = 0;     /* Status return */ 
     char    in[128];        /* Easily large enought for three keys */ 
@@ -909,8 +936,8 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
                          interval;
     }
 
-    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d)", 
-        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE); 
+    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d, %d, %d, %d)", 
+        KSM_STATE_GENERATE, KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_DSSUB, KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY); 
     if (nchar >= sizeof(in)) { 
         status = MsgLog(KME_BUFFEROVF, "KsmKeyCountStillGood"); 
         return status; 

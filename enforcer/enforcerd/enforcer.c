@@ -54,6 +54,7 @@
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 #include "ksm/datetime.h"
+#include "ksm/db_fields.h"
 
 #include "libhsm.h"
 #include "libhsmdns.h"
@@ -114,7 +115,7 @@ server_main(DAEMONCONFIG *config)
     }
 
     /* If we are doing key generation then connect to the hsm */
-    if (config->manualKeyGeneration == 0) {
+/*    if (config->manualKeyGeneration == 0) {*/
         /* We keep the HSM connection open for the lifetime of the daemon */
         if (config->configfile != NULL) {
             result = hsm_open(config->configfile, hsm_prompt_pin, NULL);
@@ -154,7 +155,7 @@ server_main(DAEMONCONFIG *config)
         }
         log_msg(config, LOG_INFO, "HSM opened successfully.");
         ctx = hsm_create_context();
-    }
+    /*}*/
 
     while (1) {
 
@@ -344,7 +345,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         same_keys = 0;
     }
     /* Find out how many ksk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->interval, &ksks_needed);
+    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->interval, &ksks_needed, policy->ksk->rollover_scheme);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict ksk requirement for next interval for %s", policy->name);
         /* TODO exit? continue with next policy? */
@@ -419,7 +420,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     current_count = 0;
 
     /* Find out how many zsk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->interval, &zsks_needed);
+    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->interval, &zsks_needed, 0);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict zsk requirement for next intervalfor %s", policy->name);
         /* TODO exit? continue with next policy? */
@@ -684,7 +685,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 xmlXPathFreeObject(xpathObj);
                 /* TODO should we check that we have not written to this file in this run?*/
                 /* Make sure that enough keys are allocated to this zone */
-                status2 = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval, zone_name, config->manualKeyGeneration);
+                status2 = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, config->interval, zone_name, config->manualKeyGeneration, 0);
                 if (status2 != 0) {
                     log_msg(config, LOG_ERR, "Error allocating zsks to zone %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -694,7 +695,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     StrFree(current_filename);
                     continue;
                 }
-                status2 = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval, zone_name, config->manualKeyGeneration);
+                status2 = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, config->interval, zone_name, config->manualKeyGeneration, policy->ksk->rollover_scheme);
                 if (status2 != 0) {
                     log_msg(config, LOG_ERR, "Error allocating ksks to zone %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -796,6 +797,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                                file.) */
     char *signer_command;   /* how we will call the signer */
     int     gencnt;         /* Number of keys in generate state */
+    int     NewDS = 0;      /* Did we change the DS Set in any way? */
     char*   datetime = DtParseDateTimeString("now");
 
     /* Check datetime in case it came back NULL */
@@ -880,7 +882,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 
     /* get new keys _only_ if we don't have them from before */
     if (*key_string == NULL) {
-        status = KsmRequestKeys(0, 0, datetime, commKeyConfig, key_string, policy->id, zone_id, run_interval);
+        status = KsmRequestKeys(0, 0, datetime, commKeyConfig, key_string, policy->id, zone_id, run_interval, &NewDS);
         if (status != 0) {
             /* 
              * Something went wrong (it should have been logged) stop this zone.
@@ -1092,6 +1094,13 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
             return -1;
         }
     }
+
+    /* If the DS set changed then log/do something about it */
+    if (NewDS == 1) {
+        log_msg(NULL, LOG_INFO, "DSChanged");
+        status = NewDSSet(zone_id, zone_name);
+    }
+
     StrFree(old_filename);
     StrFree(temp_filename);
 
@@ -1118,7 +1127,7 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     StrAppend(file, key_data->location);
     StrAppend(file, "</Locator>\n");
 
-    if (key_data->keytype == KSM_TYPE_KSK && key_data->state == KSM_STATE_ACTIVE)
+    if (key_data->keytype == KSM_TYPE_KSK)
     {
         StrAppend(file, "\t\t\t\t<KSK />\n");
     }
@@ -1154,6 +1163,8 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
  *          just in case we need to log something
  *      man_key_gen
  *          lack of keys may be an issue for the user to fix
+ *      int rollover_scheme
+ *          KSK rollover scheme in use
  *
  * Returns:
  *      int
@@ -1164,7 +1175,7 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
  -*/
 
 
-int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen)
+int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen, int rollover_scheme)
 {
     int status = 0;
     int keys_needed = 0;
@@ -1204,7 +1215,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 
     /* Make sure that enough keys are allocated to this zone */
     /* How many do we need ? (set sharing to 1 so that we get the number needed for a single zone on this policy */
-    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed);
+    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed, rollover_scheme);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval for %s", zone_name);
         StrFree(datetime);
@@ -1528,6 +1539,199 @@ int do_purge(int interval, int policy_id)
 
     DbStringFree(temp_dead);
     DbStringFree(temp_loc);
+
+    return status;
+}
+
+int NewDSSet(int zone_id, const char* zone_name) {
+    int     where = 0;		/* for the SELECT statement */
+    char*   sql = NULL;     /* SQL statement (when verifying) */
+    char*   sql2 = NULL;    /* SQL statement (if getting DS) */
+    int     status = 0;     /* Status return */
+    int     count = 0;      /* How many keys fit our select? */
+    int     i = 0;          /* A counter */
+    int     j = 0;          /* Another counter */
+    char*   insql = NULL;   /* SQL "IN" clause */
+    int*    keyids;         /* List of IDs of keys to promote */
+    DB_RESULT    result;    /* List result set */
+    KSM_KEYDATA  data;      /* Data for this key */
+    size_t  nchar;          /* Number of characters written */
+    char    buffer[256];    /* For constructing part of the command */
+
+    DB_RESULT	result3;        /* Result of DS query */
+    KSM_KEYDATA data3;        /* DS information */
+    char*   ds_buffer = NULL;   /* Contents of DS records */
+    char*   ds_seen_buffer = NULL;   /* Which keys have we promoted */
+    char*   temp_char = NULL;   /* Contents of DS records */
+
+    /* Key information */
+    hsm_key_t *key = NULL;
+    ldns_rr *dnskey_rr = NULL;
+    ldns_rr *ds_sha1_rr = NULL;
+    ldns_rr *ds_sha256_rr = NULL;
+    hsm_sign_params_t *sign_params = NULL;
+
+    nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d, %d, %d, %d, %d, %d)",
+            KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE,
+            KSM_STATE_DSSUB, KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, 
+            KSM_STATE_KEYPUBLISH, KSM_STATE_RETIRE);
+    if (nchar >= sizeof(buffer)) {
+        status = -1;
+        return status;
+    }
+
+    /* First up we need to count how many DSs we will have */
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, KSM_TYPE_KSK, where++);
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
+    DqsEnd(&sql);
+
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+
+    if (status != 0) {
+        /*status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));*/
+        return status;
+    }
+
+    if (count == 0) {
+        /* No KSKs in zone?  */
+        return status;
+    }
+
+    /* Allocate space for the list of key IDs */
+    keyids = MemMalloc(count * sizeof(int));
+
+    /* Get the list of IDs */
+
+    where = 0;
+    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, KSM_TYPE_KSK, where++);
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
+    DqsEnd(&sql);
+
+    status = KsmKeyInitSql(&result, sql);
+    DqsFree(sql);
+
+    if (status == 0) {
+        while (status == 0) {
+            status = KsmKey(result, &data);
+            if (status == 0) {
+                keyids[i] = data.keypair_id;
+                i++;
+            }
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        } else {
+            /*status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));*/
+            StrFree(keyids);
+            return status;
+        }
+
+        KsmKeyEnd(result);
+
+    } else {
+        /*status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));*/
+        StrFree(keyids);
+        return status;
+    }
+
+    /*
+     * Now construct the "IN" statement listing the IDs of the keys we
+     * are planning to change the state of.
+     */
+
+    StrAppend(&insql, "(");
+    for (j = 0; j < i; ++j) {
+        if (j != 0) {
+            StrAppend(&insql, ",");
+        }
+        snprintf(buffer, sizeof(buffer), "%d", keyids[j]);
+        StrAppend(&insql, buffer);
+    }
+    StrAppend(&insql, ")");
+
+    StrFree(keyids);
+
+    /* Indicate that the DS record should now be submitted */
+    sql2 = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+    DqsConditionKeyword(&sql2, "ID", DQS_COMPARE_IN, insql, 0);
+    DqsConditionInt(&sql2, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
+    DqsEnd(&sql2);
+
+    log_msg(NULL, LOG_INFO, "DS Record set has changed, the current set looks like:");
+
+    status = KsmKeyInitSql(&result3, sql2);
+    if (status == 0) {
+        status = KsmKey(result3, &data3);
+        while (status == 0) {
+
+            /* Code to output the DNSKEY record  (stolen from hsmutil) */
+            key = hsm_find_key_by_id(NULL, data3.location);
+
+            if (!key) {
+                log_msg(NULL, LOG_ERR, "Key %s in DB but not repository.", data3.location);
+                StrFree(insql);
+                return status;
+            }
+
+            StrAppend(&ds_seen_buffer, ", ");
+            StrAppend(&ds_seen_buffer, data3.location);
+
+            sign_params = hsm_sign_params_new();
+            sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone_name);
+            sign_params->algorithm = data3.algorithm;
+            sign_params->flags = LDNS_KEY_ZONE_KEY;
+            sign_params->flags += LDNS_KEY_SEP_KEY;
+            dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+
+            temp_char = ldns_rr2str(dnskey_rr);
+            StrAppend(&ds_buffer, temp_char);
+            StrFree(temp_char);
+
+/*            StrAppend(&ds_buffer, "\n;KSK DS record (SHA1):\n");
+            ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
+            temp_char = ldns_rr2str(ds_sha1_rr);
+            StrAppend(&ds_buffer, temp_char);
+            StrFree(temp_char);
+
+            StrAppend(&ds_buffer, "\n;KSK DS record (SHA256):\n");
+            ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
+            temp_char = ldns_rr2str(ds_sha256_rr);
+            StrAppend(&ds_buffer, temp_char);
+            StrFree(temp_char);
+*/
+            log_msg(NULL, LOG_INFO, "%s", ds_buffer);
+
+            StrFree(ds_buffer);
+
+            hsm_sign_params_free(sign_params);
+            hsm_key_free(key);
+            status = KsmKey(result3, &data3);
+        }
+        /* Convert EOF status to success */
+        if (status == -1) {
+            status = 0;
+        }
+
+        KsmKeyEnd(result3);
+    }
+
+    log_msg(NULL, LOG_INFO, "Once the new DS records are seen in DNS please issue the ds-seen command for zone %s with the following cka_ids%s", zone_name, ds_seen_buffer);
+
+    StrFree(ds_seen_buffer);
+
+    StrFree(insql);
 
     return status;
 }

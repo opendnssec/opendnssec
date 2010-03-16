@@ -90,11 +90,13 @@
  *      int run_interval
  *          how frequently do we run?
  *
+ *      int* NewDS
+ *          were new DS records needed?
 -*/
 
 int KsmRequestKeys(int keytype, int rollover, const char* datetime,
 	KSM_REQUEST_CALLBACK callback, void* context, int policy_id, int zone_id, 
-    int run_interval)
+    int run_interval, int* NewDS)
 {
     int         status;     /* Status return */
 
@@ -115,7 +117,7 @@ int KsmRequestKeys(int keytype, int rollover, const char* datetime,
 
         if ((keytype == KSM_TYPE_KSK) || (keytype == KSM_TYPE_ZSK)) {
             status = KsmRequestKeysByType(keytype, rollover, datetime,
-				callback, context, policy_id, zone_id, run_interval);
+				callback, context, policy_id, zone_id, run_interval, NewDS);
             
             if (status != 0) {
                 DbRollback();
@@ -124,14 +126,14 @@ int KsmRequestKeys(int keytype, int rollover, const char* datetime,
         }
         else {
             status = KsmRequestKeysByType(KSM_TYPE_KSK, rollover, datetime,
-				callback, context, policy_id, zone_id, run_interval);
+				callback, context, policy_id, zone_id, run_interval, NewDS);
             if (status != 0) {
                 DbRollback();
                 return status;
             }
 
             status = KsmRequestKeysByType(KSM_TYPE_ZSK, rollover, datetime,
-				callback, context, policy_id, zone_id, run_interval);
+				callback, context, policy_id, zone_id, run_interval, NewDS);
             if (status != 0) {
                 DbRollback();
                 return status;
@@ -198,6 +200,9 @@ int KsmRequestKeys(int keytype, int rollover, const char* datetime,
  *      int run_interval
  *          how frequently do we run?
  *
+ *      int* NewDS
+ *          were new DS records needed?
+ *
  * Returns:
  *      int
  *          Status return.  0 = Success, other = error (in which case a message
@@ -206,12 +211,12 @@ int KsmRequestKeys(int keytype, int rollover, const char* datetime,
 
 int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 	KSM_REQUEST_CALLBACK callback,  void* context, int policy_id, int zone_id,
-    int run_interval)
+    int run_interval, int* NewDS)
 {
     int     active;         /* Number of active keys to be retired */
     KSM_PARCOLL collection; /* Parameters collection */
     int     ready;          /* Number of keys in the "ready" state */
-    int     first_pass;     /* Indicates if this zone has been published before */
+    int     first_pass = 0; /* Indicates if this zone has been published before */
     int     status;         /* Status return */
     char*   zone_name = NULL;  /* For rollover message, if needed */
     DB_RESULT	result;        /* Result of parameter query */
@@ -242,6 +247,12 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
         manual_rollover = collection.zskmanroll;
     }
 
+    /* Check to see if this zone has been published before */
+    status = KsmRequestCheckFirstPass(keytype, &first_pass, zone_id);
+    if (status != 0) {
+        return status;
+    }
+
     /*
      * Step 0: If rolling over the key, set the expected retirement date of
      * active keys to the given date/time.
@@ -255,11 +266,34 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
     }
 
     /*
+     * Step 0a: Complete Key rollover of standbykeys in KEYPUBLISH state
+     * if we are after their active time, move them into the active state
+     */
+    if (keytype == KSM_TYPE_KSK) {
+        status = KsmRequestChangeStateKeyPublishActive(datetime, zone_id, policy_id, NewDS);
+        if (status != 0) {
+            return status;
+        }
+
+        if (*NewDS == 1) {
+            /* Standby Key has become active, retire the old key */
+            status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id);
+            if (status != 0) {
+                StrFree(zone_name);
+                return status;
+            }
+            *NewDS = 0; /* We were naughty when we used this flag, clean up */
+            /* DS set won't change until the old active key moves to dead */
+        }
+    }
+
+
+    /*
      * Step 1.  For each retired key, mark it as dead if it past the given
      * time.
      */
 
-    status = KsmRequestChangeStateRetireDead(keytype, datetime, zone_id, policy_id);
+    status = KsmRequestChangeStateRetireDead(keytype, datetime, zone_id, policy_id, collection.kskroll, NewDS);
     if (status != 0) {
         return status;
     }
@@ -269,9 +303,25 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * been in the zone long enough.
      */
 
-    status = KsmRequestChangeStatePublishReady(keytype, datetime, zone_id, policy_id);
-    if (status != 0) {
-        return status;
+    if (keytype == KSM_TYPE_ZSK ||
+            collection.kskroll == KSM_ROLL_DNSKEY ||
+            first_pass == 1) {
+        status = KsmRequestChangeStatePublishReady(keytype, datetime, zone_id, policy_id, NewDS);
+        if (status != 0) {
+            return status;
+        }
+    }
+
+     /*
+     * Step 2a.  For each key in the dspublished state, set it dsready if it has
+     * been in the zone long enough.
+     */
+
+    if (keytype == KSM_TYPE_KSK) {
+        status = KsmRequestChangeStateDSPublishDSReady(keytype, datetime, zone_id, policy_id);
+        if (status != 0) {
+            return status;
+        }
     }
 
     /*
@@ -283,6 +333,22 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
     status = KsmRequestChangeStateGeneratePublishConditional(keytype, datetime, &collection, zone_id, run_interval);
     if (status != 0) {
         return status;
+    }
+
+    /*
+     * Step 3a.  make sure that we have enough standby KSKs
+     */
+
+    if (keytype == KSM_TYPE_KSK) {
+        status = KsmRequestChangeStateGenerateDSSubConditional(keytype, datetime, &collection, zone_id, NewDS);
+
+        /* Reset this flag; TODO is this correct? */
+        if (first_pass == 1) {
+            *NewDS = 0;
+        }
+        if (status != 0) {
+            return status;
+        }
     }
 
     /*
@@ -354,22 +420,33 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
              * NB: A consequence of this is that these keys will have no "ready"
              *     time as they are never in the "ready" state.
              */
-            status = KsmRequestCheckFirstPass(keytype, &first_pass, zone_id);
-            if (status != 0) {
-                StrFree(zone_name);
-                return status;
-            }
 
             if (first_pass == 1) {
-                (void) MsgLog(KME_PROM_PUB, (keytype == KSM_TYPE_KSK) ? "KSK" : "ZSK");
-                status = KsmRequestChangeStateN(keytype, datetime, 1,
+                /* We have to wait until the KSK is ready before we can
+                 * publish the DS record */
+                if (keytype == KSM_TYPE_KSK) {
+                    /* status = KsmRequestChangeStateN(keytype, datetime, 1,
+                                    KSM_STATE_READY, KSM_STATE_ACTIVE, zone_id);*/
+                } else {
+                    (void) MsgLog(KME_PROM_PUB, "ZSK");
+                    status = KsmRequestChangeStateN(keytype, datetime, 1,
                                     KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
+                }
+
                 if (status != 0) {
                     StrFree(zone_name);
                     return status;
                 }
             }
             else {
+                /* Move standby key from DSready to KEYPUBLISH if we can */
+                if (keytype == KSM_TYPE_KSK) {
+                    status = KsmRequestChangeStateDSReadyKeyPublish(datetime, zone_id, policy_id);
+                    if (status != 0) {
+                        return status;
+                    }
+                }
+
                 (void) MsgLog(KME_NOREADYKEY);
                 /* TODO return here? */
             }
@@ -377,10 +454,13 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
         else if (manual_rollover == 1 && rollover == 0) {
             (void) MsgLog(KME_MAN_ROLL_REQUIRED, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name);
         }
+        /* TODO I think that this is no longer true... */
+        /* Check where we need this to happen */
         else if (keytype == KSM_TYPE_KSK) {
             /* A rollover should be occuring... For KSKs we just prompt for
              * the user to submit their DS record
-             * TODO Include the keytag or cka-id in the message */
+             * TODO Include the keytag or cka-id in the message
+             * TODO Do we still need this? */
             (void) MsgLog(KME_DS_SUBMISSION, zone_name);
         }
         else {
@@ -580,7 +660,7 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
 /*+
  * KsmRequestChangeStatePublishReady - Change State from PUBLISH to READY
  * KsmRequestChangeStateActiveRetire - Change State from ACTIVE to RETIRE
- * KsmRequestChangeStateRetireDead - Change State from RETIRE to DEAD
+ * KsmRequestChangeStateRetireDead - Change State   from RETIRE to DEAD
  *
  * Description:
  *      Changes the state of keys of a particular type in the given zone
@@ -603,22 +683,43 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
  *          error message will have been output.
 -*/
 
-int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id)
+int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_PUBLISH, KSM_STATE_READY, zone_id, policy_id);
+        KSM_STATE_PUBLISH, KSM_STATE_READY, zone_id, policy_id, -1, NewDS);
+}
+
+int KsmRequestChangeStateDSPublishDSReady(int keytype, const char* datetime, int zone_id, int policy_id)
+{
+    int* dummy;
+    return KsmRequestChangeState(keytype, datetime,
+        KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, zone_id, policy_id, -1, dummy);
+}
+
+int KsmRequestChangeStateDSReadyKeyPublish(const char* datetime, int zone_id, int policy_id)
+{
+    int* dummy;
+    return KsmRequestChangeState(KSM_TYPE_KSK, datetime,
+        KSM_STATE_DSREADY, KSM_STATE_KEYPUBLISH, zone_id, policy_id, -1, dummy);
+}
+
+int KsmRequestChangeStateKeyPublishActive(const char* datetime, int zone_id, int policy_id, int* NewDS)
+{
+    return KsmRequestChangeState(KSM_TYPE_KSK, datetime,
+        KSM_STATE_KEYPUBLISH, KSM_STATE_ACTIVE, zone_id, policy_id, -1, NewDS);
 }
 
 int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id)
 {
+    int* dummy;
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_ACTIVE, KSM_STATE_RETIRE, zone_id, policy_id);
+        KSM_STATE_ACTIVE, KSM_STATE_RETIRE, zone_id, policy_id, -1, dummy);
 }
 
-int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id)
+int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id, int rollover_scheme, int* NewDS)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_RETIRE, KSM_STATE_DEAD, zone_id, policy_id);
+        KSM_STATE_RETIRE, KSM_STATE_DEAD, zone_id, policy_id, rollover_scheme, NewDS);
 }
 
 
@@ -651,6 +752,9 @@ int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_
  *      int policy_id
  *          ID of the policy that we are looking at
  *
+ *      int rollover_scheme
+ *          what KSK rollover scheme are we using
+ *
  *  Returns:
  *      int
  *          Status return. 0 => success, Other => failure, in which case an
@@ -658,7 +762,8 @@ int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_
 -*/
 
 int KsmRequestChangeState(int keytype, const char* datetime,
-    int src_state, int dst_state, int zone_id, int policy_id)
+    int src_state, int dst_state, int zone_id, int policy_id,
+    int rollover_scheme, int* NewDS)
 {
     int     where = 0;		/* for the SELECT statement */
     char*   dst_col = NULL; /* Destination column */
@@ -675,12 +780,17 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     char    buffer[32];     /* For integer conversion */
     char*   zone_name = NULL;  /* For DS removal message, if needed */
     
-    DB_RESULT	result2;         /* Result of parameter query */
-    KSM_PARAMETER data2;         /* Parameter information */
+    DB_RESULT	result2;        /* Result of parameter query */
+    KSM_PARAMETER data2;        /* Parameter information */
 
     /* Create the destination column name */
-
-    dst_col = StrStrdup(KsmKeywordStateValueToName(dst_state));
+    if (dst_state == KSM_STATE_DSREADY) {
+        StrAppend(&dst_col, KSM_STATE_READY_STRING);
+    } else if (dst_state == KSM_STATE_KEYPUBLISH) {
+        StrAppend(&dst_col, KSM_STATE_PUBLISH_STRING);
+    } else {
+        dst_col = StrStrdup(KsmKeywordStateValueToName(dst_state));
+    }
     (void) StrToUpper(dst_col);
 
     /* First up we need to count how many keys will move */
@@ -790,7 +900,6 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     DusSetString(&sql, dst_col, datetime, set++);
 
     DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 0);
-    StrFree(insql);
     DusEnd(&sql);
     StrFree(dst_col);
 
@@ -802,39 +911,59 @@ int KsmRequestChangeState(int keytype, const char* datetime,
         status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
     }
 
-    /* If we moved a KSK from retire to dead then the DS can be removed */
-    if (dst_state == KSM_STATE_DEAD && keytype == KSM_TYPE_KSK) {
-         status = KsmZoneNameFromId(zone_id, &zone_name);
-         if (status != 0) {
-             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-             if (zone_name != NULL) {
-                 StrFree(zone_name);
-             }
-             return(status);
-         }
-         /* Get the shared_keys parameter */
-         status = KsmParameterInit(&result2, "zones_share_keys", "keys", policy_id);
-         if (status != 0) {
-             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-             StrFree(zone_name);
-             return(status);
-         }
-         status = KsmParameter(result2, &data2);
-         if (status != 0) {
-             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-             StrFree(zone_name);
-             return(status);
-         }
-         KsmParameterEnd(result2);
-         if (data2.value == 0) {
-             (void) MsgLog(KME_DS_REM_ZONE, zone_name);
-             StrFree(zone_name);
-         }
-         else {
-             (void) MsgLog(KME_DS_REM_POLICY, zone_name);
-         }
+    /* See if we need to log a message about the DS records */
+    if (keytype == KSM_TYPE_KSK && ((dst_state == KSM_STATE_DEAD && rollover_scheme == KSM_ROLL_DS) || dst_state == KSM_STATE_READY))
+    {
+        /* Set our flag */
+        *NewDS = 1;
+
+        /* Get common info we need for either message */
+        status = KsmZoneNameFromId(zone_id, &zone_name);
+        if (status != 0) {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            if (zone_name != NULL) {
+                StrFree(insql);
+                StrFree(zone_name);
+            }
+            return(status);
+        }
+        /* Get the shared_keys parameter */
+        status = KsmParameterInit(&result2, "zones_share_keys", "keys", policy_id);
+        if (status != 0) {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            StrFree(insql);
+            StrFree(zone_name);
+            return(status);
+        }
+        status = KsmParameter(result2, &data2);
+        if (status != 0) {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            StrFree(insql);
+            StrFree(zone_name);
+            return(status);
+        }
+        KsmParameterEnd(result2);
+
+        /* If we moved a KSK from retire to dead then the DS can be removed */
+        if (dst_state == KSM_STATE_DEAD && rollover_scheme == KSM_ROLL_DS) {
+            if (data2.value == 0) {
+                (void) MsgLog(KME_DS_REM_ZONE, zone_name);
+            }
+            else {
+                (void) MsgLog(KME_DS_REM_POLICY, zone_name);
+            }
+        }
+        else if (dst_state == KSM_STATE_READY) {
+            (void) MsgLog(KME_NEW_DS, zone_name);
+
+        }
+    }
+    else if (keytype == KSM_TYPE_KSK && src_state == KSM_STATE_KEYPUBLISH) {
+        /* Set our flag, we are completing an emergency rollover */
+        *NewDS = 1;
     }
 
+    StrFree(insql);
     StrFree(zone_name);
 
     return status;
@@ -844,6 +973,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 
 /*+
  * KsmRequestChangeStateGeneratePublish - Change State from GENERATE to PUBLISH
+ * KsmRequestChangeStateGenerateDSPublish - Change State from GENERATE to DSPUBLISH
  * KsmRequestChangeStateReadyActive - Change State from READY to ACTIVE
  *
  * Description:
@@ -876,6 +1006,13 @@ int KsmRequestChangeStateGeneratePublish(int keytype, const char* datetime,
 {
     return KsmRequestChangeStateN(keytype, datetime, count,
         KSM_STATE_GENERATE, KSM_STATE_PUBLISH, zone_id);
+}
+
+int KsmRequestChangeStateGenerateDSSub(int keytype, const char* datetime,
+	int count, int zone_id)
+{
+    return KsmRequestChangeStateN(keytype, datetime, count,
+        KSM_STATE_GENERATE, KSM_STATE_DSSUB, zone_id);
 }
 
 int KsmRequestChangeStateReadyActive(int keytype, const char* datetime,
@@ -1005,7 +1142,11 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
 
         /* Get upper case names of the states (= names of date columns) */
 
-        dst_name = StrStrdup(KsmKeywordStateValueToName(dst_state));
+        if (dst_state == KSM_STATE_DSSUB) {
+            StrAppend(&dst_name, KSM_STATE_PUBLISH_STRING);
+        } else {
+            dst_name = StrStrdup(KsmKeywordStateValueToName(dst_state));
+        }
         (void) StrToUpper(dst_name);
 
         if (dst_state == KSM_STATE_ACTIVE) {
@@ -1104,7 +1245,88 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
     return status;
 }
 
+/*+
+ * KsmRequestChangeStateGenerateDSSubConditional -
+ *          Change State from Generate to DSSub
+ *
+ * Description:
+ *         Make sure that the zone has the correct number of standby keys.
+ *
+ * Arguments:
+ *      int keytype
+ *          Key type for which the request should happen.
+ *
+ *              KSM_TYPE_KSK    KSKs
+ *              KSM_TYPE_ZSK    ZSKs
+ *
+ *      const char* datetime
+ *          Date/time for which this request is taking place.
+ *
+ *      KSM_PARCOLL* collection
+ *          Pointer to parameter collection for this zone.
+ *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
+ * Returns:
+ *      int
+ *          Status return. 0 => success, Other => failure, in which case an
+ *          error message will have been output.
+-*/
 
+int KsmRequestChangeStateGenerateDSSubConditional(int keytype,
+	const char* datetime, KSM_PARCOLL* collection, int zone_id, int* NewDS)
+{
+    int     gencnt;         /* Number of keys in generate state */
+    int     newkeys;        /* New keys required */
+    int     standby;        /* Number of standby keys */
+    int     reqkeys;        /* Number of keys required */
+    int     status;         /* Status return */
+
+    /* How many standby keys we have */
+    status = KsmRequestStandbyKSKCount(&standby, zone_id);
+    if (status != 0) {
+        return status;
+    }
+
+    reqkeys = KsmParameterStandbyKSKeys(collection);
+
+    /*
+     * So, if we remove "pendret" keys from the number of "available"
+     * keys, how many are we short of the required number?  This is how many
+     * we need to promote from "generate" to "publish"
+     */
+
+    newkeys = reqkeys - standby;
+
+    if (newkeys > 0) {
+
+        /* Are there enough generated keys available */
+
+        status = KsmRequestGenerateCount(keytype, &gencnt, zone_id);
+        if (status == 0) {
+            if (gencnt < newkeys) {
+                status = MsgLog(KME_INSFGENKEY, gencnt,
+                    KsmKeywordTypeValueToName(keytype), newkeys);
+            }
+			DbgLog(DBG_M_REQUEST, KME_GENERATECNT, gencnt,
+				KsmKeywordTypeValueToName(keytype));
+
+            if (status == 0) {
+
+                /* There are enough keys, so move them to "dssub" state */
+
+                status = KsmRequestChangeStateGenerateDSSub(keytype,
+                    datetime, newkeys, zone_id);
+
+                /* Set our flag */
+                *NewDS = 1;
+            }
+        }
+    }
+
+    return 0;
+}
 
 /*+
  * KsmRequestChangeStateGeneratePublishConditional -
@@ -1190,7 +1412,8 @@ int KsmRequestChangeStateGeneratePublishConditional(int keytype,
      */
 
     if (keytype == KSM_TYPE_KSK) {
-        reqkeys = 1 + KsmParameterStandbyKSKeys(collection);
+                    /* For KSKs we sort out standby keys separately */
+        reqkeys = 1; /*+ KsmParameterStandbyKSKeys(collection);*/
     }
     else if (keytype == KSM_TYPE_ZSK) {
         reqkeys = 1 + KsmParameterStandbyZSKeys(collection);
@@ -1294,6 +1517,32 @@ int KsmRequestPendingRetireCount(int keytype, const char* datetime,
                          KsmParameterKskPropagationDelay(parameters) +
                          KsmParameterPubSafety(parameters) +
                          interval;
+        /*
+           if (DOUBLEDNSKEY) {
+           total_interval =  KsmParameterKskTtl(parameters) + 
+           KsmParameterPropagationDelay(parameters) +
+           KsmParameterDSTtl(parameters) + 
+           KsmParameterKskPropagationDelay(parameters) +
+           KsmParameterPubSafety(parameters) +
+           interval;
+           }
+           if (DOUBLEDS) {
+           total_interval =  KsmParameterDSTtl(parameters) + 
+           KsmParameterKskPropagationDelay(parameters) +
+           KsmParameterPubSafety(parameters) +
+           interval;
+           }
+           if (DOUBLERRSET) {
+           temp = MAX(
+           (KsmParameterKskTtl(parameters) + KsmParameterPropagationDelay(parameters)), 
+           (KsmParameterDSTtl(parameters) + KsmParameterKskPropagationDelay(parameters)));
+           if (RFC5011) {
+           temp = max(temp, 30*24*60*60);
+           }
+           total_interval = temp + KsmParameterPubSafety(parameters) +
+           interval;
+           }
+         */
     }
     /* Create the SQL command to interrogate the database */
 
@@ -1398,8 +1647,8 @@ int KsmRequestAvailableCount(int keytype, const char* datetime, KSM_PARCOLL* par
 
     /* Calculate the initial publication interval & add to query */
 
-    nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d)",
-        KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE);
+    nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d, %d)",
+        KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_KEYPUBLISH);
     if (nchar >= sizeof(buffer)) {
         status = MsgLog(KME_BUFFEROVF, "KsmRequestKeys");
         return status;
@@ -1459,6 +1708,67 @@ int KsmRequestGenerateCount(int keytype, int* count, int zone_id)
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
     DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_GENERATE, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
+    DqsEnd(&sql);
+
+    /* Execute the query and free resources */
+
+    status = DbIntQuery(DbHandle(), count, sql);
+    DqsFree(sql);
+
+    /* Report any errors */
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+    return status;
+}
+
+/*+
+ * KsmRequestStandbyKSKCount - Get Count of Standby Keys
+ *
+ * Description:
+ *      The number of keys in the "dspublished" and "dsready" states.
+ *
+ * Arguments:
+ *
+ *      int* count (returned)
+ *          Number of standby keys.
+ *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 => success, <>0 => error, in which case a message
+ *          will have been output.
+-*/
+
+int KsmRequestStandbyKSKCount(int* count, int zone_id)
+{
+    char    buffer[256];    /* For constructing part of the command */
+    int     clause = 0;     /* Used in constructing SQL statement */
+    size_t  nchar;          /* Number of characters written */
+    char*   sql;            /* SQL command to be isssued */
+    int     status;         /* Status return */
+
+    /* Create the SQL command to interrogate the database */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, KSM_TYPE_KSK, clause++);
+
+    /* Calculate the initial publication interval & add to query */
+
+    nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d)",
+        KSM_STATE_DSSUB, KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY);
+    if (nchar >= sizeof(buffer)) {
+        status = MsgLog(KME_BUFFEROVF, "KsmRequestKeys");
+        return status;
+    }
+    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, clause++);
     if (zone_id != -1) {
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
     }
@@ -1707,8 +2017,8 @@ int KsmRequestIssueKeys(int keytype, KSM_REQUEST_CALLBACK callback,
      * are included in the output.
      */
 
-    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d)",
-        KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_RETIRE);
+    nchar = snprintf(in, sizeof(in), "(%d, %d, %d, %d, %d)",
+        KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_RETIRE, KSM_STATE_KEYPUBLISH);
     if (nchar >= sizeof(in)) {
         status = MsgLog(KME_BUFFEROVF, "KsmRequestIssueKeys");
         return status;
