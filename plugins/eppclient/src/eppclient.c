@@ -56,6 +56,7 @@ int main(void)
     int linenum = 1;
     char line[1024];
     ldns_rr* first_rr = NULL;
+    ldns_buffer* outbuf = ldns_buffer_new(1024);
     while (fgets(line, sizeof line, stdin)) {
         char* eol = strchr(line, '\n');
         if (eol)
@@ -99,8 +100,8 @@ int main(void)
                 fprintf(stderr,
                         "Error in line %d: owner mismatch: '%*s' vs '%*s'\n",
                         linenum,
-                        obuf1->_position, obuf1->_data,
-                        obuf2->_position, obuf2->_data);
+                        (int)obuf1->_position, obuf1->_data,
+                        (int)obuf2->_position, obuf2->_data);
                 ldns_buffer_free(obuf1);
                 ldns_buffer_free(obuf2);
                 return -1;
@@ -110,11 +111,23 @@ int main(void)
             ldns_rr_free(rr);
         }
 
-        write(fd, line, strlen(line));
-        write(fd, "\n", 1);
+        ldns_buffer_printf(outbuf, "%s\n", line);
         linenum++;
     }
     ldns_rr_free(first_rr);
+
+    int len = outbuf->_position;
+    int rc = write(fd, outbuf->_data, len);
+    if (rc < len) {
+        if (rc < 0)
+            perror(pipename);
+        else
+            fprintf(stderr,
+                    "Error: Short write to pipe. Only %d of %d bytes written.\n",
+                    rc, len);
+        return -1;
+    }
+    ldns_buffer_free(outbuf);
     
     close(fd);
 
