@@ -98,6 +98,7 @@ module KASPAuditor
               @denial.nsec3.hash.salt = e.elements['Salt'].text
               decoded_salt = Dnsruby::RR::NSEC3.decode_salt(@denial.nsec3.hash.salt)
               if (decoded_salt.length.to_i != @denial.nsec3.hash.salt_length.to_i)
+                # @TODO@ Only log this if this is a zone of interest!
                 msg = "ERROR : SALT LENGTH IS #{decoded_salt.length}, but should be #{@denial.nsec3.hash.salt_length}"
                 print "#{Syslog::LOG_ERR}: #{msg}\n"
                 begin
@@ -256,7 +257,7 @@ module KASPAuditor
             @lifetime = 999999999999
           end
           e.elements.each('Algorithm') {|s|
-            @alg_length = s.attributes['length']
+            @alg_length = s.attributes['length'].to_i
           }
         end
       end

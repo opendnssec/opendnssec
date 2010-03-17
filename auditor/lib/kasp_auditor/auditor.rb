@@ -115,7 +115,7 @@ module KASPAuditor
         end
         log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
         @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
-        #        @key_cache = @key_tracker.load_tracker_cache
+        @key_cache = @key_tracker.load_tracker_cache
 
         signed_file = (signed_file.to_s + "").untaint
         unsigned_file = (unsigned_file.to_s + "").untaint
@@ -579,11 +579,46 @@ module KASPAuditor
       return Name.create(Dnsruby::RR::NSEC3.encode_next_hashed(rr.next_hashed) + "." + @zone_name)
     end
 
+    # Check the DNSKEY against all the configured keys
+    def Auditor.match_key_config(key, configured_keys)
+      # See if we can match our key against any of the configured keys.
+      # We're looking for algorithm and alg_length
+      begin
+      configured_keys.each {|configured_key|
+        if (configured_key.algorithm == key.algorithm) &&
+             (configured_key.alg_length == key.key_length)
+           return true
+        end
+      }
+      return false
+      rescue NoMethodError
+        return true # Omit this test - this version of Dnsruby does not have the key_length method
+      end
+    end
+
+    def Auditor.check_key_config(key_cache, config, l_rr, auditor)
+      if (!key_cache.include_key?l_rr)
+        # Check algorithm and length
+        if (l_rr.sep_key?)
+          # Check against all the KSKs defined in the config
+          if !Auditor.match_key_config(l_rr, config.keys.ksks)
+            # Print error
+            auditor.log(LOG_ERR, "New KSK DNSKEY has incorrect algorithm (was #{l_rr.algorithm}) or alg_length (was #{l_rr.key_length})")
+          end
+        else
+          # Check against all the ZSKs defined in the config
+          if !Auditor.match_key_config(l_rr, config.keys.zsks)
+            # Print error
+            auditor.log(LOG_ERR, "New ZSK DNSKEY has incorrect algorithm (was #{l_rr.algorithm}) or alg_length (was #{l_rr.key_length})")
+          end
+        end
+      end
+  end
+
     # Check the DNSKEY RR
     def check_dnskey(l_rr)
-      # @TODO@ We should also do more checks against the policy here -
-      # e.g. algorithm code and length
-      # @TODO@ When adding these checks, also make sure we only check DNSKEYs which are not in the @key_cache
+      # Make sure we only check DNSKEYs which are not in the @key_cache
+      Auditor.check_key_config(@key_cache, @config, l_rr, self)
       if (l_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
         log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
       end

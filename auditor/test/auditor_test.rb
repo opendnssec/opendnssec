@@ -38,7 +38,7 @@ class AuditorTest < Test::Unit::TestCase
     kasp_filename = "kasp_nsec3.xml"
     run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp")
 
-    success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
+    success = check_syslog(stderr, [# "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
         #      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
       ])
     assert(success, "NSEC3 good file not audited correctly")
@@ -102,10 +102,11 @@ class AuditorTest < Test::Unit::TestCase
 
       # Key lifetime tracking
       "Not enough prepublished KSKs! Should be 2 but have 0",
-      "Not enough prepublished ZSKs! Should be 2 but have 0"
+      "Not enough prepublished ZSKs! Should be 2 but have 0",
+
+      "New KSK DNSKEY has incorrect algorithm (was RSASHA1) or alg_length (was 1024)"
       # @TODO@ Check SOA Serial == KEEP
 
-      # @TODO@ Check DNSKEY alg codes and lengths against kasp.xml
       # @TODO@ Update online spec some time!
     ]
     success = check_syslog(stderr, expected_strings)
@@ -192,7 +193,8 @@ class AuditorTest < Test::Unit::TestCase
     kasp_filename = "kasp_nsec3.xml"
     run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp", true)
 
-    success = check_syslog(stderr, ["Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used"])
+    success = check_syslog(stderr, [# "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used"
+        ])
     assert(success, "NSEC3 good file not audited correctly")
   end
 
@@ -225,10 +227,10 @@ class AuditorTest < Test::Unit::TestCase
 
       # Key lifetime tracking
       "Not enough prepublished KSKs! Should be 2 but have 0",
-      "Not enough prepublished ZSKs! Should be 2 but have 0"
+      "Not enough prepublished ZSKs! Should be 2 but have 0",
       # @TODO@ Check SOA Serial == KEEP
 
-      # @TODO@ Check DNSKEY alg codes and lengths against kasp.xml
+      "New KSK DNSKEY has incorrect algorithm (was RSASHA1) or alg_length (was 1024)"
       # @TODO@ Update online spec some time!
     ]
     success = check_syslog(stderr, expected_strings)
@@ -385,7 +387,7 @@ class AuditorTest < Test::Unit::TestCase
       # Not enough pre-published KSK
       "Not enough prepublished KSKs! Should be 2 but have 0",
       # KSK too long in use
-      "KSK 52937 in use too long - should be max 1 seconds but has been",
+      "KSK 51902 in use too long - should be max 1 seconds but has been",
       # ZSK too long in use
       "ZSK 51901 in use too long - should be max 1 seconds but has been",
       # SOA serial checking
@@ -414,7 +416,7 @@ class AuditorTest < Test::Unit::TestCase
     # So, create some keys for testing
     ksk_key1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
         :protocol => 3, :flags => RR::DNSKEY::SEP_KEY|RR::DNSKEY::ZONE_KEY,
-        :algorithm => 1, :key => "zsk_key1"})
+        :algorithm => 5, :key => "AAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
     key1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
         :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
         :key => "AAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})

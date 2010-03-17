@@ -89,6 +89,10 @@ module KASPAuditor
         @domain_list = []
         log(LOG_INFO, "Auditing #{@config.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
 
+        # Load the stored key history from previous runs
+        @key_tracker = KeyTracker.new(@working, @config.name, self, @config, @enforcer_interval)
+        @key_cache = @key_tracker.load_tracker_cache
+
         # Work out what we need to check about this zone, and thus what we
         # should be looking for as we run through the input files.
         @scan_options = get_scan_options
@@ -843,8 +847,8 @@ module KASPAuditor
       end
       @keys.push(key_rr)
 
-      # @TODO@ We should also do more checks against the policy here -
-      # e.g. algorithm code and length
+      Auditor.check_key_config(@key_cache, @config, key_rr, self)
+
       # @TODO@ When adding these checks, also make sure we only check DNSKEYs which are not in the @key_cache
       if (key_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
         log(LOG_ERR, "DNSKEY has invalid flags : #{key_rr}")
