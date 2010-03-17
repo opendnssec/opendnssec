@@ -99,6 +99,10 @@ int init()
         close(i); /* close all descriptors */
     /* open dummy stdin/-out/-err */
     i=open("/dev/null",O_RDWR);
+    if (i < 0) {
+        syslog(LOG_ERR, "Failed opening /dev/null");
+        exit(1);
+    }
     dup(i);
     dup(i); /* handle standard I/O */
 
@@ -110,7 +114,7 @@ int init()
 
     char* pidfile = config_value("/eppclient/pidfile");
     int fd = open(pidfile, O_RDONLY);
-    if (fd) {
+    if (fd >= 0) {
         char buf[10] = {0};
         read(fd, buf, sizeof buf);
         int pid = atoi(buf);
@@ -130,7 +134,12 @@ int init()
     }
     char str[10];
     snprintf(str,sizeof str,"%d\n",(unsigned int) getpid());
-    write(fd,str,strlen(str)); /* record pid to lockfile */
+    int len = strlen(str);
+    /* record pid to lockfile */
+    if (write(fd,str,len) < len) {
+        syslog(LOG_ERR, "Failed writing pid: errno %d", errno);
+        exit(1);
+    }
     fsync(fd);
 
     signal(SIGCHLD,SIG_IGN); /* ignore child */
