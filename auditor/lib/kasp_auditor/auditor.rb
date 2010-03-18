@@ -994,7 +994,7 @@ module KASPAuditor
       end
 
 
-      @soa =  unsigned_soa
+      @soa =  signed_soa
     end
 
     # Load the SOA from an unparsed file
