@@ -3366,136 +3366,95 @@ int read_filenames(char** zone_list_filename, char** kasp_filename)
 int update_repositories()
 {
     int status = 0;
-    xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
-    int ret = 0; /* status of the XML parsing */
+    xmlNode *curNode;
     char* repo_name = NULL;
     char* repo_capacity = NULL;
     int require_backup = 0;
-    char* tag_name = NULL;
-    char* temp_char = NULL;
+    int i = 0;
 
-    xmlChar *name_expr = (unsigned char*) "name";
-    xmlChar *capacity_expr = (unsigned char*) "//Repository/Capacity";
-    xmlChar *backup_expr = (unsigned char*) "//Repository/RequireBackup";
+    xmlChar *node_expr = (unsigned char*) "//Configuration/RepositoryList/Repository";
 
-    /* Start reading the file; we will be looking for "Repository" tags */ 
-    reader = xmlNewTextReaderFilename(config);
-    if (reader != NULL) {
-        ret = xmlTextReaderRead(reader);
-        while (ret == 1) {
-            tag_name = (char*) xmlTextReaderLocalName(reader);
-            /* Found <Repository> */
-            if (strncmp(tag_name, "Repository", 10) == 0 
-                    && strncmp(tag_name, "RepositoryList", 14) != 0
-                    && xmlTextReaderNodeType(reader) == 1) {
-                /* Get the repository name */
-                repo_name = NULL;
-                temp_char = (char*) xmlTextReaderGetAttribute(reader, name_expr);
-                StrAppend(&repo_name, temp_char);
-                StrFree(temp_char);
-                /* Make sure that we got something */
-                if (repo_name == NULL) {
-                    /* error */
-                    printf("Error extracting repository name from %s\n", config);
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
+    /* Start reading the file; we will be looking for "Repository" tags */
+    /* Load XML document */
+    doc = xmlParseFile(config);
+    if (doc == NULL) {
+        printf("Unable to open %s\n", config);
+        return(1);
+    }
+
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        xmlFreeDoc(doc);
+        return(1);
+    }
+
+    /* Evaluate xpath expression */
+    xpathObj = xmlXPathEvalExpression(node_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(1);
+    }
+
+    if (xpathObj->nodesetval) {
+        for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
+
+            require_backup = 0;
+            StrAppend(&repo_capacity, "");
+
+            curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            repo_name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i],
+                                             (const xmlChar *)"name");
+            while (curNode) {
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"Capacity")) {
+                    repo_capacity = (char *) xmlNodeGetContent(curNode);
+                }
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"RequireBackup")) {
+                    require_backup = 1;
                 }
 
+                curNode = curNode->next;
+            }
+
+            if (strlen(repo_name) != 0) {
+                /* Log what we are about to do */
                 printf("Repository %s found\n", repo_name);
-
-                /* Expand this node and get the rest of the info with XPath */
-                xmlTextReaderExpand(reader);
-                doc = xmlTextReaderCurrentDoc(reader);
-                if (doc == NULL) {
-                    printf("Error: can not read repository \"%s\"; skipping\n", repo_name);
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                xpathCtx = xmlXPathNewContext(doc);
-                if(xpathCtx == NULL) {
-                    printf("Error: can not create XPath context for \"%s\"; skipping repository\n", repo_name);
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                /* Evaluate xpath expression for capacity */
-                xpathObj = xmlXPathEvalExpression(capacity_expr, xpathCtx);
-
-                if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s; skipping repository\n", capacity_expr);
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-                repo_capacity = NULL;
-                temp_char = (char*) xmlXPathCastToString(xpathObj);
-                StrAppend(&repo_capacity, temp_char);
-                StrFree(temp_char);
                 if (strlen(repo_capacity) == 0) {
                     printf("No Maximum Capacity set.\n");
                 } else {
                     printf("Capacity set to %s.\n", repo_capacity);
                 }
-
-                xmlXPathFreeObject(xpathObj);
-
-                /* See if we were gven a "RequireBackup" tag or not */
-                xpathObj = xmlXPathEvalExpression(backup_expr, xpathCtx);
-                xmlXPathFreeContext(xpathCtx);
-
-                if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s; skipping repository\n", backup_expr);
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-                if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
-                    /*
-                     * tag present
-                     */
-                    require_backup = 1;
-                    printf("RequireBackup set.\n");
-                } else {
-                    require_backup = 0;
+                if (require_backup == 0) {
                     printf("RequireBackup NOT set; please make sure that you know the potential problems of using keys which are not recoverable\n");
+                } else {
+                    printf("RequireBackup set.\n");
                 }
 
-                xmlXPathFreeObject(xpathObj);
-                
-                /*
-                 * Now we have all the information update/insert this repository
+                 /*
+                 * We have all the information, update/insert this repository
                  */
                 status = KsmImportRepository(repo_name, repo_capacity, require_backup);
                 if (status != 0) {
                     printf("Error Importing Repository %s", repo_name);
                     /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
                 }
-
-                StrFree(repo_name);
-                StrFree(repo_capacity);
+            } else {
+                printf("WARNING: Repository found with NULL name, skipping...\n");
             }
-            /* Read the next line */
-            ret = xmlTextReaderRead(reader);
+            StrFree(repo_name);
+            StrFree(repo_capacity);
+        }
+    }
 
-            StrFree(tag_name);
-        }
-        xmlFreeTextReader(reader);
-        if (ret != 0) {
-            printf("%s : failed to parse\n", config);
-            return(1);
-        }
-    } else {
-        printf("Unable to open %s\n", config);
-        return(1);
+    if (xpathObj) {
+        xmlXPathFreeObject(xpathObj);
+    }
+    if (xpathCtx) {
+        xmlXPathFreeContext(xpathCtx);
     }
     if (doc) {
         xmlFreeDoc(doc);
