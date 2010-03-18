@@ -409,6 +409,7 @@ class Zone:
         
         cmd = [ self.get_tool_filename("quicksorter"),
                 "-o", self.zone_name + ".",
+                "-f", self.get_zone_tmp_filename(".signed"),
                 "-w", self.get_zone_tmp_filename(".signed.sorted")
               ]
         if self.zone_config.soa_minimum is not None:
@@ -419,26 +420,9 @@ class Zone:
             cmd.append(str(self.zone_config.dnskey_ttl))
         sort_process = Util.run_tool(cmd, subprocess.PIPE)
         
-        # sort published keys and zone data
         try:
             if not sort_process:
                 raise OSError("Sorter not found")
-
-            unsorted_zone_file = open(
-                             self.get_zone_tmp_filename(".signed"), "r")
-            if not unsorted_zone_file:
-                syslog.syslog(syslog.LOG_ERR,
-                              "Error opening zone input file: " +
-                              self.get_zone_tmp_filename(".signed"))
-            else:
-                syslog.syslog(syslog.LOG_DEBUG,
-                              "Writing file to sorter: " +
-                              self.get_zone_tmp_filename(".signed"))
-            for line in unsorted_zone_file:
-                sort_process.stdin.write(line)
-            sort_process.stdin.close()
-            unsorted_zone_file.close()
-            #sorted_zone_file = open(self.get_zone_tmp_filename(".sorted"), "w")
 
             for line in sort_process.stderr:
                 syslog.syslog(syslog.LOG_ERR,
