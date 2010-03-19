@@ -584,13 +584,13 @@ module KASPAuditor
       # See if we can match our key against any of the configured keys.
       # We're looking for algorithm and alg_length
       begin
-      configured_keys.each {|configured_key|
-        if (configured_key.algorithm == key.algorithm) &&
-             (configured_key.alg_length == key.key_length)
-           return true
-        end
-      }
-      return false
+        configured_keys.each {|configured_key|
+          if (configured_key.algorithm == key.algorithm) &&
+              (configured_key.alg_length == key.key_length)
+            return true
+          end
+        }
+        return false
       rescue NoMethodError
         return true # Omit this test - this version of Dnsruby does not have the key_length method
       end
@@ -613,7 +613,7 @@ module KASPAuditor
           end
         end
       end
-  end
+    end
 
     # Check the DNSKEY RR
     def check_dnskey(l_rr)
@@ -1096,10 +1096,12 @@ module KASPAuditor
                   nsec3_name, nsec3_types = get_name_and_types(fnsec3)
                 end
                 while ((types_name < nsec3_name) && (!ftypes.eof?))
-                  if (!unknown_nsecs[types_name_unhashed+"."] && types_types.length > 0)
-                    log(LOG_ERR, "Found RRs for #{types_name_unhashed} (#{types_name}) which was not covered by an NSEC3 record")
-                  else
-                    log(LOG_ERR, "Can't find NSEC3 for empty nonterminal #{types_name_unhashed} (should be #{types_name})")
+                  if (!unknown_nsecs[types_name_unhashed+"."])
+                    if (types_types.length > 0)
+                      log(LOG_ERR, "Found RRs for #{types_name_unhashed} (#{types_name}) which was not covered by an NSEC3 record")
+                    else
+                      log(LOG_ERR, "Can't find NSEC3 for empty nonterminal #{types_name_unhashed} (should be #{types_name})")
+                    end
                   end
                   types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
 
