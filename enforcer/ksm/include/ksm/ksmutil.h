@@ -53,8 +53,7 @@ int update_policies(char* kasp_filename);
 int update_zones(char* zone_list_filename);
 int get_lite_lock(char *lock_filename, FILE* lock_fd);
 int release_lite_lock(FILE* lock_fd);
-int SetParamOnPolicy(xmlXPathContextPtr xpathCtx, 
-                     const xmlChar* xpath_expr, 
+int SetParamOnPolicy(const xmlChar* new_value,
                      const char* name, 
                      const char* category, 
                      int current_value, 

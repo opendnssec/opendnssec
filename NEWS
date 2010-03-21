@@ -35,6 +35,7 @@ Bugfixes:
   retire date.
 * Fix KSK rollover logic to be proper DoubleDNSKEY
 * Fix issue with reading repositories from conf.xml
+* Fix issue with reading policies from kasp.xml
 
 
 OpenDNSSEC 1.0.0 - 2010-02-09
