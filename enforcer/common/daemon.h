@@ -113,6 +113,7 @@ typedef struct
     int keycreate;
     int manualKeyGeneration;
     int rolloverNotify;
+    char* DSSubmitCmd;
 
     int log_user; /* log facility (or default of LOG_DAEMON) */
 

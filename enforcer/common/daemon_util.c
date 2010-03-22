@@ -567,6 +567,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
     xmlChar *mk_expr = (unsigned char*) "//Configuration/Enforcer/ManualKeyGeneration";
     xmlChar *rn_expr = (unsigned char*) "//Configuration/Enforcer/RolloverNotification";
+    xmlChar *ds_expr = (unsigned char*) "//Configuration/Enforcer/DelegationSignerSubmitCommand";
     xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQLite";
     xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
     xmlChar *mysql_port = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host/@port";
@@ -751,6 +752,32 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     else {
         /* Tag RolloverNotification absent, set rolloverNotify to -1 */
         config->rolloverNotify = -1;
+    }
+
+    /* Evaluate xpath expression for DelegationSignerSubmitCommand */
+    xpathObj = xmlXPathEvalExpression(ds_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", ds_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+        /* Tag DelegationSignerSubmitCommand is present; set DSSubmitCmd */
+        if (config->DSSubmitCmd != NULL) {
+            StrFree(config->DSSubmitCmd);
+        }
+        config->DSSubmitCmd = (char *)xmlXPathCastToString(xpathObj);
+
+        if (verbose) {
+            log_msg(config, LOG_INFO, "Using command: %s to submit DS records", config->DSSubmitCmd);
+        }
+        xmlXPathFreeObject(xpathObj);
+    } else {
+        if (verbose) {
+            log_msg(config, LOG_INFO, "No DS Submit command supplied");
+        }
+        config->DSSubmitCmd[0] = '\0';
     }
 
     /* Evaluate xpath expression for SQLite file location */

@@ -39,6 +39,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <syslog.h>
 #include <stdarg.h>
 #include <errno.h>
@@ -59,6 +60,10 @@
 #include "ksm/kmedef.h"
 #include "ksm/message.h"
 #include "ksm/string_util.h"
+
+#ifndef MAXPATHLEN
+# define MAXPATHLEN 4096
+#endif
 
 extern int server_init(DAEMONCONFIG *config);
 extern void server_main(DAEMONCONFIG *config);
@@ -106,6 +111,7 @@ main(int argc, char *argv[]){
     config.password = (unsigned char *)calloc(MAX_PASSWORD_LENGTH, sizeof(char));
     config.schema = (unsigned char *)calloc(MAX_SCHEMA_LENGTH, sizeof(char));
     config.port = (unsigned char *)calloc(MAX_PORT_LENGTH, sizeof(char));
+    config.DSSubmitCmd = (char *)calloc(MAXPATHLEN + 1024, sizeof(char));
 
     if (config.user == NULL || config.host == NULL || config.password == NULL || 
           config.schema == NULL || config.port == NULL ) {
@@ -240,6 +246,7 @@ main(int argc, char *argv[]){
     free(config.password);
     free(config.schema);
     free(config.port);
+    free(config.DSSubmitCmd);
 
     StrFree(config.username);
     StrFree(config.groupname);

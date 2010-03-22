@@ -707,7 +707,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 }
 
                 /* turn this zone and policy into a file */
-                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, &key_string);
+                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, &key_string, config->DSSubmitCmd);
                 if (status2 == -2) {
                     log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -783,7 +783,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
  *  returns 0 on success and -1 if something went wrong
  *                           -2 if the RequestKeys call failed
  */
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, char** key_string)
+int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, char** key_string, const char* DSSubmitCmd)
 {
     int status = 0;
     int status2 = 0;
@@ -1098,7 +1098,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     /* If the DS set changed then log/do something about it */
     if (NewDS == 1) {
         log_msg(NULL, LOG_INFO, "DSChanged");
-        status = NewDSSet(zone_id, zone_name);
+        status = NewDSSet(zone_id, zone_name, DSSubmitCmd);
     }
 
     StrFree(old_filename);
@@ -1543,7 +1543,7 @@ int do_purge(int interval, int policy_id)
     return status;
 }
 
-int NewDSSet(int zone_id, const char* zone_name) {
+int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
     int     where = 0;		/* for the SELECT statement */
     char*   sql = NULL;     /* SQL statement (when verifying) */
     char*   sql2 = NULL;    /* SQL statement (if getting DS) */
@@ -1567,9 +1567,10 @@ int NewDSSet(int zone_id, const char* zone_name) {
     /* Key information */
     hsm_key_t *key = NULL;
     ldns_rr *dnskey_rr = NULL;
-    ldns_rr *ds_sha1_rr = NULL;
-    ldns_rr *ds_sha256_rr = NULL;
     hsm_sign_params_t *sign_params = NULL;
+
+    FILE *fp;
+    int bytes_written = -1;
 
     nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d, %d, %d, %d, %d, %d)",
             KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE,
@@ -1696,6 +1697,18 @@ int NewDSSet(int zone_id, const char* zone_name) {
             dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
 
             temp_char = ldns_rr2str(dnskey_rr);
+
+            log_msg(NULL, LOG_INFO, "%s", temp_char);
+
+            /* We need to strip off trailing comments before we send
+               to any clients that might be listening */
+            for (i = 0; temp_char[i]; ++i) {
+                if (temp_char[i] == ';') {
+                    temp_char[i] = '\n';
+                    temp_char[i+1] = '\0';
+                    break;
+                }
+            }
             StrAppend(&ds_buffer, temp_char);
             StrFree(temp_char);
 
@@ -1711,9 +1724,6 @@ int NewDSSet(int zone_id, const char* zone_name) {
             StrAppend(&ds_buffer, temp_char);
             StrFree(temp_char);
 */
-            log_msg(NULL, LOG_INFO, "%s", ds_buffer);
-
-            StrFree(ds_buffer);
 
             hsm_sign_params_free(sign_params);
             hsm_key_free(key);
@@ -1726,6 +1736,27 @@ int NewDSSet(int zone_id, const char* zone_name) {
 
         KsmKeyEnd(result3);
     }
+
+    if (DSSubmitCmd[0] != '\0') {
+        /* send records to the configured command */
+        fp = popen(DSSubmitCmd, "w");
+        if (fp == NULL) {
+            log_msg(NULL, LOG_ERR, "Failed to run command: %s: %s", DSSubmitCmd, strerror(errno));
+            return -1;
+        }
+        bytes_written = fprintf(fp, "%s", ds_buffer);
+        if (bytes_written < 0) {
+            log_msg(NULL, LOG_ERR, "Failed to write to %s: %s", DSSubmitCmd, strerror(errno));
+            return -1;
+        }
+
+        if (pclose(fp) == -1) {
+            log_msg(NULL, LOG_ERR, "Failed to close %s: %s", DSSubmitCmd, strerror(errno));
+            return -1;
+        }
+    }
+
+    StrFree(ds_buffer);
 
     log_msg(NULL, LOG_INFO, "Once the new DS records are seen in DNS please issue the ds-seen command for zone %s with the following cka_ids%s", zone_name, ds_seen_buffer);
 

@@ -18,6 +18,7 @@ OpenDNSSEC trunk
 * Turn NSEC3 OptOut off by default
 * Install kasp2html XML stylesheet
 * Add simple kasp2html conversion script
+* DNSKEY records communicated to an external script if configured
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
