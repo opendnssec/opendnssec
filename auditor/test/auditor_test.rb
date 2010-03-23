@@ -89,6 +89,7 @@ class AuditorTest < Test::Unit::TestCase
       # - missing NSEC for closed loop of each next domain
       "NSEC3PARAM RRs included in NSEC-signed zone",
       "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones.	143	IN	A	123.123.123.123",
+      "Output zone does not contain out of zone RRSet : A, even.more.out.of.bailiwick.	143	IN	A	1.2.3.4",
       "No NSEC record for tjeb.nl",
       "NSEC record should have TTL of 3600 from zone policy //Zone/SOA/Minimum, but is bla.tjeb.nl.",
       "NSEC includes A which is not in rrsets for dragon.tjeb.nl",
@@ -229,6 +230,9 @@ class AuditorTest < Test::Unit::TestCase
       "Not enough prepublished KSKs! Should be 2 but have 0",
       "Not enough prepublished ZSKs! Should be 2 but have 0",
       # @TODO@ Check SOA Serial == KEEP
+
+      # We added the not.there.tjeb.nl record to the signed zone
+      "Number of non-DNSSEC resource records differs : 23 in test/tmp1/tjeb.nl.unsorted, and 24 in test/signer_test_bad/signed_zones/tjeb.nl.nse",
 
       "New KSK DNSKEY has incorrect algorithm (was RSASHA1) or alg_length (was 1024)"
       # @TODO@ Update online spec some time!

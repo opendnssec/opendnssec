@@ -200,7 +200,7 @@ module KASPAuditor
         if (unsigned_rr_count != signed_rr_count)
           # Remember to only count non-DNSSEC records here!
           # @TODO@ What about DNSSEC records in the input zone?
-          log(LOG_ERR, "Number of non-DNSSEC resource records differs : #{unsigned_rr_count} in #{unsigned_file}, and #{signed_rr_count} in #{signed_file}")
+          log(LOG_WARNING, "Number of non-DNSSEC resource records differs : #{unsigned_rr_count} in #{unsigned_file}, and #{signed_rr_count} in #{signed_file}")
         end
         update_key_stores
         log(LOG_INFO, "Finished auditing #{@soa.name} zone")
@@ -379,11 +379,14 @@ module KASPAuditor
           end
           next if (line.index("$ORIGIN") == 0)
           next if (line.index("$TTL") == 0)
-          if (line=~/\sDNSKEY\s|\sRRSIG\s|\sNSEC\s|\sNSEC3\s|\sNSEC3PARAM\s/)
+          if (ret_line=~/DNSKEY|RRSIG|NSEC|NSEC3|NSEC3PARAM|TYPE/)
             begin
-              rr = RR.create(line)
+              rr = RR.create(ret_line)
               if ([Types::RRSIG, Types::DNSKEY, Types::NSEC, Types::NSEC3, Types::NSEC3PARAM].include?rr.type)
-                @parent.log(LOG_WARNING, "#{rr.type} present in unsigned file : #{line.chomp}")
+                @parent.log(LOG_WARNING, "#{rr.type} present in unsigned file : #{ret_line.chomp}")
+                need_to_parse = false
+                continued_line = false
+                next
               end
             rescue Exception
             end
@@ -400,7 +403,12 @@ module KASPAuditor
           end
           need_to_parse = false
           continued_line = false
-          rr_counter += 1 # @TODO@ What about DNSSEC types in the input file?
+          # Handle out-of-zone data. 
+          # We're interested in non-absolute names which are not in zone.
+          rr_name = ret_line.split()[0]
+          if (rr_name[rr_name.length-1, 1] != ".") || (rr_name.downcase=~/#{@config.name}\.$/)
+            rr_counter += 1
+          end
         }
         return rr_counter, soa
       end
@@ -937,6 +945,7 @@ module KASPAuditor
         next if (line[0,1]==";")
         name = line.split()[0]
         next if name=~/[\*\(\)\^\[\]\+]/
+        next if !name
         if (!name_in_list(name))
           add_name_to_list(name)
           counter += 1

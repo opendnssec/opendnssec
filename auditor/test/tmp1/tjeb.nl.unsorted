@@ -11,6 +11,7 @@ ns-ext.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
 nsec3.tjeb.nl.		 3600		 IN		 DS		 22922 7 1 f62411de95a5b7bcabe976c0e65034a35a9fa937 ; xutid-gygat-vihop-hutur-sypiv-natos-binah-bytyp-fekyn-zypof-lyxix
 nsec3.tjeb.nl.		 1234		 IN		 NS		 ns.nsec3.tjeb.nl.
 test.test.tjeb.nl.		 1234		 IN		 A		 195.169.221.157
+even.more.out.of.bailiwick. 143 IN A 1.2.3.4
 www.tjeb.nl.		 3600		 IN		 AAAA		 2002:c3a9:dd9d:1::1
 www.tjeb.nl.		 3600		 IN		 A		 195.169.221.157
 unsigned.tjeb.nl. 3600		 IN		 NS		 ns1.asdf.nl.
