@@ -5179,6 +5179,22 @@ int ListKeys(int zone_id)
                 printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_dead == NULL) ? "(not scheduled)" : temp_dead);
                 done_row = 1;
             }
+            else if (temp_state == KSM_STATE_DSSUB) {
+                printf("%-31s %-13s %-9s %-26s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), "waiting for ds-seen");
+                done_row = 1;
+            }
+            else if (temp_state == KSM_STATE_DSPUBLISH) {
+                printf("%-31s %-13s %-9s %-26s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
+                done_row = 1;
+            }
+            else if (temp_state == KSM_STATE_DSREADY) {
+                printf("%-31s %-13s %-9s %-26s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), "When required");
+                done_row = 1;
+            }
+            else if (temp_state == KSM_STATE_KEYPUBLISH) {
+                printf("%-31s %-13s %-9s %-26s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), (temp_active == NULL) ? "(not scheduled)" : temp_active);
+                done_row = 1;
+            }
 
             if (done_row == 1 && verbose_flag == 1) {
                 key = hsm_find_key_by_id(NULL, temp_loc);
