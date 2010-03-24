@@ -1,25 +1,9 @@
 $Id$
 
-OpenDNSSEC 1.0.0 - Known Restrictions
+OpenDNSSEC 1.1.0 - Known Restrictions
 
-The following are the known problems and/or restrictions of release 1.0.0 of
+The following are the known problems and/or restrictions of release 1.1.0 of
 OpenDNSSEC.
-
-
-Auditor slow for large zones
-----------------------------
-
-The auditor is a component of OpenDNSSEC that checks that the zone file has
-been signed correctly and will prevent the loading of the zone if it detects
-an error.
-
-For large zones (of the order of millions of names), the auditor can take a
-significant amount of time to run, much longer than the signer. If zone files
-are updated on a regular basis, the length of time needed to audit the signer
-output may exceed the interval between zone updates.
-
-If this is the case in your installation, it is recommended that you disable
-the auditor.
 
 
 Zone file may not contain certain strings
