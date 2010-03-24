@@ -479,11 +479,12 @@ module KASPAuditor
         first = true
         list = @parent.domain_list + @parent.hashed_domain_list
         list.each {|domain|
+          domain_string = domain.gsub!(".", "\\.")
           if first
             first = false
-            grep_command+="(^#{domain})"
+            grep_command+="^(#{domain_string})"
           else
-            grep_command+="|(^#{domain})"
+            grep_command+="|^(#{domain_string})"
           end
           break if grep_command.length > 50000
         }
