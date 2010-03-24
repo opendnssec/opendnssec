@@ -102,7 +102,7 @@ char *o_zone = NULL;
 char *o_keytag = NULL;
 static int all_flag = 0;
 static int ds_flag = 0;
-static int retire_flag = 0;
+static int retire_flag = 1;
 static int verbose_flag = 0;
 
     void
@@ -282,7 +282,7 @@ usage_keydsseen ()
             "  key ds-seen\n"
             "\t--zone <zone>                            aka -z\n"
             "\t--keytag <keytag> | --cka_id <CKA_ID>    aka -x / -k\n"
-            "\t--retire-current\n");
+            "\t--no-retire\n");
 }
 
     void
@@ -2794,7 +2794,7 @@ main (int argc, char *argv[])
         {"config",  required_argument, 0, 'c'},
         {"ds",      no_argument,       0, 'd'},
         {"keystate", required_argument, 0, 'e'},
-        {"retire-current",  no_argument,       0, 'f'},
+        {"no-retire", no_argument,       0, 'f'},
         {"algorithm", required_argument, 0, 'g'},
         {"help",    no_argument,       0, 'h'},
         {"input",   required_argument, 0, 'i'},
@@ -2833,7 +2833,7 @@ main (int argc, char *argv[])
                 o_keystate = StrStrdup(optarg);
                 break;
             case 'f':
-                retire_flag = 1;
+                retire_flag = 0;
                 break;
             case 'g':
                 o_algo = StrStrdup(optarg);

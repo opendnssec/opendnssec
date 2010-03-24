@@ -217,9 +217,9 @@ short integer that serves as a DNSSEC handle to a key; the \-\-cka_id
 option refers to a key by way of its long hexadecimal identifier used
 to identify the key in the repository.
 
-An optional \-\-retire-current flag can also be passed in, this will move
-the existing key into the retired state at the same time as making the 
-new key active. If you wish to delay this step then leave this flag off 
+An optional \-\-no\-retire flag can also be passed in, without this the 
+existing key is moved into the retired state at the same time as making 
+the new key active. If you wish to delay this step then pass in this flag 
 and use the ksk\-retire command when needed.
 .br
 .TP
