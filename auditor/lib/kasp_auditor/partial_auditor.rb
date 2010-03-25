@@ -38,6 +38,7 @@ module KASPAuditor
 
     attr_accessor :scan_options
     attr_reader :domain_list, :keys, :soa, :config
+    attr_reader :pattern_file
 
     def get_scan_options
       # This should be read from a file or something
@@ -70,10 +71,12 @@ module KASPAuditor
       #  compare them after - this could be in memory (if there are few) or in a file
       #  if there are many. We'll need at least those records at the zone apex.
       #
+      @num_output_lines = 0
       pid = Process.pid
       temp_unsigned_file = (@working + File::SEPARATOR + File.basename(unsigned_file) + ".#{pid}").untaint
       temp_signed_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".#{pid}").untaint
       temp_keys_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".keys.#{pid}").untaint
+      @pattern_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".pattern.#{pid}").untaint
       @nsec_temp_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".nsec.#{pid}").untaint
       domain_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".domains.#{pid}").untaint
       # Set up a buffer for writing the NSEC records to
@@ -216,6 +219,7 @@ module KASPAuditor
         delete(temp_signed_file)
         delete(temp_unsigned_file)
         delete(@nsec_temp_file)
+        delete(@pattern_file)
         delete(domain_file)
       end
     end
@@ -475,9 +479,9 @@ module KASPAuditor
 
       def grep_for_domains_of_interest(file, domain_filename)
         # Use the parent.domain_list to grep for all the instances of the domains we're after.
+        list = @parent.domain_list + @parent.hashed_domain_list
         grep_command = "egrep '"
         first = true
-        list = @parent.domain_list + @parent.hashed_domain_list
         list.each {|domain|
           domain_string = domain.gsub!(".", "\\.")
           if first
@@ -872,10 +876,18 @@ module KASPAuditor
 
     # Log the message, and set the return value to the most serious code so far
     def log(pri, msg)
-      print "#{pri}: #{msg}\n"
       if (pri.to_i < @ret_val)
         @ret_val = pri.to_i
       end
+      return if (@num_output_lines >= 100)
+      @num_output_lines += 1
+      if (@num_output_lines == 100)
+        msg = "Too much output from auditor - suppressing for rest of run"
+        print "#{msg}\n"
+        @syslog.log(LOG_WARNING, msg)
+        return
+      end
+      print "#{pri}: #{msg}\n"
       begin
         @syslog.log(pri, msg)
       rescue ArgumentError # Make sure we continue no matter what

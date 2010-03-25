@@ -99,6 +99,7 @@ module KASPAuditor
     # by the auditor, as it is required to keep state on the zone over time.
     def check_zone(cnfg, unsigned_file, signed_file, original_unsigned_file, original_signed_file)
       reset
+      @num_output_lines = 0
       set_config(cnfg)
       nsec3auditor = Nsec3Auditor.new(self, @working)
       nsec3auditor.delete_nsec3_files()
@@ -1028,10 +1029,18 @@ module KASPAuditor
 
     # Log the message, and set the return value to the most serious code so far
     def log(pri, msg)
-      print "#{pri}: #{msg}\n"
       if (pri.to_i < @ret_val)
         @ret_val = pri.to_i
       end
+      return if (@num_output_lines >= 100)
+      @num_output_lines += 1
+      if (@num_output_lines == 100)
+        msg = "Too much output from auditor - suppressing for rest of run"
+        print "#{msg}\n"
+        @syslog.log(LOG_WARNING, msg)
+        return
+      end
+      print "#{pri}: #{msg}\n"
       begin
         @syslog.log(pri, msg)
       rescue ArgumentError # Make sure we continue no matter what

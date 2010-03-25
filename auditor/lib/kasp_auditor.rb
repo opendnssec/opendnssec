@@ -328,6 +328,7 @@ module KASPAuditor
           begin
             working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
           rescue Exception
+            # @TODO@ There should be a default value for this!
             KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
           end
           begin
