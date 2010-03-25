@@ -6048,7 +6048,10 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
 
             done_row = 0;
 
-            *temp_key_state = temp_state;
+            if (keytag == -1 && cka_id == NULL)
+            {
+                *temp_key_state = temp_state;
+            }
 
             key = hsm_find_key_by_id(NULL, temp_loc);
             if (!key) {
@@ -6070,6 +6073,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                     *temp_cka_id = NULL;
                     StrAppend(temp_cka_id, temp_loc);
                     *zone_id = temp_zone_id;
+                    *temp_key_state = temp_state;
                     printf("Found key with CKA_ID %s\n", temp_loc);
                 }
 
@@ -6082,6 +6086,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                     *temp_cka_id = NULL;
                     StrAppend(temp_cka_id, temp_loc);
                     *zone_id = temp_zone_id;
+                    *temp_key_state = temp_state;
                     printf("Found key with CKA_ID %s\n", temp_loc);
                 }
             }
