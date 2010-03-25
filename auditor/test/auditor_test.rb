@@ -102,7 +102,7 @@ class AuditorTest < Test::Unit::TestCase
       "Can't follow NSEC loop from not.there.tjeb.nl to really.not.there.tjeb.nl",
 
       # Key lifetime tracking
-      "Not enough prepublished KSKs! Should be 2 but have 0",
+#      "Not enough prepublished KSKs! Should be 2 but have 0",
       "Not enough prepublished ZSKs! Should be 2 but have 0",
 
       "New KSK DNSKEY has incorrect algorithm (was RSASHA1) or alg_length (was 1024)"
@@ -227,7 +227,7 @@ class AuditorTest < Test::Unit::TestCase
       "RRSet (dragon.tjeb.nl, NSEC) failed verification : Signature failed to cryptographically verify, tag = 1390",
 
       # Key lifetime tracking
-      "Not enough prepublished KSKs! Should be 2 but have 0",
+#      "Not enough prepublished KSKs! Should be 2 but have 0",
       "Not enough prepublished ZSKs! Should be 2 but have 0",
       # @TODO@ Check SOA Serial == KEEP
 
@@ -389,7 +389,7 @@ class AuditorTest < Test::Unit::TestCase
       # Not enough pre-published ZSK
       "Not enough prepublished ZSKs! Should be 2 but have 0",
       # Not enough pre-published KSK
-      "Not enough prepublished KSKs! Should be 2 but have 0",
+#      "Not enough prepublished KSKs! Should be 2 but have 0",
       # KSK too long in use
       "KSK 51902 in use too long - should be max 1 seconds but has been",
       # ZSK too long in use

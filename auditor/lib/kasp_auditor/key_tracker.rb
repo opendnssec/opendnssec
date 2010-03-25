@@ -248,10 +248,11 @@ module KASPAuditor
       prepublished_ksk_count = @cache.prepublished.keys.select {|k|
         k.zone_key? && k.sep_key?
       }.length
-      if (prepublished_ksk_count < ksk_min_standby)
-        msg = "Not enough prepublished KSKs! Should be #{ksk_min_standby} but have #{prepublished_ksk_count}"
-        @parent.log(LOG_WARNING, msg)
-      end
+      # Enforcer no longer publishes standby KSKs
+#      if (prepublished_ksk_count < ksk_min_standby)
+#        msg = "Not enough prepublished KSKs! Should be #{ksk_min_standby} but have #{prepublished_ksk_count}"
+#        @parent.log(LOG_WARNING, msg)
+#      end
       #   b) Warn if number of prepublished ZSKs < ZSK:Standby
       # @TODO@ THIS IS WRONG - LOOK UP STANDBY PER KEY!!!
       zsk_min_standby = 999999999999
