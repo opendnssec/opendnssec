@@ -739,20 +739,25 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
 
                     /* First the KSK */
                     status2 = KsmCheckNextRollover(KSM_TYPE_KSK, zone_id, &ksk_expected);
-                    if (status2 != 0) {
+                    if (status2 == -1) {
+                        log_msg(config, LOG_INFO, "No active KSKs yet for zone %s, can't check for impending rollover", zone_name);
+                    }
+                    else if (status2 != 0) {
                         log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
                         /* TODO should we quit or continue? */
-                    }
-                    status2 = DtDateDiff(ksk_expected, datetime, &roll_time);
-                    if (status2 != 0) {
-                        log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
-                    }
+                    } else {
+                        status2 = DtDateDiff(ksk_expected, datetime, &roll_time);
+                        if (status2 != 0) {
+                            log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
+                        } else {
 
-                    if (roll_time <= config->rolloverNotify) {
-                        log_msg(config, LOG_INFO, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
+                            if (roll_time <= config->rolloverNotify) {
+                                log_msg(config, LOG_INFO, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
+                            }
+                            StrFree(datetime);
+                            StrFree(ksk_expected);
+                        }
                     }
-                    StrFree(datetime);
-                    StrFree(ksk_expected);
                 }
 
                 StrFree(current_filename);
