@@ -5168,7 +5168,7 @@ int ListKeys(int zone_id)
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_READY) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), "next rollover");
+                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_type == KSM_TYPE_KSK) ? "waiting for ds-seen" : "next rollover");
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_ACTIVE) {
