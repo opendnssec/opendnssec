@@ -267,6 +267,10 @@ adfile_read_line:
                     return rr;
                 } else if (*status == LDNS_STATUS_SYNTAX_EMPTY) {
                     *status = LDNS_STATUS_OK;
+                    if (rr) {
+                        ldns_rr_free(rr);
+                        rr = NULL;
+                    }
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 } else {
@@ -274,6 +278,7 @@ adfile_read_line:
                         ldns_get_errorstr_by_id(*status), line);
                     if (rr) {
                         ldns_rr_free(rr);
+                        rr = NULL;
                     }
                     return NULL;
                 }
