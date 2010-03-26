@@ -224,6 +224,7 @@ adfile_read_line:
                     /* override default ttl */
                     if (ttl) {
                         *ttl = ldns_str2period(line + 5, &endptr);
+                        new_ttl = *ttl;
                     }
                 } else if (strncmp(line, "$INCLUDE", 8) == 0) {
                     /* dive into this file */
@@ -259,12 +260,9 @@ adfile_read_line:
                     break;
                 }
 
-                *status = ldns_rr_new_frm_str(&rr, line, &new_ttl, *orig, prev);
-                if (ttl && *ttl) {
-                    *ttl = new_ttl;
-                }
+                *status = ldns_rr_new_frm_str(&rr, line, new_ttl, *orig, prev);
                 if (*status == LDNS_STATUS_OK) {
-                    return rr;
+                    return ldns_rr2canonical(rr);
                 } else if (*status == LDNS_STATUS_SYNTAX_EMPTY) {
                     *status = LDNS_STATUS_OK;
                     if (rr) {
