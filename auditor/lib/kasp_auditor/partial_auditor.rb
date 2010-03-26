@@ -38,7 +38,6 @@ module KASPAuditor
 
     attr_accessor :scan_options
     attr_reader :domain_list, :keys, :soa, :config
-    attr_reader :pattern_file
 
     def get_scan_options
       # This should be read from a file or something
@@ -76,7 +75,6 @@ module KASPAuditor
       temp_unsigned_file = (@working + File::SEPARATOR + File.basename(unsigned_file) + ".#{pid}").untaint
       temp_signed_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".#{pid}").untaint
       temp_keys_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".keys.#{pid}").untaint
-      @pattern_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".pattern.#{pid}").untaint
       @nsec_temp_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".nsec.#{pid}").untaint
       domain_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".domains.#{pid}").untaint
       # Set up a buffer for writing the NSEC records to
@@ -219,7 +217,6 @@ module KASPAuditor
         delete(temp_signed_file)
         delete(temp_unsigned_file)
         delete(@nsec_temp_file)
-        delete(@pattern_file)
         delete(domain_file)
       end
     end
@@ -480,19 +477,18 @@ module KASPAuditor
       def grep_for_domains_of_interest(file, domain_filename)
         # Use the parent.domain_list to grep for all the instances of the domains we're after.
         list = @parent.domain_list + @parent.hashed_domain_list
-        grep_command = "egrep '"
+        grep_command = "grep -G '"
         first = true
         list.each {|domain|
-          domain_string = domain.gsub!(".", "\\.")
           if first
             first = false
-            grep_command+="^(#{domain_string})"
+            grep_command+="^#{domain}"
           else
-            grep_command+="|^(#{domain_string})"
+            grep_command+="\\|^#{domain}"
           end
           break if grep_command.length > 50000
         }
-        grep_command= (grep_command + "' #{file} > #{domain_filename}").untaint
+        grep_command= (grep_command + "' #{file}  >> #{domain_filename}").untaint
         system(grep_command)
       end
 
