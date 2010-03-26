@@ -13,6 +13,7 @@ Bugfixes:
   hmac-md5.sig-alg.reg.int.
 * Zone fetcher logged wrong zone when NOTIFY received.
 * Zone fetcher sometimes did not log when signalling signer engine failed.
+* Canonicalize zone while sorting
 
 
 OpenDNSSEC 1.0.0 - 2010-02-09

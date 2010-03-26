@@ -482,6 +482,8 @@ main(int argc, char **argv)
 						ldns_rr_set_ttl(cur_rr, dnskey_ttl);
 					}
 
+					ldns_rr2canonical(cur_rr);
+
 					cur_rr_data = rr_data_new();
 					cur_rr_data->name = ldns_rdf_clone(ldns_rr_owner(cur_rr));
 					cur_rr_data->type = ldns_rr_get_type(cur_rr);
