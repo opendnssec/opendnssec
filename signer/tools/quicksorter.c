@@ -480,6 +480,18 @@ int read_file(char* filename,
                 *end = 0;
             }
         }
+        else {
+            /* strip end-of-line comment */
+            char* ptr = p;
+            char* comment;
+            while ((comment = strchr(ptr, ';'))) {
+                if (!inside_string(p, comment)) {
+                    *comment = 0;
+                    break;
+                }
+                ptr = comment + 1;
+            }
+        }
 
 
         /*** find ttl, class and type ***/
