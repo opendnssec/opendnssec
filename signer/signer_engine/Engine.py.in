@@ -795,6 +795,9 @@ def main():
         if not os.path.exists(os.path.dirname(engine.config.command_socket_file)):
             os.mkdir(os.path.dirname(engine.config.command_socket_file))
 
+        if engine.config.zonefetch_file is not None:
+            engine.start_zonefetcher()
+
         engine.drop_privileges()
         engine.setup_engine()
 
@@ -802,8 +805,6 @@ def main():
             daemonize_engine()
         else:
             print "running as pid " + str(os.getpid())
-        if engine.config.zonefetch_file is not None:
-            engine.start_zonefetcher()
         engine.start_workers()
         engine.run()
         # just to be sure
