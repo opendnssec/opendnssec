@@ -19,6 +19,7 @@ OpenDNSSEC trunk
 * Install kasp2html XML stylesheet
 * Add simple kasp2html conversion script
 * DNSKEY records communicated to an external script if configured
+* The command 'ods-signer restart' is removed.
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
@@ -38,6 +39,8 @@ Bugfixes:
 * Fix issue with reading repositories from conf.xml
 * Fix issue with reading policies from kasp.xml
 * Canonicalize RRs before nseccing zone.
+* Bugreport #113: zone fetcher started before dropping privileges, so that
+  it can bind to socket.
 
 OpenDNSSEC 1.0.0 - 2010-02-09
 
