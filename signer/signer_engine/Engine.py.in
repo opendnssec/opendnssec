@@ -347,6 +347,7 @@ class Engine:
                  "                <zone> is not given all zones are checked",
                  "stop            stop the engine",
                  "start           start the engine",
+                 "restart         restart the engine",
                  "verbosity <nr>  set verbosity (notimpl)"]
                 response = "\n".join(lst)
             if command[:5] == "zones":
@@ -436,7 +437,10 @@ class Engine:
                 response = "Engine stopped"
             if command[:5] == "start":
                 response = "Engine already running"
-                
+            if command[:7] == "restart":
+                signal_handler_stop(1, None)
+                response = "Engine stopped"
+
         except EngineError, exc:
             response = str(exc)
         except Exception, exc:
@@ -694,7 +698,7 @@ class Engine:
         except KeyError:
             raise EngineError("Zone " + zone_name + " not found")
 
-# need global engine var for signal handling stop
+# need global engine var for signal handling, stop and restart
 engine = None
 
 def signal_handler_stop(signum, frame):
@@ -713,6 +717,21 @@ def signal_handler_stop(signum, frame):
                 syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
         finally:
             sys.exit(0)
+    elif signum == 1:
+        try:
+            syslog.syslog(syslog.LOG_INFO, "Restarting engine")
+            if engine:
+                config_file = engine.config_file_name
+                engine.stop_engine()
+                engine = Engine(config_file)
+                engine.read_zonelist()
+                if engine.config.zonefetch_file is not None:
+                    engine.start_zonefetcher()
+                engine.start_workers()
+                engine.setup_engine()
+                engine.run()
+        except Exception, e:
+            syslog.syslog(syslog.LOG_ERR, "Error handling signal: " + str(e))
     
 class EngineError(Exception):
     """General error in the Engine"""

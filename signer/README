@@ -99,6 +99,7 @@ update          re-read the zonelist xml file
                 and check for changed zoneconf.xml files
 stop            stop the engine
 start           start the engine (only when signer is not running)
+restart         restart the engine
 verbosity <nr>  set verbosity (notimpl)
 
 cmd> quit
