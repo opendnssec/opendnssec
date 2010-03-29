@@ -18,6 +18,6 @@ To run the test engine:
 cd <repos>/signer_engine/test
 ./test_engine
 
-If you stop it, and restart it again, it should recognize whether the
+If you stop it, and start it again, it should recognize whether the
 test zone needs resigning based upon the last-modified time of the
 output file.
