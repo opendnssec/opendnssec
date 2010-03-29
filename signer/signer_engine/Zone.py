@@ -395,60 +395,6 @@ class Zone:
             syslog.syslog(syslog.LOG_ERR, "Nseccing failed")
         return succeeded
 
-    def sort_signed(self):
-        """Sorts the output we created earlier according to the new
-           nsec(3) configuration"""
-        syslog.syslog(syslog.LOG_INFO,
-                      "Resorting signed zone: " + self.zone_name)
-        succeeded = False
-
-        # if we have no signed zone yet, simply return ok
-        if not os.path.exists(self.get_zone_tmp_filename(".signed")):
-            syslog.syslog(syslog.LOG_WARNING, "No signed zone yet")
-            return True
-        
-        cmd = [ self.get_tool_filename("quicksorter"),
-                "-o", self.zone_name + ".",
-                "-f", self.get_zone_tmp_filename(".signed"),
-                "-w", self.get_zone_tmp_filename(".signed.sorted")
-              ]
-        if self.zone_config.soa_minimum is not None:
-            cmd.append("-m")
-            cmd.append(str(self.zone_config.soa_minimum))
-        if self.zone_config.dnskey_ttl is not None:
-            cmd.append("-t")
-            cmd.append(str(self.zone_config.dnskey_ttl))
-        sort_process = Util.run_tool(cmd, subprocess.PIPE)
-        
-        try:
-            if not sort_process:
-                raise OSError("Sorter not found")
-
-            for line in sort_process.stderr:
-                syslog.syslog(syslog.LOG_ERR,
-                              "stderr from sorter: " + line)
-
-            if sort_process.wait() == 0:
-                succeeded = True
-        except IOError, ioe:
-            syslog.syslog(syslog.LOG_ERR, "Error reading input zone")
-            syslog.syslog(syslog.LOG_ERR, str(ioe))
-        except OSError, exc:
-            syslog.syslog(syslog.LOG_ERR, "Error sorting zone")
-            syslog.syslog(syslog.LOG_ERR, str(exc))
-            syslog.syslog(syslog.LOG_ERR,
-                          "Command was: " + " ".join(cmd))
-            if sort_process:
-                for line in sort_process.stderr:
-                    syslog.syslog(syslog.LOG_ERR,
-                                  "sorter stderr: " + line)
-            #raise exc
-        if succeeded:
-            syslog.syslog(syslog.LOG_DEBUG, "Done sorting")
-        else:
-            syslog.syslog(syslog.LOG_ERR, "Sorting failed")
-        return succeeded
-
     def nsecify_signed(self):
         """Nsecs the output we created earlier according to the new
            nsec(3) configuration"""
@@ -463,7 +409,7 @@ class Zone:
         
         cmd = [ self.get_tool_filename("zone_reader"),
                 "-c", self.engine_config.config_file_name,
-                "-f", self.get_zone_tmp_filename(".signed.sorted"),
+                "-f", self.get_zone_tmp_filename(".signed"),
                 "-k", self.get_class(),
                 "-o", self.zone_name,
                 "-s", self.get_zone_config_filename(),
@@ -479,7 +425,7 @@ class Zone:
 
             syslog.syslog(syslog.LOG_DEBUG,
                           "Writing file to zone_reader: " +
-                          self.get_zone_tmp_filename(".signed.sorted"))
+                          self.get_zone_tmp_filename(".signed"))
 
             for line in sort_process.stderr:
                 syslog.syslog(syslog.LOG_ERR,
