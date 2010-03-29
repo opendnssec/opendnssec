@@ -95,13 +95,9 @@ domain_add_rr(domain_type* domain, ldns_rr* rr)
     ldns_rr_type rr_type = 0, type_covered = 0;
 
     rr_type = ldns_rr_get_type(rr);
-    /* denial of existence */
+    /* denial of existence, skip: done with domain_nsecify */
     if (rr_type == LDNS_RR_TYPE_NSEC || rr_type == LDNS_RR_TYPE_NSEC3) {
-        if (!domain->nsec_rrset) {
-            domain->nsec_rrset = rrset_create(rr);
-            return 0;
-        }
-        return rrset_add_rr(domain->nsec_rrset, rr);
+        return 0;
     }
 
     /* delegation */
@@ -128,7 +124,7 @@ domain_add_rr(domain_type* domain, ldns_rr* rr)
         type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rr));
         if (type_covered == LDNS_RR_TYPE_NSEC ||
             type_covered == LDNS_RR_TYPE_NSEC3) {
-            return rrset_add_rr(domain->nsec_rrset, rr);
+            return 0;
         } else {
             return rrset_add_rr(domain->auth_rrset, rr);
         }
