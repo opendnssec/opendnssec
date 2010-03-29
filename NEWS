@@ -20,6 +20,8 @@ OpenDNSSEC trunk
 * Add simple kasp2html conversion script
 * DNSKEY records communicated to an external script if configured
 * The command 'ods-signer restart' is removed.
+* Signer Engine now also reuses signatures after a change in NSEC(3) configuration
+  or rolling keys.
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
