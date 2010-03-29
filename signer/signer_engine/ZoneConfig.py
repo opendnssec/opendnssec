@@ -94,17 +94,14 @@ class ZoneConfig:
         if self.publish_keys != ocfg.publish_keys or \
            self.denial_nsec != ocfg.denial_nsec or \
            self.denial_nsec3 != ocfg.denial_nsec3 or \
-           self.publish_keys != ocfg.publish_keys or \
            self.denial_nsec3_algorithm != \
                  ocfg.denial_nsec3_algorithm  or \
            self.denial_nsec3_iterations != \
                  ocfg.denial_nsec3_iterations or \
            self.denial_nsec3_salt != ocfg.denial_nsec3_salt or \
+           self.denial_nsec3_optout != ocfg.denial_nsec3_optout or \
            self.nsec3_param_rr != ocfg.nsec3_param_rr:
             result = self.RESORT
-
-        elif self.denial_nsec3_optout != ocfg.denial_nsec3_optout:
-            result = self.RENSEC
 
         elif self.signature_keys != ocfg.signature_keys or \
              self.soa_ttl != ocfg.soa_ttl or \
