@@ -262,7 +262,8 @@ adfile_read_line:
 
                 *status = ldns_rr_new_frm_str(&rr, line, new_ttl, *orig, prev);
                 if (*status == LDNS_STATUS_OK) {
-                    return ldns_rr2canonical(rr);
+                    ldns_rr2canonical(rr);
+                    return rr;
                 } else if (*status == LDNS_STATUS_SYNTAX_EMPTY) {
                     *status = LDNS_STATUS_OK;
                     if (rr) {
