@@ -3,6 +3,7 @@ $Id$
 OpenDNSSEC 1.0 branch
 
 * Turn NSEC3 OptOut off by default
+* The command 'ods-signer restart' is removed. 
 
 Bugfixes:
 * Fix broken path to ods-signer in zone_fetcher
@@ -14,6 +15,8 @@ Bugfixes:
 * Zone fetcher logged wrong zone when NOTIFY received.
 * Zone fetcher sometimes did not log when signalling signer engine failed.
 * Canonicalize zone while sorting
+* Bugreport #113: zone fetcher started before dropping privileges, so that
+  it can bind to socket.
 
 
 OpenDNSSEC 1.0.0 - 2010-02-09
