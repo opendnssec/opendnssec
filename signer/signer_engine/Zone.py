@@ -549,7 +549,7 @@ class Zone:
                                               ", output serial " + str(ser_out) +\
                                               " is too large. Aborting operation")
 
-            elif self.sort_signed() and self.nsecify_signed() and self.sort_input() and \
+            elif self.nsecify_signed() and self.sort_input() and \
                self.nsecify():
                 if self.sign(True) and self.finalize() and self.audit():
                     self.move_output()
