@@ -337,7 +337,8 @@ adapter_file_read(FILE* fd, struct zone_struct* zone, int include)
             break;
         }
 
-        /* filter out DNSSEC RRs (except DNSKEY) */
+        /* filter out DNSSEC RRs (except DNSKEY and
+         * RRSIGs (we wanna keep them in case a .signed file is given) */
         if (is_dnssec_rr(rr)) {
             ldns_rr_free(rr);
             rr = NULL;
