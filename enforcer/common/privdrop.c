@@ -28,6 +28,8 @@
  *
  */
 
+#define _GNU_SOURCE /* defines for setres(g|u)id */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
