@@ -75,6 +75,7 @@ module KASPAuditor
       temp_unsigned_file = (@working + File::SEPARATOR + File.basename(unsigned_file) + ".#{pid}").untaint
       temp_signed_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".#{pid}").untaint
       temp_keys_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".keys.#{pid}").untaint
+      temp_unsigned_keys_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".unsigned.keys.#{pid}").untaint
       @nsec_temp_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".nsec.#{pid}").untaint
       domain_file = (@working + File::SEPARATOR + File.basename(signed_file) + ".domains.#{pid}").untaint
       # Set up a buffer for writing the NSEC records to
@@ -141,6 +142,7 @@ module KASPAuditor
             @ret_val = 999
             unsigned_scanner = UnsignedZoneScanner.new(self, config)
             rr_count, soa = unsigned_scanner.scan_unsigned_file(unsigned_file, temp_unsigned_file)
+            unsigned_scanner.store_unsigned_keys(self, temp_unsigned_keys_file)
             uwr.write("#{@ret_val}\n")
             uwr.write("#{rr_count}\n")
             uwr.write("#{soa}\n")
@@ -175,6 +177,8 @@ module KASPAuditor
         compare_soas(unsigned_soa, signed_soa)
         @soa = signed_soa
         load_keys_and_keys_used(temp_keys_file)
+        unsigned_keys = load_unsigned_keys(temp_unsigned_keys_file)
+        Auditor.check_key_config(@keys, unsigned_keys, @key_cache, @config, self)
         found_sep = false
         found_non_sep = false
         @keys.each {|key|
@@ -214,6 +218,7 @@ module KASPAuditor
       ensure # Make sure we always delete these files
         # @TODO@ Need to wait for both PIDs to finish, then close and delete the files before returning
         delete(temp_keys_file)
+        delete(temp_unsigned_keys_file)
         delete(temp_signed_file)
         delete(temp_unsigned_file)
         delete(@nsec_temp_file)
@@ -339,6 +344,14 @@ module KASPAuditor
       }
     end
 
+    def load_unsigned_keys(file)
+      unsigned_keys = []
+      IO.foreach(file) {|line|
+        unsigned_keys.push(RR.create(line))
+      }
+      return unsigned_keys
+    end
+
     class UnsignedZoneScanner
       def initialize(parent, config)
         @parent = parent
@@ -347,6 +360,7 @@ module KASPAuditor
       end
 
       def scan_unsigned_file(file, temp_file)
+        @unsigned_keys = []
         # Only interested in doing this so that we can check the domains of interest
         # Also want to know how many non-DNSSEC RRs there are in unsigned file, so we can check right number is also in signed file.
         # Can we simply track whole lines here? i.e. check what is in and out of comment, keep track of ( and ) and ; to know when new line starts
@@ -387,6 +401,9 @@ module KASPAuditor
                 @parent.log(LOG_WARNING, "#{rr.type} present in unsigned file : #{ret_line.chomp}")
                 need_to_parse = false
                 continued_line = false
+                if (rr.type == Types::DNSKEY)
+                  @unsigned_keys.push(rr)
+                end
                 next
               end
             rescue Exception
@@ -413,6 +430,16 @@ module KASPAuditor
         }
         return rr_counter, soa
       end
+
+      def store_unsigned_keys(parent, file)
+        parent.delete(file)
+        File.open(file, 'w') {|f|
+          @unsigned_keys.each {|key|
+            f.write(key.to_s + "\n")
+          }
+        }
+      end
+
     end
 
     class SignedZoneScanner
@@ -856,18 +883,7 @@ module KASPAuditor
       end
       @keys.push(key_rr)
 
-      Auditor.check_key_config(@key_cache, @config, key_rr, self)
-
-      # @TODO@ When adding these checks, also make sure we only check DNSKEYs which are not in the @key_cache
-      if (key_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
-        log(LOG_ERR, "DNSKEY has invalid flags : #{key_rr}")
-      end
-      # Protocol check done by dnsruby when loading DNSKEY RR
-      # Algorithm check done by dnsruby when loading DNSKEY RR
-      # Check TTL
-      if (@config.keys.ttl != key_rr.ttl)
-        log(LOG_ERR, "Key #{key_rr.key_tag} has incorrect TTL : #{key_rr.ttl} instead of zone policy #{@config.keys.ttl}")
-      end
+      #      Auditor.check_key_config(@keys, @unsigned_keys, @key_cache, @config, self)
     end
 
     # Log the message, and set the return value to the most serious code so far

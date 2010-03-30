@@ -59,6 +59,7 @@ module KASPAuditor
       @ret_val = 999
       @keys = []
       @keys_used = []
+      @unsigned_keys = []
       @algs = []
       @last_nsec3_hashed = nil
       @nsec3param = nil
@@ -176,6 +177,9 @@ module KASPAuditor
         # Check the last nsec(3) record in the chain points back to the start
         do_final_nsec_check()
 
+        # Now check the keys we have built up
+        Auditor.check_key_config(@keys, @unsigned_keys, @key_cache, @config, self)
+
         # Now check the NSEC3 opt out and types_covered, if applicable
         if (@config.denial.nsec3)
           nsec3auditor.check_nsec3_types_and_opt_out(@unknown_nsecs)
@@ -287,6 +291,7 @@ module KASPAuditor
         # If this is a DNSKEY record, then remember to add it to the keys!
         if (l_rr.type == Types::DNSKEY)
           @keys.push(l_rr)
+          @unsigned_keys.push(l_rr)
           #          print "Using key #{l_rr.key_tag}\n"
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
         end
@@ -597,38 +602,38 @@ module KASPAuditor
       end
     end
 
-    def Auditor.check_key_config(key_cache, config, l_rr, auditor)
-      if (!key_cache.include_key?l_rr)
-        # Check algorithm and length
-        if (l_rr.sep_key?)
-          # Check against all the KSKs defined in the config
-          if !Auditor.match_key_config(l_rr, config.keys.ksks)
-            # Print error
-            auditor.log(LOG_ERR, "New KSK DNSKEY has incorrect algorithm (was #{l_rr.algorithm}) or alg_length (was #{l_rr.key_length})")
+    def Auditor.check_key_config(keys, unsigned_keys, key_cache, config, auditor)
+      # This method should be called at the end of the run, when all the DNSKEY records
+      # in both the signed and unsigned zones have been collated.
+      # We don't bother checking keys which were defined in the unsigned zone
+      keys.each {|l_rr|
+        next if (unsigned_keys.include?l_rr)
+        if (!key_cache.include_key?l_rr)
+          # Check algorithm and length
+          if (l_rr.sep_key?)
+            # Check against all the KSKs defined in the config
+            if !Auditor.match_key_config(l_rr, config.keys.ksks)
+              # Print error
+              auditor.log(LOG_ERR, "New KSK DNSKEY has incorrect algorithm (was #{l_rr.algorithm}) or alg_length (was #{l_rr.key_length})")
+            end
+          else
+            # Check against all the ZSKs defined in the config
+            if !Auditor.match_key_config(l_rr, config.keys.zsks)
+              # Print error
+              auditor.log(LOG_ERR, "New ZSK DNSKEY has incorrect algorithm (was #{l_rr.algorithm}) or alg_length (was #{l_rr.key_length})")
+            end
           end
-        else
-          # Check against all the ZSKs defined in the config
-          if !Auditor.match_key_config(l_rr, config.keys.zsks)
-            # Print error
-            auditor.log(LOG_ERR, "New ZSK DNSKEY has incorrect algorithm (was #{l_rr.algorithm}) or alg_length (was #{l_rr.key_length})")
+          if (l_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
+            log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
+          end
+          # Protocol check done by dnsruby when loading DNSKEY RR
+          # Algorithm check done by dnsruby when loading DNSKEY RR
+          # Check TTL
+          if (config.keys.ttl != l_rr.ttl)
+            log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{@config.keys.ttl}")
           end
         end
-      end
-    end
-
-    # Check the DNSKEY RR
-    def check_dnskey(l_rr)
-      # Make sure we only check DNSKEYs which are not in the @key_cache
-      Auditor.check_key_config(@key_cache, @config, l_rr, self)
-      if (l_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
-        log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
-      end
-      # Protocol check done by dnsruby when loading DNSKEY RR
-      # Algorithm check done by dnsruby when loading DNSKEY RR
-      # Check TTL
-      if (@config.keys.ttl != l_rr.ttl)
-        log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{@config.keys.ttl}")
-      end
+      }
     end
 
     # Load the next subdomain of the zone from the signed file
@@ -698,7 +703,6 @@ module KASPAuditor
         end
 
         if (l_rr.type == Types::DNSKEY) # Check the DNSKEYs
-          check_dnskey(l_rr)
           if (l_rr.sep_key?)
             seen_dnskey_sep_set = true
           else
