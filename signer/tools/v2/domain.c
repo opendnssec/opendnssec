@@ -271,30 +271,6 @@ domain_nsecify_nsec3(domain_type* domain, domain_type* to,
 }
 
 
-static char*
-status2str(int status)
-{
-    switch (status) {
-        case DOMAIN_STATUS_NONE:
-            return "none";
-        case DOMAIN_STATUS_APEX:
-            return "apex";
-        case DOMAIN_STATUS_AUTH:
-            return "authoritative";
-        case DOMAIN_STATUS_NS:
-            return "delegation";
-        case DOMAIN_STATUS_ENT_NS:
-            return "empty non-ternminal to unsigned delegation";
-        case DOMAIN_STATUS_ENT_AUTH:
-            return "empty non-terminal";
-        case DOMAIN_STATUS_ENT_GLUE:
-            return "empty non-terminal to glue";
-        case DOMAIN_STATUS_OCCLUDED:
-            return "glue";
-    }
-    return "unknown status";
-}
-
 /**
  * Print domain.
  *
