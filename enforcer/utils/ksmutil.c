@@ -105,6 +105,8 @@ static int ds_flag = 0;
 static int retire_flag = 1;
 static int verbose_flag = 0;
 
+static int restart_enforcerd(void);
+
     void
 usage_setup ()
 {
@@ -6576,7 +6578,7 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
     return status;
 }
 
-int restart_enforcerd()
+static int restart_enforcerd()
 {
 	/* ToDo: This should really be rewritten so that it will read
 	   ENFORCER_PIDFILE and send a SIGHUP itself */
