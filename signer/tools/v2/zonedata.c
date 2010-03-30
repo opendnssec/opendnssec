@@ -88,14 +88,14 @@ domain_type*
 zonedata_add_domain(zonedata_type* zd, domain_type* domain, int at_apex)
 {
     ldns_rbnode_t* new_node = NULL;
-    char* str;
+    char* str = NULL;
 
     new_node = domain2node(domain);
     if (ldns_rbtree_insert(zd->domains, new_node) == NULL) {
         str = ldns_rdf2str(domain->name);
         fprintf(stderr, "unable to add domain '%s'\n", str);
         se_free((void*)str);
-        se_free((void*) new_node);
+        se_free((void*)new_node);
         return NULL;
     }
     domain->domain_status = DOMAIN_STATUS_NONE;
@@ -442,8 +442,6 @@ zonedata_nsecify_nsec3(zonedata_type* zd, uint32_t ttl,
         /* don't do glue-only domains */
         if (domain_is_occluded(domain)) {
             node = ldns_rbtree_next(node);
-            str = ldns_rdf2str(domain->name);
-            se_free((void*) str);
             continue;
         }
 
@@ -456,7 +454,6 @@ zonedata_nsecify_nsec3(zonedata_type* zd, uint32_t ttl,
                 continue;
             }
             if (domain->domain_status == DOMAIN_STATUS_ENT_NS) {
-                se_free((void*) str);
                 node = ldns_rbtree_next(node);
                 continue;
             }

@@ -340,6 +340,7 @@ adapter_file_read(FILE* fd, struct zone_struct* zone, int include)
         /* filter out DNSSEC RRs (except DNSKEY) */
         if (is_dnssec_rr(rr)) {
             ldns_rr_free(rr);
+            rr = NULL;
             continue;
         }
 
@@ -353,9 +354,13 @@ adapter_file_read(FILE* fd, struct zone_struct* zone, int include)
     }
 
     /* and done */
-    ldns_rdf_deep_free(orig);
+    if (orig) {
+        ldns_rdf_deep_free(orig);
+        orig = NULL;
+    }
     if (prev) {
         ldns_rdf_deep_free(prev);
+        prev = NULL;
     }
 
     if (!result && status != LDNS_STATUS_OK) {
