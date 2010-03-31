@@ -97,7 +97,7 @@ class OptionsParser
            options.force_full = ff
         end
 
-        # Force partia audit
+        # Force partial audit
         opts.on("-p", "--partial", "Force a partial audit") do |fp|
            options.force_partial = fp
         end
@@ -165,4 +165,5 @@ if (options.force_full)
 elsif (options.force_partial)
   runner.force_partial
 end
+runner.working_folder = "@OPENDNSSEC_STATE_DIR@/tmp"
 runner.run()

@@ -73,6 +73,9 @@ module KASPAuditor
 
     attr_accessor :kasp_file, :zone_name, :signed_temp, :unsigned_zone
     attr_accessor :enable_timeshift, :conf_file
+    
+    # This the default value for the working folders, which is only used if the XML config can't be found
+    attr_accessor :working_folder
 
     def force_partial
       @force_partial = true
@@ -325,17 +328,16 @@ module KASPAuditor
           rescue Exception
             print "Can't read Enforcer->Interval from Configuration\n"
           end
-          begin
-            working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
-          rescue Exception
-            # @TODO@ There should be a default value for this!
-            KASPAuditor.exit("Can't read working directory from conf.xml - exiting", 1)
-          end
-          begin
-            signer_working = doc.elements['Configuration/Signer/WorkingDirectory'].text
-          rescue Exception
-            KASPAuditor.exit("Can't read signer working directory from conf.xml - exiting", 1)
-          end
+            begin
+              working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
+            rescue Exception
+              working = @working_folder
+            end
+            begin
+              signer_working = doc.elements['Configuration/Signer/WorkingDirectory'].text
+            rescue Exception
+              signer_working = @working_folder
+            end
           begin
             zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
           rescue Exception
