@@ -124,6 +124,7 @@ start = element Configuration {
 		privs?,
 
 		# Location to store intermediate audit information
+		# DEFAULT: $(localstatedir)/opendnssec/tmp
 		element WorkingDirectory { xsd:string }?
 	}?
 }
