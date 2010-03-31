@@ -63,6 +63,8 @@ AC_PROG_LIBTOOL
 # Checks for library functions.
 AC_CHECK_FUNCS([arc4random arc4random_uniform])
 
+ACX_BROKEN_SETRES
+
 AC_CONFIG_FILES([
 	Makefile
 	tools/Makefile
