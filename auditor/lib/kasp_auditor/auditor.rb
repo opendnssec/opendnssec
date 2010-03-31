@@ -606,8 +606,15 @@ module KASPAuditor
       # This method should be called at the end of the run, when all the DNSKEY records
       # in both the signed and unsigned zones have been collated.
       # We don't bother checking keys which were defined in the unsigned zone
-      keys.each {|l_rr|
-        next if (unsigned_keys.include?l_rr)
+      keys.each {|l_rr|\
+          found_unsigned = false
+        unsigned_keys.each {|uk|
+          if ((uk.key_tag == l_rr.key_tag) && (uk.key == l_rr.key) && (uk.name == l_rr.name)) # Ignore the TTL
+            found_unsigned = true
+            break
+          end
+        }
+        next if found_unsigned
         if (!key_cache.include_key?l_rr)
           # Check algorithm and length
           if (l_rr.sep_key?)
