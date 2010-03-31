@@ -691,14 +691,14 @@ int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zon
 
 int KsmRequestChangeStateDSPublishDSReady(int keytype, const char* datetime, int zone_id, int policy_id)
 {
-    int* dummy;
+    int* dummy = NULL;
     return KsmRequestChangeState(keytype, datetime,
         KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, zone_id, policy_id, -1, dummy);
 }
 
 int KsmRequestChangeStateDSReadyKeyPublish(const char* datetime, int zone_id, int policy_id)
 {
-    int* dummy;
+    int* dummy = NULL;
     return KsmRequestChangeState(KSM_TYPE_KSK, datetime,
         KSM_STATE_DSREADY, KSM_STATE_KEYPUBLISH, zone_id, policy_id, -1, dummy);
 }
@@ -711,7 +711,7 @@ int KsmRequestChangeStateKeyPublishActive(const char* datetime, int zone_id, int
 
 int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id)
 {
-    int* dummy;
+    int* dummy = NULL;
     return KsmRequestChangeState(keytype, datetime,
         KSM_STATE_ACTIVE, KSM_STATE_RETIRE, zone_id, policy_id, -1, dummy);
 }
