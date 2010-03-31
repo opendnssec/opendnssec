@@ -49,6 +49,17 @@ between these events.
 The KSK rollover procedure is described in the OpenDNSSEC documentation.
 
 
+Key rollover and reuse of signatures
+------------------------------------
+
+OpenDNSSEC makes use of reusing previously created signatures. A key that is
+in active state will be used for signing. When rolling keys, keys may become
+active or inactive. At these points in key rollover, all signatures that
+correspond to a previously active key (which just became inactive) need to be
+dropped and new signatures for the new, just activated key need to be created
+from scratch. OpenDNSSEC cannot handle a smooth transition between these states.
+
+
 Limitations on Number of Zones
 ------------------------------
 
