@@ -123,7 +123,6 @@ module KASPAuditor
         unsigned_file = (unsigned_file.to_s + "").untaint
         File.open(unsigned_file) {|unsignedfile|
           File.open(signed_file) {|signedfile|
-
             last_signed_rr = get_next_rr(signedfile)
             last_unsigned_rr = get_next_rr(unsignedfile)
             while (!unsignedfile.eof? || !signedfile.eof?)
@@ -834,7 +833,7 @@ module KASPAuditor
       elsif (@first_nsec3)
         salt = @first_nsec3.salt
         iterations = @first_nsec3.iterations
-        hash_alg - @first_nsec3.hash_alg
+        hash_alg = @first_nsec3.hash_alg
       end
       # Need to add non-glue empty noneterminals here too!
       empty_nonterminals = []
