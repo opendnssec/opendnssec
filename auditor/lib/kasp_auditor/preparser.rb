@@ -35,10 +35,7 @@ module KASPAuditor
   # in canonical order.
   class Preparser
 
-    # @TODO@ Should check that these separators are not present in the input file.
-    
     SORT_SEPARATOR = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" # "\v" Vertical Tab
-    
     NAME_SEPARATOR = "\0\0$~$~$~\0\0"
     LABEL_SEPARATOR = "\0\1\0"
 
