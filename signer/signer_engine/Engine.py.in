@@ -758,6 +758,8 @@ def main():
         else:
             assert False, "unhandled option: " + opt
 
+    print "Debug: Main Loop"
+
     #
     # main loop
     #
@@ -767,7 +769,13 @@ def main():
         except IOError, ioe:
             print "Error, engine configuration could not be read;"
             print str(ioe)
+
+        print "Debug: Read Zonelist"
+
         print engine.read_zonelist()
+
+        print "Debug: Read Zonelist Done"
+
         # catch signals
         signal.signal(signal.SIGTERM, signal_handler_stop)
         signal.signal(signal.SIGHUP, signal_handler_stop)
