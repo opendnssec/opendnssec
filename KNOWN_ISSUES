@@ -6,26 +6,6 @@ The following are the known problems and/or restrictions of release 1.1.0 of
 OpenDNSSEC.
 
 
-Zone file may not contain certain strings
------------------------------------------
-
-Although domain names may only contain letters, digits and hyphens, the data
-in a resource record may contain any data - including binary information.
-
-The auditor will currently fail without warning if the zone file contains any
-of the following strings of characters used by the auditor in its internal
-processing:
-
-"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-"\0\0$~$~$~\0\0"
-"\0\1\0"
-
-(… where "\0" and "\1" indicate the characters with ASCII values of 0 and 1
-respectively.)
-
-This will be addressed in a future version of the software.
-
-
 KSK rollover requires manual timing
 -----------------------------------
 
