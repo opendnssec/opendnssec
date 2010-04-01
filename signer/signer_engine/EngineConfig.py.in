@@ -155,6 +155,12 @@ class EngineConfiguration:
         # do we need to check the zonelist file too?
         # there is the possibility that the kasp hasn't created it
         # yet
+        if self.zone_tmp_dir is None:
+            raise EngineConfigurationError(\
+                "WorkingDirectory missing (not configured)")
+        if self.tools_dir is None:
+            raise EngineConfigurationError(\
+                "Tools directory missing (not configured)")
         if not os.path.exists(self.zone_tmp_dir):
             raise EngineConfigurationError(\
                 "WorkingDirectory " + self.zone_tmp_dir + " does not exist")
