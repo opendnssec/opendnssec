@@ -111,6 +111,9 @@ class EngineConfiguration:
         self.zone_tmp_dir = \
              Util.get_xml_data("Configuration/Signer/WorkingDirectory",
                                xml_blob, True)
+        if not self.zone_tmp_dir:
+            self.zone_tmp_dir = "@OPENDNSSEC_SIGNER_WORKINGDIR@"
+
         self.tools_dir = \
              Util.get_xml_data("Configuration/Signer/ToolsDirectory",
                                xml_blob, True)

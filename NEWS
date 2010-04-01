@@ -43,6 +43,7 @@ Bugfixes:
 * Canonicalize RRs before nseccing zone.
 * Bugreport #113: zone fetcher started before dropping privileges, so that
   it can bind to socket.
+* Signer Engine defaults to working directory if missing.
 
 OpenDNSSEC 1.0.0 - 2010-02-09
 
