@@ -387,6 +387,8 @@ int read_file(char* filename,
 
             switch (ptr[1]) {
                 case 'I': {
+                    if (memcmp(ptr+1,"INCLUDE",7))
+                        break;
                     char* filename = p;
                     while (*p && !isspace(*p))
                         p++;
@@ -403,23 +405,25 @@ int read_file(char* filename,
                         *p = 0; /* terminate domain name */
                     }
                     read_file(filename, domain, default_ttl, dnskey_ttl, g);
-                    break;
+                    goto next_line;
                 }
 
                 case 'O':
+                    if (memcmp(ptr+1,"ORIGIN",6))
+                        break;
                     origin = p;
 
                     /* skip over any leading dots */
                     while (*origin == '.')
                         origin++;
-                    break;
+                    goto next_line;
 
                 case 'T':
+                    if (memcmp(ptr+1,"TTL",3))
+                        break;
                     ttlmacro = p;
-                    break;
+                    goto next_line;
             }
-
-            goto next_line;
         }
         
         char* p = ptr;
