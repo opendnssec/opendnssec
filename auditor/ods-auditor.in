@@ -126,7 +126,7 @@ class OptionsParser
       begin
         opts.parse!(args)
       rescue OptionParser::InvalidOption => e
-        print "Invalid option : #{e}\n"
+        print "#{e}\n"
         puts opts
         exit(1)
       end

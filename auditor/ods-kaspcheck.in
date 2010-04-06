@@ -84,7 +84,13 @@ class OptionsParser
 
       end
 
-      opts.parse!(args)
+      begin
+        opts.parse!(args)
+      rescue OptionParser::InvalidOption => e
+        print "#{e}\n"
+        puts opts
+        exit(1)
+      end
       options
     end  # parse()
 end
