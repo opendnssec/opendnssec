@@ -969,7 +969,7 @@ module KASPAuditor
       IO.foreach(signed_file) {|line|
         next if (line[0,1]==";")
         name = line.split()[0]
-        next if name=~/[\*\(\)\^\[\]\+]/
+        next if name=~/[\*\(\)\^\[\]\+\$\\]/
         next if !name
         if (!name_in_list(name))
           add_name_to_list(name)
