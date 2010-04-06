@@ -206,7 +206,7 @@ adfile_read_line:
         switch (line[0]) {
             /* directive */
             case '$':
-                if (strncmp(line, "$ORIGIN", 7) == 0) {
+                if (strncmp(line, "$ORIGIN", 7) == 0 && isspace(line[7])) {
                     /* copy from ldns */
                     if (*orig) {
                         ldns_rdf_deep_free(*orig);
@@ -220,13 +220,17 @@ adfile_read_line:
                     }
                     *orig = tmp;
                     /* end copy from ldns */
-                } else if (strncmp(line, "$TTL", 4) == 0) {
+                    goto adfile_read_line; /* perhaps next line is rr */
+                    break;
+                } else if (strncmp(line, "$TTL", 4) == 0 && isspace(line[4])) {
                     /* override default ttl */
                     if (ttl) {
                         *ttl = ldns_str2period(line + 5, &endptr);
                         new_ttl = *ttl;
                     }
-                } else if (strncmp(line, "$INCLUDE", 8) == 0) {
+                    goto adfile_read_line; /* perhaps next line is rr */
+                    break;
+                } else if (strncmp(line, "$INCLUDE", 8) == 0 && isspace(line[8])) {
                     /* dive into this file */
                     fd_include = fopen(line + 9, "r");
                     if (fd_include) {
@@ -242,11 +246,12 @@ adfile_read_line:
                         fprintf(stderr, "error in include file '%s'\n", line + 9);
                         return NULL;
                     }
-                } else {
-                    fprintf(stderr, "warning: skipping unknown directive '%s'\n", line);
+                    goto adfile_read_line; /* perhaps next line is rr */
+                    break;
                 }
 
-                goto adfile_read_line; /* perhaps next line is rr */
+                /* can be an owner name */
+                goto adfile_read_rr;
                 break;
             /* comments, empty lines */
             case ';':
@@ -255,6 +260,7 @@ adfile_read_line:
                 break;
             /* let's hope its a RR */
             default:
+adfile_read_rr:
                 if (line_contains_space_only(line, len)) {
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
