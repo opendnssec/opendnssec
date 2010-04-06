@@ -98,7 +98,7 @@ module KASPAuditor
       begin
         @zone_reader.process_line(line, true)
       rescue Exception => e
-#        print "ERROR parsing line #{@line_num} : #{line}\n"
+        #        print "ERROR parsing line #{@line_num} : #{line}\n"
         return false # "\n", Types::ANY
       end
     end
@@ -106,17 +106,15 @@ module KASPAuditor
     # Take a domain name, and return the form to be prepended to the RR.
     def prepare(domain)
       # Check if the name contains any escape characters ("\") - If not, then just reverse elements.
-      # If it does contain esape characters, then parse it as a proper name.
+      # If it does contain escape characters, then parse it as a proper name.
 
+      labels = domain.split(".")
       if (domain.index("\\"))
         name = Name.create(domain)
-        labels = name.labels
-        new_name = Name.new(labels.reverse, true)
-        return new_name.labels.join(LABEL_SEPARATOR).downcase
-      else
-        # Simply reverse each label
-        return domain.split(".").reverse!.join(LABEL_SEPARATOR).downcase
+        labels = name.labels.reverse
       end
+      # Simply reverse each label
+      return labels.reverse!.join(LABEL_SEPARATOR).downcase
     end
 
   end
