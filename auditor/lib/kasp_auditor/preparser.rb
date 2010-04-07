@@ -111,7 +111,7 @@ module KASPAuditor
       labels = domain.split(".")
       if (domain.index("\\"))
         name = Name.create(domain)
-        labels = name.labels.reverse
+        labels = name.labels
       end
       # Simply reverse each label
       return labels.reverse!.join(LABEL_SEPARATOR).downcase
