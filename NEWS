@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.1 branch
 
 * Partial Auditor added
 * Dnsruby-1.46 required
