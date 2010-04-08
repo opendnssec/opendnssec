@@ -30,7 +30,7 @@
 
 		<Denial>
 			<NSEC3>
-                <!-- <OptOut/> -->
+				<!-- <OptOut/> -->
 				<Resalt>P100D</Resalt>
 				<Hash>
 					<Algorithm>1</Algorithm>
@@ -86,7 +86,9 @@
 			</SOA>
 		</Parent>
 
-		<Audit/>
+		<Audit>
+			<!-- <Partial /> -->
+		</Audit>
 
 	</Policy>
 	
