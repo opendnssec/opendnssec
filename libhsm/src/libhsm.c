@@ -1466,6 +1466,14 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
 
 }
 
+static int
+hsm_dname_is_wildcard(const ldns_rdf* dname)
+{
+    return ( ldns_dname_label_count(dname) > 0 &&
+             ldns_rdf_data(dname)[0] == 1 &&
+             ldns_rdf_data(dname)[1] == '*');
+}
+
 static ldns_rr *
 hsm_create_empty_rrsig(const ldns_rr_list *rrset,
                        const hsm_sign_params_t *sign_params)
@@ -1478,6 +1486,10 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 
     label_count = ldns_dname_label_count(
                        ldns_rr_owner(ldns_rr_list_rr(rrset, 0)));
+    /* RFC 4035 section 2.2: dnssec label length and wildcards */
+    if (hsm_dname_is_wildcard(ldns_rr_owner(ldns_rr_list_rr(rrset, 0)))) {
+        label_count--;
+    }
 
     rrsig = ldns_rr_new_frm_type(LDNS_RR_TYPE_RRSIG);
 
