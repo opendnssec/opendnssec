@@ -16,6 +16,8 @@ Bugfixes:
 * Canonicalize zone while sorting
 * Bugreport #113: zone fetcher started before dropping privileges, so that
   it can bind to socket.
+* libhsm: fixed incorrect label length for wildcards (leftmost wildcard label was
+  included in count).
 
 
 OpenDNSSEC 1.0.0 - 2010-02-09
