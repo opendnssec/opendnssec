@@ -2,6 +2,11 @@ $Id$
 
 OpenDNSSEC trunk
 
+* ...
+
+
+OpenDNSSEC 1.1.0 branch
+
 * Partial Auditor added
 * Dnsruby-1.46 required
 * Improved error messages when the system runs out of keys
