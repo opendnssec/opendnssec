@@ -26,6 +26,7 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
+
 # ***********************************************************************
 # *
 # * This script sends keys from OpenDNSSEC to the address specified below
@@ -35,5 +36,10 @@
 # *
 # ***********************************************************************
 
-var=`cat`
-echo "$var"|mail -s 'New keys from OpenDNSSEC' pawal@blipp.com
+# define and uncomment recipient below
+#RECIPIENT=user@example.com
+
+if [ -n "$RECIPIENT" ]; then
+	cat | mail -s "New keys from OpenDNSSEC" $RECIPIENT
+else
+fi
