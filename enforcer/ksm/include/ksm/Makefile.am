@@ -5,7 +5,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 BUILT_SOURCES = dbsmsg.h kmemsg.h
 DISTCLEANFILES = dbsmsg.h kmemsg.h
 
-EXTRA_DIST = $(srcdir)/*.h $(srcdir)/*.pl *.h
+EXTRA_DIST = $(srcdir)/*.h $(srcdir)/*.pl dbsmsg.h kmemsg.h
 
 
 dbsmsg.h: dbsdef.h
