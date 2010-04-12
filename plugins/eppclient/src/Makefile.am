@@ -20,7 +20,7 @@ eppclient_LDADD = @LDNS_LIBS@ @XML2_LIBS@ @SQLITE3_LIBS@
 eppclientd_SOURCES = eppclientd.c eppconfig.c epp.c $(COMPAT)
 eppclientd_LDADD = @LDNS_LIBS@ @XML2_LIBS@ @CURL_LIBS@ @SQLITE3_LIBS@
 
-EXTRA_DIST = $(srcdir)/eppclientd.conf
+EXTRA_DIST = $(srcdir)/eppclientd.conf.in
 EXTRA_DIST += $(srcdir)/compat/*.c $(srcdir)/compat/*.h
 
 
