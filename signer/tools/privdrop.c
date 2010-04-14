@@ -28,6 +28,8 @@
  *
  */
 
+#define _GNU_SOURCE /* defines for setres(g|u)id */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -42,7 +44,6 @@
 #include "config.h"
 #include "privdrop.h"
 
-#define _GNU_SOURCE /* defines for setres(g|u)id */
 
 int
 privdrop(const char *username, const char *groupname, const char *newroot)
