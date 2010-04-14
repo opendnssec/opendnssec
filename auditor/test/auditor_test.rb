@@ -169,7 +169,15 @@ class AuditorTest < Test::Unit::TestCase
       #   @TODO@ how do we test? Would need to find a domain whose hash was right... :-/
       #
     ]
-    success = check_syslog(stderr, expected_strings)
+    possible_strings = [ # If this is the first time the test is run on the system, then
+      # errors will be generated for these newly-seen keys
+      "New ZSK DNSKEY has incorrect algorithm (was RSASHA1-NSEC3-SHA1) or alg_length (was 1024)",
+
+      "New KSK DNSKEY has incorrect algorithm (was RSASHA1-NSEC3-SHA1) or alg_length (was 2048)"
+
+
+    ]
+    success = check_syslog(stderr, expected_strings, true, possible_strings)
     assert(success, "NSEC3 bad file not audited correctly")
   end
 
@@ -287,7 +295,7 @@ class AuditorTest < Test::Unit::TestCase
     assert(success, "NSEC3 bad file not audited correctly")
   end
 
-  def check_syslog(stderr, expected_strings, add_default_msg=true)
+  def check_syslog(stderr, expected_strings, add_default_msg=true, optional_strings=[])
     remaining_strings = []
     while (line = stderr[0].gets)
       remaining_strings.push(line)
@@ -303,6 +311,13 @@ class AuditorTest < Test::Unit::TestCase
         if (line.index(expected))
           remaining_strings.delete(line)
           expected_strings.delete(expected)
+          break
+        end
+      }
+      optional_strings.each {|optional|
+        if (line.index(optional))
+          remaining_strings.delete(line)
+          optional_strings.delete(optional)
           break
         end
       }
