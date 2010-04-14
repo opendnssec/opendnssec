@@ -6,7 +6,7 @@
 
 	<RepositoryList>
 
-		<Repository name="softHSM">
+		<Repository name="SoftHSM">
 			<Module>@pkcs11_softhsm_module@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
