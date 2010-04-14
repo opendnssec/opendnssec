@@ -11,6 +11,8 @@ COMPAT =	compat/strlcpy.c
 
 sysconfdir =	@sysconfdir@/opendnssec
 
+man5_MANS = eppclientd.conf.5
+man8_MANS = eppclient.8 eppclientd.8
 
 sbin_PROGRAMS = eppclient eppclientd
 
