@@ -52,17 +52,17 @@
 			<KSK>
 				<Algorithm length="2048">7</Algorithm>
 				<Lifetime>P1Y</Lifetime>
-				<Repository>softHSM</Repository>
+				<Repository>SoftHSM</Repository>
 				<Standby>1</Standby>
-				<!-- <ManualRollover/> -->
 			</KSK>
 
 			<!-- Parameters for ZSK only -->
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
 				<Lifetime>P30D</Lifetime>
-				<Repository>softHSM</Repository>
+				<Repository>SoftHSM</Repository>
 				<Standby>1</Standby>
+				<!-- <ManualRollover/> -->
 			</ZSK>
 		</Keys>
 
