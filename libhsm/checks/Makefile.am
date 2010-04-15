@@ -27,6 +27,8 @@ token.db othertoken.db:
 	softhsm --slot 1 --init-token --label xyzzy \
 		--so-pin 12345678 --pin 123456
 
+check: regress-softhsm
+
 regress:
 	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,ncipher,multi}'
 
