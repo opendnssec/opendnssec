@@ -1,4 +1,4 @@
-# $Id: acx_database_backend.m4 3015 2010-03-11 15:42:46Z jakob $
+# $Id$
 
 AC_DEFUN([ACX_DATABASE_BACKEND],[
 
