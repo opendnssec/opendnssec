@@ -360,7 +360,7 @@ int read_file(char* filename,
     while (origin && *origin == '.')
         origin++;
 
-    int currclass = 0;
+    int currclass = 1; /* default class IN */
     char* currttl = 0;
     char* ttlmacro = 0;
     char* ptr = buffer;
@@ -502,7 +502,7 @@ int read_file(char* filename,
 
         char* name = lastname;
         char* ttl = NULL;
-        int class = 0;
+        int klass = 0;
         int rrtype = 0;
 
         /* check for name */
@@ -522,9 +522,9 @@ int read_file(char* filename,
                 ttl = p;
             else  {
                 /* is this the class? */
-                class = parse_rrclass(p);
-                if (class) {
-                    currclass = class;
+                klass = parse_rrclass(p);
+                if (klass) {
+                    currclass = klass;
                 }
                 else {
                     /* verify rr type */
@@ -583,9 +583,9 @@ int read_file(char* filename,
         }
 
         /* class */
-        if (!class)
-            class = currclass;
-        if (!class) {
+        if (!klass)
+            klass = currclass;
+        if (!klass) {
             fprintf(stderr,"%s:%d: No class\n", filename, linenumber);
             exit(-1);
         }
@@ -596,7 +596,7 @@ int read_file(char* filename,
             exit(-1);
         }
 
-        int len = encode_rr(name, rrtype, class, ttl, p, (char*)buf, origin);
+        int len = encode_rr(name, rrtype, klass, ttl, p, (char*)buf, origin);
         char* rr = malloc(len);
         memcpy(rr, buf, len);
 
