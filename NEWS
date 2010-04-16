@@ -22,6 +22,7 @@ OpenDNSSEC 1.1 branch
 * The command 'ods-signer restart' is removed.
 * Signer Engine now also reuses signatures after a change in NSEC(3) configuration
   or rolling keys.
+* Quicksorter defaults to class IN.
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
