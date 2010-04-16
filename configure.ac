@@ -53,7 +53,7 @@ AC_ARG_ENABLE(eppclient,
 		[enable_eppclient="${enableval}"],
 		[enable_eppclient="no"])
 if test "x${enable_eppclient}" = "xyes"; then
-	ACX_LIBCURL
+	LIBCURL_CHECK_CONFIG([yes], [7.18.2], [], [AC_MSG_ERROR(["libcurl not found"])])
 	AC_CONFIG_SUBDIRS([ plugins/eppclient ])
 fi
 AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
