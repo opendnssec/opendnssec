@@ -2,7 +2,7 @@ $Id$
 
 OpenDNSSEC trunk
 
-* ...
+* Quicksorter defaults to class IN.
 
 
 OpenDNSSEC 1.1.0 branch
