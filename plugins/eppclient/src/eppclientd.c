@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include <string.h>
 #include <signal.h>
 #include <fcntl.h>
@@ -46,6 +47,34 @@
 
 #include "eppconfig.h"
 #include "epp.h"
+
+void usage()
+{
+    printf("OpenDNSSEC EPP plugin\n");
+    printf("Usage: eppclientd [OPTIONS]\n");
+    printf("Options:\n");
+    printf("  -h                Show this help screen.\n");
+    printf("  --help            Show this help screen.\n");
+    printf("  -v                Show version info.\n");
+    printf("  --version         Show version info.\n");
+    printf("\n");
+    printf("\n");
+    printf("eppclientd is a daemon used by the eppclient plugin for the OpenDNSSEC software.\n");
+    printf("It performs key updates to registries using the EPP protocol.\n");
+    printf("\n");
+    printf("More information is available in the corresponding man page.\n");
+}
+
+enum {
+    OPT_HELP = 0x100,
+    OPT_VERSION
+};
+
+static const struct option long_options[] = {
+    { "help",            0, NULL, OPT_HELP },
+    { "version",         0, NULL, OPT_VERSION },
+    { NULL,              0, NULL, 0 }
+};
 
 #define MAX_KEY_COUNT 100 /* max # of keys per update */
 
@@ -518,8 +547,27 @@ void read_client_pipe(int pipe)
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    int opt;
+    int option_index = 0;
+
+    while ((opt = getopt_long(argc, argv, "hv", long_options, &option_index)) != -1) {
+        switch (opt) {
+            case OPT_VERSION:
+            case 'v':
+                printf("%s\n", PACKAGE_VERSION);
+                exit(0);
+                break;
+            case OPT_HELP:
+            case 'h':
+            default:
+                usage();
+                exit(0);
+                break;
+        }
+    }
+
     int pipe = init();
     
     while (1) {

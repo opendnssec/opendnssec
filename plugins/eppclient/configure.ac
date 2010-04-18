@@ -2,10 +2,8 @@
 
 m4_sinclude([version.m4])
 
-define([EPPCLIENT_VERSION], [0.0])
-
 AC_PREREQ(2.61)
-AC_INIT([opendnssec-eppclient], EPPCLIENT_VERSION)
+AC_INIT([opendnssec-eppclient], OPENDNSSEC_VERSION)
 
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
