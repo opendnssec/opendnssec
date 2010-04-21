@@ -1155,8 +1155,20 @@ cmd_exportkeys ()
         else if (strncmp(case_keystate, "RETIRE", 6) == 0 || strncmp(o_keystate, "5", 1) == 0) {
             state_id =  KSM_STATE_DEAD;
         }
+        else if (strncmp(case_keystate, "DSSUB", 5) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+            state_id =  KSM_STATE_DSSUB;
+        }
+        else if (strncmp(case_keystate, "DSPUBLISH", 9) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+            state_id =  KSM_STATE_DSPUBLISH;
+        }
+        else if (strncmp(case_keystate, "DSREADY", 7) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+            state_id =  KSM_STATE_DSREADY;
+        }
+        else if (strncmp(case_keystate, "KEYPUBLISH", 10) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+            state_id =  KSM_STATE_KEYPUBLISH;
+        }
         else {
-            printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", o_keystate);
+            printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE, RETIRED, DSSUB, DSPUBLISH, DSREADY or KEYPUBLISH\n", o_keystate);
 
             StrFree(case_keystate);
             return(1);
