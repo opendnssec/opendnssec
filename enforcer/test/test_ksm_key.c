@@ -265,13 +265,13 @@ static void TestKsmKeyPredict(void)
     int count;
     int status;
 
-    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
+    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7); /* 4 rollovers, 2 standby plus one to get ready */
 
     keytype = KSM_TYPE_ZSK;
-    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count);
+    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7);
@@ -345,7 +345,7 @@ static void TestKsmKeyGetUnallocated(void)
     int bits = 1024;      /* count over all sizes */
     int algorithm = KSM_ALGORITHM_RSASHA1; /* count over all algorithms */
     int keypair_id;
-    int dnsseckey_id;
+    DB_ID dnsseckey_id;
     int zone_id = 1;
     int status;
 

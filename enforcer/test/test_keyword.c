@@ -71,13 +71,13 @@ static void TestAlgorithmKeywordConvert(void)
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("d"));
 
     CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("dsa"));
-    CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("ds"));
+    /*CU_ASSERT_EQUAL(KSM_ALGORITHM_DSASHA1, KsmKeywordAlgorithmNameToValue("ds"));*/
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("d"));
 
     CU_ASSERT_EQUAL(KSM_ALGORITHM_RSASHA1, KsmKeywordAlgorithmNameToValue("rsasha1"));
-    CU_ASSERT_EQUAL(KSM_ALGORITHM_RSASHA1, KsmKeywordAlgorithmNameToValue("rsasha"));
+    /*CU_ASSERT_EQUAL(KSM_ALGORITHM_RSASHA1, KsmKeywordAlgorithmNameToValue("rsasha"));
     CU_ASSERT_EQUAL(KSM_ALGORITHM_RSASHA1, KsmKeywordAlgorithmNameToValue("rsash"));
-    CU_ASSERT_EQUAL(KSM_ALGORITHM_RSASHA1, KsmKeywordAlgorithmNameToValue("rsas"));
+    CU_ASSERT_EQUAL(KSM_ALGORITHM_RSASHA1, KsmKeywordAlgorithmNameToValue("rsas"));*/
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("rsa"));
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("rs"));
     CU_ASSERT_EQUAL(0, KsmKeywordAlgorithmNameToValue("r"));
@@ -193,7 +193,7 @@ static void TestStateKeywordConvert(void)
     CU_ASSERT_EQUAL(KSM_STATE_DEAD, KsmKeywordStateNameToValue("dead"));
     CU_ASSERT_EQUAL(KSM_STATE_DEAD, KsmKeywordStateNameToValue("dea"));
     CU_ASSERT_EQUAL(KSM_STATE_DEAD, KsmKeywordStateNameToValue("de"));
-    CU_ASSERT_EQUAL(KSM_STATE_DEAD, KsmKeywordStateNameToValue("d"));
+    CU_ASSERT_EQUAL(0, KsmKeywordStateNameToValue("d"));
 
     /* ... and the reverse */
 

@@ -160,6 +160,7 @@ static void TestKsmImportZone(void)
 
     char*       zone_name = "myNewZone.test";
     int         policy_id = 1;
+    int         new_zone = 0;
     
     /* Show that the Zone X doesn't exist */
     sql = DqsCountInit(DB_ZONE_TABLE);
@@ -172,8 +173,9 @@ static void TestKsmImportZone(void)
 	CU_ASSERT_EQUAL(count, 0);
 
     /* Create X */
-    status = KsmImportZone(zone_name, policy_id);
+    status = KsmImportZone(zone_name, policy_id, 1, &new_zone);
 	CU_ASSERT_EQUAL(status, 0);
+	CU_ASSERT_EQUAL(new_zone, 1);
 
     /* Show that the Zone X does now exist */
     status = DbIntQuery(DbHandle(), &count, sql);
@@ -191,8 +193,9 @@ static void TestKsmImportZone(void)
 	CU_ASSERT_EQUAL(count, 1);
 
     /* update X */
-    status = KsmImportZone(zone_name, 2);
+    status = KsmImportZone(zone_name, 2, 0, &new_zone);
 	CU_ASSERT_EQUAL(status, 0);
+	CU_ASSERT_EQUAL(new_zone, 0);
 
     /* Get the new policy */
     status = DbIntQuery(DbHandle(), &count, sql);
