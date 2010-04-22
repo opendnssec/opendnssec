@@ -2,7 +2,7 @@
 #
 # $Id$
 
-SANDBOX_ROOT=${HOME}/ODS
+SANDBOX_ROOT=${WORKSPACE}/ODS
 LIBSOFTHSM=/usr/local/lib/libsofthsm.so
 
 SRCDIR=`pwd`
