@@ -913,7 +913,7 @@ class Zone:
            signer tool to determine 'old' signatures. If the
            inception date of the signature is before this time,
            the signature will be replaced."""
-        return self.get_expiration_timestamp(time_offset) -\
+        return time_offset +\
                self.zone_config.signatures_refresh_time
 
     def get_refresh_timestamp_denial(self, time_offset):
@@ -923,7 +923,7 @@ class Zone:
            signer tool to determine 'old' signatures. If the
            inception date of the signature is before this time,
            the signature will be replaced."""
-        return self.get_expiration_timestamp_denial(time_offset) -\
+        return time_offset +\
                self.zone_config.signatures_refresh_time
 
     def get_refresh_timestamp_keys(self, time_offset):

@@ -52,6 +52,8 @@ Bugfixes:
 * Signer Engine defaults to working directory if missing.
 * libhsm: fixed incorrect label length for wildcards (leftmost wildcard label was
   included in count).
+* Fix semantics of refresh value in Signer Engine.
+
 
 OpenDNSSEC 1.0.0 - 2010-02-09
 
