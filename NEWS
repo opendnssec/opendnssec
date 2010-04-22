@@ -3,7 +3,7 @@ $Id$
 OpenDNSSEC trunk
 
 * Quicksorter defaults to class IN.
-
+* Fix semantics of refresh value in Signer Engine.
 
 OpenDNSSEC 1.1.0 branch
 
