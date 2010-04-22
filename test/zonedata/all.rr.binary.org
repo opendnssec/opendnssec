@@ -1,0 +1,397 @@
+; $Id$
+
+; Information from http://www.iana.org/assignments/dns-parameters
+$ORIGIN all.rr.binary.org.
+
+; TYPE
+; Value and meaning
+; Reference
+; An example is given if supported by OpenDNSSEC
+
+; SOA
+; 6 marks the start of a zone of authority
+; [RFC1035]
+@			IN	SOA		ns1 \000postmaster.all.rr.org. (
+						1            ; serial number
+						3600         ; refresh   [1h]
+						600          ; retry     [10m]
+						86400        ; expire    [1d]
+						3600 )       ; min TTL   [1h]
+
+; A
+; 1 a host address
+; [RFC1035]
+ns1\..all.rr.binary.org.		IN	A		10.1.0.52
+
+; NS
+; 2 an authoritative name server
+; [RFC1035]
+\\.all.rr.binary.org.		IN	NS		ns1.example.com.\000.
+
+; MD
+; 3 a mail destination (Obsolete - use MX)
+; [RFC1035]
+; Not supported by OpenDNSSEC (Obsoleted)
+
+; MF
+; 4 a mail forwarder (Obsolete - use MX)
+; [RFC1035]
+; Not supported by OpenDNSSEC (Obsoleted)
+
+; CNAME
+; 5 the canonical name for an alias
+; [RFC1035]
+\032.foo\..all.rr.binary.org.		IN	CNAME		\\\\\..ns1.all.rr.org.
+
+; MB
+; 7 a mailbox domain name (EXPERIMENTAL)
+; [RFC1035]
+\nall.all.rr.binary.org.		IN	MB		mb-madname.\000.example.com.
+
+; MG
+; 8 a mail group member (EXPERIMENTAL)
+; [RFC1035]
+all.rr.binary.org.		IN	MG		mg-mgmname.\..example.com.
+
+; MR
+; 9 a mail rename domain name (EXPERIMENTAL)
+; [RFC1035]
+all.rr.binary.org.		IN	MR		mr-newname.example.\000.com.
+
+; NULL
+; 10 a null RR (EXPERIMENTAL)
+; [RFC1035]
+; Not allowed in master file
+
+; WKS
+; 11 a well known service description
+; [RFC1035]
+; Not supported by OpenDNSSEC (Obsoleted?)
+
+; PTR
+; 12 a domain name pointer
+; [RFC1035]
+foo.all.rr.binary.org.		IN	PTR		\000\\.ns1.all.rr.org.
+
+; HINFO
+; 13 host information
+; [RFC1035]
+all.rr.binary.org.		IN	HINFO		SUN4/110 UNIX
+
+; MINFO
+; 14 mailbox or mail list information
+; [RFC1035]
+all.a\123ll.all.rr.binary.org.		IN	MINFO		minfo-rmailbx.example.com. minfo-emailbx.example.com.
+
+; MX
+; 15 mail exchange
+; [RFC1035]
+all.rr.binary.org.		IN	MX		10 VENERA.\t.all.rr.org.
+
+; TXT
+; 16 text strings
+; [RFC1035]
+selector._domainkey.all.rr.binary.org.	IN	TXT		"v=DKIM1; n=Use=20DKIM; p=AwEAAZfbYw8SffZwsbrCLbC+JLErREIF6Yfe9aqsa1Pz6tpGWiLxm9rSL6/YoBvNP3UWX91YDF0JMo6lhu3UIZjITvIwDhx+RJYko9vLzaaJKXGf3ygy6z+deWoZJAV1lTY0Ltx9genboe88CSCHw9aSLkh0obN9Ck8R6zAMYR19ciM/; t=s"
+
+; RP
+; 17 for Responsible Person
+; [RFC1183]
+all.rr.binary.org.		IN	RP		rp-mbox.example.com. rp-txtdname.example.com.
+
+; AFSDB
+; 18 for AFS Data Base location
+; [RFC1183]
+all.rr.binary.org.		IN	AFSDB		1 afsdb-hostname.example.com.
+
+; X25
+; 19 for X.25 PSDN address
+; [RFC1183]
+all.rr.binary.org.		IN	X25		311061700956
+
+; ISDN
+; 20 for ISDN address
+; [RFC1183]
+all.rr.binary.org.		IN	ISDN		150862028003217 004
+
+; RT
+; 21 for Route Through
+; [RFC1183]
+all.rr.binary.org.		IN	RT		10   NET.Prime.COM.
+
+; NSAP
+; 22 for NSAP address, NSAP style A record
+; [RFC1706]
+all.rr.binary.org.		IN	NSAP		0x47.0005.80.005a00.0000.0001.e133.ffffff000161.00
+
+; NSAP-PTR
+; 23 for domain name pointer, NSAP style
+; [RFC1348] 
+; Not supported by OpenDNSSEC (Obsoleted)
+
+; SIG
+; 24 for security signature
+; [RFC4034][RFC3755][RFC2535]
+; RRSIG record used now
+
+; KEY
+; 25 for security key
+; [RFC4034][RFC3755][RFC2535]
+; DNSKEY record used now
+
+; PX
+; 26 X.400 mail mapping information
+; [RFC2163]
+all.rr.binary.org.		IN	PX		10   net2.it.  PRMD-net2.ADMD-p400.C-it.
+
+; GPOS
+; 27 Geographical Position
+; [RFC1712]
+; obsoleted by LOC record
+
+; AAAA
+; 28 IP6 Address
+; [RFC3596]
+all.rr.binary.org.		IN	AAAA		2001:db8::3
+
+; LOC
+; 29 Location Information
+; [RFC1876]
+all.rr.binary.org.		IN	LOC		42 21 54 N 71 06 18 W -24m 30m
+
+; NXT
+; 30 Next Domain - OBSOLETE
+; [RFC3755][RFC2535]
+; Not supported by OpenDNSSEC (Obsoleted)
+
+; EID
+; 31 Endpoint Identifier
+; [Patton]
+; Not an RFC
+
+; NIMLOC
+; 32 Nimrod Locator
+; [Patton]
+; Not an RFC
+
+; SRV
+; 33 Server Selection
+; [RFC2782]
+_http._tcp.all.rr.binary.org.	IN	SRV		0 5 80 ns1.example.com.
+
+; ATMA
+; 34 ATM Address
+; [ATMDOC]
+; Not supported by OpenDNSSEC (No RFC)
+
+; NAPTR
+; 35 Naming Authority Pointer
+; [RFC2915][RFC2168]
+all.rr.binary.org.		IN	NAPTR		100   10   ""  ""  "/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i"    .
+
+; KX
+; 36 Key Exchanger
+; [RFC2230]
+all.rr.binary.org.		IN	KX		2 rt1.example.com.
+
+; CERT
+; 37 CERT
+; [RFC4398]
+all.rr.binary.org.		IN	CERT		6 0 0 FFsAyW1dVK7hIGuvhN56r26UwJx/
+
+; A6
+; 38 A6 (Experimental)
+; [RFC3226][RFC2874]
+; Not supported by OpenDNSSEC (Experimental)
+
+; DNAME
+; 39 DNAME
+; [RFC2672]
+frobozz.all.rr.binary.org.	IN	DNAME		frobozz-division.acme.example.
+
+; SINK
+; 40 SINK
+; [Eastlake]
+; Not supported by OpenDNSSEC (No RFC)
+
+; OPT
+; 41 OPT
+; [RFC2671]
+; Not allowed in master file
+
+; APL
+; 42 APL
+; [RFC3123]
+; Not supported by OpenDNSSEC (Experimental)
+
+; DS
+; 43 Delegation Signer
+; [RFC4034][RFC3658]
+sub.all.rr.binary.org.		IN	DS		12345 3 1 123456789abcdef67890123456789abcdef67890
+
+; SSHFP
+; 44 SSH Key Fingerprint
+; [RFC4255]
+all.rr.binary.org.		IN	SSHFP		2 1 123456789abcdef67890123456789abcdef67890
+
+; IPSECKEY
+; 45 IPSECKEY
+; [RFC4025]
+all.rr.binary.org.		IN	IPSECKEY	10 1 2 192.0.2.38 AQNRU3mG7TVTO2BkR47usntb102uFJtugbo6BSGvgqt4AQ==
+
+; RRSIG
+; 46 RRSIG
+; [RFC4034][RFC3755]
+; OpenDNSSEC will discard this DNSSEC RR from the input zone
+all.rr.binary.org.		IN	RRSIG		A 5 3 86400 20030322173103 (
+							20030220173103 2642 example.com.
+							oJB1W6WNGv+ldvQ3WDG0MQkg5IEhjRip8WTr
+							PYGv07h108dUKGMeDPKijVCHX3DDKdfb+v6o
+							B9wfuh3DTJXUAfI/M0zmO/zz8bW0Rznl8O3t
+							GNazPwQKkRN20XPXV6nwwfoXmJQbsLNrLfkG
+							J5D6fwFm8nN+6pBzeDQfsS3Ap3o= )
+; NSEC
+; 47 NSEC
+; [RFC4034][RFC3755]
+; OpenDNSSEC will discard this DNSSEC RR from the input zone
+all.rr.binary.org.		IN	NSEC		host.example.com. A MX RRSIG NSEC
+
+; DNSKEY
+; 48 DNSKEY
+; [RFC4034][RFC3755]
+; This DNSSEC RR will go through the signing process
+all.rr.binary.org.		IN	DNSKEY		256 3 5 ( AQPSKmynfzW4kyBv015MUG2DeIQ3
+							Cbl+BBZH4b/0PY1kxkmvHjcZc8no
+							kfzj31GajIQKY+5CptLr3buXA10h
+							WqTkF7H6RfoRqXQeogmMHfpftf6z
+							Mv1LyBUgia7za6ZEzOJBOztyvhjL
+							742iU/TpPSEDhm2SNKLijfUppn1U
+							aNvv4w== )
+
+; DHCID
+; 49 DHCID
+; [RFC4701]
+all.rr.binary.org.		IN	DHCID		( AAIBY2/AuCccgoJbsaxcQc9TUapptP69l
+						OjxfNuVAA2kjEA= )
+
+; NSEC3
+; 50 NSEC3
+; [RFC5155]
+; OpenDNSSEC will discard this DNSSEC RR from the input zone
+ee19kl3631qol646kjjrh6lh96pduqii.all.rr.binary.org.	IN	NSEC3	1 0 5 6467b16f6f36ba4d  13k9b8dv58kcn28us3fc0lqa60jeadp0 A RRSIG
+
+; NSEC3PARAM
+; 51 NSEC3PARAM
+; [RFC5155]
+; OpenDNSSEC will discard this DNSSEC RR from the input zone
+all.rr.binary.org.		IN	NSEC3PARAM	1 0 5 6467b16f6f36ba4d
+
+; Unassigned
+; 52-54
+
+; HIP
+; 55 Host Identity Protocol
+; [RFC5205]
+; Not supported by OpenDNSSEC (not implemented in LDNS)
+; all.rr.binary.org.		IN	HIP		( 2 200100107B1A74DF365639CC39F1D578
+;						AwEAAbdxyhNuSutc5EMzxTs9LBPCIkOFH8cIvM4p
+;						9+LrV4e19WzK00+CI6zBCQTdtWsuxKbWIy87UOoJTwkUs7lBu+Upr1gsNrut79ryra+bSRGQ
+;						b1slImA8YVJyuIDsj7kwzG7jnERNqnWxZ48AWkskmdHaVDP4BcelrTI3rMXdXF5D
+;						rvs.example.com. )
+
+; NINFO
+; 56 NINFO
+; [Reid]
+; Not supported by OpenDNSSEC (No RFC)
+
+; RKEY
+; 57 RKEY
+; [Reid]
+; Not supported by OpenDNSSEC (No RFC)
+
+; Unassigned
+; 58-98
+
+; SPF
+; 99
+; [RFC4408]
+all.rr.binary.org.		IN	SPF		"v=spf1 +mx a:colo.example.com/28 -all"
+
+; UINFO
+; 100
+; [IANA-Reserved]
+; What is this?
+
+; UID
+; 101
+; [IANA-Reserved]
+; What is this?
+
+; GID
+; 102
+; [IANA-Reserved]
+; What is this?
+
+; UNSPEC
+; 103
+; [IANA-Reserved]
+; What is this?
+
+; Unassigned
+; 104-248
+
+; TKEY
+; 249 Transaction Key
+; [RFC2930]
+; Not allowed in master file
+
+; TSIG
+; 250 Transaction Signature
+; [RFC2845]
+; Not allowed in master file
+
+; IXFR
+; 251 incremental transfer
+; [RFC1995]
+; Not allowed in master file
+
+; AXFR
+; 252 transfer of an entire zone
+; [RFC1035]
+; Not allowed in master file
+
+; MAILB
+; 253 mailbox-related RRs (MB, MG or MR)
+; [RFC1035]
+; Not allowed in master file
+
+; MAILA
+; 254 mail agent RRs (Obsolete - see MX)
+; [RFC1035]
+; Not allowed in master file
+
+; *
+; 255 A request for all records
+; [RFC1035]
+; Not allowed in master file
+
+; Unassigned
+; 256-32767
+
+; TA
+; 32768   DNSSEC Trust Authorities
+; [Weiler]
+; Not supported by OpenDNSSEC (No RFC)
+
+; DLV
+; 32769   DNSSEC Lookaside Validation
+; [RFC4431]
+all.rr.binary.org.		IN	DLV		12345 3 1 123456789abcdef67890123456789abcdef67890
+
+; Unassigned
+; 32770-65279  
+
+; Private use
+; 65280-65534
+
+; Reserved
+; 65535
