@@ -27,6 +27,12 @@ build_opendnssec()
 	    exit $rc
 	fi
 
+	(cd ${OBJDIR}; make)
+	rc=$?
+	if [[ $rc != 0 ]] ; then
+	    exit $rc
+	fi
+
 	(cd ${OBJDIR}; make install)
 	rc=$?
 	if [[ $rc != 0 ]] ; then
