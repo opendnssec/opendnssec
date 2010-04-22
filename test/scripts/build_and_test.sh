@@ -5,6 +5,9 @@
 SANDBOX_ROOT=${HOME}/ODS
 LIBSOFTHSM=/usr/local/lib/libsofthsm.so
 
+SRCDIR=`pwd`
+OBJDIR=obj
+
 export SOFTHSM_CONF=test/scripts/softhsm.conf
 
 
@@ -13,20 +16,24 @@ build_opendnssec()
 {
 	rm -rf ${SANDBOX_ROOT}
 
+	mkdir ${OBJDIR}
+	
 	sh autogen.sh
-	./configure --prefix=${SANDBOX_ROOT} --with-pkcs11-softhsm=${LIBSOFTHSM}
+	(cd$ ${OBJDIR}; ${SRCDIR}/configure \
+		--prefix=${SANDBOX_ROOT} \
+		--with-pkcs11-softhsm=${LIBSOFTHSM})
 	rc=$?
 	if [[ $rc != 0 ]] ; then
 	    exit $rc
 	fi
 
-	make install
+	(cd ${OBJDIR}; make install)
 	rc=$?
 	if [[ $rc != 0 ]] ; then
 	    exit $rc
 	fi
 
-	make check	
+	(cd ${OBJDIR}; make check)
 	rc=$?
 	if [[ $rc != 0 ]] ; then
 	    exit $rc
