@@ -8,7 +8,7 @@
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>http://svn.opendnssec.org/branches/OpenDNSSEC-hudson</remote>
+        <remote>http://svn.opendnssec.org/trunk/OpenDNSSEC</remote>
         <local>OpenDNSSEC</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
