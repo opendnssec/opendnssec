@@ -2,7 +2,10 @@
 #
 # $Id$
 
-WORKSPACE=${WORKSPACE:-${HOME}/tmp/workspace}
+if [ -z "${WORKSPACE}"]; then
+	echo "Workspace not defined - exiting..."
+	exit 1
+fi
 
 SANDBOX_ROOT=${WORKSPACE}/OpenDNSSEC
 LIBSOFTHSM=/usr/local/lib/libsofthsm.so
@@ -10,7 +13,8 @@ LIBSOFTHSM=/usr/local/lib/libsofthsm.so
 SRCDIR=`pwd`
 OBJDIR=obj
 
-export SOFTHSM_CONF=${SRCDIR}/test/conf/softhsm.conf
+SOFTHSM_CONF=${SRCDIR}/test/conf/softhsm.conf
+export SOFTHSM_CONF
 
 
 # Build, install and test OpenDNSSEC into ${SANDBOX_ROOT}
@@ -116,10 +120,6 @@ ods_stop()
 {
 	${SANDBOX_ROOT}/sbin/ods-control stop	
 }
-
-if [ ! -d ${WORKSPACE} ]; then
-	install -d ${WORKSPACE}
-fi
 
 build_opendnssec
 
