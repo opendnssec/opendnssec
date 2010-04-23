@@ -2,6 +2,8 @@
 #
 # $Id$
 
+WORKSPACE=${WORKSPACE:-${HOME}/tmp/workspace}
+
 SANDBOX_ROOT=${WORKSPACE}/OpenDNSSEC
 LIBSOFTHSM=/usr/local/lib/libsofthsm.so
 
@@ -114,6 +116,10 @@ ods_stop()
 {
 	${SANDBOX_ROOT}/sbin/ods-control stop	
 }
+
+if [ ! -d ${WORKSPACE} ]; then
+	install -d ${WORKSPACE}
+fi
 
 build_opendnssec
 
