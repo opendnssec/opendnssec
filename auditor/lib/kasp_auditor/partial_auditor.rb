@@ -504,7 +504,7 @@ module KASPAuditor
       def grep_for_domains_of_interest(file, domain_filename)
         # Use the parent.domain_list to grep for all the instances of the domains we're after.
         list = @parent.domain_list + @parent.hashed_domain_list
-        grep_command = "grep -G '"
+        grep_command = "grep '"
         first = true
         list.each {|domain|
           if first
