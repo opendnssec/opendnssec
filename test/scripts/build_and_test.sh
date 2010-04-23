@@ -17,6 +17,7 @@ SOFTHSM_TEMPLATE=${SRCDIR}/test/conf/softhsm.conf
 SOFTHSM_CONF=${SANDBOX}/etc/softhsm.conf
 export SOFTHSM_CONF
 
+
 # Build, install and test OpenDNSSEC into ${SANDBOX}
 build_opendnssec()
 {
@@ -27,30 +28,36 @@ build_opendnssec()
 	mkdir ${OBJDIR}
 
 	(cd ${SRCDIR}; sh autogen.sh)
+	if [ $rc != 0 ] ; then
+	    exit $rc
+	fi
+	if [ ! -x ${SRCDIR}/configure ]; then
+		exit 1
+	fi
 
 	(cd ${OBJDIR}; ${SRCDIR}/configure \
 		--prefix=${SANDBOX} \
 		--with-pkcs11-softhsm=${LIBSOFTHSM})
 	rc=$?
-	if [[ $rc != 0 ]] ; then
+	if [ $rc != 0 ] ; then
 	    exit $rc
 	fi
 
 	(cd ${OBJDIR}; make)
 	rc=$?
-	if [[ $rc != 0 ]] ; then
+	if [ $rc != 0 ] ; then
 	    exit $rc
 	fi
 
 	(cd ${OBJDIR}; make install)
 	rc=$?
-	if [[ $rc != 0 ]] ; then
+	if [ $rc != 0 ] ; then
 	    exit $rc
 	fi
 
 	(cd ${OBJDIR}; make check)
 	rc=$?
-	if [[ $rc != 0 ]] ; then
+	if [ $rc != 0 ] ; then
 	    exit $rc
 	fi
 }
@@ -72,7 +79,7 @@ setup_softhsm()
 		--so-pin $SO_PIN \
 		--label $LABEL
 	rc=$?
-	if [[ $rc != 0 ]] ; then
+	if [ $rc != 0 ] ; then
 	    exit $rc
 	fi	
 }
