@@ -8,7 +8,7 @@ LIBSOFTHSM=/usr/local/lib/libsofthsm.so
 SRCDIR=`pwd`
 OBJDIR=obj
 
-export SOFTHSM_CONF=test/scripts/softhsm.conf
+export SOFTHSM_CONF=${SRCDIR}/test/conf/softhsm.conf
 
 
 # Build, install and test OpenDNSSEC into ${SANDBOX_ROOT}

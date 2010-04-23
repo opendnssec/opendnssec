@@ -70,6 +70,7 @@ AC_CONFIG_FILES([
 	tools/ods-control.8
 	tools/ods-kasp2html
 	contrib/Makefile
+	test/conf/softhsm.conf.in
 ])
 
 AC_OUTPUT
