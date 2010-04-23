@@ -85,7 +85,7 @@ setup_softhsm()
 	fi	
 }
 
-configure_enforcer()
+setup_enforcer()
 {
 	echo "yes" | ${SANDBOX}/bin/ods-ksmutil setup	
 }
