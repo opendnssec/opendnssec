@@ -398,7 +398,12 @@ class AuditorTest < Test::Unit::TestCase
       STDERR.reopen(stderr[1])
       stderr[1].close
 
-      options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
+      options = Syslog::LOG_NDELAY
+      begin
+        options = options | Syslog::LOG_PERROR
+      rescue NameError
+        # Oh well
+      end
 
       Syslog.open("auditor_test", options) {|syslog|
         run_keytracker_tests(syslog)
