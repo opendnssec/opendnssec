@@ -5,10 +5,11 @@
 WORKSPACE=${HOME}/tmp/workspace
 export WORKSPACE
 
+rm -fr WORKSPACE
 mkdir -p $WORKSPACE
 
-cd $WORKSPACE
+cd $WORKSPACe
 svn export http://svn.opendnssec.org/trunk/OpenDNSSEC OpenDNSSEC
 
 cd $WORKSPACE/OpenDNSSEC
-sh test/scripts/build_and_test.sh
+sh -vx test/scripts/build_and_test.sh
