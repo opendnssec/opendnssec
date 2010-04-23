@@ -14,7 +14,7 @@ OBJDIR=${WORKSPACE}/obj
 LIBSOFTHSM=/usr/local/lib/libsofthsm.so
 
 SOFTHSM_TEMPLATE=${OBJDIR}/test/conf/softhsm.conf
-SOFTHSM_CONF=${SANDBOX}/etc/softhsm.conf
+SOFTHSM_CONF=${SANDBOX}/etc/opendnssec/softhsm.conf
 export SOFTHSM_CONF
 
 
