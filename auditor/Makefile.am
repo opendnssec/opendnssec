@@ -28,5 +28,10 @@ install-data-hook:
 	${INSTALL_DATA} $(srcdir)/lib/kasp_auditor/*.rb ${DESTDIR}$(opendnsseclibdir)/kasp_auditor
 
 
-check:
-	$(RUBY) -I $(srcdir)/lib $(srcdir)/test/auditor_test.rb $(srcdir)
+check: test
+	$(RUBY) -I $(srcdir)/lib $(srcdir)/test_scripts/auditor_test.rb
+
+test:
+	(cd $(srcdir); \
+	find test -name .svn -prune -o -type f -print |\
+	 	cpio -pmdu $(abs_builddir))
