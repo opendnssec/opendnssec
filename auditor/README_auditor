@@ -108,12 +108,12 @@ Testing
 
 To run the auditor test files, run the command :
 
-  ruby test/auditor_test.rb
+  ruby test_scripts/auditor_test.rb
 
 If you wish to test the auditor locally before installing it, then
 run the following command from <path_to_OpenDNSSEC>/auditor :
 
-  ruby -I lib test/auditor_test.rb
+  ruby -I lib test_scripts/auditor_test.rb
 
 -------------------------------------------------------------------
 Running Manually
