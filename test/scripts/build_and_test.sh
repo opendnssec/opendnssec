@@ -13,7 +13,7 @@ OBJDIR=${WORKSPACE}/obj
 
 LIBSOFTHSM=/usr/local/lib/libsofthsm.so
 
-SOFTHSM_TEMPLATE=${SRCDIR}/test/conf/softhsm.conf
+SOFTHSM_TEMPLATE=${OBJDIR}/test/conf/softhsm.conf
 SOFTHSM_CONF=${SANDBOX}/etc/softhsm.conf
 export SOFTHSM_CONF
 
@@ -56,12 +56,12 @@ build_opendnssec()
  		exit $rc
 	fi
 
-	# make check does not yet work correctly, disable for now
-	#(cd ${OBJDIR}; make check)
-	#rc=$?
-	#if [ $rc != 0 ]; then
-	#	exit $rc
-	#fi
+	# make check does not yet work correctly, do libhsm only for now
+	(cd ${OBJDIR}/libhsm; make check)
+	rc=$?
+	if [ $rc != 0 ]; then
+		exit $rc
+	fi
 }
 
 setup_softhsm()
