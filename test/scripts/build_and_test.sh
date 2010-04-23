@@ -18,7 +18,7 @@ SOFTHSM_CONF=${SANDBOX}/etc/opendnssec/softhsm.conf
 export SOFTHSM_CONF
 
 
-# Build, install and test OpenDNSSEC into ${SANDBOX}
+
 build_opendnssec()
 {
 	rm -rf ${SANDBOX}
@@ -27,18 +27,32 @@ build_opendnssec()
 	mkdir ${SANDBOX}
 	mkdir ${OBJDIR}
 
-	(cd ${SRCDIR}; sh autogen.sh)
-	rc=$?
-	if [ $rc != 0 ]; then
-		exit $rc
-	fi
 	if [ ! -x ${SRCDIR}/configure ]; then
+		(cd ${SRCDIR}; sh autogen.sh)
+		rc=$?
+		if [ $rc != 0 ]; then
+			exit $rc
+		fi
+		if [ ! -x ${SRCDIR}/configure ]; then
+			exit 1
+		fi
+	fi
+
+	CONFIGURE_ARGS=""
+
+	if [ -d /opt/ldns ]; then
+		CONFIGURE_ARGS="$CONFIGURE_ARGS --with-ldns=/opt/ldns"
+	fi
+
+	if [ -f ${LIBSOFTHSM} ]; then
+		CONFIGURE_ARGS="$CONFIGURE_ARGS --with-pkcs11-softhsm=${LIBSOFTHSM}"
+	else
+		echo "Failed to locate libsofthsm PKCS#11 provider"
 		exit 1
 	fi
 
 	(cd ${OBJDIR}; ${SRCDIR}/configure \
-		--prefix=${SANDBOX} \
-		--with-pkcs11-softhsm=${LIBSOFTHSM})
+		--prefix=${SANDBOX} ${CONFIGURE_ARGS})
 	rc=$?
 	if [ $rc != 0 ]; then
 		exit $rc
@@ -50,16 +64,19 @@ build_opendnssec()
 		exit $rc
 	fi
 
-	(cd ${OBJDIR}; make install)
-	rc=$?
-	if [ $rc != 0 ]; then
- 		exit $rc
-	fi
-
 	(cd ${OBJDIR}; make check)
 	rc=$?
 	if [ $rc != 0 ]; then
 		exit $rc
+	fi
+}
+
+install_opendnssec()
+{
+	(cd ${OBJDIR}; make install)
+	rc=$?
+	if [ $rc != 0 ]; then
+ 		exit $rc
 	fi
 }
 
@@ -132,6 +149,7 @@ ods_stop()
 }
 
 build_opendnssec
+install_opendnssec
 
 setup_softhsm
 setup_enforcer
