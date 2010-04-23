@@ -26,7 +26,7 @@ build_opendnssec()
 	mkdir ${SANDBOX}
 	mkdir ${OBJDIR}
 
-	(cd ${SRCDIR}; sh autogen)
+	(cd ${SRCDIR}; sh autogen.sh)
 
 	(cd ${OBJDIR}; ${SRCDIR}/configure \
 		--prefix=${SANDBOX} \

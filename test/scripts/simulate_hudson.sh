@@ -8,7 +8,7 @@ export WORKSPACE
 rm -fr WORKSPACE
 mkdir -p $WORKSPACE
 
-cd $WORKSPACe
+cd $WORKSPACE
 svn export http://svn.opendnssec.org/trunk/OpenDNSSEC OpenDNSSEC
 
 cd $WORKSPACE/OpenDNSSEC
