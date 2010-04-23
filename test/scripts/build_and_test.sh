@@ -56,8 +56,7 @@ build_opendnssec()
  		exit $rc
 	fi
 
-	# make check does not yet work correctly, do libhsm only for now
-	(cd ${OBJDIR}/libhsm; make check)
+	(cd ${OBJDIR}; make check)
 	rc=$?
 	if [ $rc != 0 ]; then
 		exit $rc
