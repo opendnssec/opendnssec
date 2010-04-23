@@ -40,7 +40,8 @@ build_opendnssec()
 
 	CONFIGURE_ARGS=""
 
-	if [ -d /opt/ldns ]; then
+	# on our solaris build system, ldns lives elsewhere
+	if [ -f /opt/ldns/lib/libldns.a ]; then
 		CONFIGURE_ARGS="$CONFIGURE_ARGS --with-ldns=/opt/ldns"
 	fi
 
