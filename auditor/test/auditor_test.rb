@@ -2,6 +2,12 @@ require 'test/unit'
 require 'kasp_auditor.rb'
 include KASPAuditor
 
+@@root_path = ''
+if ARGV[0]
+  @@root_path = ARGV[0] 
+end
+
+
 # Use the good test data we have, and frig the system time.
 class Time # @TODO@ Can't use this to test enable_timeshift
   class << self
@@ -335,6 +341,8 @@ class AuditorTest < Test::Unit::TestCase
   end
 
   def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret, working, partial = false)
+    path = @@root_path + path
+
     runner = Runner.new
     if (partial)
       runner.force_partial
