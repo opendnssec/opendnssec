@@ -2,7 +2,7 @@
 #
 # $Id$
 
-SANDBOX_ROOT=${WORKSPACE}/ODS
+SANDBOX_ROOT=${WORKSPACE}/OpenDNSSEC
 LIBSOFTHSM=/usr/local/lib/libsofthsm.so
 
 SRCDIR=`pwd`
