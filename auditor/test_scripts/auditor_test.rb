@@ -360,7 +360,12 @@ class AuditorTest < Test::Unit::TestCase
       STDERR.reopen(stderr[1])
       stderr[1].close
 
-      options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
+      options = Syslog::LOG_NDELAY
+      begin
+        options = options | Syslog::LOG_PERROR
+      rescue NameError
+        # tough
+      end
 
       Syslog.open("auditor_test", options) {|syslog|
         runner.force_partial if partial
