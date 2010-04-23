@@ -29,7 +29,7 @@ install-data-hook:
 
 
 check: prepare-test
-	$(RUBY) -I $(srcdir)/lib $(srcdir)/test_scripts/auditor_test.rb
+	$(RUBY) -I $(srcdir)/lib $(srcdir)/test_scripts/auditor_test.rb $(srcdir)
 
 prepare-test:
 	test -d test || (cd $(srcdir); \
