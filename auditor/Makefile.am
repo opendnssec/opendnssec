@@ -29,4 +29,4 @@ install-data-hook:
 
 
 check:
-	$(RUBY) -I $(srcdir)/lib $(srcdir)/test/auditor_test.rb
+	$(RUBY) -I $(srcdir)/lib $(srcdir)/test/auditor_test.rb $(srcdir)
