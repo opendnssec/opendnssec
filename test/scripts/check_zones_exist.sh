@@ -7,7 +7,7 @@
 
 exit_value = 0
 ARGV.each {|zone|
-  if (File.exist?("#{ENV['WORKSPACE']}/OpenDNSSEC/var/opendnssec/signed/#{zone}"))
+  if (File.exist?("#{ENV['WORKSPACE']}/sandbox/var/opendnssec/signed/#{zone}"))
     print "Zone #{zone} signed successfully\n"
   else 
     print "Zone #{zone} was not correctly signed\n"

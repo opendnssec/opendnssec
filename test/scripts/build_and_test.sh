@@ -8,7 +8,7 @@ if [ -z "${WORKSPACE}" ]; then
 fi
 
 SANDBOX=${WORKSPACE}/sandbox
-SRCDIR=${WORKSPACE}/OpenDNSSEC
+SRCDIR=${WORKSPACE}/src
 OBJDIR=${WORKSPACE}/obj
 
 LIBSOFTHSM=/usr/local/lib/libsofthsm.so
@@ -148,7 +148,7 @@ ods_stop
 
 echo "NOW CHECK THAT ZONES HAVE BEEN SIGNED"
 echo Still to check all.rr.org and all.rr.binary.org
-ruby test/scripts/check_zones_exist.sh unknown.rr.org example.com
+ruby ${SRCDIR}/test/scripts/check_zones_exist.sh unknown.rr.org example.com
 
 ret=$?
 exit $ret

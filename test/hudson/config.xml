@@ -9,7 +9,7 @@
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
         <remote>http://svn.opendnssec.org/trunk/OpenDNSSEC</remote>
-        <local>OpenDNSSEC</local>
+        <local>src</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <useUpdate>false</useUpdate>
@@ -30,8 +30,7 @@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>cd OpenDNSSEC
-sh test/scripts/build_and_test.sh</command>
+      <command>sh src/test/scripts/build_and_test.sh</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers/>

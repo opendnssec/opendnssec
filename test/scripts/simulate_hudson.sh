@@ -9,7 +9,6 @@ rm -fr WORKSPACE
 mkdir -p $WORKSPACE
 
 cd $WORKSPACE
-svn export http://svn.opendnssec.org/trunk/OpenDNSSEC OpenDNSSEC
+svn export http://svn.opendnssec.org/trunk/OpenDNSSEC src
 
-cd $WORKSPACE/OpenDNSSEC
-sh -vx test/scripts/build_and_test.sh
+sh -vx src/test/scripts/build_and_test.sh
