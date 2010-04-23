@@ -11,7 +11,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = ksm common enforcerd utils test
+SUBDIRS = ksm common enforcerd utils # test
 
 install-data-hook:
 	mkdir -p ${DESTDIR}$(localstatedir)/run/opendnssec
