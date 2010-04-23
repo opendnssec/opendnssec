@@ -92,16 +92,11 @@ setup_enforcer()
 
 setup_test_zones()
 {
-	cp ${SRCDIR}/test/zonedata/unknown.rr.org ${SANDBOX}/var/opendnssec/unsigned
+	cp ${SRCDIR}/test/zonedata/* ${SANDBOX}/var/opendnssec/unsigned
+
 	${SANDBOX}/bin/ods-ksmutil zone add -z  unknown.rr.org -p default
-
-	cp ${SRCDIR}/test/zonedata/example.com ${SANDBOX}/var/opendnssec/unsigned
 	${SANDBOX}/bin/ods-ksmutil zone add -z  example.com -p default
-
-	cp ${SRCDIR}/test/zonedata/all.rr.org ${SANDBOX}/var/opendnssec/unsigned
 	${SANDBOX}/bin/ods-ksmutil zone add -z  all.rr.org -p default
-
-	cp ${SRCDIR}/test/zonedata/all.rr.binary.org ${SANDBOX}/var/opendnssec/unsigned
 	${SANDBOX}/bin/ods-ksmutil zone add -z  all.rr.binary.org -p default
 
 	${SANDBOX}/bin/ods-ksmutil update all
