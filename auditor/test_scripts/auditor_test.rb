@@ -22,15 +22,13 @@ class Time # @TODO@ Can't use this to test enable_timeshift
 end
 
 class TestLogger
-  def initialize(syslog)
-    @syslog = syslog
+  def initialize(on)
+    @vocal = on
   end
   def log(pri, msg)
+    if (@vocal)
       print "#{pri}: #{msg}\n"
-      begin
-        @syslog.log(pri, msg)
-      rescue ArgumentError # Make sure we continue no matter what
-      end
+    end
   end
 end
 
@@ -369,15 +367,11 @@ class AuditorTest < Test::Unit::TestCase
 
     r, w = IO.pipe
     pid = fork {
-      $stdout.reopen w
       r.close
+      $stdout.reopen w
 
-      options = Syslog::LOG_NDELAY
-
-      Syslog.open("auditor_test", options) {|syslog|
-        runner.force_partial if partial
-        ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, syslog, working, working, 3600) # Audit all zones
-      }
+      runner.force_partial if partial
+      ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, TestLogger.new(false), working, working, 3600) # Audit all zones
       exit!(ret)
     }
     w.close
@@ -408,15 +402,10 @@ class AuditorTest < Test::Unit::TestCase
     end
     r, w = IO.pipe
     pid = fork {
-      $stdout.reopen w
       r.close
+      $stdout.reopen w
 
-      options = Syslog::LOG_NDELAY
-
-      Syslog.open("auditor_test", options) {|syslog|
-        run_keytracker_tests(syslog)
-      }
-      exit!(0)
+      run_keytracker_tests(TestLogger.new(true))
     }
     w.close
     Process.waitpid(pid)
@@ -495,7 +484,7 @@ class AuditorTest < Test::Unit::TestCase
     config.keys = keys
     config.audit_tag_present = true
 
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(syslog), config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
     assert(checker.cache.inuse.length == 0)
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 0)
