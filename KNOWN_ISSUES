@@ -105,4 +105,6 @@ Quicksorter does not allow certain owner names
 ------------------------------------------------
 
 If a RR owner name looks like a directive, for example, \$ORIGIN or $TTLexample, 
-the quicksorter filters them away as being incorrect directives.
+the quicksorter filters them away as being incorrect directives. It will crash 
+on owner names like \$ORIGIN. 
+
