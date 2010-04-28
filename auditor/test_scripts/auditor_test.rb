@@ -21,31 +21,42 @@ class Time # @TODO@ Can't use this to test enable_timeshift
   end
 end
 
+class TestLogger
+  def initialize(syslog)
+    @syslog = syslog
+  end
+  def log(pri, msg)
+      print "#{pri}: #{msg}\n"
+      begin
+        @syslog.log(pri, msg)
+      rescue ArgumentError # Make sure we continue no matter what
+      end
+  end
+end
+
 class AuditorTest < Test::Unit::TestCase
 
   def test_good_file_nsec
     # Get the auditor to check a known-good zone (with signatures set well into the future)
     # Make sure there are no errors
 
-    stderr = IO::pipe
     path = "test/signer_test_good/"
     zonelist_filename = "zonelist_nsec.xml"
     kasp_filename = "kasp_nsec.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp")
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 0, "test/tmp")
 
-    success = check_syslog(stderr, [])
+    #    success = check_syslog(stderr, [])
+    success = check_syslog(r, ["Auditor found no errors"])
     assert(success, "NSEC good file not audited correctly")
   end
 
   def test_good_file_nsec3
-    stderr = IO::pipe
     path = "test/signer_test_good/"
     zonelist_filename = "zonelist_nsec3.xml"
     kasp_filename = "kasp_nsec3.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp")
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 0, "test/tmp")
 
-    success = check_syslog(stderr, [# "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
-        #      "Found NSEC3 record for hashed domain which couldn't be found in the zone (80n8ioi90t6r9r13qpfcpsourito57v2.tjeb.nl)",
+    success = check_syslog(r, ["Auditor found no errors"
       ])
     assert(success, "NSEC3 good file not audited correctly")
   end
@@ -53,14 +64,14 @@ class AuditorTest < Test::Unit::TestCase
   def test_bad_file_nsec
     # Get a known-bad zone file
     # Make sure that all known errors are caught
-    stderr = IO::pipe
     path = "test/signer_test_bad/"
     zonelist_filename = "zonelist_nsec.xml"
     kasp_filename = "kasp_nsec.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp1")
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 3, "test/tmp1")
 
 
     expected_strings = [
+      "Auditor found errors - check log for details",
       # Check the errors in the zone which are common to both NSEC and NSEC3
       #  -  non dnssec data : missing data and
       #        extra data
@@ -116,20 +127,20 @@ class AuditorTest < Test::Unit::TestCase
 
       # @TODO@ Update online spec some time!
     ]
-    success = check_syslog(stderr, expected_strings)
+    success = check_syslog(r, expected_strings)
     assert(success, "NSEC bad file not audited correctly")
   end
   
   def test_bad_file_nsec3
     # Get a known-bad zone file
     # Make sure that all known errors are caught
-    stderr = IO::pipe
     path = "test/signer_test_bad/"
     zonelist_filename = "zonelist_nsec3.xml"
     kasp_filename = "kasp_nsec3.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp2")
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 3, "test/tmp2")
   
     expected_strings = [ # NSEC3 error strings
+      "Auditor found errors - check log for details",
       "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
       #   1. There are no NSEC records in the zone.
       "NSEC RRs included in NSEC3-signed zone",
@@ -183,7 +194,7 @@ class AuditorTest < Test::Unit::TestCase
 
 
     ]
-    success = check_syslog(stderr, expected_strings, true, possible_strings)
+    success = check_syslog(r, expected_strings, true, possible_strings)
     assert(success, "NSEC3 bad file not audited correctly")
   end
 
@@ -191,24 +202,22 @@ class AuditorTest < Test::Unit::TestCase
     # Get the auditor to check a known-good zone (with signatures set well into the future)
     # Make sure there are no errors
 
-    stderr = IO::pipe
     path = "test/signer_test_good/"
     zonelist_filename = "zonelist_nsec.xml"
     kasp_filename = "kasp_nsec.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp", true)
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 0, "test/tmp", true)
 
-    success = check_syslog(stderr, [])
+    success = check_syslog(r, ["Auditor found no errors"])
     assert(success, "NSEC good file not audited correctly")
   end
 
   def test_partial_good_file_nsec3
-    stderr = IO::pipe
     path = "test/signer_test_good/"
     zonelist_filename = "zonelist_nsec3.xml"
     kasp_filename = "kasp_nsec3.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 0, "test/tmp", true)
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 0, "test/tmp", true)
 
-    success = check_syslog(stderr, [# "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used"
+    success = check_syslog(r, ["Auditor found no errors"
       ])
     assert(success, "NSEC3 good file not audited correctly")
   end
@@ -216,14 +225,14 @@ class AuditorTest < Test::Unit::TestCase
   def test_partial_bad_file_nsec
     # Get a known-bad zone file
     # Make sure that all known errors are caught
-    stderr = IO::pipe
     path = "test/signer_test_bad/"
     zonelist_filename = "zonelist_nsec.xml"
     kasp_filename = "kasp_nsec.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp1", true)
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 3, "test/tmp1", true)
 
 
     expected_strings = [
+      "Auditor found errors - check log for details",
       "Signature lifetime too short - should be at least 657936300 but was 2219833",
       "Signature lifetime too short - should be at least 657936300 but was 633371846",
       "RRSet (www.tjeb.nl, AAAA) failed verification : Signature record not in validity period, tag = 1390",
@@ -251,20 +260,20 @@ class AuditorTest < Test::Unit::TestCase
       "New KSK DNSKEY has incorrect algorithm (was RSASHA1) or alg_length (was 1024)"
       # @TODO@ Update online spec some time!
     ]
-    success = check_syslog(stderr, expected_strings)
+    success = check_syslog(r, expected_strings)
     assert(success, "NSEC bad file not audited correctly")
   end
 
   def test_partial_bad_file_nsec3
     # Get a known-bad zone file
     # Make sure that all known errors are caught
-    stderr = IO::pipe
     path = "test/signer_test_bad/"
     zonelist_filename = "zonelist_nsec3.xml.partial"
     kasp_filename = "kasp_nsec3_partial.xml"
-    run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, 3, "test/tmp2", true)
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 3, "test/tmp2", true)
 
     expected_strings = [ # NSEC3 error strings
+      "Auditor found errors - check log for details",
       "Zone configured to use NSEC3 but inconsistent DNSKEY algorithm used",
       #   1. There are no NSEC records in the zone.
       "NSEC RRs included in NSEC3-signed zone",
@@ -297,15 +306,18 @@ class AuditorTest < Test::Unit::TestCase
       # - @TODO@ extra next_hashed on one NSEC3
       "NSEC3 record left after folowing closed loop : ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl"
     ]
-    success = check_syslog(stderr, expected_strings)
+    success = check_syslog(r, expected_strings)
     assert(success, "NSEC3 bad file not audited correctly")
   end
 
   def check_syslog(stderr, expected_strings, add_default_msg=true, optional_strings=[])
     remaining_strings = []
-    while (line = stderr[0].gets)
-      remaining_strings.push(line)
-    end
+    stderr.each {|l|
+      remaining_strings.push(l)
+    }
+    #    while (line = stderr[0].gets)
+    #      remaining_strings.push(line)
+    #    end
     if (add_default_msg)
       expected_strings.push("Auditor started")
       expected_strings.push("Auditor starting on tjeb.nl")
@@ -340,7 +352,7 @@ class AuditorTest < Test::Unit::TestCase
     return success
   end
 
-  def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, stderr, expected_ret, working, partial = false)
+  def run_auditor_with_syslog(path, zonelist_filename, kasp_filename, expected_ret, working, partial = false)
     path = @@root_path + path
 
     runner = Runner.new
@@ -355,17 +367,12 @@ class AuditorTest < Test::Unit::TestCase
       end
     }
 
+    r, w = IO.pipe
     pid = fork {
-      stderr[0].close
-      STDERR.reopen(stderr[1])
-      stderr[1].close
+      $stdout.reopen w
+      r.close
 
       options = Syslog::LOG_NDELAY
-      begin
-        options = options | Syslog::LOG_PERROR
-      rescue NameError
-        # tough
-      end
 
       Syslog.open("auditor_test", options) {|syslog|
         runner.force_partial if partial
@@ -373,10 +380,12 @@ class AuditorTest < Test::Unit::TestCase
       }
       exit!(ret)
     }
-    stderr[1].close
+    w.close
+
     Process.waitpid(pid)
     ret_val = $?.exitstatus
     assert_equal(expected_ret, ret_val, "Expected return of #{expected_ret} from successful auditor run")
+    return r
   end
 
   def test_key_tracking
@@ -397,25 +406,19 @@ class AuditorTest < Test::Unit::TestCase
       File.delete("test/tmp/tracker/example.com.")
     rescue Exception
     end
-    stderr = IO::pipe
+    r, w = IO.pipe
     pid = fork {
-      stderr[0].close
-      STDERR.reopen(stderr[1])
-      stderr[1].close
+      $stdout.reopen w
+      r.close
 
       options = Syslog::LOG_NDELAY
-      begin
-        options = options | Syslog::LOG_PERROR
-      rescue NameError
-        # Oh well
-      end
 
       Syslog.open("auditor_test", options) {|syslog|
         run_keytracker_tests(syslog)
-        exit!(0)
       }
+      exit!(0)
     }
-    stderr[1].close
+    w.close
     Process.waitpid(pid)
 
     # Now check stderr for error strings
@@ -432,7 +435,7 @@ class AuditorTest < Test::Unit::TestCase
       "SOA serial has decreased - used to be 101 but is now 100",
       "Key (56013) has gone straight to active use without a prepublished phase"
     ]
-    success = check_syslog(stderr, expected_strings, false)
+    success = check_syslog(r, expected_strings, false)
     assert(success, "Keys not correctly tracked over time")
   end
 
@@ -492,7 +495,7 @@ class AuditorTest < Test::Unit::TestCase
     config.keys = keys
     config.audit_tag_present = true
 
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(syslog), config, 0)
     assert(checker.cache.inuse.length == 0)
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 0)
