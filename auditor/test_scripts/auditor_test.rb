@@ -372,14 +372,16 @@ class AuditorTest < Test::Unit::TestCase
 
       runner.force_partial if partial
       ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, TestLogger.new(false), working, working, 3600) # Audit all zones
+      w.close
       exit!(ret)
     }
     w.close
-
+    ret_strings = []
+    r.each {|l| ret_strings.push(l)}
     Process.waitpid(pid)
     ret_val = $?.exitstatus
     assert_equal(expected_ret, ret_val, "Expected return of #{expected_ret} from successful auditor run")
-    return r
+    return ret_strings
   end
 
   def test_key_tracking
@@ -406,8 +408,12 @@ class AuditorTest < Test::Unit::TestCase
       $stdout.reopen w
 
       run_keytracker_tests(TestLogger.new(true))
+      w.close
     }
     w.close
+    ret_strings = []
+    r.each {|l| ret_strings.push(l)}
+
     Process.waitpid(pid)
 
     # Now check stderr for error strings
@@ -424,7 +430,7 @@ class AuditorTest < Test::Unit::TestCase
       "SOA serial has decreased - used to be 101 but is now 100",
       "Key (56013) has gone straight to active use without a prepublished phase"
     ]
-    success = check_syslog(r, expected_strings, false)
+    success = check_syslog(ret_strings, expected_strings, false)
     assert(success, "Keys not correctly tracked over time")
   end
 
