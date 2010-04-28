@@ -462,34 +462,22 @@ module KASPAuditor
           grep_for_domains_of_interest(file, domain_filename)
         }
         first = true
-        if (!File.exists?(domain_filename))
-          File.new(domain_filename, "w")
-        end
-        File.open(domain_filename, "w") {|domain_file|
-          IO.foreach((file.to_s+"").untaint) {|line|
-            next if (line[0,1] == ";")
-            next if (line.strip.length == 0)
-            if (first)
-              first = false
-              # Check that SOA record is first record in output zone
-              rr = RR.create(line)
-              if (rr.type != Types::SOA)
-                @parent.log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got RR : #{rr}")
-              end
+        IO.foreach((file.to_s+"").untaint) {|line|
+          next if (line[0,1] == ";")
+          next if (line.strip.length == 0)
+          if (first)
+            first = false
+            # Check that SOA record is first record in output zone
+            rr = RR.create(line)
+            if (rr.type != Types::SOA)
+              @parent.log(LOG_ERR, "Expected SOA RR as first record in #{file}, but got RR : #{rr}")
             end
-            # Read the line in and split it
-            # We know that signed line will always be in canonical form. So, type will always be at line.split()[3]
+          end
+          # Read the line in and split it
+          # We know that signed line will always be in canonical form. So, type will always be at line.split()[3]
 
-            # See if it contains an RR type of interest - if so, then process the standard checks that apply for that type
-            test_rr_type(line)
-            #            # See if it contains a domain name of interest - only if we are looking for any!
-            #            if (@parent.scan_options.num_domains)
-            #              if (@parent.name_in_list(line.split()[0]))
-            #                # if so, then save it to the temp file for that domain name
-            #                domain_file.write(line)
-            #              end
-            #            end
-          }
+          # See if it contains an RR type of interest - if so, then process the standard checks that apply for that type
+          test_rr_type(line)
         }
 
         ret_id, ret_status = Process.wait2(pid)
