@@ -234,7 +234,7 @@ module KASPAuditor
 
       # First, sort the @nsec_temp_file
       
-      system("sort #{@nsec_temp_file} > #{@nsec_temp_file}.tmp")
+      system("#{Commands.sort} #{@nsec_temp_file} > #{@nsec_temp_file}.tmp")
       system("mv #{@nsec_temp_file}.tmp #{@nsec_temp_file}")
       # Then simply follow it line by line.
       next_name = nil
