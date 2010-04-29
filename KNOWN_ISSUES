@@ -37,7 +37,8 @@ in active state will be used for signing. When rolling keys, keys may become
 active or inactive. At these points in key rollover, all signatures that
 correspond to a previously active key (which just became inactive) need to be
 dropped and new signatures for the new, just activated key need to be created
-from scratch. OpenDNSSEC cannot handle a smooth transition between these states.
+from scratch. OpenDNSSEC cannot handle a smooth transition between these
+states.
 
 
 Limitations on Number of Zones
@@ -87,24 +88,25 @@ Issue with sharing keys and adding zones
 ----------------------------------------
 
 Due to a limitation in the way we keep track of key states, adding zones to a
-system that shares keys results in the new zone not getting copies of the 
+system that shares keys results in the new zone not getting copies of the
 standby KSKs.
-In general when sharing keys the user must be aware that any key will be in the
-same state for all zones. 
+
+In general when sharing keys the user must be aware that any key will be in
+the same state for all zones.
 
 
 Issue with rolling from one algorithm to another
 ------------------------------------------------
 
-The current version will handle key rollovers that also change algorithm just the
-same as any other key rollover. This is not sufficient; and so rolling between
-algorithms is broken and should not be done with the current system.
+The current version will handle key rollovers that also change algorithm just
+the same as any other key rollover. This is not sufficient; and so rolling
+between algorithms is broken and should not be done with the current system.
 
 
 Quicksorter does not allow certain owner names
 ------------------------------------------------
 
-If a RR owner name looks like a directive, for example, \$ORIGIN or $TTLexample, 
+If a RR owner name looks like a directive, e.g., \$ORIGIN or $TTLexample, 
 the quicksorter filters them away as being incorrect directives. It will crash 
 on owner names like \$ORIGIN. 
 
