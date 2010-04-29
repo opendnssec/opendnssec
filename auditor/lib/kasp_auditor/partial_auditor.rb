@@ -482,7 +482,7 @@ module KASPAuditor
 
         ret_id, ret_status = Process.wait2(pid)
         if (ret_status != 0)
-          @parent.log(LOG_WARNING, "Egrep failed on #{file} - #{ret_status}")
+          @parent.log(LOG_WARNING, "Grep failed on #{file} - #{ret_status}")
         else
           scan_temp_domain_files(domain_filename)
         end
@@ -492,7 +492,7 @@ module KASPAuditor
       def grep_for_domains_of_interest(file, domain_filename)
         # Use the parent.domain_list to grep for all the instances of the domains we're after.
         list = @parent.domain_list + @parent.hashed_domain_list
-        grep_command = "grep '"
+        grep_command = "#{Commands.grep} '"
         first = true
         list.each {|domain|
           if first

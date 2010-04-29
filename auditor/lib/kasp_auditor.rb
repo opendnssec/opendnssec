@@ -25,6 +25,7 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+require 'etc'
 begin
   require 'dnsruby'
 rescue LoadError
@@ -34,13 +35,13 @@ end
 require 'syslog'
 include Syslog::Constants
 include Dnsruby
+require 'kasp_auditor/commands.rb'
 require 'kasp_auditor/config.rb'
 require 'kasp_auditor/key_tracker.rb'
 require 'kasp_auditor/auditor.rb'
 require 'kasp_auditor/partial_auditor.rb'
 require 'kasp_auditor/parse.rb'
 require 'kasp_auditor/preparser.rb'
-require 'etc'
 
 # This module provides auditing capabilities to OpenDNSSEC.
 # Once an unsigned zone has been signed, this module is used to check that
@@ -127,7 +128,7 @@ module KASPAuditor
         zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
           zonelist_file, kasp_file, syslog)
       rescue Exception => e
-        KASPAuditor.exit("Couldn't load configuration files - try running ods-kaspcheck", -LOG_ERR, syslog)
+        KASPAuditor.exit("Couldn't load configuration files (from #{kasp_file}) - try running ods-kaspcheck", -LOG_ERR, syslog)
       end
       zones = check_zones_to_audit(zones, syslog)
       # Now check the input and output zones using the config
