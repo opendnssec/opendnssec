@@ -29,10 +29,10 @@
 module KASPAuditor
   class Commands
     def Commands.grep
-      "grep"
+      "@GREP@"
     end
     def Commands.sort
-      "sort"
+      "@SORT@"
     end
   end
 end

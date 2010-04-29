@@ -55,6 +55,7 @@ AC_CONFIG_FILES([
 	ods-auditor.1
 	ods-kaspcheck
 	ods-kaspcheck.1
+        lib/kasp_auditor/commands.rb
 ])
 
 AC_OUTPUT
