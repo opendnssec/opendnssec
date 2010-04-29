@@ -735,7 +735,7 @@ module KASPAuditor
 
         end
         # Check if the record exists in both zones - if not, print an error
-        if (unsigned_domain_rrs  &&  !delete_rr(unsigned_domain_rrs, l_rr)) # delete the record from the unsigned
+        if (unsigned_domain_rrs  &&  !(unsigned_domain_rrs.delete(l_rr))) # delete the record from the unsigned
           # ADDITIONAL SIGNED RECORD!! Check if we should error on it
           process_additional_signed_rr(l_rr)
           if (l_rr.type == Types::SOA)
@@ -782,31 +782,6 @@ module KASPAuditor
         check_dnskeys_at_zone_apex(seen_dnskey_sep_set, seen_dnskey_sep_clear)
       end
       return l_rr
-    end
-
-    # Delete a processed RR from the unsigned domain cache
-    def delete_rr(unsigned_domain_rrs, l_rr)
-      if (l_rr.type == Types::AAAA)
-        # We need to inspect the data here - old versions of Dnsruby::RR#==
-        # compare the rdata as well as the instance variables.
-        unsigned_domain_rrs.each {|u_rr|
-          if ((u_rr.name == l_rr.name) && (u_rr.type == l_rr.type) &&
-                (u_rr.address == l_rr.address))
-            return unsigned_domain_rrs.delete(u_rr)
-          end
-        }
-      elsif (l_rr.type == Types::DS)
-        # Dnsruby 1.39 fails to compare DS RRs correctly - this is fixed for future versions
-        unsigned_domain_rrs.each {|u_rr|
-          if ((u_rr.name == l_rr.name) && (u_rr.type == l_rr.type) &&
-                (u_rr.key_tag == l_rr.key_tag) && (u_rr.digestbin == l_rr.digestbin) &&
-                (u_rr.algorithm == l_rr.algorithm) && (u_rr.digest_type == l_rr.digest_type))
-            return unsigned_domain_rrs.delete(u_rr)
-          end
-        }
-      else
-        return unsigned_domain_rrs.delete(l_rr)
-      end
     end
 
     # This method is called if an NSEC3-sgned zone is being audited.
