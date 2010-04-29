@@ -65,7 +65,7 @@ build_opendnssec()
 		exit $rc
 	fi
 
-        cp ${SRCDIR}/auditor/lib/kasp_auditor/commands.rb ${SRCDIR}/auditor/lib/kasp_auditor/
+        cp ${OBJDIR}/auditor/lib/kasp_auditor/commands.rb ${SRCDIR}/auditor/lib/kasp_auditor/
 
 	(cd ${OBJDIR}; make check)
 	rc=$?
