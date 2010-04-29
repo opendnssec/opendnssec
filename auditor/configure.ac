@@ -26,9 +26,11 @@ fi
 AC_PATH_PROGS(GREP, ggrep grep,[
     AC_MSG_ERROR([grep required, but not found.])
 ])
+AC_SUBST([GREP])
 AC_PATH_PROGS(SORT, gsort sort,[
     AC_MSG_ERROR([sort required, but not found.])
 ])
+AC_SUBST([SORT])
 
 
 full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
