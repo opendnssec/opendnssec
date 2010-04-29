@@ -22,6 +22,15 @@ if test "x$XMLLINT" = "x"; then
     AC_MSG_ERROR([xmllint required, but not found.])
 fi
 
+# check for grep and sort
+AC_PATH_PROGS(GREP, ggrep grep,[
+    AC_MSG_ERROR([grep required, but not found.])
+])
+AC_PATH_PROGS(SORT, gsort sort,[
+    AC_MSG_ERROR([sort required, but not found.])
+])
+
+
 full_libdir=`eval eval eval eval eval echo "${libdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_datadir=`eval eval eval eval eval echo "${datadir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
 full_sysconfdir=`eval eval eval eval eval echo "${sysconfdir}" | sed "s#NONE#${prefix}#" | sed "s#NONE#${ac_default_prefix}#"`
