@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.1.0rc2 - 2010-04-29
+OpenDNSSEC 1.1.0rc2 - 2010-05-04
 
 Bugfixes:
 * Fix semantics of refresh value in Signer Engine.
