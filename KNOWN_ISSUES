@@ -110,3 +110,23 @@ If a RR owner name looks like a directive, e.g., \$ORIGIN or $TTLexample,
 the quicksorter filters them away as being incorrect directives. It will crash 
 on owner names like \$ORIGIN. 
 
+
+Enforcer unit tests require environment variables
+-------------------------------------------------
+
+In order to run the unit tests for the enforcer the following environment 
+variables need to be set when configure is run:
+
+For a sqlite build:
+DB_NAME
+    points to the file to be used during the unit tests. N.B. it will be deleted and recreated during the tests.
+
+For a mysql build:
+DB_USERNAME
+    user to connect as
+DB_PASSWORD
+    password for that user
+DB_HOST
+    machine to connect to
+DB_NAME
+    the schema to use, N.B. this schema will be torn down and recreated during the tests.
