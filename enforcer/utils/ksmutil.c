@@ -1140,7 +1140,10 @@ cmd_exportkeys ()
     if (o_keystate != NULL) {
         case_keystate = StrStrdup(o_keystate);
         (void) StrToUpper(case_keystate);
-        if (strncmp(case_keystate, "GENERATE", 8) == 0 || strncmp(o_keystate, "1", 1) == 0) {
+        if (strncmp(case_keystate, "KEYPUBLISH", 10) == 0 || strncmp(o_keystate, "10", 2) == 0) {
+            state_id =  KSM_STATE_KEYPUBLISH;
+        }
+        else if (strncmp(case_keystate, "GENERATE", 8) == 0 || strncmp(o_keystate, "1", 1) == 0) {
             state_id = KSM_STATE_GENERATE;
         }
         else if (strncmp(case_keystate, "PUBLISH", 7) == 0 || strncmp(o_keystate, "2", 1) == 0) {
@@ -1153,22 +1156,22 @@ cmd_exportkeys ()
             state_id =  KSM_STATE_ACTIVE;
         }
         else if (strncmp(case_keystate, "RETIRE", 6) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+            state_id =  KSM_STATE_RETIRE;
+        }
+        else if (strncmp(case_keystate, "DEAD", 4) == 0 || strncmp(o_keystate, "6", 1) == 0) {
             state_id =  KSM_STATE_DEAD;
         }
-        else if (strncmp(case_keystate, "DSSUB", 5) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+        else if (strncmp(case_keystate, "DSSUB", 5) == 0 || strncmp(o_keystate, "7", 1) == 0) {
             state_id =  KSM_STATE_DSSUB;
         }
-        else if (strncmp(case_keystate, "DSPUBLISH", 9) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+        else if (strncmp(case_keystate, "DSPUBLISH", 9) == 0 || strncmp(o_keystate, "8", 1) == 0) {
             state_id =  KSM_STATE_DSPUBLISH;
         }
-        else if (strncmp(case_keystate, "DSREADY", 7) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+        else if (strncmp(case_keystate, "DSREADY", 7) == 0 || strncmp(o_keystate, "9", 1) == 0) {
             state_id =  KSM_STATE_DSREADY;
         }
-        else if (strncmp(case_keystate, "KEYPUBLISH", 10) == 0 || strncmp(o_keystate, "5", 1) == 0) {
-            state_id =  KSM_STATE_KEYPUBLISH;
-        }
         else {
-            printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE, RETIRED, DSSUB, DSPUBLISH, DSREADY or KEYPUBLISH\n", o_keystate);
+            printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE, RETIRED, DEAD, DSSUB, DSPUBLISH, DSREADY or KEYPUBLISH\n", o_keystate);
 
             StrFree(case_keystate);
             return(1);
