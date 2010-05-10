@@ -1,5 +1,11 @@
 $Id$
 
+OpenDNSSEC 1.1.0rc3 - 
+
+Bugfixes:
+* Could not compile quicksorter on FreeBSD.
+* Bugreport #131: test suite fails in 1.1.0rc2
+
 OpenDNSSEC 1.1.0rc2 - 2010-05-04
 
 Bugfixes:
