@@ -35,6 +35,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
 
 #include "quicksorter_encode.h"
 
