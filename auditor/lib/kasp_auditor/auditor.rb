@@ -165,7 +165,7 @@ module KASPAuditor
               last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, unsigned_domain_rrs)
 
             end
-            if (last_unsigned_rr)
+            if (last_unsigned_rr && (!last_signed_rr || (compare_return != 0) ) )
               process_additional_unsigned_rr(last_unsigned_rr)
             end
           }
