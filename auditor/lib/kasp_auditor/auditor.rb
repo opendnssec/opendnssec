@@ -165,7 +165,7 @@ module KASPAuditor
               last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, unsigned_domain_rrs)
 
             end
-            if (last_unsigned_rr)
+            if (last_unsigned_rr && (!last_signed_rr || (compare_return != 0) ) )
               process_additional_unsigned_rr(last_unsigned_rr)
             end
           }
@@ -820,6 +820,7 @@ module KASPAuditor
     #
     # It is passed the domain, and the types seen at the domain
     def write_types_to_file(domain, types_covered, last_name, is_glue)
+      return if is_glue
       return if (types_covered.include?Types::NSEC3) # Only interested in real domains
       #      return if (out_of_zone(domain)) # Only interested in domains which should be here!
       types_string = get_types_string(types_covered)
