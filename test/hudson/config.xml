@@ -2,7 +2,7 @@
 <!-- $Id$ -->
 <project>
   <actions/>
-  <description>First stab at a test system for OpenDNSSEC - uses OpenDNSSEC-hudson branch just now</description>
+  <description>OpenDNSSEC trunk test</description>
   <keepDependencies>false</keepDependencies>
   <properties/>
   <scm class="hudson.scm.SubversionSCM">
