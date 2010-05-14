@@ -795,7 +795,7 @@ module KASPAuditor
     #
     # It is passed the domain, and the types seen at the domain
     def write_types_to_file(domain, types_covered, last_name, is_glue)
-      return if is_glue
+      return if (is_glue && ( types_covered.clone.delete_if{|t| t == Types::A || t == Types::AAAA}.empty? ))
       return if (types_covered.include?Types::NSEC3) # Only interested in real domains
       #      return if (out_of_zone(domain)) # Only interested in domains which should be here!
       types_string = get_types_string(types_covered)
