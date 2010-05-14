@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.1.0rc3 - 
+OpenDNSSEC 1.1.0rc3 - 2010-05-15
 
 Bugfixes:
 * Could not compile quicksorter on FreeBSD.
