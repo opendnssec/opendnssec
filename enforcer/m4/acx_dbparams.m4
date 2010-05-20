@@ -4,7 +4,8 @@ AC_DEFUN([ACX_DBPARAMS],[
 
 	AC_ARG_WITH(dbname,
 		[AS_HELP_STRING([--with-dbname=DB_NAME],[Database name/schema for unit tests])],
-		DB_NAME="$withval"
+		DB_NAME="$withval",
+                DB_NAME="kasp-unit-test.db"
 	)
 	AC_SUBST(DB_NAME)
 	
