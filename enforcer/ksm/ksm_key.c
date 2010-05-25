@@ -94,13 +94,12 @@ int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, in
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    sql = DisSpecifyInit("keypairs", "policy_id, HSMkey_id, securitymodule_id, size, algorithm, state, generate");
+    sql = DisSpecifyInit("keypairs", "policy_id, HSMkey_id, securitymodule_id, size, algorithm, generate");
     DisAppendInt(&sql, policy_id);
     DisAppendString(&sql, HSMKeyID);
     DisAppendInt(&sql, smID);
     DisAppendInt(&sql, size);
     DisAppendInt(&sql, alg);
-    DisAppendInt(&sql, KSM_STATE_GENERATE);
     DisAppendString(&sql, generate);
     DisEnd(&sql);
 
@@ -152,10 +151,11 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id)
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    sql = DisSpecifyInit("dnsseckeys", "zone_id, keypair_id, keytype");
+    sql = DisSpecifyInit("dnsseckeys", "zone_id, keypair_id, keytype, state");
     DisAppendInt(&sql, zone_id);
     DisAppendInt(&sql, keypair_id);
     DisAppendInt(&sql, keytype);
+    DisAppendInt(&sql, KSM_STATE_GENERATE);
     DisEnd(&sql);
 
     /* Execute the statement */
@@ -231,124 +231,6 @@ int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype)
 
     return status;
 }
-
-/*+
- * KsmKeyModify - Modify KEYDATA Entry
- *
- * Description:
- *      Modifies a key in the database.
- *
- * Arguments:
- *      KSM_KEY* data
- *          Data to update.  Only fields where the flagss bit is set are
- *          updated.
- *
- *      int low
- *          Lower bound of range to modify.
- *
- *      int high
- *          Higher bound of range to modify.
- *
- * Returns:
- *      int
- *          Status return.  0=> Success, non-zero => error.
--*/
-/*  everything except size, HSMkey_id and policy_id in keypairs */
-int KsmKeyModify(KSM_KEYDATA* data, int low, int high)
-{
-    int         set = 0;            /* For the SET clause */
-    int         status = 0;         /* Status return */
-    char*       sql = NULL;         /* SQL Statement */
-    int         temp;               /* For ensuring low < high */
-    int         where = 0;          /* for the WHERE clause */
-
-    /* Check arguments */
-    if (data == NULL) {
-        return MsgLog(KSM_INVARG, "NULL data");
-    }
-
-    /* Ensure range ordering is correct */
-
-    if (low > high) {
-        temp = low;
-        low = high;
-        high = temp;
-    }
-
-    /* Create the update command */
-
-    sql = DusInit("keypairs");
-
-    if (data->flags & KEYDATA_M_STATE) {
-        DusSetInt(&sql, "STATE", data->state, set++);
-    }
-
-    if (data->flags & KEYDATA_M_ALGORITHM) {
-        DusSetInt(&sql, "ALGORITHM", data->algorithm, set++);
-    }
-
- /*   if (data->flags & KEYDATA_M_SIGLIFETIME) {
-        DusSetInt(&sql, "SIGLIFETIME", data->siglifetime, set++);
-    }*/
-
-    /* ... the times */
-
-    if (data->flags & KEYDATA_M_ACTIVE) {
-        DusSetString(&sql, "ACTIVE", data->active, set++);
-    }
-
-    if (data->flags & KEYDATA_M_DEAD) {
-        DusSetString(&sql, "DEAD", data->dead, set++);
-    }
-
-    if (data->flags & KEYDATA_M_GENERATE) {
-        DusSetString(&sql, "GENERATE", data->generate, set++);
-    }
-
-    if (data->flags & KEYDATA_M_PUBLISH) {
-        DusSetString(&sql, "PUBLISH", data->publish, set++);
-    }
-
-    if (data->flags & KEYDATA_M_READY) {
-        DusSetString(&sql, "READY", data->ready, set++);
-    }
-
-    if (data->flags & KEYDATA_M_RETIRE) {
-        DusSetString(&sql, "RETIRE", data->retire, set++);
-    }
-
-    /* ... and location */
-
-    if (data->flags & KEYDATA_M_SMID) {
-        DusSetInt(&sql, "SECURITYMODULE_ID", data->securitymodule_id, set++);
-    }
-
-
-    /* For what keys? */
-
-    if (low == high) {
-        DusConditionInt(&sql, "ID", DQS_COMPARE_EQ, low, where++);
-    }
-    else {
-        DusConditionInt(&sql, "ID", DQS_COMPARE_GE, low, where++);
-        DusConditionInt(&sql, "ID", DQS_COMPARE_LE, high, where++);
-    }
-
-    /* All done, close the statement */
-
-    DusEnd(&sql);
-
-    /* Execute the statement */
-
-    status = DbExecuteSqlNoResult(DbHandle(), sql);
-
-    DusFree(sql);
-
-    return status;
-}
-
-
-
 
 /*+
  * KsmKeyInitSql - Query for Key Information With Sql Query
@@ -433,8 +315,9 @@ int KsmKeyInit(DB_RESULT* result, DQS_QUERY_CONDITION* condition)
                 break;
 
             case DB_KEYDATA_STATE:
-                DqsConditionInt(&sql, "STATE", condition[i].compare,
-                    condition[i].data.number, i);
+                } else {
+                    DqsConditionInt(&sql, "STATE", condition[i].compare,
+                            condition[i].data.number, i);
                 break;
 
             case DB_KEYDATA_ZONE_ID:
@@ -1053,7 +936,7 @@ int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *ke
     DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, sm, where++);
     DqsConditionInt(&sql, "size", DQS_COMPARE_EQ, bits, where++);
     DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
-    DqsConditionInt(&sql, "state", DQS_COMPARE_EQ, KSM_STATE_GENERATE, where++);
+    DqsConditionKeyword(&sql, "state", DQS_COMPARE_IS, "NULL", where++);
     DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
 
     /* Execute query and free up the query string */

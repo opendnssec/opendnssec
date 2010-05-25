@@ -148,10 +148,6 @@ int KsmKillKey(int keypair_id);
 int KsmDeleteKeyRange(int minid, int maxid);
 int KsmDeleteKeyRanges(int limit[], int size);
 
-/* modify */
-
-int KsmKeyModify(KSM_KEYDATA* data, int low, int high);
-
 /* KsmParameter */
 
 typedef struct {
@@ -612,7 +608,7 @@ int KsmImportRepository(const char* repo_name, const char* repo_capacity, int re
 int KsmImportPolicy(const char* policy_name, const char* policy_description);
 int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone);
 int KsmImportAudit(int policy_id, const char* audit_contents);
-int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, const char* opt_time, DB_ID* id);
+int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, DB_ID* id);
 int KsmSmIdFromName(const char* name, int *id);
 int KsmSerialIdFromName(const char* name, int *id);
 int KsmPolicyIdFromName(const char* name, int *id);

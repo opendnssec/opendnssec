@@ -34,7 +34,7 @@
  *
  *      Modules register their message text and message code ranges with this
  *      module.  When invoked, this module searches all the registered code
- *      ranges for one containing the statius code in question, and takes the
+ *      ranges for one containing the status code in question, and takes the
  *      appropriate action.
 -*/
 

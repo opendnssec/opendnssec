@@ -1219,7 +1219,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
          * that state.
          */
 
-        sql3 = DusInit("keypairs");
+        sql3 = DusInit("dnsseckeys");
         DusSetInt(&sql3, "STATE", dst_state, setclause++);
         DusSetString(&sql3, dst_name, datetime, setclause++);
         StrFree(dst_name);

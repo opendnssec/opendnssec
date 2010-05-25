@@ -68,7 +68,6 @@ void TcuInitialize(void)
         fprintf(stderr, "Failed to initialize the CUnit registry.\n");
         exit(1);
     }
-exit(0); // TODO !!! Remove this when tests work on all platforms!!!
     return;
 }
 

@@ -189,67 +189,6 @@ static void TestKsmDnssecKeyCreate(void)
 }
 
 /*+
- * TestKsmKeyModify - Test Key Modify code
- *
- * Description:
- *      Tests that keys are created when requested
--*/
-
-static void TestKsmKeyModify(void)
-{
-
-    KSM_KEYDATA     data;           /* Holds information for insertion */
-	char		buffer[8]; /* User buffer */
-	DB_RESULT	result;		/* Result object */
-	DB_ROW		row;		/* Row object */
-    DB_ID           key_id;         /* Created key ID */
-    int             status = 0;     /* Status return */
-	char*		sql;		/* Constructed query */
-	int			where = 0;	/* WHERE clause count */
-
-    /* Create a new keypair entry */
-    int     policy_id = 2;
-    char*   HSMKeyID = "0x1";
-    int     smID = 1;
-    int     size = 1024;
-    int     alg = KSM_ALGORITHM_DSASHA1;
-    char*   generate = "2009-01-01";
-
-    status = KsmKeyPairCreate(policy_id, HSMKeyID, smID, size, alg, generate, &key_id);
-
-	CU_ASSERT_EQUAL(status, 0);
-
-	/* Assume that a key has been added (tested above) */
-
-    /* Change the algorithm and save to database */
-    TestKeyClear(&data);
-    data.algorithm = KSM_ALGORITHM_RSAMD5;
-    data.flags |= KEYDATA_M_ALGORITHM;
-
-    status = KsmKeyModify(&data, key_id, key_id);
-
-	CU_ASSERT_EQUAL(status, 0);
-
-    /* check on the key */
-    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
-	DqsConditionInt(&sql, "ID", DQS_COMPARE_EQ, key_id, where++);
-	DqsEnd(&sql);
-	status = DbExecuteSql(DbHandle(), sql, &result);
-	CU_ASSERT_EQUAL(status, 0);
-	DqsFree(sql);
-
-	status = DbFetchRow(result, &row);
-	CU_ASSERT_EQUAL(status, 0);
-	status = DbStringBuffer(row, DB_KEYDATA_ALGORITHM, buffer, sizeof(buffer));
-	CU_ASSERT_EQUAL(status, 0);
-	CU_ASSERT_STRING_EQUAL(buffer, "1");
-
-	DbFreeRow(row);
-	DbFreeResult(result);
-
-}
-
-/*+
  * TestKsmKeyPredict - Test Key Predict code
  *
  * Description:
@@ -436,7 +375,6 @@ int TestKsmKey(void)
     struct test_testdef tests[] = {
         {"KsmKeyPairCreate", TestKsmKeyPairCreate},
         {"KsmDnssecKeyCreate", TestKsmDnssecKeyCreate},
-        {"KsmKeyModify", TestKsmKeyModify},
         {"KsmKeyPredict", TestKsmKeyPredict},
         {"KsmKeyCountQueue", TestKsmKeyCountQueue},
 /*        {"KsmKeyCountUnallocated", TestKsmKeyCountUnallocated},*/

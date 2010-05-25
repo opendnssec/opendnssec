@@ -2674,7 +2674,7 @@ cmd_import ()
     }
 
     /* create basic keypair */
-    status = KsmImportKeyPair(policy_id, o_cka_id, repo_id, size_int, algo_id, state_id, form_time, form_opt_time, &keypair_id);
+    status = KsmImportKeyPair(policy_id, o_cka_id, repo_id, size_int, algo_id, state_id, form_time, &keypair_id);
     if (status != 0) {
         printf("Error: couldn't import key\n");
         db_disconnect(lock_fd);
