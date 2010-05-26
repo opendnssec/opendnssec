@@ -315,9 +315,8 @@ int KsmKeyInit(DB_RESULT* result, DQS_QUERY_CONDITION* condition)
                 break;
 
             case DB_KEYDATA_STATE:
-                } else {
-                    DqsConditionInt(&sql, "STATE", condition[i].compare,
-                            condition[i].data.number, i);
+                DqsConditionInt(&sql, "STATE", condition[i].compare,
+                        condition[i].data.number, i);
                 break;
 
             case DB_KEYDATA_ZONE_ID:
