@@ -84,6 +84,7 @@ enum {
     RD_INT8,
     RD_INT16,
     RD_INT32,
+    RD_PERIOD, /* Bindism period formats */
     RD_NAME,   /* wire format, one string per segment */
     RD_STRING, /* wire format */
     RD_A,
@@ -107,7 +108,7 @@ static const char format_list[NUM_TYPES][8] = {
     /* 4: MF */     { 1, RD_NAME },
     /* 5: CNAME */  { 1, RD_NAME },
     /* 6: SOA */    { 7, RD_NAME, RD_NAME,
-                      RD_INT32, RD_INT32, RD_INT32, RD_INT32, RD_INT32 },
+                      RD_INT32, RD_PERIOD, RD_PERIOD, RD_PERIOD, RD_PERIOD },
     /* 7: MB */     { 1, RD_NAME },
     /* 8: MG */     { 1, RD_NAME },
     /* 9: MR */     { 1, RD_NAME },
@@ -961,6 +962,95 @@ static void encode_int(char** src, char** dest, int type)
         (*src)++;
 }
 
+static uint32_t encode_period_internal(const char* nptr, const char** endptr)
+{
+    int sign = 0;
+    uint32_t i = 0;
+    uint32_t seconds = 0;
+
+    for (*endptr = nptr; **endptr; (*endptr)++) {
+       switch (**endptr) {
+           case ' ':
+           case '\t':
+               if (seconds) {
+                   return seconds;
+               }
+               break;
+           case '-':
+               if(sign == 0) {
+                   sign = -1;
+               } else {
+                   return seconds;
+               }
+               break;
+           case '+':
+               if(sign == 0) {
+                   sign = 1;
+               } else {
+                   return seconds;
+               }
+               break;
+           case 's':
+           case 'S':
+               seconds += i;
+               i = 0;
+               break;
+           case 'm':
+           case 'M':
+               seconds += i * 60;
+               i = 0;
+               break;
+           case 'h':
+           case 'H':
+               seconds += i * 60 * 60;
+               i = 0;
+               break;
+           case 'd':
+           case 'D':
+               seconds += i * 60 * 60 * 24;
+               i = 0;
+               break;
+           case 'w':
+           case 'W':
+               seconds += i * 60 * 60 * 24 * 7;
+               i = 0;
+               break;
+           case '0':
+           case '1':
+           case '2':
+           case '3':
+           case '4':
+           case '5':
+           case '6':
+           case '7':
+           case '8':
+           case '9':
+               i *= 10;
+               i += (**endptr - '0');
+               break;
+           default:
+              seconds += i;
+              return seconds;
+       }
+    }
+
+    seconds += i;
+    return seconds;
+}
+
+
+static void encode_period(char** src, char** dest)
+{
+    const char* endptr;
+    uint32_t val = encode_period_internal((const char*) *src, &endptr);
+
+    encode_int32(val, *dest);
+    (*dest) += 4;
+
+    while (**src && !isspace((unsigned)**src))
+        (*src)++;
+}
+
 /* CERT: RFC 2538 */
 static void encode_cert16(char** _src, char** _dest)
 {
@@ -1161,6 +1251,10 @@ static void* encode_rdata(int type, char* rdata, char* dest, char* origin)
                 encode_int(&rdata, &dest, format[i]);
                 break;
 
+            case RD_PERIOD:
+                encode_period(&rdata, &dest);
+                break;
+
             case RD_BASE64:
                 encode_base64(&rdata, &dest, false);
                 break;
@@ -1283,6 +1377,7 @@ static int decode_rdata(int type,
                 break;
 
             case RD_INT32:
+            case RD_PERIOD:
                 dest += sprintf(dest, "%d", decode_int32(rdata));
                 rdata += 4;
                 break;

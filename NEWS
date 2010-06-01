@@ -1,12 +1,20 @@
 $Id$
 
+OpenDNSSEC 1.1 branch
+
+Bugfixes:
+* Bugreport #136: quicksorter could not handle standard bind format SOA rdata
+
+
 OpenDNSSEC 1.1.0 - 2010-05-26
+
 
 OpenDNSSEC 1.1.0rc3 - 2010-05-15
 
 Bugfixes:
 * Could not compile quicksorter on FreeBSD.
 * Bugreport #131: test suite fails in 1.1.0rc2
+
 
 OpenDNSSEC 1.1.0rc2 - 2010-05-04
 
