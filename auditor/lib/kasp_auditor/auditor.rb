@@ -358,7 +358,7 @@ module KASPAuditor
       #  c) inception date in past by at least interval specified by config
       rrset.sigs.each {|sig|
         time_now = Time.now.to_i
-        if (sig.inception >= (time_now + @config.signatures.inception_offset))
+        if (sig.inception > (time_now + @config.signatures.inception_offset))
           log(LOG_ERR, "Inception error for #{sig.name}, #{sig.type_covered} : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.signatures.inception_offset}, difference = #{time_now - sig.inception}")
         else
           #                      print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"

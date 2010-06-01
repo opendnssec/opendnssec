@@ -821,7 +821,7 @@ module KASPAuditor
       time_now = Time.now.to_i
       split = line.split
       sig_inception = RR::RRSIG.get_time(split[9])
-      if (sig_inception >= (time_now + @config.signatures.inception_offset))
+      if (sig_inception > (time_now + @config.signatures.inception_offset))
         log(LOG_ERR, "Inception error for #{split[0].chop}, #{split[4]} : Signature inception is #{sig_inception}, time now is #{time_now}, inception offset is #{@config.signatures.inception_offset}, difference = #{time_now - sig_inception}")
       else
         #                      print "OK : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.signatures.inception_offset}, difference = #{time_now - sig.inception}\n"
