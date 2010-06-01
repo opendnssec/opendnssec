@@ -234,7 +234,7 @@ static void encode_base16(char** _src, char** _dest, bool stop_on_noise)
             src++;
         if (!*src)
             break;
-        
+
         *dest++ = (hex2int[src[0] & 127] << 4) | hex2int[src[1] & 127];
         src += 2;
     }
@@ -442,7 +442,7 @@ static void encode_string(char** _src,
 
         if (!copyorigin)
             *_src = src;
-        
+
         /* do we need to append origin? */
         if (domain_name && src[-1] != '.' && !copyorigin) {
             if (!origin) {
@@ -474,13 +474,13 @@ static void decode_string(char** _src, char** _dest, bool domain_name)
 {
     char* src = *_src;
     char* dest = *_dest;
-    
+
     if (!domain_name)
         *dest++ = '\"';
 
     do {
         int len = *src++;
-        
+
         for (int i=0; i<len; i++) {
             switch (*src) {
                 case '\\':
@@ -498,7 +498,7 @@ static void decode_string(char** _src, char** _dest, bool domain_name)
                         *dest++ = '\\';
                     *dest++ = '.';
                     break;
-                        
+
                 default:
                     if (isprint(*src))
                         *dest++ = *src;
@@ -576,7 +576,7 @@ static void decode_owner(char** _rr, char** _dest)
             delim--;
 
         uint16_t* p = delim;
-        
+
         /* copy segment */
         while (p < end) {
             int c = ntohs(*p) & 0xff;
@@ -625,7 +625,7 @@ static void encode_ipv4(char** src, char** dest)
         fprintf(stderr,"Failed encoding ipv4 address: %s!\n", *src);
         exit(-1);
     }
-               
+
     while (**src && !isspace(**src))
         (*src)++;
     *dest += 4;
@@ -772,7 +772,7 @@ static void encode_loc(char** _src, char** _dest)
             }
         }
     }
-        
+
     *dest++ = 0; /* version, must be 0 */
     *dest++ = size;
     *dest++ = hp;
@@ -836,10 +836,10 @@ static void decode_loc(char** _src, char** _dest)
 
     if (size != 100) {
         dest += sprintf(dest, " %.2f", size / 100.0);
-        
+
         if (hp != 10000) {
             dest += sprintf(dest, " %.2f", hp / 100.0);
-    
+
             if (vp != 10)
                 dest += sprintf(dest, " %.2f", vp / 100.0);
         }
@@ -878,13 +878,13 @@ static void encode_apl(char** _src, char** _dest)
         encode_int16(afi, dest);
         dest += 2;
         *dest++ = prefix;
-            
+
         switch (afi) {
             case 1: /* ipv4 */
                 *dest++ = 4 | negation;
                 encode_ipv4(&src, &dest);
                 break;
- 
+
             case 2: /* ipv6 */
                 *dest++ = 16 | negation;
                 encode_ipv6(&src, &dest);
@@ -1039,7 +1039,7 @@ static void encode_hip(char** _src, char** _dest, char* origin)
         while (*src && isspace(*src))
             src++;
     }
-    
+
     *_src = src;
     *_dest = dest;
 }
@@ -1059,14 +1059,14 @@ static void decode_hip(char** _src, char** _dest, int length)
     decode_base16(&src, &dest, hitlen); /* HIT */
 
     *dest++ = ' ';
-    
+
     decode_base64(&src, &dest, pklen); /* PK */
 
     while (src - *_src < length) { /* RVSs */
         *dest++ = ' ';
         decode_string(&src, &dest, true);
     }
-    
+
     *_src = src;
     *_dest = dest;
 }
@@ -1128,7 +1128,7 @@ static void* encode_rdata(int type, char* rdata, char* dest, char* origin)
             exit(-1);
         }
     }
-    
+
     for (int i=1; i <= pcount; i++) {
         switch (format[i]) {
             case RD_NAME:
@@ -1154,7 +1154,7 @@ static void* encode_rdata(int type, char* rdata, char* dest, char* origin)
             case RD_AAAA:
                 encode_ipv6(&rdata, &dest);
                 break;
-                
+
             case RD_INT8:
             case RD_INT16:
             case RD_INT32:
@@ -1192,7 +1192,7 @@ static void* encode_rdata(int type, char* rdata, char* dest, char* origin)
             case RD_LOC:
                 encode_loc(&rdata, &dest);
                 break;
-                
+
             case RD_APL:
                 encode_apl(&rdata, &dest);
                 break;
@@ -1204,11 +1204,11 @@ static void* encode_rdata(int type, char* rdata, char* dest, char* origin)
             case RD_HIP:
                 encode_hip(&rdata, &dest, origin);
                 break;
-                
+
             case RD_NSAP:
                 encode_nsap(&rdata, &dest);
                 break;
-                
+
             default:
                 fprintf(stderr,"Error! Unsupported rdata parameter type %d.\n", format[i]);
                 exit(-1);
@@ -1270,7 +1270,7 @@ static int decode_rdata(int type,
             case RD_AAAA:
                 decode_ipv6(&rdata, &dest);
                 break;
-                
+
             case RD_INT8:
                 dest += sprintf(dest, "%d", *rdata);
                 rdata++;
@@ -1312,7 +1312,7 @@ static int decode_rdata(int type,
             case RD_LOC:
                 decode_loc(&rdata, &dest);
                 break;
-                
+
             case RD_APL:
                 decode_apl(&rdata, &dest, rdlen - (rdata - rstart));
                 break;
@@ -1320,7 +1320,7 @@ static int decode_rdata(int type,
             case RD_HIP:
                 decode_hip(&rdata, &dest, rdlen);
                 break;
-                
+
             case RD_NSAP:
                 decode_nsap(&rdata, &dest, rdlen);
                 break;
@@ -1380,7 +1380,7 @@ int decode_rr(char* src, char* dest)
 
     int rdlen = *(unsigned int*)src;
     src += 4;
-    
+
     decode_owner(&src, &dest);
     *dest++ = ' ';
 
@@ -1400,7 +1400,7 @@ int decode_rr(char* src, char* dest)
         dest += sprintf(dest, "%s ", typename[type]);
     else
         dest += sprintf(dest, "TYPE%d ", type);
-        
+
     dest += decode_rdata(type, src, dest, rdlen);
 
     return dest - start;
