@@ -2035,8 +2035,8 @@ hsm_get_key_info(hsm_ctx_t *ctx,
                                                          key,
                                                          key_info->algorithm);
 
-     switch(key_info->algorithm) {
-         case CKK_RSA:
+    switch(key_info->algorithm) {
+        case CKK_RSA:
             key_info->algorithm_name = strdup("RSA");
             break;
          default:
