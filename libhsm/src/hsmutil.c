@@ -70,6 +70,7 @@ cmd_list (int argc, char *argv[])
     char *repository = NULL;
 
     size_t key_count = 0;
+    size_t key_count_valid = 0;
     hsm_key_t **keys;
     hsm_ctx_t *ctx = NULL;
 
@@ -116,6 +117,8 @@ cmd_list (int argc, char *argv[])
             /* Skip NULL key for now */
             continue;
         }
+        
+        key_count_valid++;
 
         key_info = hsm_get_key_info(NULL, key);
         
@@ -133,6 +136,14 @@ cmd_list (int argc, char *argv[])
         hsm_key_info_free(key_info);
     }
     hsm_key_list_free(keys, key_count);
+    
+    if (key_count != key_count_valid) {
+        size_t invalid_keys;
+        invalid_keys = key_count - key_count_valid;
+        printf("\n");
+        printf("Warning: %u %s not usable by OpenDNSSEC was found.\n",
+            invalid_keys, invalid_keys > 1 ? "keys" : "key");
+    }
 
     return 0;
 }
