@@ -107,9 +107,15 @@ cmd_list (int argc, char *argv[])
 
     for (i = 0; i < key_count; i++) {
         hsm_key_info_t *key_info;
-        hsm_key_t *key = keys[i];
+        hsm_key_t *key = NULL;
         char key_type[HSM_MAX_ALGONAME + 8];
         char *key_id = NULL;
+
+        key = keys[i];
+        if (key == NULL) {
+            /* Skip NULL key for now */
+            continue;
+        }
 
         key_info = hsm_get_key_info(NULL, key);
         
@@ -123,7 +129,7 @@ cmd_list (int argc, char *argv[])
         }
 
         printf(key_info_format, key->module->name, key_id, key_type);
-    
+
         hsm_key_info_free(key_info);
     }
     hsm_key_list_free(keys, key_count);
