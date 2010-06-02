@@ -912,6 +912,7 @@ hsm_get_id_for_object(hsm_ctx_t *ctx,
     }
 
     if ((CK_LONG)template[0].ulValueLen < 1) {
+        /* No CKA_ID found, return NULL */
         *len = 0;
         return NULL;
     }
