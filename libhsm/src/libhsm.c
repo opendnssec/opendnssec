@@ -2519,15 +2519,19 @@ hsm_print_key(hsm_key_t *key) {
     hsm_key_info_t *key_info;
     if (key) {
         key_info = hsm_get_key_info(NULL, key);
-        printf("key:\n");
-        printf("\tmodule: %p\n", (void *) key->module);
-        printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
-        printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
-        printf("\trepository: %s\n", key->module->name);
-        printf("\talgorithm: %s\n", key_info->algorithm_name);
-        printf("\tsize: %lu\n", key_info->keysize);
-        printf("\tid: %s\n", key_info->id);
-        hsm_key_info_free(key_info);
+        if (key_info) {
+            printf("key:\n");
+            printf("\tmodule: %p\n", (void *) key->module);
+            printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
+            printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
+            printf("\trepository: %s\n", key->module->name);
+            printf("\talgorithm: %s\n", key_info->algorithm_name);
+            printf("\tsize: %lu\n", key_info->keysize);
+            printf("\tid: %s\n", key_info->id);
+            hsm_key_info_free(key_info);
+        } else {
+            printf("key: hsm_get_key_info() returned NULL\n");
+        }
     } else {
         printf("key: <void>\n");
     }
