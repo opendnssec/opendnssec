@@ -872,7 +872,7 @@ hsm_hex_parse(const char *hex, size_t *len)
  * dst must have allocated enough space (len*2 + 1)
  */
 static void
-hsm_hex_unparse(char *dst, unsigned char *src, size_t len)
+hsm_hex_unparse(char *dst, const unsigned char *src, size_t len)
 {
     size_t dst_len = len*2 + 1;
     size_t i;
