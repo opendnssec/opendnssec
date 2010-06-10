@@ -2291,8 +2291,15 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
     ldns_rr *dnskey;
     hsm_session_t *session;
 
-    if (!sign_params) return NULL;
     if (!ctx) ctx = _hsm_ctx;
+    if (!key) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_dnskey()", "Got NULL key");
+        return NULL;
+    }
+    if (!sign_params) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_dnskey()", "Got NULL sign_params");
+        return NULL;
+    }
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
 
