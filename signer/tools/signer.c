@@ -527,7 +527,7 @@ handle_command(FILE *output, current_config *cfg,
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in jitter command\n");
 		} else {
-			cfg->jitter = atol(arg1);
+			cfg->jitter = strtoul(arg1, NULL, 10);
 		}
 	} else if (strncmp(cmd, "refresh", 7) == 0 && strlen(cmd) == 7) {
 		arg1 = read_arg(next, &next);
@@ -586,7 +586,7 @@ handle_command(FILE *output, current_config *cfg,
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in soa_ttl command\n");
 		} else {
-			cfg->soa_ttl = atol(arg1);
+			cfg->soa_ttl = strtoul(arg1, NULL, 10);
 			cfg->cfg_soa_ttl = 1;
 		}
 	} else if (strncmp(cmd, "soa_serial", 10) == 0 && strlen(cmd) == 10) {
@@ -594,7 +594,7 @@ handle_command(FILE *output, current_config *cfg,
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in soa_serial command\n");
 		} else {
-			cfg->soa_serial = atol(arg1);
+			cfg->soa_serial = strtoul(arg1, NULL, 10);
 		}
 	} else if (strncmp(cmd, "soa_serial_keep", 15) == 0 && strlen(cmd) == 15) {
 		arg1 = read_arg(next, &next);
@@ -608,7 +608,7 @@ handle_command(FILE *output, current_config *cfg,
 		if (!arg1) {
 			fprintf(output, "; Error: missing argument in soa_minimum command\n");
 		} else {
-			cfg->soa_minimum = atol(arg1);
+			cfg->soa_minimum = strtoul(arg1, NULL, 10);
 			cfg->cfg_soa_minimum = 1;
 		}
 	} else if (strncmp(cmd, "stop", 4) == 0 && strlen(cmd) == 4) {
