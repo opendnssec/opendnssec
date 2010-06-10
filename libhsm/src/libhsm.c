@@ -728,7 +728,7 @@ hsm_get_key_algorithm(hsm_ctx_t *ctx, const hsm_session_t *session,
                                       template,
                                       1);
     if (hsm_pkcs11_check_error(ctx, rv,
-                               "Get attr value algorithm type\n")) {
+                               "Get attr value algorithm type")) {
         /* this is actually not a good return value;
          * CKK_RSA is also 0. But we can't return a negative
          * value. Should we #define a specific 'key type' that
@@ -768,7 +768,7 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
                                       template,
                                       1);
     if (hsm_pkcs11_check_error(ctx, rv,
-                               "Get attr value algorithm type\n")) {
+                               "Get attr value algorithm type")) {
         return 0;
     }
 
@@ -906,7 +906,7 @@ hsm_get_id_for_object(hsm_ctx_t *ctx,
                                       object,
                                       template,
                                       1);
-    if (hsm_pkcs11_check_error(ctx, rv, "Get attr value\n")) {
+    if (hsm_pkcs11_check_error(ctx, rv, "Get attr value")) {
         *len = 0;
         return NULL;
     }
@@ -923,7 +923,7 @@ hsm_get_id_for_object(hsm_ctx_t *ctx,
                                       object,
                                       template,
                                       1);
-    if (hsm_pkcs11_check_error(ctx, rv, "Get attr value 2\n")) {
+    if (hsm_pkcs11_check_error(ctx, rv, "Get attr value 2")) {
         *len = 0;
         free(template[0].pValue);
         return NULL;
@@ -2272,7 +2272,7 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
     status = ldns_str2rdf_dname(&hashed_owner, hashed_owner_b32);
     if (status != LDNS_STATUS_OK) {
         hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
-            "Error creating rdf from %s\n", hashed_owner_b32);
+            "Error creating rdf from %s", hashed_owner_b32);
         LDNS_FREE(hashed_owner_b32);
         return NULL;
     }
