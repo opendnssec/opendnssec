@@ -3,6 +3,7 @@ $Id$
 OpenDNSSEC 1.1 branch
 
 Bugfixes:
+* Bugreport #127: Large SOA serial numbers were not handled properly by signer
 * Bugreport #136: quicksorter could not handle standard bind format SOA rdata
 
 
