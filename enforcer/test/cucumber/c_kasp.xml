@@ -35,7 +35,7 @@ Policy1 in ODS wiki BasicTest outline
 
 <KSK>
 <Algorithm length="2048">5</Algorithm>
-<Lifetime>PT40M</Lifetime>
+<Lifetime>PT30M</Lifetime>
 <!-- @TODO@ Repository should be configured -->
 <Repository>softHSM</Repository>
 <Standby>1</Standby>

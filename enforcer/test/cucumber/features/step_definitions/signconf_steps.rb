@@ -24,13 +24,42 @@ def load_keys_for(zone)
       @@previous_keys[zone] = @@current_keys[zone]
       @@current_keys[zone]=e
 
-      print_key_states(zone)
+#      print e
+
+ #     print_key_states(zone)
+
+      print run_command("key list --zone #{zone} --verbose")
+#      load_ksmutil_key_list(zone)
+#  check_key_list_output_against_signconf(key_list_text)
 
       return e
     }
   rescue Errno::ENOENT
     return false
   end
+end
+
+Given /^I issue ds\-seen for all "([^\"]*)" KSKs in "([^\"]*)"$/ do |status, zone|
+  key_list_text = run_command("key list --zone #{zone} --verbose")
+
+  # Now process the KSKs -
+  key_list_text.each_line {|line|
+    if (line.split()[0] == zone)
+      if (line.split()[1] == "KSK")
+        if ((line.split()[2] == status) && line.index("waiting for ds-seen"))
+          cka_id = line.split()[line.split().length - 3]
+          print "Sending ds-seen for #{cka_id}\n"
+          # Send the ds-seen for the key
+          run_command("key ds-seen --zone #{zone} --cka_id #{cka_id}")
+        end
+      end
+    end
+  }
+end
+
+
+def check_key_list_output_against_signconf(key_list_text)
+  # @TODO@ Check that the output of the key list tallies with the signconf.xml
 end
 
 def print_key_states(zone)

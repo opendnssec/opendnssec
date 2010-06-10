@@ -74,9 +74,14 @@ Then /^I should not see "([^\"]*)" in the "([^\"]*)" output$/ do |text, command|
   check_command_output(false, text, command)
 end
 
+def run_command(command)
+  result = %x[#{KSMUTIL_COMMAND} #{command}]
+  return result
+end
+
 def check_command_output(should_see, text, command)
   # check the output of zone list to see if the zone is there
-  result = %x[#{KSMUTIL_COMMAND} #{command}]
+  result = run_command(command)
   if should_see
     result.should include text
   else
