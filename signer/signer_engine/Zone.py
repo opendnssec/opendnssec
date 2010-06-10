@@ -459,6 +459,7 @@ class Zone:
     def perform_action(self):
         """Depending on the value set to zone.action, this method
            will sort, nsecify, sign and/or audit the zone"""
+        serial_file = self.get_zone_tmp_filename(".serial")
         syslog.syslog(syslog.LOG_INFO,
                       "Zone action to perform: " + str(self.action))
 
@@ -474,11 +475,11 @@ class Zone:
                                         self.get_zone_input_filename()):
             ser_out = self.get_output_serial()
             ser_in = self.get_input_serial()
-            if self.zone_config.soa_serial == "keep" and \
-                              self.compare_serial(ser_out, ser_in) <= 0:
-                syslog.syslog(syslog.LOG_ERR, "Cannot keep input serial " + str(ser_in) +\
-                                              ", output serial " + str(ser_out) +\
-                                              " is too large. Aborting operation")
+            comp_res = self.compare_serial(ser_out, ser_in);
+            if self.zone_config.soa_serial == "keep" and comp_res <=0 and os.path.exists(serial_file):
+                syslog.syslog(syslog.LOG_ERR, "Serial setting is set to 'keep', but " +\
+                    "cannot keep, because the input serial " + str(ser_in) + " is equal or smaller to the " +\
+                    "current output serial " + str(ser_out) + ". Aborting operation")
             elif self.sort_input() and self.nsecify():
                 if self.sign(True) and self.finalize() and self.audit():
                     self.move_output()
@@ -489,11 +490,11 @@ class Zone:
             ## if any.
             ser_out = self.get_output_serial()
             ser_in = self.get_input_serial()
-            if self.zone_config.soa_serial == "keep" and \
-                              self.compare_serial(ser_out, ser_in) <= 0:
-                syslog.syslog(syslog.LOG_ERR, "Cannot keep input serial " + str(ser_in) +\
-                                              ", output serial " + str(ser_out) +\
-                                              " is too large. Aborting operation")
+            comp_res = self.compare_serial(ser_out, ser_in);
+            if self.zone_config.soa_serial == "keep" and comp_res <=0 and os.path.exists(serial_file):
+                syslog.syslog(syslog.LOG_ERR, "Serial setting is set to 'keep', but " +\
+                    "cannot keep, because the input serial " + str(ser_in) + " is equal or smaller to the " +\
+                    "current output serial " + str(ser_out) + ". Aborting operation")
 
             elif self.nsecify_signed() and self.sort_input() and \
                self.nsecify():
@@ -528,6 +529,7 @@ class Zone:
            copied. Options are 'unixtime', 'counter', and 'datecounter'
            and 'keep'."""
         soa_serial = None
+        serial_file = self.get_zone_tmp_filename(".serial")
         if self.zone_config.soa_serial == "unixtime":
             soa_serial = int(time.time())
             prev_serial = self.get_output_serial()
@@ -556,17 +558,23 @@ class Zone:
             # otherwise updates won't be accepted
             prev_serial = self.get_output_serial()
             if self.compare_serial(prev_serial, soa_serial) <= 0:
-                syslog.syslog(syslog.LOG_ERR,
-                  "Error: serial setting is set to 'keep', but input "
-                  "serial has not increased. Aborting sign operation "
-                  "for " + self.zone_name)
-                return None
+                if not os.path.exists(serial_file):
+                    return soa_serial
+                else:
+                    syslog.syslog(syslog.LOG_ERR,
+                      "Error: serial setting is set to 'keep', but input "
+                      "serial has not increased. Aborting sign operation "
+                      "for " + self.zone_name)
+                    return None
             prev_serial = soa_serial
             update_serial = 0
         else:
             syslog.syslog(syslog.LOG_WARNING,
                           "warning: unknown serial type " +\
                           self.zone_config.soa_serial)
+
+        if not os.path.exists(serial_file):
+            return soa_serial
         # RFC 1982
         if update_serial > (2**31)-1:
             update_serial = (2**31)-1
