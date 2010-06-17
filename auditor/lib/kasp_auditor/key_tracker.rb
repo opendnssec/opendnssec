@@ -135,6 +135,7 @@ module KASPAuditor
       begin
         Dir.mkdir(dir) unless File.directory?(dir)
       rescue Errno::ENOENT
+        @parent.log(LOG_ERR, "Can't create working folder : #{dir}")
         KASPAuditor.exit("Can't create working folder : #{dir}", 1)
       end
       File.open(filename, File::CREAT) { |f|
