@@ -132,7 +132,11 @@ module KASPAuditor
       cache = Cache.new
       filename = get_tracker_filename
       dir = File.dirname(filename)
-      Dir.mkdir(dir) unless File.directory?(dir)
+      begin
+        Dir.mkdir(dir) unless File.directory?(dir)
+      rescue Errno::ENOENT
+        KASPAuditor.exit("Can't create working folder : #{dir}", 1)
+      end
       File.open(filename, File::CREAT) { |f|
         # Now load the cache
         # Is there an initial timestamp and a current SOA serial to load?
