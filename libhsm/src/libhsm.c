@@ -2559,3 +2559,49 @@ hsm_print_error(hsm_ctx_t *gctx)
         fprintf(stderr, "Unknown error\n");
     }
 }
+
+void
+hsm_print_tokeninfo(hsm_ctx_t *gctx)
+{
+    CK_RV rv;
+    CK_SLOT_ID slot_id;
+    CK_TOKEN_INFO token_info;
+    hsm_ctx_t *ctx;
+    unsigned int i;
+    hsm_session_t *session;
+
+    if (!gctx) {
+        ctx = _hsm_ctx;
+    } else {
+        ctx = gctx;
+    }
+
+    for (i = 0; i < ctx->session_count; i++) {
+        session = ctx->session[i];
+
+        slot_id = hsm_get_slot_id(ctx,
+                                  session->module->sym,
+                                  session->module->token_label);
+
+        rv = ((CK_FUNCTION_LIST_PTR) session->module->sym)->C_GetTokenInfo(slot_id, &token_info);
+        if (hsm_pkcs11_check_error(ctx, rv, "C_GetTokenInfo")) {
+            return;
+        }
+
+        printf("Repository: %s\n",session->module->name);
+
+        printf("\tModule:        %s\n", session->module->path);
+        printf("\tSlot:          %lu\n", slot_id);
+        printf("\tToken Label:   %.*s\n",
+            (int) sizeof(token_info.label), token_info.label);
+        printf("\tManufacturer:  %.*s\n",
+            (int) sizeof(token_info.manufacturerID), token_info.manufacturerID);
+        printf("\tModel:         %.*s\n",
+            (int) sizeof(token_info.model), token_info.model);
+        printf("\tSerial:        %.*s\n",
+            (int) sizeof(token_info.serialNumber), token_info.serialNumber);
+
+        if (i + 1 != ctx->session_count)
+            printf("\n");
+    }
+}

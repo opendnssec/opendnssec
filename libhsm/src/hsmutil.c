@@ -65,6 +65,7 @@ usage ()
     fprintf(stderr,"  purge <repository>\n");
     fprintf(stderr,"  dnskey <id> <name>\n");
     fprintf(stderr,"  test <repository>\n");
+    fprintf(stderr,"  info\n");
 #if 0
     fprintf(stderr,"  debug\n");
 #endif
@@ -383,6 +384,14 @@ cmd_test (int argc, char *argv[])
 }
 
 int
+cmd_info ()
+{
+    hsm_print_tokeninfo(NULL);
+
+    return 0;
+}
+
+int
 cmd_debug ()
 {
     hsm_print_ctx(NULL);
@@ -461,6 +470,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_test(argc, argv);
+    } else if (!strcasecmp(argv[0], "info")) {
+        argc --;
+        argv ++;
+        result = cmd_info();
     } else if (!strcasecmp(argv[0], "debug")) {
         argc --;
         argv ++;

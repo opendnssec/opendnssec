@@ -43,6 +43,9 @@ Create a DNSKEY RR for the given owner \fIname\fR based on the key with this \fI
 .TP
 \fBtest\fR \fIrepository\fR
 Perform a number of tests on a \fIrepository\fR
+.TP
+\fBinfo\fR
+Show detailed information about all repositories
 .SH "OPTIONS"
 .LP
 .TP
