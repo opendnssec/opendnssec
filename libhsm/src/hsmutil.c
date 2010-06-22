@@ -46,10 +46,17 @@ unsigned int verbose = 0;
 
 
 void
+version ()
+{
+    fprintf(stderr, "%s (%s) version %s\n",
+        progname, PACKAGE_NAME, PACKAGE_VERSION);
+}
+
+void
 usage ()
 {
     fprintf(stderr,
-       "usage: %s [-c config] [-v] command [options]\n",
+       "usage: %s [-c config] [-vV] command [options]\n",
         progname);
 
     fprintf(stderr,"  list [repository]\n");
@@ -393,13 +400,17 @@ main (int argc, char *argv[])
     int ch;
     progname = argv[0];
 
-    while ((ch = getopt(argc, argv, "c:vh")) != -1) {
+    while ((ch = getopt(argc, argv, "c:vVh")) != -1) {
         switch (ch) {
         case 'c':
             config = strdup(optarg);
             break;
         case 'v':
             verbose++;
+            break;
+        case 'V':
+            version();
+            exit(0);
             break;
         case 'h':
             usage();
