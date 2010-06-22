@@ -28,7 +28,7 @@
 datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 
 start = element Configuration {
-	
+
 	# List of all known Key Repositories (aka HSM:s)
 	element RepositoryList {
 		element Repository {
@@ -47,12 +47,12 @@ start = element Configuration {
 			# Maxmimum number of key pairs in the repository
 			# DEFAULT: infinite
 			element Capacity { xsd:positiveInteger }?,
-			
+
 			# Require backup of keys before use (optional)
 			element RequireBackup { empty }?
 		}*
 	},
-	
+
 	# Common configuration options
 	element Common {
 		# Configuration parameters for logging
@@ -89,13 +89,13 @@ start = element Configuration {
 
 		# How long before a KSK Rollover should we start warning (optional)
 		element RolloverNotification { xsd:duration }?,
-		
+
 		# Command to use for submitting new DS records to a parent -
 		# the command should accept DNSKEY RRsets via STDIN
 		element DelegationSignerSubmitCommand { xsd:string }?
 	},
 
-	# Configuration parameters for the Signer 
+	# Configuration parameters for the Signer
 	element Signer {
 		# User & group to drop privs to
 		privs?,
@@ -107,7 +107,7 @@ start = element Configuration {
 		# Location of the signer tools
 		# DEFAULT: $(libexecdir)/opendnssec
 		element ToolsDirectory { xsd:string }?,
-		
+
 		# Number of Worker Threads
 		# DEFAULT: 4
 		element WorkerThreads { xsd:positiveInteger }?,
@@ -115,7 +115,7 @@ start = element Configuration {
 		# System command to call after a zone has been (re)signed
 		#
 		# '%zone' in the string will be replaced by the zone name
-		# '%znefile' in the string will be replaced by the zone file		
+		# '%znefile' in the string will be replaced by the zone file
 		element NotifyCommand { xsd:string }?
 	}?,
 
@@ -139,7 +139,7 @@ syslogFacility = (
 privs = element Privileges {
 	# DEFAULT: do not drop privs
 	element User { xsd:string }?,
-	
+
 	# DEFAULT: do not drop privs
 	element Group { xsd:string }?
 }
@@ -148,7 +148,7 @@ mysql = element MySQL {
 	element Host {
 		# DEFAULT: 3306
 		attribute port { xsd:positiveInteger { maxInclusive = "65535" } }?,
-		
+
 		# DEFAULT: 127.0.0.1
 		xsd:string }?,
 
@@ -157,7 +157,7 @@ mysql = element MySQL {
 
 	# username and password used to connect to database
 	element Username { xsd:string },
-	element Password { xsd:string }	
+	element Password { xsd:string }
 }
 
 sqlite = element SQLite { xsd:string }
