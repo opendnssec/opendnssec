@@ -1140,7 +1140,7 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     {
         StrAppend(file, "\t\t\t\t<ZSK />\n");
     }
-    if (key_data->state > KSM_STATE_GENERATE && key_data->state < KSM_STATE_DEAD)
+    if ((key_data->state > KSM_STATE_GENERATE && key_data->state < KSM_STATE_DEAD) || key_data->state == KSM_STATE_KEYPUBLISH)
     {
         StrAppend(file, "\t\t\t\t<Publish />\n");
     }
