@@ -5,9 +5,10 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 AM_CPPFLAGS = \
 	-I$(srcdir)/../ksm/include \
 	-I$(builddir)/../ksm/include \
-	@LIBHSM_INCLUDES@ \
+	-I$(srcdir)/../../libhsm/src \
+	-I$(builddir)/../../libhsm/src \
 	@XML2_INCLUDES@ \
-    @DB_INCLUDES@
+	@DB_INCLUDES@
 
 noinst_LIBRARIES = libenforcer.a
 

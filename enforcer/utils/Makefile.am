@@ -2,12 +2,16 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
+LIBHSM = ../../libhsm/src/libhsm.a
+LIBKSM = ../ksm/libksm.a
+
 AM_CPPFLAGS = \
 	-I$(srcdir)/../common \
 	-I$(builddir)/../common \
 	-I$(srcdir)/../ksm/include \
 	-I$(builddir)/../ksm/include \
-	@LIBHSM_INCLUDES@ \
+	-I$(srcdir)/../../libhsm/src \
+	-I$(builddir)/../../libhsm/src \
 	@XML2_INCLUDES@ \
 	@DB_INCLUDES@ \
 	@LDNS_INCLUDES@
@@ -26,12 +30,5 @@ bin_PROGRAMS =	ods-ksmutil
 man1_MANS =	ods-ksmutil.1
 
 ods_ksmutil_SOURCES = ksmutil.c
-ods_ksmutil_LDADD = ../ksm/libksm.a
-ods_ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@ @LDNS_LIBS@
-ods_ksmutil_DEPENDENCIES = @BUILD_LIBHSM@
-
-../../libhsm/src/libhsm.a:
-	(cd ../../libhsm/src; ${MAKE} libhsm.a)
-
-../ksm/libksm.a:
-	(cd ../ksm; ${MAKE} libksm.a)
+ods_ksmutil_LDADD = $(LIBKSM) $(LIBHSM)
+ods_ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@

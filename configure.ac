@@ -12,7 +12,7 @@ ACX_PREFIXHACK
 
 OPENDNSSEC_COMMON
 
-AC_CONFIG_SUBDIRS([ enforcer signer ])
+AC_CONFIG_SUBDIRS([ signer ])
 
 # extensions
 AC_USE_SYSTEM_EXTENSIONS
@@ -21,6 +21,8 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
 
 # additional programs
 AC_PATH_PROG(XMLLINT, xmllint)
@@ -33,22 +35,87 @@ ACX_RUNTIME_PATH_ADD
 ACX_PEDANTIC
 ACX_STRICT
 
+# compiler flags
+CHECK_COMPILER_FLAG(std=c99, [C99FLAG="-std=c99"])
+CHECK_COMPILER_FLAG(xc99, [C99FLAG="-xc99"])
+CHECK_COMPILER_FLAG_NEEDED($C99FLAG, [#include <stdbool.h>], [CFLAGS="$CFLAGS $C99FLAG"])
+CHECK_COMPILER_FLAG_NEEDED(-D__EXTENSIONS__,
+[
+#include "confdefs.h"
+#include <stdlib.h>
+#include <unistd.h>
+int test() {
+	int a;
+	char **opts = NULL;
+	a = getopt(2, opts, "a");
+	return a;
+}
+], [CFLAGS="-D__EXTENSIONS__ $CFLAGS"])
+
 # checks for header files
 AC_HEADER_STDC
 AC_HEADER_STDBOOL
-AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
+AC_HEADER_TIME
+AC_CHECK_HEADERS([fcntl.h inttypes.h stdio.h stdlib.h string.h syslog.h	unistd.h])
 
 # checks for typedefs, structures, and compiler characteristics
 AC_C_CONST
+AC_TYPE_PID_T
 AC_TYPE_SIZE_T
+AC_TYPE_UID_T
+AC_TYPE_UINT16_T
 
 # checks for library functions
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
-AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([arc4random arc4random_uniform])
+AC_CHECK_FUNCS([dup2 endpwent select strerror strtol])
 AC_CHECK_FUNCS([getpass getpassphrase memset])
-AC_REPLACE_FUNCS(strlcpy)
+AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul])
+AC_CHECK_FUNCS([setregid setreuid])
+AC_FUNC_CHOWN
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_FUNC_MEMCMP
+AC_FUNC_MKTIME
+AC_FUNC_REALLOC
+AC_FUNC_SELECT_ARGTYPES
+AC_FUNC_VPRINTF
+
 AC_REPLACE_FUNCS(strlcat)
+AC_REPLACE_FUNCS(strlcpy)
+
+ACX_BROKEN_SETRES
+
+# find out how to restart named processes
+AC_PATH_PROG(PKILL, pkill)
+AC_PATH_PROG(KILLALL, killall)
+if test -n "$PKILL" -a -x "$PKILL"; then
+  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "$PKILL -HUP ods-enforcerd", [Command to restart a named process])
+elif test -n "$KILLALL" -a -x "$KILLALL"; then
+  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "$KILLALL -HUP ods-enforcerd", [Command to restart a named process])
+else
+  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "/bin/false", [Command to restart a named process])
+fi
+
+# check for some target-specific stuff
+case "$host" in
+*-*-darwin*)
+    AC_DEFINE(SETEUID_BREAKS_SETUID, 1,
+	    [Define if your platform breaks doing a seteuid before a setuid])
+	AC_DEFINE(BROKEN_SETREUID, 1, [Define if your setreuid() is broken])
+	AC_DEFINE(BROKEN_SETREGID, 1, [Define if your setregid() is broken])
+    ;;
+esac
+
+# timeshift
+AC_ARG_ENABLE(timeshift,
+	AC_HELP_STRING([--enable-timeshift], [Enable timeshift debug]),
+		[enable_timeshift="${enableval}"],
+		[enable_timeshift="no"])
+if test "x${enable_timeshift}" = "xyes"; then
+	AC_DEFINE_UNQUOTED(ENFORCER_TIMESHIFT, 1, [timeshift debug])
+	AC_MSG_CHECKING(if we should do timeshift debugging)
+	AC_MSG_RESULT(yes)
+fi
 
 # libhsm
 AC_CONFIG_HEADER([libhsm/config.h])
@@ -56,8 +123,12 @@ AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default con
 ACX_LIBXML2
 ACX_LDNS(1,6,4)
 ACX_DLOPEN
+ACX_CUNIT
+ACX_DBPARAMS
+ACX_DATABASE_BACKEND
 
-# libksm
+# enforcer
+AC_CONFIG_HEADER([enforcer/common/config.h])
 AC_PATH_PROG(PERL, perl)
 if test -z "$PERL"; then
    AC_MSG_ERROR([perl not found])
@@ -66,6 +137,13 @@ ACX_CUNIT
 AM_PATH_PYTHON
 ACX_DBPARAMS
 ACX_PKCS11_MODULES
+
+AC_DEFINE_UNQUOTED(CONFIG_DIR, "$OPENDNSSEC_CONFIG_DIR", [Path to the OpenDNSSEC configuration files])
+AC_DEFINE_UNQUOTED(CONFIG_FILE, "$OPENDNSSEC_CONFIG_FILE", [Path to the OpenDNSSEC configuration file])
+AC_DEFINE_UNQUOTED(LOCALSTATE_DIR, "$OPENDNSSEC_STATE_DIR", [Path to the OpenDNSSEC var directory])
+AC_DEFINE_UNQUOTED(SCHEMA_DIR, "$OPENDNSSEC_SCHEMA_DIR", [Path to the OpenDNSSEC data files])
+AC_DEFINE_UNQUOTED(ENFORCER_PIDFILE, "$OPENDNSSEC_ENFORCER_PIDFILE", [Path to the OpenDNSSEC enforcerd pid file])
+AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
 
 # auditor
 AC_ARG_ENABLE(auditor,
@@ -99,6 +177,16 @@ AC_CONFIG_FILES([
 	conf/signconf.xml
 	conf/zonelist.xml
 	conf/zonefetch.xml
+	enforcer/Makefile
+	enforcer/ksm/Makefile
+	enforcer/ksm/include/Makefile
+	enforcer/ksm/include/ksm/Makefile
+	enforcer/common/Makefile
+	enforcer/enforcerd/Makefile
+	enforcer/enforcerd/ods-enforcerd.8
+	enforcer/utils/Makefile
+	enforcer/utils/ods-ksmutil.1
+	enforcer/test/Makefile
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/ods-hsmspeed.1

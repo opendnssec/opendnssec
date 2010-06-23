@@ -2,7 +2,7 @@
 #
 # $Id$
 
-SUBDIRS="auditor enforcer signer plugins/eppclient"
+SUBDIRS="auditor signer plugins/eppclient"
 VERSION=version.m4
 
 if [ `dirname $0` = "." ]; then

@@ -2,6 +2,8 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
+LIBHSM = ../../libhsm/src/libhsm.a
+
 AM_CPPFLAGS = \
 	-I$(srcdir)/../ksm/include \
 	-I$(builddir)/../ksm/include \
@@ -27,7 +29,7 @@ TESTS_ENVIRONMENT = \
 
 TESTS = test
 
-test_LDADD = ../ksm/libksm.a -lncurses @CUNIT_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@
+test_LDADD = ../ksm/libksm.a -lncurses @CUNIT_LIBS@ @DB_LIBS@ $(LIBHSM)
 test_LDFLAGS = -no-install
 
 EXTRA_DIST = $(srcdir)/*.h
