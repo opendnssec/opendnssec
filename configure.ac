@@ -177,6 +177,7 @@ AC_CONFIG_HEADER([common/config.h])
 
 AC_CONFIG_FILES([
 	Makefile
+	common/Makefile
 	conf/Makefile
 	conf/conf.xml
 	conf/kasp.xml
