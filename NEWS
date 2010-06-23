@@ -4,6 +4,8 @@ OpenDNSSEC trunk
 
 * Quicksorter defaults to class IN.
 * Fix semantics of refresh value in Signer Engine.
+* Remove separate autoconf for libhsm/conf/enforcer
+* Add option to disable building the signer
 
 OpenDNSSEC 1.1.0 branch
 
