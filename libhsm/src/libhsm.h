@@ -361,10 +361,10 @@ hsm_random64(hsm_ctx_t *ctx);
 \return 0 on success, -1 on error
 */
 int
-hsm_attach(char *repository,
-           char *token_name,
-           char *path,
-           char *pin);
+hsm_attach(const char *repository,
+           const char *token_name,
+           const char *path,
+           const char *pin);
 
 /*! Detach a named HSM
    This function changes the global state, and is not threadsafe

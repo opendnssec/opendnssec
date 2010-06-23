@@ -442,8 +442,8 @@ hsm_session_free(hsm_session_t *session) {
  */
 static int
 hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
-                 char *repository, char *token_label,
-                 char *module_path, char *pin)
+                 const char *repository, const char *token_label,
+                 const char *module_path, const char *pin)
 {
     CK_RV rv;
     CK_RV rv_login;
@@ -2386,10 +2386,10 @@ hsm_random64(hsm_ctx_t *ctx)
  * Additional functions
  */
 
-int hsm_attach(char *repository,
-               char *token_label,
-               char *path,
-               char *pin)
+int hsm_attach(const char *repository,
+               const char *token_label,
+               const char *path,
+               const char *pin)
 {
     hsm_session_t *session;
     int result;
