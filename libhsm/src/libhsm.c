@@ -743,7 +743,7 @@ hsm_get_key_algorithm(hsm_ctx_t *ctx, const hsm_session_t *session,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
-                                      key->public_key,
+                                      key->private_key,
                                       template,
                                       1);
     if (hsm_pkcs11_check_error(ctx, rv,
@@ -2018,7 +2018,7 @@ hsm_get_key_id(hsm_ctx_t *ctx, const hsm_key_t *key)
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
 
-    id = hsm_get_id_for_object(ctx, session, key->public_key, &len);
+    id = hsm_get_id_for_object(ctx, session, key->private_key, &len);
     if (!id) return NULL;
 
     /* this is plain binary data, we need to convert it to hex */
