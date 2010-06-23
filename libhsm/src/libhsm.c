@@ -394,17 +394,35 @@ hsm_get_slot_id(hsm_ctx_t *ctx,
 static hsm_module_t *
 hsm_module_new(const char *repository,
                const char *token_label,
-               const char *path)
+               const char *path,
+               const hsm_config_t *config)
 {
-    if (!repository || !path) return NULL;
     hsm_module_t *module;
+
+    if (!repository || !path) return NULL;
+
+    
     module = malloc(sizeof(hsm_module_t));
+    if (!module) return NULL;
+
+    if (config) {
+        module->config = malloc(sizeof(hsm_config_t));
+        if (!module->config) {
+            free(module);
+            return NULL;
+        }
+        memcpy(module->config, config, sizeof(hsm_config_t));
+    } else {
+        module->config = NULL;
+    }
+
     module->id = 0; /*TODO i think we can remove this*/
     module->name = strdup(repository);
     module->token_label = strdup(token_label);
     module->path = strdup(path);
     module->handle = NULL;
     module->sym = NULL;
+    
     return module;
 }
 
@@ -443,7 +461,8 @@ hsm_session_free(hsm_session_t *session) {
 static int
 hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
                  const char *repository, const char *token_label,
-                 const char *module_path, const char *pin)
+                 const char *module_path, const char *pin,
+                 const hsm_config_t *config)
 {
     CK_RV rv;
     CK_RV rv_login;
@@ -455,7 +474,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
     CK_C_INITIALIZE_ARGS InitArgs = {NULL, NULL, NULL, NULL,
                                      CKF_OS_LOCKING_OK, NULL };
 
-    module = hsm_module_new(repository, token_label, module_path);
+    module = hsm_module_new(repository, token_label, module_path, config);
     if (!module) return HSM_ERROR;
     rv = hsm_pkcs11_load_functions(module);
     if (rv != CKR_OK) {
@@ -1592,6 +1611,7 @@ hsm_open(const char *config,
     char *token_label;
     char *module_path;
     char *module_pin;
+    hsm_config_t module_config;
     int result = HSM_OK;
     int tries;
     int repositories = 0;
@@ -1638,7 +1658,7 @@ hsm_open(const char *config,
             /*module = hsm_module_new();*/
             token_label = NULL;
             module_path = NULL;
-            module_pin = NULL;
+            module_pin = NULL;            
             curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
             repository = (char *) xmlGetProp(xpath_obj->nodesetval->nodeTab[i],
                                              (const xmlChar *)"name");
@@ -1656,7 +1676,8 @@ hsm_open(const char *config,
                     result = hsm_attach(repository,
                                         token_label,
                                         module_path,
-                                        module_pin);
+                                        module_pin,
+                                        &module_config);
                     free(module_pin);
                 } else {
                     if (pin_callback) {
@@ -1669,7 +1690,8 @@ hsm_open(const char *config,
                             result = hsm_attach(repository,
                                                 token_label,
                                                 module_path,
-                                                module_pin);
+                                                module_pin,
+                                                &module_config);
                             memset(module_pin, 0, strlen(module_pin));
                             tries++;
                         }
@@ -2389,7 +2411,8 @@ hsm_random64(hsm_ctx_t *ctx)
 int hsm_attach(const char *repository,
                const char *token_label,
                const char *path,
-               const char *pin)
+               const char *pin,
+               const hsm_config_t *config)
 {
     hsm_session_t *session;
     int result;
@@ -2399,7 +2422,8 @@ int hsm_attach(const char *repository,
                               repository,
                               token_label,
                               path,
-                              pin);
+                              pin,
+                              config);
     if (result == HSM_OK) {
         return hsm_ctx_add_session(_hsm_ctx, session);
     } else {

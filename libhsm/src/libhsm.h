@@ -50,6 +50,10 @@
 #define HSM_MODULE_NOT_FOUND      0x10000006
 
 
+/*! HSM configuration */
+typedef struct {
+} hsm_config_t;
+
 /*! Data type to describe an HSM */
 typedef struct {
     unsigned int id;             /*!< HSM numerical identifier */
@@ -58,6 +62,7 @@ typedef struct {
     char         *path;          /*!< path to PKCS#11 library */
     void         *handle;        /*!< handle from dlopen()*/
     void         *sym;           /*!< Function list from dlsym */
+    hsm_config_t *config;        /*!< optional per HSM configuration */
 } hsm_module_t;
 
 /*! HSM Session */
@@ -358,13 +363,15 @@ hsm_random64(hsm_ctx_t *ctx);
 \param token_label the name of the token to attach
 \param path the path of the shared PKCS#11 library
 \param pin the PIN to log into the token
+\param config optional configuration
 \return 0 on success, -1 on error
 */
 int
 hsm_attach(const char *repository,
            const char *token_name,
            const char *path,
-           const char *pin);
+           const char *pin,
+           const hsm_config_t *config);
 
 /*! Detach a named HSM
    This function changes the global state, and is not threadsafe
