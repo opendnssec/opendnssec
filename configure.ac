@@ -12,14 +12,47 @@ ACX_PREFIXHACK
 
 OPENDNSSEC_COMMON
 
-AC_CONFIG_SUBDIRS([ libhsm enforcer signer ])
+AC_CONFIG_SUBDIRS([ enforcer signer ])
 
-# xml
+# extensions
+AC_USE_SYSTEM_EXTENSIONS
+
+# standard programs
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_LIBTOOL
+
+# additional programs
 AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(XSLTPROC, xsltproc)
 AC_PATH_PROG(JAVA, java)
 
+# building
+ACX_ARG_RPATH
+ACX_RUNTIME_PATH_ADD
+ACX_PEDANTIC
+ACX_STRICT
+
+# checks for header files
+AC_HEADER_STDC
+AC_HEADER_STDBOOL
+AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
+
+# checks for typedefs, structures, and compiler characteristics
+AC_C_CONST
+AC_TYPE_SIZE_T
+
+# checks for library functions
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([getpass getpassphrase memset])
+AC_REPLACE_FUNCS(strlcpy)
+AC_REPLACE_FUNCS(strlcat)
+
 # libhsm
+AC_CONFIG_HEADER([libhsm/config.h])
+AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 ACX_LIBXML2
 ACX_LDNS(1,6,4)
 ACX_DLOPEN
@@ -66,6 +99,18 @@ AC_CONFIG_FILES([
 	conf/signconf.xml
 	conf/zonelist.xml
 	conf/zonefetch.xml
+	libhsm/Makefile
+	libhsm/src/Makefile
+	libhsm/src/ods-hsmspeed.1
+	libhsm/src/ods-hsmutil.1
+	libhsm/checks/Makefile
+	libhsm/checks/conf-softhsm.xml
+	libhsm/checks/conf-sca6000.xml
+	libhsm/checks/conf-etoken.xml
+	libhsm/checks/conf-multi.xml
+	libhsm/checks/conf-opensc.xml
+	libhsm/checks/conf-ncipher.xml
+	libhsm/checks/conf-aepkeyper.xml
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile
