@@ -630,13 +630,13 @@ module KASPAuditor
             end
           end
           if (l_rr.flags & ~RR::DNSKEY::SEP_KEY & ~RR::DNSKEY::REVOKED_KEY & ~RR::DNSKEY::ZONE_KEY > 0)
-            log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
+            auditor.log(LOG_ERR, "DNSKEY has invalid flags : #{l_rr}")
           end
           # Protocol check done by dnsruby when loading DNSKEY RR
           # Algorithm check done by dnsruby when loading DNSKEY RR
           # Check TTL
           if (config.keys.ttl != l_rr.ttl)
-            log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{config.keys.ttl}")
+            auditor.log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{config.keys.ttl}")
           end
         end
       }
