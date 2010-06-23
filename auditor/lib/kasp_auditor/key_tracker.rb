@@ -310,7 +310,7 @@ module KASPAuditor
         old_cache = load_tracker_cache
         @cache.inuse.keys.each {|new_inuse_key|
           next if old_cache.inuse.keys.include?new_inuse_key
-          next if (!(new_inuse_key.zone_key?) && new_inuse_key.sep_key?) # KSKs aren't prepublished any more
+          next if (new_inuse_key.sep_key?) # KSKs aren't prepublished any more
           old_key_timestamp = old_cache.include_prepublished_key?new_inuse_key
           if (!old_key_timestamp)
             @parent.log(LOG_ERR, "Key (#{new_inuse_key.key_tag}) has gone straight to active use without a prepublished phase")
