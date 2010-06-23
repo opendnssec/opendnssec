@@ -39,11 +39,11 @@ get_serial_SOURCES=		get_serial.c util.c
 get_serial_LDADD=		@LDNS_LIBS@
 
 signer_SOURCES=			signer.c util.c logging.c logging.h
-signer_LDADD=			@LDNS_LIBS@ @LIBHSM_LIBS@
+signer_LDADD=			@LDNS_LIBS@ @XML2_LIBS@ @LIBHSM_LIBS@
 signer_DEPENDENCIES=		@BUILD_LIBHSM@
 
 create_dnskey_SOURCES=		create_dnskey.c util.c
-create_dnskey_LDADD=		@LDNS_LIBS@ @LIBHSM_LIBS@
+create_dnskey_LDADD=		@LDNS_LIBS@ @XML2_LIBS@ @LIBHSM_LIBS@
 create_dnskey_DEPENDENCIES=	@BUILD_LIBHSM@
 
 finalizer_SOURCES=		finalizer.c util.c
