@@ -12,8 +12,6 @@ ACX_PREFIXHACK
 
 OPENDNSSEC_COMMON
 
-AC_CONFIG_SUBDIRS([ signer ])
-
 # extensions
 AC_USE_SYSTEM_EXTENSIONS
 
@@ -119,25 +117,37 @@ else
 	AC_MSG_RESULT(no)
 fi
 
-# libhsm
-AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
+# common dependencies
 ACX_LIBXML2
 ACX_LDNS(1,6,4)
+ACX_PKCS11_MODULES
+
+# libhsm
 ACX_DLOPEN
-ACX_CUNIT
-ACX_DBPARAMS
-ACX_DATABASE_BACKEND
+AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 
 # enforcer
 AC_PATH_PROG(PERL, perl)
 if test -z "$PERL"; then
    AC_MSG_ERROR([perl not found])
 fi
-ACX_CUNIT
-AM_PATH_PYTHON
 ACX_DBPARAMS
-ACX_PKCS11_MODULES
+ACX_DATABASE_BACKEND
+ACX_CUNIT
 AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
+AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_signer}" = "yes"])
+
+# signer
+AC_ARG_ENABLE(signer,
+	AC_HELP_STRING([--disable-signer],
+		[Disable signer build (default enabled)]),
+		[enable_signer="${enableval}"],
+		[enable_signer="yes"])
+if test "x${enable_signer}" = "xyes"; then
+	AM_PATH_PYTHON
+	AC_CONFIG_SUBDIRS([ signer ])
+fi
+AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
 # auditor
 AC_ARG_ENABLE(auditor,
