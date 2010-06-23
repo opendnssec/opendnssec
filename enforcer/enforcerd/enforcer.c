@@ -69,7 +69,7 @@ server_init(DAEMONCONFIG *config)
 
     /* set the default pidfile if nothing was provided on the command line*/
     if (config->pidfile == NULL) {
-        config->pidfile = ENFORCER_PIDFILE;
+        config->pidfile = OPENDNSSEC_ENFORCER_PIDFILE;
     }
 
     return 0;
@@ -120,7 +120,7 @@ server_main(DAEMONCONFIG *config)
         if (config->configfile != NULL) {
             result = hsm_open(config->configfile, hsm_prompt_pin, NULL);
         } else {
-            result = hsm_open(CONFIG_FILE, hsm_prompt_pin, NULL);
+            result = hsm_open(OPENDNSSEC_CONFIG_FILE, hsm_prompt_pin, NULL);
         }
         if (result) {
             hsm_error_message = hsm_get_error(ctx);
@@ -540,7 +540,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
     if (config->configfile != NULL) {
         status = read_zonelist_filename(config->configfile, &zonelist_filename);
     } else {
-        status = read_zonelist_filename(CONFIG_FILE, &zonelist_filename);
+        status = read_zonelist_filename(OPENDNSSEC_CONFIG_FILE, &zonelist_filename);
     }
     
     if (status != 0) {
