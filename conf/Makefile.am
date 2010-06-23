@@ -1,15 +1,6 @@
 # $Id$
 
-ACLOCAL_AMFLAGS = -I m4
-
-MAINTAINERCLEANFILES = \
-	config.log config.status \
-	$(srcdir)/Makefile.in \
-	$(srcdir)/config.h.in $(srcdir)/config.h.in~ \
-	$(srcdir)/configure \
-	$(srcdir)/install-sh $(srcdir)/ltmain.sh $(srcdir)/missing \
-	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
-	$(srcdir)/config.guess $(srcdir)/config.sub
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 RNC =	conf.rnc kasp.rnc zonelist.rnc signconf.rnc zonefetch.rnc
 RNG =	conf.rng kasp.rng zonelist.rng signconf.rng zonefetch.rng
@@ -43,27 +34,24 @@ regress: $(RNG)
 	@test -x ${XMLLINT} || \
 		(echo "xmllint is required for regression tests"; false)
 	@for i in ${XML}; do \
-		${XMLLINT} --noout --relaxng \
-		 	`basename $$i .xml`.rng \
-			$(top_builddir)/$$i; \
+		${XMLLINT} --noout --relaxng `basename $$i .xml`.rng $$i; \
 	done
 	@test -x ${XSLTPROC} || \
 		(echo "xsltproc is required for regression tests"; false)
 	@${XSLTPROC} -o kasp.html $(srcdir)/kasp2html.xsl kasp.xml && \
 		(echo "kasp.xml built")
-	
 
 install-data-hook:
 	test -d ${DESTDIR}${sysconfdir} || mkdir -p ${DESTDIR}${sysconfdir}
 	test -f ${DESTDIR}${sysconfdir}/conf.xml || \
-		${INSTALL_DATA} -m 0640 ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}
-	${INSTALL_DATA} -m 640 ${top_builddir}/conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
+		${INSTALL_DATA} -m 0640 conf.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} -m 640 conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
 	test -f ${DESTDIR}${sysconfdir}/zonelist.xml || \
-		${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}
-	${INSTALL_DATA} ${top_builddir}/zonelist.xml ${DESTDIR}${sysconfdir}/zonelist.xml.sample
+		${INSTALL_DATA} zonelist.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} zonelist.xml ${DESTDIR}${sysconfdir}/zonelist.xml.sample
 	test -f ${DESTDIR}${sysconfdir}/zonefetch.xml || \
-		${INSTALL_DATA} -m 0640 ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}
-	${INSTALL_DATA} -m 640 ${top_builddir}/zonefetch.xml ${DESTDIR}${sysconfdir}/zonefetch.xml.sample
+		${INSTALL_DATA} -m 0640 zonefetch.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} -m 640 zonefetch.xml ${DESTDIR}${sysconfdir}/zonefetch.xml.sample
 	test -f ${DESTDIR}${sysconfdir}/kasp.xml || \
-		${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}
-	${INSTALL_DATA} ${top_builddir}/kasp.xml ${DESTDIR}${sysconfdir}/kasp.xml.sample
+		${INSTALL_DATA} kasp.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} kasp.xml ${DESTDIR}${sysconfdir}/kasp.xml.sample

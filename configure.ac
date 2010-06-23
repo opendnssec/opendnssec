@@ -12,7 +12,7 @@ ACX_PREFIXHACK
 
 OPENDNSSEC_COMMON
 
-AC_CONFIG_SUBDIRS([ libhsm enforcer signer conf ])
+AC_CONFIG_SUBDIRS([ libhsm enforcer signer ])
 
 # xml
 AC_PATH_PROG(XMLLINT, xmllint)
@@ -60,6 +60,12 @@ AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
 
 AC_CONFIG_FILES([
 	Makefile
+	conf/Makefile
+	conf/conf.xml
+	conf/kasp.xml
+	conf/signconf.xml
+	conf/zonelist.xml
+	conf/zonefetch.xml
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile
