@@ -5,6 +5,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 SUBDIRS = include
 
 AM_CPPFLAGS = \
+	-I$(top_builddir)/common \
 	-I$(srcdir)/include \
 	-I$(builddir)/include \
 	@DB_INCLUDES@ \

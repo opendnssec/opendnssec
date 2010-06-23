@@ -3,6 +3,7 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = \
+	-I$(top_builddir)/common \
 	-I$(srcdir)/../ksm/include \
 	-I$(builddir)/../ksm/include \
 	-I$(srcdir)/../../libhsm/src \

@@ -120,7 +120,6 @@ else
 fi
 
 # libhsm
-AC_CONFIG_HEADER([libhsm/config.h])
 AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 ACX_LIBXML2
 ACX_LDNS(1,6,4)
@@ -130,7 +129,6 @@ ACX_DBPARAMS
 ACX_DATABASE_BACKEND
 
 # enforcer
-AC_CONFIG_HEADER([enforcer/common/config.h])
 AC_PATH_PROG(PERL, perl)
 if test -z "$PERL"; then
    AC_MSG_ERROR([perl not found])
@@ -170,6 +168,8 @@ if test "x${enable_eppclient}" = "xyes"; then
 	AC_CONFIG_SUBDIRS([ plugins/eppclient ])
 fi
 AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
+
+AC_CONFIG_HEADER([common/config.h])
 
 AC_CONFIG_FILES([
 	Makefile

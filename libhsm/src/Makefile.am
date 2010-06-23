@@ -2,7 +2,8 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-AM_CPPFLAGS =	-I$(srcdir)/.. \
+AM_CPPFLAGS = \
+		-I$(top_builddir)/common \
 		-I$(srcdir)/cryptoki_compat \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@
 AM_CFLAGS =	-std=c99

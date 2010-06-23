@@ -3,8 +3,8 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = token.db othertoken.db
 
-AM_CPPFLAGS = 	-I$(srcdir) \
-		-I$(srcdir)/.. \
+AM_CPPFLAGS = \
+		-I$(top_builddir)/common \
 		-I$(srcdir)/../src \
 		@LDNS_INCLUDES@
 AM_CFLAGS =	-std=c99
