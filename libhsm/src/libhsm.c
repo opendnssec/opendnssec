@@ -808,7 +808,7 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
                                           key->private_key,
                                           template2,
                                           1);
-        if (hsm_pkcs11_check_error(ctx, rv, "Could not get the public exponent")) {
+        if (hsm_pkcs11_check_error(ctx, rv, "Could not get the modulus of the private key")) {
             return 0;
         }
 
