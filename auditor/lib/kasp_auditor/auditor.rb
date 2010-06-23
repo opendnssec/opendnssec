@@ -636,7 +636,7 @@ module KASPAuditor
           # Algorithm check done by dnsruby when loading DNSKEY RR
           # Check TTL
           if (config.keys.ttl != l_rr.ttl)
-            log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{@config.keys.ttl}")
+            log(LOG_ERR, "Key #{l_rr.key_tag} has incorrect TTL : #{l_rr.ttl} instead of zone policy #{config.keys.ttl}")
           end
         end
       }
