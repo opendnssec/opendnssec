@@ -7,22 +7,19 @@ AM_CPPFLAGS =	-I$(srcdir)/.. \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@
 AM_CFLAGS =	-std=c99
 
-lib_LTLIBRARIES = libhsm.la
-libhsm_la_SOURCES = libhsm.c compat/strlcpy.c compat/strlcat.c
-libhsm_la_LDFLAGS = -dl -version-info @LIBTOOL_VERSION_INFO@ \
-	 -export-symbols-regex '^hsm_.*' 
-libhsm_la_LIBADD = @LDNS_LIBS@ @XML2_LIBS@
-nobase_include_HEADERS = $(srcdir)/*.h
+noinst_LIBRARIES = libhsm.a
+
+libhsm_a_SOURCES = libhsm.c compat/strlcpy.c compat/strlcat.c
 
 bin_PROGRAMS = ods-hsmutil ods-hsmspeed
 
 man1_MANS = ods-hsmutil.1 ods-hsmspeed.1
 
 ods_hsmutil_SOURCES = hsmutil.c hsmtest.c
-ods_hsmutil_LDADD = libhsm.la
+ods_hsmutil_LDADD = libhsm.a @LDNS_LIBS@ @XML2_LIBS@
 
 ods_hsmspeed_SOURCES = hsmspeed.c
-ods_hsmspeed_LDADD = libhsm.la -lpthread
+ods_hsmspeed_LDADD = libhsm.a -lpthread @LDNS_LIBS@ @XML2_LIBS@
 
 EXTRA_DIST = $(srcdir)/cryptoki_compat/*.h
 EXTRA_DIST += $(srcdir)/compat/*.c $(srcdir)/compat/*.h

@@ -5,17 +5,6 @@ m4_sinclude([version.m4])
 AC_PREREQ(2.61)
 AC_INIT([opendnssec-libhsm], OPENDNSSEC_VERSION)
 
-# code change; revision++
-# API add, remove, changed; current++, revision=0
-# API add; age++
-# API remove; age=0
-define([LIBHSM_SHLIB_CURRENT],  [2])
-define([LIBHSM_SHLIB_REVISION], [0])
-define([LIBHSM_SHLIB_AGE],      [2])
-
-# needed to build correct soname
-AC_SUBST(LIBTOOL_VERSION_INFO, "LIBHSM_SHLIB_CURRENT:LIBHSM_SHLIB_REVISION:LIBHSM_SHLIB_AGE")
-
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign)

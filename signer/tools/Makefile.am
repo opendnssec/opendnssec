@@ -51,5 +51,5 @@ finalizer_LDADD=		@LDNS_LIBS@
 
 EXTRA_DIST = $(srcdir)/*.h $(srcdir)/quicksorter.c
 
-../../libhsm/src/libhsm.la:
-	(cd ../../libhsm/src; ${MAKE} libhsm.la)
+../../libhsm/src/libhsm.a:
+	(cd ../../libhsm/src; ${MAKE} libhsm.a)

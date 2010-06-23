@@ -17,10 +17,10 @@ man8_MANS = ods-enforcerd.8
 
 ods_enforcerd_SOURCES = enforcer.c
 ods_enforcerd_LDADD = ../common/libenforcer.a ../ksm/libksm.a
-ods_enforcerd_LDADD += @LIBHSM_LIBS@ @XML2_LIBS@ @DB_LIBS@
+ods_enforcerd_LDADD += @LIBHSM_LIBS@ @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@
 ods_enforcerd_DEPENDENCIES = @BUILD_LIBHSM@
 
 EXTRA_DIST = $(srcdir)/*.h
 
-../../libhsm/src/libhsm.la:
-	(cd ../../libhsm/src; ${MAKE} libhsm.la)
+../../libhsm/src/libhsm.a:
+	(cd ../../libhsm/src; ${MAKE} libhsm.a)

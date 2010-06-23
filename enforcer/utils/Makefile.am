@@ -30,8 +30,8 @@ ods_ksmutil_LDADD = ../ksm/libksm.a
 ods_ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LIBHSM_LIBS@ @LDNS_LIBS@
 ods_ksmutil_DEPENDENCIES = @BUILD_LIBHSM@
 
-../../libhsm/src/libhsm.la:
-	(cd ../../libhsm/src; ${MAKE} libhsm.la)
+../../libhsm/src/libhsm.a:
+	(cd ../../libhsm/src; ${MAKE} libhsm.a)
 
 ../ksm/libksm.a:
 	(cd ../ksm; ${MAKE} libksm.a)

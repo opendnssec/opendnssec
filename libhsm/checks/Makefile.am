@@ -13,7 +13,7 @@ EXTRA_DIST =	*.xml $(srcdir)/softhsm.conf
 
 noinst_PROGRAMS = hsmcheck
  
-hsmcheck_LDADD = ../src/libhsm.la @LDNS_LIBS@ @XML2_LIBS@
+hsmcheck_LDADD = ../src/libhsm.a @LDNS_LIBS@ @XML2_LIBS@
 hsmcheck_LDFLAGS = -no-install
 
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf

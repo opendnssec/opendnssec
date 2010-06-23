@@ -19,8 +19,8 @@ AC_DEFUN([ACX_LIBHSM],[
 	if test -f ../libhsm/config.h; then
 		AC_MSG_NOTICE([using libhsm from source tree])
 		LIBHSM_INCLUDES="-I$ac_sub_srcdir/../libhsm/src"
-		LIBHSM_LIBS="-L../../libhsm/src/.libs -lhsm"
-		BUILD_LIBHSM="../../libhsm/src/libhsm.la"
+		LIBHSM_LIBS="-L../../libhsm/src -lhsm"
+		BUILD_LIBHSM="../../libhsm/src/libhsm.a"
 	else
 		AC_MSG_NOTICE([no libhsm in source tree, looking elsewhere])
 	
