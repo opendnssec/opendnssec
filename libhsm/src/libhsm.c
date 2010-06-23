@@ -781,6 +781,13 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
         {CKA_MODULUS_BITS, &modulus_bits, sizeof(CK_KEY_TYPE)}
     };
 
+    CK_ATTRIBUTE template2[] = {
+        {CKA_MODULUS, NULL, 0}
+    };
+
+#if 0
+    if ("Use public key") {
+#endif
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
                                       key->public_key,
@@ -791,9 +798,23 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
         return 0;
     }
 
-    if ((CK_LONG)template[0].ulValueLen < 1) {
+    if ((CK_ULONG)template[0].ulValueLen < 1) {
         return 0;
     }
+#if 0
+    } else {
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                          session->session,
+                                          key->private_key,
+                                          template2,
+                                          1);
+        if (hsm_pkcs11_check_error(ctx, rv, "Could not get the public exponent")) {
+            return 0;
+        }
+
+        modulus_bits = template2[0].ulValueLen * 8;
+    }
+#endif
 
     return modulus_bits;
 }
@@ -972,12 +993,18 @@ hsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
     key = hsm_key_new();
     key->module = session->module;
     key->private_key = object;
+#if 0
+    if ("Use public key") {
+#endif
     key->public_key = hsm_find_object_handle_for_id(
                           ctx,
                           session,
                           CKO_PUBLIC_KEY,
                           id,
                           len);
+#if 0
+    }
+#endif
 
     free(id);
     return key;
@@ -1184,6 +1211,7 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
     CK_ULONG public_exponent_len = 0;
     CK_BYTE_PTR modulus = NULL;
     CK_ULONG modulus_len = 0;
+    unsigned long hKey = 0;
     unsigned char *data = NULL;
     size_t data_size = 0;
 
@@ -1197,9 +1225,19 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
         return NULL;
     }
 
+#if 0
+    if ("Use public key") {
+#endif
+        hKey = key->public_key;
+#if 0
+    } else {
+        hKey = key->private_key;
+    }
+#endif
+
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
-                                      key->public_key,
+                                      hKey,
                                       template,
                                       2);
     if (hsm_pkcs11_check_error(ctx, rv, "C_GetAttributeValue")) {
@@ -1225,7 +1263,7 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
-                                      key->public_key,
+                                      hKey,
                                       template,
                                       2);
     if (hsm_pkcs11_check_error(ctx, rv, "get attribute value")) {
@@ -1903,6 +1941,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     CK_BYTE publicExponent[] = { 1, 0, 1 };
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
+    CK_BBOOL ctoken = CK_TRUE;
 
     if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
@@ -1916,6 +1955,12 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
 
+#if 0
+    if ("Not use public key") {
+        ctoken = CK_FALSE;
+    }
+#endif
+
     CK_ATTRIBUTE publicKeyTemplate[] = {
         { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)   },
         { CKA_ID,                  id,       16               },
@@ -1923,7 +1968,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
         { CKA_VERIFY,              &ctrue,   sizeof(ctrue)    },
         { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)   },
         { CKA_WRAP,                &cfalse,  sizeof(cfalse)   },
-        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)    },
+        { CKA_TOKEN,               &ctoken,  sizeof(ctoken)   },
         { CKA_MODULUS_BITS,        &keysize, sizeof(keysize)  },
         { CKA_PUBLIC_EXPONENT, &publicExponent, sizeof(publicExponent)}
     };
@@ -1953,7 +1998,13 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
 
     new_key = hsm_key_new();
     new_key->module = session->module;
+#if 0
+    if ("Use public key") {
+#endif
     new_key->public_key = publicKey;
+#if 0
+    }
+#endif
     new_key->private_key = privateKey;
     return new_key;
 }
@@ -1974,14 +2025,21 @@ hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
     if (hsm_pkcs11_check_error(ctx, rv, "Destroy private key")) {
         return -3;
     }
-
     key->private_key = 0;
+
+#if 0
+    if ("Use public key") {
+#endif
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
                                                key->public_key);
     if (hsm_pkcs11_check_error(ctx, rv, "Destroy public key")) {
         return -4;
     }
     key->public_key = 0;
+#if 0
+    }
+#endif
+
 
     return 0;
 }
@@ -2555,7 +2613,13 @@ hsm_print_key(hsm_key_t *key) {
             printf("key:\n");
             printf("\tmodule: %p\n", (void *) key->module);
             printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
+#if 0
+            if ("Use public key") {
+#endif
             printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
+#if 0
+            }
+#endif
             printf("\trepository: %s\n", key->module->name);
             printf("\talgorithm: %s\n", key_info->algorithm_name);
             printf("\tsize: %lu\n", key_info->keysize);
