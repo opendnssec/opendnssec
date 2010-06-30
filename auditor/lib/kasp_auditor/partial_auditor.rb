@@ -384,7 +384,11 @@ module KASPAuditor
           if (need_to_parse || continued_line || ret_line.index("soa") || ret_line.index("SOA") ||
                 (line.index("$TTL") == 0) || (line.index("$ORIGIN") == 0))
             # Build up the RR from the input lines until we have the whole thing
-            ret_line = zone_reader.process_line(line)
+            begin
+              ret_line = zone_reader.process_line(line)
+            rescue Exception => e
+              KASPAuditor.exit("ERROR - Can't open zone file : #{file.inspect} : #{e}", 1)
+            end
             if (!ret_line)
               continued_line = true
               next
