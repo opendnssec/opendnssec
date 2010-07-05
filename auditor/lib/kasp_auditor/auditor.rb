@@ -58,6 +58,7 @@ module KASPAuditor
     def reset
       @ret_val = 999
       @keys = []
+      @keys_to_check = []
       @keys_used = []
       @unsigned_keys = []
       @algs = []
@@ -177,7 +178,7 @@ module KASPAuditor
         do_final_nsec_check()
 
         # Now check the keys we have built up
-        Auditor.check_key_config(@keys, @unsigned_keys, @key_cache, @config, self)
+        Auditor.check_key_config(@keys_to_check, @unsigned_keys, @key_cache, @config, self)
 
         # Now check the NSEC3 opt out and types_covered, if applicable
         if (@config.denial.nsec3)
@@ -290,6 +291,7 @@ module KASPAuditor
         # If this is a DNSKEY record, then remember to add it to the keys!
         if (l_rr.type == Types::DNSKEY)
           @keys.push(l_rr)
+          @keys_to_check.push(l_rr.clone)
           @unsigned_keys.push(l_rr)
           #          print "Using key #{l_rr.key_tag}\n"
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
@@ -615,6 +617,7 @@ module KASPAuditor
         }
         next if found_unsigned
         if (!key_cache.include_key?l_rr)
+          l_rr.public_key
           # Check algorithm and length
           if (l_rr.sep_key?)
             # Check against all the KSKs defined in the config
@@ -715,6 +718,7 @@ module KASPAuditor
             seen_dnskey_sep_clear = true
           end
           @keys.push(l_rr)
+          @keys_to_check.push(l_rr.clone)
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
 
         elsif (l_rr.type == Types::NSEC)

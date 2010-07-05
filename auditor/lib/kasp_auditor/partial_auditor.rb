@@ -85,6 +85,7 @@ module KASPAuditor
         @ret_val = 999
         set_config(config)
         @keys = []
+        @keys_original = []
         @soa = nil
         @enforcer_interval=enforcer_interval
         @keys_used = []
@@ -178,7 +179,7 @@ module KASPAuditor
         @soa = signed_soa
         load_keys_and_keys_used(temp_keys_file)
         unsigned_keys = load_unsigned_keys(temp_unsigned_keys_file)
-        Auditor.check_key_config(@keys, unsigned_keys, @key_cache, @config, self)
+        Auditor.check_key_config(@keys_original, unsigned_keys, @key_cache, @config, self)
         found_sep = false
         found_non_sep = false
         @keys.each {|key|
@@ -319,7 +320,7 @@ module KASPAuditor
     def store_keys_and_keys_used(file)
       delete(file)
       File.open(file, 'w') {|f|
-        @keys.each {|key|
+        @keys_original.each {|key|
           f.write(key.to_s + "\n")
         }
         f.write("USED\n")
@@ -340,6 +341,7 @@ module KASPAuditor
           @keys_used.push(line.chomp.to_i)
         else
           @keys.push(RR.create(line))
+          @keys_original.push(RR.create(line))
         end
       }
     end
@@ -882,6 +884,7 @@ module KASPAuditor
         return
       end
       @keys.push(key_rr)
+      @keys_original.push(key_rr)
 
       #      Auditor.check_key_config(@keys, @unsigned_keys, @key_cache, @config, self)
     end
