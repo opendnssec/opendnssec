@@ -6,6 +6,8 @@ Bugfixes:
 * Bugreport #127: Large SOA serial numbers were not handled properly by signer
 * Bugreport #133: Better handling of SOA serial when setting is 'keep'
 * Bugreport #136: quicksorter could not handle standard bind format SOA rdata
+* The Auditor could not handle the new way of rolling KSKs
+* One log message in the Enforcer referred to an old command
 
 
 OpenDNSSEC 1.1.0 - 2010-05-26
