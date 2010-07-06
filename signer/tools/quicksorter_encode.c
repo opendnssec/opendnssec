@@ -178,7 +178,7 @@ static inline void encode_int32(uint32_t val, void* dest)
 
 static inline uint32_t decode_int32(void* src)
 {
-    return ntohl(*((unsigned int*)src));
+    return ntohl(*((uint32_t*)src));
 }
 
 static inline void encode_int16(uint16_t val, void* dest)
@@ -972,10 +972,8 @@ static uint32_t encode_period_internal(const char* nptr, const char** endptr)
        switch (**endptr) {
            case ' ':
            case '\t':
-               if (seconds) {
-                   return seconds;
-               }
-               break;
+               seconds += i;
+               return seconds;
            case '-':
                if(sign == 0) {
                    sign = -1;
