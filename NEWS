@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.1 branch
+OpenDNSSEC 1.1.1 - 2010-07-08
 
 Bugfixes:
 * Bugreport #127: Large SOA serial numbers were not handled properly by signer
