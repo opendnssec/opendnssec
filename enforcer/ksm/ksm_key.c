@@ -589,6 +589,8 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *          (OUT) the number of keys (-1 on error)
  *      int rollover_scheme
  *          KSK rollover scheme in use
+ *      int zone_count
+ *          Number of zones on this policy
  *
  * Returns:
  *      int
@@ -598,36 +600,21 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data)
  *              Other   Error
 -*/
 
-int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme) 
+int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme, int zone_count) 
 { 
     int status = 0;   /* Status return */ 
     KSM_PARCOLL coll; /* Parameters collection */ 
-
-    DB_RESULT result; 
-    int zone_count = 0;
 
     /* Check arguments */
     if (count == NULL) {
         return MsgLog(KSM_INVARG, "NULL count");
     }
 
-    /* how many zones on this policy */ 
-    status = KsmZoneCountInit(&result, policy_id); 
-    if (status == 0) { 
-        status = KsmZoneCount(result, &zone_count); 
-    } 
-    DbFreeResult(result); 
-
-    if (status == 0) { 
-        /* make sure that we have at least one zone */ 
-        if (zone_count == 0) { 
-            *count = 0; 
-            return status; 
-        } 
-    } else { 
-        *count = -1; 
+    /* make sure that we have at least one zone */ 
+    if (zone_count == 0) { 
+        *count = 0; 
         return status; 
-    }
+    } 
 
     /* Check that we have a valid key type */
     if ((keytype != KSM_TYPE_KSK) && (keytype != KSM_TYPE_ZSK)) {
@@ -842,7 +829,7 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
 
     /* Create the SQL command to interrogate the database */ 
  
-    sql = DqsCountInit("keypairs");
+    sql = DqsCountInit("keydata_view");
     if (policy_id != -1) {
         DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
     }

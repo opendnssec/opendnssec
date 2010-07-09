@@ -562,11 +562,11 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
 
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
-        "UPDATE keypairs SET %s = DATE_ADD(%s, INTERVAL %d SECOND) WHERE ID = %lu",
+        "UPDATE dnsseckeys SET %s = DATE_ADD(%s, INTERVAL %d SECOND) WHERE KEYPAIR_ID = %lu",
         destination, source, interval, (unsigned long) data->keypair_id);
 #else
     nchar = snprintf(buffer, sizeof(buffer),
-        "UPDATE keypairs SET %s = DATETIME(%s, '+%d SECONDS') WHERE ID = %lu",
+        "UPDATE dnsseckeys SET %s = DATETIME(%s, '+%d SECONDS') WHERE KEYPAIR_ID = %lu",
         destination, source, interval, (unsigned long) data->keypair_id);
 #endif /* USE_MYSQL */
 

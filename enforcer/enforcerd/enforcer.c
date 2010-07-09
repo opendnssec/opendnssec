@@ -324,6 +324,9 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
 
     int same_keys = 0;      /* Do ksks and zsks look the same ? */
     int ksks_created = 0;   /* Were any KSKs created? */
+    
+    DB_RESULT result; 
+    int zone_count = 0;     /* Number of zones on policy */
 
     if  (policy->shared_keys == 1 ) {
         log_msg(config, LOG_INFO, "Key sharing is On");
@@ -339,13 +342,33 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         exit(1);
     }
 
+    /* See if our ZSKs and KSKs look the same */
     if (policy->ksk->sm == policy->zsk->sm && policy->ksk->bits == policy->zsk->bits && policy->ksk->algorithm == policy->zsk->algorithm) {
         same_keys = 1;
     } else {
         same_keys = 0;
     }
+
+    /* How many zones on this policy */ 
+    status = KsmZoneCountInit(&result, policy->id); 
+    if (status == 0) { 
+        status = KsmZoneCount(result, &zone_count); 
+    } 
+    DbFreeResult(result); 
+
+    if (status == 0) { 
+        /* make sure that we have at least one zone */ 
+        if (zone_count == 0) { 
+            log_msg(config, LOG_INFO, "No zones on policy %s, skipping...", policy->name);
+            return status; 
+        } 
+    } else {
+        log_msg(NULL, LOG_ERR, "Could not count zones on policy %s", policy->name);
+        return status; 
+    }
+
     /* Find out how many ksk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->interval, &ksks_needed, policy->ksk->rollover_scheme);
+    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->interval, &ksks_needed, policy->ksk->rollover_scheme, zone_count);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict ksk requirement for next interval for %s", policy->name);
         /* TODO exit? continue with next policy? */
@@ -355,6 +378,10 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current ksk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */
+    }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        keys_in_queue /= zone_count;
     }
 
     new_keys = ksks_needed - keys_in_queue;
@@ -420,7 +447,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     current_count = 0;
 
     /* Find out how many zsk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->interval, &zsks_needed, 0);
+    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->interval, &zsks_needed, 0, zone_count);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict zsk requirement for next intervalfor %s", policy->name);
         /* TODO exit? continue with next policy? */
@@ -430,6 +457,10 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */
+    }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        keys_in_queue /= zone_count;
     }
     /* Might have to account for ksks */
     if (same_keys) {
@@ -1140,7 +1171,7 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     {
         StrAppend(file, "\t\t\t\t<ZSK />\n");
     }
-    if (key_data->state > KSM_STATE_GENERATE && key_data->state < KSM_STATE_DEAD)
+    if ((key_data->state > KSM_STATE_GENERATE && key_data->state < KSM_STATE_DEAD) || key_data->state == KSM_STATE_KEYPUBLISH)
     {
         StrAppend(file, "\t\t\t\t<Publish />\n");
     }
@@ -1220,7 +1251,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 
     /* Make sure that enough keys are allocated to this zone */
     /* How many do we need ? (set sharing to 1 so that we get the number needed for a single zone on this policy */
-    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed, rollover_scheme);
+    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed, rollover_scheme, 1);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval for %s", zone_name);
         StrFree(datetime);

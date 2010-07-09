@@ -634,11 +634,24 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
      */
 
     sql = DusInit("keypairs");
-    DusSetString(&sql, "RETIRE", datetime, 0);
-    DusSetInt(&sql, "fixedDate", 1, 1);
-    DusSetInt(&sql, "compromisedflag", 1, 2);
+    DusSetInt(&sql, "fixedDate", 1, 0);
+    DusSetInt(&sql, "compromisedflag", 1, 1);
 
     DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 0);
+    DusEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DusFree(sql);
+
+    /* Report any errors */
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+    sql = DusInit("dnsseckeys");
+    DusSetString(&sql, "RETIRE", datetime, 0);
+
+    DusConditionKeyword(&sql, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);
     StrFree(insql);
     DusEnd(&sql);
 
@@ -895,11 +908,11 @@ int KsmRequestChangeState(int keytype, const char* datetime,
      * code is not executed.)
      */
 
-    sql = DusInit("keypairs");
+    sql = DusInit("dnsseckeys");
     DusSetInt(&sql, "STATE", dst_state, set++);
     DusSetString(&sql, dst_col, datetime, set++);
 
-    DusConditionKeyword(&sql, "ID", DQS_COMPARE_IN, insql, 0);
+    DusConditionKeyword(&sql, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);
     DusEnd(&sql);
     StrFree(dst_col);
 
@@ -1224,7 +1237,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
         DusSetString(&sql3, dst_name, datetime, setclause++);
         StrFree(dst_name);
 
-        DusConditionKeyword(&sql3, "ID", DQS_COMPARE_IN, insql, whereclause++);
+        DusConditionKeyword(&sql3, "KEYPAIR_ID", DQS_COMPARE_IN, insql, whereclause++);
         StrFree(insql);
         DusEnd(&sql3);
 

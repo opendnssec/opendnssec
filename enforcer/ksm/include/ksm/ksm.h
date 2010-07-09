@@ -135,7 +135,7 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data);
 void KsmKeyEnd(DB_RESULT result);
 int KsmKeyQuery(const char* sql, DB_RESULT* result);
 int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
-int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme);
+int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme, int zone_count);
 int KsmKeyCountQueue(int keytype, int* count, int zone_id);
 int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count, int keytype);
 int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id);
