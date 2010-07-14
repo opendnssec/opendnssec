@@ -2,6 +2,8 @@ $Id$
 
 OpenDNSSEC 1.1 branch
 
+Bugfixes:
+* ods-control stop did not stopped zone fetcher (bug was introduced in 1.1.0)
 
 OpenDNSSEC 1.1.1 - 2010-07-08
 
