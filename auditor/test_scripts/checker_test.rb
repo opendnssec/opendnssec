@@ -84,6 +84,8 @@ class CheckerTest < Test::Unit::TestCase
 
           # Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period.
           "WARNING: Jitter time (43200 seconds) is large compared to Validity/Denial (2 seconds) for registry policy in test/kaspcheck_bad/kasp.xml",
+          "ERROR: Jitter time (43200) is greater than the Default Validity (1) for registry policy in test/kaspcheck_bad/kasp.xml",
+          "ERROR: Jitter time (43200) is greater than the Denial Validity (2) for registry policy in test/kaspcheck_bad/kasp.xml",
 
           # Warn if the InceptionOffset is greater than ten minutes.
           "WARNING: InceptionOffset is higher than expected (2678400 seconds) for namedtwice policy in test/kaspcheck_bad/kasp.xml",
