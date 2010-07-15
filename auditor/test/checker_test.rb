@@ -84,6 +84,8 @@ class CheckerTest < Test::Unit::TestCase
 
           # Warn if "Jitter" is greater than 50% of the maximum of the "default" and "Denial" period.
           "WARNING: Jitter time (43200 seconds) is large compared to Validity/Denial (2 seconds) for registry policy in test/kaspcheck_bad/kasp.xml",
+          "ERROR: Jitter time (43200) is greater than the Default Validity (1) for registry policy in test/kaspcheck_bad/kasp.xml",
+          "ERROR: Jitter time (43200) is greater than the Denial Validity (2) for registry policy in test/kaspcheck_bad/kasp.xml",
 
           # Warn if the InceptionOffset is greater than ten minutes.
           "WARNING: InceptionOffset is higher than expected (2678400 seconds) for namedtwice policy in test/kaspcheck_bad/kasp.xml",
@@ -93,9 +95,7 @@ class CheckerTest < Test::Unit::TestCase
           "WARNING: Keys/RetireSafety (1 seconds) in registry policy in test/kaspcheck_bad/kasp.xml is less than 0.1 * TTL (3600 seconds)",
 
           # The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
-          "ERROR: In policy registry, incompatible algorithm (5) used for ZSK NSEC3 in test/kaspcheck_bad/kasp.xml - should be 6 or 7",
-          "ERROR: In policy namedtwice, incompatible algorithm (7) used for ZSK NSEC in test/kaspcheck_bad/kasp.xml",
-          "ERROR: In policy namedtwice, incompatible algorithm (7) used for KSK NSEC in test/kaspcheck_bad/kasp.xml",
+          "ERROR: In policy registry, incompatible algorithm (5) used for ZSK NSEC3 in test/kaspcheck_bad/kasp.xml - should be 6,7,8 or 10",
 
           # If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
           "ERROR: In test/kaspcheck_bad/kasp.xml, policy registry, serial type datecounter used but 720 re-signs requested. No more than 99 re-signs per day should be used with datecounter as only 2 digits are allocated for the version number",

@@ -380,6 +380,14 @@ module KASPChecker
                   "(#{max_default_denial} seconds) for #{name} policy in #{kasp_file}")
             end
 
+            # Error if jitter is greater than either Defaulyt or Denial Validity
+            if (jitter_secs > default_secs)
+              log(LOG_ERR, "Jitter time (#{jitter_secs}) is greater than the Default Validity (#{default_secs}) for #{name} policy in #{kasp_file}")
+            end
+            if (jitter_secs > denial_secs)
+              log(LOG_ERR, "Jitter time (#{jitter_secs}) is greater than the Denial Validity (#{denial_secs}) for #{name} policy in #{kasp_file}")
+            end
+
             #   5. Warn if the InceptionOffset is greater than ten minutes. (Again arbitrary - but do we really expect the times on two systems to differ by more than this?)
             inception_offset_secs = get_duration(policy, 'Signatures/InceptionOffset', kasp_file)
             if (inception_offset_secs > (10 * 60))
