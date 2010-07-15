@@ -93,9 +93,7 @@ class CheckerTest < Test::Unit::TestCase
           "WARNING: Keys/RetireSafety (1 seconds) in registry policy in test/kaspcheck_bad/kasp.xml is less than 0.1 * TTL (3600 seconds)",
 
           # The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
-          "ERROR: In policy registry, incompatible algorithm (5) used for ZSK NSEC3 in test/kaspcheck_bad/kasp.xml - should be 6 or 7",
-          "ERROR: In policy namedtwice, incompatible algorithm (7) used for ZSK NSEC in test/kaspcheck_bad/kasp.xml",
-          "ERROR: In policy namedtwice, incompatible algorithm (7) used for KSK NSEC in test/kaspcheck_bad/kasp.xml",
+          "ERROR: In policy registry, incompatible algorithm (5) used for ZSK NSEC3 in test/kaspcheck_bad/kasp.xml - should be 6,7,8 or 10",
 
           # If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
           "ERROR: In test/kaspcheck_bad/kasp.xml, policy registry, serial type datecounter used but 720 re-signs requested. No more than 99 re-signs per day should be used with datecounter as only 2 digits are allocated for the version number",
