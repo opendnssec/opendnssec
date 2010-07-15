@@ -25,6 +25,7 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+require 'etc'
 begin
   require 'dnsruby'
 rescue LoadError
@@ -40,7 +41,6 @@ require 'kasp_auditor/auditor.rb'
 require 'kasp_auditor/partial_auditor.rb'
 require 'kasp_auditor/parse.rb'
 require 'kasp_auditor/preparser.rb'
-require 'etc'
 
 # This module provides auditing capabilities to OpenDNSSEC.
 # Once an unsigned zone has been signed, this module is used to check that
