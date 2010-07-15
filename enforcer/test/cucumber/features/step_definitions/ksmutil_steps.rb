@@ -55,6 +55,7 @@ end
 
 When /^I run enforcer/ do
   run_enforcer
+  @@offset += DELTA_OFFSET
 end
 
 When /^I add a new zone "([^\"]*)" with policy "([^\"]*)"$/ do |zone, policy|

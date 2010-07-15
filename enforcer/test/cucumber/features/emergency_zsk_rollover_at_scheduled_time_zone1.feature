@@ -1,7 +1,12 @@
-Feature: BasicTest (zone1) on ODS wiki passes successfully
+# This tests that emergency rollover works on Zone1 ZSK, when performed at
+# exactly the same time as a scheduled ZSK rollover should occur.
+# See : http://trac.opendnssec.org/wiki/ProjectPlan/SystemTest/SimplifiedTest
+
+
+Feature: Emergency ZSK rollover at scheduled time
     In order to ship OpenDNSSEC
     As a developer
-    I want to know that the BasicTest passes
+    I want to know that the emergency ZSK rollover works
 
     Background:
         Given a clean DB setup
@@ -59,6 +64,7 @@ Feature: BasicTest (zone1) on ODS wiki passes successfully
         And I should see 1 "active" KSK in key list for "Zone1"
 
         Given I move 25 minutes into the future from the start of the test
+        And "key rollover --zone Zone1 --keytype ZSK" is issued
         And I run enforcer
         And I load new keys for "Zone1"
         Then I should see 1 new active ZSK keys in the "Zone1" signconf
@@ -119,6 +125,7 @@ Feature: BasicTest (zone1) on ODS wiki passes successfully
         And I should see 1 "active" KSK in key list for "Zone1"
 
         Given I move 50 minutes into the future from the start of the test
+        And "key rollover --zone Zone1 --keytype ZSK" is issued
         And I run enforcer
         And I load new keys for "Zone1"
         Then I should see 1 new active ZSK keys in the "Zone1" signconf
@@ -142,7 +149,6 @@ Feature: BasicTest (zone1) on ODS wiki passes successfully
         And I should see 1 "ready" KSK in key list for "Zone1"
 
         Given I issue ds-seen for all "ready" KSKs in "Zone1"
-        And I run enforcer
         And I load new keys for "Zone1"
         Then I should see 1 old active ZSK keys in the "Zone1" signconf
         And I should see 1 old retired ZSK keys in the "Zone1" signconf
@@ -185,6 +191,7 @@ Feature: BasicTest (zone1) on ODS wiki passes successfully
         And I should see 1 "active" KSK in key list for "Zone1"
 
         Given I move 75 minutes into the future from the start of the test
+        And "key rollover --zone Zone1 --keytype ZSK" is issued
         And I run enforcer
         And I load new keys for "Zone1"
         Then I should see 1 new active ZSK keys in the "Zone1" signconf

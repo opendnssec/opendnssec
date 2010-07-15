@@ -2,9 +2,8 @@ require 'rexml/document'
 include REXML
 require 'xsd/datatypes'
 
-START_OFFSET = 45
-
-# @TODO@ ADD KSK STATES!! e.g. ds-seen, etc.
+# This delta (in seconds) gets added each time we move into the future
+DELTA_OFFSET = 5
 
 def load_keys_for(zone)
   # Load the Keys element from the zone's signconf file
@@ -24,12 +23,14 @@ def load_keys_for(zone)
       @@previous_keys[zone] = @@current_keys[zone]
       @@current_keys[zone]=e
 
-#      print e
+      print e
 
- #     print_key_states(zone)
+      print_key_states(zone)
 
       print run_command("key list --zone #{zone} --verbose")
 #      load_ksmutil_key_list(zone)
+
+#      @TODO@ DO THIS CHECK!!
 #  check_key_list_output_against_signconf(key_list_text)
 
       return e
@@ -37,6 +38,10 @@ def load_keys_for(zone)
   rescue Errno::ENOENT
     return false
   end
+end
+
+def get_offset
+  @@offset
 end
 
 Given /^I issue ds\-seen for all "([^\"]*)" KSKs in "([^\"]*)"$/ do |status, zone|
@@ -202,8 +207,9 @@ Given /^a clean DB setup$/ do
   @@previous_keys = {}
   @@key_states = {}
   @@current_keys = {}
-  @@start_time = Time.now.to_i + START_OFFSET
-  @@last_time = Time.now.to_i + START_OFFSET
+  @@offset = 0
+  @@start_time = Time.now.to_i + get_offset
+  @@last_time = Time.now.to_i + get_offset
   set_enforcer_timeshift(Time.now)
 end
 
@@ -257,13 +263,13 @@ Given /^I move (\d+) ([^\"]*) into the ([^\"]*) from the start of the test$/ do 
   # Need to store the last time we were at before moving forward
   @@last_time = get_enforcer_timeshift
   timeshift_seconds = decode_time_interval(amount, units)
-  print "Moving #{timeshift_seconds} from #{@@start_time}, real time : #{Time.now}\n"
+  print "Moving #{timeshift_seconds + get_offset} from #{@@start_time}, real time : #{Time.now}\n"
   if (direction == "past")
     timeshift_seconds = -timeshift_seconds
   end
-  new_time = Time.at(@@start_time + timeshift_seconds)
+  new_time = Time.at(@@start_time + timeshift_seconds + get_offset)
   set_enforcer_timeshift(new_time)
-  Given "I run enforcer"
+#  Given "I run enforcer"
 end
 
 def set_enforcer_timeshift(new_time)
@@ -333,5 +339,5 @@ def get_enforcer_timeshift
 
     return Time.mktime(year, mon, day, hour, min, sec).to_i
   end
-  return Time.now.to_i + START_OFFSET
+  return Time.now.to_i + get_offset
 end

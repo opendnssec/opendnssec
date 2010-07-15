@@ -16,97 +16,221 @@ Scenario: Check Zone2 at set times
       When I run enforcer
         And I load new keys for "Zone2"
         Then I should see 1 new active ZSK keys in the "Zone2" signconf
-        And I should see 1 new active KSK keys in the "Zone2" signconf
         And I should see 1 new prepublished ZSK keys in the "Zone2" signconf
         And I should see 0 new retired ZSK keys in the "Zone2" signconf
+        And I should see 1 new active KSK keys in the "Zone2" signconf
         And I should see 0 new retired KSK keys in the "Zone2" signconf
+        And I should see 1 "publish" KSK in key list for "Zone2"
+        And I should see 1 "dssub" KSK in key list for "Zone2"
 
-        Given I move 7 minutes into the future from the start of the test
+        Given I issue ds-seen for all "dssub" KSKs in "Zone2"
         And I load new keys for "Zone2"
         Then I should see 1 old active ZSK keys in the "Zone2" signconf
+        And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         And I should see 1 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "publish" KSK in key list for "Zone2"
+        And I should see 1 "dspublish" KSK in key list for "Zone2"
+
+        Given I move 7 minutes into the future from the start of the test
+        And I run enforcer
+        And I load new keys for "Zone2"
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
         And I should see 1 new prepublished ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
+        And I should see 1 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "publish" KSK in key list for "Zone2"
+        And I should see 1 "dspublish" KSK in key list for "Zone2"
+
+        Given I move 21 minutes into the future from the start of the test
+        And I run enforcer
+        And I load new keys for "Zone2"
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
+        And I should see 2 old prepublished ZSK keys in the "Zone2" signconf
+        And I should see 1 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "ready" KSK in key list for "Zone2"
+        And I should see 1 "dspublish" KSK in key list for "Zone2"
+
+        Given I issue ds-seen for all "ready" KSKs in "Zone2"
+        And I load new keys for "Zone2"
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
+        And I should see 2 old prepublished ZSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "dspublish" KSK in key list for "Zone2"
+
 
         Given I move 28 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 new active ZSK keys in the "Zone2" signconf
+        Then I should see 1 new active ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new retired ZSK keys in the "Zone2" signconf
+        And I should see 1 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
 
         Given I move 35 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 old active ZSK keys in the "Zone2" signconf
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         And I should see 1 new prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 old retired ZSK keys in the "Zone2" signconf
+        And I should see 1 old active KSK keys in the "Zone2" signconf
+        And I should see 1 new active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "publish" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
 
         Given I move 49 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 old active ZSK keys in the "Zone2" signconf
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
         And I should see 2 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new removed ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "publish" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
 
         Given I move 56 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 new active ZSK keys in the "Zone2" signconf
+        Then I should see 1 new active ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new retired ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "ready" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
+
+        Given I issue ds-seen for all "ready" KSKs in "Zone2"
+        And I load new keys for "Zone2"
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
+        And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
+        Then I should see 1 old retired ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "retire" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
+
 
         Given I move 63 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 old active ZSK keys in the "Zone2" signconf
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new prepublished ZSK keys in the "Zone2" signconf
         And I should see 1 old retired ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "retire" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
+
+        Given I move 70 minutes into the future from the start of the test
+        And I run enforcer
+        And I load new keys for "Zone2"
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
+        And I should see 2 old prepublished ZSK keys in the "Zone2" signconf
+        And I should see 1 old retired ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 new active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "retire" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
+        And I should see 1 "publish" KSK in key list for "Zone2"
 
         Given I move 77 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 old active ZSK keys in the "Zone2" signconf
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
         And I should see 2 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new removed ZSK keys in the "Zone2" signconf
+        And I should see 3 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "retire" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
+        And I should see 1 "publish" KSK in key list for "Zone2"
 
         Given I move 84 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 new active ZSK keys in the "Zone2" signconf
+        Then I should see 1 new active ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new retired ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
+        And I should see 1 "publish" KSK in key list for "Zone2"
 
         Given I move 91 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 old active ZSK keys in the "Zone2" signconf
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         And I should see 1 new prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 old retired ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
+        And I should see 1 "ready" KSK in key list for "Zone2"
+
+        Given I issue ds-seen for all "ready" KSKs in "Zone2"
+        And I load new keys for "Zone2"
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
+        And I should see 2 old prepublished ZSK keys in the "Zone2" signconf
+        Then I should see 1 old retired ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "retire" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
+
+        Given I move 98 minutes into the future from the start of the test
+        And I run enforcer
+        And I load new keys for "Zone2"
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
+        And I should see 2 old prepublished ZSK keys in the "Zone2" signconf
+        Then I should see 1 old retired ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "retire" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
 
         Given I move 105 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 old active ZSK keys in the "Zone2" signconf
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
         And I should see 2 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new removed ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 new active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "publish" KSK in key list for "Zone2"
+        And I should see 1 "retire" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
 
         Given I move 112 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 new active ZSK keys in the "Zone2" signconf
+        Then I should see 1 new active ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new retired ZSK keys in the "Zone2" signconf
+        And I should see 3 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "retire" KSK in key list for "Zone2"
+        And I should see 1 "publish" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
 
         Given I move 119 minutes into the future from the start of the test
+        And I run enforcer
         And I load new keys for "Zone2"
-        And I should see 1 old active KSK keys in the "Zone2" signconf
-        And I should see 1 old active ZSK keys in the "Zone2" signconf
+        Then I should see 1 old active ZSK keys in the "Zone2" signconf
+        And I should see 1 old retired ZSK keys in the "Zone2" signconf
         And I should see 1 old prepublished ZSK keys in the "Zone2" signconf
         Then I should see 1 new prepublished ZSK keys in the "Zone2" signconf
+        And I should see 2 old active KSK keys in the "Zone2" signconf
+        And I should see 1 "active" KSK in key list for "Zone2"
+        And I should see 1 "publish" KSK in key list for "Zone2"
+        And I should see 1 "dsready" KSK in key list for "Zone2"
 
 
 #    Scenario: Check enforcer every minute
