@@ -106,7 +106,7 @@ static void TestKsmRequestKeys(void)
     char*   datetime = DtParseDateTimeString("now");
 
     /* Allocate a key to the zone (routines previously tested) */
-    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, &keypair_id);
+    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, zone_id, &keypair_id);
     CU_ASSERT_EQUAL(status, 0);
 
     status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, &dnsseckey_id);

@@ -153,6 +153,16 @@ select k.id as id, d.state as state, k.generate as generate, d.publish as publis
 from  keypairs k left outer join dnsseckeys d
 on k.id = d.keypair_id;
 
+drop view if exists KEYALLOC_VIEW;
+create view KEYALLOC_VIEW as
+select v.id as id, location, algorithm, policy_id, securitymodule_id, size, compromisedflag, d.zone_id as zone_id from
+(select k.id as id, k.HSMkey_id as location, z.id as zone_id, k.algorithm as algorithm, k.policy_id as policy_id, k.securitymodule_id as securitymodule_id, k.size as size,
+    k.compromisedflag as compromisedflag
+from keypairs k left join zones z where k.policy_id = z.policy_id )  v 
+left outer join dnsseckeys d
+on d.zone_id = v.zone_id
+and d.keypair_id = v.id;
+
 -- insert default data
 
 -- default categories

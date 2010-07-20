@@ -108,7 +108,7 @@ int KsmUpdate(int policy_id, int zone_id)
             /* Transaction handling is one level up (in KsmRequestKeys) */
             status = KsmKey(result, &data);
             while (status == 0) {
-                (void) KsmUpdateKey(&data, &collection);
+                (void) KsmUpdateKey(&data, &collection, zone_id);
                 status = KsmKey(result, &data);
             }
             (void) KsmKeyEnd(result);
@@ -144,9 +144,12 @@ int KsmUpdate(int policy_id, int zone_id)
  *
  *      KSM_PARCOLL* collection
  *          Parameter collection.
+ *
+ *      int zone_id
+ *          zone we are looking at
 -*/
 
-void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)
 {
     /* check the argument */
     if (data == NULL) {
@@ -160,7 +163,7 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         break;
 
     case KSM_STATE_PUBLISH:
-        KsmUpdatePublishKeyTime(data, collection);
+        KsmUpdatePublishKeyTime(data, collection, zone_id);
         break;
 
     case KSM_STATE_READY:
@@ -168,11 +171,11 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         break;
 
     case KSM_STATE_ACTIVE:
-        KsmUpdateActiveKeyTime(data, collection);
+        KsmUpdateActiveKeyTime(data, collection, zone_id);
         break;
 
     case KSM_STATE_RETIRE:
-        KsmUpdateRetireKeyTime(data, collection);
+        KsmUpdateRetireKeyTime(data, collection, zone_id);
         break;
 
     case KSM_STATE_DEAD:
@@ -184,7 +187,7 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         break;
 
     case KSM_STATE_DSPUBLISH:
-        KsmUpdateDSPublishKeyTime(data, collection);
+        KsmUpdateDSPublishKeyTime(data, collection, zone_id);
         break;
 
     case KSM_STATE_DSREADY:
@@ -192,7 +195,7 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         break;
 
     case KSM_STATE_KEYPUBLISH:
-        KsmUpdateKEYPublishKeyTime(data, collection);
+        KsmUpdateKEYPublishKeyTime(data, collection, zone_id);
         break;
     default:
 
@@ -235,7 +238,7 @@ void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data)
     return;
 }
 
-void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)
 {
     int deltat = 0;  /* Time interval */
     int Ipc;     /* Child zone publication interval */
@@ -296,7 +299,7 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         return;
     }
 
-    (void) KsmUpdateKeyTime(data, "PUBLISH", "READY", deltat);
+    (void) KsmUpdateKeyTime(data, "PUBLISH", "READY", deltat, zone_id);
 
     return;
 }
@@ -319,7 +322,7 @@ void KsmUpdateReadyKeyTime(KSM_KEYDATA* data)
     return;
 }
 
-void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)
 {
     int deltat;     /* Time interval */
 
@@ -363,13 +366,13 @@ void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
      * may still be active.
      */
     if (!data->fixedDate) {
-        (void) KsmUpdateKeyTime(data, "ACTIVE", "RETIRE", deltat);
+        (void) KsmUpdateKeyTime(data, "ACTIVE", "RETIRE", deltat, zone_id);
     }
 
     return;
 }
 
-void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)
 {
     int deltat = 0;     /* Time interval */
 
@@ -417,7 +420,7 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         return;
     }
 
-    (void) KsmUpdateKeyTime(data, "RETIRE", "DEAD", deltat);
+    (void) KsmUpdateKeyTime(data, "RETIRE", "DEAD", deltat, zone_id);
 
     return;
 }
@@ -441,7 +444,7 @@ void KsmUpdateDeadKeyTime(KSM_KEYDATA* data)
     return;
 }
 
-void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)
 {
     int deltat = 0;  /* Time interval */
 
@@ -482,12 +485,12 @@ void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
         return;
     }
 
-    (void) KsmUpdateKeyTime(data, "PUBLISH", "READY", deltat);
+    (void) KsmUpdateKeyTime(data, "PUBLISH", "READY", deltat, zone_id);
 
     return;
 }
 
-void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
+void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)
 {
     int deltat = 0;  /* Time interval */
 
@@ -515,7 +518,7 @@ void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
     deltat = collection->zskttl +
             collection->propdelay + collection->pub_safety;
 
-    (void) KsmUpdateKeyTime(data, "PUBLISH", "ACTIVE", deltat);
+    (void) KsmUpdateKeyTime(data, "PUBLISH", "ACTIVE", deltat, zone_id);
 
     return;
 }
@@ -542,6 +545,9 @@ void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
  *      int interval
  *          Interval (seconds) to update the source field with.
  *
+ *      int zone_id
+ *          zone we are looking at
+ *
  * Returns:
  *      int
  *          0       Update successful
@@ -549,7 +555,7 @@ void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection)
 -*/
 
 int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
-    const char* destination, int interval)
+    const char* destination, int interval, int zone_id)
 {
     char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
     unsigned int    nchar;          /* Number of characters converted */
@@ -562,12 +568,12 @@ int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
 
 #ifdef USE_MYSQL
     nchar = snprintf(buffer, sizeof(buffer),
-        "UPDATE dnsseckeys SET %s = DATE_ADD(%s, INTERVAL %d SECOND) WHERE KEYPAIR_ID = %lu",
-        destination, source, interval, (unsigned long) data->keypair_id);
+        "UPDATE dnsseckeys SET %s = DATE_ADD(%s, INTERVAL %d SECOND) WHERE KEYPAIR_ID = %lu and zone_id = %d",
+        destination, source, interval, (unsigned long) data->keypair_id, zone_id);
 #else
     nchar = snprintf(buffer, sizeof(buffer),
-        "UPDATE dnsseckeys SET %s = DATETIME(%s, '+%d SECONDS') WHERE KEYPAIR_ID = %lu",
-        destination, source, interval, (unsigned long) data->keypair_id);
+        "UPDATE dnsseckeys SET %s = DATETIME(%s, '+%d SECONDS') WHERE KEYPAIR_ID = %lu and zone_id = %d",
+        destination, source, interval, (unsigned long) data->keypair_id, zone_id);
 #endif /* USE_MYSQL */
 
     if (nchar < sizeof(buffer)) {

@@ -199,6 +199,7 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id)
  *          Status return.  0=> Success, non-zero => error.
 -*/
 
+/* TODO - DO WE STILL NEED THIS ? */
 int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype)
 {
     DB_ID       ignore = 0;
@@ -893,6 +894,8 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
  *          size of key desired
  *      int algorithm
  *          algorithm of key desired
+ *      int zone_id
+ *          zone we are allocating to
  *      int *keypair_id (out)
  *          id of next keypair
  *
@@ -902,7 +905,7 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
  *          -1 == no free keys on that policy
  */
 
-int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id) 
+int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zone_id, int *keypair_id) 
 {
 
     int     where = 0;          /* WHERE clause value */
@@ -910,20 +913,22 @@ int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *ke
     DB_RESULT       result;     /* Handle converted to a result object */
     DB_ROW      row = NULL;     /* Row data */
     int     status = 0;         /* Status return */
+    char    in_sql[64];
 
     /* check the arguments? */
     /*if (zone_name == NULL) {
         return MsgLog(KSM_INVARG, "NULL zone name");
     }*/
+    snprintf(in_sql, 64, "(select id from KEYALLOC_VIEW where zone_id = %d)", zone_id);
 
     /* Construct the query */
-    sql = DqsSpecifyInit("KEYDATA_VIEW","min(id)");
+    sql = DqsSpecifyInit("KEYALLOC_VIEW","min(id)");
     DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
     DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, sm, where++);
     DqsConditionInt(&sql, "size", DQS_COMPARE_EQ, bits, where++);
     DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
-    DqsConditionKeyword(&sql, "state", DQS_COMPARE_IS, "NULL", where++);
     DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
+    DqsConditionKeyword(&sql, "id", DQS_COMPARE_NOT_IN, in_sql, where++);
 
     /* Execute query and free up the query string */
     status = DbExecuteSql(DbHandle(), sql, &result);

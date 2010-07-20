@@ -551,7 +551,6 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
     char* zone_name;
     char* current_policy;
     char* current_filename;
-    char* key_string = NULL;
     char *tag_name;
     int zone_id = -1;
     int signer_flag = 1; /* Is the signer responding? (1 == yes) */
@@ -664,10 +663,6 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 xmlXPathFreeObject(xpathObj);
 
                 if (strcmp(current_policy, policy->name) != 0) {
-                    if (key_string != NULL) {
-                        StrFree(key_string);
-                        key_string = NULL;
-                    }
 
                     /* Read new Policy */ 
                     kaspSetPolicyDefaults(policy, current_policy);
@@ -683,16 +678,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     }
                     log_msg(config, LOG_INFO, "Policy %s found in DB.", policy->name);
 
-                } else {
-                    /* Policy is same as previous zone, do not re-read */
-                    if (policy->shared_keys == 0) {
-                        if (key_string != NULL) {
-                            StrFree(key_string);
-                            key_string = NULL;
-                        }
-                    }
-
-                }
+                } /* else */ 
+                  /* Policy is same as previous zone, do not re-read */
 
                 StrFree(current_policy);
 
@@ -738,7 +725,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 }
 
                 /* turn this zone and policy into a file */
-                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, &key_string, config->DSSubmitCmd);
+                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd);
                 if (status2 == -2) {
                     log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -808,7 +795,6 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
 
     xmlFreeDoc(doc);
     StrFree(zonelist_filename);
-    StrFree(key_string);
 
     return status;
 }
@@ -819,7 +805,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
  *  returns 0 on success and -1 if something went wrong
  *                           -2 if the RequestKeys call failed
  */
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, char** key_string, const char* DSSubmitCmd)
+int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd)
 {
     int status = 0;
     int status2 = 0;
@@ -917,54 +903,48 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     fprintf(file, "\t\t\t<TTL>PT%dS</TTL>\n", policy->ksk->ttl);
 
     /* get new keys _only_ if we don't have them from before */
-    if (*key_string == NULL) {
-        status = KsmRequestKeys(0, 0, datetime, commKeyConfig, key_string, policy->id, zone_id, run_interval, &NewDS);
-        if (status != 0) {
-            /* 
-             * Something went wrong (it should have been logged) stop this zone.
-             * Clean up the files, don't call the signer and move on to the next zone.
-             */
-            log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
+    status = KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id, run_interval, &NewDS);
+    if (status != 0) {
+        /* 
+         * Something went wrong (it should have been logged) stop this zone.
+         * Clean up the files, don't call the signer and move on to the next zone.
+         */
+        log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
 
-            /* check for the specific case of not having any keys 
-               TODO check that this code can ever be executed after the restructure */
-            if (status == -1) {
-                status2 = KsmRequestGenerateCount(KSM_TYPE_KSK, &gencnt, zone_id);
-                if (status2 == 0 && gencnt == 0) {
-                    if(man_key_gen == 1) {
-                        log_msg(NULL, LOG_ERR, "There are no KSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
-                    } else {
-                        log_msg(NULL, LOG_WARNING, "There are no KSKs in the generate state; ods-enforcerd will create some on its next run.");
-                    }
-                }
-                else if (status2 == 0) {
-                    status2 = KsmRequestGenerateCount(KSM_TYPE_ZSK, &gencnt, zone_id);
-                    if (status2 == 0 && gencnt == 0) {
-                        if(man_key_gen == 1) {
-                            log_msg(NULL, LOG_ERR, "There are no ZSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
-                        } else {
-                            log_msg(NULL, LOG_WARNING, "There are no ZSKs in the generate state; ods-enforcerd will create some on its next run.");
-                        }
-                    }
-                }
-                else {
-                    log_msg(NULL, LOG_ERR, "KsmRequestGenerateCount returned: %d", status2);
+        /* check for the specific case of not having any keys 
+           TODO check that this code can ever be executed after the restructure */
+        if (status == -1) {
+            status2 = KsmRequestGenerateCount(KSM_TYPE_KSK, &gencnt, zone_id);
+            if (status2 == 0 && gencnt == 0) {
+                if(man_key_gen == 1) {
+                    log_msg(NULL, LOG_ERR, "There are no KSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
+                } else {
+                    log_msg(NULL, LOG_WARNING, "There are no KSKs in the generate state; ods-enforcerd will create some on its next run.");
                 }
             }
-
-            status = fclose(file);
-            unlink(temp_filename);
-            MemFree(datetime);
-            StrFree(temp_filename);
-            StrFree(old_filename);
-            StrFree(*key_string);
-            *key_string = NULL;
-
-            return -2;
+            else if (status2 == 0) {
+                status2 = KsmRequestGenerateCount(KSM_TYPE_ZSK, &gencnt, zone_id);
+                if (status2 == 0 && gencnt == 0) {
+                    if(man_key_gen == 1) {
+                        log_msg(NULL, LOG_ERR, "There are no ZSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
+                    } else {
+                        log_msg(NULL, LOG_WARNING, "There are no ZSKs in the generate state; ods-enforcerd will create some on its next run.");
+                    }
+                }
+            }
+            else {
+                log_msg(NULL, LOG_ERR, "KsmRequestGenerateCount returned: %d", status2);
+            }
         }
-    }
 
-    fprintf(file, "%s", *key_string);
+        status = fclose(file);
+        unlink(temp_filename);
+        MemFree(datetime);
+        StrFree(temp_filename);
+        StrFree(old_filename);
+
+        return -2;
+    }
 
     fprintf(file, "\t\t</Keys>\n");
 
@@ -1149,34 +1129,27 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 
 int commKeyConfig(void* context, KSM_KEYDATA* key_data)
 {
-    char temp[32];
-    char **file = (char **)context;
+    FILE *file = (FILE *)context;
 
-    StrAppend(file, "\t\t\t<Key>\n");
-    StrAppend(file, "\t\t\t\t<Flags>");
-    snprintf(temp, 32, "%d", key_data->keytype);
-    StrAppend(file, temp);
-    StrAppend(file, "</Flags>\n\t\t\t\t<Algorithm>");
-    snprintf(temp, 32, "%d", key_data->algorithm);
-    StrAppend(file, temp);
-    StrAppend(file, "</Algorithm>\n\t\t\t\t<Locator>");
-    StrAppend(file, key_data->location);
-    StrAppend(file, "</Locator>\n");
+    fprintf(file, "\t\t\t<Key>\n");
+    fprintf(file, "\t\t\t\t<Flags>%d</Flags>\n", key_data->keytype); 
+    fprintf(file, "\t\t\t\t<Algorithm>%d</Algorithm>\n", key_data->algorithm); 
+    fprintf(file, "\t\t\t\t<Locator>%s</Locator>\n", key_data->location);
 
     if (key_data->keytype == KSM_TYPE_KSK)
     {
-        StrAppend(file, "\t\t\t\t<KSK />\n");
+        fprintf(file, "\t\t\t\t<KSK />\n");
     }
     if (key_data->keytype == KSM_TYPE_ZSK && key_data->state == KSM_STATE_ACTIVE)
     {
-        StrAppend(file, "\t\t\t\t<ZSK />\n");
+        fprintf(file, "\t\t\t\t<ZSK />\n");
     }
     if ((key_data->state > KSM_STATE_GENERATE && key_data->state < KSM_STATE_DEAD) || key_data->state == KSM_STATE_KEYPUBLISH)
     {
-        StrAppend(file, "\t\t\t\t<Publish />\n");
+        fprintf(file, "\t\t\t\t<Publish />\n");
     }
-    StrAppend(file, "\t\t\t</Key>\n");
-    StrAppend(file, "\n");
+    fprintf(file, "\t\t\t</Key>\n");
+    fprintf(file, "\n");
 
     return 0;
 }
@@ -1283,7 +1256,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     for (i=0 ; i < new_keys ; i++){
         key_pair_id = 0;
         if (key_type == KSM_TYPE_KSK) {
-            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
+            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, zone_id, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
                     log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
@@ -1300,7 +1273,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
                 return 3;
             }
         } else {
-            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
+            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, zone_id, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
                     log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
@@ -1318,12 +1291,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
         }
         if(key_pair_id > 0) {
-            /* This will do all zones if keys are shared */ 
-            if (policy->keys->share_keys == 1) {
-                status = KsmDnssecKeyCreateOnPolicy(policy->id, key_pair_id, key_type);
-            } else {
-                status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, &ignore);
-            }
+            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, &ignore);
             /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
         } else {
             /* This shouldn't happen */

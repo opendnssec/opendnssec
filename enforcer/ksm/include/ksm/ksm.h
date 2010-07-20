@@ -138,7 +138,7 @@ int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
 int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme, int zone_count);
 int KsmKeyCountQueue(int keytype, int* count, int zone_id);
 int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count, int keytype);
-int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id);
+int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zone_id, int *keypair_id);
 int KsmLinkKeys(const char* zone_name, int policy_id);
 int KsmMarkKeysAsDead(int zone_id);
 int KsmKillKey(int keypair_id);
@@ -526,17 +526,17 @@ int KsmKeywordParameterExists(const char* name);
 /* ksm_update */
 
 int KsmUpdate(int policy_id, int zone_id);
-void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data);
-void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateReadyKeyTime(KSM_KEYDATA* data);
-void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
-void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
+void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateDeadKeyTime(KSM_KEYDATA* data);
-void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
-void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
+void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
-    const char* destination, int interval);
+    const char* destination, int interval, int zone_id);
 
 /* ksm_request */
 

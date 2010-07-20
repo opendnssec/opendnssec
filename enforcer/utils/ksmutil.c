@@ -282,7 +282,7 @@ usage_keydsseen ()
 {
     fprintf(stderr,
             "  key ds-seen\n"
-            "\t--zone <zone>                            aka -z\n"
+            "\t--zone <zone> (or --all)                 aka -z\n"
             "\t--keytag <keytag> | --cka_id <CKA_ID>    aka -x / -k\n"
             "\t--no-retire\n");
 }
@@ -2298,7 +2298,16 @@ cmd_dsseen()
     }
 
     /* Turn zone name into an id (if provided) */
-    if (o_zone != NULL) {
+    /* TODO sort out all flag */
+    /*if (o_zone == NULL && !all_flag) {
+        printf("Please specify a zone or use the --all flag to indicate all zones using this key\n");*/
+    if (o_zone == NULL) {
+        printf("Please specify a zone using the --zone flag\n");
+        usage_keydsseen();
+        StrFree(datetime);
+        return(-1);
+    } 
+    else if (o_zone != NULL) {
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
@@ -2306,6 +2315,17 @@ cmd_dsseen()
             StrFree(datetime);
             return status;
         }
+    }
+    else if (all_flag) {
+        printf("*WARNING* This will act on every zone where this key is in use; are you sure? [y/N] ");
+
+        user_certain = getchar();
+        if (user_certain != 'y' && user_certain != 'Y') {
+            printf("Okay, quitting...\n");
+            exit(0);
+        }
+        
+        zone_id = -1;
     }
 
     /* Check the keytag is numeric */
@@ -6197,7 +6217,6 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
 
 int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime, int key_state)
 {
-    (void)      zone_id;
     char*       sql1 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
 
@@ -6248,6 +6267,7 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
         StrAppend(&sql1, buffer);
 
         DusConditionInt(&sql1, "KEYPAIR_ID", DQS_COMPARE_EQ, keypair_id, 0);
+        DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
         DusEnd(&sql1);
     }
     else {
@@ -6272,6 +6292,7 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
         StrAppend(&sql1, buffer);
 
         DusConditionInt(&sql1, "KEYPAIR_ID", DQS_COMPARE_EQ, keypair_id, 0);
+        DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
         DusEnd(&sql1);
     }
 
@@ -6387,6 +6408,7 @@ int RetireOldKey(int zone_id, int policy_id, const char *datetime)
     StrAppend(&sql2, ", DEAD = ");
     StrAppend(&sql2, buffer);
     DusConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, id, 0);
+    DusConditionInt(&sql2, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
 
     status = DbExecuteSqlNoResult(DbHandle(), sql2);
     DusFree(sql2);

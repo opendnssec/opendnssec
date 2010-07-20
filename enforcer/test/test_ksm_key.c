@@ -204,13 +204,13 @@ static void TestKsmKeyPredict(void)
     int count;
     int status;
 
-    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT);
+    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT, 1);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7); /* 4 rollovers, 2 standby plus one to get ready */
 
     keytype = KSM_TYPE_ZSK;
-    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT);
+    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT, 1);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7);
@@ -288,7 +288,7 @@ static void TestKsmKeyGetUnallocated(void)
     int zone_id = 1;
     int status;
 
-    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, &keypair_id);
+    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, zone_id, &keypair_id);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(keypair_id, 3); 
@@ -296,7 +296,7 @@ static void TestKsmKeyGetUnallocated(void)
     status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, &dnsseckey_id);
     CU_ASSERT_EQUAL(status, 0);
 
-    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, &keypair_id);
+    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, zone_id, &keypair_id);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(keypair_id, 4);

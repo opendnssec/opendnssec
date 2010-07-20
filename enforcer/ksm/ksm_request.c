@@ -381,20 +381,6 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
             }
             return(status);
         }
-        /* Get the shared_keys parameter */
-        status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
-        if (status != 0) {
-            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-            StrFree(zone_name);
-            return(status);
-        }
-        status = KsmParameter(result, &shared);
-        if (status != 0) {
-            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-            StrFree(zone_name);
-            return(status);
-        }
-        KsmParameterEnd(result);
 
         /*
          * Step 6. If there are keys to be made active, count the number of keys
@@ -485,12 +471,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
                 }
 
                 /* Log that a rollover has happened */
-                if (shared.value == 0) {
-                    (void) MsgLog(KME_ROLL_ZONE, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name);
-                }
-                else {
-                    (void) MsgLog(KME_ROLL_POLICY, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name, zone_name);
-                }
+                (void) MsgLog(KME_ROLL_ZONE, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name);
             }
         }
         StrFree(zone_name);
@@ -913,6 +894,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     DusSetString(&sql, dst_col, datetime, set++);
 
     DusConditionKeyword(&sql, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);
+    DusConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
     DusEnd(&sql);
     StrFree(dst_col);
 
@@ -940,31 +922,10 @@ int KsmRequestChangeState(int keytype, const char* datetime,
             }
             return(status);
         }
-        /* Get the shared_keys parameter */
-        status = KsmParameterInit(&result2, "zones_share_keys", "keys", policy_id);
-        if (status != 0) {
-            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-            StrFree(insql);
-            StrFree(zone_name);
-            return(status);
-        }
-        status = KsmParameter(result2, &data2);
-        if (status != 0) {
-            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-            StrFree(insql);
-            StrFree(zone_name);
-            return(status);
-        }
-        KsmParameterEnd(result2);
 
         /* If we moved a KSK from retire to dead then the DS can be removed */
         if (dst_state == KSM_STATE_DEAD && rollover_scheme == KSM_ROLL_DS) {
-            if (data2.value == 0) {
-                (void) MsgLog(KME_DS_REM_ZONE, zone_name);
-            }
-            else {
-                (void) MsgLog(KME_DS_REM_POLICY, zone_name);
-            }
+            (void) MsgLog(KME_DS_REM_ZONE, zone_name);
         }
         else if (dst_state == KSM_STATE_READY) {
             (void) MsgLog(KME_NEW_DS, zone_name);
@@ -1238,6 +1199,7 @@ int KsmRequestChangeStateN(int keytype, const char* datetime, int count,
         StrFree(dst_name);
 
         DusConditionKeyword(&sql3, "KEYPAIR_ID", DQS_COMPARE_IN, insql, whereclause++);
+        DusConditionInt(&sql3, "ZONE_ID", DQS_COMPARE_EQ, zone_id, whereclause++);
         StrFree(insql);
         DusEnd(&sql3);
 
