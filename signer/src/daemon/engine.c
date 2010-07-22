@@ -118,10 +118,6 @@ engine_start_cmdhandler(engine_type* engine)
     se_log_assert(engine->config);
     se_log_debug("start command handler");
 
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
-    if (!engine->cmdhandler) {
-        return 1;
-    }
     engine->cmdhandler->engine = engine;
     se_thread_create(&engine->cmdhandler->thread_id,
         cmdhandler_thread_start, engine->cmdhandler);
@@ -390,9 +386,9 @@ engine_setup(engine_type* engine)
     se_log_assert(engine->config);
     se_log_debug("perform setup");
 
-    /* start command handler (before chowning socket file) */
-    if (engine_start_cmdhandler(engine) != 0) {
-        se_log_error("setup failed: unable to start command handler");
+    /* create command handler (before chowning socket file) */
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
+    if (!engine->cmdhandler) {
         return 1;
     }
 
@@ -446,6 +442,12 @@ engine_setup(engine_type* engine)
         return 1;
     }
     se_log_verbose("running as pid %lu", (unsigned long) engine->pid);
+
+    /* start command handler */
+    if (engine_start_cmdhandler(engine) != 0) {
+        se_log_error("setup failed: unable to start command handler");
+        return 1;
+    }
 
     /* catch signals */
     signal_set_engine(engine);
