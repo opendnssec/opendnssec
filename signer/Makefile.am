@@ -1,5 +1,7 @@
 # $Id$
 
+AM_CPPFLAGS = @LIBHSM_INCLUDES@ @LDNS_INCLUDES@ @XML2_INCLUDES@
+
 ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = \
@@ -9,10 +11,9 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/configure \
 	$(srcdir)/install-sh $(srcdir)/ltmain.sh $(srcdir)/missing \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
-	$(srcdir)/config.guess $(srcdir)/config.sub \
-	$(srcdir)/py-compile
+	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = tools signer_engine
+SUBDIRS = src
 
 # TODO: move this to general opendnssec install
 install-data-hook:

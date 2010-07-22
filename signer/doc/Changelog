@@ -1,0 +1,50 @@
+22 July 2010: Matthijs
+- goto trunk
+
+15 July 2010: Matthijs
+- Integrate zone fetcher
+
+28 June 2010: Matthijs
+- Implement timeshift
+
+23 June 2010: Matthijs
+- Run once option
+
+16 June 2010: Matthijs
+- Integrate ods-auditor
+- clear command
+
+20 May 2010: Matthijs
+- NSEC (3)
+- sign command
+- SOA SERIAL arethmetic
+
+29 April 2010: Matthijs
+- Pend updates
+- Print zone
+
+22 April 2010: Matthijs
+- queue, flush, reload commands
+- Task queue
+- Parse signer configurations
+
+20 April 2010: Matthijs
+- Parse zonelist
+- help, start, stop, verbosity, zones commands
+
+19 April 2010: Matthijs
+- Privdrop
+- Signer client
+
+15 April 2010: Matthijs
+- Daemonize
+
+14 April 2010: Matthijs
+- Command handler
+
+13 April 2010: Matthijs
+- Parse conf.xml
+- Import utilities
+
+12 April 2010: Matthijs
+- Initial signer daemon

@@ -213,3 +213,14 @@ $
 The engine has daemonized itself and should be running. You can
 check that it does by using ods-signer as specified in the
 section INTERACTION FROM THE COMMAND LINE.
+
+
+Debugging
+---------
+Warning: DO NOT TRY THIS EXCEPT FOR DEBUGGING PURPOSES
+
+If the signer is build with the '--enable-timeshift' option, one can
+override the system clock using the ENFORCER_TIMESHIFT environment variable.
+ENFORCER_TIMESHIFT should be set to the timestamp (in YYYYMMDDHHMMSS format).
+When running with timeshift, the program will run once only and exit.
+
