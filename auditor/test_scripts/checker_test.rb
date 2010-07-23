@@ -31,7 +31,9 @@ class CheckerTest < Test::Unit::TestCase
           # KASP errors
           "ERROR: test/kaspcheck_bad/invalid_kasp.xml:12: element InvalidNode: Relax-NG validity error : Did not expect element InvalidNode there",
           "ERROR: test/kaspcheck_bad/invalid_kasp.xml fails to validate",
-          "ERROR: Can't find Signatures/Jitter in default in test/kaspcheck_bad/invalid_kasp.xml"
+          "ERROR: Can't find Signatures/Jitter in default in test/kaspcheck_bad/invalid_kasp.xml",
+          "ERROR: SOA TTL (3600) is lower than SOA Minimum (36000) for default policy",
+          "ERROR: DNSKEY TTL (3600) is lower than SOA Minimum (36000) for default policy"
         ]))
   end
 

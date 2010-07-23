@@ -51,7 +51,7 @@
       <PropagationDelay>PT9999S</PropagationDelay>
       <SOA>
         <TTL>PT3600S</TTL>
-        <Minimum>PT3600S</Minimum>
+        <Minimum>PT36000S</Minimum>
         <Serial>unixtime</Serial>
       </SOA>
     </Zone>
