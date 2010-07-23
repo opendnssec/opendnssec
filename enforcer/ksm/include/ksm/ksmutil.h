@@ -39,6 +39,7 @@
 #include <ksm/ksm.h>
 #include <ksm/database.h>
 #include <libxml/xpath.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,6 +90,9 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
 int RetireOldKey(int zone_id, int policy_id, const char *datetime);
 int CountKeysInState(int keytype, int keystate, int* count, int zone_id);
 int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, const char *datetime, int key_state);
+int get_conf_key_info(int* interval, int* man_key_gen);
+int LinkKeys(const char* zone_name, int policy_id);
+int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen, int rollover_scheme);
 
 #ifdef __cplusplus
 }

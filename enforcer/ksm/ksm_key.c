@@ -140,22 +140,32 @@ int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, in
  *          Status return.  0=> Success, non-zero => error.
 -*/
 
-int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id)
+int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, const char* time, DB_ID* id)
 {
 	unsigned long rowid;			/* ID of last inserted row */
     int         status = 0;         /* Status return */
     char*       sql = NULL;         /* SQL Statement */
+    char*       columns = NULL;     /* what columns are we setting */
 
     /* Check arguments */
     if (id == NULL) {
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    sql = DisSpecifyInit("dnsseckeys", "zone_id, keypair_id, keytype, state");
+    StrAppend(&columns, "zone_id, keypair_id, keytype, state");
+    if (state != KSM_STATE_GENERATE) {
+        StrAppend(&columns, ", ");
+        StrAppend(&columns, KsmKeywordStateValueToName(state));
+    }
+
+    sql = DisSpecifyInit("dnsseckeys", columns);
     DisAppendInt(&sql, zone_id);
     DisAppendInt(&sql, keypair_id);
     DisAppendInt(&sql, keytype);
-    DisAppendInt(&sql, KSM_STATE_GENERATE);
+    DisAppendInt(&sql, state);
+    if (state != KSM_STATE_GENERATE) {
+        DisAppendString(&sql, time);
+    }
     DisEnd(&sql);
 
     /* Execute the statement */
@@ -172,63 +182,6 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id)
 			*id = (DB_ID) rowid;
 		}
     }
-
-    return status;
-}
-
-/*+
- * KsmDnssecKeyCreateOnPolicy - Create Entries in Dnsseckeys table 
- *                              (i.e. when a key is assigned to a policy that shares 
- *                              keys between zones)
- *
- * Description:
- *      Allocates a key in the database.
- *
- * Arguments:
- *      int policy_id
- *          policy that the keys will be allocated to
- *
- *      int keypair_id
- *          key that will be allocated
- *
- *      int keytype
- *          type of key that will be allocated
- *
- * Returns:
- *      int
- *          Status return.  0=> Success, non-zero => error.
--*/
-
-/* TODO - DO WE STILL NEED THIS ? */
-int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype)
-{
-    DB_ID       ignore = 0;
-    int         status = 0;         /* Status return */
-    DB_RESULT   result;             /* List result set */
-    KSM_ZONE*   zone;               /* Zone information */
-    
-	zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
-    zone->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-    
-    status = KsmZoneInit(&result, policy_id);
-    if (status == 0) {
-        while (status == 0) {
-            status = KsmZone(result, zone);
-            if (status == 0) {
-                status = KsmDnssecKeyCreate(zone->id, keypair_id, keytype, &ignore);
-            }
-        }
-    }
-
-    /* Convert EOF status to success */
-    if (status == -1) {
-        status = 0;
-    }
-
-    DbFreeResult(result);
-
-	free(zone->name);
-	free(zone);
 
     return status;
 }
@@ -955,92 +908,6 @@ int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zon
     DbFreeRow(row);
     DbFreeResult(result);
     return status;
-}
-
-/*+
- * KsmLinkKeys - Create required entries in Dnsseckeys table for zones added to policies
- *                      (i.e. when keysharing is turned on)
- *
- * Description:
- *      Allocates a key in the database.
- *
- * Arguments:
- *      const char* zone_name
- *          name of zone
- *
- *      int policy_id
- *          ID of policy which the zone is on
- *
- * Returns:
- *      int
- *          Status return.  0=> Success, non-zero => error.
--*/
-
-int KsmLinkKeys(const char* zone_name, int policy_id)
-{
-    int status = 0;
-
-    DB_RESULT	    result;         /* Result of parameter query */
-    DB_RESULT	    result2;        /* Result of key query */
-    KSM_PARAMETER   data;           /* Parameter information */
-    KSM_KEYDATA     data2;          /* Key information */
-    char*           sql = NULL;     /* SQL query */
-    int             zone_id = 0;    /* id of zone supplied */ 
-    int             clause = 0;
-    DB_ID           ignore = 0;
-
-    /* First work out if the keys are shared on this policy */
-    status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
-    if (status != 0) {
-        return(status);
-    }
-    status = KsmParameter(result, &data);
-    if (status != 0) {
-        return(status);
-    }
-    KsmParameterEnd(result);
-    
-    /* If the policy does not share keys then return */
-    if (data.value != 1) {
-        return 0;
-    }
-
-    status = KsmZoneIdFromName(zone_name, &zone_id);
-    if (status != 0) {
-        return(status);
-    }
-
-    /* Otherwise, find all the keys which are on that policy but are not retired or dead */
-    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
-    DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, clause++);
-    DqsConditionInt(&sql, "state", DQS_COMPARE_LT, KSM_STATE_RETIRE, clause++);
-    StrAppend(&sql, " group by id");
-    DqsEnd(&sql);
-
-    /* Now iterate round the keys meeting the condition and print them */
-
-    status = KsmKeyInitSql(&result2, sql);
-    if (status == 0) {
-        status = KsmKey(result2, &data2);
-        while (status == 0) {
-
-            /* create a dnsseckeys entry for this key */
-			status = KsmDnssecKeyCreate(zone_id, data2.keypair_id, data2.keytype, &ignore);
-			if (status == 0) {
-				status = KsmKey(result2, &data2);
-			}
-        }
-
-        /* Convert EOF status to success */
-
-        if (status == -1) {
-            status = 0;
-        }
-
-        KsmKeyEnd(result2);
-    }
-
-    return 0;
 }
 
 /*+

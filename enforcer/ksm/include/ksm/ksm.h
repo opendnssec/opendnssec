@@ -126,8 +126,8 @@ typedef struct {
 } KSM_KEYDATA;
 
 int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, int alg, const char* generate, DB_ID* id);
-int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id);
-int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype);
+int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, const char* time, DB_ID* id);
+/*int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype);*/
 int KsmKeyInitSql(DB_RESULT* result, const char* sql);
 int KsmKeyInit(DB_RESULT* result, DQS_QUERY_CONDITION* condition);
 int KsmKeyInitId(DB_RESULT* result, DB_ID id);
@@ -139,7 +139,6 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
 int KsmKeyCountQueue(int keytype, int* count, int zone_id);
 int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count, int keytype);
 int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zone_id, int *keypair_id);
-int KsmLinkKeys(const char* zone_name, int policy_id);
 int KsmMarkKeysAsDead(int zone_id);
 int KsmKillKey(int keypair_id);
 

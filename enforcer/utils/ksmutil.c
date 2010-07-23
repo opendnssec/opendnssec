@@ -282,7 +282,8 @@ usage_keydsseen ()
 {
     fprintf(stderr,
             "  key ds-seen\n"
-            "\t--zone <zone> (or --all)                 aka -z\n"
+            /*"\t--zone <zone> (or --all)                 aka -z\n"*/
+            "\t--zone <zone>                            aka -z\n"
             "\t--keytag <keytag> | --cka_id <CKA_ID>    aka -x / -k\n"
             "\t--no-retire\n");
 }
@@ -740,6 +741,9 @@ cmd_addzone ()
     int policy_id = 0;
     int new_zone;   /* ignored */
 
+    DB_RESULT      result;         /* Result of parameter query */
+    KSM_PARAMETER   data;           /* Parameter information */
+
     xmlDocPtr doc = NULL;
 
     int status = 0;
@@ -855,15 +859,41 @@ cmd_addzone ()
     }
 
     /* If need be (keys shared on policy) link existing keys to zone */
-    status = KsmLinkKeys(o_zone, policy_id);
+    /* First work out if the keys are shared on this policy */
+    status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
     if (status != 0) {
-        printf("Failed to Link Keys to zone\n");
+        printf("Can't retrieve shared-keys parameter for policy\n");
         db_disconnect(lock_fd);
         StrFree(zonelist_filename);
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
         return(1);
+    }
+    status = KsmParameter(result, &data);
+    if (status != 0) {
+        printf("Can't retrieve shared-keys parameter for policy\n");
+        db_disconnect(lock_fd);
+        StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
+        return(1);
+    }
+    KsmParameterEnd(result);
+    
+    /* If the policy does not share keys then skip this */
+    if (data.value == 1) {
+        status = LinkKeys(o_zone, policy_id);
+        if (status != 0) {
+            printf("Failed to Link Keys to zone\n");
+            db_disconnect(lock_fd);
+            StrFree(zonelist_filename);
+            StrFree(sig_conf_name);
+            StrFree(input_name);
+            StrFree(output_name);
+            return(1);
+        }
     }
 
     /* Release sqlite lock file (if we have it) */
@@ -904,6 +934,8 @@ cmd_addzone ()
         printf("couldn't save zonelist\n");
         return(1);
     }
+
+    /* TODO - KICK THE ENFORCER? */
 
     printf("Imported zone: %s\n", o_zone);
 
@@ -1470,7 +1502,7 @@ cmd_rollzone ()
     
     /* Warn and confirm if this will roll more than one zone */
     if (data.value == 1) {
-        printf("*WARNING* This zone shares keys with others, they will all be rolled; are you sure? [y/N] ");
+        printf("*WARNING* This zone shares keys with others, all instances of the active key on this zone will be retired; are you sure? [y/N] ");
 
         user_certain = getchar();
         if (user_certain != 'y' && user_certain != 'Y') {
@@ -2704,11 +2736,11 @@ cmd_import ()
     }
 
     /* allocate key to zone(s) */
-    if (data.value == 1) {
+    /* TODO might not need this any more */
+/*    if (data.value == 1) {
         status = KsmDnssecKeyCreateOnPolicy(policy_id, (int) keypair_id, keytype_id);
-    } else {
-        status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, &ignore);
-    }
+    } else {*/
+    status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, state_id, form_time, &ignore);
 
     if (status != 0) {
         printf("Error: couldn't allocate key to zone(s)\n");
@@ -4096,13 +4128,14 @@ int update_zones(char* zone_list_filename)
                 /* If need be link existing keys to zone */
                 if (new_zone == 1) {
                     printf("Added zone %s to database\n", zone_name);
+                /* WITH NEW KEYSHARING LEAVE THIS TO THE ENFORCER TODO - CHECK THIS IS RIGHT */
+                    /*
                     status = KsmLinkKeys(zone_name, policy_id);
                     if (status != 0) {
                         printf("Failed to Link Keys to zone\n");
-                        /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
-                    }
+                    }*/
                 }
 
                 /* make a note of the zone_id */
@@ -5648,6 +5681,10 @@ int cmd_genkeys()
         printf("Could not count current ksk numbers for policy %s\n", policy->name);
         /* TODO exit? continue with next policy? */
     }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        keys_in_queue /= zone_count;
+    }
 
     new_keys = ksks_needed - keys_in_queue;
     /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
@@ -5727,6 +5764,10 @@ int cmd_genkeys()
     if (status != 0) {
         printf("Could not count current zsk numbers for policy %s\n", policy->name);
         /* TODO exit? continue with next policy? */
+    }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        keys_in_queue /= zone_count;
     }
     /* Might have to account for ksks */
     if (same_keys) {
@@ -6751,3 +6792,326 @@ static int restart_enforcerd()
 	   ENFORCER_PIDFILE and send a SIGHUP itself */
 	return system(RESTART_ENFORCERD_CMD);
 }
+
+/* 
+ *  Read the conf.xml file, we will not validate as that was done as we read the database.
+ *  Instead we just extract the RepositoryList into the database and also learn the 
+ *  location of the zonelist.
+ */
+int get_conf_key_info(int* interval, int* man_key_gen)
+{
+    int status = 0;
+    int mysec = 0;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    char* temp_char = NULL;
+
+    xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
+    xmlChar *mk_expr = (unsigned char*) "//Configuration/Enforcer/ManualKeyGeneration";
+
+    /* Load XML document */
+    doc = xmlParseFile(config);
+    if (doc == NULL) {
+        printf("Error: unable to parse file \"%s\"\n", config);
+        return(-1);
+    }
+
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        printf("Error: unable to create new XPath context\n");
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    
+    /* Evaluate xpath expression for interval */
+    xpathObj = xmlXPathEvalExpression(iv_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        printf("Error: unable to evaluate xpath expression: %s", iv_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    temp_char = (char *)xmlXPathCastToString(xpathObj);
+    status = DtXMLIntervalSeconds(temp_char, &mysec);
+    if (status > 0) {
+        printf("Error: unable to convert Interval %s to seconds, error: %i\n", temp_char, status);
+        StrFree(temp_char);
+        return status;
+    }
+    else if (status == -1) {
+        printf("Warning: converting %s to seconds may not give what you expect\n", temp_char);
+    }
+    *interval = mysec;
+    StrFree(temp_char);
+    xmlXPathFreeObject(xpathObj);
+
+    /* Evaluate xpath expression for Manual key generation */
+    xpathObj = xmlXPathEvalExpression(mk_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        printf("Error: unable to evaluate xpath expression: %s\n", mk_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+        /* Manual key generation tag is present */
+        *man_key_gen = 1;
+    }
+    else {
+        /* Tag absent */
+        *man_key_gen = 0;
+    }
+    xmlXPathFreeObject(xpathObj);
+
+    if (xpathCtx) {
+        xmlXPathFreeContext(xpathCtx);
+    }
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+
+    return 0;
+}
+
+/* TODO put this fn and the one below somewhere that we can call it from here and the enforcer */
+ /*+
+ * LinkKeys - Create required entries in Dnsseckeys table for zones added to policies
+ *                      (i.e. when keysharing is turned on)
+ *
+ * Description:
+ *      Allocates a key in the database.
+ *
+ * Arguments:
+ *      const char* zone_name
+ *          name of zone
+ *
+ *      int policy_id
+ *          ID of policy which the zone is on
+ *
+ *      int interval
+ *          Enforcer run interval
+ *
+ *      int man_key_gen
+ *          Manual Key Generation flag
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+-*/
+
+int LinkKeys(const char* zone_name, int policy_id)
+{
+    int status = 0;
+
+    int interval = -1;          /* Enforcer interval */
+    int man_key_gen = -1;       /* Manual key generation flag */
+
+    int             zone_id = 0;    /* id of zone supplied */ 
+    KSM_POLICY* policy;
+
+    /* Get some info from conf.xml */
+    status = get_conf_key_info(&interval, &man_key_gen);
+    if (status != 0) {
+        printf("Failed to Link Keys to zone\n");
+        return(1);
+    }
+
+    status = KsmZoneIdFromName(zone_name, &zone_id);
+    if (status != 0) {
+        return(status);
+    }
+
+    policy = KsmPolicyAlloc();
+    if (policy == NULL) {
+        printf("Malloc for policy struct failed\n");
+        exit(1);
+    }
+    SetPolicyDefaults(policy, o_policy);
+
+    status = KsmPolicyExists(o_policy);
+    if (status == 0) {
+        /* Policy exists */
+        status = KsmPolicyRead(policy);
+        if(status != 0) {
+            printf("Error: unable to read policy %s from database\n", o_policy);
+            KsmPolicyFree(policy);
+            return status;
+        }
+    } else {
+        printf("Error: policy %s doesn't exist in database\n", o_policy);
+        KsmPolicyFree(policy);
+        return status;
+    }
+
+    /* Make sure that enough keys are allocated to this zone */
+    status = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, interval, zone_name, man_key_gen, 0);
+    if (status != 0) {
+        printf("Error allocating zsks to zone %s", zone_name);
+        KsmPolicyFree(policy);
+        return(status);
+    }
+    status = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, interval, zone_name, man_key_gen, policy->ksk->rollover_scheme);
+    if (status != 0) {
+        printf("Error allocating ksks to zone %s", zone_name);
+        KsmPolicyFree(policy);
+        return(status);
+    }
+
+    KsmPolicyFree(policy);
+    return 0;
+}
+
+/* allocateKeysToZone
+ *
+ * Description:
+ *      Allocates existing keys to zones
+ *
+ * Arguments:
+ *      policy
+ *          policy that the keys were created for
+ *      key_type
+ *          KSK or ZSK
+ *      zone_id
+ *          ID of zone in question
+ *      interval
+ *          time before next run
+ *      zone_name
+ *          just in case we need to log something
+ *      man_key_gen
+ *          lack of keys may be an issue for the user to fix
+ *      int rollover_scheme
+ *          KSK rollover scheme in use
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+ *          1 == error with input
+ *          2 == not enough keys to satisfy policy
+ *          3 == database error
+ -*/
+
+
+int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen, int rollover_scheme)
+{
+    int status = 0;
+    int keys_needed = 0;
+    int keys_in_queue = 0;
+    int keys_pending_retirement = 0;
+    int new_keys = 0;
+    int key_pair_id = 0;
+    int i = 0;
+    DB_ID ignore = 0;
+    KSM_PARCOLL collection; /* Parameters collection */
+    char*   datetime = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+        printf("Couldn't turn \"now\" into a date, quitting...");
+        exit(1);
+    }
+
+    if (policy == NULL) {
+        printf("NULL policy sent to allocateKeysToZone");
+        StrFree(datetime);
+        return 1;
+    }
+
+    if (key_type != KSM_TYPE_KSK && key_type != KSM_TYPE_ZSK) {
+        printf("Unknown keytype: %i in allocateKeysToZone", key_type);
+        StrFree(datetime);
+        return 1;
+    }
+
+    /* Get list of parameters */
+    status = KsmParameterCollection(&collection, policy->id);
+    if (status != 0) {
+        StrFree(datetime);
+        return status;
+    }
+
+    /* Make sure that enough keys are allocated to this zone */
+    /* How many do we need ? (set sharing to 1 so that we get the number needed for a single zone on this policy */
+    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed, rollover_scheme, 1);
+    if (status != 0) {
+        printf("Could not predict key requirement for next interval for %s", zone_name);
+        StrFree(datetime);
+        return 3;
+    }
+
+    /* How many do we have ? TODO should this include the currently active key?*/
+    status = KsmKeyCountQueue(key_type, &keys_in_queue, zone_id);
+    if (status != 0) {
+        printf("Could not count current key numbers for zone %s", zone_name);
+        StrFree(datetime);
+        return 3;
+    }
+
+    /* or about to retire */
+    status = KsmRequestPendingRetireCount(key_type, datetime, &collection, &keys_pending_retirement, zone_id, interval);
+    if (status != 0) {
+        printf("Could not count keys which may retire before the next run (for zone %s)", zone_name);
+        StrFree(datetime);
+        return 3;
+    }
+
+    StrFree(datetime);
+    new_keys = keys_needed - (keys_in_queue - keys_pending_retirement);
+
+    /* fprintf(stderr, "comm(%d) %s: new_keys(%d) = keys_needed(%d) - (keys_in_queue(%d) - keys_pending_retirement(%d))\n", key_type, zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement); */
+
+    /* Allocate keys */
+    for (i=0 ; i < new_keys ; i++){
+        key_pair_id = 0;
+        if (key_type == KSM_TYPE_KSK) {
+            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, zone_id, &key_pair_id);
+            if (status == -1 || key_pair_id == 0) {
+                if (man_key_gen == 0) {
+                    printf("Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    printf("ods-enforcerd will create some more keys on its next run");
+                }
+                else {
+                    printf("Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    printf("please use \"ods-ksmutil key generate\" to create some more keys.");
+                }
+                return 2;
+            }
+            else if (status != 0) {
+                printf("Could not get an unallocated ksk for zone: %s", zone_name);
+                return 3;
+            }
+        } else {
+            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, zone_id, &key_pair_id);
+            if (status == -1 || key_pair_id == 0) {
+                if (man_key_gen == 0) {
+                    printf("Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    printf("ods-enforcerd will create some more keys on its next run");
+                }
+                else {
+                    printf("Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    printf("please use \"ods-ksmutil key generate\" to create some more keys.");
+                }
+                return 2;
+            }
+            else if (status != 0) {
+                printf("Could not get an unallocated zsk for zone: %s", zone_name);
+                return 3;
+            }
+        }
+        if(key_pair_id > 0) {
+            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, KSM_STATE_GENERATE, datetime, &ignore);
+            /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
+        } else {
+            /* This shouldn't happen */
+            printf("KsmKeyGetUnallocated returned bad key_id %d for zone: %s; exiting...", key_pair_id, zone_name);
+            exit(1);
+        }
+
+    }
+
+    return status;
+}
+

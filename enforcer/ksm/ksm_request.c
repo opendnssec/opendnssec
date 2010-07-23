@@ -633,6 +633,7 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
     DusSetString(&sql, "RETIRE", datetime, 0);
 
     DusConditionKeyword(&sql, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);
+    /* NO ZONE_ID !!! We want to retire ALL instances of this key */
     StrFree(insql);
     DusEnd(&sql);
 

@@ -334,8 +334,9 @@ int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, in
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    StrAppend(&columns, "policy_id, HSMkey_id, securitymodule_id, size, algorithm, ");
+    StrAppend(&columns, "policy_id, HSMkey_id, securitymodule_id, size, algorithm");
     if (state == KSM_STATE_GENERATE) {
+        StrAppend(&columns, ", ");
         StrAppend(&columns, KsmKeywordStateValueToName(state));
     }
 
