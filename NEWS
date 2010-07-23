@@ -2,6 +2,8 @@ $Id$
 
 OpenDNSSEC 1.1 branch
 
+* Dnsruby 1.48 now required (for correct zone parsing)
+
 Bugfixes:
 * ods-control stop did not stopped zone fetcher (bug was introduced in 1.1.0)
 * Auditor correctly handles chains of empty nonterminals
