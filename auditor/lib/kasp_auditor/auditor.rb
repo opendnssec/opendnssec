@@ -125,7 +125,7 @@ module KASPAuditor
         File.open(unsigned_file) {|unsignedfile|
           File.open(signed_file) {|signedfile|
             last_signed_rr = get_next_rr(signedfile)
-            last_unsigned_rr = get_next_rr(unsignedfile)
+            last_unsigned_rr = get_next_unsigned_rr(unsignedfile)
             while (!unsignedfile.eof? || !signedfile.eof?)
 
               # Load up zone one subdomain (of zone) at a time. This may be many RRSets.
@@ -150,7 +150,7 @@ module KASPAuditor
                   process_additional_unsigned_rr(last_unsigned_rr)
                   # Load next unsigned record
                   #                print "Loading another unsigned record to catch up to signed\n"
-                  last_unsigned_rr = get_next_rr(unsignedfile)
+                  last_unsigned_rr = get_next_unsigned_rr(unsignedfile)
                 elsif (compare_return < 0) # unsigned > signed
                   #                print "Signed file behind unsigned - loading next subdomain from #{last_signed_rr.name}\n"
                   last_signed_rr = load_signed_subdomain(signedfile, last_signed_rr, [])
@@ -229,8 +229,12 @@ module KASPAuditor
       end
     end
 
+    def get_next_unsigned_rr(file)
+      return get_next_rr(file, true)
+    end
+
     # Load the next RR from the specified file
-    def get_next_rr(file)
+    def get_next_rr(file, loading_unsigned_rr = false)
       while (!file.eof?)
         line = file.gets
         next if (!line || (line.length == 0))
@@ -247,6 +251,14 @@ module KASPAuditor
         end
         begin
           rr = RR.create(rr_text)
+          if (loading_unsigned_rr)
+            # Check if the unsigned RR TTL is less than the SOA Minimum
+            if (rr.ttl < @config.soa.minimum)
+              # If so, then set it to the configured minimum
+              rr.ttl = @config.soa.minimum
+            end
+
+          end
           return rr
           #        rescue DecodeError => e
         rescue Exception => e
@@ -296,7 +308,7 @@ module KASPAuditor
           #          print "Using key #{l_rr.key_tag}\n"
           @algs.push(l_rr.algorithm) if !@algs.include?l_rr.algorithm
         end
-        l_rr = get_next_rr(file)
+        l_rr = get_next_unsigned_rr(file)
       end
       #      print "Finsihed loading unsigned #{subdomain} subdomain - returning #{l_rr}\n"
       return domain_rrs, l_rr
@@ -608,7 +620,7 @@ module KASPAuditor
       # in both the signed and unsigned zones have been collated.
       # We don't bother checking keys which were defined in the unsigned zone
       keys.each {|l_rr|
-          found_unsigned = false
+        found_unsigned = false
         unsigned_keys.each {|uk|
           if ((uk.key_tag == l_rr.key_tag) && (uk.key == l_rr.key) && (uk.name == l_rr.name)) # Ignore the TTL
             found_unsigned = true
@@ -800,7 +812,7 @@ module KASPAuditor
     # It is passed the domain, and the types seen at the domain
     def write_types_to_file(domain, types_covered, last_name, is_glue)
       return if (is_glue && ( types_covered.clone.delete_if{|t| t == Types::A || t == Types::AAAA}.empty? ))
-#      return if (is_glue && ( types_covered.clone.delete_if{|t| t == Types::A || t == Types::AAAA || t == Types::NS}.empty? ))
+      #      return if (is_glue && ( types_covered.clone.delete_if{|t| t == Types::A || t == Types::AAAA || t == Types::NS}.empty? ))
       return if (types_covered.include?Types::NSEC3) # Only interested in real domains
       #      return if (out_of_zone(domain)) # Only interested in domains which should be here!
       types_string = get_types_string(types_covered)
@@ -884,7 +896,7 @@ module KASPAuditor
             # Ignore DNSSEC data in input zone?
             log(LOG_WARNING, "#{unsigned_rr.type} RR present in unsigned file : #{unsigned_rr}")
           else
-            log(LOG_ERR, "Output zone does not contain non-DNSSEC RRSet : #{unsigned_rr.type}, #{unsigned_rr}")
+            log(LOG_ERR, "Output zone does not contain non-DNSSEC RRSet : #{unsigned_rr.type}, #{unsigned_rr}. This could also be caused by the TTL being incorrect")
           end
         else
           log(LOG_WARNING, "Output zone does not contain out of zone RRSet : #{unsigned_rr.type}, #{unsigned_rr}")

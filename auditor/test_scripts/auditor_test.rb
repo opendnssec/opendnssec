@@ -103,8 +103,8 @@ class AuditorTest < Test::Unit::TestCase
       # - extra NSEC for closed loop of each next domain
       # - missing NSEC for closed loop of each next domain
       "NSEC3PARAM RRs included in NSEC-signed zone",
-      "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones.	143	IN	A	123.123.123.123",
-      "Output zone does not contain out of zone RRSet : A, even.more.out.of.bailiwick.	143	IN	A	1.2.3.4",
+      "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones.	3600	IN	A	123.123.123.123",
+      "Output zone does not contain out of zone RRSet : A, even.more.out.of.bailiwick.	3600	IN	A	1.2.3.4",
       "No NSEC record for tjeb.nl",
       "NSEC record should have TTL of 3600 from zone policy //Zone/SOA/Minimum, but is bla.tjeb.nl.",
       "NSEC includes A which is not in rrsets for dragon.tjeb.nl",
