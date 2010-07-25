@@ -167,8 +167,7 @@ AC_ARG_ENABLE(signer,
 		[Disable signer build (default enabled)]),
 		[enable_signer="${enableval}"],
 		[enable_signer="yes"])
-if test "x${enable_signer}" = "xyes"; then
-	AH_BOTTOM([
+AH_BOTTOM([
 	/* define before includes as it specifies what standard to use. */
 	#if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
 	        || !defined (HAVE_CTIME_R_PROTO) \
@@ -198,9 +197,7 @@ if test "x${enable_signer}" = "xyes"; then
 	#define ODS_SE_WORKERTHREADS 8
 	#define ODS_SE_STOP_RESPONSE "Engine shut down."
 	#define ODS_SE_MAX_BACKOFF 3600
-
-	])
-fi
+])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
 # auditor
