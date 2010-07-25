@@ -55,6 +55,10 @@ AC_HEADER_STDC
 AC_HEADER_STDBOOL
 AC_HEADER_TIME
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdio.h stdlib.h string.h syslog.h	unistd.h])
+AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
+AC_CHECK_HEADERS([errno.h getopt.h pthread.h signal.h stdarg.h stdint.h stdio.h stdlib.h string.h strings.h syslog.h time.h unistd.h])
+AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/stat.h sys/time.h sys/types.h sys/wait.h])
+AC_CHECK_HEADERS([libxml/parser.h libxml/relaxng.h libxml/xmlreader.h libxml/xpath.h])
 
 # checks for typedefs, structures, and compiler characteristics
 AC_C_CONST
@@ -69,6 +73,18 @@ AC_CHECK_FUNCS([dup2 endpwent select strerror strtol])
 AC_CHECK_FUNCS([getpass getpassphrase memset])
 AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul])
 AC_CHECK_FUNCS([setregid setreuid])
+AC_CHECK_FUNCS([chown stat exit time atoi getpid waitpid clock_gettime sigfillset])
+AC_CHECK_FUNCS([malloc calloc realloc free])
+AC_CHECK_FUNCS([strlen strncmp strncat strncpy strerror strncasecmp strdup])
+AC_CHECK_FUNCS([fgetc fopen fclose ferror fprintf vsnprintf fflush])
+AC_CHECK_FUNCS([openlog closelog syslog])
+AC_CHECK_FUNCS([close unlink fcntl socket listen bzero])
+AC_CHECK_FUNCS([va_start va_end])
+AC_CHECK_FUNCS([xmlInitParser xmlCleanupParser xmlCleanupThreads])
+AC_CHECK_FUNCS([pthread_mutex_init pthread_mutex_destroy pthread_mutex_lock pthread_mutex_unlock])
+AC_CHECK_FUNCS([pthread_cond_init pthread_cond_signal pthread_cond_destroy pthread_cond_wait pthread_cond_timedwait])
+AC_CHECK_FUNCS([pthread_create pthread_detach pthread_self pthread_join pthread_sigmask])
+
 AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
@@ -82,6 +98,7 @@ AC_REPLACE_FUNCS(strlcat)
 AC_REPLACE_FUNCS(strlcpy)
 
 ACX_BROKEN_SETRES
+AC_CHECK_STRPTIME
 
 # find out how to restart named processes
 AC_PATH_PROG(PKILL, pkill)
@@ -121,6 +138,13 @@ fi
 ACX_LIBXML2
 ACX_LDNS(1,6,4)
 ACX_PKCS11_MODULES
+ACX_PTHREAD
+
+# pthread
+ACX_PTHREAD
+LIBS="$PTHREAD_LIBS $LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+CC="$PTHREAD_CC"
 
 # libhsm
 ACX_DLOPEN
@@ -144,8 +168,38 @@ AC_ARG_ENABLE(signer,
 		[enable_signer="${enableval}"],
 		[enable_signer="yes"])
 if test "x${enable_signer}" = "xyes"; then
-	AM_PATH_PYTHON
-	AC_CONFIG_SUBDIRS([ signer ])
+	AH_BOTTOM([
+	/* define before includes as it specifies what standard to use. */
+	#if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
+	        || !defined (HAVE_CTIME_R_PROTO) \
+	        || defined (STRPTIME_NEEDS_DEFINES)
+	#  ifndef _XOPEN_SOURCE
+	#    define _XOPEN_SOURCE 600
+	#  endif
+	#  ifndef _POSIX_C_SOURCE
+	#    define _POSIX_C_SOURCE 200112
+	#  endif
+	#  ifndef _BSD_SOURCE
+	#    define _BSD_SOURCE 1
+	#  endif
+	#  ifndef __EXTENSIONS__
+	#    define __EXTENSIONS__ 1
+	#  endif
+	#  ifndef _STDC_C99
+	#    define _STDC_C99 1
+	#  endif
+	#  ifndef _ALL_SOURCE
+	#    define _ALL_SOURCE 1
+	#  endif
+	#endif
+
+	#define ODS_SE_MAXLINE 1024
+	#define ODS_SE_SIGNERTHREADS 1
+	#define ODS_SE_WORKERTHREADS 8
+	#define ODS_SE_STOP_RESPONSE "Engine shut down."
+	#define ODS_SE_MAX_BACKOFF 3600
+
+	])
 fi
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
@@ -206,6 +260,8 @@ AC_CONFIG_FILES([
 	libhsm/checks/conf-opensc.xml
 	libhsm/checks/conf-ncipher.xml
 	libhsm/checks/conf-aepkeyper.xml
+	signer/Makefile
+	signer/src/Makefile
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile
