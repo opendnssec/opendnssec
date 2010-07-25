@@ -47,8 +47,8 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				util/se_malloc.c util/se_malloc.h \
 				util/util.c util/util.h
 
-ods_signerd_LDADD=		@LIBHSM@
-ods_signerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS @PTHREAD_LIBS@
+ods_signerd_LDADD=		$(LIBHSM)
+ods_signerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@
 
 ods_signer_SOURCES=		ods-signer.c \
 				util/duration.c util/duration.h \
@@ -56,7 +56,7 @@ ods_signer_SOURCES=		ods-signer.c \
 				util/log.c util/log.h \
 				util/se_malloc.c util/se_malloc.h
 
-ods_signer_LDADD=		@LIBHSM@
+ods_signer_LDADD=		$(LIBHSM)
 ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
 
 EXTRA_DIST = $(srcdir)/*.h
