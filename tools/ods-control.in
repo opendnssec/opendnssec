@@ -51,11 +51,11 @@ case "$1" in
 	;;
 
 'start')
-	echo "Starting signer engine..."
-	$sbindir/ods-signer start
-
 	echo "Starting enforcer..."
 	$sbindir/ods-enforcerd
+
+	echo "Starting signer engine..."
+	$sbindir/ods-signer start
 	;;
 
 'stop')

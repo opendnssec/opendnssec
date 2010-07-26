@@ -397,15 +397,19 @@ engine_setup(engine_type* engine)
     engine->gid = privgid(engine->config->group); /* LEAKS */
     /* TODO: does piddir exists? */
     /* remove the chown stuff: piddir? */
-    se_chown(engine->config->pid_filename, engine->uid, engine->gid, 1); /* chown pidfile directory */
-    se_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0); /* chown sockfile */
-    se_chown(engine->config->working_dir, engine->uid, engine->gid, 0); /* chown workdir */
+    /* chown pidfile directory */
+    se_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
+    /* chown sockfile */
+    se_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
+    /* chown workdir */
+    se_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
     if (engine->config->log_filename && !engine->config->use_syslog) {
-        se_chown(engine->config->log_filename, engine->uid, engine->gid, 0); /* chown logfile */
+        /* chown logfile */
+        se_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
     }
     if (chdir(engine->config->working_dir) != 0) {
-        se_log_error("setup failed: chdir to %s failed: %s", engine->config->working_dir,
-            strerror(errno));
+        se_log_error("setup failed: chdir to %s failed: %s",
+            engine->config->working_dir, strerror(errno));
         return 1;
     }
 
@@ -459,7 +463,7 @@ engine_setup(engine_type* engine)
 
     /* set up hsm */
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL); /* LEAKS */
-   if (result != HSM_OK) {
+    if (result != HSM_OK) {
         se_log_error("Error initializing libhsm (errno %i)", result);
         return 1;
     }
@@ -611,13 +615,14 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
     if (zone_name) {
         se_log_debug("zone %s not found", zone_name);
         if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found.\n", zone_name);
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found.\n",
+                zone_name);
         }
     } else {
         se_log_debug("configurations updated");
         if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Configurations updated: %i; errors: %i; "
-                "unchanged: %i.\n", updated, errors, unchanged);
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Configurations updated: %i; "
+                "errors: %i; unchanged: %i.\n", updated, errors, unchanged);
         }
     }
     return;
