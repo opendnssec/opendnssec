@@ -162,7 +162,7 @@ se_fopen(const char* file, const char* dir, const char* mode)
     se_log_debug("open file: dir %s file %s for %s", dir, file,
         se_file_mode2str(mode));
 
-	if (dir) {
+    if (dir) {
         len_dir= strlen(dir);
     }
     if (file) {
@@ -171,10 +171,15 @@ se_fopen(const char* file, const char* dir, const char* mode)
     len_total = len_dir + len_file;
     if (len_total > 0) {
         openf = (char*) se_malloc(sizeof(char)*(len_total + 1));
-        strncpy(openf, dir, len_dir);
-        openf[len_dir] = '\0';
-        strncat(openf, file, len_file);
-        openf[len_total] = '\0';
+        if (len_dir) {
+            strncpy(openf, dir, len_dir);
+            openf[len_dir] = '\0';
+            strncat(openf, file, len_file);
+            openf[len_total] = '\0';
+        } else {
+            strncpy(openf, file, len_file);
+            openf[len_dir] = '\0';
+        }
 
         if (len_file) {
             fd = fopen(openf, mode);
