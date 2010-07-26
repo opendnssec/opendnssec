@@ -6,7 +6,6 @@ AM_CPPFLAGS = \
 		-I$(top_builddir)/common \
 		-I$(srcdir)/cryptoki_compat \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@
-AM_CFLAGS =	-std=c99
 
 noinst_LIBRARIES = libhsm.a
 

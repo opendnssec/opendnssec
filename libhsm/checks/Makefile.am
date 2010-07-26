@@ -7,7 +7,6 @@ AM_CPPFLAGS = \
 		-I$(top_builddir)/common \
 		-I$(srcdir)/../src \
 		@LDNS_INCLUDES@
-AM_CFLAGS =	-std=c99
 
 EXTRA_DIST =	*.xml $(srcdir)/softhsm.conf
 

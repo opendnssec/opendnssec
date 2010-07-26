@@ -17,8 +17,6 @@ AM_CPPFLAGS = \
 	@DB_INCLUDES@ \
 	@LDNS_INCLUDES@
 
-AM_CFLAGS = -std=c99
-
 opendnssecdatadir = $(datadir)/opendnssec
 
 if USE_MYSQL
