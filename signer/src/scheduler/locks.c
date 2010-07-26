@@ -100,10 +100,21 @@ se_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
 
     /* If timeshift is enabled, we don't care about threads. No need
      & to take the timeshift into account here */
+
+#ifndef HAVE_CLOCK_GETTIME
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL) != 0) {
+        se_log_error("gettimeofday() error: %s", strerror(errno));
+        return 1;
+    }
+    ts.tv_sec = tv.tv_sec;
+    ts.tv_nsec = (tv.tv_usec/1000);
+#else /* HAVE_CLOCK_GETTIME */
     if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
         se_log_error("clock_gettime() error: %s", strerror(errno));
         return 1;
     }
+#endif /* !HAVE_CLOCK_GETTIME */
 
     if (wait > 0) {
         ts.tv_sec = ts.tv_sec + wait;
