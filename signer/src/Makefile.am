@@ -48,7 +48,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				util/util.c util/util.h
 
 ods_signerd_LDADD=		$(LIBHSM)
-ods_signerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@
+ods_signerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@
 
 ods_signer_SOURCES=		ods-signer.c \
 				util/duration.c util/duration.h \
