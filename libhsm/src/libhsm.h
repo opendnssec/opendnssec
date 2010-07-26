@@ -52,6 +52,8 @@
 
 /*! HSM configuration */
 typedef struct {
+    /* Prevent build warning, remove when we have an actual member */
+    int tmp_member;
 } hsm_config_t;
 
 /*! Data type to describe an HSM */
