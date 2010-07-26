@@ -178,7 +178,7 @@ se_fopen(const char* file, const char* dir, const char* mode)
         } else {
            strncpy(openf, file, len_file);
         }
-        openf[len_dir] = '\0';
+        openf[len_total] = '\0';
 
         if (len_file) {
             fd = fopen(openf, mode);
