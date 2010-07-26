@@ -73,7 +73,7 @@ AC_CHECK_FUNCS([dup2 endpwent select strerror strtol])
 AC_CHECK_FUNCS([getpass getpassphrase memset])
 AC_CHECK_FUNCS([localtime_r memset strdup strerror strstr strtol strtoul])
 AC_CHECK_FUNCS([setregid setreuid])
-AC_CHECK_FUNCS([chown stat exit time atoi getpid waitpid clock_gettime sigfillset])
+AC_CHECK_FUNCS([chown stat exit time atoi getpid waitpid sigfillset gettimeofday])
 AC_CHECK_FUNCS([malloc calloc realloc free])
 AC_CHECK_FUNCS([strlen strncmp strncat strncpy strerror strncasecmp strdup])
 AC_CHECK_FUNCS([fgetc fopen fclose ferror fprintf vsnprintf fflush])
@@ -138,7 +138,6 @@ fi
 ACX_LIBXML2
 ACX_LDNS(1,6,4)
 ACX_PKCS11_MODULES
-ACX_PTHREAD
 ACX_RT
 
 # pthread
