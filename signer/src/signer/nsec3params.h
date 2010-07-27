@@ -37,6 +37,8 @@
 #include <config.h>
 #include <ctype.h>
 #include <stdint.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /**
  * NSEC3 Parameters structure.

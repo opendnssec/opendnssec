@@ -36,6 +36,8 @@
 
 #include "config.h"
 
+#include <sys/types.h>
+#include <unistd.h>
 #include <ldns/ldns.h>
 
 /* copycode: This define is taken from BIND9 */

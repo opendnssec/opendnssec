@@ -117,7 +117,7 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
 
     /* how many zones */
     (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i zones configured\n",
-        cmdc->engine->zonelist->zones->count);
+        (int) cmdc->engine->zonelist->zones->count);
     se_writen(sockfd, buf, strlen(buf));
 
     /* list zones */
@@ -320,7 +320,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     now = time_now();
     strtime = ctime(&now);
     (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i tasks scheduled\nIt is "
-        "now %s", cmdc->engine->tasklist->tasks->count, strtime);
+        "now %s", (int) cmdc->engine->tasklist->tasks->count, strtime);
     se_writen(sockfd, buf, strlen(buf));
 
     /* list tasks */

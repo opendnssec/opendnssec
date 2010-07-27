@@ -37,9 +37,12 @@
 #include "config.h"
 #include "scheduler/locks.h"
 
-#include <ldns/ldns.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
+
+#include <ldns/ldns.h>
 
 struct zone_struct;
 

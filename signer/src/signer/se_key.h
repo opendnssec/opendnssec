@@ -34,6 +34,8 @@
 #ifndef SIGNER_SE_KEY_H
 #define SIGNER_SE_KEY_H
 
+#include <sys/types.h>
+#include <unistd.h>
 #include <ldns/ldns.h>
 
 /**
