@@ -6167,7 +6167,6 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
 
 int MarkDSSeen(const char *cka_id, int zone_id, int policy_id, const char *datetime, int key_state)
 {
-    (void)      zone_id;
     char*       sql1 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
 
@@ -6176,6 +6175,8 @@ int MarkDSSeen(const char *cka_id, int zone_id, int policy_id, const char *datet
     
     KSM_PARCOLL         collection;     /* Collection of parameters for zone */
     int deltat;     /* Time interval */
+
+    (void)      zone_id;
 
     /* Set collection defaults */
     KsmCollectionInit(&collection);
@@ -6462,7 +6463,6 @@ int CountKeysInState(int keytype, int keystate, int* count, int zone_id)
 
 int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, const char *datetime, int keystate)
 {
-    (void)      zone_id;
     char*       sql1 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
 
@@ -6471,6 +6471,8 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
     
     KSM_PARCOLL         collection;     /* Collection of parameters for zone */
     int deltat = 0;     /* Time interval */
+
+    (void)      zone_id;
 
     /* Set collection defaults */
     KsmCollectionInit(&collection);
