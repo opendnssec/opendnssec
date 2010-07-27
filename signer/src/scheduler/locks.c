@@ -38,7 +38,10 @@
 #include <errno.h>
 #include <signal.h> /* sigfillset(), sigprocmask() */
 #include <string.h> /* strerror() */
-#include <time.h> /* clock_gettime() */
+#include <sys/time.h> /* gettimeofday() */
+#ifdef HAVE_TIME_H
+#include <time.h> /* gettimeofday() */
+#endif
 
 #if !defined(HAVE_PTHREAD)
 #include <sys/wait.h> /* waitpid() */

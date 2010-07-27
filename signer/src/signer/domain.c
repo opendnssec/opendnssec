@@ -432,8 +432,12 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             /* only add RRSIG type if we have authoritative data to sign */
             if (orig_domain->domain_status != DOMAIN_STATUS_OCCLUDED &&
                 domain_count_rrset(orig_domain) > 0) {
-                if (orig_domain->domain_status == DOMAIN_STATUS_APEX || orig_domain->domain_status == DOMAIN_STATUS_AUTH ||
-                     (orig_domain->domain_status == DOMAIN_STATUS_NS && domain_lookup_rrset(orig_domain, LDNS_RR_TYPE_DS))) {
+                if (orig_domain->domain_status == DOMAIN_STATUS_APEX ||
+                    orig_domain->domain_status == DOMAIN_STATUS_AUTH ||
+                    (orig_domain->domain_status == DOMAIN_STATUS_NS &&
+                     domain_lookup_rrset(orig_domain, LDNS_RR_TYPE_DS)
+                    )
+                   ) {
 
                      types[types_count] = LDNS_RR_TYPE_RRSIG;
                      types_count++;
