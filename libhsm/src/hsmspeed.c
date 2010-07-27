@@ -146,6 +146,7 @@ main (int argc, char *argv[])
 
     int ch;
     unsigned int n;
+    double elapsed, speed;
 
     progname = argv[0];
 
@@ -255,8 +256,8 @@ main (int argc, char *argv[])
     /* Report results */
     end.tv_sec -= start.tv_sec;
     end.tv_usec-= start.tv_usec;
-    double elapsed =(double)(end.tv_sec)+(double)(end.tv_usec)*.000001;
-    double speed = iterations / elapsed * threads;
+    elapsed =(double)(end.tv_sec)+(double)(end.tv_usec)*.000001;
+    speed = iterations / elapsed * threads;
     printf("%d %s, %d signatures per thread, %.2f sig/s (RSA %d bits)\n",
         threads, (threads > 1 ? "threads" : "thread"), iterations,
         speed, keysize);

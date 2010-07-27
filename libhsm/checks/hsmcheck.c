@@ -72,9 +72,9 @@ main (int argc, char *argv[])
     char *config = NULL;
     const char *repository = "default";
 
-    progname = argv[0];
-
     int ch;
+
+    progname = argv[0];
 
     while ((ch = getopt(argc, argv, "hgsdrf:")) != -1) {
         switch (ch) {
@@ -214,7 +214,7 @@ main (int argc, char *argv[])
     if (do_delete) {
         printf("\nDelete key:\n");
         hsm_print_key(key);
-        //res = hsm_remove_key(ctx, key);
+        /* res = hsm_remove_key(ctx, key); */
         res = hsm_remove_key(ctx, key);
         printf("Deleted key. Result: %d\n", res);
         printf("\n");

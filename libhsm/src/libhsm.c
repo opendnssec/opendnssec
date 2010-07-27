@@ -245,7 +245,7 @@ hsm_pkcs11_unload_functions(void *handle)
     int result;
     if (handle) {
 #if defined(HAVE_LOADLIBRARY)
-        // no idea
+        /* no idea */
 #elif defined(HAVE_DLOPEN)
         result = dlclose(handle);
 #endif
@@ -2153,8 +2153,8 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     ldns_rr *signature;
     ldns_buffer *sign_buf;
     ldns_rdf *b64_rdf;
-    (void) ctx;
     size_t i;
+    (void) ctx;
 
     if (!key) return NULL;
     if (!sign_params) return NULL;
@@ -2367,7 +2367,7 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
                const hsm_key_t *key,
                const hsm_sign_params_t *sign_params)
 {
-    //CK_RV rv;
+    /* CK_RV rv; */
     ldns_rr *dnskey;
     hsm_session_t *session;
 
