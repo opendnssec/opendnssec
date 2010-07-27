@@ -57,7 +57,7 @@ AC_HEADER_TIME
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdio.h stdlib.h string.h syslog.h unistd.h])
 AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
 AC_CHECK_HEADERS([errno.h getopt.h pthread.h signal.h stdarg.h stdint.h strings.h])
-AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/stat.h sys/types.h sys/wait.h])
+AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/stat.h sys/time.h sys/types.h sys/wait.h])
 AC_CHECK_HEADERS([libxml/parser.h libxml/relaxng.h libxml/xmlreader.h libxml/xpath.h])
 
 # checks for typedefs, structures, and compiler characteristics

@@ -29,8 +29,13 @@
 #define MAX_LINE_LEN 65535
 #define TIMEVAL_SUB(a,b) ((((a).tv_sec - (b).tv_sec)) + ((a).tv_usec - (b).tv_usec) / 1000000)
 
-#include <sys/types.h>
-#include <unistd.h>
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
 #include <ldns/ldns.h>
 
 int read_line(FILE *input, char *line, int multiline, int skip_comments);

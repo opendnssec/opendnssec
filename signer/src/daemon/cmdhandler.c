@@ -47,6 +47,9 @@
 #include <strings.h> /* bzero() */
 #include <sys/select.h> /* select(), FD_ZERO(), FD_SET(), FD_ISSET() */
 #include <sys/socket.h> /* socket(), listen(), bind(), accept() */
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
 #include <unistd.h> /* fcntl(), close(), unlink(), read() */
 
 /* According to earlier standards: select() sys/time.h sys/types.h unistd.h */

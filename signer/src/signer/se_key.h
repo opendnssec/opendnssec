@@ -34,8 +34,12 @@
 #ifndef SIGNER_SE_KEY_H
 #define SIGNER_SE_KEY_H
 
-#include <sys/types.h>
-#include <unistd.h>
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 #include <ldns/ldns.h>
 
 /**

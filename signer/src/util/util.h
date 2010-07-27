@@ -36,8 +36,13 @@
 
 #include "config.h"
 
-#include <sys/types.h>
-#include <unistd.h>
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
 #include <ldns/ldns.h>
 
 /* copycode: This define is taken from BIND9 */
