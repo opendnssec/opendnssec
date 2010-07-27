@@ -337,9 +337,9 @@ engine_start_workers(engine_type* engine)
     se_log_assert(engine->config);
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
+        engine->workers[i]->engineptr = (struct engine_struct*) engine;
         se_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
             engine->workers[i]);
-        engine->workers[i]->engineptr = (struct engine_struct*) engine;
     }
     return;
 }
