@@ -347,7 +347,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
 
     if (!include) {
         rr = adfile_lookup_soa_rr(fd);
-        /* default TTL */
+        /* default TTL: taking the SOA MINIMUM is in conflict with RFC2308 */
         if (zone_in->signconf->soa_min) {
             soa_min = (uint32_t) duration2time(zone_in->signconf->soa_min);
         } else if (rr) {

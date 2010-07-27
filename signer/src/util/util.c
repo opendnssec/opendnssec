@@ -99,6 +99,8 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
     int cmp = 0;
     ldns_dnssec_rrs *new_rrs = NULL;
     ldns_status status = LDNS_STATUS_OK;
+    uint32_t rr_ttl = ldns_rr_ttl(rr);
+    uint32_t default_ttl = 0;
 
     se_log_assert(rrs);
     se_log_assert(rrs->rr);
@@ -116,6 +118,12 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
             new_rrs = ldns_dnssec_rrs_new();
             new_rrs->rr = rr;
             rrs->next = new_rrs;
+            default_ttl = ldns_rr_get_ttl(rrs->rr);
+            if (rr_ttl < default_ttl) {
+                ldns_rr_set_ttl(rrs->rr, rr_ttl);
+            } else {
+                ldns_rr_set_ttl(new_rrs->rr, default_ttl);
+            }
             return LDNS_STATUS_OK;
         }
     } else if (cmp > 0) {
@@ -124,8 +132,17 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
         new_rrs = ldns_dnssec_rrs_new();
         new_rrs->rr = rrs->rr;
         new_rrs->next = rrs->next;
+
         rrs->rr = rr;
         rrs->next = new_rrs;
+
+        default_ttl = ldns_rr_get_ttl(new_rrs->rr);
+        if (rr_ttl < default_ttl) {
+            ldns_rr_set_ttl(new_rrs->rr, rr_ttl);
+        } else {
+            ldns_rr_set_ttl(rrs->rr, default_ttl);
+        }
+
         return LDNS_STATUS_OK;
     } else {
         /* should we error on equal? or free memory of rr */
