@@ -118,7 +118,7 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
             new_rrs = ldns_dnssec_rrs_new();
             new_rrs->rr = rr;
             rrs->next = new_rrs;
-            default_ttl = ldns_rr_get_ttl(rrs->rr);
+            default_ttl = ldns_rr_ttl(rrs->rr);
             if (rr_ttl < default_ttl) {
                 ldns_rr_set_ttl(rrs->rr, rr_ttl);
             } else {
@@ -136,7 +136,7 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
         rrs->rr = rr;
         rrs->next = new_rrs;
 
-        default_ttl = ldns_rr_get_ttl(new_rrs->rr);
+        default_ttl = ldns_rr_ttl(new_rrs->rr);
         if (rr_ttl < default_ttl) {
             ldns_rr_set_ttl(new_rrs->rr, rr_ttl);
         } else {
