@@ -38,7 +38,9 @@
 #include <errno.h>
 #include <signal.h> /* sigfillset(), sigprocmask() */
 #include <string.h> /* strerror() */
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h> /* gettimeofday() */
+#endif
 #ifdef HAVE_TIME_H
 #include <time.h> /* gettimeofday() */
 #endif
