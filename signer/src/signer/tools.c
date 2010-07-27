@@ -174,7 +174,9 @@ tools_audit(zone_type* zone, engineconfig_type* config)
 
         se_log_debug("system call: %s", str);
         error = system(str);
-        unlink(finalized);
+        if (!error) {
+            unlink(finalized);
+        }
         se_free((void*)finalized);
     }
     return error;
