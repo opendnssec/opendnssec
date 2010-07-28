@@ -369,6 +369,8 @@ int read_file(char* filename,
     while (1) {
         /* terminate line */
         char* end = strchr(ptr, '\n');
+
+        fprintf(stderr, "debug: quicksorter ptr is %s\n", ptr);
         if (!end)
             break; /* end of file */
         *end = 0;
