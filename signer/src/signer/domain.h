@@ -176,11 +176,12 @@ int domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
  * \param[in] owner owner of the zone
  * \param[in] sc sign configuration
  * \param[in] signtime time zone is being signed
+ * \param[in] serial outbound serial
  * \return int 0 on success, 1 on error
  *
  */
 int domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime);
+    signconf_type* sc, time_t signtime, uint32_t serial);
 
 /**
  * Add RR to domain.

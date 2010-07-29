@@ -655,44 +655,6 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
 
 
 /**
- * Add RRSIG records to zonedata.
- *
- */
-int
-zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-    time_t now = 0;
-    hsm_ctx_t* ctx = NULL;
-
-    se_log_assert(sc);
-    se_log_assert(zd);
-    se_log_assert(zd->domains);
-
-    now = time_now();
-    ctx = hsm_create_context();
-    if (!ctx) {
-        se_log_error("error creating libhsm context");
-        return 2;
-    }
-
-    node = ldns_rbtree_first(zd->domains);
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        if (domain_sign(ctx, domain, owner, sc, now) != 0) {
-            se_log_error("unable to sign zone data: failed to sign domain");
-            hsm_destroy_context(ctx);
-            return 1;
-        }
-        node = ldns_rbtree_next(node);
-    }
-    hsm_destroy_context(ctx);
-    return 0;
-}
-
-
-/**
  * Update the serial.
  *
  */
@@ -758,6 +720,53 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     return 0;
 }
 
+
+/**
+ * Add RRSIG records to zonedata.
+ *
+ */
+int
+zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
+    time_t now = 0;
+    hsm_ctx_t* ctx = NULL;
+    int error = 0;
+
+    se_log_assert(sc);
+    se_log_assert(zd);
+    se_log_assert(zd->domains);
+
+    error = zonedata_update_serial(zd, sc);
+    if (error || !zd->outbound_serial) {
+        se_log_error("unable to update zonedata: failed to update serial");
+        return 1;
+    }
+
+    now = time_now();
+    ctx = hsm_create_context();
+    if (!ctx) {
+        se_log_error("error creating libhsm context");
+        return 2;
+    }
+
+    node = ldns_rbtree_first(zd->domains);
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        if (domain_sign(ctx, domain, owner, sc, now, zd->outbound_serial)
+            != 0) {
+            se_log_error("unable to sign zone data: failed to sign domain");
+            hsm_destroy_context(ctx);
+            return 1;
+        }
+        node = ldns_rbtree_next(node);
+    }
+    hsm_destroy_context(ctx);
+    return 0;
+}
+
+
 /**
  * Update zone data with pending changes.
  *
@@ -776,11 +785,11 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
 
     error = zonedata_update_serial(zd, sc);
     if (error || !zd->outbound_serial) {
-        se_log_error("unable to update zonedata, serial is zero");
+        se_log_error("unable to update zonedata: failed to update serial");
         return 1;
     }
 
-    /* replace serial in SOA RR */
+    /* TODO replace serial in SOA RR */
 
     if (zd->domains->root != LDNS_RBTREE_NULL) {
         node = ldns_rbtree_first(zd->domains);

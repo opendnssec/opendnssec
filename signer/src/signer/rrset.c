@@ -483,7 +483,7 @@ rrset2rrlist(rrset_type* rrset)
  */
 int
 rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime)
+    signconf_type* sc, time_t signtime, uint32_t serial)
 {
     int error = 0;
     ldns_status status = LDNS_STATUS_OK;
@@ -496,7 +496,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     se_log_assert(rrset);
     se_log_assert(sc);
 
-    if (DNS_SERIAL_GT(rrset->inbound_serial, rrset->outbound_serial)) {
+    if (DNS_SERIAL_GT(serial, rrset->outbound_serial)) {
         error = rrset_drop_rrsigs(rrset, sc, signtime);
         if (!rrset->rrsigs) {
             rrset->rrsigs = ldns_dnssec_rrs_new();
@@ -553,7 +553,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         } else {
             se_log_debug("reuse signatures for RRset[%i]", rrset->rr_type);
         }
-        rrset->outbound_serial = rrset->inbound_serial;
+        rrset->outbound_serial = serial;
     } else {
         se_log_warning("not signing RRset[%i]: up to date", rrset->rr_type);
     }

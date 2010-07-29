@@ -103,11 +103,12 @@ int rrset_del_rr(rrset_type* rrset, ldns_rr* rr);
  * \param[in] owner owner of the zone
  * \param[in] sc sign configuration
  * \param[in] signtime time when the zone is signd
+ * \param[in] serial outbound serial
  * \return 0 on success, 1 on error
  *
  */
 int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime);
+    signconf_type* sc, time_t signtime, uint32_t serial);
 
 /**
  * Delete all RRs from RRset.
