@@ -584,7 +584,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
 
         error = rrset_sign(ctx, rrset, owner, sc, signtime);
         if (error) {
-            se_log_error("failed to sign %i RRset", (int) rrset->rr_type);
+            se_log_error("failed to sign RRset[%i]", (int) rrset->rr_type);
             return error;
         }
         node = ldns_rbtree_next(node);

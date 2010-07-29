@@ -397,7 +397,7 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime)
 
         if (!refresh || expiration < refresh) {
             /* this is it */
-            se_log_debug("refresh signatures for RRset[%i] (refresh=%u, "
+            se_log_debug("refresh signature for RRset[%i] (refresh=%u, "
                 "expiration=%u)", rrset->rr_type, refresh, expiration);
             if (prev_rrs) {
                 prev_rrs->next = rrs->next;
@@ -407,6 +407,10 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime)
             rrset_log_rr(rrs->rr, "-RRSIG", 5);
             ldns_rr_free(rrs->rr);
             se_free((void*)rrs);
+        } else {
+            se_log_debug("keep signature for RRset[%i] (refresh=%u, "
+                "expiration=%u)", rrset->rr_type, refresh, expiration);
+            rrset_log_rr(rrs->rr, "*RRSIG", 5);
         }
         prev_rrs = rrs;
         rrs = rrs->next;
@@ -498,7 +502,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             rrset->rrsigs = ldns_dnssec_rrs_new();
         }
         if (!rrset->rrsigs->rr) {
-            /* signatures were dropped, create new */
+            se_log_debug("new signatures for RRset[%i]", rrset->rr_type);
             rr_list = rrset2rrlist(rrset);
             if (!rr_list) {
                 se_log_error("error signing rrset[%i], cannot convert to rr "
@@ -550,6 +554,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             se_log_debug("reuse signatures for RRset[%i]", rrset->rr_type);
         }
         rrset->outbound_serial = rrset->inbound_serial;
+    } else {
+        se_log_warning("not signing RRset[%i]: up to date", rrset->rr_type);
     }
     return 0;
 }
