@@ -219,6 +219,7 @@ int
 domain_update(domain_type* domain, uint32_t serial)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    ldns_rdf* soa_serial = NULL;
     rrset_type* rrset = NULL;
 
     se_log_assert(serial);
@@ -231,6 +232,21 @@ domain_update(domain_type* domain, uint32_t serial)
         }
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
+
+            if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
+                rrset->rrs->rr) {
+                soa_serial = ldns_rr_set_rdf(rrset->rrs->rr,
+                    ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial),
+                    SE_SOA_RDATA_SERIAL);
+                if (soa_serial) {
+                    ldns_rdf_deep_free(soa_serial);
+                } else {
+                    se_log_error("unable to update domain: failed to replace "
+                        "SOA SERIAL rdata");
+                    return 1;
+                }
+            }
+
             if (rrset_update(rrset, serial) != 0) {
                 se_log_error("failed to update domain to serial %u: failed "
                     "to update RRset", serial);
@@ -538,6 +554,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     signconf_type* sc, time_t signtime, uint32_t serial)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    ldns_rdf* soa_serial = NULL;
     rrset_type* rrset = NULL;
     int error = 0;
 
@@ -581,6 +598,22 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
            rrset->rr_type != LDNS_RR_TYPE_DS) {
            node = ldns_rbtree_next(node);
            continue;
+        }
+
+        if (strncmp(sc->soa_serial, "keep", 4) != 0 &&
+            rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
+            rrset->rrs->rr) {
+            soa_serial = ldns_rr_set_rdf(rrset->rrs->rr,
+                ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial),
+                SE_SOA_RDATA_SERIAL);
+            if (soa_serial) {
+                ldns_rdf_deep_free(soa_serial);
+             } else {
+                se_log_error("unable to sign domain: failed to replace "
+                    "SOA SERIAL rdata");
+                return 1;
+            }
+            rrset->drop_signatures = 1;
         }
 
         error = rrset_sign(ctx, rrset, owner, sc, signtime, serial);

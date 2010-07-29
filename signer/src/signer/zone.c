@@ -43,6 +43,7 @@
 #include "util/file.h"
 #include "util/log.h"
 #include "util/se_malloc.h"
+#include "util/util.h"
 
 #include <ldns/ldns.h> /* ldns_*() */
 #include <libhsm.h> /* hsm_create_context(), hsm_get_key(), hsm_destroy_context() */
@@ -522,6 +523,7 @@ zone_sign(zone_type* zone)
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->zonedata);
+
     error = zonedata_sign(zone->zonedata, zone->dname, zone->signconf);
     if (!error) {
         filename = se_build_path(zone->name, ".rrsigs", 0);

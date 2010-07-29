@@ -789,8 +789,6 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
         return 1;
     }
 
-    /* TODO replace serial in SOA RR */
-
     if (zd->domains->root != LDNS_RBTREE_NULL) {
         node = ldns_rbtree_first(zd->domains);
     }

@@ -45,6 +45,9 @@
 
 #include <ldns/ldns.h>
 
+#define SE_SOA_RDATA_SERIAL  2
+#define SE_SOA_RDATA_MINIMUM 6
+
 /* copycode: This define is taken from BIND9 */
 #define DNS_SERIAL_GT(a, b) ((int)(((a) - (b)) & 0xFFFFFFFF) > 0)
 

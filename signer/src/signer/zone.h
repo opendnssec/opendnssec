@@ -43,9 +43,6 @@
 
 #include <ldns/ldns.h>
 
-#define SE_SOA_RDATA_SERIAL  2
-#define SE_SOA_RDATA_MINIMUM 6
-
 struct task_struct;
 struct tasklist_struct;
 struct worker_struct;
