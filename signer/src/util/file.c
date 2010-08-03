@@ -43,7 +43,7 @@
 #include <sys/stat.h> /* stat() */
 #include <unistd.h> /* chown() */
 
-#define SYSTEM_MAXLEN 255
+#define SYSTEM_MAXLEN 1024
 
 
 /**
