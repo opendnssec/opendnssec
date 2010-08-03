@@ -124,8 +124,9 @@ module KASPAuditor
     end
 
     # Load the cache for the zone from the workingdirectory. Create a new
-    # cache if one can't be found
-    def load_tracker_cache
+    # cache if one can't be found. Also defaults to reloading the SOA serial
+    # for the zone.
+    def load_tracker_cache(load_soa_serial = true)
       # Need to store the time that the state change was first noticed.
       # Need to load this from file, store in cache, add to new cache values,
       # and write back to file.
@@ -148,7 +149,9 @@ module KASPAuditor
             @initial_timestamp = line.chomp.to_i
             next
           elsif (count == 2)
-            @last_soa_serial = line.chomp.to_i
+            if (load_soa_serial)
+              @last_soa_serial = line.chomp.to_i
+            end
             next
           end
           key_string, status_string, time  = line.split(SEPARATOR)
@@ -307,7 +310,7 @@ module KASPAuditor
       if (Time.now.to_i >= (@initial_timestamp + soa_ttl))
         # Has a key jumped to in-use without having gone through prepublished for at least soa_ttl?
         # Just load the cache from disk again - then we could compare the two
-        old_cache = load_tracker_cache
+        old_cache = load_tracker_cache(false)
         @cache.inuse.keys.each {|new_inuse_key|
           next if old_cache.inuse.keys.include?new_inuse_key
           next if (new_inuse_key.sep_key?) # KSKs aren't prepublished any more
