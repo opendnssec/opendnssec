@@ -139,8 +139,6 @@ ods_start()
 
 ods_sign()
 {
-        ${SANDBOX}/bin/ods-signer verbosity 5
- 	
         ${SANDBOX}/sbin/ods-signer sign unknown.rr.org
 	${SANDBOX}/sbin/ods-signer sign example.com
 	echo ${SANDBOX}/sbin/ods-signer sign all.rr.org
