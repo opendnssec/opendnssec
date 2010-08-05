@@ -9,7 +9,10 @@ AM_CPPFLAGS = \
 
 noinst_LIBRARIES = libhsm.a
 
-libhsm_a_SOURCES = libhsm.c compat/strlcpy.c compat/strlcat.c
+libhsm_a_SOURCES = libhsm.c libhsm.h libhsmdns.h \
+	cryptoki_compat/pkcs11.h \
+	compat/strlcpy.c compat/strlcat.h \
+	compat/strlcat.c compat/strlcat.h
 
 bin_PROGRAMS = ods-hsmutil ods-hsmspeed
 
@@ -20,6 +23,3 @@ ods_hsmutil_LDADD = libhsm.a @LDNS_LIBS@ @XML2_LIBS@
 
 ods_hsmspeed_SOURCES = hsmspeed.c
 ods_hsmspeed_LDADD = libhsm.a -lpthread @LDNS_LIBS@ @XML2_LIBS@
-
-EXTRA_DIST = $(srcdir)/cryptoki_compat/*.h
-EXTRA_DIST += $(srcdir)/compat/*.c $(srcdir)/compat/*.h
