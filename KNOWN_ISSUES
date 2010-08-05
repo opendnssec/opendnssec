@@ -110,6 +110,13 @@ If a RR owner name looks like a directive, e.g., \$ORIGIN or $TTLexample,
 the quicksorter filters them away as being incorrect directives. It will crash 
 on owner names like \$ORIGIN. 
 
+Zone fetcher would block transfers if AXFR failed once
+------------------------------------------------------
+
+The zone fetcher makes use of ldns_resolver from the ldns library. If a zone
+transfer fails, the ldns_resolver keeps open the socket. This blocks subsequent
+transfers. Using ldns 1.6.6 resolves this issue.
+
 
 Enforcer unit tests require environment variables
 -------------------------------------------------
