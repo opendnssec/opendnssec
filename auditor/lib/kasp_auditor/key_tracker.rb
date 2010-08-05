@@ -66,6 +66,7 @@ module KASPAuditor
       Status.strings.each {|s| eval "def add_#{s.downcase}_key(key)
                           if (!include_#{s.downcase}_key?key)
                                 new_key = key.clone
+                                new_key.public_key
                                 @#{s.downcase}[new_key]=Time.now.to_i
                           end
           end"}
@@ -73,11 +74,13 @@ module KASPAuditor
       Status.strings.each {|s| eval "def add_#{s.downcase}_key_with_time(key, time)
                           if (!include_#{s.downcase}_key?key)
                                 new_key = key.clone
+                                new_key.public_key
                                 @#{s.downcase}[new_key]=time
                           end
           end"}
       # Set up include_inuse_key?, etc.
       Status.strings.each {|s| eval "def include_#{s.downcase}_key?(key)
+                   key.public_key
                    @#{s.downcase}.each {|k,v|
                       if ((k == key) || (k.key_tag_pre_revoked ==
                               key.key_tag_pre_revoked))
@@ -88,6 +91,7 @@ module KASPAuditor
           end"}
       # Set up delete_inuse_key, etc.
       Status.strings.each {|s| eval "def delete_#{s.downcase}_key(key)
+                                     key.public_key
                                      @#{s.downcase}.delete_if {|k, temp|
              ((k==key) || (k.key_tag_pre_revoked == key.key_tag_pre_revoked))
                                      }
@@ -200,16 +204,16 @@ module KASPAuditor
         return 0
       end
       if s1 < s2 and (s2 - s1) < (2**31)
-          return 1
+        return 1
       end
       if s1 > s2 and (s1 - s2) > (2**31)
-          return 1
+        return 1
       end
       if s1 < s2 and (s2 - s1) > (2**31)
-          return -1
+        return -1
       end
       if s1 > s2 and (s1 - s2) < (2**31)
-          return -1
+        return -1
       end
       return 0
     end
@@ -237,62 +241,42 @@ module KASPAuditor
 
     # run the checks on the new zone data
     def run_checks(soa_ttl)
-      # @TODO@ If !@config.audit_tag_present then only run checks on keys in use too long.
       # We also need to perform the auditing checks against the config
       # Checks to be performed :
-      #   a) Warn if number of prepublished KSKs < KSK:Standby
-      # @TODO@ THIS IS WRONG - LOOK UP STANDBY PER KEY!!!
-      ksk_min_standby = 999999999999
-      ksk_min_lifetime = 999999999999
-      @config.keys.ksks().length.times {|i|
-        if (@config.keys.ksks()[i].standby < ksk_min_standby)
-          ksk_min_standby = @config.keys.ksks()[i].standby
-        end
-        if (@config.keys.ksks()[i].lifetime < ksk_min_lifetime)
-          ksk_min_lifetime = @config.keys.ksks()[i].lifetime
-        end
-      }
-
-      prepublished_ksk_count = @cache.prepublished.keys.select {|k|
-        k.zone_key? && k.sep_key?
-      }.length
-      # Enforcer no longer publishes standby KSKs
-#      if (prepublished_ksk_count < ksk_min_standby)
-#        msg = "Not enough prepublished KSKs! Should be #{ksk_min_standby} but have #{prepublished_ksk_count}"
-#        @parent.log(LOG_WARNING, msg)
-#      end
       #   b) Warn if number of prepublished ZSKs < ZSK:Standby
-      # @TODO@ THIS IS WRONG - LOOK UP STANDBY PER KEY!!!
-      zsk_min_standby = 999999999999
-      zsk_min_lifetime = 999999999999
-      @config.keys.zsks().length.times {|i|
-        if (@config.keys.zsks()[i].standby < zsk_min_standby)
-          zsk_min_standby = @config.keys.zsks()[i].standby
-        end
-        if (@config.keys.zsks()[i].lifetime < zsk_min_lifetime)
-          zsk_min_lifetime = @config.keys.zsks()[i].lifetime
+      # Do this by [alg, alg_length] - so only select those keys which match the config
+      @config.keys.zsks.each {|zsk|
+        prepublished_zsk_count = @cache.prepublished.keys.select {|k|
+          k.zone_key? && !k.sep_key? && (k.algorithm == zsk.algorithm) &&
+            (k.key_length == zsk.alg_length)
+        }.length
+        if (prepublished_zsk_count < zsk.standby)
+          msg = "Not enough prepublished ZSKs! Should be #{zsk.standby} but have #{prepublished_zsk_count}"
+          @parent.log(LOG_WARNING, msg)
         end
       }
-      prepublished_zsk_count = @cache.prepublished.keys.select {|k|
-        k.zone_key? && !k.sep_key?
-      }.length
-      if (prepublished_zsk_count < zsk_min_standby)
-        msg = "Not enough prepublished ZSKs! Should be #{zsk_min_standby} but have #{prepublished_zsk_count}"
-        @parent.log(LOG_WARNING, msg)
-      end
       @cache.inuse.each {|key, timestamp|
         if (key.zone_key? && !key.sep_key?)
           #   d) Warn if ZSK inuse longer than ZSK:Lifetime + Enforcer:Interval
-          # @TODO@ But which ZSK to use?
-          lifetime = zsk_min_lifetime + @enforcer_interval # @TODO@ @config.keys.ksks()[0].lifetime + Enforcer->Interval
+          # Get the ZSK lifetime for this type of key from the config
+          zsks = @config.keys.zsks.select{|zsk|
+            (zsk.algorithm == key.algorithm) &&
+              (zsk.alg_length == key.key_length)}
+          next if (zsks.length == 0)
+          zsk_lifetime = (zsks[0]).lifetime
+          lifetime = zsk_lifetime + @enforcer_interval 
           if timestamp < (Time.now.to_i - lifetime)
             msg = "ZSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
             @parent.log(LOG_WARNING, msg)
           end
         else
           #   c) Warn if KSK inuse longer than KSK:Lifetime + Enforcer:Interval
-          # @TODO@ But which ZSK to use?
-          lifetime = ksk_min_lifetime + @enforcer_interval # @TODO@ @config.keys.ksks()[0].lifetime + Enforcer->Interval
+          # Get the KSK lifetime for this type of key from the config
+          ksks = @config.keys.ksks.select{|ksk| (ksk.algorithm == key.algorithm) &&
+              (ksk.alg_length == key.key_length)}
+          next if (ksks.length == 0)
+          ksk_lifetime = ksks[0].lifetime
+          lifetime = ksk_lifetime + @enforcer_interval 
           if timestamp < (Time.now.to_i - lifetime)
             msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
             @parent.log(LOG_WARNING, msg)
@@ -312,7 +296,7 @@ module KASPAuditor
         # Just load the cache from disk again - then we could compare the two
         old_cache = load_tracker_cache(false)
         @cache.inuse.keys.each {|new_inuse_key|
-          next if old_cache.inuse.keys.include?new_inuse_key
+          next if old_cache.include_inuse_key?new_inuse_key
           next if (new_inuse_key.sep_key?) # KSKs aren't prepublished any more
           old_key_timestamp = old_cache.include_prepublished_key?new_inuse_key
           if (!old_key_timestamp)
@@ -362,10 +346,10 @@ module KASPAuditor
         end
       }
       keys_used.each {|key|
-        #        print "Adding inuse key #{key}\n"
         # Now find the key with that tag
         keys.each {|k|
           if (key == k.key_tag)
+            # print "Taking inuse key #{key} and removing from prepublished\n"
             @cache.add_inuse_key(k)
             @cache.delete_prepublished_key(k)
           end

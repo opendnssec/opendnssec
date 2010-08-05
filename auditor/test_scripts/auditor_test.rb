@@ -420,12 +420,13 @@ class AuditorTest < Test::Unit::TestCase
     expected_strings=[
       # Not enough pre-published ZSK
       "Not enough prepublished ZSKs! Should be 2 but have 0",
+      "Not enough prepublished ZSKs! Should be 2 but have 1",
       # Not enough pre-published KSK
       #      "Not enough prepublished KSKs! Should be 2 but have 0",
       # KSK too long in use
       "KSK 51902 in use too long - should be max 1 seconds but has been",
       # ZSK too long in use
-      "ZSK 51901 in use too long - should be max 1 seconds but has been",
+      "ZSK 52925 in use too long - should be max 1 seconds but has been",
       # SOA serial checking
       "SOA serial has decreased - used to be 101 but is now 100",
       "Key (56013) has gone straight to active use without a prepublished phase"
@@ -455,7 +456,7 @@ class AuditorTest < Test::Unit::TestCase
         :algorithm => 5, :key => "AAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
     key1 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
         :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
-        :key => "AAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+        :key => "BAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
     key2 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
         :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
         :key => "EBAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
@@ -467,10 +468,7 @@ class AuditorTest < Test::Unit::TestCase
         :key => "BEAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
     keynot5011 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
         :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
-        :key => "BEAAAAOhdFlVHeivG77Zos6htgLyIkBOn18ujX4Q7Xs6U7SDQdi6FBE5 OQ8754ppfuF3Lg1ywNLHQ5bjibquSG7TuCT6DWL3kw+hESYmWTeEev9K RnxqTA+FVIfhJaPjMh7y+AsX39b8KVQ32IYdttOiz30sMhHHPBvL4dLC 4eCQXwUbinHRWSnKpKDXwuaUUtQkPqkEc4rEy/cZ3ld408vMlcc73OcK t+ttJeyQR1dJ0LoYHvH0WBzIWg3jUPmz/hSWrZ+V2n0TISQz0qdVGzhJ vahGvRstNk4pWG1MjwVgCvnc18+QiEV4leVU7B4XjM9dRpIMzJvLaq+B d8CxiWvjpSu/"})
-    sep_key = RR.create({:name => "example.com.", :type => Types::DNSKEY,
-        :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5,
-        :key => "AAAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
+        :key => "BBAAAAOhdFlVHeivG77Zos6htgLyIkBOn18ujX4Q7Xs6U7SDQdi6FBE5 OQ8754ppfuF3Lg1ywNLHQ5bjibquSG7TuCT6DWL3kw+hESYmWTeEev9K RnxqTA+FVIfhJaPjMh7y+AsX39b8KVQ32IYdttOiz30sMhHHPBvL4dLC 4eCQXwUbinHRWSnKpKDXwuaUUtQkPqkEc4rEy/cZ3ld408vMlcc73OcK t+ttJeyQR1dJ0LoYHvH0WBzIWg3jUPmz/hSWrZ+V2n0TISQz0qdVGzhJ vahGvRstNk4pWG1MjwVgCvnc18+QiEV4leVU7B4XjM9dRpIMzJvLaq+B d8CxiWvjpSu/"})
 
     # Now load the (empty) cache for the zone, and fill it with data about a
     # fake audit in progress.
@@ -482,25 +480,34 @@ class AuditorTest < Test::Unit::TestCase
     ksk = FakeAnykey.new
     ksk.standby = 2
     ksk.lifetime = 1
+    ksk.algorithm = 5
+    ksk.alg_length = 1040
     zsk = FakeAnykey.new
     zsk.standby = 2
     zsk.lifetime = 1
+    zsk.algorithm = 5
+    zsk.alg_length = 1024
     keys.zsks.push(zsk)
     keys.ksks.push(ksk)
     config.keys = keys
     config.audit_tag_present = true
 
     checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    key_cache = checker.load_tracker_cache
     assert(checker.cache.inuse.length == 0)
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 0)
 
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key1, keynot5011, key3],
       [ksk_key1.key_tag, keynot5011.key_tag], 100, 1)
     assert(checker.cache.inuse.length == 2)
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 2)
 
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key1, keynot5011, key5011],
       [key1.key_tag, ksk_key1.key_tag, key5011.key_tag], 101, 1)
     assert(checker.cache.inuse.length == 3)
@@ -511,6 +518,8 @@ class AuditorTest < Test::Unit::TestCase
     # are emitted
     sleep(2.1)
     key5011.revoked = true
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key2, key5011, key1],
       [ksk_key1.key_tag, key2.key_tag, key1.key_tag], 100, 1)
     assert(checker.cache.retired.length == 1)
