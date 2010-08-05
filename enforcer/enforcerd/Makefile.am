@@ -21,8 +21,6 @@ AM_CPPFLAGS = \
 sbin_PROGRAMS = ods-enforcerd
 man8_MANS = ods-enforcerd.8
 
-ods_enforcerd_SOURCES = enforcer.c
+ods_enforcerd_SOURCES = enforcer.c enforcer.h
 ods_enforcerd_LDADD = $(LIBENFORCER) $(LIBKSM) $(LIBHSM)
 ods_enforcerd_LDADD += @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@
-
-EXTRA_DIST = $(srcdir)/*.h

@@ -13,6 +13,7 @@ AM_CPPFLAGS = \
 
 noinst_LIBRARIES = libenforcer.a
 
-libenforcer_a_SOURCES = daemon.c daemon_util.c kaspaccess.c privdrop.c
-
-EXTRA_DIST = $(srcdir)/*.h
+libenforcer_a_SOURCES = daemon.c daemon.h \
+	daemon_util.c daemon_util.h \
+	kaspaccess.c kaspaccess.h \
+	privdrop.c privdrop.h

@@ -18,7 +18,8 @@ test_SOURCES = \
 	test_di_string.c test_dq_string.c test_du_string.c test_keyword.c \
 	test_ksm_key.c test_ksm_key_delete.c test_ksm_parameter.c \
 	test_ksm_policy.c test_ksm_purge.c test_ksm_request.c \
-	test_ksm_update.c test_ksm_zone.c test_message.c test_routines.c \
+	test_ksm_update.c test_ksm_zone.c test_message.c \
+	test_routines.c test_routines.h \
 	test_routines_cunit.c test_routines_database.c test_string_util.c \
 	test_string_util2.c test_ksm_import.c
 	
@@ -32,5 +33,3 @@ TESTS = test
 
 test_LDADD = ../ksm/libksm.a -lncurses @CUNIT_LIBS@ @DB_LIBS@ $(LIBHSM)
 test_LDFLAGS = -no-install
-
-EXTRA_DIST = $(srcdir)/*.h
