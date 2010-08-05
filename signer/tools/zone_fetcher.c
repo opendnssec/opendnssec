@@ -49,6 +49,8 @@
 #define DNS_SERIAL_GT(a, b) ((int)(((a) - (b)) & 0xFFFFFFFF) > 0)
 
 static int sig_quit = 0;
+static int sig_reload = 0;
+static char* zonelist_file = NULL;
 
 static void
 usage(FILE *out)
@@ -81,14 +83,15 @@ new_zone(char* zone_name, char* input_file)
 static void
 free_zonelist(zonelist_type* zlt)
 {
-    if (zlt) {
-        free_zonelist(zlt->next);
+    while (zlt) {
+	zonelist_type* next = zlt->next;
         free((void*) zlt->name);
         if (zlt->dname) {
             ldns_rdf_deep_free(zlt->dname);
         }
         free((void*) zlt->input_file);
         free((void*) zlt);
+	zlt = next;
     }
 }
 
@@ -538,6 +541,9 @@ sig_handler(int sig)
         case SIGHUP:
             sig_quit = 1;
             break;
+	case SIGUSR1:
+	    sig_reload = 1;
+	    break;
         default:
             break;
     }
@@ -573,6 +579,7 @@ setup_daemon(config_type* config)
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGHUP, &action, NULL);
+    sigaction(SIGUSR1, &action, NULL);
 
     pid = getpid();
     if (writepid(config->pidfile, pid) == -1)
@@ -827,7 +834,7 @@ free_sockets(sockets_type* sockets)
 }
 
 static int
-odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
+odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config, int kick_signer)
 {
     ldns_status status = LDNS_STATUS_OK;
     ldns_rr* axfr_rr = NULL, *soa_rr = NULL;
@@ -933,12 +940,14 @@ odd_xfer(zonelist_type* zone, uint32_t serial, config_type* config)
             /* moving and kicking */
             snprintf(dest_file, sizeof(dest_file), "%s.axfr", zone->input_file);
             if(rename(axfr_file, dest_file) == 0) {
-                snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
-                    "%s %s", SIGNER_CLI_SIGN, zone->name);
-                if (system(engine_sign_cmd) != 0) {
-                    log_msg(LOG_ERR, "zone fetcher could not kick "
-                        "the signer engine to sign zone %s", zone->name);
-                }
+		if (kick_signer) {
+                    snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
+                        "%s %s", SIGNER_CLI_SIGN, zone->name);
+                    if (system(engine_sign_cmd) != 0) {
+                        log_msg(LOG_ERR, "zone fetcher could not kick "
+                            "the signer engine to sign zone %s", zone->name);
+                    }
+		}
             }
             else {
                 log_msg(LOG_ERR, "zone fetcher could not move AXFR to %s",
@@ -1120,7 +1129,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
                 serial = lookup_serial(fd);
                 fclose(fd);
             }
-            if (odd_xfer(zonelist, serial, config) != 0) {
+            if (odd_xfer(zonelist, serial, config, 1) != 0) {
                 log_msg(LOG_ERR, "AXFR for zone '%s' failed", zonelist->name);
             }
             ldns_pkt_free(query_pkt);
@@ -1277,6 +1286,73 @@ handle_tcp(int tcp_sock, config_type* config)
     close(s);
 }
 
+/* Reload the zonelist file and merge it with the existing configuration */
+static void reload_zonelist (config_type *config) {
+    zonelist_type *new_zonelist, **thisp;
+    zonelist_type *added_zonelist = NULL, *kept_zonelist = NULL;
+    int added_count = 0, changed_count = 0, kept_count = 0;
+    /* Fail softly if the zonelist cannot be accessed for reloading */
+    if (!zonelist_file) {
+	log_msg(LOG_ERR, "zone fetcher is unable to access the zonelist");
+	return;
+    } else {
+	log_msg(LOG_INFO, "zone fetcher will reload the zonelist");
+    }
+    /* Read the zonelist file and construct a new linked list of zonelist entries */
+    new_zonelist = read_zonelist (zonelist_file);
+    /* Iterate over the new zonelist file and compare it to previously configured zonelist entries */
+    while (new_zonelist) {
+	zonelist_type *next_zonelist = new_zonelist->next;
+	zonelist_type *this = config->zonelist;
+	int found = 0;
+	while (this && !found) {
+	   found = !strcmp (this->name, new_zonelist->name);
+	   if (!found)
+		this = this->next;
+	}
+	/* If the zone name is found in the old zonelist, it is either a full match or a replacement */
+	if (found) {
+	    if (strcmp (new_zonelist->input_file, this->input_file)) {
+		/* the zonelist entry has changed -- treat as a replacement/new zonelist entry */
+		changed_count++;
+		new_zonelist->next = added_zonelist;
+		added_zonelist = new_zonelist;
+	    } else {
+		/* the zonelist entry is already configured -- treat as a kept zonelist entry */
+		kept_count++;
+		new_zonelist->next = kept_zonelist;
+		kept_zonelist = new_zonelist;
+	    }
+	} else {
+	    /* new_zonelist introduces a new zonelist entry */
+	    added_count++;
+	    new_zonelist->next = added_zonelist;
+	    added_zonelist = new_zonelist;
+	}
+	new_zonelist = next_zonelist;
+    }
+    /* Replace the configured zonelist with the added_zonelist and kept_zonelist */
+    free_zonelist (config->zonelist);
+    config->zonelist = kept_zonelist;
+    thisp = &config->zonelist;
+    while (*thisp) {
+	thisp = &(*thisp)->next;
+    }
+    *thisp = added_zonelist;
+    /* Perform an initial AXFR for the newly added zones (assume no present inputfile) */
+    new_zonelist = added_zonelist;
+    while (new_zonelist) {
+	/* send the request -- assume no file is present so SOA is 0 */
+	if (odd_xfer (new_zonelist, 0, config, 0) != 0) {
+	    log_msg(LOG_ERR, "AXFR for new zone '%s' failed", new_zonelist->name);
+	}
+	/* next */
+	new_zonelist = new_zonelist->next;
+    }
+    log_msg(LOG_INFO, "Reloaded zonelist -- kept %d, changed %d and added %d zones",
+		kept_count, changed_count, added_count);
+}
+
 static void
 xfrd_ns(sockets_type* sockets, config_type* cfg)
 {
@@ -1289,7 +1365,11 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
     count = 0;
     timeout.tv_sec = 0;
     timeout.tv_usec = 0;
-    while (1) {
+    while (!sig_quit) {
+	if (sig_reload) {
+	    reload_zonelist (cfg);
+	    sig_reload = 0;
+	}
         FD_ZERO(&rset);
         FD_ZERO(&wset);
         FD_ZERO(&eset);
@@ -1304,7 +1384,7 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
 
         if (select(maxfd+1, &rset, &wset, &eset, NULL) < 0) {
             if (errno == EINTR)
-                break;
+                continue;
             log_msg(LOG_ERR, "zone fetcher select(): %s", strerror(errno));
         }
 
@@ -1364,7 +1444,7 @@ list_settings(config_type* config, const char* filename)
 int
 main(int argc, char **argv)
 {
-    const char* zonelist_file = NULL, *config_file = NULL;
+    const char* config_file = NULL;
     zonelist_type *zonelist = NULL;
     config_type* config = NULL;
     int c, run_as_daemon = 0;
@@ -1432,7 +1512,7 @@ main(int argc, char **argv)
     c = read_axfr_config(config_file, config);
     config->zonelist = read_zonelist(zonelist_file);
     config->xfrd = init_xfrd(config);
-	xmlCleanupParser();
+    xmlCleanupParser();
 
     if (info) {
         list_settings(config, config_file);
@@ -1461,14 +1541,14 @@ main(int argc, char **argv)
             fclose(fd);
         }
         /* send the request */
-        if (odd_xfer(zonelist, serial, config) != 0) {
+        if (odd_xfer(zonelist, serial, config, 1) != 0) {
             log_msg(LOG_ERR, "AXFR for zone '%s' failed", zonelist->name);
         }
         /* next */
         zonelist = zonelist->next;
     }
 
-	if (run_as_daemon) {
+    if (run_as_daemon) {
         pid = setup_daemon(config);
         /* listen to NOTIFY messages */
         c = init_sockets(&sockets, config->notifylist);
@@ -1492,6 +1572,22 @@ main(int argc, char **argv)
             log_msg(LOG_NOTICE, "zone fetcher exiting...");
             exit(EXIT_FAILURE);
         }
+	/* if chroot used, strip it off zonelist_file */
+	if (chroot && zonelist_file) {
+	    size_t chrootlen = strlen (chroot);
+	    if ((chrootlen > 0) && (chroot [chrootlen-1] == '/'))
+		chrootlen--;
+	    if ((strlen (zonelist_file) <= chrootlen)
+			|| strncmp (zonelist_file, chroot, chrootlen)
+			|| (zonelist_file [chrootlen] != '/')) {
+		log_msg(LOG_ERR, "zone fetcher will not be able to reload zonelist after chroot");
+		zonelist_file = NULL;
+	    } else {
+		char *new_zonelist_file = strdup (zonelist_file + chrootlen);
+		free (zonelist_file);
+		zonelist_file = new_zonelist_file;
+	    }
+	}
 
         xfrd_ns(&sockets, config);
 

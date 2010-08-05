@@ -12,6 +12,8 @@ Bugfixes:
   in ldns versions 1.6.5 and lower. See KNOWN_ISSUES for more information.
 * Bugreport #165: Ensure Output SOA serial is always bigger than Input SOA
   serial.
+* Bugreport #167: Zone fetcher now also picks up changes when zonelist is
+  reloaded (thanks Rick van Rein)
 
 OpenDNSSEC 1.1.1 - 2010-07-08
 

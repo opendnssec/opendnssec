@@ -431,6 +431,7 @@ class Engine:
                         response += self.read_zonelist()
                         response += "\n" + self.check_zone_conf_updates()
                 self.notify_all()
+		self.notify_zonefetcher ()
             if command[:4] == "stop":
                 self.stop_engine()
                 response = "Engine stopped"
@@ -514,6 +515,21 @@ class Engine:
                 syslog.syslog(syslog.LOG_INFO, "no command channel to clean up")
         syslog.syslog(syslog.LOG_INFO, "close syslog")
         syslog.closelog()
+
+    def notify_zonefetcher(self):
+        """Reload the zone list into the zone fetcher daemon"""
+        pid_file = self.config.zonefetch_pidfile
+        if not os.path.exists(pid_file):
+            syslog.syslog(syslog.LOG_ERR, "could not notify zone fetcher: pid file does not exist: " + pid_file)
+        else:
+            pf = open(pid_file, 'r')
+            pid = pf.read()
+            syslog.syslog(syslog.LOG_DEBUG, "send notify to pid " + pid)
+            pf.close()
+            try:
+                os.kill(int(pid), signal.SIGUSR1)
+            except OSError:
+                syslog.syslog(syslog.LOG_ERR, "could not notify zone fetcher: no such process " + pid)
 
     def read_zonelist(self):
         """Reads the list of zones from the zone list xml file. Added
