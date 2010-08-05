@@ -58,5 +58,3 @@ ods_signer_SOURCES=		ods-signer.c \
 
 ods_signer_LDADD=		$(LIBHSM)
 ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
-
-EXTRA_DIST = $(srcdir)/*.h
