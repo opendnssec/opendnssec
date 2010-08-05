@@ -65,6 +65,36 @@ line_contains_space_only(char* line, int line_len)
 }
 
 
+/*
+ * Trim trailing whitespace.
+ *
+ */
+static void
+adfile_rtrim(char* line, int* line_len)
+{
+    int i = strlen(line), nl = 0;
+    int trimmed = 0;
+
+    while (i>0) {
+        --i;
+        if (line[i] == '\n') {
+            nl = 1;
+        }
+        if (line[i] == ' ' || line[i] == '\t' || line[i] == '\n') {
+            line[i] = '\0';
+            trimmed++;
+        } else {
+            break;
+        }
+    }
+    if (nl) {
+        line[++i] = '\n';
+    }
+    *line_len -= trimmed;
+    return;
+}
+
+
 /**
  * Read one line from zone file.
  *
@@ -183,6 +213,8 @@ adfile_lookup_soa_rr(FILE* fd)
 
     while (line_len >= 0) {
         line_len = adfile_read_line(fd, (char*) line, &l);
+        adfile_rtrim(line, &line_len);
+
         if (line_len > 0) {
             if (line[0] != ';') {
                 status = ldns_rr_new_frm_str(&cur_rr, line, 0, NULL, NULL);
@@ -222,6 +254,7 @@ adfile_read_rr(FILE* fd, zone_type* zone_in, char* line, ldns_rdf** orig,
 
 adfile_read_line:
     len = adfile_read_line(fd, line, l);
+    adfile_rtrim(line, &len);
 
     if (len >= 0) {
         switch (line[0]) {
