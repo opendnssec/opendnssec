@@ -384,16 +384,15 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime)
         return 0;
     }
 
+    if (sc && sc->sig_refresh_interval) {
+        refresh = (uint32_t) (signtime + 
+            duration2time(sc->sig_refresh_interval));
+    }
+
     /* check freshness of existing signatures */
     rrs = rrset->rrsigs;
     while (rrs) {
         expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(rrs->rr));
-        if (sc->sig_refresh_interval) {
-            refresh = (uint32_t) (signtime +
-                duration2time(sc->sig_refresh_interval));
-        } else {
-            refresh = 0;
-        }
 
         if (!refresh || expiration < refresh) {
             /* this is it */
