@@ -48,18 +48,13 @@
 
 #include <pkcs11.h>
 
-/* fixed length from PKCS #11 specification */
+/*! Fixed length from PKCS#11 specification */
 #define HSM_TOKEN_LABEL_LENGTH 32
 
-/* we need some globals, for session management, and for the initial
- * context
- */
+/*! Global (initial) context */
 static hsm_ctx_t *_hsm_ctx;
 
-/* PKCS#11 specific functions */
-/*
- * General PKCS11 helper functions
- */
+/*! General PKCS11 helper functions */
 static char *
 ldns_pkcs11_rv_str(CK_RV rv)
 {
@@ -200,11 +195,17 @@ ldns_pkcs11_rv_str(CK_RV rv)
         }
 }
 
-/*
- * If the ctx is given, and it's error value is still 0, the
- * value will be set to 'error', and the error_message and error_action
- * will be set to the given strings
- */
+/*! Set HSM Context Error
+
+If the ctx is given, and it's error value is still 0, the value will be
+set to 'error', and the error_message and error_action will be set to
+the given strings.   
+
+\param ctx      HSM context
+\param error    error code
+\param action   action for which the error occured
+\param message  error message format string
+*/
 static void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...)
@@ -222,9 +223,17 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
     }
 }
 
-/* returns 1 if rv == CKR_OK. If it is not, and if there is no error
- * value set yet, the rv value will be set
- * to the given context (as an integer), and 0 will be returned */
+/*! Check HSM Context for Error
+
+If the rv is not CKR_OK, and there is not previous error registered in
+the context, to set the context error based on PKCS#11 return value.
+
+\param ctx      HSM context
+\param rv       PKCS#11 return value
+\param action   action for which the error occured
+\param message  error message format string
+\return         0 if rv == CKR_OK, otherwise 1
+*/
 static int
 hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *action)
 {
@@ -239,6 +248,7 @@ hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *action)
     return 0;
 }
 
+/*! Unload PKCS#11 provider */
 static void
 hsm_pkcs11_unload_functions(void *handle)
 {
@@ -252,6 +262,7 @@ hsm_pkcs11_unload_functions(void *handle)
     }
 }
 
+/*! Load PKCS#11 provider */
 static CK_RV
 hsm_pkcs11_load_functions(hsm_module_t *module)
 {
