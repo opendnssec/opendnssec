@@ -191,11 +191,11 @@ tools_audit(zone_type* zone, engineconfig_type* config)
         }
 
         if (config->working_dir) {
-            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s",
+            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s > /dev/null",
                 ODS_SE_AUDITOR, config->cfg_filename, config->working_dir,
                 finalized, zone->name);
         } else {
-            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s -z %s",
+            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s -z %s > /dev/null",
                 ODS_SE_AUDITOR, config->cfg_filename, finalized, zone->name);
         }
 
