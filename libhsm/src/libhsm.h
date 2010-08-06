@@ -52,7 +52,7 @@
 
 /*! HSM configuration */
 typedef struct {
-    unsigned int privkey_only;   /*!< Use private keys only */
+    unsigned int use_pubkey  ;   /*!< Maintain public keys in HSM */
 } hsm_config_t;
 
 /*! Data type to describe an HSM */

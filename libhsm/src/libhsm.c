@@ -470,7 +470,7 @@ hsm_session_free(hsm_session_t *session) {
 static void
 hsm_config_default(hsm_config_t *config)
 {
-    config->privkey_only = 0;
+    config->use_pubkey = 1;
 }
 
 /* creates a session_t structure, and automatically adds and initializes
@@ -795,33 +795,30 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
     CK_RV rv;
     CK_ULONG modulus_bits;
 
+    /* Template for both public & private keys */
     CK_ATTRIBUTE template[] = {
         {CKA_MODULUS_BITS, &modulus_bits, sizeof(CK_KEY_TYPE)}
     };
 
-#if 0
+    /* Template for both private keys only */
     CK_ATTRIBUTE template2[] = {
         {CKA_MODULUS, NULL, 0}
     };
-#endif
 
-#if 0
-    if ("Use public key") {
-#endif
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
-                                      session->session,
-                                      key->public_key,
-                                      template,
-                                      1);
-    if (hsm_pkcs11_check_error(ctx, rv,
-                               "Get attr value algorithm type")) {
-        return 0;
-    }
-
-    if ((CK_ULONG)template[0].ulValueLen < 1) {
-        return 0;
-    }
-#if 0
+    if (session->module->config->use_pubkey) {
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                          session->session,
+                                          key->public_key,
+                                          template,
+                                          1);
+        if (hsm_pkcs11_check_error(ctx, rv,
+                                   "Get attr value algorithm type")) {
+            return 0;
+        }
+    
+        if ((CK_ULONG)template[0].ulValueLen < 1) {
+            return 0;
+        }
     } else {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                           session->session,
@@ -834,7 +831,6 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
 
         modulus_bits = template2[0].ulValueLen * 8;
     }
-#endif
 
     return modulus_bits;
 }
@@ -1013,18 +1009,17 @@ hsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
     key = hsm_key_new();
     key->module = session->module;
     key->private_key = object;
-#if 0
-    if ("Use public key") {
-#endif
-    key->public_key = hsm_find_object_handle_for_id(
-                          ctx,
-                          session,
-                          CKO_PUBLIC_KEY,
-                          id,
-                          len);
-#if 0
+    
+    if (session->module->config->use_pubkey) {
+        key->public_key = hsm_find_object_handle_for_id(
+                              ctx,
+                              session,
+                              CKO_PUBLIC_KEY,
+                              id,
+                              len);
+    } else {
+        key->public_key = 0;
     }
-#endif
 
     free(id);
     return key;
@@ -1245,15 +1240,11 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
         return NULL;
     }
 
-#if 0
-    if ("Use public key") {
-#endif
+    if (session->module->config->use_pubkey) {
         hKey = key->public_key;
-#if 0
     } else {
         hKey = key->private_key;
     }
-#endif
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
@@ -1979,11 +1970,9 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
 
-#if 0
-    if ("Not use public key") {
+    if (! session->module->config->use_pubkey) {
         ctoken = CK_FALSE;
     }
-#endif
 
     CK_ATTRIBUTE publicKeyTemplate[] = {
         { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)   },
@@ -2022,13 +2011,13 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
 
     new_key = hsm_key_new();
     new_key->module = session->module;
-#if 0
-    if ("Use public key") {
-#endif
-    new_key->public_key = publicKey;
-#if 0
+
+    if (session->module->config->use_pubkey) {
+        new_key->public_key = publicKey;        
+    } else {
+        new_key->public_key = 0;        
     }
-#endif
+
     new_key->private_key = privateKey;
     return new_key;
 }
@@ -2051,19 +2040,14 @@ hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
     }
     key->private_key = 0;
 
-#if 0
-    if ("Use public key") {
-#endif
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
-                                               key->public_key);
-    if (hsm_pkcs11_check_error(ctx, rv, "Destroy public key")) {
-        return -4;
+    if (session->module->config->use_pubkey) {
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
+                                                   key->public_key);
+        if (hsm_pkcs11_check_error(ctx, rv, "Destroy public key")) {
+            return -4;
+        }
     }
     key->public_key = 0;
-#if 0
-    }
-#endif
-
 
     return 0;
 }
@@ -2637,13 +2621,11 @@ hsm_print_key(hsm_key_t *key) {
             printf("key:\n");
             printf("\tmodule: %p\n", (void *) key->module);
             printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
-#if 0
-            if ("Use public key") {
-#endif
-            printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
-#if 0
+            if (key->module->config->use_pubkey) {
+                printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
+            } else {
+                printf("\tpubkey handle: %s\n", "NULL");
             }
-#endif
             printf("\trepository: %s\n", key->module->name);
             printf("\talgorithm: %s\n", key_info->algorithm_name);
             printf("\tsize: %lu\n", key_info->keysize);
