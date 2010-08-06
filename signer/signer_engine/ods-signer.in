@@ -143,5 +143,7 @@ if __name__ == "__main__":
     try:
         result = parse_args()
         sys.exit(result)
+    except SystemExit, e:
+        raise
     except Exception, e:
         sys.exit(2)
