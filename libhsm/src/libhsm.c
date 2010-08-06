@@ -466,6 +466,13 @@ hsm_session_free(hsm_session_t *session) {
     }
 }
 
+/*! Set default HSM configuration */
+static void
+hsm_config_default(hsm_config_t *config)
+{
+    config->privkey_only = 0;
+}
+
 /* creates a session_t structure, and automatically adds and initializes
  * a module_t struct for it
  */
@@ -1709,10 +1716,13 @@ hsm_open(const char *config,
             /*module = hsm_module_new();*/
             token_label = NULL;
             module_path = NULL;
-            module_pin = NULL;            
+            module_pin = NULL;
+            hsm_config_default(&module_config);
+                 
             curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
             repository = (char *) xmlGetProp(xpath_obj->nodesetval->nodeTab[i],
                                              (const xmlChar *)"name");
+
             while (curNode) {
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
                     token_label = (char *) xmlNodeGetContent(curNode);
@@ -1722,6 +1732,7 @@ hsm_open(const char *config,
                     module_pin = (char *) xmlNodeGetContent(curNode);
                 curNode = curNode->next;
             }
+
             if (repository && token_label && module_path) {
                 if (module_pin) {
                     result = hsm_attach(repository,
