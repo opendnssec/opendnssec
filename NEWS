@@ -7,7 +7,9 @@ OpenDNSSEC trunk
 * Remove separate autoconf for libhsm/conf/enforcer
 * Add option to disable building the signer
 * Auditor handles chains of empty nonterminals correctly
+* Signer logs statistics just after outputting a new signed zone
 * Dnsruby-1.48 now required
+* ldns-1.6.6 now required
 
 OpenDNSSEC 1.1.0 branch
 
