@@ -3,7 +3,3 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 SUBDIRS = ksm common enforcerd utils test
-
-install-data-hook:
-	mkdir -p ${DESTDIR}$(localstatedir)/run/opendnssec
-	mkdir -p ${DESTDIR}$(localstatedir)/opendnssec
