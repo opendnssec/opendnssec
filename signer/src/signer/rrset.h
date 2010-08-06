@@ -37,13 +37,15 @@
 #include "config.h"
 #include "signer/hsm.h"
 #include "signer/signconf.h"
+#include "signer/stats.h"
 
 #include <ldns/ldns.h>
 
 typedef struct rrset_struct rrset_type;
 struct rrset_struct {
     ldns_rr_type rr_type;
-    int rr_count;
+    uint32_t rr_count;
+    uint32_t rrsig_count;
     uint32_t inbound_serial;
     uint32_t outbound_serial;
     ldns_dnssec_rrs* rrs;
@@ -104,11 +106,12 @@ int rrset_del_rr(rrset_type* rrset, ldns_rr* rr);
  * \param[in] sc sign configuration
  * \param[in] signtime time when the zone is signd
  * \param[in] serial outbound serial
+ * \param[out] stats update statistics
  * \return 0 on success, 1 on error
  *
  */
 int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime, uint32_t serial);
+    signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats);
 
 /**
  * Delete all RRs from RRset.

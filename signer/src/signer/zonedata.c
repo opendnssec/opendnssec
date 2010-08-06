@@ -473,7 +473,7 @@ zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
  *
  */
 int
-zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass)
+zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL, *to = NULL, *apex = NULL;
@@ -516,7 +516,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass)
             }
         }
         /* ready to add the NSEC record */
-        if (domain_nsecify(domain, to, zd->default_ttl, klass) != 0) {
+        if (domain_nsecify(domain, to, zd->default_ttl, klass, stats) != 0) {
             se_log_error("adding NSECs to domain failed");
             return 1;
         }
@@ -531,7 +531,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass)
  */
 int
 zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
-    nsec3params_type* nsec3params)
+    nsec3params_type* nsec3params, stats_type* stats)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     ldns_rbnode_t* nsec3_node = LDNS_RBTREE_NULL;
@@ -643,7 +643,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
 
         /* ready to add the NSEC3 record */
         if (domain_nsecify3(domain, to, zd->default_ttl, klass,
-            nsec3params) != 0) {
+            nsec3params, stats) != 0) {
             se_log_error("adding NSEC3s to domain failed");
             return 1;
         }
@@ -726,7 +726,8 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
  *
  */
 int
-zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc)
+zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
+    stats_type* stats)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -754,7 +755,7 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc)
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        if (domain_sign(ctx, domain, owner, sc, now, zd->outbound_serial)
+        if (domain_sign(ctx, domain, owner, sc, now, zd->outbound_serial, stats)
             != 0) {
             se_log_error("unable to sign zone data: failed to sign domain");
             hsm_destroy_context(ctx);

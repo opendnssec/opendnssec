@@ -77,6 +77,7 @@ zone_create(const char* name, ldns_rr_class klass)
     zone->tobe_removed = 0;
     zone->in_progress = 0;
     zone->zonedata = zonedata_create();
+    zone->stats = stats_create();
     lock_basic_init(&zone->zone_lock);
     return zone;
 }
@@ -348,7 +349,6 @@ zone_update_zonedata(zone_type* zone)
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->zonedata);
-
     return zonedata_update(zone->zonedata, zone->signconf);
 }
 
@@ -467,10 +467,17 @@ zone_nsecify(zone_type* zone)
     int error = 0;
     FILE* fd = NULL;
     char* filename = NULL;
+    time_t start = 0;
+    time_t end = 0;
 
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->zonedata);
+    se_log_assert(zone->stats);
+
+    zone->stats->nsec_count = 0;
+    zone->stats->nsec_time = 0;
+    start = time(NULL);
 
     /* add empty non-terminals */
     error = zonedata_entize(zone->zonedata, zone->dname);
@@ -481,19 +488,22 @@ zone_nsecify(zone_type* zone)
     }
 
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
-        error = zonedata_nsecify(zone->zonedata, zone->klass);
+        error = zonedata_nsecify(zone->zonedata, zone->klass, zone->stats);
     } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (zone->signconf->nsec3_optout) {
             se_log_debug("OptOut is being used for zone %s", zone->name);
         }
         error = zonedata_nsecify3(zone->zonedata, zone->klass,
-            zone->nsec3params);
+            zone->nsec3params, zone->stats);
     } else {
         se_log_error("unknown RR type for denial of existence, %i",
             zone->signconf->nsec_type);
         error = 1;
     }
     if (!error) {
+        end = time(NULL);
+        zone->stats->nsec_time = (end-start);
+
         filename = se_build_path(zone->name, ".denial", 0);
         fd = se_fopen(filename, NULL, "w");
         if (fd) {
@@ -519,13 +529,25 @@ zone_sign(zone_type* zone)
     int error = 0;
     FILE* fd = NULL;
     char* filename = NULL;
+    time_t start = 0;
+    time_t end = 0;
 
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->zonedata);
+    se_log_assert(zone->stats);
 
-    error = zonedata_sign(zone->zonedata, zone->dname, zone->signconf);
+    zone->stats->sig_count = 0;
+    zone->stats->sig_reuse = 0;
+    zone->stats->sig_time = 0;
+    start = time(NULL);
+
+    error = zonedata_sign(zone->zonedata, zone->dname, zone->signconf,
+        zone->stats);
     if (!error) {
+        end = time(NULL);
+        zone->stats->sig_time = (end-start);
+
         filename = se_build_path(zone->name, ".rrsigs", 0);
         fd = se_fopen(filename, NULL, "w");
         if (fd) {
@@ -565,6 +587,10 @@ zone_cleanup(zone_type* zone)
             signconf_cleanup(zone->signconf);
             zone->signconf = NULL;
         }
+        if (zone->stats) {
+            stats_cleanup(zone->stats);
+            zone->stats = NULL;
+        }
         if (zone->zonedata) {
             zonedata_cleanup(zone->zonedata);
             zone->zonedata = NULL;
@@ -573,8 +599,8 @@ zone_cleanup(zone_type* zone)
             se_free((void*) zone->policy_name);
             zone->policy_name = NULL;
         }
-            se_free((void*) zone->signconf_filename);
-            se_free((void*) zone->name);
+        se_free((void*) zone->signconf_filename);
+        se_free((void*) zone->name);
 
         lock_basic_destroy(&zone->zone_lock);
         se_free((void*) zone);

@@ -39,6 +39,7 @@
 #include "signer/nsec3params.h"
 #include "signer/rrset.h"
 #include "signer/signconf.h"
+#include "signer/stats.h"
 
 #include <ldns/ldns.h>
 #include <time.h>
@@ -151,11 +152,12 @@ void domain_update_status(domain_type* domain);
  * \param[in] to next domain
  * \param[in] ttl denial of existence ttl
  * \param[in] klass corresponding klass
+ * \param[out] stats update statistics
  * \return int 0 on success, 1 on error
  *
  */
 int domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass);
+    ldns_rr_class klass, stats_type* stats);
 
 /**
  * Add NSEC3 record to domain.
@@ -163,11 +165,12 @@ int domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
  * \param[in] to next domain
  * \param[in] ttl denial of existence ttl
  * \param[in] klass corresponding klass
+ * \param[out] stats update statistics
  * \return int 0 on success, 1 on error
  *
  */
 int domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass, nsec3params_type* nsec3params);
+    ldns_rr_class klass, nsec3params_type* nsec3params, stats_type* stats);
 
 /**
  * Sign domain.
@@ -177,11 +180,12 @@ int domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
  * \param[in] sc sign configuration
  * \param[in] signtime time zone is being signed
  * \param[in] serial outbound serial
+ * \param[out] stats update statistics
  * \return int 0 on success, 1 on error
  *
  */
 int domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime, uint32_t serial);
+    signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats);
 
 /**
  * Add RR to domain.

@@ -377,6 +377,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
 
     se_log_assert(fd);
     se_log_assert(zone);
+    se_log_assert(zone->stats);
 
     if (!include) {
         rr = adfile_lookup_soa_rr(fd);
@@ -430,6 +431,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
                line);
             break;
         }
+        zone_in->stats->sort_count += 1;
     }
 
     /* and done */

@@ -39,6 +39,7 @@
 #include "scheduler/locks.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
+#include "signer/stats.h"
 #include "signer/zonedata.h"
 
 #include <ldns/ldns.h>
@@ -67,6 +68,7 @@ struct zone_struct {
     time_t backoff; /* backoff value if there is something failing */
     zonedata_type* zonedata; /* zone data */
     int in_progress; /* in progress (check with active worker?) */
+    stats_type* stats; /* statistics */
     /* for zonelist */
     int just_added;
     int just_updated;

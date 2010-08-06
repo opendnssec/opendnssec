@@ -37,6 +37,7 @@
 #include "config.h"
 #include "signer/domain.h"
 #include "signer/signconf.h"
+#include "signer/stats.h"
 
 #include <ldns/ldns.h>
 
@@ -103,31 +104,35 @@ int zonedata_entize(zonedata_type* zd, ldns_rdf* apex);
  * Add NSEC records to zone data.
  * \param[in] zd zone data
  * \param[in] klass class of zone
+ * \param[out] stats update statistics
  * \return int 0 on success, 1 on false
  *
  */
-int zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass);
+int zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats);
 
 /**
  * Add NSEC3 records to zone data.
  * \param[in] zd zone data
  * \param[in] klass class of zone
  * \param[in] nsec3params NSEC3 paramaters
+ * \param[out] stats update statistics
  * \return int 0 on success, 1 on false
  *
  */
 int zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
-    nsec3params_type* nsec3params);
+    nsec3params_type* nsec3params, stats_type* stats);
 
 /**
  * Add RRSIG records to zone data.
  * \param[in] zd zone data
  * \param[in] owner zone owner
  * \param[in] sc signer configuration
+ * \param[out] stats update statistics
  * \return int 0 on success, 1 on false
  *
  */
-int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc);
+int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
+    stats_type* stats);
 
 /**
  * Update zone data with pending changes.

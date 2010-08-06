@@ -34,6 +34,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				signer/rrset.c signer/rrset.h \
 				signer/se_key.c signer/se_key.h \
 				signer/signconf.c signer/signconf.h \
+				signer/stats.c signer/stats.h \
 				signer/tools.c signer/tools.h \
 				signer/zone.c signer/zone.h \
 				signer/zonedata.c signer/zonedata.h \

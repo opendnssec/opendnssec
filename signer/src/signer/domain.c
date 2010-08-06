@@ -333,7 +333,7 @@ domain_nsecify_create_bitmap(domain_type* domain, ldns_rr_type types[],
  */
 int
 domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass)
+    ldns_rr_class klass, stats_type* stats)
 {
     ldns_rr_type types[1024];
     ldns_rr* nsec_rr = NULL;
@@ -344,6 +344,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
     se_log_assert(domain->name);
     se_log_assert(to);
     se_log_assert(to->name);
+    se_log_assert(stats);
 
     if (DNS_SERIAL_GT(domain->inbound_serial, domain->outbound_serial)) {
         /* create types bitmap */
@@ -374,13 +375,15 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                 se_log_alert("failed to create NSEC RRset");
                 return 1;
             }
+            stats->nsec_count += 1;
             domain->nsec_nxt_changed = 0;
             domain->nsec_bitmap_changed = 0;
-        } else {
+        } else if (domain->nsec_nxt_changed || domain->nsec_bitmap_changed) {
             se_log_assert(domain->nsec_rrset);
             se_log_assert(domain->nsec_rrset->rrs);
             se_log_assert(domain->nsec_rrset->rrs->rr);
             nsec_rr = domain->nsec_rrset->rrs->rr;
+            stats->nsec_count += 1;
 
             if (domain->nsec_nxt_changed) {
                 se_log_debug("nsec nxt changed");
@@ -388,6 +391,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                     SE_NSEC_RDATA_NXT);
                 if (!old_rdf) {
                     se_log_alert("failed to update NSEC next owner name");
+                    stats->nsec_count -= 1;
                     return 1;
                 }
                 domain->nsec_nxt_changed = 0;
@@ -399,6 +403,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                     LDNS_RR_TYPE_NSEC), SE_NSEC_RDATA_BITMAP);
                 if (!old_rdf) {
                     se_log_alert("failed to update NSEC bitmap");
+                    stats->nsec_count -= 1;
                     return 1;
                 }
                 domain->nsec_bitmap_changed = 0;
@@ -417,7 +422,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
  */
 int
 domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass, nsec3params_type* nsec3params)
+    ldns_rr_class klass, nsec3params_type* nsec3params, stats_type* stats)
 {
     domain_type* orig_domain = NULL;
     ldns_rr_type types[1024];
@@ -437,6 +442,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
     se_log_assert(to->nsec3);
     se_log_assert(to->name);
     se_log_assert(nsec3params);
+    se_log_assert(stats);
 
     orig_domain = domain->nsec3; /* use the back reference */
     if (DNS_SERIAL_GT(orig_domain->inbound_serial,
@@ -463,6 +469,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         }
         /* create new NSEC3 RR */
         if (!domain->nsec_rrset) {
+            se_log_debug("new nsec3");
             nsec_rr = ldns_rr_new();
             if (!nsec_rr) {
                 se_log_alert("failed to create NSEC3 rr");
@@ -509,6 +516,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
                 se_log_alert("failed to create NSEC3 RRset");
                 return 1;
             }
+            stats->nsec_count += 1;
             domain->nsec_nxt_changed = 0;
             orig_domain->nsec_nxt_changed = 0;
             orig_domain->nsec_bitmap_changed = 0;
@@ -517,11 +525,16 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             se_log_assert(domain->nsec_rrset->rrs);
             se_log_assert(domain->nsec_rrset->rrs->rr);
             nsec_rr = domain->nsec_rrset->rrs->rr;
+            if (domain->nsec_nxt_changed || orig_domain->nsec_bitmap_changed) {
+                stats->nsec_count += 1;
+            }
+
             if (domain->nsec_nxt_changed) {
                 old_rdf = ldns_rr_set_rdf(nsec_rr, next_owner_rdf,
                     SE_NSEC3_RDATA_NXT);
                 if (!old_rdf) {
                     se_log_alert("failed to update NSEC3 next owner name");
+                    stats->nsec_count -= 1;
                     return 1;
                 }
                 domain->nsec_nxt_changed = 0;
@@ -532,6 +545,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
                     LDNS_RR_TYPE_NSEC3), SE_NSEC3_RDATA_BITMAP);
                 if (!old_rdf) {
                     se_log_alert("failed to update NSEC3 bitmap");
+                    stats->nsec_count -= 1;
                     return 1;
                 }
                 orig_domain->nsec_bitmap_changed = 0;
@@ -551,7 +565,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
  */
 int
 domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime, uint32_t serial)
+    signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     ldns_rdf* soa_serial = NULL;
@@ -563,6 +577,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     se_log_assert(owner);
     se_log_assert(sc);
     se_log_assert(signtime);
+    se_log_assert(stats);
 
     if (domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
         domain->domain_status == DOMAIN_STATUS_NONE) {
@@ -572,7 +587,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (domain->nsec3 && domain->nsec3->nsec_rrset) {
             error = rrset_sign(ctx, domain->nsec3->nsec_rrset, owner, sc,
-                signtime, serial);
+                signtime, serial, stats);
             if (error) {
                 se_log_error("failed to sign NSEC3 RRset");
                 return error;
@@ -580,7 +595,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
         }
     } else if (domain->nsec_rrset) {
         error = rrset_sign(ctx, domain->nsec_rrset, owner, sc, signtime,
-            serial);
+            serial, stats);
         if (error) {
             se_log_error("failed to sign NSEC RRset");
             return error;
@@ -616,7 +631,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
             rrset->drop_signatures = 1;
         }
 
-        error = rrset_sign(ctx, rrset, owner, sc, signtime, serial);
+        error = rrset_sign(ctx, rrset, owner, sc, signtime, serial, stats);
         if (error) {
             se_log_error("failed to sign RRset[%i]", (int) rrset->rr_type);
             return error;
