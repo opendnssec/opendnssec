@@ -42,7 +42,7 @@ char *progname = NULL;
 void
 usage ()
 {
-    fprintf(stderr, "usage: %s [-f config] [-gsd]\n", progname);
+    fprintf(stderr, "usage: %s [-c config] [-gsd]\n", progname);
 }
 
 int
@@ -76,9 +76,9 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt(argc, argv, "hgsdrf:")) != -1) {
+    while ((ch = getopt(argc, argv, "hgsdrc:")) != -1) {
         switch (ch) {
-        case 'f':
+        case 'c':
             config = strdup(optarg);
             break;
         case 'g':

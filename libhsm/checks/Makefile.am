@@ -32,25 +32,25 @@ regress:
 	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,ncipher,multi}'
 
 regress-aepkeyper: hsmcheck
-	./hsmcheck -f conf-aepkeyper.xml -gsdr
+	./hsmcheck -c conf-aepkeyper.xml -gsdr
 
 regress-sca6000: hsmcheck
-	./hsmcheck -f conf-sca6000.xml -gsdr
+	./hsmcheck -c conf-sca6000.xml -gsdr
 
 regress-softhsm: hsmcheck token.db
 	env $(SOFTHSM_ENV) \
-	./hsmcheck -f conf-softhsm.xml -gsdr
+	./hsmcheck -c conf-softhsm.xml -gsdr
 
 regress-etoken: hsmcheck
-	./hsmcheck -f conf-etoken.xml -gsdr
+	./hsmcheck -c conf-etoken.xml -gsdr
 
 regress-opensc: hsmcheck
-	./hsmcheck -f conf-opensc.xml -gsdr
+	./hsmcheck -c conf-opensc.xml -gsdr
 
 regress-ncipher: hsmcheck
-	./hsmcheck -f conf-ncipher.xml -gsdr
+	./hsmcheck -c conf-ncipher.xml -gsdr
 
 regress-multi: hsmcheck token.db othertoken.db
 	env $(SOFTHSM_ENV) \
-	./hsmcheck -f conf-multi.xml -gsdr
+	./hsmcheck -c conf-multi.xml -gsdr
 
