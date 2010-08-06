@@ -839,7 +839,6 @@ domain_print_rrsig(FILE* fd, domain_type* domain)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     rrset_type* rrset = NULL;
-    rrset_type* soa_rrset = NULL;
 
     if (domain->rrsets && domain->rrsets->root != LDNS_RBTREE_NULL) {
         node = ldns_rbtree_first(domain->rrsets);
