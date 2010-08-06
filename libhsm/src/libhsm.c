@@ -1721,6 +1721,8 @@ hsm_open(const char *config,
                     module_path = (char *) xmlNodeGetContent(curNode);
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
                     module_pin = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"NoPublicKeys"))
+                    module_config.use_pubkey = 0;                
                 curNode = curNode->next;
             }
 
