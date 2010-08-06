@@ -781,9 +781,11 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
         {CKA_MODULUS_BITS, &modulus_bits, sizeof(CK_KEY_TYPE)}
     };
 
+#if 0
     CK_ATTRIBUTE template2[] = {
         {CKA_MODULUS, NULL, 0}
     };
+#endif
 
 #if 0
     if ("Use public key") {
