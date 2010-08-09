@@ -220,7 +220,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         /* update task for new zone */
         zone->task->what = signconf_compare(zone->signconf, signconf);
         /* pivotal 4593322 (sign after update?): */
-        zone->task->when = time_now();
+        /* zone->task->when = time_now(); */
         /* end pivotal 4593322 */
         signconf_cleanup(zone->signconf);
         zone->signconf = signconf;
