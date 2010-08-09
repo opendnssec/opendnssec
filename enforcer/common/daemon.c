@@ -38,6 +38,8 @@
  * Most of this is based on stuff I have seen in NSD
  */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <syslog.h>
