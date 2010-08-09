@@ -37,3 +37,8 @@ install-data-hook:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signed
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/run
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/run/opendnssec
+
+doxygen:
+	(cd libhsm; $(MAKE) doxygen)
+	(cd enforcer; $(MAKE) doxygen)
+	(cd signer; $(MAKE) doxygen)
