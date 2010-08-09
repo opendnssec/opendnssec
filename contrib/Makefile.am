@@ -6,7 +6,7 @@ SPEC = opendnssec.spec
 
 EXTRA_DIST = $(srcdir)/*.spec.in
 
-dist_data_DATA = ${SPEC}
+noinst_DATA = ${SPEC}
 DISTCLEANFILES =+ ${SPEC}
 
 opendnssec.spec: opendnssec.spec.in
