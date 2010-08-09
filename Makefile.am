@@ -37,5 +37,3 @@ install-data-hook:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signed
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/run
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/run/opendnssec
-
-include doxygen.am
