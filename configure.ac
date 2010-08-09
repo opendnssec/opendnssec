@@ -224,10 +224,17 @@ if test "x${enable_eppclient}" = "xyes"; then
 fi
 AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
 
+# doxygen
+DX_PDF_FEATURE(OFF)
+DX_PS_FEATURE(OFF)
+DX_INIT_DOXYGEN(${PACKAGE_NAME}, [Doxyfile], [doxygen-doc])
+
+
 AC_CONFIG_HEADER([common/config.h])
 
 AC_CONFIG_FILES([
 	Makefile
+	Doxyfile
 	common/Makefile
 	conf/Makefile
 	conf/conf.xml
