@@ -36,7 +36,6 @@
 
 #include <config.h>
 #include <ctype.h>
-#include <ldns/ldns.h>
 #include <stdint.h>
 #include <time.h>
 #ifdef HAVE_SYS_TYPES_H
@@ -45,6 +44,8 @@
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+
+#include <ldns/ldns.h>
 
 /**
  * Statistics structure.
