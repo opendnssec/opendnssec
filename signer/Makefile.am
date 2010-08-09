@@ -5,6 +5,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 SUBDIRS = src
 
 doxygen:
+	rm -fr $(top_builddir)/signer/doxygen-doc
 	env $(DX_ENV) \
 		PROJECT_NAME="OpenDNSSEC-signer" \
 		SRCDIR=$(top_srcdir)/signer \
