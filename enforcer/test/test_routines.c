@@ -36,6 +36,8 @@
  *      available from http://cunit.sourcefourge.net.
 -*/
 
+#include "config.h"
+
 #include <assert.h>
 #include <string.h>
 #include <strings.h>
