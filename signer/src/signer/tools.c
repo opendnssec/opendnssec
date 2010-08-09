@@ -35,7 +35,6 @@
 #include "adapter/adapter.h"
 #include "daemon/engine.h"
 #include "scheduler/locks.h"
-#include "signer/stats.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
 #include "util/file.h"
@@ -56,18 +55,10 @@ tools_read_input(zone_type* zone)
 {
     char* tmpname = NULL;
     int error = 0;
-    time_t start = 0;
-    time_t end = 0;
 
     se_log_assert(zone);
     se_log_assert(zone->inbound_adapter);
     se_log_assert(zone->signconf);
-    se_log_assert(zone->stats);
-
-    zone->stats->sort_count = 0;
-    zone->stats->sort_time = 0;
-    start = time(NULL);
-
     se_log_verbose("read zone %s", zone->name);
 
     /* make a copy (slooooooow, use system(cp) ?) */
@@ -86,9 +77,6 @@ tools_read_input(zone_type* zone)
             error = 1;
             break;
     }
-    end = time(NULL);
-    zone->stats->sort_time = (end-start);
-
     return error;
 }
 
@@ -128,17 +116,11 @@ int
 tools_nsecify(zone_type* zone)
 {
     int error = 0;
-    time_t start = 0;
-    time_t end = 0;
 
     se_log_assert(zone);
     se_log_assert(zone->signconf);
-    se_log_assert(zone->stats);
     se_log_verbose("nsecify zone %s", zone->name);
-    start = time(NULL);
     error = zone_nsecify(zone);
-    end = time(NULL);
-    zone->stats->nsec_time = (end-start);
     return error;
 }
 
@@ -150,19 +132,10 @@ tools_nsecify(zone_type* zone)
 int
 tools_sign(zone_type* zone)
 {
-    int error = 0;
-    time_t start = 0;
-    time_t end = 0;
-
     se_log_assert(zone);
     se_log_assert(zone->signconf);
-    se_log_assert(zone->stats);
     se_log_verbose("sign zone %s", zone->name);
-    start = time(NULL);
-    error = zone_sign(zone);
-    end = time(NULL);
-    zone->stats->sig_time = (end-start);
-    return error;
+    return zone_sign(zone);
 }
 
 
@@ -191,13 +164,14 @@ tools_audit(zone_type* zone, engineconfig_type* config)
         }
 
         if (config->working_dir) {
-            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s > /dev/null",
+            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s",
                 ODS_SE_AUDITOR, config->cfg_filename, config->working_dir,
                 finalized, zone->name);
         } else {
-            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s -z %s > /dev/null",
+            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s -z %s",
                 ODS_SE_AUDITOR, config->cfg_filename, finalized, zone->name);
         }
+
 
         se_log_debug("system call: %s", str);
         error = system(str);
@@ -221,9 +195,7 @@ int tools_write_output(zone_type* zone)
     int error = 0;
 
     se_log_assert(zone);
-    se_log_assert(zone->signconf);
     se_log_assert(zone->outbound_adapter);
-    se_log_assert(zone->stats);
     se_log_verbose("write zone %s", zone->name);
 
     switch (zone->outbound_adapter->type) {
@@ -237,11 +209,5 @@ int tools_write_output(zone_type* zone)
             error = 1;
             break;
     }
-
-    /* log stats */
-    se_log_debug("log stats for zone %s", zone->name);
-    stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
-    stats_clear(zone->stats);
-
     return error;
 }
