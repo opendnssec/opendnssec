@@ -49,7 +49,7 @@ start = element Configuration {
 			element Capacity { xsd:positiveInteger }?,
 
 			# Require backup of keys before use (optional)
-			element RequireBackup { empty },
+			element RequireBackup { empty }?,
 
 			# Do not maintain public keys in the repository (optional)
 			element NoPublicKeys { empty }?
