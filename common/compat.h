@@ -28,6 +28,10 @@
  
 #include "config.h"
 
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
+
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
