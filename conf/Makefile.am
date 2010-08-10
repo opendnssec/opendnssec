@@ -34,7 +34,8 @@ regress: $(RNG)
 	@test -x ${XMLLINT} || \
 		(echo "xmllint is required for regression tests"; false)
 	@for i in ${XML}; do \
-		${XMLLINT} --noout --relaxng `basename $$i .xml`.rng $$i; \
+		${XMLLINT} --noout --relaxng \
+			`basename $$i .xml`.rng $$i || exit $?; \
 	done
 	@test -x ${XSLTPROC} || \
 		(echo "xsltproc is required for regression tests"; false)
