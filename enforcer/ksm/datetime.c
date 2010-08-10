@@ -34,6 +34,8 @@
 -*/
 
 #define _GNU_SOURCE /* glibc2 needs this */
+#include "config.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -41,7 +43,6 @@
 #include <time.h>
 #include <limits.h>
 
-#include "config.h"
 #include "compat.h"
 
 #include "ksm/ksm.h"

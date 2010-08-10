@@ -33,13 +33,14 @@
  *      String utility functions used by the whois programs.
 -*/
 
+#include "config.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "config.h"
 #include "compat.h"
 
 #include "ksm/string_util.h"
