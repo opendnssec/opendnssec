@@ -59,6 +59,8 @@ static int logging_to_syslog = 0;
 static FILE* logfile = NULL;
 static int log_level = LOG_CRIT;
 
+#define CTIME_LENGTH 26
+
 
 /* TODO:
    - prepend ods_ in common library
@@ -193,8 +195,8 @@ static void
 se_log_vmsg(int priority, const char* t, const char* s, va_list args)
 {
     char message[ODS_SE_MAXLINE];
+    static char nowstr[CTIME_LENGTH];
     time_t now = time_now();
-    char* strtime = NULL;
 
     vsnprintf(message, sizeof(message), s, args);
 
@@ -208,16 +210,12 @@ se_log_vmsg(int priority, const char* t, const char* s, va_list args)
     if (!logfile) {
         return;
     }
-    strtime = ctime(&now);
-    if (strlen(strtime) > 1) {
-        strtime[strlen(strtime)-1] = '\0';
-        fprintf(logfile, "[%s] %s[%i] %s: %s\n", strtime,
-            PACKAGE_TARNAME, priority, t, message);
-    } else {
-        fprintf(logfile, "[%u] %s[%i] %s: %s\n", time(NULL),
-            PACKAGE_TARNAME, priority, t, message);
-    }
 
+    ctime_r(&now, nowstr);
+    nowstr[24] = '\0'; /* remove trailing linefeed */
+
+    fprintf(logfile, "[%s] %s[%i] %s: %s\n", nowstr,
+        PACKAGE_TARNAME, priority, t, message);
     fflush(logfile);
 }
 
