@@ -252,6 +252,8 @@ AC_CONFIG_FILES([
 	enforcer/utils/Makefile
 	enforcer/utils/ods-ksmutil.1
 	enforcer/test/Makefile
+	enforcer/test/database_setup_mysql.sh
+	enforcer/test/database_setup_sqlite3.sh
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/ods-hsmspeed.1
