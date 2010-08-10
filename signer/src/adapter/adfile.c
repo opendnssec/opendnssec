@@ -482,7 +482,7 @@ adfile_read(struct zone_struct* zone, const char* filename)
     }
 
     /* read the zonefile */
-    fd = se_fopen(zone_in->inbound_adapter->filename, NULL, "r");
+    fd = se_fopen(filename, NULL, "r");
     if (fd) {
         error = adfile_read_file(fd, zone_in, 0);
         se_fclose(fd);
@@ -491,7 +491,7 @@ adfile_read(struct zone_struct* zone, const char* filename)
     }
     if (error) {
         se_log_error("error reading from input file adapter zone %s file %s",
-            zone_in->name, zone_in->inbound_adapter->filename);
+            zone_in->name, filename);
     }
     return error;
 }
