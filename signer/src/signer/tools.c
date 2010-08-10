@@ -67,8 +67,8 @@ tools_read_input(zone_type* zone)
     zone->stats->sort_time = 0;
     start = time(NULL);
 
-    se_log_verbose("read zone %s from input adapter %s",
-        zone->name, zone->inbound_adapter->filename);
+    se_log_verbose("read zone %s from input adapter %i",
+        zone->name, zone->inbound_adapter->type);
 
     switch (zone->inbound_adapter->type) {
         case ADAPTER_FILE:
