@@ -1,5 +1,5 @@
 /*
- * $Id: zone_fetcher.h 2309 2009-10-22 12:40:30Z jakob $
+ * $Id$
  *
  * Copyright (c) 2009 NLnet Labs. All rights reserved.
  *
