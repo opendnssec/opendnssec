@@ -60,8 +60,7 @@ parse_zonelist_element(xmlXPathContextPtr xpathCtx, xmlChar* expr)
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
-        se_log_error("unable to evaluate xpath expression %s",
-            expr?expr:"(null)");
+        se_log_error("unable to evaluate xpath expression %s", expr);
         return NULL;
     }
     str = (const char*) xmlXPathCastToString(xpathObj);
@@ -89,8 +88,7 @@ parse_zonelist_adapters_expr(xmlXPathContextPtr xpathCtx, xmlChar* expr,
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
-        se_log_error("unable to evaluate xpath expression %s",
-            expr?expr:"(null)");
+        se_log_error("unable to evaluate xpath expression %s", expr);
         return NULL;
     }
 

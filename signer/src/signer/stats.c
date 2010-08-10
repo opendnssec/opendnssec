@@ -71,7 +71,7 @@ stats_clear(stats_type* stats)
  *
  */
 void
-stats_log(stats_type* stats, char* name, ldns_rr_type nsec_type)
+stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type)
 {
     uint32_t avsign = 0;
 

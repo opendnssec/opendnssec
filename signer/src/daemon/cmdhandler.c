@@ -523,7 +523,7 @@ again:
         if (n <= 0) {
             return;
         }
-        se_log_verbose("received command %s[%i]", buf?buf:"(null)", n);
+        se_log_verbose("received command %s[%i]", buf, n);
 
         if (n == 4 && strncmp(buf, "help", n) == 0) {
             se_log_debug("help command");
@@ -592,7 +592,7 @@ again:
             cmdhandler_handle_cmd_unknown(sockfd, buf);
         }
 
-        se_log_debug("done handling command %s[%i]", buf?buf:"(null)", n);
+        se_log_debug("done handling command %s[%i]", buf, n);
         (void)snprintf(buf, SE_CMDH_CMDLEN, "\ncmd> ");
         se_writen(sockfd, buf, strlen(buf));
     }

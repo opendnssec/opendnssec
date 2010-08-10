@@ -250,7 +250,7 @@ int tools_write_output(zone_type* zone)
 
     /* log stats */
     se_log_debug("log stats for zone %s", zone->name?zone->name:"(null)");
-    stats_log(zone->stats, (const char*) zone->name, zone->signconf->nsec_type);
+    stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
     stats_clear(zone->stats);
 
     return error;

@@ -202,7 +202,7 @@ se_log_vmsg(int priority, const char* t, const char* s, va_list args)
 
 #ifdef HAVE_SYSLOG_H
     if (logging_to_syslog) {
-        syslog(priority, "%s", message?message:"(null)");
+        syslog(priority, "%s", message);
         return;
     }
 #endif /* HAVE_SYSLOG_H */

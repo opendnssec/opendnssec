@@ -75,7 +75,7 @@ stats_type* stats_create(void);
  * \param[in] nsec_type NSEC or NSEC3
  *
  */
-void stats_log(stats_type* stats, char* name, ldns_rr_type nsec_type);
+void stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type);
 
 /**
  * Clear statistics.
