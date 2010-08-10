@@ -209,10 +209,15 @@ se_log_vmsg(int priority, const char* t, const char* s, va_list args)
         return;
     }
     strtime = ctime(&now);
-    strtime[strlen(strtime)-1] = '\0';
+    if (strlen(strtime) > 1) {
+        strtime[strlen(strtime)-1] = '\0';
+        fprintf(logfile, "[%s] %s[%i] %s: %s\n", strtime,
+            PACKAGE_TARNAME, priority, t, message);
+    } else {
+        fprintf(logfile, "[%u] %s[%i] %s: %s\n", time(NULL),
+            PACKAGE_TARNAME, priority, t, message);
+    }
 
-    fprintf(logfile, "[%s] %s[%i] %s: %s\n", strtime,
-        PACKAGE_TARNAME, priority, t, message);
     fflush(logfile);
 }
 
