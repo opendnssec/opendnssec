@@ -154,7 +154,8 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     xpathCtx = xmlXPathNewContext(doc);
     if (xpathCtx == NULL) {
         se_log_error("unable to create new XPath context for cfgile %s expr %s",
-            cfgfile?cfgfile:"(null)", expr?expr:"(null)");
+            cfgfile?cfgfile:"(null)",
+            expr?(char *)expr:"(null)");
         xmlFreeDoc(doc);
         return NULL;
     }
@@ -165,7 +166,8 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
         xpathObj->nodesetval->nodeNr <= 0) {
         if (required) {
             se_log_error("unable to evaluate required element %s in cfgfile %s",
-                xexpr?xexpr:"(null)", cfgfile?cfgfile:"(null)");
+                xexpr?(char *)xexpr:"(null)",
+                cfgfile?cfgfile:"(null)");
         }
         xmlXPathFreeContext(xpathCtx);
         if (xpathObj) {
