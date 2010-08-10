@@ -32,5 +32,5 @@ TESTS_ENVIRONMENT = \
 
 TESTS = test
 
-test_LDADD = ../ksm/libksm.a -lncurses @CUNIT_LIBS@ @DB_LIBS@ $(LIBHSM)
+test_LDADD = ../ksm/libksm.a @CUNIT_LIBS@ @DB_LIBS@ $(LIBHSM)
 test_LDFLAGS = -no-install
