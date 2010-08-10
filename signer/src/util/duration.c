@@ -77,7 +77,7 @@ duration_create_from_string(const char* str)
 
     P = strchr(str, 'P');
     if (!P) {
-        se_log_error("unable to create duration from string '%s'", str);
+        se_log_error("unable to create duration from string %s", str);
         duration_cleanup(duration);
         return NULL;
     }
@@ -127,7 +127,8 @@ duration_create_from_string(const char* str)
     W = strchr(str, 'W');
     if (W) {
         if (not_weeks) {
-            se_log_error("unable to create duration from string %s", P);
+            se_log_error("unable to create duration from string %s",
+                P?P:"(null)");
             duration_cleanup(duration);
             return NULL;
         } else {
@@ -285,7 +286,8 @@ duration2time(duration_type* duration)
         if (duration->months || duration->years) {
             /* TODO calculate correct number of days in this month/year */
             dstr = duration2string(duration);
-            se_log_warning("converting duration %s to approximate value", dstr);
+            se_log_warning("converting duration %s to approximate value",
+                dstr?dstr:"(null)");
             se_free((void*) dstr);
         }
     }

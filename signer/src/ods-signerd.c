@@ -45,7 +45,7 @@
 static void
 usage(FILE* out)
 {
-    fprintf(out, "Usage: %s [OPTIONS]\n", PACKAGE_TARNAME);
+    fprintf(out, "Usage: %s [OPTIONS]\n", "ods-signerd");
     fprintf(out, "Start the OpenDNSSEC signer engine daemon.\n\n");
     fprintf(out, "Supported options:\n");
     fprintf(out, " -c | --config <cfgfile> Read configuration from file.\n");

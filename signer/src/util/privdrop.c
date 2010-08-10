@@ -244,7 +244,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 # ifndef SETEUID_BREAKS_SETUID
         status = seteuid(uid);
         if (status != 0) {
-           se_log_error("seteuid() for '%s' (%lu) failed: %s",
+           se_log_error("seteuid() for %s (%lu) failed: %s",
                username, (unsigned long) uid, strerror(errno));
            return -1;
         }

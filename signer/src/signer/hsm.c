@@ -61,7 +61,8 @@ hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
         hsm_key_free(hsmkey);
     } else {
         /* could not find key */
-        se_log_error("could not find key %s", key_id->locator);
+        se_log_error("could not find key %s",
+            key_id->locator?key_id->locator:"(null)");
         error = 1;
     }
     hsm_sign_params_free(params);
@@ -113,7 +114,8 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
         hsm_key_free(hsmkey);
     } else {
         /* could not find key */
-        se_log_error("could not find key %s", key_id->locator);
+        se_log_error("could not find key %s",
+            key_id->locator?key_id->locator:"(null)");
         error = 1;
     }
 
@@ -122,4 +124,3 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
     }
     return NULL;
 }
-

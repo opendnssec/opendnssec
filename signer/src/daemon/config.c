@@ -54,11 +54,11 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
     FILE* cfgfd = NULL;
 
     se_log_assert(cfgfile);
-    se_log_debug("load config file: %s", cfgfile);
+    se_log_debug("load config file: %s", cfgfile?cfgfile:"(null)");
 
     /* check syntax (slows down parsing configuration file) */
     if (parse_file_check(cfgfile, rngfile) != 0) {
-        se_log_error("unable to parse cfgfile %s", cfgfile);
+        se_log_error("unable to parse cfgfile %s", cfgfile?cfgfile:"(null)");
         return NULL;
     }
 
@@ -87,7 +87,7 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
         return ecfg;
     }
 
-    se_log_error("unable to read cfgfile %s", cfgfile);
+    se_log_error("unable to read cfgfile %s", cfgfile?cfgfile:"(null)");
     return NULL;
 }
 

@@ -91,12 +91,14 @@ signconf_read(const char* filename, time_t last_modified)
 
     st_mtime = se_file_lastmodified(filename);
     if (st_mtime <= last_modified) {
-        se_log_debug("signconf file %s is unchanged", filename);
+        se_log_debug("signconf file %s is unchanged",
+            filename?filename:"(null)");
         return NULL;
     }
 
     if (parse_file_check(filename, rngfile) != 0) {
-        se_log_error("unable to parse signconf file %s", filename);
+        se_log_error("unable to parse signconf file %s",
+            filename?filename:"(null)");
         return NULL;
     }
 
@@ -129,7 +131,7 @@ signconf_read(const char* filename, time_t last_modified)
         return signconf;
     }
 
-    se_log_error("unable to read signconf file %s", filename);
+    se_log_error("unable to read signconf file %s", filename?filename:"(null)");
     return NULL;
 }
 
@@ -221,8 +223,8 @@ signconf_check(signconf_type* sc)
         ret = 1;
     }
     if (signconf_soa_serial_check(sc->soa_serial) != 0) {
-        se_log_error("signconf-check: wrong soa serial type '%s'",
-            sc->soa_serial);
+        se_log_error("signconf-check: wrong soa serial type %s",
+            sc->soa_serial?sc->soa_serial:"(null)");
         ret = 1;
     }
 
@@ -357,36 +359,37 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
 
     if (sc) {
         fprintf(out, "<SignerConfiguration>\n");
-        fprintf(out, "\t<Zone name=\"%s\">\n", name);
+        fprintf(out, "\t<Zone name=\"%s\">\n", name?name:"(null)");
 
         /* Signatures */
         fprintf(out, "\t\t<Signatures>\n");
         s = duration2string(sc->sig_resign_interval);
-        fprintf(out, "\t\t\t<Resign>%s</Resign>\n", s);
+        fprintf(out, "\t\t\t<Resign>%s</Resign>\n", s?s:"(null)");
         se_free((void*)s);
 
         s = duration2string(sc->sig_refresh_interval);
-        fprintf(out, "\t\t\t<Refresh>%s</Refresh>\n", s);
+        fprintf(out, "\t\t\t<Refresh>%s</Refresh>\n", s?s:"(null)");
         se_free((void*)s);
 
         fprintf(out, "\t\t\t<Validity>\n");
 
         s = duration2string(sc->sig_validity_default);
-        fprintf(out, "\t\t\t\t<Default>%s</Default>\n", s);
+        fprintf(out, "\t\t\t\t<Default>%s</Default>\n", s?s:"(null)");
         se_free((void*)s);
 
         s = duration2string(sc->sig_validity_denial);
-        fprintf(out, "\t\t\t\t<Denial>%s</Denial>\n", s);
+        fprintf(out, "\t\t\t\t<Denial>%s</Denial>\n", s?s:"(null)");
         se_free((void*)s);
 
         fprintf(out, "\t\t\t</Validity>\n");
 
         s = duration2string(sc->sig_jitter);
-        fprintf(out, "\t\t\t<Jitter>%s</Jitter>\n", s);
+        fprintf(out, "\t\t\t<Jitter>%s</Jitter>\n", s?s:"(null)");
         se_free((void*)s);
 
         s = duration2string(sc->sig_inception_offset);
-        fprintf(out, "\t\t\t<InceptionOffset>%s</InceptionOffset>\n", s);
+        fprintf(out, "\t\t\t<InceptionOffset>%s</InceptionOffset>\n",
+            s?s:"(null)");
         se_free((void*)s);
 
         fprintf(out, "\t\t</Signatures>\n");
@@ -406,7 +409,8 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
                 sc->nsec3_algo);
             fprintf(out, "\t\t\t\t\t<Iterations>%i</Iterations>\n",
                 sc->nsec3_iterations);
-            fprintf(out, "\t\t\t\t\t<Salt>%s</Salt>\n", sc->nsec3_salt);
+            fprintf(out, "\t\t\t\t\t<Salt>%s</Salt>\n",
+                sc->nsec3_salt?sc->nsec3_salt:"(null)");
             fprintf(out, "\t\t\t\t</Hash>\n");
             fprintf(out, "\t\t\t</NSEC3>\n");
         }
@@ -416,7 +420,7 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
         /* Keys */
         fprintf(out, "\t\t<Keys>\n");
         s = duration2string(sc->dnskey_ttl);
-        fprintf(out, "\t\t\t<TTL>%s</TTL>\n", s);
+        fprintf(out, "\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
         se_free((void*)s);
         fprintf(out, "\n");
         keylist_print(out, sc->keys);
@@ -426,14 +430,15 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
         /* SOA */
         fprintf(out, "\t\t<SOA>\n");
         s = duration2string(sc->soa_ttl);
-        fprintf(out, "\t\t\t<TTL>%s</TTL>\n", s);
+        fprintf(out, "\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
         se_free((void*)s);
 
         s = duration2string(sc->soa_min);
-        fprintf(out, "\t\t\t<Minimum>%s</Minimum>\n", s);
+        fprintf(out, "\t\t\t<Minimum>%s</Minimum>\n", s?s:"(null)");
         se_free((void*)s);
 
-        fprintf(out, "\t\t\t<Serial>%s</Serial>\n", sc->soa_serial);
+        fprintf(out, "\t\t\t<Serial>%s</Serial>\n",
+            sc->soa_serial?sc->soa_serial:"(null)");
         fprintf(out, "\t\t</SOA>\n");
         fprintf(out, "\n");
 

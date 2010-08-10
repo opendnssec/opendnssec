@@ -102,7 +102,9 @@ key_print(FILE* out, key_type* key)
         fprintf(out, "\t\t\t<Key>\n");
         fprintf(out, "\t\t\t\t<Flags>%u</Flags>\n", key->flags);
         fprintf(out, "\t\t\t\t<Algorithm>%u</Algorithm>\n", key->algorithm);
-        fprintf(out, "\t\t\t\t<Locator>%s</Locator>\n", key->locator);
+        if (key->locator) {
+            fprintf(out, "\t\t\t\t<Locator>%s</Locator>\n", key->locator);
+        }
         if (key->ksk) {
             fprintf(out, "\t\t\t\t<KSK />\n");
         }
@@ -146,7 +148,7 @@ keylist_add(keylist_type* kl, key_type* key)
 
     se_log_assert(kl);
     se_log_assert(key);
-    se_log_debug("add key locator %s", key->locator);
+    se_log_debug("add key locator %s", key->locator?key->locator:"(null)");
 
     if (kl->count == 0) {
         kl->first_key = key;
@@ -186,7 +188,7 @@ keylist_delete(keylist_type* kl, key_type* key)
 
     se_log_assert(kl);
     se_log_assert(key);
-    se_log_debug("delete key locator %s", key->locator);
+    se_log_debug("delete key locator %s", key->locator?key->locator:"(null)");
 
     walk = kl->first_key;
     while (walk) {
@@ -204,7 +206,8 @@ keylist_delete(keylist_type* kl, key_type* key)
         walk = walk->next;
     }
 
-    se_log_error("key locator %s not found in list", key->locator);
+    se_log_error("key locator %s not found in list",
+        key->locator?key->locator:"(null)");
     return 1;
 }
 

@@ -180,7 +180,7 @@ se_log_get_facility(const char* facility)
     else if (strncasecmp(facility, "LOCAL7", 6) && strlen(facility) == 6)
         return LOG_LOCAL7;
     se_log_warning("syslog facility %s not supported, logging to "
-                   "log_daemon", facility);
+                   "log_daemon", facility?facility:"(null)");
     return LOG_DAEMON;
 
 }
@@ -202,7 +202,7 @@ se_log_vmsg(int priority, const char* t, const char* s, va_list args)
 
 #ifdef HAVE_SYSLOG_H
     if (logging_to_syslog) {
-        syslog(priority, "%s", message);
+        syslog(priority, "%s", message?message:"(null)");
         return;
     }
 #endif /* HAVE_SYSLOG_H */
@@ -211,8 +211,8 @@ se_log_vmsg(int priority, const char* t, const char* s, va_list args)
         return;
     }
 
-    ctime_r(&now, nowstr);
-    nowstr[24] = '\0'; /* remove trailing linefeed */
+    (void) ctime_r(&now, nowstr);
+    nowstr[CTIME_LENGTH-2] = '\0'; /* remove trailing linefeed */
 
     fprintf(logfile, "[%s] %s[%i] %s: %s\n", nowstr,
         PACKAGE_TARNAME, priority, t, message);

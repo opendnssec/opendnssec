@@ -58,7 +58,7 @@ task_create(int what, time_t when, const char* who, struct zone_struct* zone)
 
     se_log_assert(who);
     se_log_assert(zone);
-    se_log_debug("create task for zone %s", who);
+    se_log_debug("create task for zone %s", who?who:"(null)");
 
     task->what = what;
     task->when = when;
@@ -186,14 +186,18 @@ task2str(task_type* task, char* buftask)
         } else {
             strtime = ctime(&task->when);
         }
-        strtime[strlen(strtime)-1] = '\0';
+        if (strtime) {
+            strtime[strlen(strtime)-1] = '\0';
+        }
         if (buftask) {
-            (void)snprintf(buftask, ODS_SE_MAXLINE, "On %s I will %s zone '%s'\n", strtime,
-                taskid2str(task->what), task->who);
+            (void)snprintf(buftask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
+                strtime?strtime:"(null)", taskid2str(task->what),
+                task->who?task->who:"(null)");
             return buftask;
         } else {
-            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone '%s'\n", strtime,
-                taskid2str(task->what), task->who);
+            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
+                strtime?strtime:"(null)", taskid2str(task->what),
+                task->who?task->who:"(null)");
             return strtask;
         }
     }
@@ -220,9 +224,11 @@ task_print(FILE* out, task_type* task)
         } else {
             strtime = ctime(&task->when);
         }
-        strtime[strlen(strtime)-1] = '\0';
-        fprintf(out, "On %s I will %s zone %s\n", strtime,
-            taskid2str(task->what), task->who);
+        if (strtime) {
+            strtime[strlen(strtime)-1] = '\0';
+        }
+        fprintf(out, "On %s I will %s zone %s\n", strtime?strtime:"(null)",
+            taskid2str(task->what), task->who?task->who:"(null)");
     }
     return;
 }
@@ -245,9 +251,11 @@ log_task(task_type* task)
         } else {
             strtime = ctime(&task->when);
         }
-        strtime[strlen(strtime)-1] = '\0';
-        se_log_info("On %s I will %s zone %s", strtime,
-            taskid2str(task->what), task->who);
+        if (strtime) {
+            strtime[strlen(strtime)-1] = '\0';
+        }
+        se_log_info("On %s I will %s zone %s", strtime?strtime:"(null)",
+            taskid2str(task->what), task->who?task->who:"(null)");
     }
     return;
 }
@@ -360,14 +368,16 @@ tasklist_schedule_task(tasklist_type* list, task_type* task, int log)
     zone = task->zone;
     if (zone->in_progress) {
         se_log_error("unable to schedule task %s for zone %s: "
-            " zone in progress", taskid2str(task->what), task->who);
+            " zone in progress", taskid2str(task->what),
+            task->who?task->who:"(null)");
         task_cleanup(task);
         return NULL;
     }
 
     if (tasklist_lookup(list, task) != NULL) {
         se_log_error("unable to schedule task %s for zone %s: "
-            " already present", taskid2str(task->what), task->who);
+            " already present", taskid2str(task->what),
+            task->who?task->who:"(null)");
         task_cleanup(task);
         return NULL;
     }
@@ -375,7 +385,8 @@ tasklist_schedule_task(tasklist_type* list, task_type* task, int log)
     new_node = task2node(task);
     if (ldns_rbtree_insert(list->tasks, new_node) == NULL) {
         se_log_error("unable to schedule task %s for zone %s: "
-            " insert failed", taskid2str(task->what), task->who);
+            " insert failed", taskid2str(task->what),
+            task->who?task->who:"(null)");
         task_cleanup(task);
         se_free((void*) new_node);
         return NULL;
@@ -459,9 +470,9 @@ tasklist_pop_task(tasklist_type* list)
     pop = (task_type*) first_node->key;
     if (pop && (pop->flush || pop->when <= now)) {
         if (pop->flush) {
-            se_log_debug("flush task for zone %s", pop->who);
+            se_log_debug("flush task for zone %s", pop->who?pop->who:"(null)");
         } else {
-            se_log_debug("pop task for zone %s", pop->who);
+            se_log_debug("pop task for zone %s", pop->who?pop->who:"(null)");
         }
         first_node = ldns_rbtree_delete(list->tasks, pop);
         se_free((void*)first_node);

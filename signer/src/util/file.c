@@ -159,8 +159,8 @@ se_fopen(const char* file, const char* dir, const char* mode)
     char* openf = NULL;
 
     se_log_assert(mode);
-    se_log_debug("open file: dir %s file %s for %s", 
-        (dir ? dir : "NULL"), (file ? file : "NULL"),
+    se_log_debug("open file: dir %s file %s for %s",
+        (dir?dir:"(null)"), (file?file:"(null)"),
         se_file_mode2str(mode));
 
     if (dir) {
@@ -184,8 +184,9 @@ se_fopen(const char* file, const char* dir, const char* mode)
         if (len_file) {
             fd = fopen(openf, mode);
             if (!fd) {
-                se_log_error("unable to open file '%s' for %s: %s",
-                    openf, se_file_mode2str(mode), strerror(errno));
+                se_log_error("unable to open file %s for %s: %s",
+                    openf?openf:"(null)",
+                    se_file_mode2str(mode), strerror(errno));
             }
         }
         se_free((void*) openf);
@@ -292,7 +293,7 @@ se_file_copy(const char* file1, const char* file2)
     se_log_assert(file2);
 
     snprintf(str, SYSTEM_MAXLEN, "cp %s %s", file1, file2);
-    se_log_debug("system call: %s", str);
+    se_log_debug("system call: %s", str?str:"(null)");
     return system(str);
 }
 
@@ -336,19 +337,21 @@ se_chown(const char* file, uid_t uid, gid_t gid, int getdir)
 
     if (!getdir) {
         se_log_debug("create and chown directory %s [user %ld] [group %ld]",
-           file, (signed long) uid, (signed long) gid);
+           file?file:"(null)", (signed long) uid, (signed long) gid);
         if (chown(file, uid, gid) != 0) {
-            se_log_error("chown() for %s failed: %s", file, strerror(errno));
+            se_log_error("chown() for %s failed: %s", file?file:"(null)",
+                strerror(errno));
         }
     } else if ((dir = se_dir_name(file)) != NULL) {
         se_log_debug("create and chown directory %s [user %ld] [group %ld]",
-           dir, (signed long) uid, (signed long) gid);
+           dir?dir:"(null)", (signed long) uid, (signed long) gid);
         if (chown(dir, uid, gid) != 0) {
-            se_log_error("chown() for %s failed: %s", dir, strerror(errno));
+            se_log_error("chown() for %s failed: %s", dir?dir:"(null)",
+                strerror(errno));
         }
         se_free((void*) dir);
     } else {
-        se_log_warning("use of relative path: %s", file);
+        se_log_warning("use of relative path: %s", file?file:"(null)");
     }
     return;
 }

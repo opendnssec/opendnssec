@@ -257,7 +257,7 @@ write_pidfile(const char* pidfile, pid_t pid)
     se_log_assert(pidfile);
     se_log_assert(pid);
     se_log_debug("writing pid %lu to pidfile %s", (unsigned long) pid,
-        pidfile);
+        pidfile?pidfile:"(null)");
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
     fd = se_fopen(pidfile, NULL, "w");
     if (!fd) {
@@ -270,10 +270,11 @@ write_pidfile(const char* pidfile, pid_t pid)
         result = fwrite((const void*) pidbuf, 1, size, fd);
     }
     if (result == 0) {
-        se_log_error("write to pidfile %s failed: %s", pidfile,
+        se_log_error("write to pidfile %s failed: %s", pidfile?pidfile:"(null)",
             strerror(errno));
     } else if (result < size) {
-        se_log_error("short write to pidfile %s: disk full?", pidfile);
+        se_log_error("short write to pidfile %s: disk full?",
+            pidfile?pidfile:"(null)");
         result = 0;
     } else {
         result = 1;
@@ -407,7 +408,8 @@ engine_setup(engine_type* engine)
         /* chown logfile */
         se_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
     }
-    if (chdir(engine->config->working_dir) != 0) {
+    if (engine->config->working_dir &&
+        chdir(engine->config->working_dir) != 0) {
         se_log_error("setup failed: chdir to %s failed: %s",
             engine->config->working_dir, strerror(errno));
         return 1;
@@ -582,8 +584,8 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
 
         if (!zone_name || se_strcmp(zone->name, zone_name) == 0) {
             if (zone_name) {
-                se_log_debug("update zone %s (signconf file %s)",
-                    zone->name, zone->signconf_filename);
+                se_log_debug("update zone %s (signconf file %s)", zone->name,
+                    zone->signconf_filename?zone->signconf_filename:"(null)");
                 lock_basic_lock(&engine->tasklist->tasklist_lock);
                 tmp = zone_update_signconf(zone, engine->tasklist, buf);
                 lock_basic_unlock(&engine->tasklist->tasklist_lock);
@@ -737,7 +739,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     /* configure */
     engine->config = engine_config(cfgfile, cmdline_verbosity);
     if (engine_check_config(engine->config) != 0) {
-        se_log_error("cfgfile %s has errors", cfgfile);
+        se_log_error("cfgfile %s has errors", cfgfile?cfgfile:"(null)");
         engine->need_to_exit = 1;
     }
     if (info) {

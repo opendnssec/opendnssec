@@ -58,19 +58,21 @@ parse_file_check(const char* cfgfile, const char* rngfile)
 
     se_log_assert(cfgfile);
     se_log_assert(rngfile);
-    se_log_debug("check config file: %s, use rng file: %s", cfgfile,
-        rngfile);
+    se_log_debug("check config file: %s, use rng file: %s",
+        cfgfile?cfgfile:"(null)", rngfile?rngfile:"(null)");
 
     /* Load XML document */
     doc = xmlParseFile(cfgfile);
     if (doc == NULL) {
-        se_log_error("unable to read config file '%s'", cfgfile);
+        se_log_error("unable to read config file %s",
+            cfgfile?cfgfile:"(null)");
         return 1;
     }
     /* Load rng document */
     rngdoc = xmlParseFile(rngfile);
     if (rngdoc == NULL) {
-        se_log_error("unable to read conf rng file '%s'", rngfile);
+        se_log_error("unable to read conf rng file %s",
+            rngfile?rngfile:"(null)");
         xmlFreeDoc(doc);
         return 1;
     }
@@ -106,8 +108,8 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
-        se_log_error("configuration file validation failed '%s'",
-            cfgfile);
+        se_log_error("configuration file validation failed %s",
+            cfgfile?cfgfile:"(null)");
         xmlRelaxNGFreeValidCtxt(rngctx);
         xmlRelaxNGFree(schema);
         xmlRelaxNGFreeParserCtxt(rngpctx);
@@ -152,7 +154,7 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     xpathCtx = xmlXPathNewContext(doc);
     if (xpathCtx == NULL) {
         se_log_error("unable to create new XPath context for cfgile %s expr %s",
-            cfgfile, expr);
+            cfgfile?cfgfile:"(null)", expr?expr:"(null)");
         xmlFreeDoc(doc);
         return NULL;
     }
@@ -162,8 +164,8 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     if (xpathObj == NULL || xpathObj->nodesetval == NULL ||
         xpathObj->nodesetval->nodeNr <= 0) {
         if (required) {
-            se_log_error("unable to evaluate required "
-                "element %s in cfgfile %s", xexpr, cfgfile);
+            se_log_error("unable to evaluate required element %s in cfgfile %s",
+                xexpr?xexpr:"(null)", cfgfile?cfgfile:"(null)");
         }
         xmlXPathFreeContext(xpathCtx);
         if (xpathObj) {

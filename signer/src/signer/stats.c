@@ -84,7 +84,7 @@ stats_log(stats_type* stats, char* name, ldns_rr_type nsec_type)
     se_log_info("[STATS] %s RR[count=%u time=%u(sec)) "
         "NSEC%s[count=%u time=%u(sec)] "
         "RRSIG[new=%u reused=%u time=%u(sec) avg=%u(sig/sec)]",
-        name, stats->sort_count, stats->sort_time,
+        name?name:"(null)", stats->sort_count, stats->sort_time,
         nsec_type==LDNS_RR_TYPE_NSEC3?"3":"", stats->nsec_count,
         stats->nsec_time,
         stats->sig_count, stats->sig_reuse, stats->sig_time, avsign);

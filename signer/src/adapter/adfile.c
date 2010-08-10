@@ -121,7 +121,7 @@ adfile_read_line(FILE* fd, char* line, unsigned int* l)
         if (c == EOF) {
             if (depth != 0) {
                 se_log_error("read line: bracket mismatch discovered at "
-                    "line %i, missing ')'", *l);
+                    "line %i, missing ')'", l&&*l?*l:0);
             }
             if (li > 0) {
                 line[li] = '\0';
@@ -152,7 +152,7 @@ adfile_read_line(FILE* fd, char* line, unsigned int* l)
             } else if (lc != '\\') {
                 if (depth < 1) {
                     se_log_error("read line: bracket mismatch discovered at "
-                        "line %i, missing '('", *l);
+                        "line %i, missing '('", l&&*l?*l:0);
                     line[li] = '\0';
                     return li;
                 }
@@ -190,7 +190,7 @@ adfile_read_line(FILE* fd, char* line, unsigned int* l)
     /* done */
     if (depth != 0) {
         se_log_error("read line: bracket mismatch discovered at line %i, "
-            "missing ')'", *l);
+            "missing ')'", l&&*l?*l:0);
         return li;
     }
     line[li] = '\0';
@@ -294,13 +294,14 @@ adfile_read_line:
                         se_fclose(fd_include);
                     } else {
                         se_log_error("unable to open include file '%s'",
-                            line + 9);
+                            (line+9)?(line+9):"(null)");
                         *status = LDNS_STATUS_SYNTAX_ERR;
                         return NULL;
                     }
                     if (error) {
                         *status = LDNS_STATUS_ERR;
-                        se_log_error("error in include file '%s'", line + 9);
+                        se_log_error("error in include file '%s'",
+                            (line+9)?(line+9):"(null)");
                         return NULL;
                     }
                     goto adfile_read_line; /* perhaps next line is rr */
@@ -335,8 +336,9 @@ adfile_read_rr:
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 } else {
-                    se_log_error("error parsing RR at line %i (%s): %s", *l,
-                        ldns_get_errorstr_by_id(*status), line);
+                    se_log_error("error parsing RR at line %i (%s): %s",
+                        l&&*l?*l:0, ldns_get_errorstr_by_id(*status),
+                        line?line:"(null)");
                     while (len >= 0) {
                         len = adfile_read_line(fd, line, l);
                     }
@@ -427,8 +429,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
         /* add to the zonedata */
         result = zone_add_rr(zone_in, rr);
         if (result != 0) {
-            se_log_error("error adding RR at line %i: %s", l,
-               line);
+            se_log_error("error adding RR at line %i: %s", l, line);
             break;
         }
         zone_in->stats->sort_count += 1;
@@ -472,12 +473,13 @@ adfile_read(struct zone_struct* zone, const char* filename)
     se_log_assert(zone_in->name);
     se_log_assert(filename);
     se_log_debug("read zone %s from file %s",
-        zone_in->name, filename);
+        zone_in->name?zone_in->name:"(null)", filename?filename:"(null)");
 
     /* remove current rrs */
     error = zonedata_del_rrs(zone_in->zonedata);
     if (error) {
-        se_log_error("error removing current RRs in zone %s", zone_in->name);
+        se_log_error("error removing current RRs in zone %s",
+            zone_in->name?zone_in->name:"(null)");
         return error;
     }
 
@@ -490,8 +492,9 @@ adfile_read(struct zone_struct* zone, const char* filename)
         error = 1;
     }
     if (error) {
-        se_log_error("error reading from input file adapter zone %s file %s",
-            zone_in->name, filename);
+        se_log_error("error reading zone %s from file %s",
+            zone_in->name?zone_in->name:"(null)",
+            filename?filename:"(null)");
     }
     return error;
 }
@@ -509,13 +512,16 @@ adfile_write(struct zone_struct* zone, const char* filename)
 
     se_log_assert(zone_out);
     se_log_assert(zone_out->name);
-    se_log_assert(zone_out->outbound_adapter);
-    se_log_debug("write to output file adapter zone %s file %s",
-        zone_out->name, zone_out->outbound_adapter->filename);
 
-    if (filename != NULL) {
+    if (filename) {
+        se_log_debug("write zone %s to file %s",
+            zone_out->name, filename);
         fd = se_fopen(filename, NULL, "w");
     } else {
+        se_log_assert(zone_out->outbound_adapter);
+        se_log_debug("write zone %s to output file adapter %s",
+            zone_out->name,
+            zone_out->outbound_adapter->filename?zone_out->outbound_adapter->filename:"(null)");
         fd = se_fopen(zone_out->outbound_adapter->filename, NULL, "w");
     }
     if (fd) {
@@ -524,4 +530,3 @@ adfile_write(struct zone_struct* zone, const char* filename)
     }
     return 0;
 }
-

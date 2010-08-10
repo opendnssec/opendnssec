@@ -60,7 +60,8 @@ parse_zonelist_element(xmlXPathContextPtr xpathCtx, xmlChar* expr)
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
-        se_log_error("unable to evaluate xpath expression %s", expr);
+        se_log_error("unable to evaluate xpath expression %s",
+            expr?expr:"(null)");
         return NULL;
     }
     str = (const char*) xmlXPathCastToString(xpathObj);
@@ -88,7 +89,8 @@ parse_zonelist_adapters_expr(xmlXPathContextPtr xpathCtx, xmlChar* expr,
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
-        se_log_error("unable to evaluate xpath expression %s", expr);
+        se_log_error("unable to evaluate xpath expression %s",
+            expr?expr:"(null)");
         return NULL;
     }
 
@@ -166,7 +168,7 @@ parse_zonelist_zones(const char* zlfile)
 
     reader = xmlNewTextReaderFilename(zlfile);
     if (!reader) {
-        se_log_error("unable to open zone list file %s", zlfile);
+        se_log_error("unable to open zone list file %s", zlfile?zlfile:"(null)");
         zonelist_cleanup(zl);
         return NULL;
     }
@@ -198,7 +200,7 @@ parse_zonelist_zones(const char* zlfile)
             }
             if (doc == NULL || xpathCtx == NULL) {
                 se_log_error("unable to read zone %s; skipping",
-                   zone_name);
+                   zone_name?zone_name:"(null)");
                 se_free((void*) zone_name);
                 ret = xmlTextReaderRead(reader);
                 se_free((void*) tag_name);
@@ -215,8 +217,8 @@ parse_zonelist_zones(const char* zlfile)
 
             /* and add it to the list */
             if (zonelist_add_zone(zl, new_zone) == NULL) {
-                se_log_error("unable to add zone '%s' to zone list",
-                    zone_name);
+                se_log_error("unable to add zone %s to zone list",
+                    zone_name?zone_name:"(null)");
             }
             se_free((void*) zone_name);
             xmlXPathFreeContext(xpathCtx);
@@ -228,7 +230,7 @@ parse_zonelist_zones(const char* zlfile)
     se_log_debug("no more zones");
     xmlFreeTextReader(reader);
     if (ret != 0) {
-        se_log_error("error parsing zone list file %s", zlfile);
+        se_log_error("error parsing zone list file %s", zlfile?zlfile:"(null)");
     }
     if (doc) {
         xmlFreeDoc(doc);

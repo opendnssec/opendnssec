@@ -130,7 +130,8 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
         for (i=0; i < ODS_SE_MAXLINE; i++) {
             buf[i] = 0;
         }
-        (void)snprintf(buf, ODS_SE_MAXLINE, "- %s\n", zone->name);
+        (void)snprintf(buf, ODS_SE_MAXLINE, "- %s\n",
+            zone->name?zone->name:"(null)");
         se_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
@@ -234,7 +235,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         }
     } else if (found && scheduled) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for "
-            "immediate re-sign.\n", tbd);
+            "immediate re-sign.\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
 
         /* wake up sleeping workers */
@@ -243,11 +244,11 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         }
     } else if (found && !scheduled) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not scheduled, "
-            "already being signed right now!\n", tbd);
+            "already being signed right now!\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
     } else {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not being signed yet, "
-            "updating sign configuration\n", tbd);
+            "updating sign configuration\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
         cmdhandler_handle_cmd_update(sockfd, cmdc, tbd);
     }
@@ -290,7 +291,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "Internal information about "
-        "%s cleared", tbd);
+        "%s cleared", tbd?tbd:"(null)");
     se_writen(sockfd, buf, strlen(buf));
 
     return;
@@ -323,7 +324,8 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     now = time_now();
     strtime = ctime(&now);
     (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i tasks scheduled\nIt is "
-        "now %s", (int) cmdc->engine->tasklist->tasks->count, strtime);
+        "now %s", (int) cmdc->engine->tasklist->tasks->count,
+        strtime?strtime:"(null)");
     se_writen(sockfd, buf, strlen(buf));
 
     /* list tasks */
@@ -464,7 +466,7 @@ static void
 cmdhandler_handle_cmd_error(int sockfd, const char* str)
 {
     char buf[ODS_SE_MAXLINE];
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Error: %s.\n", str);
+    (void)snprintf(buf, ODS_SE_MAXLINE, "Error: %s.\n", str?str:"(null)");
     se_writen(sockfd, buf, strlen(buf));
     return;
 }
@@ -478,7 +480,8 @@ static void
 cmdhandler_handle_cmd_unknown(int sockfd, const char* str)
 {
     char buf[ODS_SE_MAXLINE];
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n", str);
+    (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
+        str?str:"(null)");
     se_writen(sockfd, buf, strlen(buf));
     return;
 }
@@ -520,7 +523,7 @@ again:
         if (n <= 0) {
             return;
         }
-        se_log_verbose("received command %s[%i]", buf, n);
+        se_log_verbose("received command %s[%i]", buf?buf:"(null)", n);
 
         if (n == 4 && strncmp(buf, "help", n) == 0) {
             se_log_debug("help command");
@@ -589,7 +592,7 @@ again:
             cmdhandler_handle_cmd_unknown(sockfd, buf);
         }
 
-        se_log_debug("done handling command %s[%i]", buf, n);
+        se_log_debug("done handling command %s[%i]", buf?buf:"(null)", n);
         (void)snprintf(buf, SE_CMDH_CMDLEN, "\ncmd> ");
         se_writen(sockfd, buf, strlen(buf));
     }
@@ -639,7 +642,8 @@ cmdhandler_create(const char* filename)
     int ret = 0;
 
     se_log_assert(filename);
-    se_log_debug("create command handler to socket %s", filename);
+    se_log_debug("create command handler to socket %s",
+        filename?filename:"(null)");
 
     /* new socket */
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);

@@ -93,17 +93,20 @@ zonelist_read(const char* zonelistfile, time_t last_modified)
     time_t st_mtime = 0;
 
     se_log_assert(zonelistfile);
-    se_log_verbose("read zone list file %s", zonelistfile);
+    se_log_verbose("read zone list file %s",
+        zonelistfile?zonelistfile:"(null)");
 
     /* is the file updated? */
     st_mtime = se_file_lastmodified(zonelistfile);
     if (st_mtime <= last_modified) {
-        se_log_debug("zone list file %s is unchanged", zonelistfile);
+        se_log_debug("zone list file %s is unchanged",
+            zonelistfile?zonelistfile:"(null)");
         return NULL;
     }
     /* does the file have no parse errors? */
     if (parse_file_check(zonelistfile, rngfile) != 0) {
-        se_log_error("unable to parse zone list file %s", zonelistfile);
+        se_log_error("unable to parse zone list file %s",
+            zonelistfile?zonelistfile:"(null)");
         return NULL;
     }
     /* ok, parse it! */
@@ -111,7 +114,8 @@ zonelist_read(const char* zonelistfile, time_t last_modified)
     if (zlist) {
         zlist->last_modified = st_mtime;
     } else {
-        se_log_error("unable to read zone list file %s", zonelistfile);
+        se_log_error("unable to read zone list file %s",
+            zonelistfile?zonelistfile:"(null)");
         return NULL;
     }
     return zlist;
@@ -212,14 +216,16 @@ zonelist_add_zone(zonelist_type* zonelist, zone_type* zone)
     se_log_assert(zone);
 
     if (zonelist_lookup_zone(zonelist, zone) != NULL) {
-        se_log_warning("unable to add zone %s: already present", zone->name);
+        se_log_warning("unable to add zone %s: already present",
+            zone->name?zone->name:"(null)");
         zone_cleanup(zone);
         return NULL;
     }
 
     new_node = zone2node(zone);
     if (ldns_rbtree_insert(zonelist->zones, new_node) == NULL) {
-        se_log_error("unable to add zone %s: rbtree insert failed", zone->name);
+        se_log_error("unable to add zone %s: rbtree insert failed",
+            zone->name?zone->name:"(null)");
         zone_cleanup(zone);
         se_free((void*) new_node);
         return NULL;
@@ -244,7 +250,8 @@ zonelist_delete_zone(zonelist_type* zonelist, zone_type* zone)
 
     old_node = ldns_rbtree_delete(zonelist->zones, zone);
     if (!old_node) {
-        se_log_warning("unable to delete zone %s: not present", zone->name);
+        se_log_warning("unable to delete zone %s: not present",
+            zone->name?zone->name:"(null)");
         return zone;
     }
 
@@ -281,7 +288,8 @@ zonelist_update(zonelist_type* zl, struct tasklist_struct* tl, char* buf)
                 task_cleanup(task);
             }
             node = ldns_rbtree_next(node);
-            se_log_debug("delete zone %s from zone list", zone->name);
+            se_log_debug("delete zone %s from zone list",
+                zone->name?zone->name:"(null)");
             lock_basic_unlock(&zone->zone_lock);
             (void)zonelist_delete_zone(zl, zone);
             zone = NULL;
@@ -303,8 +311,9 @@ zonelist_update(zonelist_type* zl, struct tasklist_struct* tl, char* buf)
     }
 
     if (buf) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list updated: %i removed, %i added, "
-            "%i updated.\n", just_removed, just_added, just_updated);
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list updated: "
+            "%i removed, %i added, %i updated.\n",
+            just_removed, just_added, just_updated);
     }
     return;
 }
@@ -343,7 +352,8 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
             return;
         } else if (!z1) {
             /* just add remaining zones from zl2 */
-            se_log_debug("add zone %s to zone list", z2->name);
+            se_log_debug("add zone %s to zone list",
+                z2->name?z2->name:"(null)");
             z2 = zonelist_add_zone(zl1, z2);
             if (!z2) {
                 se_log_error("zone list merge failed, z2 not added");
@@ -360,7 +370,8 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
                 n1 = ldns_rbtree_next(n1);
             } else if (ret > 0) {
                 /* add the new zone z2 */
-                se_log_debug("add zone %s to zone list", z2->name);
+                se_log_debug("add zone %s to zone list",
+                    z2->name?z2->name:"(null)");
                 z2 = zonelist_add_zone(zl1, z2);
                 if (!z2) {
                     se_log_error("zone list merge failed, z2 not added");

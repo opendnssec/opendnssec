@@ -61,7 +61,7 @@ nsec3params_create_salt(const char* salt_str, uint8_t* salt_len, uint8_t** salt)
         *salt = NULL;
         return 0;
     } else if (*salt_len % 2 != 0) {
-        se_log_error("invalid salt %s", salt_str);
+        se_log_error("invalid salt %s", salt_str?salt_str:"(null)");
         *salt = NULL;
         return 1;
     }
@@ -73,7 +73,7 @@ nsec3params_create_salt(const char* salt_str, uint8_t* salt_len, uint8_t** salt)
             salt_tmp[c/2] = (uint8_t) ldns_hexdigit_to_int(salt_str[c]) * 16 +
                                       ldns_hexdigit_to_int(salt_str[c+1]);
         } else {
-            se_log_error("invalid salt %s", salt_str);
+            se_log_error("invalid salt %s", salt_str?salt_str:"(null)");
             se_free((void*)salt_tmp);
             *salt = NULL;
             return 1;

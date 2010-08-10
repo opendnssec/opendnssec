@@ -192,14 +192,14 @@ read_axfr_config(const char* filename, config_type* cfg)
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
                     se_log_error("can not read zone fetcher configfile "
-                        "%s", filename);
+                        "%s", filename?filename:"(null)");
                     se_log_info("zone fetcher exiting...");
                     exit(EXIT_FAILURE);
                 }
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
                     se_log_error("zone fetcher can not create XPath "
-                        "context for %s", filename);
+                        "context for %s", filename?filename:"(null)");
                     se_log_info("zone fetcher exiting...");
                     exit(EXIT_FAILURE);
                 }
@@ -208,7 +208,7 @@ read_axfr_config(const char* filename, config_type* cfg)
                 xpathObj = xmlXPathEvalExpression(server_expr, xpathCtx);
                 if (xpathObj == NULL || !xpathObj->nodesetval) {
                     se_log_error("zone fetcher can not locate master "
-                        "server(s) in %s", filename);
+                        "server(s) in %s", filename?filename:"(null)");
                     se_log_info("zone fetcher exiting...");
                     exit(EXIT_FAILURE);
                 }
@@ -351,13 +351,13 @@ read_axfr_config(const char* filename, config_type* cfg)
         xmlFreeDoc(doc);
         if (ret != 0) {
             se_log_error("zone fetcher failed to parse config file %s",
-                filename);
+                filename?filename:"(null)");
             se_log_info("zone fetcher exiting...");
             exit(EXIT_FAILURE);
         }
     } else {
         se_log_error("zone fetcher was unable to open config file %s",
-            filename);
+            filename?filename:"(null)");
         se_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
@@ -402,7 +402,7 @@ read_zonelist(const char* filename)
                 if (zone_name == NULL) {
                     /* error */
                     se_log_error("zone fetcher failed to extract zone "
-                        "name from %s", filename);
+                        "name from %s", filename?filename:"(null)");
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -412,7 +412,7 @@ read_zonelist(const char* filename)
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
                     se_log_error("zone fetcher could not read zone "
-                        "\"%s\"; skipping", zone_name);
+                        "%s; skipping", zone_name?zone_name:"(null)");
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -420,7 +420,8 @@ read_zonelist(const char* filename)
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
                     se_log_error("zone fetcher can not create XPath "
-                        "context for \"%s\"; skipping zone", zone_name);
+                        "context for %s; skipping zone",
+                        zone_name?zone_name:"(null)");
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -446,8 +447,8 @@ read_zonelist(const char* filename)
                     zonelist->next = new_zone(zone_name, input_file);
                     zonelist = zonelist->next;
                 }
-				free((void*) zone_name);
-				free((void*) input_file);
+                free((void*) zone_name);
+                free((void*) input_file);
 
                 xmlXPathFreeContext(xpathCtx);
             }
@@ -460,13 +461,13 @@ read_zonelist(const char* filename)
         xmlFreeDoc(doc);
         if (ret != 0) {
             se_log_error("zone fetcher failed to parse zonelist %s",
-                filename);
+                filename?filename:"(null)");
             se_log_info("zone fetcher exiting...");
             exit(EXIT_FAILURE);
         }
     } else {
         se_log_error("zone fetcher was unable to open zonelist %s",
-            filename);
+            filename?filename:"(null)");
         se_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
@@ -485,7 +486,7 @@ writepid(char* pidfile, pid_t pid)
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
     if ((fd = fopen(pidfile, "w")) ==  NULL ) {
         se_log_error("zone fetcher could not open pidfile %s for "
-            "writing: %s", pidfile, strerror(errno));
+            "writing: %s", pidfile?pidfile:"(null)", strerror(errno));
         return -1;
     }
     size = strlen(pidbuf);
@@ -503,7 +504,7 @@ writepid(char* pidfile, pid_t pid)
         result = 1;
     if (!result) {
         se_log_error("zone fetcher could not write pidfile %s: %s",
-            pidfile, strerror(errno));
+            pidfile?pidfile:"(null)", strerror(errno));
         fclose(fd);
         return -1;
     }
@@ -582,7 +583,8 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 continue;
             }
             se_log_error("zone fetcher cannot parse address %s:%s: "
-                "getaddrinfo (%i): %s %s", node, port, walk->family,
+                "getaddrinfo (%i): %s %s", node?node:"(null)",
+                port?port:"(null)", walk->family,
                  gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
         }
 
@@ -655,7 +657,8 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 continue;
             }
             se_log_error("zone fetcher cannot parse address %s:%s: "
-                "getaddrinfo (%i): %s %s", node, port, walk->family,
+                "getaddrinfo (%i): %s %s", node?node:"(null)",
+                 port?port:"(null)", walk->family,
                  gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
         }
         /* socket */
@@ -748,9 +751,9 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         i++;
     }
 
-	if (new_list) {
+    if (new_list) {
         free_serverlist(new_list);
-	}
+    }
 
     return ret;
 }
@@ -842,8 +845,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config)
             snprintf(axfr_file, sizeof(axfr_file), "%s.%s", zone->input_file, lock_ext);
             fd = fopen(axfr_file, "w");
             if (!fd) {
-                se_log_error("zone fetcher cannot store AXFR to file %s",
-                    axfr_file);
+                se_log_error("zone fetcher cannot store AXFR to file %s", axfr_file);
                 return -1;
             }
         }
@@ -852,7 +854,8 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config)
 
         axfr_rr = ldns_axfr_next(config->xfrd);
         if (!axfr_rr) {
-            se_log_error("zone fetcher AXFR for %s failed", zone->name);
+            se_log_error("zone fetcher AXFR for %s failed",
+                zone->name?zone->name:"(null)");
 	    fclose(fd);
             unlink(axfr_file);
             return -1;
@@ -871,19 +874,21 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config)
                 axfr_rr = ldns_axfr_next(config->xfrd);
             }
             se_log_info("zone fetcher transferred zone %s serial %u "
-                "successfully", zone->name, new_serial);
+                "successfully", zone->name?zone->name:"(null)", new_serial);
 
 	    /* Close file before moving it */
 	    fclose(fd);
 
             /* moving and kicking */
-            snprintf(dest_file, sizeof(dest_file), "%s.axfr", zone->input_file);
+            snprintf(dest_file, sizeof(dest_file), "%s.axfr",
+                zone->input_file?zone->input_file:"(null)");
             if(rename(axfr_file, dest_file) == 0) {
                 snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
-                    "%s sign %s", ODS_SE_CLI, zone->name);
+                    "%s sign %s", ODS_SE_CLI, zone->name?zone->name:"--all");
                 if (system(engine_sign_cmd) != 0) {
                     se_log_error("zone fetcher could not kick "
-                        "the signer engine to sign zone %s", zone->name);
+                        "the signer engine to sign zone %s",
+                        zone->name?zone->name:"--all");
                 }
             }
             else {
@@ -895,7 +900,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config)
     }
     else {
         se_log_info("zone fetcher zone %s is already up to date, "
-            "serial is %u", zone->name, serial);
+            "serial is %u", zone->name?zone->name:"(null)", serial);
     }
 
     return 0;
@@ -935,11 +940,12 @@ init_xfrd(config_type* config)
                 status = ldns_resolver_push_nameserver(xfrd, ns);
             else {
                 se_log_error("zone fetcher could not use %s for transfer "
-                    "request: could not parse ip address", servers->ipaddr);
+                    "request: could not parse ip address",
+                    servers->ipaddr?servers->ipaddr:"(null)");
             }
             if (status != LDNS_STATUS_OK) {
                 se_log_error("zone fetcher could not use %s for transfer "
-                    "request: %s", servers->ipaddr,
+                    "request: %s", servers->ipaddr?servers->ipaddr:"(null)",
                     ldns_get_errorstr_by_id(status));
             }
             servers = servers->next;
@@ -1055,7 +1061,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
         if (ldns_dname_compare(ldns_rr_owner(query_rr), zonelist->dname) == 0)
         {
             se_log_info("zone fetcher received NOTIFY for zone %s",
-                zonelist->name);
+                zonelist->name?zonelist->name:"(null)");
             /* get latest serial */
             fd = fopen(zonelist->input_file, "r");
             if (!fd) {
@@ -1065,7 +1071,8 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
                 fclose(fd);
             }
             if (odd_xfer(zonelist, serial, config) != 0) {
-                se_log_error("AXFR for zone '%s' failed", zonelist->name);
+                se_log_error("AXFR for zone %s failed",
+                    zonelist->name?zonelist->name:"(null)");
             }
             ldns_pkt_free(query_pkt);
             return;
@@ -1075,7 +1082,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     }
     owner_name = ldns_rdf2str(ldns_rr_owner(query_rr));
     se_log_warning("zone fetcher notify received for unknown zone: %s",
-        owner_name);
+        owner_name?owner_name:"(null)");
     free((void*)owner_name);
     ldns_pkt_free(query_pkt);
 }
@@ -1168,8 +1175,7 @@ handle_udp(int udp_sock, config_type* config)
         remote = (char*) malloc(sizeof(char)*userdata.hislen);
         se_log_warning("zone fetcher refused message from "
             "unauthoritative source: %s",
-            addr2ip(userdata.addr_him, remote,
-            userdata.hislen));
+            addr2ip(userdata.addr_him, remote, userdata.hislen));
         free((void*)remote);
         return;
     }
@@ -1268,30 +1274,33 @@ list_settings(FILE* out, config_type* config, const char* filename)
 
     if (config) {
         fprintf(out, "configuration settings:\n");
-        fprintf(out, "filename: %s\n", filename);
-        fprintf(out, "pidfile: %s\n", config->pidfile);
+        fprintf(out, "filename: %s\n", filename?filename:"(null)");
+        fprintf(out, "pidfile: %s\n",
+            config->pidfile?config->pidfile:"(null)");
         fprintf(out, "tsig: %s\n", config->use_tsig?"yes":"no");
         if (config->use_tsig) {
-            fprintf(out, "tsig name: %s\n", config->tsig_name);
-            fprintf(out, "tsig algorithm: %s\n", config->tsig_algo);
+            fprintf(out, "tsig name: %s\n",
+                config->tsig_name?config->tsig_name:"(null)");
+            fprintf(out, "tsig algorithm: %s\n",
+                config->tsig_algo?config->tsig_algo:"(null)");
             fprintf(out, "tsig secret: ?\n");
         }
         fprintf(out, "zones: %s\n", config->zonelist?"":"none");
         zones = config->zonelist;
         while (zones) {
-            fprintf(out, "\t%s\n", zones->name);
+            fprintf(out, "\t%s\n", zones->name?zones->name:"(null)");
             zones = zones->next;
         }
         fprintf(out, "master servers: %s\n", config->serverlist?"":"none");
         servers = config->serverlist;
         while (servers) {
-            fprintf(out, "\t%s\n", servers->ipaddr);
+            fprintf(out, "\t%s\n", servers->ipaddr?servers->ipaddr:"(null)");
             servers = servers->next;
         }
         fprintf(out, "interfaces: %s\n", config->notifylist?"":"none");
         servers = config->notifylist;
         while (servers) {
-            fprintf(out, "\t%s\n", servers->ipaddr);
+            fprintf(out, "\t%s\n", servers->ipaddr?servers->ipaddr:"(null)");
             servers = servers->next;
         }
         if (config->xfrd) {
@@ -1348,7 +1357,8 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
 
     /* write pidfile */
     if (writepid(config->pidfile, getpid()) != 0) {
-        se_log_error("write pidfile %s failed", config->pidfile);
+        se_log_error("write pidfile %s failed",
+            config->pidfile?config->pidfile:"(null)");
         se_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
@@ -1368,7 +1378,8 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
         }
         /* send the request */
         if (odd_xfer(zonelist, serial, config) != 0) {
-            se_log_error("AXFR for zone '%s' failed", zonelist->name);
+            se_log_error("AXFR for zone %s failed",
+                zonelist->name?zonelist->name:"(null)");
         }
         /* next */
         zonelist = zonelist->next;
@@ -1379,7 +1390,8 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     if (c == -1) {
         se_log_error("zone fetcher failed to initialize sockets");
         if (unlink(config->pidfile) == -1) {
-            se_log_error("unlink pidfile %s failed: %s", config->pidfile,
+            se_log_error("unlink pidfile %s failed: %s",
+                config->pidfile?config->pidfile:"(null)",
                 strerror(errno));
         }
         se_log_info("zone fetcher exiting...");
@@ -1390,7 +1402,8 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     if (privdrop(user, group, chroot) != 0) {
         se_log_error("zone fetcher failed to drop privileges");
         if (unlink(config->pidfile) == -1) {
-            se_log_error("unlink pidfile %s failed: %s", config->pidfile,
+            se_log_error("unlink pidfile %s failed: %s",
+                config->pidfile?config->pidfile:"(null)",
                 strerror(errno));
         }
         free_sockets(&sockets);
@@ -1401,7 +1414,8 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     xfrd_ns(&sockets, config);
 
     if (unlink(config->pidfile) == -1) {
-        se_log_warning("unlink pidfile %s failed: %s", config->pidfile,
+        se_log_warning("unlink pidfile %s failed: %s",
+            config->pidfile?config->pidfile:"(null)",
             strerror(errno));
     }
     free_sockets(&sockets);

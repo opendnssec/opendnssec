@@ -85,7 +85,7 @@ worker_start(worker_type* worker)
         task = tasklist_pop_task(worker->tasklist);
         if (task) {
             se_log_debug("worker[%i] perform task for zone %s",
-                worker->thread_num, task->who);
+                worker->thread_num, task->who?task->who:"(null)");
             zone = task->zone;
             zone->in_progress = 1;
 
@@ -147,11 +147,12 @@ worker_perform_task(worker_type* worker, task_type* task)
 
     switch (task->what) {
         case TASK_NONE:
-            se_log_warning("no task for zone %s", task->who);
+            se_log_warning("no task for zone %s", task->who?task->who:"(null)");
             break;
         case TASK_READ:
             if (tools_read_input(zone) != 0) {
-                se_log_error("task [read zone %s] failed", task->who);
+                se_log_error("task [read zone %s] failed",
+                    task->who?task->who:"(null)");
                 goto task_perform_fail;
                 break;
             }
@@ -159,7 +160,7 @@ worker_perform_task(worker_type* worker, task_type* task)
         case TASK_ADDKEYS:
             if (tools_add_dnskeys(zone) != 0) {
                 se_log_error("task [add dnskeys to zone %s] failed",
-                    task->who);
+                    task->who?task->who:"(null)");
                 goto task_perform_fail;
                 break;
             }
@@ -167,28 +168,31 @@ worker_perform_task(worker_type* worker, task_type* task)
         case TASK_UPDATE:
             if (tools_update(zone) != 0) {
                 se_log_error("task [update zone %s] failed",
-                    task->who);
+                    task->who?task->who:"(null)");
                 goto task_perform_fail;
                 break;
             }
             task->what = TASK_NSECIFY;
         case TASK_NSECIFY:
             if (tools_nsecify(zone) != 0) {
-                se_log_error("task [nsecify zone %s] failed", task->who);
+                se_log_error("task [nsecify zone %s] failed",
+                    task->who?task->who:"(null)");
                 goto task_perform_fail;
                 break;
             }
             task->what = TASK_SIGN;
         case TASK_SIGN:
             if (tools_sign(zone) != 0) {
-                se_log_error("task [sign zone %s] failed", task->who);
+                se_log_error("task [sign zone %s] failed",
+                    task->who?task->who:"(null)");
                 goto task_perform_fail;
                 break;
             }
             task->what = TASK_AUDIT;
         case TASK_AUDIT:
             if (tools_audit(zone, engine->config) != 0) {
-                se_log_error("task [audit zone %s] failed", task->who);
+                se_log_error("task [audit zone %s] failed",
+                    task->who?task->who:"(null)");
                 task->what = TASK_SIGN;
                 goto task_perform_fail;
                 break;
@@ -196,7 +200,8 @@ worker_perform_task(worker_type* worker, task_type* task)
             task->what = TASK_WRITE;
         case TASK_WRITE:
             if (tools_write_output(zone) != 0) {
-                se_log_error("task [write zone %s] failed", task->who);
+                se_log_error("task [write zone %s] failed",
+                    task->who?task->who:"(null)");
                 task->what = TASK_SIGN;
                 goto task_perform_fail;
                 break;
@@ -207,7 +212,7 @@ worker_perform_task(worker_type* worker, task_type* task)
             break;
         default:
             se_log_warning("unknown task[id %i zone %s], "
-                "trying full sign", task->what, task->who);
+                "trying full sign", task->what, task->who?task->who:"(null)");
             task->what = TASK_READ;
             task->when = time_now();
             break;

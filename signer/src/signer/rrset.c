@@ -132,17 +132,19 @@ rrset_log_rr(ldns_rr* rr, const char* pre, int level)
     char* str = NULL;
 
     str = ldns_rr2str(rr);
-    str[(strlen(str))-1] = '\0';
+    if (str) {
+        str[(strlen(str))-1] = '\0';
+    }
     if (level == 1) {
-        se_log_error("%s %s", pre, str);
+        se_log_error("%s %s", pre?pre:"", str?str:"(null)");
     } else if (level == 2) {
-        se_log_warning("%s %s", pre, str);
+        se_log_warning("%s %s", pre?pre:"", str?str:"(null)");
     } else if (level == 3) {
-        se_log_info("%s %s", pre, str);
+        se_log_info("%s %s", pre?pre:"", str?str:"(null)");
     } else if (level == 4) {
-        se_log_verbose("%s %s", pre, str);
+        se_log_verbose("%s %s", pre?pre:"", str?str:"(null)");
     } else {
-        se_log_debug("%s %s", pre, str);
+        se_log_debug("%s %s", pre?pre:"", str?str:"(null)");
     }
     se_free((void*)str);
     return;

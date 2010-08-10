@@ -59,7 +59,7 @@ zone_create(const char* name, ldns_rr_class klass)
 {
     zone_type* zone = (zone_type*) se_calloc(1, sizeof(zone_type));
     se_log_assert(name);
-    se_log_debug("create zone %s", name);
+    se_log_debug("create zone %s", name?name:"(null)");
     zone->name = se_strdup(name);
     zone->dname = ldns_dname_new_frm_str(name);
     zone->klass = klass;
@@ -157,7 +157,9 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
     time_t now;
 
     se_log_assert(zone);
-    se_log_debug("load zone %s signconf %s", zone->name, zone->signconf_filename);
+    se_log_debug("load zone %s signconf %s",
+        zone->name?zone->name:"(null)",
+        zone->signconf_filename?zone->signconf_filename:"(null)");
 
     if (zone->signconf) {
         last_modified = zone->signconf->last_modified;
@@ -166,39 +168,45 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
     signconf = signconf_read(zone->signconf_filename, last_modified);
     if (!signconf) {
         if (!zone->policy_name) {
-            se_log_warning("zone %s has no policy", zone->name);
+            se_log_warning("zone %s has no policy",
+                zone->name?zone->name:"(null)");
         } else {
             signconf = signconf_read(zone->signconf_filename, 0);
             if (!signconf) {
                 se_log_warning("zone %s has policy %s configured, "
                     "but has no (valid) signconf file",
-                    zone->name, zone->policy_name);
+                    zone->name?zone->name:"(null)", zone->policy_name);
                 if (buf) {
                     (void)snprintf(buf, ODS_SE_MAXLINE,
-                        "Zone %s config has errors.\n", zone->name);
+                        "Zone %s config has errors.\n",
+                             zone->name?zone->name:"(null)");
                 }
                 return -1;
             } else {
-                se_log_debug("zone %s has not changed", zone->name);
+                se_log_debug("zone %s has not changed",
+                    zone->name?zone->name:"(null)");
             }
         }
         if (buf) {
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                "Zone %s config has not changed.\n", zone->name);
+                "Zone %s config has not changed.\n",
+                zone->name?zone->name:"(null)");
         }
         return 0;
     } else if (signconf_check(signconf) != 0) {
-        se_log_warning("zone %s signconf has errors", zone->name);
+        se_log_warning("zone %s signconf has errors",
+            zone->name?zone->name:"(null)");
         if (buf) {
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                "Zone %s config has errors.\n", zone->name);
+                "Zone %s config has errors.\n", zone->name?zone->name:"(null)");
         }
         return -1;
     } else if (!zone->signconf) {
         zone->signconf = signconf;
         /* we don't check if foo in <Zone name="foo"> matches zone->name */
         zone->signconf->name = zone->name;
-        se_log_debug("zone %s now has signconf", zone->name);
+        se_log_debug("zone %s now has signconf",
+            zone->name?zone->name:"(null)");
         /* zone state? */
         /* create task for new zone */
         now = time_now();
@@ -207,12 +215,14 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         if (!task) {
             if (buf) {
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s now has config, "
-                    "but could not be scheduled.\n", zone->name);
+                    "but could not be scheduled.\n",
+                    zone->name?zone->name:"(null)");
             }
         } else {
             if (buf) {
                 (void)snprintf(buf, ODS_SE_MAXLINE,
-                    "Zone %s now has config.\n", zone->name);
+                    "Zone %s now has config.\n",
+                    zone->name?zone->name:"(null)");
             }
         }
         return 1;
@@ -225,10 +235,11 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         signconf_cleanup(zone->signconf);
         zone->signconf = signconf;
         zone->signconf->name = zone->name;
-        se_log_debug("zone %s signconf updated", zone->name);
+        se_log_debug("zone %s signconf updated",
+            zone->name?zone->name:"(null)");
         if (buf) {
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                "Zone %s config updated.\n", zone->name);
+                "Zone %s config updated.\n", zone->name?zone->name:"(null)");
         }
         return 1;
     }
@@ -273,7 +284,7 @@ zone_publish_dnskeys(zone_type* zone)
                 key->dnskey = hsm_get_key(ctx, zone->dname, key);
                 if (!key->dnskey) {
                     se_log_error("error creating DNSKEY for key %s",
-                        key->locator);
+                        key->locator?key->locator:"(null)");
                     error = 1;
                     break;
                 }
@@ -284,7 +295,8 @@ zone_publish_dnskeys(zone_type* zone)
             error = zone_add_rr(zone, dnskey);
             if (error) {
                 se_log_error("error adding DNSKEY[%u] for key %s",
-                    ldns_calc_keytag(dnskey), key->locator);
+                    ldns_calc_keytag(dnskey),
+                    key->locator?key->locator:"(null)");
                 break;
             }
         }
@@ -313,7 +325,7 @@ zone_publish_nsec3params(zone_type* zone)
             zone->signconf->nsec3_salt);
         if (!zone->nsec3params) {
             se_log_error("error creating NSEC3 parameters for zone %s",
-                zone->name);
+                zone->name?zone->name:"(null)");
             return 1;
         }
     }
@@ -336,7 +348,7 @@ zone_publish_nsec3params(zone_type* zone)
     error = zone_add_rr(zone, nsec3params_rr);
     if (error) {
         se_log_error("error adding NSEC3PARAMS record to zone %s",
-            zone->name);
+            zone->name?zone->name:"(null)");
     }
     return error;
 }
@@ -371,13 +383,15 @@ zone_add_dnskeys(zone_type* zone)
 
     error = zone_publish_dnskeys(zone);
     if (error) {
-        se_log_error("error adding DNSKEYs to zone %s", zone->name);
+        se_log_error("error adding DNSKEYs to zone %s",
+            zone->name?zone->name:"(null)");
         return error;
     }
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         error = zone_publish_nsec3params(zone);
         if (error) {
-            se_log_error("error adding NSEC3PARAM RR to zone %s", zone->name);
+            se_log_error("error adding NSEC3PARAM RR to zone %s",
+                zone->name?zone->name:"(null)");
             return error;
         }
     }
@@ -406,7 +420,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr)
     if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) != 0 &&
         !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->dname)) {
         se_log_warning("zone %s contains out of zone data, skipping",
-            zone->name);
+            zone->name?zone->name:"(null)");
         ldns_rr_free(rr);
         return 0; /* consider success */
     }
@@ -418,19 +432,21 @@ zone_add_rr(zone_type* zone, ldns_rr* rr)
     type = ldns_rr_get_type(rr);
     if (type == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_ttl) {
         tmp = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
-        se_log_verbose("zone %s set DNSKEY TTL to %u", zone->name, tmp);
+        se_log_verbose("zone %s set DNSKEY TTL to %u",
+            zone->name?zone->name:"(null)", tmp);
         ldns_rr_set_ttl(rr, tmp);
     }
     if (type == LDNS_RR_TYPE_SOA) {
         if (zone->signconf->soa_ttl) {
             tmp = (uint32_t) duration2time(zone->signconf->soa_ttl);
-            se_log_verbose("zone %s set SOA TTL to %u", zone->name, tmp);
+            se_log_verbose("zone %s set SOA TTL to %u",
+                zone->name?zone->name:"(null)", tmp);
             ldns_rr_set_ttl(rr, tmp);
         }
         if (zone->signconf->soa_min) {
             tmp = (uint32_t) duration2time(zone->signconf->soa_min);
             se_log_verbose("zone %s set SOA MINIMUM to %u",
-                zone->name, tmp);
+                zone->name?zone->name:"(null)", tmp);
             soa_min = ldns_rr_set_rdf(rr,
                 ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, tmp),
                 SE_SOA_RDATA_MINIMUM);
@@ -438,7 +454,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr)
                 ldns_rdf_deep_free(soa_min);
             } else {
                 se_log_error("zone %s failed to replace SOA MINIMUM "
-                    "rdata", zone->name);
+                    "rdata", zone->name?zone->name:"(null)");
             }
         }
     }
@@ -486,7 +502,7 @@ zone_nsecify(zone_type* zone)
     error = zonedata_entize(zone->zonedata, zone->dname);
     if (error) {
         se_log_error("failed to add empty non-terminals to zone %s",
-            zone->name);
+            zone->name?zone->name:"(null)");
         return error;
     }
 
@@ -494,7 +510,8 @@ zone_nsecify(zone_type* zone)
         error = zonedata_nsecify(zone->zonedata, zone->klass, zone->stats);
     } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (zone->signconf->nsec3_optout) {
-            se_log_debug("OptOut is being used for zone %s", zone->name);
+            se_log_debug("OptOut is being used for zone %s",
+                zone->name?zone->name:"(null)");
         }
         error = zonedata_nsecify3(zone->zonedata, zone->klass,
             zone->nsec3params, zone->stats);
@@ -514,7 +531,7 @@ zone_nsecify(zone_type* zone)
             se_fclose(fd);
         } else {
             se_log_warning("cannot backup NSEC(3) records: cannot open file "
-            "%s for writing", filename);
+            "%s for writing", filename?filename:"(null)");
         }
         se_free((void*)filename);
     }
@@ -558,7 +575,7 @@ zone_sign(zone_type* zone)
             se_fclose(fd);
         } else {
             se_log_warning("cannot backup RRSIG records: cannot open file "
-            "%s for writing", filename);
+            "%s for writing", filename?filename:"(null)");
         }
         se_free((void*)filename);
     }

@@ -67,11 +67,12 @@ tools_read_input(zone_type* zone)
     zone->stats->sort_time = 0;
     start = time(NULL);
 
-    se_log_verbose("read zone %s from input adapter %i",
-        zone->name, zone->inbound_adapter->type);
-
     switch (zone->inbound_adapter->type) {
         case ADAPTER_FILE:
+            se_log_verbose("read zone %s from input file adapter %s",
+                zone->name?zone->name:"(null)",
+                zone->inbound_adapter->filename?zone->inbound_adapter->filename:"(null)");
+
             tmpname = se_build_path(zone->name, ".unsorted", 0);
             error = se_file_copy(zone->inbound_adapter->filename, tmpname);
             if (!error) {
@@ -82,7 +83,8 @@ tools_read_input(zone_type* zone)
         case ADAPTER_UNKNOWN:
         default:
             se_log_error("read zone %s failed: unknown inbound adapter type %i",
-                zone->name, (int) zone->inbound_adapter->type);
+                zone->name?zone->name:"(null)",
+                (int) zone->inbound_adapter->type);
             error = 1;
             break;
     }
@@ -102,7 +104,8 @@ tools_add_dnskeys(zone_type* zone)
 {
     se_log_assert(zone);
     se_log_assert(zone->signconf);
-    se_log_verbose("publish dnskeys to zone %s", zone->name);
+    se_log_verbose("publish dnskeys to zone %s",
+        zone->name?zone->name:"(null)");
     return zone_add_dnskeys(zone);
 }
 
@@ -115,7 +118,7 @@ tools_update(zone_type* zone)
 {
     se_log_assert(zone);
     se_log_assert(zone->signconf);
-    se_log_verbose("update zone %s", zone->name);
+    se_log_verbose("update zone %s", zone->name?zone->name:"(null)");
     return zone_update_zonedata(zone);
 }
 
@@ -134,7 +137,7 @@ tools_nsecify(zone_type* zone)
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->stats);
-    se_log_verbose("nsecify zone %s", zone->name);
+    se_log_verbose("nsecify zone %s", zone->name?zone->name:"(null)");
     start = time(NULL);
     error = zone_nsecify(zone);
     end = time(NULL);
@@ -157,7 +160,7 @@ tools_sign(zone_type* zone)
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->stats);
-    se_log_verbose("sign zone %s", zone->name);
+    se_log_verbose("sign zone %s", zone->name?zone->name:"(null)");
     start = time(NULL);
     error = zone_sign(zone);
     end = time(NULL);
@@ -181,22 +184,28 @@ tools_audit(zone_type* zone, engineconfig_type* config)
     se_log_assert(zone->signconf);
 
     if (zone->signconf->audit) {
-        se_log_verbose("audit zone %s", zone->name);
+        se_log_verbose("audit zone %s", zone->name?zone->name:"(null)");
         finalized = se_build_path(zone->name, ".finalized", 0);
         error = adfile_write(zone, finalized);
         if (error != 0) {
-            se_log_error("audit zone %s failed: unable to write zone");
+            se_log_error("audit zone %s failed: unable to write zone",
+                zone->name?zone->name:"(null)");
             se_free((void*)finalized);
             return 1;
         }
 
         if (config->working_dir) {
             snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s > /dev/null",
-                ODS_SE_AUDITOR, config->cfg_filename, config->working_dir,
-                finalized, zone->name);
+                ODS_SE_AUDITOR,
+                config->cfg_filename?config->cfg_filename:ODS_SE_CFGFILE,
+                config->working_dir, finalized?finalized:"(null)",
+                zone->name?zone->name:"(null)");
         } else {
             snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s -z %s > /dev/null",
-                ODS_SE_AUDITOR, config->cfg_filename, finalized, zone->name);
+                ODS_SE_AUDITOR,
+                config->cfg_filename?config->cfg_filename:ODS_SE_CFGFILE,
+                finalized?finalized:"(null)",
+                zone->name?zone->name:"(null)");
         }
 
         se_log_debug("system call: %s", str);
@@ -224,7 +233,7 @@ int tools_write_output(zone_type* zone)
     se_log_assert(zone->signconf);
     se_log_assert(zone->outbound_adapter);
     se_log_assert(zone->stats);;
-    se_log_verbose("write zone %s", zone->name);
+    se_log_verbose("write zone %s", zone->name?zone->name:"(null)");
 
     switch (zone->outbound_adapter->type) {
         case ADAPTER_FILE:
@@ -233,14 +242,15 @@ int tools_write_output(zone_type* zone)
         case ADAPTER_UNKNOWN:
         default:
             se_log_error("write zone %s failed: unknown outbound adapter "
-                "type %i", zone->name, (int) zone->inbound_adapter->type);
+                "type %i", zone->name?zone->name:"(null)",
+                (int) zone->inbound_adapter->type);
             error = 1;
             break;
     }
 
     /* log stats */
-    se_log_debug("log stats for zone %s", zone->name);
-    stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
+    se_log_debug("log stats for zone %s", zone->name?zone->name:"(null)");
+    stats_log(zone->stats, (const char*) zone->name, zone->signconf->nsec_type);
     stats_clear(zone->stats);
 
     return error;

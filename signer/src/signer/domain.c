@@ -134,7 +134,7 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
     if (ldns_rbtree_insert(domain->rrsets, new_node) == NULL) {
         str = ldns_rdf2str(domain->name);
         se_log_error("unable to add RRset %i to domain %s: already present",
-            rrset->rr_type, domain->name);
+            rrset->rr_type, str?str:"(null)");
         se_free((void*)str);
         se_free((void*)new_node);
         return NULL;
@@ -170,7 +170,7 @@ domain_del_rrset(domain_type* domain, rrset_type* rrset)
     } else {
         str = ldns_rdf2str(domain->name);
         se_log_error("unable to delete RRset %i from domain %s: "
-            "not in tree", rrset->rr_type, domain->name);
+            "not in tree", rrset->rr_type, str?str:"(null)");
         se_free((void*)str);
         return rrset;
     }
@@ -717,7 +717,7 @@ domain_del_rrs(domain_type* domain)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
-		if (rrset_del_rrs(rrset) != 0) {
+        if (rrset_del_rrs(rrset) != 0) {
             return 1;
         }
         node = ldns_rbtree_next(node);
@@ -794,7 +794,7 @@ domain_print(FILE* fd, domain_type* domain, int internal)
     if (internal) {
         se_log_assert(domain->name);
         str = ldns_rdf2str(domain->name);
-        fprintf(fd, "; DNAME: %s\n", str);
+        fprintf(fd, "; DNAME: %s\n", str?str:"(null)");
         se_free((void*)str);
     }
 

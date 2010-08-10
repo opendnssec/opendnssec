@@ -178,7 +178,7 @@ zonedata_add_domain_nsec3(zonedata_type* zd, domain_type* domain,
         new_node = domain2node(nsec3_domain);
         if (!ldns_rbtree_insert(zd->nsec3_domains, new_node)) {
             str = ldns_rdf2str(nsec3_domain->name);
-            se_log_error("unable to add NSEC3 domain %s", str);
+            se_log_error("unable to add NSEC3 domain %s", str?str:"(null)");
             se_free((void*)str);
             se_free((void*)new_node);
             domain_cleanup(nsec3_domain);
@@ -200,7 +200,8 @@ zonedata_add_domain_nsec3(zonedata_type* zd, domain_type* domain,
     } else {
         str = ldns_rdf2str(hashed_ownername);
         ldns_rdf_deep_free(hashed_ownername);
-        se_log_error("unable to add NSEC3 domain %s (has collision?) ", str);
+        se_log_error("unable to add NSEC3 domain %s (has collision?) ",
+            str?str:"(null)");
         se_free((void*)str);
         return NULL;
     }
@@ -228,13 +229,14 @@ zonedata_add_domain(zonedata_type* zd, domain_type* domain, int at_apex)
     new_node = domain2node(domain);
     if (ldns_rbtree_insert(zd->domains, new_node) == NULL) {
         str = ldns_rdf2str(domain->name);
-        se_log_error("unable to add domain %s: already present", str);
+        se_log_error("unable to add domain %s: already present",
+            str?str:"(null)");
         se_free((void*)str);
         se_free((void*)new_node);
         return NULL;
     }
     str = ldns_rdf2str(domain->name);
-    se_log_debug("+DD %s", str);
+    se_log_debug("+DD %s", str?str:"(null)");
     se_free((void*) str);
     domain->domain_status = DOMAIN_STATUS_NONE;
     domain->nsec_bitmap_changed = 1;
@@ -290,7 +292,8 @@ zonedata_domain_delete(ldns_rbtree_t* tree, domain_type* domain)
         return NULL;
     } else {
         str = ldns_rdf2str(domain->name);
-        se_log_error("unable to delete domain %s: not in tree", str);
+        se_log_error("unable to delete domain %s: not in tree",
+            str?str:"(null)");
         se_free((void*)str);
         return domain;
     }
@@ -325,7 +328,7 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
     se_log_assert(zd->domains);
     se_log_assert(domain);
     str = ldns_rdf2str(domain->name);
-    se_log_debug("-DD %s", str);
+    se_log_debug("-DD %s", str?str:"(null)");
     se_free((void*) str);
     if (domain->nsec3) {
         nsec3_domain = zonedata_del_domain_nsec3(zd, domain->nsec3);
@@ -560,7 +563,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
             domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
             domain->domain_status == DOMAIN_STATUS_ENT_GLUE) {
             str = ldns_rdf2str(domain->name);
-            se_log_debug("nsecify3: skip glue domain %s", str);
+            se_log_debug("nsecify3: skip glue domain %s", str?str:"(null)");
             se_free((void*) str);
 
             node = ldns_rbtree_next(node);
@@ -574,9 +577,10 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
                 str = ldns_rdf2str(domain->name);
                 if (domain->domain_status == DOMAIN_STATUS_ENT_NS) {
                     se_log_debug("opt-out %s: empty non-terminal (to unsigned "
-                        "delegation)", str);
+                        "delegation)", str?str:"(null)");
                 } else {
-                    se_log_debug("opt-out %s: unsigned delegation", str);
+                    se_log_debug("opt-out %s: unsigned delegation",
+                        str?str:"(null)");
                 }
                 se_free((void*) str);
                 node = ldns_rbtree_next(node);
@@ -595,7 +599,8 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
                 nsec3params);
             if (domain->nsec3 == NULL) {
                 str = ldns_rdf2str(domain->name);
-                se_log_alert("failed to add NSEC3 domain for %s", str);
+                se_log_alert("failed to add NSEC3 domain for %s",
+                    str?str:"(null)");
                 se_free((void*) str);
                 return 1;
             }
@@ -702,7 +707,8 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         prev = soa;
         update = 0;
     } else {
-        se_log_error("unknown serial type %s", sc->soa_serial);
+        se_log_error("unknown serial type %s",
+            sc->soa_serial?sc->soa_serial:"(null)");
         return 1;
     }
 
