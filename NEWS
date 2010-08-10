@@ -15,6 +15,8 @@ Bugfixes:
 * Bugreport #166: Correct exit value from signer.
 * Bugreport #167: Zone fetcher now also picks up changes when zonelist is
   reloaded (thanks Rick van Rein)
+* Bugreport #170: Typo in man page
+
 
 OpenDNSSEC 1.1.1 - 2010-07-08
 

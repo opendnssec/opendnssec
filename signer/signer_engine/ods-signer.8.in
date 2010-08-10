@@ -1,4 +1,4 @@
-.TH "ods-signer" "1" "February 2010" "OpenDNSSEC" "OpenDNSSEC ods-signer"
+.TH "ods-signer" "8" "February 2010" "OpenDNSSEC" "OpenDNSSEC ods-signer"
 .\" $Id$
 .SH "NAME"
 .B ods\-signer 
