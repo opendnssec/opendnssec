@@ -158,6 +158,8 @@ se_fopen(const char* file, const char* dir, const char* mode)
     size_t len_total = 0;
     char* openf = NULL;
 
+    se_log_assert(file);
+    se_log_assert(dir);
     se_log_assert(mode);
     se_log_debug("open file: dir %s file %s for %s", dir, file,
         se_file_mode2str(mode));
