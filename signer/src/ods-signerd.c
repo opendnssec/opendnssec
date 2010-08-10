@@ -51,6 +51,7 @@ usage(FILE* out)
     fprintf(out, " -c | --config <cfgfile> Read configuration from file.\n");
     fprintf(out, " -d | --no-daemon        Do not daemonize the signer "
                  "engine.\n");
+    fprintf(out, " -1 | --single-run       Run once, then exit.\n");
     fprintf(out, " -h | --help             Show this help and exit.\n");
     fprintf(out, " -i | --info             Print configuration and exit.\n");
     fprintf(out, " -v | --verbose          Increase verbosity.\n");
