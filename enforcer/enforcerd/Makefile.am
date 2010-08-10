@@ -7,6 +7,7 @@ LIBKSM = ../ksm/libksm.a
 LIBENFORCER = ../common/libenforcer.a
 
 AM_CPPFLAGS = \
+	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
 	-I$(srcdir)/../common \
 	-I$(builddir)/../common \

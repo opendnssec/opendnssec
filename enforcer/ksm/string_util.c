@@ -40,6 +40,7 @@
 #include <stdlib.h>
 
 #include "config.h"
+#include "compat.h"
 
 #include "ksm/string_util.h"
 #include "ksm/message.h"

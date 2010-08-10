@@ -42,6 +42,7 @@
 #include <limits.h>
 
 #include "config.h"
+#include "compat.h"
 
 #include "ksm/ksm.h"
 #include "ksm/datetime.h"

@@ -3,6 +3,7 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = \
+		-I$(top_srcdir)/common \
 		-I$(top_builddir)/common \
 		-I$(srcdir)/cryptoki_compat \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@
@@ -10,9 +11,7 @@ AM_CPPFLAGS = \
 noinst_LIBRARIES = libhsm.a
 
 libhsm_a_SOURCES = libhsm.c libhsm.h libhsmdns.h \
-	cryptoki_compat/pkcs11.h \
-	compat/strlcpy.c compat/strlcat.h \
-	compat/strlcat.c compat/strlcat.h
+	cryptoki_compat/pkcs11.h
 
 bin_PROGRAMS = ods-hsmutil ods-hsmspeed
 

@@ -44,7 +44,7 @@
 
 #include "libhsm.h"
 #include "libhsmdns.h"
-#include "compat/strlcpy.h"
+#include "compat.h"
 
 #include <pkcs11.h>
 
