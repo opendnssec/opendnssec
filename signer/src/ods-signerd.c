@@ -126,8 +126,7 @@ main(int argc, char* argv[])
             getenv("ENFORCER_TIMESHIFT"));
         single_run = 1;
     } else {
-        fprintf(stdout, "DEBUG: timeshift mode not set: %s\n",
-            getenv("ENFORCER_TIMESHIFT"));
+        fprintf(stdout, "DEBUG: timeshift not set\n");
     }
 #endif /* ENFORCER_TIMESHIFT */
 
