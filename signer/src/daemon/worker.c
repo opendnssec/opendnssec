@@ -226,7 +226,7 @@ task_perform_fail:
             zone->backoff = ODS_SE_MAX_BACKOFF;
         }
     } else {
-        zone->backoff = 1;
+        zone->backoff = 60;
     }
 
     task->when += zone->backoff;
