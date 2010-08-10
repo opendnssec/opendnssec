@@ -675,19 +675,20 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
 
     prev = zd->outbound_serial;
     if (se_strcmp(sc->soa_serial, "unixtime") == 0) {
-        soa = (uint32_t) time_now();
+        soa = se_max(zd->inbound_serial, (uint32_t) time_now());
         if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
         update = soa - prev;
     } else if (strncmp(sc->soa_serial, "counter", 7) == 0) {
-        soa = zd->inbound_serial;
+        soa = se_max(zd->inbound_serial, zd->outbound_serial);
         if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
         update = soa - prev;
     } else if (strncmp(sc->soa_serial, "datecounter", 11) == 0) {
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
+        soa = se_max(zd->inbound_serial, soa);
         if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
