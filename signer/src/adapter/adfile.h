@@ -45,10 +45,11 @@ struct zone_struct;
 /**
  * Read zone file.
  * \param[in] zone zone structure
+ * \param[in] filename read from this specific file
  * \return 0 on success, 1 on error
  *
  */
-int adfile_read(struct zone_struct* zone);
+int adfile_read(struct zone_struct* zone, const char* filename);
 
 /**
  * Write zone file.

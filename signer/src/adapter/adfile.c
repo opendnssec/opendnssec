@@ -462,7 +462,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
  *
  */
 int
-adfile_read(struct zone_struct* zone)
+adfile_read(struct zone_struct* zone, const char* filename)
 {
     FILE* fd = NULL;
     zone_type* zone_in = zone;
@@ -470,9 +470,9 @@ adfile_read(struct zone_struct* zone)
 
     se_log_assert(zone_in);
     se_log_assert(zone_in->name);
-    se_log_assert(zone_in->inbound_adapter);
-    se_log_debug("read from input file adapter zone %s file %s",
-        zone_in->name, zone_in->inbound_adapter->filename);
+    se_log_assert(filename);
+    se_log_debug("read zone %s from file %s",
+        zone_in->name, filename);
 
     /* remove current rrs */
     error = zonedata_del_rrs(zone_in->zonedata);

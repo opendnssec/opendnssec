@@ -67,16 +67,17 @@ tools_read_input(zone_type* zone)
     zone->stats->sort_time = 0;
     start = time(NULL);
 
-    se_log_verbose("read zone %s", zone->name);
-
-    /* make a copy (slooooooow, use system(cp) ?) */
-    tmpname = se_build_path(zone->name, ".unsorted", 0);
-    error = se_file_copy(zone->inbound_adapter->filename, tmpname);
-    se_free((void*)tmpname);
+    se_log_verbose("read zone %s from input adapter %s",
+        zone->name, zone->inbound_adapter->filename);
 
     switch (zone->inbound_adapter->type) {
         case ADAPTER_FILE:
-            error = adfile_read(zone);
+            tmpname = se_build_path(zone->name, ".unsorted", 0);
+            error = se_file_copy(zone->inbound_adapter->filename, tmpname);
+            if (!error) {
+                error = adfile_read(zone, tmpname);
+            }
+            se_free((void*)tmpname);
             break;
         case ADAPTER_UNKNOWN:
         default:
