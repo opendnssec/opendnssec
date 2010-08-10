@@ -18,7 +18,7 @@ bin_PROGRAMS = ods-hsmutil ods-hsmspeed
 
 man1_MANS = ods-hsmutil.1 ods-hsmspeed.1
 
-ods_hsmutil_SOURCES = hsmutil.c hsmtest.c
+ods_hsmutil_SOURCES = hsmutil.c hsmtest.c hsmtest.h
 ods_hsmutil_LDADD = libhsm.a @LDNS_LIBS@ @XML2_LIBS@
 
 ods_hsmspeed_SOURCES = hsmspeed.c
