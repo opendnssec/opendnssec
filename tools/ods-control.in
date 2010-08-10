@@ -44,7 +44,7 @@ case "$1" in
 	shift
 	$bindir/ods-hsmutil $@
 	;;
-	
+
 'signer')
 	shift
 	$sbindir/ods-signer $@
@@ -55,7 +55,7 @@ case "$1" in
 	$sbindir/ods-enforcerd
 
 	echo "Starting signer engine..."
-	$sbindir/ods-signer start
+	$sbindir/ods-signerd -vvvvv
 	;;
 
 'stop')

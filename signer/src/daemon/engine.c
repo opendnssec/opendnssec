@@ -181,7 +181,7 @@ engine_stop_cmdhandler(engine_type* engine)
     engine->cmdhandler->need_to_exit = 1;
     if (self_pipe_trick(engine) == 0) {
         while (!engine->cmdhandler_done) {
-			se_log_debug("waiting for command handler to exit...");
+            se_log_debug("waiting for command handler to exit...");
             sleep(1);
         }
     } else {
