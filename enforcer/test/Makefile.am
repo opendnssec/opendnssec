@@ -3,6 +3,7 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBHSM = ${top_builddir}/libhsm/src/libhsm.a
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
@@ -32,5 +33,5 @@ TESTS_ENVIRONMENT = \
 
 TESTS = test
 
-test_LDADD = ../ksm/libksm.a @CUNIT_LIBS@ @DB_LIBS@ $(LIBHSM)
+test_LDADD = ../ksm/libksm.a @CUNIT_LIBS@ @DB_LIBS@ $(LIBHSM) $(LIBCOMPAT)
 test_LDFLAGS = -no-install
