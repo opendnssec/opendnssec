@@ -4,6 +4,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBHSM = ../../libhsm/src/libhsm.a
 LIBKSM = ../ksm/libksm.a
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
@@ -30,5 +31,5 @@ bin_PROGRAMS =	ods-ksmutil
 man1_MANS =	ods-ksmutil.1
 
 ods_ksmutil_SOURCES = ksmutil.c
-ods_ksmutil_LDADD = $(LIBKSM) $(LIBHSM)
+ods_ksmutil_LDADD = $(LIBKSM) $(LIBHSM) $(LIBCOMPAT)
 ods_ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@

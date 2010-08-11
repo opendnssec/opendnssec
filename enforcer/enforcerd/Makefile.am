@@ -5,6 +5,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 LIBHSM = ../../libhsm/src/libhsm.a
 LIBKSM = ../ksm/libksm.a
 LIBENFORCER = ../common/libenforcer.a
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
@@ -23,5 +24,5 @@ sbin_PROGRAMS = ods-enforcerd
 man8_MANS = ods-enforcerd.8
 
 ods_enforcerd_SOURCES = enforcer.c enforcer.h
-ods_enforcerd_LDADD = $(LIBENFORCER) $(LIBKSM) $(LIBHSM)
+ods_enforcerd_LDADD = $(LIBENFORCER) $(LIBKSM) $(LIBHSM) $(LIBCOMPAT)
 ods_enforcerd_LDADD += @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@
