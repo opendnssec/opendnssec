@@ -46,7 +46,7 @@ struct rrset_struct {
     ldns_rr_type rr_type;
     uint32_t rr_count;
     uint32_t rrsig_count;
-    uint32_t inbound_serial;
+    uint32_t internal_serial;
     uint32_t outbound_serial;
     ldns_dnssec_rrs* rrs;
     ldns_dnssec_rrs* add;

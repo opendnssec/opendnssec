@@ -68,6 +68,7 @@ zonedata_create(void)
     zd->initialized = 0;
     zd->nsec3_domains = NULL;
     zd->inbound_serial = 0;
+    zd->internal_serial = 0;
     zd->outbound_serial = 0;
     zd->default_ttl = 3600; /* configure --default-ttl option? */
     return zd;
@@ -390,13 +391,13 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
             parent_domain->domain_status =
                 (ent2unsigned_deleg?DOMAIN_STATUS_ENT_NS:
                                     DOMAIN_STATUS_ENT_AUTH);
-            parent_domain->inbound_serial = domain->inbound_serial;
+            parent_domain->internal_serial = domain->internal_serial;
             domain->parent = parent_domain;
             /* continue with the parent domain */
             domain = parent_domain;
         } else {
             ldns_rdf_deep_free(parent_rdf);
-            parent_domain->inbound_serial = domain->inbound_serial;
+            parent_domain->internal_serial = domain->internal_serial;
             domain->parent = parent_domain;
             if (domain_count_rrset(parent_domain) <= 0) {
                 parent_domain->domain_status =
@@ -680,7 +681,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     se_log_assert(zd);
     se_log_assert(sc);
 
-    prev = zd->outbound_serial;
+    prev = zd->internal_serial;
     if (se_strcmp(sc->soa_serial, "unixtime") == 0) {
         soa = se_max(zd->inbound_serial, (uint32_t) time_now());
         if (!DNS_SERIAL_GT(soa, prev)) {
@@ -688,7 +689,12 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         }
         update = soa - prev;
     } else if (strncmp(sc->soa_serial, "counter", 7) == 0) {
-        soa = se_max(zd->inbound_serial, zd->outbound_serial);
+        soa = se_max(zd->inbound_serial, prev);
+        if (!zd->initialized) {
+            zd->internal_serial = soa + 1;
+            zd->initialized = 1;
+            return 0;
+        }
         if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
@@ -703,7 +709,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     } else if (strncmp(sc->soa_serial, "keep", 4) == 0) {
         soa = zd->inbound_serial;
         if (!zd->initialized) {
-            zd->outbound_serial = soa;
+            zd->internal_serial = soa;
             zd->initialized = 1;
             return 0;
         }
@@ -721,7 +727,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     }
 
     if (!zd->initialized) {
-        zd->outbound_serial = soa;
+        zd->internal_serial = soa;
         zd->initialized = 1;
         return 0;
     }
@@ -730,7 +736,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     if (update > 0x7FFFFFFF) {
         update = 0x7FFFFFFF;
     }
-    zd->outbound_serial = (prev + update); /* automatically does % 2^32 */
+    zd->internal_serial = (prev + update); /* automatically does % 2^32 */
     return 0;
 }
 
@@ -753,7 +759,10 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     se_log_assert(zd);
     se_log_assert(zd->domains);
 
-    error = zonedata_update_serial(zd, sc);
+    if (!DNS_SERIAL_GT(zd->internal_serial, zd->outbound_serial)) {
+        error = zonedata_update_serial(zd, sc);
+    }
+    zd->outbound_serial = zd->internal_serial;
     if (error || !zd->outbound_serial) {
         se_log_error("unable to update zonedata: failed to update serial");
         return 1;
@@ -799,7 +808,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
     se_log_assert(zd->domains);
 
     error = zonedata_update_serial(zd, sc);
-    if (error || !zd->outbound_serial) {
+    if (error || !zd->internal_serial) {
         se_log_error("unable to update zonedata: failed to update serial");
         return 1;
     }
@@ -809,9 +818,9 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        if (domain_update(domain, zd->outbound_serial) != 0) {
+        if (domain_update(domain, zd->internal_serial) != 0) {
             se_log_error("unable to update zonedata to serial %u: failed "
-                "to update domain", zd->outbound_serial);
+                "to update domain", zd->internal_serial);
             return 1;
         }
         node = ldns_rbtree_next(node);

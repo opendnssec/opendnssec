@@ -57,6 +57,66 @@ util_is_dnssec_rr(ldns_rr* rr)
 
 
 /**
+ * Compare SOA RDATAs.
+ *
+ */
+int
+util_soa_compare_rdata(ldns_rr* rr1, ldns_rr* rr2)
+{
+    size_t i = 0;
+    size_t rdata_count = SE_SOA_RDATA_MINIMUM;
+
+    for (i = 0; i <= rdata_count; i++) {
+        if (i != SE_SOA_RDATA_SERIAL &&
+            ldns_rdf_compare(ldns_rr_rdf(rr1, i), ldns_rr_rdf(rr2, i)) != 0) {
+                return 1;
+        }
+    }
+    return 0;
+}
+
+
+/**
+ * Compare SOA RRs.
+ *
+ */
+int
+util_soa_compare(ldns_rr* rr1, ldns_rr* rr2)
+{
+    size_t rr1_len = 0;
+    size_t rr2_len = 0;
+    size_t offset = 0;
+
+    se_log_assert(rr1);
+    se_log_assert(rr2);
+
+    rr1_len = ldns_rr_uncompressed_size(rr1);
+    rr2_len = ldns_rr_uncompressed_size(rr2);
+    if (ldns_dname_compare(ldns_rr_owner(rr1), ldns_rr_owner(rr2)) != 0) {
+        return 1;
+    }
+    if (ldns_rr_get_class(rr1) != ldns_rr_get_class(rr2)) {
+        return 1;
+    }
+    if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_SOA) {
+        return 1;
+    }
+    if (ldns_rr_get_type(rr1) != ldns_rr_get_type(rr2)) {
+        return 1;
+    }
+    if (offset > rr1_len || offset > rr2_len) {
+        if (rr1_len == rr2_len) {
+            return util_soa_compare_rdata(rr1, rr2);
+        }
+        return 1;
+    }
+
+    return util_soa_compare_rdata(rr1, rr2);
+}
+
+
+
+/**
  * Compare RRs only on RDATA.
  *
  */

@@ -52,6 +52,7 @@ struct zonedata_struct {
     int initialized;
     uint32_t default_ttl; /* fallback ttl */
     uint32_t inbound_serial; /* last seen inbound soa serial */
+    uint32_t internal_serial; /* latest internal soa serial */
     uint32_t outbound_serial; /* last written outbound soa serial */
 };
 

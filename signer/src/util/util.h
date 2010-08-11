@@ -60,6 +60,15 @@
 int util_is_dnssec_rr(ldns_rr* rr);
 
 /**
+ * Compare RRs, ignore SOA SERIAL.
+ * \param[in] rr1 RR
+ * \param[in] rr2 another RR
+ * \return int 0 if equal SOA RRs, 1 otherwise
+ *
+ */
+int util_soa_compare(ldns_rr* rr1, ldns_rr* rr2);
+
+/**
  * Compare RRs only on RDATA.
  * \param[in] rr1 RR
  * \param[in] rr2 another RR

@@ -71,11 +71,10 @@ domain_create(ldns_rdf* dname)
     domain->nsec3 = NULL;
     domain->rrsets = ldns_rbtree_create(rrset_compare);
     domain->domain_status = DOMAIN_STATUS_NONE;
-    domain->inbound_serial = 0;
+    domain->internal_serial = 0;
     domain->outbound_serial = 0;
     /* nsec */
     domain->nsec_rrset = NULL;
-    domain->nsec_serial = 0;
     domain->nsec_bitmap_changed = 0;
     domain->nsec_nxt_changed = 0;
     return domain;
@@ -226,7 +225,7 @@ domain_update(domain_type* domain, uint32_t serial)
     se_log_assert(domain);
     se_log_assert(domain->rrsets);
 
-    if (DNS_SERIAL_GT(serial, domain->inbound_serial)) {
+    if (DNS_SERIAL_GT(serial, domain->internal_serial)) {
         if (domain->rrsets->root != LDNS_RBTREE_NULL) {
             node = ldns_rbtree_first(domain->rrsets);
         }
@@ -258,7 +257,7 @@ domain_update(domain_type* domain, uint32_t serial)
                 rrset = domain_del_rrset(domain, rrset);
             }
         }
-        domain->inbound_serial = serial;
+        domain->internal_serial = serial;
     }
     return 0;
 }
@@ -346,7 +345,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
     se_log_assert(to->name);
     se_log_assert(stats);
 
-    if (DNS_SERIAL_GT(domain->inbound_serial, domain->outbound_serial)) {
+    if (DNS_SERIAL_GT(domain->internal_serial, domain->outbound_serial)) {
         /* create types bitmap */
         if (!domain->nsec_rrset || domain->nsec_bitmap_changed) {
             domain_nsecify_create_bitmap(domain, types, &types_count);
@@ -409,9 +408,9 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                 domain->nsec_bitmap_changed = 0;
             }
         }
-        domain->outbound_serial = domain->inbound_serial;
+        domain->outbound_serial = domain->internal_serial;
     }
-    domain->nsec_rrset->inbound_serial = domain->inbound_serial;
+    domain->nsec_rrset->internal_serial = domain->internal_serial;
     return 0;
 }
 
@@ -445,7 +444,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
     se_log_assert(stats);
 
     orig_domain = domain->nsec3; /* use the back reference */
-    if (DNS_SERIAL_GT(orig_domain->inbound_serial,
+    if (DNS_SERIAL_GT(orig_domain->internal_serial,
         orig_domain->outbound_serial))
     {
         /* create types bitmap */
@@ -552,9 +551,9 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             }
             orig_domain->nsec_nxt_changed = 0;
         }
-        orig_domain->outbound_serial = orig_domain->inbound_serial;
+        orig_domain->outbound_serial = orig_domain->internal_serial;
     }
-    domain->nsec_rrset->inbound_serial = orig_domain->inbound_serial;
+    domain->nsec_rrset->internal_serial = orig_domain->internal_serial;
     return 0;
 }
 

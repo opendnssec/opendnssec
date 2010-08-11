@@ -54,7 +54,7 @@ rrset_create(ldns_rr_type rrtype)
     rrset->rr_type = rrtype;
     rrset->rr_count = 0;
     rrset->rrsig_count = 0;
-    rrset->inbound_serial = 0;
+    rrset->internal_serial = 0;
     rrset->outbound_serial = 0;
     rrset->rrs = ldns_dnssec_rrs_new();
     rrset->add = NULL;
@@ -77,7 +77,7 @@ rrset_create_frm_rr(ldns_rr* rr)
     rrset->rr_type = ldns_rr_get_type(rr);
     rrset->rr_count = 1;
     rrset->rrsig_count = 0;
-    rrset->inbound_serial = 0;
+    rrset->internal_serial = 0;
     rrset->outbound_serial = 0;
     rrset->rrs = ldns_dnssec_rrs_new();
     rrset->rrs->rr = rr;
@@ -204,7 +204,8 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
 
     rrs = rrset->rrs;
     while (rrs) {
-        if (ldns_rr_compare(rrs->rr, rr) == 0) {
+        if (util_soa_compare(rrs->rr, rr) == 0 ||
+            ldns_rr_compare(rrs->rr, rr) == 0) {
             /* this is it */
             if (prev_rrs) {
                 prev_rrs->next = rrs->next;
@@ -213,12 +214,12 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
             }
             ldns_rr_free(rrs->rr);
             se_free((void*)rrs);
+            rrset_log_rr(rr, "-RR", 5);
             return 1;
         }
         prev_rrs = rrs;
         rrs = rrs->next;
     }
-    rrset_log_rr(rr, "-RR", 2);
     return 0;
 }
 
@@ -237,7 +238,7 @@ rrset_update(rrset_type* rrset, uint32_t serial)
     se_log_assert(rrset);
     se_log_assert(serial);
 
-    if (DNS_SERIAL_GT(serial, rrset->inbound_serial)) {
+    if (DNS_SERIAL_GT(serial, rrset->internal_serial)) {
         /* compare del and add */
         if (rrset_compare_rrs(rrset->del, rrset->add) != 0) {
             rrset->drop_signatures = 1;
@@ -266,7 +267,7 @@ rrset_update(rrset_type* rrset, uint32_t serial)
         rrset->add = NULL;
         rrset->rr_count = rrset->rr_count + addcount;
         rrset->rr_count = rrset->rr_count - delcount;
-        rrset->inbound_serial = serial;
+        rrset->internal_serial = serial;
     }
     return 0;
 }
