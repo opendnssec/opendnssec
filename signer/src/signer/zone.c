@@ -229,9 +229,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
     } else {
         /* update task for new zone */
         zone->task->what = signconf_compare(zone->signconf, signconf);
-        /* pivotal 4593322 (sign after update?): */
-        /* zone->task->when = time_now(); */
-        /* end pivotal 4593322 */
+        zone->task->when = time_now();
         signconf_cleanup(zone->signconf);
         zone->signconf = signconf;
         zone->signconf->name = zone->name;
