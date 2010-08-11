@@ -8,6 +8,8 @@ AM_CPPFLAGS = \
 		-I$(srcdir)/../src \
 		@LDNS_INCLUDES@
 
+AM_CFLAGS =	-std=c99
+
 EXTRA_DIST =	*.xml $(srcdir)/softhsm.conf
 
 noinst_PROGRAMS = hsmcheck
