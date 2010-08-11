@@ -36,7 +36,7 @@
 
 #include "config.h"
 #include "daemon/cmdhandler.h"
-#include "daemon/config.h"
+#include "daemon/cfg.h"
 #include "daemon/worker.h"
 #include "scheduler/locks.h"
 #include "scheduler/task.h"

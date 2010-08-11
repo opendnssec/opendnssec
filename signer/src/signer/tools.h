@@ -35,7 +35,7 @@
 #define SIGNER_TOOLS_H
 
 #include "config.h"
-#include "daemon/config.h"
+#include "daemon/cfg.h"
 #include "signer/zone.h"
 
 /**

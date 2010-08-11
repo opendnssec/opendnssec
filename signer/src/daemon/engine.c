@@ -33,7 +33,7 @@
 
 #include "config.h"
 #include "daemon/cmdhandler.h"
-#include "daemon/config.h"
+#include "daemon/cfg.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "daemon/worker.h"

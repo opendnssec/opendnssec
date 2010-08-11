@@ -32,7 +32,7 @@
  */
 
 #include "config.h"
-#include "daemon/config.h"
+#include "daemon/cfg.h"
 #include "parser/confparser.h"
 #include "util/file.h"
 #include "util/log.h"
