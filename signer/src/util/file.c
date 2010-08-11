@@ -292,7 +292,7 @@ se_file_copy(const char* file1, const char* file2)
     se_log_assert(file1);
     se_log_assert(file2);
 
-    snprintf(str, SYSTEM_MAXLEN, "%s %s %s",
+    snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
         OPENDNSSEC_CP_COMMAND, file1, file2);
     se_log_debug("system call: %s", str);
     return system(str);
