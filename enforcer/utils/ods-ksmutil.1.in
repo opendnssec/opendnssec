@@ -250,11 +250,15 @@ This is a necessary step for repositories that have the RequireBackup flag set.
 Note that the KASP Enforcer may take the initiative to generate keys after
 the backup has started and before the backup is done.  In the current version
 of OpenDNSSEC, it is therefore needed to stop the KASP Enforcer to be assured
-that all keys are backed up.  The sequence would therefore be
-.LI Issue \fBods-control ksm stop\fR
-.LI Make a backup of the repository
-.LI Issue \fBods-ksmutil backup done\fR
-.LI Issue \fBods-control ksm start\fR
+that all keys are backed up.  The sequence would therefore be:
+.br
+1. Issue \fBods-control ksm stop\fR
+.br
+2. Make a backup of the repository
+.br
+3. Issue \fBods-ksmutil backup done\fR
+.br
+4. Issue \fBods-control ksm start\fR
 .TP
 .B database backup [\-\-output|\-o output]
 Make a copy of the database of the KASP Enforcer (if using sqlite).
