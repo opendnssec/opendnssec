@@ -588,6 +588,7 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
                     zone->signconf_filename?zone->signconf_filename:"(null)");
                 lock_basic_lock(&engine->tasklist->tasklist_lock);
                 tmp = zone_update_signconf(zone, engine->tasklist, buf);
+                engine->tasklist->loading = 0;
                 lock_basic_unlock(&engine->tasklist->tasklist_lock);
                 lock_basic_unlock(&zone->zone_lock);
                 return;
