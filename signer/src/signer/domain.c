@@ -614,8 +614,8 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
            continue;
         }
 
-        if (strncmp(sc->soa_serial, "keep", 4) != 0 &&
-            rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
+        if (rrset->rr_type == LDNS_RR_TYPE_SOA &&
+            strncmp(sc->soa_serial, "keep", 4) != 0 && rrset->rrs &&
             rrset->rrs->rr) {
             soa_serial = ldns_rr_set_rdf(rrset->rrs->rr,
                 ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial),
