@@ -2,7 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-LIBHSM = ../../libhsm/src/libhsm.a
+LIBHSM = ${top_builddir}/libhsm/src/libhsm.a
 LIBKSM = ../ksm/libksm.a
 LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
