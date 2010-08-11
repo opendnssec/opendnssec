@@ -412,17 +412,6 @@ module KASPChecker
               }
             }
 
-            # 15. Error if DNSKEY TTL or SOA TTL is lower than SOA Minimum.
-            soa_minimum = get_duration(policy, 'Zone/SOA/Minimum', kasp_file)
-            key_ttl = ttl_secs
-            soa_ttl = get_duration(policy, 'Zone/SOA/TTL', kasp_file)
-            if (key_ttl < soa_minimum)
-              log(LOG_ERR, "DNSKEY TTL (#{key_ttl}) is lower than SOA Minimum (#{soa_minimum}) for #{name} policy")
-            end
-            if (soa_ttl < soa_minimum)
-              log(LOG_ERR, "SOA TTL (#{soa_ttl}) is lower than SOA Minimum (#{soa_minimum}) for #{name} policy")
-            end
-
             # Get the denial type (NSEC or NSEC3)
             denial_type = nil
             if (policy.elements['Denial/NSEC'])
