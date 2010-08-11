@@ -115,6 +115,9 @@ worker_start(worker_type* worker)
                 timeout = (task->when - now);
             } else {
                 timeout *= 2;
+                if (timeout > ODS_SE_MAX_BACKOFF) {
+                    timeout = ODS_SE_MAX_BACKOFF;
+                }
             }
             lock_basic_unlock(&worker->tasklist->tasklist_lock);
 
