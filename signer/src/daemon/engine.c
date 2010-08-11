@@ -742,6 +742,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (engine_check_config(engine->config) != 0) {
         se_log_error("cfgfile %s has errors", cfgfile?cfgfile:"(null)");
         engine->need_to_exit = 1;
+        xmlCleanupParser();
+        xmlCleanupThreads();
+        engine_cleanup(engine);
+        engine = NULL;
+        return;
     }
     if (info) {
         engine_config_print(stdout, engine->config);
