@@ -18,15 +18,12 @@ notably for periods.  These descriptions follow ISO 8601 with exceptions
 for the duration of a month and a year, as these periods would be allowed
 to vary if ISO 8601 were strictly adhered to.
 .PP
-Durations are represented by the format
-.B P[n]Y[n]M[n]DT[n]H[n]M[n]S
-. In these representations, the
-.B [n]
-is replaced by the value for each of the date and time elements that follow the
-.B [n]
-. Leading zeros are not required. The capital letters \fBP\fR, \fBY\fR,
-\fBM\fR, \fBW\fR, \fBD\fR, \fBT\fR, \fBH\fR, \fBM\fR and \fBS\fR
-are designators for each of the date and time elements and are not replaced.
+Durations are represented by the format \fBP[n]Y[n]M[n]DT[n]H[n]M[n]S\fR.
+In these representations, the \fB[n]\fR is replaced by the value for each
+of the date and time elements that follow the \fB[n]\fR. Leading zeros are
+not required. The capital letters \fBP\fR, \fBY\fR, \fBM\fR, \fBW\fR,
+\fBD\fR, \fBT\fR, \fBH\fR, \fBM\fR and \fBS\fR are designators for each of
+the date and time elements and are not replaced
 .TP
 .B P
 is the duration designator (historically called "period") placed at the start of the duration representation.
