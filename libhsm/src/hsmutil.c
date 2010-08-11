@@ -251,6 +251,7 @@ cmd_purge (int argc, char *argv[])
 {
     int result;
     int final_result = 0;
+    char *fresult;
 
     size_t i;
     char *repository = NULL;
@@ -290,8 +291,8 @@ cmd_purge (int argc, char *argv[])
     }
 
     printf("Are you sure you want to remove ALL keys from repository %s ? (YES/NO) ", repository);
-    fgets(confirm, sizeof(confirm) - 1, stdin);
-    if (strncasecmp(confirm, "yes", 3) != 0) {
+    fresult = fgets(confirm, sizeof(confirm) - 1, stdin);
+    if (fresult == NULL || strncasecmp(confirm, "yes", 3) != 0) {
         printf("\nPurge cancelled.\n");
         hsm_key_list_free(keys, key_count);
         return -1;
