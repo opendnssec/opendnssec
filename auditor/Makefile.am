@@ -1,6 +1,7 @@
 # $Id: Makefile.am 1104 2009-06-24 07:28:23Z jakob $
 
 ACLOCAL_AMFLAGS = -I m4
+RDOC = rdoc
 
 EXTRA_DIST = \
 	$(srcdir)/lib/*.rb \
@@ -38,4 +39,8 @@ prepare-test:
 	 	cpio -pmdu $(abs_builddir))
 
 rdoc:
-	@echo "Nothing here (yet)."
+	rm -fr $(builddir)/doc
+	$(RDOC) \
+		--exclude ${srcdir}/test \
+		--exclude ${builddir}/test \
+		${srcdir} ${builddir}
