@@ -489,7 +489,9 @@ engine_run(engine_type* engine, int single_run)
 {
     se_log_assert(engine);
 
+    lock_basic_lock(&engine->signal_lock);
     engine->signal = SIGNAL_RUN;
+    lock_basic_unlock(&engine->signal_lock);
     while (engine->need_to_exit == 0 && engine->need_to_reload == 0) {
         lock_basic_lock(&engine->signal_lock);
         engine->signal = signal_capture(engine->signal);
