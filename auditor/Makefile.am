@@ -36,3 +36,6 @@ prepare-test:
 	test -d test || (cd $(srcdir); \
 	find test -name .svn -prune -o -type f -print |\
 	 	cpio -pmdu $(abs_builddir))
+
+rdoc:
+	@echo "Nothing here (yet)."
