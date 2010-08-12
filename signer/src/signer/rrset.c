@@ -565,6 +565,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                 }
                 key = key->next;
             }
+            ldns_rr_list_free(rr_list);
         } else {
             se_log_debug("reuse signatures for RRset[%i]", rrset->rr_type);
         }

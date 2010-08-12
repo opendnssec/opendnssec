@@ -188,6 +188,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
             } else {
                 se_log_debug("zone %s has not changed",
                     zone->name?zone->name:"(null)");
+                signconf_cleanup(signconf);
             }
         }
         if (buf) {

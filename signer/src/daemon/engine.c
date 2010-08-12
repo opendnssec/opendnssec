@@ -432,6 +432,7 @@ engine_setup(engine_type* engine)
             default: /* parent */
                 parent_cleanup(engine, 0);
                 xmlCleanupParser();
+                xmlCleanupGlobals();
                 xmlCleanupThreads();
                 exit(0);
         }
@@ -665,7 +666,7 @@ start_zonefetcher(engine_type* engine)
     if (setsid() == -1) {
         se_log_error("failed to setsid zone fetcher: %s",
             strerror(errno));
-        exit(1);
+        return 1;
     }
 
     se_log_verbose("zone fetcher started (pid=%i)", getpid());
@@ -680,6 +681,7 @@ start_zonefetcher(engine_type* engine)
 
     parent_cleanup(engine, 0);
     xmlCleanupParser();
+    xmlCleanupGlobals();
     xmlCleanupThreads();
     exit(result);
 
@@ -733,6 +735,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     se_log_verbose("start signer engine");
 
     /* initialize */
+    xmlInitGlobals();
     xmlInitParser();
     engine = engine_create();
     engine->daemonize = daemonize;
@@ -743,6 +746,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         se_log_error("cfgfile %s has errors", cfgfile?cfgfile:"(null)");
         engine->need_to_exit = 1;
         xmlCleanupParser();
+        xmlCleanupGlobals();
         xmlCleanupThreads();
         engine_cleanup(engine);
         engine = NULL;
@@ -751,6 +755,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (info) {
         engine_config_print(stdout, engine->config);
         xmlCleanupParser();
+        xmlCleanupGlobals();
         xmlCleanupThreads();
         engine_cleanup(engine);
         engine = NULL;
@@ -806,6 +811,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     engine = NULL;
     se_log_close();
     xmlCleanupParser();
+    xmlCleanupGlobals();
     xmlCleanupThreads();
     return;
 }
