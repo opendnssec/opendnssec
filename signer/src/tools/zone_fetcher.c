@@ -1329,13 +1329,11 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     se_log_init(log_file, use_syslog, verbosity);
 
     /* read transfer configuration */
-    xmlInitParser();
     config = new_config();
     config->pidfile = strdup(ODS_ZF_PIDFILE); /* not freed */
     c = read_axfr_config(config_file, config);
     config->zonelist = read_zonelist(zonelist_file);
     config->xfrd = init_xfrd(config);
-	xmlCleanupParser();
 
     if (info) {
         list_settings(stdout, config, config_file);
