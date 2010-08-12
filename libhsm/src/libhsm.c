@@ -444,6 +444,7 @@ hsm_module_free(hsm_module_t *module)
         if (module->name) free(module->name);
         if (module->token_label) free(module->token_label);
         if (module->path) free(module->path);
+        if (module->config) free(module->config);
 
         free(module);
     }
@@ -499,6 +500,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
         hsm_ctx_set_error(ctx, HSM_MODULE_NOT_FOUND,
 	    "hsm_session_init()",
 	    "PKCS#11 module load failed: %s", module_path);
+        hsm_module_free(module);
         return HSM_MODULE_NOT_FOUND;
     }
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Initialize((CK_VOID_PTR) &InitArgs);
@@ -537,6 +539,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
                    C_CloseSession(session_handle);
             if (hsm_pkcs11_check_error(ctx, rv,
                 "finalize after failed login")) {
+                hsm_module_free(module);
                 return HSM_ERROR;
             }
         }
