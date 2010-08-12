@@ -253,5 +253,10 @@ int tools_write_output(zone_type* zone)
     stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
     stats_clear(zone->stats);
 
+    /* make backup */
+    if (zone_backup(zone) != 0) {
+        se_log_warning("backup zone %s failed", zone->name?zone->name:"(null)");
+    }
+
     return error;
 }

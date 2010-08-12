@@ -50,6 +50,9 @@
 #include <libhsmdns.h> /* hsm_create_context(), hsm_get_key(), hsm_destroy_context() */
 
 
+#define ODS_SE_FILE_MAGIC "ODSSE1"
+
+
 /**
  * Create a new zone.
  *
@@ -306,7 +309,7 @@ zone_publish_dnskeys(zone_type* zone)
 
 
 /**
- * Add the DNSKEYs from the Signer Configuration to the zone data.
+ * Add the NSEC3PARAMSs from the Signer Configuration to the zone data.
  *
  */
 static int
@@ -577,6 +580,45 @@ zone_sign(zone_type* zone)
         }
         se_free((void*)filename);
     }
+    return error;
+}
+
+
+/**
+ * Backup zone data.
+ * \param[in] zone corresponding zone
+ * \return int 0 on success, 1 on error
+ *
+ */
+int zone_backup(zone_type* zone)
+{
+    int error = 0;
+    char* filename = NULL;
+    FILE* fd = NULL;
+
+    se_log_assert(zone);
+    se_log_assert(zone->zonedata);
+    se_log_assert(zone->signconf);
+
+    filename = se_build_path(zone->name, ".state", 0);
+    fd = se_fopen(filename, NULL, "w");
+    if (fd) {
+        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "; Zone state within OpenDNSSEC\n");
+        fprintf(fd, "; DO NOT EDIT MANUALLY!\n");
+        fprintf(fd, "zone_name: %s\n", zone->name?zone->name:"(null)");
+        fprintf(fd, "zd_outbound_serial: %u\n",
+            zone->zonedata->outbound_serial);
+        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+
+        se_fclose(fd);
+    } else {
+        se_log_error("cannot backup zone: cannot open file "
+        "%s for writing", filename?filename:"(null)");
+        return 1;
+    }
+    se_free((void*)filename);
+
     return error;
 }
 

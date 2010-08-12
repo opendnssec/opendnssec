@@ -156,6 +156,14 @@ int zone_nsecify(zone_type* zone);
 int zone_sign(zone_type* zone);
 
 /**
+ * Backup zone data.
+ * \param[in] zone corresponding zone
+ * \return int 0 on success, 1 on error
+ *
+ */
+int zone_backup(zone_type* zone);
+
+/**
  * Clean up a zone.
  * \param[in] zone zone to cleanup
  *
