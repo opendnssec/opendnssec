@@ -176,9 +176,6 @@ task2str(task_type* task, char* buftask)
     char* strtask = NULL;
 
     se_log_assert(task);
-    if (!buftask) {
-        strtask = (char*) se_calloc(ODS_SE_MAXLINE, sizeof(char));
-    }
 
     if (task) {
         if (task->flush) {
@@ -195,6 +192,7 @@ task2str(task_type* task, char* buftask)
                 task->who?task->who:"(null)");
             return buftask;
         } else {
+            strtask = (char*) se_calloc(ODS_SE_MAXLINE, sizeof(char));
             snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
                 strtime?strtime:"(null)", taskid2str(task->what),
                 task->who?task->who:"(null)");

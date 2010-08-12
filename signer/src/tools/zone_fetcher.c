@@ -412,7 +412,7 @@ read_zonelist(const char* filename)
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
                     se_log_error("zone fetcher could not read zone "
-                        "%s; skipping", zone_name?zone_name:"(null)");
+                        "%s; skipping", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;

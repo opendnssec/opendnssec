@@ -102,7 +102,7 @@ se_realloc(void* ptr, size_t size)
 void
 se_rbnode_free(ldns_rbnode_t* node)
 {
-    if (node != LDNS_RBTREE_NULL) {
+    if (node && node != LDNS_RBTREE_NULL) {
         se_rbnode_free(node->left);
         se_rbnode_free(node->right);
         free((void*)node);

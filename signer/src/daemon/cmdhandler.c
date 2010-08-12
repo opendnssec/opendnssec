@@ -335,7 +335,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         for (i=0; i < ODS_SE_MAXLINE; i++) {
             buf[i] = 0;
         }
-        taskstr = task2str(task, (char*) &buf[0]);
+        (void)task2str(task, (char*) &buf[0]);
         se_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }

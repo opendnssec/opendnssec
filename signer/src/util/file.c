@@ -345,7 +345,7 @@ se_chown(const char* file, uid_t uid, gid_t gid, int getdir)
         }
     } else if ((dir = se_dir_name(file)) != NULL) {
         se_log_debug("create and chown directory %s [user %ld] [group %ld]",
-           dir?dir:"(null)", (signed long) uid, (signed long) gid);
+           dir, (signed long) uid, (signed long) gid);
         if (chown(dir, uid, gid) != 0) {
             se_log_error("chown() for %s failed: %s", dir?dir:"(null)",
                 strerror(errno));

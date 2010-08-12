@@ -198,7 +198,7 @@ parse_zonelist_zones(const char* zlfile)
             }
             if (doc == NULL || xpathCtx == NULL) {
                 se_log_error("unable to read zone %s; skipping",
-                   zone_name?zone_name:"(null)");
+                   zone_name);
                 se_free((void*) zone_name);
                 ret = xmlTextReaderRead(reader);
                 se_free((void*) tag_name);

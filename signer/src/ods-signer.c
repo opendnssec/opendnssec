@@ -138,8 +138,12 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             }
 
             /* socket is readable */
-            if ((n = read(sockfd, buf, ODS_SE_MAXLINE)) == 0) {
-                if (stdineof == 1) {
+            if ((n = read(sockfd, buf, ODS_SE_MAXLINE)) <= 0) {
+                if (n < 0) {
+                    /* error occurred */
+                    fprintf(stderr, "error: %s\n", strerror(errno));
+                    exit(1);
+                } else if (stdineof == 1) {
                     /* normal termination */
                     return;
                 } else {
@@ -155,6 +159,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (n > SE_CLI_CMDLEN) {
                     ret = (int) write(fileno(stdout), buf, n-SE_CLI_CMDLEN);
                 }
+                buf[(n-SE_CLI_CMDLEN)] = '\0';
                 cmd_response = 1;
                 ret = 1;
             } else {
@@ -319,7 +324,7 @@ main(int argc, char* argv[])
     }
     if (argc > 1) {
         cmd = (char*) se_calloc(options_size+2,sizeof(char));
-        (void)strncpy(cmd, "", 0);
+        (void)strncpy(cmd, "", 1);
         for (c = 1; c < argc; c++) {
             (void)strncat(cmd, options[c], strlen(options[c]));
             (void)strncat(cmd, " ", 1);

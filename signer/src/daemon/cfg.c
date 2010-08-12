@@ -59,6 +59,7 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
     /* check syntax (slows down parsing configuration file) */
     if (parse_file_check(cfgfile, rngfile) != 0) {
         se_log_error("unable to parse cfgfile %s", cfgfile?cfgfile:"(null)");
+        se_free((void*) ecfg);
         return NULL;
     }
 

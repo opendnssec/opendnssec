@@ -255,6 +255,9 @@ domain_update(domain_type* domain, uint32_t serial)
             /* delete memory of RRsets if no RRs exist */
             if (rrset_count_rr(rrset) <= 0) {
                 rrset = domain_del_rrset(domain, rrset);
+                if (rrset) {
+                    se_log_error("failed to delete obsoleted RRset");
+                }
             }
         }
         domain->internal_serial = serial;
@@ -743,8 +746,10 @@ domain_cleanup_rrsets(ldns_rbtree_t* rrset_tree)
         rrset_cleanup(rrset);
         node = ldns_rbtree_next(node);
     }
-    se_rbnode_free(rrset_tree->root);
-    ldns_rbtree_free(rrset_tree);
+    if (rrset_tree) {
+        se_rbnode_free(rrset_tree->root);
+        ldns_rbtree_free(rrset_tree);
+    }
     return;
 }
 

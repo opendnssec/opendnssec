@@ -127,8 +127,7 @@ duration_create_from_string(const char* str)
     W = strchr(str, 'W');
     if (W) {
         if (not_weeks) {
-            se_log_error("unable to create duration from string %s",
-                P?P:"(null)");
+            se_log_error("unable to create duration from string %s", P);
             duration_cleanup(duration);
             return NULL;
         } else {

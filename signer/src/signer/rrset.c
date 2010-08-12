@@ -419,8 +419,8 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
                 "expiration=%u)", rrset->rr_type, refresh, expiration);
             rrset_log_rr(rrs->rr, "*RRSIG", 5);
             *reusedsigs += 1;
+            prev_rrs = rrs;
         }
-        prev_rrs = rrs;
         rrs = rrs->next;
     }
     return 0;

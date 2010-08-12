@@ -191,7 +191,7 @@ zonedata_add_domain_nsec3(zonedata_type* zd, domain_type* domain,
         if (!prev_node || prev_node == LDNS_RBTREE_NULL) {
             prev_node = ldns_rbtree_last(zd->nsec3_domains);
         }
-        if (!prev_node || prev_node == LDNS_RBTREE_NULL) {
+        if (prev_node && prev_node != LDNS_RBTREE_NULL) {
             prev_domain = (domain_type*) prev_node->data;
         }
         if (prev_domain) {
@@ -330,10 +330,14 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
     se_log_assert(domain);
     str = ldns_rdf2str(domain->name);
     se_log_debug("-DD %s", str?str:"(null)");
-    se_free((void*) str);
     if (domain->nsec3) {
         nsec3_domain = zonedata_del_domain_nsec3(zd, domain->nsec3);
+        if (nsec3_domain) {
+            se_log_error("failed to delete corresponding NSEC3 domain, "
+                "deleting domain %s", str?str:"(null)");
+        }
     }
+    se_free((void*) str);
     return zonedata_domain_delete(zd->domains, domain);
 }
 
@@ -831,10 +835,16 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
              domain->domain_status != DOMAIN_STATUS_ENT_GLUE)) {
             parent = domain->parent;
             domain = zonedata_del_domain(zd, domain);
+            if (domain) {
+                se_log_error("failed to delete obsoleted domain");
+            }
             while (parent && domain_count_rrset(parent) <= 0) {
                 domain = parent;
                 parent = domain->parent;
                 domain = zonedata_del_domain(zd, domain);
+                if (domain) {
+                    se_log_error("failed to delete obsoleted domain");
+                }
             }
         }
     }
@@ -938,8 +948,10 @@ zonedata_cleanup_domains(ldns_rbtree_t* domain_tree)
         domain_cleanup(domain);
         node = ldns_rbtree_next(node);
     }
-    se_rbnode_free(domain_tree->root);
-    ldns_rbtree_free(domain_tree);
+    if (domain_tree) {
+        se_rbnode_free(domain_tree->root);
+        ldns_rbtree_free(domain_tree);
+    }
     return;
 }
 

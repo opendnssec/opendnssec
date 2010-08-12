@@ -85,6 +85,7 @@ privuid(const char* username)
         /* Lookup the user id in /etc/passwd */
         s = getpwnam_r(username, &pwd, buf, bufsize, &result);
         if (result == NULL) {
+            se_free((void*) buf);
             return -1;
         } else {
             uid = pwd.pw_uid;
@@ -123,6 +124,7 @@ privgid(const char *groupname)
         /* Lookup the group id in /etc/group */
         s = getgrnam_r(groupname, &grp, buf, bufsize, &result);
         if (result == NULL) {
+            se_free((void*) buf);
             return -1;
         } else {
             gid = grp.gr_gid;

@@ -180,7 +180,7 @@ se_log_get_facility(const char* facility)
     else if (strncasecmp(facility, "LOCAL7", 6) && strlen(facility) == 6)
         return LOG_LOCAL7;
     se_log_warning("syslog facility %s not supported, logging to "
-                   "log_daemon", facility?facility:"(null)");
+                   "log_daemon", facility);
     return LOG_DAEMON;
 
 }
