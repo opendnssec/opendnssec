@@ -100,11 +100,11 @@ parse_sc_keys(const char* cfgfile)
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"Locator")) {
-                    locator = (char *) xmlNodeGetContent(curNode);
+                    locator = (char *) xmlNodeGetContent(curNode); /* VALGRIND does not like */
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Algorithm")) {
-                    algorithm = (char *) xmlNodeGetContent(curNode);
+                    algorithm = (char *) xmlNodeGetContent(curNode); /* VALGRIND does not like */
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Flags")) {
-                    flags = (char *) xmlNodeGetContent(curNode);
+                    flags = (char *) xmlNodeGetContent(curNode); /* VALGRIND does not like */
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"KSK")) {
                     ksk = 1;
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"ZSK")) {

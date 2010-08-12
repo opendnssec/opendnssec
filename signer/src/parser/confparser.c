@@ -87,7 +87,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     /* Parse a schema definition resource and
      * build an internal XML schema structure.
      */
-    schema = xmlRelaxNGParse(rngpctx);
+    schema = xmlRelaxNGParse(rngpctx); /* VALGRIND does not like */
     if (schema == NULL) {
         se_log_error("unable to parse a schema definition resource");
         xmlRelaxNGFreeParserCtxt(rngpctx);
@@ -146,7 +146,7 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     se_log_assert(cfgfile);
 
     /* Load XML document */
-    doc = xmlParseFile(cfgfile);
+    doc = xmlParseFile(cfgfile); /* VALGRIND does not like */
     if (doc == NULL) {
         return NULL;
     }
@@ -178,7 +178,7 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     }
     if (xpathObj->nodesetval != NULL &&
         xpathObj->nodesetval->nodeNr > 0) {
-        string = (const char*) xmlXPathCastToString(xpathObj);
+        string = (const char*) xmlXPathCastToString(xpathObj); /* VALGRIND does not like */
         xmlXPathFreeContext(xpathCtx);
         xmlXPathFreeObject(xpathObj);
         xmlFreeDoc(doc);
