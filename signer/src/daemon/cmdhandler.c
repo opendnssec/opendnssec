@@ -305,7 +305,6 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 static void
 cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
 {
-    char* taskstr = NULL;
     char* strtime = NULL;
     char buf[ODS_SE_MAXLINE];
     size_t i = 0;
@@ -669,7 +668,9 @@ cmdhandler_create(const char* filename)
     }
 
     /* no suprises */
-    unlink(filename);
+    if (filename) {
+        unlink(filename);
+    }
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sun_family = AF_UNIX;
     strncpy(servaddr.sun_path, filename, sizeof(servaddr.sun_path) - 1);

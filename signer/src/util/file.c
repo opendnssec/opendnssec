@@ -122,23 +122,27 @@ se_build_path(const char* file, const char* suffix, int dir)
 
     if (file) {
         len_file = strlen(file);
-    }
-    if (suffix) {
-        len_suffix = strlen(suffix);
-    }
-    len_total = len_suffix + len_file;
-    if (dir) {
-        len_total++;
-    }
-    if (len_total > 0) {
-        openf = (char*) se_malloc(sizeof(char)*(len_total + 1));
-        strncpy(openf, file, len_file);
-        openf[len_file] = '\0';
-        strncat(openf, suffix, len_suffix);
-        if (dir) {
-            strncat(openf, "/", 1);
+        if (suffix) {
+            len_suffix = strlen(suffix);
         }
-        openf[len_total] = '\0';
+        len_total = len_suffix + len_file;
+        if (dir) {
+            len_total++;
+        }
+
+        if (len_total > 0) {
+            openf = (char*) se_malloc(sizeof(char)*(len_total + 1));
+
+            strncpy(openf, file, len_file);
+            openf[len_file] = '\0';
+            if (suffix) {
+                strncat(openf, suffix, len_suffix);
+            }
+            if (dir) {
+                strncat(openf, "/", 1);
+            }
+            openf[len_total] = '\0';
+        }
     }
 
     return openf;
@@ -175,8 +179,10 @@ se_fopen(const char* file, const char* dir, const char* mode)
         if (dir) {
            strncpy(openf, dir, len_dir);
            openf[len_dir] = '\0';
-           strncat(openf, file, len_file);
-        } else {
+           if (file) {
+               strncat(openf, file, len_file);
+           }
+        } else if (file) {
            strncpy(openf, file, len_file);
         }
         openf[len_total] = '\0';
@@ -336,9 +342,14 @@ se_chown(const char* file, uid_t uid, gid_t gid, int getdir)
 {
     char* dir = NULL;
 
+    if (!file) {
+        se_log_warning("no filename given for chown()");
+        return;
+    }
+
     if (!getdir) {
         se_log_debug("create and chown directory %s [user %ld] [group %ld]",
-           file?file:"(null)", (signed long) uid, (signed long) gid);
+           file, (signed long) uid, (signed long) gid);
         if (chown(file, uid, gid) != 0) {
             se_log_error("chown() for %s failed: %s", file?file:"(null)",
                 strerror(errno));
@@ -347,12 +358,12 @@ se_chown(const char* file, uid_t uid, gid_t gid, int getdir)
         se_log_debug("create and chown directory %s [user %ld] [group %ld]",
            dir, (signed long) uid, (signed long) gid);
         if (chown(dir, uid, gid) != 0) {
-            se_log_error("chown() for %s failed: %s", dir?dir:"(null)",
+            se_log_error("chown() for %s failed: %s", dir,
                 strerror(errno));
         }
         se_free((void*) dir);
     } else {
-        se_log_warning("use of relative path: %s", file?file:"(null)");
+        se_log_warning("use of relative path: %s", file);
     }
     return;
 }

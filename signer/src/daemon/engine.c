@@ -511,7 +511,7 @@ engine_run(engine_type* engine, int single_run)
         }
 
         if (single_run) {
-                engine->need_to_exit = 1;
+           engine->need_to_exit = 1;
         } else if (engine->signal == SIGNAL_RUN) {
            se_log_debug("engine taking a break");
            lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 3600);
