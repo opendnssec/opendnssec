@@ -50,9 +50,6 @@
 #include <libhsmdns.h> /* hsm_create_context(), hsm_get_key(), hsm_destroy_context() */
 
 
-#define ODS_SE_FILE_MAGIC "ODSSE1"
-
-
 /**
  * Create a new zone.
  *
@@ -254,7 +251,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
  *
  */
 static int
-zone_publish_dnskeys(zone_type* zone)
+zone_publish_dnskeys(zone_type* zone, FILE* fd)
 {
     key_type* key = NULL;
     uint32_t ttl = 0;
@@ -300,6 +297,8 @@ zone_publish_dnskeys(zone_type* zone)
                     ldns_calc_keytag(dnskey),
                     key->locator?key->locator:"(null)");
                 break;
+            } else if (fd) {
+                ldns_rr_print(fd, dnskey);
             }
         }
         key = key->next;
@@ -314,7 +313,7 @@ zone_publish_dnskeys(zone_type* zone)
  *
  */
 static int
-zone_publish_nsec3params(zone_type* zone)
+zone_publish_nsec3params(zone_type* zone, FILE* fd)
 {
     ldns_rr* nsec3params_rr = NULL;
     int error = 0;
@@ -351,6 +350,8 @@ zone_publish_nsec3params(zone_type* zone)
     if (error) {
         se_log_error("error adding NSEC3PARAMS record to zone %s",
             zone->name?zone->name:"(null)");
+    } else if (fd) {
+        ldns_rr_print(fd, nsec3params_rr);
     }
     return error;
 }
@@ -378,25 +379,43 @@ int
 zone_add_dnskeys(zone_type* zone)
 {
     int error = 0;
+    char* filename = NULL;
+    FILE* fd = NULL;
 
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->zonedata);
 
-    error = zone_publish_dnskeys(zone);
+    filename = se_build_path(zone->name, ".dnskeys", 0);
+    fd = se_fopen(filename, NULL, "w");
+    if (fd) {
+        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+    }
+
+    error = zone_publish_dnskeys(zone, fd);
     if (error) {
         se_log_error("error adding DNSKEYs to zone %s",
             zone->name?zone->name:"(null)");
         return error;
     }
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
-        error = zone_publish_nsec3params(zone);
+        error = zone_publish_nsec3params(zone, fd);
         if (error) {
-            se_log_error("error adding NSEC3PARAM RR to zone %s",
+            se_log_error("error adding NSEC3PARAMS RR to zone %s",
                 zone->name?zone->name:"(null)");
             return error;
         }
     }
+
+    if (fd) {
+        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+        se_fclose(fd);
+    } else {
+        se_log_warning("cannot backup DNSKEY / NSEC3PARAMS records: "
+            "cannot open file %s for writing", filename?filename:"(null)");
+    }
+    se_free((void*)filename);
+
     return error;
 }
 
@@ -529,7 +548,9 @@ zone_nsecify(zone_type* zone)
         filename = se_build_path(zone->name, ".denial", 0);
         fd = se_fopen(filename, NULL, "w");
         if (fd) {
+            fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
             zonedata_print_nsec(fd, zone->zonedata);
+            fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
             se_fclose(fd);
         } else {
             se_log_warning("cannot backup NSEC(3) records: cannot open file "
@@ -573,11 +594,13 @@ zone_sign(zone_type* zone)
         filename = se_build_path(zone->name, ".rrsigs", 0);
         fd = se_fopen(filename, NULL, "w");
         if (fd) {
+            fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
             zonedata_print_rrsig(fd, zone->zonedata);
+            fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
             se_fclose(fd);
         } else {
             se_log_warning("cannot backup RRSIG records: cannot open file "
-            "%s for writing", filename?filename:"(null)");
+                "%s for writing", filename?filename:"(null)");
         }
         se_free((void*)filename);
     }

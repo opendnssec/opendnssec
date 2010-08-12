@@ -198,6 +198,7 @@ AH_BOTTOM([
 	#define ODS_SE_SIGNERTHREADS 1
 	#define ODS_SE_WORKERTHREADS 8
 	#define ODS_SE_STOP_RESPONSE "Engine shut down."
+	#define ODS_SE_FILE_MAGIC "ODSSE1"
 	#define ODS_SE_MAX_BACKOFF 3600
 ])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
