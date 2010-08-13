@@ -319,7 +319,11 @@ module KASPAuditor
         # glue - don't verify
         return
       end
-      return if (out_of_zone(rrset.name))
+      begin
+        return if (out_of_zone(rrset.name))
+      rescue Exception # Invalid RRSet name (probably signer error)
+        return
+      end
       rrset_sig_types = []
       rrset.sigs.each {|sig| rrset_sig_types.push(sig.algorithm)}
       @algs.each {|alg|
