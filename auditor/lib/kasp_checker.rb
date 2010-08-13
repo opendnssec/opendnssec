@@ -36,6 +36,9 @@ require 'etc'
 
 
 module KASPChecker
+  # This class checks the conf.xml and kasp.xml files to make sure that they
+  # syntactically valid, and also semantically valid. Any oddities in the
+  # configuration are reported to the user.
   class Checker
     $SAFE = 1
     KASP_FILE = "kasp"

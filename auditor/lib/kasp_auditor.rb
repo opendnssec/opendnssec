@@ -70,7 +70,7 @@ module KASPAuditor
   # sorted into canonical order. These files are then processed by the
   # Auditor. If processing an NSEC3-signed file, the Auditor will create
   # additional temporary files, which are processed after the main auditing
-  # run.
+  # run. This class controls the process.
   class Runner
 
     attr_accessor :kasp_file, :zone_name, :signed_temp, :unsigned_zone
@@ -178,8 +178,8 @@ module KASPAuditor
       exit(ret)
     end
     
+    # Invoke the partial auditor
     def partial_audit(ret, input_file, output_file, working, config, syslog, enforcer_interval)
-      # Invoke the partial auditor
       auditor = PartialAuditor.new(syslog, working)
       ret_val = auditor.check_zone(config, input_file, output_file, enforcer_interval)
       ret = ret_val if (ret_val < ret)
@@ -189,6 +189,7 @@ module KASPAuditor
       return ret
     end
 
+    # Invoked the full auditor
     def full_audit(ret, input_file, output_file, pid, working, config, syslog, enforcer_interval)
       # Perform a full audit of every record. This requires sorting the zones canonically.
       # Preparse the input and output files
@@ -230,6 +231,7 @@ module KASPAuditor
       return ret
     end
 
+    # Prepare the input unsigned and signed files for auditing
     def normalise_and_sort(f, prefix, pid, working, config)
       pp = Preparser.new(config)
       parsed_file = working+get_name(f)+".#{prefix}.parsed.#{pid}"
@@ -330,16 +332,16 @@ module KASPAuditor
           rescue Exception
             KASPAuditor.exit("Can't read Enforcer->Interval from Configuration", 1)
           end
-            begin
-              working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
-            rescue Exception
-              working = @working_folder
-            end
-            begin
-              signer_working = doc.elements['Configuration/Signer/WorkingDirectory'].text
-            rescue Exception
-              signer_working = @working_folder
-            end
+          begin
+            working = doc.elements['Configuration/Auditor/WorkingDirectory'].text
+          rescue Exception
+            working = @working_folder
+          end
+          begin
+            signer_working = doc.elements['Configuration/Signer/WorkingDirectory'].text
+          rescue Exception
+            signer_working = @working_folder
+          end
           begin
             zonelist = doc.elements['Configuration/Common/ZoneListFile'].text
           rescue Exception

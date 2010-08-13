@@ -60,6 +60,9 @@ module KASPAuditor
 
     # The Cache holds the data for each of the Status levels.
     # It is dynamically generated from the Status levels.
+    # The dynamic methods created here will not show up in RDoc,
+    # but consist of methods to add, remove and find keys in
+    # different states. Timestamps are also held here.
     class Cache
       # Set up add_inuse_key, etc.
       Status.strings.each {|s| eval "attr_reader :#{s.downcase}"}
@@ -108,7 +111,7 @@ module KASPAuditor
     attr_reader :cache
     attr_accessor :last_soa_serial
 
-    # So, each run, the auditor needs to load the key caches for the zone, then
+    # Each run, the auditor needs to load the key caches for the zone, then
     # audit the zone, keeping track of which keys are used. The key caches are
     # then updated. The auditor needs to run the lifetime, numStandby checks
     # on the keys as well.
@@ -222,6 +225,7 @@ module KASPAuditor
     end
 
     # The auditor calls this method at the end of the auditing run.
+    # This is the only public method in this class.
     # It passes in all the keys it has seen, and the keys it has seen used.
     # keys is a list of DNSKeys, and keys_used is a list of the key_tags
     # used to sign RRSIGs in the zone.
@@ -242,7 +246,7 @@ module KASPAuditor
       save_tracker_cache
     end
 
-    # run the checks on the new zone data
+    # run the checks on the new zone data - called internally
     def run_checks(soa_ttl)
       # We also need to perform the auditing checks against the config
       # Checks to be performed :

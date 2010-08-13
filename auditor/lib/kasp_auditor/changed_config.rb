@@ -30,10 +30,14 @@ module KASPAuditor
   # It keeps a list of the elements which we are interested in, the last value they
   # were seen to have, and the timestamp at which that value changed (0 if they
   # have not been seen to change).
+  # It allows the auditor to respond to changes in policy, and not raise errors
+  # when it sees records in the zone which still conform to the old policy.
   # @TODO@ TEST CODE FOR THIS CLASS!
   # @TODO@ TEST CODE FOR THE POLICY CHANGES FUNCTIONALITY - check that the auditor
   #   does not produce errors as a result of changes in policy.
   class ChangedConfig
+     # This class holds some data, along with the timestamp at which is was last
+     # seen to change
     class Element
       attr_accessor :timestamp
       attr_reader :value
@@ -60,10 +64,11 @@ module KASPAuditor
           return "#{@value}, #{@timestamp}"
         end
       end
-      # @TODO@ Need some way to get key algorithm, length etc. out of here
 
     end
 
+    # This class allows a Key config element to be stored in a single Element,
+    # with meaningful methods to access the data within.
     class Key < Element
       def algorithm
         return @value[0]
@@ -82,6 +87,9 @@ module KASPAuditor
     attr_accessor :rrsig_inception_offset, :zsks, :ksks
     attr_accessor :kasp_timestamp, :conf_timestamp
 
+    # Initialised by the config parsing system - works out what has changed on
+    # startup, and stores the data internally. The only other public methods are
+    # inspection methods
     def initialize(*args)
       zone = args[0]
       conf_file = args[1]
@@ -218,6 +226,7 @@ module KASPAuditor
       return false
     end
 
+    # Reset the cache
     def reset_elements(config, conf_file, kasp_file)
       @zsks = []
       @ksks = []
@@ -311,6 +320,7 @@ module KASPAuditor
       end
     end
 
+    # Has the Signature configuration for this policy changed?
     def signature_config_changed?
       if (get_signature_timestamp != 0)
         return true
