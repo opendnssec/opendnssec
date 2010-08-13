@@ -29,7 +29,8 @@ include REXML
 
 module KASPAuditor
   class Parse
-    def self.parse(path, zonelist_filename, kasp_filename, syslog)
+    def self.parse(path, zonelist_filename, kasp_filename, syslog, conf_file,
+        working_folder, zone)
       # We need to open [/etc/opendnssec/]conf.xml,
       #                 [/etc/opendnssec/]kasp.xml,
       #                 [/etc/opendnssec/]zonelist.xml
@@ -48,6 +49,9 @@ module KASPAuditor
         doc.elements.each("ZoneList/Zone") {|z|
           # First load the config files
           zone_name = z.attributes['name']
+          if (zone) # We're only asked to load a single zone
+            next if (zone_name != zone) # So don't bother loading any other zones
+          end
           policy = z.elements['Policy'].text
 
           config_file_loc = z.elements["SignerConfiguration"].text
@@ -65,6 +69,13 @@ module KASPAuditor
               output_file_loc = path + output_file_loc
             end
             zones.push([config, output_file_loc])
+
+#            # Load the config elements storage file, and keep a note of which elements have changed, and when they last changed.
+            changed_config = ChangedConfig.new(zone_name, conf_file, kasp_filename, config, working_folder)
+            config.changed_config = changed_config
+
+            # @TODO@ Can we store a simple map of element name -> [timstamp, value]
+
           rescue Config::ConfigLoadError => e
             msg = "Can't load #{zone_name} SignerConfiguration file (#{config_file_loc}) : #{e}"
             print msg+"\n"

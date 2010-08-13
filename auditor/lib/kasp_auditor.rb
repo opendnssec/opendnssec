@@ -37,6 +37,7 @@ include Syslog::Constants
 include Dnsruby
 require 'kasp_auditor/commands.rb'
 require 'kasp_auditor/config.rb'
+require 'kasp_auditor/changed_config.rb'
 require 'kasp_auditor/key_tracker.rb'
 require 'kasp_auditor/auditor.rb'
 require 'kasp_auditor/partial_auditor.rb'
@@ -111,13 +112,13 @@ module KASPAuditor
       Syslog.open("ods-auditor", Syslog::LOG_PID |
         Syslog::LOG_CONS, syslog_facility) { |syslog|
         run_with_syslog(zonelist, kasp_file, syslog, working, 
-          signer_working_folder, enforcer_interval)
+          signer_working_folder, enforcer_interval, conf_file)
       }
     end
 
     # This method is provided so that the test code can use its own syslog
     def run_with_syslog(zonelist_file, kasp_file, syslog, 
-        working, signer_working_folder, enforcer_interval) # :nodoc: all
+        working, signer_working_folder, enforcer_interval, conf_file) # :nodoc: all
       syslog.log(LOG_INFO, "Auditor started")
       print("Auditor started\n")
       if (@enable_timeshift)
@@ -126,9 +127,9 @@ module KASPAuditor
       zones = nil
       begin
         zones = Parse.parse(File.dirname(kasp_file)  + File::SEPARATOR,
-          zonelist_file, kasp_file, syslog)
+          zonelist_file, kasp_file, syslog, conf_file, working, @zone_name)
       rescue Exception => e
-        KASPAuditor.exit("Couldn't load configuration files (from #{kasp_file}) - try running ods-kaspcheck", -LOG_ERR, syslog)
+        KASPAuditor.exit("Couldn't load configuration files (from #{kasp_file}) - try running ods-kaspcheck. #{e}", -LOG_ERR, syslog)
       end
       zones = check_zones_to_audit(zones, syslog)
       # Now check the input and output zones using the config
@@ -322,12 +323,12 @@ module KASPAuditor
       begin
         File.open((conf_file + "").untaint , 'r') {|file|
           doc = REXML::Document.new(file)
-          enforcer_interval = 3600
+          enforcer_interval = nil
           begin
             e_i_text = doc.elements['Configuration/Enforcer/Interval'].text
             enforcer_interval = Config.xsd_duration_to_seconds(e_i_text)
           rescue Exception
-            print "Can't read Enforcer->Interval from Configuration\n"
+            KASPAuditor.exit("Can't read Enforcer->Interval from Configuration", 1)
           end
             begin
               working = doc.elements['Configuration/Auditor/WorkingDirectory'].text

@@ -34,6 +34,22 @@ end
 
 class AuditorTest < Test::Unit::TestCase
 
+  def test_changed_config
+  # @TODO@ Test the auditor against changes in policy!
+  # @TODO@ How do we test this?
+  # Can we re-run the good test, with a completely changed config?
+  # And make sure that we only get warnings we expect?
+  # Can we try faking a config from the past (hack the kasp_timestamp),
+  # and get errors we'd expect if signed zone had been produced with that config?
+  
+    # So, just run the good nsec file, to keep things simple.
+    # Should we do more stuff regarding editing/creating configured keys?
+    # @TODO@ How do we load up a new kasp file without affecting existing tests?
+    
+  
+  end
+
+
   def test_good_file_nsec
     # Get the auditor to check a known-good zone (with signatures set well into the future)
     # Make sure there are no errors
@@ -83,8 +99,8 @@ class AuditorTest < Test::Unit::TestCase
       "RRSet (www.tjeb.nl, AAAA) failed verification : Signature record not in validity period, tag = 1390",
       "RRSet (www.tjeb.nl, NSEC) failed verification : Signature record not in validity period, tag = 1390",
       "Inception error for www.tjeb.nl, NSEC : Signature inception is 1275722596, time now is",
-      "Signature lifetime too short - should be at least 657936300 but was 2219833",
-      "Signature lifetime too short - should be at least 657936300 but was 633371846",
+      "Signature lifetime for www.tjeb.nl, AAAA too short - should be at least 657936300 but was 2219833",
+      "Signature lifetime for www.tjeb.nl, NSEC too short - should be at least 657936300 but was 633371846",
       # Taken out next warning, as we already have an error for expired RRSIG for this record
       #      "Signature expiration (962409629) for www.tjeb.nl, AAAA should be later than (the refresh period (120) - the resign period (60)) from now",
       "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, A, have :",
@@ -302,7 +318,9 @@ class AuditorTest < Test::Unit::TestCase
       #
       #   4. The "Next Hashed Owner" name field contains the hash of another domain in the zone that has an NSEC3 record associated with it, and that the links form a closed loop.
       # - @TODO@ extra next_hashed on one NSEC3
-      "NSEC3 record left after folowing closed loop : ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl"
+      "NSEC3 record left after folowing closed loop : ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl",
+
+      "3: New KSK DNSKEY has incorrect algorithm (was RSASHA1-NSEC3-SHA1) or alg_length (was 2048)"
     ]
     success = check_syslog(r, expected_strings)
     assert(success, "NSEC3 bad file not audited correctly")
@@ -358,7 +376,8 @@ class AuditorTest < Test::Unit::TestCase
       runner.force_partial
     end
 
-    ["test/tmp/tracker/tjeb.nl", "test/tmp1/tracker/tjeb.nl"].each {|f|
+    ["test/tmp/tracker/tjeb.nl", "test/tmp1/tracker/tjeb.nl", "test/tmp2/tracker/tjeb.nl",
+    "test/tmp/tracker/tjeb.nl.config", "test/tmp1/tracker/tjeb.nl.config", "test/tmp2/tracker/tjeb.nl.config"].each {|f|
       begin
         File.delete(f)
       rescue Exception
@@ -371,7 +390,7 @@ class AuditorTest < Test::Unit::TestCase
       $stdout.reopen w
 
       runner.force_partial if partial
-      ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, TestLogger.new(false), working, working, 3600) # Audit all zones
+      ret = runner.run_with_syslog(path + zonelist_filename, path + kasp_filename, TestLogger.new(false), working, working, 3600, path+"conf.xml") # Audit all zones
       w.close
       exit!(ret)
     }
@@ -491,6 +510,13 @@ class AuditorTest < Test::Unit::TestCase
     keys.ksks.push(ksk)
     config.keys = keys
     config.audit_tag_present = true
+    # Add changed_config - with no changes
+    changed_config = KASPAuditor::ChangedConfig.new(1,2,3,4,5,6)
+    changed_config.zsks = []
+    changed_config.ksks = []
+    changed_config.rrsig_inception_offset = KASPAuditor::ChangedConfig::Element.new(3600, 0)
+    changed_config.kasp_timestamp = 0
+    config.changed_config = changed_config
 
     checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
     key_cache = checker.load_tracker_cache
@@ -544,9 +570,9 @@ class AuditorTest < Test::Unit::TestCase
     k3 = RR.create({:name => "example.com.", :type => Types::DNSKEY,
         :protocol => 3, :flags => RR::DNSKEY::ZONE_KEY, :algorithm => 5, :key => "GEAAAAOlWEB+fCWSlxbuwvXf1zt2r6XqvuedrKVWzL+vRj+wy5tQyszg V9wwn+Re2xvlgn66fZs6j6sWylioJF9X5mlpWFkH6QU17CyMvWOMJY94 x/pXY1zjxx7WLUq46raOozQ+bOd2Zn2LzEJ0Sh9T8HXDwVVwsKjSaSx+ 7X5YSVMe3Q=="})
 
-    cache.add_retired_key_with_time(k1, time)
-    cache.add_inuse_key_with_time(k2, time)
-    cache.add_inuse_key_with_time(k3, time)
+    cache.add_retired_key_with_time(k1, time, time)
+    cache.add_inuse_key_with_time(k2, time, time)
+    cache.add_inuse_key_with_time(k3, time, time)
     assert(checker.cache.retired.length == 1)
     checker.save_tracker_cache
 

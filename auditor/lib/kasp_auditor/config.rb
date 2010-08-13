@@ -34,6 +34,7 @@ module KASPAuditor
     end
 
     attr_reader :err
+    attr_accessor :changed_config
     
     # Should the PartialAuditor be used instead of the full Auditor?
     attr_reader :partial_audit

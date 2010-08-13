@@ -60,6 +60,7 @@ module KASPAuditor
 
     # The Cache holds the data for each of the Status levels.
     # It is dynamically generated from the Status levels.
+    # @TODO@ Now also need to store the time at which the key was first seen
     class Cache
       # Set up add_inuse_key, etc.
       Status.strings.each {|s| eval "attr_reader :#{s.downcase}"}
@@ -67,15 +68,15 @@ module KASPAuditor
                           if (!include_#{s.downcase}_key?key)
                                 new_key = key.clone
                                 new_key.public_key
-                                @#{s.downcase}[new_key]=Time.now.to_i
+                                @#{s.downcase}[new_key]=[Time.now.to_i, Time.now.to_i]
                           end
           end"}
       # Set up add_inuse_key_with_time, etc.
-      Status.strings.each {|s| eval "def add_#{s.downcase}_key_with_time(key, time)
+      Status.strings.each {|s| eval "def add_#{s.downcase}_key_with_time(key, time, first_time)
                           if (!include_#{s.downcase}_key?key)
                                 new_key = key.clone
                                 new_key.public_key
-                                @#{s.downcase}[new_key]=time
+                                @#{s.downcase}[new_key]=[time, first_time]
                           end
           end"}
       # Set up include_inuse_key?, etc.
@@ -158,9 +159,12 @@ module KASPAuditor
             end
             next
           end
-          key_string, status_string, time  = line.split(SEPARATOR)
+          key_string, status_string, time, first_time  = line.split(SEPARATOR)
+          if (!first_time)
+            first_time = time
+          end
           key = RR.create(key_string)
-          eval "cache.add_#{status_string.downcase}_key_with_time(key, #{time})".untaint
+          eval "cache.add_#{status_string.downcase}_key_with_time(key, time.to_i, first_time.to_i)".untaint
         end
       }
       return cache
@@ -179,7 +183,7 @@ module KASPAuditor
         Status.strings.each {|s|
           status = s.downcase
           eval "@cache.#{status}.each {|key, time|
-              write_key_to_file(f, key.to_s, status, time)
+              write_key_to_file(f, key.to_s, status, time[0], time[1])
             }".untaint
         }
 
@@ -189,8 +193,8 @@ module KASPAuditor
       File.rename(tracker_file+".temp", tracker_file)
     end
 
-    def write_key_to_file(f, key, status, time)
-      f.puts("#{key}#{SEPARATOR}#{status}#{SEPARATOR}#{time}")
+    def write_key_to_file(f, key, status, time, first_time)
+      f.puts("#{key}#{SEPARATOR}#{status}#{SEPARATOR}#{time}#{SEPARATOR}#{first_time}")
     end
 
     def get_tracker_filename
@@ -255,7 +259,41 @@ module KASPAuditor
           @parent.log(LOG_WARNING, msg)
         end
       }
-      @cache.inuse.each {|key, timestamp|
+      @cache.inuse.each {|key, time|
+        timestamp = time[0]
+        first_timestamp = time[1]
+        # Ignore this check if the key was already in use at the time at which the lifetime policy was changed.
+        # How do we know to which AnyKey group this key belongs? Can only take a guess by [algorithm, alg_length] tuple
+        # Also going to have to put checks in place where key protocol/algorithm is checked against policy :-(
+        #   - no we don't! These are only checked when we are loading a new key - not one we've seen before.
+        #     and of course, a new key should be created with the correct values!
+        key_group_policy_changed = false
+        # First, find all the key groups which this key could belong to
+        keys = @config.changed_config.zsks
+        if (key.sep_key?)
+          keys = @config.changed_config.ksks
+        end
+        possible_groups = keys.select{|k|             (k.algorithm == key.algorithm) &&
+            (k.alg_length == key.key_length)}
+        # Then, find the latest timestamp (other than 0)
+        key_group_policy_changed_time = 0
+        if (possible_groups.length == 0)
+          # Can't find the group this key belongs to
+          if (@config.changed_config.kasp_timestamp < first_timestamp)
+            #    @TODO@ o if there has been no change in any of the configured keys then error (the key shouldn't exist)
+            # Shouldn't this be caught by something else?
+          end
+          #   o if there has been a change since the key was first seen,  then don't raise any errors for this key
+        else
+          possible_groups.each {|g|
+            if (g.timestamp > key_group_policy_changed_time)
+              key_group_policy_changed_time = g.timestamp
+              key_group_policy_changed = true
+            end
+          }
+          next if (key_group_policy_changed && (first_timestamp < key_group_policy_changed_time))
+        end
+
         if (key.zone_key? && !key.sep_key?)
           #   d) Warn if ZSK inuse longer than ZSK:Lifetime + Enforcer:Interval
           # Get the ZSK lifetime for this type of key from the config
@@ -263,7 +301,11 @@ module KASPAuditor
             (zsk.algorithm == key.algorithm) &&
               (zsk.alg_length == key.key_length)}
           next if (zsks.length == 0)
-          zsk_lifetime = (zsks[0]).lifetime
+          # Take the "safest" value - i.e. the longest one in this case
+          zsk_lifetime = 0
+          zsks.each {|z|
+            zsk_lifetime = z.lifetime if (z.lifetime > zsk_lifetime)
+          }
           lifetime = zsk_lifetime + @enforcer_interval 
           if timestamp < (Time.now.to_i - lifetime)
             msg = "ZSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
@@ -275,7 +317,11 @@ module KASPAuditor
           ksks = @config.keys.ksks.select{|ksk| (ksk.algorithm == key.algorithm) &&
               (ksk.alg_length == key.key_length)}
           next if (ksks.length == 0)
-          ksk_lifetime = ksks[0].lifetime
+          # Take the "safest" value - i.e. the longest one in this case
+          ksk_lifetime = 0
+          ksks.each {|k|
+            ksk_lifetime = k.lifetime if (k.lifetime > ksk_lifetime)
+          }
           lifetime = ksk_lifetime + @enforcer_interval 
           if timestamp < (Time.now.to_i - lifetime)
             msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
@@ -298,7 +344,7 @@ module KASPAuditor
         @cache.inuse.keys.each {|new_inuse_key|
           next if old_cache.include_inuse_key?new_inuse_key
           next if (new_inuse_key.sep_key?) # KSKs aren't prepublished any more
-          old_key_timestamp = old_cache.include_prepublished_key?new_inuse_key
+          old_key_timestamp, old_key_first_timestamp = old_cache.include_prepublished_key?new_inuse_key
           if (!old_key_timestamp)
             @parent.log(LOG_ERR, "Key (#{new_inuse_key.key_tag}) has gone straight to active use without a prepublished phase")
             next

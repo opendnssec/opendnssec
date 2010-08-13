@@ -823,11 +823,55 @@ module KASPAuditor
       end
     end
 
+    def check_policy_changes
+      if (!@checked_policy)
+        # Since the auditor just runs once per zone, there is no point in refreshing this information for every signature!
+        # Just read it once...
+        @policy_has_changed = false
+        @inception_offset_has_changed = false
+        @policy_change_timestamp = 0
+        @checked_policy = true
+        # Now load the new policy configuration - has anything changed?
+        if (@config.changed_config.signature_config_changed?)
+          @policy_has_changed = true
+          @policy_change_timestamp = @config.changed_config.get_signature_timestamp
+        end
+        if (@config.changed_config.rrsig_inception_offset.timestamp != 0)
+          @inception_offset_has_changed = true
+        end
+      end
+    end
+
     def do_basic_rrsig_checks(line)
       # @TODO@  Can we check the length of the RRSIG signature here?
+
       time_now = Time.now.to_i
       split = line.split
+      key_tag = split[10]
+      @keys_used.push(key_tag) if !@keys_used.include?key_tag
       sig_inception = RR::RRSIG.get_time(split[9])
+
+      check_policy_changes
+
+      # See if any of the configuration has changed for signature lifetimes
+      if (@policy_has_changed)
+        if (!@inception_offset_has_changed)
+          #  If not inception_offset which changed, then simply ignore RRSIGs which were
+          #   created earlier than the policy change timestamp (including inception_offset here!)
+          if (sig_inception < (@policy_change_timestamp - @config.signatures.inception_offset))
+            log(LOG_WARNING, "Skipping signature lifetime check for  #{split[0].chop}, #{split[4]} : policy has changed since #{sig_inception} (at #{@policy_change_timestamp}\n")
+            return
+          end
+        else
+          #   If InceptionOffset has changed, then all bets are probably off. In this case,
+          #      ignore all signature which were created less than a day before the policy changed.
+          if (sig_inception < (@policy_change_timestamp - (3600 * 24)))
+            log(LOG_WARNING, "Skipping signature lifetime check for  #{split[0].chop}, #{split[4]} : policy has changed since #{sig_inception} (at #{@policy_change_timestamp}\n")
+            return
+          end
+        end
+      end
+
       if (sig_inception > (time_now + @config.signatures.inception_offset))
         log(LOG_ERR, "Inception error for #{split[0].chop}, #{split[4]} : Signature inception is #{sig_inception}, time now is #{time_now}, inception offset is #{@config.signatures.inception_offset}, difference = #{time_now - sig_inception}")
       else
@@ -863,9 +907,6 @@ module KASPAuditor
       if (max_lifetime < actual_lifetime)
         log(LOG_ERR, "Signature lifetime too long - should be at most #{max_lifetime} but was #{actual_lifetime}")
       end
-
-      key_tag = split[10]
-      @keys_used.push(key_tag) if !@keys_used.include?key_tag
 
     end
 

@@ -36,7 +36,7 @@ module KASPAuditor
 
   # @TODO@ SOA Checks - format, etc.
   
-  class Auditor # :nodoc: all
+  class Auditor 
     class FatalError < Exception
     end
     EMPTY_NAME = Name.create(".")
@@ -361,8 +361,29 @@ module KASPAuditor
           end
         }
       end
+
+      check_policy_changes
+
       #  c) inception date in past by at least interval specified by config
       rrset.sigs.each {|sig|
+        # See if any of the configuration has changed for signature lifetimes
+        if (@policy_has_changed)
+          if (!@inception_offset_has_changed)
+            #  If not inception_offset which changed, then simply ignore RRSIGs which were
+            #   created earlier than the policy change timestamp (including inception_offset here!)
+            if (sig.inception < (@policy_change_timestamp - @config.signatures.inception_offset))
+              log(LOG_WARNING, "Skipping signature lifetime check for #{sig.name}, #{sig.type_covered} : policy has changed since #{sig.inception} (at #{@policy_change_timestamp}\n")
+              next
+            end
+          else
+            #   If InceptionOffset has changed, then all bets are probably off. In this case,
+            #      ignore all signature which were created less than a day before the policy changed.
+            if (sig.inception < (@policy_change_timestamp - (3600 * 24)))
+              log(LOG_WARNING, "Skipping signature lifetime check for #{sig.name}, #{sig.type_covered} : policy has changed since #{sig.inception} (at #{@policy_change_timestamp}\n")
+              next
+            end
+          end
+        end
         time_now = Time.now.to_i
         if (sig.inception > (time_now + @config.signatures.inception_offset))
           log(LOG_ERR, "Inception error for #{sig.name}, #{sig.type_covered} : Signature inception is #{sig.inception}, time now is #{time_now}, inception offset is #{@config.signatures.inception_offset}, difference = #{time_now - sig.inception}")
@@ -395,15 +416,34 @@ module KASPAuditor
         max_lifetime = @config.signatures.inception_offset + validity + @config.signatures.jitter
         actual_lifetime = sig.expiration - sig.inception
         if (min_lifetime > actual_lifetime)
-          log(LOG_ERR, "Signature lifetime too short - should be at least #{min_lifetime} but was #{actual_lifetime}")
+          log(LOG_ERR, "Signature lifetime for #{sig.name}, #{sig.type_covered} too short - should be at least #{min_lifetime} but was #{actual_lifetime}")
         end
         if (max_lifetime < actual_lifetime)
-          log(LOG_ERR, "Signature lifetime too long - should be at most #{max_lifetime} but was #{actual_lifetime}")
+          log(LOG_ERR, "Signature lifetime for #{sig.name}, #{sig.type_covered} too long - should be at most #{max_lifetime} but was #{actual_lifetime}")
         end
 
       }
 
 
+    end
+
+    def check_policy_changes
+      if (!@checked_policy)
+        # Since the auditor just runs once per zone, there is no point in refreshing this information for every signature!
+        # Just read it once...
+        @policy_has_changed = false
+        @inception_offset_has_changed = false
+        @policy_change_timestamp = 0
+        @checked_policy = true
+        # Now load the new policy configuration - has anything changed?
+        if (@config.changed_config.signature_config_changed?)
+          @policy_has_changed = true
+          @policy_change_timestamp = @config.changed_config.get_signature_timestamp
+        end
+        if (@config.changed_config.rrsig_inception_offset.timestamp != 0)
+          @inception_offset_has_changed = true
+        end
+      end
     end
 
     # Get the string for the type of denial this zone is using : either "NSEC" or "NSEC3"
@@ -611,6 +651,10 @@ module KASPAuditor
       # This method should be called at the end of the run, when all the DNSKEY records
       # in both the signed and unsigned zones have been collated.
       # We don't bother checking keys which were defined in the unsigned zone
+
+      # NEED TO CHECK POLICY CHANGES!!
+      # No we don't only new keys are checked here! :-)
+
       keys.each {|l_rr|
         found_unsigned = false
         unsigned_keys.each {|uk|
