@@ -109,7 +109,7 @@ static void TestKsmRequestKeys(void)
     status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, zone_id, &keypair_id);
     CU_ASSERT_EQUAL(status, 0);
 
-    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, &dnsseckey_id);
+    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, KSM_STATE_GENERATE, datetime, &dnsseckey_id);
     CU_ASSERT_EQUAL(status, 0);
 
     /* push the key into some state that update can operate on */

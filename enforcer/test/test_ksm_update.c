@@ -67,7 +67,7 @@ static void TestKsmUpdateInternal(void)
     /* Create a new dnsseckeys entry (use our previously tested routines) 
      * keys 3 - 15 are unallocated */
 
-    status = KsmDnssecKeyCreate(zone_id, 3, KSM_TYPE_ZSK, &dnsseckey_id);
+    status = KsmDnssecKeyCreate(zone_id, 3, KSM_TYPE_ZSK, KSM_STATE_GENERATE, datetime, &dnsseckey_id);
 	CU_ASSERT_EQUAL(status, 0);
 
 	/* push a key into some state that update can operate on */
