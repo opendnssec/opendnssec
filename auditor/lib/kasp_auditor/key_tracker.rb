@@ -60,7 +60,6 @@ module KASPAuditor
 
     # The Cache holds the data for each of the Status levels.
     # It is dynamically generated from the Status levels.
-    # @TODO@ Now also need to store the time at which the key was first seen
     class Cache
       # Set up add_inuse_key, etc.
       Status.strings.each {|s| eval "attr_reader :#{s.downcase}"}
