@@ -319,11 +319,7 @@ module KASPAuditor
         # glue - don't verify
         return
       end
-      begin
-        return if (out_of_zone(rrset.name))
-      rescue Exception # Invalid RRSet name (probably signer error)
-        return
-      end
+      return if (out_of_zone(rrset.name))
       rrset_sig_types = []
       rrset.sigs.each {|sig| rrset_sig_types.push(sig.algorithm)}
       @algs.each {|alg|
@@ -1088,6 +1084,7 @@ module KASPAuditor
 
     # Check if the name is out of the zone
     def out_of_zone(name)
+      return true if !name
       return !((name.subdomain_of?@soa.name) || (name == @soa.name))
     end
 
