@@ -1,0 +1,25 @@
+Cucumber tests for enforcer
+---------------------------
+
+These tests implement (amongst other things) the test
+specification at :
+
+http://trac.opendnssec.org/wiki/ProjectPlan/SystemTest/SimplifiedTest
+
+(Zone2 KSK has still to be added)
+
+These tests use the Cucumber testing tool to perform
+behavioural testing of the enforcer and ods-ksmutil
+tools. To run these tests, you must have ruby and
+cucumber installed. To install cucumber :
+
+gem install cucumber
+
+To run the tests, run :
+
+cucumber
+
+from this folder.
+
+More comprehensive documentation will be available in
+due course.

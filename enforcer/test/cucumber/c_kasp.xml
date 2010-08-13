@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: kasp.xml.in 2238 2009-10-16 07:38:12Z rb $ -->
+
+<KASP>
+<Policy name="Policy1">
+
+<Description>
+Policy1 in ODS wiki BasicTest outline
+</Description>
+
+<Signatures>
+<Resign>PT5M</Resign>
+<Refresh>PT5M</Refresh>
+
+<Validity>
+<Default>PT15M</Default>
+<Denial>PT15M</Denial>
+</Validity>
+<Jitter>PT2M</Jitter>
+<InceptionOffset>PT1M</InceptionOffset>
+</Signatures>
+
+<Denial>
+<NSEC/>
+</Denial>
+
+<Keys>
+<!-- Parameters for both KSK and ZSK -->
+<TTL>PT1M</TTL>
+<RetireSafety>PT0S</RetireSafety>
+<PublishSafety>PT0S</PublishSafety>
+<Purge>PT3H</Purge>
+<!-- Parameters for KSK only -->
+
+<KSK>
+<Algorithm length="2048">5</Algorithm>
+<Lifetime>PT30M</Lifetime>
+<!-- @TODO@ Repository should be configured -->
+<Repository>softHSM</Repository>
+<Standby>1</Standby>
+</KSK>
+<!-- Parameters for ZSK only -->
+
+<ZSK>
+<Algorithm length="2048">5</Algorithm>
+<Lifetime>PT25M</Lifetime>
+<!-- @TODO@ Repository should be configured -->
+<Repository>softHSM</Repository>
+<Standby>1</Standby>
+</ZSK>
+</Keys>
+
+<Zone>
+<PropagationDelay>PT0S</PropagationDelay>
+
+<SOA>
+<TTL>PT0M</TTL>
+<Minimum>PT0M</Minimum>
+<Serial>unixtime</Serial>
+</SOA>
+</Zone>
+
+<Parent>
+<PropagationDelay>PT8M</PropagationDelay>
+
+<DS>
+<TTL>PT1M</TTL>
+</DS>
+
+<SOA>
+<TTL>PT0M</TTL>
+<Minimum>PT0M</Minimum>
+</SOA>
+</Parent>
+</Policy>
+
+<Policy name="Policy2">
+
+<Description>
+A default policy that will amaze you and your friends
+</Description>
+
+<Signatures>
+<Resign>PT7M</Resign>
+<Refresh>PT7M</Refresh>
+
+<Validity>
+<Default>PT15M</Default>
+<Denial>PT16M</Denial>
+</Validity>
+<Jitter>PT2M</Jitter>
+<InceptionOffset>PT1M</InceptionOffset>
+</Signatures>
+
+<Denial>
+
+<NSEC3>
+<Resalt>PT1M</Resalt>
+
+<Hash>
+<Algorithm>1</Algorithm>
+<Iterations>5</Iterations>
+<Salt length="8"/>
+</Hash>
+</NSEC3>
+</Denial>
+
+<Keys>
+<!-- Parameters for both KSK and ZSK -->
+<TTL>PT15M</TTL>
+<RetireSafety>PT0S</RetireSafety>
+<PublishSafety>PT0S</PublishSafety>
+<Purge>PT3H</Purge>
+<!-- Parameters for KSK only -->
+
+<KSK>
+<Algorithm length="2048">7</Algorithm>
+<Lifetime>PT45M</Lifetime>
+<!-- @TODO@ Repository should be configured -->
+<Repository>softHSM</Repository>
+<Standby>1</Standby>
+</KSK>
+<!-- Parameters for ZSK only -->
+
+<ZSK>
+<Algorithm length="2048">7</Algorithm>
+<Lifetime>PT25M</Lifetime>
+<!-- @TODO@ Repository should be configured -->
+<Repository>softHSM</Repository>
+<Standby>1</Standby>
+</ZSK>
+</Keys>
+
+<Zone>
+<PropagationDelay>PT0S</PropagationDelay>
+
+<SOA>
+<TTL>PT0M</TTL>
+<Minimum>PT0M</Minimum>
+<Serial>unixtime</Serial>
+</SOA>
+</Zone>
+
+<Parent>
+<PropagationDelay>PT12M</PropagationDelay>
+
+<DS>
+<TTL>PT1M</TTL>
+</DS>
+
+<SOA>
+<TTL>PT0M</TTL>
+<Minimum>PT0M</Minimum>
+</SOA>
+</Parent>
+</Policy>
+
+	<Policy name="default">
+		<Description>A default policy that will amaze you and your friends</Description>
+		<Signatures>
+			<Resign>P2M</Resign>
+			<Refresh>P3M</Refresh>
+			<Validity>
+					<Default>P7M</Default>
+					<Denial>P7M</Denial>
+			</Validity>
+			<Jitter>PT12H</Jitter>
+			<InceptionOffset>PT300S</InceptionOffset>
+		</Signatures>
+
+		<Denial>
+			<NSEC3>
+				<OptOut/>
+				<Resalt>P100D</Resalt>
+				<Hash>
+					<Algorithm>1</Algorithm>
+					<Iterations>5</Iterations>
+					<Salt length="8"/>
+				</Hash>
+			</NSEC3>
+		</Denial>
+
+		<Keys>
+			<!-- Parameters for both KSK and ZSK -->
+			<TTL>P3M</TTL>
+			<RetireSafety>PT3600S</RetireSafety>
+			<PublishSafety>PT3600S</PublishSafety>
+			<!-- <ShareKeys/> -->
+			<Purge>P14D</Purge>
+
+			<!-- Parameters for KSK only -->
+			<KSK>
+				<Algorithm length="2048">7</Algorithm>
+				<Lifetime>P1Y</Lifetime>
+				<Repository>softHSM</Repository>
+				<Standby>1</Standby>
+				<!-- <ManualRollover/> -->
+			</KSK>
+
+			<!-- Parameters for ZSK only -->
+			<ZSK>
+				<Algorithm length="1024">7</Algorithm>
+				<Lifetime>P3M</Lifetime>
+				<Repository>softHSM</Repository>
+				<Standby>1</Standby>
+			</ZSK>
+		</Keys>
+
+		<Zone>
+			<PropagationDelay>PT9999S</PropagationDelay>
+			<SOA>
+				<TTL>P3M</TTL>
+				<Minimum>P14D</Minimum>
+				<Serial>unixtime</Serial>
+			</SOA>
+		</Zone>
+
+		<Parent>
+			<PropagationDelay>PT9999S</PropagationDelay>
+			<DS>
+				<TTL>PT3600S</TTL>
+			</DS>
+			<SOA>
+				<TTL>PT3600S</TTL>
+				<Minimum>PT3600S</Minimum>
+			</SOA>
+		</Parent>
+
+		<Audit>
+      <!--              <Partial/>
+    -->
+            </Audit>
+
+	</Policy>
+
+
+
+	
+</KASP>

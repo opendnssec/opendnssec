@@ -2,12 +2,20 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
+LIBHSM = ${top_builddir}/libhsm/src/libhsm.a
+LIBKSM = ../ksm/libksm.a
+LIBENFORCER = ../common/libenforcer.a
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
+
 AM_CPPFLAGS = \
+	-I$(top_srcdir)/common \
+	-I$(top_builddir)/common \
 	-I$(srcdir)/../common \
 	-I$(builddir)/../common \
 	-I$(srcdir)/../ksm/include \
 	-I$(builddir)/../ksm/include \
-	@LIBHSM_INCLUDES@ \
+	-I$(srcdir)/../../libhsm/src \
+	-I$(builddir)/../../libhsm/src \
 	@XML2_INCLUDES@ \
 	@DB_INCLUDES@ \
 	@LDNS_INCLUDES@
@@ -15,12 +23,6 @@ AM_CPPFLAGS = \
 sbin_PROGRAMS = ods-enforcerd
 man8_MANS = ods-enforcerd.8
 
-ods_enforcerd_SOURCES = enforcer.c
-ods_enforcerd_LDADD = ../common/libenforcer.a ../ksm/libksm.a
-ods_enforcerd_LDADD += @LIBHSM_LIBS@ @XML2_LIBS@ @DB_LIBS@
-ods_enforcerd_DEPENDENCIES = @BUILD_LIBHSM@
-
-EXTRA_DIST = $(srcdir)/*.h
-
-../../libhsm/src/libhsm.la:
-	(cd ../../libhsm/src; ${MAKE} libhsm.la)
+ods_enforcerd_SOURCES = enforcer.c enforcer.h
+ods_enforcerd_LDADD = $(LIBENFORCER) $(LIBKSM) $(LIBHSM) $(LIBCOMPAT)
+ods_enforcerd_LDADD += @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@

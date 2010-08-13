@@ -1,18 +1,13 @@
 # $Id: Makefile.am 615 2009-05-06 08:52:03Z jakob $
 
-ACLOCAL_AMFLAGS = -I m4
-
-MAINTAINERCLEANFILES = \
-	config.log config.status \
-	$(srcdir)/Makefile.in \
-	$(srcdir)/config.h.in $(srcdir)/config.h.in~ \
-	$(srcdir)/configure \
-	$(srcdir)/install-sh $(srcdir)/ltmain.sh $(srcdir)/missing \
-	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
-	$(srcdir)/config.guess $(srcdir)/config.sub
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 SUBDIRS = ksm common enforcerd utils test
 
-install-data-hook:
-	mkdir -p ${DESTDIR}$(localstatedir)/run/opendnssec
-	mkdir -p ${DESTDIR}$(localstatedir)/opendnssec
+doxygen:
+	rm -fr $(top_builddir)/enforcer/doxygen-doc
+	env $(DX_ENV) \
+		PROJECT_NAME="OpenDNSSEC-enforcer" \
+		SRCDIR=$(top_srcdir)/enforcer \
+		OUTPUTDIR=$(top_builddir)/enforcer/doxygen-doc \
+		$(DX_DOXYGEN) $(top_builddir)/$(DX_CONFIG)

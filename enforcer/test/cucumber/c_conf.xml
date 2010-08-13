@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: conf.xml.in 1898 2009-09-29 12:41:15Z jakob $ -->
+
+<Configuration>
+
+	<RepositoryList>
+
+		<Repository name="softHSM">
+			<Module>/usr/local/lib/libsofthsm.dylib</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+<Capacity>10000</Capacity>
+		</Repository>
+
+	</RepositoryList>
+
+	<Common>
+		<Logging>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+		
+		<PolicyFile>c_kasp.xml</PolicyFile>
+		<ZoneListFile>tmp/c_zonelist.xml</ZoneListFile>
+
+	</Common>
+
+	<Enforcer>
+
+		<Datastore><SQLite>tmp/c_kasp.db</SQLite></Datastore>
+		<Interval>PT5M</Interval>
+<ManualKeyGeneration/>
+	</Enforcer>
+
+	<Signer>
+
+		<WorkerThreads>8</WorkerThreads>
+
+		<!-- the <NotifyCommmand> will expand the following variables:
+
+		     %zone      the name of the zone that was signed
+		     %zonefile  the filename of the signed zone
+		-->
+	</Signer>
+
+	<Auditor>
+
+	</Auditor>
+
+</Configuration>

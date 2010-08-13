@@ -83,7 +83,7 @@
 extern char *optarg;
 extern int optind;
 const char *progname = NULL;
-char *config = (char *) CONFIG_FILE;
+char *config = (char *) OPENDNSSEC_CONFIG_FILE;
 
 char *o_keystate = NULL;
 char *o_algo = NULL;
@@ -765,7 +765,7 @@ cmd_addzone ()
      * (sort of, not the neatest output)
      */
     if (o_signerconf == NULL) {
-        StrAppend(&sig_conf_name, LOCALSTATE_DIR);
+        StrAppend(&sig_conf_name, OPENDNSSEC_STATE_DIR);
         StrAppend(&sig_conf_name, "/signconf/");
         StrAppend(&sig_conf_name, o_zone);
         StrAppend(&sig_conf_name, ".xml");
@@ -779,7 +779,7 @@ cmd_addzone ()
     }
 
     if (o_input == NULL) {
-        StrAppend(&input_name, LOCALSTATE_DIR);
+        StrAppend(&input_name, OPENDNSSEC_STATE_DIR);
         StrAppend(&input_name, "/unsigned/");
         StrAppend(&input_name, o_zone);
     }
@@ -792,7 +792,7 @@ cmd_addzone ()
     }
 
     if (o_output == NULL) {
-        StrAppend(&output_name, LOCALSTATE_DIR);
+        StrAppend(&output_name, OPENDNSSEC_STATE_DIR);
         StrAppend(&output_name, "/signed/");
         StrAppend(&output_name, o_zone);
     }
@@ -3403,7 +3403,7 @@ int read_filenames(char** zone_list_filename, char** kasp_filename)
                      * Set a default
                      */
                     /* XXX this should be parse from the the main config */
-                    StrAppend(kasp_filename, CONFIG_DIR);
+                    StrAppend(kasp_filename, OPENDNSSEC_CONFIG_DIR);
                     StrAppend(kasp_filename, "/kasp.xml");
                 }
                 printf("kasp filename set to %s.\n", *kasp_filename);
@@ -3572,7 +3572,7 @@ int update_policies(char* kasp_filename)
     KSM_POLICY *policy;
 
     /* Some files, the xml and rng */
-    const char* rngfilename = SCHEMA_DIR "/kasp.rng";
+    const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/kasp.rng";
 
     /* Load XML document */
     doc = xmlParseFile(kasp_filename);
@@ -4536,7 +4536,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     char* temp_char = NULL;
 
     /* Some files, the xml and rng */
-    const char* rngfilename = SCHEMA_DIR "/conf.rng";
+    const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/conf.rng";
 
     /* Load XML document */
     doc = xmlParseFile(config);
@@ -5879,8 +5879,8 @@ int fix_file_perms(const char *dbschema)
     xmlChar *user_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/User";
     xmlChar *group_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/Group";
 
-    char* filename = CONFIG_FILE;
-    char* rngfilename = SCHEMA_DIR "/conf.rng";
+    char* filename = OPENDNSSEC_CONFIG_FILE;
+    char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/conf.rng";
     char* temp_char = NULL;
 
     struct passwd *pwd;
@@ -6267,6 +6267,8 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
     KSM_PARCOLL         collection;     /* Collection of parameters for zone */
     int deltat;     /* Time interval */
 
+    (void)      zone_id;
+
     /* Set collection defaults */
     KsmCollectionInit(&collection);
 
@@ -6574,6 +6576,8 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
     KSM_PARCOLL         collection;     /* Collection of parameters for zone */
     int deltat = 0;     /* Time interval */
 
+    (void)      zone_id;
+
     /* Set collection defaults */
     KsmCollectionInit(&collection);
 
@@ -6789,7 +6793,7 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
 static int restart_enforcerd()
 {
 	/* ToDo: This should really be rewritten so that it will read
-	   ENFORCER_PIDFILE and send a SIGHUP itself */
+	   OPENDNSSEC_ENFORCER_PIDFILE and send a SIGHUP itself */
 	return system(RESTART_ENFORCERD_CMD);
 }
 

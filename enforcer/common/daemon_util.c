@@ -37,7 +37,11 @@
  *
  * Most of this is based on stuff I have seen in NSD
  */
+#include "config.h"
+
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -60,7 +64,6 @@
 #include <libxml/xpathInternals.h>
 #include <libxml/relaxng.h>
 
-#include "config.h"
 #include "daemon.h"
 #include "daemon_util.h"
 
@@ -85,7 +88,7 @@ getPermsForDrop(DAEMONCONFIG* config)
     xmlChar *group_expr = (unsigned char*) "//Configuration/Enforcer/Privileges/Group";
 
     char* filename = NULL;
-    char* rngfilename = SCHEMA_DIR "/conf.rng";
+    char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/conf.rng";
     char* temp_char = NULL;
 
     struct passwd *pwd;
@@ -96,7 +99,7 @@ getPermsForDrop(DAEMONCONFIG* config)
     if (config->configfile != NULL) {
         filename = StrStrdup(config->configfile);
     } else {
-        filename = StrStrdup(CONFIG_FILE);
+        filename = StrStrdup(OPENDNSSEC_CONFIG_FILE);
     }
 
     /* Load XML document */
@@ -582,7 +585,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     int status;
     int db_found = 0;
     char* filename = NULL;
-    char* rngfilename = SCHEMA_DIR "/conf.rng";
+    char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/conf.rng";
 
     char* temp_char = NULL;
 
@@ -592,7 +595,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     if (config->configfile != NULL) {
         filename = StrStrdup(config->configfile);
     } else {
-        filename = StrStrdup(CONFIG_FILE);
+        filename = StrStrdup(OPENDNSSEC_CONFIG_FILE);
     }
 
     if (verbose) {
