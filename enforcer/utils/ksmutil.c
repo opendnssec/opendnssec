@@ -5346,6 +5346,7 @@ int ListKeys(int zone_id)
 int PurgeKeys(int zone_id, int policy_id)
 {
     char*       sql = NULL;     /* SQL query */
+    char*       sql1 = NULL;     /* SQL query */
     char*       sql2 = NULL;    /* SQL query */
     char*       sql3 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
@@ -5354,8 +5355,8 @@ int PurgeKeys(int zone_id, int policy_id)
     DB_ROW      row = NULL;     /* Row data */
 
     int         temp_id = -1;       /* place to store the key id returned */
-    char*       temp_dead = NULL;   /* place to store dead date returned */
     char*       temp_loc = NULL;    /* place to store location returned */
+    int         count = 0;          /* How many keys don't match the purge */
 
     int         done_something = 0; /* have we done anything? */
 
@@ -5377,7 +5378,7 @@ int PurgeKeys(int zone_id, int policy_id)
     }
 
     /* Select rows */
-    StrAppend(&sql, "select id, dead, location from KEYDATA_VIEW where state = 6 ");
+    StrAppend(&sql, "select distinct id, location from KEYDATA_VIEW where state = 6 ");
     if (zone_id != -1) {
         StrAppend(&sql, "and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
@@ -5388,9 +5389,6 @@ int PurgeKeys(int zone_id, int policy_id)
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", policy_id);
         StrAppend(&sql, stringval);
     }
-    /* stop us doing the same key twice */
-    StrAppend(&sql, " group by location");
-
     DusEnd(&sql);
 
     status = DbExecuteSql(DbHandle(), sql, &result);
@@ -5398,67 +5396,82 @@ int PurgeKeys(int zone_id, int policy_id)
     if (status == 0) {
         status = DbFetchRow(result, &row);
         while (status == 0) {
-            /* Got a row, purge it */
+            /* Got a row, check it */
             DbInt(row, 0, &temp_id);
-            DbString(row, 1, &temp_dead);
-            DbString(row, 2, &temp_loc);
-            done_something = 1;
+            DbString(row, 1, &temp_loc);
 
-            /* Delete from dnsseckeys */
-            sql2 = DdsInit("dnsseckeys");
-            DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
-            DdsEnd(&sql);
+            sql1 = DqsCountInit("dnsseckeys");
+            DdsConditionInt(&sql1, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+            DdsConditionInt(&sql1, "state", DQS_COMPARE_NE, KSM_STATE_DEAD, 1);
+            DqsEnd(&sql1);
 
-            status = DbExecuteSqlNoResult(DbHandle(), sql2);
-            DdsFree(sql2);
-            if (status != 0)
-            {
+            status = DbIntQuery(DbHandle(), &count, sql1);
+            DqsFree(sql1);
+
+            if (status != 0) {
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
-                DbStringFree(temp_dead);
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
                 return status;
             }
 
-            /* Delete from keypairs */
-            sql3 = DdsInit("keypairs");
-            DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
-            DdsEnd(&sql);
+            /* If the count is zero then there is no reason not to purge this key */
+            if (count == 0) {
 
-            status = DbExecuteSqlNoResult(DbHandle(), sql3);
-            DdsFree(sql3);
-            if (status != 0)
-            {
-                printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return status;
-            }
+                done_something = 1;
 
-            /* Delete from the HSM */
-            key = hsm_find_key_by_id(NULL, temp_loc);
+                /* Delete from dnsseckeys */
+                sql2 = DdsInit("dnsseckeys");
+                DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+                DdsEnd(&sql);
 
-            if (!key) {
-                printf("Key not found: %s\n", temp_loc);
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return -1;
-            }
+                status = DbExecuteSqlNoResult(DbHandle(), sql2);
+                DdsFree(sql2);
+                if (status != 0)
+                {
+                    printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return status;
+                }
 
-            status = hsm_remove_key(NULL, key);
+                /* Delete from keypairs */
+                sql3 = DdsInit("keypairs");
+                DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
+                DdsEnd(&sql);
 
-            hsm_key_free(key);
+                status = DbExecuteSqlNoResult(DbHandle(), sql3);
+                DdsFree(sql3);
+                if (status != 0)
+                {
+                    printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return status;
+                }
 
-            if (!status) {
-                printf("Key remove successful.\n");
-            } else {
-                printf("Key remove failed.\n");
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return -1;
+                /* Delete from the HSM */
+                key = hsm_find_key_by_id(NULL, temp_loc);
+
+                if (!key) {
+                    printf("Key not found: %s\n", temp_loc);
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return -1;
+                }
+
+                status = hsm_remove_key(NULL, key);
+
+                hsm_key_free(key);
+
+                if (!status) {
+                    printf("Key remove successful.\n");
+                } else {
+                    printf("Key remove failed.\n");
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return -1;
+                }
             }
 
             /* NEXT! */ 
@@ -5481,7 +5494,6 @@ int PurgeKeys(int zone_id, int policy_id)
     DusFree(sql);
     DbFreeRow(row);
 
-    DbStringFree(temp_dead);
     DbStringFree(temp_loc);
 
     return status;
