@@ -157,6 +157,11 @@ int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
 		*dbhandle = (DB_HANDLE) connection;
 	}
 
+    /* Check the version against what we have in database.h */
+    if (status == 0) {
+        status = db_version_check();
+    }
+
     return status;
 }
 
