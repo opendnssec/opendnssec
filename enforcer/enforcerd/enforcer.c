@@ -1462,10 +1462,10 @@ int do_purge(int interval, int policy_id)
 
 #ifdef USE_MYSQL
             nchar = snprintf(buffer, sizeof(buffer),
-                    "or state = 6 and DEAD > DATE_ADD('%s', INTERVAL -%d SECOND)) ", rightnow, interval);
+                    " or state = %d and DEAD > DATE_ADD('%s', INTERVAL -%d SECOND)) ", KSM_STATE_DEAD, rightnow, interval);
 #else
             nchar = snprintf(buffer, sizeof(buffer),
-                    "or state = 6 and DEAD > DATETIME('%s', '-%d SECONDS')) ", rightnow, interval);
+                    " or state = %d and DEAD > DATETIME('%s', '-%d SECONDS')) ", KSM_STATE_DEAD, rightnow, interval);
 #endif /* USE_MYSQL */
             StrFree(rightnow);
 

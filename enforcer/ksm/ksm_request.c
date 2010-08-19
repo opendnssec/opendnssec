@@ -325,18 +325,8 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
     }
 
     /*
-     * Step 3.  We are within the appropriate interval of the retirement
-     * of the active key, move keys from the generate state into the
-     * publish state.
-     */
-
-    status = KsmRequestChangeStateGeneratePublishConditional(keytype, datetime, &collection, zone_id, run_interval);
-    if (status != 0) {
-        return status;
-    }
-
-    /*
      * Step 3a.  make sure that we have enough standby KSKs
+     * Doing this before 3.
      */
 
     if (keytype == KSM_TYPE_KSK) {
@@ -349,6 +339,17 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
         if (status != 0) {
             return status;
         }
+    }
+
+    /*
+     * Step 3.  We are within the appropriate interval of the retirement
+     * of the active key, move keys from the generate state into the
+     * publish state.
+     */
+
+    status = KsmRequestChangeStateGeneratePublishConditional(keytype, datetime, &collection, zone_id, run_interval);
+    if (status != 0) {
+        return status;
     }
 
     /*
