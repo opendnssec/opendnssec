@@ -1715,17 +1715,21 @@ cmd_backup (const char* qualifier)
     if (strncmp(qualifier, "PREPARE", 7) == 0 ||
             strncmp(qualifier, "DONE", 4) == 0 ) {
         status = KsmMarkPreBackup(repo_id, datetime);
-        if (status != 0) {
+        if (status == -1) {
+            printf("There were no keys to mark\n");
+        }
+        else if (status != 0) {
             printf("Error: failed to mark pre_backup as done\n");
             db_disconnect(lock_fd);
             StrFree(datetime);
             return status;
-        }
-        if (strncmp(qualifier, "PREPARE", 7) == 0) {
-            if (o_repository != NULL) {
-                printf("Marked repository %s as pre-backed up at %s\n", o_repository, datetime);
-            } else {
-                printf("Marked all repositories as pre-backed up at %s\n", datetime);
+        } else {
+            if (strncmp(qualifier, "PREPARE", 7) == 0) {
+                if (o_repository != NULL) {
+                    printf("Marked repository %s as pre-backed up at %s\n", o_repository, datetime);
+                } else {
+                    printf("Marked all repositories as pre-backed up at %s\n", datetime);
+                }
             }
         }
     }
@@ -1734,33 +1738,40 @@ cmd_backup (const char* qualifier)
     if (strncmp(qualifier, "COMMIT", 6) == 0 ||
             strncmp(qualifier, "DONE", 4) == 0 ) {
         status = KsmMarkBackup(repo_id, datetime);
-        if (status != 0) {
+        if (status == -1) {
+            printf("There were no keys to mark\n");
+        }
+        else if (status != 0) {
             printf("Error: failed to mark backup as done\n");
             db_disconnect(lock_fd);
             StrFree(datetime);
             return status;
-        }
-
-        if (o_repository != NULL) {
-            printf("Marked repository %s as backed up at %s\n", o_repository, datetime);
         } else {
-            printf("Marked all repositories as backed up at %s\n", datetime);
+            if (o_repository != NULL) {
+                printf("Marked repository %s as backed up at %s\n", o_repository, datetime);
+            } else {
+                printf("Marked all repositories as backed up at %s\n", datetime);
+            }
         }
     }
 
     /* Finally rollback */
     if (strncmp(qualifier, "ROLLBACK", 6) == 0 ) {
         status = KsmRollbackMarkPreBackup(repo_id);
-        if (status != 0) {
+        if (status == -1) {
+            printf("There were no keys to rollback\n");
+        }
+        else if (status != 0) {
             printf("Error: failed to mark backup as done\n");
             db_disconnect(lock_fd);
             StrFree(datetime);
             return status;
-        }
-        if (o_repository != NULL) {
-            printf("Rolled back pre-backup of repository %s\n", o_repository);
         } else {
-            printf("Rolled back pre-backup of all repositories\n");
+            if (o_repository != NULL) {
+                printf("Rolled back pre-backup of repository %s\n", o_repository);
+            } else {
+                printf("Rolled back pre-backup of all repositories\n");
+            }
         }
     }
 

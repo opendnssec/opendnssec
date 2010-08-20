@@ -494,6 +494,32 @@ int KsmMarkPreBackup(int repo_id, const char* datetime)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
+    int         count = -1;     /* How many keys get marked */
+
+    /* Count how many we will mark */
+    sql = DqsCountInit("keypairs");
+    if (repo_id != -1) {
+        DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, repo_id, 0);
+        StrAppend(&sql, " and pre_backup is null");
+    } else {
+        StrAppend(&sql, " where pre_backup is null");
+    }
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    if (count == 0) {
+        /* No work to do */
+        return -1;
+    }
 
     /* Update rows */
     sql = DusInit("keypairs");
@@ -531,6 +557,34 @@ int KsmRollbackMarkPreBackup(int repo_id)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
+    int         count = -1;     /* How many keys get marked */
+
+    /* Count how many we will mark */
+    sql = DqsCountInit("keypairs");
+    if (repo_id != -1) {
+        DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, repo_id, 0);
+        StrAppend(&sql, " and pre_backup is not null");
+        StrAppend(&sql, " and backup is null");
+    } else {
+        StrAppend(&sql, " where pre_backup is not null");
+        StrAppend(&sql, " and backup is null");
+    }
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    if (count == 0) {
+        /* No work to do */
+        return -1;
+    }
 
     /* Update rows */
     sql = DusInit("keypairs");
@@ -573,6 +627,34 @@ int KsmMarkBackup(int repo_id, const char* datetime)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
+    int         count = -1;     /* How many keys get marked */
+
+    /* Count how many we will mark */
+    sql = DqsCountInit("keypairs");
+    if (repo_id != -1) {
+        DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, repo_id, 0);
+        StrAppend(&sql, " and pre_backup is not null");
+        StrAppend(&sql, " and backup is null");
+    } else {
+        StrAppend(&sql, " where pre_backup is not null");
+        StrAppend(&sql, " and backup is null");
+    }
+    DqsEnd(&sql);
+
+    /* Execute query and free up the query string */
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        status = MsgLog(KSM_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    if (count == 0) {
+        /* No work to do */
+        return -1;
+    }
 
     /* Update rows */
     sql = DusInit("keypairs");
