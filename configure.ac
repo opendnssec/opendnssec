@@ -21,7 +21,7 @@ AC_PATH_PROG(JAVA, java)
 
 # libhsm
 ACX_LIBXML2
-ACX_LDNS(1,6,4)
+ACX_LDNS(1,6,6)
 ACX_DLOPEN
 
 # libksm

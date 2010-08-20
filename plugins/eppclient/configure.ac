@@ -43,7 +43,7 @@ AC_SEARCH_LIBS(nanosleep, rt posix4, AC_DEFINE(HAVE_NANOSLEEP, 1,
 	[Define if you have nanosleep]))
 
 ACX_LIBXML2
-ACX_LDNS(1,6,4)
+ACX_LDNS(1,6,6)
 ACX_LIBSQLITE3
 LIBCURL_CHECK_CONFIG([yes], [7.18.2], [], [AC_MSG_ERROR(["libcurl not found"])])
 
