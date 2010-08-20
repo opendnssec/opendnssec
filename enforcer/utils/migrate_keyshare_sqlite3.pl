@@ -116,7 +116,8 @@ $dbh->do("create table keypairs(
   policy_id        mediumint,
   compromisedflag tinyint,
   publickey     varchar(1024),                -- public key data
-  backup        varchar(64) null default null,  -- time when backup was performed
+  pre_backup    varchar(64) null default null,  -- time when backup was started
+  backup        varchar(64) null default null,  -- time when backup was finished
   fixedDate     tinyint default 0,            -- Set to 1 to stop dates from being set according to the policy timings        
   
   foreign key (securitymodule_id) references securitymodules (id),

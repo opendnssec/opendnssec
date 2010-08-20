@@ -473,6 +473,85 @@ int KsmPolicyIdFromName(const char* name, int *id)
 }
 
 /*+
+ * KsmMarkPreBackup - Mark a backup as having been prepared
+ *
+ *
+ * Arguments:
+ *
+ *      int repo_id
+ *          ID of the repository (-1 for all)
+ *
+ *      const char* datetime
+ *          When the pre backup was done
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int KsmMarkPreBackup(int repo_id, const char* datetime)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+
+    /* Update rows */
+    sql = DusInit("keypairs");
+    DusSetString(&sql, "PRE_BACKUP", datetime, 0);
+    if (repo_id != -1) {
+        DusConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, repo_id, 0);
+        StrAppend(&sql, " and pre_backup is null");
+    } else {
+        StrAppend(&sql, " where pre_backup is null");
+    }
+    DusEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DusFree(sql);
+
+    return status;
+}
+
+/*+
+ * KsmRollbackPreBackup - Rollback a backup prepare step
+ *
+ *
+ * Arguments:
+ *
+ *      int repo_id
+ *          ID of the repository (-1 for all)
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int KsmRollbackMarkPreBackup(int repo_id)
+{
+    char*       sql = NULL;     /* SQL query */
+    int         status = 0;     /* Status return */
+
+    /* Update rows */
+    sql = DusInit("keypairs");
+    DusSetString(&sql, "PRE_BACKUP", NULL, 0);
+    if (repo_id != -1) {
+        DusConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, repo_id, 0);
+        StrAppend(&sql, " and pre_backup is not null");
+        StrAppend(&sql, " and backup is null");
+    } else {
+        StrAppend(&sql, " where pre_backup is null");
+        StrAppend(&sql, " and backup is null");
+    }
+    DusEnd(&sql);
+
+    status = DbExecuteSqlNoResult(DbHandle(), sql);
+    DusFree(sql);
+
+    return status;
+}
+
+/*+
  * KsmMarkBackup - Mark a backup as having been done
  *
  *
@@ -501,8 +580,10 @@ int KsmMarkBackup(int repo_id, const char* datetime)
     if (repo_id != -1) {
         DusConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, repo_id, 0);
         StrAppend(&sql, " and backup is null");
+        StrAppend(&sql, " and pre_backup is not null");
     } else {
         StrAppend(&sql, " where backup is null");
+        StrAppend(&sql, " and pre_backup is not null");
     }
     DusEnd(&sql);
 

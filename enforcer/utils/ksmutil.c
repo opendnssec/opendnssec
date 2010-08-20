@@ -308,9 +308,15 @@ usage_key ()
 usage_backup ()
 {
     fprintf(stderr,
-            "  backup done\n"
+            "  backup prepare\n"
+            "\t--repository <repository>                aka -r\n"
+            "  backup commit\n"
+            "\t--repository <repository>                aka -r\n"
+            "  backup rollback\n"
             "\t--repository <repository>                aka -r\n"
             "  backup list\n"
+            "\t--repository <repository>                aka -r\n"
+            "  backup done\n"
             "\t--repository <repository>                aka -r\n");
 }
 
@@ -1667,7 +1673,7 @@ cmd_keypurge ()
  * note that fact that a backup has been performed
  */
     int
-cmd_backup ()
+cmd_backup (const char* qualifier)
 {
     int status = 0;
 
@@ -1705,18 +1711,57 @@ cmd_backup ()
         }
     }
 
-    status = KsmMarkBackup(repo_id, datetime);
-    if (status != 0) {
-        printf("Error: failed to mark backup as done\n");
-        db_disconnect(lock_fd);
-        StrFree(datetime);
-        return status;
+    /* Do Pre first */
+    if (strncmp(qualifier, "PREPARE", 7) == 0 ||
+            strncmp(qualifier, "DONE", 4) == 0 ) {
+        status = KsmMarkPreBackup(repo_id, datetime);
+        if (status != 0) {
+            printf("Error: failed to mark pre_backup as done\n");
+            db_disconnect(lock_fd);
+            StrFree(datetime);
+            return status;
+        }
+        if (strncmp(qualifier, "PREPARE", 7) == 0) {
+            if (o_repository != NULL) {
+                printf("Marked repository %s as pre-backed up at %s\n", o_repository, datetime);
+            } else {
+                printf("Marked all repositories as pre-backed up at %s\n", datetime);
+            }
+        }
     }
 
-    if (o_repository != NULL) {
-        printf("Marked repository %s as backed up at %s\n", o_repository, datetime);
-    } else {
-        printf("Marked all repositories as backed up at %s\n", datetime);
+    /* Then commit */
+    if (strncmp(qualifier, "COMMIT", 6) == 0 ||
+            strncmp(qualifier, "DONE", 4) == 0 ) {
+        status = KsmMarkBackup(repo_id, datetime);
+        if (status != 0) {
+            printf("Error: failed to mark backup as done\n");
+            db_disconnect(lock_fd);
+            StrFree(datetime);
+            return status;
+        }
+
+        if (o_repository != NULL) {
+            printf("Marked repository %s as backed up at %s\n", o_repository, datetime);
+        } else {
+            printf("Marked all repositories as backed up at %s\n", datetime);
+        }
+    }
+
+    /* Finally rollback */
+    if (strncmp(qualifier, "ROLLBACK", 6) == 0 ) {
+        status = KsmRollbackMarkPreBackup(repo_id);
+        if (status != 0) {
+            printf("Error: failed to mark backup as done\n");
+            db_disconnect(lock_fd);
+            StrFree(datetime);
+            return status;
+        }
+        if (o_repository != NULL) {
+            printf("Rolled back pre-backup of repository %s\n", o_repository);
+        } else {
+            printf("Rolled back pre-backup of all repositories\n");
+        }
     }
 
     StrFree(datetime);
@@ -2970,9 +3015,12 @@ main (int argc, char *argv[])
     } else if (!strncmp(case_command, "BACKUP", 6)) {
         argc --; argc --;
         argv ++; argv ++;
-        /* verb should be done or list */
-        if (!strncmp(case_verb, "DONE", 4)) {
-            result = cmd_backup();
+        /* verb should be done, prepare, commit, rollback or list */
+        if (!strncmp(case_verb, "DONE", 4) ||
+                !strncmp(case_verb, "PREPARE", 7) ||
+                !strncmp(case_verb, "COMMIT", 6) ||
+                !strncmp(case_verb, "ROLLBACK", 8)) {
+            result = cmd_backup(case_verb);
         }
         else if (!strncmp(case_verb, "LIST", 4)) {
             result = cmd_listbackups();

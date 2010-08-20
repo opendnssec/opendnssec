@@ -611,6 +611,8 @@ int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, in
 int KsmSmIdFromName(const char* name, int *id);
 int KsmSerialIdFromName(const char* name, int *id);
 int KsmPolicyIdFromName(const char* name, int *id);
+int KsmMarkPreBackup(int repo_id, const char* datetime);
+int KsmRollbackMarkPreBackup(int repo_id);
 int KsmMarkBackup(int repo_id, const char* datetime);
 int KsmCheckHSMkeyID(int repo_id, const char* cka_id, int *exists);
 

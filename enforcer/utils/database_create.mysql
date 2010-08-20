@@ -90,16 +90,17 @@ create table zones(
 
 # stores the private key info
 create table keypairs(
-  id     smallint not null auto_increment,
-  HSMkey_id  varchar(255) not null,
+  id            smallint not null auto_increment,
+  HSMkey_id     varchar(255) not null,
   algorithm     tinyint not null,             # algorithm code
   size          smallint,
   securitymodule_id          tinyint,                      # where the key is stored
   generate      timestamp null default null,  # time key inserted into database
-  policy_id        mediumint,
+  policy_id     mediumint,
   compromisedflag tinyint,
   publickey     varchar(1024),                # public key data
-  backup        timestamp null default null,  # time when backup was performed
+  pre_backup    timestamp null default null,  # time when backup was started
+  backup        timestamp null default null,  # time when backup was finished
   fixedDate     tinyint default 0,            # Set to 1 to stop dates from being set according to the policy timings        
   
   constraint primary key (id),

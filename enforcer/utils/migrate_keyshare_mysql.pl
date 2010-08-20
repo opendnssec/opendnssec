@@ -78,15 +78,15 @@ close  $VIEW_FILE
 # Create new columns
 $dbh->do("alter table dnsseckeys add column state tinyint")
     or die "Couldn't add column state: $!";
-$dbh->do("alter table dnsseckeys add column publish varchar(64) null default null")
+$dbh->do("alter table dnsseckeys add column publish timestamp null default null")
     or die "Couldn't add column publish: $!";
-$dbh->do("alter table dnsseckeys add column ready varchar(64) null default null")
+$dbh->do("alter table dnsseckeys add column ready timestamp null default null")
     or die "Couldn't add column ready: $!";
-$dbh->do("alter table dnsseckeys add column active varchar(64) null default null")
+$dbh->do("alter table dnsseckeys add column active timestamp null default null")
     or die "Couldn't add column active: $!";
-$dbh->do("alter table dnsseckeys add column retire varchar(64) null default null")
+$dbh->do("alter table dnsseckeys add column retire timestamp null default null")
     or die "Couldn't add column retire: $!";
-$dbh->do("alter table dnsseckeys add column dead varchar(64) null default null")
+$dbh->do("alter table dnsseckeys add column dead timestamp null default null")
     or die "Couldn't add column dead: $!";
 
 ###
@@ -177,6 +177,11 @@ if (compare("$opt_d.KEYDATA_BEFORE","$opt_d.KEYDATA_AFTER") != 0) {
         exit 1;
     }
 }
+
+###
+# Add new pre_backup column
+$dbh->do("alter table keypairs add column pre_backup timestamp null default null")
+    or die "Couldn't add column pre_backup: $!";
 
 ###
 # Update DB version number
