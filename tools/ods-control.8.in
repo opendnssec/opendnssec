@@ -15,6 +15,12 @@
 .B ods\-control start
 .br
 .B ods\-control stop
+.br
+.B ods\-control enforcer start
+.br
+.B ods\-control enforcer stop
+.br
+.B ods\-control enforcer notify
 .SH "DESCRIPTION"
 .LP
 ods\-control is a helper utility which gives a combined interface for different
@@ -37,6 +43,18 @@ Will start the two daemons of OpenDNSSEC, ods\-enforcerd and ods\-signerd
 .TP
 \fBstop\fR
 Will stop the two daemons of OpenDNSSEC, ods\-enforcerd and ods\-signerd
+.TP
+\fBenforcer start\fR
+Start the ods\-enforcerd daemon without touching the ods\-signerd and
+return non-zero on problems
+.TP
+\fBenforcer stop\fR
+Stop the ods\-enforcerd daemon without touching the ods\-signerd and
+return non-zero on problems
+.TP
+\fBenforcer notify\fR
+Notify the enforcer that its database has been updated and may need
+further processing by the KASP Enforcer.
 .SH "SEE ALSO"
 .LP
 ods\-auditor(1), ods\-enforcerd(8), ods\-hsmspeed(1),

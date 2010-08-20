@@ -15,10 +15,11 @@ Bugfixes:
 * Bugreport #166: Correct exit value from signer.
 * Bugreport #167: Zone fetcher now also picks up changes when zonelist is
   reloaded (thanks Rick van Rein)
+* Bugreport #168: ods-control with tightened control for the Enforcer
 * Bugreport #169: Do not include config.h in the distribution
 * Bugreport #170: Typo in a man page (ods-signer)
 * Bugreport #172: Correction of some macros in a man page (ods-timing)
-* bugreport #173: A man page used a macro that does not exist (ods-ksmutil)
+* Bugreport #173: A man page used a macro that does not exist (ods-ksmutil)
 
 
 OpenDNSSEC 1.1.1 - 2010-07-08

@@ -37,41 +37,89 @@ case "$1" in
 
 'ksm')
 	shift
-	$bindir/ods-ksmutil $@
+	"$bindir/ods-ksmutil" $@
 	;;
 
 'hsm')
 	shift
-	$bindir/ods-hsmutil $@
+	"$bindir/ods-hsmutil" $@
 	;;
 	
 'signer')
 	shift
-	$sbindir/ods-signer $@
+	"$sbindir/ods-signer" $@
+	;;
+
+'enforcer')
+	case "$2" in
+
+	'start')
+		if [ -r "$enforcer_pid_file" ]; then
+			echo "Enforcer is already running"
+			RETVAL=-1
+		else
+			echo "Starting enforcer..."
+			"$sbindir/ods-enforcerd"
+			RETVAL=$?
+			if [ $RETVAL = 0 ]; then
+				while [ ! -r "$enforcer_pid_file" ]; do
+					sleep 1
+				done
+			fi
+		fi
+		exit $RETVAL
+		;;
+
+	'stop')
+		echo "Stopping enforcer..."
+		if [ -r "$enforcer_pid_file" ]; then
+			kill -TERM `cat "$enforcer_pid_file"`
+			RETVAL=$?
+			while [ -r "$enforcer_pid_file" ]; do
+				sleep 1
+			done
+		else
+			echo "Cannot find PID file"
+			RETVAL=1
+		fi
+		exit $RETVAL
+		;;
+
+	'notify')
+		echo "Notifying enforcer of new database..."
+		if [ -r "$enforcer_pid_file" ]; then
+			kill -HUP `cat "$enforcer_pid_file"`
+			RETVAL=$?
+		else
+			echo "Cannot find PID file"
+			RETVAL=1
+		fi
+		exit $RETVAL
+		;;
+
+	*)
+		echo "usage: $progname enforcer start|stop|notify"
+		;;
+
+	esac
 	;;
 
 'start')
 	echo "Starting signer engine..."
-	$sbindir/ods-signer start
+	"$sbindir/ods-signer" start
 
-	echo "Starting enforcer..."
-	$sbindir/ods-enforcerd
+	"$0" enforcer start
 	;;
 
 'stop')
-	echo "Stopping enforcer..."
-	if [ -r $enforcer_pid_file ]; then
-		kill -TERM `cat $enforcer_pid_file`
-	else
-		echo "Cannot find PID file"
-	fi
+	"$0" enforcer stop
 
 	echo "Stopping signer engine.."
-	$sbindir/ods-signer stop
+	"$sbindir/ods-signer" stop
 	;;
 	
 *)
-	echo "usage: $progname ksm|hsm|signer|start|stop ..."
+	echo "usage: $progname ksm|hsm|signer|enforcer|start|stop ..."
 	;;
 
 esac
