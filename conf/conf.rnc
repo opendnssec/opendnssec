@@ -52,7 +52,7 @@ start = element Configuration {
 			element RequireBackup { empty }?,
 
 			# Do not maintain public keys in the repository (optional)
-			element NoPublicKeys { empty }?
+			element SkipPublicKey { empty }?
 		}*
 	},
 
