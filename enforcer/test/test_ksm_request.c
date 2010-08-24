@@ -96,15 +96,30 @@ static void TestKsmRequestKeys(void)
 	int		status = 0;
     int     zone_id = 1; /* opendnssec.org */
     int     newDS = 0;
+    int policy_id = 2;
+    int sm = 1;        /* count over all security modules */
+    int bits = 1024;      /* count over all sizes */
+    int algorithm = KSM_ALGORITHM_RSASHA1; /* count over all algorithms */
+    int keypair_id;
+    DB_ID dnsseckey_id;
 
     char*   datetime = DtParseDateTimeString("now");
 
-    /* push a key into some state that update can operate on */
+    /* Allocate a key to the zone (routines previously tested) */
+    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, zone_id, &keypair_id);
+    CU_ASSERT_EQUAL(status, 0);
+
+    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, KSM_STATE_GENERATE, datetime, &dnsseckey_id);
+    CU_ASSERT_EQUAL(status, 0);
+
+    /* push the key into some state that update can operate on */
     status = KsmRequestChangeStateN( KSM_TYPE_ZSK, datetime, 1,
         KSM_STATE_GENERATE, KSM_STATE_PUBLISH, zone_id);
 
+	CU_ASSERT_EQUAL(status, 0);
+
 	/* Check that keys of a particular type can be requested */
-    KsmRequestKeys(keytype, rollover, datetime, TestCallbackFn, NULL, 2, zone_id, 0, &newDS);
+    KsmRequestKeys(keytype, rollover, datetime, TestCallbackFn, NULL, policy_id, zone_id, 0, &newDS);
 
 	/*CU_ASSERT_EQUAL(status, 1);*/ /* just make sure that something flags this as needing more work */
 	CU_ASSERT_EQUAL(no_keys, 1);

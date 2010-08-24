@@ -282,6 +282,7 @@ usage_keydsseen ()
 {
     fprintf(stderr,
             "  key ds-seen\n"
+            /*"\t--zone <zone> (or --all)                 aka -z\n"*/
             "\t--zone <zone>                            aka -z\n"
             "\t--keytag <keytag> | --cka_id <CKA_ID>    aka -x / -k\n"
             "\t--no-retire\n");
@@ -307,9 +308,15 @@ usage_key ()
 usage_backup ()
 {
     fprintf(stderr,
-            "  backup done\n"
+            "  backup prepare\n"
+            "\t--repository <repository>                aka -r\n"
+            "  backup commit\n"
+            "\t--repository <repository>                aka -r\n"
+            "  backup rollback\n"
             "\t--repository <repository>                aka -r\n"
             "  backup list\n"
+            "\t--repository <repository>                aka -r\n"
+            "  backup done\n"
             "\t--repository <repository>                aka -r\n");
 }
 
@@ -740,6 +747,9 @@ cmd_addzone ()
     int policy_id = 0;
     int new_zone;   /* ignored */
 
+    DB_RESULT      result;         /* Result of parameter query */
+    KSM_PARAMETER   data;           /* Parameter information */
+
     xmlDocPtr doc = NULL;
 
     int status = 0;
@@ -855,15 +865,41 @@ cmd_addzone ()
     }
 
     /* If need be (keys shared on policy) link existing keys to zone */
-    status = KsmLinkKeys(o_zone, policy_id);
+    /* First work out if the keys are shared on this policy */
+    status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
     if (status != 0) {
-        printf("Failed to Link Keys to zone\n");
+        printf("Can't retrieve shared-keys parameter for policy\n");
         db_disconnect(lock_fd);
         StrFree(zonelist_filename);
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
         return(1);
+    }
+    status = KsmParameter(result, &data);
+    if (status != 0) {
+        printf("Can't retrieve shared-keys parameter for policy\n");
+        db_disconnect(lock_fd);
+        StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
+        return(1);
+    }
+    KsmParameterEnd(result);
+    
+    /* If the policy does not share keys then skip this */
+    if (data.value == 1) {
+        status = LinkKeys(o_zone, policy_id);
+        if (status != 0) {
+            printf("Failed to Link Keys to zone\n");
+            db_disconnect(lock_fd);
+            StrFree(zonelist_filename);
+            StrFree(sig_conf_name);
+            StrFree(input_name);
+            StrFree(output_name);
+            return(1);
+        }
     }
 
     /* Release sqlite lock file (if we have it) */
@@ -904,6 +940,8 @@ cmd_addzone ()
         printf("couldn't save zonelist\n");
         return(1);
     }
+
+    /* TODO - KICK THE ENFORCER? */
 
     printf("Imported zone: %s\n", o_zone);
 
@@ -1413,23 +1451,12 @@ cmd_rollzone ()
     DB_RESULT	result;         /* Result of parameter query */
     KSM_PARAMETER data;         /* Parameter information */
     
-    int key_type = 0;
-    int zone_id = 0;
-    int policy_id = 0;
+    int key_type = -1;
+    int zone_id = -1;
+    int policy_id = -1;
 
     int status = 0;
     int user_certain;
-
-    int NewDS = 0;      /* has the DS set changed */
-
-    char*   datetime = DtParseDateTimeString("now");
-
-    /* Check datetime in case it came back NULL */
-    if (datetime == NULL) {
-        printf("Couldn't turn \"now\" into a date, quitting...\n");
-        StrFree(datetime);
-        exit(1);
-    }
 
     /* If we were given a keytype, turn it into a number */
     if (o_keytype != NULL) {
@@ -1442,14 +1469,12 @@ cmd_rollzone ()
     if (status != 0) {
         printf("Failed to connect to database\n");
         db_disconnect(lock_fd);
-        StrFree(datetime);
         return(1);
     }
 
     status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
     if (status != 0) {
         db_disconnect(lock_fd);
-        StrFree(datetime);
         return(status);
     }
 
@@ -1457,40 +1482,33 @@ cmd_rollzone ()
     status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
     if (status != 0) {
         db_disconnect(lock_fd);
-        StrFree(datetime);
         return(status);
     }
     status = KsmParameter(result, &data);
     if (status != 0) {
         db_disconnect(lock_fd);
-        StrFree(datetime);
         return(status);
     }
     KsmParameterEnd(result);
     
     /* Warn and confirm if this will roll more than one zone */
     if (data.value == 1) {
-        printf("*WARNING* This zone shares keys with others, they will all be rolled; are you sure? [y/N] ");
+        printf("*WARNING* This zone shares keys with others, all instances of the active key on this zone will be retired; are you sure? [y/N] ");
 
         user_certain = getchar();
         if (user_certain != 'y' && user_certain != 'Y') {
             printf("Okay, quitting...\n");
             db_disconnect(lock_fd);
-            StrFree(datetime);
             exit(0);
         }
     }
 
-    /* retire the active key(s) */
-    if (key_type == 0) {
-        KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone_id, 0, &NewDS);
-        KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone_id, 0, &NewDS);
-    }
-    else {
-        KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_id, 0, &NewDS);
+    status = keyRoll(zone_id, policy_id, key_type);
+    if (status != 0) {
+        db_disconnect(lock_fd);
+        return(status);
     }
 
-    StrFree(datetime);
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
 
@@ -1516,30 +1534,14 @@ cmd_rollpolicy ()
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
 
     DB_RESULT   result;     /* To see if the policy shares keys or not */
-    KSM_PARAMETER data;     /* Parameter information */
-    DB_RESULT   result2;    /* For counting the zones on the policy */
-    DB_RESULT   result3;    /* For looping over the zones on the policy */
-	KSM_ZONE*   zone;
 
     int zone_count = -1;
-    int *zone_list = NULL;
-    int n = 0;
-    int i = 0;
     
     int key_type = 0;
     int policy_id = 0;
 
     int status = 0;
     int user_certain;
-    int NewDS = 0;      /* has the DS set changed */
-
-    char*   datetime = DtParseDateTimeString("now");
-
-    /* Check datetime in case it came back NULL */
-    if (datetime == NULL) {
-        printf("Couldn't turn \"now\" into a date, quitting...\n");
-        exit(1);
-    }
 
     /* If we were given a keytype, turn it into a number */
     if (o_keytype != NULL) {
@@ -1552,7 +1554,6 @@ cmd_rollpolicy ()
     if (status != 0) {
         printf("Failed to connect to database\n");
         db_disconnect(lock_fd);
-        StrFree(datetime);
         return(1);
     }
 
@@ -1560,7 +1561,6 @@ cmd_rollpolicy ()
     if (status != 0) {
         printf("Error, can't find policy : %s\n", o_policy);
         db_disconnect(lock_fd);
-        StrFree(datetime);
         return(status);
     }
 
@@ -1571,111 +1571,31 @@ cmd_rollpolicy ()
     if (user_certain != 'y' && user_certain != 'Y') {
         printf("Okay, quitting...\n");
         db_disconnect(lock_fd);
-        StrFree(datetime);
         exit(0);
     }
 
-    /* Find out if this policy shares keys, (we only need to do one zone if this is the case) */
-    status = KsmParameterInit(&result, "zones_share_keys", "keys", policy_id);
-    if (status != 0) {
-        db_disconnect(lock_fd);
-        StrFree(datetime);
-        return(status);
-    }
-    status = KsmParameter(result, &data);
-    if (status != 0) {
-        db_disconnect(lock_fd);
-        StrFree(datetime);
-        return(status);
-    }
-    KsmParameterEnd(result);
-
     /* Find out how many zones we will need to do */
-    if (data.value == 0) {
-        /* how many zones on this policy */ 
-        status = KsmZoneCountInit(&result2, policy_id); 
-        if (status == 0) { 
-            status = KsmZoneCount(result2, &zone_count); 
-        } 
-        DbFreeResult(result2); 
+    /* how many zones on this policy */ 
+    status = KsmZoneCountInit(&result, policy_id); 
+    if (status == 0) { 
+        status = KsmZoneCount(result, &zone_count); 
+    } 
+    DbFreeResult(result); 
 
-        if (status == 0) { 
-            /* make sure that we have at least one zone */ 
-            if (zone_count == 0) {
-                printf("No zones on policy; nothing to roll\n");
-                db_disconnect(lock_fd);
-                StrFree(datetime);
-                return status; 
-            } 
-        } else { 
-            printf("Couldn't count zones on policy; quitting...\n");
+    if (status == 0) { 
+        /* make sure that we have at least one zone */ 
+        if (zone_count == 0) {
+            printf("No zones on policy; nothing to roll\n");
             db_disconnect(lock_fd);
-            StrFree(datetime);
-            exit(1); 
-        }
-    }
-    else {
-        /* Keys are shared, so we only need to do the first zone */
-        zone_count = 1;
-    }
-
-    /* Allocate space for our array */
-    zone_list = (int *)calloc(zone_count, sizeof(int));
-    if (zone_list == NULL) {
-        printf("Couldn't calloc zone list for policy; quitting...\n");
+            return status; 
+        } 
+    } else { 
+        printf("Couldn't count zones on policy; quitting...\n");
         db_disconnect(lock_fd);
-        StrFree(datetime);
         exit(1); 
     }
 
-    status = KsmZoneInit(&result3, policy_id);
-    if (status == 0) {
-        
-        zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
-        zone->name = (char *)calloc(KSM_ZONE_NAME_LENGTH, sizeof(char));
-
-        status = KsmZone(result3, zone);
-
-        while (status == 0) {
-
-            /* Get the zone_id */
-            zone_list[n] = zone->id;
-            n++;
-
-            /* We can leave now if the policy shares keys */
-            if (data.value == 1) {
-                break;
-            }
-
-            status = KsmZone(result3, zone);
-        }
-
-        free(zone->name);
-        free(zone);
-
-    } 
-    else {
-        db_disconnect(lock_fd);
-        StrFree(datetime);
-        free(zone_list);
-        return(status);
-    }
-    DbFreeResult(result3);
-
-    /* Now we can do the work (outside of any other DB loops to satisfy sqlite < 3.6.5) */
-    for (i = zone_count-1; i >= 0; i--) { 
-
-        /* retire the active key(s) */
-        if (key_type == 0) {
-            KsmRequestKeys(KSM_TYPE_ZSK, 1, datetime, printKey, datetime, policy_id, zone_list[i], 0, &NewDS);
-            KsmRequestKeys(KSM_TYPE_KSK, 1, datetime, printKey, datetime, policy_id, zone_list[i], 0, &NewDS);
-        }
-        else {
-            KsmRequestKeys(key_type, 1, datetime, printKey, datetime, policy_id, zone_list[i], 0, &NewDS);
-        }
-    }
-    StrFree(datetime);
-    free(zone_list);
+    status = keyRoll(-1, policy_id, key_type);
 
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
@@ -1753,7 +1673,7 @@ cmd_keypurge ()
  * note that fact that a backup has been performed
  */
     int
-cmd_backup ()
+cmd_backup (const char* qualifier)
 {
     int status = 0;
 
@@ -1791,18 +1711,68 @@ cmd_backup ()
         }
     }
 
-    status = KsmMarkBackup(repo_id, datetime);
-    if (status != 0) {
-        printf("Error: failed to mark backup as done\n");
-        db_disconnect(lock_fd);
-        StrFree(datetime);
-        return status;
+    /* Do Pre first */
+    if (strncmp(qualifier, "PREPARE", 7) == 0 ||
+            strncmp(qualifier, "DONE", 4) == 0 ) {
+        status = KsmMarkPreBackup(repo_id, datetime);
+        if (status == -1) {
+            printf("There were no keys to mark\n");
+        }
+        else if (status != 0) {
+            printf("Error: failed to mark pre_backup as done\n");
+            db_disconnect(lock_fd);
+            StrFree(datetime);
+            return status;
+        } else {
+            if (strncmp(qualifier, "PREPARE", 7) == 0) {
+                if (o_repository != NULL) {
+                    printf("Marked repository %s as pre-backed up at %s\n", o_repository, datetime);
+                } else {
+                    printf("Marked all repositories as pre-backed up at %s\n", datetime);
+                }
+            }
+        }
     }
 
-    if (o_repository != NULL) {
-        printf("Marked repository %s as backed up at %s\n", o_repository, datetime);
-    } else {
-        printf("Marked all repositories as backed up at %s\n", datetime);
+    /* Then commit */
+    if (strncmp(qualifier, "COMMIT", 6) == 0 ||
+            strncmp(qualifier, "DONE", 4) == 0 ) {
+        status = KsmMarkBackup(repo_id, datetime);
+        if (status == -1) {
+            printf("There were no keys to mark\n");
+        }
+        else if (status != 0) {
+            printf("Error: failed to mark backup as done\n");
+            db_disconnect(lock_fd);
+            StrFree(datetime);
+            return status;
+        } else {
+            if (o_repository != NULL) {
+                printf("Marked repository %s as backed up at %s\n", o_repository, datetime);
+            } else {
+                printf("Marked all repositories as backed up at %s\n", datetime);
+            }
+        }
+    }
+
+    /* Finally rollback */
+    if (strncmp(qualifier, "ROLLBACK", 6) == 0 ) {
+        status = KsmRollbackMarkPreBackup(repo_id);
+        if (status == -1) {
+            printf("There were no keys to rollback\n");
+        }
+        else if (status != 0) {
+            printf("Error: failed to mark backup as done\n");
+            db_disconnect(lock_fd);
+            StrFree(datetime);
+            return status;
+        } else {
+            if (o_repository != NULL) {
+                printf("Rolled back pre-backup of repository %s\n", o_repository);
+            } else {
+                printf("Rolled back pre-backup of all repositories\n");
+            }
+        }
     }
 
     StrFree(datetime);
@@ -2058,6 +2028,7 @@ cmd_kskretire()
     int key_count = -1;
     int keytag_int = -1;
     int temp_key_state = -1;
+    int temp_keypair_id = -1;
     char* temp_cka_id = NULL; /* This will be set if we find a single matching key */
     int user_certain;           /* Continue ? */
 
@@ -2169,7 +2140,7 @@ cmd_kskretire()
          * Get a count of keys that match our specifiers, will also print out
          * matching keys; note that zone_id may be overwritten
          */
-        status = CountKeys(&zone_id, keytag_int, o_cka_id, &key_count, &temp_cka_id, &temp_key_state);
+        status = CountKeys(&zone_id, keytag_int, o_cka_id, &key_count, &temp_cka_id, &temp_key_state, &temp_keypair_id);
         if (status != 0) {
             printf("Error: failed to count keys\n");
             db_disconnect(lock_fd);
@@ -2252,6 +2223,7 @@ cmd_dsseen()
     int key_count = -1;
     int keytag_int = -1;
     int temp_key_state = -1;
+    int temp_keypair_id = -1;
     char* temp_cka_id = NULL; /* This will be set if we find a single matching key */
     int user_certain;           /* Continue ? */
 
@@ -2296,7 +2268,16 @@ cmd_dsseen()
     }
 
     /* Turn zone name into an id (if provided) */
-    if (o_zone != NULL) {
+    /* TODO sort out all flag */
+    /*if (o_zone == NULL && !all_flag) {
+        printf("Please specify a zone or use the --all flag to indicate all zones using this key\n");*/
+    if (o_zone == NULL) {
+        printf("Please specify a zone using the --zone flag\n");
+        usage_keydsseen();
+        StrFree(datetime);
+        return(-1);
+    } 
+    else if (o_zone != NULL) {
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
             printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
@@ -2304,6 +2285,17 @@ cmd_dsseen()
             StrFree(datetime);
             return status;
         }
+    }
+    else if (all_flag) {
+        printf("*WARNING* This will act on every zone where this key is in use; are you sure? [y/N] ");
+
+        user_certain = getchar();
+        if (user_certain != 'y' && user_certain != 'Y') {
+            printf("Okay, quitting...\n");
+            exit(0);
+        }
+        
+        zone_id = -1;
     }
 
     /* Check the keytag is numeric */
@@ -2328,7 +2320,7 @@ cmd_dsseen()
      * Get a count of keys that match our specifiers, will also print out
      * matching keys; note that zone_id may be overwritten
      */
-    status = CountKeys(&zone_id, keytag_int, o_cka_id, &key_count, &temp_cka_id, &temp_key_state);
+    status = CountKeys(&zone_id, keytag_int, o_cka_id, &key_count, &temp_cka_id, &temp_key_state, &temp_keypair_id);
     if (status != 0) {
         printf("Error: failed to count keys\n");
         db_disconnect(lock_fd);
@@ -2370,7 +2362,7 @@ cmd_dsseen()
     }
 
     /* Do stuff */
-    status = MarkDSSeen(temp_cka_id, zone_id, policy_id, datetime, temp_key_state);
+    status = MarkDSSeen(temp_keypair_id, zone_id, policy_id, datetime, temp_key_state);
 
     /* Let them know that it seemed to work */
     if (status == 0) {
@@ -2674,7 +2666,7 @@ cmd_import ()
     }
 
     /* create basic keypair */
-    status = KsmImportKeyPair(policy_id, o_cka_id, repo_id, size_int, algo_id, state_id, form_time, form_opt_time, &keypair_id);
+    status = KsmImportKeyPair(policy_id, o_cka_id, repo_id, size_int, algo_id, state_id, form_time, &keypair_id);
     if (status != 0) {
         printf("Error: couldn't import key\n");
         db_disconnect(lock_fd);
@@ -2682,11 +2674,11 @@ cmd_import ()
     }
 
     /* allocate key to zone(s) */
-    if (data.value == 1) {
+    /* TODO might not need this any more */
+/*    if (data.value == 1) {
         status = KsmDnssecKeyCreateOnPolicy(policy_id, (int) keypair_id, keytype_id);
-    } else {
-        status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, &ignore);
-    }
+    } else {*/
+    status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, state_id, form_time, &ignore);
 
     if (status != 0) {
         printf("Error: couldn't allocate key to zone(s)\n");
@@ -3034,9 +3026,12 @@ main (int argc, char *argv[])
     } else if (!strncmp(case_command, "BACKUP", 6)) {
         argc --; argc --;
         argv ++; argv ++;
-        /* verb should be done or list */
-        if (!strncmp(case_verb, "DONE", 4)) {
-            result = cmd_backup();
+        /* verb should be done, prepare, commit, rollback or list */
+        if (!strncmp(case_verb, "DONE", 4) ||
+                !strncmp(case_verb, "PREPARE", 7) ||
+                !strncmp(case_verb, "COMMIT", 6) ||
+                !strncmp(case_verb, "ROLLBACK", 8)) {
+            result = cmd_backup(case_verb);
         }
         else if (!strncmp(case_verb, "LIST", 4)) {
             result = cmd_listbackups();
@@ -4074,13 +4069,14 @@ int update_zones(char* zone_list_filename)
                 /* If need be link existing keys to zone */
                 if (new_zone == 1) {
                     printf("Added zone %s to database\n", zone_name);
+                /* WITH NEW KEYSHARING LEAVE THIS TO THE ENFORCER TODO - CHECK THIS IS RIGHT */
+                    /*
                     status = KsmLinkKeys(zone_name, policy_id);
                     if (status != 0) {
                         printf("Failed to Link Keys to zone\n");
-                        /* Don't return? try to parse the rest of the zones? */
                         ret = xmlTextReaderRead(reader);
                         continue;
-                    }
+                    }*/
                 }
 
                 /* make a note of the zone_id */
@@ -5291,6 +5287,7 @@ int ListKeys(int zone_id)
 int PurgeKeys(int zone_id, int policy_id)
 {
     char*       sql = NULL;     /* SQL query */
+    char*       sql1 = NULL;     /* SQL query */
     char*       sql2 = NULL;    /* SQL query */
     char*       sql3 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
@@ -5299,8 +5296,8 @@ int PurgeKeys(int zone_id, int policy_id)
     DB_ROW      row = NULL;     /* Row data */
 
     int         temp_id = -1;       /* place to store the key id returned */
-    char*       temp_dead = NULL;   /* place to store dead date returned */
     char*       temp_loc = NULL;    /* place to store location returned */
+    int         count = 0;          /* How many keys don't match the purge */
 
     int         done_something = 0; /* have we done anything? */
 
@@ -5322,7 +5319,7 @@ int PurgeKeys(int zone_id, int policy_id)
     }
 
     /* Select rows */
-    StrAppend(&sql, "select id, dead, location from KEYDATA_VIEW where state = 6 ");
+    StrAppend(&sql, "select distinct id, location from KEYDATA_VIEW where state = 6 ");
     if (zone_id != -1) {
         StrAppend(&sql, "and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
@@ -5333,9 +5330,6 @@ int PurgeKeys(int zone_id, int policy_id)
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", policy_id);
         StrAppend(&sql, stringval);
     }
-    /* stop us doing the same key twice */
-    StrAppend(&sql, " group by location");
-
     DusEnd(&sql);
 
     status = DbExecuteSql(DbHandle(), sql, &result);
@@ -5343,67 +5337,82 @@ int PurgeKeys(int zone_id, int policy_id)
     if (status == 0) {
         status = DbFetchRow(result, &row);
         while (status == 0) {
-            /* Got a row, purge it */
+            /* Got a row, check it */
             DbInt(row, 0, &temp_id);
-            DbString(row, 1, &temp_dead);
-            DbString(row, 2, &temp_loc);
-            done_something = 1;
+            DbString(row, 1, &temp_loc);
 
-            /* Delete from dnsseckeys */
-            sql2 = DdsInit("dnsseckeys");
-            DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
-            DdsEnd(&sql);
+            sql1 = DqsCountInit("dnsseckeys");
+            DdsConditionInt(&sql1, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+            DdsConditionInt(&sql1, "state", DQS_COMPARE_NE, KSM_STATE_DEAD, 1);
+            DqsEnd(&sql1);
 
-            status = DbExecuteSqlNoResult(DbHandle(), sql2);
-            DdsFree(sql2);
-            if (status != 0)
-            {
+            status = DbIntQuery(DbHandle(), &count, sql1);
+            DqsFree(sql1);
+
+            if (status != 0) {
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
-                DbStringFree(temp_dead);
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
                 return status;
             }
 
-            /* Delete from keypairs */
-            sql3 = DdsInit("keypairs");
-            DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
-            DdsEnd(&sql);
+            /* If the count is zero then there is no reason not to purge this key */
+            if (count == 0) {
 
-            status = DbExecuteSqlNoResult(DbHandle(), sql3);
-            DdsFree(sql3);
-            if (status != 0)
-            {
-                printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return status;
-            }
+                done_something = 1;
 
-            /* Delete from the HSM */
-            key = hsm_find_key_by_id(NULL, temp_loc);
+                /* Delete from dnsseckeys */
+                sql2 = DdsInit("dnsseckeys");
+                DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+                DdsEnd(&sql);
 
-            if (!key) {
-                printf("Key not found: %s\n", temp_loc);
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return -1;
-            }
+                status = DbExecuteSqlNoResult(DbHandle(), sql2);
+                DdsFree(sql2);
+                if (status != 0)
+                {
+                    printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return status;
+                }
 
-            status = hsm_remove_key(NULL, key);
+                /* Delete from keypairs */
+                sql3 = DdsInit("keypairs");
+                DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
+                DdsEnd(&sql);
 
-            hsm_key_free(key);
+                status = DbExecuteSqlNoResult(DbHandle(), sql3);
+                DdsFree(sql3);
+                if (status != 0)
+                {
+                    printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return status;
+                }
 
-            if (!status) {
-                printf("Key remove successful.\n");
-            } else {
-                printf("Key remove failed.\n");
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return -1;
+                /* Delete from the HSM */
+                key = hsm_find_key_by_id(NULL, temp_loc);
+
+                if (!key) {
+                    printf("Key not found: %s\n", temp_loc);
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return -1;
+                }
+
+                status = hsm_remove_key(NULL, key);
+
+                hsm_key_free(key);
+
+                if (!status) {
+                    printf("Key remove successful.\n");
+                } else {
+                    printf("Key remove failed.\n");
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return -1;
+                }
             }
 
             /* NEXT! */ 
@@ -5426,7 +5435,6 @@ int PurgeKeys(int zone_id, int policy_id)
     DusFree(sql);
     DbFreeRow(row);
 
-    DbStringFree(temp_dead);
     DbStringFree(temp_loc);
 
     return status;
@@ -5452,6 +5460,9 @@ int cmd_genkeys()
     int keys_in_queue = 0;  /* number of unused keys */
     int new_keys = 0;       /* number of keys required */
     unsigned int current_count = 0;  /* number of keys already in HSM */
+
+    DB_RESULT result; 
+    int zone_count = 0;     /* Number of zones on policy */
 
     int same_keys = 0;      /* Do ksks and zsks look the same ? */
     int ksks_created = 0;   /* Were any KSKs created? */
@@ -5592,8 +5603,27 @@ int cmd_genkeys()
     } else {
         same_keys = 0;
     }
+
+    /* How many zones on this policy */ 
+    status = KsmZoneCountInit(&result, policy->id); 
+    if (status == 0) { 
+        status = KsmZoneCount(result, &zone_count); 
+    } 
+    DbFreeResult(result); 
+
+    if (status == 0) { 
+        /* make sure that we have at least one zone */ 
+        if (zone_count == 0) { 
+            printf("No zones on policy %s, skipping...", policy->name);
+            return status; 
+        } 
+    } else {
+        printf("Could not count zones on policy %s", policy->name);
+        return status; 
+    }
+
     /* Find out how many ksk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, interval, &ksks_needed, policy->ksk->rollover_scheme);
+    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, interval, &ksks_needed, policy->ksk->rollover_scheme, zone_count);
     if (status != 0) {
         printf("Could not predict ksk requirement for next interval for %s\n", policy->name);
         /* TODO exit? continue with next policy? */
@@ -5603,6 +5633,10 @@ int cmd_genkeys()
     if (status != 0) {
         printf("Could not count current ksk numbers for policy %s\n", policy->name);
         /* TODO exit? continue with next policy? */
+    }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        keys_in_queue /= zone_count;
     }
 
     new_keys = ksks_needed - keys_in_queue;
@@ -5673,7 +5707,7 @@ int cmd_genkeys()
     current_count = 0;
 
     /* Find out how many zsk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, interval, &zsks_needed, 0);
+    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, interval, &zsks_needed, 0, zone_count);
     if (status != 0) {
         printf("Could not predict zsk requirement for next interval for %s\n", policy->name);
         /* TODO exit? continue with next policy? */
@@ -5683,6 +5717,10 @@ int cmd_genkeys()
     if (status != 0) {
         printf("Could not count current zsk numbers for policy %s\n", policy->name);
         /* TODO exit? continue with next policy? */
+    }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        keys_in_queue /= zone_count;
     }
     /* Might have to account for ksks */
     if (same_keys) {
@@ -5982,13 +6020,15 @@ int fix_file_perms(const char *dbschema)
  *      int * temp_key_state (returned)
  *          What state is the key in (only used if _one_ key returned)
  *
+ *      int * temp_keypair_id (returned)
+ *          ID of the key found (only used if _one_ key returned)
  * Returns:
  *      int
  *          Status return.  0 on success.
  *                          other on fail
  */
 
-int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char **temp_cka_id, int *temp_key_state)
+int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char **temp_cka_id, int *temp_key_state, int *temp_keypair_id)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -6005,6 +6045,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
     char*       temp_loc = NULL;    /* place to store location returned */
     int         temp_alg = 0;       /* place to store algorithm returned */
     int         temp_state = 0;     /* place to store state returned */
+    int         temp_keypair = 0;   /* place to store id returned */
 
     int         temp_count = 0;     /* Count of keys found */
 
@@ -6029,7 +6070,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
     }
 
     /* TODO do I need to use the view */
-    StrAppend(&sql, "select k.zone_id, k.location, k.algorithm, k.state from KEYDATA_VIEW k where state in ");
+    StrAppend(&sql, "select k.zone_id, k.location, k.algorithm, k.state, k.id from KEYDATA_VIEW k where state in ");
     StrAppend(&sql, buffer);
     StrAppend(&sql, " and zone_id is not null and k.keytype = 257");
 
@@ -6062,6 +6103,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
             DbString(row, 1, &temp_loc);
             DbInt(row, 2, &temp_alg);
             DbInt(row, 3, &temp_state);
+            DbInt(row, 4, &temp_keypair);
 
             done_row = 0;
 
@@ -6091,6 +6133,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                     StrAppend(temp_cka_id, temp_loc);
                     *zone_id = temp_zone_id;
                     *temp_key_state = temp_state;
+                    *temp_keypair_id = temp_keypair;
                     printf("Found key with CKA_ID %s\n", temp_loc);
                 }
 
@@ -6104,6 +6147,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                     StrAppend(temp_cka_id, temp_loc);
                     *zone_id = temp_zone_id;
                     *temp_key_state = temp_state;
+                    *temp_keypair_id = temp_keypair;
                     printf("Found key with CKA_ID %s\n", temp_loc);
                 }
             }
@@ -6165,7 +6209,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
  *                          other on fail
  */
 
-int MarkDSSeen(const char *cka_id, int zone_id, int policy_id, const char *datetime, int key_state)
+int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime, int key_state)
 {
     char*       sql1 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
@@ -6212,13 +6256,14 @@ int MarkDSSeen(const char *cka_id, int zone_id, int policy_id, const char *datet
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
-        sql1 = DusInit("keypairs");
+        sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_ACTIVE, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_ACTIVE), datetime, 1);
         StrAppend(&sql1, ", RETIRE = ");
         StrAppend(&sql1, buffer);
 
-        DusConditionString(&sql1, "HSMkey_id", DQS_COMPARE_EQ, cka_id, 0);
+        DusConditionInt(&sql1, "KEYPAIR_ID", DQS_COMPARE_EQ, keypair_id, 0);
+        DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
         DusEnd(&sql1);
     }
     else {
@@ -6236,13 +6281,14 @@ int MarkDSSeen(const char *cka_id, int zone_id, int policy_id, const char *datet
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
-        sql1 = DusInit("keypairs");
+        sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_DSPUBLISH, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_PUBLISH), datetime, 1);
         StrAppend(&sql1, ", READY = ");
         StrAppend(&sql1, buffer);
 
-        DusConditionString(&sql1, "HSMkey_id", DQS_COMPARE_EQ, cka_id, 0);
+        DusConditionInt(&sql1, "KEYPAIR_ID", DQS_COMPARE_EQ, keypair_id, 0);
+        DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
         DusEnd(&sql1);
     }
 
@@ -6352,12 +6398,13 @@ int RetireOldKey(int zone_id, int policy_id, const char *datetime)
         "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
-    sql2 = DusInit("keypairs");
+    sql2 = DusInit("dnsseckeys");
     DusSetInt(&sql2, "STATE", KSM_STATE_RETIRE, 0);
     DusSetString(&sql2, KsmKeywordStateValueToName(KSM_STATE_RETIRE), datetime, 1);
     StrAppend(&sql2, ", DEAD = ");
     StrAppend(&sql2, buffer);
-    DusConditionInt(&sql2, "ID", DQS_COMPARE_EQ, id, 0);
+    DusConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, id, 0);
+    DusConditionInt(&sql2, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
 
     status = DbExecuteSqlNoResult(DbHandle(), sql2);
     DusFree(sql2);
@@ -6466,6 +6513,16 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
     char*       sql1 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
 
+    int     count = 0;      /* Count of keys whose date will be set */
+    char*   sql = NULL;     /* For creating the SQL command */
+    int     where = 0;      /* For the SQL selection */
+    int     i = 0;          /* A counter */
+    int     j = 0;          /* Another counter */
+    char*   insql = NULL;   /* SQL "IN" clause */
+    int*    keyids;         /* List of IDs of keys to promote */
+    DB_RESULT    result;    /* List result set */
+    KSM_KEYDATA  data;      /* Data for this key */
+
     char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
     unsigned int    nchar;          /* Number of characters converted */
     
@@ -6483,6 +6540,86 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
         printf("Error: failed to read policy\n");
         return status;
     }
+
+    /* Count how many keys will have their state changed */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionString(&sql, "location", DQS_COMPARE_EQ, cka_id, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
+    DqsEnd(&sql);
+
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+    }
+
+    if (count == 0) {
+        /* Nothing to do, error? */
+        return status;
+    }
+
+    /* Allocate space for the list of key IDs */
+    keyids = MemMalloc(count * sizeof(int));
+
+    /* Get the list of IDs */
+
+    where = 0;
+    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
+    DqsConditionString(&sql, "location", DQS_COMPARE_EQ, cka_id, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
+    DqsEnd(&sql);
+
+    status = KsmKeyInitSql(&result, sql);
+    DqsFree(sql);
+
+    if (status == 0) {
+        while (status == 0) {
+            status = KsmKey(result, &data);
+            if (status == 0) {
+                keyids[i] = data.keypair_id;
+                i++;
+            }
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        } else {
+            status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+            StrFree(keyids);
+            return status;
+        }
+
+        KsmKeyEnd(result);
+
+    } else {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        StrFree(keyids);
+		return status;
+	}
+    
+    /*
+     * Now construct the "IN" statement listing the IDs of the keys we
+     * are planning to change the state of.
+     */
+
+    StrAppend(&insql, "(");
+    for (j = 0; j < i; ++j) {
+        if (j != 0) {
+            StrAppend(&insql, ",");
+        }
+        snprintf(buffer, sizeof(buffer), "%d", keyids[j]);
+        StrAppend(&insql, buffer);
+    }
+    StrAppend(&insql, ")");
 
 /* 0) Start a transaction */
     status = DbBeginTransaction();
@@ -6508,13 +6645,16 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
-        sql1 = DusInit("keypairs");
+        sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_ACTIVE, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_ACTIVE), datetime, 1);
         StrAppend(&sql1, ", RETIRE = ");
         StrAppend(&sql1, buffer);
 
-        DusConditionString(&sql1, "HSMkey_id", DQS_COMPARE_EQ, cka_id, 0);
+        DusConditionKeyword(&sql1, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);
+        if (zone_id != -1) {
+            DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
+        }
         DusEnd(&sql1);
     }
     else if (keystate == KSM_STATE_RETIRE) {
@@ -6537,13 +6677,16 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
-        sql1 = DusInit("keypairs");
+        sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_RETIRE, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_RETIRE), datetime, 1);
         StrAppend(&sql1, ", DEAD = ");
         StrAppend(&sql1, buffer);
 
-        DusConditionString(&sql1, "HSMkey_id", DQS_COMPARE_EQ, cka_id, 0);
+        DusConditionKeyword(&sql1, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);
+        if (zone_id != -1) {
+            DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
+        }
         DusEnd(&sql1);
     }
     else if (keystate == KSM_STATE_DSPUBLISH) {
@@ -6559,13 +6702,16 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
-        sql1 = DusInit("keypairs");
+        sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_DSPUBLISH, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_PUBLISH), datetime, 1);
         StrAppend(&sql1, ", READY = ");
         StrAppend(&sql1, buffer);
 
-        DusConditionString(&sql1, "HSMkey_id", DQS_COMPARE_EQ, cka_id, 0);
+        DusConditionKeyword(&sql1, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);
+        if (zone_id != -1) {
+            DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
+        }
         DusEnd(&sql1);
     }
     else {
@@ -6576,6 +6722,8 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
     status = DbExecuteSqlNoResult(DbHandle(), sql1);
     DusFree(sql1);
 
+    StrFree(keyids);
+    
     /* Report any errors */
     if (status != 0) {
         status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
@@ -6600,4 +6748,480 @@ static int restart_enforcerd()
 	/* ToDo: This should really be rewritten so that it will read
 	   OPENDNSSEC_ENFORCER_PIDFILE and send a SIGHUP itself */
 	return system(RESTART_ENFORCERD_CMD);
+}
+
+/* 
+ *  Read the conf.xml file, we will not validate as that was done as we read the database.
+ *  Instead we just extract the RepositoryList into the database and also learn the 
+ *  location of the zonelist.
+ */
+int get_conf_key_info(int* interval, int* man_key_gen)
+{
+    int status = 0;
+    int mysec = 0;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    char* temp_char = NULL;
+
+    xmlChar *iv_expr = (unsigned char*) "//Configuration/Enforcer/Interval";
+    xmlChar *mk_expr = (unsigned char*) "//Configuration/Enforcer/ManualKeyGeneration";
+
+    /* Load XML document */
+    doc = xmlParseFile(config);
+    if (doc == NULL) {
+        printf("Error: unable to parse file \"%s\"\n", config);
+        return(-1);
+    }
+
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        printf("Error: unable to create new XPath context\n");
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+    
+    /* Evaluate xpath expression for interval */
+    xpathObj = xmlXPathEvalExpression(iv_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        printf("Error: unable to evaluate xpath expression: %s", iv_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    temp_char = (char *)xmlXPathCastToString(xpathObj);
+    status = DtXMLIntervalSeconds(temp_char, &mysec);
+    if (status > 0) {
+        printf("Error: unable to convert Interval %s to seconds, error: %i\n", temp_char, status);
+        StrFree(temp_char);
+        return status;
+    }
+    else if (status == -1) {
+        printf("Warning: converting %s to seconds may not give what you expect\n", temp_char);
+    }
+    *interval = mysec;
+    StrFree(temp_char);
+    xmlXPathFreeObject(xpathObj);
+
+    /* Evaluate xpath expression for Manual key generation */
+    xpathObj = xmlXPathEvalExpression(mk_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        printf("Error: unable to evaluate xpath expression: %s\n", mk_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+        /* Manual key generation tag is present */
+        *man_key_gen = 1;
+    }
+    else {
+        /* Tag absent */
+        *man_key_gen = 0;
+    }
+    xmlXPathFreeObject(xpathObj);
+
+    if (xpathCtx) {
+        xmlXPathFreeContext(xpathCtx);
+    }
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+
+    return 0;
+}
+
+/* TODO put this fn and the one below somewhere that we can call it from here and the enforcer */
+ /*+
+ * LinkKeys - Create required entries in Dnsseckeys table for zones added to policies
+ *                      (i.e. when keysharing is turned on)
+ *
+ * Description:
+ *      Allocates a key in the database.
+ *
+ * Arguments:
+ *      const char* zone_name
+ *          name of zone
+ *
+ *      int policy_id
+ *          ID of policy which the zone is on
+ *
+ *      int interval
+ *          Enforcer run interval
+ *
+ *      int man_key_gen
+ *          Manual Key Generation flag
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+-*/
+
+int LinkKeys(const char* zone_name, int policy_id)
+{
+    int status = 0;
+
+    int interval = -1;          /* Enforcer interval */
+    int man_key_gen = -1;       /* Manual key generation flag */
+
+    int             zone_id = 0;    /* id of zone supplied */ 
+    KSM_POLICY* policy;
+
+    /* Get some info from conf.xml */
+    status = get_conf_key_info(&interval, &man_key_gen);
+    if (status != 0) {
+        printf("Failed to Link Keys to zone\n");
+        return(1);
+    }
+
+    status = KsmZoneIdFromName(zone_name, &zone_id);
+    if (status != 0) {
+        return(status);
+    }
+
+    policy = KsmPolicyAlloc();
+    if (policy == NULL) {
+        printf("Malloc for policy struct failed\n");
+        exit(1);
+    }
+    SetPolicyDefaults(policy, o_policy);
+
+    status = KsmPolicyExists(o_policy);
+    if (status == 0) {
+        /* Policy exists */
+        status = KsmPolicyRead(policy);
+        if(status != 0) {
+            printf("Error: unable to read policy %s from database\n", o_policy);
+            KsmPolicyFree(policy);
+            return status;
+        }
+    } else {
+        printf("Error: policy %s doesn't exist in database\n", o_policy);
+        KsmPolicyFree(policy);
+        return status;
+    }
+
+    /* Make sure that enough keys are allocated to this zone */
+    status = allocateKeysToZone(policy, KSM_TYPE_ZSK, zone_id, interval, zone_name, man_key_gen, 0);
+    if (status != 0) {
+        printf("Error allocating zsks to zone %s", zone_name);
+        KsmPolicyFree(policy);
+        return(status);
+    }
+    status = allocateKeysToZone(policy, KSM_TYPE_KSK, zone_id, interval, zone_name, man_key_gen, policy->ksk->rollover_scheme);
+    if (status != 0) {
+        printf("Error allocating ksks to zone %s", zone_name);
+        KsmPolicyFree(policy);
+        return(status);
+    }
+
+    KsmPolicyFree(policy);
+    return 0;
+}
+
+/* allocateKeysToZone
+ *
+ * Description:
+ *      Allocates existing keys to zones
+ *
+ * Arguments:
+ *      policy
+ *          policy that the keys were created for
+ *      key_type
+ *          KSK or ZSK
+ *      zone_id
+ *          ID of zone in question
+ *      interval
+ *          time before next run
+ *      zone_name
+ *          just in case we need to log something
+ *      man_key_gen
+ *          lack of keys may be an issue for the user to fix
+ *      int rollover_scheme
+ *          KSK rollover scheme in use
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+ *          1 == error with input
+ *          2 == not enough keys to satisfy policy
+ *          3 == database error
+ -*/
+
+
+int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen, int rollover_scheme)
+{
+    int status = 0;
+    int keys_needed = 0;
+    int keys_in_queue = 0;
+    int keys_pending_retirement = 0;
+    int new_keys = 0;
+    int key_pair_id = 0;
+    int i = 0;
+    DB_ID ignore = 0;
+    KSM_PARCOLL collection; /* Parameters collection */
+    char*   datetime = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+        printf("Couldn't turn \"now\" into a date, quitting...");
+        exit(1);
+    }
+
+    if (policy == NULL) {
+        printf("NULL policy sent to allocateKeysToZone");
+        StrFree(datetime);
+        return 1;
+    }
+
+    if (key_type != KSM_TYPE_KSK && key_type != KSM_TYPE_ZSK) {
+        printf("Unknown keytype: %i in allocateKeysToZone", key_type);
+        StrFree(datetime);
+        return 1;
+    }
+
+    /* Get list of parameters */
+    status = KsmParameterCollection(&collection, policy->id);
+    if (status != 0) {
+        StrFree(datetime);
+        return status;
+    }
+
+    /* Make sure that enough keys are allocated to this zone */
+    /* How many do we need ? (set sharing to 1 so that we get the number needed for a single zone on this policy */
+    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed, rollover_scheme, 1);
+    if (status != 0) {
+        printf("Could not predict key requirement for next interval for %s", zone_name);
+        StrFree(datetime);
+        return 3;
+    }
+
+    /* How many do we have ? TODO should this include the currently active key?*/
+    status = KsmKeyCountQueue(key_type, &keys_in_queue, zone_id);
+    if (status != 0) {
+        printf("Could not count current key numbers for zone %s", zone_name);
+        StrFree(datetime);
+        return 3;
+    }
+
+    /* or about to retire */
+    status = KsmRequestPendingRetireCount(key_type, datetime, &collection, &keys_pending_retirement, zone_id, interval);
+    if (status != 0) {
+        printf("Could not count keys which may retire before the next run (for zone %s)", zone_name);
+        StrFree(datetime);
+        return 3;
+    }
+
+    StrFree(datetime);
+    new_keys = keys_needed - (keys_in_queue - keys_pending_retirement);
+
+    /* fprintf(stderr, "comm(%d) %s: new_keys(%d) = keys_needed(%d) - (keys_in_queue(%d) - keys_pending_retirement(%d))\n", key_type, zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement); */
+
+    /* Allocate keys */
+    for (i=0 ; i < new_keys ; i++){
+        key_pair_id = 0;
+        if (key_type == KSM_TYPE_KSK) {
+            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, zone_id, &key_pair_id);
+            if (status == -1 || key_pair_id == 0) {
+                if (man_key_gen == 0) {
+                    printf("Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    printf("ods-enforcerd will create some more keys on its next run");
+                }
+                else {
+                    printf("Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    printf("please use \"ods-ksmutil key generate\" to create some more keys.");
+                }
+                return 2;
+            }
+            else if (status != 0) {
+                printf("Could not get an unallocated ksk for zone: %s", zone_name);
+                return 3;
+            }
+        } else {
+            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, zone_id, &key_pair_id);
+            if (status == -1 || key_pair_id == 0) {
+                if (man_key_gen == 0) {
+                    printf("Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    printf("ods-enforcerd will create some more keys on its next run");
+                }
+                else {
+                    printf("Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    printf("please use \"ods-ksmutil key generate\" to create some more keys.");
+                }
+                return 2;
+            }
+            else if (status != 0) {
+                printf("Could not get an unallocated zsk for zone: %s", zone_name);
+                return 3;
+            }
+        }
+        if(key_pair_id > 0) {
+            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, KSM_STATE_GENERATE, datetime, &ignore);
+            /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
+        } else {
+            /* This shouldn't happen */
+            printf("KsmKeyGetUnallocated returned bad key_id %d for zone: %s; exiting...", key_pair_id, zone_name);
+            exit(1);
+        }
+
+    }
+
+    return status;
+}
+
+
+/* keyRoll
+ *
+ * Description:
+ *      Rolls keys far enough for the enforcer to take over
+ *
+ * Arguments:
+ *      zone_id
+ *          ID of zone in question (-1 == all)
+ *      policy_id
+ *          policy that should be rolled (-1 == all)
+ *      key_type
+ *          KSK or ZSK (-1 == all)
+ *
+ * Returns:
+ *      int
+ *          Status return.  0=> Success, non-zero => error.
+ -*/
+
+int keyRoll(int zone_id, int policy_id, int key_type)
+{
+
+    int status = 0;
+    int size = -1;
+
+    char*       sql = NULL;     /* SQL query */
+    char*       sql1 = NULL;    /* SQL query */
+    char        sql2[KSM_SQL_SIZE];
+    DB_RESULT	result1;        /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+    int         temp_id = -1;   /* place to store the key id returned */
+    int         temp_type = -1; /* place to store the key type returned */
+    int         where = 0;
+    
+    char*   datetime = DtParseDateTimeString("now");
+
+    /* Check datetime in case it came back NULL */
+    if (datetime == NULL) {
+        printf("Couldn't turn \"now\" into a date, quitting...\n");
+        StrFree(datetime);
+        exit(1);
+    }
+
+    /* retire the active key(s) */
+    /* Find the key ID */
+    sql = DqsSpecifyInit("KEYDATA_VIEW","id, keytype");
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "zone_id", DQS_COMPARE_EQ, zone_id, where++);
+    }
+    if (policy_id != -1) {
+        DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
+    }
+    DqsConditionInt(&sql, "state", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
+    if (key_type != -1) {
+        DqsConditionInt(&sql, "keytype", DQS_COMPARE_EQ, key_type, where++);
+    }
+    DqsEnd(&sql);
+
+    status = DbExecuteSql(DbHandle(), sql, &result1);
+
+    if (status == 0) {
+        status = DbFetchRow(result1, &row);
+        while (status == 0) {
+            /* Got a row, deal with it */
+            DbInt(row, 0, &temp_id);
+            DbInt(row, 1, &temp_type);
+
+            sql1 = DusInit("keypairs");
+            DusSetInt(&sql1, "fixedDate", 1, 0);
+            DusSetInt(&sql1, "compromisedflag", 1, 1);
+
+            DusConditionInt(&sql1, "id", DQS_COMPARE_EQ, temp_id, 0);
+            DusEnd(&sql1);
+            status = DbExecuteSqlNoResult(DbHandle(), sql1);
+            DusFree(sql1);
+
+            /* Report any errors */
+            if (status != 0) {
+                printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                return status;
+            }
+
+            /* Loop over instances of this key: */
+            /* active-> set retire time */
+            sql1 = DusInit("dnsseckeys");
+            DusSetString(&sql1, "RETIRE", datetime, 0);
+
+            DusConditionInt(&sql1, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+            DusConditionInt(&sql1, "state", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, 1);
+            DusEnd(&sql1);
+            status = DbExecuteSqlNoResult(DbHandle(), sql1);
+            DusFree(sql1);
+
+            /* Report any errors */
+            if (status != 0) {
+                printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                return status;
+            }
+
+            /* other-> move to dead */
+            sql1 = DusInit("dnsseckeys");
+            DusSetString(&sql1, "DEAD", datetime, 0);
+            DusSetInt(&sql1, "state", KSM_STATE_DEAD, 1);
+
+            DusConditionInt(&sql1, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+            DusConditionInt(&sql1, "state", DQS_COMPARE_NE, KSM_STATE_ACTIVE, 1);
+            DusEnd(&sql1);
+            status = DbExecuteSqlNoResult(DbHandle(), sql1);
+            DusFree(sql1);
+
+            /* Report any errors */
+            if (status != 0) {
+                printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                return status;
+            }
+           
+            /* Promote any standby keys if we need to, i.e. we retired a KSK 
+               and there is nothing able to take over from it */
+            if (temp_type == KSM_TYPE_KSK) {
+                /* find each zone in turn */
+                size = snprintf(sql2, KSM_SQL_SIZE, "update dnsseckeys set state = %d where state = %d and zone_id in (select zone_id from dnsseckeys where retire = \"%s\" and keypair_id = %d) and zone_id not in (select zone_id from KEYDATA_VIEW where policy_id = %d and keytype = %d and state in (%d,%d))", KSM_STATE_KEYPUBLISH, KSM_STATE_DSREADY, datetime, temp_id, policy_id, KSM_TYPE_KSK, KSM_STATE_PUBLISH, KSM_STATE_READY);
+
+                /* Quick check that we didn't run out of space */
+                if (size < 0 || size >= KSM_SQL_SIZE) {
+                    printf("Couldn't construct SQL to promote standby key\n");
+                    return -1;
+                }
+
+                status = DbExecuteSqlNoResult(DbHandle(), sql2);
+
+                /* Report any errors */
+                if (status != 0) {
+                    printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                    return status;
+                }
+            }
+
+            /* NEXT KEY */ 
+            status = DbFetchRow(result1, &row);
+        }
+
+        /* Convert EOF status to success */
+        if (status == -1) {
+            status = 0;
+        }
+        DbFreeResult(result1);
+    }
+    DqsFree(sql);
+
+    StrFree(datetime);
+    
+    return status;
 }

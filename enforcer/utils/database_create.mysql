@@ -25,7 +25,7 @@ CREATE TABLE dbadmin (
     description varchar(255)
 );
 
-insert into dbadmin values (1, "This needs to be in sync with the version defined in database.h");
+insert into dbadmin values (2, "This needs to be in sync with the version defined in database.h");
 
 # security modules - store information about all the sms used
 create table securitymodules (
@@ -90,22 +90,17 @@ create table zones(
 
 # stores the private key info
 create table keypairs(
-  id     smallint not null auto_increment,
-  HSMkey_id  varchar(255) not null,
+  id            smallint not null auto_increment,
+  HSMkey_id     varchar(255) not null,
   algorithm     tinyint not null,             # algorithm code
   size          smallint,
   securitymodule_id          tinyint,                      # where the key is stored
-  state         tinyint,                      # state of the key (defines valid fields)
   generate      timestamp null default null,  # time key inserted into database
-  publish       timestamp null default null,  # time when key published into the zone
-  ready         timestamp null default null,  # time when the key is ready for use
-  active        timestamp null default null,  # time when the key was made active
-  retire        timestamp null default null,  # time when the key retires
-  dead          timestamp null default null,  # time when key is slated for removal
-  policy_id        mediumint,
+  policy_id     mediumint,
   compromisedflag tinyint,
   publickey     varchar(1024),                # public key data
-  backup        timestamp null default null,  # time when backup was performed
+  pre_backup    timestamp null default null,  # time when backup was started
+  backup        timestamp null default null,  # time when backup was finished
   fixedDate     tinyint default 0,            # Set to 1 to stop dates from being set according to the policy timings        
   
   constraint primary key (id),
@@ -119,6 +114,12 @@ create table dnsseckeys (
   keypair_id    smallint,
   zone_id        mediumint,
   keytype       smallint not null,             # zsk or ksk (use code in dnskey record)
+  state         tinyint,                      # state of the key (defines valid fields)
+  publish       timestamp null default null,  # time when key published into the zone
+  ready         timestamp null default null,  # time when the key is ready for use
+  active        timestamp null default null,  # time when the key was made active
+  retire        timestamp null default null,  # time when the key retires
+  dead          timestamp null default null,  # time when key is slated for removal
 
   constraint primary key (id),
   constraint foreign key (zone_id) references zones (id),
@@ -150,12 +151,23 @@ from parameters p, categories c
 where p.category_id = c.id;
 
 create or replace view KEYDATA_VIEW as
-select k.id, k.state,	k.generate, k.publish, k.ready,	k.active,	k.retire,
-       k.dead, d.keytype, k.algorithm,	k.HSMkey_id as location, d.zone_id,
+select k.id, d.state,	k.generate, d.publish, d.ready,	d.active,	d.retire,
+       d.dead, d.keytype, k.algorithm,	k.HSMkey_id as location, d.zone_id,
        k.policy_id, k.securitymodule_id, k.size, k.compromisedflag, k.fixedDate
 from keypairs k left outer join dnsseckeys d
 on k.id = d.keypair_id;
 
+create or replace view INT_KEYALLOC_VIEW_FOR_MYSQL as
+select k.id as id, k.HSMkey_id as location, z.id as zone_id, k.algorithm as algorithm, k.policy_id as policy_id, k.securitymodule_id as securitymodule_id, k.size as size,
+    k.compromisedflag as compromisedflag
+from keypairs k left join zones z 
+on k.policy_id = z.policy_id;
+
+create or replace view KEYALLOC_VIEW as
+select v.id as id, location, algorithm, policy_id, securitymodule_id, size, compromisedflag, d.zone_id as zone_id from
+INT_KEYALLOC_VIEW_FOR_MYSQL v left outer join dnsseckeys d
+on d.zone_id = v.zone_id
+and d.keypair_id = v.id;
 
 # insert default data
 

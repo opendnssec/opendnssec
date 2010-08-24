@@ -75,6 +75,7 @@ int KsmListBackups(int repo_id)
     DB_ROW      row2 = NULL;     /* Row data */
 
     char*       temp_date = NULL; /* place to store date returned */
+    char*       temp_pre_date = NULL; /* place to store pre-backup date returned */
     char*       temp_repo = NULL; /* place to store repository returned */
     int         temp_backup_req = 0; /* place to store backuprequired returned */
 
@@ -147,6 +148,47 @@ int KsmListBackups(int repo_id)
             } else {
                 printf("Repository %s has unbacked up keys (that will not be used)\n", temp_repo);
             }
+            
+            status = DbFetchRow(result2, &row2);
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+
+        DbFreeResult(result2);
+    }
+
+    DusFree(sql2);
+    DbFreeRow(row2);
+    DbStringFree(temp_repo);
+
+    /* List repos which need a backup commit */
+    sql2 = NULL;
+    StrAppend(&sql2, "select s.name from keypairs k, securitymodules s ");
+    StrAppend(&sql2, "where s.id = k.securitymodule_id ");
+    if (repo_id != -1) {
+        StrAppend(&sql2, "and s.id = ");
+        snprintf(stringval, KSM_INT_STR_SIZE, "%d", repo_id);
+        StrAppend(&sql2, stringval);
+    }
+    StrAppend(&sql2, " and k.backup is null");
+    StrAppend(&sql2, " and k.pre_backup is not null");
+    StrAppend(&sql2, " group by s.name order by s.name");
+
+    DusEnd(&sql2);
+
+    status = DbExecuteSql(DbHandle(), sql2, &result2);
+
+    if (status == 0) {
+        status = DbFetchRow(result2, &row2);
+        while (status == 0) {
+            /* Got a row, print it */
+            DbString(row2, 0, &temp_repo);
+
+            printf("Repository %s has keys prepared for back up which have not been committed\n", temp_repo);
             
             status = DbFetchRow(result2, &row2);
         }

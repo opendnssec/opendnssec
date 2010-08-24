@@ -60,15 +60,18 @@ static void TestKsmPurgeInternal(void)
     int			rowcount;	/* Number of rows returned */
 	char*		sql;		/* Constructed query */
 	char*		sql2;		/* Constructed query */
+	char*		sql3;		/* Constructed query */
 	int			status;		/* Status return */
 	int			where = 0;	/* WHERE clause count */
 
 	/* Check that only one key is "dead" (STATE=6) */
 
-	sql = DqsCountInit("keypairs");
+	sql = DqsCountInit("dnsseckeys");
 	DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, 6, where++);
+    StrAppend(&sql, " group by id");
 	DqsEnd(&sql);
 	status = DbIntQuery(DbHandle(), &rowcount, sql);
+	DqsFree(sql);
 
 	CU_ASSERT_EQUAL(status, 0);
 	CU_ASSERT_EQUAL(rowcount, 1);
@@ -88,8 +91,10 @@ static void TestKsmPurgeInternal(void)
     KsmPurge();
 
     /* Now make sure that we have no dead keys */
-	status = DbIntQuery(DbHandle(), &rowcount, sql);
-	DqsFree(sql);
+    sql3 = DqsCountInit("dnsseckeys");
+	DqsConditionInt(&sql3, "STATE", DQS_COMPARE_EQ, 6, 0);
+	status = DbIntQuery(DbHandle(), &rowcount, sql3);
+	DqsFree(sql3);
 
 	CU_ASSERT_EQUAL(status, 0);
 

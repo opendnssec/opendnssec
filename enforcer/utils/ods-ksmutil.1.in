@@ -25,7 +25,7 @@
 .B ods-ksmutil repository list
 .RB ...
 .br
-.B ods-ksmutil backup list|done
+.B ods-ksmutil backup list|prepare|commit|rollback|done
 .br
 .B ods-ksmutil database backup
 .RB ...
@@ -242,23 +242,42 @@ List repositories from the database.
 List the backups that have been made on the given repository.
 The \-\-repository option specifies what repository to list.
 .TP
+.B backup prepare \-\-repository|\-r name 
+Start a two-phase key backup procedure. 
+Prepare the keys generated up to here for backup.  Any keys generated 
+automatically by OpenDNSSEC after this command are not guaranteed to be 
+backed up, and will therefore not be taken into account when committing 
+the prepared keys for use by OpenDNSSEC.  The next command is usually 
+either \fBbackup commit\fR or, in case of failure of the key backup 
+itself, \fBbackup rollback\fR.  This sequence works reliably if the 
+KASP Enforcer is running.  If it is not, the single-phase backup of 
+\fBbackup done\fR provides a one-phase backup alternative. 
+.TP 
+.B backup commit \-\-repository|\-r name 
+Successfully end a two-phase key backup procedure. 
+After a key backup has succeeded, release all previously prepared keys 
+for service by OpenDNSSEC.  Any keys that were generated since the last 
+issued preparation will not be released as it is uncertain whether these 
+are actually backed up. 
+.TP 
+.B backup rollback \-\-repository|\-r name 
+Safely end a failed two-phase key backup procedure. 
+After a key backup has failed, rollback all previously prepapared keys 
+to the state where they are generated, but not yet available for service 
+by OpenDNSSEC.  After fixing this problem, a new attempt to backup the 
+keys can be made. 
+.TP
 .B backup done \-\-repository|\-r name
 Indicate that a backup of the given repository has been done, all non-backed up keys will now be marked as backed up.
 The \-\-repository option specifies what repository to list.
 This is a necessary step for repositories that have the RequireBackup flag set.
 
 Note that the KASP Enforcer may take the initiative to generate keys after
-the backup has started and before the backup is done.  In the current version
-of OpenDNSSEC, it is therefore needed to stop the KASP Enforcer to be assured
-that all keys are backed up.  The sequence would therefore be:
-.br
-1. Issue \fBods-control ksm stop\fR
-.br
-2. Make a backup of the repository
-.br
-3. Issue \fBods-ksmutil backup done\fR
-.br
-4. Issue \fBods-control ksm start\fR
+the backup has started and before the backup is done.  This single-phase 
+backup command waives that, which is safe when the KASP Enforcer is not 
+running.  If you intend to keep the Enforcer running, you will instead 
+want to use the two-phase \fBbackup prepare\fR followed by either 
+\fBbackup commit\fR or \fBbackup rollback\fR.
 .TP
 .B database backup [\-\-output|\-o output]
 Make a copy of the database of the KASP Enforcer (if using sqlite).

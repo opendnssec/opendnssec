@@ -12,6 +12,10 @@ OpenDNSSEC trunk
 * ldns-1.6.6 now required
 * libhsm will skip processing (and not create) any public keys if the
   per repository option <SkipPublicKey/> is set.
+* Keysharing improved - keys can now exist in different states on each zone
+  that the key is in use for.
+* Backup prepare/commit/rollback added for 2-step backups without taking the
+  enforcer offline.
 
 OpenDNSSEC 1.1.0 branch
 

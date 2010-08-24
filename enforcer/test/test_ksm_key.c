@@ -170,7 +170,7 @@ static void TestKsmDnssecKeyCreate(void)
 
     /* Now create a row in dnsseckeys for the above */
 
-    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, &dnsseckey_id);
+    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, KSM_STATE_GENERATE, generate, &dnsseckey_id);
 
 	CU_ASSERT_EQUAL(status, 0);
 
@@ -185,67 +185,6 @@ static void TestKsmDnssecKeyCreate(void)
 	CU_ASSERT_EQUAL(status, 0);
 
 	CU_ASSERT_EQUAL(rowcount, 1);
-
-}
-
-/*+
- * TestKsmKeyModify - Test Key Modify code
- *
- * Description:
- *      Tests that keys are created when requested
--*/
-
-static void TestKsmKeyModify(void)
-{
-
-    KSM_KEYDATA     data;           /* Holds information for insertion */
-	char		buffer[8]; /* User buffer */
-	DB_RESULT	result;		/* Result object */
-	DB_ROW		row;		/* Row object */
-    DB_ID           key_id;         /* Created key ID */
-    int             status = 0;     /* Status return */
-	char*		sql;		/* Constructed query */
-	int			where = 0;	/* WHERE clause count */
-
-    /* Create a new keypair entry */
-    int     policy_id = 2;
-    char*   HSMKeyID = "0x1";
-    int     smID = 1;
-    int     size = 1024;
-    int     alg = KSM_ALGORITHM_DSASHA1;
-    char*   generate = "2009-01-01";
-
-    status = KsmKeyPairCreate(policy_id, HSMKeyID, smID, size, alg, generate, &key_id);
-
-	CU_ASSERT_EQUAL(status, 0);
-
-	/* Assume that a key has been added (tested above) */
-
-    /* Change the algorithm and save to database */
-    TestKeyClear(&data);
-    data.algorithm = KSM_ALGORITHM_RSAMD5;
-    data.flags |= KEYDATA_M_ALGORITHM;
-
-    status = KsmKeyModify(&data, key_id, key_id);
-
-	CU_ASSERT_EQUAL(status, 0);
-
-    /* check on the key */
-    sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
-	DqsConditionInt(&sql, "ID", DQS_COMPARE_EQ, key_id, where++);
-	DqsEnd(&sql);
-	status = DbExecuteSql(DbHandle(), sql, &result);
-	CU_ASSERT_EQUAL(status, 0);
-	DqsFree(sql);
-
-	status = DbFetchRow(result, &row);
-	CU_ASSERT_EQUAL(status, 0);
-	status = DbStringBuffer(row, DB_KEYDATA_ALGORITHM, buffer, sizeof(buffer));
-	CU_ASSERT_EQUAL(status, 0);
-	CU_ASSERT_STRING_EQUAL(buffer, "1");
-
-	DbFreeRow(row);
-	DbFreeResult(result);
 
 }
 
@@ -265,13 +204,13 @@ static void TestKsmKeyPredict(void)
     int count;
     int status;
 
-    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT);
+    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT, 1);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7); /* 4 rollovers, 2 standby plus one to get ready */
 
     keytype = KSM_TYPE_ZSK;
-    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT);
+    status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT, 1);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(count, 7);
@@ -349,15 +288,15 @@ static void TestKsmKeyGetUnallocated(void)
     int zone_id = 1;
     int status;
 
-    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, &keypair_id);
+    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, zone_id, &keypair_id);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(keypair_id, 3); 
 
-    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, &dnsseckey_id);
+    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, KSM_STATE_GENERATE, "now", &dnsseckey_id);
     CU_ASSERT_EQUAL(status, 0);
 
-    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, &keypair_id);
+    status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, zone_id, &keypair_id);
 
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(keypair_id, 4);
@@ -374,12 +313,10 @@ static void TestKsmDnssecKeyCreateOnPolicy(void)
 {
 
     DB_ID           key_pair_id;     /* Created key ID */
-    DB_ID           dnsseckey_id;   /* Created key ID */
     int             status = 0;     /* Status return */
     int			    rowcount;	    /* Number of rows returned */
 	char*		    sql;		    /* Constructed query */
 	int			    where = 0;	    /* WHERE clause count */
-    int             zone_id = 1;
 
     /* Create a new keypair entry */
     int     policy_id = 2;
@@ -397,7 +334,7 @@ static void TestKsmDnssecKeyCreateOnPolicy(void)
 	CU_ASSERT_EQUAL(status, 0);
 
     /* Now create rows in dnsseckeys for the above */
-    status = KsmDnssecKeyCreateOnPolicy(policy_id, key_pair_id, KSM_TYPE_ZSK);
+    /*status = KsmDnssecKeyCreateOnPolicy(policy_id, key_pair_id, KSM_TYPE_ZSK);*/
 	CU_ASSERT_EQUAL(status, 0);
 
 	/* Check that a key has been added */
@@ -436,12 +373,11 @@ int TestKsmKey(void)
     struct test_testdef tests[] = {
         {"KsmKeyPairCreate", TestKsmKeyPairCreate},
         {"KsmDnssecKeyCreate", TestKsmDnssecKeyCreate},
-        {"KsmKeyModify", TestKsmKeyModify},
         {"KsmKeyPredict", TestKsmKeyPredict},
         {"KsmKeyCountQueue", TestKsmKeyCountQueue},
 /*        {"KsmKeyCountUnallocated", TestKsmKeyCountUnallocated},*/
         {"KsmKeyGetUnallocated", TestKsmKeyGetUnallocated},
-        {"KsmDnssecKeyCreateOnPolicy", TestKsmDnssecKeyCreateOnPolicy},
+/*        {"KsmDnssecKeyCreateOnPolicy", TestKsmDnssecKeyCreateOnPolicy},*/
         {NULL,                      NULL}
     };
 

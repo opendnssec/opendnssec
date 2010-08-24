@@ -324,6 +324,9 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
 
     int same_keys = 0;      /* Do ksks and zsks look the same ? */
     int ksks_created = 0;   /* Were any KSKs created? */
+    
+    DB_RESULT result; 
+    int zone_count = 0;     /* Number of zones on policy */
 
     if  (policy->shared_keys == 1 ) {
         log_msg(config, LOG_INFO, "Key sharing is On");
@@ -339,13 +342,33 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         exit(1);
     }
 
+    /* See if our ZSKs and KSKs look the same */
     if (policy->ksk->sm == policy->zsk->sm && policy->ksk->bits == policy->zsk->bits && policy->ksk->algorithm == policy->zsk->algorithm) {
         same_keys = 1;
     } else {
         same_keys = 0;
     }
+
+    /* How many zones on this policy */ 
+    status = KsmZoneCountInit(&result, policy->id); 
+    if (status == 0) { 
+        status = KsmZoneCount(result, &zone_count); 
+    } 
+    DbFreeResult(result); 
+
+    if (status == 0) { 
+        /* make sure that we have at least one zone */ 
+        if (zone_count == 0) { 
+            log_msg(config, LOG_INFO, "No zones on policy %s, skipping...", policy->name);
+            return status; 
+        } 
+    } else {
+        log_msg(NULL, LOG_ERR, "Could not count zones on policy %s", policy->name);
+        return status; 
+    }
+
     /* Find out how many ksk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->interval, &ksks_needed, policy->ksk->rollover_scheme);
+    status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->interval, &ksks_needed, policy->ksk->rollover_scheme, zone_count);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict ksk requirement for next interval for %s", policy->name);
         /* TODO exit? continue with next policy? */
@@ -355,6 +378,10 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current ksk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */
+    }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        keys_in_queue /= zone_count;
     }
 
     new_keys = ksks_needed - keys_in_queue;
@@ -420,7 +447,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     current_count = 0;
 
     /* Find out how many zsk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->interval, &zsks_needed, 0);
+    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, config->interval, &zsks_needed, 0, zone_count);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict zsk requirement for next intervalfor %s", policy->name);
         /* TODO exit? continue with next policy? */
@@ -430,6 +457,10 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */
+    }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        keys_in_queue /= zone_count;
     }
     /* Might have to account for ksks */
     if (same_keys) {
@@ -520,7 +551,6 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
     char* zone_name;
     char* current_policy;
     char* current_filename;
-    char* key_string = NULL;
     char *tag_name;
     int zone_id = -1;
     int signer_flag = 1; /* Is the signer responding? (1 == yes) */
@@ -633,10 +663,6 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 xmlXPathFreeObject(xpathObj);
 
                 if (strcmp(current_policy, policy->name) != 0) {
-                    if (key_string != NULL) {
-                        StrFree(key_string);
-                        key_string = NULL;
-                    }
 
                     /* Read new Policy */ 
                     kaspSetPolicyDefaults(policy, current_policy);
@@ -652,16 +678,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     }
                     log_msg(config, LOG_INFO, "Policy %s found in DB.", policy->name);
 
-                } else {
-                    /* Policy is same as previous zone, do not re-read */
-                    if (policy->shared_keys == 0) {
-                        if (key_string != NULL) {
-                            StrFree(key_string);
-                            key_string = NULL;
-                        }
-                    }
-
-                }
+                } /* else */ 
+                  /* Policy is same as previous zone, do not re-read */
 
                 StrFree(current_policy);
 
@@ -707,7 +725,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 }
 
                 /* turn this zone and policy into a file */
-                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, &key_string, config->DSSubmitCmd);
+                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd);
                 if (status2 == -2) {
                     log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -777,7 +795,6 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
 
     xmlFreeDoc(doc);
     StrFree(zonelist_filename);
-    StrFree(key_string);
 
     return status;
 }
@@ -788,7 +805,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
  *  returns 0 on success and -1 if something went wrong
  *                           -2 if the RequestKeys call failed
  */
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, char** key_string, const char* DSSubmitCmd)
+int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd)
 {
     int status = 0;
     int status2 = 0;
@@ -886,54 +903,48 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     fprintf(file, "\t\t\t<TTL>PT%dS</TTL>\n", policy->ksk->ttl);
 
     /* get new keys _only_ if we don't have them from before */
-    if (*key_string == NULL) {
-        status = KsmRequestKeys(0, 0, datetime, commKeyConfig, key_string, policy->id, zone_id, run_interval, &NewDS);
-        if (status != 0) {
-            /* 
-             * Something went wrong (it should have been logged) stop this zone.
-             * Clean up the files, don't call the signer and move on to the next zone.
-             */
-            log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
+    status = KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id, run_interval, &NewDS);
+    if (status != 0) {
+        /* 
+         * Something went wrong (it should have been logged) stop this zone.
+         * Clean up the files, don't call the signer and move on to the next zone.
+         */
+        log_msg(NULL, LOG_ERR, "KsmRequestKeys returned: %d", status);
 
-            /* check for the specific case of not having any keys 
-               TODO check that this code can ever be executed after the restructure */
-            if (status == -1) {
-                status2 = KsmRequestGenerateCount(KSM_TYPE_KSK, &gencnt, zone_id);
-                if (status2 == 0 && gencnt == 0) {
-                    if(man_key_gen == 1) {
-                        log_msg(NULL, LOG_ERR, "There are no KSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
-                    } else {
-                        log_msg(NULL, LOG_WARNING, "There are no KSKs in the generate state; ods-enforcerd will create some on its next run.");
-                    }
-                }
-                else if (status2 == 0) {
-                    status2 = KsmRequestGenerateCount(KSM_TYPE_ZSK, &gencnt, zone_id);
-                    if (status2 == 0 && gencnt == 0) {
-                        if(man_key_gen == 1) {
-                            log_msg(NULL, LOG_ERR, "There are no ZSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
-                        } else {
-                            log_msg(NULL, LOG_WARNING, "There are no ZSKs in the generate state; ods-enforcerd will create some on its next run.");
-                        }
-                    }
-                }
-                else {
-                    log_msg(NULL, LOG_ERR, "KsmRequestGenerateCount returned: %d", status2);
+        /* check for the specific case of not having any keys 
+           TODO check that this code can ever be executed after the restructure */
+        if (status == -1) {
+            status2 = KsmRequestGenerateCount(KSM_TYPE_KSK, &gencnt, zone_id);
+            if (status2 == 0 && gencnt == 0) {
+                if(man_key_gen == 1) {
+                    log_msg(NULL, LOG_ERR, "There are no KSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
+                } else {
+                    log_msg(NULL, LOG_WARNING, "There are no KSKs in the generate state; ods-enforcerd will create some on its next run.");
                 }
             }
-
-            status = fclose(file);
-            unlink(temp_filename);
-            MemFree(datetime);
-            StrFree(temp_filename);
-            StrFree(old_filename);
-            StrFree(*key_string);
-            *key_string = NULL;
-
-            return -2;
+            else if (status2 == 0) {
+                status2 = KsmRequestGenerateCount(KSM_TYPE_ZSK, &gencnt, zone_id);
+                if (status2 == 0 && gencnt == 0) {
+                    if(man_key_gen == 1) {
+                        log_msg(NULL, LOG_ERR, "There are no ZSKs in the generate state; please use \"ods-ksmutil key generate\" to create some.");
+                    } else {
+                        log_msg(NULL, LOG_WARNING, "There are no ZSKs in the generate state; ods-enforcerd will create some on its next run.");
+                    }
+                }
+            }
+            else {
+                log_msg(NULL, LOG_ERR, "KsmRequestGenerateCount returned: %d", status2);
+            }
         }
-    }
 
-    fprintf(file, "%s", *key_string);
+        status = fclose(file);
+        unlink(temp_filename);
+        MemFree(datetime);
+        StrFree(temp_filename);
+        StrFree(old_filename);
+
+        return -2;
+    }
 
     fprintf(file, "\t\t</Keys>\n");
 
@@ -1118,34 +1129,27 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 
 int commKeyConfig(void* context, KSM_KEYDATA* key_data)
 {
-    char temp[32];
-    char **file = (char **)context;
+    FILE *file = (FILE *)context;
 
-    StrAppend(file, "\t\t\t<Key>\n");
-    StrAppend(file, "\t\t\t\t<Flags>");
-    snprintf(temp, 32, "%d", key_data->keytype);
-    StrAppend(file, temp);
-    StrAppend(file, "</Flags>\n\t\t\t\t<Algorithm>");
-    snprintf(temp, 32, "%d", key_data->algorithm);
-    StrAppend(file, temp);
-    StrAppend(file, "</Algorithm>\n\t\t\t\t<Locator>");
-    StrAppend(file, key_data->location);
-    StrAppend(file, "</Locator>\n");
+    fprintf(file, "\t\t\t<Key>\n");
+    fprintf(file, "\t\t\t\t<Flags>%d</Flags>\n", key_data->keytype); 
+    fprintf(file, "\t\t\t\t<Algorithm>%d</Algorithm>\n", key_data->algorithm); 
+    fprintf(file, "\t\t\t\t<Locator>%s</Locator>\n", key_data->location);
 
     if (key_data->keytype == KSM_TYPE_KSK)
     {
-        StrAppend(file, "\t\t\t\t<KSK />\n");
+        fprintf(file, "\t\t\t\t<KSK />\n");
     }
     if (key_data->keytype == KSM_TYPE_ZSK && key_data->state == KSM_STATE_ACTIVE)
     {
-        StrAppend(file, "\t\t\t\t<ZSK />\n");
+        fprintf(file, "\t\t\t\t<ZSK />\n");
     }
     if ((key_data->state > KSM_STATE_GENERATE && key_data->state < KSM_STATE_DEAD) || key_data->state == KSM_STATE_KEYPUBLISH)
     {
-        StrAppend(file, "\t\t\t\t<Publish />\n");
+        fprintf(file, "\t\t\t\t<Publish />\n");
     }
-    StrAppend(file, "\t\t\t</Key>\n");
-    StrAppend(file, "\n");
+    fprintf(file, "\t\t\t</Key>\n");
+    fprintf(file, "\n");
 
     return 0;
 }
@@ -1220,7 +1224,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 
     /* Make sure that enough keys are allocated to this zone */
     /* How many do we need ? (set sharing to 1 so that we get the number needed for a single zone on this policy */
-    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed, rollover_scheme);
+    status = KsmKeyPredict(policy->id, key_type, 1, interval, &keys_needed, rollover_scheme, 1);
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not predict key requirement for next interval for %s", zone_name);
         StrFree(datetime);
@@ -1252,7 +1256,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     for (i=0 ; i < new_keys ; i++){
         key_pair_id = 0;
         if (key_type == KSM_TYPE_KSK) {
-            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, &key_pair_id);
+            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, zone_id, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
                     log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
@@ -1269,7 +1273,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
                 return 3;
             }
         } else {
-            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, &key_pair_id);
+            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, zone_id, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
                     log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
@@ -1287,12 +1291,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
         }
         if(key_pair_id > 0) {
-            /* This will do all zones if keys are shared */ 
-            if (policy->keys->share_keys == 1) {
-                status = KsmDnssecKeyCreateOnPolicy(policy->id, key_pair_id, key_type);
-            } else {
-                status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, &ignore);
-            }
+            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, KSM_STATE_GENERATE, datetime, &ignore);
             /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
         } else {
             /* This shouldn't happen */
@@ -1407,6 +1406,7 @@ int read_zonelist_filename(const char* filename, char** zone_list_filename)
 int do_purge(int interval, int policy_id)
 {
     char*       sql = NULL;     /* SQL query */
+    char*       sql1 = NULL;     /* SQL query */
     char*       sql2 = NULL;    /* SQL query */
     char*       sql3 = NULL;    /* SQL query */
     int         status = 0;     /* Status return */
@@ -1418,8 +1418,8 @@ int do_purge(int interval, int policy_id)
     unsigned int    nchar;          /* Number of characters converted */
 
     int         temp_id = -1;       /* place to store the key id returned */
-    char*       temp_dead = NULL;   /* place to store dead date returned */
     char*       temp_loc = NULL;    /* place to store location returned */
+    int         count = 0;          /* How many keys don't match the purge */
 
     char *rightnow;
 
@@ -1437,93 +1437,106 @@ int do_purge(int interval, int policy_id)
     }
 
     /* Select rows */
-    StrAppend(&sql, "select id, dead, location from KEYDATA_VIEW where state = 6 ");
+    StrAppend(&sql, "select distinct id, location from KEYDATA_VIEW where state = 6 ");
 
-#ifdef USE_MYSQL
-    nchar = snprintf(buffer, sizeof(buffer),
-        "and DEAD < DATE_ADD('%s', INTERVAL -%d SECOND) ", rightnow, interval);
-#else
-    nchar = snprintf(buffer, sizeof(buffer),
-        "and DEAD < DATETIME('%s', '-%d SECONDS') ", rightnow, interval);
-#endif /* USE_MYSQL */
-
-    StrAppend(&sql, buffer);
     if (policy_id != -1) {
         StrAppend(&sql, "and policy_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", policy_id);
         StrAppend(&sql, stringval);
     }
-    /* stop us doing the same key twice */
-    StrAppend(&sql, " group by location");
 
     DusEnd(&sql);
-    StrFree(rightnow);
 
     status = DbExecuteSql(DbHandle(), sql, &result);
 
     if (status == 0) {
         status = DbFetchRow(result, &row);
         while (status == 0) {
-            /* Got a row, purge it */
+            /* Got a row, check it */
             DbInt(row, 0, &temp_id);
-            DbString(row, 1, &temp_dead);
-            DbString(row, 2, &temp_loc);
+            DbString(row, 1, &temp_loc);
 
-            /* Delete from dnsseckeys */
-            sql2 = DdsInit("dnsseckeys");
-            DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
-            DdsEnd(&sql);
+            sql1 = DqsCountInit("dnsseckeys");
+            DdsConditionInt(&sql1, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+            DdsConditionInt(&sql1, "(state", DQS_COMPARE_NE, KSM_STATE_DEAD, 1);
 
-            status = DbExecuteSqlNoResult(DbHandle(), sql2);
-            DdsFree(sql2);
-            if (status != 0)
-            {
+#ifdef USE_MYSQL
+            nchar = snprintf(buffer, sizeof(buffer),
+                    " or state = %d and DEAD > DATE_ADD('%s', INTERVAL -%d SECOND)) ", KSM_STATE_DEAD, rightnow, interval);
+#else
+            nchar = snprintf(buffer, sizeof(buffer),
+                    " or state = %d and DEAD > DATETIME('%s', '-%d SECONDS')) ", KSM_STATE_DEAD, rightnow, interval);
+#endif /* USE_MYSQL */
+            StrFree(rightnow);
+
+            StrAppend(&sql1, buffer);
+            DqsEnd(&sql1);
+
+            status = DbIntQuery(DbHandle(), &count, sql1);
+            DqsFree(sql1);
+
+            if (status != 0) {
                 log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
-                DbStringFree(temp_dead);
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
                 return status;
             }
 
-            /* Delete from keypairs */
-            sql3 = DdsInit("keypairs");
-            DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
-            DdsEnd(&sql);
+            /* If the count is zero then there is no reason not to purge this key */
+            if (count == 0) {
 
-            status = DbExecuteSqlNoResult(DbHandle(), sql3);
-            DdsFree(sql3);
-            if (status != 0)
-            {
-                log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return status;
-            }
+                /* Delete from dnsseckeys */
+                sql2 = DdsInit("dnsseckeys");
+                DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
+                DdsEnd(&sql);
 
-            /* Delete from the HSM */
-            key = hsm_find_key_by_id(NULL, temp_loc);
+                status = DbExecuteSqlNoResult(DbHandle(), sql2);
+                DdsFree(sql2);
+                if (status != 0)
+                {
+                    log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return status;
+                }
 
-            if (!key) {
-                log_msg(NULL, LOG_ERR, "Key not found: %s\n", temp_loc);
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return -1;
-            }
+                /* Delete from keypairs */
+                sql3 = DdsInit("keypairs");
+                DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
+                DdsEnd(&sql);
 
-            status = hsm_remove_key(NULL, key);
+                status = DbExecuteSqlNoResult(DbHandle(), sql3);
+                DdsFree(sql3);
+                if (status != 0)
+                {
+                    log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return status;
+                }
 
-            hsm_key_free(key);
+                /* Delete from the HSM */
+                key = hsm_find_key_by_id(NULL, temp_loc);
 
-            if (!status) {
-                log_msg(NULL, LOG_INFO, "Key remove successful.\n");
-            } else {
-                log_msg(NULL, LOG_ERR, "Key remove failed.\n");
-                DbStringFree(temp_dead);
-                DbStringFree(temp_loc);
-                DbFreeRow(row);
-                return -1;
+                if (!key) {
+                    log_msg(NULL, LOG_ERR, "Key not found: %s\n", temp_loc);
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return -1;
+                }
+
+                status = hsm_remove_key(NULL, key);
+
+                hsm_key_free(key);
+
+                if (!status) {
+                    log_msg(NULL, LOG_INFO, "Key remove successful.\n");
+                } else {
+                    log_msg(NULL, LOG_ERR, "Key remove failed.\n");
+                    DbStringFree(temp_loc);
+                    DbFreeRow(row);
+                    return -1;
+                }
             }
 
             /* NEXT! */ 
@@ -1542,7 +1555,6 @@ int do_purge(int interval, int policy_id)
     DusFree(sql);
     DbFreeRow(row);
 
-    DbStringFree(temp_dead);
     DbStringFree(temp_loc);
 
     return status;

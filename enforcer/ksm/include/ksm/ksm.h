@@ -126,8 +126,8 @@ typedef struct {
 } KSM_KEYDATA;
 
 int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, int alg, const char* generate, DB_ID* id);
-int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, DB_ID* id);
-int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype);
+int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, const char* time, DB_ID* id);
+/*int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype);*/
 int KsmKeyInitSql(DB_RESULT* result, const char* sql);
 int KsmKeyInit(DB_RESULT* result, DQS_QUERY_CONDITION* condition);
 int KsmKeyInitId(DB_RESULT* result, DB_ID id);
@@ -135,11 +135,10 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data);
 void KsmKeyEnd(DB_RESULT result);
 int KsmKeyQuery(const char* sql, DB_RESULT* result);
 int KsmKeyData(DB_ID id, KSM_KEYDATA* data);
-int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme);
+int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int *count, int rollover_scheme, int zone_count);
 int KsmKeyCountQueue(int keytype, int* count, int zone_id);
 int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count, int keytype);
-int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int *keypair_id);
-int KsmLinkKeys(const char* zone_name, int policy_id);
+int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zone_id, int *keypair_id);
 int KsmMarkKeysAsDead(int zone_id);
 int KsmKillKey(int keypair_id);
 
@@ -147,10 +146,6 @@ int KsmKillKey(int keypair_id);
 
 int KsmDeleteKeyRange(int minid, int maxid);
 int KsmDeleteKeyRanges(int limit[], int size);
-
-/* modify */
-
-int KsmKeyModify(KSM_KEYDATA* data, int low, int high);
 
 /* KsmParameter */
 
@@ -530,17 +525,17 @@ int KsmKeywordParameterExists(const char* name);
 /* ksm_update */
 
 int KsmUpdate(int policy_id, int zone_id);
-void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data);
-void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateReadyKeyTime(KSM_KEYDATA* data);
-void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
-void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
+void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateDeadKeyTime(KSM_KEYDATA* data);
-void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
-void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection);
+void KsmUpdateDSPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
+void KsmUpdateKEYPublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 int KsmUpdateKeyTime(const KSM_KEYDATA* data, const char* source,
-    const char* destination, int interval);
+    const char* destination, int interval, int zone_id);
 
 /* ksm_request */
 
@@ -612,10 +607,12 @@ int KsmImportRepository(const char* repo_name, const char* repo_capacity, int re
 int KsmImportPolicy(const char* policy_name, const char* policy_description);
 int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone);
 int KsmImportAudit(int policy_id, const char* audit_contents);
-int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, const char* opt_time, DB_ID* id);
+int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, DB_ID* id);
 int KsmSmIdFromName(const char* name, int *id);
 int KsmSerialIdFromName(const char* name, int *id);
 int KsmPolicyIdFromName(const char* name, int *id);
+int KsmMarkPreBackup(int repo_id, const char* datetime);
+int KsmRollbackMarkPreBackup(int repo_id);
 int KsmMarkBackup(int repo_id, const char* datetime);
 int KsmCheckHSMkeyID(int repo_id, const char* cka_id, int *exists);
 
