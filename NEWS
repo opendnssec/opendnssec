@@ -1,8 +1,8 @@
 $Id$
 
-OpenDNSSEC 1.1 branch
+OpenDNSSEC 1.1.2 - 2010-08-24
 
-* Dnsruby 1.48 now required (for correct zone parsing)
+* Dnsruby 1.49 now required (for correct zone parsing)
 * ldns 1.6.6 is required to fix the zone fetcher bug
 
 Bugfixes:
