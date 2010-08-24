@@ -8,7 +8,7 @@ OpenDNSSEC trunk
 * Add option to disable building the signer
 * Auditor handles chains of empty nonterminals correctly
 * Signer logs statistics just after outputting a new signed zone
-* Dnsruby-1.48 now required
+* Dnsruby-1.49 now required
 * ldns-1.6.6 now required
 * libhsm will skip processing (and not create) any public keys if the
   per repository option <SkipPublicKey/> is set.
