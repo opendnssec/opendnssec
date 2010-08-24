@@ -70,11 +70,9 @@ module KASPAuditor
             end
             zones.push([config, output_file_loc])
 
-#            # Load the config elements storage file, and keep a note of which elements have changed, and when they last changed.
+            # Load the config elements storage file, and keep a note of which elements have changed, and when they last changed.
             changed_config = ChangedConfig.new(zone_name, conf_file, kasp_filename, config, working_folder)
             config.changed_config = changed_config
-
-            # @TODO@ Can we store a simple map of element name -> [timstamp, value]
 
           rescue Config::ConfigLoadError => e
             msg = "Can't load #{zone_name} SignerConfiguration file (#{config_file_loc}) : #{e}"
