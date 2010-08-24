@@ -779,6 +779,11 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
         return 2;
     }
 
+    se_log_debug("rrsig timers: offset=%u jitter=%u validity=%u",
+        duration2time(sc->sig_inception_offset),
+        duration2time(sc->sig_jitter),
+        duration2time(sc->sig_validity_denial));
+
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;

@@ -454,6 +454,27 @@ rrset_sign_set_timers(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
     } else {
         validity = duration2time(sc->sig_validity_default);
     }
+
+    /**
+     * Additional chheck for signature lifetimes.
+     */
+    if (((validity + offset + random_jitter) - jitter) <
+        ((validity + offset) - jitter) ) {
+        se_log_error("signature validity %u too low, should be at least %u",
+            ((validity + offset + random_jitter) - jitter),
+            ((validity + offset) - jitter));
+    } else if (((validity + offset + random_jitter) - jitter) >
+               ((validity + offset) + jitter) ) {
+        se_log_error("signature validity %u too high, should be at most %u",
+            ((validity + offset + random_jitter) - jitter),
+            ((validity + offset) + jitter));
+    } else {
+        se_log_debug("signature validity %u in range [%u - %u]",
+            ((validity + offset + random_jitter) - jitter),
+            ((validity + offset) - jitter),
+            ((validity + offset) + jitter));
+    }
+
     *inception = signtime - offset;
     *expiration = signtime + validity - jitter + random_jitter;
     return;
