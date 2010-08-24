@@ -8,6 +8,8 @@ http://trac.opendnssec.org/wiki/ProjectPlan/SystemTest/SimplifiedTest
 
 (Zone2 KSK has still to be added)
 
+REMEMBER TO BUILD THE ENFORCER WITH THE ENABLE_TIMESHIFT OPTION!!
+
 These tests use the Cucumber testing tool to perform
 behavioural testing of the enforcer and ods-ksmutil
 tools. To run these tests, you must have ruby and
