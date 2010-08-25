@@ -248,7 +248,7 @@ signconf_compare(signconf_type* a, signconf_type* b)
    se_log_assert(b);
 
    if (keylist_compare(a->keys, b->keys) != 0) {
-       return TASK_ADDKEYS;
+       return TASK_READ;
    }
 
    if (a->nsec_type != b->nsec_type) {
