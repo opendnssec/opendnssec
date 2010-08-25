@@ -66,6 +66,7 @@ tools_read_input(zone_type* zone)
     zone->stats->sort_count = 0;
     zone->stats->sort_time = 0;
     start = time(NULL);
+    zone->stats->start_time = start;
 
     switch (zone->inbound_adapter->type) {
         case ADAPTER_FILE:
@@ -139,6 +140,10 @@ tools_nsecify(zone_type* zone)
     se_log_assert(zone->stats);
     se_log_verbose("nsecify zone %s", zone->name?zone->name:"(null)");
     start = time(NULL);
+    if (!zone->stats->start_time) {
+        zone->stats->start_time = start;
+    }
+
     error = zone_nsecify(zone);
     end = time(NULL);
     zone->stats->nsec_time = (end-start);
@@ -162,6 +167,9 @@ tools_sign(zone_type* zone)
     se_log_assert(zone->stats);
     se_log_verbose("sign zone %s", zone->name?zone->name:"(null)");
     start = time(NULL);
+    if (!zone->stats->start_time) {
+        zone->stats->start_time = start;
+    }
     error = zone_sign(zone);
     end = time(NULL);
     zone->stats->sig_time = (end-start);
@@ -251,6 +259,8 @@ int tools_write_output(zone_type* zone)
     }
 
     /* log stats */
+    zone->stats->end_time = time(NULL);
+
     se_log_debug("log stats for zone %s", zone->name?zone->name:"(null)");
     stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
     stats_clear(zone->stats);

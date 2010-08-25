@@ -621,8 +621,8 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
     if (zone_name) {
         se_log_debug("zone %s not found", zone_name);
         if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found.\n",
-                zone_name);
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found, "
+                updating all zones.\n", zone_name);
         }
     } else {
         se_log_debug("configurations updated");
