@@ -1,3 +1,6 @@
+25 Aug 2010: Matthijs
+- Speed up signing (Pivotal 4661967)
+
 22 July 2010: Matthijs
 - goto trunk
 
