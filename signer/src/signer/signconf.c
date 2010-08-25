@@ -33,6 +33,7 @@
 
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
+#include "scheduler/task.h"
 #include "signer/se_key.h"
 #include "signer/signconf.h"
 #include "util/duration.h"
@@ -234,11 +235,6 @@ signconf_check(signconf_type* sc)
     return ret;
 
 }
-
-
-#define TASK_ADDKEYS 1
-#define TASK_NSECIFY 2
-#define TASK_SIGN 2
 
 
 /**
