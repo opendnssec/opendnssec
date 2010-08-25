@@ -280,8 +280,8 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
     for (count=0; count < zone->signconf->keys->count; count++) {
         if (key->publish) {
             if (!key->dnskey) {
-                key->dnskey = hsm_get_key(ctx, zone->dname, key);
-                if (!key->dnskey) {
+                error = hsm_get_key(ctx, zone->dname, key);
+                if (error) {
                     se_log_error("error creating DNSKEY for key %s",
                         key->locator?key->locator:"(null)");
                     error = 1;

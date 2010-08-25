@@ -53,6 +53,8 @@ key_create(const char* locator, uint32_t algorithm, uint32_t flags,
 
     key->locator = se_strdup(locator);
     key->dnskey = NULL;
+    key->hsmkey = NULL;
+    key->params = NULL;
     key->algorithm = algorithm;
     key->flags = flags;
     key->publish = publish;
@@ -82,6 +84,14 @@ key_cleanup(key_type* key)
         if (key->dnskey) {
             ldns_rr_free(key->dnskey);
             key->dnskey = NULL;
+        }
+        if (key->hsmkey) {
+            hsm_key_free(key->hsmkey);
+            key->hsmkey = NULL;
+        }
+        if (key->params) {
+            hsm_sign_params_free(key->params);
+            key->params = NULL;
         }
         se_free((void*)key);
     } else {

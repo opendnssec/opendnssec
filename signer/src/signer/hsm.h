@@ -45,14 +45,14 @@
 #include <libhsmdns.h>
 
 /**
- * Get key from one of the HSMs.
+ * Get key from one of the HSMs, store the DNSKEY and HSM key.
  * \param[in] ctx HSM context
  * \param[in] dname the zone owner name
  * \param[in] key_id key credentials
+ * \return int 0 on ok, 1 on error
  *
- * \return DNSKEY RR
  */
-ldns_rr* hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id);
+int hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id);
 
 /**
  * Get RRSIG from one of the HSMs, given a RRset and a key.
@@ -62,7 +62,7 @@ ldns_rr* hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id);
  * \param[in] rrset RRset to be signed
  * \param[in] inception signature inception
  * \param[in] expiration signature expiration
- * \return RRSIG rr
+ * \return ldns_rr* RRSIG rr
  *
  */
 ldns_rr* hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,

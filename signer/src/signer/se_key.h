@@ -41,6 +41,8 @@
 # include <unistd.h>
 #endif
 #include <ldns/ldns.h>
+#include <libhsm.h>
+#include <libhsmdns.h>
 
 /**
  * Key.
@@ -50,6 +52,8 @@ typedef struct key_struct key_type;
 struct key_struct {
     char* locator;
     ldns_rr* dnskey;
+    hsm_key_t* hsmkey;
+    hsm_sign_params_t* params;
     uint32_t algorithm;
     uint32_t flags;
     int publish;
