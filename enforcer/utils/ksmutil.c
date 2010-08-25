@@ -942,6 +942,7 @@ cmd_addzone ()
     }
 
     /* TODO - KICK THE ENFORCER? */
+    /* <matthijs> TODO - ods-signer update? */
 
     printf("Imported zone: %s\n", o_zone);
 
