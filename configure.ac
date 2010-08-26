@@ -164,7 +164,7 @@ AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to 
 AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_signer}" = "yes"])
 
 # cunit
-AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no"])
+AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])
 
 # signer
 AC_ARG_ENABLE(signer,
