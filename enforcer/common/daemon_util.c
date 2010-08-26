@@ -329,7 +329,7 @@ usage(const char* prog)
 /*    fprintf(stderr, "  -u user     Change effective uid to the specified user.\n");*/
     fprintf(stderr, "  -P pidfile  Specify the PID file to write.\n");
 
-    fprintf(stderr, "  -v          Print version.\n");
+    fprintf(stderr, "  -V          Print version.\n");
     fprintf(stderr, "  -[?|h]      This help.\n");
 }
 
@@ -482,7 +482,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
     /*
      * Read the command line
      */
-    while ((c = getopt(*argc, argv, "1c:hdv?u:P:")) != -1) {
+    while ((c = getopt(*argc, argv, "1c:hdV?u:P:")) != -1) {
         switch (c) {
             case '1':
                 config->once = true;
@@ -542,7 +542,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
             case '?':
                 usage(config->program);
                 exit(0);
-            case 'v':
+            case 'V':
                 version();
                 exit(0);
             default:
