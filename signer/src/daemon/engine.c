@@ -744,17 +744,17 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         engine_config_print(stdout, engine->config);
         goto earlyexit;
     }
+
+    /* open log */
+    se_log_init(engine->config->log_filename, engine->config->use_syslog,
+       engine->config->verbosity);
+
     /* set up hsm */
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL); /* LEAKS */
     if (result != HSM_OK) {
         se_log_error("Error initializing libhsm (errno %i)", result);
         goto earlyexit;
     }
-
-    /* open log */
-    se_log_init(engine->config->log_filename, engine->config->use_syslog,
-       engine->config->verbosity);
-
     /* setup */
     tzset(); /* for portability */
     if (engine_setup(engine) != 0) {
