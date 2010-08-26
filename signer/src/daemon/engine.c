@@ -381,7 +381,7 @@ static int
 engine_setup(engine_type* engine)
 {
     struct sigaction action;
-    int result;
+    int result = 0;
 
     se_log_assert(engine);
     se_log_assert(engine->config);
@@ -643,7 +643,7 @@ static int
 start_zonefetcher(engine_type* engine)
 {
     pid_t zfpid = 0;
-    int result;
+    int result = 0;
 
     se_log_assert(engine);
     se_log_assert(engine->config);
@@ -731,7 +731,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 {
     engine_type* engine = NULL;
     int use_syslog = 0;
-    int result = 0;
 
     se_log_assert(cfgfile);
     se_log_init(NULL, use_syslog, cmdline_verbosity);

@@ -38,6 +38,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+#define AUTHOR_NAME "Matthijs Mekking"
+#define COPYRIGHT_STR "Copyright (C) 2008-2010 NLnet Labs OpenDNSSEC"
+
+
 /**
  * Prints usage.
  *
@@ -55,11 +60,29 @@ usage(FILE* out)
     fprintf(out, " -h | --help             Show this help and exit.\n");
     fprintf(out, " -i | --info             Print configuration and exit.\n");
     fprintf(out, " -v | --verbose          Increase verbosity.\n");
+    fprintf(out, " -V | --version          Show version and exit.\n");
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
                  "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
         PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }
+
+
+/**
+ * Prints version.
+ *
+ */
+static void
+version(out)
+{
+    fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+    fprintf(out, "Written by %s.\n\n", AUTHOR_NAME);
+    fprintf(out, "%s.  This is free software.\n", COPYRIGHT_STR);
+    fprintf(out, "See source files for more license information\n");
+    exit(0);
+}
+
+
 
 
 /**
@@ -83,11 +106,12 @@ main(int argc, char* argv[])
         {"help", no_argument, 0, 'h'},
         {"info", no_argument, 0, 'i'},
         {"verbose", no_argument, 0, 'v'},
+        {"version", no_argument, 0, 'V'},
         { 0, 0, 0, 0}
     };
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "1c:dhiv",
+    while ((c=getopt_long(argc, argv, "1c:dhivV",
         long_options, &options_index)) != -1) {
         switch (c) {
             case '1':
@@ -106,7 +130,10 @@ main(int argc, char* argv[])
             case 'v':
                 cmdline_verbosity++;
                 break;
-            /* version */
+            case 'V':
+                version(stdout);
+                exit(0);
+                break;
             default:
                 usage(stderr);
                 exit(2);
