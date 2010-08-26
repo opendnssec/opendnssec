@@ -47,6 +47,8 @@
 # include <unistd.h>
 #endif
 
+#define SYSTEM_MAXLEN 1024
+
 /**
  * Convert file mode to readable string.
  * \param[in] mode file mode

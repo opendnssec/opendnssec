@@ -43,8 +43,6 @@
 
 #include <unistd.h> /* unlink() */
 
-#define SYSTEM_MAXLEN 255
-
 
 /**
  * Read zone's input adapter.

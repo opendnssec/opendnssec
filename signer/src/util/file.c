@@ -43,8 +43,6 @@
 #include <sys/stat.h> /* stat() */
 #include <unistd.h> /* chown() */
 
-#define SYSTEM_MAXLEN 1024
-
 
 /**
  * Convert file mode to readable string.
