@@ -179,6 +179,8 @@ adfile_read_line(FILE* fd, char* line, unsigned int* l)
             if (depth == 0) {
                 break;
             }
+            line[li] = ' ';
+            li++;
         } else {
             line[li] = c;
             li++;
