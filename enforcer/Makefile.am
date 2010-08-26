@@ -2,7 +2,11 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-SUBDIRS = ksm common enforcerd utils test
+SUBDIRS = ksm common enforcerd utils 
+
+if WITH_CUNIT
+SUBDIRS += test
+endif
 
 doxygen:
 	rm -fr $(top_builddir)/enforcer/doxygen-doc

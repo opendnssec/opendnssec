@@ -163,6 +163,9 @@ ACX_CUNIT
 AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
 AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_signer}" = "yes"])
 
+# cunit
+AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no"])
+
 # signer
 AC_ARG_ENABLE(signer,
 	AC_HELP_STRING([--disable-signer],
