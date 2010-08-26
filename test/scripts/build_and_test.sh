@@ -129,17 +129,9 @@ setup_test_zones()
 	${SANDBOX}/bin/ods-ksmutil key generate --interval P1Y --policy default
 }
 
-# TODO: - this should be replaced by ods-control start when it is fixed
 ods_start()
 {
-	${SANDBOX}/sbin/ods-enforcerd -1
-	sleep 5
-	${SANDBOX}/sbin/ods-enforcerd 
-	sleep 5
-	${SANDBOX}/sbin/ods-signerd
-	sleep 5
-	${SANDBOX}/sbin/ods-signer zones
-	sleep 1	
+        ${SANDBOX}/sbin/ods-control start
 }
 
 ods_sign()
