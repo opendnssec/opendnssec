@@ -463,6 +463,13 @@ engine_setup(engine_type* engine)
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
 
+    /* set up hsm */
+    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL); /* LEAKS */
+    if (result != HSM_OK) {
+        se_log_error("Error initializing libhsm (errno %i)", result);
+        return 1;
+    }
+
     /* set up the work floor */
     engine->tasklist = tasklist_create(); /* tasks */
     engine->zonelist = zonelist_create(); /* zones */
@@ -749,12 +756,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     se_log_init(engine->config->log_filename, engine->config->use_syslog,
        engine->config->verbosity);
 
-    /* set up hsm */
-    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL); /* LEAKS */
-    if (result != HSM_OK) {
-        se_log_error("Error initializing libhsm (errno %i)", result);
-        goto earlyexit;
-    }
     /* setup */
     tzset(); /* for portability */
     if (engine_setup(engine) != 0) {
