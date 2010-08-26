@@ -132,7 +132,7 @@ setup_test_zones()
 ods_start()
 {
         ${SANDBOX}/sbin/ods-control start
-        sleep 5
+        sleep 10
         ${SANDBOX}/sbin/ods-signer zones
 }
 
@@ -142,7 +142,7 @@ ods_sign()
 	${SANDBOX}/sbin/ods-signer sign example.com
 	${SANDBOX}/sbin/ods-signer sign all.rr.org
 	${SANDBOX}/sbin/ods-signer sign all.rr.binary.org
-	sleep 5	
+	sleep 10
 }
 
 ods_stop()
