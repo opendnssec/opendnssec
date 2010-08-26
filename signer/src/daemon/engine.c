@@ -381,7 +381,6 @@ static int
 engine_setup(engine_type* engine)
 {
     struct sigaction action;
-    int result = 0;
 
     se_log_assert(engine);
     se_log_assert(engine->config);
@@ -463,13 +462,6 @@ engine_setup(engine_type* engine)
     action.sa_flags = 0;
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
-
-    /* set up hsm */
-    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL); /* LEAKS */
-    if (result != HSM_OK) {
-        se_log_error("Error initializing libhsm (errno %i)", result);
-        return 1;
-    }
 
     /* set up the work floor */
     engine->tasklist = tasklist_create(); /* tasks */
@@ -731,6 +723,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 {
     engine_type* engine = NULL;
     int use_syslog = 0;
+    int result = 0;
 
     se_log_assert(cfgfile);
     se_log_init(NULL, use_syslog, cmdline_verbosity);
@@ -746,22 +739,16 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     engine->config = engine_config(cfgfile, cmdline_verbosity);
     if (engine_check_config(engine->config) != 0) {
         se_log_error("cfgfile %s has errors", cfgfile?cfgfile:"(null)");
-        engine->need_to_exit = 1;
-        xmlCleanupParser();
-        xmlCleanupGlobals();
-        xmlCleanupThreads();
-        engine_cleanup(engine);
-        engine = NULL;
-        return;
     }
     if (info) {
         engine_config_print(stdout, engine->config);
-        xmlCleanupParser();
-        xmlCleanupGlobals();
-        xmlCleanupThreads();
-        engine_cleanup(engine);
-        engine = NULL;
-        return;
+        goto earlyexit;
+    }
+    /* set up hsm */
+    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL); /* LEAKS */
+    if (result != HSM_OK) {
+        se_log_error("Error initializing libhsm (errno %i)", result);
+        goto earlyexit;
     }
 
     /* open log */
@@ -809,6 +796,8 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     }
     (void)unlink(engine->config->pid_filename);
     (void)unlink(engine->config->clisock_filename);
+
+earlyexit:
     engine_cleanup(engine);
     engine = NULL;
     se_log_close();
