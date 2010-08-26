@@ -70,6 +70,8 @@ static int log_level = LOG_CRIT;
    -
 */
 
+#define MY_PACKAGE_TARNAME "ods-signerd"
+
 
 /**
  * Initialize logging.
@@ -96,7 +98,7 @@ se_log_init(const char *filename, int use_syslog, int verbosity)
     }
     if(use_syslog) {
        facility = se_log_get_facility(filename);
-       openlog(PACKAGE_TARNAME, LOG_NDELAY, facility);
+       openlog(MY_PACKAGE_TARNAME, LOG_NDELAY, facility);
        logging_to_syslog = 1;
        return;
     }
@@ -215,7 +217,7 @@ se_log_vmsg(int priority, const char* t, const char* s, va_list args)
     nowstr[CTIME_LENGTH-2] = '\0'; /* remove trailing linefeed */
 
     fprintf(logfile, "[%s] %s[%i] %s: %s\n", nowstr,
-        PACKAGE_TARNAME, priority, t, message);
+        MY_PACKAGE_TARNAME, priority, t, message);
     fflush(logfile);
 }
 
