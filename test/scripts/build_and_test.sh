@@ -45,6 +45,11 @@ build_opendnssec()
 		CONFIGURE_ARGS="$CONFIGURE_ARGS --with-ldns=/opt/ldns"
 	fi
 
+	# on macosx, cunit lives elsewhere
+	#if [ -f /opt/local/lib/libcunit.a ]; then
+	#	CONFIGURE_ARGS="$CONFIGURE_ARGS --with-cunit=/opt/local"
+	#fi
+
 	if [ -f ${LIBSOFTHSM} ]; then
 		CONFIGURE_ARGS="$CONFIGURE_ARGS --with-pkcs11-softhsm=${LIBSOFTHSM}"
 	else
