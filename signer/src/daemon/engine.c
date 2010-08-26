@@ -381,6 +381,7 @@ static int
 engine_setup(engine_type* engine)
 {
     struct sigaction action;
+    int result;
 
     se_log_assert(engine);
     se_log_assert(engine->config);
