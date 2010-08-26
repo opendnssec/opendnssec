@@ -76,6 +76,7 @@ hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
     if (!key_id->dnskey) {
         return 1;
     }
+    key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
     return 0;
 }
 
@@ -96,7 +97,6 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
     se_log_assert(inception);
     se_log_assert(expiration);
 
-    key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
     key_id->params->inception = inception;
     key_id->params->expiration = expiration;
 
