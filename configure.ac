@@ -230,6 +230,10 @@ if test "x${enable_eppclient}" = "xyes"; then
 fi
 AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
 
+# check for a green cucumber
+AC_PATH_PROG(CUCUMBER, cucumber)
+AM_CONDITIONAL([WITH_CUCUMBER], [test -x "${CUCUMBER}"])
+
 # doxygen
 DX_PDF_FEATURE(OFF)
 DX_PS_FEATURE(OFF)
@@ -258,8 +262,10 @@ AC_CONFIG_FILES([
 	enforcer/utils/Makefile
 	enforcer/utils/ods-ksmutil.1
 	enforcer/test/Makefile
-	enforcer/test/database_setup_mysql.sh
-	enforcer/test/database_setup_sqlite3.sh
+	enforcer/test/cucumber/Makefile
+	enforcer/test/cunit/Makefile
+	enforcer/test/cunit/database_setup_mysql.sh
+	enforcer/test/cunit/database_setup_sqlite3.sh
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/ods-hsmspeed.1

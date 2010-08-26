@@ -8,8 +8,8 @@ LIBCOMPAT = ${top_builddir}/common/libcompat.a
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
-	-I$(srcdir)/../ksm/include \
-	-I$(builddir)/../ksm/include \
+	-I$(srcdir)/../../ksm/include \
+	-I$(builddir)/../../ksm/include \
 	@CUNIT_INCLUDES@ \
 	@DB_INCLUDES@
 
@@ -33,5 +33,6 @@ TESTS_ENVIRONMENT = \
 
 TESTS = test
 
-test_LDADD = ../ksm/libksm.a @CUNIT_LIBS@ @DB_LIBS@ $(LIBHSM) $(LIBCOMPAT)
+test_LDADD = $(builddir)/../../ksm/libksm.a \
+	@CUNIT_LIBS@ @DB_LIBS@ $(LIBHSM) $(LIBCOMPAT)
 test_LDFLAGS = -no-install
