@@ -132,6 +132,7 @@ setup_test_zones()
 ods_start()
 {
         ${SANDBOX}/sbin/ods-control start
+        sleep 5
 }
 
 ods_sign()
