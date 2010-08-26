@@ -140,8 +140,8 @@ ods_sign()
 {
         ${SANDBOX}/sbin/ods-signer sign unknown.rr.org
 	${SANDBOX}/sbin/ods-signer sign example.com
-	echo ${SANDBOX}/sbin/ods-signer sign all.rr.org
-	echo ${SANDBOX}/sbin/ods-signer sign all.rr.binary.org
+	${SANDBOX}/sbin/ods-signer sign all.rr.org
+	${SANDBOX}/sbin/ods-signer sign all.rr.binary.org
 	sleep 5	
 }
 
@@ -162,8 +162,7 @@ ods_sign
 ods_stop
 
 echo "NOW CHECK THAT ZONES HAVE BEEN SIGNED"
-echo Still to check all.rr.org and all.rr.binary.org
-ruby ${SRCDIR}/test/scripts/check_zones_exist.sh unknown.rr.org example.com
+ruby ${SRCDIR}/test/scripts/check_zones_exist.sh unknown.rr.org example.com all.rr.org all.rr.binary.org
 
 ret=$?
 exit $ret
