@@ -9,6 +9,8 @@ AC_DEFUN([ACX_CUNIT],[
 			CUNIT_PATH="/usr/local"
 		])
 
+	AS_IF([test "x$with_cunit" != xno],[
+
 	AC_MSG_CHECKING(what are the cunit includes)
 	CUNIT_INCLUDES="-I$CUNIT_PATH/include"
 	AC_MSG_RESULT($CUNIT_INCLUDES)
@@ -31,6 +33,12 @@ AC_DEFUN([ACX_CUNIT],[
 
 	CPPFLAGS=$tmp_INCLUDES
 	LIBS=$tmp_LIBS
+
+	],[
+		AC_MSG_NOTICE([cunit disabled])
+		CUNIT_INCLUDES=
+		CUNIT_LIBS=
+	])
 
 	AC_SUBST(CUNIT_INCLUDES)
 	AC_SUBST(CUNIT_LIBS)
