@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: conf.xml.in 1898 2009-09-29 12:41:15Z jakob $ -->
+<!-- $Id$ -->
 
 <Configuration>
 
 	<RepositoryList>
 
 		<Repository name="softHSM">
-			<Module>/usr/local/lib/libsofthsm.dylib</Module>
+			<Module>@pkcs11_softhsm_module@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
-<Capacity>10000</Capacity>
+			<Capacity>10000</Capacity>
 		</Repository>
 
 	</RepositoryList>
