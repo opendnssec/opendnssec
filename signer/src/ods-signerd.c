@@ -73,7 +73,7 @@ usage(FILE* out)
  *
  */
 static void
-version(out)
+version(FILE* out)
 {
     fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
     fprintf(out, "Written by %s.\n\n", AUTHOR_NAME);
