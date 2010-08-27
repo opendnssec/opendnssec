@@ -140,6 +140,9 @@ worker_perform_task(worker_type* worker, task_type* task)
 {
     zone_type* zone = NULL;
     engine_type* engine = (engine_type*) worker->engineptr;
+    char* working_dir = NULL;
+    char* cfg_filename = NULL;
+    int error = 0;
 
     se_log_assert(worker);
     se_log_assert(task);
@@ -196,7 +199,16 @@ worker_perform_task(worker_type* worker, task_type* task)
             }
             task->what = TASK_AUDIT;
         case TASK_AUDIT:
-            if (tools_audit(zone, engine->config) != 0) {
+            lock_basic_lock(&engine->config->config_lock);
+            working_dir = se_strdup(engine->config->working_dir);
+            cfg_filename = se_strdup(engine->config->cfg_filename);
+            lock_basic_unlock(&engine->config->config_lock);
+            error = tools_audit(zone, working_dir, cfg_filename);
+            if (working_dir)  { se_free((void*)working_dir); }
+            if (cfg_filename) { se_free((void*)cfg_filename); }
+            working_dir = NULL;
+            cfg_filename = NULL;
+            if (error) {
                 se_log_error("task [audit zone %s] failed",
                     task->who?task->who:"(null)");
                 task->what = TASK_SIGN;

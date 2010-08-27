@@ -116,9 +116,13 @@ se_rbnode_free(ldns_rbnode_t* node)
 char*
 se_strdup(const char *s)
 {
-    char* dup = strdup(s);
-    if (!dup) {
-        se_fatal_exit("memory allocation failed (strdup): out of memory");
+    char* dup = NULL;
+
+    if (s) {
+        dup = strdup(s);
+        if (!dup) {
+            se_fatal_exit("memory allocation failed (strdup): out of memory");
+        }
     }
     return dup;
 }

@@ -683,8 +683,14 @@ zone_cleanup(zone_type* zone)
             se_free((void*) zone->policy_name);
             zone->policy_name = NULL;
         }
-        se_free((void*) zone->signconf_filename);
-        se_free((void*) zone->name);
+        if (zone->signconf_filename) {
+            se_free((void*) zone->signconf_filename);
+            zone->signconf_filename = NULL;
+        }
+        if (zone->name) {
+            se_free((void*) zone->name);
+            zone->name = NULL;
+        }
 
         lock_basic_destroy(&zone->zone_lock);
         se_free((void*) zone);

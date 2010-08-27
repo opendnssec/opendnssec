@@ -81,11 +81,12 @@ int tools_sign(zone_type* zone);
 /**
  * Audit zone.
  * \param[in] zone zone
- * \param[in] config configuration settings
+ * \param[in] working_dir working directory
+ * \param[in] cfg_filename conf.xml filename
  * \return int 0 on success, 1 on fail
  *
  */
-int tools_audit(zone_type* zone, engineconfig_type* config);
+int tools_audit(zone_type* zone, char* working_dir, char* cfg_filename);
 
 /**
  * Write zone to output adapter.

@@ -35,6 +35,7 @@
 #define DAEMON_CONFIG_H
 
 #include "config.h"
+#include "scheduler/locks.h"
 
 #include <stdio.h>
 
@@ -59,6 +60,8 @@ struct engineconfig_struct {
     int num_worker_threads;
     int num_signer_threads;
     int verbosity;
+
+    lock_basic_type config_lock;
 };
 
 /**

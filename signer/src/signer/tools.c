@@ -180,7 +180,7 @@ tools_sign(zone_type* zone)
  *
  */
 int
-tools_audit(zone_type* zone, engineconfig_type* config)
+tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
 {
     char* finalized = NULL;
     char str[SYSTEM_MAXLEN];
@@ -200,19 +200,12 @@ tools_audit(zone_type* zone, engineconfig_type* config)
             return 1;
         }
 
-        if (config->working_dir) {
-            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s > /dev/null",
-                ODS_SE_AUDITOR,
-                config->cfg_filename?config->cfg_filename:ODS_SE_CFGFILE,
-                config->working_dir, finalized?finalized:"(null)",
-                zone->name?zone->name:"(null)");
-        } else {
-            snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s -z %s > /dev/null",
-                ODS_SE_AUDITOR,
-                config->cfg_filename?config->cfg_filename:ODS_SE_CFGFILE,
-                finalized?finalized:"(null)",
-                zone->name?zone->name:"(null)");
-        }
+        snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s > /dev/null",
+            ODS_SE_AUDITOR,
+            cfg_filename?cfg_filename:ODS_SE_CFGFILE,
+            working_dir?working_dir:"",
+            finalized?finalized:"(null)",
+            zone->name?zone->name:"(null)");
 
         se_log_debug("system call: %s", str);
         error = system(str);

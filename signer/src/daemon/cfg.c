@@ -85,6 +85,8 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
 
         /* done */
         se_fclose(cfgfd);
+
+        lock_basic_init(&ecfg->config_lock);
         return ecfg;
     }
 
@@ -204,18 +206,52 @@ engine_config_cleanup(engineconfig_type* config)
 {
     if (config) {
         se_log_debug("clean up config");
-        se_free((void*) config->cfg_filename);
-        se_free((void*) config->zonelist_filename);
-        se_free((void*) config->zonefetch_filename);
-        se_free((void*) config->log_filename);
-        se_free((void*) config->pid_filename);
-        se_free((void*) config->notify_command);
-        se_free((void*) config->clisock_filename);
-        se_free((void*) config->working_dir);
-        se_free((void*) config->username);
-        se_free((void*) config->group);
-        se_free((void*) config->chroot);
+        if (config->cfg_filename) {
+            se_free((void*) config->cfg_filename);
+            config->cfg_filename = NULL;
+        }
+        if (config->zonelist_filename) {
+            se_free((void*) config->zonelist_filename);
+            config->zonelist_filename = NULL;
+        }
+        if (config->zonefetch_filename) {
+            se_free((void*) config->zonefetch_filename);
+            config->zonefetch_filename = NULL;
+        }
+        if (config->log_filename) {
+            se_free((void*) config->log_filename);
+            config->zonefetch_filename = NULL;
+        }
+        if (config->pid_filename) {
+            se_free((void*) config->pid_filename);
+            config->pid_filename = NULL;
+        }
+        if (config->notify_command) {
+            se_free((void*) config->notify_command);
+            config->notify_command = NULL;
+        }
+        if (config->zonefetch_filename) {
+            se_free((void*) config->clisock_filename);
+            config->clisock_filename = NULL;
+        }
+        if (config->working_dir) {
+            se_free((void*) config->working_dir);
+            config->working_dir = NULL;
+        }
+        if (config->username) {
+            se_free((void*) config->username);
+            config->username = NULL;
+        }
+        if (config->group) {
+            se_free((void*) config->group);
+            config->group = NULL;
+        }
+        if (config->chroot) {
+            se_free((void*) config->chroot);
+            config->chroot = NULL;
+        }
         se_free((void*) config);
+        lock_basic_destroy(&config->config_lock);
     } else {
         se_log_warning("cleanup empty config");
     }
