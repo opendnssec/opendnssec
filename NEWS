@@ -16,6 +16,7 @@ OpenDNSSEC trunk
   that the key is in use for.
 * Backup prepare/commit/rollback added for 2-step backups without taking the
   enforcer offline.
+* Recalculate salt immediately if the saltlength is changed.
 
 OpenDNSSEC 1.1.0 branch
 

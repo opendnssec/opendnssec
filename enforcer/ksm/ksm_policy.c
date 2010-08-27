@@ -648,6 +648,58 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
     return status;
 }
 
+/*+
+ * KsmPolicyNullSaltStamp
+ *
+ * Description:
+ *      Given a policy id set its saltstamp to NULL, this will force a resalt on
+ *      the next enforcer run, suitable for when salt length has changed for 
+ *      instance.
+ *
+ * Arguments:
+ *      int policy_id
+ *      	policy to work on
+ *
+ * Returns:
+ *      int
+ *          Status return:
+ *              0           success
+ *              non-zero    some error occurred and a message has been output.
+ *              -1          no policy found
+ *
+-*/
+
+int KsmPolicyNullSaltStamp(int policy_id)
+{
+    char    buffer[KSM_SQL_SIZE];   /* update statement for salt_stamp */
+    unsigned int    nchar;          /* Number of characters converted */
+    int status = 0;
+   
+    /* check the argument */
+    if (policy_id < 1) {
+        MsgLog(KSM_INVARG, "Negative or zero policy_id");
+        return -1;
+    }
+
+     nchar = snprintf(buffer, sizeof(buffer),
+             "UPDATE policies SET salt_stamp = NULL WHERE ID = %lu",
+             (unsigned long) policy_id);
+
+     if (nchar < sizeof(buffer)) {
+         /* All OK, execute the statement */
+
+         status = DbExecuteSqlNoResult(DbHandle(), buffer);
+     }
+     else {
+         /* Unable to create update statement */
+
+         status = MsgLog(KME_BUFFEROVF, "KsmPolicy");
+     }
+
+     return status;
+}
+
+
 /* Populate security module information for a structure that has the sm_id fields filled in */
 
 int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy)

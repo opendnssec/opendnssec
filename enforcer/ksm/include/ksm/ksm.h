@@ -275,6 +275,7 @@ int KsmPolicyParameter(DB_RESULT handle, KSM_POLICY_PARAMETER* data);
 int KsmPolicyReadFromId(KSM_POLICY* policy);
 int KsmPolicyNameFromId(KSM_POLICY* policy);
 int KsmPolicyUpdateSalt(KSM_POLICY* policy);
+int KsmPolicyNullSaltStamp(int policy_id);
 int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy);
 int KsmPolicySetIdFromName(KSM_POLICY *policy);
 int KsmPolicyIdFromZoneId(int zone_id, int* policy_id);

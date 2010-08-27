@@ -4303,6 +4303,17 @@ int SetParamOnPolicy(const xmlChar* new_value, const char* name, const char* cat
             printf("Error: Is your database schema up to date?\n");
             return status;
         }
+
+        /* Special step if salt length changed make sure that the salt is 
+           regenerated when the enforcer runs next */
+        if (strncmp(name, "saltlength", 10) == 0) {
+            status = KsmPolicyNullSaltStamp(policy_id);
+            if (status != 0) {
+                printf("Error: unable to insert/update %s for policy\n", name);
+                printf("Error: Is your database schema up to date?\n");
+                return status;
+            }
+        }
     }
 
     return 0;
