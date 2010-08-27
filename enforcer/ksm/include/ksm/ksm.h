@@ -606,7 +606,7 @@ int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy);
 /* KsmImport */
 int KsmImportRepository(const char* repo_name, const char* repo_capacity, int require_backup);
 int KsmImportPolicy(const char* policy_name, const char* policy_description);
-int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone);
+int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone, const char* signconf, const char* input, const char* output);
 int KsmImportAudit(int policy_id, const char* audit_contents);
 int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, DB_ID* id);
 int KsmSmIdFromName(const char* name, int *id);

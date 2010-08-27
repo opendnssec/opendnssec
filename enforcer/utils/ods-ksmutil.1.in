@@ -91,7 +91,7 @@ not deleted.
 .SH "ZONE MANAGEMENT SUBCOMMANDS"
 .LP
 .TP
-.B zone add \-\-zone|\-z \fIzone\fB [--policy|-p \fIname\fB] [--input|-i \fIinput\fB] [--output|-o \fIoutput\fB]
+.B zone add \-\-zone|\-z \fIzone\fB [--policy|-p \fIname\fB] [\-\-input|-i \fIinput\fB] [\-\-output|-o \fIoutput\fB] [\-\-no\-xml]
 Add a zone to both zonelist.xml and the database.  This is equivalent to
 manually editing zonelist.xml and then running the
 .B update zonelist
@@ -101,8 +101,11 @@ the policy to use instead of default; the \-\-input option specifies a
 non-standard location for the unsigned zone (default is 
 @OPENDNSSEC_STATE_DIR@/unsigned/ZONE); the \-\-output option specifies a non-standard 
 location for the signed zone (default is @OPENDNSSEC_STATE_DIR@/signed/ZONE).
+The \-\-no\-xml flag stops the zonelist.xml file from being updated. This is
+suitable for a batch mode where you will add multiple zones and then just write
+zonelist once at the end.
 .TP
-.B zone delete --zone|-z \fIname\fB
+.B zone delete --zone|-z \fIname\fB [\-\-no\-xml]
 .TP
 .B zone delete --all|-a
 Delete one zone (or all zones, respectively) from both zonelist.xml and
@@ -110,6 +113,9 @@ the database.  This is equivalent to manually editing zonelist.xml and then
 running the
 .B update zonelist
 subcommand.
+The \-\-no\-xml flag stops the zonelist.xml file from being updated. This is
+suitable for a batch mode where you will delete multiple zones and then just 
+write zonelist once at the end.
 .TP
 .B zone list
 List zones from the zonelist.xml.

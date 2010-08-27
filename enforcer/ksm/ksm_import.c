@@ -186,6 +186,15 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
  *      int *new_zone
  *          (returned) indicate if the zone was new to the database
  *
+ *      const char* signconf
+ *          Where is the signconf saved
+ *
+ *      const char* input
+ *          Where is the input file
+ *
+ *      const char* output
+ *          Where is the output file
+ *
  * Returns:
  *      int
  *          Status return.  0 on success.
@@ -193,7 +202,7 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
  *                         -2 if the zone exists and fail_if_exists == 1
 -*/
 
-int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone)
+int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone, const char* signconf, const char* input, const char* output)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -224,9 +233,12 @@ int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int 
     /* If the count was 0 then we do an insert, otherwise we do an update */
     if (count == 0)
     {
-        sql = DisSpecifyInit(DB_ZONE_TABLE, "name, policy_id");
+        sql = DisSpecifyInit(DB_ZONE_TABLE, "name, policy_id, signconf, input, output");
         DisAppendString(&sql, zone_name);
         DisAppendInt(&sql, policy_id);
+        DisAppendString(&sql, signconf);
+        DisAppendString(&sql, input);
+        DisAppendString(&sql, output);
         DisEnd(&sql);
 
         status = DbExecuteSqlNoResult(DbHandle(), sql);
@@ -241,6 +253,9 @@ int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int 
         }
         sql = DusInit(DB_ZONE_TABLE);
         DusSetInt(&sql, "policy_id", policy_id, 0);
+        DusSetString(&sql, "signconf", signconf, 1);
+        DusSetString(&sql, "input", input, 2);
+        DusSetString(&sql, "output", output, 3);
         DusConditionString(&sql, "name", DQS_COMPARE_EQ, zone_name, 0);
         DusEnd(&sql);
 

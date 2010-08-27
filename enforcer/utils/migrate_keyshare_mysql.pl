@@ -192,6 +192,15 @@ $dbh->do("alter table keypairs add column pre_backup timestamp null default null
     or die "Couldn't add column pre_backup: $!";
 
 ###
+# Add new columns to zones table
+$dbh->do("alter table zones add column signconf varchar(4096)")
+    or die "Couldn't add column signconf: $!";
+$dbh->do("alter table zones add column input varchar(4096)")
+    or die "Couldn't add column input: $!";
+$dbh->do("alter table zones add column output varchar(4096)")
+    or die "Couldn't add column output: $!";
+
+###
 # Update DB version number
 $dbh->do("update dbadmin set version = 2")
     or die "Couldn't update dbadmin: $!";

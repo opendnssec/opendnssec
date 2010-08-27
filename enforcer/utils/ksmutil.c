@@ -104,6 +104,7 @@ static int all_flag = 0;
 static int ds_flag = 0;
 static int retire_flag = 1;
 static int verbose_flag = 0;
+static int xml_flag = 1;
 
 static int restart_enforcerd(void);
 
@@ -849,7 +850,7 @@ cmd_addzone ()
         StrFree(output_name);
         return(1);
     }
-    status = KsmImportZone(o_zone, policy_id, 1, &new_zone);
+    status = KsmImportZone(o_zone, policy_id, 1, &new_zone, sig_conf_name, input_name, output_name);
     if (status != 0) {
         if (status == -2) {
             printf("Failed to Import zone; it already exists\n");
@@ -906,45 +907,52 @@ cmd_addzone ()
     db_disconnect(lock_fd);
     DbDisconnect(dbhandle);
 
-    /* Read the file and add our new node in memory */
-    /* TODO don't add if it already exists */
-    xmlKeepBlanksDefault(0);
-    xmlTreeIndentString = "\t";
-    doc = add_zone_node(zonelist_filename, o_zone, o_policy, sig_conf_name, input_name, output_name);
+    if (xml_flag == 1) {
+        /* Read the file and add our new node in memory */
+        /* TODO don't add if it already exists */
+        xmlKeepBlanksDefault(0);
+        xmlTreeIndentString = "\t";
+        doc = add_zone_node(zonelist_filename, o_zone, o_policy, sig_conf_name, input_name, output_name);
 
-    StrFree(sig_conf_name);
-    StrFree(input_name);
-    StrFree(output_name);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
 
-    if (doc == NULL) {
+        if (doc == NULL) {
+            StrFree(zonelist_filename);
+            return(1);
+        }
+
+        /* Backup the current zonelist */
+        StrAppend(&backup_filename, zonelist_filename);
+        StrAppend(&backup_filename, ".backup");
+        status = backup_file(zonelist_filename, backup_filename);
+        StrFree(backup_filename);
+        if (status != 0) {
+            StrFree(zonelist_filename);
+            return(status);
+        }
+
+        /* Save our new one over, TODO should we validate it first? */
+        status = xmlSaveFormatFile(zonelist_filename, doc, 1);
         StrFree(zonelist_filename);
-        return(1);
-    }
+        xmlFreeDoc(doc);
 
-    /* Backup the current zonelist */
-    StrAppend(&backup_filename, zonelist_filename);
-    StrAppend(&backup_filename, ".backup");
-    status = backup_file(zonelist_filename, backup_filename);
-    StrFree(backup_filename);
-    if (status != 0) {
-        StrFree(zonelist_filename);
-        return(status);
-    }
-
-    /* Save our new one over, TODO should we validate it first? */
-    status = xmlSaveFormatFile(zonelist_filename, doc, 1);
-    StrFree(zonelist_filename);
-    xmlFreeDoc(doc);
-
-    if (status == -1) {
-        printf("couldn't save zonelist\n");
-        return(1);
+        if (status == -1) {
+            printf("couldn't save zonelist\n");
+            return(1);
+        }
     }
 
     /* TODO - KICK THE ENFORCER? */
     /* <matthijs> TODO - ods-signer update? */
 
-    printf("Imported zone: %s\n", o_zone);
+    if (xml_flag == 0) {
+        printf("Imported zone: %s into database only, please run \"ods-ksmutil zonelist export\" to update zonelist.xml\n", o_zone);
+    } else {
+        printf("Imported zone: %s\n", o_zone);
+    }
+
 
     return 0;
 }
@@ -1009,42 +1017,44 @@ cmd_delzone ()
      * DO XML STUFF FIRST
      */
 
-    /* Set zonelist from the conf.xml that we have got */
-    status = read_zonelist_filename(&zonelist_filename);
-    if (status != 0) {
-        printf("couldn't read zonelist\n");
-        db_disconnect(lock_fd);
-        StrFree(zonelist_filename);
-        return(1);
-    }
+    if (xml_flag == 1) {
+        /* Set zonelist from the conf.xml that we have got */
+        status = read_zonelist_filename(&zonelist_filename);
+        if (status != 0) {
+            printf("couldn't read zonelist\n");
+            db_disconnect(lock_fd);
+            StrFree(zonelist_filename);
+            return(1);
+        }
 
-    /* Read the file and delete our zone node(s) in memory */
-    doc = del_zone_node(zonelist_filename, o_zone);
-    if (doc == NULL) {
-        db_disconnect(lock_fd);
-        StrFree(zonelist_filename);
-        return(1);
-    }
+        /* Read the file and delete our zone node(s) in memory */
+        doc = del_zone_node(zonelist_filename, o_zone);
+        if (doc == NULL) {
+            db_disconnect(lock_fd);
+            StrFree(zonelist_filename);
+            return(1);
+        }
 
-    /* Backup the current zonelist */
-    StrAppend(&backup_filename, zonelist_filename);
-    StrAppend(&backup_filename, ".backup");
-    status = backup_file(zonelist_filename, backup_filename);
-    StrFree(backup_filename);
-    if (status != 0) {
-        StrFree(zonelist_filename);
-        db_disconnect(lock_fd);
-        return(status);
-    }
+        /* Backup the current zonelist */
+        StrAppend(&backup_filename, zonelist_filename);
+        StrAppend(&backup_filename, ".backup");
+        status = backup_file(zonelist_filename, backup_filename);
+        StrFree(backup_filename);
+        if (status != 0) {
+            StrFree(zonelist_filename);
+            db_disconnect(lock_fd);
+            return(status);
+        }
 
-    /* Save our new one over, TODO should we validate it first? */
-    status = xmlSaveFormatFile(zonelist_filename, doc, 1);
-    xmlFreeDoc(doc);
-    StrFree(zonelist_filename);
-    if (status == -1) {
-        printf("Could not save %s\n", zonelist_filename);
-        db_disconnect(lock_fd);
-        return(1);
+        /* Save our new one over, TODO should we validate it first? */
+        status = xmlSaveFormatFile(zonelist_filename, doc, 1);
+        xmlFreeDoc(doc);
+        StrFree(zonelist_filename);
+        if (status == -1) {
+            printf("Could not save %s\n", zonelist_filename);
+            db_disconnect(lock_fd);
+            return(1);
+        }
     }
 
     /*
@@ -1111,6 +1121,10 @@ cmd_delzone ()
 
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
+
+    if (xml_flag == 0) {
+        printf("Deleted zone: %s from database only, please run \"ods-ksmutil zonelist export\" to update zonelist.xml\n", o_zone);
+    }
 
     return 0;
 }
@@ -2809,6 +2823,7 @@ main (int argc, char *argv[])
         {"help",    no_argument,       0, 'h'},
         {"input",   required_argument, 0, 'i'},
         {"cka_id",  required_argument, 0, 'k'},
+        {"no-xml",  no_argument,        0, 'm'},
         {"interval",  required_argument, 0, 'n'},
         {"output",  required_argument, 0, 'o'},
         {"policy",  required_argument, 0, 'p'},
@@ -2860,6 +2875,9 @@ main (int argc, char *argv[])
                 break;
             case 'k':
                 o_cka_id = StrStrdup(optarg);
+                break;
+            case 'm':
+                xml_flag = 0;
                 break;
             case 'n':
                 o_interval = StrStrdup(optarg);
@@ -3930,6 +3948,9 @@ int update_zones(char* zone_list_filename)
     char* zone_name = NULL;
     char* policy_name = NULL;
     char* current_policy = NULL;
+    char* current_signconf = NULL;
+    char* current_input = NULL;
+    char* current_output = NULL;
     char* temp_char = NULL;
     char* tag_name = NULL;
     int policy_id = 0;
@@ -3951,6 +3972,9 @@ int update_zones(char* zone_list_filename)
 
     xmlChar *name_expr = (unsigned char*) "name";
     xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
+    xmlChar *signconf_expr = (unsigned char*) "//Zone/SignerConfiguration";
+    xmlChar *input_expr = (unsigned char*) "//Zone/Adapters/Input/File";
+    xmlChar *output_expr = (unsigned char*) "//Zone/Adapters/Output/File";
 
     /* TODO validate the file ? */
     /* Read through the file counting zones TODO better way to do this? */
@@ -4027,7 +4051,6 @@ int update_zones(char* zone_list_filename)
                 /* Extract the Policy name for this zone */
                 /* Evaluate xpath expression for policy */
                 xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
-                xmlXPathFreeContext(xpathCtx);
                 if(xpathObj == NULL) {
                     printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
                     /* Don't return? try to parse the rest of the zones? */
@@ -4056,10 +4079,59 @@ int update_zones(char* zone_list_filename)
                     }
                 }
 
+                /* Extract the Signconf name for this zone */
+                /* Evaluate xpath expression */
+                xpathObj = xmlXPathEvalExpression(signconf_expr, xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", signconf_expr);
+                    /* Don't return? try to parse the rest of the zones? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                current_signconf = NULL;
+                temp_char = (char *)xmlXPathCastToString(xpathObj);
+                StrAppend(&current_signconf, temp_char);
+                StrFree(temp_char);
+                xmlXPathFreeObject(xpathObj);
+
+                /* Extract the Input name for this zone */
+                /* Evaluate xpath expression */
+                xpathObj = xmlXPathEvalExpression(input_expr, xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", input_expr);
+                    /* Don't return? try to parse the rest of the zones? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                current_input = NULL;
+                temp_char = (char *)xmlXPathCastToString(xpathObj);
+                StrAppend(&current_input, temp_char);
+                StrFree(temp_char);
+                xmlXPathFreeObject(xpathObj);
+
+                /* Extract the Output name for this zone */
+                /* Evaluate xpath expression */
+                xpathObj = xmlXPathEvalExpression(output_expr, xpathCtx);
+                xmlXPathFreeContext(xpathCtx);
+                if(xpathObj == NULL) {
+                    printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", output_expr);
+                    /* Don't return? try to parse the rest of the zones? */
+                    ret = xmlTextReaderRead(reader);
+                    continue;
+                }
+
+                current_output = NULL;
+                temp_char = (char *)xmlXPathCastToString(xpathObj);
+                StrAppend(&current_output, temp_char);
+                StrFree(temp_char);
+                xmlXPathFreeObject(xpathObj);
+
                 /*
                  * Now we have all the information update/insert this repository
                  */
-                status = KsmImportZone(zone_name, policy_id, 0, &new_zone);
+                status = KsmImportZone(zone_name, policy_id, 0, &new_zone, current_signconf, current_input, current_output);
                 if (status != 0) {
                     printf("Error Importing Zone %s\n", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -4094,6 +4166,9 @@ int update_zones(char* zone_list_filename)
 
                 StrFree(zone_name);
                 StrFree(current_policy);
+                StrFree(current_signconf);
+                StrFree(current_input);
+                StrFree(current_output);
 
                 new_zone = 0;
 

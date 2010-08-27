@@ -75,6 +75,9 @@ create table zones(
   id            integer primary key autoincrement,    -- id
   name          varchar(300) not null ,  -- name of the parameter
   policy_id     mediumint not null,
+  signconf      varchar(4096),  -- where is the signconf
+  input         varchar(4096),  -- where is the input
+  output        varchar(4096),  -- where is the output
   
   foreign key (policy_id) references policies (id)
 );

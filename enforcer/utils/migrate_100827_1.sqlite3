@@ -1,0 +1,5 @@
+-- Migrate existing database for zonelist stuff
+
+alter table zones add column signconf varchar(4096);
+alter table zones add column input varchar(4096);
+alter table zones add column output varchar(4096);

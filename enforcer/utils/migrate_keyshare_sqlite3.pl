@@ -187,6 +187,15 @@ if (compare("$opt_d.KEYDATA_BEFORE","$opt_d.KEYDATA_AFTER") != 0) {
 }
 
 ###
+# Add new columns to zones table
+$dbh->do("alter table zones add column signconf varchar(4096)")
+    or die "Couldn't add column signconf: $!";
+$dbh->do("alter table zones add column input varchar(4096)")
+    or die "Couldn't add column input: $!";
+$dbh->do("alter table zones add column output varchar(4096)")
+    or die "Couldn't add column output: $!";
+
+###
 # Update DB version number
 $dbh->do("update dbadmin set version = 2")
     or die "Couldn't update dbadmin: $!";
