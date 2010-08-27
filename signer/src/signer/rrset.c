@@ -379,6 +379,7 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     ldns_dnssec_rrs* prev_rrs = NULL;
     uint32_t refresh = 0;
     uint32_t expiration = 0;
+    uint32_t inception = 0;
 
     if (rrset->drop_signatures) {
         se_log_debug("drop signatures for RRset[%i]", rrset->rr_type);
@@ -400,8 +401,9 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     rrs = rrset->rrsigs;
     while (rrs) {
         expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(rrs->rr));
+        inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(rrs->rr));
 
-        if (!refresh || expiration < refresh) {
+        if (!refresh || expiration < refresh || inception > signtime) {
             /* this is it */
             se_log_debug("refresh signature for RRset[%i] (refresh=%u, "
                 "expiration=%u)", rrset->rr_type, refresh, expiration);
@@ -456,7 +458,7 @@ rrset_sign_set_timers(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
     }
 
     /**
-     * Additional chheck for signature lifetimes.
+     * Additional check for signature lifetimes.
      */
     if (((validity + offset + random_jitter) - jitter) <
         ((validity + offset) - jitter) ) {
