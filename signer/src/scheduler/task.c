@@ -418,7 +418,7 @@ tasklist_flush(tasklist_type* list)
 
     node = ldns_rbtree_first(list->tasks);
     while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->key;
+        task = (task_type*) node->data;
         task->flush = 1;
         node = ldns_rbtree_next(node);
     }
@@ -470,7 +470,7 @@ tasklist_pop_task(tasklist_type* list)
     }
 
     now = time_now();
-    pop = (task_type*) first_node->key;
+    pop = (task_type*) first_node->data;
     if (pop && (pop->flush || pop->when <= now)) {
         if (pop->flush) {
             se_log_debug("flush task for zone %s", pop->who?pop->who:"(null)");
@@ -504,7 +504,7 @@ tasklist_first_task(tasklist_type* list)
         return NULL;
     }
 
-    pop = (task_type*) first_node->key;
+    pop = (task_type*) first_node->data;
     return pop;
 }
 
@@ -524,7 +524,7 @@ tasklist_print(FILE* out, tasklist_type* list)
 
     node = ldns_rbtree_first(list->tasks);
     while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->key;
+        task = (task_type*) node->data;
         task_print(out, task);
         node = ldns_rbtree_next(node);
     }
