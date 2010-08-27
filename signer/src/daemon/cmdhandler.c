@@ -277,10 +277,6 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     se_log_assert(tbd);
     se_log_assert(cmdc);
     se_log_assert(cmdc->engine);
-    se_log_assert(cmdc->engine->tasklist);
-
-    /* lock tasklist */
-    lock_basic_lock(&cmdc->engine->tasklist->tasklist_lock);
 
     tmpname = se_build_path(tbd, ".unsorted", 0);
     unlink(tmpname);
@@ -293,10 +289,6 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     tmpname = se_build_path(tbd, ".rrsigs", 0);
     unlink(tmpname);
     se_free((void*)tmpname);
-
-    /* unlock tasklist */
-    lock_basic_unlock(&cmdc->engine->tasklist->tasklist_lock);
-
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "Internal information about "
         "%s cleared", tbd?tbd:"(null)");
