@@ -385,8 +385,9 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_type* cmdc)
     se_log_assert(cmdc);
     se_log_assert(cmdc->engine);
 
-    lock_basic_lock(&cmdc->engine->signal_lock);
     cmdc->engine->need_to_reload = 1;
+
+    lock_basic_lock(&cmdc->engine->signal_lock);
     lock_basic_alarm(&cmdc->engine->signal_cond);
     lock_basic_unlock(&cmdc->engine->signal_lock);
 
@@ -408,8 +409,9 @@ cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_type* cmdc)
     se_log_assert(cmdc);
     se_log_assert(cmdc->engine);
 
-    lock_basic_lock(&cmdc->engine->signal_lock);
     cmdc->engine->need_to_exit = 1;
+
+    lock_basic_lock(&cmdc->engine->signal_lock);
     lock_basic_alarm(&cmdc->engine->signal_cond);
     lock_basic_unlock(&cmdc->engine->signal_lock);
 
@@ -447,10 +449,8 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_type* cmdc, int val)
     se_log_assert(cmdc->engine);
     se_log_assert(cmdc->engine->config);
 
-    lock_basic_lock(&cmdc->engine->signal_lock);
     se_log_init(cmdc->engine->config->log_filename,
         cmdc->engine->config->use_syslog, val);
-    lock_basic_unlock(&cmdc->engine->signal_lock);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
     se_writen(sockfd, buf, strlen(buf));
