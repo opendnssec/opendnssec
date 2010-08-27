@@ -293,6 +293,8 @@ tasklist_cleanup(tasklist_type* list)
             while (node != LDNS_RBTREE_NULL) {
                 task = (task_type*) node->key;
                 task_cleanup(task);
+                task = (task_type*) node->data;
+                task_cleanup(task);
                 node = ldns_rbtree_next(node);
             }
             se_rbnode_free(list->tasks->root);
@@ -316,7 +318,10 @@ static ldns_rbnode_t*
 task2node(task_type* task)
 {
     ldns_rbnode_t* node = (ldns_rbnode_t*) se_malloc(sizeof(ldns_rbnode_t));
-    node->key = task;
+    task_type* task_key = task_create(task->what, task->when, task->who, task->zone);
+    task_key->backoff = task->backoff;
+    task_key->flush = task->flush;
+    node->key = task_key;
     node->data = task;
     return node;
 }
