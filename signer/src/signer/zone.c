@@ -630,7 +630,7 @@ zone_sign(zone_type* zone)
  * \return int 0 on success, 1 on error
  *
  */
-int zone_backup(zone_type* zone)
+int zone_backup_state(zone_type* zone)
 {
     int error = 0;
     char* filename = NULL;
@@ -644,13 +644,13 @@ int zone_backup(zone_type* zone)
     fd = se_fopen(filename, NULL, "w");
     if (fd) {
         fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
-        fprintf(fd, "; Zone state within OpenDNSSEC\n");
-        fprintf(fd, "; DO NOT EDIT MANUALLY!\n");
-        fprintf(fd, "zone_name: %s\n", zone->name?zone->name:"(null)");
-        fprintf(fd, "zd_outbound_serial: %u\n",
-            zone->zonedata->outbound_serial);
+        fprintf(fd, "name: %s\n", zone->name?zone->name:"(null)");
+        fprintf(fd, "class: %i\n", (int) zone->klass);
+        fprintf(fd, "default_ttl: %u\n", zone->zonedata->default_ttl);
+        fprintf(fd, "inbound_serial: %u\n", zone->zonedata->inbound_serial);
+        fprintf(fd, "internal_serial: %u\n", zone->zonedata->internal_serial);
+        fprintf(fd, "outbound_serial: %u\n", zone->zonedata->outbound_serial);
         fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
-
         se_fclose(fd);
     } else {
         se_log_error("cannot backup zone: cannot open file "

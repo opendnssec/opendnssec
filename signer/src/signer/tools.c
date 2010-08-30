@@ -90,6 +90,10 @@ tools_read_input(zone_type* zone)
     end = time(NULL);
     zone->stats->sort_time = (end-start);
 
+    if (!error) {
+        zone_backup_state(zone);
+    }
+
     return error;
 }
 
@@ -115,10 +119,16 @@ tools_add_dnskeys(zone_type* zone)
 int
 tools_update(zone_type* zone)
 {
+    int error = 0;
+
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_verbose("update zone %s", zone->name?zone->name:"(null)");
-    return zone_update_zonedata(zone);
+    error = zone_update_zonedata(zone);
+    if (!error) {
+        zone_backup_state(zone);
+    }
+    return error;
 }
 
 
@@ -171,6 +181,9 @@ tools_sign(zone_type* zone)
     error = zone_sign(zone);
     end = time(NULL);
     zone->stats->sig_time = (end-start);
+    if (!error) {
+        zone_backup_state(zone);
+    }
     return error;
 }
 
@@ -251,15 +264,9 @@ int tools_write_output(zone_type* zone)
 
     /* log stats */
     zone->stats->end_time = time(NULL);
-
     se_log_debug("log stats for zone %s", zone->name?zone->name:"(null)");
     stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
     stats_clear(zone->stats);
-
-    /* make backup */
-    if (zone_backup(zone) != 0) {
-        se_log_warning("backup zone %s failed", zone->name?zone->name:"(null)");
-    }
 
     return error;
 }
