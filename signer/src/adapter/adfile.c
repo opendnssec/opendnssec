@@ -406,7 +406,8 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
                 zone_in->zonedata->outbound_serial) {
                 se_log_error("cannot read zone %s: SOA SERIAL is set to keep "
                     "but serial %u in input zone is not incremental",
-                    zone_in->name, zone_in->zonedata->inbound_serial);
+                    zone_in->name?zone_in->name:"(null)",
+                    zone_in->zonedata->inbound_serial);
                 return 1;
             }
         }
