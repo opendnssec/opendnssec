@@ -100,6 +100,13 @@ task_type* task_create(int what, time_t when, const char* who,
     struct zone_struct* zone);
 
 /**
+ * Backup task.
+ * \param[in] task task
+ *
+ */
+void task_backup(task_type* task);
+
+/**
  * Clean up task.
  * \param[in] task task
  *

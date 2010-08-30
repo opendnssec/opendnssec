@@ -106,6 +106,8 @@ worker_start(worker_type* worker)
                 task = tasklist_schedule_task(worker->tasklist, task, 1);
                 if (!task) {
                     se_log_error("failed to schedule task");
+                } else {
+                    task_backup(task);
                 }
                 lock_basic_unlock(&worker->tasklist->tasklist_lock);
             }

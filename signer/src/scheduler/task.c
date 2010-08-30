@@ -73,6 +73,36 @@ task_create(int what, time_t when, const char* who, struct zone_struct* zone)
 
 
 /**
+ * Backup task.
+ *
+ */
+void
+task_backup(task_type* task)
+{
+    char* filename = NULL;
+    FILE* fd = NULL;
+
+    se_log_assert(task);
+
+    filename = se_build_path(task->who, ".task", 0);
+    fd = se_fopen(filename, NULL, "w");
+    if (fd) {
+        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "; who: %s\n", task->who);
+        fprintf(fd, "; what: %i\n", (int) task->what);
+        fprintf(fd, "; when: %s\n", (uint32_t) task->when);
+        fprintf(fd, "; flush: %i\n", task->flush);
+        fprintf(fd, "; backoff: %u\n", (uint32_t) task->backoff);
+        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+    } else {
+        se_log_warning("cannot backup task for zone %s: cannot open file %s for "
+        "writing", task->who?task->who:"(null)", filename?filename:"(null)");
+    }
+    return;
+}
+
+
+/**
  * Clean up task.
  *
  */
