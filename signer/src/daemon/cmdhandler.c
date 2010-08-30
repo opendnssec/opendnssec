@@ -278,7 +278,15 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     se_log_assert(cmdc);
     se_log_assert(cmdc->engine);
 
+    tmpname = se_build_path(tbd, ".sc", 0);
+    unlink(tmpname);
+    se_free((void*)tmpname);
+
     tmpname = se_build_path(tbd, ".unsorted", 0);
+    unlink(tmpname);
+    se_free((void*)tmpname);
+
+    tmpname = se_build_path(tbd, ".dnskeys", 0);
     unlink(tmpname);
     se_free((void*)tmpname);
 
@@ -287,6 +295,10 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     se_free((void*)tmpname);
 
     tmpname = se_build_path(tbd, ".rrsigs", 0);
+    unlink(tmpname);
+    se_free((void*)tmpname);
+
+    tmpname = se_build_path(tbd, ".finalized", 0);
     unlink(tmpname);
     se_free((void*)tmpname);
 

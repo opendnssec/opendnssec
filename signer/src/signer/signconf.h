@@ -92,6 +92,13 @@ signconf_type* signconf_create(void);
 signconf_type* signconf_read(const char* filename, time_t last_modified);
 
 /**
+ * Backup signer configuration.
+ * \param sc signer configuration settings
+ *
+ */
+void signconf_backup(signconf_type* sc);
+
+/**
  * Check signer configuration.
  * \param sc signer configuration settings
  * \return 0 on success, 1 on fail

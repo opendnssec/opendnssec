@@ -208,6 +208,8 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         zone->signconf->name = zone->name;
         se_log_debug("zone %s now has signconf",
             zone->name?zone->name:"(null)");
+        signconf_backup(zone->signconf);
+
         /* zone state? */
         /* create task for new zone */
         now = time_now();
@@ -236,6 +238,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         zone->signconf->name = zone->name;
         se_log_debug("zone %s signconf updated",
             zone->name?zone->name:"(null)");
+        signconf_backup(zone->signconf);
         if (buf) {
             (void)snprintf(buf, ODS_SE_MAXLINE,
                 "Zone %s config updated.\n", zone->name?zone->name:"(null)");
@@ -298,6 +301,14 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
                     key->locator?key->locator:"(null)");
                 break;
             } else if (fd) {
+                fprintf(fd, "; DNSKEY\n");
+                fprintf(fd, "; locator: %s\n",
+                    key->locator?key->locator:"(null)");
+                fprintf(fd, "; algorithm: %u\n", key->algorithm);
+                fprintf(fd, "; flags: %u\n", key->flags);
+                fprintf(fd, "; publish: %i\n", key->publish);
+                fprintf(fd, "; ksk: %i\n", key->ksk);
+                fprintf(fd, "; zsk: %i\n", key->zsk);
                 ldns_rr_print(fd, dnskey);
             }
         }
@@ -351,6 +362,11 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
         se_log_error("error adding NSEC3PARAMS record to zone %s",
             zone->name?zone->name:"(null)");
     } else if (fd) {
+        fprintf(fd, "; NSEC3PARAMS\n");
+        fprintf(fd, "; salt: %s\n", zone->signconf->nsec3_salt);
+        fprintf(fd, "; algorithm: %u\n", zone->nsec3params->algorithm);
+        fprintf(fd, "; flags: %u\n", zone->nsec3params->flags);
+        fprintf(fd, "; iterations: %u\n", zone->nsec3params->iterations);
         ldns_rr_print(fd, nsec3params_rr);
     }
     return error;
