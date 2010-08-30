@@ -380,8 +380,8 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
     unsigned int l = 0;
 
     se_log_assert(fd);
-    se_log_assert(zone);
-    se_log_assert(zone->stats);
+    se_log_assert(zone_in);
+    se_log_assert(zone_in->stats);
 
     if (!include) {
         rr = adfile_lookup_soa_rr(fd);
@@ -392,15 +392,25 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
             soa_min = ldns_rdf2native_int32(ldns_rr_rdf(rr,
                 SE_SOA_RDATA_MINIMUM));
         }
-        zone->zonedata->default_ttl = soa_min;
+        zone_in->zonedata->default_ttl = soa_min;
         /* serial */
         if (rr) {
-            zone->zonedata->inbound_serial =
+            zone_in->zonedata->inbound_serial =
                 ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
             ldns_rr_free(rr);
         }
         rewind(fd);
-   }
+
+        if (se_strcmp(zone_in->signconf->soa_serial, "keep") == 0) {
+            if (zone_in->zonedata->inbound_serial <=
+                zone_in->zonedata->outbound_serial) {
+                se_log_error("cannot read zone %s: SOA SERIAL is set to keep "
+                    "but serial %u in input zone is not incremental",
+                    zone_in->name, zone_in->zonedata->inbound_serial);
+                return 1;
+            }
+        }
+    }
 
     /* $ORIGIN <zone name> */
     orig = ldns_rdf_clone(zone_in->dname);
@@ -454,7 +464,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
     }
 
     /* reset the default ttl (directives only affect the zone file) */
-    zone->zonedata->default_ttl = soa_min;
+    zone_in->zonedata->default_ttl = soa_min;
 
     return result;
 }
@@ -477,14 +487,6 @@ adfile_read(struct zone_struct* zone, const char* filename)
     se_log_debug("read zone %s from file %s",
         zone_in->name?zone_in->name:"(null)", filename?filename:"(null)");
 
-    /* remove current rrs */
-    error = zonedata_del_rrs(zone_in->zonedata);
-    if (error) {
-        se_log_error("error removing current RRs in zone %s",
-            zone_in->name?zone_in->name:"(null)");
-        return error;
-    }
-
     /* read the zonefile */
     fd = se_fopen(filename, NULL, "r");
     if (fd) {
@@ -497,6 +499,13 @@ adfile_read(struct zone_struct* zone, const char* filename)
         se_log_error("error reading zone %s from file %s",
             zone_in->name?zone_in->name:"(null)",
             filename?filename:"(null)");
+    } else {
+        /* remove current rrs */
+        error = zonedata_del_rrs(zone_in->zonedata);
+        if (error) {
+            se_log_error("error removing current RRs in zone %s",
+                zone_in->name?zone_in->name:"(null)");
+        }
     }
     return error;
 }

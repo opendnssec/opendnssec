@@ -768,7 +768,7 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     }
     zd->outbound_serial = zd->internal_serial;
     if (error || !zd->outbound_serial) {
-        se_log_error("unable to update zonedata: failed to update serial");
+        se_log_error("unable to sign zone data: failed to update serial");
         return 1;
     }
 
@@ -819,6 +819,10 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
     error = zonedata_update_serial(zd, sc);
     if (error || !zd->internal_serial) {
         se_log_error("unable to update zonedata: failed to update serial");
+        /**
+         * If this happens, the next read task will error alot on duplicate
+         * pending rrs. Should be high unlikely to occur.
+         */
         return 1;
     }
 
