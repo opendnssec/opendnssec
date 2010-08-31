@@ -56,6 +56,8 @@ static int logging_to_syslog = 0;
 #define LOG_DEBUG   7 /* se_log_debug */
 #endif /* HAVE_SYSLOG_H */
 
+#define LOG_DEEEBUG 8 /* se_log_deeebug */
+
 static FILE* logfile = NULL;
 static int log_level = LOG_CRIT;
 
@@ -219,6 +221,22 @@ se_log_vmsg(int priority, const char* t, const char* s, va_list args)
     fprintf(logfile, "[%s] %s[%i] %s: %s\n", nowstr,
         MY_PACKAGE_TARNAME, priority, t, message);
     fflush(logfile);
+}
+
+
+/**
+ * Heavy debug logging.
+ *
+ */
+void
+se_log_deeebug(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    if (log_level >= LOG_DEEEBUG) {
+        se_log_vmsg(LOG_DEBUG, "debug", format, args);
+    }
+    va_end(args);
 }
 
 

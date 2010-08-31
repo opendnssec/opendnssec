@@ -63,6 +63,13 @@ void se_log_close(void);
 int se_log_get_facility(const char* facility);
 
 /**
+ * Heavy debug loggin.
+ * \param[in] format printf-style format string, arguments follow
+ *
+ */
+void se_log_deeebug(const char *format, ...);
+
+/**
  * Log debug.
  * \param[in] format printf-style format string, arguments follow
  *
