@@ -99,6 +99,15 @@ int rrset_add_rr(rrset_type* rrset, ldns_rr* rr);
 int rrset_del_rr(rrset_type* rrset, ldns_rr* rr);
 
 /**
+ * Recover RR from backup.
+ * \param[in] rrset RRset
+ * \param[in] rr RR
+ * \return 0 on success, 1 on error
+ *
+ */
+int rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr);
+
+/**
  * Sign RRset.
  * \param[in] ctx HSM context
  * \param[in] rrset RRset

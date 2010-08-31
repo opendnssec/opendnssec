@@ -143,8 +143,10 @@ rrset_log_rr(ldns_rr* rr, const char* pre, int level)
         se_log_info("%s %s", pre?pre:"", str?str:"(null)");
     } else if (level == 4) {
         se_log_verbose("%s %s", pre?pre:"", str?str:"(null)");
-    } else {
+    } else if (level == 5) {
         se_log_debug("%s %s", pre?pre:"", str?str:"(null)");
+    } else {
+        se_log_deeebug("%s %s", pre?pre:"", str?str:"(null)");
     }
     se_free((void*)str);
     return;
@@ -167,7 +169,7 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
     if (!rrset->rrs->rr) {
         rrset->rrs->rr = rr;
         rrset->rr_count += 1;
-        rrset_log_rr(rr, "+RR", 5);
+        rrset_log_rr(rr, "+RR", 6);
         return LDNS_STATUS_OK;
     } else {
         status = util_dnssec_rrs_add_rr(rrset->rrs, rr);
@@ -184,7 +186,7 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
                 return status;
             }
         }
-        rrset_log_rr(rr, "+RR", 5);
+        rrset_log_rr(rr, "+RR", 6);
         rrset->rr_count += 1;
         return LDNS_STATUS_OK;
     }
@@ -214,13 +216,24 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
             }
             ldns_rr_free(rrs->rr);
             se_free((void*)rrs);
-            rrset_log_rr(rr, "-RR", 5);
+            rrset_log_rr(rr, "-RR", 6);
             return 1;
         }
         prev_rrs = rrs;
         rrs = rrs->next;
     }
     return 0;
+}
+
+
+/**
+ * Recover RR from backup.
+ *
+ */
+int
+rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr)
+{
+    return (rrset_add_pending_rr(rrset, rr) == LDNS_STATUS_OK);
 }
 
 
@@ -304,7 +317,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
 
     if (!rrset->add->rr) {
         rrset->add->rr = rr;
-        rrset_log_rr(rr, "+rr", 5);
+        rrset_log_rr(rr, "+rr", 6);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->add, rr);
         if (status != LDNS_STATUS_OK) {
@@ -320,7 +333,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
                 return 1;
             }
         }
-        rrset_log_rr(rr, "+rr", 5);
+        rrset_log_rr(rr, "+rr", 6);
     }
     return 0;
 }
@@ -345,7 +358,7 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
 
     if (!rrset->del->rr) {
         rrset->del->rr = rr;
-        rrset_log_rr(rr, "-rr", 5);
+        rrset_log_rr(rr, "-rr", 6);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->del, rr);
         if (status != LDNS_STATUS_OK) {
@@ -361,7 +374,7 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
                 return 1;
             }
         }
-        rrset_log_rr(rr, "-rr", 5);
+        rrset_log_rr(rr, "-rr", 6);
     }
     return 0;
 }
@@ -413,14 +426,14 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             } else {
                 rrset->rrsigs = rrs->next;
             }
-            rrset_log_rr(rrs->rr, "-RRSIG", 5);
+            rrset_log_rr(rrs->rr, "-RRSIG", 6);
             rrset->rrsig_count -= 1;
             ldns_rr_free(rrs->rr);
             se_free((void*)rrs);
         } else {
             se_log_debug("keep signature for RRset[%i] (refresh=%u, "
                 "expiration=%u)", rrset->rr_type, refresh, expiration);
-            rrset_log_rr(rrs->rr, "*RRSIG", 5);
+            rrset_log_rr(rrs->rr, "*RRSIG", 6);
             *reusedsigs += 1;
             prev_rrs = rrs;
         }
@@ -563,7 +576,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                 }
                 if (!rrset->rrsigs->rr) {
                     rrset->rrsigs->rr = rrsig;
-                    rrset_log_rr(rrsig, "+RRSIG", 5);
+                    rrset_log_rr(rrsig, "+RRSIG", 6);
                     rrset->rrsig_count += 1;
                     newsigs++;
                 } else {
@@ -582,7 +595,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                             return 1;
                         }
                     } else {
-                        rrset_log_rr(rrsig, "+RRSIG", 5);
+                        rrset_log_rr(rrsig, "+RRSIG", 6);
                         rrset->rrsig_count += 1;
                         newsigs++;
                     }
