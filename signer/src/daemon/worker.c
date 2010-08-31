@@ -81,7 +81,9 @@ worker_start(worker_type* worker)
 
     while (worker->need_to_exit == 0) {
         se_log_debug("worker[%i]: report for duty", worker->thread_num);
+        se_log_debug("worker[%i]: lock tasklist", worker->thread_num);
         lock_basic_lock(&worker->tasklist->tasklist_lock);
+        se_log_debug("worker[%i]: locked tasklist", worker->thread_num);
         task = tasklist_pop_task(worker->tasklist);
         if (task) {
             se_log_debug("worker[%i] perform task for zone %s",
@@ -89,19 +91,33 @@ worker_start(worker_type* worker)
             zone = task->zone;
             zone->in_progress = 1;
 
+            se_log_debug("worker[%i]: unlock tasklist", worker->thread_num);
             lock_basic_unlock(&worker->tasklist->tasklist_lock);
+            se_log_debug("worker[%i]: unlocked tasklist", worker->thread_num);
 
+            se_log_debug("worker[%i]: lock zone %s", worker->thread_num,
+                task->who);
             lock_basic_lock(&zone->zone_lock);
+            se_log_debug("worker[%i]: locked zone %s", worker->thread_num,
+                task->who);
             zone->worker = worker;
             worker_perform_task(worker, task);
             zone->worker = NULL;
+            se_log_debug("worker[%i]: unlock zone %s", worker->thread_num,
+                task->who);
             lock_basic_unlock(&zone->zone_lock);
+            se_log_debug("worker[%i]: unlocked zone %s", worker->thread_num,
+                task->who);
 
             if (task->what == TASK_NONE) {
                 zone->in_progress = 0;
+                se_log_debug("worker[%i]: cleanup task none for zone %s",
+                    worker->thread_num, task->who);
                 task_cleanup(task);
             } else {
+                se_log_debug("worker[%i]: lock tasklist", worker->thread_num);
                 lock_basic_lock(&worker->tasklist->tasklist_lock);
+                se_log_debug("worker[%i]: locked tasklist", worker->thread_num);
                 zone->in_progress = 0;
                 task = tasklist_schedule_task(worker->tasklist, task, 1);
                 if (!task) {
@@ -109,11 +125,14 @@ worker_start(worker_type* worker)
                 } else {
                     task_backup(task);
                 }
+                se_log_debug("worker[%i]: unlock tasklist", worker->thread_num);
                 lock_basic_unlock(&worker->tasklist->tasklist_lock);
+                se_log_debug("worker[%i]: unlocked tasklist", worker->thread_num);
             }
 
             timeout = 1;
         } else {
+            se_log_debug("worker[%i] no task ready", worker->thread_num);
             task = tasklist_first_task(worker->tasklist);
             now = time_now();
             if (task && !worker->tasklist->loading) {
@@ -124,7 +143,9 @@ worker_start(worker_type* worker)
                     timeout = ODS_SE_MAX_BACKOFF;
                 }
             }
+            se_log_debug("worker[%i]: unlock tasklist", worker->thread_num);
             lock_basic_unlock(&worker->tasklist->tasklist_lock);
+            se_log_debug("worker[%i]: unlocked tasklist", worker->thread_num);
 
             worker_sleep(worker, timeout);
         }
@@ -201,10 +222,14 @@ worker_perform_task(worker_type* worker, task_type* task)
             }
             task->what = TASK_AUDIT;
         case TASK_AUDIT:
+            se_log_debug("worker[%i]: lock config", worker->thread_num);
             lock_basic_lock(&engine->config->config_lock);
+            se_log_debug("worker[%i]: locked config", worker->thread_num);
             working_dir = se_strdup(engine->config->working_dir);
             cfg_filename = se_strdup(engine->config->cfg_filename);
+            se_log_debug("worker[%i]: unlock config", worker->thread_num);
             lock_basic_unlock(&engine->config->config_lock);
+            se_log_debug("worker[%i]: unlocked config", worker->thread_num);
             error = tools_audit(zone, working_dir, cfg_filename);
             if (working_dir)  { se_free((void*)working_dir); }
             if (cfg_filename) { se_free((void*)cfg_filename); }
