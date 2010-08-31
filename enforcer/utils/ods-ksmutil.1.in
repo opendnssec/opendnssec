@@ -19,7 +19,7 @@
 .B ods-ksmutil rollover list
 .RB ...
 .br
-.B ods-ksmutil policy export
+.B ods-ksmutil policy export|import
 .RB ...
 .br
 .B ods-ksmutil repository list
@@ -238,6 +238,9 @@ submission of DS records to a registry.
 .TP
 .B policy export [--policy|--all|-p|-a]
 Export a policy from the database in the same format as the kasp.xml file.
+.TP
+.B policy import
+Update the database with the contents of kasp.xml; identical to "update kasp".
 .SH "REPOSITORY AND BACKUP SUBCOMMANDS"
 .LP
 .TP

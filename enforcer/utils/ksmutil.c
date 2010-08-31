@@ -181,6 +181,13 @@ usage_policyexport ()
 }
 
     void
+usage_policyimport ()
+{
+    fprintf(stderr,
+            "  policy import\n");
+}
+
+    void
 usage_policylist ()
 {
     fprintf(stderr,
@@ -194,6 +201,7 @@ usage_policy ()
             "usage: %s [-f config] \n\n",
 	    progname);
     usage_policyexport ();
+    usage_policyimport ();
     usage_policylist ();
 }
 
@@ -2981,9 +2989,11 @@ main (int argc, char *argv[])
     } else if (!strncmp(case_command, "POLICY", 6)) {
         argc --; argc --;
         argv ++; argv ++;
-        /* verb should be export or list */
+        /* verb should be export, import or list */
         if (!strncmp(case_verb, "EXPORT", 6)) {
             result = cmd_exportpolicy();
+        } else if (!strncmp(case_verb, "IMPORT", 6)) {
+            result = cmd_update("KASP");
         } else if (!strncmp(case_verb, "LIST", 4)) {
             result = cmd_listpolicy();
         } else {
