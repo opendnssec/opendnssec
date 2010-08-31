@@ -673,7 +673,10 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
 {
     int klass = 0;
     char* filename = NULL;
+    task_type* task = NULL;
+    time_t now = 0;
     FILE* fd = NULL;
+    int corrupted = 0;
 
     se_log_assert(zone);
     se_log_assert(zone->zonedata);
@@ -717,12 +720,31 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         /* no, stop recovering process */
         return;
     }
-
-    /* time for the keys and nsec3params file */
+    zone->signconf->keys = keylist_create();
 
     /* zone data */
+    filename = se_build_path(zone->name, ".unsorted", 0);
+    se_free((void*)filename);
+
+    /* time for the keys and nsec3params file */
+    filename = se_build_path(zone->name, ".dnskeys", 0);
+    se_free((void*)filename);
+
+    filename = se_build_path(zone->name, ".denial", 0);
+    se_free((void*)filename);
+
+    filename = se_build_path(zone->name, ".rrsigs", 0);
+    se_free((void*)filename);
 
     /* task */
+    filename = se_build_path(zone->name, ".task", 0);
+    zone->task = task_recover_from_backup((const char*) filename, zone);
+    se_free((void*)filename);
+    if (!zone->task) {
+        now = time_now();
+        zone->task = task_create(TASK_READ, now, zone->name, zone);
+    }
+    task = tasklist_schedule_task(tl, zone->task, 0);
 
     return;
 }

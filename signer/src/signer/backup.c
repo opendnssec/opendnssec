@@ -93,7 +93,7 @@ backup_read_str(FILE* in, char** str)
         se_log_debug("backup: cannot read string\n");
         return 0;
     }
-    *str = p;
+    *str = se_strdup(p);
     return 1;
 }
 

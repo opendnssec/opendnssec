@@ -100,6 +100,16 @@ task_type* task_create(int what, time_t when, const char* who,
     struct zone_struct* zone);
 
 /**
+ * Recover a task from backup.
+ * \param[in] filename where the task backup is stored
+ * \param[in] zone pointer to zone structure
+ * \return task_type* created task
+ *
+ */
+task_type* task_recover_from_backup(const char* filename,
+    struct zone_struct* zone);
+
+/**
  * Backup task.
  * \param[in] task task
  *

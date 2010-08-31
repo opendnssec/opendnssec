@@ -32,6 +32,7 @@
  */
 
 #include "scheduler/task.h"
+#include "signer/backup.h"
 #include "signer/zone.h"
 #include "util/duration.h"
 #include "util/file.h"
@@ -69,6 +70,55 @@ task_create(int what, time_t when, const char* who, struct zone_struct* zone)
     task->zone = zone;
     task->zone->task = task;
     return task;
+}
+
+
+/**
+ * Recover a task from backup.
+ *
+ */
+task_type*
+task_recover_from_backup(const char* filename, struct zone_struct* zone)
+{
+    task_type* task = NULL;
+    FILE* fd = NULL;
+    const char* who = NULL;
+    int what = 0;
+    time_t when = 0;
+    int flush = 0;
+    time_t backoff = 0;
+
+    se_log_assert(zone);
+    fd = se_fopen(filename, NULL, "r");
+    if (fd) {
+        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
+            !backup_read_check_str(fd, ";who:") ||
+            !backup_read_str(fd, &who) ||
+            !backup_read_check_str(fd, ";what:") ||
+            !backup_read_int(fd, &what) ||
+            !backup_read_check_str(fd, ";when:") ||
+            !backup_read_time_t(fd, &when) ||
+            !backup_read_check_str(fd, ";flush:") ||
+            !backup_read_int(fd, &flush) ||
+            !backup_read_check_str(fd, ";backoff:") ||
+            !backup_read_time_t(fd, &backoff) ||
+            !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
+        {
+            se_log_error("unable to recover task backup file %s: corrupt "
+                "backup file ", filename?filename:"(null)");
+            task = NULL;
+        } else {
+            task = task_create((task_id) what, when, who, zone);
+            task->flush = flush;
+            task->backoff = backoff;
+        }
+        se_fclose(fd);
+        return task;
+    }
+
+    se_log_debug("unable to recover task backup file %s",
+        filename?filename:"(null)");
+    return NULL;
 }
 
 
