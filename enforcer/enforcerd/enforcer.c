@@ -752,6 +752,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                     /* Check datetime in case it came back NULL */
                     if (datetime == NULL) {
                         log_msg(config, LOG_DEBUG, "Couldn't turn \"now\" into a date, quitting...");
+                        unlink(config->pidfile);
                         exit(1);
                     }
 
