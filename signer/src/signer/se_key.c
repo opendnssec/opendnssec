@@ -293,7 +293,9 @@ keylist_cleanup(keylist_type* kl)
 {
     if (kl) {
         se_log_debug("clean up key list");
-        key_cleanup(kl->first_key);
+        if (kl->first_key) {
+            key_cleanup(kl->first_key);
+        }
         se_free((void*)kl);
     } else {
         se_log_warning("cleanup empty key list");

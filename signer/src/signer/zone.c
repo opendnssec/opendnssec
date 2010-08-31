@@ -721,6 +721,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         return;
     }
     zone->signconf->keys = keylist_create();
+    zone->signconf->last_modified = 0;
 
     /* zone data */
     filename = se_build_path(zone->name, ".unsorted", 0);
