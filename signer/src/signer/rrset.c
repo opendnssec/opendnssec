@@ -403,7 +403,8 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
         expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(rrs->rr));
         inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(rrs->rr));
 
-        if (!refresh || expiration < refresh || inception > signtime) {
+        if (!refresh || expiration < refresh ||
+            inception > (uint32_t) signtime) {
             /* this is it */
             se_log_debug("refresh signature for RRset[%i] (refresh=%u, "
                 "expiration=%u)", rrset->rr_type, refresh, expiration);
