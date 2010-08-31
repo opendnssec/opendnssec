@@ -90,7 +90,7 @@ task_backup(task_type* task)
         fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
         fprintf(fd, "; who: %s\n", task->who);
         fprintf(fd, "; what: %i\n", (int) task->what);
-        fprintf(fd, "; when: %s\n", (uint32_t) task->when);
+        fprintf(fd, "; when: %u\n", (uint32_t) task->when);
         fprintf(fd, "; flush: %i\n", task->flush);
         fprintf(fd, "; backoff: %u\n", (uint32_t) task->backoff);
         fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
