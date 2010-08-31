@@ -838,6 +838,15 @@ domain_print(FILE* fd, domain_type* domain, int internal)
 void
 domain_print_nsec(FILE* fd, domain_type* domain)
 {
+    char* str = NULL;
+
+    str = ldns_rdf2str(domain->dname);
+    fprintf(fd, "; dname: %s %u %u %u %i %i %i\n", str,
+        domain->inbound_serial, domain->internal_serial,
+        domain->outbound_serial, (int) domain->domain_status,
+        domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
+    se_free((void*) str);
+
     /* print nsec */
     if (domain->nsec_rrset) {
         rrset_print(fd, domain->nsec_rrset, 1);
