@@ -84,8 +84,12 @@ task_backup(task_type* task)
 
     se_log_assert(task);
 
-    filename = se_build_path(task->who, ".task", 0);
-    fd = se_fopen(filename, NULL, "w");
+    if (task && task->who) {
+        filename = se_build_path(task->who, ".task", 0);
+        fd = se_fopen(filename, NULL, "w");
+        se_free((void*)filename);
+    }
+
     if (fd) {
         fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
         fprintf(fd, "; who: %s\n", task->who);
