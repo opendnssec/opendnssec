@@ -94,6 +94,8 @@ int get_conf_key_info(int* interval, int* man_key_gen);
 int LinkKeys(const char* zone_name, int policy_id);
 int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen, int rollover_scheme);
 int keyRoll(int zone_id, int policy_id, int key_type);
+int get_policy_name_from_id(KSM_ZONE *zone);
+int append_zone(xmlDocPtr doc, KSM_ZONE *zone);
 
 #ifdef __cplusplus
 }

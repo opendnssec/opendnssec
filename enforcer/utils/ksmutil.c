@@ -354,6 +354,14 @@ usage_database ()
 }
 
     void
+usage_zonelist2 ()
+{
+        fprintf(stderr,
+            "  zonelist export\n"
+            "  zonelist import\n");
+}
+
+    void
 usage ()
 {
     fprintf(stderr,
@@ -380,6 +388,7 @@ usage ()
     usage_backup ();
     usage_rollover ();
     usage_database ();
+    usage_zonelist2 ();
 
 }
 
@@ -1465,6 +1474,77 @@ cmd_exportpolicy ()
 
     xmlFreeDoc(doc);
     KsmPolicyFree(policy);
+
+    DbDisconnect(dbhandle);
+
+    return 0;
+}
+
+/*
+ * To export: 
+ *          zonelist to xml
+ */
+    int
+cmd_exportzonelist ()
+{
+    int status = 0;
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+
+    xmlDocPtr doc = xmlNewDoc((const xmlChar *)"1.0");
+    xmlNodePtr root;
+    KSM_ZONE *zone;
+    int prev_policy_id = -1;
+
+    DB_RESULT	result;     /* Result set from query */
+
+    /* try to connect to the database */
+    status = db_connect(&dbhandle, NULL, 0);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        return(1);
+    }
+
+    /* Make some space for the zone */ 
+    zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
+    if (zone == NULL) {
+        fprintf(stderr, "Malloc for zone struct failed\n");
+        exit(1);
+    }
+
+    /* Setup doc with a root node of <ZoneList> */
+    xmlKeepBlanksDefault(0);
+    xmlTreeIndentString = "    ";
+    root = xmlNewDocNode(doc, NULL, (const xmlChar *)"ZoneList", NULL);
+    (void) xmlDocSetRootElement(doc, root);
+
+    /* Read zones */
+    status = KsmZoneInit(&result, -1);
+    if (status == 0) {
+        /* get the first zone */
+        status = KsmZone(result, zone);
+
+        while (status == 0) {
+            if (zone->policy_id != prev_policy_id) {
+                prev_policy_id = zone->policy_id;
+                status = get_policy_name_from_id(zone);
+                if (status != 0) {
+                    fprintf(stderr, "Couldn't get name for policy with ID: %d, exiting...\n", zone->policy_id);
+                    return(1);
+                }
+            }
+            append_zone(doc, zone);
+
+            /* get next zone */
+            status = KsmZone(result, zone);
+
+        }
+    }
+
+    xmlSaveFormatFile("-", doc, 1);
+
+    xmlFreeDoc(doc);
+    /*KsmZoneFree(zone);*/
 
     DbDisconnect(dbhandle);
 
@@ -2973,7 +3053,7 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_update(case_verb);
-    } else if (!strncmp(case_command, "ZONE", 4)) {
+    } else if (!strncmp(case_command, "ZONE", 4) && strlen(case_command) == 4) {
         argc --; argc --;
         argv ++; argv ++;
 
@@ -3102,6 +3182,20 @@ main (int argc, char *argv[])
         } else {
             printf("Unknown command: database %s\n", case_verb);
             usage_database();
+            result = -1;
+        }
+    } else if (!strncmp(case_command, "ZONELIST", 8)) {
+        argc --; argc --;
+        argv ++; argv ++;
+        /* verb should be import or export */
+        if (!strncmp(case_verb, "EXPORT", 6)) {
+            result = cmd_exportzonelist();
+        }
+        else if (!strncmp(case_verb, "IMPORT", 6)) {
+            result = cmd_update("ZONELIST");
+        } else {
+            printf("Unknown command: zonelist %s\n", case_verb);
+            usage_zonelist2();
             result = -1;
         }
     } else {
@@ -7335,4 +7429,86 @@ int keyRoll(int zone_id, int policy_id, int key_type)
     StrFree(datetime);
     
     return status;
+}
+
+int get_policy_name_from_id(KSM_ZONE *zone)
+{
+    int     where = 0;          /* WHERE clause value */
+    char*   sql = NULL;         /* SQL query */
+    DB_RESULT       result;     /* Handle converted to a result object */
+    DB_ROW      row = NULL;            /* Row data */
+    int     status = 0;         /* Status return */
+
+    /* Construct the query */
+
+    sql = DqsSpecifyInit("policies","id, name");
+    DqsConditionInt(&sql, "ID", DQS_COMPARE_EQ, zone->policy_id, where++);
+    DqsOrderBy(&sql, "id");
+
+    /* Execute query and free up the query string */
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    DqsFree(sql);
+    
+    if (status != 0)
+    {
+        printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+        DbFreeResult(result);
+        return status;
+	}
+
+    /* Get the next row from the data */
+    status = DbFetchRow(result, &row);
+    if (status == 0) {
+        DbStringBuffer(row, DB_POLICY_NAME, zone->policy_name, KSM_NAME_LENGTH*sizeof(char));
+    }
+    else if (status == -1) {}
+        /* No rows to return (but no error) */
+	else {
+        printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+        return status;
+	}
+
+    DbFreeRow(row);
+    DbFreeResult(result);
+    return status;
+}
+
+int append_zone(xmlDocPtr doc, KSM_ZONE *zone)
+{
+    xmlNodePtr root;
+    xmlNodePtr zone_node;
+    xmlNodePtr adapters_node;
+    xmlNodePtr input_node;
+    xmlNodePtr output_node;
+
+    root = xmlDocGetRootElement(doc);
+    if (root == NULL) {
+        fprintf(stderr,"empty document\n");
+        return(1);
+    }
+    if (xmlStrcmp(root->name, (const xmlChar *) "ZoneList")) {
+        fprintf(stderr,"document of the wrong type, root node != %s", "ZoneList");
+        return(1);
+    }
+
+    zone_node = xmlNewTextChild(root, NULL, (const xmlChar *)"Zone", NULL);
+    (void) xmlNewProp(zone_node, (const xmlChar *)"name", (const xmlChar *)zone->name);
+
+    /* Policy */
+    (void) xmlNewTextChild(zone_node, NULL, (const xmlChar *)"Policy", (const xmlChar *)zone->policy_name);
+
+    /* SignConf */
+    (void) xmlNewTextChild(zone_node, NULL, (const xmlChar *)"SignerConfiguration", (const xmlChar *)zone->signconf);
+
+    /* Adapters */
+    adapters_node = xmlNewTextChild(zone_node, NULL, (const xmlChar *)"Adapters", NULL);
+    /* Input */
+    input_node = xmlNewTextChild(adapters_node, NULL, (const xmlChar *)"Input", NULL);
+    (void) xmlNewTextChild(input_node, NULL, (const xmlChar *)"File", (const xmlChar *)zone->input);
+    /* Output */
+    output_node = xmlNewTextChild(adapters_node, NULL, (const xmlChar *)"Output", NULL);
+    (void) xmlNewTextChild(output_node, NULL, (const xmlChar *)"File", (const xmlChar *)zone->output);
+
+
+    return(0);
 }

@@ -57,6 +57,7 @@ int KsmInit(void);
 int KsmRundown(void);
 
 #define KSM_NAME_LENGTH     256         /* Includes trailing NULL */
+#define KSM_PATH_LENGTH     4096        /* Includes trailing NULL */
 #define KSM_POLICY_DESC_LENGTH     256  /* Includes trailing NULL */
 #define KSM_POLICY_AUDIT_LENGTH    4096 /* Includes trailing NULL */
 #define KSM_TIME_LENGTH     32          /* Includes trailing NULL */
@@ -285,8 +286,13 @@ void KsmPolicyFree(KSM_POLICY *policy);
 
 /* ksmZone */
 typedef struct {
-    int id;
-    char* name;
+    int   id;
+    int   policy_id;
+    char  name[KSM_ZONE_NAME_LENGTH];
+    char  signconf[KSM_PATH_LENGTH];
+    char  input[KSM_PATH_LENGTH];
+    char  output[KSM_PATH_LENGTH];
+    char  policy_name[KSM_NAME_LENGTH];
 } KSM_ZONE;
 
 int KsmZoneInit(DB_RESULT* handle, int policy_id);

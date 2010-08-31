@@ -13,6 +13,8 @@
 .B ods-ksmutil zone add|delete|list
 .RB ...
 .br
+.B ods-ksmutil zonelist import|export
+.br
 .B ods-ksmutil key generate|import|export|list|purge|rollover|ksk-retire|ds-seen
 .RB ...
 .br
@@ -123,6 +125,12 @@ write zonelist once at the end.
 .B zone list
 List zones from the zonelist.xml.
 TODO:Not from the database?
+.TP
+.B zonelist export
+Export list of zones from the database in the same format as zonelist.xml
+.TP
+.B zonelist import
+Synchronise the database with the contents of zonelist.xml; identical to "update zonelist"
 .SH "KEY MANAGEMENT SUBCOMMANDS"
 .LP
 .TP

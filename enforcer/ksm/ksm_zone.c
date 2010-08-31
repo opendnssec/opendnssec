@@ -74,11 +74,11 @@ int KsmZoneInit(DB_RESULT* result, int policy_id)
     /* Construct the query */
 
     sql = DqsSpecifyInit(DB_ZONE_TABLE, DB_ZONE_FIELDS);
-    if (policy_id) {
+    if (policy_id != -1) {
         DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
 
     }
-    DqsOrderBy(&sql, "NAME");
+    DqsOrderBy(&sql, "policy_id");
 
     /* Execute query and free up the query string */
 
@@ -162,7 +162,14 @@ int KsmZone(DB_RESULT result, KSM_ZONE *data)
         /* Now copy the results into the output data */
         DbInt(row, DB_ZONE_ID, &(data->id));
         DbStringBuffer(row, DB_ZONE_NAME, data->name,
-            KSM_NAME_LENGTH*sizeof(char));
+            KSM_ZONE_NAME_LENGTH*sizeof(char));
+        DbInt(row, DB_ZONE_POLICY_ID, &(data->policy_id));
+        DbStringBuffer(row, DB_ZONE_SIGNCONF, data->signconf,
+            KSM_PATH_LENGTH*sizeof(char));
+        DbStringBuffer(row, DB_ZONE_INPUT, data->input,
+            KSM_PATH_LENGTH*sizeof(char));
+        DbStringBuffer(row, DB_ZONE_OUTPUT, data->output,
+            KSM_PATH_LENGTH*sizeof(char));
     }
     else if (status == -1) {}
         /* No rows to return (but no error) */
