@@ -30,6 +30,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				parser/zonelistparser.c parser/zonelistparser.h \
 				scheduler/locks.c scheduler/locks.h \
 				scheduler/task.c scheduler/task.h \
+				signer/backup.c signer/backup.h \
 				signer/domain.c signer/domain.h \
 				signer/hsm.c signer/hsm.h \
 				signer/nsec3params.c signer/nsec3params.h \

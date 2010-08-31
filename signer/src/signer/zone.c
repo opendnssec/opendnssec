@@ -34,6 +34,7 @@
 #include "adapter/adapter.h"
 #include "scheduler/locks.h"
 #include "scheduler/task.h"
+#include "signer/backup.h"
 #include "signer/hsm.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
@@ -644,12 +645,12 @@ int zone_backup_state(zone_type* zone)
     fd = se_fopen(filename, NULL, "w");
     if (fd) {
         fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
-        fprintf(fd, "name: %s\n", zone->name?zone->name:"(null)");
-        fprintf(fd, "class: %i\n", (int) zone->klass);
-        fprintf(fd, "default_ttl: %u\n", zone->zonedata->default_ttl);
-        fprintf(fd, "inbound_serial: %u\n", zone->zonedata->inbound_serial);
-        fprintf(fd, "internal_serial: %u\n", zone->zonedata->internal_serial);
-        fprintf(fd, "outbound_serial: %u\n", zone->zonedata->outbound_serial);
+        fprintf(fd, "; name: %s\n", zone->name?zone->name:"(null)");
+        fprintf(fd, "; class: %i\n", (int) zone->klass);
+        fprintf(fd, "; default_ttl: %u\n", zone->zonedata->default_ttl);
+        fprintf(fd, "; inbound_serial: %u\n", zone->zonedata->inbound_serial);
+        fprintf(fd, "; internal_serial: %u\n", zone->zonedata->internal_serial);
+        fprintf(fd, "; outbound_serial: %u\n", zone->zonedata->outbound_serial);
         fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
         se_fclose(fd);
     } else {
@@ -660,6 +661,70 @@ int zone_backup_state(zone_type* zone)
     se_free((void*)filename);
 
     return error;
+}
+
+
+/**
+ * Recover from backup.
+ *
+ */
+void
+zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
+{
+    int klass = 0;
+    char* filename = NULL;
+    FILE* fd = NULL;
+
+    se_log_assert(zone);
+    se_log_assert(zone->zonedata);
+
+    filename = se_build_path(zone->name, ".state", 0);
+    fd = se_fopen(filename, NULL, "w");
+    se_free((void*)filename);
+    if (fd) {
+        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
+            !backup_read_check_str(fd, "; name: ") ||
+            !backup_read_check_str(fd, zone->name) ||
+            !backup_read_check_str(fd, "; class:") ||
+            !backup_read_int(fd, &klass) ||
+            !backup_read_check_str(fd, "; default_ttl:") ||
+            !backup_read_uint32_t(fd, &zone->zonedata->default_ttl) ||
+            !backup_read_check_str(fd, "; inbound_serial:") ||
+            !backup_read_uint32_t(fd, &zone->zonedata->inbound_serial) ||
+            !backup_read_check_str(fd, "; internal_serial:") ||
+            !backup_read_uint32_t(fd, &zone->zonedata->internal_serial) ||
+            !backup_read_check_str(fd, "; outbound_serial:") ||
+            !backup_read_uint32_t(fd, &zone->zonedata->outbound_serial) ||
+            !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
+        {
+            se_log_error("unable to recover zone state backup file %s.state: "
+                "corrupt state file ", zone->name);
+            se_fclose(fd);
+            return;
+        }
+        se_fclose(fd);
+    } else {
+        se_log_debug("unable to recover zone state backup file %s.state",
+            zone->name);
+        return;
+    }
+
+    /* let's see if we can recover the signconf now */
+    filename = se_build_path(zone->name, ".sc", 0);
+    zone->signconf = signconf_recover_from_backup((const char*) filename);
+    se_free((void*)filename);
+    if (!zone->signconf) {
+        /* no, stop recovering process */
+        return;
+    }
+
+    /* time for the keys and nsec3params file */
+
+    /* zone data */
+
+    /* task */
+
+    return;
 }
 
 

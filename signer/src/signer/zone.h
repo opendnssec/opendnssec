@@ -164,6 +164,14 @@ int zone_sign(zone_type* zone);
 int zone_backup_state(zone_type* zone);
 
 /**
+ * Recover from backup.
+ * \param[in] zone corresponding zone
+ * \param[in] tl task list
+ *
+ */
+void zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl);
+
+/**
  * Clean up a zone.
  * \param[in] zone zone to cleanup
  *

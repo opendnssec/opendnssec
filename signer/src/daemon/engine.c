@@ -667,6 +667,43 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
 
 
 /**
+ * Try to recover from the backup files.
+ *
+ */
+static void
+engine_recover_from_backups(engine_type* engine)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    zone_type* zone = NULL;
+
+    se_log_assert(engine);
+    se_log_assert(engine->zonelist);
+    se_log_assert(engine->zonelist->zones);
+
+    lock_basic_lock(&engine->tasklist->tasklist_lock);
+    engine->tasklist->loading = 1;
+    lock_basic_unlock(&engine->tasklist->tasklist_lock);
+
+    node = ldns_rbtree_first(engine->zonelist->zones);
+    while (node && node != LDNS_RBTREE_NULL) {
+        zone = (zone_type*) node->key;
+        lock_basic_lock(&zone->zone_lock);
+        lock_basic_lock(&engine->tasklist->tasklist_lock);
+        zone_recover_from_backup(zone, engine->tasklist);
+        lock_basic_unlock(&engine->tasklist->tasklist_lock);
+        lock_basic_unlock(&zone->zone_lock);
+        node = ldns_rbtree_next(node);
+    }
+
+    lock_basic_lock(&engine->tasklist->tasklist_lock);
+    engine->tasklist->loading = 0;
+    lock_basic_unlock(&engine->tasklist->tasklist_lock);
+
+    return;
+}
+
+
+/**
  * Start zonefetcher.
  *
  */
@@ -791,6 +828,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 {
     engine_type* engine = NULL;
     int use_syslog = 0;
+    int zl_changed = 0;
 
     se_log_assert(cfgfile);
     se_log_init(NULL, use_syslog, cmdline_verbosity);
@@ -825,14 +863,19 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 
     /* run */
     while (engine->need_to_exit == 0) {
+        zl_changed = (engine_update_zonelist(engine, NULL) == 0);
+
         if (engine->need_to_reload) {
             se_log_verbose("reload engine");
             engine->need_to_reload = 0;
         } else {
             se_log_debug("signer engine started");
+            /* try to recover from backups */
+            engine_recover_from_backups(engine);
         }
 
-        if (engine_update_zonelist(engine, NULL) == 0) {
+        if (zl_changed) {
+            zl_changed = 0;
             engine_update_zones(engine, NULL, NULL);
         }
 

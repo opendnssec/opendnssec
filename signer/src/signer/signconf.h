@@ -92,8 +92,16 @@ signconf_type* signconf_create(void);
 signconf_type* signconf_read(const char* filename, time_t last_modified);
 
 /**
+ * Read signer configuration from backup.
+ * \param[in] filename file name
+ * \return signconf_type* signer configuration
+ *
+ */
+signconf_type* signconf_recover_from_backup(const char* filename);
+
+/**
  * Backup signer configuration.
- * \param sc signer configuration settings
+ * \param[in] sc signer configuration settings
  *
  */
 void signconf_backup(signconf_type* sc);

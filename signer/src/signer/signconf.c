@@ -34,6 +34,7 @@
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
 #include "scheduler/task.h"
+#include "signer/backup.h"
 #include "signer/se_key.h"
 #include "signer/signconf.h"
 #include "util/duration.h"
@@ -136,6 +137,67 @@ signconf_read(const char* filename, time_t last_modified)
     return NULL;
 }
 
+
+/**
+ * Read a signer configuration from backup.
+ *
+ */
+signconf_type*
+signconf_recover_from_backup(const char* filename)
+{
+    signconf_type* signconf = NULL;
+    FILE* scfd = NULL;
+
+    scfd = se_fopen(filename, NULL, "r");
+    if (scfd) {
+        signconf = signconf_create();
+
+        if (!backup_read_check_str(scfd, ODS_SE_FILE_MAGIC) ||
+            !backup_read_check_str(scfd, "; name:") ||
+            !backup_read_str(scfd, &signconf->name) ||
+            !backup_read_check_str(scfd, "; filename:") ||
+            !backup_read_str(scfd, &signconf->filename) ||
+            !backup_read_check_str(scfd, "; last_modified:") ||
+            !backup_read_time_t(scfd, &signconf->last_modified) ||
+            !backup_read_check_str(scfd, "; sig_resign_interval:") ||
+            !backup_read_duration(scfd, &signconf->sig_resign_interval) ||
+            !backup_read_check_str(scfd, "; sig_refresh_interval:") ||
+            !backup_read_duration(scfd, &signconf->sig_refresh_interval) ||
+            !backup_read_check_str(scfd, "; sig_validity_default:") ||
+            !backup_read_duration(scfd, &signconf->sig_validity_default) ||
+            !backup_read_check_str(scfd, "; sig_validity_denial:") ||
+            !backup_read_duration(scfd, &signconf->sig_validity_denial) ||
+            !backup_read_check_str(scfd, "; sig_jitter:") ||
+            !backup_read_duration(scfd, &signconf->sig_jitter) ||
+            !backup_read_check_str(scfd, "; sig_inception_offset:") ||
+            !backup_read_duration(scfd, &signconf->sig_inception_offset) ||
+            !backup_read_check_str(scfd, "; nsec_type:") ||
+            !backup_read_rr_type(scfd, &signconf->nsec_type) ||
+            !backup_read_check_str(scfd, "; dnskey_ttl:") ||
+            !backup_read_duration(scfd, &signconf->dnskey_ttl) ||
+            !backup_read_check_str(scfd, "; soa_ttl:") ||
+            !backup_read_duration(scfd, &signconf->soa_ttl) ||
+            !backup_read_check_str(scfd, "; soa_min:") ||
+            !backup_read_duration(scfd, &signconf->soa_min) ||
+            !backup_read_check_str(scfd, "; soa_serial:") ||
+            !backup_read_str(scfd, &signconf->soa_serial) ||
+            !backup_read_check_str(scfd, "; audit:") ||
+            !backup_read_int(scfd, &signconf->audit) ||
+            !backup_read_check_str(scfd, ODS_SE_FILE_MAGIC))
+        {
+            se_log_error("unable to recover signconf backup file %s: corrupt "
+                "backup file ", filename?filename:"(null)");
+            signconf_cleanup(signconf);
+            signconf = NULL;
+        }
+        se_fclose(scfd);
+        return signconf;
+    }
+
+    se_log_debug("unable to recover signconf backup file %s",
+        filename?filename:"(null)");
+    return NULL;
+}
 
 
 /**
