@@ -64,6 +64,9 @@ This can be used as a subcommand to
 or it can be used after a partial subcommand.  In response,
 .I ods-ksmutil
 will give a synopsis of how to continue the command.
+.TP
+.B \-V, \-\-version
+Display version number
 .SH "SETUP AND UPDATE SUBCOMMANDS"
 .LP
 .TP

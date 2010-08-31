@@ -109,6 +109,14 @@ static int xml_flag = 1;
 static int restart_enforcerd(void);
 
     void
+usage_general ()
+{
+    fprintf(stderr,
+            "  help\n"
+            "  --version                                      aka -V\n");
+}
+
+    void
 usage_setup ()
 {
     fprintf(stderr,
@@ -352,6 +360,7 @@ usage ()
             "usage: %s [-f config] command [options]\n\n",
 	    progname);
 
+    usage_general ();
     usage_setup ();
     usage_update ();
     usage_zoneadd ();
@@ -2840,6 +2849,7 @@ main (int argc, char *argv[])
         {"keytype", required_argument, 0, 't'},
         {"time",    required_argument, 0, 'w'},
         {"verbose", no_argument,       0, 'v'},
+        {"version", no_argument,       0, 'V'},
         {"keytag",  required_argument, 0, 'x'},
         {"retire",  required_argument, 0, 'y'},
         {"zone",    required_argument, 0, 'z'},
@@ -2848,7 +2858,7 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt_long(argc, argv, "ab:c:de:fg:hi:k:n:o:p:r:s:t:vw:x:y:z:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "ab:c:de:fg:hi:k:n:o:p:r:s:t:vVw:x:y:z:", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'a':
                 all_flag = 1;
@@ -2904,6 +2914,10 @@ main (int argc, char *argv[])
                 break;
             case 't':
                 o_keytype = StrStrdup(optarg);
+                break;
+            case 'V':
+                printf("%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+                exit(0);
                 break;
             case 'v':
                 verbose_flag = 1;
