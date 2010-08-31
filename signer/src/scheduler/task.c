@@ -59,7 +59,6 @@ task_create(int what, time_t when, const char* who, struct zone_struct* zone)
 
     se_log_assert(who);
     se_log_assert(zone);
-    se_log_debug("create task for zone %s", who?who:"(null)");
 
     task->what = what;
     task->when = when;
@@ -375,8 +374,6 @@ tasklist_cleanup(tasklist_type* list)
         if (list->tasks) {
             node = ldns_rbtree_first(list->tasks);
             while (node != LDNS_RBTREE_NULL) {
-                task = (task_type*) node->key;
-                task_cleanup(task);
                 task = (task_type*) node->data;
                 task_cleanup(task);
                 node = ldns_rbtree_next(node);
@@ -402,10 +399,7 @@ static ldns_rbnode_t*
 task2node(task_type* task)
 {
     ldns_rbnode_t* node = (ldns_rbnode_t*) se_malloc(sizeof(ldns_rbnode_t));
-    task_type* task_key = task_create(task->what, task->when, task->who, task->zone);
-    task_key->backoff = task->backoff;
-    task_key->flush = task->flush;
-    node->key = task_key;
+    node->key = task;
     node->data = task;
     return node;
 }
@@ -517,16 +511,22 @@ tasklist_flush(tasklist_type* list)
 task_type*
 tasklist_delete_task(tasklist_type* list, task_type* task)
 {
-    ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
+    task_type* del_task = NULL;
 
     se_log_assert(list);
     se_log_assert(list->tasks);
 
     if (task) {
         se_log_debug("delete task from list");
-        first_node = ldns_rbtree_delete(list->tasks, task);
-        se_free((void*)first_node);
-        return task;
+        del_node = ldns_rbtree_delete(list->tasks, (const void*) task);
+        if (del_node) {
+            del_task = (task_type*) del_node->data;
+            se_free((void*)del_node);
+            return del_task;
+        } else {
+            se_log_debug("delete task failed");
+        }
     } else {
         se_log_warning("delete empty task from list");
     }
@@ -554,17 +554,15 @@ tasklist_pop_task(tasklist_type* list)
     }
 
     now = time_now();
-    pop = (task_type*) first_node->data;
+    pop = (task_type*) first_node->key;
     if (pop && (pop->flush || pop->when <= now)) {
         if (pop->flush) {
             se_log_debug("flush task for zone %s", pop->who?pop->who:"(null)");
         } else {
             se_log_debug("pop task for zone %s", pop->who?pop->who:"(null)");
         }
-        first_node = ldns_rbtree_delete(list->tasks, pop);
-        se_free((void*)first_node);
         pop->flush = 0;
-        return pop;
+        return tasklist_delete_task(list, pop);
     }
     return NULL;
 }
