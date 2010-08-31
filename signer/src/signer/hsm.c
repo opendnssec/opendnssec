@@ -90,15 +90,49 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
 {
     se_log_assert(dname);
     se_log_assert(key_id);
-    se_log_assert(key_id->dnskey);
-    se_log_assert(key_id->hsmkey);
-    se_log_assert(key_id->params);
     se_log_assert(rrset);
     se_log_assert(inception);
     se_log_assert(expiration);
 
+    if (!key_id->params) {
+        key_id->params = hsm_sign_params_new();
+        if (key_id->params) {
+            key_id->params->owner = ldns_rdf_clone(dname);
+            key_id->params->algorithm = key_id->algorithm;
+            key_id->params->flags = key_id->flags;
+        } else {
+            /* could not create params */
+            se_log_error("could not create params for key %s",
+                key_id->locator?key_id->locator:"(null)");
+            return NULL;
+        }
+    }
+
     key_id->params->inception = inception;
     key_id->params->expiration = expiration;
+
+    /* lookup key */
+    if (!key_id->hsmkey) {
+        key_id->hsmkey = hsm_find_key_by_id(ctx, key_id->locator);
+
+        if (!key_id->hsmkey) {
+            /* could not find key */
+            se_log_error("could not find key %s",
+                key_id->locator?key_id->locator:"(null)");
+            return NULL;
+        }
+    }
+
+    if (!key_id->dnskey) {
+        key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey, key_id->params);
+        if (!key_id->dnskey) {
+            /* could not find key */
+            se_log_error("could not create DNSKEY for %s",
+                key_id->locator?key_id->locator:"(null)");
+            return NULL;
+        }
+        key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
+    }
 
     return hsm_sign_rrset(ctx, rrset, key_id->hsmkey, key_id->params);
 }
