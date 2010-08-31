@@ -302,14 +302,14 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
                     key->locator?key->locator:"(null)");
                 break;
             } else if (fd) {
-                fprintf(fd, "; DNSKEY\n");
-                fprintf(fd, "; locator: %s\n",
+                fprintf(fd, ";DNSKEY\n");
+                fprintf(fd, ";locator: %s\n",
                     key->locator?key->locator:"(null)");
-                fprintf(fd, "; algorithm: %u\n", key->algorithm);
-                fprintf(fd, "; flags: %u\n", key->flags);
-                fprintf(fd, "; publish: %i\n", key->publish);
-                fprintf(fd, "; ksk: %i\n", key->ksk);
-                fprintf(fd, "; zsk: %i\n", key->zsk);
+                fprintf(fd, ";algorithm: %u\n", key->algorithm);
+                fprintf(fd, ";flags: %u\n", key->flags);
+                fprintf(fd, ";publish: %i\n", key->publish);
+                fprintf(fd, ";ksk: %i\n", key->ksk);
+                fprintf(fd, ";zsk: %i\n", key->zsk);
                 ldns_rr_print(fd, dnskey);
             }
         }
@@ -363,11 +363,11 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
         se_log_error("error adding NSEC3PARAMS record to zone %s",
             zone->name?zone->name:"(null)");
     } else if (fd) {
-        fprintf(fd, "; NSEC3PARAMS\n");
-        fprintf(fd, "; salt: %s\n", zone->signconf->nsec3_salt);
-        fprintf(fd, "; algorithm: %u\n", zone->nsec3params->algorithm);
-        fprintf(fd, "; flags: %u\n", zone->nsec3params->flags);
-        fprintf(fd, "; iterations: %u\n", zone->nsec3params->iterations);
+        fprintf(fd, ";NSEC3PARAMS\n");
+        fprintf(fd, ";salt: %s\n", zone->signconf->nsec3_salt);
+        fprintf(fd, ";algorithm: %u\n", zone->nsec3params->algorithm);
+        fprintf(fd, ";flags: %u\n", zone->nsec3params->flags);
+        fprintf(fd, ";iterations: %u\n", zone->nsec3params->iterations);
         ldns_rr_print(fd, nsec3params_rr);
     }
     return error;
@@ -406,7 +406,7 @@ zone_add_dnskeys(zone_type* zone)
     filename = se_build_path(zone->name, ".dnskeys", 0);
     fd = se_fopen(filename, NULL, "w");
     if (fd) {
-        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
     }
 
     error = zone_publish_dnskeys(zone, fd);
@@ -425,7 +425,7 @@ zone_add_dnskeys(zone_type* zone)
     }
 
     if (fd) {
-        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         se_fclose(fd);
     } else {
         se_log_warning("cannot backup DNSKEY / NSEC3PARAMS records: "
@@ -565,9 +565,9 @@ zone_nsecify(zone_type* zone)
         filename = se_build_path(zone->name, ".denial", 0);
         fd = se_fopen(filename, NULL, "w");
         if (fd) {
-            fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+            fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             zonedata_print_nsec(fd, zone->zonedata);
-            fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+            fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             se_fclose(fd);
         } else {
             se_log_warning("cannot backup NSEC(3) records: cannot open file "
@@ -611,9 +611,9 @@ zone_sign(zone_type* zone)
         filename = se_build_path(zone->name, ".rrsigs", 0);
         fd = se_fopen(filename, NULL, "w");
         if (fd) {
-            fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+            fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             zonedata_print_rrsig(fd, zone->zonedata);
-            fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+            fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             se_fclose(fd);
         } else {
             se_log_warning("cannot backup RRSIG records: cannot open file "
@@ -644,14 +644,14 @@ int zone_backup_state(zone_type* zone)
     filename = se_build_path(zone->name, ".state", 0);
     fd = se_fopen(filename, NULL, "w");
     if (fd) {
-        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
-        fprintf(fd, "; name: %s\n", zone->name?zone->name:"(null)");
-        fprintf(fd, "; class: %i\n", (int) zone->klass);
-        fprintf(fd, "; default_ttl: %u\n", zone->zonedata->default_ttl);
-        fprintf(fd, "; inbound_serial: %u\n", zone->zonedata->inbound_serial);
-        fprintf(fd, "; internal_serial: %u\n", zone->zonedata->internal_serial);
-        fprintf(fd, "; outbound_serial: %u\n", zone->zonedata->outbound_serial);
-        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, ";name: %s\n", zone->name?zone->name:"(null)");
+        fprintf(fd, ";class: %i\n", (int) zone->klass);
+        fprintf(fd, ";default_ttl: %u\n", zone->zonedata->default_ttl);
+        fprintf(fd, ";inbound_serial: %u\n", zone->zonedata->inbound_serial);
+        fprintf(fd, ";internal_serial: %u\n", zone->zonedata->internal_serial);
+        fprintf(fd, ";outbound_serial: %u\n", zone->zonedata->outbound_serial);
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         se_fclose(fd);
     } else {
         se_log_error("cannot backup zone: cannot open file "
@@ -679,21 +679,21 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     se_log_assert(zone->zonedata);
 
     filename = se_build_path(zone->name, ".state", 0);
-    fd = se_fopen(filename, NULL, "w");
+    fd = se_fopen(filename, NULL, "r");
     se_free((void*)filename);
     if (fd) {
         if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
-            !backup_read_check_str(fd, "; name: ") ||
+            !backup_read_check_str(fd, ";name:") ||
             !backup_read_check_str(fd, zone->name) ||
-            !backup_read_check_str(fd, "; class:") ||
+            !backup_read_check_str(fd, ";class:") ||
             !backup_read_int(fd, &klass) ||
-            !backup_read_check_str(fd, "; default_ttl:") ||
+            !backup_read_check_str(fd, ";default_ttl:") ||
             !backup_read_uint32_t(fd, &zone->zonedata->default_ttl) ||
-            !backup_read_check_str(fd, "; inbound_serial:") ||
+            !backup_read_check_str(fd, ";inbound_serial:") ||
             !backup_read_uint32_t(fd, &zone->zonedata->inbound_serial) ||
-            !backup_read_check_str(fd, "; internal_serial:") ||
+            !backup_read_check_str(fd, ";internal_serial:") ||
             !backup_read_uint32_t(fd, &zone->zonedata->internal_serial) ||
-            !backup_read_check_str(fd, "; outbound_serial:") ||
+            !backup_read_check_str(fd, ";outbound_serial:") ||
             !backup_read_uint32_t(fd, &zone->zonedata->outbound_serial) ||
             !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
         {

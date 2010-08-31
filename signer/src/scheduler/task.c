@@ -91,13 +91,13 @@ task_backup(task_type* task)
     }
 
     if (fd) {
-        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
-        fprintf(fd, "; who: %s\n", task->who);
-        fprintf(fd, "; what: %i\n", (int) task->what);
-        fprintf(fd, "; when: %u\n", (uint32_t) task->when);
-        fprintf(fd, "; flush: %i\n", task->flush);
-        fprintf(fd, "; backoff: %u\n", (uint32_t) task->backoff);
-        fprintf(fd, ";%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, ";who: %s\n", task->who);
+        fprintf(fd, ";what: %i\n", (int) task->what);
+        fprintf(fd, ";when: %u\n", (uint32_t) task->when);
+        fprintf(fd, ";flush: %i\n", task->flush);
+        fprintf(fd, ";backoff: %u\n", (uint32_t) task->backoff);
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
     } else {
         se_log_warning("cannot backup task for zone %s: cannot open file %s for "
         "writing", task->who?task->who:"(null)", filename?filename:"(null)");

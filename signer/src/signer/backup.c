@@ -34,6 +34,7 @@
 #include "config.h"
 #include "util/duration.h"
 #include "util/file.h"
+#include "util/log.h"
 
 #include <ldns/ldns.h>
 
@@ -47,7 +48,7 @@ backup_read_token(FILE* in)
     static char buf[4000];
     buf[sizeof(buf)-1]=0;
     while (1) {
-        if (fscanf(in, " %3990s", buf) != 1) {
+        if (fscanf(in, "%3990s", buf) != 1) {
             return 0;
         }
         if (buf[0] != '#') {
@@ -69,9 +70,11 @@ backup_read_check_str(FILE* in, const char* str)
 {
     char *p = backup_read_token(in);
     if (!p) {
+        se_log_debug("backup: cannot read check string \'%s\'\n", str);
         return 0;
     }
     if (se_strcmp(p, str) != 0) {
+        se_log_debug("backup: \'%s\' does not match \'%s\'\n", p, str);
         return 0;
     }
     return 1;
@@ -87,6 +90,7 @@ backup_read_str(FILE* in, char** str)
 {
     char *p = backup_read_token(in);
     if (!p) {
+        se_log_debug("backup: cannot read string\n");
         return 0;
     }
     *str = p;
@@ -103,6 +107,7 @@ backup_read_time_t(FILE* in, time_t* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
+        se_log_debug("backup: cannot read time\n");
        return 0;
     }
     *v=atol(p);
@@ -119,6 +124,7 @@ backup_read_duration(FILE* in, duration_type** v)
 {
     char* p = backup_read_token(in);
     if (!p) {
+        se_log_debug("backup: cannot read duration\n");
        return 0;
     }
     *v=duration_create_from_string((const char*) p);
@@ -135,6 +141,7 @@ backup_read_rr_type(FILE* in, ldns_rr_type* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
+        se_log_debug("backup: cannot read rr type\n");
        return 0;
     }
     *v=(ldns_rr_type) atoi(p);
@@ -151,6 +158,7 @@ backup_read_int(FILE* in, int* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
+        se_log_debug("backup: cannot read integer\n");
        return 0;
     }
     *v=atoi(p);
@@ -167,6 +175,7 @@ backup_read_uint32_t(FILE* in, uint32_t* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
+        se_log_debug("backup: cannot read uint32_t\n");
        return 0;
     }
     *v= (uint32_t)atol(p);
