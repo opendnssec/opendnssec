@@ -75,9 +75,11 @@ case "$1" in
 		if [ -r "$enforcer_pid_file" ]; then
 			kill -TERM `cat "$enforcer_pid_file"`
 			RETVAL=$?
-			while [ -r "$enforcer_pid_file" ]; do
-				sleep 1
-			done
+			if [ $RETVAL = 0 ]; then
+				while [ -r "$enforcer_pid_file" ]; do
+					sleep 1
+				done
+			fi
 		else
 			echo "Cannot find PID file"
 			RETVAL=1
@@ -108,7 +110,7 @@ case "$1" in
 	"$0" enforcer start
 
 	echo "Starting signer engine..."
-	"$sbindir/ods-signerd" -vvvvv
+	"$sbindir/ods-signer" start
 	;;
 
 'stop')
