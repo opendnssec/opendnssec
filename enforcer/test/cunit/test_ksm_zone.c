@@ -63,7 +63,6 @@ static void TestKsmZoneRead(void)
 	KSM_ZONE*   zone;
 
 	zone = (KSM_ZONE *)malloc(sizeof(KSM_ZONE));
-    zone->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
 
 	/* Call KsmZoneInit */
     status = KsmZoneInit(&result, policy_id);

@@ -173,7 +173,7 @@ static void TestKsmImportZone(void)
 	CU_ASSERT_EQUAL(count, 0);
 
     /* Create X */
-    status = KsmImportZone(zone_name, policy_id, 1, &new_zone);
+    status = KsmImportZone(zone_name, policy_id, 1, &new_zone, "signconf", "input", "output");
 	CU_ASSERT_EQUAL(status, 0);
 	CU_ASSERT_EQUAL(new_zone, 1);
 
@@ -193,7 +193,7 @@ static void TestKsmImportZone(void)
 	CU_ASSERT_EQUAL(count, 1);
 
     /* update X */
-    status = KsmImportZone(zone_name, 2, 0, &new_zone);
+    status = KsmImportZone(zone_name, 2, 0, &new_zone, "signconf", "input", "output");
 	CU_ASSERT_EQUAL(status, 0);
 	CU_ASSERT_EQUAL(new_zone, 0);
 
