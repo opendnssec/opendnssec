@@ -35,6 +35,7 @@
 #include "util/duration.h"
 #include "util/file.h"
 #include "util/log.h"
+#include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
 
@@ -162,6 +163,40 @@ backup_read_int(FILE* in, int* v)
        return 0;
     }
     *v=atoi(p);
+    return 1;
+}
+
+
+/**
+ * Read 8bit unsigned integer from backup file.
+ *
+ */
+int
+backup_read_uint8_t(FILE* in, uint8_t* v)
+{
+    char* p = backup_read_token(in);
+    if (!p) {
+        se_log_debug("backup: cannot read uint8_t\n");
+       return 0;
+    }
+    *v= (uint8_t)atoi(p);
+    return 1;
+}
+
+
+/**
+ * Read 16bit unsigned integer from backup file.
+ *
+ */
+int
+backup_read_uint16_t(FILE* in, uint16_t* v)
+{
+    char* p = backup_read_token(in);
+    if (!p) {
+        se_log_debug("backup: cannot read uint16_t\n");
+       return 0;
+    }
+    *v= (uint16_t)atoi(p);
     return 1;
 }
 
