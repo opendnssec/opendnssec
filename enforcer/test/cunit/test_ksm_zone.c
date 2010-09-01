@@ -80,7 +80,6 @@ static void TestKsmZoneRead(void)
 
     DbFreeResult(result);
 
-	free(zone->name);
 	free(zone);
 }
 

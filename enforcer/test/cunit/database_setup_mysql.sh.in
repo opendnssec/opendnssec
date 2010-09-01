@@ -45,7 +45,7 @@ fi
 
 case $1 in
 	setup)
-		@MYSQL@ $USERNAME $PASSWORD $HOST $NAME < $srcdir/../utils/database_create.mysql;
+		@MYSQL@ $USERNAME $PASSWORD $HOST $NAME < $srcdir/../../utils/database_create.mysql;
 		@MYSQL@ $USERNAME $PASSWORD $HOST $NAME << EOF
 DROP TABLE IF EXISTS TEST_BASIC;
 CREATE TABLE TEST_BASIC (
@@ -107,8 +107,8 @@ INSERT INTO parameters_policies VALUES (40,40,2,0);
 INSERT INTO parameters_policies VALUES (41,41,2,0);
 
 -- A couple of Zones:
-INSERT INTO zones VALUES (1,'opendnssec.org',2);
-INSERT INTO zones VALUES (2,'opendnssec.se',2);
+INSERT INTO zones VALUES (1,'opendnssec.org',2, 'signconf','input','output');
+INSERT INTO zones VALUES (2,'opendnssec.se',2, 'signconf','input','output');
 
 -- some security modules
 insert into securitymodules (id, name, capacity) values (NULL, "sca6000-1", 1000);
