@@ -680,7 +680,9 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     int klass = 0;
     int error = 0;
     char* filename = NULL;
+    const char* token = NULL;
     task_type* task = NULL;
+    key_type* key = NULL;
     time_t now = 0;
     FILE* fd = NULL;
     int corrupted = 0;
@@ -734,19 +736,72 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     error = adfile_read(zone, filename, 1);
     se_free((void*)filename);
     if (error) {
-        zone->signconf->last_modified = 0;
-        return;
+        goto abort_recover;
     }
 
     /* time for the keys and nsec3params file */
     filename = se_build_path(zone->name, ".dnskeys", 0);
+    fd = se_fopen(filename, NULL, "r");
     se_free((void*)filename);
 
+    if (fd) {
+        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+            corrupted = 1;
+        }
+
+        while (!corrupted) {
+            if (backup_read_str(fd, &token)) {
+                if (se_strcmp(token, ";DNSKEY") == 0) {
+                    key = key_recover_from_backup(fd);
+                    if (!key || keylist_add(zone->signconf->keys, key)) {
+                        se_log_error("error adding key from backup file "
+                            "%s.dnskeys to key list", zone->name);
+                        corrupted = 1;
+                    }
+                    key = NULL;
+                } else if (se_strcmp(token, ";NSEC3PARAMS") == 0) {
+                    zone->nsec3params = NULL;
+                } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+                    break;
+                } else {
+                    corrupted = 1;
+                }
+                se_free((void*) token);
+            } else {
+                corrupted = 1;
+            }
+        }
+        se_fclose(fd);
+
+        if (corrupted) {
+            se_log_error("unable to recover dnskeys backup file %s.dnskeys: "
+                "corrupt state file ", zone->name);
+            error = 1;
+        }
+    } else {
+        se_log_debug("unable to recover dnskeys backup file %s.dnskeys",
+            zone->name);
+            error = 1;
+    }
+    if (error) {
+        goto abort_recover;
+    }
+
+    /* recover denial of existence */
     filename = se_build_path(zone->name, ".denial", 0);
     se_free((void*)filename);
+    if (error) {
+        goto abort_recover;
+    }
 
+    /* retrieve signatures */
     filename = se_build_path(zone->name, ".rrsigs", 0);
     se_free((void*)filename);
+    if (error) {
+        goto abort_recover;
+    }
+
+abort_recover:
 
     /* task */
     filename = se_build_path(zone->name, ".task", 0);
@@ -756,8 +811,15 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         now = time_now();
         zone->task = task_create(TASK_READ, now, zone->name, zone);
     }
-    task = tasklist_schedule_task(tl, zone->task, 0);
+    if (!zone->task) {
+        se_log_error("failed to create task for zone %s", zone->name);
+    } else {
+        task = tasklist_schedule_task(tl, zone->task, 1);
+    }
 
+    if (error) {
+        zone->signconf->last_modified = 0;
+    }
     return;
 }
 

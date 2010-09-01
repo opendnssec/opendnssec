@@ -31,6 +31,7 @@
  *
  */
 
+#include "signer/backup.h"
 #include "signer/se_key.h"
 #include "util/file.h"
 #include "util/log.h"
@@ -61,6 +62,56 @@ key_create(const char* locator, uint32_t algorithm, uint32_t flags,
     key->ksk = ksk;
     key->zsk = zsk;
     key->next = NULL;
+    return key;
+}
+
+
+/**
+ * Recover a key from backup.
+ *
+ */
+key_type*
+key_recover_from_backup(FILE* fd)
+{
+    key_type* key = NULL;
+    const char* locator = NULL;
+    uint32_t algorithm = 0;
+    uint32_t flags = 0;
+    int publish = 0;
+    int ksk = 0;
+    int zsk = 0;
+    ldns_rr* rr = NULL;
+
+    if (!backup_read_check_str(fd, ";locator:") ||
+        !backup_read_str(fd, &locator) ||
+        !backup_read_check_str(fd, ";algorithm:") ||
+        !backup_read_uint32_t(fd, &algorithm) ||
+        !backup_read_check_str(fd, ";flags:") ||
+        !backup_read_uint32_t(fd, &flags) ||
+        !backup_read_check_str(fd, ";publish:") ||
+        !backup_read_int(fd, &publish) ||
+        !backup_read_check_str(fd, ";ksk:") ||
+        !backup_read_int(fd, &ksk) ||
+        !backup_read_check_str(fd, ";zsk:") ||
+        !backup_read_int(fd, &zsk) ||
+        ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK)
+    {
+        se_log_error("key part in backup file is corrupted");
+        return NULL;
+    }
+
+    key = (key_type*) se_malloc(sizeof(key_type));
+    key->locator = locator;
+    key->dnskey = rr;
+    key->hsmkey = NULL;
+    key->params = NULL;
+    key->algorithm = algorithm;
+    key->flags = flags;
+    key->publish = publish;
+    key->ksk = ksk;
+    key->zsk = zsk;
+    key->next = NULL;
+
     return key;
 }
 

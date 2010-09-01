@@ -87,6 +87,14 @@ key_type* key_create(const char* locator, uint32_t algorithm, uint32_t flags,
     int publish, int ksk, int zsk);
 
 /**
+ * Recover a key from backup.
+ * \param[in] fd file descriptor of key backup file
+ * \return key_type* key
+ *
+ */
+key_type* key_recover_from_backup(FILE* fd);
+
+/**
  * Clean up key.
  * \param[in] key cleaun up this key
  *
