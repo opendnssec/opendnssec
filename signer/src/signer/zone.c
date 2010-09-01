@@ -445,6 +445,7 @@ int
 zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
 {
     ldns_rr_type type = 0;
+    int error = 0;
     int at_apex = 0;
     uint32_t tmp = 0;
     ldns_rdf* soa_min = NULL;
@@ -677,6 +678,7 @@ void
 zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
 {
     int klass = 0;
+    int error = 0;
     char* filename = NULL;
     task_type* task = NULL;
     time_t now = 0;

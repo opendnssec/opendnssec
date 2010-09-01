@@ -45,7 +45,8 @@
 #include <ldns/ldns.h> /* ldns_*() */
 #include <stdio.h> /* rewind() */
 
-static int adfile_read_file(FILE* fd, struct zone_struct* zone, int include);
+static int adfile_read_file(FILE* fd, struct zone_struct* zone, int include,
+    int recover);
 
 
 /**
@@ -241,7 +242,8 @@ adfile_lookup_soa_rr(FILE* fd)
  */
 static ldns_rr*
 adfile_read_rr(FILE* fd, zone_type* zone_in, char* line, ldns_rdf** orig,
-    ldns_rdf** prev, uint32_t* ttl, ldns_status* status, unsigned int* l)
+    ldns_rdf** prev, uint32_t* ttl, ldns_status* status, unsigned int* l,
+    int recover)
 {
     ldns_rr* rr = NULL;
     ldns_rdf* tmp = NULL;
@@ -292,7 +294,8 @@ adfile_read_line:
                     /* dive into this file */
                     fd_include = se_fopen(line + 9, NULL, "r");
                     if (fd_include) {
-                        error = adfile_read_file(fd_include, zone_in, 1);
+                        error = adfile_read_file(fd_include, zone_in, 1,
+                            recover);
                         se_fclose(fd_include);
                     } else {
                         se_log_error("unable to open include file '%s'",
@@ -418,7 +421,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include, int recover)
 
     /* read records */
     while ((rr = adfile_read_rr(fd, zone_in, line, &orig, &prev,
-        &(zone_in->zonedata->default_ttl), &status, &l)) != NULL) {
+        &(zone_in->zonedata->default_ttl), &status, &l, recover)) != NULL) {
 
         if (status != LDNS_STATUS_OK) {
             se_log_error("error reading RR at line %i (%s): %s", l,

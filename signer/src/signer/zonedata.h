@@ -162,7 +162,7 @@ int zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex);
  * \return int 0 on success, 1 on false
  *
  */
-int zonedata_recover_rr_from_backup_(zonedata_type* zd, ldns_rr* rr,
+int zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr,
     int at_apex);
 
 /**

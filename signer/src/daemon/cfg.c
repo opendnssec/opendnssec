@@ -38,7 +38,9 @@
 #include "util/log.h"
 #include "util/se_malloc.h"
 
+#include <errno.h>
 #include <stdio.h> /* fprintf() */
+#include <string.h> /* strerror() */
 
 
 /**

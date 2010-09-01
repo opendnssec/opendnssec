@@ -871,7 +871,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         } else {
             se_log_debug("signer engine started");
             /* try to recover from backups */
-/*            engine_recover_from_backups(engine); */
+            engine_recover_from_backups(engine);
         }
 
         if (zl_changed) {
