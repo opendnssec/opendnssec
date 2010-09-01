@@ -3651,6 +3651,20 @@ int update_policies(char* kasp_filename)
 
     /* Some files, the xml and rng */
     const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/kasp.rng";
+    char* kaspcheck_cmd = NULL;
+    
+    StrAppend(&kaspcheck_cmd, ODS_AU_KASPCHECK);
+    StrAppend(&kaspcheck_cmd, " -k ");
+    StrAppend(&kaspcheck_cmd, kasp_filename);
+
+    /* Run kaspcheck if we can */
+    status = system(kaspcheck_cmd);
+    if (status != 0)
+    {
+        fprintf(stderr, "Couldn't run kaspcheck, will carry on\n");
+    }
+
+    StrFree(kaspcheck_cmd);
 
     /* Load XML document */
     doc = xmlParseFile(kasp_filename);
