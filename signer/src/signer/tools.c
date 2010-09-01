@@ -75,7 +75,7 @@ tools_read_input(zone_type* zone)
             tmpname = se_build_path(zone->name, ".unsorted", 0);
             error = se_file_copy(zone->inbound_adapter->filename, tmpname);
             if (!error) {
-                error = adfile_read(zone, tmpname);
+                error = adfile_read(zone, tmpname, 0);
             }
             se_free((void*)tmpname);
             break;

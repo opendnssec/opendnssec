@@ -295,7 +295,7 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
             ldns_rr_set_ttl(key->dnskey, ttl);
             ldns_rr_set_class(key->dnskey, zone->klass);
             dnskey = ldns_rr_clone(key->dnskey);
-            error = zone_add_rr(zone, dnskey);
+            error = zone_add_rr(zone, dnskey, 0);
             if (error) {
                 se_log_error("error adding DNSKEY[%u] for key %s",
                     ldns_calc_keytag(dnskey),
@@ -358,7 +358,7 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
      */
     ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(nsec3params_rr, 1)), 7, 0);
 
-    error = zone_add_rr(zone, nsec3params_rr);
+    error = zone_add_rr(zone, nsec3params_rr, 0);
     if (error) {
         se_log_error("error adding NSEC3PARAMS record to zone %s",
             zone->name?zone->name:"(null)");
@@ -442,7 +442,7 @@ zone_add_dnskeys(zone_type* zone)
  *
  */
 int
-zone_add_rr(zone_type* zone, ldns_rr* rr)
+zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
 {
     ldns_rr_type type = 0;
     int at_apex = 0;
@@ -496,7 +496,12 @@ zone_add_rr(zone_type* zone, ldns_rr* rr)
             }
         }
     }
-    return zonedata_add_rr(zone->zonedata, rr, at_apex);
+    if (recover) {
+       error = zonedata_recover_rr_from_backup(zone->zonedata, rr, at_apex);
+    } else {
+       error = zonedata_add_rr(zone->zonedata, rr, at_apex);
+    }
+    return error;
 }
 
 
@@ -721,11 +726,15 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         return;
     }
     zone->signconf->keys = keylist_create();
-    zone->signconf->last_modified = 0;
 
     /* zone data */
     filename = se_build_path(zone->name, ".unsorted", 0);
+    error = adfile_read(zone, filename, 1);
     se_free((void*)filename);
+    if (error) {
+        zone->signconf->last_modified = 0;
+        return;
+    }
 
     /* time for the keys and nsec3params file */
     filename = se_build_path(zone->name, ".dnskeys", 0);

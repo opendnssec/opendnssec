@@ -365,7 +365,7 @@ adfile_read_rr:
  *
  */
 static int
-adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
+adfile_read_file(FILE* fd, struct zone_struct* zone, int include, int recover)
 {
     int result = 0;
     uint32_t soa_min = 0;
@@ -440,7 +440,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
         }
 
         /* add to the zonedata */
-        result = zone_add_rr(zone_in, rr);
+        result = zone_add_rr(zone_in, rr, recover);
         if (result != 0) {
             se_log_error("error adding RR at line %i: %s", l, line);
             break;
@@ -476,7 +476,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include)
  *
  */
 int
-adfile_read(struct zone_struct* zone, const char* filename)
+adfile_read(struct zone_struct* zone, const char* filename, int recover)
 {
     FILE* fd = NULL;
     zone_type* zone_in = zone;
@@ -491,7 +491,11 @@ adfile_read(struct zone_struct* zone, const char* filename)
     /* read the zonefile */
     fd = se_fopen(filename, NULL, "r");
     if (fd) {
-        error = adfile_read_file(fd, zone_in, 0);
+        if (recover) {
+            error = adfile_read_file(fd, zone_in, 1, 1);
+        } else {
+            error = adfile_read_file(fd, zone_in, 0, 0);
+        }
         se_fclose(fd);
     } else {
         error = 1;

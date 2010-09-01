@@ -675,6 +675,36 @@ domain_add_rr(domain_type* domain, ldns_rr* rr)
 
 
 /**
+ * Recover RR from backup.
+ *
+ */
+int
+domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
+{
+    rrset_type* rrset = NULL;
+
+    se_log_assert(rr);
+    se_log_assert(domain);
+    se_log_assert(domain->name);
+    se_log_assert(domain->rrsets);
+    se_log_assert((ldns_dname_compare(domain->name, ldns_rr_owner(rr)) == 0));
+
+    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
+    if (rrset) {
+        return rrset_recover_rr_from_backup(rrset, rr);
+    }
+    /* no RRset with this RRtype yet */
+    rrset = rrset_create(ldns_rr_get_type(rr));
+    rrset = domain_add_rrset(domain, rrset);
+    if (!rrset) {
+        se_log_error("unable to recover RR to domain: failed to add RRset");
+        return 1;
+    }
+    return rrset_recover_rr_from_backup(rrset, rr);
+}
+
+
+/**
  * Delete RR from domain.
  *
  */

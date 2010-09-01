@@ -46,10 +46,11 @@ struct zone_struct;
  * Read zone file.
  * \param[in] zone zone structure
  * \param[in] filename read from this specific file
+ * \param[in] recover true if we are recovering from backup
  * \return 0 on success, 1 on error
  *
  */
-int adfile_read(struct zone_struct* zone, const char* filename);
+int adfile_read(struct zone_struct* zone, const char* filename, int recover);
 
 /**
  * Write zone file.

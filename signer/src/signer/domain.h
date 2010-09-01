@@ -196,6 +196,15 @@ int domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
 int domain_add_rr(domain_type* domain, ldns_rr* rr);
 
 /**
+ * Recover RR from backup.
+ * \param[in] domain domain
+ * \param[in] rr RR
+ * \return int 0 on success, 1 on error
+ *
+ */
+int domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr);
+
+/**
  * Delete RR from domain.
  * \param[in] domain domain
  * \param[in] rr RR

@@ -890,6 +890,34 @@ zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex)
 
 
 /**
+ * Recover RR from backup.
+ *
+ */
+int
+zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr, int at_apex)
+{
+    domain_type* domain = NULL;
+
+    se_log_assert(zd);
+    se_log_assert(zd->domains);
+    se_log_assert(rr);
+
+    domain = zonedata_lookup_domain(zd, ldns_rr_owner(rr));
+    if (domain) {
+        return domain_recover_rr_from_backup(domain, rr);
+    }
+    /* no domain with this name yet */
+    domain = domain_create(ldns_rr_owner(rr));
+    domain = zonedata_add_domain(zd, domain, at_apex);
+    if (!domain) {
+        se_log_error("unable to recover RR to zonedata: failed to add domain");
+        return 1;
+    }
+    return domain_recover_rr_from_backup(domain, rr);
+}
+
+
+/**
  * Delete RR from the zone data.
  *
  */

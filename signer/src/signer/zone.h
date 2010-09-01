@@ -125,10 +125,11 @@ int zone_add_dnskeys(zone_type* zone);
  * Add a RR to the zone.
  * \param[in] zone zone structure
  * \param[in] rr RR
+ * \param[in] recover true if we are recovering from backup
  * \return int 0 on success, 1 on error
  *
  */
-int zone_add_rr(zone_type* zone, ldns_rr* rr);
+int zone_add_rr(zone_type* zone, ldns_rr* rr, int recover);
 
 /**
  * Delete a RR from the zone.

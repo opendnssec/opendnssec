@@ -155,6 +155,17 @@ int zonedata_update(zonedata_type* zd, signconf_type* sc);
 int zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex);
 
 /**
+ * Recover RR from backup.
+ * \param[in] zd zone data
+ * \param[in] rr RR to add
+ * \param[in] at_apex if is at apex of the zone
+ * \return int 0 on success, 1 on false
+ *
+ */
+int zonedata_recover_rr_from_backup_(zonedata_type* zd, ldns_rr* rr,
+    int at_apex);
+
+/**
  * Delete RR from zone data.
  * \param[in] zd zone data
  * \param[in] rr RR to delete
