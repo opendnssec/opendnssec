@@ -82,6 +82,8 @@ key_recover_from_backup(FILE* fd)
     int zsk = 0;
     ldns_rr* rr = NULL;
 
+    se_log_assert(fd);
+
     if (!backup_read_check_str(fd, ";locator:") ||
         !backup_read_str(fd, &locator) ||
         !backup_read_check_str(fd, ";algorithm:") ||

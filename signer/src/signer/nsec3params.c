@@ -118,13 +118,13 @@ nsec3params_create(uint8_t algo, uint8_t flags, uint16_t iter, const char* salt)
  *
  */
 nsec3params_type*
-nsec3params_recover_from_backup(FILE* fd)
+nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
 {
     const char* salt = NULL;
     uint8_t algorithm = 0;
     uint8_t flags = 0;
     uint16_t iterations = 0;
-    ldns_rr* rr = NULL;
+    ldns_rr* nsec3params_rr = NULL;
     nsec3params_type* nsec3params = NULL;
     uint8_t salt_len; /* calculate salt len */
     uint8_t* salt_data; /* calculate salt data */
@@ -139,7 +139,8 @@ nsec3params_recover_from_backup(FILE* fd)
         !backup_read_uint8_t(fd, &flags) ||
         !backup_read_check_str(fd, ";iterations:") ||
         !backup_read_uint16_t(fd, &iterations) ||
-        ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK)
+        ldns_rr_new_frm_fp(&nsec3params_rr, fd, NULL, NULL, NULL)
+            != LDNS_STATUS_OK)
     {
         se_log_error("nsec3params part in backup file is corrupted");
         return NULL;
@@ -156,6 +157,7 @@ nsec3params_recover_from_backup(FILE* fd)
     }
     nsec3params->salt_len = salt_len; /* salt length */
     nsec3params->salt_data = salt_data; /* salt data */
+    *rr = nsec3params_rr;
     return nsec3params;
 }
 

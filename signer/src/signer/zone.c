@@ -685,6 +685,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     key_type* key = NULL;
     time_t now = 0;
     FILE* fd = NULL;
+    ldns_rr* rr = NULL;
     int corrupted = 0;
 
     se_log_assert(zone);
@@ -757,10 +758,32 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
                         se_log_error("error adding key from backup file "
                             "%s.dnskeys to key list", zone->name);
                         corrupted = 1;
+                    } else {
+                       rr = ldns_rr_clone(key->dnskey);
+                       error = zone_add_rr(zone, rr, 1);
+                       if (error) {
+                           se_log_error("error recovering DNSKEY[%u] rr",
+                              ldns_calc_keytag(rr));
+                           corrupted = 1;
+                       }
+                       rr = NULL;
                     }
                     key = NULL;
                 } else if (se_strcmp(token, ";NSEC3PARAMS") == 0) {
-                    zone->nsec3params = NULL;
+                    zone->nsec3params = nsec3params_recover_from_backup(fd,
+                        &rr);
+                    if (!zone->nsec3params) {
+                        se_log_error("error recovering nsec3 parameters from "
+                            "%s.dnskeys ", zone->name);
+                        corrupted = 1;
+                    } else {
+                       error = zone_add_rr(zone, rr, 1);
+                       if (error) {
+                           se_log_error("error recovering NSEC3PARAMS rr");
+                           corrupted = 1;
+                       }
+                    }
+                    rr = NULL;
                 } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
                     break;
                 } else {

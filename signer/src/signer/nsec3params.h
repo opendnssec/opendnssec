@@ -44,6 +44,8 @@
 # include <unistd.h>
 #endif
 
+#include <ldns/ldns.h>
+
 /**
  * NSEC3 Parameters structure.
  */
@@ -82,10 +84,11 @@ nsec3params_type* nsec3params_create(uint8_t algo, uint8_t flags,
 /**
  * Recover NSEC3 parameters from backup.
  * \param[in] fd file descriptor of key backup file
+ * \param[out] rr the NSEC3PARAMS resource record
  * \return nsec3params_type* the recovered nsec3params
  *
  */
-nsec3params_type* nsec3params_recover_from_backup(FILE* fd);
+nsec3params_type* nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr);
 
 /**
  * Clean up the NSEC3 parameters.
