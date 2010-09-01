@@ -71,7 +71,10 @@ zone = element Zone {
 				element ZSK { empty }?,
 				
 				# include this key in the zonefile?
-				element Publish { empty }?
+				element Publish { empty }?,
+				
+				# deactivate this key (i.e. do not recycle any signatures)
+				element Deactivate { empty }?
 			}+
 		},
 
