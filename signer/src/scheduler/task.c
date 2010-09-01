@@ -147,6 +147,7 @@ task_backup(task_type* task)
         fprintf(fd, ";flush: %i\n", task->flush);
         fprintf(fd, ";backoff: %u\n", (uint32_t) task->backoff);
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
+        se_fclose(fd);
     } else {
         se_log_warning("cannot backup task for zone %s: cannot open file %s for "
         "writing", task->who?task->who:"(null)", filename?filename:"(null)");
