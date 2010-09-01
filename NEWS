@@ -17,6 +17,8 @@ OpenDNSSEC trunk
 * Backup prepare/commit/rollback added for 2-step backups without taking the
   enforcer offline.
 * Recalculate salt immediately if the saltlength is changed.
+* Standby keys are now optional (default to 0) and should be considered
+  experimental.
 
 OpenDNSSEC 1.1.0 branch
 
