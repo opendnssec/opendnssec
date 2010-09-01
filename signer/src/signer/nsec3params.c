@@ -31,6 +31,7 @@
  *
  */
 
+#include "signer/backup.h"
 #include "signer/nsec3params.h"
 #include "util/log.h"
 #include "util/se_malloc.h"
@@ -110,6 +111,54 @@ nsec3params_create(uint8_t algo, uint8_t flags, uint16_t iter, const char* salt)
     nsec3params->salt_data = salt_data; /* salt data */
     return nsec3params;
 }
+
+
+/**
+ * Recover NSEC3 parameters from backup.
+ *
+ */
+nsec3params_type*
+nsec3params_recover_from_backup(FILE* fd)
+{
+    const char* salt = NULL;
+    uint8_t algorithm = 0;
+    uint8_t flags = 0;
+    uint16_t iterations = 0;
+    ldns_rr* rr = NULL;
+    nsec3params_type* nsec3params = NULL;
+    uint8_t salt_len; /* calculate salt len */
+    uint8_t* salt_data; /* calculate salt data */
+
+    se_log_assert(fd);
+
+    if (!backup_read_check_str(fd, ";salt:") ||
+        !backup_read_str(fd, &salt) ||
+        !backup_read_check_str(fd, ";algorithm:") ||
+        !backup_read_uint8_t(fd, &algorithm) ||
+        !backup_read_check_str(fd, ";flags:") ||
+        !backup_read_uint8_t(fd, &flags) ||
+        !backup_read_check_str(fd, ";iterations:") ||
+        !backup_read_uint16_t(fd, &iterations) ||
+        ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK)
+    {
+        se_log_error("nsec3params part in backup file is corrupted");
+        return NULL;
+    }
+
+    nsec3params = (nsec3params_type*) se_malloc(sizeof(nsec3params_type));
+    nsec3params->algorithm = algorithm; /* algorithm identifier */
+    nsec3params->flags = flags; /* flags */
+    nsec3params->iterations = iterations; /* iterations */
+    /* construct the salt from the string */
+    if (nsec3params_create_salt(salt, &salt_len, &salt_data) != 0) {
+        se_free((void*)nsec3params);
+        return NULL;
+    }
+    nsec3params->salt_len = salt_len; /* salt length */
+    nsec3params->salt_data = salt_data; /* salt data */
+    return nsec3params;
+}
+
 
 /**
  * Clean up NSEC3 parameters.

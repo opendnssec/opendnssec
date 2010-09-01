@@ -67,17 +67,25 @@ struct nsec3params_struct {
 int nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
     uint8_t** salt);
 
-/**
+ /**
  * Create new NSEC3 parameters.
  * \param[in] algo algorithm.
  * \param[in] flags flags, Opt-Out or Opt-In.
  * \param[in] iter number of iterations
  * \param[in] salt salt
- * \return the created nsec3param
+ * \return nsec3params_type* the created nsec3params
  *
  */
 nsec3params_type* nsec3params_create(uint8_t algo, uint8_t flags,
     uint16_t iter, const char* salt);
+
+/**
+ * Recover NSEC3 parameters from backup.
+ * \param[in] fd file descriptor of key backup file
+ * \return nsec3params_type* the recovered nsec3params
+ *
+ */
+nsec3params_type* nsec3params_recover_from_backup(FILE* fd);
 
 /**
  * Clean up the NSEC3 parameters.
