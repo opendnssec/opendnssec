@@ -233,7 +233,7 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
 int
 rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr)
 {
-    return (rrset_add_pending_rr(rrset, rr) == LDNS_STATUS_OK);
+    return !(rrset_add_pending_rr(rrset, rr) == LDNS_STATUS_OK);
 }
 
 
