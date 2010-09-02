@@ -79,6 +79,7 @@
 #define REPO_TYPE 3
 #define SERIAL_TYPE 4
 #define ROLLOVER_TYPE 5
+#define INT_TYPE_NO_FREE 6
 
 extern char *optarg;
 extern int optind;
@@ -3634,6 +3635,7 @@ int update_policies(char* kasp_filename)
     xmlChar *share_keys_flag = (xmlChar *)"N";
     xmlChar *man_roll_flag = (xmlChar *)"N";
     xmlChar *rfc5011_flag = (xmlChar *)"N";
+    int standby_keys_flag = 0;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
     xmlRelaxNGParserCtxtPtr rngpctx = NULL;
@@ -3907,6 +3909,7 @@ int update_policies(char* kasp_filename)
                                 }
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Standby")) {
                                     SetParamOnPolicy(xmlNodeGetContent(childNode2), "standby", "ksk", policy->ksk->standby_keys, policy->id, INT_TYPE);
+                                    standby_keys_flag = 1;
                                 }
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"ManualRollover")) {
                                     man_roll_flag = (xmlChar *)"Y";
@@ -3919,9 +3922,14 @@ int update_policies(char* kasp_filename)
                                 }*/
                                 childNode2 = childNode2->next;
                             }
-                        /* Set things that we flagged */
-                        SetParamOnPolicy(man_roll_flag, "manual_rollover", "ksk", policy->ksk->manual_rollover, policy->id, BOOL_TYPE);
-                        SetParamOnPolicy(rfc5011_flag, "rfc5011", "ksk", policy->ksk->rfc5011, policy->id, BOOL_TYPE);
+                            /* Set things that we flagged */
+                            SetParamOnPolicy(man_roll_flag, "manual_rollover", "ksk", policy->ksk->manual_rollover, policy->id, BOOL_TYPE);
+                            SetParamOnPolicy(rfc5011_flag, "rfc5011", "ksk", policy->ksk->rfc5011, policy->id, BOOL_TYPE);
+                            if (standby_keys_flag == 0) {
+                                SetParamOnPolicy((xmlChar *)"0", "standby", "ksk", policy->ksk->standby_keys, policy->id, INT_TYPE_NO_FREE);
+                            } else {
+                                standby_keys_flag = 0;
+                            }
                         } /* End of KSK */
                         /* ZSK */
                         else if (xmlStrEqual(childNode->name, (const xmlChar *)"ZSK")) {
@@ -3954,6 +3962,7 @@ int update_policies(char* kasp_filename)
                                 }
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Standby")) {
                                     SetParamOnPolicy(xmlNodeGetContent(childNode2), "standby", "zsk", policy->zsk->standby_keys, policy->id, INT_TYPE);
+                                    standby_keys_flag = 1;
                                 }
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"ManualRollover")) {
                                     man_roll_flag = (xmlChar *)"Y";
@@ -3968,6 +3977,11 @@ int update_policies(char* kasp_filename)
                     }
                     /* Set things that we flagged */
                     SetParamOnPolicy(share_keys_flag, "zones_share_keys", "keys", policy->keys->share_keys, policy->id, BOOL_TYPE);
+                    if (standby_keys_flag == 0) {
+                        SetParamOnPolicy((xmlChar *)"0", "standby", "zsk", policy->zsk->standby_keys, policy->id, INT_TYPE_NO_FREE);
+                    } else {
+                        standby_keys_flag = 0;
+                    }
 
                 } /* End of Keys */
                 /* Zone */
@@ -4499,7 +4513,9 @@ int SetParamOnPolicy(const xmlChar* new_value, const char* name, const char* cat
             StrFree(temp_char);
             return status;
         }
-        StrFree(temp_char);
+        if (value_type != INT_TYPE_NO_FREE) {
+            StrFree(temp_char);
+        }
     }
 
     /* Now update the policy with what we found, if it is different */
