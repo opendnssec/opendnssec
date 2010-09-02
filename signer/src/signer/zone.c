@@ -671,6 +671,68 @@ int zone_backup_state(zone_type* zone)
 
 
 /**
+ * Recover DNSKEYs and NSEC3PARAMS.
+ *
+ */
+static int
+zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
+{
+    int corrupted = 0;
+    const char* token = NULL;
+    key_type* key = NULL;
+    ldns_rr* rr = NULL;
+
+    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+        corrupted = 1;
+    }
+
+    while (!corrupted) {
+        if (backup_read_str(fd, &token)) {
+            if (se_strcmp(token, ";DNSKEY") == 0) {
+                key = key_recover_from_backup(fd);
+                if (!key || keylist_add(zone->signconf->keys, key)) {
+                    se_log_error("error adding key from backup file "
+                        "%s.dnskeys to key list", zone->name);
+                    corrupted = 1;
+                } else {
+                   rr = ldns_rr_clone(key->dnskey);
+                   corrupted = zone_add_rr(zone, rr, 1);
+                   if (corrupted) {
+                       se_log_error("error recovering DNSKEY[%u] rr",
+                          ldns_calc_keytag(rr));
+                   }
+                   rr = NULL;
+                }
+                key = NULL;
+            } else if (se_strcmp(token, ";NSEC3PARAMS") == 0) {
+                zone->nsec3params = nsec3params_recover_from_backup(fd,
+                    &rr);
+                if (!zone->nsec3params) {
+                    se_log_error("error recovering nsec3 parameters from "
+                        "%s.dnskeys ", zone->name);
+                    corrupted = 1;
+                } else {
+                    corrupted = zone_add_rr(zone, rr, 1);
+                    if (corrupted) {
+                       se_log_error("error recovering NSEC3PARAMS rr");
+                    }
+                }
+                rr = NULL;
+            } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+                break;
+            } else {
+                corrupted = 1;
+            }
+            se_free((void*) token);
+        } else {
+            corrupted = 1;
+        }
+    }
+    return corrupted;
+}
+
+
+/**
  * Recover from backup.
  *
  */
@@ -680,13 +742,10 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     int klass = 0;
     int error = 0;
     char* filename = NULL;
-    const char* token = NULL;
     task_type* task = NULL;
-    key_type* key = NULL;
     time_t now = 0;
     FILE* fd = NULL;
     ldns_rr* rr = NULL;
-    int corrupted = 0;
 
     se_log_assert(zone);
     se_log_assert(zone->zonedata);
@@ -746,65 +805,16 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     se_free((void*)filename);
 
     if (fd) {
-        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
-            corrupted = 1;
-        }
-
-        while (!corrupted) {
-            if (backup_read_str(fd, &token)) {
-                if (se_strcmp(token, ";DNSKEY") == 0) {
-                    key = key_recover_from_backup(fd);
-                    if (!key || keylist_add(zone->signconf->keys, key)) {
-                        se_log_error("error adding key from backup file "
-                            "%s.dnskeys to key list", zone->name);
-                        corrupted = 1;
-                    } else {
-                       rr = ldns_rr_clone(key->dnskey);
-                       error = zone_add_rr(zone, rr, 1);
-                       if (error) {
-                           se_log_error("error recovering DNSKEY[%u] rr",
-                              ldns_calc_keytag(rr));
-                           corrupted = 1;
-                       }
-                       rr = NULL;
-                    }
-                    key = NULL;
-                } else if (se_strcmp(token, ";NSEC3PARAMS") == 0) {
-                    zone->nsec3params = nsec3params_recover_from_backup(fd,
-                        &rr);
-                    if (!zone->nsec3params) {
-                        se_log_error("error recovering nsec3 parameters from "
-                            "%s.dnskeys ", zone->name);
-                        corrupted = 1;
-                    } else {
-                       error = zone_add_rr(zone, rr, 1);
-                       if (error) {
-                           se_log_error("error recovering NSEC3PARAMS rr");
-                           corrupted = 1;
-                       }
-                    }
-                    rr = NULL;
-                } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
-                    break;
-                } else {
-                    corrupted = 1;
-                }
-                se_free((void*) token);
-            } else {
-                corrupted = 1;
-            }
-        }
+        error = zone_recover_dnskeys_from_backup(zone, fd);
         se_fclose(fd);
-
-        if (corrupted) {
+        if (error) {
             se_log_error("unable to recover dnskeys backup file %s.dnskeys: "
                 "corrupt state file ", zone->name);
-            error = 1;
         }
     } else {
         se_log_debug("unable to recover dnskeys backup file %s.dnskeys",
             zone->name);
-            error = 1;
+        error = 1;
     }
     if (error) {
         goto abort_recover;
@@ -812,7 +822,18 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
 
     /* recover denial of existence */
     filename = se_build_path(zone->name, ".denial", 0);
+    fd = se_fopen(filename, NULL, "r");
     se_free((void*)filename);
+    if (fd) {
+        /* add empty non-terminals */
+        error = zonedata_entize(zone->zonedata, zone->dname);
+
+
+    } else {
+        se_log_debug("unable to recover denial of existence backup file "
+            "%s.denial", zone->name);
+            error = 1;
+    }
     if (error) {
         goto abort_recover;
     }
