@@ -163,6 +163,9 @@ ACX_CUNIT
 AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
 AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_signer}" = "yes"])
 
+CUCUMBER_ODS_CONF = $(top_srcdir)/enforcer/test/cucumber/conf.xml
+AC_SUBST([CUCUMBER_ODS_CONF])
+
 # cunit
 AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])
 
@@ -291,6 +294,7 @@ AC_CONFIG_FILES([
 	tools/ods-kasp2html
 	contrib/Makefile
 	test/conf/softhsm.conf
+        enforcer/test/cucumber/config.rb
 ])
 
 AC_OUTPUT
