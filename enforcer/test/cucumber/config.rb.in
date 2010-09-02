@@ -1,0 +1,3 @@
+class Configuration
+  CONF = @CUCUMBER_ODS_CONF@
+end
