@@ -251,6 +251,7 @@ adfile_read_rr(FILE* fd, zone_type* zone_in, char* line, ldns_rdf** orig,
     int len = 0, error = 0;
     uint32_t new_ttl = 0;
     const char *endptr;  /* unused */
+    int offset = 0;
 
     if (ttl) {
         new_ttl = *ttl;
@@ -270,7 +271,11 @@ adfile_read_line:
                         ldns_rdf_deep_free(*orig);
                         *orig = NULL;
                     }
-                    tmp = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, line + 8);
+                    offset = 8;
+                    while (isspace(line[offset])) {
+                        offset++;
+                    }
+                    tmp = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, line + offset);
                     if (!tmp) {
                         /* could not parse what next to $ORIGIN */
                         *status = LDNS_STATUS_SYNTAX_DNAME_ERR;
@@ -283,8 +288,12 @@ adfile_read_line:
                 } else if (strncmp(line, "$TTL", 4) == 0 &&
                     isspace(line[4])) {
                     /* override default ttl */
+                    offset = 5;
+                    while (isspace(line[offset])) {
+                        offset++;
+                    }
                     if (ttl) {
-                        *ttl = ldns_str2period(line + 5, &endptr);
+                        *ttl = ldns_str2period(line + offset, &endptr);
                         new_ttl = *ttl;
                     }
                     goto adfile_read_line; /* perhaps next line is rr */
@@ -292,21 +301,25 @@ adfile_read_line:
                 } else if (strncmp(line, "$INCLUDE", 8) == 0 &&
                     isspace(line[8])) {
                     /* dive into this file */
-                    fd_include = se_fopen(line + 9, NULL, "r");
+                    offset = 9;
+                    while (isspace(line[offset])) {
+                        offset++;
+                    }
+                    fd_include = se_fopen(line + offset, NULL, "r");
                     if (fd_include) {
                         error = adfile_read_file(fd_include, zone_in, 1,
                             recover);
                         se_fclose(fd_include);
                     } else {
-                        se_log_error("unable to open include file '%s'",
-                            (line+9)?(line+9):"(null)");
+                        se_log_error("unable to open include file %s",
+                            (line+offset)?(line+offset):"(null)");
                         *status = LDNS_STATUS_SYNTAX_ERR;
                         return NULL;
                     }
                     if (error) {
                         *status = LDNS_STATUS_ERR;
-                        se_log_error("error in include file '%s'",
-                            (line+9)?(line+9):"(null)");
+                        se_log_error("error in include file %s",
+                            (line+offset)?(line+offset):"(null)");
                         return NULL;
                     }
                     goto adfile_read_line; /* perhaps next line is rr */
