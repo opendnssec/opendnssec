@@ -745,7 +745,6 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     task_type* task = NULL;
     time_t now = 0;
     FILE* fd = NULL;
-    ldns_rr* rr = NULL;
 
     se_log_assert(zone);
     se_log_assert(zone->zonedata);
