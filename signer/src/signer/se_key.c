@@ -90,9 +90,14 @@ key_recover_from_backup(FILE* fd)
         !backup_read_int(fd, &publish) ||
         !backup_read_int(fd, &ksk) ||
         !backup_read_int(fd, &zsk) ||
-        ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK)
+        ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK ||
+        !backup_read_check_str(fd, ";END"))
     {
         se_log_error("key part in backup file is corrupted");
+        if (rr) {
+            ldns_rr_free(rr);
+            rr = NULL;
+        }
         return NULL;
     }
 

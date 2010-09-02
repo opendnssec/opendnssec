@@ -136,9 +136,14 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
         !backup_read_uint8_t(fd, &flags) ||
         !backup_read_uint16_t(fd, &iterations) ||
         ldns_rr_new_frm_fp(&nsec3params_rr, fd, NULL, NULL, NULL)
-            != LDNS_STATUS_OK)
+            != LDNS_STATUS_OK ||
+        !backup_read_check_str(fd, ";END"))
     {
         se_log_error("nsec3params part in backup file is corrupted");
+        if (nsec3params_rr) {
+            ldns_rr_free(nsec3params_rr);
+            nsec3params_rr = NULL;
+        }
         return NULL;
     }
 

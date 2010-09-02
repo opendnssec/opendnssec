@@ -306,6 +306,7 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
                     key->locator?key->locator:"(null)", key->algorithm,
                     key->flags, key->publish, key->ksk, key->zsk);
                 ldns_rr_print(fd, dnskey);
+                fprintf(fd, ";END\n");
             }
         }
         key = key->next;
@@ -362,6 +363,7 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
             zone->signconf->nsec3_salt, zone->nsec3params->algorithm,
             zone->nsec3params->flags, zone->nsec3params->iterations);
         ldns_rr_print(fd, nsec3params_rr);
+        fprintf(fd, ";END\n");
     }
     return error;
 }
