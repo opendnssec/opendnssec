@@ -84,17 +84,11 @@ key_recover_from_backup(FILE* fd)
 
     se_log_assert(fd);
 
-    if (!backup_read_check_str(fd, ";locator:") ||
-        !backup_read_str(fd, &locator) ||
-        !backup_read_check_str(fd, ";algorithm:") ||
+    if (!backup_read_str(fd, &locator) ||
         !backup_read_uint32_t(fd, &algorithm) ||
-        !backup_read_check_str(fd, ";flags:") ||
         !backup_read_uint32_t(fd, &flags) ||
-        !backup_read_check_str(fd, ";publish:") ||
         !backup_read_int(fd, &publish) ||
-        !backup_read_check_str(fd, ";ksk:") ||
         !backup_read_int(fd, &ksk) ||
-        !backup_read_check_str(fd, ";zsk:") ||
         !backup_read_int(fd, &zsk) ||
         ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK)
     {

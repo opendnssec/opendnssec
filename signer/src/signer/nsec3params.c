@@ -131,13 +131,9 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
 
     se_log_assert(fd);
 
-    if (!backup_read_check_str(fd, ";salt:") ||
-        !backup_read_str(fd, &salt) ||
-        !backup_read_check_str(fd, ";algorithm:") ||
+    if (!backup_read_str(fd, &salt) ||
         !backup_read_uint8_t(fd, &algorithm) ||
-        !backup_read_check_str(fd, ";flags:") ||
         !backup_read_uint8_t(fd, &flags) ||
-        !backup_read_check_str(fd, ";iterations:") ||
         !backup_read_uint16_t(fd, &iterations) ||
         ldns_rr_new_frm_fp(&nsec3params_rr, fd, NULL, NULL, NULL)
             != LDNS_STATUS_OK)
