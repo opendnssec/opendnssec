@@ -708,8 +708,8 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                 zone->nsec3params = nsec3params_recover_from_backup(fd,
                     &rr);
                 if (!zone->nsec3params) {
-                    se_log_error("error recovering nsec3 parameters from "
-                        "%s.dnskeys ", zone->name);
+                    se_log_error("error recovering nsec3 parameters from file "
+                        "%s.dnskeys", zone->name);
                     corrupted = 1;
                 } else {
                     corrupted = zone_add_rr(zone, rr, 1);
@@ -769,15 +769,15 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
             !backup_read_uint32_t(fd, &zone->zonedata->outbound_serial) ||
             !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
         {
-            se_log_error("unable to recover zone state backup file %s.state: "
-                "corrupt state file ", zone->name);
+            se_log_error("unable to recover zone state from file %s.state: "
+                "file corrupted", zone->name);
             se_fclose(fd);
             return;
         }
         se_fclose(fd);
     } else {
-        se_log_debug("unable to recover zone state backup file %s.state",
-            zone->name);
+        se_log_debug("unable to recover zone state from file %s.state: ",
+            "no such file or directory", zone->name);
         return;
     }
 
@@ -808,12 +808,12 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         error = zone_recover_dnskeys_from_backup(zone, fd);
         se_fclose(fd);
         if (error) {
-            se_log_error("unable to recover dnskeys backup file %s.dnskeys: "
-                "corrupt state file ", zone->name);
+            se_log_error("unable to recover dnskeys from file %s.dnskeys: "
+                "file corrupted", zone->name);
         }
     } else {
-        se_log_debug("unable to recover dnskeys backup file %s.dnskeys",
-            zone->name);
+        se_log_debug("unable to recover dnskeys from file %s.dnskeys: ",
+            "no such file or directory", zone->name);
         error = 1;
     }
     if (error) {
@@ -826,12 +826,24 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     se_free((void*)filename);
     if (fd) {
         /* add empty non-terminals */
+
+/*
         error = zonedata_entize(zone->zonedata, zone->dname);
-
-
+        if (error) {
+            se_log_error("unable to recover denial of existence from file "
+                "%s.denial: entize failed ", zone->name);
+        } else {
+            error = zone_recover_denial_from_backup(zone, fd);
+        }
+        se_fclose(fd);
+        if (error) {
+            se_log_error("unable to recover denial of existence from file "
+                "%s.denial: file corrupted", zone->name);
+        }
+*/
     } else {
         se_log_debug("unable to recover denial of existence backup file "
-            "%s.denial", zone->name);
+            "%s.denial: no such file or directory", zone->name);
             error = 1;
     }
     if (error) {
