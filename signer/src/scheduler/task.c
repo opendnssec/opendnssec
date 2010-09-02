@@ -103,8 +103,8 @@ task_recover_from_backup(const char* filename, struct zone_struct* zone)
             !backup_read_time_t(fd, &backoff) ||
             !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
         {
-            se_log_error("unable to recover task backup file %s: corrupt "
-                "backup file ", filename?filename:"(null)");
+            se_log_error("unable to recover task from file %s: file corrupted",
+                filename?filename:"(null)");
             task = NULL;
         } else {
             task = task_create((task_id) what, when, who, zone);
@@ -115,7 +115,7 @@ task_recover_from_backup(const char* filename, struct zone_struct* zone)
         return task;
     }
 
-    se_log_debug("unable to recover task backup file %s",
+    se_log_debug("unable to recover task from file %s: no such file or directory",
         filename?filename:"(null)");
     return NULL;
 }
