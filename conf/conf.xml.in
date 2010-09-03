@@ -19,6 +19,7 @@
 			<PIN>test:1234</PIN>
 			<Capacity>1000</Capacity>
 			<RequireBackup/>
+			<SkipPublicKey/>
 		</Repository>
 -->
 
