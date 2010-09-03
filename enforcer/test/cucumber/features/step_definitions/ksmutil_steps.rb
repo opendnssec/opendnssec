@@ -1,6 +1,5 @@
-require 'constants.rb'
 # MAKE SURE WE DON'T WIPE MAIN KASP.DB!!!!
-CONF_XML = " -c #{Constants::CONF} "
+CONF_XML = " -c c_conf.xml "
 KSMUTIL_COMMAND = "ods-ksmutil" + CONF_XML
 ENFORCER_COMMAND = "ods-enforcerd" + CONF_XML + "-1 "
 
