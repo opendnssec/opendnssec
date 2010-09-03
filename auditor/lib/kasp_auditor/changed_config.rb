@@ -35,6 +35,9 @@ module KASPAuditor
   # @TODO@ TEST CODE FOR THIS CLASS!
   # @TODO@ TEST CODE FOR THE POLICY CHANGES FUNCTIONALITY - check that the auditor
   #   does not produce errors as a result of changes in policy.
+  # @TODO@ Check that kasp.xml and signconf.xml are in synch
+  # @TODO@ If there are differences, then issue a prominent warning
+  #      - but use signconf values for audit
   class ChangedConfig
      # This class holds some data, along with the timestamp at which is was last
      # seen to change

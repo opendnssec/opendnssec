@@ -368,14 +368,14 @@ module KASPAuditor
             #  If not inception_offset which changed, then simply ignore RRSIGs which were
             #   created earlier than the policy change timestamp (including inception_offset here!)
             if (sig.inception < (@policy_change_timestamp - @config.signatures.inception_offset))
-              log(LOG_WARNING, "Skipping signature lifetime check for #{sig.name}, #{sig.type_covered} : policy has changed since #{sig.inception} (at #{@policy_change_timestamp}\n")
+              log(LOG_WARNING, "Skipping signature lifetime check for #{sig.name}, #{sig.type_covered} : policy has changed since #{sig.inception} (at #{@policy_change_timestamp})\n")
               next
             end
           else
             #   If InceptionOffset has changed, then all bets are probably off. In this case,
             #      ignore all signature which were created less than a day before the policy changed.
             if (sig.inception < (@policy_change_timestamp - (3600 * 24)))
-              log(LOG_WARNING, "Skipping signature lifetime check for #{sig.name}, #{sig.type_covered} : policy has changed since #{sig.inception} (at #{@policy_change_timestamp}\n")
+              log(LOG_WARNING, "Skipping signature lifetime check for #{sig.name}, #{sig.type_covered} : policy has changed since #{sig.inception} (at #{@policy_change_timestamp})\n")
               next
             end
           end
