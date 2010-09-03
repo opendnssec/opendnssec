@@ -99,32 +99,30 @@ module KASPChecker
         rng_location = (rng_location.to_s + "").untaint
         file = (file.to_s + "").untaint
 
-        stderr = IO::pipe
+        r, w = IO.pipe
         pid = fork {
-          stderr[0].close
-          STDERR.reopen(stderr[1])
-          stderr[1].close
+          r.close
+          $stdout.reopen w
 
-          options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
-
-          Syslog.open("kasp_check_internal", options) {|syslog|
-            ret = system("#{(@xmllint.to_s + "").untaint} --noout --relaxng #{rng_location} #{file}")
-            exit!(ret)
-          }
+          ret = system("#{(@xmllint.to_s + "").untaint} --noout --relaxng #{rng_location} #{file}")
+          w.close
+          exit!(ret)
         }
-        stderr[1].close
+        w.close
+        ret_strings = []
+        r.each {|l| ret_strings.push(l)}
         Process.waitpid(pid)
         ret_val = $?.exitstatus
 
         # Now rewrite captured output from xmllint to log method
-        while (line = stderr[0].gets)
+        ret_strings.each {|line|
           line.chomp!
           if line.index(" validates")
             #            log(LOG_INFO, line + " OK")
           else
             log(LOG_ERR, line)
           end
-        end
+        }
 
         if (!ret_val)
           log(LOG_ERR, "Errors found validating " +
