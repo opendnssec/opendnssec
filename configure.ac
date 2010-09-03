@@ -230,9 +230,11 @@ if test "x${enable_eppclient}" = "xyes"; then
 fi
 AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
 
-# check for a green cucumber
-AC_PATH_PROG(CUCUMBER, cucumber)
-AM_CONDITIONAL([WITH_CUCUMBER], [test -x "${CUCUMBER}"])
+# check for a green cucumber (but only if we can shift time)
+if test "x${enable_timeshift}" = "xyes"; then
+	AC_PATH_PROG(CUCUMBER, cucumber)
+	AM_CONDITIONAL([WITH_CUCUMBER], [test -x "${CUCUMBER}"])
+fi
 
 # doxygen
 DX_PDF_FEATURE(OFF)
