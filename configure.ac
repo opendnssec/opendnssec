@@ -294,7 +294,6 @@ AC_CONFIG_FILES([
 	tools/ods-kasp2html
 	contrib/Makefile
 	test/conf/softhsm.conf
-        enforcer/test/cucumber/config.rb
 ])
 
 AC_OUTPUT
