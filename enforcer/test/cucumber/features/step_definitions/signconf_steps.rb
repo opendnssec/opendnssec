@@ -7,7 +7,6 @@ DELTA_OFFSET = 5
 
 def load_keys_for(zone)
   # Load the Keys element from the zone's signconf file
-  # @TODO@ Need to fix up relative location of signconf file in sandbox
   @@current_keys = {} if !@@current_keys
   @@previous_keys = {} if !@@previous_keys
   begin

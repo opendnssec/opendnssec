@@ -59,8 +59,7 @@ When /^I run enforcer/ do
 end
 
 When /^I add a new zone "([^\"]*)" with policy "([^\"]*)"$/ do |zone, policy|
-  # @TODO@ Relative path to signerconf
-  ksmutil("zone add --zone #{zone} --policy #{policy} --signerconf #{Dir.pwd.to_s + File::SEPARATOR}tmp#{File::SEPARATOR}#{zone}.xml")
+  ksmutil("zone add --zone #{zone} --policy #{policy} --signerconf tmp#{File::SEPARATOR}#{zone}.xml")
 end
 
 Then /^I should see "([^\"]*)" in the "([^\"]*)" output$/ do |text, command|
