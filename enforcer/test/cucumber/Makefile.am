@@ -4,4 +4,4 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 
 check:
-	@CUCUMBER@
+	@CUCUMBER@ $(srcdir)/features
