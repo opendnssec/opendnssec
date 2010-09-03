@@ -1,15 +1,12 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.2 trunk
 
-* Quicksorter defaults to class IN.
 * Fix semantics of refresh value in Signer Engine.
 * Remove separate autoconf for libhsm/conf/enforcer
 * Add option to disable building the signer
 * Auditor handles chains of empty nonterminals correctly
 * Signer logs statistics just after outputting a new signed zone
-* Dnsruby-1.49 now required
-* ldns-1.6.6 now required
 * libhsm will skip processing (and not create) any public keys if the
   per repository option <SkipPublicKey/> is set.
 * Keysharing improved - keys can now exist in different states on each zone
@@ -20,12 +17,62 @@ OpenDNSSEC trunk
 * Standby keys are now optional (default to 0) and should be considered
   experimental.
 
-OpenDNSSEC 1.1.0 branch
+
+OpenDNSSEC 1.1.2 - 2010-08-24
+
+* Dnsruby 1.49 now required (for correct zone parsing)
+* ldns 1.6.6 is required to fix the zone fetcher bug
+
+Bugfixes:
+* ods-control stop did not stopped zone fetcher (bug was introduced in 1.1.0)
+* Auditor correctly handles chains of empty nonterminals
+* Zone fetcher can block zone transfers if AXFR once failed. This is a bug
+  in ldns versions 1.6.5 and lower. See KNOWN_ISSUES for more information.
+* Bugreport #165: Ensure Output SOA serial is always bigger than Input SOA
+  serial.
+* Bugreport #166: Correct exit value from signer.
+* Bugreport #167: Zone fetcher now also picks up changes when zonelist is
+  reloaded (thanks Rick van Rein)
+* Bugreport #168: ods-control with tightened control for the Enforcer
+* Bugreport #169: Do not include config.h in the distribution
+* Bugreport #170: Typo in a man page (ods-signer)
+* Bugreport #172: Correction of some macros in a man page (ods-timing)
+* Bugreport #173: A man page used a macro that does not exist (ods-ksmutil)
+
+
+OpenDNSSEC 1.1.1 - 2010-07-08
+
+Bugfixes:
+* Bugreport #127: Large SOA serial numbers were not handled properly by signer
+* Bugreport #133: Better handling of SOA serial when setting is 'keep'
+* Bugreport #136: quicksorter could not handle standard bind format SOA rdata
+* The Auditor could not handle the new way of rolling KSKs
+* One log message in the Enforcer referred to an old command
+* The Enforcer forgot to publish certain keys during transition between states
+
+
+OpenDNSSEC 1.1.0 - 2010-05-26
+
+
+OpenDNSSEC 1.1.0rc3 - 2010-05-15
+
+Bugfixes:
+* Could not compile quicksorter on FreeBSD.
+* Bugreport #131: test suite fails in 1.1.0rc2
+
+
+OpenDNSSEC 1.1.0rc2 - 2010-05-04
+
+Bugfixes:
+* Fix semantics of refresh value in Signer Engine.
+
+
+OpenDNSSEC 1.1.0rc1 - 2010-04-21
 
 * Partial Auditor added
 * Dnsruby-1.46 required
 * Improved error messages when the system runs out of keys
-* Optimise communication of signconfs for multiple zones sharing keys. 
+* Optimise communication of signconfs for multiple zones sharing keys.
   Group zones in zonelist.xml by policy to get this benefit.
 * Bugreport #101: Signer Engine now maintains its own pidfile.
 * Jitter redefined: now in the range of [-jitter, ..., +jitter]
@@ -40,8 +87,9 @@ OpenDNSSEC 1.1.0 branch
 * Add simple kasp2html conversion script
 * DNSKEY records communicated to an external script if configured
 * The command 'ods-signer restart' is removed.
-* Signer Engine now also reuses signatures after a change in NSEC(3) configuration
-  or rolling keys.
+* Signer Engine now also reuses signatures after a change in NSEC(3)
+  configuration or rolling keys.
+* Quicksorter defaults to class IN.
 
 Bugfixes:
 * Enforcer: Make sure that we read the correct config file when dropping privs
@@ -49,13 +97,14 @@ Bugfixes:
 * Enforcer: Fixed a confusion between standby ZSKs and KSKs
 * Fixed various enable-options in the configure scripts
 * Respect $DESTDIR for config files
-* Looked for the database init script in $prefix/share/opendnssec and not datadir.
+* Looked for the database init script in $prefix/share/opendnssec and not
+  datadir.
 * More proper memory cleanup in parsing zonefetch.xml
 * Zonefetch.xml now accepts hmac-md5, which is an alias for
   hmac-md5.sig-alg.reg.int.
-* Zone fetcher logged wrong zone when NOTIFY received.
+* Zone fetcher logged wrong zone when NOTIFY received.        
 * Zone fetcher sometimes did not log when signalling signer engine failed.
-* Fix issue of importing keys into kasp leaving random strings in the 
+* Fix issue of importing keys into kasp leaving random strings in the
   retire date.
 * Fix KSK rollover logic to be proper DoubleDNSKEY
 * Fix issue with reading repositories from conf.xml
@@ -64,8 +113,9 @@ Bugfixes:
 * Bugreport #113: zone fetcher started before dropping privileges, so that
   it can bind to socket.
 * Signer Engine defaults to working directory if missing.
-* libhsm: fixed incorrect label length for wildcards (leftmost wildcard label was
-  included in count).
+* libhsm: fixed incorrect label length for wildcards (leftmost wildcard label
+  was included in count).
+
 
 OpenDNSSEC 1.0.0 - 2010-02-09
 
