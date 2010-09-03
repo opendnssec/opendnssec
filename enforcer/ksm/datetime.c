@@ -913,7 +913,6 @@ int DtDateDiff(const char* date1, const char* date2, int* result)
  *         -1       Success, string translated OK _BUT_ may not be what was expected
  *                          (Year or Month used which gives approximate answer).
  *          0       Success, string translated OK
- *          1       Error - invalid interval-type
  *          2       Error - unable to translate string.
  *          3       Error - string too long to be a number.
  *          4       Error - invalid pointers or text string NULL.
@@ -922,137 +921,160 @@ int DtDateDiff(const char* date1, const char* date2, int* result)
  * 
  *      1. Years and months are only approximate as it has no concept of "now"
  *         We use 30 days = 1 month and 365 days = 1 year.
- *      2. Can not parse mixed format, e.g. P1Y5M
- *      3. The "T" only effects the value of "M" (P1S should be illegal as correctly
+ *      2. The "T" only effects the value of "M" (P1S should be illegal as correctly
  *         it would be PT1S)
 -*/
 
 int DtXMLIntervalSeconds(const char* text, int* interval)
 {
-    char    number[32];     /* Long enough for any number */
-    int     status = 0;     /* Status return */
-    int     length;         /* Length of the string */
-    int     length_mod = 0; /* How many characters have we chopped off the start? */
-    long    multiplier = 1; /* Multiplication factor */
-    long    temp_interval = 1; /* Long version of the int we will send back */
+    int     length = 0;         /* Length of the string */
     short   is_time = 0;    /* Do we have a Time section or not */
-    short   warning = 0;    /* Do we need to a warning code for duration approximation? */
-    short   negative = 0;   /* Is the value negative ? */     
-    const char  *ptr = text;    /* allow us to skip leading characters */
+    short   is_neg = 0;    /* Do we have a negative number */
+    short   warning = 0;    /* Do we need a warning code for duration approximation? */
+    short   got_temp = 0;    /* Have we seen a number? */
+    long     temp = 0;       /* Number from this section */
+    const char  *ptr = text;    /* allow us to read through */
+
+    int status = 0;
+
+    long temp_interval = 0;
 
     if (text && interval && *text) {
-
         length = strlen(text);
-        /* do we have a negative number? */
-        if (*ptr == '-') {
-            negative = 1;
-            ptr++;
-            length_mod++;
-        }
+    } else {
+        return(4);
+    }
 
-        /* Can I have a 'P' please Bob? */
+    if (ptr && length && interval) {
+        const char *end = text + length;
+        if (*ptr == '-') {
+            is_neg = 1;
+            ptr++;
+        }
         if (*ptr == 'P') {
             ptr++;
-            length_mod++;
         }
+        do {
+            switch (*ptr) {
+                case 'S':
+                    if (got_temp) {
+                        temp_interval += temp;
+                        temp = 0;
+                        got_temp = 0;
+                    } else {
+                        return(2);
+                    }
+                    break;
 
-        /* if the next char is a T then we have a time, this changes the meaning of 'M' */
-        if (*ptr == 'T') {
-            is_time = 1;
-            ptr++;
-            length_mod++;
-        }
+                case 'M':
+                    if (got_temp) {
+                        if (is_time) {
+                            temp_interval += 60 * temp;
+                        } else {
+                            temp_interval += 31 * 24 * 60 * 60 * temp;
+                            warning = 1;
+                        }
+                        temp = 0;
+                        got_temp = 0;
+                    } else {
+                        return(2);
+                    }
+                    break;
 
-        /* Is there a multiplier? If so, interpret it. */
+                case 'H':
+                    if (got_temp) {
+                        temp_interval += 60 * 60 * temp;
+                        temp = 0;
+                        got_temp = 0;
+                    } else {
+                        return(2);
+                    }
+                    break;
 
-        if (isdigit(text[length - 1])) {
-            multiplier = 1;     /* No, set the factor to 1 */
-        }
-        else {
-            switch (text[length - 1]) {
-            case 'S':
-                multiplier = 1;
-                break;
+                case 'D':
+                    if (got_temp) {
+                        temp_interval += 24 * 60 * 60 * temp;
+                        temp = 0;
+                        got_temp = 0;
+                    } else {
+                        return(2);
+                    }
+                    break;
 
-            case 'M':
-                if (is_time) {
-                    multiplier = 60;
-                } else {
-                    multiplier = 31 * 24 * 60 * 60;
-                    warning = 1;
-                }
-                break;
+                case 'W':
+                    if (got_temp) {
+                        temp_interval += 7 * 24 * 60 * 60 * temp;
+                        temp = 0;
+                        got_temp = 0;
+                    } else {
+                        return(2);
+                    }
+                    break;
 
-            case 'H':
-                multiplier = 60 * 60;
-                break;
+                case 'Y':
+                    if (got_temp) {
+                        temp_interval += 365 * 24 * 60 * 60 * temp;
+                        temp = 0;
+                        warning = 1;
+                        got_temp = 0;
+                    } else {
+                        return(2);
+                    }
+                    break;
 
-            case 'D':
-                multiplier = 24 * 60 * 60;
-                break;
+                case 'T':
+                    is_time = 1;
+                    break;
 
-            case 'W':
-                multiplier = 7 * 24 * 60 * 60;
-                break;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    if (!temp) {
+                        temp = atol(ptr);
+                        got_temp = 1;
+                        if ((temp_interval <= INT_MIN) && (temp_interval >= INT_MAX)) {
+                            return(3);
+                        }
+                    }
+                    break;
 
-            case 'Y':
-                multiplier = 365 * 24 * 60 * 60;
-                warning = 1;
-                break;
-
-            default:
-                status = 1;
+                default:
+                    if (ptr != end) {
+                        return(2);
+                    }
             }
-            --length;           /* Reduce bytes we are going to copy */
-        }
-
-        if (status == 0) {
-
-            /* Copy all but the multiplier to the buffer for interpretation */
-
-            if (length <= (long) (sizeof(number) - 1)) {
-                (void) memcpy(number, ptr, length - length_mod);
-                number[length - length_mod] = '\0';
-                status = StrStrtol(number, &temp_interval);
-                if (status == 0) {
-
-                    /* Successful, conversion, factor in the multiplier */
-
-                    temp_interval *= multiplier;
-
-                    if (negative == 1) {
-                        temp_interval = 0 - temp_interval;
-                    }
-
-                    if (warning == 1) {
-                        status = -1;
-                    }
-
-                    if ((temp_interval >= INT_MIN) && (temp_interval <= INT_MAX)) {
-                        *interval = (int) temp_interval;
-                    }
-                    else {
-                        status = 3;     /* Integer overflow */
-                    }
-                    
-                }
-                else {
-                    status = 2;     /* Can't translate string/overflow */
-                }
-            }
-            else {
-
-                /* String is too long to be a valid number */
-
-                status = 3;
-            }
-        }
+        } while (ptr++ < end);
     }
     else {
+        status = 2;     /* Can't translate string/overflow */
+    }
 
-        /* Input pointers NULL or empty string */
+    /* If we had no trailing letter then it is an implicit "S" */
+    if (temp) {
+        temp_interval += temp;
+        temp = 0;
+    }
 
-        status = 4;
+    if (is_neg == 1) {
+        temp_interval = 0 - temp_interval;
+    }
+
+    if (warning == 1) {
+        status = -1;
+    }
+
+    if ((temp_interval >= INT_MIN) && (temp_interval <= INT_MAX)) {
+        *interval = (int) temp_interval;
+    }
+    else {
+        status = 3;     /* Integer overflow */
     }
 
     return status;

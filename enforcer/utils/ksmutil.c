@@ -5773,7 +5773,7 @@ int cmd_genkeys()
     if (status > 0) {
         printf("Error: unable to convert Interval %s to seconds, error: ", o_interval);
         switch (status) {
-            case 1:
+            case 1: /* This has gone away, will now return 2 */
                 printf("invalid interval-type.\n");
                 break;
             case 2:

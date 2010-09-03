@@ -778,8 +778,16 @@ static void TestDtXMLIntervalSeconds(void)
 
     /* Valid values, return status = 0 */
 
-    CheckValidXMLIntervalSeconds("P1", 1L, 0);
-    CheckValidXMLIntervalSeconds("P234", 234L, 0);
+    /* CheckValidXMLIntervalSeconds("P1", 1L, 0);*/
+    status = DtXMLIntervalSeconds("P1", &interval);
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(interval, 1);
+
+    /* CheckValidXMLIntervalSeconds("P234", 234L, 0);*/
+    status = DtXMLIntervalSeconds("P234", &interval);
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(interval, 234);
+    
     CheckValidXMLIntervalSeconds("P1223S", 1223L, 0);
     CheckValidXMLIntervalSeconds("PT1M", 60L, 0);
     CheckValidXMLIntervalSeconds("PT15M", 900L, 0);
@@ -791,15 +799,26 @@ static void TestDtXMLIntervalSeconds(void)
     CheckValidXMLIntervalSeconds("P7D", 604800L, 0);
     CheckValidXMLIntervalSeconds("P1W", 604800L, 0);
     CheckValidXMLIntervalSeconds("P52W", 31449600L, 0);
-    CheckValidXMLIntervalSeconds("-PT1M", -60L, 0);
+    /* CheckValidXMLIntervalSeconds("-PT1M", -60L, 0);*/
+    status = DtXMLIntervalSeconds("-PT1M", &interval);
+    CU_ASSERT_EQUAL(status, 0);
+    CU_ASSERT_EQUAL(interval, -60);
+    
     CheckValidXMLIntervalSeconds("PT1223S", 1223L, 0);
-		
+
+    /* Some mixed-format stuff */
+    CheckValidXMLIntervalSeconds("P1W1DT2H2M7S", 698527L, 0);
+    CheckValidXMLIntervalSeconds("P1Y1W1DT2H2M7S", 32234527L, -1);
+    CheckValidXMLIntervalSeconds("P1Y2M1W1DT2H2M7S", 37591327L, -1);
 
     /* Valid but return -1 */
-/* TODO put back
-    CheckValidXMLIntervalSeconds("P1M", 2592000L, -1);
-    CheckValidXMLIntervalSeconds("P15M", 38880000L, -1); */
-    CheckValidXMLIntervalSeconds("P1Y", 31536000L, -1);
+    CheckValidXMLIntervalSeconds("P1M", 2678400L, -1);
+    CheckValidXMLIntervalSeconds("P15M", 40176000L, -1);
+    
+    /* CheckValidXMLIntervalSeconds("P1Y", 31536000L, -1); */
+    status = DtXMLIntervalSeconds("P1Y", &interval);
+    CU_ASSERT_EQUAL(status, -1);
+    CU_ASSERT_EQUAL(interval, 31536000);
 
 
     /* Invalid ones */
@@ -818,7 +837,11 @@ static void TestDtXMLIntervalSeconds(void)
     CU_ASSERT_EQUAL(status, 3);
     status = DtXMLIntervalSeconds("1234567890123456789012345678901",
         &interval);
-    CU_ASSERT_EQUAL(status, 2);     /* Overflow */
+    CU_ASSERT_EQUAL(status, 3);     /* Overflow */
+    
+    /* This test may work, depends on the bit-ness of the machine 
+       status = DtXMLIntervalSeconds("168Y", &interval);
+    CU_ASSERT_EQUAL(status, 3); */
 
     status = DtXMLIntervalSeconds("1WW", &interval);
     CU_ASSERT_EQUAL(status, 2);
@@ -826,7 +849,7 @@ static void TestDtXMLIntervalSeconds(void)
     CU_ASSERT_EQUAL(status, 2);
 
     status = DtXMLIntervalSeconds("2a", &interval);
-    CU_ASSERT_EQUAL(status, 1);
+    CU_ASSERT_EQUAL(status, 2);
 
     return;
 }
