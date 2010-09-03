@@ -81,6 +81,10 @@
 #define ROLLOVER_TYPE 5
 #define INT_TYPE_NO_FREE 6
 
+#ifndef MAXPATHLEN
+# define MAXPATHLEN 4096
+#endif
+
 extern char *optarg;
 extern int optind;
 const char *progname = NULL;
@@ -782,7 +786,11 @@ cmd_addzone ()
 
     int status = 0;
 
-    char *path = getenv("PWD");
+    char *path = getcwd(NULL, MAXPATHLEN);
+    if (path == NULL) {
+        printf("Couldn't malloc path: %s\n", strerror(errno));
+        exit(1);
+    }
 
     /* See what arguments we were passed (if any) otherwise set the defaults */
     if (o_zone == NULL) {
@@ -837,6 +845,8 @@ cmd_addzone ()
     } else {
         StrAppend(&output_name, o_output);
     }
+
+    free(path);
 
     /* Set zonelist from the conf.xml that we have got */
     status = read_zonelist_filename(&zonelist_filename);
