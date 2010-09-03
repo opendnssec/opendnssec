@@ -38,7 +38,7 @@ build_opendnssec()
 		fi
 	fi
 
-	CONFIGURE_ARGS=""
+	CONFIGURE_ARGS="--enable-timeshift"
 
 	# on our solaris build system, ldns lives elsewhere
 	if [ -f /opt/ldns/lib/libldns.a ]; then
