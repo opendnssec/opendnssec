@@ -931,13 +931,16 @@ cmd_addzone ()
         status = LinkKeys(o_zone, policy_id);
         if (status != 0) {
             printf("Failed to Link Keys to zone\n");
-            /* Carry on and write the xml */
-            /*db_disconnect(lock_fd);
-            StrFree(zonelist_filename);
-            StrFree(sig_conf_name);
-            StrFree(input_name);
-            StrFree(output_name);
-            return(1);*/
+            /* Carry on and write the xml if the error code was 2 
+               (not enough keys) */
+            if (status != 2) {
+                db_disconnect(lock_fd);
+                StrFree(zonelist_filename);
+                StrFree(sig_conf_name);
+                StrFree(input_name);
+                StrFree(output_name);
+                return(1);
+            }
         }
     }
 
