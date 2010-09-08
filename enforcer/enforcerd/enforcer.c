@@ -688,7 +688,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 xmlXPathFreeContext(xpathCtx);
 
                 if(xpathObj == NULL) {
-                    log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone", policy_expr);
+                    log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone", filename_expr);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     StrFree(tag_name);
