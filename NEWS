@@ -1,5 +1,12 @@
 $Id$
 
+OpenDNSSEC 1.1.3 - 2010-09-10
+
+Bugfixes:
+* Bugreport #183: Partial zone could get signed if zone transfer failed
+  when using zone_fetcher
+
+
 OpenDNSSEC 1.1.2 - 2010-08-24
 
 * Dnsruby 1.49 now required (for correct zone parsing)

@@ -88,7 +88,7 @@ struct config_struct
     zonelist_type* zonelist;
     serverlist_type* serverlist;
     serverlist_type* notifylist;
-    ldns_resolver* xfrd;
+    /* ldns_resolver* xfrd; *** RoRi: removed this, structure is NOT suitable for re-use */
 };
 
 /**
