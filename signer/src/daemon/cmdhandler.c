@@ -210,16 +210,25 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             task->what = TASK_READ;
         } else if (se_strcmp(tbd, task->who) == 0) {
             task = tasklist_delete_task(cmdc->engine->tasklist, task);
-            task->when = now;
-            /* NOTE: isn't this counter-intuitive? should we read unsigned
-             * zone on a different command?
-             */
-            task->what = TASK_READ;
-            task = tasklist_schedule_task(cmdc->engine->tasklist, task, 0);
-            if (task) {
-                scheduled = 1;
+            if (!task) {
+                se_log_error("cannot immediate sign zone %s: delete old task "
+                    "failed", tbd);
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Sign zone %s failed.\n",
+                    tbd);
+                se_writen(sockfd, buf, strlen(buf));
+                return;
+            } else {
+                task->when = now;
+                /* NOTE: isn't this counter-intuitive? should we read unsigned
+                 * zone on a different command?
+                 */
+                task->what = TASK_READ;
+                task = tasklist_schedule_task(cmdc->engine->tasklist, task, 0);
+                if (task) {
+                   scheduled = 1;
+                }
+                found = 1;
             }
-            found = 1;
             break;
         }
         node = ldns_rbtree_next(node);
