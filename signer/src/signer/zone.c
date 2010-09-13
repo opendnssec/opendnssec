@@ -154,8 +154,11 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
 {
     task_type* task = NULL;
     signconf_type* signconf = NULL;
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
     time_t last_modified = 0;
-    time_t now;
+    time_t now = 0;
+    int update = 0;
 
     se_log_assert(zone);
     se_log_debug("load zone %s signconf %s",
@@ -232,18 +235,56 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         return 1;
     } else {
         /* update task for new zone */
-        zone->task->what = signconf_compare(zone->signconf, signconf);
+        task = tasklist_delete_task(tl, zone->task);
+        if (!task) {
+            se_log_error("cannot update zone %s: delete old task failed",
+                zone->name);
+            if (buf) {
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Update zone %s failed.\n",
+                    zone->name?zone->name:"(null)");
+            }
+            return -1;
+        }
+
+        zone->task->what = signconf_compare(zone->signconf, signconf, &update);
         zone->task->when = time_now();
+        if (update) {
+            if (zone->zonedata && zone->zonedata->nsec3_domains) {
+                zonedata_cleanup_domains(zone->zonedata->nsec3_domains);
+                zone->zonedata->nsec3_domains = NULL;
+                node = ldns_rbtree_first(zone->zonedata->domains);
+                while (node && node != LDNS_RBTREE_NULL) {
+                    domain = (domain_type*) node->data;
+                    domain->nsec3 = NULL;
+                    node = ldns_rbtree_next(node);
+                }
+            }
+            if (zone->nsec3params) {
+                nsec3params_cleanup(zone->nsec3params);
+                zone->nsec3params = NULL;
+            }
+        }
+
+        task = tasklist_schedule_task(tl, zone->task, 0);
+        if (!task) {
+            if (buf) {
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                    "Zone %s config updated, but could not be schedulted.\n",
+                    zone->name?zone->name:"(null)");
+            }
+        } else {
+            if (buf) {
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                    "Zone %s config updated.\n", zone->name?zone->name:"(null)");
+            }
+        }
+
         signconf_cleanup(zone->signconf);
         zone->signconf = signconf;
         zone->signconf->name = zone->name;
         se_log_debug("zone %s signconf updated",
-            zone->name?zone->name:"(null)");
-        signconf_backup(zone->signconf);
-        if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                "Zone %s config updated.\n", zone->name?zone->name:"(null)");
-        }
+                zone->name?zone->name:"(null)");
+            signconf_backup(zone->signconf);
         return 1;
     }
     /* not reached */
@@ -905,6 +946,10 @@ zone_cleanup(zone_type* zone)
         if (zone->zonedata) {
             zonedata_cleanup(zone->zonedata);
             zone->zonedata = NULL;
+        }
+        if (zone->nsec3params) {
+            nsec3params_cleanup(zone->nsec3params);
+            zone->nsec3params = NULL;
         }
         if (zone->policy_name) {
             se_free((void*) zone->policy_name);
