@@ -553,6 +553,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
     se_log_assert(nsec3params);
 
     if (!zd->nsec3_domains) {
+        se_log_debug("create new nsec3 domain tree");
         zd->nsec3_domains = ldns_rbtree_create(domain_compare);
     }
 
@@ -610,6 +611,8 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
                 return 1;
             }
             domain->nsec3->nsec3 = domain; /* back reference */
+        } else {
+            se_log_deeebug("domain already has NSEC3 domain");
         }
 
         /* The Next Hashed Owner Name field is left blank for the moment. */
@@ -971,7 +974,7 @@ zonedata_del_rrs(zonedata_type* zd)
  * Clean up domains in zone data.
  *
  */
-static void
+void
 zonedata_cleanup_domains(ldns_rbtree_t* domain_tree)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
@@ -1004,9 +1007,11 @@ zonedata_cleanup(zonedata_type* zonedata)
     if (zonedata) {
         if (zonedata->domains) {
             zonedata_cleanup_domains(zonedata->domains);
+            zonedata->domains = NULL;
         }
         if (zonedata->nsec3_domains) {
             zonedata_cleanup_domains(zonedata->nsec3_domains);
+            zonedata->nsec3_domains = NULL;
         }
         se_free((void*) zonedata);
     } else {

@@ -412,6 +412,8 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
             }
         }
         domain->outbound_serial = domain->internal_serial;
+    } else {
+        se_log_warning("not nsecifying domain: up to date");
     }
     domain->nsec_rrset->internal_serial = domain->internal_serial;
     return 0;
@@ -555,7 +557,9 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             orig_domain->nsec_nxt_changed = 0;
         }
         orig_domain->outbound_serial = orig_domain->internal_serial;
-    }
+    } else {
+        se_log_warning("not nsec3ifying domain: up to date");
+   }
     domain->nsec_rrset->internal_serial = orig_domain->internal_serial;
     return 0;
 }

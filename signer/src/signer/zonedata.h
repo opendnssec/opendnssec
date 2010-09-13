@@ -183,6 +183,13 @@ int zonedata_del_rr(zonedata_type* zd, ldns_rr* rr);
 int zonedata_del_rrs(zonedata_type* zd);
 
 /**
+ * Clean up domains in zone data tree.
+ * \param[in] domain_tree tree of domains to cleanup
+ *
+ */
+void zonedata_cleanup_domains(ldns_rbtree_t* domain_tree);
+
+/**
  * Clean up zone data.
  * \param[in] zonedata zone data to cleanup
  *
