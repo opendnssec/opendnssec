@@ -526,7 +526,8 @@ tasklist_delete_task(tasklist_type* list, task_type* task)
             se_free((void*)del_node);
             return del_task;
         } else {
-            se_log_debug("delete task failed");
+            se_log_error("delete task failed");
+            log_task(task);
         }
     } else {
         se_log_warning("delete empty task from list");
