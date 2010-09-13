@@ -376,37 +376,33 @@ signconf_check(signconf_type* sc)
  *
  */
 int
-signconf_compare(signconf_type* a, signconf_type* b)
+signconf_compare(signconf_type* a, signconf_type* b, int* update)
 {
+   int new_task = TASK_SIGN;
+
    se_log_assert(a);
    se_log_assert(b);
 
-   if (keylist_compare(a->keys, b->keys) != 0) {
-       return TASK_READ;
+   if (a->nsec_type != b->nsec_type) {
+       new_task = TASK_READ;
+   } else if (a->nsec_type == LDNS_RR_TYPE_NSEC3) {
+       if ((se_strcmp(a->nsec3_salt, b->nsec3_salt) != 0) ||
+           (a->nsec3_algo != b->nsec3_algo) ||
+           (a->nsec3_iterations != b->nsec3_iterations) ||
+           (a->nsec3_optout != b->nsec3_optout)) {
+           new_task = TASK_READ;
+           *update = 1;
+       }
    }
 
-   if (a->nsec_type != b->nsec_type) {
-       return TASK_NSECIFY;
-   } else if (a->nsec_type == LDNS_RR_TYPE_NSEC3) {
-       if (strlen(a->nsec3_salt) != strlen(b->nsec3_salt)) {
-           return TASK_NSECIFY;
-       } else if (strncmp(a->nsec3_salt, b->nsec3_salt,
-           strlen(a->nsec3_salt)) != 0) {
-           return TASK_NSECIFY;
-       } else if (a->nsec3_algo != b->nsec3_algo) {
-           return TASK_NSECIFY;
-       } else if (a->nsec3_iterations != b->nsec3_iterations) {
-           return TASK_NSECIFY;
-       } else if (a->nsec3_optout != b->nsec3_optout) {
-           return TASK_NSECIFY;
-       }
+   if (keylist_compare(a->keys, b->keys) != 0) {
+       new_task = TASK_READ;
    }
 
    /* not like python: reschedule if resign/refresh differs */
    /* this needs review, tasks correct on signconf changes? */
 
-   /* ok, just re-sign */
-   return TASK_SIGN;
+   return new_task;
 }
 
 /**

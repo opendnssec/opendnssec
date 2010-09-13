@@ -116,12 +116,13 @@ int signconf_check(signconf_type* sc);
 
 /**
  * Compare two signer configurations.
- * \param a one signconf
- * \param b the other signconf
+ * \param[in] a one signconf
+ * \param[in] b the other signconf
+ * \param[out] update set to 1 if we need to re-nsec3ify
  * \return what task to perform
  *
  */
-int signconf_compare(signconf_type* a, signconf_type* b);
+int signconf_compare(signconf_type* a, signconf_type* b, int* update);
 
 /**
  * Clean up signer configuration.
