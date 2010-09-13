@@ -269,12 +269,14 @@ interface_start(char* cmd)
     if (flags < 0) {
         se_log_error("unable to start interface, fcntl(F_GETFL) "
             "failed: %s", strerror(errno));
+        close(sockfd);
         return;
     }
     flags |= O_NONBLOCK;
     if (fcntl(sockfd, F_SETFL, flags) < 0) {
         se_log_error("Unable to start interface, fcntl(F_SETFL) "
             "failed: %s", strerror(errno));
+        close(sockfd);
         return;
     }
 
@@ -283,12 +285,14 @@ interface_start(char* cmd)
     if (flags < 0) {
         se_log_error("Unable to start interface, fcntl(F_GETFL) "
             "failed: %s", strerror(errno));
+        close(sockfd);
         return;
     }
     flags |= O_NONBLOCK;
     if (fcntl(fileno(stdin), F_SETFL, flags) < 0) {
         se_log_error("Unable to start interface, fcntl(F_SETFL) "
             "failed: %s", strerror(errno));
+        close(sockfd);
         return;
     }
 
@@ -300,6 +304,8 @@ interface_start(char* cmd)
     /* run */
     se_log_init(NULL, 0, 0);
     interface_run(stdin, sockfd, cmd);
+    close(sockfd);
+    return;
 }
 
 
