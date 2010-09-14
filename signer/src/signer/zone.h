@@ -57,22 +57,26 @@ struct zone_struct {
     const char* name; /* string format zone name */
     ldns_rdf* dname; /* wire format zone name */
     ldns_rr_class klass; /* class */
-    const char* policy_name; /* policy identifier */
-    const char* signconf_filename; /* signer configuration filename */
+
     signconf_type* signconf; /* signer configuration values */
     nsec3params_type* nsec3params; /* NSEC3 parameters */
+    zonedata_type* zonedata; /* zone data */
+
+    /* from zone list */
+    const char* policy_name; /* policy identifier */
+    const char* signconf_filename; /* signer configuration filename */
     adapter_type* inbound_adapter; /* inbound adapter */
     adapter_type* outbound_adapter; /* outbound adapter */
-    struct task_struct* task; /* current scheduled task */
-    struct worker_struct* worker; /* current active worker */
-    time_t backoff; /* backoff value if there is something failing */
-    zonedata_type* zonedata; /* zone data */
-    int in_progress; /* in progress (check with active worker?) */
-    stats_type* stats; /* statistics */
-    /* for zonelist */
     int just_added;
     int just_updated;
     int tobe_removed;
+
+    /* worker variables */
+    struct task_struct* task; /* current scheduled task */
+    struct worker_struct* worker; /* current active worker */
+    time_t backoff; /* backoff value if there is something failing */
+    int in_progress; /* in progress (check with active worker?) */
+    stats_type* stats; /* statistics */
 
     lock_basic_type zone_lock;
 };
