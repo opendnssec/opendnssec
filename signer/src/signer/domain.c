@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "signer/backup.h"
 #include "signer/domain.h"
 #include "signer/hsm.h"
 #include "signer/rrset.h"
@@ -80,6 +81,64 @@ domain_create(ldns_rdf* dname)
     return domain;
 }
 
+
+/**
+ * Recover domain from backup.
+ *
+ */
+domain_type*
+domain_recover_from_backup(FILE* fd)
+{
+    domain_type* domain = NULL;
+    const char* name = NULL;
+    uint32_t internal_serial = 0;
+    uint32_t outbound_serial = 0;
+    int domain_status = DOMAIN_STATUS_NONE;
+    int nsec_bitmap_changed = 0;
+    int nsec_nxt_changed = 0;
+
+    se_log_assert(fd);
+
+    if (!backup_read_str(fd, &name) ||
+        !backup_read_uint32_t(fd, &internal_serial) ||
+        !backup_read_uint32_t(fd, &outbound_serial) ||
+        !backup_read_int(fd, &domain_status) ||
+        !backup_read_int(fd, &nsec_bitmap_changed) ||
+        !backup_read_int(fd, &nsec_nxt_changed)) {
+        se_log_error("domain part in backup file is corrupted");
+        if (name) {
+            se_free((void*)name);
+        }
+        return NULL;
+    }
+
+    domain = (domain_type*) se_malloc(sizeof(domain_type));
+    se_log_assert(name);
+    domain->name = ldns_dname_new_frm_str(name);
+    if (!domain->name) {
+        se_log_error("failed to create domain from name");
+        se_free((void*)name);
+        se_free((void*)domain);
+        return NULL;
+    }
+    domain->parent = NULL;
+    domain->nsec3 = NULL;
+    domain->rrsets = ldns_rbtree_create(rrset_compare);
+    domain->domain_status = domain_status;
+    domain->internal_serial = internal_serial;
+    domain->outbound_serial = outbound_serial;
+    domain->nsec_rrset = NULL;
+    domain->nsec_bitmap_changed = nsec_bitmap_changed;
+    domain->nsec_nxt_changed = nsec_nxt_changed;
+    se_log_deeebug("recovered domain %s internal_serial=%u, "
+        "outbound_serial=%u, domain_status=%i, nsec_status=(%i, %i)",
+        name, domain->internal_serial, domain->outbound_serial,
+        domain->domain_status, domain->nsec_bitmap_changed,
+        domain->nsec_nxt_changed);
+
+    se_free((void*)name);
+    return domain;
+}
 
 /**
  * Convert RRset to a tree node.
@@ -881,13 +940,25 @@ domain_print_nsec(FILE* fd, domain_type* domain)
         domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
     se_free((void*) str);
 
-    /* print nsec */
-    if (domain->nsec_rrset) {
-        rrset_print(fd, domain->nsec_rrset, 1);
-    } else if (domain->nsec3 && domain->nsec3->nsec_rrset) {
-        rrset_print(fd, domain->nsec3->nsec_rrset, 1);
+    if (domain->nsec_rrset && domain->nsec_rrset->rrs &&
+        domain->nsec_rrset->rrs->rr) {
+        fprintf(fd, ";NSEC\n");
+        ldns_rr_print(fd, domain->nsec_rrset->rrs->rr);
+    } else if (domain->nsec3) {
+        domain = domain->nsec3;
+        str = ldns_rdf2str(domain->name);
+        fprintf(fd, ";DNAME3 %s %u %u %i %i %i\n", str,
+            domain->internal_serial, domain->outbound_serial,
+            (int) domain->domain_status,
+            domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
+        se_free((void*) str);
+
+        if (domain->nsec_rrset && domain->nsec_rrset->rrs &&
+            domain->nsec_rrset->rrs->rr) {
+            fprintf(fd, ";NSEC3\n");
+            ldns_rr_print(fd, domain->nsec_rrset->rrs->rr);
+        }
     }
-    fprintf(fd, ";END\n");
     return;
 }
 

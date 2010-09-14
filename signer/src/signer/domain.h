@@ -87,6 +87,14 @@ struct domain_struct {
 domain_type* domain_create(ldns_rdf* dname);
 
 /**
+ * Recover domain from backup.
+ * \param[in] fd backup file descriptor
+ * \return domain_type* recovered domain
+ *
+ */
+domain_type* domain_recover_from_backup(FILE* fd);
+
+/**
  * Check if the domain can be opted-out.
  * \param[in] domain domain
  * \return int 1 if can be opted-out, 0 otherwise
