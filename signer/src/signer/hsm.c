@@ -131,6 +131,9 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
                 key_id->locator?key_id->locator:"(null)");
             return NULL;
         }
+    }
+
+    if (!key_id->params->keytag) {
         key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
     }
 
