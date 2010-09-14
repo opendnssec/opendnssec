@@ -94,6 +94,9 @@ key_recover_from_backup(FILE* fd)
         !backup_read_check_str(fd, ";END"))
     {
         se_log_error("key part in backup file is corrupted");
+        if (locator) {
+            se_free((void*)locator);
+        }
         if (rr) {
             ldns_rr_free(rr);
             rr = NULL;
