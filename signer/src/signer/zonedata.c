@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "signer/backup.h"
 #include "signer/domain.h"
 #include "signer/nsec3params.h"
 #include "signer/zonedata.h"
@@ -86,6 +87,120 @@ domain2node(domain_type* domain)
     node->key = domain->name;
     node->data = domain;
     return node;
+}
+
+
+/**
+ * Recover zone data from backup.
+ *
+ */
+int
+zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
+{
+    int corrupted = 0;
+    const char* token = NULL;
+    domain_type* current_domain = NULL;
+    domain_type* parent_domain = NULL;
+    ldns_rr* rr = NULL;
+    ldns_status status = LDNS_STATUS_OK;
+    ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
+
+    se_log_assert(zd);
+    se_log_assert(fd);
+
+    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+        corrupted = 1;
+    }
+
+    while (!corrupted) {
+        if (backup_read_str(fd, &token)) {
+            if (se_strcmp(token, ";DNAME") == 0) {
+                parent_domain = current_domain;
+
+                current_domain = domain_recover_from_backup(fd);
+                if (!current_domain) {
+                    se_log_error("error reading domain from backup file");
+                    corrupted = 1;
+                } else {
+                    current_domain->parent = parent_domain;
+                    new_node = domain2node(current_domain);
+                    if (!zd->domains) {
+                        zd->domains = ldns_rbtree_create(domain_compare);
+                    }
+                    if (ldns_rbtree_insert(zd->domains, new_node) == NULL) {
+                        se_log_error("error adding domain from backup file");
+                        se_free((void*)new_node);
+                        corrupted = 1;
+                    }
+                    new_node = NULL;
+                }
+            } else if (se_strcmp(token, ";DNAME3") == 0) {
+                se_log_assert(current_domain);
+                current_domain->nsec3 = domain_recover_from_backup(fd);
+                if (!current_domain->nsec3) {
+                    se_log_error("error reading nsec3 domain from backup file");
+                    corrupted = 1;
+                } else {
+                    new_node = domain2node(current_domain->nsec3);
+                    if (!zd->nsec3_domains) {
+                        zd->nsec3_domains = ldns_rbtree_create(domain_compare);
+                    }
+
+                    if (ldns_rbtree_insert(zd->nsec3_domains, new_node) == NULL) {
+                        se_log_error("error adding nsec3 domain from backup file");
+                        se_free((void*)new_node);
+                        corrupted = 1;
+                    }
+                    new_node = NULL;
+                }
+            } else if (se_strcmp(token, ";NSEC") == 0) {
+                status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
+                if (status != LDNS_STATUS_OK) {
+                    se_log_error("error reading NSEC RR from backup file");
+                    if (rr) {
+                        ldns_rr_free(rr);
+                    }
+                    corrupted = 1;
+                } else {
+                    se_log_assert(current_domain);
+                    current_domain->nsec_rrset = rrset_create_frm_rr(rr);
+                    if (!current_domain->nsec_rrset) {
+                        se_log_error("error adding NSEC RR from backup file");
+                        corrupted = 1;
+                    }
+                }
+                rr = NULL;
+                status = LDNS_STATUS_OK;
+            } else if (se_strcmp(token, ";NSEC3") == 0) {
+                status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
+                if (status != LDNS_STATUS_OK) {
+                    se_log_error("error reading NSEC3 RR from backup file");
+                    if (rr) {
+                        ldns_rr_free(rr);
+                    }
+                    corrupted = 1;
+                } else {
+                    se_log_assert(current_domain);
+                    se_log_assert(current_domain->nsec3);
+                    current_domain->nsec3->nsec_rrset = rrset_create_frm_rr(rr);
+                    if (!current_domain->nsec3->nsec_rrset) {
+                        se_log_error("error adding NSEC3 RR from backup file");
+                        corrupted = 1;
+                    }
+                }
+                rr = NULL;
+                status = LDNS_STATUS_OK;
+            } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+                break;
+            } else {
+                corrupted = 1;
+            }
+        } else {
+            corrupted = 1;
+        }
+    }
+
+    return corrupted;
 }
 
 
@@ -846,6 +961,8 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
              domain->domain_status != DOMAIN_STATUS_ENT_NS &&
              domain->domain_status != DOMAIN_STATUS_ENT_GLUE)) {
             parent = domain->parent;
+            se_log_deeebug("obsoleted domain: #rrset=%i, status=%i",
+                domain_count_rrset(domain), domain->domain_status);
             domain = zonedata_del_domain(zd, domain);
             if (domain) {
                 se_log_error("failed to delete obsoleted domain");
@@ -909,14 +1026,9 @@ zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr, int at_apex)
     if (domain) {
         return domain_recover_rr_from_backup(domain, rr);
     }
-    /* no domain with this name yet */
-    domain = domain_create(ldns_rr_owner(rr));
-    domain = zonedata_add_domain(zd, domain, at_apex);
-    if (!domain) {
-        se_log_error("unable to recover RR to zonedata: failed to add domain");
-        return 1;
-    }
-    return domain_recover_rr_from_backup(domain, rr);
+
+    se_log_error("unable to recover RR to zonedata: domain does not exist");
+    return 1;
 }
 
 

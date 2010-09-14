@@ -826,6 +826,30 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     }
     zone->signconf->keys = keylist_create();
 
+    /* recover denial of existence TODO */
+    filename = se_build_path(zone->name, ".denial", 0);
+    fd = se_fopen(filename, NULL, "r");
+    se_free((void*)filename);
+    if (fd) {
+        error = zonedata_recover_from_backup(zone->zonedata, fd);
+        if (error) {
+            se_log_error("unable to recover denial of existence from file "
+            "%s.denial: file corrupted", zone->name);
+            if (zone->zonedata) {
+                zonedata_cleanup(zone->zonedata);
+                zone->zonedata = NULL;
+            }
+            zone->zonedata = zonedata_create();
+        }
+    } else {
+        se_log_debug("unable to recover denial of existence from file "
+            "%s.denial: no such file or directory", zone->name);
+        error = 1;
+    }
+    if (error) {
+        goto abort_recover;
+    }
+
     /* zone data */
     filename = se_build_path(zone->name, ".unsorted", 0);
     error = adfile_read(zone, filename, 1);
@@ -855,37 +879,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         goto abort_recover;
     }
 
-    /* recover denial of existence */
-    filename = se_build_path(zone->name, ".denial", 0);
-    fd = se_fopen(filename, NULL, "r");
-    se_free((void*)filename);
-    if (fd) {
-        /* add empty non-terminals */
-
-/*
-        error = zonedata_entize(zone->zonedata, zone->dname);
-        if (error) {
-            se_log_error("unable to recover denial of existence from file "
-                "%s.denial: entize failed ", zone->name);
-        } else {
-            error = zone_recover_denial_from_backup(zone, fd);
-        }
-        se_fclose(fd);
-        if (error) {
-            se_log_error("unable to recover denial of existence from file "
-                "%s.denial: file corrupted", zone->name);
-        }
-*/
-    } else {
-        se_log_debug("unable to recover denial of existence backup file "
-            "%s.denial: no such file or directory", zone->name);
-            error = 1;
-    }
-    if (error) {
-        goto abort_recover;
-    }
-
-    /* retrieve signatures */
+    /* retrieve signatures TODO */
     filename = se_build_path(zone->name, ".rrsigs", 0);
     se_free((void*)filename);
     if (error) {
