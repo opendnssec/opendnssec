@@ -330,6 +330,8 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
                 se_log_error("error adding RR to pending add RRset (%i): %s",
                     rrset->rr_type, ldns_get_errorstr_by_id(status));
                 rrset_log_rr(rr, "+rr", 1);
+                ldns_dnssec_rrs_deep_free(rrset->add);
+                rrset->add = NULL;
                 return 1;
             }
         }
@@ -371,6 +373,8 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
                 se_log_error("error adding RR to pending del RRset (%i): %s",
                    rrset->rr_type, ldns_get_errorstr_by_id(status));
                 rrset_log_rr(rr, "-rr", 1);
+                ldns_dnssec_rrs_deep_free(rrset->del);
+                rrset->del = NULL;
                 return 1;
             }
         }
