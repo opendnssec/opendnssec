@@ -431,7 +431,8 @@ class Engine:
                         response += self.read_zonelist()
                         response += "\n" + self.check_zone_conf_updates()
                 self.notify_all()
-		self.notify_zonefetcher ()
+                if engine.config.zonefetch_file is not None:
+	            self.notify_zonefetcher()
             if command[:4] == "stop":
                 self.stop_engine()
                 response = "Engine stopped"
