@@ -275,7 +275,8 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         } else {
             if (buf) {
                 (void)snprintf(buf, ODS_SE_MAXLINE,
-                    "Zone %s config updated.\n", zone->name?zone->name:"(null)");
+                    "Zone %s config updated.\n", zone->name?zone->name:
+                    "(null)");
             }
         }
 
@@ -633,6 +634,8 @@ zone_sign(zone_type* zone)
     char* filename = NULL;
     time_t start = 0;
     time_t end = 0;
+    const char* start_rr = ". 3600 IN TXT start";
+    const char* end_rr = ". 3600 IN TXT end";
 
     se_log_assert(zone);
     se_log_assert(zone->signconf);
@@ -654,7 +657,9 @@ zone_sign(zone_type* zone)
         fd = se_fopen(filename, NULL, "w");
         if (fd) {
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
+            fprintf(fd, "%s\n", start_rr);
             zonedata_print_rrsig(fd, zone->zonedata);
+            fprintf(fd, "%s\n", end_rr);
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             se_fclose(fd);
         } else {
@@ -826,7 +831,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     }
     zone->signconf->keys = keylist_create();
 
-    /* recover denial of existence TODO */
+    /* recover denial of existence */
     filename = se_build_path(zone->name, ".denial", 0);
     fd = se_fopen(filename, NULL, "r");
     se_free((void*)filename);
@@ -881,9 +886,18 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
 
     /* retrieve signatures TODO */
     filename = se_build_path(zone->name, ".rrsigs", 0);
+    fd = se_fopen(filename, NULL, "r");
     se_free((void*)filename);
-    if (error) {
-        goto abort_recover;
+    if (fd) {
+        error = 1; /* zone_recover_rrsigs_from_backup(zone, fd); */
+        se_fclose(fd);
+        if (error) {
+            se_log_error("unable to recover rrsigs from file %s.rrsigs: "
+                "file corrupted", zone->name);
+        }
+    } else {
+        se_log_debug("unable to recover rrsigs from file %s.rrsigs: ",
+            "no such file or directory", zone->name);
     }
 
 abort_recover:
@@ -892,6 +906,10 @@ abort_recover:
     filename = se_build_path(zone->name, ".task", 0);
     zone->task = task_recover_from_backup((const char*) filename, zone);
     se_free((void*)filename);
+    if (error) {
+        zone->task->what = TASK_READ;
+    }
+
     if (!zone->task) {
         now = time_now();
         zone->task = task_create(TASK_READ, now, zone->name, zone);
