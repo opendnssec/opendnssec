@@ -511,7 +511,7 @@ class AuditorTest < Test::Unit::TestCase
     config.keys = keys
     config.audit_tag_present = true
     # Add changed_config - with no changes
-    changed_config = KASPAuditor::ChangedConfig.new(1,2,3,4,5,6)
+    changed_config = KASPAuditor::ChangedConfig.new(1,2,3,4,5,6,7,8,9,10)
     changed_config.zsks = []
     changed_config.ksks = []
     changed_config.rrsig_inception_offset = KASPAuditor::ChangedConfig::Element.new(3600, 0)

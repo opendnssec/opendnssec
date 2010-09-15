@@ -35,9 +35,6 @@ module KASPAuditor
   # @TODO@ TEST CODE FOR THIS CLASS!
   # @TODO@ TEST CODE FOR THE POLICY CHANGES FUNCTIONALITY - check that the auditor
   #   does not produce errors as a result of changes in policy.
-  # @TODO@ Check that kasp.xml and signconf.xml are in synch
-  # @TODO@ If there are differences, then issue a prominent warning
-  #      - but use signconf values for audit
   class ChangedConfig
      # This class holds some data, along with the timestamp at which is was last
      # seen to change
@@ -99,7 +96,9 @@ module KASPAuditor
       kasp_file = args[2]
       config = args[3]
       working_folder = args[4]
-      return if args.length > 5
+      signconf_file = args[5]
+      syslog = args[6]
+      return if args.length > 7
 
       tracker_folder = (working_folder + File::SEPARATOR +
         "tracker").untaint
@@ -107,7 +106,7 @@ module KASPAuditor
       begin
         Dir.mkdir(tracker_folder) unless File.directory?(tracker_folder)
       rescue Errno::ENOENT
-        @parent.log(LOG_ERR, "Can't create working folder : #{tracker_folder}")
+        syslog.log(LOG_ERR, "Can't create working folder : #{tracker_folder}")
         KASPAuditor.exit("Can't create working folder : #{tracker_folder}", 1)
       end
 
@@ -123,8 +122,10 @@ module KASPAuditor
       # Now get the timestamps for the conf and kasp files
       kasp_file = (kasp_file.to_s + "").untaint
       conf_file = (conf_file.to_s + "").untaint
+      signconf_file = (signconf_file.to_s + "").untaint
       conf_timestamp = File.mtime(conf_file).to_i
       kasp_timestamp = File.mtime(kasp_file).to_i
+      signconf_timestamp = File.mtime(signconf_file).to_i
       @conf_timestamp = conf_timestamp
       @kasp_timestamp = kasp_timestamp
 
@@ -144,6 +145,12 @@ module KASPAuditor
           timestamp = conf_timestamp
         end
       end
+      # Also check the timestamp of the signconf file, and warn if it
+      # is older than the kasp.xml.
+      if (signconf_timestamp < kasp_timestamp)
+        syslog.log(LOG_WARNING, "THE SIGNER CONFIGURATION IS OLDER THAN THE KASP CONFIGURATION - IT MAY NOT HAVE BEEN UPDATED. IF SO, ERRORS MAY BE RAISED BY THE AUDITOR")
+      end
+
 
       check_kasp_config(config, timestamp)
 
