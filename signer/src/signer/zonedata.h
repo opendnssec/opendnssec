@@ -57,11 +57,20 @@ struct zonedata_struct {
 };
 
 /**
- * Create empty zone data..
+ * Create empty zone data.
  * \return zonedata_type* empty zone data tree
  *
  */
 zonedata_type* zonedata_create(void);
+
+/**
+ * Recover zone data from backup.
+ * \param[in] zd zone data
+ * \param[in] fd backup file descriptor
+ * \return int 0 on success, 1 on error
+ *
+ */
+int zonedata_recover_from_backup(zonedata_type* zd, FILE* fd);
 
 /**
  * Look up domain in zone data.
@@ -158,12 +167,19 @@ int zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex);
  * Recover RR from backup.
  * \param[in] zd zone data
  * \param[in] rr RR to add
- * \param[in] at_apex if is at apex of the zone
  * \return int 0 on success, 1 on false
  *
  */
-int zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr,
-    int at_apex);
+int zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr);
+
+/**
+ * Recover RRSIG from backup.
+ * \param[in] zd zone data
+ * \param[in] rrsig RRSIG to add
+ * \return int 0 on success, 1 on false
+ *
+ */
+int zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig);
 
 /**
  * Delete RR from zone data.

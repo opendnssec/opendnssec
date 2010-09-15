@@ -238,6 +238,34 @@ rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr)
 
 
 /**
+ * Recover RR from backup.
+ *
+ */
+int
+rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig)
+{
+    ldns_status status = LDNS_STATUS_OK;
+
+    se_log_assert(rrset);
+    se_log_assert(rrsig);
+
+    if (!rrset->rrsigs) {
+        rrset->rrsigs = ldns_dnssec_rrs_new();
+    }
+    if (!rrset->rrsigs->rr) {
+        rrset->rrsigs->rr = rrsig;
+        rrset->rrsig_count += 1;
+    } else {
+        status = util_dnssec_rrs_add_rr(rrset->rrsigs, rrsig);
+        if (status == LDNS_STATUS_OK) {
+            rrset->rrsig_count += 1;
+        }
+    }
+    return (status != LDNS_STATUS_OK);
+}
+
+
+/**
  * Add RR to RRset.
  *
  */

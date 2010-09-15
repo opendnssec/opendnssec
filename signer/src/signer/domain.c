@@ -768,6 +768,44 @@ domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
 
 
 /**
+ * Recover RRSIG from backup.
+ *
+ */
+int
+domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
+    ldns_rr_type type_covered)
+{
+    rrset_type* rrset = NULL;
+
+    se_log_assert(rrsig);
+    se_log_assert(domain);
+    se_log_assert(domain->name);
+    se_log_assert(domain->rrsets);
+    se_log_assert((ldns_dname_compare(domain->name,
+        ldns_rr_owner(rrsig)) == 0));
+
+    if (type_covered == LDNS_RR_TYPE_NSEC ||
+        type_covered == LDNS_RR_TYPE_NSEC3) {
+        if (domain->nsec_rrset) {
+            return rrset_recover_rrsig_from_backup(domain->nsec_rrset, rrsig);
+        } else if (type_covered == LDNS_RR_TYPE_NSEC) {
+            se_log_error("unable to recover RRSIG to domain: no NSEC RRset");
+        } else {
+            se_log_error("unable to recover RRSIG to domain: no NSEC3 RRset");
+        }
+    } else {
+        rrset = domain_lookup_rrset(domain, type_covered);
+        if (rrset) {
+            return rrset_recover_rrsig_from_backup(rrset, rrsig);
+        } else {
+            se_log_error("unable to recover RRSIG to domain: no such RRset");
+        }
+    }
+    return 1;
+}
+
+
+/**
  * Delete RR from domain.
  *
  */

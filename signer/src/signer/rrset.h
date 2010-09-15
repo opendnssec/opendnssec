@@ -108,6 +108,15 @@ int rrset_del_rr(rrset_type* rrset, ldns_rr* rr);
 int rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr);
 
 /**
+ * Recover RRSIG from backup.
+ * \param[in] rrset RRset
+ * \param[in] rrsig RRSIG
+ * \return 0 on success, 1 on error
+ *
+ */
+int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig);
+
+/**
  * Sign RRset.
  * \param[in] ctx HSM context
  * \param[in] rrset RRset

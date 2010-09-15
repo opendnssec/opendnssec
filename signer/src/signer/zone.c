@@ -535,7 +535,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
         }
     }
     if (recover) {
-       error = zonedata_recover_rr_from_backup(zone->zonedata, rr, at_apex);
+       error = zonedata_recover_rr_from_backup(zone->zonedata, rr);
     } else {
        error = zonedata_add_rr(zone->zonedata, rr, at_apex);
     }
@@ -634,7 +634,6 @@ zone_sign(zone_type* zone)
     char* filename = NULL;
     time_t start = 0;
     time_t end = 0;
-    const char* start_rr = ". 3600 IN TXT start";
     const char* end_rr = ". 3600 IN TXT end";
 
     se_log_assert(zone);
@@ -657,7 +656,6 @@ zone_sign(zone_type* zone)
         fd = se_fopen(filename, NULL, "w");
         if (fd) {
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-            fprintf(fd, "%s\n", start_rr);
             zonedata_print_rrsig(fd, zone->zonedata);
             fprintf(fd, "%s\n", end_rr);
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
@@ -768,6 +766,41 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
         } else {
             corrupted = 1;
         }
+    }
+    return corrupted;
+}
+
+
+/**
+ * Recover RRSIGS.
+ *
+ */
+static int
+zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
+{
+    int corrupted = 0;
+    ldns_rr* rr = NULL;
+    ldns_status status = LDNS_STATUS_OK;
+
+    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+        corrupted = 1;
+    }
+
+    while (!corrupted) {
+        status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
+        if (status != LDNS_STATUS_OK) {
+            se_log_error("error reading RRSIG from backup");
+            corrupted = 1;
+        } else if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_RRSIG) {
+            corrupted = zonedata_recover_rrsig_from_backup(zone->zonedata, rr);
+        } else if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_TXT) {
+            /* perhaps check more? owner = '.', rdata = "end" */
+            break;
+        }
+    }
+
+    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+        corrupted = 1;
     }
     return corrupted;
 }
@@ -889,7 +922,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     fd = se_fopen(filename, NULL, "r");
     se_free((void*)filename);
     if (fd) {
-        error = 1; /* zone_recover_rrsigs_from_backup(zone, fd); */
+        error = zone_recover_rrsigs_from_backup(zone, fd);
         se_fclose(fd);
         if (error) {
             se_log_error("unable to recover rrsigs from file %s.rrsigs: "

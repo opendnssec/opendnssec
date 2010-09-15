@@ -1014,7 +1014,7 @@ zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex)
  *
  */
 int
-zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr, int at_apex)
+zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr)
 {
     domain_type* domain = NULL;
 
@@ -1028,6 +1028,34 @@ zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr, int at_apex)
     }
 
     se_log_error("unable to recover RR to zonedata: domain does not exist");
+    return 1;
+}
+
+
+/**
+ * Recover RRSIG from backup.
+ *
+ */
+int
+zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig)
+{
+    domain_type* domain = NULL;
+    ldns_rr_type type_covered;
+
+    se_log_assert(zd);
+    se_log_assert(zd->domains);
+    se_log_assert(rrsig);
+
+    type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rrsig));
+    if (type_covered == LDNS_RR_TYPE_NSEC3) {
+        domain = zonedata_lookup_domain_nsec3(zd, ldns_rr_owner(rrsig));
+    } else {
+        domain = zonedata_lookup_domain(zd, ldns_rr_owner(rrsig));
+    }
+    if (domain) {
+        return domain_recover_rrsig_from_backup(domain, rrsig, type_covered);
+    }
+    se_log_error("unable to recover RRSIG to zonedata: domain does not exist");
     return 1;
 }
 
