@@ -721,6 +721,8 @@ module KASPAuditor
       end
     end
 
+    attr_accessor :ret_val
+
     def update_key_stores
       # Use the key_tracker to update and check key stores using
       # the key information in the SOA file.

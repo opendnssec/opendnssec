@@ -30,6 +30,9 @@ class TestLogger
       print "#{pri}: #{msg}\n"
     end
   end
+  def ret_val
+    return 999
+  end
 end
 
 class AuditorTest < Test::Unit::TestCase
@@ -559,7 +562,7 @@ class AuditorTest < Test::Unit::TestCase
       File.delete("test/tmp/tracker/example.com.")
     rescue Exception
     end
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil, 1)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil, 1)
     checker.last_soa_serial = 0
     cache = checker.cache
     time = Time.now.to_i
@@ -576,7 +579,7 @@ class AuditorTest < Test::Unit::TestCase
     assert(checker.cache.retired.length == 1)
     checker.save_tracker_cache
 
-    new_checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil,1)
+    new_checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1)
     assert(new_checker.cache.retired.length == 1)
     assert(new_checker.cache.include_retired_key?(k1))
     assert(new_checker.cache.inuse.length == 2)
@@ -594,7 +597,7 @@ class AuditorTest < Test::Unit::TestCase
     new_checker.cache.delete_inuse_key(k3)
     new_checker.save_tracker_cache
 
-    n_c = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", nil, nil,1)
+    n_c = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1)
     assert(n_c.cache.prepublished.length == 0)
     assert(n_c.cache.inuse.length == 0)
     assert(n_c.cache.retired.length == 0)

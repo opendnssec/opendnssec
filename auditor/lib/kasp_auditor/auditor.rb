@@ -171,8 +171,6 @@ module KASPAuditor
             end
           }
         }
-        # Now take a look at how the keys are changing over time...
-        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @config.soa.ttl)
 
         # Check the last nsec(3) record in the chain points back to the start
         do_final_nsec_check()
@@ -184,6 +182,9 @@ module KASPAuditor
         if (@config.denial.nsec3)
           nsec3auditor.check_nsec3_types_and_opt_out(@unknown_nsecs)
         end
+
+        # Now take a look at how the keys are changing over time...
+        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @config.soa.ttl)
       rescue FatalError => e
         return 3
       end
@@ -1061,6 +1062,8 @@ module KASPAuditor
       log(LOG_ERR, "Can't load SOA from #{file}")
       raise FatalError.new("Can't load SOA from #{file}")
     end
+
+    attr_accessor :ret_val
 
     # Log the message, and set the return value to the most serious code so far
     def log(pri, msg)

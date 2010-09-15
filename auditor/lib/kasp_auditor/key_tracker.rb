@@ -174,8 +174,10 @@ module KASPAuditor
 
     # Store the data back to the file
     def save_tracker_cache
+      # These values should only be written if the audit has been successful!!
       # Best to write it back to a new file - then move the new file to the
       # original location (overwriting the original)
+      return if @parent.ret_val == 3
       tracker_file = get_tracker_filename
       File.open(tracker_file + ".temp", 'w') { |f|
         # First, save the initial timestamp and the current SOA serial
