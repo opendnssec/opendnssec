@@ -234,7 +234,7 @@ parent_cleanup(engine_type* engine, int keep_pointer)
 {
     if (engine) {
         if (engine->config) {
-            engine_config_cleanup(engine->config);
+            engine_config_cleanup(engine->config, keep_pointer);
             engine->config = NULL;
         }
         if (!keep_pointer) {
@@ -871,7 +871,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         } else {
             se_log_debug("signer engine started");
             /* try to recover from backups */
-/*            engine_recover_from_backups(engine); */
+            engine_recover_from_backups(engine);
         }
 
         if (zl_changed) {

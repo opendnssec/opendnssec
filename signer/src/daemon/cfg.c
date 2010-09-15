@@ -204,7 +204,7 @@ engine_config_print(FILE* out, engineconfig_type* config)
  *
  */
 void
-engine_config_cleanup(engineconfig_type* config)
+engine_config_cleanup(engineconfig_type* config, int keep_lock)
 {
     if (config) {
         se_log_debug("clean up config");
@@ -253,7 +253,9 @@ engine_config_cleanup(engineconfig_type* config)
             config->chroot = NULL;
         }
         se_free((void*) config);
-        lock_basic_destroy(&config->config_lock);
+        if (!keep_lock) {
+            lock_basic_destroy(&config->config_lock);
+        }
     } else {
         se_log_warning("cleanup empty config");
     }

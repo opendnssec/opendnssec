@@ -92,8 +92,9 @@ void engine_config_print(FILE* out, engineconfig_type* config);
 /**
  * Clean up engine configuration.
  * \param[in] config engine configuration
+ * \param[in] keep_lock keep lock
  *
  */
-void engine_config_cleanup(engineconfig_type* config);
+void engine_config_cleanup(engineconfig_type* config, int keep_lock);
 
 #endif /* DAEMON_CONFIG_H */
