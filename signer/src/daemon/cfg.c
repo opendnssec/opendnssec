@@ -232,7 +232,7 @@ engine_config_cleanup(engineconfig_type* config, int keep_lock)
             se_free((void*) config->notify_command);
             config->notify_command = NULL;
         }
-        if (config->zonefetch_filename) {
+        if (config->clisock_filename) {
             se_free((void*) config->clisock_filename);
             config->clisock_filename = NULL;
         }
