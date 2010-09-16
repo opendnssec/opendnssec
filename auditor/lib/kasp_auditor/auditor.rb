@@ -1140,7 +1140,9 @@ module KASPAuditor
                 owner, next_hashed = check_optout(types_name_unhashed, owner, next_hashed, types_name, foptout)
                 
                 while ((nsec3_name < types_name) && (!fnsec3.eof?))
-                  log(LOG_WARNING, "Found NSEC3 record for hashed domain which couldn't be found in the zone (#{nsec3_name})")
+                  if (types_name < owner) # Don't forget about the optout list! If optout on empty nonterminal, then types_name == owner
+                    log(LOG_ERROR, "Found NSEC3 record for hashed domain which couldn't be found in the zone (#{nsec3_name})")
+                  end
                   nsec3_name, nsec3_types = get_name_and_types(fnsec3)
                 end
                 while ((types_name < nsec3_name) && (!ftypes.eof?))
