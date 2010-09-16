@@ -60,8 +60,6 @@ struct engineconfig_struct {
     int num_worker_threads;
     int num_signer_threads;
     int verbosity;
-
-    lock_basic_type config_lock;
 };
 
 /**
@@ -92,9 +90,8 @@ void engine_config_print(FILE* out, engineconfig_type* config);
 /**
  * Clean up engine configuration.
  * \param[in] config engine configuration
- * \param[in] keep_lock keep lock
  *
  */
-void engine_config_cleanup(engineconfig_type* config, int keep_lock);
+void engine_config_cleanup(engineconfig_type* config);
 
 #endif /* DAEMON_CONFIG_H */

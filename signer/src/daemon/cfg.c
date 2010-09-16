@@ -87,8 +87,6 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
 
         /* done */
         se_fclose(cfgfd);
-
-        lock_basic_init(&ecfg->config_lock);
         return ecfg;
     }
 
@@ -204,7 +202,7 @@ engine_config_print(FILE* out, engineconfig_type* config)
  *
  */
 void
-engine_config_cleanup(engineconfig_type* config, int keep_lock)
+engine_config_cleanup(engineconfig_type* config)
 {
     if (config) {
         se_log_debug("clean up config");
@@ -253,9 +251,6 @@ engine_config_cleanup(engineconfig_type* config, int keep_lock)
             config->chroot = NULL;
         }
         se_free((void*) config);
-        if (!keep_lock) {
-            lock_basic_destroy(&config->config_lock);
-        }
     } else {
         se_log_warning("cleanup empty config");
     }

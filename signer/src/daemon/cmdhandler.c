@@ -168,11 +168,9 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     se_writen(sockfd, buf, strlen(buf));
 
     /* wake up sleeping workers */
-    lock_basic_lock(&cmdc->engine->config->config_lock);
     for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
         worker_wakeup(cmdc->engine->workers[i]);
     }
-    lock_basic_unlock(&cmdc->engine->config->config_lock);
     return;
 }
 
@@ -243,22 +241,18 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         se_writen(sockfd, buf, strlen(buf));
 
         /* wake up sleeping workers */
-        lock_basic_lock(&cmdc->engine->config->config_lock);
         for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
             worker_wakeup(cmdc->engine->workers[i]);
         }
-        lock_basic_unlock(&cmdc->engine->config->config_lock);
     } else if (found && scheduled) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for "
             "immediate re-sign.\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
 
         /* wake up sleeping workers */
-        lock_basic_lock(&cmdc->engine->config->config_lock);
         for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
             worker_wakeup(cmdc->engine->workers[i]);
         }
-        lock_basic_unlock(&cmdc->engine->config->config_lock);
     } else if (found && !scheduled) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not scheduled, "
             "already being signed right now!\n", tbd?tbd:"(null)");
@@ -390,11 +384,9 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
     lock_basic_unlock(&cmdc->engine->tasklist->tasklist_lock);
 
     /* wake up sleeping workers */
-    lock_basic_lock(&cmdc->engine->config->config_lock);
     for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
         worker_wakeup(cmdc->engine->workers[i]);
     }
-    lock_basic_unlock(&cmdc->engine->config->config_lock);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
     se_writen(sockfd, buf, strlen(buf));
@@ -478,10 +470,8 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_type* cmdc, int val)
     se_log_assert(cmdc->engine);
     se_log_assert(cmdc->engine->config);
 
-    lock_basic_lock(&cmdc->engine->config->config_lock);
     se_log_init(cmdc->engine->config->log_filename,
         cmdc->engine->config->use_syslog, val);
-    lock_basic_unlock(&cmdc->engine->config->config_lock);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
     se_writen(sockfd, buf, strlen(buf));

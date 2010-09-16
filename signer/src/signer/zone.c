@@ -64,6 +64,7 @@ zone_create(const char* name, ldns_rr_class klass)
     zone->name = se_strdup(name);
     zone->dname = ldns_dname_new_frm_str(name);
     zone->klass = klass;
+    zone->notify_ns = NULL;
     zone->policy_name = NULL;
     zone->signconf_filename = NULL;
     zone->signconf = NULL;
@@ -971,6 +972,10 @@ zone_cleanup(zone_type* zone)
         if (zone->dname) {
             ldns_rdf_deep_free(zone->dname);
             zone->dname = NULL;
+        }
+        if (zone->notify_ns) {
+            se_free((void*)zone->notify_ns);
+            zone->notify_ns = NULL;
         }
         if (zone->inbound_adapter) {
             adapter_cleanup(zone->inbound_adapter);

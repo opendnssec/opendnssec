@@ -262,6 +262,15 @@ int tools_write_output(zone_type* zone)
             break;
     }
 
+    /* kick the nameserver */
+    if (zone->notify_ns) {
+        se_log_verbose("notify nameserver: %s", zone->notify_ns);
+        error = system(zone->notify_ns);
+        if (error) {
+           se_log_error("failed to notify nameserver");
+        }
+    }
+
     /* log stats */
     zone->stats->end_time = time(NULL);
     se_log_debug("log stats for zone %s", zone->name?zone->name:"(null)");

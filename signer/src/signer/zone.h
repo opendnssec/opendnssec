@@ -57,6 +57,7 @@ struct zone_struct {
     const char* name; /* string format zone name */
     ldns_rdf* dname; /* wire format zone name */
     ldns_rr_class klass; /* class */
+    const char* notify_ns; /* master name server reload command */
 
     signconf_type* signconf; /* signer configuration values */
     nsec3params_type* nsec3params; /* NSEC3 parameters */

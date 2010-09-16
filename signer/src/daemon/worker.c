@@ -222,14 +222,8 @@ worker_perform_task(worker_type* worker, task_type* task)
             }
             task->what = TASK_AUDIT;
         case TASK_AUDIT:
-            se_log_debug("worker[%i]: lock config", worker->thread_num);
-            lock_basic_lock(&engine->config->config_lock);
-            se_log_debug("worker[%i]: locked config", worker->thread_num);
             working_dir = se_strdup(engine->config->working_dir);
             cfg_filename = se_strdup(engine->config->cfg_filename);
-            se_log_debug("worker[%i]: unlock config", worker->thread_num);
-            lock_basic_unlock(&engine->config->config_lock);
-            se_log_debug("worker[%i]: unlocked config", worker->thread_num);
             error = tools_audit(zone, working_dir, cfg_filename);
             if (working_dir)  { se_free((void*)working_dir); }
             if (cfg_filename) { se_free((void*)cfg_filename); }

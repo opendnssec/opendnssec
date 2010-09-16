@@ -204,7 +204,6 @@ engine_privdrop(engine_type* engine)
     se_log_assert(engine->config);
     se_log_debug("drop privileges");
 
-    lock_basic_lock(&engine->config->config_lock);
     if (engine->config->username && engine->config->group) {
         se_log_verbose("drop privileges to user %s, group %s",
            engine->config->username, engine->config->group);
@@ -220,7 +219,6 @@ engine_privdrop(engine_type* engine)
     }
     error = privdrop(engine->config->username, engine->config->group,
         engine->config->chroot);
-    lock_basic_unlock(&engine->config->config_lock);
     return error;
 }
 
@@ -234,7 +232,7 @@ parent_cleanup(engine_type* engine, int keep_pointer)
 {
     if (engine) {
         if (engine->config) {
-            engine_config_cleanup(engine->config, keep_pointer);
+            engine_config_cleanup(engine->config);
             engine->config = NULL;
         }
         if (!keep_pointer) {
@@ -301,7 +299,6 @@ engine_create_workers(engine_type* engine)
 
     se_log_assert(engine);
     se_log_assert(engine->config);
-    lock_basic_lock(&engine->config->config_lock);
     engine->workers = (worker_type**)
         se_calloc((size_t)engine->config->num_worker_threads,
         sizeof(worker_type*));
@@ -310,7 +307,6 @@ engine_create_workers(engine_type* engine)
         engine->workers[i] = worker_create(i, WORKER_WORKER);
         engine->workers[i]->tasklist = engine->tasklist;
     }
-    lock_basic_unlock(&engine->config->config_lock);
     return;
 }
 
@@ -340,14 +336,12 @@ engine_start_workers(engine_type* engine)
 
     se_log_assert(engine);
     se_log_assert(engine->config);
-    lock_basic_lock(&engine->config->config_lock);
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engineptr = (struct engine_struct*) engine;
         se_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
             engine->workers[i]);
     }
-    lock_basic_unlock(&engine->config->config_lock);
     return;
 }
 
@@ -365,8 +359,6 @@ engine_stop_workers(engine_type* engine)
     se_log_assert(engine->config);
     se_log_debug("stop workers");
 
-    lock_basic_lock(&engine->config->config_lock);
-
     /* tell them to exit and wake up sleepyheads */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 1;
@@ -377,8 +369,6 @@ engine_stop_workers(engine_type* engine)
         se_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engineptr = NULL;
     }
-
-    lock_basic_unlock(&engine->config->config_lock);
     return;
 }
 
@@ -398,15 +388,12 @@ engine_setup(engine_type* engine)
     se_log_debug("perform setup");
 
     /* create command handler (before chowning socket file) */
-    lock_basic_lock(&engine->config->config_lock);
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
-    lock_basic_unlock(&engine->config->config_lock);
     if (!engine->cmdhandler) {
         return 1;
     }
 
     /* privdrop */
-    lock_basic_lock(&engine->config->config_lock);
     engine->uid = privuid(engine->config->username); /* LEAKS */
     engine->gid = privgid(engine->config->group); /* LEAKS */
     /* TODO: does piddir exists? */
@@ -425,10 +412,8 @@ engine_setup(engine_type* engine)
         chdir(engine->config->working_dir) != 0) {
         se_log_error("setup failed: chdir to %s failed: %s",
             engine->config->working_dir, strerror(errno));
-        lock_basic_unlock(&engine->config->config_lock);
         return 1;
     }
-    lock_basic_unlock(&engine->config->config_lock);
 
     if (engine_privdrop(engine) != 0) {
         se_log_error("setup failed: unable to drop privileges");
@@ -459,13 +444,10 @@ engine_setup(engine_type* engine)
     }
     engine->pid = getpid();
     /* make common with enforcer */
-    lock_basic_lock(&engine->config->config_lock);
     if (write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
-        lock_basic_unlock(&engine->config->config_lock);
         se_log_error("setup failed: unable to write pid file");
         return 1;
     }
-    lock_basic_unlock(&engine->config->config_lock);
     se_log_verbose("running as pid %lu", (unsigned long) engine->pid);
 
     /* start command handler */
@@ -483,14 +465,11 @@ engine_setup(engine_type* engine)
     sigaction(SIGTERM, &action, NULL);
 
     /* set up hsm */
-    lock_basic_lock(&engine->config->config_lock);
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL); /* LEAKS */
     if (result != HSM_OK) {
-        lock_basic_unlock(&engine->config->config_lock);
         se_log_error("Error initializing libhsm (errno %i)", result);
         return 1;
     }
-    lock_basic_unlock(&engine->config->config_lock);
 
     /* set up the work floor */
     engine->tasklist = tasklist_create(); /* tasks */
@@ -568,10 +547,8 @@ engine_update_zonelist(engine_type* engine, char* buf)
     se_log_assert(engine->zonelist);
     se_log_debug("update zone list");
 
-    lock_basic_lock(&engine->config->config_lock);
     new_zlist = zonelist_read(engine->config->zonelist_filename,
         engine->zonelist->last_modified);
-    lock_basic_unlock(&engine->config->config_lock);
     if (!new_zlist) {
         if (buf) {
             /* fstat <= last_modified || rng check failed */
@@ -585,6 +562,32 @@ engine_update_zonelist(engine_type* engine, char* buf)
     zonelist_update(engine->zonelist, engine->tasklist, buf);
     zonelist_unlock(engine->zonelist);
     return 0;
+}
+
+
+/**
+ * Parse notify command.
+ *
+ */
+static void
+set_notify_ns(zone_type* zone, const char* cmd)
+{
+    char* str = NULL;
+    char* str2 = NULL;
+
+    se_log_assert(cmd);
+    se_log_assert(zone);
+    se_log_assert(zone->name);
+    se_log_assert(zone->outbound_adapter);
+    se_log_assert(zone->outbound_adapter->filename);
+
+    str = se_replace(cmd, "%zonefile", zone->outbound_adapter->filename);
+    str2 = se_replace(str, "%zone", zone->name);
+    se_free((void*)str);
+    zone->notify_ns = (const char*) str2;
+    se_log_debug("set notify ns: %s", zone->notify_ns);
+
+    return;
 }
 
 
@@ -688,6 +691,12 @@ engine_recover_from_backups(engine_type* engine)
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->key;
         lock_basic_lock(&zone->zone_lock);
+
+        /* set the notify ns command */
+        if (engine->config->notify_command && !zone->notify_ns) {
+            set_notify_ns(zone, engine->config->notify_command);
+        }
+
         lock_basic_lock(&engine->tasklist->tasklist_lock);
         zone_recover_from_backup(zone, engine->tasklist);
         lock_basic_unlock(&engine->tasklist->tasklist_lock);
@@ -724,13 +733,10 @@ start_zonefetcher(engine_type* engine)
     se_log_assert(engine);
     se_log_assert(engine->config);
 
-    lock_basic_lock(&engine->config->config_lock);
     if (!engine->config->zonefetch_filename) {
         /* zone fetcher disabled */
-        lock_basic_unlock(&engine->config->config_lock);
         return 0;
     }
-    lock_basic_unlock(&engine->config->config_lock);
 
     switch ((zfpid = fork())) {
         case -1: /* error */
@@ -752,7 +758,6 @@ start_zonefetcher(engine_type* engine)
 
     se_log_verbose("zone fetcher started (pid=%i)", getpid());
 
-    lock_basic_lock(&engine->config->config_lock);
     zf_filename = se_strdup(engine->config->zonefetch_filename);
     zl_filename = se_strdup(engine->config->zonelist_filename);
     grp = se_strdup(engine->config->group);
@@ -761,7 +766,6 @@ start_zonefetcher(engine_type* engine)
     log_filename = se_strdup(engine->config->log_filename);
     use_syslog = engine->config->use_syslog;
     verbosity = engine->config->verbosity;
-    lock_basic_unlock(&engine->config->config_lock);
 
     result = tools_zone_fetcher(zf_filename, zl_filename, grp, usr,
         chrt, log_filename, use_syslog, verbosity);
@@ -796,9 +800,7 @@ stop_zonefetcher(engine_type* engine)
     se_log_assert(engine);
     se_log_assert(engine->config);
 
-    lock_basic_lock(&engine->config->config_lock);
     if (engine->config->zonefetch_filename) {
-        lock_basic_unlock(&engine->config->config_lock);
         if (engine->zfpid > 0) {
             result = kill(engine->zfpid, SIGHUP);
             if (result == -1) {
@@ -811,8 +813,6 @@ stop_zonefetcher(engine_type* engine)
             se_log_error("zone fetcher process id unknown, unable to "
                 "stop zone fetcher");
         }
-    } else {
-        lock_basic_unlock(&engine->config->config_lock);
     }
     return;
 }
@@ -899,10 +899,8 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         engine_stop_cmdhandler(engine);
     }
 
-    lock_basic_lock(&engine->config->config_lock);
     (void)unlink(engine->config->pid_filename);
     (void)unlink(engine->config->clisock_filename);
-    lock_basic_unlock(&engine->config->config_lock);
 
 earlyexit:
     engine_cleanup(engine);
@@ -927,11 +925,9 @@ engine_cleanup(engine_type* engine)
     if (engine) {
         se_log_debug("clean up engine");
         if (engine->workers) {
-            lock_basic_lock(&engine->config->config_lock);
             for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
                 worker_cleanup(engine->workers[i]);
             }
-            lock_basic_unlock(&engine->config->config_lock);
             se_free((void*) engine->workers);
         }
         if (engine->tasklist) {

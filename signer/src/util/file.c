@@ -285,6 +285,57 @@ se_strcmp(const char* s1, const char* s2)
 
 
 /**
+ * Replace a substring in string.
+ *
+ */
+char*
+se_replace(char *str, const char *oldstr, const char *newstr)
+{
+    char* buffer = NULL;
+    char* ch = NULL;
+    size_t part1_len = 0;
+    size_t part2_len = 0;
+    size_t part3_len = 0;
+
+    se_log_assert(str);
+    se_log_assert(oldstr);
+    se_log_assert(newstr);
+
+    if (!(ch = strstr(str, oldstr))) {
+        buffer = se_strdup(str);
+        return buffer;
+    }
+
+    part1_len = ch-str;
+    part2_len = strlen(newstr);
+    part3_len = strlen(ch+strlen(oldstr));
+    buffer = se_calloc(part1_len+part2_len+part3_len+1, sizeof(char));
+
+    if (part1_len) {
+        strncpy(buffer, str, part1_len);
+        buffer[part1_len] = '\0';
+
+        if (part2_len) {
+            strncat(buffer, str, part2_len);
+            buffer[part1_len+part2_len] = '\0';
+        }
+    } else {
+        strncpy(buffer, newstr, part2_len);
+        buffer[part2_len] = '\0';
+    }
+
+    if (part3_len) {
+        strncat(buffer, ch+strlen(oldstr), part3_len);
+        buffer[part1_len+part2_len+part3_len] = '\0';
+    }
+
+    buffer[ch-str] = '\0';
+    sprintf(buffer+(ch-str), "%s%s", newstr, ch+strlen(oldstr));
+    return buffer;
+}
+
+
+/**
  * File copy.
  *
  */

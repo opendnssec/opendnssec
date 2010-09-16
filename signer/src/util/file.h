@@ -129,6 +129,17 @@ time_t se_file_lastmodified(const char* file);
 int se_strcmp(const char* s1, const char* s2);
 
 /**
+ * Replace a substring in string.
+ * \param[in] str The string
+ * \param[in] oldstr old substring
+ * \param[in] newstr new substring
+ * \return char* the substituted string.
+ *
+ */
+char*
+se_replace(char *str, const char *oldstr, const char *newstr);
+
+/**
  * Get directory part of filename.
  * \param[in] file file name
  * \return char* directory part
