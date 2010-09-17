@@ -56,7 +56,7 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
     FILE* cfgfd = NULL;
 
     se_log_assert(cfgfile);
-    se_log_debug("load config file: %s", cfgfile?cfgfile:"(null)");
+    se_log_verbose("read config file: %s", cfgfile?cfgfile:"(null)");
 
     /* check syntax (slows down parsing configuration file) */
     if (parse_file_check(cfgfile, rngfile) != 0) {
