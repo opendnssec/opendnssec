@@ -170,21 +170,20 @@ and d.keypair_id = v.id;
 -- insert default data
 
 -- default categories
-insert into categories (name) values ("signature");
-insert into categories (name) values ("denial");
-insert into categories (name) values ("ksk");
-insert into categories (name) values ("zsk");
-insert into categories (name) values ("keys");
-insert into categories (name) values ("enforcer");
-insert into categories (name) values ("zone");
-insert into categories (name) values ("parent");
---insert into categories (name) values ("audit");
+insert into categories (id, name) values (1, "signature");
+insert into categories (id, name) values (2, "denial");
+insert into categories (id, name) values (3, "ksk");
+insert into categories (id, name) values (4, "zsk");
+insert into categories (id, name) values (5, "keys");
+insert into categories (id, name) values (6, "enforcer");
+insert into categories (id, name) values (7, "zone");
+insert into categories (id, name) values (8, "parent");
 
 -- default serial number modes
-insert into serialmodes (name, description) values ("unixtime", "seconds since 1 Jan 1970");
-insert into serialmodes (name, description) values ("counter", "add one everytime updated");
-insert into serialmodes (name, description) values ("datecounter", "YYYYMMDDXX");
-insert into serialmodes (name, description) values ("keep", "Signer should not change the serial");
+insert into serialmodes (id, name, description) values (1, "unixtime", "seconds since 1 Jan 1970");
+insert into serialmodes (id, name, description) values (2, "counter", "add one everytime updated");
+insert into serialmodes (id, name, description) values (3, "datecounter", "YYYYMMDDXX");
+insert into serialmodes (id, name, description) values (4, "keep", "Signer should not change the serial");
 
 -- default parameters
 insert into parameters (name, description, category_id) select "resign", "re-signing interval", id from categories where name="signature";
