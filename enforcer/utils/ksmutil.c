@@ -1993,7 +1993,7 @@ cmd_listbackups ()
     }
 
     printf("Backups:\n");
-    status = KsmListBackups(qualifier_id);
+    status = KsmListBackups(qualifier_id, verbose_flag);
 
     if (status != 0) {
         printf("Error: failed to list backups\n");

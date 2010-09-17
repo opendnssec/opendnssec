@@ -63,7 +63,7 @@
  *                          other on fail
  */
 
-int KsmListBackups(int repo_id)
+int KsmListBackups(int repo_id, int verbose_flag)
 {
     char*       sql = NULL;     /* SQL query */
     char*       sql2 = NULL;     /* SQL query */
@@ -80,7 +80,7 @@ int KsmListBackups(int repo_id)
     int         temp_backup_req = 0; /* place to store backuprequired returned */
 
     /* Select rows */
-    StrAppend(&sql, "select distinct k.backup, s.name from keypairs k, securitymodules s ");
+    StrAppend(&sql, "select distinct k.backup, s.name, k.pre_backup from keypairs k, securitymodules s ");
     StrAppend(&sql, "where s.id = k.securitymodule_id ");
     if (repo_id != -1) {
         StrAppend(&sql, "and s.id = ");
@@ -95,14 +95,25 @@ int KsmListBackups(int repo_id)
 
     if (status == 0) {
         status = DbFetchRow(result, &row);
-        printf("Date:                    Repository:\n");
+        if (verbose_flag == 1) {
+            printf("Pre Backup Date:         Backup Date:             Repository:\n");
+        } else {
+            printf("Date:                    Repository:\n");
+        }
         while (status == 0) {
             /* Got a row, print it */
             DbString(row, 0, &temp_date);
             DbString(row, 1, &temp_repo);
+            DbString(row, 2, &temp_pre_date);
 
-            if (temp_date != NULL) { /* Ignore non-backup */
-                printf("%-24s %s\n", temp_date, temp_repo);
+            if (verbose_flag == 1) {
+                if (temp_date != NULL || temp_pre_date != NULL) { /* Ignore non-backup */
+                    printf("%-24s %-24s %s\n", temp_pre_date, temp_date, temp_repo);
+                }
+            } else {
+                if (temp_date != NULL) { /* Ignore non-backup */
+                    printf("%-24s %s\n", temp_date, temp_repo);
+                }
             }
             
             status = DbFetchRow(result, &row);

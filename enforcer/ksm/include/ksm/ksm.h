@@ -624,7 +624,7 @@ int KsmMarkBackup(int repo_id, const char* datetime);
 int KsmCheckHSMkeyID(int repo_id, const char* cka_id, int *exists);
 
 /* KsmList */
-int KsmListBackups(int repo_id);
+int KsmListBackups(int repo_id, int verbose_flag);
 int KsmListRepos();
 int KsmListPolicies();
 int KsmListRollovers(int zone_id);
