@@ -71,6 +71,7 @@ struct zone_struct {
     int just_added;
     int just_updated;
     int tobe_removed;
+    int processed;
 
     /* worker variables */
     struct task_struct* task; /* current scheduled task */

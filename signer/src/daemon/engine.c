@@ -481,6 +481,32 @@ engine_setup(engine_type* engine)
 
 
 /**
+ * Make sure that all zones have been worked on at least once.
+ *
+ */
+static int
+engine_all_zones_processed(engine_type* engine)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    zone_type* zone = NULL;
+
+    se_log_assert(engine);
+    se_log_assert(engine->zonelist);
+    se_log_assert(engine->zonelist->zones);
+
+    node = ldns_rbtree_first(engine->zonelist->zones);
+    while (node && node != LDNS_RBTREE_NULL) {
+        zone = (zone_type*) node->key;
+        if (!zone->processed) {
+		return 0;
+        }
+        node = ldns_rbtree_next(node);
+    }
+    return 1;
+}
+
+
+/**
  * Engine running.
  *
  */
@@ -517,7 +543,7 @@ engine_run(engine_type* engine, int single_run)
         }
 
         if (single_run) {
-           engine->need_to_exit = 1;
+           engine->need_to_exit = engine_all_zones_processed(engine);
         }
 
         lock_basic_lock(&engine->signal_lock);

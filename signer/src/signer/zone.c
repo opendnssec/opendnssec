@@ -78,6 +78,7 @@ zone_create(const char* name, ldns_rr_class klass)
     zone->just_updated = 0;
     zone->tobe_removed = 0;
     zone->in_progress = 0;
+    zone->processed = 0;
     zone->zonedata = zonedata_create();
     zone->stats = stats_create();
     lock_basic_init(&zone->zone_lock);
@@ -918,7 +919,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         goto abort_recover;
     }
 
-    /* retrieve signatures TODO */
+    /* retrieve signatures */
     filename = se_build_path(zone->name, ".rrsigs", 0);
     fd = se_fopen(filename, NULL, "r");
     se_free((void*)filename);

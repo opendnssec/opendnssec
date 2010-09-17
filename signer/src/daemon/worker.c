@@ -102,6 +102,7 @@ worker_start(worker_type* worker)
                 task->who);
             zone->worker = worker;
             worker_perform_task(worker, task);
+            zone->processed = 1;
             zone->worker = NULL;
             se_log_debug("worker[%i]: unlock zone %s", worker->thread_num,
                 task->who);
