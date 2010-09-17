@@ -249,7 +249,7 @@ typedef struct {
 
 typedef struct {
 	int id;
-	char* name;
+    char name[KSM_NAME_LENGTH];
 	char* description;
 	KSM_SIGNER_POLICY* signer;
 	KSM_SIGNATURE_POLICY* signature;

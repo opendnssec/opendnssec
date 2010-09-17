@@ -1354,7 +1354,6 @@ cmd_exportpolicy ()
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
     /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
     policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
-    policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     if (policy->signer == NULL || policy->signature == NULL || 
             policy->zone == NULL || policy->parent == NULL ||
@@ -4315,7 +4314,9 @@ void SetPolicyDefaults(KSM_POLICY *policy, char *name)
         return;
     }
 
-    if(name) policy->name = StrStrdup(name);
+    if (name) {
+        snprintf(policy->name, KSM_NAME_LENGTH, "%s", name);
+    }
 
     policy->signer->refresh = 0;
     policy->signer->jitter = 0;

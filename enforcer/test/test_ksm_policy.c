@@ -72,9 +72,8 @@ static void TestKsmPolicyRead(void)
 /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
     policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
-	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
 
-	StrAppend(&policy->name, "default");
+    snprintf(policy->name, KSM_NAME_LENGTH, "default");
 
 	/* Call KsmPolicyRead */
 
@@ -109,8 +108,6 @@ static void TestKsmPolicyReadId(void)
 /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
     policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
-	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-
 
 	policy->id = 2;
 
@@ -148,8 +145,6 @@ static void TestKsmPolicy2(void)
 /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
     policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
-	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
-
 
 	for (i=1; i<5 ; i++) {
 		printf("Try: %i\n",i);
@@ -196,9 +191,9 @@ static void TestKsmPolicySalt(void)
 /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
     policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
-	policy->name = (char *)calloc(KSM_NAME_LENGTH, sizeof(char));
 
-	StrAppend(&policy->name, "default");
+    snprintf(policy->name, KSM_NAME_LENGTH, "default");
+    
 	policy->id = 2;
     policy->denial->resalt = 0;
     policy->denial->saltlength = 30;
