@@ -136,8 +136,8 @@ int se_strcmp(const char* s1, const char* s2);
  * \return char* the substituted string.
  *
  */
-char*
-se_replace(char *str, const char *oldstr, const char *newstr);
+const char*
+se_replace(const char *str, const char *oldstr, const char *newstr);
 
 /**
  * Get directory part of filename.

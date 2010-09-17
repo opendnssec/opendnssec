@@ -288,8 +288,8 @@ se_strcmp(const char* s1, const char* s2)
  * Replace a substring in string.
  *
  */
-char*
-se_replace(char *str, const char *oldstr, const char *newstr)
+const char*
+se_replace(const char *str, const char *oldstr, const char *newstr)
 {
     char* buffer = NULL;
     char* ch = NULL;

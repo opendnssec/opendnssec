@@ -572,8 +572,8 @@ engine_update_zonelist(engine_type* engine, char* buf)
 static void
 set_notify_ns(zone_type* zone, const char* cmd)
 {
-    char* str = NULL;
-    char* str2 = NULL;
+    const char* str = NULL;
+    const char* str2 = NULL;
 
     se_log_assert(cmd);
     se_log_assert(zone);
