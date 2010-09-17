@@ -53,10 +53,7 @@ kaspSetPolicyDefaults(KSM_POLICY *policy, char *name)
     }
 
 	if (name) {
-        if (policy->name) {
-            StrFree(policy->name);
-        }
-        StrAppend(&policy->name, name);
+        snprintf(policy->name, KSM_NAME_LENGTH, "%s", name);
     }
 
 	policy->signer->refresh = 0;
