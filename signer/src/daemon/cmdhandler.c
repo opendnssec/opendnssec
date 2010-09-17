@@ -309,6 +309,10 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     unlink(tmpname);
     se_free((void*)tmpname);
 
+    tmpname = se_build_path(tbd, ".task", 0);
+    unlink(tmpname);
+    se_free((void*)tmpname);
+
     (void)snprintf(buf, ODS_SE_MAXLINE, "Internal information about "
         "%s cleared", tbd?tbd:"(null)");
     se_writen(sockfd, buf, strlen(buf));
