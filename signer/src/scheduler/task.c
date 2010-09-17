@@ -149,8 +149,9 @@ task_backup(task_type* task)
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         se_fclose(fd);
     } else {
-        se_log_warning("cannot backup task for zone %s: cannot open file %s for "
-        "writing", task->who?task->who:"(null)", filename?filename:"(null)");
+        se_log_warning("cannot backup task for zone %s: cannot open file "
+        "%s.task for writing",
+        task->who?task->who:"(null)", task->who?task->who:"(null)");
     }
     return;
 }
