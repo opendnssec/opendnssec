@@ -290,21 +290,6 @@ domain_update(domain_type* domain, uint32_t serial)
         }
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
-
-            if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
-                rrset->rrs->rr) {
-                soa_serial = ldns_rr_set_rdf(rrset->rrs->rr,
-                    ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial),
-                    SE_SOA_RDATA_SERIAL);
-                if (soa_serial) {
-                    ldns_rdf_deep_free(soa_serial);
-                } else {
-                    se_log_error("unable to update domain: failed to replace "
-                        "SOA SERIAL rdata");
-                    return 1;
-                }
-            }
-
             if (rrset_update(rrset, serial) != 0) {
                 se_log_error("failed to update domain to serial %u: failed "
                     "to update RRset", serial);
