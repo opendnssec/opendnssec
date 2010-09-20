@@ -202,6 +202,12 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
     se_log_assert(zone);
     se_log_assert(zone->signconf);
 
+    if (zone->stats->sig_count <= 0) {
+        se_log_verbose("skip audit zone %s, zone not changed",
+            zone->name?zone->name:"(null)");
+        return 0;
+    }
+
     if (zone->signconf->audit) {
         se_log_verbose("audit zone %s", zone->name?zone->name:"(null)");
         finalized = se_build_path(zone->name, ".finalized", 0);
@@ -247,6 +253,14 @@ int tools_write_output(zone_type* zone)
     se_log_assert(zone->signconf);
     se_log_assert(zone->outbound_adapter);
     se_log_assert(zone->stats);;
+
+    if (zone->stats->sig_count <= 0) {
+        se_log_verbose("skip write zone %s, zone not changed",
+            zone->name?zone->name:"(null)");
+        stats_clear(zone->stats);
+        return 0;
+    }
+
     se_log_verbose("write zone %s", zone->name?zone->name:"(null)");
 
     switch (zone->outbound_adapter->type) {

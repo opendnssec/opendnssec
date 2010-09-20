@@ -692,7 +692,6 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
                     "SOA SERIAL rdata");
                 return 1;
             }
-            rrset->drop_signatures = 1;
         }
 
         error = rrset_sign(ctx, rrset, owner, sc, signtime, serial, stats);
