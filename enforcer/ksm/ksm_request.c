@@ -1927,7 +1927,7 @@ int KsmRequestCheckFirstPass(int keytype, int* first_pass_flag, int zone_id)
 
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
-    DqsConditionInt(&sql, "STATE", DQS_COMPARE_GT, KSM_STATE_PUBLISH, clause++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_GE, KSM_STATE_PUBLISH, clause++);
     if (zone_id != -1) {
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
     }

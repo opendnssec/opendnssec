@@ -2347,6 +2347,7 @@ cmd_dsseen()
     int zone_id = -1;
     int policy_id = -1;
     int key_count = -1;
+    int retired_count = -1;
     int keytag_int = -1;
     int temp_key_state = -1;
     int temp_keypair_id = -1;
@@ -2510,7 +2511,19 @@ cmd_dsseen()
 
             /* If there are not at least 2 active keys then quit */
             if (key_count < 2) {
-                printf("Error: retiring a key would leave no active keys on zone, skipping...\n");
+                /* Count retired keys to work out if this is a new zone */
+                /* TODO MAKE SURE THIS IS RIGHT !!! */
+                status = CountKeysInState(KSM_TYPE_KSK, KSM_STATE_RETIRE, &retired_count, zone_id);
+                if (status != 0) {
+                    printf("Error: failed to count retired keys\n");
+                    db_disconnect(lock_fd);
+                    StrFree(datetime);
+                    return status;
+                }
+
+                if (retired_count != 0) {
+                    printf("Error: retiring a key would leave no active keys on zone, skipping...\n");
+                }
                 db_disconnect(lock_fd);
                 StrFree(datetime);
                 return -1;
