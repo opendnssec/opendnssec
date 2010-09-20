@@ -412,11 +412,15 @@ engine_setup(engine_type* engine)
         chdir(engine->config->working_dir) != 0) {
         se_log_error("setup failed: chdir to %s failed: %s",
             engine->config->working_dir, strerror(errno));
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
         return 1;
     }
 
     if (engine_privdrop(engine) != 0) {
         se_log_error("setup failed: unable to drop privileges");
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
         return 1;
     }
 
@@ -426,6 +430,8 @@ engine_setup(engine_type* engine)
             case -1: /* error */
                 se_log_error("setup failed: unable to fork daemon: %s",
                     strerror(errno));
+                cmdhandler_cleanup(engine->cmdhandler);
+                engine->cmdhandler = NULL;
                 return 1;
             case 0: /* child */
                 break;
@@ -439,6 +445,8 @@ engine_setup(engine_type* engine)
         if (setsid() == -1) {
             se_log_error("setup failed: unable to setsid daemon (%s)",
                 strerror(errno));
+            cmdhandler_cleanup(engine->cmdhandler);
+            engine->cmdhandler = NULL;
             return 1;
         }
     }
@@ -446,6 +454,8 @@ engine_setup(engine_type* engine)
     /* make common with enforcer */
     if (write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         se_log_error("setup failed: unable to write pid file");
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
         return 1;
     }
     se_log_verbose("running as pid %lu", (unsigned long) engine->pid);
@@ -453,6 +463,8 @@ engine_setup(engine_type* engine)
     /* start command handler */
     if (engine_start_cmdhandler(engine) != 0) {
         se_log_error("setup failed: unable to start command handler");
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
         return 1;
     }
 
