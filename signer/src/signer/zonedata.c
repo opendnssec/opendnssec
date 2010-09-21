@@ -718,12 +718,16 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         if (!domain->nsec3) {
             domain->nsec3 = zonedata_add_domain_nsec3(zd, domain, apex->name,
                 nsec3params);
+            str = ldns_rdf2str(domain->name);
             if (domain->nsec3 == NULL) {
-                str = ldns_rdf2str(domain->name);
                 se_log_alert("failed to add NSEC3 domain for %s",
                     str?str:"(null)");
                 se_free((void*) str);
                 return 1;
+            } else {
+                se_log_deeebug("NSEC3 domain added for %s",
+                    str?str:"(null)");
+                se_free((void*) str);
             }
             domain->nsec3->nsec3 = domain; /* back reference */
         } else {

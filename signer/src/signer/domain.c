@@ -441,7 +441,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                 old_rdf = ldns_rr_set_rdf(nsec_rr, ldns_rdf_clone(to->name),
                     SE_NSEC_RDATA_NXT);
                 if (!old_rdf) {
-                    se_log_alert("failed to update NSEC next owner name");
+                    se_log_alert("failed to update NSEC (nxt)");
                     stats->nsec_count -= 1;
                     return 1;
                 }
@@ -453,7 +453,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                     ldns_dnssec_create_nsec_bitmap(types, types_count,
                     LDNS_RR_TYPE_NSEC), SE_NSEC_RDATA_BITMAP);
                 if (!old_rdf) {
-                    se_log_alert("failed to update NSEC bitmap");
+                    se_log_alert("failed to update NSEC (bm)");
                     stats->nsec_count -= 1;
                     return 1;
                 }
@@ -486,6 +486,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
     ldns_rdf* next_owner_label = NULL;
     ldns_rdf* next_owner_rdf = NULL;
     char* next_owner_string = NULL;
+    char* str = NULL;
     ldns_status status = LDNS_STATUS_OK;
 
     se_log_assert(domain);
@@ -498,6 +499,8 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
     se_log_assert(stats);
 
     orig_domain = domain->nsec3; /* use the back reference */
+    str = ldns_rdf2str(orig_domain->name);
+
     if (DNS_SERIAL_GT(orig_domain->internal_serial,
         orig_domain->outbound_serial))
     {
@@ -522,10 +525,11 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         }
         /* create new NSEC3 RR */
         if (!domain->nsec_rrset) {
-            se_log_debug("new nsec3");
+            se_log_deeebug("new NSEC3 RRset for %s", str);
             nsec_rr = ldns_rr_new();
             if (!nsec_rr) {
-                se_log_alert("failed to create NSEC3 rr");
+                se_log_alert("failed to create NSEC3 rr for %s", str);
+                se_free((void*)str);
                 return 1;
             }
             ldns_rr_set_type(nsec_rr, LDNS_RR_TYPE_NSEC3);
@@ -554,11 +558,13 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
                 se_log_error("failed to create NSEC3 next owner name: %s",
                     ldns_get_errorstr_by_id(status));
                 ldns_rr_free(nsec_rr);
+                se_free((void*)str);
                 return 1;
             }
         }
         /* update the NSEC3 RRset */
         if (!domain->nsec_rrset) {
+            se_log_assert(next_owner_rdf);
             ldns_rr_push_rdf(nsec_rr, next_owner_rdf);
             ldns_rr_push_rdf(nsec_rr, ldns_dnssec_create_nsec_bitmap(types,
                 types_count, LDNS_RR_TYPE_NSEC3));
@@ -566,7 +572,8 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             ldns_rr_set_class(nsec_rr, klass);
             domain->nsec_rrset = rrset_create_frm_rr(nsec_rr);
             if (!domain->nsec_rrset) {
-                se_log_alert("failed to create NSEC3 RRset");
+                se_log_alert("failed to create NSEC3 RRset for %s", str);
+                se_free((void*)str);
                 return 1;
             }
             stats->nsec_count += 1;
@@ -577,28 +584,30 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             se_log_assert(domain->nsec_rrset);
             se_log_assert(domain->nsec_rrset->rrs);
             se_log_assert(domain->nsec_rrset->rrs->rr);
-            nsec_rr = domain->nsec_rrset->rrs->rr;
             if (domain->nsec_nxt_changed || orig_domain->nsec_bitmap_changed) {
                 stats->nsec_count += 1;
             }
 
             if (domain->nsec_nxt_changed) {
-                old_rdf = ldns_rr_set_rdf(nsec_rr, next_owner_rdf,
-                    SE_NSEC3_RDATA_NXT);
+                se_log_assert(next_owner_rdf);
+                old_rdf = ldns_rr_set_rdf(domain->nsec_rrset->rrs->rr,
+                    next_owner_rdf, SE_NSEC3_RDATA_NXT);
                 if (!old_rdf) {
-                    se_log_alert("failed to update NSEC3 next owner name");
+                    se_log_alert("failed to update NSEC3 (nxt) for %s", str);
                     stats->nsec_count -= 1;
+                    se_free((void*)str);
                     return 1;
                 }
                 domain->nsec_nxt_changed = 0;
             }
             if (orig_domain->nsec_bitmap_changed) {
-                old_rdf = ldns_rr_set_rdf(nsec_rr,
+                old_rdf = ldns_rr_set_rdf(domain->nsec_rrset->rrs->rr,
                     ldns_dnssec_create_nsec_bitmap(types, types_count,
                     LDNS_RR_TYPE_NSEC3), SE_NSEC3_RDATA_BITMAP);
                 if (!old_rdf) {
-                    se_log_alert("failed to update NSEC3 bitmap");
+                    se_log_alert("failed to update NSEC3 (bm) for %s", str);
                     stats->nsec_count -= 1;
+                    se_free((void*)str);
                     return 1;
                 }
                 orig_domain->nsec_bitmap_changed = 0;
@@ -608,8 +617,9 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         orig_domain->outbound_serial = orig_domain->internal_serial;
     } else {
         se_log_warning("not nsec3ifying domain: up to date");
-   }
+    }
     domain->nsec_rrset->internal_serial = orig_domain->internal_serial;
+    se_free((void*)str);
     return 0;
 }
 
