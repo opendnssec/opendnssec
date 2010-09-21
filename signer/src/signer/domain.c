@@ -290,6 +290,11 @@ domain_update(domain_type* domain, uint32_t serial)
         }
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
+            if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
+                rrset->rrs->rr) {
+                rrset->drop_signatures = 1;
+            }
+
             if (rrset_update(rrset, serial) != 0) {
                 se_log_error("failed to update domain to serial %u: failed "
                     "to update RRset", serial);
