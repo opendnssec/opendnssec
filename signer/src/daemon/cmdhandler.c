@@ -198,38 +198,35 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     /* lock tasklist */
     lock_basic_lock(&cmdc->engine->tasklist->tasklist_lock);
 
-    node = ldns_rbtree_first(cmdc->engine->tasklist->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->key;
-
-        if (se_strcmp(tbd, "--all") == 0) {
-            /* just flush it */
-            task->flush = 1;
-            task->what = TASK_READ;
-        } else if (se_strcmp(tbd, task->who) == 0) {
-            task = tasklist_delete_task(cmdc->engine->tasklist, task);
-            if (!task) {
-                se_log_error("cannot immediate sign zone %s: delete old task "
-                    "failed", tbd);
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Sign zone %s failed.\n",
-                    tbd);
-                se_writen(sockfd, buf, strlen(buf));
-                return;
-            } else {
-                task->when = now;
-                /* NOTE: isn't this counter-intuitive? should we read unsigned
-                 * zone on a different command?
-                 */
-                task->what = TASK_READ;
-                task = tasklist_schedule_task(cmdc->engine->tasklist, task, 0);
-                if (task) {
-                   scheduled = 1;
+    if (se_strcmp(tbd, "--all") == 0) {
+        tasklist_flush(cmdc->engine->tasklist, TASK_READ);
+    } else {
+        node = ldns_rbtree_first(cmdc->engine->tasklist->tasks);
+        while (node && node != LDNS_RBTREE_NULL) {
+            task = (task_type*) node->key;
+            if (se_strcmp(tbd, task->who) == 0) {
+                task = tasklist_delete_task(cmdc->engine->tasklist, task);
+                if (!task) {
+                    se_log_error("cannot immediate sign zone %s: delete old "
+                        "task failed", tbd);
+                    (void)snprintf(buf, ODS_SE_MAXLINE, "Sign zone %s "
+                        "failed.\n", tbd);
+                    se_writen(sockfd, buf, strlen(buf));
+                    return;
+                } else {
+                    task->when = now;
+                    task->what = TASK_READ;
+                    task = tasklist_schedule_task(cmdc->engine->tasklist,
+                        task, 0);
+                    if (task) {
+                       scheduled = 1;
+                    }
+                    found = 1;
                 }
-                found = 1;
+                break;
             }
-            break;
+            node = ldns_rbtree_next(node);
         }
-        node = ldns_rbtree_next(node);
     }
 
     /* unlock tasklist */
@@ -384,7 +381,7 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
     se_log_assert(cmdc->engine->tasklist);
 
     lock_basic_lock(&cmdc->engine->tasklist->tasklist_lock);
-    tasklist_flush(cmdc->engine->tasklist);
+    tasklist_flush(cmdc->engine->tasklist, TASK_NONE);
     lock_basic_unlock(&cmdc->engine->tasklist->tasklist_lock);
 
     /* wake up sleeping workers */
