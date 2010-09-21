@@ -193,17 +193,9 @@ int task_compare(const void* a, const void* b)
     se_log_assert(x);
     se_log_assert(y);
 
-    if (x->flush != y->flush) {
-        return (int) y->flush - x->flush;
-    }
     if (x->when != y->when) {
         return (int) x->when - y->when;
     }
-/*
-    if (x->what != y->what) {
-        return (int) x->what - y->what;
-    }
-*/
     return ldns_dname_compare((const void*) x->dname, (const void*) y->dname);
 }
 
@@ -487,7 +479,7 @@ tasklist_schedule_task(tasklist_type* list, task_type* task, int log)
  *
  */
 void
-tasklist_flush(tasklist_type* list)
+tasklist_flush(tasklist_type* list, task_id what)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     task_type* task = NULL;
@@ -500,6 +492,9 @@ tasklist_flush(tasklist_type* list)
     while (node && node != LDNS_RBTREE_NULL) {
         task = (task_type*) node->data;
         task->flush = 1;
+        if (what != TASK_NONE) {
+            task->what = what;
+        }
         node = ldns_rbtree_next(node);
     }
     return;

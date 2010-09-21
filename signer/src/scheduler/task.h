@@ -167,9 +167,10 @@ void tasklist_cleanup(tasklist_type* list);
 /**
  * Flush task list.
  * \param list[in] tasklist to be flushed
+ * \param list[in] what if not TASK_NONE, change the what to do
  *
  */
-void tasklist_flush(tasklist_type* list);
+void tasklist_flush(tasklist_type* list, task_id what);
 
 /**
  * Schedule a task.
