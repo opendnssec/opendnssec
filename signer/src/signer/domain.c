@@ -589,6 +589,8 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             }
 
             if (domain->nsec_nxt_changed) {
+                se_log_deeebug("update NSEC3 RRset for %s", str);
+
                 se_log_assert(next_owner_rdf);
                 old_rdf = ldns_rr_set_rdf(domain->nsec_rrset->rrs->rr,
                     next_owner_rdf, SE_NSEC3_RDATA_NXT);
@@ -601,6 +603,8 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
                 domain->nsec_nxt_changed = 0;
             }
             if (orig_domain->nsec_bitmap_changed) {
+                se_log_deeebug("update NSEC3 (bm) RRset for %s", str);
+
                 old_rdf = ldns_rr_set_rdf(domain->nsec_rrset->rrs->rr,
                     ldns_dnssec_create_nsec_bitmap(types, types_count,
                     LDNS_RR_TYPE_NSEC3), SE_NSEC3_RDATA_BITMAP);

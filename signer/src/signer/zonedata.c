@@ -306,12 +306,10 @@ zonedata_add_domain_nsec3(zonedata_type* zd, domain_type* domain,
         if (!prev_node || prev_node == LDNS_RBTREE_NULL) {
             prev_node = ldns_rbtree_last(zd->nsec3_domains);
         }
-        if (prev_node && prev_node != LDNS_RBTREE_NULL) {
-            prev_domain = (domain_type*) prev_node->data;
-        }
-        if (prev_domain) {
-            prev_domain->nsec_nxt_changed = 1;
-        }
+        se_log_assert(prev_node);
+        prev_domain = (domain_type*) prev_node->data;
+        se_log_assert(prev_domain);
+        prev_domain->nsec_nxt_changed = 1;
         return nsec3_domain;
     } else {
         str = ldns_rdf2str(hashed_ownername);
