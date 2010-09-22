@@ -44,15 +44,16 @@
 #include <ldns/ldns.h>
 #include <time.h>
 
-#define DOMAIN_STATUS_NONE      0
-#define DOMAIN_STATUS_APEX      1
-#define DOMAIN_STATUS_AUTH      2
-#define DOMAIN_STATUS_NS        3
-#define DOMAIN_STATUS_ENT_AUTH  4
-#define DOMAIN_STATUS_ENT_NS    5
-#define DOMAIN_STATUS_ENT_GLUE  6
-#define DOMAIN_STATUS_OCCLUDED  7
-#define DOMAIN_STATUS_HASH      8
+#define DOMAIN_STATUS_NONE      0 /* initial domain status */
+#define DOMAIN_STATUS_APEX      1 /* apex of the zone */
+#define DOMAIN_STATUS_AUTH      2 /* authoritative domain */
+#define DOMAIN_STATUS_NS        3 /* unsigned delegation */
+#define DOMAIN_STATUS_DS        4 /* signed delegation */
+#define DOMAIN_STATUS_ENT_AUTH  5 /* empty non-terminal to authoritative data */
+#define DOMAIN_STATUS_ENT_NS    6 /* empty non-terminal to unsigned delegation */
+#define DOMAIN_STATUS_ENT_GLUE  7 /* empty non-terminal to occluded data */
+#define DOMAIN_STATUS_OCCLUDED  8 /* occluded data (glue) */
+#define DOMAIN_STATUS_HASH      9 /* hashed domain */
 
 #define SE_NSEC_RDATA_NXT          0
 #define SE_NSEC_RDATA_BITMAP       1
@@ -71,6 +72,8 @@ struct domain_struct {
     domain_type* nsec3;
     ldns_rbtree_t* rrsets;
     rrset_type* nsec_rrset;
+    size_t subdomain_count;
+    size_t subdomain_auth;
     int domain_status;
     uint32_t internal_serial;
     uint32_t outbound_serial;
@@ -93,14 +96,6 @@ domain_type* domain_create(ldns_rdf* dname);
  *
  */
 domain_type* domain_recover_from_backup(FILE* fd);
-
-/**
- * Check if the domain can be opted-out.
- * \param[in] domain domain
- * \return int 1 if can be opted-out, 0 otherwise
- *
- */
-int domain_optout(domain_type* domain);
 
 /**
  * Lookup a RRset within the domain.

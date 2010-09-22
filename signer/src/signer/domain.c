@@ -74,6 +74,8 @@ domain_create(ldns_rdf* dname)
     domain->domain_status = DOMAIN_STATUS_NONE;
     domain->internal_serial = 0;
     domain->outbound_serial = 0;
+    domain->subdomain_count = 0;
+    domain->subdomain_auth = 0;
     /* nsec */
     domain->nsec_rrset = NULL;
     domain->nsec_bitmap_changed = 0;
@@ -94,6 +96,8 @@ domain_recover_from_backup(FILE* fd)
     uint32_t internal_serial = 0;
     uint32_t outbound_serial = 0;
     int domain_status = DOMAIN_STATUS_NONE;
+    size_t subdomain_count = 0;
+    size_t subdomain_auth = 0;
     int nsec_bitmap_changed = 0;
     int nsec_nxt_changed = 0;
 
@@ -103,6 +107,8 @@ domain_recover_from_backup(FILE* fd)
         !backup_read_uint32_t(fd, &internal_serial) ||
         !backup_read_uint32_t(fd, &outbound_serial) ||
         !backup_read_int(fd, &domain_status) ||
+        !backup_read_size_t(fd, &subdomain_count) ||
+        !backup_read_size_t(fd, &subdomain_auth) ||
         !backup_read_int(fd, &nsec_bitmap_changed) ||
         !backup_read_int(fd, &nsec_nxt_changed)) {
         se_log_error("domain part in backup file is corrupted");
@@ -127,6 +133,8 @@ domain_recover_from_backup(FILE* fd)
     domain->domain_status = domain_status;
     domain->internal_serial = internal_serial;
     domain->outbound_serial = outbound_serial;
+    domain->subdomain_count = subdomain_count;
+    domain->subdomain_auth = subdomain_auth;
     domain->nsec_rrset = NULL;
     domain->nsec_bitmap_changed = nsec_bitmap_changed;
     domain->nsec_nxt_changed = nsec_nxt_changed;
@@ -237,25 +245,6 @@ domain_del_rrset(domain_type* domain, rrset_type* rrset)
 
 
 /**
- * Check if the domain can be opted-out.
- *
- */
-int
-domain_optout(domain_type* domain)
-{
-    se_log_assert(domain);
-    if (domain->domain_status != DOMAIN_STATUS_APEX &&
-        domain_lookup_rrset(domain, LDNS_RR_TYPE_NS) &&
-        !domain_lookup_rrset(domain, LDNS_RR_TYPE_DS)) {
-        return 1;
-    } else if (domain->domain_status == DOMAIN_STATUS_ENT_NS) {
-        return 1;
-    }
-    return 0;
-}
-
-
-/**
  * Return the number of RRsets at this domain.
  *
  */
@@ -277,7 +266,6 @@ int
 domain_update(domain_type* domain, uint32_t serial)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    ldns_rdf* soa_serial = NULL;
     rrset_type* rrset = NULL;
 
     se_log_assert(serial);
@@ -336,7 +324,11 @@ domain_update_status(domain_type* domain)
     }
 
     if (domain_lookup_rrset(domain, LDNS_RR_TYPE_NS)) {
-        domain->domain_status = DOMAIN_STATUS_NS;
+        if (domain_lookup_rrset(domain, LDNS_RR_TYPE_DS) == 0) {
+            domain->domain_status = DOMAIN_STATUS_DS;
+        } else {
+            domain->domain_status = DOMAIN_STATUS_NS;
+        }
     } else { /* else, it is just an authoritative domain */
         domain->domain_status = DOMAIN_STATUS_AUTH;
     }
@@ -514,13 +506,9 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
                 domain_count_rrset(orig_domain) > 0) {
                 if (orig_domain->domain_status == DOMAIN_STATUS_APEX ||
                     orig_domain->domain_status == DOMAIN_STATUS_AUTH ||
-                    (orig_domain->domain_status == DOMAIN_STATUS_NS &&
-                     domain_lookup_rrset(orig_domain, LDNS_RR_TYPE_DS)
-                    )
-                   ) {
-
-                     types[types_count] = LDNS_RR_TYPE_RRSIG;
-                     types_count++;
+                    orig_domain->domain_status == DOMAIN_STATUS_DS) {
+                    types[types_count] = LDNS_RR_TYPE_RRSIG;
+                    types_count++;
                  }
             }
             /* and don't add NSEC3 type... */
@@ -623,6 +611,8 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             orig_domain->nsec_nxt_changed = 0;
         }
         orig_domain->outbound_serial = orig_domain->internal_serial;
+        domain->outbound_serial = orig_domain->outbound_serial;
+        domain->internal_serial = orig_domain->internal_serial;
     } else {
         se_log_warning("not nsec3ifying domain: up to date");
     }
@@ -654,7 +644,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
 
     if (domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
         domain->domain_status == DOMAIN_STATUS_NONE) {
-        return error;
+        return 0;
     }
 
     if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
@@ -681,9 +671,8 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
 
-        /* skip delegation RRsets, except for DS records */
-        if (domain->domain_status == DOMAIN_STATUS_NS &&
-           rrset->rr_type != LDNS_RR_TYPE_DS) {
+        /* skip unsigned delegations */
+        if (domain->domain_status == DOMAIN_STATUS_NS) {
            node = ldns_rbtree_next(node);
            continue;
         }
@@ -979,9 +968,10 @@ domain_print_nsec(FILE* fd, domain_type* domain)
     char* str = NULL;
 
     str = ldns_rdf2str(domain->name);
-    fprintf(fd, ";DNAME %s %u %u %i %i %i\n", str,
+    fprintf(fd, ";DNAME %s %u %u %i %i %i %i %i\n", str,
         domain->internal_serial, domain->outbound_serial,
         (int) domain->domain_status,
+        (int) domain->subdomain_count, (int) domain->subdomain_auth,
         domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
     se_free((void*) str);
 
@@ -992,9 +982,10 @@ domain_print_nsec(FILE* fd, domain_type* domain)
     } else if (domain->nsec3) {
         domain = domain->nsec3;
         str = ldns_rdf2str(domain->name);
-        fprintf(fd, ";DNAME3 %s %u %u %i %i %i\n", str,
+        fprintf(fd, ";DNAME3 %s %u %u %i %i %i %i %i\n", str,
             domain->internal_serial, domain->outbound_serial,
             (int) domain->domain_status,
+            (int) domain->subdomain_count, (int) domain->subdomain_auth,
             domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
         se_free((void*) str);
 

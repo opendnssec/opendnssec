@@ -99,6 +99,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
 {
     int corrupted = 0;
     const char* token = NULL;
+    domain_type* prev_domain = NULL;
     domain_type* current_domain = NULL;
     domain_type* parent_domain = NULL;
     ldns_rr* rr = NULL;
@@ -115,14 +116,19 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
             if (se_strcmp(token, ";DNAME") == 0) {
-                parent_domain = current_domain;
-
+                prev_domain = current_domain;
                 current_domain = domain_recover_from_backup(fd);
                 if (!current_domain) {
                     se_log_error("error reading domain from backup file");
                     corrupted = 1;
                 } else {
+                    if (prev_domain &&
+                        ldns_dname_is_subdomain(current_domain->name,
+                            prev_domain->name)) {
+                        parent_domain = prev_domain;
+                    }
                     current_domain->parent = parent_domain;
+
                     new_node = domain2node(current_domain);
                     if (!zd->domains) {
                         zd->domains = ldns_rbtree_create(domain_compare);
@@ -401,6 +407,13 @@ zonedata_domain_delete(ldns_rbtree_t* tree, domain_type* domain)
 
         del_node = ldns_rbtree_delete(tree, (const void*)domain->name);
         del_domain = (domain_type*) del_node->data;
+        if (domain->parent) {
+            domain->parent->subdomain_count -= 1;
+            if (domain->domain_status == DOMAIN_STATUS_AUTH ||
+                domain->domain_status == DOMAIN_STATUS_DS) {
+                domain->parent->subdomain_auth -= 1;
+            }
+        }
         domain_cleanup(del_domain);
         se_free((void*)del_node);
         return NULL;
@@ -441,6 +454,7 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
     se_log_assert(zd);
     se_log_assert(zd->domains);
     se_log_assert(domain);
+    se_log_assert(domain->name);
     str = ldns_rdf2str(domain->name);
     se_log_debug("-DD %s", str?str:"(null)");
     if (domain->nsec3) {
@@ -508,6 +522,10 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
             parent_domain->domain_status =
                 (ent2unsigned_deleg?DOMAIN_STATUS_ENT_NS:
                                     DOMAIN_STATUS_ENT_AUTH);
+            parent_domain->subdomain_count = 1;
+            if (!ent2unsigned_deleg) {
+                parent_domain->subdomain_auth = 1;
+            }
             parent_domain->internal_serial = domain->internal_serial;
             domain->parent = parent_domain;
             /* continue with the parent domain */
@@ -515,8 +533,13 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
         } else {
             ldns_rdf_deep_free(parent_rdf);
             parent_domain->internal_serial = domain->internal_serial;
+            parent_domain->subdomain_count += 1;
+            if (!ent2unsigned_deleg) {
+                parent_domain->subdomain_auth += 1;
+            }
             domain->parent = parent_domain;
-            if (domain_count_rrset(parent_domain) <= 0) {
+            if (domain_count_rrset(parent_domain) <= 0 &&
+                parent_domain->domain_status != DOMAIN_STATUS_ENT_AUTH) {
                 parent_domain->domain_status =
                     (ent2unsigned_deleg?DOMAIN_STATUS_ENT_NS:
                                         DOMAIN_STATUS_ENT_AUTH);
@@ -692,15 +715,13 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         if (nsec3params->flags) {
             /* If Opt-Out is being used, owner names of unsigned delegations
                MAY be excluded. */
-            if (domain_optout(domain)) {
+            if (domain->domain_status == DOMAIN_STATUS_ENT_NS ||
+                domain->domain_status == DOMAIN_STATUS_NS) {
                 str = ldns_rdf2str(domain->name);
-                if (domain->domain_status == DOMAIN_STATUS_ENT_NS) {
-                    se_log_debug("opt-out %s: empty non-terminal (to unsigned "
-                        "delegation)", str?str:"(null)");
-                } else {
-                    se_log_debug("opt-out %s: unsigned delegation",
-                        str?str:"(null)");
-                }
+                se_log_debug("opt-out %s: %s", str?str:"(null)",
+                    domain->domain_status == DOMAIN_STATUS_NS ?
+                    "unsigned delegation" : "empty non-terminal (to unsigned "
+                    "delegation)");
                 se_free((void*) str);
                 node = ldns_rbtree_next(node);
                 continue;
@@ -972,9 +993,11 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
             while (parent && domain_count_rrset(parent) <= 0) {
                 domain = parent;
                 parent = domain->parent;
-                domain = zonedata_del_domain(zd, domain);
-                if (domain) {
-                    se_log_error("failed to delete obsoleted domain");
+                if (domain->subdomain_count <= 0) {
+                    domain = zonedata_del_domain(zd, domain);
+                    if (domain) {
+                        se_log_error("failed to delete obsoleted domain");
+                    }
                 }
             }
         }
