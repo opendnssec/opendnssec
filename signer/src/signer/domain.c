@@ -446,7 +446,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                     return 1;
                 }
                 domain->nsec_nxt_changed = 0;
-		domain->nsec_rrset->drop_signatures = 1;
+                domain->nsec_rrset->drop_signatures = 1;
             }
             if (domain->nsec_bitmap_changed) {
                 se_log_debug("nsec bitmap changed");
@@ -459,7 +459,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                     return 1;
                 }
                 domain->nsec_bitmap_changed = 0;
-		domain->nsec_rrset->drop_signatures = 1;
+                domain->nsec_rrset->drop_signatures = 1;
             }
         }
         domain->outbound_serial = domain->internal_serial;
@@ -603,7 +603,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
                     return 1;
                 }
                 domain->nsec_nxt_changed = 0;
-		domain->nsec_rrset->drop_signatures = 1;
+                domain->nsec_rrset->drop_signatures = 1;
             }
             if (orig_domain->nsec_bitmap_changed) {
                 se_log_deeebug("update NSEC3 (bm) RRset for %s", str);
@@ -618,7 +618,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
                     return 1;
                 }
                 orig_domain->nsec_bitmap_changed = 0;
-		domain->nsec_rrset->drop_signatures = 1;
+                domain->nsec_rrset->drop_signatures = 1;
             }
             orig_domain->nsec_nxt_changed = 0;
         }
