@@ -141,6 +141,15 @@ int backup_read_rr_type(FILE* in, ldns_rr_type* v);
 int backup_read_int(FILE* in, int* v);
 
 /**
+ * Read size type from backup file.
+ * \param[in] in input file descriptor
+ * \param[out] v integer storage
+ * \return 1 on success, 0 otherwise
+ *
+ */
+int backup_read_size_t(FILE* in, size_t* v);
+
+/**
  * Read 8bit unsigned integer from backup file.
  * \param[in] in input file descriptor
  * \param[out] v uint8_t storage

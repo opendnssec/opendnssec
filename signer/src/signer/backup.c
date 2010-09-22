@@ -168,6 +168,23 @@ backup_read_int(FILE* in, int* v)
 
 
 /**
+ * Read size type from backup file.
+ *
+ */
+size_t
+backup_read_size_t(FILE* in, int* v)
+{
+    char* p = backup_read_token(in);
+    if (!p) {
+        se_log_debug("backup: cannot read size_t\n");
+       return 0;
+    }
+    *v=(size_t)atoi(p);
+    return 1;
+}
+
+
+/**
  * Read 8bit unsigned integer from backup file.
  *
  */
