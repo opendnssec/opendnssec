@@ -57,8 +57,8 @@
 #define SE_NSEC_RDATA_NXT          0
 #define SE_NSEC_RDATA_BITMAP       1
 #define SE_NSEC3_RDATA_NSEC3PARAMS 4
-#define SE_NSEC3_RDATA_NXT         5
-#define SE_NSEC3_RDATA_BITMAP      6
+#define SE_NSEC3_RDATA_NXT         4
+#define SE_NSEC3_RDATA_BITMAP      5
 
 /**
  * Domain.
