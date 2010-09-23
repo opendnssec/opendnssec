@@ -215,10 +215,9 @@ void zonedata_cleanup(zonedata_type* zonedata);
  * Print zone data.
  * \param[in] out file descriptor
  * \param[in] zd zone data to print
- * \param[in] internal if true, print in internal format
  *
  */
-void zonedata_print(FILE* fd, zonedata_type* zd, int skip_soa);
+void zonedata_print(FILE* fd, zonedata_type* zd);
 
 /**
  * Print NSEC(3)s in zone data.

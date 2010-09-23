@@ -93,7 +93,6 @@ tools_read_input(zone_type* zone)
     if (!error) {
         zone_backup_state(zone);
     }
-
     return error;
 }
 

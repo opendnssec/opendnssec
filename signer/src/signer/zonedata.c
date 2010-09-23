@@ -1199,7 +1199,7 @@ zonedata_cleanup(zonedata_type* zonedata)
  *
  */
 void
-zonedata_print(FILE* fd, zonedata_type* zd, int internal)
+zonedata_print(FILE* fd, zonedata_type* zd)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -1217,17 +1217,16 @@ zonedata_print(FILE* fd, zonedata_type* zd, int internal)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         if (domain->domain_status != DOMAIN_STATUS_STRAY) {
-            domain_print(fd, domain, internal);
+            domain_print(fd, domain);
         }
         node = ldns_rbtree_next(node);
     }
 
-    fprintf(fd, "\n; out bailiwick\n\n");
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         if (domain->domain_status == DOMAIN_STATUS_STRAY) {
-            domain_print(fd, domain, internal);
+            domain_print(fd, domain);
         }
         node = ldns_rbtree_next(node);
     }

@@ -189,9 +189,8 @@ void zone_cleanup(zone_type* zone);
  * Print a zone.
  * \param[in] out file descriptor
  * \param[in] zone zone to print
- * \param[in] internal if true, print in internal format
  *
  */
-void zone_print(FILE* fd, zone_type* zone, int skip_soa);
+void zone_print(FILE* fd, zone_type* zone);
 
 #endif /* SIGNER_ZONE_H */

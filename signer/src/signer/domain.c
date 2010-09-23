@@ -917,45 +917,67 @@ domain_cleanup(domain_type* domain)
  *
  */
 void
-domain_print(FILE* fd, domain_type* domain, int internal)
+domain_print(FILE* fd, domain_type* domain)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* parent = NULL;
+    int print_glue = 0;
     rrset_type* rrset = NULL;
     rrset_type* soa_rrset = NULL;
-    char* str = NULL;
-
-    if (internal) {
-        se_log_assert(domain->name);
-        str = ldns_rdf2str(domain->name);
-        fprintf(fd, "; DNAME: %s\n", str?str:"(null)");
-        se_free((void*)str);
-    }
+    rrset_type* cname_rrset = NULL;
 
     if (domain->rrsets && domain->rrsets->root != LDNS_RBTREE_NULL) {
         node = ldns_rbtree_first(domain->rrsets);
     }
 
-    /* print soa */
-    soa_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
-    if (soa_rrset && !internal) {
-        rrset_print(fd, soa_rrset, 0);
-    }
-
-    while (node && node != LDNS_RBTREE_NULL) {
-        rrset = (rrset_type*) node->data;
-        if (rrset->rr_type != LDNS_RR_TYPE_SOA || internal) {
-            rrset_print(fd, rrset, 0);
+    /* no other data may accompany a CNAME */
+    cname_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
+    if (cname_rrset) {
+        rrset_print(fd, cname_rrset, 0);
+    } else {
+        /* if SOA, print soa first */
+        soa_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
+        if (soa_rrset) {
+            rrset_print(fd, soa_rrset, 0);
         }
-        node = ldns_rbtree_next(node);
+
+        /* print other RRsets */
+        while (node && node != LDNS_RBTREE_NULL) {
+            rrset = (rrset_type*) node->data;
+            if (rrset->rr_type != LDNS_RR_TYPE_SOA) {
+                if (domain->domain_status == DOMAIN_STATUS_NONE ||
+                    domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
+                    domain->domain_status == DOMAIN_STATUS_STRAY) {
+
+                    parent = domain->parent;
+                    print_glue = 0;
+                    while (parent && parent->domain_status != DOMAIN_STATUS_APEX) {
+                        if (domain_lookup_rrset(parent, LDNS_RR_TYPE_NS)) {
+                            print_glue = 1;
+                            break;
+                        }
+                        parent = parent->parent;
+                    }
+
+                    /* only output glue */
+                    if (print_glue && (rrset->rr_type == LDNS_RR_TYPE_A ||
+                        rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
+                        rrset_print(fd, rrset, 0);
+                    }
+                } else {
+                    rrset_print(fd, rrset, 0);
+                }
+            }
+
+            node = ldns_rbtree_next(node);
+        }
     }
 
-    /* print nsec */
+    /* print NSEC(3) */
     if (domain->nsec_rrset) {
         rrset_print(fd, domain->nsec_rrset, 0);
     } else if (domain->nsec3 && domain->nsec3->nsec_rrset) {
         rrset_print(fd, domain->nsec3->nsec_rrset, 0);
-    } else if (internal) {
-        fprintf(fd, "; NO NSEC(3)\n");
     }
     return;
 }

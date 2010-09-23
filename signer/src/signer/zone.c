@@ -1028,12 +1028,12 @@ zone_cleanup(zone_type* zone)
  *
  */
 void
-zone_print(FILE* out, zone_type* zone, int internal)
+zone_print(FILE* out, zone_type* zone)
 {
     se_log_assert(out);
     se_log_assert(zone);
     se_log_assert(zone->zonedata);
 
-    zonedata_print(out, zone->zonedata, internal);
+    zonedata_print(out, zone->zonedata);
     return;
 }

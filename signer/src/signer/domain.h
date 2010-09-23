@@ -247,10 +247,9 @@ void domain_cleanup(domain_type* domain);
  * Print domain.
  * \param[in] out file descriptor
  * \param[in] domain domain to print
- * \param[in] internal if true, print in internal format
  *
  */
-void domain_print(FILE* fd, domain_type* domain, int internal);
+void domain_print(FILE* fd, domain_type* domain);
 
 /**
  * Print NSEC(3)s at domain.

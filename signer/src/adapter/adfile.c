@@ -557,7 +557,7 @@ adfile_write(struct zone_struct* zone, const char* filename)
         fd = se_fopen(zone_out->outbound_adapter->filename, NULL, "w");
     }
     if (fd) {
-        zone_print(fd, zone_out, 0);
+        zone_print(fd, zone_out);
         se_fclose(fd);
     }
     return 0;
