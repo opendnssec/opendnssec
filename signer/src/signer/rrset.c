@@ -543,11 +543,17 @@ rrset2rrlist(rrset_type* rrset)
     rr_list = ldns_rr_list_new();
     rrs = rrset->rrs;
     while (rrs) {
-        error  = (int) ldns_rr_list_push_rr(rr_list, rrs->rr);
+        error = (int) ldns_rr_list_push_rr(rr_list, rrs->rr);
         if (!error) {
             ldns_rr_list_free(rr_list);
             return NULL;
         }
+        if (rrset->rr_type == LDNS_RR_TYPE_CNAME ||
+            rrset->rr_type == LDNS_RR_TYPE_DNAME) {
+            /* singleton types */
+            return rr_list;
+        }
+
         rrs = rrs->next;
     }
     return rr_list;
@@ -720,7 +726,15 @@ void
 rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
 {
     if (rrset->rrs) {
-        ldns_dnssec_rrs_print(fd, rrset->rrs);
+        if (rrset->rr_type == LDNS_RR_TYPE_CNAME ||
+            rrset->rr_type == LDNS_RR_TYPE_DNAME) {
+            /* singleton types */
+            if (rrset->rrs->rr) {
+                ldns_rr_print(fd, rrset->rrs->rr);
+            }
+        } else {
+            ldns_dnssec_rrs_print(fd, rrset->rrs);
+        }
     }
     if (rrset->rrsigs && !skip_rrsigs) {
         ldns_dnssec_rrs_print(fd, rrset->rrsigs);
