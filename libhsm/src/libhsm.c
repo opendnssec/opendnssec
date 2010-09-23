@@ -798,12 +798,14 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
     CK_RV rv;
     CK_ULONG modulus_bits;
 
-    /* Template for both public & private keys */
+    /* Template for public keys */
     CK_ATTRIBUTE template[] = {
         {CKA_MODULUS_BITS, &modulus_bits, sizeof(CK_KEY_TYPE)}
     };
 
-    /* Template for both private keys only */
+    /* Template for private keys */
+    CK_BYTE_PTR modulus = NULL;
+    int mask;
     CK_ATTRIBUTE template2[] = {
         {CKA_MODULUS, NULL, 0}
     };
@@ -823,16 +825,47 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
             return 0;
         }
     } else {
+        // Get buffer size
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                          session->session,
+                                          key->private_key,
+                                          template2,
+                                          1);
+        if (hsm_pkcs11_check_error(ctx, rv, "Could not get the size of the modulus of the private key")) {
+            return 0;
+        }
+
+        // Allocate memory
+        modulus = (CK_BYTE_PTR)malloc(template2[0].ulValueLen);
+        template2[0].pValue = modulus;
+        if (modulus == NULL) {
+            hsm_ctx_set_error(ctx, -1, "hsm_get_key_size_rsa()",
+                "Error allocating memory for modulus");
+            return 0;
+        }
+
+        // Get attribute
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                           session->session,
                                           key->private_key,
                                           template2,
                                           1);
         if (hsm_pkcs11_check_error(ctx, rv, "Could not get the modulus of the private key")) {
+            free(modulus);
             return 0;
         }
 
+	// Calculate size
         modulus_bits = template2[0].ulValueLen * 8;
+        mask = 0x80;
+        for (int i = 0; modulus_bits && (modulus[i] & mask) == 0; modulus_bits--) {
+            mask >>= 1;
+            if (mask == 0) {
+                i++;
+                mask = 0x80;
+            }
+        }
+        free(modulus);
     }
 
     return modulus_bits;
