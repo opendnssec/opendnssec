@@ -324,7 +324,7 @@ domain_update_status(domain_type* domain)
     }
 
     if (domain_lookup_rrset(domain, LDNS_RR_TYPE_NS)) {
-        if (domain_lookup_rrset(domain, LDNS_RR_TYPE_DS) == 0) {
+        if (domain_lookup_rrset(domain, LDNS_RR_TYPE_DS)) {
             domain->domain_status = DOMAIN_STATUS_DS;
         } else {
             domain->domain_status = DOMAIN_STATUS_NS;
@@ -674,10 +674,11 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
 
-        /* skip unsigned delegations */
-        if (domain->domain_status == DOMAIN_STATUS_NS) {
-           node = ldns_rbtree_next(node);
-           continue;
+        /* skip delegation RRsets */
+        if (domain->domain_status != DOMAIN_STATUS_APEX &&
+            rrset->rr_type == LDNS_RR_TYPE_NS) {
+            node = ldns_rbtree_next(node);
+            continue;
         }
 
         if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
