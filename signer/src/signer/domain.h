@@ -53,7 +53,8 @@
 #define DOMAIN_STATUS_ENT_NS    6 /* empty non-terminal to unsigned delegation */
 #define DOMAIN_STATUS_ENT_GLUE  7 /* empty non-terminal to occluded data */
 #define DOMAIN_STATUS_OCCLUDED  8 /* occluded data (glue) */
-#define DOMAIN_STATUS_HASH      9 /* hashed domain */
+#define DOMAIN_STATUS_STRAY     9 /* stray data (outside scope of zone) */
+#define DOMAIN_STATUS_HASH     10 /* hashed domain */
 
 #define SE_NSEC_RDATA_NXT          0
 #define SE_NSEC_RDATA_BITMAP       1

@@ -486,6 +486,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
     ldns_rr_type type = 0;
     int error = 0;
     int at_apex = 0;
+    int stray = 0;
     uint32_t tmp = 0;
     ldns_rdf* soa_min = NULL;
 
@@ -497,12 +498,10 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
     /* in-zone? */
     if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) != 0 &&
         !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->dname)) {
-        se_log_warning("zone %s contains out of zone data, skipping",
+        se_log_warning("zone %s contains out of zone data",
             zone->name?zone->name:"(null)");
-        ldns_rr_free(rr);
-        return 0; /* consider success */
-    }
-    if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) == 0) {
+        stray = 1;
+    } else if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) == 0) {
         at_apex = 1;
     }
 
@@ -539,7 +538,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
     if (recover) {
        error = zonedata_recover_rr_from_backup(zone->zonedata, rr);
     } else {
-       error = zonedata_add_rr(zone->zonedata, rr, at_apex);
+       error = zonedata_add_rr(zone->zonedata, rr, at_apex, stray);
     }
     return error;
 }

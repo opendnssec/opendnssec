@@ -334,7 +334,7 @@ zonedata_add_domain_nsec3(zonedata_type* zd, domain_type* domain,
  *
  */
 domain_type*
-zonedata_add_domain(zonedata_type* zd, domain_type* domain, int at_apex)
+zonedata_add_domain(zonedata_type* zd, domain_type* domain)
 {
     ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
     ldns_rbnode_t* prev_node = LDNS_RBTREE_NULL;
@@ -361,9 +361,6 @@ zonedata_add_domain(zonedata_type* zd, domain_type* domain, int at_apex)
     domain->domain_status = DOMAIN_STATUS_NONE;
     domain->nsec_bitmap_changed = 1;
     domain->nsec_nxt_changed = 1;
-    if (at_apex) {
-        domain->domain_status = DOMAIN_STATUS_APEX;
-    }
     /* mark previous domain for NSEC */
     domain->nsec_nxt_changed = 1;
     prev_node = ldns_rbtree_previous(new_node);
@@ -497,7 +494,8 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
         ent2unsigned_deleg = 1;
     }
 
-    while (domain && ldns_dname_compare(domain->name, apex) != 0) {
+    while (domain && ldns_dname_is_subdomain(domain->name, apex) &&
+           ldns_dname_compare(domain->name, apex) != 0) {
         /**
          * RFC5155:
          * 4. If the difference in number of labels between the apex and
@@ -514,7 +512,7 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
         parent_domain = zonedata_lookup_domain(zd, parent_rdf);
         if (!parent_domain) {
             parent_domain = domain_create(parent_rdf);
-            parent_domain = zonedata_add_domain(zd, parent_domain, 0);
+            parent_domain = zonedata_add_domain(zd, parent_domain);
             if (!parent_domain) {
                 se_log_error("unable to add parent domain");
                 return 1;
@@ -620,7 +618,9 @@ int
 zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL, *to = NULL, *apex = NULL;
+    domain_type* domain = NULL;
+    domain_type* to = NULL;
+    domain_type* apex = NULL;
     int have_next = 0;
 
     se_log_assert(zd);
@@ -635,6 +635,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
         /* don't do glue-only or empty domains */
         if (domain->domain_status == DOMAIN_STATUS_NONE ||
             domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
+            domain->domain_status == DOMAIN_STATUS_STRAY ||
             domain_count_rrset(domain) <= 0) {
             node = ldns_rbtree_next(node);
             continue;
@@ -653,6 +654,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
             /* don't do glue-only or empty domains */
             if (to->domain_status == DOMAIN_STATUS_NONE ||
                 to->domain_status == DOMAIN_STATUS_OCCLUDED ||
+                to->domain_status == DOMAIN_STATUS_STRAY ||
                 domain_count_rrset(to) <= 0) {
                 node = ldns_rbtree_next(node);
             } else {
@@ -703,6 +705,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         /* don't do glue-only domains */
         if (domain->domain_status == DOMAIN_STATUS_NONE ||
             domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
+            domain->domain_status == DOMAIN_STATUS_STRAY ||
             domain->domain_status == DOMAIN_STATUS_ENT_GLUE) {
             str = ldns_rdf2str(domain->name);
             se_log_debug("nsecify3: skip glue domain %s", str?str:"(null)");
@@ -1011,7 +1014,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
  *
  */
 int
-zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex)
+zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex, int stray)
 {
     domain_type* domain = NULL;
 
@@ -1025,10 +1028,15 @@ zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex)
     }
     /* no domain with this name yet */
     domain = domain_create(ldns_rr_owner(rr));
-    domain = zonedata_add_domain(zd, domain, at_apex);
+    domain = zonedata_add_domain(zd, domain);
     if (!domain) {
         se_log_error("unable to add RR to zonedata: failed to add domain");
         return 1;
+    }
+    if (at_apex) {
+        domain->domain_status = DOMAIN_STATUS_APEX;
+    } else if (stray) {
+        domain->domain_status = DOMAIN_STATUS_STRAY;
     }
     return domain_add_rr(domain, rr);
 }
@@ -1208,7 +1216,19 @@ zonedata_print(FILE* fd, zonedata_type* zd, int internal)
 
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        domain_print(fd, domain, internal);
+        if (domain->domain_status != DOMAIN_STATUS_STRAY) {
+            domain_print(fd, domain, internal);
+        }
+        node = ldns_rbtree_next(node);
+    }
+
+    fprintf(fd, "\n; out bailiwick\n\n");
+    node = ldns_rbtree_first(zd->domains);
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        if (domain->domain_status == DOMAIN_STATUS_STRAY) {
+            domain_print(fd, domain, internal);
+        }
         node = ldns_rbtree_next(node);
     }
     return;

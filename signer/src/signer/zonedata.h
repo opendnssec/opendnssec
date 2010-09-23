@@ -85,12 +85,10 @@ domain_type* zonedata_lookup_domain(zonedata_type* zd, ldns_rdf* name);
  * Add domain to zone data.
  * \param[in] zd zone data
  * \param[in] domain domain to add
- * \param[in] at_apex if is at apex of the zone
  * \return domain_type* added domain
  *
  */
-domain_type* zonedata_add_domain(zonedata_type* zd, domain_type* domain,
-    int at_apex);
+domain_type* zonedata_add_domain(zonedata_type* zd, domain_type* domain);
 
 /**
  * Delete domain from zone data.
@@ -158,10 +156,11 @@ int zonedata_update(zonedata_type* zd, signconf_type* sc);
  * \param[in] zd zone data
  * \param[in] rr RR to add
  * \param[in] at_apex if is at apex of the zone
+ * \param[in] stray if the rr owner is out of zone
  * \return int 0 on success, 1 on false
  *
  */
-int zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex);
+int zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex, int stray);
 
 /**
  * Recover RR from backup.

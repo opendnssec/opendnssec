@@ -313,8 +313,8 @@ domain_update_status(domain_type* domain)
     domain_type* parent = NULL;
 
     se_log_assert(domain);
-    if (domain->domain_status == DOMAIN_STATUS_APEX) {
-        /* apex stays apex */
+    if (domain->domain_status == DOMAIN_STATUS_APEX ||
+        domain->domain_status == DOMAIN_STATUS_STRAY) {
         return;
     }
 
@@ -502,7 +502,9 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         if (!domain->nsec_rrset || orig_domain->nsec_bitmap_changed) {
             domain_nsecify_create_bitmap(orig_domain, types, &types_count);
             /* only add RRSIG type if we have authoritative data to sign */
-            if (orig_domain->domain_status != DOMAIN_STATUS_OCCLUDED &&
+            if (orig_domain->domain_status != DOMAIN_STATUS_NONE &&
+                orig_domain->domain_status != DOMAIN_STATUS_OCCLUDED &&
+                orig_domain->domain_status != DOMAIN_STATUS_STRAY &&
                 domain_count_rrset(orig_domain) > 0) {
                 if (orig_domain->domain_status == DOMAIN_STATUS_APEX ||
                     orig_domain->domain_status == DOMAIN_STATUS_AUTH ||
@@ -642,8 +644,9 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     se_log_assert(signtime);
     se_log_assert(stats);
 
-    if (domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
-        domain->domain_status == DOMAIN_STATUS_NONE) {
+    if (domain->domain_status == DOMAIN_STATUS_NONE ||
+        domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
+        domain->domain_status == DOMAIN_STATUS_STRAY) {
         return 0;
     }
 
