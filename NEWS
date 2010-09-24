@@ -2,10 +2,8 @@ $Id$
 
 OpenDNSSEC 1.2 trunk
 
-* Fix semantics of refresh value in Signer Engine.
 * Remove separate autoconf for libhsm/conf/enforcer
 * Add option to disable building the signer
-* Auditor handles chains of empty nonterminals correctly
 * Signer logs statistics just after outputting a new signed zone
 * libhsm will skip processing (and not create) any public keys if the
   per repository option <SkipPublicKey/> is set.
@@ -13,9 +11,15 @@ OpenDNSSEC 1.2 trunk
   that the key is in use for.
 * Backup prepare/commit/rollback added for 2-step backups without taking the
   enforcer offline.
-* Recalculate salt immediately if the saltlength is changed.
 * Standby keys are now optional (default to 0) and should be considered
   experimental.
+
+Bugfixes:
+* Fix semantics of refresh value in Signer Engine.
+* Auditor handles chains of empty nonterminals correctly
+* Recalculate salt immediately if the saltlength is changed.
+* libhsm connected to slot 0 if the token label was not found. 
+  An error is now returned instead of connecting to the slot.
 
 
 OpenDNSSEC 1.1.2 - 2010-08-24
