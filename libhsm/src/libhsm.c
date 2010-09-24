@@ -2349,7 +2349,7 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
     memcpy(hashed_owner_str + ldns_rdf_size(name), salt, salt_length);
 
     for (cur_it = iterations + 1; cur_it > 0; cur_it--) {
-        free(hash);
+        if (hash != NULL) free(hash);
         hash = (char *) hsm_digest(ctx,
                                    session,
                                    mechanism,
@@ -2363,7 +2363,7 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
         if (!hashed_owner_str) {
             hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
                 "Memory error");
-            abort();
+            return NULL;
         }
         memcpy(hashed_owner_str, hash, hash_length);
         memcpy(hashed_owner_str + hash_length, salt, salt_length);
