@@ -2620,6 +2620,7 @@ hsm_get_error(hsm_ctx_t *gctx)
     }
 
     if (ctx->error) {
+        ctx->error = 0;
         message = malloc(HSM_ERROR_MSGSIZE);
 
         if (message == NULL) {
