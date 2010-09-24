@@ -2416,6 +2416,7 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
     /* CK_RV rv; */
     ldns_rr *dnskey;
     hsm_session_t *session;
+    ldns_rdf *rdata;
 
     if (!ctx) ctx = _hsm_ctx;
     if (!key) {
@@ -2444,7 +2445,11 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
                      ldns_native2rdf_int8(LDNS_RDF_TYPE_ALG,
                                           sign_params->algorithm));
 
-    ldns_rr_push_rdf(dnskey, hsm_get_key_rdata(ctx, session, key));
+    rdata = hsm_get_key_rdata(ctx, session, key);
+    if (rdata == NULL) {
+        return NULL;
+    }
+    ldns_rr_push_rdf(dnskey, rdata);
 
     return dnskey;
 }
