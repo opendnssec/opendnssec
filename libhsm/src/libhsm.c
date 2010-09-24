@@ -352,33 +352,34 @@ hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
 }
 
 
-static CK_SLOT_ID
+int
 hsm_get_slot_id(hsm_ctx_t *ctx,
                 CK_FUNCTION_LIST_PTR pkcs11_functions,
-                const char *token_name)
+                const char *token_name, CK_SLOT_ID *slotId)
 {
     CK_RV rv;
-    CK_SLOT_ID slotId = 0;
     CK_ULONG slotCount;
     CK_SLOT_ID cur_slot;
     CK_SLOT_ID *slotIds;
     int found = 0;
 
+    if (token_name == NULL || slotId == NULL) return HSM_ERROR;
+
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, NULL_PTR, &slotCount);
     if (hsm_pkcs11_check_error(ctx, rv, "get slot list")) {
-        return 0;
+        return HSM_ERROR;
     }
 
     if (slotCount < 1) {
         hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
                           "No slots found in HSM");
-        return 0;
+        return HSM_ERROR;
     }
 
     slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
     if (hsm_pkcs11_check_error(ctx, rv, "get slot list")) {
-        return 0;
+        return HSM_ERROR;
     }
 
     for (cur_slot = 0; cur_slot < slotCount; cur_slot++) {
@@ -386,7 +387,7 @@ hsm_get_slot_id(hsm_ctx_t *ctx,
                                         pkcs11_functions,
                                         slotIds[cur_slot],
                                         token_name)) {
-            slotId = slotIds[cur_slot];
+            *slotId = slotIds[cur_slot];
             found = 1;
             break;
         }
@@ -395,10 +396,10 @@ hsm_get_slot_id(hsm_ctx_t *ctx,
     if (!found) {
         hsm_ctx_set_error(ctx, -1, "hsm_get_slot_id()",
             "could not find token with the name %s", token_name);
-        return 0;
+        return HSM_ERROR;
     }
 
-    return slotId;
+    return HSM_OK;
 }
 
 /* internal functions */
@@ -488,7 +489,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
     hsm_module_t *module;
     CK_SLOT_ID slot_id;
     CK_SESSION_HANDLE session_handle;
-    int first = 1;
+    int first = 1, result;
 
     CK_C_INITIALIZE_ARGS InitArgs = {NULL, NULL, NULL, NULL,
                                      CKF_OS_LOCKING_OK, NULL };
@@ -514,7 +515,11 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
     } else {
         first = 0;
     }
-    slot_id = hsm_get_slot_id(ctx, module->sym, token_label);
+    result = hsm_get_slot_id(ctx, module->sym, token_label, &slot_id);
+    if (result != HSM_OK) {
+        hsm_module_free(module);
+        return HSM_ERROR;
+    }
     rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_OpenSession(slot_id,
                                CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                NULL,
@@ -574,10 +579,13 @@ hsm_session_clone(hsm_ctx_t *ctx, hsm_session_t *session)
     CK_SLOT_ID slot_id;
     CK_SESSION_HANDLE session_handle;
     hsm_session_t *new_session;
+    int result;
 
-    slot_id = hsm_get_slot_id(ctx,
+    result = hsm_get_slot_id(ctx,
                               session->module->sym,
-                              session->module->token_label);
+                              session->module->token_label,
+                              &slot_id);
+    if (result != HSM_OK) return NULL;
     rv = ((CK_FUNCTION_LIST_PTR) session->module->sym)->C_OpenSession(slot_id,
                                     CKF_SERIAL_SESSION | CKF_RW_SESSION,
                                     NULL,
@@ -2706,6 +2714,7 @@ hsm_print_tokeninfo(hsm_ctx_t *gctx)
     hsm_ctx_t *ctx;
     unsigned int i;
     hsm_session_t *session;
+    int result;
 
     if (!gctx) {
         ctx = _hsm_ctx;
@@ -2716,9 +2725,11 @@ hsm_print_tokeninfo(hsm_ctx_t *gctx)
     for (i = 0; i < ctx->session_count; i++) {
         session = ctx->session[i];
 
-        slot_id = hsm_get_slot_id(ctx,
+        result = hsm_get_slot_id(ctx,
                                   session->module->sym,
-                                  session->module->token_label);
+                                  session->module->token_label,
+                                  &slot_id);
+        if (result != HSM_OK) return;
 
         rv = ((CK_FUNCTION_LIST_PTR) session->module->sym)->C_GetTokenInfo(slot_id, &token_info);
         if (hsm_pkcs11_check_error(ctx, rv, "C_GetTokenInfo")) {
