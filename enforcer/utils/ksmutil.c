@@ -208,6 +208,13 @@ usage_policylist ()
 }
 
     void
+usage_policypurge ()
+{
+    fprintf(stderr,
+            "  policy purge\n");
+}
+
+    void
 usage_policy ()
 {
     fprintf(stderr,
@@ -216,6 +223,7 @@ usage_policy ()
     usage_policyexport ();
     usage_policyimport ();
     usage_policylist ();
+    usage_policypurge ();
 }
 
     void
@@ -382,6 +390,7 @@ usage ()
     usage_repo ();
     usage_policyexport ();
     usage_policylist ();
+    usage_policypurge ();
     usage_keylist ();
     usage_keyexport ();
     usage_keyimport ();
@@ -2923,6 +2932,207 @@ cmd_dbbackup ()
     return status;
 }
 
+/*
+ * Delete any policies with no zones 
+ */
+    int 
+cmd_purgepolicy ()
+{
+    int status = 0;
+
+    char* kasp_filename = NULL;
+    char* zonelist_filename = NULL;
+    char* backup_filename = NULL;
+
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;
+    KSM_POLICY *policy;
+    DB_RESULT	result;     /* Result set from policy query */
+    DB_RESULT	result2;    /* Result set from zone count query */
+    char        sql[KSM_SQL_SIZE];
+    int         size = -1;
+    char* sql2;
+
+    FILE *test;
+    int zone_count = -1;
+
+    xmlDocPtr doc = NULL;
+    
+    int user_certain;
+    printf("*WARNING* This feature is experimental and has not been fully tested; are you sure? [y/N] ");
+
+    user_certain = getchar();
+    if (user_certain != 'y' && user_certain != 'Y') {
+        printf("Okay, quitting...\n");
+        exit(0);
+    }
+
+    /* Read the conf.xml file to learn the location of the kasp.xml file. */
+    status = read_filenames(&zonelist_filename, &kasp_filename);
+    if (status != 0) {
+        printf("Failed to read conf.xml\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
+
+    /* Backup the current kasp.xml */
+    StrAppend(&backup_filename, kasp_filename);
+    StrAppend(&backup_filename, ".backup");
+    status = backup_file(kasp_filename, backup_filename);
+    StrFree(backup_filename);
+    if (status != 0) {
+        StrFree(kasp_filename);
+        db_disconnect(lock_fd);
+        return(status);
+    }
+
+    /* Check that we will be able to make the changes to kasp.xml */
+    if ((test = fopen(kasp_filename, "ab"))==NULL) {
+        printf("Cannot open kasp.xml for writing: %s\n", strerror(errno));
+        fclose(test);
+        return(-1);
+    } else {
+        fclose(test);
+    }
+
+    /* try to connect to the database */
+    status = db_connect(&dbhandle, &lock_fd, 1);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
+
+    /* Start a transaction */
+    status = DbBeginTransaction();
+    if (status != 0) {
+        /* Something went wrong */
+
+        MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        return status;
+    }
+
+    /* Loop through each policy */
+    policy = KsmPolicyAlloc();
+    if (policy == NULL) {
+        printf("Malloc for policy struct failed\n");
+        exit(1);
+    }
+
+    /* Read all policies */
+    status = KsmPolicyInit(&result, NULL);
+    if (status == 0) {
+        /* get the first policy */
+        status = KsmPolicy(result, policy);
+        while (status == 0) {
+            /* Count zones on this policy */
+            status = KsmZoneCountInit(&result2, policy->id); 
+            if (status == 0) { 
+                status = KsmZoneCount(result2, &zone_count); 
+            } 
+            DbFreeResult(result2); 
+
+            if (status == 0) { 
+                /* Only carry on if we have no zones */
+                if (zone_count == 0) {
+                    printf("No zones on policy %s; purging...\n", policy->name);
+                    /* set keystate to 6 across the board */
+                    size = snprintf(sql, KSM_SQL_SIZE, "update dnsseckeys set state = %d where keypair_id in (select id from keypairs where policy_id = %d)", KSM_STATE_DEAD, policy->id);
+
+                    /* Quick check that we didn't run out of space */
+                    if (size < 0 || size >= KSM_SQL_SIZE) {
+                        printf("Couldn't construct SQL to kill orphaned keys\n");
+                        return -1;
+                    }
+
+                    status = DbExecuteSqlNoResult(DbHandle(), sql);
+
+                    /* Report any errors */
+                    if (status != 0) {
+                        printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                        return status;
+                    }
+
+                    /* call purge keys on that policy (all zones) */
+                    status = PurgeKeys(-1, policy->id);
+                    if (status != 0) {
+                        printf("Key purge failed for policy %s\n", policy->name);
+                        return status;
+                    }
+
+                    /* Delete the policy from DB */
+                    sql2 = DdsInit("parameters_policies");
+                    DdsConditionInt(&sql2, "policy_id", DQS_COMPARE_EQ,  policy->id, 0); 
+                    DdsEnd(&sql2); 
+                    status = DbExecuteSqlNoResult(DbHandle(), sql2); 
+                    DdsFree(sql2); 
+
+                    if (status != 0) 
+                    { 
+                        printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                        return status; 
+                    }
+
+                    sql2 = DdsInit("policies"); 
+                    DdsConditionInt(&sql2, "id", DQS_COMPARE_EQ,  policy->id, 0); 
+                    DdsEnd(&sql2); 
+                    status = DbExecuteSqlNoResult(DbHandle(), sql2); 
+                    DdsFree(sql2); 
+
+                    if (status != 0) 
+                    { 
+                        printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                        return status; 
+                    }
+
+                    /* Delete the policy from the XML */
+                    /* Read the file and delete our policy node(s) in memory */
+                    doc = del_policy_node(kasp_filename, policy->name);
+                    if (doc == NULL) {
+                        db_disconnect(lock_fd);
+                        StrFree(kasp_filename);
+                        return(1);
+                    }
+
+                    /* Save our new file over the old, TODO should we validate it first? */
+                    status = xmlSaveFormatFile(kasp_filename, doc, 1);
+                    xmlFreeDoc(doc);
+                    StrFree(kasp_filename);
+                    if (status == -1) {
+                        printf("Could not save %s\n", kasp_filename);
+                        db_disconnect(lock_fd);
+                        return(1);
+                    }
+
+                } 
+            } else { 
+                printf("Couldn't count zones on policy; quitting...\n");
+                db_disconnect(lock_fd);
+                exit(1); 
+            }
+
+            /* get next policy */
+            status = KsmPolicy(result, policy);
+        }
+        /* Reset EOF */
+        if (status == -1) {
+            status = 0;
+        }
+        DbFreeResult(result);
+    }
+
+    /* Commit or Rollback */
+    if (status == 0) {
+        /* Everything worked by the looks of it */
+        DbCommit();
+    } else {
+        /* Whatever happened, it was not good */
+        DbRollback();
+    }
+
+    return status;
+}
+
 /* 
  * Fairly basic main, just pass most things through to their handlers
  */
@@ -3110,13 +3320,15 @@ main (int argc, char *argv[])
     } else if (!strncmp(case_command, "POLICY", 6)) {
         argc --; argc --;
         argv ++; argv ++;
-        /* verb should be export, import or list */
+        /* verb should be export, import, list or purge */
         if (!strncmp(case_verb, "EXPORT", 6)) {
             result = cmd_exportpolicy();
         } else if (!strncmp(case_verb, "IMPORT", 6)) {
             result = cmd_update("KASP");
         } else if (!strncmp(case_verb, "LIST", 4)) {
             result = cmd_listpolicy();
+        } else if (!strncmp(case_verb, "PURGE", 5)) {
+            result = cmd_purgepolicy();
         } else {
             printf("Unknown command: policy %s\n", case_verb);
             usage_policy();
@@ -5324,6 +5536,50 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     }
 
     return(0);
+}
+
+/*
+ *  Delete a policy node from kasp.xml
+ */
+xmlDocPtr del_policy_node(const char *docname,
+                        const char *policy_name)
+{
+    xmlDocPtr doc;
+    xmlNodePtr root;
+    xmlNodePtr cur;
+
+    doc = xmlParseFile(docname);
+    if (doc == NULL ) {
+        fprintf(stderr,"Document not parsed successfully. \n");
+        return (NULL);
+    }
+    root = xmlDocGetRootElement(doc);
+    if (root == NULL) {
+        fprintf(stderr,"empty document\n");
+        xmlFreeDoc(doc);
+        return (NULL);
+    }
+    if (xmlStrcmp(root->name, (const xmlChar *) "KASP")) {
+        fprintf(stderr,"document of the wrong type, root node != %s", "KASP");
+        xmlFreeDoc(doc);
+        return (NULL);
+    }
+
+
+    /* Policy nodes are children of the root */
+    for(cur = root->children; cur != NULL; cur = cur->next)
+    {
+        /* is this the zone we are looking for? */
+        if (xmlStrcmp( xmlGetProp(cur, (xmlChar *) "name"), (const xmlChar *) policy_name) == 0)
+        {
+            xmlUnlinkNode(cur);
+
+            cur = root->children; /* May pass through multiple times, but will remove all instances of the zone */
+        }
+    }
+    xmlFreeNode(cur);
+
+    return(doc);
 }
 
 /*
