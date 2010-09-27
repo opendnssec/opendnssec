@@ -390,6 +390,7 @@ signconf_compare(signconf_type* a, signconf_type* b, int* update)
            (a->nsec3_algo != b->nsec3_algo) ||
            (a->nsec3_iterations != b->nsec3_iterations) ||
            (a->nsec3_optout != b->nsec3_optout)) {
+
            new_task = TASK_READ;
            *update = 1;
        }

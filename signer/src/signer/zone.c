@@ -251,6 +251,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         zone->task->what = signconf_compare(zone->signconf, signconf, &update);
         zone->task->when = time_now();
         if (update) {
+            se_log_debug("destroy old NSEC3 tree for zone %s", zone->name);
             if (zone->zonedata && zone->zonedata->nsec3_domains) {
                 zonedata_cleanup_domains(zone->zonedata->nsec3_domains);
                 zone->zonedata->nsec3_domains = NULL;
@@ -755,7 +756,16 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                     corrupted = zone_add_rr(zone, rr, 1);
                     if (corrupted) {
                        se_log_error("error recovering NSEC3PARAMS rr");
-                    }
+                    } else {
+                        zone->signconf->nsec3_optout =
+                            (int) zone->nsec3params->flags;
+                        zone->signconf->nsec3_algo =
+                            (uint32_t) zone->nsec3params->algorithm;
+                        zone->signconf->nsec3_iterations =
+                            (uint32_t) zone->nsec3params->iterations;
+                        zone->signconf->nsec3_salt =
+                            nsec3params_salt2str(zone->nsec3params);
+                   }
                 }
                 rr = NULL;
             } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
@@ -894,6 +904,13 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     error = adfile_read(zone, filename, 1);
     se_free((void*)filename);
     if (error) {
+        se_log_error("unable to recover unsorted zone from file "
+        "%s.unsorted: parse error", zone->name);
+        if (zone->zonedata) {
+            zonedata_cleanup(zone->zonedata);
+            zone->zonedata = NULL;
+        }
+        zone->zonedata = zonedata_create();
         goto abort_recover;
     }
 
