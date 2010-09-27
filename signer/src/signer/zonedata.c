@@ -99,9 +99,8 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
 {
     int corrupted = 0;
     const char* token = NULL;
-    domain_type* prev_domain = NULL;
     domain_type* current_domain = NULL;
-    domain_type* parent_domain = NULL;
+    ldns_rdf* parent_rdf = NULL;
     ldns_rr* rr = NULL;
     ldns_status status = LDNS_STATUS_OK;
     ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
@@ -116,29 +115,32 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
             if (se_strcmp(token, ";DNAME") == 0) {
-                prev_domain = current_domain;
                 current_domain = domain_recover_from_backup(fd);
                 if (!current_domain) {
                     se_log_error("error reading domain from backup file");
                     corrupted = 1;
                 } else {
-                    if (prev_domain &&
-                        ldns_dname_is_subdomain(current_domain->name,
-                            prev_domain->name)) {
-                        parent_domain = prev_domain;
-                    }
-                    current_domain->parent = parent_domain;
-
-                    new_node = domain2node(current_domain);
-                    if (!zd->domains) {
-                        zd->domains = ldns_rbtree_create(domain_compare);
-                    }
-                    if (ldns_rbtree_insert(zd->domains, new_node) == NULL) {
-                        se_log_error("error adding domain from backup file");
-                        se_free((void*)new_node);
+                    parent_rdf = ldns_dname_left_chop(current_domain->name);
+                    if (!parent_rdf) {
+                        se_log_error("unable to create parent domain name (rdf)");
                         corrupted = 1;
+                    } else {
+                        current_domain->parent =
+                            zonedata_lookup_domain(zd, parent_rdf);
+                        se_log_assert(current_domain->parent ||
+                            current_domain->domain_status == DOMAIN_STATUS_APEX);
+
+                        new_node = domain2node(current_domain);
+                        if (!zd->domains) {
+                            zd->domains = ldns_rbtree_create(domain_compare);
+                        }
+                        if (ldns_rbtree_insert(zd->domains, new_node) == NULL) {
+                            se_log_error("error adding domain from backup file");
+                            se_free((void*)new_node);
+                            corrupted = 1;
+                        }
+                        new_node = NULL;
                     }
-                    new_node = NULL;
                 }
             } else if (se_strcmp(token, ";DNAME3") == 0) {
                 se_log_assert(current_domain);
@@ -147,6 +149,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                     se_log_error("error reading nsec3 domain from backup file");
                     corrupted = 1;
                 } else {
+                    current_domain->nsec3->nsec3 = current_domain;
                     new_node = domain2node(current_domain->nsec3);
                     if (!zd->nsec3_domains) {
                         zd->nsec3_domains = ldns_rbtree_create(domain_compare);

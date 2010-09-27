@@ -187,7 +187,7 @@ domain_lookup_rrset(domain_type* domain, ldns_rr_type type)
  *
  */
 rrset_type*
-domain_add_rrset(domain_type* domain, rrset_type* rrset)
+domain_add_rrset(domain_type* domain, rrset_type* rrset, int recover)
 {
     ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
     char* str = NULL;
@@ -205,7 +205,9 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
         se_free((void*)new_node);
         return NULL;
     }
-    domain->nsec_bitmap_changed = 1;
+    if (!recover) {
+        domain->nsec_bitmap_changed = 1;
+    }
     return rrset;
 }
 
@@ -215,7 +217,7 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
  *
  */
 rrset_type*
-domain_del_rrset(domain_type* domain, rrset_type* rrset)
+domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover)
 {
     rrset_type* del_rrset = NULL;
     ldns_rbnode_t* del_node = NULL;
@@ -231,7 +233,9 @@ domain_del_rrset(domain_type* domain, rrset_type* rrset)
         del_rrset = (rrset_type*) del_node->data;
         rrset_cleanup(del_rrset);
         se_free((void*)del_node);
-        domain->nsec_bitmap_changed = 1;
+        if (!recover) {
+            domain->nsec_bitmap_changed = 1;
+        }
         return NULL;
     } else {
         str = ldns_rdf2str(domain->name);
@@ -291,7 +295,7 @@ domain_update(domain_type* domain, uint32_t serial)
             node = ldns_rbtree_next(node);
             /* delete memory of RRsets if no RRs exist */
             if (rrset_count_rr(rrset) <= 0) {
-                rrset = domain_del_rrset(domain, rrset);
+                rrset = domain_del_rrset(domain, rrset, 0);
                 if (rrset) {
                     se_log_error("failed to delete obsoleted RRset");
                 }
@@ -728,7 +732,7 @@ domain_add_rr(domain_type* domain, ldns_rr* rr)
     }
     /* no RRset with this RRtype yet */
     rrset = rrset_create(ldns_rr_get_type(rr));
-    rrset = domain_add_rrset(domain, rrset);
+    rrset = domain_add_rrset(domain, rrset, 0);
     if (!rrset) {
         se_log_error("unable to add RR to domain: failed to add RRset");
         return 1;
@@ -758,7 +762,7 @@ domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
     }
     /* no RRset with this RRtype yet */
     rrset = rrset_create(ldns_rr_get_type(rr));
-    rrset = domain_add_rrset(domain, rrset);
+    rrset = domain_add_rrset(domain, rrset, 1);
     if (!rrset) {
         se_log_error("unable to recover RR to domain: failed to add RRset");
         return 1;

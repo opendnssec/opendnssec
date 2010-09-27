@@ -111,19 +111,21 @@ rrset_type* domain_lookup_rrset(domain_type* domain, ldns_rr_type type);
  * Add a RRset to the domain.
  * \param[in] domain domain
  * \param[in] rrset RRset
+ * \param[in] recover if true, don't update domain status
  * \return rrset_type* added RRset
  *
  */
-rrset_type* domain_add_rrset(domain_type* domain, rrset_type* rrset);
+rrset_type* domain_add_rrset(domain_type* domain, rrset_type* rrset, int recover);
 
 /**
  * Delete a RRset from the domain.
  * \param[in] domain domain
  * \param[in] rrset RRset
+ * \param[in] recover if true, don't update domain status
  * \return rrset_type* RRset if failed
  *
  */
-rrset_type* domain_del_rrset(domain_type* domain, rrset_type* rrset);
+rrset_type* domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover);
 
 /**
  * Return the number of RRsets at this domain.
