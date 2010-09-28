@@ -407,19 +407,14 @@ static task_type*
 tasklist_lookup(tasklist_type* list, task_type* task)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* walk = NULL;
 
     se_log_assert(task);
     se_log_assert(list);
     se_log_assert(list->tasks);
 
-    node = ldns_rbtree_first(list->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        walk = (task_type*) node->key;
-        if (ldns_dname_compare(walk->dname, task->dname) == 0) {
-            return walk;
-        }
-        node = ldns_rbtree_next(node);
+    node = ldns_rbtree_search(list->tasks, task);
+    if (node && node != LDNS_RBTREE_NULL) {
+        return (task_type*) node->data;
     }
     return NULL;
 }
