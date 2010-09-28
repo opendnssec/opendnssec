@@ -524,7 +524,7 @@ rrset_sign_set_timers(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
     }
 
     *inception = signtime - offset;
-    *expiration = signtime + validity - jitter + random_jitter;
+    *expiration = (signtime + validity + random_jitter) - jitter;
     return;
 }
 
