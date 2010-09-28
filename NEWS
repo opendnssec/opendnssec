@@ -2,6 +2,9 @@ $Id$
 
 OpenDNSSEC 1.2 trunk
 
+* A new signer engine, written in c. Zones are maintained in memory, instead of
+  in files on disk.
+* Removed the python and python-4suite-xml dependencies.
 * Remove separate autoconf for libhsm/conf/enforcer
 * Add option to disable building the signer
 * Signer logs statistics just after outputting a new signed zone
@@ -20,6 +23,7 @@ Bugfixes:
 * Recalculate salt immediately if the saltlength is changed.
 * libhsm connected to slot 0 if the token label was not found. 
   An error is now returned instead of connecting to the slot.
+* Bugreport #102: Removed the obsoleted python-4suite-xml dependency.
 
 
 OpenDNSSEC 1.1.2 - 2010-08-24
