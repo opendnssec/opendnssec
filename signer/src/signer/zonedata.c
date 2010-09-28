@@ -128,7 +128,8 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                         current_domain->parent =
                             zonedata_lookup_domain(zd, parent_rdf);
                         se_log_assert(current_domain->parent ||
-                            current_domain->domain_status == DOMAIN_STATUS_APEX);
+                            current_domain->domain_status == DOMAIN_STATUS_APEX ||
+                            current_domain->domain_status == DOMAIN_STATUS_STRAY);
 
                         new_node = domain2node(current_domain);
                         if (!zd->domains) {
