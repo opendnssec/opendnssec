@@ -1186,7 +1186,23 @@ cmd_delzone ()
 cmd_listzone ()
 {
 
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;  /* This is the lock file descriptor for a SQLite DB */
+
     char* zonelist_filename = NULL;
+    int* zone_ids;      /* List of zone_ids seen from zonelist.xml */
+
+    xmlTextReaderPtr reader = NULL;
+    int ret = 0; /* status of the XML parsing */
+    char* tag_name = NULL;
+
+    int file_zone_count = 0; /* As a quick check we will compare the number of */
+    int     j = 0;          /* Another counter */
+    char    buffer[256];    /* For constructing part of the command */
+    char*   sql = NULL;   /* SQL "IN" query */
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+    char*       temp_name = NULL;
 
     int status = 0;
 
@@ -1200,9 +1216,80 @@ cmd_listzone ()
         return(1);
     }
 
-    /* Read the file and list the zones as we go */
-    list_zone_node(zonelist_filename);
+    /* try to connect to the database */
+    status = db_connect(&dbhandle, &lock_fd, 1);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
 
+    /* Read through the file counting zones TODO better way to do this? */
+    reader = xmlNewTextReaderFilename(zonelist_filename);
+    if (reader != NULL) {
+        ret = xmlTextReaderRead(reader);
+        while (ret == 1) {
+            tag_name = (char*) xmlTextReaderLocalName(reader);
+            /* Found <Zone> */
+            if (strncmp(tag_name, "Zone", 4) == 0 
+                    && strncmp(tag_name, "ZoneList", 8) != 0
+                    && xmlTextReaderNodeType(reader) == 1) {
+                file_zone_count++;
+            }
+            /* Read the next line */
+            ret = xmlTextReaderRead(reader);
+            StrFree(tag_name);
+        }
+        xmlFreeTextReader(reader);
+        if (ret != 0) {
+            printf("%s : failed to parse\n", zonelist_filename);
+        }
+    } else {
+        printf("Unable to open %s\n", zonelist_filename);
+    }
+
+    /* Allocate space for the list of zone IDs */
+    zone_ids = MemMalloc(file_zone_count * sizeof(int));
+
+    /* Read the file and list the zones as we go */
+    list_zone_node(zonelist_filename, zone_ids);
+
+    /* Now see if there are any zones in the DB which are not in the file */
+    StrAppend(&sql, "select name from zones where id not in (");
+    for (j = 0; j < file_zone_count; ++j) {
+        if (j != 0) {
+            StrAppend(&sql, ",");
+        }
+        snprintf(buffer, sizeof(buffer), "%d", zone_ids[j]);
+        StrAppend(&sql, buffer);
+    }
+    StrAppend(&sql, ")");
+
+    status = DbExecuteSql(DbHandle(), sql, &result);
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+        while (status == 0) {
+            /* Got a row, print it */
+            DbString(row, 0, &temp_name);
+
+            printf("Found zone %s in DB but not zonelist.\n", temp_name);
+            status = DbFetchRow(result, &row);
+        }
+
+        /* Convert EOF status to success */
+
+        if (status == -1) {
+            status = 0;
+        }
+
+        DbFreeResult(result);
+    }
+
+    db_disconnect(lock_fd);
+    DbDisconnect(dbhandle);
+
+    MemFree(zone_ids);
+    StrFree(sql);
     StrFree(zonelist_filename);
 
     return 0;
@@ -5323,12 +5410,16 @@ xmlDocPtr del_zone_node(const char *docname,
     return(doc);
 }
 
-void list_zone_node(const char *docname)
+void list_zone_node(const char *docname, int *zone_ids)
 {
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr cur;
     xmlNodePtr pol;
+
+    int temp_id;
+    int i = 0;
+    int status = 0;
 
     doc = xmlParseFile(docname);
     if (doc == NULL ) {
@@ -5351,12 +5442,24 @@ void list_zone_node(const char *docname)
     for(cur = root->children; cur != NULL; cur = cur->next)
     {
         if (xmlStrcmp( cur->name, (const xmlChar *)"Zone") == 0) {
-            printf("Found Zone: %s; ", xmlGetProp(cur, (xmlChar *) "name"));
+            printf("Found Zone: %s", xmlGetProp(cur, (xmlChar *) "name"));
+
+            /* make a note of the zone_id */
+            status = KsmZoneIdFromName((char *) xmlGetProp(cur, (xmlChar *) "name"), &temp_id);
+            if (status != 0) {
+                printf(" (zone not in database)");
+                zone_ids[i] = 0;
+            } else {
+                zone_ids[i] = temp_id;
+                i++;
+            }
+
+            /* Print the policy name for this zone */
             for(pol = cur->children; pol != NULL; pol = pol->next)
             {
                 if (xmlStrcmp( pol->name, (const xmlChar *)"Policy") == 0)
                 {
-                    printf("on policy %s\n", xmlNodeGetContent(pol));
+                    printf("; on policy %s\n", xmlNodeGetContent(pol));
                 }
             }
         }
