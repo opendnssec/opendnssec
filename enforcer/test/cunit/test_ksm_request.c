@@ -122,7 +122,7 @@ static void TestKsmRequestKeys(void)
     KsmRequestKeys(keytype, rollover, datetime, TestCallbackFn, NULL, policy_id, zone_id, 0, &newDS);
 
 	/*CU_ASSERT_EQUAL(status, 1);*/ /* just make sure that something flags this as needing more work */
-	CU_ASSERT_EQUAL(no_keys, 1);
+	CU_ASSERT_EQUAL(no_keys, 2);
     
 	/* TODO work out some test scenarios here and use Callback to check */
 }

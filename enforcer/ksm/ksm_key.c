@@ -866,13 +866,15 @@ int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zon
     DB_RESULT       result;     /* Handle converted to a result object */
     DB_ROW      row = NULL;     /* Row data */
     int     status = 0;         /* Status return */
-    char    in_sql[64];
+    char    in_sql[1024];
+    char    in_sql2[1024];
 
     /* check the arguments? */
     /*if (zone_name == NULL) {
         return MsgLog(KSM_INVARG, "NULL zone name");
     }*/
-    snprintf(in_sql, 64, "(select id from KEYALLOC_VIEW where zone_id = %d)", zone_id);
+    snprintf(in_sql, 1024, "(select id from KEYALLOC_VIEW where zone_id = %d)", zone_id);
+    snprintf(in_sql2, 1024, "(select distinct id from KEYDATA_VIEW where policy_id = %d and state in (%d, %d))", policy_id, KSM_STATE_RETIRE, KSM_STATE_DEAD);
 
     /* Construct the query */
     sql = DqsSpecifyInit("KEYALLOC_VIEW","min(id)");
@@ -882,6 +884,7 @@ int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zon
     DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
     DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
     DqsConditionKeyword(&sql, "id", DQS_COMPARE_NOT_IN, in_sql, where++);
+    DqsConditionKeyword(&sql, "id", DQS_COMPARE_NOT_IN, in_sql2, where++);
 
     /* Execute query and free up the query string */
     status = DbExecuteSql(DbHandle(), sql, &result);
