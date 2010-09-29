@@ -8,6 +8,8 @@
 .LP
 .B ods-ksmutil setup
 .br
+.B ods-ksmutil start|stop|notify
+.br
 .B ods-ksmutil update kasp|zonelist|conf|all
 .br
 .B ods-ksmutil zone add|delete|list
@@ -305,6 +307,11 @@ This command ensures that
 the database is in a consistent state by taking a lock out first.  The
 \-\-output option specifies where the output should go; if not specified,
 the output goes to the usual enforcer.db.backup file.
+.SH "PROCESS CONTROL SUBCOMMANDS"
+.LP
+.TP
+.B start|stop|notify
+Start, stop or send "SIGHUP" to the ods-enforcerd process.
 .SH "KEY STATES"
 .LP
 .TP

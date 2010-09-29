@@ -130,6 +130,14 @@ usage_setup ()
 }
 
     void
+usage_control ()
+{
+    fprintf(stderr,
+            "  start|stop|notify\n"
+            "\tStart, stop or SIGHUP the ods-enforcerd\n");
+}
+
+    void
 usage_update ()
 {
     fprintf(stderr,
@@ -383,6 +391,7 @@ usage ()
 
     usage_general ();
     usage_setup ();
+    usage_control ();
     usage_update ();
     usage_zoneadd ();
     usage_zonedel ();
@@ -3220,6 +3229,39 @@ cmd_purgepolicy ()
     return status;
 }
 
+/*
+ * Send command to ods-control
+ */
+    int 
+cmd_control(char *command)
+{
+    int status = 0;
+    char* ods_control_cmd = NULL;
+    char* ptr = command;
+
+    /* We need the command in lower case */
+    if (ptr) {
+        while (*ptr) {
+            *ptr = tolower((int) *ptr);
+            ++ptr;
+        }
+    }
+
+    /* Call "ods-control enforcer COMMAND" */
+    StrAppend(&ods_control_cmd, ODS_EN_CONTROL);
+    StrAppend(&ods_control_cmd, command);
+
+    status = system(ods_control_cmd);
+    if (status != 0)
+    {
+        fprintf(stderr, "Couldn't run %s\n", ods_control_cmd);
+    }
+
+    StrFree(ods_control_cmd);
+
+    return(status);
+}
+
 /* 
  * Fairly basic main, just pass most things through to their handlers
  */
@@ -3377,6 +3419,12 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_update(case_verb);
+    } else if (!strncmp(case_command, "START", 5) ||
+               !strncmp(case_command, "STOP", 4) ||
+               !strncmp(case_command, "NOTIFY", 6)) {
+        argc --;
+        argv ++;
+        result = cmd_control(case_command);
     } else if (!strncmp(case_command, "ZONE", 4) && strlen(case_command) == 4) {
         argc --; argc --;
         argv ++; argv ++;
