@@ -322,11 +322,11 @@ time_t
 se_rand(time_t mod)
 {
 #ifdef HAVE_ARC4RANDOM_UNIFORM
-    return (time_t) (arc4random_uniform((uint32_t) mod));
+    return (time_t) (arc4random_uniform((uint32_t) mod+1));
 #elif HAVE_ARC4RANDOM
-    return (time_t) (arc4random() % mod);
+    return (time_t) (arc4random() % (unsigned) mod+1);
 #else
-    return (time_t) (random() % mod);
+    return (time_t) (random() % (unsigned) mod+1);
 #endif
 }
 
