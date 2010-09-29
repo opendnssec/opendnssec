@@ -89,8 +89,7 @@ struct config_struct
     zfzonelist_type* zonelist;
     serverlist_type* serverlist;
     serverlist_type* notifylist;
-    ldns_resolver* xfrd;
-};
+}; 
 
 /**
  * Sockets.
