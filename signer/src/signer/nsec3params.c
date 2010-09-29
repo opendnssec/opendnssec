@@ -176,7 +176,6 @@ nsec3params_salt2str(nsec3params_type* nsec3params)
     int written = 0;
     char* str = NULL;
     ldns_buffer* buffer = NULL;
-    ldns_status status = LDNS_STATUS_OK;
 
     salt_length = nsec3params->salt_len;
     data = nsec3params->salt_data;
