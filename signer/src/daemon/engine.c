@@ -794,7 +794,7 @@ start_zonefetcher(engine_type* engine)
         return 1;
     }
 
-    se_log_verbose("zone fetcher started (pid=%i)", getpid());
+    se_log_info("zone fetcher started (pid=%i)", getpid());
 
     zf_filename = se_strdup(engine->config->zonefetch_filename);
     zl_filename = se_strdup(engine->config->zonelist_filename);
@@ -808,7 +808,7 @@ start_zonefetcher(engine_type* engine)
     result = tools_zone_fetcher(zf_filename, zl_filename, grp, usr,
         chrt, log_filename, use_syslog, verbosity);
 
-    se_log_verbose("zone fetcher stopped", result);
+    se_log_verbose("zone fetcher done", result);
     if (zf_filename)  { se_free((void*)zf_filename); }
     if (zl_filename)  { se_free((void*)zl_filename); }
     if (grp)          { se_free((void*)grp); }
@@ -844,7 +844,7 @@ stop_zonefetcher(engine_type* engine)
             if (result == -1) {
                 se_log_error("cannot stop zone fetcher: %s", strerror(errno));
             } else {
-                se_log_verbose("zone fetcher stopped (pid=%i)", engine->zfpid);
+                se_log_info("zone fetcher stopped (pid=%i)", engine->zfpid);
             }
             engine->zfpid = -1;
         } else {
@@ -904,10 +904,10 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         zl_changed = (engine_update_zonelist(engine, NULL) == 0);
 
         if (engine->need_to_reload) {
-            se_log_verbose("reload engine");
+            se_log_info("reload engine");
             engine->need_to_reload = 0;
         } else {
-            se_log_debug("signer engine started");
+            se_log_info("signer engine started");
             /* try to recover from backups */
             engine_recover_from_backups(engine);
         }
@@ -931,7 +931,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     }
 
     /* shutdown */
-    se_log_verbose("shutdown signer engine");
+    se_log_info("shutdown signer engine");
     hsm_close();
     if (engine->cmdhandler != NULL) {
         engine_stop_cmdhandler(engine);
