@@ -160,10 +160,12 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     se_log_assert(cmdc->engine->tasklist);
 
     if (se_strcmp(tbd, "--all") == 0) {
+        se_log_info("cmdhandler: updating zone list");
         ret = engine_update_zonelist(cmdc->engine, buf);
         se_writen(sockfd, buf, strlen(buf));
         tbd = NULL;
     }
+    se_log_info("cmdhandler: updating signer configuration (%s)", tbd?tbd:"--all");
     engine_update_zones(cmdc->engine, tbd, buf);
     se_writen(sockfd, buf, strlen(buf));
 
@@ -236,6 +238,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         (void)snprintf(buf, ODS_SE_MAXLINE, "All zones scheduled for "
             "immediate re-sign.\n");
         se_writen(sockfd, buf, strlen(buf));
+        se_log_info("cmdhandler: all zones scheduled for immediate re-sign");
 
         /* wake up sleeping workers */
         for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
@@ -245,6 +248,8 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for "
             "immediate re-sign.\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
+        se_log_info("cmdhandler: zone %s scheduled for immediate re-sign",
+            tbd?tbd:"(null)");
 
         /* wake up sleeping workers */
         for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
@@ -254,10 +259,14 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not scheduled, "
             "already being signed right now!\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
+        se_log_warning("cmdhandler: zone %s was found in zone list but not in "
+            "task queue", tbd?tbd:"(null)");
     } else {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not being signed yet, "
             "updating sign configuration\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
+        se_log_warning("cmdhandler: zone %s not found in zone list, updating "
+            "zone list", tbd?tbd:"(null)");
         cmdhandler_handle_cmd_update(sockfd, cmdc, tbd);
     }
     return;
@@ -313,6 +322,8 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     (void)snprintf(buf, ODS_SE_MAXLINE, "Internal information about "
         "%s cleared", tbd?tbd:"(null)");
     se_writen(sockfd, buf, strlen(buf));
+    se_log_info("cmdhandler: internal information about %s cleared",
+        tbd?tbd:"(null)");
 
     return;
 }
@@ -391,6 +402,7 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
     se_writen(sockfd, buf, strlen(buf));
+    se_log_info("cmdhandler: all tasks being flushed");
     return;
 }
 
