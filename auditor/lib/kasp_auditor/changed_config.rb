@@ -96,9 +96,8 @@ module KASPAuditor
       kasp_file = args[2]
       config = args[3]
       working_folder = args[4]
-      signconf_file = args[5]
-      syslog = args[6]
-      return if args.length > 7
+      syslog = args[5]
+      return if args.length > 6
 
       tracker_folder = (working_folder + File::SEPARATOR +
         "tracker").untaint
@@ -122,10 +121,8 @@ module KASPAuditor
       # Now get the timestamps for the conf and kasp files
       kasp_file = (kasp_file.to_s + "").untaint
       conf_file = (conf_file.to_s + "").untaint
-      signconf_file = (signconf_file.to_s + "").untaint
       conf_timestamp = File.mtime(conf_file).to_i
       kasp_timestamp = File.mtime(kasp_file).to_i
-      signconf_timestamp = File.mtime(signconf_file).to_i
       @conf_timestamp = conf_timestamp
       @kasp_timestamp = kasp_timestamp
 
@@ -145,12 +142,6 @@ module KASPAuditor
           timestamp = conf_timestamp
         end
       end
-      # Also check the timestamp of the signconf file, and warn if it
-      # is older than the kasp.xml.
-      if (signconf_timestamp < kasp_timestamp)
-        syslog.log(LOG_WARNING, "THE SIGNER CONFIGURATION IS OLDER THAN THE KASP CONFIGURATION - IT MAY NOT HAVE BEEN UPDATED. IF SO, ERRORS MAY BE RAISED BY THE AUDITOR")
-      end
-
 
       check_kasp_config(config, timestamp)
 

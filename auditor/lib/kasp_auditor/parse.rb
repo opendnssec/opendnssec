@@ -71,7 +71,7 @@ module KASPAuditor
             zones.push([config, output_file_loc])
 
             # Load the config elements storage file, and keep a note of which elements have changed, and when they last changed.
-            changed_config = ChangedConfig.new(zone_name, conf_file, kasp_filename, config, working_folder, config_file_loc, syslog)
+            changed_config = ChangedConfig.new(zone_name, conf_file, kasp_filename, config, working_folder, syslog)
             config.changed_config = changed_config
 
           rescue Config::ConfigLoadError => e
