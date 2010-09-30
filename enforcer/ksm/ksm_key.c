@@ -737,10 +737,14 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
     DbFreeResult(result); 
 
     if (status == 0) { 
-        /* make sure that we have at least one zone */ 
-        if (zone_count == 0) { 
-            *count = 0; 
-            return status; 
+        /* make sure that we have at least one zone (unless they are shared) */ 
+        if (zone_count == 0) {
+            if (shared_keys == KSM_KEYS_NOT_SHARED) {
+                *count = 0; 
+                return status; 
+            } else {
+                *count = 1;
+            }
         } 
     } else { 
         *count = -1; 
@@ -1140,6 +1144,7 @@ int KsmLinkKeys(const char* zone_name, int policy_id)
     sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
     DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, clause++);
     DqsConditionInt(&sql, "state", DQS_COMPARE_LT, KSM_STATE_RETIRE, clause++);
+    DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_ISNOT, "NULL", clause++);
     StrAppend(&sql, " group by id");
     DqsEnd(&sql);
 

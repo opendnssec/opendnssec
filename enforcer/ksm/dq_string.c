@@ -181,6 +181,10 @@ static void DqsAppendComparison(char** query, DQS_COMPARISON compare)
         StrAppend(query, " IS ");
         break;
 
+    case DQS_COMPARE_ISNOT:
+        StrAppend(query, " IS NOT ");
+        break;
+
     default:
         StrAppend(query, " ?? ");
     }

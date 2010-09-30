@@ -854,7 +854,9 @@ cmd_addzone ()
         return(1);
     }
 
-    /* If need be (keys shared on policy) link existing keys to zone */
+    /* If need be (keys shared on policy, and
+       this is not the fist zone) link existing keys to zone */
+
     status = KsmLinkKeys(o_zone, policy_id);
     if (status != 0) {
         printf("Failed to Link Keys to zone\n");

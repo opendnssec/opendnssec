@@ -52,7 +52,8 @@ typedef enum {
     DQS_COMPARE_GT,
     DQS_COMPARE_GE,
     DQS_COMPARE_IN,
-    DQS_COMPARE_IS
+    DQS_COMPARE_IS,
+    DQS_COMPARE_ISNOT
 } DQS_COMPARISON;
 
 /* General comparsion structure */
