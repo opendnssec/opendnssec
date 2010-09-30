@@ -316,11 +316,28 @@ module KASPAuditor
     # Check the RRSIG for this RRSet
     def check_signature(rrset, is_glue, delegation)
       return if is_glue
-      if (delegation && ([Types::AAAA, Types::A].include?rrset.type))
+      if (delegation && ([Types::AAAA, Types::A].include?rrset.type) && (rrset.name != @soa.name))
         # glue - don't verify
+        # Make sure that rrset is NOT signed
+        if rrset.sigs.length > 0
+          log(LOG_ERR, "Glue should not be signed : #{rrset.name}, #{rrset.type}")
+        end
         return
       end
-      return if (out_of_zone(rrset.name))
+      if (out_of_zone(rrset.name))
+        # Check that RRSet is NOT signed
+        if rrset.sigs.length > 0
+          log(LOG_ERR, "Out of zone data should not be signed : #{rrset.name}, #{rrset.type}")
+        end
+        return
+      end
+      if ((rrset.type == Types::NS) && (rrset.name != @soa.name))
+        # Make sure delegation is NOT signed
+        if rrset.sigs.length > 0
+          log(LOG_ERR, "Delegation should not be signed : #{rrset.name}, #{rrset.type}")
+        end
+        return
+      end
       rrset_sig_types = []
       rrset.sigs.each {|sig| rrset_sig_types.push(sig.algorithm)}
       @algs.each {|alg|
@@ -722,13 +739,18 @@ module KASPAuditor
           end
           if !(l_rr.name.subdomain_of?current_domain)
             delegation = false
+            is_glue = false
+          else
+            is_glue = true
           end
-          is_glue = true
           seen_nsec_for_domain = false
           types_covered = []
           types_covered.push(l_rr.type)
           current_domain = l_rr.name
           last_rr = old_rr
+        end
+        if !([Types::A, Types::AAAA, Types::RRSIG].include?l_rr.type)
+          is_glue = false
         end
         if l_rr.type == Types::NS
           delegation = true

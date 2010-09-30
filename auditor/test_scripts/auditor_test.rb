@@ -139,6 +139,12 @@ class AuditorTest < Test::Unit::TestCase
       #      "Not enough prepublished KSKs! Should be 2 but have 0",
       "Not enough prepublished ZSKs! Should be 2 but have 0",
 
+      "Delegation should not be signed : bla.tjeb.nl, NS",
+      "Delegation should not be signed : nsec3.tjeb.nl, NS",
+      "Delegation should not be signed : otherdel.tjeb.nl, NS",
+      "Delegation should not be signed : ent.to.tjeb.nl, NS",
+      "Delegation should not be signed : unsigned.tjeb.nl, NS",
+
       "New KSK DNSKEY has incorrect algorithm (was RSASHA1) or alg_length (was 1024)"
       # @TODO@ Check SOA Serial == KEEP
 
