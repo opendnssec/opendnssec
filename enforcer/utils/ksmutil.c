@@ -3193,9 +3193,9 @@ cmd_purgepolicy ()
                     /* Save our new file over the old, TODO should we validate it first? */
                     status = xmlSaveFormatFile(kasp_filename, doc, 1);
                     xmlFreeDoc(doc);
-                    StrFree(kasp_filename);
                     if (status == -1) {
                         printf("Could not save %s\n", kasp_filename);
+                        StrFree(kasp_filename);
                         db_disconnect(lock_fd);
                         return(1);
                     }
@@ -3226,6 +3226,8 @@ cmd_purgepolicy ()
         DbRollback();
     }
 
+    StrFree(kasp_filename);
+    db_disconnect(lock_fd);
     return status;
 }
 
@@ -5725,7 +5727,7 @@ xmlDocPtr del_policy_node(const char *docname,
         {
             xmlUnlinkNode(cur);
 
-            cur = root->children; /* May pass through multiple times, but will remove all instances of the zone */
+            cur = root->children; /* May pass through multiple times, but will remove all instances of the policy */
         }
     }
     xmlFreeNode(cur);
