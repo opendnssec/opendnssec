@@ -7776,7 +7776,14 @@ int keyRoll(int zone_id, int policy_id, int key_type)
     DB_ROW      row = NULL;     /* Row data */
     int         temp_id = -1;   /* place to store the key id returned */
     int         temp_type = -1; /* place to store the key type returned */
+    int         temp_zone_id = -1;   /* place to store the zone id returned */
     int         where = 0;
+    int         j = 0;
+    DB_RESULT	result2;        /* Result of the query */
+    DB_ROW      row2 = NULL;    /* Row data */
+    char*       insql1 = NULL;  /* SQL query */
+    char*       insql2 = NULL;  /* SQL query */
+    char        buffer[32];     /* For integer conversion */
     
     char*   datetime = DtParseDateTimeString("now");
 
@@ -7864,7 +7871,73 @@ int keyRoll(int zone_id, int policy_id, int key_type)
                and there is nothing able to take over from it */
             if (temp_type == KSM_TYPE_KSK) {
                 /* find each zone in turn */
-                size = snprintf(sql2, KSM_SQL_SIZE, "update dnsseckeys set state = %d where state = %d and zone_id in (select zone_id from dnsseckeys where retire = \"%s\" and keypair_id = %d) and zone_id not in (select zone_id from KEYDATA_VIEW where policy_id = %d and keytype = %d and state in (%d,%d))", KSM_STATE_KEYPUBLISH, KSM_STATE_DSREADY, datetime, temp_id, policy_id, KSM_TYPE_KSK, KSM_STATE_PUBLISH, KSM_STATE_READY);
+                /* Depressingly MySQL can't run the following sql; so we need 
+                   to build it by parts... There has to be a better way to do 
+                   this.
+                size = snprintf(sql2, KSM_SQL_SIZE, "update dnsseckeys set state = %d where state = %d and zone_id in (select zone_id from dnsseckeys where retire = \"%s\" and keypair_id = %d) and zone_id not in (select zone_id from KEYDATA_VIEW where policy_id = %d and keytype = %d and state in (%d,%d))", KSM_STATE_KEYPUBLISH, KSM_STATE_DSREADY, datetime, temp_id, policy_id, KSM_TYPE_KSK, KSM_STATE_PUBLISH, KSM_STATE_READY); */
+
+                /* First INSQL: select zone_id from dnsseckeys where retire = "DATETIME" and keypair_id = temp_id*/
+
+                size = snprintf(sql2, KSM_SQL_SIZE, "select zone_id from dnsseckeys where retire = \"%s\" and keypair_id = %d", datetime, temp_id);
+                status = DbExecuteSql(DbHandle(), sql2, &result2);
+                if (status == 0) {
+                    status = DbFetchRow(result2, &row2);
+                    while (status == 0) {
+                        /* Got a row, print it */
+                        DbInt(row2, 0, &temp_zone_id);
+
+                        if (j != 0) {
+                            StrAppend(&insql1, ",");
+                        }
+                        snprintf(buffer, sizeof(buffer), "%d", temp_zone_id);
+                        StrAppend(&insql1, buffer);
+                        j++;
+
+                        status = DbFetchRow(result2, &row2);
+                    }
+
+                    /* Convert EOF status to success */
+
+                    if (status == -1) {
+                        status = 0;
+                    }
+
+                    DbFreeResult(result2);
+                }
+
+                /* Second INSQL: select zone_id from KEYDATA_VIEW where policy_id = policy_id and keytype = KSK and state in (publish,ready) */
+
+                size = snprintf(sql2, KSM_SQL_SIZE, "select zone_id from KEYDATA_VIEW where policy_id = %d and keytype = %d and state in (%d,%d)", policy_id, KSM_TYPE_KSK, KSM_STATE_PUBLISH, KSM_STATE_READY);
+                j=0;
+                status = DbExecuteSql(DbHandle(), sql2, &result2);
+                if (status == 0) {
+                    status = DbFetchRow(result2, &row2);
+                    while (status == 0) {
+                        /* Got a row, print it */
+                        DbInt(row2, 0, &temp_zone_id);
+
+                        if (j != 0) {
+                            StrAppend(&insql2, ",");
+                        }
+                        snprintf(buffer, sizeof(buffer), "%d", temp_zone_id);
+                        StrAppend(&insql2, buffer);
+                        j++;
+
+                        status = DbFetchRow(result2, &row2);
+                    }
+
+                    /* Convert EOF status to success */
+
+                    if (status == -1) {
+                        status = 0;
+                    }
+
+                    DbFreeResult(result2);
+                }
+                DbFreeRow(row2);
+
+                /* Finally we can do the update */
+                size = snprintf(sql2, KSM_SQL_SIZE, "update dnsseckeys set state = %d where state = %d and zone_id in (%s) and zone_id not in (%s)", KSM_STATE_KEYPUBLISH, KSM_STATE_DSREADY, insql1, insql2);
 
                 /* Quick check that we didn't run out of space */
                 if (size < 0 || size >= KSM_SQL_SIZE) {
