@@ -1316,7 +1316,7 @@ cmd_exportkeys ()
     DB_HANDLE	dbhandle;
 
     int zone_id = -1;
-    int state_id = KSM_STATE_ACTIVE;
+    int state_id = -1;
     int keytype_id = KSM_TYPE_KSK;
 
     char *case_keytype = NULL;
@@ -1333,6 +1333,8 @@ cmd_exportkeys ()
     char* sql = NULL;
     KSM_KEYDATA data;       /* Data for each key */
     DB_RESULT	result;     /* Result set from query */
+    size_t  nchar;          /* Number of characters written */
+    char    buffer[256];    /* For constructing part of the command */
 
     /* See what arguments we were passed (if any) otherwise set the defaults */
     /* Check keystate, can be state or keytype */
@@ -1420,11 +1422,24 @@ cmd_exportkeys ()
     }
 
     sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
-    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, state_id, 0);
+    if (state_id != -1) {
+        DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, state_id, 0);
+    } else {
+        nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d, %d, %d, %d)",
+                KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_DSSUB, 
+                KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, KSM_STATE_KEYPUBLISH);
+        if (nchar >= sizeof(buffer)) {
+            status = -1;
+            return status;
+        }
+        DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, 0);
+
+    }
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype_id, 1);
     if (zone_id != -1) {
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 2);
     }
+    DqsOrderBy(&sql, "STATE");
     DqsEnd(&sql);
 
     status = KsmKeyInitSql(&result, sql);
@@ -1465,16 +1480,16 @@ cmd_exportkeys ()
             sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
             if (ds_flag == 0) {
-                printf("\n;%s %s DNSKEY record:\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                printf("\n;%s %s DNSKEY record:\n", KsmKeywordStateValueToName(data.state), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                 ldns_rr_print(stdout, dnskey_rr);
             }
             else {
 
-                printf("\n;%s %s DS record (SHA1):\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                printf("\n;%s %s DS record (SHA1):\n", KsmKeywordStateValueToName(data.state), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                 ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
                 ldns_rr_print(stdout, ds_sha1_rr);
 
-                printf("\n;%s %s DS record (SHA256):\n", KsmKeywordStateValueToName(state_id), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
+                printf("\n;%s %s DS record (SHA256):\n", KsmKeywordStateValueToName(data.state), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                 ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
                 ldns_rr_print(stdout, ds_sha256_rr);
             }
