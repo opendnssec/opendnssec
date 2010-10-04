@@ -57,13 +57,16 @@ struct zone_struct {
     const char* name; /* string format zone name */
     ldns_rdf* dname; /* wire format zone name */
     ldns_rr_class klass; /* class */
-    const char* notify_ns; /* master name server reload command */
-
-    signconf_type* signconf; /* signer configuration values */
     nsec3params_type* nsec3params; /* NSEC3 parameters */
     zonedata_type* zonedata; /* zone data */
 
-    /* from zone list */
+    /* from conf.xml */
+    const char* notify_ns; /* master name server reload command */
+
+    /* from signconf.xml */
+    signconf_type* signconf; /* signer configuration values */
+
+    /* from zonelist.xml */
     const char* policy_name; /* policy identifier */
     const char* signconf_filename; /* signer configuration filename */
     adapter_type* inbound_adapter; /* inbound adapter */
@@ -79,7 +82,6 @@ struct zone_struct {
     time_t backoff; /* backoff value if there is something failing */
     int in_progress; /* in progress (check with active worker?) */
     stats_type* stats; /* statistics */
-
     lock_basic_type zone_lock;
 };
 
