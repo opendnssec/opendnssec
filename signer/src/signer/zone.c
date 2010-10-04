@@ -860,7 +860,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         }
         se_fclose(fd);
     } else {
-        se_log_debug("unable to recover zone state from file %s.state: ",
+        se_log_deeebug("unable to recover zone state from file %s.state: ",
             "no such file or directory", zone->name);
         return;
     }
@@ -891,7 +891,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
             zone->zonedata = zonedata_create();
         }
     } else {
-        se_log_debug("unable to recover denial of existence from file "
+        se_log_deeebug("unable to recover denial of existence from file "
             "%s.denial: no such file or directory", zone->name);
         error = 1;
     }
@@ -927,7 +927,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
                 "file corrupted", zone->name);
         }
     } else {
-        se_log_debug("unable to recover dnskeys from file %s.dnskeys: ",
+        se_log_deeebug("unable to recover dnskeys from file %s.dnskeys: ",
             "no such file or directory", zone->name);
         error = 1;
     }
@@ -947,7 +947,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
                 "file corrupted", zone->name);
         }
     } else {
-        se_log_debug("unable to recover rrsigs from file %s.rrsigs: ",
+        se_log_deeebug("unable to recover rrsigs from file %s.rrsigs: ",
             "no such file or directory", zone->name);
     }
 
