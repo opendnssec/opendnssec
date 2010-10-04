@@ -329,7 +329,7 @@ log_task(task_type* task)
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
-        se_log_info("On %s I will %s zone %s", strtime?strtime:"(null)",
+        se_log_debug("On %s I will %s zone %s", strtime?strtime:"(null)",
             taskid2str(task->what), task->who?task->who:"(null)");
     }
     return;
