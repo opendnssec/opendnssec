@@ -109,9 +109,10 @@ int engine_update_zonelist(engine_type* engine, char* buf);
  * \param[in] the signer engine
  * \paran[in] zone_name update only this zone
  * \param[in] buf response message
+ * \return int 1 if zone was not found (zone_name != NULL)
  *
  */
-void engine_update_zones(engine_type* engine, const char* zone_name, char* buf);
+int engine_update_zones(engine_type* engine, const char* zone_name, char* buf);
 
 
 /**

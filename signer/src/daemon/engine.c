@@ -633,7 +633,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
  * Update zones.
  *
  */
-void
+int
 engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
@@ -666,7 +666,7 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
                 engine->tasklist->loading = 0;
                 lock_basic_unlock(&engine->tasklist->tasklist_lock);
                 lock_basic_unlock(&zone->zone_lock);
-                return;
+                return 0;
             }
 
             lock_basic_lock(&engine->tasklist->tasklist_lock);
@@ -694,8 +694,9 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
         se_log_debug("zone %s not found", zone_name);
         if (buf) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found, "
-                "updating all zones.\n", zone_name);
+                "updating zone list.\n", zone_name);
         }
+        return 1;
     } else {
         se_log_debug("configurations updated");
         if (buf) {
@@ -703,7 +704,7 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
                 "errors: %i; unchanged: %i.\n", updated, errors, unchanged);
         }
     }
-    return;
+    return 0;
 }
 
 
@@ -913,8 +914,8 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         }
 
         if (zl_changed) {
+            zl_changed = engine_update_zones(engine, NULL, NULL);
             zl_changed = 0;
-            engine_update_zones(engine, NULL, NULL);
         }
 
         if (start_zonefetcher(engine) != 0) {

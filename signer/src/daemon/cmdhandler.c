@@ -166,8 +166,18 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         tbd = NULL;
     }
     se_log_info("cmdhandler: updating signer configuration (%s)", tbd?tbd:"--all");
-    engine_update_zones(cmdc->engine, tbd, buf);
+    ret = engine_update_zones(cmdc->engine, tbd, buf);
     se_writen(sockfd, buf, strlen(buf));
+
+    if (tbd && ret != 0) {
+        /* zone was not found */
+        ret = engine_update_zonelist(cmdc->engine, buf);
+        se_writen(sockfd, buf, strlen(buf));
+
+        /* try again */
+        ret = engine_update_zones(cmdc->engine, tbd, buf);
+        se_writen(sockfd, buf, strlen(buf));
+    }
 
     /* wake up sleeping workers */
     for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
