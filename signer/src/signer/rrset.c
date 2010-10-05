@@ -448,11 +448,14 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
         expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(rrs->rr));
         inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(rrs->rr));
 
-        if (!refresh || expiration < refresh ||
-            inception > (uint32_t) signtime) {
-            /* this is it */
-            se_log_debug("refresh signature for RRset[%i] (refresh=%u, "
-                "expiration=%u)", rrset->rr_type, refresh, expiration);
+        if (/* Refresh is 0 */ !refresh ||
+            /* Expiration - Refresh has passed */ expiration < refresh ||
+            /* Inception has not passed */ inception > (uint32_t) signtime) {
+
+            se_log_deeebug("refresh signature for RRset[%i] (refresh=%u, "
+                "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
+                refresh, (uint32_t) signtime, inception, expiration);
+
             if (prev_rrs) {
                 prev_rrs->next = rrs->next;
             } else {
@@ -463,8 +466,9 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             ldns_rr_free(rrs->rr);
             se_free((void*)rrs);
         } else {
-            se_log_debug("keep signature for RRset[%i] (refresh=%u, "
-                "expiration=%u)", rrset->rr_type, refresh, expiration);
+            se_log_deeebug("recycle signature for RRset[%i] (refresh=%u, "
+                "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
+                refresh, (uint32_t) signtime, inception, expiration);
             rrset_log_rr(rrs->rr, "*RRSIG", 6);
             *reusedsigs += 1;
             prev_rrs = rrs;
@@ -588,7 +592,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             rrset->rrsigs = ldns_dnssec_rrs_new();
         }
         if (!rrset->rrsigs->rr) {
-            se_log_debug("new signatures for RRset[%i]", rrset->rr_type);
             rr_list = rrset2rrlist(rrset);
             if (!rr_list) {
                 se_log_error("error signing rrset[%i], cannot convert to rr "
@@ -642,7 +645,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             }
             ldns_rr_list_free(rr_list);
         } else {
-            se_log_debug("reuse signatures for RRset[%i]", rrset->rr_type);
+            se_log_debug("recycle signatures RRset[%i]", rrset->rr_type);
         }
         rrset->outbound_serial = serial;
     } else {
