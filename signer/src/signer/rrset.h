@@ -36,6 +36,7 @@
 
 #include "config.h"
 #include "signer/hsm.h"
+#include "signer/rrsigs.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
 
@@ -51,7 +52,7 @@ struct rrset_struct {
     ldns_dnssec_rrs* rrs;
     ldns_dnssec_rrs* add;
     ldns_dnssec_rrs* del;
-    ldns_dnssec_rrs* rrsigs;
+    rrsigs_type* rrsigs;
     int drop_signatures;
 };
 

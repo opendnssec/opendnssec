@@ -244,24 +244,38 @@ rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr)
 int
 rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig)
 {
-    ldns_status status = LDNS_STATUS_OK;
+    int error = 0;
 
     se_log_assert(rrset);
     se_log_assert(rrsig);
 
     if (!rrset->rrsigs) {
-        rrset->rrsigs = ldns_dnssec_rrs_new();
+        rrset->rrsigs = rrsigs_create();
     }
-    if (!rrset->rrsigs->rr) {
-        rrset->rrsigs->rr = rrsig;
+
+    error = rrsigs_add_sig(rrset->rrsigs, rrsig, NULL);
+    if (!error) {
         rrset->rrsig_count += 1;
     } else {
-        status = util_dnssec_rrs_add_rr(rrset->rrsigs, rrsig);
-        if (status == LDNS_STATUS_OK) {
-            rrset->rrsig_count += 1;
+        switch (error) {
+            case 2:
+                se_log_warning("error adding RRSIG to RRset (%i): duplicate",
+                    rrset->rr_type);
+                rrset_log_rr(rrsig, "+RR", 2);
+                break;
+            case 1:
+                se_log_error("error adding RRSIG to RRset (%i): compare failed",
+                    rrset->rr_type);
+                rrset_log_rr(rrsig, "+RR", 2);
+                break;
+            default:
+                se_log_error("error adding RRSIG to RRset (%i): unknown error",
+                    rrset->rr_type);
+                rrset_log_rr(rrsig, "+RR", 2);
+                break;
         }
     }
-    return (status != LDNS_STATUS_OK);
+    return error;
 }
 
 
@@ -417,11 +431,11 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
  *
  */
 static int
-rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
+rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     uint32_t* reusedsigs)
 {
-    ldns_dnssec_rrs* rrs = NULL;
-    ldns_dnssec_rrs* prev_rrs = NULL;
+    rrsigs_type* rrsigs = NULL;
+    rrsigs_type* prev_rrsigs = NULL;
     uint32_t refresh = 0;
     uint32_t expiration = 0;
     uint32_t inception = 0;
@@ -429,7 +443,7 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     if (rrset->drop_signatures) {
         se_log_debug("drop signatures for RRset[%i]", rrset->rr_type);
         if (rrset->rrsigs) {
-            ldns_dnssec_rrs_deep_free(rrset->rrsigs);
+            rrsigs_cleanup(rrset->rrsigs);
             rrset->rrsigs = NULL;
         }
         rrset->rrsig_count = 0;
@@ -443,10 +457,12 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     }
 
     /* check freshness of existing signatures */
-    rrs = rrset->rrsigs;
-    while (rrs) {
-        expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(rrs->rr));
-        inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(rrs->rr));
+    rrsigs = rrset->rrsigs;
+    while (rrsigs) {
+        expiration = ldns_rdf2native_int32(
+            ldns_rr_rrsig_expiration(rrsigs->rr));
+        inception = ldns_rdf2native_int32(
+            ldns_rr_rrsig_inception(rrsigs->rr));
 
         if (/* Refresh is 0 */ !refresh ||
             /* Expiration - Refresh has passed */ expiration < refresh ||
@@ -456,24 +472,24 @@ rrset_drop_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
                 "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
                 refresh, (uint32_t) signtime, inception, expiration);
 
-            if (prev_rrs) {
-                prev_rrs->next = rrs->next;
+            if (prev_rrsigs) {
+                prev_rrsigs->next = rrsigs->next;
             } else {
-                rrset->rrsigs = rrs->next;
+                rrset->rrsigs = rrsigs->next;
             }
-            rrset_log_rr(rrs->rr, "-RRSIG", 6);
+            rrset_log_rr(rrsigs->rr, "-RRSIG", 6);
             rrset->rrsig_count -= 1;
-            ldns_rr_free(rrs->rr);
-            se_free((void*)rrs);
+            ldns_rr_free(rrsigs->rr);
+            se_free((void*)rrsigs);
         } else {
             se_log_deeebug("recycle signature for RRset[%i] (refresh=%u, "
                 "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
                 refresh, (uint32_t) signtime, inception, expiration);
-            rrset_log_rr(rrs->rr, "*RRSIG", 6);
+            rrset_log_rr(rrsigs->rr, "*RRSIG", 6);
             *reusedsigs += 1;
-            prev_rrs = rrs;
+            prev_rrsigs = rrsigs;
         }
-        rrs = rrs->next;
+        rrsigs = rrsigs->next;
     }
     return 0;
 }
@@ -587,11 +603,10 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     se_log_assert(stats);
 
     if (DNS_SERIAL_GT(serial, rrset->outbound_serial)) {
-        error = rrset_drop_rrsigs(rrset, sc, signtime, &reusedsigs);
-        if (!rrset->rrsigs) {
-            rrset->rrsigs = ldns_dnssec_rrs_new();
-        }
-        if (!rrset->rrsigs->rr) {
+        error = rrset_recycle_rrsigs(rrset, sc, signtime, &reusedsigs);
+        if (!rrset->rrsigs) { /* TODO signature creating revised */
+            rrset->rrsigs = rrsigs_create();
+
             rr_list = rrset2rrlist(rrset);
             if (!rr_list) {
                 se_log_error("error signing rrset[%i], cannot convert to rr "
@@ -602,11 +617,13 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                  &inception, &expiration);
             key = sc->keys->first_key;
             while (key) {
+                /* ksk or zsk ? */
                 if ((!key->zsk && rrset->rr_type != LDNS_RR_TYPE_DNSKEY) ||
                     (!key->ksk && rrset->rr_type == LDNS_RR_TYPE_DNSKEY)) {
                     key = key->next;
                     continue;
                 }
+                /* sign the RRset with current key */
                 rrsig = hsm_sign_rrset_with_key(ctx, owner, key, rr_list,
                      inception, expiration);
                 if (!rrsig) {
@@ -615,32 +632,19 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                     ldns_rr_list_free(rr_list);
                     return 1;
                 }
-                if (!rrset->rrsigs->rr) {
-                    rrset->rrsigs->rr = rrsig;
-                    rrset_log_rr(rrsig, "+RRSIG", 6);
-                    rrset->rrsig_count += 1;
-                    newsigs++;
-                } else {
-                    status = util_dnssec_rrs_add_rr(rrset->rrsigs, rrsig);
-                    if (status != LDNS_STATUS_OK) {
-                        if (status == LDNS_STATUS_NO_DATA) {
-                            se_log_warning("error adding RRSIG to RRset "
-                                "(%i): duplicate", rrset->rr_type);
-                            rrset_log_rr(rrsig, "+RRSIG", 2);
-                        } else {
-                            se_log_error("error adding RRSIG to RRset "
-                                "(%i): %s", rrset->rr_type,
-                                ldns_get_errorstr_by_id(status));
-                            rrset_log_rr(rrsig, "+RRSIG", 1);
-                            ldns_rr_list_free(rr_list);
-                            return 1;
-                        }
-                    } else {
-                        rrset_log_rr(rrsig, "+RRSIG", 6);
-                        rrset->rrsig_count += 1;
-                        newsigs++;
-                    }
+                /* add the signature to the RRset */
+                error = rrsigs_add_sig(rrset->rrsigs, rrsig, key);
+                if (error) {
+                    se_log_error("error adding RRSIG to RRset (%i): %s",
+                        rrset->rr_type, ldns_get_errorstr_by_id(status));
+                    rrset_log_rr(rrsig, "+RRSIG", 1);
+                    ldns_rr_list_free(rr_list);
+                    return 1;
                 }
+                rrset_log_rr(rrsig, "+RRSIG", 6);
+                rrset->rrsig_count += 1;
+                newsigs++;
+                /* next key */
                 key = key->next;
             }
             ldns_rr_list_free(rr_list);
@@ -710,7 +714,7 @@ rrset_cleanup(rrset_type* rrset)
             rrset->del = NULL;
         }
         if (rrset->rrsigs) {
-            ldns_dnssec_rrs_deep_free(rrset->rrsigs);
+            rrsigs_cleanup(rrset->rrsigs);
             rrset->rrsigs = NULL;
         }
         se_free((void*) rrset);
@@ -728,6 +732,9 @@ rrset_cleanup(rrset_type* rrset)
 void
 rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
 {
+    se_log_assert(fd);
+    se_log_assert(rrset);
+
     if (rrset->rrs) {
         if (rrset->rr_type == LDNS_RR_TYPE_CNAME ||
             rrset->rr_type == LDNS_RR_TYPE_DNAME) {
@@ -740,7 +747,7 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
         }
     }
     if (rrset->rrsigs && !skip_rrsigs) {
-        ldns_dnssec_rrs_print(fd, rrset->rrsigs);
+        rrsigs_print(fd, rrset->rrsigs, 0);
     }
     return;
 }
@@ -753,8 +760,11 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
 void
 rrset_print_rrsig(FILE* fd, rrset_type* rrset)
 {
+    se_log_assert(fd);
+    se_log_assert(rrset);
+
     if (rrset->rrsigs) {
-        ldns_dnssec_rrs_print(fd, rrset->rrsigs);
+        rrsigs_print(fd, rrset->rrsigs, 1);
     }
     return;
 }
