@@ -159,13 +159,14 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
     int cmp = 0;
     ldns_dnssec_rrs *new_rrs = NULL;
     ldns_status status = LDNS_STATUS_OK;
-    uint32_t rr_ttl = ldns_rr_ttl(rr);
+    uint32_t rr_ttl = 0;
     uint32_t default_ttl = 0;
 
     se_log_assert(rrs);
     se_log_assert(rrs->rr);
     se_log_assert(rr);
 
+    rr_ttl = ldns_rr_ttl(rr);
     status = util_dnssec_rrs_compare(rrs->rr, rr, &cmp);
     if (status != LDNS_STATUS_OK) {
         return status;
