@@ -43,7 +43,7 @@
  *
  */
 key_type*
-key_create(const char* locator, uint32_t algorithm, uint32_t flags,
+key_create(const char* locator, uint8_t algorithm, uint32_t flags,
     int publish, int ksk, int zsk)
 {
     key_type* key = (key_type*) se_malloc(sizeof(key_type));
@@ -75,7 +75,7 @@ key_recover_from_backup(FILE* fd)
 {
     key_type* key = NULL;
     const char* locator = NULL;
-    uint32_t algorithm = 0;
+    uint8_t algorithm = 0;
     uint32_t flags = 0;
     int publish = 0;
     int ksk = 0;
@@ -85,7 +85,7 @@ key_recover_from_backup(FILE* fd)
     se_log_assert(fd);
 
     if (!backup_read_str(fd, &locator) ||
-        !backup_read_uint32_t(fd, &algorithm) ||
+        !backup_read_uint8_t(fd, &algorithm) ||
         !backup_read_uint32_t(fd, &flags) ||
         !backup_read_int(fd, &publish) ||
         !backup_read_int(fd, &ksk) ||

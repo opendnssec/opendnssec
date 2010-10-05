@@ -115,7 +115,7 @@ parse_sc_keys(const char* cfgfile)
                 curNode = curNode->next;
             }
             if (locator && algorithm && flags) {
-                new_key = key_create(locator, (uint32_t) atoi(algorithm),
+                new_key = key_create(locator, (uint8_t) atoi(algorithm),
                     (uint32_t) atoi(flags), publish, ksk, zsk);
                 if (keylist_add(kl, new_key) != 0) {
                     se_log_error("failed to add key %s to key list", locator);

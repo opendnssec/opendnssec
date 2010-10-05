@@ -54,7 +54,7 @@ struct key_struct {
     ldns_rr* dnskey;
     hsm_key_t* hsmkey;
     hsm_sign_params_t* params;
-    uint32_t algorithm;
+    uint8_t algorithm;
     uint32_t flags;
     int publish;
     int ksk;
@@ -83,7 +83,7 @@ struct keylist_struct {
  * \return key_type* key
  *
  */
-key_type* key_create(const char* locator, uint32_t algorithm, uint32_t flags,
+key_type* key_create(const char* locator, uint8_t algorithm, uint32_t flags,
     int publish, int ksk, int zsk);
 
 /**
