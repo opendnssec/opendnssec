@@ -197,6 +197,8 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
     char* finalized = NULL;
     char str[SYSTEM_MAXLEN];
     int error = 0;
+    time_t start = 0;
+    time_t end = 0;
 
     se_log_assert(zone);
     se_log_assert(zone->signconf);
@@ -225,6 +227,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             finalized?finalized:"(null)",
             zone->name?zone->name:"(null)");
 
+        start = time(NULL);
         se_log_debug("system call: %s", str);
         error = system(str);
         if (finalized) {
@@ -233,6 +236,8 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             }
             se_free((void*)finalized);
         }
+        end = time(NULL);
+        zone->stats->audit_time = (end-start);
     }
     return error;
 }
