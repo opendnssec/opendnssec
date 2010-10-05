@@ -112,10 +112,13 @@ int rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr);
  * Recover RRSIG from backup.
  * \param[in] rrset RRset
  * \param[in] rrsig RRSIG
+ * \param[in] locator key locator
+ * \param[in] flags key flags
  * \return 0 on success, 1 on error
  *
  */
-int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig);
+int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
+    const char* locator, uint32_t flags);
 
 /**
  * Sign RRset.

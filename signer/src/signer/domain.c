@@ -777,7 +777,7 @@ domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
  */
 int
 domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
-    ldns_rr_type type_covered)
+    ldns_rr_type type_covered, const char* locator, uint32_t flags)
 {
     rrset_type* rrset = NULL;
 
@@ -791,7 +791,8 @@ domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
     if (type_covered == LDNS_RR_TYPE_NSEC ||
         type_covered == LDNS_RR_TYPE_NSEC3) {
         if (domain->nsec_rrset) {
-            return rrset_recover_rrsig_from_backup(domain->nsec_rrset, rrsig);
+            return rrset_recover_rrsig_from_backup(domain->nsec_rrset, rrsig,
+                locator, flags);
         } else if (type_covered == LDNS_RR_TYPE_NSEC) {
             se_log_error("unable to recover RRSIG to domain: no NSEC RRset");
         } else {
@@ -800,7 +801,8 @@ domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
     } else {
         rrset = domain_lookup_rrset(domain, type_covered);
         if (rrset) {
-            return rrset_recover_rrsig_from_backup(rrset, rrsig);
+            return rrset_recover_rrsig_from_backup(rrset, rrsig,
+                locator, flags);
         } else {
             se_log_error("unable to recover RRSIG to domain: no such RRset");
         }

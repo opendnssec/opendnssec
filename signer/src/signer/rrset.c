@@ -242,7 +242,8 @@ rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr)
  *
  */
 int
-rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig)
+rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
+    const char* locator, uint32_t flags)
 {
     int error = 0;
 
@@ -253,7 +254,7 @@ rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig)
         rrset->rrsigs = rrsigs_create();
     }
 
-    error = rrsigs_add_sig(rrset->rrsigs, rrsig, NULL);
+    error = rrsigs_add_sig(rrset->rrsigs, rrsig, locator, flags);
     if (!error) {
         rrset->rrsig_count += 1;
     } else {
@@ -633,7 +634,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                     return 1;
                 }
                 /* add the signature to the RRset */
-                error = rrsigs_add_sig(rrset->rrsigs, rrsig, key);
+                error = rrsigs_add_sig(rrset->rrsigs, rrsig, key->locator,
+                    key->flags);
                 if (error) {
                     se_log_error("error adding RRSIG to RRset (%i): %s",
                         rrset->rr_type, ldns_get_errorstr_by_id(status));

@@ -1074,7 +1074,8 @@ zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr)
  *
  */
 int
-zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig)
+zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
+    const char* locator, uint32_t flags)
 {
     domain_type* domain = NULL;
     ldns_rr_type type_covered;
@@ -1090,7 +1091,8 @@ zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig)
         domain = zonedata_lookup_domain(zd, ldns_rr_owner(rrsig));
     }
     if (domain) {
-        return domain_recover_rrsig_from_backup(domain, rrsig, type_covered);
+        return domain_recover_rrsig_from_backup(domain, rrsig, type_covered,
+            locator, flags);
     }
     se_log_error("unable to recover RRSIG to zonedata: domain does not exist");
     return 1;

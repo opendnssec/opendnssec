@@ -58,11 +58,13 @@ rrsigs_type* rrsigs_create(void);
  * Add RRSIG to signature set.
  * \param[in] rrsigs signature set
  * \param[in] rr RRSIG record
- * \param[in] key key used to create this signature
+ * \param[in] locator key locator
+ * \param[in] flags key flags
  * \return int 0 on success, 1 on error
  *
  */
-int rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, key_type* key);
+int rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
+    uint32_t flags);
 
 /*
  * Clean up signature set.

@@ -175,10 +175,13 @@ int zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr);
  * Recover RRSIG from backup.
  * \param[in] zd zone data
  * \param[in] rrsig RRSIG to add
+ * \param[in] locator key locaotor
+ * \param[in] flags key flags
  * \return int 0 on success, 1 on false
  *
  */
-int zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig);
+int zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
+    const char* locator, uint32_t flags);
 
 /**
  * Delete RR from zone data.

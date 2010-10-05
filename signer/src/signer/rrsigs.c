@@ -62,7 +62,8 @@ rrsigs_create(void)
  *
  */
 int
-rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, key_type* key)
+rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
+    uint32_t flags)
 {
     int cmp;
     uint32_t default_ttl = 0;
@@ -75,10 +76,10 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, key_type* key)
 
     if (!rrsigs->rr) {
         rrsigs->rr = rr;
-        if (key) {
-            rrsigs->key_locator = se_strdup(key->locator);
-            rrsigs->key_flags = key->flags;
+        if (locator) {
+            rrsigs->key_locator = se_strdup(locator);
         }
+        rrsigs->key_flags = flags;
         return 0;
     }
 
@@ -89,10 +90,15 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, key_type* key)
 
     if (cmp < 0) {
         if (rrsigs->next) {
-            return rrsigs_add_sig(rrsigs->next, rr, key);
+            return rrsigs_add_sig(rrsigs->next, rr, locator, flags);
         } else {
             new_rrsigs = rrsigs_create();
             new_rrsigs->rr = rr;
+            if (locator) {
+                new_rrsigs->key_locator = se_strdup(locator);
+            }
+            new_rrsigs->key_flags = flags;
+
             rrsigs->next = new_rrsigs;
 
             default_ttl = ldns_rr_ttl(rrsigs->rr);
@@ -112,6 +118,10 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, key_type* key)
 
         rrsigs->rr = rr;
         rrsigs->next = new_rrsigs;
+        if (locator) {
+            rrsigs->key_locator = se_strdup(locator);
+        }
+        rrsigs->key_flags = flags;
 
         default_ttl = ldns_rr_ttl(new_rrsigs->rr);
         if (rr_ttl < default_ttl) {

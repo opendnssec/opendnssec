@@ -636,7 +636,6 @@ zone_sign(zone_type* zone)
     char* filename = NULL;
     time_t start = 0;
     time_t end = 0;
-    const char* end_rr = ". 3600 IN TXT end";
 
     se_log_assert(zone);
     se_log_assert(zone->signconf);
@@ -659,7 +658,6 @@ zone_sign(zone_type* zone)
         if (fd) {
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             zonedata_print_rrsig(fd, zone->zonedata);
-            fprintf(fd, "%s\n", end_rr);
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             se_fclose(fd);
         } else {
@@ -790,6 +788,9 @@ static int
 zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
 {
     int corrupted = 0;
+    const char* token = NULL;
+    const char* locator = NULL;
+    uint32_t flags = 0;
     ldns_rr* rr = NULL;
     ldns_status status = LDNS_STATUS_OK;
 
@@ -798,19 +799,46 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
     }
 
     while (!corrupted) {
-        status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-        if (status != LDNS_STATUS_OK) {
-            se_log_error("error reading RRSIG from backup");
+        if (backup_read_str(fd, &token)) {
+
+            if (se_strcmp(token, ";RRSIG") == 0) {
+                if (!backup_read_str(fd, &locator) ||
+                    !backup_read_int(fd, &flags)) {
+
+                    se_log_error("error reading key credentials from backup");
+                    corrupted = 1;
+                } else {
+                    status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
+                   if (status != LDNS_STATUS_OK) {
+                       se_log_error("error reading RRSIG from backup");
+                       corrupted = 1;
+                    } else if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
+                       se_log_error("expecting RRtype RRSIG from backup");
+                       corrupted = 1;
+                    } else {
+                       corrupted = zonedata_recover_rrsig_from_backup(
+                           zone->zonedata, rr, locator, flags);
+                    }
+                }
+            } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+                break;
+            } else {
+                corrupted = 1;
+            }
+        } else {
             corrupted = 1;
-        } else if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_RRSIG) {
-            corrupted = zonedata_recover_rrsig_from_backup(zone->zonedata, rr);
-        } else if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_TXT) {
-            /* perhaps check more? owner = '.', rdata = "end" */
-            break;
         }
+
+        /* reset */
+        if (locator) {
+            se_free((void*) locator);
+            locator = NULL;
+        }
+        flags = 0;
+        status = LDNS_STATUS_OK;
     }
 
-    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+    if (!corrupted && !backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
         corrupted = 1;
     }
     return corrupted;

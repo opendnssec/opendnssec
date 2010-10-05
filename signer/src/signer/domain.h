@@ -215,11 +215,13 @@ int domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr);
  * \param[in] domain domain
  * \param[in] rrsig RRSIG
  * \param[in] type_covered RRtype that is covered by rrsig
+ * \param[in] locator key locator
+ * \param[in] flags key flags
  * \return int 0 on success, 1 on error
  *
  */
 int domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
-    ldns_rr_type type_covered);
+    ldns_rr_type type_covered, const char* locator, uint32_t flags);
 
 /**
  * Delete RR from domain.
