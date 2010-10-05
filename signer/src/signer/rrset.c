@@ -440,8 +440,17 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     uint32_t refresh = 0;
     uint32_t expiration = 0;
     uint32_t inception = 0;
+    int drop_sigs = 0;
+    key_type* key = NULL;
 
-    if (rrset->drop_signatures) {
+    if (sc && sc->sig_refresh_interval) {
+        refresh = (uint32_t) (signtime +
+            duration2time(sc->sig_refresh_interval));
+    }
+
+    /* 1. If the RRset has changed, drop all signatures */
+    /* 2. If Refresh is disabled, drop all signatures */
+    if (rrset->drop_signatures || !refresh) {
         se_log_debug("drop signatures for RRset[%i]", rrset->rr_type);
         if (rrset->rrsigs) {
             rrsigs_cleanup(rrset->rrsigs);
@@ -452,12 +461,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
         return 0;
     }
 
-    if (sc && sc->sig_refresh_interval) {
-        refresh = (uint32_t) (signtime +
-            duration2time(sc->sig_refresh_interval));
-    }
-
-    /* check freshness of existing signatures */
+    /* 3. Check every signature if it matches the recycling logic. */
     rrsigs = rrset->rrsigs;
     while (rrsigs) {
         expiration = ldns_rdf2native_int32(
@@ -465,10 +469,23 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
         inception = ldns_rdf2native_int32(
             ldns_rr_rrsig_inception(rrsigs->rr));
 
-        if (/* Refresh is 0 */ !refresh ||
-            /* Expiration - Refresh has passed */ expiration < refresh ||
-            /* Inception has not passed */ inception > (uint32_t) signtime) {
+        if (expiration < refresh) {
+            /* 3a. Expiration - Refresh has passed */
+            drop_sigs = 1;
+        } else if (inception > (uint32_t) signtime) {
+            /* 3b. Inception has not yet passed */
+        } else {
+            /* 3c. Corresponding key is dead */
+            key = keylist_lookup(sc->keys, rrsigs->key_locator);
+            if (!key) {
+                drop_sigs = 1;
+            } else if (key->flags != rrsigs->key_flags) {
+                drop_sigs = 1;
+            }
+        }
 
+        if (drop_sigs) {
+            /* A rule mismatched, refresh signature */
             se_log_deeebug("refresh signature for RRset[%i] (refresh=%u, "
                 "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
                 refresh, (uint32_t) signtime, inception, expiration);
@@ -483,6 +500,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             ldns_rr_free(rrsigs->rr);
             se_free((void*)rrsigs);
         } else {
+            /* A rule mismatched, refresh signature */
             se_log_deeebug("recycle signature for RRset[%i] (refresh=%u, "
                 "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
                 refresh, (uint32_t) signtime, inception, expiration);
