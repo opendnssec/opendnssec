@@ -472,24 +472,33 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
         if (expiration < refresh) {
             /* 3a. Expiration - Refresh has passed */
             drop_sig = 1;
+            se_log_deeebug("refresh signature for RRset[%i]: expiration minus "
+                "refresh has passed: %u - %u < (signtime)",
+                rrset->rr_type, expiration, refresh, (uint32_t) signtime);
         } else if (inception > (uint32_t) signtime) {
             /* 3b. Inception has not yet passed */
+            drop_sig = 1;
+            se_log_deeebug("refresh signature for RRset[%i]: inception has "
+                "not passed: %u < %u (signtime)",
+                rrset->rr_type, inception, (uint32_t) signtime);
         } else {
             /* 3c. Corresponding key is dead */
             key = keylist_lookup(sc->keys, rrsigs->key_locator);
             if (!key) {
                 drop_sig = 1;
+                se_log_deeebug("refresh signature for RRset[%i]: key %s %u "
+                "is dead",
+                rrset->rr_type, rrsigs->key_locator, rrsigs->key_flags);
             } else if (key->flags != rrsigs->key_flags) {
                 drop_sig = 1;
+                se_log_deeebug("refresh signature for RRset[%i]: key %s %u "
+                "flags mismatch",
+                rrset->rr_type, rrsigs->key_locator, rrsigs->key_flags);
             }
         }
 
         if (drop_sig) {
             /* A rule mismatched, refresh signature */
-            se_log_deeebug("refresh signature for RRset[%i] (refresh=%u, "
-                "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
-                refresh, (uint32_t) signtime, inception, expiration);
-
             if (prev_rrsigs) {
                 prev_rrsigs->next = rrsigs->next;
             } else {
