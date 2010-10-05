@@ -803,7 +803,7 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
 
             if (se_strcmp(token, ";RRSIG") == 0) {
                 if (!backup_read_str(fd, &locator) ||
-                    !backup_read_int(fd, &flags)) {
+                    !backup_read_uint32_t(fd, &flags)) {
 
                     se_log_error("error reading key credentials from backup");
                     corrupted = 1;
