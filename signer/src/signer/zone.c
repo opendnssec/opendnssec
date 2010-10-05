@@ -881,6 +881,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     se_free((void*)filename);
     if (fd) {
         error = zonedata_recover_from_backup(zone->zonedata, fd);
+        se_fclose(fd);
         if (error) {
             se_log_error("unable to recover denial of existence from file "
             "%s.denial: file corrupted", zone->name);
@@ -918,7 +919,6 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     filename = se_build_path(zone->name, ".dnskeys", 0);
     fd = se_fopen(filename, NULL, "r");
     se_free((void*)filename);
-
     if (fd) {
         error = zone_recover_dnskeys_from_backup(zone, fd);
         se_fclose(fd);
@@ -957,9 +957,6 @@ abort_recover:
     filename = se_build_path(zone->name, ".task", 0);
     zone->task = task_recover_from_backup((const char*) filename, zone);
     se_free((void*)filename);
-    if (error) {
-        zone->task->what = TASK_READ;
-    }
 
     if (!zone->task) {
         now = time_now();
@@ -968,6 +965,10 @@ abort_recover:
     if (!zone->task) {
         se_log_error("failed to create task for zone %s", zone->name);
     } else {
+        if (error) {
+            zone->task->what = TASK_READ;
+        }
+
         task = tasklist_schedule_task(tl, zone->task, 1);
     }
 
