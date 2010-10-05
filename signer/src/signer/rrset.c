@@ -440,7 +440,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     uint32_t refresh = 0;
     uint32_t expiration = 0;
     uint32_t inception = 0;
-    int drop_sigs = 0;
+    int drop_sig = 0;
     key_type* key = NULL;
 
     if (sc && sc->sig_refresh_interval) {
@@ -471,20 +471,20 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
 
         if (expiration < refresh) {
             /* 3a. Expiration - Refresh has passed */
-            drop_sigs = 1;
+            drop_sig = 1;
         } else if (inception > (uint32_t) signtime) {
             /* 3b. Inception has not yet passed */
         } else {
             /* 3c. Corresponding key is dead */
             key = keylist_lookup(sc->keys, rrsigs->key_locator);
             if (!key) {
-                drop_sigs = 1;
+                drop_sig = 1;
             } else if (key->flags != rrsigs->key_flags) {
-                drop_sigs = 1;
+                drop_sig = 1;
             }
         }
 
-        if (drop_sigs) {
+        if (drop_sig) {
             /* A rule mismatched, refresh signature */
             se_log_deeebug("refresh signature for RRset[%i] (refresh=%u, "
                 "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
@@ -569,6 +569,31 @@ rrset_sign_set_timers(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
 
 
 /**
+ * See if there exists a signature with this algorithm.
+ *
+ */
+static int
+rrset_signed_with_algorithm(rrset_type* rrset, uint8_t algorithm)
+{
+    rrsigs_type* rrsigs = NULL;
+
+    if (!rrset || !algorithm) {
+        return 0;
+    }
+
+    rrsigs = rrset->rrsigs;
+    while (rrsigs) {
+        if (rrsigs->rr && algorithm ==
+            ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsigs->rr))) {
+            return 1;
+        }
+        rrsigs = rrsigs->next;
+    }
+
+    return 0;
+}
+
+/**
  * Convert RRset to RR list.
  *
  */
@@ -608,6 +633,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats)
 {
     int error = 0;
+    uint8_t signed_with = 0;
     uint32_t newsigs = 0;
     uint32_t reusedsigs = 0;
     ldns_status status = LDNS_STATUS_OK;
@@ -622,55 +648,74 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     se_log_assert(stats);
 
     if (DNS_SERIAL_GT(serial, rrset->outbound_serial)) {
+        /* drop unrecyclable signatures */
         error = rrset_recycle_rrsigs(rrset, sc, signtime, &reusedsigs);
-        if (!rrset->rrsigs) { /* TODO signature creating revised */
-            rrset->rrsigs = rrsigs_create();
 
-            rr_list = rrset2rrlist(rrset);
-            if (!rr_list) {
-                se_log_error("error signing rrset[%i], cannot convert to rr "
-                    "list", rrset->rr_type);
+        /* prepare for signing */
+        if (!rrset->rrsigs) {
+            rrset->rrsigs = rrsigs_create();
+        }
+        rr_list = rrset2rrlist(rrset);
+        if (!rr_list) {
+            se_log_error("error signing rrset[%i], cannot convert to rr "
+                "list", rrset->rr_type);
+            return 1;
+        }
+        rrset_sign_set_timers(sc, rrset->rr_type, signtime,
+             &inception, &expiration);
+
+        key = sc->keys->first_key;
+        while (key) {
+            /* ksk or zsk ? */
+            if ((!key->zsk && rrset->rr_type != LDNS_RR_TYPE_DNSKEY) ||
+                (!key->ksk && rrset->rr_type == LDNS_RR_TYPE_DNSKEY)) {
+                key = key->next;
+                continue;
+            }
+
+            /* is there a signature with this algorithm already? */
+            if (signed_with == key->algorithm ||
+                rrset_signed_with_algorithm(rrset, key->algorithm)) {
+
+                signed_with = key->algorithm;
+                key = key->next;
+                continue;
+            }
+
+            /**
+             * currently, there is no rule that the number of signatures
+             * over this RRset equals the number of active keys.
+             */
+
+            /* sign the RRset with current key */
+            rrsig = hsm_sign_rrset_with_key(ctx, owner, key, rr_list,
+                 inception, expiration);
+            if (!rrsig) {
+                se_log_error("error creating RRSIG for rrset[%i]",
+                    rrset->rr_type);
+                ldns_rr_list_free(rr_list);
                 return 1;
             }
-            rrset_sign_set_timers(sc, rrset->rr_type, signtime,
-                 &inception, &expiration);
-            key = sc->keys->first_key;
-            while (key) {
-                /* ksk or zsk ? */
-                if ((!key->zsk && rrset->rr_type != LDNS_RR_TYPE_DNSKEY) ||
-                    (!key->ksk && rrset->rr_type == LDNS_RR_TYPE_DNSKEY)) {
-                    key = key->next;
-                    continue;
-                }
-                /* sign the RRset with current key */
-                rrsig = hsm_sign_rrset_with_key(ctx, owner, key, rr_list,
-                     inception, expiration);
-                if (!rrsig) {
-                    se_log_error("error creating RRSIG for rrset[%i]",
-                        rrset->rr_type);
-                    ldns_rr_list_free(rr_list);
-                    return 1;
-                }
-                /* add the signature to the RRset */
-                error = rrsigs_add_sig(rrset->rrsigs, rrsig, key->locator,
-                    key->flags);
-                if (error) {
-                    se_log_error("error adding RRSIG to RRset (%i): %s",
-                        rrset->rr_type, ldns_get_errorstr_by_id(status));
-                    rrset_log_rr(rrsig, "+RRSIG", 1);
-                    ldns_rr_list_free(rr_list);
-                    return 1;
-                }
-                rrset_log_rr(rrsig, "+RRSIG", 6);
-                rrset->rrsig_count += 1;
-                newsigs++;
-                /* next key */
-                key = key->next;
+            /* add the signature to the RRset */
+            error = rrsigs_add_sig(rrset->rrsigs, rrsig, key->locator,
+                key->flags);
+            if (error) {
+                se_log_error("error adding RRSIG to RRset (%i): %s",
+                    rrset->rr_type, ldns_get_errorstr_by_id(status));
+                rrset_log_rr(rrsig, "+RRSIG", 1);
+                ldns_rr_list_free(rr_list);
+                return 1;
             }
-            ldns_rr_list_free(rr_list);
-        } else {
-            se_log_debug("recycle signatures RRset[%i]", rrset->rr_type);
+            rrset_log_rr(rrsig, "+RRSIG", 6);
+            rrset->rrsig_count += 1;
+            newsigs++;
+            /* next key */
+            key = key->next;
         }
+
+        /* clean up */
+        ldns_rr_list_free(rr_list);
+
         rrset->outbound_serial = serial;
     } else {
         se_log_warning("not signing RRset[%i]: up to date", rrset->rr_type);
