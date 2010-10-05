@@ -135,6 +135,16 @@ int keylist_add(keylist_type* kl, key_type* key);
 int key_compare(key_type* a, key_type* b);
 
 /**
+ * Lookup a key in the key list by locator.
+ * \param[in] kl key list
+ * \param[in] locator  key locator
+ * \return key_type* key if it exists, NULL otherwise
+ *
+ */
+key_type* keylist_lookup(keylist_type* kl, const char* locator);
+
+
+/**
  * Delete a key from the keylist.
  * \param[in] kl key list
  * \param[in] key key

@@ -278,6 +278,30 @@ keylist_delete(keylist_type* kl, key_type* key)
 
 
 /**
+ * Lookup a key in the key list by locator.
+ *
+ */
+key_type*
+keylist_lookup(keylist_type* list, const char* locator)
+{
+    key_type* search = NULL;
+    size_t i = 0;
+
+    if (!list || !locator) {
+        return NULL;
+    }
+
+    search = list->first_key;
+    for (i=0; i < list->count; i++) {
+        if (search && se_strcmp(search->locator, locator) == 0) {
+            return search;
+        }
+    }
+    return NULL;
+}
+
+
+/**
  * Compare two key lists.
  *
  */
