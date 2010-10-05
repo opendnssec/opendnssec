@@ -75,6 +75,7 @@ module KASPAuditor
       @key_tracker = nil
       @key_cache = nil
       @unknown_nsecs = {}
+      @empty_nonterminals = []
     end
     attr_reader :config
     def set_config(c) # :nodoc: all
@@ -899,7 +900,11 @@ module KASPAuditor
       while (last.labels.length > name_to_check_against.labels.length + 1)
         # Add the empty nonterminal to the list
         last.labels = last.labels[1,last.labels.length]
-        empty_nonterminals.push(last.clone)
+        if (!@empty_nonterminals.include?last)
+          empty_nonterminals.push(last.clone)
+          @empty_nonterminals.push(last.clone)
+        end
+
       end
 
       # If so, should it be covered by an NSEC3 record?
