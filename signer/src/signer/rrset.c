@@ -642,7 +642,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats)
 {
     int error = 0;
-    uint8_t signed_with = 0;
     uint32_t newsigs = 0;
     uint32_t reusedsigs = 0;
     ldns_rr* rrsig = NULL;
@@ -678,17 +677,24 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         key = sc->keys->first_key;
         while (key) {
             /* ksk or zsk ? */
-            if ((!key->zsk && rrset->rr_type != LDNS_RR_TYPE_DNSKEY) ||
-                (!key->ksk && rrset->rr_type == LDNS_RR_TYPE_DNSKEY)) {
+            if (!key->zsk && rrset->rr_type != LDNS_RR_TYPE_DNSKEY) {
+                se_log_deeebug("skipping key %s for signing RRset[%i]: no "
+                    "active ZSK", key->locator, rrset->rr_type);
+                key = key->next;
+                continue;
+            }
+
+            if (!key->ksk && rrset->rr_type == LDNS_RR_TYPE_DNSKEY) {
+                se_log_deeebug("skipping key %s for signing RRset[DNSKEY]: no "
+                    "active KSK", key->locator);
                 key = key->next;
                 continue;
             }
 
             /* is there a signature with this algorithm already? */
-            if (signed_with != key->algorithm ||
-                rrset_signed_with_algorithm(rrset, key->algorithm)) {
-
-                signed_with = key->algorithm;
+            if (rrset_signed_with_algorithm(rrset, key->algorithm)) {
+                se_log_debug("skipping key %s for signing: RRset[%i] already "
+                    "has signature with same algorithm", key->locator);
                 key = key->next;
                 continue;
             }
@@ -699,6 +705,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
              */
 
             /* sign the RRset with current key */
+            se_log_deeebug("signing RRset[%i] with key %s",
+                rrset->rr_type, key->locator);
             rrsig = hsm_sign_rrset_with_key(ctx, owner, key, rr_list,
                  inception, expiration);
             if (!rrsig) {
@@ -709,6 +717,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                 return 1;
             }
             /* add the signature to the set of new signatures */
+            se_log_deeebug("new signature created for RRset[%i]",
+                rrset->rr_type);
+            rrset_log_rr(rrsig, "+RRSIG", 6);
             error = rrsigs_add_sig(new_rrsigs, rrsig, key->locator,
                 key->flags);
             if (error) {
@@ -727,6 +738,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         walk_rrsigs = new_rrsigs;
         while (walk_rrsigs) {
             if (walk_rrsigs->rr) {
+                se_log_deeebug("adding signature to RRset[%i]",
+                    rrset->rr_type);
+                rrset_log_rr(rrsig, "+RRSIG", 6);
                 error = rrsigs_add_sig(rrset->rrsigs,
                     ldns_rr_clone(walk_rrsigs->rr),
                     walk_rrsigs->key_locator, walk_rrsigs->key_flags);
@@ -741,6 +755,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                 rrset->rrsig_count += 1;
                 rrset_log_rr(walk_rrsigs->rr, "+RRSIG", 6);
                 newsigs++;
+            } else {
+                se_log_deeebug("signature set is missing RRSIG record");
             }
             walk_rrsigs = walk_rrsigs->next;
         }
