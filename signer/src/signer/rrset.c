@@ -727,7 +727,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         walk_rrsigs = new_rrsigs;
         while (walk_rrsigs) {
             if (walk_rrsigs->rr) {
-                error = rrsigs_add_sig(rrset->rrsigs, walk_rrsigs->rr,
+                error = rrsigs_add_sig(rrset->rrsigs,
+                    ldns_rr_clone(walk_rrsigs->rr),
                     walk_rrsigs->key_locator, walk_rrsigs->key_flags);
                 if (error) {
                     se_log_error("error adding RRSIG to RRset[%i]",
@@ -737,9 +738,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                     rrsigs_cleanup(new_rrsigs);
                     return 1;
                 }
-                /* this RRSIG is now in the RRset, don't clean it up */
-                walk_rrsigs->rr = NULL;
-
                 rrset->rrsig_count += 1;
                 rrset_log_rr(walk_rrsigs->rr, "+RRSIG", 6);
                 newsigs++;
