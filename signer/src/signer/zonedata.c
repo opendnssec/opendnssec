@@ -480,6 +480,7 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
     int ent2unsigned_deleg = 0;
     ldns_rdf* parent_rdf = NULL;
     domain_type* parent_domain = NULL;
+    char* str = NULL;
 
     se_log_assert(apex);
     se_log_assert(domain);
@@ -500,6 +501,9 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
 
     while (domain && ldns_dname_is_subdomain(domain->name, apex) &&
            ldns_dname_compare(domain->name, apex) != 0) {
+
+        str = ldns_rdf2str(domain->name);
+
         /**
          * RFC5155:
          * 4. If the difference in number of labels between the apex and
@@ -509,16 +513,20 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
          */
         parent_rdf = ldns_dname_left_chop(domain->name);
         if (!parent_rdf) {
-            se_log_error("unable to create parent domain name (rdf)");
+            se_log_error("entize: unable to create parent rdf for %s", str);
+            se_free((void*)str);
             return 1;
         }
 
         parent_domain = zonedata_lookup_domain(zd, parent_rdf);
         if (!parent_domain) {
+            se_log_deeebug("create parent domain for %s", str);
             parent_domain = domain_create(parent_rdf);
+            se_log_deeebug("add parent domain to %s", str);
             parent_domain = zonedata_add_domain(zd, parent_domain);
             if (!parent_domain) {
-                se_log_error("unable to add parent domain");
+                se_log_error("unable to add parent domain to %s", str);
+                se_free((void*)str);
                 return 1;
             }
             parent_domain->domain_status =
@@ -533,6 +541,7 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
             /* continue with the parent domain */
             domain = parent_domain;
         } else {
+            se_log_deeebug("entize domain %s", str);
             ldns_rdf_deep_free(parent_rdf);
             parent_domain->internal_serial = domain->internal_serial;
             parent_domain->subdomain_count += 1;
@@ -549,6 +558,7 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
             /* done */
             domain = NULL;
         }
+        se_free((void*)str);
     }
     return 0;
 }
@@ -985,11 +995,16 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
             return 1;
         }
         node = ldns_rbtree_next(node);
+
         /* delete memory of domain if no RRsets exists */
+        /* if this domain is now an empty non-terminal, don't delete */
+
+/*
         if (domain_count_rrset(domain) <= 0 &&
             (domain->domain_status != DOMAIN_STATUS_ENT_AUTH &&
              domain->domain_status != DOMAIN_STATUS_ENT_NS &&
              domain->domain_status != DOMAIN_STATUS_ENT_GLUE)) {
+
             parent = domain->parent;
             se_log_deeebug("obsoleted domain: #rrset=%i, status=%i",
                 domain_count_rrset(domain), domain->domain_status);
@@ -1008,6 +1023,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
                 }
             }
         }
+*/
     }
     return 0;
 }
