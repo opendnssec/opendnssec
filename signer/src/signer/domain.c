@@ -688,6 +688,14 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
             node = ldns_rbtree_next(node);
             continue;
         }
+        /* skip glue at the delegation */
+        if ((domain->domain_status == DOMAIN_STATUS_DS ||
+             domain->domain_status == DOMAIN_STATUS_NS) &&
+            (rrset->rr_type == LDNS_RR_TYPE_A ||
+             rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
+            node = ldns_rbtree_next(node);
+            continue;
+        }
 
         if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
             rrset->rrs->rr) {
