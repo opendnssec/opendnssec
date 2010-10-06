@@ -837,10 +837,6 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
         flags = 0;
         status = LDNS_STATUS_OK;
     }
-
-    if (!corrupted && !backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
-        corrupted = 1;
-    }
     return corrupted;
 }
 
