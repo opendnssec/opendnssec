@@ -70,9 +70,10 @@ tools_read_input(zone_type* zone)
         case ADAPTER_FILE:
             se_log_verbose("read zone %s from input file adapter %s",
                 zone->name?zone->name:"(null)",
-                zone->inbound_adapter->filename?zone->inbound_adapter->filename:"(null)");
+                zone->inbound_adapter->filename ?
+                zone->inbound_adapter->filename:"(null)");
 
-            tmpname = se_build_path(zone->name, ".unsorted", 0);
+            tmpname = se_build_path(zone->name, ".inbound", 0);
             error = se_file_copy(zone->inbound_adapter->filename, tmpname);
             if (!error) {
                 error = adfile_read(zone, tmpname, 0);
@@ -81,15 +82,14 @@ tools_read_input(zone_type* zone)
             break;
         case ADAPTER_UNKNOWN:
         default:
-            se_log_error("read zone %s failed: unknown inbound adapter type %i",
-                zone->name?zone->name:"(null)",
+            se_log_error("read zone %s failed: unknown inbound adapter type "
+                "%i", zone->name?zone->name:"(null)",
                 (int) zone->inbound_adapter->type);
             error = 1;
             break;
     }
     end = time(NULL);
     zone->stats->sort_time = (end-start);
-
     if (!error) {
         zone_backup_state(zone);
     }
@@ -104,11 +104,16 @@ tools_read_input(zone_type* zone)
 int
 tools_add_dnskeys(zone_type* zone)
 {
+    int error = 0;
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_verbose("publish dnskeys to zone %s",
         zone->name?zone->name:"(null)");
-    return zone_add_dnskeys(zone);
+    error = zone_add_dnskeys(zone);
+    if (!error) {
+        zone_backup_state(zone);
+    }
+    return error;
 }
 
 /**
@@ -119,7 +124,6 @@ int
 tools_update(zone_type* zone)
 {
     int error = 0;
-
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_verbose("update zone %s", zone->name?zone->name:"(null)");
@@ -141,7 +145,6 @@ tools_nsecify(zone_type* zone)
     int error = 0;
     time_t start = 0;
     time_t end = 0;
-
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->stats);
@@ -150,7 +153,6 @@ tools_nsecify(zone_type* zone)
     if (!zone->stats->start_time) {
         zone->stats->start_time = start;
     }
-
     error = zone_nsecify(zone);
     end = time(NULL);
     zone->stats->nsec_time = (end-start);
@@ -168,7 +170,6 @@ tools_sign(zone_type* zone)
     int error = 0;
     time_t start = 0;
     time_t end = 0;
-
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->stats);
@@ -199,7 +200,6 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
     int error = 0;
     time_t start = 0;
     time_t end = 0;
-
     se_log_assert(zone);
     se_log_assert(zone->signconf);
 
@@ -208,7 +208,6 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             zone->name?zone->name:"(null)");
         return 0;
     }
-
     if (zone->signconf->audit) {
         se_log_verbose("audit zone %s", zone->name?zone->name:"(null)");
         finalized = se_build_path(zone->name, ".finalized", 0);
@@ -252,7 +251,6 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
 int tools_write_output(zone_type* zone)
 {
     int error = 0;
-
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->outbound_adapter);
@@ -264,7 +262,6 @@ int tools_write_output(zone_type* zone)
         stats_clear(zone->stats);
         return 0;
     }
-
     se_log_verbose("write zone %s", zone->name?zone->name:"(null)");
 
     switch (zone->outbound_adapter->type) {
@@ -279,7 +276,6 @@ int tools_write_output(zone_type* zone)
             error = 1;
             break;
     }
-
     /* kick the nameserver */
     if (zone->notify_ns) {
         se_log_verbose("notify nameserver: %s", zone->notify_ns);
@@ -288,7 +284,6 @@ int tools_write_output(zone_type* zone)
            se_log_error("failed to notify nameserver");
         }
     }
-
     /* log stats */
     zone->stats->end_time = time(NULL);
     se_log_debug("log stats for zone %s", zone->name?zone->name:"(null)");
