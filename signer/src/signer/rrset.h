@@ -46,6 +46,8 @@ typedef struct rrset_struct rrset_type;
 struct rrset_struct {
     ldns_rr_type rr_type;
     uint32_t rr_count;
+    uint32_t add_count;
+    uint32_t del_count;
     uint32_t rrsig_count;
     uint32_t internal_serial;
     uint32_t outbound_serial;
@@ -150,6 +152,22 @@ int rrset_del_rrs(rrset_type* rrset);
  *
  */
 int rrset_count_rr(rrset_type* rrset);
+
+/**
+ * Return the number of pending added RRs in RRset.
+ * \param[in] rrset RRset
+ * \return number of pending added RRs
+ *
+ */
+int rrset_count_add(rrset_type* rrset);
+
+/**
+ * Return the number of pending deleted RRs in RRset.
+ * \param[in] rrset RRset
+ * \return number of pending deleted RRs
+ *
+ */
+int rrset_count_del(rrset_type* rrset);
 
 /**
  * Clean up RRset.

@@ -54,6 +54,8 @@ rrset_create(ldns_rr_type rrtype)
     rrset->rr_type = rrtype;
     rrset->rr_count = 0;
     rrset->rrsig_count = 0;
+    rrset->add_count = 0;
+    rrset->del_count = 0;
     rrset->internal_serial = 0;
     rrset->outbound_serial = 0;
     rrset->rrs = ldns_dnssec_rrs_new();
@@ -76,6 +78,8 @@ rrset_create_frm_rr(ldns_rr* rr)
     se_log_assert(rr);
     rrset->rr_type = ldns_rr_get_type(rr);
     rrset->rr_count = 1;
+    rrset->add_count = 0;
+    rrset->del_count = 0;
     rrset->rrsig_count = 0;
     rrset->internal_serial = 0;
     rrset->outbound_serial = 0;
@@ -169,6 +173,7 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
     if (!rrset->rrs->rr) {
         rrset->rrs->rr = rr;
         rrset->rr_count += 1;
+        rrset->add_count -= 1;
         rrset_log_rr(rr, "+RR", 6);
         return LDNS_STATUS_OK;
     } else {
@@ -188,8 +193,10 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
         }
         rrset_log_rr(rr, "+RR", 6);
         rrset->rr_count += 1;
+        rrset->add_count -= 1;
         return LDNS_STATUS_OK;
     }
+    /* not reached */
     return LDNS_STATUS_ERR;
 }
 
@@ -198,7 +205,7 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
  * Delete pending RR.
  *
  */
-static int
+static void
 rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
 {
     ldns_dnssec_rrs* rrs = NULL;
@@ -216,13 +223,18 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
             }
             ldns_rr_free(rrs->rr);
             se_free((void*)rrs);
+            rrset->rr_count -= 1;
+            rrset->del_count -= 1;
             rrset_log_rr(rr, "-RR", 6);
-            return 1;
+            return;
         }
         prev_rrs = rrs;
         rrs = rrs->next;
     }
-    return 0;
+    se_log_warning("error deleting RR from RRset (%i): does not exist",
+        rrset->rr_type);
+    rrset_log_rr(rr, "-RR", 2);
+    return;
 }
 
 
@@ -288,8 +300,7 @@ int
 rrset_update(rrset_type* rrset, uint32_t serial)
 {
     ldns_dnssec_rrs* rrs = NULL;
-    int addcount = 0;
-    int delcount = 0;
+    ldns_status status = LDNS_STATUS_OK;
 
     se_log_assert(rrset);
     se_log_assert(serial);
@@ -304,25 +315,32 @@ rrset_update(rrset_type* rrset, uint32_t serial)
         rrs = rrset->del;
         while (rrs) {
             if (rrs->rr) {
-                delcount = rrset_del_pending_rr(rrset, rrs->rr);
+                rrset_del_pending_rr(rrset, rrs->rr);
             }
             rrs = rrs->next;
         }
         ldns_dnssec_rrs_deep_free(rrset->del);
         rrset->del = NULL;
+        rrset->del_count = 0;
 
         /* add RRs */
         rrs = rrset->add;
         while (rrs) {
             if (rrs->rr) {
-                addcount = rrset_add_pending_rr(rrset, rrs->rr);
+                status = rrset_add_pending_rr(rrset, rrs->rr);
+                if (status != LDNS_STATUS_OK) {
+                    se_log_alert("update RRset[%i] to serial %u failed",
+                        rrset->rr_type, serial);
+                    return 1;
+                }
             }
             rrs = rrs->next;
         }
         ldns_dnssec_rrs_free(rrset->add);
         rrset->add = NULL;
-        rrset->rr_count = rrset->rr_count + addcount;
-        rrset->rr_count = rrset->rr_count - delcount;
+        rrset->add_count = 0;
+
+        /* update serial */
         rrset->internal_serial = serial;
     }
     return 0;
@@ -338,6 +356,28 @@ rrset_count_rr(rrset_type* rrset)
 {
     se_log_assert(rrset);
     return rrset->rr_count;
+}
+
+/**
+ * Return the number of pending added RRs in RRset.
+ *
+ */
+int
+rrset_count_add(rrset_type* rrset)
+{
+    se_log_assert(rrset);
+    return rrset->add_count;
+}
+
+/**
+ * Return the number of pending deleted RRs in RRset.
+ *
+ */
+int
+rrset_count_del(rrset_type* rrset)
+{
+    se_log_assert(rrset);
+    return rrset->del_count;
 }
 
 
@@ -360,6 +400,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
 
     if (!rrset->add->rr) {
         rrset->add->rr = rr;
+        rrset->add_count = 1;
         rrset_log_rr(rr, "+rr", 6);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->add, rr);
@@ -375,9 +416,11 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
                 rrset_log_rr(rr, "+rr", 1);
                 ldns_dnssec_rrs_deep_free(rrset->add);
                 rrset->add = NULL;
+                rrset->add_count = 0;
                 return 1;
             }
         }
+        rrset->add_count += 1;
         rrset_log_rr(rr, "+rr", 6);
     }
     return 0;
@@ -403,6 +446,7 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
 
     if (!rrset->del->rr) {
         rrset->del->rr = rr;
+        rrset->del_count = 1;
         rrset_log_rr(rr, "-rr", 6);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->del, rr);
@@ -418,9 +462,11 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
                 rrset_log_rr(rr, "-rr", 1);
                 ldns_dnssec_rrs_deep_free(rrset->del);
                 rrset->del = NULL;
+                rrset->del_count = 0;
                 return 1;
             }
         }
+        rrset->del_count += 1;
         rrset_log_rr(rr, "-rr", 6);
     }
     return 0;
