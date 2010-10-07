@@ -128,8 +128,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                         current_domain->parent =
                             zonedata_lookup_domain(zd, parent_rdf);
                         se_log_assert(current_domain->parent ||
-                            current_domain->domain_status == DOMAIN_STATUS_APEX ||
-                            current_domain->domain_status == DOMAIN_STATUS_STRAY);
+                            current_domain->domain_status == DOMAIN_STATUS_APEX);
 
                         new_node = domain2node(current_domain);
                         if (!zd->domains) {
@@ -649,7 +648,6 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
         /* don't do glue-only or empty domains */
         if (domain->domain_status == DOMAIN_STATUS_NONE ||
             domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
-            domain->domain_status == DOMAIN_STATUS_STRAY ||
             domain_count_rrset(domain) <= 0) {
             node = ldns_rbtree_next(node);
             continue;
@@ -668,7 +666,6 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
             /* don't do glue-only or empty domains */
             if (to->domain_status == DOMAIN_STATUS_NONE ||
                 to->domain_status == DOMAIN_STATUS_OCCLUDED ||
-                to->domain_status == DOMAIN_STATUS_STRAY ||
                 domain_count_rrset(to) <= 0) {
                 node = ldns_rbtree_next(node);
             } else {
@@ -719,7 +716,6 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         /* don't do glue-only domains */
         if (domain->domain_status == DOMAIN_STATUS_NONE ||
             domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
-            domain->domain_status == DOMAIN_STATUS_STRAY ||
             domain->domain_status == DOMAIN_STATUS_ENT_GLUE) {
             str = ldns_rdf2str(domain->name);
             se_log_debug("nsecify3: skip glue domain %s", str?str:"(null)");
@@ -959,6 +955,44 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
 
 
 /**
+ * Examine zone data.
+ *
+ */
+int
+zonedata_examine(zonedata_type* zd)
+{
+    int error = 0;
+    int result = 0;
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
+
+    se_log_assert(zd);
+    se_log_assert(zd->domains);
+
+    if (zd->domains->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(zd->domains);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        result =
+        /* Thou shall not have other data next to CNAME */
+        domain_examine_rrset_is_alone(domain, LDNS_RR_TYPE_CNAME) ||
+        /* Thou shall have at most one CNAME per name */
+        domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_CNAME) ||
+        /* Thou shall have at most one DNAME per name */
+        domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_DNAME);
+
+        if (result) {
+            error = result;
+        }
+        node = ldns_rbtree_next(node);
+    }
+
+    return error;
+}
+
+
+/**
  * Update zone data with pending changes.
  *
  */
@@ -967,7 +1001,6 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
-    domain_type* parent = NULL;
     int error = 0;
 
     se_log_assert(sc);
@@ -1034,7 +1067,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
  *
  */
 int
-zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex, int stray)
+zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex)
 {
     domain_type* domain = NULL;
 
@@ -1055,8 +1088,6 @@ zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex, int stray)
     }
     if (at_apex) {
         domain->domain_status = DOMAIN_STATUS_APEX;
-    } else if (stray) {
-        domain->domain_status = DOMAIN_STATUS_STRAY;
     }
     return domain_add_rr(domain, rr);
 }
@@ -1235,23 +1266,12 @@ zonedata_print(FILE* fd, zonedata_type* zd)
         fprintf(fd, "; zone empty\n");
         return;
     }
-
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        if (domain->domain_status != DOMAIN_STATUS_STRAY) {
-            domain_print(fd, domain);
-        }
+        domain_print(fd, domain);
         node = ldns_rbtree_next(node);
     }
 
-    node = ldns_rbtree_first(zd->domains);
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        if (domain->domain_status == DOMAIN_STATUS_STRAY) {
-            domain_print(fd, domain);
-        }
-        node = ldns_rbtree_next(node);
-    }
     return;
 }
 

@@ -421,9 +421,21 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
 int
 zone_update_zonedata(zone_type* zone)
 {
+    int error = 0;
+
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->zonedata);
+
+    /* examine zone data */
+/*
+    error = zonedata_examine(zone->zonedata);
+    if (error) {
+        se_log_error("update zone %s failed: zone data contains errors",
+            zone->name);
+        return error;
+    }
+*/
     return zonedata_update(zone->zonedata, zone->signconf);
 }
 
@@ -487,7 +499,6 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
     ldns_rr_type type = 0;
     int error = 0;
     int at_apex = 0;
-    int stray = 0;
     uint32_t tmp = 0;
     ldns_rdf* soa_min = NULL;
 
@@ -499,9 +510,9 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
     /* in-zone? */
     if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) != 0 &&
         !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->dname)) {
-        se_log_warning("zone %s contains out of zone data",
+        se_log_warning("zone %s contains out-of-zone data, skipping",
             zone->name?zone->name:"(null)");
-        stray = 1;
+        return 0;
     } else if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) == 0) {
         at_apex = 1;
     }
@@ -539,7 +550,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
     if (recover) {
        error = zonedata_recover_rr_from_backup(zone->zonedata, rr);
     } else {
-       error = zonedata_add_rr(zone->zonedata, rr, at_apex, stray);
+       error = zonedata_add_rr(zone->zonedata, rr, at_apex);
     }
     return error;
 }

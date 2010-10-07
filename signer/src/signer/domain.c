@@ -263,6 +263,63 @@ int domain_count_rrset(domain_type* domain)
 
 
 /**
+ * Examine domain and verify if there is no other data next to a RRset.
+ *
+ */
+int
+domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    rrset_type* rrset = NULL;
+
+    se_log_assert(domain);
+    se_log_assert(rrtype);
+
+    rrset = domain_lookup_rrset(domain, rrtype);
+    if (rrset) {
+        if (domain_count_rrset(domain) < 2) {
+            /* one or zero, that's ok */
+            return 0;
+        }
+        /* make sure all other RRsets become empty */
+        if (domain->rrsets->root != LDNS_RBTREE_NULL) {
+            node = ldns_rbtree_first(domain->rrsets);
+        }
+        while (node && node != LDNS_RBTREE_NULL) {
+            rrset = (rrset_type*) node->data;
+            if (rrset->rr_type != rrtype && rrset_count_RR(rrset) > 0) {
+                /* found other data next to rrtype */
+                return 1;
+            }
+            node = ldns_rbtree_next(node);
+        }
+    }
+    return 0;
+}
+
+
+/**
+ * Examine domain and verify if the RRset is a singleton.
+ *
+ */
+int
+domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
+{
+    rrset_type* rrset = NULL;
+
+    se_log_assert(domain);
+    se_log_assert(rrtype);
+
+    rrset = domain_lookup_rrset(domain, rrtype);
+    if (rrset && rrset_count_RR(rrset) > 1) {
+        /* multiple RRs in the RRset for singleton RRtype*/
+        return 1;
+    }
+    return 0;
+}
+
+
+/**
  * Update domain with pending changes.
  *
  */
@@ -321,8 +378,7 @@ domain_update_status(domain_type* domain)
     domain_type* parent = NULL;
 
     se_log_assert(domain);
-    if (domain->domain_status == DOMAIN_STATUS_APEX ||
-        domain->domain_status == DOMAIN_STATUS_STRAY) {
+    if (domain->domain_status == DOMAIN_STATUS_APEX) {
         return;
     }
 
@@ -510,16 +566,13 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         if (!domain->nsec_rrset || orig_domain->nsec_bitmap_changed) {
             domain_nsecify_create_bitmap(orig_domain, types, &types_count);
             /* only add RRSIG type if we have authoritative data to sign */
-            if (orig_domain->domain_status != DOMAIN_STATUS_NONE &&
-                orig_domain->domain_status != DOMAIN_STATUS_OCCLUDED &&
-                orig_domain->domain_status != DOMAIN_STATUS_STRAY &&
-                domain_count_rrset(orig_domain) > 0) {
-                if (orig_domain->domain_status == DOMAIN_STATUS_APEX ||
-                    orig_domain->domain_status == DOMAIN_STATUS_AUTH ||
-                    orig_domain->domain_status == DOMAIN_STATUS_DS) {
-                    types[types_count] = LDNS_RR_TYPE_RRSIG;
-                    types_count++;
-                 }
+            if (domain_count_rrset(orig_domain) > 0 &&
+                (orig_domain->domain_status == DOMAIN_STATUS_APEX ||
+                 orig_domain->domain_status == DOMAIN_STATUS_AUTH ||
+                 orig_domain->domain_status == DOMAIN_STATUS_DS)) {
+
+                types[types_count] = LDNS_RR_TYPE_RRSIG;
+                types_count++;
             }
             /* and don't add NSEC3 type... */
         }
@@ -653,8 +706,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     se_log_assert(stats);
 
     if (domain->domain_status == DOMAIN_STATUS_NONE ||
-        domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
-        domain->domain_status == DOMAIN_STATUS_STRAY) {
+        domain->domain_status == DOMAIN_STATUS_OCCLUDED) {
         return 0;
     }
 
@@ -965,8 +1017,7 @@ domain_print(FILE* fd, domain_type* domain)
             rrset = (rrset_type*) node->data;
             if (rrset->rr_type != LDNS_RR_TYPE_SOA) {
                 if (domain->domain_status == DOMAIN_STATUS_NONE ||
-                    domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
-                    domain->domain_status == DOMAIN_STATUS_STRAY) {
+                    domain->domain_status == DOMAIN_STATUS_OCCLUDED) {
 
                     parent = domain->parent;
                     print_glue = 0;

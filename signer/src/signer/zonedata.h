@@ -156,11 +156,10 @@ int zonedata_update(zonedata_type* zd, signconf_type* sc);
  * \param[in] zd zone data
  * \param[in] rr RR to add
  * \param[in] at_apex if is at apex of the zone
- * \param[in] stray if the rr owner is out of zone
  * \return int 0 on success, 1 on false
  *
  */
-int zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex, int stray);
+int zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex);
 
 /**
  * Recover RR from backup.

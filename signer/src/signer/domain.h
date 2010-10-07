@@ -53,8 +53,7 @@
 #define DOMAIN_STATUS_ENT_NS    6 /* empty non-terminal to unsigned delegation */
 #define DOMAIN_STATUS_ENT_GLUE  7 /* empty non-terminal to occluded data */
 #define DOMAIN_STATUS_OCCLUDED  8 /* occluded data (glue) */
-#define DOMAIN_STATUS_STRAY     9 /* stray data (outside scope of zone) */
-#define DOMAIN_STATUS_HASH     10 /* hashed domain */
+#define DOMAIN_STATUS_HASH      9 /* hashed domain */
 
 #define SE_NSEC_RDATA_NXT          0
 #define SE_NSEC_RDATA_BITMAP       1
@@ -134,6 +133,24 @@ rrset_type* domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover
  *
  */
 int domain_count_rrset(domain_type* domain);
+
+/**
+ * Examine domain and verify if there is no other data next to a RRset.
+ * \param[in] domain domain
+ * \param[in] rrtype RRtype
+ * \retun 0 if the RRset is alone, 1 otherwise
+ *
+ */
+int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
+
+/**
+ * Examine domain and verify if the RRset is a singleton.
+ * \param[in] domain domain
+ * \param[in] rrtype RRtype
+ * \retun 0 if the RRset is a singleton, 1 otherwise
+ *
+ */
+int domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype);
 
 /**
  * Update domain with pending changes.
