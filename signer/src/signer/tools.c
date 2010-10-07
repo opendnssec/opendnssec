@@ -124,12 +124,19 @@ int
 tools_update(zone_type* zone)
 {
     int error = 0;
+    char* inbound = NULL;
+    char* unsorted = NULL;
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_verbose("update zone %s", zone->name?zone->name:"(null)");
     error = zone_update_zonedata(zone);
     if (!error) {
-        zone_backup_state(zone);
+        inbound = se_build_path(zone->name, ".inbound", 0);
+        unsorted = se_build_path(zone->name, ".unsorted", 0);
+        error = se_file_copy(inbound, unsorted);
+        if (!error) {
+            zone_backup_state(zone);
+        }
     }
     return error;
 }

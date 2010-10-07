@@ -301,7 +301,13 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     unlink(tmpname);
     se_free((void*)tmpname);
 
+/*
     tmpname = se_build_path(tbd, ".state", 0);
+    unlink(tmpname);
+    se_free((void*)tmpname);
+*/
+
+    tmpname = se_build_path(tbd, ".inbound", 0);
     unlink(tmpname);
     se_free((void*)tmpname);
 

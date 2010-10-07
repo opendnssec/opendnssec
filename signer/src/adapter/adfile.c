@@ -520,7 +520,10 @@ adfile_read(struct zone_struct* zone, const char* filename, int recover)
         se_log_error("error reading zone %s from file %s",
             zone_in->name?zone_in->name:"(null)",
             filename?filename:"(null)");
-    } else if (!recover) {
+        return error;
+    }
+
+    if (!recover) {
         /* remove current rrs */
         error = zonedata_del_rrs(zone_in->zonedata);
         if (error) {
