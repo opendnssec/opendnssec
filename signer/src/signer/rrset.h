@@ -170,6 +170,14 @@ int rrset_count_add(rrset_type* rrset);
 int rrset_count_del(rrset_type* rrset);
 
 /**
+ * Return the number of RRs in RRset after an update.
+ * \param[in] rrset RRset
+ * \return number of RRs after an update
+ *
+ */
+int rrset_count_RR(rrset_type* rrset);
+
+/**
  * Clean up RRset.
  * \param[in] rrset RRset to be cleaned up
  *

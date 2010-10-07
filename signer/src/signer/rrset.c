@@ -358,6 +358,7 @@ rrset_count_rr(rrset_type* rrset)
     return rrset->rr_count;
 }
 
+
 /**
  * Return the number of pending added RRs in RRset.
  *
@@ -369,6 +370,7 @@ rrset_count_add(rrset_type* rrset)
     return rrset->add_count;
 }
 
+
 /**
  * Return the number of pending deleted RRs in RRset.
  *
@@ -378,6 +380,18 @@ rrset_count_del(rrset_type* rrset)
 {
     se_log_assert(rrset);
     return rrset->del_count;
+}
+
+
+/**
+ * Return the number of RRs in RRset after an update.
+ *
+ */
+int
+rrset_count_RR(rrset_type* rrset)
+{
+    se_log_assert(rrset);
+    return ((rrset->rr_count + rrset->add_count) - rrset->del_count);
 }
 
 
