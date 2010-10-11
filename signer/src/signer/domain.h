@@ -153,6 +153,15 @@ int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
 int domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype);
 
 /**
+ * Examine domain and verify that it is not occluded.
+ * \param[in] domain domain
+ * \param[in] rrtype RRtype DNAME or NS
+ * \retun 0 if the domain contains occluded data, other than glue, 1 otherwise
+ *
+ */
+int domain_examine_is_occluded(domain_type* domain, ldns_rr_type rrtype);
+
+/**
  * Update domain with pending changes.
  * \param[in] domain domain
  * \param[in] serial version to update to

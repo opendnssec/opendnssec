@@ -271,6 +271,8 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     rrset_type* rrset = NULL;
+    char* str_name = NULL;
+    char* str_type = NULL;
 
     se_log_assert(domain);
     se_log_assert(rrtype);
@@ -289,6 +291,11 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
             rrset = (rrset_type*) node->data;
             if (rrset->rr_type != rrtype && rrset_count_RR(rrset) > 0) {
                 /* found other data next to rrtype */
+                str_name = ldns_rdf2str(domain->name);
+                str_type = ldns_rr_type2str(rrtype);
+                se_log_error("other data next to %s %s", str_name, str_type);
+                se_free((void*)str_name);
+                se_free((void*)str_type);
                 return 1;
             }
             node = ldns_rbtree_next(node);
@@ -306,6 +313,8 @@ int
 domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
 {
     rrset_type* rrset = NULL;
+    char* str_name = NULL;
+    char* str_type = NULL;
 
     se_log_assert(domain);
     se_log_assert(rrtype);
@@ -313,11 +322,70 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
     rrset = domain_lookup_rrset(domain, rrtype);
     if (rrset && rrset_count_RR(rrset) > 1) {
         /* multiple RRs in the RRset for singleton RRtype*/
+        str_name = ldns_rdf2str(domain->name);
+        str_type = ldns_rr_type2str(rrtype);
+        se_log_error("multiple records for singleton type at %s %s",
+            str_name, str_type);
+        se_free((void*)str_name);
+        se_free((void*)str_type);
         return 1;
     }
     return 0;
 }
 
+
+/**
+ * Examine domain and verify if it is occluded.
+ *
+ */
+int
+domain_examine_is_occluded(domain_type* domain, ldns_rr_type rrtype)
+{
+    domain_type* parent = NULL;
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    rrset_type* rrset = NULL;
+    int possible_occluded = 0;
+    char *str_name = NULL;
+    char *str_type = NULL;
+
+    se_log_assert(domain);
+
+    /* make sure all other RRsets become empty */
+    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(domain->rrsets);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        rrset = (rrset_type*) node->data;
+        if (rrset_count_RR(rrset) > 0) {
+            /* domain will have data */
+            if (rrtype != LDNS_RR_TYPE_NS ||
+                (rrset->rr_type != LDNS_RR_TYPE_A &&
+                 rrset->rr_type != LDNS_RR_TYPE_AAAA)) {
+                possible_occluded = 1;
+                break;
+            }
+        }
+        node = ldns_rbtree_next(node);
+    }
+
+    if (possible_occluded) {
+        parent = domain->parent;
+        while (parent && parent->domain_status != DOMAIN_STATUS_APEX) {
+            if (domain_lookup_rrset(parent, rrtype)) {
+                str_name = ldns_rdf2str(parent->name);
+                str_type = ldns_rr_type2str(rrtype);
+                se_log_error("data%s below %s %s",
+                    rrtype==LDNS_RR_TYPE_NS?" (non-glue)":"",
+                    str_name, str_type);
+                se_free((void*)str_name);
+                se_free((void*)str_type);
+                return 1;
+            }
+            parent = parent->parent;
+        }
+    }
+    return 0;
+}
 
 /**
  * Update domain with pending changes.
