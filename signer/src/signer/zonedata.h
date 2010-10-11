@@ -163,6 +163,13 @@ int zonedata_examine(zonedata_type* zd, ldns_rdf* apex, int is_file);
 int zonedata_update(zonedata_type* zd, signconf_type* sc);
 
 /**
+ * Cancel update.
+ * \param[in] zd zone data
+ *
+ */
+void zonedata_cancel_update(zonedata_type* zd);
+
+/**
  * Add RR to zone data.
  * \param[in] zd zone data
  * \param[in] rr RR to add

@@ -346,6 +346,25 @@ rrset_update(rrset_type* rrset, uint32_t serial)
     return 0;
 }
 
+/**
+ * Cancel update.
+ *
+ */
+void
+rrset_cancel_update(rrset_type* rrset)
+{
+    if (rrset->add) {
+        ldns_dnssec_rrs_deep_free(rrset->add);
+        rrset->add = NULL;
+        rrset->add_count = 0;
+    }
+    if (rrset->del) {
+        ldns_dnssec_rrs_deep_free(rrset->del);
+        rrset->del = NULL;
+        rrset->del_count = 0;
+    }
+    return;
+}
 
 /**
  * Return the number of RRs in RRset.

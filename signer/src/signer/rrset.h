@@ -83,6 +83,14 @@ rrset_type* rrset_create_frm_rr(ldns_rr* rr);
  */
 int rrset_update(rrset_type* rrset, uint32_t serial);
 
+
+/**
+ * Cancel update.
+ * \param[in] rrset RRset
+ *
+ */
+void rrset_cancel_update(rrset_type* rrset);
+
 /**
  * Add RR to RRset.
  * \param[in] rrset RRset

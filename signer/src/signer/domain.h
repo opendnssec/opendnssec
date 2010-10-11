@@ -182,6 +182,13 @@ int domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype);
 int domain_update(domain_type* domain, uint32_t serial);
 
 /**
+ * Cancel update.
+ * \param[in] domain domain
+ *
+ */
+void domain_cancel_update(domain_type* domain);
+
+/**
  * Update domain status.
  * \param[in] domain domain
  *

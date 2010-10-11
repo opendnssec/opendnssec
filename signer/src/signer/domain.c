@@ -456,6 +456,31 @@ domain_update(domain_type* domain, uint32_t serial)
 
 
 /**
+ * Cancel update.
+ *
+ */
+void
+domain_cancel_update(domain_type* domain)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    rrset_type* rrset = NULL;
+
+    se_log_assert(domain);
+    se_log_assert(domain->rrsets);
+
+    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(domain->rrsets);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        rrset = (rrset_type*) node->data;
+        rrset_cancel_update(rrset);
+        node = ldns_rbtree_next(node);
+    }
+    return;
+}
+
+
+/**
  * Update domain status.
  *
  */

@@ -434,6 +434,7 @@ zone_update_zonedata(zone_type* zone)
     if (error) {
         se_log_error("update zone %s failed: zone data contains errors",
             zone->name);
+        zonedata_cancel_update(zone->zonedata);
         return error;
     }
     return zonedata_update(zone->zonedata, zone->signconf);

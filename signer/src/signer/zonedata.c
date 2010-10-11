@@ -1096,10 +1096,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
     error = zonedata_update_serial(zd, sc);
     if (error || !zd->internal_serial) {
         se_log_error("unable to update zonedata: failed to update serial");
-        /**
-         * If this happens, the next read task will error alot on duplicate
-         * pending rrs. Should be high unlikely to occur.
-         */
+        zonedata_cancel_update(zd);
         return 1;
     }
 
@@ -1109,8 +1106,9 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         if (domain_update(domain, zd->internal_serial) != 0) {
-            se_log_error("unable to update zonedata to serial %u: failed "
+            se_log_crit("unable to update zonedata to serial %u: failed "
                 "to update domain", zd->internal_serial);
+            /* If this happens, the zone is partially updated. */
             return 1;
         }
         node = ldns_rbtree_next(node);
@@ -1145,6 +1143,31 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
 */
     }
     return 0;
+}
+
+
+/**
+ * Cancel update.
+ *
+ */
+void
+zonedata_cancel_update(zonedata_type* zd)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
+
+    se_log_assert(zd);
+    se_log_assert(zd->domains);
+
+    if (zd->domains->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(zd->domains);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        domain_cancel_update(domain);
+        node = ldns_rbtree_next(node);
+    }
+    return;
 }
 
 
