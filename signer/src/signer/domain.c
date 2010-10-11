@@ -263,6 +263,43 @@ int domain_count_rrset(domain_type* domain)
 
 
 /**
+ * Examine domain and verify if data exists.
+ *
+ */
+int
+domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
+    int skip_glue)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    rrset_type* rrset = NULL;
+
+    se_log_assert(domain);
+
+    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(domain->rrsets);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        rrset = (rrset_type*) node->data;
+        if (rrset_count_RR(rrset) > 0) {
+            if (rrtype) {
+                /* looking for a specific RRset */
+                if (rrset->rr_type == rrtype) {
+                    return 0;
+                }
+            } else if (!skip_glue ||
+                (rrset->rr_type != LDNS_RR_TYPE_A &&
+                 rrset->rr_type != LDNS_RR_TYPE_AAAA)) {
+                /* not glue or not skipping glue */
+                return 0;
+            }
+        }
+        node = ldns_rbtree_next(node);
+    }
+    return 1;
+}
+
+
+/**
  * Examine domain and verify if there is no other data next to a RRset.
  *
  */
@@ -306,6 +343,41 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
 
 
 /**
+ * Examine domain and verify if there is no occluded data next to a delegation.
+ *
+ */
+int
+domain_examine_valid_zonecut(domain_type* domain)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    rrset_type* rrset = NULL;
+
+    se_log_assert(domain);
+
+    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NS);
+    if (rrset && rrset_count_RR(rrset) > 0) {
+        /* make sure all other RRsets become empty (except DS, glue) */
+        if (domain->rrsets->root != LDNS_RBTREE_NULL) {
+            node = ldns_rbtree_first(domain->rrsets);
+        }
+        while (node && node != LDNS_RBTREE_NULL) {
+            rrset = (rrset_type*) node->data;
+            if (rrset->rr_type != LDNS_RR_TYPE_DS &&
+                rrset->rr_type != LDNS_RR_TYPE_NS &&
+                rrset->rr_type != LDNS_RR_TYPE_A &&
+                rrset->rr_type != LDNS_RR_TYPE_AAAA &&
+                rrset_count_RR(rrset) > 0) {
+                /* found occluded data next to delegation */
+                return 1;
+            }
+            node = ldns_rbtree_next(node);
+        }
+    }
+    return 0;
+}
+
+
+/**
  * Examine domain and verify if the RRset is a singleton.
  *
  */
@@ -333,59 +405,6 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
     return 0;
 }
 
-
-/**
- * Examine domain and verify if it is occluded.
- *
- */
-int
-domain_examine_is_occluded(domain_type* domain, ldns_rr_type rrtype)
-{
-    domain_type* parent = NULL;
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    rrset_type* rrset = NULL;
-    int possible_occluded = 0;
-    char *str_name = NULL;
-    char *str_type = NULL;
-
-    se_log_assert(domain);
-
-    /* make sure all other RRsets become empty */
-    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(domain->rrsets);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        rrset = (rrset_type*) node->data;
-        if (rrset_count_RR(rrset) > 0) {
-            /* domain will have data */
-            if (rrtype != LDNS_RR_TYPE_NS ||
-                (rrset->rr_type != LDNS_RR_TYPE_A &&
-                 rrset->rr_type != LDNS_RR_TYPE_AAAA)) {
-                possible_occluded = 1;
-                break;
-            }
-        }
-        node = ldns_rbtree_next(node);
-    }
-
-    if (possible_occluded) {
-        parent = domain->parent;
-        while (parent && parent->domain_status != DOMAIN_STATUS_APEX) {
-            if (domain_lookup_rrset(parent, rrtype)) {
-                str_name = ldns_rdf2str(parent->name);
-                str_type = ldns_rr_type2str(rrtype);
-                se_log_error("data%s below %s %s",
-                    rrtype==LDNS_RR_TYPE_NS?" (non-glue)":"",
-                    str_name, str_type);
-                se_free((void*)str_name);
-                se_free((void*)str_type);
-                return 1;
-            }
-            parent = parent->parent;
-        }
-    }
-    return 0;
-}
 
 /**
  * Update domain with pending changes.

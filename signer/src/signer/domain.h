@@ -134,6 +134,26 @@ rrset_type* domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover
  */
 int domain_count_rrset(domain_type* domain);
 
+
+/**
+ * Examine domain and verify if data exists.
+ * \param[in] domain domain
+ * \param[in] rrtype RRtype look for a specific RRset
+ * \param[in] skip_glue skip glue records
+ * \retun 0 if data is alone, 1 otherwise
+ *
+ */
+int domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
+    int skip_glue);
+
+/**
+ * Examine domain and verify if it is a valid zonecut (or no NS RRs).
+ * \param[in] domain domain
+ * \retun 0 if the RRset is a valid zonecut (or no zonecut), 1 otherwise
+ *
+ */
+int domain_examine_valid_zonecut(domain_type* domain);
+
 /**
  * Examine domain and verify if there is no other data next to a RRset.
  * \param[in] domain domain
@@ -151,15 +171,6 @@ int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
  *
  */
 int domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype);
-
-/**
- * Examine domain and verify that it is not occluded.
- * \param[in] domain domain
- * \param[in] rrtype RRtype DNAME or NS
- * \retun 0 if the domain contains occluded data, other than glue, 1 otherwise
- *
- */
-int domain_examine_is_occluded(domain_type* domain, ldns_rr_type rrtype);
 
 /**
  * Update domain with pending changes.

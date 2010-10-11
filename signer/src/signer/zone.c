@@ -429,7 +429,7 @@ zone_update_zonedata(zone_type* zone)
     se_log_assert(zone->zonedata);
 
     /* examine zone data */
-    error = zonedata_examine(zone->zonedata,
+    error = zonedata_examine(zone->zonedata, zone->dname,
         zone->inbound_adapter->type==ADAPTER_FILE);
     if (error) {
         se_log_error("update zone %s failed: zone data contains errors",

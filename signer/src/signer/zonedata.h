@@ -145,12 +145,13 @@ int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
 /**
  * Add empty non-terminals to zone data.
  * \param[in] zd zone data
+ * \param[in] apex apex domain name
  * \param[in] is_file if the inbound adapter is a zone file
  *                    (if so, additional checking is required)
  * \return int 0 if no error examined, 1 otherwise
  *
  */
-int zonedata_examine(zonedata_type* zd, int is_file);
+int zonedata_examine(zonedata_type* zd, ldns_rdf* apex, int is_file);
 
 /**
  * Update zone data with pending changes.

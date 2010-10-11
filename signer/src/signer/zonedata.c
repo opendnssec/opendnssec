@@ -955,11 +955,88 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
 
 
 /**
+ * Examine domain for occluded data.
+ *
+ */
+static int
+zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
+    ldns_rdf* apex)
+{
+    ldns_rdf* parent_rdf = NULL;
+    ldns_rdf* next_rdf = NULL;
+    domain_type* parent_domain = NULL;
+    char* str_name = NULL;
+    char* str_parent = NULL;
+
+    se_log_assert(apex);
+    se_log_assert(domain);
+    se_log_assert(domain->name);
+    se_log_assert(zd);
+    se_log_assert(zd->domains);
+
+    if (ldns_dname_compare(domain->name, apex) == 0) {
+        return 0;
+    }
+
+    if (domain_examine_valid_zonecut(domain) != 0) {
+        str_name = ldns_rdf2str(domain->name);
+        se_log_error("occluded (non-glue non-DS) data at %s NS", str_name);
+        se_free((void*)str_name);
+        return 1;
+    }
+
+    parent_rdf = ldns_dname_left_chop(domain->name);
+    while (parent_rdf && ldns_dname_is_subdomain(parent_rdf, apex) &&
+           ldns_dname_compare(parent_rdf, apex) != 0) {
+
+        str_name = ldns_rdf2str(parent_rdf);
+
+        parent_domain = zonedata_lookup_domain(zd, parent_rdf);
+        next_rdf = ldns_dname_left_chop(parent_rdf);
+        ldns_rdf_deep_free(parent_rdf);
+
+        if (parent_domain) {
+            /* check for DNAME or NS */
+            if (domain_examine_data_exists(parent_domain, LDNS_RR_TYPE_DNAME,
+                0) == 0 && domain_examine_data_exists(domain, 0, 1) == 0) {
+                /* data below DNAME */
+                str_name = ldns_rdf2str(domain->name);
+                str_parent = ldns_rdf2str(parent_domain->name);
+                se_log_error("occluded data at %s (below %s DNAME)", str_name,
+                    str_parent);
+                se_free((void*)str_name);
+                se_free((void*)str_parent);
+                return 1;
+            } else if (domain_examine_data_exists(parent_domain,
+                LDNS_RR_TYPE_NS, 0) == 0 && domain_examine_data_exists(domain,
+                0, 1) == 0) {
+                /* data (non-glue) below NS */
+                str_name = ldns_rdf2str(domain->name);
+                str_parent = ldns_rdf2str(parent_domain->name);
+                se_log_error("occluded (non-glue) data at %s (below %s NS)",
+                    str_name, str_parent);
+                se_free((void*)str_name);
+                se_free((void*)str_parent);
+                return 1;
+            }
+        }
+
+        parent_rdf = next_rdf;
+    }
+
+    if (parent_rdf) {
+        ldns_rdf_deep_free(parent_rdf);
+    }
+    return 0;
+}
+
+
+/**
  * Examine zone data.
  *
  */
 int
-zonedata_examine(zonedata_type* zd, int is_file)
+zonedata_examine(zonedata_type* zd, ldns_rdf* apex, int is_file)
 {
     int error = 0;
     int result = 0;
@@ -974,29 +1051,30 @@ zonedata_examine(zonedata_type* zd, int is_file)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        result =
+        error =
         /* Thou shall not have other data next to CNAME */
         domain_examine_rrset_is_alone(domain, LDNS_RR_TYPE_CNAME) ||
         /* Thou shall have at most one CNAME per name */
         domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_CNAME) ||
         /* Thou shall have at most one DNAME per name */
         domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_DNAME);
-
-        if (!result && is_file) {
-            result =
-            /* Thou shall not have data below DNAME in your zone file */
-            domain_examine_is_occluded(domain, LDNS_RR_TYPE_DNAME) ||
-            /* Thou shall not have non-glue data below NS in your zone file */
-            domain_examine_is_occluded(domain, LDNS_RR_TYPE_NS);
+        if (error) {
+            result = error;
         }
 
-        if (result) {
-            error = result;
+        if (is_file) {
+            error =
+            /* Thou shall not have occluded data in your zone file */
+            zonedata_examine_domain_is_occluded(zd, domain, apex);
+            if (error) {
+                result = error;
+            }
         }
+
         node = ldns_rbtree_next(node);
     }
 
-    return error;
+    return result;
 }
 
 
