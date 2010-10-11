@@ -134,12 +134,14 @@ util_dnssec_rrs_compare(ldns_rr* rr1, ldns_rr* rr2, int* cmp)
     if (status != LDNS_STATUS_OK) {
         ldns_buffer_free(rr1_buf);
         ldns_buffer_free(rr2_buf);
+        /* critical */
         return status;
     }
     status = ldns_rr2buffer_wire_canonical(rr2_buf, rr2, LDNS_SECTION_ANY);
     if (status != LDNS_STATUS_OK) {
         ldns_buffer_free(rr1_buf);
         ldns_buffer_free(rr2_buf);
+        /* critical */
         return status;
     }
     *cmp = ldns_rr_compare_wire(rr1_buf, rr2_buf);
@@ -169,6 +171,7 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
     rr_ttl = ldns_rr_ttl(rr);
     status = util_dnssec_rrs_compare(rrs->rr, rr, &cmp);
     if (status != LDNS_STATUS_OK) {
+        /* critical */
         return status;
     }
 
@@ -210,5 +213,5 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
         se_log_warning("adding duplicate RR?");
         return LDNS_STATUS_NO_DATA;
     }
-    return status;
+    return LDNS_STATUS_OK;
 }
