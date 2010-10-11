@@ -425,17 +425,17 @@ zone_update_zonedata(zone_type* zone)
 
     se_log_assert(zone);
     se_log_assert(zone->signconf);
+    se_log_assert(zone->inbound_adapter);
     se_log_assert(zone->zonedata);
 
     /* examine zone data */
-/*
-    error = zonedata_examine(zone->zonedata);
+    error = zonedata_examine(zone->zonedata,
+        zone->inbound_adapter->type==ADAPTER_FILE);
     if (error) {
         se_log_error("update zone %s failed: zone data contains errors",
             zone->name);
         return error;
     }
-*/
     return zonedata_update(zone->zonedata, zone->signconf);
 }
 

@@ -143,6 +143,16 @@ int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     stats_type* stats);
 
 /**
+ * Add empty non-terminals to zone data.
+ * \param[in] zd zone data
+ * \param[in] is_file if the inbound adapter is a zone file
+ *                    (if so, additional checking is required)
+ * \return int 0 if no error examined, 1 otherwise
+ *
+ */
+int zonedata_examine(zonedata_type* zd, int is_file);
+
+/**
  * Update zone data with pending changes.
  * \param[in] zd zone data
  * \param[in] sc signer configuration

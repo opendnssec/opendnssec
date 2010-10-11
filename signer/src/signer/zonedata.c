@@ -959,7 +959,7 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
  *
  */
 int
-zonedata_examine(zonedata_type* zd)
+zonedata_examine(zonedata_type* zd, int is_file)
 {
     int error = 0;
     int result = 0;
@@ -981,6 +981,14 @@ zonedata_examine(zonedata_type* zd)
         domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_CNAME) ||
         /* Thou shall have at most one DNAME per name */
         domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_DNAME);
+
+        if (!result && is_file) {
+            result =
+            /* Thou shall not have data below DNAME in your zone file */
+            domain_examine_is_occluded(domain, LDNS_RR_TYPE_DNAME) ||
+            /* Thou shall not have non-glue data below NS in your zone file */
+            domain_examine_is_occluded(domain, LDNS_RR_TYPE_NS);
+        }
 
         if (result) {
             error = result;
