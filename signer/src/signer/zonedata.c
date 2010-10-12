@@ -839,10 +839,11 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     se_log_assert(zd);
     se_log_assert(sc);
 
-    if (!zd->initialized) {
-        zd->internal_serial = zd->inbound_serial;
-    }
     prev = zd->internal_serial;
+    se_log_debug("update serial: inbound=%u internal=%u outbound=%u now=%u",
+        zd->inbound_serial, zd->internal_serial, zd->outbound_serial,
+        (uint32_t) time_now());
+
     if (se_strcmp(sc->soa_serial, "unixtime") == 0) {
         soa = se_max(zd->inbound_serial, (uint32_t) time_now());
         if (!DNS_SERIAL_GT(soa, prev)) {
@@ -891,6 +892,8 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         update = 0x7FFFFFFF;
     }
     zd->internal_serial = (prev + update); /* automatically does % 2^32 */
+    se_log_debug("update serial: previous=%u update=%u new=%u",
+        prev, update, zd->internal_serial);
     return 0;
 }
 
