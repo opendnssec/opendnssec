@@ -689,12 +689,12 @@ static ldns_rr_list*
 rrset2rrlist(rrset_type* rrset)
 {
     ldns_dnssec_rrs* rrs = NULL;
-    ldns_rr_list* rr_list;
+    ldns_rr_list* rr_list = NULL;
     int error = 0;
 
     rr_list = ldns_rr_list_new();
     rrs = rrset->rrs;
-    while (rrs) {
+    while (rrs && rrs->rr) {
         error = (int) ldns_rr_list_push_rr(rr_list, rrs->rr);
         if (!error) {
             ldns_rr_list_free(rr_list);
@@ -739,16 +739,23 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         /* drop unrecyclable signatures */
         error = rrset_recycle_rrsigs(rrset, sc, signtime, &reusedsigs);
 
+        /* convert the RRset */
+        rr_list = rrset2rrlist(rrset);
+        if (!rr_list) {
+            se_log_error("error signing RRset[%i], cannot convert to rr "
+                "list", rrset->rr_type);
+            return 1;
+        }
+        if (ldns_rr_list_rr_count(rr_list) <= 0) {
+            /* empty RRset, no signatures needed */
+            ldns_rr_list_free(rr_list);
+            return 0;
+        }
+
         /* prepare for signing */
         new_rrsigs = rrsigs_create();
         if (!rrset->rrsigs) {
             rrset->rrsigs = rrsigs_create();
-        }
-        rr_list = rrset2rrlist(rrset);
-        if (!rr_list) {
-            se_log_error("error signing rrset[%i], cannot convert to rr "
-                "list", rrset->rr_type);
-            return 1;
         }
         rrset_sign_set_timers(sc, rrset->rr_type, signtime,
              &inception, &expiration);
