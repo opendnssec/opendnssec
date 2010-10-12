@@ -217,6 +217,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         while (node && node != LDNS_RBTREE_NULL) {
             task = (task_type*) node->key;
             if (se_strcmp(tbd, task->who) == 0) {
+                found = 1;
                 task = tasklist_delete_task(cmdc->engine->tasklist, task);
                 if (!task) {
                     se_log_error("cannot immediate sign zone %s: delete old "
@@ -233,7 +234,6 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
                     if (task) {
                        scheduled = 1;
                     }
-                    found = 1;
                 }
                 break;
             }
@@ -266,17 +266,17 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             worker_wakeup(cmdc->engine->workers[i]);
         }
     } else if (found && !scheduled) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not scheduled, "
-            "already being signed right now!\n", tbd?tbd:"(null)");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Failed to schedule signing for "
+             "zone %s\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
-        se_log_warning("cmdhandler: zone %s was found in zone list but not in "
-            "task queue", tbd?tbd:"(null)");
+        se_log_error("cmdhandler: zone %s was found in task queu but "
+            "rescheduling failed", tbd?tbd:"(null)");
     } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not being signed yet, "
-            "updating sign configuration\n", tbd?tbd:"(null)");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not in task queue, "
+            "\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
-        se_log_warning("cmdhandler: zone %s not found in zone list, updating "
-            "zone list", tbd?tbd:"(null)");
+        se_log_warning("cmdhandler: zone %s not found in zone list",
+            tbd?tbd:"(null)");
         cmdhandler_handle_cmd_update(sockfd, cmdc, tbd);
     }
     return;
