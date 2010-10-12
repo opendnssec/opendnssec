@@ -54,6 +54,8 @@ worker_create(int num, int type)
     se_log_debug("create worker[%i]", num +1);
     worker->thread_num = num +1;
     worker->engineptr = NULL;
+    worker->tasklist = NULL;
+    worker->task = NULL;
     worker->need_to_exit = 0;
     worker->type = type;
     worker->sleeping = 0;
@@ -95,6 +97,7 @@ worker_start(worker_type* worker)
             lock_basic_unlock(&worker->tasklist->tasklist_lock);
             se_log_debug("worker[%i]: unlocked tasklist", worker->thread_num);
 
+            worker->task = task;
             se_log_debug("worker[%i]: lock zone %s", worker->thread_num,
                 task->who);
             lock_basic_lock(&zone->zone_lock);
@@ -107,6 +110,7 @@ worker_start(worker_type* worker)
             lock_basic_unlock(&zone->zone_lock);
             se_log_debug("worker[%i]: unlocked zone %s", worker->thread_num,
                 task->who);
+            worker->task = NULL;
 
             if (task->what == TASK_NONE) {
                 zone->in_progress = 0;

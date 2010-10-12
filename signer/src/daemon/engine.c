@@ -329,7 +329,7 @@ worker_thread_start(void* arg)
  * Start workers.
  *
  */
-void
+static void
 engine_start_workers(engine_type* engine)
 {
     size_t i = 0;
@@ -370,6 +370,34 @@ engine_stop_workers(engine_type* engine)
         engine->workers[i]->engineptr = NULL;
     }
     return;
+}
+
+
+/**
+ * Search for zone in workers
+ *
+ */
+int
+engine_search_workers(engine_type* engine, const char* zone_name)
+{
+    size_t i = 0;
+
+    se_log_assert(engine);
+    se_log_assert(engine->config);
+
+    if (!zone_name) {
+        return 1;
+    }
+
+    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        if (engine->workers[i]->task &&
+            se_strcmp(engine->workers[i]->task->who, zone_name) == 0) {
+            /* ba-da bing */
+            return 0;
+        }
+    }
+    /* no potato */
+    return 1;
 }
 
 

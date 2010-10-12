@@ -165,7 +165,8 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         se_writen(sockfd, buf, strlen(buf));
         tbd = NULL;
     }
-    se_log_info("cmdhandler: updating signer configuration (%s)", tbd?tbd:"--all");
+    se_log_info("cmdhandler: updating signer configuration (%s)",
+        tbd?tbd:"--all");
     ret = engine_update_zones(cmdc->engine, tbd, buf, 1);
     se_writen(sockfd, buf, strlen(buf));
 
@@ -269,15 +270,21 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         (void)snprintf(buf, ODS_SE_MAXLINE, "Failed to schedule signing for "
              "zone %s\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
-        se_log_error("cmdhandler: zone %s was found in task queu but "
+        se_log_error("cmdhandler: zone %s was found in task queue but "
             "rescheduling failed", tbd?tbd:"(null)");
-    } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not in task queue, "
-            "\n", tbd?tbd:"(null)");
+    } else if (engine_search_workers(cmdc->engine, tbd)) {
+        se_log_warning("cmdhandler: not working on zone %s, updating "
+            "zone list", tbd?tbd:"(null");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not not being signed "
+            "yet, updating sign configuration\n", tbd?tbd:"(null)");
         se_writen(sockfd, buf, strlen(buf));
-        se_log_warning("cmdhandler: zone %s not found in zone list",
-            tbd?tbd:"(null)");
         cmdhandler_handle_cmd_update(sockfd, cmdc, tbd);
+    } else {
+        se_log_warning("cmdhandler: already performing task for zone %s",
+            tbd?tbd:"(null");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Signer is already working on "
+            "zone %s, sign command ignored\n", tbd?tbd:"(null)");
+        se_writen(sockfd, buf, strlen(buf));
     }
     return;
 }

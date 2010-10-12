@@ -49,6 +49,7 @@ struct worker_struct {
     int thread_num;
     se_thread_type thread_id;
     tasklist_type* tasklist;
+    task_type* task;
     struct engine_struct* engineptr;
     int type;
     int sleeping;

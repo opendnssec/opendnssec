@@ -106,7 +106,7 @@ int engine_update_zonelist(engine_type* engine, char* buf);
 
 /**
  * Update zones.
- * \param[in] the signer engine
+ * \param[in] engine the signer engine
  * \paran[in] zone_name update only this zone
  * \param[in] buf response message
  * \param[in] first_try if true, update zone list if zone not found
@@ -115,6 +115,15 @@ int engine_update_zonelist(engine_type* engine, char* buf);
  */
 int engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
     int first_try);
+
+/**
+ * Search for zone in workers
+ * \param[in] engine the signer engine
+ * \paran[in] zone_name search for this zone
+ * \return int 1 if zone was not found
+ *
+ */
+int engine_search_workers(engine_type* engine, const char* zone_name);
 
 
 /**
