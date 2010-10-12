@@ -79,7 +79,10 @@ struct zone_struct {
     struct task_struct* task; /* current scheduled task */
     time_t backoff; /* backoff value if there is something failing */
     int in_progress; /* in progress (check with active worker?) */
-    stats_type* stats; /* statistics */
+
+    /* statistics */
+    stats_type* stats;
+
     lock_basic_type zone_lock;
 };
 
