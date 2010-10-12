@@ -839,6 +839,9 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     se_log_assert(zd);
     se_log_assert(sc);
 
+    if (!zd->initialized) {
+        zd->internal_serial = zd->inbound_serial;
+    }
     prev = zd->internal_serial;
     if (se_strcmp(sc->soa_serial, "unixtime") == 0) {
         soa = se_max(zd->inbound_serial, (uint32_t) time_now());
@@ -866,12 +869,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         update = soa - prev;
     } else if (strncmp(sc->soa_serial, "keep", 4) == 0) {
         soa = zd->inbound_serial;
-        if (!zd->initialized) {
-            zd->internal_serial = soa;
-            zd->initialized = 1;
-            return 0;
-        }
-        if (!DNS_SERIAL_GT(soa, prev)) {
+        if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
             se_log_error("cannot keep SOA SERIAL from input zone "
                 " (%u): output SOA SERIAL is %u", soa, prev);
             return 1;
@@ -885,9 +883,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     }
 
     if (!zd->initialized) {
-        zd->internal_serial = soa;
         zd->initialized = 1;
-        return 0;
     }
 
     /* serial is stored in 32 bits */

@@ -131,6 +131,9 @@ tools_update(zone_type* zone)
     se_log_verbose("update zone %s", zone->name?zone->name:"(null)");
     error = zone_update_zonedata(zone);
     if (!error) {
+        se_log_info("zone %s updated to serial %u",
+            zone->name?zone->name:"(null)", zone->zonedata->internal_serial);
+
         inbound = se_build_path(zone->name, ".inbound", 0);
         unsorted = se_build_path(zone->name, ".unsorted", 0);
         error = se_file_copy(inbound, unsorted);
@@ -189,6 +192,8 @@ tools_sign(zone_type* zone)
     end = time(NULL);
     zone->stats->sig_time = (end-start);
     if (!error) {
+        se_log_info("zone %s signed, new serial %u",
+            zone->name?zone->name:"(null)", zone->zonedata->internal_serial);
         zone_backup_state(zone);
     }
     return error;
