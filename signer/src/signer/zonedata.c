@@ -1109,7 +1109,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
                 /* If this happens, the zone is partially updated. */
             } else {
                 se_log_error("unable to update zonedata to serial %u: "
-                    "serial too small", zd->internal_serial
+                    "serial too small", zd->internal_serial);
                 zonedata_cancel_update(zd);
                 return 1;
             }
