@@ -449,7 +449,7 @@ domain_update(domain_type* domain, uint32_t serial)
     } else {
         se_log_error("cannot update domain: serial %u should be larger than "
             "domain internal serial %u", serial, domain->internal_serial);
-        return 1;
+        return 2;
     }
     return 0;
 }

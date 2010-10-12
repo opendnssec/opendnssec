@@ -1101,10 +1101,18 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        if (domain_update(domain, zd->internal_serial) != 0) {
-            se_log_crit("unable to update zonedata to serial %u: failed "
-                "to update domain", zd->internal_serial);
-            /* If this happens, the zone is partially updated. */
+        error = domain_update(domain, zd->internal_serial);
+        if (error != 0) {
+            if (error == 1) {
+                se_log_crit("unable to update zonedata to serial %u: rr "
+                    "compare function failed", zd->internal_serial);
+                /* If this happens, the zone is partially updated. */
+            } else {
+                se_log_error("unable to update zonedata to serial %u: "
+                    "serial too small", zd->internal_serial
+                zonedata_cancel_update(zd);
+                return 1;
+            }
             return 1;
         }
         node = ldns_rbtree_next(node);
