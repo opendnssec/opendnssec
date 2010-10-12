@@ -634,7 +634,8 @@ set_notify_ns(zone_type* zone, const char* cmd)
  *
  */
 int
-engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
+engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
+    int first_try)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
@@ -693,8 +694,8 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf)
     if (zone_name) {
         se_log_debug("zone %s not found", zone_name);
         if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found, "
-                "updating zone list.\n", zone_name);
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found%s.\n",
+            zone_name, first_try?", updating zone list":"");
         }
         return 1;
     } else {
@@ -914,7 +915,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         }
 
         if (zl_changed) {
-            zl_changed = engine_update_zones(engine, NULL, NULL);
+            zl_changed = engine_update_zones(engine, NULL, NULL, 0);
             zl_changed = 0;
         }
 

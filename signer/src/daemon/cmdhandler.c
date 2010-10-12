@@ -166,7 +166,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         tbd = NULL;
     }
     se_log_info("cmdhandler: updating signer configuration (%s)", tbd?tbd:"--all");
-    ret = engine_update_zones(cmdc->engine, tbd, buf);
+    ret = engine_update_zones(cmdc->engine, tbd, buf, 1);
     se_writen(sockfd, buf, strlen(buf));
 
     if (tbd && ret != 0) {
@@ -175,7 +175,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         se_writen(sockfd, buf, strlen(buf));
 
         /* try again */
-        ret = engine_update_zones(cmdc->engine, tbd, buf);
+        ret = engine_update_zones(cmdc->engine, tbd, buf, 0);
         se_writen(sockfd, buf, strlen(buf));
     }
 
