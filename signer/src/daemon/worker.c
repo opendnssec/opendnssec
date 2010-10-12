@@ -186,7 +186,10 @@ worker_perform_task(worker_type* worker, task_type* task)
             if (tools_read_input(zone) != 0) {
                 se_log_error("task [read zone %s] failed",
                     task->who?task->who:"(null)");
-                goto task_perform_fail;
+                task->what = TASK_SIGN;
+                task->when = time_now() +
+                    duration2time(zone->signconf->sig_resign_interval);
+                goto task_perform_continue;
                 break;
             }
             task->what = TASK_ADDKEYS;
@@ -194,7 +197,10 @@ worker_perform_task(worker_type* worker, task_type* task)
             if (tools_add_dnskeys(zone) != 0) {
                 se_log_error("task [add dnskeys to zone %s] failed",
                     task->who?task->who:"(null)");
-                goto task_perform_fail;
+                task->what = TASK_SIGN;
+                task->when = time_now() +
+                    duration2time(zone->signconf->sig_resign_interval);
+                goto task_perform_continue;
                 break;
             }
             task->what = TASK_UPDATE;
@@ -202,7 +208,10 @@ worker_perform_task(worker_type* worker, task_type* task)
             if (tools_update(zone) != 0) {
                 se_log_error("task [update zone %s] failed",
                     task->who?task->who:"(null)");
-                goto task_perform_fail;
+                task->what = TASK_SIGN;
+                task->when = time_now() +
+                    duration2time(zone->signconf->sig_resign_interval);
+                goto task_perform_continue;
                 break;
             }
             task->what = TASK_NSECIFY;
@@ -268,8 +277,9 @@ task_perform_fail:
     } else {
         zone->backoff = 60;
     }
-
     task->when += zone->backoff;
+
+task_perform_continue:
     return;
 }
 
