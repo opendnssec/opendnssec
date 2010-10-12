@@ -73,7 +73,6 @@ zone_create(const char* name, ldns_rr_class klass)
     zone->outbound_adapter = NULL;
     zone->task = NULL;
     zone->backoff = 0;
-    zone->worker = NULL;
     zone->just_added = 0;
     zone->just_updated = 0;
     zone->tobe_removed = 0;

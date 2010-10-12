@@ -46,7 +46,6 @@
 
 struct task_struct;
 struct tasklist_struct;
-struct worker_struct;
 
 /**
  * Zone.
@@ -78,7 +77,6 @@ struct zone_struct {
 
     /* worker variables */
     struct task_struct* task; /* current scheduled task */
-    struct worker_struct* worker; /* current active worker */
     time_t backoff; /* backoff value if there is something failing */
     int in_progress; /* in progress (check with active worker?) */
     stats_type* stats; /* statistics */

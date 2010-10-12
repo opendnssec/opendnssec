@@ -100,10 +100,8 @@ worker_start(worker_type* worker)
             lock_basic_lock(&zone->zone_lock);
             se_log_debug("worker[%i]: locked zone %s", worker->thread_num,
                 task->who);
-            zone->worker = worker;
             worker_perform_task(worker, task);
             zone->processed = 1;
-            zone->worker = NULL;
             se_log_debug("worker[%i]: unlock zone %s", worker->thread_num,
                 task->who);
             lock_basic_unlock(&zone->zone_lock);
