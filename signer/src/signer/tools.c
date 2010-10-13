@@ -141,7 +141,10 @@ tools_update(zone_type* zone)
         if (!error) {
             zone_backup_state(zone);
             zone->stats->sort_done = 1;
+            unlink(inbound);
         }
+        se_free((void*)inbound);
+        se_free((void*)unsorted);
     }
     return error;
 }
