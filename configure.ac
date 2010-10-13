@@ -285,6 +285,9 @@ AC_CONFIG_FILES([
 	libhsm/checks/conf-aepkeyper.xml
 	signer/Makefile
 	signer/src/Makefile
+	signer/man/Makefile
+	signer/man/ods-signer.8
+	signer/man/ods-signerd.8
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile
