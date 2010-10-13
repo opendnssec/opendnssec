@@ -61,10 +61,10 @@ tools_read_input(zone_type* zone)
     se_log_assert(zone->signconf);
     se_log_assert(zone->stats);
 
+    zone->stats->sort_done = 0;
     zone->stats->sort_count = 0;
     zone->stats->sort_time = 0;
     start = time(NULL);
-    zone->stats->start_time = start;
 
     switch (zone->inbound_adapter->type) {
         case ADAPTER_FILE:
@@ -89,9 +89,10 @@ tools_read_input(zone_type* zone)
             break;
     }
     end = time(NULL);
-    zone->stats->sort_time = (end-start);
     if (!error) {
         zone_backup_state(zone);
+        zone->stats->start_time = start;
+        zone->stats->sort_time = (end-start);
     }
     return error;
 }
@@ -131,7 +132,7 @@ tools_update(zone_type* zone)
     se_log_verbose("update zone %s", zone->name?zone->name:"(null)");
     error = zone_update_zonedata(zone);
     if (!error) {
-        se_log_info("zone %s updated to serial %u",
+        se_log_verbose("zone %s updated to serial %u",
             zone->name?zone->name:"(null)", zone->zonedata->internal_serial);
 
         inbound = se_build_path(zone->name, ".inbound", 0);
@@ -139,6 +140,7 @@ tools_update(zone_type* zone)
         error = se_file_copy(inbound, unsorted);
         if (!error) {
             zone_backup_state(zone);
+            zone->stats->sort_done = 1;
         }
     }
     return error;
@@ -160,12 +162,14 @@ tools_nsecify(zone_type* zone)
     se_log_assert(zone->stats);
     se_log_verbose("nsecify zone %s", zone->name?zone->name:"(null)");
     start = time(NULL);
-    if (!zone->stats->start_time) {
-        zone->stats->start_time = start;
-    }
     error = zone_nsecify(zone);
     end = time(NULL);
-    zone->stats->nsec_time = (end-start);
+    if (!error) {
+        if (!zone->stats->start_time) {
+            zone->stats->start_time = start;
+        }
+        zone->stats->nsec_time = (end-start);
+    }
     return error;
 }
 
@@ -185,15 +189,15 @@ tools_sign(zone_type* zone)
     se_log_assert(zone->stats);
     se_log_verbose("sign zone %s", zone->name?zone->name:"(null)");
     start = time(NULL);
-    if (!zone->stats->start_time) {
-        zone->stats->start_time = start;
-    }
     error = zone_sign(zone);
     end = time(NULL);
-    zone->stats->sig_time = (end-start);
     if (!error) {
-        se_log_info("zone %s signed, new serial %u",
+        se_log_verbose("zone %s signed, new serial %u",
             zone->name?zone->name:"(null)", zone->zonedata->internal_serial);
+        if (!zone->stats->start_time) {
+            zone->stats->start_time = start;
+        }
+        zone->stats->sig_time = (end-start);
         zone_backup_state(zone);
     }
     return error;
@@ -215,9 +219,8 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
     se_log_assert(zone);
     se_log_assert(zone->signconf);
 
-    if (zone->stats->sig_count <= 0) {
-        se_log_verbose("skip audit zone %s, zone not changed",
-            zone->name?zone->name:"(null)");
+    if (zone->stats->sort_done == 0 &&
+        (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
         return 0;
     }
     if (zone->signconf->audit) {
@@ -268,13 +271,17 @@ int tools_write_output(zone_type* zone)
     se_log_assert(zone->outbound_adapter);
     se_log_assert(zone->stats);;
 
-    if (zone->stats->sig_count <= 0) {
-        se_log_verbose("skip write zone %s, zone not changed",
-            zone->name?zone->name:"(null)");
+    if (zone->stats->sort_done == 0 &&
+        (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
+        se_log_verbose("skip write zone %s serial %u (zone not changed)",
+            zone->name?zone->name:"(null)", zone->zonedata->internal_serial);
         stats_clear(zone->stats);
         return 0;
     }
-    se_log_verbose("write zone %s", zone->name?zone->name:"(null)");
+
+    zone->zonedata->outbound_serial = zone->zonedata->internal_serial;
+    se_log_verbose("write zone %s serial %u",
+        zone->name?zone->name:"(null)", zone->zonedata->outbound_serial);
 
     switch (zone->outbound_adapter->type) {
         case ADAPTER_FILE:
