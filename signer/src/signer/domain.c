@@ -867,6 +867,9 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
                 ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial),
                 SE_SOA_RDATA_SERIAL);
             if (soa_serial) {
+                if (ldns_rdf2native_int32(soa_serial) != serial) {
+                    rrset->drop_signatures = 1;
+                }
                 ldns_rdf_deep_free(soa_serial);
              } else {
                 se_log_error("unable to sign domain: failed to replace "
