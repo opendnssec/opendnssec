@@ -57,7 +57,6 @@ rrset_create(ldns_rr_type rrtype)
     rrset->add_count = 0;
     rrset->del_count = 0;
     rrset->internal_serial = 0;
-    rrset->outbound_serial = 0;
     rrset->rrs = ldns_dnssec_rrs_new();
     rrset->add = NULL;
     rrset->del = NULL;
@@ -82,7 +81,6 @@ rrset_create_frm_rr(ldns_rr* rr)
     rrset->del_count = 0;
     rrset->rrsig_count = 0;
     rrset->internal_serial = 0;
-    rrset->outbound_serial = 0;
     rrset->rrs = ldns_dnssec_rrs_new();
     rrset->rrs->rr = rr;
     rrset->add = NULL;
@@ -718,7 +716,7 @@ rrset2rrlist(rrset_type* rrset)
  */
 int
 rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats)
+    signconf_type* sc, time_t signtime, stats_type* stats)
 {
     int error = 0;
     uint32_t newsigs = 0;
@@ -735,7 +733,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     se_log_assert(sc);
     se_log_assert(stats);
 
-    if (DNS_SERIAL_GT(serial, rrset->outbound_serial)) {
         /* drop unrecyclable signatures */
         error = rrset_recycle_rrsigs(rrset, sc, signtime, &reusedsigs);
 
@@ -851,11 +848,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         rrsigs_cleanup(new_rrsigs);
         ldns_rr_list_free(rr_list);
 
-        rrset->outbound_serial = serial;
-    } else {
-        se_log_warning("not signing RRset[%i]: up to date", rrset->rr_type);
+    if (rrset->rr_type == LDNS_RR_TYPE_SOA) {
+        stats->sig_soa_count += newsigs;
     }
-
     stats->sig_count += newsigs;
     stats->sig_reuse += reusedsigs;
     return 0;

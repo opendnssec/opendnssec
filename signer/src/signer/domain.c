@@ -825,7 +825,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (domain->nsec3 && domain->nsec3->nsec_rrset) {
             error = rrset_sign(ctx, domain->nsec3->nsec_rrset, owner, sc,
-                signtime, serial, stats);
+                signtime, stats);
             if (error) {
                 se_log_error("failed to sign NSEC3 RRset");
                 return error;
@@ -833,7 +833,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
         }
     } else if (domain->nsec_rrset) {
         error = rrset_sign(ctx, domain->nsec_rrset, owner, sc, signtime,
-            serial, stats);
+            stats);
         if (error) {
             se_log_error("failed to sign NSEC RRset");
             return error;
@@ -878,7 +878,7 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
             }
         }
 
-        error = rrset_sign(ctx, rrset, owner, sc, signtime, serial, stats);
+        error = rrset_sign(ctx, rrset, owner, sc, signtime, stats);
         if (error) {
             se_log_error("failed to sign RRset[%i]", (int) rrset->rr_type);
             return error;

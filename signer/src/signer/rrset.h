@@ -50,7 +50,6 @@ struct rrset_struct {
     uint32_t del_count;
     uint32_t rrsig_count;
     uint32_t internal_serial;
-    uint32_t outbound_serial;
     ldns_dnssec_rrs* rrs;
     ldns_dnssec_rrs* add;
     ldns_dnssec_rrs* del;
@@ -137,13 +136,12 @@ int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
  * \param[in] owner owner of the zone
  * \param[in] sc sign configuration
  * \param[in] signtime time when the zone is signd
- * \param[in] serial outbound serial
  * \param[out] stats update statistics
  * \return 0 on success, 1 on error
  *
  */
 int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats);
+    signconf_type* sc, time_t signtime, stats_type* stats);
 
 /**
  * Delete all RRs from RRset.
