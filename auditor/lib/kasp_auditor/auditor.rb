@@ -738,7 +738,7 @@ module KASPAuditor
             # iff we're using NSEC3
             write_types_to_file(current_domain, types_covered, last_rr.name, is_glue)
           end
-          if !(l_rr.name.subdomain_of?current_domain)
+          if !(test_subdomain(current_domain, subdomain))
             delegation = false
             is_glue = false
           else
@@ -978,7 +978,10 @@ module KASPAuditor
     # but false for ("z.a.b.c", "a.b.c", "c")
     def test_subdomain(rr, subdomain)
       ret = false
-      rr_name = rr.name
+      rr_name = rr
+      if (rr.class != Dnsruby::Name)
+        rr_name = rr.name
+      end
       rr_name = lose_n_labels(rr_name, @soa.name.labels.length)
 
       if (subdomain && rr_name)
