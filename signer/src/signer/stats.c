@@ -58,9 +58,11 @@ stats_clear(stats_type* stats)
     se_log_assert(stats);
     stats->sort_count = 0;
     stats->sort_time = 0;
+    stats->sort_done = 0;
     stats->nsec_count = 0;
     stats->nsec_time = 0;
     stats->sig_count = 0;
+    stats->sig_soa_count = 0;
     stats->sig_reuse = 0;
     stats->sig_time = 0;
     stats->audit_time = 0;
