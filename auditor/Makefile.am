@@ -5,7 +5,8 @@ RDOC = rdoc
 
 EXTRA_DIST = \
 	$(srcdir)/lib/*.rb \
-	$(srcdir)/lib/kasp_auditor/*.rb
+	$(srcdir)/lib/kasp_auditor/*.rb \
+	$(srcdir)/sorttest.txt
 
 MAINTAINERCLEANFILES = \
 	config.log config.status \
