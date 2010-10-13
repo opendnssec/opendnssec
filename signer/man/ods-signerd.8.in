@@ -1,0 +1,62 @@
+.TH "ods-signerd" "8" "February 2010" "OpenDNSSEC" "OpenDNSSEC ods-signerd"
+.\" $Id: ods-signerd.8.in 2785 2010-02-02 16:45:00Z rb $
+.SH "NAME"
+.LP
+.B ods\-signerd
+\- OpenDNSSEC Signer Engine daemon
+.SH "SYNOPSIS"
+.LP
+.B ods\-signerd
+.RB [ \-1 ] 
+.RB [ \-c 
+.IR FILE ]
+.RB [ \-d ] 
+.RB [ \-h ] 
+.RB [ \-i ] 
+.RB [ \-v ] 
+.RB [ \-V ] 
+.P
+.SH "DESCRIPTION"
+.LP
+ods\-signerd is part of the OpenDNSSEC software. It will keep your DNS zones
+continuous signed. For more information, go to
+.B http://www.opendnssec.org
+and visit the Documentation page.
+.P
+.SH "OPTIONS"
+.LP
+.TP
+.B \-1
+Run signer engine once, then exit (for debugging purposes).
+.TP
+.B \-c\fI FILE
+Read configuration from file, instead of using the default.
+.TP
+.B \-d
+Run daemon in foreground.
+.TP
+.B \-h
+Show this help.
+.TP
+.B \-i
+Print configuration and exit (for debugging purposes).
+.TP
+.B \-v
+Increase verbosity.
+.TP
+.B \-V
+Show version and exit.
+.P
+.SH "DIAGNOSTICS"
+.LP
+will log all the problems via standard syslog(8).
+.SH "SEE ALSO"
+.LP
+ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(8),
+ods\-timing(5), opendnssec(7),
+.B http://www.opendnssec.org/
+.SH "AUTHORS"
+.LP
+.B ods\-signerd
+was written by NLnet Labs as part of the OpenDNSSEC project.

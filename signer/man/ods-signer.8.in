@@ -1,0 +1,62 @@
+.TH "ods-signer" "8" "October 2010" "OpenDNSSEC" "OpenDNSSEC ods-signer"
+.\" $Id: ods-signer.8.in 3709 2010-08-10 13:03:45Z rb $
+.SH "NAME"
+.B ods\-signer 
+\- OpenDNSSEC Signer Engine client
+.LP
+.SH "SYNOPSIS"
+.B ods\-signer
+.RB [ \-h ]
+.I start
+|
+.I stop
+|
+.I reload
+|
+.I queue
+|
+.I flush
+|
+.I zones
+|
+.I verbosity
+.IR <number>
+|
+.I update
+|
+.I update
+.IR <zone>
+|
+.I sign 
+.IR <zone>
+|
+.I sign \-\-all 
+|
+.I clear 
+.IR <zone> 
+.LP
+.SH "DESCRIPTION"
+ods\-signer is part of the OpenDNSSEC software. With this tool, you can send
+commands to the signer engine daemon. For more information, go to
+.B http://www.opendnssec.org
+and visit the Documentation page.
+.LP
+.SH "OPTIONS"
+.LP
+.TP
+.B \-h
+Show this help.
+.P
+.SH "DIAGNOSTICS"
+.LP
+will log all the problems via stderr.
+.SH "SEE ALSO"
+.LP
+ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), 
+ods\-signerd(8), ods\-timing(5), opendnssec(7),
+.B http://www.opendnssec.org/
+.SH "AUTHORS"
+.LP
+.B ods\-signer
+was written by NLnet Labs as part of the OpenDNSSEC project.
