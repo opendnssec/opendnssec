@@ -919,8 +919,7 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     if (!DNS_SERIAL_GT(zd->internal_serial, zd->outbound_serial)) {
         error = zonedata_update_serial(zd, sc);
     }
-    zd->outbound_serial = zd->internal_serial;
-    if (error || !zd->outbound_serial) {
+    if (error || !zd->internal_serial) {
         se_log_error("unable to sign zone data: failed to update serial");
         return 1;
     }
@@ -940,8 +939,8 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        if (domain_sign(ctx, domain, owner, sc, now, zd->outbound_serial, stats)
-            != 0) {
+        if (domain_sign(ctx, domain, owner, sc, now, zd->internal_serial,
+            stats) != 0) {
             se_log_error("unable to sign zone data: failed to sign domain");
             hsm_destroy_context(ctx);
             return 1;
