@@ -137,5 +137,8 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
         key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
     }
 
+    se_log_debug("HSM sign RRset[%i] with key %s tag %u",
+        ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
+        key_id->locator?key_id->locator:"(null)", key_id->params->keytag);
     return hsm_sign_rrset(ctx, rrset, key_id->hsmkey, key_id->params);
 }
