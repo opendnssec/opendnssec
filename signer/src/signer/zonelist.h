@@ -81,6 +81,17 @@ void zonelist_lock(zonelist_type* zonelist);
 void zonelist_unlock(zonelist_type* zonelist);
 
 /**
+ * Lookup zone by name.
+ * \param[in] zonelist zone list
+ * \param[in] name zone name
+ * \return zone_type* zone if found
+ *
+ */
+zone_type* zonelist_lookup_zone_by_name(zonelist_type* zonelist,
+    const char* name);
+
+
+/**
  * Add zone to zone list.
  * \param[in] zonelist zone list
  * \param[in] zone zone to add

@@ -586,7 +586,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             ldns_rr_free(rrsigs->rr);
             se_free((void*)rrsigs);
         } else {
-            /* A rule mismatched, refresh signature */
+            /* All rules ok, recycle signature */
             se_log_deeebug("recycle signature for RRset[%i] (refresh=%u, "
                 "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
                 refresh, (uint32_t) signtime, inception, expiration);
@@ -776,8 +776,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
 
             /* is there a signature with this algorithm already? */
             if (rrset_signed_with_algorithm(rrset, key->algorithm)) {
-                se_log_debug("skipping key %s for signing: RRset[%i] already "
-                    "has signature with same algorithm", key->locator);
+                se_log_deeebug("skipping key %s for signing: RRset[%i] "
+                    "already has signature with same algorithm", key->locator);
                 key = key->next;
                 continue;
             }
@@ -838,8 +838,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                 rrset->rrsig_count += 1;
                 rrset_log_rr(walk_rrsigs->rr, "+RRSIG", 6);
                 newsigs++;
-            } else {
-                se_log_deeebug("signature set is missing RRSIG record");
             }
             walk_rrsigs = walk_rrsigs->next;
         }

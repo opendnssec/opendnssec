@@ -203,6 +203,34 @@ zonelist_lookup_zone(zonelist_type* zonelist, zone_type* zone)
 
 
 /**
+ * Lookup zone by name.
+ *
+ */
+zone_type*
+zonelist_lookup_zone_by_name(zonelist_type* zonelist, const char* name)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    zone_type* zone = NULL;
+
+    se_log_assert(zonelist);
+    se_log_assert(zonelist->zones);
+    se_log_assert(name);
+
+    if (zonelist->zones) {
+        node = ldns_rbtree_first(zonelist->zones);
+    }
+    while (node != LDNS_RBTREE_NULL) {
+        zone = (zone_type*) node->key;
+        if (se_strcmp(zone->name, name) == 0) {
+            return zone;
+        }
+        node = ldns_rbtree_next(node);
+    }
+    return NULL;
+}
+
+
+/**
  * Add zone.
  *
  */
