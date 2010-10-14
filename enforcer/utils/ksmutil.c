@@ -157,7 +157,8 @@ usage_zoneadd ()
             "\t[--policy <policy>]                      aka -p\n"
             "\t[--signerconf <signerconf.xml>]          aka -s\n"
             "\t[--input <input>]                        aka -i\n"
-            "\t[--output <output>]                      aka -o\n");
+            "\t[--output <output>]                      aka -o\n"
+            "\t[--no-xml]                               aka -m\n");
 }
 
     void
@@ -165,7 +166,8 @@ usage_zonedel ()
 {
     fprintf(stderr,
             "  zone delete\n"
-            "\t--zone <zone> | --all                    aka -z / -a\n");
+            "\t--zone <zone> | --all                    aka -z / -a\n"
+            "\t[--no-xml]                               aka -m\n");
 }
 
     void
