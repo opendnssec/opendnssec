@@ -93,6 +93,8 @@ tools_read_input(zone_type* zone)
         zone_backup_state(zone);
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
+    } else {
+        zonedata_cancel_update(zone->zonedata);
     }
     return error;
 }
@@ -113,6 +115,8 @@ tools_add_dnskeys(zone_type* zone)
     error = zone_add_dnskeys(zone);
     if (!error) {
         zone_backup_state(zone);
+    } else {
+        zonedata_cancel_update(zone->zonedata);
     }
     return error;
 }
