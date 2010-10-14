@@ -996,7 +996,7 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
         if (parent_domain) {
             /* check for DNAME or NS */
             if (domain_examine_data_exists(parent_domain, LDNS_RR_TYPE_DNAME,
-                0) == 0 && domain_examine_data_exists(domain, 0, 1) == 0) {
+                0) == 0 && domain_examine_data_exists(domain, 0, 0) == 0) {
                 /* data below DNAME */
                 str_name = ldns_rdf2str(domain->name);
                 str_parent = ldns_rdf2str(parent_domain->name);
