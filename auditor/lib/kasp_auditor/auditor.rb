@@ -1163,8 +1163,13 @@ module KASPAuditor
               "#{File::SEPARATOR}audit.nsec3.#{Process.pid}") {|fnsec3|
             File.open(@working + 
                 "#{File::SEPARATOR}audit.optout.#{Process.pid}") {|foptout|
+              dont_load_next_types = false
               while (!ftypes.eof? && !fnsec3.eof? && !foptout.eof?)
-                types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
+                if (!dont_load_next_types)
+                  types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
+                else
+                  dont_load_next_types = false
+                end
                 nsec3_name, nsec3_types = get_name_and_types(fnsec3)
                 owner, next_hashed = get_next_non_optout(foptout)
                 owner, next_hashed = check_optout(types_name_unhashed, owner, next_hashed, types_name, foptout)
@@ -1194,9 +1199,26 @@ module KASPAuditor
                 end
                 # Now check the NSEC3 types_covered against the types ACTUALLY at the name
                 if (types_types != nsec3_types)
-                  log(LOG_ERR, "ERROR : expected #{@parent.get_types_string(nsec3_types)}" +
-                      " at #{types_name_unhashed} (#{nsec3_name}) but found " +
-                      "#{@parent.get_types_string(types_types)}")
+                  # @TODO@ Let's just check that we haven't misidentified an empty nonterminal...
+                  old_types_name = types_name
+                  old_types_name_unhashed = types_name_unhashed
+                  old_types_types = types_types
+                  while (old_types_name == types_name)
+                    types_name, types_name_unhashed, types_types = get_name_and_types(ftypes, true)
+                    if (types_name == old_types_name)
+                      dont_load_next_types = false
+                      old_types_name = types_name
+                      old_types_name_unhashed = types_name_unhashed
+                      old_types_types = types_types
+                    else
+                      dont_load_next_types = true
+                    end
+                  end
+                  if (old_types_types != nsec3_types)
+                    log(LOG_ERR, "ERROR : expected #{@parent.get_types_string(nsec3_types)}" +
+                        " at #{old_types_name_unhashed} (#{nsec3_name}) but found " +
+                        "#{@parent.get_types_string(old_types_types)}")
+                  end
                 end
               end
             }
