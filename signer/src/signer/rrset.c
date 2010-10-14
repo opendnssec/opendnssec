@@ -128,8 +128,8 @@ rrset_compare_rrs(ldns_dnssec_rrs* rrs1, ldns_dnssec_rrs* rrs2)
  * Log RR.
  *
  */
-static void
-rrset_log_rr(ldns_rr* rr, const char* pre, int level)
+void
+log_rr(ldns_rr* rr, const char* pre, int level)
 {
     char* str = NULL;
 
@@ -172,7 +172,7 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
         rrset->rrs->rr = rr;
         rrset->rr_count += 1;
         rrset->add_count -= 1;
-        rrset_log_rr(rr, "+RR", 6);
+        log_rr(rr, "+RR", 6);
         return LDNS_STATUS_OK;
     } else {
         status = util_dnssec_rrs_add_rr(rrset->rrs, rr);
@@ -180,16 +180,16 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
             if (status == LDNS_STATUS_NO_DATA) {
                 se_log_warning("error adding RR to RRset (%i): duplicate",
                     rrset->rr_type);
-                rrset_log_rr(rr, "+RR", 2);
+                log_rr(rr, "+RR", 2);
                 return LDNS_STATUS_OK;
             } else {
                 se_log_error("error adding RR to RRset (%i): %s",
                     rrset->rr_type, ldns_get_errorstr_by_id(status));
-                rrset_log_rr(rr, "+RR", 1);
+                log_rr(rr, "+RR", 1);
                 return status;
             }
         }
-        rrset_log_rr(rr, "+RR", 6);
+        log_rr(rr, "+RR", 6);
         rrset->rr_count += 1;
         rrset->add_count -= 1;
         return LDNS_STATUS_OK;
@@ -223,7 +223,7 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
             se_free((void*)rrs);
             rrset->rr_count -= 1;
             rrset->del_count -= 1;
-            rrset_log_rr(rr, "-RR", 6);
+            log_rr(rr, "-RR", 6);
             return;
         }
         prev_rrs = rrs;
@@ -231,7 +231,7 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
     }
     se_log_warning("error deleting RR from RRset (%i): does not exist",
         rrset->rr_type);
-    rrset_log_rr(rr, "-RR", 2);
+    log_rr(rr, "-RR", 2);
     return;
 }
 
@@ -272,17 +272,17 @@ rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
             case 2:
                 se_log_warning("error adding RRSIG to RRset (%i): duplicate",
                     rrset->rr_type);
-                rrset_log_rr(rrsig, "+RR", 2);
+                log_rr(rrsig, "+RR", 2);
                 break;
             case 1:
                 se_log_error("error adding RRSIG to RRset (%i): compare failed",
                     rrset->rr_type);
-                rrset_log_rr(rrsig, "+RR", 2);
+                log_rr(rrsig, "+RR", 2);
                 break;
             default:
                 se_log_error("error adding RRSIG to RRset (%i): unknown error",
                     rrset->rr_type);
-                rrset_log_rr(rrsig, "+RR", 2);
+                log_rr(rrsig, "+RR", 2);
                 break;
         }
     }
@@ -432,19 +432,19 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     if (!rrset->add->rr) {
         rrset->add->rr = rr;
         rrset->add_count = 1;
-        rrset_log_rr(rr, "+rr", 6);
+        log_rr(rr, "+rr", 6);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->add, rr);
         if (status != LDNS_STATUS_OK) {
             if (status == LDNS_STATUS_NO_DATA) {
                 se_log_warning("error adding RR to pending add RRset (%i): "
                     "duplicate", rrset->rr_type);
-                rrset_log_rr(rr, "+rr", 2);
+                log_rr(rr, "+rr", 2);
                 return 0;
             } else {
                 se_log_error("error adding RR to pending add RRset (%i): %s",
                     rrset->rr_type, ldns_get_errorstr_by_id(status));
-                rrset_log_rr(rr, "+rr", 1);
+                log_rr(rr, "+rr", 1);
                 ldns_dnssec_rrs_deep_free(rrset->add);
                 rrset->add = NULL;
                 rrset->add_count = 0;
@@ -452,7 +452,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
             }
         }
         rrset->add_count += 1;
-        rrset_log_rr(rr, "+rr", 6);
+        log_rr(rr, "+rr", 6);
     }
     return 0;
 }
@@ -478,19 +478,19 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
     if (!rrset->del->rr) {
         rrset->del->rr = rr;
         rrset->del_count = 1;
-        rrset_log_rr(rr, "-rr", 6);
+        log_rr(rr, "-rr", 6);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->del, rr);
         if (status != LDNS_STATUS_OK) {
             if (status == LDNS_STATUS_NO_DATA) {
                 se_log_warning("error adding RR to pending del RRset (%i): "
                     "duplicate", rrset->rr_type);
-                rrset_log_rr(rr, "-rr", 2);
+                log_rr(rr, "-rr", 2);
                 return 0;
             } else {
                 se_log_error("error adding RR to pending del RRset (%i): %s",
                    rrset->rr_type, ldns_get_errorstr_by_id(status));
-                rrset_log_rr(rr, "-rr", 1);
+                log_rr(rr, "-rr", 1);
                 ldns_dnssec_rrs_deep_free(rrset->del);
                 rrset->del = NULL;
                 rrset->del_count = 0;
@@ -498,7 +498,7 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
             }
         }
         rrset->del_count += 1;
-        rrset_log_rr(rr, "-rr", 6);
+        log_rr(rr, "-rr", 6);
     }
     return 0;
 }
@@ -581,7 +581,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             } else {
                 rrset->rrsigs = rrsigs->next;
             }
-            rrset_log_rr(rrsigs->rr, "-RRSIG", 6);
+            log_rr(rrsigs->rr, "-RRSIG", 6);
             rrset->rrsig_count -= 1;
             ldns_rr_free(rrsigs->rr);
             se_free((void*)rrsigs);
@@ -590,7 +590,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             se_log_deeebug("recycle signature for RRset[%i] (refresh=%u, "
                 "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
                 refresh, (uint32_t) signtime, inception, expiration);
-            rrset_log_rr(rrsigs->rr, "*RRSIG", 6);
+            log_rr(rrsigs->rr, "*RRSIG", 6);
             *reusedsigs += 1;
             prev_rrsigs = rrsigs;
         }
@@ -802,12 +802,12 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             /* add the signature to the set of new signatures */
             se_log_deeebug("new signature created for RRset[%i]",
                 rrset->rr_type);
-            rrset_log_rr(rrsig, "+RRSIG", 6);
+            log_rr(rrsig, "+RRSIG", 6);
             error = rrsigs_add_sig(new_rrsigs, rrsig, key->locator,
                 key->flags);
             if (error) {
                 se_log_error("error adding RRSIG to list of signatures");
-                rrset_log_rr(rrsig, "+RRSIG", 1);
+                log_rr(rrsig, "+RRSIG", 1);
                 ldns_rr_list_free(rr_list);
                 rrsigs_cleanup(new_rrsigs);
                 return 1;
@@ -823,20 +823,20 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             if (walk_rrsigs->rr) {
                 se_log_deeebug("adding signature to RRset[%i]",
                     rrset->rr_type);
-                rrset_log_rr(rrsig, "+RRSIG", 6);
+                log_rr(rrsig, "+RRSIG", 6);
                 error = rrsigs_add_sig(rrset->rrsigs,
                     ldns_rr_clone(walk_rrsigs->rr),
                     walk_rrsigs->key_locator, walk_rrsigs->key_flags);
                 if (error) {
                     se_log_error("error adding RRSIG to RRset[%i]",
                         rrset->rr_type);
-                    rrset_log_rr(walk_rrsigs->rr, "+RRSIG", 1);
+                    log_rr(walk_rrsigs->rr, "+RRSIG", 1);
                     ldns_rr_list_free(rr_list);
                     rrsigs_cleanup(new_rrsigs);
                     return 1;
                 }
                 rrset->rrsig_count += 1;
-                rrset_log_rr(walk_rrsigs->rr, "+RRSIG", 6);
+                log_rr(walk_rrsigs->rr, "+RRSIG", 6);
                 newsigs++;
             }
             walk_rrsigs = walk_rrsigs->next;
