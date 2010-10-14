@@ -291,6 +291,20 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 
 
 /**
+ * Unlink backup file.
+ *
+ */
+static void
+unlink_backup_file(const char* filename, const char* extension)
+{
+    char* tmpname = se_build_path(filename, extension, 0);
+    se_log_debug("unlink file %s", tmpname);
+    unlink(tmpname);
+    se_free((void*)tmpname);
+    return;
+}
+
+/**
  * Handle the 'clear' command.
  *
  */
@@ -298,56 +312,50 @@ static void
 cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 {
     char buf[ODS_SE_MAXLINE];
-    char* tmpname = NULL;
+    zone_type* zone = NULL;
+    uint32_t inbound_serial = 0;
+    uint32_t internal_serial = 0;
+    uint32_t outbound_serial = 0;
 
     se_log_assert(tbd);
     se_log_assert(cmdc);
     se_log_assert(cmdc->engine);
 
-    tmpname = se_build_path(tbd, ".sc", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
+    /* unlink_backup_file(tbd,, ".sc"); */
+    /* unlink_backup_file(tbd,, ".state"); */
+    /* unlink_backup_file(tbd,, ".task"); */
+    unlink_backup_file(tbd, ".inbound");
+    unlink_backup_file(tbd, ".unsorted");
+    unlink_backup_file(tbd, ".dnskeys");
+    unlink_backup_file(tbd, ".denial");
+    unlink_backup_file(tbd, ".rrsigs");
+    unlink_backup_file(tbd, ".finalized");
 
-/*
-    tmpname = se_build_path(tbd, ".state", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
-*/
+    zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd);
+    if (zone) {
+        inbound_serial = zone->zonedata->inbound_serial;
+        internal_serial = zone->zonedata->internal_serial;
+        outbound_serial = zone->zonedata->outbound_serial;
+        zonedata_cleanup(zone->zonedata);
+        zone->zonedata = NULL;
+        zone->zonedata = zonedata_create();
+        zone->zonedata->initialized = 1;
+        zone->zonedata->inbound_serial = inbound_serial;
+        zone->zonedata->internal_serial = internal_serial;
+        zone->zonedata->outbound_serial = outbound_serial;
 
-    tmpname = se_build_path(tbd, ".inbound", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
+            "%s cleared", tbd?tbd:"(null)");
+        se_log_info("cmdhandler: internal zone information about %s cleared",
+            tbd?tbd:"(null)");
+    } else {
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Cannot clear zone %s, zone not "
+            "found", tbd?tbd:"(null)");
+        se_log_warning("cmdhandler: cannot clear zone %s, zone not found",
+            tbd?tbd:"(null)");
+    }
 
-    tmpname = se_build_path(tbd, ".unsorted", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
-
-    tmpname = se_build_path(tbd, ".dnskeys", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
-
-    tmpname = se_build_path(tbd, ".denial", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
-
-    tmpname = se_build_path(tbd, ".rrsigs", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
-
-    tmpname = se_build_path(tbd, ".finalized", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
-
-    tmpname = se_build_path(tbd, ".task", 0);
-    unlink(tmpname);
-    se_free((void*)tmpname);
-
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Internal information about "
-        "%s cleared", tbd?tbd:"(null)");
     se_writen(sockfd, buf, strlen(buf));
-    se_log_info("cmdhandler: internal information about %s cleared",
-        tbd?tbd:"(null)");
-
     return;
 }
 
