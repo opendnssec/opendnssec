@@ -308,6 +308,7 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     rrset_type* rrset = NULL;
+    ldns_dnssec_rrs* rrs = NULL;
     char* str_name = NULL;
     char* str_type = NULL;
 
@@ -315,7 +316,7 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
     se_log_assert(rrtype);
 
     rrset = domain_lookup_rrset(domain, rrtype);
-    if (rrset) {
+    if (rrset && rrset_count_RR(rrset) > 0) {
         if (domain_count_rrset(domain) < 2) {
             /* one or zero, that's ok */
             return 0;
@@ -331,6 +332,11 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
                 str_name = ldns_rdf2str(domain->name);
                 str_type = ldns_rr_type2str(rrtype);
                 se_log_error("other data next to %s %s", str_name, str_type);
+                rrs = rrset->rrs;
+                while (rrs) {
+                    log_rr(rrs->rr, "next-to-CNAME: ", 2);
+                    rrs = rrs->next;
+                }
                 se_free((void*)str_name);
                 se_free((void*)str_type);
                 return 1;
