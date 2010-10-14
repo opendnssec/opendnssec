@@ -879,8 +879,7 @@ stop_zonefetcher(engine_type* engine)
             }
             engine->zfpid = -1;
         } else {
-            se_log_error("zone fetcher process id unknown, unable to "
-                "stop zone fetcher");
+            se_log_error("cannot stop zone fetcher: process id unknown");
         }
     }
     return;
