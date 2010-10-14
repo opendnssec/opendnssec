@@ -507,7 +507,8 @@ engine_setup(engine_type* engine)
     /* set up hsm */
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL); /* LEAKS */
     if (result != HSM_OK) {
-        se_log_error("Error initializing libhsm (errno %i)", result);
+        se_log_error("setup failed: error initializing libhsm (errno %i)",
+            result);
         return 1;
     }
 
