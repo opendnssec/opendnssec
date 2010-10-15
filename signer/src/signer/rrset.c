@@ -125,6 +125,54 @@ rrset_compare_rrs(ldns_dnssec_rrs* rrs1, ldns_dnssec_rrs* rrs2)
 
 
 /**
+ * Examine NS RRs and verify its RDATA.
+ *
+ */
+static int
+rrs_examine_ns_rdata(ldns_dnssec_rrs* rrs, ldns_rdf* nsdname)
+{
+    ldns_dnssec_rrs* walk = NULL;
+
+    if (!rrs || !nsdname) {
+        return 1;
+    }
+    walk = rrs;
+    while (walk) {
+        if (walk->rr &&
+            ldns_dname_compare(ldns_rr_rdf(walk->rr, 0), nsdname) == 0) {
+            return 0;
+        }
+        walk = walk->next;
+    }
+    return 1;
+}
+
+
+/**
+ * Examine NS RRset and verify its RDATA.
+ *
+ */
+int
+rrset_examine_ns_rdata(rrset_type* rrset, ldns_rdf* nsdname)
+{
+    if (!rrset || !nsdname || rrset->rr_type != LDNS_RR_TYPE_NS) {
+        return 1;
+    }
+
+    if (rrs_examine_ns_rdata(rrset->add, nsdname) == 0) {
+        return 0;
+    }
+    if (rrs_examine_ns_rdata(rrset->del, nsdname) == 0) {
+        return 1;
+    }
+    if (rrs_examine_ns_rdata(rrset->rrs, nsdname) == 0) {
+        return 0;
+    }
+    return 1;
+}
+
+
+/**
  * Log RR.
  *
  */

@@ -1006,12 +1006,24 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 se_free((void*)str_parent);
                 return 1;
             } else if (domain_examine_data_exists(parent_domain,
-                LDNS_RR_TYPE_NS, 0) == 0 && domain_examine_data_exists(domain,
-                0, 1) == 0) {
+                LDNS_RR_TYPE_NS, 0) == 0 &&
+                domain_examine_data_exists(domain, 0, 1) == 0) {
                 /* data (non-glue) below NS */
                 str_name = ldns_rdf2str(domain->name);
                 str_parent = ldns_rdf2str(parent_domain->name);
                 se_log_error("occluded (non-glue) data at %s (below %s NS)",
+                    str_name, str_parent);
+                se_free((void*)str_name);
+                se_free((void*)str_parent);
+                return 1;
+            } else if (domain_examine_data_exists(parent_domain,
+                LDNS_RR_TYPE_NS, 0) == 0 &&
+                domain_examine_data_exists(domain, 0, 0) == 0 &&
+                domain_examine_ns_rdata(parent_domain, domain->name) != 0) {
+                /* glue data not signalled by NS RDATA */
+                str_name = ldns_rdf2str(domain->name);
+                str_parent = ldns_rdf2str(parent_domain->name);
+                se_log_error("occluded data at %s (below %s NS)",
                     str_name, str_parent);
                 se_free((void*)str_name);
                 se_free((void*)str_parent);

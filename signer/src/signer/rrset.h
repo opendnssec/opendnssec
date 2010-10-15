@@ -60,7 +60,7 @@ struct rrset_struct {
 /**
  * Create new RRset.
  * \param[in] rrtype RRtype
- * \return new RRset
+ * \return rrset_type* new RRset
  *
  */
 rrset_type* rrset_create(ldns_rr_type rrtype);
@@ -68,7 +68,7 @@ rrset_type* rrset_create(ldns_rr_type rrtype);
 /**
  * Create new RRset from RR.
  * \param[in] rr RR
- * \return new RRset
+ * \return rrset_type* new RRset
  *
  */
 rrset_type* rrset_create_frm_rr(ldns_rr* rr);
@@ -77,11 +77,19 @@ rrset_type* rrset_create_frm_rr(ldns_rr* rr);
  * Update RRset with pending changes.
  * \param[in] rrset RRset
  * \param[in] serial version to update to
- * \return 0 on success, 1 on error
+ * \return int 0 on success, 1 on error
  *
  */
 int rrset_update(rrset_type* rrset, uint32_t serial);
 
+/**
+ * Examine NS RRset and verify its RDATA.
+ * \param[in] rrset NS RRset
+ * \param[in] nsdname domain name that should match NS RDATA
+ * \return int 0 if nsdame exists as NS RDATA, 1 otherwise
+ *
+ */
+int rrset_examine_ns_rdata(rrset_type* rrset, ldns_rdf* nsdname);
 
 /**
  * Cancel update.
@@ -94,7 +102,7 @@ void rrset_cancel_update(rrset_type* rrset);
  * Add RR to RRset.
  * \param[in] rrset RRset
  * \param[in] rr RR
- * \return 0 on success, 1 on error
+ * \return int 0 on success, 1 on error
  *
  */
 int rrset_add_rr(rrset_type* rrset, ldns_rr* rr);
@@ -103,7 +111,7 @@ int rrset_add_rr(rrset_type* rrset, ldns_rr* rr);
  * Delete RR from RRset.
  * \param[in] rrset RRset
  * \param[in] rr RR
- * \return 0 on success, 1 on error
+ * \return int 0 on success, 1 on error
  *
  */
 int rrset_del_rr(rrset_type* rrset, ldns_rr* rr);
@@ -112,7 +120,7 @@ int rrset_del_rr(rrset_type* rrset, ldns_rr* rr);
  * Recover RR from backup.
  * \param[in] rrset RRset
  * \param[in] rr RR
- * \return 0 on success, 1 on error
+ * \return int 0 on success, 1 on error
  *
  */
 int rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr);
@@ -123,7 +131,7 @@ int rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr);
  * \param[in] rrsig RRSIG
  * \param[in] locator key locator
  * \param[in] flags key flags
- * \return 0 on success, 1 on error
+ * \return int 0 on success, 1 on error
  *
  */
 int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
@@ -137,7 +145,7 @@ int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
  * \param[in] sc sign configuration
  * \param[in] signtime time when the zone is signd
  * \param[out] stats update statistics
- * \return 0 on success, 1 on error
+ * \return int 0 on success, 1 on error
  *
  */
 int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
@@ -146,7 +154,7 @@ int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
 /**
  * Delete all RRs from RRset.
  * \param[in] rrset RRset
- * \return 0 on success, 1 on error
+ * \return int 0 on success, 1 on error
  *
  */
 int rrset_del_rrs(rrset_type* rrset);
@@ -154,7 +162,7 @@ int rrset_del_rrs(rrset_type* rrset);
 /**
  * Return the number of RRs in RRset.
  * \param[in] rrset RRset
- * \return number of RRs
+ * \return int number of RRs
  *
  */
 int rrset_count_rr(rrset_type* rrset);
@@ -162,7 +170,7 @@ int rrset_count_rr(rrset_type* rrset);
 /**
  * Return the number of pending added RRs in RRset.
  * \param[in] rrset RRset
- * \return number of pending added RRs
+ * \return int number of pending added RRs
  *
  */
 int rrset_count_add(rrset_type* rrset);
@@ -170,7 +178,7 @@ int rrset_count_add(rrset_type* rrset);
 /**
  * Return the number of pending deleted RRs in RRset.
  * \param[in] rrset RRset
- * \return number of pending deleted RRs
+ * \return int number of pending deleted RRs
  *
  */
 int rrset_count_del(rrset_type* rrset);
@@ -178,7 +186,7 @@ int rrset_count_del(rrset_type* rrset);
 /**
  * Return the number of RRs in RRset after an update.
  * \param[in] rrset RRset
- * \return number of RRs after an update
+ * \return int number of RRs after an update
  *
  */
 int rrset_count_RR(rrset_type* rrset);

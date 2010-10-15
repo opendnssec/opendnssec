@@ -134,22 +134,30 @@ rrset_type* domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover
  */
 int domain_count_rrset(domain_type* domain);
 
-
 /**
  * Examine domain and verify if data exists.
  * \param[in] domain domain
  * \param[in] rrtype RRtype look for a specific RRset
  * \param[in] skip_glue skip glue records
- * \retun 0 if data is alone, 1 otherwise
+ * \retun int 0 if data is alone, 1 otherwise
  *
  */
 int domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
     int skip_glue);
 
 /**
+ * Examine domain NS RRset and verify its RDATA.
+ * \param[in] domain domain
+ * \param[in] nsdname domain name that should match one of the NS RDATA
+ * \return int 0 if nsdname exists as NS RDATA, 1 otherwise
+ *
+ */
+int domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname);
+
+/**
  * Examine domain and verify if it is a valid zonecut (or no NS RRs).
  * \param[in] domain domain
- * \retun 0 if the RRset is a valid zonecut (or no zonecut), 1 otherwise
+ * \retun int 0 if the RRset is a valid zonecut (or no zonecut), 1 otherwise
  *
  */
 int domain_examine_valid_zonecut(domain_type* domain);
@@ -158,7 +166,7 @@ int domain_examine_valid_zonecut(domain_type* domain);
  * Examine domain and verify if there is no other data next to a RRset.
  * \param[in] domain domain
  * \param[in] rrtype RRtype
- * \retun 0 if the RRset is alone, 1 otherwise
+ * \retun int 0 if the RRset is alone, 1 otherwise
  *
  */
 int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
@@ -167,7 +175,7 @@ int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
  * Examine domain and verify if the RRset is a singleton.
  * \param[in] domain domain
  * \param[in] rrtype RRtype
- * \retun 0 if the RRset is a singleton, 1 otherwise
+ * \retun int 0 if the RRset is a singleton, 1 otherwise
  *
  */
 int domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype);

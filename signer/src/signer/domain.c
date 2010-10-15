@@ -300,6 +300,31 @@ domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
 
 
 /**
+ * Examine domain NS RRset and verify its RDATA.
+ *
+ */
+int
+domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname)
+{
+    rrset_type* rrset = NULL;
+
+    se_log_assert(domain);
+    if (!nsdname) {
+       return 1;
+    }
+
+    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NS);
+    if (rrset && rrset_count_RR(rrset) > 0) {
+        /* NS RRset exists after update */
+        if (rrset_examine_ns_rdata(rrset, nsdname) == 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
+/**
  * Examine domain and verify if there is no other data next to a RRset.
  *
  */
