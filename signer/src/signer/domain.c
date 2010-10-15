@@ -403,7 +403,8 @@ domain_examine_valid_zonecut(domain_type* domain)
             } else if (rrset->rr_type == LDNS_RR_TYPE_A ||
                 rrset->rr_type == LDNS_RR_TYPE_AAAA) {
                 /* check if glue is allowed at the delegation */
-                if (rrset_examine_ns_rdata(rrset, domain->name) != 0) {
+                if (rrset_count_RR(rrset) > 0 &&
+                    rrset_examine_ns_rdata(rrset, domain->name) != 0) {
                     return 1;
                 }
             }
