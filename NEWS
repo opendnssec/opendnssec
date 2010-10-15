@@ -5,9 +5,9 @@ OpenDNSSEC 1.2.0b1 - 2010-10-15
 * A new signer engine, written in c. Zones are maintained in memory, instead of
   in files on disk.
 * Removed the python and python-4suite-xml dependencies.
-* Remove separate autoconf for libhsm/conf/enforcer
-* Add option to disable building the signer
-* Signer logs statistics just after outputting a new signed zone
+* Remove separate autoconf for libhsm/conf/enforcer.
+* Add option to disable building the signer.
+* Signer logs statistics just after outputting a new signed zone.
 * libhsm will skip processing (and not create) any public keys if the
   per repository option <SkipPublicKey/> is set.
 * Keysharing improved - keys can now exist in different states on each zone
@@ -19,12 +19,16 @@ OpenDNSSEC 1.2.0b1 - 2010-10-15
 
 Bugfixes:
 * Fix semantics of refresh value in Signer Engine.
-* Auditor handles chains of empty nonterminals correctly
+* Auditor handles chains of empty nonterminals correctly.
 * Recalculate salt immediately if the saltlength is changed.
 * libhsm connected to slot 0 if the token label was not found. 
   An error is now returned instead of connecting to the slot.
 * Bugreport #102: Removed the obsoleted python-4suite-xml dependency.
-
+* Fixed Known Issue: KSK rollover requires manual timing.
+* Fixed Known Issue: Key rollover and reuse of signatures.
+* Fixed Known Issue: Issue with sharing keys and adding zones.
+* Fixed Known Issue: Quicksorter does not allow certain owner names
+  (Quicksorter is removed, signer now reads and sorts the zone).
 
 OpenDNSSEC 1.1.3 - 2010-09-10
 
