@@ -131,6 +131,9 @@ int KsmListBackups(int repo_id, int verbose_flag)
     DusFree(sql);
     DbFreeRow(row);
     DbStringFree(temp_date);
+    sql = NULL;
+    row = NULL;
+    temp_date = NULL;
 
     /* List repos which need a backup */
     StrAppend(&sql2, "select s.name, s.requirebackup from keypairs k, securitymodules s ");
@@ -178,6 +181,8 @@ int KsmListBackups(int repo_id, int verbose_flag)
 
     /* List repos which need a backup commit */
     sql2 = NULL;
+    row2 = NULL;
+    temp_repo = NULL;
     StrAppend(&sql2, "select s.name from keypairs k, securitymodules s ");
     StrAppend(&sql2, "where s.id = k.securitymodule_id ");
     if (repo_id != -1) {
