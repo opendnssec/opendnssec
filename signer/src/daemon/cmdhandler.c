@@ -343,6 +343,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->zonedata->inbound_serial = inbound_serial;
         zone->zonedata->internal_serial = internal_serial;
         zone->zonedata->outbound_serial = outbound_serial;
+        zone->task->what = TASK_READ;
 
         (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
             "%s cleared", tbd?tbd:"(null)");
