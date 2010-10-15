@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.2.0b1
+OpenDNSSEC 1.2.0b1 - 2010-10-15
 
 * A new signer engine, written in c. Zones are maintained in memory, instead of
   in files on disk.
