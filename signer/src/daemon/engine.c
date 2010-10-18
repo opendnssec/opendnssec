@@ -464,6 +464,8 @@ engine_setup(engine_type* engine)
             case 0: /* child */
                 break;
             default: /* parent */
+                cmdhandler_cleanup(engine->cmdhandler);
+                engine->cmdhandler = NULL;
                 parent_cleanup(engine, 0);
                 xmlCleanupParser();
                 xmlCleanupGlobals();
