@@ -32,26 +32,18 @@ using TSIG authentication between the zone fetcher and the upstream
 nameserver.
 
 
-Possible Issue between enforcer and signer
-------------------------------------------
-
-We have seen, but only on centOS, an issue where when the enforcer signals the
-signer that a signer configuration file has changed the return value indicates
-an error. This happens even when the signer is running and has correctly
-processed the message.
-
-The result is that the enforcer does not message the signer about any more
-changes in that run. So, if any other zones change, they will not be seen
-until the next time the signer runs.
-
-If you are affected by this issue then you will see messages like this in your
-log: ods-enforcerd: Could not call signer engine ods-enforcerd: Will continue:
-call 'ods-signer update' to manually update zones
-
-
 Issue with rolling from one algorithm to another
 ------------------------------------------------
 
 The current version will handle key rollovers that also change algorithm just the
 same as any other key rollover. This is not sufficient; and so rolling between
 algorithms is broken and should not be done with the current system.
+
+
+Issue with ManualRollover flag in kasp.xml
+------------------------------------------
+
+The ManualRollover flag can be used when you want to disable automatic rollovers 
+of e.g. ZSK:s. Thus allowing you to use your own scripts when you want to roll 
+at a predefined date and time. The issue is that the Enforcer is not rolling the 
+key for you when you give the command and the flag is in use.
