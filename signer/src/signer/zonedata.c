@@ -127,6 +127,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                     } else {
                         current_domain->parent =
                             zonedata_lookup_domain(zd, parent_rdf);
+                        /* TODO: ldns_rdf_deep_free(parent_rdf); ??? */
                         se_log_assert(current_domain->parent ||
                             current_domain->domain_status == DOMAIN_STATUS_APEX);
 
@@ -521,6 +522,7 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
         if (!parent_domain) {
             se_log_deeebug("create parent domain for %s", str);
             parent_domain = domain_create(parent_rdf);
+            ldns_rdf_deep_free(parent_rdf);
             se_log_deeebug("add parent domain to %s", str);
             parent_domain = zonedata_add_domain(zd, parent_domain);
             if (!parent_domain) {
@@ -986,8 +988,6 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
     parent_rdf = ldns_dname_left_chop(domain->name);
     while (parent_rdf && ldns_dname_is_subdomain(parent_rdf, apex) &&
            ldns_dname_compare(parent_rdf, apex) != 0) {
-
-        str_name = ldns_rdf2str(parent_rdf);
 
         parent_domain = zonedata_lookup_domain(zd, parent_rdf);
         next_rdf = ldns_dname_left_chop(parent_rdf);

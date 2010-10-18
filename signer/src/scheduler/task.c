@@ -111,6 +111,7 @@ task_recover_from_backup(const char* filename, struct zone_struct* zone)
             task->flush = flush;
             task->backoff = backoff;
         }
+        se_free((void*)who);
         se_fclose(fd);
         return task;
     }
