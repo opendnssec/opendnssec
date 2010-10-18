@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.2.0b1 - 2010-10-15
+OpenDNSSEC 1.2.0b1 - 2010-10-18
 
 * A new signer engine, written in c. Zones are maintained in memory, instead of
   in files on disk.
@@ -29,6 +29,7 @@ Bugfixes:
 * Fixed Known Issue: Issue with sharing keys and adding zones.
 * Fixed Known Issue: Quicksorter does not allow certain owner names
   (Quicksorter is removed, signer now reads and sorts the zone).
+
 
 OpenDNSSEC 1.1.3 - 2010-09-10
 
