@@ -428,7 +428,7 @@ zone_update_zonedata(zone_type* zone)
     se_log_assert(zone->zonedata);
 
     /* examine zone data */
-    se_log_debug("examine zone %s update");
+    se_log_debug("examine zone %s update", zone->name);
     error = zonedata_examine(zone->zonedata, zone->dname,
         zone->inbound_adapter->type==ADAPTER_FILE);
     if (error) {
