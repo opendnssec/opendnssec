@@ -263,8 +263,16 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
         if (status != 0) {
             return status;
         }
+    } else {
+        /* Check for the compromised flag on the currently active key;
+           if set then force rollover to 1 (could set manual_rollover to 0)
+           NOTE: because of where this is called from we can not overwrite 
+           the incoming rollover flag if set */
+        status = KsmRequestCheckCompromisedFlag(keytype, zone_id, &rollover);
+        if (status != 0) {
+            return status;
+        }
     }
-
     /*
      * Step 0a: Complete Key rollover of standbykeys in KEYPUBLISH state
      * if we are after their active time, move them into the active state
@@ -1946,6 +1954,64 @@ int KsmRequestCheckFirstPass(int keytype, int* first_pass_flag, int zone_id)
     }
     else {
         *first_pass_flag = 0;
+    }
+
+    return status;
+}
+
+/*
+ * KsmRequestCheckCompromisedFlag - Work out if this zone is rolling
+ *
+ * Description:
+ *      Counts the number of "compromised" active keys, if > 0 then force
+ *      the zone to roll if we can.
+ *
+ * Arguments:
+ *      int keytype
+ *          Either KSK or ZSK, depending on the key type
+ *
+ *      int zone_id
+ *          ID of zone that we are looking at (-1 == all zones)
+ *
+ *      int* comp_flag
+ *          Force rollover behaviour if the active key is marked as compromised
+ *
+ * Returns:
+ *      int
+ *          Status return. 0 => success, Other => error, in which case a message
+ *          will have been output.
+-*/
+
+int KsmRequestCheckCompromisedFlag(int keytype, int zone_id, int* comp_flag)
+{
+    int     clause = 0;     /* Clause counter */
+    char*   sql = NULL;     /* SQL command */
+    int     status;         /* Status return */
+    int     count = 0;      /* Number of matching keys */
+
+    sql = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, keytype, clause++);
+    DqsConditionInt(&sql, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, clause++);
+    if (zone_id != -1) {
+        DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, clause++);
+    }
+    DqsConditionInt(&sql, "compromisedflag", DQS_COMPARE_EQ, 1, clause++);
+    DqsEnd(&sql);
+
+    status = DbIntQuery(DbHandle(), &count, sql);
+    DqsFree(sql);
+
+    if (status != 0) {
+        status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+    }
+
+    if (count == 0) {
+        /* No "compromised" keys; i.e. keys waiting to roll */
+        /* We actually don't need to do this as it can only be 0 already */
+        *comp_flag = 0;
+    }
+    else {
+        *comp_flag = 1;
     }
 
     return status;
