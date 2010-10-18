@@ -127,7 +127,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                     } else {
                         current_domain->parent =
                             zonedata_lookup_domain(zd, parent_rdf);
-                        /* TODO: ldns_rdf_deep_free(parent_rdf); ??? */
+                        ldns_rdf_deep_free(parent_rdf);
                         se_log_assert(current_domain->parent ||
                             current_domain->domain_status == DOMAIN_STATUS_APEX);
 
