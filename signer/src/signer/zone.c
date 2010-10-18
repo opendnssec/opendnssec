@@ -779,11 +779,14 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                 }
                 rr = NULL;
             } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+                se_free((void*) token);
+                token = NULL;
                 break;
             } else {
                 corrupted = 1;
             }
             se_free((void*) token);
+            token = NULL;
         } else {
             corrupted = 1;
         }
@@ -812,7 +815,6 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
 
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
-
             if (se_strcmp(token, ";RRSIG") == 0) {
                 if (!backup_read_str(fd, &locator) ||
                     !backup_read_uint32_t(fd, &flags)) {
@@ -833,10 +835,14 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
                     }
                 }
             } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+                se_free((void*) token);
+                token = NULL;
                 break;
             } else {
                 corrupted = 1;
             }
+            se_free((void*) token);
+            token = NULL;
         } else {
             corrupted = 1;
         }
@@ -909,6 +915,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         /* no, stop recovering process */
         return;
     }
+    zone->signconf->name = zone->name;
     zone->signconf->keys = keylist_create();
 
     /* recover denial of existence */

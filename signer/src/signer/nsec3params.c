@@ -144,6 +144,10 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
             ldns_rr_free(nsec3params_rr);
             nsec3params_rr = NULL;
         }
+        if (salt) {
+            se_free((void*) salt);
+            salt = NULL;
+        }
         return NULL;
     }
 
@@ -154,6 +158,8 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
     /* construct the salt from the string */
     if (nsec3params_create_salt(salt, &salt_len, &salt_data) != 0) {
         se_free((void*)nsec3params);
+        se_free((void*)salt);
+        ldns_rr_free(nsec3params_rr);
         return NULL;
     }
     nsec3params->salt_len = salt_len; /* salt length */

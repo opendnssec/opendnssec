@@ -146,6 +146,7 @@ signconf_type*
 signconf_recover_from_backup(const char* filename)
 {
     signconf_type* signconf = NULL;
+    const char* zonename = NULL;
     FILE* scfd = NULL;
 
     scfd = se_fopen(filename, NULL, "r");
@@ -154,7 +155,7 @@ signconf_recover_from_backup(const char* filename)
 
         if (!backup_read_check_str(scfd, ODS_SE_FILE_MAGIC) ||
             !backup_read_check_str(scfd, ";name:") ||
-            !backup_read_str(scfd, &signconf->name) ||
+            !backup_read_str(scfd, &zonename) ||
             !backup_read_check_str(scfd, ";filename:") ||
             !backup_read_str(scfd, &signconf->filename) ||
             !backup_read_check_str(scfd, ";last_modified:") ||
@@ -189,6 +190,10 @@ signconf_recover_from_backup(const char* filename)
                 "backup file ", filename?filename:"(null)");
             signconf_cleanup(signconf);
             signconf = NULL;
+        }
+
+        if (zonename) {
+            se_free((void*) zonename);
         }
         se_fclose(scfd);
         return signconf;

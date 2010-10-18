@@ -201,10 +201,14 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                 rr = NULL;
                 status = LDNS_STATUS_OK;
             } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+                se_free((void*)token);
+                token = NULL;
                 break;
             } else {
                 corrupted = 1;
             }
+            se_free((void*)token);
+            token = NULL;
         } else {
             corrupted = 1;
         }
