@@ -5629,7 +5629,7 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"PublishSafety", (const xmlChar *)temp_time);
     if (policy->keys->share_keys == 1)
     {
-            (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"SharedKeys", NULL);
+            (void) xmlNewTextChild(keys_node, NULL, (const xmlChar *)"ShareKeys", NULL);
     }
     if (policy->keys->purge != -1) {
         snprintf(temp_time, 32, "PT%dS", policy->keys->purge);
