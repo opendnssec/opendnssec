@@ -440,6 +440,14 @@
 			<td class="tag"><xsl:text>Number of Standby Keys</xsl:text></td>
 			<td class="value"><xsl:value-of select="Standby"/></td>
 		</tr>
+		<tr>
+			<td class="tag"><xsl:text>Manual Rollover?</xsl:text></td>
+			<td class="value">
+				<xsl:call-template name="boolean2yesno">
+					<xsl:with-param name="bool" select="ManualRollover"/>
+				</xsl:call-template>
+			</td>
+		</tr>
 	</xsl:template>
 
 	<xsl:template name="format_date">
