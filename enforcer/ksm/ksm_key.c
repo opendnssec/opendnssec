@@ -849,6 +849,8 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
  *          algorithm of key desired
  *      int zone_id
  *          zone we are allocating to
+ *      int share_keys
+ *          0 if keys are not shared; 1 if they are
  *      int *keypair_id (out)
  *          id of next keypair
  *
@@ -858,7 +860,7 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
  *          -1 == no free keys on that policy
  */
 
-int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zone_id, int *keypair_id) 
+int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zone_id, int share_keys, int *keypair_id) 
 {
 
     int     where = 0;          /* WHERE clause value */
@@ -869,23 +871,28 @@ int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zon
     char    in_sql[1024];
     char    in_sql2[1024];
 
-    /* check the arguments? */
-    /*if (zone_name == NULL) {
-        return MsgLog(KSM_INVARG, "NULL zone name");
-    }*/
-    snprintf(in_sql, 1024, "(select id from KEYALLOC_VIEW where zone_id = %d)", zone_id);
-    snprintf(in_sql2, 1024, "(select distinct id from KEYDATA_VIEW where policy_id = %d and state in (%d, %d))", policy_id, KSM_STATE_RETIRE, KSM_STATE_DEAD);
+    if (share_keys == KSM_KEYS_NOT_SHARED) {
+        /* Construct the query */
+        sql = DqsSpecifyInit("KEYDATA_VIEW","min(id)");
+        DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
+        DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, sm, where++);
+        DqsConditionInt(&sql, "size", DQS_COMPARE_EQ, bits, where++);
+        DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
+        DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
+    } else {
+        snprintf(in_sql, 1024, "(select id from KEYALLOC_VIEW where zone_id = %d)", zone_id);
+        snprintf(in_sql2, 1024, "(select distinct id from KEYDATA_VIEW where policy_id = %d and state in (%d, %d))", policy_id, KSM_STATE_RETIRE, KSM_STATE_DEAD);
 
-    /* Construct the query */
-    sql = DqsSpecifyInit("KEYALLOC_VIEW","min(id)");
-    DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
-    DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, sm, where++);
-    DqsConditionInt(&sql, "size", DQS_COMPARE_EQ, bits, where++);
-    DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
-    DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
-    DqsConditionKeyword(&sql, "id", DQS_COMPARE_NOT_IN, in_sql, where++);
-    DqsConditionKeyword(&sql, "id", DQS_COMPARE_NOT_IN, in_sql2, where++);
-
+        /* Construct the query */
+        sql = DqsSpecifyInit("KEYALLOC_VIEW","min(id)");
+        DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
+        DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, sm, where++);
+        DqsConditionInt(&sql, "size", DQS_COMPARE_EQ, bits, where++);
+        DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
+        DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);
+        DqsConditionKeyword(&sql, "id", DQS_COMPARE_NOT_IN, in_sql, where++);
+        DqsConditionKeyword(&sql, "id", DQS_COMPARE_NOT_IN, in_sql2, where++);
+    }
     /* Execute query and free up the query string */
     status = DbExecuteSql(DbHandle(), sql, &result);
     DqsFree(sql);

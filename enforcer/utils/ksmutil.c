@@ -7713,7 +7713,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     for (i=0 ; i < new_keys ; i++){
         key_pair_id = 0;
         if (key_type == KSM_TYPE_KSK) {
-            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, zone_id, &key_pair_id);
+            status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, zone_id, policy->keys->share_keys, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
                     printf("Not enough keys to satisfy ksk policy for zone: %s", zone_name);
@@ -7730,7 +7730,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
                 return 3;
             }
         } else {
-            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, zone_id, &key_pair_id);
+            status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, zone_id, policy->keys->share_keys, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
                     printf("Not enough keys to satisfy zsk policy for zone: %s", zone_name);
