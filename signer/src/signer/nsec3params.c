@@ -162,6 +162,7 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
         ldns_rr_free(nsec3params_rr);
         return NULL;
     }
+    se_free((void*) salt);
     nsec3params->salt_len = salt_len; /* salt length */
     nsec3params->salt_data = salt_data; /* salt data */
     *rr = nsec3params_rr;
