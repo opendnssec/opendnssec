@@ -31,6 +31,7 @@ progname="ods-control"
 bindir="@OPENDNSSEC_BIN_DIR@"
 sbindir="@OPENDNSSEC_SBIN_DIR@"
 enforcer_pid_file="@OPENDNSSEC_PID_DIR@/enforcerd.pid"
+signer_pid_file="@OPENDNSSEC_PID_DIR@/signerd.pid"
 
 
 case "$1" in
@@ -46,8 +47,32 @@ case "$1" in
 	;;
 
 'signer')
-	shift
-	"$sbindir/ods-signer" $@
+	case "$2" in
+
+	'start')
+		echo "Starting signer..."
+		"$sbindir/ods-signer" start
+		i=0
+		while [ ! -r "$signer_pid_file" ]; do
+			sleep 1
+			i=$(( $i + 1 ))
+			if [ $i -ge 5 ]; then
+				RETVAL=1
+				echo "Could not start signer"
+				exit $RETVAL
+			fi
+		done
+
+		"$sbindir/ods-signer" running
+		RETVAL=$?
+
+		exit $RETVAL
+		;;
+	*)
+		"$sbindir/ods-signer" $2
+		;;
+
+	esac
 	;;
 
 'enforcer')
@@ -117,7 +142,8 @@ case "$1" in
 	"$0" enforcer start
 
 	echo "Starting signer engine..."
-	"$sbindir/ods-signer" start
+	"$0" signer start
+
 	;;
 
 'stop')
@@ -126,7 +152,7 @@ case "$1" in
 	echo "Stopping signer engine.."
 	"$sbindir/ods-signer" stop
 	;;
-	
+
 *)
 	echo "usage: $progname ksm|hsm|signer|enforcer|start|stop ..."
 	;;
