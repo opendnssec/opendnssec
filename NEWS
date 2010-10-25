@@ -1,5 +1,15 @@
 $Id$
 
+OpenDNSSEC 1.2.0b2
+
+* New commandline option for the signer: ods-signer running.
+
+Bugfixes:
+* Bugreport #187: ods-control signer start will return non-zero if start up 
+  failed (uses ods-signer running).
+* Narrow glue at the zone cut is allowed, do not consider it as occluded.
+* Move zone fetcher output to correct input adapter file.
+
 OpenDNSSEC 1.2.0b1 - 2010-10-18
 
 * A new signer engine, written in c. Zones are maintained in memory, instead of
