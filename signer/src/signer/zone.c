@@ -78,6 +78,7 @@ zone_create(const char* name, ldns_rr_class klass)
     zone->tobe_removed = 0;
     zone->in_progress = 0;
     zone->processed = 0;
+    zone->fetch = 0;
     zone->zonedata = zonedata_create();
     zone->stats = stats_create();
     lock_basic_init(&zone->zone_lock);
@@ -704,6 +705,7 @@ int zone_backup_state(zone_type* zone)
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         fprintf(fd, ";name: %s\n", zone->name?zone->name:"(null)");
         fprintf(fd, ";class: %i\n", (int) zone->klass);
+        fprintf(fd, ";fetch: %i\n", (int) zone->fetch);
         fprintf(fd, ";default_ttl: %u\n", zone->zonedata->default_ttl);
         fprintf(fd, ";inbound_serial: %u\n", zone->zonedata->inbound_serial);
         fprintf(fd, ";internal_serial: %u\n", zone->zonedata->internal_serial);
@@ -867,6 +869,7 @@ void
 zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
 {
     int klass = 0;
+    int fetch = 0;
     int error = 0;
     char* filename = NULL;
     task_type* task = NULL;
@@ -885,6 +888,8 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
             !backup_read_check_str(fd, zone->name) ||
             !backup_read_check_str(fd, ";class:") ||
             !backup_read_int(fd, &klass) ||
+            !backup_read_check_str(fd, ";fetch:") ||
+            !backup_read_int(fd, &fetch) ||
             !backup_read_check_str(fd, ";default_ttl:") ||
             !backup_read_uint32_t(fd, &zone->zonedata->default_ttl) ||
             !backup_read_check_str(fd, ";inbound_serial:") ||
@@ -900,6 +905,9 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
             se_fclose(fd);
             return;
         }
+        zone->klass = (ldns_rr_class) klass;
+        zone->fetch = fetch;
+
         se_fclose(fd);
     } else {
         se_log_deeebug("unable to recover zone state from file %s.state: ",

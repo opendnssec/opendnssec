@@ -972,7 +972,8 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config)
                 zone->input_file?zone->input_file:"(null)");
             if(rename(axfr_file, dest_file) == 0) {
                 snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
-                    "%s sign %s", ODS_SE_CLI, zone->name?zone->name:"--all");
+                    "%s sign %s > /dev/null 2>&1",
+                    ODS_SE_CLI, zone->name?zone->name:"--all");
                 if (system(engine_sign_cmd) != 0) {
                     se_log_error("zone fetcher could not kick "
                         "the signer engine to sign zone %s",
@@ -1367,7 +1368,7 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
         list_settings(stdout, config, config_file);
         exit(0);
     }
- 
+
     if (config->serverlist == NULL) {
         se_log_alert("zone fetcher error: no master servers configured "
             "with <RequestTransfer>");

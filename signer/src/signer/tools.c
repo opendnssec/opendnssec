@@ -52,6 +52,7 @@ int
 tools_read_input(zone_type* zone)
 {
     char* tmpname = NULL;
+    char* axfrname = NULL;
     int error = 0;
     time_t start = 0;
     time_t end = 0;
@@ -68,6 +69,22 @@ tools_read_input(zone_type* zone)
 
     switch (zone->inbound_adapter->type) {
         case ADAPTER_FILE:
+            if (zone->fetch) {
+                se_log_verbose("fetch zone %s",
+                    zone->name?zone->name:"(null)");
+                axfrname = se_build_path(zone->inbound_adapter->filename,
+                    ".axfr", 0);
+                error = se_file_copy(axfrname,
+                    zone->inbound_adapter->filename);
+                if (error) {
+                    se_log_error("unable to copy axfr file %s to %s",
+                        axfrname, zone->inbound_adapter->filename);
+                    se_free((void*)axfrname);
+                    return 1;
+                }
+                se_free((void*)axfrname);
+            }
+
             se_log_verbose("read zone %s from input file adapter %s",
                 zone->name?zone->name:"(null)",
                 zone->inbound_adapter->filename ?

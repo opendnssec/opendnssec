@@ -61,6 +61,7 @@ struct zone_struct {
 
     /* from conf.xml */
     const char* notify_ns; /* master name server reload command */
+    int fetch; /* zone fetcher enabled */
 
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */

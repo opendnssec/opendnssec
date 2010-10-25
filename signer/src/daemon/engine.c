@@ -698,6 +698,7 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
                     zone->signconf_filename?zone->signconf_filename:"(null)");
                 lock_basic_lock(&engine->tasklist->tasklist_lock);
                 tmp = zone_update_signconf(zone, engine->tasklist, buf);
+                zone->fetch = (engine->config->zonefetch_filename != NULL);
                 engine->tasklist->loading = 0;
                 lock_basic_unlock(&engine->tasklist->tasklist_lock);
                 lock_basic_unlock(&zone->zone_lock);
@@ -706,6 +707,7 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
 
             lock_basic_lock(&engine->tasklist->tasklist_lock);
             tmp = zone_update_signconf(zone, engine->tasklist, buf);
+            zone->fetch = (engine->config->zonefetch_filename != NULL);
             lock_basic_unlock(&engine->tasklist->tasklist_lock);
 
             if (tmp < 0) {
@@ -830,7 +832,8 @@ start_zonefetcher(engine_type* engine)
         return 1;
     }
 
-    se_log_info("zone fetcher started (pid=%i)", getpid());
+    se_log_verbose("zone fetcher running as pid %lu",
+        (unsigned long) getpid());
 
     zf_filename = se_strdup(engine->config->zonefetch_filename);
     zl_filename = se_strdup(engine->config->zonelist_filename);
