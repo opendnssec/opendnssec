@@ -129,7 +129,7 @@ void
 kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle)
 {
     /* Note that all these XML derived strings are unsigned chars */
-	if (DbConnect(handle, (char *)config->schema, (char *)config->host, (char *)config->password, (char *)config->user) != 0) {
+	if (DbConnect(handle, (char *)config->schema, (char *)config->host, (char *)config->password, (char *)config->user, (char *)config->port) != 0) {
         unlink(config->pidfile);
         exit(-1);
     }

@@ -42,6 +42,7 @@
 #include "ksm/database.h"
 #include "ksm/dbsdef.h"
 #include "ksm/message.h"
+#include "ksm/string_util2.h"
 
 static MYSQL* m_dbhandle = NULL;  /* Non-NULL if connected */
 
@@ -100,6 +101,8 @@ int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
     const char* host = NULL;        /* Host on which database resides */
     const char* password = NULL;    /* Connection password */
     const char* user = NULL;        /* Connection username */
+    const char* char_port = NULL;   /* Char version of connection port */
+    unsigned int port = 0;          /* For mysql_real_connect */
     va_list     ap;                 /* Argument pointer */
     int         status = 0;         /* Return status */
 
@@ -113,7 +116,17 @@ int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
     host = va_arg(ap, const char*);
     password = va_arg(ap, const char*);
     user = va_arg(ap, const char*);
+    char_port = va_arg(ap, const char*);
     va_end(ap);
+
+    /* Convert the port, we will leave it as 0 if there is nothing set */
+    if (char_port != NULL) {
+        status = StrStrtoui(char_port, &port);
+
+        if (status != 0) {
+            return status;
+        }
+    }
 
     /* ... and connect */
 
@@ -123,7 +136,7 @@ int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
         /* Connect to the database */
 
         ptrstatus = mysql_real_connect(connection, host, user, password,
-            database, 0, NULL, CLIENT_INTERACTIVE);
+            database, port, NULL, CLIENT_INTERACTIVE);
         if (ptrstatus) {
 
             /* Enable autocommit */

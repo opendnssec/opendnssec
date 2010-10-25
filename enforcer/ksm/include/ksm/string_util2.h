@@ -60,6 +60,7 @@ int StrKeywordSearch(const char* search, STR_KEYWORD_ELEMENT* keywords, int* val
 int StrStrtol(const char* string, long* value);
 int StrStrtoul(const char* string, unsigned long* value);
 int StrStrtoi(const char* string, int* value);
+int StrStrtoui(const char* string, unsigned int* value);
 int StrIsDigits(const char* string);
 
 #ifdef __cplusplus

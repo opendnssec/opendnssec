@@ -527,7 +527,48 @@ int StrStrtoi(const char* string, int* value)
     return status;
 }
 
+/*+
+ * StrStrtoui - Convert String to unsigned int
+ *
+ * Description:
+ *      Converts a string to a "unsigned int".
+ *
+ *      This version strips out tabs and whitespace characters.
+ *
+ * Arguments:
+ *      const char* string (input)
+ *          String to convert.
+ *
+ *      unsigned int* value (returned)
+ *          Return value.
+ *
+ * Returns:
+ *      int
+ *          0   Success
+ *          1   Conversion failed
+-*/
 
+int StrStrtoui(const char* string, unsigned int* value)
+{
+    unsigned long    longval;    /* "long" to be passed to StrStrtol */
+    int     status;     /* Status return */
+
+    if (value == NULL) {
+        MsgLog(KSM_INVARG, "NULL value");
+        return 1;
+    }
+    status = StrStrtoul(string, &longval);
+    if (status == 0) {
+        if (longval <= UINT_MAX) {
+            *value = (unsigned int) longval;
+        }
+        else {
+            status = 1;     /* Integer overflow */
+        }
+    }
+
+    return status;
+}
 
 /*+
  * StrIsDigits - Check String for All Digits
