@@ -343,14 +343,20 @@ int
 se_file_copy(const char* file1, const char* file2)
 {
     char str[SYSTEM_MAXLEN];
+    FILE* fd = NULL;
 
     se_log_assert(file1);
     se_log_assert(file2);
 
-    snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
-        CP_COMMAND, file1, file2);
-    se_log_debug("system call: %s", str);
-    return system(str);
+    if ((fd = se_fopen(file1, NULL, "r")) != NULL) {
+        se_fclose(fd);
+        snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
+            CP_COMMAND, file1, file2);
+        se_log_debug("system call: %s", str);
+        return system(str);
+    }
+    /* no such file */
+    return 1;
 }
 
 /**
