@@ -142,6 +142,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (n < 0) {
                     /* error occurred */
                     fprintf(stderr, "error: %s\n", strerror(errno));
+                    if (cmd) {
+                        se_free((void*)cmd);
+                    }
                     exit(1);
                 } else if (stdineof == 1) {
                     /* normal termination */
@@ -150,6 +153,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                     /* weird termination */
                     fprintf(stderr, "signer engine terminated "
                         "prematurely\n");
+                    if (cmd) {
+                        se_free((void*)cmd);
+                    }
                     exit(1);
                 }
             }
@@ -189,6 +195,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (ret != 0) {
                     fprintf(stderr, "shutdown failed: %s\n",
                         strerror(errno));
+                    if (cmd) {
+                        se_free((void*)cmd);
+                    }
                     exit(1);
                 }
                 FD_CLR(fileno(fp), &rset);
@@ -207,6 +216,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (ret != 0) {
                     fprintf(stderr, "shutdown failed: %s\n",
                         strerror(errno));
+                    if (cmd) {
+                        se_free((void*)cmd);
+                    }
                     exit(1);
                 }
                 FD_CLR(fileno(fp), &rset);
@@ -240,6 +252,9 @@ interface_start(char* cmd)
     if (sockfd <= 0) {
         fprintf(stderr, "Unable to connect to engine. "
             "socket() failed: %s\n", strerror(errno));
+        if (cmd) {
+            se_free((void*)cmd);
+        }
         exit(1);
     }
 
@@ -258,9 +273,17 @@ interface_start(char* cmd)
             return;
         }
 
-        fprintf(stderr, "Unable to connect to engine: "
-            "connect() failed: %s\n", strerror(errno));
+        if (cmd && se_strcmp(cmd, "running\n") == 0) {
+            fprintf(stderr, "Engine not running.\n");
+        } else {
+            fprintf(stderr, "Unable to connect to engine: "
+                "connect() failed: %s\n", strerror(errno));
+        }
+
         close(sockfd);
+        if (cmd) {
+            se_free((void*)cmd);
+        }
         exit(1);
     }
 

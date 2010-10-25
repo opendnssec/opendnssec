@@ -481,22 +481,6 @@ engine_setup(engine_type* engine)
         }
     }
     engine->pid = getpid();
-    /* make common with enforcer */
-    if (write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
-        se_log_error("setup failed: unable to write pid file");
-        cmdhandler_cleanup(engine->cmdhandler);
-        engine->cmdhandler = NULL;
-        return 1;
-    }
-    se_log_verbose("running as pid %lu", (unsigned long) engine->pid);
-
-    /* start command handler */
-    if (engine_start_cmdhandler(engine) != 0) {
-        se_log_error("setup failed: unable to start command handler");
-        cmdhandler_cleanup(engine->cmdhandler);
-        engine->cmdhandler = NULL;
-        return 1;
-    }
 
     /* catch signals */
     signal_set_engine(engine);
@@ -511,8 +495,27 @@ engine_setup(engine_type* engine)
     if (result != HSM_OK) {
         se_log_error("setup failed: error initializing libhsm (errno %i)",
             result);
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
         return 1;
     }
+
+    /* start command handler */
+    if (engine_start_cmdhandler(engine) != 0) {
+        se_log_error("setup failed: unable to start command handler");
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
+        return 1;
+    }
+
+    /* make common with enforcer */
+    if (write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+        se_log_error("setup failed: unable to write pid file");
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
+        return 1;
+    }
+    se_log_verbose("running as pid %lu", (unsigned long) engine->pid);
 
     /* set up the work floor */
     engine->tasklist = tasklist_create(); /* tasks */

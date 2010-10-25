@@ -503,6 +503,21 @@ cmdhandler_handle_cmd_start(int sockfd)
 
 
 /**
+ * Handle the 'running' command.
+ *
+ */
+static void
+cmdhandler_handle_cmd_running(int sockfd)
+{
+    char buf[ODS_SE_MAXLINE];
+
+    (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
+    se_writen(sockfd, buf, strlen(buf));
+    return;
+}
+
+
+/**
  * Handle the 'verbosity' command.
  *
  */
@@ -642,6 +657,9 @@ again:
         } else if (n == 6 && strncmp(buf, "reload", n) == 0) {
             se_log_debug("reload command");
             cmdhandler_handle_cmd_reload(sockfd, cmdc);
+        } else if (n == 7 && strncmp(buf, "running", n) == 0) {
+            se_log_debug("running command");
+            cmdhandler_handle_cmd_running(sockfd);
         } else if (n >= 9 && strncmp(buf, "verbosity", 9) == 0) {
             se_log_debug("verbosity command");
             if (buf[9] == '\0') {
