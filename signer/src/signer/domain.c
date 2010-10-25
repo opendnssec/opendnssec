@@ -399,12 +399,16 @@ domain_examine_valid_zonecut(domain_type* domain)
                 rrset->rr_type != LDNS_RR_TYPE_AAAA &&
                 rrset_count_RR(rrset) > 0) {
                 /* found occluded data next to delegation */
+                se_log_error("occluded glue data at zonecut, RRtype=%u",
+                    rrset->rr_type);
                 return 1;
             } else if (rrset->rr_type == LDNS_RR_TYPE_A ||
                 rrset->rr_type == LDNS_RR_TYPE_AAAA) {
                 /* check if glue is allowed at the delegation */
                 if (rrset_count_RR(rrset) > 0 &&
-                    rrset_examine_ns_rdata(rrset, domain->name) != 0) {
+                    domain_examine_ns_rdata(domain, domain->name) != 0) {
+                    se_log_error("occluded glue data at zonecut, #RR=%u",
+                        rrset_count_RR(rrset));
                     return 1;
                 }
             }
