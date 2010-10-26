@@ -315,10 +315,10 @@ Start, stop or send "SIGHUP" to the ods-enforcerd process.
 .SH "KEY STATES"
 .LP
 .TP
-GENERATED
+GENERATE
 The key has just been generated, but is not ready for use.
 .TP
-PUBLISHED
+PUBLISH
 The key has been published in the parent zone.
 .TP
 READY
@@ -327,7 +327,7 @@ The key is ready for use. E.g. according to settings in the policy the key has b
 ACTIVE
 The key is actively being used to sign one or more zones.
 .TP
-RETIRED
+RETIRE
 The key has either reached the end of its scheduled life, or it has been rolled prematurely. However, records signed with it may still be cached sp the key is still being published.
 .TP
 DEAD

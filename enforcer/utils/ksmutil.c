@@ -441,7 +441,7 @@ void
 states_help()
 {
     fprintf(stderr,
-            "key states: GENERATED|PUBLISHED|READY|ACTIVE|RETIRED|REVOKED|DEAD\n");
+            "key states: GENERATE|PUBLISH|READY|ACTIVE|RETIRE|DEAD\n");
 }
 
 void
@@ -1374,7 +1374,7 @@ cmd_exportkeys ()
             state_id =  KSM_STATE_DSREADY;
         }
         else {
-            printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE, RETIRED, DEAD, DSSUB, DSPUBLISH, DSREADY or KEYPUBLISH\n", o_keystate);
+            printf("Error: Unrecognised state %s; should be one of GENERATE, PUBLISH, READY, ACTIVE, RETIRE, DEAD, DSSUB, DSPUBLISH, DSREADY or KEYPUBLISH\n", o_keystate);
 
             StrFree(case_keystate);
             return(1);
@@ -2685,7 +2685,7 @@ cmd_import ()
     /* some strings to hold upper case versions of arguments */
     char* case_keytype = NULL;    /* KSK or ZSK */
     char* case_algorithm = NULL;  /* RSASHA1 or RSASHA1-NSEC3-SHA1 (5 or 7) */
-    char* case_state = NULL;      /* GENERATED, PUBLISHED, READY, ACTIVE or RETIRED */
+    char* case_state = NULL;      /* GENERATE, PUBLISH, READY, ACTIVE or RETIRE */
 
     int repo_id = -1;
     int zone_id = -1;
@@ -2853,7 +2853,7 @@ cmd_import ()
         state_id = 5;
     }
     else {
-        printf("Error: Unrecognised state %s; should be one of GENERATED, PUBLISHED, READY, ACTIVE or RETIRED\n", o_keystate);
+        printf("Error: Unrecognised state %s; should be one of GENERATE, PUBLISH, READY, ACTIVE or RETIRE\n", o_keystate);
 
         db_disconnect(lock_fd);
         StrFree(case_state);

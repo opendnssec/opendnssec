@@ -142,6 +142,6 @@ This is a utility that allows several different actions to be performed (relativ
         List the expected dates and times of upcoming rollovers.
 
 
-key states: GENERATED|PUBLISHED|READY|ACTIVE|RETIRED|REVOKED|DEAD
+key states: GENERATE|PUBLISH|READY|ACTIVE|RETIRE|DEAD
 key types:  KSK|ZSK
 
