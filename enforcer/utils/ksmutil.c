@@ -4853,7 +4853,7 @@ int SetParamOnPolicy(const xmlChar* new_value, const char* name, const char* cat
                 return status;
             }
             else if (status == -1) {
-                printf("Warning: converting %s to seconds may not give what you expect\n", temp_char);
+                printf("Info: converting %s to seconds; M interpreted as 31 days, Y interpreted as 365 days", temp_char);
             }
             StrFree(temp_char);
         } else {
@@ -6237,7 +6237,7 @@ int cmd_genkeys()
         return status;
     }
     else if (status == -1) {
-        printf("Warning: converting %s to seconds may not give what you expect\n", o_interval);
+        printf("Info: converting %s to seconds; M interpreted as 31 days, Y interpreted as 365 days", o_interval);
     }
 
     /* Connect to the hsm */
@@ -7488,7 +7488,7 @@ int get_conf_key_info(int* interval, int* man_key_gen)
         return status;
     }
     else if (status == -1) {
-        printf("Warning: converting %s to seconds may not give what you expect\n", temp_char);
+        printf("Info: converting %s to seconds; M interpreted as 31 days, Y interpreted as 365 days", temp_char);
     }
     *interval = mysec;
     StrFree(temp_char);

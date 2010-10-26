@@ -696,7 +696,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         return status;
     }
     else if (status == -1) {
-        log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
+        log_msg(config, LOG_INFO, "Info: converting %s to seconds; M interpreted as 31 days, Y interpreted as 365 days", temp_char);
     }
     config->interval = mysec;
     if (verbose) {
@@ -743,7 +743,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             return status;
         }
         else if (status == -1) {
-            log_msg(config, LOG_INFO, "Warning: converting %s to seconds may not give what you expect", temp_char);
+        log_msg(config, LOG_INFO, "Info: converting %s to seconds; M interpreted as 31 days, Y interpreted as 365 days", temp_char);
         }
         config->rolloverNotify = mysec;
         if (verbose) {
