@@ -3,12 +3,17 @@ $Id$
 OpenDNSSEC 1.2.0b2
 
 * New commandline option for the signer: ods-signer running.
+* Allow connection to different MySQL ports in the Enforcer.
+* Tone down and explain warning when converting M or Y to seconds
 
 Bugfixes:
 * Bugreport #187: ods-control signer start will return non-zero if start up 
   failed (uses ods-signer running).
 * Narrow glue at the zone cut is allowed, do not consider it as occluded.
 * Move zone fetcher output to correct input adapter file.
+* Enforcer shared keys on zones with ShareKeys disabled.
+* Make names of key states consistent.
+
 
 OpenDNSSEC 1.2.0b1 - 2010-10-18
 
