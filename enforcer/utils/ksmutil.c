@@ -585,7 +585,7 @@ cmd_setup ()
     }
 
     /* try to connect to the database */
-    status = DbConnect(&dbhandle, dbschema, host, password, user);
+    status = DbConnect(&dbhandle, dbschema, host, password, user, port);
     if (status != 0) {
         printf("Failed to connect to database\n");
         db_disconnect(lock_fd);
