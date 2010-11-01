@@ -3702,7 +3702,7 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, int backup)
     }
 
     /* Finally we can do what we came here to do, connect to the database */
-    status = DbConnect(dbhandle, dbschema, host, password, user);
+    status = DbConnect(dbhandle, dbschema, host, password, user, port);
 
     /* Cleanup */
     StrFree(host);

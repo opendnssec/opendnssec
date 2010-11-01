@@ -108,15 +108,14 @@ main(int argc, char *argv[]){
 
     config.pidfile = NULL;
     config.program = NULL;
+    config.host = NULL;
+    config.port = NULL;
     config.user = (unsigned char *)calloc(MAX_USER_LENGTH, sizeof(char));
-    config.host = (unsigned char *)calloc(MAX_HOST_LENGTH, sizeof(char));
     config.password = (unsigned char *)calloc(MAX_PASSWORD_LENGTH, sizeof(char));
     config.schema = (unsigned char *)calloc(MAX_SCHEMA_LENGTH, sizeof(char));
-    config.port = (unsigned char *)calloc(MAX_PORT_LENGTH, sizeof(char));
     config.DSSubmitCmd = (char *)calloc(MAXPATHLEN + 1024, sizeof(char));
 
-    if (config.user == NULL || config.host == NULL || config.password == NULL || 
-          config.schema == NULL || config.port == NULL ) {
+    if (config.user == NULL || config.password == NULL || config.schema == NULL) {
         log_msg(&config, LOG_ERR, "Malloc for config struct failed");
         exit(1);
     }
@@ -243,11 +242,11 @@ main(int argc, char *argv[]){
     server_main(&config);
 
     /* Free stuff here (exit from sigs pass through) */
+    if (config.host) free(config.host);
+    if (config.port) free(config.port);
     free(config.user);
-    free(config.host);
     free(config.password);
     free(config.schema);
-    free(config.port);
     free(config.DSSubmitCmd);
 
     StrFree(config.username);

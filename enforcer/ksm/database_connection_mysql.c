@@ -93,7 +93,6 @@ static MYSQL* m_dbhandle = NULL;  /* Non-NULL if connected */
  *                  the MsgLog() function.
 -*/
 
-/* TODO add mysql port to this ?*/
 int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
 {
 	MYSQL*		connection = NULL;	/* Local database handle */
@@ -124,6 +123,7 @@ int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
         status = StrStrtoui(char_port, &port);
 
         if (status != 0) {
+            MsgLog(DBS_CONNFAIL, "Could not convert port number");
             return status;
         }
     }
