@@ -1470,7 +1470,6 @@ int do_purge(int interval, int policy_id)
             nchar = snprintf(buffer, sizeof(buffer),
                     " or state = %d and DEAD > DATETIME('%s', '-%d SECONDS')) ", KSM_STATE_DEAD, rightnow, interval);
 #endif /* USE_MYSQL */
-            StrFree(rightnow);
 
             StrAppend(&sql1, buffer);
             DqsEnd(&sql1);
@@ -1482,6 +1481,7 @@ int do_purge(int interval, int policy_id)
                 log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
+                StrFree(rightnow);
                 return status;
             }
 
@@ -1500,6 +1500,7 @@ int do_purge(int interval, int policy_id)
                     log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+                    StrFree(rightnow);
                     return status;
                 }
 
@@ -1515,6 +1516,7 @@ int do_purge(int interval, int policy_id)
                     log_msg(NULL, LOG_ERR, "SQL failed: %s\n", DbErrmsg(DbHandle()));
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+                    StrFree(rightnow);
                     return status;
                 }
 
@@ -1525,6 +1527,7 @@ int do_purge(int interval, int policy_id)
                     log_msg(NULL, LOG_ERR, "Key not found: %s\n", temp_loc);
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+                    StrFree(rightnow);
                     return -1;
                 }
 
@@ -1538,6 +1541,7 @@ int do_purge(int interval, int policy_id)
                     log_msg(NULL, LOG_ERR, "Key remove failed.\n");
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+                    StrFree(rightnow);
                     return -1;
                 }
             }
@@ -1559,6 +1563,7 @@ int do_purge(int interval, int policy_id)
     DbFreeRow(row);
 
     DbStringFree(temp_loc);
+    StrFree(rightnow);
 
     return status;
 }
