@@ -13,6 +13,7 @@ Bugfixes:
 * Move zone fetcher output to correct input adapter file.
 * Enforcer shared keys on zones with ShareKeys disabled.
 * Make names of key states consistent.
+* Signer Engine file descriptor leak fix on engine.sock.
 
 
 OpenDNSSEC 1.2.0b1 - 2010-10-18

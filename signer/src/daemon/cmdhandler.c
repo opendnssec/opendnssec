@@ -705,6 +705,9 @@ cmdhandler_accept_client(void* arg)
 
     se_log_debug("command handler accept client %i", cmdc->client_fd);
     cmdhandler_handle_cmd(cmdc);
+    if (cmdc->client_fd) {
+        close(cmdc->client_fd);
+    }
     cmdhandler_cleanup(cmdc);
     count--;
     return NULL;
