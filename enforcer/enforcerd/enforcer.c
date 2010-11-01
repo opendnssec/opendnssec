@@ -1691,6 +1691,7 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
     log_msg(NULL, LOG_INFO, "DS Record set has changed, the current set looks like:");
 
     status = KsmKeyInitSql(&result3, sql2);
+    DqsFree(sql2);
     if (status == 0) {
         status = KsmKey(result3, &data3);
         while (status == 0) {
