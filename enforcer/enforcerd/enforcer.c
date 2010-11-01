@@ -1715,6 +1715,7 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
             dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
 
             temp_char = ldns_rr2str(dnskey_rr);
+            ldns_rr_free(dnskey_rr);
 
             log_msg(NULL, LOG_INFO, "%s", temp_char);
 
