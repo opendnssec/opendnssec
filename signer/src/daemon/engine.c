@@ -855,6 +855,7 @@ start_zonefetcher(engine_type* engine)
     if (chrt)         { se_free((void*)chrt); }
     if (log_filename) { se_free((void*)log_filename); }
 
+    cmdhandler_cleanup(engine->cmdhandler);
     engine_cleanup(engine);
     engine = NULL;
     se_log_close();
