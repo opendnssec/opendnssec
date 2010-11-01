@@ -831,6 +831,8 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
                     } else if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
                        se_log_error("expecting RRtype RRSIG from backup");
                        corrupted = 1;
+                       ldns_rr_free(rr);
+                       rr = NULL;
                     } else {
                        corrupted = zonedata_recover_rrsig_from_backup(
                            zone->zonedata, rr, locator, flags);
@@ -854,6 +856,7 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
             se_free((void*) locator);
             locator = NULL;
         }
+        rr = NULL;
         flags = 0;
         status = LDNS_STATUS_OK;
     }

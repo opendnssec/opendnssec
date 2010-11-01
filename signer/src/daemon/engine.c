@@ -831,6 +831,7 @@ start_zonefetcher(engine_type* engine)
         return 1;
     }
 
+    hsm_close();
     se_log_verbose("zone fetcher running as pid %lu",
         (unsigned long) getpid());
 
@@ -854,7 +855,9 @@ start_zonefetcher(engine_type* engine)
     if (chrt)         { se_free((void*)chrt); }
     if (log_filename) { se_free((void*)log_filename); }
 
-    parent_cleanup(engine, 0);
+    engine_cleanup(engine);
+    engine = NULL;
+    se_log_close();
     xmlCleanupParser();
     xmlCleanupGlobals();
     xmlCleanupThreads();
