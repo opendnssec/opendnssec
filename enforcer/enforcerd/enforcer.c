@@ -360,10 +360,12 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         /* make sure that we have at least one zone */ 
         if (zone_count == 0) { 
             log_msg(config, LOG_INFO, "No zones on policy %s, skipping...", policy->name);
+            StrFree(rightnow);
             return status; 
         } 
     } else {
         log_msg(NULL, LOG_ERR, "Could not count zones on policy %s", policy->name);
+        StrFree(rightnow);
         return status; 
     }
 
