@@ -773,10 +773,10 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                             if (roll_time <= config->rolloverNotify) {
                                 log_msg(config, LOG_INFO, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
                             }
-                            StrFree(datetime);
                             StrFree(ksk_expected);
                         }
                     }
+                    StrFree(datetime);
                 }
 
                 StrFree(current_filename);
