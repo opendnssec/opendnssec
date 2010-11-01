@@ -242,6 +242,7 @@ main(int argc, char *argv[]){
     server_main(&config);
 
     /* Free stuff here (exit from sigs pass through) */
+    MsgRundown();
     if (config.host) free(config.host);
     if (config.port) free(config.port);
     free(config.user);
