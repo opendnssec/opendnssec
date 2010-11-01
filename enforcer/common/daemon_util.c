@@ -234,6 +234,7 @@ getPermsForDrop(DAEMONCONFIG* config)
     xmlRelaxNGFreeParserCtxt(rngpctx);
     xmlFreeDoc(doc);
     xmlFreeDoc(rngdoc);
+    StrFree(filename);
 
     return 0;
 }
