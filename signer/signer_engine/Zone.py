@@ -459,20 +459,29 @@ class Zone:
     def perform_action(self):
         """Depending on the value set to zone.action, this method
            will sort, nsecify, sign and/or audit the zone"""
+        succeeded = False
+        resigned = False
         serial_file = self.get_zone_tmp_filename(".serial")
         syslog.syslog(syslog.LOG_INFO,
                       "Zone action to perform: " + str(self.action))
 
         if self.action >= ZoneConfig.RESIGN and os.path.exists(
                           self.get_zone_tmp_filename(".signed")):
-            if self.sign(False) and self.finalize() and self.audit():
-                self.move_output()
+            if self.sign(False):
+                resigned = True
+                if self.finalize() and self.audit():
+                    self.move_output()
+                    succeeded = True
         elif self.action >= ZoneConfig.RENSEC and os.path.exists(
                             self.get_zone_tmp_filename(".sorted")):
-            if self.nsecify() and self.sign(False) and self.finalize() and self.audit():
-                self.move_output()
+            if self.nsecify() and self.sign(False):
+                resigned = True
+                if self.finalize() and self.audit():
+                    self.move_output()
+                    succeeded = True
         elif self.action >= ZoneConfig.REREAD and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
+            resigned = True
             ser_out = self.get_output_serial()
             ser_in = self.get_input_serial()
             comp_res = self.compare_serial(ser_out, ser_in);
@@ -483,11 +492,13 @@ class Zone:
             elif self.sort_input() and self.nsecify():
                 if self.sign(True) and self.finalize() and self.audit():
                     self.move_output()
+                    succeeded = True
         elif self.action >= ZoneConfig.RESORT and self.fetch_axfr() and os.path.isfile(
                                         self.get_zone_input_filename()):
             ## the sorting config has changed. We must also re-sort the
             ## internal zone storage containing our previous signatures,
             ## if any.
+            resigned = True
             ser_out = self.get_output_serial()
             ser_in = self.get_input_serial()
             comp_res = self.compare_serial(ser_out, ser_in);
@@ -500,9 +511,15 @@ class Zone:
                self.nsecify():
                 if self.sign(True) and self.finalize() and self.audit():
                     self.move_output()
+                    succeeded = True
         else:
+            resigned = True
             syslog.syslog(syslog.LOG_ERR, "Input file missing: " +\
                           self.get_zone_input_filename())
+
+        if resigned and not succeeded:
+            syslog.syslog(syslog.LOG_ERR, "Zone " + self.zone_name + " cannot be signed due to errors")
+
         # if nothing in the config changes, the next action will always
         # be to just resign
         if not self.schedule_now:

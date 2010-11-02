@@ -1,5 +1,8 @@
 $Id$
 
+Bugfixes:
+* Bugreport #191: add a could not sign zone due to error log message.
+
 OpenDNSSEC 1.1.3 - 2010-09-10
 
 Bugfixes:
