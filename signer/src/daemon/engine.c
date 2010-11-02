@@ -422,8 +422,8 @@ engine_setup(engine_type* engine)
     }
 
     /* privdrop */
-    engine->uid = privuid(engine->config->username); /* LEAKS */
-    engine->gid = privgid(engine->config->group); /* LEAKS */
+    engine->uid = privuid(engine->config->username);
+    engine->gid = privgid(engine->config->group);
     /* TODO: does piddir exists? */
     /* remove the chown stuff: piddir? */
     /* chown pidfile directory */
