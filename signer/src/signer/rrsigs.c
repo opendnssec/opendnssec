@@ -114,7 +114,7 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
            rr in the current container */
         new_rrsigs = rrsigs_create();
         new_rrsigs->rr = rrsigs->rr;
-        new_rrsigs->key_locator = rrsigs->key_flags;
+        new_rrsigs->key_locator = rrsigs->key_locator;
         new_rrsigs->key_flags = rrsigs->key_flags;
         new_rrsigs->next = rrsigs->next;
 

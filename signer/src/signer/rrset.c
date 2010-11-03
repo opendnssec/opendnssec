@@ -562,6 +562,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
 {
     rrsigs_type* rrsigs = NULL;
     rrsigs_type* prev_rrsigs = NULL;
+    rrsigs_type* next_rrsigs = NULL;
     uint32_t refresh = 0;
     uint32_t expiration = 0;
     uint32_t inception = 0;
@@ -622,6 +623,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             }
         }
 
+        next_rrsigs = rrsigs->next;
         if (drop_sig) {
             /* A rule mismatched, refresh signature */
             if (prev_rrsigs) {
@@ -631,8 +633,8 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             }
             log_rr(rrsigs->rr, "-RRSIG", 6);
             rrset->rrsig_count -= 1;
-            ldns_rr_free(rrsigs->rr);
-            se_free((void*)rrsigs);
+            rrsigs->next = NULL;
+            rrsigs_cleanup(rrsigs);
         } else {
             /* All rules ok, recycle signature */
             se_log_deeebug("recycle signature for RRset[%i] (refresh=%u, "
@@ -642,7 +644,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             *reusedsigs += 1;
             prev_rrsigs = rrsigs;
         }
-        rrsigs = rrsigs->next;
+        rrsigs = next_rrsigs;
     }
     return 0;
 }
