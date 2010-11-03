@@ -3972,8 +3972,16 @@ int update_repositories()
                 printf("Repository %s found\n", repo_name);
                 if (strlen(repo_capacity) == 0) {
                     printf("No Maximum Capacity set.\n");
+                    /*
+                     * We have all the information, update/insert this repository
+                     */
+                    status = KsmImportRepository(repo_name, "0", require_backup);
                 } else {
                     printf("Capacity set to %s.\n", repo_capacity);
+                    /*
+                     * We have all the information, update/insert this repository
+                     */
+                    status = KsmImportRepository(repo_name, repo_capacity, require_backup);
                 }
                 if (require_backup == 0) {
                     printf("RequireBackup NOT set; please make sure that you know the potential problems of using keys which are not recoverable\n");
@@ -3981,10 +3989,6 @@ int update_repositories()
                     printf("RequireBackup set.\n");
                 }
 
-                 /*
-                 * We have all the information, update/insert this repository
-                 */
-                status = KsmImportRepository(repo_name, repo_capacity, require_backup);
                 if (status != 0) {
                     printf("Error Importing Repository %s", repo_name);
                     /* Don't return? try to parse the rest of the zones? */
