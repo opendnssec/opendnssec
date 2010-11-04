@@ -809,7 +809,7 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy)
     DB_RESULT       result;     /* Handle converted to a result object */
     DB_ROW          row = NULL; /* Row data */
 
-    if (policy == NULL || policy->name == NULL) {
+    if (policy == NULL || policy->name[0] == '\0') {
         return MsgLog(KSM_INVARG, "NULL policy or name");
     }
 

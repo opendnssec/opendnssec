@@ -1039,7 +1039,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
                     if (!temp) {
                         temp = atol(ptr);
                         got_temp = 1;
-                        if ((temp_interval <= INT_MIN) && (temp_interval >= INT_MAX)) {
+                        if ((temp_interval <= INT_MIN) || (temp_interval >= INT_MAX)) {
                             return(3);
                         }
                     }

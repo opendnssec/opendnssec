@@ -67,12 +67,15 @@ int KsmListBackups(int repo_id, int verbose_flag)
 {
     char*       sql = NULL;     /* SQL query */
     char*       sql2 = NULL;     /* SQL query */
+    char*       sql3 = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
     char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
     DB_RESULT	result;         /* Result of the query */
     DB_ROW      row = NULL;     /* Row data */
     DB_RESULT	result2;         /* Result of the query */
     DB_ROW      row2 = NULL;     /* Row data */
+    DB_RESULT	result3;         /* Result of the query */
+    DB_ROW      row3 = NULL;     /* Row data */
 
     char*       temp_date = NULL; /* place to store date returned */
     char*       temp_pre_date = NULL; /* place to store pre-backup date returned */
@@ -131,6 +134,7 @@ int KsmListBackups(int repo_id, int verbose_flag)
     DusFree(sql);
     DbFreeRow(row);
     DbStringFree(temp_date);
+    DbStringFree(temp_pre_date);
     sql = NULL;
     row = NULL;
     temp_date = NULL;
@@ -180,33 +184,31 @@ int KsmListBackups(int repo_id, int verbose_flag)
     DbStringFree(temp_repo);
 
     /* List repos which need a backup commit */
-    sql2 = NULL;
-    row2 = NULL;
     temp_repo = NULL;
-    StrAppend(&sql2, "select s.name from keypairs k, securitymodules s ");
-    StrAppend(&sql2, "where s.id = k.securitymodule_id ");
+    StrAppend(&sql3, "select s.name from keypairs k, securitymodules s ");
+    StrAppend(&sql3, "where s.id = k.securitymodule_id ");
     if (repo_id != -1) {
-        StrAppend(&sql2, "and s.id = ");
+        StrAppend(&sql3, "and s.id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", repo_id);
-        StrAppend(&sql2, stringval);
+        StrAppend(&sql3, stringval);
     }
-    StrAppend(&sql2, " and k.backup is null");
-    StrAppend(&sql2, " and k.pre_backup is not null");
-    StrAppend(&sql2, " group by s.name order by s.name");
+    StrAppend(&sql3, " and k.backup is null");
+    StrAppend(&sql3, " and k.pre_backup is not null");
+    StrAppend(&sql3, " group by s.name order by s.name");
 
-    DusEnd(&sql2);
+    DusEnd(&sql3);
 
-    status = DbExecuteSql(DbHandle(), sql2, &result2);
+    status = DbExecuteSql(DbHandle(), sql3, &result3);
 
     if (status == 0) {
-        status = DbFetchRow(result2, &row2);
+        status = DbFetchRow(result3, &row3);
         while (status == 0) {
             /* Got a row, print it */
-            DbString(row2, 0, &temp_repo);
+            DbString(row3, 0, &temp_repo);
 
             printf("Repository %s has keys prepared for back up which have not been committed\n", temp_repo);
             
-            status = DbFetchRow(result2, &row2);
+            status = DbFetchRow(result3, &row3);
         }
 
         /* Convert EOF status to success */
@@ -215,11 +217,11 @@ int KsmListBackups(int repo_id, int verbose_flag)
             status = 0;
         }
 
-        DbFreeResult(result2);
+        DbFreeResult(result3);
     }
 
-    DusFree(sql2);
-    DbFreeRow(row2);
+    DusFree(sql3);
+    DbFreeRow(row3);
     DbStringFree(temp_repo);
 
     return status;

@@ -1306,6 +1306,7 @@ cmd_listzone ()
     MemFree(zone_ids);
     StrFree(sql);
     StrFree(zonelist_filename);
+    StrFree(temp_name);
 
     return 0;
 }
@@ -2528,6 +2529,7 @@ cmd_dsseen()
         printf("Please specify a zone using the --zone flag\n");
         usage_keydsseen();
         StrFree(datetime);
+        db_disconnect(lock_fd);
         return(-1);
     } 
     else if (o_zone != NULL) {
@@ -3106,7 +3108,6 @@ cmd_purgepolicy ()
     /* Check that we will be able to make the changes to kasp.xml */
     if ((test = fopen(kasp_filename, "ab"))==NULL) {
         printf("Cannot open kasp.xml for writing: %s\n", strerror(errno));
-        fclose(test);
         return(-1);
     } else {
         fclose(test);
@@ -3126,6 +3127,7 @@ cmd_purgepolicy ()
         /* Something went wrong */
 
         MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+        db_disconnect(lock_fd);
         return status;
     }
 
@@ -3159,6 +3161,8 @@ cmd_purgepolicy ()
                     /* Quick check that we didn't run out of space */
                     if (size < 0 || size >= KSM_SQL_SIZE) {
                         printf("Couldn't construct SQL to kill orphaned keys\n");
+			db_disconnect(lock_fd);
+			KsmPolicyFree(policy);
                         return -1;
                     }
 
@@ -3167,6 +3171,8 @@ cmd_purgepolicy ()
                     /* Report any errors */
                     if (status != 0) {
                         printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+			db_disconnect(lock_fd);
+			KsmPolicyFree(policy);
                         return status;
                     }
 
@@ -3174,6 +3180,8 @@ cmd_purgepolicy ()
                     status = PurgeKeys(-1, policy->id);
                     if (status != 0) {
                         printf("Key purge failed for policy %s\n", policy->name);
+			db_disconnect(lock_fd);
+			KsmPolicyFree(policy);
                         return status;
                     }
 
@@ -3187,6 +3195,8 @@ cmd_purgepolicy ()
                     if (status != 0) 
                     { 
                         printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+			db_disconnect(lock_fd);
+			KsmPolicyFree(policy);
                         return status; 
                     }
 
@@ -3199,6 +3209,8 @@ cmd_purgepolicy ()
                     if (status != 0) 
                     { 
                         printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+			db_disconnect(lock_fd);
+			KsmPolicyFree(policy);
                         return status; 
                     }
 
@@ -3207,6 +3219,7 @@ cmd_purgepolicy ()
                     doc = del_policy_node(kasp_filename, policy->name);
                     if (doc == NULL) {
                         db_disconnect(lock_fd);
+			KsmPolicyFree(policy);
                         StrFree(kasp_filename);
                         return(1);
                     }
@@ -3218,6 +3231,7 @@ cmd_purgepolicy ()
                         printf("Could not save %s\n", kasp_filename);
                         StrFree(kasp_filename);
                         db_disconnect(lock_fd);
+			KsmPolicyFree(policy);
                         return(1);
                     }
 
@@ -3249,6 +3263,7 @@ cmd_purgepolicy ()
 
     StrFree(kasp_filename);
     db_disconnect(lock_fd);
+    KsmPolicyFree(policy);
     return status;
 }
 
@@ -4121,6 +4136,7 @@ int update_policies(char* kasp_filename)
     xpathCtx = xmlXPathNewContext(doc);
     if(xpathCtx == NULL) {
         xmlFreeDoc(doc);
+	KsmPolicyFree(policy);
         return(1);
     }
 
@@ -4129,6 +4145,7 @@ int update_policies(char* kasp_filename)
     if(xpathObj == NULL) {
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
+	KsmPolicyFree(policy);
         return(1);
     }
 
@@ -6312,10 +6329,22 @@ int cmd_genkeys()
         /* make sure that we have at least one zone */ 
         if (zone_count == 0) { 
             printf("No zones on policy %s, skipping...", policy->name);
+	    db_disconnect(lock_fd);
+	    if (ctx) {
+		    hsm_destroy_context(ctx);
+	    }
+	    hsm_close();
+            KsmPolicyFree(policy);
             return status; 
         } 
     } else {
         printf("Could not count zones on policy %s", policy->name);
+        db_disconnect(lock_fd);
+	if (ctx) {
+		hsm_destroy_context(ctx);
+	}
+	hsm_close();
+	KsmPolicyFree(policy);
         return status; 
     }
 
@@ -7324,6 +7353,7 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
         /* Something went wrong */
 
         MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
+	StrFree(keyids);
         return status;
     }
 
@@ -7413,6 +7443,7 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
     }
     else {
         printf("Moving to keystate %s not implemented yet\n", KsmKeywordStateValueToName(keystate));
+	StrFree(keyids);
         return -1;
     }
 
@@ -7805,6 +7836,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
     int         where = 0;
     int         j = 0;
     DB_RESULT	result2;        /* Result of the query */
+    DB_RESULT	result3;        /* Result of the query */
     DB_ROW      row2 = NULL;    /* Row data */
     char*       insql1 = NULL;  /* SQL query */
     char*       insql2 = NULL;  /* SQL query */
@@ -7855,6 +7887,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
             /* Report any errors */
             if (status != 0) {
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                DbFreeRow(row);
                 return status;
             }
 
@@ -7872,6 +7905,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
             /* Report any errors */
             if (status != 0) {
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                DbFreeRow(row);
                 return status;
             }
 
@@ -7889,6 +7923,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
             /* Report any errors */
             if (status != 0) {
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+                DbFreeRow(row);
                 return status;
             }
            
@@ -7934,9 +7969,9 @@ int keyRoll(int zone_id, int policy_id, int key_type)
 
                 size = snprintf(sql2, KSM_SQL_SIZE, "select zone_id from KEYDATA_VIEW where policy_id = %d and keytype = %d and state in (%d,%d)", policy_id, KSM_TYPE_KSK, KSM_STATE_PUBLISH, KSM_STATE_READY);
                 j=0;
-                status = DbExecuteSql(DbHandle(), sql2, &result2);
+                status = DbExecuteSql(DbHandle(), sql2, &result3);
                 if (status == 0) {
-                    status = DbFetchRow(result2, &row2);
+                    status = DbFetchRow(result3, &row2);
                     while (status == 0) {
                         /* Got a row, print it */
                         DbInt(row2, 0, &temp_zone_id);
@@ -7948,7 +7983,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
                         StrAppend(&insql2, buffer);
                         j++;
 
-                        status = DbFetchRow(result2, &row2);
+                        status = DbFetchRow(result3, &row2);
                     }
 
                     /* Convert EOF status to success */
@@ -7957,7 +7992,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
                         status = 0;
                     }
 
-                    DbFreeResult(result2);
+                    DbFreeResult(result3);
                 }
                 DbFreeRow(row2);
 
@@ -7967,6 +8002,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
                 /* Quick check that we didn't run out of space */
                 if (size < 0 || size >= KSM_SQL_SIZE) {
                     printf("Couldn't construct SQL to promote standby key\n");
+		    DbFreeRow(row);
                     return -1;
                 }
 
@@ -7975,6 +8011,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
                 /* Report any errors */
                 if (status != 0) {
                     printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+		    DbFreeRow(row);
                     return status;
                 }
             }
@@ -7990,6 +8027,7 @@ int keyRoll(int zone_id, int policy_id, int key_type)
         DbFreeResult(result1);
     }
     DqsFree(sql);
+    DbFreeRow(row);
 
     StrFree(datetime);
     

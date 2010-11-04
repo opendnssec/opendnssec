@@ -387,7 +387,7 @@ int MsgLogAp(int status, va_list ap)
         output = MsgGetOutput(status);
     }
     else {
-        sprintf(buffer, "?????: unknown message number %d", status);
+        snprintf(buffer, sizeof(buffer), "?????: unknown message number %d", status);
         output = MsgDefaultOutput;
     }
 
