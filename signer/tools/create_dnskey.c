@@ -159,7 +159,8 @@ main(int argc, char **argv)
 
 	result = hsm_open(config_file, hsm_prompt_pin, NULL);
 	if (result != HSM_OK) {
-		fprintf(stderr, "Error initializing libhsm\n");
+		fprintf(stderr, "Error initializing libhsm: cfgfile=%s "
+		"result=%i\n", config_file, result);
 		exit(3);
 	}
 	
