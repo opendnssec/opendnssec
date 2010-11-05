@@ -797,8 +797,9 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
         DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
     }
 
-    DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, in, where++);
-
+    DqsConditionKeyword(&sql, "(STATE", DQS_COMPARE_IN, in, where++);
+    StrAppend(&sql, " or STATE is NULL)");
+    
     /* Can't use our generic functions for this aggregated clause */
 #ifdef USE_MYSQL
     StrAppend(&sql, " and (RETIRE > ");

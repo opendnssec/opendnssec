@@ -17,6 +17,7 @@ Bugfixes:
 * Set explicit "unlimited" repository capacity to prevent random integer being 
   read. Requires "ods-ksmutil update conf" to be run if using an existing 
   database.
+* Fix issue with key generation creating too many keys Ticket #194.
 
 
 OpenDNSSEC 1.2.0b1 - 2010-10-18
