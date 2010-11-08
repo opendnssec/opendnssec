@@ -330,7 +330,7 @@ se_replace(const char *str, const char *oldstr, const char *newstr)
     }
 
     buffer[ch-str] = '\0';
-    sprintf(buffer+(ch-str), "%s%s", newstr, ch+strlen(oldstr));
+    snprintf(buffer+(ch-str), SYSTEM_MAXLEN, "%s%s", newstr, ch+strlen(oldstr));
     return buffer;
 }
 

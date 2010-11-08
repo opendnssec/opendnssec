@@ -355,8 +355,7 @@ adfile_read_rr:
                     break;
                 } else {
                     se_log_error("error parsing RR at line %i (%s): %s",
-                        l&&*l?*l:0, ldns_get_errorstr_by_id(*status),
-                        line?line:"(null)");
+                        l&&*l?*l:0, ldns_get_errorstr_by_id(*status), line);
                     while (len >= 0) {
                         len = adfile_read_line(fd, line, l);
                     }

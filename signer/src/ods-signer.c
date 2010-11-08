@@ -94,7 +94,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
     int n = 0;
     int ret = 0;
     int cmd_written = 0;
-    int cmd_response = 0;
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
 
@@ -126,16 +125,12 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             continue;
         }
 
-        if (cmd && cmd_written && cmd_response) {
-            /* normal termination */
-            return;
-        }
-
         if (FD_ISSET(sockfd, &rset)) {
             /* clear buffer */
-            for (i=0; i< ODS_SE_MAXLINE; i++) {
+            for (i=0; i < ODS_SE_MAXLINE; i++) {
                 buf[i] = 0;
             }
+            buf[ODS_SE_MAXLINE-1] = '\0';
 
             /* socket is readable */
             if ((n = read(sockfd, buf, ODS_SE_MAXLINE)) <= 0) {
@@ -153,9 +148,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                     /* weird termination */
                     fprintf(stderr, "signer engine terminated "
                         "prematurely\n");
-                    if (cmd) {
-                        se_free((void*)cmd);
-                    }
                     exit(1);
                 }
             }
@@ -166,7 +158,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                     ret = (int) write(fileno(stdout), buf, n-SE_CLI_CMDLEN);
                 }
                 buf[(n-SE_CLI_CMDLEN)] = '\0';
-                cmd_response = 1;
                 ret = 1;
             } else {
                 /* we can expect more */
@@ -179,7 +170,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             } else if (ret < 0) {
                 fprintf(stderr, "write error: %s\n", strerror(errno));
             }
-            if (se_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
+            if (se_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0) {
                 fprintf(stderr, "\n");
                 return;
             }
@@ -216,9 +207,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (ret != 0) {
                     fprintf(stderr, "shutdown failed: %s\n",
                         strerror(errno));
-                    if (cmd) {
-                        se_free((void*)cmd);
-                    }
                     exit(1);
                 }
                 FD_CLR(fileno(fp), &rset);

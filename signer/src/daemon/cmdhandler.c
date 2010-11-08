@@ -226,6 +226,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
                     (void)snprintf(buf, ODS_SE_MAXLINE, "Sign zone %s "
                         "failed.\n", tbd);
                     se_writen(sockfd, buf, strlen(buf));
+                    lock_basic_unlock(&cmdc->engine->tasklist->tasklist_lock);
                     return;
                 } else {
                     task->when = now;
@@ -727,9 +728,11 @@ cmdhandler_create(const char* filename)
     int flags = 0;
     int ret = 0;
 
-    se_log_assert(filename);
-    se_log_debug("create command handler to socket %s",
-        filename?filename:"(null)");
+    if (!filename) {
+        se_log_error("unable to create command handler, no filename");
+        return NULL;
+    }
+    se_log_debug("create command handler to socket %s", filename);
 
     /* new socket */
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -755,9 +758,7 @@ cmdhandler_create(const char* filename)
     }
 
     /* no suprises */
-    if (filename) {
-        unlink(filename);
-    }
+    unlink(filename);
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sun_family = AF_UNIX;
     strncpy(servaddr.sun_path, filename, sizeof(servaddr.sun_path) - 1);

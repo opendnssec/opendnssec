@@ -85,7 +85,6 @@ engine_create(void)
     engine->gid = -1;
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
-    engine->signal = SIGNAL_INIT;
     lock_basic_init(&engine->signal_lock);
     lock_basic_set(&engine->signal_cond);
     return engine;
@@ -558,19 +557,15 @@ engine_all_zones_processed(engine_type* engine)
 static void
 engine_run(engine_type* engine, int single_run)
 {
-    sig_atomic_t signal = SIGNAL_RUN;
-
+    if (!engine) {
+        return;
+    }
     se_log_assert(engine);
 
-    lock_basic_lock(&engine->signal_lock);
     engine->signal = SIGNAL_RUN;
-    lock_basic_unlock(&engine->signal_lock);
-
     while (engine->need_to_exit == 0 && engine->need_to_reload == 0) {
-        lock_basic_lock(&engine->signal_lock);
-        signal = signal_capture(engine->signal);
-        lock_basic_unlock(&engine->signal_lock);
-        switch (signal) {
+        engine->signal = signal_capture(engine->signal);
+        switch (engine->signal) {
             case SIGNAL_RUN:
                 se_log_assert(1);
                 break;
@@ -583,7 +578,7 @@ engine_run(engine_type* engine, int single_run)
             default:
                 se_log_warning("invalid signal captured: %d, keep running",
                     engine->signal);
-                signal = SIGNAL_RUN;
+                engine->signal = SIGNAL_RUN;
                 break;
         }
 
@@ -592,7 +587,6 @@ engine_run(engine_type* engine, int single_run)
         }
 
         lock_basic_lock(&engine->signal_lock);
-        engine->signal = signal;
         if (engine->signal == SIGNAL_RUN && !single_run) {
            se_log_debug("engine taking a break");
            lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 3600);

@@ -293,10 +293,14 @@ keylist_lookup(keylist_type* list, const char* locator)
 
     search = list->first_key;
     for (i=0; i < list->count; i++) {
-        if (search && se_strcmp(search->locator, locator) == 0) {
-            return search;
+        if (search) {
+            if (se_strcmp(search->locator, locator) == 0) {
+                return search;
+            }
+            search = search->next;
+        } else {
+            break;
         }
-        search = search->next;
     }
     return NULL;
 }

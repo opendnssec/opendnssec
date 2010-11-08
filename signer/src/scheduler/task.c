@@ -132,12 +132,16 @@ task_backup(task_type* task)
     char* filename = NULL;
     FILE* fd = NULL;
 
-    se_log_assert(task);
+    if (!task) {
+        return;
+    }
 
-    if (task && task->who) {
+    if (task->who) {
         filename = se_build_path(task->who, ".task", 0);
         fd = se_fopen(filename, NULL, "w");
         se_free((void*)filename);
+    } else {
+        return;
     }
 
     if (fd) {
@@ -151,8 +155,7 @@ task_backup(task_type* task)
         se_fclose(fd);
     } else {
         se_log_warning("cannot backup task for zone %s: cannot open file "
-        "%s.task for writing",
-        task->who?task->who:"(null)", task->who?task->who:"(null)");
+        "%s.task for writing", task->who, task->who);
     }
     return;
 }
@@ -348,8 +351,11 @@ tasklist_create(void)
 
     se_log_debug("create task list");
     tl->tasks = ldns_rbtree_create(task_compare);
-    tl->loading = 0;
     lock_basic_init(&tl->tasklist_lock);
+
+    lock_basic_lock(&tl->tasklist_lock);
+    tl->loading = 0;
+    lock_basic_unlock(&tl->tasklist_lock);
     return tl;
 }
 

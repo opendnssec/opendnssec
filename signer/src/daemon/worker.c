@@ -58,10 +58,13 @@ worker_create(int num, int type)
     worker->task = NULL;
     worker->need_to_exit = 0;
     worker->type = type;
-    worker->sleeping = 0;
-    worker->waiting = 0;
     lock_basic_init(&worker->worker_lock);
     lock_basic_set(&worker->worker_alarm);
+
+    lock_basic_lock(&worker->worker_lock);
+    worker->sleeping = 0;
+    worker->waiting = 0;
+    lock_basic_unlock(&worker->worker_lock);
     return worker;
 }
 

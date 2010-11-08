@@ -1024,6 +1024,9 @@ abort_recover:
         }
 
         task = tasklist_schedule_task(tl, zone->task, 1);
+        if (!task) {
+            se_log_error("failed to schedule task for zone %s", zone->name);
+        }
     }
 
     if (error) {

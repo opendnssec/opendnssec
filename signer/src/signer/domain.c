@@ -1104,8 +1104,10 @@ domain_cleanup_rrsets(ldns_rbtree_t* rrset_tree)
         rrset_cleanup(rrset);
         node = ldns_rbtree_next(node);
     }
-    if (rrset_tree) {
+    if (rrset_tree && rrset_tree->root != LDNS_RBTREE_NULL) {
         se_rbnode_free(rrset_tree->root);
+    }
+    if (rrset_tree) {
         ldns_rbtree_free(rrset_tree);
     }
     return;

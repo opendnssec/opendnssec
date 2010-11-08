@@ -850,6 +850,11 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         zd->inbound_serial, zd->internal_serial, zd->outbound_serial,
         (uint32_t) time_now());
 
+    if (!sc->soa_serial) {
+        se_log_error("no serial type given");
+        return 1;
+    }
+
     if (se_strcmp(sc->soa_serial, "unixtime") == 0) {
         soa = se_max(zd->inbound_serial, (uint32_t) time_now());
         if (!DNS_SERIAL_GT(soa, prev)) {
@@ -884,8 +889,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         prev = soa;
         update = 0;
     } else {
-        se_log_error("unknown serial type %s",
-            sc->soa_serial?sc->soa_serial:"(null)");
+        se_log_error("unknown serial type %s", sc->soa_serial);
         return 1;
     }
 
@@ -1345,8 +1349,10 @@ zonedata_cleanup_domains(ldns_rbtree_t* domain_tree)
         domain_cleanup(domain);
         node = ldns_rbtree_next(node);
     }
-    if (domain_tree) {
+    if (domain_tree && domain_tree->root != LDNS_RBTREE_NULL) {
         se_rbnode_free(domain_tree->root);
+    }
+    if (domain_tree) {
         ldns_rbtree_free(domain_tree);
     }
     return;

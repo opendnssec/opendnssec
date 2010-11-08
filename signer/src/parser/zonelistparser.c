@@ -215,8 +215,7 @@ parse_zonelist_zones(const char* zlfile)
 
             /* and add it to the list */
             if (zonelist_add_zone(zl, new_zone) == NULL) {
-                se_log_error("unable to add zone %s to zone list",
-                    zone_name?zone_name:"(null)");
+                se_log_error("unable to add zone %s to zone list", zone_name);
             }
             se_free((void*) zone_name);
             xmlXPathFreeContext(xpathCtx);

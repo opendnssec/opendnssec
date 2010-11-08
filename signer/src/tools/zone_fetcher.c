@@ -477,8 +477,7 @@ read_zonelist(const char* filename)
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
                     se_log_error("zone fetcher can not create XPath "
-                        "context for %s; skipping zone",
-                        zone_name?zone_name:"(null)");
+                        "context for %s; skipping zone", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -1362,6 +1361,12 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     /* read transfer configuration */
     config = new_config();
     config->pidfile = strdup(ODS_ZF_PIDFILE); /* not freed */
+    if (!config->pidfile) {
+        se_log_alert("zone fetcher error: no pidfile given");
+        free_config(config);
+        exit(EXIT_FAILURE);
+    }
+
     c = read_axfr_config(config_file, config);
     config->zonelist = read_zonelist(zonelist_file);
 
@@ -1385,8 +1390,7 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
 
     /* write pidfile */
     if (writepid(config->pidfile, getpid()) != 0) {
-        se_log_error("write pidfile %s failed",
-            config->pidfile?config->pidfile:"(null)");
+        se_log_error("write pidfile %s failed", config->pidfile);
         se_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }

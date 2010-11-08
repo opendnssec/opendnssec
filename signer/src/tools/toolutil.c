@@ -80,7 +80,7 @@ read_line(FILE *input, char *line, int multiline, int skip_comments)
 				line[li] = ' ';
 				li++;
 			}
-		} else if (c == ')' && multiline && !in_string) {
+		} else if (c == ')' && multiline) {
 			if (in_string) {
 				line[li] = c;
 				li++;
