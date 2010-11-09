@@ -94,6 +94,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
     int n = 0;
     int ret = 0;
     int cmd_written = 0;
+    int cmd_response = 0;
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
 
@@ -123,6 +124,11 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             cmd_written = 1;
             stdineof = 1;
             continue;
+        }
+
+        if (cmd && cmd_written && cmd_response) {
+            /* normal termination */
+            return;
         }
 
         if (FD_ISSET(sockfd, &rset)) {
@@ -158,6 +164,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                     ret = (int) write(fileno(stdout), buf, n-SE_CLI_CMDLEN);
                 }
                 buf[(n-SE_CLI_CMDLEN)] = '\0';
+                cmd_response = 1;
                 ret = 1;
             } else {
                 /* we can expect more */
@@ -170,7 +177,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             } else if (ret < 0) {
                 fprintf(stderr, "write error: %s\n", strerror(errno));
             }
-            if (se_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0) {
+            if (se_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
                 fprintf(stderr, "\n");
                 return;
             }
