@@ -1199,7 +1199,7 @@ module KASPAuditor
                 end
                 # Now check the NSEC3 types_covered against the types ACTUALLY at the name
                 if (types_types != nsec3_types)
-                  # @TODO@ Let's just check that we haven't misidentified an empty nonterminal...
+                  # Let's just check that we haven't misidentified an empty nonterminal...
                   old_types_name = types_name
                   old_types_name_unhashed = types_name_unhashed
                   old_types_types = types_types

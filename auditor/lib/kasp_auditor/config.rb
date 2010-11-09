@@ -43,7 +43,7 @@ module KASPAuditor
       #      @zones = []
       #      print "Opening config file : #{config_file_loc}\n"
       # Read the kasp.xml file
-      @name = (zone_name.to_s+"").untaint
+      @name = (zone_name.downcase+"").untaint
       @err = 0
       @partial_audit = false
       begin

@@ -345,8 +345,8 @@ class AuditorTest < Test::Unit::TestCase
     #    end
     if (add_default_msg)
       expected_strings.push("Auditor started")
-      expected_strings.push("Auditor starting on tjeb.nl")
-      expected_strings.push("Auditing tjeb.nl zone :")
+      expected_strings.push("Auditor starting on")
+      expected_strings.push("Auditing")
       expected_strings.push("Finished auditing tjeb.nl zone")
     end
     remaining_strings.reverse.each {|line|
