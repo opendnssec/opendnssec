@@ -5,6 +5,7 @@ OpenDNSSEC 1.2.0b2
 * New commandline option for the signer: ods-signer running.
 * Allow connection to different MySQL ports in the Enforcer.
 * Tone down and explain warning when converting M or Y to seconds
+* ldns 1.6.7 is required for bugfixes
 
 Bugfixes:
 * Bugreport #187: ods-control signer start will return non-zero if start up 
@@ -18,6 +19,8 @@ Bugfixes:
   read. Requires "ods-ksmutil update conf" to be run if using an existing 
   database.
 * Fix issue with key generation creating too many keys Ticket #194.
+* Bugreport #189: Auditor did not handle white-space-seperated substrings
+  for base64 text
 
 
 OpenDNSSEC 1.2.0b1 - 2010-10-18

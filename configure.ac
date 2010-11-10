@@ -138,7 +138,7 @@ fi
 
 # common dependencies
 ACX_LIBXML2
-ACX_LDNS(1,6,6)
+ACX_LDNS(1,6,7)
 ACX_PKCS11_MODULES
 ACX_RT
 
