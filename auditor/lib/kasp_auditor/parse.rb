@@ -50,7 +50,7 @@ module KASPAuditor
           # First load the config files
           zone_name = z.attributes['name'].downcase
           if (zone) # We're only asked to load a single zone
-            next if (zone_name.downcase != zone.downase) # So don't bother loading any other zones
+            next if (zone_name.downcase != zone.downcase) # So don't bother loading any other zones
           end
           policy = z.elements['Policy'].text
 
