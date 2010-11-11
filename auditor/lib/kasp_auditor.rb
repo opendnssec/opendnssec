@@ -287,7 +287,7 @@ module KASPAuditor
       if @zone_name
         to_keep = nil
         zones.each {|z|
-          if (z[0].name == @zone_name.to_s)
+          if (z[0].name.downcase == @zone_name.to_s.downcase)
             to_keep = z
           end
         }
@@ -301,7 +301,7 @@ module KASPAuditor
         # signed zonefile.
         conf = nil
         zones.each {|array|
-          if (array[0].name == @zone_name.to_s)
+          if (array[0].name.downcase == @zone_name.to_s.downcase)
             conf = array[0]
           end
         }
