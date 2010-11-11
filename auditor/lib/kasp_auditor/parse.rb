@@ -48,7 +48,7 @@ module KASPAuditor
         doc = REXML::Document.new(file)
         doc.elements.each("ZoneList/Zone") {|z|
           # First load the config files
-          zone_name = z.attributes['name'].downcase
+          zone_name = z.attributes['name']
           if (zone) # We're only asked to load a single zone
             next if (zone_name.downcase != zone.downcase) # So don't bother loading any other zones
           end
