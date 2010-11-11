@@ -242,7 +242,7 @@ module KASPAuditor
       next_name = nil
       last_name = nil
       last_line = nil
-      zone_name = @soa.name.to_s
+      zone_name = @soa.name.to_s.downcase
       first_name = nil
       IO.foreach(@nsec_temp_file) {|line|
         # @TODO@ Do we need to parse the record to get the next owner name?
@@ -359,7 +359,7 @@ module KASPAuditor
       def initialize(parent, config)
         @parent = parent
         @config = config
-        @origin = config.name.to_s + "."
+        @origin = config.name.to_s.downcase + "."
       end
 
       def scan_unsigned_file(file, temp_file)
@@ -431,7 +431,7 @@ module KASPAuditor
           # Handle out-of-zone data. 
           # We're interested in non-absolute names which are not in zone.
           rr_name = ret_line.split()[0]
-          if (rr_name[rr_name.length-1, 1] != ".") || (rr_name.downcase=~/#{@config.name}\.$/)
+          if (rr_name[rr_name.length-1, 1] != ".") || (rr_name.downcase=~/#{@config.name.downcase}\.$/)
             rr_counter += 1
           end
         }
@@ -801,7 +801,7 @@ module KASPAuditor
         log(LOG_ERR, "NSEC3PARAM flags should be 0, but were #{rr.flags} for #{rr.name}")
       end
       # Check that we are at the apex of the zone here
-      if (rr.name.to_s != @config.name.to_s)
+      if (rr.name.to_s.downcase != @config.name.to_s.downcase)
         log(LOG_ERR, "NSEC3PARAM seen at #{rr.name} : should be at zone apex (#{@config.name}")
       end
       # Check that we have not seen an NSEC3PARAM before
@@ -983,7 +983,7 @@ module KASPAuditor
     def get_hashed_owner_name(name)
       hash = RR::NSEC3.calculate_hash(name, @config.denial.nsec3.hash.iterations,
         RR::NSEC3.decode_salt(@config.denial.nsec3.hash.salt),
-        Nsec3HashAlgorithms.new(@config.denial.nsec3.hash.algorithm)) + ".#{@config.name}."
+        Nsec3HashAlgorithms.new(@config.denial.nsec3.hash.algorithm)) + ".#{@config.name.to_s.downcase}."
       return hash
     end
 

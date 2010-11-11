@@ -1029,7 +1029,7 @@ module KASPAuditor
       # Load the SOA record from both zones, and check they are the same.
       signed_soa = get_soa_from_file(output_file)
       unsigned_soa = get_soa_from_file(input_file)
-      @zone_name = unsigned_soa.name.to_s
+      @zone_name = unsigned_soa.name.to_s.downcase
 
       # Then return the SOA record (of the signed zone)
       if (signed_soa.name != unsigned_soa.name)
