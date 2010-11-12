@@ -63,6 +63,7 @@ zone_create(const char* name, ldns_rr_class klass)
     se_log_debug("create zone %s", name?name:"(null)");
     zone->name = se_strdup(name);
     zone->dname = ldns_dname_new_frm_str(name);
+    ldns_dname2canonical(zone->dname);
     zone->klass = klass;
     zone->notify_ns = NULL;
     zone->policy_name = NULL;
