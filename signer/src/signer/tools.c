@@ -290,6 +290,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
 int tools_write_output(zone_type* zone)
 {
     int error = 0;
+    char str[SYSTEM_MAXLEN];
     se_log_assert(zone);
     se_log_assert(zone->signconf);
     se_log_assert(zone->outbound_adapter);
@@ -322,7 +323,9 @@ int tools_write_output(zone_type* zone)
     /* kick the nameserver */
     if (zone->notify_ns) {
         se_log_verbose("notify nameserver: %s", zone->notify_ns);
-        error = system(zone->notify_ns);
+        snprintf(str, SYSTEM_MAXLEN, "%s > /dev/null",
+            zone->notify_ns);
+        error = system(str);
         if (error) {
            se_log_error("failed to notify nameserver");
         }
