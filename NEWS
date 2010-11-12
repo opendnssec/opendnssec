@@ -6,6 +6,7 @@ OpenDNSSEC 1.2.0b2
 * Allow connection to different MySQL ports in the Enforcer.
 * Tone down and explain warning when converting M or Y to seconds
 * ldns 1.6.7 is required for bugfixes
+* dnsruby 1.51 is required for bugfixes
 
 Bugfixes:
 * Bugreport #187: ods-control signer start will return non-zero if start up 

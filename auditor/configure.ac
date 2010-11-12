@@ -14,7 +14,7 @@ OPENDNSSEC_COMMON
 
 AM_PROG_RUBY
 ACX_RUBY_LIBRARY([syslog openssl xsd/datatypes rexml/document])
-ACX_DNSRUBY(1.49)
+ACX_DNSRUBY(1.51)
 
 # check for xmllint
 AC_PATH_PROG(XMLLINT, xmllint)
