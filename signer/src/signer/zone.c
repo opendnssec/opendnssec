@@ -339,6 +339,7 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
             }
             ldns_rr_set_ttl(key->dnskey, ttl);
             ldns_rr_set_class(key->dnskey, zone->klass);
+            ldns_rr2canonical(key->dnskey);
             dnskey = ldns_rr_clone(key->dnskey);
             error = zone_add_rr(zone, dnskey, 0);
             if (error) {
@@ -399,6 +400,7 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
      */
     ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(nsec3params_rr, 1)), 7, 0);
 
+    ldns_rr2canonical(nsec3params_rr);
     error = zone_add_rr(zone, nsec3params_rr, 0);
     if (error) {
         se_log_error("error adding NSEC3PARAMS record to zone %s",
