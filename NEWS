@@ -22,6 +22,8 @@ Bugfixes:
 * Fix issue with key generation creating too many keys Ticket #194.
 * Bugreport #189: Auditor did not handle white-space-seperated substrings
   for base64 text
+* Bugreport #190: Auditor (and signer) does not handle case correctly
+* Signer now silence stdout-output from the notify command
 
 
 OpenDNSSEC 1.2.0b1 - 2010-10-18
