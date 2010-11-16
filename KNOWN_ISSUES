@@ -44,3 +44,13 @@ Auditor cannot verify zones with RP and DNAME RR
 ------------------------------------------------
 
 This has been fixed in trunk of dnsruby. Will be included in dnsruby v1.51.
+
+
+Handling of external command calls
+----------------------------------
+
+External commands (e.g. NotifyCommand or DelegationSignerSubmitCommand) are 
+called with popen. This can lead to errors with these external scripts not
+being noticed by OpenDNSSEC. It is therefore recommended that when writing
+scripts like these that they log enough information for the user to tell
+independently if they failed.

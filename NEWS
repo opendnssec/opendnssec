@@ -8,6 +8,25 @@ OpenDNSSEC 1.2.0rc1 - 2010-11-16
 * ldns 1.6.7 is required for bugfixes
 * dnsruby 1.51 is required for bugfixes
 
+Migration:
+* There is a kasp schema change from the 1.1 branch (or trunk if you built
+  prior to r3823). To make this transition you have 2 options:
+
+  1) Run ods-ksmutil setup again. This will remove _all_ the current
+  information from the kasp database and start you off again with a fresh
+  environment.
+  
+  If that is not an option, or you want to try something else then:
+  
+  2) run one of the migration scripts
+        enforcer/utils/migrate_keyshare_mysql.pl
+  or
+        enforcer/utils/migrate_keyshare_sqlite3.pl
+  depending on your database.
+
+  NOTE: Although these scripts have been tested it is recommended to make a
+        backup of your database prior to running them.
+
 Bugfixes:
 * Bugreport #187: ods-control signer start will return non-zero if start up 
   failed (uses ods-signer running).
