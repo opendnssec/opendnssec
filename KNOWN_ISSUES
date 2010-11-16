@@ -40,12 +40,6 @@ same as any other key rollover. This is not sufficient; and so rolling between
 algorithms is broken and should not be done with the current system.
 
 
-Auditor cannot verify zones with RP and DNAME RR
-------------------------------------------------
-
-This has been fixed in trunk of dnsruby. Will be included in dnsruby v1.51.
-
-
 Handling of external command calls
 ----------------------------------
 
