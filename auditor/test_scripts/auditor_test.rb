@@ -60,7 +60,7 @@ class AuditorTest < Test::Unit::TestCase
     path = "test/signer_test_good/"
     zonelist_filename = "zonelist_nsec.xml"
     kasp_filename = "kasp_nsec.xml"
-    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 0, "test/tmp")
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 0, "test/tmp3")
 
     #    success = check_syslog(stderr, [])
     success = check_syslog(r, ["Auditor found no errors"])
@@ -228,7 +228,7 @@ class AuditorTest < Test::Unit::TestCase
     path = "test/signer_test_good/"
     zonelist_filename = "zonelist_nsec.xml"
     kasp_filename = "kasp_nsec.xml"
-    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 0, "test/tmp", true)
+    r = run_auditor_with_syslog(path, zonelist_filename, kasp_filename, 0, "test/tmp3", true)
 
     success = check_syslog(r, ["Auditor found no errors"])
     assert(success, "NSEC good file not audited correctly")
@@ -347,7 +347,7 @@ class AuditorTest < Test::Unit::TestCase
       expected_strings.push("Auditor started")
       expected_strings.push("Auditor starting on")
       expected_strings.push("Auditing")
-      expected_strings.push("Finished auditing tjeb.nl zone")
+      expected_strings.push("Finished auditing")
     end
     remaining_strings.reverse.each {|line|
       expected_strings.each {|expected|
