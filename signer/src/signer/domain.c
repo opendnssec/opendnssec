@@ -359,7 +359,16 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
                 se_log_error("other data next to %s %s", str_name, str_type);
                 rrs = rrset->rrs;
                 while (rrs) {
-                    log_rr(rrs->rr, "next-to-CNAME: ", 2);
+                    if (rrs->rr) {
+                        log_rr(rrs->rr, "next-to-CNAME: ", 2);
+                    }
+                    rrs = rrs->next;
+                }
+                rrs = rrset->add;
+                while (rrs) {
+                    if (rrs->rr) {
+                        log_rr(rrs->rr, "next-to-CNAME: ", 2);
+                    }
                     rrs = rrs->next;
                 }
                 se_free((void*)str_name);
