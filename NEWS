@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.2.0rc1 - 2010-11-16
+OpenDNSSEC 1.2.0rc1 - 2010-11-17
 
 * New commandline option for the signer: ods-signer running.
 * Allow connection to different MySQL ports in the Enforcer.
