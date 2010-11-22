@@ -1105,6 +1105,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
+    domain_type* parent = NULL;
     int error = 0;
 
     se_log_assert(sc);
@@ -1142,16 +1143,17 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
         /* delete memory of domain if no RRsets exists */
         /* if this domain is now an empty non-terminal, don't delete */
 
-/*
         if (domain_count_rrset(domain) <= 0 &&
             (domain->domain_status != DOMAIN_STATUS_ENT_AUTH &&
              domain->domain_status != DOMAIN_STATUS_ENT_NS &&
              domain->domain_status != DOMAIN_STATUS_ENT_GLUE)) {
 
             parent = domain->parent;
-            se_log_deeebug("obsoleted domain: #rrset=%i, status=%i",
-                domain_count_rrset(domain), domain->domain_status);
-            domain = zonedata_del_domain(zd, domain);
+            if (domain->subdomain_count <= 0) {
+                se_log_deeebug("obsoleted domain: #rrset=%i, status=%i",
+                    domain_count_rrset(domain), domain->domain_status);
+                domain = zonedata_del_domain(zd, domain);
+            }
             if (domain) {
                 se_log_error("failed to delete obsoleted domain");
             }
@@ -1166,7 +1168,6 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
                 }
             }
         }
-*/
     }
     return 0;
 }
