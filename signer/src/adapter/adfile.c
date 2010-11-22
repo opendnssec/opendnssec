@@ -253,11 +253,11 @@ adfile_read_rr(FILE* fd, zone_type* zone_in, char* line, ldns_rdf** orig,
     const char *endptr;  /* unused */
     int offset = 0;
 
+adfile_read_line:
     if (ttl) {
         new_ttl = *ttl;
     }
 
-adfile_read_line:
     len = adfile_read_line(fd, line, l);
     adfile_rtrim(line, &len);
 
@@ -322,6 +322,8 @@ adfile_read_line:
                             (line+offset)?(line+offset):"(null)");
                         return NULL;
                     }
+                    /* restore current ttl */
+                    *ttl = new_ttl;
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 }
