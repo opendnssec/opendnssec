@@ -2,19 +2,6 @@ $Id$
 
 OpenDNSSEC 1.2.0rc2
 
-Bugfixes:
-* Signer Engine: Use the correct TTL for RRs after the $INCLUDE directive.
-* Signer Engine: Also create new signature if TTL of RR has changed.
-* Signer Engine: Drop old NSEC/NSEC3 records.
-
-OpenDNSSEC 1.2.0rc1 - 2010-11-17
-
-* New commandline option for the signer: ods-signer running.
-* Allow connection to different MySQL ports in the Enforcer.
-* Tone down and explain warning when converting M or Y to seconds
-* ldns 1.6.7 is required for bugfixes
-* dnsruby 1.51 is required for bugfixes
-
 Migration:
 * There is a kasp schema change from the 1.1 branch (or trunk if you built
   prior to r3823). To make this transition you have 2 options:
@@ -33,6 +20,21 @@ Migration:
 
   NOTE: Although these scripts have been tested it is recommended to make a
         backup of your database prior to running them.
+
+Bugfixes:
+* Signer Engine: Use the correct TTL for RRs after the $INCLUDE directive.
+* Signer Engine: Also create new signature if TTL of RR has changed.
+* Signer Engine: Drop old NSEC/NSEC3 records.
+* ods-ksmutil: Fixed some memory leaks.
+
+
+OpenDNSSEC 1.2.0rc1 - 2010-11-17
+
+* New commandline option for the signer: ods-signer running.
+* Allow connection to different MySQL ports in the Enforcer.
+* Tone down and explain warning when converting M or Y to seconds
+* ldns 1.6.7 is required for bugfixes
+* dnsruby 1.51 is required for bugfixes
 
 Bugfixes:
 * Bugreport #187: ods-control signer start will return non-zero if start up 
