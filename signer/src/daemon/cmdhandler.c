@@ -76,9 +76,9 @@ cmdhandler_handle_cmd_help(int sockfd)
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "Commands:\n"
-        "zones           show the currently known zones\n"
-        "sign <zone>     schedule zone for immediate (re-)signing\n"
-        "sign --all      schedule all zones for immediate (re-)signing.\n"
+        "zones           show the currently known zones.\n"
+        "sign <zone>     read zone and schedule for immediate (re-)sign.\n"
+        "sign --all      read all zones and schedule all for immediate (re-)sign.\n"
         "clear <zone>    delete the internal storage of this zone.\n"
         "                All signatures will be regenerated on the next re-sign.\n"
         "queue           show the current task queue.\n"
