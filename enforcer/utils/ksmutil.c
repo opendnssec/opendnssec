@@ -5514,6 +5514,8 @@ void list_zone_node(const char *docname, int *zone_ids)
     xmlNodePtr root;
     xmlNodePtr cur;
     xmlNodePtr pol;
+    xmlChar *polChar = NULL;
+    xmlChar *propChar = NULL;
 
     int temp_id;
     int i = 0;
@@ -5540,10 +5542,12 @@ void list_zone_node(const char *docname, int *zone_ids)
     for(cur = root->children; cur != NULL; cur = cur->next)
     {
         if (xmlStrcmp( cur->name, (const xmlChar *)"Zone") == 0) {
-            printf("Found Zone: %s", xmlGetProp(cur, (xmlChar *) "name"));
+            propChar = xmlGetProp(cur, (xmlChar *) "name");
+            printf("Found Zone: %s", propChar);
 
             /* make a note of the zone_id */
-            status = KsmZoneIdFromName((char *) xmlGetProp(cur, (xmlChar *) "name"), &temp_id);
+            status = KsmZoneIdFromName((char *) propChar, &temp_id);
+            xmlFree(propChar);
             if (status != 0) {
                 printf(" (zone not in database)");
                 zone_ids[i] = 0;
@@ -5557,7 +5561,9 @@ void list_zone_node(const char *docname, int *zone_ids)
             {
                 if (xmlStrcmp( pol->name, (const xmlChar *)"Policy") == 0)
                 {
-                    printf("; on policy %s\n", xmlNodeGetContent(pol));
+                    polChar = xmlNodeGetContent(pol);
+                    printf("; on policy %s\n", polChar);
+                    xmlFree(polChar);
                 }
             }
         }
