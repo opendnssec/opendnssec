@@ -5378,6 +5378,7 @@ int read_zonelist_filename(char** zone_list_filename)
                 }
                 *zone_list_filename = NULL;
                 temp_char = (char *)xmlXPathCastToString(xpathObj);
+                xmlXPathFreeObject(xpathObj);
                 StrAppend(zone_list_filename, temp_char);
                 StrFree(temp_char);
                 printf("zonelist filename set to %s.\n", *zone_list_filename);
