@@ -5192,7 +5192,6 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         xmlFreeDoc(doc);
         return(-1);
     }
-
     if(xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         db_found = SQLITE_DB;
         temp_char = (char *)xmlXPathCastToString(xpathObj);
@@ -5200,6 +5199,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         StrFree(temp_char);
         fprintf(stderr, "SQLite database set to: %s\n", *dbschema);
     }
+    xmlXPathFreeObject(xpathObj);
 
     if (db_found == 0) {
         db_found = MYSQL_DB;
@@ -5219,6 +5219,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             StrFree(temp_char);
             printf("MySQL database host set to: %s\n", *host);
         }
+        xmlXPathFreeObject(xpathObj);
 
         /* PORT, optional */
         xpathObj = xmlXPathEvalExpression(mysql_port, xpathCtx);
@@ -5234,6 +5235,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             StrFree(temp_char);
             printf("MySQL database port set to: %s\n", *port);
         }
+        xmlXPathFreeObject(xpathObj);
 
         /* SCHEMA */
         xpathObj = xmlXPathEvalExpression(mysql_db, xpathCtx);
@@ -5251,6 +5253,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         } else {
             db_found = 0;
         }
+        xmlXPathFreeObject(xpathObj);
 
         /* DB USER */
         xpathObj = xmlXPathEvalExpression(mysql_user, xpathCtx);
@@ -5268,6 +5271,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         } else {
             db_found = 0;
         }
+        xmlXPathFreeObject(xpathObj);
 
         /* DB PASSWORD */
         xpathObj = xmlXPathEvalExpression(mysql_pass, xpathCtx);
@@ -5281,6 +5285,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         temp_char = (char *)xmlXPathCastToString(xpathObj);
         StrAppend(password, temp_char);
         StrFree(temp_char);
+        xmlXPathFreeObject(xpathObj);
 
         printf("MySQL database password set\n");
 
@@ -5304,7 +5309,6 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
 
     /* Cleanup */
     /* TODO: some other frees are needed */
-    xmlXPathFreeObject(xpathObj);
     xmlXPathFreeContext(xpathCtx);
     xmlFreeDoc(doc);
     xmlRelaxNGFree(schema);
