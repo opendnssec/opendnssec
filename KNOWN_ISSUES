@@ -48,3 +48,13 @@ called with popen. This can lead to errors with these external scripts not
 being noticed by OpenDNSSEC. It is therefore recommended that when writing
 scripts like these that they log enough information for the user to tell
 independently if they failed.
+
+
+Auditor does not handle $INCLUDE statements
+-------------------------------------------
+
+The $INCLUDE statement can be used in the unsigned zone to include data from
+other zone files. The problem is that the included files are not copied to 
+the working directory of the signer. We can thus not guarantee that the Audit 
+operation is atomic. After the signer reads in the zone and before the audit, 
+the include files could have been edited.
