@@ -92,14 +92,18 @@ $ ods-signer
 cmd> help
  Commands:
 zones           show the currently known zones
-sign <zone>     schedule zone for immediate signing
+sign <zone>     read zone and schedule zone for immediate signing
+sign --all      read zone and schedule zone for immediate signing
+clear <zone>    delete the internal storage of this zone
 queue           show the current task queue
 flush           execute all scheduled tasks immediately
 update          re-read the zonelist xml file
-                and check for changed zoneconf.xml files
+                and check for changed signer configuration xml files
+update <zone>   checkf for changed signer configuration xml file for zone
 stop            stop the engine
+reload          reload the engine
 start           start the engine (only when signer is not running)
-verbosity <nr>  set verbosity (notimpl)
+verbosity <nr>  set verbosity
 
 cmd> quit
 
