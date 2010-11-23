@@ -3622,6 +3622,10 @@ main (int argc, char *argv[])
     /*(void) hsm_close();*/
     /*if (config) free(config);*/
 
+    xmlCleanupParser();
+    xmlCleanupGlobals();
+    xmlCleanupThreads();
+
     exit(result);
 }
 
@@ -5144,20 +5148,25 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         printf("Error: unable to parse file \"%s\"\n", rngfilename);
+        xmlFreeDoc(doc);
         return(-1);
     }
 
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+    xmlFreeDoc(rngdoc);
     if (rngpctx == NULL) {
         printf("Error: unable to create XML RelaxNGs parser context\n");
+        xmlFreeDoc(doc);
         return(-1);
     }
 
     /* parse a schema definition resource and build an internal XML Schema structure which can be used to validate instances. */
     schema = xmlRelaxNGParse(rngpctx);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
     if (schema == NULL) {
         printf("Error: unable to parse a schema definition resource\n");
+        xmlFreeDoc(doc);
         return(-1);
     }
 
@@ -5165,13 +5174,18 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
         printf("Error: unable to create RelaxNGs validation context based on the schema\n");
+        xmlRelaxNGFree(schema);
+        xmlFreeDoc(doc);
         return(-1);
     }
 
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFree(schema);
     if (status != 0) {
         printf("Error validating file \"%s\"\n", config);
+        xmlFreeDoc(doc);
         return(-1);
     }
 
@@ -5291,32 +5305,20 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
 
     }
 
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
+
     /* Check that we found one or the other database */
     if(db_found == 0) {
         printf("Error: unable to find complete database connection expression\n");
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
         return(-1);
     }
 
     /* Check that we found the right database type */
     if (db_found != DbFlavour()) {
         printf("Error: database in config file does not match libksm\n");
-        xmlXPathFreeContext(xpathCtx);
-        xmlFreeDoc(doc);
         return(-1);
     }
-
-    /* Cleanup */
-    /* TODO: some other frees are needed */
-    xmlXPathFreeContext(xpathCtx);
-    xmlFreeDoc(doc);
-    xmlRelaxNGFree(schema);
-    xmlRelaxNGFreeValidCtxt(rngctx);
-    xmlRelaxNGFreeParserCtxt(rngpctx);
-    xmlFreeDoc(rngdoc);
-
-    StrFree(temp_char);
 
     return(status);
 }
