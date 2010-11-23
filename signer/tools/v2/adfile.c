@@ -74,7 +74,7 @@ line_contains_space_only(char* line, int line_len)
 {
     int i;
     for (i = 0; i < line_len; i++) {
-        if (!isspace(line[i])) {
+        if (!isspace((int)line[i])) {
             return 0;
         }
     }
@@ -161,6 +161,8 @@ adapter_file_read_line(FILE* fd, char* line, unsigned int* l)
             if (depth == 0) {
                 break;
             }
+            line[li] = ' ';
+            li++;
         } else {
             line[li] = c;
             li++;
@@ -192,14 +194,15 @@ adapter_file_read_rr(FILE* fd, zone_type* zone_in, char* line, ldns_rdf** orig,
     ldns_rdf* tmp = NULL;
     FILE* fd_include = NULL;
     int len = 0, error = 0;
-    const char *endptr;  /* unused */
     uint32_t new_ttl = 0;
+    const char *endptr;  /* unused */
+    int offset = 0;
 
+adfile_read_line:
     if (ttl && *ttl) {
         new_ttl = *ttl;
     }
 
-adfile_read_line:
     len = adapter_file_read_line(fd, line, l);
 
     if (len >= 0) {
@@ -212,7 +215,11 @@ adfile_read_line:
                         ldns_rdf_deep_free(*orig);
                         *orig = NULL;
                     }
-                    tmp = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, line + 8);
+                    offset = 8;
+                    while (isspace(line[offset])) {
+                        offset++;
+                    }
+                    tmp = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, line + offset);
                     if (!tmp) {
                         /* could not parse what next to $ORIGIN */
                         *status = LDNS_STATUS_SYNTAX_DNAME_ERR;
@@ -224,15 +231,22 @@ adfile_read_line:
                     break;
                 } else if (strncmp(line, "$TTL", 4) == 0 && isspace(line[4])) {
                     /* override default ttl */
-                    if (ttl) {
-                        *ttl = ldns_str2period(line + 5, &endptr);
+                    offset = 5;
+                    while (isspace(line[offset])) {
+                        offset++;
+                    }                    if (ttl) {
+                        *ttl = ldns_str2period(line + offset, &endptr);
                         new_ttl = *ttl;
                     }
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 } else if (strncmp(line, "$INCLUDE", 8) == 0 && isspace(line[8])) {
                     /* dive into this file */
-                    fd_include = fopen(line + 9, "r");
+                    offset = 9;
+                    while (isspace(line[offset])) {
+                        offset++;
+                    }
+                    fd_include = fopen(line + offset, "r");
                     if (fd_include) {
                         error = adapter_file_read(fd_include, zone_in, 1);
                         fclose(fd_include);
@@ -246,6 +260,8 @@ adfile_read_line:
                         fprintf(stderr, "error in include file '%s'\n", line + 9);
                         return NULL;
                     }
+                    /* restore current ttl */
+                    *ttl = new_ttl;
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 }
@@ -271,16 +287,19 @@ adfile_read_rr:
                     ldns_rr2canonical(rr);
                     return rr;
                 } else if (*status == LDNS_STATUS_SYNTAX_EMPTY) {
-                    *status = LDNS_STATUS_OK;
                     if (rr) {
                         ldns_rr_free(rr);
                         rr = NULL;
                     }
+                    *status = LDNS_STATUS_OK;
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 } else {
                     fprintf(stderr, "error parsing RR at line %i (%s): %s\n", *l,
                         ldns_get_errorstr_by_id(*status), line);
+                    while (len >= 0) {
+                        len = adapter_file_read_line(fd, line, l);
+                    }
                     if (rr) {
                         ldns_rr_free(rr);
                         rr = NULL;

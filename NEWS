@@ -2,6 +2,9 @@ $Id$
 
 Bugfixes:
 * Bugreport #191: add a could not sign zone due to error log message.
+* Signer Engine: When reading file, convert newlines to spaces when they are
+  in between parentheses.
+* Signer Engine: Use the correct TTL for RRs after the $INCLUDE directive.
 
 OpenDNSSEC 1.1.3 - 2010-09-10
 
