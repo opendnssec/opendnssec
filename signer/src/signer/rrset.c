@@ -107,8 +107,13 @@ rrset_compare_rrs(ldns_dnssec_rrs* rrs1, ldns_dnssec_rrs* rrs2)
         if (rrs1->rr && rrs2->rr) {
             status = util_dnssec_rrs_compare(rrs1->rr, rrs2->rr, &cmp);
             if (status != LDNS_STATUS_OK || cmp != 0) {
-                return 1;
+                return cmp;
             }
+            /* check ttl */
+            if (ldns_rr_ttl(rrs1->rr) != ldns_rr_ttl(rrs2->rr)) {
+                return ldns_rr_ttl(rrs1->rr) - ldns_rr_ttl(rrs2->rr);
+            }
+
             /* the same */
         } else {
             return 1;
