@@ -1,5 +1,12 @@
 $Id$
 
+OpenDNSSEC 1.2.0rc2
+
+Bugfixes:
+* Signer Engine: Use the correct TTL for RRs after the $INCLUDE directive.
+* Signer Engine: Also create new signature if TTL of RR has changed.
+* Signer Engine: Drop old NSEC/NSEC3 records.
+
 OpenDNSSEC 1.2.0rc1 - 2010-11-17
 
 * New commandline option for the signer: ods-signer running.
