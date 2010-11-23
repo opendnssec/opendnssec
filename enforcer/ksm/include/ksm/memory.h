@@ -47,7 +47,7 @@ extern "C" {
 void* MemMalloc(size_t size);
 void* MemCalloc(size_t nmemb, size_t size);
 void* MemRealloc(void* ptr, size_t size);
-#define MemFree(ptr) {free(ptr); (ptr) = NULL;}
+#define MemFree(ptr) {if(ptr != NULL) {free(ptr); (ptr) = NULL;}}
 
 #ifdef __cplusplus
 }
