@@ -99,7 +99,7 @@ queue           show the current task queue
 flush           execute all scheduled tasks immediately
 update          re-read the zonelist xml file
                 and check for changed signer configuration xml files
-update <zone>   checkf for changed signer configuration xml file for zone
+update <zone>   check for changed signer configuration xml file for zone
 stop            stop the engine
 reload          reload the engine
 start           start the engine (only when signer is not running)
