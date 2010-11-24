@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.2.0rc2
+OpenDNSSEC 1.2.0rc2 - 2010-11-24
 
 Migration:
 * There is a kasp schema change from the 1.1 branch (or trunk if you built
