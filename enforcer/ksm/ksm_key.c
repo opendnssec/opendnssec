@@ -1009,7 +1009,7 @@ int KsmKillKey(int keypair_id)
         exit(1);
     }
 
-    sql = DusInit("keypairs");
+    sql = DusInit("dnsseckeys");
     DusSetInt(&sql, "STATE", KSM_STATE_DEAD, set++);
     DusSetString(&sql, "DEAD", now, set++);
     DusConditionInt(&sql, "ID", DQS_COMPARE_EQ, keypair_id, 0);
