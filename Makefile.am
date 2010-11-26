@@ -25,7 +25,8 @@ if ENABLE_EPPCLIENT
 SUBDIRS += plugins/eppclient
 endif
 
-EXTRA_DIST = $(srcdir)/KNOWN_ISSUES
+EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \
+		$(srcdir)/MIGRATION
 
 
 install-data-hook:
