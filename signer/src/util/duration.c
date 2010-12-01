@@ -60,6 +60,46 @@ duration_create(void)
     return duration;
 }
 
+
+/**
+ * Compare durations.
+ *
+ */
+int
+duration_compare(duration_type* d1, duration_type* d2)
+{
+    if (!d1 && !d2) {
+        return 0;
+    }
+    if (!d1 || !d2) {
+        return d1?-1:1;
+    }
+
+    if (d1->years != d2->years) {
+        return d1->years - d2->years;
+    }
+    if (d1->months != d2->months) {
+        return d1->months - d2->months;
+    }
+    if (d1->weeks != d2->weeks) {
+        return d1->weeks - d2->weeks;
+    }
+    if (d1->days != d2->days) {
+        return d1->days - d2->days;
+    }
+    if (d1->hours != d2->hours) {
+        return d1->hours - d2->hours;
+    }
+    if (d1->minutes != d2->minutes) {
+        return d1->minutes - d2->minutes;
+    }
+    if (d1->seconds != d2->seconds) {
+        return d1->seconds - d2->seconds;
+    }
+
+    return 0;
+}
+
 /**
  * Create a duration from string.
  *

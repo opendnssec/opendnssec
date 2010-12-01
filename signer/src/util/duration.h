@@ -63,6 +63,15 @@ struct duration_struct
 duration_type* duration_create(void);
 
 /**
+ * Compare durations.
+ * \param[in] d1 one duration
+ * \param[in] d2 another duration
+ * \return int 0 if equal, -1 if d1 < d2, 1 if d2 < d1
+ *
+ */
+int duration_compare(duration_type* d1, duration_type* d2);
+
+/**
  * Create a duration from string.
  * \param[in] str string-format duration
  * \return duration_t* the created duration
