@@ -66,8 +66,6 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
     uint32_t flags)
 {
     int cmp;
-    uint32_t default_ttl = 0;
-    uint32_t rr_ttl = 0;
     rrsigs_type* new_rrsigs = NULL;
     ldns_status status = LDNS_STATUS_OK;
 
@@ -100,13 +98,6 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
             new_rrsigs->key_flags = flags;
 
             rrsigs->next = new_rrsigs;
-
-            default_ttl = ldns_rr_ttl(rrsigs->rr);
-            if (rr_ttl < default_ttl) {
-                ldns_rr_set_ttl(rrsigs->rr, rr_ttl);
-            } else {
-                ldns_rr_set_ttl(new_rrsigs->rr, default_ttl);
-            }
             return 0;
         }
     } else if (cmp > 0) {
@@ -124,13 +115,6 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
             rrsigs->key_locator = se_strdup(locator);
         }
         rrsigs->key_flags = flags;
-
-        default_ttl = ldns_rr_ttl(new_rrsigs->rr);
-        if (rr_ttl < default_ttl) {
-            ldns_rr_set_ttl(new_rrsigs->rr, rr_ttl);
-        } else {
-            ldns_rr_set_ttl(rrsigs->rr, default_ttl);
-        }
         return 0;
     } else {
         /* should we error on equal? or free memory of rr */

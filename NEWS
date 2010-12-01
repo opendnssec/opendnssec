@@ -6,6 +6,7 @@ OpenDNSSEC 1.2.0rc3
 
 Bugfixes:
 * Bugreport #199: The previous DB schema change made the zone removal broken.
+* Signer Engine: Don't be smart with RRSIG TTLs, the hsm will set them for you.
 
 
 OpenDNSSEC 1.2.0rc2 - 2010-11-24
