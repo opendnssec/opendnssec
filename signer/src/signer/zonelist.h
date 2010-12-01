@@ -104,11 +104,12 @@ zone_type* zonelist_add_zone(zonelist_type* zonelist, zone_type* zone);
  * Update zone list.
  * /param[in] zl zone list
  * /param[in] tl task list
+ * /param[in] cmd notify command
  * /param[in] buf feedback message
  *
  */
 void zonelist_update(zonelist_type* zl, struct tasklist_struct* tl,
-    char* buf);
+    const char* cmd, char* buf);
 
 /**
  * Merge zone lists.

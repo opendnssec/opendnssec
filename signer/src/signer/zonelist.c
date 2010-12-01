@@ -294,7 +294,8 @@ zonelist_delete_zone(zonelist_type* zonelist, zone_type* zone)
  *
  */
 void
-zonelist_update(zonelist_type* zl, struct tasklist_struct* tl, char* buf)
+zonelist_update(zonelist_type* zl, struct tasklist_struct* tl,
+    const char* cmd, char* buf)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
@@ -327,6 +328,9 @@ zonelist_update(zonelist_type* zl, struct tasklist_struct* tl, char* buf)
         /* added */
         else if (zone->just_added) {
             zone->just_added = 0;
+            if (cmd && !zone->notify_ns) {
+                set_notify_ns(zone, cmd);
+            }
             just_added++;
         }
         /* updated */

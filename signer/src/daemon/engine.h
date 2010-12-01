@@ -96,6 +96,14 @@ void engine_start(const char* cfgfile, int cmdline_verbosity,
     int daemonize, int info, int single_run);
 
 /**
+ * Parse notify command.
+ * \param[in] zone zone
+ * \param[in] cmd notify command.
+ *
+ */
+void set_notify_ns(zone_type* zone, const char* cmd);
+
+/**
  * Update zone list.
  * \param[in] the signer engine
  * \param[in] buf response message
@@ -124,7 +132,6 @@ int engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
  *
  */
 int engine_search_workers(engine_type* engine, const char* zone_name);
-
 
 /**
  * Clean up engine.

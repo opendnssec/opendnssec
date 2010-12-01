@@ -624,7 +624,7 @@ engine_update_zonelist(engine_type* engine, char* buf)
 
     zonelist_lock(engine->zonelist);
     zonelist_merge(engine->zonelist, new_zlist);
-    zonelist_update(engine->zonelist, engine->tasklist, buf);
+    zonelist_update(engine->zonelist, engine->tasklist, engine->config->notify_command, buf);
     zonelist_unlock(engine->zonelist);
     return 0;
 }
@@ -634,7 +634,7 @@ engine_update_zonelist(engine_type* engine, char* buf)
  * Parse notify command.
  *
  */
-static void
+void
 set_notify_ns(zone_type* zone, const char* cmd)
 {
     const char* str = NULL;
@@ -693,6 +693,7 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
                 tmp = zone_update_signconf(zone, engine->tasklist, buf);
                 zone->fetch = (engine->config->zonefetch_filename != NULL);
                 engine->tasklist->loading = 0;
+
                 lock_basic_unlock(&engine->tasklist->tasklist_lock);
                 lock_basic_unlock(&zone->zone_lock);
                 return 0;
@@ -701,6 +702,7 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
             lock_basic_lock(&engine->tasklist->tasklist_lock);
             tmp = zone_update_signconf(zone, engine->tasklist, buf);
             zone->fetch = (engine->config->zonefetch_filename != NULL);
+
             lock_basic_unlock(&engine->tasklist->tasklist_lock);
 
             if (tmp < 0) {
