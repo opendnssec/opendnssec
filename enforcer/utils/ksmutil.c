@@ -2670,6 +2670,12 @@ cmd_dsseen()
         }
     }
 
+    /* Need to poke the enforcer to wake it up */
+    if (restart_enforcerd() != 0)
+    {
+        fprintf(stderr, "Could not HUP ods-enforcerd\n");
+    }
+
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
 
