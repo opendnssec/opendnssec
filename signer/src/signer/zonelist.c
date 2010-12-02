@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "daemon/engine.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
 #include "scheduler/task.h"
