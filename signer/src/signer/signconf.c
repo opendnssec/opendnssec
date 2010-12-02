@@ -401,6 +401,11 @@ signconf_compare(signconf_type* a, signconf_type* b, int* update)
        }
    }
 
+   if (duration_compare(a->soa_min, b->soa_min) != 0) {
+       new_task = TASK_READ;
+       *update = 1;
+   }
+
    if (keylist_compare(a->keys, b->keys) != 0) {
        new_task = TASK_READ;
    }
