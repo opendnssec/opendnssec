@@ -1139,7 +1139,7 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     fprintf(file, "\t\t\t\t<Algorithm>%d</Algorithm>\n", key_data->algorithm); 
     fprintf(file, "\t\t\t\t<Locator>%s</Locator>\n", key_data->location);
 
-    if (key_data->keytype == KSM_TYPE_KSK && key_data->state != KSM_STATE_RETIRE)
+    if (key_data->keytype == KSM_TYPE_KSK)
     {
         fprintf(file, "\t\t\t\t<KSK />\n");
     }
