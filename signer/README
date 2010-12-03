@@ -219,6 +219,37 @@ check that it does by using ods-signer as specified in the
 section INTERACTION FROM THE COMMAND LINE.
 
 
+Diagnostics
+-----------
+
+The signer prints statistics about the signed zones into the logs.
+
+[STATS] opendnssec.org RR[count=32 time=1(sec)]
+                       NSEC[count=32 time=1(sec)]
+                       RRSIG[new=1 reused=31 time=1(sec) avg=1(sig/sec)]
+                       AUDIT[time=2(sec)]
+                       TOTAL[time=5(sec)]
+
+RR[count] is the number of records read in the unsigned zone. It is zero if
+the zone was not re-read. This happens for example when only re-signing.
+RR[time] is the time it took to read the unsigned zone.
+
+NSEC[count] is the number of NSEC or NSEC3 records added to the zone. This
+can be zero too, when only re-signing.
+NSEC[time] is the time it took to create all the Denial of Existence records.
+
+RRSIG[new] is the number of signatures newly created.
+RRSIG[reused] is the number of signatures that were created on a previous run,
+but are fresh enough that they may be remained in the zone.
+RRSIG[time] is the time it took to gather all the new and reused signatures.
+RRSIG[avg] is the average number of created signatures per second.
+
+AUDIT[time] is the time it took for the ods-auditor to run.
+
+TOTAL[time] is the total time it took for the signer engine to sign the 
+latest version of the zone.
+
+
 Debugging
 ---------
 Warning: DO NOT TRY THIS EXCEPT FOR DEBUGGING PURPOSES
