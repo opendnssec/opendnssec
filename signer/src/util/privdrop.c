@@ -35,26 +35,23 @@
 
 #define _GNU_SOURCE /* defines for setres{g|u}id */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <syslog.h>
+#include <stdarg.h>
+#include <errno.h>
+#include <pwd.h>
+#include <grp.h>
+#include <ctype.h>
+#include <sys/types.h>
+
 #include "config.h"
 #include "util/log.h"
 #include "util/privdrop.h"
 #include "util/se_malloc.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <ctype.h>
-
-#include <errno.h>
-#include <string.h> /* strerror() */
-#include <grp.h> /* getgrnam_r(), endgrent(), initgroups() */
-#include <pwd.h> /* getpwnam_r(), endpwent() */
-#include <sys/types.h> /* geteuid(), getegid(), getpwnam_r(), endpwent(), initgroups(),
-                          getgroups(), setgroups(), setuid(), seteuid(), setreuid(),
-                          setgid(), setegid(), setregid()  */
-#include <unistd.h> /* sysconf(), geteuid(), getegid(), chroot(), chdir(),
-                       getgroups(), setgroups(), setuid(), seteuid(), setreuid(), setresuid(),
-                       setgid(), setegid(), setregid(), setresgid() */
 
 #ifndef _SC_GETPW_R_SIZE_MAX
 #define _SC_GETPW_R_SIZE_MAX 16384
