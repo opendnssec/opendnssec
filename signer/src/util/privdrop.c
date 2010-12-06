@@ -222,7 +222,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
         /* If we are root then drop all groups other than the final one */
 #if defined(HAVE_SETGROUPS)
         if (!olduid) setgroups(1, &(gid));
-#endif defined(HAVE_SETGROUPS)
+#endif /* defined(HAVE_SETGROUPS) */
     }
 
     /* Drop gid? */
