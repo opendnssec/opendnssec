@@ -413,7 +413,7 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone
          *
          * Third change
          */
-        deltat = collection->kskttl + collection->kskpropdelay + 
+        deltat = collection->dsttl + collection->kskpropdelay + 
             collection->ret_safety; /* Ipp */
     }
     else {
