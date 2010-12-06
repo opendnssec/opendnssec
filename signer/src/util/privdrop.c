@@ -40,6 +40,11 @@
 #include "util/privdrop.h"
 #include "util/se_malloc.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <ctype.h>
+
 #include <errno.h>
 #include <string.h> /* strerror() */
 #include <grp.h> /* getgrnam_r(), endgrent(), initgroups() */
@@ -176,32 +181,48 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 
     /* Change root if requested */
     if (newroot) {
-       if (chroot(newroot) != 0 || chdir("/") != 0) {
-            se_log_error("chroot to %s failed", newroot);
-            return -1;
+#ifdef HAVE_CHROOT
+       status = chroot(newroot);
+       if (status != 0 || chdir("/") != 0) {
+           se_log_error("chroot to %s failed: %.100s", newroot, strerror(errno));
+           return -1;
        }
+#else
+       se_log_error("chroot to %s failed: !HAVE_CHROOT", newroot);
+       return -1;
+#endif /* HAVE_CHROOT */
+
     }
 
     /* Do additional groups first */
     if (username != NULL && !olduid) {
+#ifdef HAVE_INITGROUPS
         if (initgroups(username, gid) < 0) {
             se_log_error("initgroups failed: %s: %.100s", username,
                 strerror(errno));
             return -1;
         }
+#else
+        se_log_error("initgroups failed: %s: !HAVE_INITGROUPS", username);
+        return -1;
+#endif /* HAVE_INITGROUPS */
 
         ngroups_max = sysconf(_SC_NGROUPS_MAX) + 1;
         final_groups = (gid_t *)se_malloc(ngroups_max *sizeof(gid_t));
+#if defined(HAVE_GETGROUPS) && defined(HAVE_SETGROUPS)
         final_group_len = getgroups(ngroups_max, final_groups);
         /* If we are root then drop all groups other than the final one */
         if (!olduid) {
             setgroups(final_group_len, final_groups);
         }
+#endif /* defined(HAVE_GETGROUPS) && defined(HAVE_SETGROUPS) */
         se_free((void*)final_groups);
     }
     else {
         /* If we are root then drop all groups other than the final one */
+#if defined(HAVE_SETGROUPS)
         if (!olduid) setgroups(1, &(gid));
+#endif defined(HAVE_SETGROUPS)
     }
 
     /* Drop gid? */
