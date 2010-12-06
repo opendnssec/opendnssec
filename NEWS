@@ -7,6 +7,9 @@ OpenDNSSEC 1.2.0rc3
 Bugfixes:
 * Bugreport #199: The previous DB schema change made the zone removal broken.
 * Signer Engine: Don't be smart with RRSIG TTLs, the hsm will set them for you.
+* Signer Engine: Set notify command for zone when receiving ods-signer update.
+* Signer Engine: Update TTL of NSEC(3) records if SOA Minimum has changed
+  in KASP.
 * Signer Engine: Now logs to the correct facility.
 
 
