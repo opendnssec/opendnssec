@@ -252,7 +252,8 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         zone->task->what = signconf_compare(zone->signconf, signconf, &update);
         zone->task->when = time_now();
         if (update) {
-            se_log_debug("destroy old NSEC3 tree for zone %s", zone->name);
+            /* destroy NSEC3 storage */
+            se_log_debug("destroy old NSEC(3) records for zone %s", zone->name);
             if (zone->zonedata && zone->zonedata->nsec3_domains) {
                 zonedata_cleanup_domains(zone->zonedata->nsec3_domains);
                 zone->zonedata->nsec3_domains = NULL;
@@ -266,6 +267,18 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
             if (zone->nsec3params) {
                 nsec3params_cleanup(zone->nsec3params);
                 zone->nsec3params = NULL;
+            }
+            /* destroy NSEC storage */
+            if (zone->zonedata && zone->zonedata->domains) {
+                node = ldns_rbtree_first(zone->zonedata->domains);
+                while (node && node != LDNS_RBTREE_NULL) {
+                    domain = (domain_type*) node->data;
+                    if (domain->nsec_rrset) {
+                        rrset_cleanup(domain->nsec_rrset);
+                        domain->nsec_rrset = NULL;
+                    }
+                    node = ldns_rbtree_next(node);
+                }
             }
         }
 
@@ -295,6 +308,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
     /* not reached */
     return 0;
 }
+
 
 /**
  * Add the DNSKEYs from the Signer Configuration to the zone data.

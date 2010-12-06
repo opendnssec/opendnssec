@@ -390,6 +390,7 @@ signconf_compare(signconf_type* a, signconf_type* b, int* update)
 
    if (a->nsec_type != b->nsec_type) {
        new_task = TASK_READ;
+       *update = 1;
    } else if (a->nsec_type == LDNS_RR_TYPE_NSEC3) {
        if ((se_strcmp(a->nsec3_salt, b->nsec3_salt) != 0) ||
            (a->nsec3_algo != b->nsec3_algo) ||
