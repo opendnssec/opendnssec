@@ -300,7 +300,11 @@ server_main(DAEMONCONFIG *config)
 
     KsmPolicyFree(policy);
 
-    unlink(config->pidfile);
+    if (unlink(config->pidfile) == -1) {
+        log_msg(config, LOG_ERR, "unlink pidfile %s failed: %s",
+                config->pidfile?config->pidfile:"(null)",
+                strerror(errno));
+    }
 
     xmlCleanupParser();
 
