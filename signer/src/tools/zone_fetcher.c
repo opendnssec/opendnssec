@@ -678,6 +678,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         }
         else if (ip6_support) {
 #ifdef IPV6_V6ONLY
+#if defined(IPPROTO_IPV6)
             if (setsockopt(sockets->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
                 sizeof(on)) < 0)
             {
@@ -686,6 +687,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 ret = -1;
                 break;
             }
+#endif
 #endif /* IPV6_V6ONLY */
             if (fcntl(sockets->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
                 se_log_error("zone fetcher cannot fcntl UDP: %s",
@@ -765,6 +767,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             /* setsockopt */
             if (sockets->tcp[i].addr->ai_family == AF_INET6 && ip6_support) {
 #ifdef IPV6_V6ONLY
+#if defined(IPPROTO_IPV6)
                 if (setsockopt(sockets->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
                     sizeof(on)) < 0)
                 {
@@ -773,6 +776,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                     ret = -1;
                     break;
                 }
+#endif
 #endif /* IPV6_V6ONLY */
             }
             if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
