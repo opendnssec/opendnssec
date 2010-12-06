@@ -54,7 +54,9 @@
 #include <ctype.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <syslog.h>
 
+#include <sys/select.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
