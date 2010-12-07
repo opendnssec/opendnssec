@@ -17,7 +17,7 @@
 			<Module>@pkcs11_sca6000_module@</Module>
 			<TokenLabel>Sun Metaslot</TokenLabel>
 			<PIN>test:1234</PIN>
-			<Capacity>1000</Capacity>
+			<Capacity>255</Capacity>
 			<RequireBackup/>
 			<SkipPublicKey/>
 		</Repository>
