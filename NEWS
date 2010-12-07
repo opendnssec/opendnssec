@@ -11,6 +11,7 @@ Bugfixes:
 * Signer Engine: Update TTL of NSEC(3) records if SOA Minimum has changed
   in KASP.
 * Signer Engine: Now logs to the correct facility.
+* ods-ksmutil: Log to syslog when ds-seen changes a key to active/standby.
 
 
 OpenDNSSEC 1.2.0rc2 - 2010-11-24

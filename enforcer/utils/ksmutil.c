@@ -85,6 +85,13 @@
 # define MAXPATHLEN 4096
 #endif
 
+/* We write one log message to syslog */
+#ifdef LOG_DAEMON
+#define DEFAULT_LOG_FACILITY LOG_DAEMON
+#else
+#define DEFAULT_LOG_FACILITY LOG_USER
+#endif /* LOG_DAEMON */
+
 extern char *optarg;
 extern int optind;
 const char *progname = NULL;
@@ -2485,6 +2492,8 @@ cmd_dsseen()
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
 
+    char logmsg[256]; /* For the message that we log when a key moves */
+
     char*   datetime = DtParseDateTimeString("now");
 
     /* Check datetime in case it came back NULL */
@@ -2621,7 +2630,14 @@ cmd_dsseen()
 
     /* Let them know that it seemed to work */
     if (status == 0) {
-        printf("Key %s made %s\n", temp_cka_id, (temp_key_state == KSM_STATE_READY) ? "active" : "into standby");
+        snprintf(logmsg, 256, "Key %s made %s", temp_cka_id, (temp_key_state == KSM_STATE_READY) ? "active" : "into standby");
+        printf("%s\n", logmsg);
+        
+        /* send the msg to syslog */
+        openlog("ods-ksmutil", 0, DEFAULT_LOG_FACILITY);
+        syslog(LOG_INFO, "%s", logmsg);
+        closelog();
+        
     }
 
     /* Retire old key, unless asked not to */
