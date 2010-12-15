@@ -97,6 +97,12 @@ sig_handler (int sig)
     }
 }
 
+void
+exit_function(void)
+{
+    unlink(config.pidfile);
+}
+
 int
 main(int argc, char *argv[]){
     int fd;
@@ -230,6 +236,8 @@ main(int argc, char *argv[]){
                 config.pidfile, strerror(errno));
 							exit(1);
     }
+
+    atexit(exit_function);
 
     log_msg(&config, LOG_NOTICE, "%s started (version %s), pid %d", PACKAGE_NAME, PACKAGE_VERSION, 
             (int) config.pid);
