@@ -1586,7 +1586,12 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
     KSM_KEYDATA  data;      /* Data for this key */
     size_t  nchar;          /* Number of characters written */
     char    buffer[256];    /* For constructing part of the command */
+    char*       count_clause = NULL;
+    char*       where_clause = NULL;
+    int         id = -1;        /* ID of key which will retire */
+    int         active_count = -1;        /* Number of currently active keys */
 
+    char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
     DB_RESULT	result3;        /* Result of DS query */
     KSM_KEYDATA data3;        /* DS information */
     char*   ds_buffer = NULL;   /* Contents of DS records */
@@ -1610,12 +1615,53 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
         return status;
     }
 
+    /* Find the oldest active key, this is the one which will be retired
+       NOTE; this may not match any keys */
+
+    count_clause = DqsCountInit("KEYDATA_VIEW");
+    DqsConditionInt(&count_clause, "KEYTYPE", DQS_COMPARE_EQ, KSM_TYPE_KSK, where++);
+    DqsConditionInt(&count_clause, "STATE", DQS_COMPARE_EQ, KSM_STATE_ACTIVE, where++);
+    if (zone_id != -1) {
+        DqsConditionInt(&count_clause, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
+
+    status = DbIntQuery(DbHandle(), &active_count, count_clause);
+    StrFree(count_clause);
+    if (status != 0)
+    {
+        log_msg(NULL, LOG_ERR, "Error: failed to find ID of key to retire\n");
+        return status;
+    }
+
+    if (active_count > 0) {
+
+        snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
+        StrAppend(&where_clause, "select id from KEYDATA_VIEW where state = 4 and keytype = 257 and zone_id = ");
+        StrAppend(&where_clause, stringval);
+        StrAppend(&where_clause, " and retire = (select min(retire) from KEYDATA_VIEW where state = 4 and keytype = 257 and zone_id = ");
+        StrAppend(&where_clause, stringval);
+        StrAppend(&where_clause, ")");
+
+        /* Execute query and free up the query string */
+        status = DbIntQuery(DbHandle(), &id, where_clause);
+        StrFree(where_clause);
+        if (status != 0)
+        {
+            log_msg(NULL, LOG_ERR, "Error: failed to find ID of key to retire\n");
+            return status;
+        }
+    }
+
     /* First up we need to count how many DSs we will have */
+    where = 0;
     sql = DqsCountInit("KEYDATA_VIEW");
     DqsConditionInt(&sql, "KEYTYPE", DQS_COMPARE_EQ, KSM_TYPE_KSK, where++);
     DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, where++);
     if (zone_id != -1) {
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
+    if (id != -1) {
+        DqsConditionInt(&sql, "ID", DQS_COMPARE_NE, id, where++);
     }
     DqsEnd(&sql);
 
@@ -1643,6 +1689,9 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
     DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, where++);
     if (zone_id != -1) {
         DqsConditionInt(&sql, "ZONE_ID", DQS_COMPARE_EQ, zone_id, where++);
+    }
+    if (id != -1) {
+        DqsConditionInt(&sql, "ID", DQS_COMPARE_NE, id, where++);
     }
     DqsEnd(&sql);
 
