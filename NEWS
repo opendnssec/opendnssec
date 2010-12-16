@@ -7,6 +7,7 @@ OpenDNSSEC 1.2.0rc3
 Bugfixes:
 * Bugreport #199: The previous DB schema change made the zone removal broken.
 * Enforcer: When retiring old KSK, use TTL(ds) and not TTL(ksk).
+* Enforcer: Minimize the set of DS RRs sent to DelegationSignerSubmitCommand.
 * ods-ksmutil: Log to syslog when ds-seen changes a key to active/standby.
 * Signer Engine: Don't be smart with RRSIG TTLs, the hsm will set them for you.
 * Signer Engine: Set notify command for zone when receiving ods-signer update.
