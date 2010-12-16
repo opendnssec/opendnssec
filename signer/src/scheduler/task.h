@@ -158,7 +158,7 @@ void task_print(FILE* out, task_type* task);
 tasklist_type* tasklist_create(void);
 
 /**
- * Clean up task list.
+ * Cleanup task list.
  * \param list[in] tasklist to be cleaned up
  *
  */
