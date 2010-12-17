@@ -681,12 +681,12 @@ again:
         se_writen(sockfd, buf, strlen(buf));
     }
 
-    if (n < 0 && errno == EINTR) {
+    if (n < 0 && (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN) ) {
         goto again;
     } else if (n < 0 && errno == ECONNRESET) {
         se_log_debug("done handling client: %s", strerror(errno));
     } else if (n < 0 ) {
-        se_log_error("command handler read error: %s", strerror(errno));
+        se_log_error("command handler read error[%i]: %s", errno, strerror(errno));
     }
     return;
 }
