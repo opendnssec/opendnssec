@@ -86,10 +86,11 @@ struct config_struct
     char* tsig_algo;
     char* tsig_secret;
     char* pidfile;
+    const char* zonelist_file;
     zfzonelist_type* zonelist;
     serverlist_type* serverlist;
     serverlist_type* notifylist;
-}; 
+};
 
 /**
  * Sockets.

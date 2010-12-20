@@ -401,6 +401,144 @@ engine_search_workers(engine_type* engine, const char* zone_name)
 
 
 /**
+ * Start zonefetcher.
+ *
+ */
+static int
+start_zonefetcher(engine_type* engine)
+{
+    pid_t zfpid = 0;
+    int result = 0;
+    char* zf_filename = NULL;
+    char* zl_filename = NULL;
+    char* log_filename = NULL;
+    char* grp = NULL;
+    char* usr = NULL;
+    char* chrt = NULL;
+    int use_syslog = 0;
+    int verbosity = 0;
+
+    se_log_assert(engine);
+    se_log_assert(engine->config);
+
+    if (!engine->config->zonefetch_filename) {
+        /* zone fetcher disabled */
+        return 0;
+    }
+
+    switch ((zfpid = fork())) {
+        case -1: /* error */
+            se_log_error("failed to fork zone fetcher: %s",
+                strerror(errno));
+            return 1;
+        case 0: /* child */
+            break;
+        default: /* parent */
+            engine->zfpid = zfpid;
+            return 0;
+    }
+
+    if (setsid() == -1) {
+        se_log_error("failed to setsid zone fetcher: %s",
+            strerror(errno));
+        return 1;
+    }
+
+    hsm_close();
+    se_log_verbose("zone fetcher running as pid %lu",
+        (unsigned long) getpid());
+
+    zf_filename = se_strdup(engine->config->zonefetch_filename);
+    zl_filename = se_strdup(engine->config->zonelist_filename);
+    grp = se_strdup(engine->config->group);
+    usr = se_strdup(engine->config->username);
+    chrt = se_strdup(engine->config->chroot);
+    log_filename = se_strdup(engine->config->log_filename);
+    use_syslog = engine->config->use_syslog;
+    verbosity = engine->config->verbosity;
+
+    result = tools_zone_fetcher(zf_filename, zl_filename, grp, usr,
+        chrt, log_filename, use_syslog, verbosity);
+
+    se_log_verbose("zone fetcher done", result);
+    if (zf_filename)  { se_free((void*)zf_filename); }
+    if (zl_filename)  { se_free((void*)zl_filename); }
+    if (grp)          { se_free((void*)grp); }
+    if (usr)          { se_free((void*)usr); }
+    if (chrt)         { se_free((void*)chrt); }
+    if (log_filename) { se_free((void*)log_filename); }
+
+    cmdhandler_cleanup(engine->cmdhandler);
+    engine_cleanup(engine);
+    engine = NULL;
+    se_log_close();
+    xmlCleanupParser();
+    xmlCleanupGlobals();
+    xmlCleanupThreads();
+    exit(result);
+
+    return 0;
+}
+
+
+/**
+ * Reload zonefetcher.
+ *
+ */
+static void
+reload_zonefetcher(engine_type* engine)
+{
+    int result = 0;
+
+    se_log_assert(engine);
+    se_log_assert(engine->config);
+
+    if (engine->config->zonefetch_filename) {
+        if (engine->zfpid > 0) {
+            result = kill(engine->zfpid, SIGHUP);
+            if (result == -1) {
+                se_log_error("cannot reload zone fetcher: %s", strerror(errno));
+            } else {
+                se_log_info("zone fetcher reloaded (pid=%i)", engine->zfpid);
+            }
+        } else {
+            se_log_error("cannot reload zone fetcher: process id unknown");
+        }
+    }
+    return;
+}
+
+
+/**
+ * Stop zonefetcher.
+ *
+ */
+static void
+stop_zonefetcher(engine_type* engine)
+{
+    int result = 0;
+
+    se_log_assert(engine);
+    se_log_assert(engine->config);
+
+    if (engine->config->zonefetch_filename) {
+        if (engine->zfpid > 0) {
+            result = kill(engine->zfpid, SIGTERM);
+            if (result == -1) {
+                se_log_error("cannot stop zone fetcher: %s", strerror(errno));
+            } else {
+                se_log_info("zone fetcher stopped (pid=%i)", engine->zfpid);
+            }
+            engine->zfpid = -1;
+        } else {
+            se_log_error("cannot stop zone fetcher: process id unknown");
+        }
+    }
+    return;
+}
+
+
+/**
  * Set up engine.
  *
  */
@@ -417,6 +555,15 @@ engine_setup(engine_type* engine)
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
     if (!engine->cmdhandler) {
+        se_log_error("cannot create cmdhandler");
+        return 1;
+    }
+
+    /* fork of fetcher */
+    if (start_zonefetcher(engine) != 0) {
+        se_log_error("cannot start zonefetcher");
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
         return 1;
     }
 
@@ -675,6 +822,8 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
     se_log_assert(engine->zonelist);
     se_log_assert(engine->zonelist->zones);
 
+    reload_zonefetcher(engine);
+
     lock_basic_lock(&engine->tasklist->tasklist_lock);
     engine->tasklist->loading = 1;
     lock_basic_unlock(&engine->tasklist->tasklist_lock);
@@ -784,116 +933,6 @@ engine_recover_from_backups(engine_type* engine)
 
 
 /**
- * Start zonefetcher.
- *
- */
-static int
-start_zonefetcher(engine_type* engine)
-{
-    pid_t zfpid = 0;
-    int result = 0;
-    char* zf_filename = NULL;
-    char* zl_filename = NULL;
-    char* log_filename = NULL;
-    char* grp = NULL;
-    char* usr = NULL;
-    char* chrt = NULL;
-    int use_syslog = 0;
-    int verbosity = 0;
-
-    se_log_assert(engine);
-    se_log_assert(engine->config);
-
-    if (!engine->config->zonefetch_filename) {
-        /* zone fetcher disabled */
-        return 0;
-    }
-
-    switch ((zfpid = fork())) {
-        case -1: /* error */
-            se_log_error("failed to fork zone fetcher: %s",
-                strerror(errno));
-            return 1;
-        case 0: /* child */
-            break;
-        default: /* parent */
-            engine->zfpid = zfpid;
-            return 0;
-    }
-
-    if (setsid() == -1) {
-        se_log_error("failed to setsid zone fetcher: %s",
-            strerror(errno));
-        return 1;
-    }
-
-    hsm_close();
-    se_log_verbose("zone fetcher running as pid %lu",
-        (unsigned long) getpid());
-
-    zf_filename = se_strdup(engine->config->zonefetch_filename);
-    zl_filename = se_strdup(engine->config->zonelist_filename);
-    grp = se_strdup(engine->config->group);
-    usr = se_strdup(engine->config->username);
-    chrt = se_strdup(engine->config->chroot);
-    log_filename = se_strdup(engine->config->log_filename);
-    use_syslog = engine->config->use_syslog;
-    verbosity = engine->config->verbosity;
-
-    result = tools_zone_fetcher(zf_filename, zl_filename, grp, usr,
-        chrt, log_filename, use_syslog, verbosity);
-
-    se_log_verbose("zone fetcher done", result);
-    if (zf_filename)  { se_free((void*)zf_filename); }
-    if (zl_filename)  { se_free((void*)zl_filename); }
-    if (grp)          { se_free((void*)grp); }
-    if (usr)          { se_free((void*)usr); }
-    if (chrt)         { se_free((void*)chrt); }
-    if (log_filename) { se_free((void*)log_filename); }
-
-    cmdhandler_cleanup(engine->cmdhandler);
-    engine_cleanup(engine);
-    engine = NULL;
-    se_log_close();
-    xmlCleanupParser();
-    xmlCleanupGlobals();
-    xmlCleanupThreads();
-    exit(result);
-
-    return 0;
-}
-
-
-/**
- * Stop zonefetcher.
- *
- */
-static void
-stop_zonefetcher(engine_type* engine)
-{
-    int result = 0;
-
-    se_log_assert(engine);
-    se_log_assert(engine->config);
-
-    if (engine->config->zonefetch_filename) {
-        if (engine->zfpid > 0) {
-            result = kill(engine->zfpid, SIGHUP);
-            if (result == -1) {
-                se_log_error("cannot stop zone fetcher: %s", strerror(errno));
-            } else {
-                se_log_info("zone fetcher stopped (pid=%i)", engine->zfpid);
-            }
-            engine->zfpid = -1;
-        } else {
-            se_log_error("cannot stop zone fetcher: process id unknown");
-        }
-    }
-    return;
-}
-
-
-/**
  * Start engine.
  *
  */
@@ -954,21 +993,14 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             zl_changed = 0;
         }
 
-        if (start_zonefetcher(engine) != 0) {
-            se_log_error("cannot start zonefetcher");
-            engine->need_to_exit = 1;
-            break;
-        }
-
         engine_start_workers(engine);
         engine_run(engine, single_run);
         engine_stop_workers(engine);
-
-	stop_zonefetcher(engine);
     }
 
     /* shutdown */
     se_log_info("shutdown signer engine");
+    stop_zonefetcher(engine);
     hsm_close();
     if (engine->cmdhandler != NULL) {
         engine_stop_cmdhandler(engine);

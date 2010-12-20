@@ -50,6 +50,7 @@
 #define DNS_SERIAL_GT(a, b) ((int)(((a) - (b)) & 0xFFFFFFFF) > 0)
 
 static int sig_quit = 0;
+static int sig_reload = 0;
 
 ldns_resolver*
 init_xfrd(config_type* config)
@@ -191,6 +192,7 @@ new_config(void)
     cfg->tsig_secret = NULL;
     cfg->serverlist = NULL;
     cfg->notifylist = NULL;
+    cfg->zonelist_file = NULL;
     cfg->zonelist = NULL;
     return cfg;
 }
@@ -203,6 +205,7 @@ free_config(config_type* cfg)
         if (cfg->tsig_algo)   free((void*) cfg->tsig_algo);
         if (cfg->tsig_secret) free((void*) cfg->tsig_secret);
         if (cfg->pidfile)     free((void*) cfg->pidfile);
+        if (cfg->zonelist_file) free((void*) cfg->zonelist_file);
         free_zonelist(cfg->zonelist);
         free_serverlist(cfg->serverlist);
         free_serverlist(cfg->notifylist);
@@ -575,8 +578,10 @@ sig_handler(int sig)
     switch (sig)
     {
         case SIGTERM:
-        case SIGHUP:
             sig_quit = 1;
+            break;
+        case SIGHUP:
+            sig_reload = 1;
             break;
         default:
             break;
@@ -836,7 +841,7 @@ free_sockets(sockets_type* sockets)
 }
 
 static int
-odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config)
+odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_signer)
 {
     ldns_status status = LDNS_STATUS_OK;
     ldns_rr* axfr_rr = NULL, *soa_rr = NULL;
@@ -972,16 +977,17 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config)
             snprintf(dest_file, sizeof(dest_file), "%s.axfr",
                 zone->input_file?zone->input_file:"(null)");
             if(rename(axfr_file, dest_file) == 0) {
-                snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
-                    "%s sign %s > /dev/null 2>&1",
-                    ODS_SE_CLI, zone->name?zone->name:"--all");
-                if (system(engine_sign_cmd) != 0) {
-                    se_log_error("zone fetcher could not kick "
-                        "the signer engine to sign zone %s",
-                        zone->name?zone->name:"--all");
+                if (kick_signer) {
+                    snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
+                        "%s sign %s > /dev/null 2>&1",
+                        ODS_SE_CLI, zone->name?zone->name:"--all");
+                    if (system(engine_sign_cmd) != 0) {
+                        se_log_error("zone fetcher could not kick "
+                           "the signer engine to sign zone %s",
+                            zone->name?zone->name:"--all");
+                    }
                 }
-            }
-            else {
+            } else {
                 se_log_error("zone fetcher could not move AXFR to %s",
                     dest_file);
             }
@@ -989,8 +995,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config)
             ldns_resolver_deep_free(xfrd);
             return 0;
         }
-    }
-    else {
+    } else {
         se_log_info("zone fetcher zone %s is already up to date, "
             "serial is %u", zone->name?zone->name:"(null)", serial);
     }
@@ -1110,7 +1115,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
                 serial = lookup_serial(fd);
                 fclose(fd);
             }
-            if (odd_xfer(zonelist, serial, config) != 0) {
+            if (odd_xfer(zonelist, serial, config, 1) != 0) {
                 se_log_error("AXFR for zone %s failed",
                     zonelist->name?zonelist->name:"(null)");
             }
@@ -1266,6 +1271,84 @@ handle_tcp(int tcp_sock, config_type* config)
     close(s);
 }
 
+
+/**
+ * Reload the zonelist file and merge it with the existing configuration.
+ *
+ */
+static void
+reload_zonelist(config_type *config) {
+    zfzonelist_type *new_zonelist, **thisp;
+    zfzonelist_type *added_zonelist = NULL, *kept_zonelist = NULL;
+    int added_count = 0, changed_count = 0, kept_count = 0;
+    /* Fail softly if the zonelist cannot be accessed for reloading */
+    if (!config->zonelist_file) {
+	    se_log_error("zone fetcher is unable to access the zonelist");
+	    return;
+    } else {
+	    se_log_verbose("zone fetcher will reload the zonelist");
+    }
+    /* Read the zonelist file and construct a new linked list of zonelist entries */
+    new_zonelist = read_zonelist (config->zonelist_file);
+    /* Iterate over the new zonelist file and compare it to previously configured zonelist entries */
+    while (new_zonelist) {
+	    zfzonelist_type *next_zonelist = new_zonelist->next;
+	    zfzonelist_type *this = config->zonelist;
+	    int found = 0;
+	    while (this && !found) {
+	        found = !strcmp (this->name, new_zonelist->name);
+	        if (!found) {
+		        this = this->next;
+            }
+    	}
+
+    	/* If the zone name is found in the old zonelist, it is either a full match or a replacement */
+	    if (found) {
+	        if (strcmp (new_zonelist->input_file, this->input_file)) {
+		    /* the zonelist entry has changed -- treat as a replacement/new zonelist entry */
+		    changed_count++;
+		    new_zonelist->next = added_zonelist;
+		    added_zonelist = new_zonelist;
+    	    } else {
+	    	/* the zonelist entry is already configured -- treat as a kept zonelist entry */
+		    kept_count++;
+		    new_zonelist->next = kept_zonelist;
+		    kept_zonelist = new_zonelist;
+	        }
+	    } else {
+	        /* new_zonelist introduces a new zonelist entry */
+	        added_count++;
+	        new_zonelist->next = added_zonelist;
+	        added_zonelist = new_zonelist;
+    	}
+	    new_zonelist = next_zonelist;
+    }
+
+    /* Replace the configured zonelist with the added_zonelist and kept_zonelist */
+    free_zonelist (config->zonelist);
+    config->zonelist = kept_zonelist;
+    thisp = &config->zonelist;
+    while (*thisp) {
+    	thisp = &(*thisp)->next;
+    }
+    *thisp = added_zonelist;
+
+    /* Perform an initial AXFR for the newly added zones (assume no present inputfile) */
+    new_zonelist = added_zonelist;
+    while (new_zonelist) {
+    	/* send the request -- assume no file is present so SOA is 0 */
+	    if (odd_xfer (new_zonelist, 0, config, 1) != 0) {
+	        se_log_error("AXFR for new zone %s failed", new_zonelist->name);
+	    }
+	    /* next */
+	    new_zonelist = new_zonelist->next;
+    }
+    se_log_verbose("Reloaded zonelist -- kept %d, changed %d and added %d zones",
+		kept_count, changed_count, added_count);
+    return;
+}
+
+
 static void
 xfrd_ns(sockets_type* sockets, config_type* cfg)
 {
@@ -1279,6 +1362,10 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
     timeout.tv_sec = 0;
     timeout.tv_usec = 0;
     while (!sig_quit) {
+        if (sig_reload) {
+            reload_zonelist(cfg);
+            sig_reload = 0;
+        }
         FD_ZERO(&rset);
         FD_ZERO(&wset);
         FD_ZERO(&eset);
@@ -1373,6 +1460,7 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
 
     c = read_axfr_config(config_file, config);
     config->zonelist = read_zonelist(zonelist_file);
+    config->zonelist_file = strdup(zonelist_file);
 
     if (info) {
         list_settings(stdout, config, config_file);
@@ -1391,6 +1479,7 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGHUP, &action, NULL);
+    sigaction(SIGTERM, &action, NULL);
 
     /* write pidfile */
     if (writepid(config->pidfile, getpid()) != 0) {
@@ -1413,7 +1502,7 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
             fclose(fd);
         }
         /* send the request */
-        if (odd_xfer(zonelist, serial, config) != 0) {
+        if (odd_xfer(zonelist, serial, config, 1) != 0) {
             se_log_error("AXFR for zone %s failed",
                 zonelist->name?zonelist->name:"(null)");
         }
