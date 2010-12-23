@@ -1778,6 +1778,12 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
             temp_char = ldns_rr2str(dnskey_rr);
             ldns_rr_free(dnskey_rr);
 
+            /* Replace tab with white-space */
+            for (i = 0; temp_char[i]; ++i) {
+                if (temp_char[i] == '\t') {
+                    temp_char[i] = ' ';
+                }
+            }
             log_msg(NULL, LOG_INFO, "%s", temp_char);
 
             /* We need to strip off trailing comments before we send

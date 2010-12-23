@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.2.0rc3 - 2010-12-20
+OpenDNSSEC 1.2.0rc3
 
 * Moved migration instructions to the file MIGRATION
 
@@ -8,6 +8,7 @@ Bugfixes:
 * Bugreport #199: The previous DB schema change made the zone removal broken.
 * Enforcer: When retiring old KSK, use TTL(ds) and not TTL(ksk).
 * Enforcer: Minimize the set of DS RRs sent to DelegationSignerSubmitCommand.
+* Enforcer: Replace tab with a space character in the DNSKEY printed to syslog.
 * ods-ksmutil: Log to syslog when ds-seen changes a key to active/standby.
 * Signer Engine: Don't be smart with RRSIG TTLs, the hsm will set them for you.
 * Signer Engine: Set notify command for zone when receiving ods-signer update.
@@ -16,6 +17,7 @@ Bugfixes:
 * Signer Engine: Now logs to the correct facility.
 * Signer Engine: Also remove NSEC records when detecting changes in
   signconf <Denial>
+* Signer Engine: Dropped privileges before starting Zonefetcher.
 
 
 OpenDNSSEC 1.2.0rc2 - 2010-11-24
