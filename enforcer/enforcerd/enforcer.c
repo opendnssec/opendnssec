@@ -125,7 +125,7 @@ server_main(DAEMONCONFIG *config)
         if (result) {
             hsm_error_message = hsm_get_error(ctx);
             if (hsm_error_message) {
-                log_msg(config, LOG_ERR, hsm_error_message);
+                log_msg(config, LOG_ERR, "%s", hsm_error_message);
                 free(hsm_error_message);
             } else {
                 /* decode the error code ourselves 
@@ -417,7 +417,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                 log_msg(config, LOG_ERR, "Error creating key in repository %s", policy->ksk->sm_name);
                 hsm_error_message = hsm_get_error(ctx);
                 if (hsm_error_message) {
-                    log_msg(config, LOG_ERR, hsm_error_message);
+                    log_msg(config, LOG_ERR, "%s", hsm_error_message);
                     free(hsm_error_message);
                 }
                 unlink(config->pidfile);
@@ -430,7 +430,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                 log_msg(config, LOG_ERR,"Error creating key in Database");
                 hsm_error_message = hsm_get_error(ctx);
                 if (hsm_error_message) {
-                    log_msg(config, LOG_ERR, hsm_error_message);
+                    log_msg(config, LOG_ERR, "%s", hsm_error_message);
                     free(hsm_error_message);
                 }
                 unlink(config->pidfile);
@@ -500,7 +500,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                 log_msg(config, LOG_ERR, "Error creating key in repository %s", policy->zsk->sm_name);
                 hsm_error_message = hsm_get_error(ctx);
                 if (hsm_error_message) {
-                    log_msg(config, LOG_ERR, hsm_error_message);
+                    log_msg(config, LOG_ERR, "%s", hsm_error_message);
                     free(hsm_error_message);
                 }
                 unlink(config->pidfile);
@@ -514,7 +514,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
                 log_msg(config, LOG_ERR,"Error creating key in Database");
                 hsm_error_message = hsm_get_error(ctx);
                 if (hsm_error_message) {
-                    log_msg(config, LOG_ERR, hsm_error_message);
+                    log_msg(config, LOG_ERR, "%s", hsm_error_message);
                     free(hsm_error_message);
                 }
                 unlink(config->pidfile);

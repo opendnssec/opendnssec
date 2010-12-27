@@ -9,6 +9,7 @@ Bugfixes:
 * Enforcer: When retiring old KSK, use TTL(ds) and not TTL(ksk).
 * Enforcer: Minimize the set of DS RRs sent to DelegationSignerSubmitCommand.
 * Enforcer: Replace tab with a space character in the DNSKEY printed to syslog.
+* Enforcer: Fixed pontential format string bug.
 * ods-ksmutil: Log to syslog when ds-seen changes a key to active/standby.
 * Signer Engine: Don't be smart with RRSIG TTLs, the hsm will set them for you.
 * Signer Engine: Set notify command for zone when receiving ods-signer update.
