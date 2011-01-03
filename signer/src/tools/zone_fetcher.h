@@ -31,8 +31,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
