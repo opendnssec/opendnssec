@@ -4061,8 +4061,8 @@ int update_policies(char* kasp_filename)
     int status;
 
     /* what we will read from the file */
-    char *policy_name;
-    char *policy_description;
+    char *policy_name = NULL;
+    char *policy_description = NULL;
 
     /* All of the XML stuff */
     xmlDocPtr doc = NULL;

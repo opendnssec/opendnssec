@@ -3,7 +3,7 @@ $Id$
 OpenDNSSEC 1.2.0
 
 Bugfixes:
-* Enforcer: Fixed warnings about unused variables and paramters.
+* Enforcer: Fixed a number of build warnings.
 
 
 OpenDNSSEC 1.2.0rc3 - 2010-12-27
