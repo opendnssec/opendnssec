@@ -1,5 +1,11 @@
 $Id$
 
+OpenDNSSEC 1.2.0
+
+Bugfixes:
+* Enforcer: Fixed warnings about unused variables and paramters.
+
+
 OpenDNSSEC 1.2.0rc3 - 2010-12-27
 
 * Moved migration instructions to the file MIGRATION

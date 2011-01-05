@@ -219,8 +219,6 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
     int     first_pass = 0; /* Indicates if this zone has been published before */
     int     status;         /* Status return */
     char*   zone_name = NULL;  /* For rollover message, if needed */
-    DB_RESULT	result;        /* Result of parameter query */
-    KSM_PARAMETER shared;      /* Parameter information */
     int     manual_rollover = 0;    /* Flag specific to keytype */
 
 	/* Check that we have a valid key type */
@@ -783,9 +781,9 @@ int KsmRequestChangeState(int keytype, const char* datetime,
     KSM_KEYDATA  data;      /* Data for this key */
     char    buffer[32];     /* For integer conversion */
     char*   zone_name = NULL;  /* For DS removal message, if needed */
-    
-    DB_RESULT	result2;        /* Result of parameter query */
-    KSM_PARAMETER data2;        /* Parameter information */
+
+    /* Unused parameter */
+    (void)policy_id;
 
     /* Create the destination column name */
     if (dst_state == KSM_STATE_DSREADY) {

@@ -7633,6 +7633,9 @@ int LinkKeys(const char* zone_name, int policy_id)
     int             zone_id = 0;    /* id of zone supplied */ 
     KSM_POLICY* policy;
 
+    /* Unused parameter */
+    (void)policy_id;
+
     /* Get some info from conf.xml */
     status = get_conf_key_info(&interval, &man_key_gen);
     if (status != 0) {
