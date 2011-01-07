@@ -162,7 +162,7 @@ ods_sign
 ods_stop
 
 echo "NOW CHECK THAT ZONES HAVE BEEN SIGNED"
-ruby ${SRCDIR}/test/scripts/check_zones_exist.sh unknown.rr.org example.com all.rr.org all.rr.binary.org
+ruby ${SRCDIR}/test/scripts/check_zones_exist.sh unknown.rr.org example.com ~all.rr.org all.rr.binary.org
 
 ret=$?
 exit $ret
