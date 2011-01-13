@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.2.0
+OpenDNSSEC 1.2.0 - 2011-01-13
 
 Bugfixes:
 * Enforcer: Fixed a number of build warnings.
