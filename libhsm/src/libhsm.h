@@ -32,7 +32,7 @@
 
 #include <stdint.h>
 
-#define HSM_MAX_SESSIONS 10
+#define HSM_MAX_SESSIONS 100
 #define HSM_MAX_ALGONAME 16
 
 #define HSM_ERROR_MSGSIZE 512
