@@ -375,6 +375,8 @@ int read_file(char* filename,
             break; /* end of file */
         *end = 0;
 
+        while (*ptr && isspace(*ptr))
+            ptr++;
         /* don't store comments or empty lines */
         if (*ptr == ';' || !*ptr)
             goto next_line;
