@@ -595,6 +595,16 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     /* 3. Check every signature if it matches the recycling logic. */
     rrsigs = rrset->rrsigs;
     while (rrsigs) {
+        if (!rrsigs->rr) {
+            se_log_warning("signature set has no RRSIG record: "
+                "drop signatures for RRset[%i]", rrset->rr_type);
+            rrsigs_cleanup(rrset->rrsigs);
+            rrset->rrsigs = NULL;
+            rrset->rrsig_count = 0;
+            rrset->drop_signatures = 0;
+            return 0;
+        }
+
         expiration = ldns_rdf2native_int32(
             ldns_rr_rrsig_expiration(rrsigs->rr));
         inception = ldns_rdf2native_int32(

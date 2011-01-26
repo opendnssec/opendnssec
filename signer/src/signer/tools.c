@@ -323,6 +323,7 @@ int tools_write_output(zone_type* zone)
     /* kick the nameserver */
     if (zone->notify_ns) {
         se_log_verbose("notify nameserver: %s", zone->notify_ns);
+
         snprintf(str, SYSTEM_MAXLEN, "%s > /dev/null",
             zone->notify_ns);
         error = system(str);
