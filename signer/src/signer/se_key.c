@@ -31,12 +31,13 @@
  *
  */
 
+#include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/se_key.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
+static const char* key_str = "keys";
 
 /**
  * Create a new key.
@@ -48,9 +49,9 @@ key_create(const char* locator, uint8_t algorithm, uint32_t flags,
 {
     key_type* key = (key_type*) se_malloc(sizeof(key_type));
 
-    se_log_assert(locator);
-    se_log_assert(algorithm);
-    se_log_assert(flags);
+    ods_log_assert(locator);
+    ods_log_assert(algorithm);
+    ods_log_assert(flags);
 
     key->locator = se_strdup(locator);
     key->dnskey = NULL;
@@ -82,7 +83,7 @@ key_recover_from_backup(FILE* fd)
     int zsk = 0;
     ldns_rr* rr = NULL;
 
-    se_log_assert(fd);
+    ods_log_assert(fd);
 
     if (!backup_read_str(fd, &locator) ||
         !backup_read_uint8_t(fd, &algorithm) ||
@@ -93,7 +94,7 @@ key_recover_from_backup(FILE* fd)
         ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK ||
         !backup_read_check_str(fd, ";END"))
     {
-        se_log_error("key part in backup file is corrupted");
+        ods_log_error("[%s] key part in backup file is corrupted", key_str);
         if (locator) {
             se_free((void*)locator);
         }
@@ -149,8 +150,6 @@ key_cleanup(key_type* key)
             key->params = NULL;
         }
         se_free((void*)key);
-    } else {
-        se_log_warning("cleanup empty key");
     }
 }
 
@@ -162,7 +161,7 @@ key_cleanup(key_type* key)
 void
 key_print(FILE* out, key_type* key)
 {
-    se_log_assert(out);
+    ods_log_assert(out);
     if (key) {
         fprintf(out, "\t\t\t<Key>\n");
         fprintf(out, "\t\t\t\t<Flags>%u</Flags>\n", key->flags);
@@ -195,7 +194,7 @@ keylist_create(void)
 {
     keylist_type* kl = (keylist_type*) se_malloc(sizeof(keylist_type));
 
-    se_log_debug("create key list");
+    ods_log_debug("[%s] create key list", key_str);
     kl->count = 0;
     kl->first_key = NULL;
     return kl;
@@ -211,9 +210,10 @@ keylist_add(keylist_type* kl, key_type* key)
 {
     key_type* walk = NULL;
 
-    se_log_assert(kl);
-    se_log_assert(key);
-    se_log_debug("add key locator %s", key->locator?key->locator:"(null)");
+    ods_log_assert(kl);
+    ods_log_assert(key);
+    ods_log_debug("[%s] add key locator %s", key_str, 
+        key->locator?key->locator:"(null)");
 
     if (kl->count == 0) {
         kl->first_key = key;
@@ -236,8 +236,8 @@ keylist_add(keylist_type* kl, key_type* key)
 int
 key_compare(key_type* a, key_type* b)
 {
-    se_log_assert(a);
-    se_log_assert(b);
+    ods_log_assert(a);
+    ods_log_assert(b);
     return se_strcmp(a->locator, b->locator);
 }
 
@@ -251,9 +251,10 @@ keylist_delete(keylist_type* kl, key_type* key)
 {
     key_type* walk = NULL, *prev = NULL;
 
-    se_log_assert(kl);
-    se_log_assert(key);
-    se_log_debug("delete key locator %s", key->locator?key->locator:"(null)");
+    ods_log_assert(kl);
+    ods_log_assert(key);
+    ods_log_debug("[%s] delete key locator %s", key_str,
+        key->locator?key->locator:"(null)");
 
     walk = kl->first_key;
     while (walk) {
@@ -271,8 +272,8 @@ keylist_delete(keylist_type* kl, key_type* key)
         walk = walk->next;
     }
 
-    se_log_error("key locator %s not found in list",
-        key->locator?key->locator:"(null)");
+    ods_log_error("[%s] key locator %s not found in list",
+        key_str, key->locator?key->locator:"(null)");
     return 1;
 }
 
@@ -317,8 +318,8 @@ keylist_compare(keylist_type* a, keylist_type* b)
     int ret = 0;
     size_t i = 0;
 
-    se_log_assert(a);
-    se_log_assert(b);
+    ods_log_assert(a);
+    ods_log_assert(b);
 
     if (a->count != b->count) {
         return a->count - b->count;
@@ -328,15 +329,16 @@ keylist_compare(keylist_type* a, keylist_type* b)
     kb = b->first_key;
     for (i=0; i < a->count; i++) {
         if (!ka && !kb) {
-            se_log_warning("neither key a[%i] or key b[%i] exist", i, i);
+            ods_log_warning("[%s] neither key a[%i] or key b[%i] exist",
+                key_str, i, i);
             return 0;
         }
         if (!ka) {
-            se_log_warning("key a[%i] does not exist", i);
+            ods_log_warning("[%s] key a[%i] does not exist", key_str, i);
             return -1;
         }
         if (!kb) {
-            se_log_warning("key b[%i] does not exist", i);
+            ods_log_warning("key b[%i] does not exist", key_str, i);
             return -1;
         }
 
@@ -376,13 +378,11 @@ void
 keylist_cleanup(keylist_type* kl)
 {
     if (kl) {
-        se_log_debug("clean up key list");
+        ods_log_debug("[%s] clean up key list", key_str);
         if (kl->first_key) {
             key_cleanup(kl->first_key);
         }
         se_free((void*)kl);
-    } else {
-        se_log_warning("cleanup empty key list");
     }
 }
 
@@ -396,7 +396,7 @@ keylist_print(FILE* out, keylist_type* kl)
 {
     key_type* walk = NULL;
 
-    se_log_assert(out);
+    ods_log_assert(out);
     if (kl) {
         walk = kl->first_key;
         while (walk) {

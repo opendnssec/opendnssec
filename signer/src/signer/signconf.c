@@ -34,13 +34,16 @@
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
 #include "scheduler/task.h"
+#include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/se_key.h"
 #include "signer/signconf.h"
 #include "util/duration.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
+
+static const char* sc_str = "signconf";
+
 
 /**
  * Create a new signer configuration with the 'empty' settings.
@@ -74,13 +77,12 @@ signconf_create(void)
     /* Other useful information */
     sc->last_modified = 0;
     sc->audit = 0;
-
     return sc;
 }
 
 
 /**
- * Read a signer configuration.
+ * Read signer configuration.
  *
  */
 signconf_type*
@@ -91,15 +93,17 @@ signconf_read(const char* filename, time_t last_modified)
     FILE* scfd = NULL;
     time_t st_mtime = 0;
 
+    ods_log_assert(filename);
+
     st_mtime = se_file_lastmodified(filename);
     if (st_mtime <= last_modified) {
-        se_log_debug("signconf file %s is unchanged",
+        ods_log_debug("[%s] signconf file %s is unchanged", sc_str,
             filename?filename:"(null)");
         return NULL;
     }
 
     if (parse_file_check(filename, rngfile) != 0) {
-        se_log_error("unable to parse signconf file %s",
+        ods_log_error("[%s] unable to parse signconf file %s", sc_str,
             filename?filename:"(null)");
         return NULL;
     }
@@ -133,7 +137,7 @@ signconf_read(const char* filename, time_t last_modified)
         return signconf;
     }
 
-    se_log_error("unable to read signconf file %s", filename?filename:"(null)");
+    ods_log_error("[%s] unable to read signconf file %s", sc_str, filename);
     return NULL;
 }
 
@@ -186,8 +190,8 @@ signconf_recover_from_backup(const char* filename)
             !backup_read_int(scfd, &signconf->audit) ||
             !backup_read_check_str(scfd, ODS_SE_FILE_MAGIC))
         {
-            se_log_error("unable to recover signconf backup file %s: corrupt "
-                "backup file ", filename?filename:"(null)");
+            ods_log_error("[%s] unable to recover signconf backup file %s: corrupt "
+                "backup file ", sc_str, filename?filename:"(null)");
             signconf_cleanup(signconf);
             signconf = NULL;
         }
@@ -199,7 +203,7 @@ signconf_recover_from_backup(const char* filename)
         return signconf;
     }
 
-    se_log_debug("unable to recover signconf backup file %s",
+    ods_log_debug("[%s] unable to recover signconf backup file %s", sc_str,
         filename?filename:"(null)");
     return NULL;
 }
@@ -230,7 +234,7 @@ signconf_backup(signconf_type* sc)
     FILE* fd = NULL;
     char* filename = NULL;
 
-    se_log_assert(sc);
+    ods_log_assert(sc);
 
     filename = se_build_path(sc->name, ".sc", 0);
     fd = se_fopen(filename, NULL, "w");
@@ -268,8 +272,8 @@ signconf_backup(signconf_type* sc)
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         se_fclose(fd);
     } else {
-        se_log_warning("cannot backup signconf: cannot open file "
-        "%s for writing", filename?filename:"(null)");
+        ods_log_warning("[%s] cannot backup signconf: cannot open file "
+        "%s for writing", sc_str, filename?filename:"(null)");
     }
     se_free((void*) filename);
     return;
@@ -311,65 +315,72 @@ signconf_check(signconf_type* sc)
     int ret = 0;
 
     if (!sc->sig_resign_interval) {
-        se_log_error("signconf-check: no signature resign interval found");
+        ods_log_error("[%s] check failed: no signature resign interval found",
+            sc_str);
         ret = 1;
     }
     if (!sc->sig_refresh_interval) {
-        se_log_error("signconf-check: no signature resign interval found");
+        ods_log_error("[%s] check failed: no signature resign interval found",
+            sc_str);
         ret = 1;
     }
     if (!sc->sig_validity_default) {
-        se_log_error("signconf-check: no signature default validity found");
+        ods_log_error("[%s] check failed: no signature default validity found",
+            sc_str);
         ret = 1;
     }
     if (!sc->sig_validity_denial) {
-        se_log_error("signconf-check: no signature denial validity found");
+        ods_log_error("[%s] check failed: no signature denial validity found",
+            sc_str);
         ret = 1;
     }
     if (!sc->sig_jitter) {
-        se_log_error("signconf-check: no signature jitter found");
+        ods_log_error("[%s] check failed: no signature jitter found", sc_str);
         ret = 1;
     }
     if (!sc->sig_inception_offset) {
-        se_log_error("signconf-check: no signature inception offset found");
+        ods_log_error("[%s] check failed: no signature inception offset found",
+            sc_str);
         ret = 1;
     }
     if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (sc->nsec3_algo == 0) {
-            se_log_error("signconf-check: no nsec3 algorithm found");
+            ods_log_error("[%s] check failed: no nsec3 algorithm found",
+                sc_str);
             ret = 1;
         }
         /* iterations */
         /* salt */
         /* optout */
     } else if (sc->nsec_type != LDNS_RR_TYPE_NSEC) {
-        se_log_error("signconf-check: wrong nsec type %i", sc->nsec_type);
+        ods_log_error("[%s] check failed: wrong nsec type %i", sc_str,
+            sc->nsec_type);
         ret = 1;
     }
     if (!sc->keys || sc->keys->count == 0) {
-        se_log_error("signconf-check: no keys found");
+        ods_log_error("[%s] check failed: no keys found", sc_str);
         ret = 1;
     }
     if (!sc->dnskey_ttl) {
-        se_log_error("signconf-check: no dnskey ttl found");
+        ods_log_error("[%s] check failed: no dnskey ttl found", sc_str);
         ret = 1;
     }
     if (!sc->soa_ttl) {
-        se_log_error("signconf-check: no soa ttl found");
+        ods_log_error("[%s] check failed: no soa ttl found", sc_str);
         ret = 1;
     }
     if (!sc->soa_min) {
-        se_log_error("signconf-check: no soa minimum found");
+        ods_log_error("[%s] check failed: no soa minimum found", sc_str);
         ret = 1;
     }
     if (signconf_soa_serial_check(sc->soa_serial) != 0) {
-        se_log_error("signconf-check: wrong soa serial type %s",
-            sc->soa_serial?sc->soa_serial:"(null)");
+        ods_log_error("[%s] check failed: wrong soa serial type %s", sc_str,
+            sc->soa_serial);
         ret = 1;
     }
 
     if (!ret) {
-        se_log_debug("signer configuration settings ok");
+        ods_log_debug("[%s] signer configuration settings ok", sc_str);
     }
     return ret;
 
@@ -385,8 +396,8 @@ signconf_compare(signconf_type* a, signconf_type* b, int* update)
 {
    int new_task = TASK_SIGN;
 
-   se_log_assert(a);
-   se_log_assert(b);
+   ods_log_assert(a);
+   ods_log_assert(b);
 
    if (a->nsec_type != b->nsec_type) {
        new_task = TASK_READ;
@@ -478,8 +489,6 @@ signconf_cleanup(signconf_type* sc)
             sc->filename = NULL;
         }
         se_free((void*)sc);
-    } else {
-        se_log_warning("cleanup empty signconf");
     }
 }
 
