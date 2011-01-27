@@ -31,14 +31,17 @@
  *
  */
 
+#include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/nsec3params.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
-#include <ctype.h> /* isxdigit() */
-#include <ldns/ldns.h> /* ldns_hexdigit_to_int() */
-#include <string.h> /* strlen() */
+#include <ctype.h>
+#include <ldns/ldns.h>
+#include <string.h>
+
+static const char* nsec3_str = "nsec3";
+
 
 /**
  * Create NSEC3 salt.
@@ -62,7 +65,7 @@ nsec3params_create_salt(const char* salt_str, uint8_t* salt_len, uint8_t** salt)
         *salt = NULL;
         return 0;
     } else if (*salt_len % 2 != 0) {
-        se_log_error("invalid salt %s", salt_str);
+        ods_log_error("[%s] invalid salt %s", nsec3_str, salt_str);
         *salt = NULL;
         return 1;
     }
@@ -74,7 +77,7 @@ nsec3params_create_salt(const char* salt_str, uint8_t* salt_len, uint8_t** salt)
             salt_tmp[c/2] = (uint8_t) ldns_hexdigit_to_int(salt_str[c]) * 16 +
                                       ldns_hexdigit_to_int(salt_str[c+1]);
         } else {
-            se_log_error("invalid salt %s", salt_str);
+            ods_log_error("[%s] invalid salt %s", nsec3_str, salt_str);
             se_free((void*)salt_tmp);
             *salt = NULL;
             return 1;
@@ -129,7 +132,7 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
     uint8_t salt_len; /* calculate salt len */
     uint8_t* salt_data; /* calculate salt data */
 
-    se_log_assert(fd);
+    ods_log_assert(fd);
 
     if (!backup_read_str(fd, &salt) ||
         !backup_read_uint8_t(fd, &algorithm) ||
@@ -139,7 +142,7 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
             != LDNS_STATUS_OK ||
         !backup_read_check_str(fd, ";END"))
     {
-        se_log_error("nsec3params part in backup file is corrupted");
+        ods_log_error("[%s] nsec3params part in backup file is corrupted", nsec3_str);
         if (nsec3params_rr) {
             ldns_rr_free(nsec3params_rr);
             nsec3params_rr = NULL;
@@ -171,7 +174,7 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
 
 
 /**
- * Convert Salt to string.
+ * Convert salt to string.
  *
  */
 const char*
@@ -201,8 +204,8 @@ nsec3params_salt2str(nsec3params_type* nsec3params)
     if (ldns_buffer_status(buffer) == LDNS_STATUS_OK) {
         str = ldns_buffer2str(buffer);
     } else {
-        se_log_error("failed to convert nsec3 salt to string: %s",
-            ldns_get_errorstr_by_id(ldns_buffer_status(buffer)));
+        ods_log_error("[%s] unable to convert nsec3 salt to string: %s",
+            nsec3_str, ldns_get_errorstr_by_id(ldns_buffer_status(buffer)));
     }
     ldns_buffer_free(buffer);
     return (const char*) str;
@@ -218,9 +221,7 @@ nsec3params_cleanup(nsec3params_type* nsec3params)
 {
     if (nsec3params) {
         se_free((void*) nsec3params->salt_data);
-	se_free((void*) nsec3params);
-    } else {
-        se_log_warning("cleanup empty nsec3 parameters");
+        se_free((void*) nsec3params);
     }
     return;
 }
