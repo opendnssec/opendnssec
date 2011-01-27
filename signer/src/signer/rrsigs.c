@@ -32,13 +32,15 @@
  */
 
 #include "config.h"
+#include "shared/log.h"
 #include "signer/rrsigs.h"
 #include "signer/se_key.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 #include "util/util.h"
 
 #include <ldns/ldns.h>
+
+static const char* rrsigs_str = "rrsig";
 
 
 /**
@@ -69,8 +71,17 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
     rrsigs_type* new_rrsigs = NULL;
     ldns_status status = LDNS_STATUS_OK;
 
-    se_log_assert(rrsigs);
-    se_log_assert(rr);
+    if (!rrsigs) {
+        ods_log_error("[%s] unable to add RRSIG: no storage", rrsigs_str);
+        return 1;
+    }
+    ods_log_assert(rrsigs);
+
+    if (!rr) {
+        ods_log_error("[%s] unable to add RRSIG: no RRSIG RR", rrsigs_str);
+        return 1;
+    }
+    ods_log_assert(rr);
 
     if (!rrsigs->rr) {
         rrsigs->rr = rr;
@@ -85,7 +96,6 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
     if (status != LDNS_STATUS_OK) {
         return 1;
     }
-
     if (cmp < 0) {
         if (rrsigs->next) {
             return rrsigs_add_sig(rrsigs->next, rr, locator, flags);
@@ -118,7 +128,7 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
         return 0;
     } else {
         /* should we error on equal? or free memory of rr */
-        se_log_warning("adding duplicate RRSIG?");
+        ods_log_warning("[%s] adding duplicate RRSIG?", rrsigs_str);
         return 2;
     }
     return 0;
@@ -146,8 +156,6 @@ rrsigs_cleanup(rrsigs_type* rrsigs)
             rrsigs->key_locator = NULL;
         }
         se_free((void*) rrsigs);
-    } else {
-        se_log_warning("cleanup empty rrsigs");
     }
     return;
 }
@@ -162,7 +170,11 @@ rrsigs_print(FILE* fd, rrsigs_type* rrsigs, int print_key)
 {
     rrsigs_type* print = NULL;
 
-    se_log_assert(fd);
+    if (!fd) {
+        ods_log_error("[%s] unable to print: no fd", rrsigs_str);
+        return;
+    }
+    ods_log_assert(fd);
 
     print = rrsigs;
     while (print) {
@@ -171,8 +183,9 @@ rrsigs_print(FILE* fd, rrsigs_type* rrsigs, int print_key)
                 rrsigs->key_locator?rrsigs->key_locator:"(null)",
                 rrsigs->key_flags);
         }
-        ldns_rr_print(fd, print->rr);
-
+        if (print->rr) {
+            ldns_rr_print(fd, print->rr);
+        }
         print = print->next;
     }
     return;

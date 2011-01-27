@@ -32,14 +32,16 @@
  */
 
 #include "config.h"
+#include "shared/log.h"
 #include "signer/hsm.h"
 #include "signer/rrset.h"
 #include "util/duration.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 #include "util/util.h"
 
-#include <ldns/ldns.h> /* ldns_rr_*(), ldns_dnssec_*() */
+#include <ldns/ldns.h>
+
+static const char* rrset_str = "rrset";
 
 
 /**
@@ -50,7 +52,13 @@ rrset_type*
 rrset_create(ldns_rr_type rrtype)
 {
     rrset_type* rrset = (rrset_type*) se_calloc(1, sizeof(rrset_type));
-    se_log_assert(rrtype);
+
+    if (!rrtype) {
+        ods_log_error("[%s] unable to create RRset: no RRtype", rrset_str);
+        return NULL;
+    }
+    ods_log_assert(rrtype);
+
     rrset->rr_type = rrtype;
     rrset->rr_count = 0;
     rrset->rrsig_count = 0;
@@ -74,7 +82,7 @@ rrset_type*
 rrset_create_frm_rr(ldns_rr* rr)
 {
     rrset_type* rrset = (rrset_type*) se_calloc(1, sizeof(rrset_type));
-    se_log_assert(rr);
+    ods_log_assert(rr);
     rrset->rr_type = ldns_rr_get_type(rr);
     rrset->rr_count = 1;
     rrset->add_count = 0;
@@ -191,17 +199,17 @@ log_rr(ldns_rr* rr, const char* pre, int level)
         str[(strlen(str))-1] = '\0';
     }
     if (level == 1) {
-        se_log_error("%s %s", pre?pre:"", str?str:"(null)");
+        ods_log_error("%s %s", pre?pre:"", str?str:"(null)");
     } else if (level == 2) {
-        se_log_warning("%s %s", pre?pre:"", str?str:"(null)");
+        ods_log_warning("%s %s", pre?pre:"", str?str:"(null)");
     } else if (level == 3) {
-        se_log_info("%s %s", pre?pre:"", str?str:"(null)");
+        ods_log_info("%s %s", pre?pre:"", str?str:"(null)");
     } else if (level == 4) {
-        se_log_verbose("%s %s", pre?pre:"", str?str:"(null)");
+        ods_log_verbose("%s %s", pre?pre:"", str?str:"(null)");
     } else if (level == 5) {
-        se_log_debug("%s %s", pre?pre:"", str?str:"(null)");
+        ods_log_debug("%s %s", pre?pre:"", str?str:"(null)");
     } else {
-        se_log_deeebug("%s %s", pre?pre:"", str?str:"(null)");
+        ods_log_deeebug("%s %s", pre?pre:"", str?str:"(null)");
     }
     se_free((void*)str);
     return;
@@ -231,13 +239,14 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
         status = util_dnssec_rrs_add_rr(rrset->rrs, rr);
         if (status != LDNS_STATUS_OK) {
             if (status == LDNS_STATUS_NO_DATA) {
-                se_log_warning("error adding RR to RRset (%i): duplicate",
-                    rrset->rr_type);
+                ods_log_warning("[%s] unable to commit add RR to RRset (%i): "
+      	              "duplicate", rrset_str, rrset->rr_type);
                 log_rr(rr, "+RR", 2);
                 return LDNS_STATUS_OK;
             } else {
-                se_log_error("error adding RR to RRset (%i): %s",
-                    rrset->rr_type, ldns_get_errorstr_by_id(status));
+                ods_log_warning("[%s] unable to commit add RR to RRset (%i): "
+      	              "%s", rrset_str, rrset->rr_type, 
+                      ldns_get_errorstr_by_id(status));
                 log_rr(rr, "+RR", 1);
                 return status;
             }
@@ -282,8 +291,7 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
         prev_rrs = rrs;
         rrs = rrs->next;
     }
-    se_log_warning("error deleting RR from RRset (%i): does not exist",
-        rrset->rr_type);
+    ods_log_warning("[%s] unable to commit del RR: no such RR", rrset_str);
     log_rr(rr, "-RR", 2);
     return;
 }
@@ -310,8 +318,8 @@ rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
 {
     int error = 0;
 
-    se_log_assert(rrset);
-    se_log_assert(rrsig);
+    ods_log_assert(rrset);
+    ods_log_assert(rrsig);
 
     if (!rrset->rrsigs) {
         rrset->rrsigs = rrsigs_create();
@@ -323,18 +331,18 @@ rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
     } else {
         switch (error) {
             case 2:
-                se_log_warning("error adding RRSIG to RRset (%i): duplicate",
-                    rrset->rr_type);
+                ods_log_warning("[%s] error adding RRSIG to RRset (%i): duplicate",
+                    rrset_str, rrset->rr_type);
                 log_rr(rrsig, "+RR", 2);
                 break;
             case 1:
-                se_log_error("error adding RRSIG to RRset (%i): compare failed",
-                    rrset->rr_type);
+                ods_log_error("[%s] error adding RRSIG to RRset (%i): compare failed",
+                    rrset_str, rrset->rr_type);
                 log_rr(rrsig, "+RR", 2);
                 break;
             default:
-                se_log_error("error adding RRSIG to RRset (%i): unknown error",
-                    rrset->rr_type);
+                ods_log_error("[%s] error adding RRSIG to RRset (%i): unknown error",
+                    rrset_str, rrset->rr_type);
                 log_rr(rrsig, "+RR", 2);
                 break;
         }
@@ -353,8 +361,8 @@ rrset_update(rrset_type* rrset, uint32_t serial)
     ldns_dnssec_rrs* rrs = NULL;
     ldns_status status = LDNS_STATUS_OK;
 
-    se_log_assert(rrset);
-    se_log_assert(serial);
+    ods_log_assert(rrset);
+    ods_log_assert(serial);
 
     if (DNS_SERIAL_GT(serial, rrset->internal_serial)) {
         /* compare del and add */
@@ -380,8 +388,8 @@ rrset_update(rrset_type* rrset, uint32_t serial)
             if (rrs->rr) {
                 status = rrset_add_pending_rr(rrset, rrs->rr);
                 if (status != LDNS_STATUS_OK) {
-                    se_log_alert("update RRset[%i] to serial %u failed",
-                        rrset->rr_type, serial);
+                    ods_log_alert("[%s] update RRset[%i] to serial %u failed",
+                        rrset_str, rrset->rr_type, serial);
                     return 1;
                 }
             }
@@ -424,7 +432,7 @@ rrset_cancel_update(rrset_type* rrset)
 int
 rrset_count_rr(rrset_type* rrset)
 {
-    se_log_assert(rrset);
+    ods_log_assert(rrset);
     return rrset->rr_count;
 }
 
@@ -436,7 +444,7 @@ rrset_count_rr(rrset_type* rrset)
 int
 rrset_count_add(rrset_type* rrset)
 {
-    se_log_assert(rrset);
+    ods_log_assert(rrset);
     return rrset->add_count;
 }
 
@@ -448,7 +456,7 @@ rrset_count_add(rrset_type* rrset)
 int
 rrset_count_del(rrset_type* rrset)
 {
-    se_log_assert(rrset);
+    ods_log_assert(rrset);
     return rrset->del_count;
 }
 
@@ -460,7 +468,7 @@ rrset_count_del(rrset_type* rrset)
 int
 rrset_count_RR(rrset_type* rrset)
 {
-    se_log_assert(rrset);
+    ods_log_assert(rrset);
     return ((rrset->rr_count + rrset->add_count) - rrset->del_count);
 }
 
@@ -474,9 +482,22 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
 {
     ldns_status status = LDNS_STATUS_OK;
 
-    se_log_assert(rr);
-    se_log_assert(rrset);
-    se_log_assert(ldns_rr_get_type(rr) == rrset->rr_type);
+    if (!rr) {
+        ods_log_error("[%s] unable to add RR: no RR", rrset_str);
+        return 1;
+    }
+    ods_log_assert(rr);
+
+    if (!rrset) {
+        ods_log_error("[%s] unable to add RR: no storage", rrset_str);
+        return 1;
+    }
+    ods_log_assert(rrset);
+
+    if (rrset->rr_type != ldns_rr_get_type(rr)) {
+        ods_log_error("[%s] unable to add RR: RRtype mismatch", rrset_str);
+        return 1;
+    }
 
     if (!rrset->add) {
         rrset->add = ldns_dnssec_rrs_new();
@@ -485,18 +506,19 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     if (!rrset->add->rr) {
         rrset->add->rr = rr;
         rrset->add_count = 1;
-        log_rr(rr, "+rr", 6);
+        log_rr(rr, "+rr", 7);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->add, rr);
         if (status != LDNS_STATUS_OK) {
             if (status == LDNS_STATUS_NO_DATA) {
-                se_log_warning("error adding RR to pending add RRset (%i): "
-                    "duplicate", rrset->rr_type);
+                ods_log_warning("[%s] unable to add RR to RRset (%i): "
+                      "duplicate", rrset_str, rrset->rr_type);
                 log_rr(rr, "+rr", 2);
                 return 0;
             } else {
-                se_log_error("error adding RR to pending add RRset (%i): %s",
-                    rrset->rr_type, ldns_get_errorstr_by_id(status));
+                ods_log_error("[%s] unable to add RR to RRset (%i): %s",
+                    rrset_str, rrset->rr_type,
+                    ldns_get_errorstr_by_id(status));
                 log_rr(rr, "+rr", 1);
                 ldns_dnssec_rrs_deep_free(rrset->add);
                 rrset->add = NULL;
@@ -505,7 +527,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
             }
         }
         rrset->add_count += 1;
-        log_rr(rr, "+rr", 6);
+        log_rr(rr, "+rr", 7);
     }
     return 0;
 }
@@ -520,9 +542,22 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
 {
     ldns_status status = LDNS_STATUS_OK;
 
-    se_log_assert(rr);
-    se_log_assert(rrset);
-    se_log_assert(ldns_rr_get_type(rr) == rrset->rr_type);
+    if (!rr) {
+        ods_log_error("[%s] unable to delete RR: no RR", rrset_str);
+        return 1;
+    }
+    ods_log_assert(rr);
+
+    if (!rrset) {
+        ods_log_error("[%s] unable to delete RR: no storage", rrset_str);
+        return 1;
+    }
+    ods_log_assert(rrset);
+
+    if (rrset->rr_type != ldns_rr_get_type(rr)) {
+        ods_log_error("[%s] unable to delete RR: RRtype mismatch", rrset_str);
+        return 1;
+    }
 
     if (!rrset->del) {
         rrset->del = ldns_dnssec_rrs_new();
@@ -531,18 +566,19 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
     if (!rrset->del->rr) {
         rrset->del->rr = rr;
         rrset->del_count = 1;
-        log_rr(rr, "-rr", 6);
+        log_rr(rr, "-rr", 7);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->del, rr);
         if (status != LDNS_STATUS_OK) {
             if (status == LDNS_STATUS_NO_DATA) {
-                se_log_warning("error adding RR to pending del RRset (%i): "
-                    "duplicate", rrset->rr_type);
+                ods_log_warning("[%s] unable to delete RR from RRset (%i): "
+                    "duplicate", rrset_str, rrset->rr_type);
                 log_rr(rr, "-rr", 2);
                 return 0;
             } else {
-                se_log_error("error adding RR to pending del RRset (%i): %s",
-                   rrset->rr_type, ldns_get_errorstr_by_id(status));
+                ods_log_error("[%s] unable to delete RR from RRset (%i): %s",
+                   rrset_str, rrset->rr_type,
+                   ldns_get_errorstr_by_id(status));
                 log_rr(rr, "-rr", 1);
                 ldns_dnssec_rrs_deep_free(rrset->del);
                 rrset->del = NULL;
@@ -551,7 +587,7 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
             }
         }
         rrset->del_count += 1;
-        log_rr(rr, "-rr", 6);
+        log_rr(rr, "-rr", 7);
     }
     return 0;
 }
@@ -582,7 +618,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     /* 1. If the RRset has changed, drop all signatures */
     /* 2. If Refresh is disabled, drop all signatures */
     if (rrset->drop_signatures || !refresh) {
-        se_log_debug("drop signatures for RRset[%i]", rrset->rr_type);
+        ods_log_debug("[%s] drop signatures for RRset[%i]", rrset_str, rrset->rr_type);
         if (rrset->rrsigs) {
             rrsigs_cleanup(rrset->rrsigs);
             rrset->rrsigs = NULL;
@@ -596,8 +632,8 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     rrsigs = rrset->rrsigs;
     while (rrsigs) {
         if (!rrsigs->rr) {
-            se_log_warning("signature set has no RRSIG record: "
-                "drop signatures for RRset[%i]", rrset->rr_type);
+            ods_log_warning("[%s] signature set has no RRSIG record: "
+                "drop signatures for RRset[%i]", rrset_str, rrset->rr_type);
             rrsigs_cleanup(rrset->rrsigs);
             rrset->rrsigs = NULL;
             rrset->rrsig_count = 0;
@@ -613,27 +649,27 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
         if (expiration < refresh) {
             /* 3a. Expiration - Refresh has passed */
             drop_sig = 1;
-            se_log_deeebug("refresh signature for RRset[%i]: expiration minus "
-                "refresh has passed: %u - %u < (signtime)",
+            ods_log_deeebug("[%s] refresh signature for RRset[%i]: expiration minus "
+                "refresh has passed: %u - %u < (signtime)", rrset_str,
                 rrset->rr_type, expiration, refresh, (uint32_t) signtime);
         } else if (inception > (uint32_t) signtime) {
             /* 3b. Inception has not yet passed */
             drop_sig = 1;
-            se_log_deeebug("refresh signature for RRset[%i]: inception has "
-                "not passed: %u < %u (signtime)",
+            ods_log_deeebug("[%s] refresh signature for RRset[%i]: inception has "
+                "not passed: %u < %u (signtime)", rrset_str,
                 rrset->rr_type, inception, (uint32_t) signtime);
         } else {
             /* 3c. Corresponding key is dead */
             key = keylist_lookup(sc->keys, rrsigs->key_locator);
             if (!key) {
                 drop_sig = 1;
-                se_log_deeebug("refresh signature for RRset[%i]: key %s %u "
-                "is dead",
+                ods_log_deeebug("[%s] refresh signature for RRset[%i]: key %s %u "
+                "is dead", rrset_str,
                 rrset->rr_type, rrsigs->key_locator, rrsigs->key_flags);
             } else if (key->flags != rrsigs->key_flags) {
                 drop_sig = 1;
-                se_log_deeebug("refresh signature for RRset[%i]: key %s %u "
-                "flags mismatch",
+                ods_log_deeebug("[%s] refresh signature for RRset[%i]: key %s %u "
+                "flags mismatch", rrset_str,
                 rrset->rr_type, rrsigs->key_locator, rrsigs->key_flags);
             }
         }
@@ -646,16 +682,16 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
             } else {
                 rrset->rrsigs = rrsigs->next;
             }
-            log_rr(rrsigs->rr, "-RRSIG", 6);
+            log_rr(rrsigs->rr, "-RRSIG", 7);
             rrset->rrsig_count -= 1;
             rrsigs->next = NULL;
             rrsigs_cleanup(rrsigs);
         } else {
             /* All rules ok, recycle signature */
-            se_log_deeebug("recycle signature for RRset[%i] (refresh=%u, "
-                "signtime=%u, inception=%u, expiration=%u)", rrset->rr_type,
+            ods_log_deeebug("[%s] recycle signature for RRset[%i] (refresh=%u, "
+                "signtime=%u, inception=%u, expiration=%u)", rrset_str, rrset->rr_type,
                 refresh, (uint32_t) signtime, inception, expiration);
-            log_rr(rrsigs->rr, "*RRSIG", 6);
+            log_rr(rrsigs->rr, "*RRSIG", 7);
             *reusedsigs += 1;
             prev_rrsigs = rrsigs;
         }
@@ -678,9 +714,9 @@ rrset_sign_set_timers(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
     time_t validity = 0;
     time_t random_jitter = 0;
 
-    se_log_assert(sc);
-    se_log_assert(rrtype);
-    se_log_assert(signtime);
+    ods_log_assert(sc);
+    ods_log_assert(rrtype);
+    ods_log_assert(signtime);
 
     jitter = duration2time(sc->sig_jitter);
     if (jitter) {
@@ -698,16 +734,16 @@ rrset_sign_set_timers(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
      */
     if (((validity + offset + random_jitter) - jitter) <
         ((validity + offset) - jitter) ) {
-        se_log_error("signature validity %u too low, should be at least %u",
-            ((validity + offset + random_jitter) - jitter),
+        ods_log_error("[%s] signature validity %u too low, should be at least %u",
+            rrset_str, ((validity + offset + random_jitter) - jitter),
             ((validity + offset) - jitter));
     } else if (((validity + offset + random_jitter) - jitter) >
                ((validity + offset) + jitter) ) {
-        se_log_error("signature validity %u too high, should be at most %u",
-            ((validity + offset + random_jitter) - jitter),
+        ods_log_error("[%s] signature validity %u too high, should be at most %u",
+            rrset_str, ((validity + offset + random_jitter) - jitter),
             ((validity + offset) + jitter));
     } else {
-        se_log_debug("signature validity %u in range [%u - %u]",
+        ods_log_debug("[%s] signature validity %u in range [%u - %u]", rrset_str,
             ((validity + offset + random_jitter) - jitter),
             ((validity + offset) - jitter),
             ((validity + offset) + jitter));
@@ -768,7 +804,6 @@ rrset2rrlist(rrset_type* rrset)
             /* singleton types */
             return rr_list;
         }
-
         rrs = rrs->next;
     }
     return rr_list;
@@ -794,122 +829,133 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     time_t inception = 0;
     time_t expiration = 0;
 
-    se_log_assert(rrset);
-    se_log_assert(sc);
-    se_log_assert(stats);
+    if (!rrset) {
+        ods_log_error("[%s] unable to sign RRset: no RRset", rrset_str);
+        return 1;
+    }
+    ods_log_assert(rrset);
 
-        /* drop unrecyclable signatures */
-        error = rrset_recycle_rrsigs(rrset, sc, signtime, &reusedsigs);
+    if (!owner) {
+        ods_log_error("[%s] unable to sign RRset: no owner", rrset_str);
+        return 1;
+    }
+    ods_log_assert(owner);
 
-        /* convert the RRset */
-        rr_list = rrset2rrlist(rrset);
-        if (!rr_list) {
-            se_log_error("error signing RRset[%i], cannot convert to rr "
-                "list", rrset->rr_type);
+    if (!sc) {
+        ods_log_error("[%s] unable to sign RRset: no signconf", rrset_str);
+        return 1;
+    }
+    ods_log_assert(sc);
+
+    /* drop unrecyclable signatures */
+    error = rrset_recycle_rrsigs(rrset, sc, signtime, &reusedsigs);
+
+    /* convert the RRset */
+    rr_list = rrset2rrlist(rrset);
+    if (!rr_list) {
+        ods_log_error("[%s] unable to sign RRset[%i]: to RRlist failed",
+            rrset->rr_type);
+        return 1;
+    }
+    if (ldns_rr_list_rr_count(rr_list) <= 0) {
+        /* empty RRset, no signatures needed */
+        ldns_rr_list_free(rr_list);
+        return 0;
+    }
+
+    /* prepare for signing */
+    new_rrsigs = rrsigs_create();
+    if (!rrset->rrsigs) {
+        rrset->rrsigs = rrsigs_create();
+    }
+    rrset_sign_set_timers(sc, rrset->rr_type, signtime,
+         &inception, &expiration);
+
+    key = sc->keys->first_key;
+    while (key) {
+        /* ksk or zsk ? */
+        if (!key->zsk && rrset->rr_type != LDNS_RR_TYPE_DNSKEY) {
+            ods_log_deeebug("[%s] skipping key %s for signing RRset[%i]: no "
+                "active ZSK", rrset_str, key->locator, rrset->rr_type);
+            key = key->next;
+            continue;
+        }
+        if (!key->ksk && rrset->rr_type == LDNS_RR_TYPE_DNSKEY) {
+            ods_log_deeebug("[%s] skipping key %s for signing RRset[%i]: no "
+                "active KSK", rrset_str, key->locator, rrset->rr_type);
+            key = key->next;
+            continue;
+        }
+
+        /* is there a signature with this algorithm already? */
+        if (rrset_signed_with_algorithm(rrset, key->algorithm)) {
+            ods_log_deeebug("skipping key %s for signing: RRset[%i] "
+                "already has signature with same algorithm", key->locator);
+            key = key->next;
+            continue;
+        }
+
+        /**
+         * currently, there is no rule that the number of signatures
+         * over this RRset equals the number of active keys.
+         */
+
+        /* sign the RRset with current key */
+        ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
+            rrset->rr_type, key->locator);
+        rrsig = hsm_sign_rrset_with_key(ctx, owner, key, rr_list,
+             inception, expiration);
+        if (!rrsig) {
+            ods_log_error("[%s] unable to sign RRset[%i]: error creating "
+                "RRSIG RR", rrset_str, rrset->rr_type);
+            ldns_rr_list_free(rr_list);
+            rrsigs_cleanup(new_rrsigs);
             return 1;
         }
-        if (ldns_rr_list_rr_count(rr_list) <= 0) {
-            /* empty RRset, no signatures needed */
-            ldns_rr_list_free(rr_list);
-            return 0;
-        }
-
-        /* prepare for signing */
-        new_rrsigs = rrsigs_create();
-        if (!rrset->rrsigs) {
-            rrset->rrsigs = rrsigs_create();
-        }
-        rrset_sign_set_timers(sc, rrset->rr_type, signtime,
-             &inception, &expiration);
-
-        key = sc->keys->first_key;
-        while (key) {
-            /* ksk or zsk ? */
-            if (!key->zsk && rrset->rr_type != LDNS_RR_TYPE_DNSKEY) {
-                se_log_deeebug("skipping key %s for signing RRset[%i]: no "
-                    "active ZSK", key->locator, rrset->rr_type);
-                key = key->next;
-                continue;
-            }
-
-            if (!key->ksk && rrset->rr_type == LDNS_RR_TYPE_DNSKEY) {
-                se_log_deeebug("skipping key %s for signing RRset[DNSKEY]: no "
-                    "active KSK", key->locator);
-                key = key->next;
-                continue;
-            }
-
-            /* is there a signature with this algorithm already? */
-            if (rrset_signed_with_algorithm(rrset, key->algorithm)) {
-                se_log_deeebug("skipping key %s for signing: RRset[%i] "
-                    "already has signature with same algorithm", key->locator);
-                key = key->next;
-                continue;
-            }
-
-            /**
-             * currently, there is no rule that the number of signatures
-             * over this RRset equals the number of active keys.
-             */
-
-            /* sign the RRset with current key */
-            se_log_deeebug("signing RRset[%i] with key %s",
-                rrset->rr_type, key->locator);
-            rrsig = hsm_sign_rrset_with_key(ctx, owner, key, rr_list,
-                 inception, expiration);
-            if (!rrsig) {
-                se_log_error("error creating RRSIG for rrset[%i]",
-                    rrset->rr_type);
-                ldns_rr_list_free(rr_list);
-                rrsigs_cleanup(new_rrsigs);
-                return 1;
-            }
-            /* add the signature to the set of new signatures */
-            se_log_deeebug("new signature created for RRset[%i]",
-                rrset->rr_type);
-            log_rr(rrsig, "+RRSIG", 6);
-            error = rrsigs_add_sig(new_rrsigs, rrsig, key->locator,
-                key->flags);
-            if (error) {
-                se_log_error("error adding RRSIG to list of signatures");
+        /* add the signature to the set of new signatures */
+        ods_log_deeebug("[%s] new signature created for RRset[%i]", rrset_str,
+            rrset->rr_type);
+        error = rrsigs_add_sig(new_rrsigs, rrsig, key->locator,
+            key->flags);
+        if (error) {
+            ods_log_error("[%s] unable to sign RRset[%i]: error adding RRSIG",
+                rrset_str, rrset->rr_type);
                 log_rr(rrsig, "+RRSIG", 1);
                 ldns_rr_list_free(rr_list);
                 rrsigs_cleanup(new_rrsigs);
+            return 1;
+        }
+        /* next key */
+        key = key->next;
+    }
+
+    /* signing completed, add the signatures to the right RRset */
+    walk_rrsigs = new_rrsigs;
+    while (walk_rrsigs) {
+        if (walk_rrsigs->rr) {
+            ods_log_deeebug("[%s] adding signature to RRset[%i]", rrset_str,
+                    rrset->rr_type);
+            error = rrsigs_add_sig(rrset->rrsigs,
+                ldns_rr_clone(walk_rrsigs->rr),
+                walk_rrsigs->key_locator, walk_rrsigs->key_flags);
+            if (error) {
+                ods_log_error("[%s] unable to sign RRset[%i]: error adding "
+                    "RRSIG to RRset[%i]", rrset_str, rrset->rr_type);
+                log_rr(walk_rrsigs->rr, "+RRSIG", 1);
+                ldns_rr_list_free(rr_list);
+                rrsigs_cleanup(new_rrsigs);
                 return 1;
             }
-
-            /* next key */
-            key = key->next;
+            rrset->rrsig_count += 1;
+            newsigs++;
+            log_rr(walk_rrsigs->rr, "+RRSIG", 6);
         }
+        walk_rrsigs = walk_rrsigs->next;
+    }
 
-        /* now add the signatures to the RRset */
-        walk_rrsigs = new_rrsigs;
-        while (walk_rrsigs) {
-            if (walk_rrsigs->rr) {
-                se_log_deeebug("adding signature to RRset[%i]",
-                    rrset->rr_type);
-                log_rr(rrsig, "+RRSIG", 6);
-                error = rrsigs_add_sig(rrset->rrsigs,
-                    ldns_rr_clone(walk_rrsigs->rr),
-                    walk_rrsigs->key_locator, walk_rrsigs->key_flags);
-                if (error) {
-                    se_log_error("error adding RRSIG to RRset[%i]",
-                        rrset->rr_type);
-                    log_rr(walk_rrsigs->rr, "+RRSIG", 1);
-                    ldns_rr_list_free(rr_list);
-                    rrsigs_cleanup(new_rrsigs);
-                    return 1;
-                }
-                rrset->rrsig_count += 1;
-                log_rr(walk_rrsigs->rr, "+RRSIG", 6);
-                newsigs++;
-            }
-            walk_rrsigs = walk_rrsigs->next;
-        }
-
-        /* clean up */
-        rrsigs_cleanup(new_rrsigs);
-        ldns_rr_list_free(rr_list);
+    /* clean up */
+    rrsigs_cleanup(new_rrsigs);
+    ldns_rr_list_free(rr_list);
 
     if (rrset->rr_type == LDNS_RR_TYPE_SOA) {
         stats->sig_soa_count += newsigs;
@@ -930,7 +976,7 @@ rrset_del_rrs(rrset_type* rrset)
     ldns_dnssec_rrs* rrs = NULL;
     ldns_rr* rr = NULL;
 
-    se_log_assert(rrset);
+    ods_log_assert(rrset);
     if (!rrset->rrs) {
         return 0;
     }
@@ -976,8 +1022,6 @@ rrset_cleanup(rrset_type* rrset)
             rrset->rrsigs = NULL;
         }
         se_free((void*) rrset);
-    } else {
-        se_log_warning("cleanup empty rrset");
     }
     return;
 }
@@ -990,8 +1034,11 @@ rrset_cleanup(rrset_type* rrset)
 void
 rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
 {
-    se_log_assert(fd);
-    se_log_assert(rrset);
+    if (!rrset || !fd) {
+        return;
+    }
+    ods_log_assert(fd);
+    ods_log_assert(rrset);
 
     if (rrset->rrs) {
         if (rrset->rr_type == LDNS_RR_TYPE_CNAME ||
@@ -1018,8 +1065,11 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
 void
 rrset_print_rrsig(FILE* fd, rrset_type* rrset)
 {
-    se_log_assert(fd);
-    se_log_assert(rrset);
+    if (!rrset || !fd) {
+        return;
+    }
+    ods_log_assert(fd);
+    ods_log_assert(rrset);
 
     if (rrset->rrsigs) {
         rrsigs_print(fd, rrset->rrsigs, 1);

@@ -34,6 +34,7 @@
 #include "adapter/adapter.h"
 #include "scheduler/locks.h"
 #include "scheduler/task.h"
+#include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/hsm.h"
 #include "signer/nsec3params.h"
@@ -42,13 +43,14 @@
 #include "signer/zonedata.h"
 #include "util/duration.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 #include "util/util.h"
 
-#include <ldns/ldns.h> /* ldns_*() */
+#include <ldns/ldns.h>
 #include <libhsm.h> /* hsm_create_context(), hsm_get_key(), hsm_destroy_context() */
 #include <libhsmdns.h> /* hsm_create_context(), hsm_get_key(), hsm_destroy_context() */
+
+static const char* zone_str = "zone";
 
 
 /**
@@ -59,8 +61,8 @@ zone_type*
 zone_create(const char* name, ldns_rr_class klass)
 {
     zone_type* zone = (zone_type*) se_calloc(1, sizeof(zone_type));
-    se_log_assert(name);
-    se_log_debug("create zone %s", name?name:"(null)");
+    ods_log_assert(name);
+    ods_log_debug("[%z] create zone %s", zone_str, name);
     zone->name = se_strdup(name);
     zone->dname = ldns_dname_new_frm_str(name);
     ldns_dname2canonical(zone->dname);
@@ -94,8 +96,8 @@ zone_create(const char* name, ldns_rr_class klass)
 void
 zone_update_zonelist(zone_type* z1, zone_type* z2)
 {
-    se_log_assert(z1);
-    se_log_assert(z2);
+    ods_log_assert(z1);
+    ods_log_assert(z2);
 
     if (se_strcmp(z2->policy_name, z1->policy_name) != 0) {
         se_free((void*)z1->policy_name);
@@ -163,8 +165,8 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
     time_t now = 0;
     int update = 0;
 
-    se_log_assert(zone);
-    se_log_debug("load zone %s signconf %s",
+    ods_log_assert(zone);
+    ods_log_debug("[%s] load zone %s signconf %s", zone_str,
         zone->name?zone->name:"(null)",
         zone->signconf_filename?zone->signconf_filename:"(null)");
 
@@ -175,13 +177,13 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
     signconf = signconf_read(zone->signconf_filename, last_modified);
     if (!signconf) {
         if (!zone->policy_name) {
-            se_log_warning("zone %s has no policy",
+            ods_log_warning("[%s] zone %s has no policy", zone_str,
                 zone->name?zone->name:"(null)");
         } else {
             signconf = signconf_read(zone->signconf_filename, 0);
             if (!signconf) {
-                se_log_warning("zone %s has policy %s configured, "
-                    "but has no (valid) signconf file",
+                ods_log_warning("[%s] zone %s has policy %s configured, "
+                    "but has no (valid) signconf file", zone_str,
                     zone->name?zone->name:"(null)", zone->policy_name);
                 if (buf) {
                     (void)snprintf(buf, ODS_SE_MAXLINE,
@@ -190,7 +192,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
                 }
                 return -1;
             } else {
-                se_log_debug("zone %s has not changed",
+                ods_log_debug("[%s] zone %s has not changed", zone_str,
                     zone->name?zone->name:"(null)");
                 signconf_cleanup(signconf);
             }
@@ -202,7 +204,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         }
         return 0;
     } else if (signconf_check(signconf) != 0) {
-        se_log_warning("zone %s signconf has errors",
+        ods_log_warning("[%s] zone %s signconf has errors", zone_str,
             zone->name?zone->name:"(null)");
         if (buf) {
             (void)snprintf(buf, ODS_SE_MAXLINE,
@@ -213,7 +215,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         zone->signconf = signconf;
         /* we don't check if foo in <Zone name="foo"> matches zone->name */
         zone->signconf->name = zone->name;
-        se_log_debug("zone %s now has signconf",
+        ods_log_debug("[%s] zone %s now has signconf", zone_str,
             zone->name?zone->name:"(null)");
         signconf_backup(zone->signconf);
 
@@ -240,7 +242,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         /* update task for new zone */
         task = tasklist_delete_task(tl, zone->task);
         if (!task) {
-            se_log_error("cannot update zone %s: delete old task failed",
+            ods_log_error("cannot update zone %s: delete old task failed", zone_str,
                 zone->name);
             if (buf) {
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Update zone %s failed.\n",
@@ -253,7 +255,8 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         zone->task->when = time_now();
         if (update) {
             /* destroy NSEC3 storage */
-            se_log_debug("destroy old NSEC(3) records for zone %s", zone->name);
+            ods_log_debug("[%s] destroy old NSEC(3) records for zone %s",
+                zone_str, zone->name);
             if (zone->zonedata && zone->zonedata->nsec3_domains) {
                 zonedata_cleanup_domains(zone->zonedata->nsec3_domains);
                 zone->zonedata->nsec3_domains = NULL;
@@ -300,7 +303,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         signconf_cleanup(zone->signconf);
         zone->signconf = signconf;
         zone->signconf->name = zone->name;
-        se_log_debug("zone %s signconf updated",
+        ods_log_debug("[%s] zone %s signconf updated", zone_str,
                 zone->name?zone->name:"(null)");
             signconf_backup(zone->signconf);
         return 1;
@@ -324,14 +327,36 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
     hsm_ctx_t* ctx = NULL;
     ldns_rr* dnskey = NULL;
 
-    se_log_assert(zone);
-    se_log_assert(zone->signconf);
-    se_log_assert(zone->signconf->keys);
-    se_log_assert(zone->zonedata);
+    if (!zone) {
+        ods_log_error("[%s] unable to publish dnskeys: no zone", zone_str);
+        return 1;
+    }
+    ods_log_assert(zone);
+
+    if (!zone->signconf) {
+        ods_log_error("[%s] unable to publish dnskeys zone %s: no signconf",
+            zone_str, zone->name);
+        return 1;
+    }
+    ods_log_assert(zone->signconf);
+
+    if (!zone->signconf->keys) {
+        ods_log_error("[%s] unable to publish dnskeys zone %s: no keys",
+            zone_str, zone->name);
+        return 1;
+    }
+    ods_log_assert(zone->signconf->keys);
+
+    if (!zone->zonedata) {
+        ods_log_error("[%s] unable to publish dnskeys zone %s: no zonedata",
+            zone_str, zone->name);
+        return 1;
+    }
+    ods_log_assert(zone->zonedata);
 
     ctx = hsm_create_context();
     if (ctx == NULL) {
-        se_log_error("error creating libhsm context");
+        ods_log_error("error creating libhsm context");
         return 2;
     }
 
@@ -346,8 +371,9 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
             if (!key->dnskey) {
                 error = hsm_get_key(ctx, zone->dname, key);
                 if (error) {
-                    se_log_error("error creating DNSKEY for key %s",
-                        key->locator?key->locator:"(null)");
+                    ods_log_error("[%s] unable to publish dnskeys zone %s: "
+                        "error creating DNSKEY for key %s", zone_str,
+                        zone->name, key->locator?key->locator:"(null)");
                     error = 1;
                     break;
                 }
@@ -358,8 +384,9 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
             dnskey = ldns_rr_clone(key->dnskey);
             error = zone_add_rr(zone, dnskey, 0);
             if (error) {
-                se_log_error("error adding DNSKEY[%u] for key %s",
-                    ldns_calc_keytag(dnskey),
+                ods_log_error("[%s] unable to publish dnskeys zone %s: "
+                    "error adding DNSKEY[%u] for key %s", zone_str,
+                    zone->name, ldns_calc_keytag(dnskey),
                     key->locator?key->locator:"(null)");
                 break;
             } else if (fd) {
@@ -394,13 +421,21 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
             (uint16_t) zone->signconf->nsec3_iterations,
             zone->signconf->nsec3_salt);
         if (!zone->nsec3params) {
-            se_log_error("error creating NSEC3 parameters for zone %s",
-                zone->name?zone->name:"(null)");
+            ods_log_error("[%s] error creating NSEC3 parameters for zone %s",
+                zone_str, zone->name?zone->name:"(null)");
             return 1;
         }
     }
 
     nsec3params_rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
+    if (!nsec3params_rr) {
+        ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
+            "to create NSEC3PARAM RR", zone_str, zone->name);
+        nsec3params_cleanup(zone->nsec3params);
+        return 1;
+    }
+    ods_log_assert(nsec3params_rr);
+
     ldns_rr_set_class(nsec3params_rr, zone->klass);
     ldns_rr_set_ttl(nsec3params_rr, zone->zonedata->default_ttl);
     ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->dname));
@@ -418,8 +453,10 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
     ldns_rr2canonical(nsec3params_rr);
     error = zone_add_rr(zone, nsec3params_rr, 0);
     if (error) {
-        se_log_error("error adding NSEC3PARAMS record to zone %s",
-            zone->name?zone->name:"(null)");
+        ods_log_error("[%s] unable to add NSEC3PARAMS RR to zone %s",
+            zone_str, zone->name);
+        nsec3params_cleanup(zone->nsec3params);
+        ldns_rr_free(nsec3params_rr);
     } else if (fd) {
         fprintf(fd, ";NSEC3PARAMS %s %u %u %u\n",
             zone->signconf->nsec3_salt, zone->nsec3params->algorithm,
@@ -440,18 +477,18 @@ zone_update_zonedata(zone_type* zone)
 {
     int error = 0;
 
-    se_log_assert(zone);
-    se_log_assert(zone->signconf);
-    se_log_assert(zone->inbound_adapter);
-    se_log_assert(zone->zonedata);
+    ods_log_assert(zone);
+    ods_log_assert(zone->signconf);
+    ods_log_assert(zone->inbound_adapter);
+    ods_log_assert(zone->zonedata);
 
     /* examine zone data */
-    se_log_debug("examine zone %s update", zone->name);
+    ods_log_debug("[%s] examine zone %s update", zone_str, zone->name);
     error = zonedata_examine(zone->zonedata, zone->dname,
         zone->inbound_adapter->type==ADAPTER_FILE);
     if (error) {
-        se_log_error("update zone %s failed: zone data contains errors",
-            zone->name);
+        ods_log_error("[%s] update zone %s failed: zone data contains errors",
+            zone_str, zone->name);
         zonedata_cancel_update(zone->zonedata);
         return error;
     }
@@ -470,9 +507,9 @@ zone_add_dnskeys(zone_type* zone)
     char* filename = NULL;
     FILE* fd = NULL;
 
-    se_log_assert(zone);
-    se_log_assert(zone->signconf);
-    se_log_assert(zone->zonedata);
+    ods_log_assert(zone);
+    ods_log_assert(zone->signconf);
+    ods_log_assert(zone->zonedata);
 
     filename = se_build_path(zone->name, ".dnskeys", 0);
     fd = se_fopen(filename, NULL, "w");
@@ -482,14 +519,14 @@ zone_add_dnskeys(zone_type* zone)
 
     error = zone_publish_dnskeys(zone, fd);
     if (error) {
-        se_log_error("error adding DNSKEYs to zone %s",
+        ods_log_error("[%s] error adding DNSKEYs to zone %s", zone_str,
             zone->name?zone->name:"(null)");
         return error;
     }
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         error = zone_publish_nsec3params(zone, fd);
         if (error) {
-            se_log_error("error adding NSEC3PARAMS RR to zone %s",
+            ods_log_error("error adding NSEC3PARAMS RR to zone %s", zone_str,
                 zone->name?zone->name:"(null)");
             return error;
         }
@@ -499,8 +536,8 @@ zone_add_dnskeys(zone_type* zone)
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         se_fclose(fd);
     } else {
-        se_log_warning("cannot backup DNSKEY / NSEC3PARAMS records: "
-            "cannot open file %s for writing", filename?filename:"(null)");
+        ods_log_warning("[%s] cannot backup DNSKEY / NSEC3PARAMS records: "
+            "cannot open file %s for writing", zone_str, filename?filename:"(null)");
     }
     se_free((void*)filename);
 
@@ -521,16 +558,16 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
     uint32_t tmp = 0;
     ldns_rdf* soa_min = NULL;
 
-    se_log_assert(zone);
-    se_log_assert(zone->zonedata);
-    se_log_assert(zone->signconf);
-    se_log_assert(rr);
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
+    ods_log_assert(zone->signconf);
+    ods_log_assert(rr);
 
     /* in-zone? */
     if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) != 0 &&
         !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->dname)) {
-        se_log_warning("zone %s contains out-of-zone data, skipping",
-            zone->name?zone->name:"(null)");
+        ods_log_warning("[%s] zone %s contains out-of-zone data, skipping",
+            zone_str, zone->name?zone->name:"(null)");
         return 0;
     } else if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) == 0) {
         at_apex = 1;
@@ -540,20 +577,20 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
     type = ldns_rr_get_type(rr);
     if (type == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_ttl) {
         tmp = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
-        se_log_verbose("zone %s set DNSKEY TTL to %u",
+        ods_log_verbose("[%s] zone %s set DNSKEY TTL to %u", zone_str,
             zone->name?zone->name:"(null)", tmp);
         ldns_rr_set_ttl(rr, tmp);
     }
     if (type == LDNS_RR_TYPE_SOA) {
         if (zone->signconf->soa_ttl) {
             tmp = (uint32_t) duration2time(zone->signconf->soa_ttl);
-            se_log_verbose("zone %s set SOA TTL to %u",
+            ods_log_verbose("[%s] zone %s set SOA TTL to %u", zone_str,
                 zone->name?zone->name:"(null)", tmp);
             ldns_rr_set_ttl(rr, tmp);
         }
         if (zone->signconf->soa_min) {
             tmp = (uint32_t) duration2time(zone->signconf->soa_min);
-            se_log_verbose("zone %s set SOA MINIMUM to %u",
+            ods_log_verbose("[%s] zone %s set SOA MINIMUM to %u", zone_str,
                 zone->name?zone->name:"(null)", tmp);
             soa_min = ldns_rr_set_rdf(rr,
                 ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, tmp),
@@ -561,8 +598,8 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
             if (soa_min) {
                 ldns_rdf_deep_free(soa_min);
             } else {
-                se_log_error("zone %s failed to replace SOA MINIMUM "
-                    "rdata", zone->name?zone->name:"(null)");
+                ods_log_error("[%s] zone %s failed to replace SOA MINIMUM "
+                    "rdata", zone_str, zone->name?zone->name:"(null)");
             }
         }
     }
@@ -582,9 +619,9 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
 int
 zone_del_rr(zone_type* zone, ldns_rr* rr)
 {
-    se_log_assert(zone);
-    se_log_assert(zone->zonedata);
-    se_log_assert(rr);
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
+    ods_log_assert(rr);
     return zonedata_del_rr(zone->zonedata, rr);
 }
 
@@ -602,10 +639,10 @@ zone_nsecify(zone_type* zone)
     time_t start = 0;
     time_t end = 0;
 
-    se_log_assert(zone);
-    se_log_assert(zone->signconf);
-    se_log_assert(zone->zonedata);
-    se_log_assert(zone->stats);
+    ods_log_assert(zone);
+    ods_log_assert(zone->signconf);
+    ods_log_assert(zone->zonedata);
+    ods_log_assert(zone->stats);
 
     zone->stats->nsec_count = 0;
     zone->stats->nsec_time = 0;
@@ -614,8 +651,8 @@ zone_nsecify(zone_type* zone)
     /* add empty non-terminals */
     error = zonedata_entize(zone->zonedata, zone->dname);
     if (error) {
-        se_log_error("failed to add empty non-terminals to zone %s",
-            zone->name?zone->name:"(null)");
+        ods_log_error("[%s] failed to add empty non-terminals to zone %s",
+            zone_str, zone->name?zone->name:"(null)");
         return error;
     }
 
@@ -623,14 +660,14 @@ zone_nsecify(zone_type* zone)
         error = zonedata_nsecify(zone->zonedata, zone->klass, zone->stats);
     } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (zone->signconf->nsec3_optout) {
-            se_log_debug("OptOut is being used for zone %s",
+            ods_log_debug("[%s] OptOut is being used for zone %s", zone_str,
                 zone->name?zone->name:"(null)");
         }
         error = zonedata_nsecify3(zone->zonedata, zone->klass,
             zone->nsec3params, zone->stats);
     } else {
-        se_log_error("unknown RR type for denial of existence, %i",
-            zone->signconf->nsec_type);
+        ods_log_error("[%s] unknown RR type for denial of existence, %i",
+            zone_str, zone->signconf->nsec_type);
         error = 1;
     }
     if (!error) {
@@ -645,8 +682,8 @@ zone_nsecify(zone_type* zone)
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             se_fclose(fd);
         } else {
-            se_log_warning("cannot backup NSEC(3) records: cannot open file "
-            "%s for writing", filename?filename:"(null)");
+            ods_log_warning("[%s] cannot backup NSEC(3) records: cannot open file "
+            "%s for writing", zone_str, filename?filename:"(null)");
         }
         se_free((void*)filename);
     }
@@ -667,10 +704,10 @@ zone_sign(zone_type* zone)
     time_t start = 0;
     time_t end = 0;
 
-    se_log_assert(zone);
-    se_log_assert(zone->signconf);
-    se_log_assert(zone->zonedata);
-    se_log_assert(zone->stats);
+    ods_log_assert(zone);
+    ods_log_assert(zone->signconf);
+    ods_log_assert(zone->zonedata);
+    ods_log_assert(zone->stats);
 
     zone->stats->sig_count = 0;
     zone->stats->sig_reuse = 0;
@@ -691,8 +728,8 @@ zone_sign(zone_type* zone)
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             se_fclose(fd);
         } else {
-            se_log_warning("cannot backup RRSIG records: cannot open file "
-                "%s for writing", filename?filename:"(null)");
+            ods_log_warning("[%s] cannot backup RRSIG records: cannot open file "
+                "%s for writing", zone_str, filename?filename:"(null)");
         }
         se_free((void*)filename);
     }
@@ -712,9 +749,9 @@ int zone_backup_state(zone_type* zone)
     char* filename = NULL;
     FILE* fd = NULL;
 
-    se_log_assert(zone);
-    se_log_assert(zone->zonedata);
-    se_log_assert(zone->signconf);
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
+    ods_log_assert(zone->signconf);
 
     filename = se_build_path(zone->name, ".state", 0);
     fd = se_fopen(filename, NULL, "w");
@@ -730,8 +767,8 @@ int zone_backup_state(zone_type* zone)
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         se_fclose(fd);
     } else {
-        se_log_error("cannot backup zone: cannot open file "
-        "%s for writing", filename?filename:"(null)");
+        ods_log_error("[%s] cannot backup zone: cannot open file "
+        "%s for writing", zone_str, filename?filename:"(null)");
         return 1;
     }
     se_free((void*)filename);
@@ -761,15 +798,15 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
             if (se_strcmp(token, ";DNSKEY") == 0) {
                 key = key_recover_from_backup(fd);
                 if (!key || keylist_add(zone->signconf->keys, key)) {
-                    se_log_error("error adding key from backup file "
-                        "%s.dnskeys to key list", zone->name);
+                    ods_log_error("[%s] error adding key from backup file "
+                        "%s.dnskeys to key list", zone_str, zone->name);
                     corrupted = 1;
                 } else {
                    rr = ldns_rr_clone(key->dnskey);
                    corrupted = zone_add_rr(zone, rr, 1);
                    if (corrupted) {
-                       se_log_error("error recovering DNSKEY[%u] rr",
-                          ldns_calc_keytag(rr));
+                       ods_log_error("[%s] error recovering DNSKEY[%u] rr",
+                          zone_str, ldns_calc_keytag(rr));
                    }
                    rr = NULL;
                 }
@@ -778,13 +815,13 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                 zone->nsec3params = nsec3params_recover_from_backup(fd,
                     &rr);
                 if (!zone->nsec3params) {
-                    se_log_error("error recovering nsec3 parameters from file "
-                        "%s.dnskeys", zone->name);
+                    ods_log_error("[%s] error recovering nsec3 parameters from file "
+                        "%s.dnskeys", zone_str, zone->name);
                     corrupted = 1;
                 } else {
                     corrupted = zone_add_rr(zone, rr, 1);
                     if (corrupted) {
-                       se_log_error("error recovering NSEC3PARAMS rr");
+                       ods_log_error("[%s] error recovering NSEC3PARAMS rr", zone_str);
                     } else {
                         zone->signconf->nsec3_optout =
                             (int) zone->nsec3params->flags;
@@ -838,15 +875,16 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
                 if (!backup_read_str(fd, &locator) ||
                     !backup_read_uint32_t(fd, &flags)) {
 
-                    se_log_error("error reading key credentials from backup");
+                    ods_log_error("[%s] error reading key credentials from backup",
+                        zone_str);
                     corrupted = 1;
                 } else {
                     status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
                    if (status != LDNS_STATUS_OK) {
-                       se_log_error("error reading RRSIG from backup");
+                       ods_log_error("[%s] error reading RRSIG from backup", zone_str);
                        corrupted = 1;
                     } else if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
-                       se_log_error("expecting RRtype RRSIG from backup");
+                       ods_log_error("[%s] expecting RRtype RRSIG from backup", zone_str);
                        corrupted = 1;
                        ldns_rr_free(rr);
                        rr = NULL;
@@ -896,8 +934,8 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     time_t now = 0;
     FILE* fd = NULL;
 
-    se_log_assert(zone);
-    se_log_assert(zone->zonedata);
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
 
     filename = se_build_path(zone->name, ".state", 0);
     fd = se_fopen(filename, NULL, "r");
@@ -920,8 +958,8 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
             !backup_read_uint32_t(fd, &zone->zonedata->outbound_serial) ||
             !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
         {
-            se_log_error("unable to recover zone state from file %s.state: "
-                "file corrupted", zone->name);
+            ods_log_error("[%s] unable to recover zone state from file %s.state: "
+                "file corrupted", zone_str, zone->name);
             se_fclose(fd);
             return;
         }
@@ -930,8 +968,8 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
 
         se_fclose(fd);
     } else {
-        se_log_deeebug("unable to recover zone state from file %s.state: ",
-            "no such file or directory", zone->name);
+        ods_log_deeebug("[%s] unable to recover zone state from file %s.state: ",
+            "no such file or directory", zone_str, zone->name);
         return;
     }
 
@@ -954,8 +992,8 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         error = zonedata_recover_from_backup(zone->zonedata, fd);
         se_fclose(fd);
         if (error) {
-            se_log_error("unable to recover denial of existence from file "
-            "%s.denial: file corrupted", zone->name);
+            ods_log_error("unable to recover denial of existence from file "
+            "%s.denial: file corrupted", zone_str, zone->name);
             if (zone->zonedata) {
                 zonedata_cleanup(zone->zonedata);
                 zone->zonedata = NULL;
@@ -963,8 +1001,8 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
             zone->zonedata = zonedata_create();
         }
     } else {
-        se_log_deeebug("unable to recover denial of existence from file "
-            "%s.denial: no such file or directory", zone->name);
+        ods_log_deeebug("[%s] unable to recover denial of existence from file "
+            "%s.denial: no such file or directory", zone_str, zone->name);
         error = 1;
     }
     if (error) {
@@ -976,8 +1014,8 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     error = adfile_read(zone, filename, 1);
     se_free((void*)filename);
     if (error) {
-        se_log_error("unable to recover unsorted zone from file "
-        "%s.unsorted: parse error", zone->name);
+        ods_log_error("[%s] unable to recover unsorted zone from file "
+        "%s.unsorted: parse error", zone_str, zone->name);
         if (zone->zonedata) {
             zonedata_cleanup(zone->zonedata);
             zone->zonedata = NULL;
@@ -994,12 +1032,12 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         error = zone_recover_dnskeys_from_backup(zone, fd);
         se_fclose(fd);
         if (error) {
-            se_log_error("unable to recover dnskeys from file %s.dnskeys: "
-                "file corrupted", zone->name);
+            ods_log_error("[%s] unable to recover dnskeys from file %s.dnskeys: "
+                "file corrupted", zone_str, zone->name);
         }
     } else {
-        se_log_deeebug("unable to recover dnskeys from file %s.dnskeys: ",
-            "no such file or directory", zone->name);
+        ods_log_deeebug("[%s] unable to recover dnskeys from file %s.dnskeys: ",
+            "no such file or directory", zone_str, zone->name);
         error = 1;
     }
     if (error) {
@@ -1014,12 +1052,12 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         error = zone_recover_rrsigs_from_backup(zone, fd);
         se_fclose(fd);
         if (error) {
-            se_log_error("unable to recover rrsigs from file %s.rrsigs: "
-                "file corrupted", zone->name);
+            ods_log_error("[%s] unable to recover rrsigs from file %s.rrsigs: "
+                "file corrupted", zone_str, zone->name);
         }
     } else {
-        se_log_deeebug("unable to recover rrsigs from file %s.rrsigs: ",
-            "no such file or directory", zone->name);
+        ods_log_deeebug("[%s] unable to recover rrsigs from file %s.rrsigs: ",
+            "no such file or directory", zone_str, zone->name);
     }
 
 abort_recover:
@@ -1034,7 +1072,7 @@ abort_recover:
         zone->task = task_create(TASK_READ, now, zone->name, zone);
     }
     if (!zone->task) {
-        se_log_error("failed to create task for zone %s", zone->name);
+        ods_log_error("[%s] failed to create task for zone %s", zone_str, zone->name);
     } else {
         if (error) {
             zone->task->what = TASK_READ;
@@ -1042,7 +1080,7 @@ abort_recover:
 
         task = tasklist_schedule_task(tl, zone->task, 1);
         if (!task) {
-            se_log_error("failed to schedule task for zone %s", zone->name);
+            ods_log_error("[%s] failed to schedule task for zone %s", zone_str, zone->name);
         }
     }
 
@@ -1108,8 +1146,6 @@ zone_cleanup(zone_type* zone)
 
         lock_basic_destroy(&zone->zone_lock);
         se_free((void*) zone);
-    } else {
-        se_log_warning("cleanup emtpy zone");
     }
     return;
 }
@@ -1122,9 +1158,9 @@ zone_cleanup(zone_type* zone)
 void
 zone_print(FILE* out, zone_type* zone)
 {
-    se_log_assert(out);
-    se_log_assert(zone);
-    se_log_assert(zone->zonedata);
+    ods_log_assert(out);
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
 
     zonedata_print(out, zone->zonedata);
     return;
