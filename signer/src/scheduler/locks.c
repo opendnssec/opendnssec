@@ -33,7 +33,7 @@
 
 #include "config.h"
 #include "scheduler/locks.h"
-#include "util/log.h"
+#include "shared/log.h"
 
 #include <errno.h>
 #include <signal.h> /* sigfillset(), sigprocmask() */
@@ -44,6 +44,8 @@
 #ifdef HAVE_TIME_H
 #include <time.h> /* gettimeofday() */
 #endif
+
+static const char* locks_str = "locks";
 
 #if !defined(HAVE_PTHREAD)
 #include <sys/wait.h> /* waitpid() */
@@ -65,16 +67,16 @@ se_thr_fork_create(se_thread_type* thr, void* (*func)(void*), void* arg)
     pid_t pid = fork();
 
     switch (pid) {
-    	default: /* main */
-			*thr = (se_thread_type)pid;
-			return;
-		case 0: /* child */
-			*thr = (se_thread_type)getpid();
-			(void)(*func)(arg);
-			exit(0);
-		case -1: /* error */
-			se_fatal_exit("unable to fork thread: %s", strerror(errno));
-	}
+        default: /* main */
+            *thr = (se_thread_type)pid;
+            return;
+        case 0: /* child */
+            *thr = (se_thread_type)getpid();
+            (void)(*func)(arg);
+            exit(0);
+        case -1: /* error */
+            ods_fatal_exit("[%s] unable to fork thread: %s", locks_str, strerror(errno));
+    }
 }
 
 
@@ -87,11 +89,11 @@ void se_thr_fork_wait(se_thread_type thread)
 {
     int status = 0;
 
-	if (waitpid((pid_t)thread, &status, 0) == -1)
-		se_log_error("waitpid(%d): %s", (int)thread, strerror(errno));
+    if (waitpid((pid_t)thread, &status, 0) == -1)
+        ods_log_error("[%s] waitpid(%d): %s", locks_str, (int)thread, strerror(errno));
 	if (status != 0)
-		se_log_warning("process %d abnormal exit with status %d",
-			(int)thread, status);
+        ods_log_warning("[%s] process %d abnormal exit with status %d",
+            locks_str, (int)thread, status);
 }
 
 #else /* defined(HAVE_PTHREAD) */
@@ -104,19 +106,19 @@ se_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
     int ret = 0;
 
     /* If timeshift is enabled, we don't care about threads. No need
-     & to take the timeshift into account here */
+     * to take the timeshift into account here */
 
 #ifndef HAVE_CLOCK_GETTIME
     struct timeval tv;
     if (gettimeofday(&tv, NULL) != 0) {
-        se_log_error("gettimeofday() error: %s", strerror(errno));
+        ods_log_error("[%s] gettimeofday() error: %s", locks_str, strerror(errno));
         return 1;
     }
     ts.tv_sec = tv.tv_sec;
     ts.tv_nsec = (tv.tv_usec/1000);
 #else /* HAVE_CLOCK_GETTIME */
     if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
-        se_log_error("clock_gettime() error: %s", strerror(errno));
+        ods_log_error("[%s] clock_gettime() error: %s", locks_str, strerror(errno));
         return 1;
     }
 #endif /* !HAVE_CLOCK_GETTIME */
@@ -146,10 +148,10 @@ se_thread_blocksigs(void)
 
 #ifndef HAVE_PTHREAD
     if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        se_fatal_exit("pthread_sigmask: %s", strerror(err));
+        ods_fatal_exit("[%s] pthread_sigmask: %s", locks_str, strerror(err));
 #else /* !HAVE_PTHREAD */
     /* have nothing, do single process signal mask */
     if((err=sigprocmask(SIG_SETMASK, &sigset, NULL)))
-        se_fatal_exit("sigprocmask: %s", strerror(errno));
+        ods_fatal_exit("[%s] sigprocmask: %s", locks_str, strerror(errno));
 #endif /* HAVE_PTHREAD */
 }

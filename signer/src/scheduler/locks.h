@@ -35,7 +35,7 @@
 #define SCHEDULER_LOCKS_H
 
 #include "config.h"
-#include "util/log.h"
+#include "shared/log.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -43,7 +43,7 @@
 #define LOCKRET(func) do { \
 	int err; \
 	if ( (err=(func)) != 0) \
-		se_log_error("%s at %d could not " #func ": %s", \
+		ods_log_error("%s at %d could not " #func ": %s", \
 		__FILE__, __LINE__, strerror(err)); \
 	} while(0)
 

@@ -32,11 +32,11 @@
  */
 
 #include "scheduler/task.h"
+#include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/zone.h"
 #include "util/duration.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
 #include <ldns/ldns.h> /* ldns_dname_*(), ldns_rdf_*(), ldns_rbtree_*() */
@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h> /* strlen() */
 
+static const char* task_str = "task";
 static void log_task(task_type* task);
 
 
@@ -57,8 +58,12 @@ task_create(int what, time_t when, const char* who, struct zone_struct* zone)
 {
     task_type* task = (task_type*) se_malloc(sizeof(task_type));
 
-    se_log_assert(who);
-    se_log_assert(zone);
+    if (!who || !zone) {
+        ods_log_error("[%s] cannot create: missing zone info", task_str);
+        return NULL;
+    }
+    ods_log_assert(who);
+    ods_log_assert(zone);
 
     task->what = what;
     task->when = when;
@@ -87,7 +92,7 @@ task_recover_from_backup(const char* filename, struct zone_struct* zone)
     int flush = 0;
     time_t backoff = 0;
 
-    se_log_assert(zone);
+    ods_log_assert(zone);
     fd = se_fopen(filename, NULL, "r");
     if (fd) {
         if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
@@ -103,8 +108,8 @@ task_recover_from_backup(const char* filename, struct zone_struct* zone)
             !backup_read_time_t(fd, &backoff) ||
             !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
         {
-            se_log_error("unable to recover task from file %s: file corrupted",
-                filename?filename:"(null)");
+            ods_log_error("[%s] unable to recover task from file %s: file corrupted",
+                task_str, filename?filename:"(null)");
             task = NULL;
         } else {
             task = task_create((task_id) what, when, who, zone);
@@ -116,8 +121,8 @@ task_recover_from_backup(const char* filename, struct zone_struct* zone)
         return task;
     }
 
-    se_log_debug("unable to recover task from file %s: no such file or directory",
-        filename?filename:"(null)");
+    ods_log_debug("[%s] unable to recover task from file %s: no such file or directory",
+        task_str, filename?filename:"(null)");
     return NULL;
 }
 
@@ -154,8 +159,8 @@ task_backup(task_type* task)
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         se_fclose(fd);
     } else {
-        se_log_warning("cannot backup task for zone %s: cannot open file "
-        "%s.task for writing", task->who, task->who);
+        ods_log_warning("[%s] cannot backup task for zone %s: cannot open file "
+        "%s.task for writing", task_str, task->who, task->who);
     }
     return;
 }
@@ -178,8 +183,6 @@ task_cleanup(task_type* task)
             task->who = NULL;
         }
         se_free((void*)task);
-    } else {
-        se_log_warning("cleanup empty task");
     }
     return;
 }
@@ -194,8 +197,8 @@ int task_compare(const void* a, const void* b)
     task_type* x = (task_type*)a;
     task_type* y = (task_type*)b;
 
-    se_log_assert(x);
-    se_log_assert(y);
+    ods_log_assert(x);
+    ods_log_assert(y);
 
     if (x->when != y->when) {
         return (int) x->when - y->when;
@@ -256,7 +259,7 @@ task2str(task_type* task, char* buftask)
     char* strtime = NULL;
     char* strtask = NULL;
 
-    se_log_assert(task);
+    ods_log_assert(task);
 
     if (task) {
         if (task->flush) {
@@ -294,10 +297,7 @@ task_print(FILE* out, task_type* task)
     time_t now = time_now();
     char* strtime = NULL;
 
-    se_log_assert(out);
-    se_log_assert(task);
-
-    if (task) {
+    if (out && task) {
         if (task->flush) {
             strtime = ctime(&now);
         } else {
@@ -323,7 +323,6 @@ log_task(task_type* task)
     time_t now = time_now();
     char* strtime = NULL;
 
-    se_log_assert(task);
     if (task) {
         if (task->flush) {
             strtime = ctime(&now);
@@ -333,7 +332,8 @@ log_task(task_type* task)
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
-        se_log_debug("On %s I will %s zone %s", strtime?strtime:"(null)",
+        ods_log_debug("[%s] On %s I will %s zone %s", task_str,
+            strtime?strtime:"(null)",
             taskid2str(task->what), task->who?task->who:"(null)");
     }
     return;
@@ -349,7 +349,7 @@ tasklist_create(void)
 {
     tasklist_type* tl = (tasklist_type*) se_malloc(sizeof(tasklist_type));
 
-    se_log_debug("create task list");
+    ods_log_debug("[%s] create task list", task_str);
     tl->tasks = ldns_rbtree_create(task_compare);
     lock_basic_init(&tl->tasklist_lock);
 
@@ -371,7 +371,7 @@ tasklist_cleanup(tasklist_type* list)
     task_type* task = NULL;
 
     if (list) {
-        se_log_debug("clean up task list");
+        ods_log_debug("[%s] clean up task list", task_str);
         if (list->tasks) {
             node = ldns_rbtree_first(list->tasks);
             while (node != LDNS_RBTREE_NULL) {
@@ -385,8 +385,6 @@ tasklist_cleanup(tasklist_type* list)
         }
         lock_basic_destroy(&list->tasklist_lock);
         se_free((void*) list);
-    } else {
-        se_log_warning("cleanup empty task list");
     }
     return;
 }
@@ -400,6 +398,9 @@ static ldns_rbnode_t*
 task2node(task_type* task)
 {
     ldns_rbnode_t* node = (ldns_rbnode_t*) se_malloc(sizeof(ldns_rbnode_t));
+    if (!node) {
+        return NULL;
+    }
     node->key = task;
     node->data = task;
     return node;
@@ -415,9 +416,9 @@ tasklist_lookup(tasklist_type* list, task_type* task)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
 
-    se_log_assert(task);
-    se_log_assert(list);
-    se_log_assert(list->tasks);
+    ods_log_assert(task);
+    ods_log_assert(list);
+    ods_log_assert(list->tasks);
 
     node = ldns_rbtree_search(list->tasks, task);
     if (node && node != LDNS_RBTREE_NULL) {
@@ -437,23 +438,23 @@ tasklist_schedule_task(tasklist_type* list, task_type* task, int log)
     ldns_rbnode_t* new_node = NULL;
     zone_type* zone = NULL;
 
-    se_log_assert(list);
-    se_log_assert(list->tasks);
-    se_log_assert(task);
-    se_log_debug("schedule task");
+    ods_log_assert(list);
+    ods_log_assert(list->tasks);
+    ods_log_assert(task);
+    ods_log_debug("[%s] schedule task", task_str);
 
     zone = task->zone;
     if (zone->in_progress) {
-        se_log_error("unable to schedule task %s for zone %s: "
-            " zone in progress", taskid2str(task->what),
+        ods_log_error("[%s] unable to schedule task %s for zone %s: "
+            " zone in progress", task_str, taskid2str(task->what),
             task->who?task->who:"(null)");
         task_cleanup(task);
         return NULL;
     }
 
     if (tasklist_lookup(list, task) != NULL) {
-        se_log_error("unable to schedule task %s for zone %s: "
-            " already present", taskid2str(task->what),
+        ods_log_error("[%s] unable to schedule task %s for zone %s: "
+            " already present", task_str, taskid2str(task->what),
             task->who?task->who:"(null)");
         task_cleanup(task);
         return NULL;
@@ -461,8 +462,8 @@ tasklist_schedule_task(tasklist_type* list, task_type* task, int log)
 
     new_node = task2node(task);
     if (ldns_rbtree_insert(list->tasks, new_node) == NULL) {
-        se_log_error("unable to schedule task %s for zone %s: "
-            " insert failed", taskid2str(task->what),
+        ods_log_error("[%s] unable to schedule task %s for zone %s: "
+            " insert failed", task_str, taskid2str(task->what),
             task->who?task->who:"(null)");
         task_cleanup(task);
         se_free((void*) new_node);
@@ -486,9 +487,9 @@ tasklist_flush(tasklist_type* list, task_id what)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     task_type* task = NULL;
 
-    se_log_assert(list);
-    se_log_assert(list->tasks);
-    se_log_debug("flush task list");
+    ods_log_assert(list);
+    ods_log_assert(list->tasks);
+    ods_log_debug("[%s] flush task list", task_str);
 
     node = ldns_rbtree_first(list->tasks);
     while (node && node != LDNS_RBTREE_NULL) {
@@ -513,22 +514,20 @@ tasklist_delete_task(tasklist_type* list, task_type* task)
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
     task_type* del_task = NULL;
 
-    se_log_assert(list);
-    se_log_assert(list->tasks);
+    ods_log_assert(list);
+    ods_log_assert(list->tasks);
 
     if (task) {
-        se_log_debug("delete task from list");
+        ods_log_debug("[%s] delete task from list", task_str);
         del_node = ldns_rbtree_delete(list->tasks, (const void*) task);
         if (del_node) {
             del_task = (task_type*) del_node->data;
             se_free((void*)del_node);
             return del_task;
         } else {
-            se_log_error("delete task failed");
+            ods_log_error("[%s] delete task failed", task_str);
             log_task(task);
         }
-    } else {
-        se_log_warning("delete empty task from list");
     }
     return NULL;
 }
@@ -545,8 +544,8 @@ tasklist_pop_task(tasklist_type* list)
     task_type* pop = NULL;
     time_t now;
 
-    se_log_assert(list);
-    se_log_assert(list->tasks);
+    ods_log_assert(list);
+    ods_log_assert(list->tasks);
 
     first_node = ldns_rbtree_first(list->tasks);
     if (!first_node) {
@@ -557,9 +556,9 @@ tasklist_pop_task(tasklist_type* list)
     pop = (task_type*) first_node->key;
     if (pop && (pop->flush || pop->when <= now)) {
         if (pop->flush) {
-            se_log_debug("flush task for zone %s", pop->who?pop->who:"(null)");
+            ods_log_debug("[%s] flush task for zone %s", task_str, pop->who?pop->who:"(null)");
         } else {
-            se_log_debug("pop task for zone %s", pop->who?pop->who:"(null)");
+            ods_log_debug("[%s] pop task for zone %s", task_str, pop->who?pop->who:"(null)");
         }
         pop->flush = 0;
         return tasklist_delete_task(list, pop);
@@ -578,8 +577,8 @@ tasklist_first_task(tasklist_type* list)
     ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
     task_type* pop = NULL;
 
-    se_log_assert(list);
-    se_log_assert(list->tasks);
+    ods_log_assert(list);
+    ods_log_assert(list->tasks);
 
     first_node = ldns_rbtree_first(list->tasks);
     if (!first_node) {
@@ -601,8 +600,8 @@ tasklist_print(FILE* out, tasklist_type* list)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     task_type* task = NULL;
 
-    se_log_assert(out);
-    se_log_assert(list);
+    ods_log_assert(out);
+    ods_log_assert(list);
 
     node = ldns_rbtree_first(list->tasks);
     while (node && node != LDNS_RBTREE_NULL) {
