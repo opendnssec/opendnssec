@@ -34,13 +34,15 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
+#include "shared/log.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
 #include <errno.h>
-#include <stdio.h> /* fprintf() */
-#include <string.h> /* strerror() */
+#include <stdio.h>
+#include <string.h>
+
+static const char* conf_str = "config";
 
 
 /**
@@ -55,12 +57,17 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
-    se_log_assert(cfgfile);
-    se_log_verbose("read config file: %s", cfgfile?cfgfile:"(null)");
+    if (!cfgfile) {
+        ods_log_error("[%s] failed to read: no filename given", conf_str);
+        return NULL;
+    }
+    ods_log_assert(cfgfile);
+    ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
 
     /* check syntax (slows down parsing configuration file) */
     if (parse_file_check(cfgfile, rngfile) != 0) {
-        se_log_error("unable to parse cfgfile %s", cfgfile?cfgfile:"(null)");
+        ods_log_error("[%s] failed to read: unable to parse file %s",
+            conf_str, cfgfile);
         se_free((void*) ecfg);
         return NULL;
     }
@@ -90,7 +97,8 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
         return ecfg;
     }
 
-    se_log_error("unable to read cfgfile %s", cfgfile?cfgfile:"(null)");
+    ods_log_error("[%s] failed to read: unable to open file %s", conf_str,
+        cfgfile);
     return NULL;
 }
 
@@ -105,7 +113,7 @@ engine_check_config(engineconfig_type* config)
     int ret = 0;
 
     if (!config) {
-        se_log_error("engine config does not exist");
+        ods_log_error("[%s] check failed: config does not exist", conf_str);
         return 1;
     }
 
@@ -122,12 +130,15 @@ engine_check_config(engineconfig_type* config)
 void
 engine_config_print(FILE* out, engineconfig_type* config)
 {
-    se_log_assert(out);
-    se_log_debug("print config");
+    if (!out) {
+        return;
+    }
+    ods_log_assert(out);
 
     fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-
     if (config) {
+        ods_log_assert(config);
+
         fprintf(out, "<Configuration>\n");
 
         /* Common */
@@ -192,7 +203,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
            - clisock_filename
          */
     }
-
     return;
 }
 
@@ -205,7 +215,6 @@ void
 engine_config_cleanup(engineconfig_type* config)
 {
     if (config) {
-        se_log_debug("clean up config");
         if (config->cfg_filename) {
             se_free((void*) config->cfg_filename);
             config->cfg_filename = NULL;
@@ -251,9 +260,6 @@ engine_config_cleanup(engineconfig_type* config)
             config->chroot = NULL;
         }
         se_free((void*) config);
-    } else {
-        se_log_warning("cleanup empty config");
     }
-
     return;
 }
