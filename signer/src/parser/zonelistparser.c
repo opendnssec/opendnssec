@@ -33,16 +33,17 @@
 
 #include "adapter/adapter.h"
 #include "parser/zonelistparser.h"
+#include "shared/log.h"
 #include "signer/zonelist.h"
 #include "signer/zone.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
-#include <libxml/xpath.h> /* xmlXPath*() */
-#include <libxml/xmlreader.h> /* xmlNewTextReaderFilename(), xmlTextReader*(), xmlNodeGetContent(), 
-                                 xmlFreeTextReader(), xmlFreeDoc(), xmlStrEqual() */
-#include <string.h> /* strlen() */
+#include <libxml/xpath.h>
+#include <libxml/xmlreader.h>
+#include <string.h>
+
+static const char* parser_str = "parser";
 
 
 /**
@@ -55,12 +56,12 @@ parse_zonelist_element(xmlXPathContextPtr xpathCtx, xmlChar* expr)
     xmlXPathObjectPtr xpathObj = NULL;
     const char* str = NULL;
 
-    se_log_assert(xpathCtx);
-    se_log_assert(expr);
+    ods_log_assert(xpathCtx);
+    ods_log_assert(expr);
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
-        se_log_error("unable to evaluate xpath expression %s", expr);
+        ods_log_error("[%s] unable to evaluate xpath expression %s", parser_str, expr);
         return NULL;
     }
     str = (const char*) xmlXPathCastToString(xpathObj);
@@ -83,12 +84,12 @@ parse_zonelist_adapters_expr(xmlXPathContextPtr xpathCtx, xmlChar* expr,
     char* file = NULL;
     int i = 0;
 
-    se_log_assert(xpathCtx);
-    se_log_assert(expr);
+    ods_log_assert(xpathCtx);
+    ods_log_assert(expr);
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
-        se_log_error("unable to evaluate xpath expression %s", expr);
+        ods_log_error("[%s] unable to evaluate xpath expression %s", parser_str, expr);
         return NULL;
     }
 
@@ -130,8 +131,8 @@ parse_zonelist_adapters(xmlXPathContextPtr xpathCtx, zone_type* zone)
     xmlChar* i_expr = (xmlChar*) "//Zone/Adapters/Input";
     xmlChar* o_expr = (xmlChar*) "//Zone/Adapters/Output";
 
-    se_log_assert(xpathCtx);
-    se_log_assert(zone);
+    ods_log_assert(xpathCtx);
+    ods_log_assert(zone);
 
     zone->inbound_adapter =
         parse_zonelist_adapters_expr(xpathCtx, i_expr, 1);
@@ -162,11 +163,11 @@ parse_zonelist_zones(const char* zlfile)
     xmlChar* policy_expr = (unsigned char*) "//Zone/Policy";
     xmlChar* signconf_expr = (unsigned char*) "//Zone/SignerConfiguration";
 
-    se_log_assert(zlfile);
+    ods_log_assert(zlfile);
 
     reader = xmlNewTextReaderFilename(zlfile);
     if (!reader) {
-        se_log_error("unable to open zone list file %s", zlfile?zlfile:"(null)");
+        ods_log_error("[%s] unable to open file %s", parser_str, zlfile);
         zonelist_cleanup(zl);
         return NULL;
     }
@@ -181,7 +182,8 @@ parse_zonelist_zones(const char* zlfile)
             zone_name = (char*) xmlTextReaderGetAttribute(reader,
                 name_expr);
             if (!zone_name || strlen(zone_name) <= 0) {
-                se_log_error("unable to extract zone name from zonelist");
+                ods_log_error("[%s] unable to extract zone name from zonelist",
+                    parser_str);
                 if (zone_name) {
                     se_free((void*) zone_name);
                 }
@@ -197,8 +199,8 @@ parse_zonelist_zones(const char* zlfile)
                 xpathCtx = xmlXPathNewContext(doc);
             }
             if (doc == NULL || xpathCtx == NULL) {
-                se_log_error("unable to read zone %s; skipping",
-                   zone_name);
+                ods_log_error("[%s] unable to read zone %s; skipping",
+                   parser_str, zone_name);
                 se_free((void*) zone_name);
                 ret = xmlTextReaderRead(reader);
                 se_free((void*) tag_name);
@@ -215,8 +217,10 @@ parse_zonelist_zones(const char* zlfile)
 
             /* and add it to the list */
             if (zonelist_add_zone(zl, new_zone) == NULL) {
-                se_log_error("unable to add zone %s to zone list", zone_name);
+                ods_log_error("[%s] unable to add zone %s", parser_str,
+                    zone_name);
             }
+            ods_log_debug("[%s] zone %s added", parser_str, zone_name);
             se_free((void*) zone_name);
             xmlXPathFreeContext(xpathCtx);
         }
@@ -224,10 +228,10 @@ parse_zonelist_zones(const char* zlfile)
         ret = xmlTextReaderRead(reader);
     }
     /* no more zones */
-    se_log_debug("no more zones");
+    ods_log_debug("[%s] no more zones", parser_str);
     xmlFreeTextReader(reader);
     if (ret != 0) {
-        se_log_error("error parsing zone list file %s", zlfile?zlfile:"(null)");
+        ods_log_error("[%s] error parsing file %s", parser_str, zlfile);
     }
     if (doc) {
         xmlFreeDoc(doc);

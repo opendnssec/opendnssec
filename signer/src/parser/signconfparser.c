@@ -33,15 +33,17 @@
 
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
+#include "shared/log.h"
 #include "util/duration.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
-#include <libxml/parser.h> /* xmlParseFile() */
-#include <libxml/xpath.h> /* xmlXPath*() */
-#include <libxml/xpathInternals.h> /* xmlXPath*() */
-#include <libxml/xmlreader.h>  /* xmlFreeDoc(), xmlStrEqual() */
-#include <stdlib.h> /* atoi() */
+#include <libxml/parser.h>
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+#include <libxml/xmlreader.h>
+#include <stdlib.h>
+
+static const char* parser_str = "parser";
 
 
 /**
@@ -63,19 +65,26 @@ parse_sc_keys(const char* cfgfile)
     char* algorithm = NULL;
     int ksk, zsk, publish, i;
 
-    se_log_assert(cfgfile);
+    if (!cfgfile) {
+        ods_log_error("[%s] could not parse <Keys>, no cfgfile given",
+            parser_str);
+        return NULL;
+    }
+    ods_log_assert(cfgfile);
 
     /* Load XML document */
     doc = xmlParseFile(cfgfile);
     if (doc == NULL) {
-        se_log_error("could not parse <Keys>, xmlParseFile failed");
+        ods_log_error("[%s] could not parse <Keys>, xmlParseFile failed",
+            parser_str);
         return kl;
     }
     /* Create xpath evaluation context */
     xpathCtx = xmlXPathNewContext(doc);
     if(xpathCtx == NULL) {
         xmlFreeDoc(doc);
-        se_log_error("could not parse <Keys>, xmlXPathNewContext failed");
+        ods_log_error("[%s] could not parse <Keys>, xmlXPathNewContext failed",
+            parser_str);
         return kl;
     }
     /* Evaluate xpath expression */
@@ -84,7 +93,8 @@ parse_sc_keys(const char* cfgfile)
     if(xpathObj == NULL) {
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
-        se_log_error("could not parse <Keys>, xmlXPathEvalExpression failed");
+        ods_log_error("[%s] could not parse <Keys>, xmlXPathEvalExpression "
+            "failed", parser_str);
         return kl;
     }
 
@@ -118,10 +128,12 @@ parse_sc_keys(const char* cfgfile)
                 new_key = key_create(locator, (uint8_t) atoi(algorithm),
                     (uint32_t) atoi(flags), publish, ksk, zsk);
                 if (keylist_add(kl, new_key) != 0) {
-                    se_log_error("failed to add key %s to key list", locator);
+                    ods_log_error("[%s] failed to push key %s to key list",
+                        parser_str, locator);
                 }
             } else {
-                se_log_error("Key missing required elements");
+                ods_log_error("[%s] Key missing required elements, skipping",
+                    parser_str);
             }
             if (locator) {
                 se_free((void*)locator);

@@ -32,14 +32,16 @@
  */
 
 #include "parser/confparser.h"
-#include "util/log.h"
+#include "shared/log.h"
 #include "util/se_malloc.h"
 
-#include <libxml/xpath.h> /* xmlXPath*() */
-#include <libxml/relaxng.h> /* xmlRelaxNG*() */
-#include <libxml/xmlreader.h> /* xmlParseFile(), xmlFreeDoc() */
-#include <string.h> /* strlen() */
-#include <stdlib.h> /* atoi() */
+#include <libxml/xpath.h>
+#include <libxml/relaxng.h>
+#include <libxml/xmlreader.h>
+#include <string.h>
+#include <stdlib.h>
+
+static const char* parser_str = "parser";
 
 
 /**
@@ -56,23 +58,27 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     xmlRelaxNGPtr schema = NULL;
     int status = 0;
 
-    se_log_assert(cfgfile);
-    se_log_assert(rngfile);
-    se_log_debug("check config file: %s, use rng file: %s",
-        cfgfile?cfgfile:"(null)", rngfile?rngfile:"(null)");
+    if (!cfgfile || !rngfile) {
+        ods_log_error("[%s] no cfgfile or rngfile", parser_str);
+        return 1;
+    }
+    ods_log_assert(cfgfile);
+    ods_log_assert(rngfile);
+    ods_log_debug("[%s] check cfgfile %s with rngfile %s", parser_str,
+        cfgfile, rngfile);
 
     /* Load XML document */
     doc = xmlParseFile(cfgfile);
     if (doc == NULL) {
-        se_log_error("unable to read config file %s",
-            cfgfile?cfgfile:"(null)");
+        ods_log_error("[%s] unable to read cfgfile %s", parser_str,
+            cfgfile);
         return 1;
     }
     /* Load rng document */
     rngdoc = xmlParseFile(rngfile);
     if (rngdoc == NULL) {
-        se_log_error("unable to read conf rng file %s",
-            rngfile?rngfile:"(null)");
+        ods_log_error("[%s] unable to read rngfile %s", parser_str,
+            rngfile);
         xmlFreeDoc(doc);
         return 1;
     }
@@ -81,7 +87,8 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     if (rngpctx == NULL) {
         xmlFreeDoc(rngdoc);
         xmlFreeDoc(doc);
-        se_log_error("unable to create XML RelaxNGs parser context");
+        ods_log_error("[%s] unable to create XML RelaxNGs parser context",
+           parser_str);
         return 1;
     }
     /* Parse a schema definition resource and
@@ -89,7 +96,8 @@ parse_file_check(const char* cfgfile, const char* rngfile)
      */
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
-        se_log_error("unable to parse a schema definition resource");
+        ods_log_error("[%s] unable to parse a schema definition resource",
+            parser_str);
         xmlRelaxNGFreeParserCtxt(rngpctx);
         xmlFreeDoc(rngdoc);
         xmlFreeDoc(doc);
@@ -98,7 +106,8 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     /* Create an XML RelaxNGs validation context. */
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
-        se_log_error("unable to create RelaxNGs validation context");
+        ods_log_error("[%s] unable to create RelaxNGs validation context",
+            parser_str);
         xmlRelaxNGFree(schema);
         xmlRelaxNGFreeParserCtxt(rngpctx);
         xmlFreeDoc(rngdoc);
@@ -108,8 +117,8 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
-        se_log_error("configuration file validation failed %s",
-            cfgfile?cfgfile:"(null)");
+        ods_log_error("[%s] cfgfile validation failed %s", parser_str,
+            cfgfile);
         xmlRelaxNGFreeValidCtxt(rngctx);
         xmlRelaxNGFree(schema);
         xmlRelaxNGFreeParserCtxt(rngpctx);
@@ -142,8 +151,8 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     xmlChar *xexpr = NULL;
     const char* string = NULL;
 
-    se_log_assert(expr);
-    se_log_assert(cfgfile);
+    ods_log_assert(expr);
+    ods_log_assert(cfgfile);
 
     /* Load XML document */
     doc = xmlParseFile(cfgfile);
@@ -153,9 +162,8 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     /* Create xpath evaluation context */
     xpathCtx = xmlXPathNewContext(doc);
     if (xpathCtx == NULL) {
-        se_log_error("unable to create new XPath context for cfgile %s expr %s",
-            cfgfile?cfgfile:"(null)",
-            expr?(char *)expr:"(null)");
+        ods_log_error("[%s] unable to create new XPath context for cfgile "
+            "%s expr %s", parser_str, cfgfile, (char*) expr);
         xmlFreeDoc(doc);
         return NULL;
     }
@@ -165,9 +173,8 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     if (xpathObj == NULL || xpathObj->nodesetval == NULL ||
         xpathObj->nodesetval->nodeNr <= 0) {
         if (required) {
-            se_log_error("unable to evaluate required element %s in cfgfile %s",
-                xexpr?(char *)xexpr:"(null)",
-                cfgfile?cfgfile:"(null)");
+            ods_log_error("[%s] unable to evaluate required element %s in "
+                "cfgfile %s", parser_str, (char*) xexpr, cfgfile);
         }
         xmlXPathFreeContext(xpathCtx);
         if (xpathObj) {
