@@ -90,7 +90,6 @@ void zonelist_unlock(zonelist_type* zonelist);
 zone_type* zonelist_lookup_zone_by_name(zonelist_type* zonelist,
     const char* name);
 
-
 /**
  * Add zone to zone list.
  * \param[in] zonelist zone list
