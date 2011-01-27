@@ -46,7 +46,7 @@ static void*
 se_assert_data(void* data)
 {
     if (!data) {
-        se_fatal_exit("memory allocation failed (se): out of memory");
+        ods_fatal_exit("memory allocation failed (se): out of memory");
     }
     return data;
 }
@@ -121,7 +121,7 @@ se_strdup(const char *s)
     if (s) {
         dup = strdup(s);
         if (!dup) {
-            se_fatal_exit("memory allocation failed (strdup): out of memory");
+            ods_fatal_exit("memory allocation failed (strdup): out of memory");
         }
     }
     return dup;

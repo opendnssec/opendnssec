@@ -31,8 +31,8 @@
  * Durations.
  */
 
+#include "shared/log.h"
 #include "util/duration.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
 #include <stdio.h> /* snprintf() */
@@ -117,7 +117,7 @@ duration_create_from_string(const char* str)
 
     P = strchr(str, 'P');
     if (!P) {
-        se_log_error("unable to create duration from string %s", str);
+        ods_log_error("unable to create duration from string %s", str);
         duration_cleanup(duration);
         return NULL;
     }
@@ -167,7 +167,7 @@ duration_create_from_string(const char* str)
     W = strchr(str, 'W');
     if (W) {
         if (not_weeks) {
-            se_log_error("unable to create duration from string %s", P);
+            ods_log_error("unable to create duration from string %s", P);
             duration_cleanup(duration);
             return NULL;
         } else {
@@ -325,7 +325,7 @@ duration2time(duration_type* duration)
         if (duration->months || duration->years) {
             /* TODO calculate correct number of days in this month/year */
             dstr = duration2string(duration);
-            se_log_warning("converting duration %s to approximate value",
+            ods_log_warning("converting duration %s to approximate value",
                 dstr?dstr:"(null)");
             se_free((void*) dstr);
         }
@@ -480,12 +480,12 @@ time_datestamp(time_t tt, const char* format, char** str)
 
     tmp = localtime(&t);
     if (tmp == NULL) {
-        se_log_error("time_datestamp: localtime() failed");
+        ods_log_error("time_datestamp: localtime() failed");
         return 0;
     }
 
     if (strftime(outstr, sizeof(outstr), format, tmp) == 0) {
-        se_log_error("time_datestamp: strftime() failed");
+        ods_log_error("time_datestamp: strftime() failed");
         return 0;
     }
 
@@ -539,6 +539,6 @@ duration_cleanup(duration_type* duration)
     if (duration) {
         se_free((void*) duration);
     } else {
-        se_log_warning("cleanup empty duration");
+        ods_log_warning("cleanup empty duration");
     }
 }

@@ -32,8 +32,8 @@
  */
 
 #include "config.h"
+#include "shared/log.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
 #include <errno.h>
@@ -51,7 +51,7 @@
 const char*
 se_file_mode2str(const char* mode)
 {
-    se_log_assert(mode);
+    ods_log_assert(mode);
 
     if (se_strcmp(mode, "a") == 0) {
         return "appending";
@@ -73,8 +73,8 @@ se_fgetc(FILE* fd, unsigned int* line_nr)
 {
     int c;
 
-    se_log_assert(fd);
-    se_log_assert(line_nr);
+    ods_log_assert(fd);
+    ods_log_assert(line_nr);
 
     c = fgetc(fd);
 	if (c == '\n') {
@@ -93,8 +93,8 @@ se_skip_whitespace(FILE* fd, unsigned int* line_nr)
 {
     int c;
 
-    se_log_assert(fd);
-    se_log_assert(line_nr);
+    ods_log_assert(fd);
+    ods_log_assert(line_nr);
 
     while ((c=se_fgetc(fd, line_nr)) != EOF) {
         if (c == ' ' || c == '\t' || c == '\r') {
@@ -160,8 +160,8 @@ se_fopen(const char* file, const char* dir, const char* mode)
     size_t len_total = 0;
     char* openf = NULL;
 
-    se_log_assert(mode);
-    se_log_debug("open file: dir %s file %s for %s",
+    ods_log_assert(mode);
+    ods_log_debug("open file: dir %s file %s for %s",
         (dir?dir:"(null)"), (file?file:"(null)"),
         se_file_mode2str(mode));
 
@@ -188,7 +188,7 @@ se_fopen(const char* file, const char* dir, const char* mode)
         if (len_file) {
             fd = fopen(openf, mode);
             if (!fd) {
-                se_log_error("unable to open file %s for %s: %s",
+                ods_log_error("unable to open file %s for %s: %s",
                     openf?openf:"(null)",
                     se_file_mode2str(mode), strerror(errno));
             }
@@ -251,7 +251,7 @@ se_file_lastmodified(const char* file)
     struct stat buf;
     FILE* fd;
 
-    se_log_assert(file);
+    ods_log_assert(file);
 
     if ((fd = se_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
@@ -297,9 +297,9 @@ se_replace(const char *str, const char *oldstr, const char *newstr)
     size_t part2_len = 0;
     size_t part3_len = 0;
 
-    se_log_assert(str);
-    se_log_assert(oldstr);
-    se_log_assert(newstr);
+    ods_log_assert(str);
+    ods_log_assert(oldstr);
+    ods_log_assert(newstr);
 
     if (!(ch = strstr(str, oldstr))) {
         buffer = se_strdup(str);
@@ -345,14 +345,14 @@ se_file_copy(const char* file1, const char* file2)
     char str[SYSTEM_MAXLEN];
     FILE* fd = NULL;
 
-    se_log_assert(file1);
-    se_log_assert(file2);
+    ods_log_assert(file1);
+    ods_log_assert(file2);
 
     if ((fd = se_fopen(file1, NULL, "r")) != NULL) {
         se_fclose(fd);
         snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
             CP_COMMAND, file1, file2);
-        se_log_debug("system call: %s", str);
+        ods_log_debug("system call: %s", str);
         return system(str);
     }
     /* no such file */
@@ -368,7 +368,7 @@ se_dir_name(const char* file) {
     int l = strlen(file);
     char* dir = NULL;
 
-    se_log_assert(file);
+    ods_log_assert(file);
 
     /* find seperator */
     while (l>0 && strncmp(file + (l-1), "/", 1) != 0) {
@@ -398,27 +398,27 @@ se_chown(const char* file, uid_t uid, gid_t gid, int getdir)
     char* dir = NULL;
 
     if (!file) {
-        se_log_warning("no filename given for chown()");
+        ods_log_warning("no filename given for chown()");
         return;
     }
 
     if (!getdir) {
-        se_log_debug("create and chown directory %s [user %ld] [group %ld]",
+        ods_log_debug("create and chown directory %s [user %ld] [group %ld]",
            file, (signed long) uid, (signed long) gid);
         if (chown(file, uid, gid) != 0) {
-            se_log_error("chown() for %s failed: %s", file?file:"(null)",
+            ods_log_error("chown() for %s failed: %s", file?file:"(null)",
                 strerror(errno));
         }
     } else if ((dir = se_dir_name(file)) != NULL) {
-        se_log_debug("create and chown directory %s [user %ld] [group %ld]",
+        ods_log_debug("create and chown directory %s [user %ld] [group %ld]",
            dir, (signed long) uid, (signed long) gid);
         if (chown(dir, uid, gid) != 0) {
-            se_log_error("chown() for %s failed: %s", dir,
+            ods_log_error("chown() for %s failed: %s", dir,
                 strerror(errno));
         }
         se_free((void*) dir);
     } else {
-        se_log_warning("use of relative path: %s", file);
+        ods_log_warning("use of relative path: %s", file);
     }
     return;
 }

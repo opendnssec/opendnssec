@@ -48,7 +48,7 @@
 #include <sys/types.h>
 
 #include "config.h"
-#include "util/log.h"
+#include "shared/log.h"
 #include "util/privdrop.h"
 #include "util/se_malloc.h"
 
@@ -162,7 +162,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     if (username) {
         uid = privuid(username);
         if (uid == (uid_t)-1) {
-            se_log_error("user %s does not exist", username);
+            ods_log_error("user %s does not exist", username);
             return -1;
         }
     }
@@ -171,7 +171,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     if (groupname) {
         gid = privgid(groupname);
         if (gid == (gid_t)-1) {
-            se_log_error("group %s does not exist", groupname);
+            ods_log_error("group %s does not exist", groupname);
             return -1;
         }
     }
@@ -181,11 +181,11 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #ifdef HAVE_CHROOT
        status = chroot(newroot);
        if (status != 0 || chdir("/") != 0) {
-           se_log_error("chroot to %s failed: %.100s", newroot, strerror(errno));
+           ods_log_error("chroot to %s failed: %.100s", newroot, strerror(errno));
            return -1;
        }
 #else
-       se_log_error("chroot to %s failed: !HAVE_CHROOT", newroot);
+       ods_log_error("chroot to %s failed: !HAVE_CHROOT", newroot);
        return -1;
 #endif /* HAVE_CHROOT */
 
@@ -195,12 +195,12 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     if (username != NULL && !olduid) {
 #ifdef HAVE_INITGROUPS
         if (initgroups(username, gid) < 0) {
-            se_log_error("initgroups failed: %s: %.100s", username,
+            ods_log_error("initgroups failed: %s: %.100s", username,
                 strerror(errno));
             return -1;
         }
 #else
-        se_log_error("initgroups failed: %s: !HAVE_INITGROUPS", username);
+        ods_log_error("initgroups failed: %s: !HAVE_INITGROUPS", username);
         return -1;
 #endif /* HAVE_INITGROUPS */
 
@@ -234,7 +234,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 # ifndef SETEUID_BREAKS_SETUID
         status = setegid(gid);
         if (status != 0) {
-           se_log_error("setegid() for %s (%lu) failed: %s",
+           ods_log_error("setegid() for %s (%lu) failed: %s",
                groupname, (unsigned long) gid, strerror(errno));
            return -1;
         }
@@ -244,11 +244,11 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #endif
 
         if (status != 0) {
-           se_log_error("setgid() for %s (%lu) failed: %s",
+           ods_log_error("setgid() for %s (%lu) failed: %s",
                groupname, (unsigned long) gid, strerror(errno));
            return -1;
         } else {
-            se_log_debug("group set to %s (%lu)", groupname, (unsigned long) gid);
+            ods_log_debug("group set to %s (%lu)", groupname, (unsigned long) gid);
         }
     }
 
@@ -264,7 +264,7 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 # ifndef SETEUID_BREAKS_SETUID
         status = seteuid(uid);
         if (status != 0) {
-           se_log_error("seteuid() for %s (%lu) failed: %s",
+           ods_log_error("seteuid() for %s (%lu) failed: %s",
                username, (unsigned long) uid, strerror(errno));
            return -1;
         }
@@ -274,11 +274,11 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #endif
 
         if (status != 0) {
-           se_log_error("setuid() for %s (%lu) failed: %s",
+           ods_log_error("setuid() for %s (%lu) failed: %s",
                username, (unsigned long) uid, strerror(errno));
            return -1;
         } else {
-            se_log_debug("user set to %s (%lu)", username, (unsigned long) uid);
+            ods_log_debug("user set to %s (%lu)", username, (unsigned long) uid);
         }
     }
 

@@ -32,7 +32,7 @@
  */
 
 #include "config.h"
-#include "util/log.h"
+#include "shared/log.h"
 #include "util/util.h"
 
 #include <ldns/ldns.h> /* ldns_*() */
@@ -46,7 +46,7 @@ int
 util_is_dnssec_rr(ldns_rr* rr)
 {
     ldns_rr_type type = 0;
-    se_log_assert(rr);
+    ods_log_assert(rr);
 
     type = ldns_rr_get_type(rr);
     return (type == LDNS_RR_TYPE_RRSIG ||
@@ -87,8 +87,8 @@ util_soa_compare(ldns_rr* rr1, ldns_rr* rr2)
     size_t rr2_len = 0;
     size_t offset = 0;
 
-    se_log_assert(rr1);
-    se_log_assert(rr2);
+    ods_log_assert(rr1);
+    ods_log_assert(rr2);
 
     rr1_len = ldns_rr_uncompressed_size(rr1);
     rr2_len = ldns_rr_uncompressed_size(rr2);
@@ -164,9 +164,9 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
     uint32_t rr_ttl = 0;
     uint32_t default_ttl = 0;
 
-    se_log_assert(rrs);
-    se_log_assert(rrs->rr);
-    se_log_assert(rr);
+    ods_log_assert(rrs);
+    ods_log_assert(rrs->rr);
+    ods_log_assert(rr);
 
     rr_ttl = ldns_rr_ttl(rr);
     status = util_dnssec_rrs_compare(rrs->rr, rr, &cmp);
@@ -210,7 +210,7 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
         return LDNS_STATUS_OK;
     } else {
         /* should we error on equal? or free memory of rr */
-        se_log_warning("adding duplicate RR?");
+        ods_log_warning("adding duplicate RR?");
         return LDNS_STATUS_NO_DATA;
     }
     return LDNS_STATUS_OK;
