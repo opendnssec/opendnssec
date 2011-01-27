@@ -32,10 +32,10 @@
  */
 
 #include "config.h"
+#include "shared/duration.h"
 #include "shared/log.h"
 #include "signer/hsm.h"
 #include "signer/rrset.h"
-#include "util/duration.h"
 #include "util/se_malloc.h"
 #include "util/util.h"
 
@@ -720,7 +720,7 @@ rrset_sign_set_timers(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
 
     jitter = duration2time(sc->sig_jitter);
     if (jitter) {
-        random_jitter = se_rand(jitter*2);
+        random_jitter = ods_rand(jitter*2);
     }
     offset = duration2time(sc->sig_inception_offset);
     if (rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {

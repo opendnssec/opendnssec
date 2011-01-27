@@ -32,12 +32,12 @@
  */
 
 #include "config.h"
+#include "shared/duration.h"
 #include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/domain.h"
 #include "signer/hsm.h"
 #include "signer/rrset.h"
-#include "util/duration.h"
 #include "util/log.h"
 #include "util/se_malloc.h"
 #include "util/util.h"
