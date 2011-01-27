@@ -31,8 +31,11 @@
  *
  */
 
+#include "shared/log.h"
 #include "signer/hsm.h"
-#include "util/log.h"
+
+static const char* hsm_str = "hsm";
+
 
 /**
  * Get key from one of the HSMs.
@@ -41,8 +44,13 @@
 int
 hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
 {
-    se_log_assert(dname);
-    se_log_assert(key_id);
+    if (!dname || !key_id) {
+        ods_log_error("[%s] unable to get key: missing required elements",
+            hsm_str);
+        return 1;
+    }
+    ods_log_assert(dname);
+    ods_log_assert(key_id);
 
     if (!key_id->params) {
         key_id->params = hsm_sign_params_new();
@@ -52,8 +60,8 @@ hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
             key_id->params->flags = key_id->flags;
         } else {
             /* could not create params */
-            se_log_error("could not create params for key %s",
-                key_id->locator?key_id->locator:"(null)");
+            ods_log_error("[%s] unable to get key: create params for key %s "
+                "failed", hsm_str, key_id->locator?key_id->locator:"(null)");
             return 1;
         }
     }
@@ -67,7 +75,7 @@ hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
                 key_id->params);
         } else {
             /* could not find key */
-            se_log_error("could not find key %s",
+            ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
                 key_id->locator?key_id->locator:"(null)");
             return 1;
         }
@@ -88,11 +96,17 @@ ldns_rr*
 hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
     ldns_rr_list* rrset, time_t inception, time_t expiration)
 {
-    se_log_assert(dname);
-    se_log_assert(key_id);
-    se_log_assert(rrset);
-    se_log_assert(inception);
-    se_log_assert(expiration);
+
+    if (!dname || !key_id || !rrset || !inception || !expiration) {
+        ods_log_error("[%s] unable to sign: missing required elements",
+            hsm_str);
+        return NULL;
+    }
+    ods_log_assert(dname);
+    ods_log_assert(key_id);
+    ods_log_assert(rrset);
+    ods_log_assert(inception);
+    ods_log_assert(expiration);
 
     if (!key_id->params) {
         key_id->params = hsm_sign_params_new();
@@ -102,7 +116,7 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
             key_id->params->flags = key_id->flags;
         } else {
             /* could not create params */
-            se_log_error("could not create params for key %s",
+            ods_log_error("[%s] could not create params for key %s", hsm_str,
                 key_id->locator?key_id->locator:"(null)");
             return NULL;
         }
@@ -117,7 +131,7 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
 
         if (!key_id->hsmkey) {
             /* could not find key */
-            se_log_error("could not find key %s",
+            ods_log_error("[%s] could not find key %s", hsm_str,
                 key_id->locator?key_id->locator:"(null)");
             return NULL;
         }
@@ -127,7 +141,7 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
         key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey, key_id->params);
         if (!key_id->dnskey) {
             /* could not find key */
-            se_log_error("could not create DNSKEY for %s",
+            ods_log_error("[%s] could not create DNSKEY for %s", hsm_str,
                 key_id->locator?key_id->locator:"(null)");
             return NULL;
         }
@@ -137,7 +151,7 @@ hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
         key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
     }
 
-    se_log_debug("HSM sign RRset[%i] with key %s tag %u",
+    ods_log_debug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
         ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
         key_id->locator?key_id->locator:"(null)", key_id->params->keytag);
     return hsm_sign_rrset(ctx, rrset, key_id->hsmkey, key_id->params);
