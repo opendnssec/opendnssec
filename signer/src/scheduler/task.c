@@ -32,10 +32,10 @@
  */
 
 #include "scheduler/task.h"
+#include "shared/duration.h"
 #include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/zone.h"
-#include "util/duration.h"
 #include "util/file.h"
 #include "util/se_malloc.h"
 

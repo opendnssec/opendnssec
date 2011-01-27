@@ -33,8 +33,8 @@
 
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
+#include "shared/duration.h"
 #include "shared/log.h"
-#include "util/duration.h"
 #include "util/se_malloc.h"
 
 #include <libxml/parser.h>
