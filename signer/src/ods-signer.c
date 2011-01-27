@@ -32,8 +32,8 @@
  */
 
 #include "config.h"
+#include "shared/log.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
 #include <errno.h>
@@ -51,6 +51,8 @@
 #include <sys/time.h>
 
 #define SE_CLI_CMDLEN 6
+
+static const char* cli_str = "client";
 
 /**
  * Prints usage.
@@ -113,8 +115,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             ret = select(maxfdp1, &rset, NULL, NULL, NULL);
             if (ret < 0) {
                 if (errno != EINTR && errno != EWOULDBLOCK) {
-                    se_log_warning("interface select error: %s",
-                        strerror(errno));
+                    ods_log_warning("[%s] interface select error: %s",
+                        cli_str, strerror(errno));
                 }
                 continue;
             }
@@ -285,15 +287,15 @@ interface_start(char* cmd)
     /* set socket to non-blocking */
     flags = fcntl(sockfd, F_GETFL, 0);
     if (flags < 0) {
-        se_log_error("unable to start interface, fcntl(F_GETFL) "
-            "failed: %s", strerror(errno));
+        ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
+            "failed: %s", cli_str, strerror(errno));
         close(sockfd);
         return;
     }
     flags |= O_NONBLOCK;
     if (fcntl(sockfd, F_SETFL, flags) < 0) {
-        se_log_error("Unable to start interface, fcntl(F_SETFL) "
-            "failed: %s", strerror(errno));
+        ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
+            "failed: %s", cli_str, strerror(errno));
         close(sockfd);
         return;
     }
@@ -301,15 +303,15 @@ interface_start(char* cmd)
     /* set stdin to non-blocking */
     flags = fcntl(fileno(stdin), F_GETFL, 0);
     if (flags < 0) {
-        se_log_error("Unable to start interface, fcntl(F_GETFL) "
-            "failed: %s", strerror(errno));
+        ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
+            "failed: %s", cli_str, strerror(errno));
         close(sockfd);
         return;
     }
     flags |= O_NONBLOCK;
     if (fcntl(fileno(stdin), F_SETFL, flags) < 0) {
-        se_log_error("Unable to start interface, fcntl(F_SETFL) "
-            "failed: %s", strerror(errno));
+        ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
+            "failed: %s", cli_str, strerror(errno));
         close(sockfd);
         return;
     }
@@ -320,7 +322,7 @@ interface_start(char* cmd)
     }
 
     /* run */
-    se_log_init(NULL, 0, 0);
+    ods_log_init(NULL, 0, 0);
     interface_run(stdin, sockfd, cmd);
     close(sockfd);
     return;
