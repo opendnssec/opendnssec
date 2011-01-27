@@ -35,12 +35,19 @@
 #include "daemon/worker.h"
 #include "scheduler/locks.h"
 #include "scheduler/task.h"
+#include "shared/log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
 #include <time.h> /* time() */
+
+/*
+ods_lookup_table worker_str[] = {
+    { WORKER_WORKER, "worker" },
+    { 0, NULL }
+};
+*/
 
 
 /**
@@ -51,7 +58,7 @@ worker_type*
 worker_create(int num, int type)
 {
     worker_type* worker = (worker_type*) se_malloc(sizeof(worker_type));
-    se_log_debug("create worker[%i]", num +1);
+    ods_log_debug("create worker[%i]", num +1);
     worker->thread_num = num +1;
     worker->engineptr = NULL;
     worker->tasklist = NULL;
@@ -70,76 +77,83 @@ worker_create(int num, int type)
 
 
 /**
+ * Convert worker type to string.
+ *
+ */
+static const char*
+worker2str(int type)
+{
+/*
+    ods_lookup_table *lt = ods_lookup_by_id(worker_str, type);
+    if (lt) {
+        return lt->name;
+    }
+    return NULL;
+*/
+    return "worker";
+}
+
+
+/**
  * Start worker.
  *
  */
 void
 worker_start(worker_type* worker)
 {
-    task_type* task;
+    task_type* task = NULL;
     time_t now, timeout = 1;
     zone_type* zone = NULL;
 
-    se_log_assert(worker);
-    se_log_assert(worker->type == WORKER_WORKER);
-    se_log_debug("start worker[%i]", worker->thread_num);
+    ods_log_assert(worker);
+    ods_log_assert(worker->type == WORKER_WORKER);
 
     while (worker->need_to_exit == 0) {
-        se_log_debug("worker[%i]: report for duty", worker->thread_num);
-        se_log_debug("worker[%i]: lock tasklist", worker->thread_num);
+        ods_log_debug("[%s[%i]]: report for duty", worker2str(worker->type),
+            worker->thread_num);
         lock_basic_lock(&worker->tasklist->tasklist_lock);
-        se_log_debug("worker[%i]: locked tasklist", worker->thread_num);
-        task = tasklist_pop_task(worker->tasklist);
-        if (task) {
-            se_log_debug("worker[%i] perform task for zone %s",
-                worker->thread_num, task->who?task->who:"(null)");
-            zone = task->zone;
+        /* [LOCK] schedule */
+        worker->task = tasklist_pop_task(worker->engineptr->tasklist);
+        /* [UNLOCK] schedule */
+        if (worker->task) {
+            lock_basic_unlock(&worker->tasklist->tasklist_lock);
+
+            zone = worker->task->zone;
+            lock_basic_lock(&zone->zone_lock);
+            ods_log_debug("[%s[%i]] start working on zone %s",
+                worker2str(worker->type), worker->thread_num, zone->name);
             zone->in_progress = 1;
 
-            se_log_debug("worker[%i]: unlock tasklist", worker->thread_num);
-            lock_basic_unlock(&worker->tasklist->tasklist_lock);
-            se_log_debug("worker[%i]: unlocked tasklist", worker->thread_num);
-
-            worker->task = task;
-            se_log_debug("worker[%i]: lock zone %s", worker->thread_num,
-                task->who);
-            lock_basic_lock(&zone->zone_lock);
-            se_log_debug("worker[%i]: locked zone %s", worker->thread_num,
-                task->who);
-            worker_perform_task(worker, task);
+            worker_perform_task(worker, worker->task);
             zone->processed = 1;
-            se_log_debug("worker[%i]: unlock zone %s", worker->thread_num,
-                task->who);
             lock_basic_unlock(&zone->zone_lock);
-            se_log_debug("worker[%i]: unlocked zone %s", worker->thread_num,
-                task->who);
-            worker->task = NULL;
 
-            if (task->what == TASK_NONE) {
+            if (worker->task->what == TASK_NONE) {
                 zone->in_progress = 0;
-                se_log_debug("worker[%i]: cleanup task none for zone %s",
-                    worker->thread_num, task->who);
-                task_cleanup(task);
+                ods_log_debug("[%s[%i]] cleanup task none for zone %s",
+                    worker2str(worker->type), worker->thread_num, task->who);
+                task_cleanup(worker->task);
             } else {
-                se_log_debug("worker[%i]: lock tasklist", worker->thread_num);
                 lock_basic_lock(&worker->tasklist->tasklist_lock);
-                se_log_debug("worker[%i]: locked tasklist", worker->thread_num);
                 zone->in_progress = 0;
-                task = tasklist_schedule_task(worker->tasklist, task, 1);
+                task = tasklist_schedule_task(worker->tasklist, worker->task, 1);
                 if (!task) {
-                    se_log_error("failed to schedule task");
+                    ods_log_error("[%s[%i]] failed to schedule task", worker2str(worker->type));
                 } else {
                     task_backup(task);
+                    task = NULL;
                 }
-                se_log_debug("worker[%i]: unlock tasklist", worker->thread_num);
                 lock_basic_unlock(&worker->tasklist->tasklist_lock);
-                se_log_debug("worker[%i]: unlocked tasklist", worker->thread_num);
             }
-
+            worker->task = NULL;
             timeout = 1;
         } else {
-            se_log_debug("worker[%i] no task ready", worker->thread_num);
+            ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
+                worker->thread_num);
+
             task = tasklist_first_task(worker->tasklist);
+            lock_basic_unlock(&worker->tasklist->tasklist_lock);
+
             now = time_now();
             if (task && !worker->tasklist->loading) {
                 timeout = (task->when - now);
@@ -149,9 +163,6 @@ worker_start(worker_type* worker)
                     timeout = ODS_SE_MAX_BACKOFF;
                 }
             }
-            se_log_debug("worker[%i]: unlock tasklist", worker->thread_num);
-            lock_basic_unlock(&worker->tasklist->tasklist_lock);
-            se_log_debug("worker[%i]: unlocked tasklist", worker->thread_num);
 
             worker_sleep(worker, timeout);
         }
@@ -173,23 +184,24 @@ worker_perform_task(worker_type* worker, task_type* task)
     char* cfg_filename = NULL;
     int error = 0;
 
-    se_log_assert(worker);
-    se_log_assert(task);
+    ods_log_assert(worker);
+    ods_log_assert(task);
 
     if (!task->zone) {
-        se_log_error("worker[%i] cannot perform task: no corresponding zone",
-            worker->thread_num);
+        ods_log_error("[%s[%i]] cannot perform task: no corresponding zone",
+            worker2str(worker->type), worker->thread_num);
         return;
     }
     zone = task->zone;
 
     switch (task->what) {
         case TASK_NONE:
-            se_log_warning("no task for zone %s", task->who?task->who:"(null)");
+            ods_log_warning("[%s[%i]] no task for zone %s", worker2str(worker->type),
+                task->who?task->who:"(null)");
             break;
         case TASK_READ:
             if (tools_read_input(zone) != 0) {
-                se_log_error("task [read zone %s] failed",
+                ods_log_error("task [read zone %s] failed",
                     task->who?task->who:"(null)");
                 task->what = TASK_SIGN;
                 task->when = time_now() +
@@ -200,7 +212,7 @@ worker_perform_task(worker_type* worker, task_type* task)
             task->what = TASK_ADDKEYS;
         case TASK_ADDKEYS:
             if (tools_add_dnskeys(zone) != 0) {
-                se_log_error("task [add dnskeys to zone %s] failed",
+                ods_log_error("task [add dnskeys to zone %s] failed",
                     task->who?task->who:"(null)");
                 task->what = TASK_SIGN;
                 task->when = time_now() +
@@ -211,7 +223,7 @@ worker_perform_task(worker_type* worker, task_type* task)
             task->what = TASK_UPDATE;
         case TASK_UPDATE:
             if (tools_update(zone) != 0) {
-                se_log_error("task [update zone %s] failed",
+                ods_log_error("task [update zone %s] failed",
                     task->who?task->who:"(null)");
                 task->what = TASK_SIGN;
                 task->when = time_now() +
@@ -222,7 +234,7 @@ worker_perform_task(worker_type* worker, task_type* task)
             task->what = TASK_NSECIFY;
         case TASK_NSECIFY:
             if (tools_nsecify(zone) != 0) {
-                se_log_error("task [nsecify zone %s] failed",
+                ods_log_error("task [nsecify zone %s] failed",
                     task->who?task->who:"(null)");
                 goto task_perform_fail;
                 break;
@@ -230,7 +242,7 @@ worker_perform_task(worker_type* worker, task_type* task)
             task->what = TASK_SIGN;
         case TASK_SIGN:
             if (tools_sign(zone) != 0) {
-                se_log_error("task [sign zone %s] failed",
+                ods_log_error("task [sign zone %s] failed",
                     task->who?task->who:"(null)");
                 goto task_perform_fail;
                 break;
@@ -245,7 +257,7 @@ worker_perform_task(worker_type* worker, task_type* task)
             working_dir = NULL;
             cfg_filename = NULL;
             if (error) {
-                se_log_error("task [audit zone %s] failed",
+                ods_log_error("task [audit zone %s] failed",
                     task->who?task->who:"(null)");
                 task->what = TASK_SIGN;
                 goto task_perform_fail;
@@ -254,7 +266,7 @@ worker_perform_task(worker_type* worker, task_type* task)
             task->what = TASK_WRITE;
         case TASK_WRITE:
             if (tools_write_output(zone) != 0) {
-                se_log_error("task [write zone %s] failed",
+                ods_log_error("task [write zone %s] failed",
                     task->who?task->who:"(null)");
                 task->what = TASK_SIGN;
                 goto task_perform_fail;
@@ -265,7 +277,7 @@ worker_perform_task(worker_type* worker, task_type* task)
                 duration2time(zone->signconf->sig_resign_interval);
             break;
         default:
-            se_log_warning("unknown task[id %i zone %s], "
+            ods_log_warning("unknown task[id %i zone %s], "
                 "trying full sign", task->what, task->who?task->who:"(null)");
             task->what = TASK_READ;
             task->when = time_now();
@@ -303,8 +315,6 @@ worker_cleanup(worker_type* worker)
          lock_basic_destroy(&worker->worker_lock);
          lock_basic_off(&worker->worker_alarm);
          se_free((void*)worker);
-    } else {
-         se_log_warning("cleanup empty worker");
     }
     return;
 }
@@ -317,7 +327,7 @@ worker_cleanup(worker_type* worker)
 void
 worker_sleep(worker_type* worker, time_t timeout)
 {
-    se_log_assert(worker);
+    ods_log_assert(worker);
     lock_basic_lock(&worker->worker_lock);
     worker->sleeping = 1;
     lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
@@ -334,7 +344,7 @@ worker_sleep(worker_type* worker, time_t timeout)
 void
 worker_wait(worker_type* worker)
 {
-    se_log_assert(worker);
+    ods_log_assert(worker);
     lock_basic_lock(&worker->worker_lock);
     worker->waiting = 1;
     lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock, 0);
@@ -350,10 +360,11 @@ worker_wait(worker_type* worker)
 void
 worker_wakeup(worker_type* worker)
 {
-    se_log_assert(worker);
-    se_log_assert(!worker->waiting);
+    ods_log_assert(worker);
+    ods_log_assert(!worker->waiting);
     if (worker && worker->sleeping && !worker->waiting) {
-        se_log_debug("wake up worker[%i]", worker->thread_num);
+        ods_log_debug("[%s[%i]] wake up", worker2str(worker->type),
+           worker->thread_num);
         lock_basic_lock(&worker->worker_lock);
         lock_basic_alarm(&worker->worker_alarm);
         worker->sleeping = 0;
@@ -370,10 +381,11 @@ worker_wakeup(worker_type* worker)
 void
 worker_notify(worker_type* worker)
 {
-    se_log_assert(worker);
-    se_log_assert(!worker->sleeping);
+    ods_log_assert(worker);
+    ods_log_assert(!worker->sleeping);
     if (worker && worker->waiting && !worker->sleeping) {
-        se_log_debug("notify worker[%i]", worker->thread_num);
+        ods_log_debug("[%s[%i]] notify", worker2str(worker->type),
+           worker->thread_num);
         lock_basic_lock(&worker->worker_lock);
         lock_basic_alarm(&worker->worker_alarm);
         worker->waiting = 0;
