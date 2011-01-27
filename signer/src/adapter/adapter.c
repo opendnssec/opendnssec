@@ -32,12 +32,14 @@
  */
 
 #include "adapter/adapter.h"
+#include "shared/log.h"
 #include "signer/zone.h"
 #include "util/file.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
 #include <stdio.h>
+
+static const char* adapter_str = "adapter";
 
 
 /**
@@ -49,7 +51,7 @@ adapter_create(const char* filename, adapter_mode type, int inbound)
 {
     adapter_type* adapter = (adapter_type*) se_malloc(sizeof(adapter_type));
 
-    se_log_assert(filename);
+    ods_log_assert(filename);
     adapter->filename = se_strdup(filename);
     adapter->type = type;
     adapter->inbound = inbound;
@@ -92,7 +94,5 @@ adapter_cleanup(adapter_type* adapter)
             adapter->filename = NULL;
         }
         se_free((void*)adapter);
-    } else {
-        se_log_warning("cleanup empty adapter");
     }
 }
