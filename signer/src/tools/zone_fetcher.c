@@ -26,7 +26,7 @@
  */
 
 #include "config.h"
-#include "util/log.h"
+#include "shared/log.h"
 #include "util/privdrop.h"
 #include "tools/toolutil.h"
 #include "tools/zone_fetcher.h"
@@ -87,18 +87,18 @@ init_xfrd(config_type* config)
                 ldns_rdf_deep_free(ns);
                 ns = NULL;
             } else {
-                se_log_error("zone fetcher could not use %s for transfer "
+                ods_log_error("zone fetcher could not use %s for transfer "
                     "request: could not parse ip address", servers->ipaddr);
             }
             if (status != LDNS_STATUS_OK) {
-                se_log_error("zone fetcher could not use %s for transfer "
+                ods_log_error("zone fetcher could not use %s for transfer "
                     "request: %s", servers->ipaddr,
                     ldns_get_errorstr_by_id(status));
             }
             servers = servers->next;
         }
         if (ldns_resolver_nameserver_count(xfrd) <= 0) {
-            se_log_error("zone fetcher could not find any valid name "
+            ods_log_error("zone fetcher could not find any valid name "
                 "servers");
         }
 
@@ -155,13 +155,13 @@ new_server(char* ipv4, char* ipv6, char* port)
 
     if (slt->family == AF_INET6 && strlen(slt->ipaddr) > 0) {
         if (inet_pton(slt->family, slt->ipaddr, &slt->addr.addr6) != 1) {
-            se_log_error("zone fetcher encountered bad ip address '%s'",
+            ods_log_error("zone fetcher encountered bad ip address '%s'",
                 slt->ipaddr);
         }
     }
     else if (slt->family == AF_INET && strlen(slt->ipaddr) > 0) {
         if (inet_pton(slt->family, slt->ipaddr, &slt->addr.addr) != 1) {
-            se_log_error("zone fetcher encountered bad ip address '%s'",
+            ods_log_error("zone fetcher encountered bad ip address '%s'",
                 slt->ipaddr);
         }
     }
@@ -231,8 +231,8 @@ read_axfr_config(const char* filename, config_type* cfg)
     xmlChar *notify_expr = (unsigned char*) "//ZoneFetch/NotifyListen";
 
     if (filename == NULL) {
-        se_log_alert("no zone fetcher configfile provided");
-        se_log_info("zone fetcher exiting...");
+        ods_log_alert("no zone fetcher configfile provided");
+        ods_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -251,25 +251,25 @@ read_axfr_config(const char* filename, config_type* cfg)
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    se_log_error("can not read zone fetcher configfile "
+                    ods_log_error("can not read zone fetcher configfile "
                         "%s", filename?filename:"(null)");
-                    se_log_info("zone fetcher exiting...");
+                    ods_log_info("zone fetcher exiting...");
                     exit(EXIT_FAILURE);
                 }
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
-                    se_log_error("zone fetcher can not create XPath "
+                    ods_log_error("zone fetcher can not create XPath "
                         "context for %s", filename?filename:"(null)");
-                    se_log_info("zone fetcher exiting...");
+                    ods_log_info("zone fetcher exiting...");
                     exit(EXIT_FAILURE);
                 }
 
                 /* Extract the master server address */
                 xpathObj = xmlXPathEvalExpression(server_expr, xpathCtx);
                 if (xpathObj == NULL || !xpathObj->nodesetval) {
-                    se_log_error("zone fetcher can not locate master "
+                    ods_log_error("zone fetcher can not locate master "
                         "server(s) in %s", filename?filename:"(null)");
-                    se_log_info("zone fetcher exiting...");
+                    ods_log_info("zone fetcher exiting...");
                     exit(EXIT_FAILURE);
                 }
                 else {
@@ -410,15 +410,15 @@ read_axfr_config(const char* filename, config_type* cfg)
         xmlFreeTextReader(reader);
         xmlFreeDoc(doc);
         if (ret != 0) {
-            se_log_error("zone fetcher failed to parse config file %s",
+            ods_log_error("zone fetcher failed to parse config file %s",
                 filename?filename:"(null)");
-            se_log_info("zone fetcher exiting...");
+            ods_log_info("zone fetcher exiting...");
             exit(EXIT_FAILURE);
         }
     } else {
-        se_log_error("zone fetcher was unable to open config file %s",
+        ods_log_error("zone fetcher was unable to open config file %s",
             filename?filename:"(null)");
-        se_log_info("zone fetcher exiting...");
+        ods_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -441,8 +441,8 @@ read_zonelist(const char* filename)
     xmlChar *adapter_expr = (unsigned char*) "//Zone/Adapters/Input/File";
 
     if (filename == NULL) {
-        se_log_error("no zonelist provided for zone fetcher");
-        se_log_info("zone fetcher exiting...");
+        ods_log_error("no zonelist provided for zone fetcher");
+        ods_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -461,7 +461,7 @@ read_zonelist(const char* filename)
                 /* Make sure that we got something */
                 if (zone_name == NULL) {
                     /* error */
-                    se_log_error("zone fetcher failed to extract zone "
+                    ods_log_error("zone fetcher failed to extract zone "
                         "name from %s", filename?filename:"(null)");
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
@@ -471,7 +471,7 @@ read_zonelist(const char* filename)
                 xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
                 if (doc == NULL) {
-                    se_log_error("zone fetcher could not read zone "
+                    ods_log_error("zone fetcher could not read zone "
                         "%s; skipping", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
@@ -479,7 +479,7 @@ read_zonelist(const char* filename)
                 }
                 xpathCtx = xmlXPathNewContext(doc);
                 if (xpathCtx == NULL) {
-                    se_log_error("zone fetcher can not create XPath "
+                    ods_log_error("zone fetcher can not create XPath "
                         "context for %s; skipping zone", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
@@ -489,7 +489,7 @@ read_zonelist(const char* filename)
                 /* Extract the Input File Adapter filename */
                 xpathObj = xmlXPathEvalExpression(adapter_expr, xpathCtx);
                 if (xpathObj == NULL || !xpathObj->nodesetval) {
-                    se_log_error("zone fetcher was unable to evaluate "
+                    ods_log_error("zone fetcher was unable to evaluate "
                         "xpath expression: %s; skipping zone", adapter_expr);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
@@ -519,15 +519,15 @@ read_zonelist(const char* filename)
         xmlFreeTextReader(reader);
         xmlFreeDoc(doc);
         if (ret != 0) {
-            se_log_error("zone fetcher failed to parse zonelist %s",
+            ods_log_error("zone fetcher failed to parse zonelist %s",
                 filename?filename:"(null)");
-            se_log_info("zone fetcher exiting...");
+            ods_log_info("zone fetcher exiting...");
             exit(EXIT_FAILURE);
         }
     } else {
-        se_log_error("zone fetcher was unable to open zonelist %s",
+        ods_log_error("zone fetcher was unable to open zonelist %s",
             filename?filename:"(null)");
-        se_log_info("zone fetcher exiting...");
+        ods_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -544,7 +544,7 @@ writepid(char* pidfile, pid_t pid)
 
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
     if ((fd = fopen(pidfile, "w")) ==  NULL ) {
-        se_log_error("zone fetcher could not open pidfile %s for "
+        ods_log_error("zone fetcher could not open pidfile %s for "
             "writing: %s", pidfile?pidfile:"(null)", strerror(errno));
         return -1;
     }
@@ -553,16 +553,16 @@ writepid(char* pidfile, pid_t pid)
         result = 1;
     result = fwrite((const void*) pidbuf, 1, size, fd);
     if (result == 0) {
-        se_log_error("zone fetcher failed to write to pidfile: %s",
+        ods_log_error("zone fetcher failed to write to pidfile: %s",
             strerror(errno));
     } else if (result < size) {
-        se_log_error("zone fetcher had short write to pidfile "
+        ods_log_error("zone fetcher had short write to pidfile "
             "(disk full?)");
         result = 0;
     } else
         result = 1;
     if (!result) {
-        se_log_error("zone fetcher could not write pidfile %s: %s",
+        ods_log_error("zone fetcher could not write pidfile %s: %s",
             pidfile?pidfile:"(null)", strerror(errno));
         fclose(fd);
         return -1;
@@ -638,12 +638,12 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         if ((r = getaddrinfo(node, port, &hints[i],
             &(sockets->udp[i].addr))) != 0) {
             if (hints[i].ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
-                se_log_error("zone fetcher fallback to UDP4, no IPv6: "
+                ods_log_error("zone fetcher fallback to UDP4, no IPv6: "
                     " not supported");
                 ip6_support = 0;
                 continue;
             }
-            se_log_error("zone fetcher cannot parse address %s:%s: "
+            ods_log_error("zone fetcher cannot parse address %s:%s: "
                 "getaddrinfo (%i): %s %s", node?node:"(null)",
                 port?port:"(null)", walk->family,
                  gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
@@ -653,12 +653,12 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         if ((sockets->udp[i].s = socket(sockets->udp[i].addr->ai_family,
             SOCK_DGRAM, 0)) == -1) {
             if (sockets->udp[i].addr->ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
-                se_log_error("zone fetcher fallback to UDP4, no IPv6: "
+                ods_log_error("zone fetcher fallback to UDP4, no IPv6: "
                     " not supported");
                 ip6_support = 0;
             }
             else {
-                se_log_error("zone fetcher can't create UDP socket: %s",
+                ods_log_error("zone fetcher can't create UDP socket: %s",
                     strerror(errno));
                 ret = -1;
                 break;
@@ -668,14 +668,14 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         if (sockets->udp[i].addr->ai_family != AF_INET6) {
             if (fcntl(sockets->udp[i].s, F_SETFL,
                 O_NONBLOCK) == -1) {
-                se_log_error("zone fetcher cannot fcntl "
+                ods_log_error("zone fetcher cannot fcntl "
                 "UDP: %s", strerror(errno));
             }
             if (bind(sockets->udp[i].s,
                 (struct sockaddr *) sockets->udp[i].addr->ai_addr,
                 sockets->udp[i].addr->ai_addrlen) != 0)
             {
-                se_log_error("zone fetcher can't bind udp/ipv4 socket: %s",
+                ods_log_error("zone fetcher can't bind udp/ipv4 socket: %s",
                     strerror(errno));
                 ret = -1;
                 break;
@@ -687,7 +687,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             if (setsockopt(sockets->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
                 sizeof(on)) < 0)
             {
-                se_log_error("zone fetcher setsockopt(..., IPV6_V6ONLY, "
+                ods_log_error("zone fetcher setsockopt(..., IPV6_V6ONLY, "
                 "...) failed: %s", strerror(errno));
                 ret = -1;
                 break;
@@ -695,13 +695,13 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
 #endif
 #endif /* IPV6_V6ONLY */
             if (fcntl(sockets->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-                se_log_error("zone fetcher cannot fcntl UDP: %s",
+                ods_log_error("zone fetcher cannot fcntl UDP: %s",
                     strerror(errno));
             }
             if (bind(sockets->udp[i].s,
                 (struct sockaddr *) sockets->udp[i].addr->ai_addr,
                 sockets->udp[i].addr->ai_addrlen) != 0) {
-                se_log_error("zone fetcher can't bind UDP socket: %s",
+                ods_log_error("zone fetcher can't bind UDP socket: %s",
                     strerror(errno));
                 ret = -1;
                 break;
@@ -714,12 +714,12 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         if ((r = getaddrinfo(node, port, &hints[i],
             &(sockets->tcp[i].addr))) != 0) {
             if (hints[i].ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
-                se_log_error("zone fetcher fallback to UDP4, no IPv6: "
+                ods_log_error("zone fetcher fallback to UDP4, no IPv6: "
                     " not supported");
                 ip6_support = 0;
                 continue;
             }
-            se_log_error("zone fetcher cannot parse address %s:%s: "
+            ods_log_error("zone fetcher cannot parse address %s:%s: "
                 "getaddrinfo (%i): %s %s", node?node:"(null)",
                  port?port:"(null)", walk->family,
                  gai_strerror(r), r==EAI_SYSTEM?strerror(errno):"");
@@ -729,12 +729,12 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             SOCK_STREAM, 0)) == -1) {
             if (sockets->tcp[i].addr->ai_family == AF_INET6 &&
                 errno == EAFNOSUPPORT) {
-                se_log_error("zone fetcher fallback to TCP4, no IPv6: "
+                ods_log_error("zone fetcher fallback to TCP4, no IPv6: "
                     " not supported");
                 ip6_support = 0;
             }
             else {
-                se_log_error("zone fetcher can't create TCP socket: %s",
+                ods_log_error("zone fetcher can't create TCP socket: %s",
                     strerror(errno));
                 ret = -1;
                 break;
@@ -744,26 +744,26 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         if (sockets->tcp[i].addr->ai_family != AF_INET6) {
             if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
                 sizeof(on)) < 0) {
-                se_log_error("zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
+                ods_log_error("zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
                     "failed: %s", strerror(errno));
             }
             /* fcntl */
             if (fcntl(sockets->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-                se_log_error("zone fetcher cannot fcntl TCP: %s",
+                ods_log_error("zone fetcher cannot fcntl TCP: %s",
                     strerror(errno));
             }
             /* bind */
             if (bind(sockets->tcp[i].s,
                 (struct sockaddr *) sockets->tcp[i].addr->ai_addr,
                 sockets->tcp[i].addr->ai_addrlen) != 0) {
-                se_log_error("zone fetcher can't bind TCP socket: %s",
+                ods_log_error("zone fetcher can't bind TCP socket: %s",
                     strerror(errno));
                 ret = -1;
                 break;
             }
             /* listen */
             if (listen(sockets->tcp[i].s, 5) == -1) {
-                se_log_error("zone fetcher can't listen to TCP socket: "
+                ods_log_error("zone fetcher can't listen to TCP socket: "
                     "%s", strerror(errno));
                 ret = -1;
                 break;
@@ -776,7 +776,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                 if (setsockopt(sockets->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
                     sizeof(on)) < 0)
                 {
-                    se_log_error("zone fetcher setsockopt(..., IPV6_V6ONLY, "
+                    ods_log_error("zone fetcher setsockopt(..., IPV6_V6ONLY, "
                         "...) failed: %s", strerror(errno));
                     ret = -1;
                     break;
@@ -786,26 +786,26 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             }
             if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
                 sizeof(on)) < 0) {
-                se_log_error("zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
+                ods_log_error("zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
                     "failed: %s", strerror(errno));
             }
             /* fcntl */
             if (fcntl(sockets->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-                se_log_error("zone fetcher cannot fcntl TCP: %s",
+                ods_log_error("zone fetcher cannot fcntl TCP: %s",
                     strerror(errno));
             }
             /* bind */
             if (bind(sockets->tcp[i].s,
                 (struct sockaddr *) sockets->tcp[i].addr->ai_addr,
                 sockets->tcp[i].addr->ai_addrlen) != 0) {
-                se_log_error("zone fetcher can't bind TCP socket: %s",
+                ods_log_error("zone fetcher can't bind TCP socket: %s",
                     strerror(errno));
                 ret = -1;
                 break;
             }
             /* listen */
             if (listen(sockets->tcp[i].s, 5) == -1) {
-                se_log_error("zone fetcher can't listen to TCP socket: "
+                ods_log_error("zone fetcher can't listen to TCP socket: "
                     "%s", strerror(errno));
                 ret = -1;
                 break;
@@ -857,7 +857,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
 
     /* soa serial query */
     if (!zone || !zone->dname) {
-        se_log_error("zone fetcher failed to provide a zone for AXFR ");
+        ods_log_error("zone fetcher failed to provide a zone for AXFR ");
         return -1;
     }
 /* Coverity comment:
@@ -866,7 +866,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
     qpkt = ldns_pkt_query_new(ldns_rdf_clone(zone->dname),
         LDNS_RR_TYPE_SOA, LDNS_RR_CLASS_IN, LDNS_RD);
     if (!qpkt) {
-        se_log_error("zone fetcher failed to create SOA query. "
+        ods_log_error("zone fetcher failed to create SOA query. "
             "Aborting AXFR");
         return -1;
     }
@@ -875,7 +875,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
     xfrd = init_xfrd(config);
 
     if (!xfrd) {
-        se_log_error("zone fetcher failed to initialise AXFR structure");
+        ods_log_error("zone fetcher failed to initialise AXFR structure");
         return -1;
     }
 
@@ -883,7 +883,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
     ldns_pkt_free(qpkt);
 
     if (status != LDNS_STATUS_OK) {
-        se_log_error("zone fetcher failed to send SOA query: %s",
+        ods_log_error("zone fetcher failed to send SOA query: %s",
             ldns_get_errorstr_by_id(status));
         ldns_resolver_deep_free(xfrd);
         return -1;
@@ -895,7 +895,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
         }
         ldns_pkt_free(apkt);
     } else {
-        se_log_error("zone fetcher saw SOA response with ANCOUNT != 1, "
+        ods_log_error("zone fetcher saw SOA response with ANCOUNT != 1, "
             "Aborting AXFR");
         /* retry? */
         ldns_pkt_free(apkt);
@@ -906,7 +906,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
     if (DNS_SERIAL_GT(new_serial, serial)) {
         status = ldns_axfr_start(xfrd, zone->dname, LDNS_RR_CLASS_IN);
         if (status != LDNS_STATUS_OK) {
-            se_log_error("zone fetcher failed to start axfr: %s",
+            ods_log_error("zone fetcher failed to start axfr: %s",
                 ldns_get_errorstr_by_id(status));
             ldns_resolver_deep_free(xfrd);
             return -1;
@@ -922,7 +922,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
             snprintf(axfr_file, sizeof(axfr_file), "%s.%s", zone->input_file, lock_ext);
             fd = fopen(axfr_file, "w");
             if (!fd) {
-                se_log_error("zone fetcher cannot store AXFR to file %s", axfr_file);
+                ods_log_error("zone fetcher cannot store AXFR to file %s", axfr_file);
                 ldns_resolver_deep_free(xfrd);
                 return -1;
             }
@@ -932,7 +932,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
 
         axfr_rr = ldns_axfr_next(xfrd);
         if (!axfr_rr) {
-            se_log_error("zone fetcher AXFR for %s failed",
+            ods_log_error("zone fetcher AXFR for %s failed",
                 zone->name?zone->name:"(null)");
             fclose(fd);
             unlink(axfr_file);
@@ -960,14 +960,14 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
              */
              if (!ldns_axfr_complete(xfrd)) {
                  /* The AXFR was not successful, we've received only a partial zone */
-                 se_log_error("zone fetcher AXFR for %s failed, received only a partial zone", zone->name);
+                 ods_log_error("zone fetcher AXFR for %s failed, received only a partial zone", zone->name);
                  fclose(fd);
                  unlink(axfr_file);
                  ldns_resolver_deep_free(xfrd);
                  return -1;
              }
 
-            se_log_info("zone fetcher transferred zone %s serial %u "
+            ods_log_info("zone fetcher transferred zone %s serial %u "
                 "successfully", zone->name?zone->name:"(null)", new_serial);
 
             /* Close file before moving it */
@@ -982,13 +982,13 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
                         "%s sign %s > /dev/null 2>&1",
                         ODS_SE_CLI, zone->name?zone->name:"--all");
                     if (system(engine_sign_cmd) != 0) {
-                        se_log_error("zone fetcher could not kick "
+                        ods_log_error("zone fetcher could not kick "
                            "the signer engine to sign zone %s",
                             zone->name?zone->name:"--all");
                     }
                 }
             } else {
-                se_log_error("zone fetcher could not move AXFR to %s",
+                ods_log_error("zone fetcher could not move AXFR to %s",
                     dest_file);
             }
 
@@ -996,7 +996,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
             return 0;
         }
     } else {
-        se_log_info("zone fetcher zone %s is already up to date, "
+        ods_log_info("zone fetcher zone %s is already up to date, "
             "serial is %u", zone->name?zone->name:"(null)", serial);
     }
 
@@ -1013,9 +1013,9 @@ send_udp(uint8_t* buf, size_t len, void* data)
     nb = sendto(userdata->udp_sock, buf, len, 0,
         (struct sockaddr*)&userdata->addr_him, userdata->hislen);
     if (nb == -1)
-        se_log_error("zone fetcher sendto() failed: %s", strerror(errno));
+        ods_log_error("zone fetcher sendto() failed: %s", strerror(errno));
     else if ((size_t)nb != len)
-        se_log_error("zone fetcher sendto(): only sent %d of %d octets.",
+        ods_log_error("zone fetcher sendto(): only sent %d of %d octets.",
             (int)nb, (int)len);
 }
 
@@ -1026,7 +1026,7 @@ write_n_bytes(int sock, uint8_t* buf, size_t sz)
     while(count < sz) {
         ssize_t nb = send(sock, buf+count, sz-count, 0);
         if(nb < 0) {
-            se_log_error("zone fetcher send() failed: %s",
+            ods_log_error("zone fetcher send() failed: %s",
                 strerror(errno));
             return;
         }
@@ -1063,7 +1063,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     /* packet parsing */
     status = ldns_wire2pkt(&query_pkt, inbuf, (size_t)inlen);
     if (status != LDNS_STATUS_OK) {
-        se_log_error("zone fetcher got bad packet: %s",
+        ods_log_error("zone fetcher got bad packet: %s",
             ldns_get_errorstr_by_id(status));
         return;
     }
@@ -1084,7 +1084,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
         ldns_rr_get_type(query_rr) != LDNS_RR_TYPE_SOA ||
         ldns_rr_get_class(query_rr) != LDNS_RR_CLASS_IN)
     {
-        se_log_info("zone fetcher drop bad notify");
+        ods_log_info("zone fetcher drop bad notify");
         return;
     }
 
@@ -1095,7 +1095,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     ldns_pkt_set_qr(query_pkt, 1);
     status = ldns_pkt2wire(&outbuf, query_pkt, &answer_size);
     if (status != LDNS_STATUS_OK) {
-        se_log_error("zone fetcher error creating notify response: %s",
+        ods_log_error("zone fetcher error creating notify response: %s",
             ldns_get_errorstr_by_id(status));
     }
     sendfunc(outbuf, answer_size, userdata);
@@ -1105,7 +1105,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     while (zonelist) {
         if (ldns_dname_compare(ldns_rr_owner(query_rr), zonelist->dname) == 0)
         {
-            se_log_info("zone fetcher received NOTIFY for zone %s",
+            ods_log_info("zone fetcher received NOTIFY for zone %s",
                 zonelist->name?zonelist->name:"(null)");
             /* get latest serial */
             fd = fopen(zonelist->input_file, "r");
@@ -1116,7 +1116,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
                 fclose(fd);
             }
             if (odd_xfer(zonelist, serial, config, 1) != 0) {
-                se_log_error("AXFR for zone %s failed",
+                ods_log_error("AXFR for zone %s failed",
                     zonelist->name?zonelist->name:"(null)");
             }
             ldns_pkt_free(query_pkt);
@@ -1126,7 +1126,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
         zonelist = zonelist->next;
     }
     owner_name = ldns_rdf2str(ldns_rr_owner(query_rr));
-    se_log_warning("zone fetcher notify received for unknown zone: %s",
+    ods_log_warning("zone fetcher notify received for unknown zone: %s",
         owner_name?owner_name:"(null)");
     free((void*)owner_name);
     ldns_pkt_free(query_pkt);
@@ -1139,7 +1139,7 @@ read_n_bytes(int sock, uint8_t* buf, size_t sz)
     while(count < sz) {
         ssize_t nb = recv(sock, buf+count, sz-count, 0);
         if(nb < 0) {
-            se_log_error("zone fetcher recv() failed: %s",
+            ods_log_error("zone fetcher recv() failed: %s",
                 strerror(errno));
             return;
         }
@@ -1210,7 +1210,7 @@ handle_udp(int udp_sock, config_type* config)
     nb = recvfrom(udp_sock, inbuf, INBUF_SIZE, 0,
         (struct sockaddr*) &userdata.addr_him, &userdata.hislen);
     if (nb < 1) {
-        se_log_error("zone fetcher recvfrom() failed: %s",
+        ods_log_error("zone fetcher recvfrom() failed: %s",
             strerror(errno));
         return;
     }
@@ -1218,7 +1218,7 @@ handle_udp(int udp_sock, config_type* config)
     /* acl */
     if (!acl_matches(&userdata.addr_him, config)) {
         remote = (char*) malloc(sizeof(char)*userdata.hislen);
-        se_log_warning("zone fetcher refused message from "
+        ods_log_warning("zone fetcher refused message from "
             "unauthoritative source: %s",
             addr2ip(userdata.addr_him, remote, userdata.hislen));
         free((void*)remote);
@@ -1241,7 +1241,7 @@ handle_tcp(int tcp_sock, config_type* config)
     /* accept */
     hislen = (socklen_t)sizeof(addr_him);
     if((s = accept(tcp_sock, (struct sockaddr*)&addr_him, &hislen)) < 0) {
-        se_log_error("zone fetcher accept() failed: %s", strerror(errno));
+        ods_log_error("zone fetcher accept() failed: %s", strerror(errno));
         return;
     }
     userdata.s = s;
@@ -1250,7 +1250,7 @@ handle_tcp(int tcp_sock, config_type* config)
     read_n_bytes(s, (uint8_t*)&tcplen, sizeof(tcplen));
     tcplen = ntohs(tcplen);
     if(tcplen >= INBUF_SIZE) {
-        se_log_error("zone fetcher query %d bytes too large, "
+        ods_log_error("zone fetcher query %d bytes too large, "
             "buffer %d bytes.", tcplen, INBUF_SIZE);
         close(s);
         return;
@@ -1260,7 +1260,7 @@ handle_tcp(int tcp_sock, config_type* config)
     /* acl */
     if (!acl_matches(&addr_him, config)) {
         remote = (char*) malloc(sizeof(char)*hislen);
-        se_log_warning("zone fetcher refused message from "
+        ods_log_warning("zone fetcher refused message from "
             "unauthoritative source: %s",
             addr2ip(addr_him, remote, hislen));
         free((void*)remote);
@@ -1283,10 +1283,10 @@ reload_zonelist(config_type *config) {
     int added_count = 0, changed_count = 0, kept_count = 0;
     /* Fail softly if the zonelist cannot be accessed for reloading */
     if (!config->zonelist_file) {
-	    se_log_error("zone fetcher is unable to access the zonelist");
+	    ods_log_error("zone fetcher is unable to access the zonelist");
 	    return;
     } else {
-	    se_log_verbose("zone fetcher will reload the zonelist");
+	    ods_log_verbose("zone fetcher will reload the zonelist");
     }
     /* Read the zonelist file and construct a new linked list of zonelist entries */
     new_zonelist = read_zonelist (config->zonelist_file);
@@ -1338,12 +1338,12 @@ reload_zonelist(config_type *config) {
     while (new_zonelist) {
     	/* send the request -- assume no file is present so SOA is 0 */
 	    if (odd_xfer (new_zonelist, 0, config, 1) != 0) {
-	        se_log_error("AXFR for new zone %s failed", new_zonelist->name);
+	        ods_log_error("AXFR for new zone %s failed", new_zonelist->name);
 	    }
 	    /* next */
 	    new_zonelist = new_zonelist->next;
     }
-    se_log_verbose("Reloaded zonelist -- kept %d, changed %d and added %d zones",
+    ods_log_verbose("Reloaded zonelist -- kept %d, changed %d and added %d zones",
 		kept_count, changed_count, added_count);
     return;
 }
@@ -1381,7 +1381,7 @@ xfrd_ns(sockets_type* sockets, config_type* cfg)
         if (select(maxfd+1, &rset, &wset, &eset, NULL) < 0) {
             if (errno == EINTR)
                 continue;
-            se_log_error("zone fetcher select(): %s", strerror(errno));
+            ods_log_error("zone fetcher select(): %s", strerror(errno));
         }
 
         for (i=0; i < MAX_INTERFACES; i++) {
@@ -1447,13 +1447,13 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     int c, info = 0;
     struct sigaction action;
 
-    se_log_init(log_file, use_syslog, verbosity);
+    ods_log_init(log_file, use_syslog, verbosity);
 
     /* read transfer configuration */
     config = new_config();
     config->pidfile = strdup(ODS_ZF_PIDFILE); /* not freed */
     if (!config->pidfile) {
-        se_log_alert("zone fetcher error: no pidfile given");
+        ods_log_alert("zone fetcher error: no pidfile given");
         free_config(config);
         exit(EXIT_FAILURE);
     }
@@ -1468,7 +1468,7 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     }
 
     if (config->serverlist == NULL) {
-        se_log_alert("zone fetcher error: no master servers configured "
+        ods_log_alert("zone fetcher error: no master servers configured "
             "with <RequestTransfer>");
         free_config(config);
         exit(EXIT_FAILURE);
@@ -1483,12 +1483,12 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
 
     /* write pidfile */
     if (writepid(config->pidfile, getpid()) != 0) {
-        se_log_error("write pidfile %s failed", config->pidfile);
-        se_log_info("zone fetcher exiting...");
+        ods_log_error("write pidfile %s failed", config->pidfile);
+        ods_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
 
-    se_log_info("zone fetcher started");
+    ods_log_info("zone fetcher started");
 
     /* foreach zone, do a single axfr request */
     zonelist = config->zonelist;
@@ -1503,7 +1503,7 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
         }
         /* send the request */
         if (odd_xfer(zonelist, serial, config, 1) != 0) {
-            se_log_error("AXFR for zone %s failed",
+            ods_log_error("AXFR for zone %s failed",
                 zonelist->name?zonelist->name:"(null)");
         }
         /* next */
@@ -1513,41 +1513,41 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     /* listen to NOTIFY messages */
     c = init_sockets(&sockets, config->notifylist);
     if (c == -1) {
-        se_log_error("zone fetcher failed to initialize sockets");
+        ods_log_error("zone fetcher failed to initialize sockets");
         if (unlink(config->pidfile) == -1) {
-            se_log_error("unlink pidfile %s failed: %s",
+            ods_log_error("unlink pidfile %s failed: %s",
                 config->pidfile?config->pidfile:"(null)",
                 strerror(errno));
         }
-        se_log_info("zone fetcher exiting...");
+        ods_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
 
     /* drop privileges */
     if (privdrop(user, group, chroot) != 0) {
-        se_log_error("zone fetcher failed to drop privileges");
+        ods_log_error("zone fetcher failed to drop privileges");
         if (unlink(config->pidfile) == -1) {
-            se_log_error("unlink pidfile %s failed: %s",
+            ods_log_error("unlink pidfile %s failed: %s",
                 config->pidfile?config->pidfile:"(null)",
                 strerror(errno));
         }
         free_sockets(&sockets);
-        se_log_info("zone fetcher exiting...");
+        ods_log_info("zone fetcher exiting...");
         exit(EXIT_FAILURE);
     }
 
     xfrd_ns(&sockets, config);
 
     if (unlink(config->pidfile) == -1) {
-        se_log_warning("unlink pidfile %s failed: %s",
+        ods_log_warning("unlink pidfile %s failed: %s",
             config->pidfile?config->pidfile:"(null)",
             strerror(errno));
     }
     free_sockets(&sockets);
 
     /* done */
-    se_log_debug("zone fetcher done");
+    ods_log_debug("zone fetcher done");
     free_config(config);
-    se_log_close();
+    ods_log_close();
     return 0;
 }
