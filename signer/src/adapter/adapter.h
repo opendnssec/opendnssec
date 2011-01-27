@@ -34,8 +34,8 @@
 #ifndef ADAPTER_ADAPTER_H
 #define ADAPTER_ADAPTER_H
 
-#include "adapter/adfile.h"
 #include "config.h"
+#include "adapter/adfile.h"
 
 #include <stdio.h>
 
