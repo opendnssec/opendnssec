@@ -35,7 +35,7 @@
 #define SCHEDULER_TASK_H
 
 #include "config.h"
-#include "scheduler/locks.h"
+#include "shared/locks.h"
 
 #include <stdio.h>
 #include <time.h>
