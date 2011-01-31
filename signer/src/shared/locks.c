@@ -116,14 +116,16 @@ ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
 #ifndef HAVE_CLOCK_GETTIME
     struct timeval tv;
     if (gettimeofday(&tv, NULL) != 0) {
-        ods_log_error("[%s] gettimeofday() error: %s", lock_str, strerror(errno));
+        ods_log_error("[%s] clock_gettime() error: %s", lock_str,
+            strerror(errno));
         return 1;
     }
     ts.tv_sec = tv.tv_sec;
     ts.tv_nsec = (tv.tv_usec/1000);
 #else /* HAVE_CLOCK_GETTIME */
     if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
-        ods_log_error("[%s] clock_gettime() error: %s", lock_str, strerror(errno));
+        ods_log_error("[%s] clock_gettime() error: %s", lock_str,
+            strerror(errno));
         return 1;
     }
 #endif /* !HAVE_CLOCK_GETTIME */
