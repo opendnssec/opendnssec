@@ -32,9 +32,9 @@
  */
 
 #include "config.h"
+#include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/log.h"
-#include "util/se_malloc.h"
 
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
@@ -145,9 +145,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (n < 0) {
                     /* error occurred */
                     fprintf(stderr, "error: %s\n", strerror(errno));
-                    if (cmd) {
-                        se_free((void*)cmd);
-                    }
                     exit(1);
                 } else if (stdineof == 1) {
                     /* normal termination */
@@ -196,9 +193,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (ret != 0) {
                     fprintf(stderr, "shutdown failed: %s\n",
                         strerror(errno));
-                    if (cmd) {
-                        se_free((void*)cmd);
-                    }
                     exit(1);
                 }
                 FD_CLR(fileno(fp), &rset);
@@ -250,9 +244,6 @@ interface_start(char* cmd)
     if (sockfd <= 0) {
         fprintf(stderr, "Unable to connect to engine. "
             "socket() failed: %s\n", strerror(errno));
-        if (cmd) {
-            se_free((void*)cmd);
-        }
         exit(1);
     }
 
@@ -279,9 +270,6 @@ interface_start(char* cmd)
         }
 
         close(sockfd);
-        if (cmd) {
-            se_free((void*)cmd);
-        }
         exit(1);
     }
 
@@ -341,6 +329,11 @@ main(int argc, char* argv[])
     int options_size = 0;
     const char* options[sizeof(argv)];
     char* cmd = NULL;
+    allocator_type* clialloc = allocator_create(malloc, free);
+    if (!clialloc) {
+        fprintf(stderr,"error, malloc failed for client\n");
+        exit(1);
+    }
 
     /* command line options */
     for (c = 0; c < argc; c++) {
@@ -350,7 +343,11 @@ main(int argc, char* argv[])
         }
     }
     if (argc > 1) {
-        cmd = (char*) se_calloc(options_size+2,sizeof(char));
+        cmd = (char*) allocator_alloc(clialloc, (options_size+2)*sizeof(char));
+        if (!cmd) {
+            fprintf(stderr, "memory allocation failed\n");
+            exit(1);
+        }
         (void)strncpy(cmd, "", 1);
         for (c = 1; c < argc; c++) {
             (void)strncat(cmd, options[c], strlen(options[c]));
@@ -371,8 +368,6 @@ main(int argc, char* argv[])
     interface_start(cmd);
 
     /* done */
-    if (cmd) {
-        se_free((void*)cmd);
-    }
+    allocator_cleanup(clialloc);
     return 0;
 }
