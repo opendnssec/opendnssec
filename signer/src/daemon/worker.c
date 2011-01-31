@@ -33,6 +33,7 @@
 
 #include "daemon/engine.h"
 #include "daemon/worker.h"
+#include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/locks.h"
 #include "shared/log.h"
@@ -61,7 +62,6 @@ worker_create(int num, int type)
     ods_log_debug("create worker[%i]", num +1);
     worker->thread_num = num +1;
     worker->engineptr = NULL;
-    worker->tasklist = NULL;
     worker->task = NULL;
     worker->need_to_exit = 0;
     worker->type = type;
@@ -101,22 +101,26 @@ worker2str(int type)
 void
 worker_start(worker_type* worker)
 {
+    engine_type* engine = NULL;
     task_type* task = NULL;
     time_t now, timeout = 1;
     zone_type* zone = NULL;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_WORKER);
 
+    engine = (engine_type*) worker->engineptr;
+
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]]: report for duty", worker2str(worker->type),
             worker->thread_num);
-        lock_basic_lock(&worker->tasklist->tasklist_lock);
+        lock_basic_lock(&engine->taskq->schedule_lock);
         /* [LOCK] schedule */
-        worker->task = tasklist_pop_task(worker->engineptr->tasklist);
+        worker->task = schedule_pop_task(engine->taskq);
         /* [UNLOCK] schedule */
         if (worker->task) {
-            lock_basic_unlock(&worker->tasklist->tasklist_lock);
+            lock_basic_unlock(&engine->taskq->schedule_lock);
 
             zone = worker->task->zone;
             lock_basic_lock(&zone->zone_lock);
@@ -134,16 +138,17 @@ worker_start(worker_type* worker)
                     worker2str(worker->type), worker->thread_num, task->who);
                 task_cleanup(worker->task);
             } else {
-                lock_basic_lock(&worker->tasklist->tasklist_lock);
+                lock_basic_lock(&engine->taskq->schedule_lock);
                 zone->in_progress = 0;
-                task = tasklist_schedule_task(worker->tasklist, worker->task, 1);
-                if (!task) {
-                    ods_log_error("[%s[%i]] failed to schedule task", worker2str(worker->type));
+                status = schedule_task(engine->taskq, worker->task, 1);
+                if (status != ODS_STATUS_OK) {
+                    ods_log_error("[%s[%i]] failed to schedule task",
+                        worker2str(worker->type));
                 } else {
                     task_backup(task);
                     task = NULL;
                 }
-                lock_basic_unlock(&worker->tasklist->tasklist_lock);
+                lock_basic_unlock(&engine->taskq->schedule_lock);
             }
             worker->task = NULL;
             timeout = 1;
@@ -151,11 +156,11 @@ worker_start(worker_type* worker)
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
 
-            task = tasklist_first_task(worker->tasklist);
-            lock_basic_unlock(&worker->tasklist->tasklist_lock);
+            task = schedule_get_first_task(engine->taskq);
+            lock_basic_unlock(&engine->taskq->schedule_lock);
 
             now = time_now();
-            if (task && !worker->tasklist->loading) {
+            if (task && !engine->taskq->loading) {
                 timeout = (task->when - now);
             } else {
                 timeout *= 2;

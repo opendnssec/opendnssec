@@ -37,7 +37,9 @@
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "daemon/worker.h"
+#include "scheduler/schedule.h"
 #include "scheduler/task.h"
+#include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/locks.h"
 #include "shared/log.h"
@@ -69,15 +71,23 @@ static const char* engine_str = "engine";
  * Create engine.
  *
  */
-engine_type*
+static engine_type*
 engine_create(void)
 {
-    engine_type* engine = (engine_type*) se_malloc(sizeof(engine_type));
+    engine_type* engine;
+    allocator_type* allocator = allocator_create(malloc, free);
 
+    if (!allocator) {
+        return NULL;
+    }
+    engine = (engine_type*) allocator_alloc(allocator, sizeof(engine_type));
+    if (!engine) {
+        allocator->deallocator(allocator);
+        return NULL;
+    }
+    engine->allocator = allocator;
     engine->config = NULL;
     engine->daemonize = 0;
-    engine->zonelist = NULL;
-    engine->tasklist = NULL;
     engine->workers = NULL;
     engine->cmdhandler = NULL;
     engine->cmdhandler_done = 0;
@@ -87,6 +97,18 @@ engine_create(void)
     engine->gid = -1;
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
+
+    engine->zonelist = zonelist_create();
+    if (!engine->zonelist) {
+        engine_cleanup(engine);
+        return NULL;
+    }
+    engine->taskq = schedule_create(engine->allocator);
+    if (!engine->taskq) {
+        engine_cleanup(engine);
+        return NULL;
+    }
+
     lock_basic_init(&engine->signal_lock);
     lock_basic_set(&engine->signal_cond);
     return engine;
@@ -309,7 +331,6 @@ engine_create_workers(engine_type* engine)
 
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i] = worker_create(i, WORKER_WORKER);
-        engine->workers[i]->tasklist = engine->tasklist;
     }
     return;
 }
@@ -671,8 +692,6 @@ engine_setup(engine_type* engine)
     }
 
     /* set up the work floor */
-    engine->tasklist = tasklist_create(); /* tasks */
-    engine->zonelist = zonelist_create(); /* zones */
     engine_create_workers(engine); /* workers */
 
     return 0;
@@ -779,7 +798,8 @@ engine_update_zonelist(engine_type* engine, char* buf)
 
     zonelist_lock(engine->zonelist);
     zonelist_merge(engine->zonelist, new_zlist);
-    zonelist_update(engine->zonelist, engine->tasklist, engine->config->notify_command, buf);
+    zonelist_update(engine->zonelist, engine->taskq,
+        engine->config->notify_command, buf);
     zonelist_unlock(engine->zonelist);
     return 0;
 }
@@ -832,9 +852,9 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
 
     reload_zonefetcher(engine);
 
-    lock_basic_lock(&engine->tasklist->tasklist_lock);
-    engine->tasklist->loading = 1;
-    lock_basic_unlock(&engine->tasklist->tasklist_lock);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    engine->taskq->loading = 1;
+    lock_basic_unlock(&engine->taskq->schedule_lock);
 
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
@@ -846,21 +866,21 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
             if (zone_name) {
                 ods_log_debug("update zone %s (signconf file %s)", zone->name,
                     zone->signconf_filename?zone->signconf_filename:"(null)");
-                lock_basic_lock(&engine->tasklist->tasklist_lock);
-                tmp = zone_update_signconf(zone, engine->tasklist, buf);
+                lock_basic_lock(&engine->taskq->schedule_lock);
+                tmp = zone_update_signconf(zone, engine->taskq, buf);
                 zone->fetch = (engine->config->zonefetch_filename != NULL);
-                engine->tasklist->loading = 0;
+                engine->taskq->loading = 0;
 
-                lock_basic_unlock(&engine->tasklist->tasklist_lock);
+                lock_basic_unlock(&engine->taskq->schedule_lock);
                 lock_basic_unlock(&zone->zone_lock);
                 return 0;
             }
 
-            lock_basic_lock(&engine->tasklist->tasklist_lock);
-            tmp = zone_update_signconf(zone, engine->tasklist, buf);
+            lock_basic_lock(&engine->taskq->schedule_lock);
+            tmp = zone_update_signconf(zone, engine->taskq, buf);
             zone->fetch = (engine->config->zonefetch_filename != NULL);
 
-            lock_basic_unlock(&engine->tasklist->tasklist_lock);
+            lock_basic_unlock(&engine->taskq->schedule_lock);
 
             if (tmp < 0) {
                 errors++;
@@ -875,9 +895,9 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
         node = ldns_rbtree_next(node);
     }
 
-    lock_basic_lock(&engine->tasklist->tasklist_lock);
-    engine->tasklist->loading = 0;
-    lock_basic_unlock(&engine->tasklist->tasklist_lock);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    engine->taskq->loading = 0;
+    lock_basic_unlock(&engine->taskq->schedule_lock);
 
     if (zone_name) {
         ods_log_debug("zone %s not found", zone_name);
@@ -911,9 +931,9 @@ engine_recover_from_backups(engine_type* engine)
     ods_log_assert(engine->zonelist);
     ods_log_assert(engine->zonelist->zones);
 
-    lock_basic_lock(&engine->tasklist->tasklist_lock);
-    engine->tasklist->loading = 1;
-    lock_basic_unlock(&engine->tasklist->tasklist_lock);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    engine->taskq->loading = 1;
+    lock_basic_unlock(&engine->taskq->schedule_lock);
 
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
@@ -925,16 +945,16 @@ engine_recover_from_backups(engine_type* engine)
             set_notify_ns(zone, engine->config->notify_command);
         }
 
-        lock_basic_lock(&engine->tasklist->tasklist_lock);
-        zone_recover_from_backup(zone, engine->tasklist);
-        lock_basic_unlock(&engine->tasklist->tasklist_lock);
+        lock_basic_lock(&engine->taskq->schedule_lock);
+        zone_recover_from_backup(zone, engine->taskq);
+        lock_basic_unlock(&engine->taskq->schedule_lock);
         lock_basic_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
 
-    lock_basic_lock(&engine->tasklist->tasklist_lock);
-    engine->tasklist->loading = 0;
-    lock_basic_unlock(&engine->tasklist->tasklist_lock);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    engine->taskq->loading = 0;
+    lock_basic_unlock(&engine->taskq->schedule_lock);
 
     return;
 }
@@ -1041,26 +1061,33 @@ void
 engine_cleanup(engine_type* engine)
 {
     size_t i = 0;
+    allocator_type* allocator;
+    cond_basic_type signal_cond;
+    lock_basic_type signal_lock;
 
-    if (engine) {
-        if (engine->workers) {
-            for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-                worker_cleanup(engine->workers[i]);
-            }
-            se_free((void*) engine->workers);
-        }
-        if (engine->tasklist) {
-            tasklist_cleanup(engine->tasklist);
-            engine->tasklist = NULL;
-        }
-        if (engine->zonelist) {
-            zonelist_cleanup(engine->zonelist);
-            engine->zonelist = NULL;
-        }
-        parent_cleanup(engine, 1);
-        lock_basic_destroy(&engine->signal_lock);
-        lock_basic_off(&engine->signal_cond);
-        se_free((void*) engine);
+    if (!engine) {
+        return;
     }
+    allocator = engine->allocator;
+    signal_cond = engine->signal_cond;
+    signal_lock = engine->signal_lock;
+
+    if (engine->workers) {
+        for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+            worker_cleanup(engine->workers[i]);
+        }
+        se_free((void*) engine->workers);
+    }
+    schedule_cleanup(engine->taskq);
+    if (engine->zonelist) {
+        zonelist_cleanup(engine->zonelist);
+        engine->zonelist = NULL;
+    }
+    parent_cleanup(engine, 1);
+
+    allocator_deallocate(engine->allocator);
+    allocator_cleanup(allocator);
+    lock_basic_destroy(&signal_lock);
+    lock_basic_off(&signal_cond);
     return;
 }

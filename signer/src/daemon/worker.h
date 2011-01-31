@@ -48,7 +48,6 @@ typedef struct worker_struct worker_type;
 struct worker_struct {
     int thread_num;
     ods_thread_type thread_id;
-    tasklist_type* tasklist;
     task_type* task;
     struct engine_struct* engineptr;
     int type;

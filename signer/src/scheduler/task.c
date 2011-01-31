@@ -46,7 +46,6 @@
 #include <string.h> /* strlen() */
 
 static const char* task_str = "task";
-static void log_task(task_type* task);
 
 
 /**
@@ -54,7 +53,7 @@ static void log_task(task_type* task);
  *
  */
 task_type*
-task_create(int what, time_t when, const char* who, struct zone_struct* zone)
+task_create(task_id what, time_t when, const char* who, struct zone_struct* zone)
 {
     task_type* task = (task_type*) se_malloc(sizeof(task_type));
 
@@ -208,43 +207,56 @@ int task_compare(const void* a, const void* b)
 
 
 /**
- * Convert task id to string.
+ * String-format of what.
  *
  */
-static const char*
-taskid2str(int taskid)
+const char*
+task_what2str(int what)
 {
-    switch (taskid) {
+    switch (what) {
         case TASK_NONE:
-            return "do nothing with";
+            return "[do nothing with]";
             break;
         case TASK_READ:
-            return "read and sign";
+            return "[read]";
             break;
         case TASK_ADDKEYS:
-            return "add keys and sign";
+            return "[add dnskeys for]";
             break;
         case TASK_UPDATE:
-            return "prepare and sign";
+            return "[commit updates for]";
             break;
         case TASK_NSECIFY:
-            return "nsecify and sign";
+            return "[nsecify]";
             break;
         case TASK_SIGN:
-            return "sign";
+            return "[sign]";
             break;
         case TASK_AUDIT:
-            return "audit";
+            return "[audit]";
             break;
         case TASK_WRITE:
-            return "output signed";
+            return "[write]";
             break;
         default:
-            return "???";
+            return "[???]";
             break;
     }
+    return "[???]";
+}
 
-    return "???";
+
+/**
+ * String-format of who.
+ *
+ */
+const char*
+task_who2str(const char* who)
+{
+    if (who) {
+        return who;
+    }
+    return "(null)";
 }
 
 
@@ -259,8 +271,6 @@ task2str(task_type* task, char* buftask)
     char* strtime = NULL;
     char* strtask = NULL;
 
-    ods_log_assert(task);
-
     if (task) {
         if (task->flush) {
             strtime = ctime(&now);
@@ -271,15 +281,15 @@ task2str(task_type* task, char* buftask)
             strtime[strlen(strtime)-1] = '\0';
         }
         if (buftask) {
-            (void)snprintf(buftask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
-                strtime?strtime:"(null)", taskid2str(task->what),
-                task->who?task->who:"(null)");
+            (void)snprintf(buftask, ODS_SE_MAXLINE, "On %s I will %s zone %s"
+                "\n", strtime?strtime:"(null)", task_what2str(task->what),
+                task_who2str(task->who));
             return buftask;
         } else {
-            strtask = (char*) se_calloc(ODS_SE_MAXLINE, sizeof(char));
+            strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
             snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
-                strtime?strtime:"(null)", taskid2str(task->what),
-                task->who?task->who:"(null)");
+                strtime?strtime:"(null)", task_what2str(task->what),
+                task_who2str(task->who));
             return strtask;
         }
     }
@@ -307,7 +317,7 @@ task_print(FILE* out, task_type* task)
             strtime[strlen(strtime)-1] = '\0';
         }
         fprintf(out, "On %s I will %s zone %s\n", strtime?strtime:"(null)",
-            taskid2str(task->what), task->who?task->who:"(null)");
+            task_what2str(task->what), task_who2str(task->who));
     }
     return;
 }
@@ -317,8 +327,8 @@ task_print(FILE* out, task_type* task)
  * Log task.
  *
  */
-static void
-log_task(task_type* task)
+void
+task_log(task_type* task)
 {
     time_t now = time_now();
     char* strtime = NULL;
@@ -334,281 +344,7 @@ log_task(task_type* task)
         }
         ods_log_debug("[%s] On %s I will %s zone %s", task_str,
             strtime?strtime:"(null)",
-            taskid2str(task->what), task->who?task->who:"(null)");
+            task_what2str(task->what), task_who2str(task->who));
     }
-    return;
-}
-
-
-/**
- * New task list.
- *
- */
-tasklist_type*
-tasklist_create(void)
-{
-    tasklist_type* tl = (tasklist_type*) se_malloc(sizeof(tasklist_type));
-
-    ods_log_debug("[%s] create task list", task_str);
-    tl->tasks = ldns_rbtree_create(task_compare);
-    lock_basic_init(&tl->tasklist_lock);
-
-    lock_basic_lock(&tl->tasklist_lock);
-    tl->loading = 0;
-    lock_basic_unlock(&tl->tasklist_lock);
-    return tl;
-}
-
-
-/**
- * Clean up task list.
- *
- */
-void
-tasklist_cleanup(tasklist_type* list)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* task = NULL;
-
-    if (list) {
-        ods_log_debug("[%s] clean up task list", task_str);
-        if (list->tasks) {
-            node = ldns_rbtree_first(list->tasks);
-            while (node != LDNS_RBTREE_NULL) {
-                task = (task_type*) node->data;
-                task_cleanup(task);
-                node = ldns_rbtree_next(node);
-            }
-            se_rbnode_free(list->tasks->root);
-            ldns_rbtree_free(list->tasks);
-            list->tasks = NULL;
-        }
-        lock_basic_destroy(&list->tasklist_lock);
-        se_free((void*) list);
-    }
-    return;
-}
-
-
-/**
- * Convert task to a tree node.
- *
- */
-static ldns_rbnode_t*
-task2node(task_type* task)
-{
-    ldns_rbnode_t* node = (ldns_rbnode_t*) se_malloc(sizeof(ldns_rbnode_t));
-    if (!node) {
-        return NULL;
-    }
-    node->key = task;
-    node->data = task;
-    return node;
-}
-
-
-/**
- * Look up task.
- *
- */
-static task_type*
-tasklist_lookup(tasklist_type* list, task_type* task)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-
-    ods_log_assert(task);
-    ods_log_assert(list);
-    ods_log_assert(list->tasks);
-
-    node = ldns_rbtree_search(list->tasks, task);
-    if (node && node != LDNS_RBTREE_NULL) {
-        return (task_type*) node->data;
-    }
-    return NULL;
-}
-
-
-/**
- * Schedule a task.
- *
- */
-task_type*
-tasklist_schedule_task(tasklist_type* list, task_type* task, int log)
-{
-    ldns_rbnode_t* new_node = NULL;
-    zone_type* zone = NULL;
-
-    ods_log_assert(list);
-    ods_log_assert(list->tasks);
-    ods_log_assert(task);
-    ods_log_debug("[%s] schedule task", task_str);
-
-    zone = task->zone;
-    if (zone->in_progress) {
-        ods_log_error("[%s] unable to schedule task %s for zone %s: "
-            " zone in progress", task_str, taskid2str(task->what),
-            task->who?task->who:"(null)");
-        task_cleanup(task);
-        return NULL;
-    }
-
-    if (tasklist_lookup(list, task) != NULL) {
-        ods_log_error("[%s] unable to schedule task %s for zone %s: "
-            " already present", task_str, taskid2str(task->what),
-            task->who?task->who:"(null)");
-        task_cleanup(task);
-        return NULL;
-    }
-
-    new_node = task2node(task);
-    if (ldns_rbtree_insert(list->tasks, new_node) == NULL) {
-        ods_log_error("[%s] unable to schedule task %s for zone %s: "
-            " insert failed", task_str, taskid2str(task->what),
-            task->who?task->who:"(null)");
-        task_cleanup(task);
-        se_free((void*) new_node);
-        return NULL;
-    }
-
-    if (log) {
-        log_task(task);
-    }
-    return task;
-}
-
-
-/**
- * Flush task list.
- *
- */
-void
-tasklist_flush(tasklist_type* list, task_id what)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* task = NULL;
-
-    ods_log_assert(list);
-    ods_log_assert(list->tasks);
-    ods_log_debug("[%s] flush task list", task_str);
-
-    node = ldns_rbtree_first(list->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->data;
-        task->flush = 1;
-        if (what != TASK_NONE) {
-            task->what = what;
-        }
-        node = ldns_rbtree_next(node);
-    }
-    return;
-}
-
-
-/**
- * Delete task from task list.
- *
- */
-task_type*
-tasklist_delete_task(tasklist_type* list, task_type* task)
-{
-    ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
-    task_type* del_task = NULL;
-
-    ods_log_assert(list);
-    ods_log_assert(list->tasks);
-
-    if (task) {
-        ods_log_debug("[%s] delete task from list", task_str);
-        del_node = ldns_rbtree_delete(list->tasks, (const void*) task);
-        if (del_node) {
-            del_task = (task_type*) del_node->data;
-            se_free((void*)del_node);
-            return del_task;
-        } else {
-            ods_log_error("[%s] delete task failed", task_str);
-            log_task(task);
-        }
-    }
-    return NULL;
-}
-
-
-/**
- * Pop task from task list.
- *
- */
-task_type*
-tasklist_pop_task(tasklist_type* list)
-{
-    ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
-    task_type* pop = NULL;
-    time_t now;
-
-    ods_log_assert(list);
-    ods_log_assert(list->tasks);
-
-    first_node = ldns_rbtree_first(list->tasks);
-    if (!first_node) {
-        return NULL;
-    }
-
-    now = time_now();
-    pop = (task_type*) first_node->key;
-    if (pop && (pop->flush || pop->when <= now)) {
-        if (pop->flush) {
-            ods_log_debug("[%s] flush task for zone %s", task_str, pop->who?pop->who:"(null)");
-        } else {
-            ods_log_debug("[%s] pop task for zone %s", task_str, pop->who?pop->who:"(null)");
-        }
-        pop->flush = 0;
-        return tasklist_delete_task(list, pop);
-    }
-    return NULL;
-}
-
-
-/**
- * First task from task list.
- *
- */
-task_type*
-tasklist_first_task(tasklist_type* list)
-{
-    ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
-    task_type* pop = NULL;
-
-    ods_log_assert(list);
-    ods_log_assert(list->tasks);
-
-    first_node = ldns_rbtree_first(list->tasks);
-    if (!first_node) {
-        return NULL;
-    }
-
-    pop = (task_type*) first_node->data;
-    return pop;
-}
-
-
-/**
- * Print task list.
- *
- */
-void
-tasklist_print(FILE* out, tasklist_type* list)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* task = NULL;
-
-    ods_log_assert(out);
-    ods_log_assert(list);
-
-    node = ldns_rbtree_first(list->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->data;
-        task_print(out, task);
-        node = ldns_rbtree_next(node);
-    }
-    fprintf(out, "\n");
     return;
 }

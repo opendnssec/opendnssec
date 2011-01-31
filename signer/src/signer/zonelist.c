@@ -35,6 +35,7 @@
 #include "daemon/engine.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
+#include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/file.h"
 #include "shared/log.h"
@@ -339,7 +340,7 @@ zonelist_del_zone(zonelist_type* zlist, zone_type* zone)
  *
  */
 void
-zonelist_update(zonelist_type* zl, struct tasklist_struct* tl,
+zonelist_update(zonelist_type* zl, struct schedule_struct* tl,
     const char* cmd, char* buf)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
@@ -358,7 +359,7 @@ zonelist_update(zonelist_type* zl, struct tasklist_struct* tl,
         if (zone->tobe_removed) {
             if (zone->task) {
                 /* remove task from queue */
-                task = tasklist_delete_task(tl, zone->task);
+                task = unschedule_task((schedule_type*) tl, zone->task);
                 task_cleanup(task);
             }
             node = ldns_rbtree_next(node);

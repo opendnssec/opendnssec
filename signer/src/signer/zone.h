@@ -45,7 +45,7 @@
 #include <ldns/ldns.h>
 
 struct task_struct;
-struct tasklist_struct;
+struct schedule_struct;
 
 /**
  * Zone.
@@ -112,7 +112,7 @@ void zone_update_zonelist(zone_type* z1, zone_type* z2);
  * \return int 0 on success, 1 on error
  *
  */
-int zone_update_signconf(zone_type* zone, struct tasklist_struct* tl,
+int zone_update_signconf(zone_type* zone, struct schedule_struct* tl,
     char* buf);
 
 /**
@@ -180,7 +180,7 @@ int zone_backup_state(zone_type* zone);
  * \param[in] tl task list
  *
  */
-void zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl);
+void zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl);
 
 /**
  * Clean up a zone.

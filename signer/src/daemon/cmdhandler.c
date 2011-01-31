@@ -33,9 +33,12 @@
 
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
+#include "scheduler/schedule.h"
+#include "scheduler/task.h"
 #include "shared/file.h"
 #include "shared/locks.h"
 #include "shared/log.h"
+#include "shared/status.h"
 #include "util/se_malloc.h"
 
 #include <errno.h>
@@ -161,7 +164,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
     ods_log_assert(cmdc->engine->config);
-    ods_log_assert(cmdc->engine->tasklist);
+    ods_log_assert(cmdc->engine->taskq);
 
     if (ods_strcmp(tbd, "--all") == 0) {
         ods_log_info("[%s] updating zone list", cmdh_str);
@@ -205,39 +208,39 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     int found = 0, scheduled = 0;
     char buf[ODS_SE_MAXLINE];
     size_t i = 0;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
     ods_log_assert(cmdc->engine->config);
-    ods_log_assert(cmdc->engine->tasklist);
+    ods_log_assert(cmdc->engine->taskq);
 
-    /* lock tasklist */
-    lock_basic_lock(&cmdc->engine->tasklist->tasklist_lock);
+    /* lock schedule */
+    lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
 
     if (ods_strcmp(tbd, "--all") == 0) {
-        tasklist_flush(cmdc->engine->tasklist, TASK_READ);
+        schedule_flush(cmdc->engine->taskq, TASK_READ);
     } else {
-        node = ldns_rbtree_first(cmdc->engine->tasklist->tasks);
+        node = ldns_rbtree_first(cmdc->engine->taskq->tasks);
         while (node && node != LDNS_RBTREE_NULL) {
             task = (task_type*) node->key;
             if (ods_strcmp(tbd, task->who) == 0) {
                 found = 1;
-                task = tasklist_delete_task(cmdc->engine->tasklist, task);
+                task = unschedule_task(cmdc->engine->taskq, task);
                 if (!task) {
-                    ods_log_error("[%s] cannot immediate sign zone %s: delete old "
-                        "task failed", cmdh_str, tbd);
+                    ods_log_error("[%s] cannot immediate sign zone %s: "
+                        "unschedule task failed", cmdh_str, tbd);
                     (void)snprintf(buf, ODS_SE_MAXLINE, "Sign zone %s "
                         "failed.\n", tbd);
                     ods_writen(sockfd, buf, strlen(buf));
-                    lock_basic_unlock(&cmdc->engine->tasklist->tasklist_lock);
+                    lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
                     return;
                 } else {
                     task->when = now;
                     task->what = TASK_READ;
-                    task = tasklist_schedule_task(cmdc->engine->tasklist,
-                        task, 0);
-                    if (task) {
+                    status = schedule_task(cmdc->engine->taskq, task, 0);
+                    if (status == ODS_STATUS_OK) {
                        scheduled = 1;
                     }
                 }
@@ -247,8 +250,8 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         }
     }
 
-    /* unlock tasklist */
-    lock_basic_unlock(&cmdc->engine->tasklist->tasklist_lock);
+    /* unlock schedule */
+    lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
 
     if (ods_strcmp(tbd, "--all") == 0) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "All zones scheduled for "
@@ -384,25 +387,25 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
 
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    if (!cmdc->engine->tasklist || !cmdc->engine->tasklist->tasks) {
+    if (!cmdc->engine->taskq || !cmdc->engine->taskq->tasks) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "I have no tasks scheduled.\n");
         ods_writen(sockfd, buf, strlen(buf));
         return;
     }
 
-    /* lock tasklist */
-    lock_basic_lock(&cmdc->engine->tasklist->tasklist_lock);
+    /* lock schedule */
+    lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
 
     /* how many tasks */
     now = time_now();
     strtime = ctime(&now);
     (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i tasks scheduled\nIt is "
-        "now %s", (int) cmdc->engine->tasklist->tasks->count,
+        "now %s", (int) cmdc->engine->taskq->tasks->count,
         strtime?strtime:"(null)");
     ods_writen(sockfd, buf, strlen(buf));
 
     /* list tasks */
-    node = ldns_rbtree_first(cmdc->engine->tasklist->tasks);
+    node = ldns_rbtree_first(cmdc->engine->taskq->tasks);
     while (node && node != LDNS_RBTREE_NULL) {
         task = (task_type*) node->key;
         for (i=0; i < ODS_SE_MAXLINE; i++) {
@@ -413,8 +416,8 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         node = ldns_rbtree_next(node);
     }
 
-    /* unlock tasklist */
-    lock_basic_unlock(&cmdc->engine->tasklist->tasklist_lock);
+    /* unlock schedule */
+    lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
     return;
 }
 
@@ -432,11 +435,11 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
     ods_log_assert(cmdc->engine->config);
-    ods_log_assert(cmdc->engine->tasklist);
+    ods_log_assert(cmdc->engine->taskq);
 
-    lock_basic_lock(&cmdc->engine->tasklist->tasklist_lock);
-    tasklist_flush(cmdc->engine->tasklist, TASK_NONE);
-    lock_basic_unlock(&cmdc->engine->tasklist->tasklist_lock);
+    lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
+    schedule_flush(cmdc->engine->taskq, TASK_NONE);
+    lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
 
     /* wake up sleeping workers */
     for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {

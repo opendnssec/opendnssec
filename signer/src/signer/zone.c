@@ -32,12 +32,14 @@
  */
 
 #include "adapter/adapter.h"
+#include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
+#include "shared/status.h"
 #include "shared/util.h"
 #include "signer/backup.h"
 #include "signer/nsec3params.h"
@@ -155,7 +157,7 @@ zone_update_zonelist(zone_type* z1, zone_type* z2)
  *
  */
 int
-zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
+zone_update_signconf(zone_type* zone, struct schedule_struct* tl, char* buf)
 {
     task_type* task = NULL;
     signconf_type* signconf = NULL;
@@ -164,6 +166,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
     time_t last_modified = 0;
     time_t now = 0;
     int update = 0;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(zone);
     ods_log_debug("[%s] load zone %s signconf %s", zone_str,
@@ -223,8 +226,8 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         /* create task for new zone */
         now = time_now();
         zone->task = task_create(TASK_READ, now, zone->name, zone);
-        task = tasklist_schedule_task(tl, zone->task, 0);
-        if (!task) {
+        status = schedule_task((schedule_type*) tl, zone->task, 0);
+        if (status != ODS_STATUS_OK) {
             if (buf) {
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s now has config, "
                     "but could not be scheduled.\n",
@@ -240,7 +243,7 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         return 1;
     } else {
         /* update task for new zone */
-        task = tasklist_delete_task(tl, zone->task);
+        task = unschedule_task((schedule_type*) tl, zone->task);
         if (!task) {
             ods_log_error("cannot update zone %s: delete old task failed", zone_str,
                 zone->name);
@@ -285,8 +288,8 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
             }
         }
 
-        task = tasklist_schedule_task(tl, zone->task, 0);
-        if (!task) {
+        status = schedule_task((schedule_type*) tl, zone->task, 0);
+        if (status != ODS_STATUS_OK) {
             if (buf) {
                 (void)snprintf(buf, ODS_SE_MAXLINE,
                     "Zone %s config updated, but could not be schedulted.\n",
@@ -924,7 +927,7 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
  *
  */
 void
-zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
+zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
 {
     int klass = 0;
     int fetch = 0;
@@ -933,6 +936,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     task_type* task = NULL;
     time_t now = 0;
     FILE* fd = NULL;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(zone);
     ods_log_assert(zone->zonedata);
@@ -1078,8 +1082,8 @@ abort_recover:
             zone->task->what = TASK_READ;
         }
 
-        task = tasklist_schedule_task(tl, zone->task, 1);
-        if (!task) {
+        status = schedule_task((schedule_type*) tl, zone->task, 1);
+        if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] failed to schedule task for zone %s", zone_str, zone->name);
         }
     }

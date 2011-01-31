@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include <time.h>
 
-struct tasklist_struct;
+struct schedule_struct;
 
 /**
  * Zone list
@@ -107,7 +107,7 @@ zone_type* zonelist_add_zone(zonelist_type* zonelist, zone_type* zone);
  * /param[in] buf feedback message
  *
  */
-void zonelist_update(zonelist_type* zl, struct tasklist_struct* tl,
+void zonelist_update(zonelist_type* zl, struct schedule_struct* tl,
     const char* cmd, char* buf);
 
 /**

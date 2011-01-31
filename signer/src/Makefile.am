@@ -28,6 +28,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				parser/confparser.c parser/confparser.h \
 				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
+				scheduler/schedule.c scheduler/schedule.h \
 				scheduler/task.c scheduler/task.h \
 				shared/allocator.c shared/allocator.h \
 				shared/duration.c shared/duration.h \

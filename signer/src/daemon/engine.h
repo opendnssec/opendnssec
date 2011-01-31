@@ -38,7 +38,9 @@
 #include "daemon/cmdhandler.h"
 #include "daemon/cfg.h"
 #include "daemon/worker.h"
+#include "scheduler/schedule.h"
 #include "scheduler/task.h"
+#include "shared/allocator.h"
 #include "shared/locks.h"
 #include "signer/zonelist.h"
 
@@ -55,11 +57,12 @@
  */
 typedef struct engine_struct engine_type;
 struct engine_struct {
+    allocator_type* allocator;
     engineconfig_type* config;
     cmdhandler_type* cmdhandler;
     worker_type** workers;
     zonelist_type* zonelist;
-    tasklist_type* tasklist;
+    schedule_type* taskq;
     int cmdhandler_done;
 
     sig_atomic_t signal;
@@ -75,13 +78,6 @@ struct engine_struct {
     int need_to_exit;
     int need_to_reload;
 };
-
-/**
- * Create engine.
- * \return engine_type* created engine
- *
- */
-engine_type* engine_create(void);
 
 /**
  * Start engine.
