@@ -36,10 +36,10 @@
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
 #include "scheduler/task.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/zone.h"
 #include "signer/zonelist.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
@@ -99,7 +99,7 @@ zonelist_read(const char* zlfile, time_t last_modified)
     ods_log_verbose("[%s] read file %s", zl_str, zlfile);
 
     /* is the file updated? */
-    st_mtime = se_file_lastmodified(zlfile);
+    st_mtime = ods_file_lastmodified(zlfile);
     if (st_mtime <= last_modified) {
         ods_log_debug("[%s] zone list file %s is unchanged",
             zl_str, zlfile);
@@ -247,7 +247,7 @@ zonelist_lookup_zone_by_name(zonelist_type* zonelist, const char* name)
     }
     while (node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->key;
-        if (se_strcmp(zone->name, name) == 0) {
+        if (ods_strcmp(zone->name, name) == 0) {
             return zone;
         }
         node = ldns_rbtree_next(node);

@@ -33,10 +33,10 @@
 
 #include "adapter/adapter.h"
 #include "parser/zonelistparser.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/zonelist.h"
 #include "signer/zone.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 #include <libxml/xpath.h>
@@ -175,8 +175,8 @@ parse_zonelist_zones(const char* zlfile)
     ret = xmlTextReaderRead(reader);
     while (ret == XML_READER_TYPE_ELEMENT) {
         tag_name = (char*) xmlTextReaderLocalName(reader);
-        if (se_strcmp(tag_name, "Zone") == 0 &&
-            se_strcmp(tag_name, "ZoneList") != 0 &&
+        if (ods_strcmp(tag_name, "Zone") == 0 &&
+            ods_strcmp(tag_name, "ZoneList") != 0 &&
             xmlTextReaderNodeType(reader) == XML_READER_TYPE_ELEMENT) {
             /* Found a zone */
             zone_name = (char*) xmlTextReaderGetAttribute(reader,

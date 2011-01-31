@@ -119,7 +119,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
 
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
-            if (se_strcmp(token, ";DNAME") == 0) {
+            if (ods_strcmp(token, ";DNAME") == 0) {
                 current_domain = domain_recover_from_backup(fd);
                 if (!current_domain) {
                     ods_log_error("[%s] error reading domain from backup file", zd_str);
@@ -150,7 +150,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                         new_node = NULL;
                     }
                 }
-            } else if (se_strcmp(token, ";DNAME3") == 0) {
+            } else if (ods_strcmp(token, ";DNAME3") == 0) {
                 ods_log_assert(current_domain);
                 current_domain->nsec3 = domain_recover_from_backup(fd);
                 if (!current_domain->nsec3) {
@@ -172,7 +172,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                     }
                     new_node = NULL;
                 }
-            } else if (se_strcmp(token, ";NSEC") == 0) {
+            } else if (ods_strcmp(token, ";NSEC") == 0) {
                 status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
                 if (status != LDNS_STATUS_OK) {
                     ods_log_error("[%s] error reading NSEC RR from backup file", zd_str);
@@ -190,7 +190,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                 }
                 rr = NULL;
                 status = LDNS_STATUS_OK;
-            } else if (se_strcmp(token, ";NSEC3") == 0) {
+            } else if (ods_strcmp(token, ";NSEC3") == 0) {
                 status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
                 if (status != LDNS_STATUS_OK) {
                     ods_log_error("[%s] error reading NSEC3 RR from backup file", zd_str);
@@ -209,7 +209,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                 }
                 rr = NULL;
                 status = LDNS_STATUS_OK;
-            } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+            } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
                 se_free((void*)token);
                 token = NULL;
                 break;
@@ -884,7 +884,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
 
 
 static int
-se_max(uint32_t a, uint32_t b)
+ods_max(uint32_t a, uint32_t b)
 {
     return (a>b?a:b);
 }
@@ -914,14 +914,14 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         return 1;
     }
 
-    if (se_strcmp(sc->soa_serial, "unixtime") == 0) {
-        soa = se_max(zd->inbound_serial, (uint32_t) time_now());
+    if (ods_strcmp(sc->soa_serial, "unixtime") == 0) {
+        soa = ods_max(zd->inbound_serial, (uint32_t) time_now());
         if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
         update = soa - prev;
     } else if (strncmp(sc->soa_serial, "counter", 7) == 0) {
-        soa = se_max(zd->inbound_serial, prev);
+        soa = ods_max(zd->inbound_serial, prev);
         if (!zd->initialized) {
             zd->internal_serial = soa + 1;
             zd->initialized = 1;
@@ -933,7 +933,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         update = soa - prev;
     } else if (strncmp(sc->soa_serial, "datecounter", 11) == 0) {
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
-        soa = se_max(zd->inbound_serial, soa);
+        soa = ods_max(zd->inbound_serial, soa);
         if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }

@@ -33,10 +33,10 @@
 
 #include "scheduler/task.h"
 #include "shared/duration.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/zone.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 #include <ldns/ldns.h> /* ldns_dname_*(), ldns_rdf_*(), ldns_rbtree_*() */
@@ -93,7 +93,7 @@ task_recover_from_backup(const char* filename, struct zone_struct* zone)
     time_t backoff = 0;
 
     ods_log_assert(zone);
-    fd = se_fopen(filename, NULL, "r");
+    fd = ods_fopen(filename, NULL, "r");
     if (fd) {
         if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
             !backup_read_check_str(fd, ";who:") ||
@@ -117,7 +117,7 @@ task_recover_from_backup(const char* filename, struct zone_struct* zone)
             task->backoff = backoff;
         }
         se_free((void*)who);
-        se_fclose(fd);
+        ods_fclose(fd);
         return task;
     }
 
@@ -142,8 +142,8 @@ task_backup(task_type* task)
     }
 
     if (task->who) {
-        filename = se_build_path(task->who, ".task", 0);
-        fd = se_fopen(filename, NULL, "w");
+        filename = ods_build_path(task->who, ".task", 0);
+        fd = ods_fopen(filename, NULL, "w");
         se_free((void*)filename);
     } else {
         return;
@@ -157,7 +157,7 @@ task_backup(task_type* task)
         fprintf(fd, ";flush: %i\n", task->flush);
         fprintf(fd, ";backoff: %u\n", (uint32_t) task->backoff);
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        se_fclose(fd);
+        ods_fclose(fd);
     } else {
         ods_log_warning("[%s] cannot backup task for zone %s: cannot open file "
         "%s.task for writing", task_str, task->who, task->who);

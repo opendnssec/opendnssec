@@ -34,11 +34,11 @@
 #include "adapter/adapter.h"
 #include "adapter/adfile.h"
 #include "config.h"
+#include "shared/duration.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/zone.h"
 #include "signer/zonedata.h"
-#include "util/duration.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 #include "util/util.h"
 
@@ -114,10 +114,10 @@ adfile_read_line(FILE* fd, char* line, unsigned int* l)
     char lc = 0;
 
     for (i = 0; i < SE_ADFILE_MAXLINE; i++) {
-        c = (char) se_fgetc(fd, l);
+        c = (char) ods_fgetc(fd, l);
         if (comments) {
             while (c != EOF && c != '\n') {
-                c = (char) se_fgetc(fd, l);
+                c = (char) ods_fgetc(fd, l);
             }
         }
 
@@ -307,11 +307,11 @@ adfile_read_line:
                     while (isspace(line[offset])) {
                         offset++;
                     }
-                    fd_include = se_fopen(line + offset, NULL, "r");
+                    fd_include = ods_fopen(line + offset, NULL, "r");
                     if (fd_include) {
                         error = adfile_read_file(fd_include, adzone, 1,
                             recover);
-                        se_fclose(fd_include);
+                        ods_fclose(fd_include);
                     } else {
                         ods_log_error("[%s] unable to open include file %s",
                             adapter_str, (line+offset));
@@ -425,7 +425,7 @@ adfile_read_file(FILE* fd, struct zone_struct* zone, int include, int recover)
         }
         rewind(fd);
 
-        if (se_strcmp(adzone->signconf->soa_serial, "keep") == 0) {
+        if (ods_strcmp(adzone->signconf->soa_serial, "keep") == 0) {
             if (adzone->zonedata->inbound_serial <=
                 adzone->zonedata->outbound_serial) {
                 ods_log_error("[%s] read file failed, zone %s SOA SERIAL is "
@@ -529,14 +529,14 @@ adfile_read(struct zone_struct* zone, const char* filename, int recover)
         adzone->name, filename);
 
     /* read the zonefile */
-    fd = se_fopen(filename, NULL, "r");
+    fd = ods_fopen(filename, NULL, "r");
     if (fd) {
         if (recover) {
             error = adfile_read_file(fd, adzone, 1, 1);
         } else {
             error = adfile_read_file(fd, adzone, 0, 0);
         }
-        se_fclose(fd);
+        ods_fclose(fd);
     } else {
         error = 1;
     }
@@ -581,16 +581,16 @@ adfile_write(struct zone_struct* zone, const char* filename)
         ods_log_assert(adzone->outbound_adapter->filename);
         ods_log_debug("[%s] write zone %s to file %s", adapter_str,
             adzone->name, adzone->outbound_adapter->filename);
-        fd = se_fopen(adzone->outbound_adapter->filename, NULL, "w");
+        fd = ods_fopen(adzone->outbound_adapter->filename, NULL, "w");
     } else {
         ods_log_debug("[%s] write zone %s to file %s", adapter_str,
             adzone->name, filename);
-        fd = se_fopen(filename, NULL, "w");
+        fd = ods_fopen(filename, NULL, "w");
     }
 
     if (fd) {
         zone_print(fd, adzone);
-        se_fclose(fd);
+        ods_fclose(fd);
     }
     return 0;
 }

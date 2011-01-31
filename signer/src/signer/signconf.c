@@ -37,9 +37,9 @@
 #include "shared/duration.h"
 #include "shared/log.h"
 #include "signer/backup.h"
+#include "shared/file.h"
 #include "signer/se_key.h"
 #include "signer/signconf.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 static const char* sc_str = "signconf";
@@ -95,7 +95,7 @@ signconf_read(const char* filename, time_t last_modified)
 
     ods_log_assert(filename);
 
-    st_mtime = se_file_lastmodified(filename);
+    st_mtime = ods_file_lastmodified(filename);
     if (st_mtime <= last_modified) {
         ods_log_debug("[%s] signconf file %s is unchanged", sc_str,
             filename?filename:"(null)");
@@ -108,7 +108,7 @@ signconf_read(const char* filename, time_t last_modified)
         return NULL;
     }
 
-    scfd = se_fopen(filename, NULL, "r");
+    scfd = ods_fopen(filename, NULL, "r");
     if (scfd) {
         signconf = signconf_create();
         signconf->filename = se_strdup(filename);
@@ -133,7 +133,7 @@ signconf_read(const char* filename, time_t last_modified)
         signconf->audit = parse_sc_audit(filename);
         signconf->last_modified = st_mtime;
 
-        se_fclose(scfd);
+        ods_fclose(scfd);
         return signconf;
     }
 
@@ -153,7 +153,7 @@ signconf_recover_from_backup(const char* filename)
     const char* zonename = NULL;
     FILE* scfd = NULL;
 
-    scfd = se_fopen(filename, NULL, "r");
+    scfd = ods_fopen(filename, NULL, "r");
     if (scfd) {
         signconf = signconf_create();
 
@@ -199,7 +199,7 @@ signconf_recover_from_backup(const char* filename)
         if (zonename) {
             se_free((void*) zonename);
         }
-        se_fclose(scfd);
+        ods_fclose(scfd);
         return signconf;
     }
 
@@ -236,8 +236,8 @@ signconf_backup(signconf_type* sc)
 
     ods_log_assert(sc);
 
-    filename = se_build_path(sc->name, ".sc", 0);
-    fd = se_fopen(filename, NULL, "w");
+    filename = ods_build_path(sc->name, ".sc", 0);
+    fd = ods_fopen(filename, NULL, "w");
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         fprintf(fd, ";name: %s\n", sc->name?sc->name:"(null)");
@@ -270,7 +270,7 @@ signconf_backup(signconf_type* sc)
         fprintf(fd, ";audit: %i\n", sc->audit);
 
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        se_fclose(fd);
+        ods_fclose(fd);
     } else {
         ods_log_warning("[%s] cannot backup signconf: cannot open file "
         "%s for writing", sc_str, filename?filename:"(null)");
@@ -403,7 +403,7 @@ signconf_compare(signconf_type* a, signconf_type* b, int* update)
        new_task = TASK_READ;
        *update = 1;
    } else if (a->nsec_type == LDNS_RR_TYPE_NSEC3) {
-       if ((se_strcmp(a->nsec3_salt, b->nsec3_salt) != 0) ||
+       if ((ods_strcmp(a->nsec3_salt, b->nsec3_salt) != 0) ||
            (a->nsec3_algo != b->nsec3_algo) ||
            (a->nsec3_iterations != b->nsec3_iterations) ||
            (a->nsec3_optout != b->nsec3_optout)) {

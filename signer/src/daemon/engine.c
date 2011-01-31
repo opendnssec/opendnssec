@@ -39,11 +39,11 @@
 #include "daemon/worker.h"
 #include "scheduler/locks.h"
 #include "scheduler/task.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/zone.h"
 #include "signer/zonelist.h"
 #include "tools/zone_fetcher.h"
-#include "util/file.h"
 #include "util/privdrop.h"
 #include "util/se_malloc.h"
 
@@ -158,7 +158,7 @@ self_pipe_trick(engine_type* engine)
             return 1;
         } else {
             /* self-pipe trick */
-            se_writen(sockfd, "", 1);
+            ods_writen(sockfd, "", 1);
             close(sockfd);
         }
     }
@@ -260,7 +260,7 @@ write_pidfile(const char* pidfile, pid_t pid)
     ods_log_debug("writing pid %lu to pidfile %s", (unsigned long) pid,
         pidfile?pidfile:"(null)");
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
-    fd = se_fopen(pidfile, NULL, "w");
+    fd = ods_fopen(pidfile, NULL, "w");
     if (!fd) {
         return -1;
     }
@@ -280,7 +280,7 @@ write_pidfile(const char* pidfile, pid_t pid)
     } else {
         result = 1;
     }
-    se_fclose(fd);
+    ods_fclose(fd);
     if (!result) {
         return -1;
     }
@@ -391,7 +391,7 @@ engine_search_workers(engine_type* engine, const char* zone_name)
 
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         if (engine->workers[i]->task &&
-            se_strcmp(engine->workers[i]->task->who, zone_name) == 0) {
+            ods_strcmp(engine->workers[i]->task->who, zone_name) == 0) {
             /* ba-da bing */
             return 0;
         }
@@ -575,14 +575,14 @@ engine_setup(engine_type* engine)
     /* TODO: does piddir exists? */
     /* remove the chown stuff: piddir? */
     /* chown pidfile directory */
-    se_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
+    ods_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
     /* chown sockfile */
-    se_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
+    ods_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
     /* chown workdir */
-    se_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
+    ods_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
     if (engine->config->log_filename && !engine->config->use_syslog) {
         /* chown logfile */
-        se_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
+        ods_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
     }
     if (engine->config->working_dir &&
         chdir(engine->config->working_dir) != 0) {
@@ -796,8 +796,8 @@ set_notify_ns(zone_type* zone, const char* cmd)
     ods_log_assert(zone->outbound_adapter);
     ods_log_assert(zone->outbound_adapter->filename);
 
-    str = se_replace(cmd, "%zonefile", zone->outbound_adapter->filename);
-    str2 = se_replace(str, "%zone", zone->name);
+    str = ods_replace(cmd, "%zonefile", zone->outbound_adapter->filename);
+    str2 = ods_replace(str, "%zone", zone->name);
     se_free((void*)str);
     zone->notify_ns = (const char*) str2;
     ods_log_debug("set notify ns: %s", zone->notify_ns);
@@ -837,7 +837,7 @@ engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
 
         lock_basic_lock(&zone->zone_lock);
 
-        if (!zone_name || se_strcmp(zone->name, zone_name) == 0) {
+        if (!zone_name || ods_strcmp(zone->name, zone_name) == 0) {
             if (zone_name) {
                 ods_log_debug("update zone %s (signconf file %s)", zone->name,
                     zone->signconf_filename?zone->signconf_filename:"(null)");

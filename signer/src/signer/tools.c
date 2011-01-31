@@ -35,10 +35,10 @@
 #include "adapter/adapter.h"
 #include "daemon/engine.h"
 #include "scheduler/locks.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 #include <unistd.h> /* unlink() */
@@ -78,9 +78,9 @@ tools_read_input(zone_type* zone)
             if (zone->fetch) {
                 ods_log_verbose("fetch zone %s",
                     zone->name?zone->name:"(null)");
-                axfrname = se_build_path(zone->inbound_adapter->filename,
+                axfrname = ods_build_path(zone->inbound_adapter->filename,
                     ".axfr", 0);
-                error = se_file_copy(axfrname,
+                error = ods_file_copy(axfrname,
                     zone->inbound_adapter->filename);
                 if (error) {
                     ods_log_error("[%s] unable to copy axfr file %s to %s",
@@ -96,8 +96,8 @@ tools_read_input(zone_type* zone)
                 zone->inbound_adapter->filename ?
                 zone->inbound_adapter->filename:"(null)");
 
-            tmpname = se_build_path(zone->name, ".inbound", 0);
-            error = se_file_copy(zone->inbound_adapter->filename, tmpname);
+            tmpname = ods_build_path(zone->name, ".inbound", 0);
+            error = ods_file_copy(zone->inbound_adapter->filename, tmpname);
             if (!error) {
                 error = adfile_read(zone, tmpname, 0);
             }
@@ -162,9 +162,9 @@ tools_update(zone_type* zone)
         ods_log_verbose("[%s] zone %s updated to serial %u", tools_str,
             zone->name?zone->name:"(null)", zone->zonedata->internal_serial);
 
-        inbound = se_build_path(zone->name, ".inbound", 0);
-        unsorted = se_build_path(zone->name, ".unsorted", 0);
-        error = se_file_copy(inbound, unsorted);
+        inbound = ods_build_path(zone->name, ".inbound", 0);
+        unsorted = ods_build_path(zone->name, ".unsorted", 0);
+        error = ods_file_copy(inbound, unsorted);
         if (!error) {
             zone_backup_state(zone);
             zone->stats->sort_done = 1;
@@ -275,7 +275,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
     }
     if (zone->signconf->audit) {
         ods_log_verbose("[%s] audit zone %s", tools_str, zone->name?zone->name:"(null)");
-        finalized = se_build_path(zone->name, ".finalized", 0);
+        finalized = ods_build_path(zone->name, ".finalized", 0);
         error = adfile_write(zone, finalized);
         if (error != 0) {
             ods_log_error("[%s] audit zone %s failed: unable to write zone",

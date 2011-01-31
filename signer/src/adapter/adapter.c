@@ -32,9 +32,9 @@
  */
 
 #include "adapter/adapter.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/zone.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 #include <stdio.h>
@@ -77,7 +77,7 @@ adapter_compare(adapter_type* a1, adapter_type* a2)
     } else if (a1->type != a2->type) {
         return a1->type - a2->type;
     }
-    return se_strcmp(a1->filename, a2->filename);
+    return ods_strcmp(a1->filename, a2->filename);
 }
 
 

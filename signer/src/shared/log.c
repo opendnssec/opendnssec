@@ -33,8 +33,8 @@
 
 #include "config.h"
 #include "shared/duration.h"
+#include "shared/file.h"
 #include "shared/log.h"
-#include "util/file.h"
 #include "util/util.h"
 
 #include <stdarg.h> /* va_start(), va_end()  */
@@ -91,7 +91,7 @@ ods_log_init(const char *filename, int use_syslog, int verbosity)
         log_str, use_syslog?"syslog":(filename&&filename[0]?filename:"stderr"),
         verbosity, verbosity+2);
     if (logfile && logfile != stderr) {
-            se_fclose(logfile);
+            ods_fclose(logfile);
 	}
     log_level = verbosity + 2;
 
@@ -109,7 +109,7 @@ ods_log_init(const char *filename, int use_syslog, int verbosity)
 #endif /* HAVE_SYSLOG_H */
 
     if(filename && filename[0]) {
-        logfile = se_fopen(filename, NULL, "a");
+        logfile = ods_fopen(filename, NULL, "a");
         if (logfile) {
             ods_log_debug("[%s] new logfile %s", log_str, filename);
             return;

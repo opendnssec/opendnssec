@@ -36,7 +36,7 @@
 
 #include "config.h"
 #include "shared/duration.h"
-#include "util/file.h"
+#include "shared/file.h"
 
 #include <ldns/ldns.h>
 

@@ -35,6 +35,7 @@
 #include "scheduler/locks.h"
 #include "scheduler/task.h"
 #include "shared/duration.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/hsm.h"
@@ -42,7 +43,6 @@
 #include "signer/signconf.h"
 #include "signer/zone.h"
 #include "signer/zonedata.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 #include "util/util.h"
 
@@ -99,7 +99,7 @@ zone_update_zonelist(zone_type* z1, zone_type* z2)
     ods_log_assert(z1);
     ods_log_assert(z2);
 
-    if (se_strcmp(z2->policy_name, z1->policy_name) != 0) {
+    if (ods_strcmp(z2->policy_name, z1->policy_name) != 0) {
         se_free((void*)z1->policy_name);
         if (z2->policy_name) {
             z1->policy_name = se_strdup(z2->policy_name);
@@ -109,7 +109,7 @@ zone_update_zonelist(zone_type* z1, zone_type* z2)
         z1->just_updated = 1;
     }
 
-    if (se_strcmp(z2->signconf_filename, z1->signconf_filename) != 0) {
+    if (ods_strcmp(z2->signconf_filename, z1->signconf_filename) != 0) {
         se_free((void*)z1->signconf_filename);
         if (z2->signconf_filename) {
             z1->signconf_filename = se_strdup(z2->signconf_filename);
@@ -511,8 +511,8 @@ zone_add_dnskeys(zone_type* zone)
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->zonedata);
 
-    filename = se_build_path(zone->name, ".dnskeys", 0);
-    fd = se_fopen(filename, NULL, "w");
+    filename = ods_build_path(zone->name, ".dnskeys", 0);
+    fd = ods_fopen(filename, NULL, "w");
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
     }
@@ -534,7 +534,7 @@ zone_add_dnskeys(zone_type* zone)
 
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        se_fclose(fd);
+        ods_fclose(fd);
     } else {
         ods_log_warning("[%s] cannot backup DNSKEY / NSEC3PARAMS records: "
             "cannot open file %s for writing", zone_str, filename?filename:"(null)");
@@ -674,13 +674,13 @@ zone_nsecify(zone_type* zone)
         end = time(NULL);
         zone->stats->nsec_time = (end-start);
 
-        filename = se_build_path(zone->name, ".denial", 0);
-        fd = se_fopen(filename, NULL, "w");
+        filename = ods_build_path(zone->name, ".denial", 0);
+        fd = ods_fopen(filename, NULL, "w");
         if (fd) {
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             zonedata_print_nsec(fd, zone->zonedata);
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-            se_fclose(fd);
+            ods_fclose(fd);
         } else {
             ods_log_warning("[%s] cannot backup NSEC(3) records: cannot open file "
             "%s for writing", zone_str, filename?filename:"(null)");
@@ -720,13 +720,13 @@ zone_sign(zone_type* zone)
         end = time(NULL);
         zone->stats->sig_time = (end-start);
 
-        filename = se_build_path(zone->name, ".rrsigs", 0);
-        fd = se_fopen(filename, NULL, "w");
+        filename = ods_build_path(zone->name, ".rrsigs", 0);
+        fd = ods_fopen(filename, NULL, "w");
         if (fd) {
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
             zonedata_print_rrsig(fd, zone->zonedata);
             fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-            se_fclose(fd);
+            ods_fclose(fd);
         } else {
             ods_log_warning("[%s] cannot backup RRSIG records: cannot open file "
                 "%s for writing", zone_str, filename?filename:"(null)");
@@ -753,8 +753,8 @@ int zone_backup_state(zone_type* zone)
     ods_log_assert(zone->zonedata);
     ods_log_assert(zone->signconf);
 
-    filename = se_build_path(zone->name, ".state", 0);
-    fd = se_fopen(filename, NULL, "w");
+    filename = ods_build_path(zone->name, ".state", 0);
+    fd = ods_fopen(filename, NULL, "w");
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         fprintf(fd, ";name: %s\n", zone->name?zone->name:"(null)");
@@ -765,7 +765,7 @@ int zone_backup_state(zone_type* zone)
         fprintf(fd, ";internal_serial: %u\n", zone->zonedata->internal_serial);
         fprintf(fd, ";outbound_serial: %u\n", zone->zonedata->outbound_serial);
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        se_fclose(fd);
+        ods_fclose(fd);
     } else {
         ods_log_error("[%s] cannot backup zone: cannot open file "
         "%s for writing", zone_str, filename?filename:"(null)");
@@ -795,7 +795,7 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
 
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
-            if (se_strcmp(token, ";DNSKEY") == 0) {
+            if (ods_strcmp(token, ";DNSKEY") == 0) {
                 key = key_recover_from_backup(fd);
                 if (!key || keylist_add(zone->signconf->keys, key)) {
                     ods_log_error("[%s] error adding key from backup file "
@@ -811,7 +811,7 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                    rr = NULL;
                 }
                 key = NULL;
-            } else if (se_strcmp(token, ";NSEC3PARAMS") == 0) {
+            } else if (ods_strcmp(token, ";NSEC3PARAMS") == 0) {
                 zone->nsec3params = nsec3params_recover_from_backup(fd,
                     &rr);
                 if (!zone->nsec3params) {
@@ -834,7 +834,7 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                    }
                 }
                 rr = NULL;
-            } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+            } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
                 se_free((void*) token);
                 token = NULL;
                 break;
@@ -871,7 +871,7 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
 
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
-            if (se_strcmp(token, ";RRSIG") == 0) {
+            if (ods_strcmp(token, ";RRSIG") == 0) {
                 if (!backup_read_str(fd, &locator) ||
                     !backup_read_uint32_t(fd, &flags)) {
 
@@ -893,7 +893,7 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
                            zone->zonedata, rr, locator, flags);
                     }
                 }
-            } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
+            } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
                 se_free((void*) token);
                 token = NULL;
                 break;
@@ -937,8 +937,8 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     ods_log_assert(zone);
     ods_log_assert(zone->zonedata);
 
-    filename = se_build_path(zone->name, ".state", 0);
-    fd = se_fopen(filename, NULL, "r");
+    filename = ods_build_path(zone->name, ".state", 0);
+    fd = ods_fopen(filename, NULL, "r");
     se_free((void*)filename);
     if (fd) {
         if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
@@ -960,13 +960,13 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
         {
             ods_log_error("[%s] unable to recover zone state from file %s.state: "
                 "file corrupted", zone_str, zone->name);
-            se_fclose(fd);
+            ods_fclose(fd);
             return;
         }
         zone->klass = (ldns_rr_class) klass;
         zone->fetch = fetch;
 
-        se_fclose(fd);
+        ods_fclose(fd);
     } else {
         ods_log_deeebug("[%s] unable to recover zone state from file %s.state: ",
             "no such file or directory", zone_str, zone->name);
@@ -974,7 +974,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     }
 
     /* let's see if we can recover the signconf now */
-    filename = se_build_path(zone->name, ".sc", 0);
+    filename = ods_build_path(zone->name, ".sc", 0);
     zone->signconf = signconf_recover_from_backup((const char*) filename);
     se_free((void*)filename);
     if (!zone->signconf) {
@@ -985,12 +985,12 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     zone->signconf->keys = keylist_create();
 
     /* recover denial of existence */
-    filename = se_build_path(zone->name, ".denial", 0);
-    fd = se_fopen(filename, NULL, "r");
+    filename = ods_build_path(zone->name, ".denial", 0);
+    fd = ods_fopen(filename, NULL, "r");
     se_free((void*)filename);
     if (fd) {
         error = zonedata_recover_from_backup(zone->zonedata, fd);
-        se_fclose(fd);
+        ods_fclose(fd);
         if (error) {
             ods_log_error("unable to recover denial of existence from file "
             "%s.denial: file corrupted", zone_str, zone->name);
@@ -1010,7 +1010,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     }
 
     /* zone data */
-    filename = se_build_path(zone->name, ".unsorted", 0);
+    filename = ods_build_path(zone->name, ".unsorted", 0);
     error = adfile_read(zone, filename, 1);
     se_free((void*)filename);
     if (error) {
@@ -1025,12 +1025,12 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     }
 
     /* time for the keys and nsec3params file */
-    filename = se_build_path(zone->name, ".dnskeys", 0);
-    fd = se_fopen(filename, NULL, "r");
+    filename = ods_build_path(zone->name, ".dnskeys", 0);
+    fd = ods_fopen(filename, NULL, "r");
     se_free((void*)filename);
     if (fd) {
         error = zone_recover_dnskeys_from_backup(zone, fd);
-        se_fclose(fd);
+        ods_fclose(fd);
         if (error) {
             ods_log_error("[%s] unable to recover dnskeys from file %s.dnskeys: "
                 "file corrupted", zone_str, zone->name);
@@ -1045,12 +1045,12 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
     }
 
     /* retrieve signatures */
-    filename = se_build_path(zone->name, ".rrsigs", 0);
-    fd = se_fopen(filename, NULL, "r");
+    filename = ods_build_path(zone->name, ".rrsigs", 0);
+    fd = ods_fopen(filename, NULL, "r");
     se_free((void*)filename);
     if (fd) {
         error = zone_recover_rrsigs_from_backup(zone, fd);
-        se_fclose(fd);
+        ods_fclose(fd);
         if (error) {
             ods_log_error("[%s] unable to recover rrsigs from file %s.rrsigs: "
                 "file corrupted", zone_str, zone->name);
@@ -1063,7 +1063,7 @@ zone_recover_from_backup(zone_type* zone, struct tasklist_struct* tl)
 abort_recover:
 
     /* task */
-    filename = se_build_path(zone->name, ".task", 0);
+    filename = ods_build_path(zone->name, ".task", 0);
     zone->task = task_recover_from_backup((const char*) filename, zone);
     se_free((void*)filename);
 

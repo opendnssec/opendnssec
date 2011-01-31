@@ -33,8 +33,8 @@
 
 #include "config.h"
 #include "shared/duration.h"
+#include "shared/file.h"
 #include "shared/log.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
@@ -77,7 +77,7 @@ backup_read_check_str(FILE* in, const char* str)
         ods_log_debug("[%s] cannot read check string \'%s\'", backup_str, str);
         return 0;
     }
-    if (se_strcmp(p, str) != 0) {
+    if (ods_strcmp(p, str) != 0) {
         ods_log_debug("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
         return 0;
     }

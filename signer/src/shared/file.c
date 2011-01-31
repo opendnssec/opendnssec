@@ -32,16 +32,18 @@
  */
 
 #include "config.h"
+#include "shared/file.h"
 #include "shared/log.h"
-#include "util/file.h"
-#include "util/se_malloc.h"
 
 #include <errno.h>
-#include <stdio.h> /* fgetc(), fopen(), fclose(), ferror() */
-#include <stdlib.h> /* system() */
-#include <string.h> /* strlen(), strncmp(), strncat(), strncpy(), strerror() */
-#include <sys/stat.h> /* stat() */
-#include <unistd.h> /* chown() */
+#include <malloc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+static const char* file_str = "file";
 
 
 /**
@@ -49,15 +51,17 @@
  *
  */
 const char*
-se_file_mode2str(const char* mode)
+ods_file_mode2str(const char* mode)
 {
-    ods_log_assert(mode);
+    if (!mode) {
+        return "no mode";
+    }
 
-    if (se_strcmp(mode, "a") == 0) {
+    if (ods_strcmp(mode, "a") == 0) {
         return "appending";
-    } else if (se_strcmp(mode, "r") == 0) {
+    } else if (ods_strcmp(mode, "r") == 0) {
         return "reading";
-    } else if (se_strcmp(mode, "w") == 0) {
+    } else if (ods_strcmp(mode, "w") == 0) {
         return "writing";
 	}
     return "unknown mode";
@@ -69,7 +73,7 @@ se_file_mode2str(const char* mode)
  *
  */
 int
-se_fgetc(FILE* fd, unsigned int* line_nr)
+ods_fgetc(FILE* fd, unsigned int* line_nr)
 {
     int c;
 
@@ -77,7 +81,7 @@ se_fgetc(FILE* fd, unsigned int* line_nr)
     ods_log_assert(line_nr);
 
     c = fgetc(fd);
-    if (c == '\n') {
+	if (c == '\n') {
         (*line_nr)++;
     }
     return c;
@@ -89,14 +93,14 @@ se_fgetc(FILE* fd, unsigned int* line_nr)
  *
  */
 int
-se_skip_whitespace(FILE* fd, unsigned int* line_nr)
+ods_skip_whitespace(FILE* fd, unsigned int* line_nr)
 {
     int c;
 
     ods_log_assert(fd);
     ods_log_assert(line_nr);
 
-    while ((c=se_fgetc(fd, line_nr)) != EOF) {
+    while ((c=ods_fgetc(fd, line_nr)) != EOF) {
         if (c == ' ' || c == '\t' || c == '\r') {
             continue;
         }
@@ -111,7 +115,7 @@ se_skip_whitespace(FILE* fd, unsigned int* line_nr)
  *
  */
 char*
-se_build_path(const char* file, const char* suffix, int dir)
+ods_build_path(const char* file, const char* suffix, int dir)
 {
     size_t len_file = 0;
     size_t len_suffix = 0;
@@ -129,7 +133,10 @@ se_build_path(const char* file, const char* suffix, int dir)
         }
 
         if (len_total > 0) {
-            openf = (char*) se_malloc(sizeof(char)*(len_total + 1));
+            openf = (char*) malloc(sizeof(char)*(len_total + 1));
+            if (!openf) {
+                ods_log_crit("[%s] build path failed: malloc failed", file_str);
+            }
 
             strncpy(openf, file, len_file);
             openf[len_file] = '\0';
@@ -152,7 +159,7 @@ se_build_path(const char* file, const char* suffix, int dir)
  *
  */
 FILE*
-se_fopen(const char* file, const char* dir, const char* mode)
+ods_fopen(const char* file, const char* dir, const char* mode)
 {
     FILE* fd = NULL;
     size_t len_file = 0;
@@ -161,9 +168,9 @@ se_fopen(const char* file, const char* dir, const char* mode)
     char* openf = NULL;
 
     ods_log_assert(mode);
-    ods_log_debug("open file: dir %s file %s for %s",
-        (dir?dir:"(null)"), (file?file:"(null)"),
-        se_file_mode2str(mode));
+    ods_log_debug("[%s] open file %s%s file=%s mode=%s", file_str,
+        (dir?"dir=":""), (dir?dir:""), (file?file:"(null)"),
+        ods_file_mode2str(mode));
 
     if (dir) {
         len_dir= strlen(dir);
@@ -173,7 +180,10 @@ se_fopen(const char* file, const char* dir, const char* mode)
     }
     len_total = len_dir + len_file;
     if (len_total > 0) {
-        openf = (char*) se_malloc(sizeof(char)*(len_total + 1));
+        openf = (char*) malloc(sizeof(char)*(len_total + 1));
+        if (!openf) {
+            return NULL;
+        }
         if (dir) {
            strncpy(openf, dir, len_dir);
            openf[len_dir] = '\0';
@@ -188,12 +198,12 @@ se_fopen(const char* file, const char* dir, const char* mode)
         if (len_file) {
             fd = fopen(openf, mode);
             if (!fd) {
-                ods_log_error("unable to open file %s for %s: %s",
-                    openf?openf:"(null)",
-                    se_file_mode2str(mode), strerror(errno));
+                ods_log_error("[%s] unable to open file %s for %s: %s",
+                    file_str, openf?openf:"(null)",
+                    ods_file_mode2str(mode), strerror(errno));
             }
         }
-        se_free((void*) openf);
+        free((void*) openf);
     }
     return fd;
 }
@@ -203,7 +213,7 @@ se_fopen(const char* file, const char* dir, const char* mode)
  *
  */
 void
-se_fclose(FILE* fd)
+ods_fclose(FILE* fd)
 {
     if (fd) {
         fclose(fd);
@@ -217,7 +227,7 @@ se_fclose(FILE* fd)
  *
  */
 ssize_t
-se_writen(int fd, const void* vptr, size_t n)
+ods_writen(int fd, const void* vptr, size_t n)
 {
     size_t nleft;
     ssize_t nwritten;
@@ -245,7 +255,7 @@ se_writen(int fd, const void* vptr, size_t n)
  *
  */
 time_t
-se_file_lastmodified(const char* file)
+ods_file_lastmodified(const char* file)
 {
     int ret;
     struct stat buf;
@@ -253,9 +263,9 @@ se_file_lastmodified(const char* file)
 
     ods_log_assert(file);
 
-    if ((fd = se_fopen(file, NULL, "r")) != NULL) {
+    if ((fd = ods_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
-        se_fclose(fd);
+        ods_fclose(fd);
         return buf.st_mtime;
     }
     return 0;
@@ -267,7 +277,7 @@ se_file_lastmodified(const char* file)
  *
  */
 int
-se_strcmp(const char* s1, const char* s2)
+ods_strcmp(const char* s1, const char* s2)
 {
     if (!s1 && !s2) {
         return 0;
@@ -289,7 +299,7 @@ se_strcmp(const char* s1, const char* s2)
  *
  */
 const char*
-se_replace(const char *str, const char *oldstr, const char *newstr)
+ods_replace(const char *str, const char *oldstr, const char *newstr)
 {
     char* buffer = NULL;
     char* ch = NULL;
@@ -297,19 +307,25 @@ se_replace(const char *str, const char *oldstr, const char *newstr)
     size_t part2_len = 0;
     size_t part3_len = 0;
 
-    ods_log_assert(str);
-    ods_log_assert(oldstr);
-    ods_log_assert(newstr);
+    if (!str) {
+       return NULL;
+    }
+    if (!oldstr || !newstr) {
+       return str;
+    }
 
     if (!(ch = strstr(str, oldstr))) {
-        buffer = se_strdup(str);
+        buffer = strdup(str);
         return buffer;
     }
 
     part1_len = ch-str;
     part2_len = strlen(newstr);
     part3_len = strlen(ch+strlen(oldstr));
-    buffer = se_calloc(part1_len+part2_len+part3_len+1, sizeof(char));
+    buffer = calloc(part1_len+part2_len+part3_len+1, sizeof(char));
+    if (!buffer) {
+        return NULL;
+    }
 
     if (part1_len) {
         strncpy(buffer, str, part1_len);
@@ -340,16 +356,17 @@ se_replace(const char *str, const char *oldstr, const char *newstr)
  *
  */
 int
-se_file_copy(const char* file1, const char* file2)
+ods_file_copy(const char* file1, const char* file2)
 {
     char str[SYSTEM_MAXLEN];
     FILE* fd = NULL;
 
-    ods_log_assert(file1);
-    ods_log_assert(file2);
+    if (!file1 || !file2) {
+        return 1;
+    }
 
-    if ((fd = se_fopen(file1, NULL, "r")) != NULL) {
-        se_fclose(fd);
+    if ((fd = ods_fopen(file1, NULL, "r")) != NULL) {
+        ods_fclose(fd);
         snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
             CP_COMMAND, file1, file2);
         ods_log_debug("system call: %s", str);
@@ -364,7 +381,7 @@ se_file_copy(const char* file1, const char* file2)
  *
  */
 char*
-se_dir_name(const char* file) {
+ods_dir_name(const char* file) {
     int l = strlen(file);
     char* dir = NULL;
 
@@ -381,8 +398,10 @@ se_dir_name(const char* file) {
     }
 
     if (l) {
-        dir = (char*) se_calloc(l+1, sizeof(char));
-        dir = strncpy(dir, file, l);
+        dir = (char*) calloc(l+1, sizeof(char));
+        if (dir) {
+            dir = strncpy(dir, file, l);
+        }
         return dir;
     }
     return NULL;
@@ -393,32 +412,32 @@ se_dir_name(const char* file) {
  *
  */
 void
-se_chown(const char* file, uid_t uid, gid_t gid, int getdir)
+ods_chown(const char* file, uid_t uid, gid_t gid, int getdir)
 {
     char* dir = NULL;
 
     if (!file) {
-        ods_log_warning("no filename given for chown()");
+        ods_log_warning("[%s] no filename given for chown()", file_str);
         return;
     }
 
     if (!getdir) {
-        ods_log_debug("create and chown directory %s [user %ld] [group %ld]",
-           file, (signed long) uid, (signed long) gid);
+        ods_log_debug("[%s] create and chown %s with user=%ld group=%ld",
+           file_str, file, (signed long) uid, (signed long) gid);
         if (chown(file, uid, gid) != 0) {
-            ods_log_error("chown() for %s failed: %s", file?file:"(null)",
+            ods_log_error("[%s] chown() %s failed: %s", file_str, file,
                 strerror(errno));
         }
-    } else if ((dir = se_dir_name(file)) != NULL) {
-        ods_log_debug("create and chown directory %s [user %ld] [group %ld]",
-           dir, (signed long) uid, (signed long) gid);
+    } else if ((dir = ods_dir_name(file)) != NULL) {
+        ods_log_debug("[%s] create and chown %s with user=%ld group=%ld",
+            file_str, dir, (signed long) uid, (signed long) gid);
         if (chown(dir, uid, gid) != 0) {
-            ods_log_error("chown() for %s failed: %s", dir,
-                strerror(errno));
+            ods_log_error("[%s] chown() %s failed: %s", file_str,
+                dir, strerror(errno));
         }
-        se_free((void*) dir);
+        free((void*) dir);
     } else {
-        ods_log_warning("use of relative path: %s", file);
+        ods_log_warning("[%s] use of relative path: %s", file_str, file);
     }
     return;
 }
@@ -429,7 +448,7 @@ se_chown(const char* file, uid_t uid, gid_t gid, int getdir)
  *
  */
 void
-se_str_trim(char* str)
+ods_str_trim(char* str)
 {
     int i = strlen(str), nl = 0;
 

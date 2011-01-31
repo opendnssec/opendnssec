@@ -34,8 +34,8 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
+#include "shared/file.h"
 #include "shared/log.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 #include <errno.h>
@@ -73,7 +73,7 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
     }
 
     /* open cfgfile */
-    cfgfd = se_fopen(cfgfile, NULL, "r");
+    cfgfd = ods_fopen(cfgfile, NULL, "r");
     if (cfgfd) {
         /* get values */
         ecfg->cfg_filename = se_strdup(cfgfile);
@@ -93,7 +93,7 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
         ecfg->verbosity = cmdline_verbosity;
 
         /* done */
-        se_fclose(cfgfd);
+        ods_fclose(cfgfd);
         return ecfg;
     }
 

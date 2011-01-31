@@ -32,8 +32,8 @@
  */
 
 #include "config.h"
+#include "shared/file.h"
 #include "shared/log.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 #include <errno.h>
@@ -122,7 +122,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             }
         } else if (cmd) {
             /* passive mode */
-            se_writen(sockfd, cmd, strlen(cmd));
+            ods_writen(sockfd, cmd, strlen(cmd));
             cmd_written = 1;
             stdineof = 1;
             continue;
@@ -160,7 +160,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 }
             }
 
-            if (cmd && strncmp(buf+n-SE_CLI_CMDLEN, "\ncmd> ", SE_CLI_CMDLEN) == 0) {
+            if (cmd && strncmp(buf+n-SE_CLI_CMDLEN, "\ncmd> ",
+                SE_CLI_CMDLEN) == 0) {
                 /* we have the full response */
                 if (n > SE_CLI_CMDLEN) {
                     ret = (int) write(fileno(stdout), buf, n-SE_CLI_CMDLEN);
@@ -179,7 +180,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             } else if (ret < 0) {
                 fprintf(stderr, "write error: %s\n", strerror(errno));
             }
-            if (se_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
+            if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
                 fprintf(stderr, "\n");
                 return;
             }
@@ -225,9 +226,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 strncmp(buf, "quit", 4) == 0) {
                 return;
             }
-            se_str_trim(buf);
+            ods_str_trim(buf);
             n = strlen(buf);
-            se_writen(sockfd, buf, n);
+            ods_writen(sockfd, buf, n);
         }
     }
 }
@@ -265,12 +266,12 @@ interface_start(char* cmd)
     ret = connect(sockfd, (const struct sockaddr*) &servaddr,
         sizeof(servaddr));
     if (ret != 0) {
-        if (cmd && se_strcmp(cmd, "start\n") == 0) {
+        if (cmd && ods_strcmp(cmd, "start\n") == 0) {
             ret = system(ODS_SE_ENGINE);
             return;
         }
 
-        if (cmd && se_strcmp(cmd, "running\n") == 0) {
+        if (cmd && ods_strcmp(cmd, "running\n") == 0) {
             fprintf(stderr, "Engine not running.\n");
         } else {
             fprintf(stderr, "Unable to connect to engine: "
@@ -359,10 +360,10 @@ main(int argc, char* argv[])
     }
 
     /* main stuff */
-    if (cmd && se_strcmp(cmd, "-h\n") == 0) {
+    if (cmd && ods_strcmp(cmd, "-h\n") == 0) {
         usage(stdout);
         return 0;
-    } else if (cmd && se_strcmp(cmd, "--help\n") == 0) {
+    } else if (cmd && ods_strcmp(cmd, "--help\n") == 0) {
         usage(stdout);
         return 0;
     }

@@ -31,10 +31,10 @@
  *
  */
 
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/se_key.h"
-#include "util/file.h"
 #include "util/se_malloc.h"
 
 static const char* key_str = "keys";
@@ -238,7 +238,7 @@ key_compare(key_type* a, key_type* b)
 {
     ods_log_assert(a);
     ods_log_assert(b);
-    return se_strcmp(a->locator, b->locator);
+    return ods_strcmp(a->locator, b->locator);
 }
 
 
@@ -295,7 +295,7 @@ keylist_lookup(keylist_type* list, const char* locator)
     search = list->first_key;
     for (i=0; i < list->count; i++) {
         if (search) {
-            if (se_strcmp(search->locator, locator) == 0) {
+            if (ods_strcmp(search->locator, locator) == 0) {
                 return search;
             }
             search = search->next;
