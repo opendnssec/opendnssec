@@ -34,9 +34,10 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
+#include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/log.h"
-#include "util/se_malloc.h"
+#include "shared/status.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -50,13 +51,18 @@ static const char* conf_str = "config";
  *
  */
 engineconfig_type*
-engine_config(const char* cfgfile, int cmdline_verbosity)
+engine_config(allocator_type* allocator, const char* cfgfile,
+    int cmdline_verbosity)
 {
-    engineconfig_type* ecfg = (engineconfig_type*) se_calloc(1,
-        sizeof(engineconfig_type));
+    engineconfig_type* ecfg;
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
+    if (!allocator) {
+        ods_log_error("[%s] failed to read: no allocator available", conf_str);
+        return NULL;
+    }
+    ods_log_assert(allocator);
     if (!cfgfile) {
         ods_log_error("[%s] failed to read: no filename given", conf_str);
         return NULL;
@@ -64,11 +70,17 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
     ods_log_assert(cfgfile);
     ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
 
+    ecfg = (engineconfig_type*) allocator_alloc(allocator,
+        sizeof(engineconfig_type));
+    if (!ecfg) {
+        ods_log_error("[%s] failed to read: allocator failed", conf_str);
+        return NULL;
+    }
+
     /* check syntax (slows down parsing configuration file) */
-    if (parse_file_check(cfgfile, rngfile) != 0) {
+    if (parse_file_check(cfgfile, rngfile) != ODS_STATUS_OK) {
         ods_log_error("[%s] failed to read: unable to parse file %s",
             conf_str, cfgfile);
-        se_free((void*) ecfg);
         return NULL;
     }
 
@@ -76,17 +88,20 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
     cfgfd = ods_fopen(cfgfile, NULL, "r");
     if (cfgfd) {
         /* get values */
-        ecfg->cfg_filename = se_strdup(cfgfile);
-        ecfg->zonelist_filename = parse_conf_zonelist_filename(cfgfile);
-        ecfg->zonefetch_filename = parse_conf_zonefetch_filename(cfgfile);
-        ecfg->log_filename = parse_conf_log_filename(cfgfile);
-        ecfg->pid_filename = parse_conf_pid_filename(cfgfile);
-        ecfg->notify_command = parse_conf_notify_command(cfgfile);
-        ecfg->clisock_filename = parse_conf_clisock_filename(cfgfile);
-        ecfg->working_dir = parse_conf_working_dir(cfgfile);
-        ecfg->username = parse_conf_username(cfgfile);
-        ecfg->group = parse_conf_group(cfgfile);
-        ecfg->chroot = parse_conf_chroot(cfgfile);
+        ecfg->cfg_filename = allocator_strdup(allocator, cfgfile);
+        ecfg->zonelist_filename = parse_conf_zonelist_filename(allocator,
+            cfgfile);
+        ecfg->zonefetch_filename = parse_conf_zonefetch_filename(allocator,
+            cfgfile);
+        ecfg->log_filename = parse_conf_log_filename(allocator, cfgfile);
+        ecfg->pid_filename = parse_conf_pid_filename(allocator, cfgfile);
+        ecfg->notify_command = parse_conf_notify_command(allocator, cfgfile);
+        ecfg->clisock_filename = parse_conf_clisock_filename(allocator,
+            cfgfile);
+        ecfg->working_dir = parse_conf_working_dir(allocator, cfgfile);
+        ecfg->username = parse_conf_username(allocator, cfgfile);
+        ecfg->group = parse_conf_group(allocator, cfgfile);
+        ecfg->chroot = parse_conf_chroot(allocator, cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
         ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
@@ -107,19 +122,17 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
  * Check configuration.
  *
  */
-int
-engine_check_config(engineconfig_type* config)
+ods_status
+engine_config_check(engineconfig_type* config)
 {
-    int ret = 0;
-
     if (!config) {
         ods_log_error("[%s] check failed: config does not exist", conf_str);
-        return 1;
+        return ODS_STATUS_CFG_ERR;
     }
 
-    /* room for more checks here */
+    /*  [TODO] room for more checks here */
 
-    return ret;
+    return ODS_STATUS_OK;
 }
 
 
@@ -202,64 +215,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
            - pid_filename
            - clisock_filename
          */
-    }
-    return;
-}
-
-
-/**
- * Clean up engine configuration.
- *
- */
-void
-engine_config_cleanup(engineconfig_type* config)
-{
-    if (config) {
-        if (config->cfg_filename) {
-            se_free((void*) config->cfg_filename);
-            config->cfg_filename = NULL;
-        }
-        if (config->zonelist_filename) {
-            se_free((void*) config->zonelist_filename);
-            config->zonelist_filename = NULL;
-        }
-        if (config->zonefetch_filename) {
-            se_free((void*) config->zonefetch_filename);
-            config->zonefetch_filename = NULL;
-        }
-        if (config->log_filename) {
-            se_free((void*) config->log_filename);
-            config->zonefetch_filename = NULL;
-        }
-        if (config->pid_filename) {
-            se_free((void*) config->pid_filename);
-            config->pid_filename = NULL;
-        }
-        if (config->notify_command) {
-            se_free((void*) config->notify_command);
-            config->notify_command = NULL;
-        }
-        if (config->clisock_filename) {
-            se_free((void*) config->clisock_filename);
-            config->clisock_filename = NULL;
-        }
-        if (config->working_dir) {
-            se_free((void*) config->working_dir);
-            config->working_dir = NULL;
-        }
-        if (config->username) {
-            se_free((void*) config->username);
-            config->username = NULL;
-        }
-        if (config->group) {
-            se_free((void*) config->group);
-            config->group = NULL;
-        }
-        if (config->chroot) {
-            se_free((void*) config->chroot);
-            config->chroot = NULL;
-        }
-        se_free((void*) config);
     }
     return;
 }

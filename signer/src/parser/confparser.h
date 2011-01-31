@@ -35,22 +35,23 @@
 #define PARSER_CONFPARSER_H
 
 #include "config.h"
-
+#include "shared/allocator.h"
+#include "shared/status.h"
 
 /**
  * Check config file with rng file.
  * \param[in] cfgfile the configuration file name
  * \param[in] rngfile the rng file name
- * \return int 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-int parse_file_check(const char* cfgfile, const char* rngfile);
+ods_status parse_file_check(const char* cfgfile, const char* rngfile);
 
 /**
  * Parse elements from the configuration file.
- * \param[in] cfgfile the configuration file name
+ * \param[in] cfgfile configuration file
  * \param[in] expr xml expression
- * \param[in] required required element
+ * \param[in] required if the element is required
  * \return const char* string value
  *
  */
@@ -59,24 +60,35 @@ const char* parse_conf_string(const char* cfgfile, const char* expr,
 
 /**
  * Parse elements from the configuration file.
+ * \param[in] allocator the allocator
  * \param[in] cfgfile the configuration file name
  * \return const char* string
  *
  */
 
 /** Common */
-const char* parse_conf_zonelist_filename(const char* cfgfile);
-const char* parse_conf_zonefetch_filename(const char* cfgfile);
-const char* parse_conf_log_filename(const char* cfgfile);
+const char* parse_conf_zonelist_filename(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_conf_zonefetch_filename(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_conf_log_filename(allocator_type* allocator,
+    const char* cfgfile);
 
 /** Signer specific */
-const char* parse_conf_pid_filename(const char* cfgfile);
-const char* parse_conf_notify_command(const char* cfgfile);
-const char* parse_conf_clisock_filename(const char* cfgfile);
-const char* parse_conf_working_dir(const char* cfgfile);
-const char* parse_conf_username(const char* cfgfile);
-const char* parse_conf_group(const char* cfgfile);
-const char* parse_conf_chroot(const char* cfgfile);
+const char* parse_conf_pid_filename(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_conf_notify_command(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_conf_clisock_filename(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_conf_working_dir(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_conf_username(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_conf_group(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_conf_chroot(allocator_type* allocator,
+    const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.

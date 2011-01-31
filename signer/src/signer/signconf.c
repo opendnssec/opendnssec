@@ -102,7 +102,7 @@ signconf_read(const char* filename, time_t last_modified)
         return NULL;
     }
 
-    if (parse_file_check(filename, rngfile) != 0) {
+    if (parse_file_check(filename, rngfile) != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to parse signconf file %s", sc_str,
             filename?filename:"(null)");
         return NULL;

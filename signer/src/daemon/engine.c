@@ -44,6 +44,7 @@
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/privdrop.h"
+#include "shared/status.h"
 #include "signer/zone.h"
 #include "signer/zonelist.h"
 #include "tools/zone_fetcher.h"
@@ -249,25 +250,6 @@ engine_privdrop(engine_type* engine)
     engine->gid = gid;
     privclose(engine->config->username, engine->config->group);
     return error;
-}
-
-
-/**
- * Stop parent process.
- *
- */
-static void
-parent_cleanup(engine_type* engine, int keep_pointer)
-{
-    if (engine) {
-        if (engine->config) {
-            engine_config_cleanup(engine->config);
-            engine->config = NULL;
-        }
-        if (!keep_pointer) {
-            se_free((void*) engine);
-        }
-    }
 }
 
 
@@ -575,9 +557,10 @@ engine_setup(engine_type* engine)
     struct sigaction action;
     int result = 0;
 
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
     ods_log_debug("[%s] signer setup", engine_str);
+    if (!engine || !engine->config) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
 
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
@@ -638,9 +621,8 @@ engine_setup(engine_type* engine)
             case 0: /* child */
                 break;
             default: /* parent */
-                cmdhandler_cleanup(engine->cmdhandler);
-                engine->cmdhandler = NULL;
-                parent_cleanup(engine, 0);
+                engine_cleanup(engine);
+                engine = NULL;
                 xmlCleanupParser();
                 xmlCleanupGlobals();
                 xmlCleanupThreads();
@@ -971,6 +953,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     engine_type* engine = NULL;
     int use_syslog = 0;
     int zl_changed = 0;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(cfgfile);
     ods_log_init(NULL, use_syslog, cmdline_verbosity);
@@ -987,8 +970,10 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     engine->daemonize = daemonize;
 
     /* config */
-    engine->config = engine_config(cfgfile, cmdline_verbosity);
-    if (engine_check_config(engine->config) != 0) {
+    engine->config = engine_config(engine->allocator, cfgfile,
+        cmdline_verbosity);
+    status = engine_config_check(engine->config);
+    if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] cfgfile %s has errors", engine_str, cfgfile);
         goto earlyexit;
     }
@@ -1083,7 +1068,6 @@ engine_cleanup(engine_type* engine)
         zonelist_cleanup(engine->zonelist);
         engine->zonelist = NULL;
     }
-    parent_cleanup(engine, 1);
 
     allocator_deallocate(engine->allocator);
     allocator_cleanup(allocator);

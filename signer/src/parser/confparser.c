@@ -32,8 +32,9 @@
  */
 
 #include "parser/confparser.h"
+#include "shared/allocator.h"
 #include "shared/log.h"
-#include "util/se_malloc.h"
+#include "shared/status.h"
 
 #include <libxml/xpath.h>
 #include <libxml/relaxng.h>
@@ -48,7 +49,7 @@ static const char* parser_str = "parser";
  * Parse elements from the configuration file.
  *
  */
-int
+ods_status
 parse_file_check(const char* cfgfile, const char* rngfile)
 {
     xmlDocPtr doc = NULL;
@@ -60,7 +61,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
 
     if (!cfgfile || !rngfile) {
         ods_log_error("[%s] no cfgfile or rngfile", parser_str);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(cfgfile);
     ods_log_assert(rngfile);
@@ -72,7 +73,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     if (doc == NULL) {
         ods_log_error("[%s] unable to read cfgfile %s", parser_str,
             cfgfile);
-        return 1;
+        return ODS_STATUS_XML_ERR;
     }
     /* Load rng document */
     rngdoc = xmlParseFile(rngfile);
@@ -80,7 +81,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         ods_log_error("[%s] unable to read rngfile %s", parser_str,
             rngfile);
         xmlFreeDoc(doc);
-        return 1;
+        return ODS_STATUS_XML_ERR;
     }
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
@@ -89,7 +90,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         xmlFreeDoc(doc);
         ods_log_error("[%s] unable to create XML RelaxNGs parser context",
            parser_str);
-        return 1;
+        return ODS_STATUS_XML_ERR;
     }
     /* Parse a schema definition resource and
      * build an internal XML schema structure.
@@ -101,7 +102,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         xmlRelaxNGFreeParserCtxt(rngpctx);
         xmlFreeDoc(rngdoc);
         xmlFreeDoc(doc);
-        return 1;
+        return ODS_STATUS_PARSE_ERR;
     }
     /* Create an XML RelaxNGs validation context. */
     rngctx = xmlRelaxNGNewValidCtxt(schema);
@@ -112,7 +113,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         xmlRelaxNGFreeParserCtxt(rngpctx);
         xmlFreeDoc(rngdoc);
         xmlFreeDoc(doc);
-        return 1;
+        return ODS_STATUS_RNG_ERR;
     }
     /* Validate a document tree in memory. */
     status = xmlRelaxNGValidateDoc(rngctx,doc);
@@ -124,7 +125,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         xmlRelaxNGFreeParserCtxt(rngpctx);
         xmlFreeDoc(rngdoc);
         xmlFreeDoc(doc);
-        return 1;
+        return ODS_STATUS_RNG_ERR;
     }
 
     xmlRelaxNGFreeValidCtxt(rngctx);
@@ -132,8 +133,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     xmlRelaxNGFreeParserCtxt(rngpctx);
     xmlFreeDoc(rngdoc);
     xmlFreeDoc(doc);
-
-    return 0;
+    return ODS_STATUS_OK;
 }
 
 /* TODO: look how the enforcer reads this now */
@@ -199,26 +199,43 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
 
 
 const char*
-parse_conf_zonelist_filename(const char* cfgfile)
+parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
 {
-    return parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//Configuration/Common/ZoneListFile",
         1);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
 }
 
 
 const char*
-parse_conf_zonefetch_filename(const char* cfgfile)
+parse_conf_zonefetch_filename(allocator_type* allocator, const char* cfgfile)
 {
-    return parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//Configuration/Common/ZoneFetchFile",
         0);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
 }
 
 
 const char*
-parse_conf_log_filename(const char* cfgfile)
+parse_conf_log_filename(allocator_type* allocator, const char* cfgfile)
 {
+    const char* dup = NULL;
     const char* str = parse_conf_string(cfgfile,
         "//Configuration/Common/Logging/Syslog/Facility",
         0);
@@ -227,79 +244,136 @@ parse_conf_log_filename(const char* cfgfile)
             "//Configuration/Common/Logging/File/Filename",
             0);
     }
-    return str; /* NULL, Facility or Filename */
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup; /* NULL, Facility or Filename */
 }
 
 
 const char*
-parse_conf_pid_filename(const char* cfgfile)
+parse_conf_pid_filename(allocator_type* allocator, const char* cfgfile)
 {
-    const char* str = parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//Configuration/Signer/PidFile",
         0);
-    if (!str) {
-        return se_strdup(ODS_SE_PIDFILE);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    } else {
+        dup = allocator_strdup(allocator, ODS_SE_PIDFILE);
     }
-    return str;
+    return dup;
 }
 
 
 const char*
-parse_conf_notify_command(const char* cfgfile)
+parse_conf_notify_command(allocator_type* allocator, const char* cfgfile)
 {
-    return parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//Configuration/Signer/NotifyCommand",
         0);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
 }
 
 
 const char*
-parse_conf_clisock_filename(const char* cfgfile)
+parse_conf_clisock_filename(allocator_type* allocator, const char* cfgfile)
 {
-    const char* str = parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//Configuration/Signer/SocketFile",
         0);
-    if (!str) {
-        return se_strdup(ODS_SE_SOCKFILE);
-    }
-    return str;
-}
 
-
-const char* parse_conf_working_dir(const char* cfgfile)
-{
-    const char* str = parse_conf_string(cfgfile,
-        "//Configuration/Signer/WorkingDirectory",
-        0);
-    if (!str) {
-        return se_strdup(ODS_SE_WORKDIR);
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    } else {
+        dup = allocator_strdup(allocator, ODS_SE_SOCKFILE);
     }
-    return str;
+    return dup;
 }
 
 
 const char*
-parse_conf_username(const char* cfgfile)
+parse_conf_working_dir(allocator_type* allocator, const char* cfgfile)
 {
-   return parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
+        "//Configuration/Signer/WorkingDirectory",
+        0);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    } else {
+        dup = allocator_strdup(allocator, ODS_SE_WORKDIR);
+    }
+    return dup;
+}
+
+
+const char*
+parse_conf_username(allocator_type* allocator, const char* cfgfile)
+{
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//Configuration/Signer/Privileges/User",
         0);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
 }
 
 
-const char* parse_conf_group(const char* cfgfile)
+const char*
+parse_conf_group(allocator_type* allocator, const char* cfgfile)
 {
-   return parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//Configuration/Signer/Privileges/Group",
         0);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
 }
 
 
-const char* parse_conf_chroot(const char* cfgfile)
+const char*
+parse_conf_chroot(allocator_type* allocator, const char* cfgfile)
 {
-   return parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//Configuration/Signer/Privileges/Directory",
         0);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
 }
 
 
@@ -314,7 +388,7 @@ parse_conf_use_syslog(const char* cfgfile)
         "//Configuration/Common/Logging/Syslog/Facility",
         0);
     if (str) {
-        se_free((void*)str);
+        free((void*)str);
         return 1;
     }
     return 0;
@@ -332,7 +406,7 @@ parse_conf_worker_threads(const char* cfgfile)
         if (strlen(str) > 0) {
             numwt = atoi(str);
         }
-        se_free((void*)str);
+        free((void*)str);
     }
     return numwt;
 }
@@ -349,7 +423,7 @@ parse_conf_signer_threads(const char* cfgfile)
         if (strlen(str) > 0) {
             numwt = atoi(str);
         }
-        se_free((void*)str);
+        free((void*)str);
     }
     return numwt;
 }

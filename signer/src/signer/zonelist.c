@@ -107,7 +107,7 @@ zonelist_read(const char* zlfile, time_t last_modified)
         return NULL;
     }
     /* does the file have no parse errors? */
-    if (parse_file_check(zlfile, rngfile) != 0) {
+    if (parse_file_check(zlfile, rngfile) != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to parse file %s", zl_str,
             zlfile);
         return NULL;

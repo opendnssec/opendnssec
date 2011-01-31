@@ -35,7 +35,9 @@
 #define DAEMON_CONFIG_H
 
 #include "config.h"
+#include "shared/allocator.h"
 #include "shared/locks.h"
+#include "shared/status.h"
 
 #include <stdio.h>
 
@@ -64,20 +66,22 @@ struct engineconfig_struct {
 
 /**
  * Configure engine.
+ * \param[in] allocator memory allocation
  * \param[in] cfgfile config file
  * \param[in] cmdline_verbosity log level
  * \return engineconfig_type* engine configuration
  *
  */
-engineconfig_type* engine_config(const char* cfgfile, int cmdline_verbosity);
+engineconfig_type* engine_config(allocator_type* allocator,
+    const char* cfgfile, int cmdline_verbosity);
 
 /**
  * Check configuration.
  * \param[in] config engine configuration
- * \return int 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-int engine_check_config(engineconfig_type* config);
+ods_status engine_config_check(engineconfig_type* config);
 
 /**
  * Print engine configuration.
@@ -88,10 +92,8 @@ int engine_check_config(engineconfig_type* config);
 void engine_config_print(FILE* out, engineconfig_type* config);
 
 /**
- * Clean up engine configuration.
- * \param[in] config engine configuration
+ * Removed cleanup function, because engine_config has own allocator.
  *
  */
-void engine_config_cleanup(engineconfig_type* config);
 
 #endif /* DAEMON_CONFIG_H */
