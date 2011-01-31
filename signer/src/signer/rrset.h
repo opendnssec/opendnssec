@@ -35,7 +35,7 @@
 #define SIGNER_RRSET_H
 
 #include "config.h"
-#include "signer/hsm.h"
+#include "shared/hsm.h"
 #include "signer/rrsigs.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"

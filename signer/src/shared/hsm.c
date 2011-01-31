@@ -31,8 +31,8 @@
  *
  */
 
+#include "shared/hsm.h"
 #include "shared/log.h"
-#include "signer/hsm.h"
 
 static const char* hsm_str = "hsm";
 

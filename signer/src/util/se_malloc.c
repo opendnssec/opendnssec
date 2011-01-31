@@ -32,8 +32,8 @@
  */
 
 #include "config.h"
+#include "shared/log.h"
 #include "util/se_malloc.h"
-#include "util/log.h"
 
 #include <stdlib.h> /* malloc(), calloc(), realloc(), free() */
 #include <string.h> /* strdup() */

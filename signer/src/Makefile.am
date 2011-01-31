@@ -31,12 +31,12 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				scheduler/task.c scheduler/task.h \
 				shared/duration.c shared/duration.h \
 				shared/file.c shared/file.h \
+				shared/hsm.c shared/hsm.h \
 				shared/locks.c shared/locks.h \
 				shared/log.c shared/log.h \
 				shared/privdrop.c shared/privdrop.h \
 				signer/backup.c signer/backup.h \
 				signer/domain.c signer/domain.h \
-				signer/hsm.c signer/hsm.h \
 				signer/nsec3params.c signer/nsec3params.h \
 				signer/rrset.c signer/rrset.h \
 				signer/rrsigs.c signer/rrsigs.h \

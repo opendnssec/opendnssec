@@ -31,12 +31,12 @@
  *
  */
 
-#ifndef SIGNER_HSM_H
-#define SIGNER_HSM_H
+#ifndef SHARED_HSM_H
+#define SHARED_HSM_H
 
+#include "config.h"
 #include "signer/se_key.h"
 
-#include <config.h>
 #include <ctype.h>
 #include <stdint.h>
 
@@ -68,4 +68,4 @@ int hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id);
 ldns_rr* hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
 	ldns_rr_list* rrset, time_t inception, time_t expiration);
 
-#endif /* SIGNER_HSM_H */
+#endif /* SHARED_HSM_H */

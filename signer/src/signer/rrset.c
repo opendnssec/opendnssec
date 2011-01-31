@@ -33,8 +33,8 @@
 
 #include "config.h"
 #include "shared/duration.h"
+#include "shared/hsm.h"
 #include "shared/log.h"
-#include "signer/hsm.h"
 #include "signer/rrset.h"
 #include "util/se_malloc.h"
 #include "util/util.h"

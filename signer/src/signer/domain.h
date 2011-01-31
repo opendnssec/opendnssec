@@ -35,7 +35,7 @@
 #define SIGNER_DOMAIN_H
 
 #include "config.h"
-#include "signer/hsm.h"
+#include "shared/hsm.h"
 #include "signer/nsec3params.h"
 #include "signer/rrset.h"
 #include "signer/signconf.h"
