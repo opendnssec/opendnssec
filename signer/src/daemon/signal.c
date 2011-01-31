@@ -34,7 +34,7 @@
 #include "config.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "scheduler/locks.h"
+#include "shared/locks.h"
 #include "shared/log.h"
 
 #include <signal.h>

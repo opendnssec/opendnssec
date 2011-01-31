@@ -36,7 +36,7 @@
 
 #include "config.h"
 #include "adapter/adapter.h"
-#include "scheduler/locks.h"
+#include "shared/locks.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"

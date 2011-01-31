@@ -33,8 +33,8 @@
 
 #include "daemon/engine.h"
 #include "daemon/worker.h"
-#include "scheduler/locks.h"
 #include "scheduler/task.h"
+#include "shared/locks.h"
 #include "shared/log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"

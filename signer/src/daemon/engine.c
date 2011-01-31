@@ -37,9 +37,9 @@
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "daemon/worker.h"
-#include "scheduler/locks.h"
 #include "scheduler/task.h"
 #include "shared/file.h"
+#include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/privdrop.h"
 #include "signer/zone.h"
@@ -102,7 +102,7 @@ cmdhandler_thread_start(void* arg)
 {
     cmdhandler_type* cmd = (cmdhandler_type*) arg;
 
-    se_thread_blocksigs();
+    ods_thread_blocksigs();
     cmdhandler_start(cmd);
     return NULL;
 }
@@ -118,7 +118,7 @@ engine_start_cmdhandler(engine_type* engine)
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
     engine->cmdhandler->engine = engine;
-    se_thread_create(&engine->cmdhandler->thread_id,
+    ods_thread_create(&engine->cmdhandler->thread_id,
         cmdhandler_thread_start, engine->cmdhandler);
     return 0;
 }
@@ -323,7 +323,7 @@ static void*
 worker_thread_start(void* arg)
 {
     worker_type* worker = (worker_type*) arg;
-    se_thread_blocksigs();
+    ods_thread_blocksigs();
     worker_start(worker);
     return NULL;
 }
@@ -344,7 +344,7 @@ engine_start_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engineptr = (struct engine_struct*) engine;
-        se_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
+        ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
             engine->workers[i]);
     }
     return;
@@ -371,7 +371,7 @@ engine_stop_workers(engine_type* engine)
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
-        se_thread_join(engine->workers[i]->thread_id);
+        ods_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engineptr = NULL;
     }
     return;

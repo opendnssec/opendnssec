@@ -28,10 +28,10 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				parser/confparser.c parser/confparser.h \
 				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
-				scheduler/locks.c scheduler/locks.h \
 				scheduler/task.c scheduler/task.h \
 				shared/duration.c shared/duration.h \
 				shared/file.c shared/file.h \
+				shared/locks.c shared/locks.h \
 				shared/log.c shared/log.h \
 				shared/privdrop.c shared/privdrop.h \
 				signer/backup.c signer/backup.h \

@@ -35,7 +35,7 @@
 #define DAEMON_CMDHANDLER_H
 
 #include "config.h"
-#include "scheduler/locks.h"
+#include "shared/locks.h"
 
 #include <sys/un.h>
 
@@ -48,7 +48,7 @@ typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
     struct engine_struct* engine;
     struct sockaddr_un listen_addr;
-    se_thread_type thread_id;
+    ods_thread_type thread_id;
     int listen_fd;
     int client_fd;
     int need_to_exit;

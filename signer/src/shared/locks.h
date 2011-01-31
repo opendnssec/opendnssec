@@ -64,22 +64,22 @@ typedef pthread_cond_t cond_basic_type;
 
 /** our own alarm clock */
 #define lock_basic_set(cond) LOCKRET(pthread_cond_init(cond, NULL))
-#define lock_basic_sleep(cond, lock, sleep) LOCKRET(se_thread_wait(cond, lock, sleep))
+#define lock_basic_sleep(cond, lock, sleep) LOCKRET(ods_thread_wait(cond, lock, sleep))
 #define lock_basic_alarm(cond) LOCKRET(pthread_cond_signal(cond))
 #define lock_basic_off(cond) LOCKRET(pthread_cond_destroy(cond))
 
-int se_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
+int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
 
 /** thread creation */
-typedef pthread_t se_thread_type;
+typedef pthread_t ods_thread_type;
 /** Pass where to store tread_t in thr. Use default NULL attributes. */
-#define se_thread_create(thr, func, arg) LOCKRET(pthread_create(thr, NULL, func, arg))
-#define se_thread_detach(thr) LOCKRET(pthread_detach(thr))
-#define se_thread_self() pthread_self()
-#define se_thread_join(thr) LOCKRET(pthread_join(thr, NULL))
+#define ods_thread_create(thr, func, arg) LOCKRET(pthread_create(thr, NULL, func, arg))
+#define ods_thread_detach(thr) LOCKRET(pthread_detach(thr))
+#define ods_thread_self() pthread_self()
+#define ods_thread_join(thr) LOCKRET(pthread_join(thr, NULL))
 
-int se_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
-void se_thread_blocksigs(void);
+int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
+void ods_thread_blocksigs(void);
 
 #else /* !HAVE_PTHREAD */
 
@@ -97,17 +97,17 @@ typedef int lock_basic_type;
 #define lock_basic_alarm(cond)     /* nop */
 #define lock_basic_off(cond)       /* nop */
 
-typedef pid_t se_thread_type;
-#define se_thread_create(thr, func, arg) se_thr_fork_create(thr, func, arg)
-#define se_thread_detach(thr)      /* nop */
-#define se_thread_self() getpid()
-#define se_thread_join(thr) se_thr_fork_wait(thr)
+typedef pid_t ods_thread_type;
+#define ods_thread_create(thr, func, arg) ods_thr_fork_create(thr, func, arg)
+#define ods_thread_detach(thr)      /* nop */
+#define ods_thread_self() getpid()
+#define ods_thread_join(thr) ods_thr_fork_wait(thr)
 
-void se_thr_fork_create(se_thread_type* thr, void* (*func)(void*), void* arg);
-void se_thr_fork_wait(se_thread_type thread);
+void ods_thr_fork_create(ods_thread_type* thr, void* (*func)(void*), void* arg);
+void ods_thr_fork_wait(ods_thread_type thread);
 
 #endif /* HAVE_PTHREAD */
 
-void se_thread_blocksigs(void);
+void ods_thread_blocksigs(void);
 
-#endif /* SCHEDULER_LOCKS_H */
+#endif /* SHARED_LOCKS_H */

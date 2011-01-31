@@ -38,8 +38,8 @@
 #include "daemon/cmdhandler.h"
 #include "daemon/cfg.h"
 #include "daemon/worker.h"
-#include "scheduler/locks.h"
 #include "scheduler/task.h"
+#include "shared/locks.h"
 #include "signer/zonelist.h"
 
 #include <signal.h>

@@ -35,7 +35,7 @@
 #define DAEMON_CONFIG_H
 
 #include "config.h"
-#include "scheduler/locks.h"
+#include "shared/locks.h"
 
 #include <stdio.h>
 

@@ -35,7 +35,7 @@
 #define DAEMON_WORKER_H
 
 #include "scheduler/task.h"
-#include "scheduler/locks.h"
+#include "shared/locks.h"
 #include "signer/zone.h"
 
 #include <time.h>
@@ -47,7 +47,7 @@ struct engine_struct;
 typedef struct worker_struct worker_type;
 struct worker_struct {
     int thread_num;
-    se_thread_type thread_id;
+    ods_thread_type thread_id;
     tasklist_type* tasklist;
     task_type* task;
     struct engine_struct* engineptr;

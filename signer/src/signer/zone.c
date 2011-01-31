@@ -32,10 +32,10 @@
  */
 
 #include "adapter/adapter.h"
-#include "scheduler/locks.h"
 #include "scheduler/task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/locks.h"
 #include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/hsm.h"
