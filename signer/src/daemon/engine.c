@@ -99,6 +99,10 @@ engine_create(void)
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
 
+    engine->signal = SIGNAL_INIT;
+    lock_basic_init(&engine->signal_lock);
+    lock_basic_set(&engine->signal_cond);
+
     engine->zonelist = zonelist_create();
     if (!engine->zonelist) {
         engine_cleanup(engine);
@@ -109,28 +113,22 @@ engine_create(void)
         engine_cleanup(engine);
         return NULL;
     }
-
-    lock_basic_init(&engine->signal_lock);
-    lock_basic_set(&engine->signal_cond);
     return engine;
 }
 
 
 /**
- * Start command handler thread.
+ * Start command handler.
  *
  */
 static void*
 cmdhandler_thread_start(void* arg)
 {
     cmdhandler_type* cmd = (cmdhandler_type*) arg;
-
     ods_thread_blocksigs();
     cmdhandler_start(cmd);
     return NULL;
 }
-
-
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
@@ -141,8 +139,6 @@ engine_start_cmdhandler(engine_type* engine)
         cmdhandler_thread_start, engine->cmdhandler);
     return;
 }
-
-
 /**
  * Self pipe trick (see Unix Network Programming).
  *
@@ -183,8 +179,6 @@ self_pipe_trick(engine_type* engine)
     }
     return 0;
 }
-
-
 /**
  * Stop command handler.
  *
@@ -216,10 +210,10 @@ engine_stop_cmdhandler(engine_type* engine)
  * Drop privileges.
  *
  */
-static int
+static ods_status
 engine_privdrop(engine_type* engine)
 {
-    int error;
+    ods_status status = ODS_STATUS_OK;
     uid_t uid = -1;
     gid_t gid = -1;
 
@@ -238,14 +232,15 @@ engine_privdrop(engine_type* engine)
            engine->config->group);
     }
     if (engine->config->chroot) {
-        ods_log_verbose("[%s] chroot to %s", engine_str, engine->config->chroot);
+        ods_log_verbose("[%s] chroot to %s", engine_str,
+            engine->config->chroot);
     }
-    error = privdrop(engine->config->username, engine->config->group,
+    status = privdrop(engine->config->username, engine->config->group,
         engine->config->chroot, &uid, &gid);
     engine->uid = uid;
     engine->gid = gid;
     privclose(engine->config->username, engine->config->group);
-    return error;
+    return status;
 }
 
 
@@ -939,6 +934,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     /* initialize */
     xmlInitGlobals();
     xmlInitParser();
+    xmlInitThreads();
     engine = engine_create();
     if (!engine) {
         ods_fatal_exit("[%s] create failed", engine_str);
@@ -1001,10 +997,15 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         engine_stop_cmdhandler(engine);
     }
 
-    (void)unlink(engine->config->pid_filename);
-    (void)unlink(engine->config->clisock_filename);
-
 earlyexit:
+    if (engine && engine->config) {
+        if (engine->config->pid_filename) {
+            (void)unlink(engine->config->pid_filename);
+        }
+        if (engine->config->clisock_filename) {
+            (void)unlink(engine->config->clisock_filename);
+        }
+    }
     engine_cleanup(engine);
     engine = NULL;
     ods_log_close();
@@ -1034,7 +1035,7 @@ engine_cleanup(engine_type* engine)
     signal_cond = engine->signal_cond;
     signal_lock = engine->signal_lock;
 
-    if (engine->workers) {
+    if (engine->workers && engine->config) {
         for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
             worker_cleanup(engine->workers[i]);
         }

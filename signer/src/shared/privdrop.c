@@ -38,7 +38,7 @@
 #include "config.h"
 #include "shared/log.h"
 #include "shared/privdrop.h"
-#include "util/se_malloc.h"
+#include "shared/status.h"
 
 #include <errno.h>
 #include <pwd.h>
@@ -145,7 +145,7 @@ privgid(const char *groupname)
  * Drop privileges.
  *
  */
-int
+ods_status
 privdrop(const char *username, const char *groupname, const char *newroot,
     uid_t* puid, gid_t* pgid)
 {
@@ -166,7 +166,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
         if (uid == (uid_t)-1) {
             ods_log_error("[%s] user %s does not exist", privdrop_str,
                 username);
-            return -1;
+            return ODS_STATUS_PRIVDROP_ERR;
         }
     }
 
@@ -176,7 +176,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
         if (gid == (gid_t)-1) {
             ods_log_error("[%s] group %s does not exist", privdrop_str,
                 groupname);
-            return -1;
+            return ODS_STATUS_PRIVDROP_ERR;
         }
     }
 
@@ -187,12 +187,12 @@ privdrop(const char *username, const char *groupname, const char *newroot,
        if (status != 0 || chdir("/") != 0) {
             ods_log_error("[%s] chroot to %s failed: %.100s", privdrop_str,
                 newroot, strerror(errno));
-           return -1;
+            return ODS_STATUS_CHROOT_ERR;
        }
 #else
        ods_log_error("[%s] chroot to %s failed: !HAVE_CHROOT", privdrop_str,
            newroot);
-       return -1;
+       return ODS_STATUS_CHROOT_ERR;
 #endif /* HAVE_CHROOT */
     }
 
@@ -202,17 +202,17 @@ privdrop(const char *username, const char *groupname, const char *newroot,
         if (initgroups(username, gid) < 0) {
             ods_log_error("[%s] initgroups failed: %s: %.100s", privdrop_str,
                 username, strerror(errno));
-            return -1;
+            return ODS_STATUS_PRIVDROP_ERR;
         }
 #else
         ods_log_error("initgroups failed: %s: !HAVE_INITGROUPS", username);
-        return -1;
+        return ODS_STATUS_PRIVDROP_ERR;
 #endif /* HAVE_INITGROUPS */
 
         ngroups_max = sysconf(_SC_NGROUPS_MAX) + 1;
         final_groups = (gid_t *)malloc(ngroups_max *sizeof(gid_t));
         if (!final_groups) {
-            return -1;
+            return ODS_STATUS_MALLOC_ERR;
         }
 #if defined(HAVE_GETGROUPS) && defined(HAVE_SETGROUPS)
         final_group_len = getgroups(ngroups_max, final_groups);
@@ -244,7 +244,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
         if (status != 0) {
            ods_log_error("[%s] setegid() for %s (%lu) failed: %s",
                privdrop_str, groupname, (unsigned long) gid, strerror(errno));
-           return -1;
+           return ODS_STATUS_PRIVDROP_ERR;
         }
 # endif  /* SETEUID_BREAKS_SETUID */
 
@@ -254,7 +254,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
         if (status != 0) {
            ods_log_error("[%s] setgid() for %s (%lu) failed: %s",
                privdrop_str, groupname, (unsigned long) gid, strerror(errno));
-           return -1;
+           return ODS_STATUS_PRIVDROP_ERR;
         } else {
             ods_log_debug("[%s] group set to %s (%lu)", privdrop_str,
                 groupname, (unsigned long) gid);
@@ -275,7 +275,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
         if (status != 0) {
            ods_log_error("[%s] seteuid() for %s (%lu) failed: %s",
                privdrop_str, username, (unsigned long) uid, strerror(errno));
-           return -1;
+           return ODS_STATUS_PRIVDROP_ERR;
         }
 # endif  /* SETEUID_BREAKS_SETUID */
 
@@ -285,7 +285,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
         if (status != 0) {
            ods_log_error("[%s] setuid() for %s (%lu) failed: %s",
                privdrop_str, username, (unsigned long) uid, strerror(errno));
-           return -1;
+           return ODS_STATUS_PRIVDROP_ERR;
         } else {
             ods_log_debug("[%s] user set to %s (%lu)", privdrop_str,
                 username, (unsigned long) uid);
@@ -294,7 +294,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
 
     *puid = uid;
     *pgid = gid;
-    return 0;
+    return ODS_STATUS_OK;
 }
 
 

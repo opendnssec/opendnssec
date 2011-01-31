@@ -37,6 +37,8 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include "shared/status.h"
+
 /**
  * Get the group identifier from a group name.
  * \param[in] groupname group name
@@ -60,10 +62,10 @@ uid_t privuid(const char* username);
  * \param[in] newroot make this the new root directory
  * \param[out] puid user id
  * \param[out] pgid group id
- * \return 0 on success, 1 on error.
+ * \return ods_status status.
  *
  */
-int privdrop(const char *username, const char *groupname,
+ods_status privdrop(const char *username, const char *groupname,
     const char *newroot, uid_t* puid, gid_t* pgid);
 
 /**
