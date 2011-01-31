@@ -29,6 +29,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
 				scheduler/task.c scheduler/task.h \
+				shared/allocator.c shared/allocator.h \
 				shared/duration.c shared/duration.h \
 				shared/file.c shared/file.h \
 				shared/hsm.c shared/hsm.h \
@@ -56,6 +57,7 @@ ods_signerd_LDADD=		$(LIBHSM)
 ods_signerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@
 
 ods_signer_SOURCES=		ods-signer.c \
+				shared/allocator.c shared/allocator.h \
 				shared/duration.c shared/duration.h \
 				shared/file.c shared/file.h \
 				shared/log.c shared/log.h \
