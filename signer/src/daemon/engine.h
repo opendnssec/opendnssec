@@ -35,8 +35,8 @@
 #define DAEMON_ENGINE_H
 
 #include "config.h"
-#include "daemon/cmdhandler.h"
 #include "daemon/cfg.h"
+#include "daemon/cmdhandler.h"
 #include "daemon/worker.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
@@ -59,15 +59,11 @@ typedef struct engine_struct engine_type;
 struct engine_struct {
     allocator_type* allocator;
     engineconfig_type* config;
-    cmdhandler_type* cmdhandler;
     worker_type** workers;
     zonelist_type* zonelist;
     schedule_type* taskq;
+    cmdhandler_type* cmdhandler;
     int cmdhandler_done;
-
-    sig_atomic_t signal;
-    cond_basic_type signal_cond;
-    lock_basic_type signal_lock;
 
     pid_t pid;
     pid_t zfpid;
@@ -77,6 +73,10 @@ struct engine_struct {
     int daemonize;
     int need_to_exit;
     int need_to_reload;
+
+    sig_atomic_t signal;
+    cond_basic_type signal_cond;
+    lock_basic_type signal_lock;
 };
 
 /**

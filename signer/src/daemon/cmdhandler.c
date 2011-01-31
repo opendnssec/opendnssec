@@ -35,11 +35,11 @@
 #include "daemon/engine.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
+#include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
-#include "util/se_malloc.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -308,7 +308,7 @@ unlink_backup_file(const char* filename, const char* extension)
     char* tmpname = ods_build_path(filename, extension, 0);
     ods_log_debug("[%s] unlink file %s", cmdh_str, tmpname);
     unlink(tmpname);
-    se_free((void*)tmpname);
+    free((void*)tmpname);
     return;
 }
 
@@ -607,7 +607,6 @@ cmdhandler_handle_cmd(cmdhandler_type* cmdc)
     char buf[ODS_SE_MAXLINE];
 
     ods_log_assert(cmdc);
-
     sockfd = cmdc->client_fd;
 
 again:
@@ -723,7 +722,7 @@ cmdhandler_accept_client(void* arg)
     if (cmdc->client_fd) {
         close(cmdc->client_fd);
     }
-    cmdhandler_cleanup(cmdc);
+    free(cmdc);
     count--;
     return NULL;
 }
@@ -734,13 +733,19 @@ cmdhandler_accept_client(void* arg)
  *
  */
 cmdhandler_type*
-cmdhandler_create(const char* filename)
+cmdhandler_create(allocator_type* allocator, const char* filename)
 {
     cmdhandler_type* cmdh = NULL;
     struct sockaddr_un servaddr;
     int listenfd = 0;
     int flags = 0;
     int ret = 0;
+
+    if (!allocator) {
+        ods_log_error("[%s] unable to create: no allocator");
+        return NULL;
+    }
+    ods_log_assert(allocator);
 
     if (!filename) {
         ods_log_error("[%s] unable to create: no socket filename");
@@ -798,7 +803,8 @@ cmdhandler_create(const char* filename)
     }
 
     /* all ok */
-    cmdh = (cmdhandler_type*) se_malloc(sizeof(cmdhandler_type));
+    cmdh = (cmdhandler_type*) allocator_alloc(allocator,
+        sizeof(cmdhandler_type));
     if (!cmdh) {
         close(listenfd);
         return NULL;
@@ -854,7 +860,12 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
                 continue;
             }
             /* client accepted, create new thread */
-            cmdc = (cmdhandler_type*) se_malloc(sizeof(cmdhandler_type));
+            cmdc = (cmdhandler_type*) malloc(sizeof(cmdhandler_type));
+            if (!cmdc) {
+                ods_log_crit("[%s] unable to create thread for client: "
+                    "malloc failed", cmdh_str);
+                cmdhandler->need_to_exit = 1;
+            }
             cmdc->listen_fd = cmdhandler->listen_fd;
             cmdc->client_fd = connfd;
             cmdc->listen_addr = cmdhandler->listen_addr;
@@ -869,21 +880,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 
     ods_log_debug("[%s] done", cmdh_str);
     engine = cmdhandler->engine;
-    cmdhandler_cleanup(cmdhandler);
     engine->cmdhandler_done = 1;
-    return;
-}
-
-
-/**
- * Clean up command handler.
- *
- */
-void
-cmdhandler_cleanup(cmdhandler_type* cmdhandler)
-{
-    if (cmdhandler) {
-        se_free((void*)cmdhandler);
-    }
     return;
 }

@@ -88,7 +88,6 @@ engine_create(void)
     }
     engine->allocator = allocator;
     engine->config = NULL;
-    engine->daemonize = 0;
     engine->workers = NULL;
     engine->cmdhandler = NULL;
     engine->cmdhandler_done = 0;
@@ -96,6 +95,7 @@ engine_create(void)
     engine->zfpid = -1;
     engine->uid = -1;
     engine->gid = -1;
+    engine->daemonize = 0;
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
 
@@ -131,11 +131,7 @@ cmdhandler_thread_start(void* arg)
 }
 
 
-/**
- * Start command handler.
- *
- */
-static int
+static void
 engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
@@ -143,7 +139,7 @@ engine_start_cmdhandler(engine_type* engine)
     engine->cmdhandler->engine = engine;
     ods_thread_create(&engine->cmdhandler->thread_id,
         cmdhandler_thread_start, engine->cmdhandler);
-    return 0;
+    return;
 }
 
 
@@ -477,7 +473,6 @@ start_zonefetcher(engine_type* engine)
     if (chrt)         { se_free((void*)chrt); }
     if (log_filename) { se_free((void*)log_filename); }
 
-    cmdhandler_cleanup(engine->cmdhandler);
     engine_cleanup(engine);
     engine = NULL;
     ods_log_close();
@@ -563,7 +558,8 @@ engine_setup(engine_type* engine)
     }
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
+    engine->cmdhandler = cmdhandler_create(engine->allocator,
+        engine->config->clisock_filename);
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
             engine_str, engine->config->clisock_filename);
@@ -573,8 +569,6 @@ engine_setup(engine_type* engine)
     /* fork of fetcher */
     if (start_zonefetcher(engine) != 0) {
         ods_log_error("[%s] cannot start zonefetcher", engine_str);
-        cmdhandler_cleanup(engine->cmdhandler);
-        engine->cmdhandler = NULL;
         return 1;
     }
 
@@ -597,15 +591,11 @@ engine_setup(engine_type* engine)
         chdir(engine->config->working_dir) != 0) {
         ods_log_error("[%s] setup failed: chdir to %s failed: %s", engine_str,
             engine->config->working_dir, strerror(errno));
-        cmdhandler_cleanup(engine->cmdhandler);
-        engine->cmdhandler = NULL;
         return 1;
     }
 
     if (engine_privdrop(engine) != 0) {
         ods_log_error("[%s] setup failed: unable to drop privileges", engine_str);
-        cmdhandler_cleanup(engine->cmdhandler);
-        engine->cmdhandler = NULL;
         return 1;
     }
 
@@ -615,8 +605,6 @@ engine_setup(engine_type* engine)
             case -1: /* error */
                 ods_log_error("[%s] setup failed: unable to fork daemon: %s",
                     engine_str, strerror(errno));
-                cmdhandler_cleanup(engine->cmdhandler);
-                engine->cmdhandler = NULL;
                 return 1;
             case 0: /* child */
                 break;
@@ -631,8 +619,6 @@ engine_setup(engine_type* engine)
         if (setsid() == -1) {
             ods_log_error("[%s] setup failed: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
-            cmdhandler_cleanup(engine->cmdhandler);
-            engine->cmdhandler = NULL;
             return 1;
         }
     }
@@ -640,20 +626,13 @@ engine_setup(engine_type* engine)
     /* make common with enforcer */
     if (write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         ods_log_error("[%s] setup failed: unable to write pid file", engine_str);
-        cmdhandler_cleanup(engine->cmdhandler);
-        engine->cmdhandler = NULL;
         return 1;
     }
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
 
     /* start command handler */
-    if (engine_start_cmdhandler(engine) != 0) {
-        ods_log_error("[%s] setup failed: unable to start command handler", engine_str);
-        cmdhandler_cleanup(engine->cmdhandler);
-        engine->cmdhandler = NULL;
-        return 1;
-    }
+    engine_start_cmdhandler(engine);
 
     /* catch signals */
     signal_set_engine(engine);
@@ -668,8 +647,6 @@ engine_setup(engine_type* engine)
     if (result != HSM_OK) {
         ods_log_error("[%s] setup failed: error initializing libhsm (errno %i)",
             engine_str, result);
-        cmdhandler_cleanup(engine->cmdhandler);
-        engine->cmdhandler = NULL;
         return 1;
     }
 

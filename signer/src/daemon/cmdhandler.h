@@ -35,6 +35,7 @@
 #define DAEMON_CMDHANDLER_H
 
 #include "config.h"
+#include "shared/allocator.h"
 #include "shared/locks.h"
 
 #include <sys/un.h>
@@ -56,11 +57,13 @@ struct cmdhandler_struct {
 
 /**
  * Create command handler.
+ * \param[in] allocator memory allocator
  * \param[in] filename socket file name
- * \return cmdhandler_type* the created command handler
+ * \return cmdhandler_type* created command handler
  *
  */
-cmdhandler_type* cmdhandler_create(const char* filename);
+cmdhandler_type* cmdhandler_create(allocator_type* allocator,
+    const char* filename);
 
 /**
  * Start command handler.
@@ -70,10 +73,8 @@ cmdhandler_type* cmdhandler_create(const char* filename);
 void cmdhandler_start(cmdhandler_type* cmdhandler);
 
 /**
- * Clean up command handler.
- * \param[in] cmdhandler_type* clean up this command handler
+ * Removed cleanup function, because cmdhandler_create has own allocator.
  *
  */
-void cmdhandler_cleanup(cmdhandler_type* cmdhandler);
 
 #endif /* DAEMON_CMDHANDLER_H */
