@@ -33,10 +33,10 @@
 
 #include "config.h"
 #include "shared/log.h"
+#include "shared/util.h"
 #include "signer/rrsigs.h"
 #include "signer/se_key.h"
 #include "util/se_malloc.h"
-#include "util/util.h"
 
 #include <ldns/ldns.h>
 

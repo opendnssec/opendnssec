@@ -37,10 +37,10 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "shared/util.h"
 #include "signer/zone.h"
 #include "signer/zonedata.h"
 #include "util/se_malloc.h"
-#include "util/util.h"
 
 #include <ldns/ldns.h> /* ldns_*() */
 #include <stdio.h> /* rewind() */

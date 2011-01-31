@@ -35,7 +35,7 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/log.h"
-#include "util/util.h"
+#include "shared/util.h"
 
 #include <stdarg.h> /* va_start(), va_end()  */
 #include <stdio.h> /* fflush, fprintf(), vsnprintf() */

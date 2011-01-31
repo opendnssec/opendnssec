@@ -33,13 +33,13 @@
 
 #include "config.h"
 #include "shared/log.h"
+#include "shared/util.h"
 #include "signer/backup.h"
 #include "signer/domain.h"
 #include "signer/nsec3params.h"
 #include "signer/zonedata.h"
 #include "util/file.h"
 #include "util/se_malloc.h"
-#include "util/util.h"
 
 #include <ldns/ldns.h> /* ldns_dname_*(), ldns_rbtree_*() */
 

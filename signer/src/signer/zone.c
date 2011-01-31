@@ -38,13 +38,13 @@
 #include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
+#include "shared/util.h"
 #include "signer/backup.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
 #include "signer/zone.h"
 #include "signer/zonedata.h"
 #include "util/se_malloc.h"
-#include "util/util.h"
 
 #include <ldns/ldns.h>
 #include <libhsm.h> /* hsm_create_context(), hsm_get_key(), hsm_destroy_context() */

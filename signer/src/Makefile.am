@@ -35,6 +35,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				shared/locks.c shared/locks.h \
 				shared/log.c shared/log.h \
 				shared/privdrop.c shared/privdrop.h \
+				shared/util.c shared/util.h \
 				signer/backup.c signer/backup.h \
 				signer/domain.c signer/domain.h \
 				signer/nsec3params.c signer/nsec3params.h \
@@ -49,8 +50,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				signer/zonelist.c signer/zonelist.h \
 				tools/toolutil.c tools/toolutil.h \
 				tools/zone_fetcher.c tools/zone_fetcher.h \
-				util/se_malloc.c util/se_malloc.h \
-				util/util.c util/util.h
+				util/se_malloc.c util/se_malloc.h
 
 ods_signerd_LDADD=		$(LIBHSM)
 ods_signerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@
