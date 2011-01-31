@@ -31,9 +31,9 @@
  * Durations.
  */
 
+#include "shared/allocator.h"
 #include "shared/duration.h"
 #include "shared/log.h"
-#include "util/se_malloc.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,8 +50,22 @@ static const char* duration_str = "duration";
 duration_type*
 duration_create(void)
 {
-    duration_type* duration = (duration_type*)
-        se_malloc(sizeof(duration_type));
+    duration_type* duration;
+    allocator_type* allocator = allocator_create(malloc, free);
+    if (!allocator) {
+        ods_log_error("[%s] cannot create: no allocator available",
+            duration_str);
+        return NULL;
+    }
+
+    duration = (duration_type*) allocator_alloc(allocator,
+        sizeof(duration_type));
+    if (!duration) {
+        ods_log_error("[%s] cannot create: allocator failed", duration_str);
+        allocator_cleanup(allocator);
+        return NULL;
+    }
+    duration->allocator = allocator;
     duration->years = 0;
     duration->months = 0;
     duration->weeks = 0;
@@ -218,10 +232,7 @@ duration2string(duration_type* duration)
     int T = 0;
 
     if (!duration) {
-        str = (char*) se_calloc(5, sizeof(char));
-        str[0] = '\0';
-        str = strncat(str, "None", 4);
-        return str;
+        return NULL;
     }
 
     if (duration->years > 0) {
@@ -252,61 +263,61 @@ duration2string(duration_type* duration)
         count++;
     }
 
-    str = (char*) se_calloc(count, sizeof(char));
+    str = (char*) calloc(count, sizeof(char));
     str[0] = 'P';
     str[1] = '\0';
 
     if (duration->years > 0) {
         count = digits_in_number(duration->years);
-        num = (char*) se_calloc(count+2, sizeof(char));
+        num = (char*) calloc(count+2, sizeof(char));
         snprintf(num, count+2, "%uY", (uint32_t) duration->years);
         str = strncat(str, num, count+2);
-        se_free((void*) num);
+        free((void*) num);
     }
     if (duration->months > 0) {
         count = digits_in_number(duration->months);
-        num = (char*) se_calloc(count+2, sizeof(char));
+        num = (char*) calloc(count+2, sizeof(char));
         snprintf(num, count+2, "%uM", (uint32_t) duration->months);
         str = strncat(str, num, count+2);
-        se_free((void*) num);
+        free((void*) num);
     }
     if (duration->weeks > 0) {
         count = digits_in_number(duration->weeks);
-        num = (char*) se_calloc(count+2, sizeof(char));
+        num = (char*) calloc(count+2, sizeof(char));
         snprintf(num, count+2, "%uW", (uint32_t) duration->weeks);
         str = strncat(str, num, count+2);
-        se_free((void*) num);
+        free((void*) num);
     }
     if (duration->days > 0) {
         count = digits_in_number(duration->days);
-        num = (char*) se_calloc(count+2, sizeof(char));
+        num = (char*) calloc(count+2, sizeof(char));
         snprintf(num, count+2, "%uD", (uint32_t) duration->days);
         str = strncat(str, num, count+2);
-        se_free((void*) num);
+        free((void*) num);
     }
     if (T) {
         str = strncat(str, "T", 1);
     }
     if (duration->hours > 0) {
         count = digits_in_number(duration->hours);
-        num = (char*) se_calloc(count+2, sizeof(char));
+        num = (char*) calloc(count+2, sizeof(char));
         snprintf(num, count+2, "%uH", (uint32_t) duration->hours);
         str = strncat(str, num, count+2);
-        se_free((void*) num);
+        free((void*) num);
     }
     if (duration->minutes > 0) {
         count = digits_in_number(duration->minutes);
-        num = (char*) se_calloc(count+2, sizeof(char));
+        num = (char*) calloc(count+2, sizeof(char));
         snprintf(num, count+2, "%uM", (uint32_t) duration->minutes);
         str = strncat(str, num, count+2);
-        se_free((void*) num);
+        free((void*) num);
     }
     if (duration->seconds > 0) {
         count = digits_in_number(duration->seconds);
-        num = (char*) se_calloc(count+2, sizeof(char));
+        num = (char*) calloc(count+2, sizeof(char));
         snprintf(num, count+2, "%uS", (uint32_t) duration->seconds);
         str = strncat(str, num, count+2);
-        se_free((void*) num);
+        free((void*) num);
     }
     return str;
 }
@@ -336,7 +347,7 @@ duration2time(duration_type* duration)
             dstr = duration2string(duration);
             ods_log_warning("[%s] converting duration %s to approximate value",
                 duration_str, dstr?dstr:"(null)");
-            se_free((void*) dstr);
+            free((void*) dstr);
         }
     }
     return period;
@@ -500,7 +511,7 @@ time_datestamp(time_t tt, const char* format, char** str)
 
     ut = (uint32_t) strtoul(outstr, NULL, 10);
     if (str) {
-        *str = se_strdup(outstr);
+        *str = strdup(outstr);
     }
     return ut;
 }
@@ -545,7 +556,13 @@ time_itoa(time_t n, char* s)
 void
 duration_cleanup(duration_type* duration)
 {
-    if (duration) {
-        se_free((void*) duration);
+    allocator_type* allocator;
+
+    if (!duration) {
+        return;
     }
+    allocator = duration->allocator;
+    allocator_deallocate(allocator);
+    allocator_cleanup(allocator);
+    return;
 }

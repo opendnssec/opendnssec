@@ -35,6 +35,7 @@
 #define UTIL_DURATION_H
 
 #include "config.h"
+#include "shared/allocator.h"
 
 #include <stdint.h>
 #include <time.h>
@@ -46,6 +47,7 @@
 typedef struct duration_struct duration_type;
 struct duration_struct
 {
+    allocator_type* allocator;
     time_t years;
     time_t months;
     time_t weeks;

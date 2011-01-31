@@ -181,9 +181,9 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
     uint32_t rr_ttl = 0;
     uint32_t default_ttl = 0;
 
-    ods_log_assert(rrs);
-    ods_log_assert(rrs->rr);
-    ods_log_assert(rr);
+    if (!rrs || !rrs->rr || !rr) {
+        return LDNS_STATUS_ERR;
+    }
 
     rr_ttl = ldns_rr_ttl(rr);
     status = util_dnssec_rrs_compare(rrs->rr, rr, &cmp);
