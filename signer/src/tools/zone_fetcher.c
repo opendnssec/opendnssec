@@ -27,7 +27,7 @@
 
 #include "config.h"
 #include "shared/log.h"
-#include "util/privdrop.h"
+#include "shared/privdrop.h"
 #include "tools/toolutil.h"
 #include "tools/zone_fetcher.h"
 
@@ -1445,7 +1445,10 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     FILE* fd;
     sockets_type sockets;
     int c, info = 0;
+    int error = 0;
     struct sigaction action;
+    uid_t uid = -1;
+    gid_t gid = -1;
 
     ods_log_init(log_file, use_syslog, verbosity);
 
@@ -1524,7 +1527,9 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
     }
 
     /* drop privileges */
-    if (privdrop(user, group, chroot) != 0) {
+    error = privdrop(user, group, chroot, &uid, &gid);
+    privclose(user, group);
+    if (error != 0) {
         ods_log_error("zone fetcher failed to drop privileges");
         if (unlink(config->pidfile) == -1) {
             ods_log_error("unlink pidfile %s failed: %s",

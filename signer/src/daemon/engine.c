@@ -41,10 +41,10 @@
 #include "scheduler/task.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "shared/privdrop.h"
 #include "signer/zone.h"
 #include "signer/zonelist.h"
 #include "tools/zone_fetcher.h"
-#include "util/privdrop.h"
 #include "util/se_malloc.h"
 
 #include <errno.h>
@@ -201,6 +201,8 @@ static int
 engine_privdrop(engine_type* engine)
 {
     int error;
+    uid_t uid = -1;
+    gid_t gid = -1;
 
     ods_log_assert(engine);
     ods_log_assert(engine->config);
@@ -220,7 +222,10 @@ engine_privdrop(engine_type* engine)
         ods_log_verbose("[%s] chroot to %s", engine_str, engine->config->chroot);
     }
     error = privdrop(engine->config->username, engine->config->group,
-        engine->config->chroot);
+        engine->config->chroot, &uid, &gid);
+    engine->uid = uid;
+    engine->gid = gid;
+    privclose(engine->config->username, engine->config->group);
     return error;
 }
 

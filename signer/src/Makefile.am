@@ -33,6 +33,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				shared/duration.c shared/duration.h \
 				shared/file.c shared/file.h \
 				shared/log.c shared/log.h \
+				shared/privdrop.c shared/privdrop.h \
 				signer/backup.c signer/backup.h \
 				signer/domain.c signer/domain.h \
 				signer/hsm.c signer/hsm.h \
@@ -48,7 +49,6 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				signer/zonelist.c signer/zonelist.h \
 				tools/toolutil.c tools/toolutil.h \
 				tools/zone_fetcher.c tools/zone_fetcher.h \
-				util/privdrop.c util/privdrop.h \
 				util/se_malloc.c util/se_malloc.h \
 				util/util.c util/util.h
 
