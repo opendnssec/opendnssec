@@ -37,6 +37,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				shared/locks.c shared/locks.h \
 				shared/log.c shared/log.h \
 				shared/privdrop.c shared/privdrop.h \
+				shared/status.c shared/status.h \
 				shared/util.c shared/util.h \
 				signer/backup.c signer/backup.h \
 				signer/domain.c signer/domain.h \
