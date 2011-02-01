@@ -116,6 +116,7 @@ duration_compare(duration_type* d1, duration_type* d2)
     return 0;
 }
 
+
 /**
  * Create a duration from string.
  *
