@@ -1049,7 +1049,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
 
     if (domain_examine_valid_zonecut(domain) != 0) {
         str_name = ldns_rdf2str(domain->name);
-        ods_log_error("[%s] occluded (non-glue non-DS) data at %s NS", zd_str, str_name);
+        ods_log_warning("[%s] occluded (non-glue non-DS) data at %s NS",
+            zd_str, str_name);
         se_free((void*)str_name);
         return 1;
     }
@@ -1069,8 +1070,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 /* data below DNAME */
                 str_name = ldns_rdf2str(domain->name);
                 str_parent = ldns_rdf2str(parent_domain->name);
-                ods_log_error("[%s] occluded data at %s (below %s DNAME)", zd_str,
-                    str_name, str_parent);
+                ods_log_warning("[%s] occluded data at %s (below %s DNAME)",
+                    zd_str, str_name, str_parent);
                 se_free((void*)str_name);
                 se_free((void*)str_parent);
                 return 1;
@@ -1080,8 +1081,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 /* data (non-glue) below NS */
                 str_name = ldns_rdf2str(domain->name);
                 str_parent = ldns_rdf2str(parent_domain->name);
-                ods_log_error("[%s] occluded (non-glue) data at %s (below %s NS)",
-                    zd_str, str_name, str_parent);
+                ods_log_warning("[%s] occluded (non-glue) data at %s (below "
+                    "%s NS)", zd_str, str_name, str_parent);
                 se_free((void*)str_name);
                 se_free((void*)str_parent);
                 return 1;
@@ -1092,8 +1093,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 /* glue data not signalled by NS RDATA */
                 str_name = ldns_rdf2str(domain->name);
                 str_parent = ldns_rdf2str(parent_domain->name);
-                ods_log_error("[%s] occluded data at %s (below %s NS)", zd_str,
-                    str_name, str_parent);
+                ods_log_warning("[%s] occluded data at %s (below %s NS)",
+                    zd_str, str_name, str_parent);
                 se_free((void*)str_name);
                 se_free((void*)str_parent);
                 return 1;
@@ -1145,9 +1146,11 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, int is_file)
             error =
             /* Thou shall not have occluded data in your zone file */
             zonedata_examine_domain_is_occluded(zd, domain, apex);
+/* just warn if there is occluded data
             if (error) {
                 result = error;
             }
+*/
         }
 
         node = ldns_rbtree_next(node);
