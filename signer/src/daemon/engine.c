@@ -631,8 +631,17 @@ engine_run(engine_type* engine, int single_run)
     }
     ods_log_assert(engine);
 
+    engine_start_workers(engine);
+
+    lock_basic_lock(&engine->signal_lock);
+    /* [LOCK] signal */
     engine->signal = SIGNAL_RUN;
-    while (engine->need_to_exit == 0 && engine->need_to_reload == 0) {
+    /* [UNLOCK] signal */
+    lock_basic_unlock(&engine->signal_lock);
+
+    while (!engine->need_to_exit && !engine->need_to_reload) {
+        lock_basic_lock(&engine->signal_lock);
+        /* [LOCK] signal */
         engine->signal = signal_capture(engine->signal);
         switch (engine->signal) {
             case SIGNAL_RUN:
@@ -650,19 +659,24 @@ engine_run(engine_type* engine, int single_run)
                 engine->signal = SIGNAL_RUN;
                 break;
         }
+        /* [UNLOCK] signal */
+        lock_basic_unlock(&engine->signal_lock);
 
         if (single_run) {
            engine->need_to_exit = engine_all_zones_processed(engine);
         }
 
         lock_basic_lock(&engine->signal_lock);
+        /* [LOCK] signal */
         if (engine->signal == SIGNAL_RUN && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
            lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 3600);
         }
+        /* [UNLOCK] signal */
         lock_basic_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] signer halted", engine_str);
+    engine_stop_workers(engine);
     return;
 }
 
@@ -938,9 +952,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             zl_changed = 0;
         }
 
-        engine_start_workers(engine);
         engine_run(engine, single_run);
-        engine_stop_workers(engine);
     }
 
     /* shutdown */
