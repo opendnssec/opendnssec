@@ -98,7 +98,7 @@ worker2str(worker_id type)
 
 
 /**
- * Worker perform task.
+ * Perform task.
  *
  */
 static void
@@ -107,7 +107,11 @@ worker_perform_task(worker_type* worker)
     engine_type* engine = NULL;
     zone_type* zone = NULL;
     task_type* task = NULL;
-
+    task_id what = TASK_NONE;
+    time_t when = 0;
+    time_t never = (3600*24*365);
+    ods_status status = ODS_STATUS_OK;
+    int fallthrough = 0;
     char* working_dir = NULL;
     char* cfg_filename = NULL;
     int error = 0;
@@ -122,62 +126,125 @@ worker_perform_task(worker_type* worker)
     engine = (engine_type*) worker->engine;
     task = (task_type*) worker->task;
     zone = (zone_type*) worker->task->zone;
+    ods_log_debug("[%s[%i]]: perform task %s for zone %s at %u",
+       worker2str(worker->type), worker->thread_num, task_what2str(task->what),
+       task_who2str(task->who), (uint32_t) time(NULL));
 
     switch (task->what) {
-        case TASK_NONE:
-            ods_log_warning("[%s[%i]] no task for zone %s", worker2str(worker->type),
-                task->who?task->who:"(null)");
+        case TASK_SIGNCONF:
+            /* perform 'load signconf' task */
+            ods_log_verbose("[%s[%i]]: load signconf for zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+            status = zone_load_signconf(zone, &what);
+
+            /* what to do next */
+            when = time_now();
+            if (status == ODS_STATUS_UNCHANGED) {
+                goto task_perform_continue;
+            } else if (status != ODS_STATUS_OK) {
+                if (task->halted == TASK_NONE) {
+                    goto task_perform_fail;
+                }
+                goto task_perform_continue;
+            } else {
+                task->interrupt = TASK_NONE;
+                task->halted = TASK_NONE;
+            }
             break;
         case TASK_READ:
-            if (tools_read_input(zone) != 0) {
-                ods_log_error("task [read zone %s] failed",
-                    task->who?task->who:"(null)");
-                task->what = TASK_SIGN;
-                task->when = time_now() +
-                    duration2time(zone->signconf->sig_resign_interval);
+            /* perform 'read input adapter' task */
+            ods_log_verbose("[%s[%i]]: read zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+            error = tools_read_input(zone);
+
+            /* what to do next */
+            what = TASK_COMMIT;
+            when = time_now();
+            if (error) {
+                if (task->halted == TASK_NONE) {
+                    goto task_perform_fail;
+                }
                 goto task_perform_continue;
-                break;
             }
-            task->what = TASK_ADDKEYS;
+            fallthrough = 1;
+            break;
         case TASK_ADDKEYS:
-            if (tools_add_dnskeys(zone) != 0) {
-                ods_log_error("task [add dnskeys to zone %s] failed",
-                    task->who?task->who:"(null)");
-                task->what = TASK_SIGN;
-                task->when = time_now() +
-                    duration2time(zone->signconf->sig_resign_interval);
+            ods_log_verbose("[%s[%i]]: add dnskeys zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+            error = zone_add_dnskeys(zone);
+
+            /* what to do next */
+            what = TASK_COMMIT;
+            when = time_now();
+            if (status != ODS_STATUS_OK) {
+                if (task->halted == TASK_NONE) {
+                    goto task_perform_fail;
+                }
                 goto task_perform_continue;
-                break;
             }
-            task->what = TASK_UPDATE;
-        case TASK_UPDATE:
-            if (tools_update(zone) != 0) {
-                ods_log_error("task [update zone %s] failed",
-                    task->who?task->who:"(null)");
-                task->what = TASK_SIGN;
-                task->when = time_now() +
-                    duration2time(zone->signconf->sig_resign_interval);
+            fallthrough = 1;
+            break;
+        case TASK_COMMIT:
+            ods_log_verbose("[%s[%i]]: commit updates to zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+
+            error = tools_update(zone);
+
+            /* what to do next */
+            what = TASK_NSECIFY;
+            when = time_now();
+            if (status != ODS_STATUS_OK) {
+                if (task->halted == TASK_NONE) {
+                    goto task_perform_fail;
+                }
                 goto task_perform_continue;
-                break;
             }
-            task->what = TASK_NSECIFY;
+            fallthrough = 1;
+            break;
         case TASK_NSECIFY:
-            if (tools_nsecify(zone) != 0) {
-                ods_log_error("task [nsecify zone %s] failed",
-                    task->who?task->who:"(null)");
-                goto task_perform_fail;
-                break;
+            ods_log_verbose("[%s[%i]]: nsecify zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+            error = tools_nsecify(zone);
+
+            /* what to do next */
+            what = TASK_SIGN;
+            when = time_now();
+            if (status != ODS_STATUS_OK) {
+                if (task->halted == TASK_NONE) {
+                    goto task_perform_fail;
+                }
+                goto task_perform_continue;
             }
-            task->what = TASK_SIGN;
+            fallthrough = 1;
+            break;
         case TASK_SIGN:
-            if (tools_sign(zone) != 0) {
-                ods_log_error("task [sign zone %s] failed",
-                    task->who?task->who:"(null)");
-                goto task_perform_fail;
-                break;
+            ods_log_verbose("[%s[%i]]: sign zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+            error = tools_sign(zone);
+
+            /* what to do next */
+            if (status != ODS_STATUS_OK) {
+                if (task->halted == TASK_NONE) {
+                    goto task_perform_fail;
+                }
+                goto task_perform_continue;
+            } else {
+                task->interrupt = TASK_NONE;
+                task->halted = TASK_NONE;
             }
-            task->what = TASK_AUDIT;
+            what = TASK_AUDIT;
+            when = time_now();
+            break;
         case TASK_AUDIT:
+            ods_log_verbose("[%s[%i]]: audit zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
             working_dir = strdup(engine->config->working_dir);
             cfg_filename = strdup(engine->config->cfg_filename);
             error = tools_audit(zone, working_dir, cfg_filename);
@@ -185,47 +252,101 @@ worker_perform_task(worker_type* worker)
             if (cfg_filename) { free((void*)cfg_filename); }
             working_dir = NULL;
             cfg_filename = NULL;
+
+            /* what to do next */
             if (error) {
-                ods_log_error("task [audit zone %s] failed",
-                    task->who?task->who:"(null)");
-                task->what = TASK_SIGN;
                 goto task_perform_fail;
-                break;
             }
-            task->what = TASK_WRITE;
+            what = TASK_WRITE;
+            when = time_now();
+            break;
         case TASK_WRITE:
-            if (tools_write_output(zone) != 0) {
-                ods_log_error("task [write zone %s] failed",
-                    task->who?task->who:"(null)");
-                task->what = TASK_SIGN;
+            ods_log_verbose("[%s[%i]]: write zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+
+            error = tools_write_output(zone);
+            zone->processed = 1;
+
+            /* what to do next */
+            if (error) {
                 goto task_perform_fail;
-                break;
             }
-            task->what = TASK_SIGN;
-            task->when = time_now() +
+            what = TASK_SIGN;
+            when = time_now() +
                 duration2time(zone->signconf->sig_resign_interval);
             break;
-        default:
-            ods_log_warning("unknown task[id %i zone %s], "
-                "trying full sign", task->what, task->who?task->who:"(null)");
-            task->what = TASK_READ;
-            task->when = time_now();
+        case TASK_NONE:
+            ods_log_warning("[%s[%i]]: none task for zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+            when = time_now() + never;
             break;
+        default:
+            ods_log_warning("[%s[%i]]: unknown task, trying full sign zone %s",
+                worker2str(worker->type), worker->thread_num,
+                task_who2str(task->who));
+            what = TASK_SIGNCONF;
+            when = time_now();
+            break;
+    }
+
+    /* no error, reset backoff */
+    task->backoff = 0;
+
+    /* set next task */
+    if (fallthrough == 0 && task->interrupt != TASK_NONE &&
+        task->interrupt != what) {
+        ods_log_info("[%s[%i]]: interrupt task %s for zone %s",
+            worker2str(worker->type), worker->thread_num,
+            task_what2str(what), task_who2str(task->who));
+
+        task->what = task->interrupt;
+        task->when = time_now();
+        task->halted = what;
+    } else {
+        ods_log_info("[%s[%i]]: next task %s for zone %s",
+            worker2str(worker->type), worker->thread_num,
+            task_what2str(what), task_who2str(task->who));
+
+        task->what = what;
+        task->when = when;
+        if (!fallthrough) {
+            task->interrupt = TASK_NONE;
+            task->halted = TASK_NONE;
+        }
     }
     return;
 
 task_perform_fail:
-    if (zone->backoff) {
-        zone->backoff *= 2;
-        if (zone->backoff > ODS_SE_MAX_BACKOFF) {
-            zone->backoff = ODS_SE_MAX_BACKOFF;
+    if (task->backoff) {
+        task->backoff *= 2;
+        if (task->backoff > ODS_SE_MAX_BACKOFF) {
+            task->backoff = ODS_SE_MAX_BACKOFF;
         }
     } else {
-        zone->backoff = 60;
+        task->backoff = 60;
     }
-    task->when += zone->backoff;
+    ods_log_error("[%s[%i]]: backoff task %s for zone %s with %u seconds",
+        worker2str(worker->type), worker->thread_num,
+        task_what2str(task->what), task_who2str(task->who), task->backoff);
+
+    task->when = time_now() + task->backoff;
+    return;
 
 task_perform_continue:
+    ods_log_info("[%s[%i]]: continue task %s for zone %s",
+        worker2str(worker->type), worker->thread_num,
+        task_what2str(task->halted), task_who2str(task->who));
+
+    what = task->halted;
+    task->what = what;
+    task->when = time_now();
+    task->interrupt = TASK_NONE;
+    task->halted = TASK_NONE;
+    if (zone->processed) {
+        task->when += duration2time(zone->signconf->sig_resign_interval);
+    }
     return;
 }
 
@@ -237,8 +358,6 @@ task_perform_continue:
 void
 worker_start(worker_type* worker)
 {
-    engine_type* engine = NULL;
-    task_type* task = NULL;
     time_t now, timeout = 1;
     zone_type* zone = NULL;
     ods_status status = ODS_STATUS_OK;
@@ -246,65 +365,59 @@ worker_start(worker_type* worker)
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_WORKER);
 
-    engine = (engine_type*) worker->engine;
-
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]]: report for duty", worker2str(worker->type),
             worker->thread_num);
-        lock_basic_lock(&engine->taskq->schedule_lock);
+        lock_basic_lock(&worker->engine->taskq->schedule_lock);
         /* [LOCK] schedule */
-        worker->task = schedule_pop_task(engine->taskq);
+        worker->task = schedule_pop_task(worker->engine->taskq);
         /* [UNLOCK] schedule */
         if (worker->task) {
-            lock_basic_unlock(&engine->taskq->schedule_lock);
+            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
             zone = worker->task->zone;
             lock_basic_lock(&zone->zone_lock);
+            /* [LOCK] zone */
             ods_log_debug("[%s[%i]] start working on zone %s",
                 worker2str(worker->type), worker->thread_num, zone->name);
-            zone->in_progress = 1;
 
             worker_perform_task(worker);
+
+            zone->task = worker->task;
+            worker->task = NULL;
             zone->processed = 1;
+
+            ods_log_debug("[%s[%i]] finished working on zone %s",
+                worker2str(worker->type), worker->thread_num, zone->name);
+            /* [UNLOCK] zone */
+
+            lock_basic_lock(&worker->engine->taskq->schedule_lock);
+            /* [LOCK] zone, schedule */
+            status = schedule_task(worker->engine->taskq, zone->task, 1);
+            /* [UNLOCK] zone, schedule */
+            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
             lock_basic_unlock(&zone->zone_lock);
 
-            if (worker->task->what == TASK_NONE) {
-                zone->in_progress = 0;
-                ods_log_debug("[%s[%i]] cleanup task none for zone %s",
-                    worker2str(worker->type), worker->thread_num, task->who);
-                task_cleanup(worker->task);
-            } else {
-                lock_basic_lock(&engine->taskq->schedule_lock);
-                zone->in_progress = 0;
-                status = schedule_task(engine->taskq, worker->task, 1);
-                if (status != ODS_STATUS_OK) {
-                    ods_log_error("[%s[%i]] failed to schedule task",
-                        worker2str(worker->type));
-                } else {
-                    task_backup(task);
-                    task = NULL;
-                }
-                lock_basic_unlock(&engine->taskq->schedule_lock);
-            }
-            worker->task = NULL;
             timeout = 1;
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
 
-            task = schedule_get_first_task(engine->taskq);
-            lock_basic_unlock(&engine->taskq->schedule_lock);
+            /* [LOCK] schedule */
+            worker->task = schedule_get_first_task(worker->engine->taskq);
+            /* [UNLOCK] schedule */
+            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
             now = time_now();
-            if (task && !engine->taskq->loading) {
-                timeout = (task->when - now);
+            if (worker->task && !worker->engine->taskq->loading) {
+                timeout = (worker->task->when - now);
             } else {
                 timeout *= 2;
                 if (timeout > ODS_SE_MAX_BACKOFF) {
                     timeout = ODS_SE_MAX_BACKOFF;
                 }
             }
-
+            worker->task = NULL;
             worker_sleep(worker, timeout);
         }
     }

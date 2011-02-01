@@ -49,7 +49,6 @@
 #include "signer/zone.h"
 #include "signer/zonelist.h"
 #include "tools/zone_fetcher.h"
-#include "util/se_malloc.h"
 
 #include <errno.h>
 #include <libhsm.h>
@@ -407,12 +406,12 @@ start_zonefetcher(engine_type* engine)
     ods_log_verbose("zone fetcher running as pid %lu",
         (unsigned long) getpid());
 
-    zf_filename = se_strdup(engine->config->zonefetch_filename);
-    zl_filename = se_strdup(engine->config->zonelist_filename);
-    grp = se_strdup(engine->config->group);
-    usr = se_strdup(engine->config->username);
-    chrt = se_strdup(engine->config->chroot);
-    log_filename = se_strdup(engine->config->log_filename);
+    zf_filename = strdup(engine->config->zonefetch_filename);
+    zl_filename = strdup(engine->config->zonelist_filename);
+    grp = strdup(engine->config->group);
+    usr = strdup(engine->config->username);
+    chrt = strdup(engine->config->chroot);
+    log_filename = strdup(engine->config->log_filename);
     use_syslog = engine->config->use_syslog;
     verbosity = engine->config->verbosity;
 
@@ -420,12 +419,12 @@ start_zonefetcher(engine_type* engine)
         chrt, log_filename, use_syslog, verbosity);
 
     ods_log_verbose("zone fetcher done", result);
-    if (zf_filename)  { se_free((void*)zf_filename); }
-    if (zl_filename)  { se_free((void*)zl_filename); }
-    if (grp)          { se_free((void*)grp); }
-    if (usr)          { se_free((void*)usr); }
-    if (chrt)         { se_free((void*)chrt); }
-    if (log_filename) { se_free((void*)log_filename); }
+    if (zf_filename)  { free((void*)zf_filename); }
+    if (zl_filename)  { free((void*)zl_filename); }
+    if (grp)          { free((void*)grp); }
+    if (usr)          { free((void*)usr); }
+    if (chrt)         { free((void*)chrt); }
+    if (log_filename) { free((void*)log_filename); }
 
     engine_cleanup(engine);
     engine = NULL;
@@ -531,14 +530,10 @@ engine_setup(engine_type* engine)
     engine->gid = privgid(engine->config->group);
     /* TODO: does piddir exists? */
     /* remove the chown stuff: piddir? */
-    /* chown pidfile directory */
     ods_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
-    /* chown sockfile */
     ods_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
-    /* chown workdir */
     ods_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
     if (engine->config->log_filename && !engine->config->use_syslog) {
-        /* chown logfile */
         ods_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
     }
     if (engine->config->working_dir &&
@@ -547,8 +542,7 @@ engine_setup(engine_type* engine)
             engine->config->working_dir, strerror(errno));
         return ODS_STATUS_CHDIR_ERR;
     }
-
-    if (engine_privdrop(engine) != 0) {
+    if (engine_privdrop(engine) != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to drop privileges", engine_str);
         return ODS_STATUS_PRIVDROP_ERR;
     }
@@ -702,41 +696,6 @@ engine_run(engine_type* engine, int single_run)
 
 
 /**
- * Update zone list.
- *
- */
-int
-engine_update_zonelist(engine_type* engine, char* buf)
-{
-    ods_status status = ODS_STATUS_OK;
-    zonelist_type* new_zlist = NULL;
-
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    ods_log_assert(engine->zonelist);
-    ods_log_debug("update zone list");
-
-    new_zlist = zonelist_create(engine->allocator);
-    status = zonelist_read(new_zlist, engine->config->zonelist_filename,
-        engine->zonelist->last_modified);
-    if (status != ODS_STATUS_OK) {
-        if (buf) {
-            /* fstat <= last_modified || rng check failed */
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed.\n");
-        }
-        return 1;
-    }
-
-    zonelist_lock(engine->zonelist);
-    zonelist_merge(engine->zonelist, new_zlist);
-    zonelist_update(engine->zonelist, engine->taskq,
-        engine->config->notify_command, buf);
-    zonelist_unlock(engine->zonelist);
-    return 0;
-}
-
-
-/**
  * Parse notify command.
  *
  */
@@ -754,7 +713,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
 
     str = ods_replace(cmd, "%zonefile", zone->outbound_adapter->filename);
     str2 = ods_replace(str, "%zone", zone->name);
-    se_free((void*)str);
+    free((void*)str);
     zone->notify_ns = (const char*) str2;
     ods_log_debug("set notify ns: %s", zone->notify_ns);
 
@@ -766,85 +725,119 @@ set_notify_ns(zone_type* zone, const char* cmd)
  * Update zones.
  *
  */
-int
-engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
-    int first_try)
+void
+engine_update_zones(engine_type* engine)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
-    int tmp = 0;
-    int unchanged = 0;
-    int errors = 0;
-    int updated = 0;
+    zone_type* delzone = NULL;
+    task_type* task = NULL;
+    ods_status status = ODS_STATUS_OK;
+    int wake_up = 0;
+    time_t now;
 
+    if (!engine || !engine->zonelist || !engine->zonelist->zones) {
+        ods_log_error("[%s] cannot update zones: no engine or zonelist",
+            engine_str);
+        return;
+    }
     ods_log_assert(engine);
     ods_log_assert(engine->zonelist);
     ods_log_assert(engine->zonelist->zones);
 
+    now = time_now();
     reload_zonefetcher(engine);
 
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    engine->taskq->loading = 1;
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-
+    lock_basic_lock(&engine->zonelist->zl_lock);
+    /* [LOCK] zonelist */
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->key;
 
-        lock_basic_lock(&zone->zone_lock);
+        if (zone->tobe_removed) {
+            node = ldns_rbtree_next(node);
 
-        if (!zone_name || ods_strcmp(zone->name, zone_name) == 0) {
-            if (zone_name) {
-                ods_log_debug("update zone %s (signconf file %s)", zone->name,
-                    zone->signconf_filename?zone->signconf_filename:"(null)");
+            lock_basic_lock(&zone->zone_lock);
+            /* [LOCK] zone */
+            delzone = zonelist_del_zone(engine->zonelist, zone);
+            if (delzone) {
                 lock_basic_lock(&engine->taskq->schedule_lock);
-                tmp = zone_update_signconf(zone, engine->taskq, buf);
-                zone->fetch = (engine->config->zonefetch_filename != NULL);
-                engine->taskq->loading = 0;
-
+                /* [LOCK] schedule */
+                task = unschedule_task(engine->taskq,
+                    (task_type*) zone->task);
+                /* [UNLOCK] schedule */
                 lock_basic_unlock(&engine->taskq->schedule_lock);
-                lock_basic_unlock(&zone->zone_lock);
-                return 0;
             }
+            task_cleanup(task);
+            task = NULL;
+            /* [UNLOCK] zone */
+            lock_basic_unlock(&zone->zone_lock);
+
+            zone_cleanup(zone);
+            zone = NULL;
+            continue;
+        } else if (zone->just_added) {
+            ods_log_assert(!zone->task);
+            zone->just_added = 0;
+            task = task_create(TASK_SIGNCONF, now, zone->name, zone);
+            if (!task) {
+                ods_log_crit("[%s] failed to create task for zone %s",
+                    engine_str, zone->name);
+            } else {
+                lock_basic_lock(&engine->taskq->schedule_lock);
+                /* [LOCK] schedule */
+                status = schedule_task(engine->taskq, task, 0);
+                /* [UNLOCK] schedule */
+                lock_basic_unlock(&engine->taskq->schedule_lock);
+                wake_up = 1;
+           }
+        } else if (zone->just_updated) {
+            ods_log_assert(zone->task);
+            zone->just_updated = 0;
 
             lock_basic_lock(&engine->taskq->schedule_lock);
-            tmp = zone_update_signconf(zone, engine->taskq, buf);
-            zone->fetch = (engine->config->zonefetch_filename != NULL);
-
+            /* [LOCK] schedule */
+            task = unschedule_task(engine->taskq, (task_type*) zone->task);
+            if (task != NULL) {
+                ods_log_debug("[%s] reschedule task for zone %s", engine_str,
+                    zone->name);
+                if (task->what != TASK_SIGNCONF) {
+                    task->halted = task->what;
+                    task->interrupt = TASK_SIGNCONF;
+                }
+                task->what = TASK_SIGNCONF;
+                task->when = now;
+                status = schedule_task(engine->taskq, task, 0);
+            } else {
+                /* task now queued, being worked on? */
+                ods_log_debug("[%s] worker busy with zone %s, will update "
+                    "signconf as soon as possible", engine_str, zone->name);
+                task = (task_type*) zone->task;
+                task->interrupt = TASK_SIGNCONF;
+                /* task->halted set by worker */
+            }
+            /* [UNLOCK] schedule */
             lock_basic_unlock(&engine->taskq->schedule_lock);
 
-            if (tmp < 0) {
-                errors++;
-            } else if (tmp > 0) {
-                updated++;
-            } else {
-                unchanged++;
-            }
+            wake_up = 1;
         }
 
-        lock_basic_unlock(&zone->zone_lock);
+        zone->task = task;
+        if (status != ODS_STATUS_OK) {
+            ods_log_crit("[%s] failed to schedule task for zone %s: %s",
+                engine_str, zone->name, ods_status2str(status));
+            task_cleanup(task);
+            zone->task = NULL;
+        }
         node = ldns_rbtree_next(node);
     }
+    lock_basic_unlock(&engine->zonelist->zl_lock);
+    /* [UNLOCK] zonelist */
 
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    engine->taskq->loading = 0;
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-
-    if (zone_name) {
-        ods_log_debug("zone %s not found", zone_name);
-        if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found%s.\n",
-            zone_name, first_try?", updating zone list":"");
-        }
-        return 1;
-    } else {
-        ods_log_debug("configurations updated");
-        if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Configurations updated: %i; "
-                "errors: %i; unchanged: %i.\n", updated, errors, unchanged);
-        }
+    if (wake_up) {
+        engine_wakeup_workers(engine);
     }
-    return 0;
+    return;
 }
 
 
@@ -901,7 +894,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 {
     engine_type* engine = NULL;
     int use_syslog = 0;
-    int zl_changed = 0;
+    ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(cfgfile);
@@ -954,7 +947,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         /* update zone list */
         lock_basic_lock(&engine->zonelist->zl_lock);
         /* [LOCK] zonelist */
-        zl_changed = (engine_update_zonelist(engine, NULL) == 0);
+        zl_changed = zonelist_update(engine->zonelist,
+            engine->config->zonelist_filename);
+        engine->zonelist->just_removed = 0;
+        engine->zonelist->just_added = 0;
+        engine->zonelist->just_updated = 0;
         /* [UNLOCK] zonelist */
         lock_basic_unlock(&engine->zonelist->zl_lock);
 
@@ -967,9 +964,12 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             engine_recover_from_backups(engine);
         }
 
-        if (zl_changed) {
-            zl_changed = engine_update_zones(engine, NULL, NULL, 0);
-            zl_changed = 0;
+        /* update zones */
+        if (zl_changed == ODS_STATUS_OK) {
+            ods_log_debug("[%s] commit zone list changes", engine_str);
+            engine_update_zones(engine);
+            ods_log_debug("[%s] signer configurations updated", engine_str);
+            zl_changed = ODS_STATUS_UNCHANGED;
         }
 
         engine_run(engine, single_run);
@@ -1025,7 +1025,6 @@ engine_cleanup(engine_type* engine)
         for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
             worker_cleanup(engine->workers[i]);
         }
-        se_free((void*) engine->workers);
     }
     zonelist_cleanup(engine->zonelist);
     schedule_cleanup(engine->taskq);

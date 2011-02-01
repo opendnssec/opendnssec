@@ -113,14 +113,9 @@ int engine_update_zonelist(engine_type* engine, char* buf);
 /**
  * Update zones.
  * \param[in] engine the signer engine
- * \paran[in] zone_name update only this zone
- * \param[in] buf response message
- * \param[in] first_try if true, update zone list if zone not found
- * \return int 1 if zone was not found (zone_name != NULL)
  *
  */
-int engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
-    int first_try);
+void engine_update_zones(engine_type* engine);
 
 /**
  * Search for zone in workers
