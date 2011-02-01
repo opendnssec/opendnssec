@@ -167,4 +167,12 @@ void keylist_cleanup(keylist_type* kl);
  */
 void keylist_print(FILE* out, keylist_type* kl);
 
+/**
+ * Log key list.
+ * \param[in] kl key list to print
+ * \param[in] name zone name
+ *
+ */
+void keylist_log(keylist_type* kl, const char* name);
+
 #endif /* SIGNER_KEYS_H */

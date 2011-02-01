@@ -174,6 +174,23 @@ key_print(FILE* out, key_type* key)
 
 
 /**
+ * Log key.
+ *
+ */
+static void
+key_log(key_type* key, const char* name)
+{
+    if (key) {
+        ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
+            "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)",
+            key->locator, key->flags, key->algorithm, key->ksk, key->zsk,
+            key->publish);
+    }
+    return;
+}
+
+
+/**
  * Create a new key list.
  *
  */
@@ -397,6 +414,25 @@ keylist_print(FILE* out, keylist_type* kl)
         walk = kl->first_key;
         while (walk) {
             key_print(out, walk);
+            walk = walk->next;
+        }
+    }
+    return;
+}
+
+/**
+ * Log key list.
+ *
+ */
+void
+keylist_log(keylist_type* kl, const char* name)
+{
+    key_type* walk = NULL;
+
+    if (kl) {
+        walk = kl->first_key;
+        while (walk) {
+            key_log(walk, name);
             walk = walk->next;
         }
     }
