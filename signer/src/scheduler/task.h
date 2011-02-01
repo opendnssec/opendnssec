@@ -35,6 +35,7 @@
 #define SCHEDULER_TASK_H
 
 #include "config.h"
+#include "shared/allocator.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -47,8 +48,6 @@
 #endif
 
 #include <ldns/ldns.h>
-
-struct zone_struct;
 
 enum task_id_enum {
     TASK_NONE = 0,
@@ -67,13 +66,14 @@ typedef enum task_id_enum task_id;
  */
 typedef struct task_struct task_type;
 struct task_struct {
+    allocator_type* allocator;
     task_id what;
     time_t when;
     time_t backoff;
+    int flush;
     const char* who;
     ldns_rdf* dname;
-    struct zone_struct* zone;
-    int flush;
+    void* zone;
 };
 
 /**
@@ -85,8 +85,7 @@ struct task_struct {
  * \return task_type* created task
  *
  */
-task_type* task_create(task_id what, time_t when, const char* who,
-    struct zone_struct* zone);
+task_type* task_create(task_id what, time_t when, const char* who, void* zone);
 
 /**
  * Recover a task from backup.
@@ -95,8 +94,7 @@ task_type* task_create(task_id what, time_t when, const char* who,
  * \return task_type* created task
  *
  */
-task_type* task_recover_from_backup(const char* filename,
-    struct zone_struct* zone);
+task_type* task_recover_from_backup(const char* filename, void* zone);
 
 /**
  * Backup task.

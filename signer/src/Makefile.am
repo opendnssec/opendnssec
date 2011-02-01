@@ -20,8 +20,8 @@ sbin_PROGRAMS = ods-signerd ods-signer
 ods_signerd_SOURCES=		ods-signerd.c \
 				adapter/adapter.c adapter/adapter.h \
 				adapter/adfile.c adapter/adfile.h \
-				daemon/cmdhandler.c daemon/cmdhandler.h \
 				daemon/cfg.c daemon/cfg.h \
+				daemon/cmdhandler.c daemon/cmdhandler.h \
 				daemon/engine.c daemon/engine.h \
 				daemon/signal.c daemon/signal.h \
 				daemon/worker.c daemon/worker.h \
@@ -63,7 +63,7 @@ ods_signer_SOURCES=		ods-signer.c \
 				shared/duration.c shared/duration.h \
 				shared/file.c shared/file.h \
 				shared/log.c shared/log.h \
-				util/se_malloc.c util/se_malloc.h
+				shared/util.c shared/util.h
 
 ods_signer_LDADD=		$(LIBHSM)
 ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
