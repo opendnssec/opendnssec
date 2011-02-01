@@ -35,7 +35,7 @@
 #define SIGNER_RRSIGS_H
 
 #include "config.h"
-#include "signer/se_key.h"
+#include "signer/keys.h"
 
 #include <ldns/ldns.h>
 

@@ -31,8 +31,8 @@
  *
  */
 
-#ifndef SIGNER_SE_KEY_H
-#define SIGNER_SE_KEY_H
+#ifndef SIGNER_KEYS_H
+#define SIGNER_KEYS_H
 
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
@@ -43,6 +43,9 @@
 #include <ldns/ldns.h>
 #include <libhsm.h>
 #include <libhsmdns.h>
+
+#include "shared/allocator.h"
+#include "shared/status.h"
 
 /**
  * Key.
@@ -177,4 +180,4 @@ void keylist_cleanup(keylist_type* kl);
  */
 void keylist_print(FILE* out, keylist_type* kl);
 
-#endif /* SIGNER_SE_KEY_H */
+#endif /* SIGNER_KEYS_H */

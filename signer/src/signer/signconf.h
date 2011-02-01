@@ -34,7 +34,7 @@
 #ifndef SIGNER_SIGNCONF_H
 #define SIGNER_SIGNCONF_H
 
-#include "signer/se_key.h"
+#include "signer/keys.h"
 #include "util/duration.h"
 
 #include <ldns/ldns.h>

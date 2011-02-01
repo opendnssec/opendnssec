@@ -35,7 +35,7 @@
 #define SHARED_HSM_H
 
 #include "config.h"
-#include "signer/se_key.h"
+#include "signer/keys.h"
 
 #include <ctype.h>
 #include <stdint.h>

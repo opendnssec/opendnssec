@@ -35,7 +35,7 @@
 #define PARSER_SIGNCONFPARSER_H
 
 #include "shared/duration.h"
-#include "signer/se_key.h"
+#include "signer/keys.h"
 #include "config.h"
 
 #include <ldns/ldns.h>

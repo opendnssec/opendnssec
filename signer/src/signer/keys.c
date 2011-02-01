@@ -34,7 +34,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "signer/backup.h"
-#include "signer/se_key.h"
+#include "signer/keys.h"
 #include "util/se_malloc.h"
 
 static const char* key_str = "keys";

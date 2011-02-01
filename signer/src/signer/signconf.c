@@ -38,7 +38,7 @@
 #include "shared/log.h"
 #include "signer/backup.h"
 #include "shared/file.h"
-#include "signer/se_key.h"
+#include "signer/keys.h"
 #include "signer/signconf.h"
 #include "util/se_malloc.h"
 
