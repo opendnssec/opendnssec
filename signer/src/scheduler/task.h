@@ -51,9 +51,10 @@
 
 enum task_id_enum {
     TASK_NONE = 0,
+    TASK_SIGNCONF,
     TASK_READ,
     TASK_ADDKEYS,
-    TASK_UPDATE,
+    TASK_COMMIT,
     TASK_NSECIFY,
     TASK_SIGN,
     TASK_AUDIT,
@@ -68,6 +69,8 @@ typedef struct task_struct task_type;
 struct task_struct {
     allocator_type* allocator;
     task_id what;
+    task_id interrupt;
+    task_id halted;
     time_t when;
     time_t backoff;
     int flush;

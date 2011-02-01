@@ -81,6 +81,8 @@ task_create(task_id what, time_t when, const char* who, void* zone)
     }
     task->allocator = allocator;
     task->what = what;
+    task->interrupt = TASK_NONE;
+    task->halted = TASK_NONE;
     task->when = when;
     task->backoff = 0;
     task->who = allocator_strdup(allocator, who);
@@ -243,13 +245,16 @@ task_what2str(int what)
         case TASK_NONE:
             return "[do nothing with]";
             break;
+        case TASK_SIGNCONF:
+            return "[load signconf for]";
+            break;
         case TASK_READ:
             return "[read]";
             break;
         case TASK_ADDKEYS:
             return "[add dnskeys for]";
             break;
-        case TASK_UPDATE:
+        case TASK_COMMIT:
             return "[commit updates for]";
             break;
         case TASK_NSECIFY:
