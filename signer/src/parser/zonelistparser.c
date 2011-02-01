@@ -137,10 +137,8 @@ parse_zonelist_adapters(xmlXPathContextPtr xpathCtx, zone_type* zone)
         return;
     }
 
-    zone->inbound_adapter =
-        parse_zonelist_adapters_expr(xpathCtx, i_expr, 1);
-    zone->outbound_adapter =
-        parse_zonelist_adapters_expr(xpathCtx, o_expr, 0);
+    zone->adinbound  = parse_zonelist_adapters_expr(xpathCtx, i_expr, 1);
+    zone->adoutbound = parse_zonelist_adapters_expr(xpathCtx, o_expr, 0);
     return;
 }
 

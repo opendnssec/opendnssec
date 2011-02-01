@@ -67,7 +67,7 @@
  */
 typedef struct domain_struct domain_type;
 struct domain_struct {
-    ldns_rdf* name;
+    ldns_rdf* dname;
     domain_type* parent;
     domain_type* nsec3;
     ldns_rbtree_t* rrsets;

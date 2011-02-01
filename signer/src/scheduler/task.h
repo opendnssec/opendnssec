@@ -37,16 +37,6 @@
 #include "config.h"
 #include "shared/allocator.h"
 
-#include <stdio.h>
-#include <time.h>
-
-#ifdef HAVE_SYS_TYPES_H
-# include <sys/types.h>
-#endif
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-
 #include <ldns/ldns.h>
 
 enum task_id_enum {

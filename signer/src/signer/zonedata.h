@@ -38,6 +38,7 @@
 #include "signer/domain.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
+#include "signer/nsec3params.h"
 
 #include <ldns/ldns.h>
 
@@ -58,10 +59,11 @@ struct zonedata_struct {
 
 /**
  * Create empty zone data.
+ * \param[in] allocator memory allocator
  * \return zonedata_type* empty zone data tree
  *
  */
-zonedata_type* zonedata_create(void);
+zonedata_type* zonedata_create(allocator_type* allocator);
 
 /**
  * Recover zone data from backup.
@@ -102,32 +104,33 @@ domain_type* zonedata_del_domain(zonedata_type* zd, domain_type* domain);
 /**
  * Add empty non-terminals to zone data.
  * \param[in] zd zone data
- * \param[in] apex apex domain name
- * \return int 0 on success, 1 on false
+ * \param[in] apex zone apex
+ * \return ods_status status
  *
  */
-int zonedata_entize(zonedata_type* zd, ldns_rdf* apex);
+ods_status zonedata_entize(zonedata_type* zd, ldns_rdf* apex);
 
 /**
  * Add NSEC records to zone data.
  * \param[in] zd zone data
- * \param[in] klass class of zone
+ * \param[in] klass zone class
  * \param[out] stats update statistics
- * \return int 0 on success, 1 on false
+ * \return ods_status status
  *
  */
-int zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats);
+ods_status zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass,
+    stats_type* stats);
 
 /**
  * Add NSEC3 records to zone data.
  * \param[in] zd zone data
- * \param[in] klass class of zone
- * \param[in] nsec3params NSEC3 paramaters
+ * \param[in] klass zone class
+ * \param[in] nsec3params NSEC3 parameters
  * \param[out] stats update statistics
- * \return int 0 on success, 1 on false
+ * \return ods_status status
  *
  */
-int zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
+ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
     nsec3params_type* nsec3params, stats_type* stats);
 
 /**
@@ -143,7 +146,7 @@ int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     stats_type* stats);
 
 /**
- * Add empty non-terminals to zone data.
+ * Examine zone data.
  * \param[in] zd zone data
  * \param[in] apex apex domain name
  * \param[in] is_file if the inbound adapter is a zone file

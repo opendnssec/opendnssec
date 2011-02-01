@@ -680,10 +680,10 @@ set_notify_ns(zone_type* zone, const char* cmd)
     ods_log_assert(cmd);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
-    ods_log_assert(zone->outbound_adapter);
-    ods_log_assert(zone->outbound_adapter->filename);
+    ods_log_assert(zone->adoutbound);
+    ods_log_assert(zone->adoutbound->filename);
 
-    str = ods_replace(cmd, "%zonefile", zone->outbound_adapter->filename);
+    str = ods_replace(cmd, "%zonefile", zone->adoutbound->filename);
     str2 = ods_replace(str, "%zone", zone->name);
     free((void*)str);
     zone->notify_ns = (const char*) str2;

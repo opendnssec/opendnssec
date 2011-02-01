@@ -75,7 +75,7 @@ domain_create(ldns_rdf* dname)
     }
     ods_log_assert(dname);
 
-    domain->name = ldns_rdf_clone(dname);
+    domain->dname = ldns_rdf_clone(dname);
     domain->parent = NULL;
     domain->nsec3 = NULL;
     domain->rrsets = ldns_rbtree_create(rrset_compare);
@@ -128,8 +128,8 @@ domain_recover_from_backup(FILE* fd)
 
     domain = (domain_type*) se_malloc(sizeof(domain_type));
     ods_log_assert(name);
-    domain->name = ldns_dname_new_frm_str(name);
-    if (!domain->name) {
+    domain->dname = ldns_dname_new_frm_str(name);
+    if (!domain->dname) {
         ods_log_error("[%s] failed to create domain from name", dname_str);
         se_free((void*)name);
         se_free((void*)domain);
@@ -264,7 +264,7 @@ domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover)
         }
         return NULL;
     } else {
-        str = ldns_rdf2str(domain->name);
+        str = ldns_rdf2str(domain->dname);
         ods_log_error("unable to delete RRset %i from domain %s: "
             "not in tree", rrset->rr_type, str?str:"(null)");
         se_free((void*)str);
@@ -380,7 +380,7 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
             rrset = (rrset_type*) node->data;
             if (rrset->rr_type != rrtype && rrset_count_RR(rrset) > 0) {
                 /* found other data next to rrtype */
-                str_name = ldns_rdf2str(domain->name);
+                str_name = ldns_rdf2str(domain->dname);
                 str_type = ldns_rr_type2str(rrtype);
                 ods_log_error("[%s] other data next to %s %s", dname_str, str_name, str_type);
                 rrs = rrset->rrs;
@@ -441,7 +441,7 @@ domain_examine_valid_zonecut(domain_type* domain)
                 rrset->rr_type == LDNS_RR_TYPE_AAAA) {
                 /* check if glue is allowed at the delegation */
                 if (rrset_count_RR(rrset) > 0 &&
-                    domain_examine_ns_rdata(domain, domain->name) != 0) {
+                    domain_examine_ns_rdata(domain, domain->dname) != 0) {
                     ods_log_error("[%s] occluded glue data at zonecut, #RR=%u",
                         dname_str, rrset_count_RR(rrset));
                     return 1;
@@ -472,7 +472,7 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
     rrset = domain_lookup_rrset(domain, rrtype);
     if (rrset && rrset_count_RR(rrset) > 1) {
         /* multiple RRs in the RRset for singleton RRtype*/
-        str_name = ldns_rdf2str(domain->name);
+        str_name = ldns_rdf2str(domain->dname);
         str_type = ldns_rr_type2str(rrtype);
         ods_log_error("[%s] multiple records for singleton type at %s %s",
             dname_str, str_name, str_type);
@@ -642,7 +642,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
         return 1;
     }
     ods_log_assert(domain);
-    ods_log_assert(domain->name);
+    ods_log_assert(domain->dname);
 
     if (!to) {
         ods_log_error("[%s] unable to nsecify domain: no nxt domain",
@@ -650,7 +650,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
         return 1;
     }
     ods_log_assert(to);
-    ods_log_assert(to->name);
+    ods_log_assert(to->dname);
 
     ods_log_assert(stats);
 
@@ -673,8 +673,8 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
                 return 1;
             }
             ldns_rr_set_type(nsec_rr, LDNS_RR_TYPE_NSEC);
-            ldns_rr_set_owner(nsec_rr, ldns_rdf_clone(domain->name));
-            ldns_rr_push_rdf(nsec_rr, ldns_rdf_clone(to->name));
+            ldns_rr_set_owner(nsec_rr, ldns_rdf_clone(domain->dname));
+            ldns_rr_push_rdf(nsec_rr, ldns_rdf_clone(to->dname));
             ldns_rr_push_rdf(nsec_rr, ldns_dnssec_create_nsec_bitmap(types,
                 types_count, LDNS_RR_TYPE_NSEC));
             ldns_rr_set_ttl(nsec_rr, ttl);
@@ -696,7 +696,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
 
             if (domain->nsec_nxt_changed) {
                 ods_log_debug("nsec nxt changed", dname_str);
-                old_rdf = ldns_rr_set_rdf(nsec_rr, ldns_rdf_clone(to->name),
+                old_rdf = ldns_rr_set_rdf(nsec_rr, ldns_rdf_clone(to->dname),
                     SE_NSEC_RDATA_NXT);
                 if (!old_rdf) {
                     ods_log_alert("[%s] failed to update NSEC (nxt)", dname_str);
@@ -754,7 +754,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         return 1;
     }
     ods_log_assert(domain);
-    ods_log_assert(domain->name);
+    ods_log_assert(domain->dname);
     ods_log_assert(domain->nsec3);
 
     if (!to) {
@@ -763,12 +763,12 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         return 1;
     }
     ods_log_assert(to);
-    ods_log_assert(to->name);
+    ods_log_assert(to->dname);
     ods_log_assert(to->nsec3);
 
 
     orig_domain = domain->nsec3; /* use the back reference */
-    str = ldns_rdf2str(orig_domain->name);
+    str = ldns_rdf2str(orig_domain->dname);
 
     if (DNS_SERIAL_GT(orig_domain->internal_serial,
         orig_domain->outbound_serial))
@@ -797,7 +797,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
                 return 1;
             }
             ldns_rr_set_type(nsec_rr, LDNS_RR_TYPE_NSEC3);
-            ldns_rr_set_owner(nsec_rr, ldns_rdf_clone(domain->name));
+            ldns_rr_set_owner(nsec_rr, ldns_rdf_clone(domain->dname));
 
             /* set all to NULL first, then call nsec3_add_param_rdfs. */
             for (i=0; i < SE_NSEC3_RDATA_NSEC3PARAMS; i++) {
@@ -809,7 +809,7 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         }
         /* create next owner name */
         if (!domain->nsec_rrset || domain->nsec_nxt_changed) {
-            next_owner_label = ldns_dname_label(to->name, 0);
+            next_owner_label = ldns_dname_label(to->dname, 0);
             next_owner_string = ldns_rdf2str(next_owner_label);
             if (next_owner_string[strlen(next_owner_string)-1] == '.') {
                 next_owner_string[strlen(next_owner_string)-1] = '\0';
@@ -1006,9 +1006,9 @@ domain_add_rr(domain_type* domain, ldns_rr* rr)
 
     ods_log_assert(rr);
     ods_log_assert(domain);
-    ods_log_assert(domain->name);
+    ods_log_assert(domain->dname);
     ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->name, ldns_rr_owner(rr)) == 0));
+    ods_log_assert((ldns_dname_compare(domain->dname, ldns_rr_owner(rr)) == 0));
 
     rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
     if (rrset) {
@@ -1037,9 +1037,9 @@ domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
 
     ods_log_assert(rr);
     ods_log_assert(domain);
-    ods_log_assert(domain->name);
+    ods_log_assert(domain->dname);
     ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->name, ldns_rr_owner(rr)) == 0));
+    ods_log_assert((ldns_dname_compare(domain->dname, ldns_rr_owner(rr)) == 0));
 
     rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
     if (rrset) {
@@ -1069,9 +1069,9 @@ domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
 
     ods_log_assert(rrsig);
     ods_log_assert(domain);
-    ods_log_assert(domain->name);
+    ods_log_assert(domain->dname);
     ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->name,
+    ods_log_assert((ldns_dname_compare(domain->dname,
         ldns_rr_owner(rrsig)) == 0));
 
     if (type_covered == LDNS_RR_TYPE_NSEC ||
@@ -1111,9 +1111,9 @@ domain_del_rr(domain_type* domain, ldns_rr* rr)
 
     ods_log_assert(rr);
     ods_log_assert(domain);
-    ods_log_assert(domain->name);
+    ods_log_assert(domain->dname);
     ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->name, ldns_rr_owner(rr)) == 0));
+    ods_log_assert((ldns_dname_compare(domain->dname, ldns_rr_owner(rr)) == 0));
 
     rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
     if (rrset) {
@@ -1189,9 +1189,9 @@ void
 domain_cleanup(domain_type* domain)
 {
     if (domain) {
-        if (domain->name) {
-            ldns_rdf_deep_free(domain->name);
-            domain->name = NULL;
+        if (domain->dname) {
+            ldns_rdf_deep_free(domain->dname);
+            domain->dname = NULL;
         }
         if (domain->rrsets) {
             domain_cleanup_rrsets(domain->rrsets);
@@ -1291,7 +1291,7 @@ domain_print_nsec(FILE* fd, domain_type* domain)
 {
     char* str = NULL;
 
-    str = ldns_rdf2str(domain->name);
+    str = ldns_rdf2str(domain->dname);
     fprintf(fd, ";DNAME %s %u %u %i %i %i %i %i\n", str,
         domain->internal_serial, domain->outbound_serial,
         (int) domain->domain_status,
@@ -1305,7 +1305,7 @@ domain_print_nsec(FILE* fd, domain_type* domain)
         ldns_rr_print(fd, domain->nsec_rrset->rrs->rr);
     } else if (domain->nsec3) {
         domain = domain->nsec3;
-        str = ldns_rdf2str(domain->name);
+        str = ldns_rdf2str(domain->dname);
         fprintf(fd, ";DNAME3 %s %u %u %i %i %i %i %i\n", str,
             domain->internal_serial, domain->outbound_serial,
             (int) domain->domain_status,

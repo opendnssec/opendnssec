@@ -397,7 +397,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         outbound_serial = zone->zonedata->outbound_serial;
         zonedata_cleanup(zone->zonedata);
         zone->zonedata = NULL;
-        zone->zonedata = zonedata_create();
+        zone->zonedata = zonedata_create(zone->allocator);
         zone->zonedata->initialized = 1;
         zone->zonedata->inbound_serial = inbound_serial;
         zone->zonedata->internal_serial = internal_serial;
@@ -415,7 +415,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         ods_log_warning("[%s] cannot clear zone %s, zone not found",
             cmdh_str, tbd?tbd:"(null)");
     }
-    /* [LOCK] */
+    /* [UNLOCK] */
 
     ods_writen(sockfd, buf, strlen(buf));
     return;

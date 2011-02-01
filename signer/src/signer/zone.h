@@ -73,8 +73,8 @@ struct zone_struct {
     int processed;
 
     /* adapters */
-    adapter_type* inbound_adapter; /* inbound adapter */
-    adapter_type* outbound_adapter; /* outbound adapter */
+    adapter_type* adinbound; /* inbound adapter */
+    adapter_type* adoutbound; /* outbound adapter */
 
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */

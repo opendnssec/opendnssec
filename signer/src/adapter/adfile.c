@@ -578,10 +578,10 @@ adfile_write(struct zone_struct* zone, const char* filename)
     ods_log_assert(adzone->name);
 
     if (!filename) {
-        ods_log_assert(adzone->outbound_adapter->filename);
+        ods_log_assert(adzone->adoutbound->filename);
         ods_log_debug("[%s] write zone %s to file %s", adapter_str,
-            adzone->name, adzone->outbound_adapter->filename);
-        fd = ods_fopen(adzone->outbound_adapter->filename, NULL, "w");
+            adzone->name, adzone->adoutbound->filename);
+        fd = ods_fopen(adzone->adoutbound->filename, NULL, "w");
     } else {
         ods_log_debug("[%s] write zone %s to file %s", adapter_str,
             adzone->name, filename);

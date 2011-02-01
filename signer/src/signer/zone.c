@@ -95,8 +95,8 @@ zone_create(const char* name, ldns_rr_class klass)
     zone->policy_name = NULL;
     zone->signconf_filename = NULL;
     zone->nsec3params = NULL;
-    zone->inbound_adapter = NULL;
-    zone->outbound_adapter = NULL;
+    zone->adinbound = NULL;
+    zone->adoutbound = NULL;
     zone->nsec3params = NULL;
 
     zone->just_added = 0;
@@ -105,7 +105,7 @@ zone_create(const char* name, ldns_rr_class klass)
     zone->processed = 0;
     zone->fetch = 0;
 
-    zone->zonedata = zonedata_create();
+    zone->zonedata = zonedata_create(zone->allocator);
     if (!zone->zonedata) {
         ods_log_error("[%s] unable to create zone %s: create zonedata "
             "failed", zone_str, name);
@@ -243,28 +243,28 @@ zone_update_zonelist(zone_type* z1, zone_type* z2)
         z1->just_updated = 1;
     }
 
-    if (adapter_compare(z1->inbound_adapter, z2->inbound_adapter) != 0) {
-        adapter_cleanup(z1->inbound_adapter);
-        if (z2->inbound_adapter) {
-            z1->inbound_adapter = adapter_create(
-                z2->inbound_adapter->filename,
-                z2->inbound_adapter->type,
-                z2->inbound_adapter->inbound);
+    if (adapter_compare(z1->adinbound, z2->adinbound) != 0) {
+        adapter_cleanup(z1->adinbound);
+        if (z2->adinbound) {
+            z1->adinbound = adapter_create(
+                z2->adinbound->filename,
+                z2->adinbound->type,
+                z2->adinbound->inbound);
         } else {
-            z1->inbound_adapter = NULL;
+            z1->adinbound = NULL;
         }
         z1->just_updated = 1;
     }
 
-    if (adapter_compare(z1->outbound_adapter, z2->outbound_adapter) != 0) {
-        adapter_cleanup(z1->outbound_adapter);
-        if (z2->outbound_adapter) {
-            z1->outbound_adapter = adapter_create(
-                z2->outbound_adapter->filename,
-                z2->outbound_adapter->type,
-                z2->outbound_adapter->inbound);
+    if (adapter_compare(z1->adoutbound, z2->adoutbound) != 0) {
+        adapter_cleanup(z1->adoutbound);
+        if (z2->adoutbound) {
+            z1->adoutbound = adapter_create(
+                z2->adoutbound->filename,
+                z2->adoutbound->type,
+                z2->adoutbound->inbound);
         } else {
-            z1->outbound_adapter = NULL;
+            z1->adoutbound = NULL;
         }
         z1->just_updated = 1;
     }
@@ -440,13 +440,13 @@ zone_update_zonedata(zone_type* zone)
 
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
-    ods_log_assert(zone->inbound_adapter);
+    ods_log_assert(zone->adinbound);
     ods_log_assert(zone->zonedata);
 
     /* examine zone data */
     ods_log_debug("[%s] examine zone %s update", zone_str, zone->name);
     error = zonedata_examine(zone->zonedata, zone->dname,
-        zone->inbound_adapter->type==ADAPTER_FILE);
+        zone->adinbound->type==ADAPTER_FILE);
     if (error) {
         ods_log_error("[%s] update zone %s failed: zone data contains errors",
             zone_str, zone->name);
@@ -963,7 +963,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
                 zonedata_cleanup(zone->zonedata);
                 zone->zonedata = NULL;
             }
-            zone->zonedata = zonedata_create();
+            zone->zonedata = zonedata_create(zone->allocator);
         }
     } else {
         ods_log_deeebug("[%s] unable to recover denial of existence from file "
@@ -985,7 +985,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
             zonedata_cleanup(zone->zonedata);
             zone->zonedata = NULL;
         }
-        zone->zonedata = zonedata_create();
+        zone->zonedata = zonedata_create(zone->allocator);
         goto abort_recover;
     }
 
@@ -1110,16 +1110,16 @@ zone_merge(zone_type* z1, zone_type* z2)
     }
 
     /* adapters */
-    if (adapter_compare(z2->inbound_adapter, z1->inbound_adapter) != 0) {
-        adtmp = z2->inbound_adapter;
-        z2->inbound_adapter = z1->inbound_adapter;
-        z1->inbound_adapter = adtmp;
+    if (adapter_compare(z2->adinbound, z1->adinbound) != 0) {
+        adtmp = z2->adinbound;
+        z2->adinbound = z1->adinbound;
+        z1->adinbound = adtmp;
         adtmp = NULL;
     }
-    if (adapter_compare(z2->outbound_adapter, z1->outbound_adapter) != 0) {
-        adtmp = z2->outbound_adapter;
-        z2->outbound_adapter = z1->outbound_adapter;
-        z1->outbound_adapter = adtmp;
+    if (adapter_compare(z2->adoutbound, z1->adoutbound) != 0) {
+        adtmp = z2->adoutbound;
+        z2->adoutbound = z1->adoutbound;
+        z1->adoutbound = adtmp;
         adtmp = NULL;
     }
     return;
@@ -1151,8 +1151,8 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->notify_ns);
     free((void*)zone->policy_name);
     free((void*)zone->signconf_filename);
-    adapter_cleanup(zone->inbound_adapter);
-    adapter_cleanup(zone->outbound_adapter);
+    adapter_cleanup(zone->adinbound);
+    adapter_cleanup(zone->adoutbound);
     zonedata_cleanup(zone->zonedata);
     signconf_cleanup(zone->signconf);
     nsec3params_cleanup(zone->nsec3params);

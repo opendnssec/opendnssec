@@ -64,7 +64,7 @@ tools_read_input(zone_type* zone)
         return 1;
     }
     ods_log_assert(zone);
-    ods_log_assert(zone->inbound_adapter);
+    ods_log_assert(zone->adinbound);
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->stats);
 
@@ -73,18 +73,18 @@ tools_read_input(zone_type* zone)
     zone->stats->sort_time = 0;
     start = time(NULL);
 
-    switch (zone->inbound_adapter->type) {
+    switch (zone->adinbound->type) {
         case ADAPTER_FILE:
             if (zone->fetch) {
                 ods_log_verbose("fetch zone %s",
                     zone->name?zone->name:"(null)");
-                axfrname = ods_build_path(zone->inbound_adapter->filename,
+                axfrname = ods_build_path(zone->adinbound->filename,
                     ".axfr", 0);
                 error = ods_file_copy(axfrname,
-                    zone->inbound_adapter->filename);
+                    zone->adinbound->filename);
                 if (error) {
                     ods_log_error("[%s] unable to copy axfr file %s to %s",
-                        tools_str, axfrname, zone->inbound_adapter->filename);
+                        tools_str, axfrname, zone->adinbound->filename);
                     se_free((void*)axfrname);
                     return 1;
                 }
@@ -93,11 +93,11 @@ tools_read_input(zone_type* zone)
 
             ods_log_verbose("[%s] read zone %s from input file adapter %s",
                 tools_str, zone->name?zone->name:"(null)",
-                zone->inbound_adapter->filename ?
-                zone->inbound_adapter->filename:"(null)");
+                zone->adinbound->filename ?
+                zone->adinbound->filename:"(null)");
 
             tmpname = ods_build_path(zone->name, ".inbound", 0);
-            error = ods_file_copy(zone->inbound_adapter->filename, tmpname);
+            error = ods_file_copy(zone->adinbound->filename, tmpname);
             if (!error) {
                 error = adfile_read(zone, tmpname, 0);
             }
@@ -107,7 +107,7 @@ tools_read_input(zone_type* zone)
         default:
             ods_log_error("[%s] read zone %s failed: unknown inbound adapter type "
                 "%i", tools_str, zone->name?zone->name:"(null)",
-                (int) zone->inbound_adapter->type);
+                (int) zone->adinbound->type);
             error = 1;
             break;
     }
@@ -324,7 +324,7 @@ int tools_write_output(zone_type* zone)
     }
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
-    ods_log_assert(zone->outbound_adapter);
+    ods_log_assert(zone->adoutbound);
     ods_log_assert(zone->stats);;
 
     if (zone->stats->sort_done == 0 &&
@@ -339,7 +339,7 @@ int tools_write_output(zone_type* zone)
     ods_log_verbose("[%s] write zone %s serial %u", tools_str,
         zone->name?zone->name:"(null)", zone->zonedata->outbound_serial);
 
-    switch (zone->outbound_adapter->type) {
+    switch (zone->adoutbound->type) {
         case ADAPTER_FILE:
             error = adfile_write(zone, NULL);
             break;
@@ -347,7 +347,7 @@ int tools_write_output(zone_type* zone)
         default:
             ods_log_error("[%s] write zone %s failed: unknown outbound adapter "
                 "type %i", tools_str, zone->name?zone->name:"(null)",
-                (int) zone->inbound_adapter->type);
+                (int) zone->adinbound->type);
             error = 1;
             break;
     }
