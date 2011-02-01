@@ -35,12 +35,19 @@
 #define DAEMON_WORKER_H
 
 #include "scheduler/task.h"
+#include "shared/allocator.h"
 #include "shared/locks.h"
 #include "signer/zone.h"
 
 #include <time.h>
 
-#define WORKER_WORKER 1
+enum worker_enum {
+    WORKER_NONE = 0,
+    WORKER_WORKER = 1,
+    WORKER_DRUDGER,
+    WORKER_FETCHER
+};
+typedef enum worker_enum worker_id;
 
 struct engine_struct;
 
@@ -48,9 +55,9 @@ typedef struct worker_struct worker_type;
 struct worker_struct {
     int thread_num;
     ods_thread_type thread_id;
+    struct engine_struct* engine;
     task_type* task;
-    struct engine_struct* engineptr;
-    int type;
+    worker_id type;
     int sleeping;
     int waiting;
     int need_to_exit;
@@ -60,34 +67,20 @@ struct worker_struct {
 
 /**
  * Create worker.
+ * \param[in] allocator memory allocator
  * \param[in] num thread number
  * \param[in] type type of worker
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(int num, int type);
+worker_type* worker_create(allocator_type* allocator, int num, worker_id type);
 
 /**
- * Start worker.
- * \param[in] worker worker to start
+ * Start working.
+ * \param[in] worker worker to start working
  *
  */
 void worker_start(worker_type* worker);
-
-/**
- * Worker perform task.
- * \param[in] worker worker that picked up the task
- * \param[in] task task to be performed
- *
- */
-void worker_perform_task(worker_type* worker, task_type* task);
-
-/**
- * Clean up worker.
- * \param[in] worker clean up this worker
- *
- */
-void worker_cleanup(worker_type* worker);
 
 /**
  * Put worker to sleep.
@@ -118,5 +111,12 @@ void worker_wakeup(worker_type* worker);
  *
  */
 void worker_notify(worker_type* worker);
+
+/**
+ * Clean up worker.
+ * \param[in] worker worker to clean up
+ *
+ */
+void worker_cleanup(worker_type* worker);
 
 #endif /* DAEMON_WORKER_H */

@@ -246,7 +246,7 @@ engine_privdrop(engine_type* engine)
 
 
 /**
- * Create workers.
+ * Start/stop workers.
  *
  */
 static void
@@ -255,21 +255,15 @@ engine_create_workers(engine_type* engine)
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    engine->workers = (worker_type**)
-        se_calloc((size_t)engine->config->num_worker_threads,
-        sizeof(worker_type*));
-
+    ods_log_assert(engine->allocator);
+    engine->workers = (worker_type**) allocator_alloc(engine->allocator,
+        ((size_t)engine->config->num_worker_threads) * sizeof(worker_type*));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(i, WORKER_WORKER);
+        engine->workers[i] = worker_create(engine->allocator, i,
+            WORKER_WORKER);
     }
     return;
 }
-
-
-/**
- * Start worker thread.
- *
- */
 static void*
 worker_thread_start(void* arg)
 {
@@ -278,12 +272,6 @@ worker_thread_start(void* arg)
     worker_start(worker);
     return NULL;
 }
-
-
-/**
- * Start workers.
- *
- */
 static void
 engine_start_workers(engine_type* engine)
 {
@@ -294,7 +282,7 @@ engine_start_workers(engine_type* engine)
     ods_log_debug("[%s] start workers", engine_str);
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
-        engine->workers[i]->engineptr = (struct engine_struct*) engine;
+        engine->workers[i]->engine = (struct engine_struct*) engine;
         ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
             engine->workers[i]);
     }
@@ -323,7 +311,7 @@ engine_stop_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
         ods_thread_join(engine->workers[i]->thread_id);
-        engine->workers[i]->engineptr = NULL;
+        engine->workers[i]->engine = NULL;
     }
     return;
 }

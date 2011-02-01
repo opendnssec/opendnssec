@@ -33,22 +33,20 @@
 
 #include "daemon/engine.h"
 #include "daemon/worker.h"
+#include "shared/allocator.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
-#include "util/se_malloc.h"
 
 #include <time.h> /* time() */
 
-/*
 ods_lookup_table worker_str[] = {
     { WORKER_WORKER, "worker" },
     { 0, NULL }
 };
-*/
 
 
 /**
@@ -56,22 +54,30 @@ ods_lookup_table worker_str[] = {
  *
  */
 worker_type*
-worker_create(int num, int type)
+worker_create(allocator_type* allocator, int num, worker_id type)
 {
-    worker_type* worker = (worker_type*) se_malloc(sizeof(worker_type));
+    worker_type* worker;
+
+    if (!allocator) {
+        return NULL;
+    }
+    ods_log_assert(allocator);
+
+    worker = (worker_type*) allocator_alloc(allocator, sizeof(worker_type));
+    if (!worker) {
+        return NULL;
+    }
+
     ods_log_debug("create worker[%i]", num +1);
     worker->thread_num = num +1;
-    worker->engineptr = NULL;
+    worker->engine = NULL;
     worker->task = NULL;
     worker->need_to_exit = 0;
     worker->type = type;
-    lock_basic_init(&worker->worker_lock);
-    lock_basic_set(&worker->worker_alarm);
-
-    lock_basic_lock(&worker->worker_lock);
     worker->sleeping = 0;
     worker->waiting = 0;
-    lock_basic_unlock(&worker->worker_lock);
+    lock_basic_init(&worker->worker_lock);
+    lock_basic_set(&worker->worker_alarm);
     return worker;
 }
 
@@ -81,123 +87,41 @@ worker_create(int num, int type)
  *
  */
 static const char*
-worker2str(int type)
+worker2str(worker_id type)
 {
-/*
     ods_lookup_table *lt = ods_lookup_by_id(worker_str, type);
     if (lt) {
         return lt->name;
     }
     return NULL;
-*/
-    return "worker";
-}
-
-
-/**
- * Start worker.
- *
- */
-void
-worker_start(worker_type* worker)
-{
-    engine_type* engine = NULL;
-    task_type* task = NULL;
-    time_t now, timeout = 1;
-    zone_type* zone = NULL;
-    ods_status status = ODS_STATUS_OK;
-
-    ods_log_assert(worker);
-    ods_log_assert(worker->type == WORKER_WORKER);
-
-    engine = (engine_type*) worker->engineptr;
-
-    while (worker->need_to_exit == 0) {
-        ods_log_debug("[%s[%i]]: report for duty", worker2str(worker->type),
-            worker->thread_num);
-        lock_basic_lock(&engine->taskq->schedule_lock);
-        /* [LOCK] schedule */
-        worker->task = schedule_pop_task(engine->taskq);
-        /* [UNLOCK] schedule */
-        if (worker->task) {
-            lock_basic_unlock(&engine->taskq->schedule_lock);
-
-            zone = worker->task->zone;
-            lock_basic_lock(&zone->zone_lock);
-            ods_log_debug("[%s[%i]] start working on zone %s",
-                worker2str(worker->type), worker->thread_num, zone->name);
-            zone->in_progress = 1;
-
-            worker_perform_task(worker, worker->task);
-            zone->processed = 1;
-            lock_basic_unlock(&zone->zone_lock);
-
-            if (worker->task->what == TASK_NONE) {
-                zone->in_progress = 0;
-                ods_log_debug("[%s[%i]] cleanup task none for zone %s",
-                    worker2str(worker->type), worker->thread_num, task->who);
-                task_cleanup(worker->task);
-            } else {
-                lock_basic_lock(&engine->taskq->schedule_lock);
-                zone->in_progress = 0;
-                status = schedule_task(engine->taskq, worker->task, 1);
-                if (status != ODS_STATUS_OK) {
-                    ods_log_error("[%s[%i]] failed to schedule task",
-                        worker2str(worker->type));
-                } else {
-                    task_backup(task);
-                    task = NULL;
-                }
-                lock_basic_unlock(&engine->taskq->schedule_lock);
-            }
-            worker->task = NULL;
-            timeout = 1;
-        } else {
-            ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
-                worker->thread_num);
-
-            task = schedule_get_first_task(engine->taskq);
-            lock_basic_unlock(&engine->taskq->schedule_lock);
-
-            now = time_now();
-            if (task && !engine->taskq->loading) {
-                timeout = (task->when - now);
-            } else {
-                timeout *= 2;
-                if (timeout > ODS_SE_MAX_BACKOFF) {
-                    timeout = ODS_SE_MAX_BACKOFF;
-                }
-            }
-
-            worker_sleep(worker, timeout);
-        }
-    }
-    return;
 }
 
 
 /**
  * Worker perform task.
  *
-**/
-void
-worker_perform_task(worker_type* worker, task_type* task)
+ */
+static void
+worker_perform_task(worker_type* worker)
 {
+    engine_type* engine = NULL;
     zone_type* zone = NULL;
-    engine_type* engine = (engine_type*) worker->engineptr;
+    task_type* task = NULL;
+
     char* working_dir = NULL;
     char* cfg_filename = NULL;
     int error = 0;
 
-    ods_log_assert(worker);
-    ods_log_assert(task);
-
-    if (!task->zone) {
-        ods_log_error("[%s[%i]] cannot perform task: no corresponding zone",
-            worker2str(worker->type), worker->thread_num);
+    if (!worker || !worker->task || !worker->task->zone || !worker->engine) {
         return;
     }
-    zone = task->zone;
+    ods_log_assert(worker);
+    ods_log_assert(worker->task);
+    ods_log_assert(worker->task->zone);
+
+    engine = (engine_type*) worker->engine;
+    task = (task_type*) worker->task;
+    zone = (zone_type*) worker->task->zone;
 
     switch (task->what) {
         case TASK_NONE:
@@ -254,11 +178,11 @@ worker_perform_task(worker_type* worker, task_type* task)
             }
             task->what = TASK_AUDIT;
         case TASK_AUDIT:
-            working_dir = se_strdup(engine->config->working_dir);
-            cfg_filename = se_strdup(engine->config->cfg_filename);
+            working_dir = strdup(engine->config->working_dir);
+            cfg_filename = strdup(engine->config->cfg_filename);
             error = tools_audit(zone, working_dir, cfg_filename);
-            if (working_dir)  { se_free((void*)working_dir); }
-            if (cfg_filename) { se_free((void*)cfg_filename); }
+            if (working_dir)  { free((void*)working_dir); }
+            if (cfg_filename) { free((void*)cfg_filename); }
             working_dir = NULL;
             cfg_filename = NULL;
             if (error) {
@@ -307,6 +231,88 @@ task_perform_continue:
 
 
 /**
+ * Start worker.
+ *
+ */
+void
+worker_start(worker_type* worker)
+{
+    engine_type* engine = NULL;
+    task_type* task = NULL;
+    time_t now, timeout = 1;
+    zone_type* zone = NULL;
+    ods_status status = ODS_STATUS_OK;
+
+    ods_log_assert(worker);
+    ods_log_assert(worker->type == WORKER_WORKER);
+
+    engine = (engine_type*) worker->engine;
+
+    while (worker->need_to_exit == 0) {
+        ods_log_debug("[%s[%i]]: report for duty", worker2str(worker->type),
+            worker->thread_num);
+        lock_basic_lock(&engine->taskq->schedule_lock);
+        /* [LOCK] schedule */
+        worker->task = schedule_pop_task(engine->taskq);
+        /* [UNLOCK] schedule */
+        if (worker->task) {
+            lock_basic_unlock(&engine->taskq->schedule_lock);
+
+            zone = worker->task->zone;
+            lock_basic_lock(&zone->zone_lock);
+            ods_log_debug("[%s[%i]] start working on zone %s",
+                worker2str(worker->type), worker->thread_num, zone->name);
+            zone->in_progress = 1;
+
+            worker_perform_task(worker);
+            zone->processed = 1;
+            lock_basic_unlock(&zone->zone_lock);
+
+            if (worker->task->what == TASK_NONE) {
+                zone->in_progress = 0;
+                ods_log_debug("[%s[%i]] cleanup task none for zone %s",
+                    worker2str(worker->type), worker->thread_num, task->who);
+                task_cleanup(worker->task);
+            } else {
+                lock_basic_lock(&engine->taskq->schedule_lock);
+                zone->in_progress = 0;
+                status = schedule_task(engine->taskq, worker->task, 1);
+                if (status != ODS_STATUS_OK) {
+                    ods_log_error("[%s[%i]] failed to schedule task",
+                        worker2str(worker->type));
+                } else {
+                    task_backup(task);
+                    task = NULL;
+                }
+                lock_basic_unlock(&engine->taskq->schedule_lock);
+            }
+            worker->task = NULL;
+            timeout = 1;
+        } else {
+            ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
+                worker->thread_num);
+
+            task = schedule_get_first_task(engine->taskq);
+            lock_basic_unlock(&engine->taskq->schedule_lock);
+
+            now = time_now();
+            if (task && !engine->taskq->loading) {
+                timeout = (task->when - now);
+            } else {
+                timeout *= 2;
+                if (timeout > ODS_SE_MAX_BACKOFF) {
+                    timeout = ODS_SE_MAX_BACKOFF;
+                }
+            }
+
+            worker_sleep(worker, timeout);
+        }
+    }
+    return;
+}
+
+
+/**
  * Clean up worker.
  *
  */
@@ -319,7 +325,7 @@ worker_cleanup(worker_type* worker)
          num = worker->thread_num;
          lock_basic_destroy(&worker->worker_lock);
          lock_basic_off(&worker->worker_alarm);
-         se_free((void*)worker);
+         free((void*)worker);
     }
     return;
 }
