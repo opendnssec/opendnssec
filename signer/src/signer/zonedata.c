@@ -1130,11 +1130,11 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
 
 
 /**
- * Examine zone data.
+ * Examine updates to zone data.
  *
  */
-int
-zonedata_examine(zonedata_type* zd, ldns_rdf* apex, int is_file)
+ods_status
+zonedata_examine(zonedata_type* zd, ldns_rdf* apex, adapter_mode mode)
 {
     int error = 0;
     int result = 0;
@@ -1160,7 +1160,7 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, int is_file)
             result = error;
         }
 
-        if (is_file) {
+        if (mode == ADAPTER_FILE) {
             error =
             /* Thou shall not have occluded data in your zone file */
             zonedata_examine_domain_is_occluded(zd, domain, apex);
@@ -1174,7 +1174,10 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, int is_file)
         node = ldns_rbtree_next(node);
     }
 
-    return result;
+    if (result) {
+         return ODS_STATUS_ERR;
+    }
+    return ODS_STATUS_OK;
 }
 
 

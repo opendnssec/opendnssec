@@ -36,7 +36,6 @@
 
 #include "config.h"
 #include "adapter/adapter.h"
-#include "daemon/worker.h"
 #include "shared/allocator.h"
 #include "shared/status.h"
 #include "signer/domain.h"
@@ -115,7 +114,7 @@ domain_type* zonedata_del_domain(zonedata_type* zd, domain_type* domain);
  * \return ods_status status
  *
  */
-ods_status zonedata_examine(zonedata_type* zd, ldns_rdf* apex, 
+ods_status zonedata_examine(zonedata_type* zd, ldns_rdf* apex,
     adapter_mode mode);
 
 /**
