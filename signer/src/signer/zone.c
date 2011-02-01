@@ -42,6 +42,7 @@
 #include "shared/status.h"
 #include "shared/util.h"
 #include "signer/backup.h"
+#include "signer/keys.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
 #include "signer/zone.h"
@@ -49,8 +50,8 @@
 #include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
-#include <libhsm.h> /* hsm_create_context(), hsm_get_key(), hsm_destroy_context() */
-#include <libhsmdns.h> /* hsm_create_context(), hsm_get_key(), hsm_destroy_context() */
+#include <libhsm.h>
+#include <libhsmdns.h>
 
 static const char* zone_str = "zone";
 
@@ -800,7 +801,8 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
         if (backup_read_str(fd, &token)) {
             if (ods_strcmp(token, ";DNSKEY") == 0) {
                 key = key_recover_from_backup(fd);
-                if (!key || keylist_add(zone->signconf->keys, key)) {
+                if (!key || keylist_push(zone->signconf->keys, key) !=
+                    ODS_STATUS_OK) {
                     ods_log_error("[%s] error adding key from backup file "
                         "%s.dnskeys to key list", zone_str, zone->name);
                     corrupted = 1;
@@ -986,7 +988,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
         return;
     }
     zone->signconf->name = zone->name;
-    zone->signconf->keys = keylist_create();
+    zone->signconf->keys = keylist_create(zone->signconf->allocator);
 
     /* recover denial of existence */
     filename = ods_build_path(zone->name, ".denial", 0);

@@ -77,6 +77,7 @@ struct keylist_struct {
 
 /**
  * Create a new key.
+ * \param[in] allocator memory allocator
  * \param[in] locator string that identifies location of key
  * \param[in] algorithm DNSKEY algorithm field value
  * \param[in] flags DNSKEY flags field value
@@ -86,8 +87,8 @@ struct keylist_struct {
  * \return key_type* key
  *
  */
-key_type* key_create(const char* locator, uint8_t algorithm, uint32_t flags,
-    int publish, int ksk, int zsk);
+key_type* key_create(allocator_type* allocator, const char* locator,
+    uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk);
 
 /**
  * Recover a key from backup.
@@ -98,35 +99,21 @@ key_type* key_create(const char* locator, uint8_t algorithm, uint32_t flags,
 key_type* key_recover_from_backup(FILE* fd);
 
 /**
- * Clean up key.
- * \param[in] key cleaun up this key
- *
- */
-void key_cleanup(key_type* key);
-
-/**
- * Print key.
- * \param[in] out file descriptor
- * \param[in] key print this key
- *
- */
-void key_print(FILE* out, key_type* key);
-
-/**
  * Create a new key list.
+ * \param[in] allocator memory allocator
  * \return keylist_type* key list
  *
  */
-keylist_type* keylist_create(void);
+keylist_type* keylist_create(allocator_type* allocator);
 
 /**
- * Add a key to the keylist.
+ * Push a key to the keylist.
  * \param[in] kl key list
  * \param[in] key key
- * \return int 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-int keylist_add(keylist_type* kl, key_type* key);
+ods_status keylist_push(keylist_type* kl, key_type* key);
 
 /**
  * Compare two key references.

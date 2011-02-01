@@ -33,9 +33,10 @@
 
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
+#include "shared/allocator.h"
 #include "shared/duration.h"
 #include "shared/log.h"
-#include "util/se_malloc.h"
+#include "signer/keys.h"
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -51,7 +52,7 @@ static const char* parser_str = "parser";
  *
  */
 keylist_type*
-parse_sc_keys(const char* cfgfile)
+parse_sc_keys(allocator_type* allocator, const char* cfgfile)
 {
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
@@ -59,7 +60,7 @@ parse_sc_keys(const char* cfgfile)
     xmlNode* curNode = NULL;
     xmlChar* xexpr = NULL;
     key_type* new_key = NULL;
-    keylist_type* kl = keylist_create();
+    keylist_type* kl = NULL;
     char* locator = NULL;
     char* flags = NULL;
     char* algorithm = NULL;
@@ -77,7 +78,7 @@ parse_sc_keys(const char* cfgfile)
     if (doc == NULL) {
         ods_log_error("[%s] could not parse <Keys>, xmlParseFile failed",
             parser_str);
-        return kl;
+        return NULL;
     }
     /* Create xpath evaluation context */
     xpathCtx = xmlXPathNewContext(doc);
@@ -85,7 +86,7 @@ parse_sc_keys(const char* cfgfile)
         xmlFreeDoc(doc);
         ods_log_error("[%s] could not parse <Keys>, xmlXPathNewContext failed",
             parser_str);
-        return kl;
+        return NULL;
     }
     /* Evaluate xpath expression */
     xexpr = (xmlChar*) "//SignerConfiguration/Zone/Keys/Key";
@@ -95,10 +96,11 @@ parse_sc_keys(const char* cfgfile)
         xmlFreeDoc(doc);
         ods_log_error("[%s] could not parse <Keys>, xmlXPathEvalExpression "
             "failed", parser_str);
-        return kl;
+        return NULL;
     }
 
-   if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
+    kl = keylist_create(allocator);
+    if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
             locator = NULL;
             flags = NULL;
@@ -110,11 +112,11 @@ parse_sc_keys(const char* cfgfile)
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"Locator")) {
-                    locator = (char *) xmlNodeGetContent(curNode); /* VALGRIND does not like */
+                    locator = (char *) xmlNodeGetContent(curNode);
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Algorithm")) {
-                    algorithm = (char *) xmlNodeGetContent(curNode); /* VALGRIND does not like */
+                    algorithm = (char *) xmlNodeGetContent(curNode);
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Flags")) {
-                    flags = (char *) xmlNodeGetContent(curNode); /* VALGRIND does not like */
+                    flags = (char *) xmlNodeGetContent(curNode);
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"KSK")) {
                     ksk = 1;
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"ZSK")) {
@@ -125,9 +127,10 @@ parse_sc_keys(const char* cfgfile)
                 curNode = curNode->next;
             }
             if (locator && algorithm && flags) {
-                new_key = key_create(locator, (uint8_t) atoi(algorithm),
-                    (uint32_t) atoi(flags), publish, ksk, zsk);
-                if (keylist_add(kl, new_key) != 0) {
+                new_key = key_create(allocator, locator,
+                    (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
+                    publish, ksk, zsk);
+                if (keylist_push(kl, new_key) != ODS_STATUS_OK) {
                     ods_log_error("[%s] failed to push key %s to key list",
                         parser_str, locator);
                 }
@@ -135,15 +138,9 @@ parse_sc_keys(const char* cfgfile)
                 ods_log_error("[%s] Key missing required elements, skipping",
                     parser_str);
             }
-            if (locator) {
-                se_free((void*)locator);
-            }
-            if (algorithm) {
-                se_free((void*)algorithm);
-            }
-            if (flags) {
-                se_free((void*)flags);
-            }
+            free((void*)locator);
+            free((void*)algorithm);
+            free((void*)flags);
         }
     }
 
@@ -171,7 +168,7 @@ parse_sc_sig_resign_interval(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -187,7 +184,7 @@ parse_sc_sig_refresh_interval(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -203,7 +200,7 @@ parse_sc_sig_validity_default(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -219,7 +216,7 @@ parse_sc_sig_validity_denial(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -235,7 +232,7 @@ parse_sc_sig_jitter(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -251,7 +248,7 @@ parse_sc_sig_inception_offset(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -267,7 +264,7 @@ parse_sc_dnskey_ttl(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -283,7 +280,7 @@ parse_sc_soa_ttl(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -299,7 +296,7 @@ parse_sc_soa_min(const char* cfgfile)
         return NULL;
     }
     duration = duration_create_from_string(str);
-    se_free((void*)str);
+    free((void*)str);
     return duration;
 }
 
@@ -315,7 +312,7 @@ parse_sc_nsec_type(const char* cfgfile)
         "//SignerConfiguration/Zone/Denial/NSEC3",
         0);
     if (str) {
-        se_free((void*)str);
+        free((void*)str);
         return LDNS_RR_TYPE_NSEC3;
     }
 
@@ -323,7 +320,7 @@ parse_sc_nsec_type(const char* cfgfile)
         "//SignerConfiguration/Zone/Denial/NSEC",
         0);
     if (str) {
-        se_free((void*)str);
+        free((void*)str);
         return LDNS_RR_TYPE_NSEC;
     }
 
@@ -346,7 +343,7 @@ parse_sc_nsec3_algorithm(const char* cfgfile)
         if (strlen(str) > 0) {
             ret = atoi(str);
         }
-        se_free((void*)str);
+        free((void*)str);
     }
     return ret;
 }
@@ -363,7 +360,7 @@ parse_sc_nsec3_iterations(const char* cfgfile)
         if (strlen(str) > 0) {
             ret = atoi(str);
         }
-        se_free((void*)str);
+        free((void*)str);
     }
     return ret;
 }
@@ -384,7 +381,7 @@ parse_sc_dnskey_ttl_use(const char* cfgfile)
         if (strlen(str) > 0) {
             ret = 1;
         }
-        se_free((void*)str);
+        free((void*)str);
     }
     return ret;
 }
@@ -401,7 +398,7 @@ parse_sc_soa_ttl_use(const char* cfgfile)
         if (strlen(str) > 0) {
             ret = 1;
         }
-        se_free((void*)str);
+        free((void*)str);
     }
     return ret;
 }
@@ -418,7 +415,7 @@ parse_sc_soa_min_use(const char* cfgfile)
         if (strlen(str) > 0) {
             ret = 1;
         }
-        se_free((void*)str);
+        free((void*)str);
     }
     return ret;
 }
@@ -433,7 +430,7 @@ parse_sc_nsec3_optout(const char* cfgfile)
         0);
     if (str) {
         ret = 1;
-        se_free((void*)str);
+        free((void*)str);
     }
     return ret;
 }
@@ -448,7 +445,7 @@ parse_sc_audit(const char* cfgfile)
         0);
     if (str) {
         ret = 1;
-        se_free((void*)str);
+        free((void*)str);
     }
     return ret;
 }
@@ -459,18 +456,34 @@ parse_sc_audit(const char* cfgfile)
  *
  */
 const char*
-parse_sc_soa_serial(const char* cfgfile)
+parse_sc_soa_serial(allocator_type* allocator, const char* cfgfile)
 {
-    return parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//SignerConfiguration/Zone/SOA/Serial",
         1);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
 }
 
 
 const char*
-parse_sc_nsec3_salt(const char* cfgfile)
+parse_sc_nsec3_salt(allocator_type* allocator, const char* cfgfile)
 {
-    return parse_conf_string(cfgfile,
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
         "//SignerConfiguration/Zone/Denial/NSEC3/Hash/Salt",
         1);
+
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
 }

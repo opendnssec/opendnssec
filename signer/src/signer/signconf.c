@@ -35,12 +35,11 @@
 #include "parser/signconfparser.h"
 #include "scheduler/task.h"
 #include "shared/duration.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/backup.h"
-#include "shared/file.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"
-#include "util/se_malloc.h"
 
 static const char* sc_str = "signconf";
 
@@ -52,8 +51,23 @@ static const char* sc_str = "signconf";
 signconf_type*
 signconf_create(void)
 {
-    signconf_type* sc = (signconf_type*) se_malloc(sizeof(signconf_type));
+    signconf_type* sc;
+    allocator_type* allocator = allocator_create(malloc, free);
+    if (!allocator) {
+        ods_log_error("[%s] unable to create: create allocator failed",
+            sc_str);
+        return NULL;
+    }
+    ods_log_assert(allocator);
 
+    sc = (signconf_type*) allocator_alloc(allocator, sizeof(signconf_type));
+    if (!sc) {
+        ods_log_error("[%s] unable to create: allocator failed", sc_str);
+        allocator_cleanup(allocator);
+        return NULL;
+    }
+    ods_log_assert(sc);
+    sc->allocator = allocator;
     /* Signatures */
     sc->sig_resign_interval = NULL;
     sc->sig_refresh_interval = NULL;
@@ -111,7 +125,7 @@ signconf_read(const char* filename, time_t last_modified)
     scfd = ods_fopen(filename, NULL, "r");
     if (scfd) {
         signconf = signconf_create();
-        signconf->filename = se_strdup(filename);
+        signconf->filename = allocator_strdup(signconf->allocator, filename);
         signconf->sig_resign_interval = parse_sc_sig_resign_interval(filename);
         signconf->sig_refresh_interval = parse_sc_sig_refresh_interval(filename);
         signconf->sig_validity_default = parse_sc_sig_validity_default(filename);
@@ -123,13 +137,14 @@ signconf_read(const char* filename, time_t last_modified)
             signconf->nsec3_optout = parse_sc_nsec3_optout(filename);
             signconf->nsec3_algo = parse_sc_nsec3_algorithm(filename);
             signconf->nsec3_iterations = parse_sc_nsec3_iterations(filename);
-            signconf->nsec3_salt = parse_sc_nsec3_salt(filename);
+            signconf->nsec3_salt = parse_sc_nsec3_salt(signconf->allocator, filename);
         }
-        signconf->keys = parse_sc_keys(filename);
+        signconf->keys = parse_sc_keys(signconf->allocator, filename);
         signconf->dnskey_ttl = parse_sc_dnskey_ttl(filename);
         signconf->soa_ttl = parse_sc_soa_ttl(filename);
         signconf->soa_min = parse_sc_soa_min(filename);
-        signconf->soa_serial = parse_sc_soa_serial(filename);
+        signconf->soa_serial = parse_sc_soa_serial(signconf->allocator,
+            filename);
         signconf->audit = parse_sc_audit(filename);
         signconf->last_modified = st_mtime;
 
@@ -197,7 +212,7 @@ signconf_recover_from_backup(const char* filename)
         }
 
         if (zonename) {
-            se_free((void*) zonename);
+            free((void*) zonename);
         }
         ods_fclose(scfd);
         return signconf;
@@ -218,7 +233,7 @@ signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
 {
     char* str = duration2string(duration);
     fprintf(fd, ";%s: %s\n", opt, str);
-    se_free((void*) str);
+    free((void*) str);
     return;
 }
 
@@ -275,7 +290,7 @@ signconf_backup(signconf_type* sc)
         ods_log_warning("[%s] cannot backup signconf: cannot open file "
         "%s for writing", sc_str, filename?filename:"(null)");
     }
-    se_free((void*) filename);
+    free((void*) filename);
     return;
 }
 
@@ -424,9 +439,9 @@ signconf_compare(signconf_type* a, signconf_type* b, int* update)
 
    /* not like python: reschedule if resign/refresh differs */
    /* this needs review, tasks correct on signconf changes? */
-
    return new_task;
 }
+
 
 /**
  * Clean up signer configuration.
@@ -435,61 +450,24 @@ signconf_compare(signconf_type* a, signconf_type* b, int* update)
 void
 signconf_cleanup(signconf_type* sc)
 {
-    if (sc) {
-        if (sc->sig_resign_interval) {
-            duration_cleanup(sc->sig_resign_interval);
-            sc->sig_resign_interval = NULL;
-        }
-        if (sc->sig_refresh_interval) {
-            duration_cleanup(sc->sig_refresh_interval);
-            sc->sig_refresh_interval = NULL;
-        }
-        if (sc->sig_validity_default) {
-            duration_cleanup(sc->sig_validity_default);
-            sc->sig_validity_default = NULL;
-        }
-        if (sc->sig_validity_denial) {
-            duration_cleanup(sc->sig_validity_denial);
-            sc->sig_validity_denial = NULL;
-        }
-        if (sc->sig_jitter) {
-            duration_cleanup(sc->sig_jitter);
-            sc->sig_jitter = NULL;
-        }
-        if (sc->sig_inception_offset) {
-            duration_cleanup(sc->sig_inception_offset);
-            sc->sig_inception_offset = NULL;
-        }
-        if (sc->dnskey_ttl) {
-            duration_cleanup(sc->dnskey_ttl);
-            sc->dnskey_ttl = NULL;
-        }
-        if (sc->soa_ttl) {
-            duration_cleanup(sc->soa_ttl);
-            sc->soa_ttl = NULL;
-        }
-        if (sc->soa_min) {
-            duration_cleanup(sc->soa_min);
-            sc->soa_min = NULL;
-        }
-        if (sc->keys) {
-            keylist_cleanup(sc->keys);
-            sc->keys = NULL;
-        }
-        if (sc->nsec3_salt) {
-            se_free((void*)sc->nsec3_salt);
-            sc->nsec3_salt = NULL;
-        }
-        if (sc->soa_serial) {
-            se_free((void*)sc->soa_serial);
-            sc->soa_serial = NULL;
-        }
-        if (sc->filename) {
-            se_free((void*)sc->filename);
-            sc->filename = NULL;
-        }
-        se_free((void*)sc);
+    allocator_type* allocator;
+    if (!sc) {
+        return;
     }
+    duration_cleanup(sc->sig_resign_interval);
+    duration_cleanup(sc->sig_refresh_interval);
+    duration_cleanup(sc->sig_validity_default);
+    duration_cleanup(sc->sig_validity_denial);
+    duration_cleanup(sc->sig_jitter);
+    duration_cleanup(sc->sig_inception_offset);
+    duration_cleanup(sc->dnskey_ttl);
+    duration_cleanup(sc->soa_ttl);
+    duration_cleanup(sc->soa_min);
+    keylist_cleanup(sc->keys);
+    allocator = sc->allocator;
+    allocator_deallocate(allocator);
+    allocator_cleanup(allocator);
+    return;
 }
 
 
@@ -512,32 +490,32 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
         fprintf(out, "\t\t<Signatures>\n");
         s = duration2string(sc->sig_resign_interval);
         fprintf(out, "\t\t\t<Resign>%s</Resign>\n", s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
 
         s = duration2string(sc->sig_refresh_interval);
         fprintf(out, "\t\t\t<Refresh>%s</Refresh>\n", s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
 
         fprintf(out, "\t\t\t<Validity>\n");
 
         s = duration2string(sc->sig_validity_default);
         fprintf(out, "\t\t\t\t<Default>%s</Default>\n", s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
 
         s = duration2string(sc->sig_validity_denial);
         fprintf(out, "\t\t\t\t<Denial>%s</Denial>\n", s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
 
         fprintf(out, "\t\t\t</Validity>\n");
 
         s = duration2string(sc->sig_jitter);
         fprintf(out, "\t\t\t<Jitter>%s</Jitter>\n", s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
 
         s = duration2string(sc->sig_inception_offset);
         fprintf(out, "\t\t\t<InceptionOffset>%s</InceptionOffset>\n",
             s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
 
         fprintf(out, "\t\t</Signatures>\n");
         fprintf(out, "\n");
@@ -568,7 +546,7 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
         fprintf(out, "\t\t<Keys>\n");
         s = duration2string(sc->dnskey_ttl);
         fprintf(out, "\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
         fprintf(out, "\n");
         keylist_print(out, sc->keys);
         fprintf(out, "\t\t</Keys>\n");
@@ -578,11 +556,11 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
         fprintf(out, "\t\t<SOA>\n");
         s = duration2string(sc->soa_ttl);
         fprintf(out, "\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
 
         s = duration2string(sc->soa_min);
         fprintf(out, "\t\t\t<Minimum>%s</Minimum>\n", s?s:"(null)");
-        se_free((void*)s);
+        free((void*)s);
 
         fprintf(out, "\t\t\t<Serial>%s</Serial>\n",
             sc->soa_serial?sc->soa_serial:"(null)");

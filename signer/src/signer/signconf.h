@@ -34,8 +34,9 @@
 #ifndef SIGNER_SIGNCONF_H
 #define SIGNER_SIGNCONF_H
 
+#include "shared/allocator.h"
+#include "shared/duration.h"
 #include "signer/keys.h"
-#include "util/duration.h"
 
 #include <ldns/ldns.h>
 #include <time.h>
@@ -49,6 +50,7 @@ typedef struct signconf_struct signconf_type;
 struct signconf_struct {
     /* Zone */
     const char* name;
+    allocator_type* allocator;
     /* Signatures */
     duration_type* sig_resign_interval;
     duration_type* sig_refresh_interval;
