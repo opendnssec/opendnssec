@@ -903,8 +903,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         /* sign the RRset with current key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
             rrset->rr_type, key->locator);
-        rrsig = hsm_sign_rrset_with_key(ctx, owner, key, rr_list,
-             inception, expiration);
+        rrsig = lhsm_sign(ctx, rr_list, key, owner, inception, expiration);
         if (!rrsig) {
             ods_log_error("[%s] unable to sign RRset[%i]: error creating "
                 "RRSIG RR", rrset_str, rrset->rr_type);

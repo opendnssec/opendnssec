@@ -373,7 +373,7 @@ zone_publish_dnskeys(zone_type* zone, FILE* fd)
     for (count=0; count < zone->signconf->keys->count; count++) {
         if (key->publish) {
             if (!key->dnskey) {
-                error = hsm_get_key(ctx, zone->dname, key);
+                error = lhsm_get_key(ctx, zone->dname, key);
                 if (error) {
                     ods_log_error("[%s] unable to publish dnskeys zone %s: "
                         "error creating DNSKEY for key %s", zone_str,

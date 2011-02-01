@@ -41,28 +41,28 @@ static const char* hsm_str = "hsm";
  * Get key from one of the HSMs.
  *
  */
-int
-hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
+ods_status
+lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
 {
-    if (!dname || !key_id) {
+    if (!owner || !key_id) {
         ods_log_error("[%s] unable to get key: missing required elements",
             hsm_str);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(dname);
+    ods_log_assert(owner);
     ods_log_assert(key_id);
 
     if (!key_id->params) {
         key_id->params = hsm_sign_params_new();
         if (key_id->params) {
-            key_id->params->owner = ldns_rdf_clone(dname);
+            key_id->params->owner = ldns_rdf_clone(owner);
             key_id->params->algorithm = key_id->algorithm;
             key_id->params->flags = key_id->flags;
         } else {
             /* could not create params */
             ods_log_error("[%s] unable to get key: create params for key %s "
                 "failed", hsm_str, key_id->locator?key_id->locator:"(null)");
-            return 1;
+            return ODS_STATUS_ERR;
         }
     }
 
@@ -77,15 +77,15 @@ hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
             /* could not find key */
             ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
                 key_id->locator?key_id->locator:"(null)");
-            return 1;
+            return ODS_STATUS_ERR;
         }
     }
 
     if (!key_id->dnskey) {
-        return 1;
+        return ODS_STATUS_ERR;
     }
     key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
-    return 0;
+    return ODS_STATUS_OK;
 }
 
 /**
@@ -93,31 +93,26 @@ hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id)
  *
  */
 ldns_rr*
-hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
-    ldns_rr_list* rrset, time_t inception, time_t expiration)
+lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
+    ldns_rdf* owner, time_t inception, time_t expiration)
 {
+    ods_status status = ODS_STATUS_OK;
 
-    if (!dname || !key_id || !rrset || !inception || !expiration) {
+    if (!owner || !key_id || !rrset || !inception || !expiration) {
         ods_log_error("[%s] unable to sign: missing required elements",
             hsm_str);
         return NULL;
     }
-    ods_log_assert(dname);
+    ods_log_assert(owner);
     ods_log_assert(key_id);
     ods_log_assert(rrset);
     ods_log_assert(inception);
     ods_log_assert(expiration);
 
-    if (!key_id->params) {
-        key_id->params = hsm_sign_params_new();
-        if (key_id->params) {
-            key_id->params->owner = ldns_rdf_clone(dname);
-            key_id->params->algorithm = key_id->algorithm;
-            key_id->params->flags = key_id->flags;
-        } else {
-            /* could not create params */
-            ods_log_error("[%s] could not create params for key %s", hsm_str,
-                key_id->locator?key_id->locator:"(null)");
+    if (!key_id->dnskey) {
+        status = lhsm_get_key(ctx, owner, key_id);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to sign: get key failed", hsm_str);
             return NULL;
         }
     }

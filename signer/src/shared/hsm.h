@@ -35,6 +35,7 @@
 #define SHARED_HSM_H
 
 #include "config.h"
+#include "shared/status.h"
 #include "signer/keys.h"
 
 #include <ctype.h>
@@ -47,25 +48,25 @@
 /**
  * Get key from one of the HSMs, store the DNSKEY and HSM key.
  * \param[in] ctx HSM context
- * \param[in] dname the zone owner name
+ * \param[in] owner the zone owner name
  * \param[in] key_id key credentials
- * \return int 0 on ok, 1 on error
+ * \return ods_status status
  *
  */
-int hsm_get_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id);
+ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id);
 
 /**
  * Get RRSIG from one of the HSMs, given a RRset and a key.
  * \param[in] ctx HSM context
- * \param[in] dname owner of the keys
- * \param[in] key_id key credentials
  * \param[in] rrset RRset to be signed
+ * \param[in] key_id key credentials
+ * \param[in] owner owner of the keys
  * \param[in] inception signature inception
  * \param[in] expiration signature expiration
- * \return ldns_rr* RRSIG rr
+ * \return ldns_rr* RRSIG record
  *
  */
-ldns_rr* hsm_sign_rrset_with_key(hsm_ctx_t* ctx, ldns_rdf* dname, key_type* key_id,
-	ldns_rr_list* rrset, time_t inception, time_t expiration);
+ldns_rr* lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
+    ldns_rdf* owner, time_t inception, time_t expiration);
 
 #endif /* SHARED_HSM_H */
