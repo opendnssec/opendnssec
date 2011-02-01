@@ -47,12 +47,13 @@ static const char* tools_str = "tools";
 
 
 /**
- * Read zone's input adapter.
+ * Read zone from input adapter.
  *
  */
-int
-tools_read_input(zone_type* zone)
+ods_status
+tools_input(zone_type* zone)
 {
+    ods_status status = ODS_STATUS_OK;
     char* tmpname = NULL;
     char* axfrname = NULL;
     int error = 0;
@@ -61,7 +62,7 @@ tools_read_input(zone_type* zone)
 
     if (!zone) {
         ods_log_error("[%s] unable to read zone: no zone", tools_str);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
     ods_log_assert(zone->adinbound);
@@ -85,10 +86,10 @@ tools_read_input(zone_type* zone)
                 if (error) {
                     ods_log_error("[%s] unable to copy axfr file %s to %s",
                         tools_str, axfrname, zone->adinbound->filename);
-                    se_free((void*)axfrname);
-                    return 1;
+                    free((void*)axfrname);
+                    return ODS_STATUS_ERR;
                 }
-                se_free((void*)axfrname);
+                free((void*)axfrname);
             }
 
             ods_log_verbose("[%s] read zone %s from input file adapter %s",
@@ -101,7 +102,7 @@ tools_read_input(zone_type* zone)
             if (!error) {
                 error = adfile_read(zone, tmpname, 0);
             }
-            se_free((void*)tmpname);
+            free((void*)tmpname);
             break;
         case ADAPTER_UNKNOWN:
         default:
@@ -118,8 +119,9 @@ tools_read_input(zone_type* zone)
         zone->stats->sort_time = (end-start);
     } else {
         zonedata_cancel_update(zone->zonedata);
+        status = ODS_STATUS_ERR;
     }
-    return error;
+    return status;
 }
 
 
@@ -170,41 +172,42 @@ tools_update(zone_type* zone)
             zone->stats->sort_done = 1;
             unlink(inbound);
         }
-        se_free((void*)inbound);
-        se_free((void*)unsorted);
+        free((void*)inbound);
+        free((void*)unsorted);
     }
     return error;
 }
 
 
 /**
- * Add NSEC(3) records to zone.
+ * Nsecify zone.
  *
  */
-int
+ods_status
 tools_nsecify(zone_type* zone)
 {
+    ods_status status = ODS_STATUS_OK;
     int error = 0;
     time_t start = 0;
     time_t end = 0;
 
     if (!zone) {
         ods_log_error("[%s] unable to nsecify zone: no zone", tools_str);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
 
     if (!zone->zonedata) {
         ods_log_error("[%s] unable to nsecify zone %s: no zonedata",
             tools_str, zone->name);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->zonedata);
 
     if (!zone->signconf) {
         ods_log_error("[%s] unable to nsecify zone %s: no signconf",
             tools_str, zone->name);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->signconf);
 
@@ -219,8 +222,10 @@ tools_nsecify(zone_type* zone)
             zone->stats->start_time = start;
         }
         zone->stats->nsec_time = (end-start);
+    } else {
+        status = ODS_STATUS_ERR;
     }
-    return error;
+    return status;
 }
 
 
@@ -280,7 +285,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
         if (error != 0) {
             ods_log_error("[%s] audit zone %s failed: unable to write zone",
                 tools_str, zone->name?zone->name:"(null)");
-            se_free((void*)finalized);
+            free((void*)finalized);
             return 1;
         }
 
@@ -298,7 +303,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             if (!error) {
                 unlink(finalized);
             }
-            se_free((void*)finalized);
+            free((void*)finalized);
         }
         end = time(NULL);
         zone->stats->audit_time = (end-start);
@@ -309,18 +314,18 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
 
 /**
  * Write zone to output adapter.
- * \param[in] zone zone
- * \return int 0 on success, 1 on fail
  *
  */
-int tools_write_output(zone_type* zone)
+ods_status
+tools_output(zone_type* zone)
 {
-    int error = 0;
+    ods_status status = ODS_STATUS_OK;
     char str[SYSTEM_MAXLEN];
+    int error = 0;
 
     if (!zone) {
         ods_log_error("[%s] unable to write zone: no zone", tools_str);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
@@ -342,13 +347,16 @@ int tools_write_output(zone_type* zone)
     switch (zone->adoutbound->type) {
         case ADAPTER_FILE:
             error = adfile_write(zone, NULL);
+            if (error) {
+                status = ODS_STATUS_ERR;
+            }
             break;
         case ADAPTER_UNKNOWN:
         default:
             ods_log_error("[%s] write zone %s failed: unknown outbound adapter "
                 "type %i", tools_str, zone->name?zone->name:"(null)",
                 (int) zone->adinbound->type);
-            error = 1;
+            status = ODS_STATUS_ERR;
             break;
     }
     /* kick the nameserver */
@@ -359,6 +367,7 @@ int tools_write_output(zone_type* zone)
         error = system(str);
         if (error) {
            ods_log_error("[%s] failed to notify nameserver", tools_str);
+           status = ODS_STATUS_ERR;
         }
     }
     /* log stats */
@@ -367,5 +376,5 @@ int tools_write_output(zone_type* zone)
     stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
     stats_clear(zone->stats);
 
-    return error;
+    return status;
 }

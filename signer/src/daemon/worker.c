@@ -157,12 +157,12 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]]: read zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-            error = tools_read_input(zone);
+            status = tools_input(zone);
 
             /* what to do next */
             what = TASK_ADDKEYS;
             when = time_now();
-            if (error) {
+            if (status != ODS_STATUS_OK) {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
@@ -179,7 +179,7 @@ worker_perform_task(worker_type* worker)
             /* what to do next */
             what = TASK_COMMIT;
             when = time_now();
-            if (status != ODS_STATUS_OK) {
+            if (error) {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
@@ -197,7 +197,7 @@ worker_perform_task(worker_type* worker)
             /* what to do next */
             what = TASK_NSECIFY;
             when = time_now();
-            if (status != ODS_STATUS_OK) {
+            if (error) {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
@@ -209,7 +209,7 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]]: nsecify zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-            error = tools_nsecify(zone);
+            status = tools_nsecify(zone);
 
             /* what to do next */
             what = TASK_SIGN;
@@ -262,11 +262,11 @@ worker_perform_task(worker_type* worker)
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
 
-            error = tools_write_output(zone);
+            status = tools_output(zone);
             zone->processed = 1;
 
             /* what to do next */
-            if (error) {
+            if (status != ODS_STATUS_OK) {
                 goto task_perform_fail;
             }
             what = TASK_SIGN;

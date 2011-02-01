@@ -36,15 +36,16 @@
 
 #include "config.h"
 #include "daemon/cfg.h"
+#include "shared/status.h"
 #include "signer/zone.h"
 
 /**
- * Read zone input adapter.
+ * Read zone from input adapter.
  * \param[in] zone zone
- * \return int 0 on success, 1 on fail
+ * \return ods_status status
  *
  */
-int tools_read_input(zone_type* zone);
+ods_status tools_input(zone_type* zone);
 
 /**
  * Add DNSKEY (and NSEC3PARAM) records to zone.
@@ -63,12 +64,12 @@ int tools_add_dnskeys(zone_type* zone);
 int tools_update(zone_type* zone);
 
 /**
- * Add NSEC(3) records to zone.
+ * Nsecify zone.
  * \param[in] zone zone
- * \return int 0 on success, 1 on fail
+ * \return ods_status status
  *
  */
-int tools_nsecify(zone_type* zone);
+ods_status tools_nsecify(zone_type* zone);
 
 /**
  * Add RRSIG records to zone.
@@ -91,9 +92,9 @@ int tools_audit(zone_type* zone, char* working_dir, char* cfg_filename);
 /**
  * Write zone to output adapter.
  * \param[in] zone zone
- * \return int 0 on success, 1 on fail
+ * \return ods_status status
  *
  */
-int tools_write_output(zone_type* zone);
+ods_status tools_output(zone_type* zone);
 
 #endif /* SIGNER_TOOLS_H */
