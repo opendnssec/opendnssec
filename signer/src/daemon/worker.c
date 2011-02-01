@@ -160,7 +160,7 @@ worker_perform_task(worker_type* worker)
             error = tools_read_input(zone);
 
             /* what to do next */
-            what = TASK_COMMIT;
+            what = TASK_ADDKEYS;
             when = time_now();
             if (error) {
                 if (task->halted == TASK_NONE) {
