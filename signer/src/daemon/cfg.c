@@ -129,6 +129,14 @@ engine_config_check(engineconfig_type* config)
         ods_log_error("[%s] check failed: config does not exist", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
+    if (!config->zonelist_filename) {
+        ods_log_error("[%s] check failed: no zonelist filename", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+    if (!config->clisock_filename) {
+        ods_log_error("[%s] check failed: no socket filename", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
 
     /*  [TODO] room for more checks here */
 

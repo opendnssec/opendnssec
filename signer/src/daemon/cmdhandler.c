@@ -122,10 +122,9 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
         return;
     }
 
-    /* lock zonelist */
-    zonelist_lock(cmdc->engine->zonelist);
-
+    lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
     /* how many zones */
+    /* [LOCK] zonelist */
     (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i zones configured\n",
         (int) cmdc->engine->zonelist->zones->count);
     ods_writen(sockfd, buf, strlen(buf));
@@ -133,18 +132,16 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
     /* list zones */
     node = ldns_rbtree_first(cmdc->engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
-        zone = (zone_type*) node->key;
+        zone = (zone_type*) node->data;
         for (i=0; i < ODS_SE_MAXLINE; i++) {
             buf[i] = 0;
         }
-        (void)snprintf(buf, ODS_SE_MAXLINE, "- %s\n",
-            zone->name?zone->name:"(null)");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "- %s\n", zone->name);
         ods_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
-
-    /* unlock zonelist */
-    zonelist_unlock(cmdc->engine->zonelist);
+    /* [UNLOCK] zonelist */
+    lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
     return;
 }
 
@@ -154,9 +151,14 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
  *
  */
 static void
-cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc, const char* tbd)
+cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
+    const char* tbd)
 {
     char buf[ODS_SE_MAXLINE];
+    ods_status status = ODS_STATUS_OK;
+    zone_type* zone = NULL;
+    task_type* task = NULL;
+    int zl_changed = 0;
     size_t i = 0;
     int ret = 0;
 
@@ -393,9 +395,8 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         return;
     }
 
-    /* lock schedule */
     lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
-
+    /* [LOCK] schedule */
     /* how many tasks */
     now = time_now();
     strtime = ctime(&now);
@@ -407,7 +408,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     /* list tasks */
     node = ldns_rbtree_first(cmdc->engine->taskq->tasks);
     while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->key;
+        task = (task_type*) node->data;
         for (i=0; i < ODS_SE_MAXLINE; i++) {
             buf[i] = 0;
         }
@@ -415,8 +416,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         ods_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
-
-    /* unlock schedule */
+    /* [UNLOCK] schedule */
     lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
     return;
 }
@@ -438,7 +438,9 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
     ods_log_assert(cmdc->engine->taskq);
 
     lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
+    /* [LOCK] schedule */
     schedule_flush(cmdc->engine->taskq, TASK_NONE);
+    /* [UNLOCK] schedule */
     lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
 
     /* wake up sleeping workers */
@@ -468,7 +470,9 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_type* cmdc)
     cmdc->engine->need_to_reload = 1;
 
     lock_basic_lock(&cmdc->engine->signal_lock);
+    /* [LOCK] signal */
     lock_basic_alarm(&cmdc->engine->signal_cond);
+    /* [UNLOCK] signal */
     lock_basic_unlock(&cmdc->engine->signal_lock);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "Reloading engine.\n");
@@ -492,7 +496,9 @@ cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_type* cmdc)
     cmdc->engine->need_to_exit = 1;
 
     lock_basic_lock(&cmdc->engine->signal_lock);
+    /* [LOCK] signal */
     lock_basic_alarm(&cmdc->engine->signal_cond);
+    /* [UNLOCK] signal */
     lock_basic_unlock(&cmdc->engine->signal_lock);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
