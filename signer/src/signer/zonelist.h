@@ -34,6 +34,8 @@
 #ifndef SIGNER_ZONELIST_H
 #define SIGNER_ZONELIST_H
 
+#include "shared/allocator.h"
+#include "shared/locks.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>
@@ -50,21 +52,27 @@ typedef struct zonelist_struct zonelist_type;
 struct zonelist_struct {
     ldns_rbtree_t* zones;
     time_t last_modified;
+    lock_basic_type zl_lock;
 };
 
 /**
  * Create zone list.
+ * \param[in] allocator memory allocator
  * \return zonelist_type* created zone list
+ *
  */
-zonelist_type* zonelist_create(void);
+zonelist_type* zonelist_create(allocator_type* allocator);
 
 /**
  * Read zonelist file.
  * \param[in] zonelistfile zonelist configuration file
  * \param[in] last_modified last modified
- * \return zonelist_type* zone list if reading was succesful, NULL otherwise
+ * \param[out] zl zone list if read was succesful, NULL otherwise
+ * \return ods_status status
+ *
  */
-zonelist_type* zonelist_read(const char* zonelistfile, time_t last_modified);
+ods_status zonelist_read(zonelist_type* zl, const char* zonelistfile,
+    time_t last_modified);
 
 /**
  * Lock all zones in zone list.
@@ -119,10 +127,17 @@ void zonelist_update(zonelist_type* zl, struct schedule_struct* tl,
 void zonelist_merge(zonelist_type* zl1, zonelist_type* zl2);
 
 /**
- * Clean up a zonelist.
- * \param[in] zonelist list to clean up
+ * Clean up zone list.
+ * \param[in] zl zone list
  *
  */
-void zonelist_cleanup(zonelist_type* zonelist);
+void zonelist_cleanup(zonelist_type* zl);
+
+/**
+ * Free zone list.
+ * \param[in] zl zone list
+ *
+ */
+void zonelist_free(zonelist_type* zl);
 
 #endif /* SIGNER_ZONELIST_H */

@@ -103,7 +103,7 @@ engine_create(void)
     lock_basic_init(&engine->signal_lock);
     lock_basic_set(&engine->signal_cond);
 
-    engine->zonelist = zonelist_create();
+    engine->zonelist = zonelist_create(engine->allocator);
     if (!engine->zonelist) {
         engine_cleanup(engine);
         return NULL;
@@ -734,15 +734,16 @@ int
 engine_update_zonelist(engine_type* engine, char* buf)
 {
     zonelist_type* new_zlist = NULL;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_assert(engine->zonelist);
     ods_log_debug("update zone list");
 
-    new_zlist = zonelist_read(engine->config->zonelist_filename,
+    status = zonelist_read(new_zlist, engine->config->zonelist_filename,
         engine->zonelist->last_modified);
-    if (!new_zlist) {
+    if (status != ODS_STATUS_OK) {
         if (buf) {
             /* fstat <= last_modified || rng check failed */
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed.\n");
@@ -968,7 +969,12 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 
     /* run */
     while (engine->need_to_exit == 0) {
+        /* update zone list */
+        lock_basic_lock(&engine->zonelist->zl_lock);
+        /* [LOCK] zonelist */
         zl_changed = (engine_update_zonelist(engine, NULL) == 0);
+        /* [UNLOCK] zonelist */
+        lock_basic_unlock(&engine->zonelist->zl_lock);
 
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
@@ -1041,12 +1047,9 @@ engine_cleanup(engine_type* engine)
         }
         se_free((void*) engine->workers);
     }
+    zonelist_cleanup(engine->zonelist);
     schedule_cleanup(engine->taskq);
-    if (engine->zonelist) {
-        zonelist_cleanup(engine->zonelist);
-        engine->zonelist = NULL;
-    }
-
+    
     allocator_deallocate(engine->allocator);
     allocator_cleanup(allocator);
     lock_basic_destroy(&signal_lock);

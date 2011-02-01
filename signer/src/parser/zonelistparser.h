@@ -34,16 +34,19 @@
 #ifndef PARSER_ZONELISTPARSER_H
 #define PARSER_ZONELISTPARSER_H
 
-#include "signer/zone.h"
+#include "shared/allocator.h"
+#include "shared/status.h"
 
 struct zonelist_struct;
 
 /**
  * Parse the zonelist file.
+ * \param[in] zlist zone list storage
  * \param[in] zlfile zonelist file name
- * \return zonelist_type* zone list
+ * \return ods_status status
  *
  */
-struct zonelist_struct* parse_zonelist_zones(const char* zlfile);
+ods_status parse_zonelist_zones(struct zonelist_struct* zlist,
+    const char* zlfile);
 
 #endif /* PARSER_ZONELISTPARSER_H */

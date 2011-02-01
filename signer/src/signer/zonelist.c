@@ -35,10 +35,12 @@
 #include "daemon/engine.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
+#include "shared/allocator.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "shared/status.h"
 #include "signer/zone.h"
 #include "signer/zonelist.h"
 #include "util/se_malloc.h"
@@ -76,11 +78,25 @@ zone_compare(const void* a, const void* b)
  *
  */
 zonelist_type*
-zonelist_create(void)
+zonelist_create(allocator_type* allocator)
 {
-    zonelist_type* zlist = (zonelist_type*) se_malloc(sizeof(zonelist_type));
+    zonelist_type* zlist;
+    if (!allocator) {
+        ods_log_error("[%s] cannot create: no allocator available", zl_str);
+        return NULL;
+    }
+    ods_log_assert(allocator);
+
+    zlist = (zonelist_type*) allocator_alloc(allocator, sizeof(zonelist_type));
+    if (!zlist) {
+        ods_log_error("[%s] cannot create: allocator failed", zl_str);
+        return NULL;
+    }
+    ods_log_assert(zlist);
+
     zlist->zones = ldns_rbtree_create(zone_compare);
     zlist->last_modified = 0;
+    lock_basic_init(&zlist->zl_lock);
     return zlist;
 }
 
@@ -89,11 +105,12 @@ zonelist_create(void)
  * Read a zonelist file.
  *
  */
-zonelist_type*
-zonelist_read(const char* zlfile, time_t last_modified)
+ods_status
+zonelist_read(zonelist_type* zl, const char* zlfile, time_t last_modified)
 {
     zonelist_type* zlist = NULL;
     const char* rngfile = ODS_SE_RNGDIR "/zonelist.rng";
+    ods_status status = ODS_STATUS_OK;
     time_t st_mtime = 0;
 
     ods_log_assert(zlfile);
@@ -104,24 +121,26 @@ zonelist_read(const char* zlfile, time_t last_modified)
     if (st_mtime <= last_modified) {
         ods_log_debug("[%s] zone list file %s is unchanged",
             zl_str, zlfile);
-        return NULL;
+        return ODS_STATUS_UNCHANGED;
     }
+
     /* does the file have no parse errors? */
-    if (parse_file_check(zlfile, rngfile) != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to parse file %s", zl_str,
-            zlfile);
-        return NULL;
+    status = parse_file_check(zlfile, rngfile);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to parse file %s: %s", zl_str,
+            zlfile, ods_status2str(status));
+        return status;
     }
+
     /* ok, parse it! */
-    zlist = parse_zonelist_zones(zlfile);
-    if (zlist) {
+    status = parse_zonelist_zones((struct zonelist_struct*) zl, zlfile);
+    if (status == ODS_STATUS_OK) {
         zlist->last_modified = st_mtime;
     } else {
         ods_log_error("[%s] unable to read zone list file %s",
             zl_str, zlfile);
-        return NULL;
     }
-    return zlist;
+    return status;
 }
 
 
@@ -188,10 +207,11 @@ zonelist_unlock(zonelist_type* zonelist)
 static ldns_rbnode_t*
 zone2node(zone_type* zone)
 {
-    ldns_rbnode_t* node = (ldns_rbnode_t*) se_malloc(sizeof(ldns_rbnode_t));
+    ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
     if (!node) {
         return NULL;
-    }    node->key = zone;
+    }
+    node->key = zone;
     node->data = zone;
     return node;
 }
@@ -291,8 +311,8 @@ zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
     if (ldns_rbtree_insert(zlist->zones, new_node) == NULL) {
         ods_log_error("[%s] unable to add zone %s: rbtree insert failed",
             zl_str, zone->name);
+        free((void*) new_node);
         zone_cleanup(zone);
-        se_free((void*) new_node);
         return NULL;
     }
     zone->just_added = 1;
@@ -328,8 +348,7 @@ zonelist_del_zone(zonelist_type* zlist, zone_type* zone)
             zone->name);
         return zone;
     }
-
-    se_free((void*) old_node);
+    free((void*) old_node);
     zone_cleanup(zone);
     return NULL;
 }
@@ -475,7 +494,45 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
         se_rbnode_free(zl2->zones->root);
         ldns_rbtree_free(zl2->zones);
     }
-    se_free((void*) zl2);
+    free((void*) zl2);
+    return;
+}
+
+
+/**
+ * Internal zone cleanup function.
+ *
+ */
+static void
+zone_delfunc(ldns_rbnode_t* elem)
+{
+    zone_type* zone;
+
+    if (elem && elem != LDNS_RBTREE_NULL) {
+        zone = (zone_type*) elem->data;
+        zone_delfunc(elem->left);
+        zone_delfunc(elem->right);
+
+        ods_log_debug("[%s] cleanup zone %s", zl_str, zone->name);
+        zone_cleanup(zone);
+        free((void*)elem);
+    }
+    return;
+}
+
+
+/**
+ * Internal node cleanup function.
+ *
+ */
+static void
+node_delfunc(ldns_rbnode_t* elem)
+{
+    if (elem && elem != LDNS_RBTREE_NULL) {
+        node_delfunc(elem->left);
+        node_delfunc(elem->right);
+        free((void*)elem);
+    }
     return;
 }
 
@@ -485,23 +542,31 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
  *
  */
 void
-zonelist_cleanup(zonelist_type* zonelist)
+zonelist_cleanup(zonelist_type* zl)
 {
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    zone_type* zone = NULL;
-
-    if (zonelist) {
-        if (zonelist->zones) {
-            node = ldns_rbtree_first(zonelist->zones);
-            while (node != LDNS_RBTREE_NULL) {
-                zone = (zone_type*) node->key;
-                zone_cleanup(zone);
-                node = ldns_rbtree_next(node);
-            }
-            se_rbnode_free(zonelist->zones->root);
-            ldns_rbtree_free(zonelist->zones);
-            zonelist->zones = NULL;
-        }
-        se_free((void*) zonelist);
+    if (zl && zl->zones) {
+        ods_log_debug("[%s] cleanup zonelist", zl_str);
+        zone_delfunc(zl->zones->root);
+        ldns_rbtree_free(zl->zones);
+        zl->zones = NULL;
+        lock_basic_destroy(&zl->zl_lock);
     }
+    return;
+}
+
+
+/**
+ * Free zonelist.
+ *
+ */
+void
+zonelist_free(zonelist_type* zl)
+{
+    if (zl && zl->zones) {
+        node_delfunc(zl->zones->root);
+        ldns_rbtree_free(zl->zones);
+        zl->zones = NULL;
+        lock_basic_destroy(&zl->zl_lock);
+    }
+    return;
 }
