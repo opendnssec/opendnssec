@@ -35,12 +35,18 @@
 #define SIGNER_ZONEDATA_H
 
 #include "config.h"
+#include "adapter/adapter.h"
+#include "daemon/worker.h"
+#include "shared/allocator.h"
+#include "shared/status.h"
 #include "signer/domain.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
 #include "signer/nsec3params.h"
 
 #include <ldns/ldns.h>
+#include <stdio.h>
+
 
 /**
  * Zone data.
@@ -102,6 +108,17 @@ domain_type* zonedata_add_domain(zonedata_type* zd, domain_type* domain);
 domain_type* zonedata_del_domain(zonedata_type* zd, domain_type* domain);
 
 /**
+ * Examine updates to zone data.
+ * \param[in] zd zone data
+ * \param[in] apex apex domain name
+ * \param[in] mode adapter mode
+ * \return ods_status status
+ *
+ */
+ods_status zonedata_examine(zonedata_type* zd, ldns_rdf* apex, 
+    adapter_mode mode);
+
+/**
  * Add empty non-terminals to zone data.
  * \param[in] zd zone data
  * \param[in] apex zone apex
@@ -145,16 +162,6 @@ ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
 int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     stats_type* stats);
 
-/**
- * Examine zone data.
- * \param[in] zd zone data
- * \param[in] apex apex domain name
- * \param[in] is_file if the inbound adapter is a zone file
- *                    (if so, additional checking is required)
- * \return int 0 if no error examined, 1 otherwise
- *
- */
-int zonedata_examine(zonedata_type* zd, ldns_rdf* apex, int is_file);
 
 /**
  * Update zone data with pending changes.
