@@ -34,7 +34,7 @@
 #include "adapter/adapter.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/duration.h"
+#include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/hsm.h"
 #include "shared/locks.h"
@@ -42,16 +42,12 @@
 #include "shared/status.h"
 #include "shared/util.h"
 #include "signer/backup.h"
-#include "signer/keys.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
 #include "signer/zone.h"
 #include "signer/zonedata.h"
-#include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
-#include <libhsm.h>
-#include <libhsmdns.h>
 
 static const char* zone_str = "zone";
 
@@ -63,32 +59,157 @@ static const char* zone_str = "zone";
 zone_type*
 zone_create(const char* name, ldns_rr_class klass)
 {
-    zone_type* zone = (zone_type*) se_calloc(1, sizeof(zone_type));
-    ods_log_assert(name);
-    ods_log_debug("[%s] create zone %s", zone_str, name);
-    zone->name = se_strdup(name);
+    allocator_type* allocator = NULL;
+    zone_type* zone = NULL;
+
+    if (!name || !klass) {
+        ods_log_error("[%s] unable to create zone: no name or class",
+            zone_str);
+        return NULL;
+    }
+
+    allocator = allocator_create(malloc, free);
+    if (!allocator) {
+        ods_log_error("[%s] unable to create zone %s: create allocator "
+            "failed", zone_str, name);
+        return NULL;
+    }
+    ods_log_assert(allocator);
+
+    zone = (zone_type*) allocator_alloc(allocator, sizeof(zone_type));
+    if (!zone) {
+        ods_log_error("[%s] unable to create zone %s: allocator failed",
+            zone_str, name);
+        allocator_cleanup(allocator);
+        return NULL;
+    }
+    ods_log_assert(zone);
+
+    zone->allocator = allocator;
+    zone->name = allocator_strdup(allocator, name);
+    zone->klass = klass;
+
     zone->dname = ldns_dname_new_frm_str(name);
     ldns_dname2canonical(zone->dname);
-    zone->klass = klass;
     zone->notify_ns = NULL;
     zone->policy_name = NULL;
     zone->signconf_filename = NULL;
-    zone->signconf = NULL;
     zone->nsec3params = NULL;
     zone->inbound_adapter = NULL;
     zone->outbound_adapter = NULL;
-    zone->task = NULL;
-    zone->backoff = 0;
+    zone->nsec3params = NULL;
+
     zone->just_added = 0;
     zone->just_updated = 0;
     zone->tobe_removed = 0;
-    zone->in_progress = 0;
     zone->processed = 0;
     zone->fetch = 0;
+
     zone->zonedata = zonedata_create();
+    if (!zone->zonedata) {
+        ods_log_error("[%s] unable to create zone %s: create zonedata "
+            "failed", zone_str, name);
+        allocator_deallocate(allocator);
+        allocator_cleanup(allocator);
+    }
+
+    zone->signconf = signconf_create();
+    if (!zone->signconf) {
+        ods_log_error("[%s] unable to create zone %s: create signconf "
+            "failed", zone_str, name);
+        allocator_deallocate(allocator);
+        allocator_cleanup(allocator);
+        return NULL;
+    }
+
     zone->stats = stats_create();
+    zone->task = NULL;
     lock_basic_init(&zone->zone_lock);
     return zone;
+}
+
+
+/**
+ * Load signer configuration for zone.
+ *
+ */
+ods_status
+zone_load_signconf(zone_type* zone, task_id* tbs)
+{
+    ods_status status = ODS_STATUS_OK;
+    signconf_type* signconf = NULL;
+    char* datestamp = NULL;
+    uint32_t ustamp = 0;
+    task_id denial_what;
+    task_id keys_what;
+    task_id what;
+
+    if (!zone) {
+        ods_log_error("[%s] unable to load signconf: no zone", zone_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone);
+    if (!zone->signconf_filename) {
+        ods_log_warning("[%s] zone %s has no signconf filename, treat as "
+            "insecure?", zone_str, zone->name);
+        return ODS_STATUS_INSECURE;
+    }
+    ods_log_assert(zone->signconf_filename);
+
+    status = signconf_update(&signconf, zone->signconf_filename,
+        zone->signconf->last_modified);
+    if (status == ODS_STATUS_OK) {
+        if (!signconf) {
+            /* this is unexpected */
+            ods_log_error("[%s] unable to load signconf: zone %s signconf "
+                "%s: storage empty", zone_str, zone->name,
+                zone->signconf_filename);
+            return ODS_STATUS_ASSERT_ERR;
+        }
+        ustamp = time_datestamp(signconf->last_modified, "%Y-%m-%d %T",
+            &datestamp);
+        ods_log_debug("[%s] zone %s signconf file %s is modified since %s",
+            zone_str, zone->name, zone->signconf_filename,
+            datestamp?datestamp:"Unknown");
+        free((void*)datestamp);
+
+        /* do stuff */
+        denial_what = signconf_compare_denial(zone->signconf, signconf);
+        if (denial_what == TASK_NSECIFY) {
+            /* Denial of Existence Rollover */
+            nsec3params_cleanup(zone->nsec3params);
+            zone->nsec3params = NULL;
+        }
+        keys_what = signconf_compare_keys(zone->signconf, signconf);
+        if (keys_what != TASK_NONE) {
+            what = keys_what;
+        } else {
+            what = denial_what;
+        }
+        if (what == TASK_NONE) {
+            /* no major changes, continue signing */
+            what = TASK_SIGN;
+        }
+        *tbs = what;
+
+        ods_log_debug("[%s] tbs for zone %s set to: %s", zone_str,
+            zone->name, task_what2str(*tbs));
+        signconf_cleanup(zone->signconf);
+        zone->signconf = signconf;
+        signconf_log(zone->signconf, zone->name);
+    } else if (status == ODS_STATUS_UNCHANGED) {
+        ustamp = time_datestamp(zone->signconf->last_modified,
+            "%Y-%m-%d %T", &datestamp);
+        ods_log_verbose("[%s] zone %s signconf file %s is unchanged since "
+            "%s", zone_str, zone->name, zone->signconf_filename,
+            datestamp?datestamp:"Unknown");
+        free((void*)datestamp);
+    } else {
+        ods_log_error("[%s] unable to load signconf: zone %s signconf %s: "
+            "%s", zone_str, zone->name, zone->signconf_filename,
+            ods_status2str(status));
+    }
+    return status;
 }
 
 
@@ -103,9 +224,9 @@ zone_update_zonelist(zone_type* z1, zone_type* z2)
     ods_log_assert(z2);
 
     if (ods_strcmp(z2->policy_name, z1->policy_name) != 0) {
-        se_free((void*)z1->policy_name);
+        free((void*)z1->policy_name);
         if (z2->policy_name) {
-            z1->policy_name = se_strdup(z2->policy_name);
+            z1->policy_name = strdup(z2->policy_name);
         } else {
             z1->policy_name = NULL;
         }
@@ -113,9 +234,9 @@ zone_update_zonelist(zone_type* z1, zone_type* z2)
     }
 
     if (ods_strcmp(z2->signconf_filename, z1->signconf_filename) != 0) {
-        se_free((void*)z1->signconf_filename);
+        free((void*)z1->signconf_filename);
         if (z2->signconf_filename) {
-            z1->signconf_filename = se_strdup(z2->signconf_filename);
+            z1->signconf_filename = strdup(z2->signconf_filename);
         } else {
             z1->signconf_filename = NULL;
         }
@@ -150,170 +271,6 @@ zone_update_zonelist(zone_type* z1, zone_type* z2)
 
     zone_cleanup(z2);
     return;
-}
-
-
-/**
- * Read signer configuration.
- *
- */
-int
-zone_update_signconf(zone_type* zone, struct schedule_struct* tl, char* buf)
-{
-    task_type* task = NULL;
-    signconf_type* signconf = NULL;
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-    time_t last_modified = 0;
-    time_t now = 0;
-    int update = 0;
-    ods_status status = ODS_STATUS_OK;
-
-    ods_log_assert(zone);
-    ods_log_debug("[%s] load zone %s signconf %s", zone_str,
-        zone->name?zone->name:"(null)",
-        zone->signconf_filename?zone->signconf_filename:"(null)");
-
-    if (zone->signconf) {
-        last_modified = zone->signconf->last_modified;
-    }
-
-    signconf = signconf_read(zone->signconf_filename, last_modified);
-    if (!signconf) {
-        if (!zone->policy_name) {
-            ods_log_warning("[%s] zone %s has no policy", zone_str,
-                zone->name?zone->name:"(null)");
-        } else {
-            signconf = signconf_read(zone->signconf_filename, 0);
-            if (!signconf) {
-                ods_log_warning("[%s] zone %s has policy %s configured, "
-                    "but has no (valid) signconf file", zone_str,
-                    zone->name?zone->name:"(null)", zone->policy_name);
-                if (buf) {
-                    (void)snprintf(buf, ODS_SE_MAXLINE,
-                        "Zone %s config has errors.\n",
-                             zone->name?zone->name:"(null)");
-                }
-                return -1;
-            } else {
-                ods_log_debug("[%s] zone %s has not changed", zone_str,
-                    zone->name?zone->name:"(null)");
-                signconf_cleanup(signconf);
-            }
-        }
-        if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                "Zone %s config has not changed.\n",
-                zone->name?zone->name:"(null)");
-        }
-        return 0;
-    } else if (signconf_check(signconf) != 0) {
-        ods_log_warning("[%s] zone %s signconf has errors", zone_str,
-            zone->name?zone->name:"(null)");
-        if (buf) {
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                "Zone %s config has errors.\n", zone->name?zone->name:"(null)");
-        }
-        return -1;
-    } else if (!zone->signconf) {
-        zone->signconf = signconf;
-        /* we don't check if foo in <Zone name="foo"> matches zone->name */
-        zone->signconf->name = zone->name;
-        ods_log_debug("[%s] zone %s now has signconf", zone_str,
-            zone->name?zone->name:"(null)");
-        signconf_backup(zone->signconf);
-
-        /* zone state? */
-        /* create task for new zone */
-        now = time_now();
-        zone->task = task_create(TASK_READ, now, zone->name, zone);
-        status = schedule_task((schedule_type*) tl, zone->task, 0);
-        if (status != ODS_STATUS_OK) {
-            if (buf) {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s now has config, "
-                    "but could not be scheduled.\n",
-                    zone->name?zone->name:"(null)");
-            }
-        } else {
-            if (buf) {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                    "Zone %s now has config.\n",
-                    zone->name?zone->name:"(null)");
-            }
-        }
-        return 1;
-    } else {
-        /* update task for new zone */
-        task = unschedule_task((schedule_type*) tl, zone->task);
-        if (!task) {
-            ods_log_error("cannot update zone %s: delete old task failed", zone_str,
-                zone->name);
-            if (buf) {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Update zone %s failed.\n",
-                    zone->name?zone->name:"(null)");
-            }
-            return -1;
-        }
-
-        zone->task->what = signconf_compare(zone->signconf, signconf, &update);
-        zone->task->when = time_now();
-        if (update) {
-            /* destroy NSEC3 storage */
-            ods_log_debug("[%s] destroy old NSEC(3) records for zone %s",
-                zone_str, zone->name);
-            if (zone->zonedata && zone->zonedata->nsec3_domains) {
-                zonedata_cleanup_domains(zone->zonedata->nsec3_domains);
-                zone->zonedata->nsec3_domains = NULL;
-                node = ldns_rbtree_first(zone->zonedata->domains);
-                while (node && node != LDNS_RBTREE_NULL) {
-                    domain = (domain_type*) node->data;
-                    domain->nsec3 = NULL;
-                    node = ldns_rbtree_next(node);
-                }
-            }
-            if (zone->nsec3params) {
-                nsec3params_cleanup(zone->nsec3params);
-                zone->nsec3params = NULL;
-            }
-            /* destroy NSEC storage */
-            if (zone->zonedata && zone->zonedata->domains) {
-                node = ldns_rbtree_first(zone->zonedata->domains);
-                while (node && node != LDNS_RBTREE_NULL) {
-                    domain = (domain_type*) node->data;
-                    if (domain->nsec_rrset) {
-                        rrset_cleanup(domain->nsec_rrset);
-                        domain->nsec_rrset = NULL;
-                    }
-                    node = ldns_rbtree_next(node);
-                }
-            }
-        }
-
-        status = schedule_task((schedule_type*) tl, zone->task, 0);
-        if (status != ODS_STATUS_OK) {
-            if (buf) {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                    "Zone %s config updated, but could not be schedulted.\n",
-                    zone->name?zone->name:"(null)");
-            }
-        } else {
-            if (buf) {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                    "Zone %s config updated.\n", zone->name?zone->name:
-                    "(null)");
-            }
-        }
-
-        signconf_cleanup(zone->signconf);
-        zone->signconf = signconf;
-        zone->signconf->name = zone->name;
-        ods_log_debug("[%s] zone %s signconf updated", zone_str,
-                zone->name?zone->name:"(null)");
-            signconf_backup(zone->signconf);
-        return 1;
-    }
-    /* not reached */
-    return 0;
 }
 
 
@@ -543,7 +500,7 @@ zone_add_dnskeys(zone_type* zone)
         ods_log_warning("[%s] cannot backup DNSKEY / NSEC3PARAMS records: "
             "cannot open file %s for writing", zone_str, filename?filename:"(null)");
     }
-    se_free((void*)filename);
+    free((void*)filename);
 
     return error;
 }
@@ -689,7 +646,7 @@ zone_nsecify(zone_type* zone)
             ods_log_warning("[%s] cannot backup NSEC(3) records: cannot open file "
             "%s for writing", zone_str, filename?filename:"(null)");
         }
-        se_free((void*)filename);
+        free((void*)filename);
     }
     return error;
 }
@@ -735,7 +692,7 @@ zone_sign(zone_type* zone)
             ods_log_warning("[%s] cannot backup RRSIG records: cannot open file "
                 "%s for writing", zone_str, filename?filename:"(null)");
         }
-        se_free((void*)filename);
+        free((void*)filename);
     }
     return error;
 }
@@ -775,7 +732,7 @@ int zone_backup_state(zone_type* zone)
         "%s for writing", zone_str, filename?filename:"(null)");
         return 1;
     }
-    se_free((void*)filename);
+    free((void*)filename);
 
     return error;
 }
@@ -840,13 +797,13 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                 }
                 rr = NULL;
             } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
-                se_free((void*) token);
+                free((void*) token);
                 token = NULL;
                 break;
             } else {
                 corrupted = 1;
             }
-            se_free((void*) token);
+            free((void*) token);
             token = NULL;
         } else {
             corrupted = 1;
@@ -899,13 +856,13 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
                     }
                 }
             } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
-                se_free((void*) token);
+                free((void*) token);
                 token = NULL;
                 break;
             } else {
                 corrupted = 1;
             }
-            se_free((void*) token);
+            free((void*) token);
             token = NULL;
         } else {
             corrupted = 1;
@@ -913,7 +870,7 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
 
         /* reset */
         if (locator) {
-            se_free((void*) locator);
+            free((void*) locator);
             locator = NULL;
         }
         rr = NULL;
@@ -945,7 +902,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
 
     filename = ods_build_path(zone->name, ".state", 0);
     fd = ods_fopen(filename, NULL, "r");
-    se_free((void*)filename);
+    free((void*)filename);
     if (fd) {
         if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
             !backup_read_check_str(fd, ";name:") ||
@@ -982,7 +939,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
     /* let's see if we can recover the signconf now */
     filename = ods_build_path(zone->name, ".sc", 0);
     zone->signconf = signconf_recover_from_backup((const char*) filename);
-    se_free((void*)filename);
+    free((void*)filename);
     if (!zone->signconf) {
         /* no, stop recovering process */
         return;
@@ -993,7 +950,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
     /* recover denial of existence */
     filename = ods_build_path(zone->name, ".denial", 0);
     fd = ods_fopen(filename, NULL, "r");
-    se_free((void*)filename);
+    free((void*)filename);
     if (fd) {
         error = zonedata_recover_from_backup(zone->zonedata, fd);
         ods_fclose(fd);
@@ -1018,7 +975,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
     /* zone data */
     filename = ods_build_path(zone->name, ".unsorted", 0);
     error = adfile_read(zone, filename, 1);
-    se_free((void*)filename);
+    free((void*)filename);
     if (error) {
         ods_log_error("[%s] unable to recover unsorted zone from file "
         "%s.unsorted: parse error", zone_str, zone->name);
@@ -1033,7 +990,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
     /* time for the keys and nsec3params file */
     filename = ods_build_path(zone->name, ".dnskeys", 0);
     fd = ods_fopen(filename, NULL, "r");
-    se_free((void*)filename);
+    free((void*)filename);
     if (fd) {
         error = zone_recover_dnskeys_from_backup(zone, fd);
         ods_fclose(fd);
@@ -1053,7 +1010,7 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
     /* retrieve signatures */
     filename = ods_build_path(zone->name, ".rrsigs", 0);
     fd = ods_fopen(filename, NULL, "r");
-    se_free((void*)filename);
+    free((void*)filename);
     if (fd) {
         error = zone_recover_rrsigs_from_backup(zone, fd);
         ods_fclose(fd);
@@ -1070,21 +1027,22 @@ abort_recover:
 
     /* task */
     filename = ods_build_path(zone->name, ".task", 0);
-    zone->task = task_recover_from_backup((const char*) filename, zone);
-    se_free((void*)filename);
+    task = task_recover_from_backup((const char*) filename, zone);
+    free((void*)filename);
 
-    if (!zone->task) {
+    if (!task) {
         now = time_now();
-        zone->task = task_create(TASK_READ, now, zone->name, zone);
+        task = task_create(TASK_READ, now, zone->name, zone);
     }
-    if (!zone->task) {
+    if (!task) {
         ods_log_error("[%s] failed to create task for zone %s", zone_str, zone->name);
     } else {
         if (error) {
-            zone->task->what = TASK_READ;
+            task->what = TASK_READ;
         }
+        zone->task = task;
 
-        status = schedule_task((schedule_type*) tl, zone->task, 1);
+        status = schedule_task((schedule_type*) tl, (task_type*) zone->task, 1);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] failed to schedule task for zone %s", zone_str, zone->name);
         }
@@ -1098,61 +1056,107 @@ abort_recover:
 
 
 /**
+ * Merge zones.
+ *
+ */
+void
+zone_merge(zone_type* z1, zone_type* z2)
+{
+    const char* str;
+    adapter_type* adtmp = NULL;
+
+    if (!z1 || !z2) {
+        return;
+    }
+
+    /* policy name */
+    if (ods_strcmp(z2->policy_name, z1->policy_name) != 0) {
+        if (z2->policy_name) {
+            str = strdup(z2->policy_name);
+            if (!str) {
+                ods_log_error("[%s] failed to merge policy %s name to zone %s",
+                    zone_str, z2->policy_name, z1->name);
+            } else {
+                free((void*)z1->policy_name);
+                z1->policy_name = str;
+                z1->just_updated = 1;
+            }
+        } else {
+            free((void*)z1->policy_name);
+            z1->policy_name = NULL;
+            z1->just_updated = 1;
+        }
+    }
+
+    /* signconf filename */
+    if (ods_strcmp(z2->signconf_filename, z1->signconf_filename) != 0) {
+        if (z2->signconf_filename) {
+            str = strdup(z2->signconf_filename);
+            if (!str) {
+                ods_log_error("[%s] failed to merge signconf filename %s to "
+                    "zone %s", zone_str, z2->policy_name, z1->name);
+            } else {
+                free((void*)z1->signconf_filename);
+                z1->signconf_filename = str;
+                z1->just_updated = 1;
+            }
+        } else {
+            free((void*)z1->signconf_filename);
+            z1->signconf_filename = NULL;
+            z1->just_updated = 1;
+        }
+    }
+
+    /* adapters */
+    if (adapter_compare(z2->inbound_adapter, z1->inbound_adapter) != 0) {
+        adtmp = z2->inbound_adapter;
+        z2->inbound_adapter = z1->inbound_adapter;
+        z1->inbound_adapter = adtmp;
+        adtmp = NULL;
+    }
+    if (adapter_compare(z2->outbound_adapter, z1->outbound_adapter) != 0) {
+        adtmp = z2->outbound_adapter;
+        z2->outbound_adapter = z1->outbound_adapter;
+        z1->outbound_adapter = adtmp;
+        adtmp = NULL;
+    }
+    return;
+}
+
+
+/**
  * Clean up a zone.
  *
  */
 void
 zone_cleanup(zone_type* zone)
 {
-    if (zone) {
-        if (zone->dname) {
-            ldns_rdf_deep_free(zone->dname);
-            zone->dname = NULL;
-        }
-        if (zone->notify_ns) {
-            se_free((void*)zone->notify_ns);
-            zone->notify_ns = NULL;
-        }
-        if (zone->inbound_adapter) {
-            adapter_cleanup(zone->inbound_adapter);
-            zone->inbound_adapter = NULL;
-        }
-        if (zone->outbound_adapter) {
-            adapter_cleanup(zone->outbound_adapter);
-            zone->outbound_adapter = NULL;
-        }
-        if (zone->signconf) {
-            signconf_cleanup(zone->signconf);
-            zone->signconf = NULL;
-        }
-        if (zone->stats) {
-            stats_cleanup(zone->stats);
-            zone->stats = NULL;
-        }
-        if (zone->zonedata) {
-            zonedata_cleanup(zone->zonedata);
-            zone->zonedata = NULL;
-        }
-        if (zone->nsec3params) {
-            nsec3params_cleanup(zone->nsec3params);
-            zone->nsec3params = NULL;
-        }
-        if (zone->policy_name) {
-            se_free((void*) zone->policy_name);
-            zone->policy_name = NULL;
-        }
-        if (zone->signconf_filename) {
-            se_free((void*) zone->signconf_filename);
-            zone->signconf_filename = NULL;
-        }
-        if (zone->name) {
-            se_free((void*) zone->name);
-            zone->name = NULL;
-        }
+    allocator_type* allocator;
+    lock_basic_type zone_lock;
 
-        lock_basic_destroy(&zone->zone_lock);
-        se_free((void*) zone);
+    if (!zone) {
+        return;
     }
+    allocator = zone->allocator;
+    zone_lock = zone->zone_lock;
+
+    if (zone->stats) {
+        stats_cleanup(zone->stats);
+        zone->stats = NULL;
+    }
+
+    ldns_rdf_deep_free(zone->dname);
+    free((void*)zone->notify_ns);
+    free((void*)zone->policy_name);
+    free((void*)zone->signconf_filename);
+    adapter_cleanup(zone->inbound_adapter);
+    adapter_cleanup(zone->outbound_adapter);
+    zonedata_cleanup(zone->zonedata);
+    signconf_cleanup(zone->signconf);
+    nsec3params_cleanup(zone->nsec3params);
+    allocator_deallocate(allocator);
+    allocator_cleanup(allocator);
+    lock_basic_destroy(&zone_lock);
     return;
 }
 

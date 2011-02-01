@@ -36,7 +36,10 @@
 
 #include "config.h"
 #include "adapter/adapter.h"
+#include "scheduler/task.h"
+#include "shared/allocator.h"
 #include "shared/locks.h"
+#include "shared/status.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
@@ -44,7 +47,6 @@
 
 #include <ldns/ldns.h>
 
-struct task_struct;
 struct schedule_struct;
 
 /**
@@ -53,33 +55,36 @@ struct schedule_struct;
  */
 typedef struct zone_struct zone_type;
 struct zone_struct {
-    const char* name; /* string format zone name */
+    allocator_type* allocator; /* memory allocator */
     ldns_rdf* dname; /* wire format zone name */
     ldns_rr_class klass; /* class */
-    nsec3params_type* nsec3params; /* NSEC3 parameters */
-    zonedata_type* zonedata; /* zone data */
 
     /* from conf.xml */
     const char* notify_ns; /* master name server reload command */
     int fetch; /* zone fetcher enabled */
 
-    /* from signconf.xml */
-    signconf_type* signconf; /* signer configuration values */
-
     /* from zonelist.xml */
+    const char* name; /* string format zone name */
     const char* policy_name; /* policy identifier */
-    const char* signconf_filename; /* signer configuration filename */
-    adapter_type* inbound_adapter; /* inbound adapter */
-    adapter_type* outbound_adapter; /* outbound adapter */
+    const char* signconf_filename; /* signconf filename */
     int just_added;
     int just_updated;
     int tobe_removed;
     int processed;
 
+    /* adapters */
+    adapter_type* inbound_adapter; /* inbound adapter */
+    adapter_type* outbound_adapter; /* outbound adapter */
+
+    /* from signconf.xml */
+    signconf_type* signconf; /* signer configuration values */
+    nsec3params_type* nsec3params; /* NSEC3 parameters */
+
+    /* zone data */
+    zonedata_type* zonedata;
+
     /* worker variables */
-    struct task_struct* task; /* current scheduled task */
-    time_t backoff; /* backoff value if there is something failing */
-    int in_progress; /* in progress (check with active worker?) */
+    void* task; /* next assigned task */
 
     /* statistics */
     stats_type* stats;
@@ -103,6 +108,15 @@ zone_type* zone_create(const char* name, ldns_rr_class klass);
  *
  */
 void zone_update_zonelist(zone_type* z1, zone_type* z2);
+
+/**
+ * Load signer configuration for zone.
+ * \param[in] zone zone
+ * \param[out] tbs task to be scheduled
+ * \return ods_status status
+ *
+ */
+ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
 
 /**
  * Update signer configuration file.
@@ -183,8 +197,16 @@ int zone_backup_state(zone_type* zone);
 void zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl);
 
 /**
- * Clean up a zone.
- * \param[in] zone zone to cleanup
+ * Merge zones.
+ * \param[in] z1 zone
+ * \param[in] z2 zone with new values
+ *
+ */
+void zone_merge(zone_type* z1, zone_type* z2);
+
+/**
+ * Clean up zone.
+ * \param[in] zone zone
  *
  */
 void zone_cleanup(zone_type* zone);
