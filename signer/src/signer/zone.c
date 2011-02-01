@@ -64,7 +64,7 @@ zone_create(const char* name, ldns_rr_class klass)
 {
     zone_type* zone = (zone_type*) se_calloc(1, sizeof(zone_type));
     ods_log_assert(name);
-    ods_log_debug("[%z] create zone %s", zone_str, name);
+    ods_log_debug("[%s] create zone %s", zone_str, name);
     zone->name = se_strdup(name);
     zone->dname = ldns_dname_new_frm_str(name);
     ldns_dname2canonical(zone->dname);
