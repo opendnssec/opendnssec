@@ -102,29 +102,11 @@ void engine_wakeup_workers(engine_type* engine);
 void set_notify_ns(zone_type* zone, const char* cmd);
 
 /**
- * Update zone list.
- * \param[in] the signer engine
- * \param[in] buf response message
- * \return int 0 if zonelist changed, 1 otherwise
- *
- */
-int engine_update_zonelist(engine_type* engine, char* buf);
-
-/**
  * Update zones.
- * \param[in] engine the signer engine
+ * \param[in] engine engine
  *
  */
 void engine_update_zones(engine_type* engine);
-
-/**
- * Search for zone in workers
- * \param[in] engine the signer engine
- * \paran[in] zone_name search for this zone
- * \return int 1 if zone was not found
- *
- */
-int engine_search_workers(engine_type* engine, const char* zone_name);
 
 /**
  * Clean up engine.
