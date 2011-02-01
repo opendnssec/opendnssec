@@ -288,12 +288,6 @@ engine_start_workers(engine_type* engine)
     }
     return;
 }
-
-
-/**
- * Stop workers.
- *
- */
 static void
 engine_stop_workers(engine_type* engine)
 {
@@ -486,7 +480,7 @@ stop_zonefetcher(engine_type* engine)
  * Set up engine.
  *
  */
-static int
+static ods_status
 engine_setup(engine_type* engine)
 {
     struct sigaction action;
@@ -503,13 +497,13 @@ engine_setup(engine_type* engine)
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
             engine_str, engine->config->clisock_filename);
-        return 1;
+        return ODS_STATUS_CMDHANDLER_ERR;
     }
 
     /* fork of fetcher */
     if (start_zonefetcher(engine) != 0) {
         ods_log_error("[%s] cannot start zonefetcher", engine_str);
-        return 1;
+        return ODS_STATUS_ERR;
     }
 
     /* privdrop */
@@ -529,23 +523,23 @@ engine_setup(engine_type* engine)
     }
     if (engine->config->working_dir &&
         chdir(engine->config->working_dir) != 0) {
-        ods_log_error("[%s] setup failed: chdir to %s failed: %s", engine_str,
+        ods_log_error("[%s] chdir to %s failed: %s", engine_str,
             engine->config->working_dir, strerror(errno));
-        return 1;
+        return ODS_STATUS_CHDIR_ERR;
     }
 
     if (engine_privdrop(engine) != 0) {
-        ods_log_error("[%s] setup failed: unable to drop privileges", engine_str);
-        return 1;
+        ods_log_error("[%s] unable to drop privileges", engine_str);
+        return ODS_STATUS_PRIVDROP_ERR;
     }
 
     /* daemonize */
     if (engine->daemonize) {
         switch ((engine->pid = fork())) {
             case -1: /* error */
-                ods_log_error("[%s] setup failed: unable to fork daemon: %s",
+                ods_log_error("[%s] unable to fork daemon: %s",
                     engine_str, strerror(errno));
-                return 1;
+                return ODS_STATUS_FORK_ERR;
             case 0: /* child */
                 break;
             default: /* parent */
@@ -557,22 +551,14 @@ engine_setup(engine_type* engine)
                 exit(0);
         }
         if (setsid() == -1) {
-            ods_log_error("[%s] setup failed: unable to setsid daemon (%s)",
+            ods_log_error("[%s] unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
-            return 1;
+            return ODS_STATUS_SETSID_ERR;
         }
     }
     engine->pid = getpid();
-    /* make common with enforcer */
-    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
-        ods_log_error("[%s] setup failed: unable to write pid file", engine_str);
-        return 1;
-    }
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
-
-    /* start command handler */
-    engine_start_cmdhandler(engine);
 
     /* catch signals */
     signal_set_engine(engine);
@@ -585,15 +571,25 @@ engine_setup(engine_type* engine)
     /* set up hsm */ /* LEAK */
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
     if (result != HSM_OK) {
-        ods_log_error("[%s] setup failed: error initializing libhsm (errno %i)",
+        ods_log_error("[%s] error initializing libhsm (errno %i)",
             engine_str, result);
-        return 1;
+        return ODS_STATUS_HSM_ERR;
+    }
+
+    /* start command handler */
+    engine_start_cmdhandler(engine);
+
+    /* write pidfile */
+    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+        hsm_close();
+        ods_log_error("[%s] unable to write pid file", engine_str);
+        return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
 
     /* set up the work floor */
-    engine_create_workers(engine); /* workers */
+    engine_create_workers(engine);
 
-    return 0;
+    return ODS_STATUS_OK;
 }
 
 
@@ -908,9 +904,15 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 
     /* setup */
     tzset(); /* for portability */
-    if (engine_setup(engine) != 0) {
-        ods_log_error("[%s] setup failed", engine_str);
+    status = engine_setup(engine);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] setup failed: %s", engine_str,
+            ods_status2str(status));
         engine->need_to_exit = 1;
+        if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
+            /* command handler had not yet been started */
+            engine->cmdhandler_done = 1;
+        }
     }
 
     /* run */
