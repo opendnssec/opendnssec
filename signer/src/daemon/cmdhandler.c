@@ -159,13 +159,11 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
     zone_type* zone = NULL;
     task_type* task = NULL;
     int zl_changed = 0;
-    size_t i = 0;
     int ret = 0;
 
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    ods_log_assert(cmdc->engine->config);
     ods_log_assert(cmdc->engine->taskq);
 
     if (ods_strcmp(tbd, "--all") == 0) {
@@ -190,9 +188,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
     }
 
     /* wake up sleeping workers */
-    for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
-        worker_wakeup(cmdc->engine->workers[i]);
-    }
+    engine_wakeup_workers(cmdc->engine);
     return;
 }
 
@@ -209,7 +205,6 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     time_t now = time_now();
     int found = 0, scheduled = 0;
     char buf[ODS_SE_MAXLINE];
-    size_t i = 0;
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(tbd);
@@ -262,9 +257,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         ods_log_info("[%s] all zones scheduled for immediate re-sign", cmdh_str);
 
         /* wake up sleeping workers */
-        for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
-            worker_wakeup(cmdc->engine->workers[i]);
-        }
+        engine_wakeup_workers(cmdc->engine);
     } else if (found && scheduled) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for "
             "immediate re-sign.\n", tbd?tbd:"(null)");
@@ -273,9 +266,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             cmdh_str, tbd?tbd:"(null)");
 
         /* wake up sleeping workers */
-        for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
-            worker_wakeup(cmdc->engine->workers[i]);
-        }
+        engine_wakeup_workers(cmdc->engine);
     } else if (found && !scheduled) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Failed to schedule signing for "
              "zone %s\n", tbd?tbd:"(null)");
@@ -430,11 +421,9 @@ static void
 cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
 {
     char buf[ODS_SE_MAXLINE];
-    size_t i = 0;
 
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    ods_log_assert(cmdc->engine->config);
     ods_log_assert(cmdc->engine->taskq);
 
     lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
@@ -443,10 +432,7 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
     /* [UNLOCK] schedule */
     lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
 
-    /* wake up sleeping workers */
-    for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
-        worker_wakeup(cmdc->engine->workers[i]);
-    }
+    engine_wakeup_workers(cmdc->engine);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
     ods_writen(sockfd, buf, strlen(buf));

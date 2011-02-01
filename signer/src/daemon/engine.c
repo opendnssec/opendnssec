@@ -312,6 +312,26 @@ engine_stop_workers(engine_type* engine)
 
 
 /**
+ * Wake up all workers.
+ *
+ */
+void
+engine_wakeup_workers(engine_type* engine)
+{
+    size_t i = 0;
+
+    ods_log_assert(engine);
+    ods_log_assert(engine->config);
+    ods_log_debug("[%s] wake up workers", engine_str);
+    /* wake up sleepyheads */
+    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        worker_wakeup(engine->workers[i]);
+    }
+    return;
+}
+
+
+/**
  * Search for zone in workers
  *
  */
