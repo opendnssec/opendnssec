@@ -381,11 +381,11 @@ zone_publish_nsec3params(zone_type* zone, FILE* fd)
             (uint8_t) zone->signconf->nsec3_optout,
             (uint16_t) zone->signconf->nsec3_iterations,
             zone->signconf->nsec3_salt);
-        if (!zone->nsec3params) {
-            ods_log_error("[%s] error creating NSEC3 parameters for zone %s",
-                zone_str, zone->name?zone->name:"(null)");
-            return 1;
-        }
+    }
+    if (!zone->nsec3params) {
+        ods_log_error("[%s] error creating NSEC3 parameters for zone %s",
+            zone_str, zone->name?zone->name:"(null)");
+        return 1;
     }
 
     nsec3params_rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
@@ -491,6 +491,7 @@ zone_add_dnskeys(zone_type* zone)
                 zone->name?zone->name:"(null)");
             return error;
         }
+        ods_log_assert(zone->nsec3params);
     }
 
     if (fd) {
@@ -620,6 +621,7 @@ zone_nsecify(zone_type* zone)
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
         error = zonedata_nsecify(zone->zonedata, zone->klass, zone->stats);
     } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
+        ods_log_assert(zone->nsec3params);
         if (zone->signconf->nsec3_optout) {
             ods_log_debug("[%s] OptOut is being used for zone %s", zone_str,
                 zone->name?zone->name:"(null)");

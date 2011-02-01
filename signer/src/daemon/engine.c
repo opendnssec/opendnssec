@@ -331,34 +331,6 @@ engine_wakeup_workers(engine_type* engine)
 
 
 /**
- * Search for zone in workers
- *
- */
-int
-engine_search_workers(engine_type* engine, const char* zone_name)
-{
-    size_t i = 0;
-
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-
-    if (!zone_name) {
-        return 1;
-    }
-
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        if (engine->workers[i]->task &&
-            ods_strcmp(engine->workers[i]->task->who, zone_name) == 0) {
-            /* ba-da bing */
-            return 0;
-        }
-    }
-    /* no potato */
-    return 1;
-}
-
-
-/**
  * Start zonefetcher.
  *
  */
@@ -961,7 +933,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         } else {
             ods_log_info("[%s] signer started", engine_str);
             /* try to recover from backups */
+/* not forn now:
             engine_recover_from_backups(engine);
+*/
         }
 
         /* update zones */

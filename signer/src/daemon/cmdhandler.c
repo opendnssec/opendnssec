@@ -230,7 +230,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             task->when = time_now();
             status = schedule_task(cmdc->engine->taskq, task, 0);
         } else {
-            /* task now queued, being worked on? */
+            /* task not queued, being worked on? */
             ods_log_verbose("[%s] worker busy with zone %s, will update "
                 "signconf as soon as possible", cmdh_str, zone->name);
             task = (task_type*) zone->task;

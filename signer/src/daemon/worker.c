@@ -229,14 +229,11 @@ worker_perform_task(worker_type* worker)
             error = tools_sign(zone);
 
             /* what to do next */
-            if (status != ODS_STATUS_OK) {
+            if (error) {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
                 goto task_perform_continue;
-            } else {
-                task->interrupt = TASK_NONE;
-                task->halted = TASK_NONE;
             }
             what = TASK_AUDIT;
             when = time_now();
@@ -295,6 +292,10 @@ worker_perform_task(worker_type* worker)
     task->backoff = 0;
 
     /* set next task */
+    ods_log_debug("[%s[%i]]: next task settings: interrupt=%s fallthrough=%i",
+        worker2str(worker->type), worker->thread_num,
+        task_what2str(task->interrupt), fallthrough);
+
     if (fallthrough == 0 && task->interrupt != TASK_NONE &&
         task->interrupt != what) {
         ods_log_info("[%s[%i]]: interrupt task %s for zone %s",
@@ -432,14 +433,11 @@ worker_start(worker_type* worker)
 void
 worker_cleanup(worker_type* worker)
 {
-    int num = 0;
-
-    if (worker) {
-         num = worker->thread_num;
-         lock_basic_destroy(&worker->worker_lock);
-         lock_basic_off(&worker->worker_alarm);
-         free((void*)worker);
+    if (!worker) {
+        return;
     }
+    lock_basic_destroy(&worker->worker_lock);
+    lock_basic_off(&worker->worker_alarm);
     return;
 }
 
@@ -453,9 +451,11 @@ worker_sleep(worker_type* worker, time_t timeout)
 {
     ods_log_assert(worker);
     lock_basic_lock(&worker->worker_lock);
+    /* [LOCK] worker */
     worker->sleeping = 1;
     lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
         timeout);
+    /* [UNLOCK] worker */
     lock_basic_unlock(&worker->worker_lock);
     return;
 }
