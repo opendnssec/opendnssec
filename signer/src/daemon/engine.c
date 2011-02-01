@@ -45,6 +45,7 @@
 #include "shared/log.h"
 #include "shared/privdrop.h"
 #include "shared/status.h"
+#include "shared/util.h"
 #include "signer/zone.h"
 #include "signer/zonelist.h"
 #include "tools/zone_fetcher.h"
@@ -241,50 +242,6 @@ engine_privdrop(engine_type* engine)
     engine->gid = gid;
     privclose(engine->config->username, engine->config->group);
     return status;
-}
-
-
-/**
- * Write process id to file.
- *
- */
-static int
-write_pidfile(const char* pidfile, pid_t pid)
-{
-    FILE* fd;
-    char pidbuf[32];
-    size_t result = 0, size = 0;
-
-    ods_log_assert(pidfile);
-    ods_log_assert(pid);
-    ods_log_debug("writing pid %lu to pidfile %s", (unsigned long) pid,
-        pidfile?pidfile:"(null)");
-    snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
-    fd = ods_fopen(pidfile, NULL, "w");
-    if (!fd) {
-        return -1;
-    }
-    size = strlen(pidbuf);
-    if (size == 0) {
-        result = 1;
-    } else {
-        result = fwrite((const void*) pidbuf, 1, size, fd);
-    }
-    if (result == 0) {
-        ods_log_error("write to pidfile %s failed: %s", pidfile?pidfile:"(null)",
-            strerror(errno));
-    } else if (result < size) {
-        ods_log_error("short write to pidfile %s: disk full?",
-            pidfile?pidfile:"(null)");
-        result = 0;
-    } else {
-        result = 1;
-    }
-    ods_fclose(fd);
-    if (!result) {
-        return -1;
-    }
-    return 0;
 }
 
 
@@ -619,7 +576,7 @@ engine_setup(engine_type* engine)
     }
     engine->pid = getpid();
     /* make common with enforcer */
-    if (write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         ods_log_error("[%s] setup failed: unable to write pid file", engine_str);
         return 1;
     }
@@ -733,14 +690,15 @@ engine_run(engine_type* engine, int single_run)
 int
 engine_update_zonelist(engine_type* engine, char* buf)
 {
-    zonelist_type* new_zlist = NULL;
     ods_status status = ODS_STATUS_OK;
+    zonelist_type* new_zlist = NULL;
 
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_assert(engine->zonelist);
     ods_log_debug("update zone list");
 
+    new_zlist = zonelist_create(engine->allocator);
     status = zonelist_read(new_zlist, engine->config->zonelist_filename,
         engine->zonelist->last_modified);
     if (status != ODS_STATUS_OK) {

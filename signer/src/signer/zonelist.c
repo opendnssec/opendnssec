@@ -108,7 +108,6 @@ zonelist_create(allocator_type* allocator)
 ods_status
 zonelist_read(zonelist_type* zl, const char* zlfile, time_t last_modified)
 {
-    zonelist_type* zlist = NULL;
     const char* rngfile = ODS_SE_RNGDIR "/zonelist.rng";
     ods_status status = ODS_STATUS_OK;
     time_t st_mtime = 0;
@@ -135,7 +134,7 @@ zonelist_read(zonelist_type* zl, const char* zlfile, time_t last_modified)
     /* ok, parse it! */
     status = parse_zonelist_zones((struct zonelist_struct*) zl, zlfile);
     if (status == ODS_STATUS_OK) {
-        zlist->last_modified = st_mtime;
+        zl->last_modified = st_mtime;
     } else {
         ods_log_error("[%s] unable to read zone list file %s",
             zl_str, zlfile);

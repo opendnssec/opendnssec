@@ -61,7 +61,8 @@ parse_zonelist_element(xmlXPathContextPtr xpathCtx, xmlChar* expr)
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
-        ods_log_error("[%s] unable to evaluate xpath expression %s", parser_str, expr);
+        ods_log_error("[%s] unable to evaluate xpath expression %s",
+            parser_str, expr);
         return NULL;
     }
     str = (const char*) xmlXPathCastToString(xpathObj);
@@ -89,7 +90,8 @@ parse_zonelist_adapters_expr(xmlXPathContextPtr xpathCtx, xmlChar* expr,
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
-        ods_log_error("[%s] unable to evaluate xpath expression %s", parser_str, expr);
+        ods_log_error("[%s] unable to evaluate xpath expression %s",
+            parser_str, expr);
         return NULL;
     }
 
@@ -163,6 +165,18 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
     xmlChar* policy_expr = (unsigned char*) "//Zone/Policy";
     xmlChar* signconf_expr = (unsigned char*) "//Zone/SignerConfiguration";
 
+    if (!zlist) {
+        ods_log_error("[%s] unable to parse zone list: no storage",
+            parser_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zlist);
+
+    if (!zlfile) {
+        ods_log_error("[%s] unable to parse zone list: no filename",
+            parser_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
     ods_log_assert(zlfile);
 
     reader = xmlNewTextReaderFilename(zlfile);
