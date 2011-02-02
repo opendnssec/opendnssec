@@ -692,10 +692,10 @@ hsm_ctx_close(hsm_ctx_t *ctx, int unload)
 
 
 /* adds a session to the context.
- * returns  0 on succes
- *          1 if one of the arguments is NULL
- *         -1 if the maximum number of sessions (HSM_MAX_SESSIONS) was
+ * returns  0 on success
+ *          1 if the maximum number of sessions (HSM_MAX_SESSIONS) was
  *            reached
+ *          -1 if one of the arguments is NULL
  */
 static int
 hsm_ctx_add_session(hsm_ctx_t *ctx, hsm_session_t *session)
