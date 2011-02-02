@@ -185,7 +185,7 @@ module KASPAuditor
         end
 
         # Now take a look at how the keys are changing over time...
-        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @config.soa.ttl)
+        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @config.keys.ttl)
       rescue FatalError => e
         return 3
       end
