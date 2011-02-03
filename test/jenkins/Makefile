@@ -1,7 +1,7 @@
 # $Id$
 
-HUDSON_URL=	http://mirrors.jenkins-ci.org/war/latest/jenkins.war
-HUDSON_WAR=	jenkins.war
+JENKINS_URL=	http://mirrors.jenkins-ci.org/war/latest/jenkins.war
+JENKINS_WAR=	jenkins.war
 JOB_NAME=	OpenDNSSEC
 
 DESTDIR=	$(HOME)/.jenkins/jobs/$(JOB_NAME)
@@ -12,14 +12,14 @@ INSTALL=	install
 
 all::
 
-fetch:: $(HUDSON_WAR)
+fetch:: $(JENKINS_WAR)
 
 install::
 	$(INSTALL) -d $(DESTDIR)
 	$(INSTALL) config.xml $(DESTDIR)/config.xml
 
-run:: $(HUDSON_WAR)
-	$(JAVA) -jar $(HUDSON_WAR)
+run:: $(JENKINS_WAR)
+	$(JAVA) -jar $(JENKINS_WAR)
 
-$(HUDSON_WAR):
-	wget $(HUDSON_URL)
+$(JENKINS_WAR):
+	wget $(JENKINS_URL)
