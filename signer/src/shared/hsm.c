@@ -52,6 +52,7 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
     ods_log_assert(owner);
     ods_log_assert(key_id);
 
+    /* set parameters */
     if (!key_id->params) {
         key_id->params = hsm_sign_params_new();
         if (key_id->params) {
@@ -69,19 +70,21 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
     /* lookup key */
     if (!key_id->hsmkey) {
         key_id->hsmkey = hsm_find_key_by_id(ctx, key_id->locator);
-
-        if (key_id->hsmkey) {
-            key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey,
-                key_id->params);
-        } else {
-            /* could not find key */
-            ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
-                key_id->locator?key_id->locator:"(null)");
-            return ODS_STATUS_ERR;
-        }
+    }
+    if (!key_id->hsmkey) {
+        /* could not find key */
+        ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
+            key_id->locator?key_id->locator:"(null)");
+        return ODS_STATUS_ERR;
     }
 
+    /* get dnskey */
     if (!key_id->dnskey) {
+        key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey, key_id->params);
+    }
+    if (!key_id->dnskey) {
+        ods_log_error("[%s] unable to get key: hsm failed to create dnskey",
+            hsm_str);
         return ODS_STATUS_ERR;
     }
     key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
@@ -116,32 +119,12 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
             return NULL;
         }
     }
+    ods_log_assert(key_id->dnskey);
+    ods_log_assert(key_id->hsmkey);
+    ods_log_assert(key_id->params);
 
     key_id->params->inception = inception;
     key_id->params->expiration = expiration;
-
-    /* lookup key */
-    if (!key_id->hsmkey) {
-        key_id->hsmkey = hsm_find_key_by_id(ctx, key_id->locator);
-
-        if (!key_id->hsmkey) {
-            /* could not find key */
-            ods_log_error("[%s] could not find key %s", hsm_str,
-                key_id->locator?key_id->locator:"(null)");
-            return NULL;
-        }
-    }
-
-    if (!key_id->dnskey) {
-        key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey, key_id->params);
-        if (!key_id->dnskey) {
-            /* could not find key */
-            ods_log_error("[%s] could not create DNSKEY for %s", hsm_str,
-                key_id->locator?key_id->locator:"(null)");
-            return NULL;
-        }
-    }
-
     if (!key_id->params->keytag) {
         key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
     }
