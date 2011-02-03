@@ -681,14 +681,21 @@ set_notify_ns(zone_type* zone, const char* cmd)
     ods_log_assert(zone);
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound);
-    ods_log_assert(zone->adoutbound->filename);
 
-    str = ods_replace(cmd, "%zonefile", zone->adoutbound->filename);
+    if (zone->adoutbound->type == ADAPTER_FILE) {
+        ods_log_assert(zone->adoutbound->data);
+        ods_log_assert(zone->adoutbound->data->file);
+        ods_log_assert(zone->adoutbound->data->file->filename);
+        str = ods_replace(cmd, "%zonefile",
+            zone->adoutbound->data->file->filename);
+    } else {
+        str = cmd;
+    }
+
     str2 = ods_replace(str, "%zone", zone->name);
     free((void*)str);
     zone->notify_ns = (const char*) str2;
     ods_log_debug("set notify ns: %s", zone->notify_ns);
-
     return;
 }
 

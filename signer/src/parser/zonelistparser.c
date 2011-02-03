@@ -37,8 +37,9 @@
 #include "shared/log.h"
 #include "signer/zonelist.h"
 #include "signer/zone.h"
-#include "util/se_malloc.h"
+#include "shared/status.h"
 
+#include <malloc.h>
 #include <libxml/xpath.h>
 #include <libxml/xmlreader.h>
 #include <string.h>
@@ -47,7 +48,7 @@ static const char* parser_str = "parser";
 
 
 /**
- * Get the next zone from the zonelist file.
+ * Parse expr inside XPath Context.
  *
  */
 static const char*
@@ -72,21 +73,53 @@ parse_zonelist_element(xmlXPathContextPtr xpathCtx, xmlChar* expr)
 
 
 /**
+ * MySQL adapter.
+ *
+ */
+
+
+/**
+ * File adapter.
+ *
+ */
+static adapter_type*
+parse_zonelist_adapter_file(xmlNode* curNode, int inbound)
+{
+    const char* file = NULL;
+    adapter_type* adapter = NULL;
+
+    file = (const char*) xmlNodeGetContent(curNode);
+    if (!file) {
+        ods_log_error("[%s] unable to read %s file adapter", parser_str,
+            inbound?"input":"output");
+        return NULL;
+    }
+
+    adapter = adapter_create(ADAPTER_FILE, inbound);
+    if (adapter) {
+        adapter->data->file = adfile_create(adapter->allocator, file);
+    }
+    free((void*)file);
+    return adapter;
+}
+
+
+/**
  * Parse the adapters.
  *
  */
 static adapter_type*
-parse_zonelist_adapters_expr(xmlXPathContextPtr xpathCtx, xmlChar* expr,
+parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
     int inbound)
 {
     xmlXPathObjectPtr xpathObj = NULL;
     xmlNode* curNode = NULL;
     adapter_type* adapter = NULL;
-    char* file = NULL;
     int i = 0;
 
-    ods_log_assert(xpathCtx);
-    ods_log_assert(expr);
+    if (!xpathCtx || !expr) {
+        return NULL;
+    }
 
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
@@ -97,24 +130,16 @@ parse_zonelist_adapters_expr(xmlXPathContextPtr xpathCtx, xmlChar* expr,
 
     if (xpathObj->nodesetval) {
         for (i=0; i < xpathObj->nodesetval->nodeNr; i++) {
-            file = NULL;
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
                 if (xmlStrEqual(curNode->name, (const xmlChar*)"File")) {
-                    if (file) {
-                        se_free((void*)file);
-                    }
-                    file = (char*) xmlNodeGetContent(curNode);
+                    adapter = parse_zonelist_adapter_file(curNode, inbound);
+                }
+
+                if (adapter) {
+                    break;
                 }
                 curNode = curNode->next;
-            }
-            if (file) {
-                if (!adapter) {
-                    adapter = adapter_create(file, ADAPTER_FILE, inbound);
-                } else {
-                    /* [TODO] fix this ugly hack, possible bug in libxml2 ? */
-                }
-                se_free((void*)file);
             }
         }
     }
@@ -137,8 +162,8 @@ parse_zonelist_adapters(xmlXPathContextPtr xpathCtx, zone_type* zone)
         return;
     }
 
-    zone->adinbound  = parse_zonelist_adapters_expr(xpathCtx, i_expr, 1);
-    zone->adoutbound = parse_zonelist_adapters_expr(xpathCtx, o_expr, 0);
+    zone->adinbound  = parse_zonelist_adapter(xpathCtx, i_expr, 1);
+    zone->adoutbound = parse_zonelist_adapter(xpathCtx, o_expr, 0);
     return;
 }
 

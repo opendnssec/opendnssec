@@ -66,6 +66,7 @@ tools_input(zone_type* zone)
     }
     ods_log_assert(zone);
     ods_log_assert(zone->adinbound);
+    ods_log_assert(zone->adinbound->data);
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->stats);
 
@@ -74,44 +75,30 @@ tools_input(zone_type* zone)
     zone->stats->sort_time = 0;
     start = time(NULL);
 
-    switch (zone->adinbound->type) {
-        case ADAPTER_FILE:
-            if (zone->fetch) {
-                ods_log_verbose("fetch zone %s",
-                    zone->name?zone->name:"(null)");
-                axfrname = ods_build_path(zone->adinbound->filename,
-                    ".axfr", 0);
-                error = ods_file_copy(axfrname,
-                    zone->adinbound->filename);
-                if (error) {
-                    ods_log_error("[%s] unable to copy axfr file %s to %s",
-                        tools_str, axfrname, zone->adinbound->filename);
-                    free((void*)axfrname);
-                    return ODS_STATUS_ERR;
-                }
+    if (zone->adinbound->type == ADAPTER_FILE) {
+        ods_log_assert(zone->adinbound->data->file);
+        ods_log_assert(zone->adinbound->data->file->filename);
+
+        if (zone->fetch) {
+            ods_log_verbose("fetch zone %s",
+                zone->name?zone->name:"(null)");
+            axfrname = ods_build_path(
+                zone->adinbound->data->file->filename, ".axfr", 0);
+            error = ods_file_copy(axfrname,
+                zone->adinbound->data->file->filename);
+            if (error) {
+                ods_log_error("[%s] unable to copy axfr file %s to %s",
+                    tools_str, axfrname,
+                    zone->adinbound->data->file->filename);
                 free((void*)axfrname);
+                return ODS_STATUS_ERR;
             }
-
-            ods_log_verbose("[%s] read zone %s from input file adapter %s",
-                tools_str, zone->name?zone->name:"(null)",
-                zone->adinbound->filename ?
-                zone->adinbound->filename:"(null)");
-
-            tmpname = ods_build_path(zone->name, ".inbound", 0);
-            error = ods_file_copy(zone->adinbound->filename, tmpname);
-            if (!error) {
-                error = adfile_read(zone, tmpname, 0);
-            }
-            free((void*)tmpname);
-            break;
-        case ADAPTER_UNKNOWN:
-        default:
-            ods_log_error("[%s] read zone %s failed: unknown inbound adapter type "
-                "%i", tools_str, zone->name?zone->name:"(null)",
-                (int) zone->adinbound->type);
-            error = 1;
-            break;
+            free((void*)axfrname);
+        }
     }
+
+    status = adapter_read(zone);
+
     end = time(NULL);
     if (!error) {
         zone_backup_state(zone);
@@ -330,7 +317,7 @@ tools_output(zone_type* zone)
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->adoutbound);
-    ods_log_assert(zone->stats);;
+    ods_log_assert(zone->stats);
 
     if (zone->stats->sort_done == 0 &&
         (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
@@ -344,21 +331,11 @@ tools_output(zone_type* zone)
     ods_log_verbose("[%s] write zone %s serial %u", tools_str,
         zone->name?zone->name:"(null)", zone->zonedata->outbound_serial);
 
-    switch (zone->adoutbound->type) {
-        case ADAPTER_FILE:
-            error = adfile_write(zone, NULL);
-            if (error) {
-                status = ODS_STATUS_ERR;
-            }
-            break;
-        case ADAPTER_UNKNOWN:
-        default:
-            ods_log_error("[%s] write zone %s failed: unknown outbound adapter "
-                "type %i", tools_str, zone->name?zone->name:"(null)",
-                (int) zone->adinbound->type);
-            status = ODS_STATUS_ERR;
-            break;
+    status = adapter_write(zone);
+    if (status != ODS_STATUS_OK) {
+        return status;
     }
+
     /* kick the nameserver */
     if (zone->notify_ns) {
         ods_log_verbose("[%s] notify nameserver: %s", tools_str, zone->notify_ns);

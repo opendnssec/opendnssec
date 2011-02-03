@@ -220,6 +220,8 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
 void
 zone_update_zonelist(zone_type* z1, zone_type* z2)
 {
+    adapter_type* adtmp = NULL;
+
     ods_log_assert(z1);
     ods_log_assert(z2);
 
@@ -243,30 +245,18 @@ zone_update_zonelist(zone_type* z1, zone_type* z2)
         z1->just_updated = 1;
     }
 
-    if (adapter_compare(z1->adinbound, z2->adinbound) != 0) {
-        adapter_cleanup(z1->adinbound);
-        if (z2->adinbound) {
-            z1->adinbound = adapter_create(
-                z2->adinbound->filename,
-                z2->adinbound->type,
-                z2->adinbound->inbound);
-        } else {
-            z1->adinbound = NULL;
-        }
-        z1->just_updated = 1;
+    /* adapters */
+    if (adapter_compare(z2->adinbound, z1->adinbound) != 0) {
+        adtmp = z2->adinbound;
+        z2->adinbound = z1->adinbound;
+        z1->adinbound = adtmp;
+        adtmp = NULL;
     }
-
-    if (adapter_compare(z1->adoutbound, z2->adoutbound) != 0) {
-        adapter_cleanup(z1->adoutbound);
-        if (z2->adoutbound) {
-            z1->adoutbound = adapter_create(
-                z2->adoutbound->filename,
-                z2->adoutbound->type,
-                z2->adoutbound->inbound);
-        } else {
-            z1->adoutbound = NULL;
-        }
-        z1->just_updated = 1;
+    if (adapter_compare(z2->adoutbound, z1->adoutbound) != 0) {
+        adtmp = z2->adoutbound;
+        z2->adoutbound = z1->adoutbound;
+        z1->adoutbound = adtmp;
+        adtmp = NULL;
     }
 
     zone_cleanup(z2);
@@ -976,9 +966,10 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
 
     /* zone data */
     filename = ods_build_path(zone->name, ".unsorted", 0);
-    error = adfile_read(zone, filename, 1);
+    status = adfile_read(zone, filename);
     free((void*)filename);
-    if (error) {
+    if (status != ODS_STATUS_OK) {
+        error = 1;
         ods_log_error("[%s] unable to recover unsorted zone from file "
         "%s.unsorted: parse error", zone_str, zone->name);
         if (zone->zonedata) {

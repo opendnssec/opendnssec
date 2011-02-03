@@ -18,8 +18,10 @@ sbin_PROGRAMS = ods-signerd ods-signer
 # man8_MANS =     man/ods-signer.8 man/ods-signerd.8
 
 ods_signerd_SOURCES=		ods-signerd.c \
+				adapter/adapi.c adapter/adapi.h \
 				adapter/adapter.c adapter/adapter.h \
 				adapter/adfile.c adapter/adfile.h \
+				adapter/adutil.c adapter/adutil.h \
 				daemon/cfg.c daemon/cfg.h \
 				daemon/cmdhandler.c daemon/cmdhandler.h \
 				daemon/engine.c daemon/engine.h \
