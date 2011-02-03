@@ -214,57 +214,6 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
 
 
 /**
- * Update zone configuration settings from zone list.
- *
- */
-void
-zone_update_zonelist(zone_type* z1, zone_type* z2)
-{
-    adapter_type* adtmp = NULL;
-
-    ods_log_assert(z1);
-    ods_log_assert(z2);
-
-    if (ods_strcmp(z2->policy_name, z1->policy_name) != 0) {
-        free((void*)z1->policy_name);
-        if (z2->policy_name) {
-            z1->policy_name = strdup(z2->policy_name);
-        } else {
-            z1->policy_name = NULL;
-        }
-        z1->just_updated = 1;
-    }
-
-    if (ods_strcmp(z2->signconf_filename, z1->signconf_filename) != 0) {
-        free((void*)z1->signconf_filename);
-        if (z2->signconf_filename) {
-            z1->signconf_filename = strdup(z2->signconf_filename);
-        } else {
-            z1->signconf_filename = NULL;
-        }
-        z1->just_updated = 1;
-    }
-
-    /* adapters */
-    if (adapter_compare(z2->adinbound, z1->adinbound) != 0) {
-        adtmp = z2->adinbound;
-        z2->adinbound = z1->adinbound;
-        z1->adinbound = adtmp;
-        adtmp = NULL;
-    }
-    if (adapter_compare(z2->adoutbound, z1->adoutbound) != 0) {
-        adtmp = z2->adoutbound;
-        z2->adoutbound = z1->adoutbound;
-        z1->adoutbound = adtmp;
-        adtmp = NULL;
-    }
-
-    zone_cleanup(z2);
-    return;
-}
-
-
-/**
  * Add the DNSKEYs from the Signer Configuration to the zone data.
  *
  */
@@ -966,10 +915,9 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
 
     /* zone data */
     filename = ods_build_path(zone->name, ".unsorted", 0);
-    status = adfile_read(zone, filename);
+    error = adfile_read(zone, filename);
     free((void*)filename);
-    if (status != ODS_STATUS_OK) {
-        error = 1;
+    if (error) {
         ods_log_error("[%s] unable to recover unsorted zone from file "
         "%s.unsorted: parse error", zone_str, zone->name);
         if (zone->zonedata) {

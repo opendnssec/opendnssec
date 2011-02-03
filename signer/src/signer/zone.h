@@ -102,14 +102,6 @@ struct zone_struct {
 zone_type* zone_create(const char* name, ldns_rr_class klass);
 
 /**
- * Update zone configuration settings from zone list.
- * \param[in] z1 zone to be updated
- * \param[in] z2 update
- *
- */
-void zone_update_zonelist(zone_type* z1, zone_type* z2);
-
-/**
  * Load signer configuration for zone.
  * \param[in] zone zone
  * \param[out] tbs task to be scheduled
@@ -117,17 +109,6 @@ void zone_update_zonelist(zone_type* z1, zone_type* z2);
  *
  */
 ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
-
-/**
- * Update signer configuration file.
- * \param[in] zone corresponding zone
- * \param[in] tl task list
- * \param[in] buf feedback buffer
- * \return int 0 on success, 1 on error
- *
- */
-int zone_update_signconf(zone_type* zone, struct schedule_struct* tl,
-    char* buf);
 
 /**
  * Update zone data.

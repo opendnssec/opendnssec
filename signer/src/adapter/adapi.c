@@ -105,7 +105,7 @@ adapi_add_rr(zone_type* zone, ldns_rr* rr)
     ods_log_assert(rrset);
 
     /* add RR */
-    if (rrset_add_rr(rrset, rr) == NULL) {
+    if (rrset_add_rr(rrset, rr) != 0) {
         ods_log_error("[%s] unable to add RR: pend RR failed", adapi_str);
         return ODS_STATUS_ERR;
     }
@@ -156,7 +156,7 @@ adapi_del_rr(zone_type* zone, ldns_rr* rr)
     ods_log_assert(rrset);
 
     /* del RR */
-    if (rrset_del_rr(rrset, rr) == NULL) {
+    if (rrset_del_rr(rrset, rr) != NULL) {
         ods_log_error("[%s] unable to del RR: pend RR failed", adapi_str);
         return ODS_STATUS_ERR;
     }
