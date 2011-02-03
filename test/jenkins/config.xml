@@ -5,12 +5,12 @@
   <description>OpenDNSSEC trunk test</description>
   <keepDependencies>false</keepDependencies>
   <properties/>
-  <scm class="hudson.scm.SubversionSCM">
+  <scm class="jenkins.scm.SubversionSCM">
     <locations>
-      <hudson.scm.SubversionSCM_-ModuleLocation>
+      <jenkins.scm.SubversionSCM_-ModuleLocation>
         <remote>http://svn.opendnssec.org/trunk/OpenDNSSEC</remote>
         <local>src</local>
-      </hudson.scm.SubversionSCM_-ModuleLocation>
+      </jenkins.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <useUpdate>false</useUpdate>
     <doRevert>false</doRevert>
@@ -23,15 +23,15 @@
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
-    <hudson.triggers.TimerTrigger>
+    <jenkins.triggers.TimerTrigger>
       <spec>0 * * * *</spec>
-    </hudson.triggers.TimerTrigger>
+    </jenkins.triggers.TimerTrigger>
   </triggers>
   <concurrentBuild>false</concurrentBuild>
   <builders>
-    <hudson.tasks.Shell>
+    <jenkins.tasks.Shell>
       <command>sh src/test/scripts/build_and_test.sh</command>
-    </hudson.tasks.Shell>
+    </jenkins.tasks.Shell>
   </builders>
   <publishers/>
   <buildWrappers/>
