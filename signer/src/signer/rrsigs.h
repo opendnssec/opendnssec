@@ -35,12 +35,14 @@
 #define SIGNER_RRSIGS_H
 
 #include "config.h"
+#include "shared/allocator.h"
 #include "signer/keys.h"
 
 #include <ldns/ldns.h>
 
 typedef struct rrsigs_struct rrsigs_type;
 struct rrsigs_struct {
+    allocator_type* allocator;
     ldns_rr* rr;
     const char* key_locator;
     uint32_t key_flags;
@@ -58,13 +60,13 @@ rrsigs_type* rrsigs_create(void);
  * Add RRSIG to signature set.
  * \param[in] rrsigs signature set
  * \param[in] rr RRSIG record
- * \param[in] locator key locator
- * \param[in] flags key flags
- * \return int 0 on success, 1 on error
+ * \param[in] l key locator
+ * \param[in] f key flags
+ * \return ods_status status
  *
  */
-int rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
-    uint32_t flags);
+ods_status rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* l,
+    uint32_t f);
 
 /*
  * Clean up signature set.

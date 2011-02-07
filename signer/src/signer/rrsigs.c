@@ -32,11 +32,12 @@
  */
 
 #include "config.h"
+#include "shared/allocator.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "shared/util.h"
 #include "signer/rrsigs.h"
 #include "signer/keys.h"
-#include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
 
@@ -50,7 +51,27 @@ static const char* rrsigs_str = "rrsig";
 rrsigs_type*
 rrsigs_create(void)
 {
-    rrsigs_type* rrsigs = (rrsigs_type*) se_calloc(1, sizeof(rrsigs_type));
+    allocator_type* allocator = NULL;
+    rrsigs_type* rrsigs = NULL;
+
+    allocator = allocator_create(malloc, free);
+    if (!allocator) {
+        ods_log_error("[%s] unable to create RRSIGs: create allocator "
+            "failed", rrsigs_str);
+        return NULL;
+    }
+    ods_log_assert(allocator);
+
+    rrsigs = (rrsigs_type*) allocator_alloc(allocator, sizeof(rrsigs_type));
+    if (!rrsigs) {
+        ods_log_error("[%s] unable to create RRSIGs: allocator failed",
+            rrsigs_str);
+        allocator_cleanup(allocator);
+        return NULL;
+    }
+    ods_log_assert(rrsigs);
+
+    rrsigs->allocator = allocator;
     rrsigs->rr = NULL;
     rrsigs->key_locator = NULL;
     rrsigs->key_flags = 0;
@@ -63,9 +84,8 @@ rrsigs_create(void)
  * Add RRSIG to signature set.
  *
  */
-int
-rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
-    uint32_t flags)
+ods_status
+rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* l, uint32_t f)
 {
     int cmp;
     rrsigs_type* new_rrsigs = NULL;
@@ -73,42 +93,42 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
 
     if (!rrsigs) {
         ods_log_error("[%s] unable to add RRSIG: no storage", rrsigs_str);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(rrsigs);
 
     if (!rr) {
         ods_log_error("[%s] unable to add RRSIG: no RRSIG RR", rrsigs_str);
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(rr);
 
     if (!rrsigs->rr) {
         rrsigs->rr = rr;
-        if (locator) {
-            rrsigs->key_locator = se_strdup(locator);
+        if (l) {
+            rrsigs->key_locator = allocator_strdup(rrsigs->allocator, l);
         }
-        rrsigs->key_flags = flags;
-        return 0;
+        rrsigs->key_flags = f;
+        return ODS_STATUS_OK;
     }
 
     status = util_dnssec_rrs_compare(rrsigs->rr, rr, &cmp);
     if (status != LDNS_STATUS_OK) {
-        return 1;
+        return ODS_STATUS_ERR;
     }
     if (cmp < 0) {
         if (rrsigs->next) {
-            return rrsigs_add_sig(rrsigs->next, rr, locator, flags);
+            return rrsigs_add_sig(rrsigs->next, rr, l, f);
         } else {
             new_rrsigs = rrsigs_create();
             new_rrsigs->rr = rr;
-            if (locator) {
-                new_rrsigs->key_locator = se_strdup(locator);
+            if (l) {
+                new_rrsigs->key_locator = allocator_strdup(
+                    rrsigs->allocator, l);
             }
-            new_rrsigs->key_flags = flags;
-
+            new_rrsigs->key_flags = f;
             rrsigs->next = new_rrsigs;
-            return 0;
+            return ODS_STATUS_OK;
         }
     } else if (cmp > 0) {
         /* put the current old rr in the new next, put the new
@@ -121,42 +141,43 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* locator,
 
         rrsigs->rr = rr;
         rrsigs->next = new_rrsigs;
-        if (locator) {
-            rrsigs->key_locator = se_strdup(locator);
+        if (l) {
+            rrsigs->key_locator = allocator_strdup(rrsigs->allocator, l);
         }
-        rrsigs->key_flags = flags;
-        return 0;
+        rrsigs->key_flags = f;
+        return ODS_STATUS_OK;
     } else {
         /* should we error on equal? or free memory of rr */
         ods_log_warning("[%s] adding duplicate RRSIG?", rrsigs_str);
-        return 2;
+        return ODS_STATUS_UNCHANGED;
     }
-    return 0;
+    /* not reached */
+    return ODS_STATUS_ERR;
 }
 
 
-/*
+/**
  * Clean up signature set.
  *
  */
 void
 rrsigs_cleanup(rrsigs_type* rrsigs)
 {
-    if (rrsigs) {
-        if (rrsigs->next) {
-            rrsigs_cleanup(rrsigs->next);
-            rrsigs->next = NULL;
-        }
-        if (rrsigs->rr) {
-            ldns_rr_free(rrsigs->rr);
-            rrsigs->rr = NULL;
-        }
-        if (rrsigs->key_locator) {
-            se_free((void*)rrsigs->key_locator);
-            rrsigs->key_locator = NULL;
-        }
-        se_free((void*) rrsigs);
+    allocator_type* allocator;
+    if (!rrsigs) {
+        return;
     }
+    if (rrsigs->next) {
+        rrsigs_cleanup(rrsigs->next);
+        rrsigs->next = NULL;
+    }
+    if (rrsigs->rr) {
+        ldns_rr_free(rrsigs->rr);
+        rrsigs->rr = NULL;
+    }
+    allocator = rrsigs->allocator;
+    allocator_deallocate(allocator);
+    allocator_cleanup(allocator);
     return;
 }
 
