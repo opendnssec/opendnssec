@@ -36,6 +36,7 @@
 
 #include "config.h"
 #include "shared/hsm.h"
+#include "signer/denial.h"
 #include "signer/nsec3params.h"
 #include "signer/rrset.h"
 #include "signer/signconf.h"
@@ -44,16 +45,20 @@
 #include <ldns/ldns.h>
 #include <time.h>
 
-#define DOMAIN_STATUS_NONE      0 /* initial domain status */
-#define DOMAIN_STATUS_APEX      1 /* apex of the zone */
-#define DOMAIN_STATUS_AUTH      2 /* authoritative domain */
-#define DOMAIN_STATUS_NS        3 /* unsigned delegation */
-#define DOMAIN_STATUS_DS        4 /* signed delegation */
-#define DOMAIN_STATUS_ENT_AUTH  5 /* empty non-terminal to authoritative data */
-#define DOMAIN_STATUS_ENT_NS    6 /* empty non-terminal to unsigned delegation */
-#define DOMAIN_STATUS_ENT_GLUE  7 /* empty non-terminal to occluded data */
-#define DOMAIN_STATUS_OCCLUDED  8 /* occluded data (glue) */
-#define DOMAIN_STATUS_HASH      9 /* hashed domain */
+enum domain_status_enum {
+    DOMAIN_STATUS_NONE = 0, /* initial domain status [UNSIGNED] */
+    DOMAIN_STATUS_APEX,     /* apex domain, authoritative [SIGNED] */
+    DOMAIN_STATUS_AUTH,     /* authoritative domain, non-apex [SIGNED] */
+    DOMAIN_STATUS_NS,       /* unsigned delegation [UNSIGNED] */
+    DOMAIN_STATUS_DS,       /* signed delegation [SIGNED] */
+    DOMAIN_STATUS_ENT,      /* empty non-terminal [UNSIGNED] */
+    DOMAIN_STATUS_ENT_AUTH,      /* empty non-terminal [UNSIGNED] */
+    DOMAIN_STATUS_ENT_NS,      /* empty non-terminal [UNSIGNED] */
+    DOMAIN_STATUS_ENT_GLUE,      /* empty non-terminal [UNSIGNED] */
+    DOMAIN_STATUS_OCCLUDED, /* occluded domain [UNSIGNED] */
+    DOMAIN_STATUS_HASH     /* hashed domain [SIGNED] */
+};
+typedef enum domain_status_enum domain_status;
 
 #define SE_NSEC_RDATA_NXT          0
 #define SE_NSEC_RDATA_BITMAP       1
@@ -77,7 +82,7 @@ struct domain_struct {
 
     /* Denial of Existence */
     denial_type* denial;
- 
+
     domain_type* nsec3;
     rrset_type* nsec_rrset;
     size_t subdomain_count;
