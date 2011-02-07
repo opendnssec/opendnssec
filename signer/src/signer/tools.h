@@ -48,12 +48,12 @@
 ods_status tools_input(zone_type* zone);
 
 /**
- * Update zone with pending changes.
+ * Examine and commit updates.
  * \param[in] zone zone
- * \return int 0 on success, 1 on fail
+ * \return ods_status status
  *
  */
-int tools_update(zone_type* zone);
+ods_status tools_commit(zone_type* zone);
 
 /**
  * Nsecify zone.

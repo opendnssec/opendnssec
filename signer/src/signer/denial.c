@@ -232,4 +232,3 @@ denial_cleanup(denial_type* denial)
     return;
 
 }
-

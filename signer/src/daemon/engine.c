@@ -606,7 +606,7 @@ engine_all_zones_processed(engine_type* engine)
 
 
 /**
- * Engine running.
+ * Run engine, run!.
  *
  */
 static void
@@ -940,7 +940,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         } else {
             ods_log_info("[%s] signer started", engine_str);
             /* try to recover from backups */
-/* not forn now:
+/* not for now:
             engine_recover_from_backups(engine);
 */
         }

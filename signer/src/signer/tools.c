@@ -54,8 +54,8 @@ ods_status
 tools_input(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
-    char* axfrname = NULL;
     int error = 0;
+    char* axfrname = NULL;
     time_t start = 0;
     time_t end = 0;
 
@@ -64,6 +64,13 @@ tools_input(zone_type* zone)
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
+
+    if (!zone->zonedata) {
+        ods_log_error("[%s] unable to read zone: no zone data", tools_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->zonedata);
+
     ods_log_assert(zone->adinbound);
     ods_log_assert(zone->adinbound->data);
     ods_log_assert(zone->signconf);
@@ -72,7 +79,6 @@ tools_input(zone_type* zone)
     zone->stats->sort_done = 0;
     zone->stats->sort_count = 0;
     zone->stats->sort_time = 0;
-    start = time(NULL);
 
     if (zone->adinbound->type == ADAPTER_FILE) {
         ods_log_assert(zone->adinbound->data->file);
@@ -96,51 +102,73 @@ tools_input(zone_type* zone)
         }
     }
 
+    start = time(NULL);
     status = adapter_read(zone);
-
     end = time(NULL);
-    if (!error) {
+    if (status != ODS_STATUS_OK) {
+        zonedata_rollback(zone->zonedata);
+    }
+    else {
         zone_backup_state(zone);
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
-    } else {
-        zonedata_rollback(zone->zonedata);
-        status = ODS_STATUS_ERR;
     }
     return status;
 }
 
 
 /**
- * Update zone with pending changes.
+ * Examine and commit updates.
  *
  */
-int
-tools_update(zone_type* zone)
+ods_status
+tools_commit(zone_type* zone)
 {
-    int error = 0;
+    ods_status status = ODS_STATUS_OK;
     char* inbound = NULL;
     char* unsorted = NULL;
-    ods_log_assert(zone);
-    ods_log_assert(zone->signconf);
-    ods_log_verbose("[%s] update zone %s", tools_str, zone->name?zone->name:"(null)");
-    error = zone_update_zonedata(zone);
-    if (!error) {
-        ods_log_verbose("[%s] zone %s updated to serial %u", tools_str,
-            zone->name?zone->name:"(null)", zone->zonedata->internal_serial);
 
+    if (!zone) {
+        ods_log_error("[%s] unable to nsecify zone: no zone", tools_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone);
+
+    if (!zone->zonedata) {
+        ods_log_error("[%s] unable to nsecify zone %s: no zonedata",
+            tools_str, zone->name);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->zonedata);
+
+    /* examine */
+    ods_log_verbose("[%s] examine updates to zone %s", tools_str,
+        zone->name?zone->name:"(null)");
+    status = zonedata_examine(zone->zonedata, zone->dname,
+        zone->adinbound->type==ADAPTER_FILE);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] commit updates zone %s failed: zone data "
+            "contains errors", tools_str, zone->name);
+        zonedata_rollback(zone->zonedata);
+        return status;
+    }
+
+    /* commit */
+    ods_log_verbose("[%s] commit updates to zone %s", tools_str,
+        zone->name?zone->name:"(null)");
+    status = zonedata_commit(zone->zonedata);
+    if (status != ODS_STATUS_OK) {
         inbound = ods_build_path(zone->name, ".inbound", 0);
         unsorted = ods_build_path(zone->name, ".unsorted", 0);
-        error = ods_file_copy(inbound, unsorted);
-        if (!error) {
-            zone_backup_state(zone);
+        status = ods_file_copy(inbound, unsorted);
+        if (status != ODS_STATUS_OK) {
             zone->stats->sort_done = 1;
             unlink(inbound);
         }
         free((void*)inbound);
         free((void*)unsorted);
     }
-    return error;
+    return status;
 }
 
 

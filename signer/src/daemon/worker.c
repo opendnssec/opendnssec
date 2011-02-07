@@ -183,13 +183,12 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]]: commit updates to zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-
-            error = tools_update(zone);
+            status = tools_commit(zone);
 
             /* what to do next */
             what = TASK_NSECIFY;
             when = time_now();
-            if (error) {
+            if (status != ODS_STATUS_OK) {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
