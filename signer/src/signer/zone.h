@@ -119,12 +119,20 @@ ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
 int zone_update_zonedata(zone_type* zone);
 
 /**
- * Add DNSKEY and NSEC3PARAM records to the zone.
- * \param[in] zone corresponding zone
- * \return int 0 on success, 1 on error
+ * Publish DNSKEYs.
+ * \param[in] zone zone
+ * \return ods_status status
  *
  */
-int zone_add_dnskeys(zone_type* zone);
+ods_status zone_publish_dnskeys(zone_type* zone);
+
+/**
+ * Prepare for NSEC3.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_prepare_nsec3(zone_type* zone);
 
 /**
  * Add a RR to the zone.
