@@ -35,6 +35,7 @@
 #include "shared/duration.h"
 #include "shared/hsm.h"
 #include "shared/log.h"
+#include "shared/status.h"
 #include "shared/util.h"
 #include "signer/rrset.h"
 #include "util/se_malloc.h"
@@ -42,6 +43,39 @@
 #include <ldns/ldns.h>
 
 static const char* rrset_str = "rrset";
+
+
+/**
+ * Log RR.
+ *
+ */
+void
+log_rr(ldns_rr* rr, const char* pre, int level)
+{
+    char* str = NULL;
+
+    str = ldns_rr2str(rr);
+    if (str) {
+        str[(strlen(str))-1] = '\0';
+    }
+    if (level == 1) {
+        ods_log_error("%s %s", pre?pre:"", str?str:"(null)");
+    } else if (level == 2) {
+        ods_log_warning("%s %s", pre?pre:"", str?str:"(null)");
+    } else if (level == 3) {
+        ods_log_info("%s %s", pre?pre:"", str?str:"(null)");
+    } else if (level == 4) {
+        ods_log_verbose("%s %s", pre?pre:"", str?str:"(null)");
+    } else if (level == 5) {
+        ods_log_debug("%s %s", pre?pre:"", str?str:"(null)");
+    } else if (level == 6) {
+        ods_log_deeebug("%s %s", pre?pre:"", str?str:"(null)");
+    } else {
+        ods_log_deeebug("%s %s", pre?pre:"", str?str:"(null)");
+    }
+    free((void*)str);
+    return;
+}
 
 
 /**
@@ -186,44 +220,303 @@ rrset_examine_ns_rdata(rrset_type* rrset, ldns_rdf* nsdname)
 
 
 /**
- * Log RR.
+ * Return the number of pending added RRs in RRset.
  *
  */
-void
-log_rr(ldns_rr* rr, const char* pre, int level)
+int
+rrset_count_add(rrset_type* rrset)
 {
-    char* str = NULL;
-
-    str = ldns_rr2str(rr);
-    if (str) {
-        str[(strlen(str))-1] = '\0';
-    }
-    if (level == 1) {
-        ods_log_error("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 2) {
-        ods_log_warning("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 3) {
-        ods_log_info("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 4) {
-        ods_log_verbose("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 5) {
-        ods_log_debug("%s %s", pre?pre:"", str?str:"(null)");
-    } else {
-        ods_log_deeebug("%s %s", pre?pre:"", str?str:"(null)");
-    }
-    se_free((void*)str);
-    return;
+    ods_log_assert(rrset);
+    return rrset->add_count;
 }
 
 
 /**
- * Add pending RR.
+ * Return the number of pending deleted RRs in RRset.
  *
  */
-static ldns_status
-rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
+int
+rrset_count_del(rrset_type* rrset)
+{
+    ods_log_assert(rrset);
+    return rrset->del_count;
+}
+
+
+/**
+ * Return the number of RRs in RRset after an update.
+ *
+ */
+int
+rrset_count_RR(rrset_type* rrset)
+{
+    ods_log_assert(rrset);
+    return ((rrset->rr_count + rrset->add_count) - rrset->del_count);
+}
+
+
+/**
+ * Count the number of RRs in this RRset.
+ *
+ */
+size_t
+rrset_count_rr(rrset_type* rrset, int which)
+{
+    if (!rrset) {
+        return 0;
+    }
+    switch (which) {
+        case COUNT_ADD:
+            return rrset->add_count;
+        case COUNT_DEL:
+            return rrset->del_count;
+        case COUNT_RR:
+        default:
+            return rrset->rr_count;
+    }
+    return rrset->rr_count;
+}
+
+
+/**
+ * Add RR to RRset.
+ *
+ */
+ldns_rr*
+rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
 {
     ldns_status status = LDNS_STATUS_OK;
+
+    if (!rr) {
+        ods_log_error("[%s] unable to add RR: no RR", rrset_str);
+        return NULL;
+    }
+    ods_log_assert(rr);
+
+    if (!rrset) {
+        ods_log_error("[%s] unable to add RR: no storage", rrset_str);
+        return NULL;
+    }
+    ods_log_assert(rrset);
+
+    if (rrset->rr_type != ldns_rr_get_type(rr)) {
+        ods_log_error("[%s] unable to add RR: RRtype mismatch", rrset_str);
+        return NULL;
+    }
+
+    if (!rrset->add) {
+        rrset->add = ldns_dnssec_rrs_new();
+    }
+
+    if (!rrset->add->rr) {
+        rrset->add->rr = rr;
+        rrset->add_count = 1;
+        log_rr(rr, "+rr", 7);
+    } else {
+        status = util_dnssec_rrs_add_rr(rrset->add, rr);
+        if (status != LDNS_STATUS_OK) {
+            if (status == LDNS_STATUS_NO_DATA) {
+                ods_log_warning("[%s] unable to add RR to RRset (%i): "
+                      "duplicate", rrset_str, rrset->rr_type);
+                log_rr(rr, "+rr", 2);
+                return NULL;
+            } else {
+                ods_log_error("[%s] unable to add RR to RRset (%i): %s",
+                    rrset_str, rrset->rr_type,
+                    ldns_get_errorstr_by_id(status));
+                log_rr(rr, "+rr", 1);
+                ldns_dnssec_rrs_deep_free(rrset->add);
+                rrset->add = NULL;
+                rrset->add_count = 0;
+                return NULL;
+            }
+        }
+        rrset->add_count += 1;
+        log_rr(rr, "+rr", 7);
+    }
+    return rr;
+}
+
+
+/**
+ * Delete RR from RRset.
+ *
+ */
+ldns_rr*
+rrset_del_rr(rrset_type* rrset, ldns_rr* rr, int dupallowed)
+{
+    ldns_status status = LDNS_STATUS_OK;
+
+    if (!rr) {
+        ods_log_error("[%s] unable to delete RR: no RR", rrset_str);
+        return NULL;
+    }
+    ods_log_assert(rr);
+
+    if (!rrset) {
+        ods_log_error("[%s] unable to delete RR: no storage", rrset_str);
+        return NULL;
+    }
+    ods_log_assert(rrset);
+
+    if (rrset->rr_type != ldns_rr_get_type(rr)) {
+        ods_log_error("[%s] unable to delete RR: RRtype mismatch", rrset_str);
+        return NULL;
+    }
+
+    if (!rrset->del) {
+        rrset->del = ldns_dnssec_rrs_new();
+    }
+
+    if (!rrset->del->rr) {
+        rrset->del->rr = rr;
+        rrset->del_count = 1;
+        log_rr(rr, "-rr", 7);
+    } else {
+        status = util_dnssec_rrs_add_rr(rrset->del, rr);
+        if (status != LDNS_STATUS_OK) {
+            if (status == LDNS_STATUS_NO_DATA) {
+                if (dupallowed) {
+                    return rr;
+                }
+                ods_log_warning("[%s] unable to delete RR from RRset (%i): "
+                    "duplicate", rrset_str, rrset->rr_type);
+                log_rr(rr, "-rr", 2);
+                return NULL;
+            } else {
+                ods_log_error("[%s] unable to delete RR from RRset (%i): %s",
+                   rrset_str, rrset->rr_type,
+                   ldns_get_errorstr_by_id(status));
+                log_rr(rr, "-rr", 1);
+                ldns_dnssec_rrs_deep_free(rrset->del);
+                rrset->del = NULL;
+                rrset->del_count = 0;
+                return NULL;
+            }
+        }
+        rrset->del_count += 1;
+        log_rr(rr, "-rr", 7);
+    }
+    return rr;
+}
+
+
+/**
+ * Wipe out current RRs in RRset.
+ *
+ */
+ods_status
+rrset_wipe_out(rrset_type* rrset)
+{
+    ldns_dnssec_rrs* rrs = NULL;
+    ldns_rr* del_rr = NULL;
+    int error = 0;
+
+    if (rrset) {
+        rrs = rrset->rrs;
+    }
+
+    while (rrs) {
+        if (rrs->rr) {
+            del_rr = ldns_rr_clone(rrs->rr);
+            if (rrset_del_rr(rrset, del_rr,
+                (ldns_rr_get_type(del_rr) == LDNS_RR_TYPE_DNSKEY)) == NULL) {
+                ods_log_error("[%s] unable to wipe RR from RRset (%i)",
+                    rrset_str, rrset->rr_type);
+                ldns_rr_free(del_rr);
+                error = 1;
+            }
+            del_rr = NULL;
+        }
+        rrs = rrs->next;
+    }
+
+    if (error) {
+        return ODS_STATUS_ERR;
+    }
+    return ODS_STATUS_OK;
+}
+
+
+/**
+ * Commit deletion.
+ *
+ */
+static ods_status
+rrset_commit_del(rrset_type* rrset, ldns_rr* rr)
+{
+    ldns_status status = LDNS_STATUS_OK;
+    ldns_dnssec_rrs* rrs = NULL;
+    ldns_dnssec_rrs* prev_rrs = NULL;
+    int cmp = 0;
+
+    if (!rr) {
+        ods_log_error("[%s] unable to commit del RR: no RR", rrset_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(rr);
+    if (!rrset) {
+        ods_log_error("[%s] unable to commit del RR: no storage", rrset_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(rrset);
+
+    rrs = rrset->rrs;
+    while (rrs) {
+        status = util_dnssec_rrs_compare(rrs->rr, rr, &cmp);
+        if (status != LDNS_STATUS_OK) {
+            ods_log_error("[%s] unable to commit del RR: compare failed",
+                rrset_str);
+            return ODS_STATUS_ERR;
+        }
+
+        if (cmp == 0) {
+            /* this is it */
+            if (prev_rrs) {
+                prev_rrs->next = rrs->next;
+            } else {
+                rrset->rrs = rrs->next;
+            }
+            rrs->next = NULL;
+            ldns_dnssec_rrs_deep_free(rrs);
+            rrs = NULL;
+
+            rrset->rr_count -= 1;
+            rrset->del_count -= 1;
+            log_rr(rr, "-RR", 3);
+            return ODS_STATUS_OK;
+        }
+
+        /* keep looking */
+        prev_rrs = rrs;
+        rrs = rrs->next;
+    }
+
+    ods_log_warning("[%s] unable to commit del RR: no such RR", rrset_str);
+    log_rr(rr, "-RR", 2);
+    return ODS_STATUS_UNCHANGED;
+}
+
+
+/**
+ * Commit addition.
+ *
+ */
+static ods_status
+rrset_commit_add(rrset_type* rrset, ldns_rr* rr)
+{
+    ldns_status status = LDNS_STATUS_OK;
+
+    if (!rr) {
+        ods_log_error("[%s] unable to commit add RR: no RR", rrset_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(rr);
+    if (!rrset) {
+        ods_log_error("[%s] unable to commit add RR: no storage", rrset_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(rrset);
 
     if (!rrset->rrs) {
         rrset->rrs = ldns_dnssec_rrs_new();
@@ -233,66 +526,109 @@ rrset_add_pending_rr(rrset_type* rrset, ldns_rr* rr)
         rrset->rrs->rr = rr;
         rrset->rr_count += 1;
         rrset->add_count -= 1;
-        log_rr(rr, "+RR", 6);
-        return LDNS_STATUS_OK;
+        log_rr(rr, "+RR", 3);
+        return ODS_STATUS_OK;
     } else {
         status = util_dnssec_rrs_add_rr(rrset->rrs, rr);
         if (status != LDNS_STATUS_OK) {
             if (status == LDNS_STATUS_NO_DATA) {
-                ods_log_warning("[%s] unable to commit add RR to RRset (%i): "
-      	              "duplicate", rrset_str, rrset->rr_type);
+                ods_log_warning("[%s] unable to commit add RR: duplicate",
+                    rrset_str);
                 log_rr(rr, "+RR", 2);
-                return LDNS_STATUS_OK;
+                return ODS_STATUS_UNCHANGED;
             } else {
-                ods_log_warning("[%s] unable to commit add RR to RRset (%i): "
-      	              "%s", rrset_str, rrset->rr_type, 
-                      ldns_get_errorstr_by_id(status));
+                ods_log_error("[%s] unable to commit add RR: %s",
+                    rrset_str, ldns_get_errorstr_by_id(status));
                 log_rr(rr, "+RR", 1);
-                return status;
+                return ODS_STATUS_ERR;
             }
         }
-        log_rr(rr, "+RR", 6);
+        log_rr(rr, "+RR", 3);
         rrset->rr_count += 1;
         rrset->add_count -= 1;
-        return LDNS_STATUS_OK;
+        return ODS_STATUS_OK;
     }
     /* not reached */
-    return LDNS_STATUS_ERR;
+    return ODS_STATUS_ERR;
 }
 
 
 /**
- * Delete pending RR.
+ * Commit updates from RRset.
  *
  */
-static void
-rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
+ods_status
+rrset_commit(rrset_type* rrset)
 {
     ldns_dnssec_rrs* rrs = NULL;
-    ldns_dnssec_rrs* prev_rrs = NULL;
+    ods_status status = ODS_STATUS_OK;
 
-    rrs = rrset->rrs;
+    if (!rrset) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(rrset);
+
+    if (rrset->del_count || rrset->add_count) {
+        rrset->drop_signatures = 1;
+    }
+
+    /* delete RRs */
+    rrs = rrset->del;
     while (rrs) {
-        if (util_soa_compare(rrs->rr, rr) == 0 ||
-            ldns_rr_compare(rrs->rr, rr) == 0) {
-            /* this is it */
-            if (prev_rrs) {
-                prev_rrs->next = rrs->next;
-            } else {
-                rrset->rrs = rrs->next;
-            }
-            ldns_rr_free(rrs->rr);
-            se_free((void*)rrs);
-            rrset->rr_count -= 1;
-            rrset->del_count -= 1;
-            log_rr(rr, "-RR", 6);
-            return;
+        status = rrset_commit_del(rrset, rrs->rr);
+        if (status != ODS_STATUS_OK) {
+            ods_log_alert("[%s] commit RRset (%i) failed", rrset_str,
+                rrset->rr_type);
+            return status;
         }
-        prev_rrs = rrs;
         rrs = rrs->next;
     }
-    ods_log_warning("[%s] unable to commit del RR: no such RR", rrset_str);
-    log_rr(rr, "-RR", 2);
+    ldns_dnssec_rrs_deep_free(rrset->del);
+    rrset->del = NULL;
+    rrset->del_count = 0;
+
+    /* add RRs */
+    rrs = rrset->add;
+    while (rrs) {
+        status = rrset_commit_add(rrset, rrs->rr);
+        if (status != ODS_STATUS_OK) {
+            ods_log_alert("[%s] commit RRset (%i) failed", rrset_str,
+                rrset->rr_type);
+            return status;
+        }
+        rrs = rrs->next;
+    }
+    ldns_dnssec_rrs_free(rrset->add);
+    rrset->add = NULL;
+    rrset->add_count = 0;
+
+    /* update serial */
+
+    return ODS_STATUS_OK;
+}
+
+
+/**
+ * Rollback updates from RRset.
+ *
+ */
+void
+rrset_rollback(rrset_type* rrset)
+{
+    if (!rrset) {
+        return;
+    }
+
+    if (rrset->add) {
+        ldns_dnssec_rrs_deep_free(rrset->add);
+        rrset->add = NULL;
+        rrset->add_count = 0;
+    }
+    if (rrset->del) {
+        ldns_dnssec_rrs_deep_free(rrset->del);
+        rrset->del = NULL;
+        rrset->del_count = 0;
+    }
     return;
 }
 
@@ -304,7 +640,7 @@ rrset_del_pending_rr(rrset_type* rrset, ldns_rr* rr)
 int
 rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr)
 {
-    return !(rrset_add_pending_rr(rrset, rr) == LDNS_STATUS_OK);
+    return !(rrset_commit_add(rrset, rr) == LDNS_STATUS_OK);
 }
 
 
@@ -348,248 +684,6 @@ rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
         }
     }
     return error;
-}
-
-
-/**
- * Add RR to RRset.
- *
- */
-int
-rrset_update(rrset_type* rrset, uint32_t serial)
-{
-    ldns_dnssec_rrs* rrs = NULL;
-    ldns_status status = LDNS_STATUS_OK;
-
-    ods_log_assert(rrset);
-    ods_log_assert(serial);
-
-    if (DNS_SERIAL_GT(serial, rrset->internal_serial)) {
-        /* compare del and add */
-        if (rrset_compare_rrs(rrset->del, rrset->add) != 0) {
-            rrset->drop_signatures = 1;
-        }
-
-        /* delete RRs */
-        rrs = rrset->del;
-        while (rrs) {
-            if (rrs->rr) {
-                rrset_del_pending_rr(rrset, rrs->rr);
-            }
-            rrs = rrs->next;
-        }
-        ldns_dnssec_rrs_deep_free(rrset->del);
-        rrset->del = NULL;
-        rrset->del_count = 0;
-
-        /* add RRs */
-        rrs = rrset->add;
-        while (rrs) {
-            if (rrs->rr) {
-                status = rrset_add_pending_rr(rrset, rrs->rr);
-                if (status != LDNS_STATUS_OK) {
-                    ods_log_alert("[%s] update RRset[%i] to serial %u failed",
-                        rrset_str, rrset->rr_type, serial);
-                    return 1;
-                }
-            }
-            rrs = rrs->next;
-        }
-        ldns_dnssec_rrs_free(rrset->add);
-        rrset->add = NULL;
-        rrset->add_count = 0;
-
-        /* update serial */
-        rrset->internal_serial = serial;
-    }
-    return 0;
-}
-
-/**
- * Cancel update.
- *
- */
-void
-rrset_cancel_update(rrset_type* rrset)
-{
-    if (rrset->add) {
-        ldns_dnssec_rrs_deep_free(rrset->add);
-        rrset->add = NULL;
-        rrset->add_count = 0;
-    }
-    if (rrset->del) {
-        ldns_dnssec_rrs_deep_free(rrset->del);
-        rrset->del = NULL;
-        rrset->del_count = 0;
-    }
-    return;
-}
-
-/**
- * Return the number of RRs in RRset.
- *
- */
-int
-rrset_count_rr(rrset_type* rrset)
-{
-    ods_log_assert(rrset);
-    return rrset->rr_count;
-}
-
-
-/**
- * Return the number of pending added RRs in RRset.
- *
- */
-int
-rrset_count_add(rrset_type* rrset)
-{
-    ods_log_assert(rrset);
-    return rrset->add_count;
-}
-
-
-/**
- * Return the number of pending deleted RRs in RRset.
- *
- */
-int
-rrset_count_del(rrset_type* rrset)
-{
-    ods_log_assert(rrset);
-    return rrset->del_count;
-}
-
-
-/**
- * Return the number of RRs in RRset after an update.
- *
- */
-int
-rrset_count_RR(rrset_type* rrset)
-{
-    ods_log_assert(rrset);
-    return ((rrset->rr_count + rrset->add_count) - rrset->del_count);
-}
-
-
-/**
- * Add RR to RRset.
- *
- */
-int
-rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
-{
-    ldns_status status = LDNS_STATUS_OK;
-
-    if (!rr) {
-        ods_log_error("[%s] unable to add RR: no RR", rrset_str);
-        return 1;
-    }
-    ods_log_assert(rr);
-
-    if (!rrset) {
-        ods_log_error("[%s] unable to add RR: no storage", rrset_str);
-        return 1;
-    }
-    ods_log_assert(rrset);
-
-    if (rrset->rr_type != ldns_rr_get_type(rr)) {
-        ods_log_error("[%s] unable to add RR: RRtype mismatch", rrset_str);
-        return 1;
-    }
-
-    if (!rrset->add) {
-        rrset->add = ldns_dnssec_rrs_new();
-    }
-
-    if (!rrset->add->rr) {
-        rrset->add->rr = rr;
-        rrset->add_count = 1;
-        log_rr(rr, "+rr", 7);
-    } else {
-        status = util_dnssec_rrs_add_rr(rrset->add, rr);
-        if (status != LDNS_STATUS_OK) {
-            if (status == LDNS_STATUS_NO_DATA) {
-                ods_log_warning("[%s] unable to add RR to RRset (%i): "
-                      "duplicate", rrset_str, rrset->rr_type);
-                log_rr(rr, "+rr", 2);
-                return 0;
-            } else {
-                ods_log_error("[%s] unable to add RR to RRset (%i): %s",
-                    rrset_str, rrset->rr_type,
-                    ldns_get_errorstr_by_id(status));
-                log_rr(rr, "+rr", 1);
-                ldns_dnssec_rrs_deep_free(rrset->add);
-                rrset->add = NULL;
-                rrset->add_count = 0;
-                return 1;
-            }
-        }
-        rrset->add_count += 1;
-        log_rr(rr, "+rr", 7);
-    }
-    return 0;
-}
-
-
-/**
- * Delete RR from RRset.
- *
- */
-int
-rrset_del_rr(rrset_type* rrset, ldns_rr* rr)
-{
-    ldns_status status = LDNS_STATUS_OK;
-
-    if (!rr) {
-        ods_log_error("[%s] unable to delete RR: no RR", rrset_str);
-        return 1;
-    }
-    ods_log_assert(rr);
-
-    if (!rrset) {
-        ods_log_error("[%s] unable to delete RR: no storage", rrset_str);
-        return 1;
-    }
-    ods_log_assert(rrset);
-
-    if (rrset->rr_type != ldns_rr_get_type(rr)) {
-        ods_log_error("[%s] unable to delete RR: RRtype mismatch", rrset_str);
-        return 1;
-    }
-
-    if (!rrset->del) {
-        rrset->del = ldns_dnssec_rrs_new();
-    }
-
-    if (!rrset->del->rr) {
-        rrset->del->rr = rr;
-        rrset->del_count = 1;
-        log_rr(rr, "-rr", 7);
-    } else {
-        status = util_dnssec_rrs_add_rr(rrset->del, rr);
-        if (status != LDNS_STATUS_OK) {
-            if (status == LDNS_STATUS_NO_DATA) {
-                ods_log_warning("[%s] unable to delete RR from RRset (%i): "
-                    "duplicate", rrset_str, rrset->rr_type);
-                log_rr(rr, "-rr", 2);
-                return 0;
-            } else {
-                ods_log_error("[%s] unable to delete RR from RRset (%i): %s",
-                   rrset_str, rrset->rr_type,
-                   ldns_get_errorstr_by_id(status));
-                log_rr(rr, "-rr", 1);
-                ldns_dnssec_rrs_deep_free(rrset->del);
-                rrset->del = NULL;
-                rrset->del_count = 0;
-                return 1;
-            }
-        }
-        rrset->del_count += 1;
-        log_rr(rr, "-rr", 7);
-    }
-    return 0;
 }
 
 
@@ -702,60 +796,6 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
 
 
 /**
- * Set the inception and expiration values for int the RRSIG RDATA.
- *
- */
-static void
-rrset_sign_set_timers(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
-    time_t* inception, time_t* expiration)
-{
-    time_t jitter = 0;
-    time_t offset = 0;
-    time_t validity = 0;
-    time_t random_jitter = 0;
-
-    ods_log_assert(sc);
-    ods_log_assert(rrtype);
-    ods_log_assert(signtime);
-
-    jitter = duration2time(sc->sig_jitter);
-    if (jitter) {
-        random_jitter = ods_rand(jitter*2);
-    }
-    offset = duration2time(sc->sig_inception_offset);
-    if (rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {
-        validity = duration2time(sc->sig_validity_denial);
-    } else {
-        validity = duration2time(sc->sig_validity_default);
-    }
-
-    /**
-     * Additional check for signature lifetimes.
-     */
-    if (((validity + offset + random_jitter) - jitter) <
-        ((validity + offset) - jitter) ) {
-        ods_log_error("[%s] signature validity %u too low, should be at least %u",
-            rrset_str, ((validity + offset + random_jitter) - jitter),
-            ((validity + offset) - jitter));
-    } else if (((validity + offset + random_jitter) - jitter) >
-               ((validity + offset) + jitter) ) {
-        ods_log_error("[%s] signature validity %u too high, should be at most %u",
-            rrset_str, ((validity + offset + random_jitter) - jitter),
-            ((validity + offset) + jitter));
-    } else {
-        ods_log_debug("[%s] signature validity %u in range [%u - %u]", rrset_str,
-            ((validity + offset + random_jitter) - jitter),
-            ((validity + offset) - jitter),
-            ((validity + offset) + jitter));
-    }
-
-    *inception = signtime - offset;
-    *expiration = (signtime + validity + random_jitter) - jitter;
-    return;
-}
-
-
-/**
  * See if there exists a signature with this algorithm.
  *
  */
@@ -781,7 +821,7 @@ rrset_signed_with_algorithm(rrset_type* rrset, uint8_t algorithm)
 }
 
 /**
- * Convert RRset to RR list.
+ * Transmogrify the RRset to a RRlist.
  *
  */
 static ldns_rr_list*
@@ -807,6 +847,61 @@ rrset2rrlist(rrset_type* rrset)
         rrs = rrs->next;
     }
     return rr_list;
+}
+
+
+/**
+ * Calculate the signature validation period.
+ *
+ */
+static void
+rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
+    time_t* inception, time_t* expiration)
+{
+    time_t jitter = 0;
+    time_t offset = 0;
+    time_t validity = 0;
+    time_t random_jitter = 0;
+
+    if (!sc || !rrtype || !signtime) {
+        return;
+    }
+
+    jitter = duration2time(sc->sig_jitter);
+    if (jitter) {
+        random_jitter = ods_rand(jitter*2);
+    }
+    offset = duration2time(sc->sig_inception_offset);
+    if (rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {
+        validity = duration2time(sc->sig_validity_denial);
+    } else {
+        validity = duration2time(sc->sig_validity_default);
+    }
+
+    /**
+     * Additional check for signature lifetimes.
+     */
+    if (((validity + offset + random_jitter) - jitter) <
+        ((validity + offset) - jitter) ) {
+        ods_log_error("[%s] signature validity %u too low, should be at "
+            "least %u", rrset_str,
+            ((validity + offset + random_jitter) - jitter),
+            ((validity + offset) - jitter));
+    } else if (((validity + offset + random_jitter) - jitter) >
+               ((validity + offset) + jitter) ) {
+        ods_log_error("[%s] signature validity %u too high, should be at "
+            "most %u", rrset_str,
+            ((validity + offset + random_jitter) - jitter),
+            ((validity + offset) + jitter));
+    } else {
+        ods_log_debug("[%s] signature validity %u in range [%u - %u]",
+            rrset_str, ((validity + offset + random_jitter) - jitter),
+            ((validity + offset) - jitter),
+            ((validity + offset) + jitter));
+    }
+    *inception = signtime - offset;
+    *expiration = (signtime + validity + random_jitter) - jitter;
+    return;
 }
 
 
@@ -868,7 +963,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     if (!rrset->rrsigs) {
         rrset->rrsigs = rrsigs_create();
     }
-    rrset_sign_set_timers(sc, rrset->rr_type, signtime,
+    rrset_sigvalid_period(sc, rrset->rr_type, signtime,
          &inception, &expiration);
 
     key = sc->keys->first_key;
@@ -966,62 +1061,32 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
 
 
 /**
- * Delete all RRs from RRset.
- *
- */
-int
-rrset_del_rrs(rrset_type* rrset)
-{
-    ldns_dnssec_rrs* rrs = NULL;
-    ldns_rr* rr = NULL;
-
-    ods_log_assert(rrset);
-    if (!rrset->rrs) {
-        return 0;
-    }
-    if (!rrset->del) {
-        rrset->del = ldns_dnssec_rrs_new();
-    }
-    rrs = rrset->rrs;
-    while (rrs) {
-        if (rrs->rr) {
-            rr = ldns_rr_clone(rrs->rr);
-            if (rrset_del_rr(rrset, rr) != 0) {
-                return 1;
-            }
-        }
-        rrs = rrs->next;
-    }
-    return 0;
-}
-
-
-/**
  * Clean up RRset.
  *
  */
 void
 rrset_cleanup(rrset_type* rrset)
 {
-    if (rrset) {
-        if (rrset->rrs) {
-            ldns_dnssec_rrs_deep_free(rrset->rrs);
-            rrset->rrs = NULL;
-        }
-        if (rrset->add) {
-            ldns_dnssec_rrs_deep_free(rrset->add);
-            rrset->add = NULL;
-        }
-        if (rrset->del) {
-            ldns_dnssec_rrs_deep_free(rrset->del);
-            rrset->del = NULL;
-        }
-        if (rrset->rrsigs) {
-            rrsigs_cleanup(rrset->rrsigs);
-            rrset->rrsigs = NULL;
-        }
-        se_free((void*) rrset);
+    if (!rrset) {
+        return;
     }
+    if (rrset->rrs) {
+        ldns_dnssec_rrs_deep_free(rrset->rrs);
+        rrset->rrs = NULL;
+    }
+    if (rrset->add) {
+        ldns_dnssec_rrs_deep_free(rrset->add);
+        rrset->add = NULL;
+    }
+    if (rrset->del) {
+        ldns_dnssec_rrs_deep_free(rrset->del);
+        rrset->del = NULL;
+    }
+    if (rrset->rrsigs) {
+        rrsigs_cleanup(rrset->rrsigs);
+        rrset->rrsigs = NULL;
+    }
+    se_free((void*) rrset);
     return;
 }
 

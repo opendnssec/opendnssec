@@ -36,11 +36,16 @@
 
 #include "config.h"
 #include "shared/hsm.h"
+#include "shared/status.h"
 #include "signer/rrsigs.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
 
 #include <ldns/ldns.h>
+
+#define COUNT_RR  0
+#define COUNT_ADD 1
+#define COUNT_DEL 2
 
 typedef struct rrset_struct rrset_type;
 struct rrset_struct {
@@ -74,49 +79,6 @@ rrset_type* rrset_create(ldns_rr_type rrtype);
 rrset_type* rrset_create_frm_rr(ldns_rr* rr);
 
 /**
- * Update RRset with pending changes.
- * \param[in] rrset RRset
- * \param[in] serial version to update to
- * \return int 0 on success, 1 on error
- *
- */
-int rrset_update(rrset_type* rrset, uint32_t serial);
-
-/**
- * Examine NS RRset and verify its RDATA.
- * \param[in] rrset NS RRset
- * \param[in] nsdname domain name that should match NS RDATA
- * \return int 0 if nsdame exists as NS RDATA, 1 otherwise
- *
- */
-int rrset_examine_ns_rdata(rrset_type* rrset, ldns_rdf* nsdname);
-
-/**
- * Cancel update.
- * \param[in] rrset RRset
- *
- */
-void rrset_cancel_update(rrset_type* rrset);
-
-/**
- * Add RR to RRset.
- * \param[in] rrset RRset
- * \param[in] rr RR
- * \return int 0 on success, 1 on error
- *
- */
-int rrset_add_rr(rrset_type* rrset, ldns_rr* rr);
-
-/**
- * Delete RR from RRset.
- * \param[in] rrset RRset
- * \param[in] rr RR
- * \return int 0 on success, 1 on error
- *
- */
-int rrset_del_rr(rrset_type* rrset, ldns_rr* rr);
-
-/**
  * Recover RR from backup.
  * \param[in] rrset RRset
  * \param[in] rr RR
@@ -138,34 +100,13 @@ int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
     const char* locator, uint32_t flags);
 
 /**
- * Sign RRset.
- * \param[in] ctx HSM context
+ * Count the number of RRs in this RRset.
  * \param[in] rrset RRset
- * \param[in] owner owner of the zone
- * \param[in] sc sign configuration
- * \param[in] signtime time when the zone is signd
- * \param[out] stats update statistics
- * \return int 0 on success, 1 on error
+ * \param[in] which which RRset to be counted
+ * \return size_t number of RRs
  *
  */
-int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime, stats_type* stats);
-
-/**
- * Delete all RRs from RRset.
- * \param[in] rrset RRset
- * \return int 0 on success, 1 on error
- *
- */
-int rrset_del_rrs(rrset_type* rrset);
-
-/**
- * Return the number of RRs in RRset.
- * \param[in] rrset RRset
- * \return int number of RRs
- *
- */
-int rrset_count_rr(rrset_type* rrset);
+size_t rrset_count_rr(rrset_type* rrset, int which);
 
 /**
  * Return the number of pending added RRs in RRset.
@@ -190,6 +131,72 @@ int rrset_count_del(rrset_type* rrset);
  *
  */
 int rrset_count_RR(rrset_type* rrset);
+
+
+/**
+ * Add RR to RRset.
+ * \param[in] rrset RRset
+ * \param[in] rr RR
+ * \return ldns_rr* added RR
+ *
+ */
+ldns_rr* rrset_add_rr(rrset_type* rrset, ldns_rr* rr);
+
+/**
+ * Delete RR from RRset.
+ * \param[in] rrset RRset
+ * \param[in] rr RR
+ * \param[in] dupallowed if true, allow duplicate deletions
+ * \return ldns_rr* RR if failed
+ *
+ */
+ldns_rr* rrset_del_rr(rrset_type* rrset, ldns_rr* rr, int dupallowed);
+
+/**
+ * Wipe out current RRs in RRset.
+ * \param[in] rrset RRset
+ * \return ods_status status
+ *
+ */
+ods_status rrset_wipe_out(rrset_type* rrset);
+
+/**
+ * Commit updates from RRset.
+ * \param[in] rrset RRset
+ * \return ods_status status
+ *
+ */
+ods_status rrset_commit(rrset_type* rrset);
+
+/**
+ * Rollback updates from RRset.
+ * \param[in] rrset RRset
+ *
+ */
+void rrset_rollback(rrset_type* rrset);
+
+/**
+ * Sign RRset.
+ * \param[in] ctx HSM context
+ * \param[in] rrset RRset
+ * \param[in] owner owner of the zone
+ * \param[in] sc sign configuration
+ * \param[in] signtime time when the zone is signd
+ * \param[out] stats update statistics
+ * \return int 0 on success, 1 on error
+ *
+ */
+int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
+    signconf_type* sc, time_t signtime, stats_type* stats);
+
+/**
+ * Examine NS RRset and verify its RDATA.
+ * \param[in] rrset NS RRset
+ * \param[in] nsdname domain name that should match NS RDATA
+ * \return int 0 if nsdame exists as NS RDATA, 1 otherwise
+ *
+ */
+int rrset_examine_ns_rdata(rrset_type* rrset, ldns_rdf* nsdname);
 
 /**
  * Clean up RRset.
