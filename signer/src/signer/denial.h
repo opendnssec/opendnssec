@@ -66,7 +66,7 @@ struct denial_struct {
 denial_type* denial_create(ldns_rdf* owner);
 
 /**
- * Add NSEC or NSEC3 to the Denial of Existence data point.
+ * Add NSEC to the Denial of Existence data point.
  * \param[in] denial Denial of Existence data point
  * \param[in] nxt next Denial of Existence data point
  * \param[in] ttl ttl
@@ -76,6 +76,19 @@ denial_type* denial_create(ldns_rdf* owner);
  */
 ods_status denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t ttl,
     ldns_rr_class klass);
+
+/**
+ * Add NSEC3 to the Denial of Existence data point.
+ * \param[in] denial Denial of Existence data point
+ * \param[in] nxt next Denial of Existence data point
+ * \param[in] ttl ttl
+ * \param[in] klass class
+ * \param[in] nsec3params NSEC3 parameters
+ * \return ods_status status
+ *
+ */
+ods_status denial_nsecify3(denial_type* denial, denial_type* nxt, uint32_t ttl,
+    ldns_rr_class klass, nsec3params_type* nsec3params);
 
 /**
  * Clean up Denial of Existence data point.
