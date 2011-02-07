@@ -275,16 +275,31 @@ domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover)
 
 
 /**
- * Return the number of RRsets at this domain.
+ * Count the number of RRsets at this domain.
  *
  */
-int domain_count_rrset(domain_type* domain)
+size_t
+domain_count_rrset(domain_type* domain)
 {
-    ods_log_assert(domain);
-    if (!domain->rrsets) {
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    rrset_type* rrset = NULL;
+    size_t count = 0;
+
+    if (!domain || !domain->rrsets) {
         return 0;
     }
-    return domain->rrsets->count;
+
+    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(domain->rrsets);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        rrset = (rrset_type*) node->data;
+        if (rrset_count_rr(rrset, COUNT_RR) > 0) {
+            count++;
+        }
+        node = ldns_rbtree_next(node);
+    }
+    return count;
 }
 
 

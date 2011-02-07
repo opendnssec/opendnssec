@@ -67,18 +67,28 @@
  */
 typedef struct domain_struct domain_type;
 struct domain_struct {
+    /* General domain info */
     ldns_rdf* dname;
+    domain_status dstatus;
+    allocator_type* allocator;
+
+    /* Family */
     domain_type* parent;
+
+    /* Denial of Existence */
+    denial_type* denial;
+ 
     domain_type* nsec3;
-    ldns_rbtree_t* rrsets;
     rrset_type* nsec_rrset;
     size_t subdomain_count;
     size_t subdomain_auth;
-    int dstatus;
     uint32_t internal_serial;
     uint32_t outbound_serial;
     uint8_t nsec_bitmap_changed;
     uint8_t nsec_nxt_changed;
+
+    /* RRsets */
+    ldns_rbtree_t* rrsets;
 };
 
 /**
@@ -98,16 +108,24 @@ domain_type* domain_create(ldns_rdf* dname);
 domain_type* domain_recover_from_backup(FILE* fd);
 
 /**
- * Lookup a RRset within the domain.
+ * Count the number of RRsets at this domain.
  * \param[in] domain domain
- * \param[in] type RRtype to look for
- * \return rrset_type* RRset if found
+ * \return size_t number of RRsets
+ *
+ */
+size_t domain_count_rrset(domain_type* domain);
+
+/**
+ * Look up RRset at this domain.
+ * \param[in] domain the domain
+ * \param[in] rrtype RRtype
+ * \return rrset_type* RRset, if found
  *
  */
 rrset_type* domain_lookup_rrset(domain_type* domain, ldns_rr_type type);
 
 /**
- * Add a RRset to the domain.
+ * Add RRset to domain.
  * \param[in] domain domain
  * \param[in] rrset RRset
  * \param[in] recover if true, don't update domain status
@@ -117,7 +135,7 @@ rrset_type* domain_lookup_rrset(domain_type* domain, ldns_rr_type type);
 rrset_type* domain_add_rrset(domain_type* domain, rrset_type* rrset, int recover);
 
 /**
- * Delete a RRset from the domain.
+ * Delete RRset from domain.
  * \param[in] domain domain
  * \param[in] rrset RRset
  * \param[in] recover if true, don't update domain status
@@ -125,14 +143,6 @@ rrset_type* domain_add_rrset(domain_type* domain, rrset_type* rrset, int recover
  *
  */
 rrset_type* domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover);
-
-/**
- * Return the number of RRsets at this domain.
- * \param[in] domain domain
- * \return int number of RRsets at domain
- *
- */
-int domain_count_rrset(domain_type* domain);
 
 /**
  * Examine domain and verify if data exists.
@@ -301,8 +311,8 @@ void domain_cleanup(domain_type* domain);
 
 /**
  * Print domain.
- * \param[in] out file descriptor
- * \param[in] domain domain to print
+ * \param[in] fd output file descriptor
+ * \param[in] domain domain
  *
  */
 void domain_print(FILE* fd, domain_type* domain);
