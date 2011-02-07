@@ -104,7 +104,7 @@ tools_input(zone_type* zone)
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
     } else {
-        zonedata_cancel_update(zone->zonedata);
+        zonedata_rollback(zone->zonedata);
         status = ODS_STATUS_ERR;
     }
     return status;
