@@ -116,15 +116,6 @@ keylist_type* keylist_create(allocator_type* allocator);
 ods_status keylist_push(keylist_type* kl, key_type* key);
 
 /**
- * Compare two key references.
- * \param[in] a one key
- * \param[in] b another key
- * \return 0 on equal, -1 if a a < b, 1 if a > b.
- *
- */
-int key_compare(key_type* a, key_type* b);
-
-/**
  * Lookup a key in the key list by locator.
  * \param[in] kl key list
  * \param[in] locator  key locator
@@ -133,24 +124,14 @@ int key_compare(key_type* a, key_type* b);
  */
 key_type* keylist_lookup(keylist_type* kl, const char* locator);
 
-
 /**
- * Delete a key from the keylist.
+ * Lookup a key in the key list by dnskey.
  * \param[in] kl key list
- * \param[in] key key
- * \return int 0 on success, 1 on error
+ * \param[in] dnskey dnskey
+ * \return key_type* key if it exists, NULL otherwise
  *
  */
-int keylist_delete(keylist_type* kl, key_type* key);
-
-/**
- * Compare two key lists.
- * \param[in] a one key list
- * \param[in] b another key list
- * \return 0 on equal, -1 if a a < b, 1 if a > b.
- *
- */
-int keylist_compare(keylist_type* a, keylist_type* b);
+key_type* keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey);
 
 /**
  * Clean up key list.

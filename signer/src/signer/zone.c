@@ -206,7 +206,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
             return ODS_STATUS_MALLOC_ERR;
         }
         denial_what = signconf_compare_denial(zone->signconf, signconf);
-        keys_what = signconf_compare_keys(zone->signconf, signconf);
+        keys_what = signconf_compare_keys(zone->signconf, signconf, del);
 
         /* Key Rollover? */
         if (keys_what == TASK_READ) {

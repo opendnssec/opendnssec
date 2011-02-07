@@ -132,10 +132,12 @@ task_id signconf_compare_denial(signconf_type* a, signconf_type* b);
  * Compare signer configurations on key material.
  * \param[in] a a signer configuration
  * \param[in] b another signer configuration
+ * \param[out] del list of DNSKEY RRs that have to be removed
  * \return task_id what task needs to be scheduled
  *
  */
-task_id signconf_compare_keys(signconf_type* a, signconf_type* b);
+task_id signconf_compare_keys(signconf_type* a, signconf_type* b,
+    ldns_rr_list* del);
 
 /**
  * Compare signer configurations.

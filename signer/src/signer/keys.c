@@ -252,61 +252,6 @@ keylist_push(keylist_type* kl, key_type* key)
 
 
 /**
- * Compare two key references.
- *
- */
-int
-key_compare(key_type* a, key_type* b)
-{
-    if (!a && !b) {
-        return 0;
-    }
-    if (!a || !b) {
-        return -1;
-    }
-    ods_log_assert(a);
-    ods_log_assert(b);
-    return ods_strcmp(a->locator, b->locator);
-}
-
-
-/**
- * Delete a key from the keylist.
- *
- */
-int
-keylist_delete(keylist_type* kl, key_type* key)
-{
-    key_type* walk = NULL, *prev = NULL;
-
-    ods_log_assert(kl);
-    ods_log_assert(key);
-    ods_log_debug("[%s] delete key locator %s", key_str,
-        key->locator?key->locator:"(null)");
-
-    walk = kl->first_key;
-    while (walk) {
-        if (key_compare(walk, key) == 0) {
-            key->next = walk->next;
-            if (!prev) {
-                kl->first_key = key;
-            } else {
-                prev->next = key;
-            }
-            kl->count -= 1;
-            return 0;
-        }
-        prev = walk;
-        walk = walk->next;
-    }
-
-    ods_log_error("[%s] key locator %s not found in list",
-        key_str, key->locator?key->locator:"(null)");
-    return 1;
-}
-
-
-/**
  * Lookup a key in the key list by locator.
  *
  */
@@ -322,7 +267,7 @@ keylist_lookup(keylist_type* list, const char* locator)
 
     search = list->first_key;
     for (i=0; i < list->count; i++) {
-        if (search) {
+        if (search && search->locator) {
             if (ods_strcmp(search->locator, locator) == 0) {
                 return search;
             }
@@ -336,68 +281,31 @@ keylist_lookup(keylist_type* list, const char* locator)
 
 
 /**
- * Compare two key lists.
+ * Lookup a key in the key list by dnskey.
  *
  */
-int
-keylist_compare(keylist_type* a, keylist_type* b)
+key_type*
+keylist_lookup_by_dnskey(keylist_type* list, ldns_rr* dnskey)
 {
-    key_type* ka, *kb;
-    int ret = 0;
+    key_type* search = NULL;
     size_t i = 0;
 
-    if (!a && !b) {
-        return 0;
-    }
-    if (!a || !b) {
-        return -1;
-    }
-    ods_log_assert(a);
-    ods_log_assert(b);
-
-    if (a->count != b->count) {
-        return a->count - b->count;
+    if (!list || !dnskey) {
+        return NULL;
     }
 
-    ka = a->first_key;
-    kb = b->first_key;
-    for (i=0; i < a->count; i++) {
-        if (!ka && !kb) {
-            ods_log_warning("[%s] neither key a[%i] or key b[%i] exist",
-                key_str, i, i);
-            return 0;
-        }
-        if (!ka) {
-            ods_log_warning("[%s] key a[%i] does not exist", key_str, i);
-            return -1;
-        }
-        if (!kb) {
-            ods_log_warning("key b[%i] does not exist", i);
-            return -1;
-        }
-        ret = key_compare(ka, kb);
-        if (ret == 0) {
-            ret = ka->algorithm - kb->algorithm;
-            if (ret == 0) {
-                 ret = ka->flags - kb->flags;
-                 if (ret == 0) {
-                     ret = ka->publish - kb->publish;
-                     if (ret == 0) {
-                         ret = ka->ksk - kb->ksk;
-                         if (ret == 0) {
-                             ret = ka->zsk - kb->zsk;
-                         }
-                     }
-                 }
+    search = list->first_key;
+    for (i=0; i < list->count; i++) {
+        if (search && search->dnskey) {
+            if (ldns_rr_compare(search->dnskey, dnskey) == 0) {
+                return search;
             }
+            search = search->next;
+        } else {
+            break;
         }
-        if (ret != 0) {
-            return ret;
-        }
-        ka = ka->next;
-        kb = kb->next;
     }
-    return 0;
+    return NULL;
 }
 
 

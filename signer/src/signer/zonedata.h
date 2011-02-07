@@ -39,6 +39,7 @@
 #include "shared/allocator.h"
 #include "shared/status.h"
 #include "signer/domain.h"
+#include "signer/keys.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
 #include "signer/nsec3params.h"
@@ -175,6 +176,15 @@ ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
  */
 int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     stats_type* stats);
+
+/**
+ * Calculate differences at the zonedata between current and new RRsets.
+ * \param[in] zd zone data
+ * \param[in] kl current key list
+ * \return ods_status status
+ *
+ */
+ods_status zonedata_diff(zonedata_type* zd, keylist_type* kl);
 
 /**
  * Commit updates to zone data.

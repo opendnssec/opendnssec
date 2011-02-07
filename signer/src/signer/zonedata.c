@@ -529,6 +529,35 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
 
 
 /**
+ * Calculate differences at the zonedata between current and new RRsets.
+ *
+ */
+ods_status
+zonedata_diff(zonedata_type* zd, keylist_type* kl)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!zd || !zd->domains) {
+        return status;
+    }
+    if (zd->domains->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(zd->domains);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        status = domain_diff(domain, kl);
+        if (status != ODS_STATUS_OK) {
+            return status;
+        }
+        node = ldns_rbtree_next(node);
+    }
+    return status;
+}
+
+
+/**
  * Commit updates to zone data.
  *
  */

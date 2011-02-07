@@ -39,7 +39,6 @@
 #include "signer/backup.h"
 #include "signer/domain.h"
 #include "signer/rrset.h"
-#include "util/log.h"
 #include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
@@ -313,6 +312,41 @@ domain_count_rrset(domain_type* domain)
         node = ldns_rbtree_next(node);
     }
     return count;
+}
+
+
+/**
+ * Calculate differences at this domain between current and new RRsets.
+ *
+ */
+ods_status
+domain_diff(domain_type* domain, keylist_type* kl)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    rrset_type* rrset = NULL;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!domain || !domain->rrsets) {
+        return status;
+    }
+    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(domain->rrsets);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        rrset = (rrset_type*) node->data;
+        /* special cases */
+        if (rrset->rr_type == LDNS_RR_TYPE_NSEC3PARAMS) {
+            node = ldns_rbtree_next(node);
+            continue;
+        }
+        /* normal cases */
+        status = rrset_diff(rrset, kl);
+        if (status != ODS_STATUS_OK) {
+            return status;
+        }
+        node = ldns_rbtree_next(node);
+    }
+    return status;
 }
 
 

@@ -439,6 +439,112 @@ rrset_wipe_out(rrset_type* rrset)
 
 
 /**
+ * Calculate differences between the current RRset and the pending new one.
+ *
+ */
+ods_status
+rrset_diff(rrset_type* rrset, keylist_type* kl)
+{
+    ods_status status = ODS_STATUS_OK;
+    ldns_status lstatus = LDNS_STATUS_OK;
+    ldns_dnssec_rrs* current = NULL;
+    ldns_dnssec_rrs* pending = NULL;
+    ldns_dnssec_rrs* prev = NULL;
+    ldns_rr* rr = NULL;
+    int cmp = 0;
+
+    if (!rrset) {
+        return status;
+    }
+
+    current = rrset->rrs;
+    pending = rrset->add;
+
+    if (!current || !current->rr) {
+        current = NULL;
+    }
+    if (!pending || !pending->rr) {
+        pending = NULL;
+    }
+
+    while (current && pending) {
+        lstatus = util_dnssec_rrs_compare(current->rr, pending->rr, &cmp);
+        if (lstatus != LDNS_STATUS_OK) {
+                ods_log_error("[%s] diff failed: compare failed (%s)",
+                    rrset_str, ldns_get_errorstr_by_id(lstatus));
+                return ODS_STATUS_ERR;
+        }
+
+        if (cmp > 0) {
+            prev = pending;
+            pending = pending->next;
+        } else if (cmp < 0) {
+            /* pend current RR to be removed */
+            if (rrset->rr_type != LDNS_RR_TYPE_DNSKEY ||
+                !keylist_lookup_by_dnskey(kl, current->rr)) {
+
+                rr = ldns_rr_clone(current->rr);
+                rr = rrset_del_rr(rrset, rr,
+                    (ldns_rr_get_type(rr) == LDNS_RR_TYPE_DNSKEY));
+                if (!rr) {
+                    ods_log_error("[%s] diff failed: failed to delete RR",
+                        rrset_str);
+                    return ODS_STATUS_ERR;
+                }
+            }
+
+            current = current->next;
+        } else { /* equal RRs */
+            /* remove pending RR */
+            if (!prev) {
+                rrset->add = pending->next;
+            } else {
+                prev->next = pending->next;
+            }
+            pending->next = NULL;
+            rrset->add_count -= 1;
+
+            ldns_dnssec_rrs_deep_free(pending);
+            pending = NULL;
+
+            current = current->next;
+            if (!prev) {
+                pending = rrset->add;
+            } else {
+                pending = prev->next;
+            }
+        }
+    }
+
+    if (pending) {
+        ods_log_assert(!current);
+        /* all newly added RRs */
+    }
+
+    if (current) {
+        ods_log_assert(!pending);
+        while (current) {
+            /* pend current RR to be removed */
+            if (rrset->rr_type != LDNS_RR_TYPE_DNSKEY ||
+                !keylist_lookup_by_dnskey(kl, current->rr)) {
+
+                rr = ldns_rr_clone(current->rr);
+                rr = rrset_del_rr(rrset, rr,
+                    (ldns_rr_get_type(rr) == LDNS_RR_TYPE_DNSKEY));
+                if (!rr) {
+                    ods_log_error("[%s] diff failed: failed to delete RR",
+                        rrset_str);
+                    return ODS_STATUS_ERR;
+                }
+            }
+            current = current->next;
+        }
+    }
+    return ODS_STATUS_OK;
+}
+
+
+/**
  * Commit deletion.
  *
  */

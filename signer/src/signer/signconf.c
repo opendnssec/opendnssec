@@ -36,8 +36,10 @@
 #include "scheduler/task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/hsm.h"
 #include "shared/log.h"
 #include "signer/backup.h"
+#include "shared/status.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"
 
@@ -481,18 +483,99 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
  *
  */
 task_id
-signconf_compare_keys(signconf_type* a, signconf_type* b)
+signconf_compare_keys(signconf_type* a, signconf_type* b, ldns_rr_list* del)
 {
    task_id new_task = TASK_NONE;
-   if (!a || !b) {
-       return TASK_NONE;
-   }
-   ods_log_assert(a);
-   ods_log_assert(b);
+    ods_status status = ODS_STATUS_OK;
+    key_type* walk = NULL;
+    key_type* ka = NULL;
+    key_type* kb = NULL;
+    int remove = 0;
+    int copy = 0;
 
-   if (keylist_compare(a->keys, b->keys) != 0) {
-       new_task = TASK_READ;
-   }
+    if (!a || !b) {
+       return TASK_NONE;
+    }
+    ods_log_assert(a);
+    ods_log_assert(b);
+
+    /* keys deleted? */
+    if (a->keys) {
+        walk = a->keys->first_key;
+    }
+    while (walk && walk->locator) {
+        remove = 0;
+        copy = 0;
+
+        kb = keylist_lookup(b->keys, walk->locator);
+        if (!kb) {
+            remove = 1; /* [DEL] key removed from signconf */
+        } else {
+            if (walk->flags != kb->flags) {
+                remove = 1; /* [DEL] consider to be different key */
+            } else if (walk->algorithm != kb->algorithm) {
+                remove = 1; /* [DEL] consider to be different key */
+            } else if (walk->publish != kb->publish) {
+                if (walk->publish) {
+                    remove = 1; /* [DEL] withdraw dnskey from zone */
+                } else {
+                    new_task = TASK_READ; /* [ADD] introduce key to zone */
+                }
+            } else if (walk->ksk != kb->ksk) {
+                copy = 1; /* [UNCHANGED] same key, different role */
+            } else if (walk->zsk != kb->zsk) {
+                copy = 1; /* [UNCHANGED] same key, different role */
+            } else {
+                /* [UNCHANGED] identical key credentials */
+                copy = 1;
+            }
+        }
+
+        if (remove) {
+            new_task = TASK_READ;
+            if (del && walk->dnskey) {
+                if (!ldns_rr_list_push_rr(del, walk->dnskey)) {
+                    ods_log_error("[%s] del key failed", sc_str);
+                    new_task = TASK_SIGNCONF;
+                    break;
+                }
+            }
+        } else if (copy) {
+            if (walk->dnskey && !kb->dnskey) {
+                kb->dnskey = walk->dnskey;
+                kb->hsmkey = walk->hsmkey;
+                status = lhsm_get_key(NULL, ldns_rr_owner(walk->dnskey), kb);
+                walk->hsmkey = NULL;
+                walk->dnskey = NULL;
+            }
+            if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s] copy key failed", sc_str);
+                new_task = TASK_SIGNCONF;
+                break;
+            }
+        }
+        walk = walk->next;
+    }
+
+    if (new_task == TASK_NONE) {
+        /* no error and no keys were deleted, perhaps keys were added */
+        walk = NULL;
+        if (b->keys) {
+            walk = b->keys->first_key;
+        }
+        while (walk) {
+            ka = keylist_lookup(a->keys, walk->locator);
+            if (!ka) {
+                new_task = TASK_READ; /* [ADD] key added to signconf */
+                break;
+            }
+            /**
+             * Keys in ka and kb with the same locator, have been
+             * compared when checking for deleted keys.
+             */
+            walk = walk->next;
+        }
+    }
    return new_task;
 }
 
@@ -508,7 +591,7 @@ signconf_compare(signconf_type* a, signconf_type* b)
     task_id tmp_task = TASK_NONE;
 
     new_task = signconf_compare_denial(a, b);
-    tmp_task = signconf_compare_keys(a, b);
+    tmp_task = signconf_compare_keys(a, b, NULL);
     if (tmp_task != TASK_NONE) {
         new_task = tmp_task;
     }

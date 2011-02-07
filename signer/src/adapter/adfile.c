@@ -409,7 +409,8 @@ adfile_read(struct zone_struct* zone, const char* filename)
         ods_log_error("[%s] read zone %s from file %s failed: %s",
          adapter_str, adzone->name, filename, ods_status2str(status));
     } else {
-        /* remove current rrs */
+        /* wipe out current records? */
+        status = zonedata_diff(adzone->zonedata, adzone->signconf->keys);
     }
     return status;
 }
@@ -446,7 +447,7 @@ adfile_write(struct zone_struct* zone, const char* filename)
 
     fd = ods_fopen(filename, NULL, "w");
     if (fd) {
-        zonedata_print(fd, adzone->zonedata);
+        status = zonedata_print(fd, adzone->zonedata);
         ods_fclose(fd);
     } else {
         status = ODS_STATUS_FOPEN_ERR;
