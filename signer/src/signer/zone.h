@@ -154,14 +154,6 @@ int zone_add_rr(zone_type* zone, ldns_rr* rr, int recover);
 int zone_del_rr(zone_type* zone, ldns_rr* rr);
 
 /**
- * Nsecify zone.
- * \param[in] zone zone to nsecify
- * \return int 0 on success, 1 on error
- *
- */
-int zone_nsecify(zone_type* zone);
-
-/**
  * Sign zone.
  * \param[in] zone zone to sign
  * \return int 0 on success, 1 on error
