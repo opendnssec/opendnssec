@@ -83,6 +83,7 @@ zonedata_create(allocator_type* allocator)
     ods_log_assert(zd);
 
     zd->domains = ldns_rbtree_create(domain_compare);
+    zd->denial_chain = ldns_rbtree_create(domain_compare);
     zd->initialized = 0;
     zd->nsec3_domains = NULL;
     zd->inbound_serial = 0;
@@ -93,22 +94,7 @@ zonedata_create(allocator_type* allocator)
 }
 
 
-/**
- * Convert a domain to a tree node.
- *
- */
-static ldns_rbnode_t*
-domain2node(domain_type* domain)
-{
-    ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
-    if (!node) {
-        return NULL;
-    }
-    node->key = domain->dname;
-    node->data = domain;
-    return node;
-}
-
+static ldns_rbnode_t* domain2node(domain_type* domain);
 
 /**
  * Recover zone data from backup.
@@ -239,6 +225,23 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
     }
 
     return corrupted;
+}
+
+
+/**
+ * Convert a domain to a tree node.
+ *
+ */
+static ldns_rbnode_t*
+domain2node(domain_type* domain)
+{
+    ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
+    if (!node) {
+        return NULL;
+    }
+    node->key = domain->dname;
+    node->data = domain;
+    return node;
 }
 
 
@@ -384,7 +387,7 @@ zonedata_add_domain(zonedata_type* zd, domain_type* domain)
         str = ldns_rdf2str(domain->dname);
         ods_log_error("[%s] unable to add domain %s: no storage", zd_str,
             str?str:"(null)");
-        free(str);
+        free((void*)str);
         return NULL;
     }
     ods_log_assert(zd);
@@ -525,6 +528,287 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
     }
     free((void*) str);
     return zonedata_del_domain_fixup(zd->domains, domain);
+}
+
+
+/**
+ * Convert a denial of existence data point to a tree node.
+ *
+ */
+static ldns_rbnode_t*
+denial2node(denial_type* denial)
+{
+    ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
+    if (!node) {
+        return NULL;
+    }
+    node->key = denial->owner;
+    node->data = denial;
+    return node;
+}
+
+
+/**
+ * Internal function to lookup denial of existence data point.
+ *
+ */
+static denial_type*
+zonedata_denial_search(ldns_rbtree_t* tree, ldns_rdf* dname)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+
+    if (!tree || !dname) {
+        return NULL;
+    }
+    node = ldns_rbtree_search(tree, dname);
+    if (node && node != LDNS_RBTREE_NULL) {
+        return (denial_type*) node->data;
+    }
+    return NULL;
+}
+
+
+/**
+ * Lookup denial of existence data point.
+ *
+ */
+denial_type*
+zonedata_lookup_denial(zonedata_type* zd, ldns_rdf* dname)
+{
+    if (!zd || !zd->denial_chain | !dname) {
+        return NULL;
+    }
+    return zonedata_denial_search(zd->denial_chain, dname);
+}
+
+
+/**
+ * Provide domain with NSEC3 hashed domain.
+ *
+ */
+static ldns_rdf*
+dname_hash(ldns_rdf* dname, ldns_rdf* apex, nsec3params_type* nsec3params)
+{
+    ldns_rdf* hashed_ownername = NULL;
+    ldns_rdf* hashed_label = NULL;
+    char* str = NULL;
+
+    ods_log_assert(dname);
+    ods_log_assert(apex);
+    ods_log_assert(nsec3params);
+
+    /**
+     * The owner name of the NSEC3 RR is the hash of the original owner
+     * name, prepended as a single label to the zone name.
+     */
+    hashed_label = ldns_nsec3_hash_name(dname, nsec3params->algorithm,
+        nsec3params->iterations, nsec3params->salt_len,
+        nsec3params->salt_data);
+    if (!hashed_label) {
+        str = ldns_rdf2str(dname);
+        ods_log_error("[%s] unable to hash dname %s: hash failed", zd_str,
+            str?str:"(null)");
+        free((void*)str);
+        return NULL;
+    }
+    hashed_ownername = ldns_dname_cat_clone((const ldns_rdf*) hashed_label,
+        (const ldns_rdf*) apex);
+    if (!hashed_ownername) {
+        str = ldns_rdf2str(dname);
+        ods_log_error("[%s] unable to hash dname %s: concat apex failed",
+            zd_str, str?str:"(null)");
+        free((void*)str);
+        return NULL;
+    }
+    ldns_rdf_deep_free(hashed_label);
+    return hashed_ownername;
+}
+
+
+/**
+ * Add denial of existence data point to the zone data.
+ *
+ */
+ods_status
+zonedata_add_denial(zonedata_type* zd, domain_type* domain, ldns_rdf* apex,
+    nsec3params_type* nsec3params)
+{
+    ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* prev_node = LDNS_RBTREE_NULL;
+    ldns_rdf* owner = NULL;
+    denial_type* denial = NULL;
+    denial_type* prev_denial = NULL;
+    char* str = NULL;
+
+    if (!domain) {
+        ods_log_error("[%s] unable to add denial of existence data point: "
+            "no domain", zd_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(domain);
+
+    if (!zd || !zd->denial_chain) {
+        str = ldns_rdf2str(domain->dname);
+        ods_log_error("[%s] unable to add denial of existence data point "
+            "for domain %s: no denial chain", zd_str, str?str:"(null)");
+        free((void*)str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zd);
+    ods_log_assert(zd->denial_chain);
+
+    if (!apex) {
+        str = ldns_rdf2str(domain->dname);
+        ods_log_error("[%s] unable to add denial of existence data point "
+            "for domain %s: apex unknown", zd_str, str?str:"(null)");
+        free((void*)str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(apex);
+
+    /* nsec or nsec3 */
+    if (nsec3params) {
+        owner = dname_hash(domain->dname, apex, nsec3params);
+        if (!owner) {
+            str = ldns_rdf2str(domain->dname);
+            ods_log_error("[%s] unable to add denial of existence data point "
+                "for domain %s: dname hash failed", zd_str, str?str:"(null)");
+            free((void*)str);
+            return ODS_STATUS_ERR;
+        }
+    } else {
+        owner = ldns_rdf_clone(domain->dname);
+    }
+    /* lookup */
+    if (zonedata_lookup_denial(zd, owner) != NULL) {
+        str = ldns_rdf2str(domain->dname);
+        ods_log_error("[%s] unable to add denial of existence for %s: "
+            "data point exists", zd_str, str?str:"(null)");
+        free((void*)str);
+        return ODS_STATUS_CONFLICT_ERR;
+    }
+    /* create */
+    denial = denial_create(owner);
+    new_node = denial2node(denial);
+    ldns_rdf_deep_free(owner);
+    /* insert */
+    if (!ldns_rbtree_insert(zd->denial_chain, new_node)) {
+        str = ldns_rdf2str(domain->dname);
+        ods_log_error("[%s] unable to add denial of existence for %s: "
+            "insert failed", zd_str, str?str:"(null)");
+        free((void*)str);
+        free((void*)new_node);
+        denial_cleanup(denial);
+        return ODS_STATUS_ERR;
+    }
+    /* denial of existence data point added */
+    denial->bitmap_changed = 1;
+    denial->nxt_changed = 1;
+    prev_node = ldns_rbtree_previous(new_node);
+    if (!prev_node || prev_node == LDNS_RBTREE_NULL) {
+        prev_node = ldns_rbtree_last(zd->denial_chain);
+    }
+    ods_log_assert(prev_node);
+    prev_denial = (denial_type*) prev_node->data;
+    ods_log_assert(prev_denial);
+    prev_denial->nxt_changed = 1;
+    domain->denial = denial;
+    domain->denial->domain = domain; /* back reference */
+    return ODS_STATUS_OK;
+}
+
+
+/**
+ * Internal delete denial function.
+ *
+ */
+static denial_type*
+zonedata_del_denial_fixup(ldns_rbtree_t* tree, denial_type* denial)
+{
+    denial_type* del_denial = NULL;
+    denial_type* prev_denial = NULL;
+    ldns_rbnode_t* prev_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
+    ods_status status = ODS_STATUS_OK;
+    char* str = NULL;
+
+    ods_log_assert(tree);
+    ods_log_assert(denial);
+    ods_log_assert(denial->owner);
+
+    del_node = ldns_rbtree_search(tree, (const void*)denial->owner);
+    if (del_node) {
+        /**
+         * [CALC] if domain removed, mark previous domain NSEC(3) nxt changed.
+         *
+         */
+        prev_node = ldns_rbtree_previous(del_node);
+        if (!prev_node || prev_node == LDNS_RBTREE_NULL) {
+            prev_node = ldns_rbtree_last(tree);
+        }
+        ods_log_assert(prev_node);
+        ods_log_assert(prev_node->data);
+        prev_denial = (denial_type*) prev_node->data;
+        prev_denial->nxt_changed = 1;
+
+        /* delete old NSEC RR(s) */
+        if (denial->rrset) {
+            status = rrset_wipe_out(denial->rrset);
+            if (status != ODS_STATUS_OK) {
+                ods_log_alert("[%s] unable to del denial of existence data "
+                    "point: failed to wipe out NSEC RRset", zd_str);
+                return denial;
+            }
+            rrset_commit(denial->rrset);
+            if (status != ODS_STATUS_OK) {
+                ods_log_alert("[%s] unable to del denial of existence data "
+                    "point: failed to commit NSEC RRset", zd_str);
+                return denial;
+            }
+        }
+
+        del_node = ldns_rbtree_delete(tree, (const void*)denial->owner);
+        del_denial = (denial_type*) del_node->data;
+        denial_cleanup(del_denial);
+        free((void*)del_node);
+        return NULL;
+    } else {
+        str = ldns_rdf2str(denial->owner);
+        ods_log_error("[%s] unable to del denial of existence data point %s: "
+            "not found", zd_str, str?str:"(null)");
+        free((void*)str);
+    }
+    return denial;
+}
+
+
+/**
+ * Delete denial of existence data point from the zone data.
+ *
+ */
+denial_type*
+zonedata_del_denial(zonedata_type* zd, denial_type* denial)
+{
+    char* str = NULL;
+
+    if (!denial) {
+        ods_log_error("[%s] unable to delete denial of existence data point: "
+            "no data point", zd_str);
+        return NULL;
+    }
+    ods_log_assert(denial);
+
+    if (!zd || !zd->denial_chain) {
+        str = ldns_rdf2str(denial->owner);
+        ods_log_error("[%s] unable to delete denial of existence data point "
+            "%s: no zone data", zd_str, str?str:"(null)");
+        free((void*)str);
+        return denial;
+    }
+    ods_log_assert(zd);
+    ods_log_assert(zd->denial_chain);
+
+    return zonedata_del_denial_fixup(zd->denial_chain, denial);
 }
 
 
