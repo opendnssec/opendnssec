@@ -79,7 +79,7 @@ domain_create(ldns_rdf* dname)
     domain->parent = NULL;
     domain->nsec3 = NULL;
     domain->rrsets = ldns_rbtree_create(rrset_compare);
-    domain->domain_status = DOMAIN_STATUS_NONE;
+    domain->dstatus = DOMAIN_STATUS_NONE;
     domain->internal_serial = 0;
     domain->outbound_serial = 0;
     domain->subdomain_count = 0;
@@ -138,7 +138,7 @@ domain_recover_from_backup(FILE* fd)
     domain->parent = NULL;
     domain->nsec3 = NULL;
     domain->rrsets = ldns_rbtree_create(rrset_compare);
-    domain->domain_status = domain_status;
+    domain->dstatus = domain_status;
     domain->internal_serial = internal_serial;
     domain->outbound_serial = outbound_serial;
     domain->subdomain_count = subdomain_count;
@@ -149,7 +149,7 @@ domain_recover_from_backup(FILE* fd)
     ods_log_deeebug("[%s] recovered domain %s internal_serial=%u, "
         "outbound_serial=%u, domain_status=%i, nsec_status=(%i, %i)",
         dname_str, name, domain->internal_serial, domain->outbound_serial,
-        domain->domain_status, domain->nsec_bitmap_changed,
+        domain->dstatus, domain->nsec_bitmap_changed,
         domain->nsec_nxt_changed);
 
     se_free((void*)name);
@@ -568,7 +568,7 @@ domain_update_status(domain_type* domain)
     domain_type* parent = NULL;
 
     ods_log_assert(domain);
-    if (domain->domain_status == DOMAIN_STATUS_APEX) {
+    if (domain->dstatus == DOMAIN_STATUS_APEX) {
         return;
     }
 
@@ -579,19 +579,19 @@ domain_update_status(domain_type* domain)
 
     if (domain_lookup_rrset(domain, LDNS_RR_TYPE_NS)) {
         if (domain_lookup_rrset(domain, LDNS_RR_TYPE_DS)) {
-            domain->domain_status = DOMAIN_STATUS_DS;
+            domain->dstatus = DOMAIN_STATUS_DS;
         } else {
-            domain->domain_status = DOMAIN_STATUS_NS;
+            domain->dstatus = DOMAIN_STATUS_NS;
         }
     } else { /* else, it is just an authoritative domain */
-        domain->domain_status = DOMAIN_STATUS_AUTH;
+        domain->dstatus = DOMAIN_STATUS_AUTH;
     }
 
     parent = domain->parent;
-    while (parent && parent->domain_status != DOMAIN_STATUS_APEX) {
+    while (parent && parent->dstatus != DOMAIN_STATUS_APEX) {
         if (domain_lookup_rrset(parent, LDNS_RR_TYPE_DNAME) ||
             domain_lookup_rrset(parent, LDNS_RR_TYPE_NS)) {
-            domain->domain_status = DOMAIN_STATUS_OCCLUDED;
+            domain->dstatus = DOMAIN_STATUS_OCCLUDED;
             return;
         }
         parent = parent->parent;
@@ -778,9 +778,9 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
             domain_nsecify_create_bitmap(orig_domain, types, &types_count);
             /* only add RRSIG type if we have authoritative data to sign */
             if (domain_count_rrset(orig_domain) > 0 &&
-                (orig_domain->domain_status == DOMAIN_STATUS_APEX ||
-                 orig_domain->domain_status == DOMAIN_STATUS_AUTH ||
-                 orig_domain->domain_status == DOMAIN_STATUS_DS)) {
+                (orig_domain->dstatus == DOMAIN_STATUS_APEX ||
+                 orig_domain->dstatus == DOMAIN_STATUS_AUTH ||
+                 orig_domain->dstatus == DOMAIN_STATUS_DS)) {
 
                 types[types_count] = LDNS_RR_TYPE_RRSIG;
                 types_count++;
@@ -921,8 +921,8 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     ods_log_assert(signtime);
     ods_log_assert(stats);
 
-    if (domain->domain_status == DOMAIN_STATUS_NONE ||
-        domain->domain_status == DOMAIN_STATUS_OCCLUDED) {
+    if (domain->dstatus == DOMAIN_STATUS_NONE ||
+        domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
         return 0;
     }
 
@@ -951,14 +951,14 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
         rrset = (rrset_type*) node->data;
 
         /* skip delegation RRsets */
-        if (domain->domain_status != DOMAIN_STATUS_APEX &&
+        if (domain->dstatus != DOMAIN_STATUS_APEX &&
             rrset->rr_type == LDNS_RR_TYPE_NS) {
             node = ldns_rbtree_next(node);
             continue;
         }
         /* skip glue at the delegation */
-        if ((domain->domain_status == DOMAIN_STATUS_DS ||
-             domain->domain_status == DOMAIN_STATUS_NS) &&
+        if ((domain->dstatus == DOMAIN_STATUS_DS ||
+             domain->dstatus == DOMAIN_STATUS_NS) &&
             (rrset->rr_type == LDNS_RR_TYPE_A ||
              rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
             node = ldns_rbtree_next(node);
@@ -1246,12 +1246,12 @@ domain_print(FILE* fd, domain_type* domain)
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
             if (rrset->rr_type != LDNS_RR_TYPE_SOA) {
-                if (domain->domain_status == DOMAIN_STATUS_NONE ||
-                    domain->domain_status == DOMAIN_STATUS_OCCLUDED) {
+                if (domain->dstatus == DOMAIN_STATUS_NONE ||
+                    domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
 
                     parent = domain->parent;
                     print_glue = 0;
-                    while (parent && parent->domain_status != DOMAIN_STATUS_APEX) {
+                    while (parent && parent->dstatus != DOMAIN_STATUS_APEX) {
                         if (domain_lookup_rrset(parent, LDNS_RR_TYPE_NS)) {
                             print_glue = 1;
                             break;
@@ -1294,7 +1294,7 @@ domain_print_nsec(FILE* fd, domain_type* domain)
     str = ldns_rdf2str(domain->dname);
     fprintf(fd, ";DNAME %s %u %u %i %i %i %i %i\n", str,
         domain->internal_serial, domain->outbound_serial,
-        (int) domain->domain_status,
+        (int) domain->dstatus,
         (int) domain->subdomain_count, (int) domain->subdomain_auth,
         domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
     se_free((void*) str);
@@ -1308,7 +1308,7 @@ domain_print_nsec(FILE* fd, domain_type* domain)
         str = ldns_rdf2str(domain->dname);
         fprintf(fd, ";DNAME3 %s %u %u %i %i %i %i %i\n", str,
             domain->internal_serial, domain->outbound_serial,
-            (int) domain->domain_status,
+            (int) domain->dstatus,
             (int) domain->subdomain_count, (int) domain->subdomain_auth,
             domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
         se_free((void*) str);

@@ -150,7 +150,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                             zonedata_lookup_domain(zd, parent_rdf);
                         ldns_rdf_deep_free(parent_rdf);
                         ods_log_assert(current_domain->parent ||
-                            current_domain->domain_status == DOMAIN_STATUS_APEX);
+                            current_domain->dstatus == DOMAIN_STATUS_APEX);
 
                         new_node = domain2node(current_domain);
                         if (!zd->domains) {
@@ -327,7 +327,7 @@ zonedata_add_domain_nsec3(zonedata_type* zd, domain_type* domain,
     nsec3_domain = zonedata_lookup_domain_nsec3(zd, hashed_ownername);
     if (!nsec3_domain) {
         nsec3_domain = domain_create(hashed_ownername);
-        nsec3_domain->domain_status = DOMAIN_STATUS_HASH;
+        nsec3_domain->dstatus = DOMAIN_STATUS_HASH;
         ldns_rdf_deep_free(hashed_ownername);
         new_node = domain2node(nsec3_domain);
         if (!ldns_rbtree_insert(zd->nsec3_domains, new_node)) {
@@ -402,7 +402,7 @@ zonedata_add_domain(zonedata_type* zd, domain_type* domain)
     str = ldns_rdf2str(domain->dname);
     ods_log_deeebug("+DD %s", str?str:"(null)");
     free((void*) str);
-    domain->domain_status = DOMAIN_STATUS_NONE;
+    domain->dstatus = DOMAIN_STATUS_NONE;
     domain->nsec_bitmap_changed = 1;
     domain->nsec_nxt_changed = 1;
     /* mark previous domain for NSEC */
@@ -455,8 +455,8 @@ zonedata_del_domain_fixup(ldns_rbtree_t* tree, domain_type* domain)
         del_domain = (domain_type*) del_node->data;
         if (domain->parent) {
             domain->parent->subdomain_count -= 1;
-            if (domain->domain_status == DOMAIN_STATUS_AUTH ||
-                domain->domain_status == DOMAIN_STATUS_DS) {
+            if (domain->dstatus == DOMAIN_STATUS_AUTH ||
+                domain->dstatus == DOMAIN_STATUS_DS) {
                 domain->parent->subdomain_auth -= 1;
             }
         }
@@ -582,7 +582,6 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
         if (!parent_domain) {
             parent_domain = domain_create(parent_rdf);
             ldns_rdf_deep_free(parent_rdf);
-
             if (!parent_domain) {
                 ods_log_error("[%s] unable to entize domain %s: create parent "
                     "failed", zd_str, str);
@@ -596,7 +595,7 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
                 se_free((void*)str);
                 return 1;
             }
-            parent_domain->domain_status =
+            parent_domain->dstatus =
                 (ent2unsigned_deleg?DOMAIN_STATUS_ENT_NS:
                                     DOMAIN_STATUS_ENT_AUTH);
             parent_domain->subdomain_count = 1;
@@ -616,8 +615,8 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
             }
             domain->parent = parent_domain;
             if (domain_count_rrset(parent_domain) <= 0 &&
-                parent_domain->domain_status != DOMAIN_STATUS_ENT_AUTH) {
-                parent_domain->domain_status =
+                parent_domain->dstatus != DOMAIN_STATUS_ENT_AUTH) {
+                parent_domain->dstatus =
                     (ent2unsigned_deleg?DOMAIN_STATUS_ENT_NS:
                                         DOMAIN_STATUS_ENT_AUTH);
             }
@@ -643,10 +642,10 @@ zonedata_domain_entize_revised(domain_type* domain, int status)
     }
     parent = domain->parent;
     while (parent) {
-        if (parent->domain_status == DOMAIN_STATUS_ENT_AUTH ||
-            parent->domain_status == DOMAIN_STATUS_ENT_GLUE ||
-            parent->domain_status == DOMAIN_STATUS_ENT_NS) {
-            parent->domain_status = status;
+        if (parent->dstatus == DOMAIN_STATUS_ENT_AUTH ||
+            parent->dstatus == DOMAIN_STATUS_ENT_GLUE ||
+            parent->dstatus == DOMAIN_STATUS_ENT_NS) {
+            parent->dstatus = status;
         } else {
            break;
         }
@@ -691,9 +690,9 @@ zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
             return ODS_STATUS_ERR;
         }
         /* domain has parent now, check for glue */
-        prev_status = domain->domain_status;
+        prev_status = domain->dstatus;
         domain_update_status(domain);
-        if (domain->domain_status == DOMAIN_STATUS_OCCLUDED &&
+        if (domain->dstatus == DOMAIN_STATUS_OCCLUDED &&
             prev_status != DOMAIN_STATUS_OCCLUDED) {
             zonedata_domain_entize_revised(domain, DOMAIN_STATUS_ENT_GLUE);
         }
@@ -722,12 +721,12 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        if (domain->domain_status == DOMAIN_STATUS_APEX) {
+        if (domain->dstatus == DOMAIN_STATUS_APEX) {
             apex = domain;
         }
         /* don't do glue-only or empty domains */
-        if (domain->domain_status == DOMAIN_STATUS_NONE ||
-            domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
+        if (domain->dstatus == DOMAIN_STATUS_NONE ||
+            domain->dstatus == DOMAIN_STATUS_OCCLUDED ||
             domain_count_rrset(domain) <= 0) {
             node = ldns_rbtree_next(node);
             continue;
@@ -745,8 +744,8 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
                 return ODS_STATUS_ERR;
             }
             /* don't do glue-only or empty domains */
-            if (to->domain_status == DOMAIN_STATUS_NONE ||
-                to->domain_status == DOMAIN_STATUS_OCCLUDED ||
+            if (to->dstatus == DOMAIN_STATUS_NONE ||
+                to->dstatus == DOMAIN_STATUS_OCCLUDED ||
                 domain_count_rrset(to) <= 0) {
                 node = ldns_rbtree_next(node);
             } else {
@@ -791,14 +790,14 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        if (domain->domain_status == DOMAIN_STATUS_APEX) {
+        if (domain->dstatus == DOMAIN_STATUS_APEX) {
             apex = domain;
         }
 
         /* don't do glue-only domains */
-        if (domain->domain_status == DOMAIN_STATUS_NONE ||
-            domain->domain_status == DOMAIN_STATUS_OCCLUDED ||
-            domain->domain_status == DOMAIN_STATUS_ENT_GLUE) {
+        if (domain->dstatus == DOMAIN_STATUS_NONE ||
+            domain->dstatus == DOMAIN_STATUS_OCCLUDED ||
+            domain->dstatus == DOMAIN_STATUS_ENT_GLUE) {
             str = ldns_rdf2str(domain->dname);
             ods_log_debug("[%s] nsecify3: skip glue domain %s", zd_str,
                 str?str:"(null)");
@@ -811,11 +810,11 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         if (nsec3params->flags) {
             /* If Opt-Out is being used, owner names of unsigned delegations
                MAY be excluded. */
-            if (domain->domain_status == DOMAIN_STATUS_ENT_NS ||
-                domain->domain_status == DOMAIN_STATUS_NS) {
+            if (domain->dstatus == DOMAIN_STATUS_ENT_NS ||
+                domain->dstatus == DOMAIN_STATUS_NS) {
                 str = ldns_rdf2str(domain->dname);
-                ods_log_debug("[%s] opt-out %s: %s", str?str:"(null)", zd_str,
-                    domain->domain_status == DOMAIN_STATUS_NS ?
+                ods_log_debug("[%s] opt-out %s: %s", zd_str, str?str:"(null)",
+                    domain->dstatus == DOMAIN_STATUS_NS ?
                     "unsigned delegation" : "empty non-terminal (to unsigned "
                     "delegation)");
                 se_free((void*) str);
@@ -1229,14 +1228,14 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
         /* if this domain is now an empty non-terminal, don't delete */
 
         if (domain_count_rrset(domain) <= 0 &&
-            (domain->domain_status != DOMAIN_STATUS_ENT_AUTH &&
-             domain->domain_status != DOMAIN_STATUS_ENT_NS &&
-             domain->domain_status != DOMAIN_STATUS_ENT_GLUE)) {
+            (domain->dstatus != DOMAIN_STATUS_ENT_AUTH &&
+             domain->dstatus != DOMAIN_STATUS_ENT_NS &&
+             domain->dstatus != DOMAIN_STATUS_ENT_GLUE)) {
 
             parent = domain->parent;
             if (domain->subdomain_count <= 0) {
                 ods_log_deeebug("[%s] obsoleted domain: #rrset=%i, status=%i",
-                    zd_str, domain_count_rrset(domain), domain->domain_status);
+                    zd_str, domain_count_rrset(domain), domain->dstatus);
                 domain = zonedata_del_domain(zd, domain);
             }
             if (domain) {
@@ -1309,7 +1308,7 @@ zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex)
         return 1;
     }
     if (at_apex) {
-        domain->domain_status = DOMAIN_STATUS_APEX;
+        domain->dstatus = DOMAIN_STATUS_APEX;
     }
     return domain_add_rr(domain, rr);
 }
