@@ -133,21 +133,19 @@ rrset_type* domain_lookup_rrset(domain_type* domain, ldns_rr_type type);
  * Add RRset to domain.
  * \param[in] domain domain
  * \param[in] rrset RRset
- * \param[in] recover if true, don't update domain status
  * \return rrset_type* added RRset
  *
  */
-rrset_type* domain_add_rrset(domain_type* domain, rrset_type* rrset, int recover);
+rrset_type* domain_add_rrset(domain_type* domain, rrset_type* rrset);
 
 /**
  * Delete RRset from domain.
  * \param[in] domain domain
  * \param[in] rrset RRset
- * \param[in] recover if true, don't update domain status
  * \return rrset_type* RRset if failed
  *
  */
-rrset_type* domain_del_rrset(domain_type* domain, rrset_type* rrset, int recover);
+rrset_type* domain_del_rrset(domain_type* domain, rrset_type* rrset);
 
 /**
  * Examine domain and verify if data exists.
@@ -196,20 +194,19 @@ int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
 int domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype);
 
 /**
- * Update domain with pending changes.
- * \param[in] domain domain
- * \param[in] serial version to update to
- * \return int 0 on success, 1 on error
+ * Commit updates to domain.
+ * \param[in] domain the domain
+ * \return ods_status status
  *
  */
-int domain_update(domain_type* domain, uint32_t serial);
+ods_status domain_commit(domain_type* domain);
 
 /**
- * Cancel update.
- * \param[in] domain domain
+ * Rollback updates from domain.
+ * \param[in] domain the domain
  *
  */
-void domain_cancel_update(domain_type* domain);
+void domain_rollback(domain_type* domain);
 
 /**
  * Update domain status.
