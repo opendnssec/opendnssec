@@ -1475,7 +1475,7 @@ zonedata_cleanup(zonedata_type* zonedata)
  * Print zone data.
  *
  */
-void
+ods_status
 zonedata_print(FILE* fd, zonedata_type* zd)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
@@ -1484,14 +1484,14 @@ zonedata_print(FILE* fd, zonedata_type* zd)
     if (!fd) {
         ods_log_error("[%s] unable to print zone data: no file descriptor",
             zd_str);
-        return;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(fd);
 
     if (!zd || !zd->domains) {
         ods_log_error("[%s] unable to print zone data: no zone data",
             zd_str);
-        return;
+        return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zd);
     ods_log_assert(zd->domains);
@@ -1499,14 +1499,14 @@ zonedata_print(FILE* fd, zonedata_type* zd)
     node = ldns_rbtree_first(zd->domains);
     if (!node || node == LDNS_RBTREE_NULL) {
         fprintf(fd, "; empty zone\n");
-        return;
+        return ODS_STATUS_OK;
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         domain_print(fd, domain);
         node = ldns_rbtree_next(node);
     }
-    return;
+    return ODS_STATUS_OK;
 }
 
 

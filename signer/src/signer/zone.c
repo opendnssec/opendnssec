@@ -1100,19 +1100,3 @@ zone_cleanup(zone_type* zone)
     lock_basic_destroy(&zone_lock);
     return;
 }
-
-
-/**
- * Print zone.
- *
- */
-void
-zone_print(FILE* out, zone_type* zone)
-{
-    ods_log_assert(out);
-    ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-
-    zonedata_print(out, zone->zonedata);
-    return;
-}

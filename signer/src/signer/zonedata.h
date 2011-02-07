@@ -242,11 +242,12 @@ void zonedata_cleanup(zonedata_type* zonedata);
 
 /**
  * Print zone data.
- * \param[in] out file descriptor
- * \param[in] zd zone data to print
+ * \param[in] fd output file descriptor
+ * \param[in] zd zone data
+ * \return ods_status status
  *
  */
-void zonedata_print(FILE* fd, zonedata_type* zd);
+ods_status zonedata_print(FILE* fd, zonedata_type* zd);
 
 /**
  * Print NSEC(3)s in zone data.
