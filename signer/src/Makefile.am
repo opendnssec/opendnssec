@@ -42,6 +42,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				shared/status.c shared/status.h \
 				shared/util.c shared/util.h \
 				signer/backup.c signer/backup.h \
+				signer/denial.c signer/denial.h \
 				signer/domain.c signer/domain.h \
 				signer/keys.c signer/keys.h \
 				signer/nsec3params.c signer/nsec3params.h \

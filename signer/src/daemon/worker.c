@@ -38,6 +38,8 @@
 #include "scheduler/task.h"
 #include "shared/locks.h"
 #include "shared/log.h"
+#include "shared/status.h"
+#include "shared/util.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
 
@@ -138,6 +140,13 @@ worker_perform_task(worker_type* worker)
                 task_who2str(task->who));
             status = zone_load_signconf(zone, &what);
 
+            if (status == ODS_STATUS_OK) {
+                status = zone_publish_dnskeys(zone);
+            }
+            if (status == ODS_STATUS_OK) {
+                status = zone_prepare_nsec3(zone);
+            }
+
             /* what to do next */
             when = time_now();
             if (status == ODS_STATUS_UNCHANGED) {
@@ -160,26 +169,9 @@ worker_perform_task(worker_type* worker)
             status = tools_input(zone);
 
             /* what to do next */
-            what = TASK_ADDKEYS;
-            when = time_now();
-            if (status != ODS_STATUS_OK) {
-                if (task->halted == TASK_NONE) {
-                    goto task_perform_fail;
-                }
-                goto task_perform_continue;
-            }
-            fallthrough = 1;
-            break;
-        case TASK_ADDKEYS:
-            ods_log_verbose("[%s[%i]]: add dnskeys zone %s",
-                worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
-            error = zone_add_dnskeys(zone);
-
-            /* what to do next */
             what = TASK_COMMIT;
             when = time_now();
-            if (error) {
+            if (status != ODS_STATUS_OK) {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }

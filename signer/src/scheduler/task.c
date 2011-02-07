@@ -251,9 +251,6 @@ task_what2str(int what)
         case TASK_READ:
             return "[read]";
             break;
-        case TASK_ADDKEYS:
-            return "[add dnskeys for]";
-            break;
         case TASK_COMMIT:
             return "[commit updates for]";
             break;

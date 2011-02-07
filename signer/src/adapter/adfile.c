@@ -410,11 +410,6 @@ adfile_read(struct zone_struct* zone, const char* filename)
          adapter_str, adzone->name, filename, ods_status2str(status));
     } else {
         /* remove current rrs */
-        if (zonedata_del_rrs(adzone->zonedata)) {
-            ods_log_error("[%s] error removing current RRs in zone %s",
-                adapter_str, adzone->name?adzone->name:"(null)");
-            return ODS_STATUS_ERR;
-        }
     }
     return status;
 }

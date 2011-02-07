@@ -33,6 +33,7 @@
 
 #include "config.h"
 #include "shared/allocator.h"
+#include "shared/log.h"
 #include "signer/denial.h"
 #include "signer/domain.h"
 #include "signer/nsec3params.h"
@@ -231,3 +232,4 @@ denial_cleanup(denial_type* denial)
     return;
 
 }
+

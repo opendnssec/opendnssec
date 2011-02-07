@@ -81,7 +81,7 @@ adapi_add_rr(zone_type* zone, ldns_rr* rr)
             return ODS_STATUS_ERR;
         }
         if (ldns_dname_compare(domain->dname, zone->dname) == 0) {
-            domain->domain_status = DOMAIN_STATUS_APEX;
+            domain->dstatus = DOMAIN_STATUS_APEX;
         }
     }
     ods_log_assert(domain);
@@ -96,7 +96,7 @@ adapi_add_rr(zone_type* zone, ldns_rr* rr)
                 adapi_str);
             return ODS_STATUS_ERR;
         }
-        if (domain_add_rrset(domain, rrset, 0) == NULL) {
+        if (domain_add_rrset(domain, rrset) == NULL) {
             ods_log_error("[%s] unable to add RR: add RRset failed",
                 adapi_str);
             return ODS_STATUS_ERR;
@@ -105,7 +105,7 @@ adapi_add_rr(zone_type* zone, ldns_rr* rr)
     ods_log_assert(rrset);
 
     /* add RR */
-    if (rrset_add_rr(rrset, rr) != 0) {
+    if (rrset_add_rr(rrset, rr) == NULL) {
         ods_log_error("[%s] unable to add RR: pend RR failed", adapi_str);
         return ODS_STATUS_ERR;
     }
@@ -156,7 +156,8 @@ adapi_del_rr(zone_type* zone, ldns_rr* rr)
     ods_log_assert(rrset);
 
     /* del RR */
-    if (rrset_del_rr(rrset, rr) != NULL) {
+    if (rrset_del_rr(rrset, rr, (ldns_rr_get_type(rr) == LDNS_RR_TYPE_DNSKEY))
+            == NULL) {
         ods_log_error("[%s] unable to del RR: pend RR failed", adapi_str);
         return ODS_STATUS_ERR;
     }
