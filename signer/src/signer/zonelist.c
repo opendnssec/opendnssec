@@ -399,6 +399,7 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
                 if (z1->just_updated) {
                     zl1->just_updated++;
                 }
+                z1->just_updated = 1;
             }
         }
     }
