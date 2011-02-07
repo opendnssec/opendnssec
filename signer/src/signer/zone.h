@@ -111,14 +111,6 @@ zone_type* zone_create(const char* name, ldns_rr_class klass);
 ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
 
 /**
- * Update zone data.
- * \param[in] zone corresponding zone
- * \return int 0 on success, 1 on error
- *
- */
-int zone_update_zonedata(zone_type* zone);
-
-/**
  * Publish DNSKEYs.
  * \param[in] zone zone
  * \return ods_status status
@@ -133,25 +125,6 @@ ods_status zone_publish_dnskeys(zone_type* zone);
  *
  */
 ods_status zone_prepare_nsec3(zone_type* zone);
-
-/**
- * Add a RR to the zone.
- * \param[in] zone zone structure
- * \param[in] rr RR
- * \param[in] recover true if we are recovering from backup
- * \return int 0 on success, 1 on error
- *
- */
-int zone_add_rr(zone_type* zone, ldns_rr* rr, int recover);
-
-/**
- * Delete a RR from the zone.
- * \param[in] zone zone structure
- * \param[in] rr RR
- * \return int 0 on success, 1 on error
- *
- */
-int zone_del_rr(zone_type* zone, ldns_rr* rr);
 
 /**
  * Sign zone.

@@ -129,14 +129,15 @@ tools_commit(zone_type* zone)
     char* unsorted = NULL;
 
     if (!zone) {
-        ods_log_error("[%s] unable to nsecify zone: no zone", tools_str);
+        ods_log_error("[%s] unable to commit updates to zone: no zone",
+            tools_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
 
     if (!zone->zonedata) {
-        ods_log_error("[%s] unable to nsecify zone %s: no zonedata",
-            tools_str, zone->name);
+        ods_log_error("[%s] unable to commit updates to zone %s: no zonedata",
+            tools_str, zone->name?zone->name:"(null)");
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->zonedata);
@@ -180,7 +181,6 @@ ods_status
 tools_nsecify(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
-    int error = 0;
     time_t start = 0;
     time_t end = 0;
 
@@ -206,24 +206,49 @@ tools_nsecify(zone_type* zone)
 
     ods_log_assert(zone->stats);
 
-    ods_log_verbose("[%s] nsecify zone %s", tools_str, zone->name?zone->name:"(null)");
+    ods_log_verbose("[%s] nsecify zone %s", tools_str,
+        zone->name?zone->name:"(null)");
     start = time(NULL);
-    error = zone_nsecify(zone);
+
+    /* add missing empty non-terminals */
+    status = zonedata_entize(zone->zonedata, zone->dname);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to nsecify zone %s: failed to add empty ",
+            "non-terminals", tools_str, zone->name);
+        return status;
+    }
+
+    /* NSEC or NSEC3? */
+    if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
+        status = zonedata_nsecify(zone->zonedata, zone->klass,
+            zone->stats);
+    } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
+        if (zone->signconf->nsec3_optout) {
+            ods_log_debug("[%s] OptOut is being used for zone %s",
+                tools_str, zone->name);
+        }
+        ods_log_assert(zone->nsec3params);
+        status = zonedata_nsecify3(zone->zonedata, zone->klass,
+            zone->nsec3params, zone->stats);
+    } else {
+        ods_log_error("[%s] unable to nsecify zone %s: unknown RRtype %u for ",
+            "denial of existence", tools_str, zone->name,
+            (unsigned) zone->signconf->nsec_type);
+        return ODS_STATUS_ERR;
+    }
     end = time(NULL);
-    if (!error) {
+    if (status == ODS_STATUS_OK) {
         if (!zone->stats->start_time) {
             zone->stats->start_time = start;
         }
         zone->stats->nsec_time = (end-start);
-    } else {
-        status = ODS_STATUS_ERR;
     }
     return status;
 }
 
 
 /**
- * Add NSEC(3) records to zone.
+ * Add RRSIG records to zone.
  *
  */
 int

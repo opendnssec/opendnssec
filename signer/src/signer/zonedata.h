@@ -83,7 +83,7 @@ zonedata_type* zonedata_create(allocator_type* allocator);
 int zonedata_recover_from_backup(zonedata_type* zd, FILE* fd);
 
 /**
- * Look up domain in zone data.
+ * Look up domain.
  * \param[in] zd zone data
  * \param[in] name domain name to look for
  * \return domain_type* domain, if found

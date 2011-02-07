@@ -283,13 +283,9 @@ worker_perform_task(worker_type* worker)
     task->backoff = 0;
 
     /* set next task */
-    ods_log_debug("[%s[%i]]: next task settings: interrupt=%s fallthrough=%i",
-        worker2str(worker->type), worker->thread_num,
-        task_what2str(task->interrupt), fallthrough);
-
     if (fallthrough == 0 && task->interrupt != TASK_NONE &&
         task->interrupt != what) {
-        ods_log_info("[%s[%i]]: interrupt task %s for zone %s",
+        ods_log_debug("[%s[%i]]: interrupt task %s for zone %s",
             worker2str(worker->type), worker->thread_num,
             task_what2str(what), task_who2str(task->who));
 
@@ -297,7 +293,7 @@ worker_perform_task(worker_type* worker)
         task->when = time_now();
         task->halted = what;
     } else {
-        ods_log_info("[%s[%i]]: next task %s for zone %s",
+        ods_log_debug("[%s[%i]]: next task %s for zone %s",
             worker2str(worker->type), worker->thread_num,
             task_what2str(what), task_who2str(task->who));
 

@@ -445,115 +445,6 @@ zone_prepare_nsec3(zone_type* zone)
 
 
 /**
- * Update zone with pending changes.
- *
- */
-int
-zone_update_zonedata(zone_type* zone)
-{
-    int error = 0;
-
-    ods_log_assert(zone);
-    ods_log_assert(zone->signconf);
-    ods_log_assert(zone->adinbound);
-    ods_log_assert(zone->zonedata);
-
-    /* examine zone data */
-    ods_log_debug("[%s] examine zone %s update", zone_str, zone->name);
-    error = zonedata_examine(zone->zonedata, zone->dname,
-        zone->adinbound->type==ADAPTER_FILE);
-    if (error) {
-        ods_log_error("[%s] update zone %s failed: zone data contains errors",
-            zone_str, zone->name);
-        zonedata_rollback(zone->zonedata);
-        return error;
-    }
-    return zonedata_commit(zone->zonedata);
-}
-
-
-/**
- * Add a RR to the zone.
- *
- */
-int
-zone_add_rr(zone_type* zone, ldns_rr* rr, int recover)
-{
-    ldns_rr_type type = 0;
-    int error = 0;
-    int at_apex = 0;
-    uint32_t tmp = 0;
-    ldns_rdf* soa_min = NULL;
-
-    ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-    ods_log_assert(zone->signconf);
-    ods_log_assert(rr);
-
-    /* in-zone? */
-    if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) != 0 &&
-        !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->dname)) {
-        ods_log_warning("[%s] zone %s contains out-of-zone data, skipping",
-            zone_str, zone->name?zone->name:"(null)");
-        return 0;
-    } else if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) == 0) {
-        at_apex = 1;
-    }
-
-    /* type specific configuration */
-    type = ldns_rr_get_type(rr);
-    if (type == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_ttl) {
-        tmp = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
-        ods_log_verbose("[%s] zone %s set DNSKEY TTL to %u", zone_str,
-            zone->name?zone->name:"(null)", tmp);
-        ldns_rr_set_ttl(rr, tmp);
-    }
-    if (type == LDNS_RR_TYPE_SOA) {
-        if (zone->signconf->soa_ttl) {
-            tmp = (uint32_t) duration2time(zone->signconf->soa_ttl);
-            ods_log_verbose("[%s] zone %s set SOA TTL to %u", zone_str,
-                zone->name?zone->name:"(null)", tmp);
-            ldns_rr_set_ttl(rr, tmp);
-        }
-        if (zone->signconf->soa_min) {
-            tmp = (uint32_t) duration2time(zone->signconf->soa_min);
-            ods_log_verbose("[%s] zone %s set SOA MINIMUM to %u", zone_str,
-                zone->name?zone->name:"(null)", tmp);
-            soa_min = ldns_rr_set_rdf(rr,
-                ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, tmp),
-                SE_SOA_RDATA_MINIMUM);
-            if (soa_min) {
-                ldns_rdf_deep_free(soa_min);
-            } else {
-                ods_log_error("[%s] zone %s failed to replace SOA MINIMUM "
-                    "rdata", zone_str, zone->name?zone->name:"(null)");
-            }
-        }
-    }
-    if (recover) {
-       error = zonedata_recover_rr_from_backup(zone->zonedata, rr);
-    } else {
-       error = zonedata_add_rr(zone->zonedata, rr, at_apex);
-    }
-    return error;
-}
-
-
-/**
- * Delete a RR from the zone.
- *
- */
-int
-zone_del_rr(zone_type* zone, ldns_rr* rr)
-{
-    ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-    ods_log_assert(rr);
-    return zonedata_del_rr(zone->zonedata, rr);
-}
-
-
-/**
  * Sign zone.
  *
  */
@@ -666,7 +557,7 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                     corrupted = 1;
                 } else {
                    rr = ldns_rr_clone(key->dnskey);
-                   corrupted = zone_add_rr(zone, rr, 1);
+                   corrupted = adapi_add_rr(zone, rr);
                    if (corrupted) {
                        ods_log_error("[%s] error recovering DNSKEY[%u] rr",
                           zone_str, ldns_calc_keytag(rr));
@@ -682,7 +573,7 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                         "%s.dnskeys", zone_str, zone->name);
                     corrupted = 1;
                 } else {
-                    corrupted = zone_add_rr(zone, rr, 1);
+                    corrupted = adapi_add_rr(zone, rr);
                     if (corrupted) {
                        ods_log_error("[%s] error recovering NSEC3PARAMS rr", zone_str);
                     } else {
