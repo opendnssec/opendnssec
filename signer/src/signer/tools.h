@@ -48,14 +48,6 @@
 ods_status tools_input(zone_type* zone);
 
 /**
- * Add DNSKEY (and NSEC3PARAM) records to zone.
- * \param[in] zone zone
- * \return int 0 on success, 1 on fail
- *
- */
-int tools_add_dnskeys(zone_type* zone);
-
-/**
  * Update zone with pending changes.
  * \param[in] zone zone
  * \return int 0 on success, 1 on fail

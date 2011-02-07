@@ -54,7 +54,6 @@ ods_status
 tools_input(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
-    char* tmpname = NULL;
     char* axfrname = NULL;
     int error = 0;
     time_t start = 0;
@@ -111,27 +110,6 @@ tools_input(zone_type* zone)
     return status;
 }
 
-
-/**
- * Add DNSKEY (and NSEC3PARAM) records to zone.
- *
- */
-int
-tools_add_dnskeys(zone_type* zone)
-{
-    int error = 0;
-    ods_log_assert(zone);
-    ods_log_assert(zone->signconf);
-    ods_log_verbose("[%s] publish dnskeys to zone %s", tools_str,
-        zone->name?zone->name:"(null)");
-    error = zone_add_dnskeys(zone);
-    if (!error) {
-        zone_backup_state(zone);
-    } else {
-        zonedata_cancel_update(zone->zonedata);
-    }
-    return error;
-}
 
 /**
  * Update zone with pending changes.
