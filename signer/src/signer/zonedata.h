@@ -118,6 +118,21 @@ ods_status zonedata_examine(zonedata_type* zd, ldns_rdf* apex,
     adapter_mode mode);
 
 /**
+ * Commit updates to zone data.
+ * \param[in] zd zone data
+ * \return ods_status status
+ *
+ */
+ods_status zonedata_commit(zonedata_type* zd);
+
+/**
+ * Rollback updates from zone data.
+ * \param[in] zd zone data
+ *
+ */
+void zonedata_rollback(zonedata_type* zd);
+
+/**
  * Add empty non-terminals to zone data.
  * \param[in] zd zone data
  * \param[in] apex zone apex
@@ -161,22 +176,20 @@ ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
 int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     stats_type* stats);
 
-
 /**
- * Update zone data with pending changes.
+ * Commit updates to zone data.
  * \param[in] zd zone data
- * \param[in] sc signer configuration
- * \return int 0 on success, 1 on false
+ * \return ods_status status
  *
  */
-int zonedata_update(zonedata_type* zd, signconf_type* sc);
+ods_status zonedata_commit(zonedata_type* zd);
 
 /**
- * Cancel update.
+ * Rollback updates from zone data.
  * \param[in] zd zone data
  *
  */
-void zonedata_cancel_update(zonedata_type* zd);
+void zonedata_rollback(zonedata_type* zd);
 
 /**
  * Add RR to zone data.
@@ -219,14 +232,6 @@ int zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
 int zonedata_del_rr(zonedata_type* zd, ldns_rr* rr);
 
 /**
- * Delete all current RRs from zone data.
- * \param[in] zd zone data
- * \return int 0 on success, 1 on false
- *
- */
-int zonedata_del_rrs(zonedata_type* zd);
-
-/**
  * Clean up domains in zone data tree.
  * \param[in] domain_tree tree of domains to cleanup
  *
@@ -234,11 +239,25 @@ int zonedata_del_rrs(zonedata_type* zd);
 void zonedata_cleanup_domains(ldns_rbtree_t* domain_tree);
 
 /**
- * Clean up zone data.
- * \param[in] zonedata zone data to cleanup
+ * Wipe out all NSEC RRsets.
+ * \param[in] zd zone data
  *
  */
-void zonedata_cleanup(zonedata_type* zonedata);
+void zonedata_wipe_nsec(zonedata_type* zd);
+
+/**
+ * Wipe out NSEC3 tree.
+ * \param[in] zd zone data
+ *
+ */
+void zonedata_wipe_nsec3(zonedata_type* zd);
+
+/**
+ * Clean up zone data.
+ * \param[in] zd zone data to cleanup
+ *
+ */
+void zonedata_cleanup(zonedata_type* zd);
 
 /**
  * Print zone data.

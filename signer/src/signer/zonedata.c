@@ -529,6 +529,94 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
 
 
 /**
+ * Commit updates to zone data.
+ *
+ */
+ods_status
+zonedata_commit(zonedata_type* zd)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* nxtnode = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* tmpnode = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
+    domain_type* nxtdomain = NULL;
+    ods_status status = ODS_STATUS_OK;
+    size_t oldnum = 0;
+
+    if (!zd || !zd->domains) {
+        return ODS_STATUS_OK;
+    }
+    if (zd->domains->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_last(zd->domains);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        oldnum = domain_count_rrset(domain);
+        status = domain_commit(domain);
+        if (status != ODS_STATUS_OK) {
+            return status;
+        }
+        tmpnode = node;
+        node = ldns_rbtree_previous(node);
+
+        /* delete memory if empty leaf domain */
+        if (domain_count_rrset(domain) <= 0) {
+            /* empty domain */
+            nxtnode = ldns_rbtree_next(tmpnode);
+            nxtdomain = NULL;
+            if (nxtnode && nxtnode != LDNS_RBTREE_NULL) {
+                nxtdomain = (domain_type*) nxtnode->data;
+            }
+            if (!nxtdomain ||
+                !ldns_dname_is_subdomain(nxtdomain->dname, domain->dname)) {
+                /* leaf domain */
+                if (zonedata_del_domain(zd, domain) != NULL) {
+                    ods_log_warning("[%s] unable to delete obsoleted "
+                        "domain", zd_str);
+                    return ODS_STATUS_ERR;
+                }
+            } else if (domain->denial) {
+/*
+                if (zonedata_del_denial(zd, domain->denial) != NULL) {
+                    ods_log_warning("[%s] unable to delete obsoleted "
+                        "denial of existence data point", zd_str);
+                    return ODS_STATUS_ERR;
+                }
+                domain->denial = NULL;
+*/
+            }
+        } /* if (domain_count_rrset(domain) <= 0) */
+    }
+    return status;
+}
+
+
+/**
+ * Rollback updates from zone data.
+ *
+ */
+void
+zonedata_rollback(zonedata_type* zd)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
+
+    if (!zd || !zd->domains) {
+        return;
+    }
+    if (zd->domains->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(zd->domains);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        domain_rollback(domain);
+        node = ldns_rbtree_next(node);
+    }
+    return;
+}
+
+
+/**
  * Add empty non-terminals to a domain in the zone data.
  *
  */
@@ -1199,7 +1287,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
     error = zonedata_update_serial(zd, sc);
     if (error || !zd->internal_serial) {
         ods_log_error("[%s] unable to update zonedata: failed to update serial", zd_str);
-        zonedata_cancel_update(zd);
+        zonedata_rollback(zd);
         return 1;
     }
 
@@ -1208,7 +1296,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        error = domain_update(domain, zd->internal_serial);
+        error = domain_commit(domain);
         if (error != 0) {
             if (error == 1) {
                 ods_log_crit("[%s] unable to update zonedata to serial %u: rr "
@@ -1217,7 +1305,7 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
             } else {
                 ods_log_error("[%s] unable to update zonedata to serial %u: "
                     "serial too small", zd_str, zd->internal_serial);
-                zonedata_cancel_update(zd);
+                zonedata_rollback(zd);
                 return 1;
             }
             return 1;
@@ -1254,31 +1342,6 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
         }
     }
     return 0;
-}
-
-
-/**
- * Cancel update.
- *
- */
-void
-zonedata_cancel_update(zonedata_type* zd)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-
-    if (zd->domains->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(zd->domains);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        domain_cancel_update(domain);
-        node = ldns_rbtree_next(node);
-    }
-    return;
 }
 
 
@@ -1449,23 +1512,64 @@ zonedata_cleanup_domains(ldns_rbtree_t* domain_tree)
 
 
 /**
+ * Wipe out all NSEC RRsets.
+ *
+ */
+void
+zonedata_wipe_nsec(zonedata_type* zd)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
+
+    if (zd && zd->domains) {
+        node = ldns_rbtree_first(zd->domains);
+        while (node && node != LDNS_RBTREE_NULL) {
+            domain = (domain_type*) node->data;
+            if (domain->nsec_rrset) {
+                /* [TODO] IXFR delete NSEC */
+                rrset_cleanup(domain->nsec_rrset);
+                domain->nsec_rrset = NULL;
+            }
+            node = ldns_rbtree_next(node);
+        }
+    }
+    return;
+}
+
+
+/**
+ * Wipe out NSEC3 tree.
+ *
+ */
+void
+zonedata_wipe_nsec3(zonedata_type* zd)
+{
+    if (zd->nsec3_domains) {
+        zonedata_cleanup_domains(zd->nsec3_domains);
+        zd->nsec3_domains = NULL;
+    }
+    return;
+}
+
+
+/**
  * Clean up zone data.
  *
  */
 void
-zonedata_cleanup(zonedata_type* zonedata)
+zonedata_cleanup(zonedata_type* zd)
 {
     /* destroy domains */
-    if (zonedata) {
-        if (zonedata->domains) {
-            zonedata_cleanup_domains(zonedata->domains);
-            zonedata->domains = NULL;
+    if (zd) {
+        if (zd->domains) {
+            zonedata_cleanup_domains(zd->domains);
+            zd->domains = NULL;
         }
-        if (zonedata->nsec3_domains) {
-            zonedata_cleanup_domains(zonedata->nsec3_domains);
-            zonedata->nsec3_domains = NULL;
+        if (zd->nsec3_domains) {
+            zonedata_cleanup_domains(zd->nsec3_domains);
+            zd->nsec3_domains = NULL;
         }
-        se_free((void*) zonedata);
+        se_free((void*) zd);
     }
     return;
 }
