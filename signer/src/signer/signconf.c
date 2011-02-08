@@ -765,7 +765,7 @@ signconf_log(signconf_type* sc, const char* name)
         soattl = duration2string(sc->soa_ttl);
         soamin = duration2string(sc->soa_min);
 
-        ods_log_debug("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
+        ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
             "VALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s] AUDIT[%i]",
             sc_str, name?name:"(null)", resign, refresh, validity, denial,

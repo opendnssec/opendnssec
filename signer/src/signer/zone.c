@@ -414,6 +414,7 @@ zone_prepare_nsec3(zone_type* zone)
         ods_log_error("[%s] unable to add NSEC3PARAM RR to zone %s",
             zone_str, zone->name);
         nsec3params_cleanup(zone->nsec3params);
+        zone->nsec3params = NULL;
         ldns_rr_free(nsec3params_rr);
     } else {
         /* add ok, wipe out previous nsec3params */
@@ -422,6 +423,7 @@ zone_prepare_nsec3(zone_type* zone)
             ods_log_crit("[%s] unable to delete previous NSEC3PARAM RR "
             "from zone %s: apex undefined", zone_str, zone->name);
             nsec3params_cleanup(zone->nsec3params);
+            zone->nsec3params = NULL;
             zonedata_rollback(zone->zonedata);
             return ODS_STATUS_ASSERT_ERR;
         }
@@ -434,6 +436,7 @@ zone_prepare_nsec3(zone_type* zone)
                 ods_log_error("[%s] unable to wipe out previous "
                     "NSEC3PARAM RR from zone %s", zone_str, zone->name);
                 nsec3params_cleanup(zone->nsec3params);
+                zone->nsec3params = NULL;
                 rrset_rollback(rrset);
                 return status;
             }
