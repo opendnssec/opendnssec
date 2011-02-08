@@ -39,10 +39,10 @@
 #include "signer/zone.h"
 #include "shared/status.h"
 
-#include <malloc.h>
 #include <libxml/xpath.h>
 #include <libxml/xmlreader.h>
 #include <string.h>
+#include <stdlib.h>
 
 static const char* parser_str = "parser";
 

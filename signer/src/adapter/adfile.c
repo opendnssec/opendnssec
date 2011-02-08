@@ -44,8 +44,8 @@
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>
-#include <malloc.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static const char* adapter_str = "adapter";
 static ods_status adfile_read_file(FILE* fd, zone_type* zone, int include);

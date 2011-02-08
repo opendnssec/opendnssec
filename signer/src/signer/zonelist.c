@@ -43,7 +43,7 @@
 #include "signer/zonelist.h"
 
 #include <ldns/ldns.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 static const char* zl_str = "zonelist";
 

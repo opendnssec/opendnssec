@@ -53,7 +53,6 @@
 #include <errno.h>
 #include <libhsm.h>
 #include <libxml/parser.h>
-#include <malloc.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
