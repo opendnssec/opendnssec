@@ -174,8 +174,10 @@ worker_perform_task(worker_type* worker)
                 }
             }
 
-            if (status == ODS_STATUS_OK) {
+            if (prepared) {
                 status = tools_input(zone);
+            } else {
+                status = ODS_STATUS_ERR;
             }
 
             /* what to do next */
@@ -243,16 +245,20 @@ worker_perform_task(worker_type* worker)
             when = time_now();
             break;
         case TASK_AUDIT:
-            ods_log_verbose("[%s[%i]]: audit zone %s",
-                worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
-            working_dir = strdup(engine->config->working_dir);
-            cfg_filename = strdup(engine->config->cfg_filename);
-            status = tools_audit(zone, working_dir, cfg_filename);
-            if (working_dir)  { free((void*)working_dir); }
-            if (cfg_filename) { free((void*)cfg_filename); }
-            working_dir = NULL;
-            cfg_filename = NULL;
+            if (zone->signconf->audit) {
+                ods_log_verbose("[%s[%i]]: audit zone %s",
+                    worker2str(worker->type), worker->thread_num,
+                    task_who2str(task->who));
+                working_dir = strdup(engine->config->working_dir);
+                cfg_filename = strdup(engine->config->cfg_filename);
+                status = tools_audit(zone, working_dir, cfg_filename);
+                if (working_dir)  { free((void*)working_dir); }
+                if (cfg_filename) { free((void*)cfg_filename); }
+                working_dir = NULL;
+                cfg_filename = NULL;
+            } else {
+                status = ODS_STATUS_OK;
+            }
 
             /* what to do next */
             if (status != ODS_STATUS_OK) {

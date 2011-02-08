@@ -101,9 +101,6 @@ tools_input(zone_type* zone)
         }
     }
 
-    ods_log_verbose("[%s] read zone %s", tools_str,
-        zone->name?zone->name:"(null)");
-
     start = time(NULL);
     status = adapter_read(zone);
     end = time(NULL);
@@ -145,8 +142,6 @@ tools_commit(zone_type* zone)
     ods_log_assert(zone->zonedata);
 
     /* examine */
-    ods_log_verbose("[%s] examine updates to zone %s", tools_str,
-        zone->name?zone->name:"(null)");
     status = zonedata_examine(zone->zonedata, zone->dname,
         zone->adinbound->type==ADAPTER_FILE);
     if (status != ODS_STATUS_OK) {
@@ -157,8 +152,6 @@ tools_commit(zone_type* zone)
     }
 
     /* commit */
-    ods_log_verbose("[%s] commit updates to zone %s", tools_str,
-        zone->name?zone->name:"(null)");
     status = zonedata_commit(zone->zonedata);
     if (status == ODS_STATUS_OK) {
         inbound = ods_build_path(zone->name, ".inbound", 0);
@@ -209,8 +202,6 @@ tools_nsecify(zone_type* zone)
 
     ods_log_assert(zone->stats);
 
-    ods_log_verbose("[%s] nsecify zone %s", tools_str,
-        zone->name?zone->name:"(null)");
     start = time(NULL);
 
     /* add missing empty non-terminals */
@@ -262,8 +253,6 @@ tools_sign(zone_type* zone)
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->stats);
-    ods_log_verbose("[%s] sign zone %s", tools_str,
-        zone->name?zone->name:"(null)");
     start = time(NULL);
     error = zone_sign(zone);
     end = time(NULL);
@@ -312,8 +301,6 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
         return ODS_STATUS_OK;
     }
     if (zone->signconf->audit) {
-        ods_log_verbose("[%s] audit zone %s", tools_str,
-            zone->name?zone->name:"(null)");
         finalized = ods_build_path(zone->name, ".finalized", 0);
         status = adfile_write(zone, finalized);
         if (status != ODS_STATUS_OK) {
@@ -385,8 +372,6 @@ tools_output(zone_type* zone)
     }
 
     zone->zonedata->outbound_serial = zone->zonedata->internal_serial;
-    ods_log_verbose("[%s] write zone %s serial %u", tools_str,
-        zone->name?zone->name:"(null)", zone->zonedata->outbound_serial);
 
     status = adapter_write(zone);
     if (status != ODS_STATUS_OK) {
