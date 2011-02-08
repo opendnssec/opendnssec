@@ -117,6 +117,7 @@ worker_perform_task(worker_type* worker)
     char* working_dir = NULL;
     char* cfg_filename = NULL;
     int error = 0;
+    int prepared = 0;
 
     if (!worker || !worker->task || !worker->task->zone || !worker->engine) {
         return;
@@ -140,13 +141,6 @@ worker_perform_task(worker_type* worker)
                 task_who2str(task->who));
             status = zone_load_signconf(zone, &what);
 
-            if (status == ODS_STATUS_OK) {
-                status = zone_publish_dnskeys(zone);
-            }
-            if (status == ODS_STATUS_OK) {
-                status = zone_prepare_nsec3(zone);
-            }
-
             /* what to do next */
             when = time_now();
             if (status == ODS_STATUS_UNCHANGED) {
@@ -159,6 +153,7 @@ worker_perform_task(worker_type* worker)
             } else {
                 task->interrupt = TASK_NONE;
                 task->halted = TASK_NONE;
+                prepared = 0;
             }
             break;
         case TASK_READ:
@@ -166,7 +161,22 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]]: read zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-            status = tools_input(zone);
+
+            if (!prepared) {
+                if (status == ODS_STATUS_OK) {
+                    status = zone_publish_dnskeys(zone);
+                }
+                if (status == ODS_STATUS_OK) {
+                    status = zone_prepare_nsec3(zone);
+                }
+                if (status == ODS_STATUS_OK) {
+                    prepared = 1;
+                }
+            }
+
+            if (status == ODS_STATUS_OK) {
+                status = tools_input(zone);
+            }
 
             /* what to do next */
             what = TASK_COMMIT;
