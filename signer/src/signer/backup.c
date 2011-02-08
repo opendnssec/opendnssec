@@ -35,7 +35,6 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/log.h"
-#include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
 
@@ -97,7 +96,7 @@ backup_read_str(FILE* in, char** str)
         ods_log_debug("[%s] cannot read string", backup_str);
         return 0;
     }
-    *str = se_strdup(p);
+    *str = strdup(p);
     return 1;
 }
 

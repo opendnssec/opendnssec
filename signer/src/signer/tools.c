@@ -40,7 +40,7 @@
 #include "signer/tools.h"
 #include "signer/zone.h"
 
-#include <unistd.h> /* unlink() */
+#include <unistd.h>
 
 static const char* tools_str = "tools";
 
@@ -371,6 +371,7 @@ tools_output(zone_type* zone)
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->adoutbound);
+    ods_log_assert(zone->adinbound->data);
 
     ods_log_assert(zone->stats);
 

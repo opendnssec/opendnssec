@@ -33,7 +33,6 @@
 
 #include "shared/log.h"
 #include "signer/stats.h"
-#include "util/se_malloc.h"
 
 /**
  * Initialize statistics.
@@ -42,7 +41,7 @@
 stats_type*
 stats_create(void)
 {
-    stats_type* stats = (stats_type*) se_malloc(sizeof(stats_type));
+    stats_type* stats = (stats_type*) malloc(sizeof(stats_type));
     stats_clear(stats);
     return stats;
 }
@@ -107,7 +106,7 @@ void
 stats_cleanup(stats_type* stats)
 {
     if (stats) {
-	    se_free((void*) stats);
+        free((void*) stats);
     }
     return;
 }

@@ -41,8 +41,8 @@
 
 #include <libxml/xpath.h>
 #include <libxml/xmlreader.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const char* parser_str = "parser";
 

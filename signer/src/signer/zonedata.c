@@ -1449,7 +1449,7 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
         if (parent_domain) {
             /* check for DNAME or NS */
             if (domain_examine_data_exists(parent_domain, LDNS_RR_TYPE_DNAME,
-                0) == 0 && domain_examine_data_exists(domain, 0, 0) == 0) {
+                0) && domain_examine_data_exists(domain, 0, 0)) {
                 /* data below DNAME */
                 str_name = ldns_rdf2str(domain->dname);
                 str_parent = ldns_rdf2str(parent_domain->dname);
@@ -1459,8 +1459,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 free((void*)str_parent);
                 return 1;
             } else if (domain_examine_data_exists(parent_domain,
-                LDNS_RR_TYPE_NS, 0) == 0 &&
-                domain_examine_data_exists(domain, 0, 1) == 0) {
+                LDNS_RR_TYPE_NS, 0) &&
+                domain_examine_data_exists(domain, 0, 1)) {
                 /* data (non-glue) below NS */
                 str_name = ldns_rdf2str(domain->dname);
                 str_parent = ldns_rdf2str(parent_domain->dname);
@@ -1470,9 +1470,9 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 free((void*)str_parent);
                 return 1;
             } else if (domain_examine_data_exists(parent_domain,
-                LDNS_RR_TYPE_NS, 0) == 0 &&
-                domain_examine_data_exists(domain, 0, 0) == 0 &&
-                domain_examine_ns_rdata(parent_domain, domain->dname) != 0) {
+                LDNS_RR_TYPE_NS, 0) &&
+                domain_examine_data_exists(domain, 0, 0) &&
+                !domain_examine_ns_rdata(parent_domain, domain->dname)) {
                 /* glue data not signalled by NS RDATA */
                 str_name = ldns_rdf2str(domain->dname);
                 str_parent = ldns_rdf2str(parent_domain->dname);
@@ -1499,11 +1499,10 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
 ods_status
 zonedata_examine(zonedata_type* zd, ldns_rdf* apex, adapter_mode mode)
 {
-    int error = 0;
     int result = 0;
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
-
+    ods_status status = ODS_STATUS_OK;
 
     if (!zd || !zd->domains) {
        /* no zone data, no error */
@@ -1517,31 +1516,28 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, adapter_mode mode)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        error =
+        result =
         /* Thou shall not have other data next to CNAME */
-        domain_examine_rrset_is_alone(domain, LDNS_RR_TYPE_CNAME) ||
+        domain_examine_rrset_is_alone(domain, LDNS_RR_TYPE_CNAME) &&
         /* Thou shall have at most one CNAME per name */
-        domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_CNAME) ||
+        domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_CNAME) &&
         /* Thou shall have at most one DNAME per name */
         domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_DNAME);
-        if (error) {
-            result = error;
+        if (!result) {
+            status = ODS_STATUS_ERR;
         }
 
         if (mode == ADAPTER_FILE) {
-            error =
+            result =
             /* Thou shall not have occluded data in your zone file */
             zonedata_examine_domain_is_occluded(zd, domain, apex);
-        /* just warn if there is occluded data */
+            if (result) {
+                ; /* just warn if there is occluded data */
+            }
         }
-
         node = ldns_rbtree_next(node);
     }
-
-    if (result) {
-         return ODS_STATUS_ERR;
-    }
-    return ODS_STATUS_OK;
+    return status;
 }
 
 

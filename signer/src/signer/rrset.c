@@ -41,6 +41,7 @@
 #include "signer/rrset.h"
 
 #include <ldns/ldns.h>
+#include <stdlib.h>
 
 static const char* rrset_str = "rrset";
 
