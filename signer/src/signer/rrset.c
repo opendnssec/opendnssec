@@ -34,6 +34,7 @@
 #include "config.h"
 #include "shared/allocator.h"
 #include "shared/duration.h"
+#include "shared/file.h"
 #include "shared/hsm.h"
 #include "shared/log.h"
 #include "shared/status.h"
@@ -54,27 +55,34 @@ void
 log_rr(ldns_rr* rr, const char* pre, int level)
 {
     char* str = NULL;
+    int i = 0;
 
     str = ldns_rr2str(rr);
     if (str) {
         str[(strlen(str))-1] = '\0';
+        for (i=0; i < strlen(str); i++) {
+            if (str[i] == '\t') {
+                str[i] = ' ';
+            }
+        }
+
+        if (level == 1) {
+            ods_log_error("%s %s", pre?pre:"", str);
+        } else if (level == 2) {
+            ods_log_warning("%s %s", pre?pre:"", str);
+        } else if (level == 3) {
+            ods_log_info("%s %s", pre?pre:"", str);
+        } else if (level == 4) {
+            ods_log_verbose("%s %s", pre?pre:"", str);
+        } else if (level == 5) {
+            ods_log_debug("%s %s", pre?pre:"", str);
+        } else if (level == 6) {
+            ods_log_deeebug("%s %s", pre?pre:"", str);
+        } else {
+            ods_log_deeebug("%s %s", pre?pre:"", str);
+        }
+        free((void*)str);
     }
-    if (level == 1) {
-        ods_log_error("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 2) {
-        ods_log_warning("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 3) {
-        ods_log_info("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 4) {
-        ods_log_verbose("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 5) {
-        ods_log_debug("%s %s", pre?pre:"", str?str:"(null)");
-    } else if (level == 6) {
-        ods_log_deeebug("%s %s", pre?pre:"", str?str:"(null)");
-    } else {
-        ods_log_deeebug("%s %s", pre?pre:"", str?str:"(null)");
-    }
-    free((void*)str);
     return;
 }
 
