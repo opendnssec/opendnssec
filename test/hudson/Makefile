@@ -23,6 +23,9 @@ install::
 clean:
 	rm -fr $(DESTDIR)
 
+realclean:
+	rm -fr $(HUDSON_HOME)
+
 run:: $(HUDSON_WAR)
 	$(JAVA) -jar $(HUDSON_WAR)
 
