@@ -150,6 +150,80 @@ domain_recover_from_backup(FILE* fd)
 
 
 /**
+ * Recover RR from backup.
+ *
+ */
+int
+domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
+{
+    rrset_type* rrset = NULL;
+
+    ods_log_assert(rr);
+    ods_log_assert(domain);
+    ods_log_assert(domain->dname);
+    ods_log_assert(domain->rrsets);
+    ods_log_assert((ldns_dname_compare(domain->dname, ldns_rr_owner(rr)) == 0));
+
+    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
+    if (rrset) {
+        return rrset_recover_rr_from_backup(rrset, rr);
+    }
+    /* no RRset with this RRtype yet */
+    rrset = rrset_create(ldns_rr_get_type(rr));
+    rrset = domain_add_rrset(domain, rrset);
+    if (!rrset) {
+        ods_log_error("[%s] unable to recover RR to domain: failed to add "
+            "RRset", dname_str);
+        return 1;
+    }
+    return rrset_recover_rr_from_backup(rrset, rr);
+}
+
+
+/**
+ * Recover RRSIG from backup.
+ *
+ */
+int
+domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
+    ldns_rr_type type_covered, const char* locator, uint32_t flags)
+{
+    rrset_type* rrset = NULL;
+
+    ods_log_assert(rrsig);
+    ods_log_assert(domain);
+    ods_log_assert(domain->dname);
+    ods_log_assert(domain->rrsets);
+    ods_log_assert((ldns_dname_compare(domain->dname,
+        ldns_rr_owner(rrsig)) == 0));
+
+    if (type_covered == LDNS_RR_TYPE_NSEC ||
+        type_covered == LDNS_RR_TYPE_NSEC3) {
+        if (domain->denial && domain->denial->rrset) {
+            return rrset_recover_rrsig_from_backup(domain->denial->rrset, rrsig,
+                locator, flags);
+        } else if (type_covered == LDNS_RR_TYPE_NSEC) {
+            ods_log_error("[%s] unable to recover RRSIG to domain: "
+                "no NSEC RRset", dname_str);
+        } else {
+            ods_log_error("[%s] unable to recover RRSIG to domain: "
+                "no NSEC3 RRset", dname_str);
+        }
+    } else {
+        rrset = domain_lookup_rrset(domain, type_covered);
+        if (rrset) {
+            return rrset_recover_rrsig_from_backup(rrset, rrsig,
+                locator, flags);
+        } else {
+            ods_log_error("[%s] unable to recover RRSIG to domain: "
+                "no such RRset", dname_str);
+        }
+    }
+    return 1;
+}
+
+
+/**
  * Convert RRset to a tree node.
  *
  */
@@ -344,6 +418,9 @@ domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     rrset_type* rrset = NULL;
 
+    if (!domain) {
+        return 0;
+    }
     ods_log_assert(domain);
 
     if (domain->rrsets->root != LDNS_RBTREE_NULL) {
@@ -355,18 +432,18 @@ domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
             if (rrtype) {
                 /* looking for a specific RRset */
                 if (rrset->rr_type == rrtype) {
-                    return 0;
+                    return 1;
                 }
             } else if (!skip_glue ||
                 (rrset->rr_type != LDNS_RR_TYPE_A &&
                  rrset->rr_type != LDNS_RR_TYPE_AAAA)) {
                 /* not glue or not skipping glue */
-                return 0;
+                return 1;
             }
         }
         node = ldns_rbtree_next(node);
     }
-    return 1;
+    return 0;
 }
 
 
@@ -383,6 +460,9 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
     char* str_name = NULL;
     char* str_type = NULL;
 
+    if (!domain || !rrtype) {
+        return 1;
+    }
     ods_log_assert(domain);
     ods_log_assert(rrtype);
 
@@ -390,7 +470,7 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
     if (rrset && rrset_count_RR(rrset) > 0) {
         if (domain_count_rrset(domain) < 2) {
             /* one or zero, that's ok */
-            return 0;
+            return 1;
         }
         /* make sure all other RRsets become empty */
         if (domain->rrsets->root != LDNS_RBTREE_NULL) {
@@ -419,12 +499,12 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
                 }
                 free((void*)str_name);
                 free((void*)str_type);
-                return 1;
+                return 0;
             }
             node = ldns_rbtree_next(node);
         }
     }
-    return 0;
+    return 1;
 }
 
 
@@ -438,6 +518,9 @@ domain_examine_valid_zonecut(domain_type* domain)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     rrset_type* rrset = NULL;
 
+    if (!domain) {
+        return 1;
+    }
     ods_log_assert(domain);
 
     rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NS);
@@ -456,7 +539,7 @@ domain_examine_valid_zonecut(domain_type* domain)
                 /* found occluded data next to delegation */
                 ods_log_error("[%s] occluded glue data at zonecut, RRtype=%u",
                     dname_str, rrset->rr_type);
-                return 1;
+                return 0;
             } else if (rrset->rr_type == LDNS_RR_TYPE_A ||
                 rrset->rr_type == LDNS_RR_TYPE_AAAA) {
                 /* check if glue is allowed at the delegation */
@@ -464,10 +547,9 @@ domain_examine_valid_zonecut(domain_type* domain)
                     domain_examine_ns_rdata(domain, domain->dname) != 0) {
                     ods_log_error("[%s] occluded glue data at zonecut, #RR=%u",
                         dname_str, rrset_count_RR(rrset));
-                    return 1;
+                    return 0;
                 }
             }
-
             node = ldns_rbtree_next(node);
         }
     }
@@ -486,6 +568,9 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
     char* str_name = NULL;
     char* str_type = NULL;
 
+    if (!domain || !rrtype) {
+        return 1;
+    }
     ods_log_assert(domain);
     ods_log_assert(rrtype);
 
@@ -498,9 +583,9 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
             dname_str, str_name, str_type);
         free((void*)str_name);
         free((void*)str_type);
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 
@@ -711,80 +796,6 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     }
 
     return 0;
-}
-
-
-/**
- * Recover RR from backup.
- *
- */
-int
-domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
-{
-    rrset_type* rrset = NULL;
-
-    ods_log_assert(rr);
-    ods_log_assert(domain);
-    ods_log_assert(domain->dname);
-    ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->dname, ldns_rr_owner(rr)) == 0));
-
-    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
-    if (rrset) {
-        return rrset_recover_rr_from_backup(rrset, rr);
-    }
-    /* no RRset with this RRtype yet */
-    rrset = rrset_create(ldns_rr_get_type(rr));
-    rrset = domain_add_rrset(domain, rrset);
-    if (!rrset) {
-        ods_log_error("[%s] unable to recover RR to domain: failed to add "
-            "RRset", dname_str);
-        return 1;
-    }
-    return rrset_recover_rr_from_backup(rrset, rr);
-}
-
-
-/**
- * Recover RRSIG from backup.
- *
- */
-int
-domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
-    ldns_rr_type type_covered, const char* locator, uint32_t flags)
-{
-    rrset_type* rrset = NULL;
-
-    ods_log_assert(rrsig);
-    ods_log_assert(domain);
-    ods_log_assert(domain->dname);
-    ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->dname,
-        ldns_rr_owner(rrsig)) == 0));
-
-    if (type_covered == LDNS_RR_TYPE_NSEC ||
-        type_covered == LDNS_RR_TYPE_NSEC3) {
-        if (domain->denial && domain->denial->rrset) {
-            return rrset_recover_rrsig_from_backup(domain->denial->rrset, rrsig,
-                locator, flags);
-        } else if (type_covered == LDNS_RR_TYPE_NSEC) {
-            ods_log_error("[%s] unable to recover RRSIG to domain: "
-                "no NSEC RRset", dname_str);
-        } else {
-            ods_log_error("[%s] unable to recover RRSIG to domain: "
-                "no NSEC3 RRset", dname_str);
-        }
-    } else {
-        rrset = domain_lookup_rrset(domain, type_covered);
-        if (rrset) {
-            return rrset_recover_rrsig_from_backup(rrset, rrsig,
-                locator, flags);
-        } else {
-            ods_log_error("[%s] unable to recover RRSIG to domain: "
-                "no such RRset", dname_str);
-        }
-    }
-    return 1;
 }
 
 

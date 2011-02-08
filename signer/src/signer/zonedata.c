@@ -229,6 +229,57 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
 
 
 /**
+ * Recover RR from backup.
+ *
+ */
+int
+zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr)
+{
+    domain_type* domain = NULL;
+
+    ods_log_assert(zd);
+    ods_log_assert(zd->domains);
+    ods_log_assert(rr);
+
+    domain = zonedata_lookup_domain(zd, ldns_rr_owner(rr));
+    if (domain) {
+        return domain_recover_rr_from_backup(domain, rr);
+    }
+
+    ods_log_error("[%s] unable to recover RR to zonedata: domain does not exist",
+        zd_str);
+    return 1;
+}
+
+
+/**
+ * Recover RRSIG from backup.
+ *
+ */
+int
+zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
+    const char* locator, uint32_t flags)
+{
+    domain_type* domain = NULL;
+    ldns_rr_type type_covered;
+
+    ods_log_assert(zd);
+    ods_log_assert(zd->domains);
+    ods_log_assert(rrsig);
+
+    type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rrsig));
+    domain = zonedata_lookup_domain(zd, ldns_rr_owner(rrsig));
+    if (domain) {
+        return domain_recover_rrsig_from_backup(domain, rrsig, type_covered,
+            locator, flags);
+    }
+    ods_log_error("[%s] unable to recover RRSIG to zonedata: domain does not exist",
+        zd_str);
+    return 1;
+}
+
+
+/**
  * Convert a domain to a tree node.
  *
  */
@@ -1432,10 +1483,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 return 1;
             }
         }
-
         parent_rdf = next_rdf;
     }
-
     if (parent_rdf) {
         ldns_rdf_deep_free(parent_rdf);
     }
@@ -1455,6 +1504,11 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, adapter_mode mode)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
 
+
+    if (!zd || !zd->domains) {
+       /* no zone data, no error */
+       return ODS_STATUS_OK;
+    }
     ods_log_assert(zd);
     ods_log_assert(zd->domains);
 
@@ -1478,11 +1532,7 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, adapter_mode mode)
             error =
             /* Thou shall not have occluded data in your zone file */
             zonedata_examine_domain_is_occluded(zd, domain, apex);
-/* just warn if there is occluded data
-            if (error) {
-                result = error;
-            }
-*/
+        /* just warn if there is occluded data */
         }
 
         node = ldns_rbtree_next(node);
@@ -1492,57 +1542,6 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, adapter_mode mode)
          return ODS_STATUS_ERR;
     }
     return ODS_STATUS_OK;
-}
-
-
-/**
- * Recover RR from backup.
- *
- */
-int
-zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr)
-{
-    domain_type* domain = NULL;
-
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-    ods_log_assert(rr);
-
-    domain = zonedata_lookup_domain(zd, ldns_rr_owner(rr));
-    if (domain) {
-        return domain_recover_rr_from_backup(domain, rr);
-    }
-
-    ods_log_error("[%s] unable to recover RR to zonedata: domain does not exist",
-        zd_str);
-    return 1;
-}
-
-
-/**
- * Recover RRSIG from backup.
- *
- */
-int
-zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
-    const char* locator, uint32_t flags)
-{
-    domain_type* domain = NULL;
-    ldns_rr_type type_covered;
-
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-    ods_log_assert(rrsig);
-
-    type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rrsig));
-    domain = zonedata_lookup_domain(zd, ldns_rr_owner(rrsig));
-    if (domain) {
-        return domain_recover_rrsig_from_backup(domain, rrsig, type_covered,
-            locator, flags);
-    }
-    ods_log_error("[%s] unable to recover RRSIG to zonedata: domain does not exist",
-        zd_str);
-    return 1;
 }
 
 

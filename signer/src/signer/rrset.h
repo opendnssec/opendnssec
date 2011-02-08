@@ -35,8 +35,10 @@
 #define SIGNER_RRSET_H
 
 #include "config.h"
+#include "shared/allocator.h"
 #include "shared/hsm.h"
 #include "shared/status.h"
+#include "signer/keys.h"
 #include "signer/rrsigs.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
@@ -49,6 +51,7 @@
 
 typedef struct rrset_struct rrset_type;
 struct rrset_struct {
+    allocator_type* allocator;
     ldns_rr_type rr_type;
     uint32_t rr_count;
     uint32_t add_count;
@@ -132,7 +135,6 @@ int rrset_count_del(rrset_type* rrset);
  */
 int rrset_count_RR(rrset_type* rrset);
 
-
 /**
  * Add RR to RRset.
  * \param[in] rrset RRset
@@ -202,7 +204,7 @@ int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
  * Examine NS RRset and verify its RDATA.
  * \param[in] rrset NS RRset
  * \param[in] nsdname domain name that should match NS RDATA
- * \return int 0 if nsdame exists as NS RDATA, 1 otherwise
+ * \return int 1 if match, 0 otherwise
  *
  */
 int rrset_examine_ns_rdata(rrset_type* rrset, ldns_rdf* nsdname);

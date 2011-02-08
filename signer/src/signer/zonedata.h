@@ -57,7 +57,6 @@ typedef struct zonedata_struct zonedata_type;
 struct zonedata_struct {
     ldns_rbtree_t* domains;
     ldns_rbtree_t* denial_chain;
-    ldns_rbtree_t* nsec3_domains;
     int initialized;
     uint32_t default_ttl; /* fallback ttl */
     uint32_t inbound_serial; /* last seen inbound soa serial */
@@ -81,6 +80,27 @@ zonedata_type* zonedata_create(allocator_type* allocator);
  *
  */
 int zonedata_recover_from_backup(zonedata_type* zd, FILE* fd);
+
+/**
+ * Recover RR from backup.
+ * \param[in] zd zone data
+ * \param[in] rr RR to add
+ * \return int 0 on success, 1 on false
+ *
+ */
+int zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr);
+
+/**
+ * Recover RRSIG from backup.
+ * \param[in] zd zone data
+ * \param[in] rrsig RRSIG to add
+ * \param[in] locator key locaotor
+ * \param[in] flags key flags
+ * \return int 0 on success, 1 on false
+ *
+ */
+int zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
+    const char* locator, uint32_t flags);
 
 /**
  * Look up domain.
@@ -151,6 +171,15 @@ ods_status zonedata_examine(zonedata_type* zd, ldns_rdf* apex,
     adapter_mode mode);
 
 /**
+ * Calculate differences at the zonedata between current and new RRsets.
+ * \param[in] zd zone data
+ * \param[in] kl current key list
+ * \return ods_status status
+ *
+ */
+ods_status zonedata_diff(zonedata_type* zd, keylist_type* kl);
+
+/**
  * Commit updates to zone data.
  * \param[in] zd zone data
  * \return ods_status status
@@ -205,77 +234,6 @@ ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
  */
 int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     stats_type* stats);
-
-/**
- * Calculate differences at the zonedata between current and new RRsets.
- * \param[in] zd zone data
- * \param[in] kl current key list
- * \return ods_status status
- *
- */
-ods_status zonedata_diff(zonedata_type* zd, keylist_type* kl);
-
-/**
- * Commit updates to zone data.
- * \param[in] zd zone data
- * \return ods_status status
- *
- */
-ods_status zonedata_commit(zonedata_type* zd);
-
-/**
- * Rollback updates from zone data.
- * \param[in] zd zone data
- *
- */
-void zonedata_rollback(zonedata_type* zd);
-
-/**
- * Add RR to zone data.
- * \param[in] zd zone data
- * \param[in] rr RR to add
- * \param[in] at_apex if is at apex of the zone
- * \return int 0 on success, 1 on false
- *
- */
-int zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex);
-
-/**
- * Recover RR from backup.
- * \param[in] zd zone data
- * \param[in] rr RR to add
- * \return int 0 on success, 1 on false
- *
- */
-int zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr);
-
-/**
- * Recover RRSIG from backup.
- * \param[in] zd zone data
- * \param[in] rrsig RRSIG to add
- * \param[in] locator key locaotor
- * \param[in] flags key flags
- * \return int 0 on success, 1 on false
- *
- */
-int zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
-    const char* locator, uint32_t flags);
-
-/**
- * Delete RR from zone data.
- * \param[in] zd zone data
- * \param[in] rr RR to delete
- * \return int 0 on success, 1 on false
- *
- */
-int zonedata_del_rr(zonedata_type* zd, ldns_rr* rr);
-
-/**
- * Clean up domains in zone data tree.
- * \param[in] domain_tree tree of domains to cleanup
- *
- */
-void zonedata_cleanup_domains(ldns_rbtree_t* domain_tree);
 
 /**
  * Wipe out all NSEC(3) RRsets.

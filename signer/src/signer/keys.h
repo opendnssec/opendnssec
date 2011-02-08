@@ -34,6 +34,9 @@
 #ifndef SIGNER_KEYS_H
 #define SIGNER_KEYS_H
 
+#include "shared/allocator.h"
+#include "shared/status.h"
+
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
@@ -44,8 +47,6 @@
 #include <libhsm.h>
 #include <libhsmdns.h>
 
-#include "shared/allocator.h"
-#include "shared/status.h"
 
 /**
  * Key.

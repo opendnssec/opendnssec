@@ -102,6 +102,28 @@ domain_type* domain_create(ldns_rdf* dname);
 domain_type* domain_recover_from_backup(FILE* fd);
 
 /**
+ * Recover RR from backup.
+ * \param[in] domain domain
+ * \param[in] rr RR
+ * \return int 0 on success, 1 on error
+ *
+ */
+int domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr);
+
+/**
+ * Recover RRSIG from backup.
+ * \param[in] domain domain
+ * \param[in] rrsig RRSIG
+ * \param[in] type_covered RRtype that is covered by rrsig
+ * \param[in] locator key locator
+ * \param[in] flags key flags
+ * \return int 0 on success, 1 on error
+ *
+ */
+int domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
+    ldns_rr_type type_covered, const char* locator, uint32_t flags);
+
+/**
  * Count the number of RRsets at this domain.
  * \param[in] domain domain
  * \return size_t number of RRsets
@@ -160,7 +182,7 @@ int domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
  * Examine domain NS RRset and verify its RDATA.
  * \param[in] domain domain
  * \param[in] nsdname domain name that should match one of the NS RDATA
- * \return int 0 if nsdname exists as NS RDATA, 1 otherwise
+ * \return int 1 if match, 0 otherwise
  *
  */
 int domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname);
@@ -168,7 +190,7 @@ int domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname);
 /**
  * Examine domain and verify if it is a valid zonecut (or no NS RRs).
  * \param[in] domain domain
- * \retun int 0 if the RRset is a valid zonecut (or no zonecut), 1 otherwise
+ * \retun int 1 if the RRset is a valid zonecut (or no zonecut), 0 otherwise
  *
  */
 int domain_examine_valid_zonecut(domain_type* domain);
@@ -177,7 +199,7 @@ int domain_examine_valid_zonecut(domain_type* domain);
  * Examine domain and verify if there is no other data next to a RRset.
  * \param[in] domain domain
  * \param[in] rrtype RRtype
- * \retun int 0 if the RRset is alone, 1 otherwise
+ * \return int 1 if the RRset is alone, 0 otherwise
  *
  */
 int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
@@ -186,7 +208,7 @@ int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
  * Examine domain and verify if the RRset is a singleton.
  * \param[in] domain domain
  * \param[in] rrtype RRtype
- * \retun int 0 if the RRset is a singleton, 1 otherwise
+ * \return int 1 if the RRset is a singleton, 0 otherwise
  *
  */
 int domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype);
@@ -227,37 +249,6 @@ void domain_dstatus(domain_type* domain);
  */
 int domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats);
-
-/**
- * Recover RR from backup.
- * \param[in] domain domain
- * \param[in] rr RR
- * \return int 0 on success, 1 on error
- *
- */
-int domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr);
-
-/**
- * Recover RRSIG from backup.
- * \param[in] domain domain
- * \param[in] rrsig RRSIG
- * \param[in] type_covered RRtype that is covered by rrsig
- * \param[in] locator key locator
- * \param[in] flags key flags
- * \return int 0 on success, 1 on error
- *
- */
-int domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
-    ldns_rr_type type_covered, const char* locator, uint32_t flags);
-
-/**
- * Examine domain NS RRset and verify its RDATA.
- * \param[in] domain domain
- * \param[in] nsdname domain name that should match one of the NS RDATA
- * \return int 1 if match, 0 otherwise
- *
- */
-int domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname);
 
 /**
  * Clean up domain.
