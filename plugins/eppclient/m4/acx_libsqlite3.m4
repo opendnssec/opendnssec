@@ -1,4 +1,4 @@
-# $Id: acx_libsqlite3.m4 2698 2010-01-22 10:52:54Z rb $
+# $Id: acx_libsqlite3.m4 4176 2010-11-10 02:51:32Z rb $
 
 AC_DEFUN([ACX_LIBSQLITE3],[
 	AC_ARG_WITH(sqlite3,
