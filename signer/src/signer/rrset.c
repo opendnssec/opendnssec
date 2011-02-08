@@ -55,11 +55,12 @@ void
 log_rr(ldns_rr* rr, const char* pre, int level)
 {
     char* str = NULL;
-    int i = 0;
+    size_t i = 0;
 
     str = ldns_rr2str(rr);
     if (str) {
         str[(strlen(str))-1] = '\0';
+        /* replace tabs with white space */
         for (i=0; i < strlen(str); i++) {
             if (str[i] == '\t') {
                 str[i] = ' ';
