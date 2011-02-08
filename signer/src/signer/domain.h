@@ -40,7 +40,6 @@
 #include "shared/status.h"
 #include "signer/denial.h"
 #include "signer/keys.h"
-#include "signer/nsec3params.h"
 #include "signer/rrset.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
@@ -81,9 +80,6 @@ struct domain_struct {
 
     /* Denial of Existence */
     denial_type* denial;
-
-    uint32_t internal_serial;
-    uint32_t outbound_serial;
 
     /* RRsets */
     ldns_rbtree_t* rrsets;
@@ -253,6 +249,15 @@ int domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr);
  */
 int domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
     ldns_rr_type type_covered, const char* locator, uint32_t flags);
+
+/**
+ * Examine domain NS RRset and verify its RDATA.
+ * \param[in] domain domain
+ * \param[in] nsdname domain name that should match one of the NS RDATA
+ * \return int 1 if match, 0 otherwise
+ *
+ */
+int domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname);
 
 /**
  * Clean up domain.

@@ -100,8 +100,6 @@ domain_create(ldns_rdf* dname)
     domain->allocator = allocator;
     domain->dname = ldns_rdf_clone(dname);
     domain->dstatus = DOMAIN_STATUS_NONE;
-    domain->internal_serial = 0;
-    domain->outbound_serial = 0;
     domain->parent = NULL;
     domain->denial = NULL;
     domain->rrsets = ldns_rbtree_create(rrset_compare);
@@ -367,31 +365,6 @@ domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
             }
         }
         node = ldns_rbtree_next(node);
-    }
-    return 1;
-}
-
-
-/**
- * Examine domain NS RRset and verify its RDATA.
- *
- */
-int
-domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname)
-{
-    rrset_type* rrset = NULL;
-
-    ods_log_assert(domain);
-    if (!nsdname) {
-       return 1;
-    }
-
-    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NS);
-    if (rrset && rrset_count_RR(rrset) > 0) {
-        /* NS RRset exists after update */
-        if (rrset_examine_ns_rdata(rrset, nsdname) == 0) {
-            return 0;
-        }
     }
     return 1;
 }
@@ -742,37 +715,6 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
 
 
 /**
- * Add RR to domain.
- *
- */
-int
-domain_add_rr(domain_type* domain, ldns_rr* rr)
-{
-    rrset_type* rrset = NULL;
-
-    ods_log_assert(rr);
-    ods_log_assert(domain);
-    ods_log_assert(domain->dname);
-    ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->dname, ldns_rr_owner(rr)) == 0));
-
-    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
-    if (rrset) {
-        return (rrset_add_rr(rrset, rr) == NULL);
-    }
-    /* no RRset with this RRtype yet */
-    rrset = rrset_create(ldns_rr_get_type(rr));
-    rrset = domain_add_rrset(domain, rrset);
-    if (!rrset) {
-        ods_log_error("[%s] unable to add RR to domain: failed to add RRset",
-            dname_str);
-        return 1;
-    }
-    return (rrset_add_rr(rrset, rr) == NULL);
-}
-
-
-/**
  * Recover RR from backup.
  *
  */
@@ -847,6 +789,26 @@ domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
 
 
 /**
+ * Examine domain NS RRset and verify its RDATA.
+ *
+ */
+int
+domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname)
+{
+    rrset_type* rrset = NULL;
+
+    if (!domain || !nsdname) {
+       return 0;
+    }
+    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NS);
+    if (rrset && rrset_examine_ns_rdata(rrset, nsdname)) {
+        return 1;
+    }
+    return 0;
+}
+
+
+/**
  * Clean up RRsets at the domain.
  *
  */
@@ -895,7 +857,6 @@ domain_cleanup(domain_type* domain)
     allocator_cleanup(allocator);
     return;
 }
-
 
 
 /**
