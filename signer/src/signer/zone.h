@@ -71,6 +71,7 @@ struct zone_struct {
     int just_updated;
     int tobe_removed;
     int processed;
+    int prepared;
 
     /* adapters */
     adapter_type* adinbound; /* inbound adapter */

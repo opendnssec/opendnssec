@@ -104,6 +104,7 @@ zone_create(const char* name, ldns_rr_class klass)
     zone->just_updated = 0;
     zone->tobe_removed = 0;
     zone->processed = 0;
+    zone->prepared = 0;
     zone->fetch = 0;
 
     zone->zonedata = zonedata_create(zone->allocator);
