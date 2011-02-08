@@ -3,9 +3,10 @@
 HUDSON_URL=	http://hudson-ci.org/latest/hudson.war
 HUDSON_WAR=	hudson.war
 HUDSON_CLI=	hudson-cli.jar
+HUDSON_HOME=	$(HOME)/.hudson
 JOB_NAME=	OpenDNSSEC
 
-DESTDIR=	$(HOME)/.hudson/jobs/$(JOB_NAME)
+DESTDIR=	$(HUDSON_HOME)/jobs/$(JOB_NAME)
 
 JAVA=		java
 INSTALL=	install
@@ -18,6 +19,9 @@ fetch:: $(HUDSON_WAR)
 install::
 	$(INSTALL) -d $(DESTDIR)
 	$(INSTALL) config.xml $(DESTDIR)/config.xml
+
+clean:
+	rm -fr $(DESTDIR)
 
 run:: $(HUDSON_WAR)
 	$(JAVA) -jar $(HUDSON_WAR)
