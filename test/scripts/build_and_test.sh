@@ -133,6 +133,7 @@ ods_start()
 {
         ${SANDBOX}/sbin/ods-control start
         sleep 10
+        ${SANDBOX}/sbin/ods-signer verbosity 4
         ${SANDBOX}/sbin/ods-signer zones
 }
 
