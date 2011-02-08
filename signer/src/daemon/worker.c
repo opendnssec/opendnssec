@@ -225,6 +225,9 @@ worker_perform_task(worker_type* worker)
                     goto task_perform_fail;
                 }
                 goto task_perform_continue;
+            } else {
+                task->interrupt = TASK_NONE;
+                task->halted = TASK_NONE;
             }
             what = TASK_AUDIT;
             when = time_now();
@@ -243,10 +246,14 @@ worker_perform_task(worker_type* worker)
 
             /* what to do next */
             if (status != ODS_STATUS_OK) {
-                goto task_perform_fail;
+                if (task->halted == TASK_NONE) {
+                    goto task_perform_fail;
+                }
+                goto task_perform_continue;
             }
             what = TASK_WRITE;
             when = time_now();
+            fallthrough = 1;
             break;
         case TASK_WRITE:
             ods_log_verbose("[%s[%i]]: write zone %s",
@@ -258,7 +265,13 @@ worker_perform_task(worker_type* worker)
 
             /* what to do next */
             if (status != ODS_STATUS_OK) {
-                goto task_perform_fail;
+                if (task->halted == TASK_NONE) {
+                    goto task_perform_fail;
+                }
+                goto task_perform_continue;
+            } else {
+                task->interrupt = TASK_NONE;
+                task->halted = TASK_NONE;
             }
             what = TASK_SIGN;
             when = time_now() +

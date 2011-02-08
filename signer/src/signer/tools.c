@@ -160,16 +160,17 @@ tools_commit(zone_type* zone)
     ods_log_verbose("[%s] commit updates to zone %s", tools_str,
         zone->name?zone->name:"(null)");
     status = zonedata_commit(zone->zonedata);
-    if (status != ODS_STATUS_OK) {
+    if (status == ODS_STATUS_OK) {
         inbound = ods_build_path(zone->name, ".inbound", 0);
         unsorted = ods_build_path(zone->name, ".unsorted", 0);
         status = ods_file_copy(inbound, unsorted);
         if (status != ODS_STATUS_OK) {
-            zone->stats->sort_done = 1;
             unlink(inbound);
         }
         free((void*)inbound);
         free((void*)unsorted);
+    } else {
+        zone->stats->sort_done = 1;
     }
     return status;
 }
