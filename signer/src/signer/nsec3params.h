@@ -34,7 +34,10 @@
 #ifndef SIGNER_NSEC3PARAMS_H
 #define SIGNER_NSEC3PARAMS_H
 
-#include <config.h>
+#include "config.h"
+#include "shared/allocator.h"
+#include "shared/status.h"
+
 #include <ctype.h>
 #include <stdint.h>
 #ifdef HAVE_SYS_TYPES_H
@@ -51,6 +54,7 @@
  */
 typedef struct nsec3params_struct nsec3params_type;
 struct nsec3params_struct {
+    allocator_type* allocator;
     uint8_t     algorithm;
     uint8_t     flags;
     uint16_t    iterations;
@@ -63,10 +67,10 @@ struct nsec3params_struct {
  * \param[in] salt_str the salt in string format
  * \param[out] salt_len lenght of the salt data
  * \param[out] salt salt in raw data format
- * \return 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-int nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
+ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
     uint8_t** salt);
 
  /**
@@ -91,7 +95,7 @@ nsec3params_type* nsec3params_create(uint8_t algo, uint8_t flags,
 nsec3params_type* nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr);
 
 /**
- * Convert Salt to string.
+ * Convert salt to string.
  * \param[in] nsec3params NSEC3 parameters
  * \return const char* str salt in string format
  *
