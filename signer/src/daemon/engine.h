@@ -94,14 +94,6 @@ void engine_start(const char* cfgfile, int cmdline_verbosity,
 void engine_wakeup_workers(engine_type* engine);
 
 /**
- * Parse notify command.
- * \param[in] zone zone
- * \param[in] cmd notify command.
- *
- */
-void set_notify_ns(zone_type* zone, const char* cmd);
-
-/**
  * Update zones.
  * \param[in] engine engine
  *

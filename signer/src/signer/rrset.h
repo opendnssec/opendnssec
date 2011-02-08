@@ -74,14 +74,6 @@ struct rrset_struct {
 rrset_type* rrset_create(ldns_rr_type rrtype);
 
 /**
- * Create new RRset from RR.
- * \param[in] rr RR
- * \return rrset_type* new RRset
- *
- */
-rrset_type* rrset_create_frm_rr(ldns_rr* rr);
-
-/**
  * Recover RR from backup.
  * \param[in] rrset RRset
  * \param[in] rr RR

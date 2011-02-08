@@ -35,7 +35,6 @@
 #define SIGNER_TOOLS_H
 
 #include "config.h"
-#include "daemon/cfg.h"
 #include "shared/status.h"
 #include "signer/zone.h"
 
@@ -76,10 +75,10 @@ int tools_sign(zone_type* zone);
  * \param[in] zone zone
  * \param[in] working_dir working directory
  * \param[in] cfg_filename conf.xml filename
- * \return int 0 on success, 1 on fail
+ * \return ods_status status
  *
  */
-int tools_audit(zone_type* zone, char* working_dir, char* cfg_filename);
+ods_status tools_audit(zone_type* zone, char* working_dir, char* cfg_filename);
 
 /**
  * Write zone to output adapter.

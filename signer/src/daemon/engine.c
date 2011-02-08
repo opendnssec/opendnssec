@@ -670,7 +670,7 @@ engine_run(engine_type* engine, int single_run)
  * Parse notify command.
  *
  */
-void
+static void
 set_notify_ns(zone_type* zone, const char* cmd)
 {
     const char* str = NULL;

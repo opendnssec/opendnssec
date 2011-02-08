@@ -235,14 +235,14 @@ worker_perform_task(worker_type* worker)
                 task_who2str(task->who));
             working_dir = strdup(engine->config->working_dir);
             cfg_filename = strdup(engine->config->cfg_filename);
-            error = tools_audit(zone, working_dir, cfg_filename);
+            status = tools_audit(zone, working_dir, cfg_filename);
             if (working_dir)  { free((void*)working_dir); }
             if (cfg_filename) { free((void*)cfg_filename); }
             working_dir = NULL;
             cfg_filename = NULL;
 
             /* what to do next */
-            if (error) {
+            if (status != ODS_STATUS_OK) {
                 goto task_perform_fail;
             }
             what = TASK_WRITE;

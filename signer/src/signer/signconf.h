@@ -34,9 +34,9 @@
 #ifndef SIGNER_SIGNCONF_H
 #define SIGNER_SIGNCONF_H
 
+#include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/duration.h"
-#include "scheduler/task.h"
 #include "signer/keys.h"
 
 #include <ldns/ldns.h>
@@ -113,11 +113,11 @@ void signconf_backup(signconf_type* sc);
 
 /**
  * Check signer configuration.
- * \param sc signer configuration settings
- * \return 0 on success, 1 on fail
+ * \param signconf signer configuration
+ * \return ods_status status
  *
  */
-int signconf_check(signconf_type* sc);
+ods_status signconf_check(signconf_type* signconf);
 
 /**
  * Compare signer configurations on denial of existence material.

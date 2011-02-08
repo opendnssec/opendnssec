@@ -39,7 +39,6 @@
 #include "shared/log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
-#include "util/se_malloc.h"
 
 #include <unistd.h> /* unlink() */
 
@@ -101,6 +100,9 @@ tools_input(zone_type* zone)
             free((void*)axfrname);
         }
     }
+
+    ods_log_verbose("[%s] read zone %s", tools_str,
+        zone->name?zone->name:"(null)");
 
     start = time(NULL);
     status = adapter_read(zone);
@@ -259,7 +261,8 @@ tools_sign(zone_type* zone)
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->stats);
-    ods_log_verbose("[%s] sign zone %s", tools_str, zone->name?zone->name:"(null)");
+    ods_log_verbose("[%s] sign zone %s", tools_str,
+        zone->name?zone->name:"(null)");
     start = time(NULL);
     error = zone_sign(zone);
     end = time(NULL);
@@ -280,30 +283,43 @@ tools_sign(zone_type* zone)
  * Audit zone.
  *
  */
-int
+ods_status
 tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
 {
     char* finalized = NULL;
     char str[SYSTEM_MAXLEN];
+    ods_status status = ODS_STATUS_OK;
     int error = 0;
     time_t start = 0;
     time_t end = 0;
+
+    if (!zone) {
+        ods_log_error("[%s] unable to audit zone: no zone", tools_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
     ods_log_assert(zone);
+
+    if (!zone->signconf) {
+        ods_log_error("[%s] unable to audit zone %s: no signconf",
+            tools_str, zone->name?zone->name:"(null)");
+        return ODS_STATUS_ASSERT_ERR;
+    }
     ods_log_assert(zone->signconf);
 
     if (zone->stats->sort_done == 0 &&
         (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
-        return 0;
+        return ODS_STATUS_OK;
     }
     if (zone->signconf->audit) {
-        ods_log_verbose("[%s] audit zone %s", tools_str, zone->name?zone->name:"(null)");
+        ods_log_verbose("[%s] audit zone %s", tools_str,
+            zone->name?zone->name:"(null)");
         finalized = ods_build_path(zone->name, ".finalized", 0);
-        error = adfile_write(zone, finalized);
-        if (error != 0) {
+        status = adfile_write(zone, finalized);
+        if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] audit zone %s failed: unable to write zone",
                 tools_str, zone->name?zone->name:"(null)");
             free((void*)finalized);
-            return 1;
+            return status;
         }
 
         snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s > /dev/null",
@@ -322,10 +338,13 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             }
             free((void*)finalized);
         }
+        if (error) {
+            status = ODS_STATUS_ERR;
+        }
         end = time(NULL);
         zone->stats->audit_time = (end-start);
     }
-    return error;
+    return status;
 }
 
 
@@ -345,8 +364,14 @@ tools_output(zone_type* zone)
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
-    ods_log_assert(zone->signconf);
+
+    if (!zone->adoutbound) {
+        ods_log_error("[%s] unable to write zone %s: no outbound adapter",
+            tools_str, zone->name?zone->name:"(null)");
+        return ODS_STATUS_ASSERT_ERR;
+    }
     ods_log_assert(zone->adoutbound);
+
     ods_log_assert(zone->stats);
 
     if (zone->stats->sort_done == 0 &&
@@ -368,7 +393,8 @@ tools_output(zone_type* zone)
 
     /* kick the nameserver */
     if (zone->notify_ns) {
-        ods_log_verbose("[%s] notify nameserver: %s", tools_str, zone->notify_ns);
+        ods_log_verbose("[%s] notify nameserver: %s", tools_str,
+            zone->notify_ns);
         snprintf(str, SYSTEM_MAXLEN, "%s > /dev/null",
             zone->notify_ns);
         error = system(str);
@@ -379,7 +405,8 @@ tools_output(zone_type* zone)
     }
     /* log stats */
     zone->stats->end_time = time(NULL);
-    ods_log_debug("[%s] log stats for zone %s", tools_str, zone->name?zone->name:"(null)");
+    ods_log_debug("[%s] log stats for zone %s", tools_str,
+        zone->name?zone->name:"(null)");
     stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
     stats_clear(zone->stats);
 

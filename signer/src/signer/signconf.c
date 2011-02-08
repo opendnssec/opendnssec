@@ -371,45 +371,45 @@ signconf_soa_serial_check(const char* serial) {
  * Check signer configuration settings.
  *
  */
-int
+ods_status
 signconf_check(signconf_type* sc)
 {
-    int ret = 0;
+    ods_status status = ODS_STATUS_OK;
 
     if (!sc->sig_resign_interval) {
         ods_log_error("[%s] check failed: no signature resign interval found",
             sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->sig_refresh_interval) {
         ods_log_error("[%s] check failed: no signature resign interval found",
             sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->sig_validity_default) {
         ods_log_error("[%s] check failed: no signature default validity found",
             sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->sig_validity_denial) {
         ods_log_error("[%s] check failed: no signature denial validity found",
             sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->sig_jitter) {
         ods_log_error("[%s] check failed: no signature jitter found", sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->sig_inception_offset) {
         ods_log_error("[%s] check failed: no signature inception offset found",
             sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (sc->nsec3_algo == 0) {
             ods_log_error("[%s] check failed: no nsec3 algorithm found",
                 sc_str);
-            ret = 1;
+            status = ODS_STATUS_CFG_ERR;
         }
         /* iterations */
         /* salt */
@@ -417,35 +417,34 @@ signconf_check(signconf_type* sc)
     } else if (sc->nsec_type != LDNS_RR_TYPE_NSEC) {
         ods_log_error("[%s] check failed: wrong nsec type %i", sc_str,
             sc->nsec_type);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->keys || sc->keys->count == 0) {
         ods_log_error("[%s] check failed: no keys found", sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->dnskey_ttl) {
         ods_log_error("[%s] check failed: no dnskey ttl found", sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->soa_ttl) {
         ods_log_error("[%s] check failed: no soa ttl found", sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
     if (!sc->soa_min) {
         ods_log_error("[%s] check failed: no soa minimum found", sc_str);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
-    if (signconf_soa_serial_check(sc->soa_serial) != 0) {
+    if (!sc->soa_serial) {
+        ods_log_error("[%s] check failed: no soa serial type found", sc_str);
+        status = ODS_STATUS_CFG_ERR;
+    } else if (signconf_soa_serial_check(sc->soa_serial) != 0) {
         ods_log_error("[%s] check failed: wrong soa serial type %s", sc_str,
             sc->soa_serial);
-        ret = 1;
+        status = ODS_STATUS_CFG_ERR;
     }
 
-    if (!ret) {
-        ods_log_debug("[%s] signer configuration settings ok", sc_str);
-    }
-    return ret;
-
+    return status;
 }
 
 
