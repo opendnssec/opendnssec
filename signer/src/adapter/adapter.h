@@ -54,6 +54,7 @@ typedef enum adapter_mode_enum adapter_mode;
 union adapter_data_union
 {
     adfile_type* file;
+    admysql_type* mysql;
 };
 typedef union adapter_data_union adapter_data;
 

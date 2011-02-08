@@ -52,6 +52,15 @@ struct adfile_struct {
 };
 
 /**
+ * MySQL adapter.
+ *
+ */
+typedef struct admysql_struct admysql_type;
+struct admysql_struct {
+    const char* hostname;
+};
+
+/**
  * Create new file adapter.
  * \param[in] allocator memory allocator
  * \param[in] filename filename
