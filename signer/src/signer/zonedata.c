@@ -801,13 +801,6 @@ zonedata_commit(zonedata_type* zd)
                         "domain", zd_str);
                     return ODS_STATUS_ERR;
                 }
-            } else if (domain->denial) {
-                if (zonedata_del_denial(zd, domain->denial) != NULL) {
-                    ods_log_warning("[%s] unable to delete obsoleted "
-                        "denial of existence data point", zd_str);
-                    return ODS_STATUS_ERR;
-                }
-                domain->denial = NULL;
             }
         } /* if (domain_count_rrset(domain) <= 0) */
     }
