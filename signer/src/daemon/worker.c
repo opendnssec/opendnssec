@@ -477,8 +477,10 @@ worker_wakeup(worker_type* worker)
         ods_log_debug("[%s[%i]] wake up", worker2str(worker->type),
            worker->thread_num);
         lock_basic_lock(&worker->worker_lock);
+        /* [LOCK] worker */
         lock_basic_alarm(&worker->worker_alarm);
         worker->sleeping = 0;
+        /* [UNLOCK] worker */
         lock_basic_unlock(&worker->worker_lock);
     }
     return;

@@ -730,7 +730,7 @@ engine_update_zones(engine_type* engine)
     /* [LOCK] zonelist */
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
-        zone = (zone_type*) node->key;
+        zone = (zone_type*) node->data;
 
         if (zone->tobe_removed) {
             node = ldns_rbtree_next(node);
@@ -757,6 +757,11 @@ engine_update_zones(engine_type* engine)
         } else if (zone->just_added) {
             ods_log_assert(!zone->task);
             zone->just_added = 0;
+            /* notify nameserver */
+            if (engine->config->notify_command && !zone->notify_ns) {
+                set_notify_ns(zone, engine->config->notify_command);
+            }
+            /* schedule task */
             task = task_create(TASK_SIGNCONF, now, zone->name, zone);
             if (!task) {
                 ods_log_crit("[%s] failed to create task for zone %s",
@@ -772,7 +777,7 @@ engine_update_zones(engine_type* engine)
         } else if (zone->just_updated) {
             ods_log_assert(zone->task);
             zone->just_updated = 0;
-
+            /* reschedule task */
             lock_basic_lock(&engine->taskq->schedule_lock);
             /* [LOCK] schedule */
             task = unschedule_task(engine->taskq, (task_type*) zone->task);

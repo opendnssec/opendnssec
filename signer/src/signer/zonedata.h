@@ -178,24 +178,21 @@ ods_status zonedata_entize(zonedata_type* zd, ldns_rdf* apex);
  * Add NSEC records to zone data.
  * \param[in] zd zone data
  * \param[in] klass zone class
- * \param[out] stats update statistics
  * \return ods_status status
  *
  */
-ods_status zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass,
-    stats_type* stats);
+ods_status zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass);
 
 /**
  * Add NSEC3 records to zone data.
  * \param[in] zd zone data
  * \param[in] klass zone class
  * \param[in] nsec3params NSEC3 parameters
- * \param[out] stats update statistics
  * \return ods_status status
  *
  */
 ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
-    nsec3params_type* nsec3params, stats_type* stats);
+    nsec3params_type* nsec3params);
 
 /**
  * Add RRSIG records to zone data.
@@ -281,18 +278,11 @@ int zonedata_del_rr(zonedata_type* zd, ldns_rr* rr);
 void zonedata_cleanup_domains(ldns_rbtree_t* domain_tree);
 
 /**
- * Wipe out all NSEC RRsets.
+ * Wipe out all NSEC(3) RRsets.
  * \param[in] zd zone data
  *
  */
-void zonedata_wipe_nsec(zonedata_type* zd);
-
-/**
- * Wipe out NSEC3 tree.
- * \param[in] zd zone data
- *
- */
-void zonedata_wipe_nsec3(zonedata_type* zd);
+void zonedata_wipe_denial(zonedata_type* zd);
 
 /**
  * Clean up zone data.
@@ -309,21 +299,5 @@ void zonedata_cleanup(zonedata_type* zd);
  *
  */
 ods_status zonedata_print(FILE* fd, zonedata_type* zd);
-
-/**
- * Print NSEC(3)s in zone data.
- * \param[in] out file descriptor
- * \param[in] zd zone data to print
- *
- */
-void zonedata_print_nsec(FILE* fd, zonedata_type* zd);
-
-/**
- * Print RRSIGs in zone data.
- * \param[in] out file descriptor
- * \param[in] zd zone data to print
- *
- */
-void zonedata_print_rrsig(FILE* fd, zonedata_type* zd);
 
 #endif /* SIGNER_ZONEDATA_H */

@@ -220,8 +220,7 @@ tools_nsecify(zone_type* zone)
 
     /* NSEC or NSEC3? */
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
-        status = zonedata_nsecify(zone->zonedata, zone->klass,
-            zone->stats);
+        status = zonedata_nsecify(zone->zonedata, zone->klass);
     } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (zone->signconf->nsec3_optout) {
             ods_log_debug("[%s] OptOut is being used for zone %s",
@@ -229,7 +228,7 @@ tools_nsecify(zone_type* zone)
         }
         ods_log_assert(zone->nsec3params);
         status = zonedata_nsecify3(zone->zonedata, zone->klass,
-            zone->nsec3params, zone->stats);
+            zone->nsec3params);
     } else {
         ods_log_error("[%s] unable to nsecify zone %s: unknown RRtype %u for ",
             "denial of existence", tools_str, zone->name,

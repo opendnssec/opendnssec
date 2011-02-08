@@ -232,12 +232,4 @@ void log_rr(ldns_rr* rr, const char* pre, int level);
  */
 void rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs);
 
-/**
- * Print RRSIGs from RRset.
- * \param[in] fd file descriptor
- * \param[in] rrset RRset to be printed
- *
- */
-void rrset_print_rrsig(FILE* fd, rrset_type* rrset);
-
 #endif /* SIGNER_RRSET_H */

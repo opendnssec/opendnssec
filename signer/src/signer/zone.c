@@ -227,8 +227,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
             nsec3params_cleanup(zone->nsec3params);
             zone->nsec3params = NULL;
             /* all NSEC(3)s become invalid */
-            zonedata_wipe_nsec3(zone->zonedata);
-            zonedata_wipe_nsec(zone->zonedata);
+            zonedata_wipe_denial(zone->zonedata);
         }
 
         /* all ok, switch to new signconf */
@@ -473,6 +472,7 @@ zone_sign(zone_type* zone)
         end = time(NULL);
         zone->stats->sig_time = (end-start);
 
+/*
         filename = ods_build_path(zone->name, ".rrsigs", 0);
         fd = ods_fopen(filename, NULL, "w");
         if (fd) {
@@ -485,6 +485,7 @@ zone_sign(zone_type* zone)
                 "%s for writing", zone_str, filename?filename:"(null)");
         }
         free((void*)filename);
+*/
     }
     return error;
 }

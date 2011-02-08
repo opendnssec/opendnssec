@@ -36,6 +36,8 @@
 
 #include "config.h"
 #include "shared/hsm.h"
+#include "shared/allocator.h"
+#include "shared/status.h"
 #include "signer/denial.h"
 #include "signer/keys.h"
 #include "signer/nsec3params.h"
@@ -53,11 +55,7 @@ enum domain_status_enum {
     DOMAIN_STATUS_NS,       /* unsigned delegation [UNSIGNED] */
     DOMAIN_STATUS_DS,       /* signed delegation [SIGNED] */
     DOMAIN_STATUS_ENT,      /* empty non-terminal [UNSIGNED] */
-    DOMAIN_STATUS_ENT_AUTH,      /* empty non-terminal [UNSIGNED] */
-    DOMAIN_STATUS_ENT_NS,      /* empty non-terminal [UNSIGNED] */
-    DOMAIN_STATUS_ENT_GLUE,      /* empty non-terminal [UNSIGNED] */
-    DOMAIN_STATUS_OCCLUDED, /* occluded domain [UNSIGNED] */
-    DOMAIN_STATUS_HASH     /* hashed domain [SIGNED] */
+    DOMAIN_STATUS_OCCLUDED  /* occluded domain [UNSIGNED] */
 };
 typedef enum domain_status_enum domain_status;
 
@@ -84,14 +82,8 @@ struct domain_struct {
     /* Denial of Existence */
     denial_type* denial;
 
-    domain_type* nsec3;
-    rrset_type* nsec_rrset;
-    size_t subdomain_count;
-    size_t subdomain_auth;
     uint32_t internal_serial;
     uint32_t outbound_serial;
-    uint8_t nsec_bitmap_changed;
-    uint8_t nsec_nxt_changed;
 
     /* RRsets */
     ldns_rbtree_t* rrsets;
@@ -219,37 +211,11 @@ ods_status domain_commit(domain_type* domain);
 void domain_rollback(domain_type* domain);
 
 /**
- * Update domain status.
- * \param[in] domain domain
+ * Set domain status.
+ * \param[in] domain the domain
  *
  */
-void domain_update_status(domain_type* domain);
-
-/**
- * Add NSEC record to domain.
- * \param[in] domain domain
- * \param[in] to next domain
- * \param[in] ttl denial of existence ttl
- * \param[in] klass corresponding klass
- * \param[out] stats update statistics
- * \return int 0 on success, 1 on error
- *
- */
-int domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass, stats_type* stats);
-
-/**
- * Add NSEC3 record to domain.
- * \param[in] domain domain
- * \param[in] to next domain
- * \param[in] ttl denial of existence ttl
- * \param[in] klass corresponding klass
- * \param[out] stats update statistics
- * \return int 0 on success, 1 on error
- *
- */
-int domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass, nsec3params_type* nsec3params, stats_type* stats);
+void domain_dstatus(domain_type* domain);
 
 /**
  * Sign domain.
@@ -265,15 +231,6 @@ int domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
  */
 int domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats);
-
-/**
- * Add RR to domain.
- * \param[in] domain domain
- * \param[in] rr RR
- * \return int 0 on success, 1 on error
- *
- */
-int domain_add_rr(domain_type* domain, ldns_rr* rr);
 
 /**
  * Recover RR from backup.
@@ -298,23 +255,6 @@ int domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
     ldns_rr_type type_covered, const char* locator, uint32_t flags);
 
 /**
- * Delete RR from domain.
- * \param[in] domain domain
- * \param[in] rr RR
- * \return int 0 on success, 1 on error
- *
- */
-int domain_del_rr(domain_type* domain, ldns_rr* rr);
-
-/**
- * Delete all RRs from domain.
- * \param[in] domain domain
- * \return int 0 on success, 1 on error
- *
- */
-int domain_del_rrs(domain_type* domain);
-
-/**
  * Clean up domain.
  * \param[in] domain domain to cleanup
  *
@@ -328,21 +268,5 @@ void domain_cleanup(domain_type* domain);
  *
  */
 void domain_print(FILE* fd, domain_type* domain);
-
-/**
- * Print NSEC(3)s at domain.
- * \param[in] out file descriptor
- * \param[in] domain domain to print
- *
- */
-void domain_print_nsec(FILE* fd, domain_type* domain);
-
-/**
- * Print RRSIGs at domain.
- * \param[in] out file descriptor
- * \param[in] domain domain to print
- *
- */
-void domain_print_rrsig(FILE* fd, domain_type* domain);
 
 #endif /* SIGNER_DOMAIN_H */

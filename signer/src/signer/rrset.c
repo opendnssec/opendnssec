@@ -1226,23 +1226,3 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
     }
     return;
 }
-
-
-/**
- * Print RRSIGs from RRset.
- *
- */
-void
-rrset_print_rrsig(FILE* fd, rrset_type* rrset)
-{
-    if (!rrset || !fd) {
-        return;
-    }
-    ods_log_assert(fd);
-    ods_log_assert(rrset);
-
-    if (rrset->rrsigs) {
-        rrsigs_print(fd, rrset->rrsigs, 1);
-    }
-    return;
-}

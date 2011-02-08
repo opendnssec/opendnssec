@@ -33,13 +33,13 @@
 
 #include "config.h"
 #include "shared/duration.h"
-#include "shared/hsm.h"
+#include "shared/allocator.h"
 #include "shared/log.h"
+#include "shared/status.h"
 #include "shared/util.h"
 #include "signer/backup.h"
 #include "signer/domain.h"
 #include "signer/rrset.h"
-#include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
 
@@ -66,7 +66,9 @@ rrset_compare(const void* a, const void* b)
 domain_type*
 domain_create(ldns_rdf* dname)
 {
-    domain_type* domain = (domain_type*) se_malloc(sizeof(domain_type));
+    allocator_type* allocator = NULL;
+    domain_type* domain = NULL;
+    char* str = NULL;
 
     if (!dname) {
         ods_log_error("[%s] unable to create domain: no dname", dname_str);
@@ -74,20 +76,35 @@ domain_create(ldns_rdf* dname)
     }
     ods_log_assert(dname);
 
+    allocator = allocator_create(malloc, free);
+    if (!allocator) {
+        str = ldns_rdf2str(dname);
+        ods_log_error("[%s] unable to create domain %s: create allocator "
+            "failed", dname_str, str?str:"(null)");
+        free((void*)str);
+        return NULL;
+    }
+    ods_log_assert(allocator);
+
+    domain = (domain_type*) allocator_alloc(allocator, sizeof(domain_type));
+    if (!domain) {
+        str = ldns_rdf2str(dname);
+        ods_log_error("[%s] unable to create domain %s: allocator failed",
+            dname_str, str);
+        free(str);
+        allocator_cleanup(allocator);
+        return NULL;
+    }
+    ods_log_assert(domain);
+
+    domain->allocator = allocator;
     domain->dname = ldns_rdf_clone(dname);
-    domain->parent = NULL;
-    domain->denial = NULL;
-    domain->nsec3 = NULL;
-    domain->rrsets = ldns_rbtree_create(rrset_compare);
     domain->dstatus = DOMAIN_STATUS_NONE;
     domain->internal_serial = 0;
     domain->outbound_serial = 0;
-    domain->subdomain_count = 0;
-    domain->subdomain_auth = 0;
-    /* nsec */
-    domain->nsec_rrset = NULL;
-    domain->nsec_bitmap_changed = 0;
-    domain->nsec_nxt_changed = 0;
+    domain->parent = NULL;
+    domain->denial = NULL;
+    domain->rrsets = ldns_rbtree_create(rrset_compare);
     return domain;
 }
 
@@ -101,58 +118,35 @@ domain_recover_from_backup(FILE* fd)
 {
     domain_type* domain = NULL;
     const char* name = NULL;
-    uint32_t internal_serial = 0;
-    uint32_t outbound_serial = 0;
     int domain_status = DOMAIN_STATUS_NONE;
-    size_t subdomain_count = 0;
-    size_t subdomain_auth = 0;
-    int nsec_bitmap_changed = 0;
-    int nsec_nxt_changed = 0;
 
     ods_log_assert(fd);
 
     if (!backup_read_str(fd, &name) ||
-        !backup_read_uint32_t(fd, &internal_serial) ||
-        !backup_read_uint32_t(fd, &outbound_serial) ||
-        !backup_read_int(fd, &domain_status) ||
-        !backup_read_size_t(fd, &subdomain_count) ||
-        !backup_read_size_t(fd, &subdomain_auth) ||
-        !backup_read_int(fd, &nsec_bitmap_changed) ||
-        !backup_read_int(fd, &nsec_nxt_changed)) {
+        !backup_read_int(fd, &domain_status)) {
         ods_log_error("[%s] domain part in backup file is corrupted", dname_str);
         if (name) {
-            se_free((void*)name);
+            free((void*)name);
         }
         return NULL;
     }
 
-    domain = (domain_type*) se_malloc(sizeof(domain_type));
+    domain = (domain_type*) malloc(sizeof(domain_type));
     ods_log_assert(name);
     domain->dname = ldns_dname_new_frm_str(name);
     if (!domain->dname) {
         ods_log_error("[%s] failed to create domain from name", dname_str);
-        se_free((void*)name);
-        se_free((void*)domain);
+        free((void*)name);
+        free((void*)domain);
         return NULL;
     }
     domain->parent = NULL;
-    domain->nsec3 = NULL;
     domain->rrsets = ldns_rbtree_create(rrset_compare);
     domain->dstatus = domain_status;
-    domain->internal_serial = internal_serial;
-    domain->outbound_serial = outbound_serial;
-    domain->subdomain_count = subdomain_count;
-    domain->subdomain_auth = subdomain_auth;
-    domain->nsec_rrset = NULL;
-    domain->nsec_bitmap_changed = nsec_bitmap_changed;
-    domain->nsec_nxt_changed = nsec_nxt_changed;
-    ods_log_deeebug("[%s] recovered domain %s internal_serial=%u, "
-        "outbound_serial=%u, domain_status=%i, nsec_status=(%i, %i)",
-        dname_str, name, domain->internal_serial, domain->outbound_serial,
-        domain->dstatus, domain->nsec_bitmap_changed,
-        domain->nsec_nxt_changed);
+    ods_log_deeebug("[%s] recovered domain %s domain_status=%i",
+        dname_str, name, domain->dstatus);
 
-    se_free((void*)name);
+    free((void*)name);
     return domain;
 }
 
@@ -205,7 +199,7 @@ domain_lookup_rrset(domain_type* domain, ldns_rr_type rrtype)
         return NULL;
     }
     return domain_rrset_search(domain->rrsets, rrtype);
-}  
+}
 
 
 /**
@@ -236,7 +230,6 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
         free((void*)new_node);
         return NULL;
     }
-    domain->nsec_bitmap_changed = 1;
     return rrset;
 }
 
@@ -250,7 +243,6 @@ domain_del_rrset(domain_type* domain, rrset_type* rrset)
 {
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
     rrset_type* del_rrset = NULL;
-    char* str = NULL;
 
     if (!rrset) {
         ods_log_error("[%s] unable to delete RRset: no RRset", dname_str);
@@ -273,14 +265,7 @@ domain_del_rrset(domain_type* domain, rrset_type* rrset)
         del_rrset = (rrset_type*) del_node->data;
         rrset_cleanup(del_rrset);
         free((void*)del_node);
-        domain->nsec_bitmap_changed = 1;
         return NULL;
-    } else {
-        str = ldns_rdf2str(domain->dname);
-        ods_log_error("unable to delete RRset %i from domain %s: "
-            "not in tree", rrset->rr_type, str?str:"(null)");
-        se_free((void*)str);
-        return rrset;
     }
     return rrset;
 }
@@ -459,8 +444,8 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
                     }
                     rrs = rrs->next;
                 }
-                se_free((void*)str_name);
-                se_free((void*)str_type);
+                free((void*)str_name);
+                free((void*)str_type);
                 return 1;
             }
             node = ldns_rbtree_next(node);
@@ -538,8 +523,8 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
         str_type = ldns_rr_type2str(rrtype);
         ods_log_error("[%s] multiple records for singleton type at %s %s",
             dname_str, str_name, str_type);
-        se_free((void*)str_name);
-        se_free((void*)str_type);
+        free((void*)str_name);
+        free((void*)str_type);
         return 1;
     }
     return 0;
@@ -583,21 +568,19 @@ domain_commit(domain_type* domain)
         }
         node = ldns_rbtree_next(node);
         numnew = rrset_count_rr(rrset, COUNT_RR);
-        if (numnew <= 0) {
+        if (numrrs > 0 && numnew <= 0) {
             if (domain_del_rrset(domain, rrset) != NULL) {
                 ods_log_warning("[%s] unable to commit: failed ",
                     "to delete RRset", dname_str);
                 return ODS_STATUS_UNCHANGED;
             }
-            /**
-             * [CALC] if RRset removed, mark this NSEC(3) bitmap changed.
-             */
-            domain->nsec_bitmap_changed = 1;
-        } else if (numnew == numadd) {
-            /**
-             * [CALC] if RRset added, mark this NSEC(3) bitmap changed.
-             */
-            domain->nsec_bitmap_changed = 1;
+            if (domain->denial) {
+                domain->denial->bitmap_changed = 1;
+            }
+        } else if (numrrs <= 0 && numnew == numadd) {
+            if (domain->denial) {
+                domain->denial->bitmap_changed = 1;
+            }
         }
     }
     return status;
@@ -630,22 +613,25 @@ domain_rollback(domain_type* domain)
 
 
 /**
- * Update domain status.
+ * Set domain status.
  *
  */
 void
-domain_update_status(domain_type* domain)
+domain_dstatus(domain_type* domain)
 {
     domain_type* parent = NULL;
 
-    ods_log_assert(domain);
-    if (domain->dstatus == DOMAIN_STATUS_APEX) {
+    if (!domain) {
+        ods_log_error("[%s] unable to set status: no domain", dname_str);
         return;
     }
-
+    if (domain->dstatus == DOMAIN_STATUS_APEX) {
+        /* that doesn't change... */
+        return;
+    }
     if (domain_count_rrset(domain) <= 0) {
-        /* Empty Non-Terminal */
-        return; /* we don't care */
+        domain->dstatus = DOMAIN_STATUS_ENT;
+        return;
     }
 
     if (domain_lookup_rrset(domain, LDNS_RR_TYPE_NS)) {
@@ -654,7 +640,7 @@ domain_update_status(domain_type* domain)
         } else {
             domain->dstatus = DOMAIN_STATUS_NS;
         }
-    } else { /* else, it is just an authoritative domain */
+    } else {
         domain->dstatus = DOMAIN_STATUS_AUTH;
     }
 
@@ -668,307 +654,6 @@ domain_update_status(domain_type* domain)
         parent = parent->parent;
     }
     return;
-}
-
-
-/**
- * Create NSEC bitmap.
- *
- */
-static void
-domain_nsecify_create_bitmap(domain_type* domain, ldns_rr_type types[],
-    size_t* types_count)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    rrset_type* rrset = NULL;
-
-    if (domain->rrsets && domain->rrsets->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(domain->rrsets);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        rrset = (rrset_type*) node->data;
-        types[*types_count] = rrset->rr_type;
-        *types_count = *types_count + 1;
-        node = ldns_rbtree_next(node);
-    }
-    return;
-}
-
-
-/**
- * Add NSEC record to domain.
- *
- */
-int
-domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass, stats_type* stats)
-{
-    ldns_rr_type types[1024];
-    ldns_rr* nsec_rr = NULL;
-    ldns_rdf* old_rdf = NULL;
-    size_t types_count = 0;
-
-    if (!domain) {
-        ods_log_error("[%s] unable to nsecify domain: no domain", dname_str);
-        return 1;
-    }
-    ods_log_assert(domain);
-    ods_log_assert(domain->dname);
-
-    if (!to) {
-        ods_log_error("[%s] unable to nsecify domain: no nxt domain",
-            dname_str);
-        return 1;
-    }
-    ods_log_assert(to);
-    ods_log_assert(to->dname);
-
-    ods_log_assert(stats);
-
-    if (DNS_SERIAL_GT(domain->internal_serial, domain->outbound_serial)) {
-        /* create types bitmap */
-        if (!domain->nsec_rrset || domain->nsec_bitmap_changed) {
-            domain_nsecify_create_bitmap(domain, types, &types_count);
-            types[types_count] = LDNS_RR_TYPE_RRSIG;
-            types_count++;
-            types[types_count] = LDNS_RR_TYPE_NSEC;
-            types_count++;
-        }
-        /* update the NSEC RRset */
-        if (!domain->nsec_rrset) {
-            ods_log_debug("[%s] new nsec", dname_str);
-            nsec_rr = ldns_rr_new();
-            if (!nsec_rr) {
-                ods_log_alert("[%s] unable to nsecify domain: failed to "
-                    "create NSEC RR", dname_str);
-                return 1;
-            }
-            ldns_rr_set_type(nsec_rr, LDNS_RR_TYPE_NSEC);
-            ldns_rr_set_owner(nsec_rr, ldns_rdf_clone(domain->dname));
-            ldns_rr_push_rdf(nsec_rr, ldns_rdf_clone(to->dname));
-            ldns_rr_push_rdf(nsec_rr, ldns_dnssec_create_nsec_bitmap(types,
-                types_count, LDNS_RR_TYPE_NSEC));
-            ldns_rr_set_ttl(nsec_rr, ttl);
-            ldns_rr_set_class(nsec_rr, klass);
-            domain->nsec_rrset = rrset_create_frm_rr(nsec_rr);
-            if (!domain->nsec_rrset) {
-                ods_log_alert("failed to create NSEC RRset");
-                return 1;
-            }
-            stats->nsec_count += 1;
-            domain->nsec_nxt_changed = 0;
-            domain->nsec_bitmap_changed = 0;
-        } else if (domain->nsec_nxt_changed || domain->nsec_bitmap_changed) {
-            ods_log_assert(domain->nsec_rrset);
-            ods_log_assert(domain->nsec_rrset->rrs);
-            ods_log_assert(domain->nsec_rrset->rrs->rr);
-            nsec_rr = domain->nsec_rrset->rrs->rr;
-            stats->nsec_count += 1;
-
-            if (domain->nsec_nxt_changed) {
-                ods_log_debug("nsec nxt changed", dname_str);
-                old_rdf = ldns_rr_set_rdf(nsec_rr, ldns_rdf_clone(to->dname),
-                    SE_NSEC_RDATA_NXT);
-                if (!old_rdf) {
-                    ods_log_alert("[%s] failed to update NSEC (nxt)", dname_str);
-                    stats->nsec_count -= 1;
-                    return 1;
-                }
-                domain->nsec_nxt_changed = 0;
-                domain->nsec_rrset->drop_signatures = 1;
-            }
-            if (domain->nsec_bitmap_changed) {
-                ods_log_debug("nsec bitmap changed", dname_str);
-                old_rdf = ldns_rr_set_rdf(nsec_rr,
-                    ldns_dnssec_create_nsec_bitmap(types, types_count,
-                    LDNS_RR_TYPE_NSEC), SE_NSEC_RDATA_BITMAP);
-                if (!old_rdf) {
-                    ods_log_alert("[%s] failed to update NSEC (bm)", dname_str);
-                    stats->nsec_count -= 1;
-                    return 1;
-                }
-                domain->nsec_bitmap_changed = 0;
-                domain->nsec_rrset->drop_signatures = 1;
-            }
-        }
-        domain->outbound_serial = domain->internal_serial;
-    } else {
-        ods_log_warning("[%s] not nsecifying domain: up to date", dname_str);
-    }
-    domain->nsec_rrset->internal_serial = domain->internal_serial;
-    return 0;
-}
-
-
-/**
- * Add NSEC3 record to domain.
- *
- */
-int
-domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass, nsec3params_type* nsec3params, stats_type* stats)
-{
-    domain_type* orig_domain = NULL;
-    ldns_rr_type types[1024];
-    ldns_rr* nsec_rr = NULL;
-    ldns_rdf* old_rdf = NULL;
-    size_t types_count = 0;
-    int i = 0;
-    ldns_rdf* next_owner_label = NULL;
-    ldns_rdf* next_owner_rdf = NULL;
-    char* next_owner_string = NULL;
-    char* str = NULL;
-    ldns_status status = LDNS_STATUS_OK;
-
-    if (!domain) {
-        ods_log_error("[%s] unable to nsecify3 domain: no domain", dname_str);
-        return 1;
-    }
-    ods_log_assert(domain);
-    ods_log_assert(domain->dname);
-    ods_log_assert(domain->nsec3);
-
-    if (!to) {
-        ods_log_error("[%s] unable to nsecify3 domain: no nxt domain",
-            dname_str);
-        return 1;
-    }
-    ods_log_assert(to);
-    ods_log_assert(to->dname);
-    ods_log_assert(to->nsec3);
-
-
-    orig_domain = domain->nsec3; /* use the back reference */
-    str = ldns_rdf2str(orig_domain->dname);
-
-    if (DNS_SERIAL_GT(orig_domain->internal_serial,
-        orig_domain->outbound_serial))
-    {
-        /* create types bitmap */
-        if (!domain->nsec_rrset || orig_domain->nsec_bitmap_changed) {
-            domain_nsecify_create_bitmap(orig_domain, types, &types_count);
-            /* only add RRSIG type if we have authoritative data to sign */
-            if (domain_count_rrset(orig_domain) > 0 &&
-                (orig_domain->dstatus == DOMAIN_STATUS_APEX ||
-                 orig_domain->dstatus == DOMAIN_STATUS_AUTH ||
-                 orig_domain->dstatus == DOMAIN_STATUS_DS)) {
-
-                types[types_count] = LDNS_RR_TYPE_RRSIG;
-                types_count++;
-            }
-            /* and don't add NSEC3 type... */
-        }
-        /* create new NSEC3 RR */
-        if (!domain->nsec_rrset) {
-            ods_log_deeebug("new NSEC3 RRset for %s", str);
-            nsec_rr = ldns_rr_new();
-            if (!nsec_rr) {
-                ods_log_alert("[%s] failed to create NSEC3 rr for %s", dname_str, str);
-                se_free((void*)str);
-                return 1;
-            }
-            ldns_rr_set_type(nsec_rr, LDNS_RR_TYPE_NSEC3);
-            ldns_rr_set_owner(nsec_rr, ldns_rdf_clone(domain->dname));
-
-            /* set all to NULL first, then call nsec3_add_param_rdfs. */
-            for (i=0; i < SE_NSEC3_RDATA_NSEC3PARAMS; i++) {
-                ldns_rr_push_rdf(nsec_rr, NULL);
-            }
-            ldns_nsec3_add_param_rdfs(nsec_rr, nsec3params->algorithm,
-                nsec3params->flags, nsec3params->iterations,
-                nsec3params->salt_len, nsec3params->salt_data);
-        }
-        /* create next owner name */
-        if (!domain->nsec_rrset || domain->nsec_nxt_changed) {
-            next_owner_label = ldns_dname_label(to->dname, 0);
-            next_owner_string = ldns_rdf2str(next_owner_label);
-            if (next_owner_string[strlen(next_owner_string)-1] == '.') {
-                next_owner_string[strlen(next_owner_string)-1] = '\0';
-            }
-            status = ldns_str2rdf_b32_ext(&next_owner_rdf, next_owner_string);
-
-            se_free((void*)next_owner_string);
-            ldns_rdf_deep_free(next_owner_label);
-            if (status != LDNS_STATUS_OK) {
-                ods_log_error("[%s] failed to create NSEC3 next owner name: %s",
-                    dname_str, ldns_get_errorstr_by_id(status));
-                ldns_rr_free(nsec_rr);
-                se_free((void*)str);
-                return 1;
-            }
-        }
-        /* update the NSEC3 RRset */
-        if (!domain->nsec_rrset) {
-            ods_log_assert(next_owner_rdf);
-            ldns_rr_push_rdf(nsec_rr, next_owner_rdf);
-            ldns_rr_push_rdf(nsec_rr, ldns_dnssec_create_nsec_bitmap(types,
-                types_count, LDNS_RR_TYPE_NSEC3));
-            ldns_rr_set_ttl(nsec_rr, ttl);
-            ldns_rr_set_class(nsec_rr, klass);
-            domain->nsec_rrset = rrset_create_frm_rr(nsec_rr);
-            if (!domain->nsec_rrset) {
-                ods_log_alert("[%s] failed to create NSEC3 RRset for %s",
-                    dname_str, str);
-                se_free((void*)str);
-                return 1;
-            }
-            stats->nsec_count += 1;
-            domain->nsec_nxt_changed = 0;
-            orig_domain->nsec_nxt_changed = 0;
-            orig_domain->nsec_bitmap_changed = 0;
-        } else {
-            ods_log_assert(domain->nsec_rrset);
-            ods_log_assert(domain->nsec_rrset->rrs);
-            ods_log_assert(domain->nsec_rrset->rrs->rr);
-            if (domain->nsec_nxt_changed || orig_domain->nsec_bitmap_changed) {
-                stats->nsec_count += 1;
-            }
-
-            if (domain->nsec_nxt_changed) {
-                ods_log_deeebug("[%s] update NSEC3 (nxt) RRset for %s",
-                    dname_str, str);
-
-                ods_log_assert(next_owner_rdf);
-                old_rdf = ldns_rr_set_rdf(domain->nsec_rrset->rrs->rr,
-                    next_owner_rdf, SE_NSEC3_RDATA_NXT);
-                if (!old_rdf) {
-                    ods_log_alert("[%s] failed to update NSEC3 (nxt) for %s",
-                        dname_str, str);
-                    stats->nsec_count -= 1;
-                    se_free((void*)str);
-                    return 1;
-                }
-                domain->nsec_nxt_changed = 0;
-                domain->nsec_rrset->drop_signatures = 1;
-            }
-            if (orig_domain->nsec_bitmap_changed) {
-                ods_log_deeebug("[%s] update NSEC3 (bm) RRset for %s",
-                    dname_str, str);
-
-                old_rdf = ldns_rr_set_rdf(domain->nsec_rrset->rrs->rr,
-                    ldns_dnssec_create_nsec_bitmap(types, types_count,
-                    LDNS_RR_TYPE_NSEC3), SE_NSEC3_RDATA_BITMAP);
-                if (!old_rdf) {
-                    ods_log_alert("[%s] failed to update NSEC3 (bm) for %s",
-                        dname_str, str);
-                    stats->nsec_count -= 1;
-                    se_free((void*)str);
-                    return 1;
-                }
-                orig_domain->nsec_bitmap_changed = 0;
-                domain->nsec_rrset->drop_signatures = 1;
-            }
-            orig_domain->nsec_nxt_changed = 0;
-        }
-        orig_domain->outbound_serial = orig_domain->internal_serial;
-        domain->outbound_serial = orig_domain->outbound_serial;
-        domain->internal_serial = orig_domain->internal_serial;
-    } else {
-        ods_log_warning("[%s] not nsec3ifying domain: up to date", dname_str);
-    }
-    domain->nsec_rrset->internal_serial = orig_domain->internal_serial;
-    se_free((void*)str);
-    return 0;
 }
 
 
@@ -997,20 +682,10 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
         return 0;
     }
 
-    if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
-        if (domain->nsec3 && domain->nsec3->nsec_rrset) {
-            error = rrset_sign(ctx, domain->nsec3->nsec_rrset, owner, sc,
-                signtime, stats);
-            if (error) {
-                ods_log_error("[%s] failed to sign NSEC3 RRset", dname_str);
-                return error;
-            }
-        }
-    } else if (domain->nsec_rrset) {
-        error = rrset_sign(ctx, domain->nsec_rrset, owner, sc, signtime,
-            stats);
+    if (domain->denial && domain->denial->rrset) {
+        error = rrset_sign(ctx, domain->denial->rrset, owner, sc, signtime, stats);
         if (error) {
-            ods_log_error("[%s] failed to sign NSEC RRset", dname_str);
+            ods_log_error("[%s] failed to sign NSEC(3) RRset", dname_str);
             return error;
         }
     }
@@ -1147,8 +822,8 @@ domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
 
     if (type_covered == LDNS_RR_TYPE_NSEC ||
         type_covered == LDNS_RR_TYPE_NSEC3) {
-        if (domain->nsec_rrset) {
-            return rrset_recover_rrsig_from_backup(domain->nsec_rrset, rrsig,
+        if (domain->denial && domain->denial->rrset) {
+            return rrset_recover_rrsig_from_backup(domain->denial->rrset, rrsig,
                 locator, flags);
         } else if (type_covered == LDNS_RR_TYPE_NSEC) {
             ods_log_error("[%s] unable to recover RRSIG to domain: "
@@ -1172,82 +847,21 @@ domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
 
 
 /**
- * Delete RR from domain.
- *
- */
-int
-domain_del_rr(domain_type* domain, ldns_rr* rr)
-{
-    rrset_type* rrset = NULL;
-
-    ods_log_assert(rr);
-    ods_log_assert(domain);
-    ods_log_assert(domain->dname);
-    ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->dname, ldns_rr_owner(rr)) == 0));
-
-    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
-    if (rrset) {
-        return (NULL == rrset_del_rr(rrset, rr,
-            (ldns_rr_get_type(rr) == LDNS_RR_TYPE_DNSKEY)));
-    }
-    /* no RRset with this RRtype yet */
-    ods_log_warning("[%s] unable to delete RR from domain: no such RRset "
-        "[rrtype %i]", dname_str, ldns_rr_get_type(rr));
-    return 0; /* well, it is not present in the zone anymore, is it? */
-}
-
-
-/**
- * Delete all RRs from domain.
- *
- */
-int
-domain_del_rrs(domain_type* domain)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    rrset_type* rrset = NULL;
-
-    ods_log_assert(domain);
-    ods_log_assert(domain->rrsets);
-
-    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(domain->rrsets);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        rrset = (rrset_type*) node->data;
-        if (rrset_wipe_out(rrset) != ODS_STATUS_OK) {
-            return 1;
-        }
-        node = ldns_rbtree_next(node);
-    }
-    return 0;
-}
-
-
-/**
  * Clean up RRsets at the domain.
  *
  */
 static void
-domain_cleanup_rrsets(ldns_rbtree_t* rrset_tree)
+rrset_delfunc(ldns_rbnode_t* elem)
 {
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    rrset_type* rrset = NULL;
+    rrset_type* rrset;
 
-    if (rrset_tree && rrset_tree->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(rrset_tree);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        rrset = (rrset_type*) node->data;
+    if (elem && elem != LDNS_RBTREE_NULL) {
+        rrset = (rrset_type*) elem->data;
+        rrset_delfunc(elem->left);
+        rrset_delfunc(elem->right);
+
         rrset_cleanup(rrset);
-        node = ldns_rbtree_next(node);
-    }
-    if (rrset_tree && rrset_tree->root != LDNS_RBTREE_NULL) {
-        se_rbnode_free(rrset_tree->root);
-    }
-    if (rrset_tree) {
-        ldns_rbtree_free(rrset_tree);
+        free(elem);
     }
     return;
 }
@@ -1260,24 +874,28 @@ domain_cleanup_rrsets(ldns_rbtree_t* rrset_tree)
 void
 domain_cleanup(domain_type* domain)
 {
-    if (domain) {
-        if (domain->dname) {
-            ldns_rdf_deep_free(domain->dname);
-            domain->dname = NULL;
-        }
-        if (domain->rrsets) {
-            domain_cleanup_rrsets(domain->rrsets);
-            domain->rrsets = NULL;
-        }
-        if (domain->nsec_rrset) {
-            rrset_cleanup(domain->nsec_rrset);
-            domain->nsec_rrset = NULL;
-        }
-        /* don't destroy corresponding parent and nsec3 domain */
-        se_free((void*) domain);
+    allocator_type* allocator;
+
+    if (!domain) {
+        return;
     }
+    allocator = domain->allocator;
+
+    if (domain->dname) {
+        ldns_rdf_deep_free(domain->dname);
+        domain->dname = NULL;
+    }
+    if (domain->rrsets) {
+        rrset_delfunc(domain->rrsets->root);
+        ldns_rbtree_free(domain->rrsets);
+        domain->rrsets = NULL;
+    }
+
+    allocator_deallocate(allocator);
+    allocator_cleanup(allocator);
     return;
 }
+
 
 
 /**
@@ -1289,6 +907,7 @@ domain_print(FILE* fd, domain_type* domain)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* parent = NULL;
+    char* str = NULL;
     int print_glue = 0;
     rrset_type* rrset = NULL;
     rrset_type* soa_rrset = NULL;
@@ -1300,38 +919,57 @@ domain_print(FILE* fd, domain_type* domain)
     ods_log_assert(fd);
     ods_log_assert(domain);
 
+    str = ldns_rdf2str(domain->dname);
+
     if (domain->rrsets) {
         node = ldns_rbtree_first(domain->rrsets);
     }
     /* no other data may accompany a CNAME */
     cname_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
     if (cname_rrset) {
+        fprintf(fd, ";; Domain: %s\n", str);
         rrset_print(fd, cname_rrset, 0);
     } else {
         /* if SOA, print soa first */
-        soa_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
-        if (soa_rrset) {
-            rrset_print(fd, soa_rrset, 0);
+        if (domain->dstatus == DOMAIN_STATUS_APEX) {
+            soa_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
+            if (soa_rrset) {
+                fprintf(fd, ";; Zone: %s\n", str);
+                rrset_print(fd, soa_rrset, 0);
+            }
+        } else if (domain->dstatus == DOMAIN_STATUS_ENT) {
+            /* empty non-terminal */
+            fprintf(fd, ";; Empty non-terminal: %s\n", str);
+        } else if (domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
+            /* occluded or glue */
+            fprintf(fd, ";; Occluded (glue): %s\n", str);
+        } else if (domain->dstatus == DOMAIN_STATUS_NS ||
+                   domain->dstatus == DOMAIN_STATUS_DS) {
+            /* delegation */
+            fprintf(fd, ";; Delegation: %s\n", str);
+        } else if (domain->dstatus == DOMAIN_STATUS_NONE) {
+            /* non-existent */
+            fprintf(fd, ";; Non-existent: %s\n", str);
+        } else {
+            fprintf(fd, ";; Domain: %s\n", str);
         }
 
         /* print other RRsets */
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
+            /* skip SOA RRset */
             if (rrset->rr_type != LDNS_RR_TYPE_SOA) {
-                if (domain->dstatus == DOMAIN_STATUS_NONE ||
-                    domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
-
+                if (domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
+                    /* glue?  */
                     parent = domain->parent;
                     print_glue = 0;
                     while (parent && parent->dstatus != DOMAIN_STATUS_APEX) {
-                        if (domain_lookup_rrset(parent, LDNS_RR_TYPE_NS)) {
+                        if (domain_examine_ns_rdata(parent, domain->dname)) {
                             print_glue = 1;
                             break;
                         }
                         parent = parent->parent;
                     }
-
-                    /* only output glue */
                     if (print_glue && (rrset->rr_type == LDNS_RR_TYPE_A ||
                         rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
                         rrset_print(fd, rrset, 0);
@@ -1343,83 +981,13 @@ domain_print(FILE* fd, domain_type* domain)
             node = ldns_rbtree_next(node);
         }
     }
+    free((void*)str);
 
-    /* print NSEC(3) */
-    if (domain->nsec_rrset) {
-        rrset_print(fd, domain->nsec_rrset, 0);
-    } else if (domain->nsec3 && domain->nsec3->nsec_rrset) {
-        rrset_print(fd, domain->nsec3->nsec_rrset, 0);
-    }
-    return;
-}
-
-
-/**
- * Print NSEC(3)s at this domain.
- *
- */
-void
-domain_print_nsec(FILE* fd, domain_type* domain)
-{
-    char* str = NULL;
-
-    str = ldns_rdf2str(domain->dname);
-    fprintf(fd, ";DNAME %s %u %u %i %i %i %i %i\n", str,
-        domain->internal_serial, domain->outbound_serial,
-        (int) domain->dstatus,
-        (int) domain->subdomain_count, (int) domain->subdomain_auth,
-        domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
-    se_free((void*) str);
-
-    if (domain->nsec_rrset && domain->nsec_rrset->rrs &&
-        domain->nsec_rrset->rrs->rr) {
-        fprintf(fd, ";NSEC\n");
-        ldns_rr_print(fd, domain->nsec_rrset->rrs->rr);
-    } else if (domain->nsec3) {
-        domain = domain->nsec3;
-        str = ldns_rdf2str(domain->dname);
-        fprintf(fd, ";DNAME3 %s %u %u %i %i %i %i %i\n", str,
-            domain->internal_serial, domain->outbound_serial,
-            (int) domain->dstatus,
-            (int) domain->subdomain_count, (int) domain->subdomain_auth,
-            domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
-        se_free((void*) str);
-
-        if (domain->nsec_rrset && domain->nsec_rrset->rrs &&
-            domain->nsec_rrset->rrs->rr) {
-            fprintf(fd, ";NSEC3\n");
-            ldns_rr_print(fd, domain->nsec_rrset->rrs->rr);
-        }
-    }
-    return;
-}
-
-
-/**
- * Print RRSIGs at this domain.
- *
- */
-void
-domain_print_rrsig(FILE* fd, domain_type* domain)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    rrset_type* rrset = NULL;
-
-    if (domain->rrsets && domain->rrsets->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(domain->rrsets);
+    /* denial of existence */
+    if (domain->denial) {
+        rrset_print(fd, domain->denial->rrset, 0);
     }
 
-    while (node && node != LDNS_RBTREE_NULL) {
-        rrset = (rrset_type*) node->data;
-        rrset_print_rrsig(fd, rrset);
-        node = ldns_rbtree_next(node);
-    }
-
-    /* print nsec */
-    if (domain->nsec_rrset) {
-        rrset_print_rrsig(fd, domain->nsec_rrset);
-    } else if (domain->nsec3 && domain->nsec3->nsec_rrset) {
-        rrset_print_rrsig(fd, domain->nsec3->nsec_rrset);
-    }
+    fprintf(fd, ";\n");
     return;
 }

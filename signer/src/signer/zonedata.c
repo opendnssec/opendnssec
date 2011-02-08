@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "adapter/adapter.h"
 #include "shared/allocator.h"
 #include "shared/log.h"
 #include "shared/util.h"
@@ -39,8 +40,6 @@
 #include "signer/domain.h"
 #include "signer/nsec3params.h"
 #include "signer/zonedata.h"
-#include "util/file.h"
-#include "util/se_malloc.h"
 
 #include <ldns/ldns.h> /* ldns_dname_*(), ldns_rbtree_*() */
 
@@ -85,7 +84,6 @@ zonedata_create(allocator_type* allocator)
     zd->domains = ldns_rbtree_create(domain_compare);
     zd->denial_chain = ldns_rbtree_create(domain_compare);
     zd->initialized = 0;
-    zd->nsec3_domains = NULL;
     zd->inbound_serial = 0;
     zd->internal_serial = 0;
     zd->outbound_serial = 0;
@@ -118,6 +116,8 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
         corrupted = 1;
     }
 
+/*
+
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
             if (ods_strcmp(token, ";DNAME") == 0) {
@@ -145,7 +145,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                         if (ldns_rbtree_insert(zd->domains, new_node) == NULL) {
                             ods_log_error("[%s] error adding domain from backup file",
                                 zd_str);
-                            se_free((void*)new_node);
+                            free((void*)new_node);
                             corrupted = 1;
                         }
                         new_node = NULL;
@@ -168,7 +168,7 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                     if (ldns_rbtree_insert(zd->nsec3_domains, new_node) == NULL) {
                         ods_log_error("[%s] error adding nsec3 domain from backup file",
                             zd_str);
-                        se_free((void*)new_node);
+                        free((void*)new_node);
                         corrupted = 1;
                     }
                     new_node = NULL;
@@ -211,19 +211,19 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                 rr = NULL;
                 status = LDNS_STATUS_OK;
             } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
-                se_free((void*)token);
+                free((void*)token);
                 token = NULL;
                 break;
             } else {
                 corrupted = 1;
             }
-            se_free((void*)token);
+            free((void*)token);
             token = NULL;
         } else {
             corrupted = 1;
         }
     }
-
+*/
     return corrupted;
 }
 
@@ -266,20 +266,6 @@ zonedata_domain_search(ldns_rbtree_t* tree, ldns_rdf* dname)
 
 
 /**
- * Lookup domain in NSEC3 space.
- *
- */
-static domain_type*
-zonedata_lookup_domain_nsec3(zonedata_type* zd, ldns_rdf* name)
-{
-    ods_log_assert(zd);
-    ods_log_assert(zd->nsec3_domains);
-    ods_log_assert(name);
-    return zonedata_domain_search(zd->nsec3_domains, name);
-}
-
-
-/**
  * Lookup domain.
  *
  */
@@ -294,78 +280,6 @@ zonedata_lookup_domain(zonedata_type* zd, ldns_rdf* dname)
 
 
 /**
- * Add a NSEC3 domain to the zone data.
- *
- */
-static domain_type*
-zonedata_add_domain_nsec3(zonedata_type* zd, domain_type* domain,
-    ldns_rdf* apex, nsec3params_type* nsec3params)
-{
-    ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* prev_node = LDNS_RBTREE_NULL;
-    domain_type* nsec3_domain = NULL;
-    domain_type* prev_domain = NULL;
-    ldns_rdf* hashed_ownername = NULL;
-    ldns_rdf* hashed_label = NULL;
-    char* str = NULL;
-
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-    ods_log_assert(zd->nsec3_domains);
-    ods_log_assert(domain);
-    ods_log_assert(domain->rrsets);
-
-    /**
-     * The owner name of the NSEC3 RR is the hash of the original owner
-     * name, prepended as a single label to the zone name.
-     */
-    hashed_label = ldns_nsec3_hash_name(domain->dname,
-        nsec3params->algorithm, nsec3params->iterations,
-        nsec3params->salt_len, nsec3params->salt_data);
-    hashed_ownername = ldns_dname_cat_clone(
-        (const ldns_rdf*) hashed_label,
-        (const ldns_rdf*) apex);
-    ldns_rdf_deep_free(hashed_label);
-
-    nsec3_domain = zonedata_lookup_domain_nsec3(zd, hashed_ownername);
-    if (!nsec3_domain) {
-        nsec3_domain = domain_create(hashed_ownername);
-        nsec3_domain->dstatus = DOMAIN_STATUS_HASH;
-        ldns_rdf_deep_free(hashed_ownername);
-        new_node = domain2node(nsec3_domain);
-        if (!ldns_rbtree_insert(zd->nsec3_domains, new_node)) {
-            str = ldns_rdf2str(nsec3_domain->dname);
-            ods_log_error("[%s] unable to add NSEC3 domain %s", zd_str,
-                str?str:"(null)");
-            se_free((void*)str);
-            se_free((void*)new_node);
-            domain_cleanup(nsec3_domain);
-            return NULL;
-        }
-        nsec3_domain->nsec_nxt_changed = 1;
-        /* mark the change in the previous NSEC3 domain */
-        prev_node = ldns_rbtree_previous(new_node);
-        if (!prev_node || prev_node == LDNS_RBTREE_NULL) {
-            prev_node = ldns_rbtree_last(zd->nsec3_domains);
-        }
-        ods_log_assert(prev_node);
-        prev_domain = (domain_type*) prev_node->data;
-        ods_log_assert(prev_domain);
-        prev_domain->nsec_nxt_changed = 1;
-        return nsec3_domain;
-    } else {
-        str = ldns_rdf2str(hashed_ownername);
-        ldns_rdf_deep_free(hashed_ownername);
-        ods_log_error("[%s] unable to add NSEC3 domain %s (has collision?) ",
-            zd_str, str?str:"(null)");
-        se_free((void*)str);
-        return NULL;
-    }
-    return nsec3_domain;
-}
-
-
-/**
  * Add a domain to the zone data.
  *
  */
@@ -373,8 +287,6 @@ domain_type*
 zonedata_add_domain(zonedata_type* zd, domain_type* domain)
 {
     ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* prev_node = LDNS_RBTREE_NULL;
-    domain_type* prev_domain = NULL;
     char* str = NULL;
 
     if (!domain) {
@@ -405,19 +317,6 @@ zonedata_add_domain(zonedata_type* zd, domain_type* domain)
     str = ldns_rdf2str(domain->dname);
     ods_log_deeebug("+DD %s", str?str:"(null)");
     free((void*) str);
-    domain->dstatus = DOMAIN_STATUS_NONE;
-    domain->nsec_bitmap_changed = 1;
-    domain->nsec_nxt_changed = 1;
-    /* mark previous domain for NSEC */
-    domain->nsec_nxt_changed = 1;
-    prev_node = ldns_rbtree_previous(new_node);
-    if (!prev_node || prev_node == LDNS_RBTREE_NULL) {
-        prev_node = ldns_rbtree_last(zd->domains);
-    }
-    ods_log_assert(prev_node);
-    ods_log_assert(prev_node->data);
-    prev_domain = (domain_type*) prev_node->data;
-    prev_domain->nsec_nxt_changed = 1;
     return domain;
 }
 
@@ -430,9 +329,7 @@ static domain_type*
 zonedata_del_domain_fixup(ldns_rbtree_t* tree, domain_type* domain)
 {
     domain_type* del_domain = NULL;
-    domain_type* prev_domain = NULL;
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* prev_node = LDNS_RBTREE_NULL;
     char* str = NULL;
 
     ods_log_assert(tree);
@@ -441,28 +338,8 @@ zonedata_del_domain_fixup(ldns_rbtree_t* tree, domain_type* domain)
 
     del_node = ldns_rbtree_search(tree, (const void*)domain->dname);
     if (del_node) {
-        /**
-         * [CALC] if domain removed, mark previous domain NSEC(3) nxt changed.
-         *
-         */
-        prev_node = ldns_rbtree_previous(del_node);
-        if (!prev_node || prev_node == LDNS_RBTREE_NULL) {
-            prev_node = ldns_rbtree_last(tree);
-        }
-        ods_log_assert(prev_node);
-        ods_log_assert(prev_node->data);
-        prev_domain = (domain_type*) prev_node->data;
-        prev_domain->nsec_nxt_changed = 1;
-
         del_node = ldns_rbtree_delete(tree, (const void*)domain->dname);
         del_domain = (domain_type*) del_node->data;
-        if (domain->parent) {
-            domain->parent->subdomain_count -= 1;
-            if (domain->dstatus == DOMAIN_STATUS_AUTH ||
-                domain->dstatus == DOMAIN_STATUS_DS) {
-                domain->parent->subdomain_auth -= 1;
-            }
-        }
         domain_cleanup(del_domain);
         free((void*)del_node);
         return NULL;
@@ -477,27 +354,12 @@ zonedata_del_domain_fixup(ldns_rbtree_t* tree, domain_type* domain)
 
 
 /**
- * Delete a NSEC3 domain from the zone data.
- *
- */
-static domain_type*
-zonedata_del_domain_nsec3(zonedata_type* zd, domain_type* domain)
-{
-    ods_log_assert(zd);
-    ods_log_assert(zd->nsec3_domains);
-    ods_log_assert(domain);
-    return zonedata_del_domain_fixup(zd->nsec3_domains, domain);
-}
-
-
-/**
- * Delete a domain from the zone data.
+ * Delete domain from the zone data.
  *
  */
 domain_type*
 zonedata_del_domain(zonedata_type* zd, domain_type* domain)
 {
-    domain_type* nsec3_domain = NULL;
     char* str = NULL;
 
     if (!domain) {
@@ -509,8 +371,8 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
 
     if (!zd || !zd->domains) {
         str = ldns_rdf2str(domain->dname);
-        ods_log_error("[%s] unable to delete domain %s: no storage", zd_str,
-            str?str:"(null)");
+        ods_log_error("[%s] unable to delete domain %s: no zonedata",
+            zd_str, str?str:"(null)");
         free((void*)str);
         return domain;
     }
@@ -519,12 +381,12 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
 
     str = ldns_rdf2str(domain->dname);
     ods_log_deeebug("-DD %s", str?str:"(null)");
-    if (domain->nsec3) {
-        nsec3_domain = zonedata_del_domain_nsec3(zd, domain->nsec3);
-        if (nsec3_domain) {
-            ods_log_error("[%s] failed to delete corresponding NSEC3 domain, "
-                "deleting domain %s", zd_str, str?str:"(null)");
-        }
+    if (domain->denial && zonedata_del_denial(zd, domain->denial) != NULL) {
+        str = ldns_rdf2str(domain->dname);
+        ods_log_error("[%s] unable to delete domain %s: failed to delete "
+            "denial of existence data point", zd_str, str?str:"(null)");
+        free((void*)str);
+        return domain;
     }
     free((void*) str);
     return zonedata_del_domain_fixup(zd->domains, domain);
@@ -889,14 +751,12 @@ zonedata_commit(zonedata_type* zd)
                     return ODS_STATUS_ERR;
                 }
             } else if (domain->denial) {
-/*
                 if (zonedata_del_denial(zd, domain->denial) != NULL) {
                     ods_log_warning("[%s] unable to delete obsoleted "
                         "denial of existence data point", zd_str);
                     return ODS_STATUS_ERR;
                 }
                 domain->denial = NULL;
-*/
             }
         } /* if (domain_count_rrset(domain) <= 0) */
     }
@@ -930,13 +790,91 @@ zonedata_rollback(zonedata_type* zd)
 
 
 /**
- * Add empty non-terminals to a domain in the zone data.
+ * See if the domain is an empty non-terminal to glue.
  *
  */
 static int
-zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
+domain_ent2glue(ldns_rbnode_t* node)
 {
-    int ent2unsigned_deleg = 0;
+    ldns_rbnode_t* nextnode = LDNS_RBTREE_NULL;
+    domain_type* nextdomain = NULL;
+    domain_type* domain = NULL;
+    ods_log_assert(node && node != LDNS_RBTREE_NULL);
+    domain = (domain_type*) node->data;
+    if (domain->dstatus == DOMAIN_STATUS_ENT) {
+        ods_log_assert(domain_count_rrset(domain) == 0);
+        nextnode = ldns_rbtree_next(node);
+        while (nextnode && nextnode != LDNS_RBTREE_NULL) {
+            nextdomain = (domain_type*) nextnode->data;
+            if (!ldns_dname_is_subdomain(nextdomain->dname, domain->dname)) {
+                /* we are done, no non-glue found */
+                return 1;
+            }
+            if (nextdomain->dstatus != DOMAIN_STATUS_OCCLUDED &&
+                nextdomain->dstatus != DOMAIN_STATUS_ENT &&
+                nextdomain->dstatus != DOMAIN_STATUS_NONE) {
+                /* found non-glue */
+                return 0;
+            }
+            nextnode = ldns_rbtree_next(nextnode);
+        }
+    } else {
+        /* no empty non-terminal */
+        ods_log_assert(domain_count_rrset(domain) != 0);
+        return 0;
+    }
+    /* no non-glue found */
+    return 1;
+}
+
+
+/**
+ * See if the domain is an empty non-terminal to unsigned data.
+ *
+ */
+static int
+domain_ent2unsigned(ldns_rbnode_t* node)
+{
+    ldns_rbnode_t* nextnode = LDNS_RBTREE_NULL;
+    domain_type* nextdomain = NULL;
+    domain_type* domain = NULL;
+    ods_log_assert(node && node != LDNS_RBTREE_NULL);
+    domain = (domain_type*) node->data;
+    if (domain->dstatus == DOMAIN_STATUS_ENT) {
+        ods_log_assert(domain_count_rrset(domain) == 0);
+        nextnode = ldns_rbtree_next(node);
+        while (nextnode && nextnode != LDNS_RBTREE_NULL) {
+            nextdomain = (domain_type*) nextnode->data;
+            if (!ldns_dname_is_subdomain(nextdomain->dname, domain->dname)) {
+                /* we are done, no unsigned delegation found */
+                return 1;
+            }
+            if (nextdomain->dstatus != DOMAIN_STATUS_OCCLUDED &&
+                nextdomain->dstatus != DOMAIN_STATUS_ENT &&
+                nextdomain->dstatus != DOMAIN_STATUS_NS &&
+                nextdomain->dstatus != DOMAIN_STATUS_NONE) {
+                /* found data that has to be signed */
+                return 0;
+            }
+            nextnode = ldns_rbtree_next(nextnode);
+        }
+    } else {
+        /* no empty non-terminal */
+        ods_log_assert(domain_count_rrset(domain) != 0);
+        return 0;
+    }
+    /* no unsigned delegation found */
+    return 1;
+}
+
+
+/**
+ * Add empty non-terminals to zone data from this domain up.
+ *
+ */
+static ods_status
+domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
+{
     ldns_rdf* parent_rdf = NULL;
     domain_type* parent_domain = NULL;
     char* str = NULL;
@@ -949,13 +887,7 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
 
     if (domain->parent) {
         /* domain already has parent */
-        return 0;
-    }
-
-    if (domain_lookup_rrset(domain, LDNS_RR_TYPE_NS) &&
-        !domain_lookup_rrset(domain, LDNS_RR_TYPE_DS)) {
-        /* empty non-terminal to unsigned delegation */
-        ent2unsigned_deleg = 1;
+        return ODS_STATUS_OK;
     }
 
     while (domain && ldns_dname_is_subdomain(domain->dname, apex) &&
@@ -974,8 +906,8 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
         if (!parent_rdf) {
             ods_log_error("[%s] unable to entize domain %s: left chop failed",
                 zd_str, str);
-            se_free((void*)str);
-            return 1;
+            free((void*)str);
+            return ODS_STATUS_ERR;
         }
         ods_log_assert(parent_rdf);
 
@@ -986,73 +918,30 @@ zonedata_domain_entize(zonedata_type* zd, domain_type* domain, ldns_rdf* apex)
             if (!parent_domain) {
                 ods_log_error("[%s] unable to entize domain %s: create parent "
                     "failed", zd_str, str);
-                se_free((void*)str);
-                return 1;
+                free((void*)str);
+                return ODS_STATUS_ERR;
             }
-            parent_domain = zonedata_add_domain(zd, parent_domain);
-            if (!parent_domain) {
+            ods_log_assert(parent_domain);
+            if (zonedata_add_domain(zd, parent_domain) == NULL) {
                 ods_log_error("[%s] unable to entize domain %s: add parent "
                     "failed", zd_str, str);
-                se_free((void*)str);
-                return 1;
+                domain_cleanup(parent_domain);
+                free((void*)str);
+                return ODS_STATUS_ERR;
             }
-            parent_domain->dstatus =
-                (ent2unsigned_deleg?DOMAIN_STATUS_ENT_NS:
-                                    DOMAIN_STATUS_ENT_AUTH);
-            parent_domain->subdomain_count = 1;
-            if (!ent2unsigned_deleg) {
-                parent_domain->subdomain_auth = 1;
-            }
-            parent_domain->internal_serial = domain->internal_serial;
+            parent_domain->dstatus = DOMAIN_STATUS_ENT;
             domain->parent = parent_domain;
             /* continue with the parent domain */
             domain = parent_domain;
         } else {
             ldns_rdf_deep_free(parent_rdf);
-            parent_domain->internal_serial = domain->internal_serial;
-            parent_domain->subdomain_count += 1;
-            if (!ent2unsigned_deleg) {
-                parent_domain->subdomain_auth += 1;
-            }
             domain->parent = parent_domain;
-            if (domain_count_rrset(parent_domain) <= 0 &&
-                parent_domain->dstatus != DOMAIN_STATUS_ENT_AUTH) {
-                parent_domain->dstatus =
-                    (ent2unsigned_deleg?DOMAIN_STATUS_ENT_NS:
-                                        DOMAIN_STATUS_ENT_AUTH);
-            }
-            /* done */
+            /* we are done with this domain */
             domain = NULL;
         }
-        se_free((void*)str);
+        free((void*)str);
     }
-    return 0;
-}
-
-
-/**
- * Revise the empty non-terminals domain status.
- *
- */
-static void
-zonedata_domain_entize_revised(domain_type* domain, int status)
-{
-    domain_type* parent = NULL;
-    if (!domain) {
-        return;
-    }
-    parent = domain->parent;
-    while (parent) {
-        if (parent->dstatus == DOMAIN_STATUS_ENT_AUTH ||
-            parent->dstatus == DOMAIN_STATUS_ENT_GLUE ||
-            parent->dstatus == DOMAIN_STATUS_ENT_NS) {
-            parent->dstatus = status;
-        } else {
-           break;
-        }
-        parent = parent->parent;
-    }
-    return;
+    return ODS_STATUS_OK;
 }
 
 
@@ -1064,8 +953,8 @@ ods_status
 zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    ods_status status = ODS_STATUS_OK;
     domain_type* domain = NULL;
-    int prev_status = DOMAIN_STATUS_NONE;
 
     if (!zd || !zd->domains) {
         ods_log_error("[%s] unable to entize zone data: no zone data",
@@ -1085,18 +974,13 @@ zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        if (zonedata_domain_entize(zd, domain, apex) != 0) {
+        status = domain_entize(zd, domain, apex);
+        if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to entize zone data: entize domain "
                 "failed", zd_str);
-            return ODS_STATUS_ERR;
+            return status;
         }
-        /* domain has parent now, check for glue */
-        prev_status = domain->dstatus;
-        domain_update_status(domain);
-        if (domain->dstatus == DOMAIN_STATUS_OCCLUDED &&
-            prev_status != DOMAIN_STATUS_OCCLUDED) {
-            zonedata_domain_entize_revised(domain, DOMAIN_STATUS_ENT_GLUE);
-        }
+        domain_dstatus(domain);
         node = ldns_rbtree_next(node);
     }
     return ODS_STATUS_OK;
@@ -1108,17 +992,23 @@ zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
  *
  */
 ods_status
-zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
+zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
+    ods_status status = ODS_STATUS_OK;
     domain_type* domain = NULL;
-    domain_type* to = NULL;
     domain_type* apex = NULL;
-    int have_next = 0;
+    denial_type* denial = NULL;
+    denial_type* nxt = NULL;
+    char* str = NULL;
 
     if (!zd || !zd->domains) {
         return ODS_STATUS_OK;
     }
+    ods_log_assert(zd);
+    ods_log_assert(zd->domains);
+
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
@@ -1127,38 +1017,59 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
         }
         /* don't do glue-only or empty domains */
         if (domain->dstatus == DOMAIN_STATUS_NONE ||
+            domain->dstatus == DOMAIN_STATUS_ENT ||
             domain->dstatus == DOMAIN_STATUS_OCCLUDED ||
             domain_count_rrset(domain) <= 0) {
+            str = ldns_rdf2str(domain->dname);
+            ods_log_deeebug("[%s] nsecify3: don't do %s domain %s", zd_str,
+                domain_count_rrset(domain)?"glue":"emtpy", str?str:"(null)");
+            free((void*) str);
+            if (domain->denial) {
+                if (zonedata_del_denial(zd, domain->denial) != NULL) {
+                    ods_log_warning("[%s] unable to nsecify: failed to "
+                        "delete denial of existence data point", zd_str);
+                    return ODS_STATUS_ERR;
+                }
+            }
             node = ldns_rbtree_next(node);
             continue;
         }
+        if (!apex) {
+            ods_log_alert("[%s] unable to nsecify: apex unknown", zd_str);
+            return ODS_STATUS_ASSERT_ERR;
+        }
+
+        /* add the denial of existence */
+        if (!domain->denial) {
+            status = zonedata_add_denial(zd, domain, apex->dname, NULL);
+            if (status != ODS_STATUS_OK) {
+                str = ldns_rdf2str(domain->dname);
+                ods_log_alert("[%s] unable to nsecify: failed to add denial "
+                    "of existence for domain %s", zd_str, str?str:"(null)");
+                free((void*) str);
+                return status;
+            }
+        }
         node = ldns_rbtree_next(node);
-        have_next = 0;
-        while (!have_next) {
-            if (node && node != LDNS_RBTREE_NULL) {
-                to = (domain_type*) node->data;
-            } else if (apex) {
-                to = apex;
-            } else {
-                ods_log_alert("[%s] unable to nsecify: apex undefined",
-                    zd_str);
-                return ODS_STATUS_ERR;
-            }
-            /* don't do glue-only or empty domains */
-            if (to->dstatus == DOMAIN_STATUS_NONE ||
-                to->dstatus == DOMAIN_STATUS_OCCLUDED ||
-                domain_count_rrset(to) <= 0) {
-                node = ldns_rbtree_next(node);
-            } else {
-                have_next = 1;
-            }
+    }
+
+    /** Now we have the complete denial of existence chain */
+    node = ldns_rbtree_first(zd->denial_chain);
+    while (node && node != LDNS_RBTREE_NULL) {
+        denial = (denial_type*) node->data;
+        nxt_node = ldns_rbtree_next(node);
+        if (!nxt_node || nxt_node == LDNS_RBTREE_NULL) {
+             nxt_node = ldns_rbtree_first(zd->denial_chain);
         }
-        /* ready to add the NSEC record */
-        if (domain_nsecify(domain, to, zd->default_ttl, klass, stats) != 0) {
-            ods_log_error("[%s] unable to nsecify: add NSEC to domain failed",
+        nxt = (denial_type*) nxt_node->data;
+
+        status = denial_nsecify(denial, nxt, zd->default_ttl, klass);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to nsecify: failed to add NSEC record",
                 zd_str);
-            return ODS_STATUS_ERR;
+            return status;
         }
+        node = ldns_rbtree_next(node);
     }
     return ODS_STATUS_OK;
 }
@@ -1170,23 +1081,28 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, stats_type* stats)
  */
 ods_status
 zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
-    nsec3params_type* nsec3params, stats_type* stats)
+    nsec3params_type* nsec3params)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* nsec3_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
+    ods_status status = ODS_STATUS_OK;
     domain_type* domain = NULL;
-    domain_type* to = NULL;
     domain_type* apex = NULL;
+    denial_type* denial = NULL;
+    denial_type* nxt = NULL;
     char* str = NULL;
 
+    if (!zd || !zd->domains) {
+        return ODS_STATUS_OK;
+    }
     ods_log_assert(zd);
     ods_log_assert(zd->domains);
-    ods_log_assert(nsec3params);
 
-    if (!zd->nsec3_domains) {
-        ods_log_debug("[%s] create new nsec3 domain tree", zd_str);
-        zd->nsec3_domains = ldns_rbtree_create(domain_compare);
+    if (!nsec3params) {
+        ods_log_error("[%s] unable to nsecify3: no nsec3 paramaters", zd_str);
+        return ODS_STATUS_ASSERT_ERR;
     }
+    ods_log_assert(nsec3params);
 
     node = ldns_rbtree_first(zd->domains);
     while (node && node != LDNS_RBTREE_NULL) {
@@ -1198,12 +1114,18 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         /* don't do glue-only domains */
         if (domain->dstatus == DOMAIN_STATUS_NONE ||
             domain->dstatus == DOMAIN_STATUS_OCCLUDED ||
-            domain->dstatus == DOMAIN_STATUS_ENT_GLUE) {
+            domain_ent2glue(node)) {
             str = ldns_rdf2str(domain->dname);
-            ods_log_debug("[%s] nsecify3: skip glue domain %s", zd_str,
+            ods_log_deeebug("[%s] nsecify3: don't do glue domain %s", zd_str,
                 str?str:"(null)");
-            se_free((void*) str);
-
+            free((void*) str);
+            if (domain->denial) {
+                if (zonedata_del_denial(zd, domain->denial) != NULL) {
+                    ods_log_error("[%s] unable to nsecify3: failed to "
+                        "delete denial of existence data point", zd_str);
+                    return ODS_STATUS_ERR;
+                }
+            }
             node = ldns_rbtree_next(node);
             continue;
         }
@@ -1211,43 +1133,43 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         if (nsec3params->flags) {
             /* If Opt-Out is being used, owner names of unsigned delegations
                MAY be excluded. */
-            if (domain->dstatus == DOMAIN_STATUS_ENT_NS ||
-                domain->dstatus == DOMAIN_STATUS_NS) {
+            if (domain->dstatus == DOMAIN_STATUS_NS ||
+                domain_ent2unsigned(node)) {
                 str = ldns_rdf2str(domain->dname);
-                ods_log_debug("[%s] opt-out %s: %s", zd_str, str?str:"(null)",
+                ods_log_debug("[%s] nsecify3: opt-out %s (%s)", zd_str,
+                    str?str:"(null)",
                     domain->dstatus == DOMAIN_STATUS_NS ?
                     "unsigned delegation" : "empty non-terminal (to unsigned "
                     "delegation)");
-                se_free((void*) str);
+                free((void*) str);
+                if (domain->denial) {
+                    if (zonedata_del_denial(zd, domain->denial) != NULL) {
+                        ods_log_error("[%s] unable to nsecify3: failed to "
+                            "delete denial of existence data point", zd_str);
+                        return ODS_STATUS_ERR;
+                    }
+                }
                 node = ldns_rbtree_next(node);
                 continue;
             }
         }
-
         if (!apex) {
-            ods_log_alert("[%s] apex undefined!, aborting nsecify3", zd_str);
-            return ODS_STATUS_ERR;
+            ods_log_alert("[%s] unable to nsecify3: apex unknown", zd_str);
+            return ODS_STATUS_ASSERT_ERR;
         }
 
-        /* add the NSEC3 domain */
-        if (!domain->nsec3) {
-            domain->nsec3 = zonedata_add_domain_nsec3(zd, domain, apex->dname,
-                nsec3params);
-            str = ldns_rdf2str(domain->dname);
-            if (domain->nsec3 == NULL) {
-                ods_log_alert("[%s] failed to add NSEC3 domain for %s", zd_str,
-                    str?str:"(null)");
-                se_free((void*) str);
-                return ODS_STATUS_ERR;
-            } else {
-                ods_log_deeebug("[%s] NSEC3 domain added for %s", zd_str,
-                    str?str:"(null)");
-                se_free((void*) str);
+        /* add the denial of existence */
+        if (!domain->denial) {
+            status = zonedata_add_denial(zd, domain, apex->dname, nsec3params);
+            if (status != ODS_STATUS_OK) {
+                str = ldns_rdf2str(domain->dname);
+                ods_log_alert("[%s] unable to nsecify3: failed to add denial "
+                    "of existence for domain %s", zd_str, str?str:"(null)");
+                free((void*) str);
+                return status;
             }
-            domain->nsec3->nsec3 = domain; /* back reference */
-        } else {
-            ods_log_deeebug("[%s] domain already has NSEC3 domain", zd_str);
         }
+        node = ldns_rbtree_next(node);
 
         /* The Next Hashed Owner Name field is left blank for the moment. */
 
@@ -1265,38 +1187,30 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
          * hashed_ownername = ldns_nsec3_hash_name(domain->dname,
                nsec3params->algorithm, nsec3params->iterations,
                nsec3params->salt_len, nsec3params->salt);
-         * domain->nsec3_wildcard = domain_create(hashed_ownername);
+         * domain->nsec3_wildcard = denial_create(hashed_ownername);
         **/
 
-        node = ldns_rbtree_next(node);
     }
 
-    /* Now we have the complete NSEC3 tree */
-
-    /**
-     * In each NSEC3 RR, insert the next hashed owner name by using the
-     * value of the next NSEC3 RR in hash order.  The next hashed owner
-     * name of the last NSEC3 RR in the zone contains the value of the
-     * hashed owner name of the first NSEC3 RR in the hash order.
-    **/
-    node = ldns_rbtree_first(zd->nsec3_domains);
+    /** Now we have the complete denial of existence chain */
+    node = ldns_rbtree_first(zd->denial_chain);
     while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        nsec3_node = ldns_rbtree_next(node);
-        if (!nsec3_node || nsec3_node == LDNS_RBTREE_NULL) {
-             nsec3_node = ldns_rbtree_first(zd->nsec3_domains);
+        denial = (denial_type*) node->data;
+        nxt_node = ldns_rbtree_next(node);
+        if (!nxt_node || nxt_node == LDNS_RBTREE_NULL) {
+             nxt_node = ldns_rbtree_first(zd->denial_chain);
         }
-        to = (domain_type*) nsec3_node->data;
+        nxt = (denial_type*) nxt_node->data;
 
-        /* ready to add the NSEC3 record */
-        if (domain_nsecify3(domain, to, zd->default_ttl, klass,
-            nsec3params, stats) != 0) {
-            ods_log_error("[%s] adding NSEC3s to domain failed", zd_str);
-            return ODS_STATUS_ERR;
+        status = denial_nsecify3(denial, nxt, zd->default_ttl, klass,
+            nsec3params);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to nsecify3: failed to add NSEC3 "
+                "record", zd_str);
+            return status;
         }
         node = ldns_rbtree_next(node);
     }
-
     return ODS_STATUS_OK;
 }
 
@@ -1469,7 +1383,7 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
         str_name = ldns_rdf2str(domain->dname);
         ods_log_warning("[%s] occluded (non-glue non-DS) data at %s NS",
             zd_str, str_name);
-        se_free((void*)str_name);
+        free((void*)str_name);
         return 1;
     }
 
@@ -1490,8 +1404,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 str_parent = ldns_rdf2str(parent_domain->dname);
                 ods_log_warning("[%s] occluded data at %s (below %s DNAME)",
                     zd_str, str_name, str_parent);
-                se_free((void*)str_name);
-                se_free((void*)str_parent);
+                free((void*)str_name);
+                free((void*)str_parent);
                 return 1;
             } else if (domain_examine_data_exists(parent_domain,
                 LDNS_RR_TYPE_NS, 0) == 0 &&
@@ -1501,8 +1415,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 str_parent = ldns_rdf2str(parent_domain->dname);
                 ods_log_warning("[%s] occluded (non-glue) data at %s (below "
                     "%s NS)", zd_str, str_name, str_parent);
-                se_free((void*)str_name);
-                se_free((void*)str_parent);
+                free((void*)str_name);
+                free((void*)str_parent);
                 return 1;
             } else if (domain_examine_data_exists(parent_domain,
                 LDNS_RR_TYPE_NS, 0) == 0 &&
@@ -1513,8 +1427,8 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 str_parent = ldns_rdf2str(parent_domain->dname);
                 ods_log_warning("[%s] occluded data at %s (below %s NS)",
                     zd_str, str_name, str_parent);
-                se_free((void*)str_name);
-                se_free((void*)str_parent);
+                free((void*)str_name);
+                free((void*)str_parent);
                 return 1;
             }
         }
@@ -1582,115 +1496,6 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, adapter_mode mode)
 
 
 /**
- * Update zone data with pending changes.
- *
- */
-int
-zonedata_update(zonedata_type* zd, signconf_type* sc)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-    domain_type* parent = NULL;
-    int error = 0;
-
-    ods_log_assert(sc);
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-
-    error = zonedata_update_serial(zd, sc);
-    if (error || !zd->internal_serial) {
-        ods_log_error("[%s] unable to update zonedata: failed to update serial", zd_str);
-        zonedata_rollback(zd);
-        return 1;
-    }
-
-    if (zd->domains->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(zd->domains);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        error = domain_commit(domain);
-        if (error != 0) {
-            if (error == 1) {
-                ods_log_crit("[%s] unable to update zonedata to serial %u: rr "
-                    "compare function failed", zd_str, zd->internal_serial);
-                /* If this happens, the zone is partially updated. */
-            } else {
-                ods_log_error("[%s] unable to update zonedata to serial %u: "
-                    "serial too small", zd_str, zd->internal_serial);
-                zonedata_rollback(zd);
-                return 1;
-            }
-            return 1;
-        }
-        node = ldns_rbtree_next(node);
-
-        /* delete memory of domain if no RRsets exists */
-        /* if this domain is now an empty non-terminal, don't delete */
-
-        if (domain_count_rrset(domain) <= 0 &&
-            (domain->dstatus != DOMAIN_STATUS_ENT_AUTH &&
-             domain->dstatus != DOMAIN_STATUS_ENT_NS &&
-             domain->dstatus != DOMAIN_STATUS_ENT_GLUE)) {
-
-            parent = domain->parent;
-            if (domain->subdomain_count <= 0) {
-                ods_log_deeebug("[%s] obsoleted domain: #rrset=%i, status=%i",
-                    zd_str, domain_count_rrset(domain), domain->dstatus);
-                domain = zonedata_del_domain(zd, domain);
-            }
-            if (domain) {
-                ods_log_error("[%s] failed to delete obsoleted domain", zd_str);
-            }
-            while (parent && domain_count_rrset(parent) <= 0) {
-                domain = parent;
-                parent = domain->parent;
-                if (domain->subdomain_count <= 0) {
-                    domain = zonedata_del_domain(zd, domain);
-                    if (domain) {
-                        ods_log_error("[%s] failed to delete obsoleted domain", zd_str);
-                    }
-                }
-            }
-        }
-    }
-    return 0;
-}
-
-
-/**
- * Add RR to the zone data.
- *
- */
-int
-zonedata_add_rr(zonedata_type* zd, ldns_rr* rr, int at_apex)
-{
-    domain_type* domain = NULL;
-
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-    ods_log_assert(rr);
-
-    domain = zonedata_lookup_domain(zd, ldns_rr_owner(rr));
-    if (domain) {
-        return domain_add_rr(domain, rr);
-    }
-    /* no domain with this name yet */
-    domain = domain_create(ldns_rr_owner(rr));
-    domain = zonedata_add_domain(zd, domain);
-    if (!domain) {
-        ods_log_error("[%s] unable to add RR to zonedata: failed to add domain",
-            zd_str);
-        return 1;
-    }
-    if (at_apex) {
-        domain->dstatus = DOMAIN_STATUS_APEX;
-    }
-    return domain_add_rr(domain, rr);
-}
-
-
-/**
  * Recover RR from backup.
  *
  */
@@ -1730,11 +1535,7 @@ zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
     ods_log_assert(rrsig);
 
     type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rrsig));
-    if (type_covered == LDNS_RR_TYPE_NSEC3) {
-        domain = zonedata_lookup_domain_nsec3(zd, ldns_rr_owner(rrsig));
-    } else {
-        domain = zonedata_lookup_domain(zd, ldns_rr_owner(rrsig));
-    }
+    domain = zonedata_lookup_domain(zd, ldns_rr_owner(rrsig));
     if (domain) {
         return domain_recover_rrsig_from_backup(domain, rrsig, type_covered,
             locator, flags);
@@ -1746,102 +1547,23 @@ zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
 
 
 /**
- * Delete RR from the zone data.
- *
- */
-int
-zonedata_del_rr(zonedata_type* zd, ldns_rr* rr)
-{
-    domain_type* domain = NULL;
-
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-    ods_log_assert(rr);
-
-    domain = zonedata_lookup_domain(zd, ldns_rr_owner(rr));
-    if (domain) {
-        return domain_del_rr(domain, rr);
-    }
-    /* no domain with this name yet */
-    ods_log_warning("[%s] unable to delete RR from zonedata: no such domain",
-        zd_str);
-    return 0;
-}
-
-
-/**
- * Delete all current RRs from the zone data.
- *
- */
-int
-zonedata_del_rrs(zonedata_type* zd)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-
-    if (zd->domains->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(zd->domains);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        if (domain_del_rrs(domain) != 0) {
-            return 1;
-        }
-        node = ldns_rbtree_next(node);
-    }
-    return 0;
-}
-
-
-/**
- * Clean up domains in zone data.
- *
- */
-void
-zonedata_cleanup_domains(ldns_rbtree_t* domain_tree)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-
-    if (domain_tree && domain_tree->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(domain_tree);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        domain_cleanup(domain);
-        node = ldns_rbtree_next(node);
-    }
-    if (domain_tree && domain_tree->root != LDNS_RBTREE_NULL) {
-        se_rbnode_free(domain_tree->root);
-    }
-    if (domain_tree) {
-        ldns_rbtree_free(domain_tree);
-    }
-    return;
-}
-
-
-/**
  * Wipe out all NSEC RRsets.
  *
  */
 void
-zonedata_wipe_nsec(zonedata_type* zd)
+zonedata_wipe_denial(zonedata_type* zd)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
+    denial_type* denial = NULL;
 
-    if (zd && zd->domains) {
-        node = ldns_rbtree_first(zd->domains);
+    if (zd && zd->denial_chain) {
+        node = ldns_rbtree_first(zd->denial_chain);
         while (node && node != LDNS_RBTREE_NULL) {
-            domain = (domain_type*) node->data;
-            if (domain->nsec_rrset) {
+            denial = (denial_type*) node->data;
+            if (denial->rrset) {
                 /* [TODO] IXFR delete NSEC */
-                rrset_cleanup(domain->nsec_rrset);
-                domain->nsec_rrset = NULL;
+                rrset_cleanup(denial->rrset);
+                denial->rrset = NULL;
             }
             node = ldns_rbtree_next(node);
         }
@@ -1851,15 +1573,42 @@ zonedata_wipe_nsec(zonedata_type* zd)
 
 
 /**
- * Wipe out NSEC3 tree.
+ * Clean up domains in zone data.
  *
  */
-void
-zonedata_wipe_nsec3(zonedata_type* zd)
+static void
+domain_delfunc(ldns_rbnode_t* elem)
 {
-    if (zd->nsec3_domains) {
-        zonedata_cleanup_domains(zd->nsec3_domains);
-        zd->nsec3_domains = NULL;
+    domain_type* domain;
+
+    if (elem && elem != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) elem->data;
+        domain_delfunc(elem->left);
+        domain_delfunc(elem->right);
+
+        domain_cleanup(domain);
+        free((void*)elem);
+    }
+    return;
+}
+
+
+/**
+ * Clean up denial of existence data points from zone data.
+ *
+ */
+static void
+denial_delfunc(ldns_rbnode_t* elem)
+{
+    denial_type* denial;
+
+    if (elem && elem != LDNS_RBTREE_NULL) {
+        denial = (denial_type*) elem->data;
+        denial_delfunc(elem->left);
+        denial_delfunc(elem->right);
+
+        denial_cleanup(denial);
+        free((void*)elem);
     }
     return;
 }
@@ -1872,17 +1621,17 @@ zonedata_wipe_nsec3(zonedata_type* zd)
 void
 zonedata_cleanup(zonedata_type* zd)
 {
-    /* destroy domains */
     if (zd) {
         if (zd->domains) {
-            zonedata_cleanup_domains(zd->domains);
+            domain_delfunc(zd->domains->root);
+            ldns_rbtree_free(zd->domains);
             zd->domains = NULL;
         }
-        if (zd->nsec3_domains) {
-            zonedata_cleanup_domains(zd->nsec3_domains);
-            zd->nsec3_domains = NULL;
+        if (zd->denial_chain) {
+            denial_delfunc(zd->denial_chain->root);
+            ldns_rbtree_free(zd->denial_chain);
+            zd->denial_chain = NULL;
         }
-        se_free((void*) zd);
     }
     return;
 }
@@ -1924,84 +1673,4 @@ zonedata_print(FILE* fd, zonedata_type* zd)
         node = ldns_rbtree_next(node);
     }
     return ODS_STATUS_OK;
-}
-
-
-/**
- * Print NSEC(3)s in zone data.
- *
- */
-void
-zonedata_print_nsec(FILE* fd, zonedata_type* zd)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-
-    if (!fd) {
-        ods_log_error("[%s] unable to print nsec: no file descriptor",
-            zd_str);
-        return;
-    }
-    ods_log_assert(fd);
-
-    if (!zd || !zd->domains) {
-        ods_log_error("[%s] unable to print nsec: no zone data",
-            zd_str);
-        return;
-    }
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-
-    node = ldns_rbtree_first(zd->domains);
-    if (!node || node == LDNS_RBTREE_NULL) {
-        fprintf(fd, "; empty zone\n");
-        return;
-    }
-
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        domain_print_nsec(fd, domain);
-        node = ldns_rbtree_next(node);
-    }
-    return;
-}
-
-
-/**
- * Print RRSIGs zone data.
- *
- */
-void
-zonedata_print_rrsig(FILE* fd, zonedata_type* zd)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-
-    if (!fd) {
-        ods_log_error("[%s] unable to print rrsig: no file descriptor",
-            zd_str);
-        return;
-    }
-    ods_log_assert(fd);
-
-    if (!zd || !zd->domains) {
-        ods_log_error("[%s] unable to print rrsig: no zone data",
-            zd_str);
-        return;
-    }
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-
-    node = ldns_rbtree_first(zd->domains);
-    if (!node || node == LDNS_RBTREE_NULL) {
-        fprintf(fd, "; empty zone\n");
-        return;
-    }
-
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        domain_print_rrsig(fd, domain);
-        node = ldns_rbtree_next(node);
-    }
-    return;
 }

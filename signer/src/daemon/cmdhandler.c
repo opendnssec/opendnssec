@@ -388,10 +388,15 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     unlink_backup_file(tbd, ".rrsigs");
     unlink_backup_file(tbd, ".finalized");
 
-    /* [LOCK] */
+    lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
+    /* [LOCK] zonelist */
     zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
         LDNS_RR_CLASS_IN);
+    /* [UNLOCK] zonelist */
+    lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
     if (zone) {
+        /* [LOCK] zone */
+        lock_basic_lock(&zone->zone_lock);
         inbound_serial = zone->zonedata->inbound_serial;
         internal_serial = zone->zonedata->internal_serial;
         outbound_serial = zone->zonedata->outbound_serial;
@@ -404,6 +409,8 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->zonedata->outbound_serial = outbound_serial;
         task = (task_type*) zone->task;
         task->what = TASK_READ;
+        /* [UNLOCK] zone */
+        lock_basic_unlock(&zone->zone_lock);
 
         (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
             "%s cleared", tbd?tbd:"(null)");
@@ -415,7 +422,6 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         ods_log_warning("[%s] cannot clear zone %s, zone not found",
             cmdh_str, tbd?tbd:"(null)");
     }
-    /* [UNLOCK] */
 
     ods_writen(sockfd, buf, strlen(buf));
     return;
