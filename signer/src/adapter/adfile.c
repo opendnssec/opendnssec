@@ -255,6 +255,7 @@ adfile_read_file(FILE* fd, zone_type* zone, int include)
     unsigned int line_update_interval = 100000;
     unsigned int line_update = line_update_interval;
     unsigned int l = 0;
+    uint32_t serial = 0;
 
     ods_log_assert(fd);
     ods_log_assert(zone);
@@ -282,23 +283,22 @@ adfile_read_file(FILE* fd, zone_type* zone, int include)
         zone->zonedata->default_ttl = soa_min;
         /* serial */
         if (rr) {
-            zone->zonedata->inbound_serial =
+            serial =
                 ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-            ldns_rr_free(rr);
-        }
-        rewind(fd);
-
-        if (ods_strcmp(zone->signconf->soa_serial, "keep") == 0) {
-            if (zone->zonedata->inbound_serial <=
-                zone->zonedata->outbound_serial) {
-                ods_log_error("[%s] read file failed, zone %s SOA SERIAL is "
-                    " set to keep, but serial %u in input zone is lower than "
-                    " current serial %u", adapter_str, zone->name,
-                    zone->zonedata->inbound_serial,
+            if (ods_strcmp(zone->signconf->soa_serial, "keep") == 0) {
+                if (serial <= zone->zonedata->outbound_serial) {
+                    ods_log_error("[%s] read file failed, zone %s SOA SERIAL "
+                    " is set to keep, but serial %u in input zone is lower "
+                    " than current serial %u", adapter_str, zone->name, serial,
                     zone->zonedata->outbound_serial);
-                return ODS_STATUS_CONFLICT_ERR;
+                    ldns_rr_free(rr);
+                    return ODS_STATUS_CONFLICT_ERR;
+                }
             }
         }
+        ldns_rr_free(rr);
+
+        rewind(fd);
     }
 
     /* $ORIGIN <zone name> */

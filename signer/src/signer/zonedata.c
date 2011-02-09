@@ -1281,7 +1281,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     ods_log_assert(sc);
 
     prev = zd->internal_serial;
-    ods_log_debug("[%s] update serial: inbound=%u internal=%u outbound=%u now=%u",
+    ods_log_debug("[%s] update serial: in=%u internal=%u out=%u now=%u",
         zd_str, zd->inbound_serial, zd->internal_serial, zd->outbound_serial,
         (uint32_t) time_now());
 
@@ -1291,29 +1291,17 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     }
 
     if (ods_strcmp(sc->soa_serial, "unixtime") == 0) {
-        soa = ods_max(zd->inbound_serial, (uint32_t) time_now());
+        soa = (uint32_t) time_now();
         if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
-        update = soa - prev;
     } else if (strncmp(sc->soa_serial, "counter", 7) == 0) {
-        soa = ods_max(zd->inbound_serial, prev);
-        if (!zd->initialized) {
-            zd->internal_serial = soa + 1;
-            zd->initialized = 1;
-            return 0;
-        }
-        if (!DNS_SERIAL_GT(soa, prev)) {
-            soa = prev + 1;
-        }
-        update = soa - prev;
+        soa = prev + 1;
     } else if (strncmp(sc->soa_serial, "datecounter", 11) == 0) {
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
-        soa = ods_max(zd->inbound_serial, soa);
         if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
-        update = soa - prev;
     } else if (strncmp(sc->soa_serial, "keep", 4) == 0) {
         soa = zd->inbound_serial;
         if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
@@ -1321,24 +1309,21 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
                 " (%u): output SOA SERIAL is %u", zd_str, soa, prev);
             return 1;
         }
-        prev = soa;
-        update = 0;
     } else {
         ods_log_error("[%s] unknown serial type %s", zd_str, sc->soa_serial);
         return 1;
     }
 
-    if (!zd->initialized) {
-        zd->initialized = 1;
-    }
-
     /* serial is stored in 32 bits */
+    update = soa - prev;
     if (update > 0x7FFFFFFF) {
         update = 0x7FFFFFFF;
     }
-    zd->internal_serial = (prev + update); /* automatically does % 2^32 */
-    ods_log_debug("[%s] update serial: previous=%u update=%u new=%u", zd_str,
-        prev, update, zd->internal_serial);
+
+    zd->internal_serial += update; /* automatically does % 2^32 */
+    zd->initialized = 1;
+    ods_log_debug("[%s] update serial: %u + %u = %u", zd_str, prev, update,
+        zd->internal_serial);
     return 0;
 }
 
@@ -1361,10 +1346,8 @@ zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
     ods_log_assert(zd);
     ods_log_assert(zd->domains);
 
-    if (!DNS_SERIAL_GT(zd->internal_serial, zd->outbound_serial)) {
-        error = zonedata_update_serial(zd, sc);
-    }
-    if (error || !zd->internal_serial) {
+    error = zonedata_update_serial(zd, sc);
+    if (error) {
         ods_log_error("[%s] unable to sign zone data: failed to update serial",
             zd_str);
         return 1;
