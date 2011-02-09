@@ -55,7 +55,7 @@ case "$1" in
 		i=0
 		while [ ! -r "$signer_pid_file" ]; do
 			sleep 1
-			i=$(( $i + 1 ))
+			i=$(($i+1))
 			if [ $i -ge 5 ]; then
 				RETVAL=1
 				echo "Could not start signer"
@@ -87,15 +87,15 @@ case "$1" in
 			"$sbindir/ods-enforcerd"
 			RETVAL=$?
 			if [ $RETVAL = 0 ]; then
-                i=0
+				i=0
 				while [ ! -r "$enforcer_pid_file" ]; do
 					sleep 1
-                    i=$(( $i + 1 ))
-                    if [ $i -ge 5 ]; then
-                        RETVAL=1
-                        echo "Could not start enforcer"
-                        break
-                    fi
+					i=$(($i+1))
+					if [ $i -ge 5 ]; then
+						RETVAL=1
+						echo "Could not start enforcer"
+						break
+					fi
 				done
 			fi
 		fi
