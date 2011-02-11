@@ -125,7 +125,7 @@ $dbh->do("create table keypairs(
 )")
 or die "Couldn't recreate keypairs: $!";
 
-$dbh->do("insert into keypairs select id, HSMkey_id, algorithm, size, securitymodule_id, generate, policy_id, compromisedflag, publickey, backup, fixedDate from keypairs_temp")
+$dbh->do("insert into keypairs select id, HSMkey_id, algorithm, size, securitymodule_id, generate, policy_id, compromisedflag, publickey, NULL as pre_backup, backup, fixedDate from keypairs_temp")
 or die "Couldn't repopulate keypairs: $!";
 
 ###
