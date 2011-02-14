@@ -552,6 +552,11 @@ engine_setup(engine_type* engine)
     se_log_assert(engine->config);
     se_log_debug("perform setup");
 
+    /* set up the work floor */
+    engine->tasklist = tasklist_create(); /* tasks */
+    engine->zonelist = zonelist_create(); /* zones */
+    engine_create_workers(engine); /* workers */
+
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
     if (!engine->cmdhandler) {
@@ -661,11 +666,6 @@ engine_setup(engine_type* engine)
         engine->cmdhandler = NULL;
         return 1;
     }
-
-    /* set up the work floor */
-    engine->tasklist = tasklist_create(); /* tasks */
-    engine->zonelist = zonelist_create(); /* zones */
-    engine_create_workers(engine); /* workers */
 
     return 0;
 }
