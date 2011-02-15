@@ -775,6 +775,7 @@ zonedata_commit(zonedata_type* zd)
     if (zd->domains->root != LDNS_RBTREE_NULL) {
         node = ldns_rbtree_last(zd->domains);
     }
+
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         oldnum = domain_count_rrset(domain);
@@ -1281,6 +1282,9 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     ods_log_assert(sc);
 
     prev = zd->internal_serial;
+    if (!zd->initialized) {
+        prev = zd->inbound_serial;
+    }
     ods_log_debug("[%s] update serial: in=%u internal=%u out=%u now=%u",
         zd_str, zd->inbound_serial, zd->internal_serial, zd->outbound_serial,
         (uint32_t) time_now());
