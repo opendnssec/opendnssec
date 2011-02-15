@@ -425,7 +425,8 @@ reload_zonefetcher(engine_type* engine)
         if (engine->zfpid > 0) {
             result = kill(engine->zfpid, SIGHUP);
             if (result == -1) {
-                ods_log_error("cannot reload zone fetcher: %s", strerror(errno));
+                ods_log_error("cannot reload zone fetcher: %s",
+                    strerror(errno));
             } else {
                 ods_log_info("zone fetcher reloaded (pid=%i)", engine->zfpid);
             }
@@ -561,6 +562,9 @@ engine_setup(engine_type* engine)
         return ODS_STATUS_HSM_ERR;
     }
 
+    /* create workers */
+    engine_create_workers(engine);
+
     /* start command handler */
     engine_start_cmdhandler(engine);
 
@@ -570,9 +574,6 @@ engine_setup(engine_type* engine)
         ods_log_error("[%s] unable to write pid file", engine_str);
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
-
-    /* set up the work floor */
-    engine_create_workers(engine);
 
     return ODS_STATUS_OK;
 }
@@ -682,11 +683,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
     ods_log_assert(zone->adoutbound);
 
     if (zone->adoutbound->type == ADAPTER_FILE) {
-        ods_log_assert(zone->adoutbound->data);
-        ods_log_assert(zone->adoutbound->data->file);
-        ods_log_assert(zone->adoutbound->data->file->filename);
-        str = ods_replace(cmd, "%zonefile",
-            zone->adoutbound->data->file->filename);
+        str = ods_replace(cmd, "%zonefile", zone->adoutbound->configstr);
     } else {
         str = cmd;
     }
@@ -694,7 +691,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
     str2 = ods_replace(str, "%zone", zone->name);
     free((void*)str);
     zone->notify_ns = (const char*) str2;
-    ods_log_debug("set notify ns: %s", zone->notify_ns);
+    ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
     return;
 }
 

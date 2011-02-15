@@ -265,7 +265,6 @@ rrset_examine_ns_rdata(rrset_type* rrset, ldns_rdf* nsdname)
     if (!rrset || !nsdname || rrset->rr_type != LDNS_RR_TYPE_NS) {
         return 0;
     }
-
     if (rrs_examine_ns_rdata(rrset->add, nsdname)) {
         return 1;
     }

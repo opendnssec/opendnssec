@@ -95,10 +95,7 @@ parse_zonelist_adapter_file(xmlNode* curNode, int inbound)
         return NULL;
     }
 
-    adapter = adapter_create(ADAPTER_FILE, inbound);
-    if (adapter) {
-        adapter->data->file = adfile_create(adapter->allocator, file);
-    }
+    adapter = adapter_create(file, ADAPTER_FILE, inbound);
     free((void*)file);
     return adapter;
 }
@@ -135,7 +132,6 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
                 if (xmlStrEqual(curNode->name, (const xmlChar*)"File")) {
                     adapter = parse_zonelist_adapter_file(curNode, inbound);
                 }
-
                 if (adapter) {
                     break;
                 }

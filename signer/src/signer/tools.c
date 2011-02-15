@@ -54,7 +54,7 @@ tools_input(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
     int error = 0;
-    char* axfrname = NULL;
+    char* tmpname = NULL;
     time_t start = 0;
     time_t end = 0;
 
@@ -71,99 +71,49 @@ tools_input(zone_type* zone)
     ods_log_assert(zone->zonedata);
 
     ods_log_assert(zone->adinbound);
-    ods_log_assert(zone->adinbound->data);
     ods_log_assert(zone->signconf);
-    ods_log_assert(zone->stats);
 
-    zone->stats->sort_done = 0;
-    zone->stats->sort_count = 0;
-    zone->stats->sort_time = 0;
+    if (zone->stats) {
+        zone->stats->sort_done = 0;
+        zone->stats->sort_count = 0;
+        zone->stats->sort_time = 0;
+    }
 
     if (zone->adinbound->type == ADAPTER_FILE) {
-        ods_log_assert(zone->adinbound->data->file);
-        ods_log_assert(zone->adinbound->data->file->filename);
-
         if (zone->fetch) {
             ods_log_verbose("fetch zone %s",
                 zone->name?zone->name:"(null)");
-            axfrname = ods_build_path(
-                zone->adinbound->data->file->filename, ".axfr", 0);
-            error = ods_file_copy(axfrname,
-                zone->adinbound->data->file->filename);
+            tmpname = ods_build_path(
+                zone->adinbound->configstr, ".axfr", 0);
+            error = ods_file_copy(tmpname, zone->adinbound->configstr);
             if (error) {
                 ods_log_error("[%s] unable to copy axfr file %s to %s",
-                    tools_str, axfrname,
-                    zone->adinbound->data->file->filename);
-                free((void*)axfrname);
+                    tools_str, tmpname, zone->adinbound->configstr);
+                free((void*)tmpname);
                 return ODS_STATUS_ERR;
             }
-            free((void*)axfrname);
+            free((void*)tmpname);
         }
     }
 
     start = time(NULL);
     status = adapter_read(zone);
-    end = time(NULL);
-    if (status != ODS_STATUS_OK) {
+    if (status == ODS_STATUS_OK) {
+        tmpname = ods_build_path(zone->name, ".inbound", 0);
+        status = ods_file_copy(tmpname, zone->adinbound->configstr);
+        free((void*)tmpname);
+    }
+
+    if (status == ODS_STATUS_OK) {
+        status = zonedata_commit(zone->zonedata);
+    } else {
         zonedata_rollback(zone->zonedata);
     }
-    else {
-        zone_backup_state(zone);
+    end = time(NULL);
+
+    if (status == ODS_STATUS_OK && zone->stats) {
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
-    }
-    return status;
-}
-
-
-/**
- * Examine and commit updates.
- *
- */
-ods_status
-tools_commit(zone_type* zone)
-{
-    ods_status status = ODS_STATUS_OK;
-    char* inbound = NULL;
-    char* unsorted = NULL;
-
-    if (!zone) {
-        ods_log_error("[%s] unable to commit updates to zone: no zone",
-            tools_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(zone);
-
-    if (!zone->zonedata) {
-        ods_log_error("[%s] unable to commit updates to zone %s: no zonedata",
-            tools_str, zone->name?zone->name:"(null)");
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(zone->zonedata);
-
-    /* examine */
-    status = zonedata_examine(zone->zonedata, zone->dname,
-        zone->adinbound->type==ADAPTER_FILE);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] commit updates zone %s failed: zone data "
-            "contains errors", tools_str, zone->name);
-        zonedata_rollback(zone->zonedata);
-        return status;
-    }
-
-    /* commit */
-    status = zonedata_commit(zone->zonedata);
-    if (status == ODS_STATUS_OK) {
-        inbound = ods_build_path(zone->name, ".inbound", 0);
-        unsorted = ods_build_path(zone->name, ".unsorted", 0);
-        status = ods_file_copy(inbound, unsorted);
-        if (status != ODS_STATUS_OK) {
-            unlink(inbound);
-        }
-        free((void*)inbound);
-        free((void*)unsorted);
-    } else {
-        zone->stats->sort_done = 1;
     }
     return status;
 }
@@ -199,8 +149,6 @@ tools_nsecify(zone_type* zone)
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->signconf);
-
-    ods_log_assert(zone->stats);
 
     start = time(NULL);
 
@@ -359,26 +307,26 @@ tools_output(zone_type* zone)
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->adoutbound);
-    ods_log_assert(zone->adinbound->data);
 
-    ods_log_assert(zone->stats);
-
-/*    if (zone->stats->sort_done == 0 &&
-        (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
-        ods_log_verbose("[%s] skip write zone %s serial %u (zone not changed)",
-            tools_str, zone->name?zone->name:"(null)",
-            zone->zonedata->internal_serial);
-        stats_clear(zone->stats);
-        return 0;
+/*
+    if (zone->stats) {
+        if (zone->stats->sort_done == 0 &&
+            (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
+            ods_log_verbose("[%s] skip write zone %s serial %u (zone not changed)",
+                tools_str, zone->name?zone->name:"(null)",
+                zone->zonedata->internal_serial);
+            stats_clear(zone->stats);
+            return ODS_STATUS_OK;
+        }
     }
 */
-    zone->zonedata->outbound_serial = zone->zonedata->internal_serial;
 
     status = adapter_write(zone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to write zone: adapter failed", tools_str);
         return status;
     }
+    zone->zonedata->outbound_serial = zone->zonedata->internal_serial;
 
     /* kick the nameserver */
     if (zone->notify_ns) {

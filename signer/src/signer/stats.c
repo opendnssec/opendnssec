@@ -79,12 +79,13 @@ stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type)
 {
     uint32_t avsign = 0;
 
+    if (!stats) {
+        return;
+    }
     ods_log_assert(stats);
-    ods_log_assert(name);
     if (stats->sig_time) {
         avsign = (uint32_t) (stats->sig_count/stats->sig_time);
     }
-
     ods_log_info("[STATS] %s RR[count=%u time=%u(sec)] "
         "NSEC%s[count=%u time=%u(sec)] "
         "RRSIG[new=%u reused=%u time=%u(sec) avg=%u(sig/sec)] "
@@ -105,8 +106,6 @@ stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type)
 void
 stats_cleanup(stats_type* stats)
 {
-    if (stats) {
-        free((void*) stats);
-    }
+    free((void*) stats);
     return;
 }

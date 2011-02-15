@@ -154,6 +154,7 @@ worker_perform_task(worker_type* worker)
                 task->halted = TASK_NONE;
                 zone->prepared = 0;
             }
+            fallthrough = 0;
             break;
         case TASK_READ:
             /* perform 'read input adapter' task */
@@ -178,23 +179,6 @@ worker_perform_task(worker_type* worker)
             }
 
             /* what to do next */
-            what = TASK_COMMIT;
-            when = time_now();
-            if (status != ODS_STATUS_OK) {
-                if (task->halted == TASK_NONE) {
-                    goto task_perform_fail;
-                }
-                goto task_perform_continue;
-            }
-            fallthrough = 1;
-            break;
-        case TASK_COMMIT:
-            ods_log_verbose("[%s[%i]]: commit updates to zone %s",
-                worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
-            status = tools_commit(zone);
-
-            /* what to do next */
             what = TASK_NSECIFY;
             when = time_now();
             if (status != ODS_STATUS_OK) {
@@ -204,7 +188,6 @@ worker_perform_task(worker_type* worker)
                 goto task_perform_continue;
             }
             fallthrough = 1;
-            break;
         case TASK_NSECIFY:
             ods_log_verbose("[%s[%i]]: nsecify zone %s",
                 worker2str(worker->type), worker->thread_num,
@@ -221,7 +204,6 @@ worker_perform_task(worker_type* worker)
                 goto task_perform_continue;
             }
             fallthrough = 1;
-            break;
         case TASK_SIGN:
             ods_log_verbose("[%s[%i]]: sign zone %s",
                 worker2str(worker->type), worker->thread_num,
@@ -240,7 +222,7 @@ worker_perform_task(worker_type* worker)
             }
             what = TASK_AUDIT;
             when = time_now();
-            break;
+            fallthrough = 1;
         case TASK_AUDIT:
             if (zone->signconf->audit) {
                 ods_log_verbose("[%s[%i]]: audit zone %s",
@@ -267,7 +249,6 @@ worker_perform_task(worker_type* worker)
             what = TASK_WRITE;
             when = time_now();
             fallthrough = 1;
-            break;
         case TASK_WRITE:
             ods_log_verbose("[%s[%i]]: write zone %s",
                 worker2str(worker->type), worker->thread_num,
@@ -289,12 +270,14 @@ worker_perform_task(worker_type* worker)
             what = TASK_SIGN;
             when = time_now() +
                 duration2time(zone->signconf->sig_resign_interval);
+            fallthrough = 0;
             break;
         case TASK_NONE:
             ods_log_warning("[%s[%i]]: none task for zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
             when = time_now() + never;
+            fallthrough = 0;
             break;
         default:
             ods_log_warning("[%s[%i]]: unknown task, trying full sign zone %s",
@@ -302,6 +285,7 @@ worker_perform_task(worker_type* worker)
                 task_who2str(task->who));
             what = TASK_SIGNCONF;
             when = time_now();
+            fallthrough = 0;
             break;
     }
 

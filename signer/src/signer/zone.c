@@ -936,12 +936,6 @@ zone_cleanup(zone_type* zone)
     }
     allocator = zone->allocator;
     zone_lock = zone->zone_lock;
-
-    if (zone->stats) {
-        stats_cleanup(zone->stats);
-        zone->stats = NULL;
-    }
-
     ldns_rdf_deep_free(zone->dname);
     free((void*)zone->notify_ns);
     free((void*)zone->policy_name);
@@ -951,6 +945,7 @@ zone_cleanup(zone_type* zone)
     zonedata_cleanup(zone->zonedata);
     signconf_cleanup(zone->signconf);
     nsec3params_cleanup(zone->nsec3params);
+    stats_cleanup(zone->stats);
     allocator_deallocate(allocator);
     allocator_cleanup(allocator);
     lock_basic_destroy(&zone_lock);
