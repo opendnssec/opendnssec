@@ -958,6 +958,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     engine->config = engine_config(cfgfile, cmdline_verbosity);
     if (engine_check_config(engine->config) != 0) {
         se_log_error("cfgfile %s has errors", cfgfile?cfgfile:"(null)");
+        goto earlyexit;
     }
     if (info) {
         engine_config_print(stdout, engine->config); /* for debugging */
