@@ -48,7 +48,7 @@
 #include <stdlib.h>
 
 static const char* adapter_str = "adapter";
-static ods_status adfile_read_file(FILE* fd, zone_type* zone, int include);
+static ods_status adfile_read_file(FILE* fd, zone_type* zone);
 
 
 /**
@@ -135,7 +135,7 @@ adfile_read_line:
                     }
                     fd_include = ods_fopen(line + offset, NULL, "r");
                     if (fd_include) {
-                        s = adfile_read_file(fd_include, zone, 1);
+                        s = adfile_read_file(fd_include, zone);
                         ods_fclose(fd_include);
                     } else {
                         ods_log_error("[%s] unable to open include file %s",
@@ -209,10 +209,9 @@ adfile_read_rr:
  *
  */
 static ods_status
-adfile_read_file(FILE* fd, zone_type* zone, int include)
+adfile_read_file(FILE* fd, zone_type* zone)
 {
-    ods_status result = LDNS_STATUS_OK;
-    uint32_t soa_min = 0;
+    ods_status result = ODS_STATUS_OK;
     ldns_rr* rr = NULL;
     ldns_rdf* prev = NULL;
     ldns_rdf* orig = NULL;
@@ -221,59 +220,18 @@ adfile_read_file(FILE* fd, zone_type* zone, int include)
     unsigned int line_update_interval = 100000;
     unsigned int line_update = line_update_interval;
     unsigned int l = 0;
-    uint32_t serial = 0;
 
     ods_log_assert(fd);
     ods_log_assert(zone);
 
-    if (!zone->signconf) {
-        ods_log_error("[%s] read file failed, no signconf", adapter_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(zone->signconf);
-
-    if (!include) {
-        rr = adfile_lookup_soa_rr(fd);
-        /* default ttl */
-        if (zone->signconf->soa_min) {
-            soa_min = (uint32_t) duration2time(zone->signconf->soa_min);
-        } else if (rr) {
-            /**
-             * default TTL: taking the SOA MINIMUM is in conflict with RFC2308
-             * luckily, <SOA><Minimum> is a required field in conf.xml
-             *
-             */
-            soa_min = ldns_rdf2native_int32(ldns_rr_rdf(rr,
-                SE_SOA_RDATA_MINIMUM));
-        }
-        zone->zonedata->default_ttl = soa_min;
-        /* serial */
-        if (rr) {
-            serial =
-                ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-            if (ods_strcmp(zone->signconf->soa_serial, "keep") == 0) {
-                if (serial <= zone->zonedata->outbound_serial) {
-                    ods_log_error("[%s] read file failed, zone %s SOA SERIAL "
-                    " is set to keep, but serial %u in input zone is lower "
-                    " than current serial %u", adapter_str, zone->name, serial,
-                    zone->zonedata->outbound_serial);
-                    ldns_rr_free(rr);
-                    return ODS_STATUS_CONFLICT_ERR;
-                }
-            }
-        }
-        ldns_rr_free(rr);
-        rewind(fd);
-    }
-
     /* $ORIGIN <zone name> */
-    orig = ldns_rdf_clone(zone->dname);
+    orig = ldns_rdf_clone(zone->dname); /* todo */
 
     ods_log_debug("[%s] start reading them RRs...", adapter_str);
 
     /* read records */
     while ((rr = adfile_read_rr(fd, zone, line, &orig, &prev,
-        &(zone->zonedata->default_ttl), &status, &l)) != NULL) {
+        &(zone->zonedata->default_ttl), &status, &l)) != NULL) { /* todo */
 
         if (status != LDNS_STATUS_OK) {
             ods_log_error("[%s] error reading RR at line %i (%s): %s",
@@ -318,10 +276,6 @@ adfile_read_file(FILE* fd, zone_type* zone, int include)
             adapter_str, l, ldns_get_errorstr_by_id(status), line);
         result = ODS_STATUS_ERR;
     }
-
-    /* reset the default ttl (directives only affect the zone file) */
-    zone->zonedata->default_ttl = soa_min;
-
     return result;
 }
 
@@ -333,7 +287,7 @@ adfile_read_file(FILE* fd, zone_type* zone, int include)
 static ods_status
 adfile_validate(zone_type* zone)
 {
-    return zonedata_examine(zone->zonedata, zone->dname, ADAPTER_FILE);
+    return zonedata_examine(zone->zonedata, zone->dname, ADAPTER_FILE); /* todo */
 }
 
 
@@ -347,20 +301,16 @@ adfile_read(struct zone_struct* zone, const char* filename)
     FILE* fd = NULL;
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
+    uint32_t new_serial = 0;
+    ldns_rr* rr = NULL;
 
     /* [start] sanity parameter checking */
-    if (!adzone || !adzone->name) {
+    if (!adzone) {
         ods_log_error("[%s] unable to read file: no zone (or no name given)",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone);
-    ods_log_assert(adzone->name);
-    if (!adzone->signconf) {
-        ods_log_error("[%s] unable to read file: no signconf", adapter_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(adzone->signconf);
     if (!filename) {
         ods_log_error("[%s] unable to read file: no filename given",
             adapter_str);
@@ -370,18 +320,25 @@ adfile_read(struct zone_struct* zone, const char* filename)
     /* [end] sanity parameter checking */
 
     /* [start] read zone */
-    ods_log_debug("[%s] read zone %s from file %s", adapter_str,
-        adzone->name, filename);
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
-        status = adfile_read_file(fd, adzone, 0);
+        /* serial */
+        rr = adfile_lookup_soa_rr(fd);
+        if (rr) {
+            new_serial =
+                ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
+        }
+        ldns_rr_free(rr);
+        rewind(fd);
+
+        status = adfile_read_file(fd, adzone);
         ods_fclose(fd);
     } else {
         status = ODS_STATUS_FOPEN_ERR;
     }
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] read zone %s from file %s failed: %s",
-         adapter_str, adzone->name, filename, ods_status2str(status));
+         adapter_str, adzone->name, filename, ods_status2str(status)); /* todo */
         return status;
     }
     /* [end] read zone */
@@ -390,7 +347,7 @@ adfile_read(struct zone_struct* zone, const char* filename)
     status = adapi_trans_full(adzone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to read zone %s from file %s: start full "
-         "transaction failed", adapter_str, adzone->name, filename);
+         "transaction failed", adapter_str, adzone->name, filename); /* todo */
         return status;
     }
     /* [end] full transaction */
@@ -399,11 +356,11 @@ adfile_read(struct zone_struct* zone, const char* filename)
     status = adfile_validate(adzone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to read zone %s from file %s: zonefile "
-            "contains errors", adapter_str, adzone->name);
+            "contains errors", adapter_str, adzone->name); /* todo */
         return status;
     }
     /* [end] validate updates */
-
+    zone->zonedata->inbound_serial = serial; /* todo adapi_set_serial() */
     return ODS_STATUS_OK;
 }
 
@@ -420,13 +377,12 @@ adfile_write(struct zone_struct* zone, const char* filename)
     ods_status status = ODS_STATUS_OK;
 
     /* [start] sanity parameter checking */
-    if (!adzone || !adzone->name) {
+    if (!adzone) {
         ods_log_error("[%s] unable to write file: no zone (or no "
             "name given)", adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone);
-    ods_log_assert(adzone->name);
     if (!filename) {
         ods_log_error("[%s] unable to write file: no filename given",
             adapter_str);
@@ -436,11 +392,9 @@ adfile_write(struct zone_struct* zone, const char* filename)
     /* [end] sanity parameter checking */
 
     /* [start] write zone */
-    ods_log_debug("[%s] write zone %s to file %s", adapter_str,
-        adzone->name, filename);
     fd = ods_fopen(filename, NULL, "w");
     if (fd) {
-        status = zonedata_print(fd, adzone->zonedata);
+        status = zonedata_print(fd, adzone->zonedata); /* todo */
         ods_fclose(fd);
     } else {
         status = ODS_STATUS_FOPEN_ERR;
