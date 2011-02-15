@@ -43,7 +43,6 @@ enum task_id_enum {
     TASK_NONE = 0,
     TASK_SIGNCONF,
     TASK_READ,
-    TASK_COMMIT,
     TASK_NSECIFY,
     TASK_SIGN,
     TASK_AUDIT,

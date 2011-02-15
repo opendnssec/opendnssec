@@ -133,12 +133,10 @@ adapter_read(struct zone_struct* zone)
         case ADAPTER_FILE:
             ods_log_verbose("[%s] read zone %s from input file %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
-
             /* make a copy */
             tmpname = ods_build_path(adzone->name, ".inbound", 0);
             status = ods_file_copy(adzone->adinbound->configstr,
                 tmpname);
-
             /* read the copy */
             if (status == ODS_STATUS_OK) {
                 status = adfile_read(zone, tmpname);
@@ -193,7 +191,6 @@ adapter_write(struct zone_struct* zone)
             ods_log_verbose("[%s] write zone %s serial %u to output file %s",
                 adapter_str, adzone->name, adzone->zonedata->outbound_serial,
                 adzone->adinbound->configstr);
-
             status = adfile_write(zone, adzone->adoutbound->configstr);
             return status;
             break;
