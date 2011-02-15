@@ -52,48 +52,14 @@ static ods_status adfile_read_file(FILE* fd, zone_type* zone, int include);
 
 
 /**
- * Create a new file adapter.
+ * Initialize file adapters.
  *
  */
-adfile_type*
-adfile_create(allocator_type* allocator, const char* filename)
+ods_status
+adfile_init(void)
 {
-    adfile_type* ad = NULL;
-
-    if (!allocator) {
-        ods_log_error("[%s] cannot create file adapter: no allocator",
-            adapter_str);
-        return NULL;
-    }
-    ods_log_assert(allocator);
-
-    ad = (adfile_type*) allocator_alloc(allocator, sizeof(adfile_type));
-    if (!ad) {
-        ods_log_error("[%s] cannot create file adapter: allocator failed",
-            adapter_str);
-        return NULL;
-    }
-
-    ad->filename = allocator_strdup(allocator, filename);
-    return ad;
-}
-
-
-/**
- * Compare adapters.
- *
- */
-int
-adfile_compare(adfile_type* f1, adfile_type* f2)
-{
-    if (!f1 && !f2) {
-        return 0;
-    } else if (!f1) {
-        return -1;
-    } else if (!f2) {
-        return 1;
-    }
-    return ods_strcmp(f1->filename, f2->filename);
+    /* nothing to initialize */
+    return ODS_STATUS_OK;
 }
 
 
@@ -297,7 +263,6 @@ adfile_read_file(FILE* fd, zone_type* zone, int include)
             }
         }
         ldns_rr_free(rr);
-
         rewind(fd);
     }
 
@@ -336,7 +301,6 @@ adfile_read_file(FILE* fd, zone_type* zone, int include)
                 adapter_str, l, line);
             break;
         }
-        zone->stats->sort_count += 1;
     }
 
     /* and done */
@@ -363,7 +327,18 @@ adfile_read_file(FILE* fd, zone_type* zone, int include)
 
 
 /**
- * Read zone from input file adapter.
+ * Validate zonefile.
+ *
+ */
+static ods_status
+adfile_validate(zone_type* zone)
+{
+    return zonedata_examine(zone->zonedata, zone->dname, ADAPTER_FILE);
+}
+
+
+/**
+ * Read zone from zonefile.
  *
  */
 ods_status
@@ -373,6 +348,7 @@ adfile_read(struct zone_struct* zone, const char* filename)
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
 
+    /* [start] sanity parameter checking */
     if (!adzone || !adzone->name) {
         ods_log_error("[%s] unable to read file: no zone (or no name given)",
             adapter_str);
@@ -380,24 +356,22 @@ adfile_read(struct zone_struct* zone, const char* filename)
     }
     ods_log_assert(adzone);
     ods_log_assert(adzone->name);
-
     if (!adzone->signconf) {
         ods_log_error("[%s] unable to read file: no signconf", adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone->signconf);
-
     if (!filename) {
         ods_log_error("[%s] unable to read file: no filename given",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(filename);
+    /* [end] sanity parameter checking */
 
+    /* [start] read zone */
     ods_log_debug("[%s] read zone %s from file %s", adapter_str,
         adzone->name, filename);
-
-    /* read the zonefile */
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
         status = adfile_read_file(fd, adzone, 0);
@@ -408,16 +382,34 @@ adfile_read(struct zone_struct* zone, const char* filename)
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] read zone %s from file %s failed: %s",
          adapter_str, adzone->name, filename, ods_status2str(status));
-    } else {
-        /* wipe out current records? */
-        status = zonedata_diff(adzone->zonedata, adzone->signconf->keys);
+        return status;
     }
-    return status;
+    /* [end] read zone */
+
+    /* [start] full transaction */
+    status = adapi_trans_full(adzone);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to read zone %s from file %s: start full "
+         "transaction failed", adapter_str, adzone->name, filename);
+        return status;
+    }
+    /* [end] full transaction */
+
+    /* [start] validate updates */
+    status = adfile_validate(adzone);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to read zone %s from file %s: zonefile "
+            "contains errors", adapter_str, adzone->name);
+        return status;
+    }
+    /* [end] validate updates */
+
+    return ODS_STATUS_OK;
 }
 
 
 /**
- * Write zone to output file adapter.
+ * Write zonefile.
  *
  */
 ods_status
@@ -427,6 +419,7 @@ adfile_write(struct zone_struct* zone, const char* filename)
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
 
+    /* [start] sanity parameter checking */
     if (!adzone || !adzone->name) {
         ods_log_error("[%s] unable to write file: no zone (or no "
             "name given)", adapter_str);
@@ -434,17 +427,17 @@ adfile_write(struct zone_struct* zone, const char* filename)
     }
     ods_log_assert(adzone);
     ods_log_assert(adzone->name);
-
     if (!filename) {
         ods_log_error("[%s] unable to write file: no filename given",
             adapter_str);
         return ODS_STATUS_ERR;
     }
     ods_log_assert(filename);
+    /* [end] sanity parameter checking */
 
+    /* [start] write zone */
     ods_log_debug("[%s] write zone %s to file %s", adapter_str,
         adzone->name, filename);
-
     fd = ods_fopen(filename, NULL, "w");
     if (fd) {
         status = zonedata_print(fd, adzone->zonedata);
@@ -452,6 +445,7 @@ adfile_write(struct zone_struct* zone, const char* filename)
     } else {
         status = ODS_STATUS_FOPEN_ERR;
     }
+    /* [end] write zone */
 
     return status;
 }

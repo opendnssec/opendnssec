@@ -51,12 +51,14 @@ enum adapter_mode_enum
 typedef enum adapter_mode_enum adapter_mode;
 
 /** Adapter mode specific. */
+/*
 union adapter_data_union
 {
     adfile_type* file;
     admysql_type* mysql;
 };
 typedef union adapter_data_union adapter_data;
+*/
 
 /**
  * Adapter.
@@ -64,20 +66,34 @@ typedef union adapter_data_union adapter_data;
  */
 typedef struct adapter_struct adapter_type;
 struct adapter_struct {
+    const char* configstr;
     adapter_mode type;
     int inbound;
     allocator_type* allocator;
+/*
     adapter_data* data;
+*/
 };
 
 /**
+ * Initialize adapter.
+ * \param[in] str configuration string
+ * \param[in] type type of adapter
+ * \param[in] inbound inbound or not (outbound)
+ * /return ods_status stats
+ *
+ */
+ods_status adapter_init(const char* str, adapter_mode type, int inbound);
+
+/**
  * Create new adapter.
+ * \param[in] str configuration string
  * \param[in] type type of adapter
  * \param[in] inbound inbound or not (outbound)
  * \return adapter_type* created adapter
  *
  */
-adapter_type* adapter_create(adapter_mode type, int inbound);
+adapter_type* adapter_create(const char* str, adapter_mode type, int inbound);
 
 /**
  * Compare adapters.

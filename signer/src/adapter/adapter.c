@@ -45,11 +45,39 @@ static const char* adapter_str = "adapter";
 
 
 /**
+ * Initialize adapter.
+ *
+ */
+ods_status
+adapter_init(const char* str, adapter_mode type, int inbound)
+{
+    switch(type) {
+        case ADAPTER_FILE:
+            return adfile_init();
+            break;
+        case ADAPTER_MYSQL:
+            ods_log_error("[%s] unable to initialize MySQL adapter: "
+                "notimpl yet", adapter_str);
+            return ODS_STATUS_ERR;
+            break;
+        default:
+            ods_log_error("[%s] unable to initialize adapter: "
+                "unknown adapter", adapter_str);
+            return ODS_STATUS_ERR;
+            break;
+    }
+
+    /* not reached */
+    return ODS_STATUS_ERR;
+}
+
+
+/**
  * Create a new adapter.
  *
  */
 adapter_type*
-adapter_create(adapter_mode type, int inbound)
+adapter_create(const char* str, adapter_mode type, int inbound)
 {
     allocator_type* allocator;
     adapter_type* adapter;
@@ -71,34 +99,13 @@ adapter_create(adapter_mode type, int inbound)
     }
 
     adapter->allocator = allocator;
+    adapter->configstr = allocator_strdup(allocator, str);
     adapter->type = type;
     adapter->inbound = inbound;
+/*
     adapter->data = allocator_alloc(allocator, sizeof(adapter_data));
+*/
     return adapter;
-}
-
-
-/**
- * Compare adapters.
- *
- */
-int
-adapter_compare(adapter_type* a1, adapter_type* a2)
-{
-    if (!a1 && !a2) {
-        return 0;
-    } else if (!a1) {
-        return -1;
-    } else if (!a2) {
-        return 1;
-    } else if (a1->inbound != a2->inbound) {
-        return a1->inbound - a2->inbound;
-    } else if (a1->type != a2->type) {
-        return a1->type - a2->type;
-    } else if (a1->type == ADAPTER_FILE) {
-        return adfile_compare(a1->data->file, a2->data->file);
-    }
-    return 0;
 }
 
 
@@ -120,16 +127,16 @@ adapter_read(struct zone_struct* zone)
     }
     ods_log_assert(adzone);
     ods_log_assert(adzone->adinbound);
+    ods_log_assert(adzone->adinbound->configstr);
 
     switch(adzone->adinbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] read zone %s from input file %s",
-                adapter_str, adzone->name,
-                adzone->adinbound->data->file->filename);
+                adapter_str, adzone->name, adzone->adinbound->configstr);
 
             /* make a copy */
             tmpname = ods_build_path(adzone->name, ".inbound", 0);
-            status = ods_file_copy(adzone->adinbound->data->file->filename,
+            status = ods_file_copy(adzone->adinbound->configstr,
                 tmpname);
 
             /* read the copy */
@@ -140,7 +147,7 @@ adapter_read(struct zone_struct* zone)
             return status;
             break;
         case ADAPTER_MYSQL:
-            ods_log_error("[%s] unabel to read zone %s from adapter: MySQL "
+            ods_log_error("[%s] unable to read zone %s from adapter: MySQL "
                 "adapter notimpl yet", adapter_str, adzone->name);
             return ODS_STATUS_ERR;
             break;
@@ -151,7 +158,7 @@ adapter_read(struct zone_struct* zone)
             break;
     }
 
-    /* NOT REACHED */
+    /* not reached */
     return ODS_STATUS_ERR;
 }
 
@@ -171,23 +178,23 @@ adapter_write(struct zone_struct* zone)
             adapter_str, adzone->name);
         return ODS_STATUS_ASSERT_ERR;
     }
+    ods_log_assert(adzone);
+    ods_log_assert(adzone->adoutbound);
+    ods_log_assert(adzone->adoutbound->configstr);
     if (!adzone->zonedata) {
         ods_log_error("[%s] unable to write zone %s: no zone data",
             adapter_str, adzone->name);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(adzone);
-    ods_log_assert(adzone->adoutbound);
     ods_log_assert(adzone->zonedata);
 
     switch(adzone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file %s",
                 adapter_str, adzone->name, adzone->zonedata->outbound_serial,
-                adzone->adinbound->data->file->filename);
+                adzone->adinbound->configstr);
 
-            status = adfile_write(zone,
-                adzone->adoutbound->data->file->filename);
+            status = adfile_write(zone, adzone->adoutbound->configstr);
             return status;
             break;
         case ADAPTER_MYSQL:
@@ -204,6 +211,31 @@ adapter_write(struct zone_struct* zone)
 
     /* NOT REACHED */
     return ODS_STATUS_ERR;
+}
+
+
+/**
+ * Compare adapters.
+ *
+ */
+int
+adapter_compare(adapter_type* a1, adapter_type* a2)
+{
+    if (!a1 && !a2) {
+        return 0;
+    } else if (!a1) {
+        return -1;
+    } else if (!a2) {
+        return 1;
+    } else if (a1->inbound != a2->inbound) {
+        return a1->inbound - a2->inbound;
+    } else if (a1->type != a2->type) {
+        return a1->type - a2->type;
+    } else {
+        return ods_strcmp(a1->configstr, a2->configstr);
+    }
+    /* not reached */
+    return 0;
 }
 
 

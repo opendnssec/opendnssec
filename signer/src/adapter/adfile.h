@@ -46,37 +46,14 @@ struct zone_struct;
  * File adapter.
  *
  */
-typedef struct adfile_struct adfile_type;
-struct adfile_struct {
-    const char* filename;
-};
+/** NULL */
 
 /**
- * MySQL adapter.
+ * Initialize file adapters.
+ * \return ods_status status
  *
  */
-typedef struct admysql_struct admysql_type;
-struct admysql_struct {
-    const char* hostname;
-};
-
-/**
- * Create new file adapter.
- * \param[in] allocator memory allocator
- * \param[in] filename filename
- * \return adfile_type* created file adapter
- *
- */
-adfile_type* adfile_create(allocator_type* allocator, const char* filename);
-
-/**
- * Compare file adapters.
- * /param[in] f1 file adapter 1
- * /param[in] f2 file adapter 2
- * /return int 0 on equal, -1 if f1 < f2, 1 if f1 > f2
- *
- */
-int adfile_compare(adfile_type* f1, adfile_type* f2);
+ods_status adfile_init(void);
 
 /**
  * Read zone from input file adapter.
