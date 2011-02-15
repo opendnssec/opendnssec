@@ -42,6 +42,50 @@
 static const char* adapi_str = "adapter";
 
 
+/*
+ * Start full zone transaction.
+ *
+ */
+ods_status
+adapi_trans_full(zone_type* zone)
+{
+    if (!zone || !zone->zonedata) {
+        ods_log_error("[%s] unable to start full zone transaction: "
+            "no zone data", adapi_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
+    if (!zone->signconf) {
+        ods_log_error("[%s] unable to start full zone transaction: "
+            "no signer configuration", adapi_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->signconf);
+
+    return zonedata_diff(zone->zonedata, zone->signconf->keys);
+}
+
+
+/*
+ * Start incremental zone transaction.
+ *
+ */
+ods_status
+adapi_trans_diff(zone_type* zone)
+{
+    if (!zone || !zone->zonedata) {
+        ods_log_error("[%s] unable to start incremental zone transaction: "
+            "no zone data", adapi_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
+
+    return ODS_STATUS_OK;
+}
+
+
 /**
  * Add RR.
  *
@@ -163,4 +207,3 @@ adapi_del_rr(zone_type* zone, ldns_rr* rr)
     }
     return ODS_STATUS_OK;
 }
-

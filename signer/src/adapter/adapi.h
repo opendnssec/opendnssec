@@ -31,11 +31,30 @@
  * Adapter API.
  */
 
+#ifndef ADAPTER_ADAPI_H
+#define ADAPTER_ADAPI_H
+
 #include "config.h"
 #include "shared/status.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>
+
+/*
+ * Do full zone transaction.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status adapi_trans_full(zone_type* zone);
+
+/*
+ * Do incremental zone transaction.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status adapi_trans_diff(zone_type* zone);
 
 /**
  * Add RR.
@@ -55,3 +74,4 @@ ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr);
  */
 ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr);
 
+#endif /* ADAPTER_ADAPI_H */
