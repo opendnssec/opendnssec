@@ -246,6 +246,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
         signconf_cleanup(zone->signconf);
         zone->signconf = signconf;
         signconf_log(zone->signconf, zone->name);
+        zone->zonedata = (uint32_t) duration2time(zone->signconf->soa_min);
     } else if (status == ODS_STATUS_UNCHANGED) {
         ustamp = time_datestamp(zone->signconf->last_modified,
             "%Y-%m-%d %T", &datestamp);
