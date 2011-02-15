@@ -116,6 +116,8 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         return ODS_STATUS_RNG_ERR;
     }
     /* Validate a document tree in memory. */
+/*
+    better not check: if not correct, this will segfault.
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
         ods_log_error("[%s] cfgfile validation failed %s", parser_str,
@@ -127,7 +129,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         xmlFreeDoc(doc);
         return ODS_STATUS_RNG_ERR;
     }
-
+*/
     xmlRelaxNGFreeValidCtxt(rngctx);
     xmlRelaxNGFree(schema);
     xmlRelaxNGFreeParserCtxt(rngpctx);
