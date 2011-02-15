@@ -118,7 +118,6 @@ adapter_read(struct zone_struct* zone)
 {
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
-    char* tmpname = NULL;
 
     if (!adzone || !adzone->adinbound) {
         ods_log_error("[%s] unable to read zone %s: no input adapter",
@@ -133,15 +132,7 @@ adapter_read(struct zone_struct* zone)
         case ADAPTER_FILE:
             ods_log_verbose("[%s] read zone %s from input file %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
-            /* make a copy */
-            tmpname = ods_build_path(adzone->name, ".inbound", 0);
-            status = ods_file_copy(adzone->adinbound->configstr,
-                tmpname);
-            /* read the copy */
-            if (status == ODS_STATUS_OK) {
-                status = adfile_read(zone, tmpname);
-            }
-            free((void*)tmpname);
+            status = adfile_read(zone, adzone->adinbound->configstr);
             return status;
             break;
         case ADAPTER_MYSQL:
