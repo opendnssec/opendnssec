@@ -45,6 +45,7 @@ module KASPChecker
     CONF_FILE = "conf"
     attr_accessor :conf_file, :kasp_file, :rng_path, :xmllint
     def check
+      @ret_val = 999
       conf_file = @conf_file
       if (!conf_file)
         KASPAuditor.exit("No configuration file specified", 1)
@@ -68,9 +69,18 @@ module KASPChecker
         log(LOG_ERR, "KASP configuration file cannot be found")
       end
 
+      if (@ret_val == 999)
+        exit(0)
+      else
+        exit(@ret_val)
+      end
+
     end
 
     def log(level, msg)
+      if (level.to_i < @ret_val)
+        @ret_val = level.to_i
+      end
       if (@syslog)
         Syslog.open("ods-kaspcheck", Syslog::LOG_PID |
           Syslog::LOG_CONS, @syslog) { |slog|
