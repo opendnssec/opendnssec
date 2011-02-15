@@ -43,7 +43,7 @@ static const char* adapi_str = "adapter";
 
 
 /*
- * Start full zone transaction.
+ * Do full zone transaction.
  *
  */
 ods_status
@@ -68,7 +68,7 @@ adapi_trans_full(zone_type* zone)
 
 
 /*
- * Start incremental zone transaction.
+ * Do incremental zone transaction.
  *
  */
 ods_status
