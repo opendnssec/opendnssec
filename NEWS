@@ -1,5 +1,15 @@
 $Id$
 
+OpenDNSSEC 1.2.1 - 2011-0X-XX
+
+Bugfixes:
+* Enforcer: Fix the migration script for SQLite. 
+* Signer Engine: Check if the signature exists before recycling it.
+* Signer Engine: Prevent race condition when setting up the workers and
+  the command handler.
+* Signer Engine: Quit when there are errors in the configuration.
+
+
 OpenDNSSEC 1.2.0 - 2011-01-13
 
 Bugfixes:
