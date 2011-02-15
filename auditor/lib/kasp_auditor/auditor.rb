@@ -1108,6 +1108,7 @@ module KASPAuditor
         @syslog.log(LOG_WARNING, msg)
         return
       end
+      msg.gsub!("\t", " ")
       print "#{pri}: #{msg}\n"
       begin
         @syslog.log(pri, msg)
