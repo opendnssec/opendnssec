@@ -100,13 +100,18 @@ tools_input(zone_type* zone)
     status = adapter_read(zone);
     if (status == ODS_STATUS_OK) {
         tmpname = ods_build_path(zone->name, ".inbound", 0);
-        status = ods_file_copy(tmpname, zone->adinbound->configstr);
+        status = ods_file_copy(zone->adinbound->configstr, tmpname);
         free((void*)tmpname);
+        tmpname = NULL;
     }
 
     if (status == ODS_STATUS_OK) {
+        ods_log_verbose("[%s] commit updates for zone %s", tools_str,
+                zone->name?zone->name:"(null)");
         status = zonedata_commit(zone->zonedata);
     } else {
+        ods_log_warning("[%s] rollback updates for zone %s", tools_str,
+                zone->name?zone->name:"(null)");
         zonedata_rollback(zone->zonedata);
     }
     end = time(NULL);
