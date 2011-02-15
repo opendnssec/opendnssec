@@ -329,7 +329,8 @@ module KASPAuditor
           }
           lifetime = ksk_lifetime + @enforcer_interval 
           if timestamp < (Time.now.to_i - lifetime)
-            msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
+#            msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
+            msg = "KSK #{key.key_tag} reaching end of lifetime - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds, not including time taken for DS to be seen"
             @parent.log(LOG_WARNING, msg)
           end
         end
