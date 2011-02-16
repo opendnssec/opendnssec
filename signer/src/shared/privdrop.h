@@ -77,3 +77,4 @@ ods_status privdrop(const char *username, const char *groupname,
 void privclose(const char* username, const char* groupname);
 
 #endif /* SHARED_PRIVDROP_H */
+
