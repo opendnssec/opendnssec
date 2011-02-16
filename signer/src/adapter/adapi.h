@@ -40,6 +40,22 @@
 
 #include <ldns/ldns.h>
 
+/**
+ * Get the inbound serial.
+ * \param[in] zone zone
+ * \return uint32_t inbound serial
+ *
+ */
+uint32_t adapi_get_serial(zone_type* zone);
+
+/**
+ * Set the inbound serial.
+ * \param[in] zone zone
+ * \param[in] serial inbound serial
+ *
+ */
+void adapi_set_serial(zone_type* zone, uint32_t serial);
+
 /*
  * Do full zone transaction.
  * \param[in] zone zone

@@ -42,6 +42,43 @@
 static const char* adapi_str = "adapter";
 
 
+/**
+ * Get the inbound serial.
+ *
+ */
+uint32_t
+adapi_get_serial(zone_type* zone)
+{
+    if (!zone || !zone->zonedata) {
+        ods_log_error("[%s] unable to get serial: "
+            "no zone data", adapi_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
+    return zone->zonedata->inbound_serial;
+}
+
+
+/**
+ * Set the inbound serial.
+ *
+ */
+void
+adapi_set_serial(zone_type* zone, uint32_t serial)
+{
+    if (!zone || !zone->zonedata) {
+        ods_log_error("[%s] unable to get serial: "
+            "no zone data", adapi_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
+    zone->zonedata->inbound_serial = serial;
+    return;
+}
+
+
 /*
  * Do full zone transaction.
  *
