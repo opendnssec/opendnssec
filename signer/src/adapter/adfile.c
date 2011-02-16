@@ -215,6 +215,8 @@ adfile_read_file(FILE* fd, zone_type* zone)
     ldns_rr* rr = NULL;
     ldns_rdf* prev = NULL;
     ldns_rdf* orig = NULL;
+    ldns_rdf* dname = NULL;
+    uint32_t ttl = 0;
     ldns_status status = LDNS_STATUS_OK;
     char line[SE_ADFILE_MAXLINE];
     unsigned int line_update_interval = 100000;
@@ -225,13 +227,25 @@ adfile_read_file(FILE* fd, zone_type* zone)
     ods_log_assert(zone);
 
     /* $ORIGIN <zone name> */
-    orig = ldns_rdf_clone(zone->dname); /* todo */
+    dname = adapi_get_origin(zone);
+    if (!dname) {
+        ods_log_error("[%s] error getting default value for $ORIGIN",
+            adapter_str);
+        return ODS_STATUS_ERR;
+    }
+    orig = ldns_rdf_clone(dname);
+    if (!orig) {
+        ods_log_error("[%s] error setting default value for $ORIGIN",
+            adapter_str);
+        return ODS_STATUS_ERR;
+    }
 
-    ods_log_debug("[%s] start reading them RRs...", adapter_str);
+    /* $TTL <default ttl> */
+    ttl = adapi_get_ttl(zone);
 
-    /* read records */
-    while ((rr = adfile_read_rr(fd, zone, line, &orig, &prev,
-        &(zone->zonedata->default_ttl), &status, &l)) != NULL) { /* todo */
+    /* read RRs */
+    while ((rr = adfile_read_rr(fd, zone, line, &orig, &prev, &ttl,
+        &status, &l)) != NULL) {
 
         if (status != LDNS_STATUS_OK) {
             ods_log_error("[%s] error reading RR at line %i (%s): %s",
@@ -281,17 +295,6 @@ adfile_read_file(FILE* fd, zone_type* zone)
 
 
 /**
- * Validate zonefile.
- *
- */
-static ods_status
-adfile_validate(zone_type* zone)
-{
-    return zonedata_examine(zone->zonedata, zone->dname, ADAPTER_FILE); /* todo */
-}
-
-
-/**
  * Read zone from zonefile.
  *
  */
@@ -337,8 +340,8 @@ adfile_read(struct zone_struct* zone, const char* filename)
         status = ODS_STATUS_FOPEN_ERR;
     }
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] read zone %s from file %s failed: %s",
-         adapter_str, adzone->name, filename, ods_status2str(status)); /* todo */
+        ods_log_error("[%s] unable to read file: %s", adapter_str,
+            ods_status2str(status));
         return status;
     }
     /* [end] read zone */
@@ -346,21 +349,21 @@ adfile_read(struct zone_struct* zone, const char* filename)
     /* [start] full transaction */
     status = adapi_trans_full(adzone);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read zone %s from file %s: start full "
-         "transaction failed", adapter_str, adzone->name, filename); /* todo */
+        ods_log_error("[%s] unable to read file: start transaction failed",
+            adapter_str);
         return status;
     }
     /* [end] full transaction */
 
     /* [start] validate updates */
-    status = adfile_validate(adzone);
+    status = zone_examine(adzone);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read zone %s from file %s: zonefile "
-            "contains errors", adapter_str, adzone->name); /* todo */
+        ods_log_error("[%s] unable to read file: zonefile contains errors",
+            adapter_str);
         return status;
     }
     /* [end] validate updates */
-    zone->zonedata->inbound_serial = serial; /* todo adapi_set_serial() */
+    adapi_set_serial(adzone, new_serial);
     return ODS_STATUS_OK;
 }
 
@@ -394,7 +397,7 @@ adfile_write(struct zone_struct* zone, const char* filename)
     /* [start] write zone */
     fd = ods_fopen(filename, NULL, "w");
     if (fd) {
-        status = zonedata_print(fd, adzone->zonedata); /* todo */
+        status = zone_print(fd, adzone);
         ods_fclose(fd);
     } else {
         status = ODS_STATUS_FOPEN_ERR;
