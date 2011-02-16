@@ -58,3 +58,9 @@ other zone files. The problem is that the included files are not copied to
 the working directory of the signer. We can thus not guarantee that the Audit 
 operation is atomic. After the signer reads in the zone and before the audit, 
 the include files could have been edited.
+
+
+Maximum number of HSMs
+----------------------
+
+The datatype of the column storing HSMs in the kasp database is only large enough to store 127 separate HSMs (with a MySQL backend).
