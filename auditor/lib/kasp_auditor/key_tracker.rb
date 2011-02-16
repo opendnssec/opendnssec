@@ -202,7 +202,11 @@ module KASPAuditor
     end
 
     def get_tracker_filename
-      return @working + "#{File::SEPARATOR}tracker#{File::SEPARATOR}" + @zone
+      zone = @zone
+      if (zone.to_s == ".")
+        zone = "root.zone"
+      end
+      return @working + "#{File::SEPARATOR}tracker#{File::SEPARATOR}" + zone
     end
 
     #Compare two serials according to RFC 1982. Return 0 if equal,
