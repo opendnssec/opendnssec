@@ -207,21 +207,24 @@ ods_status zonedata_entize(zonedata_type* zd, ldns_rdf* apex);
  * Add NSEC records to zone data.
  * \param[in] zd zone data
  * \param[in] klass zone class
+ * \param[in] ttl NSEC ttl
  * \return ods_status status
  *
  */
-ods_status zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass);
+ods_status zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass,
+    uint32_t ttl);
 
 /**
  * Add NSEC3 records to zone data.
  * \param[in] zd zone data
  * \param[in] klass zone class
+ * \param[in] ttl NSEC3 ttl
  * \param[in] nsec3params NSEC3 parameters
  * \return ods_status status
  *
  */
 ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
-    nsec3params_type* nsec3params);
+    uint32_t ttl, nsec3params_type* nsec3params);
 
 /**
  * Add RRSIG records to zone data.

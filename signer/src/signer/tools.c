@@ -134,6 +134,7 @@ tools_nsecify(zone_type* zone)
     ods_status status = ODS_STATUS_OK;
     time_t start = 0;
     time_t end = 0;
+    uint32_t ttl = 0;
 
     if (!zone) {
         ods_log_error("[%s] unable to nsecify zone: no zone", tools_str);
@@ -156,6 +157,11 @@ tools_nsecify(zone_type* zone)
     ods_log_assert(zone->signconf);
 
     start = time(NULL);
+    /* determine NSEC(3) ttl */
+    ttl = zone->zonedata->default_ttl;
+    if (zone->signconf->soa_min) {
+        ttl = (uint32_t) duration2time(zone->signconf->soa_min);
+    }
 
     /* add missing empty non-terminals */
     status = zonedata_entize(zone->zonedata, zone->dname);
@@ -167,14 +173,14 @@ tools_nsecify(zone_type* zone)
 
     /* NSEC or NSEC3? */
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
-        status = zonedata_nsecify(zone->zonedata, zone->klass);
+        status = zonedata_nsecify(zone->zonedata, zone->klass, ttl);
     } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (zone->signconf->nsec3_optout) {
             ods_log_debug("[%s] OptOut is being used for zone %s",
                 tools_str, zone->name);
         }
         ods_log_assert(zone->nsec3params);
-        status = zonedata_nsecify3(zone->zonedata, zone->klass,
+        status = zonedata_nsecify3(zone->zonedata, zone->klass, ttl,
             zone->nsec3params);
     } else {
         ods_log_error("[%s] unable to nsecify zone %s: unknown RRtype %u for ",

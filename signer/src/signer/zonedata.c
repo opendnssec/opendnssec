@@ -1037,7 +1037,7 @@ zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
  *
  */
 ods_status
-zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass)
+zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
@@ -1108,7 +1108,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass)
         }
         nxt = (denial_type*) nxt_node->data;
 
-        status = denial_nsecify(denial, nxt, zd->default_ttl, klass);
+        status = denial_nsecify(denial, nxt, ttl, klass);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to nsecify: failed to add NSEC record",
                 zd_str);
@@ -1126,7 +1126,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass)
  */
 ods_status
 zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
-    nsec3params_type* nsec3params)
+    uint32_t ttl, nsec3params_type* nsec3params)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
@@ -1247,8 +1247,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         }
         nxt = (denial_type*) nxt_node->data;
 
-        status = denial_nsecify3(denial, nxt, zd->default_ttl, klass,
-            nsec3params);
+        status = denial_nsecify3(denial, nxt, ttl, klass, nsec3params);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to nsecify3: failed to add NSEC3 "
                 "record", zd_str);
