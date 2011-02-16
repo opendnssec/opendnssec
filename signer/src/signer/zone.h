@@ -168,6 +168,14 @@ void zone_merge(zone_type* z1, zone_type* z2);
 ods_status zone_print(FILE* fd, zone_type* zone);
 
 /**
+ * Examine zone.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_examine(zone_type* zone);
+
+/**
  * Clean up zone.
  * \param[in] zone zone
  *

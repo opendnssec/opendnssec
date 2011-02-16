@@ -938,6 +938,21 @@ zone_print(FILE* fd, zone_type* zone)
 
 
 /**
+ * Examine zone.
+ *
+ */
+ods_status
+zone_examine(zone_type* zone)
+{
+    if (zone && zone->zonedata && zone->adinbound) {
+        return zonedata_examine(zone->zonedata, zone->dname,
+            zone->adinbound->type);
+    }
+    return ODS_STATUS_ASSERT_ERR;
+}
+
+
+/**
  * Clean up zone.
  *
  */
