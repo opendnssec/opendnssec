@@ -246,7 +246,7 @@ zonelist_lookup_zone_by_name(zonelist_type* zonelist, const char* name,
     ods_log_assert(name);
     ods_log_assert(klass);
 
-    zone = zone_create(name, klass);
+    zone = zone_create((char*) name, klass);
     if (!zone) {
         ods_log_error("[%s] unable to lookup zone: create zone failed", zl_str);
         return NULL;
