@@ -93,7 +93,7 @@ create table zones(
 
 # stores the private key info
 create table keypairs(
-  id            smallint not null auto_increment,
+  id            int not null auto_increment,
   HSMkey_id     varchar(255) not null,
   algorithm     tinyint not null,             # algorithm code
   size          smallint,
@@ -114,7 +114,7 @@ create table keypairs(
 # stores meta data about keys (actual keys are in a (soft)hsm)
 create table dnsseckeys (
   id            int  not null auto_increment,  # unique id of the key
-  keypair_id    smallint,
+  keypair_id    int,
   zone_id        mediumint,
   keytype       smallint not null,             # zsk or ksk (use code in dnskey record)
   state         tinyint,                      # state of the key (defines valid fields)
