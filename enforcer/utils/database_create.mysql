@@ -50,7 +50,7 @@ create table parameters (
   id            mediumint not null auto_increment,    # id for parameters
   name          varchar(30) not null,  # name of the parameter
   description   varchar(255), # description of the paramter
-  category_id         tinyint not null,      # category_id of the parameter
+  category_id   tinyint not null,      # category_id of the parameter
 
   constraint primary key (id),
   constraint unique (name, category_id),
@@ -93,7 +93,7 @@ create table zones(
 
 # stores the private key info
 create table keypairs(
-  id            smallint not null auto_increment,
+  id            int not null auto_increment,
   HSMkey_id     varchar(255) not null,
   algorithm     tinyint not null,             # algorithm code
   size          smallint,
@@ -114,8 +114,8 @@ create table keypairs(
 # stores meta data about keys (actual keys are in a (soft)hsm)
 create table dnsseckeys (
   id            int  not null auto_increment,  # unique id of the key
-  keypair_id    smallint,
-  zone_id        mediumint,
+  keypair_id    int,
+  zone_id       mediumint,
   keytype       smallint not null,             # zsk or ksk (use code in dnskey record)
   state         tinyint,                      # state of the key (defines valid fields)
   publish       timestamp null default null,  # time when key published into the zone
@@ -132,12 +132,12 @@ create table dnsseckeys (
 # parameters_policies - join table to hold the values of parameters
 create table parameters_policies (
   id            mediumint auto_increment,    # id
-        parameter_id mediumint not null,
-        policy_id mediumint not null,
-        value int,                                # integer value of this key
-        constraint primary key (id),
-        constraint foreign key (parameter_id) references parameters (id),
-        constraint foreign key (policy_id) references policies (id)
+  parameter_id 	mediumint not null,
+  policy_id 	mediumint not null,
+  value 		int,                         # integer value of this key
+  constraint primary key (id),
+  constraint foreign key (parameter_id) references parameters (id),
+  constraint foreign key (policy_id) references policies (id)
 )ENGINE=InnoDB;
 
 
