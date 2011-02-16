@@ -13,6 +13,7 @@ Bugfixes:
 * Signer Engine: Prevent race condition when setting up the workers and
   the command handler.
 * Signer Engine: Quit when there are errors in the configuration.
+* Signer Engine: Enable core dump on failure.
 
 
 OpenDNSSEC 1.2.0 - 2011-01-13
