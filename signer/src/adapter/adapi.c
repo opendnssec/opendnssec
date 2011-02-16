@@ -192,6 +192,15 @@ adapi_add_rr(zone_type* zone, ldns_rr* rr)
     }
     ods_log_assert(zone->signconf);
 
+    /* in-zone? */
+    if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) != 0 &&
+        !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->dname)) {
+        ods_log_warning("[%s] zone %s contains out-of-zone data, skipping",
+            adapi_str, zone->name?zone->name:"(null)");
+        /* ok, just filter */
+        return ODS_STATUS_OK;
+    }
+
     /* type specific configuration */
     type = ldns_rr_get_type(rr);
     if (type == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_ttl) {
