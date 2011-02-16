@@ -4,9 +4,11 @@ OpenDNSSEC 1.2.1 - 2011-0X-XX
 
 Bugfixes:
 * Enforcer: Fix the migration script for SQLite. 
-* Enforcer: Send trivial MySQL messages to stderr so that they do not break 
-  exported zonelists.
-* Enforcer: Migrate MySQL keypairs(id) from smallint to int. 
+* Enforcer: Increase size of keypairs(id) field in MySQL to allow more than
+  32767 keys; see MIGRATION for details.
+* libhsm: Increase the maximum number of attached HSM:s from 10 to 100. 
+* ods-ksmutil: Send trivial MySQL messages to stdout when exporting zonelist
+  etc. Otherwise the resulting XML needs to be edited by hand.
 * Signer Engine: Check if the signature exists before recycling it.
 * Signer Engine: Prevent race condition when setting up the workers and
   the command handler.

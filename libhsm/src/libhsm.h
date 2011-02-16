@@ -32,7 +32,12 @@
 
 #include <stdint.h>
 
-#define HSM_MAX_SESSIONS 10
+#define HSM_MAX_SESSIONS 100
+/*
+ * Note that currently the MySQL kasp schema limits the number of HSMs to
+ * 127; so to increase it beyond that requires some database changes similar
+ * to when keypairs(id) was increased, see svn r4465.
+ */
 #define HSM_MAX_ALGONAME 16
 
 #define HSM_ERROR_MSGSIZE 512
