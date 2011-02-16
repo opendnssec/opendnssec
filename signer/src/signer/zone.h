@@ -100,7 +100,7 @@ struct zone_struct {
  * \return zone_type* zone
  *
  */
-zone_type* zone_create(const char* name, ldns_rr_class klass);
+zone_type* zone_create(char* name, ldns_rr_class klass);
 
 /**
  * Load signer configuration for zone.

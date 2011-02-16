@@ -229,6 +229,7 @@ tools_sign(zone_type* zone)
 ods_status
 tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
 {
+    char* inbound = NULL;
     char* finalized = NULL;
     char str[SYSTEM_MAXLEN];
     ods_status status = ODS_STATUS_OK;
@@ -254,6 +255,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
         return ODS_STATUS_OK;
     }
     if (zone->signconf->audit) {
+        inbound = ods_build_path(zone->name, ".inbound", 0);
         finalized = ods_build_path(zone->name, ".finalized", 0);
         status = adfile_write(zone, finalized);
         if (status != ODS_STATUS_OK) {
@@ -263,9 +265,11 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             return status;
         }
 
-        snprintf(str, SYSTEM_MAXLEN, "%s -c %s -s %s/%s -z %s > /dev/null",
+        snprintf(str, SYSTEM_MAXLEN, "%s -c %s -u %s/%s -s %s/%s -z %s > /dev/null",
             ODS_SE_AUDITOR,
             cfg_filename?cfg_filename:ODS_SE_CFGFILE,
+            working_dir?working_dir:"",
+            inbound?inbound:"(null)",
             working_dir?working_dir:"",
             finalized?finalized:"(null)",
             zone->name?zone->name:"(null)");
@@ -279,6 +283,8 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             }
             free((void*)finalized);
         }
+        free((void*)inbound);
+
         if (error) {
             status = ODS_STATUS_ERR;
         }

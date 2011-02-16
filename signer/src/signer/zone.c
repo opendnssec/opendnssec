@@ -58,7 +58,7 @@ static const char* zone_str = "zone";
  *
  */
 zone_type*
-zone_create(const char* name, ldns_rr_class klass)
+zone_create(char* name, ldns_rr_class klass)
 {
     allocator_type* allocator = NULL;
     zone_type* zone = NULL;
@@ -87,6 +87,11 @@ zone_create(const char* name, ldns_rr_class klass)
     ods_log_assert(zone);
 
     zone->allocator = allocator;
+    /* [start] PS 9218653: Drop trailing dot in domain name */
+    if (strlen(name) > 1 && name[strlen(name)-1] == '.') {
+        name[strlen(name)-1] = '\0';
+    }
+    /* [end] PS 9218653 */
     zone->name = allocator_strdup(allocator, name);
     zone->klass = klass;
 
