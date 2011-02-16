@@ -8,8 +8,9 @@ CONTENTS:
     DEPENDENCIES
     INSTALLATION
     INTERACTION FROM THE COMMAND LINE
+    RUNNING THE ENGINE
     RUNNING WITHOUT THE KASP
-
+    DEBUGGING
 
 -------------------------------------------------------------------
 INTRODUCTION
@@ -23,14 +24,13 @@ In this version, it can do file-to-file signing or AXFR-to-file signing.
 When a zone has changed, the engine can run a specified command, for
 instance to signal an actual DNS server that it should reload its zones.
 
-The current signer engine consists of three parts; The actual scheduler,
-a set of tools to do zone manipulation and a zone fetcher that takes care
-of AXFR.
+The current signer engine consists of two parts; The actual scheduler,
+including a set of workers to do zone manipulation, and a zone fetcher that
+takse care of AXFR.
 
-The scheduler is written in Python and is run as a daemon. When a zone
-needs to be sorted or (re)signed, it will call the necessary tools,
-which are written in C, to do the actual work. It uses a
-worker/task-queue design, where the worker threads will suspend
+The scheduler is written in c is run as a daemon. When a zone needs to be
+sorted or (re)signed, the workers will report for duty and perform the job.
+It uses a worker/task-queue design, where the worker threads will suspend
 until there is something to do. 
 
 The zone fetcher is started by the scheduler if a zone fetch configuration
@@ -41,14 +41,9 @@ startup and upon receiving a valid NOTIFY message.
 DEPENDENCIES
 -------------------------------------------------------------------
 
-The C-based tools depend on the ldns library
-http://www.NLnetLabs.nl/projects/ldns
+The signer depends on the ldns library http://www.NLnetLabs.nl/projects/ldns
 and can only be used in conjuction with a PKCS#11 library (a software
 version of which, softHSM, is supplied with the OpenDNSSEC).
-
-The python part of the engine depends on the 4suite implementation of
-xml (the package name for Ubuntu is python-4suite-xml).
-
 
 -------------------------------------------------------------------
 INSTALLATION
@@ -72,10 +67,8 @@ use the options provided with configure:
                   relative to this path, and default search paths will
                   be relative to the prefix. Defaults to /usr/local
 
-The tools, and the main engine invocation script, will be installed in
-<prefix>/bin
-The python libraries will be installed in
-<prefix>/lib/python/signer_engine/
+The signer engine will be installed in
+<prefix>/sbin
 
 -------------------------------------------------------------------
 INTERACTION FROM THE COMMAND LINE
@@ -92,24 +85,39 @@ $ ods-signer
 cmd> help
  Commands:
 zones           show the currently known zones
-sign <zone>     read zone and schedule zone for immediate signing
-sign --all      read zone and schedule zone for immediate signing
-clear <zone>    delete the internal storage of this zone
-queue           show the current task queue
-flush           execute all scheduled tasks immediately
-update          re-read the zonelist xml file
-                and check for changed signer configuration xml files
-update <zone>   check for changed signer configuration xml file for zone
-stop            stop the engine
-reload          reload the engine
-start           start the engine (only when signer is not running)
-verbosity <nr>  set verbosity
+sign <zone>     schedule zone for immediate (re-)signing
+sign --all      schedule all zones for immediate (re-)signing.
+clear <zone>    delete the internal storage of this zone.
+                All signatures will be regenerated on the next re-sign.
+queue           show the current task queue.
+flush           execute all scheduled tasks immediately.
+update <zone>   update this zone signer configurations.
+update [--all]  update zone list and all signer configurations.
+start           start the engine.
+reload          reload the engine.
+stop            stop the engine.
+verbosity <nr>  set verbosity.
 
 cmd> quit
 
 You can also use these commands directly from your shell, by giving
-them as arguments to ods-signer. If you do this, the cli will
+them as arguments to ods-signer. If you do this, the client will
 execute the command and quit.
+
+-------------------------------------------------------------------
+RUNNING THE ENGINE
+-------------------------------------------------------------------
+
+You can run the engine by calling <prefix>/sbin/ods-signer start
+
+If everything is ok, you should see the following output:
+$ ./ods-signer start
+OpenDNSSEC signer engine version 1.2.0
+$
+
+The engine has daemonized itself and should be running. You can
+check that it does by using ods-signer as specified in the
+section INTERACTION FROM THE COMMAND LINE.
 
 -------------------------------------------------------------------
 RUNNING WITHOUT THE KASP
@@ -202,23 +210,6 @@ work on. You will have already specified the location of this file
 in the zonelist.xml file above.
 
 
-running the engine
-------------------
-
-You can run the engine by calling <prefix>/sbin/ods-signer start
-
-If everything is ok, you should see the following output:
-$ ./ods-signer start
-Python engine proof of concept, v 0.0002 alpha
-Zone list updated: 0 removed, 1 added, 0 updated
-output redirected to syslog
-$
-
-The engine has daemonized itself and should be running. You can
-check that it does by using ods-signer as specified in the
-section INTERACTION FROM THE COMMAND LINE.
-
-
 Diagnostics
 -----------
 
@@ -250,8 +241,9 @@ TOTAL[time] is the total time it took for the signer engine to sign the
 latest version of the zone.
 
 
-Debugging
----------
+-------------------------------------------------------------------
+DEBUGGING
+-------------------------------------------------------------------
 Warning: DO NOT TRY THIS EXCEPT FOR DEBUGGING PURPOSES
 
 If the signer is build with the '--enable-timeshift' option, one can
