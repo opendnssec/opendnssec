@@ -69,6 +69,7 @@ module KASPChecker
         log(LOG_ERR, "KASP configuration file cannot be found")
       end
 
+      @ret_val = 0 if (@ret_val >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
       if (@ret_val == 999)
         exit(0)
       else
