@@ -56,6 +56,22 @@ uint32_t adapi_get_serial(zone_type* zone);
  */
 void adapi_set_serial(zone_type* zone, uint32_t serial);
 
+/**
+ * Get origin.
+ * \param[in] zone zone
+ * \return ldns_rdf* origin
+ *
+ */
+ldns_rdf* adapi_get_origin(zone_type* zone);
+
+/**
+ * Get ttl.
+ * \param[in] zone zone
+ * \return uint32_t ttl
+ *
+ */
+uint32_t adapi_get_ttl(zone_type* zone);
+
 /*
  * Do full zone transaction.
  * \param[in] zone zone

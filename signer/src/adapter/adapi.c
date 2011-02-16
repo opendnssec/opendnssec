@@ -52,7 +52,7 @@ adapi_get_serial(zone_type* zone)
     if (!zone || !zone->zonedata) {
         ods_log_error("[%s] unable to get serial: "
             "no zone data", adapi_str);
-        return ODS_STATUS_ASSERT_ERR;
+        return 0;
     }
     ods_log_assert(zone);
     ods_log_assert(zone->zonedata);
@@ -68,14 +68,49 @@ void
 adapi_set_serial(zone_type* zone, uint32_t serial)
 {
     if (!zone || !zone->zonedata) {
-        ods_log_error("[%s] unable to get serial: "
+        ods_log_error("[%s] unable to set serial: "
             "no zone data", adapi_str);
-        return ODS_STATUS_ASSERT_ERR;
+        return;
     }
     ods_log_assert(zone);
     ods_log_assert(zone->zonedata);
     zone->zonedata->inbound_serial = serial;
     return;
+}
+
+
+/**
+ * Get origin.
+ *
+ */
+ldns_rdf*
+adapi_get_origin(zone_type* zone)
+{
+    if (!zone) {
+        ods_log_error("[%s] unable to get origin: "
+            "no zone", adapi_str);
+        return NULL;
+    }
+    ods_log_assert(zone);
+    return zone->dname;
+}
+
+
+/**
+ * Get ttl.
+ *
+ */
+uint32_t
+adapi_get_ttl(zone_type* zone)
+{
+    if (!zone || !zone->zonedata) {
+        ods_log_error("[%s] unable to get ttl: "
+            "no zone data", adapi_str);
+        return 0;
+    }
+    ods_log_assert(zone);
+    ods_log_assert(zone->zonedata);
+    return zone->zonedata->default_ttl;
 }
 
 
