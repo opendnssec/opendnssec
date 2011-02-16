@@ -203,7 +203,7 @@ module KASPAuditor
 
     def get_tracker_filename
       zone = @zone
-      if (zone.to_s == ".")
+      if ((zone.to_s == ".") || (zone.to_s==""))
         zone = "root.zone"
       end
       return @working + "#{File::SEPARATOR}tracker#{File::SEPARATOR}" + zone
