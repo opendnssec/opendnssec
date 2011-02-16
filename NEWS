@@ -6,7 +6,10 @@ Bugfixes:
 * Replace tab with white-space when writing to syslog.
 * Enforcer: Stop import of policy if it is not consistent.
 * Signer Engine: do not block update command while signing.
-
+* Enforcer: Increase size of keypairs(id) field in MySQL to allow more than
+  32767 keys; see MIGRATION for details.
+* ods-ksmutil: send trivial MySQL messages to stdout when exporting zonelist
+  etc. Otherwise the resulting XML needs to be edited by hand.
 
 OpenDNSSEC 1.2.0 - 2011-01-13
 

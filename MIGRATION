@@ -24,3 +24,22 @@ OpenDNSSEC to another.
   NOTE: Although these scripts have been tested it is recommended to make a
         backup of your database prior to running them.
 
+
+
+
+*** Migrating to a larger keypairs(id) field (MySQL ONLY) ***
+
+  The version of the MySQL database that was created with v1.2 (and prior to
+  svn r4465) had a smallint datatype for the keypairs(id) field. This limits
+  the number of keys that the system can store to 32767.
+
+  If this number is not large enough then the script:
+
+  enforcer/utils/migrate_id_mysql.pl
+
+  will increase it to an int, which can store 2147483647 keys.
+
+  NOTES: Although this scripts have been tested it is recommended to make a
+         backup of your database prior to running them.
+
+		 This issue only applies to MySQL backends.
