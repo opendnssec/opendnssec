@@ -368,6 +368,5 @@ se_fatal_exit(const char *format, ...)
         se_log_vmsg(LOG_CRIT, "fatal error", format, args);
     }
     va_end(args);
-    se_log_init(NULL, 0, 0);
-    exit(2);
+    abort();
 }
