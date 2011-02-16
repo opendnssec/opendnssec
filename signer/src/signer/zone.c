@@ -924,7 +924,21 @@ zone_merge(zone_type* z1, zone_type* z2)
 
 
 /**
- * Clean up a zone.
+ * Print zone.
+ *
+ */
+ods_status
+zone_print(FILE* fd, zone_type* zone)
+{
+    if (fd && zone && zone->zonedata) {
+        return zonedata_print(fd, zone->zonedata);
+    }
+    return ODS_STATUS_ASSERT_ERR;
+}
+
+
+/**
+ * Clean up zone.
  *
  */
 void
