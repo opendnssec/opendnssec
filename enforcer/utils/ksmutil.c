@@ -4095,19 +4095,35 @@ int update_policies(char* kasp_filename)
     /* Some files, the xml and rng */
     const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/kasp.rng";
     char* kaspcheck_cmd = NULL;
+    char* kaspcheck_cmd_version = NULL;
     
     StrAppend(&kaspcheck_cmd, ODS_AU_KASPCHECK);
     StrAppend(&kaspcheck_cmd, " -k ");
     StrAppend(&kaspcheck_cmd, kasp_filename);
 
-    /* Run kaspcheck if we can */
-    status = system(kaspcheck_cmd);
-    if (status != 0)
+    StrAppend(&kaspcheck_cmd_version, ODS_AU_KASPCHECK);
+    StrAppend(&kaspcheck_cmd_version, " -v > /dev/null");
+
+    /* Run kaspcheck */
+    status = system(kaspcheck_cmd_version);
+    if (status == 0)
     {
-        fprintf(stderr, "Couldn't run kaspcheck, will carry on\n");
+        status = system(kaspcheck_cmd);
+        if (status != 0)
+        {
+            fprintf(stderr, "ods-kaspcheck returned an error, please check your policy\n");
+            StrFree(kaspcheck_cmd);
+            StrFree(kaspcheck_cmd_version);
+            return(-1);
+        }
+    }
+    else
+    {
+            fprintf(stderr, "Couldn't run ods-kaspcheck (Auditor is not installed), will carry on\n");
     }
 
     StrFree(kaspcheck_cmd);
+    StrFree(kaspcheck_cmd_version);
 
     /* Load XML document */
     doc = xmlParseFile(kasp_filename);
