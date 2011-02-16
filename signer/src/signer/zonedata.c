@@ -1260,13 +1260,6 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
 }
 
 
-static int
-ods_max(uint32_t a, uint32_t b)
-{
-    return (a>b?a:b);
-}
-
-
 /**
  * Update the serial.
  *
