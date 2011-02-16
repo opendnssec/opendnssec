@@ -348,7 +348,7 @@ ods_log_alert(const char *format, ...)
     va_list args;
     va_start(args, format);
     if (log_level >= LOG_ALERT) {
-        ods_log_vmsg(LOG_ALERT, "crit   ", format, args);
+        ods_log_vmsg(LOG_ALERT, "alert  ", format, args);
     }
     va_end(args);
 }
@@ -367,6 +367,5 @@ ods_fatal_exit(const char *format, ...)
         ods_log_vmsg(LOG_CRIT, "fatal  ", format, args);
     }
     va_end(args);
-    ods_log_init(NULL, 0, 0);
-    exit(2);
+    abort();
 }
