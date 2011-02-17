@@ -47,6 +47,7 @@
 
 ods_lookup_table worker_str[] = {
     { WORKER_WORKER, "worker" },
+    { WORKER_DRUDGER, "drudger" },
     { 0, NULL }
 };
 
@@ -350,11 +351,11 @@ task_perform_continue:
 
 
 /**
- * Start worker.
+ * Work.
  *
  */
-void
-worker_start(worker_type* worker)
+static void
+worker_work(worker_type* worker)
 {
     time_t now, timeout = 1;
     zone_type* zone = NULL;
@@ -418,6 +419,61 @@ worker_start(worker_type* worker)
             worker->task = NULL;
             worker_sleep(worker, timeout);
         }
+    }
+    return;
+}
+
+
+/**
+ * Drudge.
+ *
+ */
+static void
+worker_drudge(worker_type* worker)
+{
+    rrset_type* rrset = NULL;
+
+    ods_log_assert(worker);
+    ods_log_assert(worker->type == WORKER_DRUDGER);
+
+    while (worker->need_to_exit == 0) {
+        ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
+            worker->thread_num);
+
+        if (rrset) {
+            rrset = NULL;
+        } else {
+            ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
+                worker->thread_num);
+
+            lock_basic_lock(&worker->engine->signq->q_lock);
+            lock_basic_sleep(&worker->engine->signq->q_threshold,
+                &worker->engine->signq->q_lock, 0);
+            lock_basic_unlock(&worker->engine->signq->q_lock);
+        }
+    }
+    return;
+}
+
+
+/**
+ * Start worker.
+ *
+ */
+void
+worker_start(worker_type* worker)
+{
+    ods_log_assert(worker);
+    switch (worker->type) {
+        case WORKER_DRUDGER:
+            worker_drudge(worker);
+            break;
+        case WORKER_WORKER:
+            worker_work(worker);
+            break;
+        default:
+            ods_log_error("[worker] illegal worker (id=%i)", worker->type);
+            return;
     }
     return;
 }

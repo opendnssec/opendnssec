@@ -88,6 +88,7 @@ engine_create(void)
     engine->allocator = allocator;
     engine->config = NULL;
     engine->workers = NULL;
+    engine->drudgers = NULL;
     engine->cmdhandler = NULL;
     engine->cmdhandler_done = 0;
     engine->pid = -1;
@@ -109,6 +110,11 @@ engine_create(void)
     }
     engine->taskq = schedule_create(engine->allocator);
     if (!engine->taskq) {
+        engine_cleanup(engine);
+        return NULL;
+    }
+    engine->signq = fifoq_create(engine->allocator);
+    if (!engine->signq) {
         engine_cleanup(engine);
         return NULL;
     }
@@ -262,6 +268,21 @@ engine_create_workers(engine_type* engine)
     }
     return;
 }
+static void
+engine_create_drudgers(engine_type* engine)
+{
+    size_t i = 0;
+    ods_log_assert(engine);
+    ods_log_assert(engine->config);
+    ods_log_assert(engine->allocator);
+    engine->drudgers = (worker_type**) allocator_alloc(engine->allocator,
+        ((size_t)engine->config->num_signer_threads) * sizeof(worker_type*));
+    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+        engine->drudgers[i] = worker_create(engine->allocator, i,
+            WORKER_DRUDGER);
+    }
+    return;
+}
 static void*
 worker_thread_start(void* arg)
 {
@@ -287,6 +308,22 @@ engine_start_workers(engine_type* engine)
     return;
 }
 static void
+engine_start_drudgers(engine_type* engine)
+{
+    size_t i = 0;
+
+    ods_log_assert(engine);
+    ods_log_assert(engine->config);
+    ods_log_debug("[%s] start drudgers", engine_str);
+    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+        engine->drudgers[i]->need_to_exit = 0;
+        engine->drudgers[i]->engine = (struct engine_struct*) engine;
+        ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
+            engine->drudgers[i]);
+    }
+    return;
+}
+static void
 engine_stop_workers(engine_type* engine)
 {
     size_t i = 0;
@@ -304,6 +341,35 @@ engine_stop_workers(engine_type* engine)
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
         ods_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engine = NULL;
+    }
+    return;
+}
+static void
+engine_stop_drudgers(engine_type* engine)
+{
+    size_t i = 0;
+
+    ods_log_assert(engine);
+    ods_log_assert(engine->config);
+    ods_log_debug("[%s] stop drudgers", engine_str);
+    /* tell them to exit and wake up sleepyheads */
+    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+        engine->drudgers[i]->need_to_exit = 1;
+/*
+        worker_notify(engine->drudgers[i], engine->signq->q_lock,
+            engine->signq->q_threshold);
+*/
+    }
+
+    lock_basic_lock(&engine->signq->q_lock);
+    lock_basic_alarm(&engine->signq->q_threshold);
+    lock_basic_unlock(&engine->signq->q_lock);
+
+    /* head count */
+    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+        ods_log_debug("[%s] join drudger %i", engine_str, i+1);
+        ods_thread_join(engine->drudgers[i]->thread_id);
+        engine->drudgers[i]->engine = NULL;
     }
     return;
 }
@@ -564,6 +630,7 @@ engine_setup(engine_type* engine)
 
     /* create workers */
     engine_create_workers(engine);
+    engine_create_drudgers(engine);
 
     /* start command handler */
     engine_start_cmdhandler(engine);
@@ -618,6 +685,7 @@ engine_run(engine_type* engine, int single_run)
     ods_log_assert(engine);
 
     engine_start_workers(engine);
+    engine_start_drudgers(engine);
 
     lock_basic_lock(&engine->signal_lock);
     /* [LOCK] signal */
@@ -662,6 +730,7 @@ engine_run(engine_type* engine, int single_run)
         lock_basic_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] signer halted", engine_str);
+    engine_stop_drudgers(engine);
     engine_stop_workers(engine);
     return;
 }
@@ -1008,8 +1077,14 @@ engine_cleanup(engine_type* engine)
             worker_cleanup(engine->workers[i]);
         }
     }
+    if (engine->drudgers && engine->config) {
+       for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+           worker_cleanup(engine->drudgers[i]);
+       }
+    }
     zonelist_cleanup(engine->zonelist);
     schedule_cleanup(engine->taskq);
+    fifoq_cleanup(engine->signq);
     
     allocator_deallocate(engine->allocator);
     allocator_cleanup(allocator);

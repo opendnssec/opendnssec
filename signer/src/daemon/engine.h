@@ -38,6 +38,7 @@
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/worker.h"
+#include "scheduler/fifoq.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/allocator.h"
@@ -55,8 +56,10 @@ struct engine_struct {
     allocator_type* allocator;
     engineconfig_type* config;
     worker_type** workers;
+    worker_type** drudgers;
     zonelist_type* zonelist;
     schedule_type* taskq;
+    fifoq_type* signq;
     cmdhandler_type* cmdhandler;
     int cmdhandler_done;
 

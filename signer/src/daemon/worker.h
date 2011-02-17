@@ -44,8 +44,7 @@
 enum worker_enum {
     WORKER_NONE = 0,
     WORKER_WORKER = 1,
-    WORKER_DRUDGER,
-    WORKER_FETCHER
+    WORKER_DRUDGER
 };
 typedef enum worker_enum worker_id;
 
