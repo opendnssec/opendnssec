@@ -114,6 +114,9 @@ start = element Configuration {
 		# Number of Worker Threads
 		# DEFAULT: 4
 		element WorkerThreads { xsd:positiveInteger }?,
+		# Number of Signer Threads
+		# DEFAULT: 4
+		element SignerThreads { xsd:positiveInteger }?,
 
 		# System command to call after a zone has been (re)signed
 		#
