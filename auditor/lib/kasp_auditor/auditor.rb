@@ -634,7 +634,11 @@ module KASPAuditor
       }
       if (!l_rr.opt_out?)
         File.open(@working + "#{File::SEPARATOR}audit.optout.#{Process.pid}", "a") { |f|
-          f.write("#{l_rr.name.to_s} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
+        l_rr_name = l_rr.name.to_s
+        if (@soa.name.to_s == "")
+          l_rr_name += "."
+        end
+        f.write("#{l_rr_name} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
         }
       end
     end
