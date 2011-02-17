@@ -147,7 +147,7 @@ worker_perform_task(worker_type* worker)
     zone = (zone_type*) worker->task->zone;
     ods_log_debug("[%s[%i]]: perform task %s for zone %s at %u",
        worker2str(worker->type), worker->thread_num, task_what2str(task->what),
-       task_who2str(task->who), (uint32_t) time(NULL));
+       task_who2str(task->who), (uint32_t) worker->clock_in);
 
     switch (task->what) {
         case TASK_SIGNCONF:
@@ -396,6 +396,7 @@ worker_work(worker_type* worker)
             ods_log_debug("[%s[%i]] start working on zone %s",
                 worker2str(worker->type), worker->thread_num, zone->name);
 
+            worker->clock_in = time(NULL);
             worker_perform_task(worker);
 
             zone->task = worker->task;
@@ -447,7 +448,12 @@ worker_work(worker_type* worker)
 static void
 worker_drudge(worker_type* worker)
 {
+    zone_type* zone = NULL;
+    task_type* task = NULL;
     rrset_type* rrset = NULL;
+    ods_status status = ODS_STATUS_OK;
+    worker_type* chief = NULL;
+    hsm_ctx_t* ctx = NULL;
 
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_DRUDGER);
@@ -456,17 +462,86 @@ worker_drudge(worker_type* worker)
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
 
+        lock_basic_lock(&worker->engine->signq->q_lock);
+        /* [LOCK] schedule */
+        rrset = (rrset_type*) fifoq_pop(worker->engine->signq, &chief);
+        /* [UNLOCK] schedule */
+        lock_basic_unlock(&worker->engine->signq->q_lock);
         if (rrset) {
+            /* set up the work */
+            if (chief) {
+                task = chief->task;
+            }
+            if (task) {
+                zone = task->zone;
+            }
+            if (!zone) {
+                ods_log_error("[%s[%i]]: unable to drudge: no zone reference",
+                    worker2str(worker->type), worker->thread_num);
+            }
+            if (!ctx) {
+                ctx = hsm_create_context();
+                if (ctx == NULL) {
+                    ods_log_error("[%s[%i]]: unable to drudge: error "
+                        "creating libhsm context", worker2str(worker->type),
+                        worker->thread_num);
+                    /* wipe fifoq, notify the chief */
+                }
+            }
+            if (zone && ctx) {
+                ods_log_assert(rrset);
+                ods_log_assert(zone);
+                ods_log_assert(zone->dname);
+                ods_log_assert(zone->signconf);
+                ods_log_assert(ctx);
+
+                worker->clock_in = time(NULL);
+                status = ODS_STATUS_OK;
+/*
+                status = rrset_sign(rrset, zone->dname, zone->signconf,
+                    chief->clock_in, ctx);
+*/
+            } else {
+                status = ODS_STATUS_ASSERT_ERR;
+            }
+
+            if (chief) {
+                lock_basic_lock(&chief->worker_lock);
+                if (status == ODS_STATUS_OK) {
+                    chief->jobs_completed += 1;
+                } else {
+                    chief->jobs_failed += 1;
+                    /* destroy context? */
+                }
+                lock_basic_unlock(&chief->worker_lock);
+
+                if (worker_fulfilled(chief) && chief->sleeping) {
+                    worker_wakeup(chief);
+                }
+            }
             rrset = NULL;
+            zone = NULL;
+            task = NULL;
+            chief = NULL;
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
+            if (ctx) {
+                hsm_destroy_context(ctx);
+                ctx = NULL;
+            }
 
             lock_basic_lock(&worker->engine->signq->q_lock);
             lock_basic_sleep(&worker->engine->signq->q_threshold,
                 &worker->engine->signq->q_lock, 0);
             lock_basic_unlock(&worker->engine->signq->q_lock);
         }
+    }
+
+    /* cleanup open HSM sessions */
+    if (ctx) {
+        hsm_destroy_context(ctx);
+        ctx = NULL;
     }
     return;
 }
