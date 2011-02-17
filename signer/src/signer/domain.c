@@ -933,8 +933,9 @@ domain_print(FILE* fd, domain_type* domain)
             if (rrset->rr_type != LDNS_RR_TYPE_SOA) {
                 if (domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
                     /* glue?  */
+                    print_glue = 1;
+/*
                     parent = domain->parent;
-                    print_glue = 0;
                     while (parent && parent->dstatus != DOMAIN_STATUS_APEX) {
                         if (domain_examine_ns_rdata(parent, domain->dname)) {
                             print_glue = 1;
@@ -942,6 +943,7 @@ domain_print(FILE* fd, domain_type* domain)
                         }
                         parent = parent->parent;
                     }
+*/
                     if (print_glue && (rrset->rr_type == LDNS_RR_TYPE_A ||
                         rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
                         rrset_print(fd, rrset, 0);
