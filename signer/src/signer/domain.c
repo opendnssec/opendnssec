@@ -543,12 +543,14 @@ domain_examine_valid_zonecut(domain_type* domain)
             } else if (rrset->rr_type == LDNS_RR_TYPE_A ||
                 rrset->rr_type == LDNS_RR_TYPE_AAAA) {
                 /* check if glue is allowed at the delegation */
+/* allow for now (root zone has it)
                 if (rrset_count_RR(rrset) > 0 &&
                     !domain_examine_ns_rdata(domain, domain->dname)) {
                     ods_log_error("[%s] occluded glue data at zonecut, #RR=%u",
                         dname_str, rrset_count_RR(rrset));
                     return 0;
                 }
+*/
             }
             node = ldns_rbtree_next(node);
         }

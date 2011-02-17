@@ -1445,11 +1445,11 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 free((void*)str_name);
                 free((void*)str_parent);
                 return 1;
+/* allow for now (root zone has it)
             } else if (domain_examine_data_exists(parent_domain,
                 LDNS_RR_TYPE_NS, 0) &&
                 domain_examine_data_exists(domain, 0, 0) &&
                 !domain_examine_ns_rdata(parent_domain, domain->dname)) {
-                /* glue data not signalled by NS RDATA */
                 str_name = ldns_rdf2str(domain->dname);
                 str_parent = ldns_rdf2str(parent_domain->dname);
                 ods_log_warning("[%s] occluded data at %s (below %s NS)",
@@ -1457,6 +1457,7 @@ zonedata_examine_domain_is_occluded(zonedata_type* zd, domain_type* domain,
                 free((void*)str_name);
                 free((void*)str_parent);
                 return 1;
+*/
             }
         }
         parent_rdf = next_rdf;
