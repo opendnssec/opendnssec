@@ -77,6 +77,10 @@ worker_create(allocator_type* allocator, int num, worker_id type)
     worker->task = NULL;
     worker->need_to_exit = 0;
     worker->type = type;
+    worker->clock_in = 0;
+    worker->jobs_appointed = 0;
+    worker->jobs_completed = 0;
+    worker->jobs_failed = 0;
     worker->sleeping = 0;
     worker->waiting = 0;
     lock_basic_init(&worker->worker_lock);
@@ -97,6 +101,18 @@ worker2str(worker_id type)
         return lt->name;
     }
     return NULL;
+}
+
+
+/**
+ * Has this worker measured up to all appointed jobs?
+ *
+ */
+static int
+worker_fulfilled(worker_type* worker)
+{
+    return (worker->jobs_completed + worker->jobs_failed) ==
+        worker->jobs_appointed;
 }
 
 
@@ -515,17 +531,40 @@ worker_sleep(worker_type* worker, time_t timeout)
 
 
 /**
+ * Put worker to sleep unless worker has measured up to all appointed jobs.
+ *
+ */
+void
+worker_sleep_unless(worker_type* worker, time_t timeout)
+{
+    ods_log_assert(worker);
+    lock_basic_lock(&worker->worker_lock);
+    /* [LOCK] worker */
+    if (!worker_fulfilled(worker)) {
+        worker->sleeping = 1;
+        lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
+            timeout);
+    }
+    /* [UNLOCK] worker */
+    lock_basic_unlock(&worker->worker_lock);
+    return;
+}
+
+
+/**
  * Worker waiting.
  *
  */
 void
-worker_wait(worker_type* worker)
+worker_wait(worker_type* worker, lock_basic_type lock,
+    cond_basic_type condition)
 {
     ods_log_assert(worker);
-    lock_basic_lock(&worker->worker_lock);
-    worker->waiting = 1;
-    lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock, 0);
-    lock_basic_unlock(&worker->worker_lock);
+    lock_basic_lock(&lock);
+    /* [LOCK] worker */
+    lock_basic_sleep(&condition, &lock, 0);
+    /* [UNLOCK] worker */
+    lock_basic_unlock(&lock);
     return;
 }
 
@@ -538,7 +577,6 @@ void
 worker_wakeup(worker_type* worker)
 {
     ods_log_assert(worker);
-    ods_log_assert(!worker->waiting);
     if (worker && worker->sleeping && !worker->waiting) {
         ods_log_debug("[%s[%i]] wake up", worker2str(worker->type),
            worker->thread_num);
@@ -558,17 +596,18 @@ worker_wakeup(worker_type* worker)
  *
  */
 void
-worker_notify(worker_type* worker)
+worker_notify(worker_type* worker, lock_basic_type lock,
+    cond_basic_type condition)
 {
     ods_log_assert(worker);
-    ods_log_assert(!worker->sleeping);
-    if (worker && worker->waiting && !worker->sleeping) {
+    if (worker) {
         ods_log_debug("[%s[%i]] notify", worker2str(worker->type),
            worker->thread_num);
-        lock_basic_lock(&worker->worker_lock);
-        lock_basic_alarm(&worker->worker_alarm);
-        worker->waiting = 0;
-        lock_basic_unlock(&worker->worker_lock);
+        lock_basic_lock(&lock);
+        /* [LOCK] lock */
+        lock_basic_alarm(&condition);
+        /* [UNLOCK] lock */
+        lock_basic_unlock(&lock);
     }
     return;
 }

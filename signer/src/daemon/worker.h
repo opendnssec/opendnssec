@@ -57,6 +57,10 @@ struct worker_struct {
     struct engine_struct* engine;
     task_type* task;
     worker_id type;
+    time_t clock_in;
+    size_t jobs_appointed;
+    size_t jobs_completed;
+    size_t jobs_failed;
     int sleeping;
     int waiting;
     int need_to_exit;
@@ -91,11 +95,23 @@ void worker_start(worker_type* worker);
 void worker_sleep(worker_type* worker, time_t timeout);
 
 /**
- * Let worker wait.
- * \param[in] worker waiting worker
+ * Put worker to sleep unless the worker has measured up to all appointed jobs.
+ * \param[in] worker put this worker to sleep
+ * \param[in] timeout time before alarm clock is going off,
+ *            0 means no alarm clock is set.
  *
  */
-void worker_wait(worker_type* worker);
+void worker_sleep_unless(worker_type* worker, time_t timeout);
+
+/**
+ * Let worker wait.
+ * \param[in] worker waiting worker
+ * \param[in] lock lock to use
+ * \param[in] condition condition to be met
+ *
+ */
+void worker_wait(worker_type* worker, lock_basic_type lock,
+    cond_basic_type condition);
 
 /**
  * Wake up worker.
@@ -107,9 +123,12 @@ void worker_wakeup(worker_type* worker);
 /**
  * Notify worker.
  * \param[in] worker notify this worker
+ * \param[in] lock lock to unlock
+ * \param[in] condition condition that has been met
  *
  */
-void worker_notify(worker_type* worker);
+void worker_notify(worker_type* worker, lock_basic_type lock,
+    cond_basic_type condition);
 
 /**
  * Clean up worker.
