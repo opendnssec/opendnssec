@@ -417,7 +417,7 @@ parse_conf_worker_threads(const char* cfgfile)
 int
 parse_conf_signer_threads(const char* cfgfile)
 {
-    int numwt = ODS_SE_SIGNERTHREADS;
+    int numwt = ODS_SE_WORKERTHREADS;
     const char* str = parse_conf_string(cfgfile,
         "//Configuration/Signer/SignerThreads",
         0);
@@ -426,6 +426,8 @@ parse_conf_signer_threads(const char* cfgfile)
             numwt = atoi(str);
         }
         free((void*)str);
+        return numwt;
     }
-    return numwt;
+    /* no SignerThreads value configured, look at WorkerThreads */
+    return parse_conf_worker_threads(cfgfile);
 }
