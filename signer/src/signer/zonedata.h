@@ -36,6 +36,8 @@
 
 #include "config.h"
 #include "adapter/adapter.h"
+#include "daemon/worker.h"
+#include "scheduler/fifoq.h"
 #include "shared/allocator.h"
 #include "shared/status.h"
 #include "signer/denial.h"
@@ -225,6 +227,17 @@ ods_status zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass,
  */
 ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
     uint32_t ttl, nsec3params_type* nsec3params);
+
+/**
+ * Queue all RRsets.
+ * \param[in] zd zone data
+ * \param[in] q queue
+ * \param[in] worker owner of data
+ * \return ods_status status
+ *
+ */
+ods_status zonedata_queue(zonedata_type* zd, fifoq_type* q,
+    worker_type* worker);
 
 /**
  * Add RRSIG records to zone data.

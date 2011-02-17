@@ -37,7 +37,6 @@
 #include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/locks.h"
-#include "signer/zone.h"
 
 #include <time.h>
 

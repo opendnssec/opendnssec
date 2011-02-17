@@ -42,6 +42,7 @@
 #include "shared/util.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
+#include "signer/zonedata.h"
 
 #include <time.h> /* time() */
 

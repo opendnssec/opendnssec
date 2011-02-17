@@ -32,6 +32,8 @@
  */
 
 #include "config.h"
+#include "daemon/worker.h"
+#include "scheduler/fifoq.h"
 #include "shared/allocator.h"
 #include "shared/duration.h"
 #include "shared/file.h"
@@ -1167,6 +1169,47 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     stats->sig_count += newsigs;
     stats->sig_reuse += reusedsigs;
     return 0;
+}
+
+
+/**
+ * Queue RRset.
+ *
+ */
+ods_status
+rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
+{
+    ods_status status = ODS_STATUS_UNCHANGED;
+
+    if (!rrset) {
+        ods_log_error("[%s] unable to queue RRset: no RRset", rrset_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(rrset);
+    if (!worker) {
+        ods_log_error("[%s] unable to queue RRset: no worker", rrset_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(worker);
+    if (!q) {
+        ods_log_error("[%s] unable to queue RRset: no queue", rrset_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(q);
+
+    while (status == ODS_STATUS_UNCHANGED) {
+        lock_basic_lock(&q->q_lock);
+        status = fifoq_push(q, (void*) rrset, worker);
+        lock_basic_unlock(&q->q_lock);
+    }
+    if (status == ODS_STATUS_OK) {
+        lock_basic_lock(&worker->worker_lock);
+        /* [LOCK] worker */
+        worker->jobs_appointed += 1;
+        /* [UNLOCK] worker */
+        lock_basic_unlock(&worker->worker_lock);
+    }
+    return status;
 }
 
 

@@ -35,8 +35,10 @@
 #define SIGNER_DOMAIN_H
 
 #include "config.h"
-#include "shared/hsm.h"
+#include "daemon/worker.h"
+#include "scheduler/fifoq.h"
 #include "shared/allocator.h"
+#include "shared/hsm.h"
 #include "shared/status.h"
 #include "signer/denial.h"
 #include "signer/keys.h"
@@ -249,6 +251,17 @@ void domain_dstatus(domain_type* domain);
  */
 int domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
     signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats);
+
+/**
+ * Queue all RRsets at this domain.
+ * \param[in] domain the domain
+ * \param[in] q queue
+ * \param[in] worker owner of data
+ * \return ods_status status
+ *
+ */
+ods_status domain_queue(domain_type* domain, fifoq_type* q,
+    worker_type* worker);
 
 /**
  * Clean up domain.

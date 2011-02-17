@@ -802,6 +802,62 @@ domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
 
 
 /**
+ * Queue all RRsets at this domain.
+ *
+ */
+ods_status
+domain_queue(domain_type* domain, fifoq_type* q, worker_type* worker)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    rrset_type* rrset = NULL;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!domain || !domain->rrsets) {
+        return ODS_STATUS_OK;
+    }
+    if (domain->dstatus == DOMAIN_STATUS_NONE ||
+        domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
+        return ODS_STATUS_OK;
+    }
+
+    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
+        node = ldns_rbtree_first(domain->rrsets);
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        rrset = (rrset_type*) node->data;
+
+        /* skip delegation RRsets */
+        if (domain->dstatus != DOMAIN_STATUS_APEX &&
+            rrset->rr_type == LDNS_RR_TYPE_NS) {
+            node = ldns_rbtree_next(node);
+            continue;
+        }
+        /* skip glue at the delegation */
+        if ((domain->dstatus == DOMAIN_STATUS_DS ||
+             domain->dstatus == DOMAIN_STATUS_NS) &&
+            (rrset->rr_type == LDNS_RR_TYPE_A ||
+             rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
+            node = ldns_rbtree_next(node);
+            continue;
+        }
+
+        /* queue RRset for signing */
+        status = rrset_queue(rrset, q, worker);
+        if (status != ODS_STATUS_OK) {
+            return status;
+        }
+        node = ldns_rbtree_next(node);
+    }
+
+    /* queue NSEC(3) RRset for signing */
+    if (domain->denial && domain->denial->rrset) {
+        status = rrset_queue(domain->denial->rrset, q, worker);
+    }
+    return status;
+}
+
+
+/**
  * Examine domain NS RRset and verify its RDATA.
  *
  */

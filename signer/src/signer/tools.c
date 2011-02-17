@@ -162,7 +162,6 @@ tools_nsecify(zone_type* zone)
     if (zone->signconf->soa_min) {
         ttl = (uint32_t) duration2time(zone->signconf->soa_min);
     }
-
     /* add missing empty non-terminals */
     status = zonedata_entize(zone->zonedata, zone->dname);
     if (status != ODS_STATUS_OK) {
