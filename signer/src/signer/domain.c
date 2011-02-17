@@ -620,7 +620,7 @@ domain_commit(domain_type* domain)
 
         if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
             rrset->rrs->rr) {
-            rrset->drop_signatures = 1;
+            rrset->needs_signing = 1;
         }
         status = rrset_commit(rrset);
         if (status != ODS_STATUS_OK) {
@@ -718,90 +718,6 @@ domain_dstatus(domain_type* domain)
 
 
 /**
- * Sign domain.
- *
- */
-int
-domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    ldns_rdf* soa_serial = NULL;
-    rrset_type* rrset = NULL;
-    int error = 0;
-
-    ods_log_assert(domain);
-    ods_log_assert(domain->rrsets);
-    ods_log_assert(owner);
-    ods_log_assert(sc);
-    ods_log_assert(signtime);
-    ods_log_assert(stats);
-
-    if (domain->dstatus == DOMAIN_STATUS_NONE ||
-        domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
-        return 0;
-    }
-
-    if (domain->denial && domain->denial->rrset) {
-        error = rrset_sign(ctx, domain->denial->rrset, owner, sc, signtime, stats);
-        if (error) {
-            ods_log_error("[%s] failed to sign NSEC(3) RRset", dname_str);
-            return error;
-        }
-    }
-
-    if (domain->rrsets->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(domain->rrsets);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        rrset = (rrset_type*) node->data;
-
-        /* skip delegation RRsets */
-        if (domain->dstatus != DOMAIN_STATUS_APEX &&
-            rrset->rr_type == LDNS_RR_TYPE_NS) {
-            node = ldns_rbtree_next(node);
-            continue;
-        }
-        /* skip glue at the delegation */
-        if ((domain->dstatus == DOMAIN_STATUS_DS ||
-             domain->dstatus == DOMAIN_STATUS_NS) &&
-            (rrset->rr_type == LDNS_RR_TYPE_A ||
-             rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
-            node = ldns_rbtree_next(node);
-            continue;
-        }
-
-        if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
-            rrset->rrs->rr) {
-            soa_serial = ldns_rr_set_rdf(rrset->rrs->rr,
-                ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial),
-                SE_SOA_RDATA_SERIAL);
-            if (soa_serial) {
-                if (ldns_rdf2native_int32(soa_serial) != serial) {
-                    rrset->drop_signatures = 1;
-                }
-                ldns_rdf_deep_free(soa_serial);
-             } else {
-                ods_log_error("[%s] unable to sign domain: failed to replace "
-                    "SOA SERIAL rdata", dname_str);
-                return 1;
-            }
-        }
-
-        error = rrset_sign(ctx, rrset, owner, sc, signtime, stats);
-        if (error) {
-            ods_log_error("[%s] failed to sign RRset[%i]", dname_str,
-                (int) rrset->rr_type);
-            return error;
-        }
-        node = ldns_rbtree_next(node);
-    }
-
-    return 0;
-}
-
-
-/**
  * Queue all RRsets at this domain.
  *
  */
@@ -840,7 +756,24 @@ domain_queue(domain_type* domain, fifoq_type* q, worker_type* worker)
             node = ldns_rbtree_next(node);
             continue;
         }
-
+/*
+        if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
+            rrset->rrs->rr) {
+            soa_serial = ldns_rr_set_rdf(rrset->rrs->rr,
+                ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial),
+                SE_SOA_RDATA_SERIAL);
+            if (soa_serial) {
+                if (ldns_rdf2native_int32(soa_serial) != serial) {
+                    rrset->needs_signing = 1;
+                }
+                ldns_rdf_deep_free(soa_serial);
+             } else {
+                ods_log_error("[%s] unable to sign domain: failed to replace "
+                    "SOA SERIAL rdata", dname_str);
+                return 1;
+            }
+        }
+*/
         /* queue RRset for signing */
         status = rrset_queue(rrset, q, worker);
         if (status != ODS_STATUS_OK) {

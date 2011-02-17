@@ -229,6 +229,15 @@ ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
     uint32_t ttl, nsec3params_type* nsec3params);
 
 /**
+ * Update the serial.
+ * \param[in] zd zone data
+ * \param[in] sc signer configuration
+ * \return ods_status status
+ *
+ */
+ods_status zonedata_update_serial(zonedata_type* zd, signconf_type* sc);
+
+/**
  * Queue all RRsets.
  * \param[in] zd zone data
  * \param[in] q queue
@@ -238,18 +247,6 @@ ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
  */
 ods_status zonedata_queue(zonedata_type* zd, fifoq_type* q,
     worker_type* worker);
-
-/**
- * Add RRSIG records to zone data.
- * \param[in] zd zone data
- * \param[in] owner zone owner
- * \param[in] sc signer configuration
- * \param[out] stats update statistics
- * \return int 0 on success, 1 on false
- *
- */
-int zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
-    stats_type* stats);
 
 /**
  * Wipe out all NSEC(3) RRsets.

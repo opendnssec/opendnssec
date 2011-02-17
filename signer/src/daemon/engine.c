@@ -356,14 +356,15 @@ engine_stop_drudgers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 1;
 /*
-        worker_notify(engine->drudgers[i], engine->signq->q_lock,
-            engine->signq->q_threshold);
 */
     }
+    worker_notify(&engine->signq->q_lock, &engine->signq->q_threshold);
 
+/*
     lock_basic_lock(&engine->signq->q_lock);
     lock_basic_alarm(&engine->signq->q_threshold);
     lock_basic_unlock(&engine->signq->q_lock);
+*/
 
     /* head count */
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {

@@ -199,35 +199,6 @@ tools_nsecify(zone_type* zone)
 
 
 /**
- * Add RRSIG records to zone.
- *
- */
-int
-tools_sign(zone_type* zone)
-{
-    int error = 0;
-    time_t start = 0;
-    time_t end = 0;
-    ods_log_assert(zone);
-    ods_log_assert(zone->signconf);
-    ods_log_assert(zone->stats);
-    start = time(NULL);
-    error = zone_sign(zone);
-    end = time(NULL);
-    if (!error) {
-        ods_log_verbose("[%s] zone %s signed, new serial %u", tools_str,
-            zone->name?zone->name:"(null)", zone->zonedata->internal_serial);
-        if (!zone->stats->start_time) {
-            zone->stats->start_time = start;
-        }
-        zone->stats->sig_time = (end-start);
-        zone_backup_state(zone);
-    }
-    return error;
-}
-
-
-/**
  * Audit zone.
  *
  */

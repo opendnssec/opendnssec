@@ -134,7 +134,6 @@ worker_perform_task(worker_type* worker)
     int fallthrough = 0;
     char* working_dir = NULL;
     char* cfg_filename = NULL;
-    int error = 0;
 
     if (!worker || !worker->task || !worker->task->zone || !worker->engine) {
         return;
@@ -226,10 +225,32 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]]: sign zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-            error = tools_sign(zone);
+            status = zone_update_serial(zone);
+            if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s[%i]]: unable to sign zone %s: "
+                    "failed to increment serial",
+                    worker2str(worker->type), worker->thread_num,
+                    task_who2str(task->who));
+            } else {
+                status = zonedata_queue(zone->zonedata, engine->signq, worker);
+                ods_log_debug("[%s[%i]] wait until drudgers are finished "
+                    " signing zone %s", worker2str(worker->type),
+                    worker->thread_num, task_who2str(task->who));
+                worker_sleep_unless(worker, 0);
+                if (worker->jobs_failed > 0) {
+                    ods_log_error("[%s[%i]]: sign zone %s failed: %u of %u "
+                        "signatures failed", worker2str(worker->type),
+                        worker->thread_num, task_who2str(task->who),
+                        worker->jobs_failed, worker->jobs_appointed);
+                    status = ODS_STATUS_ERR;
+                }
+                worker->jobs_appointed = 0;
+                worker->jobs_completed = 0;
+                worker->jobs_failed = 0;
+            }
 
             /* what to do next */
-            if (error) {
+            if (status != ODS_STATUS_OK) {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
@@ -497,11 +518,8 @@ worker_drudge(worker_type* worker)
                 ods_log_assert(ctx);
 
                 worker->clock_in = time(NULL);
-                status = ODS_STATUS_OK;
-/*
-                status = rrset_sign(rrset, zone->dname, zone->signconf,
-                    chief->clock_in, ctx);
-*/
+                status = rrset_sign(ctx, rrset, zone->dname, zone->signconf,
+                    chief->clock_in, zone->stats);
             } else {
                 status = ODS_STATUS_ASSERT_ERR;
             }
@@ -531,11 +549,11 @@ worker_drudge(worker_type* worker)
                 hsm_destroy_context(ctx);
                 ctx = NULL;
             }
+            worker_wait(&worker->engine->signq->q_lock,
+                &worker->engine->signq->q_threshold);
 
-            lock_basic_lock(&worker->engine->signq->q_lock);
-            lock_basic_sleep(&worker->engine->signq->q_threshold,
-                &worker->engine->signq->q_lock, 0);
-            lock_basic_unlock(&worker->engine->signq->q_lock);
+            ods_log_debug("[%s[%i]] somebody called me?",
+                worker2str(worker->type), worker->thread_num);
         }
     }
 
@@ -628,24 +646,6 @@ worker_sleep_unless(worker_type* worker, time_t timeout)
 
 
 /**
- * Worker waiting.
- *
- */
-void
-worker_wait(worker_type* worker, lock_basic_type lock,
-    cond_basic_type condition)
-{
-    ods_log_assert(worker);
-    lock_basic_lock(&lock);
-    /* [LOCK] worker */
-    lock_basic_sleep(&condition, &lock, 0);
-    /* [UNLOCK] worker */
-    lock_basic_unlock(&lock);
-    return;
-}
-
-
-/**
  * Wake up worker.
  *
  */
@@ -668,22 +668,40 @@ worker_wakeup(worker_type* worker)
 
 
 /**
+ * Worker waiting.
+ *
+ */
+void
+worker_wait(lock_basic_type* lock, cond_basic_type* condition)
+{
+    ods_log_debug("[debug] worker_wait(): locking lock");
+    lock_basic_lock(lock);
+    /* [LOCK] worker */
+    ods_log_debug("[debug] worker_wait(): sleep");
+    lock_basic_sleep(condition, lock, 0);
+    ods_log_debug("[debug] worker_wait(): wake up");
+    /* [UNLOCK] worker */
+    lock_basic_unlock(lock);
+    ods_log_debug("[debug] worker_wait(): unlocking lock");
+    return;
+}
+
+
+/**
  * Notify worker.
  *
  */
 void
-worker_notify(worker_type* worker, lock_basic_type lock,
-    cond_basic_type condition)
+worker_notify(lock_basic_type* lock, cond_basic_type* condition)
 {
-    ods_log_assert(worker);
-    if (worker) {
-        ods_log_debug("[%s[%i]] notify", worker2str(worker->type),
-           worker->thread_num);
-        lock_basic_lock(&lock);
-        /* [LOCK] lock */
-        lock_basic_alarm(&condition);
-        /* [UNLOCK] lock */
-        lock_basic_unlock(&lock);
-    }
+    ods_log_debug("[debug] worker_notify(): locking lock");
+    lock_basic_lock(lock);
+    /* [LOCK] lock */
+    ods_log_debug("[debug] worker_notify(): alarm on");
+    lock_basic_alarm(condition);
+    ods_log_debug("[debug] worker_notify(): alarm off");
+    /* [UNLOCK] lock */
+    lock_basic_unlock(lock);
+    ods_log_debug("[debug] worker_notify(): unlocking lock");
     return;
 }

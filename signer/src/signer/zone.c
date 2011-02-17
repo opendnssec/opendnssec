@@ -455,54 +455,6 @@ zone_prepare_nsec3(zone_type* zone)
 
 
 /**
- * Sign zone.
- *
- */
-int
-zone_sign(zone_type* zone)
-{
-    int error = 0;
-    FILE* fd = NULL;
-    char* filename = NULL;
-    time_t start = 0;
-    time_t end = 0;
-
-    ods_log_assert(zone);
-    ods_log_assert(zone->signconf);
-    ods_log_assert(zone->zonedata);
-    ods_log_assert(zone->stats);
-
-    zone->stats->sig_count = 0;
-    zone->stats->sig_reuse = 0;
-    zone->stats->sig_time = 0;
-    start = time(NULL);
-
-    error = zonedata_sign(zone->zonedata, zone->dname, zone->signconf,
-        zone->stats);
-    if (!error) {
-        end = time(NULL);
-        zone->stats->sig_time = (end-start);
-
-/*
-        filename = ods_build_path(zone->name, ".rrsigs", 0);
-        fd = ods_fopen(filename, NULL, "w");
-        if (fd) {
-            fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-            zonedata_print_rrsig(fd, zone->zonedata);
-            fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-            ods_fclose(fd);
-        } else {
-            ods_log_warning("[%s] cannot backup RRSIG records: cannot open file "
-                "%s for writing", zone_str, filename?filename:"(null)");
-        }
-        free((void*)filename);
-*/
-    }
-    return error;
-}
-
-
-/**
  * Backup zone data.
  * \param[in] zone corresponding zone
  * \return int 0 on success, 1 on error
@@ -925,6 +877,85 @@ zone_merge(zone_type* z1, zone_type* z2)
         adtmp = NULL;
     }
     return;
+}
+
+
+/**
+ * Update serial.
+ *
+ */
+ods_status
+zone_update_serial(zone_type* zone)
+{
+    ods_status status = ODS_STATUS_OK;
+    domain_type* domain = NULL;
+    rrset_type* rrset = NULL;
+    ldns_rdf* serial = NULL;
+
+    if (!zone) {
+        ods_log_error("[%s] unable to update serial: no zone",
+            zone_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone);
+
+    if (!zone->signconf) {
+        ods_log_error("[%s] unable to update serial: no signconf",
+            zone_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->signconf);
+
+    if (!zone->zonedata) {
+        ods_log_error("[%s] unable to update serial: no zonedata",
+            zone_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->zonedata);
+
+    status = zonedata_update_serial(zone->zonedata, zone->signconf);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to update serial: failed to increment",
+            zone_str);
+        return status;
+    }
+
+    /* lookup domain */
+    domain = zonedata_lookup_domain(zone->zonedata, zone->dname);
+    if (!domain) {
+        ods_log_error("[%s] unable to update serial: apex not found",
+            zone_str);
+        return ODS_STATUS_ERR;
+    }
+    ods_log_assert(domain);
+
+    /* lookup RRset */
+    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
+    if (!rrset) {
+        ods_log_error("[%s] unable to update serial: SOA RRset not found",
+            zone_str);
+        return ODS_STATUS_ERR;
+    }
+    ods_log_assert(rrset);
+    ods_log_assert(rrset->rr_type == LDNS_RR_TYPE_SOA);
+
+    if (rrset->rrs && rrset->rrs->rr) {
+        serial = ldns_rr_set_rdf(rrset->rrs->rr,
+            ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
+            zone->zonedata->internal_serial), SE_SOA_RDATA_SERIAL);
+        if (serial) {
+            if (ldns_rdf2native_int32(serial) !=
+                zone->zonedata->internal_serial) {
+                rrset->needs_signing = 1;
+            }
+            ldns_rdf_deep_free(serial);
+         } else {
+            ods_log_error("[%s] unable to update serial: failed to replace "
+                "SOA SERIAL rdata", zone_str);
+            return ODS_STATUS_ERR;
+        }
+    }
+    return ODS_STATUS_OK;
 }
 
 

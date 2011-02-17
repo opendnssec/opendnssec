@@ -63,14 +63,6 @@ ods_status tools_commit(zone_type* zone);
 ods_status tools_nsecify(zone_type* zone);
 
 /**
- * Add RRSIG records to zone.
- * \param[in] zone zone
- * \return int 0 on success, 1 on fail
- *
- */
-int tools_sign(zone_type* zone);
-
-/**
  * Audit zone.
  * \param[in] zone zone
  * \param[in] working_dir working directory

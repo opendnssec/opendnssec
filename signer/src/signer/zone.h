@@ -128,14 +128,6 @@ ods_status zone_publish_dnskeys(zone_type* zone);
 ods_status zone_prepare_nsec3(zone_type* zone);
 
 /**
- * Sign zone.
- * \param[in] zone zone to sign
- * \return int 0 on success, 1 on error
- *
- */
-int zone_sign(zone_type* zone);
-
-/**
  * Backup zone state.
  * \param[in] zone corresponding zone
  * \return int 0 on success, 1 on error
@@ -158,6 +150,14 @@ void zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl);
  *
  */
 void zone_merge(zone_type* z1, zone_type* z2);
+
+/**
+ * Update serial.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_update_serial(zone_type* zone);
 
 /**
  * Print zone.

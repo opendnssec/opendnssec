@@ -1262,7 +1262,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
  * Update the serial.
  *
  */
-static int
+ods_status
 zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
 {
     uint32_t soa = 0;
@@ -1282,7 +1282,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
 
     if (!sc->soa_serial) {
         ods_log_error("[%s] no serial type given", zd_str);
-        return 1;
+        return ODS_STATUS_ERR;
     }
 
     if (ods_strcmp(sc->soa_serial, "unixtime") == 0) {
@@ -1302,11 +1302,11 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
             ods_log_error("[%s] cannot keep SOA SERIAL from input zone "
                 " (%u): output SOA SERIAL is %u", zd_str, soa, prev);
-            return 1;
+            return ODS_STATUS_CONFLICT_ERR;
         }
     } else {
         ods_log_error("[%s] unknown serial type %s", zd_str, sc->soa_serial);
-        return 1;
+        return ODS_STATUS_ERR;
     }
 
     /* serial is stored in 32 bits */
@@ -1323,61 +1323,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     }
     ods_log_debug("[%s] update serial: %u + %u = %u", zd_str, prev, update,
         zd->internal_serial);
-    return 0;
-}
-
-
-/**
- * Add RRSIG records to zonedata.
- *
- */
-int
-zonedata_sign(zonedata_type* zd, ldns_rdf* owner, signconf_type* sc,
-    stats_type* stats)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-    time_t now = 0;
-    hsm_ctx_t* ctx = NULL;
-    int error = 0;
-
-    ods_log_assert(sc);
-    ods_log_assert(zd);
-    ods_log_assert(zd->domains);
-
-    error = zonedata_update_serial(zd, sc);
-    if (error) {
-        ods_log_error("[%s] unable to sign zone data: failed to update serial",
-            zd_str);
-        return 1;
-    }
-
-    now = time_now();
-    ctx = hsm_create_context();
-    if (!ctx) {
-        ods_log_error("[%s] error creating libhsm context", zd_str);
-        return 2;
-    }
-
-    ods_log_debug("[%s] rrsig timers: offset=%u jitter=%u validity=%u", zd_str,
-        duration2time(sc->sig_inception_offset),
-        duration2time(sc->sig_jitter),
-        duration2time(sc->sig_validity_denial));
-
-    node = ldns_rbtree_first(zd->domains);
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        if (domain_sign(ctx, domain, owner, sc, now, zd->internal_serial,
-            stats) != 0) {
-            ods_log_error("[%s] unable to sign zone data: failed to sign domain",
-                zd_str);
-            hsm_destroy_context(ctx);
-            return 1;
-        }
-        node = ldns_rbtree_next(node);
-    }
-    hsm_destroy_context(ctx);
-    return 0;
+    return ODS_STATUS_OK;
 }
 
 

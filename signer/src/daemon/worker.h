@@ -103,16 +103,6 @@ void worker_sleep(worker_type* worker, time_t timeout);
 void worker_sleep_unless(worker_type* worker, time_t timeout);
 
 /**
- * Let worker wait.
- * \param[in] worker waiting worker
- * \param[in] lock lock to use
- * \param[in] condition condition to be met
- *
- */
-void worker_wait(worker_type* worker, lock_basic_type lock,
-    cond_basic_type condition);
-
-/**
  * Wake up worker.
  * \param[in] worker wake up this worker
  *
@@ -120,14 +110,20 @@ void worker_wait(worker_type* worker, lock_basic_type lock,
 void worker_wakeup(worker_type* worker);
 
 /**
+ * Let worker wait.
+ * \param[in] lock lock to use
+ * \param[in] condition condition to be met
+ *
+ */
+void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
+
+/**
  * Notify worker.
- * \param[in] worker notify this worker
- * \param[in] lock lock to unlock
+ * \param[in] lock lock to use
  * \param[in] condition condition that has been met
  *
  */
-void worker_notify(worker_type* worker, lock_basic_type lock,
-    cond_basic_type condition);
+void worker_notify(lock_basic_type* lock, cond_basic_type* condition);
 
 /**
  * Clean up worker.

@@ -238,21 +238,6 @@ void domain_rollback(domain_type* domain);
 void domain_dstatus(domain_type* domain);
 
 /**
- * Sign domain.
- * \param[in] ctx HSM context
- * \param[in] domain domain
- * \param[in] owner owner of the zone
- * \param[in] sc sign configuration
- * \param[in] signtime time zone is being signed
- * \param[in] serial outbound serial
- * \param[out] stats update statistics
- * \return int 0 on success, 1 on error
- *
- */
-int domain_sign(hsm_ctx_t* ctx, domain_type* domain, ldns_rdf* owner,
-    signconf_type* sc, time_t signtime, uint32_t serial, stats_type* stats);
-
-/**
  * Queue all RRsets at this domain.
  * \param[in] domain the domain
  * \param[in] q queue

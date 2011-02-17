@@ -59,12 +59,12 @@ struct rrset_struct {
     uint32_t add_count;
     uint32_t del_count;
     uint32_t rrsig_count;
+    int needs_signing;
     uint32_t internal_serial;
     ldns_dnssec_rrs* rrs;
     ldns_dnssec_rrs* add;
     ldns_dnssec_rrs* del;
     rrsigs_type* rrsigs;
-    int drop_signatures;
 };
 
 /**
@@ -185,13 +185,13 @@ void rrset_rollback(rrset_type* rrset);
  * \param[in] ctx HSM context
  * \param[in] rrset RRset
  * \param[in] owner owner of the zone
- * \param[in] sc sign configuration
- * \param[in] signtime time when the zone is signd
+ * \param[in] sc signer configuration
+ * \param[in] signtime time when the zone is being signd
  * \param[out] stats update statistics
- * \return int 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-int rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
+ods_status rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     signconf_type* sc, time_t signtime, stats_type* stats);
 
 /**
