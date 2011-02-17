@@ -199,8 +199,7 @@ AH_BOTTOM([
 	#endif
 
 	#define ODS_SE_MAXLINE 1024
-	#define ODS_SE_SIGNERTHREADS 1
-	#define ODS_SE_WORKERTHREADS 8
+	#define ODS_SE_WORKERTHREADS 4
 	#define ODS_SE_STOP_RESPONSE "Engine shut down."
 	#define ODS_SE_FILE_MAGIC ";ODSSE1"
 	#define ODS_SE_MAX_BACKOFF 3600
