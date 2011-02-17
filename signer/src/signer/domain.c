@@ -486,14 +486,14 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
                 rrs = rrset->rrs;
                 while (rrs) {
                     if (rrs->rr) {
-                        log_rr(rrs->rr, "next-to-CNAME: ", 2);
+                        log_rr(rrs->rr, "next-to-CNAME: ", 1);
                     }
                     rrs = rrs->next;
                 }
                 rrs = rrset->add;
                 while (rrs) {
                     if (rrs->rr) {
-                        log_rr(rrs->rr, "next-to-CNAME: ", 2);
+                        log_rr(rrs->rr, "next-to-CNAME: ", 1);
                     }
                     rrs = rrs->next;
                 }

@@ -180,12 +180,12 @@ rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
             case 1:
                 ods_log_error("[%s] error adding RRSIG to RRset (%i): compare failed",
                     rrset_str, rrset->rr_type);
-                log_rr(rrsig, "+RR", 2);
+                log_rr(rrsig, "+RR", 1);
                 break;
             default:
                 ods_log_error("[%s] error adding RRSIG to RRset (%i): unknown error",
                     rrset_str, rrset->rr_type);
-                log_rr(rrsig, "+RR", 2);
+                log_rr(rrsig, "+RR", 1);
                 break;
         }
     }
@@ -375,7 +375,8 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
                 ods_log_warning("[%s] unable to add RR to RRset (%i): "
                       "duplicate", rrset_str, rrset->rr_type);
                 log_rr(rr, "+rr", 2);
-                return NULL;
+                /* filter out duplicates */
+                return rr;
             } else {
                 ods_log_error("[%s] unable to add RR to RRset (%i): %s",
                     rrset_str, rrset->rr_type,
@@ -438,7 +439,8 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr, int dupallowed)
                 ods_log_warning("[%s] unable to delete RR from RRset (%i): "
                     "duplicate", rrset_str, rrset->rr_type);
                 log_rr(rr, "-rr", 2);
-                return NULL;
+                /* filter out duplicates */
+                return rr;
             } else {
                 ods_log_error("[%s] unable to delete RR from RRset (%i): %s",
                    rrset_str, rrset->rr_type,
