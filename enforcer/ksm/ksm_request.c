@@ -440,7 +440,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
                     }
                 }
 
-                (void) MsgLog(KME_NOREADYKEY);
+                (void) MsgLog(KME_NOREADYKEY, (keytype == KSM_TYPE_KSK ?  "KSK" : "ZSK"), zone_name);
                 /* TODO return here? */
             }
         }
