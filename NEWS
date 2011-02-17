@@ -6,6 +6,7 @@ Bugfixes:
 * Enforcer: Fix the migration script for SQLite. 
 * Enforcer: Increase size of keypairs(id) field in MySQL to allow more than
   32767 keys; see MIGRATION for details.
+* Enforcer: Minor change to NOT_READY_KEY error message
 * libhsm: Increase the maximum number of attached HSM:s from 10 to 100. 
 * ods-ksmutil: Send trivial MySQL messages to stdout when exporting zonelist
   etc. Otherwise the resulting XML needs to be edited by hand.
