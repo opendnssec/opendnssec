@@ -455,7 +455,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     /* how many tasks */
     now = time_now();
     strtime = ctime(&now);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i tasks scheduled\nIt is "
+    (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i tasks scheduled.\nIt is "
         "now %s", (int) cmdc->engine->taskq->tasks->count,
         strtime?strtime:"(null)");
     ods_writen(sockfd, buf, strlen(buf));

@@ -38,13 +38,6 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "signer/backup.h"
-#include "signer/zone.h"
-
-#include <ldns/ldns.h> /* ldns_dname_*(), ldns_rdf_*(), ldns_rbtree_*() */
-#include <time.h> /* ctime() */
-#include <stdio.h> /* fprintf(), snprintf() */
-#include <stdlib.h>
-#include <string.h> /* strlen() */
 
 static const char* task_str = "task";
 
@@ -128,7 +121,7 @@ task_recover_from_backup(const char* filename, void* zone)
                 task_str, filename?filename:"(null)");
             task = NULL;
         } else {
-            task = task_create((task_id) what, when, who, (zone_type*) zone);
+            task = task_create((task_id) what, when, who, (void*) zone);
             task->flush = flush;
             task->backoff = backoff;
         }

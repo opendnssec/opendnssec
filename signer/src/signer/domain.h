@@ -38,13 +38,10 @@
 #include "daemon/worker.h"
 #include "scheduler/fifoq.h"
 #include "shared/allocator.h"
-#include "shared/hsm.h"
 #include "shared/status.h"
 #include "signer/denial.h"
 #include "signer/keys.h"
 #include "signer/rrset.h"
-#include "signer/signconf.h"
-#include "signer/stats.h"
 
 #include <ldns/ldns.h>
 #include <time.h>
