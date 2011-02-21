@@ -106,28 +106,12 @@ int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
 size_t rrset_count_rr(rrset_type* rrset, int which);
 
 /**
- * Return the number of pending added RRs in RRset.
- * \param[in] rrset RRset
- * \return int number of pending added RRs
- *
- */
-int rrset_count_add(rrset_type* rrset);
-
-/**
- * Return the number of pending deleted RRs in RRset.
- * \param[in] rrset RRset
- * \return int number of pending deleted RRs
- *
- */
-int rrset_count_del(rrset_type* rrset);
-
-/**
  * Return the number of RRs in RRset after an update.
  * \param[in] rrset RRset
- * \return int number of RRs after an update
+ * \return size_t number of RRs after an update
  *
  */
-int rrset_count_RR(rrset_type* rrset);
+size_t rrset_count_RR(rrset_type* rrset);
 
 /**
  * Add RR to RRset.

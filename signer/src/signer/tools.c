@@ -33,14 +33,10 @@
 
 #include "config.h"
 #include "adapter/adapter.h"
-#include "daemon/engine.h"
 #include "shared/file.h"
-#include "shared/locks.h"
 #include "shared/log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
-
-#include <unistd.h>
 
 static const char* tools_str = "tools";
 

@@ -239,34 +239,10 @@ rrset_examine_ns_rdata(rrset_type* rrset, ldns_rdf* nsdname)
 
 
 /**
- * Return the number of pending added RRs in RRset.
- *
- */
-int
-rrset_count_add(rrset_type* rrset)
-{
-    ods_log_assert(rrset);
-    return rrset->add_count;
-}
-
-
-/**
- * Return the number of pending deleted RRs in RRset.
- *
- */
-int
-rrset_count_del(rrset_type* rrset)
-{
-    ods_log_assert(rrset);
-    return rrset->del_count;
-}
-
-
-/**
  * Return the number of RRs in RRset after an update.
  *
  */
-int
+size_t
 rrset_count_RR(rrset_type* rrset)
 {
     ods_log_assert(rrset);
