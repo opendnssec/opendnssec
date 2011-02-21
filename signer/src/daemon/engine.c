@@ -355,16 +355,8 @@ engine_stop_drudgers(engine_type* engine)
     /* tell them to exit and wake up sleepyheads */
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 1;
-/*
-*/
     }
-    worker_notify(&engine->signq->q_lock, &engine->signq->q_threshold);
-
-/*
-    lock_basic_lock(&engine->signq->q_lock);
-    lock_basic_alarm(&engine->signq->q_threshold);
-    lock_basic_unlock(&engine->signq->q_lock);
-*/
+    worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
 
     /* head count */
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {

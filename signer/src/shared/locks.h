@@ -66,6 +66,7 @@ typedef pthread_cond_t cond_basic_type;
 #define lock_basic_set(cond) LOCKRET(pthread_cond_init(cond, NULL))
 #define lock_basic_sleep(cond, lock, sleep) LOCKRET(ods_thread_wait(cond, lock, sleep))
 #define lock_basic_alarm(cond) LOCKRET(pthread_cond_signal(cond))
+#define lock_basic_broadcast(cond) LOCKRET(pthread_cond_broadcast(cond))
 #define lock_basic_off(cond) LOCKRET(pthread_cond_destroy(cond))
 
 int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
@@ -95,6 +96,7 @@ typedef int lock_basic_type;
 #define lock_basic_set(cond)       /* nop */
 #define lock_basic_sleep(cond, lock, sleep) /* nop */
 #define lock_basic_alarm(cond)     /* nop */
+#define lock_basic_broadcast(cond)     /* nop */
 #define lock_basic_off(cond)       /* nop */
 
 typedef pid_t ods_thread_type;

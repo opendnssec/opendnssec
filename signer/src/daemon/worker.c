@@ -551,9 +551,6 @@ worker_drudge(worker_type* worker)
             }
             worker_wait(&worker->engine->signq->q_lock,
                 &worker->engine->signq->q_threshold);
-
-            ods_log_debug("[%s[%i]] somebody called me?",
-                worker2str(worker->type), worker->thread_num);
         }
     }
 
@@ -674,34 +671,42 @@ worker_wakeup(worker_type* worker)
 void
 worker_wait(lock_basic_type* lock, cond_basic_type* condition)
 {
-    ods_log_debug("[debug] worker_wait(): locking lock");
     lock_basic_lock(lock);
     /* [LOCK] worker */
-    ods_log_debug("[debug] worker_wait(): sleep");
     lock_basic_sleep(condition, lock, 0);
-    ods_log_debug("[debug] worker_wait(): wake up");
     /* [UNLOCK] worker */
     lock_basic_unlock(lock);
-    ods_log_debug("[debug] worker_wait(): unlocking lock");
     return;
 }
 
 
 /**
- * Notify worker.
+ * Notify a worker.
  *
  */
 void
 worker_notify(lock_basic_type* lock, cond_basic_type* condition)
 {
-    ods_log_debug("[debug] worker_notify(): locking lock");
     lock_basic_lock(lock);
     /* [LOCK] lock */
-    ods_log_debug("[debug] worker_notify(): alarm on");
     lock_basic_alarm(condition);
-    ods_log_debug("[debug] worker_notify(): alarm off");
     /* [UNLOCK] lock */
     lock_basic_unlock(lock);
-    ods_log_debug("[debug] worker_notify(): unlocking lock");
+    return;
+}
+
+
+/**
+ * Notify all workers.
+ *
+ */
+void
+worker_notify_all(lock_basic_type* lock, cond_basic_type* condition)
+{
+    lock_basic_lock(lock);
+    /* [LOCK] lock */
+    lock_basic_broadcast(condition);
+    /* [UNLOCK] lock */
+    lock_basic_unlock(lock);
     return;
 }
