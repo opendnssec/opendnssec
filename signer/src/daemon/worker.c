@@ -134,6 +134,8 @@ worker_perform_task(worker_type* worker)
     int fallthrough = 0;
     char* working_dir = NULL;
     char* cfg_filename = NULL;
+    time_t start = 0;
+    time_t end = 0;
 
     if (!worker || !worker->task || !worker->task->zone || !worker->engine) {
         return;
@@ -232,10 +234,22 @@ worker_perform_task(worker_type* worker)
                     worker2str(worker->type), worker->thread_num,
                     task_who2str(task->who));
             } else {
+                /* start timer */
+                start = time(NULL);
+                if (zone->stats) {
+                    zone->stats->sig_count = 0;
+                    zone->stats->sig_soa_count = 0;
+                    zone->stats->sig_reuse = 0;
+                    zone->stats->sig_time = 0;
+                }
+
+                /* queue menial, hard signing work */
                 status = zonedata_queue(zone->zonedata, engine->signq, worker);
                 ods_log_debug("[%s[%i]] wait until drudgers are finished "
                     " signing zone %s", worker2str(worker->type),
                     worker->thread_num, task_who2str(task->who));
+
+                /* sleep until work is done */
                 worker_sleep_unless(worker, 0);
                 if (worker->jobs_failed > 0) {
                     ods_log_error("[%s[%i]]: sign zone %s failed: %u of %u "
@@ -247,6 +261,12 @@ worker_perform_task(worker_type* worker)
                 worker->jobs_appointed = 0;
                 worker->jobs_completed = 0;
                 worker->jobs_failed = 0;
+
+                /* stop timer */
+                end = time(NULL);
+                if (zone->stats) {
+                    zone->stats->sig_time = (end-start);
+                }
             }
 
             /* what to do next */

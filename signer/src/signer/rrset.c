@@ -737,12 +737,11 @@ rrset_rollback(rrset_type* rrset)
 
 
 /**
- * Drop signatures from RRset.
+ * Recycle signatures from RRset and drop unreusable signatures.
  *
  */
-static int
-rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
-    uint32_t* reusedsigs)
+static uint32_t
+rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
 {
     rrsigs_type* rrsigs = NULL;
     rrsigs_type* prev_rrsigs = NULL;
@@ -750,9 +749,11 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
     uint32_t refresh = 0;
     uint32_t expiration = 0;
     uint32_t inception = 0;
+    uint32_t reusedsigs = 0;
     int drop_sig = 0;
     key_type* key = NULL;
 
+    /* Calculate the Refresh Window = Signing time + Refresh */
     if (sc && sc->sig_refresh_interval) {
         refresh = (uint32_t) (signtime +
             duration2time(sc->sig_refresh_interval));
@@ -802,7 +803,7 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
                 "not passed: %u < %u (signtime)", rrset_str,
                 rrset->rr_type, inception, (uint32_t) signtime);
         } else {
-            /* 3c. Corresponding key is dead */
+            /* 3c. Corresponding key is dead (key is locator+flags) */
             key = keylist_lookup(sc->keys, rrsigs->key_locator);
             if (!key) {
                 drop_sig = 1;
@@ -835,12 +836,12 @@ rrset_recycle_rrsigs(rrset_type* rrset, signconf_type* sc, time_t signtime,
                 "signtime=%u, inception=%u, expiration=%u)", rrset_str, rrset->rr_type,
                 refresh, (uint32_t) signtime, inception, expiration);
             log_rr(rrsigs->rr, "*RRSIG", 7);
-            *reusedsigs += 1;
+            reusedsigs += 1;
             prev_rrsigs = rrsigs;
         }
         rrsigs = next_rrsigs;
     }
-    return 0;
+    return reusedsigs;
 }
 
 
@@ -973,7 +974,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     key_type* key = NULL;
     time_t inception = 0;
     time_t expiration = 0;
-    int error = 0;
 
     if (!rrset) {
         ods_log_error("[%s] unable to sign RRset: no RRset", rrset_str);
@@ -993,8 +993,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     }
     ods_log_assert(sc);
 
-    /* drop unrecyclable signatures */
-    error = rrset_recycle_rrsigs(rrset, sc, signtime, &reusedsigs);
+    /* recycle signatures */
+    reusedsigs = rrset_recycle(rrset, sc, signtime);
 
     /* transmogrify the RRset */
     rr_list = rrset2rrlist(rrset);
