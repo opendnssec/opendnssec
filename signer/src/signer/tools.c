@@ -300,18 +300,16 @@ tools_output(zone_type* zone)
     }
     ods_log_assert(zone->adoutbound);
 
-/*
     if (zone->stats) {
         if (zone->stats->sort_done == 0 &&
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
-            ods_log_verbose("[%s] skip write zone %s serial %u (zone not changed)",
-                tools_str, zone->name?zone->name:"(null)",
+            ods_log_verbose("[%s] skip write zone %s serial %u (zone not "
+                "changed)", tools_str, zone->name?zone->name:"(null)",
                 zone->zonedata->internal_serial);
             stats_clear(zone->stats);
             return ODS_STATUS_OK;
         }
     }
-*/
 
     status = adapter_write(zone);
     if (status != ODS_STATUS_OK) {
