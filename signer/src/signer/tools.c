@@ -115,6 +115,7 @@ tools_input(zone_type* zone)
     if (status == ODS_STATUS_OK && zone->stats) {
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
+	zone->stats->sort_done = 1;
     }
     return status;
 }
@@ -131,6 +132,7 @@ tools_nsecify(zone_type* zone)
     time_t start = 0;
     time_t end = 0;
     uint32_t ttl = 0;
+    uint32_t num_added = 0;
 
     if (!zone) {
         ods_log_error("[%s] unable to nsecify zone: no zone", tools_str);
@@ -152,6 +154,11 @@ tools_nsecify(zone_type* zone)
     }
     ods_log_assert(zone->signconf);
 
+    if (zone->stats) {
+        zone->stats->nsec_time = 0;
+        zone->stats->nsec_count = 0;
+    }
+
     start = time(NULL);
     /* determine NSEC(3) ttl */
     ttl = zone->zonedata->default_ttl;
@@ -168,7 +175,8 @@ tools_nsecify(zone_type* zone)
 
     /* NSEC or NSEC3? */
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
-        status = zonedata_nsecify(zone->zonedata, zone->klass, ttl);
+        status = zonedata_nsecify(zone->zonedata, zone->klass, ttl,
+            &num_added);
     } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (zone->signconf->nsec3_optout) {
             ods_log_debug("[%s] OptOut is being used for zone %s",
@@ -176,7 +184,7 @@ tools_nsecify(zone_type* zone)
         }
         ods_log_assert(zone->nsec3params);
         status = zonedata_nsecify3(zone->zonedata, zone->klass, ttl,
-            zone->nsec3params);
+            zone->nsec3params, &num_added);
     } else {
         ods_log_error("[%s] unable to nsecify zone %s: unknown RRtype %u for ",
             "denial of existence", tools_str, zone->name,
@@ -189,6 +197,7 @@ tools_nsecify(zone_type* zone)
             zone->stats->start_time = start;
         }
         zone->stats->nsec_time = (end-start);
+        zone->stats->nsec_count = num_added;
     }
     return status;
 }

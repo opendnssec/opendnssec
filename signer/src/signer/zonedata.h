@@ -210,11 +210,12 @@ ods_status zonedata_entize(zonedata_type* zd, ldns_rdf* apex);
  * \param[in] zd zone data
  * \param[in] klass zone class
  * \param[in] ttl NSEC ttl
+ * \param[out] num_added number of NSEC RRs added
  * \return ods_status status
  *
  */
 ods_status zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass,
-    uint32_t ttl);
+    uint32_t ttl, uint32_t* num_added);
 
 /**
  * Add NSEC3 records to zone data.
@@ -222,11 +223,12 @@ ods_status zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass,
  * \param[in] klass zone class
  * \param[in] ttl NSEC3 ttl
  * \param[in] nsec3params NSEC3 parameters
+ * \param[out] num_added number of NSEC3 RRs added
  * \return ods_status status
  *
  */
 ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
-    uint32_t ttl, nsec3params_type* nsec3params);
+    uint32_t ttl, nsec3params_type* nsec3params, uint32_t* num_added);
 
 /**
  * Update the serial.

@@ -273,8 +273,8 @@ zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
         return domain_recover_rrsig_from_backup(domain, rrsig, type_covered,
             locator, flags);
     }
-    ods_log_error("[%s] unable to recover RRSIG to zonedata: domain does not exist",
-        zd_str);
+    ods_log_error("[%s] unable to recover RRSIG to zonedata: domain does not "
+        "exist", zd_str);
     return 1;
 }
 
@@ -1036,7 +1036,8 @@ zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
  *
  */
 ods_status
-zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl)
+zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl,
+    uint32_t* num_added)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
@@ -1046,6 +1047,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl)
     denial_type* denial = NULL;
     denial_type* nxt = NULL;
     char* str = NULL;
+    size_t nsec_added = 0;
 
     if (!zd || !zd->domains) {
         return ODS_STATUS_OK;
@@ -1093,6 +1095,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl)
                 free((void*) str);
                 return status;
             }
+            nsec_added++;
         }
         node = ldns_rbtree_next(node);
     }
@@ -1115,6 +1118,9 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl)
         }
         node = ldns_rbtree_next(node);
     }
+    if (num_added) {
+        *num_added = nsec_added;
+    }
     return ODS_STATUS_OK;
 }
 
@@ -1125,7 +1131,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl)
  */
 ods_status
 zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
-    uint32_t ttl, nsec3params_type* nsec3params)
+    uint32_t ttl, nsec3params_type* nsec3params, uint32_t* num_added)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
@@ -1135,6 +1141,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
     denial_type* denial = NULL;
     denial_type* nxt = NULL;
     char* str = NULL;
+    size_t nsec3_added = 0;
 
     if (!zd || !zd->domains) {
         return ODS_STATUS_OK;
@@ -1212,6 +1219,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
                 free((void*) str);
                 return status;
             }
+            nsec3_added++;
         }
         node = ldns_rbtree_next(node);
 
@@ -1253,6 +1261,9 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
             return status;
         }
         node = ldns_rbtree_next(node);
+    }
+    if (num_added) {
+        *num_added = nsec3_added;
     }
     return ODS_STATUS_OK;
 }
