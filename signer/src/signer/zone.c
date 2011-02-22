@@ -510,7 +510,7 @@ zone_publish_dnskeys(zone_type* zone)
             ldns_rr_set_class(key->dnskey, zone->klass);
             ldns_rr2canonical(key->dnskey);
             dnskey = ldns_rr_clone(key->dnskey);
-            status = adapi_add_rr(zone, dnskey);
+            status = zone_add_rr(zone, dnskey, 0);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to publish dnskeys zone %s: "
                     "error adding DNSKEY[%u] for key %s", zone_str,
@@ -597,7 +597,7 @@ zone_prepare_nsec3(zone_type* zone)
     ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(nsec3params_rr, 1)), 7, 0);
 
     ldns_rr2canonical(nsec3params_rr);
-    status = adapi_add_rr(zone, nsec3params_rr);
+    status = zone_add_rr(zone, nsec3params_rr, 0);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add NSEC3PARAM RR to zone %s",
             zone_str, zone->name);
@@ -701,7 +701,7 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                     corrupted = 1;
                 } else {
                    rr = ldns_rr_clone(key->dnskey);
-                   corrupted = adapi_add_rr(zone, rr);
+                   corrupted = zone_add_rr(zone, rr, 0);
                    if (corrupted) {
                        ods_log_error("[%s] error recovering DNSKEY[%u] rr",
                           zone_str, ldns_calc_keytag(rr));
@@ -717,7 +717,7 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
                         "%s.dnskeys", zone_str, zone->name);
                     corrupted = 1;
                 } else {
-                    corrupted = adapi_add_rr(zone, rr);
+                    corrupted = zone_add_rr(zone, rr, 0);
                     if (corrupted) {
                        ods_log_error("[%s] error recovering NSEC3PARAMS rr", zone_str);
                     } else {
