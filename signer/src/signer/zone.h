@@ -103,6 +103,26 @@ struct zone_struct {
 zone_type* zone_create(char* name, ldns_rr_class klass);
 
 /**
+ * Add RR.
+ * \param[in] zone zone
+ * \param[in] rr rr
+ * \param[in] do_stats true if we need to maintain statistics
+ * \return ods_status status
+ *
+ */
+ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+
+/**
+ * Delete RR.
+ * \param[in] zone zone
+ * \param[in] rr rr
+ * \param[in] do_stats true if we need to maintain statistics
+ * \return ods_status status
+ *
+ */
+ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+
+/**
  * Load signer configuration for zone.
  * \param[in] zone zone
  * \param[out] tbs task to be scheduled
