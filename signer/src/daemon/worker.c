@@ -306,9 +306,14 @@ worker_perform_task(worker_type* worker)
                 task->interrupt = TASK_NONE;
                 task->halted = TASK_NONE;
             }
-            what = TASK_SIGN;
-            when = time_now() +
-                duration2time(zone->signconf->sig_resign_interval);
+            if (duration2time(zone->signconf->sig_resign_interval)) {
+                what = TASK_SIGN;
+                when = time_now() +
+                    duration2time(zone->signconf->sig_resign_interval);
+            } else {
+                what = TASK_NONE;
+                when = time_now() + never;
+            }
             fallthrough = 0;
             break;
         case TASK_NONE:

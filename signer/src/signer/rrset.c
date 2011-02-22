@@ -869,6 +869,7 @@ rrset_signed_with_algorithm(rrset_type* rrset, uint8_t algorithm)
     return 0;
 }
 
+
 /**
  * Transmogrify the RRset to a RRlist.
  *
