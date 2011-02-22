@@ -107,7 +107,7 @@ class AuditorTest < Test::Unit::TestCase
       # Taken out next warning, as we already have an error for expired RRSIG for this record
       #      "Signature expiration (962409629) for www.tjeb.nl, AAAA should be later than (the refresh period (120) - the resign period (60)) from now",
       "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, A, have :",
-      "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl.	3600	IN	A	1.2.3.4",
+      "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl. 3600 IN A 1.2.3.4",
       "RRSet (not.there.tjeb.nl, A) failed verification : No signatures in the RRSet : not.there.tjeb.nl, A, tag = none",
       "RRSet (tjeb.nl, RRSIG) failed verification : No RRSet to verify, tag = 1390",
       "contains invalid RR : tjeb.nl.", # DNSKEY
@@ -122,8 +122,8 @@ class AuditorTest < Test::Unit::TestCase
       # - extra NSEC for closed loop of each next domain
       # - missing NSEC for closed loop of each next domain
       "NSEC3PARAM RRs included in NSEC-signed zone",
-      "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones.	143	IN	A	123.123.123.123",
-      "Output zone does not contain out of zone RRSet : A, even.more.out.of.bailiwick.	143	IN	A	1.2.3.4",
+      "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones. 143 IN A 123.123.123.123",
+      "Output zone does not contain out of zone RRSet : A, even.more.out.of.bailiwick. 143 IN A 1.2.3.4",
       "No NSEC record for tjeb.nl",
       "NSEC record should have TTL of 3600 from zone policy //Zone/SOA/Minimum, but is bla.tjeb.nl.",
       "NSEC includes A which is not in rrsets for dragon.tjeb.nl",
@@ -278,7 +278,7 @@ class AuditorTest < Test::Unit::TestCase
       # @TODO@ Check SOA Serial == KEEP
 
       # We added the not.there.tjeb.nl record to the signed zone
-      "Number of non-DNSSEC resource records differs : 23 in test/tmp1/tjeb.nl.unsorted, and 24 in test/signer_test_bad/signed_zones/tjeb.nl.nse",
+      "Number of non-DNSSEC resource records differs : 23 in test/tmp1/tjeb.nl.inbound, and 24 in test/signer_test_bad/signed_zones/tjeb.nl.nse",
 
       "New KSK DNSKEY has incorrect algorithm (was RSASHA1) or alg_length (was 1024)"
       # @TODO@ Update online spec some time!
@@ -405,7 +405,8 @@ class AuditorTest < Test::Unit::TestCase
     }
     w.close
     ret_strings = []
-    r.each {|l| ret_strings.push(l)}
+    r.each {|l| 
+      ret_strings.push(l)}
     Process.waitpid(pid)
     ret_val = $?.exitstatus
     assert_equal(expected_ret, ret_val, "Expected return of #{expected_ret} from successful auditor run")
@@ -440,7 +441,8 @@ class AuditorTest < Test::Unit::TestCase
     }
     w.close
     ret_strings = []
-    r.each {|l| ret_strings.push(l)}
+    r.each {|l|
+      ret_strings.push(l)}
 
     Process.waitpid(pid)
 
@@ -452,7 +454,7 @@ class AuditorTest < Test::Unit::TestCase
       # Not enough pre-published KSK
       #      "Not enough prepublished KSKs! Should be 2 but have 0",
       # KSK too long in use
-      "KSK 51902 in use too long - should be max 1 seconds but has been",
+      "KSK 51902 reaching end of lifetime - should be max 1 seconds but has been",
       # ZSK too long in use
       "ZSK 52925 in use too long - should be max 1 seconds but has been",
       # SOA serial checking
