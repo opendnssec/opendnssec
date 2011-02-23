@@ -174,6 +174,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         ods_log_warning("[%s] zone %s contains out-of-zone data, skipping",
             zone_str, zone->name?zone->name:"(null)");
         /* ok, just filter */
+        ldns_rr_free(rr);
         return ODS_STATUS_OK;
     }
 
