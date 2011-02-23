@@ -203,9 +203,13 @@ se_log_vmsg(int priority, const char* t, const char* s, va_list args)
 {
     char message[ODS_SE_MAXLINE];
     static char nowstr[CTIME_LENGTH];
+    size_t len = 0;
     time_t now = time_now();
 
     vsnprintf(message, sizeof(message), s, args);
+    message[ODS_SE_MAXLINE-1] = '\0';
+    len = strlen(message);
+    message[len] = '\0';
 
 #ifdef HAVE_SYSLOG_H
     if (logging_to_syslog) {
