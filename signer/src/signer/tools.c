@@ -320,6 +320,11 @@ int tools_write_output(zone_type* zone)
             error = 1;
             break;
     }
+    if (error) {
+        return error;
+    }
+    zone_backup_state(zone);
+
     /* kick the nameserver */
     if (zone->notify_ns) {
         se_log_verbose("notify nameserver: %s", zone->notify_ns);
