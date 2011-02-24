@@ -50,6 +50,7 @@ struct rrset_struct {
     uint32_t del_count;
     uint32_t rrsig_count;
     uint32_t internal_serial;
+    int initialized;
     ldns_dnssec_rrs* rrs;
     ldns_dnssec_rrs* add;
     ldns_dnssec_rrs* del;

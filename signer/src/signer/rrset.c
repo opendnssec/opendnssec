@@ -57,6 +57,7 @@ rrset_create(ldns_rr_type rrtype)
     rrset->add_count = 0;
     rrset->del_count = 0;
     rrset->internal_serial = 0;
+    rrset->initialized = 0;
     rrset->rrs = ldns_dnssec_rrs_new();
     rrset->add = NULL;
     rrset->del = NULL;
@@ -81,6 +82,7 @@ rrset_create_frm_rr(ldns_rr* rr)
     rrset->del_count = 0;
     rrset->rrsig_count = 0;
     rrset->internal_serial = 0;
+    rrset->initialized = 0;
     rrset->rrs = ldns_dnssec_rrs_new();
     rrset->rrs->rr = rr;
     rrset->add = NULL;
@@ -356,7 +358,7 @@ rrset_update(rrset_type* rrset, uint32_t serial)
     se_log_assert(rrset);
     se_log_assert(serial);
 
-    if (DNS_SERIAL_GT(serial, rrset->internal_serial)) {
+    if (!rrset->initialized || DNS_SERIAL_GT(serial, rrset->internal_serial)) {
         /* compare del and add */
         if (rrset_compare_rrs(rrset->del, rrset->add) != 0) {
             rrset->drop_signatures = 1;
@@ -393,6 +395,7 @@ rrset_update(rrset_type* rrset, uint32_t serial)
 
         /* update serial */
         rrset->internal_serial = serial;
+        rrset->initialized = 1;
     }
     return 0;
 }

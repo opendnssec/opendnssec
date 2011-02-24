@@ -73,6 +73,7 @@ domain_create(ldns_rdf* dname)
     domain->rrsets = ldns_rbtree_create(rrset_compare);
     domain->domain_status = DOMAIN_STATUS_NONE;
     domain->internal_serial = 0;
+    domain->initialized = 0;
     domain->outbound_serial = 0;
     domain->subdomain_count = 0;
     domain->subdomain_auth = 0;
@@ -132,6 +133,7 @@ domain_recover_from_backup(FILE* fd)
     domain->rrsets = ldns_rbtree_create(rrset_compare);
     domain->domain_status = domain_status;
     domain->internal_serial = internal_serial;
+    domain->initialized = 0;
     domain->outbound_serial = outbound_serial;
     domain->subdomain_count = subdomain_count;
     domain->subdomain_auth = subdomain_auth;
@@ -472,7 +474,7 @@ domain_update(domain_type* domain, uint32_t serial)
     se_log_assert(domain);
     se_log_assert(domain->rrsets);
 
-    if (DNS_SERIAL_GT(serial, domain->internal_serial)) {
+    if (!domain->initialized || DNS_SERIAL_GT(serial, domain->internal_serial)) {
         if (domain->rrsets->root != LDNS_RBTREE_NULL) {
             node = ldns_rbtree_first(domain->rrsets);
         }
@@ -498,6 +500,7 @@ domain_update(domain_type* domain, uint32_t serial)
             }
         }
         domain->internal_serial = serial;
+        domain->initialized = 1;
     } else {
         se_log_error("cannot update domain: serial %u should be larger than "
             "domain internal serial %u", serial, domain->internal_serial);
@@ -687,6 +690,7 @@ domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
         se_log_warning("not nsecifying domain: up to date");
     }
     domain->nsec_rrset->internal_serial = domain->internal_serial;
+    domain->nsec_rrset->initialized = 1;
     return 0;
 }
 
@@ -840,10 +844,12 @@ domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
         orig_domain->outbound_serial = orig_domain->internal_serial;
         domain->outbound_serial = orig_domain->outbound_serial;
         domain->internal_serial = orig_domain->internal_serial;
+        domain->initialized = 1;
     } else {
         se_log_warning("not nsec3ifying domain: up to date");
     }
     domain->nsec_rrset->internal_serial = orig_domain->internal_serial;
+    domain->nsec_rrset->initialized = 1;
     se_free((void*)str);
     return 0;
 }
