@@ -81,6 +81,7 @@ zonedata_create(allocator_type* allocator)
     }
     ods_log_assert(zd);
 
+    zd->allocator = allocator;
     zd->domains = ldns_rbtree_create(domain_compare);
     zd->denial_chain = ldns_rbtree_create(domain_compare);
     zd->initialized = 0;
@@ -1578,18 +1579,23 @@ denial_delfunc(ldns_rbnode_t* elem)
 void
 zonedata_cleanup(zonedata_type* zd)
 {
-    if (zd) {
-        if (zd->domains) {
-            domain_delfunc(zd->domains->root);
-            ldns_rbtree_free(zd->domains);
-            zd->domains = NULL;
-        }
-        if (zd->denial_chain) {
-            denial_delfunc(zd->denial_chain->root);
-            ldns_rbtree_free(zd->denial_chain);
-            zd->denial_chain = NULL;
-        }
+    allocator_type* allocator;
+
+    if (!zd) {
+        return;
     }
+    if (zd->domains) {
+        domain_delfunc(zd->domains->root);
+        ldns_rbtree_free(zd->domains);
+        zd->domains = NULL;
+    }
+    if (zd->denial_chain) {
+        denial_delfunc(zd->denial_chain->root);
+        ldns_rbtree_free(zd->denial_chain);
+        zd->denial_chain = NULL;
+    }
+    allocator = zd->allocator;
+    allocator_deallocate(allocator, (void*) zd);
     return;
 }
 

@@ -53,62 +53,9 @@ allocator_create(void *(*allocator)(size_t size), void (*deallocator)(void *))
         ods_log_error("[%s] failed to create allocator", allocator_str);
         return NULL;
     }
-    result->max_cleanup_count = DEFAULT_INITIAL_CLEANUP_COUNT;
-    result->cleanups = (cleanup_type *) allocator(
-        result->max_cleanup_count * sizeof(cleanup_type));
-    if (!result->cleanups) {
-        deallocator(result);
-        ods_log_error("[%s] failed to create cleanups", allocator_str);
-        return NULL;
-    }
-
-    result->total_allocated = 0;
-    result->small_objects = 0;
-    result->large_objects = 0;
-    result->unused_space = 0;
-    result->chunk_size = DEFAULT_CHUNK_SIZE;
-    result->large_object_size = DEFAULT_LARGE_OBJECT_SIZE;
-    result->cleanup_count = 0;
-    result->allocated = 0;
     result->allocator = allocator;
     result->deallocator = deallocator;
-
-    /* initial data */
-    result->data = (char *) allocator(result->chunk_size);
-    if (!result->data) {
-        deallocator(result->cleanups);
-        deallocator(result);
-        ods_log_error("[%s] failed to allocate initial data", allocator_str);
-        return NULL;
-    }
-    result->initial_data = result->data;
     return result;
-}
-
-
-/**
- *
- *
- */
-static size_t
-allocator_add_cleanup(allocator_type* allocator, void* data)
-{
-    if (allocator->cleanup_count >= allocator->max_cleanup_count) {
-       cleanup_type* cleanups = (cleanup_type*) allocator->allocator(
-           2 * allocator->max_cleanup_count * sizeof(cleanup_type));
-       if (!cleanups) {
-           return 0;
-       }
-       memcpy(cleanups, allocator->cleanups,
-           allocator->cleanup_count * sizeof(cleanup_type));
-       allocator->deallocator(allocator->cleanups);
-       allocator->cleanups = cleanups,
-       allocator->max_cleanup_count *= 2;
-    }
-
-    allocator->cleanups[allocator->cleanup_count].data = data;
-    ++allocator->cleanup_count;
-    return allocator->cleanup_count;
 }
 
 
@@ -123,58 +70,15 @@ allocator_alloc(allocator_type* allocator, size_t size)
     void* result;
 
     ods_log_assert(allocator);
-
     /* align size */
     if (size == 0) {
         size = 1;
     }
-    aligned_size = ALIGN_UP(size, ALIGNMENT);
-
-    /* large objects */
-    if (aligned_size >= allocator->large_object_size) {
-        result = allocator->allocator(size);
-        if (!result) {
-            return NULL;
-        }
-        if (!allocator_add_cleanup(allocator, result)) {
-            allocator->deallocator(result);
-            return NULL;
-        }
-        allocator->total_allocated += size;
-        ++allocator->large_objects;
-        return result;
+    result = allocator->allocator(size);
+    if (!result) {
+        ods_fatal_exit("[%s] allocator failed: out of memory", allocator_str);
+        return NULL;
     }
-
-    /* new chunk? */
-    if (allocator->allocated + aligned_size > allocator->chunk_size) {
-        void* chunk = allocator->allocator(allocator->chunk_size);
-        size_t wasted;
-        if (!chunk) {
-            return NULL;
-        }
-        wasted =
-            (allocator->chunk_size - allocator->allocated) & (~(ALIGNMENT-1));
-        if (wasted >= ALIGNMENT) {
-            /* recycle wasted space */
-            ods_log_debug("[%s] wasted space: %u bytes", allocator_str,
-                wasted);
-        }
-        if (!allocator_add_cleanup(allocator, chunk)) {
-            allocator->deallocator(chunk);
-            return NULL;
-        }
-        ++allocator->chunk_count;
-        allocator->unused_space +=
-            allocator->chunk_size - allocator->allocated;
-        allocator->allocated = 0;
-        allocator->data = (char*) chunk;
-    }
-
-    result = allocator->data + allocator->allocated;
-    allocator->allocated += aligned_size;
-    allocator->total_allocated += aligned_size;
-    allocator->unused_space += aligned_size - size;
-    ++allocator->small_objects;
     return result;
 }
 
@@ -226,26 +130,15 @@ allocator_strdup(allocator_type *allocator, const char *string)
  * Deallocate memory.
  *
  */
-void allocator_deallocate(allocator_type *allocator)
+void
+allocator_deallocate(allocator_type *allocator, void* data)
 {
-    size_t i;
-
     ods_log_assert(allocator);
-    ods_log_assert(allocator->cleanups);
 
-    i = allocator->cleanup_count;
-    while (i > 0) {
-        --i;
-        allocator->deallocator(allocator->cleanups[i].data);
+    if (!data) {
+        return;
     }
-    allocator->data = allocator->initial_data;
-    allocator->cleanup_count = 0;
-    allocator->allocated = 0;
-    allocator->total_allocated = 0;
-    allocator->small_objects = 0;
-    allocator->large_objects = 0;
-    allocator->chunk_count = 1;
-    allocator->unused_space = 0;
+    allocator->deallocator(data);
     return;
 }
 
@@ -262,9 +155,6 @@ allocator_cleanup(allocator_type *allocator)
         return;
     }
     deallocator = allocator->deallocator;
-    allocator_deallocate(allocator);
-    deallocator(allocator->cleanups);
-    deallocator(allocator->initial_data);
     deallocator(allocator);
     return;
 }

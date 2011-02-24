@@ -47,6 +47,7 @@
  */
 typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
+    allocator_type* allocator;
     const char* cfg_filename;
     const char* zonelist_filename;
     const char* zonefetch_filename;
@@ -92,8 +93,10 @@ ods_status engine_config_check(engineconfig_type* config);
 void engine_config_print(FILE* out, engineconfig_type* config);
 
 /**
- * Removed cleanup function, because engine_config has own allocator.
+ * Clean up config.
+ * \param[in] config engine configuration
  *
  */
+void engine_config_cleanup(engineconfig_type* config);
 
 #endif /* DAEMON_CONFIG_H */

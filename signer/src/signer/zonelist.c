@@ -92,6 +92,7 @@ zonelist_create(allocator_type* allocator)
     }
     ods_log_assert(zlist);
 
+    zlist->allocator = allocator;
     zlist->zones = ldns_rbtree_create(zone_compare);
     zlist->last_modified = 0;
     lock_basic_init(&zlist->zl_lock);
@@ -538,13 +539,25 @@ node_delfunc(ldns_rbnode_t* elem)
 void
 zonelist_cleanup(zonelist_type* zl)
 {
-    if (zl && zl->zones) {
-        ods_log_debug("[%s] cleanup zonelist", zl_str);
+    allocator_type* allocator;
+    lock_basic_type zl_lock;
+
+    if (!zl) {
+        return;
+    }
+
+    ods_log_debug("[%s] cleanup zonelist", zl_str);
+    if (zl->zones) {
         zone_delfunc(zl->zones->root);
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
-        lock_basic_destroy(&zl->zl_lock);
     }
+
+    allocator = zl->allocator;
+    zl_lock = zl->zl_lock;
+
+    allocator_deallocate(allocator, (void*) zl);
+    lock_basic_destroy(&zl_lock);
     return;
 }
 
@@ -556,11 +569,23 @@ zonelist_cleanup(zonelist_type* zl)
 void
 zonelist_free(zonelist_type* zl)
 {
-    if (zl && zl->zones) {
-        node_delfunc(zl->zones->root);
+    allocator_type* allocator;
+    lock_basic_type zl_lock;
+
+    if (!zl) {
+        return;
+    }
+
+    ods_log_debug("[%s] cleanup zonelist", zl_str);
+    if (zl->zones) {
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
-        lock_basic_destroy(&zl->zl_lock);
     }
+
+    allocator = zl->allocator;
+    zl_lock = zl->zl_lock;
+
+    allocator_deallocate(allocator, (void*) zl);
+    lock_basic_destroy(&zl_lock);
     return;
 }

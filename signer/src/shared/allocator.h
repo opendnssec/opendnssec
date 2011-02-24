@@ -38,35 +38,10 @@
 
 #include <stdlib.h>
 
-#define DEFAULT_CHUNK_SIZE 4096
-#define DEFAULT_LARGE_OBJECT_SIZE (DEFAULT_CHUNK_SIZE / 8)
-#define DEFAULT_INITIAL_CLEANUP_COUNT 16
-#define ALIGN_UP(x, s) (((x) + s - 1) & (~(s - 1)))
-#define ALIGNMENT (sizeof(void *))
-
-
-typedef struct cleanup_struct cleanup_type;
-struct cleanup_struct {
-    void* data;
-};
-
 typedef struct allocator_struct allocator_type;
 struct allocator_struct {
-    size_t total_allocated;
-    size_t small_objects;
-    size_t large_objects;
-    size_t unused_space;
-    size_t chunk_count;
-    size_t chunk_size;
-    size_t large_object_size;
-    size_t cleanup_count;
-    size_t max_cleanup_count;
-    size_t allocated;
-    char* data;
-    char* initial_data;
     void* (*allocator)(size_t);
     void  (*deallocator)(void *);
-    cleanup_type* cleanups;
 };
 
 /**
@@ -117,9 +92,10 @@ char* allocator_strdup(allocator_type *allocator, const char *string);
 /**
  * Deallocate memory.
  * \param[in] allocator the allocator
+ * \param[in] data memory to deallocate
  *
  */
-void allocator_deallocate(allocator_type* allocator);
+void allocator_deallocate(allocator_type* allocator, void* data);
 
 /**
  * Cleanup allocator.

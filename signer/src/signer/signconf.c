@@ -70,6 +70,7 @@ signconf_create(void)
     }
     ods_log_assert(sc);
     sc->allocator = allocator;
+    sc->filename = NULL;
     /* Signatures */
     sc->sig_resign_interval = NULL;
     sc->sig_refresh_interval = NULL;
@@ -621,8 +622,12 @@ signconf_cleanup(signconf_type* sc)
     duration_cleanup(sc->soa_ttl);
     duration_cleanup(sc->soa_min);
     keylist_cleanup(sc->keys);
+
     allocator = sc->allocator;
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) sc->filename);
+    allocator_deallocate(allocator, (void*) sc->nsec3_salt);
+    allocator_deallocate(allocator, (void*) sc->soa_serial);
+    allocator_deallocate(allocator, (void*) sc);
     allocator_cleanup(allocator);
     return;
 }

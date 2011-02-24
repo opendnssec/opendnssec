@@ -73,6 +73,7 @@ worker_create(allocator_type* allocator, int num, worker_id type)
     }
 
     ods_log_debug("create worker[%i]", num +1);
+    worker->allocator = allocator;
     worker->thread_num = num +1;
     worker->engine = NULL;
     worker->task = NULL;
@@ -612,22 +613,6 @@ worker_start(worker_type* worker)
 
 
 /**
- * Clean up worker.
- *
- */
-void
-worker_cleanup(worker_type* worker)
-{
-    if (!worker) {
-        return;
-    }
-    lock_basic_destroy(&worker->worker_lock);
-    lock_basic_off(&worker->worker_alarm);
-    return;
-}
-
-
-/**
  * Put worker to sleep.
  *
  */
@@ -733,5 +718,30 @@ worker_notify_all(lock_basic_type* lock, cond_basic_type* condition)
     lock_basic_broadcast(condition);
     /* [UNLOCK] lock */
     lock_basic_unlock(lock);
+    return;
+}
+
+
+/**
+ * Clean up worker.
+ *
+ */
+void
+worker_cleanup(worker_type* worker)
+{
+    allocator_type* allocator;
+    cond_basic_type worker_cond;
+    lock_basic_type worker_lock;
+
+    if (!worker) {
+        return;
+    }
+    allocator = worker->allocator;
+    worker_cond = worker->worker_alarm;
+    worker_lock = worker->worker_lock;
+
+    allocator_deallocate(allocator, (void*) worker);
+    lock_basic_destroy(&worker_lock);
+    lock_basic_off(&worker_cond);
     return;
 }

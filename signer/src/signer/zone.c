@@ -116,16 +116,15 @@ zone_create(char* name, ldns_rr_class klass)
     if (!zone->zonedata) {
         ods_log_error("[%s] unable to create zone %s: create zonedata "
             "failed", zone_str, name);
-        allocator_deallocate(allocator);
-        allocator_cleanup(allocator);
+        zone_cleanup(zone);
+        return NULL;
     }
 
     zone->signconf = signconf_create();
     if (!zone->signconf) {
         ods_log_error("[%s] unable to create zone %s: create signconf "
             "failed", zone_str, name);
-        allocator_deallocate(allocator);
-        allocator_cleanup(allocator);
+        zone_cleanup(zone);
         return NULL;
     }
 
@@ -430,6 +429,8 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
         ods_log_debug("[%s] tbs for zone %s set to: %s", zone_str,
             zone->name, task_what2str(*tbs));
         signconf_cleanup(zone->signconf);
+        ods_log_debug("[%s] zone %s switch to new signconf", zone_str,
+            zone->name);
         zone->signconf = signconf;
         signconf_log(zone->signconf, zone->name);
         zone->zonedata->default_ttl =
@@ -1182,19 +1183,22 @@ zone_cleanup(zone_type* zone)
     if (!zone) {
         return;
     }
+
     allocator = zone->allocator;
     zone_lock = zone->zone_lock;
+
     ldns_rdf_deep_free(zone->dname);
-    free((void*)zone->notify_ns);
-    free((void*)zone->policy_name);
-    free((void*)zone->signconf_filename);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
     zonedata_cleanup(zone->zonedata);
     signconf_cleanup(zone->signconf);
     nsec3params_cleanup(zone->nsec3params);
     stats_cleanup(zone->stats);
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) zone->notify_ns);
+    allocator_deallocate(allocator, (void*) zone->policy_name);
+    allocator_deallocate(allocator, (void*) zone->signconf_filename);
+    allocator_deallocate(allocator, (void*) zone->name);
+    allocator_deallocate(allocator, (void*) zone);
     allocator_cleanup(allocator);
     lock_basic_destroy(&zone_lock);
     return;

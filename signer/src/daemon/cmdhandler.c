@@ -81,9 +81,11 @@ cmdhandler_handle_cmd_help(int sockfd)
         "Commands:\n"
         "zones           show the currently known zones.\n"
         "sign <zone>     read zone and schedule for immediate (re-)sign.\n"
-        "sign --all      read all zones and schedule all for immediate (re-)sign.\n"
+        "sign --all      read all zones and schedule all for immediate "
+                         "(re-)sign.\n"
         "clear <zone>    delete the internal storage of this zone.\n"
-        "                All signatures will be regenerated on the next re-sign.\n"
+        "                All signatures will be regenerated on the next "
+                         "re-sign.\n"
         "queue           show the current task queue.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
@@ -865,6 +867,7 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
         close(listenfd);
         return NULL;
     }
+    cmdh->allocator = allocator;
     cmdh->listen_fd = listenfd;
     cmdh->listen_addr = servaddr;
     cmdh->need_to_exit = 0;
@@ -939,3 +942,21 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     engine->cmdhandler_done = 1;
     return;
 }
+
+
+/**
+ * Cleanup command handler.
+ *
+ */
+void
+cmdhandler_cleanup(cmdhandler_type* cmdhandler)
+{
+    allocator_type* allocator;
+    if (!cmdhandler) {
+        return;
+    }
+    allocator = cmdhandler->allocator;
+    allocator_deallocate(allocator, (void*) cmdhandler);
+    return;
+}
+

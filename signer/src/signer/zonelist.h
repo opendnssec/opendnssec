@@ -48,6 +48,7 @@
  */
 typedef struct zonelist_struct zonelist_type;
 struct zonelist_struct {
+    allocator_type* allocator;
     ldns_rbtree_t* zones;
     time_t last_modified;
     int just_added;

@@ -64,6 +64,7 @@ fifoq_create(allocator_type* allocator)
     }
     ods_log_assert(fifoq);
 
+    fifoq->allocator = allocator;
     fifoq_wipe(fifoq);
     lock_basic_init(&fifoq->q_lock);
     lock_basic_set(&fifoq->q_threshold);
@@ -165,11 +166,20 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker)
 void
 fifoq_cleanup(fifoq_type* q)
 {
+    allocator_type* allocator;
+    lock_basic_type q_lock;
+    cond_basic_type q_cond;
+
     if (!q) {
         return;
     }
     ods_log_assert(q);
-    lock_basic_off(&q->q_threshold);
-    lock_basic_destroy(&q->q_lock);
+    allocator = q->allocator;
+    q_lock = q->q_lock;
+    q_cond = q->q_threshold;
+
+    allocator_deallocate(allocator, (void*) q);
+    lock_basic_off(&q_cond);
+    lock_basic_destroy(&q_lock);
     return;
 }

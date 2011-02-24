@@ -1183,7 +1183,7 @@ rrset_cleanup(rrset_type* rrset)
         rrset->rrsigs = NULL;
     }
 
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) rrset);
     allocator_cleanup(allocator);
     return;
 }

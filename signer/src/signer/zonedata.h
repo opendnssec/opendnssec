@@ -57,6 +57,7 @@
  */
 typedef struct zonedata_struct zonedata_type;
 struct zonedata_struct {
+    allocator_type* allocator;
     ldns_rbtree_t* domains;
     ldns_rbtree_t* denial_chain;
     int initialized;

@@ -66,6 +66,7 @@ schedule_create(allocator_type* allocator)
     }
     ods_log_assert(schedule);
 
+    schedule->allocator = allocator;
     schedule->loading = 0;
     schedule->tasks = ldns_rbtree_create(task_compare);
     lock_basic_init(&schedule->schedule_lock);
@@ -360,12 +361,23 @@ task_delfunc(ldns_rbnode_t* elem)
 void
 schedule_cleanup(schedule_type* schedule)
 {
-    if (schedule && schedule->tasks) {
-        ods_log_debug("[%s] cleanup schedule", schedule_str);
+    allocator_type* allocator;
+    lock_basic_type schedule_lock;
+
+    if (!schedule) {
+        return;
+    }
+    ods_log_debug("[%s] cleanup schedule", schedule_str);
+    if (schedule->tasks) {
         task_delfunc(schedule->tasks->root);
         ldns_rbtree_free(schedule->tasks);
         schedule->tasks = NULL;
-        lock_basic_destroy(&schedule->schedule_lock);
     }
+
+    allocator = schedule->allocator;
+    schedule_lock = schedule->schedule_lock;
+
+    allocator_deallocate(allocator, (void*) schedule);
+    lock_basic_destroy(&schedule_lock);
     return;
 }

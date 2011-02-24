@@ -51,6 +51,7 @@ struct engine_struct;
 
 typedef struct worker_struct worker_type;
 struct worker_struct {
+    allocator_type* allocator;
     int thread_num;
     ods_thread_type thread_id;
     struct engine_struct* engine;

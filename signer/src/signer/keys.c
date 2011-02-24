@@ -75,6 +75,7 @@ key_create(allocator_type* allocator, const char* locator, uint8_t algorithm,
     }
     ods_log_assert(key);
 
+    key->allocator = allocator;
     key->locator = allocator_strdup(allocator, locator);
     key->dnskey = NULL;
     key->hsmkey = NULL;
@@ -214,6 +215,7 @@ keylist_create(allocator_type* allocator)
     }
     ods_log_assert(kl);
 
+    kl->allocator = allocator;
     kl->count = 0;
     kl->first_key = NULL;
     return kl;
@@ -355,10 +357,11 @@ keylist_log(keylist_type* kl, const char* name)
 static void
 key_delfunc(key_type* key)
 {
+    allocator_type* allocator;
+
     if (!key) {
         return;
     }
-
     if (key->dnskey) {
         ldns_rr_free(key->dnskey);
         key->dnskey = NULL;
@@ -371,6 +374,9 @@ key_delfunc(key_type* key)
         hsm_sign_params_free(key->params);
         key->params = NULL;
     }
+    allocator = key->allocator;
+    allocator_deallocate(allocator, (void*) key->locator);
+    allocator_deallocate(allocator, (void*) key);
     return;
 }
 
@@ -383,13 +389,17 @@ void
 keylist_cleanup(keylist_type* kl)
 {
     key_type* walk = NULL;
+    allocator_type* allocator;
 
-    if (kl) {
-        walk = kl->first_key;
-        while (walk) {
-            key_delfunc(walk);
-            walk = walk->next;
-        }
+    if (!kl) {
+        return;
     }
+    walk = kl->first_key;
+    while (walk) {
+        key_delfunc(walk);
+        walk = walk->next;
+    }
+    allocator = kl->allocator;
+    allocator_deallocate(allocator, (void*) kl);
     return;
 }

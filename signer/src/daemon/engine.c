@@ -76,13 +76,12 @@ engine_create(void)
 {
     engine_type* engine;
     allocator_type* allocator = allocator_create(malloc, free);
-
     if (!allocator) {
         return NULL;
     }
     engine = (engine_type*) allocator_alloc(allocator, sizeof(engine_type));
     if (!engine) {
-        allocator->deallocator(allocator);
+        allocator_cleanup(allocator);
         return NULL;
     }
     engine->allocator = allocator;
@@ -1069,19 +1068,23 @@ engine_cleanup(engine_type* engine)
         for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
             worker_cleanup(engine->workers[i]);
         }
+        allocator_deallocate(allocator, (void*) engine->workers);
     }
     if (engine->drudgers && engine->config) {
        for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
            worker_cleanup(engine->drudgers[i]);
        }
+        allocator_deallocate(allocator, (void*) engine->drudgers);
     }
     zonelist_cleanup(engine->zonelist);
     schedule_cleanup(engine->taskq);
     fifoq_cleanup(engine->signq);
-    
-    allocator_deallocate(engine->allocator);
-    allocator_cleanup(allocator);
+    cmdhandler_cleanup(engine->cmdhandler);
+    engine_config_cleanup(engine->config);
+    allocator_deallocate(allocator, (void*) engine);
+
     lock_basic_destroy(&signal_lock);
     lock_basic_off(&signal_cond);
+    allocator_cleanup(allocator);
     return;
 }

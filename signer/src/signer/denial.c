@@ -459,7 +459,7 @@ denial_cleanup(denial_type* denial)
         denial->rrset = NULL;
     }
 
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) denial);
     allocator_cleanup(allocator);
     return;
 

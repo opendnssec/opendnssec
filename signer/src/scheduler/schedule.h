@@ -58,6 +58,7 @@
  */
 typedef struct schedule_struct schedule_type;
 struct schedule_struct {
+    allocator_type* allocator;
     ldns_rbtree_t* tasks;
     int loading; /* to determine backoff */
     lock_basic_type schedule_lock;

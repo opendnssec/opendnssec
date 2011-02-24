@@ -54,6 +54,7 @@
  */
 typedef struct key_struct key_type;
 struct key_struct {
+    allocator_type* allocator;
     const char* locator;
     ldns_rr* dnskey;
     hsm_key_t* hsmkey;
@@ -72,6 +73,7 @@ struct key_struct {
  */
 typedef struct keylist_struct keylist_type;
 struct keylist_struct {
+    allocator_type* allocator;
     size_t count;
     key_type* first_key;
 };

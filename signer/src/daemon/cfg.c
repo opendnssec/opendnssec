@@ -77,6 +77,8 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         return NULL;
     }
 
+    ecfg->allocator = allocator;
+
     /* check syntax (slows down parsing configuration file) */
     if (parse_file_check(cfgfile, rngfile) != ODS_STATUS_OK) {
         ods_log_error("[%s] failed to read: unable to parse file %s",
@@ -226,3 +228,32 @@ engine_config_print(FILE* out, engineconfig_type* config)
     }
     return;
 }
+
+
+/**
+ * Clean up config.
+ *
+ */
+void
+engine_config_cleanup(engineconfig_type* config)
+{
+    allocator_type* allocator;
+    if (!config) {
+        return;
+    }
+    allocator = config->allocator;
+    allocator_deallocate(allocator, (void*) config->cfg_filename);
+    allocator_deallocate(allocator, (void*) config->zonelist_filename);
+    allocator_deallocate(allocator, (void*) config->zonefetch_filename);
+    allocator_deallocate(allocator, (void*) config->log_filename);
+    allocator_deallocate(allocator, (void*) config->pid_filename);
+    allocator_deallocate(allocator, (void*) config->notify_command);
+    allocator_deallocate(allocator, (void*) config->clisock_filename);
+    allocator_deallocate(allocator, (void*) config->working_dir);
+    allocator_deallocate(allocator, (void*) config->username);
+    allocator_deallocate(allocator, (void*) config->group);
+    allocator_deallocate(allocator, (void*) config->chroot);
+    allocator_deallocate(allocator, (void*) config);
+    return;
+}
+

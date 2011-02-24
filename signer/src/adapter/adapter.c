@@ -239,7 +239,8 @@ adapter_cleanup(adapter_type* adapter)
         return;
     }
     allocator = adapter->allocator;
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) adapter->configstr);
+    allocator_deallocate(allocator, (void*) adapter);
     allocator_cleanup(allocator);
     return;
 }

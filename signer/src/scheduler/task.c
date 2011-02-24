@@ -192,7 +192,8 @@ task_cleanup(task_type* task)
         ldns_rdf_deep_free(task->dname);
         task->dname = NULL;
     }
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) task->who);
+    allocator_deallocate(allocator, (void*) task);
     allocator_cleanup(allocator);
     return;
 }

@@ -854,8 +854,7 @@ domain_cleanup(domain_type* domain)
         ldns_rbtree_free(domain->rrsets);
         domain->rrsets = NULL;
     }
-
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) domain);
     allocator_cleanup(allocator);
     return;
 }

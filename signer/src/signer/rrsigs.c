@@ -176,7 +176,8 @@ rrsigs_cleanup(rrsigs_type* rrsigs)
         rrsigs->rr = NULL;
     }
     allocator = rrsigs->allocator;
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) rrsigs->key_locator);
+    allocator_deallocate(allocator, (void*) rrsigs);
     allocator_cleanup(allocator);
     return;
 }

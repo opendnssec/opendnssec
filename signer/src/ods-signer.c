@@ -359,15 +359,14 @@ main(int argc, char* argv[])
     /* main stuff */
     if (cmd && ods_strcmp(cmd, "-h\n") == 0) {
         usage(stdout);
-        return 0;
     } else if (cmd && ods_strcmp(cmd, "--help\n") == 0) {
         usage(stdout);
-        return 0;
+    } else {
+        interface_start(cmd);
     }
 
-    interface_start(cmd);
-
     /* done */
+    allocator_deallocate(clialloc, (void*) cmd);
     allocator_cleanup(clialloc);
     return 0;
 }

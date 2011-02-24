@@ -243,9 +243,9 @@ nsec3params_cleanup(nsec3params_type* nsec3params)
     if (!nsec3params) {
         return;
     }
-    free((void*) nsec3params->salt_data);
     allocator = nsec3params->allocator;
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) nsec3params->salt_data);
+    allocator_deallocate(allocator, (void*) nsec3params);
     allocator_cleanup(allocator);
     return;
 }

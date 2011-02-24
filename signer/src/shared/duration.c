@@ -563,7 +563,7 @@ duration_cleanup(duration_type* duration)
         return;
     }
     allocator = duration->allocator;
-    allocator_deallocate(allocator);
+    allocator_deallocate(allocator, (void*) duration);
     allocator_cleanup(allocator);
     return;
 }
