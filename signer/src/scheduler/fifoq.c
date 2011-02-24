@@ -139,7 +139,7 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker)
     ods_log_assert(q);
 
     if (q->count >= FIFOQ_MAX_COUNT) {
-        ods_log_warning("[%s] unable to push item: max cap reached",
+        ods_log_deeebug("[%s] unable to push item: max cap reached",
             fifoq_str);
         return ODS_STATUS_UNCHANGED;
     }
