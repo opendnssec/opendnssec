@@ -16,6 +16,10 @@ Bugfixes:
 * Signer Engine: Check if the signature exists before recycling it.
 * Signer Engine: Quit when there are errors in the configuration.
 * Signer Engine: Enable core dump on failure.
+* Signer Engine: Explicitly close down log msg with null.
+* Signer Engine: Backup state after writing output.
+* Signer Engine: Allow update of serial if internal structure is not
+  initialized.
 
 
 OpenDNSSEC 1.2.0 - 2011-01-13
