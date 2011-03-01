@@ -356,7 +356,6 @@ rrset_update(rrset_type* rrset, uint32_t serial)
     ldns_status status = LDNS_STATUS_OK;
 
     se_log_assert(rrset);
-    se_log_assert(serial);
 
     if (!rrset->initialized || DNS_SERIAL_GT(serial, rrset->internal_serial)) {
         /* compare del and add */

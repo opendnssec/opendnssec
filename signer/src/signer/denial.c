@@ -226,11 +226,12 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t ttl,
             return error;
         }
         /* ...and add the new one */
-        if (!rrset_add_rr(denial->rrset, nsec_rr)) {
+        error = rrset_add_rr(denial->rrset, nsec_rr);
+        if (error) {
             se_log_alert("[%s] unable to nsecify: failed to "
                 "add NSEC to RRset", denial_str);
             ldns_rr_free(nsec_rr);
-            return 1;
+            return error;
         }
         /* commit */
         denial->rrset->initialized = 0; /* hack */
@@ -400,22 +401,23 @@ denial_nsecify3(denial_type* denial, denial_type* nxt, uint32_t ttl,
         /* delete old NSEC RR(s) */
         error = rrset_del_rrs(denial->rrset);
         if (error) {
-            se_log_alert("[%s] unable to nsecify: failed to "
-                "wipe out NSEC RRset", denial_str);
+            se_log_alert("[%s] unable to nsecify3: failed to "
+                "wipe out NSEC3 RRset", denial_str);
             return error;
         }
        /* add the new one */
-        if (!rrset_add_rr(denial->rrset, nsec_rr)) {
-            se_log_alert("[%s] unable to nsecify: failed to "
-                "add NSEC to RRset", denial_str);
-            return 1;
+        error = rrset_add_rr(denial->rrset, nsec_rr);
+        if (error) {
+            se_log_alert("[%s] unable to nsecify3: failed to "
+                "add NSEC3 to RRset", denial_str);
+            return error;
         }
         /* commit */
         denial->rrset->initialized = 0; /* hack */
         error = rrset_update(denial->rrset, 0);
         if (error) {
-            se_log_alert("[%s] unable to nsecify: failed to "
-                "commit the NSEC RRset", denial_str);
+            se_log_alert("[%s] unable to nsecify3: failed to "
+                "commit the NSEC3 RRset", denial_str);
             return error;
         }
         /* ok */

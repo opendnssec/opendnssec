@@ -35,6 +35,7 @@
 #define SIGNER_DOMAIN_H
 
 #include "config.h"
+#include "signer/denial.h"
 #include "signer/hsm.h"
 #include "signer/nsec3params.h"
 #include "signer/rrset.h"
@@ -69,17 +70,14 @@ typedef struct domain_struct domain_type;
 struct domain_struct {
     ldns_rdf* name;
     domain_type* parent;
-    domain_type* nsec3;
+    denial_type* denial;
     ldns_rbtree_t* rrsets;
-    rrset_type* nsec_rrset;
     size_t subdomain_count;
     size_t subdomain_auth;
     int domain_status;
     int initialized;
     uint32_t internal_serial;
     uint32_t outbound_serial;
-    uint8_t nsec_bitmap_changed;
-    uint8_t nsec_nxt_changed;
 };
 
 /**
@@ -203,32 +201,6 @@ void domain_cancel_update(domain_type* domain);
  *
  */
 void domain_update_status(domain_type* domain);
-
-/**
- * Add NSEC record to domain.
- * \param[in] domain domain
- * \param[in] to next domain
- * \param[in] ttl denial of existence ttl
- * \param[in] klass corresponding klass
- * \param[out] stats update statistics
- * \return int 0 on success, 1 on error
- *
- */
-int domain_nsecify(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass, stats_type* stats);
-
-/**
- * Add NSEC3 record to domain.
- * \param[in] domain domain
- * \param[in] to next domain
- * \param[in] ttl denial of existence ttl
- * \param[in] klass corresponding klass
- * \param[out] stats update statistics
- * \return int 0 on success, 1 on error
- *
- */
-int domain_nsecify3(domain_type* domain, domain_type* to, uint32_t ttl,
-    ldns_rr_class klass, nsec3params_type* nsec3params, stats_type* stats);
 
 /**
  * Sign domain.

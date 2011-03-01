@@ -252,33 +252,21 @@ zone_update_signconf(zone_type* zone, struct tasklist_struct* tl, char* buf)
         zone->task->what = signconf_compare(zone->signconf, signconf, &update);
         zone->task->when = time_now();
         if (update) {
-            /* destroy NSEC3 storage */
+            /* destroy NSEC(3) storage */
             se_log_debug("destroy old NSEC(3) records for zone %s", zone->name);
-            if (zone->zonedata && zone->zonedata->nsec3_domains) {
-                zonedata_cleanup_domains(zone->zonedata->nsec3_domains);
-                zone->zonedata->nsec3_domains = NULL;
+            if (zone->zonedata && zone->zonedata->denial_chain) {
+                zonedata_cleanup_denials(zone->zonedata->denial_chain);
+                zone->zonedata->denial_chain = NULL;
                 node = ldns_rbtree_first(zone->zonedata->domains);
                 while (node && node != LDNS_RBTREE_NULL) {
                     domain = (domain_type*) node->data;
-                    domain->nsec3 = NULL;
+                    domain->denial = NULL;
                     node = ldns_rbtree_next(node);
                 }
             }
             if (zone->nsec3params) {
                 nsec3params_cleanup(zone->nsec3params);
                 zone->nsec3params = NULL;
-            }
-            /* destroy NSEC storage */
-            if (zone->zonedata && zone->zonedata->domains) {
-                node = ldns_rbtree_first(zone->zonedata->domains);
-                while (node && node != LDNS_RBTREE_NULL) {
-                    domain = (domain_type*) node->data;
-                    if (domain->nsec_rrset) {
-                        rrset_cleanup(domain->nsec_rrset);
-                        domain->nsec_rrset = NULL;
-                    }
-                    node = ldns_rbtree_next(node);
-                }
             }
         }
 
