@@ -117,6 +117,7 @@ static int ds_flag = 0;
 static int retire_flag = 1;
 static int verbose_flag = 0;
 static int xml_flag = 1;
+static int td_flag = 0;
 
 static int restart_enforcerd(void);
 
@@ -921,7 +922,9 @@ cmd_addzone ()
     status = KsmImportZone(o_zone, policy_id, 1, &new_zone, sig_conf_name, input_name, output_name);
     if (status != 0) {
         if (status == -2) {
-            printf("Failed to Import zone; it already exists\n");
+            printf("Failed to Import zone %s; it already exists\n", o_zone);
+		} else if (status == -3) {
+            printf("Failed to Import zone %s; it already exists both with and without a trailing dot\n", o_zone);
         } else {
             printf("Failed to Import zone\n");
         }
@@ -1085,6 +1088,10 @@ cmd_delzone ()
         return(1);
     }
 
+	/* Put dot back in if we need to; delete zone is the only time we do this */
+	if (td_flag == 1) {
+		StrAppend(&o_zone, ".");
+	}
     /*
      * DO XML STUFF FIRST
      */
@@ -1100,6 +1107,7 @@ cmd_delzone ()
         }
 
         /* Read the file and delete our zone node(s) in memory */
+		/* N.B. This is deliberately _not_ trailing dot agnostic; the user will have to ask to delete the exact zone */
         doc = del_zone_node(zonelist_filename, o_zone);
         if (doc == NULL) {
             db_disconnect(lock_fd);
@@ -1424,9 +1432,16 @@ cmd_exportkeys ()
     if (o_zone != NULL) {
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
-            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            return(status);
-        }
+			/* Try again with td */
+			if (td_flag == 1) {
+				StrAppend(&o_zone, ".");
+				status = KsmZoneIdFromName(o_zone, &zone_id);
+			}
+			if (status != 0) {
+				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+				return(status);
+			}
+		}
     }
 
     status = hsm_open(config, hsm_prompt_pin, NULL);
@@ -1733,9 +1748,16 @@ cmd_rollzone ()
     }
 
     status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
-    if (status != 0) {
-        db_disconnect(lock_fd);
-        return(status);
+	if (status != 0) {
+		/* Try again with td */
+		if (td_flag == 1) {
+			StrAppend(&o_zone, ".");
+			status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
+		}
+		if (status != 0) {
+			db_disconnect(lock_fd);
+			return(status);
+		}
     }
 
     /* Get the shared_keys parameter */
@@ -1763,7 +1785,7 @@ cmd_rollzone ()
         }
     }
 
-    status = keyRoll(zone_id, policy_id, key_type);
+    status = keyRoll(zone_id, -1, key_type);
     if (status != 0) {
         db_disconnect(lock_fd);
         return(status);
@@ -1908,9 +1930,16 @@ cmd_keypurge ()
     if (o_zone != NULL) {
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
-            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            db_disconnect(lock_fd);
-            return status;
+		/* Try again with td */
+			if (td_flag == 1) {
+				StrAppend(&o_zone, ".");
+				status = KsmZoneIdFromName(o_zone, &zone_id);
+			}
+			if (status != 0) {
+				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+				db_disconnect(lock_fd);
+				return(status);
+			}
         }
     }
 
@@ -2069,9 +2098,16 @@ cmd_listrolls ()
     if (o_zone != NULL) {
         status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
-            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            db_disconnect(lock_fd);
-            return status;
+			/* Try again with td */
+			if (td_flag == 1) {
+				StrAppend(&o_zone, ".");
+				status = KsmZoneIdFromName(o_zone, &qualifier_id);
+			}
+			if (status != 0) {
+				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+				db_disconnect(lock_fd);
+				return(status);
+			}
         }
     }
 
@@ -2248,9 +2284,16 @@ cmd_listkeys ()
     if (o_zone != NULL) {
         status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
-            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            db_disconnect(lock_fd);
-            return status;
+			/* Try again with td */
+			if (td_flag == 1) {
+				StrAppend(&o_zone, ".");
+				status = KsmZoneIdFromName(o_zone, &qualifier_id);
+			}
+			if (status != 0) {
+				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+				db_disconnect(lock_fd);
+				return(status);
+			}
         }
     }
 
@@ -2327,10 +2370,17 @@ cmd_kskretire()
     if (o_zone != NULL) {
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
-            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            db_disconnect(lock_fd);
-            StrFree(datetime);
-            return status;
+			/* Try again with td */
+			if (td_flag == 1) {
+				StrAppend(&o_zone, ".");
+				status = KsmZoneIdFromName(o_zone, &zone_id);
+			}
+			if (status != 0) {
+				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+				db_disconnect(lock_fd);
+				StrFree(datetime);
+				return(status);
+			}
         }
     }
 
@@ -2541,15 +2591,22 @@ cmd_dsseen()
         db_disconnect(lock_fd);
         return(-1);
     } 
-    else if (o_zone != NULL) {
-        status = KsmZoneIdFromName(o_zone, &zone_id);
-        if (status != 0) {
-            printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-            db_disconnect(lock_fd);
-            StrFree(datetime);
-            return status;
-        }
-    }
+	else if (o_zone != NULL) {
+		status = KsmZoneIdFromName(o_zone, &zone_id);
+		if (status != 0) {
+			/* Try again with td */
+			if (td_flag == 1) {
+				StrAppend(&o_zone, ".");
+				status = KsmZoneIdFromName(o_zone, &zone_id);
+			}
+			if (status != 0) {
+				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+				db_disconnect(lock_fd);
+				StrFree(datetime);
+				return(status);
+			}
+		}
+	}
     else if (all_flag) {
         printf("*WARNING* This will act on every zone where this key is in use; are you sure? [y/N] ");
 
@@ -2792,12 +2849,19 @@ cmd_import ()
     }
 
     /* check that the zone name is valid and use it to get some ids */
-    status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
-    if (status != 0) {
-        printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
-        db_disconnect(lock_fd);
-        return(status);
-    }
+	status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
+	if (status != 0) {
+		/* Try again with td */
+		if (td_flag == 1) {
+			StrAppend(&o_zone, ".");
+			status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
+		}
+		if (status != 0) {
+			printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
+			db_disconnect(lock_fd);
+			return(status);
+		}
+	}
 
     /* Check that the cka_id does not exist (in the specified HSM) */
     status = (KsmCheckHSMkeyID(repo_id, o_cka_id, &cka_id_exists));
@@ -3438,7 +3502,13 @@ main (int argc, char *argv[])
                 o_retire = StrStrdup(optarg);
                 break;
             case 'z':
+				/* Remove trailing dot here */
                 o_zone = StrStrdup(optarg);
+				if (strlen(o_zone) > 1 && o_zone[strlen(o_zone)-1] == '.') {
+					o_zone[strlen(o_zone)-1] = '\0';
+					td_flag = 1;
+				}
+
                 break;
             default:
                 usage();
@@ -4624,6 +4694,16 @@ int update_zones(char* zone_list_filename)
                 temp_char = (char*) xmlTextReaderGetAttribute(reader, name_expr);
                 StrAppend(&zone_name, temp_char);
                 StrFree(temp_char);
+
+				/* 
+				   It is tempting to remove the trailing dot here; however I am 
+				   not sure that it is the right thing to do... It trashed my 
+				   test setup by deleting the zone sion. and replacing it with 
+				   sion (but of course none of the keys were moved). I think 
+				   that allowing people to edit zonelist.xml means that we must 
+				   allow them to add the td if they want to. 
+				 */
+
                 /* Make sure that we got something */
                 if (zone_name == NULL) {
                     /* error */
@@ -4738,7 +4818,11 @@ int update_zones(char* zone_list_filename)
                  */
                 status = KsmImportZone(zone_name, policy_id, 0, &new_zone, current_signconf, current_input, current_output);
                 if (status != 0) {
-                    printf("Error Importing Zone %s\n", zone_name);
+					if (status == -3) {
+						printf("Error Importing zone %s; it already exists both with and without a trailing dot\n", zone_name);
+					} else {
+						printf("Error Importing Zone %s\n", zone_name);
+					}
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
                     continue;
@@ -4761,6 +4845,7 @@ int update_zones(char* zone_list_filename)
                 status = KsmZoneIdFromName(zone_name, &temp_id);
                 if (status != 0) {
                     printf("Error: unable to find a zone named \"%s\" in database\n", zone_name);
+                    printf("Error: Possibly two domains differ only by having a trailing dot or not?\n");
                     StrFree(zone_ids);
                     return(status);
                 }

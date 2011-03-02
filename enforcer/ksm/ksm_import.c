@@ -200,24 +200,38 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
  *          Status return.  0 on success.
  *                         -1 if an unexpected count value was returned
  *                         -2 if the zone exists and fail_if_exists == 1
+ *                         -3 if the zone exists with and without a trailing dot
 -*/
-
 int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone, const char* signconf, const char* input, const char* output)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
     int         count = 0;      /* Do we already have a zone with this name? */
+	char*		zone_name_td = NULL; /* zone name with td swapped */
+	char 		in_clause[KSM_SQL_SIZE]; /* in part of where clause */
 
     /* check the arguments */
     if (zone_name == NULL || policy_id == 0) {
         return MsgLog(KSM_INVARG, "NULL zone name or policy");
     }
 
+	/* make copy of zone_name with opposite td to original (unless original is 
+	   "."; in which case the copy is identical */
+	zone_name_td = StrStrdup(zone_name);
+	if (strlen(zone_name_td) > 1 && zone_name_td[strlen(zone_name_td)-1] == '.') {
+		zone_name_td[strlen(zone_name_td)-1] = '\0';
+	} 
+	else if (strlen(zone_name_td) > 1) {
+		StrAppend(&zone_name_td, ".");
+	}
+
+	snprintf(in_clause, KSM_SQL_SIZE, "(\"%s\",\"%s\")", zone_name, zone_name_td);
+
     /* 
      * First see if this zone exists
      */
     sql = DqsCountInit(DB_ZONE_TABLE);
-    DqsConditionString(&sql, "NAME", DQS_COMPARE_EQ, zone_name, 0);
+    DqsConditionKeyword(&sql, "NAME", DQS_COMPARE_IN, in_clause, 0);
     DqsEnd(&sql);
 
     /* Execute query and free up the query string */
@@ -264,6 +278,10 @@ int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int 
 
         *new_zone = 0;
     }
+	else if (count == 2)
+	{
+		return -3;
+	}
     else
     {
         return -1;
