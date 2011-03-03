@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "signer/backup.h"
 #include "util/duration.h"
 #include "util/file.h"
 #include "util/log.h"
@@ -87,7 +88,7 @@ backup_read_check_str(FILE* in, const char* str)
  *
  */
 int
-backup_read_str(FILE* in, char** str)
+backup_read_str(FILE* in, const char** str)
 {
     char *p = backup_read_token(in);
     if (!p) {
@@ -171,8 +172,8 @@ backup_read_int(FILE* in, int* v)
  * Read size type from backup file.
  *
  */
-size_t
-backup_read_size_t(FILE* in, int* v)
+int
+backup_read_size_t(FILE* in, size_t* v)
 {
     char* p = backup_read_token(in);
     if (!p) {

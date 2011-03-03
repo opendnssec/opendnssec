@@ -336,8 +336,13 @@ main(int argc, char* argv[])
 {
     int c;
     int options_size = 0;
-    const char* options[sizeof(argv)];
+    const char* options[4];
     char* cmd = NULL;
+
+    if (argc > 3) {
+        fprintf(stderr,"error, too many arguments\n");
+        exit(1);
+    }
 
     /* command line options */
     for (c = 0; c < argc; c++) {
