@@ -1068,7 +1068,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl,
             domain->dstatus == DOMAIN_STATUS_OCCLUDED ||
             domain_count_rrset(domain) <= 0) {
             str = ldns_rdf2str(domain->dname);
-            ods_log_deeebug("[%s] nsecify3: don't do %s domain %s", zd_str,
+            ods_log_deeebug("[%s] nsecify: don't do %s domain %s", zd_str,
                 domain_count_rrset(domain)?"glue":"emtpy", str?str:"(null)");
             free((void*) str);
             if (domain->denial) {
@@ -1222,7 +1222,6 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
             }
             nsec3_added++;
         }
-        node = ldns_rbtree_next(node);
 
         /* The Next Hashed Owner Name field is left blank for the moment. */
 
@@ -1243,6 +1242,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
          * domain->nsec3_wildcard = denial_create(hashed_ownername);
         **/
 
+        node = ldns_rbtree_next(node);
     }
 
     /** Now we have the complete denial of existence chain */
