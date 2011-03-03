@@ -64,6 +64,27 @@ struct denial_struct {
 denial_type* denial_create(ldns_rdf* owner);
 
 /**
+ * Recover Denial of Existence data point from backup.
+ * \param[in] fd backup file descriptor
+ * \return denial_type* recovered denial of existence data
+ *
+ */
+denial_type* denial_recover_from_backup(FILE* fd);
+
+/**
+ * Recover RRSIG from backup.
+ * \param[in] denial Denial of Existence data point
+ * \param[in] rrsig RRSIG
+ * \param[in] type_covered RRtype that is covered by rrsig
+ * \param[in] locator key locator
+ * \param[in] flags key flags
+ * \return int 0 on success, 1 on error
+ *
+ */
+int denial_recover_rrsig_from_backup(denial_type* denial, ldns_rr* rrsig,
+    ldns_rr_type type_covered, const char* locator, uint32_t flags);
+
+/**
  * Add NSEC to the Denial of Existence data point.
  * \param[in] denial Denial of Existence data point
  * \param[in] nxt next Denial of Existence data point

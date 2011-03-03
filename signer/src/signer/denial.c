@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "signer/backup.h"
 #include "signer/denial.h"
 #include "signer/domain.h"
 #include "signer/nsec3params.h"
@@ -79,6 +80,86 @@ denial_create(ldns_rdf* owner)
     denial->rrset = NULL;
     denial->domain = NULL;
     return denial;
+}
+
+
+/**
+ * Recover denial from backup.
+ *
+ */
+denial_type*
+denial_recover_from_backup(FILE* fd)
+{
+    denial_type* denial = NULL;
+    const char* name = NULL;
+    uint32_t internal_serial = 0;
+    uint32_t outbound_serial = 0;
+    int domain_status = DOMAIN_STATUS_NONE;
+    size_t subdomain_count = 0;
+    size_t subdomain_auth = 0;
+    int nsec_bitmap_changed = 0;
+    int nsec_nxt_changed = 0;
+
+    se_log_assert(fd);
+
+    /* Read everything, don't use everything */
+    if (!backup_read_str(fd, &name) ||
+        !backup_read_uint32_t(fd, &internal_serial) ||
+        !backup_read_uint32_t(fd, &outbound_serial) ||
+        !backup_read_int(fd, &domain_status) ||
+        !backup_read_size_t(fd, &subdomain_count) ||
+        !backup_read_size_t(fd, &subdomain_auth) ||
+        !backup_read_int(fd, &nsec_bitmap_changed) ||
+        !backup_read_int(fd, &nsec_nxt_changed)) {
+        se_log_error("domain part in backup file is corrupted");
+        if (name) {
+            se_free((void*)name);
+        }
+        return NULL;
+    }
+
+    denial = (denial_type*) se_malloc(sizeof(denial_type));
+    se_log_assert(name);
+    denial->owner = ldns_dname_new_frm_str(name);
+    if (!denial->owner) {
+        se_log_error("failed to create owner for denial");
+        se_free((void*)name);
+        se_free((void*)denial);
+        return NULL;
+    }
+    denial->domain = NULL;
+    denial->rrset = NULL;
+    denial->bitmap_changed = nsec_bitmap_changed;
+    denial->nxt_changed = nsec_nxt_changed;
+
+    se_free((void*)name);
+    return denial;
+}
+
+
+/**
+ * Recover RRSIG from backup.
+ *
+ */
+int
+denial_recover_rrsig_from_backup(denial_type* denial, ldns_rr* rrsig,
+    ldns_rr_type type_covered, const char* locator, uint32_t flags)
+{
+    se_log_assert(rrsig);
+    se_log_assert(denial);
+    se_log_assert(denial->owner);
+    se_log_assert(denial->rrset);
+    se_log_assert((ldns_dname_compare(denial->owner,
+        ldns_rr_owner(rrsig)) == 0));
+
+    if (type_covered == LDNS_RR_TYPE_NSEC ||
+        type_covered == LDNS_RR_TYPE_NSEC3) {
+        return rrset_recover_rrsig_from_backup(denial->rrset,
+            rrsig, locator, flags);
+    } else {
+        se_log_error("unable to recover RRSIG to denial: type covered not NSEC(3)");
+    }
+    return 1;
 }
 
 

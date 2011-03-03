@@ -86,7 +86,7 @@ domain_create(ldns_rdf* dname)
  *
  */
 domain_type*
-domain_recover_from_backup(FILE* fd)
+domain_recover_from_backup(FILE* fd, int* curnxt, int* curbm)
 {
     domain_type* domain = NULL;
     const char* name = NULL;
@@ -133,11 +133,6 @@ domain_recover_from_backup(FILE* fd)
     domain->outbound_serial = outbound_serial;
     domain->subdomain_count = subdomain_count;
     domain->subdomain_auth = subdomain_auth;
-/* RECOVER DENIAL OF EXISTENCE
-    domain->nsec_rrset = NULL;
-    domain->nsec_bitmap_changed = nsec_bitmap_changed;
-    domain->nsec_nxt_changed = nsec_nxt_changed;
-*/
     se_log_deeebug("recovered domain %s internal_serial=%u, "
         "outbound_serial=%u, domain_status=%i, nsec_status=(%i, %i)",
         name, domain->internal_serial, domain->outbound_serial,
@@ -145,6 +140,12 @@ domain_recover_from_backup(FILE* fd)
         nsec_nxt_changed);
 
     se_free((void*)name);
+    if (curnxt) {
+        *curnxt = nsec_nxt_changed;
+    }
+    if (curbm) {
+        *curbm = nsec_bitmap_changed;
+    }
     return domain;
 }
 
@@ -941,8 +942,13 @@ domain_print_nsec(FILE* fd, domain_type* domain)
     char* str = NULL;
     int nsec_bitmap_changed = 0;
     int nsec_nxt_changed = 0;
+    ldns_rr* rr = NULL;
 
-/* PRINT DENIAL OF EXISTENCE */
+    if (domain->denial) {
+        nsec_bitmap_changed = domain->denial->bitmap_changed;
+        nsec_nxt_changed = domain->denial->nxt_changed;
+    }
+
     str = ldns_rdf2str(domain->name);
     fprintf(fd, ";DNAME %s %u %u %i %i %i %i %i\n", str,
         domain->internal_serial, domain->outbound_serial,
@@ -953,25 +959,23 @@ domain_print_nsec(FILE* fd, domain_type* domain)
 
     if (domain->denial && domain->denial->rrset &&
         domain->denial->rrset->rrs && domain->denial->rrset->rrs->rr) {
-        fprintf(fd, ";NSEC\n");
-        ldns_rr_print(fd, domain->denial->rrset->rrs->rr);
-/*
-    } else if (domain->nsec3) {
-        domain = domain->nsec3;
-        str = ldns_rdf2str(domain->name);
-        fprintf(fd, ";DNAME3 %s %u %u %i %i %i %i %i\n", str,
-            domain->internal_serial, domain->outbound_serial,
-            (int) domain->domain_status,
-            (int) domain->subdomain_count, (int) domain->subdomain_auth,
-            domain->nsec_bitmap_changed, domain->nsec_nxt_changed);
-        se_free((void*) str);
 
-        if (domain->nsec_rrset && domain->nsec_rrset->rrs &&
-            domain->nsec_rrset->rrs->rr) {
+        rr = domain->denial->rrset->rrs->rr;
+        if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_NSEC3) {
+            str = ldns_rdf2str(domain->denial->owner);
+            fprintf(fd, ";DNAME3 %s %u %u %i %i %i %i %i\n", str,
+                domain->internal_serial, domain->outbound_serial,
+                DOMAIN_STATUS_HASH, 0, 0, nsec_bitmap_changed,
+                nsec_nxt_changed);
+            se_free((void*) str);
+
             fprintf(fd, ";NSEC3\n");
-            ldns_rr_print(fd, domain->nsec_rrset->rrs->rr);
+
+
+        } else {
+            fprintf(fd, ";NSEC\n");
         }
-*/
+        ldns_rr_print(fd, rr);
     }
     return;
 }

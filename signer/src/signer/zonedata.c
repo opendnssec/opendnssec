@@ -78,6 +78,7 @@ zonedata_create(void)
 
 
 static ldns_rbnode_t* domain2node(domain_type* domain);
+static ldns_rbnode_t* denial2node(denial_type* denial);
 
 /**
  * Recover zone data from backup.
@@ -93,6 +94,8 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
     ldns_rr* rr = NULL;
     ldns_status status = LDNS_STATUS_OK;
     ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
+    int current_nxt = 0;
+    int current_bm = 0;
 
     se_log_assert(zd);
     se_log_assert(fd);
@@ -104,7 +107,8 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
             if (se_strcmp(token, ";DNAME") == 0) {
-                current_domain = domain_recover_from_backup(fd);
+                current_domain = domain_recover_from_backup(fd, &current_nxt,
+                    &current_bm);
                 if (!current_domain) {
                     se_log_error("error reading domain from backup file");
                     corrupted = 1;
@@ -134,28 +138,25 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                 }
             } else if (se_strcmp(token, ";DNAME3") == 0) {
                 se_log_assert(current_domain);
-/* RECOVER NSEC3 DENIAL OF EXISTENCE
-                current_domain->nsec3 = domain_recover_from_backup(fd);
-                if (!current_domain->nsec3) {
+                current_domain->denial = denial_recover_from_backup(fd);
+                if (!current_domain->denial) {
                     se_log_error("error reading nsec3 domain from backup file");
                     corrupted = 1;
                 } else {
-                    current_domain->nsec3->nsec3 = current_domain;
-                    new_node = domain2node(current_domain->nsec3);
-                    if (!zd->nsec3_domains) {
-                        zd->nsec3_domains = ldns_rbtree_create(domain_compare);
+                    current_domain->denial->domain = current_domain;
+                    new_node = denial2node(current_domain->denial);
+                    if (!zd->denial_chain) {
+                        zd->denial_chain = ldns_rbtree_create(domain_compare);
                     }
 
-                    if (ldns_rbtree_insert(zd->nsec3_domains, new_node) == NULL) {
+                    if (ldns_rbtree_insert(zd->denial_chain, new_node) == NULL) {
                         se_log_error("error adding nsec3 domain from backup file");
                         se_free((void*)new_node);
                         corrupted = 1;
                     }
                     new_node = NULL;
                 }
-*/
             } else if (se_strcmp(token, ";NSEC") == 0) {
-/* RECOVER NSEC DENIAL OF EXISTENCE
                 status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
                 if (status != LDNS_STATUS_OK) {
                     se_log_error("error reading NSEC RR from backup file");
@@ -165,17 +166,36 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                     corrupted = 1;
                 } else {
                     se_log_assert(current_domain);
-                    current_domain->nsec_rrset = rrset_create_frm_rr(rr);
-                    if (!current_domain->nsec_rrset) {
-                        se_log_error("error adding NSEC RR from backup file");
+                    current_domain->denial = denial_create(current_domain->name);
+                    if (!current_domain->denial) {
+                        se_log_error("error reading nsec domain from backup file");
                         corrupted = 1;
+                    } else {
+                        current_domain->denial->domain = current_domain;
+                        current_domain->denial->nxt_changed = current_nxt;
+                        current_domain->denial->bitmap_changed = current_bm;
+                        new_node = denial2node(current_domain->denial);
+                        if (!zd->denial_chain) {
+                            zd->denial_chain = ldns_rbtree_create(domain_compare);
+                        }
+                        if (ldns_rbtree_insert(zd->denial_chain, new_node) == NULL) {
+                            se_log_error("error adding nsec domain from backup file");
+                            se_free((void*)new_node);
+                            corrupted = 1;
+                        }
+                        new_node = NULL;
+
+                        current_domain->denial->rrset = rrset_create_frm_rr(rr);
+                        if (!current_domain->denial->rrset) {
+                            se_log_error("error adding NSEC RR from backup file");
+                            corrupted = 1;
+                        }
                     }
                 }
-*/
+
                 rr = NULL;
                 status = LDNS_STATUS_OK;
             } else if (se_strcmp(token, ";NSEC3") == 0) {
-/* RECOVER NSEC3 DENIAL OF EXISTENCE
                 status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
                 if (status != LDNS_STATUS_OK) {
                     se_log_error("error reading NSEC3 RR from backup file");
@@ -185,14 +205,13 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
                     corrupted = 1;
                 } else {
                     se_log_assert(current_domain);
-                    se_log_assert(current_domain->nsec3);
-                    current_domain->nsec3->nsec_rrset = rrset_create_frm_rr(rr);
-                    if (!current_domain->nsec3->nsec_rrset) {
+                    se_log_assert(current_domain->denial);
+                    current_domain->denial->rrset = rrset_create_frm_rr(rr);
+                    if (!current_domain->denial->rrset) {
                         se_log_error("error adding NSEC3 RR from backup file");
                         corrupted = 1;
                     }
                 }
-*/
                 rr = NULL;
                 status = LDNS_STATUS_OK;
             } else if (se_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
@@ -1496,6 +1515,7 @@ zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
     const char* locator, uint32_t flags)
 {
     domain_type* domain = NULL;
+    denial_type* denial = NULL;
     ldns_rr_type type_covered;
 
     se_log_assert(zd);
@@ -1505,13 +1525,17 @@ zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
     type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rrsig));
     if (type_covered == LDNS_RR_TYPE_NSEC3 ||
         type_covered == LDNS_RR_TYPE_NSEC) {
-        domain = zonedata_lookup_denial(zd, ldns_rr_owner(rrsig));
+        denial = zonedata_lookup_denial(zd, ldns_rr_owner(rrsig));
+        if (denial) {
+            return denial_recover_rrsig_from_backup(denial, rrsig, type_covered,
+                locator, flags);
+        }
     } else {
         domain = zonedata_lookup_domain(zd, ldns_rr_owner(rrsig));
-    }
-    if (domain) {
-        return domain_recover_rrsig_from_backup(domain, rrsig, type_covered,
-            locator, flags);
+        if (domain) {
+            return domain_recover_rrsig_from_backup(domain, rrsig, type_covered,
+                locator, flags);
+        }
     }
     se_log_error("unable to recover RRSIG to zonedata: domain does not exist");
     return 1;

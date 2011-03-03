@@ -91,10 +91,12 @@ domain_type* domain_create(ldns_rdf* dname);
 /**
  * Recover domain from backup.
  * \param[in] fd backup file descriptor
+ * \param[out] curnxt if denial nxt changed
+ * \param[out] curbm if denial bitmap changed
  * \return domain_type* recovered domain
  *
  */
-domain_type* domain_recover_from_backup(FILE* fd);
+domain_type* domain_recover_from_backup(FILE* fd, int* curnxt, int* curbm);
 
 /**
  * Lookup a RRset within the domain.
