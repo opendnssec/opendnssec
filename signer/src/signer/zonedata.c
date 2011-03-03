@@ -1407,9 +1407,9 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
                 se_log_deeebug("obsoleted domain: #rrset=%i, status=%i",
                     domain_count_rrset(domain), domain->domain_status);
                 domain = zonedata_del_domain(zd, domain);
-            }
-            if (domain) {
-                se_log_error("failed to delete obsoleted domain");
+                if (domain) {
+                    se_log_error("failed to delete obsoleted domain");
+                }
             }
             while (parent && domain_count_rrset(parent) <= 0) {
                 domain = parent;
