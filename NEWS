@@ -3,6 +3,8 @@ $Id$
 OpenDNSSEC 1.2.1 - 2011-0X-XX
 
 Bugfixes:
+* Auditor: 'make check' now works when srcdir != builddir.
+* Auditor: Include the 'make check' files in the tarball.
 * Enforcer: Fix the migration script for SQLite. 
 * Enforcer: Increase size of keypairs(id) field in MySQL to allow more than
   32767 keys; see MIGRATION for details.

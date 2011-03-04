@@ -3,11 +3,6 @@
 ACLOCAL_AMFLAGS = -I m4
 RDOC = rdoc
 
-EXTRA_DIST = \
-	$(srcdir)/lib/*.rb \
-	$(srcdir)/lib/kasp_auditor/*.rb \
-	$(srcdir)/sorttest.txt
-
 MAINTAINERCLEANFILES = \
 	config.log config.status \
 	$(srcdir)/Makefile.in \
@@ -32,7 +27,7 @@ install-data-hook:
 
 
 check: prepare-test
-	$(RUBY) -I $(srcdir)/lib $(srcdir)/test_scripts/auditor_test.rb
+	$(RUBY) -I $(srcdir)/lib -I $(builddir)/lib $(srcdir)/test_scripts/auditor_test.rb
 
 prepare-test:
 	test -d test || (cd $(srcdir); \
@@ -45,3 +40,28 @@ rdoc:
 		--exclude ${srcdir}/test \
 		--exclude ${builddir}/test \
 		${srcdir} ${builddir}
+
+EXTRA_DIST =	$(srcdir)/lib/*.rb \
+		$(srcdir)/lib/kasp_auditor/*.rb \
+		$(srcdir)/sorttest.txt \
+		$(srcdir)/test_scripts/*.rb \
+		$(srcdir)/test/kaspcheck_bad/*.xml \
+		$(srcdir)/test/kaspcheck_good/*.xml \
+		$(srcdir)/test/signer_test_bad/*.xml \
+		$(srcdir)/test/signer_test_bad/*.partial \
+		$(srcdir)/test/signer_test_bad/signed_zones/*.nsec \
+		$(srcdir)/test/signer_test_bad/signed_zones/*.nsec3 \
+		$(srcdir)/test/signer_test_bad/zone_config/*.nsec \
+		$(srcdir)/test/signer_test_bad/zone_config/*.nsec3 \
+		$(srcdir)/test/signer_test_bad/zone_config/*.partial \
+		$(srcdir)/test/signer_test_good/*.xml \
+		$(srcdir)/test/signer_test_good/signed_zones/*.nsec \
+		$(srcdir)/test/signer_test_good/signed_zones/*.nsec3 \
+		$(srcdir)/test/signer_test_good/zone_config/*.nsec \
+		$(srcdir)/test/signer_test_good/zone_config/*nsec3 \
+		$(srcdir)/test/tmp/*.unsorted \
+		$(srcdir)/test/tmp1/*.unsorted \
+		$(srcdir)/test/tmp2/*.unsorted \
+		$(srcdir)/test/tmp3/*.unsorted \
+		$(srcdir)/test/tmp3/tracker/*.nl \
+		$(srcdir)/test/tmp3/tracker/*.config
