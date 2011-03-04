@@ -6,6 +6,7 @@ OpenDNSSEC 1.3.0
 
 Bugfixes:
 * Auditor: 'make check' now works when srcdir != builddir.
+* Auditor: Include the 'make check' files in the tarball.
 * Replace tab with white-space when writing to syslog.
 * Enforcer: Stop import of policy if it is not consistent.
 * Signer Engine: do not block update command while signing.
