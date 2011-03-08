@@ -926,7 +926,18 @@ module KASPAuditor
       hashed_domain = RR::NSEC3.calculate_hash(domain, iterations,
         RR::NSEC3.decode_salt(salt), hash_alg)
       File.open(@working + "#{File::SEPARATOR}audit.types.#{Process.pid}", "a") { |f|
-        f.write("#{hashed_domain+"."+@soa.name.to_s} #{domain} #{types_string}\n")
+        hashed_name = hashed_domain+"."+@soa.name.to_s
+        if (@soa.name.to_s == "")
+          hashed_name = hashed_domain
+          if (hashed_name == "")
+            hashed_name = "."
+          end
+        end
+        domain_string = domain
+        if (domain.to_s == "")
+          domain_string = "."
+        end
+        f.write("#{hashed_name} #{domain_string} #{types_string}\n")
       }
     end
 
