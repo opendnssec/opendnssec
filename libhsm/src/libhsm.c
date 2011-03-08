@@ -1816,7 +1816,6 @@ hsm_open(const char *config,
     xmlXPathFreeObject(xpath_obj);
     xmlXPathFreeContext(xpath_ctx);
     xmlFreeDoc(doc);
-    xmlCleanupParser();
 
     if (result == HSM_OK && repositories == 0) {
         hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
