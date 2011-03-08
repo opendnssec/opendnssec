@@ -586,7 +586,7 @@ rrset_commit_del(rrset_type* rrset, ldns_rr* rr)
 
             rrset->rr_count -= 1;
             rrset->del_count -= 1;
-            log_rr(rr, "-RR", 3);
+            log_rr(rr, "-RR", 6);
             return ODS_STATUS_OK;
         }
 
@@ -629,7 +629,7 @@ rrset_commit_add(rrset_type* rrset, ldns_rr* rr)
         rrset->rrs->rr = rr;
         rrset->rr_count += 1;
         rrset->add_count -= 1;
-        log_rr(rr, "+RR", 3);
+        log_rr(rr, "+RR", 6);
         return ODS_STATUS_OK;
     } else {
         status = util_dnssec_rrs_add_rr(rrset->rrs, rr);
@@ -646,7 +646,7 @@ rrset_commit_add(rrset_type* rrset, ldns_rr* rr)
                 return ODS_STATUS_ERR;
             }
         }
-        log_rr(rr, "+RR", 3);
+        log_rr(rr, "+RR", 6);
         rrset->rr_count += 1;
         rrset->add_count -= 1;
         return ODS_STATUS_OK;
@@ -826,7 +826,7 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
             } else {
                 rrset->rrsigs = rrsigs->next;
             }
-            log_rr(rrsigs->rr, "-RRSIG", 7);
+            log_rr(rrsigs->rr, "-RRSIG", 6);
             rrset->rrsig_count -= 1;
             rrsigs->next = NULL;
             rrsigs_cleanup(rrsigs);
