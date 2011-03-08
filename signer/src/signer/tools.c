@@ -286,6 +286,7 @@ tools_output(zone_type* zone)
     ods_status status = ODS_STATUS_OK;
     char str[SYSTEM_MAXLEN];
     int error = 0;
+    uint32_t outbound_serial = 0;
 
     if (!zone) {
         ods_log_error("[%s] unable to write zone: no zone", tools_str);
@@ -311,12 +312,14 @@ tools_output(zone_type* zone)
         }
     }
 
+    outbound_serial = zone->zonedata->outbound_serial;
+    zone->zonedata->outbound_serial = zone->zonedata->internal_serial;
     status = adapter_write(zone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to write zone: adapter failed", tools_str);
+        zone->zonedata->outbound_serial = outbound_serial;
         return status;
     }
-    zone->zonedata->outbound_serial = zone->zonedata->internal_serial;
 
     /* kick the nameserver */
     if (zone->notify_ns) {
