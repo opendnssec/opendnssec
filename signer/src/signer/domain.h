@@ -98,7 +98,9 @@ domain_type* domain_create(ldns_rdf* dname);
  * \return domain_type* recovered domain
  *
  */
+/*
 domain_type* domain_recover_from_backup(FILE* fd);
+*/
 
 /**
  * Recover RR from backup.
@@ -107,7 +109,9 @@ domain_type* domain_recover_from_backup(FILE* fd);
  * \return int 0 on success, 1 on error
  *
  */
+/*
 int domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr);
+*/
 
 /**
  * Recover RRSIG from backup.
@@ -119,8 +123,10 @@ int domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr);
  * \return int 0 on success, 1 on error
  *
  */
+/*
 int domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
     ldns_rr_type type_covered, const char* locator, uint32_t flags);
+*/
 
 /**
  * Count the number of RRsets at this domain.

@@ -99,6 +99,7 @@ static ldns_rbnode_t* domain2node(domain_type* domain);
  * Recover zone data from backup.
  *
  */
+/*
 int
 zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
 {
@@ -116,8 +117,6 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
     if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
         corrupted = 1;
     }
-
-/*
 
     while (!corrupted) {
         if (backup_read_str(fd, &token)) {
@@ -224,15 +223,16 @@ zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
             corrupted = 1;
         }
     }
-*/
     return corrupted;
 }
+*/
 
 
 /**
  * Recover RR from backup.
  *
  */
+/*
 int
 zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr)
 {
@@ -251,12 +251,13 @@ zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr)
         zd_str);
     return 1;
 }
-
+*/
 
 /**
  * Recover RRSIG from backup.
  *
  */
+/*
 int
 zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
     const char* locator, uint32_t flags)
@@ -278,7 +279,7 @@ zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
         "exist", zd_str);
     return 1;
 }
-
+*/
 
 /**
  * Convert a domain to a tree node.

@@ -82,7 +82,9 @@ zonedata_type* zonedata_create(allocator_type* allocator);
  * \return int 0 on success, 1 on error
  *
  */
+/*
 int zonedata_recover_from_backup(zonedata_type* zd, FILE* fd);
+*/
 
 /**
  * Recover RR from backup.
@@ -91,7 +93,9 @@ int zonedata_recover_from_backup(zonedata_type* zd, FILE* fd);
  * \return int 0 on success, 1 on false
  *
  */
+/*
 int zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr);
+*/
 
 /**
  * Recover RRSIG from backup.
@@ -102,8 +106,10 @@ int zonedata_recover_rr_from_backup(zonedata_type* zd, ldns_rr* rr);
  * \return int 0 on success, 1 on false
  *
  */
+/*
 int zonedata_recover_rrsig_from_backup(zonedata_type* zd, ldns_rr* rrsig,
     const char* locator, uint32_t flags);
+*/
 
 /**
  * Look up domain.

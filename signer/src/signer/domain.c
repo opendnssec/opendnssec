@@ -111,6 +111,7 @@ domain_create(ldns_rdf* dname)
  * Recover domain from backup.
  *
  */
+/*
 domain_type*
 domain_recover_from_backup(FILE* fd)
 {
@@ -147,12 +148,13 @@ domain_recover_from_backup(FILE* fd)
     free((void*)name);
     return domain;
 }
-
+*/
 
 /**
  * Recover RR from backup.
  *
  */
+/*
 int
 domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
 {
@@ -168,7 +170,6 @@ domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
     if (rrset) {
         return rrset_recover_rr_from_backup(rrset, rr);
     }
-    /* no RRset with this RRtype yet */
     rrset = rrset_create(ldns_rr_get_type(rr));
     rrset = domain_add_rrset(domain, rrset);
     if (!rrset) {
@@ -178,12 +179,13 @@ domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
     }
     return rrset_recover_rr_from_backup(rrset, rr);
 }
-
+*/
 
 /**
  * Recover RRSIG from backup.
  *
  */
+/*
 int
 domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
     ldns_rr_type type_covered, const char* locator, uint32_t flags)
@@ -221,7 +223,7 @@ domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
     }
     return 1;
 }
-
+*/
 
 /**
  * Convert RRset to a tree node.

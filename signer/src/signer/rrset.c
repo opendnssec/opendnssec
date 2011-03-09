@@ -145,17 +145,19 @@ static ods_status rrset_commit_add(rrset_type* rrset, ldns_rr* rr);
  * Recover RR from backup.
  *
  */
+/*
 int
 rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr)
 {
     return !(rrset_commit_add(rrset, rr) == LDNS_STATUS_OK);
 }
-
+*/
 
 /**
  * Recover RR from backup.
  *
  */
+/*
 int
 rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
     const char* locator, uint32_t flags)
@@ -193,7 +195,7 @@ rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
     }
     return error;
 }
-
+*/
 
 /**
  * Examine NS RRs and verify its RDATA.

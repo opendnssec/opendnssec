@@ -82,7 +82,9 @@ rrset_type* rrset_create(ldns_rr_type rrtype);
  * \return int 0 on success, 1 on error
  *
  */
+/*
 int rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr);
+*/
 
 /**
  * Recover RRSIG from backup.
@@ -93,8 +95,10 @@ int rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr);
  * \return int 0 on success, 1 on error
  *
  */
+/*
 int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
     const char* locator, uint32_t flags);
+*/
 
 /**
  * Count the number of RRs in this RRset.

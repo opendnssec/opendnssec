@@ -161,7 +161,9 @@ int zone_backup_state(zone_type* zone);
  * \param[in] tl task list
  *
  */
+/*
 void zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl);
+*/
 
 /**
  * Merge zones.

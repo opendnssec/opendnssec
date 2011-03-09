@@ -680,6 +680,7 @@ int zone_backup_state(zone_type* zone)
  * Recover DNSKEYs and NSEC3PARAMS.
  *
  */
+/*
 static int
 zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
 {
@@ -749,12 +750,13 @@ zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
     }
     return corrupted;
 }
-
+*/
 
 /**
  * Recover RRSIGS.
  *
  */
+/*
 static int
 zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
 {
@@ -806,7 +808,6 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
             corrupted = 1;
         }
 
-        /* reset */
         if (locator) {
             free((void*) locator);
             locator = NULL;
@@ -817,12 +818,13 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
     }
     return corrupted;
 }
-
+*/
 
 /**
  * Recover from backup.
  *
  */
+/*
 void
 zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
 {
@@ -874,18 +876,15 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
         return;
     }
 
-    /* let's see if we can recover the signconf now */
     filename = ods_build_path(zone->name, ".sc", 0);
     zone->signconf = signconf_recover_from_backup((const char*) filename);
     free((void*)filename);
     if (!zone->signconf) {
-        /* no, stop recovering process */
         return;
     }
     zone->signconf->name = zone->name;
     zone->signconf->keys = keylist_create(zone->signconf->allocator);
 
-    /* recover denial of existence */
     filename = ods_build_path(zone->name, ".denial", 0);
     fd = ods_fopen(filename, NULL, "r");
     free((void*)filename);
@@ -910,7 +909,6 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
         goto abort_recover;
     }
 
-    /* zone data */
     filename = ods_build_path(zone->name, ".unsorted", 0);
     error = adfile_read(zone, filename);
     free((void*)filename);
@@ -925,7 +923,6 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
         goto abort_recover;
     }
 
-    /* time for the keys and nsec3params file */
     filename = ods_build_path(zone->name, ".dnskeys", 0);
     fd = ods_fopen(filename, NULL, "r");
     free((void*)filename);
@@ -945,7 +942,6 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
         goto abort_recover;
     }
 
-    /* retrieve signatures */
     filename = ods_build_path(zone->name, ".rrsigs", 0);
     fd = ods_fopen(filename, NULL, "r");
     free((void*)filename);
@@ -963,7 +959,6 @@ zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
 
 abort_recover:
 
-    /* task */
     filename = ods_build_path(zone->name, ".task", 0);
     task = task_recover_from_backup((const char*) filename, zone);
     free((void*)filename);
@@ -991,6 +986,7 @@ abort_recover:
     }
     return;
 }
+*/
 
 
 /**
