@@ -839,6 +839,7 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
             reusedsigs += 1;
             prev_rrsigs = rrsigs;
         }
+        drop_sig = 0;
         rrsigs = next_rrsigs;
     }
     return reusedsigs;
