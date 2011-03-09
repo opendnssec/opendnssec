@@ -886,6 +886,7 @@ engine_update_zones(engine_type* engine)
  * Try to recover from the backup files.
  *
  */
+/*
 static void
 engine_recover_from_backups(engine_type* engine)
 {
@@ -905,7 +906,6 @@ engine_recover_from_backups(engine_type* engine)
         zone = (zone_type*) node->key;
         lock_basic_lock(&zone->zone_lock);
 
-        /* set the notify ns command */
         if (engine->config->notify_command && !zone->notify_ns) {
             set_notify_ns(zone, engine->config->notify_command);
         }
@@ -923,6 +923,7 @@ engine_recover_from_backups(engine_type* engine)
 
     return;
 }
+*/
 
 
 /**
