@@ -542,10 +542,8 @@ worker_drudge(worker_type* worker)
                 ods_log_assert(ctx);
 
                 worker->clock_in = time(NULL);
-                lock_basic_lock(&rrset->rrset_lock);
                 status = rrset_sign(ctx, rrset, zone->dname, zone->signconf,
                     chief->clock_in, zone->stats);
-                lock_basic_unlock(&rrset->rrset_lock);
             } else {
                 status = ODS_STATUS_ASSERT_ERR;
             }

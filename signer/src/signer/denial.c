@@ -113,9 +113,7 @@ denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
 
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
-        lock_basic_lock(&rrset->rrset_lock);
         types[*types_count] = rrset->rr_type;
-        lock_basic_unlock(&rrset->rrset_lock);
         *types_count = *types_count + 1;
         node = ldns_rbtree_next(node);
     }
@@ -232,9 +230,7 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t ttl,
             return ODS_STATUS_ERR;
         }
         /* delete old NSEC RR(s)... */
-        lock_basic_lock(&denial->rrset->rrset_lock);
         status = rrset_wipe_out(denial->rrset);
-        lock_basic_unlock(&denial->rrset->rrset_lock);
         if (status != ODS_STATUS_OK) {
             ods_log_alert("[%s] unable to nsecify: failed to "
                 "wipe out NSEC RRset", denial_str);
@@ -242,9 +238,7 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t ttl,
             return status;
         }
         /* ...and add the new one */
-        lock_basic_lock(&denial->rrset->rrset_lock);
         if (!rrset_add_rr(denial->rrset, nsec_rr)) {
-           lock_basic_unlock(&denial->rrset->rrset_lock);
             ods_log_alert("[%s] unable to nsecify: failed to "
                 "add NSEC to RRset", denial_str);
             ldns_rr_free(nsec_rr);
@@ -253,12 +247,10 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t ttl,
         /* commit */
         status = rrset_commit(denial->rrset);
         if (status != ODS_STATUS_OK) {
-            lock_basic_unlock(&denial->rrset->rrset_lock);
             ods_log_alert("[%s] unable to nsecify: failed to "
                 "commit the NSEC RRset", denial_str);
             return status;
         }
-        lock_basic_unlock(&denial->rrset->rrset_lock);
 
         /* ok */
         denial->bitmap_changed = 0;
@@ -418,17 +410,14 @@ denial_nsecify3(denial_type* denial, denial_type* nxt, uint32_t ttl,
         }
         ods_log_assert(nsec_rr);
         /* delete old NSEC RR(s) */
-        lock_basic_lock(&denial->rrset->rrset_lock);
         status = rrset_wipe_out(denial->rrset);
         if (status != ODS_STATUS_OK) {
-            lock_basic_unlock(&denial->rrset->rrset_lock);
             ods_log_alert("[%s] unable to nsecify: failed to "
                 "wipe out NSEC RRset", denial_str);
             return status;
         }
        /* add the new one */
         if (!rrset_add_rr(denial->rrset, nsec_rr)) {
-            lock_basic_unlock(&denial->rrset->rrset_lock);
             ods_log_alert("[%s] unable to nsecify: failed to "
                 "add NSEC to RRset", denial_str);
             return ODS_STATUS_ERR;
@@ -436,13 +425,10 @@ denial_nsecify3(denial_type* denial, denial_type* nxt, uint32_t ttl,
         /* commit */
         status = rrset_commit(denial->rrset);
         if (status != ODS_STATUS_OK) {
-            lock_basic_unlock(&denial->rrset->rrset_lock);
             ods_log_alert("[%s] unable to nsecify: failed to "
                 "commit the NSEC RRset", denial_str);
             return status;
         }
-        lock_basic_unlock(&denial->rrset->rrset_lock);
-
         /* ok */
         denial->bitmap_changed = 0;
         denial->nxt_changed = 0;

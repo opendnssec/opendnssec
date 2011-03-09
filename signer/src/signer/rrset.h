@@ -66,7 +66,6 @@ struct rrset_struct {
     ldns_dnssec_rrs* add;
     ldns_dnssec_rrs* del;
     rrsigs_type* rrsigs;
-    lock_basic_type rrset_lock;
 };
 
 /**

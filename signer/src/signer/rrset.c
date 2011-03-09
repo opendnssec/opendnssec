@@ -135,7 +135,6 @@ rrset_create(ldns_rr_type rrtype)
     rrset->add = NULL;
     rrset->del = NULL;
     rrset->rrsigs = NULL;
-    lock_basic_init(&rrset->rrset_lock);
     return rrset;
 }
 
@@ -1165,13 +1164,11 @@ void
 rrset_cleanup(rrset_type* rrset)
 {
     allocator_type* allocator;
-    lock_basic_type rrset_lock;
 
     if (!rrset) {
         return;
     }
     allocator = rrset->allocator;
-    rrset_lock = rrset->rrset_lock;
 
     if (rrset->rrs) {
         ldns_dnssec_rrs_deep_free(rrset->rrs);
@@ -1191,8 +1188,6 @@ rrset_cleanup(rrset_type* rrset)
     }
 
     allocator_deallocate(allocator, (void*) rrset);
-    lock_basic_destroy(&rrset_lock);
-
     allocator_cleanup(allocator);
     return;
 }
