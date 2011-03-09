@@ -151,7 +151,7 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker)
     q->count += 1;
 
     if (count == 0 && q->count == 1) {
-        lock_basic_alarm(&q->q_threshold);
+        lock_basic_broadcast(&q->q_threshold);
         ods_log_deeebug("[%s] threshold %u reached, notify drudgers",
             fifoq_str, q->count);
     }

@@ -668,13 +668,17 @@ zonedata_del_denial_fixup(ldns_rbtree_t* tree, denial_type* denial)
 
         /* delete old NSEC RR(s) */
         if (denial->rrset) {
+            lock_basic_lock(&denial->rrset->rrset_lock);
             status = rrset_wipe_out(denial->rrset);
+            lock_basic_unlock(&denial->rrset->rrset_lock);
             if (status != ODS_STATUS_OK) {
                 ods_log_alert("[%s] unable to del denial of existence data "
                     "point: failed to wipe out NSEC RRset", zd_str);
                 return denial;
             }
+            lock_basic_lock(&denial->rrset->rrset_lock);
             rrset_commit(denial->rrset);
+            lock_basic_unlock(&denial->rrset->rrset_lock);
             if (status != ODS_STATUS_OK) {
                 ods_log_alert("[%s] unable to del denial of existence data "
                     "point: failed to commit NSEC RRset", zd_str);

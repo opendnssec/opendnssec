@@ -365,9 +365,11 @@ domain_count_rrset(domain_type* domain)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
+        lock_basic_lock(&rrset->rrset_lock);
         if (rrset_count_rr(rrset, COUNT_RR) > 0) {
             count++;
         }
+        lock_basic_unlock(&rrset->rrset_lock);
         node = ldns_rbtree_next(node);
     }
     return count;
@@ -393,16 +395,20 @@ domain_diff(domain_type* domain, keylist_type* kl)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
+        lock_basic_lock(&rrset->rrset_lock);
         /* special cases */
         if (rrset->rr_type == LDNS_RR_TYPE_NSEC3PARAMS) {
+            lock_basic_unlock(&rrset->rrset_lock);
             node = ldns_rbtree_next(node);
             continue;
         }
         /* normal cases */
         status = rrset_diff(rrset, kl);
         if (status != ODS_STATUS_OK) {
+            lock_basic_unlock(&rrset->rrset_lock);
             return status;
         }
+        lock_basic_unlock(&rrset->rrset_lock);
         node = ldns_rbtree_next(node);
     }
     return status;
@@ -430,19 +436,23 @@ domain_examine_data_exists(domain_type* domain, ldns_rr_type rrtype,
     }
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
+        lock_basic_lock(&rrset->rrset_lock);
         if (rrset_count_RR(rrset) > 0) {
             if (rrtype) {
                 /* looking for a specific RRset */
                 if (rrset->rr_type == rrtype) {
+                   lock_basic_unlock(&rrset->rrset_lock);
                     return 1;
                 }
             } else if (!skip_glue ||
                 (rrset->rr_type != LDNS_RR_TYPE_A &&
                  rrset->rr_type != LDNS_RR_TYPE_AAAA)) {
                 /* not glue or not skipping glue */
+                lock_basic_unlock(&rrset->rrset_lock);
                 return 1;
             }
         }
+        lock_basic_unlock(&rrset->rrset_lock);
         node = ldns_rbtree_next(node);
     }
     return 0;
@@ -461,6 +471,7 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
     ldns_dnssec_rrs* rrs = NULL;
     char* str_name = NULL;
     char* str_type = NULL;
+    size_t count = 0;
 
     if (!domain || !rrtype) {
         return 1;
@@ -469,7 +480,12 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
     ods_log_assert(rrtype);
 
     rrset = domain_lookup_rrset(domain, rrtype);
-    if (rrset && rrset_count_RR(rrset) > 0) {
+    if (rrset) {
+        lock_basic_lock(&rrset->rrset_lock);
+        count = rrset_count_RR(rrset);
+        lock_basic_unlock(&rrset->rrset_lock);
+    }
+    if (count) {
         if (domain_count_rrset(domain) < 2) {
             /* one or zero, that's ok */
             return 1;
@@ -480,6 +496,7 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
         }
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
+            lock_basic_lock(&rrset->rrset_lock);
             if (rrset->rr_type != rrtype && rrset_count_RR(rrset) > 0) {
                 /* found other data next to rrtype */
                 str_name = ldns_rdf2str(domain->dname);
@@ -501,8 +518,10 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
                 }
                 free((void*)str_name);
                 free((void*)str_type);
+                lock_basic_unlock(&rrset->rrset_lock);
                 return 0;
             }
+            lock_basic_unlock(&rrset->rrset_lock);
             node = ldns_rbtree_next(node);
         }
     }
@@ -519,6 +538,7 @@ domain_examine_valid_zonecut(domain_type* domain)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     rrset_type* rrset = NULL;
+    size_t count = 0;
 
     if (!domain) {
         return 1;
@@ -526,13 +546,20 @@ domain_examine_valid_zonecut(domain_type* domain)
     ods_log_assert(domain);
 
     rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NS);
-    if (rrset && rrset_count_RR(rrset) > 0) {
+    if (rrset) {
+        lock_basic_lock(&rrset->rrset_lock);
+        count = rrset_count_RR(rrset);
+        lock_basic_unlock(&rrset->rrset_lock);
+    }
+
+    if (count) {
         /* make sure all other RRsets become empty (except DS, glue) */
         if (domain->rrsets->root != LDNS_RBTREE_NULL) {
             node = ldns_rbtree_first(domain->rrsets);
         }
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
+            lock_basic_lock(&rrset->rrset_lock);
             if (rrset->rr_type != LDNS_RR_TYPE_DS &&
                 rrset->rr_type != LDNS_RR_TYPE_NS &&
                 rrset->rr_type != LDNS_RR_TYPE_A &&
@@ -541,6 +568,7 @@ domain_examine_valid_zonecut(domain_type* domain)
                 /* found occluded data next to delegation */
                 ods_log_error("[%s] occluded glue data at zonecut, RRtype=%u",
                     dname_str, rrset->rr_type);
+                lock_basic_unlock(&rrset->rrset_lock);
                 return 0;
             } else if (rrset->rr_type == LDNS_RR_TYPE_A ||
                 rrset->rr_type == LDNS_RR_TYPE_AAAA) {
@@ -550,10 +578,12 @@ domain_examine_valid_zonecut(domain_type* domain)
                     !domain_examine_ns_rdata(domain, domain->dname)) {
                     ods_log_error("[%s] occluded glue data at zonecut, #RR=%u",
                         dname_str, rrset_count_RR(rrset));
+                    lock_basic_unlock(&rrset->rrset_lock);
                     return 0;
                 }
 */
             }
+            lock_basic_unlock(&rrset->rrset_lock);
             node = ldns_rbtree_next(node);
         }
     }
@@ -571,6 +601,7 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
     rrset_type* rrset = NULL;
     char* str_name = NULL;
     char* str_type = NULL;
+    size_t count = 0;
 
     if (!domain || !rrtype) {
         return 1;
@@ -579,7 +610,13 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
     ods_log_assert(rrtype);
 
     rrset = domain_lookup_rrset(domain, rrtype);
-    if (rrset && rrset_count_RR(rrset) > 1) {
+    if (rrset) {
+        lock_basic_lock(&rrset->rrset_lock);
+        count = rrset_count_RR(rrset);
+        lock_basic_unlock(&rrset->rrset_lock);
+    }
+
+    if (count > 1) {
         /* multiple RRs in the RRset for singleton RRtype*/
         str_name = ldns_rdf2str(domain->dname);
         str_type = ldns_rr_type2str(rrtype);
@@ -616,6 +653,7 @@ domain_commit(domain_type* domain)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
+        lock_basic_lock(&rrset->rrset_lock);
         numrrs = rrset_count_rr(rrset, COUNT_RR);
         numadd = rrset_count_rr(rrset, COUNT_ADD);
         numdel = rrset_count_rr(rrset, COUNT_DEL);
@@ -626,10 +664,13 @@ domain_commit(domain_type* domain)
         }
         status = rrset_commit(rrset);
         if (status != ODS_STATUS_OK) {
+            lock_basic_unlock(&rrset->rrset_lock);
             return status;
         }
         node = ldns_rbtree_next(node);
         numnew = rrset_count_rr(rrset, COUNT_RR);
+        lock_basic_unlock(&rrset->rrset_lock);
+
         if (numrrs > 0 && numnew <= 0) {
             if (domain_del_rrset(domain, rrset) != NULL) {
                 ods_log_warning("[%s] unable to commit: failed ",
@@ -667,7 +708,9 @@ domain_rollback(domain_type* domain)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
+        lock_basic_lock(&rrset->rrset_lock);
         rrset_rollback(rrset);
+        lock_basic_unlock(&rrset->rrset_lock);
         node = ldns_rbtree_next(node);
     }
     return;
@@ -743,10 +786,12 @@ domain_queue(domain_type* domain, fifoq_type* q, worker_type* worker)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         rrset = (rrset_type*) node->data;
+        lock_basic_lock(&rrset->rrset_lock);
 
         /* skip delegation RRsets */
         if (domain->dstatus != DOMAIN_STATUS_APEX &&
             rrset->rr_type == LDNS_RR_TYPE_NS) {
+            lock_basic_unlock(&rrset->rrset_lock);
             node = ldns_rbtree_next(node);
             continue;
         }
@@ -755,6 +800,7 @@ domain_queue(domain_type* domain, fifoq_type* q, worker_type* worker)
              domain->dstatus == DOMAIN_STATUS_NS) &&
             (rrset->rr_type == LDNS_RR_TYPE_A ||
              rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
+            lock_basic_unlock(&rrset->rrset_lock);
             node = ldns_rbtree_next(node);
             continue;
         }
@@ -772,6 +818,7 @@ domain_queue(domain_type* domain, fifoq_type* q, worker_type* worker)
              } else {
                 ods_log_error("[%s] unable to sign domain: failed to replace "
                     "SOA SERIAL rdata", dname_str);
+                lock_basic_unlock(&rrset->rrset_lock);
                 return 1;
             }
         }
@@ -779,14 +826,18 @@ domain_queue(domain_type* domain, fifoq_type* q, worker_type* worker)
         /* queue RRset for signing */
         status = rrset_queue(rrset, q, worker);
         if (status != ODS_STATUS_OK) {
+            lock_basic_unlock(&rrset->rrset_lock);
             return status;
         }
+        lock_basic_unlock(&rrset->rrset_lock);
         node = ldns_rbtree_next(node);
     }
 
     /* queue NSEC(3) RRset for signing */
     if (domain->denial && domain->denial->rrset) {
+        lock_basic_lock(&domain->denial->rrset->rrset_lock);
         status = rrset_queue(domain->denial->rrset, q, worker);
+        lock_basic_unlock(&domain->denial->rrset->rrset_lock);
     }
     return status;
 }
@@ -805,8 +856,13 @@ domain_examine_ns_rdata(domain_type* domain, ldns_rdf* nsdname)
        return 0;
     }
     rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NS);
-    if (rrset && rrset_examine_ns_rdata(rrset, nsdname)) {
-        return 1;
+    if (rrset) {
+        lock_basic_lock(&rrset->rrset_lock);
+        if (rrset_examine_ns_rdata(rrset, nsdname)) {
+            lock_basic_unlock(&rrset->rrset_lock);
+            return 1;
+        }
+        lock_basic_unlock(&rrset->rrset_lock);
     }
     return 0;
 }
@@ -892,14 +948,18 @@ domain_print(FILE* fd, domain_type* domain)
     cname_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
     if (cname_rrset) {
         fprintf(fd, ";; Domain: %s\n", str);
+        lock_basic_lock(&cname_rrset->rrset_lock);
         rrset_print(fd, cname_rrset, 0);
+        lock_basic_unlock(&cname_rrset->rrset_lock);
     } else {
         /* if SOA, print soa first */
         if (domain->dstatus == DOMAIN_STATUS_APEX) {
             soa_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
             if (soa_rrset) {
                 fprintf(fd, ";; Zone: %s\n", str);
+                lock_basic_lock(&soa_rrset->rrset_lock);
                 rrset_print(fd, soa_rrset, 0);
+                lock_basic_unlock(&soa_rrset->rrset_lock);
             }
         } else if (domain->dstatus == DOMAIN_STATUS_ENT) {
             /* empty non-terminal */
@@ -922,6 +982,7 @@ domain_print(FILE* fd, domain_type* domain)
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
             /* skip SOA RRset */
+            lock_basic_lock(&rrset->rrset_lock);
             if (rrset->rr_type != LDNS_RR_TYPE_SOA) {
                 if (domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
                     /* glue?  */
@@ -944,6 +1005,7 @@ domain_print(FILE* fd, domain_type* domain)
                     rrset_print(fd, rrset, 0);
                 }
             }
+            lock_basic_unlock(&rrset->rrset_lock);
             node = ldns_rbtree_next(node);
         }
     }
@@ -951,7 +1013,9 @@ domain_print(FILE* fd, domain_type* domain)
 
     /* denial of existence */
     if (domain->denial) {
+        lock_basic_lock(&domain->denial->rrset->rrset_lock);
         rrset_print(fd, domain->denial->rrset, 0);
+        lock_basic_lock(&domain->denial->rrset->rrset_lock);
     }
 
     fprintf(fd, ";\n");

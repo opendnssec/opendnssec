@@ -249,10 +249,14 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     ods_log_assert(rrset);
 
     /* add RR */
+    lock_basic_lock(&rrset->rrset_lock);
     if (rrset_add_rr(rrset, rr) == NULL) {
         ods_log_error("[%s] unable to add RR: pend RR failed", zone_str);
+        lock_basic_unlock(&rrset->rrset_lock);
         return ODS_STATUS_ERR;
     }
+    lock_basic_unlock(&rrset->rrset_lock);
+
     /* update stats */
     if (zone->stats && do_stats) {
         zone->stats->sort_count += 1;
@@ -303,11 +307,15 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     ods_log_assert(rrset);
 
     /* del RR */
+    lock_basic_lock(&rrset->rrset_lock);
     if (rrset_del_rr(rrset, rr, (ldns_rr_get_type(rr) == LDNS_RR_TYPE_DNSKEY))
             == NULL) {
+        lock_basic_unlock(&rrset->rrset_lock);
         ods_log_error("[%s] unable to del RR: pend RR failed", zone_str);
         return ODS_STATUS_ERR;
     }
+    lock_basic_unlock(&rrset->rrset_lock);
+
     /* update stats */
     if (do_stats && zone->stats) {
         zone->stats->sort_count -= 1;
@@ -621,15 +629,20 @@ zone_prepare_nsec3(zone_type* zone)
 
         rrset = domain_lookup_rrset(apex, LDNS_RR_TYPE_NSEC3PARAMS);
         if (rrset) {
+            lock_basic_lock(&rrset->rrset_lock);
             status = rrset_wipe_out(rrset);
             if (status != ODS_STATUS_OK) {
+                lock_basic_unlock(&rrset->rrset_lock);
                 ods_log_error("[%s] unable to wipe out previous "
                     "NSEC3PARAM RR from zone %s", zone_str, zone->name);
                 nsec3params_cleanup(zone->nsec3params);
                 zone->nsec3params = NULL;
+                lock_basic_lock(&rrset->rrset_lock);
                 rrset_rollback(rrset);
+                lock_basic_unlock(&rrset->rrset_lock);
                 return status;
             }
+            lock_basic_unlock(&rrset->rrset_lock);
         }
     }
     return status;

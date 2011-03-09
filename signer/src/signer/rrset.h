@@ -39,6 +39,7 @@
 #include "scheduler/fifoq.h"
 #include "shared/allocator.h"
 #include "shared/hsm.h"
+#include "shared/locks.h"
 #include "shared/status.h"
 #include "signer/keys.h"
 #include "signer/rrsigs.h"
@@ -65,6 +66,7 @@ struct rrset_struct {
     ldns_dnssec_rrs* add;
     ldns_dnssec_rrs* del;
     rrsigs_type* rrsigs;
+    lock_basic_type rrset_lock;
 };
 
 /**
