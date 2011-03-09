@@ -34,6 +34,8 @@
 #ifndef SIGNER_STATS_H
 #define SIGNER_STATS_H
 
+#include "shared/locks.h"
+
 #include <config.h>
 #include <ctype.h>
 #include <stdint.h>
@@ -64,6 +66,7 @@ struct stats_struct {
     time_t      audit_time;
     time_t      start_time;
     time_t      end_time;
+    lock_basic_type stats_lock;
 };
 
 /**

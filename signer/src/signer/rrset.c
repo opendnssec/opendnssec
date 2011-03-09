@@ -1106,11 +1106,13 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     rrsigs_cleanup(new_rrsigs);
     ldns_rr_list_free(rr_list);
 
+    lock_basic_lock(&stats->stats_lock);
     if (rrset->rr_type == LDNS_RR_TYPE_SOA) {
         stats->sig_soa_count += newsigs;
     }
     stats->sig_count += newsigs;
     stats->sig_reuse += reusedsigs;
+    lock_basic_unlock(&stats->stats_lock);
     return ODS_STATUS_OK;
 }
 

@@ -43,6 +43,7 @@ stats_create(void)
 {
     stats_type* stats = (stats_type*) malloc(sizeof(stats_type));
     stats_clear(stats);
+    lock_basic_init(&stats->stats_lock);
     return stats;
 }
 
@@ -106,6 +107,7 @@ stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type)
 void
 stats_cleanup(stats_type* stats)
 {
+    lock_basic_destroy(&stats->stats_lock);
     free((void*) stats);
     return;
 }

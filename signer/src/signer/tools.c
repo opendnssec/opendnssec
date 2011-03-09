@@ -70,9 +70,11 @@ tools_input(zone_type* zone)
     ods_log_assert(zone->signconf);
 
     if (zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->sort_done = 0;
         zone->stats->sort_count = 0;
         zone->stats->sort_time = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
 
     if (zone->adinbound->type == ADAPTER_FILE) {
@@ -113,9 +115,11 @@ tools_input(zone_type* zone)
     end = time(NULL);
 
     if (status == ODS_STATUS_OK && zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
-	zone->stats->sort_done = 1;
+        zone->stats->sort_done = 1;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
     return status;
 }
@@ -155,8 +159,10 @@ tools_nsecify(zone_type* zone)
     ods_log_assert(zone->signconf);
 
     if (zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->nsec_time = 0;
         zone->stats->nsec_count = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
 
     start = time(NULL);
@@ -193,11 +199,13 @@ tools_nsecify(zone_type* zone)
     }
     end = time(NULL);
     if (status == ODS_STATUS_OK) {
+        lock_basic_lock(&zone->stats->stats_lock);
         if (!zone->stats->start_time) {
             zone->stats->start_time = start;
         }
         zone->stats->nsec_time = (end-start);
         zone->stats->nsec_count = num_added;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
     return status;
 }
@@ -231,10 +239,16 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
     }
     ods_log_assert(zone->signconf);
 
-    if (zone->stats->sort_done == 0 &&
-        (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
-        return ODS_STATUS_OK;
+    if (zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
+        if (zone->stats->sort_done == 0 &&
+            (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
+            lock_basic_unlock(&zone->stats->stats_lock);
+            return ODS_STATUS_OK;
+        }
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
+
     if (zone->signconf->audit) {
         inbound = ods_build_path(zone->name, ".inbound", 0);
         finalized = ods_build_path(zone->name, ".finalized", 0);
@@ -270,7 +284,11 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             status = ODS_STATUS_ERR;
         }
         end = time(NULL);
-        zone->stats->audit_time = (end-start);
+        if (zone->stats) {
+            lock_basic_lock(&zone->stats->stats_lock);
+            zone->stats->audit_time = (end-start);
+            lock_basic_unlock(&zone->stats->stats_lock);
+        }
     }
     return status;
 }
@@ -302,14 +320,17 @@ tools_output(zone_type* zone)
     ods_log_assert(zone->adoutbound);
 
     if (zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
         if (zone->stats->sort_done == 0 &&
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
             ods_log_verbose("[%s] skip write zone %s serial %u (zone not "
                 "changed)", tools_str, zone->name?zone->name:"(null)",
                 zone->zonedata->internal_serial);
             stats_clear(zone->stats);
+            lock_basic_unlock(&zone->stats->stats_lock);
             return ODS_STATUS_OK;
         }
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
 
     outbound_serial = zone->zonedata->outbound_serial;
@@ -334,11 +355,14 @@ tools_output(zone_type* zone)
         }
     }
     /* log stats */
-    zone->stats->end_time = time(NULL);
-    ods_log_debug("[%s] log stats for zone %s", tools_str,
-        zone->name?zone->name:"(null)");
-    stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
-    stats_clear(zone->stats);
-
+    if (zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->end_time = time(NULL);
+        ods_log_debug("[%s] log stats for zone %s", tools_str,
+            zone->name?zone->name:"(null)");
+        stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
+        stats_clear(zone->stats);
+        lock_basic_unlock(&zone->stats->stats_lock);
+    }
     return status;
 }
