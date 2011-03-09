@@ -506,6 +506,13 @@ worker_drudge(worker_type* worker)
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_DRUDGER);
 
+    ctx = hsm_create_context();
+    if (ctx == NULL) {
+        ods_log_error("[%s[%i]]: unable to drudge: error "
+            "creating libhsm context", worker2str(worker->type),
+            worker->thread_num);
+    }
+
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
@@ -526,15 +533,6 @@ worker_drudge(worker_type* worker)
             if (!zone) {
                 ods_log_error("[%s[%i]]: unable to drudge: no zone reference",
                     worker2str(worker->type), worker->thread_num);
-            }
-            if (!ctx) {
-                ctx = hsm_create_context();
-                if (ctx == NULL) {
-                    ods_log_error("[%s[%i]]: unable to drudge: error "
-                        "creating libhsm context", worker2str(worker->type),
-                        worker->thread_num);
-                    /* wipe fifoq, notify the chief */
-                }
             }
             if (zone && ctx) {
                 ods_log_assert(rrset);
@@ -571,10 +569,6 @@ worker_drudge(worker_type* worker)
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
-            if (ctx) {
-                hsm_destroy_context(ctx);
-                ctx = NULL;
-            }
             worker_wait(&worker->engine->signq->q_lock,
                 &worker->engine->signq->q_threshold);
         }
