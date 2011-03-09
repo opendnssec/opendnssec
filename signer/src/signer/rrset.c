@@ -1085,7 +1085,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
                 walk_rrsigs->key_locator, walk_rrsigs->key_flags);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to sign RRset[%i]: error adding "
-                    "RRSIG to RRset[%i]", rrset_str, rrset->rr_type);
+                    "RRSIG to RRset[%i]", rrset_str, rrset->rr_type,
+                    rrset->rr_type);
                 log_rr(walk_rrsigs->rr, "+RRSIG", 1);
                 ldns_rr_list_free(rr_list);
                 rrsigs_cleanup(new_rrsigs);
