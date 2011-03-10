@@ -63,6 +63,13 @@ void ods_log_close(void);
 int ods_log_get_facility(const char* facility);
 
 /**
+ * Get the log level.
+ * \return int log_level
+ *
+ */
+int ods_log_get_level();
+
+/**
  * Heavy debug loggin.
  * \param[in] format printf-style format string, arguments follow
  *

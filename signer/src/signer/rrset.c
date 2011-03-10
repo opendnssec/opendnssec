@@ -59,6 +59,8 @@ log_rr(ldns_rr* rr, const char* pre, int level)
     char* str = NULL;
     size_t i = 0;
 
+    if (ods_log_get_level() < level + 2) return;
+
     str = ldns_rr2str(rr);
     if (str) {
         str[(strlen(str))-1] = '\0';

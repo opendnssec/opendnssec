@@ -192,6 +192,15 @@ ods_log_get_facility(const char* facility)
 }
 #endif /* HAVE_SYSLOG_H */
 
+/**
+ * Get the log level.
+ *
+ */
+int
+ods_log_get_level()
+{
+    return log_level;
+}
 
 /**
  * Log message wrapper.
