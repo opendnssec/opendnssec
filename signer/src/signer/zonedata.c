@@ -88,7 +88,7 @@ zonedata_create(allocator_type* allocator)
     zd->inbound_serial = 0;
     zd->internal_serial = 0;
     zd->outbound_serial = 0;
-    zd->default_ttl = 3600; /* configure --default-ttl option? */
+    zd->default_ttl = 3600; /* TODO: configure --default-ttl option? */
     return zd;
 }
 
@@ -325,9 +325,8 @@ zonedata_domain_search(ldns_rbtree_t* tree, ldns_rdf* dname)
 domain_type*
 zonedata_lookup_domain(zonedata_type* zd, ldns_rdf* dname)
 {
-    if (!zd || !zd->domains | !dname) {
-        return NULL;
-    }
+    if (!zd) return NULL;
+
     return zonedata_domain_search(zd->domains, dname);
 }
 
@@ -490,9 +489,8 @@ zonedata_denial_search(ldns_rbtree_t* tree, ldns_rdf* dname)
 denial_type*
 zonedata_lookup_denial(zonedata_type* zd, ldns_rdf* dname)
 {
-    if (!zd || !zd->denial_chain | !dname) {
-        return NULL;
-    }
+    if (!zd) return NULL;
+
     return zonedata_denial_search(zd->denial_chain, dname);
 }
 
