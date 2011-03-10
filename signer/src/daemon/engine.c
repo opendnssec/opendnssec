@@ -832,6 +832,9 @@ engine_update_zones(engine_type* engine)
                 lock_basic_unlock(&engine->taskq->schedule_lock);
                 wake_up = 1;
            }
+           /* zone fetcher enabled? */
+           zone->fetch = (engine->config->zonefetch_filename != NULL);
+
         } else if (zone->just_updated) {
             ods_log_assert(zone->task);
             zone->just_updated = 0;

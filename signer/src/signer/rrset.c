@@ -132,7 +132,6 @@ rrset_create(ldns_rr_type rrtype)
     rrset->del_count = 0;
     rrset->rrsig_count = 0;
     rrset->needs_signing = 0;
-    rrset->internal_serial = 0;
     rrset->rrs = ldns_dnssec_rrs_new();
     rrset->add = NULL;
     rrset->del = NULL;
