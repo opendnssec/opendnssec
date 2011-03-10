@@ -280,4 +280,13 @@ void zonedata_cleanup(zonedata_type* zd);
  */
 ods_status zonedata_print(FILE* fd, zonedata_type* zd);
 
+/**
+ * Log RDF.
+ * \param[in] rdf RDF
+ * \param[in] pre string to log before RDF
+ * \param[in] level log level
+ *
+ */
+void log_rdf(ldns_rdf* rdf, const char* pre, int level);
+
 #endif /* SIGNER_ZONEDATA_H */
