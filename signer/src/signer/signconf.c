@@ -280,7 +280,7 @@ static void
 signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
 {
     char* str = duration2string(duration);
-    fprintf(fd, ";%s: %s\n", opt, str);
+    fprintf(fd, "%s %s ", opt, str);
     free((void*) str);
     return;
 }
@@ -292,53 +292,27 @@ signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
  *
  */
 void
-signconf_backup(signconf_type* sc)
+signconf_backup(FILE* fd, signconf_type* sc)
 {
-    FILE* fd = NULL;
-    char* filename = NULL;
-
+    if (!fd || !sc) {
+        return;
+    }
+    ods_log_assert(fd);
     ods_log_assert(sc);
 
-    filename = ods_build_path(sc->name, ".sc", 0);
-    fd = ods_fopen(filename, NULL, "w");
-    if (fd) {
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        fprintf(fd, ";name: %s\n", sc->name?sc->name:"(null)");
-        fprintf(fd, ";filename: %s\n", sc->filename?sc->filename:"(null)");
-        fprintf(fd, ";last_modified: %u\n", (uint32_t) sc->last_modified);
-
-        signconf_backup_duration(fd, "sig_resign_interval",
-            sc->sig_resign_interval);
-        signconf_backup_duration(fd, "sig_refresh_interval",
-            sc->sig_refresh_interval);
-        signconf_backup_duration(fd, "sig_validity_default",
-            sc->sig_validity_default);
-        signconf_backup_duration(fd, "sig_validity_denial",
-            sc->sig_validity_denial);
-        signconf_backup_duration(fd, "sig_jitter",
-            sc->sig_jitter);
-        signconf_backup_duration(fd, "sig_inception_offset",
-            sc->sig_inception_offset);
-
-        fprintf(fd, ";nsec_type: %u\n", (unsigned int) sc->nsec_type);
-
-        signconf_backup_duration(fd, "dnskey_ttl", sc->dnskey_ttl);
-        /** Keys are backed up in .dnskeys */
-
-        signconf_backup_duration(fd, "soa_ttl", sc->soa_ttl);
-        signconf_backup_duration(fd, "soa_min", sc->soa_min);
-        fprintf(fd, ";soa_serial: %s\n",
-            sc->soa_serial?sc->soa_serial:"(null)");
-
-        fprintf(fd, ";audit: %i\n", sc->audit);
-
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        ods_fclose(fd);
-    } else {
-        ods_log_warning("[%s] cannot backup signconf: cannot open file "
-        "%s for writing", sc_str, filename?filename:"(null)");
-    }
-    free((void*) filename);
+    fprintf(fd, ";;Signconf: lastmod %u ", (unsigned) sc->last_modified);
+    signconf_backup_duration(fd, "resign", sc->sig_resign_interval);
+    signconf_backup_duration(fd, "refresh", sc->sig_refresh_interval);
+    signconf_backup_duration(fd, "valid", sc->sig_validity_default);
+    signconf_backup_duration(fd, "denial", sc->sig_validity_denial);
+    signconf_backup_duration(fd, "jitter", sc->sig_jitter);
+    signconf_backup_duration(fd, "offset", sc->sig_inception_offset);
+    fprintf(fd, "nsec %u ", (unsigned) sc->nsec_type);
+    signconf_backup_duration(fd, "dnskeyttl", sc->dnskey_ttl);
+    signconf_backup_duration(fd, "soattl", sc->soa_ttl);
+    signconf_backup_duration(fd, "soamin", sc->soa_min);
+    fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
+    fprintf(fd, "audit %i\n", sc->audit);
     return;
 }
 

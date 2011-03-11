@@ -141,36 +141,22 @@ task_recover_from_backup(const char* filename, void* zone)
  *
  */
 void
-task_backup(task_type* task)
+task_backup(FILE* fd, task_type* task)
 {
-    char* filename = NULL;
-    FILE* fd = NULL;
-
-    if (!task) {
+    if (!fd || !task) {
         return;
     }
+    ods_log_assert(fd);
+    ods_log_assert(task);
 
-    if (task->who) {
-        filename = ods_build_path(task->who, ".task", 0);
-        fd = ods_fopen(filename, NULL, "w");
-        free((void*)filename);
-    } else {
-        return;
-    }
-
-    if (fd) {
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        fprintf(fd, ";who: %s\n", task->who);
-        fprintf(fd, ";what: %i\n", (int) task->what);
-        fprintf(fd, ";when: %u\n", (uint32_t) task->when);
-        fprintf(fd, ";flush: %i\n", task->flush);
-        fprintf(fd, ";backoff: %u\n", (uint32_t) task->backoff);
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        ods_fclose(fd);
-    } else {
-        ods_log_warning("[%s] cannot backup task for zone %s: cannot open file "
-        "%s.task for writing", task_str, task->who, task->who);
-    }
+    fprintf(fd, ";;Task: when %u what %i interrupt %i halted %i backoff %i "
+        "flush %i\n",
+        (unsigned) task->when,
+        (int) task->what,
+        (int) task->interrupt,
+        (int) task->halted,
+        (unsigned) task->backoff,
+        task->flush);
     return;
 }
 

@@ -89,10 +89,11 @@ task_type* task_recover_from_backup(const char* filename, void* zone);
 
 /**
  * Backup task.
+ * \param[in] fd file descriptor
  * \param[in] task task
  *
  */
-void task_backup(task_type* task);
+void task_backup(FILE* fd, task_type* task);
 
 /**
  * Clean up task.

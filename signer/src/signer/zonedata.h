@@ -272,6 +272,14 @@ void zonedata_wipe_denial(zonedata_type* zd);
 void zonedata_cleanup(zonedata_type* zd);
 
 /**
+ * Backup zone data.
+ * \param[in] fd output file descriptor
+ * \param[in] zd zone data
+ *
+ */
+void zonedata_backup(FILE* fd, zonedata_type* zd);
+
+/**
  * Print zone data.
  * \param[in] fd output file descriptor
  * \param[in] zd zone data

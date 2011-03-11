@@ -601,6 +601,8 @@ zone_prepare_nsec3(zone_type* zone)
     ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(nsec3params_rr, 1)), 7, 0);
 
     ldns_rr2canonical(nsec3params_rr);
+    zone->nsec3params->rr = nsec3params_rr;
+
     status = zone_add_rr(zone, nsec3params_rr, 0);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add NSEC3PARAM RR to zone %s",
@@ -639,14 +641,12 @@ zone_prepare_nsec3(zone_type* zone)
 
 
 /**
- * Backup zone data.
- * \param[in] zone corresponding zone
- * \return int 0 on success, 1 on error
+ * Backup zone.
  *
  */
-int zone_backup_state(zone_type* zone)
+ods_status
+zone_backup(zone_type* zone)
 {
-    int error = 0;
     char* filename = NULL;
     FILE* fd = NULL;
 
@@ -654,27 +654,47 @@ int zone_backup_state(zone_type* zone)
     ods_log_assert(zone->zonedata);
     ods_log_assert(zone->signconf);
 
-    filename = ods_build_path(zone->name, ".state", 0);
+    filename = ods_build_path(zone->name, ".backup", 0);
     fd = ods_fopen(filename, NULL, "w");
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
-        fprintf(fd, ";name: %s\n", zone->name?zone->name:"(null)");
-        fprintf(fd, ";class: %i\n", (int) zone->klass);
-        fprintf(fd, ";fetch: %i\n", (int) zone->fetch);
-        fprintf(fd, ";default_ttl: %u\n", zone->zonedata->default_ttl);
-        fprintf(fd, ";inbound_serial: %u\n", zone->zonedata->inbound_serial);
-        fprintf(fd, ";internal_serial: %u\n", zone->zonedata->internal_serial);
-        fprintf(fd, ";outbound_serial: %u\n", zone->zonedata->outbound_serial);
+        /** Backup zone */
+        fprintf(fd, ";;Zone: name %s class %i ttl %u inbound %u internal "
+            "%u outbound %u\n",
+            zone->name?zone->name:"(null)",
+            (int) zone->klass,
+            (unsigned) zone->zonedata->default_ttl,
+            (unsigned) zone->zonedata->inbound_serial,
+            (unsigned) zone->zonedata->internal_serial,
+            (unsigned) zone->zonedata->outbound_serial);
+        /** Backup task */
+        if (zone->task) {
+            task_backup(fd, (task_type*) zone->task);
+        }
+        /** Backup signconf */
+        signconf_backup(fd, zone->signconf);
+        fprintf(fd, ";;\n");
+        /** Backup NSEC3 parameters */
+        if (zone->nsec3params) {
+            nsec3params_backup(fd,
+                zone->signconf->nsec3_algo,
+                zone->signconf->nsec3_optout,
+                zone->signconf->nsec3_iterations,
+                zone->signconf->nsec3_salt,
+                zone->nsec3params->rr);
+        }
+        /** Backup keylist */
+        keylist_backup(fd, zone->signconf->keys);
+        /** Backup domains and stuff */
+        zonedata_backup(fd, zone->zonedata);
+        /** Done */
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         ods_fclose(fd);
     } else {
-        ods_log_error("[%s] cannot backup zone: cannot open file "
-        "%s for writing", zone_str, filename?filename:"(null)");
-        return 1;
+        return ODS_STATUS_FOPEN_ERR;
     }
     free((void*)filename);
-
-    return error;
+    return ODS_STATUS_OK;
 }
 
 

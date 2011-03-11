@@ -149,27 +149,51 @@ key_recover_from_backup(FILE* fd)
  *
  */
 static void
-key_print(FILE* out, key_type* key)
+key_print(FILE* fd, key_type* key)
 {
-    if (key && out) {
-        fprintf(out, "\t\t\t<Key>\n");
-        fprintf(out, "\t\t\t\t<Flags>%u</Flags>\n", key->flags);
-        fprintf(out, "\t\t\t\t<Algorithm>%u</Algorithm>\n", key->algorithm);
-        if (key->locator) {
-            fprintf(out, "\t\t\t\t<Locator>%s</Locator>\n", key->locator);
-        }
-        if (key->ksk) {
-            fprintf(out, "\t\t\t\t<KSK />\n");
-        }
-        if (key->zsk) {
-            fprintf(out, "\t\t\t\t<ZSK />\n");
-        }
-        if (key->publish) {
-            fprintf(out, "\t\t\t\t<Publish />\n");
-        }
-        fprintf(out, "\t\t\t</Key>\n");
-        fprintf(out, "\n");
+    if (!fd || !key) {
+        return;
     }
+    fprintf(fd, "\t\t\t<Key>\n");
+    fprintf(fd, "\t\t\t\t<Flags>%u</Flags>\n", key->flags);
+    fprintf(fd, "\t\t\t\t<Algorithm>%u</Algorithm>\n", key->algorithm);
+    if (key->locator) {
+        fprintf(fd, "\t\t\t\t<Locator>%s</Locator>\n", key->locator);
+    }
+    if (key->ksk) {
+        fprintf(fd, "\t\t\t\t<KSK />\n");
+    }
+    if (key->zsk) {
+        fprintf(fd, "\t\t\t\t<ZSK />\n");
+    }
+    if (key->publish) {
+        fprintf(fd, "\t\t\t\t<Publish />\n");
+    }
+    fprintf(fd, "\t\t\t</Key>\n");
+    fprintf(fd, "\n");
+    return;
+}
+
+
+/**
+ * Backup key.
+ *
+ */
+static void
+key_backup(FILE* fd, key_type* key)
+{
+    if (!fd || !key) {
+        return;
+    }
+
+    fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i zsk %i"
+        "\n", key->locator, (unsigned) key->algorithm, (unsigned) key->flags,
+        key->publish, key->ksk, key->zsk);
+    if (key->dnskey) {
+        ldns_rr_print(fd, key->dnskey);
+    }
+    fprintf(fd, ";;Keydone\n");
+    fprintf(fd, ";;\n");
     return;
 }
 
@@ -181,12 +205,12 @@ key_print(FILE* out, key_type* key)
 static void
 key_log(key_type* key, const char* name)
 {
-    if (key) {
-        ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
-            "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)",
-            key->locator, key->flags, key->algorithm, key->ksk, key->zsk,
-            key->publish);
+    if (!key) {
+        return;
     }
+    ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
+        "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
+        key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
     return;
 }
 
@@ -316,19 +340,40 @@ keylist_lookup_by_dnskey(keylist_type* list, ldns_rr* dnskey)
  *
  */
 void
-keylist_print(FILE* out, keylist_type* kl)
+keylist_print(FILE* fd, keylist_type* kl)
 {
     key_type* walk = NULL;
 
-    if (out && kl) {
+    if (fd && kl) {
         walk = kl->first_key;
         while (walk) {
-            key_print(out, walk);
+            key_print(fd, walk);
             walk = walk->next;
         }
     }
     return;
 }
+
+
+/**
+ * Backup key list.
+ *
+ */
+void
+keylist_backup(FILE* fd, keylist_type* kl)
+{
+    key_type* walk = NULL;
+
+    if (fd && kl) {
+        walk = kl->first_key;
+        while (walk) {
+            key_backup(fd, walk);
+            walk = walk->next;
+        }
+    }
+    return;
+}
+
 
 /**
  * Log key list.

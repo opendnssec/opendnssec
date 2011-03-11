@@ -60,6 +60,7 @@ struct nsec3params_struct {
     uint16_t    iterations;
     uint8_t     salt_len;
     uint8_t*    salt_data;
+    ldns_rr*    rr;
 };
 
 /**
@@ -73,10 +74,10 @@ struct nsec3params_struct {
 ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
     uint8_t** salt);
 
- /**
+/**
  * Create new NSEC3 parameters.
- * \param[in] algo algorithm.
- * \param[in] flags flags, Opt-Out or Opt-In.
+ * \param[in] algo algorithm
+ * \param[in] flags flags, Opt-Out or Opt-In
  * \param[in] iter number of iterations
  * \param[in] salt salt
  * \return nsec3params_type* the created nsec3params
@@ -84,6 +85,19 @@ ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
  */
 nsec3params_type* nsec3params_create(uint8_t algo, uint8_t flags,
     uint16_t iter, const char* salt);
+
+/**
+ * Backup NSEC3 parameters.
+ * \param[in] fd file descriptor
+ * \param[in] algo algorithm
+ * \param[in] flags glags, Opt-Out or Opt-In
+ * \param[in] iter number of iterations
+ * \param[in] salt salt
+ * \param[in] rr NSEC3PARAM RR
+ *
+ */
+void nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
+    uint16_t iter, const char* salt, ldns_rr* rr);
 
 /**
  * Recover NSEC3 parameters from backup.

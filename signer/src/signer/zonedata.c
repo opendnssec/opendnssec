@@ -1564,6 +1564,30 @@ zonedata_cleanup(zonedata_type* zd)
 
 
 /**
+ * Backup zone data.
+ *
+ */
+void
+zonedata_backup(FILE* fd, zonedata_type* zd)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    domain_type* domain = NULL;
+
+    if (!fd || !zd) {
+        return;
+    }
+
+    node = ldns_rbtree_first(zd->domains);
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        domain_backup(fd, domain);
+        node = ldns_rbtree_next(node);
+    }
+    return;
+}
+
+
+/**
  * Print zone data.
  *
  */

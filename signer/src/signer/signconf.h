@@ -106,10 +106,11 @@ signconf_type* signconf_recover_from_backup(const char* filename);
 
 /**
  * Backup signer configuration.
+ * \param[in] fd file descriptor
  * \param[in] sc signer configuration settings
  *
  */
-void signconf_backup(signconf_type* sc);
+void signconf_backup(FILE* fd, signconf_type* sc);
 
 /**
  * Check signer configuration.

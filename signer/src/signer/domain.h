@@ -260,10 +260,18 @@ void domain_cleanup(domain_type* domain);
 
 /**
  * Print domain.
- * \param[in] fd output file descriptor
+ * \param[in] fd file descriptor
  * \param[in] domain domain
  *
  */
 void domain_print(FILE* fd, domain_type* domain);
+
+/**
+ * Backup domain.
+ * \param[in] fd file descriptor
+ * \param[in] domain domain
+ *
+ */
+void domain_backup(FILE* fd, domain_type* domain);
 
 #endif /* SIGNER_DOMAIN_H */

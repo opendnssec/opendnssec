@@ -337,7 +337,8 @@ tools_output(zone_type* zone)
     zone->zonedata->outbound_serial = zone->zonedata->internal_serial;
     status = adapter_write(zone);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to write zone: adapter failed", tools_str);
+        ods_log_error("[%s] unable to write zone %s: adapter failed",
+            tools_str, zone->name);
         zone->zonedata->outbound_serial = outbound_serial;
         return status;
     }

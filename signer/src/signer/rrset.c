@@ -1225,3 +1225,20 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
     }
     return;
 }
+
+
+/**
+ * Backup RRset.
+ *
+ */
+void
+rrset_backup(FILE* fd, rrset_type* rrset)
+{
+    if (!rrset || !fd) {
+        return;
+    }
+    if (rrset->rrsigs) {
+        rrsigs_print(fd, rrset->rrsigs, 1);
+    }
+    return;
+}

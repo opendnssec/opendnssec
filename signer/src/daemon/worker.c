@@ -133,6 +133,7 @@ worker_perform_task(worker_type* worker)
     time_t never = (3600*24*365);
     ods_status status = ODS_STATUS_OK;
     int fallthrough = 0;
+    int backup = 0;
     char* working_dir = NULL;
     char* cfg_filename = NULL;
     time_t start = 0;
@@ -148,14 +149,14 @@ worker_perform_task(worker_type* worker)
     engine = (engine_type*) worker->engine;
     task = (task_type*) worker->task;
     zone = (zone_type*) worker->task->zone;
-    ods_log_debug("[%s[%i]]: perform task %s for zone %s at %u",
+    ods_log_debug("[%s[%i]] perform task %s for zone %s at %u",
        worker2str(worker->type), worker->thread_num, task_what2str(task->what),
        task_who2str(task->who), (uint32_t) worker->clock_in);
 
     switch (task->what) {
         case TASK_SIGNCONF:
             /* perform 'load signconf' task */
-            ods_log_verbose("[%s[%i]]: load signconf for zone %s",
+            ods_log_verbose("[%s[%i]] load signconf for zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
             status = zone_load_signconf(zone, &what);
@@ -178,7 +179,7 @@ worker_perform_task(worker_type* worker)
             break;
         case TASK_READ:
             /* perform 'read input adapter' task */
-            ods_log_verbose("[%s[%i]]: read zone %s",
+            ods_log_verbose("[%s[%i]] read zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
 
@@ -209,7 +210,7 @@ worker_perform_task(worker_type* worker)
             }
             fallthrough = 1;
         case TASK_NSECIFY:
-            ods_log_verbose("[%s[%i]]: nsecify zone %s",
+            ods_log_verbose("[%s[%i]] nsecify zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
             status = tools_nsecify(zone);
@@ -225,12 +226,12 @@ worker_perform_task(worker_type* worker)
             }
             fallthrough = 1;
         case TASK_SIGN:
-            ods_log_verbose("[%s[%i]]: sign zone %s",
+            ods_log_verbose("[%s[%i]] sign zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
             status = zone_update_serial(zone);
             if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s[%i]]: unable to sign zone %s: "
+                ods_log_error("[%s[%i]] unable to sign zone %s: "
                     "failed to increment serial",
                     worker2str(worker->type), worker->thread_num,
                     task_who2str(task->who));
@@ -253,7 +254,7 @@ worker_perform_task(worker_type* worker)
                 /* sleep until work is done */
                 worker_sleep_unless(worker, 0);
                 if (worker->jobs_failed > 0) {
-                    ods_log_error("[%s[%i]]: sign zone %s failed: %u of %u "
+                    ods_log_error("[%s[%i]] sign zone %s failed: %u of %u "
                         "signatures failed", worker2str(worker->type),
                         worker->thread_num, task_who2str(task->who),
                         worker->jobs_failed, worker->jobs_appointed);
@@ -285,7 +286,7 @@ worker_perform_task(worker_type* worker)
             fallthrough = 1;
         case TASK_AUDIT:
             if (zone->signconf->audit) {
-                ods_log_verbose("[%s[%i]]: audit zone %s",
+                ods_log_verbose("[%s[%i]] audit zone %s",
                     worker2str(worker->type), worker->thread_num,
                     task_who2str(task->who));
                 working_dir = strdup(engine->config->working_dir);
@@ -310,7 +311,7 @@ worker_perform_task(worker_type* worker)
             when = time_now();
             fallthrough = 1;
         case TASK_WRITE:
-            ods_log_verbose("[%s[%i]]: write zone %s",
+            ods_log_verbose("[%s[%i]] write zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
 
@@ -335,17 +336,18 @@ worker_perform_task(worker_type* worker)
                 what = TASK_NONE;
                 when = time_now() + never;
             }
+            backup = 1;
             fallthrough = 0;
             break;
         case TASK_NONE:
-            ods_log_warning("[%s[%i]]: none task for zone %s",
+            ods_log_warning("[%s[%i]] none task for zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
             when = time_now() + never;
             fallthrough = 0;
             break;
         default:
-            ods_log_warning("[%s[%i]]: unknown task, trying full sign zone %s",
+            ods_log_warning("[%s[%i]] unknown task, trying full sign zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
             what = TASK_SIGNCONF;
@@ -356,11 +358,23 @@ worker_perform_task(worker_type* worker)
 
     /* no error, reset backoff */
     task->backoff = 0;
+    /* backup the last successful run */
+    if (backup) {
+        status = zone_backup(zone);
+        if (status != ODS_STATUS_OK) {
+            ods_log_warning("[%s[%i]] unable to backup zone %s: %s",
+            worker2str(worker->type), worker->thread_num,
+            task_who2str(task->who), ods_status2str(status));
+            /* just a warning */
+            status = ODS_STATUS_OK;
+        }
+        backup = 0;
+    }
 
     /* set next task */
     if (fallthrough == 0 && task->interrupt != TASK_NONE &&
         task->interrupt != what) {
-        ods_log_debug("[%s[%i]]: interrupt task %s for zone %s",
+        ods_log_debug("[%s[%i]] interrupt task %s for zone %s",
             worker2str(worker->type), worker->thread_num,
             task_what2str(what), task_who2str(task->who));
 
@@ -368,7 +382,7 @@ worker_perform_task(worker_type* worker)
         task->when = time_now();
         task->halted = what;
     } else {
-        ods_log_debug("[%s[%i]]: next task %s for zone %s",
+        ods_log_debug("[%s[%i]] next task %s for zone %s",
             worker2str(worker->type), worker->thread_num,
             task_what2str(what), task_who2str(task->who));
 
@@ -390,7 +404,7 @@ task_perform_fail:
     } else {
         task->backoff = 60;
     }
-    ods_log_error("[%s[%i]]: backoff task %s for zone %s with %u seconds",
+    ods_log_error("[%s[%i]] backoff task %s for zone %s with %u seconds",
         worker2str(worker->type), worker->thread_num,
         task_what2str(task->what), task_who2str(task->who), task->backoff);
 
@@ -398,7 +412,7 @@ task_perform_fail:
     return;
 
 task_perform_continue:
-    ods_log_info("[%s[%i]]: continue task %s for zone %s",
+    ods_log_info("[%s[%i]] continue task %s for zone %s",
         worker2str(worker->type), worker->thread_num,
         task_what2str(task->halted), task_who2str(task->who));
 
@@ -429,7 +443,7 @@ worker_work(worker_type* worker)
     ods_log_assert(worker->type == WORKER_WORKER);
 
     while (worker->need_to_exit == 0) {
-        ods_log_debug("[%s[%i]]: report for duty", worker2str(worker->type),
+        ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
         lock_basic_lock(&worker->engine->taskq->schedule_lock);
         /* [LOCK] schedule */
@@ -508,7 +522,7 @@ worker_drudge(worker_type* worker)
 
     ctx = hsm_create_context();
     if (ctx == NULL) {
-        ods_log_error("[%s[%i]]: unable to drudge: error "
+        ods_log_error("[%s[%i]] unable to drudge: error "
             "creating libhsm context", worker2str(worker->type),
             worker->thread_num);
     }
@@ -531,7 +545,7 @@ worker_drudge(worker_type* worker)
                 zone = task->zone;
             }
             if (!zone) {
-                ods_log_error("[%s[%i]]: unable to drudge: no zone reference",
+                ods_log_error("[%s[%i]] unable to drudge: no zone reference",
                     worker2str(worker->type), worker->thread_num);
             }
             if (zone && ctx) {

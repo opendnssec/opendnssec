@@ -145,11 +145,19 @@ void keylist_cleanup(keylist_type* kl);
 
 /**
  * Print key list.
- * \param[in] out file descriptor
+ * \param[in] fd file descriptor
  * \param[in] kl key list to print
  *
  */
-void keylist_print(FILE* out, keylist_type* kl);
+void keylist_print(FILE* fd, keylist_type* kl);
+
+/**
+ * Backup key list.
+ * \param[in] fd file descriptor
+ * \param[in] kl key list to print
+ *
+ */
+void keylist_backup(FILE* fd, keylist_type* kl);
 
 /**
  * Log key list.

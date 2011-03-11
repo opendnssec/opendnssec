@@ -201,7 +201,7 @@ rrsigs_print(FILE* fd, rrsigs_type* rrsigs, int print_key)
     print = rrsigs;
     while (print) {
         if (print_key) {
-            fprintf(fd, ";RRSIG %s %u\n",
+            fprintf(fd, ";;RRSIG %s %u\n",
                 rrsigs->key_locator?rrsigs->key_locator:"(null)",
                 rrsigs->key_flags);
         }

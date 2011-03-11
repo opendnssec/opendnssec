@@ -132,7 +132,31 @@ nsec3params_create(uint8_t algo, uint8_t flags, uint16_t iter,
     }
     nsec3params->salt_len = salt_len; /* salt length */
     nsec3params->salt_data = salt_data; /* salt data */
+    nsec3params->rr = NULL;
     return nsec3params;
+}
+
+
+/**
+ * Backup NSEC3 parameters.
+ *
+ */
+void
+nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
+    uint16_t iter, const char* salt, ldns_rr* rr)
+{
+    if (!fd) {
+        return;
+    }
+    fprintf(fd, ";;Nsec3parameters: salt %s algorithm %u optout %u "
+        "iterations %u\n", salt?salt:"-", (unsigned) algo,
+        (unsigned) flags, (unsigned) iter);
+    if (rr) {
+        ldns_rr_print(fd, rr);
+    }
+    fprintf(fd, ";;Nsec3done\n");
+    fprintf(fd, ";;\n");
+    return;
 }
 
 
@@ -189,6 +213,7 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
     nsec3params->salt_len = salt_len; /* salt length */
     nsec3params->salt_data = salt_data; /* salt data */
     *rr = nsec3params_rr;
+    nsec3params->rr = nsec3params_rr;
     return nsec3params;
 }
 
@@ -244,6 +269,7 @@ nsec3params_cleanup(nsec3params_type* nsec3params)
         return;
     }
     allocator = nsec3params->allocator;
+    nsec3params->rr = NULL;
     allocator_deallocate(allocator, (void*) nsec3params->salt_data);
     allocator_deallocate(allocator, (void*) nsec3params);
     allocator_cleanup(allocator);

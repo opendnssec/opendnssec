@@ -887,7 +887,6 @@ void
 domain_print(FILE* fd, domain_type* domain)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* parent = NULL;
     char* str = NULL;
     int print_glue = 0;
     rrset_type* rrset = NULL;
@@ -972,5 +971,47 @@ domain_print(FILE* fd, domain_type* domain)
     }
 
     fprintf(fd, ";\n");
+    return;
+}
+
+
+/**
+ * Backup domain.
+ *
+ */
+void
+domain_backup(FILE* fd, domain_type* domain)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    char* str = NULL;
+    rrset_type* rrset = NULL;
+
+    if (!domain || !fd) {
+        return;
+    }
+
+    str = ldns_rdf2str(domain->dname);
+    if (domain->rrsets) {
+        node = ldns_rbtree_first(domain->rrsets);
+    }
+
+    fprintf(fd, ";;Domain: name %s status %i\n", str, (int) domain->dstatus);
+    while (node && node != LDNS_RBTREE_NULL) {
+        rrset = (rrset_type*) node->data;
+        rrset_backup(fd, rrset);
+        node = ldns_rbtree_next(node);
+    }
+    free((void*)str);
+    fprintf(fd, ";;Domaindone\n");
+
+    /* denial of existence */
+    if (domain->denial) {
+        fprintf(fd, ";;Denial\n");
+        rrset_print(fd, domain->denial->rrset, 1);
+        rrset_backup(fd, domain->denial->rrset);
+        fprintf(fd, ";;Denialdone\n");
+    }
+
+    fprintf(fd, ";;\n");
     return;
 }

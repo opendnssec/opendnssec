@@ -148,12 +148,12 @@ ods_status zone_publish_dnskeys(zone_type* zone);
 ods_status zone_prepare_nsec3(zone_type* zone);
 
 /**
- * Backup zone state.
+ * Backup zone.
  * \param[in] zone corresponding zone
- * \return int 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-int zone_backup_state(zone_type* zone);
+ods_status zone_backup(zone_type* zone);
 
 /**
  * Recover from backup.

@@ -226,4 +226,12 @@ void log_rr(ldns_rr* rr, const char* pre, int level);
  */
 void rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs);
 
+/**
+ * Backup RRset.
+ * \param[in] fd file descriptor
+ * \param[in] rrset RRset
+ *
+ */
+void rrset_backup(FILE* fd, rrset_type* rrset);
+
 #endif /* SIGNER_RRSET_H */
