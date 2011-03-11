@@ -65,9 +65,9 @@
 -->
 
 		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
-		<WorkerThreads>8</WorkerThreads>
+		<WorkerThreads>4</WorkerThreads>
 <!--
-		<SignerThreads>8</SignerThreads>
+		<SignerThreads>4</SignerThreads>
 -->
 
 		<!-- the <NotifyCommmand> will expand the following variables:
