@@ -44,6 +44,8 @@ static const char* hsm_str = "hsm";
 ods_status
 lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
 {
+    char *error;
+
     if (!owner || !key_id) {
         ods_log_error("[%s] unable to get key: missing required elements",
             hsm_str);
@@ -72,6 +74,11 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
         key_id->hsmkey = hsm_find_key_by_id(ctx, key_id->locator);
     }
     if (!key_id->hsmkey) {
+        error = hsm_get_error(ctx);
+        if (error) {
+            ods_log_error("[%s] %s", hsm_str, error);
+            free(error);
+        }
         /* could not find key */
         ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
             key_id->locator?key_id->locator:"(null)");
@@ -83,6 +90,11 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
         key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey, key_id->params);
     }
     if (!key_id->dnskey) {
+        error = hsm_get_error(ctx);
+        if (error) {
+            ods_log_error("[%s] %s", hsm_str, error);
+            free(error);
+        }
         ods_log_error("[%s] unable to get key: hsm failed to create dnskey",
             hsm_str);
         return ODS_STATUS_ERR;
