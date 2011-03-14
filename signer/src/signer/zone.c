@@ -499,6 +499,13 @@ zone_publish_dnskeys(zone_type* zone)
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
     }
 
+    ctx = hsm_create_context();
+    if (ctx == NULL) {
+        ods_log_error("[%s] unable to publish dnskeys for zone %s: error "
+            "creating libhsm context", zone_str, zone->name);
+        return ODS_STATUS_HSM_ERR;
+    }
+
     key = zone->signconf->keys->first_key;
     for (count=0; count < zone->signconf->keys->count; count++) {
         if (key->publish && !key->dnskey) {
@@ -528,6 +535,9 @@ zone_publish_dnskeys(zone_type* zone)
     if (status != ODS_STATUS_OK) {
         zonedata_rollback(zone->zonedata);
     }
+
+    hsm_destroy_context(ctx);
+    ctx = NULL;
     return status;
 }
 

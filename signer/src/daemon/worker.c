@@ -589,10 +589,8 @@ worker_drudge(worker_type* worker)
     }
 
     /* cleanup open HSM sessions */
-    if (ctx) {
-        hsm_destroy_context(ctx);
-        ctx = NULL;
-    }
+    hsm_destroy_context(ctx);
+    ctx = NULL;
     return;
 }
 
