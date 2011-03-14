@@ -44,7 +44,7 @@ static const char* hsm_str = "hsm";
 ods_status
 lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
 {
-    char *error;
+    char *error = NULL;
 
     if (!owner || !key_id) {
         ods_log_error("[%s] unable to get key: missing required elements",
@@ -63,6 +63,11 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
             key_id->params->flags = key_id->flags;
         } else {
             /* could not create params */
+            error = hsm_get_error(ctx);
+            if (error) {
+                ods_log_error("[%s] %s", hsm_str, error);
+                free((void*)error);
+            }
             ods_log_error("[%s] unable to get key: create params for key %s "
                 "failed", hsm_str, key_id->locator?key_id->locator:"(null)");
             return ODS_STATUS_ERR;
@@ -77,7 +82,7 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
         error = hsm_get_error(ctx);
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
-            free(error);
+            free((void*)error);
         }
         /* could not find key */
         ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
@@ -93,7 +98,7 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
         error = hsm_get_error(ctx);
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
-            free(error);
+            free((void*)error);
         }
         ods_log_error("[%s] unable to get key: hsm failed to create dnskey",
             hsm_str);
@@ -112,6 +117,7 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ldns_rdf* owner, time_t inception, time_t expiration)
 {
     ods_status status = ODS_STATUS_OK;
+    char* error = NULL;
 
     if (!owner || !key_id || !rrset || !inception || !expiration) {
         ods_log_error("[%s] unable to sign: missing required elements",
@@ -127,6 +133,11 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     if (!key_id->dnskey) {
         status = lhsm_get_key(ctx, owner, key_id);
         if (status != ODS_STATUS_OK) {
+            error = hsm_get_error(ctx);
+            if (error) {
+                ods_log_error("[%s] %s", hsm_str, error);
+                free((void*)error);
+            }
             ods_log_error("[%s] unable to sign: get key failed", hsm_str);
             return NULL;
         }
