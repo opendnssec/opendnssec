@@ -1433,10 +1433,8 @@ cmd_exportkeys ()
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
 			/* Try again with td */
-			if (td_flag == 1) {
-				StrAppend(&o_zone, ".");
-				status = KsmZoneIdFromName(o_zone, &zone_id);
-			}
+			StrAppend(&o_zone, ".");
+			status = KsmZoneIdFromName(o_zone, &zone_id);
 			if (status != 0) {
 				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
 				return(status);
@@ -1750,10 +1748,8 @@ cmd_rollzone ()
     status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
 	if (status != 0) {
 		/* Try again with td */
-		if (td_flag == 1) {
-			StrAppend(&o_zone, ".");
-			status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
-		}
+		StrAppend(&o_zone, ".");
+		status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
 		if (status != 0) {
 			db_disconnect(lock_fd);
 			return(status);
@@ -1931,10 +1927,8 @@ cmd_keypurge ()
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
 		/* Try again with td */
-			if (td_flag == 1) {
-				StrAppend(&o_zone, ".");
-				status = KsmZoneIdFromName(o_zone, &zone_id);
-			}
+			StrAppend(&o_zone, ".");
+			status = KsmZoneIdFromName(o_zone, &zone_id);
 			if (status != 0) {
 				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
 				db_disconnect(lock_fd);
@@ -2099,10 +2093,8 @@ cmd_listrolls ()
         status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
 			/* Try again with td */
-			if (td_flag == 1) {
-				StrAppend(&o_zone, ".");
-				status = KsmZoneIdFromName(o_zone, &qualifier_id);
-			}
+			StrAppend(&o_zone, ".");
+			status = KsmZoneIdFromName(o_zone, &qualifier_id);
 			if (status != 0) {
 				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
 				db_disconnect(lock_fd);
@@ -2285,10 +2277,8 @@ cmd_listkeys ()
         status = KsmZoneIdFromName(o_zone, &qualifier_id);
         if (status != 0) {
 			/* Try again with td */
-			if (td_flag == 1) {
-				StrAppend(&o_zone, ".");
-				status = KsmZoneIdFromName(o_zone, &qualifier_id);
-			}
+			StrAppend(&o_zone, ".");
+			status = KsmZoneIdFromName(o_zone, &qualifier_id);
 			if (status != 0) {
 				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
 				db_disconnect(lock_fd);
@@ -2371,10 +2361,8 @@ cmd_kskretire()
         status = KsmZoneIdFromName(o_zone, &zone_id);
         if (status != 0) {
 			/* Try again with td */
-			if (td_flag == 1) {
-				StrAppend(&o_zone, ".");
-				status = KsmZoneIdFromName(o_zone, &zone_id);
-			}
+			StrAppend(&o_zone, ".");
+			status = KsmZoneIdFromName(o_zone, &zone_id);
 			if (status != 0) {
 				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
 				db_disconnect(lock_fd);
@@ -2595,10 +2583,8 @@ cmd_dsseen()
 		status = KsmZoneIdFromName(o_zone, &zone_id);
 		if (status != 0) {
 			/* Try again with td */
-			if (td_flag == 1) {
-				StrAppend(&o_zone, ".");
-				status = KsmZoneIdFromName(o_zone, &zone_id);
-			}
+			StrAppend(&o_zone, ".");
+			status = KsmZoneIdFromName(o_zone, &zone_id);
 			if (status != 0) {
 				printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
 				db_disconnect(lock_fd);
@@ -2852,10 +2838,8 @@ cmd_import ()
 	status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
 	if (status != 0) {
 		/* Try again with td */
-		if (td_flag == 1) {
-			StrAppend(&o_zone, ".");
-			status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
-		}
+		StrAppend(&o_zone, ".");
+		status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
 		if (status != 0) {
 			printf("Error: unable to find a zone named \"%s\" in database\n", o_zone);
 			db_disconnect(lock_fd);
