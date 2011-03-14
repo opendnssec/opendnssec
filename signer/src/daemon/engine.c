@@ -435,12 +435,24 @@ start_zonefetcher(engine_type* engine)
     ods_log_verbose("zone fetcher running as pid %lu",
         (unsigned long) getpid());
 
-    zf_filename = strdup(engine->config->zonefetch_filename);
-    zl_filename = strdup(engine->config->zonelist_filename);
-    grp = strdup(engine->config->group);
-    usr = strdup(engine->config->username);
-    chrt = strdup(engine->config->chroot);
-    log_filename = strdup(engine->config->log_filename);
+    if (engine->config->zonefetch_filename) {
+        zf_filename = strdup(engine->config->zonefetch_filename);
+    }
+    if (engine->config->zonelist_filename) {
+        zl_filename = strdup(engine->config->zonelist_filename);
+    }
+    if (engine->config->group) {
+        grp = strdup(engine->config->group);
+    }
+    if (engine->config->username) {
+        usr = strdup(engine->config->username);
+    }
+    if (engine->config->chroot) {
+        chrt = strdup(engine->config->chroot);
+    }
+    if (engine->config->log_filename) {
+        log_filename = strdup(engine->config->log_filename);
+    }
     use_syslog = engine->config->use_syslog;
     verbosity = engine->config->verbosity;
 
