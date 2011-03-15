@@ -887,8 +887,8 @@ engine_update_zones(engine_type* engine)
         }
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&engine->zonelist->zl_lock);
     /* [UNLOCK] zonelist */
+    lock_basic_unlock(&engine->zonelist->zl_lock);
 
     if (wake_up) {
         engine_wakeup_workers(engine);
@@ -901,44 +901,71 @@ engine_update_zones(engine_type* engine)
  * Try to recover from the backup files.
  *
  */
-/*
-static void
-engine_recover_from_backups(engine_type* engine)
+static ods_status
+engine_recover(engine_type* engine)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
+    ods_status status = ODS_STATUS_OK;
+    ods_status result = ODS_STATUS_UNCHANGED;
 
+    if (!engine || !engine->zonelist || !engine->zonelist->zones) {
+        ods_log_error("[%s] cannot update zones: no engine or zonelist",
+            engine_str);
+        return ODS_STATUS_OK; /* will trigger update zones */
+    }
     ods_log_assert(engine);
     ods_log_assert(engine->zonelist);
     ods_log_assert(engine->zonelist->zones);
 
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    engine->taskq->loading = 1;
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-
+    lock_basic_lock(&engine->zonelist->zl_lock);
+    /* [LOCK] zonelist */
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
-        zone = (zone_type*) node->key;
-        lock_basic_lock(&zone->zone_lock);
+        zone = (zone_type*) node->data;
 
-        if (engine->config->notify_command && !zone->notify_ns) {
-            set_notify_ns(zone, engine->config->notify_command);
+        ods_log_assert(zone->just_added);
+        status = zone_recover(zone);
+        if (status == ODS_STATUS_OK) {
+            ods_log_assert(zone->task);
+            ods_log_assert(zone->zonedata);
+            ods_log_assert(zone->signconf);
+            /* notify nameserver */
+            if (engine->config->notify_command && !zone->notify_ns) {
+                set_notify_ns(zone, engine->config->notify_command);
+            }
+            /* zone fetcher enabled? */
+            zone->fetch = (engine->config->zonefetch_filename != NULL);
+            /* schedule task */
+            lock_basic_lock(&engine->taskq->schedule_lock);
+            /* [LOCK] schedule */
+            status = schedule_task(engine->taskq, (task_type*) zone->task, 0);
+            /* [UNLOCK] schedule */
+            lock_basic_unlock(&engine->taskq->schedule_lock);
+
+            if (status != ODS_STATUS_OK) {
+                ods_log_crit("[%s] unable to schedule task for zone %s: %s",
+                    engine_str, zone->name, ods_status2str(status));
+                task_cleanup((task_type*) zone->task);
+                zone->task = NULL;
+                result = ODS_STATUS_OK; /* will trigger update zones */
+            } else {
+                /* recovery done */
+                zone->just_added = 0;
+            }
+        } else {
+            if (status != ODS_STATUS_UNCHANGED) {
+                ods_log_warning("[%s] unable to recover zone %s from backup,"
+                " performing full sign", engine_str, zone->name);
+            }
+            result = ODS_STATUS_OK; /* will trigger update zones */
         }
-
-        lock_basic_lock(&engine->taskq->schedule_lock);
-        zone_recover_from_backup(zone, engine->taskq);
-        lock_basic_unlock(&engine->taskq->schedule_lock);
-        lock_basic_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
-
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    engine->taskq->loading = 0;
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-
-    return;
+    /* [UNLOCK] zonelist */
+    lock_basic_unlock(&engine->zonelist->zl_lock);
+    return result;
 }
-*/
 
 
 /**
@@ -1017,10 +1044,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             engine->need_to_reload = 0;
         } else {
             ods_log_info("[%s] signer started", engine_str);
-            /* try to recover from backups */
-/* not for now:
-            engine_recover_from_backups(engine);
-*/
+            zl_changed = engine_recover(engine);
         }
 
         /* update zones */

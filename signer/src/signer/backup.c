@@ -51,6 +51,7 @@ backup_read_token(FILE* in)
 {
     static char buf[4000];
     buf[sizeof(buf)-1]=0;
+
     while (1) {
         if (fscanf(in, "%3990s", buf) != 1) {
             return 0;
@@ -73,6 +74,9 @@ int
 backup_read_check_str(FILE* in, const char* str)
 {
     char *p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read_check str %s", str);
+
     if (!p) {
         ods_log_debug("[%s] cannot read check string \'%s\'", backup_str, str);
         return 0;
@@ -93,6 +97,9 @@ int
 backup_read_str(FILE* in, const char** str)
 {
     char *p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read str");
+
     if (!p) {
         ods_log_debug("[%s] cannot read string", backup_str);
         return 0;
@@ -110,6 +117,9 @@ int
 backup_read_time_t(FILE* in, time_t* v)
 {
     char* p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read time_t");
+
     if (!p) {
         ods_log_debug("[%s] cannot read time", backup_str);
        return 0;
@@ -127,6 +137,9 @@ int
 backup_read_duration(FILE* in, duration_type** v)
 {
     char* p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read duration");
+
     if (!p) {
         ods_log_debug("[%s] cannot read duration", backup_str);
        return 0;
@@ -144,6 +157,9 @@ int
 backup_read_rr_type(FILE* in, ldns_rr_type* v)
 {
     char* p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read rr_type");
+
     if (!p) {
         ods_log_debug("[%s] cannot read rr type", backup_str);
        return 0;
@@ -161,6 +177,9 @@ int
 backup_read_int(FILE* in, int* v)
 {
     char* p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read int");
+
     if (!p) {
         ods_log_debug("[%s] cannot read integer", backup_str);
        return 0;
@@ -178,6 +197,9 @@ int
 backup_read_size_t(FILE* in, size_t* v)
 {
     char* p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read size_t");
+
     if (!p) {
         ods_log_debug("[%s] cannot read size_t", backup_str);
        return 0;
@@ -195,6 +217,9 @@ int
 backup_read_uint8_t(FILE* in, uint8_t* v)
 {
     char* p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read uint8_t");
+
     if (!p) {
         ods_log_debug("[%s] cannot read uint8_t", backup_str);
        return 0;
@@ -212,6 +237,9 @@ int
 backup_read_uint16_t(FILE* in, uint16_t* v)
 {
     char* p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read uint16_t");
+
     if (!p) {
         ods_log_debug("[%s] cannot read uint16_t", backup_str);
        return 0;
@@ -229,6 +257,9 @@ int
 backup_read_uint32_t(FILE* in, uint32_t* v)
 {
     char* p = backup_read_token(in);
+
+    ods_log_verbose("[debug] backup read uint32_t");
+
     if (!p) {
         ods_log_debug("[%s] cannot read uint32_t", backup_str);
        return 0;

@@ -94,12 +94,13 @@ key_type* key_create(allocator_type* allocator, const char* locator,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk);
 
 /**
- * Recover a key from backup.
+ * Recover key from backup.
  * \param[in] fd file descriptor of key backup file
+ * \param[in] allocator memory allocator
  * \return key_type* key
  *
  */
-key_type* key_recover_from_backup(FILE* fd);
+key_type* key_recover(FILE* fd, allocator_type* allocator);
 
 /**
  * Create a new key list.

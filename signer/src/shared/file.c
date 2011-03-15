@@ -197,7 +197,7 @@ ods_fopen(const char* file, const char* dir, const char* mode)
         if (len_file) {
             fd = fopen(openf, mode);
             if (!fd) {
-                ods_log_error("[%s] unable to open file %s for %s: %s",
+                ods_log_verbose("[%s] unable to open file %s for %s: %s",
                     file_str, openf?openf:"(null)",
                     ods_file_mode2str(mode), strerror(errno));
             }

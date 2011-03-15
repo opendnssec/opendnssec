@@ -91,11 +91,11 @@ key_create(allocator_type* allocator, const char* locator, uint8_t algorithm,
 
 
 /**
- * Recover a key from backup.
+ * Recover key from backup.
  *
  */
 key_type*
-key_recover_from_backup(FILE* fd)
+key_recover(FILE* fd, allocator_type* allocator)
 {
     key_type* key = NULL;
     const char* locator = NULL;
@@ -108,18 +108,43 @@ key_recover_from_backup(FILE* fd)
 
     ods_log_assert(fd);
 
-    if (!backup_read_str(fd, &locator) ||
+    if (!backup_read_check_str(fd, "locator") ||
+        !backup_read_str(fd, &locator) ||
+        !backup_read_check_str(fd, "algorithm") ||
         !backup_read_uint8_t(fd, &algorithm) ||
+        !backup_read_check_str(fd, "flags") ||
         !backup_read_uint32_t(fd, &flags) ||
+        !backup_read_check_str(fd, "publish") ||
         !backup_read_int(fd, &publish) ||
+        !backup_read_check_str(fd, "ksk") ||
         !backup_read_int(fd, &ksk) ||
-        !backup_read_int(fd, &zsk) ||
-        ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK ||
-        !backup_read_check_str(fd, ";END"))
-    {
-        ods_log_error("[%s] key part in backup file is corrupted", key_str);
+        !backup_read_check_str(fd, "zsk") ||
+        !backup_read_int(fd, &zsk)) {
+
+        ods_log_error("[%s] key in backup corrupted", key_str);
         if (locator) {
-            free((void*)locator);
+           free((void*)locator);
+           locator = NULL;
+        }
+        return NULL;
+    }
+
+    if (publish &&
+        ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK) {
+        ods_log_error("[%s] key in backup is published, but no rr found",
+            key_str);
+        if (locator) {
+           free((void*)locator);
+           locator = NULL;
+        }
+        return NULL;
+    }
+
+    if (!backup_read_check_str(fd, ";;Keydone")) {
+        ods_log_error("[%s] key in backup corrupted", key_str);
+        if (locator) {
+           free((void*)locator);
+           locator = NULL;
         }
         if (rr) {
             ldns_rr_free(rr);
@@ -128,8 +153,25 @@ key_recover_from_backup(FILE* fd)
         return NULL;
     }
 
-    key = (key_type*) malloc(sizeof(key_type));
-    key->locator = locator;
+    /* key ok */
+    key = (key_type*) allocator_alloc(allocator, sizeof(key_type));
+    if (!key) {
+        ods_log_error("[%s] unable to recover key: allocator failed",
+            key_str);
+        if (locator) {
+           free((void*)locator);
+           locator = NULL;
+        }
+        if (rr) {
+            ldns_rr_free(rr);
+            rr = NULL;
+        }
+        return NULL;
+    }
+    ods_log_assert(key);
+
+    key->allocator = allocator;
+    key->locator = allocator_strdup(allocator, locator);
     key->dnskey = rr;
     key->hsmkey = NULL;
     key->params = NULL;
@@ -140,6 +182,10 @@ key_recover_from_backup(FILE* fd)
     key->zsk = zsk;
     key->next = NULL;
 
+    if (locator) {
+       free((void*)locator);
+       locator = NULL;
+    }
     return key;
 }
 
@@ -186,14 +232,13 @@ key_backup(FILE* fd, key_type* key)
         return;
     }
 
-    fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i zsk %i"
-        "\n", key->locator, (unsigned) key->algorithm, (unsigned) key->flags,
-        key->publish, key->ksk, key->zsk);
+    fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i "
+        "zsk %i\n", key->locator, (unsigned) key->algorithm,
+        (unsigned) key->flags, key->publish, key->ksk, key->zsk);
     if (key->dnskey) {
         ldns_rr_print(fd, key->dnskey);
     }
     fprintf(fd, ";;Keydone\n");
-    fprintf(fd, ";;\n");
     return;
 }
 
@@ -371,6 +416,7 @@ keylist_backup(FILE* fd, keylist_type* kl)
             walk = walk->next;
         }
     }
+    fprintf(fd, ";;\n");
     return;
 }
 

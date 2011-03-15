@@ -156,14 +156,11 @@ ods_status zone_prepare_nsec3(zone_type* zone);
 ods_status zone_backup(zone_type* zone);
 
 /**
- * Recover from backup.
+ * Recover zone from backup.
  * \param[in] zone corresponding zone
- * \param[in] tl task list
  *
  */
-/*
-void zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl);
-*/
+ods_status zone_recover(zone_type* zone);
 
 /**
  * Merge zones.

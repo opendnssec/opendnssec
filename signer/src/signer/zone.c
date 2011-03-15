@@ -467,6 +467,8 @@ zone_publish_dnskeys(zone_type* zone)
     ods_status status = ODS_STATUS_OK;
     ldns_rr* dnskey = NULL;
 
+    int error_counter = 1;
+
     if (!zone) {
         ods_log_error("[%s] unable to publish dnskeys: no zone", zone_str);
         return ODS_STATUS_ASSERT_ERR;
@@ -508,6 +510,14 @@ zone_publish_dnskeys(zone_type* zone)
 
     key = zone->signconf->keys->first_key;
     for (count=0; count < zone->signconf->keys->count; count++) {
+/*
+        if (strcmp("b06fe126e4bcddb4ed1348258b478bee", key->locator) == 0 && error_counter) {
+            status = ODS_STATUS_ERR;
+            ods_log_error("[%s] force error", zone_str);
+            error_counter = 0;
+            break;
+        }
+*/
         if (key->publish && !key->dnskey) {
             status = lhsm_get_key(ctx, zone->dname, key);
             if (status != ODS_STATUS_OK) {
@@ -853,61 +863,208 @@ zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
 */
 
 /**
- * Recover from backup.
+ * Recover zone from backup.
  *
  */
-/*
-void
-zone_recover_from_backup(zone_type* zone, struct schedule_struct* tl)
+ods_status
+zone_recover(zone_type* zone)
 {
-    int klass = 0;
-    int fetch = 0;
-    int error = 0;
     char* filename = NULL;
-    task_type* task = NULL;
-    time_t now = 0;
     FILE* fd = NULL;
-    ods_status status = ODS_STATUS_OK;
+    const char* token = NULL;
+    /* zone part */
+    int klass = 0;
+    uint32_t ttl = 0;
+    uint32_t inbound = 0;
+    uint32_t internal = 0;
+    uint32_t outbound = 0;
+    /* task part */
+    task_type* task = NULL;
+    time_t when = 0;
+    time_t backoff = 0;
+    int what = 0;
+    int interrupt = 0;
+    int halted = 0;
+    int flush = 0;
+    /* signconf part */
+    time_t lastmod = 0;
+    /* nsec3params part */
+    const char* salt = NULL;
+    uint8_t algo = 0;
+    uint8_t flags = 0;
+    uint16_t iter = 0;
+    ldns_rr* nsec3params_rr = NULL;
+    nsec3params_type* nsec3params = NULL;
+    /* keys part */
+    key_type* key = NULL;
+    /* zonedata part */
 
     ods_log_assert(zone);
+    ods_log_assert(zone->signconf);
     ods_log_assert(zone->zonedata);
 
-    filename = ods_build_path(zone->name, ".state", 0);
+    filename = ods_build_path(zone->name, ".backup", 0);
     fd = ods_fopen(filename, NULL, "r");
     free((void*)filename);
     if (fd) {
+        /* start recovery */
         if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
-            !backup_read_check_str(fd, ";name:") ||
+            /* zone part */
+            !backup_read_check_str(fd, ";;Zone:") ||
+            !backup_read_check_str(fd, "name") ||
             !backup_read_check_str(fd, zone->name) ||
-            !backup_read_check_str(fd, ";class:") ||
+            !backup_read_check_str(fd, "class") ||
             !backup_read_int(fd, &klass) ||
-            !backup_read_check_str(fd, ";fetch:") ||
-            !backup_read_int(fd, &fetch) ||
-            !backup_read_check_str(fd, ";default_ttl:") ||
-            !backup_read_uint32_t(fd, &zone->zonedata->default_ttl) ||
-            !backup_read_check_str(fd, ";inbound_serial:") ||
-            !backup_read_uint32_t(fd, &zone->zonedata->inbound_serial) ||
-            !backup_read_check_str(fd, ";internal_serial:") ||
-            !backup_read_uint32_t(fd, &zone->zonedata->internal_serial) ||
-            !backup_read_check_str(fd, ";outbound_serial:") ||
-            !backup_read_uint32_t(fd, &zone->zonedata->outbound_serial) ||
-            !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
-        {
-            ods_log_error("[%s] unable to recover zone state from file %s.state: "
-                "file corrupted", zone_str, zone->name);
-            ods_fclose(fd);
-            return;
+            !backup_read_check_str(fd, "ttl") ||
+            !backup_read_uint32_t(fd, &ttl) ||
+            !backup_read_check_str(fd, "inbound") ||
+            !backup_read_uint32_t(fd, &inbound) ||
+            !backup_read_check_str(fd, "internal") ||
+            !backup_read_uint32_t(fd, &internal) ||
+            !backup_read_check_str(fd, "outbound") ||
+            !backup_read_uint32_t(fd, &outbound) ||
+            /* task part */
+            !backup_read_check_str(fd, ";;Task:") ||
+            !backup_read_check_str(fd, "when") ||
+            !backup_read_time_t(fd, &when) ||
+            !backup_read_check_str(fd, "what") ||
+            !backup_read_int(fd, &what) ||
+            !backup_read_check_str(fd, "interrupt") ||
+            !backup_read_int(fd, &interrupt) ||
+            !backup_read_check_str(fd, "halted") ||
+            !backup_read_int(fd, &halted) ||
+            !backup_read_check_str(fd, "backoff") ||
+            !backup_read_time_t(fd, &backoff) ||
+            !backup_read_check_str(fd, "flush") ||
+            !backup_read_int(fd, &flush) ||
+            /* signconf part */
+            !backup_read_check_str(fd, ";;Signconf:") ||
+            !backup_read_check_str(fd, "lastmod") ||
+            !backup_read_time_t(fd, &lastmod) ||
+            !backup_read_check_str(fd, "resign") ||
+            !backup_read_duration(fd,
+                &zone->signconf->sig_resign_interval) ||
+            !backup_read_check_str(fd, "refresh") ||
+            !backup_read_duration(fd,
+                &zone->signconf->sig_refresh_interval) ||
+            !backup_read_check_str(fd, "valid") ||
+            !backup_read_duration(fd,
+                &zone->signconf->sig_validity_default) ||
+            !backup_read_check_str(fd, "denial") ||
+            !backup_read_duration(fd,
+                &zone->signconf->sig_validity_denial) ||
+            !backup_read_check_str(fd, "jitter") ||
+            !backup_read_duration(fd, &zone->signconf->sig_jitter) ||
+            !backup_read_check_str(fd, "offset") ||
+            !backup_read_duration(fd,
+                &zone->signconf->sig_inception_offset) ||
+            !backup_read_check_str(fd, "nsec") ||
+            !backup_read_rr_type(fd, &zone->signconf->nsec_type) ||
+            !backup_read_check_str(fd, "dnskeyttl") ||
+            !backup_read_duration(fd, &zone->signconf->dnskey_ttl) ||
+            !backup_read_check_str(fd, "soattl") ||
+            !backup_read_duration(fd, &zone->signconf->soa_ttl) ||
+            !backup_read_check_str(fd, "soamin") ||
+            !backup_read_duration(fd, &zone->signconf->soa_min) ||
+            !backup_read_check_str(fd, "serial") ||
+            !backup_read_str(fd, &zone->signconf->soa_serial) ||
+            !backup_read_check_str(fd, "audit") ||
+            !backup_read_int(fd, &zone->signconf->audit) ||
+            !backup_read_check_str(fd, ";;")) {
+            goto recover_error;
         }
+        /* nsec3params part */
+        if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
+             if (!backup_read_check_str(fd, ";;Nsec3parameters:") ||
+                 !backup_read_check_str(fd, "salt") ||
+                 !backup_read_str(fd, &salt) ||
+                 !backup_read_check_str(fd, "algorithm") ||
+                 !backup_read_uint8_t(fd, &algo) ||
+                 !backup_read_check_str(fd, "optout") ||
+                 !backup_read_uint8_t(fd, &flags) ||
+                 !backup_read_check_str(fd, "iterations") ||
+                 !backup_read_uint16_t(fd, &iter) ||
+                 ldns_rr_new_frm_fp(&nsec3params_rr, fd, NULL, NULL, NULL) ||
+                 !backup_read_check_str(fd, ";;Nsec3done") ||
+                 !backup_read_check_str(fd, ";;")) {
+                 goto recover_error;
+            }
+        }
+        /* keys part */
+        zone->signconf->keys = keylist_create(zone->signconf->allocator);
+        while (backup_read_str(fd, &token)) {
+            if (ods_strcmp(token, ";;Key:") == 0) {
+                key = key_recover(fd, zone->signconf->allocator);
+                if (!key || keylist_push(zone->signconf->keys, key) !=
+                    ODS_STATUS_OK) {
+                    goto recover_error;
+                }
+                key = NULL;
+            } else if (ods_strcmp(token, ";;") == 0) {
+                /* keylist done */
+                break;
+            } else {
+                /* keylist corrupted */
+                goto recover_error;
+            }
+        }
+        /* zonedata part */
+
+        ods_log_error("[%s] force recovery failure for zone %s",
+            zone_str, zone->name);
+        goto recover_error;
+
+        /* file ok */
         zone->klass = (ldns_rr_class) klass;
-        zone->fetch = fetch;
+        task = task_create((task_id) what, when, zone->name, (void*) zone);
+        if (!task) {
+            goto recover_error;
+        }
+        nsec3params = nsec3params_create(algo, flags, iter, salt);
+        if (!nsec3params) {
+            goto recover_error;
+        }
+        nsec3params->rr = nsec3params_rr;
 
-        ods_fclose(fd);
-    } else {
-        ods_log_deeebug("[%s] unable to recover zone state from file %s.state: ",
-            "no such file or directory", zone_str, zone->name);
-        return;
+        zone->task = (void*) task;
+        zone->signconf->last_modified = lastmod;
+        zone->nsec3params = nsec3params;
+
     }
+    return ODS_STATUS_UNCHANGED;
 
+recover_error:
+    ods_log_error("[%s] unable to recover zone %s: corrupted file",
+        zone_str, zone->name);
+    ods_fclose(fd);
+
+    /* signconf cleanup */
+    signconf_cleanup(zone->signconf);
+    zone->signconf = signconf_create();
+    ods_log_assert(zone->signconf);
+
+    /* task cleanup */
+    if (task) {
+        task_cleanup(task);
+        task = NULL;
+    }
+    /* nsec3params cleanup */
+    if (salt) {
+        free((void*)salt);
+        salt = NULL;
+    }
+    if (nsec3params_rr) {
+        ldns_rr_free(nsec3params_rr);
+        nsec3params_rr = NULL;
+    }
+    if (nsec3params) {
+        nsec3params_cleanup(nsec3params);
+        nsec3params = NULL;
+    }
+    return ODS_STATUS_ERR;
+
+
+/*
     filename = ods_build_path(zone->name, ".sc", 0);
     zone->signconf = signconf_recover_from_backup((const char*) filename);
     free((void*)filename);
@@ -1017,8 +1174,9 @@ abort_recover:
         zone->signconf->last_modified = 0;
     }
     return;
-}
 */
+
+}
 
 
 /**
