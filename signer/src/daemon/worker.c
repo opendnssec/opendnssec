@@ -471,7 +471,6 @@ worker_work(worker_type* worker)
             worker_perform_task(worker);
 
             zone->task = worker->task;
-            worker->task = NULL;
             zone->processed = 1;
 
             ods_log_debug("[%s[%i]] finished working on zone %s",
@@ -480,6 +479,7 @@ worker_work(worker_type* worker)
 
             lock_basic_lock(&worker->engine->taskq->schedule_lock);
             /* [LOCK] zone, schedule */
+            worker->task = NULL;
             worker->working_with = TASK_NONE;
             status = schedule_task(worker->engine->taskq, zone->task, 1);
             /* [UNLOCK] zone, schedule */
