@@ -77,6 +77,7 @@ worker_create(allocator_type* allocator, int num, worker_id type)
     worker->thread_num = num +1;
     worker->engine = NULL;
     worker->task = NULL;
+    worker->working_with = TASK_NONE;
     worker->need_to_exit = 0;
     worker->type = type;
     worker->clock_in = 0;
@@ -155,6 +156,7 @@ worker_perform_task(worker_type* worker)
 
     switch (task->what) {
         case TASK_SIGNCONF:
+            worker->working_with = TASK_SIGNCONF;
             /* perform 'load signconf' task */
             ods_log_verbose("[%s[%i]] load signconf for zone %s",
                 worker2str(worker->type), worker->thread_num,
@@ -178,6 +180,7 @@ worker_perform_task(worker_type* worker)
             fallthrough = 0;
             break;
         case TASK_READ:
+            worker->working_with = TASK_READ;
             /* perform 'read input adapter' task */
             ods_log_verbose("[%s[%i]] read zone %s",
                 worker2str(worker->type), worker->thread_num,
@@ -210,6 +213,7 @@ worker_perform_task(worker_type* worker)
             }
             fallthrough = 1;
         case TASK_NSECIFY:
+            worker->working_with = TASK_NSECIFY;
             ods_log_verbose("[%s[%i]] nsecify zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
@@ -226,6 +230,7 @@ worker_perform_task(worker_type* worker)
             }
             fallthrough = 1;
         case TASK_SIGN:
+            worker->working_with = TASK_SIGN;
             ods_log_verbose("[%s[%i]] sign zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
@@ -285,6 +290,7 @@ worker_perform_task(worker_type* worker)
             when = time_now();
             fallthrough = 1;
         case TASK_AUDIT:
+            worker->working_with = TASK_AUDIT;
             if (zone->signconf->audit) {
                 ods_log_verbose("[%s[%i]] audit zone %s",
                     worker2str(worker->type), worker->thread_num,
@@ -311,6 +317,7 @@ worker_perform_task(worker_type* worker)
             when = time_now();
             fallthrough = 1;
         case TASK_WRITE:
+            worker->working_with = TASK_WRITE;
             ods_log_verbose("[%s[%i]] write zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
@@ -340,6 +347,7 @@ worker_perform_task(worker_type* worker)
             fallthrough = 0;
             break;
         case TASK_NONE:
+            worker->working_with = TASK_NONE;
             ods_log_warning("[%s[%i]] none task for zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
@@ -450,6 +458,7 @@ worker_work(worker_type* worker)
         worker->task = schedule_pop_task(worker->engine->taskq);
         /* [UNLOCK] schedule */
         if (worker->task) {
+            worker->working_with = worker->task->what;
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
             zone = worker->task->zone;
@@ -471,6 +480,7 @@ worker_work(worker_type* worker)
 
             lock_basic_lock(&worker->engine->taskq->schedule_lock);
             /* [LOCK] zone, schedule */
+            worker->working_with = TASK_NONE;
             status = schedule_task(worker->engine->taskq, zone->task, 1);
             /* [UNLOCK] zone, schedule */
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);

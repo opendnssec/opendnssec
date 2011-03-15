@@ -5,6 +5,8 @@ OpenDNSSEC 1.3.0
 * Just warn if occluded zone data was found, don't stop signing process.
 * Threaded signer: Set number of <SignerThreads> in conf.xml to 
   get peak performance from HSMs that can handle multiple threads.
+* ods-signer: The queue command will now also show what tasks the workers
+  are working on.
 * Signer Engine: simpler serial maintenance, reduces the number of conflicts.
   Less chance to hit a 'cannot update: serial too small' error message.
 * Signer Engine: simpler NSEC(3) maintenance.

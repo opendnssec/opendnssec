@@ -56,6 +56,7 @@ struct worker_struct {
     ods_thread_type thread_id;
     struct engine_struct* engine;
     task_type* task;
+    task_id working_with;
     worker_id type;
     time_t clock_in;
     size_t jobs_appointed;

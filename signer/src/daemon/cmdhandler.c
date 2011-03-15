@@ -454,12 +454,26 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
 
     lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
     /* [LOCK] schedule */
-    /* how many tasks */
+
+    /* time */
     now = time_now();
     strtime = ctime(&now);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i tasks scheduled.\nIt is "
-        "now %s", (int) cmdc->engine->taskq->tasks->count,
-        strtime?strtime:"(null)");
+    (void)snprintf(buf, ODS_SE_MAXLINE, "It is now %s", strtime?strtime:"(null)");
+    ods_writen(sockfd, buf, strlen(buf));
+
+    /* current work */
+    for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
+        task = cmdc->engine->workers[i]->task;
+        if (task) {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Working with task %s on zone %s\n",
+                task_what2str(cmdc->engine->workers[i]->working_with), task_who2str(task->who));
+            ods_writen(sockfd, buf, strlen(buf));
+        }
+    }
+
+    /* how many tasks */
+    (void)snprintf(buf, ODS_SE_MAXLINE, "\nI have %i tasks scheduled.\n",
+        (int) cmdc->engine->taskq->tasks->count);
     ods_writen(sockfd, buf, strlen(buf));
 
     /* list tasks */
@@ -473,6 +487,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         ods_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
+
     /* [UNLOCK] schedule */
     lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
     return;
