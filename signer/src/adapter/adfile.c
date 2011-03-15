@@ -368,6 +368,59 @@ adfile_read(struct zone_struct* zone, const char* filename)
 
 
 /**
+ * Read zone from backup file.
+ *
+ */
+ods_status
+adbackup_read(struct zone_struct* zone, const char* filename)
+{
+    FILE* fd = NULL;
+    zone_type* adzone = (zone_type*) zone;
+    ods_status status = ODS_STATUS_OK;
+
+    /* [start] sanity parameter checking */
+    if (!adzone) {
+        ods_log_error("[%s] unable to read file: no zone (or no name given)",
+            adapter_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(adzone);
+    if (!filename) {
+        ods_log_error("[%s] unable to read file: no filename given",
+            adapter_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(filename);
+    /* [end] sanity parameter checking */
+
+    /* [start] read zone */
+    fd = ods_fopen(filename, NULL, "r");
+    if (fd) {
+        status = adfile_read_file(fd, adzone);
+        ods_fclose(fd);
+    } else {
+        status = ODS_STATUS_FOPEN_ERR;
+    }
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to recover file: %s", adapter_str,
+            ods_status2str(status));
+        return status;
+    }
+    /* [end] read zone */
+
+    /* [start] full transaction */
+    status = adapi_trans_full(adzone);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to recover file: start transaction failed",
+            adapter_str);
+        return status;
+    }
+    /* [end] full transaction */
+    return ODS_STATUS_OK;
+}
+
+
+/**
  * Write zonefile.
  *
  */

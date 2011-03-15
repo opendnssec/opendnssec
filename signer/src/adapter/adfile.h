@@ -65,6 +65,15 @@ ods_status adfile_init(void);
 ods_status adfile_read(struct zone_struct* zone, const char* filename);
 
 /**
+ * Read zone from backup file.
+ * \param[in] zone zone structure
+ * \param[in] filename read from this specific file
+ * \return ods_status status
+ *
+ */
+ods_status adbackup_read(struct zone_struct* zone, const char* filename);
+
+/**
  * Write zone to output file adapter.
  * \param[in] zone zone structure
  * \param[in] filename write to this specific file
