@@ -167,15 +167,21 @@ worker_perform_task(worker_type* worker)
             when = time_now();
             if (status == ODS_STATUS_UNCHANGED) {
                 goto task_perform_continue;
-            } else if (status != ODS_STATUS_OK) {
+            }
+            if (status == ODS_STATUS_OK) {
+                status = zone_publish_dnskeys(zone);
+            }
+            if (status == ODS_STATUS_OK) {
+                status = zone_prepare_nsec3(zone);
+            }
+            if (status == ODS_STATUS_OK) {
+                task->interrupt = TASK_NONE;
+                task->halted = TASK_NONE;
+            } else {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
                 goto task_perform_continue;
-            } else {
-                task->interrupt = TASK_NONE;
-                task->halted = TASK_NONE;
-                zone->prepared = 0;
             }
             fallthrough = 0;
             break;
@@ -185,22 +191,7 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]] read zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-
-            if (!zone->prepared) {
-                status = zone_publish_dnskeys(zone);
-                if (status == ODS_STATUS_OK) {
-                    status = zone_prepare_nsec3(zone);
-                }
-                if (status == ODS_STATUS_OK) {
-                    zone->prepared = 1;
-                }
-            }
-
-            if (zone->prepared) {
-                status = tools_input(zone);
-            } else {
-                status = ODS_STATUS_ERR;
-            }
+            status = tools_input(zone);
 
             /* what to do next */
             what = TASK_NSECIFY;
