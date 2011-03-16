@@ -68,6 +68,13 @@ struct zonedata_struct {
 };
 
 /**
+ * Initialize denial of existence chain.
+ * \param[in] zd zone data
+ *
+ */
+void zonedata_init_denial(zonedata_type* zd);
+
+/**
  * Create empty zone data.
  * \param[in] allocator memory allocator
  * \return zonedata_type* empty zone data tree
@@ -79,12 +86,10 @@ zonedata_type* zonedata_create(allocator_type* allocator);
  * Recover zone data from backup.
  * \param[in] zd zone data
  * \param[in] fd backup file descriptor
- * \return int 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-/*
-int zonedata_recover_from_backup(zonedata_type* zd, FILE* fd);
-*/
+ods_status zonedata_recover(zonedata_type* zd, FILE* fd);
 
 /**
  * Recover RR from backup.
@@ -263,6 +268,13 @@ ods_status zonedata_queue(zonedata_type* zd, fifoq_type* q,
  *
  */
 void zonedata_wipe_denial(zonedata_type* zd);
+
+/**
+ * Clean up denial of existence chain.
+ * \param[in] zd zone data
+ *
+ */
+void zonedata_cleanup_chain(zonedata_type* zd);
 
 /**
  * Clean up zone data.

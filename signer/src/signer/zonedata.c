@@ -45,6 +45,8 @@
 
 static const char* zd_str = "data";
 
+static ldns_rbnode_t* domain2node(domain_type* domain);
+
 /**
  * Log RDF.
  *
@@ -94,6 +96,34 @@ domain_compare(const void* a, const void* b)
 
 
 /**
+ * Initialize denial of existence chain.
+ *
+ */
+void
+zonedata_init_denial(zonedata_type* zd)
+{
+    if (zd) {
+        zd->denial_chain = ldns_rbtree_create(domain_compare);
+    }
+    return;
+}
+
+
+/**
+ * Initialize domains.
+ *
+ */
+static void
+zonedata_init_domains(zonedata_type* zd)
+{
+    if (zd) {
+        zd->domains = ldns_rbtree_create(domain_compare);
+    }
+    return;
+}
+
+
+/**
  * Create empty zone data..
  *
  */
@@ -116,8 +146,8 @@ zonedata_create(allocator_type* allocator)
     ods_log_assert(zd);
 
     zd->allocator = allocator;
-    zd->domains = ldns_rbtree_create(domain_compare);
-    zd->denial_chain = ldns_rbtree_create(domain_compare);
+    zonedata_init_domains(zd);
+    zonedata_init_denial(zd);
     zd->initialized = 0;
     zd->inbound_serial = 0;
     zd->internal_serial = 0;
@@ -127,139 +157,85 @@ zonedata_create(allocator_type* allocator)
 }
 
 
-static ldns_rbnode_t* domain2node(domain_type* domain);
-
 /**
  * Recover zone data from backup.
  *
  */
-/*
-int
-zonedata_recover_from_backup(zonedata_type* zd, FILE* fd)
+ods_status
+zonedata_recover(zonedata_type* zd, FILE* fd)
 {
-    int corrupted = 0;
     const char* token = NULL;
-    domain_type* current_domain = NULL;
-    ldns_rdf* parent_rdf = NULL;
-    ldns_rr* rr = NULL;
-    ldns_status status = LDNS_STATUS_OK;
-    ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
+    const char* owner = NULL;
+    int dstatus = 0;
+    ods_status status = ODS_STATUS_OK;
+    domain_type* domain = NULL;
+    ldns_rdf* rdf = NULL;
 
     ods_log_assert(zd);
     ods_log_assert(fd);
 
-    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
-        corrupted = 1;
-    }
-
-    while (!corrupted) {
-        if (backup_read_str(fd, &token)) {
-            if (ods_strcmp(token, ";DNAME") == 0) {
-                current_domain = domain_recover_from_backup(fd);
-                if (!current_domain) {
-                    ods_log_error("[%s] error reading domain from backup file", zd_str);
-                    corrupted = 1;
-                } else {
-                    parent_rdf = ldns_dname_left_chop(current_domain->dname);
-                    if (!parent_rdf) {
-                        ods_log_error("[%s] unable to create parent domain name (rdf)",
-                            zd_str);
-                        corrupted = 1;
-                    } else {
-                        current_domain->parent =
-                            zonedata_lookup_domain(zd, parent_rdf);
-                        ldns_rdf_deep_free(parent_rdf);
-                        ods_log_assert(current_domain->parent ||
-                            current_domain->dstatus == DOMAIN_STATUS_APEX);
-
-                        new_node = domain2node(current_domain);
-                        if (!zd->domains) {
-                            zd->domains = ldns_rbtree_create(domain_compare);
-                        }
-                        if (ldns_rbtree_insert(zd->domains, new_node) == NULL) {
-                            ods_log_error("[%s] error adding domain from backup file",
-                                zd_str);
-                            free((void*)new_node);
-                            corrupted = 1;
-                        }
-                        new_node = NULL;
-                    }
-                }
-            } else if (ods_strcmp(token, ";DNAME3") == 0) {
-                ods_log_assert(current_domain);
-                current_domain->nsec3 = domain_recover_from_backup(fd);
-                if (!current_domain->nsec3) {
-                    ods_log_error("[%s] error reading nsec3 domain from backup file",
-                        zd_str);
-                    corrupted = 1;
-                } else {
-                    current_domain->nsec3->nsec3 = current_domain;
-                    new_node = domain2node(current_domain->nsec3);
-                    if (!zd->nsec3_domains) {
-                        zd->nsec3_domains = ldns_rbtree_create(domain_compare);
-                    }
-
-                    if (ldns_rbtree_insert(zd->nsec3_domains, new_node) == NULL) {
-                        ods_log_error("[%s] error adding nsec3 domain from backup file",
-                            zd_str);
-                        free((void*)new_node);
-                        corrupted = 1;
-                    }
-                    new_node = NULL;
-                }
-            } else if (ods_strcmp(token, ";NSEC") == 0) {
-                status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-                if (status != LDNS_STATUS_OK) {
-                    ods_log_error("[%s] error reading NSEC RR from backup file", zd_str);
-                    if (rr) {
-                        ldns_rr_free(rr);
-                    }
-                    corrupted = 1;
-                } else {
-                    ods_log_assert(current_domain);
-                    current_domain->nsec_rrset = rrset_create_frm_rr(rr);
-                    if (!current_domain->nsec_rrset) {
-                        ods_log_error("[%s] error adding NSEC RR from backup file", zd_str);
-                        corrupted = 1;
-                    }
-                }
-                rr = NULL;
-                status = LDNS_STATUS_OK;
-            } else if (ods_strcmp(token, ";NSEC3") == 0) {
-                status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-                if (status != LDNS_STATUS_OK) {
-                    ods_log_error("[%s] error reading NSEC3 RR from backup file", zd_str);
-                    if (rr) {
-                        ldns_rr_free(rr);
-                    }
-                    corrupted = 1;
-                } else {
-                    ods_log_assert(current_domain);
-                    ods_log_assert(current_domain->nsec3);
-                    current_domain->nsec3->nsec_rrset = rrset_create_frm_rr(rr);
-                    if (!current_domain->nsec3->nsec_rrset) {
-                        ods_log_error("[%s] error adding NSEC3 RR from backup file", zd_str);
-                        corrupted = 1;
-                    }
-                }
-                rr = NULL;
-                status = LDNS_STATUS_OK;
-            } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
-                free((void*)token);
-                token = NULL;
-                break;
-            } else {
-                corrupted = 1;
+    while (backup_read_str(fd, &token)) {
+        /* domain part */
+        if (ods_strcmp(token, ";;Domain") == 0) {
+            if (!backup_read_check_str(fd, "name") ||
+                !backup_read_str(fd, &owner) ||
+                !backup_read_check_str(fd, "status") ||
+                !backup_read_int(fd, &dstatus)) {
+                ods_log_error("[%s] domain in backup corrupted", zd_str);
+                goto recover_domain_error;
             }
-            free((void*)token);
+            /* ok, look up domain */
+            rdf = ldns_dname_new_frm_str(owner);
+            if (rdf) {
+                domain = zonedata_lookup_domain(zd, rdf);
+                ldns_rdf_deep_free(rdf);
+                rdf = NULL;
+            }
+            if (!domain) {
+                ods_log_error("[%s] domain in backup, but not in zonedata",
+                    zd_str);
+                goto recover_domain_error;
+            }
+            /* lookup success */
+            status = domain_recover(domain, fd, dstatus);
+            if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s] unable to recover domain", zd_str);
+                goto recover_domain_error;
+            }
+
+            /* done, next domain */
+            free((void*) owner);
+            owner = NULL;
+            domain = NULL;
+        } else if (ods_strcmp(token, ";;") == 0) {
+            /* done with all zone data */
+            free((void*) token);
             token = NULL;
+            return ODS_STATUS_OK;
         } else {
-            corrupted = 1;
+            /* domain corrupted */
+            ods_log_error("[%s] domain in backup corrupted", zd_str);
+            goto recover_domain_error;
         }
+        free((void*) token);
+        token = NULL;
     }
-    return corrupted;
+
+    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+        goto recover_domain_error;
+    }
+
+    return ODS_STATUS_OK;
+
+recover_domain_error:
+    free((void*) owner);
+    owner = NULL;
+
+    free((void*) token);
+    token = NULL;
+
+    return ODS_STATUS_ERR;
 }
-*/
 
 
 /**
@@ -1500,7 +1476,7 @@ zonedata_wipe_denial(zonedata_type* zd)
 static void
 domain_delfunc(ldns_rbnode_t* elem)
 {
-    domain_type* domain;
+    domain_type* domain = NULL;
 
     if (elem && elem != LDNS_RBTREE_NULL) {
         domain = (domain_type*) elem->data;
@@ -1521,15 +1497,54 @@ domain_delfunc(ldns_rbnode_t* elem)
 static void
 denial_delfunc(ldns_rbnode_t* elem)
 {
-    denial_type* denial;
+    denial_type* denial = NULL;
+    domain_type* domain = NULL;
+
 
     if (elem && elem != LDNS_RBTREE_NULL) {
         denial = (denial_type*) elem->data;
         denial_delfunc(elem->left);
         denial_delfunc(elem->right);
 
+        domain = denial->domain;
+        if (domain) {
+            domain->denial = NULL;
+        }
         denial_cleanup(denial);
+
         free((void*)elem);
+    }
+    return;
+}
+
+
+/**
+ * Clean up domains.
+ *
+ */
+static void
+zonedata_cleanup_domains(zonedata_type* zd)
+{
+    if (zd && zd->domains) {
+        domain_delfunc(zd->domains->root);
+        ldns_rbtree_free(zd->domains);
+        zd->domains = NULL;
+    }
+    return;
+}
+
+
+/**
+ * Clean up denial of existence chain.
+ *
+ */
+void
+zonedata_cleanup_chain(zonedata_type* zd)
+{
+    if (zd && zd->denial_chain) {
+        denial_delfunc(zd->denial_chain->root);
+        ldns_rbtree_free(zd->denial_chain);
+        zd->denial_chain = NULL;
     }
     return;
 }
@@ -1547,16 +1562,8 @@ zonedata_cleanup(zonedata_type* zd)
     if (!zd) {
         return;
     }
-    if (zd->domains) {
-        domain_delfunc(zd->domains->root);
-        ldns_rbtree_free(zd->domains);
-        zd->domains = NULL;
-    }
-    if (zd->denial_chain) {
-        denial_delfunc(zd->denial_chain->root);
-        ldns_rbtree_free(zd->denial_chain);
-        zd->denial_chain = NULL;
-    }
+    zonedata_cleanup_chain(zd);
+    zonedata_cleanup_domains(zd);
     allocator = zd->allocator;
     allocator_deallocate(allocator, (void*) zd);
     return;
