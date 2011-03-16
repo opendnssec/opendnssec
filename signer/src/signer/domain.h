@@ -94,13 +94,14 @@ domain_type* domain_create(ldns_rdf* dname);
 
 /**
  * Recover domain from backup.
+ * \param[in] domain domain
  * \param[in] fd backup file descriptor
- * \return domain_type* recovered domain
+ * \param[in] dstatus domain status
+ * \return ods_status status
  *
  */
-/*
-domain_type* domain_recover_from_backup(FILE* fd);
-*/
+ods_status domain_recover(domain_type* domain, FILE* fd,
+    domain_status dstatus);
 
 /**
  * Recover RR from backup.

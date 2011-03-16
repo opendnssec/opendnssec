@@ -111,75 +111,123 @@ domain_create(ldns_rdf* dname)
  * Recover domain from backup.
  *
  */
-/*
-domain_type*
-domain_recover_from_backup(FILE* fd)
+ods_status
+domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
 {
-    domain_type* domain = NULL;
-    const char* name = NULL;
-    int domain_status = DOMAIN_STATUS_NONE;
+    const char* token = NULL;
+    const char* locator = NULL;
+    uint32_t flags = 0;
+    ldns_rr* rr = NULL;
+    ldns_status lstatus = LDNS_STATUS_OK;
 
+    ods_log_assert(domain);
     ods_log_assert(fd);
 
-    if (!backup_read_str(fd, &name) ||
-        !backup_read_int(fd, &domain_status)) {
-        ods_log_error("[%s] domain part in backup file is corrupted", dname_str);
-        if (name) {
-            free((void*)name);
+    domain->dstatus = dstatus;
+
+    while (backup_read_str(fd, &token)) {
+        if (ods_strcmp(token, ";;RRSIG") == 0) {
+            /* recover signature */
+            if (!backup_read_str(fd, &locator) ||
+                !backup_read_uint32_t(fd, &flags)) {
+                ods_log_error("[%s] signature in backup corrupted",
+                    dname_str);
+                goto recover_dname_error;
+            }
+            /* expect signature */
+            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
+            if (lstatus != LDNS_STATUS_OK) {
+                ods_log_error("[%s] missing signature in backup", dname_str);
+                goto recover_dname_error;
+            }
+            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
+                ods_log_error("[%s] expecting signature in backup", dname_str);
+                goto recover_dname_error;
+            }
+
+            goto recover_dname_error;
+            /*
+            corrupted = zonedata_recover_rrsig_from_backup(
+                           zone->zonedata, rr, locator, flags);
+            */
+
+            free((void*) locator);
+            locator = NULL;
+            ldns_rr_free(rr);
+            rr = NULL;
+        } else if (ods_strcmp(token, ";;Denial") == 0) {
+            /* expect nsec(3) record */
+            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
+            if (lstatus != LDNS_STATUS_OK) {
+                ods_log_error("[%s] missing nsec(3) in backup", dname_str);
+                goto recover_dname_error;
+            }
+            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC ||
+                ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC3) {
+                ods_log_error("[%s] expecting nsec(3) in backup", dname_str);
+                goto recover_dname_error;
+            }
+
+            /* recover denial structure */
+
+            ldns_rr_free(rr);
+            rr = NULL;
+
+            /* recover signature */
+            if (!backup_read_str(fd, &locator) ||
+                !backup_read_uint32_t(fd, &flags)) {
+                ods_log_error("[%s] signature in backup corrupted",
+                    dname_str);
+                goto recover_dname_error;
+            }
+            /* expect signature */
+            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
+            if (lstatus != LDNS_STATUS_OK) {
+                ods_log_error("[%s] missing signature in backup", dname_str);
+                goto recover_dname_error;
+            }
+            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
+                ods_log_error("[%s] expecting signature in backup", dname_str);
+                goto recover_dname_error;
+            }
+
+            goto recover_dname_error;
+            /*
+            corrupted = zonedata_recover_rrsig_from_backup(
+                           zone->zonedata, rr, locator, flags);
+            */
+            free((void*) locator);
+            locator = NULL;
+            ldns_rr_free(rr);
+            rr = NULL;
+        } else if (ods_strcmp(token, ";;Domaindone") == 0) {
+            /* domain done */
+            free((void*) token);
+            token = NULL;
+            break;
+        } else {
+            /* domain corrupted */
+            goto recover_dname_error;
         }
-        return NULL;
+
+        free((void*) token);
+        token = NULL;
     }
 
-    domain = (domain_type*) malloc(sizeof(domain_type));
-    ods_log_assert(name);
-    domain->dname = ldns_dname_new_frm_str(name);
-    if (!domain->dname) {
-        ods_log_error("[%s] failed to create domain from name", dname_str);
-        free((void*)name);
-        free((void*)domain);
-        return NULL;
-    }
-    domain->parent = NULL;
-    domain->rrsets = ldns_rbtree_create(rrset_compare);
-    domain->dstatus = domain_status;
-    ods_log_deeebug("[%s] recovered domain %s domain_status=%i",
-        dname_str, name, domain->dstatus);
+    return ODS_STATUS_OK;
 
-    free((void*)name);
-    return domain;
+recover_dname_error:
+    ldns_rr_free(rr);
+    rr = NULL;
+
+    free((void*) token);
+    token = NULL;
+
+    free((void*) locator);
+    locator = NULL;
+    return ODS_STATUS_ERR;
 }
-*/
 
-/**
- * Recover RR from backup.
- *
- */
-/*
-int
-domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr)
-{
-    rrset_type* rrset = NULL;
-
-    ods_log_assert(rr);
-    ods_log_assert(domain);
-    ods_log_assert(domain->dname);
-    ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->dname, ldns_rr_owner(rr)) == 0));
-
-    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
-    if (rrset) {
-        return rrset_recover_rr_from_backup(rrset, rr);
-    }
-    rrset = rrset_create(ldns_rr_get_type(rr));
-    rrset = domain_add_rrset(domain, rrset);
-    if (!rrset) {
-        ods_log_error("[%s] unable to recover RR to domain: failed to add "
-            "RRset", dname_str);
-        return 1;
-    }
-    return rrset_recover_rr_from_backup(rrset, rr);
-}
-*/
 
 /**
  * Recover RRSIG from backup.
