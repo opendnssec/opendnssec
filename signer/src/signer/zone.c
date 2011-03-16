@@ -416,6 +416,8 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
             zone->nsec3params = NULL;
             /* all NSEC(3)s become invalid */
             zonedata_wipe_denial(zone->zonedata);
+            zonedata_cleanup_chain(zone->zonedata);
+            zonedata_init_denial(zone->zonedata);
         }
 
         /* all ok, switch to new signconf */
@@ -719,82 +721,6 @@ zone_backup(zone_type* zone)
 
 
 /**
- * Recover DNSKEYs and NSEC3PARAMS.
- *
- */
-/*
-static int
-zone_recover_dnskeys_from_backup(zone_type* zone, FILE* fd)
-{
-    int corrupted = 0;
-    const char* token = NULL;
-    key_type* key = NULL;
-    ldns_rr* rr = NULL;
-
-    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
-        corrupted = 1;
-    }
-
-    while (!corrupted) {
-        if (backup_read_str(fd, &token)) {
-            if (ods_strcmp(token, ";DNSKEY") == 0) {
-                key = key_recover_from_backup(fd);
-                if (!key || keylist_push(zone->signconf->keys, key) !=
-                    ODS_STATUS_OK) {
-                    ods_log_error("[%s] error adding key from backup file "
-                        "%s.dnskeys to key list", zone_str, zone->name);
-                    corrupted = 1;
-                } else {
-                   rr = ldns_rr_clone(key->dnskey);
-                   corrupted = zone_add_rr(zone, rr, 0);
-                   if (corrupted) {
-                       ods_log_error("[%s] error recovering DNSKEY[%u] rr",
-                          zone_str, ldns_calc_keytag(rr));
-                   }
-                   rr = NULL;
-                }
-                key = NULL;
-            } else if (ods_strcmp(token, ";NSEC3PARAMS") == 0) {
-                zone->nsec3params = nsec3params_recover_from_backup(fd,
-                    &rr);
-                if (!zone->nsec3params) {
-                    ods_log_error("[%s] error recovering nsec3 parameters from file "
-                        "%s.dnskeys", zone_str, zone->name);
-                    corrupted = 1;
-                } else {
-                    corrupted = zone_add_rr(zone, rr, 0);
-                    if (corrupted) {
-                       ods_log_error("[%s] error recovering NSEC3PARAMS rr", zone_str);
-                    } else {
-                        zone->signconf->nsec3_optout =
-                            (int) zone->nsec3params->flags;
-                        zone->signconf->nsec3_algo =
-                            (uint32_t) zone->nsec3params->algorithm;
-                        zone->signconf->nsec3_iterations =
-                            (uint32_t) zone->nsec3params->iterations;
-                        zone->signconf->nsec3_salt =
-                            nsec3params_salt2str(zone->nsec3params);
-                   }
-                }
-                rr = NULL;
-            } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
-                free((void*) token);
-                token = NULL;
-                break;
-            } else {
-                corrupted = 1;
-            }
-            free((void*) token);
-            token = NULL;
-        } else {
-            corrupted = 1;
-        }
-    }
-    return corrupted;
-}
-*/
-
-/**
  * Recover RRSIGS.
  *
  */
@@ -872,6 +798,7 @@ zone_recover(zone_type* zone)
     char* filename = NULL;
     FILE* fd = NULL;
     const char* token = NULL;
+    ods_status status = ODS_STATUS_OK;
     /* zone part */
     int klass = 0;
     uint32_t ttl = 0;
@@ -890,9 +817,6 @@ zone_recover(zone_type* zone)
     time_t lastmod = 0;
     /* nsec3params part */
     const char* salt = NULL;
-    uint8_t algo = 0;
-    uint8_t flags = 0;
-    uint16_t iter = 0;
     ldns_rr* nsec3params_rr = NULL;
     nsec3params_type* nsec3params = NULL;
     /* keys part */
@@ -979,11 +903,11 @@ zone_recover(zone_type* zone)
                  !backup_read_check_str(fd, "salt") ||
                  !backup_read_str(fd, &salt) ||
                  !backup_read_check_str(fd, "algorithm") ||
-                 !backup_read_uint8_t(fd, &algo) ||
+                 !backup_read_uint32_t(fd, &zone->signconf->nsec3_algo) ||
                  !backup_read_check_str(fd, "optout") ||
-                 !backup_read_uint8_t(fd, &flags) ||
+                 !backup_read_int(fd, &zone->signconf->nsec3_optout) ||
                  !backup_read_check_str(fd, "iterations") ||
-                 !backup_read_uint16_t(fd, &iter) ||
+                 !backup_read_uint32_t(fd, &zone->signconf->nsec3_iterations) ||
                  ldns_rr_new_frm_fp(&nsec3params_rr, fd, NULL, NULL, NULL) ||
                  !backup_read_check_str(fd, ";;Nsec3done") ||
                  !backup_read_check_str(fd, ";;")) {
@@ -1002,13 +926,63 @@ zone_recover(zone_type* zone)
                 key = NULL;
             } else if (ods_strcmp(token, ";;") == 0) {
                 /* keylist done */
+                free((void*) token);
+                token = NULL;
                 break;
             } else {
                 /* keylist corrupted */
                 goto recover_error;
             }
+            free((void*) token);
+            token = NULL;
         }
         /* zonedata part */
+        filename = ods_build_path(zone->name, ".inbound", 0);
+        status = adbackup_read(zone, filename);
+        free((void*)filename);
+        if (status != ODS_STATUS_OK) {
+            zonedata_rollback(zone->zonedata);
+        } else {
+            status = zonedata_commit(zone->zonedata);
+        }
+        if (status != ODS_STATUS_OK) {
+            goto recover_error;
+        }
+        status = zonedata_entize(zone->zonedata, zone->dname);
+        if (status != ODS_STATUS_OK) {
+            goto recover_error;
+        }
+        if (zonedata_recover(zone->zonedata, fd) != ODS_STATUS_OK) {
+            goto recover_error;
+        }
+
+/*
+        filename = ods_build_path(zone->name, ".denial", 0);
+    fd = ods_fopen(filename, NULL, "r");
+    free((void*)filename);
+    if (fd) {
+        error = zonedata_recover_from_backup(zone->zonedata, fd);
+        ods_fclose(fd);
+        if (error) {
+            ods_log_error("unable to recover denial of existence from file "
+            "%s.denial: file corrupted", zone_str, zone->name);
+            if (zone->zonedata) {
+                zonedata_cleanup(zone->zonedata);
+                zone->zonedata = NULL;
+            }
+            zone->zonedata = zonedata_create(zone->allocator);
+        }
+    } else {
+        ods_log_deeebug("[%s] unable to recover denial of existence from file$
+            "%s.denial: no such file or directory", zone_str, zone->name);
+        error = 1;
+    }
+    if (error) {
+        goto abort_recover;
+    }
+
+        */
+
 
         ods_log_error("[%s] force recovery failure for zone %s",
             zone_str, zone->name);
@@ -1016,11 +990,17 @@ zone_recover(zone_type* zone)
 
         /* file ok */
         zone->klass = (ldns_rr_class) klass;
+        zone->signconf->nsec3_salt = allocator_strdup(
+            zone->signconf->allocator, salt);
+        free((void*) salt);
+        salt = NULL;
         task = task_create((task_id) what, when, zone->name, (void*) zone);
         if (!task) {
             goto recover_error;
         }
-        nsec3params = nsec3params_create(algo, flags, iter, salt);
+        nsec3params = nsec3params_create(zone->signconf->nsec3_algo,
+            zone->signconf->nsec3_optout, zone->signconf->nsec3_iterations,
+            zone->signconf->nsec3_salt);
         if (!nsec3params) {
             goto recover_error;
         }
@@ -1029,7 +1009,10 @@ zone_recover(zone_type* zone)
         zone->task = (void*) task;
         zone->signconf->last_modified = lastmod;
         zone->nsec3params = nsec3params;
-
+        if (zone->stats) {
+            stats_clear(zone->stats);
+        }
+        return ODS_STATUS_OK;
     }
     return ODS_STATUS_UNCHANGED;
 
@@ -1044,36 +1027,31 @@ recover_error:
     ods_log_assert(zone->signconf);
 
     /* task cleanup */
-    if (task) {
-        task_cleanup(task);
-        task = NULL;
-    }
+    task_cleanup(task);
+    task = NULL;
+
     /* nsec3params cleanup */
-    if (salt) {
-        free((void*)salt);
-        salt = NULL;
-    }
-    if (nsec3params_rr) {
-        ldns_rr_free(nsec3params_rr);
-        nsec3params_rr = NULL;
-    }
-    if (nsec3params) {
-        nsec3params_cleanup(nsec3params);
-        nsec3params = NULL;
+    free((void*)salt);
+    salt = NULL;
+
+    ldns_rr_free(nsec3params_rr);
+    nsec3params_rr = NULL;
+
+    nsec3params_cleanup(nsec3params);
+    nsec3params = NULL;
+
+    /* zonedata cleanup */
+    zonedata_cleanup(zone->zonedata);
+    zone->zonedata = zonedata_create(zone->allocator);
+    ods_log_assert(zone->zonedata);
+
+    if (zone->stats) {
+        stats_clear(zone->stats);
     }
     return ODS_STATUS_ERR;
 
 
 /*
-    filename = ods_build_path(zone->name, ".sc", 0);
-    zone->signconf = signconf_recover_from_backup((const char*) filename);
-    free((void*)filename);
-    if (!zone->signconf) {
-        return;
-    }
-    zone->signconf->name = zone->name;
-    zone->signconf->keys = keylist_create(zone->signconf->allocator);
-
     filename = ods_build_path(zone->name, ".denial", 0);
     fd = ods_fopen(filename, NULL, "r");
     free((void*)filename);
