@@ -480,6 +480,7 @@ void
 keylist_cleanup(keylist_type* kl)
 {
     key_type* walk = NULL;
+    key_type* next = NULL;
     allocator_type* allocator;
 
     if (!kl) {
@@ -487,8 +488,9 @@ keylist_cleanup(keylist_type* kl)
     }
     walk = kl->first_key;
     while (walk) {
+        next = walk->next;
         key_delfunc(walk);
-        walk = walk->next;
+        walk = next;
     }
     allocator = kl->allocator;
     allocator_deallocate(allocator, (void*) kl);
