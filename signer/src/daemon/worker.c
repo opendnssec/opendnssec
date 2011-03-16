@@ -235,10 +235,15 @@ worker_perform_task(worker_type* worker)
                 /* start timer */
                 start = time(NULL);
                 if (zone->stats) {
+                    lock_basic_lock(&zone->stats->stats_lock);
+                    if (!zone->stats->start_time) {
+                        zone->stats->start_time = start;
+                    }
                     zone->stats->sig_count = 0;
                     zone->stats->sig_soa_count = 0;
                     zone->stats->sig_reuse = 0;
                     zone->stats->sig_time = 0;
+                    lock_basic_unlock(&zone->stats->stats_lock);
                 }
 
                 /* queue menial, hard signing work */
@@ -263,7 +268,9 @@ worker_perform_task(worker_type* worker)
                 /* stop timer */
                 end = time(NULL);
                 if (zone->stats) {
+                    lock_basic_lock(&zone->stats->stats_lock);
                     zone->stats->sig_time = (end-start);
+                    lock_basic_unlock(&zone->stats->stats_lock);
                 }
             }
 
