@@ -10,6 +10,7 @@ OpenDNSSEC 1.3.0
 * Signer Engine: simpler serial maintenance, reduces the number of conflicts.
   Less chance to hit a 'cannot update: serial too small' error message.
 * Signer Engine: simpler NSEC(3) maintenance.
+* ldns 1.6.9 is required for bugfixes.
 
 Bugfixes:
 * Auditor: 'make check' now works when srcdir != builddir.
