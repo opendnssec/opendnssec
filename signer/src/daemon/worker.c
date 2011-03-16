@@ -281,7 +281,9 @@ worker_perform_task(worker_type* worker)
                 }
                 goto task_perform_continue;
             } else {
-                task->interrupt = TASK_NONE;
+                if (task->interrupt > TASK_SIGNCONF) {
+                    task->interrupt = TASK_NONE;
+                }
                 task->halted = TASK_NONE;
             }
             what = TASK_AUDIT;
@@ -330,7 +332,9 @@ worker_perform_task(worker_type* worker)
                 }
                 goto task_perform_continue;
             } else {
-                task->interrupt = TASK_NONE;
+                if (task->interrupt > TASK_SIGNCONF) {
+                    task->interrupt = TASK_NONE;
+                }
                 task->halted = TASK_NONE;
             }
             if (duration2time(zone->signconf->sig_resign_interval)) {
