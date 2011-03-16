@@ -309,21 +309,21 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     if (!rrset->add->rr) {
         rrset->add->rr = rr;
         rrset->add_count = 1;
-        log_rr(rr, "+rr", 7);
+        log_rr(rr, "+RR", 7);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->add, rr);
         if (status != LDNS_STATUS_OK) {
             if (status == LDNS_STATUS_NO_DATA) {
                 ods_log_warning("[%s] unable to add RR to RRset (%i): "
                       "duplicate", rrset_str, rrset->rr_type);
-                log_rr(rr, "+rr", 2);
+                log_rr(rr, "+RR", 2);
                 /* filter out duplicates */
                 return rr;
             } else {
                 ods_log_error("[%s] unable to add RR to RRset (%i): %s",
                     rrset_str, rrset->rr_type,
                     ldns_get_errorstr_by_id(status));
-                log_rr(rr, "+rr", 1);
+                log_rr(rr, "+RR", 1);
                 ldns_dnssec_rrs_deep_free(rrset->add);
                 rrset->add = NULL;
                 rrset->add_count = 0;
@@ -331,7 +331,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
             }
         }
         rrset->add_count += 1;
-        log_rr(rr, "+rr", 7);
+        log_rr(rr, "+RR", 7);
     }
     return rr;
 }
@@ -370,7 +370,7 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr, int dupallowed)
     if (!rrset->del->rr) {
         rrset->del->rr = rr;
         rrset->del_count = 1;
-        log_rr(rr, "-rr", 7);
+        log_rr(rr, "-RR", 7);
     } else {
         status = util_dnssec_rrs_add_rr(rrset->del, rr);
         if (status != LDNS_STATUS_OK) {
@@ -380,14 +380,14 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr, int dupallowed)
                 }
                 ods_log_warning("[%s] unable to delete RR from RRset (%i): "
                     "duplicate", rrset_str, rrset->rr_type);
-                log_rr(rr, "-rr", 2);
+                log_rr(rr, "-RR", 2);
                 /* filter out duplicates */
                 return rr;
             } else {
                 ods_log_error("[%s] unable to delete RR from RRset (%i): %s",
                    rrset_str, rrset->rr_type,
                    ldns_get_errorstr_by_id(status));
-                log_rr(rr, "-rr", 1);
+                log_rr(rr, "-RR", 1);
                 ldns_dnssec_rrs_deep_free(rrset->del);
                 rrset->del = NULL;
                 rrset->del_count = 0;
@@ -395,7 +395,7 @@ rrset_del_rr(rrset_type* rrset, ldns_rr* rr, int dupallowed)
             }
         }
         rrset->del_count += 1;
-        log_rr(rr, "-rr", 7);
+        log_rr(rr, "-RR", 7);
     }
     return rr;
 }
@@ -1064,7 +1064,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         /* add the signature to the set of new signatures */
         ods_log_deeebug("[%s] new signature created for RRset[%i]", rrset_str,
             rrset->rr_type);
-        log_rr(rrsig, "+rrsig", 7);
+        log_rr(rrsig, "+RRSIG", 7);
         status = rrsigs_add_sig(new_rrsigs, rrsig, key->locator, key->flags);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to sign RRset[%i]: error adding RRSIG",
