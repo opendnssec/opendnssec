@@ -66,8 +66,7 @@ static int log_level = LOG_CRIT;
 
 
 /* TODO:
-   - prepend ods_ in common library
-   - log_init should have program_name variable)
+   - log_init should have program_name variable
    - wrap special case logging onto generic one
    - check if xml-specific logging functions are still neeeded (enforcer)
    -

@@ -440,6 +440,9 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
         zone->zonedata->default_ttl =
             (uint32_t) duration2time(zone->signconf->soa_min);
     } else if (status == ODS_STATUS_UNCHANGED) {
+        *tbs = TASK_READ;
+        ods_log_debug("[%s] tbs for zone %s set to: %s", zone_str,
+            zone->name, task_what2str(*tbs));
         ustamp = time_datestamp(zone->signconf->last_modified,
             "%Y-%m-%d %T", &datestamp);
         ods_log_verbose("[%s] zone %s signconf file %s is unchanged since "
@@ -513,7 +516,7 @@ zone_publish_dnskeys(zone_type* zone, int recover)
     key = zone->signconf->keys->first_key;
     for (count=0; count < zone->signconf->keys->count; count++) {
 /*
-        if (strcmp("b06fe126e4bcddb4ed1348258b478bee", key->locator) == 0 && error_counter) {
+        if (strcmp("c0d7c9fb664fc170ec1604a5ab048457", key->locator) == 0 && error_counter) {
             status = ODS_STATUS_ERR;
             ods_log_error("[%s] force error", zone_str);
             error_counter = 0;

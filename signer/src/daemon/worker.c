@@ -166,8 +166,13 @@ worker_perform_task(worker_type* worker)
             /* what to do next */
             when = time_now();
             if (status == ODS_STATUS_UNCHANGED) {
-                goto task_perform_continue;
+                if (task->halted != TASK_NONE) {
+                    goto task_perform_continue;
+                } else {
+                    status = ODS_STATUS_OK;
+                }
             }
+
             if (status == ODS_STATUS_OK) {
                 status = zone_publish_dnskeys(zone, 0);
             }
