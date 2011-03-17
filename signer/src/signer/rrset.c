@@ -71,19 +71,19 @@ log_rr(ldns_rr* rr, const char* pre, int level)
             }
         }
 
-        if (level == 1) {
+        if (level == 1) { /* LOG_ERR */
             ods_log_error("%s %s", pre?pre:"", str);
-        } else if (level == 2) {
+        } else if (level == 2) { /* LOG_WARNING */
             ods_log_warning("%s %s", pre?pre:"", str);
-        } else if (level == 3) {
+        } else if (level == 3) { /* LOG_NOTICE */
             ods_log_info("%s %s", pre?pre:"", str);
-        } else if (level == 4) {
+        } else if (level == 4) { /* LOG_INFO */
             ods_log_verbose("%s %s", pre?pre:"", str);
-        } else if (level == 5) {
+        } else if (level == 5) { /* LOG_DEBUG */
             ods_log_debug("%s %s", pre?pre:"", str);
-        } else if (level == 6) {
+        } else if (level == 6) { /* more debugging */
             ods_log_deeebug("%s %s", pre?pre:"", str);
-        } else {
+        } else { /* hardcore debugging */
             ods_log_deeebug("%s %s", pre?pre:"", str);
         }
         free((void*)str);
