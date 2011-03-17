@@ -576,8 +576,8 @@ zonelist_free(zonelist_type* zl)
         return;
     }
 
-    ods_log_debug("[%s] cleanup zonelist", zl_str);
     if (zl->zones) {
+        node_delfunc(zl->zones->root);
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
     }

@@ -144,6 +144,7 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
             }
             if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
                 ods_log_error("[%s] expecting signature in backup", dname_str);
+                ldns_rr_free(rr);
                 goto recover_dname_error;
             }
 
@@ -151,11 +152,13 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
             rrset = domain_lookup_rrset(domain, type_covered);
             if (!rrset) {
                 ods_log_error("[%s] signature type not covered", dname_str);
+                ldns_rr_free(rr);
                 goto recover_dname_error;
             }
             ods_log_assert(rrset);
             if (rrset_recover(rrset, rr, locator, flags) != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to recover signature", dname_str);
+                ldns_rr_free(rr);
                 goto recover_dname_error;
             }
             /* signature done */
@@ -172,6 +175,7 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
             if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC ||
                 ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC3) {
                 ods_log_error("[%s] expecting denial in backup", dname_str);
+                ldns_rr_free(rr);
                 goto recover_dname_error;
             }
 
@@ -182,12 +186,13 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
             domain->denial->domain = domain; /* back reference */
             /* add the NSEC(3) rr */
             if (!rrset_add_rr(domain->denial->rrset, rr)) {
-                ods_log_alert("[%s] unable to recover denial", dname_str);
+                ods_log_error("[%s] unable to recover denial", dname_str);
+                ldns_rr_free(rr);
                 goto recover_dname_error;
             }
             /* commit */
             if (rrset_commit(domain->denial->rrset) != ODS_STATUS_OK) {
-                ods_log_alert("[%s] unable to recover denial", dname_str);
+                ods_log_error("[%s] unable to recover denial", dname_str);
                 goto recover_dname_error;
             }
             /* denial done */
@@ -210,17 +215,20 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
             if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
                 ods_log_error("[%s] expecting signature in backup (denial)",
                     dname_str);
+                ldns_rr_free(rr);
                 goto recover_dname_error;
             }
             if (!domain->denial->rrset) {
                 ods_log_error("[%s] signature type not covered (denial)",
                     dname_str);
+                ldns_rr_free(rr);
                 goto recover_dname_error;
             }
             ods_log_assert(rrset);
             if (rrset_recover(rrset, rr, locator, flags) != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to recover signature (denial)",
                     dname_str);
+                ldns_rr_free(rr);
                 goto recover_dname_error;
             }
             /* signature done */
