@@ -140,63 +140,35 @@ rrset_create(ldns_rr_type rrtype)
 }
 
 
-static ods_status rrset_commit_del(rrset_type* rrset, ldns_rr* rr);
-static ods_status rrset_commit_add(rrset_type* rrset, ldns_rr* rr);
 /**
- * Recover RR from backup.
+ * Recover RRSIG from backup.
  *
  */
-/*
-int
-rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr)
+ods_status
+rrset_recover(rrset_type* rrset, ldns_rr* rrsig, const char* locator,
+    uint32_t flags)
 {
-    return !(rrset_commit_add(rrset, rr) == LDNS_STATUS_OK);
-}
-*/
-
-/**
- * Recover RR from backup.
- *
- */
-/*
-int
-rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
-    const char* locator, uint32_t flags)
-{
-    int error = 0;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(rrset);
     ods_log_assert(rrsig);
+    ods_log_assert(locator);
+    ods_log_assert(flags);
 
     if (!rrset->rrsigs) {
         rrset->rrsigs = rrsigs_create();
     }
 
-    error = rrsigs_add_sig(rrset->rrsigs, rrsig, locator, flags);
-    if (!error) {
-        rrset->rrsig_count += 1;
+    status = rrsigs_add_sig(rrset->rrsigs, rrsig, locator, flags);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to recover RRSIG", rrset_str);
+        log_rr(rrsig, "+RRSIG", 1);
     } else {
-        switch (error) {
-            case 2:
-                ods_log_warning("[%s] error adding RRSIG to RRset (%i): duplicate",
-                    rrset_str, rrset->rr_type);
-                log_rr(rrsig, "+RR", 2);
-                break;
-            case 1:
-                ods_log_error("[%s] error adding RRSIG to RRset (%i): compare failed",
-                    rrset_str, rrset->rr_type);
-                log_rr(rrsig, "+RR", 1);
-                break;
-            default:
-                ods_log_error("[%s] error adding RRSIG to RRset (%i): unknown error",
-                    rrset_str, rrset->rr_type);
-                log_rr(rrsig, "+RR", 1);
-                break;
-        }
+        rrset->rrsig_count += 1;
     }
-    return error;
+    return status;
 }
-*/
+
 
 /**
  * Examine NS RRs and verify its RDATA.

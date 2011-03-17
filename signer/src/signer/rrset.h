@@ -76,29 +76,16 @@ struct rrset_struct {
 rrset_type* rrset_create(ldns_rr_type rrtype);
 
 /**
- * Recover RR from backup.
- * \param[in] rrset RRset
- * \param[in] rr RR
- * \return int 0 on success, 1 on error
- *
- */
-/*
-int rrset_recover_rr_from_backup(rrset_type* rrset, ldns_rr* rr);
-*/
-
-/**
  * Recover RRSIG from backup.
  * \param[in] rrset RRset
  * \param[in] rrsig RRSIG
  * \param[in] locator key locator
  * \param[in] flags key flags
- * \return int 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-/*
-int rrset_recover_rrsig_from_backup(rrset_type* rrset, ldns_rr* rrsig,
+ods_status rrset_recover(rrset_type* rrset, ldns_rr* rrsig,
     const char* locator, uint32_t flags);
-*/
 
 /**
  * Count the number of RRs in this RRset.
