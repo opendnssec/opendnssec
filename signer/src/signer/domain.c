@@ -118,7 +118,9 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
     const char* locator = NULL;
     uint32_t flags = 0;
     ldns_rr* rr = NULL;
+    rrset_type* rrset = NULL;
     ldns_status lstatus = LDNS_STATUS_OK;
+    ldns_rr_type type_covered = LDNS_RR_TYPE_FIRST;
 
     ods_log_assert(domain);
     ods_log_assert(fd);
@@ -145,60 +147,85 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
                 goto recover_dname_error;
             }
 
-            goto recover_dname_error;
-            /*
-            corrupted = zonedata_recover_rrsig_from_backup(
-                           zone->zonedata, rr, locator, flags);
-            */
-
+            type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rr));
+            rrset = domain_lookup_rrset(domain, type_covered);
+            if (!rrset) {
+                ods_log_error("[%s] signature type not covered", dname_str);
+                goto recover_dname_error;
+            }
+            ods_log_assert(rrset);
+            if (rrset_recover(rrset, rr, locator, flags) != ODS_STATUS_OK) {
+                ods_log_error("[%s] unable to recover signature", dname_str);
+                goto recover_dname_error;
+            }
+            /* signature done */
             free((void*) locator);
             locator = NULL;
-            ldns_rr_free(rr);
             rr = NULL;
         } else if (ods_strcmp(token, ";;Denial") == 0) {
             /* expect nsec(3) record */
             lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
             if (lstatus != LDNS_STATUS_OK) {
-                ods_log_error("[%s] missing nsec(3) in backup", dname_str);
+                ods_log_error("[%s] missing denial in backup", dname_str);
                 goto recover_dname_error;
             }
             if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC ||
                 ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC3) {
-                ods_log_error("[%s] expecting nsec(3) in backup", dname_str);
+                ods_log_error("[%s] expecting denial in backup", dname_str);
                 goto recover_dname_error;
             }
 
             /* recover denial structure */
-
-            ldns_rr_free(rr);
+            ods_log_assert(!domain->denial);
+            domain->denial = denial_create(ldns_rr_owner(rr));
+            ods_log_assert(domain->denial);
+            domain->denial->domain = domain; /* back reference */
+            /* add the NSEC(3) rr */
+            if (!rrset_add_rr(domain->denial->rrset, rr)) {
+                ods_log_alert("[%s] unable to recover denial", dname_str);
+                goto recover_dname_error;
+            }
+            /* commit */
+            if (rrset_commit(domain->denial->rrset) != ODS_STATUS_OK) {
+                ods_log_alert("[%s] unable to recover denial", dname_str);
+                goto recover_dname_error;
+            }
+            /* denial done */
             rr = NULL;
 
             /* recover signature */
             if (!backup_read_str(fd, &locator) ||
                 !backup_read_uint32_t(fd, &flags)) {
-                ods_log_error("[%s] signature in backup corrupted",
+                ods_log_error("[%s] signature in backup corrupted (denial)",
                     dname_str);
                 goto recover_dname_error;
             }
             /* expect signature */
             lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
             if (lstatus != LDNS_STATUS_OK) {
-                ods_log_error("[%s] missing signature in backup", dname_str);
+                ods_log_error("[%s] missing signature in backup (denial)",
+                    dname_str);
                 goto recover_dname_error;
             }
             if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
-                ods_log_error("[%s] expecting signature in backup", dname_str);
+                ods_log_error("[%s] expecting signature in backup (denial)",
+                    dname_str);
                 goto recover_dname_error;
             }
-
-            goto recover_dname_error;
-            /*
-            corrupted = zonedata_recover_rrsig_from_backup(
-                           zone->zonedata, rr, locator, flags);
-            */
+            if (!domain->denial->rrset) {
+                ods_log_error("[%s] signature type not covered (denial)",
+                    dname_str);
+                goto recover_dname_error;
+            }
+            ods_log_assert(rrset);
+            if (rrset_recover(rrset, rr, locator, flags) != ODS_STATUS_OK) {
+                ods_log_error("[%s] unable to recover signature (denial)",
+                    dname_str);
+                goto recover_dname_error;
+            }
+            /* signature done */
             free((void*) locator);
             locator = NULL;
-            ldns_rr_free(rr);
             rr = NULL;
         } else if (ods_strcmp(token, ";;Domaindone") == 0) {
             /* domain done */
@@ -209,7 +236,7 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
             /* domain corrupted */
             goto recover_dname_error;
         }
-
+        /* done, next token */
         free((void*) token);
         token = NULL;
     }
@@ -217,9 +244,6 @@ domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
     return ODS_STATUS_OK;
 
 recover_dname_error:
-    ldns_rr_free(rr);
-    rr = NULL;
-
     free((void*) token);
     token = NULL;
 
@@ -228,50 +252,6 @@ recover_dname_error:
     return ODS_STATUS_ERR;
 }
 
-
-/**
- * Recover RRSIG from backup.
- *
- */
-/*
-int
-domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
-    ldns_rr_type type_covered, const char* locator, uint32_t flags)
-{
-    rrset_type* rrset = NULL;
-
-    ods_log_assert(rrsig);
-    ods_log_assert(domain);
-    ods_log_assert(domain->dname);
-    ods_log_assert(domain->rrsets);
-    ods_log_assert((ldns_dname_compare(domain->dname,
-        ldns_rr_owner(rrsig)) == 0));
-
-    if (type_covered == LDNS_RR_TYPE_NSEC ||
-        type_covered == LDNS_RR_TYPE_NSEC3) {
-        if (domain->denial && domain->denial->rrset) {
-            return rrset_recover_rrsig_from_backup(domain->denial->rrset, rrsig,
-                locator, flags);
-        } else if (type_covered == LDNS_RR_TYPE_NSEC) {
-            ods_log_error("[%s] unable to recover RRSIG to domain: "
-                "no NSEC RRset", dname_str);
-        } else {
-            ods_log_error("[%s] unable to recover RRSIG to domain: "
-                "no NSEC3 RRset", dname_str);
-        }
-    } else {
-        rrset = domain_lookup_rrset(domain, type_covered);
-        if (rrset) {
-            return rrset_recover_rrsig_from_backup(rrset, rrsig,
-                locator, flags);
-        } else {
-            ods_log_error("[%s] unable to recover RRSIG to domain: "
-                "no such RRset", dname_str);
-        }
-    }
-    return 1;
-}
-*/
 
 /**
  * Convert RRset to a tree node.
@@ -602,7 +582,7 @@ domain_examine_valid_zonecut(domain_type* domain)
             } else if (rrset->rr_type == LDNS_RR_TYPE_A ||
                 rrset->rr_type == LDNS_RR_TYPE_AAAA) {
                 /* check if glue is allowed at the delegation */
-/* allow for now (root zone has it)
+/* TODO: allow for now (root zone has it)
                 if (rrset_count_RR(rrset) > 0 &&
                     !domain_examine_ns_rdata(domain, domain->dname)) {
                     ods_log_error("[%s] occluded glue data at zonecut, #RR=%u",
@@ -821,7 +801,7 @@ domain_queue(domain_type* domain, fifoq_type* q, worker_type* worker)
             node = ldns_rbtree_next(node);
             continue;
         }
-/*
+/* TODO:
         if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
             rrset->rrs->rr) {
             soa_serial = ldns_rr_set_rdf(rrset->rrs->rr,
@@ -990,7 +970,7 @@ domain_print(FILE* fd, domain_type* domain)
                 if (domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
                     /* glue?  */
                     print_glue = 1;
-/*
+/* TODO: allow for now (root zone has it)
                     parent = domain->parent;
                     while (parent && parent->dstatus != DOMAIN_STATUS_APEX) {
                         if (domain_examine_ns_rdata(parent, domain->dname)) {
@@ -1050,16 +1030,14 @@ domain_backup(FILE* fd, domain_type* domain)
         node = ldns_rbtree_next(node);
     }
     free((void*)str);
-    fprintf(fd, ";;Domaindone\n");
 
     /* denial of existence */
     if (domain->denial) {
         fprintf(fd, ";;Denial\n");
         rrset_print(fd, domain->denial->rrset, 1);
         rrset_backup(fd, domain->denial->rrset);
-        fprintf(fd, ";;Denialdone\n");
     }
 
-    fprintf(fd, ";;\n");
+    fprintf(fd, ";;Domaindone\n");
     return;
 }
