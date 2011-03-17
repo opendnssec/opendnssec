@@ -122,6 +122,9 @@ allocator_alloc_init(allocator_type *allocator, size_t size, const void *init)
 char*
 allocator_strdup(allocator_type *allocator, const char *string)
 {
+    if (!string) {
+        return NULL;
+    }
     return (char*) allocator_alloc_init(allocator, strlen(string) + 1, string);
 }
 
