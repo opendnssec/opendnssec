@@ -118,6 +118,7 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
 {
     ods_status status = ODS_STATUS_OK;
     char* error = NULL;
+    ldns_rr* result = NULL;
 
     if (!owner || !key_id || !rrset || !inception || !expiration) {
         ods_log_error("[%s] unable to sign: missing required elements",
@@ -155,5 +156,15 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ods_log_debug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
         ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
         key_id->locator?key_id->locator:"(null)", key_id->params->keytag);
-    return hsm_sign_rrset(ctx, rrset, key_id->hsmkey, key_id->params);
+
+    result = hsm_sign_rrset(ctx, rrset, key_id->hsmkey, key_id->params);
+    if (!result) {
+        error = hsm_get_error(ctx);
+        if (error) {
+            ods_log_error("[%s] %s", hsm_str, error);
+            free((void*)error);
+        }
+    }
+
+    return result;
 }
