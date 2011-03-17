@@ -950,6 +950,8 @@ engine_recover(engine_type* engine)
                 zone->task = NULL;
                 result = ODS_STATUS_OK; /* will trigger update zones */
             } else {
+                ods_log_verbose("[%s] recovered zone %s", engine_str,
+                    zone->name);
                 /* recovery done */
                 zone->just_added = 0;
             }

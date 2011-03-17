@@ -1609,6 +1609,7 @@ zonedata_backup(FILE* fd, zonedata_type* zd)
         domain_backup(fd, domain);
         node = ldns_rbtree_next(node);
     }
+    fprintf(fd, ";;\n");
     return;
 }
 

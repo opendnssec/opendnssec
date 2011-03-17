@@ -460,7 +460,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
  *
  */
 ods_status
-zone_publish_dnskeys(zone_type* zone)
+zone_publish_dnskeys(zone_type* zone, int recover)
 {
     hsm_ctx_t* ctx = NULL;
     key_type* key = NULL;
@@ -520,7 +520,7 @@ zone_publish_dnskeys(zone_type* zone)
             break;
         }
 */
-        if (key->publish && !key->dnskey) {
+        if (key->publish) {
             status = lhsm_get_key(ctx, zone->dname, key);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to publish dnskeys zone %s: "
@@ -529,11 +529,18 @@ zone_publish_dnskeys(zone_type* zone)
                 break;
             }
             ods_log_assert(key->dnskey);
-            ldns_rr_set_ttl(key->dnskey, ttl);
-            ldns_rr_set_class(key->dnskey, zone->klass);
-            ldns_rr2canonical(key->dnskey);
-            dnskey = ldns_rr_clone(key->dnskey);
-            status = zone_add_rr(zone, dnskey, 0);
+
+            if (recover) {
+                dnskey = ldns_rr_clone(key->dnskey);
+                status = zone_add_rr(zone, dnskey, 0);
+            } else {
+                ldns_rr_set_ttl(key->dnskey, ttl);
+                ldns_rr_set_class(key->dnskey, zone->klass);
+                ldns_rr2canonical(key->dnskey);
+                dnskey = ldns_rr_clone(key->dnskey);
+                status = zone_add_rr(zone, dnskey, 0);
+            }
+
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to publish dnskeys zone %s: "
                     "error adding DNSKEY[%u] for key %s", zone_str,
@@ -544,6 +551,7 @@ zone_publish_dnskeys(zone_type* zone)
         }
         key = key->next;
     }
+
     if (status != ODS_STATUS_OK) {
         zonedata_rollback(zone->zonedata);
     }
@@ -559,7 +567,7 @@ zone_publish_dnskeys(zone_type* zone)
  *
  */
 ods_status
-zone_prepare_nsec3(zone_type* zone)
+zone_prepare_nsec3(zone_type* zone, int recover)
 {
     ldns_rr* nsec3params_rr = NULL;
     domain_type* apex = NULL;
@@ -599,40 +607,46 @@ zone_prepare_nsec3(zone_type* zone)
     }
     ods_log_assert(zone->nsec3params);
 
-    nsec3params_rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
-    if (!nsec3params_rr) {
-        ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
-            "to create NSEC3PARAM RR", zone_str, zone->name);
-        nsec3params_cleanup(zone->nsec3params);
-        return ODS_STATUS_MALLOC_ERR;
+    if (recover) {
+        nsec3params_rr = ldns_rr_clone(zone->nsec3params->rr);
+        status = zone_add_rr(zone, nsec3params_rr, 0);
+    } else {
+        nsec3params_rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
+        if (!nsec3params_rr) {
+            ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
+                "to create NSEC3PARAM RR", zone_str, zone->name);
+            nsec3params_cleanup(zone->nsec3params);
+            return ODS_STATUS_MALLOC_ERR;
+        }
+        ods_log_assert(nsec3params_rr);
+
+        ldns_rr_set_class(nsec3params_rr, zone->klass);
+        ldns_rr_set_ttl(nsec3params_rr, zone->zonedata->default_ttl);
+        ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->dname));
+        ldns_nsec3_add_param_rdfs(nsec3params_rr,
+            zone->nsec3params->algorithm, 0,
+            zone->nsec3params->iterations,
+            zone->nsec3params->salt_len,
+            zone->nsec3params->salt_data);
+        /**
+         * Always set bit 7 of the flags to zero,
+         * according to rfc5155 section 11
+         */
+        ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(nsec3params_rr, 1)), 7, 0);
+
+        ldns_rr2canonical(nsec3params_rr);
+        zone->nsec3params->rr = nsec3params_rr;
+
+        status = zone_add_rr(zone, nsec3params_rr, 0);
     }
-    ods_log_assert(nsec3params_rr);
 
-    ldns_rr_set_class(nsec3params_rr, zone->klass);
-    ldns_rr_set_ttl(nsec3params_rr, zone->zonedata->default_ttl);
-    ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->dname));
-    ldns_nsec3_add_param_rdfs(nsec3params_rr,
-        zone->nsec3params->algorithm, 0,
-        zone->nsec3params->iterations,
-        zone->nsec3params->salt_len,
-        zone->nsec3params->salt_data);
-    /**
-     * Always set bit 7 of the flags to zero,
-     * according to rfc5155 section 11
-     */
-    ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(nsec3params_rr, 1)), 7, 0);
-
-    ldns_rr2canonical(nsec3params_rr);
-    zone->nsec3params->rr = nsec3params_rr;
-
-    status = zone_add_rr(zone, nsec3params_rr, 0);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add NSEC3PARAM RR to zone %s",
             zone_str, zone->name);
         nsec3params_cleanup(zone->nsec3params);
         zone->nsec3params = NULL;
         ldns_rr_free(nsec3params_rr);
-    } else {
+    } else if (!recover) {
         /* add ok, wipe out previous nsec3params */
         apex = zonedata_lookup_domain(zone->zonedata, zone->dname);
         if (!apex) {
@@ -719,74 +733,6 @@ zone_backup(zone_type* zone)
     return ODS_STATUS_OK;
 }
 
-
-/**
- * Recover RRSIGS.
- *
- */
-/*
-static int
-zone_recover_rrsigs_from_backup(zone_type* zone, FILE* fd)
-{
-    int corrupted = 0;
-    const char* token = NULL;
-    const char* locator = NULL;
-    uint32_t flags = 0;
-    ldns_rr* rr = NULL;
-    ldns_status status = LDNS_STATUS_OK;
-
-    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
-        corrupted = 1;
-    }
-
-    while (!corrupted) {
-        if (backup_read_str(fd, &token)) {
-            if (ods_strcmp(token, ";RRSIG") == 0) {
-                if (!backup_read_str(fd, &locator) ||
-                    !backup_read_uint32_t(fd, &flags)) {
-
-                    ods_log_error("[%s] error reading key credentials from backup",
-                        zone_str);
-                    corrupted = 1;
-                } else {
-                    status = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-                   if (status != LDNS_STATUS_OK) {
-                       ods_log_error("[%s] error reading RRSIG from backup", zone_str);
-                       corrupted = 1;
-                    } else if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
-                       ods_log_error("[%s] expecting RRtype RRSIG from backup", zone_str);
-                       corrupted = 1;
-                       ldns_rr_free(rr);
-                       rr = NULL;
-                    } else {
-                       corrupted = zonedata_recover_rrsig_from_backup(
-                           zone->zonedata, rr, locator, flags);
-                    }
-                }
-            } else if (ods_strcmp(token, ODS_SE_FILE_MAGIC) == 0) {
-                free((void*) token);
-                token = NULL;
-                break;
-            } else {
-                corrupted = 1;
-            }
-            free((void*) token);
-            token = NULL;
-        } else {
-            corrupted = 1;
-        }
-
-        if (locator) {
-            free((void*) locator);
-            locator = NULL;
-        }
-        rr = NULL;
-        flags = 0;
-        status = LDNS_STATUS_OK;
-    }
-    return corrupted;
-}
-*/
 
 /**
  * Recover zone from backup.
@@ -941,54 +887,9 @@ zone_recover(zone_type* zone)
         status = adbackup_read(zone, filename);
         free((void*)filename);
         if (status != ODS_STATUS_OK) {
-            zonedata_rollback(zone->zonedata);
-        } else {
-            status = zonedata_commit(zone->zonedata);
-        }
-        if (status != ODS_STATUS_OK) {
-            goto recover_error;
-        }
-        status = zonedata_entize(zone->zonedata, zone->dname);
-        if (status != ODS_STATUS_OK) {
-            goto recover_error;
-        }
-        if (zonedata_recover(zone->zonedata, fd) != ODS_STATUS_OK) {
             goto recover_error;
         }
 
-/*
-        filename = ods_build_path(zone->name, ".denial", 0);
-    fd = ods_fopen(filename, NULL, "r");
-    free((void*)filename);
-    if (fd) {
-        error = zonedata_recover_from_backup(zone->zonedata, fd);
-        ods_fclose(fd);
-        if (error) {
-            ods_log_error("unable to recover denial of existence from file "
-            "%s.denial: file corrupted", zone_str, zone->name);
-            if (zone->zonedata) {
-                zonedata_cleanup(zone->zonedata);
-                zone->zonedata = NULL;
-            }
-            zone->zonedata = zonedata_create(zone->allocator);
-        }
-    } else {
-        ods_log_deeebug("[%s] unable to recover denial of existence from file$
-            "%s.denial: no such file or directory", zone_str, zone->name);
-        error = 1;
-    }
-    if (error) {
-        goto abort_recover;
-    }
-
-        */
-
-
-        ods_log_error("[%s] force recovery failure for zone %s",
-            zone_str, zone->name);
-        goto recover_error;
-
-        /* file ok */
         zone->klass = (ldns_rr_class) klass;
         zone->signconf->nsec3_salt = allocator_strdup(
             zone->signconf->allocator, salt);
@@ -1009,6 +910,39 @@ zone_recover(zone_type* zone)
         zone->task = (void*) task;
         zone->signconf->last_modified = lastmod;
         zone->nsec3params = nsec3params;
+
+        status = zone_publish_dnskeys(zone, 1);
+        if (status != ODS_STATUS_OK) {
+            zone->task = NULL;
+            zone->nsec3params = NULL;
+            goto recover_error;
+        }
+        status = zone_prepare_nsec3(zone, 1);
+        if (status != ODS_STATUS_OK) {
+            zone->task = NULL;
+            zone->nsec3params = NULL;
+            goto recover_error;
+        }
+        status = zonedata_commit(zone->zonedata);
+        if (status != ODS_STATUS_OK) {
+            zone->task = NULL;
+            zone->nsec3params = NULL;
+            goto recover_error;
+        }
+        status = zonedata_entize(zone->zonedata, zone->dname);
+        if (status != ODS_STATUS_OK) {
+            zone->task = NULL;
+            zone->nsec3params = NULL;
+            goto recover_error;
+        }
+        status = zonedata_recover(zone->zonedata, fd);
+        if (status != ODS_STATUS_OK) {
+            zone->task = NULL;
+            zone->nsec3params = NULL;
+            goto recover_error;
+        }
+
+        /* all ok */
         if (zone->stats) {
             stats_clear(zone->stats);
         }

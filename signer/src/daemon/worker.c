@@ -169,10 +169,10 @@ worker_perform_task(worker_type* worker)
                 goto task_perform_continue;
             }
             if (status == ODS_STATUS_OK) {
-                status = zone_publish_dnskeys(zone);
+                status = zone_publish_dnskeys(zone, 0);
             }
             if (status == ODS_STATUS_OK) {
-                status = zone_prepare_nsec3(zone);
+                status = zone_prepare_nsec3(zone, 0);
             }
             if (status == ODS_STATUS_OK) {
                 task->interrupt = TASK_NONE;
@@ -368,18 +368,6 @@ worker_perform_task(worker_type* worker)
 
     /* no error, reset backoff */
     task->backoff = 0;
-    /* backup the last successful run */
-    if (backup) {
-        status = zone_backup(zone);
-        if (status != ODS_STATUS_OK) {
-            ods_log_warning("[%s[%i]] unable to backup zone %s: %s",
-            worker2str(worker->type), worker->thread_num,
-            task_who2str(task->who), ods_status2str(status));
-            /* just a warning */
-            status = ODS_STATUS_OK;
-        }
-        backup = 0;
-    }
 
     /* set next task */
     if (fallthrough == 0 && task->interrupt != TASK_NONE &&
@@ -402,6 +390,19 @@ worker_perform_task(worker_type* worker)
             task->interrupt = TASK_NONE;
             task->halted = TASK_NONE;
         }
+    }
+
+    /* backup the last successful run */
+    if (backup) {
+        status = zone_backup(zone);
+        if (status != ODS_STATUS_OK) {
+            ods_log_warning("[%s[%i]] unable to backup zone %s: %s",
+            worker2str(worker->type), worker->thread_num,
+            task_who2str(task->who), ods_status2str(status));
+            /* just a warning */
+            status = ODS_STATUS_OK;
+        }
+        backup = 0;
     }
     return;
 

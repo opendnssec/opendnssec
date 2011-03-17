@@ -134,18 +134,20 @@ ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
 /**
  * Publish DNSKEYs.
  * \param[in] zone zone
+ * \param[in] recover true if in recovery mode
  * \return ods_status status
  *
  */
-ods_status zone_publish_dnskeys(zone_type* zone);
+ods_status zone_publish_dnskeys(zone_type* zone, int recover);
 
 /**
  * Prepare for NSEC3.
  * \param[in] zone zone
+ * \param[in] recover true if in recovery mode
  * \return ods_status status
  *
  */
-ods_status zone_prepare_nsec3(zone_type* zone);
+ods_status zone_prepare_nsec3(zone_type* zone, int recover);
 
 /**
  * Backup zone.
