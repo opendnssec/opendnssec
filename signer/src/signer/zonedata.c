@@ -1290,7 +1290,6 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
 
     if (!zd->initialized) {
         zd->internal_serial = soa;
-        zd->initialized = 1;
     } else {
         zd->internal_serial += update; /* automatically does % 2^32 */
     }

@@ -343,6 +343,9 @@ tools_output(zone_type* zone)
         return status;
     }
 
+    /* initialize zonedata */
+    zone->zonedata->initialized = 1;
+
     /* kick the nameserver */
     if (zone->notify_ns) {
         ods_log_verbose("[%s] notify nameserver: %s", tools_str,
