@@ -1260,12 +1260,12 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
 
     if (ods_strcmp(sc->soa_serial, "unixtime") == 0) {
         soa = (uint32_t) time_now();
-        if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
+        if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
     } else if (strncmp(sc->soa_serial, "counter", 7) == 0) {
         soa = zd->inbound_serial;
-        if (!DNS_SERIAL_GT(soa, prev)) {
+        if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
     } else if (strncmp(sc->soa_serial, "datecounter", 11) == 0) {
