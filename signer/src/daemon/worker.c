@@ -182,6 +182,10 @@ worker_perform_task(worker_type* worker)
                 status = zone_prepare_nsec3(zone, 0);
             }
             if (status == ODS_STATUS_OK) {
+                status = zonedata_commit(zone->zonedata);
+            }
+
+            if (status == ODS_STATUS_OK) {
                 task->interrupt = TASK_NONE;
                 task->halted = TASK_NONE;
             } else {
@@ -226,7 +230,8 @@ worker_perform_task(worker_type* worker)
                 }
                 goto task_perform_continue;
             }
-            fallthrough = 1;
+            fallthrough = 0;
+            break;
         case TASK_SIGN:
             worker->working_with = TASK_SIGN;
             ods_log_verbose("[%s[%i]] sign zone %s",

@@ -471,8 +471,7 @@ zone_publish_dnskeys(zone_type* zone, int recover)
     size_t count = 0;
     ods_status status = ODS_STATUS_OK;
     ldns_rr* dnskey = NULL;
-
-    int error_counter = 1;
+    int do_publish = 0;
 
     if (!zone) {
         ods_log_error("[%s] unable to publish dnskeys: no zone", zone_str);
@@ -515,15 +514,12 @@ zone_publish_dnskeys(zone_type* zone, int recover)
 
     key = zone->signconf->keys->first_key;
     for (count=0; count < zone->signconf->keys->count; count++) {
-/*
-        if (strcmp("c0d7c9fb664fc170ec1604a5ab048457", key->locator) == 0 && error_counter) {
-            status = ODS_STATUS_ERR;
-            ods_log_error("[%s] force error", zone_str);
-            error_counter = 0;
-            break;
-        }
-*/
         if (key->publish) {
+            do_publish = 0;
+            if (!key->dnskey) {
+                do_publish = 1;
+            }
+
             status = lhsm_get_key(ctx, zone->dname, key);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to publish dnskeys zone %s: "
@@ -536,12 +532,14 @@ zone_publish_dnskeys(zone_type* zone, int recover)
             if (recover) {
                 dnskey = ldns_rr_clone(key->dnskey);
                 status = zone_add_rr(zone, dnskey, 0);
-            } else {
+            } else if (do_publish) {
                 ldns_rr_set_ttl(key->dnskey, ttl);
                 ldns_rr_set_class(key->dnskey, zone->klass);
                 ldns_rr2canonical(key->dnskey);
                 dnskey = ldns_rr_clone(key->dnskey);
                 status = zone_add_rr(zone, dnskey, 0);
+            } else {
+                status = ODS_STATUS_OK;
             }
 
             if (status != ODS_STATUS_OK) {
