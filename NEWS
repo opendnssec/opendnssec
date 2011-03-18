@@ -3,6 +3,7 @@ $Id$
 OpenDNSSEC 1.2.1 - 2011-0X-XX
 
 * ldns 1.6.9 is required for bugfixes.
+* dnsruby-1.52 required for bugfixes.
 
 Bugfixes:
 * Auditor: 'make check' now works when srcdir != builddir.
