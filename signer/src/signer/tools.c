@@ -198,7 +198,7 @@ tools_nsecify(zone_type* zone)
         return ODS_STATUS_ERR;
     }
     end = time(NULL);
-    if (status == ODS_STATUS_OK) {
+    if (status == ODS_STATUS_OK && zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         if (!zone->stats->start_time) {
             zone->stats->start_time = start;
@@ -284,7 +284,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             status = ODS_STATUS_ERR;
         }
         end = time(NULL);
-        if (zone->stats) {
+        if (status == ODS_STATUS_OK && zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
             zone->stats->audit_time = (end-start);
             lock_basic_unlock(&zone->stats->stats_lock);

@@ -275,7 +275,7 @@ worker_perform_task(worker_type* worker)
 
                 /* stop timer */
                 end = time(NULL);
-                if (zone->stats) {
+                if (status == ODS_STATUS_OK && zone->stats) {
                     lock_basic_lock(&zone->stats->stats_lock);
                     zone->stats->sig_time = (end-start);
                     lock_basic_unlock(&zone->stats->stats_lock);
