@@ -236,7 +236,6 @@ worker_perform_task(worker_type* worker)
                 goto task_perform_continue;
             }
             fallthrough = 1;
-            break;
         case TASK_SIGN:
             worker->working_with = TASK_SIGN;
             ods_log_verbose("[%s[%i]] sign zone %s",
