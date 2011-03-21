@@ -205,7 +205,7 @@ task_compare(const void* a, const void* b)
 
     /* order task on time, what to do, dname */
     if (x->flush != y->flush) {
-        return (int) x->flush - y->flush;
+        return (int) y->flush - x->flush;
     }
     if (x->when != y->when) {
         return (int) x->when - y->when;
