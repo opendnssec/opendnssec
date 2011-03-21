@@ -2,34 +2,49 @@ $Id$
 
 OpenDNSSEC 1.3.0
 
-* Just warn if occluded zone data was found, don't stop signing process.
-* Threaded signer: Set number of <SignerThreads> in conf.xml to 
-  get peak performance from HSMs that can handle multiple threads.
+* Enforcer: Stop import of policy if it is not consistent.
 * ods-signer: The queue command will now also show what tasks the workers
   are working on.
-* Signer Engine: simpler serial maintenance, reduces the number of conflicts.
+* Signer Engine: Just warn if occluded zone data was found, don't stop signing process.
+* Signer Engine: Simpler serial maintenance, reduces the number of conflicts.
   Less chance to hit a 'cannot update: serial too small' error message.
-* Signer Engine: simpler NSEC(3) maintenance.
+* Signer Engine: Simpler NSEC(3) maintenance.
+* Signer Engine: Set number of <SignerThreads> in conf.xml to 
+  get peak performance from HSMs that can handle multiple threads.
+
+Bugfixes:
+* Replace tab with white-space when writing to syslog.
+* Signer Engine: Do not block update command while signing.
+* Bugreport #198: Zone updates ignored?
+* Signer Engine: NSEC chain could become broken if the predecessor domain
+  of a deleted domain was a glue domain.
+
+
+OpenDNSSEC 1.2.1 - 2011-03-18
+
 * ldns 1.6.9 is required for bugfixes.
-* dnsruby-1.52 is required for bugfixes.
+* dnsruby-1.52 required for bugfixes.
 
 Bugfixes:
 * Auditor: 'make check' now works when srcdir != builddir.
 * Auditor: Include the 'make check' files in the tarball.
-* Replace tab with white-space when writing to syslog.
-* Enforcer: Stop import of policy if it is not consistent.
-* Signer Engine: do not block update command while signing.
+* Enforcer: Fix the migration script for SQLite.
 * Enforcer: Increase size of keypairs(id) field in MySQL to allow more than
   32767 keys; see MIGRATION for details.
-* ods-ksmutil: send trivial MySQL messages to stdout when exporting zonelist
+* Enforcer: Minor change to NOT_READY_KEY error message.
+* libhsm: Increase the maximum number of attached HSM:s from 10 to 100.
+* ods-ksmutil: Send trivial MySQL messages to stdout when exporting zonelist
   etc. Otherwise the resulting XML needs to be edited by hand.
 * ods-control: Fix for Bourne shell.
-* Bugreport #198: zone updates ignored?
 * Signer Engine: Prevent race condition when setting up the workers and
   the command handler.
+* Signer Engine: Check if the signature exists before recycling it.
 * Signer Engine: Quit when there are errors in the configuration.
-* Signer Engine: NSEC chain could become broken if the predecessor domain
-  of a deleted domain was a glue domain.
+* Signer Engine: Enable core dump on failure.
+* Signer Engine: Explicitly close down log msg with null.
+* Signer Engine: Backup state after writing output.
+* Signer Engine: Allow update of serial if internal structure is not
+  initialized.
 
 
 OpenDNSSEC 1.2.0 - 2011-01-13
