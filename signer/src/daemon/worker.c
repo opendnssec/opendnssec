@@ -224,13 +224,18 @@ worker_perform_task(worker_type* worker)
             /* what to do next */
             what = TASK_SIGN;
             when = time_now();
-            if (status != ODS_STATUS_OK) {
+            if (status == ODS_STATUS_OK) {
+                if (task->interrupt > TASK_SIGNCONF) {
+                    task->interrupt = TASK_NONE;
+                    task->halted = TASK_NONE;
+                }
+            } else {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
                 goto task_perform_continue;
             }
-            fallthrough = 0;
+            fallthrough = 1;
             break;
         case TASK_SIGN:
             worker->working_with = TASK_SIGN;
@@ -298,8 +303,8 @@ worker_perform_task(worker_type* worker)
             } else {
                 if (task->interrupt > TASK_SIGNCONF) {
                     task->interrupt = TASK_NONE;
+                    task->halted = TASK_NONE;
                 }
-                task->halted = TASK_NONE;
             }
             what = TASK_AUDIT;
             when = time_now();
@@ -349,8 +354,8 @@ worker_perform_task(worker_type* worker)
             } else {
                 if (task->interrupt > TASK_SIGNCONF) {
                     task->interrupt = TASK_NONE;
+                    task->halted = TASK_NONE;
                 }
-                task->halted = TASK_NONE;
             }
             if (duration2time(zone->signconf->sig_resign_interval)) {
                 what = TASK_SIGN;
