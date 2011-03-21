@@ -854,7 +854,8 @@ zone_recover(zone_type* zone)
                  !backup_read_check_str(fd, "optout") ||
                  !backup_read_int(fd, &zone->signconf->nsec3_optout) ||
                  !backup_read_check_str(fd, "iterations") ||
-                 !backup_read_uint32_t(fd, &zone->signconf->nsec3_iterations) ||
+                 !backup_read_uint32_t(fd,
+                     &zone->signconf->nsec3_iterations) ||
                  ldns_rr_new_frm_fp(&nsec3params_rr, fd, NULL, NULL, NULL) ||
                  !backup_read_check_str(fd, ";;Nsec3done") ||
                  !backup_read_check_str(fd, ";;")) {
@@ -984,111 +985,6 @@ recover_error:
         stats_clear(zone->stats);
     }
     return ODS_STATUS_ERR;
-
-
-/*
-    filename = ods_build_path(zone->name, ".denial", 0);
-    fd = ods_fopen(filename, NULL, "r");
-    free((void*)filename);
-    if (fd) {
-        error = zonedata_recover_from_backup(zone->zonedata, fd);
-        ods_fclose(fd);
-        if (error) {
-            ods_log_error("unable to recover denial of existence from file "
-            "%s.denial: file corrupted", zone_str, zone->name);
-            if (zone->zonedata) {
-                zonedata_cleanup(zone->zonedata);
-                zone->zonedata = NULL;
-            }
-            zone->zonedata = zonedata_create(zone->allocator);
-        }
-    } else {
-        ods_log_deeebug("[%s] unable to recover denial of existence from file "
-            "%s.denial: no such file or directory", zone_str, zone->name);
-        error = 1;
-    }
-    if (error) {
-        goto abort_recover;
-    }
-
-    filename = ods_build_path(zone->name, ".unsorted", 0);
-    error = adfile_read(zone, filename);
-    free((void*)filename);
-    if (error) {
-        ods_log_error("[%s] unable to recover unsorted zone from file "
-        "%s.unsorted: parse error", zone_str, zone->name);
-        if (zone->zonedata) {
-            zonedata_cleanup(zone->zonedata);
-            zone->zonedata = NULL;
-        }
-        zone->zonedata = zonedata_create(zone->allocator);
-        goto abort_recover;
-    }
-
-    filename = ods_build_path(zone->name, ".dnskeys", 0);
-    fd = ods_fopen(filename, NULL, "r");
-    free((void*)filename);
-    if (fd) {
-        error = zone_recover_dnskeys_from_backup(zone, fd);
-        ods_fclose(fd);
-        if (error) {
-            ods_log_error("[%s] unable to recover dnskeys from file %s.dnskeys: "
-                "file corrupted", zone_str, zone->name);
-        }
-    } else {
-        ods_log_deeebug("[%s] unable to recover dnskeys from file %s.dnskeys: ",
-            "no such file or directory", zone_str, zone->name);
-        error = 1;
-    }
-    if (error) {
-        goto abort_recover;
-    }
-
-    filename = ods_build_path(zone->name, ".rrsigs", 0);
-    fd = ods_fopen(filename, NULL, "r");
-    free((void*)filename);
-    if (fd) {
-        error = zone_recover_rrsigs_from_backup(zone, fd);
-        ods_fclose(fd);
-        if (error) {
-            ods_log_error("[%s] unable to recover rrsigs from file %s.rrsigs: "
-                "file corrupted", zone_str, zone->name);
-        }
-    } else {
-        ods_log_deeebug("[%s] unable to recover rrsigs from file %s.rrsigs: ",
-            "no such file or directory", zone_str, zone->name);
-    }
-
-abort_recover:
-
-    filename = ods_build_path(zone->name, ".task", 0);
-    task = task_recover_from_backup((const char*) filename, zone);
-    free((void*)filename);
-
-    if (!task) {
-        now = time_now();
-        task = task_create(TASK_READ, now, zone->name, zone);
-    }
-    if (!task) {
-        ods_log_error("[%s] failed to create task for zone %s", zone_str, zone->name);
-    } else {
-        if (error) {
-            task->what = TASK_READ;
-        }
-        zone->task = task;
-
-        status = schedule_task((schedule_type*) tl, (task_type*) zone->task, 1);
-        if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] failed to schedule task for zone %s", zone_str, zone->name);
-        }
-    }
-
-    if (error) {
-        zone->signconf->last_modified = 0;
-    }
-    return;
-*/
-
 }
 
 
@@ -1111,8 +1007,8 @@ zone_merge(zone_type* z1, zone_type* z2)
         if (z2->policy_name) {
             str = strdup(z2->policy_name);
             if (!str) {
-                ods_log_error("[%s] failed to merge policy %s name to zone %s",
-                    zone_str, z2->policy_name, z1->name);
+                ods_log_error("[%s] failed to merge policy %s name to zone "
+                    "%s", zone_str, z2->policy_name, z1->name);
             } else {
                 free((void*)z1->policy_name);
                 z1->policy_name = str;
