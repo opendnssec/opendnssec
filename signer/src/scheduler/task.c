@@ -277,11 +277,7 @@ task2str(task_type* task, char* buftask)
     char* strtask = NULL;
 
     if (task) {
-        if (task->flush) {
-            strtime = ctime(&now);
-        } else {
-            strtime = ctime(&task->when);
-        }
+        strtime = ctime(&task->when);
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
