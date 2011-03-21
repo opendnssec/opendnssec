@@ -68,6 +68,7 @@ schedule_create(allocator_type* allocator)
 
     schedule->allocator = allocator;
     schedule->loading = 0;
+    schedule->flushcount = 0;
     schedule->tasks = ldns_rbtree_create(task_compare);
     lock_basic_init(&schedule->schedule_lock);
     return schedule;
@@ -95,6 +96,7 @@ schedule_flush(schedule_type* schedule, task_id override)
     while (node && node != LDNS_RBTREE_NULL) {
         task = (task_type*) node->data;
         task->flush = 1;
+        schedule->flushcount++;
         if (override != TASK_NONE) {
             task->what = override;
         }
@@ -183,6 +185,9 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
         free((void*)new_node);
         return ODS_STATUS_ERR;
     }
+    if (task->flush) {
+        schedule->flushcount++;
+    }
     if (log) {
         task_log(task);
     }
@@ -224,6 +229,10 @@ unschedule_task(schedule_type* schedule, task_type* task)
             "scheduled", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
     }
+    if (del_task->flush) {
+        del_task->flush = 0;
+        schedule->flushcount--;
+    }
     return del_task;
 }
 
@@ -255,6 +264,7 @@ task_type*
 schedule_get_first_task(schedule_type* schedule)
 {
     ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     task_type* pop = NULL;
 
     if (!schedule) {
@@ -265,8 +275,27 @@ schedule_get_first_task(schedule_type* schedule)
 
     first_node = ldns_rbtree_first(schedule->tasks);
     if (!first_node) {
-        pop = NULL;
+        return NULL;
     }
+
+    if (schedule->flushcount > 0) {
+        /* find remaining to be flushed tasks */
+        node = first_node;
+        while (node && node != LDNS_RBTREE_NULL) {
+            pop = (task_type*) node->data;
+            if (pop->flush) {
+                return pop;
+            }
+            node = ldns_rbtree_next(node);
+        }
+        /* no more to be flushed tasks found */
+        ods_log_warning("[%s] unable to get first scheduled: could not "
+            "find flush-task, while there should be %i flush-tasks left",
+            schedule_str, schedule->flushcount);
+        ods_log_info("[%s] reset flush count to 0", schedule_str);
+        schedule->flushcount = 0;
+    }
+    /* no more tasks to be flushed, return first task in schedule */
     pop = (task_type*) first_node->data;
     return pop;
 }
@@ -299,7 +328,6 @@ schedule_pop_task(schedule_type* schedule)
             ods_log_debug("[%s] pop task for zone %s", schedule_str,
                 pop->who?pop->who:"(null)");
         }
-        pop->flush = 0;
         return unschedule_task(schedule, pop);
     }
     return NULL;
