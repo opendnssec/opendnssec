@@ -458,15 +458,18 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     /* time */
     now = time_now();
     strtime = ctime(&now);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "It is now %s", strtime?strtime:"(null)");
+    (void)snprintf(buf, ODS_SE_MAXLINE, "It is now %s",
+        strtime?strtime:"(null)");
     ods_writen(sockfd, buf, strlen(buf));
 
     /* current work */
     for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
         task = cmdc->engine->workers[i]->task;
         if (task) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Working with task %s on zone %s\n",
-                task_what2str(cmdc->engine->workers[i]->working_with), task_who2str(task->who));
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Working with task %s on "
+                "zone %s\n",
+                task_what2str(cmdc->engine->workers[i]->working_with),
+                task_who2str(task->who));
             ods_writen(sockfd, buf, strlen(buf));
         }
     }
