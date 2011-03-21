@@ -204,9 +204,6 @@ task_compare(const void* a, const void* b)
     }
 
     /* order task on time, what to do, dname */
-    if (x->flush != y->flush) {
-        return (int) y->flush - x->flush;
-    }
     if (x->when != y->when) {
         return (int) x->when - y->when;
     }
@@ -289,15 +286,15 @@ task2str(task_type* task, char* buftask)
             strtime[strlen(strtime)-1] = '\0';
         }
         if (buftask) {
-            (void)snprintf(buftask, ODS_SE_MAXLINE, "On %s I will %s zone %s"
-                "\n", strtime?strtime:"(null)", task_what2str(task->what),
-                task_who2str(task->who));
+            (void)snprintf(buftask, ODS_SE_MAXLINE, "%s %s I will %s zone %s"
+                "\n", task->flush?"Flush":"On", strtime?strtime:"(null)",
+                task_what2str(task->what), task_who2str(task->who));
             return buftask;
         } else {
             strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
-            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
-                strtime?strtime:"(null)", task_what2str(task->what),
-                task_who2str(task->who));
+            snprintf(strtask, ODS_SE_MAXLINE, "%s %s I will %s zone %s\n",
+                task->flush?"Flush":"On", strtime?strtime:"(null)",
+                task_what2str(task->what), task_who2str(task->who));
             return strtask;
         }
     }
@@ -324,7 +321,8 @@ task_print(FILE* out, task_type* task)
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
-        fprintf(out, "On %s I will %s zone %s\n", strtime?strtime:"(null)",
+        fprintf(out, "%s %s I will %s zone %s\n",
+            task->flush?"Flush":"On", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task->who));
     }
     return;
@@ -350,8 +348,8 @@ task_log(task_type* task)
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
-        ods_log_debug("[%s] On %s I will %s zone %s", task_str,
-            strtime?strtime:"(null)",
+        ods_log_debug("[%s] %s %s I will %s zone %s", task_str,
+            task->flush?"Flush":"On", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task->who));
     }
     return;
