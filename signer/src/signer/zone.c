@@ -893,6 +893,9 @@ zone_recover(zone_type* zone)
         }
 
         zone->klass = (ldns_rr_class) klass;
+        zone->zonedata->inbound_serial = inbound;
+        zone->zonedata->internal_serial = internal;
+        zone->zonedata->outbound_serial = outbound;
         zone->signconf->nsec3_salt = allocator_strdup(
             zone->signconf->allocator, salt);
         free((void*) salt);
