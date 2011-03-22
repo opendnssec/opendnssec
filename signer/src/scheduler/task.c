@@ -272,7 +272,6 @@ task_who2str(const char* who)
 char*
 task2str(task_type* task, char* buftask)
 {
-    time_t now = time_now();
     char* strtime = NULL;
     char* strtask = NULL;
 
@@ -305,15 +304,10 @@ task2str(task_type* task, char* buftask)
 void
 task_print(FILE* out, task_type* task)
 {
-    time_t now = time_now();
     char* strtime = NULL;
 
     if (out && task) {
-        if (task->flush) {
-            strtime = ctime(&now);
-        } else {
-            strtime = ctime(&task->when);
-        }
+        strtime = ctime(&task->when);
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
@@ -332,15 +326,10 @@ task_print(FILE* out, task_type* task)
 void
 task_log(task_type* task)
 {
-    time_t now = time_now();
     char* strtime = NULL;
 
     if (task) {
-        if (task->flush) {
-            strtime = ctime(&now);
-        } else {
-            strtime = ctime(&task->when);
-        }
+        strtime = ctime(&task->when);
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
