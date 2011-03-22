@@ -948,6 +948,7 @@ zone_recover(zone_type* zone)
         }
 
         /* all ok */
+        zone->zonedata->initialized = 1;
         if (zone->stats) {
             stats_clear(zone->stats);
         }
