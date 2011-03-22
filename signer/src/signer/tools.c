@@ -328,6 +328,8 @@ tools_output(zone_type* zone)
                 zone->zonedata->internal_serial);
             stats_clear(zone->stats);
             lock_basic_unlock(&zone->stats->stats_lock);
+            zone->zonedata->internal_serial =
+                zone->zonedata->outbound_serial;
             return ODS_STATUS_OK;
         }
         lock_basic_unlock(&zone->stats->stats_lock);

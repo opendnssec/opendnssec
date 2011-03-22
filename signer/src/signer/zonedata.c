@@ -1245,7 +1245,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     ods_log_assert(zd);
     ods_log_assert(sc);
 
-    prev = zd->internal_serial;
+    prev = zd->outbound_serial;
     if (!zd->initialized) {
         prev = zd->inbound_serial;
     }
