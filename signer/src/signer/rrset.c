@@ -165,6 +165,12 @@ rrset_recover(rrset_type* rrset, ldns_rr* rrsig, const char* locator,
         log_rr(rrsig, "+RRSIG", 1);
     } else {
         rrset->rrsig_count += 1;
+        /**
+         * This RRset was recovered, no need for signing.
+         * If the signature is about to expire, the recycle logic will
+         * catch that.
+         */
+        rrset->needs_signing = 0;
     }
     return status;
 }
