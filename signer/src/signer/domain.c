@@ -821,24 +821,6 @@ domain_queue(domain_type* domain, fifoq_type* q, worker_type* worker)
             node = ldns_rbtree_next(node);
             continue;
         }
-/* TODO:
-        if (rrset->rr_type == LDNS_RR_TYPE_SOA && rrset->rrs &&
-            rrset->rrs->rr) {
-            soa_serial = ldns_rr_set_rdf(rrset->rrs->rr,
-                ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial),
-                SE_SOA_RDATA_SERIAL);
-            if (soa_serial) {
-                if (ldns_rdf2native_int32(soa_serial) != serial) {
-                    rrset->needs_signing = 1;
-                }
-                ldns_rdf_deep_free(soa_serial);
-             } else {
-                ods_log_error("[%s] unable to sign domain: failed to replace "
-                    "SOA SERIAL rdata", dname_str);
-                return 1;
-            }
-        }
-*/
         /* queue RRset for signing */
         status = rrset_queue(rrset, q, worker);
         if (status != ODS_STATUS_OK) {
