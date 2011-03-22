@@ -737,7 +737,8 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
     /* 1. If the RRset has changed, drop all signatures */
     /* 2. If Refresh is disabled, drop all signatures */
     if (rrset->needs_signing || !refresh) {
-        ods_log_debug("[%s] drop signatures for RRset[%i]", rrset_str, rrset->rr_type);
+        ods_log_debug("[%s] drop signatures for RRset[%i]", rrset_str,
+            rrset->rr_type);
         if (rrset->rrsigs) {
             rrsigs_cleanup(rrset->rrsigs);
             rrset->rrsigs = NULL;
@@ -768,27 +769,28 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
         if (expiration < refresh) {
             /* 3a. Expiration - Refresh has passed */
             drop_sig = 1;
-            ods_log_deeebug("[%s] refresh signature for RRset[%i]: expiration minus "
-                "refresh has passed: %u - %u < (signtime)", rrset_str,
-                rrset->rr_type, expiration, refresh, (uint32_t) signtime);
+            ods_log_deeebug("[%s] refresh signature for RRset[%i]: "
+                "expiration minus refresh has passed: %u - %u < (signtime)",
+                rrset_str, rrset->rr_type, expiration, refresh,
+                (uint32_t) signtime);
         } else if (inception > (uint32_t) signtime) {
             /* 3b. Inception has not yet passed */
             drop_sig = 1;
-            ods_log_deeebug("[%s] refresh signature for RRset[%i]: inception has "
-                "not passed: %u < %u (signtime)", rrset_str,
+            ods_log_deeebug("[%s] refresh signature for RRset[%i]: "
+                "inception has not passed: %u < %u (signtime)", rrset_str,
                 rrset->rr_type, inception, (uint32_t) signtime);
         } else {
             /* 3c. Corresponding key is dead (key is locator+flags) */
             key = keylist_lookup(sc->keys, rrsigs->key_locator);
             if (!key) {
                 drop_sig = 1;
-                ods_log_deeebug("[%s] refresh signature for RRset[%i]: key %s %u "
-                "is dead", rrset_str,
+                ods_log_deeebug("[%s] refresh signature for RRset[%i]: "
+                "key %s %u is dead", rrset_str,
                 rrset->rr_type, rrsigs->key_locator, rrsigs->key_flags);
             } else if (key->flags != rrsigs->key_flags) {
                 drop_sig = 1;
-                ods_log_deeebug("[%s] refresh signature for RRset[%i]: key %s %u "
-                "flags mismatch", rrset_str,
+                ods_log_deeebug("[%s] refresh signature for RRset[%i]: "
+                "key %s %u flags mismatch", rrset_str,
                 rrset->rr_type, rrsigs->key_locator, rrsigs->key_flags);
             }
         }
@@ -807,9 +809,10 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
             rrsigs_cleanup(rrsigs);
         } else {
             /* All rules ok, recycle signature */
-            ods_log_deeebug("[%s] recycle signature for RRset[%i] (refresh=%u, "
-                "signtime=%u, inception=%u, expiration=%u)", rrset_str, rrset->rr_type,
-                refresh, (uint32_t) signtime, inception, expiration);
+            ods_log_deeebug("[%s] recycle signature for RRset[%i] "
+                "(refresh=%u, signtime=%u, inception=%u, expiration=%u)",
+                rrset_str, rrset->rr_type, refresh, (uint32_t) signtime,
+                inception, expiration);
             log_rr(rrsigs->rr, "*RRSIG", 7);
             reusedsigs += 1;
             prev_rrsigs = rrsigs;
