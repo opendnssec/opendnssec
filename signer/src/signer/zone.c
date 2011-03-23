@@ -904,17 +904,18 @@ zone_recover(zone_type* zone)
         if (!task) {
             goto recover_error;
         }
-        nsec3params = nsec3params_create(zone->signconf->nsec3_algo,
-            zone->signconf->nsec3_optout, zone->signconf->nsec3_iterations,
-            zone->signconf->nsec3_salt);
-        if (!nsec3params) {
-            goto recover_error;
+        if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
+            nsec3params = nsec3params_create(zone->signconf->nsec3_algo,
+                zone->signconf->nsec3_optout, zone->signconf->nsec3_iterations,
+                zone->signconf->nsec3_salt);
+            if (!nsec3params) {
+                goto recover_error;
+            }
+            nsec3params->rr = nsec3params_rr;
+            zone->nsec3params = nsec3params;
         }
-        nsec3params->rr = nsec3params_rr;
-
         zone->task = (void*) task;
         zone->signconf->last_modified = lastmod;
-        zone->nsec3params = nsec3params;
 
         status = zone_publish_dnskeys(zone, 1);
         if (status != ODS_STATUS_OK) {
