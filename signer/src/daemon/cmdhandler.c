@@ -404,9 +404,9 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->zonedata->internal_serial = internal_serial;
         zone->zonedata->outbound_serial = outbound_serial;
 
-        status = zone_publish_dnskeys(zone, 0);
+        status = zone_publish_dnskeys(zone, 1);
         if (status == ODS_STATUS_OK) {
-            status = zone_prepare_nsec3(zone, 0);
+            status = zone_prepare_nsec3(zone, 1);
         } else {
             ods_log_warning("[%s] unable to restore DNSKEY RRset for zone %s,"
                 " reloading signconf", cmdh_str, zone->name);

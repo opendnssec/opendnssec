@@ -636,8 +636,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
         ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(nsec3params_rr, 1)), 7, 0);
 
         ldns_rr2canonical(nsec3params_rr);
-        zone->nsec3params->rr = nsec3params_rr;
-
+        zone->nsec3params->rr = ldns_rr_clone(nsec3params_rr);
         status = zone_add_rr(zone, nsec3params_rr, 0);
     }
 

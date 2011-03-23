@@ -213,7 +213,7 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
     nsec3params->salt_len = salt_len; /* salt length */
     nsec3params->salt_data = salt_data; /* salt data */
     *rr = nsec3params_rr;
-    nsec3params->rr = nsec3params_rr;
+    nsec3params->rr = ldns_rr_clone(nsec3params_rr);
     return nsec3params;
 }
 
@@ -269,7 +269,7 @@ nsec3params_cleanup(nsec3params_type* nsec3params)
         return;
     }
     allocator = nsec3params->allocator;
-    nsec3params->rr = NULL;
+    ldns_rr_free(nsec3params->rr);
     allocator_deallocate(allocator, (void*) nsec3params->salt_data);
     allocator_deallocate(allocator, (void*) nsec3params);
     allocator_cleanup(allocator);
