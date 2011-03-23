@@ -375,20 +375,14 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     uint32_t inbound_serial = 0;
     uint32_t internal_serial = 0;
     uint32_t outbound_serial = 0;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
 
-    /* unlink_backup_file(tbd,, ".sc"); */
-    /* unlink_backup_file(tbd,, ".state"); */
-    /* unlink_backup_file(tbd,, ".task"); */
     unlink_backup_file(tbd, ".inbound");
-    unlink_backup_file(tbd, ".unsorted");
-    unlink_backup_file(tbd, ".dnskeys");
-    unlink_backup_file(tbd, ".denial");
-    unlink_backup_file(tbd, ".rrsigs");
-    unlink_backup_file(tbd, ".finalized");
+    unlink_backup_file(tbd, ".backup");
 
     lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
     /* [LOCK] zonelist */
@@ -409,8 +403,28 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->zonedata->inbound_serial = inbound_serial;
         zone->zonedata->internal_serial = internal_serial;
         zone->zonedata->outbound_serial = outbound_serial;
+
+        status = zone_publish_dnskeys(zone, 0);
+        if (status == ODS_STATUS_OK) {
+            status = zone_prepare_nsec3(zone, 0);
+        } else {
+            ods_log_warning("[%s] unable to restore DNSKEY RRset for zone %s,"
+                " reloading signconf", cmdh_str, zone->name);
+        }
+        if (status == ODS_STATUS_OK) {
+            status = zonedata_commit(zone->zonedata);
+        } else {
+            ods_log_warning("[%s] unable to restore NSEC3PARAM RRset for "
+                " zone %s d1reloading signconf", cmdh_str, zone->name);
+        }
+
         task = (task_type*) zone->task;
         task->what = TASK_READ;
+        if (status != ODS_STATUS_OK) {
+            ods_log_warning("[%s] unable to restore DNSKEY/NSEC3PARAM RRset "
+                " for zone %s d1reloading signconf", cmdh_str, zone->name);
+            task->what = TASK_SIGNCONF;
+        }
         /* [UNLOCK] zone */
         lock_basic_unlock(&zone->zone_lock);
 
