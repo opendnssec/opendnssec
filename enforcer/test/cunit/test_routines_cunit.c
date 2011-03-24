@@ -105,6 +105,10 @@ void TcuExecute(void)
         (void) CU_list_tests_to_file();
     }
 
+	if (CU_get_number_of_tests_failed()) {
+		return;
+	}
+
     /* Clean up the registry */
 
     CU_cleanup_registry();

@@ -122,5 +122,5 @@ int main(int argc, char **argv)
         TcuExecute();
     }
 
-    return CU_get_error();
+    return CU_get_number_of_failure_records();
 }
