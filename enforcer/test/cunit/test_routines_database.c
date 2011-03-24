@@ -119,22 +119,28 @@ int TdbSetup(void)
 	int		status;		/* Status return from connection */
 	const char*	name = TdbName();
 	const char*	host = TdbHost();
-	const char*	password = TdbPassword();
-	const char*	user = TdbUsername();
 	const char*	port = TdbPort();
+	const char*	user = TdbUsername();
+	const char*	pass = TdbPassword();
+
+	if (name && !strlen(name)) name=NULL;
+	if (host && !strlen(host)) host=NULL;
+	if (port && !strlen(port)) port=NULL;
+	if (user && !strlen(user)) user=NULL;
+	if (pass && !strlen(pass)) pass=NULL;
 
 #ifdef USE_MYSQL
-	if (!name || !password || !user || !strlen(name) || !strlen(password) || !strlen(user))
+	if (!name || !pass || !user)
 	{
-		printf("The environment variables; DB_NAME, DB_USERNAME, and DB_PASSWORD; are required. "
-			"(DB_HOST and DB_PORT are optional)\n");
+		printf("Please run ./configure with --with-dbname, --with-dbuser, and --with-dbpass. "
+			"(--with-dbhost and --with-dbport are optional)\n");
 		exit(1);
 	}
 
 	(void) system("sh ./database_setup_mysql.sh setup");
 #else
-	if (!name || !strlen(name)) {
-		printf("The environment variable; DB_NAME; is required.\n");
+	if (!name) {
+		printf("Please run ./configure with --with-dbname to indicate the location of a test database.\n");
 		exit(1);
 	}
 
@@ -143,7 +149,7 @@ int TdbSetup(void)
 
 	DbInit();
 
-	status = DbConnect(&handle, name, host, password, user, port);
+	status = DbConnect(&handle, name, host, pass, user, port);
 
 	return status;
 }
