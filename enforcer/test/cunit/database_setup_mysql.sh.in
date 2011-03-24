@@ -13,6 +13,7 @@
 #			DB_USERNAME		username to access the database
 #			DB_PASSWORD		asssociated password
 #			DB_HOST			host on which the database resides
+#			DB_PORT			port on which the database resides
 #			DB_NAME			name of the database
 #
 # Invocation:
@@ -38,6 +39,11 @@ if [ -n $DB_HOST ]; then
 	HOST=--host=$DB_HOST
 fi
 
+PORT=
+if [ -n $DB_PORT ]; then
+	PORT=--port=$DB_PORT
+fi
+
 NAME=
 if [ -n $DB_NAME ]; then
 	NAME=--database=$DB_NAME
@@ -45,8 +51,8 @@ fi
 
 case $1 in
 	setup)
-		@MYSQL@ $USERNAME $PASSWORD $HOST $NAME < $srcdir/../../utils/database_create.mysql;
-		@MYSQL@ $USERNAME $PASSWORD $HOST $NAME << EOF
+		@MYSQL@ $USERNAME $PASSWORD $HOST $PORT $NAME < $srcdir/../../utils/database_create.mysql;
+		@MYSQL@ $USERNAME $PASSWORD $HOST $PORT $NAME << EOF
 DROP TABLE IF EXISTS TEST_BASIC;
 CREATE TABLE TEST_BASIC (
    ID           INT NOT NULL AUTO_INCREMENT,
