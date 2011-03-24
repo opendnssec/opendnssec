@@ -34,6 +34,8 @@
 -*/
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "ksm/database.h"
 #include "test_routines.h"
@@ -107,25 +109,41 @@ const char* TdbPort(void)
  *
  * Returns:
  *		int
- *			0		Success
+ *			0	Success
  *			Other	Some failure
 -*/
 
 int TdbSetup(void)
 {
 	DB_HANDLE	handle;		/* database handle (unused) */
-	int			status;		/* Status return from connection */
+	int		status;		/* Status return from connection */
+	const char*	name = TdbName();
+	const char*	host = TdbHost();
+	const char*	password = TdbPassword();
+	const char*	user = TdbUsername();
+	const char*	port = TdbPort();
 
 #ifdef USE_MYSQL
+	if (!name || !password || !user || !strlen(name) || !strlen(password) || !strlen(user))
+	{
+		printf("The environment variables; DB_NAME, DB_USERNAME, and DB_PASSWORD; are required. "
+			"(DB_HOST and DB_PORT are optional)\n");
+		exit(1);
+	}
+
 	(void) system("sh ./database_setup_mysql.sh setup");
 #else
+	if (!name || !strlen(name)) {
+		printf("The environment variable; DB_NAME; is required.\n");
+		exit(1);
+	}
+
 	(void) system("sh ./database_setup_sqlite3.sh setup");
 #endif
 
 	DbInit();
 
-	status = DbConnect(&handle, TdbName(), TdbHost(), TdbPassword(),
-		TdbUsername(), TdbPort());
+	status = DbConnect(&handle, name, host, password, user, port);
 
 	return status;
 }
