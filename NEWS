@@ -1,5 +1,10 @@
 $Id$
 
+OpenDNSSEC 1.3.0b2
+
+Bugfixes:
+* Bugfix #221: Segmentation Fault on schedule.c:232
+
 OpenDNSSEC 1.3.0b1 - 2011-03-23
 
 * Enforcer: Stop import of policy if it is not consistent.
@@ -9,6 +14,7 @@ OpenDNSSEC 1.3.0b1 - 2011-03-23
 * Signer Engine: Simpler serial maintenance, reduces the number of conflicts.
   Less chance to hit a 'cannot update: serial too small' error message.
 * Signer Engine: Simpler NSEC(3) maintenance.
+* Signer Engine: Temperate the number of backup files.
 * Signer Engine: Set number of <SignerThreads> in conf.xml to 
   get peak performance from HSMs that can handle multiple threads.
 

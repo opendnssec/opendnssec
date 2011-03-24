@@ -246,13 +246,18 @@ ods_status
 reschedule_task(schedule_type* schedule, task_type* task, task_id what,
     time_t when)
 {
-    task_type* del_task;
+    task_type* del_task = NULL;
+
+    if (!task) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
 
     del_task = unschedule_task(schedule, task);
-    if (del_task) {
-        del_task->what = what;
-        del_task->when = when;
+    if (!del_task) {
+        del_task = task;
     }
+    del_task->what = what;
+    del_task->when = when;
     return schedule_task(schedule, del_task, 1);
 }
 
