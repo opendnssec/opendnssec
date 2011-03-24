@@ -88,6 +88,7 @@ int TcuCreateSuite(const char* title, int (*init)(), int (*teardown)(),
 const char* TdbUsername(void);
 const char* TdbPassword(void);
 const char* TdbHost(void);
+const char* TdbPort(void);
 const char* TdbName(void);
 
 int TdbSetup(void);
