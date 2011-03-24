@@ -36,6 +36,7 @@ The following must be specified for make check to run the unit tests
 --with-cunit=<dir>  Path to your CUNIT installation
 --with-dbname=      Name of test DB schema
 --with-dbhost=      Machine where test DB is hosted
+--with-dbport=      Port where test DB is hosted
 --with-dbpass=      Password for test DB access
 --with-dbuser=      Username for test DB access
 

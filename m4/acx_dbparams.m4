@@ -13,6 +13,12 @@ AC_DEFUN([ACX_DBPARAMS],[
 		DB_HOST="$withval"
 	)
 	AC_SUBST(DB_HOST)
+
+	AC_ARG_WITH(dbport,
+		[AS_HELP_STRING([--with-dbport=DB_PORT],[Database port for unit tests])],
+		DB_PORT="$withval"
+	)
+	AC_SUBST(DB_PORT)
 	
 	AC_ARG_WITH(dbuser,
 		[AS_HELP_STRING([--with-dbuser=DB_USER],[Database user for unit tests])],
