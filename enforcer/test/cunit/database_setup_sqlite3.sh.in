@@ -27,7 +27,7 @@ fi
 
 case $1 in
 	setup)
-		@SQLITE3@ $NAME < $srcdir/../../utils/database_create.sqlite3;
+		@SQLITE3@ $NAME < @srcdir@/../../utils/database_create.sqlite3;
 		@SQLITE3@ $NAME << EOF
 DROP TABLE IF EXISTS TEST_BASIC;
 CREATE TABLE TEST_BASIC (

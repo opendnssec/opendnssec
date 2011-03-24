@@ -51,7 +51,7 @@ fi
 
 case $1 in
 	setup)
-		@MYSQL@ $USERNAME $PASSWORD $HOST $PORT $NAME < $srcdir/../../utils/database_create.mysql;
+		@MYSQL@ $USERNAME $PASSWORD $HOST $PORT $NAME < @srcdir@/../../utils/database_create.mysql;
 		@MYSQL@ $USERNAME $PASSWORD $HOST $PORT $NAME << EOF
 DROP TABLE IF EXISTS TEST_BASIC;
 CREATE TABLE TEST_BASIC (
