@@ -213,7 +213,7 @@ unschedule_task(schedule_type* schedule, task_type* task)
     if (!schedule) {
         ods_log_error("[%s] unable to unschedule task: no schedule",
             schedule_str);
-        return task;
+        return NULL;
     }
     ods_log_assert(schedule);
     ods_log_assert(schedule->tasks);
@@ -228,8 +228,7 @@ unschedule_task(schedule_type* schedule, task_type* task)
         ods_log_warning("[%s] unable to unschedule task %s for zone %s: not "
             "scheduled", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
-        /* consider task to be unscheduled: it is not in the schedule anyway */
-        del_task = task;
+        return NULL;
     }
     if (del_task->flush) {
         del_task->flush = 0;
