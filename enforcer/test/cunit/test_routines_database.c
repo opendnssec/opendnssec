@@ -43,6 +43,7 @@
  * TdbUsername - Return database username
  * TdbPassword - Return database password
  * TdbHost - Return database host
+ * TdbPort - Return database port
  * TdbName - Return database name
  *
  * Description:
@@ -51,6 +52,7 @@
  * 			DB_USERNAME
  * 			DB_PASSWORD
  * 			DB_HOST
+ * 			DB_PORT
  * 			DB_NAME
  *
  * 		... and returns the value.
