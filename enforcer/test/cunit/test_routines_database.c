@@ -87,7 +87,10 @@ const char* TdbName(void)
 	return getenv("DB_NAME");
 }
 
-
+const char* TdbPort(void)
+{
+	return getenv("DB_PORT");
+}
 
 /*+
  * TdbSetup - Set Up Database
@@ -120,7 +123,7 @@ int TdbSetup(void)
 	DbInit();
 
 	status = DbConnect(&handle, TdbName(), TdbHost(), TdbPassword(),
-		TdbUsername());
+		TdbUsername(), TdbPort());
 
 	return status;
 }
