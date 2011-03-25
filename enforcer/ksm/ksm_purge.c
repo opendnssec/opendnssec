@@ -97,6 +97,7 @@ void KsmPurge(void)
     DdsFree(sql);
 
     DbFreeRow(row);
+    DbFreeResult(result);
     
     return;
 }

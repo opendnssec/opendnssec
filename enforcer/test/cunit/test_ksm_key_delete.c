@@ -91,6 +91,7 @@ static void TestKsmKeyDeleteRange(void)
 	DqsEnd(&sql);
     status = DbIntQuery(DbHandle(), &rowcount, sql);
 	CU_ASSERT_EQUAL(status, 0);
+	DqsFree(sql);
 
 	/* 6 expected because key 1 has 2 instances */
 	CU_ASSERT_EQUAL(rowcount, 6);
@@ -128,6 +129,7 @@ static void TestKsmKeyDeleteRange(void)
 	DqsEnd(&sql);
     status = DbIntQuery(DbHandle(), &rowcount, sql);
 	CU_ASSERT_EQUAL(status, 0);
+	DqsFree(sql);
 
 	/* 4 expected because key 1 has 2 instances */
 	CU_ASSERT_EQUAL(rowcount, 4);
@@ -182,6 +184,7 @@ static void TestKsmKeyDeleteRanges(void)
 	DqsConditionInt(&sql, "ID", DQS_COMPARE_LE, 15, where++);
 	DqsEnd(&sql);
     status = DbIntQuery(DbHandle(), &rowcount, sql);
+	DqsFree(sql);
 	CU_ASSERT_EQUAL(status, 0);
 
 	CU_ASSERT_EQUAL(rowcount, 4);
@@ -191,6 +194,7 @@ static void TestKsmKeyDeleteRanges(void)
 	DqsConditionInt(&sql, "ID", DQS_COMPARE_EQ, 11, where++);
 	DqsEnd(&sql);
     status = DbIntQuery(DbHandle(), &rowcount, sql);
+	DqsFree(sql);
 	CU_ASSERT_EQUAL(status, 0);
 
 	CU_ASSERT_EQUAL(rowcount, 1);

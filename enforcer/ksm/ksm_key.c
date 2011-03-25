@@ -172,6 +172,7 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, cons
 
     status = DbExecuteSqlNoResult(DbHandle(), sql);
     DisFree(sql);
+    StrFree(columns);
 
     if (status == 0) {
 

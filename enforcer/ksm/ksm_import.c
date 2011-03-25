@@ -388,6 +388,7 @@ int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, in
 
     status = DbExecuteSqlNoResult(DbHandle(), sql);
     DisFree(sql);
+    StrFree(columns);
 
     if (status == 0) {
 
