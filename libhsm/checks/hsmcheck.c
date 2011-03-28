@@ -42,7 +42,7 @@ char *progname = NULL;
 void
 usage ()
 {
-    fprintf(stderr, "usage: %s [-c config] [-gsd]\n", progname);
+    fprintf(stderr, "usage: %s [-c config] [-gsdr]\n", progname);
 }
 
 int
