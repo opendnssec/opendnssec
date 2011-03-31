@@ -25,7 +25,8 @@ Bugfixes:
 * Signer Engine: Backup state after writing output.
 * Signer Engine: Allow update of serial if internal structure is not
   initialized.
-
+* Signer Engine: NSEC chain could become broken if the predecessor domain of
+  a deleted domain was a glue domain.
 
 OpenDNSSEC 1.2.0 - 2011-01-13
 
