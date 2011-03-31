@@ -23,9 +23,10 @@ OpenDNSSEC 1.3.0b1 - 2011-03-23
   get peak performance from HSMs that can handle multiple threads.
 
 Bugfixes:
+* Bugreport #139: ods-auditor fails on root zone.
+* Bugreport #198: Zone updates ignored?
 * Replace tab with white-space when writing to syslog.
 * Signer Engine: Do not block update command while signing.
-* Bugreport #198: Zone updates ignored?
 * Signer Engine: NSEC chain could become broken if the predecessor domain
   of a deleted domain was a glue domain.
 
