@@ -10,6 +10,7 @@ Bugfixes:
 
 OpenDNSSEC 1.3.0b1 - 2011-03-23
 
+* Support for signing the root. Use the zone name "."
 * Enforcer: Stop import of policy if it is not consistent.
 * ods-signer: The queue command will now also show what tasks the workers
   are working on.
