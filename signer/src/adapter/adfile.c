@@ -84,8 +84,8 @@ adfile_read_line:
         new_ttl = *ttl;
     }
 
-    len = adfile_read_line(fd, line, l);
-    adfile_rtrim(line, &len);
+    len = adutil_readline_frm_file(fd, line, l);
+    adutil_rtrim_line(line, &len);
 
     if (len >= 0) {
         switch (line[0]) {
@@ -163,7 +163,7 @@ adfile_read_line:
             /* let's hope its a RR */
             default:
 adfile_read_rr:
-                if (adfile_whitespace_line(line, len)) {
+                if (adutil_whitespace_line(line, len)) {
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 }
@@ -185,7 +185,7 @@ adfile_read_rr:
                         adapter_str, l&&*l?*l:0,
                         ldns_get_errorstr_by_id(*status), line);
                     while (len >= 0) {
-                        len = adfile_read_line(fd, line, l);
+                        len = adutil_readline_frm_file(fd, line, l);
                     }
                     if (rr) {
                         ldns_rr_free(rr);
@@ -325,7 +325,7 @@ adfile_read(struct zone_struct* zone, const char* filename)
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
         /* serial */
-        rr = adfile_lookup_soa_rr(fd);
+        rr = adutil_lookup_soa_rr(fd);
         if (rr) {
             new_serial =
                 ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));

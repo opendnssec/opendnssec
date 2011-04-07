@@ -46,7 +46,7 @@ static const char* adapter_str = "adapter";
  *
  */
 ldns_rr*
-adfile_lookup_soa_rr(FILE* fd)
+adutil_lookup_soa_rr(FILE* fd)
 {
     ldns_rr *cur_rr = NULL;
     char line[SE_ADFILE_MAXLINE];
@@ -55,8 +55,8 @@ adfile_lookup_soa_rr(FILE* fd)
     unsigned int l = 0;
 
     while (line_len >= 0) {
-        line_len = adfile_read_line(fd, (char*) line, &l);
-        adfile_rtrim(line, &line_len);
+        line_len = adutil_readline_frm_file(fd, (char*) line, &l);
+        adutil_rtrim_line(line, &line_len);
 
         if (line_len > 0) {
             if (line[0] != ';') {
@@ -81,7 +81,7 @@ adfile_lookup_soa_rr(FILE* fd)
  *
  */
 int
-adfile_read_line(FILE* fd, char* line, unsigned int* l)
+adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l)
 {
     int i = 0;
     int li = 0;
@@ -190,7 +190,7 @@ adfile_read_line(FILE* fd, char* line, unsigned int* l)
  *
  */
 void
-adfile_rtrim(char* line, int* line_len)
+adutil_rtrim_line(char* line, int* line_len)
 {
     int i = strlen(line), nl = 0;
     int trimmed = 0;
@@ -220,7 +220,7 @@ adfile_rtrim(char* line, int* line_len)
  *
  */
 int
-adfile_whitespace_line(char* line, int line_len)
+adutil_whitespace_line(char* line, int line_len)
 {
     int i;
     for (i = 0; i < line_len; i++) {

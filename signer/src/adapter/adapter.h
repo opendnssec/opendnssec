@@ -45,20 +45,16 @@ struct zone_struct;
 /** Adapter mode. */
 enum adapter_mode_enum
 {
-    ADAPTER_FILE = 1,
-    ADAPTER_MYSQL
+    ADAPTER_FILE = 1
 };
 typedef enum adapter_mode_enum adapter_mode;
 
 /** Adapter mode specific. */
-/*
 union adapter_data_union
 {
-    adfile_type* file;
-    admysql_type* mysql;
+    void* file;
 };
 typedef union adapter_data_union adapter_data;
-*/
 
 /**
  * Adapter.
@@ -70,26 +66,22 @@ struct adapter_struct {
     adapter_mode type;
     int inbound;
     allocator_type* allocator;
-/*
     adapter_data* data;
-*/
 };
 
 /**
  * Initialize adapter.
- * \param[in] str configuration string
- * \param[in] type type of adapter
- * \param[in] inbound inbound or not (outbound)
+ * \param[in] adapter adapter
  * /return ods_status stats
  *
  */
-ods_status adapter_init(const char* str, adapter_mode type, int inbound);
+ods_status adapter_init(adapter_type* adapter);
 
 /**
  * Create new adapter.
  * \param[in] str configuration string
  * \param[in] type type of adapter
- * \param[in] inbound inbound or not (outbound)
+ * \param[in] inbound inbound or not (thus outbound)
  * \return adapter_type* created adapter
  *
  */

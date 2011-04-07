@@ -49,16 +49,15 @@ static const char* adapter_str = "adapter";
  *
  */
 ods_status
-adapter_init(const char* str, adapter_mode type, int inbound)
+adapter_init(adapter_type* adapter)
 {
-    switch(type) {
+    ods_log_assert(adapter);
+    ods_log_assert(adapter->type);
+    ods_log_assert(adapter->configstr);
+
+    switch(adapter->type) {
         case ADAPTER_FILE:
             return adfile_init();
-            break;
-        case ADAPTER_MYSQL:
-            ods_log_error("[%s] unable to initialize MySQL adapter: "
-                "notimpl yet", adapter_str);
-            return ODS_STATUS_ERR;
             break;
         default:
             ods_log_error("[%s] unable to initialize adapter: "
@@ -102,9 +101,7 @@ adapter_create(const char* str, adapter_mode type, int inbound)
     adapter->configstr = allocator_strdup(allocator, str);
     adapter->type = type;
     adapter->inbound = inbound;
-/*
     adapter->data = allocator_alloc(allocator, sizeof(adapter_data));
-*/
     return adapter;
 }
 
@@ -130,15 +127,10 @@ adapter_read(struct zone_struct* zone)
 
     switch(adzone->adinbound->type) {
         case ADAPTER_FILE:
-            ods_log_verbose("[%s] read zone %s from input file %s",
+            ods_log_verbose("[%s] read zone %s from file input adapter %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
             status = adfile_read(zone, adzone->adinbound->configstr);
             return status;
-            break;
-        case ADAPTER_MYSQL:
-            ods_log_error("[%s] unable to read zone %s from adapter: MySQL "
-                "adapter notimpl yet", adapter_str, adzone->name);
-            return ODS_STATUS_ERR;
             break;
         default:
             ods_log_error("[%s] unable to read zone %s from adapter: unknown "
@@ -179,16 +171,12 @@ adapter_write(struct zone_struct* zone)
 
     switch(adzone->adoutbound->type) {
         case ADAPTER_FILE:
-            ods_log_verbose("[%s] write zone %s serial %u to output file %s",
-                adapter_str, adzone->name, adzone->zonedata->outbound_serial,
+            ods_log_verbose("[%s] write zone %s serial %u to output file "
+                "adapter %s", adapter_str, adzone->name,
+                adzone->zonedata->outbound_serial,
                 adzone->adinbound->configstr);
             status = adfile_write(zone, adzone->adoutbound->configstr);
             return status;
-            break;
-        case ADAPTER_MYSQL:
-            ods_log_error("[%s] unable to write zone %s to adapter: MySQL "
-                "adapter notimpl yet", adapter_str, adzone->name);
-            return ODS_STATUS_ERR;
             break;
         default:
             ods_log_error("[%s] unable to write zone %s to adapter: unknown "
@@ -240,6 +228,7 @@ adapter_cleanup(adapter_type* adapter)
     }
     allocator = adapter->allocator;
     allocator_deallocate(allocator, (void*) adapter->configstr);
+    allocator_deallocate(allocator, (void*) adapter->data);
     allocator_deallocate(allocator, (void*) adapter);
     allocator_cleanup(allocator);
     return;

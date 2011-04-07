@@ -31,6 +31,9 @@
  * Adapter utilities.
  */
 
+#ifndef ADAPTER_ADUTIL_H
+#define ADAPTER_ADUTIL_H
+
 #include "config.h"
 
 #include <stdio.h>
@@ -40,21 +43,21 @@
 
 /**
  * Lookup SOA RR.
- * \param[in] fd file descriptor of zonefile
+ * \param[in] fd file descriptor
  * \return ldns_rr* SOA RR
  *
  */
-ldns_rr* adfile_lookup_soa_rr(FILE* fd);
+ldns_rr* adutil_lookup_soa_rr(FILE* fd);
 
 /**
- * Read one line from zonefile.
+ * Read one line from file.
  * \param[in] fd file descriptor of zonefile
  * \param[out] line the one line
  * \param[out] l keeps track of line numbers
  * \return int number of characters read
  *
  */
-int adfile_read_line(FILE* fd, char* line, unsigned int* l);
+int adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l);
 
 /*
  * Trim trailing whitespace.
@@ -62,7 +65,7 @@ int adfile_read_line(FILE* fd, char* line, unsigned int* l);
  * \param[out] line_len maintain line length
  *
  */
-void adfile_rtrim(char* line, int* line_len);
+void adutil_rtrim_line(char* line, int* line_len);
 
 /**
  * Check for white space.
@@ -70,5 +73,6 @@ void adfile_rtrim(char* line, int* line_len);
  * \param[in] line_len line length
  *
  */
-int adfile_whitespace_line(char* line, int line_len);
+int adutil_whitespace_line(char* line, int line_len);
 
+#endif /* ADAPTER_ADUTIL_H */
