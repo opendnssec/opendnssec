@@ -121,7 +121,7 @@ start = element Configuration {
 		# System command to call after a zone has been (re)signed
 		#
 		# '%zone' in the string will be replaced by the zone name
-		# '%znefile' in the string will be replaced by the zone file
+		# '%zonefile' in the string will be replaced by the zone file
 		element NotifyCommand { xsd:string }?
 	}?,
 
