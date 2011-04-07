@@ -538,6 +538,29 @@ stop_zonefetcher(engine_type* engine)
 
 
 /**
+ * Initialize adapters.
+ *
+ */
+static ods_status
+engine_init_adapters(engine_type* engine)
+{
+    size_t i = 0;
+    ods_status status = ODS_STATUS_OK;
+
+    ods_log_assert(engine);
+    ods_log_assert(engine->config);
+    ods_log_debug("[%s] initialize adapters", engine_str);
+    for (i=0; i < (size_t) engine->config->num_adapters; i++) {
+        status = adapter_init(engine->config->adapters[i]);
+        if (status != ODS_STATUS_OK) {
+            return status;
+        }
+    }
+    return status;
+}
+
+
+/**
  * Set up engine.
  *
  */
@@ -546,6 +569,7 @@ engine_setup(engine_type* engine)
 {
     struct sigaction action;
     int result = 0;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_debug("[%s] signer setup", engine_str);
     if (!engine || !engine->config) {
@@ -565,6 +589,13 @@ engine_setup(engine_type* engine)
     if (start_zonefetcher(engine) != 0) {
         ods_log_error("[%s] cannot start zonefetcher", engine_str);
         return ODS_STATUS_ERR;
+    }
+
+    /* initialize adapters */
+    status = engine_init_adapters(engine);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] initializing adapters failed", engine_str);
+        return status;
     }
 
     /* privdrop */

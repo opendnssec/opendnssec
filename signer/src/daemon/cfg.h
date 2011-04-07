@@ -35,6 +35,7 @@
 #define DAEMON_CONFIG_H
 
 #include "config.h"
+#include "adapter/adapter.h"
 #include "shared/allocator.h"
 #include "shared/locks.h"
 #include "shared/status.h"
@@ -48,6 +49,7 @@
 typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
     allocator_type* allocator;
+    adapter_type** adapters;
     const char* cfg_filename;
     const char* zonelist_filename;
     const char* zonefetch_filename;
@@ -60,6 +62,7 @@ struct engineconfig_struct {
     const char* group;
     const char* chroot;
     int use_syslog;
+    int num_adapters;
     int num_worker_threads;
     int num_signer_threads;
     int verbosity;
