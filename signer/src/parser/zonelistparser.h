@@ -34,10 +34,24 @@
 #ifndef PARSER_ZONELISTPARSER_H
 #define PARSER_ZONELISTPARSER_H
 
+#include "adapter/adapter.h"
 #include "shared/allocator.h"
 #include "shared/status.h"
 
+#include <libxml/xpath.h>
+#include <libxml/xmlreader.h>
+
 struct zonelist_struct;
+
+/**
+ * Parse adapter.
+ * \param[in] xpathCtx XPath Context Pointer
+ * \param[in] expr expression
+ * \param[in] inbound true if Input Adapter
+ *
+ */
+adapter_type* parse_zonelist_adapter(xmlXPathContextPtr xpathCtx,
+    xmlChar* expr, int inbound);
 
 /**
  * Parse the zonelist file.

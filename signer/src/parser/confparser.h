@@ -35,8 +35,11 @@
 #define PARSER_CONFPARSER_H
 
 #include "config.h"
+#include "adapter/adapter.h"
 #include "shared/allocator.h"
 #include "shared/status.h"
+
+#define ADMAX 6 /* Maximum number of adapters that can be initialized */
 
 /**
  * Check config file with rng file.
@@ -57,6 +60,17 @@ ods_status parse_file_check(const char* cfgfile, const char* rngfile);
  */
 const char* parse_conf_string(const char* cfgfile, const char* expr,
     int required);
+
+/**
+ * Parse the adapters.
+ * \param[in] allocator the allocator
+ * \param[in] cfgfile the configuration file name
+ * \param[out] count number of adapters encountered
+ * \return adapter_type** bunch of adapters that need to be initialized.
+ *
+ */
+adapter_type** parse_conf_adapters(allocator_type* allocator,
+    const char* cfgfile, int* count);
 
 /**
  * Parse elements from the configuration file.

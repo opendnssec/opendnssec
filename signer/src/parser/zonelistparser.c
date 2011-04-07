@@ -73,39 +73,33 @@ parse_zonelist_element(xmlXPathContextPtr xpathCtx, xmlChar* expr)
 
 
 /**
- * MySQL adapter.
- *
- */
-
-
-/**
- * File adapter.
+ * Create adapter from configuration.
  *
  */
 static adapter_type*
-parse_zonelist_adapter_file(xmlNode* curNode, int inbound)
+zlp_adapter(xmlNode* curNode, adapter_mode type, int inbound)
 {
     const char* file = NULL;
     adapter_type* adapter = NULL;
 
     file = (const char*) xmlNodeGetContent(curNode);
     if (!file) {
-        ods_log_error("[%s] unable to read %s file adapter", parser_str,
+        ods_log_error("[%s] unable to read %s adapter", parser_str,
             inbound?"input":"output");
         return NULL;
     }
 
-    adapter = adapter_create(file, ADAPTER_FILE, inbound);
+    adapter = adapter_create(file, type, inbound);
     free((void*)file);
     return adapter;
 }
 
 
 /**
- * Parse the adapters.
+ * Parse adapter.
  *
  */
-static adapter_type*
+adapter_type*
 parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
     int inbound)
 {
@@ -130,7 +124,7 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
                 if (xmlStrEqual(curNode->name, (const xmlChar*)"File")) {
-                    adapter = parse_zonelist_adapter_file(curNode, inbound);
+                    adapter = zlp_adapter(curNode, ADAPTER_FILE, inbound);
                 }
                 if (adapter) {
                     break;
@@ -145,7 +139,7 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
 
 
 /**
- * Get the next zone from the zonelist file.
+ * Parse the adapters.
  *
  */
 static void
@@ -214,8 +208,8 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
             zone_name = (char*) xmlTextReaderGetAttribute(reader,
                 name_expr);
             if (!zone_name || strlen(zone_name) <= 0) {
-                ods_log_error("[%s] unable to extract zone name from zonelist",
-                    parser_str);
+                ods_log_error("[%s] unable to extract zone name from "
+                    "zonelist", parser_str);
                 if (zone_name) {
                     free((void*) zone_name);
                 }
@@ -239,7 +233,7 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
                 continue;
             }
 
-            /* That worked, now read out the contents */
+            /* That worked, now read out the contents... */
             new_zone = zone_create(zone_name, LDNS_RR_CLASS_IN);
             new_zone->policy_name = parse_zonelist_element(xpathCtx,
                 policy_expr);
@@ -247,7 +241,7 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
                 signconf_expr);
             parse_zonelist_adapters(xpathCtx, new_zone);
 
-            /* and add it to the list */
+            /* ...and add it to the list */
             if (zonelist_add_zone((zonelist_type*) zlist, new_zone) == NULL) {
                 ods_log_error("[%s] unable to add zone %s", parser_str,
                     zone_name);
