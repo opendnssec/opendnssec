@@ -9,7 +9,7 @@ Bugfixes:
 * Bugfix #221: Segmentation Fault on schedule.c:232
 * Enforcer: 'make check' now works.
 * Enforcer: Fixed some memory leaks in the tests.
-
+* Signer Engine: Coverity report fixes some leaks and thread issues.
 
 OpenDNSSEC 1.3.0b1 - 2011-03-23
 
