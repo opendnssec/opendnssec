@@ -66,20 +66,6 @@ struct zonelist_struct {
 zonelist_type* zonelist_create(allocator_type* allocator);
 
 /**
- * Lock all zones in zone list.
- * \param[in] zonelist zone list
- *
- */
-void zonelist_lock(zonelist_type* zonelist);
-
-/**
- * Unlock all zones in zone list.
- * \param[in] zonelist zone list
- *
- */
-void zonelist_unlock(zonelist_type* zonelist);
-
-/**
  * Lookup zone by name and class.
  * \param[in] zl zone list
  * \param[in] name zone name

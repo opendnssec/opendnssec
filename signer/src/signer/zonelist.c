@@ -127,62 +127,6 @@ zonelist_read(zonelist_type* zl, const char* zlfile)
 
 
 /**
- * Lock all zones in zone list.
- *
- */
-void
-zonelist_lock(zonelist_type* zonelist)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    zone_type* zone = NULL;
-
-    if (!zonelist || !zonelist->zones) {
-        return;
-    }
-    ods_log_assert(zonelist);
-    ods_log_assert(zonelist->zones);
-    ods_log_debug("[%s] lock all zones", zl_str);
-
-    node = ldns_rbtree_first(zonelist->zones);
-    while (node && node != LDNS_RBTREE_NULL) {
-        zone = (zone_type*) node->data;
-        lock_basic_lock(&zone->zone_lock);
-        node = ldns_rbtree_next(node);
-    }
-    ods_log_debug("[%s] all zones locked", zl_str);
-    return;
-}
-
-
-/**
- * Lock all zones in zone list.
- *
- */
-void
-zonelist_unlock(zonelist_type* zonelist)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    zone_type* zone = NULL;
-
-    if (!zonelist || !zonelist->zones) {
-        return;
-    }
-    ods_log_assert(zonelist);
-    ods_log_assert(zonelist->zones);
-    ods_log_debug("[%s] unlock all zones", zl_str);
-
-    node = ldns_rbtree_first(zonelist->zones);
-    while (node && node != LDNS_RBTREE_NULL) {
-        zone = (zone_type*) node->data;
-        lock_basic_unlock(&zone->zone_lock);
-        node = ldns_rbtree_next(node);
-    }
-    ods_log_debug("[%s] all zones unlocked", zl_str);
-    return;
-}
-
-
-/**
  * Convert a zone to a tree node.
  *
  */
