@@ -769,6 +769,7 @@ zone_recover(zone_type* zone)
     /* keys part */
     key_type* key = NULL;
     /* zonedata part */
+    int fetch = 0;
 
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
@@ -893,6 +894,7 @@ zone_recover(zone_type* zone)
         }
 
         zone->klass = (ldns_rr_class) klass;
+        zone->zonedata->default_ttl = ttl;
         zone->zonedata->inbound_serial = inbound;
         zone->zonedata->internal_serial = internal;
         zone->zonedata->outbound_serial = outbound;
@@ -906,7 +908,8 @@ zone_recover(zone_type* zone)
         }
         if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
             nsec3params = nsec3params_create(zone->signconf->nsec3_algo,
-                zone->signconf->nsec3_optout, zone->signconf->nsec3_iterations,
+                zone->signconf->nsec3_optout,
+                zone->signconf->nsec3_iterations,
                 zone->signconf->nsec3_salt);
             if (!nsec3params) {
                 goto recover_error;
@@ -956,7 +959,42 @@ zone_recover(zone_type* zone)
             lock_basic_unlock(&zone->stats->stats_lock);
         }
         return ODS_STATUS_OK;
+    } else {
+        /* backwards compatible backup recovery (serial) */
+        filename = ods_build_path(zone->name, ".state", 0);
+        fd = ods_fopen(filename, NULL, "r");
+        free((void*)filename);
+        if (fd) {
+            if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V1) ||
+                !backup_read_check_str(fd, ";name:") ||
+                !backup_read_check_str(fd, zone->name) ||
+                !backup_read_check_str(fd, ";class:") ||
+                !backup_read_int(fd, &klass) ||
+                !backup_read_check_str(fd, ";fetch:") ||
+                !backup_read_int(fd, &fetch) ||
+                !backup_read_check_str(fd, ";default_ttl:") ||
+                !backup_read_uint32_t(fd, &ttl) ||
+                !backup_read_check_str(fd, ";inbound_serial:") ||
+                !backup_read_uint32_t(fd, &inbound) ||
+                !backup_read_check_str(fd, ";internal_serial:") ||
+                !backup_read_uint32_t(fd, &internal) ||
+                !backup_read_check_str(fd, ";outbound_serial:") ||
+                !backup_read_uint32_t(fd, &outbound) ||
+                !backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V1))
+            {
+                goto recover_error;
+            }
+            zone->klass = (ldns_rr_class) klass;
+            zone->zonedata->default_ttl = ttl;
+            zone->zonedata->inbound_serial = inbound;
+            zone->zonedata->internal_serial = internal;
+            zone->zonedata->outbound_serial = outbound;
+            /* all ok */
+            zone->zonedata->initialized = 1;
+        }
+        ods_fclose(fd);
     }
+
     return ODS_STATUS_UNCHANGED;
 
 recover_error:
