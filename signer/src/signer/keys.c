@@ -409,14 +409,16 @@ keylist_backup(FILE* fd, keylist_type* kl)
 {
     key_type* walk = NULL;
 
-    if (fd && kl) {
-        walk = kl->first_key;
-        while (walk) {
-            key_backup(fd, walk);
-            walk = walk->next;
+    if (fd) {
+        if (kl) {
+            walk = kl->first_key;
+            while (walk) {
+                key_backup(fd, walk);
+                walk = walk->next;
+            }
         }
+        fprintf(fd, ";;\n");
     }
-    fprintf(fd, ";;\n");
     return;
 }
 

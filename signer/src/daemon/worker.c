@@ -74,6 +74,9 @@ worker_create(allocator_type* allocator, int num, worker_id type)
     }
 
     ods_log_debug("create worker[%i]", num +1);
+    lock_basic_init(&worker->worker_lock);
+    lock_basic_set(&worker->worker_alarm);
+    lock_basic_lock(&worker->worker_lock);
     worker->allocator = allocator;
     worker->thread_num = num +1;
     worker->engine = NULL;
@@ -87,8 +90,7 @@ worker_create(allocator_type* allocator, int num, worker_id type)
     worker->jobs_failed = 0;
     worker->sleeping = 0;
     worker->waiting = 0;
-    lock_basic_init(&worker->worker_lock);
-    lock_basic_set(&worker->worker_alarm);
+    lock_basic_unlock(&worker->worker_lock);
     return worker;
 }
 

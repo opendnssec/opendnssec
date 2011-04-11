@@ -135,6 +135,7 @@ ods_build_path(const char* file, const char* suffix, int dir)
             openf = (char*) malloc(sizeof(char)*(len_total + 1));
             if (!openf) {
                 ods_log_crit("[%s] build path failed: malloc failed", file_str);
+                return NULL;
             }
 
             strncpy(openf, file, len_file);

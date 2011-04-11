@@ -143,13 +143,15 @@ adfile_read_line:
                         return NULL;
                     }
                     if (s != ODS_STATUS_OK) {
-                        *status = s;
+                        *status = LDNS_STATUS_SYNTAX_ERR;
                         ods_log_error("[%s] error in include file %s",
                             adapter_str, (line+offset));
                         return NULL;
                     }
                     /* restore current ttl */
-                    *ttl = new_ttl;
+                    if (ttl) {
+                        *ttl = new_ttl;
+                    }
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 }

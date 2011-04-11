@@ -654,7 +654,7 @@ zonedata_del_denial_fixup(ldns_rbtree_t* tree, denial_type* denial)
                     "point: failed to wipe out NSEC RRset", zd_str);
                 return denial;
             }
-            rrset_commit(denial->rrset);
+            status = rrset_commit(denial->rrset);
             if (status != ODS_STATUS_OK) {
                 ods_log_alert("[%s] unable to del denial of existence data "
                     "point: failed to commit NSEC RRset", zd_str);

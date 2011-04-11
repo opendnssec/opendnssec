@@ -100,7 +100,7 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
     void* pop = NULL;
     size_t i = 0;
 
-    if (!q || !q->blob) {
+    if (!q) {
         return NULL;
     }
     if (q->count <= 0) {

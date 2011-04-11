@@ -177,6 +177,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             } else if (ret < 0) {
                 fprintf(stderr, "write error: %s\n", strerror(errno));
             }
+
+            buf[ODS_SE_MAXLINE-1] = '\0';
             if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
                 fprintf(stderr, "\n");
                 return;
@@ -216,6 +218,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 FD_CLR(fileno(fp), &rset);
                 continue;
             }
+
+            buf[ODS_SE_MAXLINE-1] = '\0';
             if (strncmp(buf, "exit", 4) == 0 ||
                 strncmp(buf, "quit", 4) == 0) {
                 return;

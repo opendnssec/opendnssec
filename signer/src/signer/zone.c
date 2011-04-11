@@ -692,6 +692,8 @@ zone_backup(zone_type* zone)
 
     filename = ods_build_path(zone->name, ".backup", 0);
     fd = ods_fopen(filename, NULL, "w");
+    free((void*)filename);
+
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
         /** Backup zone */
@@ -729,7 +731,6 @@ zone_backup(zone_type* zone)
     } else {
         return ODS_STATUS_FOPEN_ERR;
     }
-    free((void*)filename);
     return ODS_STATUS_OK;
 }
 
@@ -950,7 +951,9 @@ zone_recover(zone_type* zone)
         /* all ok */
         zone->zonedata->initialized = 1;
         if (zone->stats) {
+            lock_basic_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
+            lock_basic_unlock(&zone->stats->stats_lock);
         }
         return ODS_STATUS_OK;
     }
@@ -986,7 +989,9 @@ recover_error:
     ods_log_assert(zone->zonedata);
 
     if (zone->stats) {
-        stats_clear(zone->stats);
+       lock_basic_lock(&zone->stats->stats_lock);
+       stats_clear(zone->stats);
+       lock_basic_unlock(&zone->stats->stats_lock);
     }
     return ODS_STATUS_ERR;
 }

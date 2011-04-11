@@ -250,6 +250,7 @@ rrset_count_rr(rrset_type* rrset, int which)
         default:
             return rrset->rr_count;
     }
+    /* not reached */
     return rrset->rr_count;
 }
 

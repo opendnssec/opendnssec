@@ -956,6 +956,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
                 ods_log_crit("[%s] unable to create thread for client: "
                     "malloc failed", cmdh_str);
                 cmdhandler->need_to_exit = 1;
+                break;
             }
             cmdc->listen_fd = cmdhandler->listen_fd;
             cmdc->client_fd = connfd;

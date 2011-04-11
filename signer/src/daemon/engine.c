@@ -98,9 +98,11 @@ engine_create(void)
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
 
-    engine->signal = SIGNAL_INIT;
     lock_basic_init(&engine->signal_lock);
     lock_basic_set(&engine->signal_cond);
+    lock_basic_lock(&engine->signal_lock);
+    engine->signal = SIGNAL_INIT;
+    lock_basic_unlock(&engine->signal_lock);
 
     engine->zonelist = zonelist_create(engine->allocator);
     if (!engine->zonelist) {
@@ -832,6 +834,7 @@ engine_update_zones(engine_type* engine)
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
+        task = NULL; /* reset task */
 
         if (zone->tobe_removed) {
             node = ldns_rbtree_next(node);

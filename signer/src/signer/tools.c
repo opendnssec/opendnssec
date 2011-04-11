@@ -256,6 +256,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] audit zone %s failed: unable to write zone",
                 tools_str, zone->name?zone->name:"(null)");
+            free((void*)inbound);
             free((void*)finalized);
             return status;
         }
