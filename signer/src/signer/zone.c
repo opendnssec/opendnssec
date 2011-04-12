@@ -996,7 +996,7 @@ zone_recover(zone_type* zone)
                 stats_clear(zone->stats);
                 lock_basic_unlock(&zone->stats->stats_lock);
             }
-            return ODS_STATUS_OK;
+            return ODS_STATUS_UNCHANGED;
         }
         ods_fclose(fd);
     }
