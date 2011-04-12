@@ -1,0 +1,34 @@
+import "google/protobuf/descriptor.proto";
+
+// Extended meta-data on a protocol buffer message field.
+// The 'xml' meta-data option when set on a field is merged into 
+// the generated C++ code and can be accessed by the xml import code.
+// The 'xml' option is a field option that allows specifying 2 aspects:
+// 1. The xml path from which this field is imported 
+// 2. A specific xml type when the xml data is not text that can be automatically converted.
+
+extend google.protobuf.FieldOptions {
+	optional xmloption xml = 50000;
+}
+
+message xmloption {
+	// Relative xml path w.r.t. parent element where this field is stored in 
+	// xml e.g. element "Validity/From" or attribute "Algorithm/@saltlength"
+	required string path = 1; 
+
+	// Conversions to specific field types are done from text 
+	// automatically unless explicit xml type is given.
+	optional xmltype type = 2 [default = text];
+}
+
+enum xmltype {
+	// The xml data does not have an explicit type. 
+	// The text will be interpreted when it is assigned to a message field
+	text = 1;
+	
+	// ISO 8601 Data elements and interchange formats — Information interchange — Representation of dates and times
+	// The textual representation of the duration e.g. 'PT2H' will be converted to a time_t value that can 
+	// then be assigned to numeric fields i.e. int32,int64,uint32,uint64,double,float etc. Trying to assign it 
+	// to a string,bool,enum or message field is not allowed and will report an error.
+	duration = 2;
+}

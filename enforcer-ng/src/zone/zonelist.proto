@@ -1,0 +1,19 @@
+package zonelist.pb;
+
+import "xmlext.proto";
+
+message ZoneListDocument {
+	required ZoneList zonelist = 1 [(xml).path="ZoneList"]; // root element in zonelist.xml config file
+}
+
+message ZoneList {
+	repeated ZoneData zones = 1 [(xml).path="Zone"];
+}
+
+message ZoneData {
+	required string name = 1 [(xml).path="@name"];
+	optional string policy = 2 [(xml).path="Policy", default="default"];
+	optional string signerconfiguration = 3 [(xml).path="SignerConfiguration"];
+	optional string inputfile = 4 [(xml).path="Adapters/Input/File"];
+	optional string outputfile = 5 [(xml).path="Adapters/Output/File"];
+}

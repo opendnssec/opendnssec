@@ -1,0 +1,48 @@
+// This proto file is used to define the key state data that needs 
+// to be persisted for the enforcer 
+
+package keystate.pb;
+
+import "xmlext.proto";
+
+message KeyStateDocument {
+    repeated EnforcerZone zones = 1;
+}
+
+message EnforcerZone {
+    required string name = 1;
+    required string policy = 2;
+    repeated KeyData keys = 3;
+    required bool signConfNeedsWriting = 4;
+    required string signConfPath = 5;
+} 
+
+message KeyData {
+    required string locator = 1;
+    required int32 algorithm = 2;
+    required int32 inception = 3;
+    required KeyState ds = 4;
+    required KeyState rrsig = 5;
+    required KeyState dnskey = 6;
+    required keyrole role = 7;
+    optional bool dsseen = 8;
+    optional bool submitToParent = 9;
+
+    optional bool introducing = 10;
+    optional bool revoke = 11;
+    optional bool standby = 12;
+
+    optional bool _deleted = 100;
+}
+
+message KeyState {
+    required int32 state = 1;
+    required int32 lastChange = 2;
+    optional bool minimize = 3;
+}
+
+enum keyrole {
+    KSK = 1;
+    ZSK = 2;
+    CSK = 3;
+}

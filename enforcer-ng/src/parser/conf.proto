@@ -1,0 +1,51 @@
+package kasp.pb;
+
+import "xmlext.proto";
+
+message ConfDocument {
+	required Configuration conf = 1 [(xml).path="Configuration"]; // root element in conf.xml config file
+}
+
+message Configuration {
+	optional Common common = 1 [(xml).path="Common"]; // This is the configuration that is shared among the components of OpenDNSSEC
+	optional Enforcer enforcer = 2 [(xml).path="Enforcer"]; // Parameters relating to enforcer operation read from the overall configuration conf.xml
+}
+
+message Common {
+	optional facility syslog = 1 [(xml).path="Logging/Syslog/Facility"]; // The only syslog() feature configurable is the facility name under which messages are logged
+	optional string policyFile = 2 [(xml).path="PolicyFile"];
+	optional string zoneListFile = 3 [(xml).path="ZoneListFile"];
+	optional string zoneFetchFile = 4 [(xml).path="ZoneFetchFile"];
+}
+	
+enum facility {
+	local0 = 1;
+	local1 = 2;
+	local2 = 3;
+	local3 = 4;
+	local4 = 5;
+	local5 = 6;
+	local6 = 7;
+	local7 = 8;
+}
+
+message Enforcer {
+	optional int32 interval = 1 [(xml).path="Interval", (xml).type=duration]; // run interval
+	optional int32 keygeninterval = 2  [(xml).path="KeygenInterval", (xml).type=duration]; // interval between key generation runs
+	optional int32 backupdelay = 3  [(xml).path="BackupDelay", (xml).type=duration]; //how old must a new key be before it can be assumed to have been backed up
+	optional int32 keycreate = 4; // policy for key creation 0=fill the hsm, 1=only generate minimum needed
+	optional Datastore datastore = 5 [(xml).path="Datastore"]; 
+}
+
+message Datastore {
+	optional string sqlite = 1 [(xml).path="SQLite"];
+	optional MySQL mysql = 2 [(xml).path="MySQL"];
+}
+
+message MySQL {
+	required string host = 1 [(xml).path="Host"];
+	optional int32 hostport = 2 [(xml).path="Host/@port", default=3306];
+	optional string database = 3  [(xml).path="Database", default="KASP"];
+	required string username = 4  [(xml).path="Username"];
+	required string password = 5  [(xml).path="Password"];
+}

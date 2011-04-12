@@ -1,0 +1,367 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+/**
+ * OpenDNSSEC enforcer engine client.
+ *
+ */
+
+#include "config.h"
+#include "shared/allocator.h"
+#include "shared/file.h"
+#include "shared/log.h"
+#include "shared/str.h"
+
+#include <errno.h>
+#include <fcntl.h> /* fcntl() */
+#include <stdio.h> /* fprintf() */
+#include <string.h> /* strerror(), strncmp(), strlen(), strcpy(), strncat() */
+#include <strings.h> /* bzero() */
+#include <sys/select.h> /* select(), FD_ZERO(), FD_SET(), FD_ISSET(), FD_CLR() */
+#include <sys/socket.h> /* socket(), connect(), shutdown() */
+#include <sys/un.h>
+#include <unistd.h> /* exit(), read(), write() */
+
+/* According to earlier standards, we need sys/time.h, sys/types.h, unistd.h for select() */
+#include <sys/types.h>
+#include <sys/time.h>
+
+#define SE_CLI_CMDLEN 6
+
+static const char* cli_str = "client";
+
+/**
+ * Prints usage.
+ *
+ */
+static void
+usage(FILE* out)
+{
+    fprintf(out, "Usage: %s [<cmd>]\n", "ods-enforcer");
+    fprintf(out, "Simple command line interface to control the enforcer "
+                 "engine daemon.\nIf no cmd is given, the tool is going "
+                 "to interactive mode.\n");
+    fprintf(out, "\nBSD licensed, see LICENSE in source package for "
+                 "details.\n");
+    fprintf(out, "Version %s. Report bugs to <%s>.\n",
+        PACKAGE_VERSION, PACKAGE_BUGREPORT);
+}
+
+
+/**
+ * Return largest value.
+ *
+ */
+static int
+max(int a, int b)
+{
+    return a<b ? b : a;
+}
+
+
+/**
+ * Interface.
+ *
+ */
+static void
+interface_run(FILE* fp, int sockfd, char* cmd)
+{
+    int maxfdp1 = 0;
+    int stdineof = 0;
+    int i = 0;
+    int n = 0;
+    int ret = 0;
+    int cmd_written = 0;
+    int cmd_response = 0;
+    fd_set rset;
+    char buf[ODS_SE_MAXLINE];
+
+    stdineof = 0;
+    FD_ZERO(&rset);
+    for(;;) {
+        /* prepare */
+        if (stdineof == 0) {
+            FD_SET(fileno(fp), &rset);
+        }
+        FD_SET(sockfd, &rset);
+        maxfdp1 = max(fileno(fp), sockfd) + 1;
+
+        if (!cmd || cmd_written) {
+            /* interactive mode */
+            ret = select(maxfdp1, &rset, NULL, NULL, NULL);
+            if (ret < 0) {
+                if (errno != EINTR && errno != EWOULDBLOCK) {
+                    ods_log_warning("[%s] interface select error: %s",
+                        cli_str, strerror(errno));
+                }
+                continue;
+            }
+        } else if (cmd) {
+            /* passive mode */
+            ods_writen(sockfd, cmd, strlen(cmd));
+            cmd_written = 1;
+            stdineof = 1;
+            continue;
+        }
+
+        if (cmd && cmd_written && cmd_response) {
+            /* normal termination */
+            return;
+        }
+
+        if (FD_ISSET(sockfd, &rset)) {
+            /* clear buffer */
+            for (i=0; i < ODS_SE_MAXLINE; i++) {
+                buf[i] = 0;
+            }
+            buf[ODS_SE_MAXLINE-1] = '\0';
+
+            /* socket is readable */
+            if ((n = read(sockfd, buf, ODS_SE_MAXLINE)) <= 0) {
+                if (n < 0) {
+                    /* error occurred */
+                    fprintf(stderr, "error: %s\n", strerror(errno));
+                    exit(1);
+                } else if (stdineof == 1) {
+                    /* normal termination */
+                    return;
+                } else {
+                    /* weird termination */
+                    fprintf(stderr, "enforcer engine terminated "
+                        "prematurely\n");
+                    exit(1);
+                }
+            }
+
+            if (cmd && strncmp(buf+n-SE_CLI_CMDLEN, "\ncmd> ",
+                SE_CLI_CMDLEN) == 0) {
+                /* we have the full response */
+                if (n > SE_CLI_CMDLEN) {
+                    ret = (int) write(fileno(stdout), buf, n-SE_CLI_CMDLEN);
+                }
+                buf[(n-SE_CLI_CMDLEN)] = '\0';
+                cmd_response = 1;
+                ret = 1;
+            } else {
+                /* we can expect more */
+                ret = (int) write(fileno(stdout), buf, n);
+            }
+
+            /* error and shutdown handling */
+            if (ret == 0) {
+                fprintf(stderr, "no write\n");
+            } else if (ret < 0) {
+                fprintf(stderr, "write error: %s\n", strerror(errno));
+            }
+            if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
+                fprintf(stderr, "\n");
+                return;
+            }
+        }
+
+        if (FD_ISSET(fileno(fp), &rset)) {
+            /* input is readable */
+
+            if (cmd && cmd_written) {
+                /* passive mode */
+                stdineof = 1;
+                ret = shutdown(sockfd, SHUT_WR);
+                if (ret != 0) {
+                    fprintf(stderr, "shutdown failed: %s\n",
+                        strerror(errno));
+                    exit(1);
+                }
+                FD_CLR(fileno(fp), &rset);
+                continue;
+            }
+
+            /* clear buffer */
+            for (i=0; i< ODS_SE_MAXLINE; i++) {
+                buf[i] = 0;
+            }
+
+            /* interactive mode */
+            if ((n = read(fileno(fp), buf, ODS_SE_MAXLINE)) == 0) {
+                stdineof = 1;
+                ret = shutdown(sockfd, SHUT_WR);
+                if (ret != 0) {
+                    fprintf(stderr, "shutdown failed: %s\n",
+                        strerror(errno));
+                    exit(1);
+                }
+                FD_CLR(fileno(fp), &rset);
+                continue;
+            }
+            if (strncmp(buf, "exit", 4) == 0 ||
+                strncmp(buf, "quit", 4) == 0) {
+                return;
+            }
+            ods_str_trim(buf);
+            n = strlen(buf);
+            ods_writen(sockfd, buf, n);
+        }
+    }
+}
+
+
+/**
+ * Start interface
+ *
+ */
+static void
+interface_start(char* cmd)
+{
+    int sockfd, ret, flags;
+    struct sockaddr_un servaddr;
+    const char* servsock_filename = OPENDNSSEC_ENFORCER_SOCKETFILE;
+
+    /* new socket */
+    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sockfd <= 0) {
+        fprintf(stderr, "Unable to connect to engine. "
+            "socket() failed: %s\n", strerror(errno));
+        exit(1);
+    }
+
+    /* no suprises */
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sun_family = AF_UNIX;
+    strncpy(servaddr.sun_path, servsock_filename,
+        sizeof(servaddr.sun_path) - 1);
+
+    /* connect */
+    ret = connect(sockfd, (const struct sockaddr*) &servaddr,
+        sizeof(servaddr));
+    if (ret != 0) {
+        if (cmd && ods_strcmp(cmd, "start\n") == 0) {
+            ret = system(ODS_SE_ENGINE);
+            return;
+        }
+
+        if (cmd && ods_strcmp(cmd, "running\n") == 0) {
+            fprintf(stderr, "Engine not running.\n");
+        } else {
+            fprintf(stderr, "Unable to connect to engine: "
+                "connect() failed: %s\n", strerror(errno));
+        }
+
+        close(sockfd);
+        exit(1);
+    }
+
+    /* set socket to non-blocking */
+    flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags < 0) {
+        ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
+            "failed: %s", cli_str, strerror(errno));
+        close(sockfd);
+        return;
+    }
+    flags |= O_NONBLOCK;
+    if (fcntl(sockfd, F_SETFL, flags) < 0) {
+        ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
+            "failed: %s", cli_str, strerror(errno));
+        close(sockfd);
+        return;
+    }
+
+    /* set stdin to non-blocking */
+    flags = fcntl(fileno(stdin), F_GETFL, 0);
+    if (flags < 0) {
+        ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
+            "failed: %s", cli_str, strerror(errno));
+        close(sockfd);
+        return;
+    }
+    flags |= O_NONBLOCK;
+    if (fcntl(fileno(stdin), F_SETFL, flags) < 0) {
+        ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
+            "failed: %s", cli_str, strerror(errno));
+        close(sockfd);
+        return;
+    }
+
+    /* some sort of interface */
+    if (!cmd) {
+        fprintf(stderr, "cmd> ");
+    }
+
+    /* run */
+    ods_log_init(NULL, 0, 0);
+    interface_run(stdin, sockfd, cmd);
+    close(sockfd);
+    return;
+}
+
+
+/**
+ * Main. start interface tool.
+ *
+ */
+int
+main(int argc, char* argv[])
+{
+    int c;
+    int options_size = 0;
+    char* cmd = NULL;
+    allocator_type* clialloc = allocator_create(malloc, free);
+    if (!clialloc) {
+        fprintf(stderr,"error, malloc failed for client\n");
+        exit(1);
+    }
+
+	/*	argv[0] is always the executable name so 
+		argc is always 1 or higher */
+	ods_log_assert(argc >= 1);
+	
+	/*	concat arguments an add 1 extra char for 
+		adding '\n' char later on, but only when argc > 1 */
+    cmd = ods_str_join(clialloc,argc-1,&argv[1],' ');
+
+    if (argc > 1 && !cmd) {
+        fprintf(stderr, "memory allocation failed\n");
+        exit(1);
+    }
+
+    /* main stuff */
+    if (!cmd) {
+        interface_start(cmd);
+    } else {
+        if (ods_strcmp(cmd, "-h") == 0 || ods_strcmp(cmd, "--help") == 0) {
+            usage(stdout);
+        } else {
+            strcat(cmd,"\n");
+            interface_start(cmd);
+        }
+    }
+
+    /* done */
+    allocator_deallocate(clialloc, (void*) cmd);
+    allocator_cleanup(clialloc);
+    return 0;
+}

@@ -1,0 +1,3 @@
+#!/bin/bash
+PB_DIR=../../../protobuf
+$PB_DIR/bin/protoc -I=$PB_DIR/include -I=../xmlext-pb -I=. --cpp_out=. signconf.proto
