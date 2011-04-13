@@ -146,43 +146,46 @@ ods_log_close(void)
 int
 ods_log_get_facility(const char* facility)
 {
+    int length;
+
     if (!facility) {
         return LOG_DAEMON;
     }
+    length = strlen(facility);
 
-    if (strncasecmp(facility, "KERN", 4) && strlen(facility) == 4)
+    if (length == 4 && strncasecmp(facility, "KERN", 4) == 0)
         return LOG_KERN;
-    else if (strncasecmp(facility, "USER", 4) && strlen(facility) == 4)
+    else if (length == 4 && strncasecmp(facility, "USER", 4) == 0)
         return LOG_USER;
-    else if (strncasecmp(facility, "MAIL", 4) && strlen(facility) == 4)
+    else if (length == 4 && strncasecmp(facility, "MAIL", 4) == 0)
         return LOG_MAIL;
-    else if (strncasecmp(facility, "DAEMON", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "DAEMON", 6) == 0)
         return LOG_DAEMON;
-    else if (strncasecmp(facility, "AUTH", 4) && strlen(facility) == 4)
+    else if (length == 4 && strncasecmp(facility, "AUTH", 4) == 0)
         return LOG_AUTH;
-    else if (strncasecmp(facility, "LPR", 3) && strlen(facility) == 3)
+    else if (length == 3 && strncasecmp(facility, "LPR", 3) == 0)
         return LOG_LPR;
-    else if (strncasecmp(facility, "NEWS", 4) && strlen(facility) == 4)
+    else if (length == 4 && strncasecmp(facility, "NEWS", 4) == 0)
         return LOG_NEWS;
-    else if (strncasecmp(facility, "UUCP", 4) && strlen(facility) == 4)
+    else if (length == 4 && strncasecmp(facility, "UUCP", 4) == 0)
         return LOG_UUCP;
-    else if (strncasecmp(facility, "CRON", 4) && strlen(facility) == 4)
+    else if (length == 4 && strncasecmp(facility, "CRON", 4) == 0)
         return LOG_CRON;
-    else if (strncasecmp(facility, "LOCAL0", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "LOCAL0", 6) == 0)
         return LOG_LOCAL0;
-    else if (strncasecmp(facility, "LOCAL1", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "LOCAL1", 6) == 0)
         return LOG_LOCAL1;
-    else if (strncasecmp(facility, "LOCAL2", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "LOCAL2", 6) == 0)
         return LOG_LOCAL2;
-    else if (strncasecmp(facility, "LOCAL3", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "LOCAL3", 6) == 0)
         return LOG_LOCAL3;
-    else if (strncasecmp(facility, "LOCAL4", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "LOCAL4", 6) == 0)
         return LOG_LOCAL4;
-    else if (strncasecmp(facility, "LOCAL5", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "LOCAL5", 6) == 0)
         return LOG_LOCAL5;
-    else if (strncasecmp(facility, "LOCAL6", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "LOCAL6", 6) == 0)
         return LOG_LOCAL6;
-    else if (strncasecmp(facility, "LOCAL7", 6) && strlen(facility) == 6)
+    else if (length == 6 && strncasecmp(facility, "LOCAL7", 6) == 0)
         return LOG_LOCAL7;
     ods_log_warning("[%s] syslog facility %s not supported, logging to "
                    "log_daemon", log_str, facility);
