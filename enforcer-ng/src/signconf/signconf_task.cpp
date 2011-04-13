@@ -13,7 +13,7 @@ extern "C" {
 #include "signconf/signconf.pb.h"
 #include "policy/kasp.pb.h"
 #include "keystate/keystate.pb.h"
-
+#include "xmlext-pb/xmlext-wr.h"
 
 
 
@@ -21,12 +21,7 @@ static const char *signconf_task_str = "signconf_task";
 
 void WriteSignConf(const std::string &path, ::signconf::pb::SignerConfigurationDocument *doc)
 {
-    int fd = open(path.c_str(),O_WRONLY|O_CREAT, 0644);
- 
-    // TODO: recursively go through the signer configuration and write an XML file.
-    
-
-    close(fd);
+    write_pb_message_to_xml_file(doc,path.c_str());
 }
 
 /*
@@ -203,8 +198,8 @@ perform_signconf(int sockfd, engineconfig_type *config)
             sc_key->set_locator( ks_key.locator() );
             sc_key->set_ksk( ks_key.role() ==  ::keystate::pb::KSK || ks_key.role() ==  ::keystate::pb::CSK );
             sc_key->set_zsk( ks_key.role() ==  ::keystate::pb::ZSK || ks_key.role() ==  ::keystate::pb::CSK );
-            sc_key->set_publish( !ks_key.revoke() ); //TODO: is this correct ?
-            sc_key->set_deactivate( false ); //TODO: where do I get this from ?
+            sc_key->set_publish( ks_key.published() );
+            sc_key->set_deactivate( !ks_key.active() );
         }
         
         const ::kasp::pb::Zone &kp_zone = policy->zone();

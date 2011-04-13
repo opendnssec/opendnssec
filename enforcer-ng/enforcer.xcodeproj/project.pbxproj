@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A70EA75F13549A1D00D929CC /* xmlext-wr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A70EA75E13549A1D00D929CC /* xmlext-wr.cpp */; };
 		A73185BB1314F41C007DB701 /* cfg.c in Sources */ = {isa = PBXBuildFile; fileRef = A73184FF13144EE1007DB701 /* cfg.c */; };
 		A73185BC1314F41D007DB701 /* cmdhandler.c in Sources */ = {isa = PBXBuildFile; fileRef = A731850113144EE1007DB701 /* cmdhandler.c */; };
 		A73185C21314F42B007DB701 /* worker.c in Sources */ = {isa = PBXBuildFile; fileRef = A731850713144EE1007DB701 /* worker.c */; };
@@ -57,6 +58,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A70EA75D13549A0400D929CC /* xmlext-wr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "xmlext-wr.h"; sourceTree = "<group>"; };
+		A70EA75E13549A1D00D929CC /* xmlext-wr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "xmlext-wr.cpp"; sourceTree = "<group>"; };
 		A72FF6A9134335D400B85C40 /* enforcerdata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforcerdata.h; sourceTree = "<group>"; };
 		A73184AC13144EE1007DB701 /* AUTHORS */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AUTHORS; sourceTree = "<group>"; };
 		A73184BD13144EE1007DB701 /* Changelog */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Changelog; sourceTree = "<group>"; };
@@ -308,6 +311,8 @@
 			isa = PBXGroup;
 			children = (
 				A772F49213323E5E004179E8 /* xmlext.proto */,
+				A70EA75D13549A0400D929CC /* xmlext-wr.h */,
+				A70EA75E13549A1D00D929CC /* xmlext-wr.cpp */,
 				A772F49C13324716004179E8 /* xmlext.h */,
 				A772F49D13324716004179E8 /* xmlext.cpp */,
 				A772F49013323E5E004179E8 /* xmlext.pb.h */,
@@ -501,6 +506,7 @@
 				A74EB44013524ED9001F9E1B /* keystate.pb.cc in Sources */,
 				A7ACCD0D1352E0730003E535 /* enforcerzone.cpp in Sources */,
 				A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */,
+				A70EA75F13549A1D00D929CC /* xmlext-wr.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -527,16 +533,12 @@
 				ARCHS = "$(ONLY_ACTIVE_ARCH_PRE_XCODE_3_1)";
 				COPY_PHASE_STRIP = NO;
 				HEADER_SEARCH_PATHS = (
+					/usr/include/libxml2,
+					../libhsm/src,
 					../common,
 					src,
-					../libhsm/src,
-					/usr/include/libxml2,
-					../protobuf/include,
 				);
-				LIBRARY_SEARCH_PATHS = (
-					../libhsm/src,
-					../protobuf/lib,
-				);
+				LIBRARY_SEARCH_PATHS = ../libhsm/src;
 				ONLY_ACTIVE_ARCH_PRE_XCODE_3_1 = "$(NATIVE_ARCH_ACTUAL)";
 				OTHER_LDFLAGS = (
 					"-lxml2",
@@ -554,19 +556,17 @@
 				ARCHS_STANDARD_32_64_BIT_PRE_XCODE_3_1 = "x86_64 i386 ppc";
 				COPY_PHASE_STRIP = YES;
 				HEADER_SEARCH_PATHS = (
+					/usr/include/libxml2,
+					../libhsm/src,
 					../common,
 					src,
-					../libhsm/src,
-					/usr/include/libxml2,
-					../protobuf/include,
 				);
-				LIBRARY_SEARCH_PATHS = (
-					../libhsm/src,
-					../protobuf/lib,
-				);
+				LIBRARY_SEARCH_PATHS = ../libhsm/src;
 				OTHER_LDFLAGS = (
 					"-lxml2",
 					"-lldns",
+					"-lhsm",
+					"-lprotobuf",
 				);
 			};
 			name = Release;
@@ -596,7 +596,7 @@
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = /usr/local/bin;
 				PREBINDING = NO;
-				PRODUCT_NAME = Untitled;
+				PRODUCT_NAME = enforcerd;
 				ZERO_LINK = NO;
 			};
 			name = Release;
