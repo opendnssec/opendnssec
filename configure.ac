@@ -21,6 +21,7 @@ AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
+AC_PROG_CXX
 
 # additional programs
 AC_PATH_PROG(XMLLINT, xmllint)
@@ -167,6 +168,15 @@ AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_signer}" = "yes"])
 # cunit
 AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])
 
+# enforcer-ng
+AC_ARG_ENABLE(enforcerng,
+	AC_HELP_STRING([--disable-enforcerng],
+		[Disable enforcerng build (default enabled)]),
+		[enable_enforcerng="${enableval}"],
+		[enable_enforcerng="yes"])
+AM_CONDITIONAL([ENABLE_ENFORCERNG], [test "${enable_enforcerng}" = "yes"])
+ACX_PROTOBUF
+
 # signer
 AC_ARG_ENABLE(signer,
 	AC_HELP_STRING([--disable-signer],
@@ -197,13 +207,6 @@ AH_BOTTOM([
 	#    define _ALL_SOURCE 1
 	#  endif
 	#endif
-
-	#define ODS_SE_MAXLINE 1024
-	#define ODS_SE_SIGNERTHREADS 1
-	#define ODS_SE_WORKERTHREADS 8
-	#define ODS_SE_STOP_RESPONSE "Engine shut down."
-	#define ODS_SE_FILE_MAGIC ";ODSSE1"
-	#define ODS_SE_MAX_BACKOFF 3600
 ])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
@@ -289,6 +292,11 @@ AC_CONFIG_FILES([
 	signer/man/Makefile
 	signer/man/ods-signer.8
 	signer/man/ods-signerd.8
+	enforcer-ng/Makefile
+	enforcer-ng/src/Makefile
+	enforcer-ng/man/Makefile
+	enforcer-ng/man/ods-enforcer.8
+	enforcer-ng/man/ods-enforcerd.8
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile

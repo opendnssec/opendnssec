@@ -10,7 +10,8 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/../../libhsm/src \
 	-I$(builddir)/../../libhsm/src \
 	@XML2_INCLUDES@ \
-	@LDNS_INCLUDES@
+	@LDNS_INCLUDES@ \
+	@PROTOBUF_INCLUDES@
 
 enforcerdir =     @libdir@/opendnssec/enforcer
 
@@ -60,7 +61,7 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.cpp
 
 ods_enforcerd_LDADD=		$(LIBHSM)
-ods_enforcerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@
+ods_enforcerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @PROTOBUF_LIBS@
 
 ods_enforcer_SOURCES=		ods-enforcer.c \
 				shared/allocator.c shared/allocator.h \

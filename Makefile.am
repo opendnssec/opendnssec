@@ -17,6 +17,10 @@ if ENABLE_SIGNER
 SUBDIRS += signer
 endif
 
+if ENABLE_ENFORCERNG
+SUBDIRS += enforcer-ng
+endif
+
 if ENABLE_AUDITOR
 SUBDIRS += auditor
 endif
@@ -42,6 +46,7 @@ install-data-hook:
 docs:
 	(cd libhsm; $(MAKE) doxygen)
 	(cd enforcer; $(MAKE) doxygen)
+	(cd enforcer-ng; $(MAKE) doxygen)
 	(cd signer; $(MAKE) doxygen)
 if ENABLE_AUDITOR
 	(cd auditor; $(MAKE) rdoc)
