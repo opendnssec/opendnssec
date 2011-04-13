@@ -95,7 +95,25 @@ start = element Configuration {
 
 		# Command to use for submitting new DS records to a parent -
 		# the command should accept DNSKEY RRsets via STDIN
-		element DelegationSignerSubmitCommand { xsd:string }?
+		element DelegationSignerSubmitCommand { xsd:string }?,
+		
+		# File used to detect enforcerd is already running.
+		element PidFile { xsd:string }?,
+
+		# Socket to use for communicating between enforcer and enforcerd
+		element SocketFile { xsd:string }?,
+
+		# Location to store intermediate enforcer information
+		# DEFAULT: $(localstatedir)/opendnssec/tmp
+		element WorkingDirectory { xsd:string }?,
+
+		# Number of Worker Threads
+		# DEFAULT: 4
+		element WorkerThreads { xsd:positiveInteger }?,
+        
+		# Number of Threads performing operations involving Security Modules.
+		# DEFAULT: 1
+		element SecurityModuleThreads { xsd:positiveInteger }?
 	},
 
 	# Configuration parameters for the Signer
@@ -144,7 +162,10 @@ privs = element Privileges {
 	element User { xsd:string }?,
 
 	# DEFAULT: do not drop privs
-	element Group { xsd:string }?
+	element Group { xsd:string }?,
+	
+	# chroot directory to use
+	element Directory {xsd:string }?
 }
 
 mysql = element MySQL {
