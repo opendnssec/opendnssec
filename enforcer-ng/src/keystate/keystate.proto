@@ -32,12 +32,15 @@ message KeyData {
     optional bool revoke = 11;
     optional bool standby = 12;
 
+    optional bool active = 13;
+    optional bool published = 14;
+
     optional bool _deleted = 100;
 }
 
 message KeyState {
     required int32 state = 1;
-    required int32 lastChange = 2;
+    optional int32 lastChange = 2;
     optional bool minimize = 3;
 }
 

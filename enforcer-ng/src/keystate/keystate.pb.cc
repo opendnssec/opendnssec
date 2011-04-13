@@ -72,7 +72,7 @@ void protobuf_AssignDesc_keystate_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(EnforcerZone));
   KeyData_descriptor_ = file->message_type(2);
-  static const int KeyData_offsets_[13] = {
+  static const int KeyData_offsets_[15] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, locator_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, algorithm_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, inception_),
@@ -85,6 +85,8 @@ void protobuf_AssignDesc_keystate_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, introducing_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, revoke_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, standby_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, active_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, published_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, _deleted_),
   };
   KeyData_reflection_ =
@@ -165,17 +167,18 @@ void protobuf_AddDesc_keystate_2eproto() {
     "ne\022\014\n\004name\030\001 \002(\t\022\016\n\006policy\030\002 \002(\t\022\"\n\004keys"
     "\030\003 \003(\0132\024.keystate.pb.KeyData\022\034\n\024signConf"
     "NeedsWriting\030\004 \002(\010\022\024\n\014signConfPath\030\005 \002(\t"
-    "\"\304\002\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\talgorit"
+    "\"\347\002\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\talgorit"
     "hm\030\002 \002(\005\022\021\n\tinception\030\003 \002(\005\022!\n\002ds\030\004 \002(\0132"
     "\025.keystate.pb.KeyState\022$\n\005rrsig\030\005 \002(\0132\025."
     "keystate.pb.KeyState\022%\n\006dnskey\030\006 \002(\0132\025.k"
     "eystate.pb.KeyState\022\"\n\004role\030\007 \002(\0162\024.keys"
     "tate.pb.keyrole\022\016\n\006dsseen\030\010 \001(\010\022\026\n\016submi"
     "tToParent\030\t \001(\010\022\023\n\013introducing\030\n \001(\010\022\016\n\006"
-    "revoke\030\013 \001(\010\022\017\n\007standby\030\014 \001(\010\022\020\n\010_delete"
-    "d\030d \001(\010\"?\n\010KeyState\022\r\n\005state\030\001 \002(\005\022\022\n\nla"
-    "stChange\030\002 \002(\005\022\020\n\010minimize\030\003 \001(\010*$\n\007keyr"
-    "ole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n\003CSK\020\003", 670);
+    "revoke\030\013 \001(\010\022\017\n\007standby\030\014 \001(\010\022\016\n\006active\030"
+    "\r \001(\010\022\021\n\tpublished\030\016 \001(\010\022\020\n\010_deleted\030d \001"
+    "(\010\"?\n\010KeyState\022\r\n\005state\030\001 \002(\005\022\022\n\nlastCha"
+    "nge\030\002 \001(\005\022\020\n\010minimize\030\003 \001(\010*$\n\007keyrole\022\007"
+    "\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n\003CSK\020\003", 705);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "keystate.proto", &protobuf_RegisterTypes);
   KeyStateDocument::default_instance_ = new KeyStateDocument();
@@ -843,6 +846,8 @@ const int KeyData::kSubmitToParentFieldNumber;
 const int KeyData::kIntroducingFieldNumber;
 const int KeyData::kRevokeFieldNumber;
 const int KeyData::kStandbyFieldNumber;
+const int KeyData::kActiveFieldNumber;
+const int KeyData::kPublishedFieldNumber;
 const int KeyData::kDeletedFieldNumber;
 #endif  // !_MSC_VER
 
@@ -875,6 +880,8 @@ void KeyData::SharedCtor() {
   introducing_ = false;
   revoke_ = false;
   standby_ = false;
+  active_ = false;
+  published_ = false;
   _deleted_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -935,6 +942,8 @@ void KeyData::Clear() {
     introducing_ = false;
     revoke_ = false;
     standby_ = false;
+    active_ = false;
+    published_ = false;
     _deleted_ = false;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -1113,6 +1122,34 @@ bool KeyData::MergePartialFromCodedStream(
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
               input, &standby_));
         _set_bit(11);
+        if (input->ExpectTag(104)) goto parse_active;
+        break;
+      }
+      
+      // optional bool active = 13;
+      case 13: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          goto handle_uninterpreted;
+        }
+       parse_active:
+        DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
+              input, &active_));
+        _set_bit(12);
+        if (input->ExpectTag(112)) goto parse_published;
+        break;
+      }
+      
+      // optional bool published = 14;
+      case 14: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          goto handle_uninterpreted;
+        }
+       parse_published:
+        DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
+              input, &published_));
+        _set_bit(13);
         if (input->ExpectTag(800)) goto parse__deleted;
         break;
       }
@@ -1126,7 +1163,7 @@ bool KeyData::MergePartialFromCodedStream(
        parse__deleted:
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
               input, &_deleted_));
-        _set_bit(12);
+        _set_bit(14);
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -1223,8 +1260,18 @@ void KeyData::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteBool(12, this->standby(), output);
   }
   
-  // optional bool _deleted = 100;
+  // optional bool active = 13;
   if (_has_bit(12)) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(13, this->active(), output);
+  }
+  
+  // optional bool published = 14;
+  if (_has_bit(13)) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(14, this->published(), output);
+  }
+  
+  // optional bool _deleted = 100;
+  if (_has_bit(14)) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(100, this->_deleted(), output);
   }
   
@@ -1308,8 +1355,18 @@ void KeyData::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(12, this->standby(), target);
   }
   
-  // optional bool _deleted = 100;
+  // optional bool active = 13;
   if (_has_bit(12)) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(13, this->active(), target);
+  }
+  
+  // optional bool published = 14;
+  if (_has_bit(13)) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(14, this->published(), target);
+  }
+  
+  // optional bool _deleted = 100;
+  if (_has_bit(14)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(100, this->_deleted(), target);
   }
   
@@ -1399,6 +1456,16 @@ int KeyData::ByteSize() const {
       total_size += 1 + 1;
     }
     
+    // optional bool active = 13;
+    if (has_active()) {
+      total_size += 1 + 1;
+    }
+    
+    // optional bool published = 14;
+    if (has_published()) {
+      total_size += 1 + 1;
+    }
+    
     // optional bool _deleted = 100;
     if (has__deleted()) {
       total_size += 2 + 1;
@@ -1468,6 +1535,12 @@ void KeyData::MergeFrom(const KeyData& from) {
       set_standby(from.standby());
     }
     if (from._has_bit(12)) {
+      set_active(from.active());
+    }
+    if (from._has_bit(13)) {
+      set_published(from.published());
+    }
+    if (from._has_bit(14)) {
       set__deleted(from._deleted());
     }
   }
@@ -1515,6 +1588,8 @@ void KeyData::Swap(KeyData* other) {
     std::swap(introducing_, other->introducing_);
     std::swap(revoke_, other->revoke_);
     std::swap(standby_, other->standby_);
+    std::swap(active_, other->active_);
+    std::swap(published_, other->published_);
     std::swap(_deleted_, other->_deleted_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
@@ -1612,7 +1687,7 @@ bool KeyState::MergePartialFromCodedStream(
         break;
       }
       
-      // required int32 lastChange = 2;
+      // optional int32 lastChange = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1669,7 +1744,7 @@ void KeyState::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->state(), output);
   }
   
-  // required int32 lastChange = 2;
+  // optional int32 lastChange = 2;
   if (_has_bit(1)) {
     ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->lastchange(), output);
   }
@@ -1692,7 +1767,7 @@ void KeyState::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->state(), target);
   }
   
-  // required int32 lastChange = 2;
+  // optional int32 lastChange = 2;
   if (_has_bit(1)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->lastchange(), target);
   }
@@ -1720,7 +1795,7 @@ int KeyState::ByteSize() const {
           this->state());
     }
     
-    // required int32 lastChange = 2;
+    // optional int32 lastChange = 2;
     if (has_lastchange()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::Int32Size(
@@ -1783,7 +1858,7 @@ void KeyState::CopyFrom(const KeyState& from) {
 }
 
 bool KeyState::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
   
   return true;
 }

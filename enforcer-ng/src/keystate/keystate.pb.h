@@ -422,6 +422,20 @@ class KeyData : public ::google::protobuf::Message {
   inline bool standby() const;
   inline void set_standby(bool value);
   
+  // optional bool active = 13;
+  inline bool has_active() const;
+  inline void clear_active();
+  static const int kActiveFieldNumber = 13;
+  inline bool active() const;
+  inline void set_active(bool value);
+  
+  // optional bool published = 14;
+  inline bool has_published() const;
+  inline void clear_published();
+  static const int kPublishedFieldNumber = 14;
+  inline bool published() const;
+  inline void set_published(bool value);
+  
   // optional bool _deleted = 100;
   inline bool has__deleted() const;
   inline void clear__deleted();
@@ -446,12 +460,14 @@ class KeyData : public ::google::protobuf::Message {
   bool introducing_;
   bool revoke_;
   bool standby_;
+  bool active_;
+  bool published_;
   bool _deleted_;
   friend void  protobuf_AddDesc_keystate_2eproto();
   friend void protobuf_AssignDesc_keystate_2eproto();
   friend void protobuf_ShutdownFile_keystate_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(13 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(15 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -529,7 +545,7 @@ class KeyState : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 state() const;
   inline void set_state(::google::protobuf::int32 value);
   
-  // required int32 lastChange = 2;
+  // optional int32 lastChange = 2;
   inline bool has_lastchange() const;
   inline void clear_lastchange();
   static const int kLastChangeFieldNumber = 2;
@@ -1002,19 +1018,51 @@ inline void KeyData::set_standby(bool value) {
   standby_ = value;
 }
 
+// optional bool active = 13;
+inline bool KeyData::has_active() const {
+  return _has_bit(12);
+}
+inline void KeyData::clear_active() {
+  active_ = false;
+  _clear_bit(12);
+}
+inline bool KeyData::active() const {
+  return active_;
+}
+inline void KeyData::set_active(bool value) {
+  _set_bit(12);
+  active_ = value;
+}
+
+// optional bool published = 14;
+inline bool KeyData::has_published() const {
+  return _has_bit(13);
+}
+inline void KeyData::clear_published() {
+  published_ = false;
+  _clear_bit(13);
+}
+inline bool KeyData::published() const {
+  return published_;
+}
+inline void KeyData::set_published(bool value) {
+  _set_bit(13);
+  published_ = value;
+}
+
 // optional bool _deleted = 100;
 inline bool KeyData::has__deleted() const {
-  return _has_bit(12);
+  return _has_bit(14);
 }
 inline void KeyData::clear__deleted() {
   _deleted_ = false;
-  _clear_bit(12);
+  _clear_bit(14);
 }
 inline bool KeyData::_deleted() const {
   return _deleted_;
 }
 inline void KeyData::set__deleted(bool value) {
-  _set_bit(12);
+  _set_bit(14);
   _deleted_ = value;
 }
 
@@ -1038,7 +1086,7 @@ inline void KeyState::set_state(::google::protobuf::int32 value) {
   state_ = value;
 }
 
-// required int32 lastChange = 2;
+// optional int32 lastChange = 2;
 inline bool KeyState::has_lastchange() const {
   return _has_bit(1);
 }
