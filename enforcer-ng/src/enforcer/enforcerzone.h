@@ -30,12 +30,12 @@ class KeyDataPB : public KeyData {
 private:
     ::keystate::pb::KeyData *_keydata;
     
-    KeyStatePB *_keyStateDS;
-    KeyStatePB *_keyStateRRSIG;
-    KeyStatePB *_keyStateDNSKEY;
+    KeyStatePB _keyStateDS;
+    KeyStatePB _keyStateRRSIG;
+    KeyStatePB _keyStateDNSKEY;
 public:
     KeyDataPB( ::keystate::pb::KeyData *keydata );
-    ~KeyDataPB();
+
     bool deleted();
     void setDeleted(bool value);
     
@@ -76,6 +76,7 @@ private:
     ::keystate::pb::EnforcerZone *_zone;
 public:
     KeyDataListPB( ::keystate::pb::EnforcerZone *zone);
+
     virtual KeyData &addNewKey();
     virtual int numKeys();
     virtual KeyData &key(int index);
@@ -87,10 +88,9 @@ private:
     ::keystate::pb::EnforcerZone *_zone;
     const kasp::pb::Policy *_policy;
 
-    KeyDataListPB *_keyDataList;
+    KeyDataListPB _keyDataList;
 public:
     EnforcerZonePB(::keystate::pb::EnforcerZone *zone, const kasp::pb::Policy *policy);
-    ~EnforcerZonePB();
 
     /* Get access to the policy for associated with this zone */
     virtual const std::string &name();

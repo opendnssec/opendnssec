@@ -41,18 +41,11 @@ bool KeyStatePB::minimize()
 //////////////////////////////
 
 KeyDataPB::KeyDataPB( ::keystate::pb::KeyData *keydata )
-: _keydata(keydata)
+:   _keydata(keydata),
+    _keyStateDS( _keydata->mutable_ds() ),
+    _keyStateRRSIG( _keydata->mutable_rrsig() ),
+    _keyStateDNSKEY( _keydata->mutable_dnskey() )
 {
-    _keyStateDS = new KeyStatePB( _keydata->mutable_ds() );
-    _keyStateRRSIG = new KeyStatePB( _keydata->mutable_rrsig() );
-    _keyStateDNSKEY = new KeyStatePB( _keydata->mutable_dnskey() );
-}
-
-KeyDataPB::~KeyDataPB()
-{
-    delete _keyStateDS;
-    delete _keyStateRRSIG;
-    delete _keyStateDNSKEY;
 }
 
 bool KeyDataPB::deleted()
@@ -97,17 +90,17 @@ void KeyDataPB::setInception(int value)
 
 KeyState &KeyDataPB::keyStateDS()
 {
-    return *_keyStateDS;
+    return _keyStateDS;
 }
 
 KeyState &KeyDataPB::keyStateRRSIG()
 {
-    return *_keyStateRRSIG;
+    return _keyStateRRSIG;
 }
 
 KeyState &KeyDataPB::keyStateDNSKEY()
 {
-    return *_keyStateDNSKEY;
+    return _keyStateDNSKEY;
 }
 
 KeyRole KeyDataPB::keyRole()
@@ -197,14 +190,8 @@ void KeyDataListPB::delKey(int index)
 
 EnforcerZonePB::EnforcerZonePB(::keystate::pb::EnforcerZone *zone, 
                                      const kasp::pb::Policy *policy) 
-: _zone(zone), _policy(policy)
+: _zone(zone), _policy(policy), _keyDataList(_zone)
 {
-    _keyDataList = new KeyDataListPB(_zone);
-}
-
-EnforcerZonePB::~EnforcerZonePB()
-{
-    delete _keyDataList;
 }
 
 const std::string &EnforcerZonePB::name()
@@ -219,7 +206,7 @@ const kasp::pb::Policy *EnforcerZonePB::policy()
 
 KeyDataList &EnforcerZonePB::keyDataList()
 {
-    return *_keyDataList;
+    return _keyDataList;
 }
 
 bool EnforcerZonePB::signerConfNeedsWriting()
