@@ -10,10 +10,10 @@ extern "C" {
 #include <google/protobuf/message.h>
 
 #include "xmlext-pb/xmlext.h"
+#include "xmlext-pb/xmlext-wr.h"
 #include "signconf/signconf.pb.h"
 #include "policy/kasp.pb.h"
 #include "keystate/keystate.pb.h"
-#include "xmlext-pb/xmlext-wr.h"
 
 
 

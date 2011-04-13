@@ -9,6 +9,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/common \
 	-I$(srcdir)/../../libhsm/src \
 	-I$(builddir)/../../libhsm/src \
+    -I$(srcdir)/xmlext-pb \
 	@XML2_INCLUDES@ \
 	@LDNS_INCLUDES@ \
 	@PROTOBUF_INCLUDES@
@@ -42,6 +43,7 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				shared/keys.c shared/keys.h \
 				xmlext-pb/xmlext.pb.cc xmlext-pb/xmlext.pb.h \
 				xmlext-pb/xmlext.cpp xmlext-pb/xmlext.h \
+				xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \
 				policy/kasp.pb.cc policy/kasp.pb.h \
 				policy/policies_cmd.cpp policy/policies_cmd.h \
 				policy/policies_task.cpp policy/policies_task.h \
@@ -51,14 +53,14 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				zone/zonelist.pb.cc zone/zonelist.pb.h \
 				keystate/keystate.pb.cc keystate/keystate.pb.h \
 				signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
-				signconf/singconf_task.cpp signconf/signconf_task.h \
+				signconf/signconf_task.cpp signconf/signconf_task.h \
 				signconf/signconf.pb.cc signconf/signconf.pb.h \
 				enforcer/enforcerdata.h \
 				enforcer/enforce_cmd.cpp enforcer/enforce_cmd.h \
 				enforcer/enforce_task.cpp enforcer/enforce_task.h \
 				enforcer/enforcer.cpp enforcer/enforcer.h \
-				enforcer/enforcezone.cpp enforcer/enforcezone.h \
-				enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.cpp
+				enforcer/enforcerzone.cpp enforcer/enforcerzone.h \
+				enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.h
 
 ods_enforcerd_LDADD=		$(LIBHSM)
 ods_enforcerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @PROTOBUF_LIBS@
