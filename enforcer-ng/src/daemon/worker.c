@@ -124,18 +124,7 @@ worker_fulfilled(worker_type* worker)
 static void
 worker_perform_task(worker_type* worker)
 {
-    engine_type* engine = NULL;
-    void* context = NULL;
     task_type* task = NULL;
-    task_id what = TASK_NONE;
-    time_t when = 0;
-    time_t never = (3600*24*365);
-    ods_status status = ODS_STATUS_OK;
-    int fallthrough = 0;
-    char* working_dir = NULL;
-    char* cfg_filename = NULL;
-    time_t start = 0;
-    time_t end = 0;
 
     if (!worker || !worker->task || !worker->task->context || !worker->engine) {
         return;
@@ -144,9 +133,7 @@ worker_perform_task(worker_type* worker)
     ods_log_assert(worker->task);
     ods_log_assert(worker->task->context);
 
-    engine = (engine_type*) worker->engine;
     task = (task_type*) worker->task;
-    context = (void*) worker->task->context;
     ods_log_debug("[%s[%i]]: perform task %s for context %s at %u",
        worker2str(worker->type), worker->thread_num, task_what2str(task->what),
        task_who2str(task->who), (uint32_t) worker->clock_in);
@@ -180,7 +167,6 @@ worker_work(worker_type* worker)
         if (worker->task) {
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
-            context = worker->task->context;
             ods_log_debug("[%s[%i]] start working",
                           worker2str(worker->type), worker->thread_num);
 
