@@ -123,7 +123,7 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
             // Don't add any keys, we let the enforcer do this based on policy.
          
             // enforcer needs to trigger signer configuration writing.
-            ks_zone->set_signconfneedswriting( false );
+            ks_zone->set_signconfneedswriting( true );
         }
     }
     
