@@ -24,6 +24,7 @@ public:
     virtual void setLastChange(int value);
 
     virtual bool minimize();
+    void setMinimize(bool value);
 };
 
 class KeyDataPB : public KeyData {
@@ -43,17 +44,17 @@ public:
     virtual void setLocator(const std::string &value);
     
     virtual int algorithm();
-    virtual void setAlgorithm(int value);
+    void setAlgorithm(int value);
     
     virtual int inception();
-    virtual void setInception(int value);
+    void setInception(int value);
     
     virtual KeyState &keyStateDS();
     virtual KeyState &keyStateRRSIG();
     virtual KeyState &keyStateDNSKEY();
     
-    virtual KeyRole keyRole();
-    virtual void setKeyRole(KeyRole value);
+    virtual KeyRole role();
+    void setRole(KeyRole value);
     
     virtual bool isDSSeen();
     virtual void setDSSeen(bool value);
@@ -77,7 +78,9 @@ private:
 public:
     KeyDataListPB( ::keystate::pb::EnforcerZone *zone);
 
-    virtual KeyData &addNewKey();
+    virtual KeyData &addNewKey(int algorithm, int inception, KeyRole role,
+                               bool minimizeDS, bool minimizeRRSIG, 
+                               bool minimizeDNSKEY);
     virtual int numKeys();
     virtual KeyData &key(int index);
     virtual void delKey(int index);

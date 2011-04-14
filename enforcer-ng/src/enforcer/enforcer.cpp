@@ -69,7 +69,7 @@ bool updateKey(KeyData *key, const time_t now, time_t *next_update_for_key) {
     *next_update_for_key = -1;
     bool key_changed = false;
     
-    if (key->keyRole() & KSK) { /* KSK and CSK */
+    if (key->role() & KSK) { /* KSK and CSK */
         key_changed |= updateDs(key, now, &next_update_for_record);
         minTime(next_update_for_record, next_update_for_key);
     }
@@ -77,7 +77,7 @@ bool updateKey(KeyData *key, const time_t now, time_t *next_update_for_key) {
     key_changed |= updateDnskey(key, now, &next_update_for_record);
     minTime(next_update_for_record, next_update_for_key);
     
-    if (key->keyRole() & KSK) { /* ZSK and CSK */
+    if (key->role() & KSK) { /* ZSK and CSK */
         key_changed |= updateRrsig(key, now, &next_update_for_record);
         minTime(next_update_for_record, next_update_for_key);
     }
@@ -185,19 +185,23 @@ time_t updatePolicy(EnforcerZone *zone, const time_t now, HsmKeyFactory *keyfact
                     continue;
                 }
                 /* Append a new key to the keyring */
-                new_key = &zone->keyDataList().addNewKey();
+                new_key = &zone->keyDataList().addNewKey(algorithm,now,
+                                                         (KeyRole)role,
+                                                         false,false,false);
                 new_key->setLocator(hsm_key->locator());
             }
             else {
                 /* Another usable key exists, copy location */
-                new_key = &zone->keyDataList().addNewKey();
+                new_key = &zone->keyDataList().addNewKey(algorithm,now,
+                                                         (KeyRole)role,
+                                                         false,false,false);
                 new_key->setLocator(next_key->locator());
             }
             /* fill next_key */
-            new_key->setAlgorithm( algorithm );
-            new_key->setInception( now );
-            new_key->setKeyRole( (KeyRole)role );
-            new_key->setDSSeen( false );
+//          new_key->setAlgorithm( algorithm );
+//          new_key->setInception( now );
+//          new_key->setKeyRole( (KeyRole)role );
+//          new_key->setDSSeen( false );
             new_key->setSubmitToParent( false );
             new_key->keyStateDS().setState(0);     /* TODO HIDDEN */
             new_key->keyStateDNSKEY().setState(0); /* TODO HIDDEN */

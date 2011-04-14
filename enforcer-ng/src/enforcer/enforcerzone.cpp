@@ -35,6 +35,10 @@ bool KeyStatePB::minimize()
     return _keystate->minimize();
 }
 
+void KeyStatePB::setMinimize(bool value)
+{
+    _keystate->set_minimize(value);
+}
 
 //////////////////////////////
 // KeyDataPB
@@ -103,12 +107,12 @@ KeyState &KeyDataPB::keyStateDNSKEY()
     return _keyStateDNSKEY;
 }
 
-KeyRole KeyDataPB::keyRole()
+KeyRole KeyDataPB::role()
 {
     return (KeyRole)_keydata->role();
 }
 
-void KeyDataPB::setKeyRole(KeyRole value)
+void KeyDataPB::setRole(KeyRole value)
 {
     _keydata->set_role( (::keystate::pb::keyrole)value );
 }
@@ -162,9 +166,17 @@ KeyDataListPB::KeyDataListPB(::keystate::pb::EnforcerZone *zone)
     }
 }
 
-KeyData &KeyDataListPB::addNewKey()
+KeyData &KeyDataListPB::addNewKey(int algorithm, int inception, KeyRole role,
+                       bool minimizeDS, bool minimizeRRSIG, 
+                       bool minimizeDNSKEY)
 {
     KeyDataPB key( _zone->add_keys() );
+    key.setAlgorithm( algorithm );
+    key.setInception( inception );
+    key.setRole( role );
+    ((KeyStatePB&)key.keyStateDS()).setMinimize( minimizeDS );
+    ((KeyStatePB&)key.keyStateRRSIG()).setMinimize( minimizeRRSIG );
+    ((KeyStatePB&)key.keyStateDNSKEY()).setMinimize( minimizeDNSKEY );
     _keys.push_back(key);
     return _keys.back();
 }

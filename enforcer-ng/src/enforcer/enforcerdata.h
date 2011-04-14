@@ -87,17 +87,14 @@ public:
     virtual void setLocator(const std::string &value) = 0;
     
     virtual int algorithm() = 0;
-    virtual void setAlgorithm(int value) = 0;
 
     virtual int inception() = 0;
-    virtual void setInception(int value) = 0;
     
     virtual KeyState &keyStateDS() = 0;
     virtual KeyState &keyStateRRSIG() = 0;
     virtual KeyState &keyStateDNSKEY() = 0;
 
-    virtual KeyRole keyRole() = 0;
-    virtual void setKeyRole(KeyRole value) = 0;
+    virtual KeyRole role() = 0;
 
     virtual bool isDSSeen() = 0;
     virtual void setDSSeen(bool value) = 0;
@@ -117,7 +114,9 @@ public:
 
 class KeyDataList {
 public:
-    virtual KeyData &addNewKey() = 0;
+    virtual KeyData &addNewKey(int algorithm, int inception, KeyRole role,
+                               bool minimizeDS, bool minimizeRRSIG, 
+                               bool minimizeDNSKEY) = 0;
     virtual int numKeys() = 0;
     virtual KeyData &key(int index) = 0;
     virtual void delKey(int index) = 0;
