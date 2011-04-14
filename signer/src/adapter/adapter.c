@@ -204,11 +204,8 @@ adapter_compare(adapter_type* a1, adapter_type* a2)
         return a1->inbound - a2->inbound;
     } else if (a1->type != a2->type) {
         return a1->type - a2->type;
-    } else {
-        return ods_strcmp(a1->configstr, a2->configstr);
     }
-    /* not reached */
-    return 0;
+    return ods_strcmp(a1->configstr, a2->configstr);
 }
 
 
