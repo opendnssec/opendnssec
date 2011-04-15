@@ -9,7 +9,7 @@
  * When no further attention is needed return -1; Another date in the
  * past simply means ASAP.
  * */
-time_t 
-update(EnforcerZone *zone, time_t now, HsmKeyFactory *keyfactory);
+time_t
+update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory);
 
 #endif
