@@ -50,6 +50,7 @@
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
+		<!-- <RolloverNotification>P14D</RolloverNotification> -->
 		
 		<!-- the <DelegationSignerSubmitCommand> will get all current
 		     DNSKEYs (as a RRset) on standard input

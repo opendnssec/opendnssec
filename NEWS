@@ -4,6 +4,7 @@ OpenDNSSEC 1.3.0b2
 
 * <SkipPublicKey/> is enabled for SoftHSM in the default configuration.
   It improves the performance by only using the private key objects.
+* Document the <RolloverNotification> tag in conf.xml.
 
 Bugfixes:
 * Bugfix #221: Segmentation Fault on schedule.c:232
@@ -11,6 +12,7 @@ Bugfixes:
 * Enforcer: Fixed some memory leaks in the tests.
 * Signer Engine: Coverity report fixes some leaks and thread issues.
 * Signer Engine: Now logs to the correct facility again.
+
 
 OpenDNSSEC 1.3.0b1 - 2011-03-23
 
