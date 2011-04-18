@@ -9,7 +9,6 @@
 // Interface of this cpp file is used by C code, we need to declare
 // extern "C" to prevent linking errors.
 extern "C" {
-	/* YBS: I don't have this file yet */
 	#include "shared/duration.h"
 }
 
@@ -34,21 +33,22 @@ inline void minTime(const time_t t, time_t &min) {
 /* Search for youngest key in use by any zone with this policy
  * with at least the roles requested. See if it isn't expired.
  * also, check if it isn't in zone already. Also length, algorithm
- * must match and it must be a first generation key. */
+ * must match and it must be a first generation key. 
+ * */
 bool getLastReusableKey( EnforcerZone &zone,
 		const kasp::pb::Policy *policy, const KeyRole role,
-		int bits, int algorithm, const time_t now, KeyData **ppKey,
+		int bits, int algorithm, const time_t now, HsmKey **ppKey,
 		HsmKeyFactory &keyfactory, int lifetime) {
-	//~ if (not keyfactory.FindSharedKeys(policy->name(), algorithm, bits,
-			//~ role, zone.name(), ppKey))
-	HsmKey **dummy = NULL;
 	if (not keyfactory.UseSharedKey(bits, policy->name(), algorithm,
-                                     role, zone.name(), dummy))
+                                     role, zone.name(), ppKey))
 		return false;
 	assert(*ppKey != NULL); /* FindSharedKeys() promised us. */
 	/* Key must (still) be in use */
-	return (*ppKey)->introducing() and not (*ppKey)->revoke() and
-		not (*ppKey)->standby() and now < (*ppKey)->inception() + lifetime;
+	if (now < (*ppKey)->inception() + lifetime)
+		return true;
+	/* Was set by default, unset */
+	(*ppKey)->setUsedByZone(zone.name(), false);
+	return false;
 }
 
 void setState( KeyState &record_state, const RecordState new_state, const time_t now ) {
@@ -56,239 +56,243 @@ void setState( KeyState &record_state, const RecordState new_state, const time_t
 	record_state.setLastChange(now);
 }
 
-bool reliableDs(KeyDataList &key_list, KeyData &key) {
-	if (key.keyStateDS().state() == OMN) return true;
-	if (key.keyStateDS().state() != COM) return false;
+bool reliableDs(KeyDataList &key_list, KeyData *key) {
+	if (key->keyStateDS().state() == OMN) return true;
+	if (key->keyStateDS().state() != COM) return false;
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		if  (k.keyStateDS().state() == PCM and
-				k.algorithm() == key.algorithm())
+				k.algorithm() == key->algorithm())
 			return true;
 	}
 	return false;
 }
 
-bool reliableDnskey(KeyDataList &key_list, KeyData &key) {
-	if (key.keyStateDNSKEY().state() == OMN) return true;
-	if (key.keyStateDNSKEY().state() != COM) return false;
+bool reliableDnskey(KeyDataList &key_list, KeyData *key) {
+	if (key->keyStateDNSKEY().state() == OMN) return true;
+	if (key->keyStateDNSKEY().state() != COM) return false;
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		if  (k.keyStateDNSKEY().state() == PCM and
-				k.algorithm() == key.algorithm())
+				k.algorithm() == key->algorithm())
 			return true;
 	}
 	return false;
 }
 
-bool reliableRrsig(KeyDataList &key_list, KeyData &key) {
-	if (key.keyStateRRSIG().state() == OMN) return true;
-	if (key.keyStateRRSIG().state() != COM) return false;
+bool reliableRrsig(KeyDataList &key_list, KeyData *key) {
+	if (key->keyStateRRSIG().state() == OMN) return true;
+	if (key->keyStateRRSIG().state() != COM) return false;
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		if  (k.keyStateRRSIG().state() == PCM and
-				k.algorithm() == key.algorithm())
+				k.algorithm() == key->algorithm())
 			return true;
 	}
 	return false;
 }
 
-//~ bool updateDs(KeyDataList *key_list, KeyData *key, const time_t now, time_t *next_update_for_record) {
-	//~ bool record_changed = false;
-	//~ bool signer_needs_update = false;
-	//~ *next_update_for_record = -1;
-	//~ int num_keys = key_list->numKeys();
-	//~ KeyData *k;
-	//~ time_t Tprop;
-//~
-	//~ KeyState *record_state = &key->keyStateDS();
-	//~ switch ( record_state->state() ) {
-//~
-	//~ case HID:cc
-	//~ if (key->introducing() and not key->standby()) {
-		//~ if (not key->minimizeDS()) {
-			//~ for (int i = 0; i < num_keys; i++) {
-				//~ k = &key_list->key(i);
-				//~ if (k->algorithm() == key->algorithm() and
-						//~ reliableDs(k) and
-						//~ reliableDnskey(k)) {
-					//~ setState(record_state, RUM, now);
-					//~ record_changed = true;
-					//~ /* The DS record must be submit to the parent */
-					//~ key->setSubmitToParent(true);
-					//~ key->setDSSeen(false);
-					//~ /* The signer configuration does not change */
-					//~ break;
-				//~ }
-			//~ }
-		//~ } else if (key->keyStateDNSKEY() == OMN) {
-			//~ setState(record_state, COM, now);
-			//~ record_changed = true;
-			//~ /* The DS record must be submit to the parent */
-			//~ key->setSubmitToParent(true);
-			//~ key->setDSSeen(false);
-			//~ /* The signer configuration does not change */
-		//~ }
-	//~ }
-	//~ break;
-//~
-	//~ case RUM:
-	//~ if (not key->introducing()) {
-		//~ setState(record_state, UNR, now);
-		//~ state_change = true;
-		//~ /* The DS record withdrawal must be submit to the parent */
-		//~ key->setSubmitToParent(true);
-		//~ key->setDSSeen(false);
-		//~ /* The signer configuration does not change */
-	//~ } else if (key->isDSSeen()) {
-		//~ Tprop = 0; /* some propagation time. TODO */
-		//~ if (now >= Tprop) {
-			//~ setState(record_state, OMN, now);
-			//~ record_changed = true;
-			//~ /* There is no next update scheduled for this record
-			 //~ * since it is now omnipresent and introducing */
-		//~ } else {
-			//~ /* All requirements are met but not the propagation time
-			 //~ * ask to come back at a later date. */
-			//~ *next_update_for_record = Tprop;
-		//~ }
-	//~ }
-	//~ break;
-//~
-	//~ case COM:
-	//~ if (key->isDSSeen()) {
-		//~ Tprop = 0; /* some propagation time. TODO */
-		//~ if (now >= Tprop) {
-			//~ setState(record_state, OMN, now);
-			//~ record_changed = true;
-			//~ /* There is no next update scheduled for this record
-			 //~ * since it is now omnipresent and introducing */
-		//~ } else {
-			//~ /* All requirements are met but not the propagation time
-			 //~ * ask to come back at a later date. */
-			//~ *next_update_for_record = Tprop;
-		//~ }
-	//~ }
-	//~ break;
-//~
-	//~ case OMN:
-	//~ if (key->introducing()) break; /* already there */
-//~
-	//~ if (key->keyStateDNSKEY() == OMN) {
-		//~ bool exists_ds_comitted = false;
-		//~ for (int i = 0; i < num_keys; i++) {
-			//~ k = &key_list->key(i);
-			//~ if (k->keyStateDS() == COM) {
-				//~ exists_ds_comitted = true;
-				//~ break;
-			//~ }
-		//~ }
-		//~ if (exists_ds_comitted) {
-			//~ setState(record_state, PCM, now);
-			//~ record_changed = true;
-			//~ /* The DS record withdrawal must be submit to the parent */
-			//~ key->setSubmitToParent(true);
-			//~ key->setDSSeen(false);
-			//~ /* The signer configuration does not change */
-			//~ break; /* from switch */
-		//~ }
-	//~ }
-//~
-	//~ if (key->keyStateDNSKEY() == PCM) break;
-//~
-	//~ bool exists_ds_postcomitted = false;
-	//~ for (int i = 0; i < num_keys; i++) {
-		//~ k = &key_list->key(i);
-		//~ if (k->keyStateDS() == PCM) {
-			//~ exists_ds_postcomitted = true;
-			//~ break;
-		//~ }
-	//~ }
-	//~ bool forall = true;
-	//~ bool ds_omni_or_com = false;
-	//~ for (int i = 0; i < num_keys; i++) {
-		//~ k = &key_list->key(i);
-		//~ ds_omni_or_com |= k!=key and (k->keyStateDS() == OMN or
-				//~ (k->keyStateDS() == COM and exists_ds_postcomitted));
-		//~ if (k->algorithm != key->algorithm ) continue;
-		//~ if (k->keyStateDS() == HID) continue;
-		//~ if (reliableDnskey(k)) continue;
-//~
-		//~ /* Leave innerloop as last check,
-		 //~ * for performance. */
-		//~ bool hasReplacement = false;
-		//~ KeyData *l;
-		//~ for (int j = 0; j < num_keys; j++) {
-			//~ l = &key_list->key(j);
-			//~ if (l->algorithm == k->algorithm and l != key
-					//~ and reliableDs(l) and reliableDnskey(l)) {
-				//~ hasReplacement = true;
-				//~ break;
-			//~ }
-		//~ }
-		//~ if (not hasReplacement) {
-			//~ forall = false;
-			//~ break;
-		//~ }
-	//~ }
-//~
-	//~ if (ds_omni_or_com and forall) {
-		//~ setState(record_state, UNR, now);
-		//~ record_changed = true;
-		//~ /* The DS record withdrawal must be submit to the parent */
-		//~ key->setSubmitToParent(true);
-		//~ key->setDSSeen(false);
-		//~ /* The signer configuration does not change */
-	//~ }
-	//~ break;
-//~
-	//~ case UNR:
-	//~ /* We might *not* allow this, for simplicity */
-	//~ if (key->introducing()) {
-		//~ setState(record_state, RUM, now);
-		//~ record_changed = true;
-		//~ /* The DS record withdrawal must be submit to the parent */
-		//~ key->setSubmitToParent(true);
-		//~ key->setDSSeen(false);
-		//~ /* The signer configuration does not change */
-		//~ break;
-	//~ }
-	//~ Tprop = 0 /* TODO */;
-	//~ if (now >= Tprop) {
-		//~ setState(record_state, HID, now);
-		//~ record_changed = true;
-	//~ } else {
-		//~ *next_update_for_record = Tprop;
-	//~ }
-	//~ break;
-//~
-	//~ case PCM:
-	//~ Tprop = 0 /* TODO */;
-	//~ if (now >= Tprop) {
-		//~ setState(record_state, HID, now);
-		//~ record_changed = true;
-		//~ /* no need to notify signer. Nothing changes in
-		 //~ * its perspective. */
-	//~ } else {
-		//~ *next_update_for_record = Tprop;
-	//~ }
-	//~ break;
-//~
-	//~ case REV:
-	//~ /* NOT IMPL */
-	//~ break;
-//~
-	//~ default:
-	//~ assert(0); /* Nonexistent state. */
-	//~ }
-//~
-	//~ /* check here for consistency. Signer never needs to know about
-	 //~ * DS changes. */
-	//~ if (signer_needs_update) {
+bool updateDs(KeyDataList &key_list, KeyData &key, const time_t now, time_t &next_update_for_record) {
+	bool record_changed = false;
+	bool signer_needs_update = false;
+	next_update_for_record = -1;
+	int num_keys = key_list.numKeys();
+	KeyData *k;
+	time_t Tprop;
+
+	bool exists_ds_postcomitted;
+	bool forall;
+	bool ds_omni_or_com;
+
+	KeyState &record_state = key.keyStateDS();
+	switch ( record_state.state() ) {
+
+	case HID:
+	if (key.introducing() and not key.standby()) {
+		if (not record_state.minimize()) {
+			for (int i = 0; i < num_keys; i++) {
+				k = &key_list.key(i);
+				if (k->algorithm() == key.algorithm() and
+						reliableDs(key_list, k) and
+						reliableDnskey(key_list, k)) {
+					setState(record_state, RUM, now);
+					record_changed = true;
+					/* The DS record must be submit to the parent */
+					key.setSubmitToParent(true);
+					key.setDSSeen(false);
+					/* The signer configuration does not change */
+					break;
+				}
+			}
+		} else if (key.keyStateDNSKEY().state() == OMN) {
+			setState(record_state, COM, now);
+			record_changed = true;
+			/* The DS record must be submit to the parent */
+			key.setSubmitToParent(true);
+			key.setDSSeen(false);
+			/* The signer configuration does not change */
+		}
+	}
+	break;
+
+	case RUM:
+	if (not key.introducing()) {
+		setState(record_state, UNR, now);
+		record_changed = true;
+		/* The DS record withdrawal must be submit to the parent */
+		key.setSubmitToParent(true);
+		key.setDSSeen(false);
+		/* The signer configuration does not change */
+	} else if (key.isDSSeen()) {
+		Tprop = 0; /* some propagation time. TODO */
+		if (now >= Tprop) {
+			setState(record_state, OMN, now);
+			record_changed = true;
+			/* There is no next update scheduled for this record
+			 * since it is now omnipresent and introducing */
+		} else {
+			/* All requirements are met but not the propagation time
+			 * ask to come back at a later date. */
+			next_update_for_record = Tprop;
+		}
+	}
+	break;
+
+	case COM:
+	if (key.isDSSeen()) {
+		Tprop = 0; /* some propagation time. TODO */
+		if (now >= Tprop) {
+			setState(record_state, OMN, now);
+			record_changed = true;
+			/* There is no next update scheduled for this record
+			 * since it is now omnipresent and introducing */
+		} else {
+			/* All requirements are met but not the propagation time
+			 * ask to come back at a later date. */
+			next_update_for_record = Tprop;
+		}
+	}
+	break;
+
+	case OMN:
+	if (key.introducing()) break; /* already there */
+
+	if (key.keyStateDNSKEY().state() == OMN) {
+		bool exists_ds_comitted = false;
+		for (int i = 0; i < num_keys; i++) {
+			k = &key_list.key(i);
+			if (k->keyStateDS().state() == COM) {
+				exists_ds_comitted = true;
+				break;
+			}
+		}
+		if (exists_ds_comitted) {
+			setState(record_state, PCM, now);
+			record_changed = true;
+			/* The DS record withdrawal must be submit to the parent */
+			key.setSubmitToParent(true);
+			key.setDSSeen(false);
+			/* The signer configuration does not change */
+			break; /* from switch */
+		}
+	}
+
+	if (key.keyStateDNSKEY().state() == PCM) break;
+
+	exists_ds_postcomitted = false;
+	for (int i = 0; i < num_keys; i++) {
+		k = &key_list.key(i);
+		if (k->keyStateDS().state() == PCM) {
+			exists_ds_postcomitted = true;
+			break;
+		}
+	}
+	forall = true;
+	ds_omni_or_com = false;
+	for (int i = 0; i < num_keys; i++) {
+		k = &key_list.key(i);
+		ds_omni_or_com |= k!=&key and (k->keyStateDS().state() == OMN or
+				(k->keyStateDS().state() == COM and exists_ds_postcomitted));
+		if (k->algorithm() != key.algorithm() ) continue;
+		if (k->keyStateDS().state() == HID) continue;
+		if (reliableDnskey(key_list, k)) continue;
+
+		/* Leave innerloop as last check,
+		 * for performance. */
+		bool hasReplacement = false;
+		KeyData *l;
+		for (int j = 0; j < num_keys; j++) {
+			l = &key_list.key(j);
+			if (l->algorithm() == k->algorithm() and l != &key
+					and reliableDs(key_list, l) and reliableDnskey(key_list, l)) {
+				hasReplacement = true;
+				break;
+			}
+		}
+		if (not hasReplacement) {
+			forall = false;
+			break;
+		}
+	}
+
+	if (ds_omni_or_com and forall) {
+		setState(record_state, UNR, now);
+		record_changed = true;
+		/* The DS record withdrawal must be submit to the parent */
+		key.setSubmitToParent(true);
+		key.setDSSeen(false);
+		/* The signer configuration does not change */
+	}
+	break;
+
+	case UNR:
+	/* We might *not* allow this, for simplicity */
+	if (key.introducing()) {
+		setState(record_state, RUM, now);
+		record_changed = true;
+		/* The DS record withdrawal must be submit to the parent */
+		key.setSubmitToParent(true);
+		key.setDSSeen(false);
+		/* The signer configuration does not change */
+		break;
+	}
+	Tprop = 0 /* TODO */;
+	if (now >= Tprop) {
+		setState(record_state, HID, now);
+		record_changed = true;
+	} else {
+		next_update_for_record = Tprop;
+	}
+	break;
+
+	case PCM:
+	Tprop = 0 /* TODO */;
+	if (now >= Tprop) {
+		setState(record_state, HID, now);
+		record_changed = true;
+		/* no need to notify signer. Nothing changes in
+		 * its perspective. */
+	} else {
+		next_update_for_record = Tprop;
+	}
+	break;
+
+	case REV:
+	/* NOT IMPL */
+	break;
+
+	default:
+	assert(0); /* Nonexistent state. */
+	}
+
+	/* check here for consistency. Signer never needs to know about
+	 * DS changes. */
+	if (signer_needs_update) {
 		//zone->
-	//~ }
-	//~ return record_changed;
-//~ }
-//~
+	}
+	return record_changed;
+}
+
 //~ bool updateDnskey(KeyDataList *key_list, KeyData *key, const time_t now, time_t *next_update_for_record) {
 	//~ bool record_changed = false;
 	//~ bool signer_needs_update = false;
@@ -482,7 +486,7 @@ bool updateKey(KeyDataList &key_list, KeyData &key, const time_t now, time_t &ne
 	bool key_changed = false;
 
 	if (key.role() & KSK) { /* KSK and CSK */
-		//~ key_changed |= updateDs(key_list, key, now, &next_update_for_record);
+		key_changed |= updateDs(key_list, key, now, next_update_for_record);
 		minTime(next_update_for_record, next_update_for_key);
 	}
 
@@ -584,38 +588,29 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 			}
 			/* time for a new key */
 			string locator;
-			KeyData *next_key = NULL;
-			bool shareable = true;
+			HsmKey *hsm_key;
+			bool got_key;
+
 			if ( policyKeys.zones_share_keys() )
-				getLastReusableKey(zone, policy, (KeyRole)role, bits,
-						algorithm, now, &next_key, keyfactory, lifetime);
-			if ( policyKeys.zones_share_keys() and next_key != NULL ) {
-				/* Another usable key exists, copy location */
-				locator = next_key->locator();
-			} else {
-				/* We don't have a usable key, ask for a new one */
-				HsmKey *hsm_key;
-				bool got_key;
-				if ( policyKeys.zones_share_keys() ) {
-					got_key = keyfactory.CreateSharedKey(bits,
-							policyName, algorithm,
-							(KeyRole)role, zone.name(),&hsm_key );
-				} else {
-					got_key = keyfactory.CreateNewKey(
-							bits, &hsm_key );
-					shareable = false;
-				}
-				if ( not got_key ) {
-					/* The factory was not ready, return in 60s */
-					minTime( NOKEY_TIMEOUT, return_at);
-					continue;
-				}
-				/* Append a new hsmkey to the keyring */
-				locator = hsm_key->locator();
+				got_key = getLastReusableKey( 
+					zone, policy, (KeyRole)role, bits, algorithm, now, 
+					&hsm_key, keyfactory, lifetime)
+				? 
+					true
+				: 
+					keyfactory.CreateSharedKey(bits, policyName,
+					algorithm, (KeyRole)role, zone.name(),&hsm_key );
+			else
+				got_key = keyfactory.CreateNewKey( bits, &hsm_key );
+			if ( not got_key ) {
+				/* The factory was not ready, return in 60s */
+				minTime( NOKEY_TIMEOUT, return_at);
+				continue;
 			}
+	
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, now,
-				(KeyRole)role, false, false, false /*, shareable */);
-			new_key.setLocator( locator );
+				(KeyRole)role, false, false, false);
+			new_key.setLocator( hsm_key->locator() );
 			/* fill next_key */
 			new_key.setDSSeen( false );
 			new_key.setSubmitToParent( false );
