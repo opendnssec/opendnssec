@@ -12,30 +12,43 @@
 class HsmKeyPB : public HsmKey {
 private:
     std::string _locator;
-    int _algorithm;
-    std::string _policyName;
+    bool _candidateForSharing;
     int _bits;
+    std::string _policy;
+    int _algorithm;
     KeyRole _keyRole;
     std::set<std::string> _usedByZones;
+    int _inception;
+    bool _revoke;
 public:
     HsmKeyPB(const std::string &locator);
     
-    virtual std::string locator();
+    virtual const std::string &locator();
     
-    virtual bool usedByZone(const std::string &zone);
-    virtual void setUsedByZone(const std::string &zone, bool bValue);
+    virtual bool candidateForSharing();
+    virtual void setCandidateForSharing(bool value);
 
+    virtual int bits();
+    virtual void setBits(int value);
+    
+    virtual const std::string &policy();
+    virtual void setPolicy(const std::string &value);
+    
     virtual int algorithm();
     virtual void setAlgorithm(int value);
     
-    virtual std::string policyName();
-    virtual void setPolicyName(const std::string &value);
-    
-    virtual int bits();
-    virtual void setBits(int value);
-
     virtual KeyRole keyRole();
     virtual void setKeyRole(KeyRole value);
+
+    virtual bool usedByZone(const std::string &zone);
+    virtual void setUsedByZone(const std::string &zone, bool bValue);
+
+    virtual int inception();
+    virtual void setInception(int value);
+    
+    virtual bool revoke();
+    virtual void setRevoke(bool value);
+    
 };
 
 class HsmKeyFactoryPB : public HsmKeyFactory {
@@ -44,13 +57,15 @@ private:
 public:
     virtual bool CreateNewKey(int bits, HsmKey **ppKey);
     
-    virtual bool CreateSharedKey(const std::string &policyName, int algorithm,
-                                 int bits, KeyRole role, HsmKey **ppKey);
+    virtual bool CreateSharedKey(int bits,
+                                 const std::string &policy, int algorithm,
+                                 KeyRole role, const std::string &zone,
+                                 HsmKey **ppKey);
 
-
-    virtual bool FindSharedKeys(const std::string &policyName, int algorithm,
-                                int bits, KeyRole role, 
-                                const std::string &notZone, HsmKey **ppKey);
+    virtual bool UseSharedKey(int bits, 
+                              const std::string &policy, int algorithm,
+                              KeyRole role, const std::string &zone,
+                              HsmKey **ppKey);
 };
 
 #endif

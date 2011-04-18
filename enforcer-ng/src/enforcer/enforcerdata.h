@@ -7,22 +7,42 @@ enum KeyRole { KSK=1, ZSK, CSK };
 
 class HsmKey {
 public:
-    virtual std::string locator() = 0;
+    virtual const std::string &locator() = 0;
 
-    virtual bool usedByZone(const std::string &zone) = 0;
-    virtual void setUsedByZone(const std::string &zone, bool bValue) = 0;
+    /* When looking for a shared key, this flag determines whether the 
+     * key is a suitable candidate for being used as a shared key.
+     */
+    virtual bool candidateForSharing() = 0;
     
-    virtual int algorithm() = 0;
-    virtual void setAlgorithm(int value) = 0;
-
-    virtual std::string policyName() = 0;
-    virtual void setPolicyName(const std::string &value) = 0;
+    /* Set this flag to false to indicate that this key should no longer 
+     * be considered when looking for a uitable candidate for a shared key.
+     * Note that setting this flag does not prevent the key from being shared 
+     * it only influences the search for a shared key.
+     */
+    virtual void setCandidateForSharing(bool value) = 0;
+    
 
     virtual int bits() = 0;
     virtual void setBits(int value) = 0;
     
+    virtual const std::string &policy() = 0;
+    virtual void setPolicy(const std::string &value) = 0;
+    
+    virtual int algorithm() = 0;
+    virtual void setAlgorithm(int value) = 0;
+
     virtual KeyRole keyRole() = 0;
     virtual void setKeyRole(KeyRole value) = 0;
+    
+    virtual bool usedByZone(const std::string &zone) = 0;
+    virtual void setUsedByZone(const std::string &zone, bool bValue) = 0;
+
+    virtual int inception() = 0;
+    virtual void setInception(int value) = 0;
+    
+    virtual bool revoke() = 0;
+    virtual void setRevoke(bool value) = 0;
+
 };
 
 
@@ -40,34 +60,47 @@ public:
     
     /* Create a key shared by all the zones with the given policy name, 
      * algorithm and bits
-     * \param[in] policyName name of the policy
-     * \param[in] algorithm algorithm
+     *
+     * The HsmKey will have setUsedByZone(zone,true) called for the zone that 
+     * is passed in. Also setInception(now) will be called for the HsmKey 
+     * before it is returned
+     *
      * \param[in] bits number of bits in the key
+     * \param[in] policy name of the policy
+     * \param[in] algorithm algorithm
      * \param[in] role role of the key
-     * \return HsmKeyEnumerator * key enumerator for accessing the search result
-     *      or NULL when §the search did not match any known keys.
+     * \param[in] zone zone the key is going to be used in.
+     * \return bool true when the key was created or false when it failed.
      */
-    virtual bool CreateSharedKey(const std::string &policyName, int algorithm,
-                                 int bits, KeyRole role, HsmKey **ppKey) = 0;
+    virtual bool CreateSharedKey(int bits,
+                                 const std::string &policy, int algorithm,
+                                 KeyRole role, const std::string &zone,
+                                 HsmKey **ppKey) = 0;
 
-    /* Find existing keys based on the arguments passed in.
-     * Additionally the following sanity checks will be performed on 
-     * viable candidates
-
-     - niet Zone Z (niet 2x in dezelfde zone gebruiken)
-     - daarvan de gene met de grootste inception date. (de nieuwste)
-
-     * \param[in] policyName name of the policy to match
-     * \param[in] algorithm algorithm to match
+    /* Find and re-use an existing HsmKey based on the arguments passed in.
+     *
+     * The HsmKeys that will be considered for sharing need to have 
+     * the candidateForSharing flag set. 
+     * For the zone that is passed in, a HsmKey that is already being used 
+     * by that zone will not be considered.
+     *
+     * When this member function finds a shared key this method will 
+     * automatically call setUsedByZone(zone,true) on the HsmKey that 
+     * is returned.
+     *
      * \param[in] bits number of bits to match
+     * \param[in] policy name of the policy to match
+     * \param[in] algorithm algorithm to match
      * \param[in] role role of the key to match
-     * \param[in] notZone zone name in which the key should not yet be used
+     * \param[in] zone zone the key is going to be used in.
      * \param[out] ppKey key that matches the search criteria
-     * \return bool returns true when a match was found.
+     * \return bool returns true when a match was found or false when no
+     *              match was found.
      */
-    virtual bool FindSharedKeys(const std::string &policyName, int algorithm,
-                                int bits, KeyRole role, 
-                                const std::string &notZone, HsmKey **ppKey) = 0;
+    virtual bool UseSharedKey(int bits,
+                              const std::string &policy, int algorithm,
+                              KeyRole role, const std::string &zone,
+                              HsmKey **ppKey) = 0;
 };
 
 class KeyState {
@@ -86,15 +119,26 @@ public:
     virtual const std::string &locator() = 0;
     virtual void setLocator(const std::string &value) = 0;
     
+    /* identical to algorithm property on associated HsmKey */
     virtual int algorithm() = 0;
-
+    
+    virtual KeyRole role() = 0;
+    
+    /* alternative path */
+    virtual bool revoke() = 0;
+    
+    /* KeyData inception indicates the moment of first use in this 
+     * zone of the HsmKey. The inception found on the HsmKey associated
+     * with this KeyData via the locator will be the same as this inception
+     * on a non-shared key. However on a shared key the inception on the
+     * HsmKey may be earlier as it may have been used previously in 
+     * a different zone.
+     */
     virtual int inception() = 0;
     
     virtual KeyState &keyStateDS() = 0;
     virtual KeyState &keyStateRRSIG() = 0;
     virtual KeyState &keyStateDNSKEY() = 0;
-
-    virtual KeyRole role() = 0;
 
     virtual bool isDSSeen() = 0;
     virtual void setDSSeen(bool value) = 0;
@@ -104,9 +148,6 @@ public:
 
     /* Movement direction */
     virtual bool introducing() = 0; /* goal */
-    
-    /* alternative path */
-    virtual bool revoke() = 0;
     
     /* selective brakes */
     virtual bool standby() = 0;

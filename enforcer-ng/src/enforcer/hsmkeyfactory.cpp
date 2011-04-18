@@ -9,10 +9,60 @@ HsmKeyPB::HsmKeyPB(const std::string &locator) : _locator(locator)
 {
 }
 
-std::string HsmKeyPB::locator()
+const std::string &HsmKeyPB::locator()
 { 
     return _locator;
-    // return std::string();
+}
+
+bool HsmKeyPB::candidateForSharing()
+{
+    return _candidateForSharing;
+}
+
+void HsmKeyPB::setCandidateForSharing(bool value)
+{
+    _candidateForSharing = value;
+}
+
+int HsmKeyPB::bits()
+{
+    return _bits;
+}
+
+void HsmKeyPB::setBits(int value)
+{
+    _bits = value;
+}
+
+const std::string &HsmKeyPB::policy()
+{
+    return _policy;
+}
+
+void HsmKeyPB::setPolicy(const std::string &value) 
+{
+    _policy = value;
+}
+
+int HsmKeyPB::algorithm()
+{
+    return _algorithm;
+}
+
+void HsmKeyPB::setAlgorithm(int value)
+{
+    _algorithm  = value;
+}
+
+
+KeyRole HsmKeyPB::keyRole()
+{
+    return _keyRole;
+}
+
+void HsmKeyPB::setKeyRole(KeyRole value)
+{
+    _keyRole = value;
 }
 
 bool HsmKeyPB::usedByZone(const std::string &zone)
@@ -27,47 +77,25 @@ void HsmKeyPB::setUsedByZone(const std::string &zone, bool bValue)
     else
         _usedByZones.erase(zone);
 }
-    
-int HsmKeyPB::algorithm()
+
+int HsmKeyPB::inception()
 {
-    return _algorithm;
+    return _inception;
 }
 
-void HsmKeyPB::setAlgorithm(int value)
+void HsmKeyPB::setInception(int value)
 {
-    _algorithm  = value;
+    _inception = value;
 }
 
-std::string HsmKeyPB::policyName()
+bool HsmKeyPB::revoke()
 {
-    // return std::string("Default");
-    return _policyName;
+    return _revoke;
 }
 
-void HsmKeyPB::setPolicyName(const std::string &value)
+void HsmKeyPB::setRevoke(bool value)
 {
-    _policyName = value;
-}
-
-int HsmKeyPB::bits()
-{
-    //return 2048;
-    return _bits;
-}
-
-void HsmKeyPB::setBits(int value)
-{
-    _bits = value;
-}
-
-KeyRole HsmKeyPB::keyRole()
-{
-    return _keyRole;
-}
-
-void HsmKeyPB::setKeyRole(KeyRole value)
-{
-    _keyRole = value;
+    _revoke = value;
 }
 
 //////////////////////////////
@@ -104,42 +132,43 @@ bool HsmKeyFactoryPB::CreateNewKey(int bits, HsmKey **ppKey)
         return false;
     
     HsmKeyPB dummyKey(dummyLocators[_keys.size()]);
-    dummyKey.setAlgorithm(8);
-    dummyKey.setPolicyName("Default");
     dummyKey.setBits(bits);
+    
+    
     
     _keys.push_back(dummyKey);
     *ppKey = &_keys.back();
     return true;
 }
 
-bool HsmKeyFactoryPB::CreateSharedKey(const std::string &policyName, 
-                                         int algorithm, int bits, 
-                                         KeyRole role, HsmKey **ppKey)
+bool HsmKeyFactoryPB::CreateSharedKey(int bits, 
+                                      const std::string &policy, int algorithm, 
+                                      KeyRole role, const std::string &zone,
+                                      HsmKey **ppKey)
 {
-    std::vector<HsmKeyPB>::iterator k;
-    for (k = _keys.begin(); k != _keys.end(); ++k) {
-        if (k->policyName() == policyName && k->algorithm() == algorithm && k->bits() == bits) {
-            *ppKey = &(*k);
-            return true;
-        }
-    }
-    
     if (CreateNewKey(bits, ppKey)) {
         
+        (*ppKey)->setPolicy(policy);
         (*ppKey)->setAlgorithm(algorithm);
-        (*ppKey)->setPolicyName(policyName);
+        (*ppKey)->setKeyRole(role);
+        (*ppKey)->usedByZone(zone);
         
         return true;
     }
     return false;
 }
 
-bool HsmKeyFactoryPB::FindSharedKeys(const std::string &policyName,
-                                        int algorithm, int bits, 
-                                        KeyRole role,
-                                        const std::string &notZone, 
-                                        HsmKey **ppKey)
+bool HsmKeyFactoryPB::UseSharedKey(int bits, 
+                                   const std::string &policy, int algorithm, 
+                                   KeyRole role, const std::string &zone, 
+                                   HsmKey **ppKey)
 {
+    std::vector<HsmKeyPB>::iterator k;
+    for (k = _keys.begin(); k != _keys.end(); ++k) {
+        if (k->policy() == policy && k->algorithm() == algorithm && k->bits() == bits) {
+            *ppKey = &(*k);
+            return true;
+        }
+    }
     return false;
 }
