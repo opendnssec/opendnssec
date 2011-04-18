@@ -42,8 +42,8 @@ bool getLastReusableKey( EnforcerZone &zone,
 	//~ if (not keyfactory.FindSharedKeys(policy->name(), algorithm, bits,
 			//~ role, zone.name(), ppKey))
 	HsmKey **dummy = NULL;
-	if (not keyfactory.FindSharedKeys(policy->name(), algorithm, bits,
-			role, zone.name(), dummy))
+	if (not keyfactory.UseSharedKey(bits, policy->name(), algorithm,
+                                     role, zone.name(), dummy))
 		return false;
 	assert(*ppKey != NULL); /* FindSharedKeys() promised us. */
 	/* Key must (still) be in use */
@@ -597,9 +597,9 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 				HsmKey *hsm_key;
 				bool got_key;
 				if ( policyKeys.zones_share_keys() ) {
-					got_key = keyfactory.CreateSharedKey(
+					got_key = keyfactory.CreateSharedKey(bits,
 							policyName, algorithm,
-							bits, (KeyRole)role, &hsm_key );
+							(KeyRole)role, zone.name(),&hsm_key );
 				} else {
 					got_key = keyfactory.CreateNewKey(
 							bits, &hsm_key );
