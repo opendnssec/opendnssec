@@ -38,12 +38,21 @@
 #include "shared/allocator.h"
 
 /**
- * Join arguments together with a join character into a single string (terminated by 2 zero characters.)
+ * Join arguments together with a join character into a single string 
+ * (terminated by 2 zero characters.)
+ *
+ * Note that the rationale for having 2 terminating zero characters is that
+ * it allows joining a list of strings with a zero cjoin character resulting
+ * in a zero terminated list of zero terminated strings.
+ *
  * \param[in] argc argument count
  * \param[in] argv argument array
  * \param[in] cjoin join character to use
- * \return	Newly allocated string terminated by 2 zero character that should be freed using allocator_deallocate or NULL when no arguments were passed.
+ * \return	Newly allocated string terminated by 2 zero character that should 
+ *          be freed using allocator_deallocate or NULL when no arguments
+ *          were passed.
  */
-char *ods_str_join(allocator_type* allocator, int argc, char *argv[], char cjoin);
+char *ods_str_join(allocator_type* allocator, int argc, char *argv[], 
+                   char cjoin);
 
 #endif /* SHARED_STR_H */
