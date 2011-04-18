@@ -301,16 +301,16 @@ void protobuf_AddDesc_signconf_2eproto() {
     "\030\010\n\006OptOut\022\'\n\talgorithm\030\002 \002(\005B\024\202\265\030\020\n\016Has"
     "h/Algorithm\022)\n\niterations\030\003 \002(\005B\025\202\265\030\021\n\017H"
     "ash/Iterations\022\035\n\004salt\030\004 \002(\tB\017\202\265\030\013\n\tHash"
-    "/Salt\"P\n\004Keys\022\034\n\003ttl\030\001 \002(\005B\017\202\265\030\005\n\003TTL\202\265\030"
-    "\002\020\002\022*\n\004keys\030\002 \003(\0132\020.signconf.pb.KeyB\n\202\265\030"
-    "\006\n\004Keys\"\333\001\n\003Key\022\032\n\005flags\030\001 \002(\rB\013\202\265\030\007\n\005Fl"
-    "ags\022\"\n\talgorithm\030\002 \002(\rB\017\202\265\030\013\n\tAlgorithm\022"
-    "\036\n\007locator\030\003 \002(\tB\r\202\265\030\t\n\007Locator\022\026\n\003ksk\030\004"
-    " \001(\010B\t\202\265\030\005\n\003KSK\022\026\n\003zsk\030\005 \001(\010B\t\202\265\030\005\n\003ZSK\022"
-    "\036\n\007publish\030\006 \001(\010B\r\202\265\030\t\n\007Publish\022$\n\ndeact"
-    "ivate\030\007 \001(\010B\020\202\265\030\014\n\nDeactivate*>\n\006serial\022"
-    "\013\n\007counter\020\001\022\017\n\013datecounter\020\002\022\014\n\010unixtim"
-    "e\020\003\022\010\n\004keep\020\004", 1493);
+    "/Salt\"O\n\004Keys\022\034\n\003ttl\030\001 \002(\005B\017\202\265\030\005\n\003TTL\202\265\030"
+    "\002\020\002\022)\n\004keys\030\002 \003(\0132\020.signconf.pb.KeyB\t\202\265\030"
+    "\005\n\003Key\"\333\001\n\003Key\022\032\n\005flags\030\001 \002(\rB\013\202\265\030\007\n\005Fla"
+    "gs\022\"\n\talgorithm\030\002 \002(\rB\017\202\265\030\013\n\tAlgorithm\022\036"
+    "\n\007locator\030\003 \002(\tB\r\202\265\030\t\n\007Locator\022\026\n\003ksk\030\004 "
+    "\001(\010B\t\202\265\030\005\n\003KSK\022\026\n\003zsk\030\005 \001(\010B\t\202\265\030\005\n\003ZSK\022\036"
+    "\n\007publish\030\006 \001(\010B\r\202\265\030\t\n\007Publish\022$\n\ndeacti"
+    "vate\030\007 \001(\010B\020\202\265\030\014\n\nDeactivate*>\n\006serial\022\013"
+    "\n\007counter\020\001\022\017\n\013datecounter\020\002\022\014\n\010unixtime"
+    "\020\003\022\010\n\004keep\020\004", 1492);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "signconf.proto", &protobuf_RegisterTypes);
   SignerConfigurationDocument::default_instance_ = new SignerConfigurationDocument();

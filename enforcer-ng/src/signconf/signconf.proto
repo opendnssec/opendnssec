@@ -50,7 +50,7 @@ message NSEC3 {
 
 message Keys {
 	required int32 ttl = 1 [(xml).path="TTL", (xml).type=duration];
-	repeated Key keys = 2 [(xml).path="Keys"]; // 1 or more keys
+	repeated Key keys = 2 [(xml).path="Key"]; // 1 or more keys
 }
 
 message Key {
