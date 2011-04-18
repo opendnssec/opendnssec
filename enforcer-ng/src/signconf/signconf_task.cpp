@@ -198,7 +198,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
             sc_key->set_locator( ks_key.locator() );
             sc_key->set_ksk( ks_key.role() ==  ::keystate::pb::KSK || ks_key.role() ==  ::keystate::pb::CSK );
             sc_key->set_zsk( ks_key.role() ==  ::keystate::pb::ZSK || ks_key.role() ==  ::keystate::pb::CSK );
-            sc_key->set_publish( ks_key.published() );
+            sc_key->set_publish( ks_key.publish() );
             sc_key->set_deactivate( !ks_key.active() );
         }
         

@@ -422,19 +422,19 @@ class KeyData : public ::google::protobuf::Message {
   inline bool standby() const;
   inline void set_standby(bool value);
   
+  // optional bool publish = 14;
+  inline bool has_publish() const;
+  inline void clear_publish();
+  static const int kPublishFieldNumber = 14;
+  inline bool publish() const;
+  inline void set_publish(bool value);
+  
   // optional bool active = 13;
   inline bool has_active() const;
   inline void clear_active();
   static const int kActiveFieldNumber = 13;
   inline bool active() const;
   inline void set_active(bool value);
-  
-  // optional bool published = 14;
-  inline bool has_published() const;
-  inline void clear_published();
-  static const int kPublishedFieldNumber = 14;
-  inline bool published() const;
-  inline void set_published(bool value);
   
   // optional bool _deleted = 100;
   inline bool has__deleted() const;
@@ -460,8 +460,8 @@ class KeyData : public ::google::protobuf::Message {
   bool introducing_;
   bool revoke_;
   bool standby_;
+  bool publish_;
   bool active_;
-  bool published_;
   bool _deleted_;
   friend void  protobuf_AddDesc_keystate_2eproto();
   friend void protobuf_AssignDesc_keystate_2eproto();
@@ -1018,36 +1018,36 @@ inline void KeyData::set_standby(bool value) {
   standby_ = value;
 }
 
+// optional bool publish = 14;
+inline bool KeyData::has_publish() const {
+  return _has_bit(12);
+}
+inline void KeyData::clear_publish() {
+  publish_ = false;
+  _clear_bit(12);
+}
+inline bool KeyData::publish() const {
+  return publish_;
+}
+inline void KeyData::set_publish(bool value) {
+  _set_bit(12);
+  publish_ = value;
+}
+
 // optional bool active = 13;
 inline bool KeyData::has_active() const {
-  return _has_bit(12);
+  return _has_bit(13);
 }
 inline void KeyData::clear_active() {
   active_ = false;
-  _clear_bit(12);
+  _clear_bit(13);
 }
 inline bool KeyData::active() const {
   return active_;
 }
 inline void KeyData::set_active(bool value) {
-  _set_bit(12);
-  active_ = value;
-}
-
-// optional bool published = 14;
-inline bool KeyData::has_published() const {
-  return _has_bit(13);
-}
-inline void KeyData::clear_published() {
-  published_ = false;
-  _clear_bit(13);
-}
-inline bool KeyData::published() const {
-  return published_;
-}
-inline void KeyData::set_published(bool value) {
   _set_bit(13);
-  published_ = value;
+  active_ = value;
 }
 
 // optional bool _deleted = 100;
