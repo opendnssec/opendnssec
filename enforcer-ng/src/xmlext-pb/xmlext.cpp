@@ -318,7 +318,7 @@ void assignAttributes(::google::protobuf::Message* msg, const std::string &path,
 					if (path.size())
 						fieldPath = path + "/" + fieldPath;
 					if (xmlopt.path() == fieldPath) {
-#if 1
+#if 0
 						printf( "ASSIGN %s/@%s=%s\n", messagename.c_str(), field->name().c_str(),xmlopt.path().c_str());
 #endif
 						//const xmlChar *prefix = attributes[index+1];
@@ -353,7 +353,7 @@ void startElementNs(void * ctx, const xmlChar * localname, const xmlChar * prefi
 	else
 		path = (char*)localname;
 
-#if 1
+#if 0
 	printf( "PROCESSING [%s] for path \"%s\"\n", messagename.c_str(), path.c_str());
 #endif
 	
@@ -375,7 +375,7 @@ void startElementNs(void * ctx, const xmlChar * localname, const xmlChar * prefi
 			const xmloption xmlopt = field->options().GetExtension(xml);
 			if (xmlopt.path() == path) {
 				
-#if 1
+#if 0
 				printf( "ASSIGN %s/@%s=%s\n", messagename.c_str(), field->name().c_str(),xmlopt.path().c_str());
 #endif
 				if (bFieldMatchedToElement) {
@@ -454,8 +454,8 @@ void characters(void * ctx, const xmlChar * ch, int len)
 	const char *stop = (const char *)&ch[len-1];
 #if 1
 	// trim leading and trailing whitespace
-	while (start<=stop && !isalnum(*start)) ++start;
-	while (start<=stop && !isalnum(*stop)) --stop;
+	while (start<=stop && isspace(*start)) ++start;
+	while (start<=stop && isspace(*stop)) --stop;
 	if (start>stop) return;
 #endif
 	std::string value(start,stop+1);
