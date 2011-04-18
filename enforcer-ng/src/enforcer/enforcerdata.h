@@ -110,6 +110,9 @@ public:
     
     /* selective brakes */
     virtual bool standby() = 0;
+    
+    virtual void setPublish(bool value) = 0;
+    virtual void setActive(bool value) = 0;
 };
 
 class KeyDataList {

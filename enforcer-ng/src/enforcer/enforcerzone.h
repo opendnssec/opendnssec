@@ -69,6 +69,9 @@ public:
     
     /* selective brakes */
     virtual bool standby();
+
+    virtual void setPublish(bool value);
+    virtual void setActive(bool value);
 };
 
 class KeyDataListPB : public KeyDataList {

@@ -152,6 +152,17 @@ bool KeyDataPB::standby()
     return _keydata->standby();
 }
 
+void KeyDataPB::setPublish(bool value)
+{
+    _keydata->set_publish(value);
+}
+
+void KeyDataPB::setActive(bool value)
+{
+    _keydata->set_active(value);
+}
+
+
 // KeyDataListPB
 
 KeyDataListPB::KeyDataListPB(::keystate::pb::EnforcerZone *zone)
