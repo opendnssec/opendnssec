@@ -96,15 +96,20 @@ tools_input(zone_type* zone)
 
     start = time(NULL);
     status = adapter_read(zone);
-    if (status == ODS_STATUS_OK) {
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to read from input adapter for zone %s: "
+            "%s", tools_str, zone->name?zone->name:"(null)",
+            ods_status2str(status));
+    } else {
         tmpname = ods_build_path(zone->name, ".inbound", 0);
         status = ods_file_copy(zone->adinbound->configstr, tmpname);
         free((void*)tmpname);
         tmpname = NULL;
-    } else {
-        ods_log_verbose("[%s] unable to read from input adapter for zone %s: "
-            "%s", tools_str, zone->name?zone->name:"(null)",
-            ods_status2str(status));
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to copy zone input file %s: "
+                "%s", tools_str, zone->name?zone->name:"(null)",
+                ods_status2str(status));
+        }
     }
 
     if (status == ODS_STATUS_OK) {
