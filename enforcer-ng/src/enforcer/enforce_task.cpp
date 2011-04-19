@@ -204,21 +204,43 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         datapath += ".keystate.pb";
         int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
         if (keystateDoc->SerializeToFileDescriptor(fd)) {
-            ods_log_debug("[%s] keystates have been updated",
+            ods_log_debug("[%s] key states have been updated",
                           enforce_task_str);
 
-            (void)snprintf(buf, ODS_SE_MAXLINE, "update of keystates completed.\n");
+            (void)snprintf(buf, ODS_SE_MAXLINE, "update of key states completed.\n");
             ods_writen(sockfd, buf, strlen(buf));
         } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "error: keystates file could not be written.\n");
+            (void)snprintf(buf, ODS_SE_MAXLINE, "error: key states file could not be written.\n");
             ods_writen(sockfd, buf, strlen(buf));
         }
         close(fd);
     } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "error: a message in the keystates is missing mandatory information.\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "error: a message in the key states is missing mandatory information.\n");
         ods_writen(sockfd, buf, strlen(buf));
     }
 
+    // Persist the hsmkey doc back to disk as it may have
+    // been changed by the enforcer update
+    if (hsmkeyDoc->IsInitialized()) {
+        std::string datapath(datastore);
+        datapath += ".hsmkey.pb";
+        int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
+        if (hsmkeyDoc->SerializeToFileDescriptor(fd)) {
+            ods_log_debug("[%s] HSM keys have been updated",
+                          enforce_task_str);
+            
+            (void)snprintf(buf, ODS_SE_MAXLINE, "update of HSM keys completed.\n");
+            ods_writen(sockfd, buf, strlen(buf));
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "error: HSM keys file could not be written.\n");
+            ods_writen(sockfd, buf, strlen(buf));
+        }
+        close(fd);
+    } else {
+        (void)snprintf(buf, ODS_SE_MAXLINE, "error: a message in the HSM keys is missing mandatory information.\n");
+        ods_writen(sockfd, buf, strlen(buf));
+    }
+    
     delete kaspDoc;
     delete zonelistDoc;
     delete keystateDoc;
