@@ -108,7 +108,7 @@ bool HsmKeyFactoryPB::CreateNewKey(int bits, HsmKey **ppKey)
 {
     // Create a dummy key with the given locator
     
-    const char *dummyLocators[] = {
+    static const char *dummyLocators[] = {
         "008be1241707c55f7c4bc35743151e71",
         "108be1241707c55f7c4bc35743151e71",
         "208be1241707c55f7c4bc35743151e71",
@@ -133,8 +133,6 @@ bool HsmKeyFactoryPB::CreateNewKey(int bits, HsmKey **ppKey)
     
     HsmKeyPB dummyKey(dummyLocators[_keys.size()]);
     dummyKey.setBits(bits);
-    
-    
     
     _keys.push_back(dummyKey);
     *ppKey = &_keys.back();
@@ -165,8 +163,15 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits,
 {
     std::vector<HsmKeyPB>::iterator k;
     for (k = _keys.begin(); k != _keys.end(); ++k) {
-        if (k->policy() == policy && k->algorithm() == algorithm && k->bits() == bits) {
+        if (k->bits() == bits 
+            && k->policy() == policy 
+            && k->algorithm() == algorithm
+            && k->keyRole() == role
+            && !k->usedByZone(zone)
+            )
+        {
             *ppKey = &(*k);
+            (*ppKey)->usedByZone(zone);
             return true;
         }
     }
