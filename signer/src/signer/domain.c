@@ -917,7 +917,6 @@ void
 domain_print(FILE* fd, domain_type* domain)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    char* str = NULL;
     int print_glue = 0;
     rrset_type* rrset = NULL;
     rrset_type* soa_rrset = NULL;
@@ -929,41 +928,21 @@ domain_print(FILE* fd, domain_type* domain)
     ods_log_assert(fd);
     ods_log_assert(domain);
 
-    str = ldns_rdf2str(domain->dname);
-
     if (domain->rrsets) {
         node = ldns_rbtree_first(domain->rrsets);
     }
     /* no other data may accompany a CNAME */
     cname_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
     if (cname_rrset) {
-        fprintf(fd, ";; Domain: %s\n", str);
         rrset_print(fd, cname_rrset, 0);
     } else {
         /* if SOA, print soa first */
         if (domain->dstatus == DOMAIN_STATUS_APEX) {
             soa_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
             if (soa_rrset) {
-                fprintf(fd, ";; Zone: %s\n", str);
                 rrset_print(fd, soa_rrset, 0);
             }
-        } else if (domain->dstatus == DOMAIN_STATUS_ENT) {
-            /* empty non-terminal */
-            fprintf(fd, ";; Empty non-terminal: %s\n", str);
-        } else if (domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
-            /* occluded or glue */
-            fprintf(fd, ";; Occluded (glue): %s\n", str);
-        } else if (domain->dstatus == DOMAIN_STATUS_NS ||
-                   domain->dstatus == DOMAIN_STATUS_DS) {
-            /* delegation */
-            fprintf(fd, ";; Delegation: %s\n", str);
-        } else if (domain->dstatus == DOMAIN_STATUS_NONE) {
-            /* non-existent */
-            fprintf(fd, ";; Non-existent: %s\n", str);
-        } else {
-            fprintf(fd, ";; Domain: %s\n", str);
         }
-
         /* print other RRsets */
         while (node && node != LDNS_RBTREE_NULL) {
             rrset = (rrset_type*) node->data;
@@ -993,14 +972,10 @@ domain_print(FILE* fd, domain_type* domain)
             node = ldns_rbtree_next(node);
         }
     }
-    free((void*)str);
-
     /* denial of existence */
     if (domain->denial) {
         rrset_print(fd, domain->denial->rrset, 0);
     }
-
-    fprintf(fd, ";\n");
     return;
 }
 
