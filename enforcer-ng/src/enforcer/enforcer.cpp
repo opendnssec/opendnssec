@@ -40,7 +40,7 @@ bool getLastReusableKey( EnforcerZone &zone,
 		int bits, int algorithm, const time_t now, HsmKey **ppKey,
 		HsmKeyFactory &keyfactory, int lifetime) {
 	if (not keyfactory.UseSharedKey(bits, policy->name(), algorithm,
-                                     role, zone.name(), ppKey))
+									 role, zone.name(), ppKey))
 		return false;
 	assert(*ppKey != NULL); /* FindSharedKeys() promised us. */
 	/* Key must (still) be in use */
@@ -278,197 +278,201 @@ bool updateDs(KeyDataList &key_list, KeyData &key, const time_t now, time_t &nex
 	break;
 
 	case REV:
-	/* NOT IMPL */
+		/* NOT IMPL */
 	break;
 
 	default:
-	assert(0); /* Nonexistent state. */
+		assert(0); /* Nonexistent state. */
 	}
 
 	/* check here for consistency. Signer never needs to know about
 	 * DS changes. */
 	if (signer_needs_update) {
-		//zone->
+	//zone->
 	}
 	return record_changed;
 }
 
-//~ bool updateDnskey(KeyDataList *key_list, KeyData *key, const time_t now, time_t *next_update_for_record) {
-	//~ bool record_changed = false;
-	//~ bool signer_needs_update = false;
-	//~ *next_update_for_record = -1;
-	//~ int num_keys = key_list->numKeys();
-	//~ KeyData *k;
-	//~ time_t Tprop;
-//~
-	//~ KeyState *record_state = &key->keyStateDNSKEY();
-	//~ switch ( record_state->state() ) {
-//~
-	//~ case HID:
-	//~ if (not key->introducing()) break;
-	//~ if (key->minimizeDNSKEY() and (key->keyStateDS() == OMN or
-			//~ not key->keyRoles() & KSK) and
-			//~ (key->keyStateRRSIG == OMN or not key->keyRoles() & ZSK) ) {
-//~
-		//~ setState(record_state, COM, now);
-		//~ record_changed = true;
-		//~ /* The DNSKEY now needs to be published. */
-		//~ signer_needs_update = true;
-		//~ break;
-	//~ }
-	//~ if (key->minimizeDNSKEY() and not key->standby()) {
-		//~ bool noneExist = true;
-		//~ for (int i = 0; i < num_keys; i++) {
-			//~ k = &key_list->key(i);
-			//~ if (not (key->algorithm() == k->algorithm() and
-					//~ reliableDnskey(k) and key->keyRoles() & KSK)){
-				//~ noneExist = false;
-				//~ break;
-			//~ }
-		//~ }
-		//~ if (not noneExist) break;
-	//~ }
-	//~ if (not reliableDnskey(key)) {
-		//~ bool oneExist = false;
-		//~ for (int i = 0; i < num_keys; i++) {
-			//~ k = &key_list->key(i);
-			//~ if (not (key->algorithm() == k->algorithm() and
-					//~ reliableDnskey(k) and reliableRrsig(k))){
-				//~ oneExist = true;
-				//~ break;
-			//~ }
-		//~ }
-		//~ if (not oneExist) break;
-	//~ }
-	//~ setState(record_state, RUM, now);
-	//~ record_changed = true;
-	//~ /* The DNSKEY now needs to be published. */
-	//~ signer_needs_update = true;
-	//~ break;
-//~
-	//~ case RUM:
-	//~ if (not key->introducing()) {
-		//~ setState(record_state, UNR, now);
-		//~ state_change = true;
-		//~ signer_needs_update = true;
-		//~ break;
-	//~ }
-	//~ Tprop = 0; /* TODO */
-	//~ if (now >= Tprop) {
-		//~ setState(record_state, OMN, now);
-		//~ state_change = true;
-		//~ break;
-	//~ }
-	//~ *next_update_for_record = Tprop;
-	//~ break;
-//~
-	//~ case COM:
-	//~ Tprop = 0; /* TODO */
-	//~ if (now >= Tprop) {
-		//~ setState(record_state, OMN, now);
-		//~ state_change = true;
-		//~ break;
-	//~ }
-	//~ *next_update_for_record = Tprop;
-	//~ break;
-//~
-	//~ case OMN:
-	//~ if (key->introducing() or key->keyStateDS() == PCM or
-			//~ key->keyStateRRSIG() == PCM )
-		//~ break;
-	//~ /* Yuri was 'ere */
-	//~ if ( key->keyStateDS() == OMN and key->keyStateRRSIG() == OMN and
-			//~ not key->revoke()) {
-		//~ bool hasReplacement = false;
-		//~ for (int i = 0; i < num_keys; i++) {
-			//~ k = &key_list->key(i);
-			//~ if ( k->keyStateDNSKEY() == COM and
-				//~ key->algorithm() == k->algorithm() and
-				//~ key->keyRole() == k->keyRole() ) {
-			//~ hasReplacement = true;
-			//~ break;
-			//~ }
-		//~ }
-		//~ if ( hasReplacement ) {
-			//~ /* withdraw stuff */
-			//~ key->keyStateDNSKEY( PCM );
-			//~ state_change = true;
-			//~ break;
-		//~ }
-	//~ }
-//~
-	//~ if ( not key->keyStateDS() == Key::ST_POSTCOMITTED and
-			//~ not key->keyStateRRSIG() == Key::ST_POSTCOMITTED ) {
-		//~ bool all = true;
-		//~ for (Key *k = keylist; k != NULL; k = k->next) {
-			//~ bool check1 = not k->roles&Key::KSK or
-				//~ k->ds_state == Key::ST_HIDDEN or
-				//~ ( k != key and reliableDnskey(k));
-			//~ if ( not check1 ) {
-				//~ /*exists loop*/
-				//~ bool exist1 = false;
-				//~ for (Key *l = keylist; l != NULL; l = l->next) {
-					//~ if ( k != l and k->algorithm == l->algorithm and
-							//~ reliableDs(l) and reliableDnskey(l) ) {
-						//~ exist1 = true;
-						//~ break;
-					//~ }
-				//~ }
-				//~ if ( not exist1 ) break;
-			//~ }
-			//~ bool check2 = k->dnskey_state == Key::ST_HIDDEN or
-				//~ reliableRrsig(k);
-			//~ if ( not check2 ) {
-				//~ /*exists loop*/
-				//~ bool exist2 = false;
-				//~ for (Key *l = keylist; l != NULL; l = l->next) {
-					//~ if ( k != l and k->algorithm == l->algorithm and
-							//~ reliableRrsig(l) and reliableDnskey(l) ) {
-						//~ exist2 = true;
-						//~ break;
-					//~ }
-				//~ }
-				//~ if ( not exist2 ) break;
-			//~ }
-//~
-//~
-		//~ }
-		//~ if ( not all ) break;
-		//~ key->dnskey_state = key->revoked?Key::ST_REVOKED
-										//~ :Key::ST_UNRETENTIVE;
-		//~ state_change = true;
-		//~ /* submit or revoke stuff */
-		//~ break;
-	//~ }
-	//~ break;
-//~
-	//~ case Key::ST_REVOKED:
-	//~ if (now >= /* some time */ 0) {
-		//~ key->dnskey_state = Key::ST_UNRETENTIVE;
-		//~ state_change = true;
-	//~ }
-	//~ break;
-//~
-	//~ case Key::ST_UNRETENTIVE:
-	//~ if (key->goal == Key::ST_OMNIPRESENT) {
-		//~ /* submit,
-		 //~ * key->dnskey_state = Key::ST_UNRETENTIVE;
-		 //~ * state_change = true;
-		 //~ * */
-	//~ }
-	//~ else if (now >= /* some time */ 0) {
-		//~ key->dnskey_state = Key::ST_HIDDEN;
-		//~ state_change = true;
-	//~ }
-	//~ break;
-//~
-	//~ case Key::ST_POSTCOMITTED:
-	//~ break;
-//~
-	//~ }
-//~
-	//~ return record_changed;
-//~ }
+bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t &next_update_for_record) {
+	bool record_changed = false;
+	bool signer_needs_update = false;
+	next_update_for_record = -1;
+	int num_keys = key_list.numKeys();
+	KeyData *k, *l;
+	time_t Tprop;
+	
+	KeyState &record_state = key.keyStateDNSKEY();
+	switch ( record_state.state() ) {
+
+	case HID:
+	if (not key.introducing()) break;
+	if (record_state.minimize() and (key.keyStateDS().state() == OMN or
+		not key.role() & KSK) and
+		(key.keyStateRRSIG().state() == OMN or 
+		not key.role() & ZSK) ) {
+		setState(record_state, COM, now);
+		record_changed = true;
+		/* The DNSKEY now needs to be published. */
+		signer_needs_update = true;
+		break;
+	}
+	if (record_state.minimize() and not key.standby()) {
+		bool noneExist = true;
+		for (int i = 0; i < num_keys; i++) {
+			k = &key_list.key(i);
+			if (not (key.algorithm() == k->algorithm() and
+					reliableDnskey(key_list, k) and 
+					key.role() & KSK)){
+				noneExist = false;
+				break;
+			}
+		}
+		if (not noneExist) break;
+	}
+	if (not reliableDnskey(key_list, &key)) {
+		bool oneExist = false;
+		for (int i = 0; i < num_keys; i++) {
+			k = &key_list.key(i);
+			if (not (key.algorithm() == k->algorithm() and
+					reliableDnskey(key_list, k) and 
+					reliableRrsig(key_list, k))){
+				oneExist = true;
+				break;
+			}
+		}
+		if (not oneExist) break;
+	}
+	setState(record_state, RUM, now);
+	record_changed = true;
+	/* The DNSKEY now needs to be published. */
+	signer_needs_update = true;
+	break;
+
+	case RUM:
+	if (not key.introducing()) {
+		setState(record_state, UNR, now);
+		record_changed = true;
+		signer_needs_update = true;
+		break;
+	}
+	Tprop = 0; /* TODO */
+	if (now >= Tprop) {
+		setState(record_state, OMN, now);
+		record_changed = true;
+		break;
+	}
+	next_update_for_record = Tprop;
+	break;
+
+	case COM:
+	Tprop = 0; /* TODO */
+	if (now >= Tprop) {
+		setState(record_state, OMN, now);
+		record_changed = true;
+		break;
+	}
+	next_update_for_record = Tprop;
+	break;
+
+	case OMN:
+	if (key.introducing() or key.keyStateDS().state() == PCM or
+		key.keyStateRRSIG().state() == PCM ) break;
+	/* Yuri was 'ere */
+	if ( key.keyStateDS().state() == OMN and 
+		key.keyStateRRSIG().state() == OMN and
+		not key.revoke()) {
+		bool hasReplacement = false;
+		for (int i = 0; i < num_keys; i++) {
+			k = &key_list.key(i);
+			if ( k->keyStateDNSKEY().state() == COM and
+					key.algorithm() == k->algorithm() and
+					key.role() == k->role() ) {
+				hasReplacement = true;
+				break;
+			}
+		}
+		if ( hasReplacement ) {
+		/* withdraw stuff */
+		record_state.setState( PCM );
+		record_changed = true;
+		break;
+		}
+	}
+
+	if ( not key.keyStateDS().state() == PCM and
+			not key.keyStateRRSIG().state() == PCM ) {
+		bool all = true;
+		for (int i = 0; i < num_keys; i++) {
+		k = &key_list.key(i);
+		if ( k->role() & KSK and k->keyStateDS().state() != HID and 
+				(k == &key or not reliableDnskey(key_list, k)) ) {
+			/* This key breaks the chain, see if there is a
+			 * candidate that fixes this. */
+			all = false;
+			for ( int j = 0; j < num_keys; j++ ) {
+				l = &key_list.key(j);
+				if ( k != l and k->algorithm() == l->algorithm() and
+						reliableDs( key_list, l ) and 
+						reliableDnskey( key_list, l ) ) {
+					all = true;
+					break;
+				}
+			}
+			if ( not all ) break;
+		}
+		/* Passed the first test */
+		if ( k->keyStateDNSKEY().state() != HID and 
+			not reliableRrsig( key_list, k ) ) {
+			/* This key breaks the chain, see if there is a
+			 * candidate that fixes this. */
+			all = false;
+			for ( int j = 0; j < num_keys; j++ ) {
+				l = &key_list.key(j);
+				if ( k != l and k->algorithm() == l->algorithm() and
+						reliableRrsig( key_list, l ) and 
+						reliableDnskey( key_list, l ) ) {
+					all = true;
+					break;
+				}
+			}
+			if ( not all ) break;
+		}
+		}
+		if ( not all ) break; /* from switch */
+		key.keyStateDNSKEY().setState( key.revoke() ? REV : UNR );
+		record_changed = true;
+		/* submit or revoke stuff */
+		break;
+	}
+	break;
+
+	case REV:
+	if (now >= /* some time */ 0) {
+		key.keyStateDNSKEY().setState( UNR );
+		record_changed = true;
+	}
+	break;
+
+	case UNR:
+	if (key.introducing()) {
+		/* submit,
+		 * key->dnskey_state = Key::ST_UNRETENTIVE;
+		 * record_changed = true;
+		 * */
+	}
+	else if (now >= /* some time */ 0) {
+		key.keyStateDNSKEY().setState( HID );
+		record_changed = true;
+	}
+	break;
+
+	case PCM:
+	break;
+
+	}
+
+	return record_changed;
+}
 //~ bool updateRrsig(KeyDataList *key_list, KeyData *key, const time_t now, time_t *next_update_for_record) {
 	//~ bool record_changed = false;
 	//*next_update_for_record = -1;
