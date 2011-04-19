@@ -101,15 +101,19 @@ tools_input(zone_type* zone)
         status = ods_file_copy(zone->adinbound->configstr, tmpname);
         free((void*)tmpname);
         tmpname = NULL;
+    } else {
+        ods_log_verbose("[%s] unable to read from input adapter for zone %s: "
+            "%s", tools_str, zone->name?zone->name:"(null)",
+            ods_status2str(status));
     }
 
     if (status == ODS_STATUS_OK) {
         ods_log_verbose("[%s] commit updates for zone %s", tools_str,
-                zone->name?zone->name:"(null)");
+            zone->name?zone->name:"(null)");
         status = zonedata_commit(zone->zonedata);
     } else {
         ods_log_warning("[%s] rollback updates for zone %s", tools_str,
-                zone->name?zone->name:"(null)");
+            zone->name?zone->name:"(null)");
         zonedata_rollback(zone->zonedata);
     }
     end = time(NULL);
