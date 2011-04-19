@@ -232,8 +232,8 @@
 				A74D1B4C1338AB1000C8B4AD /* ods-enforcerd.c */,
 				A7F2A3731338B145003A936B /* enforcer */,
 				A7497483134FD04100205543 /* signconf */,
-				A7790E58135CE27B00EED13E /* hsmkey */,
 				A74EB43C135249C5001F9E1B /* keystate */,
+				A7790E58135CE27B00EED13E /* hsmkey */,
 				A772F49413323E7A004179E8 /* policy */,
 				A772F49A133240A9004179E8 /* zone */,
 				A772F39413320DE6004179E8 /* xmlext-pb */,
@@ -365,11 +365,11 @@
 		A7790E58135CE27B00EED13E /* hsmkey */ = {
 			isa = PBXGroup;
 			children = (
+				A7790E59135CE27C00EED13E /* hsmkey.proto */,
 				A7CFAD69135D84DB00E85BE4 /* keypregen_cmd.h */,
 				A7CFAD6A135D84DB00E85BE4 /* keypregen_cmd.cpp */,
 				A7CFAD67135D84DB00E85BE4 /* keypregen_task.h */,
 				A7CFAD68135D84DB00E85BE4 /* keypregen_task.cpp */,
-				A7790E59135CE27C00EED13E /* hsmkey.proto */,
 				A7790E5B135CF27100EED13E /* hsmkey.pb.h */,
 				A7790E5C135CF27100EED13E /* hsmkey.pb.cc */,
 			);

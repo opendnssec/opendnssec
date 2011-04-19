@@ -1,6 +1,8 @@
 #ifndef _ENFORCER_ENFORCERDATA_H_
 #define _ENFORCER_ENFORCERDATA_H_
 
+#include <ctime>
+
 #include "policy/kasp.pb.h"
 
 enum KeyRole { KSK=1, ZSK, CSK };
@@ -37,8 +39,8 @@ public:
     virtual bool usedByZone(const std::string &zone) = 0;
     virtual void setUsedByZone(const std::string &zone, bool bValue) = 0;
 
-    virtual int inception() = 0;
-    virtual void setInception(int value) = 0;
+    virtual time_t inception() = 0;
+    virtual void setInception(time_t value) = 0;
     
     virtual bool revoke() = 0;
     virtual void setRevoke(bool value) = 0;
@@ -134,7 +136,7 @@ public:
      * HsmKey may be earlier as it may have been used previously in 
      * a different zone.
      */
-    virtual int inception() = 0;
+    virtual time_t inception() = 0;
     
     virtual KeyState &keyStateDS() = 0;
     virtual KeyState &keyStateRRSIG() = 0;
@@ -158,7 +160,7 @@ public:
 
 class KeyDataList {
 public:
-    virtual KeyData &addNewKey(int algorithm, int inception, KeyRole role,
+    virtual KeyData &addNewKey(int algorithm, time_t inception, KeyRole role,
                                bool minimizeDS, bool minimizeRRSIG, 
                                bool minimizeDNSKEY) = 0;
     virtual int numKeys() = 0;

@@ -46,8 +46,8 @@ public:
     virtual int algorithm();
     void setAlgorithm(int value);
     
-    virtual int inception();
-    void setInception(int value);
+    virtual time_t inception();
+    void setInception(time_t value);
     
     virtual KeyState &keyStateDS();
     virtual KeyState &keyStateRRSIG();
@@ -81,7 +81,7 @@ private:
 public:
     KeyDataListPB( ::keystate::pb::EnforcerZone *zone);
 
-    virtual KeyData &addNewKey(int algorithm, int inception, KeyRole role,
+    virtual KeyData &addNewKey(int algorithm, time_t inception, KeyRole role,
                                bool minimizeDS, bool minimizeRRSIG, 
                                bool minimizeDNSKEY);
     virtual int numKeys();

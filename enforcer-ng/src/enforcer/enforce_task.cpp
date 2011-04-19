@@ -145,6 +145,10 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         }
     }
 
+    // Hook the key factory into the hsmkeyDoc list of pre-generated 
+    // cryptographic keys.
+    HsmKeyFactoryPB keyfactory(hsmkeyDoc);
+    
     // Go through all the zones and run the enforcer for every one of them.
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
 
@@ -178,7 +182,6 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         }
 
         EnforcerZonePB enfZone(keystateDoc->mutable_zones(z), policy);
-        HsmKeyFactoryPB keyfactory(hsmkeyDoc);
 
         time_t t_next = update(enfZone, time_now(), keyfactory);
 

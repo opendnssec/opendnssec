@@ -82,12 +82,12 @@ void KeyDataPB::setAlgorithm(int value)
     _keydata->set_algorithm( value );
 }
 
-int KeyDataPB::inception()
+time_t KeyDataPB::inception()
 {
     return _keydata->inception();
 }
 
-void KeyDataPB::setInception(int value)
+void KeyDataPB::setInception(time_t value)
 {
     _keydata->set_inception( value );
 }
@@ -177,7 +177,7 @@ KeyDataListPB::KeyDataListPB(::keystate::pb::EnforcerZone *zone)
     }
 }
 
-KeyData &KeyDataListPB::addNewKey(int algorithm, int inception, KeyRole role,
+KeyData &KeyDataListPB::addNewKey(int algorithm, time_t inception, KeyRole role,
                        bool minimizeDS, bool minimizeRRSIG, 
                        bool minimizeDNSKEY)
 {

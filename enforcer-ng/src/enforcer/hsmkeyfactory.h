@@ -13,17 +13,9 @@
 
 class HsmKeyPB : public HsmKey {
 private:
-    std::string _locator;
-    bool _candidateForSharing;
-    int _bits;
-    std::string _policy;
-    int _algorithm;
-    KeyRole _keyRole;
-    std::set<std::string> _usedByZones;
-    int _inception;
-    bool _revoke;
+    ::hsmkey::pb::HsmKey *_key;
 public:
-    HsmKeyPB(const std::string &locator);
+    HsmKeyPB(::hsmkey::pb::HsmKey *key);
     
     virtual const std::string &locator();
     
@@ -45,8 +37,8 @@ public:
     virtual bool usedByZone(const std::string &zone);
     virtual void setUsedByZone(const std::string &zone, bool bValue);
 
-    virtual int inception();
-    virtual void setInception(int value);
+    virtual time_t inception();
+    virtual void setInception(time_t value);
     
     virtual bool revoke();
     virtual void setRevoke(bool value);
@@ -55,10 +47,10 @@ public:
 
 class HsmKeyFactoryPB : public HsmKeyFactory {
 private:
-    const ::hsmkey::pb::HsmKeyDocument *_doc;
+    ::hsmkey::pb::HsmKeyDocument *_doc;
     std::vector<HsmKeyPB> _keys;
 public:
-    HsmKeyFactoryPB(const ::hsmkey::pb::HsmKeyDocument *doc);
+    HsmKeyFactoryPB(::hsmkey::pb::HsmKeyDocument *doc);
     
     virtual bool CreateNewKey(int bits, HsmKey **ppKey);
     
