@@ -25,7 +25,6 @@
 		A772F49313323E5E004179E8 /* xmlext.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49113323E5E004179E8 /* xmlext.pb.cc */; };
 		A772F49913323E7A004179E8 /* kasp.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49513323E7A004179E8 /* kasp.pb.cc */; };
 		A772F49E13324716004179E8 /* xmlext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A772F49D13324716004179E8 /* xmlext.cpp */; };
-		A7790E5D135CF27100EED13E /* hsmkey.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7790E5C135CF27100EED13E /* hsmkey.pb.cc */; };
 		A79154FA134E03A2004DEF95 /* zones_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DDF134D21D400B13EA0 /* zones_cmd.cpp */; };
 		A7915502134E365D004DEF95 /* update_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79154FF134E365D004DEF95 /* update_task.cpp */; };
 		A7915503134E3B0B004DEF95 /* update_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE1134D21D400B13EA0 /* update_cmd.cpp */; };
@@ -51,6 +50,7 @@
 		A7943638131B443600108EFB /* keys.c in Sources */ = {isa = PBXBuildFile; fileRef = A7943636131B443600108EFB /* keys.c */; };
 		A7ACCD0D1352E0730003E535 /* enforcerzone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0B1352E0730003E535 /* enforcerzone.cpp */; };
 		A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0C1352E0730003E535 /* hsmkeyfactory.cpp */; };
+		A7CFAD61135D7ED500E85BE4 /* hsmkey.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7790E5C135CF27100EED13E /* hsmkey.pb.cc */; };
 		A7E70DC4134B956400B13EA0 /* enforcer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC3134B956400B13EA0 /* enforcer.cpp */; };
 		A7E70DCD134C409000B13EA0 /* enforce_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC9134C408F00B13EA0 /* enforce_task.cpp */; };
 		A7E70DE7134D259900B13EA0 /* enforce_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC8134C408E00B13EA0 /* enforce_cmd.cpp */; };
@@ -522,6 +522,7 @@
 				A7ACCD0D1352E0730003E535 /* enforcerzone.cpp in Sources */,
 				A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */,
 				A70EA75F13549A1D00D929CC /* xmlext-wr.cpp in Sources */,
+				A7CFAD61135D7ED500E85BE4 /* hsmkey.pb.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -536,7 +537,6 @@
 				A7943626131B420E00108EFB /* str.c in Sources */,
 				A7943627131B420E00108EFB /* util.c in Sources */,
 				A74D1B4F1338AB1F00C8B4AD /* ods-enforcer.c in Sources */,
-				A7790E5D135CF27100EED13E /* hsmkey.pb.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

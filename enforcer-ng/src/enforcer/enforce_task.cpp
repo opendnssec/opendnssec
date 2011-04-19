@@ -7,6 +7,7 @@
 #include "policy/kasp.pb.h"
 #include "zone/zonelist.pb.h"
 #include "keystate/keystate.pb.h"
+#include "hsmkey/hsmkey.pb.h"
 
 #include "enforcer/enforcerdata.h"
 #include "enforcer/enforcer.h"
@@ -83,15 +84,32 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         } else {
             ods_log_error("[%s] keystates could not be loaded from \"%s\"",
                           enforce_task_str,datapath.c_str());
-            // bFailedToLoad = true;
         }
         close(fd);
     }
 
+    ::hsmkey::pb::HsmKeyDocument *hsmkeyDoc = 
+    new ::hsmkey::pb::HsmKeyDocument;
+    {
+        std::string datapath(datastore);
+        datapath += ".hsmkey.pb";
+        int fd = open(datapath.c_str(),O_RDONLY);
+        if (hsmkeyDoc->ParseFromFileDescriptor(fd)) {
+            ods_log_debug("[%s] HSM key info list has been loaded",
+                          enforce_task_str);
+        } else {
+            ods_log_error("[%s] HSM key info list could not be loaded from \"%s\"",
+                          enforce_task_str,datapath.c_str());
+        }
+        close(fd);
+    }
+    
+    
     if (bFailedToLoad) {
         delete kaspDoc;
         delete zonelistDoc;
         delete keystateDoc;
+        delete hsmkeyDoc;
         ods_log_error("[%s] unable to continue",
                       enforce_task_str);
         return -1;
@@ -118,12 +136,12 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
             // setup information the enforcer will need.
             ks_zone->set_name( zl_zone.name() );
             ks_zone->set_policy( zl_zone.policy() );
-            ks_zone->set_signconfpath( zl_zone.signerconfiguration() );
+            ks_zone->set_signconf_path( zl_zone.signerconfiguration() );
 
             // Don't add any keys, we let the enforcer do this based on policy.
 
             // enforcer needs to trigger signer configuration writing.
-            ks_zone->set_signconfneedswriting( true );
+            ks_zone->set_signconf_needs_writing( true );
         }
     }
 
@@ -160,7 +178,7 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         }
 
         EnforcerZonePB enfZone(keystateDoc->mutable_zones(z), policy);
-        HsmKeyFactoryPB keyfactory;
+        HsmKeyFactoryPB keyfactory(hsmkeyDoc);
 
         time_t t_next = update(enfZone, time_now(), keyfactory);
 
@@ -201,6 +219,7 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
     delete kaspDoc;
     delete zonelistDoc;
     delete keystateDoc;
+    delete hsmkeyDoc;
 
     return t_when;
 }
