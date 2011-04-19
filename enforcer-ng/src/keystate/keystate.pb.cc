@@ -57,8 +57,8 @@ void protobuf_AssignDesc_keystate_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, policy_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, keys_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, signconfneedswriting_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, signconfpath_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, signconf_needs_writing_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, signconf_path_),
   };
   EnforcerZone_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -80,13 +80,13 @@ void protobuf_AssignDesc_keystate_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, rrsig_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, dnskey_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, role_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, dsseen_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, submittoparent_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, ds_seen_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, submit_to_parent_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, introducing_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, revoke_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, standby_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, publish_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, active_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, publish_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, _deleted_),
   };
   KeyData_reflection_ =
@@ -103,7 +103,7 @@ void protobuf_AssignDesc_keystate_2eproto() {
   KeyState_descriptor_ = file->message_type(3);
   static const int KeyState_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyState, state_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyState, lastchange_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyState, last_change_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyState, minimize_),
   };
   KeyState_reflection_ =
@@ -163,22 +163,24 @@ void protobuf_AddDesc_keystate_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\016keystate.proto\022\013keystate.pb\032\014xmlext.pr"
     "oto\"<\n\020KeyStateDocument\022(\n\005zones\030\001 \003(\0132\031"
-    ".keystate.pb.EnforcerZone\"\204\001\n\014EnforcerZo"
+    ".keystate.pb.EnforcerZone\"\207\001\n\014EnforcerZo"
     "ne\022\014\n\004name\030\001 \002(\t\022\016\n\006policy\030\002 \002(\t\022\"\n\004keys"
-    "\030\003 \003(\0132\024.keystate.pb.KeyData\022\034\n\024signConf"
-    "NeedsWriting\030\004 \002(\010\022\024\n\014signConfPath\030\005 \002(\t"
-    "\"\345\002\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\talgorit"
-    "hm\030\002 \002(\005\022\021\n\tinception\030\003 \002(\005\022!\n\002ds\030\004 \002(\0132"
-    "\025.keystate.pb.KeyState\022$\n\005rrsig\030\005 \002(\0132\025."
-    "keystate.pb.KeyState\022%\n\006dnskey\030\006 \002(\0132\025.k"
-    "eystate.pb.KeyState\022\"\n\004role\030\007 \002(\0162\024.keys"
-    "tate.pb.keyrole\022\016\n\006dsseen\030\010 \001(\010\022\026\n\016submi"
-    "tToParent\030\t \001(\010\022\023\n\013introducing\030\n \001(\010\022\016\n\006"
-    "revoke\030\013 \001(\010\022\017\n\007standby\030\014 \001(\010\022\017\n\007publish"
-    "\030\016 \001(\010\022\016\n\006active\030\r \001(\010\022\020\n\010_deleted\030d \001(\010"
-    "\"?\n\010KeyState\022\r\n\005state\030\001 \002(\005\022\022\n\nlastChang"
-    "e\030\002 \001(\005\022\020\n\010minimize\030\003 \001(\010*$\n\007keyrole\022\007\n\003"
-    "KSK\020\001\022\007\n\003ZSK\020\002\022\007\n\003CSK\020\003", 703);
+    "\030\003 \003(\0132\024.keystate.pb.KeyData\022\036\n\026signconf"
+    "_needs_writing\030\004 \002(\010\022\025\n\rsignconf_path\030\005 "
+    "\002(\t\"\237\003\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\talgo"
+    "rithm\030\002 \002(\r\022\021\n\tinception\030\003 \002(\r\022!\n\002ds\030\004 \002"
+    "(\0132\025.keystate.pb.KeyState\022$\n\005rrsig\030\005 \002(\013"
+    "2\025.keystate.pb.KeyState\022%\n\006dnskey\030\006 \002(\0132"
+    "\025.keystate.pb.KeyState\022\"\n\004role\030\007 \002(\0162\024.k"
+    "eystate.pb.keyrole\022\026\n\007ds_seen\030\010 \001(\010:\005fal"
+    "se\022\037\n\020submit_to_parent\030\t \001(\010:\005false\022\031\n\013i"
+    "ntroducing\030\n \001(\010:\004true\022\025\n\006revoke\030\013 \001(\010:\005"
+    "false\022\026\n\007standby\030\014 \001(\010:\005false\022\025\n\006active\030"
+    "\r \001(\010:\005false\022\026\n\007publish\030\016 \001(\010:\005false\022\027\n\010"
+    "_deleted\030d \001(\010:\005false\"G\n\010KeyState\022\r\n\005sta"
+    "te\030\001 \002(\005\022\023\n\013last_change\030\002 \001(\r\022\027\n\010minimiz"
+    "e\030\003 \001(\010:\005false*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZS"
+    "K\020\002\022\007\n\003CSK\020\003", 772);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "keystate.proto", &protobuf_RegisterTypes);
   KeyStateDocument::default_instance_ = new KeyStateDocument();
@@ -420,13 +422,13 @@ void KeyStateDocument::Swap(KeyStateDocument* other) {
 
 const ::std::string EnforcerZone::_default_name_;
 const ::std::string EnforcerZone::_default_policy_;
-const ::std::string EnforcerZone::_default_signconfpath_;
+const ::std::string EnforcerZone::_default_signconf_path_;
 #ifndef _MSC_VER
 const int EnforcerZone::kNameFieldNumber;
 const int EnforcerZone::kPolicyFieldNumber;
 const int EnforcerZone::kKeysFieldNumber;
-const int EnforcerZone::kSignConfNeedsWritingFieldNumber;
-const int EnforcerZone::kSignConfPathFieldNumber;
+const int EnforcerZone::kSignconfNeedsWritingFieldNumber;
+const int EnforcerZone::kSignconfPathFieldNumber;
 #endif  // !_MSC_VER
 
 EnforcerZone::EnforcerZone() {
@@ -445,8 +447,8 @@ void EnforcerZone::SharedCtor() {
   _cached_size_ = 0;
   name_ = const_cast< ::std::string*>(&_default_name_);
   policy_ = const_cast< ::std::string*>(&_default_policy_);
-  signconfneedswriting_ = false;
-  signconfpath_ = const_cast< ::std::string*>(&_default_signconfpath_);
+  signconf_needs_writing_ = false;
+  signconf_path_ = const_cast< ::std::string*>(&_default_signconf_path_);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -461,8 +463,8 @@ void EnforcerZone::SharedDtor() {
   if (policy_ != &_default_policy_) {
     delete policy_;
   }
-  if (signconfpath_ != &_default_signconfpath_) {
-    delete signconfpath_;
+  if (signconf_path_ != &_default_signconf_path_) {
+    delete signconf_path_;
   }
   if (this != default_instance_) {
   }
@@ -495,10 +497,10 @@ void EnforcerZone::Clear() {
         policy_->clear();
       }
     }
-    signconfneedswriting_ = false;
+    signconf_needs_writing_ = false;
     if (_has_bit(4)) {
-      if (signconfpath_ != &_default_signconfpath_) {
-        signconfpath_->clear();
+      if (signconf_path_ != &_default_signconf_path_) {
+        signconf_path_->clear();
       }
     }
   }
@@ -554,35 +556,35 @@ bool EnforcerZone::MergePartialFromCodedStream(
         DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
               input, add_keys()));
         if (input->ExpectTag(26)) goto parse_keys;
-        if (input->ExpectTag(32)) goto parse_signConfNeedsWriting;
+        if (input->ExpectTag(32)) goto parse_signconf_needs_writing;
         break;
       }
       
-      // required bool signConfNeedsWriting = 4;
+      // required bool signconf_needs_writing = 4;
       case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
-       parse_signConfNeedsWriting:
+       parse_signconf_needs_writing:
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
-              input, &signconfneedswriting_));
+              input, &signconf_needs_writing_));
         _set_bit(3);
-        if (input->ExpectTag(42)) goto parse_signConfPath;
+        if (input->ExpectTag(42)) goto parse_signconf_path;
         break;
       }
       
-      // required string signConfPath = 5;
+      // required string signconf_path = 5;
       case 5: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
           goto handle_uninterpreted;
         }
-       parse_signConfPath:
+       parse_signconf_path:
         DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-              input, this->mutable_signconfpath()));
+              input, this->mutable_signconf_path()));
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-          this->signconfpath().data(), this->signconfpath().length(),
+          this->signconf_path().data(), this->signconf_path().length(),
           ::google::protobuf::internal::WireFormat::PARSE);
         if (input->ExpectAtEnd()) return true;
         break;
@@ -636,18 +638,18 @@ void EnforcerZone::SerializeWithCachedSizes(
       3, this->keys(i), output);
   }
   
-  // required bool signConfNeedsWriting = 4;
+  // required bool signconf_needs_writing = 4;
   if (_has_bit(3)) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->signconfneedswriting(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->signconf_needs_writing(), output);
   }
   
-  // required string signConfPath = 5;
+  // required string signconf_path = 5;
   if (_has_bit(4)) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->signconfpath().data(), this->signconfpath().length(),
+      this->signconf_path().data(), this->signconf_path().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      5, this->signconfpath(), output);
+      5, this->signconf_path(), output);
   }
   
   if (!unknown_fields().empty()) {
@@ -685,19 +687,19 @@ void EnforcerZone::SerializeWithCachedSizes(
         3, this->keys(i), target);
   }
   
-  // required bool signConfNeedsWriting = 4;
+  // required bool signconf_needs_writing = 4;
   if (_has_bit(3)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(4, this->signconfneedswriting(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(4, this->signconf_needs_writing(), target);
   }
   
-  // required string signConfPath = 5;
+  // required string signconf_path = 5;
   if (_has_bit(4)) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->signconfpath().data(), this->signconfpath().length(),
+      this->signconf_path().data(), this->signconf_path().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        5, this->signconfpath(), target);
+        5, this->signconf_path(), target);
   }
   
   if (!unknown_fields().empty()) {
@@ -725,16 +727,16 @@ int EnforcerZone::ByteSize() const {
           this->policy());
     }
     
-    // required bool signConfNeedsWriting = 4;
-    if (has_signconfneedswriting()) {
+    // required bool signconf_needs_writing = 4;
+    if (has_signconf_needs_writing()) {
       total_size += 1 + 1;
     }
     
-    // required string signConfPath = 5;
-    if (has_signconfpath()) {
+    // required string signconf_path = 5;
+    if (has_signconf_path()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->signconfpath());
+          this->signconf_path());
     }
     
   }
@@ -778,10 +780,10 @@ void EnforcerZone::MergeFrom(const EnforcerZone& from) {
       set_policy(from.policy());
     }
     if (from._has_bit(3)) {
-      set_signconfneedswriting(from.signconfneedswriting());
+      set_signconf_needs_writing(from.signconf_needs_writing());
     }
     if (from._has_bit(4)) {
-      set_signconfpath(from.signconfpath());
+      set_signconf_path(from.signconf_path());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -813,8 +815,8 @@ void EnforcerZone::Swap(EnforcerZone* other) {
     std::swap(name_, other->name_);
     std::swap(policy_, other->policy_);
     keys_.Swap(&other->keys_);
-    std::swap(signconfneedswriting_, other->signconfneedswriting_);
-    std::swap(signconfpath_, other->signconfpath_);
+    std::swap(signconf_needs_writing_, other->signconf_needs_writing_);
+    std::swap(signconf_path_, other->signconf_path_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
@@ -841,13 +843,13 @@ const int KeyData::kDsFieldNumber;
 const int KeyData::kRrsigFieldNumber;
 const int KeyData::kDnskeyFieldNumber;
 const int KeyData::kRoleFieldNumber;
-const int KeyData::kDsseenFieldNumber;
+const int KeyData::kDsSeenFieldNumber;
 const int KeyData::kSubmitToParentFieldNumber;
 const int KeyData::kIntroducingFieldNumber;
 const int KeyData::kRevokeFieldNumber;
 const int KeyData::kStandbyFieldNumber;
-const int KeyData::kPublishFieldNumber;
 const int KeyData::kActiveFieldNumber;
+const int KeyData::kPublishFieldNumber;
 const int KeyData::kDeletedFieldNumber;
 #endif  // !_MSC_VER
 
@@ -869,19 +871,19 @@ KeyData::KeyData(const KeyData& from) {
 void KeyData::SharedCtor() {
   _cached_size_ = 0;
   locator_ = const_cast< ::std::string*>(&_default_locator_);
-  algorithm_ = 0;
-  inception_ = 0;
+  algorithm_ = 0u;
+  inception_ = 0u;
   ds_ = NULL;
   rrsig_ = NULL;
   dnskey_ = NULL;
   role_ = 1;
-  dsseen_ = false;
-  submittoparent_ = false;
-  introducing_ = false;
+  ds_seen_ = false;
+  submit_to_parent_ = false;
+  introducing_ = true;
   revoke_ = false;
   standby_ = false;
-  publish_ = false;
   active_ = false;
+  publish_ = false;
   _deleted_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -923,8 +925,8 @@ void KeyData::Clear() {
         locator_->clear();
       }
     }
-    algorithm_ = 0;
-    inception_ = 0;
+    algorithm_ = 0u;
+    inception_ = 0u;
     if (_has_bit(3)) {
       if (ds_ != NULL) ds_->::keystate::pb::KeyState::Clear();
     }
@@ -935,15 +937,15 @@ void KeyData::Clear() {
       if (dnskey_ != NULL) dnskey_->::keystate::pb::KeyState::Clear();
     }
     role_ = 1;
-    dsseen_ = false;
+    ds_seen_ = false;
   }
   if (_has_bits_[8 / 32] & (0xffu << (8 % 32))) {
-    submittoparent_ = false;
-    introducing_ = false;
+    submit_to_parent_ = false;
+    introducing_ = true;
     revoke_ = false;
     standby_ = false;
-    publish_ = false;
     active_ = false;
+    publish_ = false;
     _deleted_ = false;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -971,28 +973,28 @@ bool KeyData::MergePartialFromCodedStream(
         break;
       }
       
-      // required int32 algorithm = 2;
+      // required uint32 algorithm = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
        parse_algorithm:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
               input, &algorithm_));
         _set_bit(1);
         if (input->ExpectTag(24)) goto parse_inception;
         break;
       }
       
-      // required int32 inception = 3;
+      // required uint32 inception = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
        parse_inception:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
               input, &inception_));
         _set_bit(2);
         if (input->ExpectTag(34)) goto parse_ds;
@@ -1052,39 +1054,39 @@ bool KeyData::MergePartialFromCodedStream(
         } else {
           mutable_unknown_fields()->AddVarint(7, value);
         }
-        if (input->ExpectTag(64)) goto parse_dsseen;
+        if (input->ExpectTag(64)) goto parse_ds_seen;
         break;
       }
       
-      // optional bool dsseen = 8;
+      // optional bool ds_seen = 8 [default = false];
       case 8: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
-       parse_dsseen:
+       parse_ds_seen:
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
-              input, &dsseen_));
+              input, &ds_seen_));
         _set_bit(7);
-        if (input->ExpectTag(72)) goto parse_submitToParent;
+        if (input->ExpectTag(72)) goto parse_submit_to_parent;
         break;
       }
       
-      // optional bool submitToParent = 9;
+      // optional bool submit_to_parent = 9 [default = false];
       case 9: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
-       parse_submitToParent:
+       parse_submit_to_parent:
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
-              input, &submittoparent_));
+              input, &submit_to_parent_));
         _set_bit(8);
         if (input->ExpectTag(80)) goto parse_introducing;
         break;
       }
       
-      // optional bool introducing = 10;
+      // optional bool introducing = 10 [default = true];
       case 10: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1098,7 +1100,7 @@ bool KeyData::MergePartialFromCodedStream(
         break;
       }
       
-      // optional bool revoke = 11;
+      // optional bool revoke = 11 [default = false];
       case 11: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1112,7 +1114,7 @@ bool KeyData::MergePartialFromCodedStream(
         break;
       }
       
-      // optional bool standby = 12;
+      // optional bool standby = 12 [default = false];
       case 12: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1126,7 +1128,7 @@ bool KeyData::MergePartialFromCodedStream(
         break;
       }
       
-      // optional bool active = 13;
+      // optional bool active = 13 [default = false];
       case 13: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1135,12 +1137,12 @@ bool KeyData::MergePartialFromCodedStream(
        parse_active:
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
               input, &active_));
-        _set_bit(13);
+        _set_bit(12);
         if (input->ExpectTag(112)) goto parse_publish;
         break;
       }
       
-      // optional bool publish = 14;
+      // optional bool publish = 14 [default = false];
       case 14: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1149,12 +1151,12 @@ bool KeyData::MergePartialFromCodedStream(
        parse_publish:
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
               input, &publish_));
-        _set_bit(12);
+        _set_bit(13);
         if (input->ExpectTag(800)) goto parse__deleted;
         break;
       }
       
-      // optional bool _deleted = 100;
+      // optional bool _deleted = 100 [default = false];
       case 100: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1201,14 +1203,14 @@ void KeyData::SerializeWithCachedSizes(
       1, this->locator(), output);
   }
   
-  // required int32 algorithm = 2;
+  // required uint32 algorithm = 2;
   if (_has_bit(1)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->algorithm(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->algorithm(), output);
   }
   
-  // required int32 inception = 3;
+  // required uint32 inception = 3;
   if (_has_bit(2)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->inception(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(3, this->inception(), output);
   }
   
   // required .keystate.pb.KeyState ds = 4;
@@ -1235,42 +1237,42 @@ void KeyData::SerializeWithCachedSizes(
       7, this->role(), output);
   }
   
-  // optional bool dsseen = 8;
+  // optional bool ds_seen = 8 [default = false];
   if (_has_bit(7)) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(8, this->dsseen(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteBool(8, this->ds_seen(), output);
   }
   
-  // optional bool submitToParent = 9;
+  // optional bool submit_to_parent = 9 [default = false];
   if (_has_bit(8)) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(9, this->submittoparent(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteBool(9, this->submit_to_parent(), output);
   }
   
-  // optional bool introducing = 10;
+  // optional bool introducing = 10 [default = true];
   if (_has_bit(9)) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(10, this->introducing(), output);
   }
   
-  // optional bool revoke = 11;
+  // optional bool revoke = 11 [default = false];
   if (_has_bit(10)) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(11, this->revoke(), output);
   }
   
-  // optional bool standby = 12;
+  // optional bool standby = 12 [default = false];
   if (_has_bit(11)) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(12, this->standby(), output);
   }
   
-  // optional bool active = 13;
-  if (_has_bit(13)) {
+  // optional bool active = 13 [default = false];
+  if (_has_bit(12)) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(13, this->active(), output);
   }
   
-  // optional bool publish = 14;
-  if (_has_bit(12)) {
+  // optional bool publish = 14 [default = false];
+  if (_has_bit(13)) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(14, this->publish(), output);
   }
   
-  // optional bool _deleted = 100;
+  // optional bool _deleted = 100 [default = false];
   if (_has_bit(14)) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(100, this->_deleted(), output);
   }
@@ -1293,14 +1295,14 @@ void KeyData::SerializeWithCachedSizes(
         1, this->locator(), target);
   }
   
-  // required int32 algorithm = 2;
+  // required uint32 algorithm = 2;
   if (_has_bit(1)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->algorithm(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(2, this->algorithm(), target);
   }
   
-  // required int32 inception = 3;
+  // required uint32 inception = 3;
   if (_has_bit(2)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->inception(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(3, this->inception(), target);
   }
   
   // required .keystate.pb.KeyState ds = 4;
@@ -1330,42 +1332,42 @@ void KeyData::SerializeWithCachedSizes(
       7, this->role(), target);
   }
   
-  // optional bool dsseen = 8;
+  // optional bool ds_seen = 8 [default = false];
   if (_has_bit(7)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(8, this->dsseen(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(8, this->ds_seen(), target);
   }
   
-  // optional bool submitToParent = 9;
+  // optional bool submit_to_parent = 9 [default = false];
   if (_has_bit(8)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(9, this->submittoparent(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(9, this->submit_to_parent(), target);
   }
   
-  // optional bool introducing = 10;
+  // optional bool introducing = 10 [default = true];
   if (_has_bit(9)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(10, this->introducing(), target);
   }
   
-  // optional bool revoke = 11;
+  // optional bool revoke = 11 [default = false];
   if (_has_bit(10)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(11, this->revoke(), target);
   }
   
-  // optional bool standby = 12;
+  // optional bool standby = 12 [default = false];
   if (_has_bit(11)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(12, this->standby(), target);
   }
   
-  // optional bool active = 13;
-  if (_has_bit(13)) {
+  // optional bool active = 13 [default = false];
+  if (_has_bit(12)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(13, this->active(), target);
   }
   
-  // optional bool publish = 14;
-  if (_has_bit(12)) {
+  // optional bool publish = 14 [default = false];
+  if (_has_bit(13)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(14, this->publish(), target);
   }
   
-  // optional bool _deleted = 100;
+  // optional bool _deleted = 100 [default = false];
   if (_has_bit(14)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(100, this->_deleted(), target);
   }
@@ -1388,17 +1390,17 @@ int KeyData::ByteSize() const {
           this->locator());
     }
     
-    // required int32 algorithm = 2;
+    // required uint32 algorithm = 2;
     if (has_algorithm()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
           this->algorithm());
     }
     
-    // required int32 inception = 3;
+    // required uint32 inception = 3;
     if (has_inception()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
           this->inception());
     }
     
@@ -1429,44 +1431,44 @@ int KeyData::ByteSize() const {
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->role());
     }
     
-    // optional bool dsseen = 8;
-    if (has_dsseen()) {
+    // optional bool ds_seen = 8 [default = false];
+    if (has_ds_seen()) {
       total_size += 1 + 1;
     }
     
   }
   if (_has_bits_[8 / 32] & (0xffu << (8 % 32))) {
-    // optional bool submitToParent = 9;
-    if (has_submittoparent()) {
+    // optional bool submit_to_parent = 9 [default = false];
+    if (has_submit_to_parent()) {
       total_size += 1 + 1;
     }
     
-    // optional bool introducing = 10;
+    // optional bool introducing = 10 [default = true];
     if (has_introducing()) {
       total_size += 1 + 1;
     }
     
-    // optional bool revoke = 11;
+    // optional bool revoke = 11 [default = false];
     if (has_revoke()) {
       total_size += 1 + 1;
     }
     
-    // optional bool standby = 12;
+    // optional bool standby = 12 [default = false];
     if (has_standby()) {
       total_size += 1 + 1;
     }
     
-    // optional bool publish = 14;
-    if (has_publish()) {
-      total_size += 1 + 1;
-    }
-    
-    // optional bool active = 13;
+    // optional bool active = 13 [default = false];
     if (has_active()) {
       total_size += 1 + 1;
     }
     
-    // optional bool _deleted = 100;
+    // optional bool publish = 14 [default = false];
+    if (has_publish()) {
+      total_size += 1 + 1;
+    }
+    
+    // optional bool _deleted = 100 [default = false];
     if (has__deleted()) {
       total_size += 2 + 1;
     }
@@ -1518,12 +1520,12 @@ void KeyData::MergeFrom(const KeyData& from) {
       set_role(from.role());
     }
     if (from._has_bit(7)) {
-      set_dsseen(from.dsseen());
+      set_ds_seen(from.ds_seen());
     }
   }
   if (from._has_bits_[8 / 32] & (0xffu << (8 % 32))) {
     if (from._has_bit(8)) {
-      set_submittoparent(from.submittoparent());
+      set_submit_to_parent(from.submit_to_parent());
     }
     if (from._has_bit(9)) {
       set_introducing(from.introducing());
@@ -1535,10 +1537,10 @@ void KeyData::MergeFrom(const KeyData& from) {
       set_standby(from.standby());
     }
     if (from._has_bit(12)) {
-      set_publish(from.publish());
+      set_active(from.active());
     }
     if (from._has_bit(13)) {
-      set_active(from.active());
+      set_publish(from.publish());
     }
     if (from._has_bit(14)) {
       set__deleted(from._deleted());
@@ -1583,13 +1585,13 @@ void KeyData::Swap(KeyData* other) {
     std::swap(rrsig_, other->rrsig_);
     std::swap(dnskey_, other->dnskey_);
     std::swap(role_, other->role_);
-    std::swap(dsseen_, other->dsseen_);
-    std::swap(submittoparent_, other->submittoparent_);
+    std::swap(ds_seen_, other->ds_seen_);
+    std::swap(submit_to_parent_, other->submit_to_parent_);
     std::swap(introducing_, other->introducing_);
     std::swap(revoke_, other->revoke_);
     std::swap(standby_, other->standby_);
-    std::swap(publish_, other->publish_);
     std::swap(active_, other->active_);
+    std::swap(publish_, other->publish_);
     std::swap(_deleted_, other->_deleted_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
@@ -1629,7 +1631,7 @@ KeyState::KeyState(const KeyState& from) {
 void KeyState::SharedCtor() {
   _cached_size_ = 0;
   state_ = 0;
-  lastchange_ = 0;
+  last_change_ = 0u;
   minimize_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -1661,7 +1663,7 @@ KeyState* KeyState::New() const {
 void KeyState::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     state_ = 0;
-    lastchange_ = 0;
+    last_change_ = 0u;
     minimize_ = false;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -1683,25 +1685,25 @@ bool KeyState::MergePartialFromCodedStream(
         DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
               input, &state_));
         _set_bit(0);
-        if (input->ExpectTag(16)) goto parse_lastChange;
+        if (input->ExpectTag(16)) goto parse_last_change;
         break;
       }
       
-      // optional int32 lastChange = 2;
+      // optional uint32 last_change = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
-       parse_lastChange:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
-              input, &lastchange_));
+       parse_last_change:
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
+              input, &last_change_));
         _set_bit(1);
         if (input->ExpectTag(24)) goto parse_minimize;
         break;
       }
       
-      // optional bool minimize = 3;
+      // optional bool minimize = 3 [default = false];
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1744,12 +1746,12 @@ void KeyState::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->state(), output);
   }
   
-  // optional int32 lastChange = 2;
+  // optional uint32 last_change = 2;
   if (_has_bit(1)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->lastchange(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->last_change(), output);
   }
   
-  // optional bool minimize = 3;
+  // optional bool minimize = 3 [default = false];
   if (_has_bit(2)) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(3, this->minimize(), output);
   }
@@ -1767,12 +1769,12 @@ void KeyState::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->state(), target);
   }
   
-  // optional int32 lastChange = 2;
+  // optional uint32 last_change = 2;
   if (_has_bit(1)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->lastchange(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(2, this->last_change(), target);
   }
   
-  // optional bool minimize = 3;
+  // optional bool minimize = 3 [default = false];
   if (_has_bit(2)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(3, this->minimize(), target);
   }
@@ -1795,14 +1797,14 @@ int KeyState::ByteSize() const {
           this->state());
     }
     
-    // optional int32 lastChange = 2;
-    if (has_lastchange()) {
+    // optional uint32 last_change = 2;
+    if (has_last_change()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->lastchange());
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
+          this->last_change());
     }
     
-    // optional bool minimize = 3;
+    // optional bool minimize = 3 [default = false];
     if (has_minimize()) {
       total_size += 1 + 1;
     }
@@ -1836,7 +1838,7 @@ void KeyState::MergeFrom(const KeyState& from) {
       set_state(from.state());
     }
     if (from._has_bit(1)) {
-      set_lastchange(from.lastchange());
+      set_last_change(from.last_change());
     }
     if (from._has_bit(2)) {
       set_minimize(from.minimize());
@@ -1866,7 +1868,7 @@ bool KeyState::IsInitialized() const {
 void KeyState::Swap(KeyState* other) {
   if (other != this) {
     std::swap(state_, other->state_);
-    std::swap(lastchange_, other->lastchange_);
+    std::swap(last_change_, other->last_change_);
     std::swap(minimize_, other->minimize_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);

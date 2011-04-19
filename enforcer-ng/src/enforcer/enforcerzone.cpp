@@ -22,12 +22,12 @@ void KeyStatePB::setState(int value)
 
 int KeyStatePB::lastChange()
 {
-    return _keystate->lastchange();
+    return _keystate->last_change();
 }
 
 void KeyStatePB::setLastChange(int value)
 {
-    _keystate->set_lastchange( value );
+    _keystate->set_last_change( value );
 }
 
 bool KeyStatePB::minimize()
@@ -119,22 +119,22 @@ void KeyDataPB::setRole(KeyRole value)
 
 bool KeyDataPB::isDSSeen()
 {
-    return _keydata->dsseen();
+    return _keydata->ds_seen();
 }
 
 void KeyDataPB::setDSSeen(bool value)
 {
-    _keydata->set_dsseen( value );
+    _keydata->set_ds_seen( value );
 }
 
 bool KeyDataPB::submitToParent()
 {
-    return _keydata->submittoparent();
+    return _keydata->submit_to_parent();
 }
 
 void KeyDataPB::setSubmitToParent(bool value)
 {
-    _keydata->set_submittoparent( value );
+    _keydata->set_submit_to_parent( value );
 }
 
 bool KeyDataPB::introducing()
@@ -234,12 +234,12 @@ KeyDataList &EnforcerZonePB::keyDataList()
 
 bool EnforcerZonePB::signerConfNeedsWriting()
 {
-    return _zone->signconfneedswriting();
+    return _zone->signconf_needs_writing();
 }
 
 void EnforcerZonePB::setSignerConfNeedsWriting(bool value)
 {
-    _zone->set_signconfneedswriting(value);
+    _zone->set_signconf_needs_writing(value);
 }
 
 void EnforcerZonePB::beginTransaction()

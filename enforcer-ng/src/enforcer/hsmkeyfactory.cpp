@@ -102,6 +102,13 @@ void HsmKeyPB::setRevoke(bool value)
 // HsmKeyFactoryPB
 //////////////////////////////
 
+HsmKeyFactoryPB::HsmKeyFactoryPB(const ::hsmkey::pb::HsmKeyDocument *doc)
+: _doc(doc)
+{
+    
+}
+
+
 /* Create a new key with the specified number of bits (or retrieve it 
  from a pre-generated keypool)  */
 bool HsmKeyFactoryPB::CreateNewKey(int bits, HsmKey **ppKey)

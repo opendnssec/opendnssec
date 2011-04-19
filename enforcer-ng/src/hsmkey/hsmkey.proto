@@ -11,12 +11,12 @@ message HsmKeyDocument {
 
 message HsmKey {
     required string locator = 1;
-    optional bool candidateForSharing = 2 [default = false];
+    optional bool candidate_for_sharing = 2 [default = false];
     optional uint32 bits = 3 [default = 2048];
     optional string policy = 4 [default = "default"];
     optional uint32 algorithm = 5 [default = 1];
     optional keyrole role = 6 [default = ZSK];
-    repeated string usedByZones = 7;
+    repeated string used_by_zones = 7;
     optional uint32 inception = 8;
     optional bool revoke = 9 [default = false];
 } 

@@ -92,7 +92,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
     
         const ::keystate::pb::EnforcerZone &ks_zone = keystateDoc->zones(i);
         
-        if (!ks_zone.signconfneedswriting())
+        if (!ks_zone.signconf_needs_writing())
             continue;
 
         const ::kasp::pb::KASP &
@@ -212,7 +212,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
         else
             sc_zone->clear_audit();
 
-        WriteSignConf(ks_zone.signconfpath(), doc);
+        WriteSignConf(ks_zone.signconf_path(), doc);
         
         delete doc;
     }

@@ -13,35 +13,33 @@ message EnforcerZone {
     required string name = 1;
     required string policy = 2;
     repeated KeyData keys = 3;
-    required bool signConfNeedsWriting = 4;
-    required string signConfPath = 5;
+    required bool signconf_needs_writing = 4;
+    required string signconf_path = 5;
 } 
 
 message KeyData {
     required string locator = 1;
-    required int32 algorithm = 2;
-    required int32 inception = 3;
+    required uint32 algorithm = 2;
+    required uint32 inception = 3;
     required KeyState ds = 4;
     required KeyState rrsig = 5;
     required KeyState dnskey = 6;
     required keyrole role = 7;
-    optional bool dsseen = 8;
-    optional bool submitToParent = 9;
+    optional bool ds_seen = 8 [default = false]; 
+    optional bool submit_to_parent = 9 [default = false];
+    optional bool introducing = 10 [default=true];
+    optional bool revoke = 11 [default = false];
+    optional bool standby = 12 [default = false];
+    optional bool active = 13 [default = false];
+    optional bool publish = 14 [default = false];
 
-    optional bool introducing = 10;
-    optional bool revoke = 11;
-    optional bool standby = 12;
-
-    optional bool publish = 14;
-    optional bool active = 13;
-
-    optional bool _deleted = 100;
+    optional bool _deleted = 100 [default = false];
 }
 
 message KeyState {
     required int32 state = 1;
-    optional int32 lastChange = 2;
-    optional bool minimize = 3;
+    optional uint32 last_change = 2;
+    optional bool minimize = 3 [default = false];
 }
 
 enum keyrole {

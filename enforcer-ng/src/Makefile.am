@@ -51,6 +51,7 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				zone/update_task.cpp zone/update_task.h \
 				zone/zones_cmd.cpp zone/zones_cmd.h \
 				zone/zonelist.pb.cc zone/zonelist.pb.h \
+                hsmkey/hsmkey.pb.cc hsmkey/hsmkey.pb.h \
 				keystate/keystate.pb.cc keystate/keystate.pb.h \
 				signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 				signconf/signconf_task.cpp signconf/signconf_task.h \

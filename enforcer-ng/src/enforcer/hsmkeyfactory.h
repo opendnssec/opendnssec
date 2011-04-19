@@ -8,6 +8,8 @@
 
 #include <set>
 #include "enforcer/enforcerdata.h"
+#include "hsmkey/hsmkey.pb.h"
+
 
 class HsmKeyPB : public HsmKey {
 private:
@@ -53,8 +55,11 @@ public:
 
 class HsmKeyFactoryPB : public HsmKeyFactory {
 private:
+    const ::hsmkey::pb::HsmKeyDocument *_doc;
     std::vector<HsmKeyPB> _keys;
 public:
+    HsmKeyFactoryPB(const ::hsmkey::pb::HsmKeyDocument *doc);
+    
     virtual bool CreateNewKey(int bits, HsmKey **ppKey);
     
     virtual bool CreateSharedKey(int bits,

@@ -231,22 +231,22 @@ class EnforcerZone : public ::google::protobuf::Message {
   inline ::keystate::pb::KeyData* mutable_keys(int index);
   inline ::keystate::pb::KeyData* add_keys();
   
-  // required bool signConfNeedsWriting = 4;
-  inline bool has_signconfneedswriting() const;
-  inline void clear_signconfneedswriting();
-  static const int kSignConfNeedsWritingFieldNumber = 4;
-  inline bool signconfneedswriting() const;
-  inline void set_signconfneedswriting(bool value);
+  // required bool signconf_needs_writing = 4;
+  inline bool has_signconf_needs_writing() const;
+  inline void clear_signconf_needs_writing();
+  static const int kSignconfNeedsWritingFieldNumber = 4;
+  inline bool signconf_needs_writing() const;
+  inline void set_signconf_needs_writing(bool value);
   
-  // required string signConfPath = 5;
-  inline bool has_signconfpath() const;
-  inline void clear_signconfpath();
-  static const int kSignConfPathFieldNumber = 5;
-  inline const ::std::string& signconfpath() const;
-  inline void set_signconfpath(const ::std::string& value);
-  inline void set_signconfpath(const char* value);
-  inline void set_signconfpath(const char* value, size_t size);
-  inline ::std::string* mutable_signconfpath();
+  // required string signconf_path = 5;
+  inline bool has_signconf_path() const;
+  inline void clear_signconf_path();
+  static const int kSignconfPathFieldNumber = 5;
+  inline const ::std::string& signconf_path() const;
+  inline void set_signconf_path(const ::std::string& value);
+  inline void set_signconf_path(const char* value);
+  inline void set_signconf_path(const char* value, size_t size);
+  inline ::std::string* mutable_signconf_path();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -257,9 +257,9 @@ class EnforcerZone : public ::google::protobuf::Message {
   ::std::string* policy_;
   static const ::std::string _default_policy_;
   ::google::protobuf::RepeatedPtrField< ::keystate::pb::KeyData > keys_;
-  bool signconfneedswriting_;
-  ::std::string* signconfpath_;
-  static const ::std::string _default_signconfpath_;
+  bool signconf_needs_writing_;
+  ::std::string* signconf_path_;
+  static const ::std::string _default_signconf_path_;
   friend void  protobuf_AddDesc_keystate_2eproto();
   friend void protobuf_AssignDesc_keystate_2eproto();
   friend void protobuf_ShutdownFile_keystate_2eproto();
@@ -345,19 +345,19 @@ class KeyData : public ::google::protobuf::Message {
   inline void set_locator(const char* value, size_t size);
   inline ::std::string* mutable_locator();
   
-  // required int32 algorithm = 2;
+  // required uint32 algorithm = 2;
   inline bool has_algorithm() const;
   inline void clear_algorithm();
   static const int kAlgorithmFieldNumber = 2;
-  inline ::google::protobuf::int32 algorithm() const;
-  inline void set_algorithm(::google::protobuf::int32 value);
+  inline ::google::protobuf::uint32 algorithm() const;
+  inline void set_algorithm(::google::protobuf::uint32 value);
   
-  // required int32 inception = 3;
+  // required uint32 inception = 3;
   inline bool has_inception() const;
   inline void clear_inception();
   static const int kInceptionFieldNumber = 3;
-  inline ::google::protobuf::int32 inception() const;
-  inline void set_inception(::google::protobuf::int32 value);
+  inline ::google::protobuf::uint32 inception() const;
+  inline void set_inception(::google::protobuf::uint32 value);
   
   // required .keystate.pb.KeyState ds = 4;
   inline bool has_ds() const;
@@ -387,56 +387,56 @@ class KeyData : public ::google::protobuf::Message {
   inline keystate::pb::keyrole role() const;
   inline void set_role(keystate::pb::keyrole value);
   
-  // optional bool dsseen = 8;
-  inline bool has_dsseen() const;
-  inline void clear_dsseen();
-  static const int kDsseenFieldNumber = 8;
-  inline bool dsseen() const;
-  inline void set_dsseen(bool value);
+  // optional bool ds_seen = 8 [default = false];
+  inline bool has_ds_seen() const;
+  inline void clear_ds_seen();
+  static const int kDsSeenFieldNumber = 8;
+  inline bool ds_seen() const;
+  inline void set_ds_seen(bool value);
   
-  // optional bool submitToParent = 9;
-  inline bool has_submittoparent() const;
-  inline void clear_submittoparent();
+  // optional bool submit_to_parent = 9 [default = false];
+  inline bool has_submit_to_parent() const;
+  inline void clear_submit_to_parent();
   static const int kSubmitToParentFieldNumber = 9;
-  inline bool submittoparent() const;
-  inline void set_submittoparent(bool value);
+  inline bool submit_to_parent() const;
+  inline void set_submit_to_parent(bool value);
   
-  // optional bool introducing = 10;
+  // optional bool introducing = 10 [default = true];
   inline bool has_introducing() const;
   inline void clear_introducing();
   static const int kIntroducingFieldNumber = 10;
   inline bool introducing() const;
   inline void set_introducing(bool value);
   
-  // optional bool revoke = 11;
+  // optional bool revoke = 11 [default = false];
   inline bool has_revoke() const;
   inline void clear_revoke();
   static const int kRevokeFieldNumber = 11;
   inline bool revoke() const;
   inline void set_revoke(bool value);
   
-  // optional bool standby = 12;
+  // optional bool standby = 12 [default = false];
   inline bool has_standby() const;
   inline void clear_standby();
   static const int kStandbyFieldNumber = 12;
   inline bool standby() const;
   inline void set_standby(bool value);
   
-  // optional bool publish = 14;
-  inline bool has_publish() const;
-  inline void clear_publish();
-  static const int kPublishFieldNumber = 14;
-  inline bool publish() const;
-  inline void set_publish(bool value);
-  
-  // optional bool active = 13;
+  // optional bool active = 13 [default = false];
   inline bool has_active() const;
   inline void clear_active();
   static const int kActiveFieldNumber = 13;
   inline bool active() const;
   inline void set_active(bool value);
   
-  // optional bool _deleted = 100;
+  // optional bool publish = 14 [default = false];
+  inline bool has_publish() const;
+  inline void clear_publish();
+  static const int kPublishFieldNumber = 14;
+  inline bool publish() const;
+  inline void set_publish(bool value);
+  
+  // optional bool _deleted = 100 [default = false];
   inline bool has__deleted() const;
   inline void clear__deleted();
   static const int kDeletedFieldNumber = 100;
@@ -449,19 +449,19 @@ class KeyData : public ::google::protobuf::Message {
   
   ::std::string* locator_;
   static const ::std::string _default_locator_;
-  ::google::protobuf::int32 algorithm_;
-  ::google::protobuf::int32 inception_;
+  ::google::protobuf::uint32 algorithm_;
+  ::google::protobuf::uint32 inception_;
   ::keystate::pb::KeyState* ds_;
   ::keystate::pb::KeyState* rrsig_;
   ::keystate::pb::KeyState* dnskey_;
   int role_;
-  bool dsseen_;
-  bool submittoparent_;
+  bool ds_seen_;
+  bool submit_to_parent_;
   bool introducing_;
   bool revoke_;
   bool standby_;
-  bool publish_;
   bool active_;
+  bool publish_;
   bool _deleted_;
   friend void  protobuf_AddDesc_keystate_2eproto();
   friend void protobuf_AssignDesc_keystate_2eproto();
@@ -545,14 +545,14 @@ class KeyState : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 state() const;
   inline void set_state(::google::protobuf::int32 value);
   
-  // optional int32 lastChange = 2;
-  inline bool has_lastchange() const;
-  inline void clear_lastchange();
+  // optional uint32 last_change = 2;
+  inline bool has_last_change() const;
+  inline void clear_last_change();
   static const int kLastChangeFieldNumber = 2;
-  inline ::google::protobuf::int32 lastchange() const;
-  inline void set_lastchange(::google::protobuf::int32 value);
+  inline ::google::protobuf::uint32 last_change() const;
+  inline void set_last_change(::google::protobuf::uint32 value);
   
-  // optional bool minimize = 3;
+  // optional bool minimize = 3 [default = false];
   inline bool has_minimize() const;
   inline void clear_minimize();
   static const int kMinimizeFieldNumber = 3;
@@ -564,7 +564,7 @@ class KeyState : public ::google::protobuf::Message {
   mutable int _cached_size_;
   
   ::google::protobuf::int32 state_;
-  ::google::protobuf::int32 lastchange_;
+  ::google::protobuf::uint32 last_change_;
   bool minimize_;
   friend void  protobuf_AddDesc_keystate_2eproto();
   friend void protobuf_AssignDesc_keystate_2eproto();
@@ -734,62 +734,62 @@ inline ::keystate::pb::KeyData* EnforcerZone::add_keys() {
   return keys_.Add();
 }
 
-// required bool signConfNeedsWriting = 4;
-inline bool EnforcerZone::has_signconfneedswriting() const {
+// required bool signconf_needs_writing = 4;
+inline bool EnforcerZone::has_signconf_needs_writing() const {
   return _has_bit(3);
 }
-inline void EnforcerZone::clear_signconfneedswriting() {
-  signconfneedswriting_ = false;
+inline void EnforcerZone::clear_signconf_needs_writing() {
+  signconf_needs_writing_ = false;
   _clear_bit(3);
 }
-inline bool EnforcerZone::signconfneedswriting() const {
-  return signconfneedswriting_;
+inline bool EnforcerZone::signconf_needs_writing() const {
+  return signconf_needs_writing_;
 }
-inline void EnforcerZone::set_signconfneedswriting(bool value) {
+inline void EnforcerZone::set_signconf_needs_writing(bool value) {
   _set_bit(3);
-  signconfneedswriting_ = value;
+  signconf_needs_writing_ = value;
 }
 
-// required string signConfPath = 5;
-inline bool EnforcerZone::has_signconfpath() const {
+// required string signconf_path = 5;
+inline bool EnforcerZone::has_signconf_path() const {
   return _has_bit(4);
 }
-inline void EnforcerZone::clear_signconfpath() {
-  if (signconfpath_ != &_default_signconfpath_) {
-    signconfpath_->clear();
+inline void EnforcerZone::clear_signconf_path() {
+  if (signconf_path_ != &_default_signconf_path_) {
+    signconf_path_->clear();
   }
   _clear_bit(4);
 }
-inline const ::std::string& EnforcerZone::signconfpath() const {
-  return *signconfpath_;
+inline const ::std::string& EnforcerZone::signconf_path() const {
+  return *signconf_path_;
 }
-inline void EnforcerZone::set_signconfpath(const ::std::string& value) {
+inline void EnforcerZone::set_signconf_path(const ::std::string& value) {
   _set_bit(4);
-  if (signconfpath_ == &_default_signconfpath_) {
-    signconfpath_ = new ::std::string;
+  if (signconf_path_ == &_default_signconf_path_) {
+    signconf_path_ = new ::std::string;
   }
-  signconfpath_->assign(value);
+  signconf_path_->assign(value);
 }
-inline void EnforcerZone::set_signconfpath(const char* value) {
+inline void EnforcerZone::set_signconf_path(const char* value) {
   _set_bit(4);
-  if (signconfpath_ == &_default_signconfpath_) {
-    signconfpath_ = new ::std::string;
+  if (signconf_path_ == &_default_signconf_path_) {
+    signconf_path_ = new ::std::string;
   }
-  signconfpath_->assign(value);
+  signconf_path_->assign(value);
 }
-inline void EnforcerZone::set_signconfpath(const char* value, size_t size) {
+inline void EnforcerZone::set_signconf_path(const char* value, size_t size) {
   _set_bit(4);
-  if (signconfpath_ == &_default_signconfpath_) {
-    signconfpath_ = new ::std::string;
+  if (signconf_path_ == &_default_signconf_path_) {
+    signconf_path_ = new ::std::string;
   }
-  signconfpath_->assign(reinterpret_cast<const char*>(value), size);
+  signconf_path_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* EnforcerZone::mutable_signconfpath() {
+inline ::std::string* EnforcerZone::mutable_signconf_path() {
   _set_bit(4);
-  if (signconfpath_ == &_default_signconfpath_) {
-    signconfpath_ = new ::std::string;
+  if (signconf_path_ == &_default_signconf_path_) {
+    signconf_path_ = new ::std::string;
   }
-  return signconfpath_;
+  return signconf_path_;
 }
 
 // -------------------------------------------------------------------
@@ -838,34 +838,34 @@ inline ::std::string* KeyData::mutable_locator() {
   return locator_;
 }
 
-// required int32 algorithm = 2;
+// required uint32 algorithm = 2;
 inline bool KeyData::has_algorithm() const {
   return _has_bit(1);
 }
 inline void KeyData::clear_algorithm() {
-  algorithm_ = 0;
+  algorithm_ = 0u;
   _clear_bit(1);
 }
-inline ::google::protobuf::int32 KeyData::algorithm() const {
+inline ::google::protobuf::uint32 KeyData::algorithm() const {
   return algorithm_;
 }
-inline void KeyData::set_algorithm(::google::protobuf::int32 value) {
+inline void KeyData::set_algorithm(::google::protobuf::uint32 value) {
   _set_bit(1);
   algorithm_ = value;
 }
 
-// required int32 inception = 3;
+// required uint32 inception = 3;
 inline bool KeyData::has_inception() const {
   return _has_bit(2);
 }
 inline void KeyData::clear_inception() {
-  inception_ = 0;
+  inception_ = 0u;
   _clear_bit(2);
 }
-inline ::google::protobuf::int32 KeyData::inception() const {
+inline ::google::protobuf::uint32 KeyData::inception() const {
   return inception_;
 }
-inline void KeyData::set_inception(::google::protobuf::int32 value) {
+inline void KeyData::set_inception(::google::protobuf::uint32 value) {
   _set_bit(2);
   inception_ = value;
 }
@@ -938,44 +938,44 @@ inline void KeyData::set_role(keystate::pb::keyrole value) {
   role_ = value;
 }
 
-// optional bool dsseen = 8;
-inline bool KeyData::has_dsseen() const {
+// optional bool ds_seen = 8 [default = false];
+inline bool KeyData::has_ds_seen() const {
   return _has_bit(7);
 }
-inline void KeyData::clear_dsseen() {
-  dsseen_ = false;
+inline void KeyData::clear_ds_seen() {
+  ds_seen_ = false;
   _clear_bit(7);
 }
-inline bool KeyData::dsseen() const {
-  return dsseen_;
+inline bool KeyData::ds_seen() const {
+  return ds_seen_;
 }
-inline void KeyData::set_dsseen(bool value) {
+inline void KeyData::set_ds_seen(bool value) {
   _set_bit(7);
-  dsseen_ = value;
+  ds_seen_ = value;
 }
 
-// optional bool submitToParent = 9;
-inline bool KeyData::has_submittoparent() const {
+// optional bool submit_to_parent = 9 [default = false];
+inline bool KeyData::has_submit_to_parent() const {
   return _has_bit(8);
 }
-inline void KeyData::clear_submittoparent() {
-  submittoparent_ = false;
+inline void KeyData::clear_submit_to_parent() {
+  submit_to_parent_ = false;
   _clear_bit(8);
 }
-inline bool KeyData::submittoparent() const {
-  return submittoparent_;
+inline bool KeyData::submit_to_parent() const {
+  return submit_to_parent_;
 }
-inline void KeyData::set_submittoparent(bool value) {
+inline void KeyData::set_submit_to_parent(bool value) {
   _set_bit(8);
-  submittoparent_ = value;
+  submit_to_parent_ = value;
 }
 
-// optional bool introducing = 10;
+// optional bool introducing = 10 [default = true];
 inline bool KeyData::has_introducing() const {
   return _has_bit(9);
 }
 inline void KeyData::clear_introducing() {
-  introducing_ = false;
+  introducing_ = true;
   _clear_bit(9);
 }
 inline bool KeyData::introducing() const {
@@ -986,7 +986,7 @@ inline void KeyData::set_introducing(bool value) {
   introducing_ = value;
 }
 
-// optional bool revoke = 11;
+// optional bool revoke = 11 [default = false];
 inline bool KeyData::has_revoke() const {
   return _has_bit(10);
 }
@@ -1002,7 +1002,7 @@ inline void KeyData::set_revoke(bool value) {
   revoke_ = value;
 }
 
-// optional bool standby = 12;
+// optional bool standby = 12 [default = false];
 inline bool KeyData::has_standby() const {
   return _has_bit(11);
 }
@@ -1018,39 +1018,39 @@ inline void KeyData::set_standby(bool value) {
   standby_ = value;
 }
 
-// optional bool publish = 14;
-inline bool KeyData::has_publish() const {
-  return _has_bit(12);
-}
-inline void KeyData::clear_publish() {
-  publish_ = false;
-  _clear_bit(12);
-}
-inline bool KeyData::publish() const {
-  return publish_;
-}
-inline void KeyData::set_publish(bool value) {
-  _set_bit(12);
-  publish_ = value;
-}
-
-// optional bool active = 13;
+// optional bool active = 13 [default = false];
 inline bool KeyData::has_active() const {
-  return _has_bit(13);
+  return _has_bit(12);
 }
 inline void KeyData::clear_active() {
   active_ = false;
-  _clear_bit(13);
+  _clear_bit(12);
 }
 inline bool KeyData::active() const {
   return active_;
 }
 inline void KeyData::set_active(bool value) {
-  _set_bit(13);
+  _set_bit(12);
   active_ = value;
 }
 
-// optional bool _deleted = 100;
+// optional bool publish = 14 [default = false];
+inline bool KeyData::has_publish() const {
+  return _has_bit(13);
+}
+inline void KeyData::clear_publish() {
+  publish_ = false;
+  _clear_bit(13);
+}
+inline bool KeyData::publish() const {
+  return publish_;
+}
+inline void KeyData::set_publish(bool value) {
+  _set_bit(13);
+  publish_ = value;
+}
+
+// optional bool _deleted = 100 [default = false];
 inline bool KeyData::has__deleted() const {
   return _has_bit(14);
 }
@@ -1086,23 +1086,23 @@ inline void KeyState::set_state(::google::protobuf::int32 value) {
   state_ = value;
 }
 
-// optional int32 lastChange = 2;
-inline bool KeyState::has_lastchange() const {
+// optional uint32 last_change = 2;
+inline bool KeyState::has_last_change() const {
   return _has_bit(1);
 }
-inline void KeyState::clear_lastchange() {
-  lastchange_ = 0;
+inline void KeyState::clear_last_change() {
+  last_change_ = 0u;
   _clear_bit(1);
 }
-inline ::google::protobuf::int32 KeyState::lastchange() const {
-  return lastchange_;
+inline ::google::protobuf::uint32 KeyState::last_change() const {
+  return last_change_;
 }
-inline void KeyState::set_lastchange(::google::protobuf::int32 value) {
+inline void KeyState::set_last_change(::google::protobuf::uint32 value) {
   _set_bit(1);
-  lastchange_ = value;
+  last_change_ = value;
 }
 
-// optional bool minimize = 3;
+// optional bool minimize = 3 [default = false];
 inline bool KeyState::has_minimize() const {
   return _has_bit(2);
 }

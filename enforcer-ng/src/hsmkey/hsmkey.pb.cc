@@ -49,12 +49,12 @@ void protobuf_AssignDesc_hsmkey_2eproto() {
   HsmKey_descriptor_ = file->message_type(1);
   static const int HsmKey_offsets_[9] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, locator_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, candidateforsharing_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, candidate_for_sharing_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, bits_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, policy_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, algorithm_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, role_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, usedbyzones_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, used_by_zones_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, inception_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, revoke_),
   };
@@ -107,14 +107,14 @@ void protobuf_AddDesc_hsmkey_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\014hsmkey.proto\022\thsmkey.pb\032\014xmlext.proto\""
     "1\n\016HsmKeyDocument\022\037\n\004keys\030\001 \003(\0132\021.hsmkey"
-    ".pb.HsmKey\"\346\001\n\006HsmKey\022\017\n\007locator\030\001 \002(\t\022\""
-    "\n\023candidateForSharing\030\002 \001(\010:\005false\022\022\n\004bi"
-    "ts\030\003 \001(\r:\0042048\022\027\n\006policy\030\004 \001(\t:\007default\022"
-    "\024\n\talgorithm\030\005 \001(\r:\0011\022%\n\004role\030\006 \001(\0162\022.hs"
-    "mkey.pb.keyrole:\003ZSK\022\023\n\013usedByZones\030\007 \003("
-    "\t\022\021\n\tinception\030\010 \001(\r\022\025\n\006revoke\030\t \001(\010:\005fa"
-    "lse*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n\003CSK\020"
-    "\003", 361);
+    ".pb.HsmKey\"\352\001\n\006HsmKey\022\017\n\007locator\030\001 \002(\t\022$"
+    "\n\025candidate_for_sharing\030\002 \001(\010:\005false\022\022\n\004"
+    "bits\030\003 \001(\r:\0042048\022\027\n\006policy\030\004 \001(\t:\007defaul"
+    "t\022\024\n\talgorithm\030\005 \001(\r:\0011\022%\n\004role\030\006 \001(\0162\022."
+    "hsmkey.pb.keyrole:\003ZSK\022\025\n\rused_by_zones\030"
+    "\007 \003(\t\022\021\n\tinception\030\010 \001(\r\022\025\n\006revoke\030\t \001(\010"
+    ":\005false*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n\003"
+    "CSK\020\003", 365);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "hsmkey.proto", &protobuf_RegisterTypes);
   HsmKeyDocument::default_instance_ = new HsmKeyDocument();
@@ -379,7 +379,7 @@ HsmKey::HsmKey(const HsmKey& from) {
 void HsmKey::SharedCtor() {
   _cached_size_ = 0;
   locator_ = const_cast< ::std::string*>(&_default_locator_);
-  candidateforsharing_ = false;
+  candidate_for_sharing_ = false;
   bits_ = 2048u;
   policy_ = const_cast< ::std::string*>(&_default_policy_);
   algorithm_ = 1u;
@@ -426,7 +426,7 @@ void HsmKey::Clear() {
         locator_->clear();
       }
     }
-    candidateforsharing_ = false;
+    candidate_for_sharing_ = false;
     bits_ = 2048u;
     if (_has_bit(3)) {
       if (policy_ != &_default_policy_) {
@@ -440,7 +440,7 @@ void HsmKey::Clear() {
   if (_has_bits_[8 / 32] & (0xffu << (8 % 32))) {
     revoke_ = false;
   }
-  usedbyzones_.Clear();
+  used_by_zones_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -462,19 +462,19 @@ bool HsmKey::MergePartialFromCodedStream(
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
           this->locator().data(), this->locator().length(),
           ::google::protobuf::internal::WireFormat::PARSE);
-        if (input->ExpectTag(16)) goto parse_candidateForSharing;
+        if (input->ExpectTag(16)) goto parse_candidate_for_sharing;
         break;
       }
       
-      // optional bool candidateForSharing = 2 [default = false];
+      // optional bool candidate_for_sharing = 2 [default = false];
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
-       parse_candidateForSharing:
+       parse_candidate_for_sharing:
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
-              input, &candidateforsharing_));
+              input, &candidate_for_sharing_));
         _set_bit(1);
         if (input->ExpectTag(24)) goto parse_bits;
         break;
@@ -538,23 +538,23 @@ bool HsmKey::MergePartialFromCodedStream(
         } else {
           mutable_unknown_fields()->AddVarint(6, value);
         }
-        if (input->ExpectTag(58)) goto parse_usedByZones;
+        if (input->ExpectTag(58)) goto parse_used_by_zones;
         break;
       }
       
-      // repeated string usedByZones = 7;
+      // repeated string used_by_zones = 7;
       case 7: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
           goto handle_uninterpreted;
         }
-       parse_usedByZones:
+       parse_used_by_zones:
         DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-              input, this->add_usedbyzones()));
+              input, this->add_used_by_zones()));
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-          this->usedbyzones(0).data(), this->usedbyzones(0).length(),
+          this->used_by_zones(0).data(), this->used_by_zones(0).length(),
           ::google::protobuf::internal::WireFormat::PARSE);
-        if (input->ExpectTag(58)) goto parse_usedByZones;
+        if (input->ExpectTag(58)) goto parse_used_by_zones;
         if (input->ExpectTag(64)) goto parse_inception;
         break;
       }
@@ -620,9 +620,9 @@ void HsmKey::SerializeWithCachedSizes(
       1, this->locator(), output);
   }
   
-  // optional bool candidateForSharing = 2 [default = false];
+  // optional bool candidate_for_sharing = 2 [default = false];
   if (_has_bit(1)) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(2, this->candidateforsharing(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteBool(2, this->candidate_for_sharing(), output);
   }
   
   // optional uint32 bits = 3 [default = 2048];
@@ -650,13 +650,13 @@ void HsmKey::SerializeWithCachedSizes(
       6, this->role(), output);
   }
   
-  // repeated string usedByZones = 7;
-  for (int i = 0; i < this->usedbyzones_size(); i++) {
+  // repeated string used_by_zones = 7;
+  for (int i = 0; i < this->used_by_zones_size(); i++) {
   ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-    this->usedbyzones(i).data(), this->usedbyzones(i).length(),
+    this->used_by_zones(i).data(), this->used_by_zones(i).length(),
     ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      7, this->usedbyzones(i), output);
+      7, this->used_by_zones(i), output);
   }
   
   // optional uint32 inception = 8;
@@ -687,9 +687,9 @@ void HsmKey::SerializeWithCachedSizes(
         1, this->locator(), target);
   }
   
-  // optional bool candidateForSharing = 2 [default = false];
+  // optional bool candidate_for_sharing = 2 [default = false];
   if (_has_bit(1)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(2, this->candidateforsharing(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(2, this->candidate_for_sharing(), target);
   }
   
   // optional uint32 bits = 3 [default = 2048];
@@ -718,13 +718,13 @@ void HsmKey::SerializeWithCachedSizes(
       6, this->role(), target);
   }
   
-  // repeated string usedByZones = 7;
-  for (int i = 0; i < this->usedbyzones_size(); i++) {
+  // repeated string used_by_zones = 7;
+  for (int i = 0; i < this->used_by_zones_size(); i++) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->usedbyzones(i).data(), this->usedbyzones(i).length(),
+      this->used_by_zones(i).data(), this->used_by_zones(i).length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteStringToArray(7, this->usedbyzones(i), target);
+      WriteStringToArray(7, this->used_by_zones(i), target);
   }
   
   // optional uint32 inception = 8;
@@ -755,8 +755,8 @@ int HsmKey::ByteSize() const {
           this->locator());
     }
     
-    // optional bool candidateForSharing = 2 [default = false];
-    if (has_candidateforsharing()) {
+    // optional bool candidate_for_sharing = 2 [default = false];
+    if (has_candidate_for_sharing()) {
       total_size += 1 + 1;
     }
     
@@ -802,11 +802,11 @@ int HsmKey::ByteSize() const {
     }
     
   }
-  // repeated string usedByZones = 7;
-  total_size += 1 * this->usedbyzones_size();
-  for (int i = 0; i < this->usedbyzones_size(); i++) {
+  // repeated string used_by_zones = 7;
+  total_size += 1 * this->used_by_zones_size();
+  for (int i = 0; i < this->used_by_zones_size(); i++) {
     total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
-      this->usedbyzones(i));
+      this->used_by_zones(i));
   }
   
   if (!unknown_fields().empty()) {
@@ -832,13 +832,13 @@ void HsmKey::MergeFrom(const ::google::protobuf::Message& from) {
 
 void HsmKey::MergeFrom(const HsmKey& from) {
   GOOGLE_CHECK_NE(&from, this);
-  usedbyzones_.MergeFrom(from.usedbyzones_);
+  used_by_zones_.MergeFrom(from.used_by_zones_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from._has_bit(0)) {
       set_locator(from.locator());
     }
     if (from._has_bit(1)) {
-      set_candidateforsharing(from.candidateforsharing());
+      set_candidate_for_sharing(from.candidate_for_sharing());
     }
     if (from._has_bit(2)) {
       set_bits(from.bits());
@@ -885,12 +885,12 @@ bool HsmKey::IsInitialized() const {
 void HsmKey::Swap(HsmKey* other) {
   if (other != this) {
     std::swap(locator_, other->locator_);
-    std::swap(candidateforsharing_, other->candidateforsharing_);
+    std::swap(candidate_for_sharing_, other->candidate_for_sharing_);
     std::swap(bits_, other->bits_);
     std::swap(policy_, other->policy_);
     std::swap(algorithm_, other->algorithm_);
     std::swap(role_, other->role_);
-    usedbyzones_.Swap(&other->usedbyzones_);
+    used_by_zones_.Swap(&other->used_by_zones_);
     std::swap(inception_, other->inception_);
     std::swap(revoke_, other->revoke_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);

@@ -209,12 +209,12 @@ class HsmKey : public ::google::protobuf::Message {
   inline void set_locator(const char* value, size_t size);
   inline ::std::string* mutable_locator();
   
-  // optional bool candidateForSharing = 2 [default = false];
-  inline bool has_candidateforsharing() const;
-  inline void clear_candidateforsharing();
+  // optional bool candidate_for_sharing = 2 [default = false];
+  inline bool has_candidate_for_sharing() const;
+  inline void clear_candidate_for_sharing();
   static const int kCandidateForSharingFieldNumber = 2;
-  inline bool candidateforsharing() const;
-  inline void set_candidateforsharing(bool value);
+  inline bool candidate_for_sharing() const;
+  inline void set_candidate_for_sharing(bool value);
   
   // optional uint32 bits = 3 [default = 2048];
   inline bool has_bits() const;
@@ -247,21 +247,21 @@ class HsmKey : public ::google::protobuf::Message {
   inline hsmkey::pb::keyrole role() const;
   inline void set_role(hsmkey::pb::keyrole value);
   
-  // repeated string usedByZones = 7;
-  inline int usedbyzones_size() const;
-  inline void clear_usedbyzones();
+  // repeated string used_by_zones = 7;
+  inline int used_by_zones_size() const;
+  inline void clear_used_by_zones();
   static const int kUsedByZonesFieldNumber = 7;
-  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& usedbyzones() const;
-  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_usedbyzones();
-  inline const ::std::string& usedbyzones(int index) const;
-  inline ::std::string* mutable_usedbyzones(int index);
-  inline void set_usedbyzones(int index, const ::std::string& value);
-  inline void set_usedbyzones(int index, const char* value);
-  inline void set_usedbyzones(int index, const char* value, size_t size);
-  inline ::std::string* add_usedbyzones();
-  inline void add_usedbyzones(const ::std::string& value);
-  inline void add_usedbyzones(const char* value);
-  inline void add_usedbyzones(const char* value, size_t size);
+  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& used_by_zones() const;
+  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_used_by_zones();
+  inline const ::std::string& used_by_zones(int index) const;
+  inline ::std::string* mutable_used_by_zones(int index);
+  inline void set_used_by_zones(int index, const ::std::string& value);
+  inline void set_used_by_zones(int index, const char* value);
+  inline void set_used_by_zones(int index, const char* value, size_t size);
+  inline ::std::string* add_used_by_zones();
+  inline void add_used_by_zones(const ::std::string& value);
+  inline void add_used_by_zones(const char* value);
+  inline void add_used_by_zones(const char* value, size_t size);
   
   // optional uint32 inception = 8;
   inline bool has_inception() const;
@@ -283,13 +283,13 @@ class HsmKey : public ::google::protobuf::Message {
   
   ::std::string* locator_;
   static const ::std::string _default_locator_;
-  bool candidateforsharing_;
+  bool candidate_for_sharing_;
   ::google::protobuf::uint32 bits_;
   ::std::string* policy_;
   static const ::std::string _default_policy_;
   ::google::protobuf::uint32 algorithm_;
   int role_;
-  ::google::protobuf::RepeatedPtrField< ::std::string> usedbyzones_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> used_by_zones_;
   ::google::protobuf::uint32 inception_;
   bool revoke_;
   friend void  protobuf_AddDesc_hsmkey_2eproto();
@@ -393,20 +393,20 @@ inline ::std::string* HsmKey::mutable_locator() {
   return locator_;
 }
 
-// optional bool candidateForSharing = 2 [default = false];
-inline bool HsmKey::has_candidateforsharing() const {
+// optional bool candidate_for_sharing = 2 [default = false];
+inline bool HsmKey::has_candidate_for_sharing() const {
   return _has_bit(1);
 }
-inline void HsmKey::clear_candidateforsharing() {
-  candidateforsharing_ = false;
+inline void HsmKey::clear_candidate_for_sharing() {
+  candidate_for_sharing_ = false;
   _clear_bit(1);
 }
-inline bool HsmKey::candidateforsharing() const {
-  return candidateforsharing_;
+inline bool HsmKey::candidate_for_sharing() const {
+  return candidate_for_sharing_;
 }
-inline void HsmKey::set_candidateforsharing(bool value) {
+inline void HsmKey::set_candidate_for_sharing(bool value) {
   _set_bit(1);
-  candidateforsharing_ = value;
+  candidate_for_sharing_ = value;
 }
 
 // optional uint32 bits = 3 [default = 2048];
@@ -500,48 +500,48 @@ inline void HsmKey::set_role(hsmkey::pb::keyrole value) {
   role_ = value;
 }
 
-// repeated string usedByZones = 7;
-inline int HsmKey::usedbyzones_size() const {
-  return usedbyzones_.size();
+// repeated string used_by_zones = 7;
+inline int HsmKey::used_by_zones_size() const {
+  return used_by_zones_.size();
 }
-inline void HsmKey::clear_usedbyzones() {
-  usedbyzones_.Clear();
+inline void HsmKey::clear_used_by_zones() {
+  used_by_zones_.Clear();
 }
 inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-HsmKey::usedbyzones() const {
-  return usedbyzones_;
+HsmKey::used_by_zones() const {
+  return used_by_zones_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-HsmKey::mutable_usedbyzones() {
-  return &usedbyzones_;
+HsmKey::mutable_used_by_zones() {
+  return &used_by_zones_;
 }
-inline const ::std::string& HsmKey::usedbyzones(int index) const {
-  return usedbyzones_.Get(index);
+inline const ::std::string& HsmKey::used_by_zones(int index) const {
+  return used_by_zones_.Get(index);
 }
-inline ::std::string* HsmKey::mutable_usedbyzones(int index) {
-  return usedbyzones_.Mutable(index);
+inline ::std::string* HsmKey::mutable_used_by_zones(int index) {
+  return used_by_zones_.Mutable(index);
 }
-inline void HsmKey::set_usedbyzones(int index, const ::std::string& value) {
-  usedbyzones_.Mutable(index)->assign(value);
+inline void HsmKey::set_used_by_zones(int index, const ::std::string& value) {
+  used_by_zones_.Mutable(index)->assign(value);
 }
-inline void HsmKey::set_usedbyzones(int index, const char* value) {
-  usedbyzones_.Mutable(index)->assign(value);
+inline void HsmKey::set_used_by_zones(int index, const char* value) {
+  used_by_zones_.Mutable(index)->assign(value);
 }
-inline void HsmKey::set_usedbyzones(int index, const char* value, size_t size) {
-  usedbyzones_.Mutable(index)->assign(
+inline void HsmKey::set_used_by_zones(int index, const char* value, size_t size) {
+  used_by_zones_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* HsmKey::add_usedbyzones() {
-  return usedbyzones_.Add();
+inline ::std::string* HsmKey::add_used_by_zones() {
+  return used_by_zones_.Add();
 }
-inline void HsmKey::add_usedbyzones(const ::std::string& value) {
-  usedbyzones_.Add()->assign(value);
+inline void HsmKey::add_used_by_zones(const ::std::string& value) {
+  used_by_zones_.Add()->assign(value);
 }
-inline void HsmKey::add_usedbyzones(const char* value) {
-  usedbyzones_.Add()->assign(value);
+inline void HsmKey::add_used_by_zones(const char* value) {
+  used_by_zones_.Add()->assign(value);
 }
-inline void HsmKey::add_usedbyzones(const char* value, size_t size) {
-  usedbyzones_.Add()->assign(reinterpret_cast<const char*>(value), size);
+inline void HsmKey::add_used_by_zones(const char* value, size_t size) {
+  used_by_zones_.Add()->assign(reinterpret_cast<const char*>(value), size);
 }
 
 // optional uint32 inception = 8;
