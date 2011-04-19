@@ -51,6 +51,8 @@
 		A7ACCD0D1352E0730003E535 /* enforcerzone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0B1352E0730003E535 /* enforcerzone.cpp */; };
 		A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0C1352E0730003E535 /* hsmkeyfactory.cpp */; };
 		A7CFAD61135D7ED500E85BE4 /* hsmkey.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7790E5C135CF27100EED13E /* hsmkey.pb.cc */; };
+		A7CFAD6E135D8A8900E85BE4 /* keypregen_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7CFAD68135D84DB00E85BE4 /* keypregen_task.cpp */; };
+		A7CFAD6F135D8A8D00E85BE4 /* keypregen_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7CFAD6A135D84DB00E85BE4 /* keypregen_cmd.cpp */; };
 		A7E70DC4134B956400B13EA0 /* enforcer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC3134B956400B13EA0 /* enforcer.cpp */; };
 		A7E70DCD134C409000B13EA0 /* enforce_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC9134C408F00B13EA0 /* enforce_task.cpp */; };
 		A7E70DE7134D259900B13EA0 /* enforce_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC8134C408E00B13EA0 /* enforce_cmd.cpp */; };
@@ -148,6 +150,10 @@
 		A7ACCD0A1352E0730003E535 /* hsmkeyfactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkeyfactory.h; sourceTree = "<group>"; };
 		A7ACCD0B1352E0730003E535 /* enforcerzone.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforcerzone.cpp; sourceTree = "<group>"; };
 		A7ACCD0C1352E0730003E535 /* hsmkeyfactory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkeyfactory.cpp; sourceTree = "<group>"; };
+		A7CFAD67135D84DB00E85BE4 /* keypregen_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = keypregen_task.h; sourceTree = "<group>"; };
+		A7CFAD68135D84DB00E85BE4 /* keypregen_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = keypregen_task.cpp; sourceTree = "<group>"; };
+		A7CFAD69135D84DB00E85BE4 /* keypregen_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = keypregen_cmd.h; sourceTree = "<group>"; };
+		A7CFAD6A135D84DB00E85BE4 /* keypregen_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = keypregen_cmd.cpp; sourceTree = "<group>"; };
 		A7E70DC3134B956400B13EA0 /* enforcer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforcer.cpp; sourceTree = "<group>"; };
 		A7E70DC8134C408E00B13EA0 /* enforce_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforce_cmd.cpp; sourceTree = "<group>"; };
 		A7E70DC9134C408F00B13EA0 /* enforce_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforce_task.cpp; sourceTree = "<group>"; };
@@ -359,6 +365,10 @@
 		A7790E58135CE27B00EED13E /* hsmkey */ = {
 			isa = PBXGroup;
 			children = (
+				A7CFAD69135D84DB00E85BE4 /* keypregen_cmd.h */,
+				A7CFAD6A135D84DB00E85BE4 /* keypregen_cmd.cpp */,
+				A7CFAD67135D84DB00E85BE4 /* keypregen_task.h */,
+				A7CFAD68135D84DB00E85BE4 /* keypregen_task.cpp */,
 				A7790E59135CE27C00EED13E /* hsmkey.proto */,
 				A7790E5B135CF27100EED13E /* hsmkey.pb.h */,
 				A7790E5C135CF27100EED13E /* hsmkey.pb.cc */,
@@ -523,6 +533,8 @@
 				A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */,
 				A70EA75F13549A1D00D929CC /* xmlext-wr.cpp in Sources */,
 				A7CFAD61135D7ED500E85BE4 /* hsmkey.pb.cc in Sources */,
+				A7CFAD6E135D8A8900E85BE4 /* keypregen_task.cpp in Sources */,
+				A7CFAD6F135D8A8D00E85BE4 /* keypregen_cmd.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

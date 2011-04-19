@@ -41,6 +41,7 @@
 #include "zone/update_cmd.h"
 #include "policy/policies_cmd.h"
 #include "signconf/signconf_cmd.h"
+#include "hsmkey/keypregen_cmd.h"
 
 
 /* System libraries last */
@@ -101,6 +102,7 @@ version(FILE* out)
 static help_xxxx_cmd_type enforcer_help[] = {
     help_enforce_zones_cmd,
     help_zones_cmd,
+    help_keypregen_cmd,
     help_update_cmd,
     help_policies_cmd,
     help_signconf_cmd,
@@ -119,6 +121,7 @@ static handled_xxxx_cmd_type
 enforcer_commands[] = {
     handled_enforce_zones_cmd,
     handled_zones_cmd,
+    handled_keypregen_cmd,
     handled_update_cmd,
     handled_policies_cmd,
     handled_signconf_cmd,
