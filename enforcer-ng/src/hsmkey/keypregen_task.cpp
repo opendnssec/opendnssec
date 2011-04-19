@@ -17,7 +17,7 @@ extern "C" {
 static const char *keypregen_task_str = "keypregen_task";
 
 
-bool generate_key(int num, std::string &locator)
+bool generate_key(int num, unsigned int bits, std::string &locator)
 {
     char buf[ODS_SE_MAXLINE];
     snprintf(buf,ODS_SE_MAXLINE,"%.4xe1241707c55f7c4bc35743151e71",num);
@@ -72,9 +72,11 @@ perform_keypregen(int sockfd, engineconfig_type *config)
         bkeysgenerated = true;
 
         std::string locator;
-        if (generate_key(hsmkeyDoc->keys_size(), locator))
+        unsigned int bits = nfreekeys&1 ? 1536 : 2048;
+        if (generate_key(hsmkeyDoc->keys_size(), bits, locator)) {
             key->set_locator(locator);
-        else {
+            key->set_bits(bits);
+        } else {
             ods_log_error("[%s] Error during key generation",
                           keypregen_task_str);
             break;
