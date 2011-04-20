@@ -18,7 +18,7 @@ extern "C" {
  * */
 enum RecordState { HID, RUM, COM, OMN, UNR, PCM, REV };
 
-#define NOKEY_TIMEOUT 60
+#define NOKEY_TIMEOUT (time_now()+60)
 
 using namespace std;
 

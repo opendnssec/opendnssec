@@ -195,6 +195,12 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
 
         if (t_next == -1)
             continue;
+        
+        if (t_next < time_now()) {
+            ods_log_error("[%s] enforcer asked to be scheduled in the past for "
+                          "zone %s", enforce_task_str, ks_zone.name().c_str());
+            continue;
+        }
 
         // If this enforcer wants a reschedule earlier than currently
         // set, then use that.
