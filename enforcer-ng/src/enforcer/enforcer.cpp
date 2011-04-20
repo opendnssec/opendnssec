@@ -36,7 +36,7 @@ inline void minTime(const time_t t, time_t &min) {
  * must match and it must be a first generation key. 
  * */
 bool getLastReusableKey( EnforcerZone &zone,
-		const kasp::pb::Policy *policy, const KeyRole role,
+		const ::ods::kasp::Policy *policy, const KeyRole role,
 		int bits, int algorithm, const time_t now, HsmKey **ppKey,
 		HsmKeyFactory &keyfactory, int lifetime) {
 	if (not keyfactory.UseSharedKey(bits, policy->name(), algorithm,
@@ -652,7 +652,7 @@ time_t updateZone(EnforcerZone &zone, const time_t now) {
 }
 
 /* Abstraction to generalize different kind of keys. */
-int numberOfKeys(const kasp::pb::Keys *policyKeys, const KeyRole role) {
+int numberOfKeys(const ::ods::kasp::Keys *policyKeys, const KeyRole role) {
 	switch (role) {
 		case KSK:
 			return policyKeys->ksk_size();
@@ -666,7 +666,7 @@ int numberOfKeys(const kasp::pb::Keys *policyKeys, const KeyRole role) {
 }
 
 /* Abstraction to generalize different kind of keys. */
-void keyProperties(const kasp::pb::Keys *policyKeys, const KeyRole role,
+void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
 		const int index, int *bits, int *algorithm, int *lifetime) {
 	switch (role) {
 		case KSK:
@@ -695,10 +695,10 @@ void keyProperties(const kasp::pb::Keys *policyKeys, const KeyRole role,
 /* See what needs to be done for the policy*/
 time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory) {
 	time_t return_at = -1;
-	const kasp::pb::Policy *policy = zone.policy();
+	const ::ods::kasp::Policy *policy = zone.policy();
 
 	/* first look at policy */
-	kasp::pb::Keys policyKeys = policy->keys();
+	::ods::kasp::Keys policyKeys = policy->keys();
 	const std::string policyName = policy->name();
 
 	int bits, algorithm, lifetime;

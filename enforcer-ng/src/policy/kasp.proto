@@ -4,7 +4,7 @@
 // OpenDNSSEC wiki and from the kasp.rnc file. We try to adhere to the contraints 
 // expressed in the kasp.rnc file as closely as possible.
 
-package kasp.pb;
+package ods.kasp;
 
 import "xmlext.proto";
 

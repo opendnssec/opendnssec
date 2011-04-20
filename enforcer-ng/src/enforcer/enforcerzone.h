@@ -92,17 +92,17 @@ public:
 class EnforcerZonePB : public EnforcerZone {
 private:
     ::ods::keystate::EnforcerZone *_zone;
-    const kasp::pb::Policy *_policy;
+    const ::ods::kasp::Policy *_policy;
 
     KeyDataListPB _keyDataList;
 public:
-    EnforcerZonePB(::ods::keystate::EnforcerZone *zone, const kasp::pb::Policy *policy);
+    EnforcerZonePB(::ods::keystate::EnforcerZone *zone, const ::ods::kasp::Policy *policy);
 
     /* Get access to the policy for associated with this zone */
     virtual const std::string &name();
     
     /* Get access to the policy for associated with this zone */
-    virtual const kasp::pb::Policy *policy();
+    virtual const ::ods::kasp::Policy *policy();
     
     /* Get access to the list of KeyData entries for this zone. */
     virtual KeyDataList &keyDataList();

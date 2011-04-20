@@ -27,7 +27,7 @@ perform_update(int sockfd, engineconfig_type *config)
 
     /*
      // Dump the meta-information of the KaspDocument.
-     ::google::protobuf::Message *msg  = new ::kasp::pb::KaspDocument;
+     ::google::protobuf::Message *msg  = new ::ods::kasp::KaspDocument;
      recurse_dump_descriptor(msg->GetDescriptor());
      delete msg;
      */

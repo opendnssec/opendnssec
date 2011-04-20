@@ -24,8 +24,8 @@
 #include <google/protobuf/generated_message_reflection.h>
 #include "xmlext.pb.h"
 
+namespace ods {
 namespace kasp {
-namespace pb {
 
 // Internal implementation detail -- do not call these.
 void  protobuf_AddDesc_kasp_2eproto();
@@ -122,18 +122,18 @@ class KaspDocument : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // required .kasp.pb.KASP kasp = 2;
+  // required .ods.kasp.KASP kasp = 2;
   inline bool has_kasp() const;
   inline void clear_kasp();
   static const int kKaspFieldNumber = 2;
-  inline const ::kasp::pb::KASP& kasp() const;
-  inline ::kasp::pb::KASP* mutable_kasp();
+  inline const ::ods::kasp::KASP& kasp() const;
+  inline ::ods::kasp::KASP* mutable_kasp();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::kasp::pb::KASP* kasp_;
+  ::ods::kasp::KASP* kasp_;
   friend void  protobuf_AddDesc_kasp_2eproto();
   friend void protobuf_AssignDesc_kasp_2eproto();
   friend void protobuf_ShutdownFile_kasp_2eproto();
@@ -209,21 +209,21 @@ class KASP : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // repeated .kasp.pb.Policy policies = 1;
+  // repeated .ods.kasp.Policy policies = 1;
   inline int policies_size() const;
   inline void clear_policies();
   static const int kPoliciesFieldNumber = 1;
-  inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Policy >& policies() const;
-  inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Policy >* mutable_policies();
-  inline const ::kasp::pb::Policy& policies(int index) const;
-  inline ::kasp::pb::Policy* mutable_policies(int index);
-  inline ::kasp::pb::Policy* add_policies();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Policy >& policies() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Policy >* mutable_policies();
+  inline const ::ods::kasp::Policy& policies(int index) const;
+  inline ::ods::kasp::Policy* mutable_policies(int index);
+  inline ::ods::kasp::Policy* add_policies();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::google::protobuf::RepeatedPtrField< ::kasp::pb::Policy > policies_;
+  ::google::protobuf::RepeatedPtrField< ::ods::kasp::Policy > policies_;
   friend void  protobuf_AddDesc_kasp_2eproto();
   friend void protobuf_AssignDesc_kasp_2eproto();
   friend void protobuf_ShutdownFile_kasp_2eproto();
@@ -319,50 +319,50 @@ class Policy : public ::google::protobuf::Message {
   inline void set_description(const char* value, size_t size);
   inline ::std::string* mutable_description();
   
-  // required .kasp.pb.Signatures signatures = 3;
+  // required .ods.kasp.Signatures signatures = 3;
   inline bool has_signatures() const;
   inline void clear_signatures();
   static const int kSignaturesFieldNumber = 3;
-  inline const ::kasp::pb::Signatures& signatures() const;
-  inline ::kasp::pb::Signatures* mutable_signatures();
+  inline const ::ods::kasp::Signatures& signatures() const;
+  inline ::ods::kasp::Signatures* mutable_signatures();
   
-  // required .kasp.pb.Denial denial = 4;
+  // required .ods.kasp.Denial denial = 4;
   inline bool has_denial() const;
   inline void clear_denial();
   static const int kDenialFieldNumber = 4;
-  inline const ::kasp::pb::Denial& denial() const;
-  inline ::kasp::pb::Denial* mutable_denial();
+  inline const ::ods::kasp::Denial& denial() const;
+  inline ::ods::kasp::Denial* mutable_denial();
   
-  // required .kasp.pb.Keys keys = 5;
+  // required .ods.kasp.Keys keys = 5;
   inline bool has_keys() const;
   inline void clear_keys();
   static const int kKeysFieldNumber = 5;
-  inline const ::kasp::pb::Keys& keys() const;
-  inline ::kasp::pb::Keys* mutable_keys();
+  inline const ::ods::kasp::Keys& keys() const;
+  inline ::ods::kasp::Keys* mutable_keys();
   
-  // required .kasp.pb.Zone zone = 6;
+  // required .ods.kasp.Zone zone = 6;
   inline bool has_zone() const;
   inline void clear_zone();
   static const int kZoneFieldNumber = 6;
-  inline const ::kasp::pb::Zone& zone() const;
-  inline ::kasp::pb::Zone* mutable_zone();
+  inline const ::ods::kasp::Zone& zone() const;
+  inline ::ods::kasp::Zone* mutable_zone();
   
-  // required .kasp.pb.Parent parent = 7;
+  // required .ods.kasp.Parent parent = 7;
   inline bool has_parent() const;
   inline void clear_parent();
   static const int kParentFieldNumber = 7;
-  inline const ::kasp::pb::Parent& parent() const;
-  inline ::kasp::pb::Parent* mutable_parent();
+  inline const ::ods::kasp::Parent& parent() const;
+  inline ::ods::kasp::Parent* mutable_parent();
   
-  // repeated .kasp.pb.Audit audit = 8;
+  // repeated .ods.kasp.Audit audit = 8;
   inline int audit_size() const;
   inline void clear_audit();
   static const int kAuditFieldNumber = 8;
-  inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Audit >& audit() const;
-  inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Audit >* mutable_audit();
-  inline const ::kasp::pb::Audit& audit(int index) const;
-  inline ::kasp::pb::Audit* mutable_audit(int index);
-  inline ::kasp::pb::Audit* add_audit();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Audit >& audit() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Audit >* mutable_audit();
+  inline const ::ods::kasp::Audit& audit(int index) const;
+  inline ::ods::kasp::Audit* mutable_audit(int index);
+  inline ::ods::kasp::Audit* add_audit();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -372,12 +372,12 @@ class Policy : public ::google::protobuf::Message {
   static const ::std::string _default_name_;
   ::std::string* description_;
   static const ::std::string _default_description_;
-  ::kasp::pb::Signatures* signatures_;
-  ::kasp::pb::Denial* denial_;
-  ::kasp::pb::Keys* keys_;
-  ::kasp::pb::Zone* zone_;
-  ::kasp::pb::Parent* parent_;
-  ::google::protobuf::RepeatedPtrField< ::kasp::pb::Audit > audit_;
+  ::ods::kasp::Signatures* signatures_;
+  ::ods::kasp::Denial* denial_;
+  ::ods::kasp::Keys* keys_;
+  ::ods::kasp::Zone* zone_;
+  ::ods::kasp::Parent* parent_;
+  ::google::protobuf::RepeatedPtrField< ::ods::kasp::Audit > audit_;
   friend void  protobuf_AddDesc_kasp_2eproto();
   friend void protobuf_AssignDesc_kasp_2eproto();
   friend void protobuf_ShutdownFile_kasp_2eproto();
@@ -588,26 +588,26 @@ class Denial : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // optional .kasp.pb.NSEC nsec = 1;
+  // optional .ods.kasp.NSEC nsec = 1;
   inline bool has_nsec() const;
   inline void clear_nsec();
   static const int kNsecFieldNumber = 1;
-  inline const ::kasp::pb::NSEC& nsec() const;
-  inline ::kasp::pb::NSEC* mutable_nsec();
+  inline const ::ods::kasp::NSEC& nsec() const;
+  inline ::ods::kasp::NSEC* mutable_nsec();
   
-  // optional .kasp.pb.NSEC3 nsec3 = 2;
+  // optional .ods.kasp.NSEC3 nsec3 = 2;
   inline bool has_nsec3() const;
   inline void clear_nsec3();
   static const int kNsec3FieldNumber = 2;
-  inline const ::kasp::pb::NSEC3& nsec3() const;
-  inline ::kasp::pb::NSEC3* mutable_nsec3();
+  inline const ::ods::kasp::NSEC3& nsec3() const;
+  inline ::ods::kasp::NSEC3* mutable_nsec3();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::kasp::pb::NSEC* nsec_;
-  ::kasp::pb::NSEC3* nsec3_;
+  ::ods::kasp::NSEC* nsec_;
+  ::ods::kasp::NSEC3* nsec3_;
   friend void  protobuf_AddDesc_kasp_2eproto();
   friend void protobuf_AssignDesc_kasp_2eproto();
   friend void protobuf_ShutdownFile_kasp_2eproto();
@@ -936,35 +936,35 @@ class Keys : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 purge() const;
   inline void set_purge(::google::protobuf::int32 value);
   
-  // repeated .kasp.pb.Ksk ksk = 6;
+  // repeated .ods.kasp.Ksk ksk = 6;
   inline int ksk_size() const;
   inline void clear_ksk();
   static const int kKskFieldNumber = 6;
-  inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Ksk >& ksk() const;
-  inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Ksk >* mutable_ksk();
-  inline const ::kasp::pb::Ksk& ksk(int index) const;
-  inline ::kasp::pb::Ksk* mutable_ksk(int index);
-  inline ::kasp::pb::Ksk* add_ksk();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Ksk >& ksk() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Ksk >* mutable_ksk();
+  inline const ::ods::kasp::Ksk& ksk(int index) const;
+  inline ::ods::kasp::Ksk* mutable_ksk(int index);
+  inline ::ods::kasp::Ksk* add_ksk();
   
-  // repeated .kasp.pb.Zsk zsk = 7;
+  // repeated .ods.kasp.Zsk zsk = 7;
   inline int zsk_size() const;
   inline void clear_zsk();
   static const int kZskFieldNumber = 7;
-  inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Zsk >& zsk() const;
-  inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Zsk >* mutable_zsk();
-  inline const ::kasp::pb::Zsk& zsk(int index) const;
-  inline ::kasp::pb::Zsk* mutable_zsk(int index);
-  inline ::kasp::pb::Zsk* add_zsk();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Zsk >& zsk() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Zsk >* mutable_zsk();
+  inline const ::ods::kasp::Zsk& zsk(int index) const;
+  inline ::ods::kasp::Zsk* mutable_zsk(int index);
+  inline ::ods::kasp::Zsk* add_zsk();
   
-  // repeated .kasp.pb.Csk csk = 8;
+  // repeated .ods.kasp.Csk csk = 8;
   inline int csk_size() const;
   inline void clear_csk();
   static const int kCskFieldNumber = 8;
-  inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Csk >& csk() const;
-  inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Csk >* mutable_csk();
-  inline const ::kasp::pb::Csk& csk(int index) const;
-  inline ::kasp::pb::Csk* mutable_csk(int index);
-  inline ::kasp::pb::Csk* add_csk();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Csk >& csk() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Csk >* mutable_csk();
+  inline const ::ods::kasp::Csk& csk(int index) const;
+  inline ::ods::kasp::Csk* mutable_csk(int index);
+  inline ::ods::kasp::Csk* add_csk();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -975,9 +975,9 @@ class Keys : public ::google::protobuf::Message {
   ::google::protobuf::int32 publishsafety_;
   bool zones_share_keys_;
   ::google::protobuf::int32 purge_;
-  ::google::protobuf::RepeatedPtrField< ::kasp::pb::Ksk > ksk_;
-  ::google::protobuf::RepeatedPtrField< ::kasp::pb::Zsk > zsk_;
-  ::google::protobuf::RepeatedPtrField< ::kasp::pb::Csk > csk_;
+  ::google::protobuf::RepeatedPtrField< ::ods::kasp::Ksk > ksk_;
+  ::google::protobuf::RepeatedPtrField< ::ods::kasp::Zsk > zsk_;
+  ::google::protobuf::RepeatedPtrField< ::ods::kasp::Csk > csk_;
   friend void  protobuf_AddDesc_kasp_2eproto();
   friend void protobuf_AssignDesc_kasp_2eproto();
   friend void protobuf_ShutdownFile_kasp_2eproto();
@@ -1483,12 +1483,12 @@ class Zone : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 min() const;
   inline void set_min(::google::protobuf::int32 value);
   
-  // optional .kasp.pb.serial serial = 4;
+  // optional .ods.kasp.serial serial = 4;
   inline bool has_serial() const;
   inline void clear_serial();
   static const int kSerialFieldNumber = 4;
-  inline kasp::pb::serial serial() const;
-  inline void set_serial(kasp::pb::serial value);
+  inline ods::kasp::serial serial() const;
+  inline void set_serial(ods::kasp::serial value);
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -1734,20 +1734,20 @@ class Audit : public ::google::protobuf::Message {
 
 // KaspDocument
 
-// required .kasp.pb.KASP kasp = 2;
+// required .ods.kasp.KASP kasp = 2;
 inline bool KaspDocument::has_kasp() const {
   return _has_bit(0);
 }
 inline void KaspDocument::clear_kasp() {
-  if (kasp_ != NULL) kasp_->::kasp::pb::KASP::Clear();
+  if (kasp_ != NULL) kasp_->::ods::kasp::KASP::Clear();
   _clear_bit(0);
 }
-inline const ::kasp::pb::KASP& KaspDocument::kasp() const {
+inline const ::ods::kasp::KASP& KaspDocument::kasp() const {
   return kasp_ != NULL ? *kasp_ : *default_instance_->kasp_;
 }
-inline ::kasp::pb::KASP* KaspDocument::mutable_kasp() {
+inline ::ods::kasp::KASP* KaspDocument::mutable_kasp() {
   _set_bit(0);
-  if (kasp_ == NULL) kasp_ = new ::kasp::pb::KASP;
+  if (kasp_ == NULL) kasp_ = new ::ods::kasp::KASP;
   return kasp_;
 }
 
@@ -1755,28 +1755,28 @@ inline ::kasp::pb::KASP* KaspDocument::mutable_kasp() {
 
 // KASP
 
-// repeated .kasp.pb.Policy policies = 1;
+// repeated .ods.kasp.Policy policies = 1;
 inline int KASP::policies_size() const {
   return policies_.size();
 }
 inline void KASP::clear_policies() {
   policies_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Policy >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Policy >&
 KASP::policies() const {
   return policies_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Policy >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Policy >*
 KASP::mutable_policies() {
   return &policies_;
 }
-inline const ::kasp::pb::Policy& KASP::policies(int index) const {
+inline const ::ods::kasp::Policy& KASP::policies(int index) const {
   return policies_.Get(index);
 }
-inline ::kasp::pb::Policy* KASP::mutable_policies(int index) {
+inline ::ods::kasp::Policy* KASP::mutable_policies(int index) {
   return policies_.Mutable(index);
 }
-inline ::kasp::pb::Policy* KASP::add_policies() {
+inline ::ods::kasp::Policy* KASP::add_policies() {
   return policies_.Add();
 }
 
@@ -1868,113 +1868,113 @@ inline ::std::string* Policy::mutable_description() {
   return description_;
 }
 
-// required .kasp.pb.Signatures signatures = 3;
+// required .ods.kasp.Signatures signatures = 3;
 inline bool Policy::has_signatures() const {
   return _has_bit(2);
 }
 inline void Policy::clear_signatures() {
-  if (signatures_ != NULL) signatures_->::kasp::pb::Signatures::Clear();
+  if (signatures_ != NULL) signatures_->::ods::kasp::Signatures::Clear();
   _clear_bit(2);
 }
-inline const ::kasp::pb::Signatures& Policy::signatures() const {
+inline const ::ods::kasp::Signatures& Policy::signatures() const {
   return signatures_ != NULL ? *signatures_ : *default_instance_->signatures_;
 }
-inline ::kasp::pb::Signatures* Policy::mutable_signatures() {
+inline ::ods::kasp::Signatures* Policy::mutable_signatures() {
   _set_bit(2);
-  if (signatures_ == NULL) signatures_ = new ::kasp::pb::Signatures;
+  if (signatures_ == NULL) signatures_ = new ::ods::kasp::Signatures;
   return signatures_;
 }
 
-// required .kasp.pb.Denial denial = 4;
+// required .ods.kasp.Denial denial = 4;
 inline bool Policy::has_denial() const {
   return _has_bit(3);
 }
 inline void Policy::clear_denial() {
-  if (denial_ != NULL) denial_->::kasp::pb::Denial::Clear();
+  if (denial_ != NULL) denial_->::ods::kasp::Denial::Clear();
   _clear_bit(3);
 }
-inline const ::kasp::pb::Denial& Policy::denial() const {
+inline const ::ods::kasp::Denial& Policy::denial() const {
   return denial_ != NULL ? *denial_ : *default_instance_->denial_;
 }
-inline ::kasp::pb::Denial* Policy::mutable_denial() {
+inline ::ods::kasp::Denial* Policy::mutable_denial() {
   _set_bit(3);
-  if (denial_ == NULL) denial_ = new ::kasp::pb::Denial;
+  if (denial_ == NULL) denial_ = new ::ods::kasp::Denial;
   return denial_;
 }
 
-// required .kasp.pb.Keys keys = 5;
+// required .ods.kasp.Keys keys = 5;
 inline bool Policy::has_keys() const {
   return _has_bit(4);
 }
 inline void Policy::clear_keys() {
-  if (keys_ != NULL) keys_->::kasp::pb::Keys::Clear();
+  if (keys_ != NULL) keys_->::ods::kasp::Keys::Clear();
   _clear_bit(4);
 }
-inline const ::kasp::pb::Keys& Policy::keys() const {
+inline const ::ods::kasp::Keys& Policy::keys() const {
   return keys_ != NULL ? *keys_ : *default_instance_->keys_;
 }
-inline ::kasp::pb::Keys* Policy::mutable_keys() {
+inline ::ods::kasp::Keys* Policy::mutable_keys() {
   _set_bit(4);
-  if (keys_ == NULL) keys_ = new ::kasp::pb::Keys;
+  if (keys_ == NULL) keys_ = new ::ods::kasp::Keys;
   return keys_;
 }
 
-// required .kasp.pb.Zone zone = 6;
+// required .ods.kasp.Zone zone = 6;
 inline bool Policy::has_zone() const {
   return _has_bit(5);
 }
 inline void Policy::clear_zone() {
-  if (zone_ != NULL) zone_->::kasp::pb::Zone::Clear();
+  if (zone_ != NULL) zone_->::ods::kasp::Zone::Clear();
   _clear_bit(5);
 }
-inline const ::kasp::pb::Zone& Policy::zone() const {
+inline const ::ods::kasp::Zone& Policy::zone() const {
   return zone_ != NULL ? *zone_ : *default_instance_->zone_;
 }
-inline ::kasp::pb::Zone* Policy::mutable_zone() {
+inline ::ods::kasp::Zone* Policy::mutable_zone() {
   _set_bit(5);
-  if (zone_ == NULL) zone_ = new ::kasp::pb::Zone;
+  if (zone_ == NULL) zone_ = new ::ods::kasp::Zone;
   return zone_;
 }
 
-// required .kasp.pb.Parent parent = 7;
+// required .ods.kasp.Parent parent = 7;
 inline bool Policy::has_parent() const {
   return _has_bit(6);
 }
 inline void Policy::clear_parent() {
-  if (parent_ != NULL) parent_->::kasp::pb::Parent::Clear();
+  if (parent_ != NULL) parent_->::ods::kasp::Parent::Clear();
   _clear_bit(6);
 }
-inline const ::kasp::pb::Parent& Policy::parent() const {
+inline const ::ods::kasp::Parent& Policy::parent() const {
   return parent_ != NULL ? *parent_ : *default_instance_->parent_;
 }
-inline ::kasp::pb::Parent* Policy::mutable_parent() {
+inline ::ods::kasp::Parent* Policy::mutable_parent() {
   _set_bit(6);
-  if (parent_ == NULL) parent_ = new ::kasp::pb::Parent;
+  if (parent_ == NULL) parent_ = new ::ods::kasp::Parent;
   return parent_;
 }
 
-// repeated .kasp.pb.Audit audit = 8;
+// repeated .ods.kasp.Audit audit = 8;
 inline int Policy::audit_size() const {
   return audit_.size();
 }
 inline void Policy::clear_audit() {
   audit_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Audit >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Audit >&
 Policy::audit() const {
   return audit_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Audit >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Audit >*
 Policy::mutable_audit() {
   return &audit_;
 }
-inline const ::kasp::pb::Audit& Policy::audit(int index) const {
+inline const ::ods::kasp::Audit& Policy::audit(int index) const {
   return audit_.Get(index);
 }
-inline ::kasp::pb::Audit* Policy::mutable_audit(int index) {
+inline ::ods::kasp::Audit* Policy::mutable_audit(int index) {
   return audit_.Mutable(index);
 }
-inline ::kasp::pb::Audit* Policy::add_audit() {
+inline ::ods::kasp::Audit* Policy::add_audit() {
   return audit_.Add();
 }
 
@@ -2098,37 +2098,37 @@ inline void Signatures::set_valdenial(::google::protobuf::int32 value) {
 
 // Denial
 
-// optional .kasp.pb.NSEC nsec = 1;
+// optional .ods.kasp.NSEC nsec = 1;
 inline bool Denial::has_nsec() const {
   return _has_bit(0);
 }
 inline void Denial::clear_nsec() {
-  if (nsec_ != NULL) nsec_->::kasp::pb::NSEC::Clear();
+  if (nsec_ != NULL) nsec_->::ods::kasp::NSEC::Clear();
   _clear_bit(0);
 }
-inline const ::kasp::pb::NSEC& Denial::nsec() const {
+inline const ::ods::kasp::NSEC& Denial::nsec() const {
   return nsec_ != NULL ? *nsec_ : *default_instance_->nsec_;
 }
-inline ::kasp::pb::NSEC* Denial::mutable_nsec() {
+inline ::ods::kasp::NSEC* Denial::mutable_nsec() {
   _set_bit(0);
-  if (nsec_ == NULL) nsec_ = new ::kasp::pb::NSEC;
+  if (nsec_ == NULL) nsec_ = new ::ods::kasp::NSEC;
   return nsec_;
 }
 
-// optional .kasp.pb.NSEC3 nsec3 = 2;
+// optional .ods.kasp.NSEC3 nsec3 = 2;
 inline bool Denial::has_nsec3() const {
   return _has_bit(1);
 }
 inline void Denial::clear_nsec3() {
-  if (nsec3_ != NULL) nsec3_->::kasp::pb::NSEC3::Clear();
+  if (nsec3_ != NULL) nsec3_->::ods::kasp::NSEC3::Clear();
   _clear_bit(1);
 }
-inline const ::kasp::pb::NSEC3& Denial::nsec3() const {
+inline const ::ods::kasp::NSEC3& Denial::nsec3() const {
   return nsec3_ != NULL ? *nsec3_ : *default_instance_->nsec3_;
 }
-inline ::kasp::pb::NSEC3* Denial::mutable_nsec3() {
+inline ::ods::kasp::NSEC3* Denial::mutable_nsec3() {
   _set_bit(1);
-  if (nsec3_ == NULL) nsec3_ = new ::kasp::pb::NSEC3;
+  if (nsec3_ == NULL) nsec3_ = new ::ods::kasp::NSEC3;
   return nsec3_;
 }
 
@@ -2362,78 +2362,78 @@ inline void Keys::set_purge(::google::protobuf::int32 value) {
   purge_ = value;
 }
 
-// repeated .kasp.pb.Ksk ksk = 6;
+// repeated .ods.kasp.Ksk ksk = 6;
 inline int Keys::ksk_size() const {
   return ksk_.size();
 }
 inline void Keys::clear_ksk() {
   ksk_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Ksk >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Ksk >&
 Keys::ksk() const {
   return ksk_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Ksk >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Ksk >*
 Keys::mutable_ksk() {
   return &ksk_;
 }
-inline const ::kasp::pb::Ksk& Keys::ksk(int index) const {
+inline const ::ods::kasp::Ksk& Keys::ksk(int index) const {
   return ksk_.Get(index);
 }
-inline ::kasp::pb::Ksk* Keys::mutable_ksk(int index) {
+inline ::ods::kasp::Ksk* Keys::mutable_ksk(int index) {
   return ksk_.Mutable(index);
 }
-inline ::kasp::pb::Ksk* Keys::add_ksk() {
+inline ::ods::kasp::Ksk* Keys::add_ksk() {
   return ksk_.Add();
 }
 
-// repeated .kasp.pb.Zsk zsk = 7;
+// repeated .ods.kasp.Zsk zsk = 7;
 inline int Keys::zsk_size() const {
   return zsk_.size();
 }
 inline void Keys::clear_zsk() {
   zsk_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Zsk >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Zsk >&
 Keys::zsk() const {
   return zsk_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Zsk >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Zsk >*
 Keys::mutable_zsk() {
   return &zsk_;
 }
-inline const ::kasp::pb::Zsk& Keys::zsk(int index) const {
+inline const ::ods::kasp::Zsk& Keys::zsk(int index) const {
   return zsk_.Get(index);
 }
-inline ::kasp::pb::Zsk* Keys::mutable_zsk(int index) {
+inline ::ods::kasp::Zsk* Keys::mutable_zsk(int index) {
   return zsk_.Mutable(index);
 }
-inline ::kasp::pb::Zsk* Keys::add_zsk() {
+inline ::ods::kasp::Zsk* Keys::add_zsk() {
   return zsk_.Add();
 }
 
-// repeated .kasp.pb.Csk csk = 8;
+// repeated .ods.kasp.Csk csk = 8;
 inline int Keys::csk_size() const {
   return csk_.size();
 }
 inline void Keys::clear_csk() {
   csk_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::kasp::pb::Csk >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::kasp::Csk >&
 Keys::csk() const {
   return csk_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::kasp::pb::Csk >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::kasp::Csk >*
 Keys::mutable_csk() {
   return &csk_;
 }
-inline const ::kasp::pb::Csk& Keys::csk(int index) const {
+inline const ::ods::kasp::Csk& Keys::csk(int index) const {
   return csk_.Get(index);
 }
-inline ::kasp::pb::Csk* Keys::mutable_csk(int index) {
+inline ::ods::kasp::Csk* Keys::mutable_csk(int index) {
   return csk_.Mutable(index);
 }
-inline ::kasp::pb::Csk* Keys::add_csk() {
+inline ::ods::kasp::Csk* Keys::add_csk() {
   return csk_.Add();
 }
 
@@ -2899,7 +2899,7 @@ inline void Zone::set_min(::google::protobuf::int32 value) {
   min_ = value;
 }
 
-// optional .kasp.pb.serial serial = 4;
+// optional .ods.kasp.serial serial = 4;
 inline bool Zone::has_serial() const {
   return _has_bit(3);
 }
@@ -2907,11 +2907,11 @@ inline void Zone::clear_serial() {
   serial_ = 1;
   _clear_bit(3);
 }
-inline kasp::pb::serial Zone::serial() const {
-  return static_cast< kasp::pb::serial >(serial_);
+inline ods::kasp::serial Zone::serial() const {
+  return static_cast< ods::kasp::serial >(serial_);
 }
-inline void Zone::set_serial(kasp::pb::serial value) {
-  GOOGLE_DCHECK(kasp::pb::serial_IsValid(value));
+inline void Zone::set_serial(ods::kasp::serial value) {
+  GOOGLE_DCHECK(ods::kasp::serial_IsValid(value));
   _set_bit(3);
   serial_ = value;
 }
@@ -3021,16 +3021,16 @@ inline void Audit::set_partial(bool value) {
 }
 
 
-}  // namespace pb
 }  // namespace kasp
+}  // namespace ods
 
 #ifndef SWIG
 namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< kasp::pb::serial>() {
-  return kasp::pb::serial_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ods::kasp::serial>() {
+  return ods::kasp::serial_descriptor();
 }
 
 }  // namespace google

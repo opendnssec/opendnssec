@@ -47,7 +47,7 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
 
     bool bFailedToLoad = false;
 
-    ::kasp::pb::KaspDocument *kaspDoc = new ::kasp::pb::KaspDocument;
+    ::ods::kasp::KaspDocument *kaspDoc = new ::ods::kasp::KaspDocument;
     {
         std::string datapath(datastore);
         datapath += ".policy.pb";
@@ -162,11 +162,11 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
 
         const ::ods::keystate::EnforcerZone &ks_zone = keystateDoc->zones(z);
 
-        const ::kasp::pb::KASP &kasp = kaspDoc->kasp();
+        const ::ods::kasp::KASP &kasp = kaspDoc->kasp();
 
         //printf("%s\n",zone.name().c_str());
 
-        const ::kasp::pb::Policy *policy = NULL;
+        const ::ods::kasp::Policy *policy = NULL;
 
         for (int p=0; p<kasp.policies_size(); ++p) {
             // lookup the policy associated with this zone

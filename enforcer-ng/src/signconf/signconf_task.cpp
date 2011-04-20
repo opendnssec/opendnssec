@@ -46,7 +46,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
     
     bool bFailedToLoad = false;
     
-    ::kasp::pb::KaspDocument *kaspDoc = new ::kasp::pb::KaspDocument;
+    ::ods::kasp::KaspDocument *kaspDoc = new ::ods::kasp::KaspDocument;
     {
         std::string policypb(datastore);
         policypb += ".policy.pb";
@@ -95,12 +95,12 @@ perform_signconf(int sockfd, engineconfig_type *config)
         if (!ks_zone.signconf_needs_writing())
             continue;
 
-        const ::kasp::pb::KASP &
+        const ::ods::kasp::KASP &
         kasp = kaspDoc->kasp();
         
         //printf("%s\n",zone.name().c_str());
         
-        const ::kasp::pb::Policy *policy = NULL;
+        const ::ods::kasp::Policy *policy = NULL;
         
         for (int p=0; p<kasp.policies_size(); ++p) {
             // lookup the policy associated with this zone 
@@ -129,7 +129,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
         
         // Get the Signatures parameters straight from the policy.
         ::ods::signconf::Signatures *sc_sigs = sc_zone->mutable_signatures();
-        const ::kasp::pb::Signatures &kp_sigs = policy->signatures();
+        const ::ods::kasp::Signatures &kp_sigs = policy->signatures();
         
         sc_sigs->set_resign( kp_sigs.resign() );
         sc_sigs->set_refresh( kp_sigs.refresh() );
@@ -140,7 +140,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
         
         // Get the Denial parameters straight from the policy
         ::ods::signconf::Denial *sc_denial = sc_zone->mutable_denial();
-        const ::kasp::pb::Denial &kp_denial = policy->denial();
+        const ::ods::kasp::Denial &kp_denial = policy->denial();
         
         if (kp_denial.has_nsec() && kp_denial.has_nsec3()) {
             ods_log_error("[%s] policy %s contains both NSEC and NSEC3 in Denial for zone %s", 
@@ -167,7 +167,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
                     sc_denial->clear_nsec3();
                 else {
                     ::ods::signconf::NSEC3 *sc_nsec3 = sc_denial->mutable_nsec3();
-                    const ::kasp::pb::NSEC3 &kp_nsec3 = kp_denial.nsec3();
+                    const ::ods::kasp::NSEC3 &kp_nsec3 = kp_denial.nsec3();
                     if (kp_nsec3.has_optout())
                         sc_nsec3->set_optout( kp_nsec3.optout() );
                     else
@@ -202,7 +202,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
             sc_key->set_deactivate( !ks_key.active() );
         }
         
-        const ::kasp::pb::Zone &kp_zone = policy->zone();
+        const ::ods::kasp::Zone &kp_zone = policy->zone();
         sc_zone->set_ttl( kp_zone.ttl() );
         sc_zone->set_min( kp_zone.min() );
         sc_zone->set_serial( (::ods::signconf::serial) kp_zone.serial() );

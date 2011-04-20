@@ -173,7 +173,7 @@ public:
     virtual const std::string &name() = 0;
     
     /* Get access to the policy for associated with this zone */
-    virtual const kasp::pb::Policy *policy() = 0;
+    virtual const ::ods::kasp::Policy *policy() = 0;
 
     /* Get access to the list of KeyData entries for this zone. */
     virtual KeyDataList &keyDataList() = 0;

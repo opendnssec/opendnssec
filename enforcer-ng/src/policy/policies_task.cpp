@@ -27,16 +27,16 @@ perform_policies(int sockfd, engineconfig_type *config)
     
     /*
 	// Dump the meta-information of the KaspDocument.
-	::google::protobuf::Message *msg  = new ::kasp::pb::KaspDocument;
+	::google::protobuf::Message *msg  = new ::ods::kasp::KaspDocument;
 	recurse_dump_descriptor(msg->GetDescriptor());
 	delete msg;
      */
 	
 	// Create a policy and fill it up with some data.
-	::kasp::pb::KaspDocument *doc  = new ::kasp::pb::KaspDocument;
+	::ods::kasp::KaspDocument *doc  = new ::ods::kasp::KaspDocument;
 	if (read_pb_message_from_xml_file(doc, policyfile)) {
 		if (doc->has_kasp()) {
-			const ::kasp::pb::KASP &kasp = doc->kasp();
+			const ::ods::kasp::KASP &kasp = doc->kasp();
 			if (kasp.policies_size() > 0) {
 				if (kasp.IsInitialized()) {
                                         
