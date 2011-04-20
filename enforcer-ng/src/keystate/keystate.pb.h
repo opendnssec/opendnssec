@@ -24,8 +24,8 @@
 #include <google/protobuf/generated_message_reflection.h>
 #include "xmlext.pb.h"
 
+namespace ods {
 namespace keystate {
-namespace pb {
 
 // Internal implementation detail -- do not call these.
 void  protobuf_AddDesc_keystate_2eproto();
@@ -111,21 +111,21 @@ class KeyStateDocument : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // repeated .keystate.pb.EnforcerZone zones = 1;
+  // repeated .ods.keystate.EnforcerZone zones = 1;
   inline int zones_size() const;
   inline void clear_zones();
   static const int kZonesFieldNumber = 1;
-  inline const ::google::protobuf::RepeatedPtrField< ::keystate::pb::EnforcerZone >& zones() const;
-  inline ::google::protobuf::RepeatedPtrField< ::keystate::pb::EnforcerZone >* mutable_zones();
-  inline const ::keystate::pb::EnforcerZone& zones(int index) const;
-  inline ::keystate::pb::EnforcerZone* mutable_zones(int index);
-  inline ::keystate::pb::EnforcerZone* add_zones();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::keystate::EnforcerZone >& zones() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::keystate::EnforcerZone >* mutable_zones();
+  inline const ::ods::keystate::EnforcerZone& zones(int index) const;
+  inline ::ods::keystate::EnforcerZone* mutable_zones(int index);
+  inline ::ods::keystate::EnforcerZone* add_zones();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::google::protobuf::RepeatedPtrField< ::keystate::pb::EnforcerZone > zones_;
+  ::google::protobuf::RepeatedPtrField< ::ods::keystate::EnforcerZone > zones_;
   friend void  protobuf_AddDesc_keystate_2eproto();
   friend void protobuf_AssignDesc_keystate_2eproto();
   friend void protobuf_ShutdownFile_keystate_2eproto();
@@ -221,15 +221,15 @@ class EnforcerZone : public ::google::protobuf::Message {
   inline void set_policy(const char* value, size_t size);
   inline ::std::string* mutable_policy();
   
-  // repeated .keystate.pb.KeyData keys = 3;
+  // repeated .ods.keystate.KeyData keys = 3;
   inline int keys_size() const;
   inline void clear_keys();
   static const int kKeysFieldNumber = 3;
-  inline const ::google::protobuf::RepeatedPtrField< ::keystate::pb::KeyData >& keys() const;
-  inline ::google::protobuf::RepeatedPtrField< ::keystate::pb::KeyData >* mutable_keys();
-  inline const ::keystate::pb::KeyData& keys(int index) const;
-  inline ::keystate::pb::KeyData* mutable_keys(int index);
-  inline ::keystate::pb::KeyData* add_keys();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::keystate::KeyData >& keys() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::keystate::KeyData >* mutable_keys();
+  inline const ::ods::keystate::KeyData& keys(int index) const;
+  inline ::ods::keystate::KeyData* mutable_keys(int index);
+  inline ::ods::keystate::KeyData* add_keys();
   
   // required bool signconf_needs_writing = 4;
   inline bool has_signconf_needs_writing() const;
@@ -256,7 +256,7 @@ class EnforcerZone : public ::google::protobuf::Message {
   static const ::std::string _default_name_;
   ::std::string* policy_;
   static const ::std::string _default_policy_;
-  ::google::protobuf::RepeatedPtrField< ::keystate::pb::KeyData > keys_;
+  ::google::protobuf::RepeatedPtrField< ::ods::keystate::KeyData > keys_;
   bool signconf_needs_writing_;
   ::std::string* signconf_path_;
   static const ::std::string _default_signconf_path_;
@@ -359,33 +359,33 @@ class KeyData : public ::google::protobuf::Message {
   inline ::google::protobuf::uint32 inception() const;
   inline void set_inception(::google::protobuf::uint32 value);
   
-  // required .keystate.pb.KeyState ds = 4;
+  // required .ods.keystate.KeyState ds = 4;
   inline bool has_ds() const;
   inline void clear_ds();
   static const int kDsFieldNumber = 4;
-  inline const ::keystate::pb::KeyState& ds() const;
-  inline ::keystate::pb::KeyState* mutable_ds();
+  inline const ::ods::keystate::KeyState& ds() const;
+  inline ::ods::keystate::KeyState* mutable_ds();
   
-  // required .keystate.pb.KeyState rrsig = 5;
+  // required .ods.keystate.KeyState rrsig = 5;
   inline bool has_rrsig() const;
   inline void clear_rrsig();
   static const int kRrsigFieldNumber = 5;
-  inline const ::keystate::pb::KeyState& rrsig() const;
-  inline ::keystate::pb::KeyState* mutable_rrsig();
+  inline const ::ods::keystate::KeyState& rrsig() const;
+  inline ::ods::keystate::KeyState* mutable_rrsig();
   
-  // required .keystate.pb.KeyState dnskey = 6;
+  // required .ods.keystate.KeyState dnskey = 6;
   inline bool has_dnskey() const;
   inline void clear_dnskey();
   static const int kDnskeyFieldNumber = 6;
-  inline const ::keystate::pb::KeyState& dnskey() const;
-  inline ::keystate::pb::KeyState* mutable_dnskey();
+  inline const ::ods::keystate::KeyState& dnskey() const;
+  inline ::ods::keystate::KeyState* mutable_dnskey();
   
-  // required .keystate.pb.keyrole role = 7;
+  // required .ods.keystate.keyrole role = 7;
   inline bool has_role() const;
   inline void clear_role();
   static const int kRoleFieldNumber = 7;
-  inline keystate::pb::keyrole role() const;
-  inline void set_role(keystate::pb::keyrole value);
+  inline ods::keystate::keyrole role() const;
+  inline void set_role(ods::keystate::keyrole value);
   
   // optional bool ds_seen = 8 [default = false];
   inline bool has_ds_seen() const;
@@ -451,9 +451,9 @@ class KeyData : public ::google::protobuf::Message {
   static const ::std::string _default_locator_;
   ::google::protobuf::uint32 algorithm_;
   ::google::protobuf::uint32 inception_;
-  ::keystate::pb::KeyState* ds_;
-  ::keystate::pb::KeyState* rrsig_;
-  ::keystate::pb::KeyState* dnskey_;
+  ::ods::keystate::KeyState* ds_;
+  ::ods::keystate::KeyState* rrsig_;
+  ::ods::keystate::KeyState* dnskey_;
   int role_;
   bool ds_seen_;
   bool submit_to_parent_;
@@ -596,28 +596,28 @@ class KeyState : public ::google::protobuf::Message {
 
 // KeyStateDocument
 
-// repeated .keystate.pb.EnforcerZone zones = 1;
+// repeated .ods.keystate.EnforcerZone zones = 1;
 inline int KeyStateDocument::zones_size() const {
   return zones_.size();
 }
 inline void KeyStateDocument::clear_zones() {
   zones_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::keystate::pb::EnforcerZone >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::keystate::EnforcerZone >&
 KeyStateDocument::zones() const {
   return zones_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::keystate::pb::EnforcerZone >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::keystate::EnforcerZone >*
 KeyStateDocument::mutable_zones() {
   return &zones_;
 }
-inline const ::keystate::pb::EnforcerZone& KeyStateDocument::zones(int index) const {
+inline const ::ods::keystate::EnforcerZone& KeyStateDocument::zones(int index) const {
   return zones_.Get(index);
 }
-inline ::keystate::pb::EnforcerZone* KeyStateDocument::mutable_zones(int index) {
+inline ::ods::keystate::EnforcerZone* KeyStateDocument::mutable_zones(int index) {
   return zones_.Mutable(index);
 }
-inline ::keystate::pb::EnforcerZone* KeyStateDocument::add_zones() {
+inline ::ods::keystate::EnforcerZone* KeyStateDocument::add_zones() {
   return zones_.Add();
 }
 
@@ -709,28 +709,28 @@ inline ::std::string* EnforcerZone::mutable_policy() {
   return policy_;
 }
 
-// repeated .keystate.pb.KeyData keys = 3;
+// repeated .ods.keystate.KeyData keys = 3;
 inline int EnforcerZone::keys_size() const {
   return keys_.size();
 }
 inline void EnforcerZone::clear_keys() {
   keys_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::keystate::pb::KeyData >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::keystate::KeyData >&
 EnforcerZone::keys() const {
   return keys_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::keystate::pb::KeyData >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::keystate::KeyData >*
 EnforcerZone::mutable_keys() {
   return &keys_;
 }
-inline const ::keystate::pb::KeyData& EnforcerZone::keys(int index) const {
+inline const ::ods::keystate::KeyData& EnforcerZone::keys(int index) const {
   return keys_.Get(index);
 }
-inline ::keystate::pb::KeyData* EnforcerZone::mutable_keys(int index) {
+inline ::ods::keystate::KeyData* EnforcerZone::mutable_keys(int index) {
   return keys_.Mutable(index);
 }
-inline ::keystate::pb::KeyData* EnforcerZone::add_keys() {
+inline ::ods::keystate::KeyData* EnforcerZone::add_keys() {
   return keys_.Add();
 }
 
@@ -870,58 +870,58 @@ inline void KeyData::set_inception(::google::protobuf::uint32 value) {
   inception_ = value;
 }
 
-// required .keystate.pb.KeyState ds = 4;
+// required .ods.keystate.KeyState ds = 4;
 inline bool KeyData::has_ds() const {
   return _has_bit(3);
 }
 inline void KeyData::clear_ds() {
-  if (ds_ != NULL) ds_->::keystate::pb::KeyState::Clear();
+  if (ds_ != NULL) ds_->::ods::keystate::KeyState::Clear();
   _clear_bit(3);
 }
-inline const ::keystate::pb::KeyState& KeyData::ds() const {
+inline const ::ods::keystate::KeyState& KeyData::ds() const {
   return ds_ != NULL ? *ds_ : *default_instance_->ds_;
 }
-inline ::keystate::pb::KeyState* KeyData::mutable_ds() {
+inline ::ods::keystate::KeyState* KeyData::mutable_ds() {
   _set_bit(3);
-  if (ds_ == NULL) ds_ = new ::keystate::pb::KeyState;
+  if (ds_ == NULL) ds_ = new ::ods::keystate::KeyState;
   return ds_;
 }
 
-// required .keystate.pb.KeyState rrsig = 5;
+// required .ods.keystate.KeyState rrsig = 5;
 inline bool KeyData::has_rrsig() const {
   return _has_bit(4);
 }
 inline void KeyData::clear_rrsig() {
-  if (rrsig_ != NULL) rrsig_->::keystate::pb::KeyState::Clear();
+  if (rrsig_ != NULL) rrsig_->::ods::keystate::KeyState::Clear();
   _clear_bit(4);
 }
-inline const ::keystate::pb::KeyState& KeyData::rrsig() const {
+inline const ::ods::keystate::KeyState& KeyData::rrsig() const {
   return rrsig_ != NULL ? *rrsig_ : *default_instance_->rrsig_;
 }
-inline ::keystate::pb::KeyState* KeyData::mutable_rrsig() {
+inline ::ods::keystate::KeyState* KeyData::mutable_rrsig() {
   _set_bit(4);
-  if (rrsig_ == NULL) rrsig_ = new ::keystate::pb::KeyState;
+  if (rrsig_ == NULL) rrsig_ = new ::ods::keystate::KeyState;
   return rrsig_;
 }
 
-// required .keystate.pb.KeyState dnskey = 6;
+// required .ods.keystate.KeyState dnskey = 6;
 inline bool KeyData::has_dnskey() const {
   return _has_bit(5);
 }
 inline void KeyData::clear_dnskey() {
-  if (dnskey_ != NULL) dnskey_->::keystate::pb::KeyState::Clear();
+  if (dnskey_ != NULL) dnskey_->::ods::keystate::KeyState::Clear();
   _clear_bit(5);
 }
-inline const ::keystate::pb::KeyState& KeyData::dnskey() const {
+inline const ::ods::keystate::KeyState& KeyData::dnskey() const {
   return dnskey_ != NULL ? *dnskey_ : *default_instance_->dnskey_;
 }
-inline ::keystate::pb::KeyState* KeyData::mutable_dnskey() {
+inline ::ods::keystate::KeyState* KeyData::mutable_dnskey() {
   _set_bit(5);
-  if (dnskey_ == NULL) dnskey_ = new ::keystate::pb::KeyState;
+  if (dnskey_ == NULL) dnskey_ = new ::ods::keystate::KeyState;
   return dnskey_;
 }
 
-// required .keystate.pb.keyrole role = 7;
+// required .ods.keystate.keyrole role = 7;
 inline bool KeyData::has_role() const {
   return _has_bit(6);
 }
@@ -929,11 +929,11 @@ inline void KeyData::clear_role() {
   role_ = 1;
   _clear_bit(6);
 }
-inline keystate::pb::keyrole KeyData::role() const {
-  return static_cast< keystate::pb::keyrole >(role_);
+inline ods::keystate::keyrole KeyData::role() const {
+  return static_cast< ods::keystate::keyrole >(role_);
 }
-inline void KeyData::set_role(keystate::pb::keyrole value) {
-  GOOGLE_DCHECK(keystate::pb::keyrole_IsValid(value));
+inline void KeyData::set_role(ods::keystate::keyrole value) {
+  GOOGLE_DCHECK(ods::keystate::keyrole_IsValid(value));
   _set_bit(6);
   role_ = value;
 }
@@ -1119,16 +1119,16 @@ inline void KeyState::set_minimize(bool value) {
 }
 
 
-}  // namespace pb
 }  // namespace keystate
+}  // namespace ods
 
 #ifndef SWIG
 namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< keystate::pb::keyrole>() {
-  return keystate::pb::keyrole_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ods::keystate::keyrole>() {
+  return ods::keystate::keyrole_descriptor();
 }
 
 }  // namespace google

@@ -4,7 +4,7 @@
 // KeyStatePB
 //////////////////////////////
 
-KeyStatePB::KeyStatePB(::keystate::pb::KeyState *keystate)
+KeyStatePB::KeyStatePB(::ods::keystate::KeyState *keystate)
 : _keystate(keystate)
 {
     
@@ -44,7 +44,7 @@ void KeyStatePB::setMinimize(bool value)
 // KeyDataPB
 //////////////////////////////
 
-KeyDataPB::KeyDataPB( ::keystate::pb::KeyData *keydata )
+KeyDataPB::KeyDataPB( ::ods::keystate::KeyData *keydata )
 :   _keydata(keydata),
     _keyStateDS( _keydata->mutable_ds() ),
     _keyStateRRSIG( _keydata->mutable_rrsig() ),
@@ -114,7 +114,7 @@ KeyRole KeyDataPB::role()
 
 void KeyDataPB::setRole(KeyRole value)
 {
-    _keydata->set_role( (::keystate::pb::keyrole)value );
+    _keydata->set_role( (::ods::keystate::keyrole)value );
 }
 
 bool KeyDataPB::isDSSeen()
@@ -165,11 +165,11 @@ void KeyDataPB::setActive(bool value)
 
 // KeyDataListPB
 
-KeyDataListPB::KeyDataListPB(::keystate::pb::EnforcerZone *zone)
+KeyDataListPB::KeyDataListPB(::ods::keystate::EnforcerZone *zone)
 : _zone(zone)
 {
     for (int k=0; k<_zone->keys_size(); ++k) {
-        ::keystate::pb::KeyData *keydata = _zone->mutable_keys(k);
+        ::ods::keystate::KeyData *keydata = _zone->mutable_keys(k);
         if (keydata->_deleted()) 
             continue;
         KeyDataPB key( keydata );
@@ -211,7 +211,7 @@ void KeyDataListPB::delKey(int index)
 
 // EnforcerZonePB
 
-EnforcerZonePB::EnforcerZonePB(::keystate::pb::EnforcerZone *zone, 
+EnforcerZonePB::EnforcerZonePB(::ods::keystate::EnforcerZone *zone, 
                                      const kasp::pb::Policy *policy) 
 : _zone(zone), _policy(policy), _keyDataList(_zone)
 {

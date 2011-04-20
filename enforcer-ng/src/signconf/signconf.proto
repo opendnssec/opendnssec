@@ -1,6 +1,6 @@
 // signconf.rnc converted to .proto format for protocol buffers
 
-package signconf.pb;
+package ods.signconf;
 
 import "xmlext.proto";
 

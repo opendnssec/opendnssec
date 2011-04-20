@@ -9,8 +9,8 @@
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
 
+namespace ods {
 namespace signconf {
-namespace pb {
 
 namespace {
 
@@ -273,44 +273,44 @@ void protobuf_AddDesc_signconf_2eproto() {
 
   ::protobuf_AddDesc_xmlext_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\016signconf.proto\022\013signconf.pb\032\014xmlext.pr"
-    "oto\"w\n\033SignerConfigurationDocument\022X\n\023si"
-    "gnerconfiguration\030\001 \002(\0132 .signconf.pb.Si"
-    "gnerConfigurationB\031\202\265\030\025\n\023SignerConfigura"
-    "tion\"B\n\023SignerConfiguration\022+\n\004zone\030\001 \002("
-    "\0132\021.signconf.pb.ZoneB\n\202\265\030\006\n\004Zone\"\333\002\n\004Zon"
-    "e\022\031\n\004name\030\001 \002(\tB\013\202\265\030\007\n\005@name\022=\n\nsignatur"
-    "es\030\002 \002(\0132\027.signconf.pb.SignaturesB\020\202\265\030\014\n"
-    "\nSignatures\0221\n\006denial\030\003 \002(\0132\023.signconf.p"
-    "b.DenialB\014\202\265\030\010\n\006Denial\022+\n\004keys\030\004 \002(\0132\021.s"
-    "ignconf.pb.KeysB\n\202\265\030\006\n\004Keys\022 \n\003ttl\030\005 \002(\005"
-    "B\023\202\265\030\t\n\007SOA/TTL\202\265\030\002\020\002\022$\n\003min\030\006 \002(\005B\027\202\265\030\r"
-    "\n\013SOA/Minimum\202\265\030\002\020\002\0225\n\006serial\030\007 \002(\0162\023.si"
-    "gnconf.pb.serialB\020\202\265\030\014\n\nSOA/Serial\022\032\n\005au"
-    "dit\030\010 \001(\010B\013\202\265\030\007\n\005Audit\"\222\002\n\nSignatures\022\"\n"
-    "\006resign\030\001 \002(\005B\022\202\265\030\010\n\006Resign\202\265\030\002\020\002\022$\n\007ref"
-    "resh\030\002 \002(\005B\023\202\265\030\t\n\007Refresh\202\265\030\002\020\002\0220\n\nvalde"
-    "fault\030\003 \002(\005B\034\202\265\030\022\n\020Validity/Default\202\265\030\002\020"
-    "\002\022.\n\tvaldenial\030\004 \002(\005B\033\202\265\030\021\n\017Validity/Den"
-    "ial\202\265\030\002\020\002\022\"\n\006jitter\030\005 \002(\005B\022\202\265\030\010\n\006Jitter\202"
-    "\265\030\002\020\002\0224\n\017inceptionOffset\030\006 \002(\005B\033\202\265\030\021\n\017In"
-    "ceptionOffset\202\265\030\002\020\002\"e\n\006Denial\022+\n\004nsec\030\001 "
-    "\001(\0132\021.signconf.pb.NSECB\n\202\265\030\006\n\004NSEC\022.\n\005ns"
-    "ec3\030\002 \001(\0132\022.signconf.pb.NSEC3B\013\202\265\030\007\n\005NSE"
-    "C3\"\006\n\004NSEC\"\230\001\n\005NSEC3\022\034\n\006optout\030\001 \001(\010B\014\202\265"
-    "\030\010\n\006OptOut\022\'\n\talgorithm\030\002 \002(\005B\024\202\265\030\020\n\016Has"
-    "h/Algorithm\022)\n\niterations\030\003 \002(\005B\025\202\265\030\021\n\017H"
-    "ash/Iterations\022\035\n\004salt\030\004 \002(\tB\017\202\265\030\013\n\tHash"
-    "/Salt\"O\n\004Keys\022\034\n\003ttl\030\001 \002(\005B\017\202\265\030\005\n\003TTL\202\265\030"
-    "\002\020\002\022)\n\004keys\030\002 \003(\0132\020.signconf.pb.KeyB\t\202\265\030"
-    "\005\n\003Key\"\333\001\n\003Key\022\032\n\005flags\030\001 \002(\rB\013\202\265\030\007\n\005Fla"
-    "gs\022\"\n\talgorithm\030\002 \002(\rB\017\202\265\030\013\n\tAlgorithm\022\036"
-    "\n\007locator\030\003 \002(\tB\r\202\265\030\t\n\007Locator\022\026\n\003ksk\030\004 "
-    "\001(\010B\t\202\265\030\005\n\003KSK\022\026\n\003zsk\030\005 \001(\010B\t\202\265\030\005\n\003ZSK\022\036"
-    "\n\007publish\030\006 \001(\010B\r\202\265\030\t\n\007Publish\022$\n\ndeacti"
-    "vate\030\007 \001(\010B\020\202\265\030\014\n\nDeactivate*>\n\006serial\022\013"
-    "\n\007counter\020\001\022\017\n\013datecounter\020\002\022\014\n\010unixtime"
-    "\020\003\022\010\n\004keep\020\004", 1492);
+    "\n\016signconf.proto\022\014ods.signconf\032\014xmlext.p"
+    "roto\"x\n\033SignerConfigurationDocument\022Y\n\023s"
+    "ignerconfiguration\030\001 \002(\0132!.ods.signconf."
+    "SignerConfigurationB\031\202\265\030\025\n\023SignerConfigu"
+    "ration\"C\n\023SignerConfiguration\022,\n\004zone\030\001 "
+    "\002(\0132\022.ods.signconf.ZoneB\n\202\265\030\006\n\004Zone\"\337\002\n\004"
+    "Zone\022\031\n\004name\030\001 \002(\tB\013\202\265\030\007\n\005@name\022>\n\nsigna"
+    "tures\030\002 \002(\0132\030.ods.signconf.SignaturesB\020\202"
+    "\265\030\014\n\nSignatures\0222\n\006denial\030\003 \002(\0132\024.ods.si"
+    "gnconf.DenialB\014\202\265\030\010\n\006Denial\022,\n\004keys\030\004 \002("
+    "\0132\022.ods.signconf.KeysB\n\202\265\030\006\n\004Keys\022 \n\003ttl"
+    "\030\005 \002(\005B\023\202\265\030\t\n\007SOA/TTL\202\265\030\002\020\002\022$\n\003min\030\006 \002(\005"
+    "B\027\202\265\030\r\n\013SOA/Minimum\202\265\030\002\020\002\0226\n\006serial\030\007 \002("
+    "\0162\024.ods.signconf.serialB\020\202\265\030\014\n\nSOA/Seria"
+    "l\022\032\n\005audit\030\010 \001(\010B\013\202\265\030\007\n\005Audit\"\222\002\n\nSignat"
+    "ures\022\"\n\006resign\030\001 \002(\005B\022\202\265\030\010\n\006Resign\202\265\030\002\020\002"
+    "\022$\n\007refresh\030\002 \002(\005B\023\202\265\030\t\n\007Refresh\202\265\030\002\020\002\0220"
+    "\n\nvaldefault\030\003 \002(\005B\034\202\265\030\022\n\020Validity/Defau"
+    "lt\202\265\030\002\020\002\022.\n\tvaldenial\030\004 \002(\005B\033\202\265\030\021\n\017Valid"
+    "ity/Denial\202\265\030\002\020\002\022\"\n\006jitter\030\005 \002(\005B\022\202\265\030\010\n\006"
+    "Jitter\202\265\030\002\020\002\0224\n\017inceptionOffset\030\006 \002(\005B\033\202"
+    "\265\030\021\n\017InceptionOffset\202\265\030\002\020\002\"g\n\006Denial\022,\n\004"
+    "nsec\030\001 \001(\0132\022.ods.signconf.NSECB\n\202\265\030\006\n\004NS"
+    "EC\022/\n\005nsec3\030\002 \001(\0132\023.ods.signconf.NSEC3B\013"
+    "\202\265\030\007\n\005NSEC3\"\006\n\004NSEC\"\230\001\n\005NSEC3\022\034\n\006optout\030"
+    "\001 \001(\010B\014\202\265\030\010\n\006OptOut\022\'\n\talgorithm\030\002 \002(\005B\024"
+    "\202\265\030\020\n\016Hash/Algorithm\022)\n\niterations\030\003 \002(\005"
+    "B\025\202\265\030\021\n\017Hash/Iterations\022\035\n\004salt\030\004 \002(\tB\017\202"
+    "\265\030\013\n\tHash/Salt\"P\n\004Keys\022\034\n\003ttl\030\001 \002(\005B\017\202\265\030"
+    "\005\n\003TTL\202\265\030\002\020\002\022*\n\004keys\030\002 \003(\0132\021.ods.signcon"
+    "f.KeyB\t\202\265\030\005\n\003Key\"\333\001\n\003Key\022\032\n\005flags\030\001 \002(\rB"
+    "\013\202\265\030\007\n\005Flags\022\"\n\talgorithm\030\002 \002(\rB\017\202\265\030\013\n\tA"
+    "lgorithm\022\036\n\007locator\030\003 \002(\tB\r\202\265\030\t\n\007Locator"
+    "\022\026\n\003ksk\030\004 \001(\010B\t\202\265\030\005\n\003KSK\022\026\n\003zsk\030\005 \001(\010B\t\202"
+    "\265\030\005\n\003ZSK\022\036\n\007publish\030\006 \001(\010B\r\202\265\030\t\n\007Publish"
+    "\022$\n\ndeactivate\030\007 \001(\010B\020\202\265\030\014\n\nDeactivate*>"
+    "\n\006serial\022\013\n\007counter\020\001\022\017\n\013datecounter\020\002\022\014"
+    "\n\010unixtime\020\003\022\010\n\004keep\020\004", 1502);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "signconf.proto", &protobuf_RegisterTypes);
   SignerConfigurationDocument::default_instance_ = new SignerConfigurationDocument();
@@ -369,7 +369,7 @@ SignerConfigurationDocument::SignerConfigurationDocument() {
 }
 
 void SignerConfigurationDocument::InitAsDefaultInstance() {
-  signerconfiguration_ = const_cast< ::signconf::pb::SignerConfiguration*>(&::signconf::pb::SignerConfiguration::default_instance());
+  signerconfiguration_ = const_cast< ::ods::signconf::SignerConfiguration*>(&::ods::signconf::SignerConfiguration::default_instance());
 }
 
 SignerConfigurationDocument::SignerConfigurationDocument(const SignerConfigurationDocument& from) {
@@ -411,7 +411,7 @@ SignerConfigurationDocument* SignerConfigurationDocument::New() const {
 void SignerConfigurationDocument::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (_has_bit(0)) {
-      if (signerconfiguration_ != NULL) signerconfiguration_->::signconf::pb::SignerConfiguration::Clear();
+      if (signerconfiguration_ != NULL) signerconfiguration_->::ods::signconf::SignerConfiguration::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -424,7 +424,7 @@ bool SignerConfigurationDocument::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .signconf.pb.SignerConfiguration signerconfiguration = 1;
+      // required .ods.signconf.SignerConfiguration signerconfiguration = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -460,7 +460,7 @@ void SignerConfigurationDocument::SerializeWithCachedSizes(
     return;
   }
   
-  // required .signconf.pb.SignerConfiguration signerconfiguration = 1;
+  // required .ods.signconf.SignerConfiguration signerconfiguration = 1;
   if (_has_bit(0)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       1, this->signerconfiguration(), output);
@@ -474,7 +474,7 @@ void SignerConfigurationDocument::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* SignerConfigurationDocument::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .signconf.pb.SignerConfiguration signerconfiguration = 1;
+  // required .ods.signconf.SignerConfiguration signerconfiguration = 1;
   if (_has_bit(0)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -492,7 +492,7 @@ int SignerConfigurationDocument::ByteSize() const {
   int total_size = 0;
   
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .signconf.pb.SignerConfiguration signerconfiguration = 1;
+    // required .ods.signconf.SignerConfiguration signerconfiguration = 1;
     if (has_signerconfiguration()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -525,7 +525,7 @@ void SignerConfigurationDocument::MergeFrom(const SignerConfigurationDocument& f
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from._has_bit(0)) {
-      mutable_signerconfiguration()->::signconf::pb::SignerConfiguration::MergeFrom(from.signerconfiguration());
+      mutable_signerconfiguration()->::ods::signconf::SignerConfiguration::MergeFrom(from.signerconfiguration());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -581,7 +581,7 @@ SignerConfiguration::SignerConfiguration() {
 }
 
 void SignerConfiguration::InitAsDefaultInstance() {
-  zone_ = const_cast< ::signconf::pb::Zone*>(&::signconf::pb::Zone::default_instance());
+  zone_ = const_cast< ::ods::signconf::Zone*>(&::ods::signconf::Zone::default_instance());
 }
 
 SignerConfiguration::SignerConfiguration(const SignerConfiguration& from) {
@@ -623,7 +623,7 @@ SignerConfiguration* SignerConfiguration::New() const {
 void SignerConfiguration::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (_has_bit(0)) {
-      if (zone_ != NULL) zone_->::signconf::pb::Zone::Clear();
+      if (zone_ != NULL) zone_->::ods::signconf::Zone::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -636,7 +636,7 @@ bool SignerConfiguration::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .signconf.pb.Zone zone = 1;
+      // required .ods.signconf.Zone zone = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -672,7 +672,7 @@ void SignerConfiguration::SerializeWithCachedSizes(
     return;
   }
   
-  // required .signconf.pb.Zone zone = 1;
+  // required .ods.signconf.Zone zone = 1;
   if (_has_bit(0)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       1, this->zone(), output);
@@ -686,7 +686,7 @@ void SignerConfiguration::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* SignerConfiguration::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .signconf.pb.Zone zone = 1;
+  // required .ods.signconf.Zone zone = 1;
   if (_has_bit(0)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -704,7 +704,7 @@ int SignerConfiguration::ByteSize() const {
   int total_size = 0;
   
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .signconf.pb.Zone zone = 1;
+    // required .ods.signconf.Zone zone = 1;
     if (has_zone()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -737,7 +737,7 @@ void SignerConfiguration::MergeFrom(const SignerConfiguration& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from._has_bit(0)) {
-      mutable_zone()->::signconf::pb::Zone::MergeFrom(from.zone());
+      mutable_zone()->::ods::signconf::Zone::MergeFrom(from.zone());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -801,9 +801,9 @@ Zone::Zone() {
 }
 
 void Zone::InitAsDefaultInstance() {
-  signatures_ = const_cast< ::signconf::pb::Signatures*>(&::signconf::pb::Signatures::default_instance());
-  denial_ = const_cast< ::signconf::pb::Denial*>(&::signconf::pb::Denial::default_instance());
-  keys_ = const_cast< ::signconf::pb::Keys*>(&::signconf::pb::Keys::default_instance());
+  signatures_ = const_cast< ::ods::signconf::Signatures*>(&::ods::signconf::Signatures::default_instance());
+  denial_ = const_cast< ::ods::signconf::Denial*>(&::ods::signconf::Denial::default_instance());
+  keys_ = const_cast< ::ods::signconf::Keys*>(&::ods::signconf::Keys::default_instance());
 }
 
 Zone::Zone(const Zone& from) {
@@ -862,13 +862,13 @@ void Zone::Clear() {
       }
     }
     if (_has_bit(1)) {
-      if (signatures_ != NULL) signatures_->::signconf::pb::Signatures::Clear();
+      if (signatures_ != NULL) signatures_->::ods::signconf::Signatures::Clear();
     }
     if (_has_bit(2)) {
-      if (denial_ != NULL) denial_->::signconf::pb::Denial::Clear();
+      if (denial_ != NULL) denial_->::ods::signconf::Denial::Clear();
     }
     if (_has_bit(3)) {
-      if (keys_ != NULL) keys_->::signconf::pb::Keys::Clear();
+      if (keys_ != NULL) keys_->::ods::signconf::Keys::Clear();
     }
     ttl_ = 0;
     min_ = 0;
@@ -900,7 +900,7 @@ bool Zone::MergePartialFromCodedStream(
         break;
       }
       
-      // required .signconf.pb.Signatures signatures = 2;
+      // required .ods.signconf.Signatures signatures = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -913,7 +913,7 @@ bool Zone::MergePartialFromCodedStream(
         break;
       }
       
-      // required .signconf.pb.Denial denial = 3;
+      // required .ods.signconf.Denial denial = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -926,7 +926,7 @@ bool Zone::MergePartialFromCodedStream(
         break;
       }
       
-      // required .signconf.pb.Keys keys = 4;
+      // required .ods.signconf.Keys keys = 4;
       case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -967,7 +967,7 @@ bool Zone::MergePartialFromCodedStream(
         break;
       }
       
-      // required .signconf.pb.serial serial = 7;
+      // required .ods.signconf.serial serial = 7;
       case 7: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -976,8 +976,8 @@ bool Zone::MergePartialFromCodedStream(
        parse_serial:
         int value;
         DO_(::google::protobuf::internal::WireFormatLite::ReadEnum(input, &value));
-        if (signconf::pb::serial_IsValid(value)) {
-          set_serial(static_cast< signconf::pb::serial >(value));
+        if (ods::signconf::serial_IsValid(value)) {
+          set_serial(static_cast< ods::signconf::serial >(value));
         } else {
           mutable_unknown_fields()->AddVarint(7, value);
         }
@@ -1032,19 +1032,19 @@ void Zone::SerializeWithCachedSizes(
       1, this->name(), output);
   }
   
-  // required .signconf.pb.Signatures signatures = 2;
+  // required .ods.signconf.Signatures signatures = 2;
   if (_has_bit(1)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       2, this->signatures(), output);
   }
   
-  // required .signconf.pb.Denial denial = 3;
+  // required .ods.signconf.Denial denial = 3;
   if (_has_bit(2)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       3, this->denial(), output);
   }
   
-  // required .signconf.pb.Keys keys = 4;
+  // required .ods.signconf.Keys keys = 4;
   if (_has_bit(3)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       4, this->keys(), output);
@@ -1060,7 +1060,7 @@ void Zone::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(6, this->min(), output);
   }
   
-  // required .signconf.pb.serial serial = 7;
+  // required .ods.signconf.serial serial = 7;
   if (_has_bit(6)) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       7, this->serial(), output);
@@ -1089,21 +1089,21 @@ void Zone::SerializeWithCachedSizes(
         1, this->name(), target);
   }
   
-  // required .signconf.pb.Signatures signatures = 2;
+  // required .ods.signconf.Signatures signatures = 2;
   if (_has_bit(1)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         2, this->signatures(), target);
   }
   
-  // required .signconf.pb.Denial denial = 3;
+  // required .ods.signconf.Denial denial = 3;
   if (_has_bit(2)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         3, this->denial(), target);
   }
   
-  // required .signconf.pb.Keys keys = 4;
+  // required .ods.signconf.Keys keys = 4;
   if (_has_bit(3)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -1120,7 +1120,7 @@ void Zone::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(6, this->min(), target);
   }
   
-  // required .signconf.pb.serial serial = 7;
+  // required .ods.signconf.serial serial = 7;
   if (_has_bit(6)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       7, this->serial(), target);
@@ -1149,21 +1149,21 @@ int Zone::ByteSize() const {
           this->name());
     }
     
-    // required .signconf.pb.Signatures signatures = 2;
+    // required .ods.signconf.Signatures signatures = 2;
     if (has_signatures()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->signatures());
     }
     
-    // required .signconf.pb.Denial denial = 3;
+    // required .ods.signconf.Denial denial = 3;
     if (has_denial()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->denial());
     }
     
-    // required .signconf.pb.Keys keys = 4;
+    // required .ods.signconf.Keys keys = 4;
     if (has_keys()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -1184,7 +1184,7 @@ int Zone::ByteSize() const {
           this->min());
     }
     
-    // required .signconf.pb.serial serial = 7;
+    // required .ods.signconf.serial serial = 7;
     if (has_serial()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->serial());
@@ -1224,13 +1224,13 @@ void Zone::MergeFrom(const Zone& from) {
       set_name(from.name());
     }
     if (from._has_bit(1)) {
-      mutable_signatures()->::signconf::pb::Signatures::MergeFrom(from.signatures());
+      mutable_signatures()->::ods::signconf::Signatures::MergeFrom(from.signatures());
     }
     if (from._has_bit(2)) {
-      mutable_denial()->::signconf::pb::Denial::MergeFrom(from.denial());
+      mutable_denial()->::ods::signconf::Denial::MergeFrom(from.denial());
     }
     if (from._has_bit(3)) {
-      mutable_keys()->::signconf::pb::Keys::MergeFrom(from.keys());
+      mutable_keys()->::ods::signconf::Keys::MergeFrom(from.keys());
     }
     if (from._has_bit(4)) {
       set_ttl(from.ttl());
@@ -1705,8 +1705,8 @@ Denial::Denial() {
 }
 
 void Denial::InitAsDefaultInstance() {
-  nsec_ = const_cast< ::signconf::pb::NSEC*>(&::signconf::pb::NSEC::default_instance());
-  nsec3_ = const_cast< ::signconf::pb::NSEC3*>(&::signconf::pb::NSEC3::default_instance());
+  nsec_ = const_cast< ::ods::signconf::NSEC*>(&::ods::signconf::NSEC::default_instance());
+  nsec3_ = const_cast< ::ods::signconf::NSEC3*>(&::ods::signconf::NSEC3::default_instance());
 }
 
 Denial::Denial(const Denial& from) {
@@ -1750,10 +1750,10 @@ Denial* Denial::New() const {
 void Denial::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (_has_bit(0)) {
-      if (nsec_ != NULL) nsec_->::signconf::pb::NSEC::Clear();
+      if (nsec_ != NULL) nsec_->::ods::signconf::NSEC::Clear();
     }
     if (_has_bit(1)) {
-      if (nsec3_ != NULL) nsec3_->::signconf::pb::NSEC3::Clear();
+      if (nsec3_ != NULL) nsec3_->::ods::signconf::NSEC3::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -1766,7 +1766,7 @@ bool Denial::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional .signconf.pb.NSEC nsec = 1;
+      // optional .ods.signconf.NSEC nsec = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -1778,7 +1778,7 @@ bool Denial::MergePartialFromCodedStream(
         break;
       }
       
-      // optional .signconf.pb.NSEC3 nsec3 = 2;
+      // optional .ods.signconf.NSEC3 nsec3 = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -1815,13 +1815,13 @@ void Denial::SerializeWithCachedSizes(
     return;
   }
   
-  // optional .signconf.pb.NSEC nsec = 1;
+  // optional .ods.signconf.NSEC nsec = 1;
   if (_has_bit(0)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       1, this->nsec(), output);
   }
   
-  // optional .signconf.pb.NSEC3 nsec3 = 2;
+  // optional .ods.signconf.NSEC3 nsec3 = 2;
   if (_has_bit(1)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       2, this->nsec3(), output);
@@ -1835,14 +1835,14 @@ void Denial::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Denial::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // optional .signconf.pb.NSEC nsec = 1;
+  // optional .ods.signconf.NSEC nsec = 1;
   if (_has_bit(0)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         1, this->nsec(), target);
   }
   
-  // optional .signconf.pb.NSEC3 nsec3 = 2;
+  // optional .ods.signconf.NSEC3 nsec3 = 2;
   if (_has_bit(1)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -1860,14 +1860,14 @@ int Denial::ByteSize() const {
   int total_size = 0;
   
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // optional .signconf.pb.NSEC nsec = 1;
+    // optional .ods.signconf.NSEC nsec = 1;
     if (has_nsec()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->nsec());
     }
     
-    // optional .signconf.pb.NSEC3 nsec3 = 2;
+    // optional .ods.signconf.NSEC3 nsec3 = 2;
     if (has_nsec3()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -1900,10 +1900,10 @@ void Denial::MergeFrom(const Denial& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from._has_bit(0)) {
-      mutable_nsec()->::signconf::pb::NSEC::MergeFrom(from.nsec());
+      mutable_nsec()->::ods::signconf::NSEC::MergeFrom(from.nsec());
     }
     if (from._has_bit(1)) {
-      mutable_nsec3()->::signconf::pb::NSEC3::MergeFrom(from.nsec3());
+      mutable_nsec3()->::ods::signconf::NSEC3::MergeFrom(from.nsec3());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -2511,7 +2511,7 @@ bool Keys::MergePartialFromCodedStream(
         break;
       }
       
-      // repeated .signconf.pb.Key keys = 2;
+      // repeated .ods.signconf.Key keys = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -2554,7 +2554,7 @@ void Keys::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->ttl(), output);
   }
   
-  // repeated .signconf.pb.Key keys = 2;
+  // repeated .ods.signconf.Key keys = 2;
   for (int i = 0; i < this->keys_size(); i++) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       2, this->keys(i), output);
@@ -2573,7 +2573,7 @@ void Keys::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->ttl(), target);
   }
   
-  // repeated .signconf.pb.Key keys = 2;
+  // repeated .ods.signconf.Key keys = 2;
   for (int i = 0; i < this->keys_size(); i++) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -2599,7 +2599,7 @@ int Keys::ByteSize() const {
     }
     
   }
-  // repeated .signconf.pb.Key keys = 2;
+  // repeated .ods.signconf.Key keys = 2;
   total_size += 1 * this->keys_size();
   for (int i = 0; i < this->keys_size(); i++) {
     total_size +=
@@ -3121,5 +3121,5 @@ void Key::Swap(Key* other) {
 }
 
 
-}  // namespace pb
 }  // namespace signconf
+}  // namespace ods

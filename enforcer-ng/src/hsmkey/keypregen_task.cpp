@@ -35,7 +35,8 @@ perform_keypregen(int sockfd, engineconfig_type *config)
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
     // Load the current list of pre-generated keys
-    ::hsmkey::pb::HsmKeyDocument *hsmkeyDoc = new ::hsmkey::pb::HsmKeyDocument;
+    ::ods::hsmkey::HsmKeyDocument *hsmkeyDoc = 
+        new ::ods::hsmkey::HsmKeyDocument;
     {
         std::string datapath(datastore);
         datapath += ".hsmkey.pb";
@@ -54,7 +55,7 @@ perform_keypregen(int sockfd, engineconfig_type *config)
     // Check how many of them have been used
     int nfreekeys = 0;
     for (int k=0; k<hsmkeyDoc->keys_size(); ++k) {
-        const ::hsmkey::pb::HsmKey& key = hsmkeyDoc->keys(k);
+        const ::ods::hsmkey::HsmKey& key = hsmkeyDoc->keys(k);
         if (!key.has_inception())
             ++nfreekeys;
     }
@@ -63,7 +64,7 @@ perform_keypregen(int sockfd, engineconfig_type *config)
     bool bkeysgenerated = false;
     for ( ;nfreekeys<42; ++nfreekeys) {
         
-        ::hsmkey::pb::HsmKey* key = hsmkeyDoc->add_keys();
+        ::ods::hsmkey::HsmKey* key = hsmkeyDoc->add_keys();
         if (!key) {
             ods_log_error("[%s] Unable to add keys to the key info list",
                           keypregen_task_str);

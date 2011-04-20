@@ -1,4 +1,4 @@
-package zonelist.pb;
+package ods.zonelist;
 
 import "xmlext.proto";
 

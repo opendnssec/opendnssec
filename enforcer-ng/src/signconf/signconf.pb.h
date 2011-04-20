@@ -24,8 +24,8 @@
 #include <google/protobuf/generated_message_reflection.h>
 #include "xmlext.pb.h"
 
+namespace ods {
 namespace signconf {
-namespace pb {
 
 // Internal implementation detail -- do not call these.
 void  protobuf_AddDesc_signconf_2eproto();
@@ -117,18 +117,18 @@ class SignerConfigurationDocument : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // required .signconf.pb.SignerConfiguration signerconfiguration = 1;
+  // required .ods.signconf.SignerConfiguration signerconfiguration = 1;
   inline bool has_signerconfiguration() const;
   inline void clear_signerconfiguration();
   static const int kSignerconfigurationFieldNumber = 1;
-  inline const ::signconf::pb::SignerConfiguration& signerconfiguration() const;
-  inline ::signconf::pb::SignerConfiguration* mutable_signerconfiguration();
+  inline const ::ods::signconf::SignerConfiguration& signerconfiguration() const;
+  inline ::ods::signconf::SignerConfiguration* mutable_signerconfiguration();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::signconf::pb::SignerConfiguration* signerconfiguration_;
+  ::ods::signconf::SignerConfiguration* signerconfiguration_;
   friend void  protobuf_AddDesc_signconf_2eproto();
   friend void protobuf_AssignDesc_signconf_2eproto();
   friend void protobuf_ShutdownFile_signconf_2eproto();
@@ -204,18 +204,18 @@ class SignerConfiguration : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // required .signconf.pb.Zone zone = 1;
+  // required .ods.signconf.Zone zone = 1;
   inline bool has_zone() const;
   inline void clear_zone();
   static const int kZoneFieldNumber = 1;
-  inline const ::signconf::pb::Zone& zone() const;
-  inline ::signconf::pb::Zone* mutable_zone();
+  inline const ::ods::signconf::Zone& zone() const;
+  inline ::ods::signconf::Zone* mutable_zone();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::signconf::pb::Zone* zone_;
+  ::ods::signconf::Zone* zone_;
   friend void  protobuf_AddDesc_signconf_2eproto();
   friend void protobuf_AssignDesc_signconf_2eproto();
   friend void protobuf_ShutdownFile_signconf_2eproto();
@@ -301,26 +301,26 @@ class Zone : public ::google::protobuf::Message {
   inline void set_name(const char* value, size_t size);
   inline ::std::string* mutable_name();
   
-  // required .signconf.pb.Signatures signatures = 2;
+  // required .ods.signconf.Signatures signatures = 2;
   inline bool has_signatures() const;
   inline void clear_signatures();
   static const int kSignaturesFieldNumber = 2;
-  inline const ::signconf::pb::Signatures& signatures() const;
-  inline ::signconf::pb::Signatures* mutable_signatures();
+  inline const ::ods::signconf::Signatures& signatures() const;
+  inline ::ods::signconf::Signatures* mutable_signatures();
   
-  // required .signconf.pb.Denial denial = 3;
+  // required .ods.signconf.Denial denial = 3;
   inline bool has_denial() const;
   inline void clear_denial();
   static const int kDenialFieldNumber = 3;
-  inline const ::signconf::pb::Denial& denial() const;
-  inline ::signconf::pb::Denial* mutable_denial();
+  inline const ::ods::signconf::Denial& denial() const;
+  inline ::ods::signconf::Denial* mutable_denial();
   
-  // required .signconf.pb.Keys keys = 4;
+  // required .ods.signconf.Keys keys = 4;
   inline bool has_keys() const;
   inline void clear_keys();
   static const int kKeysFieldNumber = 4;
-  inline const ::signconf::pb::Keys& keys() const;
-  inline ::signconf::pb::Keys* mutable_keys();
+  inline const ::ods::signconf::Keys& keys() const;
+  inline ::ods::signconf::Keys* mutable_keys();
   
   // required int32 ttl = 5;
   inline bool has_ttl() const;
@@ -336,12 +336,12 @@ class Zone : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 min() const;
   inline void set_min(::google::protobuf::int32 value);
   
-  // required .signconf.pb.serial serial = 7;
+  // required .ods.signconf.serial serial = 7;
   inline bool has_serial() const;
   inline void clear_serial();
   static const int kSerialFieldNumber = 7;
-  inline signconf::pb::serial serial() const;
-  inline void set_serial(signconf::pb::serial value);
+  inline ods::signconf::serial serial() const;
+  inline void set_serial(ods::signconf::serial value);
   
   // optional bool audit = 8;
   inline bool has_audit() const;
@@ -356,9 +356,9 @@ class Zone : public ::google::protobuf::Message {
   
   ::std::string* name_;
   static const ::std::string _default_name_;
-  ::signconf::pb::Signatures* signatures_;
-  ::signconf::pb::Denial* denial_;
-  ::signconf::pb::Keys* keys_;
+  ::ods::signconf::Signatures* signatures_;
+  ::ods::signconf::Denial* denial_;
+  ::ods::signconf::Keys* keys_;
   ::google::protobuf::int32 ttl_;
   ::google::protobuf::int32 min_;
   int serial_;
@@ -565,26 +565,26 @@ class Denial : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // optional .signconf.pb.NSEC nsec = 1;
+  // optional .ods.signconf.NSEC nsec = 1;
   inline bool has_nsec() const;
   inline void clear_nsec();
   static const int kNsecFieldNumber = 1;
-  inline const ::signconf::pb::NSEC& nsec() const;
-  inline ::signconf::pb::NSEC* mutable_nsec();
+  inline const ::ods::signconf::NSEC& nsec() const;
+  inline ::ods::signconf::NSEC* mutable_nsec();
   
-  // optional .signconf.pb.NSEC3 nsec3 = 2;
+  // optional .ods.signconf.NSEC3 nsec3 = 2;
   inline bool has_nsec3() const;
   inline void clear_nsec3();
   static const int kNsec3FieldNumber = 2;
-  inline const ::signconf::pb::NSEC3& nsec3() const;
-  inline ::signconf::pb::NSEC3* mutable_nsec3();
+  inline const ::ods::signconf::NSEC3& nsec3() const;
+  inline ::ods::signconf::NSEC3* mutable_nsec3();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::signconf::pb::NSEC* nsec_;
-  ::signconf::pb::NSEC3* nsec3_;
+  ::ods::signconf::NSEC* nsec_;
+  ::ods::signconf::NSEC3* nsec3_;
   friend void  protobuf_AddDesc_signconf_2eproto();
   friend void protobuf_AssignDesc_signconf_2eproto();
   friend void protobuf_ShutdownFile_signconf_2eproto();
@@ -861,22 +861,22 @@ class Keys : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 ttl() const;
   inline void set_ttl(::google::protobuf::int32 value);
   
-  // repeated .signconf.pb.Key keys = 2;
+  // repeated .ods.signconf.Key keys = 2;
   inline int keys_size() const;
   inline void clear_keys();
   static const int kKeysFieldNumber = 2;
-  inline const ::google::protobuf::RepeatedPtrField< ::signconf::pb::Key >& keys() const;
-  inline ::google::protobuf::RepeatedPtrField< ::signconf::pb::Key >* mutable_keys();
-  inline const ::signconf::pb::Key& keys(int index) const;
-  inline ::signconf::pb::Key* mutable_keys(int index);
-  inline ::signconf::pb::Key* add_keys();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::signconf::Key >& keys() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::signconf::Key >* mutable_keys();
+  inline const ::ods::signconf::Key& keys(int index) const;
+  inline ::ods::signconf::Key* mutable_keys(int index);
+  inline ::ods::signconf::Key* add_keys();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
   ::google::protobuf::int32 ttl_;
-  ::google::protobuf::RepeatedPtrField< ::signconf::pb::Key > keys_;
+  ::google::protobuf::RepeatedPtrField< ::ods::signconf::Key > keys_;
   friend void  protobuf_AddDesc_signconf_2eproto();
   friend void protobuf_AssignDesc_signconf_2eproto();
   friend void protobuf_ShutdownFile_signconf_2eproto();
@@ -1046,20 +1046,20 @@ class Key : public ::google::protobuf::Message {
 
 // SignerConfigurationDocument
 
-// required .signconf.pb.SignerConfiguration signerconfiguration = 1;
+// required .ods.signconf.SignerConfiguration signerconfiguration = 1;
 inline bool SignerConfigurationDocument::has_signerconfiguration() const {
   return _has_bit(0);
 }
 inline void SignerConfigurationDocument::clear_signerconfiguration() {
-  if (signerconfiguration_ != NULL) signerconfiguration_->::signconf::pb::SignerConfiguration::Clear();
+  if (signerconfiguration_ != NULL) signerconfiguration_->::ods::signconf::SignerConfiguration::Clear();
   _clear_bit(0);
 }
-inline const ::signconf::pb::SignerConfiguration& SignerConfigurationDocument::signerconfiguration() const {
+inline const ::ods::signconf::SignerConfiguration& SignerConfigurationDocument::signerconfiguration() const {
   return signerconfiguration_ != NULL ? *signerconfiguration_ : *default_instance_->signerconfiguration_;
 }
-inline ::signconf::pb::SignerConfiguration* SignerConfigurationDocument::mutable_signerconfiguration() {
+inline ::ods::signconf::SignerConfiguration* SignerConfigurationDocument::mutable_signerconfiguration() {
   _set_bit(0);
-  if (signerconfiguration_ == NULL) signerconfiguration_ = new ::signconf::pb::SignerConfiguration;
+  if (signerconfiguration_ == NULL) signerconfiguration_ = new ::ods::signconf::SignerConfiguration;
   return signerconfiguration_;
 }
 
@@ -1067,20 +1067,20 @@ inline ::signconf::pb::SignerConfiguration* SignerConfigurationDocument::mutable
 
 // SignerConfiguration
 
-// required .signconf.pb.Zone zone = 1;
+// required .ods.signconf.Zone zone = 1;
 inline bool SignerConfiguration::has_zone() const {
   return _has_bit(0);
 }
 inline void SignerConfiguration::clear_zone() {
-  if (zone_ != NULL) zone_->::signconf::pb::Zone::Clear();
+  if (zone_ != NULL) zone_->::ods::signconf::Zone::Clear();
   _clear_bit(0);
 }
-inline const ::signconf::pb::Zone& SignerConfiguration::zone() const {
+inline const ::ods::signconf::Zone& SignerConfiguration::zone() const {
   return zone_ != NULL ? *zone_ : *default_instance_->zone_;
 }
-inline ::signconf::pb::Zone* SignerConfiguration::mutable_zone() {
+inline ::ods::signconf::Zone* SignerConfiguration::mutable_zone() {
   _set_bit(0);
-  if (zone_ == NULL) zone_ = new ::signconf::pb::Zone;
+  if (zone_ == NULL) zone_ = new ::ods::signconf::Zone;
   return zone_;
 }
 
@@ -1130,54 +1130,54 @@ inline ::std::string* Zone::mutable_name() {
   return name_;
 }
 
-// required .signconf.pb.Signatures signatures = 2;
+// required .ods.signconf.Signatures signatures = 2;
 inline bool Zone::has_signatures() const {
   return _has_bit(1);
 }
 inline void Zone::clear_signatures() {
-  if (signatures_ != NULL) signatures_->::signconf::pb::Signatures::Clear();
+  if (signatures_ != NULL) signatures_->::ods::signconf::Signatures::Clear();
   _clear_bit(1);
 }
-inline const ::signconf::pb::Signatures& Zone::signatures() const {
+inline const ::ods::signconf::Signatures& Zone::signatures() const {
   return signatures_ != NULL ? *signatures_ : *default_instance_->signatures_;
 }
-inline ::signconf::pb::Signatures* Zone::mutable_signatures() {
+inline ::ods::signconf::Signatures* Zone::mutable_signatures() {
   _set_bit(1);
-  if (signatures_ == NULL) signatures_ = new ::signconf::pb::Signatures;
+  if (signatures_ == NULL) signatures_ = new ::ods::signconf::Signatures;
   return signatures_;
 }
 
-// required .signconf.pb.Denial denial = 3;
+// required .ods.signconf.Denial denial = 3;
 inline bool Zone::has_denial() const {
   return _has_bit(2);
 }
 inline void Zone::clear_denial() {
-  if (denial_ != NULL) denial_->::signconf::pb::Denial::Clear();
+  if (denial_ != NULL) denial_->::ods::signconf::Denial::Clear();
   _clear_bit(2);
 }
-inline const ::signconf::pb::Denial& Zone::denial() const {
+inline const ::ods::signconf::Denial& Zone::denial() const {
   return denial_ != NULL ? *denial_ : *default_instance_->denial_;
 }
-inline ::signconf::pb::Denial* Zone::mutable_denial() {
+inline ::ods::signconf::Denial* Zone::mutable_denial() {
   _set_bit(2);
-  if (denial_ == NULL) denial_ = new ::signconf::pb::Denial;
+  if (denial_ == NULL) denial_ = new ::ods::signconf::Denial;
   return denial_;
 }
 
-// required .signconf.pb.Keys keys = 4;
+// required .ods.signconf.Keys keys = 4;
 inline bool Zone::has_keys() const {
   return _has_bit(3);
 }
 inline void Zone::clear_keys() {
-  if (keys_ != NULL) keys_->::signconf::pb::Keys::Clear();
+  if (keys_ != NULL) keys_->::ods::signconf::Keys::Clear();
   _clear_bit(3);
 }
-inline const ::signconf::pb::Keys& Zone::keys() const {
+inline const ::ods::signconf::Keys& Zone::keys() const {
   return keys_ != NULL ? *keys_ : *default_instance_->keys_;
 }
-inline ::signconf::pb::Keys* Zone::mutable_keys() {
+inline ::ods::signconf::Keys* Zone::mutable_keys() {
   _set_bit(3);
-  if (keys_ == NULL) keys_ = new ::signconf::pb::Keys;
+  if (keys_ == NULL) keys_ = new ::ods::signconf::Keys;
   return keys_;
 }
 
@@ -1213,7 +1213,7 @@ inline void Zone::set_min(::google::protobuf::int32 value) {
   min_ = value;
 }
 
-// required .signconf.pb.serial serial = 7;
+// required .ods.signconf.serial serial = 7;
 inline bool Zone::has_serial() const {
   return _has_bit(6);
 }
@@ -1221,11 +1221,11 @@ inline void Zone::clear_serial() {
   serial_ = 1;
   _clear_bit(6);
 }
-inline signconf::pb::serial Zone::serial() const {
-  return static_cast< signconf::pb::serial >(serial_);
+inline ods::signconf::serial Zone::serial() const {
+  return static_cast< ods::signconf::serial >(serial_);
 }
-inline void Zone::set_serial(signconf::pb::serial value) {
-  GOOGLE_DCHECK(signconf::pb::serial_IsValid(value));
+inline void Zone::set_serial(ods::signconf::serial value) {
+  GOOGLE_DCHECK(ods::signconf::serial_IsValid(value));
   _set_bit(6);
   serial_ = value;
 }
@@ -1350,37 +1350,37 @@ inline void Signatures::set_inceptionoffset(::google::protobuf::int32 value) {
 
 // Denial
 
-// optional .signconf.pb.NSEC nsec = 1;
+// optional .ods.signconf.NSEC nsec = 1;
 inline bool Denial::has_nsec() const {
   return _has_bit(0);
 }
 inline void Denial::clear_nsec() {
-  if (nsec_ != NULL) nsec_->::signconf::pb::NSEC::Clear();
+  if (nsec_ != NULL) nsec_->::ods::signconf::NSEC::Clear();
   _clear_bit(0);
 }
-inline const ::signconf::pb::NSEC& Denial::nsec() const {
+inline const ::ods::signconf::NSEC& Denial::nsec() const {
   return nsec_ != NULL ? *nsec_ : *default_instance_->nsec_;
 }
-inline ::signconf::pb::NSEC* Denial::mutable_nsec() {
+inline ::ods::signconf::NSEC* Denial::mutable_nsec() {
   _set_bit(0);
-  if (nsec_ == NULL) nsec_ = new ::signconf::pb::NSEC;
+  if (nsec_ == NULL) nsec_ = new ::ods::signconf::NSEC;
   return nsec_;
 }
 
-// optional .signconf.pb.NSEC3 nsec3 = 2;
+// optional .ods.signconf.NSEC3 nsec3 = 2;
 inline bool Denial::has_nsec3() const {
   return _has_bit(1);
 }
 inline void Denial::clear_nsec3() {
-  if (nsec3_ != NULL) nsec3_->::signconf::pb::NSEC3::Clear();
+  if (nsec3_ != NULL) nsec3_->::ods::signconf::NSEC3::Clear();
   _clear_bit(1);
 }
-inline const ::signconf::pb::NSEC3& Denial::nsec3() const {
+inline const ::ods::signconf::NSEC3& Denial::nsec3() const {
   return nsec3_ != NULL ? *nsec3_ : *default_instance_->nsec3_;
 }
-inline ::signconf::pb::NSEC3* Denial::mutable_nsec3() {
+inline ::ods::signconf::NSEC3* Denial::mutable_nsec3() {
   _set_bit(1);
-  if (nsec3_ == NULL) nsec3_ = new ::signconf::pb::NSEC3;
+  if (nsec3_ == NULL) nsec3_ = new ::ods::signconf::NSEC3;
   return nsec3_;
 }
 
@@ -1502,28 +1502,28 @@ inline void Keys::set_ttl(::google::protobuf::int32 value) {
   ttl_ = value;
 }
 
-// repeated .signconf.pb.Key keys = 2;
+// repeated .ods.signconf.Key keys = 2;
 inline int Keys::keys_size() const {
   return keys_.size();
 }
 inline void Keys::clear_keys() {
   keys_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::signconf::pb::Key >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::signconf::Key >&
 Keys::keys() const {
   return keys_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::signconf::pb::Key >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::signconf::Key >*
 Keys::mutable_keys() {
   return &keys_;
 }
-inline const ::signconf::pb::Key& Keys::keys(int index) const {
+inline const ::ods::signconf::Key& Keys::keys(int index) const {
   return keys_.Get(index);
 }
-inline ::signconf::pb::Key* Keys::mutable_keys(int index) {
+inline ::ods::signconf::Key* Keys::mutable_keys(int index) {
   return keys_.Mutable(index);
 }
-inline ::signconf::pb::Key* Keys::add_keys() {
+inline ::ods::signconf::Key* Keys::add_keys() {
   return keys_.Add();
 }
 
@@ -1670,16 +1670,16 @@ inline void Key::set_deactivate(bool value) {
 }
 
 
-}  // namespace pb
 }  // namespace signconf
+}  // namespace ods
 
 #ifndef SWIG
 namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< signconf::pb::serial>() {
-  return signconf::pb::serial_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ods::signconf::serial>() {
+  return ods::signconf::serial_descriptor();
 }
 
 }  // namespace google

@@ -24,8 +24,8 @@
 #include <google/protobuf/generated_message_reflection.h>
 #include "xmlext.pb.h"
 
+namespace ods {
 namespace hsmkey {
-namespace pb {
 
 // Internal implementation detail -- do not call these.
 void  protobuf_AddDesc_hsmkey_2eproto();
@@ -109,21 +109,21 @@ class HsmKeyDocument : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // repeated .hsmkey.pb.HsmKey keys = 1;
+  // repeated .ods.hsmkey.HsmKey keys = 1;
   inline int keys_size() const;
   inline void clear_keys();
   static const int kKeysFieldNumber = 1;
-  inline const ::google::protobuf::RepeatedPtrField< ::hsmkey::pb::HsmKey >& keys() const;
-  inline ::google::protobuf::RepeatedPtrField< ::hsmkey::pb::HsmKey >* mutable_keys();
-  inline const ::hsmkey::pb::HsmKey& keys(int index) const;
-  inline ::hsmkey::pb::HsmKey* mutable_keys(int index);
-  inline ::hsmkey::pb::HsmKey* add_keys();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::hsmkey::HsmKey >& keys() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::hsmkey::HsmKey >* mutable_keys();
+  inline const ::ods::hsmkey::HsmKey& keys(int index) const;
+  inline ::ods::hsmkey::HsmKey* mutable_keys(int index);
+  inline ::ods::hsmkey::HsmKey* add_keys();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::google::protobuf::RepeatedPtrField< ::hsmkey::pb::HsmKey > keys_;
+  ::google::protobuf::RepeatedPtrField< ::ods::hsmkey::HsmKey > keys_;
   friend void  protobuf_AddDesc_hsmkey_2eproto();
   friend void protobuf_AssignDesc_hsmkey_2eproto();
   friend void protobuf_ShutdownFile_hsmkey_2eproto();
@@ -240,12 +240,12 @@ class HsmKey : public ::google::protobuf::Message {
   inline ::google::protobuf::uint32 algorithm() const;
   inline void set_algorithm(::google::protobuf::uint32 value);
   
-  // optional .hsmkey.pb.keyrole role = 6 [default = ZSK];
+  // optional .ods.hsmkey.keyrole role = 6 [default = ZSK];
   inline bool has_role() const;
   inline void clear_role();
   static const int kRoleFieldNumber = 6;
-  inline hsmkey::pb::keyrole role() const;
-  inline void set_role(hsmkey::pb::keyrole value);
+  inline ods::hsmkey::keyrole role() const;
+  inline void set_role(ods::hsmkey::keyrole value);
   
   // repeated string used_by_zones = 7;
   inline int used_by_zones_size() const;
@@ -322,28 +322,28 @@ class HsmKey : public ::google::protobuf::Message {
 
 // HsmKeyDocument
 
-// repeated .hsmkey.pb.HsmKey keys = 1;
+// repeated .ods.hsmkey.HsmKey keys = 1;
 inline int HsmKeyDocument::keys_size() const {
   return keys_.size();
 }
 inline void HsmKeyDocument::clear_keys() {
   keys_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::hsmkey::pb::HsmKey >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::hsmkey::HsmKey >&
 HsmKeyDocument::keys() const {
   return keys_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::hsmkey::pb::HsmKey >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::hsmkey::HsmKey >*
 HsmKeyDocument::mutable_keys() {
   return &keys_;
 }
-inline const ::hsmkey::pb::HsmKey& HsmKeyDocument::keys(int index) const {
+inline const ::ods::hsmkey::HsmKey& HsmKeyDocument::keys(int index) const {
   return keys_.Get(index);
 }
-inline ::hsmkey::pb::HsmKey* HsmKeyDocument::mutable_keys(int index) {
+inline ::ods::hsmkey::HsmKey* HsmKeyDocument::mutable_keys(int index) {
   return keys_.Mutable(index);
 }
-inline ::hsmkey::pb::HsmKey* HsmKeyDocument::add_keys() {
+inline ::ods::hsmkey::HsmKey* HsmKeyDocument::add_keys() {
   return keys_.Add();
 }
 
@@ -483,7 +483,7 @@ inline void HsmKey::set_algorithm(::google::protobuf::uint32 value) {
   algorithm_ = value;
 }
 
-// optional .hsmkey.pb.keyrole role = 6 [default = ZSK];
+// optional .ods.hsmkey.keyrole role = 6 [default = ZSK];
 inline bool HsmKey::has_role() const {
   return _has_bit(5);
 }
@@ -491,11 +491,11 @@ inline void HsmKey::clear_role() {
   role_ = 2;
   _clear_bit(5);
 }
-inline hsmkey::pb::keyrole HsmKey::role() const {
-  return static_cast< hsmkey::pb::keyrole >(role_);
+inline ods::hsmkey::keyrole HsmKey::role() const {
+  return static_cast< ods::hsmkey::keyrole >(role_);
 }
-inline void HsmKey::set_role(hsmkey::pb::keyrole value) {
-  GOOGLE_DCHECK(hsmkey::pb::keyrole_IsValid(value));
+inline void HsmKey::set_role(ods::hsmkey::keyrole value) {
+  GOOGLE_DCHECK(ods::hsmkey::keyrole_IsValid(value));
   _set_bit(5);
   role_ = value;
 }
@@ -577,16 +577,16 @@ inline void HsmKey::set_revoke(bool value) {
 }
 
 
-}  // namespace pb
 }  // namespace hsmkey
+}  // namespace ods
 
 #ifndef SWIG
 namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< hsmkey::pb::keyrole>() {
-  return hsmkey::pb::keyrole_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ods::hsmkey::keyrole>() {
+  return ods::hsmkey::keyrole_descriptor();
 }
 
 }  // namespace google

@@ -13,9 +13,9 @@
 
 class HsmKeyPB : public HsmKey {
 private:
-    ::hsmkey::pb::HsmKey *_key;
+    ::ods::hsmkey::HsmKey *_key;
 public:
-    HsmKeyPB(::hsmkey::pb::HsmKey *key);
+    HsmKeyPB(::ods::hsmkey::HsmKey *key);
     
     virtual const std::string &locator();
     
@@ -47,10 +47,10 @@ public:
 
 class HsmKeyFactoryPB : public HsmKeyFactory {
 private:
-    ::hsmkey::pb::HsmKeyDocument *_doc;
+    ::ods::hsmkey::HsmKeyDocument *_doc;
     std::vector<HsmKeyPB> _keys;
 public:
-    HsmKeyFactoryPB(::hsmkey::pb::HsmKeyDocument *doc);
+    HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc);
     
     virtual bool CreateNewKey(int bits, HsmKey **ppKey);
     

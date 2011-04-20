@@ -1,7 +1,7 @@
 // This proto file is used to define the hsm key data that needs 
 // to be persisted for the enforcer 
 
-package hsmkey.pb;
+package ods.hsmkey;
 
 import "xmlext.proto";
 

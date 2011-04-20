@@ -13,9 +13,9 @@
 
 class KeyStatePB : public KeyState {
 private:
-    ::keystate::pb::KeyState *_keystate;
+    ::ods::keystate::KeyState *_keystate;
 public:
-    KeyStatePB(::keystate::pb::KeyState *keystate);
+    KeyStatePB(::ods::keystate::KeyState *keystate);
     
     virtual int state();
     virtual void setState(int value);
@@ -29,13 +29,13 @@ public:
 
 class KeyDataPB : public KeyData {
 private:
-    ::keystate::pb::KeyData *_keydata;
+    ::ods::keystate::KeyData *_keydata;
     
     KeyStatePB _keyStateDS;
     KeyStatePB _keyStateRRSIG;
     KeyStatePB _keyStateDNSKEY;
 public:
-    KeyDataPB( ::keystate::pb::KeyData *keydata );
+    KeyDataPB( ::ods::keystate::KeyData *keydata );
 
     bool deleted();
     void setDeleted(bool value);
@@ -77,9 +77,9 @@ public:
 class KeyDataListPB : public KeyDataList {
 private:
     std::vector<KeyDataPB> _keys;
-    ::keystate::pb::EnforcerZone *_zone;
+    ::ods::keystate::EnforcerZone *_zone;
 public:
-    KeyDataListPB( ::keystate::pb::EnforcerZone *zone);
+    KeyDataListPB( ::ods::keystate::EnforcerZone *zone);
 
     virtual KeyData &addNewKey(int algorithm, time_t inception, KeyRole role,
                                bool minimizeDS, bool minimizeRRSIG, 
@@ -91,12 +91,12 @@ public:
 
 class EnforcerZonePB : public EnforcerZone {
 private:
-    ::keystate::pb::EnforcerZone *_zone;
+    ::ods::keystate::EnforcerZone *_zone;
     const kasp::pb::Policy *_policy;
 
     KeyDataListPB _keyDataList;
 public:
-    EnforcerZonePB(::keystate::pb::EnforcerZone *zone, const kasp::pb::Policy *policy);
+    EnforcerZonePB(::ods::keystate::EnforcerZone *zone, const kasp::pb::Policy *policy);
 
     /* Get access to the policy for associated with this zone */
     virtual const std::string &name();

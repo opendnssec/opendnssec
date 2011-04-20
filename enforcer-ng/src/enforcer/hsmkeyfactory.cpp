@@ -10,7 +10,7 @@ extern "C" {
 //////////////////////////////
 
 
-HsmKeyPB::HsmKeyPB(::hsmkey::pb::HsmKey *key)
+HsmKeyPB::HsmKeyPB(::ods::hsmkey::HsmKey *key)
 : _key(key)
 {
     
@@ -69,7 +69,7 @@ KeyRole HsmKeyPB::keyRole()
 
 void HsmKeyPB::setKeyRole(KeyRole value)
 {
-    _key->set_role((::hsmkey::pb::keyrole)value);
+    _key->set_role((::ods::hsmkey::keyrole)value);
 }
 
 bool HsmKeyPB::usedByZone(const std::string &zone)
@@ -126,7 +126,7 @@ void HsmKeyPB::setRevoke(bool value)
 // HsmKeyFactoryPB
 //////////////////////////////
 
-HsmKeyFactoryPB::HsmKeyFactoryPB(::hsmkey::pb::HsmKeyDocument *doc)
+HsmKeyFactoryPB::HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc)
 : _doc(doc)
 {
 }
@@ -137,7 +137,7 @@ HsmKeyFactoryPB::HsmKeyFactoryPB(::hsmkey::pb::HsmKeyDocument *doc)
 bool HsmKeyFactoryPB::CreateNewKey(int bits, HsmKey **ppKey)
 {
     for (int k=0; k<_doc->keys_size(); ++k) {
-        ::hsmkey::pb::HsmKey *pbkey = _doc->mutable_keys(k);
+        ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
         if (pbkey->bits() == bits && !pbkey->has_inception()) {
             pbkey->set_inception(time_now());
             _keys.push_back(HsmKeyPB(pbkey));

@@ -9,8 +9,8 @@
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
 
+namespace ods {
 namespace zonelist {
-namespace pb {
 
 namespace {
 
@@ -121,17 +121,17 @@ void protobuf_AddDesc_zonelist_2eproto() {
 
   ::protobuf_AddDesc_xmlext_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\016zonelist.proto\022\013zonelist.pb\032\014xmlext.pr"
-    "oto\"K\n\020ZoneListDocument\0227\n\010zonelist\030\001 \002("
-    "\0132\025.zonelist.pb.ZoneListB\016\202\265\030\n\n\010ZoneList"
-    "\"<\n\010ZoneList\0220\n\005zones\030\001 \003(\0132\025.zonelist.p"
-    "b.ZoneDataB\n\202\265\030\006\n\004Zone\"\342\001\n\010ZoneData\022\031\n\004n"
-    "ame\030\001 \002(\tB\013\202\265\030\007\n\005@name\022%\n\006policy\030\002 \001(\t:\007"
-    "defaultB\014\202\265\030\010\n\006Policy\0226\n\023signerconfigura"
-    "tion\030\003 \001(\tB\031\202\265\030\025\n\023SignerConfiguration\022,\n"
-    "\tinputfile\030\004 \001(\tB\031\202\265\030\025\n\023Adapters/Input/F"
-    "ile\022.\n\noutputfile\030\005 \001(\tB\032\202\265\030\026\n\024Adapters/"
-    "Output/File", 411);
+    "\n\016zonelist.proto\022\014ods.zonelist\032\014xmlext.p"
+    "roto\"L\n\020ZoneListDocument\0228\n\010zonelist\030\001 \002"
+    "(\0132\026.ods.zonelist.ZoneListB\016\202\265\030\n\n\010ZoneLi"
+    "st\"=\n\010ZoneList\0221\n\005zones\030\001 \003(\0132\026.ods.zone"
+    "list.ZoneDataB\n\202\265\030\006\n\004Zone\"\342\001\n\010ZoneData\022\031"
+    "\n\004name\030\001 \002(\tB\013\202\265\030\007\n\005@name\022%\n\006policy\030\002 \001("
+    "\t:\007defaultB\014\202\265\030\010\n\006Policy\0226\n\023signerconfig"
+    "uration\030\003 \001(\tB\031\202\265\030\025\n\023SignerConfiguration"
+    "\022,\n\tinputfile\030\004 \001(\tB\031\202\265\030\025\n\023Adapters/Inpu"
+    "t/File\022.\n\noutputfile\030\005 \001(\tB\032\202\265\030\026\n\024Adapte"
+    "rs/Output/File", 414);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zonelist.proto", &protobuf_RegisterTypes);
   ZoneListDocument::default_instance_ = new ZoneListDocument();
@@ -162,7 +162,7 @@ ZoneListDocument::ZoneListDocument() {
 }
 
 void ZoneListDocument::InitAsDefaultInstance() {
-  zonelist_ = const_cast< ::zonelist::pb::ZoneList*>(&::zonelist::pb::ZoneList::default_instance());
+  zonelist_ = const_cast< ::ods::zonelist::ZoneList*>(&::ods::zonelist::ZoneList::default_instance());
 }
 
 ZoneListDocument::ZoneListDocument(const ZoneListDocument& from) {
@@ -204,7 +204,7 @@ ZoneListDocument* ZoneListDocument::New() const {
 void ZoneListDocument::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (_has_bit(0)) {
-      if (zonelist_ != NULL) zonelist_->::zonelist::pb::ZoneList::Clear();
+      if (zonelist_ != NULL) zonelist_->::ods::zonelist::ZoneList::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -217,7 +217,7 @@ bool ZoneListDocument::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .zonelist.pb.ZoneList zonelist = 1;
+      // required .ods.zonelist.ZoneList zonelist = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -253,7 +253,7 @@ void ZoneListDocument::SerializeWithCachedSizes(
     return;
   }
   
-  // required .zonelist.pb.ZoneList zonelist = 1;
+  // required .ods.zonelist.ZoneList zonelist = 1;
   if (_has_bit(0)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       1, this->zonelist(), output);
@@ -267,7 +267,7 @@ void ZoneListDocument::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ZoneListDocument::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .zonelist.pb.ZoneList zonelist = 1;
+  // required .ods.zonelist.ZoneList zonelist = 1;
   if (_has_bit(0)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -285,7 +285,7 @@ int ZoneListDocument::ByteSize() const {
   int total_size = 0;
   
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .zonelist.pb.ZoneList zonelist = 1;
+    // required .ods.zonelist.ZoneList zonelist = 1;
     if (has_zonelist()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -318,7 +318,7 @@ void ZoneListDocument::MergeFrom(const ZoneListDocument& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from._has_bit(0)) {
-      mutable_zonelist()->::zonelist::pb::ZoneList::MergeFrom(from.zonelist());
+      mutable_zonelist()->::ods::zonelist::ZoneList::MergeFrom(from.zonelist());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -422,7 +422,7 @@ bool ZoneList::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // repeated .zonelist.pb.ZoneData zones = 1;
+      // repeated .ods.zonelist.ZoneData zones = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -460,7 +460,7 @@ void ZoneList::SerializeWithCachedSizes(
     return;
   }
   
-  // repeated .zonelist.pb.ZoneData zones = 1;
+  // repeated .ods.zonelist.ZoneData zones = 1;
   for (int i = 0; i < this->zones_size(); i++) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       1, this->zones(i), output);
@@ -474,7 +474,7 @@ void ZoneList::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ZoneList::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // repeated .zonelist.pb.ZoneData zones = 1;
+  // repeated .ods.zonelist.ZoneData zones = 1;
   for (int i = 0; i < this->zones_size(); i++) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -491,7 +491,7 @@ void ZoneList::SerializeWithCachedSizes(
 int ZoneList::ByteSize() const {
   int total_size = 0;
   
-  // repeated .zonelist.pb.ZoneData zones = 1;
+  // repeated .ods.zonelist.ZoneData zones = 1;
   total_size += 1 * this->zones_size();
   for (int i = 0; i < this->zones_size(); i++) {
     total_size +=
@@ -1014,5 +1014,5 @@ void ZoneData::Swap(ZoneData* other) {
 }
 
 
-}  // namespace pb
 }  // namespace zonelist
+}  // namespace ods

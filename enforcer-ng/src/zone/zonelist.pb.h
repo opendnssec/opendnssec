@@ -24,8 +24,8 @@
 #include <google/protobuf/generated_message_reflection.h>
 #include "xmlext.pb.h"
 
+namespace ods {
 namespace zonelist {
-namespace pb {
 
 // Internal implementation detail -- do not call these.
 void  protobuf_AddDesc_zonelist_2eproto();
@@ -91,18 +91,18 @@ class ZoneListDocument : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // required .zonelist.pb.ZoneList zonelist = 1;
+  // required .ods.zonelist.ZoneList zonelist = 1;
   inline bool has_zonelist() const;
   inline void clear_zonelist();
   static const int kZonelistFieldNumber = 1;
-  inline const ::zonelist::pb::ZoneList& zonelist() const;
-  inline ::zonelist::pb::ZoneList* mutable_zonelist();
+  inline const ::ods::zonelist::ZoneList& zonelist() const;
+  inline ::ods::zonelist::ZoneList* mutable_zonelist();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::zonelist::pb::ZoneList* zonelist_;
+  ::ods::zonelist::ZoneList* zonelist_;
   friend void  protobuf_AddDesc_zonelist_2eproto();
   friend void protobuf_AssignDesc_zonelist_2eproto();
   friend void protobuf_ShutdownFile_zonelist_2eproto();
@@ -178,21 +178,21 @@ class ZoneList : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // repeated .zonelist.pb.ZoneData zones = 1;
+  // repeated .ods.zonelist.ZoneData zones = 1;
   inline int zones_size() const;
   inline void clear_zones();
   static const int kZonesFieldNumber = 1;
-  inline const ::google::protobuf::RepeatedPtrField< ::zonelist::pb::ZoneData >& zones() const;
-  inline ::google::protobuf::RepeatedPtrField< ::zonelist::pb::ZoneData >* mutable_zones();
-  inline const ::zonelist::pb::ZoneData& zones(int index) const;
-  inline ::zonelist::pb::ZoneData* mutable_zones(int index);
-  inline ::zonelist::pb::ZoneData* add_zones();
+  inline const ::google::protobuf::RepeatedPtrField< ::ods::zonelist::ZoneData >& zones() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ods::zonelist::ZoneData >* mutable_zones();
+  inline const ::ods::zonelist::ZoneData& zones(int index) const;
+  inline ::ods::zonelist::ZoneData* mutable_zones(int index);
+  inline ::ods::zonelist::ZoneData* add_zones();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::google::protobuf::RepeatedPtrField< ::zonelist::pb::ZoneData > zones_;
+  ::google::protobuf::RepeatedPtrField< ::ods::zonelist::ZoneData > zones_;
   friend void  protobuf_AddDesc_zonelist_2eproto();
   friend void protobuf_AssignDesc_zonelist_2eproto();
   friend void protobuf_ShutdownFile_zonelist_2eproto();
@@ -362,20 +362,20 @@ class ZoneData : public ::google::protobuf::Message {
 
 // ZoneListDocument
 
-// required .zonelist.pb.ZoneList zonelist = 1;
+// required .ods.zonelist.ZoneList zonelist = 1;
 inline bool ZoneListDocument::has_zonelist() const {
   return _has_bit(0);
 }
 inline void ZoneListDocument::clear_zonelist() {
-  if (zonelist_ != NULL) zonelist_->::zonelist::pb::ZoneList::Clear();
+  if (zonelist_ != NULL) zonelist_->::ods::zonelist::ZoneList::Clear();
   _clear_bit(0);
 }
-inline const ::zonelist::pb::ZoneList& ZoneListDocument::zonelist() const {
+inline const ::ods::zonelist::ZoneList& ZoneListDocument::zonelist() const {
   return zonelist_ != NULL ? *zonelist_ : *default_instance_->zonelist_;
 }
-inline ::zonelist::pb::ZoneList* ZoneListDocument::mutable_zonelist() {
+inline ::ods::zonelist::ZoneList* ZoneListDocument::mutable_zonelist() {
   _set_bit(0);
-  if (zonelist_ == NULL) zonelist_ = new ::zonelist::pb::ZoneList;
+  if (zonelist_ == NULL) zonelist_ = new ::ods::zonelist::ZoneList;
   return zonelist_;
 }
 
@@ -383,28 +383,28 @@ inline ::zonelist::pb::ZoneList* ZoneListDocument::mutable_zonelist() {
 
 // ZoneList
 
-// repeated .zonelist.pb.ZoneData zones = 1;
+// repeated .ods.zonelist.ZoneData zones = 1;
 inline int ZoneList::zones_size() const {
   return zones_.size();
 }
 inline void ZoneList::clear_zones() {
   zones_.Clear();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::zonelist::pb::ZoneData >&
+inline const ::google::protobuf::RepeatedPtrField< ::ods::zonelist::ZoneData >&
 ZoneList::zones() const {
   return zones_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::zonelist::pb::ZoneData >*
+inline ::google::protobuf::RepeatedPtrField< ::ods::zonelist::ZoneData >*
 ZoneList::mutable_zones() {
   return &zones_;
 }
-inline const ::zonelist::pb::ZoneData& ZoneList::zones(int index) const {
+inline const ::ods::zonelist::ZoneData& ZoneList::zones(int index) const {
   return zones_.Get(index);
 }
-inline ::zonelist::pb::ZoneData* ZoneList::mutable_zones(int index) {
+inline ::ods::zonelist::ZoneData* ZoneList::mutable_zones(int index) {
   return zones_.Mutable(index);
 }
-inline ::zonelist::pb::ZoneData* ZoneList::add_zones() {
+inline ::ods::zonelist::ZoneData* ZoneList::add_zones() {
   return zones_.Add();
 }
 
@@ -623,8 +623,8 @@ inline ::std::string* ZoneData::mutable_outputfile() {
 }
 
 
-}  // namespace pb
 }  // namespace zonelist
+}  // namespace ods
 
 #ifndef SWIG
 namespace google {

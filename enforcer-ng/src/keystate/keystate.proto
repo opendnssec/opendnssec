@@ -1,7 +1,7 @@
 // This proto file is used to define the key state data that needs 
 // to be persisted for the enforcer 
 
-package keystate.pb;
+package ods.keystate;
 
 import "xmlext.proto";
 

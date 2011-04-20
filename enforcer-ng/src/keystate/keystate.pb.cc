@@ -9,8 +9,8 @@
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
 
+namespace ods {
 namespace keystate {
-namespace pb {
 
 namespace {
 
@@ -161,26 +161,26 @@ void protobuf_AddDesc_keystate_2eproto() {
 
   ::protobuf_AddDesc_xmlext_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\016keystate.proto\022\013keystate.pb\032\014xmlext.pr"
-    "oto\"<\n\020KeyStateDocument\022(\n\005zones\030\001 \003(\0132\031"
-    ".keystate.pb.EnforcerZone\"\207\001\n\014EnforcerZo"
-    "ne\022\014\n\004name\030\001 \002(\t\022\016\n\006policy\030\002 \002(\t\022\"\n\004keys"
-    "\030\003 \003(\0132\024.keystate.pb.KeyData\022\036\n\026signconf"
-    "_needs_writing\030\004 \002(\010\022\025\n\rsignconf_path\030\005 "
-    "\002(\t\"\237\003\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\talgo"
-    "rithm\030\002 \002(\r\022\021\n\tinception\030\003 \002(\r\022!\n\002ds\030\004 \002"
-    "(\0132\025.keystate.pb.KeyState\022$\n\005rrsig\030\005 \002(\013"
-    "2\025.keystate.pb.KeyState\022%\n\006dnskey\030\006 \002(\0132"
-    "\025.keystate.pb.KeyState\022\"\n\004role\030\007 \002(\0162\024.k"
-    "eystate.pb.keyrole\022\026\n\007ds_seen\030\010 \001(\010:\005fal"
-    "se\022\037\n\020submit_to_parent\030\t \001(\010:\005false\022\031\n\013i"
-    "ntroducing\030\n \001(\010:\004true\022\025\n\006revoke\030\013 \001(\010:\005"
-    "false\022\026\n\007standby\030\014 \001(\010:\005false\022\025\n\006active\030"
-    "\r \001(\010:\005false\022\026\n\007publish\030\016 \001(\010:\005false\022\027\n\010"
-    "_deleted\030d \001(\010:\005false\"G\n\010KeyState\022\r\n\005sta"
-    "te\030\001 \002(\005\022\023\n\013last_change\030\002 \001(\r\022\027\n\010minimiz"
-    "e\030\003 \001(\010:\005false*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZS"
-    "K\020\002\022\007\n\003CSK\020\003", 772);
+    "\n\016keystate.proto\022\014ods.keystate\032\014xmlext.p"
+    "roto\"=\n\020KeyStateDocument\022)\n\005zones\030\001 \003(\0132"
+    "\032.ods.keystate.EnforcerZone\"\210\001\n\014Enforcer"
+    "Zone\022\014\n\004name\030\001 \002(\t\022\016\n\006policy\030\002 \002(\t\022#\n\004ke"
+    "ys\030\003 \003(\0132\025.ods.keystate.KeyData\022\036\n\026signc"
+    "onf_needs_writing\030\004 \002(\010\022\025\n\rsignconf_path"
+    "\030\005 \002(\t\"\243\003\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\ta"
+    "lgorithm\030\002 \002(\r\022\021\n\tinception\030\003 \002(\r\022\"\n\002ds\030"
+    "\004 \002(\0132\026.ods.keystate.KeyState\022%\n\005rrsig\030\005"
+    " \002(\0132\026.ods.keystate.KeyState\022&\n\006dnskey\030\006"
+    " \002(\0132\026.ods.keystate.KeyState\022#\n\004role\030\007 \002"
+    "(\0162\025.ods.keystate.keyrole\022\026\n\007ds_seen\030\010 \001"
+    "(\010:\005false\022\037\n\020submit_to_parent\030\t \001(\010:\005fal"
+    "se\022\031\n\013introducing\030\n \001(\010:\004true\022\025\n\006revoke\030"
+    "\013 \001(\010:\005false\022\026\n\007standby\030\014 \001(\010:\005false\022\025\n\006"
+    "active\030\r \001(\010:\005false\022\026\n\007publish\030\016 \001(\010:\005fa"
+    "lse\022\027\n\010_deleted\030d \001(\010:\005false\"G\n\010KeyState"
+    "\022\r\n\005state\030\001 \002(\005\022\023\n\013last_change\030\002 \001(\r\022\027\n\010"
+    "minimize\030\003 \001(\010:\005false*$\n\007keyrole\022\007\n\003KSK\020"
+    "\001\022\007\n\003ZSK\020\002\022\007\n\003CSK\020\003", 779);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "keystate.proto", &protobuf_RegisterTypes);
   KeyStateDocument::default_instance_ = new KeyStateDocument();
@@ -276,7 +276,7 @@ bool KeyStateDocument::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // repeated .keystate.pb.EnforcerZone zones = 1;
+      // repeated .ods.keystate.EnforcerZone zones = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -314,7 +314,7 @@ void KeyStateDocument::SerializeWithCachedSizes(
     return;
   }
   
-  // repeated .keystate.pb.EnforcerZone zones = 1;
+  // repeated .ods.keystate.EnforcerZone zones = 1;
   for (int i = 0; i < this->zones_size(); i++) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       1, this->zones(i), output);
@@ -328,7 +328,7 @@ void KeyStateDocument::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* KeyStateDocument::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // repeated .keystate.pb.EnforcerZone zones = 1;
+  // repeated .ods.keystate.EnforcerZone zones = 1;
   for (int i = 0; i < this->zones_size(); i++) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -345,7 +345,7 @@ void KeyStateDocument::SerializeWithCachedSizes(
 int KeyStateDocument::ByteSize() const {
   int total_size = 0;
   
-  // repeated .keystate.pb.EnforcerZone zones = 1;
+  // repeated .ods.keystate.EnforcerZone zones = 1;
   total_size += 1 * this->zones_size();
   for (int i = 0; i < this->zones_size(); i++) {
     total_size +=
@@ -546,7 +546,7 @@ bool EnforcerZone::MergePartialFromCodedStream(
         break;
       }
       
-      // repeated .keystate.pb.KeyData keys = 3;
+      // repeated .ods.keystate.KeyData keys = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -632,7 +632,7 @@ void EnforcerZone::SerializeWithCachedSizes(
       2, this->policy(), output);
   }
   
-  // repeated .keystate.pb.KeyData keys = 3;
+  // repeated .ods.keystate.KeyData keys = 3;
   for (int i = 0; i < this->keys_size(); i++) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       3, this->keys(i), output);
@@ -680,7 +680,7 @@ void EnforcerZone::SerializeWithCachedSizes(
         2, this->policy(), target);
   }
   
-  // repeated .keystate.pb.KeyData keys = 3;
+  // repeated .ods.keystate.KeyData keys = 3;
   for (int i = 0; i < this->keys_size(); i++) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -740,7 +740,7 @@ int EnforcerZone::ByteSize() const {
     }
     
   }
-  // repeated .keystate.pb.KeyData keys = 3;
+  // repeated .ods.keystate.KeyData keys = 3;
   total_size += 1 * this->keys_size();
   for (int i = 0; i < this->keys_size(); i++) {
     total_size +=
@@ -858,9 +858,9 @@ KeyData::KeyData() {
 }
 
 void KeyData::InitAsDefaultInstance() {
-  ds_ = const_cast< ::keystate::pb::KeyState*>(&::keystate::pb::KeyState::default_instance());
-  rrsig_ = const_cast< ::keystate::pb::KeyState*>(&::keystate::pb::KeyState::default_instance());
-  dnskey_ = const_cast< ::keystate::pb::KeyState*>(&::keystate::pb::KeyState::default_instance());
+  ds_ = const_cast< ::ods::keystate::KeyState*>(&::ods::keystate::KeyState::default_instance());
+  rrsig_ = const_cast< ::ods::keystate::KeyState*>(&::ods::keystate::KeyState::default_instance());
+  dnskey_ = const_cast< ::ods::keystate::KeyState*>(&::ods::keystate::KeyState::default_instance());
 }
 
 KeyData::KeyData(const KeyData& from) {
@@ -928,13 +928,13 @@ void KeyData::Clear() {
     algorithm_ = 0u;
     inception_ = 0u;
     if (_has_bit(3)) {
-      if (ds_ != NULL) ds_->::keystate::pb::KeyState::Clear();
+      if (ds_ != NULL) ds_->::ods::keystate::KeyState::Clear();
     }
     if (_has_bit(4)) {
-      if (rrsig_ != NULL) rrsig_->::keystate::pb::KeyState::Clear();
+      if (rrsig_ != NULL) rrsig_->::ods::keystate::KeyState::Clear();
     }
     if (_has_bit(5)) {
-      if (dnskey_ != NULL) dnskey_->::keystate::pb::KeyState::Clear();
+      if (dnskey_ != NULL) dnskey_->::ods::keystate::KeyState::Clear();
     }
     role_ = 1;
     ds_seen_ = false;
@@ -1001,7 +1001,7 @@ bool KeyData::MergePartialFromCodedStream(
         break;
       }
       
-      // required .keystate.pb.KeyState ds = 4;
+      // required .ods.keystate.KeyState ds = 4;
       case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -1014,7 +1014,7 @@ bool KeyData::MergePartialFromCodedStream(
         break;
       }
       
-      // required .keystate.pb.KeyState rrsig = 5;
+      // required .ods.keystate.KeyState rrsig = 5;
       case 5: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -1027,7 +1027,7 @@ bool KeyData::MergePartialFromCodedStream(
         break;
       }
       
-      // required .keystate.pb.KeyState dnskey = 6;
+      // required .ods.keystate.KeyState dnskey = 6;
       case 6: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -1040,7 +1040,7 @@ bool KeyData::MergePartialFromCodedStream(
         break;
       }
       
-      // required .keystate.pb.keyrole role = 7;
+      // required .ods.keystate.keyrole role = 7;
       case 7: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1049,8 +1049,8 @@ bool KeyData::MergePartialFromCodedStream(
        parse_role:
         int value;
         DO_(::google::protobuf::internal::WireFormatLite::ReadEnum(input, &value));
-        if (keystate::pb::keyrole_IsValid(value)) {
-          set_role(static_cast< keystate::pb::keyrole >(value));
+        if (ods::keystate::keyrole_IsValid(value)) {
+          set_role(static_cast< ods::keystate::keyrole >(value));
         } else {
           mutable_unknown_fields()->AddVarint(7, value);
         }
@@ -1213,25 +1213,25 @@ void KeyData::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt32(3, this->inception(), output);
   }
   
-  // required .keystate.pb.KeyState ds = 4;
+  // required .ods.keystate.KeyState ds = 4;
   if (_has_bit(3)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       4, this->ds(), output);
   }
   
-  // required .keystate.pb.KeyState rrsig = 5;
+  // required .ods.keystate.KeyState rrsig = 5;
   if (_has_bit(4)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       5, this->rrsig(), output);
   }
   
-  // required .keystate.pb.KeyState dnskey = 6;
+  // required .ods.keystate.KeyState dnskey = 6;
   if (_has_bit(5)) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       6, this->dnskey(), output);
   }
   
-  // required .keystate.pb.keyrole role = 7;
+  // required .ods.keystate.keyrole role = 7;
   if (_has_bit(6)) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       7, this->role(), output);
@@ -1305,28 +1305,28 @@ void KeyData::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(3, this->inception(), target);
   }
   
-  // required .keystate.pb.KeyState ds = 4;
+  // required .ods.keystate.KeyState ds = 4;
   if (_has_bit(3)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         4, this->ds(), target);
   }
   
-  // required .keystate.pb.KeyState rrsig = 5;
+  // required .ods.keystate.KeyState rrsig = 5;
   if (_has_bit(4)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         5, this->rrsig(), target);
   }
   
-  // required .keystate.pb.KeyState dnskey = 6;
+  // required .ods.keystate.KeyState dnskey = 6;
   if (_has_bit(5)) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         6, this->dnskey(), target);
   }
   
-  // required .keystate.pb.keyrole role = 7;
+  // required .ods.keystate.keyrole role = 7;
   if (_has_bit(6)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       7, this->role(), target);
@@ -1404,28 +1404,28 @@ int KeyData::ByteSize() const {
           this->inception());
     }
     
-    // required .keystate.pb.KeyState ds = 4;
+    // required .ods.keystate.KeyState ds = 4;
     if (has_ds()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->ds());
     }
     
-    // required .keystate.pb.KeyState rrsig = 5;
+    // required .ods.keystate.KeyState rrsig = 5;
     if (has_rrsig()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->rrsig());
     }
     
-    // required .keystate.pb.KeyState dnskey = 6;
+    // required .ods.keystate.KeyState dnskey = 6;
     if (has_dnskey()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->dnskey());
     }
     
-    // required .keystate.pb.keyrole role = 7;
+    // required .ods.keystate.keyrole role = 7;
     if (has_role()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->role());
@@ -1508,13 +1508,13 @@ void KeyData::MergeFrom(const KeyData& from) {
       set_inception(from.inception());
     }
     if (from._has_bit(3)) {
-      mutable_ds()->::keystate::pb::KeyState::MergeFrom(from.ds());
+      mutable_ds()->::ods::keystate::KeyState::MergeFrom(from.ds());
     }
     if (from._has_bit(4)) {
-      mutable_rrsig()->::keystate::pb::KeyState::MergeFrom(from.rrsig());
+      mutable_rrsig()->::ods::keystate::KeyState::MergeFrom(from.rrsig());
     }
     if (from._has_bit(5)) {
-      mutable_dnskey()->::keystate::pb::KeyState::MergeFrom(from.dnskey());
+      mutable_dnskey()->::ods::keystate::KeyState::MergeFrom(from.dnskey());
     }
     if (from._has_bit(6)) {
       set_role(from.role());
@@ -1885,5 +1885,5 @@ void KeyState::Swap(KeyState* other) {
 }
 
 
-}  // namespace pb
 }  // namespace keystate
+}  // namespace ods

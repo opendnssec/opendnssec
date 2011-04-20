@@ -19,7 +19,7 @@ extern "C" {
 
 static const char *signconf_task_str = "signconf_task";
 
-void WriteSignConf(const std::string &path, ::signconf::pb::SignerConfigurationDocument *doc)
+void WriteSignConf(const std::string &path, ::ods::signconf::SignerConfigurationDocument *doc)
 {
     write_pb_message_to_xml_file(doc,path.c_str());
 }
@@ -62,8 +62,8 @@ perform_signconf(int sockfd, engineconfig_type *config)
         close(fd);
     }
     
-    ::keystate::pb::KeyStateDocument *keystateDoc = 
-        new ::keystate::pb::KeyStateDocument;
+    ::ods::keystate::KeyStateDocument *keystateDoc = 
+        new ::ods::keystate::KeyStateDocument;
     {
         std::string keystatepb(datastore);
         keystatepb += ".keystate.pb";
@@ -90,7 +90,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
     // Go through all the zones and run the enforcer for every one of them.
     for (int i=0; i<keystateDoc->zones_size(); ++i) {
     
-        const ::keystate::pb::EnforcerZone &ks_zone = keystateDoc->zones(i);
+        const ::ods::keystate::EnforcerZone &ks_zone = keystateDoc->zones(i);
         
         if (!ks_zone.signconf_needs_writing())
             continue;
@@ -123,12 +123,12 @@ perform_signconf(int sockfd, engineconfig_type *config)
             continue;
         }
 
-        ::signconf::pb::SignerConfigurationDocument *doc  = new ::signconf::pb::SignerConfigurationDocument;
-        ::signconf::pb::Zone *sc_zone = doc->mutable_signerconfiguration()->mutable_zone();
+        ::ods::signconf::SignerConfigurationDocument *doc  = new ::ods::signconf::SignerConfigurationDocument;
+        ::ods::signconf::Zone *sc_zone = doc->mutable_signerconfiguration()->mutable_zone();
         sc_zone->set_name(ks_zone.name());
         
         // Get the Signatures parameters straight from the policy.
-        ::signconf::pb::Signatures *sc_sigs = sc_zone->mutable_signatures();
+        ::ods::signconf::Signatures *sc_sigs = sc_zone->mutable_signatures();
         const ::kasp::pb::Signatures &kp_sigs = policy->signatures();
         
         sc_sigs->set_resign( kp_sigs.resign() );
@@ -139,7 +139,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
         sc_sigs->set_inceptionoffset( kp_sigs.inceptionoffset() );
         
         // Get the Denial parameters straight from the policy
-        ::signconf::pb::Denial *sc_denial = sc_zone->mutable_denial();
+        ::ods::signconf::Denial *sc_denial = sc_zone->mutable_denial();
         const ::kasp::pb::Denial &kp_denial = policy->denial();
         
         if (kp_denial.has_nsec() && kp_denial.has_nsec3()) {
@@ -166,7 +166,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
                 if (!kp_denial.has_nsec3()) 
                     sc_denial->clear_nsec3();
                 else {
-                    ::signconf::pb::NSEC3 *sc_nsec3 = sc_denial->mutable_nsec3();
+                    ::ods::signconf::NSEC3 *sc_nsec3 = sc_denial->mutable_nsec3();
                     const ::kasp::pb::NSEC3 &kp_nsec3 = kp_denial.nsec3();
                     if (kp_nsec3.has_optout())
                         sc_nsec3->set_optout( kp_nsec3.optout() );
@@ -181,23 +181,23 @@ perform_signconf(int sockfd, engineconfig_type *config)
 
         // Get the Keys from the zone data and add them to the signer 
         // configuration
-        ::signconf::pb::Keys *sc_keys = sc_zone->mutable_keys();
+        ::ods::signconf::Keys *sc_keys = sc_zone->mutable_keys();
         sc_keys->set_ttl( policy->keys().ttl() );
 
         for (int k=0; k<ks_zone.keys_size(); ++k) {
-            const ::keystate::pb::KeyData &ks_key = ks_zone.keys(k);
-            ::signconf::pb::Key* sc_key = sc_keys->add_keys();
+            const ::ods::keystate::KeyData &ks_key = ks_zone.keys(k);
+            ::ods::signconf::Key* sc_key = sc_keys->add_keys();
 
             // TODO: is this correct ?
-            if (ks_key.role() == ::keystate::pb::ZSK)
+            if (ks_key.role() == ::ods::keystate::ZSK)
                 sc_key->set_flags( 256 ); // ZSK
             else
                 sc_key->set_flags( 257 ); // KSK,CSK
                 
             sc_key->set_algorithm( ks_key.algorithm() );
             sc_key->set_locator( ks_key.locator() );
-            sc_key->set_ksk( ks_key.role() ==  ::keystate::pb::KSK || ks_key.role() ==  ::keystate::pb::CSK );
-            sc_key->set_zsk( ks_key.role() ==  ::keystate::pb::ZSK || ks_key.role() ==  ::keystate::pb::CSK );
+            sc_key->set_ksk( ks_key.role() ==  ::ods::keystate::KSK || ks_key.role() ==  ::ods::keystate::CSK );
+            sc_key->set_zsk( ks_key.role() ==  ::ods::keystate::ZSK || ks_key.role() ==  ::ods::keystate::CSK );
             sc_key->set_publish( ks_key.publish() );
             sc_key->set_deactivate( !ks_key.active() );
         }
@@ -205,7 +205,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
         const ::kasp::pb::Zone &kp_zone = policy->zone();
         sc_zone->set_ttl( kp_zone.ttl() );
         sc_zone->set_min( kp_zone.min() );
-        sc_zone->set_serial( (::signconf::pb::serial) kp_zone.serial() );
+        sc_zone->set_serial( (::ods::signconf::serial) kp_zone.serial() );
 
         if (policy->audit_size() > 0)
             sc_zone->set_audit(true);

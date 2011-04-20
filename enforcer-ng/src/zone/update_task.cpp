@@ -33,10 +33,10 @@ perform_update(int sockfd, engineconfig_type *config)
      */
 	
 	// Create a policy and fill it up with some data.
-	::zonelist::pb::ZoneListDocument *doc  = new ::zonelist::pb::ZoneListDocument;
+	::ods::zonelist::ZoneListDocument *doc  = new ::ods::zonelist::ZoneListDocument;
 	if (read_pb_message_from_xml_file(doc, zonelistfile)) {
 		if (doc->has_zonelist()) {
-			const ::zonelist::pb::ZoneList  &zonelist = doc->zonelist();
+			const ::ods::zonelist::ZoneList  &zonelist = doc->zonelist();
 			if (zonelist.zones_size() > 0) {
 				if (zonelist.IsInitialized()) {
                     

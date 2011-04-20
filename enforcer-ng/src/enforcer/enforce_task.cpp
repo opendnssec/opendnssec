@@ -25,6 +25,14 @@ extern "C" {
 
 static const char *enforce_task_str = "enforce_task";
 
+
+bool load_pb_from_file(::google::protobuf::Message *)
+{
+    
+}
+
+
+
 time_t perform_enforce(int sockfd, engineconfig_type *config)
 {
     char buf[ODS_SE_MAXLINE];
@@ -55,8 +63,8 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         close(fd);
     }
 
-    ::zonelist::pb::ZoneListDocument *zonelistDoc =
-        new ::zonelist::pb::ZoneListDocument;
+    ::ods::zonelist::ZoneListDocument *zonelistDoc =
+        new ::ods::zonelist::ZoneListDocument;
     {
         std::string datapath(datastore);
         datapath += ".zonelist.pb";
@@ -72,8 +80,8 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         close(fd);
     }
 
-    ::keystate::pb::KeyStateDocument *keystateDoc =
-    new ::keystate::pb::KeyStateDocument;
+    ::ods::keystate::KeyStateDocument *keystateDoc =
+    new ::ods::keystate::KeyStateDocument;
     {
         std::string datapath(datastore);
         datapath += ".keystate.pb";
@@ -88,8 +96,8 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         close(fd);
     }
 
-    ::hsmkey::pb::HsmKeyDocument *hsmkeyDoc = 
-    new ::hsmkey::pb::HsmKeyDocument;
+    ::ods::hsmkey::HsmKeyDocument *hsmkeyDoc = 
+        new ::ods::hsmkey::HsmKeyDocument;
     {
         std::string datapath(datastore);
         datapath += ".hsmkey.pb";
@@ -119,19 +127,19 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
 
     // Add new zones found in the zonelist to the keystates
     // We don't want nested lookup loops of O(N^2) we create an map to get O(2N)
-    std::map< const std::string , const ::keystate::pb::EnforcerZone *> kszonemap;
+    std::map< const std::string , const ::ods::keystate::EnforcerZone *> kszonemap;
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
-        const ::keystate::pb::EnforcerZone &ks_zone = keystateDoc->zones(z);
+        const ::ods::keystate::EnforcerZone &ks_zone = keystateDoc->zones(z);
         kszonemap[ ks_zone.name() ] = &ks_zone;
     }
     // Go through the list of zones from the zonelist to determine if we need
     // to insert new zones to the keystates.
     for (int i=0; i<zonelistDoc->zonelist().zones_size(); ++i) {
-        const ::zonelist::pb::ZoneData &zl_zone = zonelistDoc->zonelist().zones(i);
+        const ::ods::zonelist::ZoneData &zl_zone = zonelistDoc->zonelist().zones(i);
         // if we can't find the zone in the kszonemap, it is new and we need
         // to add it.
         if (kszonemap.find( zl_zone.name() ) == kszonemap.end()) {
-            ::keystate::pb::EnforcerZone *ks_zone = keystateDoc->add_zones();
+            ::ods::keystate::EnforcerZone *ks_zone = keystateDoc->add_zones();
 
             // setup information the enforcer will need.
             ks_zone->set_name( zl_zone.name() );
@@ -152,7 +160,7 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
     // Go through all the zones and run the enforcer for every one of them.
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
 
-        const ::keystate::pb::EnforcerZone &ks_zone = keystateDoc->zones(z);
+        const ::ods::keystate::EnforcerZone &ks_zone = keystateDoc->zones(z);
 
         const ::kasp::pb::KASP &kasp = kaspDoc->kasp();
 

@@ -9,8 +9,8 @@
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
 
+namespace ods {
 namespace hsmkey {
-namespace pb {
 
 namespace {
 
@@ -105,16 +105,16 @@ void protobuf_AddDesc_hsmkey_2eproto() {
 
   ::protobuf_AddDesc_xmlext_2eproto();
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\014hsmkey.proto\022\thsmkey.pb\032\014xmlext.proto\""
-    "1\n\016HsmKeyDocument\022\037\n\004keys\030\001 \003(\0132\021.hsmkey"
-    ".pb.HsmKey\"\352\001\n\006HsmKey\022\017\n\007locator\030\001 \002(\t\022$"
-    "\n\025candidate_for_sharing\030\002 \001(\010:\005false\022\022\n\004"
-    "bits\030\003 \001(\r:\0042048\022\027\n\006policy\030\004 \001(\t:\007defaul"
-    "t\022\024\n\talgorithm\030\005 \001(\r:\0011\022%\n\004role\030\006 \001(\0162\022."
-    "hsmkey.pb.keyrole:\003ZSK\022\025\n\rused_by_zones\030"
-    "\007 \003(\t\022\021\n\tinception\030\010 \001(\r\022\025\n\006revoke\030\t \001(\010"
-    ":\005false*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n\003"
-    "CSK\020\003", 365);
+    "\n\014hsmkey.proto\022\nods.hsmkey\032\014xmlext.proto"
+    "\"2\n\016HsmKeyDocument\022 \n\004keys\030\001 \003(\0132\022.ods.h"
+    "smkey.HsmKey\"\353\001\n\006HsmKey\022\017\n\007locator\030\001 \002(\t"
+    "\022$\n\025candidate_for_sharing\030\002 \001(\010:\005false\022\022"
+    "\n\004bits\030\003 \001(\r:\0042048\022\027\n\006policy\030\004 \001(\t:\007defa"
+    "ult\022\024\n\talgorithm\030\005 \001(\r:\0011\022&\n\004role\030\006 \001(\0162"
+    "\023.ods.hsmkey.keyrole:\003ZSK\022\025\n\rused_by_zon"
+    "es\030\007 \003(\t\022\021\n\tinception\030\010 \001(\r\022\025\n\006revoke\030\t "
+    "\001(\010:\005false*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020\002\022"
+    "\007\n\003CSK\020\003", 368);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "hsmkey.proto", &protobuf_RegisterTypes);
   HsmKeyDocument::default_instance_ = new HsmKeyDocument();
@@ -206,7 +206,7 @@ bool HsmKeyDocument::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // repeated .hsmkey.pb.HsmKey keys = 1;
+      // repeated .ods.hsmkey.HsmKey keys = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -244,7 +244,7 @@ void HsmKeyDocument::SerializeWithCachedSizes(
     return;
   }
   
-  // repeated .hsmkey.pb.HsmKey keys = 1;
+  // repeated .ods.hsmkey.HsmKey keys = 1;
   for (int i = 0; i < this->keys_size(); i++) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageNoVirtual(
       1, this->keys(i), output);
@@ -258,7 +258,7 @@ void HsmKeyDocument::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* HsmKeyDocument::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // repeated .hsmkey.pb.HsmKey keys = 1;
+  // repeated .ods.hsmkey.HsmKey keys = 1;
   for (int i = 0; i < this->keys_size(); i++) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -275,7 +275,7 @@ void HsmKeyDocument::SerializeWithCachedSizes(
 int HsmKeyDocument::ByteSize() const {
   int total_size = 0;
   
-  // repeated .hsmkey.pb.HsmKey keys = 1;
+  // repeated .ods.hsmkey.HsmKey keys = 1;
   total_size += 1 * this->keys_size();
   for (int i = 0; i < this->keys_size(); i++) {
     total_size +=
@@ -524,7 +524,7 @@ bool HsmKey::MergePartialFromCodedStream(
         break;
       }
       
-      // optional .hsmkey.pb.keyrole role = 6 [default = ZSK];
+      // optional .ods.hsmkey.keyrole role = 6 [default = ZSK];
       case 6: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -533,8 +533,8 @@ bool HsmKey::MergePartialFromCodedStream(
        parse_role:
         int value;
         DO_(::google::protobuf::internal::WireFormatLite::ReadEnum(input, &value));
-        if (hsmkey::pb::keyrole_IsValid(value)) {
-          set_role(static_cast< hsmkey::pb::keyrole >(value));
+        if (ods::hsmkey::keyrole_IsValid(value)) {
+          set_role(static_cast< ods::hsmkey::keyrole >(value));
         } else {
           mutable_unknown_fields()->AddVarint(6, value);
         }
@@ -644,7 +644,7 @@ void HsmKey::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt32(5, this->algorithm(), output);
   }
   
-  // optional .hsmkey.pb.keyrole role = 6 [default = ZSK];
+  // optional .ods.hsmkey.keyrole role = 6 [default = ZSK];
   if (_has_bit(5)) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       6, this->role(), output);
@@ -712,7 +712,7 @@ void HsmKey::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(5, this->algorithm(), target);
   }
   
-  // optional .hsmkey.pb.keyrole role = 6 [default = ZSK];
+  // optional .ods.hsmkey.keyrole role = 6 [default = ZSK];
   if (_has_bit(5)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       6, this->role(), target);
@@ -781,7 +781,7 @@ int HsmKey::ByteSize() const {
           this->algorithm());
     }
     
-    // optional .hsmkey.pb.keyrole role = 6 [default = ZSK];
+    // optional .ods.hsmkey.keyrole role = 6 [default = ZSK];
     if (has_role()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->role());
@@ -908,5 +908,5 @@ void HsmKey::Swap(HsmKey* other) {
 }
 
 
-}  // namespace pb
 }  // namespace hsmkey
+}  // namespace ods
