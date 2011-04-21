@@ -433,7 +433,7 @@ module KASPChecker
               # Now check that the algorithm is correct
             policy.each_element('Denial/NSEC3/Hash/') {|hash|
               alg = hash.elements["Algorithm"].text
-              if (alg.to_i > 1)
+              if (alg.to_i != 1)
                   log(LOG_ERR, "NSEC3 Hash algorithm is #{alg} but should be 1");
               end
             }
