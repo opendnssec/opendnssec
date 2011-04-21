@@ -692,6 +692,23 @@ void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
 	}
 }
 
+time_t most_recent_inception(KeyDataList &keys, KeyRole role)
+{
+    time_t most_recent = 0;
+    for (int k=0; k<keys.numKeys(); ++k) {
+        KeyData &key = keys.key(k);
+        
+        // TODO: figure out if there are more factors that may require a key to be skipped
+        if (!key.revoke() && key.role() == role) {
+            
+            if (key.inception() > most_recent)
+                most_recent = key.inception();
+            
+        }
+    }
+    return most_recent;
+}
+
 /* See what needs to be done for the policy*/
 time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory) {
 	time_t return_at = -1;
@@ -708,9 +725,9 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 	for ( int role = 1; role < 4; role++ ) {
 		for ( int i = 0; i < numberOfKeys( &policyKeys, (KeyRole)role ); i++ ) {
 			keyProperties(&policyKeys, (KeyRole)role, i, &bits, &algorithm, &lifetime);
-			last_insert = 0; /* search all keys for this zone */
+			last_insert = most_recent_inception(zone.keyDataList(),(KeyRole)role); /* search all keys for this zone */
 			next_insert = last_insert + lifetime;
-			if ( now < next_insert and last_insert != -1 ) {
+			if ( now < next_insert && last_insert != -1 ) {
 				/* No need to change key, come back at */
 				minTime( next_insert, return_at );
 				continue;
