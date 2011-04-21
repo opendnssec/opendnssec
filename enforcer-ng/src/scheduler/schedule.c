@@ -166,10 +166,10 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
     ods_log_assert(schedule);
     ods_log_assert(schedule->tasks);
 
-    ods_log_debug("[%s] schedule task %s for zone %s", schedule_str,
+    ods_log_debug("[%s] schedule task [%s] for %s", schedule_str,
         task_what2str(task->what), task_who2str(task->who));
     if (schedule_lookup_task(schedule, task) != NULL) {
-        ods_log_error("[%s] unable to schedule task %s for zone %s: "
+        ods_log_error("[%s] unable to schedule task [%s] for %s: "
             " already present", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
         return ODS_STATUS_ERR;
@@ -177,7 +177,7 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
     new_node = task2node(task);
     ins_node = ldns_rbtree_insert(schedule->tasks, new_node);
     if (!ins_node) {
-        ods_log_error("[%s] unable to schedule task %s for zone %s: "
+        ods_log_error("[%s] unable to schedule task [%s] for %s: "
             " insert failed", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
         free((void*)new_node);
@@ -231,14 +231,14 @@ unschedule_task(schedule_type* schedule, task_type* task)
     ods_log_assert(schedule);
     ods_log_assert(schedule->tasks);
 
-    ods_log_debug("[%s] unschedule task %s for zone %s",
+    ods_log_debug("[%s] unschedule task [%s] for %s",
         schedule_str, task_what2str(task->what), task_who2str(task->who));
     del_node = ldns_rbtree_delete(schedule->tasks, (const void*) task);
     if (del_node) {
         del_task = (task_type*) del_node->data;
         free((void*)del_node);
     } else {
-        ods_log_warning("[%s] unable to unschedule task %s for zone %s: not "
+        ods_log_warning("[%s] unable to unschedule task [%s] for %s: not "
             "scheduled", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
     }
@@ -311,10 +311,10 @@ schedule_pop_task(schedule_type* schedule)
     pop = schedule_get_first_task(schedule);
     if (pop && (pop->flush || pop->when <= now)) {
         if (pop->flush) {
-            ods_log_debug("[%s] flush task for zone %s", schedule_str,
+            ods_log_debug("[%s] flush task for %s", schedule_str,
                 pop->who?pop->who:"(null)");
         } else {
-            ods_log_debug("[%s] pop task for zone %s", schedule_str,
+            ods_log_debug("[%s] pop task for %s", schedule_str,
                 pop->who?pop->who:"(null)");
         }
         pop->flush = 0;

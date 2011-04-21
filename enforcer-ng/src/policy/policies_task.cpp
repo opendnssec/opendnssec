@@ -84,8 +84,8 @@ policies_task_perform(task_type *task)
 task_type *
 policies_task(engineconfig_type *config)
 {
-    task_id policies_task_id = task_register_how("policies_task_perform",
-                                                 policies_task_perform);
-	return task_create(policies_task_id,time_now(),"policies",
-                       (void*)config,policies_task_perform);
+    task_id what = task_register("policies",
+                                 "policies_task_perform",
+                                 policies_task_perform);
+	return task_create(what ,time_now(), "all", (void*)config);
 }

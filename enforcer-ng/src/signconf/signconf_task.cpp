@@ -234,8 +234,8 @@ signconf_task_perform(task_type *task)
 task_type *
 signconf_task(engineconfig_type *config)
 {
-    task_id signconf_task_id = task_register_how("signconf_task_perform",
-                                                 signconf_task_perform);
-	return task_create(signconf_task_id,time_now(),"signconf",
-                       (void*)config,signconf_task_perform);
+    task_id what = task_register("signconf",
+                                 "signconf_task_perform",
+                                 signconf_task_perform);
+	return task_create(what, time_now(), "all", (void*)config);
 }

@@ -389,8 +389,10 @@ cmdhandler_queue_processor_task_perform(task_type *task)
 static task_type *
 cmdhandler_queue_processor_task(void *context)
 {
-    task_id enforce_task_id = task_register_how("cmdhandler_queue_processor_task_perform", cmdhandler_queue_processor_task_perform);
-	return task_create(enforce_task_id,time_now(),"cmdhandler", context, cmdhandler_queue_processor_task_perform);
+    task_id what = task_register("cmdhandler",
+                                 "cmdhandler_queue_processor_task_perform", 
+                                 cmdhandler_queue_processor_task_perform);
+	return task_create(what, time_now(), "all", context);
 }
 
 /**

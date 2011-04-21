@@ -41,26 +41,79 @@
 
 static const char* task_str = "task";
 
-typedef struct howpair howpair_type;
+typedef struct taskreg taskreg_type;
 
-struct howpair {
-	const char *name;
+struct taskreg {
+    const char *short_name;
+	const char *long_name;
 	how_type how;
 };
 
-static howpair_type howreg[16];
-static int counthowreg = 0;
-const int NUM_HOW_REG = sizeof(howreg)/sizeof(howpair_type);
+static taskreg_type taskreg[16];
+static int ntaskreg = 0;
+const int NUM_HOW_REG = sizeof(taskreg)/sizeof(taskreg_type);
+
+static bool task_id_from_long_name(const char *long_name, task_id *pwhat)
+{
+	int i;
+	for (i=0; i<ntaskreg; ++i) {
+		if (strcmp(taskreg[i].long_name,long_name)==0) {
+			*pwhat = TASK_DYNAMIC_FIRST+i;
+            return true;
+		}
+	}
+	return false;
+}
+
+static const char *task_id_to_short_name(task_id id, const char *def)
+{
+    if (id >= TASK_DYNAMIC_FIRST && id-TASK_DYNAMIC_FIRST < ntaskreg) {
+        return taskreg[id-TASK_DYNAMIC_FIRST].short_name;
+    }
+    return def;
+}
+
+static bool task_id_to_how(task_id id, how_type *phow)
+{
+    if (id >= TASK_DYNAMIC_FIRST && id-TASK_DYNAMIC_FIRST < ntaskreg) {
+        *phow = taskreg[id-TASK_DYNAMIC_FIRST].how;
+        return true;
+    }
+    return false;
+}
+
+task_id task_register(const char *short_name, const char *long_name, how_type how)
+{
+    int i;
+    
+    // update existing registration
+    for (i=0; i<ntaskreg; ++i) {
+        if (strcmp(long_name, taskreg[i].long_name)==0) {
+            taskreg[i].how = how;
+            return TASK_DYNAMIC_FIRST+i;
+        }
+    }
+    
+	if (ntaskreg >= NUM_HOW_REG) {
+		ods_log_error("Unable to register additional name,how pairs for tasks.");
+		return;
+	}
+    taskreg[ntaskreg].short_name = short_name;
+	taskreg[ntaskreg].long_name = long_name;
+	taskreg[ntaskreg].how = how;
+    return TASK_DYNAMIC_FIRST+ntaskreg++;
+}
 
 /**
  * Create a new task.
  *
  */
 task_type*
-task_create(task_id what, time_t when, const char* who, void* context, how_type how)
+task_create(task_id what, time_t when, const char* who, void* context)
 {
     allocator_type* allocator = NULL;
     task_type* task = NULL;
+    int task_how_index;
 
     if (!who || !context) {
         ods_log_error("[%s] cannot create: missing context info", task_str);
@@ -92,7 +145,8 @@ task_create(task_id what, time_t when, const char* who, void* context, how_type 
     task->dname = ldns_dname_new_frm_str(who);
     task->flush = 0;
     task->context = context;
-	task->how = how;
+    if (!task_id_to_how(what,&task->how))
+        task->how = NULL; /* Standard task */
     return task;
 }
 
@@ -111,7 +165,7 @@ task_recover_from_backup(const char* filename, void* context)
     time_t when = 0;
     int flush = 0;
     time_t backoff = 0;
-	const char *how_name = NULL;
+	const char *long_name = NULL;
 	how_type how = NULL;
 
     ods_log_assert(context);
@@ -129,25 +183,24 @@ task_recover_from_backup(const char* filename, void* context)
             !backup_read_check_str(fd, ";backoff:") ||
             !backup_read_time_t(fd, &backoff) ||
             !backup_read_check_str(fd, ";how:") ||
-            !backup_read_str(fd, &how_name) ||
+            !backup_read_str(fd, &long_name) ||
             !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
         {
             ods_log_error("[%s] unable to recover task from file %s: file corrupted",
                 task_str, filename?filename:"(null)");
             task = NULL;
         } else {
-			how = task_how_type(how_name);
-			if (!how) {
+            if (!task_id_from_long_name(long_name, (task_id*)&what)) {
 				ods_log_error("[%s] unable to recover perform function for task from how %s file %s: enforcer incompatible",
-							  task_str, how_name?how_name:"(null)", filename?filename:"(null)");
+							  task_str, long_name?long_name:"(null)", filename?filename:"(null)");
 				task = NULL;
 			} else {
-				task = task_create((task_id) what, when, who, (void*) context, how);
+				task = task_create((task_id) what, when, who, (void*) context);
 				task->flush = flush;
 				task->backoff = backoff;
 			}
         }
-		free((void*)how_name);
+		free((void*)long_name);
         free((void*)who);
         ods_fclose(fd);
         return task;
@@ -261,33 +314,30 @@ task_what2str(int what)
 {
     switch (what) {
         case TASK_NONE:
-            return "[do nothing with]";
+            return "do nothing with";
             break;
         case TASK_SIGNCONF:
-            return "[load signconf for]";
+            return "load signconf for";
             break;
         case TASK_READ:
-            return "[read]";
+            return "read";
             break;
         case TASK_NSECIFY:
-            return "[nsecify]";
+            return "nsecify";
             break;
         case TASK_SIGN:
-            return "[sign]";
+            return "sign";
             break;
         case TASK_AUDIT:
-            return "[audit]";
+            return "audit";
             break;
         case TASK_WRITE:
-            return "[write]";
+            return "write";
             break;
         default:
-            if (what >= TASK_DYNAMIC_FIRST && what < TASK_DYNAMIC_FIRST+NUM_HOW_REG)
-                return "[dynamic]";
-            else
-                return "[???]";
+            return task_id_to_short_name(what, "???");
     }
-    return "[!!!]"; // we should never get here..
+    return "[!!!]"; /* we should never get here.. */
 }
 
 
@@ -326,13 +376,13 @@ task2str(task_type* task, char* buftask)
             strtime[strlen(strtime)-1] = '\0';
         }
         if (buftask) {
-            (void)snprintf(buftask, ODS_SE_MAXLINE, "On %s I will %s context %s"
+            (void)snprintf(buftask, ODS_SE_MAXLINE, "On %s I will [%s] %s"
                 "\n", strtime?strtime:"(null)", task_what2str(task->what),
                 task_who2str(task->who));
             return buftask;
         } else {
             strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
-            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s context %s\n",
+            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will [%s] %s\n",
                 strtime?strtime:"(null)", task_what2str(task->what),
                 task_who2str(task->who));
             return strtask;
@@ -361,7 +411,7 @@ task_print(FILE* out, task_type* task)
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
-        fprintf(out, "On %s I will %s context %s\n", strtime?strtime:"(null)",
+        fprintf(out, "On %s I will [%s] %s\n", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task->who));
     }
     return;
@@ -387,7 +437,7 @@ task_log(task_type* task)
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
-        ods_log_debug("[%s] On %s I will %s context %s", task_str,
+        ods_log_debug("[%s] On %s I will [%s] %s", task_str,
             strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task->who));
     }
@@ -406,50 +456,4 @@ task_perform(task_type *task)
 
     task_cleanup(task);
     return NULL;
-}
-
-
-task_id task_register_how(const char *name, how_type how)
-{
-    int i;
-
-    // update existing registration
-    for (i=0; i<counthowreg; ++i) {
-        if (strcmp(name, howreg[i].name)==0) {
-            howreg[i].how = how;
-            return;
-        }
-    }
-    
-	if (counthowreg >= NUM_HOW_REG) {
-		ods_log_error("Unable to register additional name,how pairs for tasks.");
-		return;
-	}
-	howreg[counthowreg].name = name;
-	howreg[counthowreg].how = how;
-    ++counthowreg;
-    return TASK_DYNAMIC_FIRST+counthowreg-1;
-}
-
-const char *task_how_name(task_type *task)
-{
-	int i;
-	for (i=0; i<counthowreg; ++i) {
-		if (howreg[i].how == task->how) {
-			return howreg[i].name;
-		}
-	}
-	return NULL;
-}
-
-
-how_type task_how_type(const char *name)
-{
-	int i;
-	for (i=0; i<counthowreg; ++i) {
-		if (strcmp(howreg[i].name,name)==0) {
-			return howreg[i].how;
-		}
-	}
-	return NULL;
 }

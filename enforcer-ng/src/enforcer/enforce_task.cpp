@@ -281,8 +281,8 @@ enforce_task_perform(task_type *task)
 task_type *
 enforce_task(engineconfig_type *config)
 {
-    task_id enforce_task_id = task_register_how("enforce_task_perform",
-                                                enforce_task_perform);
-	return task_create(enforce_task_id,time_now(),"enforce", (void*)config,
-                       enforce_task_perform);
+    task_id what = task_register("enforce", 
+                                 "enforce_task_perform",
+                                 enforce_task_perform);
+	return task_create(what, time_now(), "all", (void*)config);
 }

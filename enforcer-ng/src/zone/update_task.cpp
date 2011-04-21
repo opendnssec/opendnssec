@@ -85,8 +85,8 @@ update_task_perform(task_type *task)
 task_type *
 update_task(engineconfig_type *config)
 {
-    task_id update_task_id = task_register_how("update_task_perform", 
-                                                 update_task_perform);
-	return task_create(update_task_id,time_now(),"update",(void*)config,
-                       update_task_perform);
+    task_id what = task_register("update",
+                                 "update_task_perform", 
+                                 update_task_perform);
+	return task_create(what, time_now(), "all",(void*)config);
 }

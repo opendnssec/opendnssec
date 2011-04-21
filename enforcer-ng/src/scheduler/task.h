@@ -74,16 +74,27 @@ struct task_struct {
 typedef task_type* (*how_type)(task_type*task);
 
 /**
+ * Register a task type with a task name and a named how function.
+ * This registry is used when restoring a task from a backup.
+ * \param[in] short_name short name for what the task does
+ * \param[in] long_name unique name identifying the how function
+ * \param[in] how the function that performs the task
+ * \return task_id dynamically allocated for this how to perform function
+ *
+ */
+task_id task_register(const char *short_name, const char *long_name, 
+                      how_type how);
+
+/**
  * Create a new task.
  * \param[in] what task identifier
  * \param[in] when scheduled time
- * \param[in] who context name
+ * \param[in] who context name e.g. a dns name like "example.com"
  * \param[in] context pointer to context
- * \param[in] how function that implements how this task is performed
  * \return task_type* created task
  *
  */
-task_type* task_create(task_id what, time_t when, const char* who, void* context, how_type how);
+task_type* task_create(task_id what,time_t when,const char* who,void* context);
 
 /**
  * Recover a task from backup.
@@ -163,30 +174,5 @@ void task_log(task_type* task);
  *
  */
 task_type *task_perform(task_type *task);
-
-/**
- * Register a named how function for use in tasks. This registry is used 
- * when restoring a task from a backup.
- * \param[in] name name of the how function
- * \param[in] how the function to perform
- * \return task_id dynamically allocated for this how to perform function
- *
- */
-task_id task_register_how(const char *name, how_type how);
-
-/**
- * Get the name of the how function associated with the task
- * \param[in] task task
- * \return const char* string format of how
- */
-const char *task_how_name(task_type *task);
-
-/**
- * Get the how perform function for a given how name
- * \param[in] name name of the task
- * \return how_type perform function associated with the given name
- *
- */
-how_type task_how_type(const char *name);
 
 #endif /* SCHEDULER_TASK_H */

@@ -134,7 +134,7 @@ worker_perform_task(worker_type* worker)
     ods_log_assert(worker->task->context);
 
     task = (task_type*) worker->task;
-    ods_log_debug("[%s[%i]]: perform task %s for context %s at %u",
+    ods_log_debug("[%s[%i]]: perform task [%s] for %s at %u",
        worker2str(worker->type), worker->thread_num, task_what2str(task->what),
        task_who2str(task->who), (uint32_t) worker->clock_in);
 
