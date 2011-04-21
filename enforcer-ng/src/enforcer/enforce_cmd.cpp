@@ -45,29 +45,41 @@ int handled_enforce_zones_cmd(int sockfd, engine_type* engine, const char *cmd,
     char buf[ODS_SE_MAXLINE];
     ods_status status = ODS_STATUS_OK;
     
-    if (n != 7 || strncmp(cmd, "enforce", 7) != 0) return 0;
+    if (n < 7 || strncmp(cmd, "enforce", 7) != 0) return 0;
     ods_log_debug("[%s] enforce command", enforce_cmd_str);
     
-    /* start the enforcer task */
-    /* schedule task */
-    task_type *task = enforce_task(engine->config);
-    if (!task) {
-        ods_log_crit("[%s] failed to create enforce task",
-                     enforce_cmd_str);
+    if (cmd[7] == '\0') {
+        cmd = "";
+    } else if (cmd[7] != ' ') {
+        return 0;
     } else {
-        status = schedule_task_from_thread(engine->taskq, task, 0);
-        if (status != ODS_STATUS_OK) {
-            ods_log_crit("[%s] failed to create enforce task",
-                         enforce_cmd_str);
-            
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Unable to schedule enforce "
-                           "task.\n");
-            ods_writen(sockfd, buf, strlen(buf));
-        } else  {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Scheduled enforce task.\n");
-            ods_writen(sockfd, buf, strlen(buf));
-        }
+        cmd = &cmd[7+1];
     }
 
+    if (strncmp(cmd, "--task", 7) == 0) {
+        /* start the enforcer task */
+        /* schedule task */
+        task_type *task = enforce_task(engine->config);
+        if (!task) {
+            ods_log_crit("[%s] failed to create enforce task",
+                         enforce_cmd_str);
+        } else {
+            status = schedule_task_from_thread(engine->taskq, task, 0);
+            if (status != ODS_STATUS_OK) {
+                ods_log_crit("[%s] failed to create enforce task",
+                             enforce_cmd_str);
+                
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Unable to schedule enforce "
+                               "task.\n");
+                ods_writen(sockfd, buf, strlen(buf));
+            } else  {
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Scheduled enforce task.\n");
+                ods_writen(sockfd, buf, strlen(buf));
+            }
+        }
+    } else {
+        perform_enforce(sockfd,engine->config);
+    }
+    
     return 1;
 }
