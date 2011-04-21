@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.3.0b2
+OpenDNSSEC 1.3.0rc1 - 2011-04-21
 
 * <SkipPublicKey/> is enabled for SoftHSM in the default configuration.
   It improves the performance by only using the private key objects.
