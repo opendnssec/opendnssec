@@ -859,6 +859,8 @@ engine_update_zones(engine_type* engine)
             zone = NULL;
             continue;
         } else if (zone->just_added) {
+
+            lock_basic_lock(&zone->zone_lock);
             ods_log_assert(!zone->task);
             zone->just_added = 0;
             /* notify nameserver */
@@ -880,8 +882,9 @@ engine_update_zones(engine_type* engine)
            }
            /* zone fetcher enabled? */
            zone->fetch = (engine->config->zonefetch_filename != NULL);
-
+            lock_basic_unlock(&zone->zone_lock);
         } else if (zone->just_updated) {
+            lock_basic_lock(&zone->zone_lock);
             ods_log_assert(zone->task);
             zone->just_updated = 0;
             /* reschedule task */
@@ -908,6 +911,7 @@ engine_update_zones(engine_type* engine)
             }
             /* [UNLOCK] schedule */
             lock_basic_unlock(&engine->taskq->schedule_lock);
+            lock_basic_unlock(&zone->zone_lock);
 
             wake_up = 1;
         }
