@@ -18,7 +18,7 @@ extern "C" {
  * */
 enum RecordState { HID, RUM, COM, OMN, UNR, PCM, REV };
 
-#define NOKEY_TIMEOUT (now+60)
+#define NOKEY_TIMEOUT 60
 
 using namespace std;
 
@@ -33,7 +33,7 @@ inline void minTime(const time_t t, time_t &min) {
 /* Search for youngest key in use by any zone with this policy
  * with at least the roles requested. See if it isn't expired.
  * also, check if it isn't in zone already. Also length, algorithm
- * must match and it must be a first generation key. 
+ * must match and it must be a first generation key.
  * */
 bool getLastReusableKey( EnforcerZone &zone,
 		const ::ods::kasp::Policy *policy, const KeyRole role,
@@ -300,7 +300,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 	int num_keys = key_list.numKeys();
 	KeyData *k, *l;
 	time_t Tprop;
-	
+
 	KeyState &record_state = key.keyStateDNSKEY();
 	switch ( record_state.state() ) {
 
@@ -308,7 +308,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 	if (not key.introducing()) break;
 	if (record_state.minimize() and (key.keyStateDS().state() == OMN or
 		not key.role() & KSK) and
-		(key.keyStateRRSIG().state() == OMN or 
+		(key.keyStateRRSIG().state() == OMN or
 		not key.role() & ZSK) ) {
 		setState(record_state, COM, now);
 		record_changed = true;
@@ -321,7 +321,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if (not (key.algorithm() == k->algorithm() and
-					reliableDnskey(key_list, k) and 
+					reliableDnskey(key_list, k) and
 					key.role() & KSK)){
 				noneExist = false;
 				break;
@@ -334,7 +334,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if (not (key.algorithm() == k->algorithm() and
-					reliableDnskey(key_list, k) and 
+					reliableDnskey(key_list, k) and
 					reliableRrsig(key_list, k))){
 				oneExist = true;
 				break;
@@ -377,7 +377,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 	case OMN:
 	if (key.introducing() or key.keyStateDS().state() == PCM or
 		key.keyStateRRSIG().state() == PCM ) break;
-	if ( key.keyStateDS().state() == OMN and 
+	if ( key.keyStateDS().state() == OMN and
 		key.keyStateRRSIG().state() == OMN and
 		not key.revoke()) {
 		bool hasReplacement = false;
@@ -402,7 +402,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 		bool all = true;
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
-			if ( k->role() & KSK and k->keyStateDS().state() != HID and 
+			if ( k->role() & KSK and k->keyStateDS().state() != HID and
 					(k == &key or not reliableDnskey(key_list, k)) ) {
 				/* This key breaks the chain, see if there is a
 				 * candidate that fixes this. */
@@ -410,7 +410,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 				for ( int j = 0; j < num_keys; j++ ) {
 					l = &key_list.key(j);
 					if ( k != l and k->algorithm() == l->algorithm() and
-							reliableDs( key_list, l ) and 
+							reliableDs( key_list, l ) and
 							reliableDnskey( key_list, l ) ) {
 						all = true;
 						break;
@@ -419,7 +419,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 				if ( not all ) break;
 			}
 			/* Passed the first test */
-			if ( k->keyStateDNSKEY().state() != HID and 
+			if ( k->keyStateDNSKEY().state() != HID and
 				not reliableRrsig( key_list, k ) ) {
 				/* This key breaks the chain, see if there is a
 				 * candidate that fixes this. */
@@ -427,7 +427,7 @@ bool updateDnskey(KeyDataList &key_list, KeyData &key, const time_t now, time_t 
 				for ( int j = 0; j < num_keys; j++ ) {
 					l = &key_list.key(j);
 					if ( k != l and k->algorithm() == l->algorithm() and
-							reliableRrsig( key_list, l ) and 
+							reliableRrsig( key_list, l ) and
 							reliableDnskey( key_list, l ) ) {
 						all = true;
 						break;
@@ -478,10 +478,10 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 	int num_keys = key_list.numKeys();
 	KeyData *k, *l;
 	time_t Tprop;
-	
+
 	bool exists;
 	bool safeToWithdraw;
-	
+
 	KeyState &record_state = key.keyStateRRSIG();
 	switch ( record_state.state() ) {
 
@@ -491,7 +491,7 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 	if (not record_state.minimize()) {
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
-			if ( key.algorithm() == k->algorithm() and 
+			if ( key.algorithm() == k->algorithm() and
 					reliableRrsig(key_list, k) ) {
 				exists = true;
 				break;
@@ -504,7 +504,7 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 		record_changed = true;
 		break;
 	}
-	if ( key.keyStateRRSIG().minimize() and 
+	if ( key.keyStateRRSIG().minimize() and
 			key.keyStateDNSKEY().state() == OMN) {
 		/* submit stuff */
 		key.keyStateRRSIG().setState( COM );
@@ -512,7 +512,7 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 		break;
 	}
 	break;
-	
+
 	case RUM:
 	if ( not key.introducing() ) {
 	    /* withdraw stuff */
@@ -527,7 +527,7 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 	    break;
 	}
 	break;
-	
+
 	case COM:
 	if ( now >= /* some time */ 0 ) {
 	    /* do stuff */
@@ -536,7 +536,7 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 	    break;
 	}
 	break;
-	
+
 	case OMN:
 	if ( key.introducing() ) break;
 	if ( key.keyStateDNSKEY().state() == OMN ) {
@@ -556,13 +556,13 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 		}
 	}
 	if ( key.keyStateDNSKEY().state() == PCM ) break;
-	
+
 	safeToWithdraw = ( key.keyStateDNSKEY().state() == HID );
 	if ( not safeToWithdraw ) {
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if ( &key != k and key.algorithm() == k->algorithm() and
-					reliableDnskey(key_list, k) and 
+					reliableDnskey(key_list, k) and
 					reliableRrsig(key_list, k)) {
 				safeToWithdraw = true;
 				break;
@@ -576,10 +576,10 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 		break;
 	}
 	break;
-	
+
 	case REV:
 	break;
-	
+
 	case UNR:
 	if ( key.introducing()) {
 	    /* submit
@@ -592,7 +592,7 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 	    break;
 	}
 	break;
-	
+
 	case PCM:
 	if ( now >= /* some time */ 0 ) {
 		key.keyStateRRSIG().setState( HID );
@@ -600,7 +600,7 @@ bool updateRrsig(KeyDataList &key_list, KeyData &key, const time_t now, time_t &
 	    break;
 	}
 	break;
-	
+
     }
     return record_changed;
 }
@@ -694,16 +694,16 @@ void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
 
 time_t most_recent_inception(KeyDataList &keys, KeyRole role)
 {
-    time_t most_recent = 0;
+    time_t most_recent = -1; /* default answer when no keys available */
     for (int k=0; k<keys.numKeys(); ++k) {
         KeyData &key = keys.key(k);
-        
+
         // TODO: figure out if there are more factors that may require a key to be skipped
         if (!key.revoke() && key.role() == role) {
-            
+
             if (key.inception() > most_recent)
                 most_recent = key.inception();
-            
+
         }
     }
     return most_recent;
@@ -725,6 +725,8 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 	for ( int role = 1; role < 4; role++ ) {
 		for ( int i = 0; i < numberOfKeys( &policyKeys, (KeyRole)role ); i++ ) {
 			keyProperties(&policyKeys, (KeyRole)role, i, &bits, &algorithm, &lifetime);
+			/* TODO optimize most_recent_inception so we loop just once
+			 * over all keys. O(n) vs O(n^2) */
 			last_insert = most_recent_inception(zone.keyDataList(),(KeyRole)role); /* search all keys for this zone */
 			next_insert = last_insert + lifetime;
 			if ( now < next_insert && last_insert != -1 ) {
@@ -738,22 +740,22 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 			bool got_key;
 
 			if ( policyKeys.zones_share_keys() )
-				got_key = getLastReusableKey( 
-					zone, policy, (KeyRole)role, bits, algorithm, now, 
+				got_key = getLastReusableKey(
+					zone, policy, (KeyRole)role, bits, algorithm, now,
 					&hsm_key, keyfactory, lifetime)
-				? 
+				?
 					true
-				: 
+				:
 					keyfactory.CreateSharedKey(bits, policyName,
 					algorithm, (KeyRole)role, zone.name(),&hsm_key );
 			else
 				got_key = keyfactory.CreateNewKey( bits, &hsm_key );
 			if ( not got_key ) {
 				/* The factory was not ready, return in 60s */
-				minTime( NOKEY_TIMEOUT, return_at);
+				minTime( now + NOKEY_TIMEOUT, return_at);
 				continue;
 			}
-	
+
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, now,
 				(KeyRole)role, false, false, false);
 			new_key.setLocator( hsm_key->locator() );
