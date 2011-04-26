@@ -829,8 +829,6 @@ engine_update_zones(engine_type* engine)
     now = time_now();
     reload_zonefetcher(engine);
 
-    sleep(10);
-
     lock_basic_lock(&engine->zonelist->zl_lock);
     /* [LOCK] zonelist */
     node = ldns_rbtree_first(engine->zonelist->zones);
