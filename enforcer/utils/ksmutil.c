@@ -771,8 +771,15 @@ cmd_update (const char* qualifier)
      */
     if (done_something == 0) {
         printf("Unrecognised command update %s. Please specify one of:\n", qualifier);
-        usage_update();
-    }
+		usage_update();
+	} else {
+		/* Need to poke the enforcer to wake it up */
+		if (restart_enforcerd() != 0)
+		{
+			fprintf(stderr, "Could not HUP ods-enforcerd\n");
+		}
+	}
+
 
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
