@@ -30,8 +30,8 @@
 progname="ods-control"
 bindir="@OPENDNSSEC_BIN_DIR@"
 sbindir="@OPENDNSSEC_SBIN_DIR@"
-enforcer_pid_file="@OPENDNSSEC_PID_DIR@/enforcerd.pid"
-signer_pid_file="@OPENDNSSEC_PID_DIR@/signerd.pid"
+enforcer_pid_file="@OPENDNSSEC_ENFORCER_PIDFILE@"
+signer_pid_file="@OPENDNSSEC_SIGNER_PIDFILE@"
 
 
 case "$1" in
