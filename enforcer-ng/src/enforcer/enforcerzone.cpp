@@ -1,5 +1,11 @@
 #include "enforcer/enforcerzone.h"
 
+extern "C" {
+#include "shared/log.h"
+}
+
+static const char *enforcezone_str = "enforcezone";
+
 //////////////////////////////
 // KeyStatePB
 //////////////////////////////
@@ -17,7 +23,12 @@ int KeyStatePB::state()
 
 void KeyStatePB::setState(int value)
 {
-    _keystate->set_state( value );
+    if (::ods::keystate::rrstate_IsValid(value))
+        _keystate->set_state( (::ods::keystate::rrstate)value );
+    else {
+        ods_log_error("[%s] %d is not a valid rrstate value",
+                      enforcezone_str,value);
+    }
 }
 
 int KeyStatePB::lastChange()
@@ -114,7 +125,12 @@ KeyRole KeyDataPB::role()
 
 void KeyDataPB::setRole(KeyRole value)
 {
-    _keydata->set_role( (::ods::keystate::keyrole)value );
+    if (::ods::keystate::keyrole_IsValid(value))
+        _keydata->set_role( (::ods::keystate::keyrole)value );
+    else {
+        ods_log_error("[%s] %d is not a valid keyrole value",
+                      enforcezone_str,value);
+    }
 }
 
 bool KeyDataPB::isDSSeen()

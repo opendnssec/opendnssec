@@ -56,6 +56,29 @@ inline bool keyrole_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<keyrole>(
     keyrole_descriptor(), name, value);
 }
+enum rrstate {
+  hidden = 0,
+  rumoured = 1,
+  committed = 2,
+  omnipresent = 3,
+  unretentive = 4,
+  postcomitted = 5,
+  revoked = 6
+};
+bool rrstate_IsValid(int value);
+const rrstate rrstate_MIN = hidden;
+const rrstate rrstate_MAX = revoked;
+
+const ::google::protobuf::EnumDescriptor* rrstate_descriptor();
+inline const ::std::string& rrstate_Name(rrstate value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    rrstate_descriptor(), value);
+}
+inline bool rrstate_Parse(
+    const ::std::string& name, rrstate* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<rrstate>(
+    rrstate_descriptor(), name, value);
+}
 // ===================================================================
 
 class KeyStateDocument : public ::google::protobuf::Message {
@@ -538,12 +561,12 @@ class KeyState : public ::google::protobuf::Message {
   
   // accessors -------------------------------------------------------
   
-  // required int32 state = 1;
+  // optional .ods.keystate.rrstate state = 1 [default = hidden];
   inline bool has_state() const;
   inline void clear_state();
   static const int kStateFieldNumber = 1;
-  inline ::google::protobuf::int32 state() const;
-  inline void set_state(::google::protobuf::int32 value);
+  inline ods::keystate::rrstate state() const;
+  inline void set_state(ods::keystate::rrstate value);
   
   // optional uint32 last_change = 2;
   inline bool has_last_change() const;
@@ -563,7 +586,7 @@ class KeyState : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
-  ::google::protobuf::int32 state_;
+  int state_;
   ::google::protobuf::uint32 last_change_;
   bool minimize_;
   friend void  protobuf_AddDesc_keystate_2eproto();
@@ -1070,7 +1093,7 @@ inline void KeyData::set__deleted(bool value) {
 
 // KeyState
 
-// required int32 state = 1;
+// optional .ods.keystate.rrstate state = 1 [default = hidden];
 inline bool KeyState::has_state() const {
   return _has_bit(0);
 }
@@ -1078,10 +1101,11 @@ inline void KeyState::clear_state() {
   state_ = 0;
   _clear_bit(0);
 }
-inline ::google::protobuf::int32 KeyState::state() const {
-  return state_;
+inline ods::keystate::rrstate KeyState::state() const {
+  return static_cast< ods::keystate::rrstate >(state_);
 }
-inline void KeyState::set_state(::google::protobuf::int32 value) {
+inline void KeyState::set_state(ods::keystate::rrstate value) {
+  GOOGLE_DCHECK(ods::keystate::rrstate_IsValid(value));
   _set_bit(0);
   state_ = value;
 }
@@ -1129,6 +1153,10 @@ namespace protobuf {
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ods::keystate::keyrole>() {
   return ods::keystate::keyrole_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ods::keystate::rrstate>() {
+  return ods::keystate::rrstate_descriptor();
 }
 
 }  // namespace google

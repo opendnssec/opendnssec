@@ -43,6 +43,7 @@
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/hsmkey_gen_cmd.h"
 #include "hsmkey/hsmkey_list_cmd.h"
+#include "keystate/keystate_list_cmd.h"
 
 /* System libraries last */
 #include <getopt.h>
@@ -103,6 +104,7 @@ version(FILE* out)
  */
 
 static help_xxxx_cmd_type enforcer_help[] = {
+    help_keystate_list_cmd,
     help_enforce_zones_cmd,
     help_zones_cmd,
     help_hsmkey_gen_cmd,
@@ -123,6 +125,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
  */
 static handled_xxxx_cmd_type 
 enforcer_commands[] = {
+    handled_keystate_list_cmd,
     handled_enforce_zones_cmd,
     handled_zones_cmd,
     handled_hsmkey_gen_cmd,

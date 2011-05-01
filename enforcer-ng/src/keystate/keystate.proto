@@ -37,7 +37,7 @@ message KeyData {
 }
 
 message KeyState {
-    required int32 state = 1;
+    optional rrstate state = 1 [default = hidden];
     optional uint32 last_change = 2;
     optional bool minimize = 3 [default = false];
 }
@@ -46,4 +46,14 @@ enum keyrole {
     KSK = 1;
     ZSK = 2;
     CSK = 3;
+}
+
+enum rrstate {
+    hidden = 0;
+    rumoured = 1;
+    committed = 2;
+    omnipresent = 3;
+    unretentive = 4;
+    postcomitted = 5;
+    revoked = 6;
 }

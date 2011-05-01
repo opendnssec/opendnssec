@@ -27,6 +27,7 @@ const ::google::protobuf::Descriptor* KeyState_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   KeyState_reflection_ = NULL;
 const ::google::protobuf::EnumDescriptor* keyrole_descriptor_ = NULL;
+const ::google::protobuf::EnumDescriptor* rrstate_descriptor_ = NULL;
 
 }  // namespace
 
@@ -118,6 +119,7 @@ void protobuf_AssignDesc_keystate_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(KeyState));
   keyrole_descriptor_ = file->enum_type(0);
+  rrstate_descriptor_ = file->enum_type(1);
 }
 
 namespace {
@@ -177,10 +179,14 @@ void protobuf_AddDesc_keystate_2eproto() {
     "se\022\031\n\013introducing\030\n \001(\010:\004true\022\025\n\006revoke\030"
     "\013 \001(\010:\005false\022\026\n\007standby\030\014 \001(\010:\005false\022\025\n\006"
     "active\030\r \001(\010:\005false\022\026\n\007publish\030\016 \001(\010:\005fa"
-    "lse\022\027\n\010_deleted\030d \001(\010:\005false\"G\n\010KeyState"
-    "\022\r\n\005state\030\001 \002(\005\022\023\n\013last_change\030\002 \001(\r\022\027\n\010"
-    "minimize\030\003 \001(\010:\005false*$\n\007keyrole\022\007\n\003KSK\020"
-    "\001\022\007\n\003ZSK\020\002\022\007\n\003CSK\020\003", 779);
+    "lse\022\027\n\010_deleted\030d \001(\010:\005false\"f\n\010KeyState"
+    "\022,\n\005state\030\001 \001(\0162\025.ods.keystate.rrstate:\006"
+    "hidden\022\023\n\013last_change\030\002 \001(\r\022\027\n\010minimize\030"
+    "\003 \001(\010:\005false*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020"
+    "\002\022\007\n\003CSK\020\003*s\n\007rrstate\022\n\n\006hidden\020\000\022\014\n\010rum"
+    "oured\020\001\022\r\n\tcommitted\020\002\022\017\n\013omnipresent\020\003\022"
+    "\017\n\013unretentive\020\004\022\020\n\014postcomitted\020\005\022\013\n\007re"
+    "voked\020\006", 927);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "keystate.proto", &protobuf_RegisterTypes);
   KeyStateDocument::default_instance_ = new KeyStateDocument();
@@ -210,6 +216,25 @@ bool keyrole_IsValid(int value) {
     case 1:
     case 2:
     case 3:
+      return true;
+    default:
+      return false;
+  }
+}
+
+const ::google::protobuf::EnumDescriptor* rrstate_descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return rrstate_descriptor_;
+}
+bool rrstate_IsValid(int value) {
+  switch(value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
       return true;
     default:
       return false;
@@ -1564,15 +1589,6 @@ void KeyData::CopyFrom(const KeyData& from) {
 bool KeyData::IsInitialized() const {
   if ((_has_bits_[0] & 0x0000007f) != 0x0000007f) return false;
   
-  if (has_ds()) {
-    if (!this->ds().IsInitialized()) return false;
-  }
-  if (has_rrsig()) {
-    if (!this->rrsig().IsInitialized()) return false;
-  }
-  if (has_dnskey()) {
-    if (!this->dnskey().IsInitialized()) return false;
-  }
   return true;
 }
 
@@ -1676,15 +1692,19 @@ bool KeyState::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required int32 state = 1;
+      // optional .ods.keystate.rrstate state = 1 [default = hidden];
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
-              input, &state_));
-        _set_bit(0);
+        int value;
+        DO_(::google::protobuf::internal::WireFormatLite::ReadEnum(input, &value));
+        if (ods::keystate::rrstate_IsValid(value)) {
+          set_state(static_cast< ods::keystate::rrstate >(value));
+        } else {
+          mutable_unknown_fields()->AddVarint(1, value);
+        }
         if (input->ExpectTag(16)) goto parse_last_change;
         break;
       }
@@ -1741,9 +1761,10 @@ void KeyState::SerializeWithCachedSizes(
     return;
   }
   
-  // required int32 state = 1;
+  // optional .ods.keystate.rrstate state = 1 [default = hidden];
   if (_has_bit(0)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->state(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->state(), output);
   }
   
   // optional uint32 last_change = 2;
@@ -1764,9 +1785,10 @@ void KeyState::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* KeyState::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required int32 state = 1;
+  // optional .ods.keystate.rrstate state = 1 [default = hidden];
   if (_has_bit(0)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->state(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      1, this->state(), target);
   }
   
   // optional uint32 last_change = 2;
@@ -1790,11 +1812,10 @@ int KeyState::ByteSize() const {
   int total_size = 0;
   
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required int32 state = 1;
+    // optional .ods.keystate.rrstate state = 1 [default = hidden];
     if (has_state()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->state());
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->state());
     }
     
     // optional uint32 last_change = 2;
@@ -1860,7 +1881,6 @@ void KeyState::CopyFrom(const KeyState& from) {
 }
 
 bool KeyState::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
   
   return true;
 }
