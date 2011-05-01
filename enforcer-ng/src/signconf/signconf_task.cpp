@@ -199,7 +199,15 @@ perform_signconf(int sockfd, engineconfig_type *config)
             sc_key->set_ksk( ks_key.role() ==  ::ods::keystate::KSK || ks_key.role() ==  ::ods::keystate::CSK );
             sc_key->set_zsk( ks_key.role() ==  ::ods::keystate::ZSK || ks_key.role() ==  ::ods::keystate::CSK );
             sc_key->set_publish( ks_key.publish() );
-            sc_key->set_deactivate( !ks_key.active() );
+            
+            // The deactivate flag was intended to allow smooth key rollover.
+            // With the deactivate flag present a normal rollover would be 
+            // performed where signatures would be replaced immmediately.
+            // With deactivate flag not present a smooth rollover would be 
+            // performed where signatures that had not yet passed there refresh
+            // timestamp could be recycled and gradually replaced with 
+            // new signatures.
+            // sc_key->set_deactivate( !ks_key.active() );
         }
         
         const ::ods::kasp::Zone &kp_zone = policy->zone();
