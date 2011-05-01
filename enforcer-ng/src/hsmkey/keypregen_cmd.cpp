@@ -53,12 +53,12 @@ int handled_keypregen_cmd(int sockfd, engine_type* engine, const char *cmd,
         /* schedule task */
         task = keypregen_task(engine->config);
         if (!task) {
-            ods_log_crit("[%s] failed to create policy reader task",
+            ods_log_crit("[%s] failed to create key pre-generator task",
                          keypregen_cmd_str);
         } else {
             status = schedule_task_from_thread(engine->taskq, task, 0);
             if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] failed to create policy reader task",
+                ods_log_crit("[%s] failed to create key pre-generator task",
                              keypregen_cmd_str);
 
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Unable to schedule key "
