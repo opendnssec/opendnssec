@@ -52,9 +52,13 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				zone/zones_cmd.cpp zone/zones_cmd.h \
 				zone/zonelist.pb.cc zone/zonelist.pb.h \
                 hsmkey/hsmkey.pb.cc hsmkey/hsmkey.pb.h \
-                hsmkey/keypregen_cmd.cpp hsmkey/keypregen_cmd.h \
-                hsmkey/keypregen_task.cpp hsmkey/keypregen_task.h \
+                hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
+                hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
+                hsmkey/hsmkey_list_cmd.cpp hsmkey/hsmkey_list_cmd.h \
+                hsmkey/hsmkey_list_task.cpp hsmkey/hsmkey_list_task.h \
 				keystate/keystate.pb.cc keystate/keystate.pb.h \
+                keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
+                keystate/keystate_list_task.cpp keystate/keystate_list_task.h \
 				signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 				signconf/signconf_task.cpp signconf/signconf_task.h \
 				signconf/signconf.pb.cc signconf/signconf.pb.h \
