@@ -1,4 +1,4 @@
-package kasp.pb;
+package ods.conf;
 
 import "xmlext.proto";
 
