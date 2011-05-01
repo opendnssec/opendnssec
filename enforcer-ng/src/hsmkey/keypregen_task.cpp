@@ -2,6 +2,7 @@ extern "C" {
 #include "hsmkey/keypregen_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
+#include "libhsm.h"
 }
 
 #include <google/protobuf/descriptor.h>
@@ -17,11 +18,34 @@ extern "C" {
 static const char *keypregen_task_str = "keypregen_task";
 
 
+void generate_a_key_in_a_hsm()
+{
+    //hsm_open(config->cfg_filename,NULL,NULL);
+    hsm_ctx_t * hsm_ctx = hsm_create_context();
+    
+    
+    
+    
+    
+    
+    hsm_destroy_context(hsm_ctx);
+    //hsm_close();
+}
+
+
+
+
 bool generate_key(int num, unsigned int bits, std::string &locator)
 {
     char buf[ODS_SE_MAXLINE];
     snprintf(buf,ODS_SE_MAXLINE,"%.4xe1241707c55f7c4bc35743151e71",num);
     locator.assign(buf);
+    
+    
+    generate_a_key_in_a_hsm();
+    
+    
+    
     return true;
 }
 
@@ -45,7 +69,7 @@ perform_keypregen(int sockfd, engineconfig_type *config)
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
     
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
     
     // Load the current list of pre-generated keys
     ::ods::hsmkey::HsmKeyDocument *hsmkeyDoc = 
