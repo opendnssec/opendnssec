@@ -41,8 +41,8 @@
 #include "zone/update_cmd.h"
 #include "policy/policies_cmd.h"
 #include "signconf/signconf_cmd.h"
-#include "hsmkey/keypregen_cmd.h"
-
+#include "hsmkey/hsmkey_gen_cmd.h"
+#include "hsmkey/hsmkey_list_cmd.h"
 
 /* System libraries last */
 #include <getopt.h>
@@ -62,20 +62,23 @@ static void
 usage(FILE* out)
 {
     fprintf(out, "Usage: %s [OPTIONS]\n", "ods-enforcerd");
-    fprintf(out, "Start the OpenDNSSEC key and signing policy enforcer daemon.\n\n");
+    fprintf(out, "Start the OpenDNSSEC key and signing policy enforcer "
+            "daemon.\n\n");
     fprintf(out, "Supported options:\n");
+#if HAVE_READ_CONFIG_FROM_EXTERNAL_FILE
     fprintf(out, " -c | --config <cfgfile> Read configuration from file.\n");
+#endif
     fprintf(out, " -d | --no-daemon        Do not daemonize the enforcer "
-                 "engine.\n");
+            "engine.\n");
     fprintf(out, " -1 | --single-run       Run once, then exit.\n");
     fprintf(out, " -h | --help             Show this help and exit.\n");
     fprintf(out, " -i | --info             Print configuration and exit.\n");
     fprintf(out, " -v | --verbose          Increase verbosity.\n");
     fprintf(out, " -V | --version          Show version and exit.\n");
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
-                 "details.\n");
+            "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
-        PACKAGE_VERSION, PACKAGE_BUGREPORT);
+            PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }
 
 
@@ -102,7 +105,8 @@ version(FILE* out)
 static help_xxxx_cmd_type enforcer_help[] = {
     help_enforce_zones_cmd,
     help_zones_cmd,
-    help_keypregen_cmd,
+    help_hsmkey_gen_cmd,
+    help_hsmkey_list_cmd,
     help_update_cmd,
     help_policies_cmd,
     help_signconf_cmd,
@@ -121,7 +125,8 @@ static handled_xxxx_cmd_type
 enforcer_commands[] = {
     handled_enforce_zones_cmd,
     handled_zones_cmd,
-    handled_keypregen_cmd,
+    handled_hsmkey_gen_cmd,
+    handled_hsmkey_list_cmd,
     handled_update_cmd,
     handled_policies_cmd,
     handled_signconf_cmd,
@@ -147,7 +152,9 @@ main(int argc, char* argv[])
     const char* cfgfile = ODS_SE_CFGFILE;
     static struct option long_options[] = {
         {"single-run", no_argument, 0, '1'},
+#if HAVE_READ_CONFIG_FROM_EXTERNAL_FILE
         {"config", required_argument, 0, 'c'},
+#endif
         {"no-daemon", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
         {"info", no_argument, 0, 'i'},
@@ -157,7 +164,13 @@ main(int argc, char* argv[])
     };
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "1c:dhivV",
+    while ((c=getopt_long(argc, argv, 
+#if HAVE_READ_CONFIG_FROM_EXTERNAL_FILE
+                          "1c:dhivV"
+#else
+                          "1dhivV"
+#endif
+                          ,
         long_options, &options_index)) != -1) {
         switch (c) {
             case '1':

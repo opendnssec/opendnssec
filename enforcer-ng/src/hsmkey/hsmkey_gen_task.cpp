@@ -1,5 +1,5 @@
 extern "C" {
-#include "hsmkey/keypregen_task.h"
+#include "hsmkey/hsmkey_gen_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 #include "libhsm.h"
@@ -35,7 +35,7 @@ void generate_a_key_in_a_hsm()
 
 
 
-bool generate_key(int num, unsigned int bits, std::string &locator)
+static bool generate_key(int num, unsigned int bits, std::string &locator)
 {
     char buf[ODS_SE_MAXLINE];
     snprintf(buf,ODS_SE_MAXLINE,"%.4xe1241707c55f7c4bc35743151e71",num);
@@ -51,7 +51,7 @@ bool generate_key(int num, unsigned int bits, std::string &locator)
 
 
 void 
-perform_keypregen(int sockfd, engineconfig_type *config)
+perform_hsmkey_gen(int sockfd, engineconfig_type *config)
 {
     typedef struct {
         unsigned int bits;
@@ -159,25 +159,22 @@ perform_keypregen(int sockfd, engineconfig_type *config)
         }
         close(fd);
     }
-    
-    (void)snprintf(buf, ODS_SE_MAXLINE, "key pre-generation complete.\n");
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 static task_type * 
-keypregen_task_perform(task_type *task)
+hsmkey_gen_task_perform(task_type *task)
 {
-    perform_keypregen(-1,(engineconfig_type *)task->context);
+    perform_hsmkey_gen(-1,(engineconfig_type *)task->context);
     
     task_cleanup(task);
     return NULL;
 }
 
 task_type *
-keypregen_task(engineconfig_type *config)
+hsmkey_gen_task(engineconfig_type *config)
 {
-    task_id what = task_register("keypregen",
-                                 "keypregen_task_perform",
-                                 keypregen_task_perform);
+    task_id what = task_register("hsm key gen",
+                                 "hsmkey_gen_task_perform",
+                                 hsmkey_gen_task_perform);
 	return task_create(what, time_now(), "all", (void*)config);
 }

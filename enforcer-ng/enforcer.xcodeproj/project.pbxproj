@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		A70EA75F13549A1D00D929CC /* xmlext-wr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A70EA75E13549A1D00D929CC /* xmlext-wr.cpp */; };
+		A71D0996136C44EA00D8F205 /* hsmkey_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A71D0993136C44E300D8F205 /* hsmkey_list_task.cpp */; };
+		A71D0997136C44EF00D8F205 /* hsmkey_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A71D098F136C42E100D8F205 /* hsmkey_list_cmd.cpp */; };
 		A73185BB1314F41C007DB701 /* cfg.c in Sources */ = {isa = PBXBuildFile; fileRef = A73184FF13144EE1007DB701 /* cfg.c */; };
 		A73185BC1314F41D007DB701 /* cmdhandler.c in Sources */ = {isa = PBXBuildFile; fileRef = A731850113144EE1007DB701 /* cmdhandler.c */; };
 		A73185C21314F42B007DB701 /* worker.c in Sources */ = {isa = PBXBuildFile; fileRef = A731850713144EE1007DB701 /* worker.c */; };
@@ -25,6 +27,7 @@
 		A772F49313323E5E004179E8 /* xmlext.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49113323E5E004179E8 /* xmlext.pb.cc */; };
 		A772F49913323E7A004179E8 /* kasp.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49513323E7A004179E8 /* kasp.pb.cc */; };
 		A772F49E13324716004179E8 /* xmlext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A772F49D13324716004179E8 /* xmlext.cpp */; };
+		A77C57FF136D674C000A4E51 /* keystate_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */; };
 		A79154FA134E03A2004DEF95 /* zones_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DDF134D21D400B13EA0 /* zones_cmd.cpp */; };
 		A7915502134E365D004DEF95 /* update_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79154FF134E365D004DEF95 /* update_task.cpp */; };
 		A7915503134E3B0B004DEF95 /* update_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE1134D21D400B13EA0 /* update_cmd.cpp */; };
@@ -51,8 +54,8 @@
 		A7ACCD0D1352E0730003E535 /* enforcerzone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0B1352E0730003E535 /* enforcerzone.cpp */; };
 		A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0C1352E0730003E535 /* hsmkeyfactory.cpp */; };
 		A7CFAD61135D7ED500E85BE4 /* hsmkey.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7790E5C135CF27100EED13E /* hsmkey.pb.cc */; };
-		A7CFAD6E135D8A8900E85BE4 /* keypregen_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7CFAD68135D84DB00E85BE4 /* keypregen_task.cpp */; };
-		A7CFAD6F135D8A8D00E85BE4 /* keypregen_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7CFAD6A135D84DB00E85BE4 /* keypregen_cmd.cpp */; };
+		A7CFAD6E135D8A8900E85BE4 /* hsmkey_gen_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7CFAD68135D84DB00E85BE4 /* hsmkey_gen_task.cpp */; };
+		A7CFAD6F135D8A8D00E85BE4 /* hsmkey_gen_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7CFAD6A135D84DB00E85BE4 /* hsmkey_gen_cmd.cpp */; };
 		A7E70DC4134B956400B13EA0 /* enforcer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC3134B956400B13EA0 /* enforcer.cpp */; };
 		A7E70DCD134C409000B13EA0 /* enforce_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC9134C408F00B13EA0 /* enforce_task.cpp */; };
 		A7E70DE7134D259900B13EA0 /* enforce_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC8134C408E00B13EA0 /* enforce_cmd.cpp */; };
@@ -63,6 +66,9 @@
 /* Begin PBXFileReference section */
 		A70EA75D13549A0400D929CC /* xmlext-wr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "xmlext-wr.h"; sourceTree = "<group>"; };
 		A70EA75E13549A1D00D929CC /* xmlext-wr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "xmlext-wr.cpp"; sourceTree = "<group>"; };
+		A71D098F136C42E100D8F205 /* hsmkey_list_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkey_list_cmd.cpp; sourceTree = "<group>"; };
+		A71D0993136C44E300D8F205 /* hsmkey_list_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkey_list_task.cpp; sourceTree = "<group>"; };
+		A71D0994136C44E300D8F205 /* hsmkey_list_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkey_list_task.h; sourceTree = "<group>"; };
 		A72FF6A9134335D400B85C40 /* enforcerdata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforcerdata.h; sourceTree = "<group>"; };
 		A73184AC13144EE1007DB701 /* AUTHORS */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AUTHORS; sourceTree = "<group>"; };
 		A73184BD13144EE1007DB701 /* Changelog */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Changelog; sourceTree = "<group>"; };
@@ -114,6 +120,9 @@
 		A7790E59135CE27C00EED13E /* hsmkey.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = hsmkey.proto; sourceTree = "<group>"; };
 		A7790E5B135CF27100EED13E /* hsmkey.pb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkey.pb.h; sourceTree = "<group>"; };
 		A7790E5C135CF27100EED13E /* hsmkey.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkey.pb.cc; sourceTree = "<group>"; };
+		A77C57F0136CB0A0000A4E51 /* conf.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = conf.proto; sourceTree = "<group>"; };
+		A77C57FD136D674C000A4E51 /* keystate_list_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_list_task.h; path = keystate/keystate_list_task.h; sourceTree = "<group>"; };
+		A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_list_task.cpp; path = keystate/keystate_list_task.cpp; sourceTree = "<group>"; };
 		A79154FB134E0435004DEF95 /* zones_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zones_cmd.h; sourceTree = "<group>"; };
 		A79154FF134E365D004DEF95 /* update_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_task.cpp; sourceTree = "<group>"; };
 		A7915500134E365D004DEF95 /* update_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_task.h; sourceTree = "<group>"; };
@@ -150,10 +159,10 @@
 		A7ACCD0A1352E0730003E535 /* hsmkeyfactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkeyfactory.h; sourceTree = "<group>"; };
 		A7ACCD0B1352E0730003E535 /* enforcerzone.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforcerzone.cpp; sourceTree = "<group>"; };
 		A7ACCD0C1352E0730003E535 /* hsmkeyfactory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkeyfactory.cpp; sourceTree = "<group>"; };
-		A7CFAD67135D84DB00E85BE4 /* keypregen_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = keypregen_task.h; sourceTree = "<group>"; };
-		A7CFAD68135D84DB00E85BE4 /* keypregen_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = keypregen_task.cpp; sourceTree = "<group>"; };
-		A7CFAD69135D84DB00E85BE4 /* keypregen_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = keypregen_cmd.h; sourceTree = "<group>"; };
-		A7CFAD6A135D84DB00E85BE4 /* keypregen_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = keypregen_cmd.cpp; sourceTree = "<group>"; };
+		A7CFAD67135D84DB00E85BE4 /* hsmkey_gen_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkey_gen_task.h; sourceTree = "<group>"; };
+		A7CFAD68135D84DB00E85BE4 /* hsmkey_gen_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkey_gen_task.cpp; sourceTree = "<group>"; };
+		A7CFAD69135D84DB00E85BE4 /* hsmkey_gen_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkey_gen_cmd.h; sourceTree = "<group>"; };
+		A7CFAD6A135D84DB00E85BE4 /* hsmkey_gen_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkey_gen_cmd.cpp; sourceTree = "<group>"; };
 		A7E70DC3134B956400B13EA0 /* enforcer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforcer.cpp; sourceTree = "<group>"; };
 		A7E70DC8134C408E00B13EA0 /* enforce_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforce_cmd.cpp; sourceTree = "<group>"; };
 		A7E70DC9134C408F00B13EA0 /* enforce_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforce_task.cpp; sourceTree = "<group>"; };
@@ -266,6 +275,7 @@
 		A731851A13144EE1007DB701 /* parser */ = {
 			isa = PBXGroup;
 			children = (
+				A77C57F0136CB0A0000A4E51 /* conf.proto */,
 				A731851B13144EE1007DB701 /* confparser.c */,
 				A731851C13144EE1007DB701 /* confparser.h */,
 			);
@@ -303,6 +313,8 @@
 			isa = PBXGroup;
 			children = (
 				A74EB43D135249DB001F9E1B /* keystate.proto */,
+				A77C57FD136D674C000A4E51 /* keystate_list_task.h */,
+				A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */,
 				A74EB43E13524ED9001F9E1B /* keystate.pb.h */,
 				A74EB43F13524ED9001F9E1B /* keystate.pb.cc */,
 			);
@@ -366,10 +378,13 @@
 			isa = PBXGroup;
 			children = (
 				A7790E59135CE27C00EED13E /* hsmkey.proto */,
-				A7CFAD69135D84DB00E85BE4 /* keypregen_cmd.h */,
-				A7CFAD6A135D84DB00E85BE4 /* keypregen_cmd.cpp */,
-				A7CFAD67135D84DB00E85BE4 /* keypregen_task.h */,
-				A7CFAD68135D84DB00E85BE4 /* keypregen_task.cpp */,
+				A71D098F136C42E100D8F205 /* hsmkey_list_cmd.cpp */,
+				A71D0994136C44E300D8F205 /* hsmkey_list_task.h */,
+				A71D0993136C44E300D8F205 /* hsmkey_list_task.cpp */,
+				A7CFAD69135D84DB00E85BE4 /* hsmkey_gen_cmd.h */,
+				A7CFAD6A135D84DB00E85BE4 /* hsmkey_gen_cmd.cpp */,
+				A7CFAD67135D84DB00E85BE4 /* hsmkey_gen_task.h */,
+				A7CFAD68135D84DB00E85BE4 /* hsmkey_gen_task.cpp */,
 				A7790E5B135CF27100EED13E /* hsmkey.pb.h */,
 				A7790E5C135CF27100EED13E /* hsmkey.pb.cc */,
 			);
@@ -533,8 +548,11 @@
 				A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */,
 				A70EA75F13549A1D00D929CC /* xmlext-wr.cpp in Sources */,
 				A7CFAD61135D7ED500E85BE4 /* hsmkey.pb.cc in Sources */,
-				A7CFAD6E135D8A8900E85BE4 /* keypregen_task.cpp in Sources */,
-				A7CFAD6F135D8A8D00E85BE4 /* keypregen_cmd.cpp in Sources */,
+				A7CFAD6E135D8A8900E85BE4 /* hsmkey_gen_task.cpp in Sources */,
+				A7CFAD6F135D8A8D00E85BE4 /* hsmkey_gen_cmd.cpp in Sources */,
+				A71D0996136C44EA00D8F205 /* hsmkey_list_task.cpp in Sources */,
+				A71D0997136C44EF00D8F205 /* hsmkey_list_cmd.cpp in Sources */,
+				A77C57FF136D674C000A4E51 /* keystate_list_task.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
