@@ -11,6 +11,7 @@
 extern "C" {
 #include "enforcer/enforce_cmd.h"
 #include "enforcer/enforce_task.h"
+#include "signconf/signconf_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "daemon/engine.h"
@@ -78,13 +79,17 @@ int handled_enforce_zones_cmd(int sockfd, engine_type* engine, const char *cmd,
             }
         }
     } else {
-        /* perform the task directly, giving it the chance to 
+        /* perform the enforce directly, giving it the chance to 
          * report back any results directly via sockfd.
          */
         perform_enforce(sockfd, engine->config);
+        
+        /* After performing the enforce perform the signconf directly
+         */
+        perform_signconf(sockfd, engine->config);
+        
         (void)snprintf(buf, ODS_SE_MAXLINE, "%s complete.\n",scmd);
         ods_writen(sockfd, buf, strlen(buf));
-        
     }
     return 1;
 }
