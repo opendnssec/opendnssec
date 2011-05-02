@@ -109,7 +109,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_zones_cmd,
     help_hsmkey_gen_cmd,
     help_hsmkey_list_cmd,
-    help_update_cmd,
+    help_update_zonelist_cmd,
     help_policies_cmd,
     help_signconf_cmd,
     
@@ -130,7 +130,7 @@ enforcer_commands[] = {
     handled_zones_cmd,
     handled_hsmkey_gen_cmd,
     handled_hsmkey_list_cmd,
-    handled_update_cmd,
+    handled_update_zonelist_cmd,
     handled_policies_cmd,
     handled_signconf_cmd,
 

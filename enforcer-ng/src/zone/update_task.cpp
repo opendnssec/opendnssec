@@ -14,10 +14,10 @@ extern "C" {
 
 #include <fcntl.h>
 
-static const char *update_task_str = "update_task";
+static const char *update_zonelist_task_str = "update_zonelist_task";
 
 void 
-perform_update(int sockfd, engineconfig_type *config)
+perform_update_zonelist(int sockfd, engineconfig_type *config)
 {
     char buf[ODS_SE_MAXLINE];
 	const char *zonelistfile = config->zonelist_filename;
@@ -45,7 +45,7 @@ perform_update(int sockfd, engineconfig_type *config)
                     int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
                     if (doc->SerializeToFileDescriptor(fd)) {
                         ods_log_debug("[%s] zonelist has been updated", 
-                                      update_task_str);
+                                      update_zonelist_task_str);
 
                         (void)snprintf(buf, ODS_SE_MAXLINE, "update of zonelist completed.\n");
                         ods_writen(sockfd, buf, strlen(buf));
@@ -74,19 +74,19 @@ perform_update(int sockfd, engineconfig_type *config)
 }
 
 static task_type * 
-update_task_perform(task_type *task)
+update_zonelist_task_perform(task_type *task)
 {
-    perform_update(-1,(engineconfig_type *)task->context);
+    perform_update_zonelist(-1,(engineconfig_type *)task->context);
     
     task_cleanup(task);
     return NULL;
 }
 
 task_type *
-update_task(engineconfig_type *config)
+update_zonelist_task(engineconfig_type *config)
 {
-    task_id what = task_register("update",
-                                 "update_task_perform", 
-                                 update_task_perform);
+    task_id what = task_register("update zonelist",
+                                 "update_zonelist_task_perform", 
+                                 update_zonelist_task_perform);
 	return task_create(what, time_now(), "all",(void*)config);
 }
