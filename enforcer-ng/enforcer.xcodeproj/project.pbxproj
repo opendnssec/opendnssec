@@ -29,9 +29,10 @@
 		A772F49E13324716004179E8 /* xmlext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A772F49D13324716004179E8 /* xmlext.cpp */; };
 		A77C57FF136D674C000A4E51 /* keystate_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */; };
 		A77C5803136D9C23000A4E51 /* keystate_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C5800136D6BC7000A4E51 /* keystate_list_cmd.cpp */; };
-		A79154FA134E03A2004DEF95 /* zones_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DDF134D21D400B13EA0 /* zones_cmd.cpp */; };
-		A7915502134E365D004DEF95 /* update_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79154FF134E365D004DEF95 /* update_task.cpp */; };
-		A7915503134E3B0B004DEF95 /* update_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE1134D21D400B13EA0 /* update_cmd.cpp */; };
+		A77C5820136E8D68000A4E51 /* zone_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C581F136E8D67000A4E51 /* zone_list_task.cpp */; };
+		A79154FA134E03A2004DEF95 /* zone_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DDF134D21D400B13EA0 /* zone_list_cmd.cpp */; };
+		A7915502134E365D004DEF95 /* update_zonelist_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */; };
+		A7915503134E3B0B004DEF95 /* update_zonelist_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE1134D21D400B13EA0 /* update_zonelist_cmd.cpp */; };
 		A79435F9131B41F700108EFB /* fifoq.c in Sources */ = {isa = PBXBuildFile; fileRef = A79435F5131B41F700108EFB /* fifoq.c */; };
 		A79435FA131B41F700108EFB /* schedule.c in Sources */ = {isa = PBXBuildFile; fileRef = A79435F7131B41F700108EFB /* schedule.c */; };
 		A7943612131B420E00108EFB /* allocator.c in Sources */ = {isa = PBXBuildFile; fileRef = A79435FC131B420E00108EFB /* allocator.c */; };
@@ -126,10 +127,12 @@
 		A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_list_task.cpp; path = keystate/keystate_list_task.cpp; sourceTree = "<group>"; };
 		A77C5800136D6BC7000A4E51 /* keystate_list_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_list_cmd.cpp; path = keystate/keystate_list_cmd.cpp; sourceTree = "<group>"; };
 		A77C5801136D6BC7000A4E51 /* keystate_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_list_cmd.h; path = keystate/keystate_list_cmd.h; sourceTree = "<group>"; };
-		A79154FB134E0435004DEF95 /* zones_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zones_cmd.h; sourceTree = "<group>"; };
-		A79154FF134E365D004DEF95 /* update_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_task.cpp; sourceTree = "<group>"; };
-		A7915500134E365D004DEF95 /* update_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_task.h; sourceTree = "<group>"; };
-		A7915501134E365D004DEF95 /* update_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_cmd.h; sourceTree = "<group>"; };
+		A77C581E136E8D66000A4E51 /* zone_list_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zone_list_task.h; sourceTree = "<group>"; };
+		A77C581F136E8D67000A4E51 /* zone_list_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zone_list_task.cpp; sourceTree = "<group>"; };
+		A79154FB134E0435004DEF95 /* zone_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zone_list_cmd.h; sourceTree = "<group>"; };
+		A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_zonelist_task.cpp; sourceTree = "<group>"; };
+		A7915500134E365D004DEF95 /* update_zonelist_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_zonelist_task.h; sourceTree = "<group>"; };
+		A7915501134E365D004DEF95 /* update_zonelist_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_zonelist_cmd.h; sourceTree = "<group>"; };
 		A79435F5131B41F700108EFB /* fifoq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fifoq.c; sourceTree = "<group>"; };
 		A79435F6131B41F700108EFB /* fifoq.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fifoq.h; sourceTree = "<group>"; };
 		A79435F7131B41F700108EFB /* schedule.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = schedule.c; sourceTree = "<group>"; };
@@ -171,8 +174,8 @@
 		A7E70DC9134C408F00B13EA0 /* enforce_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforce_task.cpp; sourceTree = "<group>"; };
 		A7E70DCA134C408F00B13EA0 /* enforce_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforce_task.h; sourceTree = "<group>"; };
 		A7E70DCB134C408F00B13EA0 /* enforce_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforce_cmd.h; sourceTree = "<group>"; };
-		A7E70DDF134D21D400B13EA0 /* zones_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zones_cmd.cpp; sourceTree = "<group>"; };
-		A7E70DE1134D21D400B13EA0 /* update_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_cmd.cpp; sourceTree = "<group>"; };
+		A7E70DDF134D21D400B13EA0 /* zone_list_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zone_list_cmd.cpp; sourceTree = "<group>"; };
+		A7E70DE1134D21D400B13EA0 /* update_zonelist_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_zonelist_cmd.cpp; sourceTree = "<group>"; };
 		A7E70DE8134DC62F00B13EA0 /* policies_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = policies_cmd.h; sourceTree = "<group>"; };
 		A7E70DE9134DC62F00B13EA0 /* policies_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = policies_task.cpp; sourceTree = "<group>"; };
 		A7E70DEA134DC62F00B13EA0 /* policies_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = policies_cmd.cpp; sourceTree = "<group>"; };
@@ -366,13 +369,15 @@
 		A772F49A133240A9004179E8 /* zone */ = {
 			isa = PBXGroup;
 			children = (
+				A77C581E136E8D66000A4E51 /* zone_list_task.h */,
+				A77C581F136E8D67000A4E51 /* zone_list_task.cpp */,
 				A75E74B6133B6E9700F09B43 /* zonelist.proto */,
-				A7915501134E365D004DEF95 /* update_cmd.h */,
-				A7E70DE1134D21D400B13EA0 /* update_cmd.cpp */,
-				A7915500134E365D004DEF95 /* update_task.h */,
-				A79154FF134E365D004DEF95 /* update_task.cpp */,
-				A79154FB134E0435004DEF95 /* zones_cmd.h */,
-				A7E70DDF134D21D400B13EA0 /* zones_cmd.cpp */,
+				A7915501134E365D004DEF95 /* update_zonelist_cmd.h */,
+				A7E70DE1134D21D400B13EA0 /* update_zonelist_cmd.cpp */,
+				A7915500134E365D004DEF95 /* update_zonelist_task.h */,
+				A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */,
+				A79154FB134E0435004DEF95 /* zone_list_cmd.h */,
+				A7E70DDF134D21D400B13EA0 /* zone_list_cmd.cpp */,
 				A75E74B4133B6E9700F09B43 /* zonelist.pb.h */,
 				A75E74B5133B6E9700F09B43 /* zonelist.pb.cc */,
 			);
@@ -542,9 +547,9 @@
 				A7E70DCD134C409000B13EA0 /* enforce_task.cpp in Sources */,
 				A7E70DEC134DC63000B13EA0 /* policies_task.cpp in Sources */,
 				A7E70DED134DC63000B13EA0 /* policies_cmd.cpp in Sources */,
-				A79154FA134E03A2004DEF95 /* zones_cmd.cpp in Sources */,
-				A7915502134E365D004DEF95 /* update_task.cpp in Sources */,
-				A7915503134E3B0B004DEF95 /* update_cmd.cpp in Sources */,
+				A79154FA134E03A2004DEF95 /* zone_list_cmd.cpp in Sources */,
+				A7915502134E365D004DEF95 /* update_zonelist_task.cpp in Sources */,
+				A7915503134E3B0B004DEF95 /* update_zonelist_cmd.cpp in Sources */,
 				A7497487134FE10100205543 /* signconf.pb.cc in Sources */,
 				A74EB43A13521A72001F9E1B /* signconf_cmd.cpp in Sources */,
 				A74EB43B13521A72001F9E1B /* signconf_task.cpp in Sources */,
@@ -573,6 +578,7 @@
 				A7943626131B420E00108EFB /* str.c in Sources */,
 				A7943627131B420E00108EFB /* util.c in Sources */,
 				A74D1B4F1338AB1F00C8B4AD /* ods-enforcer.c in Sources */,
+				A77C5820136E8D68000A4E51 /* zone_list_task.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

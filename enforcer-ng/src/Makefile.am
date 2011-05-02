@@ -47,9 +47,10 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				policy/kasp.pb.cc policy/kasp.pb.h \
 				policy/policies_cmd.cpp policy/policies_cmd.h \
 				policy/policies_task.cpp policy/policies_task.h \
-				zone/update_cmd.cpp zone/update_cmd.h \
-				zone/update_task.cpp zone/update_task.h \
-				zone/zones_cmd.cpp zone/zones_cmd.h \
+				zone/update_zonelist_cmd.cpp zone/update_zonelist_cmd.h \
+				zone/update_zonelist_task.cpp zone/update_zonelist_task.h \
+				zone/zone_list_cmd.cpp zone/zone_list_cmd.h \
+                zone/zone_list_task.cpp zone/zone_list_task.h \
 				zone/zonelist.pb.cc zone/zonelist.pb.h \
                 hsmkey/hsmkey.pb.cc hsmkey/hsmkey.pb.h \
                 hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \

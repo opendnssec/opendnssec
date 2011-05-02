@@ -2,7 +2,7 @@
 extern "C" {
 #include "shared/duration.h"
 #include "shared/file.h"
-#include "zone/update_task.h"
+#include "zone/update_zonelist_task.h"
 }
 
 #include <google/protobuf/descriptor.h>

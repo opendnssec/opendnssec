@@ -6,7 +6,7 @@
 // Interface of this cpp file is used by C code, we need to declare 
 // extern "C" to prevent linking errors.
 extern "C" {
-#include "zone/zones_cmd.h"
+#include "zone/zone_list_cmd.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "daemon/engine.h"
