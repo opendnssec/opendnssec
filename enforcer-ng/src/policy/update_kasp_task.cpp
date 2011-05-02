@@ -1,5 +1,5 @@
 extern "C" {
-#include "policies_task.h"
+#include "update_kasp_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 }
@@ -14,10 +14,10 @@ extern "C" {
 
 #include <fcntl.h>
 
-static const char *policies_task_str = "policies_task";
+static const char *update_kasp_task_str = "update_kasp_task";
 
 void 
-perform_policies(int sockfd, engineconfig_type *config)
+perform_update_kasp(int sockfd, engineconfig_type *config)
 {
     char buf[ODS_SE_MAXLINE];
 	const char *policyfile = config->policy_filename;
@@ -45,9 +45,7 @@ perform_policies(int sockfd, engineconfig_type *config)
                     int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
                     if (doc->SerializeToFileDescriptor(fd)) {
                         ods_log_debug("[%s] policies have been imported", 
-                                      policies_task_str);
-                        (void)snprintf(buf, ODS_SE_MAXLINE, "import of policies completed.\n");
-                        ods_writen(sockfd, buf, strlen(buf));
+                                      update_kasp_task_str);
                     } else {
                         (void)snprintf(buf, ODS_SE_MAXLINE, "error: policies file could not be written.\n");
                         ods_writen(sockfd, buf, strlen(buf));
@@ -73,19 +71,19 @@ perform_policies(int sockfd, engineconfig_type *config)
 }
 
 static task_type * 
-policies_task_perform(task_type *task)
+update_kasp_task_perform(task_type *task)
 {
-    perform_policies(-1,(engineconfig_type *)task->context);
+    perform_update_kasp(-1,(engineconfig_type *)task->context);
     
     task_cleanup(task);
     return NULL;
 }
 
 task_type *
-policies_task(engineconfig_type *config)
+update_kasp_task(engineconfig_type *config)
 {
-    task_id what = task_register("policies",
-                                 "policies_task_perform",
-                                 policies_task_perform);
+    task_id what = task_register("update kasp",
+                                 "update_kasp_task_perform",
+                                 update_kasp_task_perform);
 	return task_create(what ,time_now(), "all", (void*)config);
 }

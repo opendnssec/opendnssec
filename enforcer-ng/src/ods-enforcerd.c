@@ -36,14 +36,17 @@
 
 
 /* Pull in the commands that have been implemented for the enforcer */
-#include "enforcer/enforce_cmd.h"
-#include "zone/zone_list_cmd.h"
+#include "policy/update_kasp_cmd.h"
 #include "zone/update_zonelist_cmd.h"
-#include "policy/policies_cmd.h"
+
+#include "enforcer/enforce_cmd.h"
 #include "signconf/signconf_cmd.h"
+
+#include "zone/zone_list_cmd.h"
+#include "keystate/keystate_list_cmd.h"
+
 #include "hsmkey/hsmkey_gen_cmd.h"
 #include "hsmkey/hsmkey_list_cmd.h"
-#include "keystate/keystate_list_cmd.h"
 
 /* System libraries last */
 #include <getopt.h>
@@ -104,7 +107,7 @@ version(FILE* out)
  */
 
 static help_xxxx_cmd_type enforcer_help[] = {
-    help_policies_cmd,
+    help_update_kasp_cmd,
     help_update_zonelist_cmd,
     
     help_enforce_zones_cmd,
@@ -128,7 +131,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
  */
 static handled_xxxx_cmd_type 
 enforcer_commands[] = {
-    handled_policies_cmd,
+    handled_update_kasp_cmd,
     handled_update_zonelist_cmd,
     
     handled_enforce_zones_cmd,

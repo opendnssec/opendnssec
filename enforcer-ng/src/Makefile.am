@@ -45,8 +45,8 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				xmlext-pb/xmlext.cpp xmlext-pb/xmlext.h \
 				xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \
 				policy/kasp.pb.cc policy/kasp.pb.h \
-				policy/policies_cmd.cpp policy/policies_cmd.h \
-				policy/policies_task.cpp policy/policies_task.h \
+				policy/update_kasp_cmd.cpp policy/update_kasp_cmd.h \
+				policy/update_kasp_task.cpp policy/update_kasp_task.h \
 				zone/update_zonelist_cmd.cpp zone/update_zonelist_cmd.h \
 				zone/update_zonelist_task.cpp zone/update_zonelist_task.h \
 				zone/zone_list_cmd.cpp zone/zone_list_cmd.h \
