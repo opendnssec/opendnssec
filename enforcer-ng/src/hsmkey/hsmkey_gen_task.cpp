@@ -60,9 +60,9 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config)
     
     } keygencfg_t; 
     keygencfg_t keygencfg[] = {
-        {1024,20},
-        {1536,15},
-        {2048,40}
+        {1024,4},
+        {1536,4},
+        {2048,4}
     };
     const unsigned int nkeygencfg = sizeof(keygencfg)/sizeof(keygencfg_t);
     
