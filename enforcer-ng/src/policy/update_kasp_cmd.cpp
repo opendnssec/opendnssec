@@ -66,8 +66,8 @@ int handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
             }
         }
     } else {
-        /* Do the update directly, giving the update process the chance to 
-         * report back any problems directly via sockfd.
+        /* perform the task directly, giving it the chance to 
+         * report back any results directly via sockfd.
          */
         perform_update_kasp(sockfd, engine->config);
         (void)snprintf(buf, ODS_SE_MAXLINE, "%s complete.\n",scmd);

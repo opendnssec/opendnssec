@@ -36,43 +36,48 @@ int handled_signconf_cmd(int sockfd, engine_type* engine, const char *cmd,
     char buf[ODS_SE_MAXLINE];
     task_type *task;
     ods_status status;
+    const char *scmd = "signconf";
+    ssize_t ncmd = strlen(scmd);
     
-    if (n < 8 || strncmp(cmd, "signconf", 8) != 0) return 0;
-    ods_log_debug("[%s] signconf command", signconf_cmd_str);
-    
-    if (cmd[8] == '\0') {
+    if (n < ncmd || strncmp(cmd,scmd, ncmd) != 0) return 0;
+    ods_log_debug("[%s] %s command", signconf_cmd_str, scmd);
+    if (cmd[ncmd] == '\0') {
         cmd = "";
-    } else if (cmd[8] != ' ') {
+    } else if (cmd[ncmd] != ' ') {
         return 0;
     } else {
-        cmd = &cmd[9];
+        cmd = &cmd[ncmd+1];
     }
     
     if (strncmp(cmd, "--task", 7) == 0) {
-        /* start the signconf writer task */
         /* schedule task */
         task = signconf_task(engine->config);
         if (!task) {
-            ods_log_crit("[%s] failed to create signconf writer task",
-                         signconf_cmd_str);
+            ods_log_crit("[%s] failed to create %s task",
+                         signconf_cmd_str,scmd);
         } else {
             status = schedule_task_from_thread(engine->taskq, task, 0);
             if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] failed to create signconf writer task",
-                             signconf_cmd_str);
-
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Unable to schedule policy "
-                               "reader task.\n");
+                ods_log_crit("[%s] failed to create %s task",
+                             signconf_cmd_str,scmd);
+                
+                (void)snprintf(buf, ODS_SE_MAXLINE, 
+                               "Unable to schedule %s task.\n",scmd);
                 ods_writen(sockfd, buf, strlen(buf));
-            } else {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Scheduled signconf writer "
-                               "task.\n");
+            } else  {
+                (void)snprintf(buf, ODS_SE_MAXLINE, 
+                               "Scheduled %s task.\n",scmd);
                 ods_writen(sockfd, buf, strlen(buf));
             }
         }
     } else {
-        perform_signconf(sockfd,engine->config);
+        /* perform the task directly, giving it the chance to 
+         * report back any results directly via sockfd.
+         */
+        perform_signconf(sockfd, engine->config);
+        (void)snprintf(buf, ODS_SE_MAXLINE, "%s complete.\n",scmd);
+        ods_writen(sockfd, buf, strlen(buf));
+        
     }
-    
     return 1;
 }
