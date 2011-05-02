@@ -47,8 +47,6 @@ perform_update_zonelist(int sockfd, engineconfig_type *config)
                         ods_log_debug("[%s] zonelist has been updated", 
                                       update_zonelist_task_str);
 
-                        (void)snprintf(buf, ODS_SE_MAXLINE, "update of zonelist completed.\n");
-                        ods_writen(sockfd, buf, strlen(buf));
                     } else {
                         (void)snprintf(buf, ODS_SE_MAXLINE, "error: zonelist file could not be written.\n");
                         ods_writen(sockfd, buf, strlen(buf));

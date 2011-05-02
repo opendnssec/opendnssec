@@ -13,8 +13,6 @@ extern "C" {
 #include "daemon/engine.h"
 }
 
-#include "policy/kasp.pb.h"
-
 static const char *update_zonelist_cmd_str = "update_zonelist_cmd";
 
 void help_update_zonelist_cmd(int sockfd)
@@ -73,6 +71,9 @@ int handled_update_zonelist_cmd(int sockfd, engine_type* engine, const char *cmd
          * report back any problems directly via sockfd.
          */
         perform_update_zonelist(sockfd, engine->config);
+        (void)snprintf(buf, ODS_SE_MAXLINE, "%s complete.\n",scmd);
+        ods_writen(sockfd, buf, strlen(buf));
+        
     }
     return 1;
 }

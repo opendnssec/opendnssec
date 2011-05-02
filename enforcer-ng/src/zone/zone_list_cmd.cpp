@@ -7,66 +7,70 @@
 // extern "C" to prevent linking errors.
 extern "C" {
 #include "zone/zone_list_cmd.h"
+#include "zone/zone_list_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "daemon/engine.h"
 }
 
-#include "policy/kasp.pb.h"
+static const char *zone_list_cmd_str = "zone_list_cmd";
 
-static const char *zones_cmd_str = "zones_cmd";
-
-void help_zones_cmd(int sockfd)
+void help_zone_list_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-            "zones           show the currently known zones.\n"
-            );
+                    "zone list       list zones\n"
+                    );
     ods_writen(sockfd, buf, strlen(buf));
 }
 
-/**
- * Handle the 'zones' command.
- *
- */
-int 
-handled_zones_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+int handled_zone_list_cmd(int sockfd, engine_type* engine, const char *cmd, 
+                                ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
-    size_t i;
+    task_type *task;
+    ods_status status;
+    const char *scmd =  "zone list";
+    ssize_t ncmd = strlen(scmd);
     
-    if (n != 5 || strncmp(cmd, "zones", n) != 0) return 0;
-    ods_log_debug("[%s] list zones command", zones_cmd_str);
-
-    ods_log_assert(engine);
-    if (!engine) return 0;
-#if HAVE_ZONELIST
-    if (!engine->zonelist || !engine->zonelist->zones) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "I have no zones configured\n");
-        ods_writen(sockfd, buf, strlen(buf));
-        return;
+    if (n < ncmd || strncmp(cmd,scmd, ncmd) != 0) return 0;
+    ods_log_debug("[%s] %s command", zone_list_cmd_str, scmd);
+    if (cmd[ncmd] == '\0') {
+        cmd = "";
+    } else if (cmd[ncmd] != ' ') {
+        return 0;
+    } else {
+        cmd = &cmd[ncmd+1];
     }
     
-    lock_basic_lock(&engine->zonelist->zl_lock);
-    /* how many zones */
-    /* [LOCK] zonelist */
-    (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i zones configured\n",
-                   (int) engine->zonelist->zones->count);
-    ods_writen(sockfd, buf, strlen(buf));
-    
-    /* list zones */
-    node = ldns_rbtree_first(engine->zonelist->zones);
-    while (node && node != LDNS_RBTREE_NULL) {
-        zone = (zone_type*) node->data;
-        for (i=0; i < ODS_SE_MAXLINE; i++) {
-            buf[i] = 0;
+    if (strncmp(cmd, "--task", 7) == 0) {
+        /* schedule task */
+        task = zone_list_task(engine->config);
+        if (!task) {
+            ods_log_crit("[%s] failed to create %s task",
+                         zone_list_cmd_str,scmd);
+        } else {
+            status = schedule_task_from_thread(engine->taskq, task, 0);
+            if (status != ODS_STATUS_OK) {
+                ods_log_crit("[%s] failed to create %s task",
+                             zone_list_cmd_str,scmd);
+                
+                (void)snprintf(buf, ODS_SE_MAXLINE, 
+                               "Unable to schedule %s task.\n",scmd);
+                ods_writen(sockfd, buf, strlen(buf));
+            } else  {
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "Scheduled %s task.\n",scmd);
+                ods_writen(sockfd, buf, strlen(buf));
+            }
         }
-        (void)snprintf(buf, ODS_SE_MAXLINE, "- %s\n", zone->name);
+    } else {
+        /* Do the update directly, giving the update process the chance to 
+         * report back any problems directly via sockfd.
+         */
+        perform_zone_list(sockfd, engine->config);
+        (void)snprintf(buf, ODS_SE_MAXLINE, "%s complete.\n",scmd);
         ods_writen(sockfd, buf, strlen(buf));
-        node = ldns_rbtree_next(node);
     }
-    /* [UNLOCK] zonelist */
-    lock_basic_unlock(&engine->zonelist->zl_lock);
-#endif
     return 1;
 }

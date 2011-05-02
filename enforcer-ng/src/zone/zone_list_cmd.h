@@ -1,10 +1,10 @@
-#ifndef _ZONE_ZONES_CMD_H_
-#define _ZONE_ZONES_CMD_H_
+#ifndef _ZONE_ZONE_LIST_CMD_H_
+#define _ZONE_ZONE_LIST_CMD_H_
 
 #include "daemon/engine.h"
 
-void help_zones_cmd(int sockfd);
+void help_zone_list_cmd(int sockfd);
 
-int handled_zones_cmd(int sockfd, engine_type* engine, const char *buf, ssize_t n);
+int handled_zone_list_cmd(int sockfd, engine_type* engine, const char *buf, ssize_t n);
 
 #endif

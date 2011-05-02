@@ -104,14 +104,17 @@ version(FILE* out)
  */
 
 static help_xxxx_cmd_type enforcer_help[] = {
-    help_keystate_list_cmd,
+    help_policies_cmd,
+    help_update_zonelist_cmd,
+    
     help_enforce_zones_cmd,
-    help_zones_cmd,
+    help_signconf_cmd,
+    
+    help_zone_list_cmd,
+    help_keystate_list_cmd,
+    
     help_hsmkey_gen_cmd,
     help_hsmkey_list_cmd,
-    help_update_zonelist_cmd,
-    help_policies_cmd,
-    help_signconf_cmd,
     
     /* ! NULL TERMINATED ! */
     NULL
@@ -125,14 +128,17 @@ static help_xxxx_cmd_type enforcer_help[] = {
  */
 static handled_xxxx_cmd_type 
 enforcer_commands[] = {
-    handled_keystate_list_cmd,
+    handled_policies_cmd,
+    handled_update_zonelist_cmd,
+    
     handled_enforce_zones_cmd,
-    handled_zones_cmd,
+    handled_signconf_cmd,
+    
+    handled_zone_list_cmd,
+    handled_keystate_list_cmd,
+    
     handled_hsmkey_gen_cmd,
     handled_hsmkey_list_cmd,
-    handled_update_zonelist_cmd,
-    handled_policies_cmd,
-    handled_signconf_cmd,
 
     /* ! NULL TERMINATED ! */
     NULL
