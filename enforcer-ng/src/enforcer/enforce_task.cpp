@@ -273,8 +273,8 @@ enforce_task_perform(task_type *task)
         return NULL;
     }
 
-	task->backoff = 60;
-    task->when = t_when + task->backoff;
+	task->backoff = 0;
+    task->when = time_now() + 60;
     return task;
 }
 

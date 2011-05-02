@@ -381,8 +381,8 @@ cmdhandler_queue_processor_task_perform(task_type *task)
     
     /*FIXME: actually process the command.... */
     
-	task->backoff = 60;
-    task->when = time_now() + task->backoff;
+	task->backoff = 0;
+    task->when = time_now() + 60;
     return task;
 }
 
