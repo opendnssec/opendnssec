@@ -47,6 +47,8 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				policy/kasp.pb.cc policy/kasp.pb.h \
 				policy/update_kasp_cmd.cpp policy/update_kasp_cmd.h \
 				policy/update_kasp_task.cpp policy/update_kasp_task.h \
+                policy/policy_list_cmd.cpp policy/policy_list_cmd.h \
+                policy/policy_list_task.cpp policy/policy_list_task.h \
 				zone/update_zonelist_cmd.cpp zone/update_zonelist_cmd.h \
 				zone/update_zonelist_task.cpp zone/update_zonelist_task.h \
 				zone/zone_list_cmd.cpp zone/zone_list_cmd.h \

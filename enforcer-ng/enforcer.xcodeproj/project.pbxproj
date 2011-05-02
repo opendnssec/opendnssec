@@ -30,6 +30,8 @@
 		A77C57FF136D674C000A4E51 /* keystate_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */; };
 		A77C5803136D9C23000A4E51 /* keystate_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C5800136D6BC7000A4E51 /* keystate_list_cmd.cpp */; };
 		A77C5821136E9C17000A4E51 /* zone_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C581F136E8D67000A4E51 /* zone_list_task.cpp */; };
+		A77C5833136EAD77000A4E51 /* policy_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C582D136EAD62000A4E51 /* policy_list_task.cpp */; };
+		A77C5834136EAD7C000A4E51 /* policy_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C582F136EAD63000A4E51 /* policy_list_cmd.cpp */; };
 		A79154FA134E03A2004DEF95 /* zone_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DDF134D21D400B13EA0 /* zone_list_cmd.cpp */; };
 		A7915502134E365D004DEF95 /* update_zonelist_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */; };
 		A7915503134E3B0B004DEF95 /* update_zonelist_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE1134D21D400B13EA0 /* update_zonelist_cmd.cpp */; };
@@ -129,6 +131,10 @@
 		A77C5801136D6BC7000A4E51 /* keystate_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_list_cmd.h; path = keystate/keystate_list_cmd.h; sourceTree = "<group>"; };
 		A77C581E136E8D66000A4E51 /* zone_list_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zone_list_task.h; sourceTree = "<group>"; };
 		A77C581F136E8D67000A4E51 /* zone_list_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zone_list_task.cpp; sourceTree = "<group>"; };
+		A77C582C136EAD62000A4E51 /* policy_list_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = policy_list_task.h; sourceTree = "<group>"; };
+		A77C582D136EAD62000A4E51 /* policy_list_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = policy_list_task.cpp; sourceTree = "<group>"; };
+		A77C582E136EAD63000A4E51 /* policy_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = policy_list_cmd.h; sourceTree = "<group>"; };
+		A77C582F136EAD63000A4E51 /* policy_list_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = policy_list_cmd.cpp; sourceTree = "<group>"; };
 		A79154FB134E0435004DEF95 /* zone_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zone_list_cmd.h; sourceTree = "<group>"; };
 		A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_zonelist_task.cpp; sourceTree = "<group>"; };
 		A7915500134E365D004DEF95 /* update_zonelist_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_zonelist_task.h; sourceTree = "<group>"; };
@@ -360,6 +366,10 @@
 				A7E70DEA134DC62F00B13EA0 /* update_kasp_cmd.cpp */,
 				A7E70DEB134DC62F00B13EA0 /* update_kasp_task.h */,
 				A7E70DE9134DC62F00B13EA0 /* update_kasp_task.cpp */,
+				A77C582E136EAD63000A4E51 /* policy_list_cmd.h */,
+				A77C582F136EAD63000A4E51 /* policy_list_cmd.cpp */,
+				A77C582C136EAD62000A4E51 /* policy_list_task.h */,
+				A77C582D136EAD62000A4E51 /* policy_list_task.cpp */,
 				A772F49613323E7A004179E8 /* kasp.pb.h */,
 				A772F49513323E7A004179E8 /* kasp.pb.cc */,
 			);
@@ -565,6 +575,8 @@
 				A77C57FF136D674C000A4E51 /* keystate_list_task.cpp in Sources */,
 				A77C5803136D9C23000A4E51 /* keystate_list_cmd.cpp in Sources */,
 				A77C5821136E9C17000A4E51 /* zone_list_task.cpp in Sources */,
+				A77C5833136EAD77000A4E51 /* policy_list_task.cpp in Sources */,
+				A77C5834136EAD7C000A4E51 /* policy_list_cmd.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

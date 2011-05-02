@@ -42,8 +42,9 @@
 #include "enforcer/enforce_cmd.h"
 #include "signconf/signconf_cmd.h"
 
-#include "zone/zone_list_cmd.h"
 #include "keystate/keystate_list_cmd.h"
+#include "zone/zone_list_cmd.h"
+#include "policy/policy_list_cmd.h"
 
 #include "hsmkey/hsmkey_gen_cmd.h"
 #include "hsmkey/hsmkey_list_cmd.h"
@@ -113,8 +114,9 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_enforce_zones_cmd,
     help_signconf_cmd,
     
-    help_zone_list_cmd,
     help_keystate_list_cmd,
+    help_zone_list_cmd,
+    help_policy_list_cmd,
     
     help_hsmkey_gen_cmd,
     help_hsmkey_list_cmd,
@@ -137,8 +139,9 @@ enforcer_commands[] = {
     handled_enforce_zones_cmd,
     handled_signconf_cmd,
     
-    handled_zone_list_cmd,
     handled_keystate_list_cmd,
+    handled_zone_list_cmd,
+    handled_policy_list_cmd,
     
     handled_hsmkey_gen_cmd,
     handled_hsmkey_list_cmd,
