@@ -77,7 +77,7 @@ perform_zone_list(int sockfd, engineconfig_type *config)
             ods_writen(sockfd, buf, strlen(buf));
         }
     }
-    
+    delete zonelistDoc;
     ods_log_debug("[%s] zone list completed", zone_list_task_str);
 }
 
