@@ -758,11 +758,9 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 	/* Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
+		last_insert = most_recent_inception(zone.keyDataList(),(KeyRole)role); /* search all keys for this zone */
 		for ( int i = 0; i < numberOfKeys( &policyKeys, (KeyRole)role ); i++ ) {
 			keyProperties(&policyKeys, (KeyRole)role, i, &bits, &algorithm, &lifetime);
-			/* TODO optimize most_recent_inception so we loop just once
-			 * over all keys. O(n) vs O(n^2) */
-			last_insert = most_recent_inception(zone.keyDataList(),(KeyRole)role); /* search all keys for this zone */
 			next_insert = last_insert + lifetime;
 			if ( now < next_insert && last_insert != -1 ) {
 				/* No need to change key, come back at */
