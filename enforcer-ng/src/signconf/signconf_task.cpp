@@ -174,7 +174,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
                         sc_nsec3->clear_optout();
                     sc_nsec3->set_algorithm( kp_nsec3.algorithm() );
                     sc_nsec3->set_iterations( kp_nsec3.iterations() );
-                    sc_nsec3->set_salt( "TODO:GET THE REAL SALT" );
+                    sc_nsec3->set_salt( kp_nsec3.salt() );
                 }
             }
         }

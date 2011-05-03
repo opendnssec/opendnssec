@@ -25,13 +25,6 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
     
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
-    /*
-	// Dump the meta-information of the KaspDocument.
-	::google::protobuf::Message *msg  = new ::ods::kasp::KaspDocument;
-	recurse_dump_descriptor(msg->GetDescriptor());
-	delete msg;
-     */
-	
 	// Create a policy and fill it up with some data.
 	::ods::kasp::KaspDocument *doc  = new ::ods::kasp::KaspDocument;
 	if (read_pb_message_from_xml_file(doc, policyfile)) {
@@ -47,24 +40,31 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
                         ods_log_debug("[%s] policies have been imported", 
                                       update_kasp_task_str);
                     } else {
-                        (void)snprintf(buf, ODS_SE_MAXLINE, "error: policies file could not be written.\n");
+                        (void)snprintf(buf, ODS_SE_MAXLINE, "error: policies"
+                                       " file could not be written.\n");
                         ods_writen(sockfd, buf, strlen(buf));
                     }
                     close(fd);
 				} else {
-                    (void)snprintf(buf, ODS_SE_MAXLINE, "error: a policy in the policies is missing mandatory information.\n");
+                    (void)snprintf(buf, ODS_SE_MAXLINE, "error: a policy in "
+                                   "the policies is missing mandatory "
+                                   "information.\n");
                     ods_writen(sockfd, buf, strlen(buf));
                 }
 			} else {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "warning: no policies found in policies list.\n");
+                (void)snprintf(buf, ODS_SE_MAXLINE, "warning: no policies "
+                               "found in policies list.\n");
                 ods_writen(sockfd, buf, strlen(buf));
             }
 		} else {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "warning: no policies list found in kasp.xml file.\n");
+            (void)snprintf(buf, ODS_SE_MAXLINE, 
+                           "warning: no policies list found in kasp.xml "
+                           "file.\n");
             ods_writen(sockfd, buf, strlen(buf));
         }
     } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "warning: unable to read the kasp.xml file.\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "warning: unable to read the "
+                       "kasp.xml file.\n");
         ods_writen(sockfd, buf, strlen(buf));
     }
 	delete doc;

@@ -25,14 +25,6 @@ extern "C" {
 
 static const char *enforce_task_str = "enforce_task";
 
-
-bool load_pb_from_file(::google::protobuf::Message *)
-{
-    
-}
-
-
-
 time_t perform_enforce(int sockfd, engineconfig_type *config)
 {
     char buf[ODS_SE_MAXLINE];

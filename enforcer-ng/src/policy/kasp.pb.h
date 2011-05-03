@@ -769,40 +769,40 @@ class NSEC3 : public ::google::protobuf::Message {
   inline bool optout() const;
   inline void set_optout(bool value);
   
-  // optional int32 ttl = 2;
+  // optional uint32 ttl = 2;
   inline bool has_ttl() const;
   inline void clear_ttl();
   static const int kTtlFieldNumber = 2;
-  inline ::google::protobuf::int32 ttl() const;
-  inline void set_ttl(::google::protobuf::int32 value);
+  inline ::google::protobuf::uint32 ttl() const;
+  inline void set_ttl(::google::protobuf::uint32 value);
   
-  // required int32 resalt = 3;
+  // required uint32 resalt = 3;
   inline bool has_resalt() const;
   inline void clear_resalt();
   static const int kResaltFieldNumber = 3;
-  inline ::google::protobuf::int32 resalt() const;
-  inline void set_resalt(::google::protobuf::int32 value);
+  inline ::google::protobuf::uint32 resalt() const;
+  inline void set_resalt(::google::protobuf::uint32 value);
   
-  // required int32 algorithm = 4;
+  // required uint32 algorithm = 4;
   inline bool has_algorithm() const;
   inline void clear_algorithm();
   static const int kAlgorithmFieldNumber = 4;
-  inline ::google::protobuf::int32 algorithm() const;
-  inline void set_algorithm(::google::protobuf::int32 value);
+  inline ::google::protobuf::uint32 algorithm() const;
+  inline void set_algorithm(::google::protobuf::uint32 value);
   
-  // required int32 iterations = 5;
+  // required uint32 iterations = 5;
   inline bool has_iterations() const;
   inline void clear_iterations();
   static const int kIterationsFieldNumber = 5;
-  inline ::google::protobuf::int32 iterations() const;
-  inline void set_iterations(::google::protobuf::int32 value);
+  inline ::google::protobuf::uint32 iterations() const;
+  inline void set_iterations(::google::protobuf::uint32 value);
   
-  // required int32 saltlength = 6;
+  // required uint32 saltlength = 6;
   inline bool has_saltlength() const;
   inline void clear_saltlength();
   static const int kSaltlengthFieldNumber = 6;
-  inline ::google::protobuf::int32 saltlength() const;
-  inline void set_saltlength(::google::protobuf::int32 value);
+  inline ::google::protobuf::uint32 saltlength() const;
+  inline void set_saltlength(::google::protobuf::uint32 value);
   
   // optional string salt = 7;
   inline bool has_salt() const;
@@ -814,23 +814,31 @@ class NSEC3 : public ::google::protobuf::Message {
   inline void set_salt(const char* value, size_t size);
   inline ::std::string* mutable_salt();
   
+  // optional uint32 salt_last_change = 8;
+  inline bool has_salt_last_change() const;
+  inline void clear_salt_last_change();
+  static const int kSaltLastChangeFieldNumber = 8;
+  inline ::google::protobuf::uint32 salt_last_change() const;
+  inline void set_salt_last_change(::google::protobuf::uint32 value);
+  
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
   
   bool optout_;
-  ::google::protobuf::int32 ttl_;
-  ::google::protobuf::int32 resalt_;
-  ::google::protobuf::int32 algorithm_;
-  ::google::protobuf::int32 iterations_;
-  ::google::protobuf::int32 saltlength_;
+  ::google::protobuf::uint32 ttl_;
+  ::google::protobuf::uint32 resalt_;
+  ::google::protobuf::uint32 algorithm_;
+  ::google::protobuf::uint32 iterations_;
+  ::google::protobuf::uint32 saltlength_;
   ::std::string* salt_;
   static const ::std::string _default_salt_;
+  ::google::protobuf::uint32 salt_last_change_;
   friend void  protobuf_AddDesc_kasp_2eproto();
   friend void protobuf_AssignDesc_kasp_2eproto();
   friend void protobuf_ShutdownFile_kasp_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -2156,82 +2164,82 @@ inline void NSEC3::set_optout(bool value) {
   optout_ = value;
 }
 
-// optional int32 ttl = 2;
+// optional uint32 ttl = 2;
 inline bool NSEC3::has_ttl() const {
   return _has_bit(1);
 }
 inline void NSEC3::clear_ttl() {
-  ttl_ = 0;
+  ttl_ = 0u;
   _clear_bit(1);
 }
-inline ::google::protobuf::int32 NSEC3::ttl() const {
+inline ::google::protobuf::uint32 NSEC3::ttl() const {
   return ttl_;
 }
-inline void NSEC3::set_ttl(::google::protobuf::int32 value) {
+inline void NSEC3::set_ttl(::google::protobuf::uint32 value) {
   _set_bit(1);
   ttl_ = value;
 }
 
-// required int32 resalt = 3;
+// required uint32 resalt = 3;
 inline bool NSEC3::has_resalt() const {
   return _has_bit(2);
 }
 inline void NSEC3::clear_resalt() {
-  resalt_ = 0;
+  resalt_ = 0u;
   _clear_bit(2);
 }
-inline ::google::protobuf::int32 NSEC3::resalt() const {
+inline ::google::protobuf::uint32 NSEC3::resalt() const {
   return resalt_;
 }
-inline void NSEC3::set_resalt(::google::protobuf::int32 value) {
+inline void NSEC3::set_resalt(::google::protobuf::uint32 value) {
   _set_bit(2);
   resalt_ = value;
 }
 
-// required int32 algorithm = 4;
+// required uint32 algorithm = 4;
 inline bool NSEC3::has_algorithm() const {
   return _has_bit(3);
 }
 inline void NSEC3::clear_algorithm() {
-  algorithm_ = 0;
+  algorithm_ = 0u;
   _clear_bit(3);
 }
-inline ::google::protobuf::int32 NSEC3::algorithm() const {
+inline ::google::protobuf::uint32 NSEC3::algorithm() const {
   return algorithm_;
 }
-inline void NSEC3::set_algorithm(::google::protobuf::int32 value) {
+inline void NSEC3::set_algorithm(::google::protobuf::uint32 value) {
   _set_bit(3);
   algorithm_ = value;
 }
 
-// required int32 iterations = 5;
+// required uint32 iterations = 5;
 inline bool NSEC3::has_iterations() const {
   return _has_bit(4);
 }
 inline void NSEC3::clear_iterations() {
-  iterations_ = 0;
+  iterations_ = 0u;
   _clear_bit(4);
 }
-inline ::google::protobuf::int32 NSEC3::iterations() const {
+inline ::google::protobuf::uint32 NSEC3::iterations() const {
   return iterations_;
 }
-inline void NSEC3::set_iterations(::google::protobuf::int32 value) {
+inline void NSEC3::set_iterations(::google::protobuf::uint32 value) {
   _set_bit(4);
   iterations_ = value;
 }
 
-// required int32 saltlength = 6;
+// required uint32 saltlength = 6;
 inline bool NSEC3::has_saltlength() const {
   return _has_bit(5);
 }
 inline void NSEC3::clear_saltlength() {
-  saltlength_ = 0;
+  saltlength_ = 0u;
   _clear_bit(5);
 }
-inline ::google::protobuf::int32 NSEC3::saltlength() const {
+inline ::google::protobuf::uint32 NSEC3::saltlength() const {
   return saltlength_;
 }
-inline void NSEC3::set_saltlength(::google::protobuf::int32 value) {
+inline void NSEC3::set_saltlength(::google::protobuf::uint32 value) {
   _set_bit(5);
   saltlength_ = value;
 }
@@ -2276,6 +2284,22 @@ inline ::std::string* NSEC3::mutable_salt() {
     salt_ = new ::std::string;
   }
   return salt_;
+}
+
+// optional uint32 salt_last_change = 8;
+inline bool NSEC3::has_salt_last_change() const {
+  return _has_bit(7);
+}
+inline void NSEC3::clear_salt_last_change() {
+  salt_last_change_ = 0u;
+  _clear_bit(7);
+}
+inline ::google::protobuf::uint32 NSEC3::salt_last_change() const {
+  return salt_last_change_;
+}
+inline void NSEC3::set_salt_last_change(::google::protobuf::uint32 value) {
+  _set_bit(7);
+  salt_last_change_ = value;
 }
 
 // -------------------------------------------------------------------

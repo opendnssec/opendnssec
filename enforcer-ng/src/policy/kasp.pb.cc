@@ -171,7 +171,7 @@ void protobuf_AssignDesc_kasp_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(NSEC));
   NSEC3_descriptor_ = file->message_type(6);
-  static const int NSEC3_offsets_[7] = {
+  static const int NSEC3_offsets_[8] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NSEC3, optout_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NSEC3, ttl_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NSEC3, resalt_),
@@ -179,6 +179,7 @@ void protobuf_AssignDesc_kasp_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NSEC3, iterations_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NSEC3, saltlength_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NSEC3, salt_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NSEC3, salt_last_change_),
   };
   NSEC3_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -434,55 +435,56 @@ void protobuf_AddDesc_kasp_2eproto() {
     "\017Validity/Denial\202\265\030\002\020\002\"_\n\006Denial\022(\n\004nsec"
     "\030\001 \001(\0132\016.ods.kasp.NSECB\n\202\265\030\006\n\004NSEC\022+\n\005ns"
     "ec3\030\002 \001(\0132\017.ods.kasp.NSEC3B\013\202\265\030\007\n\005NSEC3\""
-    "\006\n\004NSEC\"\207\002\n\005NSEC3\022\034\n\006optout\030\001 \001(\010B\014\202\265\030\010\n"
-    "\006OptOut\022\034\n\003ttl\030\002 \001(\005B\017\202\265\030\005\n\003TTL\202\265\030\002\020\002\022\"\n"
-    "\006resalt\030\003 \002(\005B\022\202\265\030\010\n\006Resalt\202\265\030\002\020\002\022\'\n\talg"
-    "orithm\030\004 \002(\005B\024\202\265\030\020\n\016Hash/Algorithm\022)\n\nit"
-    "erations\030\005 \002(\005B\025\202\265\030\021\n\017Hash/Iterations\022+\n"
-    "\nsaltlength\030\006 \002(\005B\027\202\265\030\023\n\021Hash/Salt/@leng"
-    "th\022\035\n\004salt\030\007 \001(\tB\017\202\265\030\013\n\tHash/Salt\"\310\002\n\004Ke"
-    "ys\022\034\n\003ttl\030\001 \002(\005B\017\202\265\030\005\n\003TTL\202\265\030\002\020\002\022.\n\014reti"
-    "resafety\030\002 \002(\005B\030\202\265\030\016\n\014RetireSafety\202\265\030\002\020\002"
-    "\0220\n\rpublishsafety\030\003 \002(\005B\031\202\265\030\017\n\rPublishSa"
-    "fety\202\265\030\002\020\002\022)\n\020zones_share_keys\030\004 \001(\010B\017\202\265"
-    "\030\013\n\tShareKeys\022 \n\005purge\030\005 \001(\005B\021\202\265\030\007\n\005Purg"
-    "e\202\265\030\002\020\002\022%\n\003ksk\030\006 \003(\0132\r.ods.kasp.KskB\t\202\265\030"
-    "\005\n\003KSK\022%\n\003zsk\030\007 \003(\0132\r.ods.kasp.ZskB\t\202\265\030\005"
-    "\n\003ZSK\022%\n\003csk\030\010 \003(\0132\r.ods.kasp.CskB\t\202\265\030\005\n"
-    "\003CSK\"\223\002\n\003Ksk\022\"\n\talgorithm\030\001 \002(\rB\017\202\265\030\013\n\tA"
-    "lgorithm\022%\n\004bits\030\002 \001(\rB\027\202\265\030\023\n\021Algorithm/"
-    "@length\022&\n\010lifetime\030\003 \002(\005B\024\202\265\030\n\n\010Lifetim"
-    "e\202\265\030\002\020\002\022*\n\nrepository\030\004 \002(\tB\026\202\265\030\014\n\nRepos"
-    "itory\202\265\030\002\020\001\022\036\n\007standby\030\005 \001(\rB\r\202\265\030\t\n\007Stan"
-    "dby\022-\n\017manual_rollover\030\006 \001(\010B\024\202\265\030\020\n\016Manu"
-    "alRollover\022\036\n\007rfc5011\030\007 \001(\010B\r\202\265\030\t\n\007RFC50"
-    "11\"\363\001\n\003Zsk\022\"\n\talgorithm\030\001 \002(\rB\017\202\265\030\013\n\tAlg"
-    "orithm\022%\n\004bits\030\002 \001(\rB\027\202\265\030\023\n\021Algorithm/@l"
-    "ength\022&\n\010lifetime\030\003 \002(\005B\024\202\265\030\n\n\010Lifetime\202"
-    "\265\030\002\020\002\022*\n\nrepository\030\004 \002(\tB\026\202\265\030\014\n\nReposit"
-    "ory\202\265\030\002\020\001\022\036\n\007standby\030\005 \001(\rB\r\202\265\030\t\n\007Standb"
-    "y\022-\n\017manual_rollover\030\006 \001(\010B\024\202\265\030\020\n\016Manual"
-    "Rollover\"\223\002\n\003Csk\022\"\n\talgorithm\030\001 \002(\rB\017\202\265\030"
-    "\013\n\tAlgorithm\022%\n\004bits\030\002 \001(\rB\027\202\265\030\023\n\021Algori"
-    "thm/@length\022&\n\010lifetime\030\003 \002(\005B\024\202\265\030\n\n\010Lif"
-    "etime\202\265\030\002\020\002\022*\n\nrepository\030\004 \002(\tB\026\202\265\030\014\n\nR"
-    "epository\202\265\030\002\020\001\022\036\n\007standby\030\005 \001(\rB\r\202\265\030\t\n\007"
-    "Standby\022-\n\017manual_rollover\030\006 \001(\010B\024\202\265\030\020\n\016"
-    "ManualRollover\022\036\n\007rfc5011\030\007 \001(\010B\r\202\265\030\t\n\007R"
-    "FC5011\"\272\001\n\004Zone\0226\n\020propagationdelay\030\001 \002("
-    "\005B\034\202\265\030\022\n\020PropagationDelay\202\265\030\002\020\002\022 \n\003ttl\030\002"
-    " \001(\005B\023\202\265\030\t\n\007SOA/TTL\202\265\030\002\020\002\022$\n\003min\030\003 \001(\005B\027"
-    "\202\265\030\r\n\013SOA/Minimum\202\265\030\002\020\002\0222\n\006serial\030\004 \001(\0162"
-    "\020.ods.kasp.serialB\020\202\265\030\014\n\nSOA/Serial\"\345\001\n\006"
-    "Parent\022!\n\005ttlds\030\001 \001(\005B\022\202\265\030\010\n\006DS/TTL\202\265\030\002\020"
-    "\002\0228\n\021registrationdelay\030\002 \001(\005B\035\202\265\030\023\n\021Regi"
-    "strationDelay\202\265\030\002\020\002\0226\n\020propagationdelay\030"
-    "\003 \001(\005B\034\202\265\030\022\n\020PropagationDelay\202\265\030\002\020\002\022 \n\003t"
-    "tl\030\004 \001(\005B\023\202\265\030\t\n\007SOA/TTL\202\265\030\002\020\002\022$\n\003min\030\005 \001"
-    "(\005B\027\202\265\030\r\n\013SOA/Minimum\202\265\030\002\020\002\"\'\n\005Audit\022\036\n\007"
-    "partial\030\001 \001(\010B\r\202\265\030\t\n\007Partial*>\n\006serial\022\013"
-    "\n\007counter\020\001\022\017\n\013datecounter\020\002\022\014\n\010unixtime"
-    "\020\003\022\010\n\004keep\020\004", 2852);
+    "\006\n\004NSEC\"\277\002\n\005NSEC3\022\034\n\006optout\030\001 \001(\010B\014\202\265\030\010\n"
+    "\006OptOut\022\034\n\003ttl\030\002 \001(\rB\017\202\265\030\005\n\003TTL\202\265\030\002\020\002\022\"\n"
+    "\006resalt\030\003 \002(\rB\022\202\265\030\010\n\006Resalt\202\265\030\002\020\002\022\'\n\talg"
+    "orithm\030\004 \002(\rB\024\202\265\030\020\n\016Hash/Algorithm\022)\n\nit"
+    "erations\030\005 \002(\rB\025\202\265\030\021\n\017Hash/Iterations\022+\n"
+    "\nsaltlength\030\006 \002(\rB\027\202\265\030\023\n\021Hash/Salt/@leng"
+    "th\022\035\n\004salt\030\007 \001(\tB\017\202\265\030\013\n\tHash/Salt\0226\n\020sal"
+    "t_last_change\030\010 \001(\rB\034\202\265\030\030\n\026Hash/Salt/@la"
+    "stchanged\"\310\002\n\004Keys\022\034\n\003ttl\030\001 \002(\005B\017\202\265\030\005\n\003T"
+    "TL\202\265\030\002\020\002\022.\n\014retiresafety\030\002 \002(\005B\030\202\265\030\016\n\014Re"
+    "tireSafety\202\265\030\002\020\002\0220\n\rpublishsafety\030\003 \002(\005B"
+    "\031\202\265\030\017\n\rPublishSafety\202\265\030\002\020\002\022)\n\020zones_shar"
+    "e_keys\030\004 \001(\010B\017\202\265\030\013\n\tShareKeys\022 \n\005purge\030\005"
+    " \001(\005B\021\202\265\030\007\n\005Purge\202\265\030\002\020\002\022%\n\003ksk\030\006 \003(\0132\r.o"
+    "ds.kasp.KskB\t\202\265\030\005\n\003KSK\022%\n\003zsk\030\007 \003(\0132\r.od"
+    "s.kasp.ZskB\t\202\265\030\005\n\003ZSK\022%\n\003csk\030\010 \003(\0132\r.ods"
+    ".kasp.CskB\t\202\265\030\005\n\003CSK\"\215\002\n\003Ksk\022\"\n\talgorith"
+    "m\030\001 \002(\rB\017\202\265\030\013\n\tAlgorithm\022%\n\004bits\030\002 \001(\rB\027"
+    "\202\265\030\023\n\021Algorithm/@length\022&\n\010lifetime\030\003 \002("
+    "\005B\024\202\265\030\n\n\010Lifetime\202\265\030\002\020\002\022$\n\nrepository\030\004 "
+    "\002(\tB\020\202\265\030\014\n\nRepository\022\036\n\007standby\030\005 \001(\rB\r"
+    "\202\265\030\t\n\007Standby\022-\n\017manual_rollover\030\006 \001(\010B\024"
+    "\202\265\030\020\n\016ManualRollover\022\036\n\007rfc5011\030\007 \001(\010B\r\202"
+    "\265\030\t\n\007RFC5011\"\355\001\n\003Zsk\022\"\n\talgorithm\030\001 \002(\rB"
+    "\017\202\265\030\013\n\tAlgorithm\022%\n\004bits\030\002 \001(\rB\027\202\265\030\023\n\021Al"
+    "gorithm/@length\022&\n\010lifetime\030\003 \002(\005B\024\202\265\030\n\n"
+    "\010Lifetime\202\265\030\002\020\002\022$\n\nrepository\030\004 \002(\tB\020\202\265\030"
+    "\014\n\nRepository\022\036\n\007standby\030\005 \001(\rB\r\202\265\030\t\n\007St"
+    "andby\022-\n\017manual_rollover\030\006 \001(\010B\024\202\265\030\020\n\016Ma"
+    "nualRollover\"\215\002\n\003Csk\022\"\n\talgorithm\030\001 \002(\rB"
+    "\017\202\265\030\013\n\tAlgorithm\022%\n\004bits\030\002 \001(\rB\027\202\265\030\023\n\021Al"
+    "gorithm/@length\022&\n\010lifetime\030\003 \002(\005B\024\202\265\030\n\n"
+    "\010Lifetime\202\265\030\002\020\002\022$\n\nrepository\030\004 \002(\tB\020\202\265\030"
+    "\014\n\nRepository\022\036\n\007standby\030\005 \001(\rB\r\202\265\030\t\n\007St"
+    "andby\022-\n\017manual_rollover\030\006 \001(\010B\024\202\265\030\020\n\016Ma"
+    "nualRollover\022\036\n\007rfc5011\030\007 \001(\010B\r\202\265\030\t\n\007RFC"
+    "5011\"\272\001\n\004Zone\0226\n\020propagationdelay\030\001 \002(\005B"
+    "\034\202\265\030\022\n\020PropagationDelay\202\265\030\002\020\002\022 \n\003ttl\030\002 \001"
+    "(\005B\023\202\265\030\t\n\007SOA/TTL\202\265\030\002\020\002\022$\n\003min\030\003 \001(\005B\027\202\265"
+    "\030\r\n\013SOA/Minimum\202\265\030\002\020\002\0222\n\006serial\030\004 \001(\0162\020."
+    "ods.kasp.serialB\020\202\265\030\014\n\nSOA/Serial\"\345\001\n\006Pa"
+    "rent\022!\n\005ttlds\030\001 \001(\005B\022\202\265\030\010\n\006DS/TTL\202\265\030\002\020\002\022"
+    "8\n\021registrationdelay\030\002 \001(\005B\035\202\265\030\023\n\021Regist"
+    "rationDelay\202\265\030\002\020\002\0226\n\020propagationdelay\030\003 "
+    "\001(\005B\034\202\265\030\022\n\020PropagationDelay\202\265\030\002\020\002\022 \n\003ttl"
+    "\030\004 \001(\005B\023\202\265\030\t\n\007SOA/TTL\202\265\030\002\020\002\022$\n\003min\030\005 \001(\005"
+    "B\027\202\265\030\r\n\013SOA/Minimum\202\265\030\002\020\002\"\'\n\005Audit\022\036\n\007pa"
+    "rtial\030\001 \001(\010B\r\202\265\030\t\n\007Partial*>\n\006serial\022\013\n\007"
+    "counter\020\001\022\017\n\013datecounter\020\002\022\014\n\010unixtime\020\003"
+    "\022\010\n\004keep\020\004", 2890);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "kasp.proto", &protobuf_RegisterTypes);
   KaspDocument::default_instance_ = new KaspDocument();
@@ -2348,6 +2350,7 @@ const int NSEC3::kAlgorithmFieldNumber;
 const int NSEC3::kIterationsFieldNumber;
 const int NSEC3::kSaltlengthFieldNumber;
 const int NSEC3::kSaltFieldNumber;
+const int NSEC3::kSaltLastChangeFieldNumber;
 #endif  // !_MSC_VER
 
 NSEC3::NSEC3() {
@@ -2365,12 +2368,13 @@ NSEC3::NSEC3(const NSEC3& from) {
 void NSEC3::SharedCtor() {
   _cached_size_ = 0;
   optout_ = false;
-  ttl_ = 0;
-  resalt_ = 0;
-  algorithm_ = 0;
-  iterations_ = 0;
-  saltlength_ = 0;
+  ttl_ = 0u;
+  resalt_ = 0u;
+  algorithm_ = 0u;
+  iterations_ = 0u;
+  saltlength_ = 0u;
   salt_ = const_cast< ::std::string*>(&_default_salt_);
+  salt_last_change_ = 0u;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -2404,16 +2408,17 @@ NSEC3* NSEC3::New() const {
 void NSEC3::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     optout_ = false;
-    ttl_ = 0;
-    resalt_ = 0;
-    algorithm_ = 0;
-    iterations_ = 0;
-    saltlength_ = 0;
+    ttl_ = 0u;
+    resalt_ = 0u;
+    algorithm_ = 0u;
+    iterations_ = 0u;
+    saltlength_ = 0u;
     if (_has_bit(6)) {
       if (salt_ != &_default_salt_) {
         salt_->clear();
       }
     }
+    salt_last_change_ = 0u;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -2438,70 +2443,70 @@ bool NSEC3::MergePartialFromCodedStream(
         break;
       }
       
-      // optional int32 ttl = 2;
+      // optional uint32 ttl = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
        parse_ttl:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
               input, &ttl_));
         _set_bit(1);
         if (input->ExpectTag(24)) goto parse_resalt;
         break;
       }
       
-      // required int32 resalt = 3;
+      // required uint32 resalt = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
        parse_resalt:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
               input, &resalt_));
         _set_bit(2);
         if (input->ExpectTag(32)) goto parse_algorithm;
         break;
       }
       
-      // required int32 algorithm = 4;
+      // required uint32 algorithm = 4;
       case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
        parse_algorithm:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
               input, &algorithm_));
         _set_bit(3);
         if (input->ExpectTag(40)) goto parse_iterations;
         break;
       }
       
-      // required int32 iterations = 5;
+      // required uint32 iterations = 5;
       case 5: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
        parse_iterations:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
               input, &iterations_));
         _set_bit(4);
         if (input->ExpectTag(48)) goto parse_saltlength;
         break;
       }
       
-      // required int32 saltlength = 6;
+      // required uint32 saltlength = 6;
       case 6: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           goto handle_uninterpreted;
         }
        parse_saltlength:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadInt32(
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
               input, &saltlength_));
         _set_bit(5);
         if (input->ExpectTag(58)) goto parse_salt;
@@ -2520,6 +2525,20 @@ bool NSEC3::MergePartialFromCodedStream(
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
           this->salt().data(), this->salt().length(),
           ::google::protobuf::internal::WireFormat::PARSE);
+        if (input->ExpectTag(64)) goto parse_salt_last_change;
+        break;
+      }
+      
+      // optional uint32 salt_last_change = 8;
+      case 8: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          goto handle_uninterpreted;
+        }
+       parse_salt_last_change:
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
+              input, &salt_last_change_));
+        _set_bit(7);
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -2553,29 +2572,29 @@ void NSEC3::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteBool(1, this->optout(), output);
   }
   
-  // optional int32 ttl = 2;
+  // optional uint32 ttl = 2;
   if (_has_bit(1)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->ttl(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->ttl(), output);
   }
   
-  // required int32 resalt = 3;
+  // required uint32 resalt = 3;
   if (_has_bit(2)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->resalt(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(3, this->resalt(), output);
   }
   
-  // required int32 algorithm = 4;
+  // required uint32 algorithm = 4;
   if (_has_bit(3)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(4, this->algorithm(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(4, this->algorithm(), output);
   }
   
-  // required int32 iterations = 5;
+  // required uint32 iterations = 5;
   if (_has_bit(4)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(5, this->iterations(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(5, this->iterations(), output);
   }
   
-  // required int32 saltlength = 6;
+  // required uint32 saltlength = 6;
   if (_has_bit(5)) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(6, this->saltlength(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(6, this->saltlength(), output);
   }
   
   // optional string salt = 7;
@@ -2585,6 +2604,11 @@ void NSEC3::SerializeWithCachedSizes(
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
       7, this->salt(), output);
+  }
+  
+  // optional uint32 salt_last_change = 8;
+  if (_has_bit(7)) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(8, this->salt_last_change(), output);
   }
   
   if (!unknown_fields().empty()) {
@@ -2600,29 +2624,29 @@ void NSEC3::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(1, this->optout(), target);
   }
   
-  // optional int32 ttl = 2;
+  // optional uint32 ttl = 2;
   if (_has_bit(1)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->ttl(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(2, this->ttl(), target);
   }
   
-  // required int32 resalt = 3;
+  // required uint32 resalt = 3;
   if (_has_bit(2)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->resalt(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(3, this->resalt(), target);
   }
   
-  // required int32 algorithm = 4;
+  // required uint32 algorithm = 4;
   if (_has_bit(3)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(4, this->algorithm(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(4, this->algorithm(), target);
   }
   
-  // required int32 iterations = 5;
+  // required uint32 iterations = 5;
   if (_has_bit(4)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(5, this->iterations(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(5, this->iterations(), target);
   }
   
-  // required int32 saltlength = 6;
+  // required uint32 saltlength = 6;
   if (_has_bit(5)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(6, this->saltlength(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(6, this->saltlength(), target);
   }
   
   // optional string salt = 7;
@@ -2633,6 +2657,11 @@ void NSEC3::SerializeWithCachedSizes(
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         7, this->salt(), target);
+  }
+  
+  // optional uint32 salt_last_change = 8;
+  if (_has_bit(7)) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(8, this->salt_last_change(), target);
   }
   
   if (!unknown_fields().empty()) {
@@ -2651,38 +2680,38 @@ int NSEC3::ByteSize() const {
       total_size += 1 + 1;
     }
     
-    // optional int32 ttl = 2;
+    // optional uint32 ttl = 2;
     if (has_ttl()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
           this->ttl());
     }
     
-    // required int32 resalt = 3;
+    // required uint32 resalt = 3;
     if (has_resalt()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
           this->resalt());
     }
     
-    // required int32 algorithm = 4;
+    // required uint32 algorithm = 4;
     if (has_algorithm()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
           this->algorithm());
     }
     
-    // required int32 iterations = 5;
+    // required uint32 iterations = 5;
     if (has_iterations()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
           this->iterations());
     }
     
-    // required int32 saltlength = 6;
+    // required uint32 saltlength = 6;
     if (has_saltlength()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
           this->saltlength());
     }
     
@@ -2691,6 +2720,13 @@ int NSEC3::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->salt());
+    }
+    
+    // optional uint32 salt_last_change = 8;
+    if (has_salt_last_change()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
+          this->salt_last_change());
     }
     
   }
@@ -2739,6 +2775,9 @@ void NSEC3::MergeFrom(const NSEC3& from) {
     if (from._has_bit(6)) {
       set_salt(from.salt());
     }
+    if (from._has_bit(7)) {
+      set_salt_last_change(from.salt_last_change());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -2770,6 +2809,7 @@ void NSEC3::Swap(NSEC3* other) {
     std::swap(iterations_, other->iterations_);
     std::swap(saltlength_, other->saltlength_);
     std::swap(salt_, other->salt_);
+    std::swap(salt_last_change_, other->salt_last_change_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
