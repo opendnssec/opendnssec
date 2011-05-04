@@ -219,7 +219,7 @@ module KASPAuditor
         end
       elsif (@config.denial.nsec3) # && ((@first_nsec.type == Dnsruby::Types::NSEC3)))
         # Now check that the last nsec3 points to the first nsec3
-        if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
+        if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s.downcase == @first_nsec.name.to_s.downcase))
         else
           # An unknown NSEC3 could be between the last and first
           if (@unknown_nsecs[get_next_nsec3_name(@last_nsec).to_s+"."] &&
@@ -955,10 +955,10 @@ module KASPAuditor
     def check_dnskeys_at_zone_apex(seen_dnskey_sep_set, seen_dnskey_sep_clear)
       # We are at the zone apex - we should have seen DNSKEYs here
       if (!seen_dnskey_sep_set)
-        log(LOG_ERR, "No DNSKEY RR with SEP bit set in output zone")
+        log(LOG_WARNING, "No DNSKEY RR with SEP bit set in output zone")
       end
       if (!seen_dnskey_sep_clear)
-        log(LOG_ERR, "No DNSKEY RR with SEP bit clear in output zone")
+        log(LOG_WARNING, "No DNSKEY RR with SEP bit clear in output zone")
       end
     end
 
