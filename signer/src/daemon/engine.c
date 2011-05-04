@@ -1020,6 +1020,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int use_syslog = 0;
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
+    int close_hsm = 0;
 
     ods_log_assert(cfgfile);
     ods_log_init(NULL, use_syslog, cmdline_verbosity);
@@ -1063,7 +1064,12 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
             /* command handler had not yet been started */
             engine->cmdhandler_done = 1;
+            /* hsm has been opened */
+            hsm_close();
         }
+    } else {
+        /* setup ok, mark hsm open */
+        close_hsm = 1;
     }
 
     /* run */
@@ -1101,7 +1107,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
     stop_zonefetcher(engine);
-    hsm_close();
+    if (close_hsm) {
+        hsm_close();
+    }
     if (engine->cmdhandler != NULL) {
         engine_stop_cmdhandler(engine);
     }
