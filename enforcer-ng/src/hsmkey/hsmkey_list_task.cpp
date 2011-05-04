@@ -15,7 +15,7 @@ extern "C" {
 
 #include <fcntl.h>
 
-static const char *hsmkey_list_task_str = "hsmkey_list_task";
+static const char *module_str = "hsmkey_list_task";
 
 
 static void list_all_keys_in_all_hsms(int sockfd, engineconfig_type *config)
@@ -66,11 +66,11 @@ perform_hsmkey_list(int sockfd, engineconfig_type *config)
         int fd = open(datapath.c_str(),O_RDONLY);
         if (hsmkeyDoc->ParseFromFileDescriptor(fd)) {
             ods_log_debug("[%s] HSM key info list has been loaded",
-                          hsmkey_list_task_str);
+                          module_str);
         } else {
             ods_log_error("[%s] HSM key info list could not be loaded "
                           "from \"%s\"",
-                          hsmkey_list_task_str,datapath.c_str());
+                          module_str,datapath.c_str());
         }
         close(fd);
     }
@@ -115,9 +115,9 @@ hsmkey_list_task_perform(task_type *task)
 }
 
 task_type *
-hsmkey_list_task(engineconfig_type *config)
+hsmkey_list_task(engineconfig_type *config, const char *shortname)
 {
-    task_id what = task_register("hsm key list",
+    task_id what = task_register(shortname,
                                  "hsmkey_list_task_perform",
                                  hsmkey_list_task_perform);
 	return task_create(what, time_now(), "all", (void*)config);

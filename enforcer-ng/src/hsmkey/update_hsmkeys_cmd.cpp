@@ -7,36 +7,36 @@
 // Interface of this cpp file is used by C code, we need to declare 
 // extern "C" to prevent linking errors.
 extern "C" {
-#include "hsmkey/hsmkey_gen_cmd.h"
-#include "hsmkey/hsmkey_gen_task.h"
+#include "hsmkey/update_hsmkeys_cmd.h"
+#include "hsmkey/update_hsmkeys_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "daemon/engine.h"
 }
 
-static const char *module_str = "hsmkey_gen_cmd";
+static const char *module_str = "update_hsmkeys_cmd";
 
 /**
- * Print help for the 'hsmkey_gen' command
+ * Print help for the 'update_hsmkeys' command
  *
  */
-void help_hsmkey_gen_cmd(int sockfd)
+void help_update_hsmkeys_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "hsm key gen     pre-generate a collection of cryptographic keys\n"
-        "                before they are actually needed by the enforcer\n"
+        "update hsmkeys  import the keys found in all configured HSMs\n"
+        "                into the database.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
 
-int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
+int handled_update_hsmkeys_cmd(int sockfd, engine_type* engine, const char *cmd,
                               ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     task_type *task;
     ods_status status;
-    const char *scmd = "hsm key gen";
+    const char *scmd = "update hsmkeys";
     ssize_t ncmd = strlen(scmd);
     
     if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
@@ -52,7 +52,7 @@ int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
     
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
-        task = hsmkey_gen_task(engine->config,scmd);
+        task = update_hsmkeys_task(engine->config,scmd);
         if (!task) {
             ods_log_crit("[%s] failed to create %s task",
                          module_str,scmd);
@@ -71,7 +71,7 @@ int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
         }
     } else {
         time_t tstart = time(NULL);
-        perform_hsmkey_gen(sockfd,engine->config);
+        perform_update_hsmkeys(sockfd,engine->config);
         (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                        scmd,time(NULL)-tstart);
         ods_writen(sockfd, buf, strlen(buf));

@@ -277,6 +277,26 @@ class HsmKey : public ::google::protobuf::Message {
   inline bool revoke() const;
   inline void set_revoke(bool value);
   
+  // optional string algorithm_name = 10;
+  inline bool has_algorithm_name() const;
+  inline void clear_algorithm_name();
+  static const int kAlgorithmNameFieldNumber = 10;
+  inline const ::std::string& algorithm_name() const;
+  inline void set_algorithm_name(const ::std::string& value);
+  inline void set_algorithm_name(const char* value);
+  inline void set_algorithm_name(const char* value, size_t size);
+  inline ::std::string* mutable_algorithm_name();
+  
+  // optional string hsm_name = 11;
+  inline bool has_hsm_name() const;
+  inline void clear_hsm_name();
+  static const int kHsmNameFieldNumber = 11;
+  inline const ::std::string& hsm_name() const;
+  inline void set_hsm_name(const ::std::string& value);
+  inline void set_hsm_name(const char* value);
+  inline void set_hsm_name(const char* value, size_t size);
+  inline ::std::string* mutable_hsm_name();
+  
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
@@ -292,11 +312,15 @@ class HsmKey : public ::google::protobuf::Message {
   ::google::protobuf::RepeatedPtrField< ::std::string> used_by_zones_;
   ::google::protobuf::uint32 inception_;
   bool revoke_;
+  ::std::string* algorithm_name_;
+  static const ::std::string _default_algorithm_name_;
+  ::std::string* hsm_name_;
+  static const ::std::string _default_hsm_name_;
   friend void  protobuf_AddDesc_hsmkey_2eproto();
   friend void protobuf_AssignDesc_hsmkey_2eproto();
   friend void protobuf_ShutdownFile_hsmkey_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(9 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(11 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -574,6 +598,90 @@ inline bool HsmKey::revoke() const {
 inline void HsmKey::set_revoke(bool value) {
   _set_bit(8);
   revoke_ = value;
+}
+
+// optional string algorithm_name = 10;
+inline bool HsmKey::has_algorithm_name() const {
+  return _has_bit(9);
+}
+inline void HsmKey::clear_algorithm_name() {
+  if (algorithm_name_ != &_default_algorithm_name_) {
+    algorithm_name_->clear();
+  }
+  _clear_bit(9);
+}
+inline const ::std::string& HsmKey::algorithm_name() const {
+  return *algorithm_name_;
+}
+inline void HsmKey::set_algorithm_name(const ::std::string& value) {
+  _set_bit(9);
+  if (algorithm_name_ == &_default_algorithm_name_) {
+    algorithm_name_ = new ::std::string;
+  }
+  algorithm_name_->assign(value);
+}
+inline void HsmKey::set_algorithm_name(const char* value) {
+  _set_bit(9);
+  if (algorithm_name_ == &_default_algorithm_name_) {
+    algorithm_name_ = new ::std::string;
+  }
+  algorithm_name_->assign(value);
+}
+inline void HsmKey::set_algorithm_name(const char* value, size_t size) {
+  _set_bit(9);
+  if (algorithm_name_ == &_default_algorithm_name_) {
+    algorithm_name_ = new ::std::string;
+  }
+  algorithm_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* HsmKey::mutable_algorithm_name() {
+  _set_bit(9);
+  if (algorithm_name_ == &_default_algorithm_name_) {
+    algorithm_name_ = new ::std::string;
+  }
+  return algorithm_name_;
+}
+
+// optional string hsm_name = 11;
+inline bool HsmKey::has_hsm_name() const {
+  return _has_bit(10);
+}
+inline void HsmKey::clear_hsm_name() {
+  if (hsm_name_ != &_default_hsm_name_) {
+    hsm_name_->clear();
+  }
+  _clear_bit(10);
+}
+inline const ::std::string& HsmKey::hsm_name() const {
+  return *hsm_name_;
+}
+inline void HsmKey::set_hsm_name(const ::std::string& value) {
+  _set_bit(10);
+  if (hsm_name_ == &_default_hsm_name_) {
+    hsm_name_ = new ::std::string;
+  }
+  hsm_name_->assign(value);
+}
+inline void HsmKey::set_hsm_name(const char* value) {
+  _set_bit(10);
+  if (hsm_name_ == &_default_hsm_name_) {
+    hsm_name_ = new ::std::string;
+  }
+  hsm_name_->assign(value);
+}
+inline void HsmKey::set_hsm_name(const char* value, size_t size) {
+  _set_bit(10);
+  if (hsm_name_ == &_default_hsm_name_) {
+    hsm_name_ = new ::std::string;
+  }
+  hsm_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* HsmKey::mutable_hsm_name() {
+  _set_bit(10);
+  if (hsm_name_ == &_default_hsm_name_) {
+    hsm_name_ = new ::std::string;
+  }
+  return hsm_name_;
 }
 
 

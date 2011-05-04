@@ -62,6 +62,8 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
                 hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
                 hsmkey/hsmkey_list_cmd.cpp hsmkey/hsmkey_list_cmd.h \
                 hsmkey/hsmkey_list_task.cpp hsmkey/hsmkey_list_task.h \
+                hsmkey/update_hsmkeys_cmd.cpp hsmkey/update_hsmkeys_cmd.h \
+                hsmkey/update_hsmkeys_task.cpp hsmkey/update_hsmkeys_task.h \
 				keystate/keystate.pb.cc keystate/keystate.pb.h \
                 keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
                 keystate/keystate_list_task.cpp keystate/keystate_list_task.h \

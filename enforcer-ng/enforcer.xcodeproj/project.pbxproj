@@ -37,6 +37,8 @@
 		A77C5861136FF8F2000A4E51 /* policy_resalt_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C585E136FF86B000A4E51 /* policy_resalt_cmd.cpp */; };
 		A77C588513705314000A4E51 /* update_keyzones_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C58821370530C000A4E51 /* update_keyzones_cmd.cpp */; };
 		A77C58861370531B000A4E51 /* update_keyzones_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C5880137047AD000A4E51 /* update_keyzones_task.cpp */; };
+		A77C589813712EC2000A4E51 /* update_hsmkeys_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C589113712EB2000A4E51 /* update_hsmkeys_task.cpp */; };
+		A77C589913712EC7000A4E51 /* update_hsmkeys_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C589213712EB2000A4E51 /* update_hsmkeys_cmd.cpp */; };
 		A79154FA134E03A2004DEF95 /* zone_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DDF134D21D400B13EA0 /* zone_list_cmd.cpp */; };
 		A7915502134E365D004DEF95 /* update_zonelist_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */; };
 		A7915503134E3B0B004DEF95 /* update_zonelist_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE1134D21D400B13EA0 /* update_zonelist_cmd.cpp */; };
@@ -151,6 +153,10 @@
 		A77C5880137047AD000A4E51 /* update_keyzones_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = update_keyzones_task.cpp; path = keystate/update_keyzones_task.cpp; sourceTree = "<group>"; };
 		A77C58821370530C000A4E51 /* update_keyzones_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = update_keyzones_cmd.cpp; path = keystate/update_keyzones_cmd.cpp; sourceTree = "<group>"; };
 		A77C58831370530D000A4E51 /* update_keyzones_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = update_keyzones_cmd.h; path = keystate/update_keyzones_cmd.h; sourceTree = "<group>"; };
+		A77C589113712EB2000A4E51 /* update_hsmkeys_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_hsmkeys_task.cpp; sourceTree = "<group>"; };
+		A77C589213712EB2000A4E51 /* update_hsmkeys_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_hsmkeys_cmd.cpp; sourceTree = "<group>"; };
+		A77C589313712EB2000A4E51 /* update_hsmkeys_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_hsmkeys_task.h; sourceTree = "<group>"; };
+		A77C589413712EB2000A4E51 /* update_hsmkeys_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_hsmkeys_cmd.h; sourceTree = "<group>"; };
 		A79154FB134E0435004DEF95 /* zone_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zone_list_cmd.h; sourceTree = "<group>"; };
 		A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_zonelist_task.cpp; sourceTree = "<group>"; };
 		A7915500134E365D004DEF95 /* update_zonelist_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_zonelist_task.h; sourceTree = "<group>"; };
@@ -424,6 +430,10 @@
 			isa = PBXGroup;
 			children = (
 				A7790E59135CE27C00EED13E /* hsmkey.proto */,
+				A77C589413712EB2000A4E51 /* update_hsmkeys_cmd.h */,
+				A77C589213712EB2000A4E51 /* update_hsmkeys_cmd.cpp */,
+				A77C589313712EB2000A4E51 /* update_hsmkeys_task.h */,
+				A77C589113712EB2000A4E51 /* update_hsmkeys_task.cpp */,
 				A77C5857136FE40B000A4E51 /* hsmkey_list_cmd.h */,
 				A71D098F136C42E100D8F205 /* hsmkey_list_cmd.cpp */,
 				A71D0994136C44E300D8F205 /* hsmkey_list_task.h */,
@@ -609,6 +619,8 @@
 				A77C5861136FF8F2000A4E51 /* policy_resalt_cmd.cpp in Sources */,
 				A77C588513705314000A4E51 /* update_keyzones_cmd.cpp in Sources */,
 				A77C58861370531B000A4E51 /* update_keyzones_task.cpp in Sources */,
+				A77C589813712EC2000A4E51 /* update_hsmkeys_task.cpp in Sources */,
+				A77C589913712EC7000A4E51 /* update_hsmkeys_cmd.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

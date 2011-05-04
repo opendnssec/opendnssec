@@ -12,7 +12,7 @@ extern "C" {
 #include "daemon/engine.h"
 }
 
-static const char *hsmkey_list_cmd_str = "hsmkey_list_cmd";
+static const char *module_str = "hsmkey_list_cmd";
 
 /**
  * Print help for the 'hsm key list' command
@@ -34,44 +34,44 @@ int handled_hsmkey_list_cmd(int sockfd, engine_type* engine, const char *cmd,
     char buf[ODS_SE_MAXLINE];
     task_type *task;
     ods_status status;
-    ssize_t cmdlen = strlen("hsm key list");
+    const char *scmd = "hsm key list";
+    ssize_t ncmd = strlen(scmd);
     
-    if (n < cmdlen || strncmp(cmd, "hsm key list", cmdlen) != 0) return 0;
-    ods_log_debug("[%s] hsm key list command", hsmkey_list_cmd_str);
+    if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
+    ods_log_debug("[%s] %s command", module_str, scmd);
     
-    if (cmd[cmdlen] == '\0') {
+    if (cmd[ncmd] == '\0') {
         cmd = "";
-    } else if (cmd[cmdlen] != ' ') {
+    } else if (cmd[ncmd] != ' ') {
         return 0;
     } else {
-        cmd = &cmd[cmdlen+1];
+        cmd = &cmd[ncmd+1];
     }
     
     if (strncmp(cmd, "--task", 7) == 0) {
-        /* start the policy reader task */
         /* schedule task */
-        task = hsmkey_list_task(engine->config);
+        task = hsmkey_list_task(engine->config,scmd);
         if (!task) {
-            ods_log_crit("[%s] failed to create hsm key list task",
-                         hsmkey_list_cmd_str);
+            ods_log_crit("[%s] failed to create %s task",
+                         module_str,scmd);
         } else {
             status = schedule_task_from_thread(engine->taskq, task, 0);
             if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] failed to create hsm key list task",
-                             hsmkey_list_cmd_str);
-
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Unable to schedule hsm "
-                               "key list task.\n");
+                ods_log_crit("[%s] failed to create %s task", module_str, scmd);
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "Unable to schedule %s task.\n",scmd);
                 ods_writen(sockfd, buf, strlen(buf));
             } else {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Scheduled hsm key "
-                               "list task.\n");
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "Scheduled %s generator task.\n",scmd);
                 ods_writen(sockfd, buf, strlen(buf));
             }
         }
     } else {
+        time_t tstart = time(NULL);
         perform_hsmkey_list(sockfd,engine->config);
-        (void)snprintf(buf, ODS_SE_MAXLINE, "hsm key list complete.\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
+                       scmd,time(NULL)-tstart);
         ods_writen(sockfd, buf, strlen(buf));
     }
     

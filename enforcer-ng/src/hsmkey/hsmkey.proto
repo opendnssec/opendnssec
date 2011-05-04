@@ -19,6 +19,8 @@ message HsmKey {
     repeated string used_by_zones = 7;
     optional uint32 inception = 8;
     optional bool revoke = 9 [default = false];
+    optional string algorithm_name = 10;
+    optional string hsm_name = 11;
 } 
 
 enum keyrole {

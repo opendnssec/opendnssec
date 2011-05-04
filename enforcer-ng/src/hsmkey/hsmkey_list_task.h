@@ -6,6 +6,6 @@
 
 void perform_hsmkey_list(int sockfd, engineconfig_type *config);
 
-task_type *hsmkey_list_task(engineconfig_type *config);
+task_type *hsmkey_list_task(engineconfig_type *config, const char *shortname);
 
 #endif
