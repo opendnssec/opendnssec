@@ -78,6 +78,7 @@ static char* cmdh_str = "cmdhandler";
 int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char* strtime = NULL;
+    char ctimebuf[32]; // at least 26 according to docs
     char buf[ODS_SE_MAXLINE];
     size_t i = 0;
     time_t now = 0;
@@ -98,7 +99,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     /* [LOCK] schedule */
     /* how many tasks */
     now = time_now();
-    strtime = ctime(&now);
+    strtime = ctime_r(&now,ctimebuf);
     (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i tasks scheduled.\nIt is "
                    "now %s", (int) engine->taskq->tasks->count,
                    strtime?strtime:"(null)");

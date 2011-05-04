@@ -152,8 +152,12 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         // set, then use that.
         if (t_next < t_when) {
             t_when = t_next;
-            std::cout << std::endl << "Next update scheduled at " <<
-            ctime(&t_when) << std::endl;
+             
+            char tbuf[32] = "date/time invalid"; // at least 26 bytes
+            ctime_r(&t_when,tbuf);
+            (void)snprintf(buf, ODS_SE_MAXLINE, 
+                           "Next update scheduled at %s \n",tbuf);
+            ods_writen(sockfd, buf, strlen(buf));
         }
     }
 

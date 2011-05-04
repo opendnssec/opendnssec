@@ -489,6 +489,7 @@ uint32_t
 time_datestamp(time_t tt, const char* format, char** str)
 {
     time_t t;
+    struct tm datetime;
     struct tm *tmp;
     uint32_t ut = 0;
     char outstr[32];
@@ -499,9 +500,9 @@ time_datestamp(time_t tt, const char* format, char** str)
         t = time_now();
     }
 
-    tmp = localtime(&t);
+    tmp = localtime_r(&t,&datetime);
     if (tmp == NULL) {
-        ods_log_error("[%s] time_datestamp: localtime() failed", duration_str);
+        ods_log_error("[%s] time_datestamp: localtime_r() failed", duration_str);
         return 0;
     }
 

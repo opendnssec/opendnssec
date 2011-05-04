@@ -15,23 +15,28 @@ extern "C" {
 #include <fcntl.h>
 #include <time.h>
 
-static const char *policy_resalt_task_str = "policy_resalt_task";
+static const char *module_str = "policy_resalt_task";
 
 #define TIME_INFINITE ((time_t)-1)
 
 static bool string_from_time(std::string &s, time_t t)
 {
+#if 0
     char buf[32];
     struct tm datetime;
     if (localtime_r(&t,&datetime) == NULL) {
-        ods_log_error("[%s] time_datestamp: localtime() failed", 
-                      policy_resalt_task_str);
+        ods_log_error("[%s] time_datestamp: localtime_r() failed", 
+                      module_str);
         return false;
     }
     snprintf(buf, sizeof(buf), "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
              1900+datetime.tm_year, datetime.tm_mon + 1, datetime.tm_mday,
              datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
     s = buf;
+#else
+    char ctimebuf[32]; // at least 26 according to docs
+    s = ctime_r(&t,ctimebuf);
+#endif
     return true;
 }
 
@@ -51,10 +56,10 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
         int fd = open(datapath.c_str(),O_RDONLY);
         if (kaspDoc->ParseFromFileDescriptor(fd)) {
             ods_log_debug("[%s] policies have been loaded",
-                          policy_resalt_task_str);
+                          module_str);
         } else {
             ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                          policy_resalt_task_str,datapath.c_str());
+                          module_str,datapath.c_str());
         }
         close(fd);
     }
@@ -128,7 +133,7 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
             int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
             if (kaspDoc->SerializeToFileDescriptor(fd)) {
                 ods_log_debug("[%s] policies have been updated", 
-                              policy_resalt_task_str);
+                              module_str);
                 (void)snprintf(buf, ODS_SE_MAXLINE,
                                "Policies have been updated.\n");
                 ods_writen(sockfd, buf, strlen(buf));
@@ -140,7 +145,7 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
             close(fd);
         }
     }
-    ods_log_debug("[%s] policy resalt complete", policy_resalt_task_str);
+    ods_log_debug("[%s] policy resalt complete", module_str);
     delete kaspDoc;
     return next_reschedule;
 }
