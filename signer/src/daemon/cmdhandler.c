@@ -346,18 +346,21 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         lock_basic_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Cannot schedule task for "
+                "zone %s.\n", tbd);
+            ods_writen(sockfd, buf, strlen(buf));
             ods_log_crit("[%s] cannot schedule task for zone %s: %s",
                 cmdh_str, zone->name, ods_status2str(status));
             task_cleanup(task);
             zone->task = NULL;
         } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for immediate "
+                "re-sign.\n", tbd);
+            ods_writen(sockfd, buf, strlen(buf));
+            ods_log_verbose("[%s] zone %s scheduled for immediate re-sign",
+                cmdh_str, tbd);
             engine_wakeup_workers(cmdc->engine);
         }
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for immediate "
-            "re-sign.\n", tbd);
-        ods_writen(sockfd, buf, strlen(buf));
-        ods_log_verbose("[%s] zone %s scheduled for immediate re-sign",
-            cmdh_str, tbd);
     }
     return;
 }
