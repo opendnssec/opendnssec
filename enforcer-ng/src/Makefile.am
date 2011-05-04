@@ -65,6 +65,8 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
 				keystate/keystate.pb.cc keystate/keystate.pb.h \
                 keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
                 keystate/keystate_list_task.cpp keystate/keystate_list_task.h \
+                keystate/update_keyzones_cmd.cpp keystate/update_keyzones_cmd.h \
+                keystate/update_keyzones_task.cpp keystaet/update_keyzones_task.h \
 				signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 				signconf/signconf_task.cpp signconf/signconf_task.h \
 				signconf/signconf.pb.cc signconf/signconf.pb.h \

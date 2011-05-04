@@ -35,6 +35,8 @@
 		A77C585C136FF698000A4E51 /* policy_resalt_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C585A136FE4B2000A4E51 /* policy_resalt_task.cpp */; };
 		A77C585D136FF6AD000A4E51 /* resalt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C584A136F03BC000A4E51 /* resalt.cpp */; };
 		A77C5861136FF8F2000A4E51 /* policy_resalt_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C585E136FF86B000A4E51 /* policy_resalt_cmd.cpp */; };
+		A77C588513705314000A4E51 /* update_keyzones_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C58821370530C000A4E51 /* update_keyzones_cmd.cpp */; };
+		A77C58861370531B000A4E51 /* update_keyzones_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C5880137047AD000A4E51 /* update_keyzones_task.cpp */; };
 		A79154FA134E03A2004DEF95 /* zone_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DDF134D21D400B13EA0 /* zone_list_cmd.cpp */; };
 		A7915502134E365D004DEF95 /* update_zonelist_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */; };
 		A7915503134E3B0B004DEF95 /* update_zonelist_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE1134D21D400B13EA0 /* update_zonelist_cmd.cpp */; };
@@ -145,6 +147,10 @@
 		A77C585A136FE4B2000A4E51 /* policy_resalt_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = policy_resalt_task.cpp; sourceTree = "<group>"; };
 		A77C585E136FF86B000A4E51 /* policy_resalt_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = policy_resalt_cmd.cpp; sourceTree = "<group>"; };
 		A77C585F136FF86D000A4E51 /* policy_resalt_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = policy_resalt_cmd.h; sourceTree = "<group>"; };
+		A77C587F137047AD000A4E51 /* update_keyzones_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = update_keyzones_task.h; path = keystate/update_keyzones_task.h; sourceTree = "<group>"; };
+		A77C5880137047AD000A4E51 /* update_keyzones_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = update_keyzones_task.cpp; path = keystate/update_keyzones_task.cpp; sourceTree = "<group>"; };
+		A77C58821370530C000A4E51 /* update_keyzones_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = update_keyzones_cmd.cpp; path = keystate/update_keyzones_cmd.cpp; sourceTree = "<group>"; };
+		A77C58831370530D000A4E51 /* update_keyzones_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = update_keyzones_cmd.h; path = keystate/update_keyzones_cmd.h; sourceTree = "<group>"; };
 		A79154FB134E0435004DEF95 /* zone_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zone_list_cmd.h; sourceTree = "<group>"; };
 		A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_zonelist_task.cpp; sourceTree = "<group>"; };
 		A7915500134E365D004DEF95 /* update_zonelist_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_zonelist_task.h; sourceTree = "<group>"; };
@@ -339,6 +345,10 @@
 				A77C5800136D6BC7000A4E51 /* keystate_list_cmd.cpp */,
 				A77C57FD136D674C000A4E51 /* keystate_list_task.h */,
 				A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */,
+				A77C58831370530D000A4E51 /* update_keyzones_cmd.h */,
+				A77C58821370530C000A4E51 /* update_keyzones_cmd.cpp */,
+				A77C587F137047AD000A4E51 /* update_keyzones_task.h */,
+				A77C5880137047AD000A4E51 /* update_keyzones_task.cpp */,
 				A74EB43E13524ED9001F9E1B /* keystate.pb.h */,
 				A74EB43F13524ED9001F9E1B /* keystate.pb.cc */,
 			);
@@ -597,6 +607,8 @@
 				A77C585C136FF698000A4E51 /* policy_resalt_task.cpp in Sources */,
 				A77C585D136FF6AD000A4E51 /* resalt.cpp in Sources */,
 				A77C5861136FF8F2000A4E51 /* policy_resalt_cmd.cpp in Sources */,
+				A77C588513705314000A4E51 /* update_keyzones_cmd.cpp in Sources */,
+				A77C58861370531B000A4E51 /* update_keyzones_task.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

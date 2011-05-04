@@ -5,35 +5,36 @@
 // Interface of this cpp file is used by C code, we need to declare 
 // extern "C" to prevent linking errors.
 extern "C" {
-#include "keystate/keystate_list_cmd.h"
-#include "keystate/keystate_list_task.h"
+#include "keystate/update_keyzones_cmd.h"
+#include "keystate/update_keyzones_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "daemon/engine.h"
 }
 
-static const char *module_str = "keystate_list_cmd";
+static const char *module_str = "update_keyzones_cmd";
 
 /**
  * Print help for the 'key list' command
  *
  */
-void help_keystate_list_cmd(int sockfd)
+void help_update_keyzones_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key list        list all the keys used by a zone\n"
+        "update keyzones introduce new key zones for the zones added during\n"
+        "                a previous update zonelist command.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
 
-int handled_keystate_list_cmd(int sockfd, engine_type* engine, const char *cmd,
+int handled_update_keyzones_cmd(int sockfd, engine_type* engine, const char *cmd,
                               ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     task_type *task;
     ods_status status;
-    const char *scmd = "key list";
+    const char *scmd = "update keyzones";
     ssize_t ncmd = strlen(scmd);
     
     if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
@@ -49,7 +50,7 @@ int handled_keystate_list_cmd(int sockfd, engine_type* engine, const char *cmd,
     
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
-        task = keystate_list_task(engine->config,scmd);
+        task = update_keyzones_task(engine->config,scmd);
         if (!task) {
             ods_log_crit("[%s] failed to create %s task",
                          module_str,scmd);
@@ -68,7 +69,7 @@ int handled_keystate_list_cmd(int sockfd, engine_type* engine, const char *cmd,
             }
         }
     } else {
-        perform_keystate_list(sockfd,engine->config);
+        perform_update_keyzones(sockfd,engine->config);
         (void)snprintf(buf, ODS_SE_MAXLINE, "%s complete.\n",scmd);
         ods_writen(sockfd, buf, strlen(buf));
     }

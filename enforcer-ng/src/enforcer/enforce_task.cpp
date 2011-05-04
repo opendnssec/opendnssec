@@ -55,23 +55,6 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         close(fd);
     }
 
-    ::ods::zonelist::ZoneListDocument *zonelistDoc =
-        new ::ods::zonelist::ZoneListDocument;
-    {
-        std::string datapath(datastore);
-        datapath += ".zonelist.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (zonelistDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] zonelist has been loaded",
-                          enforce_task_str);
-        } else {
-            ods_log_error("[%s] zonelist could not be loaded from \"%s\"",
-                          enforce_task_str,datapath.c_str());
-            bFailedToLoad = true;
-        }
-        close(fd);
-    }
-
     ::ods::keystate::KeyStateDocument *keystateDoc =
     new ::ods::keystate::KeyStateDocument;
     {
@@ -107,7 +90,6 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
     
     if (bFailedToLoad) {
         delete kaspDoc;
-        delete zonelistDoc;
         delete keystateDoc;
         delete hsmkeyDoc;
         ods_log_error("[%s] unable to continue",
@@ -116,34 +98,6 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
     }
 
     time_t t_when = time_now() + 1 * 365 * 24 * 60 * 60; // now + 1 year
-
-    // Add new zones found in the zonelist to the keystates
-    // We don't want nested lookup loops of O(N^2) we create an map to get O(2N)
-    std::map< const std::string , const ::ods::keystate::EnforcerZone *> kszonemap;
-    for (int z=0; z<keystateDoc->zones_size(); ++z) {
-        const ::ods::keystate::EnforcerZone &ks_zone = keystateDoc->zones(z);
-        kszonemap[ ks_zone.name() ] = &ks_zone;
-    }
-    // Go through the list of zones from the zonelist to determine if we need
-    // to insert new zones to the keystates.
-    for (int i=0; i<zonelistDoc->zonelist().zones_size(); ++i) {
-        const ::ods::zonelist::ZoneData &zl_zone = zonelistDoc->zonelist().zones(i);
-        // if we can't find the zone in the kszonemap, it is new and we need
-        // to add it.
-        if (kszonemap.find( zl_zone.name() ) == kszonemap.end()) {
-            ::ods::keystate::EnforcerZone *ks_zone = keystateDoc->add_zones();
-
-            // setup information the enforcer will need.
-            ks_zone->set_name( zl_zone.name() );
-            ks_zone->set_policy( zl_zone.policy() );
-            ks_zone->set_signconf_path( zl_zone.signerconfiguration() );
-
-            // Don't add any keys, we let the enforcer do this based on policy.
-
-            // enforcer needs to trigger signer configuration writing.
-            ks_zone->set_signconf_needs_writing( true );
-        }
-    }
 
     // Hook the key factory into the hsmkeyDoc list of pre-generated 
     // cryptographic keys.
@@ -248,7 +202,6 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
     }
     
     delete kaspDoc;
-    delete zonelistDoc;
     delete keystateDoc;
     delete hsmkeyDoc;
 

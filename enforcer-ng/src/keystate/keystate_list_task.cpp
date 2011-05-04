@@ -13,7 +13,7 @@ extern "C" {
 
 #include <fcntl.h>
 
-static const char *keystate_list_task_str = "keystate_list_task";
+static const char *module_str = "keystate_list_task";
 
 void 
 perform_keystate_list(int sockfd, engineconfig_type *config)
@@ -31,10 +31,10 @@ perform_keystate_list(int sockfd, engineconfig_type *config)
         int fd = open(datapath.c_str(),O_RDONLY);
         if (keystateDoc->ParseFromFileDescriptor(fd)) {
             ods_log_debug("[%s] keys have been loaded",
-                          keystate_list_task_str);
+                          module_str);
         } else {
             ods_log_error("[%s] keys could not be loaded from \"%s\"",
-                          keystate_list_task_str,datapath.c_str());
+                          module_str,datapath.c_str());
         }
         close(fd);
     }
@@ -85,9 +85,9 @@ keystate_list_task_perform(task_type *task)
 }
 
 task_type *
-keystate_list_task(engineconfig_type *config)
+keystate_list_task(engineconfig_type *config,const char *shortname)
 {
-    task_id what = task_register("key list",
+    task_id what = task_register(shortname,
                                  "keystate_list_task_perform",
                                  keystate_list_task_perform);
 	return task_create(what, time_now(), "all", (void*)config);

@@ -5,6 +5,7 @@
 
 void help_signconf_cmd(int sockfd);
 
-int handled_signconf_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n);
+int handled_signconf_cmd(int sockfd, engine_type* engine, const char *cmd,
+                         ssize_t n);
 
 #endif

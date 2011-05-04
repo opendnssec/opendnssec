@@ -25,13 +25,6 @@ perform_update_zonelist(int sockfd, engineconfig_type *config)
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-    /*
-     // Dump the meta-information of the KaspDocument.
-     ::google::protobuf::Message *msg  = new ::ods::kasp::KaspDocument;
-     recurse_dump_descriptor(msg->GetDescriptor());
-     delete msg;
-     */
-	
 	// Create a policy and fill it up with some data.
 	::ods::zonelist::ZoneListDocument *doc  = new ::ods::zonelist::ZoneListDocument;
 	if (read_pb_message_from_xml_file(doc, zonelistfile)) {

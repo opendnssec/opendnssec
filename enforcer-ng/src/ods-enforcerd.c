@@ -38,6 +38,7 @@
 /* Pull in the commands that have been implemented for the enforcer */
 #include "policy/update_kasp_cmd.h"
 #include "zone/update_zonelist_cmd.h"
+#include "keystate/update_keyzones_cmd.h"
 
 #include "enforcer/enforce_cmd.h"
 #include "signconf/signconf_cmd.h"
@@ -111,6 +112,7 @@ version(FILE* out)
 static help_xxxx_cmd_type enforcer_help[] = {
     help_update_kasp_cmd,
     help_update_zonelist_cmd,
+    help_update_keyzones_cmd,
     
     help_enforce_zones_cmd,
     help_signconf_cmd,
@@ -137,6 +139,7 @@ static handled_xxxx_cmd_type
 enforcer_commands[] = {
     handled_update_kasp_cmd,
     handled_update_zonelist_cmd,
+    handled_update_keyzones_cmd,
     
     handled_enforce_zones_cmd,
     handled_signconf_cmd,
