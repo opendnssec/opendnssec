@@ -232,9 +232,9 @@ enforce_task_perform(task_type *task)
 }
 
 task_type *
-enforce_task(engineconfig_type *config)
+enforce_task(engineconfig_type *config, const char *shortname)
 {
-    task_id what = task_register("enforce", 
+    task_id what = task_register(shortname, 
                                  "enforce_task_perform",
                                  enforce_task_perform);
 	return task_create(what, time_now(), "all", (void*)config);
