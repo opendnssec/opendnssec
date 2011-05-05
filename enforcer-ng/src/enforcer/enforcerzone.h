@@ -110,15 +110,6 @@ public:
     
     /* set to true when the signer configuration for the signer needs to  be updated. */
     virtual void setSignerConfNeedsWriting(bool value);
-
-    /* Called to indicate the zone is going to be modified in the persistent data store. */
-    virtual void beginTransaction();
-    
-    /* Called to commit any changes made to the zone to the persistent data store. */
-    virtual void commitTransaction();
-    
-    /* Called to cancel the changes made to the persisten data store. */
-    virtual void cancelTransaction();
 };
 
 #endif

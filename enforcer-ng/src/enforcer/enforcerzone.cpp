@@ -268,17 +268,3 @@ void EnforcerZonePB::setSignerConfNeedsWriting(bool value)
     _zone->set_signconf_needs_writing(value);
 }
 
-void EnforcerZonePB::beginTransaction()
-{
-    
-}
-
-void EnforcerZonePB::commitTransaction()
-{
-    
-}
-
-void EnforcerZonePB::cancelTransaction()
-{
-    
-}

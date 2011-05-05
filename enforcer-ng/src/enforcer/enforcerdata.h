@@ -183,16 +183,6 @@ public:
     
     /* set to true when the signer configuration for the signer needs to  be updated. */
     virtual void setSignerConfNeedsWriting(bool value) = 0;
-
-    /* Called to indicate the zone is going to be modified in the persistent data store. */
-    virtual void beginTransaction() = 0;
-    
-    /* Called to commit any changes made to the zone to the persistent data store. */
-    virtual void commitTransaction() = 0;
-    
-    /* Called to cancel the changes made to the persisten data store. */
-    virtual void cancelTransaction() = 0;
-    
 };
 
 typedef time_t (*update_func_type)(EnforcerZone *zone, time_t now, HsmKeyFactory *keyfactory);
