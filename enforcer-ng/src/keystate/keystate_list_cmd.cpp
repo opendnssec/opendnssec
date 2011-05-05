@@ -68,8 +68,10 @@ int handled_keystate_list_cmd(int sockfd, engine_type* engine, const char *cmd,
             }
         }
     } else {
+        time_t tstart = time(NULL);
         perform_keystate_list(sockfd,engine->config);
-        (void)snprintf(buf, ODS_SE_MAXLINE, "%s complete.\n",scmd);
+        (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
+                       scmd,time(NULL)-tstart);
         ods_writen(sockfd, buf, strlen(buf));
     }
     
