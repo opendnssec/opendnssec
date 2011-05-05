@@ -35,7 +35,18 @@ static bool string_from_time(std::string &s, time_t t)
     s = buf;
 #else
     char ctimebuf[32]; // at least 26 according to docs
-    s = ctime_r(&t,ctimebuf);
+    char *pbeg = ctime_r(&t,ctimebuf);
+    char *pend = pbeg ? (pbeg+strlen(pbeg)) : pbeg;
+    if (pbeg >= pend) {
+        ods_log_error("[%s] time_datestamp: ctime_r() failed", 
+                      module_str);
+        return false;
+    }
+    // strip trailing space characters including '\n' from time string
+    for (char *p=pend-1; p>=pbeg && isspace(*p); --p) {
+        *p = '\0';
+    }
+    s = pbeg;
 #endif
     return true;
 }

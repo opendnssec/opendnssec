@@ -100,9 +100,10 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     /* how many tasks */
     now = time_now();
     strtime = ctime_r(&now,ctimebuf);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i tasks scheduled.\nIt is "
-                   "now %s", (int) engine->taskq->tasks->count,
-                   strtime?strtime:"(null)");
+    (void)snprintf(buf, ODS_SE_MAXLINE, 
+                   "I have %i tasks scheduled.\nIt is now %s",
+                   (int) engine->taskq->tasks->count,
+                   strtime?strtime:"(null)\n");
     ods_writen(sockfd, buf, strlen(buf));
     
     /* list tasks */
