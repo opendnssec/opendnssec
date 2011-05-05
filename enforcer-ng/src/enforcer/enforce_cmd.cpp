@@ -38,8 +38,8 @@ void help_enforce_zones_cmd(int sockfd)
  * Handle the 'enforce' command.
  *
  */
-int handled_enforce_zones_cmd(int sockfd, engine_type* engine, const char *cmd,
-                              ssize_t n)
+int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
+                              const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     task_type *task;

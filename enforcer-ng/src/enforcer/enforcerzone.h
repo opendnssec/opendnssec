@@ -110,6 +110,9 @@ public:
     
     /* set to true when the signer configuration for the signer needs to  be updated. */
     virtual void setSignerConfNeedsWriting(bool value);
+    
+    /* When the key states in this zone are expected to change state. */
+    void setNextChange(time_t value);
 };
 
 #endif

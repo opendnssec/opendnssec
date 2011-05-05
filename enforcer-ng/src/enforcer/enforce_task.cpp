@@ -138,6 +138,8 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         EnforcerZonePB enfZone(keystateDoc->mutable_zones(z), policy);
 
         time_t t_next = update(enfZone, time_now(), keyfactory);
+        
+        enfZone.setNextChange(t_next);
 
         if (t_next == -1)
             continue;

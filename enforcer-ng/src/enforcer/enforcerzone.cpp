@@ -268,3 +268,7 @@ void EnforcerZonePB::setSignerConfNeedsWriting(bool value)
     _zone->set_signconf_needs_writing(value);
 }
 
+void EnforcerZonePB::setNextChange(time_t value)
+{
+    _zone->set_next_change(value);
+}

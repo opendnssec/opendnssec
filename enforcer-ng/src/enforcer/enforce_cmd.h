@@ -5,7 +5,7 @@
 
 void help_enforce_zones_cmd(int sockfd);
 
-int handled_enforce_zones_cmd(int sockfd, engine_type* engine, const char *cmd,
-                              ssize_t n);
+int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
+                              const char *cmd, ssize_t n);
 
 #endif
