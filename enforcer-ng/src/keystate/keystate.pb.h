@@ -271,6 +271,13 @@ class EnforcerZone : public ::google::protobuf::Message {
   inline void set_signconf_path(const char* value, size_t size);
   inline ::std::string* mutable_signconf_path();
   
+  // optional uint32 next_change = 6;
+  inline bool has_next_change() const;
+  inline void clear_next_change();
+  static const int kNextChangeFieldNumber = 6;
+  inline ::google::protobuf::uint32 next_change() const;
+  inline void set_next_change(::google::protobuf::uint32 value);
+  
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
@@ -283,11 +290,12 @@ class EnforcerZone : public ::google::protobuf::Message {
   bool signconf_needs_writing_;
   ::std::string* signconf_path_;
   static const ::std::string _default_signconf_path_;
+  ::google::protobuf::uint32 next_change_;
   friend void  protobuf_AddDesc_keystate_2eproto();
   friend void protobuf_AssignDesc_keystate_2eproto();
   friend void protobuf_ShutdownFile_keystate_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -805,6 +813,22 @@ inline ::std::string* EnforcerZone::mutable_signconf_path() {
     signconf_path_ = new ::std::string;
   }
   return signconf_path_;
+}
+
+// optional uint32 next_change = 6;
+inline bool EnforcerZone::has_next_change() const {
+  return _has_bit(5);
+}
+inline void EnforcerZone::clear_next_change() {
+  next_change_ = 0u;
+  _clear_bit(5);
+}
+inline ::google::protobuf::uint32 EnforcerZone::next_change() const {
+  return next_change_;
+}
+inline void EnforcerZone::set_next_change(::google::protobuf::uint32 value) {
+  _set_bit(5);
+  next_change_ = value;
 }
 
 // -------------------------------------------------------------------

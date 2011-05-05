@@ -54,12 +54,13 @@ void protobuf_AssignDesc_keystate_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(KeyStateDocument));
   EnforcerZone_descriptor_ = file->message_type(1);
-  static const int EnforcerZone_offsets_[5] = {
+  static const int EnforcerZone_offsets_[6] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, policy_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, keys_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, signconf_needs_writing_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, signconf_path_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(EnforcerZone, next_change_),
   };
   EnforcerZone_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -164,27 +165,28 @@ void protobuf_AddDesc_keystate_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\016keystate.proto\022\014ods.keystate\032\014xmlext.p"
     "roto\"=\n\020KeyStateDocument\022)\n\005zones\030\001 \003(\0132"
-    "\032.ods.keystate.EnforcerZone\"\210\001\n\014Enforcer"
+    "\032.ods.keystate.EnforcerZone\"\235\001\n\014Enforcer"
     "Zone\022\014\n\004name\030\001 \002(\t\022\016\n\006policy\030\002 \002(\t\022#\n\004ke"
     "ys\030\003 \003(\0132\025.ods.keystate.KeyData\022\036\n\026signc"
     "onf_needs_writing\030\004 \002(\010\022\025\n\rsignconf_path"
-    "\030\005 \002(\t\"\212\003\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\ta"
-    "lgorithm\030\002 \002(\r\022\021\n\tinception\030\003 \002(\r\022\"\n\002ds\030"
-    "\004 \002(\0132\026.ods.keystate.KeyState\022%\n\005rrsig\030\005"
-    " \002(\0132\026.ods.keystate.KeyState\022&\n\006dnskey\030\006"
-    " \002(\0132\026.ods.keystate.KeyState\022#\n\004role\030\007 \002"
-    "(\0162\025.ods.keystate.keyrole\022\026\n\007ds_seen\030\010 \001"
-    "(\010:\005false\022\037\n\020submit_to_parent\030\t \001(\010:\005fal"
-    "se\022\031\n\013introducing\030\n \001(\010:\004true\022\025\n\006revoke\030"
-    "\013 \001(\010:\005false\022\026\n\007standby\030\014 \001(\010:\005false\022\025\n\006"
-    "active\030\r \001(\010:\005false\022\026\n\007publish\030\016 \001(\010:\005fa"
-    "lse\"f\n\010KeyState\022,\n\005state\030\001 \001(\0162\025.ods.key"
-    "state.rrstate:\006hidden\022\023\n\013last_change\030\002 \001"
-    "(\r\022\027\n\010minimize\030\003 \001(\010:\005false*$\n\007keyrole\022\007"
-    "\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n\003CSK\020\003*s\n\007rrstate\022\n\n\006"
-    "hidden\020\000\022\014\n\010rumoured\020\001\022\r\n\tcommitted\020\002\022\017\n"
-    "\013omnipresent\020\003\022\017\n\013unretentive\020\004\022\020\n\014postc"
-    "omitted\020\005\022\013\n\007revoked\020\006", 902);
+    "\030\005 \002(\t\022\023\n\013next_change\030\006 \001(\r\"\212\003\n\007KeyData\022"
+    "\017\n\007locator\030\001 \002(\t\022\021\n\talgorithm\030\002 \002(\r\022\021\n\ti"
+    "nception\030\003 \002(\r\022\"\n\002ds\030\004 \002(\0132\026.ods.keystat"
+    "e.KeyState\022%\n\005rrsig\030\005 \002(\0132\026.ods.keystate"
+    ".KeyState\022&\n\006dnskey\030\006 \002(\0132\026.ods.keystate"
+    ".KeyState\022#\n\004role\030\007 \002(\0162\025.ods.keystate.k"
+    "eyrole\022\026\n\007ds_seen\030\010 \001(\010:\005false\022\037\n\020submit"
+    "_to_parent\030\t \001(\010:\005false\022\031\n\013introducing\030\n"
+    " \001(\010:\004true\022\025\n\006revoke\030\013 \001(\010:\005false\022\026\n\007sta"
+    "ndby\030\014 \001(\010:\005false\022\025\n\006active\030\r \001(\010:\005false"
+    "\022\026\n\007publish\030\016 \001(\010:\005false\"f\n\010KeyState\022,\n\005"
+    "state\030\001 \001(\0162\025.ods.keystate.rrstate:\006hidd"
+    "en\022\023\n\013last_change\030\002 \001(\r\022\027\n\010minimize\030\003 \001("
+    "\010:\005false*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n"
+    "\003CSK\020\003*s\n\007rrstate\022\n\n\006hidden\020\000\022\014\n\010rumoure"
+    "d\020\001\022\r\n\tcommitted\020\002\022\017\n\013omnipresent\020\003\022\017\n\013u"
+    "nretentive\020\004\022\020\n\014postcomitted\020\005\022\013\n\007revoke"
+    "d\020\006", 923);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "keystate.proto", &protobuf_RegisterTypes);
   KeyStateDocument::default_instance_ = new KeyStateDocument();
@@ -452,6 +454,7 @@ const int EnforcerZone::kPolicyFieldNumber;
 const int EnforcerZone::kKeysFieldNumber;
 const int EnforcerZone::kSignconfNeedsWritingFieldNumber;
 const int EnforcerZone::kSignconfPathFieldNumber;
+const int EnforcerZone::kNextChangeFieldNumber;
 #endif  // !_MSC_VER
 
 EnforcerZone::EnforcerZone() {
@@ -472,6 +475,7 @@ void EnforcerZone::SharedCtor() {
   policy_ = const_cast< ::std::string*>(&_default_policy_);
   signconf_needs_writing_ = false;
   signconf_path_ = const_cast< ::std::string*>(&_default_signconf_path_);
+  next_change_ = 0u;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -526,6 +530,7 @@ void EnforcerZone::Clear() {
         signconf_path_->clear();
       }
     }
+    next_change_ = 0u;
   }
   keys_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -609,6 +614,20 @@ bool EnforcerZone::MergePartialFromCodedStream(
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
           this->signconf_path().data(), this->signconf_path().length(),
           ::google::protobuf::internal::WireFormat::PARSE);
+        if (input->ExpectTag(48)) goto parse_next_change;
+        break;
+      }
+      
+      // optional uint32 next_change = 6;
+      case 6: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          goto handle_uninterpreted;
+        }
+       parse_next_change:
+        DO_(::google::protobuf::internal::WireFormatLite::ReadUInt32(
+              input, &next_change_));
+        _set_bit(5);
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -675,6 +694,11 @@ void EnforcerZone::SerializeWithCachedSizes(
       5, this->signconf_path(), output);
   }
   
+  // optional uint32 next_change = 6;
+  if (_has_bit(5)) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(6, this->next_change(), output);
+  }
+  
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -725,6 +749,11 @@ void EnforcerZone::SerializeWithCachedSizes(
         5, this->signconf_path(), target);
   }
   
+  // optional uint32 next_change = 6;
+  if (_has_bit(5)) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(6, this->next_change(), target);
+  }
+  
   if (!unknown_fields().empty()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
@@ -760,6 +789,13 @@ int EnforcerZone::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->signconf_path());
+    }
+    
+    // optional uint32 next_change = 6;
+    if (has_next_change()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
+          this->next_change());
     }
     
   }
@@ -808,6 +844,9 @@ void EnforcerZone::MergeFrom(const EnforcerZone& from) {
     if (from._has_bit(4)) {
       set_signconf_path(from.signconf_path());
     }
+    if (from._has_bit(5)) {
+      set_next_change(from.next_change());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -840,6 +879,7 @@ void EnforcerZone::Swap(EnforcerZone* other) {
     keys_.Swap(&other->keys_);
     std::swap(signconf_needs_writing_, other->signconf_needs_writing_);
     std::swap(signconf_path_, other->signconf_path_);
+    std::swap(next_change_, other->next_change_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

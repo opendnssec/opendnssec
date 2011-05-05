@@ -15,6 +15,7 @@ message EnforcerZone {
     repeated KeyData keys = 3;
     required bool signconf_needs_writing = 4;
     required string signconf_path = 5;
+    optional uint32 next_change = 6;
 } 
 
 message KeyData {
@@ -25,8 +26,8 @@ message KeyData {
     required KeyState rrsig = 5;
     required KeyState dnskey = 6;
     required keyrole role = 7;
-    optional bool ds_seen = 8 [default = false]; 
-    optional bool submit_to_parent = 9 [default = false];
+    optional bool ds_seen = 8 [default = false]; // parent says DS has been seen
+    optional bool submit_to_parent = 9 [default = false]; // submit DS to parent
     optional bool introducing = 10 [default=true];
     optional bool revoke = 11 [default = false];
     optional bool standby = 12 [default = false];
