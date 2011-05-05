@@ -21,9 +21,8 @@ static const char *module_str = "update_keyzones_cmd";
 void help_update_keyzones_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
-        "update keyzones introduce new key zones for the zones added during\n"
-        "                a previous update zonelist command.\n"
+    snprintf(buf, ODS_SE_MAXLINE,
+             "update zonelist update zonelist by importing zonelist.xml\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -34,7 +33,7 @@ int handled_update_keyzones_cmd(int sockfd, engine_type* engine, const char *cmd
     char buf[ODS_SE_MAXLINE];
     task_type *task;
     ods_status status;
-    const char *scmd = "update keyzones";
+    const char *scmd = "update zonelist";
     ssize_t ncmd = strlen(scmd);
     
     if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;

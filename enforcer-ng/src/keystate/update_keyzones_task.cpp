@@ -15,6 +15,42 @@ extern "C" {
 
 static const char *module_str = "update_keyzones_task";
 
+static 
+::ods::zonelist::ZoneListDocument *
+load_zonelist_xml(int sockfd, const char *zonelistfile)
+{
+    char buf[ODS_SE_MAXLINE];
+	// Create a zonefile and load it with zones from the xml zonelist.xml
+	::ods::zonelist::ZoneListDocument *doc  = new ::ods::zonelist::ZoneListDocument;
+	if (read_pb_message_from_xml_file(doc, zonelistfile)) {
+		if (doc->has_zonelist()) {
+			const ::ods::zonelist::ZoneList  &zonelist = doc->zonelist();
+			if (zonelist.zones_size() > 0) {
+				if (zonelist.IsInitialized()) {
+                    
+                    return doc;
+                    
+				} else {
+                    (void)snprintf(buf, ODS_SE_MAXLINE, "error: a zone in the zonelist is missing mandatory information.\n");
+                    ods_writen(sockfd, buf, strlen(buf));
+                }
+			} else {
+                (void)snprintf(buf, ODS_SE_MAXLINE, "warning: no zones found in zonelist.\n");
+                ods_writen(sockfd, buf, strlen(buf));
+            }
+		} else {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "warning: no zonelist found in zonelist.xml file.\n");
+            ods_writen(sockfd, buf, strlen(buf));
+        }
+    } else {
+        (void)snprintf(buf, ODS_SE_MAXLINE, "warning: unable to read the zonelist.xml file.\n");
+        ods_writen(sockfd, buf, strlen(buf));
+    }
+    delete doc;
+    return NULL;
+}
+
+
 void 
 perform_update_keyzones(int sockfd, engineconfig_type *config)
 {
@@ -23,20 +59,12 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
-    ::ods::zonelist::ZoneListDocument *zonelistDoc =
-    new ::ods::zonelist::ZoneListDocument;
-    {
-        std::string datapath(datastore);
-        datapath += ".zonelist.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (zonelistDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] zonelist has been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] zonelist could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
-        }
-        close(fd);
+    ::ods::zonelist::ZoneListDocument *
+        zonelistDoc = load_zonelist_xml(sockfd, config->zonelist_filename);
+    if (zonelistDoc == NULL) {
+        ods_log_error("[%s] zonelist could not be loaded from \"%s\"",
+                      module_str,config->zonelist_filename);
+        return; // failure, exit.
     }
     
     ::ods::keystate::KeyStateDocument *keystateDoc =

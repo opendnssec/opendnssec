@@ -10,7 +10,6 @@ extern "C" {
 #include "enforcer/setup_cmd.h"
 
 #include "policy/update_kasp_task.h"
-#include "zone/update_zonelist_task.h"
 #include "keystate/update_keyzones_task.h"
 #include "hsmkey/update_hsmkeys_task.h"
 #include "policy/policy_resalt_task.h"
@@ -31,8 +30,8 @@ void help_setup_cmd(int sockfd)
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
     "setup           delete existing database and perform:\n"
-    "                   'update kasp', 'update zonelist', 'update keyzones',\n"
-    "                   'update hsmkeys', 'policy resalt'\n"
+    "                   'update kasp', 'policy resalt',\n"
+    "                   'update zonelist', 'update hsmkeys'\n"
                     );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -63,19 +62,16 @@ int handled_setup_cmd(int sockfd, engine_type* engine,
 
     const char *datastore = engine->config->datastore;
     std::string policy_pb = std::string(datastore) + ".policy.pb";
-    std::string zonelist_pb = std::string(datastore) + ".zonelist.pb";
     std::string keystate_pb = std::string(datastore) + ".keystate.pb";
     std::string hsmkey_pb = std::string(datastore) + ".hsmkey.pb";
     unlink(policy_pb.c_str());
-    unlink(zonelist_pb.c_str());
     unlink(keystate_pb.c_str());
     unlink(hsmkey_pb.c_str());
     
     perform_update_kasp(sockfd, engine->config);
-    perform_update_zonelist(sockfd, engine->config);
+    perform_policy_resalt(sockfd, engine->config);
     perform_update_keyzones(sockfd, engine->config);
     perform_update_hsmkeys(sockfd, engine->config);
-    perform_policy_resalt(sockfd, engine->config);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                    scmd,time(NULL)-tstart);

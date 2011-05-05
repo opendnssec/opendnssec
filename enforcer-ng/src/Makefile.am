@@ -52,8 +52,6 @@ ods_enforcerd_SOURCES=		ods-enforcerd.c \
                 policy/policy_resalt_cmd.cpp policy/policy_resalt_cmd.h \
                 policy/policy_resalt_task.cpp policy/policy_resalt_task.h \
                 policy/resalt.cpp policy/resalt.h \
-				zone/update_zonelist_cmd.cpp zone/update_zonelist_cmd.h \
-				zone/update_zonelist_task.cpp zone/update_zonelist_task.h \
 				zone/zonelist.pb.cc zone/zonelist.pb.h \
                 hsmkey/hsmkey.pb.cc hsmkey/hsmkey.pb.h \
                 hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
