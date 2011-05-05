@@ -32,8 +32,6 @@ message KeyData {
     optional bool standby = 12 [default = false];
     optional bool active = 13 [default = false];
     optional bool publish = 14 [default = false];
-
-    optional bool _deleted = 100 [default = false];
 }
 
 message KeyState {

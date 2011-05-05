@@ -36,10 +36,8 @@ private:
     KeyStatePB _keyStateDNSKEY;
 public:
     KeyDataPB( ::ods::keystate::KeyData *keydata );
+    bool matches( const ::ods::keystate::KeyData *keydata );
 
-    bool deleted();
-    void setDeleted(bool value);
-    
     virtual const std::string &locator();
     virtual void setLocator(const std::string &value);
     

@@ -73,7 +73,7 @@ void protobuf_AssignDesc_keystate_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(EnforcerZone));
   KeyData_descriptor_ = file->message_type(2);
-  static const int KeyData_offsets_[15] = {
+  static const int KeyData_offsets_[14] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, locator_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, algorithm_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, inception_),
@@ -88,7 +88,6 @@ void protobuf_AssignDesc_keystate_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, standby_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, active_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, publish_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyData, _deleted_),
   };
   KeyData_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -169,7 +168,7 @@ void protobuf_AddDesc_keystate_2eproto() {
     "Zone\022\014\n\004name\030\001 \002(\t\022\016\n\006policy\030\002 \002(\t\022#\n\004ke"
     "ys\030\003 \003(\0132\025.ods.keystate.KeyData\022\036\n\026signc"
     "onf_needs_writing\030\004 \002(\010\022\025\n\rsignconf_path"
-    "\030\005 \002(\t\"\243\003\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\ta"
+    "\030\005 \002(\t\"\212\003\n\007KeyData\022\017\n\007locator\030\001 \002(\t\022\021\n\ta"
     "lgorithm\030\002 \002(\r\022\021\n\tinception\030\003 \002(\r\022\"\n\002ds\030"
     "\004 \002(\0132\026.ods.keystate.KeyState\022%\n\005rrsig\030\005"
     " \002(\0132\026.ods.keystate.KeyState\022&\n\006dnskey\030\006"
@@ -179,14 +178,13 @@ void protobuf_AddDesc_keystate_2eproto() {
     "se\022\031\n\013introducing\030\n \001(\010:\004true\022\025\n\006revoke\030"
     "\013 \001(\010:\005false\022\026\n\007standby\030\014 \001(\010:\005false\022\025\n\006"
     "active\030\r \001(\010:\005false\022\026\n\007publish\030\016 \001(\010:\005fa"
-    "lse\022\027\n\010_deleted\030d \001(\010:\005false\"f\n\010KeyState"
-    "\022,\n\005state\030\001 \001(\0162\025.ods.keystate.rrstate:\006"
-    "hidden\022\023\n\013last_change\030\002 \001(\r\022\027\n\010minimize\030"
-    "\003 \001(\010:\005false*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020"
-    "\002\022\007\n\003CSK\020\003*s\n\007rrstate\022\n\n\006hidden\020\000\022\014\n\010rum"
-    "oured\020\001\022\r\n\tcommitted\020\002\022\017\n\013omnipresent\020\003\022"
-    "\017\n\013unretentive\020\004\022\020\n\014postcomitted\020\005\022\013\n\007re"
-    "voked\020\006", 927);
+    "lse\"f\n\010KeyState\022,\n\005state\030\001 \001(\0162\025.ods.key"
+    "state.rrstate:\006hidden\022\023\n\013last_change\030\002 \001"
+    "(\r\022\027\n\010minimize\030\003 \001(\010:\005false*$\n\007keyrole\022\007"
+    "\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n\003CSK\020\003*s\n\007rrstate\022\n\n\006"
+    "hidden\020\000\022\014\n\010rumoured\020\001\022\r\n\tcommitted\020\002\022\017\n"
+    "\013omnipresent\020\003\022\017\n\013unretentive\020\004\022\020\n\014postc"
+    "omitted\020\005\022\013\n\007revoked\020\006", 902);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "keystate.proto", &protobuf_RegisterTypes);
   KeyStateDocument::default_instance_ = new KeyStateDocument();
@@ -875,7 +873,6 @@ const int KeyData::kRevokeFieldNumber;
 const int KeyData::kStandbyFieldNumber;
 const int KeyData::kActiveFieldNumber;
 const int KeyData::kPublishFieldNumber;
-const int KeyData::kDeletedFieldNumber;
 #endif  // !_MSC_VER
 
 KeyData::KeyData() {
@@ -909,7 +906,6 @@ void KeyData::SharedCtor() {
   standby_ = false;
   active_ = false;
   publish_ = false;
-  _deleted_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -971,7 +967,6 @@ void KeyData::Clear() {
     standby_ = false;
     active_ = false;
     publish_ = false;
-    _deleted_ = false;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -1177,20 +1172,6 @@ bool KeyData::MergePartialFromCodedStream(
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
               input, &publish_));
         _set_bit(13);
-        if (input->ExpectTag(800)) goto parse__deleted;
-        break;
-      }
-      
-      // optional bool _deleted = 100 [default = false];
-      case 100: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-          goto handle_uninterpreted;
-        }
-       parse__deleted:
-        DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
-              input, &_deleted_));
-        _set_bit(14);
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -1297,11 +1278,6 @@ void KeyData::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteBool(14, this->publish(), output);
   }
   
-  // optional bool _deleted = 100 [default = false];
-  if (_has_bit(14)) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(100, this->_deleted(), output);
-  }
-  
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -1390,11 +1366,6 @@ void KeyData::SerializeWithCachedSizes(
   // optional bool publish = 14 [default = false];
   if (_has_bit(13)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(14, this->publish(), target);
-  }
-  
-  // optional bool _deleted = 100 [default = false];
-  if (_has_bit(14)) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(100, this->_deleted(), target);
   }
   
   if (!unknown_fields().empty()) {
@@ -1493,11 +1464,6 @@ int KeyData::ByteSize() const {
       total_size += 1 + 1;
     }
     
-    // optional bool _deleted = 100 [default = false];
-    if (has__deleted()) {
-      total_size += 2 + 1;
-    }
-    
   }
   if (!unknown_fields().empty()) {
     total_size +=
@@ -1567,9 +1533,6 @@ void KeyData::MergeFrom(const KeyData& from) {
     if (from._has_bit(13)) {
       set_publish(from.publish());
     }
-    if (from._has_bit(14)) {
-      set__deleted(from._deleted());
-    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -1608,7 +1571,6 @@ void KeyData::Swap(KeyData* other) {
     std::swap(standby_, other->standby_);
     std::swap(active_, other->active_);
     std::swap(publish_, other->publish_);
-    std::swap(_deleted_, other->_deleted_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

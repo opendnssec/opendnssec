@@ -459,13 +459,6 @@ class KeyData : public ::google::protobuf::Message {
   inline bool publish() const;
   inline void set_publish(bool value);
   
-  // optional bool _deleted = 100 [default = false];
-  inline bool has__deleted() const;
-  inline void clear__deleted();
-  static const int kDeletedFieldNumber = 100;
-  inline bool _deleted() const;
-  inline void set__deleted(bool value);
-  
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
@@ -485,12 +478,11 @@ class KeyData : public ::google::protobuf::Message {
   bool standby_;
   bool active_;
   bool publish_;
-  bool _deleted_;
   friend void  protobuf_AddDesc_keystate_2eproto();
   friend void protobuf_AssignDesc_keystate_2eproto();
   friend void protobuf_ShutdownFile_keystate_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(15 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(14 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -1071,22 +1063,6 @@ inline bool KeyData::publish() const {
 inline void KeyData::set_publish(bool value) {
   _set_bit(13);
   publish_ = value;
-}
-
-// optional bool _deleted = 100 [default = false];
-inline bool KeyData::has__deleted() const {
-  return _has_bit(14);
-}
-inline void KeyData::clear__deleted() {
-  _deleted_ = false;
-  _clear_bit(14);
-}
-inline bool KeyData::_deleted() const {
-  return _deleted_;
-}
-inline void KeyData::set__deleted(bool value) {
-  _set_bit(14);
-  _deleted_ = value;
 }
 
 // -------------------------------------------------------------------

@@ -63,14 +63,9 @@ KeyDataPB::KeyDataPB( ::ods::keystate::KeyData *keydata )
 {
 }
 
-bool KeyDataPB::deleted()
+bool KeyDataPB::matches( const ::ods::keystate::KeyData *keydata )
 {
-    return _keydata->_deleted();
-}
-
-void KeyDataPB::setDeleted(bool value)
-{
-    _keydata->set__deleted(value);
+    return _keydata == keydata;
 }
 
 const std::string &KeyDataPB::locator()
@@ -186,8 +181,6 @@ KeyDataListPB::KeyDataListPB(::ods::keystate::EnforcerZone *zone)
 {
     for (int k=0; k<_zone->keys_size(); ++k) {
         ::ods::keystate::KeyData *keydata = _zone->mutable_keys(k);
-        if (keydata->_deleted()) 
-            continue;
         KeyDataPB key( keydata );
         _keys.push_back(key);
     }
@@ -219,10 +212,27 @@ KeyData &KeyDataListPB::key(int index)
 }
 
 void KeyDataListPB::delKey(int index)
-{    
-    std::vector<KeyDataPB>::iterator it = _keys.begin()+index;
-    it->setDeleted(true);
-    _keys.erase( it );
+{
+    std::vector<KeyDataPB>::iterator key = _keys.begin()+index;
+    
+    // remove the key from _zone->keys()
+    for (int k=0; k<_zone->keys_size(); ++k) {
+        if (key->matches( _zone->mutable_keys(k) )) {
+            // Key at index k inside _zone->mutable_keys() matches the
+            // key we are trying to delete.
+            // Note that currently predicate 'k == index' should hold.
+            // We don't enforce it however, to allow a future situation 
+            // where the field _keys of this KeyDataListPB object contains 
+            // a subset of the keys found in _zone->mutable_keys()
+            ::google::protobuf::RepeatedPtrField< ::ods::keystate::KeyData > *
+                pmutable_keys = _zone->mutable_keys();
+            pmutable_keys->SwapElements(k,_zone->keys_size()-1);
+            pmutable_keys->RemoveLast();
+            break;
+        }
+    }
+
+    _keys.erase( key );
 }
 
 // EnforcerZonePB
