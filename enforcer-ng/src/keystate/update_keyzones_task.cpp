@@ -75,7 +75,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
             // setup information the enforcer will need.
             ks_zone->set_name( zl_zone.name() );
             ks_zone->set_policy( zl_zone.policy() );
-            ks_zone->set_signconf_path( zl_zone.signerconfiguration() );
+            ks_zone->set_signconf_path( zl_zone.signer_configuration() );
                         
             // enforcer needs to trigger signer configuration writing.
             ks_zone->set_signconf_needs_writing( false );

@@ -67,7 +67,7 @@ void protobuf_AssignDesc_zonelist_2eproto() {
   static const int ZoneData_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ZoneData, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ZoneData, policy_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ZoneData, signerconfiguration_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ZoneData, signer_configuration_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ZoneData, inputfile_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ZoneData, outputfile_),
   };
@@ -125,13 +125,13 @@ void protobuf_AddDesc_zonelist_2eproto() {
     "roto\"L\n\020ZoneListDocument\0228\n\010zonelist\030\001 \002"
     "(\0132\026.ods.zonelist.ZoneListB\016\202\265\030\n\n\010ZoneLi"
     "st\"=\n\010ZoneList\0221\n\005zones\030\001 \003(\0132\026.ods.zone"
-    "list.ZoneDataB\n\202\265\030\006\n\004Zone\"\342\001\n\010ZoneData\022\031"
+    "list.ZoneDataB\n\202\265\030\006\n\004Zone\"\343\001\n\010ZoneData\022\031"
     "\n\004name\030\001 \002(\tB\013\202\265\030\007\n\005@name\022%\n\006policy\030\002 \001("
-    "\t:\007defaultB\014\202\265\030\010\n\006Policy\0226\n\023signerconfig"
-    "uration\030\003 \001(\tB\031\202\265\030\025\n\023SignerConfiguration"
-    "\022,\n\tinputfile\030\004 \001(\tB\031\202\265\030\025\n\023Adapters/Inpu"
-    "t/File\022.\n\noutputfile\030\005 \001(\tB\032\202\265\030\026\n\024Adapte"
-    "rs/Output/File", 414);
+    "\t:\007defaultB\014\202\265\030\010\n\006Policy\0227\n\024signer_confi"
+    "guration\030\003 \001(\tB\031\202\265\030\025\n\023SignerConfiguratio"
+    "n\022,\n\tinputfile\030\004 \001(\tB\031\202\265\030\025\n\023Adapters/Inp"
+    "ut/File\022.\n\noutputfile\030\005 \001(\tB\032\202\265\030\026\n\024Adapt"
+    "ers/Output/File", 415);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zonelist.proto", &protobuf_RegisterTypes);
   ZoneListDocument::default_instance_ = new ZoneListDocument();
@@ -568,13 +568,13 @@ void ZoneList::Swap(ZoneList* other) {
 
 const ::std::string ZoneData::_default_name_;
 const ::std::string ZoneData::_default_policy_("default");
-const ::std::string ZoneData::_default_signerconfiguration_;
+const ::std::string ZoneData::_default_signer_configuration_;
 const ::std::string ZoneData::_default_inputfile_;
 const ::std::string ZoneData::_default_outputfile_;
 #ifndef _MSC_VER
 const int ZoneData::kNameFieldNumber;
 const int ZoneData::kPolicyFieldNumber;
-const int ZoneData::kSignerconfigurationFieldNumber;
+const int ZoneData::kSignerConfigurationFieldNumber;
 const int ZoneData::kInputfileFieldNumber;
 const int ZoneData::kOutputfileFieldNumber;
 #endif  // !_MSC_VER
@@ -595,7 +595,7 @@ void ZoneData::SharedCtor() {
   _cached_size_ = 0;
   name_ = const_cast< ::std::string*>(&_default_name_);
   policy_ = const_cast< ::std::string*>(&_default_policy_);
-  signerconfiguration_ = const_cast< ::std::string*>(&_default_signerconfiguration_);
+  signer_configuration_ = const_cast< ::std::string*>(&_default_signer_configuration_);
   inputfile_ = const_cast< ::std::string*>(&_default_inputfile_);
   outputfile_ = const_cast< ::std::string*>(&_default_outputfile_);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -612,8 +612,8 @@ void ZoneData::SharedDtor() {
   if (policy_ != &_default_policy_) {
     delete policy_;
   }
-  if (signerconfiguration_ != &_default_signerconfiguration_) {
-    delete signerconfiguration_;
+  if (signer_configuration_ != &_default_signer_configuration_) {
+    delete signer_configuration_;
   }
   if (inputfile_ != &_default_inputfile_) {
     delete inputfile_;
@@ -653,8 +653,8 @@ void ZoneData::Clear() {
       }
     }
     if (_has_bit(2)) {
-      if (signerconfiguration_ != &_default_signerconfiguration_) {
-        signerconfiguration_->clear();
+      if (signer_configuration_ != &_default_signer_configuration_) {
+        signer_configuration_->clear();
       }
     }
     if (_has_bit(3)) {
@@ -705,21 +705,21 @@ bool ZoneData::MergePartialFromCodedStream(
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
           this->policy().data(), this->policy().length(),
           ::google::protobuf::internal::WireFormat::PARSE);
-        if (input->ExpectTag(26)) goto parse_signerconfiguration;
+        if (input->ExpectTag(26)) goto parse_signer_configuration;
         break;
       }
       
-      // optional string signerconfiguration = 3;
+      // optional string signer_configuration = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
           goto handle_uninterpreted;
         }
-       parse_signerconfiguration:
+       parse_signer_configuration:
         DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-              input, this->mutable_signerconfiguration()));
+              input, this->mutable_signer_configuration()));
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-          this->signerconfiguration().data(), this->signerconfiguration().length(),
+          this->signer_configuration().data(), this->signer_configuration().length(),
           ::google::protobuf::internal::WireFormat::PARSE);
         if (input->ExpectTag(34)) goto parse_inputfile;
         break;
@@ -799,13 +799,13 @@ void ZoneData::SerializeWithCachedSizes(
       2, this->policy(), output);
   }
   
-  // optional string signerconfiguration = 3;
+  // optional string signer_configuration = 3;
   if (_has_bit(2)) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->signerconfiguration().data(), this->signerconfiguration().length(),
+      this->signer_configuration().data(), this->signer_configuration().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      3, this->signerconfiguration(), output);
+      3, this->signer_configuration(), output);
   }
   
   // optional string inputfile = 4;
@@ -854,14 +854,14 @@ void ZoneData::SerializeWithCachedSizes(
         2, this->policy(), target);
   }
   
-  // optional string signerconfiguration = 3;
+  // optional string signer_configuration = 3;
   if (_has_bit(2)) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->signerconfiguration().data(), this->signerconfiguration().length(),
+      this->signer_configuration().data(), this->signer_configuration().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        3, this->signerconfiguration(), target);
+        3, this->signer_configuration(), target);
   }
   
   // optional string inputfile = 4;
@@ -909,11 +909,11 @@ int ZoneData::ByteSize() const {
           this->policy());
     }
     
-    // optional string signerconfiguration = 3;
-    if (has_signerconfiguration()) {
+    // optional string signer_configuration = 3;
+    if (has_signer_configuration()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->signerconfiguration());
+          this->signer_configuration());
     }
     
     // optional string inputfile = 4;
@@ -962,7 +962,7 @@ void ZoneData::MergeFrom(const ZoneData& from) {
       set_policy(from.policy());
     }
     if (from._has_bit(2)) {
-      set_signerconfiguration(from.signerconfiguration());
+      set_signer_configuration(from.signer_configuration());
     }
     if (from._has_bit(3)) {
       set_inputfile(from.inputfile());
@@ -996,7 +996,7 @@ void ZoneData::Swap(ZoneData* other) {
   if (other != this) {
     std::swap(name_, other->name_);
     std::swap(policy_, other->policy_);
-    std::swap(signerconfiguration_, other->signerconfiguration_);
+    std::swap(signer_configuration_, other->signer_configuration_);
     std::swap(inputfile_, other->inputfile_);
     std::swap(outputfile_, other->outputfile_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);

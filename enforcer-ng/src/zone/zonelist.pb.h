@@ -288,15 +288,15 @@ class ZoneData : public ::google::protobuf::Message {
   inline void set_policy(const char* value, size_t size);
   inline ::std::string* mutable_policy();
   
-  // optional string signerconfiguration = 3;
-  inline bool has_signerconfiguration() const;
-  inline void clear_signerconfiguration();
-  static const int kSignerconfigurationFieldNumber = 3;
-  inline const ::std::string& signerconfiguration() const;
-  inline void set_signerconfiguration(const ::std::string& value);
-  inline void set_signerconfiguration(const char* value);
-  inline void set_signerconfiguration(const char* value, size_t size);
-  inline ::std::string* mutable_signerconfiguration();
+  // optional string signer_configuration = 3;
+  inline bool has_signer_configuration() const;
+  inline void clear_signer_configuration();
+  static const int kSignerConfigurationFieldNumber = 3;
+  inline const ::std::string& signer_configuration() const;
+  inline void set_signer_configuration(const ::std::string& value);
+  inline void set_signer_configuration(const char* value);
+  inline void set_signer_configuration(const char* value, size_t size);
+  inline ::std::string* mutable_signer_configuration();
   
   // optional string inputfile = 4;
   inline bool has_inputfile() const;
@@ -326,8 +326,8 @@ class ZoneData : public ::google::protobuf::Message {
   static const ::std::string _default_name_;
   ::std::string* policy_;
   static const ::std::string _default_policy_;
-  ::std::string* signerconfiguration_;
-  static const ::std::string _default_signerconfiguration_;
+  ::std::string* signer_configuration_;
+  static const ::std::string _default_signer_configuration_;
   ::std::string* inputfile_;
   static const ::std::string _default_inputfile_;
   ::std::string* outputfile_;
@@ -496,46 +496,46 @@ inline ::std::string* ZoneData::mutable_policy() {
   return policy_;
 }
 
-// optional string signerconfiguration = 3;
-inline bool ZoneData::has_signerconfiguration() const {
+// optional string signer_configuration = 3;
+inline bool ZoneData::has_signer_configuration() const {
   return _has_bit(2);
 }
-inline void ZoneData::clear_signerconfiguration() {
-  if (signerconfiguration_ != &_default_signerconfiguration_) {
-    signerconfiguration_->clear();
+inline void ZoneData::clear_signer_configuration() {
+  if (signer_configuration_ != &_default_signer_configuration_) {
+    signer_configuration_->clear();
   }
   _clear_bit(2);
 }
-inline const ::std::string& ZoneData::signerconfiguration() const {
-  return *signerconfiguration_;
+inline const ::std::string& ZoneData::signer_configuration() const {
+  return *signer_configuration_;
 }
-inline void ZoneData::set_signerconfiguration(const ::std::string& value) {
+inline void ZoneData::set_signer_configuration(const ::std::string& value) {
   _set_bit(2);
-  if (signerconfiguration_ == &_default_signerconfiguration_) {
-    signerconfiguration_ = new ::std::string;
+  if (signer_configuration_ == &_default_signer_configuration_) {
+    signer_configuration_ = new ::std::string;
   }
-  signerconfiguration_->assign(value);
+  signer_configuration_->assign(value);
 }
-inline void ZoneData::set_signerconfiguration(const char* value) {
+inline void ZoneData::set_signer_configuration(const char* value) {
   _set_bit(2);
-  if (signerconfiguration_ == &_default_signerconfiguration_) {
-    signerconfiguration_ = new ::std::string;
+  if (signer_configuration_ == &_default_signer_configuration_) {
+    signer_configuration_ = new ::std::string;
   }
-  signerconfiguration_->assign(value);
+  signer_configuration_->assign(value);
 }
-inline void ZoneData::set_signerconfiguration(const char* value, size_t size) {
+inline void ZoneData::set_signer_configuration(const char* value, size_t size) {
   _set_bit(2);
-  if (signerconfiguration_ == &_default_signerconfiguration_) {
-    signerconfiguration_ = new ::std::string;
+  if (signer_configuration_ == &_default_signer_configuration_) {
+    signer_configuration_ = new ::std::string;
   }
-  signerconfiguration_->assign(reinterpret_cast<const char*>(value), size);
+  signer_configuration_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* ZoneData::mutable_signerconfiguration() {
+inline ::std::string* ZoneData::mutable_signer_configuration() {
   _set_bit(2);
-  if (signerconfiguration_ == &_default_signerconfiguration_) {
-    signerconfiguration_ = new ::std::string;
+  if (signer_configuration_ == &_default_signer_configuration_) {
+    signer_configuration_ = new ::std::string;
   }
-  return signerconfiguration_;
+  return signer_configuration_;
 }
 
 // optional string inputfile = 4;

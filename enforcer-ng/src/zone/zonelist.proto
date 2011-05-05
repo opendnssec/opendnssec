@@ -13,7 +13,7 @@ message ZoneList {
 message ZoneData {
 	required string name = 1 [(xml).path="@name"];
 	optional string policy = 2 [(xml).path="Policy", default="default"];
-	optional string signerconfiguration = 3 [(xml).path="SignerConfiguration"];
+	optional string signer_configuration = 3 [(xml).path="SignerConfiguration"];
 	optional string inputfile = 4 [(xml).path="Adapters/Input/File"];
 	optional string outputfile = 5 [(xml).path="Adapters/Output/File"];
 }
