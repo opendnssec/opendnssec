@@ -38,6 +38,9 @@
 #include <errno.h>
 #include <stdio.h> /* snprintf() */
 #include <string.h> /* strlen(), strcpy() */
+#include <ctype.h> /* isspace() */
+
+static const char *module_str = "str";
 
 /**
  * Join arguments together with a join character into a single string.
@@ -68,3 +71,41 @@ ods_str_join(allocator_type* allocator, int argc, char *argv[], char cjoin)
     }
 	return buf;
 }
+
+/**
+ * Version of ctime_r that does not feature a trailing '\n' character
+ *
+ */
+char *
+ods_ctime_r(char *buf, size_t nbuf, time_t t)
+{
+#if 0
+    struct tm datetime;
+    if (localtime_r(&t,&datetime) == NULL) {
+        ods_log_error("[%s] time_datestamp: localtime_r() failed", 
+                      module_str);
+        return NULL;
+    }
+    snprintf(buf, nbuf, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
+             1900+datetime.tm_year, datetime.tm_mon + 1, datetime.tm_mday,
+             datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
+    return buf;
+#else
+    if (nbuf>=26 && buf!=NULL) { 
+        char *p;
+        char *pbeg = ctime_r(&t,buf);
+        char *pend = pbeg ? (pbeg+strlen(pbeg)) : pbeg;
+        if (pbeg >= pend) {
+            ods_log_error("[%s] time_datestamp: ctime_r() failed", 
+                          module_str);
+            return NULL;
+        }
+        // strip trailing space characters including '\n' from time string
+        for (p=pend-1; p>=pbeg && isspace(*p); --p) {
+            *p = '\0';
+        }
+    }
+    return buf;
+#endif
+}
+

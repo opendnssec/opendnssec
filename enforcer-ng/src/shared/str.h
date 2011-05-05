@@ -36,6 +36,7 @@
 
 #include "config.h"
 #include "shared/allocator.h"
+#include <time.h>
 
 /**
  * Join arguments together with a join character into a single string 
@@ -54,5 +55,17 @@
  */
 char *ods_str_join(allocator_type* allocator, int argc, char *argv[], 
                    char cjoin);
+
+
+
+/**
+ * Version of ctime_r that does not feature a trailing '\n' character
+ *
+ * \param[in] buf buffer to write the formatted date/time to
+ * \param[in] nbuf size of buf, including any terminating zero characters.
+ * \param[in] t time_t value to print to buf
+ * \return	buf to indicate success or NULL to indicate failure.
+ */
+char *ods_ctime_r(char *buf, size_t nbuf, time_t t);
 
 #endif /* SHARED_STR_H */

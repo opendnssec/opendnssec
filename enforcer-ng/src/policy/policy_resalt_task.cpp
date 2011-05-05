@@ -1,6 +1,7 @@
 extern "C" {
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/str.h"
 #include "policy/policy_resalt_task.h"
 }
 #include "policy/resalt.h"
@@ -18,38 +19,6 @@ extern "C" {
 static const char *module_str = "policy_resalt_task";
 
 #define TIME_INFINITE ((time_t)-1)
-
-static bool string_from_time(std::string &s, time_t t)
-{
-#if 0
-    char buf[32];
-    struct tm datetime;
-    if (localtime_r(&t,&datetime) == NULL) {
-        ods_log_error("[%s] time_datestamp: localtime_r() failed", 
-                      module_str);
-        return false;
-    }
-    snprintf(buf, sizeof(buf), "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
-             1900+datetime.tm_year, datetime.tm_mon + 1, datetime.tm_mday,
-             datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
-    s = buf;
-#else
-    char ctimebuf[32]; // at least 26 according to docs
-    char *pbeg = ctime_r(&t,ctimebuf);
-    char *pend = pbeg ? (pbeg+strlen(pbeg)) : pbeg;
-    if (pbeg >= pend) {
-        ods_log_error("[%s] time_datestamp: ctime_r() failed", 
-                      module_str);
-        return false;
-    }
-    // strip trailing space characters including '\n' from time string
-    for (char *p=pend-1; p>=pbeg && isspace(*p); --p) {
-        *p = '\0';
-    }
-    s = pbeg;
-#endif
-    return true;
-}
 
 time_t 
 perform_policy_resalt(int sockfd, engineconfig_type *config)
@@ -115,9 +84,11 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
             } else {
                 time_t resalt_when = policy->denial().nsec3().salt_last_change()
                                     +policy->denial().nsec3().resalt();
-                if (!string_from_time(next_resalt_time, resalt_when)) {
-                    next_resalt_time = "invalid date/time";
+                char tbuf[32]; 
+                if (!ods_ctime_r(tbuf,sizeof(tbuf),resalt_when)) {
+                    next_resalt_time = "(invalid date/time)";
                 } else {
+                    next_resalt_time = tbuf;
                     if (next_reschedule == TIME_INFINITE
                         || resalt_when > time_now() 
                             && resalt_when  < next_reschedule
