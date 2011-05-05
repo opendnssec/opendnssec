@@ -86,7 +86,7 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
                                     +policy->denial().nsec3().resalt();
                 char tbuf[32]; 
                 if (!ods_ctime_r(tbuf,sizeof(tbuf),resalt_when)) {
-                    next_resalt_time = "(invalid date/time)";
+                    next_resalt_time = "invalid date/time";
                 } else {
                     next_resalt_time = tbuf;
                     if (next_reschedule == TIME_INFINITE

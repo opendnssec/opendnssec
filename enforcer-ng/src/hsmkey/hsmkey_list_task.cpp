@@ -65,11 +65,11 @@ perform_hsmkey_list(int sockfd, engineconfig_type *config)
         char incep[32];
         if (key.inception() != 0) {
             if (!ods_ctime_r(incep,sizeof(incep),key.inception())) {
-                strncpy(incep,"(invalid date/time)",sizeof(incep));
+                strncpy(incep,"invalid date/time",sizeof(incep));
                 incep[sizeof(incep)-1] = '\0';
             }
         } else {
-            strncpy(incep,"(never)",sizeof(incep));
+            strncpy(incep,"never",sizeof(incep));
             incep[sizeof(incep)-1] = '\0';
         }
         (void)snprintf(buf, ODS_SE_MAXLINE, "%-40s %-10s %-7u %-10s %-26s \n",

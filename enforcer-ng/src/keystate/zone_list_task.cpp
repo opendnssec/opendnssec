@@ -2,6 +2,7 @@
 extern "C" {
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/str.h"
 #include "keystate/zone_list_task.h"
 }
 
@@ -58,7 +59,8 @@ perform_zone_list(int sockfd, engineconfig_type *config)
                        "I have %i zones configured\n"
                        "Zones:\n"
                        "Zone:                           "
-                       "Policy:      "
+                       "Policy:       "
+                       "Next change:               "
                        "Signer Configuration:"
                        "\n"
                        ,zonelistfile,datastore,nzones
@@ -68,10 +70,21 @@ perform_zone_list(int sockfd, engineconfig_type *config)
         for (int i=0; i<nzones; ++i) {
             const ::ods::keystate::EnforcerZone &zl_zone = keystateDoc->zones(i);
             
+            char nctime[32];
+            if (zl_zone.next_change()>0) {
+                if (!ods_ctime_r(nctime,sizeof(nctime),zl_zone.next_change())) {
+                    strncpy(nctime,"invalid date/time",sizeof(nctime));
+                    nctime[sizeof(nctime)-1] = '\0';
+                }
+            } else {
+                strncpy(nctime,"as soon as possible",sizeof(nctime));
+                nctime[sizeof(nctime)-1] = '\0';
+            }
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-34s\n",
+                           "%-31s %-13s %-26s %-34s\n",
                            zl_zone.name().c_str(),
                            zl_zone.policy().c_str(),
+                           nctime,
                            zl_zone.signconf_path().c_str()
                            );
             ods_writen(sockfd, buf, strlen(buf));
