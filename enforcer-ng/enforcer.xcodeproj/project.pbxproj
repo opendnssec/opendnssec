@@ -39,6 +39,9 @@
 		A77C58861370531B000A4E51 /* update_keyzones_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C5880137047AD000A4E51 /* update_keyzones_task.cpp */; };
 		A77C589813712EC2000A4E51 /* update_hsmkeys_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C589113712EB2000A4E51 /* update_hsmkeys_task.cpp */; };
 		A77C589913712EC7000A4E51 /* update_hsmkeys_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C589213712EB2000A4E51 /* update_hsmkeys_cmd.cpp */; };
+		A77C58CE13719CD6000A4E51 /* keystate_ds_submit_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C58C713719A6E000A4E51 /* keystate_ds_submit_task.cpp */; };
+		A77C58CF13719CDC000A4E51 /* keystate_ds_submit_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C58C913719A73000A4E51 /* keystate_ds_submit_cmd.cpp */; };
+		A77C58D31371E02B000A4E51 /* setup_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C58D01371E01C000A4E51 /* setup_cmd.cpp */; };
 		A79154FA134E03A2004DEF95 /* zone_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DDF134D21D400B13EA0 /* zone_list_cmd.cpp */; };
 		A7915502134E365D004DEF95 /* update_zonelist_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */; };
 		A7915503134E3B0B004DEF95 /* update_zonelist_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE1134D21D400B13EA0 /* update_zonelist_cmd.cpp */; };
@@ -157,6 +160,12 @@
 		A77C589213712EB2000A4E51 /* update_hsmkeys_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_hsmkeys_cmd.cpp; sourceTree = "<group>"; };
 		A77C589313712EB2000A4E51 /* update_hsmkeys_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_hsmkeys_task.h; sourceTree = "<group>"; };
 		A77C589413712EB2000A4E51 /* update_hsmkeys_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_hsmkeys_cmd.h; sourceTree = "<group>"; };
+		A77C58C713719A6E000A4E51 /* keystate_ds_submit_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_ds_submit_task.cpp; path = keystate/keystate_ds_submit_task.cpp; sourceTree = "<group>"; };
+		A77C58C813719A70000A4E51 /* keystate_ds_submit_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_ds_submit_task.h; path = keystate/keystate_ds_submit_task.h; sourceTree = "<group>"; };
+		A77C58C913719A73000A4E51 /* keystate_ds_submit_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_ds_submit_cmd.cpp; path = keystate/keystate_ds_submit_cmd.cpp; sourceTree = "<group>"; };
+		A77C58CA13719A77000A4E51 /* keystate_ds_submit_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_ds_submit_cmd.h; path = keystate/keystate_ds_submit_cmd.h; sourceTree = "<group>"; };
+		A77C58D01371E01C000A4E51 /* setup_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = setup_cmd.cpp; sourceTree = "<group>"; };
+		A77C58D11371E01F000A4E51 /* setup_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = setup_cmd.h; sourceTree = "<group>"; };
 		A79154FB134E0435004DEF95 /* zone_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zone_list_cmd.h; sourceTree = "<group>"; };
 		A79154FF134E365D004DEF95 /* update_zonelist_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_zonelist_task.cpp; sourceTree = "<group>"; };
 		A7915500134E365D004DEF95 /* update_zonelist_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_zonelist_task.h; sourceTree = "<group>"; };
@@ -351,6 +360,10 @@
 				A77C5800136D6BC7000A4E51 /* keystate_list_cmd.cpp */,
 				A77C57FD136D674C000A4E51 /* keystate_list_task.h */,
 				A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */,
+				A77C58CA13719A77000A4E51 /* keystate_ds_submit_cmd.h */,
+				A77C58C913719A73000A4E51 /* keystate_ds_submit_cmd.cpp */,
+				A77C58C813719A70000A4E51 /* keystate_ds_submit_task.h */,
+				A77C58C713719A6E000A4E51 /* keystate_ds_submit_task.cpp */,
 				A77C58831370530D000A4E51 /* update_keyzones_cmd.h */,
 				A77C58821370530C000A4E51 /* update_keyzones_cmd.cpp */,
 				A77C587F137047AD000A4E51 /* update_keyzones_task.h */,
@@ -482,6 +495,8 @@
 		A7F2A3731338B145003A936B /* enforcer */ = {
 			isa = PBXGroup;
 			children = (
+				A77C58D11371E01F000A4E51 /* setup_cmd.h */,
+				A77C58D01371E01C000A4E51 /* setup_cmd.cpp */,
 				A72FF6A9134335D400B85C40 /* enforcerdata.h */,
 				A7E70DCB134C408F00B13EA0 /* enforce_cmd.h */,
 				A7E70DC8134C408E00B13EA0 /* enforce_cmd.cpp */,
@@ -621,6 +636,9 @@
 				A77C58861370531B000A4E51 /* update_keyzones_task.cpp in Sources */,
 				A77C589813712EC2000A4E51 /* update_hsmkeys_task.cpp in Sources */,
 				A77C589913712EC7000A4E51 /* update_hsmkeys_cmd.cpp in Sources */,
+				A77C58CE13719CD6000A4E51 /* keystate_ds_submit_task.cpp in Sources */,
+				A77C58CF13719CDC000A4E51 /* keystate_ds_submit_cmd.cpp in Sources */,
+				A77C58D31371E02B000A4E51 /* setup_cmd.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
