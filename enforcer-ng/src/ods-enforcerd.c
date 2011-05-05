@@ -48,7 +48,7 @@
 #include "keystate/keystate_ds_submit_cmd.h"
 
 #include "keystate/keystate_list_cmd.h"
-#include "zone/zone_list_cmd.h"
+#include "keystate/zone_list_cmd.h"
 #include "policy/policy_list_cmd.h"
 
 #include "hsmkey/hsmkey_gen_cmd.h"
