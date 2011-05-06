@@ -428,6 +428,9 @@ worker_perform_task(worker_type* worker)
     return;
 
 task_perform_fail:
+    /* in case of failure, also mark zone processed (for single run usage) */
+    zone->processed = 1;
+
     if (task->backoff) {
         task->backoff *= 2;
         if (task->backoff > ODS_SE_MAX_BACKOFF) {
