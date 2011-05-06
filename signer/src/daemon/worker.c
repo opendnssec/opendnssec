@@ -495,7 +495,6 @@ worker_work(worker_type* worker)
             worker_perform_task(worker);
 
             zone->task = worker->task;
-            zone->processed = 1;
 
             ods_log_debug("[%s[%i]] finished working on zone %s",
                 worker2str(worker->type), worker->thread_num, zone->name);
