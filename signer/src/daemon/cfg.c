@@ -106,6 +106,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->chroot = parse_conf_chroot(allocator, cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
+        ecfg->num_adapters = 0;
         ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
         ecfg->verbosity = cmdline_verbosity;
 
