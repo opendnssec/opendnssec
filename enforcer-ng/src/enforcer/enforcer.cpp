@@ -52,42 +52,50 @@ bool getLastReusableKey( EnforcerZone &zone,
 	return false;
 }
 
-void setState( KeyState &record_state, const RecordState new_state, const time_t now ) {
+/* Applies new state to record and keeps additional administration.
+ * */
+void setState( KeyState &record_state, const RecordState new_state, 
+		const time_t now ) {
 	record_state.setState(new_state);
 	record_state.setLastChange(now);
 }
 
-bool reliableDs(KeyDataList &key_list, KeyData *key) {
-	if (key->keyStateDS().state() == OMN) return true;
-	if (key->keyStateDS().state() != COM) return false;
+/* A DS|DNSKEY|RRSIG RR is considered reliable (useable in a validation 
+ * chain) if it is known to all caches or it is being introduced and 
+ * another DS|DNSKEY|RRSIG is decommissioned at the same time.
+ * */
+bool reliableDs(KeyDataList &key_list, KeyData &key) {
+	if (key.keyStateDS().state() == OMN) return true;
+	if (key.keyStateDS().state() != COM) return false;
+	int alg = key.algorithm();
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		if  (k.keyStateDS().state() == PCM &&
-				k.algorithm() == key->algorithm())
+				k.algorithm() == alg)
 			return true;
 	}
 	return false;
 }
-
-bool reliableDnskey(KeyDataList &key_list, KeyData *key) {
-	if (key->keyStateDNSKEY().state() == OMN) return true;
-	if (key->keyStateDNSKEY().state() != COM) return false;
+bool reliableDnskey(KeyDataList &key_list, KeyData &key) {
+	if (key.keyStateDNSKEY().state() == OMN) return true;
+	if (key.keyStateDNSKEY().state() != COM) return false;
+	int alg = key.algorithm();
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		if  (k.keyStateDNSKEY().state() == PCM &&
-				k.algorithm() == key->algorithm())
+				k.algorithm() == alg)
 			return true;
 	}
 	return false;
 }
-
-bool reliableRrsig(KeyDataList &key_list, KeyData *key) {
-	if (key->keyStateRRSIG().state() == OMN) return true;
-	if (key->keyStateRRSIG().state() != COM) return false;
+bool reliableRrsig(KeyDataList &key_list, KeyData &key) {
+	if (key.keyStateRRSIG().state() == OMN) return true;
+	if (key.keyStateRRSIG().state() != COM) return false;
+	int alg = key.algorithm();
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		if  (k.keyStateRRSIG().state() == PCM &&
-				k.algorithm() == key->algorithm())
+				k.algorithm() == alg)
 			return true;
 	}
 	return false;
@@ -114,8 +122,8 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if (k->algorithm() == key.algorithm() &&
-					reliableDs(key_list, k) &&
-					reliableDnskey(key_list, k)) {
+					reliableDs(key_list, *k) &&
+					reliableDnskey(key_list, *k)) {
 				setState(record_state, RUM, now);
 				record_changed = true;
 				/* The DS record must be submit to the parent */
@@ -218,7 +226,7 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 				(k->keyStateDS().state() == COM && exists_ds_postcomitted));
 		if (k->algorithm() != key.algorithm() ) continue;
 		if (k->keyStateDS().state() == HID) continue;
-		if (reliableDnskey(key_list, k)) continue;
+		if (reliableDnskey(key_list, *k)) continue;
 
 		/* Leave innerloop as last check,
 		 * for performance. */
@@ -227,7 +235,7 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 		for (int j = 0; j < num_keys; j++) {
 			l = &key_list.key(j);
 			if (l->algorithm() == k->algorithm() && l != &key
-					&& reliableDs(key_list, l) && reliableDnskey(key_list, l)) {
+					&& reliableDs(key_list, *l) && reliableDnskey(key_list, *l)) {
 				hasReplacement = true;
 				break;
 			}
@@ -325,7 +333,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if (!(key.algorithm() == k->algorithm() &&
-					reliableDnskey(key_list, k) &&
+					reliableDnskey(key_list, *k) &&
 					key.role() & KSK)){
 				noneExist = false;
 				break;
@@ -333,13 +341,13 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 		}
 		if (!noneExist) break;
 	}
-	if (!reliableDnskey(key_list, &key)) {
+	if (!reliableDnskey(key_list, key)) {
 		bool oneExist = false;
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if (!(key.algorithm() == k->algorithm() &&
-					reliableDnskey(key_list, k) &&
-					reliableRrsig(key_list, k))){
+					reliableDnskey(key_list, *k) &&
+					reliableRrsig(key_list, *k))){
 				oneExist = true;
 				break;
 			}
@@ -411,15 +419,15 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if ( k->role() & KSK && k->keyStateDS().state() != HID &&
-					(k == &key || !reliableDnskey(key_list, k)) ) {
+					(k == &key || !reliableDnskey(key_list, *k)) ) {
 				/* This key breaks the chain, see if there is a
 				 * candidate that fixes this. */
 				all = false;
 				for ( int j = 0; j < num_keys; j++ ) {
 					l = &key_list.key(j);
 					if ( k != l && k->algorithm() == l->algorithm() &&
-							reliableDs( key_list, l ) &&
-							reliableDnskey( key_list, l ) ) {
+							reliableDs( key_list, *l ) &&
+							reliableDnskey( key_list, *l ) ) {
 						all = true;
 						break;
 					}
@@ -428,15 +436,15 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 			}
 			/* Passed the first test */
 			if ( k->keyStateDNSKEY().state() != HID &&
-				!reliableRrsig( key_list, k ) ) {
+				!reliableRrsig( key_list, *k ) ) {
 				/* This key breaks the chain, see if there is a
 				 * candidate that fixes this. */
 				all = false;
 				for ( int j = 0; j < num_keys; j++ ) {
 					l = &key_list.key(j);
 					if ( k != l && k->algorithm() == l->algorithm() &&
-							reliableRrsig( key_list, l ) &&
-							reliableDnskey( key_list, l ) ) {
+							reliableRrsig( key_list, *l ) &&
+							reliableDnskey( key_list, *l ) ) {
 						all = true;
 						break;
 					}
@@ -494,7 +502,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	next_update_for_record = -1;
 	const ::ods::kasp::Policy *policy = zone.policy();
 	int num_keys = key_list.numKeys();
-	KeyData *k, *l;
+	KeyData *k;
 	time_t Tprop;
 
 	bool exists;
@@ -510,7 +518,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if ( key.algorithm() == k->algorithm() &&
-					reliableRrsig(key_list, k) ) {
+					reliableRrsig(key_list, *k) ) {
 				exists = true;
 				break;
 			}
@@ -585,8 +593,8 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if ( &key != k && key.algorithm() == k->algorithm() &&
-					reliableDnskey(key_list, k) &&
-					reliableRrsig(key_list, k)) {
+					reliableDnskey(key_list, *k) &&
+					reliableRrsig(key_list, *k)) {
 				safeToWithdraw = true;
 				break;
 			}
