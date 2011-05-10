@@ -950,6 +950,7 @@ zone_recover(zone_type* zone)
             zone->nsec3params = NULL;
             goto recover_error;
         }
+        ods_fclose(fd);
 
         /* all ok */
         zone->zonedata->initialized = 1;
