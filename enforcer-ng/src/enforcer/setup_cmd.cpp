@@ -29,10 +29,12 @@ void help_setup_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-    "setup           delete existing database and perform:\n"
-    "                   'update kasp', 'policy resalt',\n"
-    "                   'update zonelist', 'update hsmkeys'\n"
-                    );
+        "setup           delete existing database files and then perform:\n"
+        "                  update kasp\n"
+        "                  policy resalt\n"
+        "                  update zonelist\n"
+        "                  update hsmkeys\n"
+        );
     ods_writen(sockfd, buf, strlen(buf));
 }
 
