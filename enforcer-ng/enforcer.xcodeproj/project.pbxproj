@@ -23,6 +23,8 @@
 		A74EB43A13521A72001F9E1B /* signconf_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A74EB43713521A72001F9E1B /* signconf_cmd.cpp */; };
 		A74EB43B13521A72001F9E1B /* signconf_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A74EB43913521A72001F9E1B /* signconf_task.cpp */; };
 		A74EB44013524ED9001F9E1B /* keystate.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A74EB43F13524ED9001F9E1B /* keystate.pb.cc */; };
+		A75BBBDB137AAC1E007A4B11 /* keystate_show_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A75BBBD4137A9591007A4B11 /* keystate_show_cmd.cpp */; };
+		A75BBBDC137AAC22007A4B11 /* keystate_show_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A75BBBD6137A9592007A4B11 /* keystate_show_task.cpp */; };
 		A75E74B7133B6E9700F09B43 /* zonelist.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A75E74B5133B6E9700F09B43 /* zonelist.pb.cc */; };
 		A772F49313323E5E004179E8 /* xmlext.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49113323E5E004179E8 /* xmlext.pb.cc */; };
 		A772F49913323E7A004179E8 /* kasp.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49513323E7A004179E8 /* kasp.pb.cc */; };
@@ -120,6 +122,10 @@
 		A74EB43F13524ED9001F9E1B /* keystate.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate.pb.cc; path = keystate/keystate.pb.cc; sourceTree = "<group>"; };
 		A75B340E131508F400AC30B1 /* enforcer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = enforcer; sourceTree = BUILT_PRODUCTS_DIR; };
 		A75B3410131508F400AC30B1 /* enforcerd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = enforcerd; sourceTree = BUILT_PRODUCTS_DIR; };
+		A75BBBD4137A9591007A4B11 /* keystate_show_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_show_cmd.cpp; path = keystate/keystate_show_cmd.cpp; sourceTree = "<group>"; };
+		A75BBBD5137A9592007A4B11 /* keystate_show_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_show_cmd.h; path = keystate/keystate_show_cmd.h; sourceTree = "<group>"; };
+		A75BBBD6137A9592007A4B11 /* keystate_show_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_show_task.cpp; path = keystate/keystate_show_task.cpp; sourceTree = "<group>"; };
+		A75BBBD7137A9593007A4B11 /* keystate_show_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_show_task.h; path = keystate/keystate_show_task.h; sourceTree = "<group>"; };
 		A75E74B4133B6E9700F09B43 /* zonelist.pb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zonelist.pb.h; sourceTree = "<group>"; };
 		A75E74B5133B6E9700F09B43 /* zonelist.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zonelist.pb.cc; sourceTree = "<group>"; };
 		A75E74B6133B6E9700F09B43 /* zonelist.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = zonelist.proto; sourceTree = "<group>"; };
@@ -356,6 +362,10 @@
 			isa = PBXGroup;
 			children = (
 				A74EB43D135249DB001F9E1B /* keystate.proto */,
+				A75BBBD5137A9592007A4B11 /* keystate_show_cmd.h */,
+				A75BBBD4137A9591007A4B11 /* keystate_show_cmd.cpp */,
+				A75BBBD7137A9593007A4B11 /* keystate_show_task.h */,
+				A75BBBD6137A9592007A4B11 /* keystate_show_task.cpp */,
 				A77C58D61372A88A000A4E51 /* zone_list_cmd.h */,
 				A77C58D71372A88E000A4E51 /* zone_list_cmd.cpp */,
 				A77C58D51372A886000A4E51 /* zone_list_task.h */,
@@ -639,6 +649,8 @@
 				A77C58D91372A892000A4E51 /* zone_list_cmd.cpp in Sources */,
 				A77C59071372C53F000A4E51 /* keystate_ds_seen_task.cpp in Sources */,
 				A77C59081372C53F000A4E51 /* keystate_ds_seen_cmd.cpp in Sources */,
+				A75BBBDB137AAC1E007A4B11 /* keystate_show_cmd.cpp in Sources */,
+				A75BBBDC137AAC22007A4B11 /* keystate_show_task.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

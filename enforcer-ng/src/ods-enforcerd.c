@@ -38,18 +38,20 @@
 /* Pull in the commands that have been implemented for the enforcer */
 #include "enforcer/setup_cmd.h"
 #include "policy/update_kasp_cmd.h"
+#include "policy/policy_resalt_cmd.h"
 #include "keystate/update_keyzones_cmd.h"
 #include "hsmkey/update_hsmkeys_cmd.h"
 
-#include "enforcer/enforce_cmd.h"
-#include "signconf/signconf_cmd.h"
-#include "policy/policy_resalt_cmd.h"
+#include "policy/policy_list_cmd.h"
+#include "keystate/zone_list_cmd.h"
+
+#include "keystate/keystate_list_cmd.h"
+#include "keystate/keystate_show_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
 #include "keystate/keystate_ds_seen_cmd.h"
 
-#include "keystate/keystate_list_cmd.h"
-#include "keystate/zone_list_cmd.h"
-#include "policy/policy_list_cmd.h"
+#include "enforcer/enforce_cmd.h"
+#include "signconf/signconf_cmd.h"
 
 #include "hsmkey/hsmkey_gen_cmd.h"
 #include "hsmkey/hsmkey_list_cmd.h"
@@ -115,18 +117,20 @@ version(FILE* out)
 static help_xxxx_cmd_type enforcer_help[] = {
     help_setup_cmd,
     help_update_kasp_cmd,
+    help_policy_resalt_cmd,
     help_update_keyzones_cmd,
     help_update_hsmkeys_cmd,
     
-    help_enforce_zones_cmd,
-    help_signconf_cmd,
-    help_policy_resalt_cmd,
+    help_policy_list_cmd,
+    help_zone_list_cmd,
+
+    help_keystate_list_cmd,
+    help_keystate_show_cmd,
     help_keystate_ds_submit_cmd,
     help_keystate_ds_seen_cmd,
     
-    help_keystate_list_cmd,
-    help_zone_list_cmd,
-    help_policy_list_cmd,
+    help_enforce_zones_cmd,
+    help_signconf_cmd,
     
     help_hsmkey_gen_cmd,
     help_hsmkey_list_cmd,
@@ -145,19 +149,21 @@ static handled_xxxx_cmd_type
 enforcer_commands[] = {
     handled_setup_cmd,
     handled_update_kasp_cmd,
+    handled_policy_resalt_cmd,
     handled_update_keyzones_cmd,
     handled_update_hsmkeys_cmd,
     
-    handled_enforce_zones_cmd,
-    handled_signconf_cmd,
-    handled_policy_resalt_cmd,
+    handled_policy_list_cmd,
+    handled_zone_list_cmd,
+
+    handled_keystate_list_cmd,
+    handled_keystate_show_cmd,
     handled_keystate_ds_submit_cmd,
     handled_keystate_ds_seen_cmd,
     
-    handled_keystate_list_cmd,
-    handled_zone_list_cmd,
-    handled_policy_list_cmd,
-    
+    handled_enforce_zones_cmd,
+    handled_signconf_cmd,
+
     handled_hsmkey_gen_cmd,
     handled_hsmkey_list_cmd,
 
