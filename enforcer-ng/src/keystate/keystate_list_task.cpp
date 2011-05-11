@@ -16,7 +16,7 @@ extern "C" {
 static const char *module_str = "keystate_list_task";
 
 void 
-perform_keystate_list(int sockfd, engineconfig_type *config)
+perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
 {
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
@@ -47,6 +47,7 @@ perform_keystate_list(int sockfd, engineconfig_type *config)
                    "DS:          "
                    "RRSIG:       "
                    "DNSKEY:      "
+                   "Id:"
                    "\n"
                    ,datastore
                    );
@@ -63,22 +64,24 @@ perform_keystate_list(int sockfd, engineconfig_type *config)
             std::string rrsig_rrstate = rrstate_Name(key.rrsig().state());
             std::string dnskey_rrstate = rrstate_Name(key.dnskey().state());
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-12s %-12s %-12s\n",
-                           zone.name().c_str(),
-                           keyrole.c_str(),
-                           ds_rrstate.c_str(),
-                           rrsig_rrstate.c_str(),
-                           dnskey_rrstate.c_str()
-                           );
+                       "%-31s %-13s %-12s %-12s %-12s %s\n",
+                       zone.name().c_str(),
+                       keyrole.c_str(),
+                       ds_rrstate.c_str(),
+                       rrsig_rrstate.c_str(),
+                       dnskey_rrstate.c_str(),
+                       key.locator().c_str()
+                       );
             ods_writen(sockfd, buf, strlen(buf));
         }
     }
 }
 
+#if 0
 static task_type * 
 keystate_list_task_perform(task_type *task)
 {
-    perform_keystate_list(-1,(engineconfig_type *)task->context);
+    perform_keystate_list(-1,(engineconfig_type *)task->context, 0);
     
     task_cleanup(task);
     return NULL;
@@ -92,3 +95,4 @@ keystate_list_task(engineconfig_type *config,const char *shortname)
                                  keystate_list_task_perform);
 	return task_create(what, time_now(), "all", (void*)config);
 }
+#endif
