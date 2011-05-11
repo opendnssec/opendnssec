@@ -14,13 +14,65 @@ extern "C" {
 
 
 #include <fcntl.h>
+#include <string.h>
 
 static const char *keypregen_task_str = "keypregen_task";
 
+int
+cmd_generate (int argc, char *argv[])
+{
+    char *repository = NULL;
+    char *algorithm = NULL;
+    unsigned int keysize = 1024;
+    
+    hsm_key_t *key = NULL;
+    hsm_ctx_t *ctx = NULL;
+    
+    if (argc != 3) {
+        return -1;
+    }
+    
+    repository = strdup(argv[0]);
+    
+    /* Check for repository before starting using it */
+    if (hsm_token_attached(ctx, repository) == 0) {
+        hsm_print_error(ctx);
+        return 1;
+    }
+
+    algorithm = strdup(argv[1]);
+    keysize = atoi(argv[2]);
+    
+    if (!strcmp(algorithm, "rsa")) {
+        printf("Generating %d bit RSA key in repository: %s\n",
+               keysize, repository);
+        
+        key = hsm_generate_rsa_key(NULL, repository, keysize);
+        
+        if (key) {
+            hsm_key_info_t *key_info;
+            
+            key_info = hsm_get_key_info(NULL, key);
+            printf("Key generation successful: %s\n",
+                   key_info ? key_info->id : "NULL");
+            hsm_key_info_free(key_info);
+            hsm_print_key(key);
+            hsm_key_free(key);
+        } else {
+            printf("Key generation failed.\n");
+            return -1;
+        }
+        
+    } else {
+        printf("Unknown algorithm: %s\n", algorithm);
+        return -1;
+    }
+    
+    return 0;
+}
 
 void generate_a_key_in_a_hsm()
 {
-    //hsm_open(config->cfg_filename,NULL,NULL);
     hsm_ctx_t * hsm_ctx = hsm_create_context();
     
     
@@ -29,7 +81,6 @@ void generate_a_key_in_a_hsm()
     
     
     hsm_destroy_context(hsm_ctx);
-    //hsm_close();
 }
 
 
