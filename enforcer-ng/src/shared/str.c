@@ -42,6 +42,31 @@
 
 static const char *module_str = "str";
 
+int ods_str_explode(char *buf, int argc, const char *argv[])
+{
+    int narg = 0;
+    if (buf && strlen(buf)) { 
+        char *p = buf;
+        char *pend = p+strlen(p);
+        do {
+            for (; p<pend && isspace(*p); ++p) {
+                *p = '\0'; // zero-out space characters
+            }
+            if (p < pend) {
+                if (narg < argc) {
+                    argv[narg++] = p;
+                } else {
+                    ++narg;
+                }
+                for (; p<pend && !isspace(*p); ++p) {
+                    // skip argv value itself
+                }
+            }
+        } while (p<pend);
+    }
+    return narg;
+}
+
 /**
  * Join arguments together with a join character into a single string.
  *
@@ -107,5 +132,68 @@ ods_ctime_r(char *buf, size_t nbuf, time_t t)
     }
     return buf;
 #endif
+}
+
+const char *ods_check_command(const char *cmd, int cmdsize, const char *scmd)
+{
+    size_t ncmd = strlen(scmd);
+    if (cmdsize < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
+    if (cmd[ncmd] == '\0') {
+        cmd = "";
+    } else if (cmd[ncmd] != ' ') {
+        return NULL;
+    } else {
+        cmd = &cmd[ncmd+1];
+    }
+    return cmd;
+}
+
+int ods_find_arg(int *pargc, const char *argv[],
+                 const char *longname, const char *shortname)
+{
+    int i;
+    for (i=0; i<*pargc; ++i) {
+        const char *a = argv[i];
+        if (a[0] == '-') {
+            // we found an option, now try to match it 
+            int bmatch = 0;
+            if (a[1] == '-')
+                bmatch = strcmp(&a[2],longname)==0; // longopt
+            else
+                bmatch = strcmp(&a[1],shortname)==0; // shortopt
+            if (bmatch) {
+                int j;
+                // remove matching option from argv
+                --(*pargc);
+                for (j=i; j<*pargc; ++j)
+                    argv[j] = argv[j+1];
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+int ods_find_arg_and_param(int *pargc, const char *argv[],
+                           const char *longname, const char *shortname,
+                           const char **pvalue)
+{
+    int j;
+    int i = ods_find_arg(pargc,argv,longname,shortname);
+    if (i<0)
+        return i;
+    const char *a = argv[i];
+    // check that the argv entry is not an option itself.
+    if (a[0] == '-') {
+        *pvalue = NULL;
+        return i;
+    }
+    // set the value to the argv 
+    *pvalue = a;
+    // remove parameter from argv
+    --(*pargc);
+    for (j=i; j<*pargc; ++j)
+        argv[j] = argv[j+1];
+    return i;
 }
 

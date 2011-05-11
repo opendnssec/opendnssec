@@ -38,6 +38,9 @@
 #include "shared/allocator.h"
 #include <time.h>
 
+int ods_str_explode(char *buf, int argc, const char *argv[]);
+
+
 /**
  * Join arguments together with a join character into a single string 
  * (terminated by 2 zero characters.)
@@ -67,5 +70,17 @@ char *ods_str_join(allocator_type* allocator, int argc, char *argv[],
  * \return	buf to indicate success or NULL to indicate failure.
  */
 char *ods_ctime_r(char *buf, size_t nbuf, time_t t);
+
+
+
+const char *ods_check_command(const char *cmd, int cmdsize, 
+                              const char *scmd);
+
+int ods_find_arg(int *pargc, const char *argv[],
+                 const char *longname, const char *shortname);
+
+int ods_find_arg_and_param(int *pargc, const char *argv[],
+                           const char *longname, const char *shortname,
+                           const char **pvalue);
 
 #endif /* SHARED_STR_H */
