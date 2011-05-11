@@ -45,6 +45,7 @@
 #include "signconf/signconf_cmd.h"
 #include "policy/policy_resalt_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
+#include "keystate/keystate_ds_seen_cmd.h"
 
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/zone_list_cmd.h"
@@ -121,6 +122,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_signconf_cmd,
     help_policy_resalt_cmd,
     help_keystate_ds_submit_cmd,
+    help_keystate_ds_seen_cmd,
     
     help_keystate_list_cmd,
     help_zone_list_cmd,
@@ -150,6 +152,7 @@ enforcer_commands[] = {
     handled_signconf_cmd,
     handled_policy_resalt_cmd,
     handled_keystate_ds_submit_cmd,
+    handled_keystate_ds_seen_cmd,
     
     handled_keystate_list_cmd,
     handled_zone_list_cmd,

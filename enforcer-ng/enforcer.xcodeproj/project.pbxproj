@@ -43,6 +43,8 @@
 		A77C58D31371E02B000A4E51 /* setup_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C58D01371E01C000A4E51 /* setup_cmd.cpp */; };
 		A77C58D81372A892000A4E51 /* zone_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C58D41372A881000A4E51 /* zone_list_task.cpp */; };
 		A77C58D91372A892000A4E51 /* zone_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C58D71372A88E000A4E51 /* zone_list_cmd.cpp */; };
+		A77C59071372C53F000A4E51 /* keystate_ds_seen_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C59031372C53E000A4E51 /* keystate_ds_seen_task.cpp */; };
+		A77C59081372C53F000A4E51 /* keystate_ds_seen_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C59051372C53F000A4E51 /* keystate_ds_seen_cmd.cpp */; };
 		A79435F9131B41F700108EFB /* fifoq.c in Sources */ = {isa = PBXBuildFile; fileRef = A79435F5131B41F700108EFB /* fifoq.c */; };
 		A79435FA131B41F700108EFB /* schedule.c in Sources */ = {isa = PBXBuildFile; fileRef = A79435F7131B41F700108EFB /* schedule.c */; };
 		A7943612131B420E00108EFB /* allocator.c in Sources */ = {isa = PBXBuildFile; fileRef = A79435FC131B420E00108EFB /* allocator.c */; };
@@ -166,6 +168,10 @@
 		A77C58D51372A886000A4E51 /* zone_list_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = zone_list_task.h; path = keystate/zone_list_task.h; sourceTree = "<group>"; };
 		A77C58D61372A88A000A4E51 /* zone_list_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = zone_list_cmd.h; path = keystate/zone_list_cmd.h; sourceTree = "<group>"; };
 		A77C58D71372A88E000A4E51 /* zone_list_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = zone_list_cmd.cpp; path = keystate/zone_list_cmd.cpp; sourceTree = "<group>"; };
+		A77C59031372C53E000A4E51 /* keystate_ds_seen_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_ds_seen_task.cpp; path = keystate/keystate_ds_seen_task.cpp; sourceTree = "<group>"; };
+		A77C59041372C53E000A4E51 /* keystate_ds_seen_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_ds_seen_task.h; path = keystate/keystate_ds_seen_task.h; sourceTree = "<group>"; };
+		A77C59051372C53F000A4E51 /* keystate_ds_seen_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_ds_seen_cmd.cpp; path = keystate/keystate_ds_seen_cmd.cpp; sourceTree = "<group>"; };
+		A77C59061372C53F000A4E51 /* keystate_ds_seen_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_ds_seen_cmd.h; path = keystate/keystate_ds_seen_cmd.h; sourceTree = "<group>"; };
 		A79435F5131B41F700108EFB /* fifoq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fifoq.c; sourceTree = "<group>"; };
 		A79435F6131B41F700108EFB /* fifoq.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fifoq.h; sourceTree = "<group>"; };
 		A79435F7131B41F700108EFB /* schedule.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = schedule.c; sourceTree = "<group>"; };
@@ -362,6 +368,10 @@
 				A77C58C913719A73000A4E51 /* keystate_ds_submit_cmd.cpp */,
 				A77C58C813719A70000A4E51 /* keystate_ds_submit_task.h */,
 				A77C58C713719A6E000A4E51 /* keystate_ds_submit_task.cpp */,
+				A77C59061372C53F000A4E51 /* keystate_ds_seen_cmd.h */,
+				A77C59051372C53F000A4E51 /* keystate_ds_seen_cmd.cpp */,
+				A77C59041372C53E000A4E51 /* keystate_ds_seen_task.h */,
+				A77C59031372C53E000A4E51 /* keystate_ds_seen_task.cpp */,
 				A77C58831370530D000A4E51 /* update_keyzones_cmd.h */,
 				A77C58821370530C000A4E51 /* update_keyzones_cmd.cpp */,
 				A77C587F137047AD000A4E51 /* update_keyzones_task.h */,
@@ -627,6 +637,8 @@
 				A77C58D31371E02B000A4E51 /* setup_cmd.cpp in Sources */,
 				A77C58D81372A892000A4E51 /* zone_list_task.cpp in Sources */,
 				A77C58D91372A892000A4E51 /* zone_list_cmd.cpp in Sources */,
+				A77C59071372C53F000A4E51 /* keystate_ds_seen_task.cpp in Sources */,
+				A77C59081372C53F000A4E51 /* keystate_ds_seen_cmd.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
