@@ -16,7 +16,8 @@ extern "C" {
 static const char *module_str = "keystate_ds_seen_task";
 
 void 
-perform_keystate_ds_seen(int sockfd, engineconfig_type *config)
+perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
+                         const char *zone, const char *id)
 {
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
@@ -44,6 +45,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config)
                    "Keys:\n"
                    "Zone:                           "
                    "Keytype:      "
+                   "Id:                                      "
                    "ds-seen: "
                    "\n"
                    ,datastore
@@ -52,28 +54,61 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config)
 
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
 
-        const ::ods::keystate::EnforcerZone &zone  = keystateDoc->zones(z);
+        const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
         
-        for (int k=0; k<zone.keys_size(); ++k) {
-            const ::ods::keystate::KeyData &key = zone.keys(k);
+        for (int k=0; k<enfzone.keys_size(); ++k) {
+            const ::ods::keystate::KeyData &key = enfzone.keys(k);
             std::string keyrole = keyrole_Name(key.role());
-            const char *status = key.ds_seen() ? "yes" : "no";
             
+            if (id && key.locator()==id || 
+                zone && enfzone.name()==zone && key.role()==::ods::keystate::KSK)
+            {
+                keystateDoc->mutable_zones(z)->mutable_keys(k)->set_ds_seen(true);
+            }
+            
+            const char *status = key.ds_seen() ? "yes" : "no";
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-8s\n",
-                           zone.name().c_str(),
+                           "%-31s %-13s %-40s %-8s\n",
+                           enfzone.name().c_str(),
                            keyrole.c_str(),
+                           key.locator().c_str(),
                            status
                            );
             ods_writen(sockfd, buf, strlen(buf));
         }
+    }
+
+    // Persist the keystate zones back to disk as they may have
+    // been changed by the enforcer update
+    if (keystateDoc->IsInitialized()) {
+        std::string datapath(datastore);
+        datapath += ".keystate.pb";
+        int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
+        if (keystateDoc->SerializeToFileDescriptor(fd)) {
+            ods_log_debug("[%s] key states have been updated",
+                          module_str);
+            
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "update of key states completed.\n");
+            ods_writen(sockfd, buf, strlen(buf));
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "error: key states file could not be written.\n");
+            ods_writen(sockfd, buf, strlen(buf));
+        }
+        close(fd);
+    } else {
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+                       "error: a message in the key states is missing "
+                       "mandatory information.\n");
+        ods_writen(sockfd, buf, strlen(buf));
     }
 }
 
 static task_type * 
 keystate_ds_seen_task_perform(task_type *task)
 {
-    perform_keystate_ds_seen(-1,(engineconfig_type *)task->context);
+    perform_keystate_ds_seen(-1,(engineconfig_type *)task->context,NULL,NULL);
     
     task_cleanup(task);
     return NULL;

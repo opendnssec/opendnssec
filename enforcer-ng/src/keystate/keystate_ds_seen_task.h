@@ -4,7 +4,8 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void perform_keystate_ds_seen(int sockfd, engineconfig_type *config);
+void perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
+                              const char *zone, const char *id);
 
 task_type *keystate_ds_seen_task(engineconfig_type *config,
                                  const char *shortname);
