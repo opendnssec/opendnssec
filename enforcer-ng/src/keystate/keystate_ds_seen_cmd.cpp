@@ -23,7 +23,9 @@ void help_keystate_ds_seen_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key ds-seen     show the ds-seen flag for all keys.\n"
+        "key ds-seen     list the ds-seen flag for all keys.\n"
+        "  --zone <zone> (aka -z) set ds-seen for the KSK of zone <zone>.\n"
+        "  --id <id>     (aka -k) set ds-seen for the key with id <id>.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -41,6 +43,8 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
     if (!cmd)
         return 0; // not handled
 
+    ods_log_debug("[%s] %s command", module_str, scmd);
+
     // Use buf as an intermediate buffer for the command.
     strncpy(buf,cmd,sizeof(buf));
     buf[sizeof(buf)-1] = '\0';
@@ -57,8 +61,8 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
 
     const char *zone = NULL;
     const char *id = NULL;
-    bool bHasZone = ods_find_arg_and_param(&argc,argv,"zone","z",&zone)!=-1 && zone;
-    bool bHasId = ods_find_arg_and_param(&argc,argv,"id","k",&id)!=-1 && id;
+    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+    (void)ods_find_arg_and_param(&argc,argv,"id","k",&id);
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);

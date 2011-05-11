@@ -63,7 +63,10 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
             if (id && key.locator()==id || 
                 zone && enfzone.name()==zone && key.role()==::ods::keystate::KSK)
             {
-                keystateDoc->mutable_zones(z)->mutable_keys(k)->set_ds_seen(true);
+                ::ods::keystate::KeyData *mkey =                 
+                    keystateDoc->mutable_zones(z)->mutable_keys(k);
+                mkey->set_ds_seen(true);
+                mkey->set_submit_to_parent(false);
             }
             
             const char *status = key.ds_seen() ? "yes" : "no";
