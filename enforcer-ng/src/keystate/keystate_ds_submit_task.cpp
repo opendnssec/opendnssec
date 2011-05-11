@@ -44,6 +44,7 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config)
                    "Keys:\n"
                    "Zone:                           "
                    "Keytype:      "
+                   "Id:                                      "
                    "Should Submit: "
                    "\n"
                    ,datastore
@@ -61,9 +62,10 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config)
             const char *action = key.submit_to_parent() ? "yes" : "no";
             
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-14s\n",
+                           "%-31s %-13s %-40s %-14s\n",
                            zone.name().c_str(),
                            keyrole.c_str(),
+                           key.locator().c_str(),
                            action
                            );
             ods_writen(sockfd, buf, strlen(buf));
