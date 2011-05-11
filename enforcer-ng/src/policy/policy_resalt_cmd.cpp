@@ -18,9 +18,11 @@ static const char *policy_resalt_cmd_str = "policy_resalt_cmd";
 void help_policy_resalt_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
-                    "policy resalt   resalt policies\n"
-                    );
+    (void)
+    snprintf(buf, ODS_SE_MAXLINE,
+             "policy resalt   generate new NSEC3 salts for policies that have\n"
+             "                salts older than the resalt duration.\n"
+                   );
     ods_writen(sockfd, buf, strlen(buf));
 }
 
