@@ -41,8 +41,8 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "signer2/tools.h"
-#include "signer2/zone.h"
+#include "signer/tools.h"
+#include "signer/zone.h"
 
 #include <time.h> /* time() */
 

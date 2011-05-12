@@ -46,8 +46,8 @@
 #include "shared/privdrop.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "signer2/zone.h"
-#include "signer2/zonelist.h"
+#include "signer/zone.h"
+#include "signer/zonelist.h"
 #include "tools/zone_fetcher.h"
 
 #include <errno.h>

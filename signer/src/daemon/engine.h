@@ -43,7 +43,7 @@
 #include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/locks.h"
-#include "signer2/zonelist.h"
+#include "signer/zonelist.h"
 
 #include <signal.h>
 

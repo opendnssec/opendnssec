@@ -36,7 +36,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
-#include "signer2/zone.h"
+#include "signer/zone.h"
 
 #include <stdio.h>
 #include <stdlib.h>

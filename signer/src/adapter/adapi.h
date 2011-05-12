@@ -36,7 +36,7 @@
 
 #include "config.h"
 #include "shared/status.h"
-#include "signer2/zone.h"
+#include "signer/zone.h"
 
 #include <ldns/ldns.h>
 
