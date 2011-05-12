@@ -40,6 +40,7 @@
 #include "signer/backup.h"
 #include "signer/domain.h"
 #include "signer/rrset.h"
+#include "signer/zone.h"
 
 #include <ldns/ldns.h>
 
@@ -64,9 +65,10 @@ rrset_compare(const void* a, const void* b)
  *
  */
 domain_type*
-domain_create(ldns_rdf* dname)
+domain_create(allocator_type* allocator, ldns_rdf* dname, void* zone)
 {
-    allocator_type* allocator = NULL;
+    ldns_rdf* clone = NULL;
+    ldns_rbtree_t* rrsets = NULL;
     domain_type* domain = NULL;
     char* str = NULL;
 
@@ -76,11 +78,27 @@ domain_create(ldns_rdf* dname)
     }
     ods_log_assert(dname);
 
-    allocator = allocator_create(malloc, free);
+    clone = ldns_rdf_clone(dname);
+    if (!clone) {
+        ods_log_error("[%s] unable to create domain: clone dname failed",
+            dname_str);
+        return NULL;
+    }
+    ods_log_assert(clone);
+
+    rrsets = ldns_rbtree_create(rrset_compare);
+    if (!rrsets) {
+        ods_log_error("[%s] unable to create domain: initialize rrsets failed",
+            dname_str);
+        ldns_rdf_deep_free(clone);
+        return NULL;
+    }
+    ods_log_assert(rrsets);
+
     if (!allocator) {
         str = ldns_rdf2str(dname);
-        ods_log_error("[%s] unable to create domain %s: create allocator "
-            "failed", dname_str, str?str:"(null)");
+        ods_log_error("[%s] unable to create domain %s: no allocator ",
+            dname_str, str?str:"(null)");
         free((void*)str);
         return NULL;
     }
@@ -92,184 +110,17 @@ domain_create(ldns_rdf* dname)
         ods_log_error("[%s] unable to create domain %s: allocator failed",
             dname_str, str);
         free(str);
-        allocator_cleanup(allocator);
         return NULL;
     }
     ods_log_assert(domain);
 
-    domain->allocator = allocator;
-    domain->dname = ldns_rdf_clone(dname);
+    domain->dname = clone;
     domain->dstatus = DOMAIN_STATUS_NONE;
     domain->parent = NULL;
     domain->denial = NULL;
-    domain->rrsets = ldns_rbtree_create(rrset_compare);
+    domain->rrsets = rrsets;
+    domain->zone = zone;
     return domain;
-}
-
-
-/**
- * Recover domain from backup.
- *
- */
-ods_status
-domain_recover(domain_type* domain, FILE* fd, domain_status dstatus)
-{
-    const char* token = NULL;
-    const char* locator = NULL;
-    uint32_t flags = 0;
-    ldns_rr* rr = NULL;
-    rrset_type* rrset = NULL;
-    ldns_status lstatus = LDNS_STATUS_OK;
-    ldns_rr_type type_covered = LDNS_RR_TYPE_FIRST;
-
-    ods_log_assert(domain);
-    ods_log_assert(fd);
-
-    domain->dstatus = dstatus;
-
-    while (backup_read_str(fd, &token)) {
-        if (ods_strcmp(token, ";;RRSIG") == 0) {
-            /* recover signature */
-            if (!backup_read_str(fd, &locator) ||
-                !backup_read_uint32_t(fd, &flags)) {
-                ods_log_error("[%s] signature in backup corrupted",
-                    dname_str);
-                goto recover_dname_error;
-            }
-            /* expect signature */
-            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-            if (lstatus != LDNS_STATUS_OK) {
-                ods_log_error("[%s] missing signature in backup", dname_str);
-                ods_log_error("[%s] ldns status: %s", dname_str,
-                    ldns_get_errorstr_by_id(lstatus));
-                goto recover_dname_error;
-            }
-            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
-                ods_log_error("[%s] expecting signature in backup", dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-
-            type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rr));
-            rrset = domain_lookup_rrset(domain, type_covered);
-            if (!rrset) {
-                ods_log_error("[%s] signature type %i not covered",
-                    dname_str, type_covered);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            ods_log_assert(rrset);
-            if (rrset_recover(rrset, rr, locator, flags) != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to recover signature", dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            /* signature done */
-            free((void*) locator);
-            locator = NULL;
-            rr = NULL;
-        } else if (ods_strcmp(token, ";;Denial") == 0) {
-            /* expect nsec(3) record */
-            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-            if (lstatus != LDNS_STATUS_OK) {
-                ods_log_error("[%s] missing denial in backup", dname_str);
-                goto recover_dname_error;
-            }
-            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC &&
-                ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC3) {
-                ods_log_error("[%s] expecting denial in backup", dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-
-            /* recover denial structure */
-            ods_log_assert(!domain->denial);
-            domain->denial = denial_create(ldns_rr_owner(rr));
-            ods_log_assert(domain->denial);
-            domain->denial->domain = domain; /* back reference */
-            /* add the NSEC(3) rr */
-            if (!domain->denial->rrset) {
-                domain->denial->rrset = rrset_create(ldns_rr_get_type(rr));
-            }
-            ods_log_assert(domain->denial->rrset);
-
-            if (!rrset_add_rr(domain->denial->rrset, rr)) {
-                ods_log_error("[%s] unable to recover denial", dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            /* commit */
-            if (rrset_commit(domain->denial->rrset) != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to recover denial", dname_str);
-                goto recover_dname_error;
-            }
-            /* denial done */
-            rr = NULL;
-
-            /* recover signature */
-            if (!backup_read_check_str(fd, ";;RRSIG") ||
-                !backup_read_str(fd, &locator) ||
-                !backup_read_uint32_t(fd, &flags)) {
-                ods_log_error("[%s] signature in backup corrupted (denial)",
-                    dname_str);
-                goto recover_dname_error;
-            }
-            /* expect signature */
-            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-            if (lstatus != LDNS_STATUS_OK) {
-                ods_log_error("[%s] missing signature in backup (denial)",
-                    dname_str);
-                ods_log_error("[%s] ldns status: %s", dname_str,
-                    ldns_get_errorstr_by_id(lstatus));
-                goto recover_dname_error;
-            }
-            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
-                ods_log_error("[%s] expecting signature in backup (denial)",
-                    dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            if (!domain->denial->rrset) {
-                ods_log_error("[%s] signature type not covered (denial)",
-                    dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            ods_log_assert(domain->denial->rrset);
-            if (rrset_recover(domain->denial->rrset, rr, locator, flags) !=
-                ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to recover signature (denial)",
-                    dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            /* signature done */
-            free((void*) locator);
-            locator = NULL;
-            rr = NULL;
-        } else if (ods_strcmp(token, ";;Domaindone") == 0) {
-            /* domain done */
-            free((void*) token);
-            token = NULL;
-            break;
-        } else {
-            /* domain corrupted */
-            goto recover_dname_error;
-        }
-        /* done, next token */
-        free((void*) token);
-        token = NULL;
-    }
-
-    return ODS_STATUS_OK;
-
-recover_dname_error:
-    free((void*) token);
-    token = NULL;
-
-    free((void*) locator);
-    locator = NULL;
-    return ODS_STATUS_ERR;
 }
 
 
@@ -506,7 +357,7 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     rrset_type* rrset = NULL;
-    ldns_dnssec_rrs* rrs = NULL;
+    ods_dnssec_rrs* rrs = NULL;
     char* str_name = NULL;
     char* str_type = NULL;
     size_t count = 0;
@@ -536,18 +387,19 @@ domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype)
                 /* found other data next to rrtype */
                 str_name = ldns_rdf2str(domain->dname);
                 str_type = ldns_rr_type2str(rrtype);
-                ods_log_error("[%s] other data next to %s %s", dname_str, str_name, str_type);
+                ods_log_error("[%s] other data next to %s %s", dname_str,
+                    str_name, str_type);
                 rrs = rrset->rrs;
                 while (rrs) {
                     if (rrs->rr) {
-                        log_rr(rrs->rr, "next-to-CNAME: ", 1);
+/*                        log_rr(rrs->rr, "next-to-CNAME: ", 1); */
                     }
                     rrs = rrs->next;
                 }
                 rrs = rrset->add;
                 while (rrs) {
                     if (rrs->rr) {
-                        log_rr(rrs->rr, "next-to-CNAME: ", 1);
+/*                        log_rr(rrs->rr, "next-to-CNAME: ", 1); */
                     }
                     rrs = rrs->next;
                 }
@@ -888,12 +740,11 @@ void
 domain_cleanup(domain_type* domain)
 {
     allocator_type* allocator;
+    zone_type* zone;
 
     if (!domain) {
         return;
     }
-    allocator = domain->allocator;
-
     if (domain->dname) {
         ldns_rdf_deep_free(domain->dname);
         domain->dname = NULL;
@@ -903,8 +754,15 @@ domain_cleanup(domain_type* domain)
         ldns_rbtree_free(domain->rrsets);
         domain->rrsets = NULL;
     }
+
+    zone = (zone_type*) domain->zone;
+    if (!zone) {
+        ods_log_alert("[%s] unable to cleanup domain: reference to zone "
+            "memory allocator missing", dname_str);
+        return;
+    }
+    allocator = zone->allocator;
     allocator_deallocate(allocator, (void*) domain);
-    allocator_cleanup(allocator);
     return;
 }
 
@@ -979,42 +837,3 @@ domain_print(FILE* fd, domain_type* domain)
     return;
 }
 
-
-/**
- * Backup domain.
- *
- */
-void
-domain_backup(FILE* fd, domain_type* domain)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    char* str = NULL;
-    rrset_type* rrset = NULL;
-
-    if (!domain || !fd) {
-        return;
-    }
-
-    str = ldns_rdf2str(domain->dname);
-    if (domain->rrsets) {
-        node = ldns_rbtree_first(domain->rrsets);
-    }
-
-    fprintf(fd, ";;Domain: name %s status %i\n", str, (int) domain->dstatus);
-    while (node && node != LDNS_RBTREE_NULL) {
-        rrset = (rrset_type*) node->data;
-        rrset_backup(fd, rrset);
-        node = ldns_rbtree_next(node);
-    }
-    free((void*)str);
-
-    /* denial of existence */
-    if (domain->denial) {
-        fprintf(fd, ";;Denial\n");
-        rrset_print(fd, domain->denial->rrset, 1);
-        rrset_backup(fd, domain->denial->rrset);
-    }
-
-    fprintf(fd, ";;Domaindone\n");
-    return;
-}
