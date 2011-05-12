@@ -36,7 +36,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
-#include "signer/zone.h"
+#include "signer2/zone.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -160,18 +160,12 @@ adapter_write(struct zone_struct* zone)
     ods_log_assert(adzone);
     ods_log_assert(adzone->adoutbound);
     ods_log_assert(adzone->adoutbound->configstr);
-    if (!adzone->zonedata) {
-        ods_log_error("[%s] unable to write zone: no zone data", adapter_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(adzone->zonedata);
 
     switch(adzone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "
                 "adapter %s", adapter_str, adzone->name,
-                adzone->zonedata->outbound_serial,
-                adzone->adinbound->configstr);
+                adzone->outbound_serial, adzone->adinbound->configstr);
             status = adfile_write(zone, adzone->adoutbound->configstr);
             return status;
             break;

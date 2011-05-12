@@ -46,8 +46,8 @@
 #include "shared/privdrop.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "signer/zone.h"
-#include "signer/zonelist.h"
+#include "signer2/zone.h"
+#include "signer2/zonelist.h"
 #include "tools/zone_fetcher.h"
 
 #include <errno.h>
@@ -966,7 +966,6 @@ engine_recover(engine_type* engine)
         status = zone_recover(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
-            ods_log_assert(zone->zonedata);
             ods_log_assert(zone->signconf);
             /* notify nameserver */
             if (engine->config->notify_command && !zone->notify_ns) {

@@ -390,9 +390,6 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
     task_type* task = NULL;
-    uint32_t inbound_serial = 0;
-    uint32_t internal_serial = 0;
-    uint32_t outbound_serial = 0;
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(tbd);
@@ -411,16 +408,12 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     if (zone) {
         /* [LOCK] zone */
         lock_basic_lock(&zone->zone_lock);
-        inbound_serial = zone->zonedata->inbound_serial;
-        internal_serial = zone->zonedata->internal_serial;
-        outbound_serial = zone->zonedata->outbound_serial;
-        zonedata_cleanup(zone->zonedata);
-        zone->zonedata = NULL;
-        zone->zonedata = zonedata_create(zone->allocator);
-        zone->zonedata->initialized = 1;
-        zone->zonedata->inbound_serial = inbound_serial;
-        zone->zonedata->internal_serial = internal_serial;
-        zone->zonedata->outbound_serial = outbound_serial;
+
+        /* TODO: IXFR consequences */
+        zone_cleanup_domains(zone);
+        zone_cleanup_denials(zone);
+        zone_init_domains(zone);
+        zone_init_denials(zone);
 
         status = zone_publish_dnskeys(zone, 1);
         if (status == ODS_STATUS_OK) {
@@ -430,7 +423,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
                 " reloading signconf", cmdh_str, zone->name);
         }
         if (status == ODS_STATUS_OK) {
-            status = zonedata_commit(zone->zonedata);
+            status = zonedata_commit(zone);
         } else {
             ods_log_warning("[%s] unable to restore NSEC3PARAM RRset for "
                 " zone %s d1reloading signconf", cmdh_str, zone->name);

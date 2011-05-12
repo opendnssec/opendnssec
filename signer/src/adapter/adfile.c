@@ -40,7 +40,7 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "signer/zone.h"
+#include "signer2/zone.h"
 
 #include <ldns/ldns.h>
 #include <stdio.h>
@@ -272,8 +272,13 @@ adfile_read_file(FILE* fd, zone_type* zone)
         if (result != ODS_STATUS_OK) {
             ods_log_error("[%s] error adding RR at line %i: %s",
                 adapter_str, l, line);
+            ldns_rr_free(rr);
+            rr = NULL;
             break;
         }
+
+        ldns_rr_free(rr);
+        rr = NULL;
     }
 
     /* and done */

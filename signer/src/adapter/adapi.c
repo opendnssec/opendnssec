@@ -37,7 +37,6 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "signer/zone.h"
 
 #include <ldns/ldns.h>
 
@@ -51,14 +50,13 @@ static const char* adapi_str = "adapter";
 uint32_t
 adapi_get_serial(zone_type* zone)
 {
-    if (!zone || !zone->zonedata) {
+    if (!zone) {
         ods_log_error("[%s] unable to get serial: "
             "no zone data", adapi_str);
         return 0;
     }
     ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-    return zone->zonedata->inbound_serial;
+    return zone->inbound_serial;
 }
 
 
@@ -69,14 +67,13 @@ adapi_get_serial(zone_type* zone)
 void
 adapi_set_serial(zone_type* zone, uint32_t serial)
 {
-    if (!zone || !zone->zonedata) {
+    if (!zone) {
         ods_log_error("[%s] unable to set serial: "
             "no zone data", adapi_str);
         return;
     }
     ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-    zone->zonedata->inbound_serial = serial;
+    zone->inbound_serial = serial;
     return;
 }
 
@@ -94,7 +91,7 @@ adapi_get_origin(zone_type* zone)
         return NULL;
     }
     ods_log_assert(zone);
-    return zone->dname;
+    return zone->origin;
 }
 
 
@@ -105,14 +102,13 @@ adapi_get_origin(zone_type* zone)
 uint32_t
 adapi_get_ttl(zone_type* zone)
 {
-    if (!zone || !zone->zonedata) {
+    if (!zone) {
         ods_log_error("[%s] unable to get ttl: "
             "no zone data", adapi_str);
         return 0;
     }
     ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-    return zone->zonedata->default_ttl;
+    return zone->default_ttl;
 }
 
 
@@ -123,13 +119,12 @@ adapi_get_ttl(zone_type* zone)
 ods_status
 adapi_trans_full(zone_type* zone)
 {
-    if (!zone || !zone->zonedata) {
+    if (!zone) {
         ods_log_error("[%s] unable to start full zone transaction: "
             "no zone data", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
     if (!zone->signconf) {
         ods_log_error("[%s] unable to start full zone transaction: "
             "no signer configuration", adapi_str);
@@ -137,7 +132,7 @@ adapi_trans_full(zone_type* zone)
     }
     ods_log_assert(zone->signconf);
 
-    return zonedata_diff(zone->zonedata, zone->signconf->keys);
+    return zonedata_diff(zone, zone->signconf->keys);
 }
 
 
@@ -148,14 +143,12 @@ adapi_trans_full(zone_type* zone)
 ods_status
 adapi_trans_diff(zone_type* zone)
 {
-    if (!zone || !zone->zonedata) {
+    if (!zone) {
         ods_log_error("[%s] unable to start incremental zone transaction: "
             "no zone data", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-
     return ODS_STATUS_OK;
 }
 
