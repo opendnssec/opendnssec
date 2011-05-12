@@ -40,12 +40,15 @@
 #include "shared/allocator.h"
 #include "shared/locks.h"
 #include "shared/status.h"
+#include "signer/denial.h"
+#include "signer/domain.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
-#include "signer/zonedata.h"
 
 #include <ldns/ldns.h>
+
+#define DEFAULT_TTL 3600;
 
 struct schedule_struct;
 
@@ -55,39 +58,47 @@ struct schedule_struct;
  */
 typedef struct zone_struct zone_type;
 struct zone_struct {
-    allocator_type* allocator; /* memory allocator */
-    ldns_rdf* dname; /* wire format zone name */
+    /** common stuff */
+    allocator_type* allocator;
+    ldns_rdf* origin; /* wire format zone name */
     ldns_rr_class klass; /* class */
+    uint32_t default_ttl;
 
-    /* from conf.xml */
+    /** from conf.xml */
     const char* notify_ns; /* master name server reload command */
     int fetch; /* zone fetcher enabled */
 
-    /* from zonelist.xml */
+    /** from zonelist.xml */
     const char* name; /* string format zone name */
     const char* policy_name; /* policy identifier */
     const char* signconf_filename; /* signconf filename */
     int just_added;
     int just_updated;
     int tobe_removed;
-    int processed;
-    int prepared;
 
-    /* adapters */
+    /** adapters */
     adapter_type* adinbound; /* inbound adapter */
     adapter_type* adoutbound; /* outbound adapter */
 
-    /* from signconf.xml */
+    /** from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
     nsec3params_type* nsec3params; /* NSEC3 parameters */
 
-    /* zone data */
-    zonedata_type* zonedata;
+    /** zone data */
+    ldns_rbtree_t* domains;
+    ldns_rbtree_t* denials;
 
-    /* worker variables */
+    /** serial management */
+    uint32_t inbound_serial;
+    uint32_t internal_serial;
+    uint32_t outbound_serial;
+    int initialized;
+
+    /** worker variables */
     void* task; /* next assigned task */
+    int processed; /* for single run usage */
 
-    /* statistics */
+    /** statistics */
     stats_type* stats;
 
     lock_basic_type zone_lock;
@@ -101,6 +112,74 @@ struct zone_struct {
  *
  */
 zone_type* zone_create(char* name, ldns_rr_class klass);
+
+/**
+ * Initialize zone data domains.
+ * \param[in] zone zone
+ *
+ */
+void zone_init_domains(zone_type* zone);
+
+/**
+ * Initialize denial of existence chain.
+ * \param[in] zone zone
+ *
+ */
+void zone_init_denials(zone_type* zone);
+
+/**
+ * Look up domain.
+ * \param[in] zone zone
+ * \param[in] name domain name to look for
+ * \return domain_type* domain, if found
+ *
+ */
+domain_type* zone_lookup_domain(zone_type* zone, ldns_rdf* name);
+
+/**
+ * Add domain to zone.
+ * \param[in] zone zone
+ * \param[in] domain domain to add
+ * \return domain_type* added domain
+ *
+ */
+domain_type* zone_add_domain(zone_type* zone, domain_type* domain);
+
+/**
+ * Delete domain from zone.
+ * \param[in] zone zone
+ * \param[in] domain domain to delete
+ * \return domain_type* domain if failed
+ *
+ */
+domain_type* zone_del_domain(zone_type* zone, domain_type* domain);
+
+/**
+ * Look up denial of existence data point.
+ * \param[in] zone zone data
+ * \param[in] name domain name to look for
+ * \return domain_type* domain, if found
+ *
+ */
+denial_type* zone_lookup_denial(zone_type* zone, ldns_rdf* name);
+
+/**
+ * Add denial of existence data point to zone.
+ * \param[in] zone zone
+ * \param[in] domain corresponding domain
+ * \return ods_status status
+ *
+ */
+ods_status zone_add_denial(zone_type* zone, domain_type* domain);
+
+/**
+ * Delete denial of existence data point from zone data.
+ * \param[in] zone zone data
+ * \param[in] denial denial of existence data point
+ * \return denial_type* denial of existence data point if failed
+ *
+ */
+denial_type* zone_del_denial(zone_type* zone, denial_type* denial);
 
 /**
  * Add RR.
@@ -123,13 +202,54 @@ ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
 ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
 
 /**
- * Load signer configuration for zone.
+ * Calculate zone differences between current and new RRsets.
  * \param[in] zone zone
- * \param[out] tbs task to be scheduled
+ * \param[in] kl key list
  * \return ods_status status
  *
  */
-ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
+ods_status zonedata_diff(zone_type* zone, keylist_type* kl);
+
+/**
+ * Commit updates to zone data.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zonedata_commit(zone_type* zone);
+
+/**
+ * Rollback updates from zone data.
+ * \param[in] zone zone
+ *
+ */
+void zonedata_rollback(zone_type* zone);
+
+/**
+ * Queue all RRsets.
+ * \param[in] zone zone
+ * \param[in] q queue
+ * \param[in] worker owner of data
+ * \return ods_status status
+ *
+ */
+ods_status zonedata_queue(zone_type* zone, fifoq_type* q, worker_type* worker);
+
+/**
+ * Add empty non-terminals to zone.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_entize(zone_type* zone);
+
+/**
+ * Load signer configuration for zone.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_load_signconf(zone_type* zone);
 
 /**
  * Publish DNSKEYs.
@@ -150,19 +270,22 @@ ods_status zone_publish_dnskeys(zone_type* zone, int recover);
 ods_status zone_prepare_nsec3(zone_type* zone, int recover);
 
 /**
- * Backup zone.
- * \param[in] zone corresponding zone
+ * Add NSEC records to zone.
+ * \param[in] zone zone
+ * \param[out] num_added number of NSEC RRs added
  * \return ods_status status
  *
  */
-ods_status zone_backup(zone_type* zone);
+ods_status zone_nsecify(zone_type* zone, uint32_t* num_added);
 
 /**
- * Recover zone from backup.
- * \param[in] zone corresponding zone
+ * Add NSEC3 records to zone.
+ * \param[in] zone zone
+ * \param[out] num_added number of NSEC3 RRs added
+ * \return ods_status status
  *
  */
-ods_status zone_recover(zone_type* zone);
+ods_status zone_nsecify3(zone_type* zone, uint32_t* num_added);
 
 /**
  * Merge zones.
@@ -181,14 +304,6 @@ void zone_merge(zone_type* z1, zone_type* z2);
 ods_status zone_update_serial(zone_type* zone);
 
 /**
- * Print zone.
- * \param[in] zone zone
- * \return ods_status status
- *
- */
-ods_status zone_print(FILE* fd, zone_type* zone);
-
-/**
  * Examine zone.
  * \param[in] zone zone
  * \return ods_status status
@@ -197,10 +312,70 @@ ods_status zone_print(FILE* fd, zone_type* zone);
 ods_status zone_examine(zone_type* zone);
 
 /**
+ * Print zone.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_print(FILE* fd, zone_type* zone);
+
+/**
+ * Wipe out all NSEC(3) RRsets.
+ * \param[in] zd zone data
+ *
+ */
+void zone_wipe_denials(zone_type* zone);
+
+/**
+ * Clean up denial of existence chain.
+ * \param[in] zd zone data
+ *
+ */
+void zone_cleanup_domains(zone_type* zone);
+
+/**
+ * Clean up domains.
+ * \param[in] zd zone data
+ *
+ */
+void zone_cleanup_denials(zone_type* zone);
+
+/**
+ * Clean up zone data.
+ * \param[in] zone zone
+ *
+ */
+void zonedata_cleanup(zone_type* zone);
+
+/**
  * Clean up zone.
  * \param[in] zone zone
  *
  */
 void zone_cleanup(zone_type* zone);
+
+/**
+ * Log RDF.
+ * \param[in] rdf RDF
+ * \param[in] pre string to log before RDF
+ * \param[in] level log level
+ *
+ */
+void log_rdf(ldns_rdf* rdf, const char* pre, int level);
+
+/**
+ * Backup zone.
+ * \param[in] zone corresponding zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_backup(zone_type* zone);
+
+/**
+ * Recover zone from backup.
+ * \param[in] zone corresponding zone
+ *
+ */
+ods_status zone_recover(zone_type* zone);
 
 #endif /* SIGNER_ZONE_H */
