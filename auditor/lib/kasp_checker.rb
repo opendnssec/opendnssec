@@ -431,12 +431,12 @@ module KASPChecker
             else
               denial_type = "NSEC3"
               # Now check that the algorithm is correct
-            policy.each_element('Denial/NSEC3/Hash/') {|hash|
-              alg = hash.elements["Algorithm"].text
-              if (alg.to_i != 1)
+              policy.each_element('Denial/NSEC3/Hash/') {|hash|
+                alg = hash.elements["Algorithm"].text
+                if (alg.to_i != 1)
                   log(LOG_ERR, "NSEC3 Hash algorithm is #{alg} but should be 1");
-              end
-            }
+                end
+              }
             end
 
             # For all keys (if any are configured)...
@@ -459,6 +459,17 @@ module KASPChecker
               log(LOG_WARNING, "KSK minimum lifetime (#{ksk_lifetime} seconds)" +
                   " is less than ZSK minimum lifetime (#{zsk_lifetime} seconds)"+
                   " for #{name} Policy in #{kasp_file}")
+            end
+
+            # 15. Warn if resalt is less than resign interval.
+            resign_secs = get_duration(policy,'Signatures/Resign', kasp_file)
+            resalt_secs = get_duration(policy,'Denial/NSEC3/Resalt', kasp_file)
+            if (resalt_secs)
+              if (resalt_secs < resign_secs)
+                log(LOG_WARNING, "NSEC3 resalt interval (#{resalt_secs}) is less than" +
+                    " signature resign interval (#{resign_secs})" +
+                    " for #{name} Policy in #{kasp_file}")
+              end
             end
 
             #   9. If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
