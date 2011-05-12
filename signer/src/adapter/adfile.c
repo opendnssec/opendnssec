@@ -40,7 +40,7 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "signer2/zone.h"
+#include "signer/zone.h"
 
 #include <ldns/ldns.h>
 #include <stdio.h>
