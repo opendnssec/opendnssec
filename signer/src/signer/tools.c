@@ -60,11 +60,11 @@ tools_input(zone_type* zone)
     }
     ods_log_assert(zone);
 
-    if (!zone->zonedata) {
-        ods_log_error("[%s] unable to read zone: no zone data", tools_str);
+    if (!zone->domains) {
+        ods_log_error("[%s] unable to read zone: no domains", tools_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(zone->zonedata);
+    ods_log_assert(zone->domains);
 
     ods_log_assert(zone->adinbound);
     ods_log_assert(zone->signconf);
@@ -115,11 +115,11 @@ tools_input(zone_type* zone)
     if (status == ODS_STATUS_OK) {
         ods_log_verbose("[%s] commit updates for zone %s", tools_str,
             zone->name?zone->name:"(null)");
-        status = zonedata_commit(zone->zonedata);
+        status = zonedata_commit(zone);
     } else {
         ods_log_warning("[%s] rollback updates for zone %s", tools_str,
             zone->name?zone->name:"(null)");
-        zonedata_rollback(zone->zonedata);
+        zonedata_rollback(zone);
     }
     end = time(NULL);
 
@@ -144,7 +144,6 @@ tools_nsecify(zone_type* zone)
     ods_status status = ODS_STATUS_OK;
     time_t start = 0;
     time_t end = 0;
-    uint32_t ttl = 0;
     uint32_t num_added = 0;
 
     if (!zone) {
@@ -153,12 +152,12 @@ tools_nsecify(zone_type* zone)
     }
     ods_log_assert(zone);
 
-    if (!zone->zonedata) {
-        ods_log_error("[%s] unable to nsecify zone %s: no zonedata",
+    if (!zone->domains) {
+        ods_log_error("[%s] unable to nsecify zone %s: no domains",
             tools_str, zone->name);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(zone->zonedata);
+    ods_log_assert(zone->domains);
 
     if (!zone->signconf) {
         ods_log_error("[%s] unable to nsecify zone %s: no signconf",
@@ -175,31 +174,23 @@ tools_nsecify(zone_type* zone)
     }
 
     start = time(NULL);
-    /* determine NSEC(3) ttl */
-    ttl = zone->zonedata->default_ttl;
-    if (zone->signconf->soa_min) {
-        ttl = (uint32_t) duration2time(zone->signconf->soa_min);
-    }
     /* add missing empty non-terminals */
-    status = zonedata_entize(zone->zonedata, zone->dname);
+    status = zone_entize(zone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to nsecify zone %s: failed to add empty ",
             "non-terminals", tools_str, zone->name);
         return status;
     }
-
     /* NSEC or NSEC3? */
     if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
-        status = zonedata_nsecify(zone->zonedata, zone->klass, ttl,
-            &num_added);
+        status = zone_nsecify(zone, &num_added);
     } else if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
         if (zone->signconf->nsec3_optout) {
             ods_log_debug("[%s] OptOut is being used for zone %s",
                 tools_str, zone->name);
         }
         ods_log_assert(zone->nsec3params);
-        status = zonedata_nsecify3(zone->zonedata, zone->klass, ttl,
-            zone->nsec3params, &num_added);
+        status = zone_nsecify3(zone, &num_added);
     } else {
         ods_log_error("[%s] unable to nsecify zone %s: unknown RRtype %u for ",
             "denial of existence", tools_str, zone->name,
@@ -335,28 +326,28 @@ tools_output(zone_type* zone)
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
             ods_log_verbose("[%s] skip write zone %s serial %u (zone not "
                 "changed)", tools_str, zone->name?zone->name:"(null)",
-                zone->zonedata->internal_serial);
+                zone->internal_serial);
             stats_clear(zone->stats);
             lock_basic_unlock(&zone->stats->stats_lock);
-            zone->zonedata->internal_serial =
-                zone->zonedata->outbound_serial;
+            zone->internal_serial =
+                zone->outbound_serial;
             return ODS_STATUS_OK;
         }
         lock_basic_unlock(&zone->stats->stats_lock);
     }
 
-    outbound_serial = zone->zonedata->outbound_serial;
-    zone->zonedata->outbound_serial = zone->zonedata->internal_serial;
+    outbound_serial = zone->outbound_serial;
+    zone->outbound_serial = zone->internal_serial;
     status = adapter_write(zone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to write zone %s: adapter failed",
             tools_str, zone->name);
-        zone->zonedata->outbound_serial = outbound_serial;
+        zone->outbound_serial = outbound_serial;
         return status;
     }
 
     /* initialize zonedata */
-    zone->zonedata->initialized = 1;
+    zone->initialized = 1;
 
     /* kick the nameserver */
     if (zone->notify_ns) {

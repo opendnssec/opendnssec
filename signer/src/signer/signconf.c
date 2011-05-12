@@ -38,8 +38,8 @@
 #include "shared/file.h"
 #include "shared/hsm.h"
 #include "shared/log.h"
-#include "signer/backup.h"
 #include "shared/status.h"
+#include "signer/backup.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"
 
