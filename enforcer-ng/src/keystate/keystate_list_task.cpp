@@ -43,7 +43,7 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
                    "Database set to: %s\n"
                    "Keys:\n"
                    "Zone:                           "
-                   "Keytype:      "
+                   "Key role:     "
                    "DS:          "
                    "RRSIG:       "
                    "DNSKEY:      "

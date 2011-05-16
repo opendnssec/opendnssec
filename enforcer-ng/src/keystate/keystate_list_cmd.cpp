@@ -15,10 +15,6 @@ extern "C" {
 
 static const char *module_str = "keystate_list_cmd";
 
-/**
- * Print help for the 'key list' command
- *
- */
 void help_keystate_list_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
