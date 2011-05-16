@@ -44,7 +44,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                    "Database set to: %s\n"
                    "Keys:\n"
                    "Zone:                           "
-                   "Keytype:      "
+                   "Key role:     "
                    "Id:                                      "
                    "ds-seen: "
                    "\n"

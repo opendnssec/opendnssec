@@ -251,7 +251,7 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                    "Database set to: %s\n"
                    "Keys:\n"
                    "Zone:                           "
-                   "Keytype:      "
+                   "Key role:     "
                    "Id:                                      "
                    "Should Submit: "
                    "\n"
