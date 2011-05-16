@@ -2,8 +2,6 @@
 #include <iostream>
 #include <cassert>
 
-#include "hsmkey/hsmkey.pb.h"
-
 // Interface of this cpp file is used by C code, we need to declare 
 // extern "C" to prevent linking errors.
 extern "C" {
