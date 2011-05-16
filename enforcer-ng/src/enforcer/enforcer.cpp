@@ -38,9 +38,9 @@ inline void minTime(const time_t t, time_t &min) {
  * */
 bool getLastReusableKey( EnforcerZone &zone,
 		const ::ods::kasp::Policy *policy, const KeyRole role,
-		int bits, int algorithm, const time_t now, HsmKey **ppKey,
+        int bits, const std::string &repository, int algorithm, const time_t now, HsmKey **ppKey,
 		HsmKeyFactory &keyfactory, int lifetime) {
-	if (!keyfactory.UseSharedKey(bits, policy->name(), algorithm,
+	if (!keyfactory.UseSharedKey(bits, repository, policy->name(), algorithm,
 									 role, zone.name(), ppKey))
 		return false;
 	assert(*ppKey != NULL); /* FindSharedKeys() promised us. */
@@ -712,25 +712,29 @@ int numberOfKeys(const ::ods::kasp::Keys *policyKeys, const KeyRole role) {
 
 /* Abstraction to generalize different kind of keys. */
 void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
-		const int index, int *bits, int *algorithm, int *lifetime) {
+		const int index, int *bits, int *algorithm, int *lifetime,
+        std::string &repository) {
 	switch (role) {
 		case KSK:
 			assert(index < policyKeys->ksk_size());
 			*bits	   = policyKeys->ksk(index).bits();
 			*algorithm = policyKeys->ksk(index).algorithm();
 			*lifetime  = policyKeys->ksk(index).lifetime();
+            repository.assign(policyKeys->ksk(index).repository());
 			return;
 		case ZSK:
 			assert(index < policyKeys->zsk_size());
 			*bits	   = policyKeys->zsk(index).bits();
 			*algorithm = policyKeys->zsk(index).algorithm();
 			*lifetime  = policyKeys->zsk(index).lifetime();
+            repository.assign(policyKeys->zsk(index).repository());
 			return;
 		case CSK:
 			assert(index < policyKeys->csk_size());
 			*bits	   = policyKeys->csk(index).bits();
 			*algorithm = policyKeys->csk(index).algorithm();
 			*lifetime  = policyKeys->csk(index).lifetime();
+            repository.assign(policyKeys->csk(index).repository());
 			return;
 		default:
 			assert(0); /* report a bug! */
@@ -768,7 +772,9 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 	for ( int role = 1; role < 4; role++ ) {
 		last_insert = most_recent_inception(zone.keyDataList(),(KeyRole)role); /* search all keys for this zone */
 		for ( int i = 0; i < numberOfKeys( &policyKeys, (KeyRole)role ); i++ ) {
-			keyProperties(&policyKeys, (KeyRole)role, i, &bits, &algorithm, &lifetime);
+            std::string repository;
+			keyProperties(&policyKeys, (KeyRole)role, i, &bits, &algorithm,
+                          &lifetime,repository);
 			next_insert = last_insert + lifetime;
 			if ( now < next_insert && last_insert != -1 ) {
 				/* No need to change key, come back at */
@@ -782,15 +788,17 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 
 			if ( policyKeys.zones_share_keys() )
 				got_key = getLastReusableKey(
-					zone, policy, (KeyRole)role, bits, algorithm, now,
+					zone, policy, (KeyRole)role, bits, repository, algorithm, now,
 					&hsm_key, keyfactory, lifetime)
 				?
 					true
 				:
-					keyfactory.CreateSharedKey(bits, policyName,
+					keyfactory.CreateSharedKey(bits, repository, policyName,
 					algorithm, (KeyRole)role, zone.name(),&hsm_key );
 			else
-				got_key = keyfactory.CreateNewKey( bits, &hsm_key );
+				got_key = keyfactory.CreateNewKey(bits,repository, policyName,
+                                                  algorithm, (KeyRole)role,
+                                                  &hsm_key );
 			if ( !got_key ) {
 				/* The factory was not ready, return in 60s */
 				minTime( now + NOKEY_TIMEOUT, return_at);

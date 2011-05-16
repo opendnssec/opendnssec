@@ -4,7 +4,7 @@ extern "C" {
 #include "shared/log.h"
 }
 
-static const char *enforcezone_str = "enforcezone";
+static const char * const module_str = "enforcezone";
 
 //////////////////////////////
 // KeyStatePB
@@ -27,7 +27,7 @@ void KeyStatePB::setState(int value)
         _keystate->set_state( (::ods::keystate::rrstate)value );
     else {
         ods_log_error("[%s] %d is not a valid rrstate value",
-                      enforcezone_str,value);
+                      module_str,value);
     }
 }
 
@@ -124,7 +124,7 @@ void KeyDataPB::setRole(KeyRole value)
         _keydata->set_role( (::ods::keystate::keyrole)value );
     else {
         ods_log_error("[%s] %d is not a valid keyrole value",
-                      enforcezone_str,value);
+                      module_str,value);
     }
 }
 

@@ -57,8 +57,18 @@ public:
 class HsmKeyFactory {
 public:
     /* Create a new key with the specified number of bits (or retrieve it 
-     from a pre-generated keypool)  */
-    virtual bool CreateNewKey(int bits, HsmKey **ppKey) = 0;
+     from a pre-generated keypool)
+    * \param[in] bits number of bits in the key
+    * \param[in] repository name of the HSM where the key should reside
+    * \param[in] policy name of the policy
+    * \param[in] algorithm algorithm
+    * \param[in] role role of the key
+    * \return bool true when the key was created or false when it failed.
+    */
+    virtual bool CreateNewKey(int bits, const std::string &repository,
+                              const std::string &policy, int algorithm,
+                              KeyRole role,
+                              HsmKey **ppKey) = 0;
     
     /* Create a key shared by all the zones with the given policy name, 
      * algorithm and bits
@@ -68,13 +78,14 @@ public:
      * before it is returned
      *
      * \param[in] bits number of bits in the key
+     * \param[in] repository name of the HSM where the key should reside
      * \param[in] policy name of the policy
      * \param[in] algorithm algorithm
      * \param[in] role role of the key
      * \param[in] zone zone the key is going to be used in.
      * \return bool true when the key was created or false when it failed.
      */
-    virtual bool CreateSharedKey(int bits,
+    virtual bool CreateSharedKey(int bits, const std::string &repository,
                                  const std::string &policy, int algorithm,
                                  KeyRole role, const std::string &zone,
                                  HsmKey **ppKey) = 0;
@@ -91,6 +102,7 @@ public:
      * is returned.
      *
      * \param[in] bits number of bits to match
+     * \param[in] repository name of the HSM where the key should reside
      * \param[in] policy name of the policy to match
      * \param[in] algorithm algorithm to match
      * \param[in] role role of the key to match
@@ -99,7 +111,7 @@ public:
      * \return bool returns true when a match was found or false when no
      *              match was found.
      */
-    virtual bool UseSharedKey(int bits,
+    virtual bool UseSharedKey(int bits, const std::string &repository,
                               const std::string &policy, int algorithm,
                               KeyRole role, const std::string &zone,
                               HsmKey **ppKey) = 0;

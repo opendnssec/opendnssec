@@ -52,14 +52,17 @@ private:
 public:
     HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc);
     
-    virtual bool CreateNewKey(int bits, HsmKey **ppKey);
+    virtual bool CreateNewKey(int bits, const std::string &repository,
+                              const std::string &policy, int algorithm,
+                              KeyRole role,
+                              HsmKey **ppKey);
     
-    virtual bool CreateSharedKey(int bits,
+    virtual bool CreateSharedKey(int bits, const std::string &repository,
                                  const std::string &policy, int algorithm,
                                  KeyRole role, const std::string &zone,
                                  HsmKey **ppKey);
 
-    virtual bool UseSharedKey(int bits, 
+    virtual bool UseSharedKey(int bits, const std::string &repository,
                               const std::string &policy, int algorithm,
                               KeyRole role, const std::string &zone,
                               HsmKey **ppKey);

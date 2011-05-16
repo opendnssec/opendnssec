@@ -2,8 +2,10 @@
 
 extern "C" {
 #include "shared/duration.h"
-    
+#include "shared/log.h"
 }
+
+static const char * const module_str = "hsmkeyfactory";
 
 //////////////////////////////
 // HsmKeyPB
@@ -69,7 +71,12 @@ KeyRole HsmKeyPB::keyRole()
 
 void HsmKeyPB::setKeyRole(KeyRole value)
 {
-    _key->set_role((::ods::hsmkey::keyrole)value);
+    if (::ods::hsmkey::keyrole_IsValid(value))
+        _key->set_role( (::ods::hsmkey::keyrole)value );
+    else {
+        ods_log_error("[%s] %d is not a valid keyrole value",
+                      module_str,value);
+    }
 }
 
 bool HsmKeyPB::usedByZone(const std::string &zone)
@@ -134,31 +141,77 @@ HsmKeyFactoryPB::HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc)
 
 /* Create a new key with the specified number of bits (or retrieve it 
  from a pre-generated keypool)  */
-bool HsmKeyFactoryPB::CreateNewKey(int bits, HsmKey **ppKey)
+bool HsmKeyFactoryPB::CreateNewKey(int bits, const std::string &repository,
+                                   const std::string &policy, int algorithm,
+                                   KeyRole role,
+                                   HsmKey **ppKey)
 {
+    // First go through the keys and try to find a key that matches the
+    // parameters exactly.
     for (int k=0; k<_doc->keys_size(); ++k) {
         ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
-        if (pbkey->bits() == bits && !pbkey->has_inception()) {
+        if (!pbkey->has_inception() 
+            && pbkey->bits() == bits
+            && pbkey->repository() == repository
+            && pbkey->policy() == policy
+            && pbkey->algorithm() == algorithm
+            && pbkey->role() == (::ods::hsmkey::keyrole)role
+            )
+        {
             pbkey->set_inception(time_now());
             _keys.push_back(HsmKeyPB(pbkey));
             *ppKey = &_keys.back();
+
+            // Fixate unset attributes that returned their default value.
+            // Otherwise when we list the keys those values will show 
+            // up as 'not set'
+            if (!pbkey->has_policy())
+                (*ppKey)->setPolicy(policy);
+            if (!pbkey->has_algorithm())
+                (*ppKey)->setAlgorithm(algorithm);
+            if (!pbkey->has_role())
+                (*ppKey)->setKeyRole(role);
             return true;
         }
     }
+
+    // If that fails go through the list of keys again and try to find
+    // a key that has some of the attributes not assigned.
+    for (int k=0; k<_doc->keys_size(); ++k) {
+        ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
+        if (!pbkey->has_inception()
+            && pbkey->bits() == bits
+            && pbkey->repository() == repository
+            && (!pbkey->has_policy() || pbkey->policy() == policy)
+            && (!pbkey->has_algorithm() || pbkey->algorithm() == algorithm)
+            && (!pbkey->has_role()||pbkey->role()==(::ods::hsmkey::keyrole)role)
+            ) 
+        {
+            pbkey->set_inception(time_now());
+            _keys.push_back(HsmKeyPB(pbkey));
+            *ppKey = &_keys.back();
+            if (!pbkey->has_policy())
+                (*ppKey)->setPolicy(policy);
+            if (!pbkey->has_algorithm())
+                (*ppKey)->setAlgorithm(algorithm);
+            if (!pbkey->has_role())
+                (*ppKey)->setKeyRole(role);
+            return true;
+        }
+    }
+    
+    // We were not able to find any suitable key, give up.
     return false;
 }
 
-bool HsmKeyFactoryPB::CreateSharedKey(int bits, 
+bool HsmKeyFactoryPB::CreateSharedKey(int bits, const std::string &repository,
                                       const std::string &policy, int algorithm, 
                                       KeyRole role, const std::string &zone,
                                       HsmKey **ppKey)
 {
-    if (CreateNewKey(bits, ppKey)) {
+    if (CreateNewKey(bits, repository, policy, algorithm, role, ppKey)) {
         
         (*ppKey)->setCandidateForSharing(true);
-        (*ppKey)->setPolicy(policy);
-        (*ppKey)->setAlgorithm(algorithm);
-        (*ppKey)->setKeyRole(role);
         (*ppKey)->usedByZone(zone);
         
         return true;
@@ -166,11 +219,12 @@ bool HsmKeyFactoryPB::CreateSharedKey(int bits,
     return false;
 }
 
-bool HsmKeyFactoryPB::UseSharedKey(int bits, 
+bool HsmKeyFactoryPB::UseSharedKey(int bits, const std::string &repository,
                                    const std::string &policy, int algorithm, 
                                    KeyRole role, const std::string &zone, 
                                    HsmKey **ppKey)
 {
+    // First try to match one of the existing HsmKeyPB objects
     std::vector<HsmKeyPB>::iterator k;
     for (k = _keys.begin(); k != _keys.end(); ++k) {
         if (k->bits() == bits 
@@ -185,5 +239,35 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits,
             return true;
         }
     }
+
+    // Now enumerate keys in the document try to find a key that matches the
+    // parameters exactly and is not yet present in the _keys vector field.
+    for (int k=0; k<_doc->keys_size(); ++k) {
+        ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
+        if (pbkey->has_inception()
+            && pbkey->bits() == bits
+            && pbkey->repository() == repository
+            && pbkey->policy() == policy
+            && pbkey->algorithm() == algorithm
+            && pbkey->role() == (::ods::hsmkey::keyrole)role
+            )
+        {
+            pbkey->set_inception(time_now());
+            _keys.push_back(HsmKeyPB(pbkey));
+            *ppKey = &_keys.back();
+            
+            // Fixate unset attributes that returned their default value.
+            // Otherwise when we list the keys those values will show 
+            // up as 'not set'
+            if (!pbkey->has_policy())
+                (*ppKey)->setPolicy(policy);
+            if (!pbkey->has_algorithm())
+                (*ppKey)->setAlgorithm(algorithm);
+            if (!pbkey->has_role())
+                (*ppKey)->setKeyRole(role);
+            return true;
+        }
+    }
+
     return false;
 }
