@@ -1,8 +1,8 @@
 $Id$
 
-OpenDNSSEC 1.2.0 - Known Restrictions
+OpenDNSSEC 1.3.0 - Known Restrictions
 
-The following are the known problems and/or restrictions of release 1.2.0 of
+The following are the known problems and/or restrictions of release 1.3.0 of
 OpenDNSSEC.
 
 
@@ -35,9 +35,9 @@ nameserver.
 Issue with rolling from one algorithm to another
 ------------------------------------------------
 
-The current version will handle key rollovers that also change algorithm just the
-same as any other key rollover. This is not sufficient; and so rolling between
-algorithms is broken and should not be done with the current system.
+The current version will handle key rollovers that also change algorithm just 
+the same as any other key rollover. This is not sufficient; and so rolling 
+between algorithms is broken and should not be done with the current system.
 
 
 Handling of external command calls
@@ -63,4 +63,13 @@ the include files could have been edited.
 Maximum number of HSMs
 ----------------------
 
-The datatype of the column storing HSMs in the kasp database is only large enough to store 127 separate HSMs (with a MySQL backend).
+The datatype of the column storing HSMs in the kasp database is only large 
+enough to store 127 separate HSMs (with a MySQL backend).
+
+
+Quotation marks in strings
+--------------------------
+
+Enforcer does not remove/handle any quotation marks in the imported strings.
+This will create a problem when importing the information from e.g. the policy
+description field into the Enforcer database.
