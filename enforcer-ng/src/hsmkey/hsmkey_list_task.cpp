@@ -18,7 +18,7 @@ extern "C" {
 static const char *module_str = "hsmkey_list_task";
 
 void 
-perform_hsmkey_list(int sockfd, engineconfig_type *config)
+perform_hsmkey_list(int sockfd, engineconfig_type *config, int bVerbose)
 {
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
@@ -44,24 +44,39 @@ perform_hsmkey_list(int sockfd, engineconfig_type *config)
     }
 
 
-    (void)snprintf(buf, ODS_SE_MAXLINE,
-                   "HSM keys:\n"
-                   "Id:                                      "
-                   "Algorithm: "
-                   "Bits:   "
-                   "HSM:       "
-                   "First use:                 "
-                   "\n"
-                   );
+    if (!bVerbose){
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+                       "HSM keys:\n"
+                       "Id:                                      "
+                       "Key type:  "
+                       "Bits:   "
+                       "Repository:  "
+                       "First use:                 "
+                       "\n"
+                       );
+    } else {
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+                       "HSM keys:\n"
+                       "Id:                                      "
+                       "Key type:  "
+                       "Bits:   "
+                       "Repository:  "
+                       "First use:                 "
+                       "Key role:   "
+                       "Algorithm : "
+                       "Policy :                        "
+                       "\n"
+                       );
+    }
     ods_writen(sockfd, buf, strlen(buf));
     
     // Enumerate the keys found in the doc file on disk.
     for (int k=0; k<hsmkeyDoc->keys_size(); ++k) {
         const ::ods::hsmkey::HsmKey& key = hsmkeyDoc->keys(k);
-        std::string algo  = key.algorithm_name();
+        std::string ktype  = key.key_type();
         uint32_t bits = key.bits();
         std::string loca = key.locator();
-        std::string hsm = key.hsm_name();
+        std::string repo = key.repository();
         char incep[32];
         if (key.inception() != 0) {
             if (!ods_ctime_r(incep,sizeof(incep),key.inception())) {
@@ -72,26 +87,38 @@ perform_hsmkey_list(int sockfd, engineconfig_type *config)
             strncpy(incep,"never",sizeof(incep));
             incep[sizeof(incep)-1] = '\0';
         }
-        (void)snprintf(buf, ODS_SE_MAXLINE, "%-40s %-10s %-7u %-10s %-26s \n",
-                       loca.c_str(), algo.c_str(), bits, hsm.c_str(), incep);
+        
+        char keyalgo[32];
+        if (key.has_algorithm()) {
+            snprintf(keyalgo,sizeof(keyalgo),"%d",key.algorithm());
+        } else {
+            strncpy(keyalgo,"not set",sizeof(keyalgo));
+        }
+        keyalgo[sizeof(keyalgo)-1] = '\0';
+        
+        std::string role;
+        if ( key.has_role() )
+            role.assign( ::ods::hsmkey::keyrole_Name(key.role()) );
+        else
+            role.assign("not set");
+        
+        
+        std::string polic;
+        if ( key.has_policy() )
+            polic.assign( key.policy() );
+        else
+            polic.assign("not set");
+        
+        if (!bVerbose) {
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "%-40s %-10s %-7u %-12s %-26s\n",
+                           loca.c_str(),ktype.c_str(),bits,repo.c_str(),incep);
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "%-40s %-10s %-7u %-12s %-26s %-11s %-11s %-31s\n",
+                           loca.c_str(),ktype.c_str(),bits,repo.c_str(),incep,
+                           role.c_str(),keyalgo,polic.c_str());
+        }
         ods_writen(sockfd, buf, strlen(buf));
     }
-}
-
-static task_type * 
-hsmkey_list_task_perform(task_type *task)
-{
-    perform_hsmkey_list(-1,(engineconfig_type *)task->context);
-    
-    task_cleanup(task);
-    return NULL;
-}
-
-task_type *
-hsmkey_list_task(engineconfig_type *config, const char *shortname)
-{
-    task_id what = task_register(shortname,
-                                 "hsmkey_list_task_perform",
-                                 hsmkey_list_task_perform);
-	return task_create(what, time_now(), "all", (void*)config);
 }
