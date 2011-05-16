@@ -97,7 +97,6 @@ rrset_create(allocator_type* allocator, ldns_rdf* owner, uint32_t ttl,
 
     rrset->owner = owner;
     rrset->ttl = ttl;
-    rrset->rr_class = klass;
     rrset->rr_type = rrtype;
     rrset->rrs_count = 0;
     rrset->rrs = rrs;
@@ -339,15 +338,18 @@ rrset_wipe_out(rrset_type* rrset)
     ods_dnssec_rrs* rrs = NULL;
     ldns_rr* del_rr = NULL;
     int error = 0;
+    zone_type* zone = NULL;
 
-    if (rrset) {
-        rrs = rrset->rrs;
+    if (!rrset) {
+        return ODS_STATUS_OK; /* or ASSERT_ERR? */
     }
+    rrs = rrset->rrs;
+    zone = (zone_type*) rrset->zone;
 
     while (rrs) {
         if (rrs->rr) {
             /* TODO: don't clone */
-            del_rr = ods_rr_2ldns(rrset->owner, rrset->ttl, rrset->rr_class,
+            del_rr = ods_rr_2ldns(rrset->owner, rrset->ttl, zone->klass,
                 rrset->rr_type, rrs->rr);
             if (rrset_del_rr(rrset, del_rr,
                 (rrset->rr_type == LDNS_RR_TYPE_DNSKEY)) != ODS_STATUS_OK) {
@@ -382,6 +384,7 @@ rrset_diff(rrset_type* rrset, keylist_type* kl)
     ods_dnssec_rrs* prev = NULL;
     ldns_rr* ldnsrr = NULL;
     int cmp = 0;
+    zone_type* zone = NULL;
 
     if (!rrset) {
         return status;
@@ -389,6 +392,7 @@ rrset_diff(rrset_type* rrset, keylist_type* kl)
 
     current = rrset->rrs;
     pending = rrset->add;
+    zone = (zone_type*) rrset->zone;
 
     if (!current || !current->rr) {
         current = NULL;
@@ -410,7 +414,7 @@ rrset_diff(rrset_type* rrset, keylist_type* kl)
             prev = pending;
             pending = pending->next;
         } else if (cmp < 0) {
-            ldnsrr = ods_rr_2ldns(rrset->owner, rrset->ttl, rrset->rr_class,
+            ldnsrr = ods_rr_2ldns(rrset->owner, rrset->ttl, zone->klass,
                 rrset->rr_type, current->rr);
 
             /* pend current RR to be removed */
@@ -458,7 +462,7 @@ rrset_diff(rrset_type* rrset, keylist_type* kl)
     if (current) {
         ods_log_assert(!pending);
         while (current) {
-            ldnsrr = ods_rr_2ldns(rrset->owner, rrset->ttl, rrset->rr_class,
+            ldnsrr = ods_rr_2ldns(rrset->owner, rrset->ttl, zone->klass,
                 rrset->rr_type, current->rr);
 
             /* pend current RR to be removed */
@@ -818,11 +822,16 @@ rrset2rrlist(rrset_type* rrset)
     ldns_rr_list* rr_list = NULL;
     ldns_rr* push = NULL;
     int error = 0;
+    zone_type* zone = NULL;
 
     rr_list = ldns_rr_list_new();
+    if (!rrset) {
+        return rr_list;
+    }
+    zone = (zone_type*) rrset->zone;
     rrs = rrset->rrs;
     while (rrs && rrs->rr) {
-        push = ods_rr_2ldns(rrset->owner, rrset->ttl, rrset->rr_class,
+        push = ods_rr_2ldns(rrset->owner, rrset->ttl, zone->klass,
             rrset->rr_type, rrs->rr);
         if (!push) {
             ods_log_error("[%s] unable to convert RRset[%i]: ods_rr_2ldns() "
@@ -1116,6 +1125,7 @@ rrset_cleanup(rrset_type* rrset)
     if (!rrset) {
         return;
     }
+    /* don't clean up owner (it's a pointer to domain->dname) */
     if (rrset->rrs) {
         ods_dnssec_rrs_deep_free(rrset->rrs);
         rrset->rrs = NULL;
@@ -1152,22 +1162,25 @@ rrset_cleanup(rrset_type* rrset)
 void
 rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
 {
+    zone_type* zone = NULL;
+
     if (!rrset || !fd) {
         return;
     }
     ods_log_assert(fd);
     ods_log_assert(rrset);
 
+    zone = (zone_type*) rrset->zone;
     if (rrset->rrs) {
         if (rrset->rr_type == LDNS_RR_TYPE_CNAME ||
             rrset->rr_type == LDNS_RR_TYPE_DNAME) {
             /* singleton types */
             if (rrset->rrs->rr) {
-                ods_rr_print(fd, rrset->owner, rrset->ttl, rrset->rr_class,
+                ods_rr_print(fd, rrset->owner, rrset->ttl, zone->klass,
                     rrset->rr_type, rrset->rrs->rr);
             }
         } else {
-            ods_dnssec_rrs_print(fd, rrset->owner, rrset->ttl, rrset->rr_class,
+            ods_dnssec_rrs_print(fd, rrset->owner, rrset->ttl, zone->klass,
                 rrset->rr_type, rrset->rrs);
         }
     }

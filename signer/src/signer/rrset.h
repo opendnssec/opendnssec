@@ -58,7 +58,6 @@ struct rrset_struct {
     void* zone;
     ldns_rdf* owner;
     uint32_t ttl;
-    ldns_rr_class rr_class;
     ldns_rr_type rr_type;
     uint32_t rrs_count;
     ods_dnssec_rrs* rrs;
