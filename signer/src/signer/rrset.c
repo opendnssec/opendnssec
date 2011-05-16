@@ -56,28 +56,21 @@ static const char* rrset_str = "rrset";
  *
  */
 rrset_type*
-rrset_create(allocator_type* allocator, ldns_rdf* owner, uint32_t ttl,
-    ldns_rr_class klass, ldns_rr_type rrtype, void* zone)
+rrset_create(ldns_rdf* owner, uint32_t ttl, ldns_rr_type rrtype, void* zone)
 {
     ods_dnssec_rrs* rrs = NULL;
     rrset_type* rrset = NULL;
+    zone_type* z = NULL;
 
-    if (!owner || !klass || !ttl || !rrtype) {
+    if (!owner || !ttl || !rrtype || !zone) {
         ods_log_error("[%s] unable to create RRset: required elements "
             "missing", rrset_str);
         return NULL;
     }
     ods_log_assert(owner);
-    ods_log_assert(klass);
     ods_log_assert(ttl);
     ods_log_assert(rrtype);
-
-    if (!allocator) {
-        ods_log_error("[%s] unable to create RRset %u: no allocator",
-            rrset_str, (unsigned) rrtype);
-        return NULL;
-    }
-    ods_log_assert(allocator);
+    ods_log_assert(zone);
 
     rrs = ods_dnssec_rrs_new();
     if (!rrs) {
@@ -86,7 +79,8 @@ rrset_create(allocator_type* allocator, ldns_rdf* owner, uint32_t ttl,
         return NULL;
     }
 
-    rrset = (rrset_type*) allocator_alloc(allocator, sizeof(rrset_type));
+    z = (zone_type*) zone;
+    rrset = (rrset_type*) allocator_alloc(z->allocator, sizeof(rrset_type));
     if (!rrset) {
         ods_log_error("[%s] unable to create RRset %u: allocator failed",
             rrset_str, (unsigned) rrtype);

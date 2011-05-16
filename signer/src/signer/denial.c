@@ -237,9 +237,8 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t ttl,
     if (denial->nxt_changed || denial->bitmap_changed) {
         /* assert there is a NSEC RRset */
         if (!denial->rrset) {
-            denial->rrset = rrset_create(zone->allocator, denial->owner,
-               zone->default_ttl, zone->klass, LDNS_RR_TYPE_NSEC,
-               (void*) zone);
+            denial->rrset = rrset_create(denial->owner, zone->default_ttl,
+               LDNS_RR_TYPE_NSEC, (void*) zone);
             if (!denial->rrset) {
                  ods_log_alert("[%s] unable to nsecify: failed to "
                 "create NSEC RRset", denial_str);
@@ -443,9 +442,8 @@ denial_nsecify3(denial_type* denial, denial_type* nxt, uint32_t ttl,
     if (denial->nxt_changed || denial->bitmap_changed) {
         /* assert there is a NSEC RRset */
         if (!denial->rrset) {
-            denial->rrset = rrset_create(zone->allocator, denial->owner,
-               zone->default_ttl, zone->klass, LDNS_RR_TYPE_NSEC3,
-               (void*) zone);
+            denial->rrset = rrset_create(denial->owner, zone->default_ttl,
+               LDNS_RR_TYPE_NSEC3, (void*) zone);
             if (!denial->rrset) {
                  ods_log_alert("[%s] unable to nsecify3: failed to "
                 "create NSEC3 RRset", denial_str);

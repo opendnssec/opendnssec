@@ -74,17 +74,15 @@ struct rrset_struct {
 
 /**
  * Create new RRset.
- * \param[in] allocator zone memory allocator
  * \param[in] owner RRset owner
  * \param[in] ttl RRset TTL
- * \param[in] klass RRset class
  * \param[in] rrtype RRtype
  * \param[in] zone pointer to zone structure
  * \return rrset_type* new RRset
  *
  */
-rrset_type* rrset_create(allocator_type* allocator, ldns_rdf* owner,
-    uint32_t ttl, ldns_rr_class klass, ldns_rr_type rrtype, void* zone);
+rrset_type* rrset_create(ldns_rdf* owner, uint32_t ttl, ldns_rr_type rrtype,
+    void* zone);
 
 /**
  * Count the number of RRs in this RRset.

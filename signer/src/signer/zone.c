@@ -693,8 +693,8 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     rrset = domain_lookup_rrset(domain, type);
     if (!rrset) {
         /* add RRset */
-        rrset = rrset_create(zone->allocator, domain->dname, zone->default_ttl,
-            zone->klass, type, (void*) zone);
+        rrset = rrset_create(domain->dname, zone->default_ttl, type,
+            (void*) zone);
         if (!rrset) {
             ods_log_error("[%s] unable to add RR: create RRset failed",
                 zone_str);
@@ -2520,9 +2520,8 @@ domain_recover(zone_type* zone, FILE* fd, domain_type* domain,
             domain->denial->domain = domain; /* back reference */
             /* add the NSEC(3) rr */
             if (!domain->denial->rrset) {
-                domain->denial->rrset = rrset_create(zone->allocator,
-                    domain->dname, zone->default_ttl, zone->klass,
-                    ldns_rr_get_type(rr), (void*) zone);
+                domain->denial->rrset = rrset_create(domain->dname,
+                    zone->default_ttl, ldns_rr_get_type(rr), (void*) zone);
             }
             ods_log_assert(domain->denial->rrset);
 
