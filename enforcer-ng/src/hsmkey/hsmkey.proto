@@ -13,14 +13,14 @@ message HsmKey {
     required string locator = 1;
     optional bool candidate_for_sharing = 2 [default = false];
     optional uint32 bits = 3 [default = 2048];
-    optional string policy = 4 [default = "default"];
-    optional uint32 algorithm = 5 [default = 1];
-    optional keyrole role = 6 [default = ZSK];
-    repeated string used_by_zones = 7;
-    optional uint32 inception = 8;
+    optional string policy = 4 [default = "default"]; // from kasp
+    optional uint32 algorithm = 5 [default = 1]; // from kasp
+    optional keyrole role = 6 [default = ZSK]; // from kasp
+    repeated string used_by_zones = 7; // maintainted by enforcer
+    optional uint32 inception = 8; // 'now' assigned on first use of key in any zone
     optional bool revoke = 9 [default = false];
-    optional string algorithm_name = 10;
-    optional string hsm_name = 11;
+    optional string key_type = 10; // matches numeric value from PKCS#11 spec e.g. CKK_RSA
+    optional string repository = 11; // repository in which the key was found e.g. SoftHSM
 } 
 
 enum keyrole {

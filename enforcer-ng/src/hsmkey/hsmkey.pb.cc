@@ -57,8 +57,8 @@ void protobuf_AssignDesc_hsmkey_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, used_by_zones_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, inception_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, revoke_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, algorithm_name_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, hsm_name_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, key_type_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HsmKey, repository_),
   };
   HsmKey_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -109,15 +109,15 @@ void protobuf_AddDesc_hsmkey_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\014hsmkey.proto\022\nods.hsmkey\032\014xmlext.proto"
     "\"2\n\016HsmKeyDocument\022 \n\004keys\030\001 \003(\0132\022.ods.h"
-    "smkey.HsmKey\"\225\002\n\006HsmKey\022\017\n\007locator\030\001 \002(\t"
+    "smkey.HsmKey\"\221\002\n\006HsmKey\022\017\n\007locator\030\001 \002(\t"
     "\022$\n\025candidate_for_sharing\030\002 \001(\010:\005false\022\022"
     "\n\004bits\030\003 \001(\r:\0042048\022\027\n\006policy\030\004 \001(\t:\007defa"
     "ult\022\024\n\talgorithm\030\005 \001(\r:\0011\022&\n\004role\030\006 \001(\0162"
     "\023.ods.hsmkey.keyrole:\003ZSK\022\025\n\rused_by_zon"
     "es\030\007 \003(\t\022\021\n\tinception\030\010 \001(\r\022\025\n\006revoke\030\t "
-    "\001(\010:\005false\022\026\n\016algorithm_name\030\n \001(\t\022\020\n\010hs"
-    "m_name\030\013 \001(\t*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020"
-    "\002\022\007\n\003CSK\020\003", 410);
+    "\001(\010:\005false\022\020\n\010key_type\030\n \001(\t\022\022\n\nreposito"
+    "ry\030\013 \001(\t*$\n\007keyrole\022\007\n\003KSK\020\001\022\007\n\003ZSK\020\002\022\007\n"
+    "\003CSK\020\003", 406);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "hsmkey.proto", &protobuf_RegisterTypes);
   HsmKeyDocument::default_instance_ = new HsmKeyDocument();
@@ -355,8 +355,8 @@ void HsmKeyDocument::Swap(HsmKeyDocument* other) {
 
 const ::std::string HsmKey::_default_locator_;
 const ::std::string HsmKey::_default_policy_("default");
-const ::std::string HsmKey::_default_algorithm_name_;
-const ::std::string HsmKey::_default_hsm_name_;
+const ::std::string HsmKey::_default_key_type_;
+const ::std::string HsmKey::_default_repository_;
 #ifndef _MSC_VER
 const int HsmKey::kLocatorFieldNumber;
 const int HsmKey::kCandidateForSharingFieldNumber;
@@ -367,8 +367,8 @@ const int HsmKey::kRoleFieldNumber;
 const int HsmKey::kUsedByZonesFieldNumber;
 const int HsmKey::kInceptionFieldNumber;
 const int HsmKey::kRevokeFieldNumber;
-const int HsmKey::kAlgorithmNameFieldNumber;
-const int HsmKey::kHsmNameFieldNumber;
+const int HsmKey::kKeyTypeFieldNumber;
+const int HsmKey::kRepositoryFieldNumber;
 #endif  // !_MSC_VER
 
 HsmKey::HsmKey() {
@@ -393,8 +393,8 @@ void HsmKey::SharedCtor() {
   role_ = 2;
   inception_ = 0u;
   revoke_ = false;
-  algorithm_name_ = const_cast< ::std::string*>(&_default_algorithm_name_);
-  hsm_name_ = const_cast< ::std::string*>(&_default_hsm_name_);
+  key_type_ = const_cast< ::std::string*>(&_default_key_type_);
+  repository_ = const_cast< ::std::string*>(&_default_repository_);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -409,11 +409,11 @@ void HsmKey::SharedDtor() {
   if (policy_ != &_default_policy_) {
     delete policy_;
   }
-  if (algorithm_name_ != &_default_algorithm_name_) {
-    delete algorithm_name_;
+  if (key_type_ != &_default_key_type_) {
+    delete key_type_;
   }
-  if (hsm_name_ != &_default_hsm_name_) {
-    delete hsm_name_;
+  if (repository_ != &_default_repository_) {
+    delete repository_;
   }
   if (this != default_instance_) {
   }
@@ -455,13 +455,13 @@ void HsmKey::Clear() {
   if (_has_bits_[8 / 32] & (0xffu << (8 % 32))) {
     revoke_ = false;
     if (_has_bit(9)) {
-      if (algorithm_name_ != &_default_algorithm_name_) {
-        algorithm_name_->clear();
+      if (key_type_ != &_default_key_type_) {
+        key_type_->clear();
       }
     }
     if (_has_bit(10)) {
-      if (hsm_name_ != &_default_hsm_name_) {
-        hsm_name_->clear();
+      if (repository_ != &_default_repository_) {
+        repository_->clear();
       }
     }
   }
@@ -608,37 +608,37 @@ bool HsmKey::MergePartialFromCodedStream(
         DO_(::google::protobuf::internal::WireFormatLite::ReadBool(
               input, &revoke_));
         _set_bit(8);
-        if (input->ExpectTag(82)) goto parse_algorithm_name;
+        if (input->ExpectTag(82)) goto parse_key_type;
         break;
       }
       
-      // optional string algorithm_name = 10;
+      // optional string key_type = 10;
       case 10: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
           goto handle_uninterpreted;
         }
-       parse_algorithm_name:
+       parse_key_type:
         DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-              input, this->mutable_algorithm_name()));
+              input, this->mutable_key_type()));
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-          this->algorithm_name().data(), this->algorithm_name().length(),
+          this->key_type().data(), this->key_type().length(),
           ::google::protobuf::internal::WireFormat::PARSE);
-        if (input->ExpectTag(90)) goto parse_hsm_name;
+        if (input->ExpectTag(90)) goto parse_repository;
         break;
       }
       
-      // optional string hsm_name = 11;
+      // optional string repository = 11;
       case 11: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) !=
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
           goto handle_uninterpreted;
         }
-       parse_hsm_name:
+       parse_repository:
         DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-              input, this->mutable_hsm_name()));
+              input, this->mutable_repository()));
         ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-          this->hsm_name().data(), this->hsm_name().length(),
+          this->repository().data(), this->repository().length(),
           ::google::protobuf::internal::WireFormat::PARSE);
         if (input->ExpectAtEnd()) return true;
         break;
@@ -726,22 +726,22 @@ void HsmKey::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteBool(9, this->revoke(), output);
   }
   
-  // optional string algorithm_name = 10;
+  // optional string key_type = 10;
   if (_has_bit(9)) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->algorithm_name().data(), this->algorithm_name().length(),
+      this->key_type().data(), this->key_type().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      10, this->algorithm_name(), output);
+      10, this->key_type(), output);
   }
   
-  // optional string hsm_name = 11;
+  // optional string repository = 11;
   if (_has_bit(10)) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->hsm_name().data(), this->hsm_name().length(),
+      this->repository().data(), this->repository().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      11, this->hsm_name(), output);
+      11, this->repository(), output);
   }
   
   if (!unknown_fields().empty()) {
@@ -812,24 +812,24 @@ void HsmKey::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(9, this->revoke(), target);
   }
   
-  // optional string algorithm_name = 10;
+  // optional string key_type = 10;
   if (_has_bit(9)) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->algorithm_name().data(), this->algorithm_name().length(),
+      this->key_type().data(), this->key_type().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        10, this->algorithm_name(), target);
+        10, this->key_type(), target);
   }
   
-  // optional string hsm_name = 11;
+  // optional string repository = 11;
   if (_has_bit(10)) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->hsm_name().data(), this->hsm_name().length(),
+      this->repository().data(), this->repository().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        11, this->hsm_name(), target);
+        11, this->repository(), target);
   }
   
   if (!unknown_fields().empty()) {
@@ -896,18 +896,18 @@ int HsmKey::ByteSize() const {
       total_size += 1 + 1;
     }
     
-    // optional string algorithm_name = 10;
-    if (has_algorithm_name()) {
+    // optional string key_type = 10;
+    if (has_key_type()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->algorithm_name());
+          this->key_type());
     }
     
-    // optional string hsm_name = 11;
-    if (has_hsm_name()) {
+    // optional string repository = 11;
+    if (has_repository()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->hsm_name());
+          this->repository());
     }
     
   }
@@ -970,10 +970,10 @@ void HsmKey::MergeFrom(const HsmKey& from) {
       set_revoke(from.revoke());
     }
     if (from._has_bit(9)) {
-      set_algorithm_name(from.algorithm_name());
+      set_key_type(from.key_type());
     }
     if (from._has_bit(10)) {
-      set_hsm_name(from.hsm_name());
+      set_repository(from.repository());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -1008,8 +1008,8 @@ void HsmKey::Swap(HsmKey* other) {
     used_by_zones_.Swap(&other->used_by_zones_);
     std::swap(inception_, other->inception_);
     std::swap(revoke_, other->revoke_);
-    std::swap(algorithm_name_, other->algorithm_name_);
-    std::swap(hsm_name_, other->hsm_name_);
+    std::swap(key_type_, other->key_type_);
+    std::swap(repository_, other->repository_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

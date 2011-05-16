@@ -277,25 +277,25 @@ class HsmKey : public ::google::protobuf::Message {
   inline bool revoke() const;
   inline void set_revoke(bool value);
   
-  // optional string algorithm_name = 10;
-  inline bool has_algorithm_name() const;
-  inline void clear_algorithm_name();
-  static const int kAlgorithmNameFieldNumber = 10;
-  inline const ::std::string& algorithm_name() const;
-  inline void set_algorithm_name(const ::std::string& value);
-  inline void set_algorithm_name(const char* value);
-  inline void set_algorithm_name(const char* value, size_t size);
-  inline ::std::string* mutable_algorithm_name();
+  // optional string key_type = 10;
+  inline bool has_key_type() const;
+  inline void clear_key_type();
+  static const int kKeyTypeFieldNumber = 10;
+  inline const ::std::string& key_type() const;
+  inline void set_key_type(const ::std::string& value);
+  inline void set_key_type(const char* value);
+  inline void set_key_type(const char* value, size_t size);
+  inline ::std::string* mutable_key_type();
   
-  // optional string hsm_name = 11;
-  inline bool has_hsm_name() const;
-  inline void clear_hsm_name();
-  static const int kHsmNameFieldNumber = 11;
-  inline const ::std::string& hsm_name() const;
-  inline void set_hsm_name(const ::std::string& value);
-  inline void set_hsm_name(const char* value);
-  inline void set_hsm_name(const char* value, size_t size);
-  inline ::std::string* mutable_hsm_name();
+  // optional string repository = 11;
+  inline bool has_repository() const;
+  inline void clear_repository();
+  static const int kRepositoryFieldNumber = 11;
+  inline const ::std::string& repository() const;
+  inline void set_repository(const ::std::string& value);
+  inline void set_repository(const char* value);
+  inline void set_repository(const char* value, size_t size);
+  inline ::std::string* mutable_repository();
   
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -312,10 +312,10 @@ class HsmKey : public ::google::protobuf::Message {
   ::google::protobuf::RepeatedPtrField< ::std::string> used_by_zones_;
   ::google::protobuf::uint32 inception_;
   bool revoke_;
-  ::std::string* algorithm_name_;
-  static const ::std::string _default_algorithm_name_;
-  ::std::string* hsm_name_;
-  static const ::std::string _default_hsm_name_;
+  ::std::string* key_type_;
+  static const ::std::string _default_key_type_;
+  ::std::string* repository_;
+  static const ::std::string _default_repository_;
   friend void  protobuf_AddDesc_hsmkey_2eproto();
   friend void protobuf_AssignDesc_hsmkey_2eproto();
   friend void protobuf_ShutdownFile_hsmkey_2eproto();
@@ -600,88 +600,88 @@ inline void HsmKey::set_revoke(bool value) {
   revoke_ = value;
 }
 
-// optional string algorithm_name = 10;
-inline bool HsmKey::has_algorithm_name() const {
+// optional string key_type = 10;
+inline bool HsmKey::has_key_type() const {
   return _has_bit(9);
 }
-inline void HsmKey::clear_algorithm_name() {
-  if (algorithm_name_ != &_default_algorithm_name_) {
-    algorithm_name_->clear();
+inline void HsmKey::clear_key_type() {
+  if (key_type_ != &_default_key_type_) {
+    key_type_->clear();
   }
   _clear_bit(9);
 }
-inline const ::std::string& HsmKey::algorithm_name() const {
-  return *algorithm_name_;
+inline const ::std::string& HsmKey::key_type() const {
+  return *key_type_;
 }
-inline void HsmKey::set_algorithm_name(const ::std::string& value) {
+inline void HsmKey::set_key_type(const ::std::string& value) {
   _set_bit(9);
-  if (algorithm_name_ == &_default_algorithm_name_) {
-    algorithm_name_ = new ::std::string;
+  if (key_type_ == &_default_key_type_) {
+    key_type_ = new ::std::string;
   }
-  algorithm_name_->assign(value);
+  key_type_->assign(value);
 }
-inline void HsmKey::set_algorithm_name(const char* value) {
+inline void HsmKey::set_key_type(const char* value) {
   _set_bit(9);
-  if (algorithm_name_ == &_default_algorithm_name_) {
-    algorithm_name_ = new ::std::string;
+  if (key_type_ == &_default_key_type_) {
+    key_type_ = new ::std::string;
   }
-  algorithm_name_->assign(value);
+  key_type_->assign(value);
 }
-inline void HsmKey::set_algorithm_name(const char* value, size_t size) {
+inline void HsmKey::set_key_type(const char* value, size_t size) {
   _set_bit(9);
-  if (algorithm_name_ == &_default_algorithm_name_) {
-    algorithm_name_ = new ::std::string;
+  if (key_type_ == &_default_key_type_) {
+    key_type_ = new ::std::string;
   }
-  algorithm_name_->assign(reinterpret_cast<const char*>(value), size);
+  key_type_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* HsmKey::mutable_algorithm_name() {
+inline ::std::string* HsmKey::mutable_key_type() {
   _set_bit(9);
-  if (algorithm_name_ == &_default_algorithm_name_) {
-    algorithm_name_ = new ::std::string;
+  if (key_type_ == &_default_key_type_) {
+    key_type_ = new ::std::string;
   }
-  return algorithm_name_;
+  return key_type_;
 }
 
-// optional string hsm_name = 11;
-inline bool HsmKey::has_hsm_name() const {
+// optional string repository = 11;
+inline bool HsmKey::has_repository() const {
   return _has_bit(10);
 }
-inline void HsmKey::clear_hsm_name() {
-  if (hsm_name_ != &_default_hsm_name_) {
-    hsm_name_->clear();
+inline void HsmKey::clear_repository() {
+  if (repository_ != &_default_repository_) {
+    repository_->clear();
   }
   _clear_bit(10);
 }
-inline const ::std::string& HsmKey::hsm_name() const {
-  return *hsm_name_;
+inline const ::std::string& HsmKey::repository() const {
+  return *repository_;
 }
-inline void HsmKey::set_hsm_name(const ::std::string& value) {
+inline void HsmKey::set_repository(const ::std::string& value) {
   _set_bit(10);
-  if (hsm_name_ == &_default_hsm_name_) {
-    hsm_name_ = new ::std::string;
+  if (repository_ == &_default_repository_) {
+    repository_ = new ::std::string;
   }
-  hsm_name_->assign(value);
+  repository_->assign(value);
 }
-inline void HsmKey::set_hsm_name(const char* value) {
+inline void HsmKey::set_repository(const char* value) {
   _set_bit(10);
-  if (hsm_name_ == &_default_hsm_name_) {
-    hsm_name_ = new ::std::string;
+  if (repository_ == &_default_repository_) {
+    repository_ = new ::std::string;
   }
-  hsm_name_->assign(value);
+  repository_->assign(value);
 }
-inline void HsmKey::set_hsm_name(const char* value, size_t size) {
+inline void HsmKey::set_repository(const char* value, size_t size) {
   _set_bit(10);
-  if (hsm_name_ == &_default_hsm_name_) {
-    hsm_name_ = new ::std::string;
+  if (repository_ == &_default_repository_) {
+    repository_ = new ::std::string;
   }
-  hsm_name_->assign(reinterpret_cast<const char*>(value), size);
+  repository_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* HsmKey::mutable_hsm_name() {
+inline ::std::string* HsmKey::mutable_repository() {
   _set_bit(10);
-  if (hsm_name_ == &_default_hsm_name_) {
-    hsm_name_ = new ::std::string;
+  if (repository_ == &_default_repository_) {
+    repository_ = new ::std::string;
   }
-  return hsm_name_;
+  return repository_;
 }
 
 
