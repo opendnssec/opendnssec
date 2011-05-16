@@ -28,10 +28,10 @@ static void import_all_keys_from_all_hsms(int sockfd,
 
     // Add new hsm keys found in the HSMs to the key list.
     // We don't want nested lookup loops of O(N^2) we create a map to get O(2N)
-    std::map<const std::string,const ::ods::hsmkey::HsmKey*> keymap;
+    std::map<const std::string,::ods::hsmkey::HsmKey*> keymap;
     for (int k=0; k<doc->keys_size(); ++k) {
-        const ::ods::hsmkey::HsmKey &key = doc->keys(k);
-        keymap[ key.locator() ] = &key;
+        ::ods::hsmkey::HsmKey *key = doc->mutable_keys(k);
+        keymap[ key->locator() ] = key;
     }
 
     (void)snprintf(buf, ODS_SE_MAXLINE,
@@ -49,35 +49,34 @@ static void import_all_keys_from_all_hsms(int sockfd,
 
         
         // skip HSM keys that already exist.
+        ::ods::hsmkey::HsmKey *key = NULL;
         if (keymap.find( kinf->id ) != keymap.end()) {
             
             (void)snprintf(buf, ODS_SE_MAXLINE,
                            "%-7s %-10s %-7ld %-40s\n",
-                           "skip",
+                           "update",
                            kinf->algorithm_name,
                            kinf->keysize,
                            kinf->id
                            );
             ods_writen(sockfd, buf, strlen(buf));
-            continue;   
+            key = keymap[ kinf->id ];
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "%-7s %-10s %-7ld %-40s\n",
+                           "import",
+                           kinf->algorithm_name,
+                           kinf->keysize,
+                           kinf->id
+                           );
+            ods_writen(sockfd, buf, strlen(buf));
+            key = doc->add_keys();
+            key->set_locator(kinf->id);
+            key->set_bits(kinf->keysize);
         }
-            
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "%-7s %-10s %-7ld %-40s\n",
-                       "import",
-                       kinf->algorithm_name,
-                       kinf->keysize,
-                       kinf->id
-                       );
-        ods_writen(sockfd, buf, strlen(buf));
-
-        ::ods::hsmkey::HsmKey *key = doc->add_keys();
         
-        key->set_locator(kinf->id);
-        key->set_bits(kinf->keysize);
-        key->set_algorithm(kinf->algorithm);
-        key->set_algorithm_name(kinf->algorithm_name);
-        key->set_hsm_name( k->module->name );
+        key->set_key_type( kinf->algorithm_name );
+        key->set_repository( k->module->name );
                 
         hsm_key_info_free(kinf);
     }
