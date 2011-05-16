@@ -175,7 +175,7 @@ AC_ARG_ENABLE(enforcerng,
 		[enable_enforcerng="${enableval}"],
 		[enable_enforcerng="yes"])
 AM_CONDITIONAL([ENABLE_ENFORCERNG], [test "${enable_enforcerng}" = "yes"])
-ACX_PROTOBUF
+ACX_PROTOBUF(2,2,0)
 
 # signer
 AC_ARG_ENABLE(signer,
