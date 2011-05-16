@@ -362,10 +362,6 @@
 			isa = PBXGroup;
 			children = (
 				A74EB43D135249DB001F9E1B /* keystate.proto */,
-				A75BBBD5137A9592007A4B11 /* keystate_show_cmd.h */,
-				A75BBBD4137A9591007A4B11 /* keystate_show_cmd.cpp */,
-				A75BBBD7137A9593007A4B11 /* keystate_show_task.h */,
-				A75BBBD6137A9592007A4B11 /* keystate_show_task.cpp */,
 				A77C58D61372A88A000A4E51 /* zone_list_cmd.h */,
 				A77C58D71372A88E000A4E51 /* zone_list_cmd.cpp */,
 				A77C58D51372A886000A4E51 /* zone_list_task.h */,
@@ -374,6 +370,10 @@
 				A77C5800136D6BC7000A4E51 /* keystate_list_cmd.cpp */,
 				A77C57FD136D674C000A4E51 /* keystate_list_task.h */,
 				A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */,
+				A75BBBD5137A9592007A4B11 /* keystate_show_cmd.h */,
+				A75BBBD4137A9591007A4B11 /* keystate_show_cmd.cpp */,
+				A75BBBD7137A9593007A4B11 /* keystate_show_task.h */,
+				A75BBBD6137A9592007A4B11 /* keystate_show_task.cpp */,
 				A77C58CA13719A77000A4E51 /* keystate_ds_submit_cmd.h */,
 				A77C58C913719A73000A4E51 /* keystate_ds_submit_cmd.cpp */,
 				A77C58C813719A70000A4E51 /* keystate_ds_submit_task.h */,
