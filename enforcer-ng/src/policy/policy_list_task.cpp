@@ -13,8 +13,9 @@ extern "C" {
 #include "xmlext-pb/xmlext.h"
 
 #include <fcntl.h>
+#include <memory>
 
-static const char *policy_list_task_str = "policy_list_task";
+static const char *module_str = "policy_list_task";
 
 void 
 perform_policy_list(int sockfd, engineconfig_type *config)
@@ -25,17 +26,18 @@ perform_policy_list(int sockfd, engineconfig_type *config)
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     // Load the policylist from the doc file
-    ::ods::kasp::KaspDocument *kaspDoc = new ::ods::kasp::KaspDocument;
+    std::auto_ptr< ::ods::kasp::KaspDocument >
+        kaspDoc(new ::ods::kasp::KaspDocument);
     {
         std::string datapath(datastore);
         datapath += ".policy.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
         if (kaspDoc->ParseFromFileDescriptor(fd)) {
             ods_log_debug("[%s] policies have been loaded",
-                          policy_list_task_str);
+                          module_str);
         } else {
             ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                          policy_list_task_str,datapath.c_str());
+                          module_str,datapath.c_str());
         }
         close(fd);
     }
@@ -72,7 +74,7 @@ perform_policy_list(int sockfd, engineconfig_type *config)
         }
     }
     
-    ods_log_debug("[%s] policy list completed", policy_list_task_str);
+    ods_log_debug("[%s] policy list completed", module_str);
 }
 
 static task_type * 
@@ -85,9 +87,9 @@ policy_list_task_perform(task_type *task)
 }
 
 task_type *
-policy_list_task(engineconfig_type *config)
+policy_list_task(engineconfig_type *config, const char *shortname)
 {
-    task_id what = task_register("policy list",
+    task_id what = task_register(shortname,
                                  "policy_list_task_perform", 
                                  policy_list_task_perform);
 	return task_create(what, time_now(), "all",(void*)config);
