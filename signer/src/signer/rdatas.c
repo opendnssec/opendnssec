@@ -149,6 +149,8 @@ ods_rr*
 ods_rr_clone(const ods_rr* rr)
 {
     ods_rr* odsrr = NULL;
+    ldns_rdf* rdf = NULL;
+    ldns_rdf* clone = NULL;
     ods_status status = ODS_STATUS_OK;
     size_t i;
 
@@ -161,14 +163,22 @@ ods_rr_clone(const ods_rr* rr)
     }
 
     odsrr->rd_count = 0;
+    odsrr->rdata_fields = NULL;
     for (i = 0; i < rr->rd_count; i++) {
-        if (ods_rr_rdf((ods_rr*) rr, i)) {
-            status = ods_rr_push_rdf(odsrr,
-                ldns_rdf_clone(ods_rr_rdf((ods_rr*) rr, i)));
-            if (status != ODS_STATUS_OK) {
-                ods_rr_free(odsrr);
-                return NULL;
-            }
+        rdf = ods_rr_rdf((ods_rr*) rr, i);
+        if (!rdf) {
+            ods_rr_free(odsrr);
+            return NULL;
+        }
+        clone = ldns_rdf_clone(rdf);
+        if (!clone) {
+            ods_rr_free(odsrr);
+            return NULL;
+        }
+        status = ods_rr_push_rdf(odsrr, clone);
+        if (status != ODS_STATUS_OK) {
+            ods_rr_free(odsrr);
+            return NULL;
         }
     }
     ods_log_assert(odsrr->rd_count == rr->rd_count);
@@ -243,6 +253,38 @@ ods_rr_2ldns(ldns_rdf* owner, uint32_t ttl, ldns_rr_class klass,
         }
     }
     return rr;
+}
+
+
+/**
+ * Get the algorithm field from a RRSIG RR.
+ *
+ */
+ldns_rdf*
+ods_rr_rrsig_algorithm(ods_rr* rr)
+{
+    return ods_rr_rdf(rr, 1);
+}
+
+/**
+ * Get the inception field from a RRSIG RR.
+ *
+ */
+ldns_rdf*
+ods_rr_rrsig_inception(ods_rr* rr)
+{
+    return ods_rr_rdf(rr, 5);
+}
+
+
+/**
+ * Get the expiration field from a RRSIG RR.
+ *
+ */
+ldns_rdf*
+ods_rr_rrsig_expiration(ods_rr* rr)
+{
+    return ods_rr_rdf(rr, 4);
 }
 
 
@@ -325,6 +367,7 @@ ods_rr_uncompressed_size(const ods_rr* r)
     for(i = 0; i < r->rd_count; i++) {
         rrsize += ldns_rdf_size(ods_rr_rdf((ods_rr*) r, i));
     }
+    rrsize += 2; /* RDLEN */
     return rrsize;
 }
 
@@ -383,10 +426,8 @@ ods_rr2buffer_wire_canonical(ldns_buffer* buffer, ods_rr* rr,
             (void) ldns_rdf2buffer_wire(buffer, ods_rr_rdf(rr, i));
         }
     }
-    if (rdl_pos != 0) {
-        ldns_buffer_write_u16_at(buffer, rdl_pos,
-            ldns_buffer_position(buffer) - rdl_pos - 2);
-    }
+    ldns_buffer_write_u16_at(buffer, rdl_pos,
+        ldns_buffer_position(buffer) - rdl_pos - 2);
     return ldns_buffer_status(buffer);
 }
 
@@ -403,7 +444,18 @@ ods_rr_compare_wire(ldns_buffer* rr1_buf, ldns_buffer* rr2_buf)
     rr1_len = ldns_buffer_capacity(rr1_buf);
     rr2_len = ldns_buffer_capacity(rr2_buf);
 
-    offset = 1;
+    offset = 3;
+    i = 0;
+    fprintf(stderr, "%s buf1[%u]=%u with buf2[%u]=%u\n",
+         (*ldns_buffer_at(rr1_buf, i) < *ldns_buffer_at(rr2_buf, i)) ? "-1" :
+
+         (
+         (*ldns_buffer_at(rr1_buf, i) > *ldns_buffer_at(rr2_buf, i)) ? "+1" :
+          " 0"
+         ),
+         0, *ldns_buffer_at(rr1_buf, 0),
+         0, *ldns_buffer_at(rr2_buf, 0));
+
     min_len = (rr1_len < rr2_len) ? rr1_len : rr2_len;
     /* Compare RRs RDATA byte for byte. */
     for (i = offset; i < min_len; i++) {
@@ -412,10 +464,23 @@ ods_rr_compare_wire(ldns_buffer* rr1_buf, ldns_buffer* rr2_buf)
          * Conditional jump or move depends on uninitialised value(s)
          */
         if (*ldns_buffer_at(rr1_buf, i) < *ldns_buffer_at(rr2_buf, i)) {
+            fprintf(stderr, "-1 cmp buf1[%u]=%c with buf2[%u]=%c\n",
+                i, (char) *ldns_buffer_at(rr1_buf, i),
+                i, (char) *ldns_buffer_at(rr2_buf, i));
+
             return -1;
         } else if (*ldns_buffer_at(rr1_buf,i) > *ldns_buffer_at(rr2_buf,i)) {
+            fprintf(stderr, "+1 cmp buf1[%u]=%c with buf2[%u]=%c\n",
+                i, (char) *ldns_buffer_at(rr1_buf, i),
+                i, (char) *ldns_buffer_at(rr2_buf, i));
+
             return +1;
         }
+
+        fprintf(stderr, " 0 cmp buf1[%u]=%c with buf2[%u]=%c\n",
+           i, (char) *ldns_buffer_at(rr1_buf, i),
+           i, (char) *ldns_buffer_at(rr2_buf, i));
+
     }
 
     /**
@@ -423,11 +488,14 @@ ods_rr_compare_wire(ldns_buffer* rr1_buf, ldns_buffer* rr2_buf)
      * then the shorter one sorts first.
      */
     if (rr1_len < rr2_len) {
+       fprintf(stderr, "-1 rr1_len %u < rr2_len %u\n", rr1_len, rr2_len);
         return -1;
     } else if (rr1_len > rr2_len) {
+       fprintf(stderr, "+1 rr1_len %u > rr2_len %u\n", rr1_len, rr2_len);
         return +1;
     }
     /* The RDATAs are equal. */
+    fprintf(stderr, " 0 rr1_len %u = rr2_len %u\n", rr1_len, rr2_len);
     return 0;
 }
 

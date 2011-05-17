@@ -110,6 +110,30 @@ ldns_rr* ods_rr_2ldns(ldns_rdf* owner, uint32_t ttl, ldns_rr_class klass,
     ldns_rr_type rrtype, ods_rr* odsrr);
 
 /**
+ * Get the algorithm field from a RRSIG RR.
+ * \param[in] rr RRSIG record
+ * \return ldns_rdf* algorithm field
+ *
+ */
+ldns_rdf* ods_rr_rrsig_algorithm(ods_rr* rr);
+
+/**
+ * Get the inception field from a RRSIG RR.
+ * \param[in] rr RRSIG record
+ * \return ldns_rdf* inception field
+ *
+ */
+ldns_rdf* ods_rr_rrsig_inception(ods_rr* rr);
+
+/**
+ * Get the expiration field from a RRSIG RR.
+ * \param[in] rr RRSIG record
+ * \return ldns_rdf* expiration field
+ *
+ */
+ldns_rdf* ods_rr_rrsig_expiration(ods_rr* rr);
+
+/**
  * Print the RR to a given file stream.
  * \param[in] fd file descriptor
  * \param[in] owner RR owner
