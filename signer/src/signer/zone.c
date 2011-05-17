@@ -2407,20 +2407,28 @@ rrset_recover(rrset_type* rrset, ldns_rr* rrsig, const char* locator,
     uint32_t flags)
 {
     ods_status status = ODS_STATUS_OK;
+    ods_rr* rr = NULL;
 
     ods_log_assert(rrset);
     ods_log_assert(rrsig);
     ods_log_assert(locator);
     ods_log_assert(flags);
 
-    if (!rrset->rrsigs) {
-        rrset->rrsigs = rrsigs_create();
+    rr = ods_rr_new(rrsig);
+    if (!rr) {
+        ods_log_error("[%s] unable to recover RRSIG: convert failed",
+            zone_str);
+        return ODS_STATUS_ASSERT_ERR;
     }
 
-    status = rrsigs_add_sig(rrset->rrsigs, rrsig, locator, flags);
+    if (!rrset->rrsigs) {
+        rrset->rrsigs = rrsigs_create((void*) rrset);
+    }
+    status = rrsigs_add_sig(rrset->rrsigs, rr, locator, flags);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to recover RRSIG", zone_str);
-        log_rr(rrsig, "+RRSIG", 1);
+        ods_log_error("[%s] unable to recover RRSIG: add failed", zone_str);
+        ods_rr_free(rr);
+/*        log_rr(rrsig, "+RRSIG", 1); */
     } else {
         rrset->rrsig_count += 1;
         /**
@@ -2495,6 +2503,7 @@ domain_recover(zone_type* zone, FILE* fd, domain_type* domain,
                 goto recover_dname_error;
             }
             /* signature done */
+            ldns_rr_free(rr);
             free((void*) locator);
             locator = NULL;
             rr = NULL;
