@@ -2,7 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-PROTO_SOURCES = \
+BUILT_SOURCES = \
 	$(srcdir)/xmlext-pb/xmlext.pb.cc $(srcdir)/xmlext-pb/xmlext.pb.h \
 	$(srcdir)/hsmkey/hsmkey.pb.cc $(srcdir)/hsmkey/hsmkey.pb.h \
 	$(srcdir)/keystate/keystate.pb.cc $(srcdir)/keystate/keystate.pb.h \
@@ -11,7 +11,16 @@ PROTO_SOURCES = \
 	$(srcdir)/signconf/signconf.pb.cc $(srcdir)/signconf/signconf.pb.h \
 	$(srcdir)/zone/zonelist.pb.cc $(srcdir)/zone/zonelist.pb.h
 
-CLEANFILES = $(PROTO_SOURCES)
+EXTRA_DIST: \
+	$(srcdir)/xmlext-pb/xmlext.proto \
+	$(srcdir)/hsmkey/hsmkey.proto \
+	$(srcdir)/keystate/keystate.proto \
+	$(srcdir)/parser/conf.proto \
+	$(srcdir)/policy/kasp.proto \
+	$(srcdir)/signconf/signconf.proto \
+	$(srcdir)/zone/zonelist.proto
+
+CLEANFILES = $(BUILT_SOURCES)
 
 LIBHSM = ${top_builddir}/libhsm/src/libhsm.a
 
@@ -30,8 +39,9 @@ enforcerdir =	@libdir@/opendnssec/enforcer
 sbin_PROGRAMS =	ods-enforcerd ods-enforcer
 # man8_MANS =	man/ods-enforcer.8 man/ods-enforcerd.8
 
+nodist_ods_enforcerd_SOURCES = $(BUILT_SOURCES)
+
 ods_enforcerd_SOURCES = \
-	$(PROTO_SOURCES) \
 	ods-enforcerd.c \
 	daemon/cfg.c daemon/cfg.h \
 	daemon/cmdhandler.c daemon/cmdhandler.h \
@@ -107,16 +117,3 @@ ods_enforcer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
 
 %.pb.cc %.pb.h:
 	$(PROTOC) $(AM_CPPFLAGS) --cpp_out=`dirname $@` -I=`dirname $@` `dirname $@`/`basename $@ .pb.cc`.proto
-
-EXTRA_DIST:	$(srcdir)/signconf/signconf.proto \
-		$(srcdir)/zone/zonelist.proto \
-		$(srcdir)/hsmkey/hsmkey.proto \
-		$(srcdir)/xmlext-pb/xmlext.proto \
-		$(srcdir)/parser/conf.proto \
-		$(srcdir)/policy/kasp.proto \
-		$(srcdir)/keystate/keystate.proto
-
-dist-hook:
-	rm -f `find $(distdir) -name *.pb.cc`
-	rm -f `find $(distdir) -name *.pb.h`
-
