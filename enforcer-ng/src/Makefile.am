@@ -11,7 +11,7 @@ BUILT_SOURCES = \
 	$(srcdir)/signconf/signconf.pb.cc $(srcdir)/signconf/signconf.pb.h \
 	$(srcdir)/zone/zonelist.pb.cc $(srcdir)/zone/zonelist.pb.h
 
-EXTRA_DIST: \
+EXTRA_DIST = \
 	$(srcdir)/xmlext-pb/xmlext.proto \
 	$(srcdir)/hsmkey/hsmkey.proto \
 	$(srcdir)/keystate/keystate.proto \
