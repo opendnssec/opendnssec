@@ -259,7 +259,7 @@ interface_start(char* cmd)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            ret = system(ODS_SE_ENGINE);
+            ret = system(ODS_EN_ENGINE);
             return;
         }
 
