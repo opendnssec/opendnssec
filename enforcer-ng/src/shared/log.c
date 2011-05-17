@@ -73,7 +73,7 @@ static int log_level = LOG_CRIT;
    -
 */
 
-#define MY_PACKAGE_TARNAME "ods-signerd"
+#define MY_PACKAGE_TARNAME "ods-enforcerd"
 
 static const char* log_str = "log";
 
