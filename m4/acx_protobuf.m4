@@ -64,6 +64,11 @@ AC_DEFUN([ACX_PROTOBUF],[
 
 	CPPFLAGS=$tmp_CPPFLAGS
 
+	AC_PATH_PROG(PROTOC, protoc)
+	if test -z "$PROTOC"; then
+		AC_MSG_ERROR([protoc not found])
+	fi
+
 	AC_SUBST(PROTOBUF_INCLUDES)
 	AC_SUBST(PROTOBUF_LIBS)
 ])
