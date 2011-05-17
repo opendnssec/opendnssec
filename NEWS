@@ -13,6 +13,7 @@ Bugfixes:
 * Signer Engine: Fix race condition bug when doing a single run.
 * Signer Engine: In case of failure, also mark zone processed (single run).
 * Signer Engine: Don't leak backup file descriptor.
+* signconf.rnc now allows NSEC3 Iterations of 0
 
 
 OpenDNSSEC 1.3.0rc1 - 2011-04-21
