@@ -6,6 +6,7 @@ PROTO_SOURCES = \
 	$(srcdir)/xmlext-pb/xmlext.pb.cc $(srcdir)/xmlext-pb/xmlext.pb.h \
 	$(srcdir)/hsmkey/hsmkey.pb.cc $(srcdir)/hsmkey/hsmkey.pb.h \
 	$(srcdir)/keystate/keystate.pb.cc $(srcdir)/keystate/keystate.pb.h \
+	$(srcdir)/parser/conf.pb.cc $(srcdir)/parser/conf.pb.h \
 	$(srcdir)/policy/kasp.pb.cc $(srcdir)/policy/kasp.pb.h \
 	$(srcdir)/signconf/signconf.pb.cc $(srcdir)/signconf/signconf.pb.h \
 	$(srcdir)/zone/zonelist.pb.cc $(srcdir)/zone/zonelist.pb.h
@@ -79,7 +80,7 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_ds_seen_cmd.cpp keystate/keystate_ds_seen_cmd.h \
 	keystate/keystate_ds_seen_task.cpp keystate/keystate_ds_seen_task.h \
 	keystate/update_keyzones_cmd.cpp keystate/update_keyzones_cmd.h \
-	keystate/update_keyzones_task.cpp keystaet/update_keyzones_task.h \
+	keystate/update_keyzones_task.cpp keystate/update_keyzones_task.h \
 	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 	signconf/signconf_task.cpp signconf/signconf_task.h \
 	enforcer/enforcerdata.h \
@@ -89,9 +90,6 @@ ods_enforcerd_SOURCES = \
 	enforcer/enforcer.cpp enforcer/enforcer.h \
 	enforcer/enforcerzone.cpp enforcer/enforcerzone.h \
 	enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.h
-
-%.pb.cc %.pb.h:
-	$(PROTOC) $(AM_CPPFLAGS) --cpp_out=`dirname $@` -I=`dirname $@` `dirname $@`/`basename $@ .pb.cc`.proto
 
 ods_enforcerd_LDADD=		$(LIBHSM)
 ods_enforcerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @PROTOBUF_LIBS@
@@ -106,3 +104,19 @@ ods_enforcer_SOURCES=		ods-enforcer.c \
 
 ods_enforcer_LDADD=		$(LIBHSM)
 ods_enforcer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
+
+%.pb.cc %.pb.h:
+	$(PROTOC) $(AM_CPPFLAGS) --cpp_out=`dirname $@` -I=`dirname $@` `dirname $@`/`basename $@ .pb.cc`.proto
+
+EXTRA_DIST:	$(srcdir)/signconf/signconf.proto \
+		$(srcdir)/zone/zonelist.proto \
+		$(srcdir)/hsmkey/hsmkey.proto \
+		$(srcdir)/xmlext-pb/xmlext.proto \
+		$(srcdir)/parser/conf.proto \
+		$(srcdir)/policy/kasp.proto \
+		$(srcdir)/keystate/keystate.proto
+
+dist-hook:
+	rm -f `find $(distdir) -name *.pb.cc`
+	rm -f `find $(distdir) -name *.pb.h`
+
