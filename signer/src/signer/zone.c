@@ -2529,7 +2529,7 @@ domain_recover(zone_type* zone, FILE* fd, domain_type* domain,
             domain->denial->domain = domain; /* back reference */
             /* add the NSEC(3) rr */
             if (!domain->denial->rrset) {
-                domain->denial->rrset = rrset_create(domain->dname,
+                domain->denial->rrset = rrset_create(domain->denial->owner,
                     zone->default_ttl, ldns_rr_get_type(rr), (void*) zone);
             }
             ods_log_assert(domain->denial->rrset);
@@ -2586,6 +2586,7 @@ domain_recover(zone_type* zone, FILE* fd, domain_type* domain,
                 goto recover_dname_error;
             }
             /* signature done */
+            ldns_rr_free(rr);
             free((void*) locator);
             locator = NULL;
             rr = NULL;
