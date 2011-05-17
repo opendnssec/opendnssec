@@ -1,3 +1,0 @@
-#!/bin/bash
-PB_DIR=../../../protobuf
-$PB_DIR/bin/protoc -I=$PB_DIR/include -I=. --cpp_out=. xmlext.proto
