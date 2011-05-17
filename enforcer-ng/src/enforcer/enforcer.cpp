@@ -2,15 +2,18 @@
 #include <iostream>
 #include <cassert>
 
+#include "enforcer/enforcer.h"
 #include "enforcer/enforcerdata.h"
 #include "policy/kasp.pb.h"
-#include "enforcer/enforcer.h"
 
 // Interface of this cpp file is used by C code, we need to declare
 // extern "C" to prevent linking errors.
 extern "C" {
 	#include "shared/duration.h"
+	#include "shared/log.h"
 }
+
+static const char *module_str = "enforcer";
 
 /* Move this to enforcerdata at later time?
  * Hidden, rumoured, comitted, omnipresent, unretentive, postcomitted
@@ -56,9 +59,12 @@ bool getLastReusableKey( EnforcerZone &zone,
  * */
 void setState( KeyState &record_state, const RecordState new_state, 
 		const time_t now ) {
+	const char *scmd = "setState";
+	ods_log_info("[%s] %s changing state %d", module_str, scmd, new_state);
+
 	record_state.setState(new_state);
 	record_state.setLastChange(now);
-}
+	}
 
 /* A DS|DNSKEY|RRSIG RR is considered reliable (useable in a validation 
  * chain) if it is known to all caches or it is being introduced and 
@@ -408,7 +414,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 		}
 		if ( hasReplacement ) {
 		/* withdraw stuff */
-		record_state.setState( PCM );
+		setState(record_state, PCM, now);
 		record_changed = true;
 		break;
 		}
@@ -453,7 +459,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 			}
 		}
 		if ( !all ) break; /* from switch */
-		key.keyStateDNSKEY().setState( key.revoke() ? REV : UNR );
+		setState(record_state, key.revoke() ? REV : UNR, now);
 		record_changed = true;
 		/* submit or revoke stuff */
 		break;
@@ -463,7 +469,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 	case REV:
 	Tprop = 0 /* TODO */;
 	if (now >= Tprop) {
-		key.keyStateDNSKEY().setState( UNR );
+		setState(record_state, UNR, now);
 		record_changed = true;
 	} else {
 		next_update_for_record = Tprop;
@@ -480,7 +486,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 		 * record_changed = true;
 		 * */
 	} else if (now >= Tprop) {
-		key.keyStateDNSKEY().setState( HID );
+		setState(record_state, HID, now);
 		record_changed = true;
 	} else {
 		next_update_for_record = Tprop;
@@ -504,6 +510,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	int num_keys = key_list.numKeys();
 	KeyData *k;
 	time_t Tprop;
+	const char *scmd = "updateRrsig";
 
 	bool exists;
 	bool safeToWithdraw;
@@ -512,7 +519,11 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	switch ( record_state.state() ) {
 
 	case HID:
-	if ( !key.introducing() || key.standby() ) break;
+	ods_log_info("[%s] %s, key is now hidden ", module_str, scmd);
+	if ( !key.introducing() || key.standby() ) {
+		ods_log_info("[%s] %s, not introducing or standby ", module_str, scmd);
+		break;
+	}
 	exists = false;
 	if (!record_state.minimize()) {
 		for (int i = 0; i < num_keys; i++) {
@@ -524,19 +535,22 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 			}
 		}
 	}
-	if ( !exists ) {
+	if ( !exists || !record_state.minimize() ) {
 		/* submit stuff */
-		key.keyStateRRSIG().setState( RUM );
+		ods_log_info("[%s] %s, not exists", module_str, scmd);
+		setState(record_state, RUM, now);
 		record_changed = true;
 		break;
 	}
 	if ( key.keyStateRRSIG().minimize() &&
 			key.keyStateDNSKEY().state() == OMN) {
 		/* submit stuff */
-		key.keyStateRRSIG().setState( COM );
+		ods_log_info("[%s] %s, minimize", module_str, scmd);
+		setState(record_state, COM, now);
 		record_changed = true;
 		break;
 	}
+	ods_log_info("[%s] %s, no match", module_str, scmd);
 	break;
 
 	case RUM:
@@ -544,12 +558,12 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 			+ policy->zone().propagationdelay();
 	if ( !key.introducing() ) {
 	    /* withdraw stuff */
-	    key.keyStateRRSIG().setState( UNR );
+		setState(record_state, UNR, now);
 	    record_changed = true;
 	    break;
 	} else if ( now >= Tprop ) {
 	    /* do stuff */
-	    key.keyStateRRSIG().setState( OMN );
+		setState(record_state, OMN, now);
 	    record_changed = true;
 	    break;
 	} else {
@@ -562,8 +576,8 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 			+ policy->zone().propagationdelay();
 	if ( now >= Tprop ) {
 	    /* do stuff */
-	    key.keyStateRRSIG().setState( OMN );
-	    record_changed = true;
+	    setState(record_state, OMN, now);
+		record_changed = true;
 	    break;
 	}
 	break;
@@ -581,7 +595,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 			}
 		}
 		if ( exist3 ) {
-			key.keyStateRRSIG().setState( HID );
+			setState(record_state, HID, now);
 			record_changed = true;
 			break;
 		}
@@ -602,7 +616,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	}
 	if ( safeToWithdraw ) {
 		/* submit stuff */
-		key.keyStateRRSIG().setState( UNR );
+		setState(record_state, UNR, now);
 		record_changed = true;
 		break;
 	}
@@ -619,7 +633,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	     * state -> rumoured
 	     break;*/
 	} if ( now >= Tprop ) {
-		key.keyStateRRSIG().setState( HID );
+		setState(record_state, HID, now);
 		record_changed = true;
 	    break;
 	} else {
@@ -631,7 +645,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	Tprop = record_state.lastChange() + policy->signatures().ttl()
 			+ policy->zone().propagationdelay();
 	if ( now >= Tprop ) {
-		key.keyStateRRSIG().setState( HID );
+		setState(record_state, HID, now);
 		record_changed = true;
 	    break;
 	} else {
@@ -656,7 +670,10 @@ bool updateKey(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	time_t next_update_for_record = -1;
 	next_update_for_key = -1;
 	bool key_changed = false;
+	const char *scmd = "updateKey";
 
+	ods_log_info("[%s] %s key ", module_str, scmd);
+	
 	if (key.role() & KSK) { /* KSK and CSK */
 		key_changed |= updateDs(zone, key_list, key, now, next_update_for_record);
 		minTime(next_update_for_record, next_update_for_key);
@@ -665,7 +682,7 @@ bool updateKey(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	key_changed |= updateDnskey(zone, key_list, key, now, next_update_for_record);
 	minTime(next_update_for_record, next_update_for_key);
 
-	if (key.role() & KSK) { /* ZSK and CSK */
+	if (key.role() & ZSK) { /* ZSK and CSK */
 		key_changed |= updateRrsig(zone, key_list, key, now, next_update_for_record);
 		minTime(next_update_for_record, next_update_for_key);
 	}
@@ -680,6 +697,9 @@ time_t updateZone(EnforcerZone &zone, const time_t now) {
 	time_t next_update_for_key;
 	KeyData *key;
 	KeyDataList &key_list = zone.keyDataList();
+	const char *scmd = "updateZone";
+
+	ods_log_info("[%s] %s ", module_str, scmd);
 
 	/* Keep looping till there are no state changes.
 	 * Find the soonest update time */
@@ -706,7 +726,7 @@ int numberOfKeys(const ::ods::kasp::Keys *policyKeys, const KeyRole role) {
 		case CSK:
 			return policyKeys->csk_size();
 		default:
-			assert(0); /* report a bug! */
+			assert(0); /* report a bug! do this with log msg */
 	}
 }
 
@@ -756,7 +776,7 @@ time_t most_recent_inception(KeyDataList &keys, KeyRole role) {
     return most_recent;
 }
 
-/* See what needs to be done for the policy*/
+/* See what needs to be done for the policy */
 time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory) {
 	time_t return_at = -1;
 	const ::ods::kasp::Policy *policy = zone.policy();
@@ -764,6 +784,11 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 	/* first look at policy */
 	::ods::kasp::Keys policyKeys = policy->keys();
 	const std::string policyName = policy->name();
+	const char *scmd = "updatePolicy";
+
+	ods_log_info("[%s] %s policy %s", module_str, scmd, policyName.c_str());
+
+	
 
 	int bits, algorithm, lifetime;
 	time_t last_insert, next_insert;
@@ -771,17 +796,24 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
 		last_insert = most_recent_inception(zone.keyDataList(),(KeyRole)role); /* search all keys for this zone */
+		/* TODO: remove this loop, execute only once! */
 		for ( int i = 0; i < numberOfKeys( &policyKeys, (KeyRole)role ); i++ ) {
             std::string repository;
+            /* select key properties of key i in KeyRole role */
 			keyProperties(&policyKeys, (KeyRole)role, i, &bits, &algorithm,
-                          &lifetime,repository);
+                    &lifetime, repository);
 			next_insert = last_insert + lifetime;
+			ods_log_info("[%s] %s last insert %d", module_str, scmd, last_insert);
+			ods_log_info("[%s] %s lifetime %d", module_str, scmd, lifetime);
+			ods_log_info("[%s] %s now %d", module_str, scmd, now);
 			if ( now < next_insert && last_insert != -1 ) {
 				/* No need to change key, come back at */
 				minTime( next_insert, return_at );
 				continue;
 			}
+			
 			/* time for a new key */
+			ods_log_info("[%s] %s Time for new key. role %d", module_str, scmd, role);
 			string locator;
 			HsmKey *hsm_key;
 			bool got_key;
@@ -805,6 +837,9 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 				continue;
 			}
 
+
+			ods_log_info("[%s] %s add new key", module_str, scmd);
+
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, now,
 				(KeyRole)role, false, false, false);
 			new_key.setLocator( hsm_key->locator() );
@@ -817,6 +852,7 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 
 			/* New key inserted, come back after its lifetime */
 			minTime( now + lifetime, return_at );
+			/* TODO break ? */
 		}
 	} /* loop over KeyRole */
 	return return_at;
@@ -838,6 +874,9 @@ inline void removeDeadKeys(KeyDataList &key_list) {
 time_t update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory) {
 	time_t policy_return_time, zone_return_time;
 	KeyDataList &key_list = zone.keyDataList();
+	const char *scmd = "update";
+
+	ods_log_info("[%s] %s update started for zone %s", module_str, scmd, zone.name().c_str());
 
 	policy_return_time = updatePolicy(zone, now, keyfactory);
 	zone_return_time = updateZone(zone, now);
