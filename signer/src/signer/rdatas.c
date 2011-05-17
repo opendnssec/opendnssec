@@ -445,17 +445,6 @@ ods_rr_compare_wire(ldns_buffer* rr1_buf, ldns_buffer* rr2_buf)
     rr2_len = ldns_buffer_capacity(rr2_buf);
 
     offset = 3;
-    i = 0;
-    fprintf(stderr, "%s buf1[%u]=%u with buf2[%u]=%u\n",
-         (*ldns_buffer_at(rr1_buf, i) < *ldns_buffer_at(rr2_buf, i)) ? "-1" :
-
-         (
-         (*ldns_buffer_at(rr1_buf, i) > *ldns_buffer_at(rr2_buf, i)) ? "+1" :
-          " 0"
-         ),
-         0, *ldns_buffer_at(rr1_buf, 0),
-         0, *ldns_buffer_at(rr2_buf, 0));
-
     min_len = (rr1_len < rr2_len) ? rr1_len : rr2_len;
     /* Compare RRs RDATA byte for byte. */
     for (i = offset; i < min_len; i++) {
@@ -464,23 +453,10 @@ ods_rr_compare_wire(ldns_buffer* rr1_buf, ldns_buffer* rr2_buf)
          * Conditional jump or move depends on uninitialised value(s)
          */
         if (*ldns_buffer_at(rr1_buf, i) < *ldns_buffer_at(rr2_buf, i)) {
-            fprintf(stderr, "-1 cmp buf1[%u]=%c with buf2[%u]=%c\n",
-                i, (char) *ldns_buffer_at(rr1_buf, i),
-                i, (char) *ldns_buffer_at(rr2_buf, i));
-
             return -1;
         } else if (*ldns_buffer_at(rr1_buf,i) > *ldns_buffer_at(rr2_buf,i)) {
-            fprintf(stderr, "+1 cmp buf1[%u]=%c with buf2[%u]=%c\n",
-                i, (char) *ldns_buffer_at(rr1_buf, i),
-                i, (char) *ldns_buffer_at(rr2_buf, i));
-
             return +1;
         }
-
-        fprintf(stderr, " 0 cmp buf1[%u]=%c with buf2[%u]=%c\n",
-           i, (char) *ldns_buffer_at(rr1_buf, i),
-           i, (char) *ldns_buffer_at(rr2_buf, i));
-
     }
 
     /**
@@ -488,14 +464,11 @@ ods_rr_compare_wire(ldns_buffer* rr1_buf, ldns_buffer* rr2_buf)
      * then the shorter one sorts first.
      */
     if (rr1_len < rr2_len) {
-       fprintf(stderr, "-1 rr1_len %u < rr2_len %u\n", rr1_len, rr2_len);
         return -1;
     } else if (rr1_len > rr2_len) {
-       fprintf(stderr, "+1 rr1_len %u > rr2_len %u\n", rr1_len, rr2_len);
         return +1;
     }
     /* The RDATAs are equal. */
-    fprintf(stderr, " 0 rr1_len %u = rr2_len %u\n", rr1_len, rr2_len);
     return 0;
 }
 
