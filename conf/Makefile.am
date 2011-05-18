@@ -16,9 +16,6 @@ noinst_DATA = ${XML} ${XSL}
 
 dist_data_DATA = ${RNG} ${RNC} ${XSL}
 
-EXTRA_DIST =	${TRANG} \
-		$(srcdir)/trang/copying.txt
-
 CLEANFILES =+		*.xml
 DISTCLEANFILES =+	*.rng
 
