@@ -634,11 +634,11 @@ module KASPAuditor
       }
       if (!l_rr.opt_out?)
         File.open(@working + "#{File::SEPARATOR}audit.optout.#{Process.pid}", "a") { |f|
-        l_rr_name = l_rr.name.to_s
-        if (@soa.name.to_s == "")
-          l_rr_name += "."
-        end
-        f.write("#{l_rr_name} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
+          l_rr_name = l_rr.name.to_s
+          if (@soa.name.to_s == "")
+            l_rr_name += "."
+          end
+          f.write("#{l_rr_name} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
         }
       end
     end
@@ -742,8 +742,8 @@ module KASPAuditor
             # iff we're using NSEC3
             write_types_to_file(current_domain, types_covered, last_rr.name, is_glue)
           end
+          delegation = false
           if !(test_subdomain(current_domain, subdomain))
-            delegation = false
             is_glue = false
           else
             is_glue = true
@@ -753,12 +753,16 @@ module KASPAuditor
           types_covered.push(l_rr.type)
           current_domain = l_rr.name
           last_rr = old_rr
+          if last_rr.type == Types::NS
+            delegation = true
+          end
+        else
+          if l_rr.type == Types::NS
+            delegation = true
+          end
         end
         if !([Types::A, Types::AAAA, Types::RRSIG].include?l_rr.type)
           is_glue = false
-        end
-        if l_rr.type == Types::NS
-          delegation = true
         end
 
         # Keep track of the RRSet we're currently loading - as soon as all the RRs have been loaded, then check the RRSIG
