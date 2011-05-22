@@ -39,7 +39,7 @@ inline void minTime(const time_t t, time_t &min) {
  * also, check if it isn't in zone already. Also length, algorithm
  * must match and it must be a first generation key.
  * */
-bool getLastReusableKey( EnforcerZone &zone,
+bool getLastReusableKey(EnforcerZone &zone,
 		const ::ods::kasp::Policy *policy, const KeyRole role,
         int bits, const std::string &repository, int algorithm, const time_t now, HsmKey **ppKey,
 		HsmKeyFactory &keyfactory, int lifetime) {
@@ -57,7 +57,7 @@ bool getLastReusableKey( EnforcerZone &zone,
 
 /* Applies new state to record and keeps additional administration.
  * */
-void setState( KeyState &record_state, const RecordState new_state, 
+void setState(KeyState &record_state, const RecordState new_state,
 		const time_t now ) {
 	const char *scmd = "setState";
 	ods_log_info("[%s] %s changing state %d", module_str, scmd, new_state);
@@ -66,8 +66,8 @@ void setState( KeyState &record_state, const RecordState new_state,
 	record_state.setLastChange(now);
 	}
 
-/* A DS|DNSKEY|RRSIG RR is considered reliable (useable in a validation 
- * chain) if it is known to all caches or it is being introduced and 
+/* A DS|DNSKEY|RRSIG RR is considered reliable (useable in a validation
+ * chain) if it is known to all caches or it is being introduced and
  * another DS|DNSKEY|RRSIG is decommissioned at the same time.
  * */
 bool reliableDs(KeyDataList &key_list, KeyData &key) {
@@ -125,6 +125,16 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	case HID:
 	if (!key.introducing() || key.standby()) break;
 	if (!record_state.minimize()) {
+		int similar_ksks = 0;
+		if (key.keyStateDNSKEY().state() == OMN) {
+			setState(record_state, RUM, now);
+			record_changed = true;
+			/* The DS record must be submit to the parent */
+			key.setSubmitToParent(true);
+			key.setDSSeen(false);
+			/* The signer configuration does not change */
+			break;
+		}
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if (k->algorithm() == key.algorithm() &&
@@ -139,7 +149,8 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 				break;
 			}
 		}
-	} else if (key.keyStateDNSKEY().state() == OMN) {
+	}
+	if (key.keyStateDNSKEY().state() == OMN) {
 		setState(record_state, COM, now);
 		record_changed = true;
 		/* The DS record must be submit to the parent */
