@@ -358,13 +358,13 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 		}
 		if (!noneExist) break;
 	}
-	if (!reliableDnskey(key_list, key)) {
+	if (!reliableRrsig(key_list, key)) {
 		bool oneExist = false;
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
-			if (!(key.algorithm() == k->algorithm() &&
+			if (key.algorithm() == k->algorithm() &&
 					reliableDnskey(key_list, *k) &&
-					reliableRrsig(key_list, *k))){
+					reliableRrsig(key_list, *k)){
 				oneExist = true;
 				break;
 			}
