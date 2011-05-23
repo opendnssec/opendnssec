@@ -233,7 +233,7 @@ enforce_task_perform(task_type *task)
     }
 
 	task->backoff = 0;
-    task->when = time_now() + 60;
+    task->when = t_when;
     return task;
 }
 
