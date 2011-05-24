@@ -52,6 +52,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                    );
     ods_writen(sockfd, buf, strlen(buf));
 
+    bool id_match = false;
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
 
         const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
@@ -61,12 +62,13 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
             std::string keyrole = keyrole_Name(key.role());
             
             if (id && key.locator()==id || 
-                zone && enfzone.name()==zone && key.role()==::ods::keystate::KSK)
+                zone && enfzone.name()==zone && key.role()&::ods::keystate::KSK)
             {
                 ::ods::keystate::KeyData *mkey =                 
                     keystateDoc->mutable_zones(z)->mutable_keys(k);
                 mkey->set_ds_seen(true);
                 mkey->set_submit_to_parent(false);
+                id_match = true;
             }
             
             const char *status = key.ds_seen() ? "yes" : "no";
@@ -77,6 +79,19 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                            key.locator().c_str(),
                            status
                            );
+            ods_writen(sockfd, buf, strlen(buf));
+        }
+    }
+    
+    if (!id_match) {
+        if (id) {
+            (void)snprintf(buf, ODS_SE_MAXLINE, 
+                    "WARNING - No key matches id \"%s\"\n", id);
+            ods_writen(sockfd, buf, strlen(buf));
+        }
+        if (zone) {
+            (void)snprintf(buf, ODS_SE_MAXLINE, 
+                    "WARNING - No key matches zone \"%s\"\n", zone);
             ods_writen(sockfd, buf, strlen(buf));
         }
     }
