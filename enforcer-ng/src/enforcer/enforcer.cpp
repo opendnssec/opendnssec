@@ -175,7 +175,6 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 		key.setDSSeen(false);
 		/* The signer configuration does not change */
 	} else if (key.isDSSeen()) {
-		/* TODO: Wait ttl after isDSSeen toggle? */
 		Tprop = record_state.lastChange() + policy->parent().ttlds()
 				+ policy->parent().registrationdelay()
 				+ policy->parent().propagationdelay();
@@ -714,13 +713,13 @@ bool updateKey(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	return key_changed;
 }
 
-/* Try to push each key for this zone to a next state. If one changes
+/**
+ * Try to push each key for this zone to a next state. If one changes
  * visit the rest again. Loop stops when no changes can be made without
  * advance of time. Return time of first possible event. */
 time_t updateZone(EnforcerZone &zone, const time_t now) {
 	time_t return_at = -1;
 	time_t next_update_for_key;
-	KeyData *key;
 	KeyDataList &key_list = zone.keyDataList();
 	const char *scmd = "updateZone";
 	int dbg_cnt = 0;
@@ -734,9 +733,10 @@ time_t updateZone(EnforcerZone &zone, const time_t now) {
 		a_key_changed = false;
 		/* Loop over all keys */
 		for (int i = 0; i < key_list.numKeys(); i++) {
-			key = &key_list.key(i);
-			a_key_changed |= updateKey(zone, key_list, *key, now, next_update_for_key);
-			dbg_cnt += (int) a_key_changed;
+			if (updateKey(zone, key_list, key_list.key(i), now, next_update_for_key)) {
+				a_key_changed = true;
+				dbg_cnt++;
+			}
 			minTime(next_update_for_key, return_at);
 		}
 	}
@@ -795,14 +795,18 @@ void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
 	}
 }
 
+/**
+ * Finds the last inserted key in the list. It's role must be a 
+ * subset or equal to role.
+ * \param[in] keys list of keys to search in
+ * \param[in] role minimum role target must have
+ * \return time_t inception time of youngest matching key. -1 iff none found
+ * */
 time_t most_recent_inception(KeyDataList &keys, KeyRole role) {
     time_t most_recent = -1; /* default answer when no keys available */
     for (int k=0; k<keys.numKeys(); ++k) {
         KeyData &key = keys.key(k);
-
-        /* TODO: figure out if there are more factors that may require 
-         * a key to be skipped */
-        if (!key.revoke() && key.role() == role) {
+        if (!key.revoke() && (key.role()|~role) == (KSK|ZSK)) {
             if (key.inception() > most_recent)
                 most_recent = key.inception();
         }
@@ -893,8 +897,7 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 						!(key.role() & role) || 
 						key.locator().compare(new_key.locator()) == 0)
 					continue;
-				/* TODO: this function does not exist! */
-				//key.setIntroducing = false;
+				key.setIntroducing(false);
 				ods_log_verbose("[%s] %s decommissioning old key", module_str, scmd);
 			}
 		}
