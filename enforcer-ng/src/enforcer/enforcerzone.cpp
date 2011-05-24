@@ -153,6 +153,11 @@ bool KeyDataPB::introducing()
     return _keydata->introducing();
 }
 
+void KeyDataPB::setIntroducing(bool value)
+{
+    _keydata->set_introducing(value);
+}
+
 bool KeyDataPB::revoke()
 {
     return _keydata->revoke();

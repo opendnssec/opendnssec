@@ -61,6 +61,7 @@ public:
     virtual void setSubmitToParent(bool value);
 
     virtual bool introducing(); /* goal */
+    virtual void setIntroducing(bool value);
     
     /* alternative path */
     virtual bool revoke();

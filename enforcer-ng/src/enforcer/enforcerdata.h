@@ -160,8 +160,9 @@ public:
     virtual bool submitToParent() = 0;
     virtual void setSubmitToParent(bool value) = 0;
 
-    /* Movement direction */
+    /* Movement direction, efault true */
     virtual bool introducing() = 0; /* goal */
+    virtual void setIntroducing(bool value) = 0;
     
     /* selective brakes */
     virtual bool standby() = 0;
