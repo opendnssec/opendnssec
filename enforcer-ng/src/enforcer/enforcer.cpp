@@ -766,7 +766,7 @@ void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
 		const int index, int *bits, int *algorithm, int *lifetime,
         string &repository) {
 	const char *scmd = "keyProperties";
-	
+
 	switch (role) {
 		case KSK:
 			assert(index < policyKeys->ksk_size());
@@ -803,15 +803,16 @@ void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
  * \return time_t inception time of youngest matching key. -1 iff none found
  * */
 time_t most_recent_inception(KeyDataList &keys, KeyRole role) {
-    time_t most_recent = -1; /* default answer when no keys available */
-    for (int k=0; k<keys.numKeys(); ++k) {
-        KeyData &key = keys.key(k);
-        if (!key.revoke() && (key.role()|~role) == (KSK|ZSK)) {
-            if (key.inception() > most_recent)
-                most_recent = key.inception();
-        }
-    }
-    return most_recent;
+	time_t most_recent = -1; /* default answer when no keys available */
+
+	for (int k=0; k<keys.numKeys(); ++k) {
+		KeyData &key = keys.key(k);
+		if (!key.revoke() && (key.role()&role) == role && key.inception()) {
+			if (key.inception() > most_recent)
+				most_recent = key.inception();
+		}
+	}
+	return most_recent;
 }
 
 /* See what needs to be done for the policy */
@@ -886,6 +887,7 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 			new_key.keyStateDS().setState(HID);
 			new_key.keyStateDNSKEY().setState(HID);
 			new_key.keyStateRRSIG().setState(HID);
+			new_key.setIntroducing(true);
 
 			/* New key inserted, come back after its lifetime */
 			minTime( now + lifetime, return_at );
@@ -894,11 +896,12 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 			for (int j = 0; j < key_list.numKeys(); j++) {
 				KeyData &key = key_list.key(j);
 				if (	!key.introducing() ||
-						!(key.role() & role) || 
-						key.locator().compare(new_key.locator()) == 0)
+					!(key.role() & role)||
+					key.locator().compare(new_key.locator()) == 0)
 					continue;
 				key.setIntroducing(false);
-				ods_log_verbose("[%s] %s decommissioning old key", module_str, scmd);
+				ods_log_verbose("[%s] %s decommissioning old key: %s", 
+					module_str, scmd, key.locator().c_str());
 			}
 		}
 	} /* loop over KeyRole */
@@ -908,15 +911,15 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 /* Removes all keys from list that are no longer used. */
 inline void removeDeadKeys(KeyDataList &key_list) {
 	const char *scmd = "removeDeadKeys";
-	
+
 	for (int i = key_list.numKeys()-1; i >= 0; i--) {
 		KeyData &key = key_list.key(i);
 		if (	key.keyStateDS().state() == HID &&
 				key.keyStateDNSKEY().state() == HID &&
 				key.keyStateRRSIG().state() == HID &&
 				!key.introducing()) {
+			ods_log_verbose("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
 			key_list.delKey(i);
-			ods_log_verbose("[%s] %s delete key: %d", module_str, scmd, i);
 		}
 	}
 }
