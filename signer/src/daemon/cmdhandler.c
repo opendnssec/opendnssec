@@ -717,7 +717,7 @@ again:
         if (n <= 0) {
             return;
         }
-        ods_log_verbose("[%s] received command %s[%i]", cmdh_str, buf, n);
+        ods_log_info("[%s] received command %s[%i]", cmdh_str, buf, n);
 
         if (n == 4 && strncmp(buf, "help", n) == 0) {
             ods_log_debug("[%s] help command", cmdh_str);

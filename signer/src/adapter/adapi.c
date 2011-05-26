@@ -37,6 +37,7 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
+#include "signer/zone.h"
 
 #include <ldns/ldns.h>
 
@@ -92,6 +93,23 @@ adapi_get_origin(zone_type* zone)
     }
     ods_log_assert(zone);
     return zone->origin;
+}
+
+
+/**
+ * Get class.
+ *
+ */
+ldns_rr_class
+adapi_get_class(zone_type* zone)
+{
+    if (!zone) {
+        ods_log_error("[%s] unable to get class: "
+            "no zone", adapi_str);
+        return LDNS_RR_CLASS_FIRST;
+    }
+    ods_log_assert(zone);
+    return zone->klass;
 }
 
 
