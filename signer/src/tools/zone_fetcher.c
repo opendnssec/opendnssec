@@ -851,6 +851,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
     char lock_ext[32];
     char axfr_file[MAXPATHLEN];
     char dest_file[MAXPATHLEN];
+    char lock_file[MAXPATHLEN];
     char engine_sign_cmd[MAXPATHLEN + 1024];
     int soa_seen = 0;
     ldns_resolver* xfrd = NULL;
@@ -927,7 +928,6 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
                 return -1;
             }
         }
-
         assert(fd);
 
         axfr_rr = ldns_axfr_next(xfrd);
@@ -976,6 +976,26 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
             /* moving and kicking */
             snprintf(dest_file, sizeof(dest_file), "%s.axfr",
                 zone->input_file?zone->input_file:"(null)");
+            snprintf(lock_file, sizeof(lock_file), "%s.lock",
+                zone->input_file?zone->input_file:"(null)");
+
+lock_axfr:
+            if (access(lock_file, F_OK) == 0) {
+                se_log_debug("zone fetcher axfr file %s is locked, "
+                    "waiting...", dest_file);
+                sleep(1);
+                goto lock_axfr;
+            } else {
+                fd = fopen(lock_file, "w");
+                if (!fd) {
+                    se_log_error("zone fetcher cannot lock AXFR file %s",
+                        lock_file);
+                    ldns_resolver_deep_free(xfrd);
+                    return -1;
+                }
+            }
+            assert(fd); /* locked */
+
             if(rename(axfr_file, dest_file) == 0) {
                 if (kick_signer) {
                     snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
@@ -991,6 +1011,9 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
                 se_log_error("zone fetcher could not move AXFR to %s",
                     dest_file);
             }
+
+            fclose(fd);
+            (void) unlink(lock_file); /* unlocked */
 
             ldns_resolver_deep_free(xfrd);
             return 0;

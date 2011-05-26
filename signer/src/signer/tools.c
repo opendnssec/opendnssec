@@ -53,9 +53,11 @@ tools_read_input(zone_type* zone)
 {
     char* tmpname = NULL;
     char* axfrname = NULL;
+    char* lockname = NULL;
     int error = 0;
     time_t start = 0;
     time_t end = 0;
+    FILE* fd = NULL;
 
     se_log_assert(zone);
     se_log_assert(zone->inbound_adapter);
@@ -74,15 +76,42 @@ tools_read_input(zone_type* zone)
                     zone->name?zone->name:"(null)");
                 axfrname = se_build_path(zone->inbound_adapter->filename,
                     ".axfr", 0);
+                lockname = se_build_path(
+                    zone->inbound_adapter->filename, ".lock", 0);
+
+lock_fetch:
+                if (access(lockname, F_OK) == 0) {
+                    se_log_debug("axfr file %s is locked, waiting"
+                        "waiting...", tmpname);
+                    sleep(1);
+                    goto lock_fetch;
+                } else {
+                    fd = fopen(lockname, "w");
+                    if (!fd) {
+                        se_log_error("zone fetcher cannot lock AXFR file %s",
+                            lockname);
+                        se_free((void*)tmpname);
+                        se_free((void*)lockname);
+                        return 1;
+                    }
+                }
+                se_log_assert(fd); /* locked */
+
                 error = se_file_copy(axfrname,
                     zone->inbound_adapter->filename);
+
+                fclose(fd);
+                (void) unlink(lockname); /* unlocked */
+
                 if (error) {
                     se_log_error("unable to copy axfr file %s to %s",
                         axfrname, zone->inbound_adapter->filename);
                     se_free((void*)axfrname);
+                    se_free((void*)lockname);
                     return 1;
                 }
                 se_free((void*)axfrname);
+                se_free((void*)lockname);
             }
 
             se_log_verbose("read zone %s from input file adapter %s",
