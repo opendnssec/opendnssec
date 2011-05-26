@@ -34,12 +34,12 @@
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
 #include "scheduler/task.h"
+#include "shared/backup.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/hsm.h"
 #include "shared/log.h"
 #include "shared/status.h"
-#include "signer/backup.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"
 

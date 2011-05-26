@@ -32,10 +32,10 @@
  */
 
 #include "shared/allocator.h"
+#include "shared/backup.h"
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
-#include "signer/backup.h"
 #include "signer/keys.h"
 
 static const char* key_str = "keys";

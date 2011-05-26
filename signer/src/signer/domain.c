@@ -32,12 +32,12 @@
  */
 
 #include "config.h"
+#include "shared/backup.h"
 #include "shared/duration.h"
 #include "shared/allocator.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "signer/backup.h"
 #include "signer/domain.h"
 #include "signer/rrset.h"
 #include "signer/zone.h"

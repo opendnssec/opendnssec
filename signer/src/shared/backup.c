@@ -32,10 +32,10 @@
  */
 
 #include "config.h"
+#include "shared/backup.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/log.h"
-#include "signer/backup.h"
 
 #include <ldns/ldns.h>
 
