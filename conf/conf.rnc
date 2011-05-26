@@ -118,6 +118,11 @@ start = element Configuration {
 		# DEFAULT: 4
 		element SignerThreads { xsd:positiveInteger }?,
 
+                # Initialize Adapters
+                element Adapters {
+                        element Adapter { adapter }+
+                }?,
+
 		# System command to call after a zone has been (re)signed
 		#
 		# '%zone' in the string will be replaced by the zone name
@@ -167,3 +172,9 @@ mysql = element MySQL {
 }
 
 sqlite = element SQLite { xsd:string }
+
+# adapters
+adapter = element Adapter {
+	attribute type { xsd:string },
+	xsd:string
+}

@@ -72,6 +72,14 @@
 		<SignerThreads>4</SignerThreads>
 -->
 
+<!--
+		<Adapters>
+			<Adapter type="File">@OPENDNSSEC_CONFIG_DIR@/adapters/file.cfg</Adapter>
+			<Adapter type="DNS">@OPENDNSSEC_CONFIG_DIR@/adapters/dns.cfg</Adapter>
+                </Adapters>
+-->
+
+
 		<!-- the <NotifyCommmand> will expand the following variables:
 
 		     %zone      the name of the zone that was signed
