@@ -20,6 +20,7 @@ sbin_PROGRAMS = ods-signerd ods-signer
 ods_signerd_SOURCES=		ods-signerd.c \
 				adapter/adapi.c adapter/adapi.h \
 				adapter/adapter.c adapter/adapter.h \
+				adapter/addns.c adapter/addns.h \
 				adapter/adfile.c adapter/adfile.h \
 				adapter/adutil.c adapter/adutil.h \
 				daemon/cfg.c daemon/cfg.h \
