@@ -39,7 +39,6 @@
 #include <unistd.h>
 
 #include "config.h"
-#include "shared/locks.h"
 
 #ifndef TOOLS_ZONEFETCHER_H
 #define TOOLS_ZONEFETCHER_H
