@@ -462,13 +462,15 @@ module KASPChecker
             end
 
             # 15. Warn if resalt is less than resign interval.
-            resign_secs = get_duration(policy,'Signatures/Resign', kasp_file)
-            resalt_secs = get_duration(policy,'Denial/NSEC3/Resalt', kasp_file)
-            if (resalt_secs)
-              if (resalt_secs < resign_secs)
-                log(LOG_WARNING, "NSEC3 resalt interval (#{resalt_secs}) is less than" +
-                    " signature resign interval (#{resign_secs})" +
-                    " for #{name} Policy in #{kasp_file}")
+            if (denial_type == "NSEC3")
+              resign_secs = get_duration(policy,'Signatures/Resign', kasp_file)
+              resalt_secs = get_duration(policy,'Denial/NSEC3/Resalt', kasp_file)
+              if (resalt_secs)
+                if (resalt_secs < resign_secs)
+                  log(LOG_WARNING, "NSEC3 resalt interval (#{resalt_secs}) is less than" +
+                      " signature resign interval (#{resign_secs})" +
+                      " for #{name} Policy in #{kasp_file}")
+                end
               end
             end
 
