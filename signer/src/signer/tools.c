@@ -51,8 +51,10 @@ tools_input(zone_type* zone)
     ods_status status = ODS_STATUS_OK;
     int error = 0;
     char* tmpname = NULL;
+    char* lockname = NULL;
     time_t start = 0;
     time_t end = 0;
+    FILE* fd = NULL;
 
     if (!zone) {
         ods_log_error("[%s] unable to read zone: no zone", tools_str);
@@ -83,14 +85,41 @@ tools_input(zone_type* zone)
                 zone->name?zone->name:"(null)");
             tmpname = ods_build_path(
                 zone->adinbound->configstr, ".axfr", 0);
+            lockname = ods_build_path(
+                zone->adinbound->configstr, ".lock", 0);
+
+lock_fetch:
+            if (access(lockname, F_OK) == 0) {
+                ods_log_deeebug("axfr file %s is locked, waiting"
+                    "waiting...", tmpname);
+                sleep(1);
+                goto lock_fetch;
+            } else {
+                fd = fopen(lockname, "w");
+                if (!fd) {
+                    ods_log_error("zone fetcher cannot lock AXFR file %s",
+                        lockname);
+                    free((void*)tmpname);
+                    free((void*)lockname);
+                    return ODS_STATUS_ERR;
+                }
+            }
+            ods_log_assert(fd); /* locked */
+
             error = ods_file_copy(tmpname, zone->adinbound->configstr);
+
+            fclose(fd);
+            (void) unlink(lockname); /* unlocked */
+
             if (error) {
                 ods_log_error("[%s] unable to copy axfr file %s to %s",
                     tools_str, tmpname, zone->adinbound->configstr);
                 free((void*)tmpname);
+                free((void*)lockname);
                 return ODS_STATUS_ERR;
             }
             free((void*)tmpname);
+            free((void*)lockname);
         }
     }
 
