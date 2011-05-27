@@ -1,5 +1,11 @@
 $Id$
 
+OpenDNSSEC 1.3 branch
+
+Bugfixes:
+* Signer Engine: The default working directory was not specified.
+
+
 OpenDNSSEC 1.3.0.rc2 - 2011-05-18
 
 * Match the names of the signer pidfile and enforcer pidfile.
