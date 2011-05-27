@@ -45,8 +45,8 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
                    "Zone:                           "
                    "Key role:     "
                    "DS:          "
-                   "RRSIG:       "
                    "DNSKEY:      "
+                   "RRSIG:       "
                    "Id:"
                    "\n"
                    ,datastore
@@ -68,8 +68,8 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
                        zone.name().c_str(),
                        keyrole.c_str(),
                        ds_rrstate.c_str(),
-                       rrsig_rrstate.c_str(),
                        dnskey_rrstate.c_str(),
+                       rrsig_rrstate.c_str(),
                        key.locator().c_str()
                        );
             ods_writen(sockfd, buf, strlen(buf));
