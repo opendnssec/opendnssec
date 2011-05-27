@@ -2,7 +2,14 @@ $Id$
 
 OpenDNSSEC 1.3 branch
 
+* Do not distribute trang.
+
 Bugfixes:
+* Fix test for java executable and others.
+* Auditor: Fix delegation checks.
+* Bugfix #242: Lock axfr file when reading/writing.
+* ods-kaspcheck: Do not expect resalt in NSEC policy.
+* Signer Engine: Ifdef a header file.
 * Signer Engine: The default working directory was not specified.
 
 
