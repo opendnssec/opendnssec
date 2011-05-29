@@ -35,8 +35,6 @@ bool generate_keypair(int sockfd,
         return false;
     }
     
-    printf("Generating %d bit RSA key in repository: %s\n",
-           keysize, repository);
     ods_log_debug("[%s] Generating %d bit RSA key in repository: %s",
                   module_str,keysize,repository);
     (void)snprintf(buf, ODS_SE_MAXLINE,
