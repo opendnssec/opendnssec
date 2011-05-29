@@ -144,7 +144,7 @@ self_pipe_trick(engine_type* engine)
 {
     int sockfd, ret;
     struct sockaddr_un servaddr;
-    const char* servsock_filename = ODS_SE_SOCKFILE;
+    const char* servsock_filename = OPENDNSSEC_ENFORCER_SOCKETFILE;
 
     ods_log_assert(engine);
     ods_log_assert(engine->cmdhandler);
