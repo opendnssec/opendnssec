@@ -5,9 +5,10 @@
 #include "enforcer/enforcer.h"
 #include "enforcer/enforcerdata.h"
 #include "policy/kasp.pb.h"
+#include "keystate/keystate.pb.h" /* for human names */
 
-// Interface of this cpp file is used by C code, we need to declare
-// extern "C" to prevent linking errors.
+/* Interface of this cpp file is used by C code, we need to declare
+ * extern "C" to prevent linking errors. */
 extern "C" {
 	#include "shared/duration.h"
 	#include "shared/log.h"
@@ -17,17 +18,22 @@ using namespace std;
 
 static const char *module_str = "enforcer";
 
-/* Move this to enforcerdata at later time?
- * Hidden, rumoured, comitted, omnipresent, unretentive, postcomitted
- * revoked
- * */
-enum RecordState { HID, RUM, COM, OMN, UNR, PCM, REV };
-string STATE_NAME[] = {"HID", "RUM", "COM", "OMN", "UNR", "PCM", "REV"};
+/* Link these to keystate to prevent later ambiguities.
+ * Alias rather than use directly, we don't want to be too dependent
+ * on spelling. */
+#define HID ods::keystate::hidden
+#define RUM ods::keystate::rumoured
+#define COM ods::keystate::committed
+#define OMN ods::keystate::omnipresent
+#define UNR ods::keystate::unretentive
+#define PCM ods::keystate::postcomitted
+#define REV ods::keystate::revoked
 
 /* When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
 
-/* Stores smallest of two times in *min.
+/**
+ * Stores smallest of two times in *min.
  * Avoiding negative values, which mean no update necessary
  * */
 inline void minTime(const time_t t, time_t &min) {
@@ -35,7 +41,15 @@ inline void minTime(const time_t t, time_t &min) {
 		min = t;
 }
 
-/* Search for youngest key in use by any zone with this policy
+/** 
+ * Translate the record state to something human readable.
+ **/
+const char* stateName(const int state) {
+	return ods::keystate::rrstate_Name((ods::keystate::rrstate)state).c_str();
+}
+
+/**
+ * Search for youngest key in use by any zone with this policy
  * with at least the roles requested. See if it isn't expired.
  * also, check if it isn't in zone already. Also length, algorithm
  * must match and it must be a first generation key.
@@ -58,12 +72,12 @@ bool getLastReusableKey(EnforcerZone &zone,
 
 /* Applies new state to record and keeps additional administration.
  * */
-void setState(KeyState &record_state, const RecordState new_state,
+void setState(KeyState &record_state, const int new_state,
 		const time_t now ) {
 	const char *scmd = "setState";
 	
 	ods_log_verbose("[%s] %s to %s", module_str, scmd, 
-			STATE_NAME[new_state].c_str());
+			stateName(new_state));
 	record_state.setState(new_state);
 	record_state.setLastChange(now);
 }
@@ -125,7 +139,7 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 
 	KeyState &record_state = key.keyStateDS();
 	ods_log_verbose("[%s] %s state %s", module_str, scmd, 
-			STATE_NAME[record_state.state()].c_str());
+			stateName(record_state.state()));
 	switch ( record_state.state() ) {
 
 	case HID:
@@ -339,7 +353,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 
 	KeyState &record_state = key.keyStateDNSKEY();
 	ods_log_verbose("[%s] %s state %s", module_str, scmd, 
-			STATE_NAME[record_state.state()].c_str());
+			stateName(record_state.state()));
 	switch ( record_state.state() ) {
 
 	case HID:
@@ -531,7 +545,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 
 	KeyState &record_state = key.keyStateRRSIG();
 	ods_log_verbose("[%s] %s state %s", module_str, scmd, 
-			STATE_NAME[record_state.state()].c_str());
+			stateName(record_state.state()));
 	switch ( record_state.state() ) {
 
 	case HID:
