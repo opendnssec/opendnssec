@@ -244,7 +244,7 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	ds_omni_or_com = false;
 	for (int i = 0; i < num_keys; i++) {
 		k = &key_list.key(i);
-		ds_omni_or_com |= k!=&key && (k->keyStateDS().state() == OMN ||
+		ds_omni_or_com |= k != &key && (k->keyStateDS().state() == OMN ||
 				(k->keyStateDS().state() == COM && exists_ds_postcomitted));
 		if (k->algorithm() != key.algorithm() ) continue;
 		if (k->keyStateDS().state() == HID) continue;
@@ -345,9 +345,9 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 	case HID:
 	if (!key.introducing()) break;
 	if (record_state.minimize() && (key.keyStateDS().state() == OMN ||
-		!key.role() & KSK) &&
+		!(key.role() & KSK)) &&
 		(key.keyStateRRSIG().state() == OMN ||
-		!key.role() & ZSK) ) {
+		!(key.role() & ZSK)) ) {
 		setState(record_state, COM, now);
 		record_changed = true;
 		/* The DNSKEY now needs to be published. */
@@ -439,50 +439,44 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 		break;
 		}
 	}
-	if ( !key.keyStateDS().state() == PCM &&
-			!key.keyStateRRSIG().state() == PCM ) {
+	if ( key.keyStateDS().state() != PCM &&
+			key.keyStateRRSIG().state() != PCM ) {
+		/* We must check if any other key depend on 'key'
+		 * if so, we can not take an action */
 		bool all = true;
+		/* forall */
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
-			if ( k->role() & KSK && k->keyStateDS().state() != HID &&
-					(k == &key || !reliableDnskey(key_list, *k)) ) {
-				/* This key breaks the chain, see if there is a
-				 * candidate that fixes this. */
-				all = false;
-				for ( int j = 0; j < num_keys; j++ ) {
-					l = &key_list.key(j);
-					if ( k != l && k->algorithm() == l->algorithm() &&
-							reliableDs( key_list, *l ) &&
-							reliableDnskey( key_list, *l ) ) {
-						all = true;
-						break;
-					}
-				}
-				if ( !all ) break;
+			//~ if (&key == k) continue;
+			bool ksk_ok, zsk_ok;
+			ksk_ok = !(k->role() & KSK) || k->keyStateDS().state() == HID ||
+				(k != &key && reliableDnskey(key_list, *k));
+			zsk_ok = !(k->role() & ZSK) || k->keyStateRRSIG().state() == HID ||
+				(k != &key && reliableRrsig(key_list, *k));
+			if (ksk_ok && zsk_ok) continue;
+			/* This key breaks the chain, see if there is a
+			 * candidate that fixes this. */
+			/* exists */
+			for ( int j = 0; j < num_keys; j++ ) {
+				l = &key_list.key(j);
+				if ( 		k == l ||
+						k->algorithm() == l->algorithm() ||
+	                                        reliableDnskey( key_list, *l ) )
+					continue;
+				ksk_ok |= reliableDs( key_list, *l );
+				zsk_ok |= reliableRrsig( key_list, *l );
+				if (ksk_ok && zsk_ok) break; /* inner loop */
 			}
-			/* Passed the first test */
-			if ( k->keyStateDNSKEY().state() != HID &&
-				!reliableRrsig( key_list, *k ) ) {
-				/* This key breaks the chain, see if there is a
-				 * candidate that fixes this. */
+			if ( !ksk_ok || !zsk_ok ) {
 				all = false;
-				for ( int j = 0; j < num_keys; j++ ) {
-					l = &key_list.key(j);
-					if ( k != l && k->algorithm() == l->algorithm() &&
-							reliableRrsig( key_list, *l ) &&
-							reliableDnskey( key_list, *l ) ) {
-						all = true;
-						break;
-					}
-				}
-				if ( !all ) break;
+				break; /* outer loop */
 			}
 		}
-		if ( !all ) break; /* from switch */
-		setState(record_state, key.revoke() ? REV : UNR, now);
-		record_changed = true;
-		/* submit or revoke stuff */
-		break;
+		if ( all ) {
+			setState(record_state, key.revoke() ? REV : UNR, now);
+			record_changed = true;
+			/* submit or revoke stuff */
+		}
 	}
 	break;
 
